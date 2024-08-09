@@ -1,0 +1,195 @@
+{
+  "merge_commit_sha": "a8dbd5f4158f3bfaeb0e1b46576de18514f34219",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/beamformer/tests/test_dics.py": {
+      "a": 2,
+      "d": 6
+    },
+    "mne/beamformer/tests/test_lcmv.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/channels/tests/test_interpolation.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/channels/tests/test_montage.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/commands/tests/test_commands.py": {
+      "a": 5,
+      "d": 5
+    },
+    "mne/decoding/tests/test_search_light.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/inverse_sparse/tests/test_mxne_inverse.py": {
+      "a": 11,
+      "d": 9
+    },
+    "mne/inverse_sparse/tests/test_mxne_optim.py": {
+      "a": 13,
+      "d": 13
+    },
+    "mne/io/ctf/tests/test_ctf.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/io/curry/tests/test_curry.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/io/edf/tests/test_edf.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/io/fieldtrip/tests/test_fieldtrip.py": {
+      "a": 22,
+      "d": 16
+    },
+    "mne/io/fiff/tests/test_raw_fiff.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/tests/test_meas_info.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/io/tests/test_reference.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/io/tests/test_what.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/minimum_norm/tests/test_inverse.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/preprocessing/tests/test_ica.py": {
+      "a": 18,
+      "d": 19
+    },
+    "mne/preprocessing/tests/test_maxwell.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/stats/tests/test_cluster_level.py": {
+      "a": 6,
+      "d": 4
+    },
+    "mne/tests/test_annotations.py": {
+      "a": 7,
+      "d": 7
+    },
+    "mne/tests/test_coreg.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/tests/test_cov.py": {
+      "a": 6,
+      "d": 5
+    },
+    "mne/tests/test_dipole.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/tests/test_docstring_parameters.py": {
+      "a": 5,
+      "d": 6
+    },
+    "mne/tests/test_label.py": {
+      "a": 5,
+      "d": 4
+    },
+    "mne/tests/test_line_endings.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/tests/test_morph.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/tests/test_morph_map.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/tests/test_proj.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/tests/test_source_estimate.py": {
+      "a": 7,
+      "d": 6
+    },
+    "mne/tests/test_source_space.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/tests/test_surface.py": {
+      "a": 4,
+      "d": 3
+    },
+    "mne/time_frequency/tests/test_multitaper.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/time_frequency/tests/test_stockwell.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/utils/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/_logging.py": {
+      "a": 9,
+      "d": 22
+    },
+    "mne/utils/tests/test_linalg.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/utils/tests/test_testing.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/viz/tests/test_3d_mpl.py": {
+      "a": 5,
+      "d": 3
+    },
+    "mne/viz/tests/test_ica.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/viz/tests/test_raw.py": {
+      "a": 4,
+      "d": 5
+    },
+    "mne/viz/tests/test_topo.py": {
+      "a": 3,
+      "d": 2
+    },
+    "tools/azure_dependencies.sh": {
+      "a": 3,
+      "d": 1
+    },
+    "tools/github_actions_dependencies.sh": {
+      "a": 13,
+      "d": 10
+    }
+  }
+}

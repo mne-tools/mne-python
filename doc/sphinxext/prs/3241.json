@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "e51fa95b309b13de1f242fde49f25d53361900b3",
+  "authors": [
+    {
+      "n": "Jean-Rémi KING",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/manual/appendix/bem_model.rst": {
+      "a": 8,
+      "d": 2
+    },
+    "mne/bem.py": {
+      "a": 15,
+      "d": 2
+    },
+    "mne/commands/mne_flash_bem.py": {
+      "a": 4,
+      "d": 0
+    }
+  }
+}

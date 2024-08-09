@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "675f38a036804b0c1259d05f2ff6b0131d69fc81",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "autofix-ci[bot]",
+      "e": "114827586+autofix-ci[bot]@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/12526.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/snirf/_snirf.py": {
+      "a": 8,
+      "d": 1
+    },
+    "mne/io/snirf/tests/test_snirf.py": {
+      "a": 7,
+      "d": 0
+    }
+  }
+}

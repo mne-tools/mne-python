@@ -181,7 +181,8 @@ def maxwell_filter_prepare_emptyroom(
 
     # handle first_samp
     raw_er_prepared.annotations.onset += raw.first_time - raw_er_prepared.first_time
-    raw_er_prepared._cropped_samp = raw._cropped_samp
+    # don't copy _cropped_samp directly, as sfreqs may differ
+    raw_er_prepared._cropped_samp = raw_er_prepared.time_as_index(raw.first_time).item()
 
     # handle annotations
     if annotations != "keep":
@@ -1420,12 +1421,6 @@ def _col_norm_pinv(x):
 def _sq(x):
     """Square quickly."""
     return x * x
-
-
-def _check_finite(data):
-    """Ensure data is finite."""
-    if not np.isfinite(data).all():
-        raise RuntimeError("data contains non-finite numbers")
 
 
 def _sph_harm_norm(order, degree):

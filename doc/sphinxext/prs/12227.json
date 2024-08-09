@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "1c86d86206610567091ba3fd2dcb63f919c768dc",
+  "authors": [
+    {
+      "n": "Tristan Stenner",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/v1.6.rst": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,103 @@
+{
+  "merge_commit_sha": "1c3a4288871ff87b69256f84e404adb11f3e6ca5",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 0,
+      "d": 6
+    },
+    "mne/baseline.py": {
+      "a": 2,
+      "d": 41
+    },
+    "mne/beamformer/tests/test_lcmv.py": {
+      "a": 2,
+      "d": 3
+    },
+    "mne/beamformer/tests/test_rap_music.py": {
+      "a": 2,
+      "d": 5
+    },
+    "mne/conftest.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/dipole.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/epochs.py": {
+      "a": 55,
+      "d": 58
+    },
+    "mne/evoked.py": {
+      "a": 28,
+      "d": 165
+    },
+    "mne/inverse_sparse/tests/test_gamma_map.py": {
+      "a": 2,
+      "d": 5
+    },
+    "mne/inverse_sparse/tests/test_mxne_inverse.py": {
+      "a": 2,
+      "d": 4
+    },
+    "mne/minimum_norm/tests/test_inverse.py": {
+      "a": 2,
+      "d": 6
+    },
+    "mne/report.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/tests/test_dipole.py": {
+      "a": 3,
+      "d": 6
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 5,
+      "d": 22
+    },
+    "mne/tests/test_evoked.py": {
+      "a": 3,
+      "d": 36
+    },
+    "mne/tests/test_morph.py": {
+      "a": 1,
+      "d": 3
+    },
+    "mne/tests/test_report.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/tests/test_source_estimate.py": {
+      "a": 2,
+      "d": 6
+    },
+    "mne/utils/docs.py": {
+      "a": 15,
+      "d": 44
+    },
+    "mne/viz/tests/test_topo.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/viz/tests/test_topomap.py": {
+      "a": 1,
+      "d": 2
+    },
+    "tutorials/evoked/plot_10_evoked_overview.py": {
+      "a": 0,
+      "d": 19
+    },
+    "tutorials/evoked/plot_20_visualize_evoked.py": {
+      "a": 2,
+      "d": 6
+    }
+  }
+}

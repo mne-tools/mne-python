@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "dfc673936734a418d1b2d23380c591e551f6136c",
+  "authors": [
+    {
+      "n": "Lukas Hecker",
+      "e": null
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "doc/install/pre_install.rst": {
+      "a": 2,
+      "d": 0
+    }
+  }
+}

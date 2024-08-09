@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "9bb4bf21f8284ed7074ebc5f75f673a077f7e7b1",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/install/contributing.rst": {
+      "a": 9,
+      "d": 1
+    }
+  }
+}

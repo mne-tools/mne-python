@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "9108028e91255e1fa9ab255c25929ccada1a0cb6",
+  "authors": [
+    {
+      "n": "MartinBaBer",
+      "e": "Martinb.nmb@gmail.com"
+    }
+  ],
+  "changes": {
+    "README.rst": {
+      "a": 4,
+      "d": 0
+    }
+  }
+}

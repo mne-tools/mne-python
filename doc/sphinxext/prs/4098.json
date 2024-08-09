@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "2aebcc4cde8601aa105a2b1d7fa6618763ef3bb5",
+  "authors": [
+    {
+      "n": "Chris Holdgraf",
+      "e": null
+    }
+  ],
+  "changes": {
+    "examples/visualization/plot_3d_to_2d.py": {
+      "a": 120,
+      "d": 0
+    },
+    "examples/visualization/plot_clickable_image.py": {
+      "a": 0,
+      "d": 66
+    },
+    "mne/data/image/custom_layout.lout": {
+      "a": 23,
+      "d": 24
+    },
+    "mne/viz/utils.py": {
+      "a": 5,
+      "d": 2
+    }
+  }
+}

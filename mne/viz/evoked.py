@@ -428,6 +428,8 @@ def _plot_evoked(
             # The user called Evoked.plot_image() or plot_evoked_image(), the
             # clim parameters of those functions end up to be the ylim here.
             raise ValueError("`clim` must be a dict. E.g. clim = dict(eeg=[-20, 20])")
+    else:
+        _validate_type(ylim, (dict, None), "ylim")
 
     picks = _picks_to_idx(info, picks, none="all", exclude=())
     if len(picks) != len(set(picks)):
@@ -472,8 +474,8 @@ def _plot_evoked(
 
     if len(axes) != len(ch_types_used):
         raise ValueError(
-            "Number of axes (%g) must match number of channel "
-            "types (%d: %s)" % (len(axes), len(ch_types_used), sorted(ch_types_used))
+            f"Number of axes ({len(axes):g}) must match number of channel "
+            f"types ({len(ch_types_used)}: {sorted(ch_types_used)})"
         )
     _check_option("proj", proj, (True, False, "interactive", "reconstruct"))
     noise_cov = _check_cov(noise_cov, info)
@@ -781,9 +783,7 @@ def _plot_lines(
                 ax.set_xlim(xlim)
             if ylim is not None and this_type in ylim:
                 ax.set_ylim(ylim[this_type])
-            ax.set(
-                title=r"%s (%d channel%s)" % (titles[this_type], len(D), _pl(len(D)))
-            )
+            ax.set(title=rf"{titles[this_type]} ({len(D)} channel{_pl(len(D))})")
             if ai == 0:
                 _add_nave(ax, nave)
             if hline is not None:
@@ -852,7 +852,7 @@ def _add_nave(ax, nave):
     """Add nave to axes."""
     if nave is not None:
         ax.annotate(
-            r"N$_{\mathrm{ave}}$=%d" % nave,
+            r"N$_{\mathrm{ave}}$=" + f"{nave}",
             ha="right",
             va="bottom",
             xy=(1, 1),
@@ -955,7 +955,7 @@ def _plot_image(
             ax.CB = DraggableColorbar(cbar, im, "evoked_image", this_type)
 
     ylabel = "Channels" if show_names else "Channel (index)"
-    t = titles[this_type] + " (%d channel%s" % (len(data), _pl(data)) + t_end
+    t = titles[this_type] + f" ({len(data)} channel{_pl(data)}" + t_end
     ax.set(ylabel=ylabel, xlabel=f"Time ({time_unit})", title=t)
     _add_nave(ax, nave)
 
@@ -1005,20 +1005,16 @@ def plot_evoked(
     evoked : instance of Evoked
         The evoked data.
     %(picks_all)s
-    exclude : list of str | 'bads'
-        Channels names to exclude from being shown. If 'bads', the
+    exclude : list of str | ``'bads'``
+        Channels names to exclude from being shown. If ``'bads'``, the
         bad channels are excluded.
     unit : bool
         Scale plot with channel (SI) unit.
     show : bool
         Show figure if True.
-    ylim : dict | None
-        Y limits for plots (after scaling has been applied). e.g.
-        ylim = dict(eeg=[-20, 20])
-        Valid keys are eeg, mag, grad, misc. If None, the ylim parameter
-        for each channel equals the pyplot default.
-    xlim : 'tight' | tuple | None
-        X limits for plots.
+    %(evoked_ylim_plot)s
+    xlim : ``'tight'`` | tuple | None
+        Limits for the X-axis of the plots.
     %(proj_plot)s
     hline : list of float | None
         The values at which to show an horizontal line.
@@ -1035,7 +1031,7 @@ def plot_evoked(
         The axes to plot to. If list, the list must be a list of Axes of
         the same length as the number of channel types. If instance of
         Axes, there must be only one channel type plotted.
-    gfp : bool | 'only'
+    gfp : bool | ``'only'``
         Plot the global field power (GFP) or the root mean square (RMS) of the
         data. For MEG data, this will plot the RMS. For EEG, it plots GFP,
         i.e. the standard deviation of the signal across channels. The GFP is
@@ -1055,14 +1051,7 @@ def plot_evoked(
            Plot GFP for EEG instead of RMS. Label RMS traces correctly as such.
     window_title : str | None
         The title to put at the top of the figure.
-    spatial_colors : bool | 'auto'
-        If True, the lines are color coded by mapping physical sensor
-        coordinates into color values. Spatially similar channels will have
-        similar colors. Bad channels will be dotted. If False, the good
-        channels are plotted black and bad channels red. If ``'auto'``, uses
-        True if channel locations are present, and False if channel locations
-        are missing or if the data contains only a single channel. Defaults to
-        ``'auto'``.
+    %(spatial_colors)s
     zorder : str | callable
         Which channels to put in the front or back. Only matters if
         ``spatial_colors`` is used.
@@ -1150,6 +1139,7 @@ def plot_evoked(
     )
 
 
+@fill_doc
 def plot_evoked_topo(
     evoked,
     layout=None,
@@ -1193,26 +1183,21 @@ def plot_evoked_topo(
         automatically drawn.
     border : str
         Matplotlib borders style to be used for each sensor plot.
-    ylim : dict | None
-        Y limits for plots (after scaling has been applied). The value
-        determines the upper and lower subplot limits. e.g.
-        ylim = dict(eeg=[-20, 20]). Valid keys are eeg, mag, grad, misc.
-        If None, the ylim parameter for each channel type is determined by
-        the minimum and maximum peak.
+    %(evoked_ylim_plot)s
     scalings : dict | None
         The scalings of the channel types to be applied for plotting. If None,`
         defaults to ``dict(eeg=1e6, grad=1e13, mag=1e15)``.
     title : str
         Title of the figure.
-    proj : bool | 'interactive'
-        If true SSP projections are applied before display. If 'interactive',
+    proj : bool | ``'interactive'``
+        If true SSP projections are applied before display. If ``'interactive'``,
         a check box for reversible selection of SSP projection vectors will
         be shown.
-    vline : list of float | float| None
+    vline : list of float | float | None
         The values at which to show a vertical line.
     fig_background : None | ndarray
         A background image for the figure. This must work with a call to
-        plt.imshow. Defaults to None.
+        ``plt.imshow``. Defaults to None.
     merge_grads : bool
         Whether to use RMS value of gradiometer pairs. Only works for Neuromag
         data. Defaults to False.
@@ -1221,13 +1206,13 @@ def plot_evoked_topo(
         legend. Otherwise, the legend is created and the parameter value is
         passed as the location parameter to the matplotlib legend call. It can
         be an integer (e.g. 0 corresponds to upper right corner of the plot),
-        a string (e.g. 'upper right'), or a tuple (x, y coordinates of the
+        a string (e.g. ``'upper right'``), or a tuple (x, y coordinates of the
         lower left corner of the legend in the axes coordinate system).
         See matplotlib documentation for more details.
     axes : instance of matplotlib Axes | None
         Axes to plot into. If None, axes will be created.
     background_color : color
-        Background color. Typically 'k' (black) or 'w' (white; default).
+        Background color. Typically ``'k'`` (black) or ``'w'`` (white; default).
 
         .. versionadded:: 0.15.0
     noise_cov : instance of Covariance | str | None
@@ -1239,6 +1224,9 @@ def plot_evoked_topo(
     exclude : list of str | 'bads'
         Channels names to exclude from the plot. If 'bads', the
         bad channels are excluded. By default, exclude is set to 'bads'.
+    exclude : list of str | ``'bads'``
+        Channels names to exclude from the plot. If ``'bads'``, the
+        bad channels are excluded. By default, exclude is set to ``'bads'``.
     select : bool
         Whether to enable the lasso-selection tool to enable the user to select
         channels. The selected channels will be available in
@@ -1506,6 +1494,8 @@ def plot_evoked_white(
     time_unit="s",
     sphere=None,
     axes=None,
+    *,
+    spatial_colors="auto",
     verbose=None,
 ):
     """Plot whitened evoked response.
@@ -1534,6 +1524,9 @@ def plot_evoked_white(
         List of axes to plot into.
 
         .. versionadded:: 0.21.0
+    %(spatial_colors)s
+
+        .. versionadded:: 1.8.0
     %(verbose)s
 
     Returns
@@ -1634,7 +1627,7 @@ def plot_evoked_white(
     else:
         axes = np.array(axes)
     for ai, ax in enumerate(axes.flat):
-        _validate_type(ax, plt.Axes, "axes.flat[%d]" % (ai,))
+        _validate_type(ax, plt.Axes, f"axes.flat[{ai}]")
     if axes.shape != want_shape:
         raise ValueError(f"axes must have shape {want_shape}, got {axes.shape}.")
     fig = axes.flat[0].figure
@@ -1656,32 +1649,38 @@ def plot_evoked_white(
         raise RuntimeError("Wrong axes inputs")
 
     titles_ = _handle_default("titles")
-    if has_sss:
-        titles_["meg"] = "MEG (combined)"
-
     colors = [plt.cm.Set1(i) for i in np.linspace(0, 0.5, len(noise_cov))]
     ch_colors = _handle_default("color", None)
     iter_gfp = zip(evokeds_white, noise_cov, rank_list, colors)
 
-    # the first is by law the best noise cov, on the left we plot that one.
-    if not has_sss:
-        evokeds_white[0].plot(
-            unit=False,
-            axes=axes_evoked,
-            hline=[-1.96, 1.96],
-            show=False,
-            time_unit=time_unit,
-            spatial_colors=False,
-        )
-    else:
-        for (ch_type, picks), ax in zip(picks_list, axes_evoked):
-            ax.plot(times, evokeds_white[0].data[picks].T, color="k", lw=0.5)
-            for hline in [-1.96, 1.96]:
-                ax.axhline(hline, color="red", linestyle="--", lw=2)
-            ax.set(
-                title="%s (%d channel%s)"
-                % (titles_[ch_type], len(picks), _pl(len(picks)))
-            )
+    # The first is by law the best noise cov, on the left we plot that one.
+    # When we have data in SSS / MEG-combined mode, we have to do some info
+    # hacks to get it to plot all channels in the same axes, namely setting
+    # the channel unit (most important) and coil type (for consistency) of
+    # all MEG channels to be the same.
+    meg_idx = sss_title = None
+    if has_sss:
+        titles_["meg"] = "MEG (combined)"
+        meg_idx = [
+            pi for pi, (ch_type, _) in enumerate(picks_list) if ch_type == "meg"
+        ][0]
+        # Hack the MEG channels to all be the same type so they get plotted together
+        picks = picks_list[meg_idx][1]
+        for key in ("coil_type", "unit"):  # update both
+            use = evokeds_white[0].info["chs"][picks[0]][key]
+            for pick in picks:
+                evokeds_white[0].info["chs"][pick][key] = use
+        sss_title = f"{titles_['meg']} ({len(picks)} channel{_pl(picks)})"
+    evokeds_white[0].plot(
+        unit=False,
+        axes=axes_evoked,
+        hline=[-1.96, 1.96],
+        show=False,
+        time_unit=time_unit,
+        spatial_colors=spatial_colors,
+    )
+    if has_sss:
+        axes_evoked[meg_idx].set(title=sss_title)
 
     # Now plot the GFP for all covs if indicated.
     for evoked_white, noise_cov, rank_, color in iter_gfp:
@@ -2630,7 +2629,7 @@ def plot_compare_evokeds(
         series and the parametric confidence interval is plotted as a shaded
         area. All instances must have the same shape - channel numbers, time
         points etc.
-        If dict, keys must be of type str.
+        If dict, keys must be of type :class:`str`.
     %(picks_all_data)s
 
         * If picks is None or a (collection of) data channel types, the
@@ -2685,9 +2684,9 @@ def plot_compare_evokeds(
         .. versionchanged:: 0.19
             Support for passing :class:`~matplotlib.colors.Colormap` instances.
 
-    vlines : "auto" | list of float
+    vlines : ``"auto"`` | list of float
         A list in seconds at which to plot dashed vertical lines.
-        If "auto" and the supplied data includes 0, it is set to [0.]
+        If ``"auto"`` and the supplied data includes 0, it is set to ``[0.]``
         and a vertical bar is plotted at time 0. If an empty list is passed,
         no vertical lines are plotted.
     ci : float | bool | callable | None
@@ -2699,22 +2698,18 @@ def plot_compare_evokeds(
         (i.e., the 95%% confidence band is drawn). If a callable, it must take
         a single array (n_observations × n_times) as input and return upper and
         lower confidence margins (2 × n_times). Defaults to ``True``.
-    truncate_yaxis : bool | 'auto'
-        Whether to shorten the y-axis spine. If 'auto', the spine is truncated
+    truncate_yaxis : bool | ``'auto'``
+        Whether to shorten the y-axis spine. If ``'auto'``, the spine is truncated
         at the minimum and maximum ticks. If ``True``, it is truncated at the
         multiple of 0.25 nearest to half the maximum absolute value of the
         data. If ``truncate_xaxis=False``, only the far bound of the y-axis
-        will be truncated. Defaults to 'auto'.
+        will be truncated. Defaults to ``'auto'``.
     truncate_xaxis : bool
         Whether to shorten the x-axis spine. If ``True``, the spine is
         truncated at the minimum and maximum ticks. If
         ``truncate_yaxis=False``, only the far bound of the x-axis will be
         truncated. Defaults to ``True``.
-    ylim : dict | None
-        Y-axis limits for plots (after scaling has been applied). :class:`dict`
-        keys should match channel types; valid keys are eeg, mag, grad, misc
-        (example: ``ylim=dict(eeg=[-20, 20])``). If ``None``, the y-axis limits
-        will be set automatically by matplotlib. Defaults to ``None``.
+    %(evoked_ylim_plot)s
     invert_y : bool
         Whether to plot negative values upward (as is sometimes done
         for ERPs out of tradition). Defaults to ``False``.
@@ -2734,7 +2729,7 @@ def plot_compare_evokeds(
         Whether to separate color and linestyle in the legend. If ``None``,
         a separate linestyle legend will still be shown if ``cmap`` is
         specified. Defaults to ``None``.
-    axes : None | Axes instance | list of Axes | 'topo'
+    axes : None | Axes instance | list of Axes | ``'topo'``
         :class:`~matplotlib.axes.Axes` object to plot into. If plotting
         multiple channel types (or multiple channels when ``combine=None``),
         ``axes`` should be a list of appropriate length containing

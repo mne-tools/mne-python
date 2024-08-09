@@ -12,6 +12,7 @@ from copy import deepcopy
 import numpy as np
 
 from ._logging import verbose, warn
+from ._typing import Self
 from .check import _check_pandas_installed, _check_preload, _validate_type
 from .numerics import _time_mask, object_hash, object_size
 
@@ -75,7 +76,10 @@ class SizeMixin:
 class GetEpochsMixin:
     """Class to add epoch selection and metadata to certain classes."""
 
-    def __getitem__(self, item):
+    def __getitem__(
+        self: Self,
+        item,
+    ) -> Self:
         """Return an Epochs object with a copied subset of epochs.
 
         Parameters
@@ -415,7 +419,7 @@ class GetEpochsMixin:
                 if len(metadata) != len(self.events):
                     raise ValueError(
                         "metadata must have the same number of "
-                        "rows (%d) as events (%d)" % (len(metadata), len(self.events))
+                        f"rows ({len(metadata)}) as events ({len(self.events)})"
                     )
                 if reset_index:
                     if hasattr(self, "selection"):
@@ -444,7 +448,7 @@ class GetEpochsMixin:
                 n_col = metadata.shape[1]
             else:
                 n_col = len(metadata[0])
-            n_col = " with %d columns" % n_col
+            n_col = f" with {n_col} columns"
         else:
             n_col = ""
         if hasattr(self, "_metadata") and self._metadata is not None:

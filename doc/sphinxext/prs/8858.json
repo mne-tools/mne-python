@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "97dc6e18e06bc39072db37b63feff51b76a413e8",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/channels/tests/test_channels.py": {
+      "a": 7,
+      "d": 1
+    },
+    "mne/io/pick.py": {
+      "a": 4,
+      "d": 4
+    },
+    "tutorials/sample-datasets/plot_sleep.py": {
+      "a": 7,
+      "d": 3
+    }
+  }
+}

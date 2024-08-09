@@ -997,7 +997,7 @@ def _filter_ticks(lims, fscale):
         ticks += (base * (10**exp)).tolist()
     ticks = np.array(ticks)
     ticks = ticks[(ticks >= lims[0]) & (ticks <= lims[1])]
-    ticklabels = [("%g" if t < 1 else "%d") % t for t in ticks]
+    ticklabels = [(f"{t:g}" if t < 1 else f"{t}") for t in ticks]
     return ticks, ticklabels
 
 
@@ -1018,12 +1018,6 @@ def _get_flim(flim, fscale, freq, sfreq=None):
     elif flim[0] < 0:
         raise ValueError(f"flim[0] must be non-negative, got {flim[0]}")
     return flim
-
-
-def _check_fscale(fscale):
-    """Check for valid fscale."""
-    if not isinstance(fscale, str) or fscale not in ("log", "linear"):
-        raise ValueError(f'fscale must be "log" or "linear", got {fscale}')
 
 
 _DEFAULT_ALIM = (-80, 10)

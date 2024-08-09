@@ -17,6 +17,7 @@ from collections import Counter
 from copy import deepcopy
 from functools import partial
 from inspect import getfullargspec
+from pathlib import Path
 
 import numpy as np
 from scipy.interpolate import interp1d
@@ -563,7 +564,7 @@ class BaseEpochs(
                     )
 
             if n_events > 0:
-                logger.info("%d matching events found" % n_events)
+                logger.info(f"{n_events} matching events found")
             else:
                 # Allow reading empty epochs (ToDo: Maybe not anymore in the future)
                 if not self._allow_empty:
@@ -1563,7 +1564,7 @@ class BaseEpochs(
         out_of_bounds = (try_idx < 0) | (try_idx >= len(self.events))
         if out_of_bounds.any():
             first = indices[out_of_bounds][0]
-            raise IndexError("Epoch index %d is out of bounds" % first)
+            raise IndexError(f"Epoch index {first} is out of bounds")
         keep = np.setdiff1d(np.arange(len(self.events)), try_idx)
         self._getitem(keep, reason, copy=False, drop_event_id=False)
         count = len(try_idx)
@@ -2064,12 +2065,6 @@ class BaseEpochs(
 
     @repr_html
     def _repr_html_(self):
-        if self.baseline is None:
-            baseline = "off"
-        else:
-            baseline = tuple([f"{b:.3f}" for b in self.baseline])
-            baseline = f"{baseline[0]} – {baseline[1]} s"
-
         if isinstance(self.event_id, dict):
             event_strings = []
             for k, v in sorted(self.event_id.items()):
@@ -2087,7 +2082,15 @@ class BaseEpochs(
             event_strings = None
 
         t = _get_html_template("repr", "epochs.html.jinja")
-        t = t.render(epochs=self, baseline=baseline, events=event_strings)
+        t = t.render(
+            inst=self,
+            filenames=(
+                [Path(self.filename).name]
+                if getattr(self, "filename", None) is not None
+                else None
+            ),
+            event_counts=event_strings,
+        )
         return t
 
     @verbose
@@ -2340,7 +2343,10 @@ class BaseEpochs(
 
         export_epochs(fname, self, fmt, overwrite=overwrite, verbose=verbose)
 
-    def equalize_event_counts(self, event_ids=None, method="mintime"):
+    @fill_doc
+    def equalize_event_counts(
+        self, event_ids=None, method="mintime", *, random_state=None
+    ):
         """Equalize the number of trials in each condition.
 
         It tries to make the remaining epochs occurring as close as possible in
@@ -2380,10 +2386,8 @@ class BaseEpochs(
             matched by the provided tags had been supplied instead.
             The ``event_ids`` must identify non-overlapping subsets of the
             epochs.
-        method : str
-            If ``'truncate'``, events will be truncated from the end of each
-            type of events. If ``'mintime'``, timing differences between each
-            event type will be minimized.
+        %(equalize_events_method)s
+        %(random_state)s Used only if ``method='random'``.
 
         Returns
         -------
@@ -2485,7 +2489,7 @@ class BaseEpochs(
             eq_inds.append(self._keys_to_idx(eq))
 
         sample_nums = [self.events[e, 0] for e in eq_inds]
-        indices = _get_drop_indices(sample_nums, method)
+        indices = _get_drop_indices(sample_nums, method, random_state)
         # need to re-index indices
         indices = np.concatenate([e[idx] for e, idx in zip(eq_inds, indices)])
         self.drop(indices, reason="EQUALIZED_COUNT")
@@ -3629,7 +3633,7 @@ class Epochs(BaseEpochs):
         diff = int(round((self._raw_times[-1] - reject_tmax) * sfreq))
         reject_stop = stop - diff
 
-        logger.debug("    Getting epoch for %d-%d" % (start, stop))
+        logger.debug(f"    Getting epoch for {start}-{stop}")
         data = self._raw._check_bad_segment(
             start,
             stop,
@@ -3703,7 +3707,7 @@ class EpochsArray(BaseEpochs):
         data,
         info,
         events=None,
-        tmin=0,
+        tmin=0.0,
         event_id=None,
         reject=None,
         flat=None,
@@ -3829,23 +3833,22 @@ def combine_event_ids(epochs, old_event_ids, new_event_id, copy=True):
     return epochs
 
 
-def equalize_epoch_counts(epochs_list, method="mintime"):
+@fill_doc
+def equalize_epoch_counts(epochs_list, method="mintime", *, random_state=None):
     """Equalize the number of trials in multiple Epochs or EpochsTFR instances.
 
     Parameters
     ----------
     epochs_list : list of Epochs instances
         The Epochs instances to equalize trial counts for.
-    method : str
-        If 'truncate', events will be truncated from the end of each event
-        list. If 'mintime', timing differences between each event list will be
-        minimized.
+    %(equalize_events_method)s
+    %(random_state)s Used only if ``method='random'``.
 
     Notes
     -----
-    This tries to make the remaining epochs occurring as close as possible in
-    time. This method works based on the idea that if there happened to be some
-    time-varying (like on the scale of minutes) noise characteristics during
+    The method ``'mintime'`` tries to make the remaining epochs occurring as close as
+    possible in time. This method is motivated by the possibility that if there happened
+    to be some time-varying (like on the scale of minutes) noise characteristics during
     a recording, they could be compensated for (to some extent) in the
     equalization process. This method thus seeks to reduce any of those effects
     by minimizing the differences in the times of the events in the two sets of
@@ -3859,29 +3862,35 @@ def equalize_epoch_counts(epochs_list, method="mintime"):
     """
     if not all(isinstance(epoch, (BaseEpochs, EpochsTFR)) for epoch in epochs_list):
         raise ValueError("All inputs must be Epochs instances")
-
     # make sure bad epochs are dropped
     for epoch in epochs_list:
         if not epoch._bad_dropped:
             epoch.drop_bad()
     sample_nums = [epoch.events[:, 0] for epoch in epochs_list]
-    indices = _get_drop_indices(sample_nums, method)
+    indices = _get_drop_indices(sample_nums, method, random_state)
     for epoch, inds in zip(epochs_list, indices):
         epoch.drop(inds, reason="EQUALIZED_COUNT")
 
 
-def _get_drop_indices(sample_nums, method):
+def _get_drop_indices(sample_nums, method, random_state):
     """Get indices to drop from multiple event timing lists."""
-    small_idx = np.argmin([e.shape[0] for e in sample_nums])
+    small_idx = np.argmin([e.size for e in sample_nums])
     small_epoch_indices = sample_nums[small_idx]
-    _check_option("method", method, ["mintime", "truncate"])
+    _check_option("method", method, ["mintime", "truncate", "random"])
     indices = list()
     for event in sample_nums:
         if method == "mintime":
             mask = _minimize_time_diff(small_epoch_indices, event)
-        else:
-            mask = np.ones(event.shape[0], dtype=bool)
-            mask[small_epoch_indices.shape[0] :] = False
+        elif method == "truncate":
+            mask = np.ones(event.size, dtype=bool)
+            mask[small_epoch_indices.size :] = False
+        elif method == "random":
+            rng = check_random_state(random_state)
+            mask = np.zeros(event.size, dtype=bool)
+            idx = rng.choice(
+                np.arange(event.size), size=small_epoch_indices.size, replace=False
+            )
+            mask[idx] = True
         indices.append(np.where(np.logical_not(mask))[0])
     return indices
 
@@ -4482,18 +4491,6 @@ def bootstrap(epochs, random_state=None):
     return epochs_bootstrap
 
 
-def _check_merge_epochs(epochs_list):
-    """Aux function."""
-    if len({tuple(epochs.event_id.items()) for epochs in epochs_list}) != 1:
-        raise NotImplementedError("Epochs with unequal values for event_id")
-    if len({epochs.tmin for epochs in epochs_list}) != 1:
-        raise NotImplementedError("Epochs with unequal values for tmin")
-    if len({epochs.tmax for epochs in epochs_list}) != 1:
-        raise NotImplementedError("Epochs with unequal values for tmax")
-    if len({epochs.baseline for epochs in epochs_list}) != 1:
-        raise NotImplementedError("Epochs with unequal values for baseline")
-
-
 def _concatenate_epochs(
     epochs_list, *, with_data=True, add_offset=True, on_mismatch="raise"
 ):
@@ -4610,8 +4607,8 @@ def _concatenate_epochs(
         metadata = None
     elif n_have != len(metadata):
         raise ValueError(
-            "%d of %d epochs instances have metadata, either "
-            "all or none must have metadata" % (n_have, len(metadata))
+            f"{n_have} of {len(metadata)} epochs instances have metadata, either "
+            "all or none must have metadata"
         )
     else:
         pd = _check_pandas_installed(strict=False)

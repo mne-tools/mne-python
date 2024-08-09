@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "4d388dea2a305dc7ca97a1b556c81a4437e8732d",
+  "authors": [
+    {
+      "n": "ashdrew",
+      "e": "ashdrew@uw.edu"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "tutorials/forward/10_background_freesurfer.py": {
+      "a": 1,
+      "d": 2
+    },
+    "tutorials/forward/20_source_alignment.py": {
+      "a": 9,
+      "d": 10
+    },
+    "tutorials/forward/30_forward.py": {
+      "a": 5,
+      "d": 6
+    },
+    "tutorials/forward/50_background_freesurfer_mne.py": {
+      "a": 13,
+      "d": 16
+    },
+    "tutorials/forward/90_compute_covariance.py": {
+      "a": 3,
+      "d": 5
+    }
+  }
+}

@@ -199,8 +199,8 @@ def find_ecg_events(
     -------
     ecg_events : array
         The events corresponding to the peaks of the R waves.
-    ch_ecg : string
-        Name of channel used.
+    ch_ecg : int | None
+        Index of channel used.
     average_pulse : float
         The estimated average pulse. If no ECG events could be found, this will
         be zero.
@@ -288,8 +288,8 @@ def find_ecg_events(
     duration_min = duration_sec / 60.0
     average_pulse = n_events / duration_min
     logger.info(
-        "Number of ECG events detected : %d (average pulse %d / "
-        "min.)" % (n_events, average_pulse)
+        f"Number of ECG events detected : {n_events} "
+        f"(average pulse {average_pulse} / min.)"
     )
 
     ecg_events = np.array(
@@ -299,6 +299,7 @@ def find_ecg_events(
             event_id * np.ones(n_events, int),
         ]
     ).T
+
     out = (ecg_events, idx_ecg, average_pulse)
     ecg = ecg[np.newaxis]  # backward compat output 2D
     if return_ecg:
@@ -488,7 +489,9 @@ def create_ecg_epochs(
 def _make_ecg(inst, start, stop, reject_by_annotation=False, verbose=None):
     """Create ECG signal from cross channel average."""
     if not any(c in inst for c in ["mag", "grad"]):
-        raise ValueError("Unable to generate artificial ECG channel")
+        raise ValueError(
+            "Generating an artificial ECG channel can only be done for MEG data"
+        )
     for ch in ["mag", "grad"]:
         if ch in inst:
             break

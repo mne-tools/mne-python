@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "7cf5cd4d3c68eb8d2bee417a5826252ba67c5b2b",
+  "authors": [
+    {
+      "n": "Jean-Rémi KING",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/time_frequency/tests/test_tfr.py": {
+      "a": 6,
+      "d": 0
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 1,
+      "d": 2
+    }
+  }
+}

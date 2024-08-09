@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "6a35cd65ede14f493ce4fcfa82c0fe94c6ab5a63",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "setup.cfg": {
+      "a": 3,
+      "d": 0
+    }
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "170e941b09ed18a7d7a83ee2554e8f9b3f40d220",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/data/coil_def.dat": {
+      "a": 11,
+      "d": 0
+    },
+    "mne/io/constants.py": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/io/tests/test_constants.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "f58eb9d55c21f20ba56016a2e06a05d2997b5faa",
+  "authors": [
+    {
+      "n": "Jan Sosulski",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/epochs.py": {
+      "a": 5,
+      "d": 1
+    },
+    "mne/evoked.py": {
+      "a": 7,
+      "d": 1
+    }
+  }
+}

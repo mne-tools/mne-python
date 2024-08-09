@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "60ca3f434389779eeed865b1893f3fa1caf37889",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "examples/visualization/plot_roi_erpimage_by_rt.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/viz/epochs.py": {
+      "a": 4,
+      "d": 3
+    },
+    "tutorials/epochs/plot_metadata_epochs.py": {
+      "a": 2,
+      "d": 2
+    },
+    "tutorials/epochs/plot_visualize_epochs.py": {
+      "a": 5,
+      "d": 7
+    },
+    "tutorials/intro/plot_10_overview.py": {
+      "a": 1,
+      "d": 2
+    },
+    "tutorials/stats-sensor-space/plot_stats_spatio_temporal_cluster_sensors.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

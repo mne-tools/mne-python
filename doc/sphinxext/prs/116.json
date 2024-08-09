@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "e0e1f9cff35c025f7cdc261a71bf0cc4f1b196da",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/event.py": {
+      "a": 6,
+      "d": 4
+    },
+    "mne/fiff/tests/data/test-eve-1.eve": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/fiff/tests/data/test-eve-1.fif": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/fiff/tests/data/test-eve-old-style.eve": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/fiff/tests/data/test-eve.eve": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/tests/test_event.py": {
+      "a": 21,
+      "d": 3
+    }
+  }
+}

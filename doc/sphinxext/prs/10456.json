@@ -1,0 +1,199 @@
+{
+  "merge_commit_sha": "4301092691d279314d3a46ee58de66a6f3a6152a",
+  "authors": [
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/gui/tests/test_gui_api.py": {
+      "a": 0,
+      "d": 3
+    },
+    "mne/icons/README.rst": {
+      "a": 0,
+      "d": 12
+    },
+    "mne/icons/clear-black-18dp.svg": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/icons/dark/actions/clear.svg": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/icons/dark/actions/help.svg": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/icons/dark/actions/movie.svg": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/icons/dark/actions/pause.svg": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/icons/dark/actions/play.svg": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/icons/dark/actions/reset.svg": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/icons/dark/actions/restore.svg": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/icons/dark/actions/scale.svg": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/icons/dark/actions/screenshot.svg": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/icons/dark/actions/visibility_off.svg": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/icons/dark/actions/visibility_on.svg": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/icons/dark/index.theme": {
+      "a": 11,
+      "d": 0
+    },
+    "mne/icons/help-black-18dp.svg": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/icons/light/actions/clear.svg": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/icons/light/actions/help.svg": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/icons/light/actions/movie.svg": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/icons/light/actions/pause.svg": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/icons/light/actions/play.svg": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/icons/light/actions/reset.svg": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/icons/light/actions/restore.svg": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/icons/light/actions/scale.svg": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/icons/light/actions/screenshot.svg": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/icons/light/actions/visibility_off.svg": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/icons/light/actions/visibility_on.svg": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/icons/light/index.theme": {
+      "a": 11,
+      "d": 0
+    },
+    "mne/icons/mne.qrc": {
+      "a": 0,
+      "d": 18
+    },
+    "mne/icons/mne_bigsur_icon.png": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/icons/mne_default_icon.png": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/icons/mne_splash.png": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/icons/movie-black-18dp.svg": {
+      "a": 0,
+      "d": 72
+    },
+    "mne/icons/pause-black-18dp.svg": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/icons/play-black-18dp.svg": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/icons/reset-black-18dp.svg": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/icons/resources.py": {
+      "a": 0,
+      "d": 6075
+    },
+    "mne/icons/restore-black-18dp.svg": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/icons/scale-black-18dp.svg": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/icons/screenshot-black-18dp.svg": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/icons/visibility_off-black-18dp.svg": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/icons/visibility_on-black-18dp.svg": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 1,
+      "d": 7
+    },
+    "mne/viz/backends/_abstract.py": {
+      "a": 0,
+      "d": 4
+    },
+    "mne/viz/backends/_notebook.py": {
+      "a": 0,
+      "d": 3
+    },
+    "mne/viz/backends/_qt.py": {
+      "a": 26,
+      "d": 25
+    },
+    "mne/viz/backends/_utils.py": {
+      "a": 30,
+      "d": 24
+    }
+  }
+}

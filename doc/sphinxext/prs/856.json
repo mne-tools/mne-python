@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "e2db91ccfe440bc11a1c6985b2247e68db5501a2",
+  "authors": [
+    {
+      "n": "Christian Brodbeck",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/fiff/meas_info.py": {
+      "a": 17,
+      "d": 1
+    },
+    "mne/fiff/tag.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/fiff/tests/data/fsaverage-fiducials.fif": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/fiff/tests/test_meas_info.py": {
+      "a": 13,
+      "d": 4
+    }
+  }
+}

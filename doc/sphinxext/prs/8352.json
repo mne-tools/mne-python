@@ -1,0 +1,51 @@
+{
+  "merge_commit_sha": "af671e78561d7eb9e05eb69170149142ae336855",
+  "authors": [
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/icons/README.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/_3d.py": {
+      "a": 6,
+      "d": 8
+    },
+    "mne/viz/_brain/__init__.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 1134,
+      "d": 29
+    },
+    "mne/viz/_brain/_linkviewer.py": {
+      "a": 53,
+      "d": 57
+    },
+    "mne/viz/_brain/_notebook.py": {
+      "a": 5,
+      "d": 6
+    },
+    "mne/viz/_brain/_scraper.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/_brain/_timeviewer.py": {
+      "a": 0,
+      "d": 1049
+    },
+    "mne/viz/_brain/mplcanvas.py": {
+      "a": 8,
+      "d": 8
+    },
+    "mne/viz/_brain/tests/test_brain.py": {
+      "a": 48,
+      "d": 55
+    }
+  }
+}

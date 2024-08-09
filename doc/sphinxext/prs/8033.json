@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "a12cbb70471766abc6ff8a322acb7663c37ea8cd",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/proj.py": {
+      "a": 24,
+      "d": 1
+    },
+    "mne/utils/docs.py": {
+      "a": 11,
+      "d": 0
+    },
+    "mne/viz/evoked.py": {
+      "a": 26,
+      "d": 9
+    },
+    "mne/viz/tests/test_evoked.py": {
+      "a": 71,
+      "d": 8
+    },
+    "mne/viz/tests/test_topo.py": {
+      "a": 15,
+      "d": 1
+    },
+    "mne/viz/topomap.py": {
+      "a": 7,
+      "d": 7
+    },
+    "tutorials/preprocessing/plot_50_artifact_correction_ssp.py": {
+      "a": 59,
+      "d": 5
+    }
+  }
+}

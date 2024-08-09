@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "65acb03c71d72e207082750541fdecce2feb2812",
+  "authors": [
+    {
+      "n": "Denis A. Engemann",
+      "e": null
+    }
+  ],
+  "changes": {
+    "examples/export/plot_evoked_to_nitime.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/inverse/plot_mne_crosstalk_function.py": {
+      "a": 8,
+      "d": 8
+    },
+    "examples/plot_make_forward.py": {
+      "a": 17,
+      "d": 6
+    },
+    "examples/plot_read_and_write_raw_data.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/plot_read_forward.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/plot_ssp_projs_sensitivity_map.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/plot_ssp_projs_topomaps.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/plot_topo_customized.py": {
+      "a": 2,
+      "d": 2
+    },
+    "examples/preprocessing/plot_ica_from_raw.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

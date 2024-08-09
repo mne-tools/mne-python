@@ -1,0 +1,75 @@
+{
+  "merge_commit_sha": "30dbe3de08772c2b27515e7a98de988d926e8727",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/conf.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/__init__.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/realtime/__init__.py": {
+      "a": 0,
+      "d": 17
+    },
+    "mne/realtime/base_client.py": {
+      "a": 0,
+      "d": 212
+    },
+    "mne/realtime/client.py": {
+      "a": 0,
+      "d": 372
+    },
+    "mne/realtime/epochs.py": {
+      "a": 0,
+      "d": 588
+    },
+    "mne/realtime/fieldtrip_client.py": {
+      "a": 0,
+      "d": 264
+    },
+    "mne/realtime/lsl_client.py": {
+      "a": 0,
+      "d": 127
+    },
+    "mne/realtime/mock_lsl_stream.py": {
+      "a": 0,
+      "d": 95
+    },
+    "mne/realtime/mockclient.py": {
+      "a": 0,
+      "d": 204
+    },
+    "mne/realtime/stim_server_client.py": {
+      "a": 0,
+      "d": 306
+    },
+    "mne/realtime/tests/__init__.py": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/realtime/tests/test_fieldtrip_client.py": {
+      "a": 0,
+      "d": 141
+    },
+    "mne/realtime/tests/test_lsl_client.py": {
+      "a": 0,
+      "d": 49
+    },
+    "mne/realtime/tests/test_mockclient.py": {
+      "a": 0,
+      "d": 386
+    },
+    "mne/realtime/tests/test_stim_client_server.py": {
+      "a": 0,
+      "d": 82
+    }
+  }
+}

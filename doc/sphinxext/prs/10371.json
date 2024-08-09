@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "082c8ad100343fda87bde4246c03d559832e2d26",
+  "authors": [
+    {
+      "n": "Martin G. Schulz",
+      "e": "dev@mgschulz.de"
+    }
+  ],
+  "changes": {
+    "tutorials/preprocessing/20_rejecting_bad_data.py": {
+      "a": 10,
+      "d": 17
+    },
+    "tutorials/raw/30_annotate_raw.py": {
+      "a": 17,
+      "d": 6
+    }
+  }
+}

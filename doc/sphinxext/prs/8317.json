@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "82df946e29a8b66da0184d08b9a016ae6371545f",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/references.bib": {
+      "a": 10,
+      "d": 0
+    },
+    "examples/inverse/plot_dics_source_power.py": {
+      "a": 5,
+      "d": 5
+    },
+    "examples/inverse/plot_evoked_ers_source_power.py": {
+      "a": 4,
+      "d": 2
+    },
+    "examples/inverse/plot_multidict_reweighted_tfmxne.py": {
+      "a": 4,
+      "d": 14
+    },
+    "mne/datasets/utils.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/inverse_sparse/mxne_inverse.py": {
+      "a": 6,
+      "d": 21
+    },
+    "tutorials/time-freq/plot_sensors_time_frequency.py": {
+      "a": 3,
+      "d": 3
+    }
+  }
+}

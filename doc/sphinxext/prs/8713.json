@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "7d5cd307bc1c7de4e7587624fda263c4b4230ce5",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/report.py": {
+      "a": 21,
+      "d": 67
+    },
+    "mne/tests/test_report.py": {
+      "a": 38,
+      "d": 1
+    },
+    "mne/viz/misc.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/tests/test_topomap.py": {
+      "a": 1,
+      "d": 0
+    },
+    "tools/setup_xvfb.sh": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

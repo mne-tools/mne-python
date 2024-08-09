@@ -1,0 +1,75 @@
+{
+  "merge_commit_sha": "20366bb72785fe7f5cf08cdf4783503e3a312edf",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/epochs.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/gui/tests/test_gui_api.py": {
+      "a": 14,
+      "d": 2
+    },
+    "mne/io/base.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/config.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/utils/docs.py": {
+      "a": 12,
+      "d": 5
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 9,
+      "d": 6
+    },
+    "mne/viz/_figure.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/viz/backends/_abstract.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/backends/_notebook.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/backends/_qt.py": {
+      "a": 3,
+      "d": 6
+    },
+    "mne/viz/backends/_utils.py": {
+      "a": 39,
+      "d": 22
+    },
+    "mne/viz/epochs.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/ica.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/raw.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "38d63e33bc1b0e51394ce800123b42853e3a0c20",
+  "authors": [
+    {
+      "n": "Alex Rockhill",
+      "e": "aprockhill@mailbox.org"
+    }
+  ],
+  "changes": {
+    "doc/install/advanced.rst": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

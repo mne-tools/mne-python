@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "3c23f13c0262118d075de0719248409bdc838982",
+  "authors": [
+    {
+      "n": "ashdrew",
+      "e": "ashdrew@uw.edu"
+    }
+  ],
+  "changes": {
+    "tutorials/inverse/10_stc_class.py": {
+      "a": 3,
+      "d": 5
+    },
+    "tutorials/inverse/20_dipole_fit.py": {
+      "a": 6,
+      "d": 7
+    },
+    "tutorials/inverse/70_eeg_mri_coords.py": {
+      "a": 7,
+      "d": 9
+    },
+    "tutorials/inverse/80_brainstorm_phantom_elekta.py": {
+      "a": 1,
+      "d": 2
+    },
+    "tutorials/inverse/85_brainstorm_phantom_ctf.py": {
+      "a": 2,
+      "d": 3
+    }
+  }
+}

@@ -533,6 +533,14 @@ class _Callable:
         return callable(other)
 
 
+class _Sparse:
+    @classmethod
+    def __instancecheck__(cls, other):
+        from scipy import sparse
+
+        return sparse.issparse(other)
+
+
 _multi = {
     "str": (str,),
     "numeric": (np.floating, float, int_like),
@@ -540,6 +548,7 @@ _multi = {
     "int-like": (int_like,),
     "callable": (_Callable(),),
     "array-like": (list, tuple, set, np.ndarray),
+    "sparse": (_Sparse(),),
 }
 
 
@@ -950,10 +959,10 @@ def _check_stc_units(stc, threshold=1e-7):  # 100 nAm threshold for warning
     max_cur = np.max(np.abs(stc.data))
     if max_cur > threshold:
         warn(
-            "The maximum current magnitude is %0.1f nAm, which is very large."
-            " Are you trying to apply the forward model to noise-normalized "
+            f"The maximum current magnitude is {1e9 * max_cur:.1f} nAm, which is very "
+            "large. Are you trying to apply the forward model to noise-normalized "
             "(dSPM, sLORETA, or eLORETA) values? The result will only be "
-            "correct if currents (in units of Am) are used." % (1e9 * max_cur)
+            "correct if currents (in units of Am) are used."
         )
 
 

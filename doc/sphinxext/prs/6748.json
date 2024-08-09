@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "88a2e3dae4b22ca13d088db8b2213745cd9a653c",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 3,
+      "d": 0
+    },
+    "doc/conf.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/time_frequency/psd.py": {
+      "a": 75,
+      "d": 22
+    },
+    "mne/time_frequency/tests/test_psd.py": {
+      "a": 65,
+      "d": 1
+    },
+    "tutorials/time-freq/plot_sensors_time_frequency.py": {
+      "a": 45,
+      "d": 3
+    }
+  }
+}

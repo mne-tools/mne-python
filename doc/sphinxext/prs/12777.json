@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "855ca5ea380498df0a3e1740a7b5134625e926e1",
+  "authors": [
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    ".pre-commit-config.yaml": {
+      "a": 1,
+      "d": 1
+    },
+    "tools/check_qt_import.sh": {
+      "a": 4,
+      "d": 1
+    },
+    "tools/github_actions_env_vars.sh": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

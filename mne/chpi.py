@@ -468,7 +468,7 @@ def _get_hpi_initial_fit(info, adjust=False, verbose=None):
     assert hpi_result["coord_trans"]["to"] == FIFF.FIFFV_COORD_HEAD
     hpi_rrs_fit = apply_trans(hpi_result["coord_trans"]["trans"], hpi_rrs_fit)
     if "moments" in hpi_result:
-        logger.debug("Hpi coil moments (%d %d):" % hpi_result["moments"].shape[::-1])
+        logger.debug(f"Hpi coil moments {hpi_result['moments'].shape[::-1]}:")
         for moment in hpi_result["moments"]:
             logger.debug(f"{moment[0]:g} {moment[1]:g} {moment[2]:g}")
     errors = np.linalg.norm(hpi_rrs - hpi_rrs_fit, axis=1)
@@ -1085,12 +1085,6 @@ def _fit_chpi_quat_subset(coil_dev_rrs, coil_head_rrs, use_idx):
     return quat, g, np.array(out_idx, int)
 
 
-@jit()
-def _unit_quat_constraint(x):
-    """Constrain our 3 quaternion rot params (ignoring w) to have norm <= 1."""
-    return 1 - (x * x).sum()
-
-
 @verbose
 def compute_chpi_snr(
     raw, t_step_min=0.01, t_window="auto", ext_order=1, tmin=0, tmax=None, verbose=None
@@ -1209,8 +1203,8 @@ def _compute_chpi_amp_or_snr(
         np.arange(tmin + need_win, tmax, t_step_min), use_rounding=True
     )
     logger.info(
-        "Fitting %d HPI coil locations at up to %s time points "
-        "(%0.1f s duration)" % (len(hpi["freqs"]), len(fit_idxs), tmax - tmin)
+        f"Fitting {len(hpi['freqs'])} HPI coil locations at up to "
+        f"{len(fit_idxs)} time points ({tmax - tmin:.1f} s duration)"
     )
     del tmin, tmax
     sin_fits = dict()
@@ -1344,8 +1338,8 @@ def compute_chpi_locs(
         dict(R=R, r0=np.zeros(3)), 0.01, 0.0, 0.005, verbose=safe_false
     )[0]["rr"]
     logger.info(
-        "Computing %d HPI location guesses (1 cm grid in a %0.1f cm "
-        "sphere)" % (len(guesses), R * 100)
+        f"Computing {len(guesses)} HPI location guesses "
+        f"(1 cm grid in a {R * 100:.1f} cm sphere)"
     )
     fwd = _magnetic_dipole_field_vec(guesses, meg_coils, too_close)
     fwd = np.dot(fwd, whitener.T)

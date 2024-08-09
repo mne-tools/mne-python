@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "1b4f6ff4e169c93c6abd2fe858e4985d95e48626",
+  "authors": [
+    {
+      "n": "Joshua Calder-Travis",
+      "e": null
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/viz/ica.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/viz/tests/test_ica.py": {
+      "a": 4,
+      "d": 0
+    }
+  }
+}

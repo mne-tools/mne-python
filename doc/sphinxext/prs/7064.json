@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "f784fde5d4ee738eff603bdc3823cfc3ca12b5bd",
+  "authors": [
+    {
+      "n": "Rob Luke",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/io/nirx/nirx.py": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/io/nirx/tests/test_nirx.py": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/preprocessing/nirs/_beer_lambert_law.py": {
+      "a": 1,
+      "d": 3
+    }
+  }
+}

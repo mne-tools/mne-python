@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "0306101af9f1c9317d1a4cdca574aa6e8f3374d7",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    }
+  ],
+  "changes": {
+    "examples/time_frequency/time_frequency_erds.py": {
+      "a": 3,
+      "d": 2
+    }
+  }
+}

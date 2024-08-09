@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "279f460a3bc27f7e1bcc75902e119b5c99358094",
+  "authors": [
+    {
+      "n": "Annalisa Pascarella",
+      "e": null
+    }
+  ],
+  "changes": {
+    "examples/connectivity/plot_mixed_source_space_connectity.py": {
+      "a": 185,
+      "d": 0
+    },
+    "examples/inverse/plot_mixed_source_space_inverse.py": {
+      "a": 142,
+      "d": 0
+    },
+    "mne/__init__.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/source_estimate.py": {
+      "a": 42,
+      "d": 6
+    },
+    "mne/source_space.py": {
+      "a": 126,
+      "d": 21
+    },
+    "mne/tests/test_source_space.py": {
+      "a": 37,
+      "d": 1
+    }
+  }
+}

@@ -4,6 +4,7 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+import datetime
 import os.path as op
 import re
 import time
@@ -12,10 +13,10 @@ from contextlib import contextmanager
 from gzip import GzipFile
 
 import numpy as np
-from scipy.sparse import csc_matrix, csr_matrix
+from scipy.sparse import csc_array, csr_array
 
 from ..utils import _file_like, _validate_type, logger
-from ..utils.numerics import _cal_to_julian
+from ..utils.numerics import _date_to_julian
 from .constants import FIFF
 
 # We choose a "magic" date to store (because meas_date is obligatory)
@@ -120,9 +121,9 @@ def write_complex128(fid, kind, data):
 
 def write_julian(fid, kind, data):
     """Write a Julian-formatted date to a FIF file."""
-    assert len(data) == 3
+    assert isinstance(data, datetime.date), type(data)
     data_size = 4
-    jd = np.sum(_cal_to_julian(*data))
+    jd = _date_to_julian(data)
     data = np.array(jd, dtype=">i4")
     _write(fid, data, kind, data_size, FIFF.FIFFT_JULIAN, ">i4")
 
@@ -224,7 +225,7 @@ def get_machid():
     ids : array (length 2, int32)
         The machine identifier used in MNE.
     """
-    mac = b"%012x" % uuid.getnode()  # byte conversion for Py3
+    mac = f"{uuid.getnode():012x}".encode()  # byte conversion for Py3
     mac = re.findall(b"..", mac)  # split string
     mac += [b"00", b"00"]  # add two more fields
 
@@ -414,21 +415,12 @@ def write_float_sparse_rcs(fid, kind, mat):
     return write_float_sparse(fid, kind, mat, fmt="csr")
 
 
-def write_float_sparse_ccs(fid, kind, mat):
-    """Write a single-precision sparse compressed column matrix tag."""
-    return write_float_sparse(fid, kind, mat, fmt="csc")
-
-
 def write_float_sparse(fid, kind, mat, fmt="auto"):
     """Write a single-precision floating-point sparse matrix tag."""
     if fmt == "auto":
-        fmt = "csr" if isinstance(mat, csr_matrix) else "csc"
-    if fmt == "csr":
-        need = csr_matrix
-        matrix_type = FIFF.FIFFT_SPARSE_RCS_MATRIX
-    else:
-        need = csc_matrix
-        matrix_type = FIFF.FIFFT_SPARSE_CCS_MATRIX
+        fmt = "csr" if isinstance(mat, csr_array) else "csc"
+    need = csr_array if fmt == "csr" else csc_array
+    matrix_type = getattr(FIFF, f"FIFFT_SPARSE_{fmt[-1].upper()}CS_MATRIX")
     _validate_type(mat, need, "sparse")
     matrix_type = matrix_type | FIFF.FIFFT_MATRIX | FIFF.FIFFT_FLOAT
     nnzm = mat.nnz

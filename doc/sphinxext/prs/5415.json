@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "beda451422b4d8016643438ce7e998c76cbd2f59",
+  "authors": [
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    }
+  ],
+  "changes": {
+    "mne/viz/evoked.py": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

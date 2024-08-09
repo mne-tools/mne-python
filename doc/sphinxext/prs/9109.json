@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "88cbfa8f42f885a6e4a400d4c9eece839cee0c77",
+  "authors": [
+    {
+      "n": "Martin G. Schulz",
+      "e": "dev@mgschulz.de"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/report.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/tests/test_report.py": {
+      "a": 18,
+      "d": 0
+    }
+  }
+}

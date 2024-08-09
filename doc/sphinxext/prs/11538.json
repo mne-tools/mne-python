@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "43979006d6236d3c9da27fdbe233f9b6fa450f04",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "doc/conf.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/conftest.py": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

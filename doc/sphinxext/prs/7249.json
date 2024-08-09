@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "91811222a9f271f6f3c366998a43f8512a2f2c10",
+  "authors": [
+    {
+      "n": "FuTe Wong",
+      "e": "zuxfoucault@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/gui/_coreg_gui.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "merge_commit_sha": "805ff576565939a1cc970b7b533bb7f131bc7b3c",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/defaults.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/tests/test_ica.py": {
+      "a": 8,
+      "d": 0
+    },
+    "mne/viz/_3d.py": {
+      "a": 12,
+      "d": 2
+    },
+    "mne/viz/epochs.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/viz/raw.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/viz/tests/test_raw.py": {
+      "a": 10,
+      "d": 2
+    },
+    "mne/viz/tests/test_utils.py": {
+      "a": 4,
+      "d": 5
+    },
+    "mne/viz/topo.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/viz/utils.py": {
+      "a": 11,
+      "d": 12
+    }
+  }
+}

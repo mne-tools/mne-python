@@ -11,6 +11,7 @@ from scipy.io import loadmat
 
 from mne.datasets.testing import data_path, requires_testing_data
 from mne.io import read_raw_neuralynx
+from mne.io.neuralynx.neuralynx import _exclude_kwarg
 from mne.io.tests.test_raw import _test_raw_reader
 
 testing_path = data_path(download=False) / "neuralynx"
@@ -144,10 +145,10 @@ def test_neuralynx():
         raw.ch_names == expected_chan_names
     ), "labels in raw.ch_names don't match expected channel names"
 
-    mne_y, mne_t = raw.get_data(return_times=True)  # in V
+    mne_y = raw.get_data()  # in V
 
     # ==== NeuralynxIO ==== #
-    nlx_reader = NeuralynxIO(dirname=testing_path, exclude_filename=excluded_ncs_files)
+    nlx_reader = NeuralynxIO(dirname=testing_path, **_exclude_kwarg(excluded_ncs_files))
     bl = nlx_reader.read(
         lazy=False
     )  # read a single block which contains the data split in segments

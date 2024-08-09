@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "539d5c973fb01ced7cd0c8b26272bc49b3955a60",
+  "authors": [
+    {
+      "n": "Mainak Jas",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/bem.py": {
+      "a": 15,
+      "d": 15
+    },
+    "mne/forward/_compute_forward.py": {
+      "a": 4,
+      "d": 4
+    }
+  }
+}

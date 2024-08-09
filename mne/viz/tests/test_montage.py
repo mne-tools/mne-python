@@ -19,7 +19,6 @@ p_dir = Path(__file__).parents[2] / "io" / "kit" / "tests" / "data"
 elp = p_dir / "test_elp.txt"
 hsp = p_dir / "test_hsp.txt"
 hpi = p_dir / "test_mrk.sqd"
-point_names = ["nasion", "lpa", "rpa", "1", "2", "3", "4", "5"]
 io_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
 fif_fname = io_dir / "test_raw.fif"
 

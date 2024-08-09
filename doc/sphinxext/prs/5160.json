@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "c2ad41f27f1e92a46a4aa4794ec900b1a7b5b661",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/datasets/utils.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/edf/edf.py": {
+      "a": 11,
+      "d": 4
+    },
+    "mne/io/edf/tests/data/test_bdf_stim_channel.bdf": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/io/edf/tests/test_edf.py": {
+      "a": 22,
+      "d": 1
+    }
+  }
+}

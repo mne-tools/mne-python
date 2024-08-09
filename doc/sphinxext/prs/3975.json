@@ -1,0 +1,63 @@
+{
+  "merge_commit_sha": "2c6d6faeaa38805b20249d966f0ec2dd8950843b",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/cited.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/conf.py": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/sphinxext/cited_mne.py": {
+      "a": 3,
+      "d": 1
+    },
+    "doc/whats_new.rst": {
+      "a": 3,
+      "d": 1
+    },
+    "examples/inverse/plot_mixed_norm_inverse.py": {
+      "a": 15,
+      "d": 16
+    },
+    "examples/inverse/plot_mixed_source_space_inverse.py": {
+      "a": 31,
+      "d": 23
+    },
+    "examples/inverse/plot_read_source_space.py": {
+      "a": 4,
+      "d": 16
+    },
+    "mne/inverse_sparse/mxne_inverse.py": {
+      "a": 18,
+      "d": 18
+    },
+    "mne/report.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/source_space.py": {
+      "a": 49,
+      "d": 0
+    },
+    "mne/utils.py": {
+      "a": 12,
+      "d": 2
+    },
+    "mne/viz/_3d.py": {
+      "a": 127,
+      "d": 76
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 12,
+      "d": 3
+    }
+  }
+}

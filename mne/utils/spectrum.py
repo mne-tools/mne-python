@@ -9,6 +9,8 @@ from ..utils import warn
 
 def _get_instance_type_string(inst):
     """Get string representation of the originating instance type."""
+    from numpy import ndarray
+
     from ..epochs import BaseEpochs
     from ..evoked import Evoked, EvokedArray
     from ..io import BaseRaw
@@ -20,6 +22,8 @@ def _get_instance_type_string(inst):
         inst_type_str = "Epochs"
     elif inst._inst_type in (Evoked, EvokedArray):
         inst_type_str = "Evoked"
+    elif inst._inst_type == ndarray:
+        inst_type_str = "Array"
     else:
         raise RuntimeError(
             f"Unknown instance type {inst._inst_type} in {type(inst).__name__}"

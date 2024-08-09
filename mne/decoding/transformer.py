@@ -38,7 +38,7 @@ class _ConstantScaler:
         std = np.ones(sum(len(p[1]) for p in picks_by_type))
         if X.shape[1] != len(std):
             raise ValueError(
-                "info had %d data channels but X has %d channels" % (len(std), len(X))
+                f"info had {len(std)} data channels but X has {len(X)} channels"
             )
         if self._do_scaling:  # this is silly, but necessary for completeness
             for kind, picks in picks_by_type:

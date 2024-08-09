@@ -55,7 +55,6 @@ from mne.viz import plot_head_positions
 base_dir = Path(__file__).parents[1] / "io" / "tests" / "data"
 ctf_fname = base_dir / "test_ctf_raw.fif"
 hp_fif_fname = base_dir / "test_chpi_raw_sss.fif"
-hp_fname = base_dir / "test_chpi_raw_hp.txt"
 raw_fname = base_dir / "test_raw.fif"
 
 data_path = testing.data_path(download=False)
@@ -98,7 +97,7 @@ def test_chpi_adjust():
     msg = [
         "HPIFIT: 5 coils digitized in order 5 1 4 3 2",
         "HPIFIT: 3 coils accepted: 1 2 4",
-        "Hpi coil moments (3 5):",
+        "Hpi coil moments (3, 5):",
         "2.08542e-15 -1.52486e-15 -1.53484e-15",
         "2.14516e-15 2.09608e-15 7.30303e-16",
         "-3.2318e-16 -4.25666e-16 2.69997e-15",

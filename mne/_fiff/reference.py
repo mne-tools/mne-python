@@ -25,33 +25,6 @@ from .pick import _ELECTRODE_CH_TYPES, pick_channels, pick_channels_forward, pic
 from .proj import _has_eeg_average_ref_proj, make_eeg_average_ref_proj, setup_proj
 
 
-def _copy_channel(inst, ch_name, new_ch_name):
-    """Add a copy of a channel specified by ch_name.
-
-    Input data can be in the form of Raw, Epochs or Evoked.
-
-    The instance object is modified inplace.
-
-    Parameters
-    ----------
-    inst : instance of Raw | Epochs | Evoked
-        Data containing the EEG channels
-    ch_name : str
-        Name of the channel to copy.
-    new_ch_name : str
-        Name given to the copy of the channel.
-
-    Returns
-    -------
-    inst : instance of Raw | Epochs | Evoked
-        The data with a copy of a given channel.
-    """
-    new_inst = inst.copy().pick([ch_name])
-    new_inst.rename_channels({ch_name: new_ch_name})
-    inst.add_channels([new_inst], force_update_info=True)
-    return inst
-
-
 def _check_before_reference(inst, ref_from, ref_to, ch_type):
     """Prepare instance for referencing."""
     # Check to see that data is preloaded

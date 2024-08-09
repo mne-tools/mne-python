@@ -10,7 +10,7 @@ import contextlib
 import datetime
 import operator
 import string
-from collections import Counter, OrderedDict, defaultdict
+from collections import Counter, OrderedDict
 from collections.abc import Mapping
 from copy import deepcopy
 from io import BytesIO
@@ -551,6 +551,9 @@ class SetChannelsMixin(MontageMixin):
             fnirs_od, gof, gsr, hbo, hbr, ias, misc, pupil, ref_meg, resp,
             seeg, stim, syst, temperature.
 
+        When working with eye-tracking data, see
+        :func:`mne.preprocessing.eyetracking.set_channel_types_eyetrack`.
+
         .. versionadded:: 0.9.0
         """
         info = self if isinstance(self, Info) else self.info
@@ -874,13 +877,16 @@ class ContainsMixin:
             False
 
         """
-        info = self if isinstance(self, Info) else self.info
+        # this method is not supported by Info object. An Info object inherits from a
+        # dictionary and the 'key' in Info call is present all across MNE codebase, e.g.
+        # to check for the presence of a key:
+        # >>> 'bads' in info
         if ch_type == "meg":
-            has_ch_type = _contains_ch_type(info, "mag") or _contains_ch_type(
-                info, "grad"
+            has_ch_type = _contains_ch_type(self.info, "mag") or _contains_ch_type(
+                self.info, "grad"
             )
         else:
-            has_ch_type = _contains_ch_type(info, ch_type)
+            has_ch_type = _contains_ch_type(self.info, ch_type)
         return has_ch_type
 
     @property
@@ -1018,6 +1024,13 @@ def _check_line_freq(line_freq, *, info):
 
 def _check_subject_info(subject_info, *, info):
     _validate_type(subject_info, (None, dict), "subject_info")
+    if isinstance(subject_info, dict):
+        if "birthday" in subject_info:
+            _validate_type(
+                subject_info["birthday"],
+                (datetime.date, None),
+                "subject_info['birthday']",
+            )
     return subject_info
 
 
@@ -1042,6 +1055,13 @@ def _check_helium_info(helium_info, *, info):
         ),
         "helium_info",
     )
+    if isinstance(helium_info, dict):
+        if "meas_date" in helium_info:
+            _validate_type(
+                helium_info["meas_date"],
+                datetime.datetime,
+                "helium_info['meas_date']",
+            )
     return helium_info
 
 
@@ -1328,8 +1348,12 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
             Helium level (%) after position correction.
         orig_file_guid : str
             Original file GUID.
-        meas_date : tuple of int
+        meas_date : datetime.datetime
             The helium level meas date.
+
+            .. versionchanged:: 1.8
+               This is stored as a :class:`~python:datetime.datetime` object
+               instead of a tuple of seconds/microseconds.
 
     * ``hpi_meas`` list of dict:
 
@@ -1443,8 +1467,12 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
             First name.
         middle_name : str
             Middle name.
-        birthday : tuple of int
-            Birthday in (year, month, day) format.
+        birthday : datetime.date
+            The subject birthday.
+
+            .. versionchanged:: 1.8
+               This is stored as a :class:`~python:datetime.date` object
+               instead of a tuple of seconds/microseconds.
         sex : int
             Subject sex (0=unknown, 1=male, 2=female).
         hand : int
@@ -1679,7 +1707,7 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
                 else:
                     entr = v.strftime("%Y-%m-%d %H:%M:%S %Z")
             elif k == "kit_system_id" and v is not None:
-                entr = "%i (%s)" % (v, KIT_SYSNAMES.get(v, "unknown"))
+                entr = f"{v} ({KIT_SYSNAMES.get(v, 'unknown')})"
             elif k == "dig" and v is not None:
                 counts = Counter(d["kind"] for d in v)
                 counts = [
@@ -1835,84 +1863,18 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
 
     @property
     def ch_names(self):
-        return self["ch_names"]
+        try:
+            ch_names = self["ch_names"]
+        except KeyError:
+            ch_names = []
 
-    def _get_chs_for_repr(self):
-        titles = _handle_default("titles")
-
-        # good channels
-        good_names = defaultdict(lambda: list())
-        for ci, ch_name in enumerate(self["ch_names"]):
-            if ch_name in self["bads"]:
-                continue
-            ch_type = channel_type(self, ci)
-            good_names[ch_type].append(ch_name)
-        good_channels = ", ".join(
-            [f"{len(v)} {titles.get(k, k.upper())}" for k, v in good_names.items()]
-        )
-        for key in ("ecg", "eog"):  # ensure these are present
-            if key not in good_names:
-                good_names[key] = list()
-        for key, val in good_names.items():
-            good_names[key] = ", ".join(val) or "Not available"
-
-        # bad channels
-        bad_channels = ", ".join(self["bads"]) or "None"
-
-        return good_channels, bad_channels, good_names["ecg"], good_names["eog"]
+        return ch_names
 
     @repr_html
-    def _repr_html_(self, caption=None, duration=None, filenames=None):
+    def _repr_html_(self):
         """Summarize info for HTML representation."""
-        if isinstance(caption, str):
-            html = f"<h4>{caption}</h4>"
-        else:
-            html = ""
-
-        good_channels, bad_channels, ecg, eog = self._get_chs_for_repr()
-
-        # TODO
-        # Most of the following checks are to ensure that we get a proper repr
-        # for Forward['info'] (and probably others like
-        # InverseOperator['info']??), which doesn't seem to follow our standard
-        # Info structure used elsewhere.
-        # Proposed solution for a future refactoring:
-        # Forward['info'] should get its own Info subclass (with respective
-        # repr).
-
-        # meas date
-        meas_date = self.get("meas_date")
-        if meas_date is not None:
-            meas_date = meas_date.strftime("%B %d, %Y  %H:%M:%S") + " GMT"
-
-        projs = self.get("projs")
-        if projs:
-            projs = [
-                f'{p["desc"]} : {"on" if p["active"] else "off"}' for p in self["projs"]
-            ]
-        else:
-            projs = None
-
         info_template = _get_html_template("repr", "info.html.jinja")
-        sections = ("General", "Channels", "Data")
-        return html + info_template.render(
-            sections=sections,
-            caption=caption,
-            meas_date=meas_date,
-            projs=projs,
-            ecg=ecg,
-            eog=eog,
-            good_channels=good_channels,
-            bad_channels=bad_channels,
-            dig=self.get("dig"),
-            subject_info=self.get("subject_info"),
-            lowpass=self.get("lowpass"),
-            highpass=self.get("highpass"),
-            sfreq=self.get("sfreq"),
-            experimenter=self.get("experimenter"),
-            duration=duration,
-            filenames=filenames,
-        )
+        return info_template.render(info=self)
 
     def save(self, fname):
         """Write measurement info in fif file.
@@ -2469,7 +2431,9 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
                 hi["orig_file_guid"] = str(tag.data)
             elif kind == FIFF.FIFF_MEAS_DATE:
                 tag = read_tag(fid, pos)
-                hi["meas_date"] = tuple(int(t) for t in tag.data)
+                hi["meas_date"] = _ensure_meas_date_none_or_dt(
+                    tuple(int(t) for t in tag.data),
+                )
     info["helium_info"] = hi
     del hi
 
@@ -2855,7 +2819,7 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
             write_float(fid, FIFF.FIFF_HELIUM_LEVEL, hi["helium_level"])
         if hi.get("orig_file_guid") is not None:
             write_string(fid, FIFF.FIFF_ORIG_FILE_GUID, hi["orig_file_guid"])
-        write_int(fid, FIFF.FIFF_MEAS_DATE, hi["meas_date"])
+        write_int(fid, FIFF.FIFF_MEAS_DATE, _dt_to_stamp(hi["meas_date"]))
         end_block(fid, FIFF.FIFFB_HELIUM)
         del hi
 
@@ -3465,13 +3429,7 @@ def anonymize_info(info, daysback=None, keep_his=False, verbose=None):
         if none_meas_date:
             subject_info.pop("birthday", None)
         elif subject_info.get("birthday") is not None:
-            dob = datetime.datetime(
-                subject_info["birthday"][0],
-                subject_info["birthday"][1],
-                subject_info["birthday"][2],
-            )
-            dob -= delta_t
-            subject_info["birthday"] = dob.year, dob.month, dob.day
+            subject_info["birthday"] = subject_info["birthday"] - delta_t
 
         for key in ("weight", "height"):
             if subject_info.get(key) is not None:
@@ -3508,9 +3466,11 @@ def anonymize_info(info, daysback=None, keep_his=False, verbose=None):
         if hi.get("orig_file_guid") is not None:
             hi["orig_file_guid"] = default_str
         if none_meas_date and hi.get("meas_date") is not None:
-            hi["meas_date"] = DATE_NONE
+            hi["meas_date"] = _ensure_meas_date_none_or_dt(DATE_NONE)
         elif hi.get("meas_date") is not None:
-            hi["meas_date"] = _add_timedelta_to_stamp(hi["meas_date"], -delta_t)
+            hi["meas_date"] = _ensure_meas_date_none_or_dt(
+                _add_timedelta_to_stamp(hi["meas_date"], -delta_t)
+            )
 
     di = info.get("device_info")
     if di is not None:

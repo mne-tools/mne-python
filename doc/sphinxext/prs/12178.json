@@ -1,0 +1,111 @@
+{
+  "merge_commit_sha": "22a6dc6b22a6397b75b6caa2271079ed14931986",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".circleci/config.yml": {
+      "a": 2,
+      "d": 2
+    },
+    ".github/workflows/tests.yml": {
+      "a": 1,
+      "d": 11
+    },
+    "MANIFEST.in": {
+      "a": 0,
+      "d": 6
+    },
+    "Makefile": {
+      "a": 3,
+      "d": 3
+    },
+    "azure-pipelines.yml": {
+      "a": 6,
+      "d": 7
+    },
+    "doc/changes/v0.24.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/development/contributing.rst": {
+      "a": 10,
+      "d": 4
+    },
+    "doc/links.inc": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/epochs.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/viz/_brain/tests/test_brain.py": {
+      "a": 13,
+      "d": 7
+    },
+    "pyproject.toml": {
+      "a": 165,
+      "d": 9
+    },
+    "requirements.txt": {
+      "a": 0,
+      "d": 47
+    },
+    "requirements_base.txt": {
+      "a": 0,
+      "d": 12
+    },
+    "requirements_doc.txt": {
+      "a": 0,
+      "d": 22
+    },
+    "requirements_hdf5.txt": {
+      "a": 0,
+      "d": 3
+    },
+    "requirements_testing.txt": {
+      "a": 0,
+      "d": 15
+    },
+    "requirements_testing_extra.txt": {
+      "a": 0,
+      "d": 10
+    },
+    "setup.py": {
+      "a": 0,
+      "d": 57
+    },
+    "tools/azure_dependencies.sh": {
+      "a": 4,
+      "d": 5
+    },
+    "tools/circleci_dependencies.sh": {
+      "a": 2,
+      "d": 2
+    },
+    "tools/generate_codemeta.py": {
+      "a": 11,
+      "d": 16
+    },
+    "tools/github_actions_dependencies.sh": {
+      "a": 8,
+      "d": 17
+    },
+    "tools/github_actions_env_vars.sh": {
+      "a": 2,
+      "d": 4
+    },
+    "tutorials/io/20_reading_eeg_data.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "9afcbcb21ca5df53eaf26911d0199dcc04bfc4ba",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/epochs.py": {
+      "a": 4,
+      "d": 5
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 12,
+      "d": 6
+    }
+  }
+}

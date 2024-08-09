@@ -1,0 +1,203 @@
+{
+  "merge_commit_sha": "e1e1f8bc4bbde70cb5ce48da4d8569714bdd6d7b",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".circleci/config.yml": {
+      "a": 2,
+      "d": 2
+    },
+    "examples/connectivity/plot_cwt_sensor_connectivity.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/connectivity/plot_mixed_source_space_connectivity.py": {
+      "a": 1,
+      "d": 2
+    },
+    "examples/connectivity/plot_mne_inverse_connectivity_spectrum.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/connectivity/plot_mne_inverse_label_connectivity.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/connectivity/plot_mne_inverse_psi_visual.py": {
+      "a": 2,
+      "d": 1
+    },
+    "examples/inverse/plot_compute_mne_inverse_epochs_in_label.py": {
+      "a": 0,
+      "d": 5
+    },
+    "examples/inverse/plot_label_from_stc.py": {
+      "a": 0,
+      "d": 1
+    },
+    "examples/inverse/plot_morph_volume_stc.py": {
+      "a": 3,
+      "d": 7
+    },
+    "examples/preprocessing/plot_resample.py": {
+      "a": 3,
+      "d": 3
+    },
+    "examples/stats/plot_cluster_stats_evoked.py": {
+      "a": 0,
+      "d": 1
+    },
+    "examples/visualization/plot_topo_compare_conditions.py": {
+      "a": 0,
+      "d": 1
+    },
+    "logo/generate_mne_logos.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/bem.py": {
+      "a": 0,
+      "d": 3
+    },
+    "mne/connectivity/spectral.py": {
+      "a": 108,
+      "d": 143
+    },
+    "mne/connectivity/tests/test_spectral.py": {
+      "a": 134,
+      "d": 138
+    },
+    "mne/cov.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/decoding/receptive_field.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/fixes.py": {
+      "a": 0,
+      "d": 10
+    },
+    "mne/forward/_make_forward.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/gui/_backend.py": {
+      "a": 31,
+      "d": 1
+    },
+    "mne/gui/_kit2fiff_gui.py": {
+      "a": 4,
+      "d": 3
+    },
+    "mne/gui/_marker_gui.py": {
+      "a": 7,
+      "d": 7
+    },
+    "mne/gui/_viewer.py": {
+      "a": 0,
+      "d": 3
+    },
+    "mne/inverse_sparse/_gamma_map.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/inverse_sparse/mxne_optim.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/bti/bti.py": {
+      "a": 5,
+      "d": 32
+    },
+    "mne/io/utils.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/label.py": {
+      "a": 0,
+      "d": 4
+    },
+    "mne/report.py": {
+      "a": 4,
+      "d": 5
+    },
+    "mne/stats/cluster_level.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/surface.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/tests/test_label.py": {
+      "a": 9,
+      "d": 10
+    },
+    "mne/transforms.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/utils/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/check.py": {
+      "a": 0,
+      "d": 29
+    },
+    "mne/viz/raw.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/viz/utils.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/plot_background_filtering.py": {
+      "a": 2,
+      "d": 4
+    },
+    "tutorials/plot_background_statistics.py": {
+      "a": 0,
+      "d": 2
+    },
+    "tutorials/plot_configuration.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/plot_dipole_fit.py": {
+      "a": 3,
+      "d": 3
+    },
+    "tutorials/plot_dipole_orientations.py": {
+      "a": 4,
+      "d": 4
+    },
+    "tutorials/plot_ecog.py": {
+      "a": 3,
+      "d": 3
+    },
+    "tutorials/plot_epoching_and_averaging.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/plot_introduction.py": {
+      "a": 4,
+      "d": 4
+    },
+    "tutorials/plot_modifying_data_inplace.py": {
+      "a": 2,
+      "d": 2
+    },
+    "tutorials/plot_receptive_field.py": {
+      "a": 4,
+      "d": 5
+    }
+  }
+}

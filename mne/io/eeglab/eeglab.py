@@ -385,7 +385,7 @@ def read_epochs_eeglab(
 
     Returns
     -------
-    epochs : instance of Epochs
+    EpochsEEGLAB : instance of BaseEpochs
         The epochs.
 
     See Also
@@ -673,9 +673,7 @@ class EpochsEEGLAB(BaseEpochs):
 
         for key, val in event_id.items():
             if val not in events[:, 2]:
-                raise ValueError(
-                    f"No matching events found for {key} (event id {val:i})"
-                )
+                raise ValueError(f"No matching events found for {key} (event id {val})")
 
         if isinstance(eeg.data, str):
             data_fname = _check_eeglab_fname(input_fname, eeg.data)

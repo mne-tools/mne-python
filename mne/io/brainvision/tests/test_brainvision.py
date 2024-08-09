@@ -59,9 +59,6 @@ vamp_ahdr = data_path / "Brainvision" / "test_VAmp.ahdr"
 # Test for nanovolts as unit
 vhdr_units_path = data_dir / "test_units.vhdr"
 
-# Test bad date
-vhdr_bad_date = data_dir / "test_bad_date.vhdr"
-
 eeg_bin = data_dir / "test_bin_raw.fif"
 eog = ["HL", "HR", "Vb"]
 
@@ -662,6 +659,49 @@ def test_read_vmrk_annotations(tmp_path):
         for item in head:
             temp.write(item)
     read_annotations(fname, sfreq=sfreq)
+
+
+def test_ignore_marker_types():
+    """Test ignore marker types."""
+    # default behavior (do not ignore marker types)
+    raw = read_raw_brainvision(vhdr_path)
+    expected_descriptions = [
+        "New Segment/",
+        "Stimulus/S253",
+        "Stimulus/S255",
+        "Event/254",
+        "Stimulus/S255",
+        "Event/254",
+        "Stimulus/S255",
+        "Stimulus/S253",
+        "Stimulus/S255",
+        "Response/R255",
+        "Event/254",
+        "Stimulus/S255",
+        "SyncStatus/Sync On",
+        "Optic/O  1",
+    ]
+    assert_array_equal(raw.annotations.description, expected_descriptions)
+
+    # ignore marker types
+    raw = read_raw_brainvision(vhdr_path, ignore_marker_types=True)
+    expected_descriptions = [
+        "",
+        "S253",
+        "S255",
+        "254",
+        "S255",
+        "254",
+        "S255",
+        "S253",
+        "S255",
+        "R255",
+        "254",
+        "S255",
+        "Sync On",
+        "O  1",
+    ]
+    assert_array_equal(raw.annotations.description, expected_descriptions)
 
 
 @testing.requires_testing_data

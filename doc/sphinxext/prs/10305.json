@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "639d7362b2c1a4599b583f247a431a3492c24190",
+  "authors": [
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/gui/_coreg.py": {
+      "a": 85,
+      "d": 1
+    },
+    "mne/gui/tests/test_coreg_gui.py": {
+      "a": 11,
+      "d": 0
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/backends/_qt.py": {
+      "a": 23,
+      "d": 2
+    }
+  }
+}

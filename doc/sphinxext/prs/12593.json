@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "356e8546890b8f798a14777991ba7de6cd9ab9bb",
+  "authors": [
+    {
+      "n": "Alex Rockhill",
+      "e": "aprockhill@mailbox.org"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/12593.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/channels/interpolation.py": {
+      "a": 77,
+      "d": 23
+    },
+    "mne/channels/tests/test_interpolation.py": {
+      "a": 23,
+      "d": 2
+    }
+  }
+}

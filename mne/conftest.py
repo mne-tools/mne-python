@@ -88,7 +88,6 @@ def pytest_configure(config):
         "pgtest",
         "pvtest",
         "allow_unclosed",
-        "allow_unclosed_pyside2",
     ):
         config.addinivalue_line("markers", marker)
 
@@ -148,6 +147,7 @@ def pytest_configure(config):
     # PySide6
     ignore:Enum value .* is marked as deprecated:DeprecationWarning
     ignore:Function.*is marked as deprecated, please check the documentation.*:DeprecationWarning
+    ignore:Failed to disconnect.*:RuntimeWarning
     # pkg_resources usage bug
     ignore:Implementing implicit namespace packages.*:DeprecationWarning
     ignore:Deprecated call to `pkg_resources.*:DeprecationWarning
@@ -1153,7 +1153,6 @@ def qt_windows_closed(request):
     """Ensure that no new Qt windows are open after a test."""
     _check_skip_backend("pyvistaqt")
     app = _init_mne_qtapp()
-    from qtpy import API_NAME
 
     app.processEvents()
     gc.collect()
@@ -1163,8 +1162,6 @@ def qt_windows_closed(request):
     app.processEvents()
     gc.collect()
     if "allow_unclosed" in marks:
-        return
-    if "allow_unclosed_pyside2" in marks and API_NAME.lower() == "pyside2":
         return
     # Don't check when the test fails
     if not _test_passed(request):

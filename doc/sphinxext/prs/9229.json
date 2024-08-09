@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "e243ee0e3e055c4e20a3f426bc9709fe5529010e",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/beamformer/tests/test_dics.py": {
+      "a": 57,
+      "d": 8
+    },
+    "mne/beamformer/tests/test_lcmv.py": {
+      "a": 17,
+      "d": 16
+    }
+  }
+}

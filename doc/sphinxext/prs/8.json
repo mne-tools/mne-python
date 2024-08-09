@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "1c6805e6866a78edaea4d1d8e22bd46146ac2a70",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "Makefile": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/source_estimate.py": {
+      "a": 79,
+      "d": 0
+    },
+    "mne/tests/test_source_estimate.py": {
+      "a": 27,
+      "d": 0
+    }
+  }
+}

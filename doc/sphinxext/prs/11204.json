@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "de546e2188761de69eede103b7c5a6cc09542a4d",
+  "authors": [
+    {
+      "n": "gemeinl",
+      "e": "lukas.gemein@gmx.de"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/base.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/fiff/tests/test_raw_fiff.py": {
+      "a": 15,
+      "d": 1
+    }
+  }
+}

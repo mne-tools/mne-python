@@ -1170,7 +1170,7 @@ class _SphericalSurfaceWarp:
         # 4. Smooth both surfaces using these coefficients, and evaluate at
         #     the "shape" points
         logger.info(
-            "    Matching %d points (%s) on smoothed surfaces" % (len(match_sph), match)
+            f"    Matching {len(match_sph)} points ({match}) on smoothed surfaces"
         )
         src_rad_az_pol = match_rad_az_pol.copy()
         src_rad_az_pol[0] = np.abs(np.dot(match_sph, src_coeffs))
@@ -1183,7 +1183,6 @@ class _SphericalSurfaceWarp:
         destination += dest_center
         # 6. Compute TPS warp of matched points from smoothed surfaces
         self._warp = _TPSWarp().fit(source, destination, reg)
-        self._matched = np.array([source, destination])
         logger.info("[done]")
         return self
 

@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "824259f5633b49c136bffd42dea1e1a2cc119882",
+  "authors": [
+    {
+      "n": "Zvi Baratz",
+      "e": "z.baratz@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/simulation/simulate_evoked_data.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

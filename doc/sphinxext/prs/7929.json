@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "a4088816648d07606b4b498ed08fca3d6f5949d2",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/channels/channels.py": {
+      "a": 15,
+      "d": 5
+    },
+    "mne/chpi.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/epochs.py": {
+      "a": 7,
+      "d": 7
+    },
+    "mne/io/meas_info.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/maxwell.py": {
+      "a": 11,
+      "d": 10
+    },
+    "mne/preprocessing/tests/test_maxwell.py": {
+      "a": 15,
+      "d": 1
+    }
+  }
+}

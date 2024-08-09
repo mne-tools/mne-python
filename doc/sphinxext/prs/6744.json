@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "8cc11b5fb08fd1aa1836f2e7f190cdb3e5dc53cc",
+  "authors": [
+    {
+      "n": "Joan Massich",
+      "e": "mailsik@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/viz/montage.py": {
+      "a": 4,
+      "d": 1
+    },
+    "mne/viz/tests/test_montage.py": {
+      "a": 10,
+      "d": 1
+    }
+  }
+}

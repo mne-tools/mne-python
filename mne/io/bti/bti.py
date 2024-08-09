@@ -42,9 +42,6 @@ from .read import (
     read_uint32,
 )
 
-FIFF_INFO_DIG_FIELDS = ("kind", "ident", "r", "coord_frame")
-FIFF_INFO_DIG_DEFAULTS = (None, None, None, FIFF.FIFFV_COORD_HEAD)
-
 BTI_WH2500_REF_MAG = ("MxA", "MyA", "MzA", "MxaA", "MyaA", "MzaA")
 BTI_WH2500_REF_GRAD = ("GxxA", "GyyA", "GyxA", "GzaA", "GzyA")
 
@@ -287,14 +284,14 @@ def _read_config(fname):
                 elif kind == BTI.UB_B_COH_POINTS:
                     dta["n_points"] = read_int32(fid)
                     dta["status"] = read_int32(fid)
-                    dta["points"] = []
-                    for pnt in range(16):
-                        d = {
+                    dta["points"] = [
+                        {
                             "pos": read_double_matrix(fid, 1, 3),
                             "direction": read_double_matrix(fid, 1, 3),
                             "error": read_double(fid),
                         }
-                        dta["points"] += [d]
+                        for _ in range(16)
+                    ]
 
                 elif kind == BTI.UB_B_CCP_XFM_BLOCK:
                     dta["method"] = read_int32(fid)
@@ -360,7 +357,7 @@ def _read_config(fname):
                         )
 
                     dta["subsys"] = list()
-                    for sub_key in range(num_subsys):
+                    for _ in range(num_subsys):
                         d = {
                             "subsys_type": read_int16(fid),
                             "subsys_num": read_int16(fid),
@@ -573,7 +570,7 @@ def _read_config(fname):
                 fid.seek(4, 1)
                 dev["reserved"] = read_str(fid, 32)
                 dta.update({"dev": dev, "loops": []})
-                for loop in range(dev["total_loops"]):
+                for _ in range(dev["total_loops"]):
                     d = {
                         "position": read_double_matrix(fid, 1, 3),
                         "orientation": read_double_matrix(fid, 1, 3),
@@ -774,82 +771,6 @@ def _read_pfid_ed(fid):
     return out
 
 
-def _read_coil_def(fid):
-    """Read coil definition."""
-    coildef = {
-        "position": read_double_matrix(fid, 1, 3),
-        "orientation": read_double_matrix(fid, 1, 3),
-        "radius": read_double(fid),
-        "wire_radius": read_double(fid),
-        "turns": read_int16(fid),
-    }
-
-    fid.seek(fid, 2, 1)
-    coildef["checksum"] = read_int32(fid)
-    coildef["reserved"] = read_str(fid, 32)
-
-
-def _read_ch_config(fid):
-    """Read BTi channel config."""
-    cfg = {
-        "name": read_str(fid, BTI.FILE_CONF_CH_NAME),
-        "chan_no": read_int16(fid),
-        "ch_type": read_uint16(fid),
-        "sensor_no": read_int16(fid),
-    }
-
-    fid.seek(fid, BTI.FILE_CONF_CH_NEXT, 1)
-
-    cfg.update(
-        {
-            "gain": read_float(fid),
-            "units_per_bit": read_float(fid),
-            "yaxis_label": read_str(fid, BTI.FILE_CONF_CH_YLABEL),
-            "aar_val": read_double(fid),
-            "checksum": read_int32(fid),
-            "reserved": read_str(fid, BTI.FILE_CONF_CH_RESERVED),
-        }
-    )
-
-    _correct_offset(fid)
-
-    # Then the channel info
-    ch_type, chan = cfg["ch_type"], dict()
-    chan["dev"] = {
-        "size": read_int32(fid),
-        "checksum": read_int32(fid),
-        "reserved": read_str(fid, 32),
-    }
-    if ch_type in [BTI.CHTYPE_MEG, BTI.CHTYPE_REF]:
-        chan["loops"] = [_read_coil_def(fid) for d in range(chan["dev"]["total_loops"])]
-
-    elif ch_type == BTI.CHTYPE_EEG:
-        chan["impedance"] = read_float(fid)
-        chan["padding"] = read_str(fid, BTI.FILE_CONF_CH_PADDING)
-        chan["transform"] = read_transform(fid)
-        chan["reserved"] = read_char(fid, BTI.FILE_CONF_CH_RESERVED)
-
-    elif ch_type in [
-        BTI.CHTYPE_TRIGGER,
-        BTI.CHTYPE_EXTERNAL,
-        BTI.CHTYPE_UTILITY,
-        BTI.CHTYPE_DERIVED,
-    ]:
-        chan["user_space_size"] = read_int32(fid)
-        if ch_type == BTI.CHTYPE_TRIGGER:
-            fid.seek(2, 1)
-        chan["reserved"] = read_str(fid, BTI.FILE_CONF_CH_RESERVED)
-
-    elif ch_type == BTI.CHTYPE_SHORTED:
-        chan["reserved"] = read_str(fid, BTI.FILE_CONF_CH_RESERVED)
-
-    cfg["chan"] = chan
-
-    _correct_offset(fid)
-
-    return cfg
-
-
 def _read_bti_header_pdf(pdf_fname):
     """Read header from pdf file."""
     with _bti_open(pdf_fname, "rb") as fid:
@@ -908,22 +829,20 @@ def _read_bti_header_pdf(pdf_fname):
 
         # actual header ends here, so dar seems ok.
 
-        info["epochs"] = [_read_epoch(fid) for epoch in range(info["total_epochs"])]
+        info["epochs"] = [_read_epoch(fid) for _ in range(info["total_epochs"])]
 
-        info["chs"] = [_read_channel(fid) for ch in range(info["total_chans"])]
+        info["chs"] = [_read_channel(fid) for _ in range(info["total_chans"])]
 
-        info["events"] = [_read_event(fid) for event in range(info["total_events"])]
+        info["events"] = [_read_event(fid) for _ in range(info["total_events"])]
 
-        info["processes"] = [
-            _read_process(fid) for process in range(info["total_processes"])
-        ]
+        info["processes"] = [_read_process(fid) for _ in range(info["total_processes"])]
 
         info["assocfiles"] = [
-            _read_assoc_file(fid) for af in range(info["total_associated_files"])
+            _read_assoc_file(fid) for _ in range(info["total_associated_files"])
         ]
 
         info["edclasses"] = [
-            _read_pfid_ed(fid) for ed_class in range(info["total_ed_classes"])
+            _read_pfid_ed(fid) for _ in range(info["total_ed_classes"])
         ]
 
         info["extra_data"] = fid.read(start - fid.tell())

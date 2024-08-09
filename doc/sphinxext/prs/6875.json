@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "70bf11cfce28ee3d989e4842939a7ca3c8b51ab6",
+  "authors": [
+    {
+      "n": "Mohamed Sherif",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/glossary.rst": {
+      "a": 11,
+      "d": 2
+    }
+  }
+}

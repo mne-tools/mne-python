@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "4ce0eb697ffecf8451bf43f3c67c015750ea9b27",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".github/workflows/check_changelog.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/_fiff/tag.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/fiff/tests/test_raw_fiff.py": {
+      "a": 4,
+      "d": 2
+    },
+    "tools/install_pre_requirements.sh": {
+      "a": 3,
+      "d": 0
+    }
+  }
+}

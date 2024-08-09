@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "cedb560fe02feeaae4e35113b9305d43b0bb2a79",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "examples/stats/plot_fdr_stats_evoked.py": {
+      "a": 80,
+      "d": 0
+    },
+    "mne/stats/__init__.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/stats/multi_comp.py": {
+      "a": 98,
+      "d": 0
+    },
+    "mne/stats/tests/test_multi_comp.py": {
+      "a": 36,
+      "d": 0
+    }
+  }
+}

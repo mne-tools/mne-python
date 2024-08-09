@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "6c215a52cb436a30f0f519b0e9c1ed504c659c68",
+  "authors": [
+    {
+      "n": "jaeilepp",
+      "e": "jaeilepp@student.jyu.fi"
+    }
+  ],
+  "changes": {
+    "circle.yml": {
+      "a": 4,
+      "d": 0
+    },
+    "examples/datasets/plot_megsim_data_single_trial.py": {
+      "a": 2,
+      "d": 2
+    },
+    "examples/datasets/plot_spm_faces_dataset.py": {
+      "a": 4,
+      "d": 5
+    },
+    "examples/inverse/plot_compute_mne_inverse_raw_in_label.py": {
+      "a": 1,
+      "d": 0
+    },
+    "examples/realtime/ftclient_rt_average.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/realtime/plot_compute_rt_average.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

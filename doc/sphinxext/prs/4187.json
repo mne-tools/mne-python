@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "884846fa1a3254ca7d9e5e4548b8f5ff521a2cf9",
+  "authors": [
+    {
+      "n": "mathurinm",
+      "e": "mathurin.massias@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/inverse_sparse/mxne_optim.py": {
+      "a": 48,
+      "d": 32
+    },
+    "mne/inverse_sparse/tests/test_mxne_optim.py": {
+      "a": 8,
+      "d": 6
+    }
+  }
+}

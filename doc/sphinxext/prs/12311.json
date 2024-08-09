@@ -1,0 +1,71 @@
+{
+  "merge_commit_sha": "c73b8afcf3cb6304bb67c390d667cd1ac526473d",
+  "authors": [
+    {
+      "n": "Alex Rockhill",
+      "e": "aprockhill@mailbox.org"
+    },
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/12311.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/conf.py": {
+      "a": 1,
+      "d": 0
+    },
+    "examples/decoding/decoding_csp_eeg.py": {
+      "a": 5,
+      "d": 8
+    },
+    "examples/decoding/decoding_csp_timefreq.py": {
+      "a": 8,
+      "d": 11
+    },
+    "examples/time_frequency/time_frequency_erds.py": {
+      "a": 5,
+      "d": 6
+    },
+    "examples/visualization/eyetracking_plot_heatmap.py": {
+      "a": 1,
+      "d": 5
+    },
+    "mne/epochs.py": {
+      "a": 54,
+      "d": 6
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 20,
+      "d": 0
+    },
+    "mne/utils/docs.py": {
+      "a": 5,
+      "d": 3
+    },
+    "tools/setup_xvfb.sh": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/clinical/20_seeg.py": {
+      "a": 1,
+      "d": 2
+    },
+    "tutorials/clinical/30_ecog.py": {
+      "a": 1,
+      "d": 5
+    },
+    "tutorials/time-freq/50_ssvep.py": {
+      "a": 6,
+      "d": 8
+    }
+  }
+}

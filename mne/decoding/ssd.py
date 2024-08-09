@@ -177,8 +177,8 @@ class SSD(BaseEstimator, TransformerMixin):
             The input data from which to estimate the SSD. Either 2D array
             obtained from continuous data or 3D array obtained from epoched
             data.
-        y : None | array, shape (n_samples,)
-            Used for scikit-learn compatibility.
+        y : None
+            Ignored; exists for compatibility with scikit-learn pipelines.
 
         Returns
         -------

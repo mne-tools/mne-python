@@ -10,6 +10,8 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+from __future__ import annotations  # only needed for Python ≤ 3.9
+
 import os
 import os.path as op
 import warnings
@@ -19,7 +21,6 @@ from dataclasses import dataclass
 from functools import partial
 from itertools import cycle
 from pathlib import Path
-from typing import Optional
 
 import numpy as np
 from scipy.spatial import ConvexHull, Delaunay
@@ -124,6 +125,7 @@ def plot_head_positions(
     mode="traces",
     cmap="viridis",
     direction="z",
+    *,
     show=True,
     destination=None,
     info=None,
@@ -163,9 +165,11 @@ def plot_head_positions(
 
         .. versionadded:: 0.16
     axes : array-like, shape (3, 2)
-        The matplotlib axes to use. Only used for ``mode == 'traces'``.
+        The matplotlib axes to use.
 
         .. versionadded:: 0.16
+        .. versionchanged:: 1.8
+           Added support for making use of this argument when ``mode="field"``.
 
     Returns
     -------
@@ -187,7 +191,9 @@ def plot_head_positions(
 
     if not isinstance(pos, (list, tuple)):
         pos = [pos]
+    pos = list(pos)  # make our own mutable copy
     for ii, p in enumerate(pos):
+        _validate_type(p, np.ndarray, f"pos[{ii}]")
         p = np.array(p, float)
         if p.ndim != 2 or p.shape[1] != 10:
             raise ValueError(
@@ -309,9 +315,15 @@ def plot_head_positions(
         from mpl_toolkits.mplot3d import Axes3D  # noqa: F401, analysis:ignore
         from mpl_toolkits.mplot3d.art3d import Line3DCollection
 
-        fig, ax = plt.subplots(
-            1, subplot_kw=dict(projection="3d"), layout="constrained"
-        )
+        _validate_type(axes, (Axes3D, None), "ax", extra="when mode='field'")
+        if axes is None:
+            _, ax = plt.subplots(
+                1, subplot_kw=dict(projection="3d"), layout="constrained"
+            )
+        else:
+            ax = axes
+        fig = ax.get_figure()
+        del axes
 
         # First plot the trajectory as a colormap:
         # http://matplotlib.org/examples/pylab_examples/multicolored_line.html
@@ -697,31 +709,33 @@ def plot_alignment(
         # Some stuff is natively in head coords, others in MRI coords
         msg = (
             "A head<->mri transformation matrix (trans) is required "
-            f"to plot %s in {coord_frame} coordinates, "
+            f"to plot {{}} in {coord_frame} coordinates, "
             "`trans=None` is not allowed"
         )
         if fwd is not None:
             fwd_frame = _frame_to_str[fwd["coord_frame"]]
             if fwd_frame != coord_frame:
-                raise ValueError(msg % f"a {fwd_frame}-coordinate forward solution")
+                raise ValueError(
+                    msg.format(f"a {fwd_frame}-coordinate forward solution")
+                )
         if src is not None:
             src_frame = _frame_to_str[src[0]["coord_frame"]]
             if src_frame != coord_frame:
-                raise ValueError(msg % f"a {src_frame}-coordinate source space")
+                raise ValueError(msg.format(f"a {src_frame}-coordinate source space"))
         if mri_fiducials is not False and coord_frame != "mri":
-            raise ValueError(msg % "mri fiducials")
+            raise ValueError(msg.format("mri fiducials"))
         # only enforce needing `trans` if there are channels in "head"/"device"
         if picks.size and coord_frame == "mri":
-            raise ValueError(msg % "sensors")
+            raise ValueError(msg.format("sensors"))
         # if only plotting sphere model no trans needed
         if bem is not None:
             if not bem["is_sphere"]:
                 if coord_frame != "mri":
-                    raise ValueError(msg % "a BEM")
+                    raise ValueError(msg.format("a BEM"))
             elif surfaces not in (["brain"], []):  # can only plot these
-                raise ValueError(msg % (", ".join(surfaces) + " surfaces"))
+                raise ValueError(msg.format(", ".join(surfaces) + " surfaces"))
         elif len(surfaces) > 0 and coord_frame != "mri":
-            raise ValueError(msg % (", ".join(surfaces) + " surfaces"))
+            raise ValueError(msg.format(", ".join(surfaces) + " surfaces"))
         trans = Transform("head", "mri")  # not used so just use identity
     # get transforms
     head_mri_t = _get_trans(trans, "head", "mri")[0]
@@ -2864,7 +2878,7 @@ def plot_volume_source_estimates(
         Can also be a string to use the ``bg_img`` file in the subject's
         MRI directory (default is ``'T1.mgz'``).
         Not used in "glass brain" plotting.
-    colorbar : bool, optional
+    colorbar : bool
         If True, display a colorbar on the right of the plots.
     %(colormap)s
     %(clim)s
@@ -3441,7 +3455,7 @@ def plot_sparse_source_estimates(
 
     colors = cycle(colors)
 
-    logger.info("Total number of active sources: %d" % len(unique_vertnos))
+    logger.info(f"Total number of active sources: {unique_vertnos}")
 
     if labels is not None:
         colors = [
@@ -4092,10 +4106,10 @@ def plot_brain_colorbar(
 
 @dataclass()
 class _3d_Options:
-    antialias: Optional[bool]
-    depth_peeling: Optional[bool]
-    smooth_shading: Optional[bool]
-    multi_samples: Optional[int]
+    antialias: bool | None
+    depth_peeling: bool | None
+    smooth_shading: bool | None
+    multi_samples: int | None
 
 
 _3d_options = _3d_Options(

@@ -41,6 +41,7 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
     )
 
     digital_min, digital_max = -32767, 32767
+    annotations = []
 
     # load data first
     raw.load_data()
@@ -62,10 +63,15 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
         if (pad_width := int(np.ceil(n_times / sfreq) * sfreq - n_times)) > 0:
             warn(
                 "EDF format requires equal-length data blocks, so "
-                f"{pad_width / sfreq:.3g} seconds of zeros were appended to all "
+                f"{pad_width / sfreq:.3g} seconds of edge values were appended to all "
                 "channels when writing the final block."
             )
-            data = np.pad(data, (0, int(pad_width)))
+            data = np.pad(data, (0, int(pad_width)), "edge")
+            annotations.append(
+                EdfAnnotation(
+                    raw.times[-1] + 1 / sfreq, pad_width / sfreq, "BAD_ACQ_SKIP"
+                )
+            )
     else:
         data_record_duration = _round_float_to_8_characters(
             np.floor(sfreq) / sfreq, round
@@ -158,8 +164,6 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
         name = "_".join(filter(None, [first_name, middle_name, last_name]))
 
         birthday = subj_info.get("birthday")
-        if birthday is not None:
-            birthday = dt.date(*birthday)
         hand = subj_info.get("hand")
         weight = subj_info.get("weight")
         height = subj_info.get("height")
@@ -197,7 +201,6 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
     else:
         recording = Recording(startdate=startdate)
 
-    annotations = []
     for desc, onset, duration, ch_names in zip(
         raw.annotations.description,
         raw.annotations.onset,

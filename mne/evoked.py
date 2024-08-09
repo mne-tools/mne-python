@@ -8,9 +8,11 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+from __future__ import annotations  # only needed for Python ≤ 3.9
+
 from copy import deepcopy
 from inspect import getfullargspec
-from typing import Union
+from pathlib import Path
 
 import numpy as np
 
@@ -467,14 +469,15 @@ class Evoked(
 
     @repr_html
     def _repr_html_(self):
-        if self.baseline is None:
-            baseline = "off"
-        else:
-            baseline = tuple([f"{b:.3f}" for b in self.baseline])
-            baseline = f"{baseline[0]} – {baseline[1]} s"
-
         t = _get_html_template("repr", "evoked.html.jinja")
-        t = t.render(evoked=self, baseline=baseline)
+        t = t.render(
+            inst=self,
+            filenames=(
+                [Path(self.filename).name]
+                if getattr(self, "filename", None) is not None
+                else None
+            ),
+        )
         return t
 
     @property
@@ -745,6 +748,8 @@ class Evoked(
         time_unit="s",
         sphere=None,
         axes=None,
+        *,
+        spatial_colors="auto",
         verbose=None,
     ):
         return plot_evoked_white(
@@ -755,6 +760,7 @@ class Evoked(
             time_unit=time_unit,
             sphere=sphere,
             axes=axes,
+            spatial_colors=spatial_colors,
             verbose=verbose,
         )
 
@@ -1658,7 +1664,7 @@ def read_evokeds(
     proj=True,
     allow_maxshield=False,
     verbose=None,
-) -> Union[list[Evoked], Evoked]:
+) -> list[Evoked] | Evoked:
     """Read evoked dataset(s).
 
     Parameters
@@ -1896,7 +1902,7 @@ def _read_evoked(fname, condition=None, kind="average", allow_maxshield=False):
         if nepoch != 1 and nepoch != info["nchan"]:
             raise ValueError(
                 "Number of epoch tags is unreasonable "
-                "(nepoch = %d nchan = %d)" % (nepoch, info["nchan"])
+                f"(nepoch = {nepoch} nchan = {info['nchan']})"
             )
 
         if nepoch == 1:

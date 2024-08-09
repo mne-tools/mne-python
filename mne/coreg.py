@@ -760,28 +760,6 @@ def _is_mri_subject(subject, subjects_dir=None):
     )
 
 
-def _is_scaled_mri_subject(subject, subjects_dir=None):
-    """Check whether a directory in subjects_dir is a scaled mri subject.
-
-    Parameters
-    ----------
-    subject : str
-        Name of the potential subject/directory.
-    subjects_dir : None | path-like
-        Override the SUBJECTS_DIR environment variable.
-
-    Returns
-    -------
-    is_scaled_mri_subject : bool
-        Whether ``subject`` is a scaled mri subject.
-    """
-    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-    if not _is_mri_subject(subject, subjects_dir):
-        return False
-    fname = subjects_dir / subject / "MRI scaling parameters.cfg"
-    return fname.exists()
-
-
 def _mri_subject_has_bem(subject, subjects_dir=None):
     """Check whether an mri subject has a file matching the bem pattern.
 
@@ -837,7 +815,7 @@ def read_mri_cfg(subject, subjects_dir=None):
         scale_str = config.get("MRI Scaling", "scale")
         scale = np.array([float(s) for s in scale_str.split()])
     else:
-        raise ValueError("Invalid n_params value in MRI cfg: %i" % n_params)
+        raise ValueError(f"Invalid n_params value in MRI cfg: {n_params}")
 
     out = {
         "subject_from": config.get("MRI Scaling", "subject_from"),
@@ -1479,7 +1457,6 @@ class Coregistration:
         self._scale_mode = None
         self._on_defects = on_defects
 
-        self._rot_trans = None
         self._default_parameters = np.array(
             [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0]
         )
@@ -1487,7 +1464,6 @@ class Coregistration:
         self._rotation = self._default_parameters[:3]
         self._translation = self._default_parameters[3:6]
         self._scale = self._default_parameters[6:9]
-        self._icp_iterations = 20
         self._icp_angle = 0.2
         self._icp_distance = 0.2
         self._icp_scale = 0.2
@@ -1565,11 +1541,7 @@ class Coregistration:
             # This should be very rare!
             warn(
                 "No low-resolution head found, decimating high resolution "
-                "mesh (%d vertices): %s"
-                % (
-                    len(self._bem_high_res["rr"]),
-                    high_res_path,
-                )
+                f"mesh ({len(self._bem_high_res['rr'])} vertices): {high_res_path}"
             )
             # Create one from the high res one, which we know we have
             rr, tris = decimate_surface(
@@ -1868,10 +1840,6 @@ class Coregistration:
     @property
     def _processed_high_res_mri_points(self):
         return self._get_processed_mri_points("high")
-
-    @property
-    def _processed_low_res_mri_points(self):
-        return self._get_processed_mri_points("low")
 
     def _get_processed_mri_points(self, res):
         bem = self._bem_low_res if res == "low" else self._bem_high_res

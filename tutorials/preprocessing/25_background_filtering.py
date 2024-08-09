@@ -517,7 +517,7 @@ plot_signal(x_mne_c, offset=yticks[5])
 plot_signal(x_min, offset=yticks[6])
 axes[0].set(
     xlim=tlim,
-    title="FIR, Lowpass=%d Hz" % f_p,
+    title=f"FIR, Lowpass={f_p} Hz",
     xticks=tticks,
     ylim=[-len(yticks) / yscale, 1.0 / yscale],
     yticks=yticks,
@@ -675,7 +675,7 @@ plot_signal(x_shallow, offset=yticks[2])
 plot_signal(x_steep, offset=yticks[3])
 axes[0].set(
     xlim=tlim,
-    title="IIR, Lowpass=%d Hz" % f_p,
+    title=f"IIR, Lowpass={f_p} Hz",
     xticks=tticks,
     ylim=[-0.125, 0.025],
     yticks=yticks,

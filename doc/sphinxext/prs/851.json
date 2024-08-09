@@ -1,0 +1,55 @@
+{
+  "merge_commit_sha": "7742303f25ef9784031c0a0db9b82c94e69217db",
+  "authors": [
+    {
+      "n": "Denis A. Engemann",
+      "e": null
+    }
+  ],
+  "changes": {
+    ".travis.yml": {
+      "a": 2,
+      "d": 1
+    },
+    "doc/source/whats_new.rst": {
+      "a": 3,
+      "d": 0
+    },
+    "examples/datasets/README.txt": {
+      "a": 5,
+      "d": 0
+    },
+    "examples/datasets/plot_spm_faces_dataset.py": {
+      "a": 118,
+      "d": 0
+    },
+    "mne/datasets/__init__.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/datasets/sample/sample.py": {
+      "a": 15,
+      "d": 152
+    },
+    "mne/datasets/spm_face/__init__.py": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/datasets/spm_face/spm_data.py": {
+      "a": 30,
+      "d": 0
+    },
+    "mne/datasets/utils.py": {
+      "a": 185,
+      "d": 0
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 6,
+      "d": 1
+    },
+    "mne/utils.py": {
+      "a": 6,
+      "d": 0
+    }
+  }
+}

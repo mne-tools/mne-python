@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "96d891774553a6a11fe4332937eab072510741e2",
+  "authors": [
+    {
+      "n": "mathurinm",
+      "e": "mathurin.massias@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/datasets/utils.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/plot_sensors_time_frequency.py": {
+      "a": 5,
+      "d": 5
+    }
+  }
+}

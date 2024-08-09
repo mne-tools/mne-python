@@ -1100,7 +1100,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         checkbox.on_clicked(self._toggle_draggable_annotations)
         fig.mne.drag_checkbox = checkbox
         # reposition & resize axes
-        width_in, height_in = fig.get_size_inches()
+        width_in, _ = fig.get_size_inches()
         width_ax = fig._inch_to_rel(
             width_in - ANNOTATION_FIG_CHECKBOX_COLUMN_W - 3 * ANNOTATION_FIG_PAD
         )
@@ -1778,9 +1778,17 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
 
     def _show_scalebars(self):
         """Add channel scale bars."""
-        for offset, pick in zip(self.mne.trace_offsets, self.mne.picks):
+        for pi, pick in enumerate(self.mne.picks):
             this_name = self.mne.ch_names[pick]
             this_type = self.mne.ch_types[pick]
+            # TODO: Simplify this someday -- we have to duplicate the challenging
+            # logic of _draw_traces here
+            offset_ixs = (
+                self.mne.picks
+                if self.mne.butterfly and self.mne.ch_selections is None
+                else slice(None)
+            )
+            offset = self.mne.trace_offsets[offset_ixs][pi]
             if (
                 this_type not in self.mne.scalebars
                 and this_type != "stim"

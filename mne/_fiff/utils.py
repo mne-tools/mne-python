@@ -254,7 +254,7 @@ def _read_segments_file(
 
 def read_str(fid, count=1):
     """Read string from a binary file in a python version compatible way."""
-    dtype = np.dtype(">S%i" % count)
+    dtype = np.dtype(f">S{count}")
     string = fid.read(dtype.itemsize)
     data = np.frombuffer(string, dtype=dtype)[0]
     bytestr = b"".join([data[0 : data.index(b"\x00") if b"\x00" in data else count]])
@@ -299,31 +299,6 @@ def _create_chs(ch_names, cals, ch_coil, ch_kind, eog, ecg, emg, misc):
             chan_info["loc"][:3] = np.nan
         chs.append(chan_info)
     return chs
-
-
-def _synthesize_stim_channel(events, n_samples):
-    """Synthesize a stim channel from events read from an event file.
-
-    Parameters
-    ----------
-    events : array, shape (n_events, 3)
-        Each row representing an event.
-    n_samples : int
-        The number of samples.
-
-    Returns
-    -------
-    stim_channel : array, shape (n_samples,)
-        An array containing the whole recording's event marking.
-    """
-    # select events overlapping buffer
-    events = events.copy()
-    events[events[:, 1] < 1, 1] = 1
-    # create output buffer
-    stim_channel = np.zeros(n_samples, int)
-    for onset, duration, trigger in events:
-        stim_channel[onset : onset + duration] = trigger
-    return stim_channel
 
 
 def _construct_bids_filename(base, ext, part_idx, validate=True):

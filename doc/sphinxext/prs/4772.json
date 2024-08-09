@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "fe6fa4963cf2080160b9d435c122b4c8ba87d77a",
+  "authors": [
+    {
+      "n": "Stefan Repplinger",
+      "e": "stefan.repplinger@posteo.net"
+    }
+  ],
+  "changes": {
+    "tutorials/plot_artifacts_correction_ica.py": {
+      "a": 4,
+      "d": 4
+    }
+  }
+}

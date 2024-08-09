@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "67c4c7e29aeced45d8b32234acf428ed994b8c77",
+  "authors": [
+    {
+      "n": "Jaakko Leppakangas",
+      "e": "jaeilepp@student.jyu.fi"
+    }
+  ],
+  "changes": {
+    "mne/evoked.py": {
+      "a": 13,
+      "d": 5
+    },
+    "mne/io/proj.py": {
+      "a": 6,
+      "d": 2
+    },
+    "mne/time_frequency/tests/test_tfr.py": {
+      "a": 25,
+      "d": 0
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 30,
+      "d": 12
+    },
+    "mne/viz/tests/test_topomap.py": {
+      "a": 8,
+      "d": 0
+    },
+    "mne/viz/topo.py": {
+      "a": 10,
+      "d": 4
+    },
+    "mne/viz/topomap.py": {
+      "a": 66,
+      "d": 28
+    }
+  }
+}

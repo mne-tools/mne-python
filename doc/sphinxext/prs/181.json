@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "18dfdf960cf22335f7dbe5b2c7a3827aa7bb6de1",
+  "authors": [
+    {
+      "n": "Martin Luessi",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/epochs.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

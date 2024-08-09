@@ -1,0 +1,71 @@
+{
+  "merge_commit_sha": "a9723e8215cdbf2721497516173c82f2ed64cf42",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/python_reference.rst": {
+      "a": 1,
+      "d": 3
+    },
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/connectivity/tests/test_spectral.py": {
+      "a": 3,
+      "d": 4
+    },
+    "mne/decoding/transformer.py": {
+      "a": 8,
+      "d": 51
+    },
+    "mne/filter.py": {
+      "a": 326,
+      "d": 186
+    },
+    "mne/io/fiff/tests/test_raw_fiff.py": {
+      "a": 3,
+      "d": 6
+    },
+    "mne/preprocessing/ecg.py": {
+      "a": 3,
+      "d": 5
+    },
+    "mne/preprocessing/eog.py": {
+      "a": 7,
+      "d": 9
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 8,
+      "d": 10
+    },
+    "mne/tests/test_filter.py": {
+      "a": 62,
+      "d": 63
+    },
+    "mne/viz/__init__.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/viz/misc.py": {
+      "a": 280,
+      "d": 0
+    },
+    "mne/viz/tests/test_misc.py": {
+      "a": 30,
+      "d": 2
+    },
+    "tutorials/plot_background_filtering.py": {
+      "a": 76,
+      "d": 134
+    },
+    "tutorials/plot_brainstorm_auditory.py": {
+      "a": 4,
+      "d": 11
+    }
+  }
+}

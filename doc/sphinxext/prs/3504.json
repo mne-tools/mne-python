@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "ee84544768ea747825801634966b0bedbab20b00",
+  "authors": [
+    {
+      "n": "Jean-Rémi KING",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/epochs.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 3,
+      "d": 2
+    }
+  }
+}

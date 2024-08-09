@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "c033cdf5100eb707997da37bd06a5c722b631570",
+  "authors": [
+    {
+      "n": "Martin Luessi",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/sphinxext/gen_rst.py": {
+      "a": 33,
+      "d": 5
+    },
+    "mne/connectivity/spectral.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

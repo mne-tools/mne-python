@@ -15,7 +15,6 @@ from importlib.metadata import metadata
 from pathlib import Path
 
 import matplotlib
-import pyvista
 import sphinx
 from intersphinx_registry import get_intersphinx_mapping
 from numpydoc import docscrape
@@ -113,6 +112,7 @@ extensions = [
     "mne_substitutions",
     "newcontrib_substitutions",
     "unit_role",
+    "related_software",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -121,6 +121,8 @@ templates_path = ["_templates"]
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
+
+# NB: changes here should also be made to the linkcheck target in the Makefile
 exclude_patterns = ["_includes", "changes/devel"]
 
 # The suffix of source filenames.
@@ -165,7 +167,7 @@ intersphinx_mapping = {
 }
 intersphinx_mapping.update(
     get_intersphinx_mapping(
-        only=set(
+        packages=set(
             """
 imageio matplotlib numpy pandas python scipy statsmodels sklearn numba joblib nibabel
 seaborn patsy pyvista dipy nilearn pyqtgraph
@@ -443,10 +445,6 @@ numpydoc_validation_exclude = {  # set of regex
 examples_dirs = ["../tutorials", "../examples"]
 gallery_dirs = ["auto_tutorials", "auto_examples"]
 os.environ["_MNE_BUILDING_DOC"] = "true"
-scrapers = ("matplotlib",)
-mne.viz.set_3d_backend("pyvistaqt")
-pyvista.OFF_SCREEN = False
-pyvista.BUILDING_GALLERY = True
 
 scrapers = (
     "matplotlib",
@@ -466,6 +464,7 @@ if sys.platform.startswith("win"):
     except Exception:
         compress_images = ()
 
+sphinx_gallery_parallel = int(os.getenv("MNE_DOC_BUILD_N_JOBS", "1"))
 sphinx_gallery_conf = {
     "doc_module": ("mne",),
     "reference_url": dict(mne=None),
@@ -517,7 +516,7 @@ sphinx_gallery_conf = {
     ),  # called w/each script
     "reset_modules_order": "both",
     "image_scrapers": scrapers,
-    "show_memory": not sys.platform.startswith(("win", "darwin")),
+    "show_memory": sys.platform == "linux" and sphinx_gallery_parallel == 1,
     "line_numbers": False,  # messes with style
     "within_subsection_order": "FileNameSortKey",
     "capture_repr": ("_repr_html_",),
@@ -565,6 +564,7 @@ sphinx_gallery_conf = {
         ".*.remove.*|.*.write.*)"
     ),
     "copyfile_regex": r".*index\.rst",  # allow custom index.rst files
+    "parallel": sphinx_gallery_parallel,
 }
 assert is_serializable(sphinx_gallery_conf)
 # Files were renamed from plot_* with:
@@ -619,6 +619,7 @@ linkcheck_ignore = [  # will be compiled to regex
     "https://doi.org/10.1111/",  # onlinelibrary.wiley.com/doi/10.1111/psyp
     "https://doi.org/10.1126/",  # www.science.org
     "https://doi.org/10.1137/",  # epubs.siam.org
+    "https://doi.org/10.1155/",  # www.hindawi.com/journals/cin
     "https://doi.org/10.1161/",  # www.ahajournals.org
     "https://doi.org/10.1162/",  # direct.mit.edu/neco/article/
     "https://doi.org/10.1167/",  # jov.arvojournals.org
@@ -631,6 +632,7 @@ linkcheck_ignore = [  # will be compiled to regex
     "https://www.intel.com/content/www/us/en/developer/tools/oneapi/onemkl.html",
     r"https://scholar.google.com/scholar\?cites=12188330066413208874&as_ylo=2014",
     r"https://scholar.google.com/scholar\?cites=1521584321377182930&as_ylo=2013",
+    "https://www.research.chop.edu/imaging",
     # 500 server error
     "https://openwetware.org/wiki/Beauchamp:FreeSurfer",
     # 503 Server error
@@ -654,6 +656,7 @@ linkcheck_ignore = [  # will be compiled to regex
 linkcheck_anchors = False  # saves a bit of time
 linkcheck_timeout = 15  # some can be quite slow
 linkcheck_retries = 3
+linkcheck_report_timeouts_as_broken = False
 
 # autodoc / autosummary
 autosummary_generate = True
@@ -761,6 +764,7 @@ html_theme_options = {
         "json_url": "https://mne.tools/dev/_static/versions.json",
         "version_match": switcher_version_match,
     },
+    "back_to_top_button": False,
 }
 
 # The name of an image file (relative to this directory) to place at the top
@@ -1650,8 +1654,8 @@ def make_version(app, exception):
 def setup(app):
     """Set up the Sphinx app."""
     app.connect("autodoc-process-docstring", append_attr_meth_examples)
-    report_scraper.app = app
-    app.connect("builder-inited", report_scraper.copyfiles)
+    # High prio, will happen before SG
+    app.connect("builder-inited", report_scraper.set_dirs, priority=20)
     app.connect("build-finished", make_gallery_redirects)
     app.connect("build-finished", make_api_redirects)
     app.connect("build-finished", make_custom_redirects)

@@ -1,0 +1,51 @@
+{
+  "merge_commit_sha": "777bdac4668e072a5897b6e495e6c0784e0eb627",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "examples/inverse/plot_compute_mne_inverse_volume.py": {
+      "a": 56,
+      "d": 0
+    },
+    "mne/__init__.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/fiff/constants.py": {
+      "a": 6,
+      "d": 0
+    },
+    "mne/minimum_norm/inverse.py": {
+      "a": 28,
+      "d": 30
+    },
+    "mne/minimum_norm/tests/test_inverse.py": {
+      "a": 17,
+      "d": 2
+    },
+    "mne/minimum_norm/time_frequency.py": {
+      "a": 5,
+      "d": 5
+    },
+    "mne/parallel.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/source_estimate.py": {
+      "a": 134,
+      "d": 27
+    },
+    "mne/source_space.py": {
+      "a": 63,
+      "d": 1
+    },
+    "mne/transforms.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

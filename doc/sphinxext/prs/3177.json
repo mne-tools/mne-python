@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "831c0ba4089ad67367777f4ef1b27853584679e4",
+  "authors": [
+    {
+      "n": "Jona Sassenhagen",
+      "e": "jona.sassenhagen@gmail.com"
+    }
+  ],
+  "changes": {
+    "tutorials/plot_artifacts_correction_maxwell_filtering.py": {
+      "a": 2,
+      "d": 1
+    },
+    "tutorials/plot_visualize_evoked.py": {
+      "a": 9,
+      "d": 8
+    }
+  }
+}

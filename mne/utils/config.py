@@ -470,6 +470,8 @@ def get_subjects_dir(subjects_dir=None, raise_error=False):
     if subjects_dir is None:
         subjects_dir = get_config("SUBJECTS_DIR", raise_error=raise_error)
         from_config = True
+        if subjects_dir is not None:
+            subjects_dir = Path(subjects_dir)
     if subjects_dir is not None:
         # Emit a nice error or warning if their config is bad
         try:
@@ -532,7 +534,7 @@ def _get_stim_channel(stim_channel, info, raise_error=True):
     while ch is not None and ch in info["ch_names"]:
         stim_channel.append(ch)
         ch_count += 1
-        ch = get_config("MNE_STIM_CHANNEL_%d" % ch_count)
+        ch = get_config(f"MNE_STIM_CHANNEL_{ch_count}")
     if ch_count > 0:
         return stim_channel
 

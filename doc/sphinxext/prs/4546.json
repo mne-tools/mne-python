@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "ce040f091f6e9346dbae05a8ab06649f6292319a",
+  "authors": [
+    {
+      "n": "Nicolas Barascud",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 6,
+      "d": 0
+    },
+    "examples/decoding/plot_receptive_field.py": {
+      "a": 120,
+      "d": 9
+    },
+    "mne/decoding/receptive_field.py": {
+      "a": 47,
+      "d": 6
+    },
+    "mne/decoding/tests/test_receptive_field.py": {
+      "a": 59,
+      "d": 7
+    },
+    "mne/decoding/time_delaying_ridge.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

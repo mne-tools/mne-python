@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "0b02ac91ae23fe50459bc11343c6aa2cae6d7c9c",
+  "authors": [
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/conf.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

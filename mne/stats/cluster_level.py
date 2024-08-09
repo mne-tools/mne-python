@@ -306,7 +306,7 @@ def _get_components(x_in, adjacency, return_list=True):
         row = np.concatenate((row, idx))
         col = np.concatenate((col, idx))
         data = np.concatenate((data, np.ones(len(idx), dtype=data.dtype)))
-        adjacency = sparse.coo_matrix((data, (row, col)), shape=shape)
+        adjacency = sparse.coo_array((data, (row, col)), shape=shape)
         _, components = connected_components(adjacency)
     if return_list:
         start = np.min(components)
@@ -348,7 +348,7 @@ def _find_clusters(
         threshold-free cluster enhancement.
     tail : -1 | 0 | 1
         Type of comparison
-    adjacency : scipy.sparse.coo_matrix, None, or list
+    adjacency : scipy.sparse.coo_array, None, or list
         Defines adjacency between features. The matrix is assumed to
         be symmetric and only the upper triangular half is used.
         If adjacency is a list, it is assumed that each entry stores the
@@ -378,7 +378,7 @@ def _find_clusters(
     -------
     clusters : list of slices or list of arrays (boolean masks)
         We use slices for 1D signals and mask to multidimensional
-        arrays.
+        arrays. None is returned if threshold is a dict (TFCE)
     sums : array
         Sum of x values in clusters.
     """
@@ -485,18 +485,9 @@ def _find_clusters(
     # turn sums into array
     sums = np.concatenate(sums) if sums else np.array([])
     if tfce:
-        # each point gets treated independently
-        clusters = np.arange(x.size)
-        if adjacency is None or adjacency is False:
-            if x.ndim == 1:
-                # slices
-                clusters = [slice(c, c + 1) for c in clusters]
-            else:
-                # boolean masks (raveled)
-                clusters = [(clusters == ii).ravel() for ii in range(len(clusters))]
-        else:
-            clusters = [np.array([c]) for c in clusters]
         sums = scores
+        clusters = None  # clusters construction is made in _permutation_cluster_test
+
     return clusters, sums
 
 
@@ -556,12 +547,16 @@ def _find_clusters_1dir(x, x_in, adjacency, max_step, t_power, ndimage):
             raise Exception(
                 "Data should be 1D when using a adjacency to define clusters."
             )
-        if isinstance(adjacency, sparse.spmatrix) or adjacency is False:
+        if isinstance(adjacency, sparse.spmatrix):
+            adjacency = sparse.coo_array(adjacency)
+        if sparse.issparse(adjacency) or adjacency is False:
             clusters = _get_components(x_in, adjacency)
         elif isinstance(adjacency, list):  # use temporal adjacency
             clusters = _get_clusters_st(x_in, adjacency, max_step)
         else:
-            raise ValueError("adjacency must be a sparse matrix or list")
+            raise TypeError(
+                f"adjacency must be a sparse array or list, got {type(adjacency)}"
+            )
         if t_power == 1:
             sums = [_masked_sum(x, c) for c in clusters]
         else:
@@ -570,11 +565,16 @@ def _find_clusters_1dir(x, x_in, adjacency, max_step, t_power, ndimage):
     return clusters, np.atleast_1d(sums)
 
 
-def _cluster_indices_to_mask(components, n_tot):
-    """Convert to the old format of clusters, which were bool arrays."""
+def _cluster_indices_to_mask(components, n_tot, slice_out):
+    """Convert to the old format of clusters, which were bool arrays (or slices in 1D)."""  # noqa: E501
     for ci, c in enumerate(components):
-        components[ci] = np.zeros((n_tot), dtype=bool)
-        components[ci][c] = True
+        if not slice_out:
+            # boolean array
+            components[ci] = np.zeros((n_tot), dtype=bool)
+            components[ci][c] = True
+        else:
+            # slice (similar as ndimage.find_object output)
+            components[ci] = (slice(c.min(), c.max() + 1),)
     return components
 
 
@@ -1007,18 +1007,22 @@ def _permutation_cluster_test(
     t_obs.shape = sample_shape
 
     # For TFCE, return the "adjusted" statistic instead of raw scores
-    if isinstance(threshold, dict):
+    # and for clusters, each point gets treated independently
+    tfce = isinstance(threshold, dict)
+    if tfce:
         t_obs = cluster_stats.reshape(t_obs.shape) * np.sign(t_obs)
+        clusters = [np.array([c]) for c in range(t_obs.size)]
 
     logger.info(f"Found {len(clusters)} cluster{_pl(clusters)}")
 
     # convert clusters to old format
-    if adjacency is not None and adjacency is not False:
+    if (adjacency is not None and adjacency is not False) or tfce:
         # our algorithms output lists of indices by default
         if out_type == "mask":
-            clusters = _cluster_indices_to_mask(clusters, n_tests)
+            slice_out = (adjacency is None) & (len(sample_shape) == 1)
+            clusters = _cluster_indices_to_mask(clusters, n_tests, slice_out)
     else:
-        # ndimage outputs slices or boolean masks by default
+        # ndimage outputs slices or boolean masks by default,
         if out_type == "indices":
             clusters = _cluster_mask_to_indices(clusters, t_obs.shape)
 
@@ -1606,14 +1610,14 @@ def _get_partitions_from_adjacency(adjacency, n_times, verbose=None):
         test_adj = np.zeros((len(adjacency), len(adjacency)), dtype="bool")
         for vi in range(len(adjacency)):
             test_adj[adjacency[vi], vi] = True
-        test_adj = sparse.coo_matrix(test_adj, dtype="float")
+        test_adj = sparse.coo_array(test_adj, dtype="float")
     else:
         test = np.ones(adjacency.shape[0])
         test_adj = adjacency
 
     part_clusts = _find_clusters(test, 0, 1, test_adj)[0]
     if len(part_clusts) > 1:
-        logger.info("%i disjoint adjacency sets found" % len(part_clusts))
+        logger.info(f"{len(part_clusts)} disjoint adjacency sets found")
         partitions = np.zeros(len(test), dtype="int")
         for ii, pc in enumerate(part_clusts):
             partitions[pc] = ii

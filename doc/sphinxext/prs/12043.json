@@ -1,0 +1,219 @@
+{
+  "merge_commit_sha": "c6863e5470a4ea312f0d7762d1ba4e9139d63785",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/_static/flow_diagram.svg": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/api/connectivity.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/api/covariance.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/api/creating_from_arrays.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/api/datasets.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/api/decoding.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/api/events.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/api/export.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/api/file_io.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/api/forward.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/api/inverse.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/api/logging.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/api/most_used_classes.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/api/mri.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/api/preprocessing.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/api/python_reference.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/api/reading_raw_data.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/api/realtime.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/api/report.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/api/sensor_space.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/api/simulation.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/api/source_space.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/api/statistics.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/api/time_frequency.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/api/visualization.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/conf.py": {
+      "a": 64,
+      "d": 22
+    },
+    "doc/development/contributing.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/development/governance.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/development/index.rst": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/development/roadmap.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/development/whats_new.rst": {
+      "a": 42,
+      "d": 0
+    },
+    "doc/documentation/cite.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/documentation/cited.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/documentation/cookbook.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/documentation/datasets.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/documentation/design_philosophy.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/documentation/glossary.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/documentation/implementation.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/documentation/index.rst": {
+      "a": 8,
+      "d": 8
+    },
+    "doc/help/faq.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/help/index.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/help/learn_python.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/help/migrating.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/index.rst": {
+      "a": 4,
+      "d": 4
+    },
+    "doc/install/advanced.rst": {
+      "a": 0,
+      "d": 41
+    },
+    "doc/install/manual_install_python.rst": {
+      "a": 13,
+      "d": 141
+    },
+    "doc/install/mne_tools_suite.rst": {
+      "a": 3,
+      "d": 4
+    },
+    "doc/links.inc": {
+      "a": 2,
+      "d": 1
+    },
+    "doc/overview/images/Digitizer-example.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/overview/matlab.rst": {
+      "a": 0,
+      "d": 1218
+    },
+    "doc/whats_new.rst": {
+      "a": 0,
+      "d": 42
+    },
+    "tutorials/io/70_reading_eyetracking_data.py": {
+      "a": 1,
+      "d": 2
+    }
+  }
+}

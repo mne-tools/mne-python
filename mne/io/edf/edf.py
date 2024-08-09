@@ -13,7 +13,7 @@
 
 import os
 import re
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 
 import numpy as np
 from scipy.interpolate import interp1d
@@ -690,7 +690,7 @@ def _get_info(
             info["subject_info"]["last_name"] = sub_names[2]
     # Birthday in (year, month, day) format.
     if isinstance(edf_info["subject_info"].get("birthday"), datetime):
-        info["subject_info"]["birthday"] = (
+        info["subject_info"]["birthday"] = date(
             edf_info["subject_info"]["birthday"].year,
             edf_info["subject_info"]["birthday"].month,
             edf_info["subject_info"]["birthday"].day,
@@ -704,9 +704,12 @@ def _get_info(
     # Weight in kilograms.
     if edf_info["subject_info"].get("weight") is not None:
         info["subject_info"]["weight"] = float(edf_info["subject_info"]["weight"])
+    # Remove values after conversion to help with in-memory anonymization
+    for key in ("subject_info", "meas_date"):
+        del edf_info[key]
 
     # Filter settings
-    if filt_ch_idxs := [x for x in sel if x not in stim_channel_idxs]:
+    if filt_ch_idxs := [x for x in range(len(sel)) if x not in stim_channel_idxs]:
         _set_prefilter(info, edf_info, filt_ch_idxs, "highpass")
         _set_prefilter(info, edf_info, filt_ch_idxs, "lowpass")
 
@@ -835,48 +838,40 @@ def _read_edf_header(
                                 warn(f"Invalid patient information {key}")
 
         # Recording ID
-        meas_id = {}
         rec_info = fid.read(80).decode("latin-1").rstrip().split(" ")
-        valid_startdate = False
+        # if the measurement date is available in the recording info, it's used instead
+        # of the file's meas_date since it contains all 4 digits of the year.
+        meas_date = None
         if len(rec_info) == 5:
             try:
-                startdate = datetime.strptime(rec_info[1], "%d-%b-%Y")
-            except ValueError:
-                startdate = "X"
+                meas_date = datetime.strptime(rec_info[1], "%d-%b-%Y")
+            except Exception:
+                meas_date = None
             else:
-                valid_startdate = True
-            meas_id["startdate"] = startdate
-            meas_id["study_id"] = rec_info[2]
-            meas_id["technician"] = rec_info[3]
-            meas_id["equipment"] = rec_info[4]
-
-        # If startdate available in recording info, use it instead of the
-        # file's meas_date since it contains all 4 digits of the year
-        if valid_startdate:
-            day = meas_id["startdate"].day
-            month = meas_id["startdate"].month
-            year = meas_id["startdate"].year
-            fid.read(8)  # skip file's meas_date
+                fid.read(8)  # skip the file's meas_date
+        if meas_date is None:
+            try:
+                meas_date = fid.read(8).decode("latin-1")
+                day, month, year = (int(x) for x in meas_date.split("."))
+                year = year + 2000 if year < 85 else year + 1900
+                meas_date = datetime(year, month, day)
+            except Exception:
+                meas_date = None
+        if meas_date is not None:
+            # try to get the hour/minute/sec from the recording info
+            try:
+                meas_time = fid.read(8).decode("latin-1")
+                hour, minute, second = (int(x) for x in meas_time.split("."))
+            except Exception:
+                hour, minute, second = 0, 0, 0
+            meas_date = meas_date.replace(
+                hour=hour, minute=minute, second=second, tzinfo=timezone.utc
+            )
         else:
-            meas_date = fid.read(8).decode("latin-1")
-            day, month, year = (int(x) for x in meas_date.split("."))
-            year = year + 2000 if year < 85 else year + 1900
-
-        meas_time = fid.read(8).decode("latin-1")
-        hour, minute, sec = (int(x) for x in meas_time.split("."))
-        try:
-            meas_date = datetime(
-                year, month, day, hour, minute, sec, tzinfo=timezone.utc
-            )
-        except ValueError:
-            warn(
-                f"Invalid date encountered ({year:04d}-{month:02d}-"
-                f"{day:02d} {hour:02d}:{minute:02d}:{sec:02d})."
-            )
-            meas_date = None
+            fid.read(8)  # skip the file's measurement time
+            warn("Invalid measurement date encountered in the header.")
 
         header_nbytes = int(_edf_str(fid.read(8)))
-
         # The following 44 bytes sometimes identify the file type, but this is
         # not guaranteed. Therefore, we skip this field and use the file
         # extension to determine the subtype (EDF or BDF, which differ in the
@@ -951,6 +946,7 @@ def _read_edf_header(
         edf_info["units"] = np.array(edf_info["units"], float)
 
         ch_names = [ch_names[idx] for idx in sel]
+        ch_types = [ch_types[idx] for idx in sel]
         units = [units[idx] for idx in sel]
 
         if not exclude_after_unique:
@@ -1353,9 +1349,9 @@ def _read_gdf_header(fname, exclude, include=None):
                     edf_info["units"].append(1)  # unrecognized
                 else:
                     warn(
-                        "Unsupported physical dimension for channel %d "
+                        f"Unsupported physical dimension for channel {i} "
                         "(assuming dimensionless). Please contact the "
-                        "MNE-Python developers for support." % i
+                        "MNE-Python developers for support."
                     )
                     edf_info["units"].append(1)
             edf_info["units"] = np.array(edf_info["units"], float)

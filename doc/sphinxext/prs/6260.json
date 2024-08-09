@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "14a0f195e7301c1504c72b3cc09476609b0b0029",
+  "authors": [
+    {
+      "n": "Mikolaj Magnuski",
+      "e": "mmagnuski@swps.edu.pl"
+    }
+  ],
+  "changes": {
+    "mne/annotations.py": {
+      "a": 18,
+      "d": 14
+    },
+    "mne/tests/test_annotations.py": {
+      "a": 7,
+      "d": 0
+    }
+  }
+}

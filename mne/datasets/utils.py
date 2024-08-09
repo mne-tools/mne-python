@@ -20,6 +20,7 @@ import time
 import zipfile
 from collections import OrderedDict
 from pathlib import Path
+from typing import cast
 
 import numpy as np
 
@@ -120,11 +121,11 @@ def _get_path(path, key, name):
     # 4. ~/mne_data (but use a fake home during testing so we don't
     #    unnecessarily create ~/mne_data)
     logger.info(f"Using default location ~/mne_data for {name}...")
-    path = op.join(os.getenv("_MNE_FAKE_HOME_DIR", op.expanduser("~")), "mne_data")
-    if not op.exists(path):
-        logger.info("Creating ~/mne_data")
+    path = Path(os.getenv("_MNE_FAKE_HOME_DIR", "~")).expanduser() / "mne_data"
+    if not path.is_dir():
+        logger.info(f"Creating {path}")
         try:
-            os.mkdir(path)
+            path.mkdir()
         except OSError:
             raise OSError(
                 "User does not have write permissions "
@@ -133,7 +134,7 @@ def _get_path(path, key, name):
                 "write permissions, for ex:data_path"
                 "('/home/xyz/me2/')"
             )
-    return Path(path).expanduser()
+    return path
 
 
 def _do_path_update(path, update_path, key, name):
@@ -210,7 +211,7 @@ def _check_in_testing_and_raise(name, download):
 
 def _download_mne_dataset(
     name, processor, path, force_update, update_path, download, accept=False
-):
+) -> Path:
     """Aux function for downloading internal MNE datasets."""
     import pooch
 
@@ -243,14 +244,17 @@ def _download_mne_dataset(
             this_dataset["dataset_name"] = name
             dataset_params.append(this_dataset)
 
-    return fetch_dataset(
-        dataset_params=dataset_params,
-        processor=processor_,
-        path=path,
-        force_update=force_update,
-        update_path=update_path,
-        download=download,
-        accept=accept,
+    return cast(
+        Path,
+        fetch_dataset(
+            dataset_params=dataset_params,
+            processor=processor_,
+            path=path,
+            force_update=force_update,
+            update_path=update_path,
+            download=download,
+            accept=accept,
+        ),
     )
 
 
@@ -764,27 +768,27 @@ def _manifest_check_download(manifest_path, destination, url, hash_):
 
     with open(manifest_path) as fid:
         names = [name.strip() for name in fid.readlines()]
-    manifest_path = op.basename(manifest_path)
     need = list()
     for name in names:
-        if not op.isfile(op.join(destination, name)):
+        if not (destination / name).is_file():
             need.append(name)
     logger.info(
         "%d file%s missing from %s in %s"
-        % (len(need), _pl(need), manifest_path, destination)
+        % (len(need), _pl(need), manifest_path.name, destination)
     )
     if len(need) > 0:
         downloader = pooch.HTTPDownloader(**_downloader_params())
         with tempfile.TemporaryDirectory() as path:
             logger.info("Downloading missing files remotely")
 
-            fname_path = op.join(path, "temp.zip")
+            path = Path(path)
+            fname_path = path / "temp.zip"
             pooch.retrieve(
                 url=url,
                 known_hash=f"md5:{hash_}",
                 path=path,
                 downloader=downloader,
-                fname=op.basename(fname_path),
+                fname=fname_path.name,
             )
 
             logger.info(f"Extracting missing file{_pl(need)}")
@@ -813,7 +817,7 @@ def _log_time_size(t0, sz):
 
 
 def _downloader_params(*, auth=None, token=None):
-    params = dict()
+    params = dict(timeout=15)
     params["progressbar"] = (
         logger.level <= logging.INFO and get_config("MNE_TQDM", "tqdm.auto") != "off"
     )

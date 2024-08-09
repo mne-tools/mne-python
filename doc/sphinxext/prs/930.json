@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "1cbb07e2a47e5321453dff540ec547baf2646cbf",
+  "authors": [
+    {
+      "n": "Martin Luessi",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/source/_static/institutions.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/_static/logo.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/_static/mne_logo.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/_templates/layout.html": {
+      "a": 10,
+      "d": 2
+    },
+    "doc/source/index.rst": {
+      "a": 7,
+      "d": 0
+    },
+    "doc/source/python_reference.rst": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/upload_html.sh": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/gui/__init__.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

@@ -19,6 +19,7 @@ from copy import deepcopy
 from dataclasses import dataclass, field
 from datetime import timedelta
 from inspect import getfullargspec
+from pathlib import Path
 
 import numpy as np
 
@@ -299,7 +300,6 @@ class BaseRaw(
             # unit
             orig_units = _check_orig_units(orig_units)
         self._orig_units = orig_units or dict()  # always a dict
-        self._projectors = list()
         self._projector = None
         self._dtype_ = dtype
         self.set_annotations(None)
@@ -2095,7 +2095,7 @@ class BaseRaw(
 
     def __repr__(self):  # noqa: D105
         name = self.filenames[0]
-        name = "" if name is None else op.basename(name) + ", "
+        name = "" if name is None else Path(name).name + ", "
         size_str = str(sizeof_fmt(self._size))  # str in case it fails -> None
         size_str += f", data{'' if self.preload else ' not'} loaded"
         s = (
@@ -2105,8 +2105,8 @@ class BaseRaw(
         return f"<{self.__class__.__name__} | {s}>"
 
     @repr_html
-    def _repr_html_(self, caption=None):
-        basenames = [os.path.basename(f) for f in self._filenames if f is not None]
+    def _repr_html_(self):
+        basenames = [Path(f).name for f in self._filenames if f is not None]
 
         # https://stackoverflow.com/a/10981895
         duration = timedelta(seconds=self.times[-1])
@@ -2116,13 +2116,12 @@ class BaseRaw(
         seconds = np.ceil(seconds)  # always take full seconds
 
         duration = f"{int(hours):02d}:{int(minutes):02d}:{int(seconds):02d}"
+
         raw_template = _get_html_template("repr", "raw.html.jinja")
         return raw_template.render(
-            info_repr=self.info._repr_html_(
-                caption=caption,
-                filenames=basenames,
-                duration=duration,
-            )
+            inst=self,
+            filenames=basenames,
+            duration=duration,
         )
 
     def add_events(self, events, stim_channel=None, replace=False):
@@ -2478,26 +2477,6 @@ def _allocate_data(preload, shape, dtype):
     return data
 
 
-def _index_as_time(index, sfreq, first_samp=0, use_first_samp=False):
-    """Convert indices to time.
-
-    Parameters
-    ----------
-    index : list-like | int
-        List of ints or int representing points in time.
-    use_first_samp : boolean
-        If True, the time returned is relative to the session onset, else
-        relative to the recording onset.
-
-    Returns
-    -------
-    times : ndarray
-        Times corresponding to the index supplied.
-    """
-    times = np.atleast_1d(index) + (first_samp if use_first_samp else 0)
-    return times / sfreq
-
-
 def _convert_slice(sel):
     if len(sel) and (np.diff(sel) == 1).all():
         return slice(sel[0], sel[-1] + 1)
@@ -2638,7 +2617,6 @@ class _RawShell:
         self._first_time = None
         self._last_time = None
         self._cals = None
-        self._rawdir = None
         self._projector = None
 
     @property
@@ -3105,25 +3083,44 @@ def concatenate_raws(
 
 
 @fill_doc
-def match_channel_orders(raws, copy=True):
-    """Ensure consistent channel order across raws.
+def match_channel_orders(insts=None, copy=True, *, raws=None):
+    """Ensure consistent channel order across instances (Raw, Epochs, or Evoked).
 
     Parameters
     ----------
-    raws : list
-        List of :class:`~mne.io.Raw` instances to order.
+    insts : list
+        List of :class:`~mne.io.Raw`, :class:`~mne.Epochs`,
+        or :class:`~mne.Evoked` instances to order.
     %(copy_df)s
+    raws : list
+        This parameter is deprecated and will be removed in mne version 1.9.
+        Please use ``insts`` instead.
 
     Returns
     -------
-    list of Raw
-        List of Raws with matched channel orders.
+    list of Raw | list of Epochs | list of Evoked
+        List of instances (Raw, Epochs, or Evoked) with channel orders matched
+        according to the order they had in the first item in the ``insts`` list.
     """
-    raws = deepcopy(raws) if copy else raws
-    ch_order = raws[0].ch_names
-    for raw in raws[1:]:
-        raw.reorder_channels(ch_order)
-    return raws
+    # XXX: remove "raws" parameter and logic below with MNE version 1.9
+    #      and remove default parameter value of insts
+    if raws is not None:
+        warn(
+            "The ``raws`` parameter is deprecated and will be removed in version "
+            "1.9. Use the ``insts`` parameter to suppress this warning.",
+            DeprecationWarning,
+        )
+        insts = raws
+    elif insts is None:
+        # both insts and raws is None
+        raise ValueError(
+            "You need to pass a list of Raw, Epochs, or Evoked to ``insts``."
+        )
+    insts = deepcopy(insts) if copy else insts
+    ch_order = insts[0].ch_names
+    for inst in insts[1:]:
+        inst.reorder_channels(ch_order)
+    return insts
 
 
 def _check_maxshield(allow_maxshield):

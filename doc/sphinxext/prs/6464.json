@@ -1,0 +1,103 @@
+{
+  "merge_commit_sha": "2638d929ba01a6ee937196ee3b23492cdd7fbc5f",
+  "authors": [
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/documentation.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/python_reference.rst": {
+      "a": 4,
+      "d": 0
+    },
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/connectivity/plot_sensor_connectivity.py": {
+      "a": 3,
+      "d": 64
+    },
+    "examples/datasets/plot_opm_data.py": {
+      "a": 3,
+      "d": 3
+    },
+    "examples/forward/plot_decimate_head_surface.py": {
+      "a": 0,
+      "d": 35
+    },
+    "examples/forward/plot_left_cerebellum_volume_source.py": {
+      "a": 12,
+      "d": 37
+    },
+    "examples/inverse/plot_mne_crosstalk_function.py": {
+      "a": 3,
+      "d": 4
+    },
+    "examples/inverse/plot_mne_point_spread_function.py": {
+      "a": 3,
+      "d": 4
+    },
+    "examples/inverse/plot_read_inverse.py": {
+      "a": 20,
+      "d": 17
+    },
+    "examples/time_frequency/plot_source_power_spectrum_opm.py": {
+      "a": 2,
+      "d": 2
+    },
+    "examples/visualization/plot_3d_to_2d.py": {
+      "a": 3,
+      "d": 3
+    },
+    "examples/visualization/plot_eeg_on_scalp.py": {
+      "a": 2,
+      "d": 3
+    },
+    "examples/visualization/plot_meg_sensors.py": {
+      "a": 2,
+      "d": 12
+    },
+    "examples/visualization/plot_montage.py": {
+      "a": 3,
+      "d": 4
+    },
+    "mne/viz/_3d.py": {
+      "a": 88,
+      "d": 3
+    },
+    "mne/viz/__init__.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/viz/backends/_pysurfer_mayavi.py": {
+      "a": 52,
+      "d": 5
+    },
+    "mne/viz/backends/_pyvista.py": {
+      "a": 26,
+      "d": 3
+    },
+    "mne/viz/backends/base_renderer.py": {
+      "a": 83,
+      "d": 2
+    },
+    "mne/viz/backends/renderer.py": {
+      "a": 55,
+      "d": 0
+    },
+    "mne/viz/backends/tests/test_renderer.py": {
+      "a": 15,
+      "d": 1
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 27,
+      "d": 1
+    }
+  }
+}

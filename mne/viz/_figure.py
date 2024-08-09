@@ -239,6 +239,14 @@ class BrowserBase(ABC):
 
         return color, pick, marked_bad
 
+    def _toggle_single_channel_annotation(self, ch_pick, annot_idx):
+        current_ch_names = list(self.mne.inst.annotations.ch_names[annot_idx])
+        if ch_pick in current_ch_names:
+            current_ch_names.remove(ch_pick)
+        else:
+            current_ch_names.append(ch_pick)
+        self.mne.inst.annotations.ch_names[annot_idx] = tuple(current_ch_names)
+
     def _toggle_bad_epoch(self, xtime):
         epoch_num = self._get_epoch_num_from_time(xtime)
         epoch_ix = self.mne.inst.selection.tolist().index(epoch_num)

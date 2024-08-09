@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "f0e20c05511145927b666b40b774fb99cc64d2f2",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/inverse/plot_mne_cov_power.py": {
+      "a": 8,
+      "d": 22
+    },
+    "mne/cov.py": {
+      "a": 86,
+      "d": 2
+    },
+    "mne/externals/doccer.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/docs.py": {
+      "a": 111,
+      "d": 0
+    },
+    "mne/viz/misc.py": {
+      "a": 32,
+      "d": 26
+    },
+    "mne/viz/tests/test_topomap.py": {
+      "a": 10,
+      "d": 3
+    },
+    "mne/viz/topomap.py": {
+      "a": 21,
+      "d": 82
+    },
+    "mne/viz/utils.py": {
+      "a": 7,
+      "d": 7
+    }
+  }
+}

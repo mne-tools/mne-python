@@ -1,0 +1,51 @@
+{
+  "merge_commit_sha": "7ffb345f1e3acf19070552b71961858b9c921373",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    ".github/CONTRIBUTING.md": {
+      "a": 1,
+      "d": 1
+    },
+    ".github/ISSUE_TEMPLATE/bug_report.md": {
+      "a": 1,
+      "d": 1
+    },
+    ".github/PULL_REQUEST_TEMPLATE.md": {
+      "a": 1,
+      "d": 1
+    },
+    "README.rst": {
+      "a": 6,
+      "d": 6
+    },
+    "doc/index.rst": {
+      "a": 8,
+      "d": 8
+    },
+    "mne/cov.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/report.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/docs.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/tests/test_docs.py": {
+      "a": 1,
+      "d": 1
+    },
+    "setup.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

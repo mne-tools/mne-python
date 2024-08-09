@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "b0778b86404506414501bf83a4629d3a73970ae9",
+  "authors": [
+    {
+      "n": "Eduard",
+      "e": "eduardxort@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/visualization/plot_evoked_whitening.py": {
+      "a": 3,
+      "d": 4
+    }
+  }
+}
