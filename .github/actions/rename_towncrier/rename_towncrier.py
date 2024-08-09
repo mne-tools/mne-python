@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # Adapted from action-towncrier-changelog
 import json
