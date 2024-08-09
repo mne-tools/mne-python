@@ -1,8 +1,6 @@
 """Conversion tool from Neuroscan CNT to FIF."""
 
-# Author: Jaakko Leppakangas <jaeilepp@student.jyu.fi>
-#         Joan Massich <mailsik@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 from os import path

@@ -14,8 +14,7 @@
 # The function ``filter_chpi`` uses the same linear model to filter cHPI
 # and (optionally) line frequencies from the data.
 
-# Authors: Eric Larson <larson.eric.d@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 

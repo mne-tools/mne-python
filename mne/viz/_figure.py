@@ -1,8 +1,6 @@
 """Base classes and functions for 2D browser backends."""
 
-# Authors: Daniel McCloy <dan@mccloy.info>
-#          Martin Schulz <dev@earthman-music.de>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 import importlib

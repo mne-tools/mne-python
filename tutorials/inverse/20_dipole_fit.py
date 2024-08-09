@@ -11,6 +11,7 @@ For a comparison of fits between MNE-C and MNE-Python, see
 `this gist <https://gist.github.com/larsoner/ca55f791200fe1dc3dd2>`__.
 """
 
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 # %%

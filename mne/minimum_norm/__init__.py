@@ -1,3 +1,4 @@
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 """Linear inverse solvers based on L2 Minimum Norm Estimates (MNE)."""

@@ -2,6 +2,7 @@
 # with read:org, read:user, and read:project
 # https://docs.github.com/en/enterprise-server@3.6/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens
 # https://pygithub.readthedocs.io/
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 

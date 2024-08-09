@@ -10,8 +10,7 @@ Generate a bootstrap-icons CSS file with embedded font.
   bootstrap-icons.mne.min.css
 """
 
-# Author: Richard Höchenberger <richard.hoechenberger@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 

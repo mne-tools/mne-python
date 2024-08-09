@@ -2,12 +2,7 @@
 
 Morlet code inspired by Matlab code from Sheraz Khan & Brainstorm & SPM
 """
-# Authors : Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#           Hari Bharadwaj <hari@nmr.mgh.harvard.edu>
-#           Clement Moutard <clement.moutard@polytechnique.org>
-#           Jean-Remi King <jeanremi.king@gmail.com>
-#
-# License : BSD-3-Clause
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 

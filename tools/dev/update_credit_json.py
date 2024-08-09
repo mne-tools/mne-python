@@ -4,6 +4,9 @@ The initial run takes a long time (hours!) due to GitHub rate limits, even with
 a personal GITHUB_TOKEN.
 """
 
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 import json
 import os
 import re

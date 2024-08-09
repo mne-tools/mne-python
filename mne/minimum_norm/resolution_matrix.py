@@ -1,7 +1,6 @@
 """Compute resolution matrix for linear estimators."""
 
-# Authors: olaf.hauk@mrc-cbu.cam.ac.uk
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 from copy import deepcopy

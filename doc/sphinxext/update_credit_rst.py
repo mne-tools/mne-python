@@ -3,6 +3,9 @@
 Run ./tools/dev/update_credit_json.py first to get the latest PR JSON files.
 """
 
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 import glob
 import json
 import pathlib

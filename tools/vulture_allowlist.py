@@ -1,4 +1,7 @@
 # Testing stuff
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 numba_conditional
 options_3d
 invisible_fig

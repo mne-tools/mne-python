@@ -1,7 +1,6 @@
 """Test generic read_raw function."""
 
-# Authors: Clemens Brunner <clemens.brunner@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 

@@ -1,5 +1,4 @@
-# Author: Tommy Clausner <Tommy.Clausner@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 from inspect import signature

@@ -8,9 +8,7 @@ Examples
     $ mne clean_eog_ecg -i in_raw.fif -o clean_raw.fif -e -c
 
 """
-# Authors : Dr Engr. Sheraz Khan,  P.Eng, Ph.D.
-#           Engr. Nandita Shetty,  MS.
-#           Alexandre Gramfort, Ph.D.
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 

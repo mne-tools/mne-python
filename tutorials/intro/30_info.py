@@ -14,6 +14,7 @@ We will begin by loading the Python modules we need, and loading the same
 <tut-overview>`:
 """
 
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 # %%

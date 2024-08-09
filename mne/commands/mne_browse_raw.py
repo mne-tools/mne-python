@@ -13,7 +13,7 @@ Examples
                      --eve sample_audvis_raw-eve.fif
 """
 
-# Authors : Eric Larson, PhD
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 

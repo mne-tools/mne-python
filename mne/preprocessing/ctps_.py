@@ -1,6 +1,4 @@
-# Authors: Juergen Dammers <j.dammers@fz-juelich.de>
-#          Denis Engemann <denis.engemann@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 import math

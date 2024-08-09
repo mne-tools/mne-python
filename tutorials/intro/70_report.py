@@ -20,6 +20,7 @@ something directly within the browser. This tutorial covers the basics of
 building a report. As usual, we will start by importing the modules and data we need:
 """
 
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 # %%
