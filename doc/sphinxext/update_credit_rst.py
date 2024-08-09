@@ -306,7 +306,7 @@ def get_credit_rst(*, verbose=False):
     logger.info(f"\nTotal line change count: {list(total_lines)}")
 
     # sphinx-design badges that we use for contributors
-    BADGE_KINDS = ["bdg-info-line", "bdg-light"]
+    BADGE_KINDS = ["bdg-info-line", "bdg"]
     content = f"""\
 .. _code_credit:
 
