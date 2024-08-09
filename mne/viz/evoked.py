@@ -1221,9 +1221,6 @@ def plot_evoked_topo(
         Can be a string to load a covariance from disk.
 
         .. versionadded:: 0.16.0
-    exclude : list of str | 'bads'
-        Channels names to exclude from the plot. If 'bads', the
-        bad channels are excluded. By default, exclude is set to 'bads'.
     exclude : list of str | ``'bads'``
         Channels names to exclude from the plot. If ``'bads'``, the
         bad channels are excluded. By default, exclude is set to ``'bads'``.
