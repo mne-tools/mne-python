@@ -51,7 +51,7 @@ curpath = Path(__file__).parent.resolve(strict=True)
 sys.path.append(str(curpath / "sphinxext"))
 
 from mne_doc_utils import report_scraper, reset_warnings  # noqa: E402
-from update_credit_rst import get_credit_rst  # noqa: E402
+from update_credit_rst import generate_credit_rst  # noqa: E402
 
 # -- Project information -----------------------------------------------------
 
@@ -570,16 +570,6 @@ sphinx_gallery_conf = {
 assert is_serializable(sphinx_gallery_conf)
 # Files were renamed from plot_* with:
 # find . -type f -name 'plot_*.py' -exec sh -c 'x="{}"; xn=`basename "${x}"`; git mv "$x" `dirname "${x}"`/${xn:5}' \;  # noqa
-
-
-# https://www.sphinx-doc.org/en/master/extdev/event_callbacks.html#event-source-read
-def update_credit(app, docname, content):
-    if docname != "credit":
-        return
-    lines = content[0].splitlines()
-    start = lines.index("   code-credit-begin-content") + 1
-    lines.insert(start, get_credit_rst())
-    content[0] = "\n".join(lines)
 
 
 def append_attr_meth_examples(app, what, name, obj, options, lines):
@@ -1666,8 +1656,8 @@ def make_version(app, exception):
 def setup(app):
     """Set up the Sphinx app."""
     app.connect("autodoc-process-docstring", append_attr_meth_examples)
-    app.connect("source-read", update_credit)
     # High prio, will happen before SG
+    app.connect("builder-inited", generate_credit_rst, priority=10)
     app.connect("builder-inited", report_scraper.set_dirs, priority=20)
     app.connect("build-finished", make_gallery_redirects)
     app.connect("build-finished", make_api_redirects)
