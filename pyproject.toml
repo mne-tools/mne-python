@@ -274,6 +274,8 @@ skips = ["*/test_*.py"] # assert statements are good practice with pytest
 report_level = "WARNING"
 ignore_roles = [
     "attr",
+    "bdg-primary-line",
+    "bdg-info-line",
     "class",
     "doc",
     "eq",
@@ -298,6 +300,7 @@ ignore_directives = [
     "automodule",
     "autosummary",
     "bibliography",
+    "card",
     "cssclass",
     "currentmodule",
     "dropdown",

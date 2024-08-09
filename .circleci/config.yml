@@ -433,13 +433,9 @@ jobs:
             mne sys_info -pd
       - run:
           name: make linkcheck
+          no_output_timeout: 40m
           command: |
             make -C doc linkcheck
-      - run:
-          name: make linkcheck-grep
-          when: always
-          command: |
-            make -C doc linkcheck-grep
       - store_artifacts:
           path: doc/_build/linkcheck
           destination: linkcheck

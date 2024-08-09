@@ -51,6 +51,7 @@ curpath = Path(__file__).parent.resolve(strict=True)
 sys.path.append(str(curpath / "sphinxext"))
 
 from mne_doc_utils import report_scraper, reset_warnings  # noqa: E402
+from update_credit_rst import generate_credit_rst  # noqa: E402
 
 # -- Project information -----------------------------------------------------
 
@@ -616,6 +617,7 @@ linkcheck_ignore = [  # will be compiled to regex
     "https://doi.org/10.1073/",  # pnas.org
     "https://doi.org/10.1093/",  # academic.oup.com/sleep/
     "https://doi.org/10.1098/",  # royalsocietypublishing.org
+    "https://doi.org/10.1101/",  # www.biorxiv.org
     "https://doi.org/10.1111/",  # onlinelibrary.wiley.com/doi/10.1111/psyp
     "https://doi.org/10.1126/",  # www.science.org
     "https://doi.org/10.1137/",  # epubs.siam.org
@@ -1655,6 +1657,7 @@ def setup(app):
     """Set up the Sphinx app."""
     app.connect("autodoc-process-docstring", append_attr_meth_examples)
     # High prio, will happen before SG
+    app.connect("builder-inited", generate_credit_rst, priority=10)
     app.connect("builder-inited", report_scraper.set_dirs, priority=20)
     app.connect("build-finished", make_gallery_redirects)
     app.connect("build-finished", make_api_redirects)

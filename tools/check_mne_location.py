@@ -3,6 +3,7 @@
 # Copyright the MNE-Python contributors.
 
 from pathlib import Path
+
 import mne
 
 want_mne_dir = Path(__file__).parents[1] / "mne"
