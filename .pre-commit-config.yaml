@@ -46,6 +46,8 @@ repos:
         additional_dependencies:
           - tomli
         files: ^doc/.*\.(rst|inc)$
+        # Credit is problematic because we generate an include on the fly
+        exclude: ^doc/credit.rst$
 
   # sorting
   - repo: https://github.com/pre-commit/pre-commit-hooks
