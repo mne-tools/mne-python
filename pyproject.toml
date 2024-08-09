@@ -107,6 +107,7 @@ full-no-qt = [
     "snirf",
     "defusedxml",
     "neo",
+    "formulaic",
 ]
 full = ["mne[full-no-qt]", "PyQt6!=6.6.0", "PyQt6-Qt6!=6.6.0,!=6.7.0"]
 full-pyqt6 = ["mne[full]"]
@@ -145,6 +146,7 @@ test_extra = [
     "snirf",
     "neo",
     "mne-bids",
+    "formulaic",
 ]
 
 # Dependencies for building the documentation
@@ -157,6 +159,7 @@ doc = [
     "sphinxcontrib-towncrier",
     "memory_profiler",
     "neo",
+    "formulaic",
     "seaborn!=0.11.2",
     "sphinx_copybutton",
     "sphinx-design",

@@ -8,6 +8,7 @@ import os
 from functools import partial
 
 import numpy as np
+import pandas as pd
 import pytest
 from numpy.testing import (
     assert_allclose,
@@ -17,10 +18,19 @@ from numpy.testing import (
 )
 from scipy import linalg, sparse, stats
 
-from mne import MixedSourceEstimate, SourceEstimate, SourceSpaces, VolSourceEstimate
+from mne import (
+    EpochsArray,
+    EvokedArray,
+    MixedSourceEstimate,
+    SourceEstimate,
+    SourceSpaces,
+    VolSourceEstimate,
+    create_info,
+)
 from mne.fixes import _eye_array
 from mne.stats import combine_adjacency, ttest_ind_no_p
 from mne.stats.cluster_level import (
+    cluster_test,
     f_oneway,
     permutation_cluster_1samp_test,
     permutation_cluster_test,
@@ -29,6 +39,7 @@ from mne.stats.cluster_level import (
     summarize_clusters_stc,
     ttest_1samp_no_p,
 )
+from mne.time_frequency import AverageTFRArray, EpochsTFRArray
 from mne.utils import _record_warnings, catch_logging
 
 n_space = 50
@@ -869,3 +880,152 @@ def test_output_equiv(shape, out_type, adjacency, threshold):
             assert out_type == "indices"
             got_mask[np.ix_(*clu)] = n
     assert_array_equal(got_mask, want_mask)
+
+
+def test_compare_old_and_new_cluster_api():
+    """Test for same results from old and new APIs."""
+    condition1_1d, condition2_1d, condition1_2d, condition2_2d = _get_conditions()
+    df_1d = pd.DataFrame(
+        dict(
+            data=[condition1_1d, condition2_1d],
+            condition=["a", "b"],
+        )
+    )
+    kwargs = dict(n_permutations=100, tail=1, seed=1, buffer_size=None, out_type="mask")
+    F_obs, clusters, cluster_pvals, H0 = permutation_cluster_test(
+        [condition1_1d, condition2_1d], **kwargs
+    )
+    formula = "data ~ condition"
+    cluster_result = cluster_test(df_1d, formula, **kwargs)
+    assert_array_equal(cluster_result.H0, H0)
+    assert_array_equal(cluster_result.stat_obs, F_obs)
+    assert_array_equal(cluster_result.cluster_p_values, cluster_pvals)
+    assert cluster_result.clusters == clusters
+
+
+@pytest.mark.parametrize(
+    "Inst", (EpochsArray, EvokedArray, EpochsTFRArray, AverageTFRArray)
+)
+@pytest.mark.filterwarnings('ignore:Ignoring argument "tail":RuntimeWarning')
+def test_new_cluster_api(Inst):
+    """Test handling different MNE objects in the cluster API."""
+    pd = pytest.importorskip("pandas")
+
+    n_subs, n_epo, n_chan, n_freq, n_times = 2, 2, 3, 4, 5
+    info = create_info(ch_names=n_chan, sfreq=1000, ch_types="eeg")
+    # Introduce a significant difference in a specific region, time, and frequency
+    region_start = 1
+    region_end = 2
+    time_start = 2
+    time_end = 4
+    freq_start = 2
+    freq_end = 4
+
+    if Inst == EpochsArray:
+        # Create random data for EpochsArray
+        inst1 = Inst(np.random.randn(n_epo, n_chan, n_times), info=info)
+        # Adding a constant to create a difference
+        data_copy = inst1.get_data().copy()  # no data attribute for EpochsArray
+        data_copy[:, region_start:region_end, time_start:time_end] += (
+            2  # Modify the copy
+        )
+        inst2 = Inst(
+            data=data_copy, info=info
+        )  # Use the modified copy as a new instance
+
+    elif Inst == EvokedArray:
+        # Create random data for EvokedArray
+        inst1 = Inst(np.random.randn(n_chan, n_times), info=info)
+        data_copy = inst1.data.copy()
+        data_copy[region_start:region_end, time_start:time_end] += 2
+        inst2 = Inst(data=data_copy, info=info)
+
+    elif Inst == EpochsTFRArray:
+        # Create random data for EpochsTFRArray
+        data_tfr1 = np.random.randn(n_epo, n_chan, n_freq, n_times)
+        data_tfr2 = np.random.randn(n_epo, n_chan, n_freq, n_times)
+        inst1 = Inst(
+            data=data_tfr1, info=info, times=np.arange(n_times), freqs=np.arange(n_freq)
+        )
+        inst2 = Inst(
+            data=data_tfr2, info=info, times=np.arange(n_times), freqs=np.arange(n_freq)
+        )
+        data_tfr2 = inst2.data.copy()
+        data_tfr2[
+            :, region_start:region_end, freq_start:freq_end, time_start:time_end
+        ] += 2
+        inst2 = Inst(
+            data=data_tfr2, info=info, times=np.arange(n_times), freqs=np.arange(n_freq)
+        )
+
+    elif Inst == AverageTFRArray:
+        # Create random data for AverageTFRArray
+        data_tfr1 = np.random.randn(n_chan, n_freq, n_times)
+        data_tfr2 = np.random.randn(n_chan, n_freq, n_times)
+        inst1 = Inst(
+            data=data_tfr1, info=info, times=np.arange(n_times), freqs=np.arange(n_freq)
+        )
+        inst2 = Inst(
+            data=data_tfr2, info=info, times=np.arange(n_times), freqs=np.arange(n_freq)
+        )
+        data_tfr2 = inst2.data.copy()
+        data_tfr2[
+            region_start:region_end, freq_start:freq_end, time_start:time_end
+        ] += 2
+        inst2 = Inst(
+            data=data_tfr2, info=info, times=np.arange(n_times), freqs=np.arange(n_freq)
+        )
+
+    if Inst == EvokedArray or Inst == AverageTFRArray:
+        # Generate random noise
+        noise = np.random.normal(loc=0, scale=0.1, size=inst1.data.shape)
+        # add noise to the data of the second subject
+        inst1_n = inst1.copy()
+        inst1_n.data = inst1.data + noise
+        inst2_n = inst2.copy()
+        inst2_n.data = inst2.data + noise
+        data = [inst1, inst2, inst1_n, inst2_n]
+        conds = ["a", "b"] * n_subs
+    else:
+        data = [inst1, inst2]
+        conds = ["a", "b"]
+
+    df = pd.DataFrame(dict(data=data, condition=conds))
+
+    kwargs = dict(
+        n_permutations=100, seed=42, tail=1, buffer_size=None, out_type="mask"
+    )
+
+    result_new_api = cluster_test(df, "data~condition", **kwargs)
+
+    # make sure channels are last dimension for old API
+    if Inst == EpochsArray:
+        inst1 = inst1.get_data().transpose(0, 2, 1)
+        inst2 = inst2.get_data().transpose(0, 2, 1)
+    elif Inst == EpochsTFRArray:
+        inst1 = inst1.data.transpose(0, 3, 2, 1)
+        inst2 = inst2.data.transpose(0, 3, 2, 1)
+    elif Inst == AverageTFRArray:
+        inst1 = inst1.data.transpose(2, 1, 0)
+        inst2 = inst2.data.transpose(2, 1, 0)
+        inst1_n = inst1_n.data.transpose(2, 1, 0)
+        inst2_n = inst2_n.data.transpose(2, 1, 0)
+        # combine the data of the two subjects
+        inst1 = np.concatenate([inst1[np.newaxis, :], inst1_n[np.newaxis, :]], axis=0)
+        inst2 = np.concatenate([inst2[np.newaxis, :], inst2_n[np.newaxis, :]], axis=0)
+    else:
+        inst1 = inst1.data.transpose(1, 0)
+        inst2 = inst2.data.transpose(1, 0)
+        inst1_n = inst1_n.data.transpose(1, 0)
+        inst2_n = inst2_n.data.transpose(1, 0)
+        # combine the data of the two subjects
+        inst1 = np.concatenate([inst1[np.newaxis, :], inst1_n[np.newaxis, :]], axis=0)
+        inst2 = np.concatenate([inst2[np.newaxis, :], inst2_n[np.newaxis, :]], axis=0)
+
+    F_obs, clusters, cluster_pvals, H0 = permutation_cluster_test(
+        [inst1, inst2], **kwargs
+    )
+    assert_array_almost_equal(result_new_api.H0, H0)
+    assert_array_almost_equal(result_new_api.stat_obs, F_obs)
+    assert_array_almost_equal(result_new_api.cluster_p_values, cluster_pvals)
+    assert result_new_api.clusters == clusters
