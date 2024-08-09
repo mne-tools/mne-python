@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 r"""Check type of FIF file.
 
 Examples

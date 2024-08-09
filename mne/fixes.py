@@ -6,6 +6,7 @@ at which the fix is no longer needed.
 # originally copied from scikit-learn
 
 """
+
 # Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.

@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """Show system information.
 
 Examples

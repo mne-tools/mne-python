@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """Clean a raw file from EOG and ECG artifacts with PCA (ie SSP).
 
 Examples
@@ -8,6 +7,7 @@ Examples
     $ mne clean_eog_ecg -i in_raw.fif -o clean_raw.fif -e -c
 
 """
+
 # Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.

@@ -14,6 +14,7 @@ And:
 This script ensures that we use consistent license naming in consistent locations
 toward the top of each file.
 """
+
 # Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
@@ -30,7 +31,8 @@ AUTHOR_LINE = "# Authors: The MNE-Python contributors."
 LICENSE_LINE = "# License: BSD-3-Clause"
 COPYRIGHT_LINE = "# Copyright the MNE-Python contributors."
 
-# Cover how lines can start (other than authors, where we use regex)
+# Cover how lines can start (regex or tuple to be used with startswith)
+AUTHOR_RE = re.compile(r"^# (A|@a)uthors? ?: .*$")
 LICENSE_STARTS = ("# License: ", "# SPDX-License-Identifier: ")
 COPYRIGHT_STARTS = ("# Copyright ",)
 
@@ -47,32 +49,20 @@ def get_paths_from_tree(root, level=0):
 def first_commentable_line(lines):
     """Find the first line where we can add a comment."""
     max_len = 100
-    if lines[0].startswith('"""'):
-        if lines[0].count('"""') != 2:
-            for insert in range(1, max_len):
-                if '"""' in lines[insert]:
-                    # Find next non-blank line:
-                    for extra in range(1, 3):  # up to 2 blank lines
-                        if lines[insert + extra].strip():
-                            break
-                    else:
-                        raise RuntimeError(
-                            "Failed to find non-blank line within 2 of end of "
-                            f"docstring at line {insert + 1}"
-                        )
-                    insert += extra
-                    break
-            else:
-                raise RuntimeError(
-                    f"Failed to find end of file docstring within {max_len} lines"
-                )
+    if lines[0].startswith(('"""', 'r"""')):
+        if lines[0].count('"""') == 2:
+            return 1
+        for insert in range(1, min(max_len, len(lines))):
+            if '"""' in lines[insert]:
+                return insert + 1
         else:
-            insert = 1
-        return insert
-    for insert in range(100):
-        if not lines[insert].startswith("#"):
-            return insert
-    raise RuntimeError("Failed to find non-comment line within 100 lines")
+            raise RuntimeError(
+                f"Failed to find end of file docstring within {max_len} lines"
+            )
+    if lines[0].startswith("#!"):
+        return 1
+    else:
+        return 0
 
 
 def path_multi_author(path):
@@ -82,9 +72,7 @@ def path_multi_author(path):
 
 def get_author_idx(path, lines):
     """Get the index of the author line, if available."""
-    author_idx = np.where(
-        [re.match(r"^# Authors? ?: .*$", line) is not None for line in lines]
-    )[0]
+    author_idx = np.where([AUTHOR_RE.match(line) is not None for line in lines])[0]
     assert len(author_idx) <= 1, f"{len(author_idx)=} for {path=}"
     return author_idx[0] if len(author_idx) else None
 
@@ -97,9 +85,10 @@ def get_license_idx(path, lines):
 
 
 def _ensure_author(lines, path):
-    # 1. Keep existing
     author_idx = get_author_idx(path, lines)
     license_idx = get_license_idx(path, lines)
+    first_idx = first_commentable_line(lines)
+    # 1. Keep existing
     if author_idx is not None:
         # We have to be careful here -- examples and tutorials are allowed multiple
         # authors
@@ -112,15 +101,26 @@ def _ensure_author(lines, path):
         assert lines[author_idx + 1].startswith(LICENSE_STARTS), lines[license_idx + 1]
         del license_idx
         lines[author_idx] = AUTHOR_LINE
-        return
-
-    # 2. Before license line if present
-    if license_idx is not None:
+    elif license_idx is not None:
+        # 2. Before license line if present
         lines.insert(license_idx, AUTHOR_LINE)
-        return
-
-    # 3. First line after docstring
-    lines.insert(first_commentable_line(lines), AUTHOR_LINE)
+    else:
+        # 3. First line after docstring
+        lines.insert(first_idx, AUTHOR_LINE)
+    # Now make sure it's in the right spot
+    author_idx = get_author_idx(path, lines)
+    if author_idx != 0:
+        if author_idx == first_idx:
+            # Insert a blank line
+            lines.insert(author_idx, "")
+            author_idx += 1
+        first_idx += 1
+    if author_idx != first_idx:
+        raise RuntimeError(
+            "\nLine should have comments as docstring or author line needs to be moved "
+            "manually to be one blank line after the docstring:\n"
+            f"{path}: {author_idx=} != {first_idx=}"
+        )
 
 
 def _ensure_license(lines, path):
@@ -165,7 +165,16 @@ for path in get_paths_from_tree(repo.tree()):
     lines = path.read_text("utf-8").split("\n")
     # Remove the UTF-8 file coding stuff
     orig_lines = list(lines)
-    if lines[0] == "# -*- coding: utf-8 -*-":
+    if lines[0] in ("# -*- coding: utf-8 -*-", "# -*- coding: UTF-8 -*-"):
+        lines = lines[1:]
+        if lines[0] == "":
+            lines = lines[1:]
+    # We had these with mne/commands without an executable bit, and don't really
+    # need them executable, so let's get rid of the line.
+    if lines[0].startswith("#!/usr/bin/env python") and path.parts[:2] == (
+        "mne",
+        "commands",
+    ):
         lines = lines[1:]
     _ensure_author(lines, path)
     _ensure_license(lines, path)

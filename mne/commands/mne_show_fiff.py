@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """Show the contents of a FIFF file.
 
 Examples

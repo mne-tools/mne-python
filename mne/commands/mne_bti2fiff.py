@@ -1,10 +1,9 @@
-#!/usr/bin/env python
-r"""Import BTi / 4D MagnesWH3600 data to fif file.
+"""Import BTi / 4D MagnesWH3600 data to fif file.
 
 Notes
 -----
 1. Currently direct inclusion of reference channel weights
-   is not supported. Please use \'mne_create_comp_data\' to include
+   is not supported. Please use 'mne_create_comp_data' to include
    the weights or use the low level functions from this module to
    include them by yourself.
 2. The informed guess for the 4D name is E31 for the ECG channel and

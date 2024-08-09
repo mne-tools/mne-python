@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """View the 3-Layers BEM model using Freeview.
 
 Examples
@@ -8,6 +7,7 @@ Examples
     $ mne freeview_bem_surfaces -s sample
 
 """
+
 # Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.

@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """Compare FIFF files.
 
 Examples

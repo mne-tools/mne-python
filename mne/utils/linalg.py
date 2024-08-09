@@ -17,6 +17,7 @@ Significant performance gains can be achieved by ensuring that inputs
 are Fortran contiguous because that's what LAPACK requires. Without this,
 inputs will be memcopied.
 """
+
 # Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.

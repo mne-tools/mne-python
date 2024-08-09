@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 r"""Browse raw data.
 
 This uses :func:`mne.io.read_raw` so it supports the same formats

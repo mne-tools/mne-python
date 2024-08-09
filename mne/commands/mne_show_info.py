@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """Show measurement info from .fif file.
 
 Examples
