@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "23aed0a07ba2cfa84452107dd005750cd4aba9b9",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/array/tests/test_array.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/base.py": {
+      "a": 56,
+      "d": 38
+    },
+    "mne/io/brainvision/tests/test_brainvision.py": {
+      "a": 10,
+      "d": 6
+    },
+    "mne/io/fiff/raw.py": {
+      "a": 31,
+      "d": 23
+    },
+    "mne/io/fiff/tests/test_raw_fiff.py": {
+      "a": 69,
+      "d": 4
+    }
+  }
+}

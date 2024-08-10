@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "978437d1b0eadf54c5b36d8223fb56a8c4e54881",
+  "authors": [
+    {
+      "n": "Rob Luke",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/python_reference.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/defaults.py": {
+      "a": 8,
+      "d": 5
+    },
+    "mne/preprocessing/__init__.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/preprocessing/_optical_density.py": {
+      "a": 47,
+      "d": 0
+    },
+    "mne/preprocessing/tests/test_optical_density.py": {
+      "a": 59,
+      "d": 0
+    },
+    "mne/viz/raw.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

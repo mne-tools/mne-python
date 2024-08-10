@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "c6e90285f69a49866b30f62fa90c77902e8e1082",
+  "authors": [
+    {
+      "n": "Denis A. Engemann",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/tests/test_source_estimate.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "36fad3c74b6c6d4773287be16d848842df2741e3",
+  "authors": [
+    {
+      "n": "tom",
+      "e": "tdonoghue.research@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/filter.py": {
+      "a": 7,
+      "d": 8
+    }
+  }
+}

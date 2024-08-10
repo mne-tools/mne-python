@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "94a4dc230e78283f741d7c9925e1c2fccd99bfc6",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "doc/index.rst": {
+      "a": 4,
+      "d": 0
+    }
+  }
+}

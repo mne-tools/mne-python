@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "71b15a704b94f2054cff9bd04c553cc862040405",
+  "authors": [
+    {
+      "n": "Phillip Alday",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/io/reference.py": {
+      "a": 22,
+      "d": 13
+    },
+    "mne/io/tests/test_reference.py": {
+      "a": 15,
+      "d": 1
+    }
+  }
+}

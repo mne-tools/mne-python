@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "f6c6ff2842ff020816bfc203f00e03410c9e0ea3",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/ctf/info.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/egi/egi.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/io/egi/events.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/meas_info.py": {
+      "a": 23,
+      "d": 8
+    },
+    "mne/io/tests/test_raw.py": {
+      "a": 11,
+      "d": 2
+    },
+    "mne/tests/test_bem.py": {
+      "a": 6,
+      "d": 0
+    }
+  }
+}

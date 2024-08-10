@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "85b1dcd1697b64d22ea3b50e50c65e098229dba4",
+  "authors": [
+    {
+      "n": "Christopher J. Bailey",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/viz/topomap.py": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "03961e4f5f82fd9529d84ef71c9ee3c74132f977",
+  "authors": [
+    {
+      "n": "Mathieu Scheltienne",
+      "e": "mathieu.scheltienne@fcbg.ch"
+    }
+  ],
+  "changes": {
+    "tutorials/inverse/80_brainstorm_phantom_elekta.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

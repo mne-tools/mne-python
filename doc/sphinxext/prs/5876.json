@@ -1,0 +1,115 @@
+{
+  "merge_commit_sha": "544989c7ff9922e04bddad72c1b13156ce344ace",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "doc/conf.py": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/python_reference.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/whats_new.rst": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/__init__.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/beamformer/_compute_beamformer.py": {
+      "a": 4,
+      "d": 46
+    },
+    "mne/beamformer/_dics.py": {
+      "a": 4,
+      "d": 3
+    },
+    "mne/beamformer/_lcmv.py": {
+      "a": 28,
+      "d": 21
+    },
+    "mne/cov.py": {
+      "a": 99,
+      "d": 148
+    },
+    "mne/decoding/csp.py": {
+      "a": 5,
+      "d": 4
+    },
+    "mne/io/base.py": {
+      "a": 9,
+      "d": 5
+    },
+    "mne/io/meas_info.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/minimum_norm/inverse.py": {
+      "a": 1,
+      "d": 5
+    },
+    "mne/minimum_norm/tests/test_inverse.py": {
+      "a": 22,
+      "d": 8
+    },
+    "mne/preprocessing/tests/test_ica.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/preprocessing/tests/test_maxwell.py": {
+      "a": 10,
+      "d": 11
+    },
+    "mne/preprocessing/tests/test_xdawn.py": {
+      "a": 6,
+      "d": 2
+    },
+    "mne/rank.py": {
+      "a": 214,
+      "d": 50
+    },
+    "mne/tests/test_cov.py": {
+      "a": 54,
+      "d": 18
+    },
+    "mne/tests/test_rank.py": {
+      "a": 99,
+      "d": 47
+    },
+    "mne/time_frequency/ar.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/utils/__init__.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/utils/check.py": {
+      "a": 44,
+      "d": 0
+    },
+    "mne/utils/docs.py": {
+      "a": 21,
+      "d": 3
+    },
+    "mne/utils/numerics.py": {
+      "a": 17,
+      "d": 4
+    },
+    "mne/viz/evoked.py": {
+      "a": 1,
+      "d": 8
+    },
+    "mne/viz/utils.py": {
+      "a": 7,
+      "d": 39
+    }
+  }
+}

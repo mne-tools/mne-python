@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "fdd38711177ffd74af93c6a9cd8f37e7cebfb823",
+  "authors": [
+    {
+      "n": "Dominik Krzeminski (dokato)",
+      "e": "raymon92@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/commands/mne_freeview_bem_surfaces.py": {
+      "a": 11,
+      "d": 2
+    }
+  }
+}

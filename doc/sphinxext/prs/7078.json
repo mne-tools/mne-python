@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "1e8c30d4969050a9313d720ba1feb41226a4e303",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "doc/install/advanced.rst": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

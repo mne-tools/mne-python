@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "d6eecdfcf402d2787fd0520f4a09049a214f7dcf",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/chpi.py": {
+      "a": 14,
+      "d": 4
+    },
+    "mne/io/base.py": {
+      "a": 10,
+      "d": 7
+    },
+    "mne/io/fiff/tests/test_raw.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/simulation/raw.py": {
+      "a": 29,
+      "d": 9
+    },
+    "mne/simulation/tests/test_raw.py": {
+      "a": 4,
+      "d": 1
+    }
+  }
+}

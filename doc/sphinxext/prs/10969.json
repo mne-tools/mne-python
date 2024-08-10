@@ -1,0 +1,51 @@
+{
+  "merge_commit_sha": "04747bbfbc6f1714ffc943dfe9b86a689446580a",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "examples/simulation/simulated_raw_data_using_subject_anatomy.py": {
+      "a": 13,
+      "d": 8
+    },
+    "examples/simulation/source_simulator.py": {
+      "a": 12,
+      "d": 6
+    },
+    "examples/time_frequency/source_power_spectrum_opm.py": {
+      "a": 6,
+      "d": 11
+    },
+    "examples/time_frequency/time_frequency_global_field_power.py": {
+      "a": 4,
+      "d": 6
+    },
+    "examples/visualization/3d_to_2d.py": {
+      "a": 9,
+      "d": 7
+    },
+    "examples/visualization/brain.py": {
+      "a": 10,
+      "d": 10
+    },
+    "examples/visualization/meg_sensors.py": {
+      "a": 11,
+      "d": 9
+    },
+    "examples/visualization/mne_helmet.py": {
+      "a": 5,
+      "d": 7
+    },
+    "mne/forward/_field_interpolation.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/bti/bti.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

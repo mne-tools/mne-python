@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "89cb6bbdc9547594a6a3ff5f524b9e68289588f3",
+  "authors": [
+    {
+      "n": null,
+      "e": "olaf.hauk@mrc-cbu.cam.ac.uk"
+    }
+  ],
+  "changes": {
+    "mne/minimum_norm/tests/test_resolution_matrix.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

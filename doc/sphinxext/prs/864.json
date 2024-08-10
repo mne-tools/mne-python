@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "e1bb84310f30e250573f43f17763eb15c39801b8",
+  "authors": [
+    {
+      "n": "Andrew R. Dykstra",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/connectivity/spectral.py": {
+      "a": 9,
+      "d": 6
+    },
+    "mne/source_estimate.py": {
+      "a": 25,
+      "d": 39
+    }
+  }
+}

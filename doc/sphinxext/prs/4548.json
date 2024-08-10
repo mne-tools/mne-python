@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "d2b214f410e61bb31b49dc40ac4e392c3bdd2383",
+  "authors": [
+    {
+      "n": "Jean-Rémi KING",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/minimum_norm/inverse.py": {
+      "a": 8,
+      "d": 8
+    },
+    "mne/minimum_norm/tests/test_inverse.py": {
+      "a": 5,
+      "d": 2
+    }
+  }
+}

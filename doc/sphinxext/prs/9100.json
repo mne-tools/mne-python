@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "1703bfd2a159feb105e145699764c54b2592e5cf",
+  "authors": [
+    {
+      "n": "Ram PARI",
+      "e": null
+    },
+    {
+      "n": "Britta Westner",
+      "e": "britta.wstnr@gmail.com"
+    },
+    {
+      "n": "Britta Westner",
+      "e": "britta.wstnr@gmail.com"
+    }
+  ],
+  "changes": {
+    "tutorials/time-freq/plot_sensors_time_frequency.py": {
+      "a": 7,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,111 @@
+{
+  "merge_commit_sha": "b069d4abd7bd7b39973c9fcbf0d9ada02b5e4b19",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    },
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/_ola.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/beamformer/_lcmv.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/datasets/brainstorm/bst_auditory.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/datasets/brainstorm/bst_phantom_ctf.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/datasets/brainstorm/bst_phantom_elekta.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/datasets/brainstorm/bst_raw.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/datasets/brainstorm/bst_resting.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/datasets/sleep_physionet/age.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/datasets/sleep_physionet/temazepam.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/datasets/tests/test_datasets.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/decoding/base.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/decoding/csp.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/decoding/transformer.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/minimum_norm/resolution_matrix.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/preprocessing/ecg.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/time_frequency/multitaper.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/montage.py": {
+      "a": 1,
+      "d": 1
+    },
+    "pyproject.toml": {
+      "a": 90,
+      "d": 3
+    },
+    "setup.py": {
+      "a": 0,
+      "d": 88
+    },
+    "tutorials/inverse/50_beamformer_lcmv.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/preprocessing/25_background_filtering.py": {
+      "a": 3,
+      "d": 3
+    },
+    "tutorials/preprocessing/45_projectors_background.py": {
+      "a": 4,
+      "d": 4
+    },
+    "tutorials/stats-sensor-space/20_erp_stats.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

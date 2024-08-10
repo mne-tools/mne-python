@@ -1,0 +1,95 @@
+{
+  "merge_commit_sha": "923a714f5a3a36cd7458852a02e6715859dd4c45",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "doc/source/python_reference.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "examples/connectivity/plot_cwt_sensor_connectivity.py": {
+      "a": 5,
+      "d": 4
+    },
+    "mne/__init__.py": {
+      "a": 1,
+      "d": 3
+    },
+    "mne/io/brainvision/brainvision.py": {
+      "a": 3,
+      "d": 14
+    },
+    "mne/label.py": {
+      "a": 13,
+      "d": 80
+    },
+    "mne/layouts/layout.py": {
+      "a": 2,
+      "d": 20
+    },
+    "mne/layouts/tests/test_layout.py": {
+      "a": 0,
+      "d": 9
+    },
+    "mne/minimum_norm/time_frequency.py": {
+      "a": 1,
+      "d": 6
+    },
+    "mne/mixed_norm/__init__.py": {
+      "a": 0,
+      "d": 7
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 7,
+      "d": 312
+    },
+    "mne/tests/test_label.py": {
+      "a": 94,
+      "d": 5
+    },
+    "mne/time_frequency/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/time_frequency/psd.py": {
+      "a": 2,
+      "d": 7
+    },
+    "mne/time_frequency/tests/test_csd.py": {
+      "a": 4,
+      "d": 8
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 2,
+      "d": 45
+    },
+    "mne/viz/__init__.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/epochs.py": {
+      "a": 6,
+      "d": 10
+    },
+    "mne/viz/ica.py": {
+      "a": 0,
+      "d": 40
+    },
+    "mne/viz/topo.py": {
+      "a": 0,
+      "d": 232
+    },
+    "mne/viz/topomap.py": {
+      "a": 1,
+      "d": 14
+    },
+    "setup.py": {
+      "a": 0,
+      "d": 1
+    }
+  }
+}

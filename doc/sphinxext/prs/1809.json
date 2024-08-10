@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "58d4be1bf21f3d3fcbebfb3092590328cd270089",
+  "authors": [
+    {
+      "n": "aestrivex",
+      "e": "aestrivex@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/label.py": {
+      "a": 6,
+      "d": 3
+    }
+  }
+}

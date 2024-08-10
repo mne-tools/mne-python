@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "5e60e475ef8019af73cc81e184a10bde524c681f",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/datasets/config.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/eeglab/eeglab.py": {
+      "a": 16,
+      "d": 1
+    },
+    "mne/io/eeglab/tests/test_eeglab.py": {
+      "a": 15,
+      "d": 0
+    }
+  }
+}

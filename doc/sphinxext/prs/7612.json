@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "bfbb8cbecaea6620f2625507bbf4cc321b3bd3ce",
+  "authors": [
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 1
+    },
+    "mne.qrc": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/images/movie-black-18dp.svg": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/viz/_brain/_timeviewer.py": {
+      "a": 95,
+      "d": 3
+    },
+    "mne/viz/_brain/resources.py": {
+      "a": 189,
+      "d": 161
+    }
+  }
+}

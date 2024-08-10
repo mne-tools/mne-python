@@ -1,0 +1,51 @@
+{
+  "merge_commit_sha": "0e68aba7e52f7d5241c58509ffd00f6ffc23d7a6",
+  "authors": [
+    {
+      "n": "Marijn van Vliet",
+      "e": "w.m.vanvliet@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/conf.py": {
+      "a": 3,
+      "d": 0
+    },
+    "doc/visualization.rst": {
+      "a": 24,
+      "d": 0
+    },
+    "mne/viz/__init__.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/viz/tests/test_ui_events.py": {
+      "a": 261,
+      "d": 0
+    },
+    "mne/viz/topomap.py": {
+      "a": 52,
+      "d": 18
+    },
+    "mne/viz/ui_events.py": {
+      "a": 305,
+      "d": 0
+    },
+    "tutorials/visualization/10_publication_figure.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/visualization/20_ui_events.py": {
+      "a": 100,
+      "d": 0
+    },
+    "tutorials/visualization/README.txt": {
+      "a": 6,
+      "d": 0
+    }
+  }
+}

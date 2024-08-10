@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "2fd1241562e4086f6ae046994ff568af3e086817",
+  "authors": [
+    {
+      "n": "Alejandro Weinstein",
+      "e": "alejandro.weinstein@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/preprocessing/ica.py": {
+      "a": 6,
+      "d": 0
+    }
+  }
+}

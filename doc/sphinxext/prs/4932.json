@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "52bef7c42b32114016321819656b331cda2092ba",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    ".travis.yml": {
+      "a": 12,
+      "d": 8
+    },
+    "mne/inverse_sparse/mxne_optim.py": {
+      "a": 10,
+      "d": 10
+    },
+    "mne/io/eeglab/tests/test_eeglab.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

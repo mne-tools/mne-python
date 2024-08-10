@@ -172,6 +172,8 @@ doc = [
     "ipython!=8.7.0",
     "selenium",
     "intersphinx_registry>=0.2405.27",
+    # https://github.com/sphinx-contrib/sphinxcontrib-towncrier/issues/92
+    "towncrier<24.7",
 ]
 dev = ["mne[test,doc]", "rcssmin"]
 
@@ -272,6 +274,8 @@ skips = ["*/test_*.py"] # assert statements are good practice with pytest
 report_level = "WARNING"
 ignore_roles = [
     "attr",
+    "bdg-primary-line",
+    "bdg-info-line",
     "class",
     "doc",
     "eq",
@@ -296,6 +300,7 @@ ignore_directives = [
     "automodule",
     "autosummary",
     "bibliography",
+    "card",
     "cssclass",
     "currentmodule",
     "dropdown",

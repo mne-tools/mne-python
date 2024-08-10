@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "18b80903da84483325584d8dffe7c9f847f12b81",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".circleci/config.yml": {
+      "a": 3,
+      "d": 3
+    },
+    "doc/_static/style.css": {
+      "a": 15,
+      "d": 4
+    },
+    "tutorials/preprocessing/10_preprocessing_overview.py": {
+      "a": 0,
+      "d": 1
+    }
+  }
+}

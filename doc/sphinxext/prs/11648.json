@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "cc4006845d3c5367f16705557d652d9bbb82e87e",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    },
+    {
+      "n": "Clemens Brunner",
+      "e": "clemens.brunner@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".pre-commit-config.yaml": {
+      "a": 2,
+      "d": 3
+    },
+    "requirements_testing.txt": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

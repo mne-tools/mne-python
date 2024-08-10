@@ -5,10 +5,11 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-from collections import Counter
 import os
 import pprint
-from datetime import timezone, datetime, timedelta
+from collections import Counter
+from datetime import datetime, timedelta, timezone
+
 from github import Auth, Github
 from github.Commit import Commit
 from tqdm import tqdm

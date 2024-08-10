@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "3610ea9df2fe7cce4c29a8a257f2b2161f6281a3",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/gui/_coreg_gui.py": {
+      "a": 6,
+      "d": 3
+    },
+    "mne/gui/tests/test_coreg_gui.py": {
+      "a": 5,
+      "d": 2
+    },
+    "mne/gui/tests/test_kit2fiff_gui.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/io/array/tests/test_array.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/realtime/tests/test_mockclient.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/realtime/tests/test_stim_client_server.py": {
+      "a": 5,
+      "d": 2
+    },
+    "mne/time_frequency/tests/test_csd.py": {
+      "a": 6,
+      "d": 2
+    },
+    "mne/viz/epochs.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

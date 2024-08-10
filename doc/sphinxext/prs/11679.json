@@ -1,0 +1,51 @@
+{
+  "merge_commit_sha": "425e3b34439bfcff68f4f926b886aaba9a02478c",
+  "authors": [
+    {
+      "n": "Theodore Papadopoulo",
+      "e": "Theodore.Papadopoulo@inria.fr"
+    }
+  ],
+  "changes": {
+    "doc/changes/0.19.inc": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/conf.py": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/inverse.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/references.bib": {
+      "a": 23,
+      "d": 1
+    },
+    "examples/inverse/trap_music.py": {
+      "a": 61,
+      "d": 0
+    },
+    "mne/beamformer/__init__.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/beamformer/_rap_music.py": {
+      "a": 100,
+      "d": 69
+    },
+    "mne/beamformer/tests/test_rap_music.py": {
+      "a": 13,
+      "d": 1
+    }
+  }
+}

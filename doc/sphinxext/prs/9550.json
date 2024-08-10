@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "0156284d20f0b1ae2ca8630acf3a507b4b50b21d",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/fixes.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/viz/_figure.py": {
+      "a": 14,
+      "d": 7
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/viz/tests/test_topo.py": {
+      "a": 4,
+      "d": 1
+    },
+    "mne/viz/tests/test_topomap.py": {
+      "a": 20,
+      "d": 6
+    },
+    "mne/viz/topomap.py": {
+      "a": 5,
+      "d": 2
+    },
+    "mne/viz/utils.py": {
+      "a": 3,
+      "d": 1
+    }
+  }
+}

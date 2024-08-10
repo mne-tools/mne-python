@@ -1,0 +1,67 @@
+{
+  "merge_commit_sha": "4bfeb85c6b9e9f59c314d37ad42483f21b7fd5ff",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/datasets/plot_limo_data.py": {
+      "a": 2,
+      "d": 2
+    },
+    "examples/stats/plot_linear_regression_raw.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/evoked.py": {
+      "a": 18,
+      "d": 17
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 4,
+      "d": 6
+    },
+    "mne/tests/test_evoked.py": {
+      "a": 42,
+      "d": 57
+    },
+    "mne/utils/numerics.py": {
+      "a": 1,
+      "d": 3
+    },
+    "tutorials/evoked/plot_10_evoked_overview.py": {
+      "a": 4,
+      "d": 5
+    },
+    "tutorials/evoked/plot_eeg_erp.py": {
+      "a": 13,
+      "d": 11
+    },
+    "tutorials/intro/plot_10_overview.py": {
+      "a": 4,
+      "d": 5
+    },
+    "tutorials/preprocessing/plot_70_fnirs_processing.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/sample-datasets/plot_brainstorm_auditory.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/source-modeling/plot_dipole_fit.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/stats-sensor-space/plot_stats_cluster_erp.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

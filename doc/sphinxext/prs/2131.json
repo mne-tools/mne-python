@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "375d59feb8ec50c43cbc2aaaa94233801dc1345f",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/io/base.py": {
+      "a": 6,
+      "d": 0
+    },
+    "mne/io/edf/tests/test_edf.py": {
+      "a": 11,
+      "d": 2
+    }
+  }
+}

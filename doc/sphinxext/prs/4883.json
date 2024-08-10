@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "d1a1c47c9fb2cc9c57bdd119736414e31b917525",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 5,
+      "d": 9
+    }
+  }
+}

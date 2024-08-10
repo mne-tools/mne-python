@@ -1,0 +1,91 @@
+{
+  "merge_commit_sha": "5551a88d7c6203483abb334d7e526f25c2885818",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/channels/layout.py": {
+      "a": 5,
+      "d": 4
+    },
+    "mne/channels/montage.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/channels/tests/test_layout.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/channels/tests/test_montage.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/dipole.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/io/base.py": {
+      "a": 4,
+      "d": 3
+    },
+    "mne/io/brainvision/brainvision.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/io/cnt/cnt.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/ctf/info.py": {
+      "a": 21,
+      "d": 21
+    },
+    "mne/io/ctf/tests/test_ctf.py": {
+      "a": 10,
+      "d": 3
+    },
+    "mne/io/eeglab/eeglab.py": {
+      "a": 4,
+      "d": 3
+    },
+    "mne/io/eeglab/tests/test_eeglab.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/kit/kit.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/meas_info.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/io/tag.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/source_space.py": {
+      "a": 6,
+      "d": 1
+    },
+    "mne/viz/circle.py": {
+      "a": 5,
+      "d": 1
+    },
+    "mne/viz/misc.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/utils.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

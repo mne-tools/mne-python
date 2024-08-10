@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "bbc853ec2560a741f8afbc08379a51a66db5056f",
+  "authors": [
+    {
+      "n": "Yu-Han Luo",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 4,
+      "d": 0
+    },
+    "examples/preprocessing/plot_run_ica.py": {
+      "a": 10,
+      "d": 2
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 60,
+      "d": 7
+    },
+    "mne/preprocessing/tests/test_ica.py": {
+      "a": 19,
+      "d": 11
+    },
+    "tutorials/preprocessing/plot_40_artifact_correction_ica.py": {
+      "a": 4,
+      "d": 2
+    }
+  }
+}

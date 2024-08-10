@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "0f0f9509132533dffdfe39a439caca52c6d6c12b",
+  "authors": [
+    {
+      "n": "Andrew R. Dykstra",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/fiff/channels.py": {
+      "a": 26,
+      "d": 42
+    },
+    "mne/fiff/fiff/tests/test_raw.py": {
+      "a": 16,
+      "d": 2
+    }
+  }
+}

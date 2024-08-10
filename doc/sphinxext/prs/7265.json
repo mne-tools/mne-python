@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "845e5d0cf764263d93a433a8fd0484f99c24d62f",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "mne/decoding/base.py": {
+      "a": 15,
+      "d": 3
+    },
+    "mne/decoding/tests/test_base.py": {
+      "a": 132,
+      "d": 27
+    },
+    "mne/decoding/tests/test_transformer.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/decoding/transformer.py": {
+      "a": 17,
+      "d": 7
+    }
+  }
+}

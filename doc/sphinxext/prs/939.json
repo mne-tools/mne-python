@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "948584a6662cb82d7018aeb81e6f488328e387df",
+  "authors": [
+    {
+      "n": "Christian Brodbeck",
+      "e": null
+    }
+  ],
+  "changes": {
+    "MANIFEST.in": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

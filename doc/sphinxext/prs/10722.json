@@ -1,0 +1,59 @@
+{
+  "merge_commit_sha": "948f0dc2745ba44d5add4faabc4090075bf1a770",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".gitignore": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/latest.inc": {
+      "a": 4,
+      "d": 0
+    },
+    "doc/visualization.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/pick.py": {
+      "a": 4,
+      "d": 1
+    },
+    "mne/utils/docs.py": {
+      "a": 23,
+      "d": 12
+    },
+    "mne/viz/__init__.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/viz/_proj.py": {
+      "a": 224,
+      "d": 0
+    },
+    "mne/viz/evoked.py": {
+      "a": 14,
+      "d": 9
+    },
+    "mne/viz/tests/test_proj.py": {
+      "a": 56,
+      "d": 0
+    },
+    "mne/viz/topomap.py": {
+      "a": 21,
+      "d": 11
+    },
+    "mne/viz/utils.py": {
+      "a": 11,
+      "d": 2
+    },
+    "tutorials/preprocessing/50_artifact_correction_ssp.py": {
+      "a": 51,
+      "d": 2
+    }
+  }
+}

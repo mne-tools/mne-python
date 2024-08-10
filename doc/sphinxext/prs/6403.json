@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "910c1e6276eb1abd9e6e5af312c0543a2fd7dcbb",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/viz/_3d.py": {
+      "a": 6,
+      "d": 4
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 33,
+      "d": 17
+    }
+  }
+}

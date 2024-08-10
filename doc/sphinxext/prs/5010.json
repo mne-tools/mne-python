@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "36446621d6e001ddf21fe850bf8d42ad59035930",
+  "authors": [
+    {
+      "n": "Jona Sassenhagen",
+      "e": "jona.sassenhagen@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/stats/plot_sensor_regression.py": {
+      "a": 14,
+      "d": 1
+    },
+    "examples/visualization/plot_roi_erpimage_by_rt.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/evoked.py": {
+      "a": 8,
+      "d": 4
+    },
+    "mne/viz/evoked.py": {
+      "a": 127,
+      "d": 26
+    },
+    "mne/viz/tests/test_evoked.py": {
+      "a": 10,
+      "d": 0
+    }
+  }
+}

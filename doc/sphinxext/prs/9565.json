@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "155540e5325b43dac44c7f35575ef10f305e4e94",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/io/base.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/egi/egimff.py": {
+      "a": 19,
+      "d": 7
+    },
+    "mne/io/egi/tests/test_egi.py": {
+      "a": 18,
+      "d": 1
+    }
+  }
+}

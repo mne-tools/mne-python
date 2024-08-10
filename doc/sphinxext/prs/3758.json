@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "e83c880e7c5b2176a6dfe4a3e7c8279780176dde",
+  "authors": [
+    {
+      "n": "Mikolaj Magnuski",
+      "e": "mmagnuski@swps.edu.pl"
+    }
+  ],
+  "changes": {
+    "mne/channels/channels.py": {
+      "a": 6,
+      "d": 1
+    },
+    "mne/io/reference.py": {
+      "a": 6,
+      "d": 2
+    }
+  }
+}

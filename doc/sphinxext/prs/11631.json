@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "263114e32d4fe4951f8f622f7ca74c30bfba37ae",
+  "authors": [
+    {
+      "n": "Jacob Woessner",
+      "e": "Woessner.jacob@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 1
+    },
+    "doc/changes/names.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/datasets/config.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/cnt/cnt.py": {
+      "a": 60,
+      "d": 2
+    },
+    "mne/io/cnt/tests/test_cnt.py": {
+      "a": 9,
+      "d": 0
+    }
+  }
+}

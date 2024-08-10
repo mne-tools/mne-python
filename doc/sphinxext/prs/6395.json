@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "0679e350cc20a07f3d043fec0be9a2153aa99a2b",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".gitignore": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/viz/utils.py": {
+      "a": 3,
+      "d": 1
+    }
+  }
+}

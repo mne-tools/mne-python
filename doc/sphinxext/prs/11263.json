@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "a49995ed5b1e84ab74a6dd1882f115d8dfd10406",
+  "authors": [
+    {
+      "n": "Carlos de la Torre",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/utils/mixin.py": {
+      "a": 8,
+      "d": 0
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "3930aec85edcb8a63a664f7658ddb33579a00f62",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/io/brainvision/brainvision.py": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

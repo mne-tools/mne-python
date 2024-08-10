@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "afad3b1aa7c185523d1fe722d46b5d3dfee9e9e2",
+  "authors": [
+    {
+      "n": "Teon L Brooks",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/viz/ica.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

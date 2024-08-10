@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "f65bc00ad6ee586acf101fe21b6ed5848dcd9523",
+  "authors": [
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    ".github/workflows/tests.yml": {
+      "a": 2,
+      "d": 4
+    },
+    ".pre-commit-config.yaml": {
+      "a": 1,
+      "d": 1
+    },
+    "tools/github_actions_dependencies.sh": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

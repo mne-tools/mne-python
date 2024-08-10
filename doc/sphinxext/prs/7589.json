@@ -1,0 +1,63 @@
+{
+  "merge_commit_sha": "550dd1b5e24aa4820cefbb1b101d03bf713bc182",
+  "authors": [
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    }
+  ],
+  "changes": {
+    "MANIFEST.in": {
+      "a": 3,
+      "d": 0
+    },
+    "mne.qrc": {
+      "a": 13,
+      "d": 0
+    },
+    "mne/images/clear-black-18dp.svg": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/images/help-black-18dp.svg": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/images/pause-black-18dp.svg": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/images/play-black-18dp.svg": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/images/restore-black-18dp.svg": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/images/scale-black-18dp.svg": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/images/screenshot-black-18dp.svg": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/images/visibility_off-black-18dp.svg": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/images/visibility_on-black-18dp.svg": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/viz/_brain/_timeviewer.py": {
+      "a": 74,
+      "d": 0
+    },
+    "mne/viz/_brain/resources.py": {
+      "a": 394,
+      "d": 0
+    }
+  }
+}

@@ -1,0 +1,63 @@
+{
+  "merge_commit_sha": "2d1e3dfe569c569bf0331b7faca41c483e8b8237",
+  "authors": [
+    {
+      "n": "Rob Luke",
+      "e": null
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "David JULIEN",
+      "e": "david.julien@ifsttar.fr"
+    },
+    {
+      "n": "Romain Derollepot",
+      "e": "romain.derollepot@univ-eiffel.fr"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 6,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 4,
+      "d": 0
+    },
+    "doc/preprocessing.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/datasets/utils.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/nirx/nirx.py": {
+      "a": 96,
+      "d": 31
+    },
+    "mne/io/nirx/tests/test_nirx.py": {
+      "a": 91,
+      "d": 0
+    },
+    "mne/preprocessing/__init__.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/preprocessing/annotate_nan.py": {
+      "a": 35,
+      "d": 0
+    },
+    "mne/utils/docs.py": {
+      "a": 30,
+      "d": 0
+    }
+  }
+}

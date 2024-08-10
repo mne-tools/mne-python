@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "75c83c3fa8be3a6f3a950dcd35ba222d460eb5b4",
+  "authors": [
+    {
+      "n": "Dmitrii Altukhov",
+      "e": "dm.altukhov@ya.ru"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 100,
+      "d": 40
+    }
+  }
+}

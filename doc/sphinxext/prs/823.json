@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "0ae7b614db435a4e8643e7d082024b1a5b935a58",
+  "authors": [
+    {
+      "n": "Mainak Jas",
+      "e": "mainakjas@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/decoding/tests/test_csp.py": {
+      "a": 5,
+      "d": 4
+    }
+  }
+}

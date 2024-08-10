@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "0862dd1b9a322be04f64a3b2963f12bea39fde69",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/forward/plot_coregistration_transform.py": {
+      "a": 1,
+      "d": 3
+    },
+    "examples/visualization/plot_meg_sensors.py": {
+      "a": 41,
+      "d": 0
+    },
+    "mne/viz/_3d.py": {
+      "a": 128,
+      "d": 29
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 32,
+      "d": 7
+    }
+  }
+}

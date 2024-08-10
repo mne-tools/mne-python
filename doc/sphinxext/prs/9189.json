@@ -1,0 +1,67 @@
+{
+  "merge_commit_sha": "a98c4f5ce9d8272b0b7528b3054c74b8d43373ae",
+  "authors": [
+    {
+      "n": "Valerii",
+      "e": null
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    },
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    },
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    },
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    },
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    },
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    },
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/data/html_templates.py": {
+      "a": 25,
+      "d": 0
+    },
+    "mne/epochs.py": {
+      "a": 26,
+      "d": 0
+    },
+    "mne/report.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 4,
+      "d": 0
+    },
+    "tutorials/misc/plot_report.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

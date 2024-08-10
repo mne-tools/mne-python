@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "d6a3ae446dc58aa750655681868797d08a89995d",
+  "authors": [
+    {
+      "n": "Christian Brodbeck",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/coreg.py": {
+      "a": 24,
+      "d": 0
+    },
+    "mne/fiff/brainvision/brainvision.py": {
+      "a": 229,
+      "d": 134
+    },
+    "mne/fiff/brainvision/tests/test_brainvision.py": {
+      "a": 64,
+      "d": 8
+    },
+    "mne/fiff/kit/__init__.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/fiff/kit/coreg.py": {
+      "a": 0,
+      "d": 28
+    },
+    "mne/fiff/kit/kit.py": {
+      "a": 9,
+      "d": 4
+    },
+    "mne/gui/_kit2fiff_gui.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/tests/test_coreg.py": {
+      "a": 14,
+      "d": 3
+    }
+  }
+}

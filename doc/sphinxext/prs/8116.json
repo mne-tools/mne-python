@@ -1,0 +1,51 @@
+{
+  "merge_commit_sha": "13a5ea40f005e9d9f45ab0057c8faaefadb10eb5",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/visualization/plot_mne_helmet.py": {
+      "a": 32,
+      "d": 0
+    },
+    "mne/evoked.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/icons/mne_icon.png": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/viz/_3d.py": {
+      "a": 25,
+      "d": 10
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 3,
+      "d": 12
+    },
+    "mne/viz/backends/_pysurfer_mayavi.py": {
+      "a": 5,
+      "d": 2
+    },
+    "mne/viz/backends/_pyvista.py": {
+      "a": 15,
+      "d": 6
+    },
+    "mne/viz/backends/base_renderer.py": {
+      "a": 9,
+      "d": 3
+    },
+    "mne/viz/backends/renderer.py": {
+      "a": 4,
+      "d": 2
+    }
+  }
+}

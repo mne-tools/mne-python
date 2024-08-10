@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "aa45f40d969cf2808c3628ed0315fb0f3f31ae35",
+  "authors": [
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/12699.apichange.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/base.py": {
+      "a": 30,
+      "d": 11
+    },
+    "mne/io/fiff/tests/test_raw_fiff.py": {
+      "a": 10,
+      "d": 2
+    }
+  }
+}

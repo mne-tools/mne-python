@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "6a265839876a2c4205a557ec387edda10cc237b4",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 5,
+      "d": 0
+    },
+    "mne/report/report.py": {
+      "a": 19,
+      "d": 8
+    },
+    "mne/utils/docs.py": {
+      "a": 23,
+      "d": 3
+    },
+    "mne/viz/epochs.py": {
+      "a": 1,
+      "d": 11
+    },
+    "mne/viz/raw.py": {
+      "a": 1,
+      "d": 17
+    },
+    "mne/viz/utils.py": {
+      "a": 20,
+      "d": 11
+    }
+  }
+}

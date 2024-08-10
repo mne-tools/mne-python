@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "a055120031b46ada317ebcf24b6eecd6a57cb322",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/stats/regression.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

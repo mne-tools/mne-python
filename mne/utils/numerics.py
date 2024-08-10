@@ -8,6 +8,8 @@
 import inspect
 import numbers
 import operator
+import os
+import shutil
 import sys
 from contextlib import contextmanager
 from datetime import date, datetime, timedelta, timezone
@@ -1104,3 +1106,14 @@ def _array_repr(x):
     """Produce compact info about float ndarray x."""
     assert isinstance(x, np.ndarray), type(x)
     return f"shape : {x.shape}, range : [{np.nanmin(x):+0.2g}, {np.nanmax(x):+0.2g}]"
+
+
+def _replace_md5(fname):
+    """Replace a file based on MD5sum."""
+    # adapted from sphinx-gallery
+    assert fname.endswith(".new")
+    fname_old = fname[:-4]
+    if os.path.isfile(fname_old) and hashfunc(fname) == hashfunc(fname_old):
+        os.remove(fname)
+    else:
+        shutil.move(fname, fname_old)

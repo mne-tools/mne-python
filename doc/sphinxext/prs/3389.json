@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "f038626699ee95d27680dd5f8ae39c2df3b10ae6",
+  "authors": [
+    {
+      "n": "Félix Raimundo",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 8,
+      "d": 0
+    },
+    "mne/io/tests/data/test-ave-2.log": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/io/tests/data/test-ave.log": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/tests/test_utils.py": {
+      "a": 1,
+      "d": 9
+    }
+  }
+}

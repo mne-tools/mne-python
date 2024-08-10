@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "3cc39e31a9f74f72e27dd64855d533c89cd74c58",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/viz/_figure.py": {
+      "a": 2,
+      "d": 4
+    },
+    "mne/viz/utils.py": {
+      "a": 4,
+      "d": 7
+    },
+    "tutorials/evoked/plot_20_visualize_evoked.py": {
+      "a": 2,
+      "d": 2
+    },
+    "tutorials/preprocessing/plot_40_artifact_correction_ica.py": {
+      "a": 45,
+      "d": 45
+    },
+    "tutorials/preprocessing/plot_50_artifact_correction_ssp.py": {
+      "a": 19,
+      "d": 19
+    }
+  }
+}

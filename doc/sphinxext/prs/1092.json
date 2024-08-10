@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "690bc1dd7e000c0ae55dd99a274cbb374e956462",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "mne/fiff/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/fiff/meas_info.py": {
+      "a": 24,
+      "d": 1
+    },
+    "mne/fiff/tests/test_meas_info.py": {
+      "a": 10,
+      "d": 0
+    }
+  }
+}

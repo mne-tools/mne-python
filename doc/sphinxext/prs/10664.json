@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "5bddef897c97bdcfb8d879901137c599e776df56",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/preprocessing/maxwell.py": {
+      "a": 4,
+      "d": 3
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "74f6f41f827df552d258c4db4d4c99a5b71863d6",
+  "authors": [
+    {
+      "n": "Jean-Rémi KING",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/decoding/receptive_field.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "e62145fa93c2609fb2fbba40702e8a23db28b894",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "examples/plot_estimate_covariance_matrix.py": {
+      "a": 2,
+      "d": 21
+    },
+    "examples/plot_read_noise_covariance_matrix.py": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/minimum_norm/inverse.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/viz.py": {
+      "a": 63,
+      "d": 1
+    }
+  }
+}

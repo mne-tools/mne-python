@@ -1,0 +1,51 @@
+{
+  "merge_commit_sha": "ae0ca34a4a53d0a307381833bc75c4b536d5ea54",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/conf.py": {
+      "a": 0,
+      "d": 6
+    },
+    "mne/cov.py": {
+      "a": 2,
+      "d": 10
+    },
+    "mne/datasets/sleep_physionet/_utils.py": {
+      "a": 3,
+      "d": 11
+    },
+    "mne/io/eeglab/tests/test_eeglab.py": {
+      "a": 0,
+      "d": 7
+    },
+    "mne/surface.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 0,
+      "d": 4
+    },
+    "mne/time_frequency/tests/test_multitaper.py": {
+      "a": 1,
+      "d": 3
+    },
+    "mne/utils/_testing.py": {
+      "a": 1,
+      "d": 8
+    },
+    "mne/viz/misc.py": {
+      "a": 1,
+      "d": 6
+    },
+    "mne/viz/utils.py": {
+      "a": 0,
+      "d": 6
+    }
+  }
+}

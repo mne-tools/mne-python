@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "7b3d86907cc1bed2ba4b61b65d3fe06b6f6fd8ab",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Roeland Hancock",
+      "e": "rhancock@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/datasets/utils.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/egi/egimff.py": {
+      "a": 137,
+      "d": 75
+    },
+    "mne/io/egi/events.py": {
+      "a": 5,
+      "d": 7
+    },
+    "mne/io/egi/general.py": {
+      "a": 8,
+      "d": 5
+    },
+    "mne/io/egi/tests/test_egi.py": {
+      "a": 77,
+      "d": 12
+    }
+  }
+}

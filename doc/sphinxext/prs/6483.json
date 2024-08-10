@@ -1,0 +1,63 @@
+{
+  "merge_commit_sha": "6c36f8806dffe48bd82e461ad6cc8aad782e5f43",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "mne/dipole.py": {
+      "a": 15,
+      "d": 12
+    },
+    "mne/viz/_3d.py": {
+      "a": 76,
+      "d": 36
+    },
+    "mne/viz/backends/_pysurfer_mayavi.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/viz/backends/renderer.py": {
+      "a": 5,
+      "d": 2
+    },
+    "tutorials/misc/plot_ecog.py": {
+      "a": 2,
+      "d": 3
+    },
+    "tutorials/misc/plot_sensor_locations.py": {
+      "a": 1,
+      "d": 2
+    },
+    "tutorials/sample-datasets/plot_brainstorm_phantom_elekta.py": {
+      "a": 16,
+      "d": 20
+    },
+    "tutorials/sample-datasets/plot_phantom_4DBTi.py": {
+      "a": 11,
+      "d": 9
+    },
+    "tutorials/simulation/plot_dics.py": {
+      "a": 8,
+      "d": 5
+    },
+    "tutorials/simulation/plot_point_spread.py": {
+      "a": 2,
+      "d": 5
+    },
+    "tutorials/source-modeling/plot_dipole_orientations.py": {
+      "a": 38,
+      "d": 16
+    },
+    "tutorials/source-modeling/plot_forward.py": {
+      "a": 9,
+      "d": 13
+    },
+    "tutorials/source-modeling/plot_source_alignment.py": {
+      "a": 5,
+      "d": 6
+    }
+  }
+}

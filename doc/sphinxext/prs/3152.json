@@ -1,0 +1,187 @@
+{
+  "merge_commit_sha": "bbaa5a80b4ebdfc99a942b87e670859c23a384f1",
+  "authors": [
+    {
+      "n": "jaeilepp",
+      "e": "jaeilepp@student.jyu.fi"
+    }
+  ],
+  "changes": {
+    "doc/python_reference.rst": {
+      "a": 4,
+      "d": 0
+    },
+    "doc/tutorials.rst": {
+      "a": 0,
+      "d": 2
+    },
+    "examples/README.txt": {
+      "a": 0,
+      "d": 3
+    },
+    "examples/decoding/plot_decoding_time_generalization.py": {
+      "a": 0,
+      "d": 55
+    },
+    "examples/forward/plot_bem_contour_mri.py": {
+      "a": 0,
+      "d": 27
+    },
+    "examples/forward/plot_coregistration_transform.py": {
+      "a": 0,
+      "d": 31
+    },
+    "examples/io/README.txt": {
+      "a": 2,
+      "d": 1
+    },
+    "examples/io/plot_objects_from_arrays.py": {
+      "a": 5,
+      "d": 4
+    },
+    "examples/io/plot_read_evoked.py": {
+      "a": 5,
+      "d": 0
+    },
+    "examples/plot_compute_mne_inverse.py": {
+      "a": 0,
+      "d": 60
+    },
+    "examples/plot_extract_events_from_raw.py": {
+      "a": 0,
+      "d": 40
+    },
+    "examples/plot_from_raw_to_epochs_to_evoked.py": {
+      "a": 0,
+      "d": 77
+    },
+    "examples/preprocessing/plot_corrmap_detection.py": {
+      "a": 0,
+      "d": 74
+    },
+    "examples/preprocessing/plot_estimate_covariance_matrix_baseline.py": {
+      "a": 0,
+      "d": 55
+    },
+    "examples/preprocessing/plot_estimate_covariance_matrix_raw.py": {
+      "a": 0,
+      "d": 38
+    },
+    "examples/time_frequency/plot_stockwell.py": {
+      "a": 0,
+      "d": 50
+    },
+    "examples/time_frequency/plot_time_frequency_multitaper_sensors.py": {
+      "a": 0,
+      "d": 55
+    },
+    "examples/visualization/plot_evoked_erf_erp.py": {
+      "a": 0,
+      "d": 51
+    },
+    "examples/visualization/plot_joint_evoked_topomap.py": {
+      "a": 0,
+      "d": 34
+    },
+    "examples/visualization/plot_meg_eeg_fields_3d.py": {
+      "a": 0,
+      "d": 46
+    },
+    "examples/visualization/plot_ssp_projs_topomaps.py": {
+      "a": 0,
+      "d": 31
+    },
+    "examples/visualization/plot_topo_channel_epochs_image.py": {
+      "a": 0,
+      "d": 58
+    },
+    "examples/visualization/plot_topography.py": {
+      "a": 0,
+      "d": 33
+    },
+    "mne/forward/_field_interpolation.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/viz/raw.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/plot_artifacts_correction_rejection.py": {
+      "a": 5,
+      "d": 5
+    },
+    "tutorials/plot_artifacts_detection.py": {
+      "a": 56,
+      "d": 1
+    },
+    "tutorials/plot_artifacts_intro.py": {
+      "a": 0,
+      "d": 60
+    },
+    "tutorials/plot_compute_covariance.py": {
+      "a": 16,
+      "d": 7
+    },
+    "tutorials/plot_creating_data_structures.py": {
+      "a": 2,
+      "d": 1
+    },
+    "tutorials/plot_epoching_and_averaging.py": {
+      "a": 9,
+      "d": 1
+    },
+    "tutorials/plot_mne_dspm_source_localization.py": {
+      "a": 29,
+      "d": 11
+    },
+    "tutorials/plot_sensors_time_frequency.py": {
+      "a": 2,
+      "d": 1
+    },
+    "tutorials/plot_stats_cluster_1samp_test_time_frequency.py": {
+      "a": 3,
+      "d": 0
+    },
+    "tutorials/plot_stats_cluster_methods.py": {
+      "a": 16,
+      "d": 8
+    },
+    "tutorials/plot_stats_cluster_spatio_temporal.py": {
+      "a": 30,
+      "d": 20
+    },
+    "tutorials/plot_stats_cluster_spatio_temporal_2samp.py": {
+      "a": 6,
+      "d": 3
+    },
+    "tutorials/plot_stats_cluster_spatio_temporal_repeated_measures_anova.py": {
+      "a": 52,
+      "d": 38
+    },
+    "tutorials/plot_stats_cluster_time_frequency.py": {
+      "a": 2,
+      "d": 0
+    },
+    "tutorials/plot_stats_cluster_time_frequency_repeated_measures_anova.py": {
+      "a": 49,
+      "d": 31
+    },
+    "tutorials/plot_stats_spatio_temporal_cluster_sensors.py": {
+      "a": 17,
+      "d": 14
+    },
+    "tutorials/plot_visualize_epochs.py": {
+      "a": 4,
+      "d": 2
+    },
+    "tutorials/plot_visualize_evoked.py": {
+      "a": 35,
+      "d": 30
+    },
+    "tutorials/plot_visualize_raw.py": {
+      "a": 21,
+      "d": 4
+    }
+  }
+}

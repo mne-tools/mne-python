@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "4c7c061e1de3a6398e5f95f37281b9dfe48067a0",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "mne/io/brainvision/brainvision.py": {
+      "a": 4,
+      "d": 1
+    }
+  }
+}

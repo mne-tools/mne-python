@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "23eaf5587881f57339b68dcd53fee38906ad7f3a",
+  "authors": [
+    {
+      "n": "aestrivex",
+      "e": "aestrivex@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/source/whats_new.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/viz.py": {
+      "a": 40,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "merge_commit_sha": "628b9c8ee2ae8d2912ed9a283ccb149d98084afc",
+  "authors": [
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    }
+  ],
+  "changes": {
+    "mne/io/base.py": {
+      "a": 37,
+      "d": 2
+    },
+    "mne/io/brainvision/brainvision.py": {
+      "a": 26,
+      "d": 13
+    },
+    "mne/io/brainvision/tests/test_brainvision.py": {
+      "a": 15,
+      "d": 0
+    },
+    "mne/io/edf/edf.py": {
+      "a": 16,
+      "d": 7
+    },
+    "mne/io/edf/tests/test_edf.py": {
+      "a": 15,
+      "d": 2
+    },
+    "mne/io/meas_info.py": {
+      "a": 55,
+      "d": 0
+    },
+    "mne/io/tests/test_meas_info.py": {
+      "a": 16,
+      "d": 1
+    },
+    "mne/io/tests/test_raw.py": {
+      "a": 36,
+      "d": 2
+    },
+    "mne/io/tests/test_utils.py": {
+      "a": 19,
+      "d": 0
+    },
+    "mne/io/utils.py": {
+      "a": 48,
+      "d": 0
+    }
+  }
+}

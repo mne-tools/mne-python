@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "47051833f21bb372d60afc3adbf4305648ac7f69",
+  "authors": [
+    {
+      "n": "Steve Matindi",
+      "e": null
+    }
+  ],
+  "changes": {
+    "LICENSE.txt": {
+      "a": 1,
+      "d": 1
+    },
+    "README.rst": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

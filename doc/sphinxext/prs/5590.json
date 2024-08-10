@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "6cc5c42657e33ca165bbf9e009b3d9cac57d264e",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "mne/morph.py": {
+      "a": 16,
+      "d": 7
+    },
+    "mne/tests/test_morph.py": {
+      "a": 39,
+      "d": 2
+    }
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "e1dacb5e63ea97d89ff71016a4edcf35e7edb1dc",
+  "authors": [
+    {
+      "n": "Maggie Clarke",
+      "e": "mdclarke@uw.edu"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/preprocessing/otp.py": {
+      "a": 3,
+      "d": 4
+    }
+  }
+}

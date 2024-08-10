@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "649357dfce54d5ea76b80c9cc03d642e02ed1535",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/filter.py": {
+      "a": 1,
+      "d": 9
+    },
+    "mne/time_frequency/csd.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/time_frequency/multitaper.py": {
+      "a": 42,
+      "d": 63
+    },
+    "mne/time_frequency/tests/test_multitaper.py": {
+      "a": 7,
+      "d": 4
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

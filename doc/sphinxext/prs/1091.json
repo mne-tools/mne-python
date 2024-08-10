@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "05c8f5202322ba4c41827e5b9d459eedb3216138",
+  "authors": [
+    {
+      "n": "Denis A. Engemann",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/source/whats_new.rst": {
+      "a": 3,
+      "d": 0
+    },
+    "examples/decoding/plot_ems_filtering.py": {
+      "a": 93,
+      "d": 0
+    },
+    "mne/decoding/__init__.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/decoding/ems.py": {
+      "a": 117,
+      "d": 0
+    },
+    "mne/decoding/tests/test_ems.py": {
+      "a": 61,
+      "d": 0
+    },
+    "mne/fiff/evoked.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 28,
+      "d": 19
+    },
+    "mne/utils.py": {
+      "a": 9,
+      "d": 0
+    }
+  }
+}

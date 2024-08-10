@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "b535a53711fe1efb954ec81e6d94c4ceb768a686",
+  "authors": [
+    {
+      "n": "Antoine Gauthier",
+      "e": "antoine.gauthier@ensta.fr"
+    }
+  ],
+  "changes": {
+    "mne/preprocessing/ica.py": {
+      "a": 5,
+      "d": 2
+    },
+    "mne/viz/ica.py": {
+      "a": 85,
+      "d": 9
+    },
+    "mne/viz/tests/test_ica.py": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}
