@@ -1986,7 +1986,7 @@ class ClusterResult:
         linestyles: list | dict | None = None,
         cmap_evokeds: None | str | tuple = None,
         cmap_topo: None | str | tuple = None,
-        ci: float | bool | callable() | None = None,
+        ci: float | bool | callable | None = None,
     ):
         """
         Plot the cluster with the lowest p-value.
