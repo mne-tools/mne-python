@@ -24,13 +24,15 @@ from scipy.sparse.csgraph import connected_components
 from scipy.stats import f as fstat
 from scipy.stats import t as tstat
 
-from .. import BaseEpochs, Evoked, EvokedArray
+from ..epochs import BaseEpochs, EvokedArray
+from ..evoked import Evoked
 from ..fixes import has_numba, jit
 from ..parallel import parallel_func
 from ..source_estimate import MixedSourceEstimate, SourceEstimate, VolSourceEstimate
 from ..source_space import SourceSpaces
 from ..time_frequency import BaseTFR
 from ..utils import (
+    GetEpochsMixin,
     ProgressBar,
     _check_option,
     _pl,
@@ -42,7 +44,6 @@ from ..utils import (
     verbose,
     warn,
 )
-from ..utils.mixin import GetEpochsMixin
 from ..viz import plot_compare_evokeds
 from .parametric import f_oneway, ttest_1samp_no_p
 
