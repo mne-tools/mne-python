@@ -1885,18 +1885,18 @@ def cluster_test(
             raise ValueError("for paired t-test, each subject must have 2 observations")
 
     # extract the data from the dataframe
-    outer_func = np.concatenate if is_epo or is_arr else np.array
+    outer_func = np.concatenate if is_epo else np.array
     axes = (-3, -1) if is_tfr else (-2, -1)
+
+    def func_arr(series):
+        return np.concatenate(series.values)
 
     def func_mne(series):
         return outer_func(
             series.map(lambda inst: inst.get_data().swapaxes(*axes)).to_list()
         )
 
-    def func_array(series):
-        return outer_func(series.values)
-
-    func = func_array if is_arr else func_mne
+    func = func_arr if is_arr else func_mne
 
     # convert to a list-like X for clustering
     X = df.groupby(iv_name).agg({dv_name: func})[dv_name].to_list()
