@@ -37,8 +37,8 @@ from mne.stats.cluster_level import (
     summarize_clusters_stc,
     ttest_1samp_no_p,
 )
-from mne.time_frequency import AverageTFRArray, EpochsTFRArray
-from mne.utils import _record_warnings, catch_logging
+from mne.time_frequency import AverageTFRArray, BaseTFR, EpochsTFRArray
+from mne.utils import GetEpochsMixin, _record_warnings, catch_logging
 
 n_space = 50
 
@@ -910,8 +910,8 @@ def test_new_cluster_api(Inst):
     pd = pytest.importorskip("pandas")
 
     rng = np.random.default_rng(seed=8675309)
-    is_epo = Inst in (EpochsTFRArray, EpochsArray)
-    is_tfr = Inst in (EpochsTFRArray, AverageTFRArray)
+    is_epo = GetEpochsMixin in Inst.__mro__
+    is_tfr = BaseTFR in Inst.__mro__
 
     n_epo, n_chan, n_freq, n_times = 6, 3, 4, 5
 
