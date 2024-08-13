@@ -605,6 +605,25 @@ def _get_gpu_info():
     return out
 
 
+def _get_total_memory():
+    """Return the total memory of the system in bytes."""
+    total_memory = None
+
+    if platform.system() == "Windows":
+        output = subprocess.check_output(
+            "wmic computersystem get totalphysicalmemory", shell=True
+        ).decode()
+        total_memory = int(output.strip().split()[1])
+    elif platform.system() == "Linux":
+        output = subprocess.check_output(["free", "-b"]).decode()
+        total_memory = int(output.splitlines()[1].split()[1])
+    elif platform.system() == "Darwin":
+        output = subprocess.check_output("sysctl hw.memsize").decode()
+        total_memory = int(output.split(":")[1].strip())
+
+    return total_memory
+
+
 def sys_info(
     fid=None,
     show_paths=False,
@@ -652,11 +671,10 @@ def sys_info(
     out(f"({multiprocessing.cpu_count()} cores)\n")
     out("Memory".ljust(ljust))
     try:
-        import psutil
-    except ImportError:
-        out('Unavailable (requires "psutil" package)')
-    else:
-        out(f"{psutil.virtual_memory().total / float(2 ** 30):0.1f} GB\n")
+        total_memory = f"{_get_total_memory() / 1024**3:.2f}"
+    except Exception:
+        total_memory = "?"
+    out(f"{total_memory} GiB\n")
     out("\n")
     ljust -= 3  # account for +/- symbols
     libs = _get_numpy_libs()
