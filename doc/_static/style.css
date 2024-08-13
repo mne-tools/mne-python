@@ -161,17 +161,25 @@ iframe.sg_report {
     top: 0;
 }
 
-/* TODO: Either pydata-sphinx-theme (for using Bootstrap) or sphinx-gallery (for adding table formatting) should fix this */
-.table-striped-columns>:not(caption)>tr>:nth-child(2n),.table-striped>tbody>tr:nth-of-type(odd)>* {
-    --bs-table-accent-bg: var(--bs-table-striped-bg);
+/* ******************************************************** HTML repr tables */
+
+/* make table responsive to pydata-sphinx-theme's light/dark mode */
+.table > :not(caption) > * > * {
     color: var(--pst-color-text-base);
 }
-.table-hover>tbody>tr:hover>* {
-    --bs-table-accent-bg: var(--bs-table-hover-bg);
-    color: var(--pst-color-text-base);
+.mne-repr-table tbody tr:hover {
+    background-color: var(--pst-color-table-row-hover-bg);
 }
-.rendered_html table {
-    color: var(--pst-color-text-base);
+.mne-repr-section-toggle > button > svg > path {
+    fill: var(--pst-color-text-base);
+}
+/*
+make section header rows more distinct (and harmonize with pydata-sphinx-theme table
+style in the process). Color copied from pydata-sphinx-theme; 2px copied from bootstrap.
+*/
+.mne-repr-table th {
+    padding-top: 1rem;
+    border-bottom: 2px solid var(--pst-color-primary);
 }
 
 
