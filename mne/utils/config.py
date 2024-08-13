@@ -624,6 +624,19 @@ def _get_total_memory():
     return total_memory
 
 
+def _get_cpu_brand():
+    """Return the CPU brand string."""
+    cpu_brand = "Unknown"
+
+    if platform.system() == "Darwin":
+        output = subprocess.check_output(["sysctl", "machdep.cpu"]).decode()
+        cpu_brand = output.split("brand_string: ")[1].strip()
+    else:
+        cpu_brand = platform.processor()
+
+    return cpu_brand
+
+
 def sys_info(
     fid=None,
     show_paths=False,
@@ -667,7 +680,7 @@ def sys_info(
     out("Platform".ljust(ljust) + platform_str + "\n")
     out("Python".ljust(ljust) + str(sys.version).replace("\n", " ") + "\n")
     out("Executable".ljust(ljust) + sys.executable + "\n")
-    out("CPU".ljust(ljust) + f"{platform.processor()} ")
+    out("CPU".ljust(ljust) + f"{_get_cpu_brand()} ")
     out(f"({multiprocessing.cpu_count()} cores)\n")
     out("Memory".ljust(ljust))
     try:
