@@ -618,7 +618,7 @@ def _get_total_memory():
         output = subprocess.check_output(["free", "-b"]).decode()
         total_memory = int(output.splitlines()[1].split()[1])
     elif platform.system() == "Darwin":
-        output = subprocess.check_output("sysctl hw.memsize").decode()
+        output = subprocess.check_output(["sysctl", "hw.memsize"]).decode()
         total_memory = int(output.split(":")[1].strip())
 
     return total_memory
