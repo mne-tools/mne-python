@@ -671,7 +671,7 @@ def sys_info(
     out(f"({multiprocessing.cpu_count()} cores)\n")
     out("Memory".ljust(ljust))
     try:
-        total_memory = f"{_get_total_memory() / 1024**3:.2f}"
+        total_memory = f"{_get_total_memory() / 1024**3:.1f}"
     except Exception:
         total_memory = "?"
     out(f"{total_memory} GiB\n")
