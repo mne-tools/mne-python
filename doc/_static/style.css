@@ -170,6 +170,9 @@ iframe.sg_report {
 .mne-repr-table tbody tr:hover {
     background-color: var(--pst-color-table-row-hover-bg);
 }
+.mne-repr-section-toggle > button {
+    padding: 20%;
+}
 .mne-repr-section-toggle > button > svg > path {
     fill: var(--pst-color-text-base);
 }
@@ -178,7 +181,6 @@ make section header rows more distinct (and harmonize with pydata-sphinx-theme t
 style in the process). Color copied from pydata-sphinx-theme; 2px copied from bootstrap.
 */
 .mne-repr-table th {
-    padding-top: 1rem;
     border-bottom: 2px solid var(--pst-color-primary);
 }
 
