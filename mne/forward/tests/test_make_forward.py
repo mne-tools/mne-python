@@ -296,7 +296,10 @@ def test_make_forward_solution_bti(fname_src_small):
     "other",
     [
         pytest.param("MNE-C", marks=requires_mne_mark()),
-        pytest.param("openmeeg", marks=requires_openmeeg_mark()),
+        pytest.param(
+            "openmeeg",
+            marks=[requires_openmeeg_mark(), pytest.mark.slowtest],
+        ),
     ],
 )
 def test_make_forward_solution_ctf(tmp_path, fname_src_small, other):
@@ -403,6 +406,7 @@ def test_make_forward_solution_ctf(tmp_path, fname_src_small, other):
     repr(fwd_py)
 
 
+@pytest.mark.slowtest
 @testing.requires_testing_data
 def test_make_forward_solution_basic():
     """Test making M-EEG forward solution from python."""
