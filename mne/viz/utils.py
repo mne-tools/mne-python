@@ -1,16 +1,9 @@
 """Utility functions for plotting M/EEG data."""
 
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Denis Engemann <denis.engemann@gmail.com>
-#          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
-#          Eric Larson <larson.eric.d@gmail.com>
-#          Mainak Jas <mainak@neuro.hut.fi>
-#          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
-#          Clemens Brunner <clemens.brunner@gmail.com>
-#          Daniel McCloy <dan@mccloy.info>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 import difflib
 import math
 import os

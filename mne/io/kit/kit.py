@@ -3,10 +3,7 @@
 RawKIT class is adapted from Denis Engemann et al.'s mne_bti2fiff.py.
 """
 
-# Authors: Teon Brooks <teon.brooks@gmail.com>
-#          Joan Massich <mailsik@gmail.com>
-#          Christian Brodbeck <christianbrodbeck@nyu.edu>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 

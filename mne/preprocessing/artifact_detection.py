@@ -1,5 +1,4 @@
-# Authors: Adonay Nunes <adonay.s.nunes@gmail.com>
-#          Luke Bloy <luke.bloy@gmail.com>
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 

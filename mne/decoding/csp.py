@@ -1,9 +1,4 @@
-# Authors: Romain Trachel <trachelr@gmail.com>
-#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Alexandre Barachant <alexandre.barachant@gmail.com>
-#          Clemens Brunner <clemens.brunner@gmail.com>
-#          Jean-Remi King <jeanremi.king@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
