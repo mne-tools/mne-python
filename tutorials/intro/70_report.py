@@ -23,6 +23,7 @@ building a report. As usual, we will start by importing the modules and data we 
 # Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 # %%
 
 import tempfile

@@ -17,6 +17,7 @@ We begin by importing the necessary Python modules:
 # Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 # %%
 
 import numpy as np

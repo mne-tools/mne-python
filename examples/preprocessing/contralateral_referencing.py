@@ -15,6 +15,7 @@ contralateral EEG reference.
 # Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 import mne
 
 ssvep_folder = mne.datasets.ssvep.data_path()

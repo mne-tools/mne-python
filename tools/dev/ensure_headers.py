@@ -156,7 +156,18 @@ def _ensure_copyright(lines, path):
         lines[insert] = COPYRIGHT_LINE
     else:
         lines.insert(insert, COPYRIGHT_LINE)
-    assert lines.count(COPYRIGHT_LINE) == 1, lines.count(COPYRIGHT_LINE)
+    assert (
+        lines.count(COPYRIGHT_LINE) == 1
+    ), f"{lines.count(COPYRIGHT_LINE)=} for {path=}"
+
+
+def _ensure_blank(lines, path):
+    assert (
+        lines.count(COPYRIGHT_LINE) == 1
+    ), f"{lines.count(COPYRIGHT_LINE)=} for {path=}"
+    insert = lines.index(COPYRIGHT_LINE) + 1
+    if lines[insert].strip():  # actually has content
+        lines.insert(insert, "")
 
 
 for path in get_paths_from_tree(repo.tree()):
@@ -179,6 +190,7 @@ for path in get_paths_from_tree(repo.tree()):
     _ensure_author(lines, path)
     _ensure_license(lines, path)
     _ensure_copyright(lines, path)
+    _ensure_blank(lines, path)
     if lines != orig_lines:
         print(path)
         path.write_text("\n".join(lines), "utf-8")

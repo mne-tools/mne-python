@@ -17,6 +17,7 @@ function to make it easier to make several plots that look similar:
 # Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 # %%
 
 import os

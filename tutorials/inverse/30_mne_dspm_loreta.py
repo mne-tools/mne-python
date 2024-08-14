@@ -12,6 +12,7 @@ minimum-norm inverse method on evoked/raw/epochs data.
 # Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 # %%
 
 import matplotlib.pyplot as plt

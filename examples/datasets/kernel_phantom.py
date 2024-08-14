@@ -11,6 +11,7 @@ stimulated with 7 modules active (121 channels). Here we show some example trace
 # Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 import numpy as np
 
 import mne

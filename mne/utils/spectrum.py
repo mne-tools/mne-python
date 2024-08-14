@@ -3,6 +3,7 @@
 # Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 from inspect import currentframe, getargvalues, signature
 
 from ..utils import warn

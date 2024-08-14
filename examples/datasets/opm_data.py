@@ -13,6 +13,7 @@ we demonstrate how to localize these custom OPM data in MNE.
 # Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 # sphinx_gallery_thumbnail_number = 4
 
 import numpy as np

@@ -16,6 +16,7 @@ just a few EEG channels so the plots are easier to see:
 # Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 # %%
 
 import os

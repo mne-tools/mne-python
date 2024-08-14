@@ -55,6 +55,7 @@ is. We first set up the environment and load some data:
 # Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 # %%
 
 from mne import read_source_estimate

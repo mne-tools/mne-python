@@ -29,6 +29,7 @@ to just 60 seconds before loading it into RAM:
 # Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 # %%
 
 import numpy as np

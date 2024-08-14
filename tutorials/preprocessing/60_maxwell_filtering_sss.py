@@ -15,6 +15,7 @@ As usual, we'll start by importing the modules we need, loading some
 # Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 # %%
 
 import os

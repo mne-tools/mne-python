@@ -17,6 +17,7 @@ This tutorial covers plotting eye-tracking position data as a heatmap.
 # Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 # %%
 # Data loading
 # ------------

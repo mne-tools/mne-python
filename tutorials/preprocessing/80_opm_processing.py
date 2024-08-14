@@ -24,6 +24,7 @@ We will cover some of these considerations here by processing the
 # Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 # %%
 
 import matplotlib.pyplot as plt

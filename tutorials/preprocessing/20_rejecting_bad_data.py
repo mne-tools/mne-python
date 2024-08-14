@@ -20,6 +20,7 @@ array to use when converting the continuous data to epochs:
 # Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 # %%
 
 import os
