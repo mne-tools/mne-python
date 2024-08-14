@@ -607,32 +607,36 @@ def _get_gpu_info():
 
 def _get_total_memory():
     """Return the total memory of the system in bytes."""
-    total_memory = None
-
     if platform.system() == "Windows":
-        output = subprocess.check_output(
-            "wmic computersystem get totalphysicalmemory", shell=True
+        o = subprocess.check_output(
+            ["wmic", "computersystem", "get", "totalphysicalmemory"]
         ).decode()
-        total_memory = int(output.strip().split()[1])
+        total_memory = int(o.strip().split()[1])
     elif platform.system() == "Linux":
-        output = subprocess.check_output(["free", "-b"]).decode()
-        total_memory = int(output.splitlines()[1].split()[1])
+        o = subprocess.check_output(["free", "-b"]).decode()
+        total_memory = int(o.splitlines()[1].split()[1])
     elif platform.system() == "Darwin":
-        output = subprocess.check_output(["sysctl", "hw.memsize"]).decode()
-        total_memory = int(output.split(":")[1].strip())
+        o = subprocess.check_output(["sysctl", "hw.memsize"]).decode()
+        total_memory = int(o.split(":")[1].strip())
+    else:
+        total_memory = -1
 
     return total_memory
 
 
 def _get_cpu_brand():
     """Return the CPU brand string."""
-    cpu_brand = "Unknown"
-
-    if platform.system() == "Darwin":
-        output = subprocess.check_output(["sysctl", "machdep.cpu"]).decode()
-        cpu_brand = output.split("brand_string: ")[1].strip()
+    if platform.system() == "Windows":
+        o = subprocess.check_output(["wmic", "cpu", "get", "name"]).decode()
+        cpu_brand = o.strip().splitlines()[-1]
+    elif platform.system() == "Linux":
+        o = subprocess.check_output(["grep", "model name", "/proc/cpuinfo"]).decode()
+        cpu_brand = o.splitlines()[0].split(": ")[1]
+    elif platform.system() == "Darwin":
+        o = subprocess.check_output(["sysctl", "machdep.cpu"]).decode()
+        cpu_brand = o.split("brand_string: ")[1].strip()
     else:
-        cpu_brand = platform.processor()
+        cpu_brand = "?"
 
     return cpu_brand
 
@@ -680,13 +684,19 @@ def sys_info(
     out("Platform".ljust(ljust) + platform_str + "\n")
     out("Python".ljust(ljust) + str(sys.version).replace("\n", " ") + "\n")
     out("Executable".ljust(ljust) + sys.executable + "\n")
-    out("CPU".ljust(ljust) + f"{_get_cpu_brand()} ")
+    try:
+        cpu_brand = _get_cpu_brand()
+    except Exception:
+        cpu_brand = "?"
+    out("CPU".ljust(ljust) + f"{cpu_brand} ")
     out(f"({multiprocessing.cpu_count()} cores)\n")
     out("Memory".ljust(ljust))
     try:
-        total_memory = f"{_get_total_memory() / 1024**3:.1f}"
+        total_memory = _get_total_memory()
     except Exception:
         total_memory = "?"
+    else:
+        total_memory = f"{total_memory / 1024**3:.1f}"
     out(f"{total_memory} GiB\n")
     out("\n")
     ljust -= 3  # account for +/- symbols
