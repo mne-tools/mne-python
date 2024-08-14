@@ -609,7 +609,11 @@ def _get_total_memory():
     """Return the total memory of the system in bytes."""
     if platform.system() == "Windows":
         o = subprocess.check_output(
-            ["wmic", "computersystem", "get", "totalphysicalmemory"]
+            [
+                "powershell.exe",
+                "(Get-CimInstance Win32_PhysicalMemory | "
+                "Measure-Object -Property capacity -Sum).sum",
+            ]
         ).decode()
         total_memory = int(o.strip().split()[1])
     elif platform.system() == "Linux":
@@ -627,7 +631,9 @@ def _get_total_memory():
 def _get_cpu_brand():
     """Return the CPU brand string."""
     if platform.system() == "Windows":
-        o = subprocess.check_output(["wmic", "cpu", "get", "name"]).decode()
+        o = subprocess.check_output(
+            ["powershell.exe", "(Get-CimInstance Win32_Processor).Name"]
+        ).decode()
         cpu_brand = o.strip().splitlines()[-1]
     elif platform.system() == "Linux":
         o = subprocess.check_output(["grep", "model name", "/proc/cpuinfo"]).decode()
