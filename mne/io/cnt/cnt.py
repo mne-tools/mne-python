@@ -529,9 +529,16 @@ class RawCNT(BaseRaw):
             _date_format = "%m/%d/%y %H:%M:%S"
 
         input_fname = path.abspath(input_fname)
-        info, cnt_info = _get_cnt_info(
-            input_fname, eog, ecg, emg, misc, data_format, _date_format, header
-        )
+        try:
+            info, cnt_info = _get_cnt_info(
+                input_fname, eog, ecg, emg, misc, data_format, _date_format, header
+            )
+        except Exception:
+            raise RuntimeError(
+                "Could not read header from *.cnt file. mne.io.read_raw_cnt "
+                "supports Neuroscan CNT files only. If this file is an ANT Neuro CNT, "
+                "please use mne.io.read_raw_ant instead."
+            )
         last_samps = [cnt_info["n_samples"] - 1]
         super().__init__(
             info,
