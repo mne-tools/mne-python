@@ -1,12 +1,13 @@
 /*
-These styles are outside the @layer, because we want them to *definitely* apply on the
-built website docs; if they're inside the layer, any unlayered CSS (e.g. in the sphinx
-theme, sphinx-gallery, or bootstrap CSS) will take precedence.
+Styles in this section apply both to the sphinx-built website docs and to notebooks
+rendered in an IDE or in Jupyter. In our web docs, styles here are complemented by
+doc/_static/styles.css and other CSS files (e.g. from the sphinx theme, sphinx-gallery,
+or bootstrap). In IDEs/Jupyter, those style files are unavailable, so only the rules in
+this file apply (plus whatever default styling the IDE applies).
 */
 .mne-repr-table {
-    display: inline;  /* prevent using full-container-width */
+    display: inline;  /* prevent using full container width */
 }
-
 .mne-repr-table tr.mne-repr-section-header > th {
     padding-top: 1rem;
     text-align: left;
@@ -37,28 +38,64 @@ theme, sphinx-gallery, or bootstrap CSS) will take precedence.
     display: none;
 }
 
-@layer mne-html-repr {
-    /*
-    In our web docs, styles in these layers will be overridden by doc/_static/styles.css
-    and other CSS files (e.g. from theme, sphinx-gallery, or bootstrap). But in IDEs,
-    those style files are unavailable, so only rules in this file apply. When adding
-    rules in this layer, make sure they don't affect the built HTML site! If necessary,
-    add a complementary rule in doc/_static/styles.css to override rules added here.
 
-    NB: variables starting with `--jp-` are Jupyter styles.
+@layer {
+    /*
+    Selectors in a `@layer` will always be lower-precedence than selectors outside the
+    layer. So even though e.g. `div.output_html` is present in the sphinx-rendered
+    website docs, the styles here won't take effect there as, long as some other rule
+    somewhere in the page's CSS targets the same element.
+
+    In IDEs or Jupyter notebooks, though, the CSS files from the sphinx theme,
+    sphinx-gallery, and bootstrap are unavailable, so these styles will apply.
+
+    Notes:
+
+    - the selector `.output_html` is for VSCode's notebook interface
+    - the selector `.jp-RenderedHTML` is for Jupyter notebook
+    - variables starting with `--theme-` are VSCode-specific.
+    - variables starting with `--jp-` are Jupyter styles, *some of which* are also
+      available in VSCode. Here we try the `--theme-` variable first, then fall back to
+      the `--jp-` ones.
     */
-    .mne-repr-section-toggle > button {
-        padding: 0 0 40% 20%;
+    .mne-repr-table {
+        --mne-toggle-color: var(--theme-foreground, var(--jp-ui-font-color1));
+        --mne-button-bg-color: var(--theme-button-background, var(--jp-info-color0, var(--jp-content-link-color)));
+        --mne-button-fg-color: var(--theme-button-foreground, var(--jp-ui-inverse-font-color0, var(--jp-editor-background)));
+        --mne-button-hover-bg-color: var(--theme-button-hover-background, var(--jp-info-color1));
+        --mne-button-radius: var(--jp-border-radius, 0.25rem);
     }
-    .mne-repr-section-toggle > button > svg > path {
-        fill: var(--jp-ui-font-color1);
+    .jp-RenderedHTML .mne-repr-section-toggle > button {
+        /* Jupyter only; in VSCode it looks ok without this */
+        padding: 0 0 40% 20% !important;
     }
-    .mne-ch-names-button {
-        all: unset;
-        color: var(--jp-content-link-color);
+    div.output_html .mne-repr-section-toggle > button > svg > path,
+    .jp-RenderedHTML .mne-repr-section-toggle > button > svg > path {
+        fill: var(--mne-toggle-color);
     }
-    .mne-ch-names-button:hover {
+    div.output_html .mne-ch-names-btn,
+    .jp-RenderedHTML .mne-ch-names-btn {
+        -webkit-border-radius: var(--mne-button-radius);
+        -moz-border-radius: var(--mne-button-radius);
+        border-radius: var(--mne-button-radius);
+        border: none;
+        background-image: none;
+        background-color: var(--mne-button-bg-color);
+        color: var(--mne-button-fg-color);
+        font-size: inherit;
+        min-width: 1.5rem;
+        padding: 0.25rem;
+        text-align: center;
+        text-decoration: none;
+    }
+    div.output_html .mne.ch-names-btn:hover,
+    .jp-RenderedHTML .mne-ch-names-btn:hover {
+        background-color: var(--mne-button-hover-bg-color);
         text-decoration: underline;
-        color: var(--jp-content-link-hover-color);
+    }
+    div.output_html .mne-ch-names-btn:focus-visible,
+    .jp-RenderedHTML .mne-ch-names-btn:focus-visible {
+        outline: 0.1875rem solid var(--mne-button-bg-color) !important;
+        outline-offset: 0.1875rem !important;
     }
 }
