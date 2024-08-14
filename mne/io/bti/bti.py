@@ -1,12 +1,4 @@
-# Authors: Denis A. Engemann  <denis.engemann@gmail.com>
-#          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
-#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
-#          Yuval Harpaz <yuvharpaz@gmail.com>
-#          Joan Massich <mailsik@gmail.com>
-#          Teon Brooks <teon.brooks@gmail.com>
-#
-#          simplified BSD-3 license
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 

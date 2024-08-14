@@ -1,8 +1,5 @@
 #
-# Authors: Denis A. Engemann <denis.engemann@gmail.com>
-#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Juergen Dammers <j.dammers@fz-juelich.de>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 

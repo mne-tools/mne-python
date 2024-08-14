@@ -1,6 +1,6 @@
 """Localizations for meas_date extraction."""
-# Authors: Eric Larson <larson.eric.d@gmail.com>
-#
+
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 

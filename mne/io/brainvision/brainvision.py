@@ -1,12 +1,6 @@
 """Conversion tool from BrainVision EEG to FIF."""
-# Authors: Teon Brooks <teon.brooks@gmail.com>
-#          Christian Brodbeck <christianbrodbeck@nyu.edu>
-#          Eric Larson <larson.eric.d@gmail.com>
-#          Jona Sassenhagen <jona.sassenhagen@gmail.com>
-#          Phillip Alday <phillip.alday@unisa.edu.au>
-#          Okba Bekhelifi <okba.bekhelifi@gmail.com>
-#          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
-#
+
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 

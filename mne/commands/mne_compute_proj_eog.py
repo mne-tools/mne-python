@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 r"""Compute SSP/PCA projections for EOG artifacts.
 
 Examples
@@ -20,8 +19,8 @@ or
 
 to exclude ECG artifacts from projection computation.
 """
-# Authors : Alexandre Gramfort, Ph.D.
-#           Martin Luessi, Ph.D.
+
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 

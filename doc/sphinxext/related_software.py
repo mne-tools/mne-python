@@ -7,6 +7,10 @@ To add a package to the list:
 3. If it's not on PyPI, add it to the MANUAL_PACKAGES dictionary.
 """
 
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
+
 import functools
 import importlib.metadata
 import os

@@ -1,12 +1,6 @@
 #!/usr/bin/env python
 
-# Authors: Thorsten Kranz <thorstenkranz@gmail.com>
-#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
-#          Eric Larson <larson.eric.d@gmail.com>
-#          Denis Engemann <denis.engemann@gmail.com>
-#          Fernando Perez (bin_perm_rep function)
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 

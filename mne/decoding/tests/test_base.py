@@ -1,6 +1,4 @@
-# Author: Jean-Remi King, <jeanremi.king@gmail.com>
-#         Marijn van Vliet, <w.m.vanvliet@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
