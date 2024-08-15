@@ -1486,6 +1486,7 @@ def _plot_sensors_3d(
     check_inside=None,
     nearest=None,
     sensor_colors=None,
+    sensor_scale=None,
 ):
     """Render sensors in a 3D scene."""
     from matplotlib.colors import to_rgba_array
@@ -1541,23 +1542,36 @@ def _plot_sensors_3d(
             sensor_colors = {
                 list(locs)[0]: to_rgba_array(sensor_colors),
             }
+        if sensor_scale is not None and not isinstance(sensor_scale, dict):
+            sensor_scale = {
+                list(locs)[0]: sensor_scale,
+            }
     else:
         extra = f"when more than one channel type ({list(locs)}) is plotted"
     _validate_type(sensor_colors, types, "sensor_colors", extra=extra)
+    _validate_type(sensor_scale, types, "sensor_scale", extra=extra)
     del extra, types
     if sensor_colors is None:
         sensor_colors = dict()
+    if sensor_scale is None:
+        sensor_scale = dict()
     assert isinstance(sensor_colors, dict)
+    assert isinstance(sensor_scale, dict)
     for ch_type, sens_loc in locs.items():
         logger.debug(f"Drawing {ch_type} sensors")
         assert len(sens_loc)  # should be guaranteed above
         colors = to_rgba_array(sensor_colors.get(ch_type, defaults[ch_type + "_color"]))
+        scales = np.array([sensor_scale.get(ch_type, defaults[ch_type + "_scale"] * unit_scalar)])
         _check_option(
             f"len(sensor_colors[{repr(ch_type)}])",
             colors.shape[0],
             (len(sens_loc), 1),
         )
-        scale = defaults[ch_type + "_scale"] * unit_scalar
+        _check_option(
+            f"len(sensor_scale[{repr(ch_type)}])",
+            scales.shape[0],
+            (len(sens_loc), 1),
+        )
         this_alpha = sensor_alpha[ch_type]
         if isinstance(sens_loc[0], dict):  # meg coil
             if len(colors) == 1:
@@ -1573,13 +1587,13 @@ def _plot_sensors_3d(
         else:
             sens_loc = np.array(sens_loc, float)
             mask = ~np.isnan(sens_loc).any(axis=1)
-            if len(colors) == 1:
+            if len(colors) == 1 and len(scales) == 1:
                 # Single color mode (one actor)
                 actor, _ = _plot_glyphs(
                     renderer=renderer,
                     loc=sens_loc[mask] * unit_scalar,
                     color=colors[0, :3],
-                    scale=scale,
+                    scale=scales[0],
                     opacity=this_alpha * colors[0, 3],
                     orient_glyphs=orient_glyphs,
                     scale_by_distance=scale_by_distance,
@@ -1589,9 +1603,47 @@ def _plot_sensors_3d(
                     nearest=nearest,
                 )
                 actors[ch_type].append(actor)
-            else:
-                # Multi-color mode (multiple actors)
+            elif len(colors) == len(sens_loc) and len(scales) == 1:
+                # Multi-color single scale mode (multiple actors)
                 for loc, color, usable in zip(sens_loc, colors, mask):
+                    if not usable:
+                        continue
+                    actor, _ = _plot_glyphs(
+                        renderer=renderer,
+                        loc=loc * unit_scalar,
+                        color=color[:3],
+                        scale=scales[0],
+                        opacity=this_alpha * color[3],
+                        orient_glyphs=orient_glyphs,
+                        scale_by_distance=scale_by_distance,
+                        project_points=project_points,
+                        surf=surf,
+                        check_inside=check_inside,
+                        nearest=nearest,
+                    )
+                    actors[ch_type].append(actor)
+            elif len(colors) == 1 and len(scales) == len(sens_loc):
+                # Multi-scale single color mode (multiple actors)
+                for loc, scale, usable in zip(sens_loc, scales, mask):
+                    if not usable:
+                        continue
+                    actor, _ = _plot_glyphs(
+                        renderer=renderer,
+                        loc=loc * unit_scalar,
+                        color=colors[0, :3],
+                        scale=scale,
+                        opacity=this_alpha * colors[0, 3],
+                        orient_glyphs=orient_glyphs,
+                        scale_by_distance=scale_by_distance,
+                        project_points=project_points,
+                        surf=surf,
+                        check_inside=check_inside,
+                        nearest=nearest,
+                    )
+                    actors[ch_type].append(actor)
+            else:
+                # Multi-color multi-scale mode (multiple actors)
+                for loc, color, scale, usable in zip(sens_loc, colors, scales, mask):
                     if not usable:
                         continue
                     actor, _ = _plot_glyphs(
