@@ -9,7 +9,15 @@ import numpy as np
 
 from ... import Annotations, create_info
 from ..._fiff.constants import FIFF
-from ...utils import _check_fname, _validate_type, fill_doc, logger, verbose, warn
+from ...utils import (
+    _check_fname,
+    _validate_type,
+    copy_doc,
+    fill_doc,
+    logger,
+    verbose,
+    warn,
+)
 from .. import BaseRaw
 
 if TYPE_CHECKING:
@@ -244,6 +252,7 @@ def _scale_data(data: NDArray[np.float64], ch_units: list[str]) -> None:
             )
 
 
+@copy_doc(RawANT)
 def read_raw_ant(
     fname: str | Path,
     eog: str | None = None,
@@ -253,7 +262,14 @@ def read_raw_ant(
     *,
     verbose=None,
 ) -> RawANT:
-    """Reader for Raw ANT files in .cnt format."""
+    """
+
+    Returns
+    -------
+    RawANT
+        The ANT raw object containing the channel information, data and relevant
+        :class:`~mne.Annotations`.
+    """
     return RawANT(
         fname,
         eog=eog,
