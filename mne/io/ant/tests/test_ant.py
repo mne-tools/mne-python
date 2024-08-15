@@ -26,14 +26,14 @@ def read_raw_bv(fname: Path) -> BaseRaw:
     return raw_bv
 
 
-@pytest.fixture()
-def ca_208() -> dict[str, dict[str, Path]]:
+@pytest.fixture(scope="module")
+def ca_208(tmp_path) -> dict[str, dict[str, Path]]:
     """Return the paths to the CA_208 dataset containing 64 channel gel recordings."""
     pytest.importorskip("antio", minversion="0.2.0")
 
     from antio.datasets import ca_208
 
-    data_path = ca_208.data_path()
+    data_path = ca_208.data_path(tmp_path)
     cnt = {
         "short": data_path / "test_CA_208.cnt",
         "amp-dc": data_path / "test_CA_208_amp_disconnection.cnt",
