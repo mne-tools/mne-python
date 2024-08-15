@@ -10,8 +10,8 @@ import numpy as np
 from ... import Annotations, create_info
 from ..._fiff.constants import FIFF
 from ...utils import (
-    _check_fname,
     _validate_type,
+    check_version,
     copy_doc,
     fill_doc,
     logger,
@@ -96,11 +96,13 @@ class RawANT(BaseRaw):
                 "Missing optional dependency 'antio'. Use pip or conda to install "
                 "'antio'."
             )
+        check_version("antio", "0.2.0")
 
         from antio import read_cnt
-        from antio.io import read_data, read_info, read_triggers
+        from antio.parser import read_data, read_info, read_triggers
+        from antio.utils._checks import ensure_path
 
-        fname = _check_fname(fname, must_exist=True)
+        fname = ensure_path(fname, must_exist=True)
         _validate_type(eog, (str, None), "eog")
         _validate_type(misc, (str, None), "misc")
         _validate_type(bipolars, (list, tuple, None), "bipolar")
@@ -146,6 +148,11 @@ class RawANT(BaseRaw):
             {ch: imp[k] for k, ch in enumerate(ch_names)} for imp in impedances
         ]
 
+    @property
+    def impedances(self) -> list[dict[str, float]]:
+        """List of impedance measurements."""
+        return self._impedances
+
 
 def _handle_bipolar_channels(
     ch_names: list[str], ch_refs: list[str], bipolars: list[str] | tuple[str, ...]
@@ -180,9 +187,9 @@ def _parse_ch_types(
     misc = re.compile(misc) if misc is not None else None
     ch_types = []
     for ch in ch_names:
-        if re.fullmatch(eog, ch):
+        if eog is not None and re.fullmatch(eog, ch):
             ch_types.append("eog")
-        elif re.fullmatch(misc, ch):
+        elif misc is not None and re.fullmatch(misc, ch):
             ch_types.append("misc")
         else:
             ch_types.append("eeg")
