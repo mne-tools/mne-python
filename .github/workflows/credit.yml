@@ -3,9 +3,7 @@ name: Contributor credit
 on:  # yamllint disable-line rule:truthy
   # Scheduled actions only run on the main repo branch, which is exactly what we want
   schedule:
-    # TODO: After making sure it works in `main` for a while, switch to monthly
-    # - cron: '0 0 1 * *'  # first day of the month at midnight
-    - cron: '*/30 * * * *'  # every half hour
+    - cron: '0 0 * * 0'  # At 00:00 on Sunday
   workflow_dispatch:
 
 permissions:
@@ -24,7 +22,6 @@ jobs:
         with:
           python-version: '3.12'
       - run: pip install pygithub -e .
-      - run: git checkout -b credit
       - run: python tools/dev/update_credit_json.py
       - run: git add -f doc/sphinxext/prs/*.json
       - run: |
@@ -36,8 +33,10 @@ jobs:
       - name: Create PR
         run: |
           set -xeo pipefail
+          git checkout -b credit
           git config --global user.email "114827586+autofix-ci[bot]@users.noreply.github.com"
           git config --global user.name "autofix-ci[bot]"
           git commit -am "MAINT: Update code credit"
-          gh pr create --title "MAINT: Update code credit" --body "Created by \"${{ github.workflow }}\" GitHub action." --label "no-changelog-entry-needed"
+          git push origin credit
+          gh pr create --head --title "MAINT: Update code credit" --body "Created by \"${{ github.workflow }}\" GitHub action." --label "no-changelog-entry-needed"
         if: steps.status.outputs.dirty == 'true'
