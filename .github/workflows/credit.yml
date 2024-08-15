@@ -7,6 +7,7 @@ on:  # yamllint disable-line rule:truthy
   workflow_dispatch:
 
 permissions:
+  contents: write
   pull-requests: write
 
 jobs:
@@ -33,10 +34,11 @@ jobs:
       - name: Create PR
         run: |
           set -xeo pipefail
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
           git checkout -b credit
-          git config --global user.email "114827586+autofix-ci[bot]@users.noreply.github.com"
-          git config --global user.name "autofix-ci[bot]"
           git commit -am "MAINT: Update code credit"
           git push origin credit
-          gh pr create --head --title "MAINT: Update code credit" --body "Created by \"${{ github.workflow }}\" GitHub action." --label "no-changelog-entry-needed"
+          PR_NUM=$(gh pr create --base main --head credit --title "MAINT: Update code credit" --body "Created by \"${{ github.workflow }}\" GitHub action." --label "no-changelog-entry-needed")
+          echo "Opened https://github.com/mne-tools/mne-python/pulls/${PR_NUM}" >> $GITHUB_STEP_SUMMARY
         if: steps.status.outputs.dirty == 'true'
