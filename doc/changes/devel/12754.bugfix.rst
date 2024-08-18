@@ -1,1 +1,0 @@
-Safeguard loading of ``meas_date`` in :func:`mne.io.read_raw_edf`, by `Mathieu Scheltienne`_.

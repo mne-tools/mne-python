@@ -1,3 +1,0 @@
-Fix bug where ad-hoc regularization of a covariance with
-:func:`mne.cov.regularize` did not properly account for bad channels
-in rank calculations, by `Eric Larson`_.
