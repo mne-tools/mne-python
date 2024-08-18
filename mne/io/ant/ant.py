@@ -23,7 +23,7 @@ from ...utils import (
     verbose,
     warn,
 )
-from .. import BaseRaw
+from ..base import BaseRaw
 
 if TYPE_CHECKING:
     from pathlib import Path
