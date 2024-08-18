@@ -275,7 +275,6 @@ def read_raw_ant(
     verbose=None,
 ) -> RawANT:
     """
-
     Returns
     -------
     RawANT
