@@ -451,6 +451,37 @@ class _PyVistaRenderer(_AbstractRenderer):
             **kwargs,
         )
 
+    def line(
+        self,
+        line,
+        color,
+        opacity=1.0,
+        backface_culling=False,
+        scalars=None,
+        colormap=None,
+        vmin=None,
+        vmax=None,
+        interpolate_before_map=True,
+        line_width=1.0,
+        polygon_offset=None,
+        **kwargs,
+    ):
+        return self.polydata(
+            mesh=pyvista.MultipleLines(line),
+            color=color,
+            opacity=opacity,
+            normals=np.zeros_like(np.array(line)),
+            backface_culling=backface_culling,
+            scalars=scalars,
+            colormap=colormap,
+            vmin=vmin,
+            vmax=vmax,
+            interpolate_before_map=interpolate_before_map,
+            line_width=line_width,
+            polygon_offset=polygon_offset,
+            **kwargs,
+        )
+
     def contour(
         self,
         surface,

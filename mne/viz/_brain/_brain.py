@@ -220,6 +220,8 @@ class Brain:
        +-------------------------------------+--------------+---------------+
        | :meth:`add_skull`                   |              | ✓             |
        +-------------------------------------+--------------+---------------+
+       | :meth:`add_streamline`              |              | ✓             |
+       +-------------------------------------+--------------+---------------+
        | :meth:`add_text`                    | ✓            | ✓             |
        +-------------------------------------+--------------+---------------+
        | :meth:`add_volume_labels`           |              | ✓             |
@@ -247,6 +249,8 @@ class Brain:
        | :meth:`remove_sensors`              |              | ✓             |
        +-------------------------------------+--------------+---------------+
        | :meth:`remove_skull`                |              | ✓             |
+       +-------------------------------------+--------------+---------------+
+       | :meth:`remove_streamlines`          |              | ✓             |
        +-------------------------------------+--------------+---------------+
        | :meth:`remove_text`                 |              | ✓             |
        +-------------------------------------+--------------+---------------+
@@ -2504,6 +2508,66 @@ class Brain:
     def remove_skull(self):
         """Remove skull objects from the rendered scene."""
         self._remove("skull", render=True)
+
+    @fill_doc
+    def add_streamline(
+        self,
+        streamline,
+        line_width=1,
+        color="red",
+        scalars=None,
+        colormap=None,
+        vmin=None,
+        vmax=None,
+        alpha=1,
+    ):
+        """Add a streamlines to render fiber tracts.
+
+        Parameters
+        ----------
+        streamline : array shape=(n_points, 3)
+           An array with 3D points forming a line in units of m.
+        line_width : int
+            The width of the line.
+        color : list
+            A list with entries of anything matplotlib accepts:
+            string, RGB, hex, etc.
+        scalars : list
+            A list of scalar values associated with each vertex of
+            the streamline.
+        %(colormap)s
+        vmin : None | float
+            The minimum value for color scaling.
+        vmax : None | float
+            The maximum value for color scaling.
+        %(alpha)s
+
+        Notes
+        -----
+        .. versionadded:: 0.24
+        """
+        color = _to_rgb(color)
+
+        for _ in self._iter_views("vol"):
+            actor, _ = self._renderer.line(
+                streamline * (1e3 if self._units == "mm" else 1),
+                color=color,
+                opacity=alpha,
+                line_width=line_width,
+                scalars=scalars,
+                colormap=colormap,
+                vmin=vmin,
+                vmax=vmax,
+                reset_camera=False,
+                render=False,
+            )
+            self._add_actor("streamlines", actor)
+
+        self._renderer._update()
+
+    def remove_streamlines(self):
+        """Remove streamline objects from the rendered scene."""
+        self._remove("streamlines", render=True)
 
     @fill_doc
     def add_volume_labels(

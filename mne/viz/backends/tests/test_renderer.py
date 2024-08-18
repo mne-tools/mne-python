@@ -97,6 +97,9 @@ def test_3d_backend(renderer):
     txt_text = "renderer"
     txt_size = 14
 
+    line_data = [[0, 0, 0], [1, 1, 1]]
+    line_color = "red"
+
     cam_distance = 5 * tet_size
 
     # init scene
@@ -118,6 +121,14 @@ def test_3d_backend(renderer):
         color=tet_color,
     )
     rend.remove_mesh(mesh_data)
+
+    # use lines
+    line_actor = rend.line(
+        line_data,
+        color=line_color,
+        line_width=5,
+    )
+    rend.remove_mesh(line_actor)
 
     # use contour
     rend.contour(
