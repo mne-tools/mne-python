@@ -11,8 +11,9 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
-from ... import Annotations, create_info
 from ..._fiff.constants import FIFF
+from ..._fiff.meas_info import create_info
+from ...annotations import Annotations
 from ...utils import (
     _validate_type,
     check_version,
