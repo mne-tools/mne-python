@@ -3,7 +3,7 @@ name: Contributor credit
 on:  # yamllint disable-line rule:truthy
   # Scheduled actions only run on the main repo branch, which is exactly what we want
   schedule:
-    - cron: '0 0 * * 0'  # At 00:00 on Sunday
+    - cron: '0 0 1 * *'  # At 00:00 on day-of-month 1
   workflow_dispatch:
 
 permissions:

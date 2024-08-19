@@ -2,6 +2,8 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+import sys
+
 import numpy as np
 import pytest
 from numpy.testing import assert_array_almost_equal, assert_array_equal
@@ -469,4 +471,6 @@ def test_non_full_rank_data():
     assert np.linalg.matrix_rank(X) == rank
 
     ssd = SSD(info, filt_params_signal, filt_params_noise)
+    if sys.platform == "darwin":
+        pytest.skip("Unknown linalg bug (Accelerate?)")
     ssd.fit(X)
