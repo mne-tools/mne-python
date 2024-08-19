@@ -532,6 +532,7 @@ def plot_alignment(
     fig=None,
     interaction="terrain",
     sensor_colors=None,
+    sensor_scales=None,
     verbose=None,
 ):
     """Plot head, sensor, and source space alignment in 3D.
@@ -912,6 +913,7 @@ def plot_alignment(
             "m",
             sensor_alpha=sensor_alpha,
             sensor_colors=sensor_colors,
+            sensor_scales=sensor_scales
         )
 
     if src is not None:
@@ -1486,7 +1488,7 @@ def _plot_sensors_3d(
     check_inside=None,
     nearest=None,
     sensor_colors=None,
-    sensor_scale=None,
+    sensor_scales=None,
 ):
     """Render sensors in a 3D scene."""
     from matplotlib.colors import to_rgba_array
@@ -1542,33 +1544,33 @@ def _plot_sensors_3d(
             sensor_colors = {
                 list(locs)[0]: to_rgba_array(sensor_colors),
             }
-        if sensor_scale is not None and not isinstance(sensor_scale, dict):
-            sensor_scale = {
-                list(locs)[0]: sensor_scale,
+        if sensor_scales is not None and not isinstance(sensor_scales, dict):
+            sensor_scales = {
+                list(locs)[0]: sensor_scales,
             }
     else:
         extra = f"when more than one channel type ({list(locs)}) is plotted"
     _validate_type(sensor_colors, types, "sensor_colors", extra=extra)
-    _validate_type(sensor_scale, types, "sensor_scale", extra=extra)
+    _validate_type(sensor_scales, types, "sensor_scale", extra=extra)
     del extra, types
     if sensor_colors is None:
         sensor_colors = dict()
-    if sensor_scale is None:
-        sensor_scale = dict()
+    if sensor_scales is None:
+        sensor_scales = dict()
     assert isinstance(sensor_colors, dict)
-    assert isinstance(sensor_scale, dict)
+    assert isinstance(sensor_scales, dict)
     for ch_type, sens_loc in locs.items():
         logger.debug(f"Drawing {ch_type} sensors")
         assert len(sens_loc)  # should be guaranteed above
         colors = to_rgba_array(sensor_colors.get(ch_type, defaults[ch_type + "_color"]))
-        scales = np.array([sensor_scale.get(ch_type, defaults[ch_type + "_scale"] * unit_scalar)])
+        scales = np.array([sensor_scales.get(ch_type, defaults[ch_type + "_scale"] * unit_scalar)])
         _check_option(
             f"len(sensor_colors[{repr(ch_type)}])",
             colors.shape[0],
             (len(sens_loc), 1),
         )
         _check_option(
-            f"len(sensor_scale[{repr(ch_type)}])",
+            f"len(sensor_scales[{repr(ch_type)}])",
             scales.shape[0],
             (len(sens_loc), 1),
         )

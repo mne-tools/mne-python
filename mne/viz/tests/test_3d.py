@@ -211,8 +211,8 @@ def test_plot_evoked_field(renderer):
     fig.set_vmax(2e-12, kind="meg")
     assert fig._surf_maps[1]["contours"][-1] == 2e-12
     assert (
-        fig._widgets["vmax_slider_meg"].get_value()
-        == DEFAULTS["scalings"]["grad"] * 2e-12
+            fig._widgets["vmax_slider_meg"].get_value()
+            == DEFAULTS["scalings"]["grad"] * 2e-12
     )
 
     fig = evoked.plot_field(maps, time_viewer=False)
@@ -266,6 +266,120 @@ def _assert_n_actors(fig, renderer, n_actors):
     __tracebackhide__ = True
     assert isinstance(fig, Figure3D)
     assert len(fig.plotter.renderer.actors) == n_actors
+
+@pytest.mark.slowtest  # can be slow on OSX
+@testing.requires_testing_data
+@pytest.mark.parametrize(
+    "test_ecog", "test_seeg", "sensor_colors", "sensor_scales", "expectation",
+    [
+        (
+            True,
+            True,
+            "k",
+            2,
+            pytest.raises(
+                TypeError,
+                match="Keys in the ref_channels dict must be strings. "
+                      "Your dict has keys of type int.",
+            ),
+        )
+    ]
+)
+def test_plot_alignment_ieeg_v2(test_ecog, test_seeg, sensor_colors, sensor_scales, expectation):
+    """Test plotting of iEEG sensors."""
+    # Load evoked:
+    evoked = read_evokeds(evoked_fname)[0]
+    # EEG only
+    evoked_ecog_seeg = evoked.copy().pick_types(meg=True, eeg=True)
+    with evoked_ecog_seeg.info._unlock():
+        evoked_ecog_seeg.info["projs"] = []  # "remove" avg proj
+    # Convert meg to ecog and eeg to seeg:
+    evoked_ecog_seeg.set_channel_types({ch: "ecog" for ch in evoked_ecog_seeg.pick_types(meg=True)})
+    evoked_ecog_seeg.set_channel_types({ch: "seeg" for ch in evoked_ecog_seeg.pick_types(eeg=True)})
+    # Get infos:
+    this_info = evoked_ecog_seeg.info
+    # Test plot:
+    with expectation:
+        fig = plot_alignment(this_info, ecog=test_ecog, seeg=test_seeg,
+                             sensor_colors=sensor_colors, sensor_scales=sensor_scales)
+        assert isinstance(fig, Figure3D)
+        # renderer.backend._close_all()
+
+@pytest.mark.slowtest  # can be slow on OSX
+@testing.requires_testing_data
+def test_plot_alignment_ieeg(renderer):
+    """Test plotting of iEEG sensors."""
+
+    evoked = read_evokeds(evoked_fname)[0]
+    # EEG only
+    evoked_eeg_ecog_seeg = evoked.copy().pick_types(meg=False, eeg=True)
+    with evoked_eeg_ecog_seeg.info._unlock():
+        evoked_eeg_ecog_seeg.info["projs"] = []  # "remove" avg proj
+    evoked_eeg_ecog_seeg.set_channel_types({"EEG 001": "ecog", "EEG 002": "ecog",
+                                            "EEG 003": "seeg", "EEG 004": "seeg"})
+    evoked_ecog_seeg = evoked_eeg_ecog_seeg.copy().pick(["ecog", "seeg"])
+    this_info = evoked_ecog_seeg.info
+    # None option:
+    fig = plot_alignment(this_info, ecog=True, seeg=True,
+                         sensor_colors=None, sensor_scales=None)
+    assert isinstance(fig, Figure3D)
+    renderer.backend._close_all()
+
+    # Single value for single channel type option:
+    sensor_colors = "k"
+    sensor_scales = 10
+    fig = plot_alignment(this_info, ecog=False, seeg=True,
+                         sensor_colors=sensor_colors, sensor_scales=sensor_scales)
+    assert isinstance(fig, Figure3D)
+    renderer.backend._close_all()
+
+    # Both channel types:
+    # should be upsampled to correct shape
+    with pytest.raises(TypeError, match="instance of dict"):
+        plot_alignment(this_info, ecog=True, seeg=True,
+                       sensor_colors=sensor_colors, sensor_scales=sensor_scales)
+    sensor_colors = {ch_type: "k" for ch_type in pick_types(this_info)}
+    sensor_scales = {ch_type: 10 for ch_type in pick_types(this_info)}
+    fig = plot_alignment(this_info, ecog=True, seeg=True,
+                         sensor_colors=sensor_colors, sensor_scales=sensor_scales)
+    assert isinstance(fig, Figure3D)
+    renderer.backend._close_all()
+
+    # Single channels values:
+    sensor_colors = {ch_type: ["k"] * len(pick_types(this_info, **dict({ch_type, True})))
+                     for ch_type in pick_types(this_info)}
+    sensor_scales = {ch_type: [10] * len(pick_types(this_info, ref_meg=True))
+                     for ch_type in pick_types(this_info)}
+    fig = plot_alignment(this_info, ecog=True, seeg=True,
+                         sensor_colors=sensor_colors, sensor_scales=sensor_scales)
+    assert isinstance(fig, Figure3D)
+    renderer.backend._close_all()
+
+    # Single channels values for colors only:
+    sensor_colors = {ch_type: ["k"] * len(pick_types(this_info, ref_meg=True))
+                     for ch_type in pick_types(this_info)}
+    sensor_scales = None
+    fig = plot_alignment(this_info, ecog=True, seeg=True,
+                         sensor_colors=sensor_colors, sensor_scales=sensor_scales)
+    assert isinstance(fig, Figure3D)
+    renderer.backend._close_all()
+
+    # Single channels values for scale only:
+    sensor_colors = None
+    sensor_scales = {ch_type: [10] * len(pick_types(this_info, ref_meg=True))
+                     for ch_type in pick_types(this_info)}
+    fig = plot_alignment(this_info, ecog=True, seeg=True,
+                         sensor_colors=sensor_colors, sensor_scales=sensor_scales)
+    assert isinstance(fig, Figure3D)
+    renderer.backend._close_all()
+
+    # Testing unexpected values:
+    sensor_colors = {ch_type: "k" for ch_type in pick_types(this_info)}
+    sensor_scales = {ch_type: "k" for ch_type in pick_types(this_info)}
+    fig = plot_alignment(this_info, ecog=True, seeg=True,
+                         sensor_colors=sensor_colors, sensor_scales=sensor_scales)
+    assert isinstance(fig, Figure3D)
+    renderer.backend._close_all()
 
 
 @pytest.mark.slowtest  # Slow on Azure
@@ -602,13 +716,13 @@ def test_plot_alignment_basic(tmp_path, renderer, mixed_fwd_cov_evoked):
         fid.write(coil_3d)
     # make sure our other OPMs can be plotted, too
     for ii, kind in enumerate(
-        (
-            "QUSPIN_ZFOPM_MAG",
-            "QUSPIN_ZFOPM_MAG2",
-            "FIELDLINE_OPM_MAG_GEN1",
-            "KERNEL_OPM_MAG_GEN1",
-        ),
-        2,
+            (
+                    "QUSPIN_ZFOPM_MAG",
+                    "QUSPIN_ZFOPM_MAG2",
+                    "FIELDLINE_OPM_MAG_GEN1",
+                    "KERNEL_OPM_MAG_GEN1",
+            ),
+            2,
     ):
         info_cube["chs"][ii]["coil_type"] = getattr(FIFF, f"FIFFV_COIL_{kind}")
     with use_coil_def(coil_def_fname):
@@ -689,7 +803,7 @@ def test_plot_alignment_basic(tmp_path, renderer, mixed_fwd_cov_evoked):
             surfaces=dict(brain=42),
         )
     fwd_fname = (
-        data_dir / "MEG" / "sample" / "sample_audvis_trunc-meg-eeg-oct-4-fwd.fif"
+            data_dir / "MEG" / "sample" / "sample_audvis_trunc-meg-eeg-oct-4-fwd.fif"
     )
     fwd = read_forward_solution(fwd_fname)
     plot_alignment(
@@ -1052,7 +1166,7 @@ def test_snapshot_brain_montage(renderer):
 @pytest.mark.parametrize("pick_ori", ("vector", None))
 @pytest.mark.parametrize("kind", ("surface", "volume", "mixed"))
 def test_plot_source_estimates(
-    renderer_interactive, all_src_types_inv_evoked, pick_ori, kind, brain_gc
+        renderer_interactive, all_src_types_inv_evoked, pick_ori, kind, brain_gc
 ):
     """Test plotting of scalar and vector source estimates."""
     backend = renderer_interactive._get_3d_backend()
