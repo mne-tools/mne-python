@@ -3,6 +3,10 @@
 Run ./tools/dev/update_credit_json.py first to get the latest PR JSON files.
 """
 
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
+
 import glob
 import json
 import pathlib
@@ -170,6 +174,7 @@ def generate_credit_rst(app=None, *, verbose=False):
         if "autofix-ci[bot]" not in email
         and "pre-commit-ci[bot]" not in email
         and "dependabot[bot]" not in email
+        and "github-actions[bot]" not in email
     )
     assert len(unknown_emails) == 0, "Unknown emails\n" + "\n".join(
         sorted(unknown_emails)

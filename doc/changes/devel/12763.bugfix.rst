@@ -1,1 +1,0 @@
-Fix check for dropping all channels in :meth:`mne.io.Raw.drop_channels` and related methods, by :newcontrib:`Farzin Negahbani`.

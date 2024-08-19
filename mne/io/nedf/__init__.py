@@ -1,7 +1,6 @@
 """NEDF file import module."""
 
-# Author: Tristan Stenner <nedf@nicht.dienstli.ch>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 

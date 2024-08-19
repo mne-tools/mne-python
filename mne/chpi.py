@@ -1,21 +1,21 @@
-"""Functions for fitting head positions with (c)HPI coils."""
+"""Functions for fitting head positions with (c)HPI coils.
 
-# Next, ``compute_head_pos`` can be used to:
-#
-# 1. Drop coils whose GOF are below ``gof_limit``. If fewer than 3 coils
-#    remain, abandon fitting for the chunk.
-# 2. Fit dev_head_t quaternion (using ``_fit_chpi_quat_subset``),
-#    iteratively dropping coils (as long as 3 remain) to find the best GOF
-#    (using ``_fit_chpi_quat``).
-# 3. If fewer than 3 coils meet the ``dist_limit`` criteria following
-#    projection of the fitted device coil locations into the head frame,
-#    abandon fitting for the chunk.
-#
-# The function ``filter_chpi`` uses the same linear model to filter cHPI
-# and (optionally) line frequencies from the data.
+``compute_head_pos`` can be used to:
 
-# Authors: Eric Larson <larson.eric.d@gmail.com>
-#
+1. Drop coils whose GOF are below ``gof_limit``. If fewer than 3 coils
+   remain, abandon fitting for the chunk.
+2. Fit dev_head_t quaternion (using ``_fit_chpi_quat_subset``),
+   iteratively dropping coils (as long as 3 remain) to find the best GOF
+   (using ``_fit_chpi_quat``).
+3. If fewer than 3 coils meet the ``dist_limit`` criteria following
+   projection of the fitted device coil locations into the head frame,
+   abandon fitting for the chunk.
+
+The function ``filter_chpi`` uses the same linear model to filter cHPI
+and (optionally) line frequencies from the data.
+"""
+
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 

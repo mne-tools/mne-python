@@ -1,7 +1,4 @@
-# Authors: Alexandre Barachant <alexandre.barachant@gmail.com>
-#          Asish Panda <asishrocks95@gmail.com>
-#          Jean-Remi King <jeanremi.king@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 

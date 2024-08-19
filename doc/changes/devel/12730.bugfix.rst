@@ -1,1 +1,0 @@
-Fix bug when reading NIRX files saved in a non-western encoding, by `Daniel McCloy`_.

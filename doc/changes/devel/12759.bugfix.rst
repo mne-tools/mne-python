@@ -1,1 +1,0 @@
-Assure that blink times are handled correctly :func:`mne.preprocessing.eyetracking.interpolate_blinks`, even when the raw object is cropped by `Scott Huberty`_ and :newcontrib:`Sammi Chekroud`.

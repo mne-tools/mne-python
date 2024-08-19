@@ -1,6 +1,6 @@
 """The documentation functions."""
-# Authors: Eric Larson <larson.eric.d@gmail.com>
-#
+
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -4921,14 +4921,6 @@ vmin, vmax : float | {allowed}None
     ``min(data)`` or ``max(data)``, respectively.{extra}
 """
 
-docdict["vmin_vmax_tfr_plot"] = """
-vmin, vmax : float | None
-    Lower and upper bounds of the colormap. See ``vlim``.
-
-    .. deprecated:: 1.7
-        ``vmin`` and ``vmax`` will be removed in version 1.8.
-        Use ``vlim`` parameter instead.
-"""
 # ↓↓↓ this one still used, needs helper func refactor before we can migrate to `vlim`
 docdict["vmin_vmax_tfr_plot_topo"] = _vmin_vmax_template.format(
     allowed="", bounds=_bounds_symmetric, extra=""

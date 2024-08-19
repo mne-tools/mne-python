@@ -1,1 +1,0 @@
-Add :func:`~mne.stats.erp.compute_sme` to compute the analytical standardized measurement error (SME) as a data quality measure for ERP studies, by `Clemens Brunner`_.

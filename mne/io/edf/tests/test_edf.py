@@ -1,10 +1,4 @@
-# Authors: Teon Brooks <teon.brooks@gmail.com>
-#          Martin Billinger <martin.billinger@tugraz.at>
-#          Alan Leggitt <alan.leggitt@ucsf.edu>
-#          Alexandre Barachant <alexandre.barachant@gmail.com>
-#          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
-#          Joan Massich <mailsik@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 

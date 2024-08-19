@@ -1,7 +1,4 @@
-# Authors: Teon Brooks <teon.brooks@gmail.com>
-#          Denis A. Engemann <denis.engemann@gmail.com>
-#          Jona Sassenhagen <jona.sassenhagen@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 

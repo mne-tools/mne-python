@@ -1,6 +1,4 @@
-# Authors: Robert Luke  <mail@robertluke.net>
-#          Eric Larson <larson.eric.d@gmail.com>
-#          simplified BSD-3 license
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 

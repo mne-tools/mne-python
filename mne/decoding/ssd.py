@@ -1,6 +1,4 @@
-# Author: Denis A. Engemann <denis.engemann@gmail.com>
-#         Victoria Peterson <victoriapeterson09@gmail.com>
-#         Thomas S. Binns <t.s.binns@outlook.com>
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
