@@ -116,7 +116,8 @@ class RawANT(BaseRaw):
             raise ValueError("The impedance annotation cannot be an empty string.")
         cnt = read_cnt(str(fname))
         # parse channels, sampling frequency, and create info
-        ch_names, ch_units, ch_refs = read_info(cnt)
+        ch_info = read_info(cnt)  # load in 2 lines for compat with antio 0.2 and 0.3
+        ch_names, ch_units, ch_refs = ch_info[0], ch_info[1], ch_info[2]
         ch_types = _parse_ch_types(ch_names, eog, misc, ch_refs)
         if bipolars is not None:  # handle bipolar channels
             bipolars_idx = _handle_bipolar_channels(ch_names, ch_refs, bipolars)
