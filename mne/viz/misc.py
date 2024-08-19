@@ -697,7 +697,7 @@ def plot_bem(
                     raise OSError(f"Surface {surf_fname} does not exist.")
 
     # TODO: Refactor with / improve _ensure_src to do this
-    if isinstance(src, (str, Path, os.PathLike)):
+    if isinstance(src, str | Path | os.PathLike):
         src = Path(src)
         if not src.exists():
             # convert to Path until get_subjects_dir returns a Path object
@@ -967,7 +967,7 @@ def adjust_axes(axes, remove_spines=("top", "right"), grid=True):
     grid : bool
         Turn grid on (True) or off (False).
     """
-    axes = [axes] if not isinstance(axes, (list, tuple, np.ndarray)) else axes
+    axes = [axes] if not isinstance(axes, list | tuple | np.ndarray) else axes
     for ax in axes:
         if grid:
             ax.grid(zorder=0)

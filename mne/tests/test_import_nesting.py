@@ -99,7 +99,7 @@ def test_import_nesting_hierarchy():
             super().__init__()
 
         def generic_visit(self, node):
-            if not isinstance(node, (ast.Import, ast.ImportFrom)):
+            if not isinstance(node, ast.Import | ast.ImportFrom):
                 super().generic_visit(node)
                 return
             stmt = " " * node.col_offset

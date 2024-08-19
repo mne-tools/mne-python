@@ -223,7 +223,6 @@ ignore = [
     "D100", # Missing docstring in public module
     "D104", # Missing docstring in public package
     "D413", # Missing blank line after last section
-    "UP038",  # Lots of changes, run separately
 ]
 
 [tool.ruff.lint.pydocstyle]

@@ -909,7 +909,7 @@ def _morphed_stc_as_volume(morph, stc, mri_resolution, mri_space, output):
     NiftiImage, NiftiHeader = _triage_output(output)
 
     # if MRI resolution is set manually as a single value, convert to tuple
-    if isinstance(mri_resolution, (int, float)):
+    if isinstance(mri_resolution, int | float):
         # use iso voxel size
         new_zooms = (float(mri_resolution),) * 3
     elif isinstance(mri_resolution, tuple):
@@ -1043,9 +1043,7 @@ def _interpolate_data(stc, morph, mri_resolution, mri_space, output):
 
     voxel_size_defined = False
 
-    if isinstance(mri_resolution, (int, float)) and not isinstance(
-        mri_resolution, bool
-    ):
+    if isinstance(mri_resolution, int | float) and not isinstance(mri_resolution, bool):
         # use iso voxel size
         mri_resolution = (float(mri_resolution),) * 3
 

@@ -186,7 +186,7 @@ def check_random_state(seed):
     """
     if seed is None or seed is np.random:
         return np.random.mtrand._rand
-    if isinstance(seed, (int, np.integer)):
+    if isinstance(seed, int | np.integer):
         return np.random.mtrand.RandomState(seed)
     if isinstance(seed, np.random.mtrand.RandomState):
         return seed
@@ -309,7 +309,7 @@ def _check_preload(inst, msg):
     from ..time_frequency import BaseTFR
     from ..time_frequency.spectrum import BaseSpectrum
 
-    if isinstance(inst, (BaseTFR, Evoked, BaseSpectrum, _BaseSourceEstimate)):
+    if isinstance(inst, BaseTFR | Evoked | BaseSpectrum | _BaseSourceEstimate):
         pass
     else:
         name = "epochs" if isinstance(inst, BaseEpochs) else "raw"
@@ -578,7 +578,7 @@ def _validate_type(item, types=None, item_name=None, type_name=None, *, extra=""
     elif types == "info":
         from .._fiff.meas_info import Info as types
 
-    if not isinstance(types, (list, tuple)):
+    if not isinstance(types, list | tuple):
         types = [types]
 
     check_types = sum(

@@ -1167,7 +1167,7 @@ class CoregistrationUI(HasTraits):
         if isinstance(names, str):
             names = [names]
 
-        if not isinstance(value, (str, float, int, dict, type(None))):
+        if not isinstance(value, str | float | int | dict | type(None)):
             value = list(value)
             assert len(names) == len(value)
 

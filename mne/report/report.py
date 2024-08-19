@@ -307,7 +307,7 @@ def _check_tags(tags) -> tuple[str]:
     # Must be iterable, but not a string
     if isinstance(tags, str):
         tags = (tags,)
-    elif isinstance(tags, (Sequence, np.ndarray)):
+    elif isinstance(tags, Sequence | np.ndarray):
         tags = tuple(tags)
     else:
         raise TypeError(
@@ -892,11 +892,11 @@ class Report:
 
     def _validate_input(self, items, captions, tag, comments=None):
         """Validate input."""
-        if not isinstance(items, (list, tuple)):
+        if not isinstance(items, list | tuple):
             items = [items]
-        if not isinstance(captions, (list, tuple)):
+        if not isinstance(captions, list | tuple):
             captions = [captions]
-        if not isinstance(comments, (list, tuple)) and comments is not None:
+        if not isinstance(comments, list | tuple) and comments is not None:
             comments = [comments]
         if comments is not None and len(comments) != len(items):
             raise ValueError(
@@ -2767,7 +2767,7 @@ class Report:
 
         if pattern is None:
             pattern = [f"*{ext}" for ext in SUPPORTED_READ_RAW_EXTENSIONS]
-        elif not isinstance(pattern, (list, tuple)):
+        elif not isinstance(pattern, list | tuple):
             pattern = [pattern]
 
         # iterate through the possible patterns

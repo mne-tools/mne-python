@@ -2097,7 +2097,7 @@ def read_vectorview_selection(name, fname=None, info=None, verbose=None):
         List with channel names in the selection.
     """
     # convert name to list of string
-    if not isinstance(name, (list, tuple)):
+    if not isinstance(name, list | tuple):
         name = [name]
     if isinstance(info, Info):
         picks = pick_types(info, meg=True, exclude=())

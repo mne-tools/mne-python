@@ -1647,7 +1647,7 @@ class Brain:
                 cortex = colormap_map[cortex]
             else:
                 cortex = [cortex] * 2
-        if isinstance(cortex, (list, tuple)):
+        if isinstance(cortex, list | tuple):
             _check_option(
                 "len(cortex)",
                 len(cortex),
@@ -2362,7 +2362,7 @@ class Brain:
         head_mri_t = _get_trans(trans, "head", "mri", allow_none=False)[0]
         del trans
         n_dipoles = len(dipole)
-        if not isinstance(colors, (list, tuple)):
+        if not isinstance(colors, list | tuple):
             colors = [colors] * n_dipoles  # make into list
         if len(colors) != n_dipoles:
             raise ValueError(
@@ -2374,7 +2374,7 @@ class Brain:
         ]
         if scales is None:
             scales = 5 if self._units == "mm" else 5e-3
-        if not isinstance(scales, (list, tuple)):
+        if not isinstance(scales, list | tuple):
             scales = [scales] * n_dipoles  # make into list
         if len(scales) != n_dipoles:
             raise ValueError(
@@ -2543,7 +2543,7 @@ class Brain:
 
         if colors is None:
             colors = [fs_colors[label] / 255 for label in labels]
-        elif not isinstance(colors, (list, tuple)):
+        elif not isinstance(colors, list | tuple):
             colors = [colors] * len(labels)  # make into list
         colors = [
             _to_rgb(color, name=f"colors[{ci}]") for ci, color in enumerate(colors)
@@ -3993,7 +3993,7 @@ class Brain:
 
     def _to_borders(self, label, hemi, borders, restrict_idx=None):
         """Convert a label/parc to borders."""
-        if not isinstance(borders, (bool, int)) or borders < 0:
+        if not isinstance(borders, bool | int) or borders < 0:
             raise ValueError("borders must be a bool or positive integer")
         if borders:
             n_vertices = label.size

@@ -291,7 +291,7 @@ def set_log_file(fname=None, output_format="%(message)s", overwrite=None):
 def _remove_close_handlers(logger):
     for h in list(logger.handlers):
         # only remove our handlers (get along nicely with nose)
-        if isinstance(h, (logging.FileHandler, logging.StreamHandler)):
+        if isinstance(h, logging.FileHandler | logging.StreamHandler):
             if isinstance(h, logging.FileHandler):
                 h.close()
             logger.removeHandler(h)
