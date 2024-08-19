@@ -267,10 +267,30 @@ def _assert_n_actors(fig, renderer, n_actors):
     assert isinstance(fig, Figure3D)
     assert len(fig.plotter.renderer.actors) == n_actors
 
+
+# # Load evoked:
+# evoked = read_evokeds(evoked_fname)[0]
+# # EEG only
+# evoked_eeg  = evoked.copy().pick_types(eeg=True)
+# with evoked_eeg .info._unlock():
+#     evoked_eeg .info["projs"] = []  # "remove" avg proj
+# eeg_channels = pick_types(evoked_eeg.info, eeg=True)
+# # Set 10 EEG channels to ecog, 10 to seeg
+# evoked_eeg.set_channel_types({
+#     evoked_eeg.ch_names[ch]: 'ecog' for ch in eeg_channels[:10]
+#     })
+# evoked_eeg.set_channel_types({
+#     evoked_eeg.ch_names[ch]: 'seeg' for ch in eeg_channels[10:20]
+#     })
+# evoked_ecog_seeg = evoked_eeg.pick_types(seeg=True, ecog=True)
+# this_info = evoked_ecog_seeg.info
+# fig = plot_alignment(this_info, ecog=True, seeg=True,
+#                         sensor_colors={"ecog":  "k", "seeg": "k"}, sensor_scales={"ecog":  "kk", "seeg": 2})
+
 @pytest.mark.slowtest  # can be slow on OSX
 @testing.requires_testing_data
 @pytest.mark.parametrize(
-    "test_ecog", "test_seeg", "sensor_colors", "sensor_scales", "expectation",
+    "test_ecog, test_seeg, sensor_colors, sensor_scales, expectation",
     [
         (
             True,
@@ -279,107 +299,143 @@ def _assert_n_actors(fig, renderer, n_actors):
             2,
             pytest.raises(
                 TypeError,
-                match="Keys in the ref_channels dict must be strings. "
-                      "Your dict has keys of type int.",
+                match="sensor_colors must be an instance of dict or None when more than one channel type",
             ),
+        ),
+        (
+            True,
+            True,
+            {"ecog":  "k", "seeg": "k"},
+            2,
+            pytest.raises(
+                TypeError,
+                match="sensor_scales must be an instance of dict or None when more than one channel type",
+            ),
+        ),
+        (
+            True,
+            True,
+            {"ecog":  ["k"]*2, "seeg": "k"},
+            {"ecog":  2, "seeg": 2},
+            pytest.raises(
+                ValueError,
+                match=r"Invalid value for the 'len\(sensor_colors\['ecog'\]\)' parameter. " 
+                r"Allowed values are \d+ and \d+, but got \d+ instead",
+            ),
+        ),
+        (
+            True,
+            True,
+            {"ecog":  "k", "seeg": ["k"]*2},
+            {"ecog":  2, "seeg": 2},
+            pytest.raises(
+                ValueError,
+                match=r"Invalid value for the 'len\(sensor_colors\['seeg'\]\)' parameter. " 
+                r"Allowed values are \d+ and \d+, but got \d+ instead",
+            ),
+        ),
+        (
+            True,
+            True,
+            {"ecog":  "k", "seeg": "k"},
+            {"ecog":  [2]*2, "seeg": 2},
+            pytest.raises(
+                ValueError,
+                match=r"Invalid value for the 'len\(sensor_scales\['ecog'\]\)' parameter. " 
+                r"Allowed values are \d+ and \d+, but got \d+ instead",
+            ),
+        ),
+        (
+            True,
+            True,
+            {"ecog":  "k", "seeg": "k"},
+            {"ecog":  2, "seeg": [2]*2},
+            pytest.raises(
+                ValueError,
+                match=r"Invalid value for the 'len\(sensor_scales\['seeg'\]\)' parameter. " 
+                r"Allowed values are \d+ and \d+, but got \d+ instead",
+            ),
+        ),
+        (
+            True,
+            True,
+            {"ecog":  "NotAColor", "seeg": "NotAColor"},
+            {"ecog":  2, "seeg": 2},
+            pytest.raises(
+                ValueError,
+                match=r".* is not a valid color value",
+            ),
+        ),
+        (
+            True,
+            True,
+            {"ecog":  "k", "seeg": "k"},
+            {"ecog":  "k", "seeg": 2},
+            pytest.raises(
+                AssertionError,
+                match=r"scales for .* must contain only numerical values, got .* instead.",
+            ),
+        ),
+        (
+            True,
+            True,
+            {"ecog":  "k", "seeg": "k"},
+            {"ecog":  2, "seeg": 2},
+            None,
+        ),
+        (
+            True,
+            True,
+            {"ecog":  [0, 0, 0], "seeg": [0, 0, 0]},
+            {"ecog":  2, "seeg": 2},
+            None,
+        ),
+        (
+            True,
+            True,
+            {"ecog":  ["k"]*10, "seeg": ["k"]*10},
+            {"ecog":  [2]*10, "seeg": [2]*10},
+            None,
+        ),
+        (
+            True,
+            False,
+            "k",
+            2,
+            None,
         )
     ]
 )
-def test_plot_alignment_ieeg_v2(test_ecog, test_seeg, sensor_colors, sensor_scales, expectation):
+def test_plot_alignment_ieeg(renderer, test_ecog, test_seeg, sensor_colors, sensor_scales, expectation):
     """Test plotting of iEEG sensors."""
     # Load evoked:
     evoked = read_evokeds(evoked_fname)[0]
     # EEG only
-    evoked_ecog_seeg = evoked.copy().pick_types(meg=True, eeg=True)
-    with evoked_ecog_seeg.info._unlock():
-        evoked_ecog_seeg.info["projs"] = []  # "remove" avg proj
-    # Convert meg to ecog and eeg to seeg:
-    evoked_ecog_seeg.set_channel_types({ch: "ecog" for ch in evoked_ecog_seeg.pick_types(meg=True)})
-    evoked_ecog_seeg.set_channel_types({ch: "seeg" for ch in evoked_ecog_seeg.pick_types(eeg=True)})
-    # Get infos:
+    evoked_eeg  = evoked.copy().pick_types(eeg=True)
+    with evoked_eeg .info._unlock():
+        evoked_eeg .info["projs"] = []  # "remove" avg proj
+    eeg_channels = pick_types(evoked_eeg.info, eeg=True)
+    # Set 10 EEG channels to ecog, 10 to seeg
+    evoked_eeg.set_channel_types({
+        evoked_eeg.ch_names[ch]: 'ecog' for ch in eeg_channels[:10]
+        })
+    evoked_eeg.set_channel_types({
+        evoked_eeg.ch_names[ch]: 'seeg' for ch in eeg_channels[10:20]
+        })
+    evoked_ecog_seeg = evoked_eeg.pick_types(seeg=True, ecog=True)
     this_info = evoked_ecog_seeg.info
     # Test plot:
-    with expectation:
+    if expectation is None:
         fig = plot_alignment(this_info, ecog=test_ecog, seeg=test_seeg,
-                             sensor_colors=sensor_colors, sensor_scales=sensor_scales)
+                                sensor_colors=sensor_colors, sensor_scales=sensor_scales)
         assert isinstance(fig, Figure3D)
-        # renderer.backend._close_all()
-
-@pytest.mark.slowtest  # can be slow on OSX
-@testing.requires_testing_data
-def test_plot_alignment_ieeg(renderer):
-    """Test plotting of iEEG sensors."""
-
-    evoked = read_evokeds(evoked_fname)[0]
-    # EEG only
-    evoked_eeg_ecog_seeg = evoked.copy().pick_types(meg=False, eeg=True)
-    with evoked_eeg_ecog_seeg.info._unlock():
-        evoked_eeg_ecog_seeg.info["projs"] = []  # "remove" avg proj
-    evoked_eeg_ecog_seeg.set_channel_types({"EEG 001": "ecog", "EEG 002": "ecog",
-                                            "EEG 003": "seeg", "EEG 004": "seeg"})
-    evoked_ecog_seeg = evoked_eeg_ecog_seeg.copy().pick(["ecog", "seeg"])
-    this_info = evoked_ecog_seeg.info
-    # None option:
-    fig = plot_alignment(this_info, ecog=True, seeg=True,
-                         sensor_colors=None, sensor_scales=None)
-    assert isinstance(fig, Figure3D)
-    renderer.backend._close_all()
-
-    # Single value for single channel type option:
-    sensor_colors = "k"
-    sensor_scales = 10
-    fig = plot_alignment(this_info, ecog=False, seeg=True,
-                         sensor_colors=sensor_colors, sensor_scales=sensor_scales)
-    assert isinstance(fig, Figure3D)
-    renderer.backend._close_all()
-
-    # Both channel types:
-    # should be upsampled to correct shape
-    with pytest.raises(TypeError, match="instance of dict"):
-        plot_alignment(this_info, ecog=True, seeg=True,
-                       sensor_colors=sensor_colors, sensor_scales=sensor_scales)
-    sensor_colors = {ch_type: "k" for ch_type in pick_types(this_info)}
-    sensor_scales = {ch_type: 10 for ch_type in pick_types(this_info)}
-    fig = plot_alignment(this_info, ecog=True, seeg=True,
-                         sensor_colors=sensor_colors, sensor_scales=sensor_scales)
-    assert isinstance(fig, Figure3D)
-    renderer.backend._close_all()
-
-    # Single channels values:
-    sensor_colors = {ch_type: ["k"] * len(pick_types(this_info, **dict({ch_type, True})))
-                     for ch_type in pick_types(this_info)}
-    sensor_scales = {ch_type: [10] * len(pick_types(this_info, ref_meg=True))
-                     for ch_type in pick_types(this_info)}
-    fig = plot_alignment(this_info, ecog=True, seeg=True,
-                         sensor_colors=sensor_colors, sensor_scales=sensor_scales)
-    assert isinstance(fig, Figure3D)
-    renderer.backend._close_all()
-
-    # Single channels values for colors only:
-    sensor_colors = {ch_type: ["k"] * len(pick_types(this_info, ref_meg=True))
-                     for ch_type in pick_types(this_info)}
-    sensor_scales = None
-    fig = plot_alignment(this_info, ecog=True, seeg=True,
-                         sensor_colors=sensor_colors, sensor_scales=sensor_scales)
-    assert isinstance(fig, Figure3D)
-    renderer.backend._close_all()
-
-    # Single channels values for scale only:
-    sensor_colors = None
-    sensor_scales = {ch_type: [10] * len(pick_types(this_info, ref_meg=True))
-                     for ch_type in pick_types(this_info)}
-    fig = plot_alignment(this_info, ecog=True, seeg=True,
-                         sensor_colors=sensor_colors, sensor_scales=sensor_scales)
-    assert isinstance(fig, Figure3D)
-    renderer.backend._close_all()
-
-    # Testing unexpected values:
-    sensor_colors = {ch_type: "k" for ch_type in pick_types(this_info)}
-    sensor_scales = {ch_type: "k" for ch_type in pick_types(this_info)}
-    fig = plot_alignment(this_info, ecog=True, seeg=True,
-                         sensor_colors=sensor_colors, sensor_scales=sensor_scales)
-    assert isinstance(fig, Figure3D)
-    renderer.backend._close_all()
+        renderer.backend._close_all()
+    else:
+        with expectation:
+            fig = plot_alignment(this_info, ecog=test_ecog, seeg=test_seeg,
+                                sensor_colors=sensor_colors, sensor_scales=sensor_scales)
+            assert isinstance(fig, Figure3D)
+            renderer.backend._close_all()
 
 
 @pytest.mark.slowtest  # Slow on Azure

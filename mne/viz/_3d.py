@@ -1551,7 +1551,7 @@ def _plot_sensors_3d(
     else:
         extra = f"when more than one channel type ({list(locs)}) is plotted"
     _validate_type(sensor_colors, types, "sensor_colors", extra=extra)
-    _validate_type(sensor_scales, types, "sensor_scale", extra=extra)
+    _validate_type(sensor_scales, types, "sensor_scales", extra=extra)
     del extra, types
     if sensor_colors is None:
         sensor_colors = dict()
@@ -1563,7 +1563,7 @@ def _plot_sensors_3d(
         logger.debug(f"Drawing {ch_type} sensors")
         assert len(sens_loc)  # should be guaranteed above
         colors = to_rgba_array(sensor_colors.get(ch_type, defaults[ch_type + "_color"]))
-        scales = np.array([sensor_scales.get(ch_type, defaults[ch_type + "_scale"] * unit_scalar)])
+        scales = np.atleast_1d(sensor_scales.get(ch_type, defaults[ch_type + "_scale"] * unit_scalar))
         _check_option(
             f"len(sensor_colors[{repr(ch_type)}])",
             colors.shape[0],
@@ -1574,6 +1574,9 @@ def _plot_sensors_3d(
             scales.shape[0],
             (len(sens_loc), 1),
         )
+        # Check that the scale is numerical
+        assert np.issubdtype(scales.dtype, np.number), f"scales for {ch_type} must contain only numerical values, got {scales} instead."
+
         this_alpha = sensor_alpha[ch_type]
         if isinstance(sens_loc[0], dict):  # meg coil
             if len(colors) == 1:
