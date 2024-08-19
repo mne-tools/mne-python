@@ -39,7 +39,7 @@ class RawANT(BaseRaw):
 
     Parameters
     ----------
-    fname : str | Path
+    fname : file-like
         Path to the ANT raw file to load. The file should have the extension ``.cnt``.
     eog : str | None
         Regex pattern to find EOG channel labels. If None, no EOG channels are
@@ -68,11 +68,11 @@ class RawANT(BaseRaw):
             Do not provide auxiliary channels in this argument, provide them in the
             ``eog`` and ``misc`` arguments.
     impedance_annotation : str
-        The string to use for impedance annotations. Defaults to "impedance", however,
-        the impedance measurement might mark the end of a segment and the beginning of
-        a new segment, in which case a discontinuity similar to what
+        The string to use for impedance annotations. Defaults to ``"impedance"``,
+        however, the impedance measurement might mark the end of a segment and the
+        beginning of a new segment, in which case a discontinuity similar to what
         :func:`mne.concatenate_raws` produces is present. In this case, it's better to
-        include a `BAD_xxx` annotation to mark the discontinuity.
+        include a ``BAD_xxx`` annotation to mark the discontinuity.
 
         .. note::
 
@@ -278,9 +278,10 @@ def read_raw_ant(
     """
     Returns
     -------
-    RawANT
-        The ANT raw object containing the channel information, data and relevant
-        :class:`~mne.Annotations`.
+    raw : instance of RawANT
+        A Raw object containing ANT data.
+        See :class:`mne.io.Raw` for documentation of attributes and methods.
+        The impedance measurements are stored in the extra attribute ``raw.impedances``.
     """
     return RawANT(
         fname,
