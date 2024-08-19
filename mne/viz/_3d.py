@@ -189,7 +189,7 @@ def plot_head_positions(
         destination = destination["trans"][:3].copy()
         destination[:, 3] *= 1000
 
-    if not isinstance(pos, (list, tuple)):
+    if not isinstance(pos, list | tuple):
         pos = [pos]
     pos = list(pos)  # make our own mutable copy
     for ii, p in enumerate(pos):
@@ -1210,7 +1210,7 @@ def _plot_mri_fiducials(
         mri_fiducials = subjects_dir / subject / "bem" / (subject + "-fiducials.fif")
     if isinstance(mri_fiducials, str) and mri_fiducials == "estimated":
         mri_fiducials = get_mni_fiducials(subject, subjects_dir)
-    elif isinstance(mri_fiducials, (str, Path, os.PathLike)):
+    elif isinstance(mri_fiducials, str | Path | os.PathLike):
         mri_fiducials, cf = read_fiducials(mri_fiducials)
         if cf != FIFF.FIFFV_COORD_MRI:
             raise ValueError("Fiducials are not in MRI space")
@@ -3396,7 +3396,7 @@ def plot_sparse_source_estimates(
     ]
 
     known_modes = ["cone", "sphere"]
-    if not isinstance(modes, (list, tuple)) or not all(
+    if not isinstance(modes, list | tuple) or not all(
         mode in known_modes for mode in modes
     ):
         raise ValueError('mode must be a list containing only "cone" or "sphere"')
@@ -3475,7 +3475,7 @@ def plot_sparse_source_estimates(
         mode = modes[1] if is_common else modes[0]
         scale_factor = scale_factors[1] if is_common else scale_factors[0]
 
-        if isinstance(scale_factor, (np.ndarray, list, tuple)) and len(
+        if isinstance(scale_factor, np.ndarray | list | tuple) and len(
             unique_vertnos
         ) == len(scale_factor):
             scale_factor = scale_factor[idx]

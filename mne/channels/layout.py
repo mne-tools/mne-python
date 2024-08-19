@@ -189,7 +189,7 @@ class Layout:
                 picks = [_ensure_int(picks)]
             except TypeError:
                 picks = (
-                    list(picks) if isinstance(picks, (tuple, set)) else deepcopy(picks)
+                    list(picks) if isinstance(picks, tuple | set) else deepcopy(picks)
                 )
             apply_exclude = False
         if apply_exclude:
@@ -201,13 +201,13 @@ class Layout:
                 except TypeError:
                     exclude = (
                         list(exclude)
-                        if isinstance(exclude, (tuple, set))
+                        if isinstance(exclude, tuple | set)
                         else deepcopy(exclude)
                     )
         for var, var_name in ((picks, "picks"), (exclude, "exclude")):
             if var_name == "exclude" and not apply_exclude:
                 continue
-            if not isinstance(var, (list, tuple, set, np.ndarray)):
+            if not isinstance(var, list | tuple | set | np.ndarray):
                 raise TypeError(
                     f"'{var_name}' must be a list, tuple, set or ndarray. "
                     f"Got {type(var)} instead."
@@ -623,7 +623,7 @@ def find_layout(info, ch_type=None, exclude="bads"):
     elif (has_eeg_coils_only and ch_type in [None, "eeg"]) or (
         has_eeg_coils_and_meg and ch_type == "eeg"
     ):
-        if not isinstance(info, (dict, Info)):
+        if not isinstance(info, dict | Info):
             raise RuntimeError(
                 "Cannot make EEG layout, no measurement info "
                 "was passed to `find_layout`"

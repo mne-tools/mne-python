@@ -317,7 +317,7 @@ def _test_raw_reader(
     full_data = raw._data
     assert raw.__class__.__name__ in repr(raw)  # to test repr
     assert raw.info.__class__.__name__ in repr(raw.info)
-    assert isinstance(raw.info["dig"], (type(None), list))
+    assert isinstance(raw.info["dig"], type(None) | list)
     data_max = np.nanmax(full_data)
     data_min = np.nanmin(full_data)
     # these limits could be relaxed if we actually find data with

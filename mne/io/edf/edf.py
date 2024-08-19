@@ -759,7 +759,7 @@ def _parse_prefilter_string(prefiltering):
 
 
 def _prefilter_float(filt):
-    if isinstance(filt, (int, float, np.number)):
+    if isinstance(filt, int | float | np.number):
         return filt
     if filt == "DC":
         return 0.0

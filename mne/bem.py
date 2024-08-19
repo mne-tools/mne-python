@@ -603,7 +603,7 @@ def _surfaces_to_bem(
             "number of elements (1 or 3)"
         )
     for si, surf in enumerate(surfs):
-        if isinstance(surf, (str, Path, os.PathLike)):
+        if isinstance(surf, str | Path | os.PathLike):
             surfs[si] = surf = read_surface(surf, return_dict=True)[-1]
     # Downsampling if the surface is isomorphic with a subdivided icosahedron
     if ico is not None:

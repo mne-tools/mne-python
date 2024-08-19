@@ -88,7 +88,7 @@ def _check_load_mat(fname, uint16_codec):
 
 def _to_loc(ll):
     """Check if location exists."""
-    if isinstance(ll, (int, float)) or len(ll) > 0:
+    if isinstance(ll, int | float) or len(ll) > 0:
         return ll
     else:
         return np.nan
@@ -624,7 +624,7 @@ class EpochsEEGLAB(BaseEpochs):
             epochs = _bunchify(eeg.epoch)
             events = _bunchify(eeg.event)
             for ep in epochs:
-                if isinstance(ep.eventtype, (int, float)):
+                if isinstance(ep.eventtype, int | float):
                     ep.eventtype = str(ep.eventtype)
                 if not isinstance(ep.eventtype, str):
                     event_type = "/".join([str(et) for et in ep.eventtype])
@@ -662,7 +662,7 @@ class EpochsEEGLAB(BaseEpochs):
                 events[idx, 0] = event_latencies[idx]
                 events[idx, 1] = prev_stim
                 events[idx, 2] = event_id[event_name[idx]]
-        elif isinstance(events, (str, Path, PathLike)):
+        elif isinstance(events, str | Path | PathLike):
             events = read_events(events)
 
         logger.info(f"Extracting parameters from {input_fname}...")
@@ -776,7 +776,7 @@ def _read_annotations_eeglab(eeg, uint16_codec=None):
         events = []
     elif isinstance(eeg.event, dict) and np.array(eeg.event["latency"]).ndim > 0:
         events = _dol_to_lod(eeg.event)
-    elif not isinstance(eeg.event, (np.ndarray, list)):
+    elif not isinstance(eeg.event, np.ndarray | list):
         events = [eeg.event]
     else:
         events = eeg.event

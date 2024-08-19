@@ -593,7 +593,7 @@ def _check_tfr_param(
 ):
     """Aux. function to _compute_tfr to check the params validity."""
     # Check freqs
-    if not isinstance(freqs, (list, np.ndarray)):
+    if not isinstance(freqs, list | np.ndarray):
         raise ValueError(f"freqs must be an array-like, got {type(freqs)} instead.")
     freqs = np.asarray(freqs, dtype=float)
     if freqs.ndim != 1:
@@ -603,7 +603,7 @@ def _check_tfr_param(
         )
 
     # Check sfreq
-    if not isinstance(sfreq, (float, int)):
+    if not isinstance(sfreq, float | int):
         raise ValueError(f"sfreq must be a float or an int, got {type(sfreq)} instead.")
     sfreq = float(sfreq)
 
@@ -616,9 +616,9 @@ def _check_tfr_param(
     freqs = np.asarray(freqs)
 
     # Check n_cycles
-    if isinstance(n_cycles, (int, float)):
+    if isinstance(n_cycles, int | float):
         n_cycles = float(n_cycles)
-    elif isinstance(n_cycles, (list, np.ndarray)):
+    elif isinstance(n_cycles, list | np.ndarray):
         n_cycles = np.array(n_cycles)
         if len(n_cycles) != len(freqs):
             raise ValueError(
@@ -3872,7 +3872,7 @@ def _get_data(inst, return_itc):
     from ..epochs import BaseEpochs
     from ..evoked import Evoked
 
-    if not isinstance(inst, (BaseEpochs, Evoked)):
+    if not isinstance(inst, BaseEpochs | Evoked):
         raise TypeError("inst must be Epochs or Evoked")
     if isinstance(inst, BaseEpochs):
         data = inst.get_data(copy=False)
@@ -4000,7 +4000,7 @@ def write_tfrs(fname, tfr, overwrite=False, *, verbose=None):
     """  # noqa E501
     _, write_hdf5 = _import_h5io_funcs()
     out = []
-    if not isinstance(tfr, (list, tuple)):
+    if not isinstance(tfr, list | tuple):
         tfr = [tfr]
     for ii, tfr_ in enumerate(tfr):
         comment = ii if getattr(tfr_, "comment", None) is None else tfr_.comment

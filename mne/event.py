@@ -1629,7 +1629,7 @@ def match_event_names(event_names, keys, *, on_missing="raise"):
         event_names = list(event_names)
 
     # ensure we have a list of `keys`
-    if isinstance(keys, (Sequence, np.ndarray)) and not isinstance(keys, str):
+    if isinstance(keys, Sequence | np.ndarray) and not isinstance(keys, str):
         keys = list(keys)
     else:
         keys = [keys]
