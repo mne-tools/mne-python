@@ -71,6 +71,7 @@
 
 .. _python: http://www.python.org
 .. _Brain Imaging Data Structure: https://bids.neuroimaging.io/
+.. _SPEC0: https://scientific-python.org/specs/spec-0000
 
 .. python packages
 

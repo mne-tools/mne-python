@@ -12,8 +12,9 @@ import os.path as op
 import re
 import sys
 import warnings
+from collections.abc import Callable
 from io import StringIO
-from typing import Any, Callable, TypeVar
+from typing import Any, TypeVar
 
 from decorator import FunctionMaker
 
