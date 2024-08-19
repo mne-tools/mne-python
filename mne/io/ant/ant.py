@@ -267,11 +267,11 @@ def _scale_data(data: NDArray[np.float64], ch_units: list[str]) -> None:
 
 @copy_doc(RawANT)
 def read_raw_ant(
-    fname: str | Path,
-    eog: str | None = None,
-    misc: str | None = r"BIP\d+",
-    bipolars: list[str] | tuple[str, ...] | None = None,
-    impedance_annotation: str = "impedance",
+    fname,
+    eog=None,
+    misc=r"BIP\d+",
+    bipolars=None,
+    impedance_annotation="impedance",
     *,
     verbose=None,
 ) -> RawANT:
