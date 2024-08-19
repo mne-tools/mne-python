@@ -11,7 +11,7 @@ from ..._fiff.constants import FIFF
 from ..._fiff.meas_info import _empty_info
 from ..._fiff.utils import _create_chs, _read_segments_file
 from ...annotations import Annotations
-from ...utils import _check_fname, _validate_type, logger, verbose, warn
+from ...utils import _check_fname, _validate_type, logger, verbose
 from ..base import BaseRaw
 from .egimff import _read_raw_egi_mff
 from .events import _combine_triggers, _triage_include_exclude
@@ -100,7 +100,7 @@ def read_raw_egi(
     preload=False,
     channel_naming="E%d",
     *,
-    events_as_annotations=None,
+    events_as_annotations=True,
     verbose=None,
 ) -> "RawEGI":
     """Read EGI simple binary as raw object.
@@ -169,13 +169,7 @@ def read_raw_egi(
     """
     _validate_type(input_fname, "path-like", "input_fname")
     input_fname = str(input_fname)
-    if events_as_annotations is None:
-        warn(
-            "events_as_annotations defaults to False in 1.8 but will change to "
-            "True in 1.9, set it explicitly to avoid this warning",
-            FutureWarning,
-        )
-        events_as_annotations = False
+    _validate_type(events_as_annotations, bool, "events_as_annotations")
 
     if input_fname.rstrip("/\\").endswith(".mff"):  # allows .mff or .mff/
         return _read_raw_egi_mff(

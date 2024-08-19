@@ -776,7 +776,7 @@ def _crop_colorbar(cbar, cbar_vmin, cbar_vmax):
 try:
     import numba
 
-    if _compare_version(numba.__version__, "<", "0.53.1"):
+    if _compare_version(numba.__version__, "<", "0.56.4"):
         raise ImportError
     prange = numba.prange
 

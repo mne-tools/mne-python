@@ -157,8 +157,6 @@ class Brain:
 
         .. versionchanged:: 0.23
            Default changed to "auto".
-    offscreen : bool
-        Deprecated and will be removed in 1.9, do not use.
     interaction : str
         Can be "trackball" (default) or "terrain", i.e. a turntable-style
         camera.
@@ -173,9 +171,6 @@ class Brain:
     %(theme_3d)s
     show : bool
         Display the window as soon as it is ready. Defaults to True.
-    block : bool
-        Deprecated and will be removed in 1.9, do not use. Consider using
-        :func:`matplotlib.pyplot.show` with ``block=True`` instead.
 
     Attributes
     ----------
@@ -292,25 +287,17 @@ class Brain:
         views="auto",
         *,
         offset="auto",
-        offscreen=None,
         interaction="trackball",
         units="mm",
         view_layout="vertical",
         silhouette=False,
         theme=None,
         show=True,
-        block=None,
     ):
         from ..backends.renderer import _get_renderer, backend
 
         _validate_type(subject, str, "subject")
         self._surf = surf
-        if offscreen is not None:
-            warn(
-                "The 'offscreen' parameter is deprecated and will be removed in 1.9. "
-                "as it has no effect",
-                FutureWarning,
-            )
         if hemi is None:
             hemi = "vol"
         hemi = self._check_hemi(hemi, extras=("both", "split", "vol"))
@@ -352,15 +339,9 @@ class Brain:
         subjects_dir = get_subjects_dir(subjects_dir)
         if subjects_dir is not None:
             subjects_dir = str(subjects_dir)
-        if block is not None:
-            warn(
-                "block is deprecated and will be removed in 1.9, use "
-                "plt.show(block=True) instead"
-            )
 
         self.time_viewer = False
         self._hash = time.time_ns()
-        self._block = block
         self._hemi = hemi
         self._units = units
         self._alpha = float(alpha)
@@ -529,8 +510,6 @@ class Brain:
         'Left': Decrease camera azimuth angle
         'Right': Increase camera azimuth angle
         """
-        from ..backends._utils import _qt_app_exec
-
         if self.time_viewer:
             return
         if not self._data:
@@ -618,8 +597,6 @@ class Brain:
         # finally, show the MplCanvas
         if self.show_traces:
             self.mpl_canvas.show()
-        if self._block:
-            _qt_app_exec(self._renderer.figure.store["app"])
 
     @safe_event
     def _clean(self):
@@ -3067,11 +3044,7 @@ class Brain:
 
     def show(self):
         """Display the window."""
-        from ..backends._utils import _qt_app_exec
-
         self._renderer.show()
-        if self._block:
-            _qt_app_exec(self._renderer.figure.store["app"])
 
     @fill_doc
     def get_view(self, row=0, col=0, *, align=True):

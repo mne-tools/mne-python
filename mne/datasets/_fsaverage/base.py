@@ -2,10 +2,9 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-import os
-from pathlib import Path, PosixPath, WindowsPath
+from pathlib import Path
 
-from ...utils import get_subjects_dir, set_config, verbose, warn
+from ...utils import get_subjects_dir, set_config, verbose
 from ..utils import _get_path, _manifest_check_download
 
 FSAVERAGE_MANIFEST_PATH = Path(__file__).parent
@@ -83,7 +82,7 @@ def fetch_fsaverage(subjects_dir=None, *, verbose=None):
         url="https://osf.io/7ve8g/download?version=4",
         hash_="b31509cdcf7908af6a83dc5ee8f49fb1",
     )
-    return _mne_path(fs_dir)
+    return fs_dir
 
 
 def _get_create_subjects_dir(subjects_dir):
@@ -102,33 +101,3 @@ def _set_montage_coreg_path(subjects_dir=None):
     if old_subjects_dir is None:
         set_config("SUBJECTS_DIR", subjects_dir)
     return subjects_dir
-
-
-# Adapted from pathlib.Path.__new__
-def _mne_path(path):
-    klass = MNEWindowsPath if os.name == "nt" else MNEPosixPath
-    out = klass(path)
-    assert isinstance(out, klass)
-    return out
-
-
-class _PathAdd:
-    def __add__(self, other):
-        if isinstance(other, str):
-            warn(
-                "data_path functions now return pathlib.Path objects which "
-                "do not natively support the plus (+) operator, switch to "
-                "using forward slash (/) instead. Support for plus will be "
-                "removed in 1.2.",
-                FutureWarning,
-            )
-            return f"{str(self)}{other}"
-        raise NotImplementedError
-
-
-class MNEWindowsPath(_PathAdd, WindowsPath):  # noqa: D101
-    pass
-
-
-class MNEPosixPath(_PathAdd, PosixPath):  # noqa: D101
-    pass

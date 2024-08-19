@@ -12,7 +12,7 @@ authors = [
 maintainers = [{ name = "Dan McCloy", email = "dan@mccloy.info" }]
 license = { text = "BSD-3-Clause" }
 readme = { file = "README.rst", content-type = "text/x-rst" }
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 keywords = [
     "neuroscience",
     "neuroimaging",
@@ -223,6 +223,7 @@ ignore = [
     "D100", # Missing docstring in public module
     "D104", # Missing docstring in public package
     "D413", # Missing blank line after last section
+    "UP038",  # Lots of changes, run separately
 ]
 
 [tool.ruff.lint.pydocstyle]
