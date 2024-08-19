@@ -1990,7 +1990,7 @@ def _write_evokeds(fname, evoked, check=True, *, on_mismatch="raise", overwrite=
             fname, "evoked", ("-ave.fif", "-ave.fif.gz", "_ave.fif", "_ave.fif.gz")
         )
 
-    if not isinstance(evoked, (list, tuple)):
+    if not isinstance(evoked, list | tuple):
         evoked = [evoked]
 
     warned = False

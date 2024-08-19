@@ -321,9 +321,9 @@ def compute_average_dev_head_t(raw, pos, *, verbose=None):
        Support for multiple raw instances and position arrays was added.
     """
     # Get weighted head pos trans and rot
-    if not isinstance(raw, (list, tuple)):
+    if not isinstance(raw, list | tuple):
         raw = [raw]
-    if not isinstance(pos, (list, tuple)):
+    if not isinstance(pos, list | tuple):
         pos = [pos]
     if len(pos) != len(raw):
         raise ValueError(

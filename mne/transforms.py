@@ -443,7 +443,7 @@ def _ensure_trans(trans, fro="mri", to="head"):
         to_const = to
     del to
     err_str = f"trans must be a Transform between {from_str}<->{to_str}, got"
-    if not isinstance(trans, (list, tuple)):
+    if not isinstance(trans, list | tuple):
         trans = [trans]
     # Ensure that we have exactly one match
     idx = list()

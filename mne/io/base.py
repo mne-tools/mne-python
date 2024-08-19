@@ -587,7 +587,7 @@ class BaseRaw(
     def _preload_data(self, preload):
         """Actually preload the data."""
         data_buffer = preload
-        if isinstance(preload, (bool, np.bool_)) and not preload:
+        if isinstance(preload, bool | np.bool_) and not preload:
             data_buffer = None
         logger.info(
             "Reading %d ... %d  =  %9.3f ... %9.3f secs..."
@@ -786,7 +786,7 @@ class BaseRaw(
             # Let's do automated type conversion to integer here
             if np.array(item[1]).dtype.kind == "i":
                 item1 = int(item1)
-            if isinstance(item1, (int, np.integer)):
+            if isinstance(item1, int | np.integer):
                 start, stop, step = item1, item1 + 1, 1
                 # Need to special case -1, because -1:0 will be empty
                 if start == -1:
@@ -799,7 +799,7 @@ class BaseRaw(
         if step is not None and step != 1:
             raise ValueError("step needs to be 1 : %d given" % step)
 
-        if isinstance(sel, (int, np.integer)):
+        if isinstance(sel, int | np.integer):
             sel = np.array([sel])
 
         if sel is not None and len(sel) == 0:

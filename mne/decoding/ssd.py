@@ -113,7 +113,7 @@ class SSD(BaseEstimator, TransformerMixin):
                     f"{param + '_freq'} must be defined in filter parameters for {key}"
                 )
             val = dicts[key][param + "_freq"]
-            if not isinstance(val, (int, float)):
+            if not isinstance(val, int | float):
                 _validate_type(val, ("numeric",), f"{key} {param}_freq")
         # check freq bands
         if (

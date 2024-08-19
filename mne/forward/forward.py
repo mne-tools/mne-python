@@ -1967,7 +1967,7 @@ def _do_forward_solution(
 
     # check for meas to exist as string, or try to make evoked
     _validate_type(meas, ("path-like", BaseRaw, BaseEpochs, Evoked), "meas")
-    if isinstance(meas, (BaseRaw, BaseEpochs, Evoked)):
+    if isinstance(meas, BaseRaw | BaseEpochs | Evoked):
         meas_file = op.join(temp_dir, "info.fif")
         write_info(meas_file, meas.info)
         meas = meas_file
@@ -1993,7 +1993,7 @@ def _do_forward_solution(
                     "trans was a dict, but could not be "
                     "written to disk as a transform file"
                 )
-        elif isinstance(trans, (str, Path, PathLike)):
+        elif isinstance(trans, str | Path | PathLike):
             _check_fname(trans, "read", must_exist=True, name="trans")
             trans = Path(trans)
         else:
@@ -2009,7 +2009,7 @@ def _do_forward_solution(
                     "mri was a dict, but could not be "
                     "written to disk as a transform file"
                 )
-        elif isinstance(mri, (str, Path, PathLike)):
+        elif isinstance(mri, str | Path | PathLike):
             _check_fname(mri, "read", must_exist=True, name="mri")
             mri = Path(mri)
         else:

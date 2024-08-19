@@ -1481,7 +1481,7 @@ def _apply_inverse_tfr_epochs_gen(
         )
         this_inverse_operator = (
             inverse_operator[freq_idx]
-            if isinstance(inverse_operator, (list, tuple))
+            if isinstance(inverse_operator, list | tuple)
             else inverse_operator
         )
         stcs = _apply_inverse_epochs_gen(
@@ -1559,7 +1559,7 @@ def apply_inverse_tfr_epochs(
     """  # noqa E501
     _check_tfr_complex(epochs_tfr)
     if (
-        isinstance(inverse_operator, (list, tuple))
+        isinstance(inverse_operator, list | tuple)
         and len(inverse_operator) != epochs_tfr.freqs.size
     ):
         raise ValueError(

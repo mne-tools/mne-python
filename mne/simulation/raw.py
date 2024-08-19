@@ -98,7 +98,7 @@ def _log_ch(start, info, ch):
 def _check_head_pos(head_pos, info, first_samp, times=None):
     if head_pos is None:  # use pos from info['dev_head_t']
         head_pos = dict()
-    if isinstance(head_pos, (str, Path, os.PathLike)):
+    if isinstance(head_pos, str | Path | os.PathLike):
         head_pos = read_head_pos(head_pos)
     if isinstance(head_pos, np.ndarray):  # can be head_pos quats
         head_pos = head_pos_to_trans_rot_t(head_pos)
@@ -347,7 +347,7 @@ def simulate_raw(
 
     this_start = 0
     for n in range(max_iter):
-        if isinstance(stc_counted[1], (list, tuple)):
+        if isinstance(stc_counted[1], list | tuple):
             this_n = stc_counted[1][0].data.shape[1]
         else:
             this_n = stc_counted[1].data.shape[1]
@@ -681,7 +681,7 @@ class _HPIForwards:
 
 def _stc_data_event(stc_counted, head_idx, sfreq, src=None, verts=None):
     stc_idx, stc = stc_counted
-    if isinstance(stc, (list, tuple)):
+    if isinstance(stc, list | tuple):
         if len(stc) != 2:
             raise ValueError(f"stc, if tuple, must be length 2, got {len(stc)}")
         stc, stim_data = stc
