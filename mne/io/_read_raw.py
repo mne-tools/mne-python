@@ -47,6 +47,7 @@ def _get_supported():
         read_raw_nihon,
         read_raw_nirx,
         read_raw_nsx,
+        read_raw_persyst,
         read_raw_snirf,
     )
 
@@ -88,6 +89,7 @@ def _get_supported():
         # EyeLink
         ".asc": dict(EyeLink=read_raw_eyelink),
         ".ns": dict(NSx=read_raw_nsx),
+        ".lay": dict(Persyst=read_raw_persyst),
     }
 
 
@@ -147,6 +149,7 @@ def read_raw(fname, *, preload=False, verbose=None, **kwargs) -> BaseRaw:
     * `~mne.io.read_raw_nihon`
     * `~mne.io.read_raw_nirx`
     * `~mne.io.read_raw_nsx`
+    * `~mne.io.read_raw_persyst`
     * `~mne.io.read_raw_snirf`
 
     Parameters
