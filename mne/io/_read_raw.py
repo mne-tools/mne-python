@@ -88,7 +88,7 @@ def _get_supported():
         ".nedf": dict(NEDF=read_raw_nedf),
         # EyeLink
         ".asc": dict(EyeLink=read_raw_eyelink),
-        ".ns": dict(NSx=read_raw_nsx),
+        ".ns3": dict(NSx=read_raw_nsx),
         ".lay": dict(Persyst=read_raw_persyst),
     }
 

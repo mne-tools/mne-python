@@ -129,7 +129,7 @@ def read_raw_nsx(
     input_fname = _check_fname(
         input_fname, overwrite="read", must_exist=True, name="input_fname"
     )
-    if input_fname.suffix.lower() != ".ns":
+    if not input_fname.suffix.lower().startswith(".ns"):
         raise NotImplementedError(
             f"Only NSx files are supported, got {input_fname.suffix}."
         )
