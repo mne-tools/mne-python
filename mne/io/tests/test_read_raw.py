@@ -117,8 +117,10 @@ def test_all_reader_documented(reader_excluded_from_read_raw: set[str]):
     # flatten the dictionaries and retrieve the function names
     functions = [foo.__name__ for value in readers.values() for foo in value.values()]
     # read documentation .rst source file
-    doc_file = Path(__file__).parents[3] / "doc" / "api" / "reading_raw_data.rst"
-    assert doc_file.exists()
+    doc_folder = Path(__file__).parents[3] / "doc"
+    if not doc_folder.exists():
+        pytest.skip("Documentation folder not found.")
+    doc_file = doc_folder / "api" / "reading_raw_data.rst"
     with open(doc_file) as fid:
         doc = fid.read()
     reader_lines = [
