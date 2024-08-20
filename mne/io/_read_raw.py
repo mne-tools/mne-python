@@ -36,6 +36,7 @@ def _get_supported():
         read_raw_eeglab,
         read_raw_egi,
         read_raw_eximia,
+        read_raw_eyelink,
         read_raw_fieldtrip,
         read_raw_fif,
         read_raw_fil,
@@ -45,6 +46,7 @@ def _get_supported():
         read_raw_nicolet,
         read_raw_nihon,
         read_raw_nirx,
+        read_raw_nsx,
         read_raw_snirf,
     )
 
@@ -83,6 +85,9 @@ def _get_supported():
         ".cef": dict(CURRY=read_raw_curry),
         # NEDF
         ".nedf": dict(NEDF=read_raw_nedf),
+        # EyeLink
+        ".asc": dict(EyeLink=read_raw_eyelink),
+        ".ns": dict(NSx=read_raw_nsx),
     }
 
 
@@ -131,6 +136,7 @@ def read_raw(fname, *, preload=False, verbose=None, **kwargs) -> BaseRaw:
     * `~mne.io.read_raw_eeglab`
     * `~mne.io.read_raw_egi`
     * `~mne.io.read_raw_eximia`
+    * `~mne.io.read_raw_eyelink`
     * `~mne.io.read_raw_fieldtrip`
     * `~mne.io.read_raw_fif`
     * `~mne.io.read_raw_fil`
@@ -140,6 +146,7 @@ def read_raw(fname, *, preload=False, verbose=None, **kwargs) -> BaseRaw:
     * `~mne.io.read_raw_nicolet`
     * `~mne.io.read_raw_nihon`
     * `~mne.io.read_raw_nirx`
+    * `~mne.io.read_raw_nsx`
     * `~mne.io.read_raw_snirf`
 
     Parameters

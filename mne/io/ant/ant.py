@@ -15,6 +15,7 @@ from ..._fiff.constants import FIFF
 from ..._fiff.meas_info import create_info
 from ...annotations import Annotations
 from ...utils import (
+    _check_fname,
     _validate_type,
     check_version,
     copy_doc,
@@ -105,9 +106,8 @@ class RawANT(BaseRaw):
 
         from antio import read_cnt
         from antio.parser import read_data, read_info, read_triggers
-        from antio.utils._checks import ensure_path
 
-        fname = ensure_path(fname, must_exist=True)
+        fname = _check_fname(fname, overwrite="read", must_exist=True, name="fname")
         _validate_type(eog, (str, None), "eog")
         _validate_type(misc, (str, None), "misc")
         _validate_type(bipolars, (list, tuple, None), "bipolar")

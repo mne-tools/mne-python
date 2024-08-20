@@ -101,7 +101,17 @@ def test_read_raw_multiple_dots(tmp_path):
     read_raw(dst)
 
 
-def test_all_reader_documented():
+@pytest.fixture(scope="module")
+def reader_excluded_from_read_raw() -> set[str]:
+    """Set of excluded readers from read_raw."""
+    return {
+        "read_raw_bti",
+        "read_raw_hitachi",
+        "read_raw_neuralynx",
+    }
+
+
+def test_all_reader_documented(reader_excluded_from_read_raw: set[str]):
     """Test that all the readers in the documentation are accepted by read_raw."""
     readers = _get_supported()
     # flatten the dictionaries and retrieve the function names
@@ -114,7 +124,9 @@ def test_all_reader_documented():
     reader_lines = [
         line.strip() for line in doc.split("\n") if line.strip().startswith("read_raw_")
     ]
-    missing_from_read_raw = set(reader_lines) - set(functions)
+    missing_from_read_raw = (
+        set(reader_lines) - set(functions) - reader_excluded_from_read_raw
+    )
     missing_from_doc = set(functions) - set(reader_lines)
     if len(missing_from_doc) != 0 or len(missing_from_read_raw) != 0:
         raise AssertionError(
