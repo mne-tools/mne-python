@@ -24,6 +24,7 @@ def _read_unsupported(fname, **kwargs):
 # supported read file formats
 def _get_supported():
     from . import (
+        read_raw_ant,
         read_raw_artemis123,
         read_raw_bdf,
         read_raw_boxy,
@@ -57,7 +58,7 @@ def _get_supported():
         ".fif": dict(FIF=read_raw_fif),
         ".fif.gz": dict(FIF=read_raw_fif),
         ".set": dict(EEGLAB=read_raw_eeglab),
-        ".cnt": dict(CNT=read_raw_cnt),
+        ".cnt": dict(CNT=read_raw_cnt, ANT=read_raw_ant),
         ".mff": dict(EGI=read_raw_egi),
         ".nxe": dict(eximia=read_raw_eximia),
         ".hdr": dict(NIRx=read_raw_nirx),
@@ -118,15 +119,28 @@ def read_raw(fname, *, preload=False, verbose=None, **kwargs) -> BaseRaw:
 
     The following readers are currently supported:
 
-    `~mne.io.read_raw_artemis123`, `~mne.io.read_raw_bdf`,
-    `~mne.io.read_raw_boxy`, `~mne.io.read_raw_brainvision`,
-    `~mne.io.read_raw_cnt`, `~mne.io.read_raw_ctf`, `~mne.io.read_raw_edf`,
-    `~mne.io.read_raw_eeglab`, `~mne.io.read_raw_egi`,
-    `~mne.io.read_raw_eximia`, `~mne.io.read_raw_fieldtrip`,
-    `~mne.io.read_raw_fif`,  `~mne.io.read_raw_gdf`, `~mne.io.read_raw_kit`,
-    `~mne.io.read_raw_fil`,
-    `~mne.io.read_raw_nicolet`, `~mne.io.read_raw_nirx`,
-    `~mne.io.read_raw_curry`, and `~mne.io.read_raw_nedf`.
+    * `~mne.io.read_raw_ant`
+    * `~mne.io.read_raw_artemis123`
+    * `~mne.io.read_raw_bdf`
+    * `~mne.io.read_raw_boxy`
+    * `~mne.io.read_raw_brainvision`
+    * `~mne.io.read_raw_cnt`
+    * `~mne.io.read_raw_ctf`
+    * `~mne.io.read_raw_curry`
+    * `~mne.io.read_raw_edf`
+    * `~mne.io.read_raw_eeglab`
+    * `~mne.io.read_raw_egi`
+    * `~mne.io.read_raw_eximia`
+    * `~mne.io.read_raw_fieldtrip`
+    * `~mne.io.read_raw_fif`
+    * `~mne.io.read_raw_fil`
+    * `~mne.io.read_raw_gdf`
+    * `~mne.io.read_raw_kit`
+    * `~mne.io.read_raw_nedf`
+    * `~mne.io.read_raw_nicolet`
+    * `~mne.io.read_raw_nihon`
+    * `~mne.io.read_raw_nirx`
+    * `~mne.io.read_raw_snirf`
 
     Parameters
     ----------
