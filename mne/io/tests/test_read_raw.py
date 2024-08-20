@@ -134,14 +134,14 @@ def test_all_reader_documented(reader_excluded_from_read_raw: set[str]):
     if len(missing_from_doc) != 0 or len(missing_from_read_raw) != 0:
         raise AssertionError(
             "Functions missing from documentation:\n\t"
-            f"{'\n\t'.join(missing_from_doc)}\n\n"
-            "Functions missing from read_raw:\n\t"
-            f"{'\n\t'.join(missing_from_read_raw)}"
+            + "\n\t".join(missing_from_doc)
+            + "\n\nFunctions missing from read_raw:\n\t"
+            + "\n\t".join(missing_from_read_raw)
         )
     if sorted(reader_lines) != list(reader_lines):
         raise AssertionError(
             "Functions in documentation are not sorted. Expected order:\n\t"
-            f"{'\n\t'.join(sorted(reader_lines))}"
+            + "\n\t".join(sorted(reader_lines))
         )
 
 
@@ -156,7 +156,7 @@ def test_all_reader_documented_in_docstring():
     if len(missing_from_docstring) != 0:
         raise AssertionError(
             "Functions missing from docstring:\n\t"
-            f"{'\n\t'.join(missing_from_docstring)}"
+            + "\n\t".join(missing_from_docstring)
         )
     if sorted(documented) != documented:
         raise AssertionError("Functions in docstring are not sorted.")
