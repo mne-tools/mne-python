@@ -1,0 +1,1 @@
+- Add support for a :class:`mne.transforms.Transform` in the argument ``trans`` of the coregistration GUI called with :func:`mne.gui.coregistration`, by `Mathieu Scheltienne`_.
