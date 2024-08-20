@@ -19,6 +19,9 @@ if TYPE_CHECKING:
     from pathlib import Path
 
 
+data_path = testing.data_path(download=False) / "antio" / "CA_208"
+
+
 def read_raw_bv(fname: Path) -> BaseRaw:
     """Read a brainvision file exported from eego."""
     with warnings.catch_warnings():
@@ -36,7 +39,6 @@ def ca_208() -> dict[str, dict[str, Path]]:
     """Return the paths to the CA_208 dataset containing 64 channel gel recordings."""
     pytest.importorskip("antio", minversion="0.2.0")
 
-    data_path = testing.data_path(download=False) / "antio" / "CA_208"
     cnt = {
         "short": data_path / "test_CA_208.cnt",
         "amp-dc": data_path / "test_CA_208_amp_disconnection.cnt",
