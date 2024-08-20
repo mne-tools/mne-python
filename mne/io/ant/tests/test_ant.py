@@ -23,7 +23,15 @@ data_path = testing.data_path(download=False) / "antio" / "CA_208"
 
 
 def read_raw_bv(fname: Path) -> BaseRaw:
-    """Read a brainvision file exported from eego."""
+    """Read a brainvision file exported from eego.
+
+    For some reason, the first impedance measurement is annotated at sample 0. But since
+    BrainVision files are 1-indexed, the reader removes '1' to create 0-indexed
+    annotations. Thus, the first impedance measurement annotation ends up with an onset
+    1 sample before the start of the recording.
+    This is not really an issue as the annotation duration is sufficient to make sure
+    that MNE does not drop it entirely as 'outside of the data range'.
+    """
     with warnings.catch_warnings():
         warnings.filterwarnings(
             "ignore",
