@@ -1,1 +1,1 @@
-Cast :class:`pathlib.Path` to :class:`str` with the method :meth:`pathlib.Path.as_posix` before saving paths in an ``.h5`` file with ``h5io``, by `Mathieu Scheltienne`_.
+Fix handling of MRI file-path in :class:`mne.SourceSpaces` and safeguard saving of :class:`pathlib.Path` with ``h5io`` by casting to :class:`str`, by `Mathieu Scheltienne`_.
