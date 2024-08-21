@@ -167,7 +167,27 @@ def _import_h5py():
 
 def _import_h5io_funcs():
     h5io = _soft_import("h5io", "HDF5-based I/O")
-    return h5io.read_hdf5, h5io.write_hdf5
+
+    def cast_path_to_str(data: dict) -> dict:
+        """Cast all paths value to string in data."""
+        keys2cast = []
+        for key, value in data.items():
+            if isinstance(value, dict):
+                cast_path_to_str(value)
+            if isinstance(value, Path):
+                data[key] = value.as_posix()
+            if isinstance(key, Path):
+                keys2cast.append(key)
+        for key in keys2cast:
+            data[key.as_posix()] = data.pop(key)
+        return data
+
+    def write_hdf5(fname, data, *args, **kwargs):
+        """Write h5 and cast all paths to string in data."""
+        data = cast_path_to_str(data)
+        h5io.write_hdf5(fname, data, *args, **kwargs)
+
+    return h5io.read_hdf5, write_hdf5
 
 
 def _import_pymatreader_funcs(purpose):
