@@ -187,7 +187,12 @@ def _import_h5io_funcs():
 
     def write_hdf5(fname, data, *args, **kwargs):
         """Write h5 and cast all paths to string in data."""
-        data = cast_path_to_str(data)
+        if isinstance(data, dict):
+            data = cast_path_to_str(data)
+        elif isinstance(data, list):
+            for k, elt in enumerate(data):
+                if isinstance(elt, dict):
+                    data[k] = cast_path_to_str(elt)
         h5io.write_hdf5(fname, data, *args, **kwargs)
 
     return h5io.read_hdf5, write_hdf5
