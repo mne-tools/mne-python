@@ -601,7 +601,8 @@ def read_talxfm(subject, subjects_dir=None, verbose=None):
 
 def _check_mri(mri, subject, subjects_dir) -> str:
     """Check whether an mri exists in the Freesurfer subject directory."""
-    mri = _check_fname(mri, overwrite="read", must_exist=False)
+    _validate_type(mri, "path-like", mri)
+    mri = Path(mri)
     if mri.is_file() and mri.name != mri:
         return str(mri)
     elif not mri.is_file():
