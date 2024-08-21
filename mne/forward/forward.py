@@ -913,7 +913,9 @@ def _write_forward_hdf5(fname, fwd):
 
 def _read_forward_hdf5(fname):
     read_hdf5, _ = _import_h5io_funcs()
-    return Forward(read_hdf5(fname)["fwd"])
+    fwd = Forward(read_hdf5(fname)["fwd"])
+    fwd["info"] = Info(fwd["info"])
+    return fwd
 
 
 def _write_forward_solution(fid, fwd):
