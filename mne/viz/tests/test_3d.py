@@ -211,8 +211,8 @@ def test_plot_evoked_field(renderer):
     fig.set_vmax(2e-12, kind="meg")
     assert fig._surf_maps[1]["contours"][-1] == 2e-12
     assert (
-            fig._widgets["vmax_slider_meg"].get_value()
-            == DEFAULTS["scalings"]["grad"] * 2e-12
+        fig._widgets["vmax_slider_meg"].get_value()
+        == DEFAULTS["scalings"]["grad"] * 2e-12
     )
 
     fig = evoked.plot_field(maps, time_viewer=False)
@@ -267,6 +267,7 @@ def _assert_n_actors(fig, renderer, n_actors):
     assert isinstance(fig, Figure3D)
     assert len(fig.plotter.renderer.actors) == n_actors
 
+
 @pytest.mark.slowtest  # can be slow on OSX
 @testing.requires_testing_data
 @pytest.mark.parametrize(
@@ -285,7 +286,7 @@ def _assert_n_actors(fig, renderer, n_actors):
         (
             True,
             True,
-            {"ecog":  "k", "seeg": "k"},
+            {"ecog": "k", "seeg": "k"},
             2,
             pytest.raises(
                 TypeError,
@@ -295,52 +296,52 @@ def _assert_n_actors(fig, renderer, n_actors):
         (
             True,
             True,
-            {"ecog":  ["k"]*2, "seeg": "k"},
-            {"ecog":  2, "seeg": 2},
+            {"ecog": ["k"] * 2, "seeg": "k"},
+            {"ecog": 2, "seeg": 2},
             pytest.raises(
                 ValueError,
-                match=r"Invalid value for the 'len\(sensor_colors\['ecog'\]\)' parameter. " 
+                match=r"Invalid value for the 'len\(sensor_colors\['ecog'\]\)' parameter. "
                 r"Allowed values are \d+ and \d+, but got \d+ instead",
             ),
         ),
         (
             True,
             True,
-            {"ecog":  "k", "seeg": ["k"]*2},
-            {"ecog":  2, "seeg": 2},
+            {"ecog": "k", "seeg": ["k"] * 2},
+            {"ecog": 2, "seeg": 2},
             pytest.raises(
                 ValueError,
-                match=r"Invalid value for the 'len\(sensor_colors\['seeg'\]\)' parameter. " 
+                match=r"Invalid value for the 'len\(sensor_colors\['seeg'\]\)' parameter. "
                 r"Allowed values are \d+ and \d+, but got \d+ instead",
             ),
         ),
         (
             True,
             True,
-            {"ecog":  "k", "seeg": "k"},
-            {"ecog":  [2]*2, "seeg": 2},
+            {"ecog": "k", "seeg": "k"},
+            {"ecog": [2] * 2, "seeg": 2},
             pytest.raises(
                 ValueError,
-                match=r"Invalid value for the 'len\(sensor_scales\['ecog'\]\)' parameter. " 
+                match=r"Invalid value for the 'len\(sensor_scales\['ecog'\]\)' parameter. "
                 r"Allowed values are \d+ and \d+, but got \d+ instead",
             ),
         ),
         (
             True,
             True,
-            {"ecog":  "k", "seeg": "k"},
-            {"ecog":  2, "seeg": [2]*2},
+            {"ecog": "k", "seeg": "k"},
+            {"ecog": 2, "seeg": [2] * 2},
             pytest.raises(
                 ValueError,
-                match=r"Invalid value for the 'len\(sensor_scales\['seeg'\]\)' parameter. " 
+                match=r"Invalid value for the 'len\(sensor_scales\['seeg'\]\)' parameter. "
                 r"Allowed values are \d+ and \d+, but got \d+ instead",
             ),
         ),
         (
             True,
             True,
-            {"ecog":  "NotAColor", "seeg": "NotAColor"},
-            {"ecog":  2, "seeg": 2},
+            {"ecog": "NotAColor", "seeg": "NotAColor"},
+            {"ecog": 2, "seeg": 2},
             pytest.raises(
                 ValueError,
                 match=r".* is not a valid color value",
@@ -349,8 +350,8 @@ def _assert_n_actors(fig, renderer, n_actors):
         (
             True,
             True,
-            {"ecog":  "k", "seeg": "k"},
-            {"ecog":  "k", "seeg": 2},
+            {"ecog": "k", "seeg": "k"},
+            {"ecog": "k", "seeg": 2},
             pytest.raises(
                 AssertionError,
                 match=r"scales for .* must contain only numerical values, got .* instead.",
@@ -359,22 +360,22 @@ def _assert_n_actors(fig, renderer, n_actors):
         (
             True,
             True,
-            {"ecog":  "k", "seeg": "k"},
-            {"ecog":  2, "seeg": 2},
+            {"ecog": "k", "seeg": "k"},
+            {"ecog": 2, "seeg": 2},
             None,
         ),
         (
             True,
             True,
-            {"ecog":  [0, 0, 0], "seeg": [0, 0, 0]},
-            {"ecog":  2, "seeg": 2},
+            {"ecog": [0, 0, 0], "seeg": [0, 0, 0]},
+            {"ecog": 2, "seeg": 2},
             None,
         ),
         (
             True,
             True,
-            {"ecog":  ["k"]*10, "seeg": ["k"]*10},
-            {"ecog":  [2]*10, "seeg": [2]*10},
+            {"ecog": ["k"] * 10, "seeg": ["k"] * 10},
+            {"ecog": [2] * 10, "seeg": [2] * 10},
             None,
         ),
         (
@@ -383,37 +384,49 @@ def _assert_n_actors(fig, renderer, n_actors):
             "k",
             2,
             None,
-        )
-    ]
+        ),
+    ],
 )
-def test_plot_alignment_ieeg(renderer, test_ecog, test_seeg, sensor_colors, sensor_scales, expectation):
+def test_plot_alignment_ieeg(
+    renderer, test_ecog, test_seeg, sensor_colors, sensor_scales, expectation
+):
     """Test plotting of iEEG sensors."""
     # Load evoked:
     evoked = read_evokeds(evoked_fname)[0]
     # EEG only
-    evoked_eeg  = evoked.copy().pick_types(eeg=True)
-    with evoked_eeg .info._unlock():
-        evoked_eeg .info["projs"] = []  # "remove" avg proj
+    evoked_eeg = evoked.copy().pick_types(eeg=True)
+    with evoked_eeg.info._unlock():
+        evoked_eeg.info["projs"] = []  # "remove" avg proj
     eeg_channels = pick_types(evoked_eeg.info, eeg=True)
     # Set 10 EEG channels to ecog, 10 to seeg
-    evoked_eeg.set_channel_types({
-        evoked_eeg.ch_names[ch]: 'ecog' for ch in eeg_channels[:10]
-        })
-    evoked_eeg.set_channel_types({
-        evoked_eeg.ch_names[ch]: 'seeg' for ch in eeg_channels[10:20]
-        })
+    evoked_eeg.set_channel_types(
+        {evoked_eeg.ch_names[ch]: "ecog" for ch in eeg_channels[:10]}
+    )
+    evoked_eeg.set_channel_types(
+        {evoked_eeg.ch_names[ch]: "seeg" for ch in eeg_channels[10:20]}
+    )
     evoked_ecog_seeg = evoked_eeg.pick_types(seeg=True, ecog=True)
     this_info = evoked_ecog_seeg.info
     # Test plot:
     if expectation is None:
-        fig = plot_alignment(this_info, ecog=test_ecog, seeg=test_seeg,
-                                sensor_colors=sensor_colors, sensor_scales=sensor_scales)
+        fig = plot_alignment(
+            this_info,
+            ecog=test_ecog,
+            seeg=test_seeg,
+            sensor_colors=sensor_colors,
+            sensor_scales=sensor_scales,
+        )
         assert isinstance(fig, Figure3D)
         renderer.backend._close_all()
     else:
         with expectation:
-            fig = plot_alignment(this_info, ecog=test_ecog, seeg=test_seeg,
-                                sensor_colors=sensor_colors, sensor_scales=sensor_scales)
+            fig = plot_alignment(
+                this_info,
+                ecog=test_ecog,
+                seeg=test_seeg,
+                sensor_colors=sensor_colors,
+                sensor_scales=sensor_scales,
+            )
             assert isinstance(fig, Figure3D)
             renderer.backend._close_all()
 
@@ -752,13 +765,13 @@ def test_plot_alignment_basic(tmp_path, renderer, mixed_fwd_cov_evoked):
         fid.write(coil_3d)
     # make sure our other OPMs can be plotted, too
     for ii, kind in enumerate(
-            (
-                    "QUSPIN_ZFOPM_MAG",
-                    "QUSPIN_ZFOPM_MAG2",
-                    "FIELDLINE_OPM_MAG_GEN1",
-                    "KERNEL_OPM_MAG_GEN1",
-            ),
-            2,
+        (
+            "QUSPIN_ZFOPM_MAG",
+            "QUSPIN_ZFOPM_MAG2",
+            "FIELDLINE_OPM_MAG_GEN1",
+            "KERNEL_OPM_MAG_GEN1",
+        ),
+        2,
     ):
         info_cube["chs"][ii]["coil_type"] = getattr(FIFF, f"FIFFV_COIL_{kind}")
     with use_coil_def(coil_def_fname):
@@ -839,7 +852,7 @@ def test_plot_alignment_basic(tmp_path, renderer, mixed_fwd_cov_evoked):
             surfaces=dict(brain=42),
         )
     fwd_fname = (
-            data_dir / "MEG" / "sample" / "sample_audvis_trunc-meg-eeg-oct-4-fwd.fif"
+        data_dir / "MEG" / "sample" / "sample_audvis_trunc-meg-eeg-oct-4-fwd.fif"
     )
     fwd = read_forward_solution(fwd_fname)
     plot_alignment(
@@ -1202,7 +1215,7 @@ def test_snapshot_brain_montage(renderer):
 @pytest.mark.parametrize("pick_ori", ("vector", None))
 @pytest.mark.parametrize("kind", ("surface", "volume", "mixed"))
 def test_plot_source_estimates(
-        renderer_interactive, all_src_types_inv_evoked, pick_ori, kind, brain_gc
+    renderer_interactive, all_src_types_inv_evoked, pick_ori, kind, brain_gc
 ):
     """Test plotting of scalar and vector source estimates."""
     backend = renderer_interactive._get_3d_backend()

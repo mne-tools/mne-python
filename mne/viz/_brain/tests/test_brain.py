@@ -548,25 +548,26 @@ def test_brain_init(renderer_pyvistaqt, tmp_path, pixel_ratio, brain_gc):
         brain.add_annotation(str(a), b, p, color=color)
     brain.close()
 
+
 @testing.requires_testing_data
 @pytest.mark.parametrize(
     "sensor_colors, sensor_scales, expectation",
     [
         (
-            {"seeg":  ["k"]*5},
-            {"seeg":  [2] * 6},
+            {"seeg": ["k"] * 5},
+            {"seeg": [2] * 6},
             pytest.raises(
                 ValueError,
-                match=r"Invalid value for the 'len\(sensor_colors\['seeg'\]\)' parameter. " 
+                match=r"Invalid value for the 'len\(sensor_colors\['seeg'\]\)' parameter. "
                 r"Allowed values are \d+ and \d+, but got \d+ instead",
             ),
         ),
         (
-            {"seeg":  ["k"]*6},
-            {"seeg":  [2] * 5},
+            {"seeg": ["k"] * 6},
+            {"seeg": [2] * 5},
             pytest.raises(
                 ValueError,
-                match=r"Invalid value for the 'len\(sensor_scales\['seeg'\]\)' parameter. " 
+                match=r"Invalid value for the 'len\(sensor_scales\['seeg'\]\)' parameter. "
                 r"Allowed values are \d+ and \d+, but got \d+ instead",
             ),
         ),
@@ -597,11 +598,11 @@ def test_brain_init(renderer_pyvistaqt, tmp_path, pixel_ratio, brain_gc):
             None,
         ),
         (
-            {"seeg":  ["k"]*6},
-            {"seeg":  [2] * 6},
+            {"seeg": ["k"] * 6},
+            {"seeg": [2] * 6},
             None,
         ),
-    ]
+    ],
 )
 def test_add_sensors_scales(sensor_colors, sensor_scales, expectation):
     kwargs = dict(subject=subject, subjects_dir=subjects_dir)
@@ -619,7 +620,7 @@ def test_add_sensors_scales(sensor_colors, sensor_scales, expectation):
         cortex=cortex,
         units="m",
         silhouette=dict(decimate=0.95),
-        **kwargs
+        **kwargs,
     )
 
     proj_info = create_info([f"Ch{i}" for i in range(1, 7)], 1000, "seeg")
@@ -640,12 +641,20 @@ def test_add_sensors_scales(sensor_colors, sensor_scales, expectation):
         make_dig_montage(ch_pos=dict(zip(proj_info.ch_names, pos)), coord_frame="head")
     )
     if expectation is None:
-        brain.add_sensors(proj_info, trans=fname_trans, sensor_colors=sensor_colors, 
-                          sensor_scales=sensor_scales)
+        brain.add_sensors(
+            proj_info,
+            trans=fname_trans,
+            sensor_colors=sensor_colors,
+            sensor_scales=sensor_scales,
+        )
     else:
         with expectation:
-            brain.add_sensors(proj_info, trans=fname_trans, sensor_colors=sensor_colors, 
-                              sensor_scales=sensor_scales)
+            brain.add_sensors(
+                proj_info,
+                trans=fname_trans,
+                sensor_colors=sensor_colors,
+                sensor_scales=sensor_scales,
+            )
     brain.close()
 
 

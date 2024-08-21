@@ -2797,7 +2797,7 @@ class Brain:
                     self._units,
                     sensor_alpha=sensor_alpha,
                     sensor_colors=sensor_colors,
-                    sensor_scales=sensor_scales
+                    sensor_scales=sensor_scales,
                 )
                 # sensors_actors can still be None
                 for item, actors in (sensors_actors or {}).items():

@@ -916,7 +916,7 @@ def plot_alignment(
             "m",
             sensor_alpha=sensor_alpha,
             sensor_colors=sensor_colors,
-            sensor_scales=sensor_scales
+            sensor_scales=sensor_scales,
         )
 
     if src is not None:
@@ -1566,7 +1566,9 @@ def _plot_sensors_3d(
         logger.debug(f"Drawing {ch_type} sensors")
         assert len(sens_loc)  # should be guaranteed above
         colors = to_rgba_array(sensor_colors.get(ch_type, defaults[ch_type + "_color"]))
-        scales = np.atleast_1d(sensor_scales.get(ch_type, defaults[ch_type + "_scale"] * unit_scalar))
+        scales = np.atleast_1d(
+            sensor_scales.get(ch_type, defaults[ch_type + "_scale"] * unit_scalar)
+        )
         _check_option(
             f"len(sensor_colors[{repr(ch_type)}])",
             colors.shape[0],
@@ -1578,7 +1580,9 @@ def _plot_sensors_3d(
             (len(sens_loc), 1),
         )
         # Check that the scale is numerical
-        assert np.issubdtype(scales.dtype, np.number), f"scales for {ch_type} must contain only numerical values, got {scales} instead."
+        assert np.issubdtype(
+            scales.dtype, np.number
+        ), f"scales for {ch_type} must contain only numerical values, got {scales} instead."
 
         this_alpha = sensor_alpha[ch_type]
         if isinstance(sens_loc[0], dict):  # meg coil
