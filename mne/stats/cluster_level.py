@@ -24,13 +24,15 @@ from scipy.sparse.csgraph import connected_components
 from scipy.stats import f as fstat
 from scipy.stats import t as tstat
 
-from .. import BaseEpochs, Evoked, EvokedArray
+from ..epochs import BaseEpochs, EvokedArray
+from ..evoked import Evoked
 from ..fixes import has_numba, jit
 from ..parallel import parallel_func
 from ..source_estimate import MixedSourceEstimate, SourceEstimate, VolSourceEstimate
 from ..source_space import SourceSpaces
 from ..time_frequency import BaseTFR
 from ..utils import (
+    GetEpochsMixin,
     ProgressBar,
     _check_option,
     _pl,
@@ -1784,7 +1786,11 @@ def _validate_cluster_df(df: pd.DataFrame, dv_name: str, iv_name: str):
             f"{prologue} consistent shape, but {len(all_shapes)} different "
             f"shapes were found: {'; '.join(all_shapes)}."
         )
-    return all_types.pop()  # return the type of the data column entries
+    obj_type = all_types.pop()
+    is_epo = GetEpochsMixin in obj_type.__mro__
+    is_tfr = BaseTFR in obj_type.__mro__
+    is_arr = np.ndarray in obj_type.__mro__
+    return is_epo, is_tfr, is_arr
 
 
 @verbose
@@ -1868,7 +1874,7 @@ def cluster_test(
     iv_name = str(np.array(formula.rhs.root).item())
 
     # validate the input dataframe and return the type of the data column entries
-    _dtype = _validate_cluster_df(df, dv_name, iv_name)
+    is_epo, is_tfr, is_arr = _validate_cluster_df(df, dv_name, iv_name)
 
     # for within_subject designs, check if each subject has 2 observations
     _validate_type(within_id, (str, None), "within_id")
@@ -1880,23 +1886,18 @@ def cluster_test(
             raise ValueError("for paired t-test, each subject must have 2 observations")
 
     # extract the data from the dataframe
-    def _extract_data_array(series):
+    outer_func = np.concatenate if is_epo else np.array
+    axes = (-3, -1) if is_tfr else (-2, -1)
+
+    def func_arr(series):
         return np.concatenate(series.values)
 
-    def _extract_data_mne(series):  # 2D data
-        return np.array(
-            series.map(lambda inst: inst.get_data().swapaxes(-2, -1)).to_list()
+    def func_mne(series):
+        return outer_func(
+            series.map(lambda inst: inst.get_data().swapaxes(*axes)).to_list()
         )
 
-    def _extract_data_tfr(series):
-        return series.map(lambda inst: inst.get_data().swapaxes(-3, -1)).to_list()
-
-    if _dtype is np.ndarray:
-        func = _extract_data_array
-    elif _dtype is BaseTFR:
-        func = _extract_data_tfr
-    else:
-        func = _extract_data_mne
+    func = func_arr if is_arr else func_mne
 
     # convert to a list-like X for clustering
     X = df.groupby(iv_name).agg({dv_name: func})[dv_name].to_list()
@@ -1993,7 +1994,7 @@ class ClusterResult:
         linestyles: list | dict | None = None,
         cmap_evokeds: None | str | tuple = None,
         cmap_topo: None | str | tuple = None,
-        ci: float | bool | callable() | None = None,
+        ci: float | bool | callable | None = None,
     ):
         """
         Plot the cluster with the lowest p-value.
