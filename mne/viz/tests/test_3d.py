@@ -267,26 +267,6 @@ def _assert_n_actors(fig, renderer, n_actors):
     assert isinstance(fig, Figure3D)
     assert len(fig.plotter.renderer.actors) == n_actors
 
-
-# # Load evoked:
-# evoked = read_evokeds(evoked_fname)[0]
-# # EEG only
-# evoked_eeg  = evoked.copy().pick_types(eeg=True)
-# with evoked_eeg .info._unlock():
-#     evoked_eeg .info["projs"] = []  # "remove" avg proj
-# eeg_channels = pick_types(evoked_eeg.info, eeg=True)
-# # Set 10 EEG channels to ecog, 10 to seeg
-# evoked_eeg.set_channel_types({
-#     evoked_eeg.ch_names[ch]: 'ecog' for ch in eeg_channels[:10]
-#     })
-# evoked_eeg.set_channel_types({
-#     evoked_eeg.ch_names[ch]: 'seeg' for ch in eeg_channels[10:20]
-#     })
-# evoked_ecog_seeg = evoked_eeg.pick_types(seeg=True, ecog=True)
-# this_info = evoked_ecog_seeg.info
-# fig = plot_alignment(this_info, ecog=True, seeg=True,
-#                         sensor_colors={"ecog":  "k", "seeg": "k"}, sensor_scales={"ecog":  "kk", "seeg": 2})
-
 @pytest.mark.slowtest  # can be slow on OSX
 @testing.requires_testing_data
 @pytest.mark.parametrize(
