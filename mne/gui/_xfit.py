@@ -171,7 +171,7 @@ class DipoleFitUI:
         self._ch_type = ch_type
         self._cov = cov
         self._current_time = initial_time
-        self._dipoles = list()
+        self._dipoles = dict()
         self._evoked = evoked
         self._field_map = field_map
         self._fig_sensors = None
@@ -193,7 +193,7 @@ class DipoleFitUI:
     @property
     def dipoles(self):
         """A list of all the fitted dipoles that are enabled in the GUI."""
-        return [d["dip"] for d in self._dipoles if d["active"]]
+        return [d["dip"] for d in self._dipoles.values() if d["active"]]
 
     def _configure_main_display(self):
         """Configure main 3D display of the GUI."""
@@ -414,7 +414,8 @@ class DipoleFitUI:
             arrow_mesh = None
         dipole_dict = dict(
             active=True,
-            arrow_actor=None,
+            brain_arrow_actor=None,
+            helmet_arrow_actor=None,
             arrow_mesh=arrow_mesh,
             color=dip_color,
             dip=dip,
@@ -425,7 +426,7 @@ class DipoleFitUI:
             num=dip_num,
             fit_time=self._current_time,
         )
-        self._dipoles.append(dipole_dict)
+        self._dipoles[dip_num] = dipole_dict
 
         # Add a row to the dipole list
         r = self._renderer
@@ -449,17 +450,22 @@ class DipoleFitUI:
             callback=partial(self._on_dipole_toggle_fix_orientation, dip_num=dip_num),
             layout=hlayout,
         )
+        r._dock_add_button(
+            name="D",
+            callback=partial(self._on_dipole_delete, dip_num=dip_num),
+            layout=hlayout,
+        )
         r._layout_add_widget(self._dipole_box, hlayout)
 
         # Compute dipole timecourse, update arrow size.
         self._fit_timecourses()
 
         # Show the dipole and arrow in the 3D view.
-        self._renderer.plotter.add_arrows(
+        dipole_dict["brain_arrow_actor"] = self._renderer.plotter.add_arrows(
             dip.pos[0], dip.ori[0], color=dip_color, mag=0.05
         )
         if arrow_mesh is not None:
-            dipole_dict["arrow_actor"] = self._renderer.plotter.add_mesh(
+            dipole_dict["helmet_arrow_actor"] = self._renderer.plotter.add_mesh(
                 arrow_mesh,
                 color=dip_color,
                 culling="front",
@@ -494,7 +500,7 @@ class DipoleFitUI:
 
         Called whenever a dipole is (de)-activated or the "Fix pos" box is toggled.
         """
-        active_dips = [d for d in self._dipoles if d["active"]]
+        active_dips = [d for d in self._dipoles.values() if d["active"]]
         if len(active_dips) == 0:
             return
 
@@ -602,7 +608,7 @@ class DipoleFitUI:
 
     def _update_arrows(self):
         """Update the arrows to have the correct size and orientation."""
-        active_dips = [d for d in self._dipoles if d["active"]]
+        active_dips = [d for d in self._dipoles.values() if d["active"]]
         if len(active_dips) == 0:
             return
         orientations = [d["dip"].ori for d in active_dips]
@@ -646,7 +652,8 @@ class DipoleFitUI:
         active = bool(active)
         dipole["active"] = active
         dipole["line_artist"].set_visible(active)
-        dipole["arrow_actor"].visibility = active
+        dipole["brain_arrow_actor"].visibility = active
+        dipole["helmet_arrow_actor"].visibility = active
         self._fit_timecourses()
         self._renderer._update()
         self._renderer._mplcanvas.update_plot()
@@ -661,6 +668,17 @@ class DipoleFitUI:
         """Fix dipole orientation when fitting timecourse."""
         self._dipoles[dip_num]["fix_ori"] = bool(fix)
         self._fit_timecourses()
+
+    def _on_dipole_delete(self, dip_num):
+        """Delete previously fitted dipole."""
+        dipole = self._dipoles[dip_num]
+        dipole["line_artist"].remove()
+        dipole["brain_arrow_actor"].visibility = False
+        dipole["helmet_arrow_actor"].visibility = False
+        del self._dipoles[dip_num]
+        self._fit_timecourses()
+        self._renderer._update()
+        self._renderer._mplcanvas.update_plot()
 
     def _setup_mplcanvas(self):
         """Configure the matplotlib canvas at the bottom of the window."""
