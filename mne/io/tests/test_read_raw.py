@@ -101,14 +101,11 @@ def test_read_raw_multiple_dots(tmp_path):
     read_raw(dst)
 
 
-@pytest.fixture(scope="module")
-def reader_excluded_from_read_raw() -> set[str]:
-    """Set of excluded readers from read_raw."""
-    return {
-        "read_raw_bti",
-        "read_raw_hitachi",
-        "read_raw_neuralynx",
-    }
+reader_excluded_from_read_raw = {
+    "read_raw_bti",
+    "read_raw_hitachi",
+    "read_raw_neuralynx",
+}
 
 
 def test_all_reader_documented(reader_excluded_from_read_raw: set[str]):
@@ -121,8 +118,7 @@ def test_all_reader_documented(reader_excluded_from_read_raw: set[str]):
     if not doc_folder.exists():
         pytest.skip("Documentation folder not found.")
     doc_file = doc_folder / "api" / "reading_raw_data.rst"
-    with open(doc_file) as fid:
-        doc = fid.read()
+    doc = doc_file.read_text("utf-8")
     reader_lines = [
         line.strip() for line in doc.split("\n") if line.strip().startswith("read_raw_")
     ]
