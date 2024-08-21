@@ -1665,7 +1665,7 @@ def setup_volume_source_space(
 
         .. note:: For a discrete source space (``pos`` is a dict),
                   ``mri`` must be None.
-    mri : str | None
+    mri : path-like | None
         The filename of an MRI volume (mgh or mgz) to create the
         interpolation matrix over. Source estimates obtained in the
         volume source space can then be morphed onto the MRI volume
