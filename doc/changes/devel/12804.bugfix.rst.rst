@@ -1,0 +1,1 @@
+Cast ``fwd["info"]`` to :class:`mne.Info` when loading a forward solution from an HDF5 file, by `Mathieu Scheltienne`_.
