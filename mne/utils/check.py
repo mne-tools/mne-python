@@ -168,6 +168,9 @@ def _import_h5py():
 def _import_h5io_funcs():
     h5io = _soft_import("h5io", "HDF5-based I/O")
 
+    # Saving to HDF5 does not support pathlib.Path objects, which are more and more used
+    # in MNE-Python.
+    # Related issue in h5io: https://github.com/h5io/h5io/issues/113
     def cast_path_to_str(data: dict) -> dict:
         """Cast all paths value to string in data."""
         keys2cast = []
