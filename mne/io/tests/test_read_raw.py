@@ -108,7 +108,7 @@ reader_excluded_from_read_raw = {
 }
 
 
-def test_all_reader_documented(reader_excluded_from_read_raw: set[str]):
+def test_all_reader_documented():
     """Test that all the readers in the documentation are accepted by read_raw."""
     readers = _get_supported()
     # flatten the dictionaries and retrieve the function names
