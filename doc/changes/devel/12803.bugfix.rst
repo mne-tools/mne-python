@@ -1,0 +1,1 @@
+Cast :class:`pathlib.Path` to :class:`str` with the method :meth:`pathlib.Path.as_posix` before saving paths in an ``.h5`` file with ``h5io``, by `Mathieu Scheltienne`_.
