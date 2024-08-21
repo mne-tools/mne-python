@@ -167,7 +167,35 @@ def _import_h5py():
 
 def _import_h5io_funcs():
     h5io = _soft_import("h5io", "HDF5-based I/O")
-    return h5io.read_hdf5, h5io.write_hdf5
+
+    # Saving to HDF5 does not support pathlib.Path objects, which are more and more used
+    # in MNE-Python.
+    # Related issue in h5io: https://github.com/h5io/h5io/issues/113
+    def cast_path_to_str(data: dict) -> dict:
+        """Cast all paths value to string in data."""
+        keys2cast = []
+        for key, value in data.items():
+            if isinstance(value, dict):
+                cast_path_to_str(value)
+            if isinstance(value, Path):
+                data[key] = value.as_posix()
+            if isinstance(key, Path):
+                keys2cast.append(key)
+        for key in keys2cast:
+            data[key.as_posix()] = data.pop(key)
+        return data
+
+    def write_hdf5(fname, data, *args, **kwargs):
+        """Write h5 and cast all paths to string in data."""
+        if isinstance(data, dict):
+            data = cast_path_to_str(data)
+        elif isinstance(data, list):
+            for k, elt in enumerate(data):
+                if isinstance(elt, dict):
+                    data[k] = cast_path_to_str(elt)
+        h5io.write_hdf5(fname, data, *args, **kwargs)
+
+    return h5io.read_hdf5, write_hdf5
 
 
 def _import_pymatreader_funcs(purpose):
