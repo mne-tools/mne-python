@@ -1107,9 +1107,9 @@ html_context = {
             size=xl,
         ),
         dict(
-            name="Human Neuroscience Platforn at Fondation Campus Biotech Geneva",  # noqa E501
+            name="Fondation Campus Biotech Geneva",
             img="FCBG.svg",
-            url="https://hnp.fcbg.ch/",
+            url="https://fcbg.ch/",
             size=sm,
         ),
     ],
