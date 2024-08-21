@@ -2738,6 +2738,9 @@ class Brain:
         %(sensor_colors)s
 
             .. versionadded:: 1.6
+        %(sensor_scales)s
+
+            .. versionadded:: 1.6
         %(verbose)s
 
         Notes
