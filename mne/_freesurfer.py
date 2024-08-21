@@ -599,28 +599,29 @@ def read_talxfm(subject, subjects_dir=None, verbose=None):
     return mri_mni_t
 
 
-def _check_mri(mri, subject, subjects_dir):
+def _check_mri(mri, subject, subjects_dir) -> str:
     """Check whether an mri exists in the Freesurfer subject directory."""
-    _validate_type(mri, "path-like", "mri")
-    mri = str(mri)  # cast to string as I/O requires str
-    if op.isfile(mri) and op.basename(mri) != mri:
-        return mri
-    if not op.isfile(mri):
+    mri = _check_fname(mri, overwrite="read", must_exist=False)
+    if mri.is_file() and mri.name != mri:
+        return str(mri)
+    elif not mri.is_file():
         if subject is None:
             raise FileNotFoundError(
-                f"MRI file {mri!r} not found and no subject provided"
+                f"MRI file {mri!r} not found and no subject provided."
             )
-        subjects_dir = str(get_subjects_dir(subjects_dir, raise_error=True))
-        mri = op.join(subjects_dir, subject, "mri", mri)
-        if not op.isfile(mri):
-            raise FileNotFoundError(f"MRI file {mri!r} not found")
-    if op.basename(mri) == mri:
-        err = (
-            f"Ambiguous filename - found {mri!r} in current folder.\n"
-            "If this is correct prefix name with relative or absolute path"
+        subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+        mri = subjects_dir / subject / "mri" / mri
+        if not mri.is_file():
+            raise FileNotFoundError(
+                f"MRI file {mri!r} not found in the subjects directory "
+                f"{subjects_dir!r} for subject {subject}."
+            )
+    if mri.name == mri:
+        raise OSError(
+            f"Ambiguous filename - found {mri!r} in current folder. "
+            "If this is correct prefix name with relative or absolute path."
         )
-        raise OSError(err)
-    return mri
+    return str(mri)
 
 
 def _read_mri_info(path, units="m", return_img=False, use_nibabel=False):

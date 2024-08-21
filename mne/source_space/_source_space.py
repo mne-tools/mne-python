@@ -1791,9 +1791,8 @@ def setup_volume_source_space(
         mri = _check_mri(mri, subject, subjects_dir)
         if isinstance(pos, dict):
             raise ValueError(
-                "Cannot create interpolation matrix for "
-                "discrete source space, mri must be None if "
-                "pos is a dict"
+                "Cannot create interpolation matrix for discrete source space, mri "
+                "must be None if pos is a dict"
             )
 
     if volume_label is not None:
