@@ -53,6 +53,7 @@ from ..io import BaseRaw, RawArray
 from ..label import Label
 from ..source_estimate import _BaseSourceEstimate, _BaseVectorSourceEstimate
 from ..source_space._source_space import (
+    SourceSpaces,
     _get_src_nn,
     _read_source_spaces_from_tree,
     _set_source_space_vertices,
@@ -913,7 +914,10 @@ def _write_forward_hdf5(fname, fwd):
 
 def _read_forward_hdf5(fname):
     read_hdf5, _ = _import_h5io_funcs()
-    return Forward(read_hdf5(fname)["fwd"])
+    fwd = Forward(read_hdf5(fname)["fwd"])
+    fwd["info"] = Info(fwd["info"])
+    fwd["src"] = SourceSpaces(fwd["src"])
+    return fwd
 
 
 def _write_forward_solution(fid, fwd):
