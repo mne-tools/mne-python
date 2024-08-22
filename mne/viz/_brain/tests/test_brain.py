@@ -12,6 +12,7 @@ import os
 import platform
 from pathlib import Path
 from shutil import copyfile
+from contextlib import nullcontext
 
 import numpy as np
 import pytest
@@ -590,17 +591,17 @@ def test_brain_init(renderer_pyvistaqt, tmp_path, pixel_ratio, brain_gc):
         (
             "k",
             2,
-            None,
+            nullcontext(),
         ),
         (
             ["k"] * 6,
             [2] * 6,
-            None,
+            nullcontext(),
         ),
         (
             {"seeg": ["k"] * 6},
             {"seeg": [2] * 6},
-            None,
+            nullcontext(),
         ),
     ],
 )

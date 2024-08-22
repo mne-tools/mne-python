@@ -9,6 +9,7 @@
 # Copyright the MNE-Python contributors.
 
 from pathlib import Path
+from contextlib import nullcontext
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -362,28 +363,28 @@ def _assert_n_actors(fig, renderer, n_actors):
             True,
             {"ecog": "k", "seeg": "k"},
             {"ecog": 2, "seeg": 2},
-            None,
+            nullcontext(),
         ),
         (
             True,
             True,
             {"ecog": [0, 0, 0], "seeg": [0, 0, 0]},
             {"ecog": 2, "seeg": 2},
-            None,
+            nullcontext(),
         ),
         (
             True,
             True,
             {"ecog": ["k"] * 10, "seeg": ["k"] * 10},
             {"ecog": [2] * 10, "seeg": [2] * 10},
-            None,
+            nullcontext(),
         ),
         (
             True,
             False,
             "k",
             2,
-            None,
+            nullcontext(),
         ),
     ],
 )
@@ -408,7 +409,7 @@ def test_plot_alignment_ieeg(
     evoked_ecog_seeg = evoked_eeg.pick_types(seeg=True, ecog=True)
     this_info = evoked_ecog_seeg.info
     # Test plot:
-    if expectation is None:
+    with expectation:
         fig = plot_alignment(
             this_info,
             ecog=test_ecog,
@@ -418,17 +419,6 @@ def test_plot_alignment_ieeg(
         )
         assert isinstance(fig, Figure3D)
         renderer.backend._close_all()
-    else:
-        with expectation:
-            fig = plot_alignment(
-                this_info,
-                ecog=test_ecog,
-                seeg=test_seeg,
-                sensor_colors=sensor_colors,
-                sensor_scales=sensor_scales,
-            )
-            assert isinstance(fig, Figure3D)
-            renderer.backend._close_all()
 
 
 @pytest.mark.slowtest  # Slow on Azure
