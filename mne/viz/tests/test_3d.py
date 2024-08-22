@@ -8,8 +8,8 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-from pathlib import Path
 from contextlib import nullcontext
+from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np

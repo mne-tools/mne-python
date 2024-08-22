@@ -10,9 +10,9 @@
 
 import os
 import platform
+from contextlib import nullcontext
 from pathlib import Path
 from shutil import copyfile
-from contextlib import nullcontext
 
 import numpy as np
 import pytest
