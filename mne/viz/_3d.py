@@ -1581,10 +1581,6 @@ def _plot_sensors_3d(
             (len(sens_loc), 1),
         )
         # Check that the scale is numerical
-        print(
-            f"scales for {ch_type} must contain only numerical values, "
-            f"got {scales} instead."
-        )
         assert np.issubdtype(scales.dtype, np.number), (
             f"scales for {ch_type} must contain only numerical values, "
             f"got {scales} instead."
