@@ -1,1 +1,0 @@
-Documented that :func:`~mne.match_channel_orders` can also work on Epochs, and Evoked objects. Reflecting this, deprecated the ``raws`` parameter in favor of an ``insts`` parameter, by `Stefan Appelhoff`_.

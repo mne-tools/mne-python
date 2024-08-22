@@ -1,10 +1,4 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
-#          Denis Engemann <denis.engemann@gmail.com>
-#          Andrew Dykstra <andrew.r.dykstra@gmail.com>
-#          Mads Jensen <mje.mads@gmail.com>
-#          Jona Sassenhagen <jona.sassenhagen@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -1996,7 +1990,7 @@ def _write_evokeds(fname, evoked, check=True, *, on_mismatch="raise", overwrite=
             fname, "evoked", ("-ave.fif", "-ave.fif.gz", "_ave.fif", "_ave.fif.gz")
         )
 
-    if not isinstance(evoked, (list, tuple)):
+    if not isinstance(evoked, list | tuple):
         evoked = [evoked]
 
     warned = False

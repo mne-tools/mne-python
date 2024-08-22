@@ -1,4 +1,14 @@
-# Testing stuff
+"""Vulture allowlist.
+
+Python names that we want Vulture to ignore need to be added to this file, see:
+
+https://github.com/jendrikseipp/vulture/blob/main/README.md#whitelists
+"""
+
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
+
 numba_conditional
 options_3d
 invisible_fig

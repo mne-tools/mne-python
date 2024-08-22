@@ -1,6 +1,4 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -345,7 +343,7 @@ def _show_tree(
                         postpend += " ... dict len=" + str(len(tag.data))
                     elif isinstance(tag.data, str):
                         postpend += " ... str len=" + str(len(tag.data))
-                    elif isinstance(tag.data, (list, tuple)):
+                    elif isinstance(tag.data, list | tuple):
                         postpend += " ... list len=" + str(len(tag.data))
                     elif issparse(tag.data):
                         postpend += (

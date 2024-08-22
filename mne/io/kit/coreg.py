@@ -1,7 +1,6 @@
 """Coordinate Point Extractor for KIT system."""
 
-# Author: Teon Brooks <teon.brooks@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -136,7 +135,7 @@ def _set_dig_kit(mrk, elp, hsp, eeg, *, bad_coils=()):
     """
     from ...coreg import _decimate_points, fit_matched_points
 
-    if isinstance(hsp, (str, Path, PathLike)):
+    if isinstance(hsp, str | Path | PathLike):
         hsp = _read_dig_kit(hsp)
     n_pts = len(hsp)
     if n_pts > KIT.DIG_POINTS:
@@ -148,7 +147,7 @@ def _set_dig_kit(mrk, elp, hsp, eeg, *, bad_coils=()):
             f"{n_new} points. The preferred way to downsample is using FastScan."
         )
 
-    if isinstance(elp, (str, Path, PathLike)):
+    if isinstance(elp, str | Path | PathLike):
         elp_points = _read_dig_kit(elp)
         if len(elp_points) != 8:
             raise ValueError(
@@ -162,7 +161,7 @@ def _set_dig_kit(mrk, elp, hsp, eeg, *, bad_coils=()):
     # passed in directly)
     if len(elp) not in (6, 7, 8):
         raise ValueError(f"ELP should contain 6 ~ 8 points; got shape {elp.shape}.")
-    if isinstance(mrk, (str, Path, PathLike)):
+    if isinstance(mrk, str | Path | PathLike):
         mrk = read_mrk(mrk)
         if len(bad_coils) > 0:
             mrk = np.delete(mrk, bad_coils, 0)

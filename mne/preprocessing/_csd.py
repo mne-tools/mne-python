@@ -1,6 +1,4 @@
-# Authors: Denis A. Engeman <denis.engemann@gmail.com>
-#          Alex Rockhill <aprockhill@mailbox.org>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 

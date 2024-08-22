@@ -1,11 +1,4 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
-#          Eric Larson <larson.eric.d@gmail.com>
-#          Denis Egnemann <denis.engemann@gmail.com>
-#          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
-#          Adam Li <adam2392@gmail.com>
-#          Daniel McCloy <dan@mccloy.info>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 

@@ -1,6 +1,4 @@
-# Authors: Marijn van Vliet <w.m.vanvliet@gmail.com>
-#          Britta Westner <britta.wstnr@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -676,7 +674,7 @@ def test_apply_dics_timeseries(_load_forward, idx):
     proj_matrix = make_projector(p, evoked_proj.ch_names)[0]
     evoked_proj.add_proj(p)
     filters_proj = make_dics(evoked_proj.info, fwd_surf, csd20, label=label)
-    assert_array_equal(filters_proj["proj"], proj_matrix)
+    assert_allclose(filters_proj["proj"], proj_matrix, rtol=1e-7)
     stc_proj = apply_dics(evoked_proj, filters_proj)
     assert np.any(np.not_equal(stc_noproj.data, stc_proj.data))
 

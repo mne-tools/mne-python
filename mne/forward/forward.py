@@ -1,7 +1,4 @@
-# Authors: Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
-#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -56,6 +53,7 @@ from ..io import BaseRaw, RawArray
 from ..label import Label
 from ..source_estimate import _BaseSourceEstimate, _BaseVectorSourceEstimate
 from ..source_space._source_space import (
+    SourceSpaces,
     _get_src_nn,
     _read_source_spaces_from_tree,
     _set_source_space_vertices,
@@ -916,7 +914,10 @@ def _write_forward_hdf5(fname, fwd):
 
 def _read_forward_hdf5(fname):
     read_hdf5, _ = _import_h5io_funcs()
-    return Forward(read_hdf5(fname)["fwd"])
+    fwd = Forward(read_hdf5(fname)["fwd"])
+    fwd["info"] = Info(fwd["info"])
+    fwd["src"] = SourceSpaces(fwd["src"])
+    return fwd
 
 
 def _write_forward_solution(fid, fwd):
@@ -1970,7 +1971,7 @@ def _do_forward_solution(
 
     # check for meas to exist as string, or try to make evoked
     _validate_type(meas, ("path-like", BaseRaw, BaseEpochs, Evoked), "meas")
-    if isinstance(meas, (BaseRaw, BaseEpochs, Evoked)):
+    if isinstance(meas, BaseRaw | BaseEpochs | Evoked):
         meas_file = op.join(temp_dir, "info.fif")
         write_info(meas_file, meas.info)
         meas = meas_file
@@ -1996,7 +1997,7 @@ def _do_forward_solution(
                     "trans was a dict, but could not be "
                     "written to disk as a transform file"
                 )
-        elif isinstance(trans, (str, Path, PathLike)):
+        elif isinstance(trans, str | Path | PathLike):
             _check_fname(trans, "read", must_exist=True, name="trans")
             trans = Path(trans)
         else:
@@ -2012,7 +2013,7 @@ def _do_forward_solution(
                     "mri was a dict, but could not be "
                     "written to disk as a transform file"
                 )
-        elif isinstance(mri, (str, Path, PathLike)):
+        elif isinstance(mri, str | Path | PathLike):
             _check_fname(mri, "read", must_exist=True, name="mri")
             mri = Path(mri)
         else:

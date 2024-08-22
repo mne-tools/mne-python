@@ -1,13 +1,6 @@
 """Reading tools from EDF, EDF+, BDF, and GDF."""
 
-# Authors: Teon Brooks <teon.brooks@gmail.com>
-#          Martin Billinger <martin.billinger@tugraz.at>
-#          Nicolas Barascud <nicolas.barascud@ens.fr>
-#          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
-#          Joan Massich <mailsik@gmail.com>
-#          Clemens Brunner <clemens.brunner@gmail.com>
-#          Jeroen Van Der Donckt (IDlab - imec) <jeroen.vanderdonckt@ugent.be>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -766,7 +759,7 @@ def _parse_prefilter_string(prefiltering):
 
 
 def _prefilter_float(filt):
-    if isinstance(filt, (int, float, np.number)):
+    if isinstance(filt, int | float | np.number):
         return filt
     if filt == "DC":
         return 0.0

@@ -1,10 +1,6 @@
 """Functions to plot ICA specific data (besides topographies)."""
 
-# Authors: Denis Engemann <denis.engemann@gmail.com>
-#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Teon Brooks <teon.brooks@gmail.com>
-#          Daniel McCloy <dan.mccloy@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -126,7 +122,7 @@ def plot_ica_sources(
     exclude = ica.exclude
     picks = _picks_to_idx(ica.n_components_, picks, picks_on="components")
 
-    if isinstance(inst, (BaseRaw, BaseEpochs)):
+    if isinstance(inst, BaseRaw | BaseEpochs):
         fig = _plot_sources(
             ica,
             inst,
@@ -969,7 +965,7 @@ def plot_ica_scores(
     if exclude is None:
         exclude = ica.exclude
     exclude = np.unique(exclude)
-    if not isinstance(scores[0], (list, np.ndarray)):
+    if not isinstance(scores[0], list | np.ndarray):
         scores = [scores]
     n_scores = len(scores)
 
@@ -1107,7 +1103,7 @@ def plot_ica_overlay(
     picks = _picks_to_idx(inst.info, picks, exclude=())
     if exclude is None:
         exclude = ica.exclude
-    if not isinstance(exclude, (np.ndarray, list)):
+    if not isinstance(exclude, np.ndarray | list):
         raise TypeError(f"exclude must be of type list. Got {type(exclude)}")
     if isinstance(inst, BaseRaw):
         start = 0.0 if start is None else start
