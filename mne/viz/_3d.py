@@ -1581,12 +1581,14 @@ def _plot_sensors_3d(
             (len(sens_loc), 1),
         )
         # Check that the scale is numerical
-        print(f"scales for {ch_type} must contain only numerical values, "
-              f"got {scales} instead.")
-        assert np.issubdtype(
-            scales.dtype, np.number
-        ), f"scales for {ch_type} must contain only numerical values, " \
-        f"got {scales} instead."
+        print(
+            f"scales for {ch_type} must contain only numerical values, "
+            f"got {scales} instead."
+        )
+        assert np.issubdtype(scales.dtype, np.number), (
+            f"scales for {ch_type} must contain only numerical values, "
+            f"got {scales} instead."
+        )
 
         this_alpha = sensor_alpha[ch_type]
         if isinstance(sens_loc[0], dict):  # meg coil
