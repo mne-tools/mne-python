@@ -559,8 +559,8 @@ def test_brain_init(renderer_pyvistaqt, tmp_path, pixel_ratio, brain_gc):
             {"seeg": [2] * 6},
             pytest.raises(
                 ValueError,
-                match=r"Invalid value for the 'len\(sensor_colors\['seeg'\]\)' parameter. "
-                r"Allowed values are \d+ and \d+, but got \d+ instead",
+                match=r"Invalid value for the 'len\(sensor_colors\['seeg'\]\)' "
+                r"parameter. Allowed values are \d+ and \d+, but got \d+ instead",
             ),
         ),
         (
@@ -568,8 +568,8 @@ def test_brain_init(renderer_pyvistaqt, tmp_path, pixel_ratio, brain_gc):
             {"seeg": [2] * 5},
             pytest.raises(
                 ValueError,
-                match=r"Invalid value for the 'len\(sensor_scales\['seeg'\]\)' parameter. "
-                r"Allowed values are \d+ and \d+, but got \d+ instead",
+                match=r"Invalid value for the 'len\(sensor_scales\['seeg'\]\)' "
+                r"parameter.  Allowed values are \d+ and \d+, but got \d+ instead",
             ),
         ),
         (
@@ -585,7 +585,8 @@ def test_brain_init(renderer_pyvistaqt, tmp_path, pixel_ratio, brain_gc):
             "k",
             pytest.raises(
                 AssertionError,
-                match=r"scales for .* must contain only numerical values, got .* instead.",
+                match=r"scales for .* must contain only numerical values, got .* "
+                r"instead.",
             ),
         ),
         (
@@ -606,6 +607,7 @@ def test_brain_init(renderer_pyvistaqt, tmp_path, pixel_ratio, brain_gc):
     ],
 )
 def test_add_sensors_scales(sensor_colors, sensor_scales, expectation):
+    """Test sensor_scales parameter"""
     kwargs = dict(subject=subject, subjects_dir=subjects_dir)
     hemi = "lh"
     surf = "white"

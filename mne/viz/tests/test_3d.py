@@ -281,7 +281,8 @@ def _assert_n_actors(fig, renderer, n_actors):
             2,
             pytest.raises(
                 TypeError,
-                match="sensor_colors must be an instance of dict or None when more than one channel type",
+                match="sensor_colors must be an instance of dict or "
+                "None when more than one channel type",
             ),
         ),
         (
@@ -291,7 +292,8 @@ def _assert_n_actors(fig, renderer, n_actors):
             2,
             pytest.raises(
                 TypeError,
-                match="sensor_scales must be an instance of dict or None when more than one channel type",
+                match="sensor_scales must be an instance of dict or "
+                "None when more than one channel type",
             ),
         ),
         (
@@ -301,8 +303,8 @@ def _assert_n_actors(fig, renderer, n_actors):
             {"ecog": 2, "seeg": 2},
             pytest.raises(
                 ValueError,
-                match=r"Invalid value for the 'len\(sensor_colors\['ecog'\]\)' parameter. "
-                r"Allowed values are \d+ and \d+, but got \d+ instead",
+                match=r"Invalid value for the 'len\(sensor_colors\['ecog'\]\)' "
+                r"parameter. Allowed values are \d+ and \d+, but got \d+ instead",
             ),
         ),
         (
@@ -312,8 +314,8 @@ def _assert_n_actors(fig, renderer, n_actors):
             {"ecog": 2, "seeg": 2},
             pytest.raises(
                 ValueError,
-                match=r"Invalid value for the 'len\(sensor_colors\['seeg'\]\)' parameter. "
-                r"Allowed values are \d+ and \d+, but got \d+ instead",
+                match=r"Invalid value for the 'len\(sensor_colors\['seeg'\]\)' "
+                r"parameter. Allowed values are \d+ and \d+, but got \d+ instead",
             ),
         ),
         (
@@ -323,8 +325,8 @@ def _assert_n_actors(fig, renderer, n_actors):
             {"ecog": [2] * 2, "seeg": 2},
             pytest.raises(
                 ValueError,
-                match=r"Invalid value for the 'len\(sensor_scales\['ecog'\]\)' parameter. "
-                r"Allowed values are \d+ and \d+, but got \d+ instead",
+                match=r"Invalid value for the 'len\(sensor_scales\['ecog'\]\)' "
+                r"parameter. Allowed values are \d+ and \d+, but got \d+ instead",
             ),
         ),
         (
@@ -334,8 +336,8 @@ def _assert_n_actors(fig, renderer, n_actors):
             {"ecog": 2, "seeg": [2] * 2},
             pytest.raises(
                 ValueError,
-                match=r"Invalid value for the 'len\(sensor_scales\['seeg'\]\)' parameter. "
-                r"Allowed values are \d+ and \d+, but got \d+ instead",
+                match=r"Invalid value for the 'len\(sensor_scales\['seeg'\]\)' "
+                r"parameter. Allowed values are \d+ and \d+, but got \d+ instead",
             ),
         ),
         (
@@ -355,7 +357,8 @@ def _assert_n_actors(fig, renderer, n_actors):
             {"ecog": "k", "seeg": 2},
             pytest.raises(
                 AssertionError,
-                match=r"scales for .* must contain only numerical values, got .* instead.",
+                match=r"scales for .* must contain only numerical values, got .* "
+                r"instead.",
             ),
         ),
         (
