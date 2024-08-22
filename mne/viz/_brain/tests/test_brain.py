@@ -643,21 +643,13 @@ def test_add_sensors_scales(sensor_colors, sensor_scales, expectation):
     proj_info.set_montage(
         make_dig_montage(ch_pos=dict(zip(proj_info.ch_names, pos)), coord_frame="head")
     )
-    if expectation is None:
+    with expectation:
         brain.add_sensors(
             proj_info,
             trans=fname_trans,
             sensor_colors=sensor_colors,
             sensor_scales=sensor_scales,
         )
-    else:
-        with expectation:
-            brain.add_sensors(
-                proj_info,
-                trans=fname_trans,
-                sensor_colors=sensor_colors,
-                sensor_scales=sensor_scales,
-            )
     brain.close()
 
 
