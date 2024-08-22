@@ -2740,7 +2740,7 @@ class Brain:
             .. versionadded:: 1.6
         %(sensor_scales)s
 
-            .. versionadded:: 1.6
+            .. versionadded:: 1.9
         %(verbose)s
 
         Notes
