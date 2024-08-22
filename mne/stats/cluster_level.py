@@ -10,7 +10,6 @@ from typing import Literal
 
 import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from scipy import ndimage, sparse
 from scipy.sparse.csgraph import connected_components
@@ -39,6 +38,10 @@ from ..utils import (
 )
 from ..viz import plot_compare_evokeds
 from .parametric import f_oneway, ttest_1samp_no_p
+
+# need this at top-level of file due to type hints
+pd = _soft_import("pandas", purpose="DataFrame integration")
+DataFrame = getattr(pd, "DataFrame", None)
 
 
 def _get_buddies_fallback(r, s, neighbors, indices=None):
@@ -1738,7 +1741,7 @@ def summarize_clusters_stc(
     return klass(data_summary, vertices, tmin, tstep, subject)
 
 
-def _validate_cluster_df(df: pd.DataFrame, dv_name: str, iv_name: str):
+def _validate_cluster_df(df: DataFrame, dv_name: str, iv_name: str):
     """Validate the input DataFrame for cluster tests."""
     # check if all necessary columns are present
     missing = ({dv_name} | {iv_name}) - set(df.columns)  # should be empty
@@ -1788,7 +1791,7 @@ def _validate_cluster_df(df: pd.DataFrame, dv_name: str, iv_name: str):
 
 @verbose
 def cluster_test(
-    df: pd.DataFrame,
+    df: DataFrame,
     formula: str,
     *,  # end of positional-only parameters
     within_id: str | None = None,
