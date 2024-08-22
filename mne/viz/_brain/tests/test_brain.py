@@ -569,7 +569,7 @@ def test_brain_init(renderer_pyvistaqt, tmp_path, pixel_ratio, brain_gc):
             pytest.raises(
                 ValueError,
                 match=r"Invalid value for the 'len\(sensor_scales\['seeg'\]\)' "
-                r"parameter.  Allowed values are \d+ and \d+, but got \d+ instead",
+                r"parameter. Allowed values are \d+ and \d+, but got \d+ instead",
             ),
         ),
         (
