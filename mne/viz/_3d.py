@@ -532,6 +532,7 @@ def plot_alignment(
     fig=None,
     interaction="terrain",
     sensor_colors=None,
+    *,
     sensor_scales=None,
     verbose=None,
 ):
