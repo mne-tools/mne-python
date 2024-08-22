@@ -40,7 +40,7 @@ from ..viz import plot_compare_evokeds
 from .parametric import f_oneway, ttest_1samp_no_p
 
 # need this at top-level of file due to type hints
-pd = _soft_import("pandas", purpose="DataFrame integration")
+pd = _soft_import("pandas", purpose="DataFrame integration", strict=False)
 DataFrame = getattr(pd, "DataFrame", None)
 
 
