@@ -148,4 +148,4 @@ _qt_disable_paint
 _qt_get_stylesheet
 
 # used in tutorial, not sure why shows up
-plot_cluster
+plot_cluster_time_sensor
