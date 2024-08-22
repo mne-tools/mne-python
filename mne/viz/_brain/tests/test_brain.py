@@ -607,7 +607,7 @@ def test_brain_init(renderer_pyvistaqt, tmp_path, pixel_ratio, brain_gc):
     ],
 )
 def test_add_sensors_scales(sensor_colors, sensor_scales, expectation):
-    """Test sensor_scales parameter"""
+    """Test sensor_scales parameter."""
     kwargs = dict(subject=subject, subjects_dir=subjects_dir)
     hemi = "lh"
     surf = "white"
