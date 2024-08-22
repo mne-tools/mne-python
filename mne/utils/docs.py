@@ -4007,7 +4007,7 @@ sensor_scales : int | float | array-like | dict | None
     Where the value (``eeg_scales`` above) can be broadcast to an array of values with
     length that matches the number of channels of that type. A few examples of this 
     for the case above are the value ``10e-3``, a list of ``n_eeg`` values, or an NumPy ndarray of
-    shape ``(n_eeg)``.
+    shape ``(n_eeg, )``.
 """
 
 docdict["sensors_topomap"] = """
