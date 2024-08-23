@@ -1,6 +1,4 @@
-# Author: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#         Daniel Strohmeier <daniel.strohmeier@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -472,7 +470,7 @@ def mixed_norm(
             f"dgap_freq must be a positive integer. Got dgap_freq = {dgap_freq}"
         )
     if not (
-        isinstance(sure_alpha_grid, (np.ndarray, list)) or sure_alpha_grid == "auto"
+        isinstance(sure_alpha_grid, np.ndarray | list) or sure_alpha_grid == "auto"
     ):
         raise ValueError(
             'If not equal to "auto" sure_alpha_grid must be an '
@@ -651,7 +649,7 @@ def mixed_norm(
 
 def _window_evoked(evoked, size):
     """Window evoked (size in seconds)."""
-    if isinstance(size, (float, int)):
+    if isinstance(size, float | int):
         lsize = rsize = float(size)
     else:
         lsize, rsize = size

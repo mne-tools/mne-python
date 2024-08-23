@@ -1,6 +1,4 @@
-# Author: Martin Billinger <martin.billinger@tugraz.at>
-#         Adam Li <adam2392@gmail.com>
-#         Daniel McCloy <dan@mccloy.info>
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 

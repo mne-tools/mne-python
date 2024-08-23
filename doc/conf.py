@@ -1,8 +1,11 @@
-# Configuration file for the Sphinx documentation builder.
-#
-# This file only contains a selection of the most common options. For a full
-# list see the documentation:
-# https://www.sphinx-doc.org/en/master/usage/configuration.html
+"""Configuration file for the Sphinx documentation builder.
+
+This file only contains a selection of the most common options. For a full
+list see the documentation:
+https://www.sphinx-doc.org/en/master/usage/configuration.html
+"""
+
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -271,6 +274,7 @@ numpydoc_xref_aliases = {
     "EpochsFIF": "mne.Epochs",
     "EpochsEEGLAB": "mne.Epochs",
     "EpochsKIT": "mne.Epochs",
+    "RawANT": "mne.io.Raw",
     "RawBOXY": "mne.io.Raw",
     "RawBrainVision": "mne.io.Raw",
     "RawBTi": "mne.io.Raw",
@@ -1104,9 +1108,9 @@ html_context = {
             size=xl,
         ),
         dict(
-            name="Human Neuroscience Platforn at Fondation Campus Biotech Geneva",  # noqa E501
+            name="Fondation Campus Biotech Geneva",
             img="FCBG.svg",
-            url="https://hnp.fcbg.ch/",
+            url="https://fcbg.ch/",
             size=sm,
         ),
     ],

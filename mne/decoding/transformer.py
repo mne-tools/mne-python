@@ -1,7 +1,4 @@
-# Authors: Mainak Jas <mainak@neuro.hut.fi>
-#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Romain Trachel <trachelr@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -113,7 +110,7 @@ class Scaler(TransformerMixin, BaseEstimator):
         self.with_std = with_std
         self.scalings = scalings
 
-        if not (scalings is None or isinstance(scalings, (dict, str))):
+        if not (scalings is None or isinstance(scalings, dict | str)):
             raise ValueError(
                 f"scalings type should be dict, str, or None, got {type(scalings)}"
             )

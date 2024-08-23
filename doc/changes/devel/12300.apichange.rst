@@ -1,3 +1,0 @@
-A new argument ``events_as_annotations`` has been added to :func:`mne.io.read_raw_egi`
-with a default value of ``False`` that will change to ``True`` in version 1.9, by
-`Scott Huberty`_ and `Eric Larson`_.

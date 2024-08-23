@@ -1,6 +1,6 @@
 """Some utility functions for rank estimation."""
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#
+
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -484,7 +484,7 @@ def _compute_rank(
         else:
             # Use empirical estimation
             assert rank_type == "estimated"
-            if isinstance(inst, (BaseRaw, BaseEpochs)):
+            if isinstance(inst, BaseRaw | BaseEpochs):
                 if isinstance(inst, BaseRaw):
                     data = inst.get_data(picks, reject_by_annotation="omit")
                 else:  # isinstance(inst, BaseEpochs):

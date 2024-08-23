@@ -1,5 +1,4 @@
-# Authors: Christian Brodbeck <christianbrodbeck@nyu.edu>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -60,8 +59,8 @@ def coregistration(
         Use a high resolution head surface.
         Default is None, which uses ``MNE_COREG_HEAD_HIGH_RES`` config value
         (which defaults to True).
-    trans : path-like | None
-        The transform file to use.
+    trans : path-like | Transform | None
+        The Head<->MRI transform or the path to its FIF file ("-trans.fif").
     orient_to_surface : bool | None
         If True (default), orient EEG electrode and head shape points
         to the head surface.

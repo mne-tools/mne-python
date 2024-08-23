@@ -1,5 +1,7 @@
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 """Functions for exporting data to non-FIF formats."""
 import lazy_loader as lazy
 

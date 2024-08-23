@@ -9,13 +9,14 @@ permissions:
 
 jobs:
   autofix:
-    name: Autoupdate changelog entry
+    name: Autoupdate changelog entry and headers
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - run: pip install --upgrade towncrier pygithub
+      - run: pip install --upgrade towncrier pygithub gitpython numpy
       - run: python ./.github/actions/rename_towncrier/rename_towncrier.py
+      - run: python ./tools/dev/ensure_headers.py
       - uses: autofix-ci/action@dd55f44df8f7cdb7a6bf74c78677eb8acd40cd0a

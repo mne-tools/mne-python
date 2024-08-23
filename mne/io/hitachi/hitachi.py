@@ -1,5 +1,4 @@
-# Authors: Eric Larson <larson.eric.d@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -69,7 +68,7 @@ class RawHitachi(BaseRaw):
 
     @verbose
     def __init__(self, fname, preload=False, *, verbose=None):
-        if not isinstance(fname, (list, tuple)):
+        if not isinstance(fname, list | tuple):
             fname = [fname]
         fname = list(fname)  # our own list that we can modify
         for fi, this_fname in enumerate(fname):

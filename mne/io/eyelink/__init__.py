@@ -1,8 +1,6 @@
 """Module for loading Eye-Tracker data."""
 
-# Authors: Dominik Welke <dominik.welke@web.de>
-#          Scott Huberty <seh33@uw.edu>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 

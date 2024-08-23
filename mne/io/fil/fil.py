@@ -1,5 +1,4 @@
-# Authors: George O'Neill <g.o'neill@ucl.ac.uk>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -307,7 +306,7 @@ def _from_tsv(fname, dtypes=None):
     data_dict = dict()
     if dtypes is None:
         dtypes = [str] * info.shape[1]
-    if not isinstance(dtypes, (list, tuple)):
+    if not isinstance(dtypes, list | tuple):
         dtypes = [dtypes] * info.shape[1]
     if not len(dtypes) == info.shape[1]:
         raise ValueError(

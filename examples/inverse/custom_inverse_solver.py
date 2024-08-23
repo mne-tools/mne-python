@@ -19,8 +19,10 @@ parameters: the whitened data, the gain matrix and the number of orientations)
 in order to try out another inverse algorithm.
 """
 
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 # %%
 
 import numpy as np

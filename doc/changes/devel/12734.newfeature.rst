@@ -1,3 +1,0 @@
-When using the ``data_path()`` in any dataset included in :py:mod:`mne.datasets`,
-static analysis tools like Pylance will now correctly infer that a `pathlib.Path` will
-be returned and provide editor support like automated code completions, by `Richard Höchenberger`_.

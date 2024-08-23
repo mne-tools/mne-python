@@ -12,7 +12,7 @@ authors = [
 maintainers = [{ name = "Dan McCloy", email = "dan@mccloy.info" }]
 license = { text = "BSD-3-Clause" }
 readme = { file = "README.rst", content-type = "text/x-rst" }
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 keywords = [
     "neuroscience",
     "neuroimaging",
@@ -107,6 +107,7 @@ full-no-qt = [
     "snirf",
     "defusedxml",
     "neo",
+    "antio",
 ]
 full = ["mne[full-no-qt]", "PyQt6!=6.6.0", "PyQt6-Qt6!=6.6.0,!=6.7.0"]
 full-pyqt6 = ["mne[full]"]

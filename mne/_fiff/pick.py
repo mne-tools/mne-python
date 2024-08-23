@@ -1,7 +1,4 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
-#          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -422,7 +419,7 @@ def _check_info_exclude(info, exclude):
         raise ValueError('exclude must be a list of strings or "bads"')
     elif exclude == "bads":
         exclude = info.get("bads", [])
-    elif not isinstance(exclude, (list, tuple)):
+    elif not isinstance(exclude, list | tuple):
         raise ValueError(
             'exclude must either be "bads" or a list of strings.'
             " If only one channel is to be excluded, use "
@@ -1052,7 +1049,7 @@ def _check_excludes_includes(chs, info=None, allow_bads=False):
     """
     from .meas_info import Info
 
-    if not isinstance(chs, (list, tuple, set, np.ndarray)):
+    if not isinstance(chs, list | tuple | set | np.ndarray):
         if allow_bads is True:
             if not isinstance(info, Info):
                 raise ValueError("Supply an info object if allow_bads is true")
