@@ -1,6 +1,4 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -156,7 +154,7 @@ def write_name_list_sanitized(fid, kind, lst, name):
 
 def _safe_name_list(lst, operation, name):
     if operation == "write":
-        assert isinstance(lst, (list, tuple, np.ndarray)), type(lst)
+        assert isinstance(lst, list | tuple | np.ndarray), type(lst)
         if any("{COLON}" in val for val in lst):
             raise ValueError(f'The substring "{{COLON}}" in {name} not supported.')
         return ":".join(val.replace(":", "{COLON}") for val in lst)

@@ -1,13 +1,6 @@
 """Functions to plot evoked M/EEG data (besides topographies)."""
 
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Denis Engemann <denis.engemann@gmail.com>
-#          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
-#          Eric Larson <larson.eric.d@gmail.com>
-#          Cathy Nangini <cnangini@gmail.com>
-#          Mainak Jas <mainak@neuro.hut.fi>
-#          Daniel McCloy <dan.mccloy@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -676,7 +669,7 @@ def _plot_lines(
                     )
                     bad_color = (0.5, 0.5, 0.5)
                 else:
-                    if isinstance(_spat_col, (tuple, str)):
+                    if isinstance(_spat_col, tuple | str):
                         col = [_spat_col]
                     else:
                         col = ["k"]
@@ -1245,7 +1238,7 @@ def plot_evoked_topo(
         axis_facecolor = background_color
         font_color = "k"
 
-    if isinstance(color, (tuple, list)):
+    if isinstance(color, tuple | list):
         if len(color) != len(evoked):
             raise ValueError(
                 "Lists of evoked objects and colors must have the same length"
@@ -1559,7 +1552,7 @@ def plot_evoked_white(
     time_unit, times = _check_time_unit(time_unit, evoked.times)
 
     _validate_type(noise_cov, (list, tuple, Covariance, "path-like"))
-    if not isinstance(noise_cov, (list, tuple)):
+    if not isinstance(noise_cov, list | tuple):
         noise_cov = [noise_cov]
     for ci, c in enumerate(noise_cov):
         noise_cov[ci] = _ensure_cov(noise_cov[ci], f"noise_cov[{ci}]", verbose=False)
@@ -1998,7 +1991,7 @@ def plot_evoked_joint(
     norm = ch_type == "grad"
     vmin = 0 if norm else vmin
     vmin, vmax = _setup_vmin_vmax(evoked.data, vmin, vmax, norm)
-    if not isinstance(contours, (list, np.ndarray)):
+    if not isinstance(contours, list | np.ndarray):
         locator, contours = _set_contour_locator(vmin, vmax, contours)
     else:
         locator = None
@@ -2016,7 +2009,7 @@ def plot_evoked_joint(
 
         cbar = fig.colorbar(map_ax[0].images[0], ax=map_ax, cax=cbar_ax, shrink=0.8)
         cbar.ax.grid(False)  # auto-removal deprecated as of 2021/10/05
-        if isinstance(contours, (list, np.ndarray)):
+        if isinstance(contours, list | np.ndarray):
             cbar.set_ticks(contours)
         else:
             if locator is None:
@@ -2062,7 +2055,7 @@ def plot_evoked_joint(
 def _check_loc_legal(loc, what="your choice", default=1):
     """Check if loc is a legal location for MPL subordinate axes."""
     true_default = {"legend": 2, "show_sensors": 1}.get(what, default)
-    if isinstance(loc, (bool, np.bool_)) and loc:
+    if isinstance(loc, bool | np.bool_) and loc:
         loc = true_default
     loc_dict = {
         "upper right": 1,
@@ -2126,7 +2119,7 @@ def _validate_colors_pce(colors, cmap, conditions, tags):
         else:
             colors = list(range(len(conditions)))
     # convert color list to dict
-    if isinstance(colors, (list, tuple, np.ndarray)):
+    if isinstance(colors, list | tuple | np.ndarray):
         if len(conditions) > len(colors):
             raise ValueError(
                 f"Trying to plot {len(conditions)} conditions, but there are only "
@@ -2179,9 +2172,9 @@ def _validate_cmap_pce(cmap, colors, color_vals):
 
     all_int = all(isinstance(_color, Integral) for _color in color_vals)
     colorbar_title = ""
-    if isinstance(cmap, (list, tuple, np.ndarray)) and len(cmap) == 2:
+    if isinstance(cmap, list | tuple | np.ndarray) and len(cmap) == 2:
         colorbar_title, cmap = cmap
-    if isinstance(cmap, (str, Colormap)):
+    if isinstance(cmap, str | Colormap):
         lut = len(color_vals) if all_int else None
         cmap = _get_cmap(cmap, lut)
     return cmap, colorbar_title
@@ -2193,7 +2186,7 @@ def _validate_linestyles_pce(linestyles, conditions, tags):
     if linestyles is None:
         linestyles = [None] * len(conditions)  # will get changed to defaults
     # convert linestyle list to dict
-    if isinstance(linestyles, (list, tuple, np.ndarray)):
+    if isinstance(linestyles, list | tuple | np.ndarray):
         if len(conditions) > len(linestyles):
             raise ValueError(
                 f"Trying to plot {len(conditions)} conditions, but there are only "
@@ -2808,7 +2801,7 @@ def plot_compare_evokeds(
     if isinstance(evokeds, Evoked):
         evokeds = [evokeds]
 
-    if isinstance(evokeds, (list, tuple)):
+    if isinstance(evokeds, list | tuple):
         evokeds_copy = evokeds.copy()
         evokeds = dict()
 

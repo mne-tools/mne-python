@@ -1,9 +1,6 @@
 """Base class copy from sklearn.base."""
-# Authors: Gael Varoquaux <gael.varoquaux@normalesup.org>
-#          Romain Trachel <trachelr@gmail.com>
-#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Jean-Remi King <jeanremi.king@gmail.com>
-#
+
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -166,7 +163,7 @@ def _set_cv(cv, estimator=None, X=None, y=None):
     from sklearn import model_selection as models
     from sklearn.model_selection import KFold, StratifiedKFold, check_cv
 
-    if isinstance(cv, (int, np.int64)):
+    if isinstance(cv, int | np.int64):
         XFold = StratifiedKFold if est_is_classifier else KFold
         cv = XFold(n_splits=cv)
     elif isinstance(cv, str):

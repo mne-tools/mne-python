@@ -1,13 +1,4 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
-#          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
-#          Denis Engemann <denis.engemann@gmail.com>
-#          Andrew Dykstra <andrew.r.dykstra@gmail.com>
-#          Teon Brooks <teon.brooks@gmail.com>
-#          Daniel McCloy <dan.mccloy@gmail.com>
-#          Ana Radanovic <radanovica@protonmail.com>
-#          Erica Peterson <nordme@uw.edu>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -2106,7 +2097,7 @@ def read_vectorview_selection(name, fname=None, info=None, verbose=None):
         List with channel names in the selection.
     """
     # convert name to list of string
-    if not isinstance(name, (list, tuple)):
+    if not isinstance(name, list | tuple):
         name = [name]
     if isinstance(info, Info):
         picks = pick_types(info, meg=True, exclude=())

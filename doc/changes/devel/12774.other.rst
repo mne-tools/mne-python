@@ -1,2 +1,0 @@
-Code contributions are now measured using PRs and reported on the :ref:`contributors`
-page, by `Eric Larson`_.

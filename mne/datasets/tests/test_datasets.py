@@ -1,6 +1,7 @@
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
-import os
+
 import re
 import shutil
 import zipfile
@@ -87,9 +88,6 @@ def test_datasets_basic(tmp_path, monkeypatch):
     monkeypatch.setattr(mne.datasets._fsaverage.base, "_manifest_check_download", noop)
     sd_2 = datasets.fetch_fsaverage()
     assert sd / "fsaverage" == sd_2
-    with pytest.warns(FutureWarning, match="switch to using forward slash"):
-        sd_label_str = sd_2 + f"{os.sep}label"
-    assert sd_label_str == str(sd_2 / "label")
 
 
 @requires_good_network

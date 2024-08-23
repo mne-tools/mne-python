@@ -1,5 +1,4 @@
-# Authors: Denis A. Engemann  <denis.engemann@gmail.com>
-#          simplified BSD-3 license
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -76,7 +75,7 @@ def test_egi_mff_pause(fname, skip_times, event_times):
     pytest.importorskip("defusedxml")
     if fname == egi_pause_w1337_fname:
         # too slow to _test_raw_reader
-        raw = read_raw_egi(fname).load_data()
+        raw = read_raw_egi(fname, events_as_annotations=False).load_data()
     else:
         with pytest.warns(RuntimeWarning, match="Acquisition skips detected"):
             raw = _test_raw_reader(
@@ -84,6 +83,7 @@ def test_egi_mff_pause(fname, skip_times, event_times):
                 input_fname=fname,
                 test_scaling=False,  # XXX probably some bug
                 test_rank="less",
+                events_as_annotations=False,
             )
     assert raw.info["sfreq"] == 250.0  # true for all of these files
     assert len(raw.annotations) == len(skip_times)
@@ -253,6 +253,7 @@ def test_io_egi():
         include=include,
         test_rank="less",
         test_scaling=False,  # XXX probably some bug
+        events_as_annotations=False,
     )
 
     assert "eeg" in raw

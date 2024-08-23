@@ -1,1 +1,0 @@
-Fix bug where :func:`mne.io.read_raw_fil` could not assign bad channels on import, by `George O'Neill`_.

@@ -12,8 +12,10 @@ response.
 
 Here we will work with the :ref:`fNIRS motor data <fnirs-motor-dataset>`.
 """
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 # %%
 
 from itertools import compress

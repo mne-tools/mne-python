@@ -1,12 +1,9 @@
 """Dynamic Imaging of Coherent Sources (DICS)."""
 
-# Authors: Marijn van Vliet <w.m.vanvliet@gmail.com>
-#          Britta Westner <britta.wstnr@gmail.com>
-#          Susanna Aro <susanna.aro@aalto.fi>
-#          Roman Goj <roman.goj@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 import numpy as np
 
 from .._fiff.pick import pick_channels, pick_info

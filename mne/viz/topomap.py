@@ -1,13 +1,6 @@
 """Functions to plot M/EEG data e.g. topographies."""
 
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Denis Engemann <denis.engemann@gmail.com>
-#          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
-#          Eric Larson <larson.eric.d@gmail.com>
-#          Robert Luke <mail@robertluke.net>
-#          Mikołaj Magnuski <mmagnuski@swps.edu.pl>
-#          Marijn van Vliet <w.m.vanvliet@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -1326,7 +1319,7 @@ def _plot_topomap(
     # because mpl has probably fixed it
     linewidth = mask_params["markeredgewidth"]
     cont = True
-    if isinstance(contours, (np.ndarray, list)):
+    if isinstance(contours, np.ndarray | list):
         pass
     elif contours == 0 or ((Zi == Zi[0, 0]) | np.isnan(Zi)).all():
         cont = None  # can't make contours for constant-valued functions
@@ -1741,7 +1734,7 @@ def plot_ica_components(
         fig.canvas.mpl_connect("button_press_event", onclick_title)
 
         # add plot_properties interactivity only if inst was passed
-        if isinstance(inst, (BaseRaw, BaseEpochs)):
+        if isinstance(inst, BaseRaw | BaseEpochs):
             topomap_args = dict(
                 sensors=sensors,
                 contours=contours,
@@ -1929,7 +1922,7 @@ def plot_tfr_topomap(
     _hide_frame(axes)
 
     locator = None
-    if not isinstance(contours, (list, np.ndarray)):
+    if not isinstance(contours, list | np.ndarray):
         locator, contours = _set_contour_locator(*vlim, contours)
 
     fig_wrapper = list()
@@ -1946,7 +1939,7 @@ def plot_tfr_topomap(
         fig=fig_wrapper,
     )
 
-    if not isinstance(contours, (list, np.ndarray)):
+    if not isinstance(contours, list | np.ndarray):
         _, contours = _set_contour_locator(*vlim, contours)
 
     names = _prepare_sensor_names(names, show_names)
@@ -2297,7 +2290,7 @@ def plot_evoked_topomap(
     _vlim = (np.min(_vlim), np.max(_vlim))
     cmap = _setup_cmap(cmap, n_axes=n_times, norm=_vlim[0] >= 0)
     # set up contours
-    if not isinstance(contours, (list, np.ndarray)):
+    if not isinstance(contours, list | np.ndarray):
         _, contours = _set_contour_locator(*_vlim, contours)
     # prepare for main loop over times
     kwargs = dict(

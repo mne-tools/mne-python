@@ -1,8 +1,4 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
-#          Teon Brooks <teon.brooks@gmail.com>
-#          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -3173,7 +3169,7 @@ def create_info(ch_names, sfreq, ch_types="misc", verbose=None):
         this_ch_dict = ch_types_dict[ch_type]
         kind = this_ch_dict["kind"]
         # handle chpi, where kind is a *list* of FIFF constants:
-        kind = kind[0] if isinstance(kind, (list, tuple)) else kind
+        kind = kind[0] if isinstance(kind, list | tuple) else kind
         # mirror what tag.py does here
         coord_frame = _ch_coord_dict.get(kind, FIFF.FIFFV_COORD_UNKNOWN)
         coil_type = this_ch_dict.get("coil_type", FIFF.FIFFV_COIL_NONE)

@@ -12,8 +12,10 @@ As usual, we'll start by importing the modules we need, loading some
 :ref:`example data <sample-dataset>`, and cropping it to save on memory:
 """
 
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 # %%
 
 import os
