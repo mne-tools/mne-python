@@ -1,0 +1,55 @@
+{
+  "merge_commit_sha": "21b3c10445675b9578f2efd11b76719a74402587",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 1
+    },
+    "doc/references.bib": {
+      "a": 45,
+      "d": 0
+    },
+    "mne/viz/evoked.py": {
+      "a": 30,
+      "d": 8
+    },
+    "mne/viz/tests/test_evoked.py": {
+      "a": 41,
+      "d": 17
+    },
+    "tutorials/evoked/plot_20_visualize_evoked.py": {
+      "a": 6,
+      "d": 1
+    },
+    "tutorials/evoked/plot_eeg_erp.py": {
+      "a": 47,
+      "d": 0
+    }
+  }
+}

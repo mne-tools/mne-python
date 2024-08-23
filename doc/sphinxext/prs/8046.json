@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "0e56673d9032eee88156ca5af4dd4b95098a9d15",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".github/workflows/linux_conda.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "azure-pipelines.yml": {
+      "a": 0,
+      "d": 1
+    },
+    "environment.yml": {
+      "a": 13,
+      "d": 16
+    },
+    "mne/beamformer/tests/test_lcmv.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/preprocessing/tests/test_maxwell.py": {
+      "a": 4,
+      "d": 3
+    }
+  }
+}

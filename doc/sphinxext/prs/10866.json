@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "0452d69396ade5186bfad166aa7c7f608b288867",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/ctf/ctf.py": {
+      "a": 5,
+      "d": 2
+    }
+  }
+}

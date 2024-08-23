@@ -1,6 +1,4 @@
-# Authors: Eric Larson <larson.eric.d@gmail.com>
-#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -8,7 +6,6 @@ import os
 from functools import partial
 
 import numpy as np
-import pandas as pd
 import pytest
 from numpy.testing import (
     assert_allclose,
@@ -884,6 +881,7 @@ def test_output_equiv(shape, out_type, adjacency, threshold):
 
 def test_compare_old_and_new_cluster_api():
     """Test for same results from old and new APIs."""
+    pd = pytest.importorskip("pandas")
     condition1_1d, condition2_1d, condition1_2d, condition2_2d = _get_conditions()
     df_1d = pd.DataFrame(
         dict(

@@ -3,10 +3,7 @@
 RawKIT class is adapted from Denis Engemann et al.'s mne_bti2fiff.py.
 """
 
-# Authors: Teon Brooks <teon.brooks@gmail.com>
-#          Joan Massich <mailsik@gmail.com>
-#          Christian Brodbeck <christianbrodbeck@nyu.edu>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -53,7 +50,7 @@ def _call_digitization(info, mrk, elp, hsp, kit_info, *, bad_coils=()):
     # prepare mrk
     if isinstance(mrk, list):
         mrk = [
-            read_mrk(marker) if isinstance(marker, (str, Path, PathLike)) else marker
+            read_mrk(marker) if isinstance(marker, str | Path | PathLike) else marker
             for marker in mrk
         ]
         mrk = np.mean(mrk, axis=0)
@@ -395,7 +392,7 @@ class EpochsKIT(BaseEpochs):
         standardize_names=None,
         verbose=None,
     ):
-        if isinstance(events, (str, PathLike, Path)):
+        if isinstance(events, str | PathLike | Path):
             events = read_events(events)
 
         input_fname = str(

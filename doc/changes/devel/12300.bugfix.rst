@@ -1,1 +1,0 @@
-Fix bug where an event that occurred only once was excluded in :func:`mne.io.read_raw_egi`, by :newcontrib:`Ping-Keng Jao`.

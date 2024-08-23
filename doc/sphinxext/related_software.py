@@ -7,6 +7,10 @@ To add a package to the list:
 3. If it's not on PyPI, add it to the MANUAL_PACKAGES dictionary.
 """
 
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
+
 import functools
 import importlib.metadata
 import os
@@ -24,7 +28,6 @@ from sphinx.util.display import status_iterator
 # If it's available on PyPI, add it to this set:
 PYPI_PACKAGES = {
     "alphaCSC",
-    "conpy",
     "meggie",
     "niseq",
     "sesameeg",
@@ -91,6 +94,16 @@ MANUAL_PACKAGES = {
     "emd": {
         "Home-page": "https://emd.readthedocs.io/en/stable",
         "Summary": "Empirical Mode Decomposition in Python.",
+    },
+    # Needs https://github.com/vferat/pycrostates/pull/188 and a release
+    "pycrostates": {
+        "Home-page": "https://pycrostates.readthedocs.io",
+        "Summary": "A simple open source Python package for EEG microstate segmentation.",  # noqa: E501
+    },
+    # not on PyPI
+    "conpy": {
+        "Home-page": "https://github.com/aaltoimaginglanguage/conpy",
+        "Summary": "Functions and classes for performing connectivity analysis on MEG data.",  # noqa: E501
     },
 }
 

@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "d77cc95b0cf56b1df5886c9ebc52261a55695331",
+  "authors": [
+    {
+      "n": "Mainak Jas",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/io/meas_info.py": {
+      "a": 10,
+      "d": 13
+    },
+    "mne/io/tests/test_meas_info.py": {
+      "a": 111,
+      "d": 93
+    },
+    "mne/io/write.py": {
+      "a": 8,
+      "d": 12
+    },
+    "mne/preprocessing/maxwell.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

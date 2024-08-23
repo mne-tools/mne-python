@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "1a9c1b0b4983bae6d3970560e896097e3069d449",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/fiff/tests/test_raw_fiff.py": {
+      "a": 13,
+      "d": 6
+    },
+    "mne/io/meas_info.py": {
+      "a": 7,
+      "d": 4
+    }
+  }
+}

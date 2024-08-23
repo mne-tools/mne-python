@@ -1,0 +1,55 @@
+{
+  "merge_commit_sha": "4e2eaf119e9148c2bf6589d995f1807e861a55d9",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "README.rst": {
+      "a": 1,
+      "d": 2
+    },
+    "azure-pipelines.yml": {
+      "a": 12,
+      "d": 19
+    },
+    "doc/changes/devel/12742.dependency.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/install/manual_install.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/inverse/evoked_ers_source_power.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/conftest.py": {
+      "a": 0,
+      "d": 4
+    },
+    "mne/viz/_brain/tests/test_brain.py": {
+      "a": 2,
+      "d": 5
+    },
+    "tools/install_pre_requirements.sh": {
+      "a": 8,
+      "d": 7
+    },
+    "tools/pyqt6_requirements.txt": {
+      "a": 0,
+      "d": 2
+    },
+    "tutorials/inverse/30_mne_dspm_loreta.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/inverse/40_mne_fixed_free.py": {
+      "a": 24,
+      "d": 10
+    }
+  }
+}

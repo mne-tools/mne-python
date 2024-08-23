@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "71332fbf18580829bed8cd6eba672fd5a5c6ebba",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "examples/inverse/plot_covariance_whitening_dspm.py": {
+      "a": 3,
+      "d": 3
+    },
+    "examples/plot_evoked_whitening.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/cov.py": {
+      "a": 25,
+      "d": 6
+    },
+    "mne/evoked.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/fixes.py": {
+      "a": 0,
+      "d": 177
+    },
+    "mne/viz/evoked.py": {
+      "a": 3,
+      "d": 3
+    }
+  }
+}

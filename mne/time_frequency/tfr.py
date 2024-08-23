@@ -2,12 +2,8 @@
 
 Morlet code inspired by Matlab code from Sheraz Khan & Brainstorm & SPM
 """
-# Authors : Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#           Hari Bharadwaj <hari@nmr.mgh.harvard.edu>
-#           Clement Moutard <clement.moutard@polytechnique.org>
-#           Jean-Remi King <jeanremi.king@gmail.com>
-#
-# License : BSD-3-Clause
+
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -597,7 +593,7 @@ def _check_tfr_param(
 ):
     """Aux. function to _compute_tfr to check the params validity."""
     # Check freqs
-    if not isinstance(freqs, (list, np.ndarray)):
+    if not isinstance(freqs, list | np.ndarray):
         raise ValueError(f"freqs must be an array-like, got {type(freqs)} instead.")
     freqs = np.asarray(freqs, dtype=float)
     if freqs.ndim != 1:
@@ -607,7 +603,7 @@ def _check_tfr_param(
         )
 
     # Check sfreq
-    if not isinstance(sfreq, (float, int)):
+    if not isinstance(sfreq, float | int):
         raise ValueError(f"sfreq must be a float or an int, got {type(sfreq)} instead.")
     sfreq = float(sfreq)
 
@@ -620,9 +616,9 @@ def _check_tfr_param(
     freqs = np.asarray(freqs)
 
     # Check n_cycles
-    if isinstance(n_cycles, (int, float)):
+    if isinstance(n_cycles, int | float):
         n_cycles = float(n_cycles)
-    elif isinstance(n_cycles, (list, np.ndarray)):
+    elif isinstance(n_cycles, list | np.ndarray):
         n_cycles = np.array(n_cycles)
         if len(n_cycles) != len(freqs):
             raise ValueError(
@@ -1874,8 +1870,6 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
         combine=None,
         layout=None,  # TODO deprecate? not used in orig implementation either
         yscale="auto",
-        vmin=None,
-        vmax=None,
         vlim=(None, None),
         cnorm=None,
         cmap=None,
@@ -1910,7 +1904,6 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
         %(yscale_tfr_plot)s
 
             .. versionadded:: 0.14.0
-        %(vmin_vmax_tfr_plot)s
         %(vlim_tfr_plot)s
         %(cnorm)s
 
@@ -1939,8 +1932,6 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
         figs : list of instances of matplotlib.figure.Figure
             A list of figures containing the time-frequency power.
         """
-        # deprecations
-        vlim = _warn_deprecated_vmin_vmax(vlim, vmin, vmax)
         # the rectangle selector plots topomaps, which needs all channels uncombined,
         # so we keep a reference to that state here, and (because the topomap plotting
         # function wants an AverageTFR) update it with `comment` and `nave` values in
@@ -2127,8 +2118,6 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
         mode="mean",
         dB=False,
         yscale="auto",
-        vmin=None,
-        vmax=None,
         vlim=(None, None),
         cnorm=None,
         cmap=None,
@@ -2159,7 +2148,6 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
         %(mode_tfr_plot)s
         %(dB_tfr_plot_topo)s
         %(yscale_tfr_plot)s
-        %(vmin_vmax_tfr_plot)s
         %(vlim_tfr_plot_joint)s
         %(cnorm)s
         %(cmap_tfr_plot_topo)s
@@ -2184,8 +2172,6 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
         from matplotlib import ticker
         from matplotlib.patches import ConnectionPatch
 
-        # deprecations
-        vlim = _warn_deprecated_vmin_vmax(vlim, vmin, vmax)
         # handle recursion
         picks = _picks_to_idx(
             self.info, picks, "data_or_ica", exclude=exclude, with_ref_meg=False
@@ -2721,37 +2707,12 @@ class AverageTFR(BaseTFR):
 
     Parameters
     ----------
-    %(info_not_none)s
-
-        .. deprecated:: 1.7
-            Pass an instance of :class:`~mne.Epochs` or :class:`~mne.Evoked` instead, or
-            use :class:`~mne.time_frequency.AverageTFRArray` which retains the old API.
-    data : ndarray, shape (n_channels, n_freqs, n_times)
-        The data.
-
-        .. deprecated:: 1.7
-            Pass an instance of :class:`~mne.Epochs` or :class:`~mne.Evoked` instead, or
-            use :class:`~mne.time_frequency.AverageTFRArray` which retains the old API.
-    times : ndarray, shape (n_times,)
-        The time values in seconds.
-
-        .. deprecated:: 1.7
-            Pass an instance of :class:`~mne.Epochs` or :class:`~mne.Evoked` instead and
-            (optionally) use ``tmin`` and ``tmax`` to restrict the time domain; or use
-            :class:`~mne.time_frequency.AverageTFRArray` which retains the old API.
-    freqs : ndarray, shape (n_freqs,)
-        The frequencies in Hz.
-    nave : int
-        The number of averaged TFRs.
-
-        .. deprecated:: 1.7
-            Pass an instance of :class:`~mne.Epochs` or :class:`~mne.Evoked` instead;
-            ``nave`` will be inferred automatically. Or, use
-            :class:`~mne.time_frequency.AverageTFRArray` which retains the old API.
     inst : instance of Evoked | instance of Epochs | dict
         The data from which to compute the time-frequency representation. Passing a
         :class:`dict` will create the AverageTFR using the ``__setstate__`` interface
         and is not recommended for typical use cases.
+    freqs : ndarray, shape (n_freqs,)
+        The frequencies in Hz.
     %(method_tfr)s
     %(freqs_tfr)s
     %(tmin_tmax_psd)s
@@ -2809,13 +2770,9 @@ class AverageTFR(BaseTFR):
 
     def __init__(
         self,
-        info=None,
-        data=None,
-        times=None,
-        freqs=None,
-        nave=None,
         *,
         inst=None,
+        freqs=None,
         method=None,
         tmin=None,
         tmax=None,
@@ -2980,33 +2937,10 @@ class EpochsTFR(BaseTFR, GetEpochsMixin):
 
     Parameters
     ----------
-    %(info_not_none)s
-
-        .. deprecated:: 1.7
-            Pass an instance of :class:`~mne.Epochs` as ``inst`` instead, or use
-            :class:`~mne.time_frequency.EpochsTFRArray` which retains the old API.
-    data : ndarray, shape (n_channels, n_freqs, n_times)
-        The data.
-
-        .. deprecated:: 1.7
-            Pass an instance of :class:`~mne.Epochs` as ``inst`` instead, or use
-            :class:`~mne.time_frequency.EpochsTFRArray` which retains the old API.
-    times : ndarray, shape (n_times,)
-        The time values in seconds.
-
-        .. deprecated:: 1.7
-            Pass an instance of :class:`~mne.Epochs` as ``inst`` instead and
-            (optionally) use ``tmin`` and ``tmax`` to restrict the time domain; or use
-            :class:`~mne.time_frequency.EpochsTFRArray` which retains the old API.
-    %(freqs_tfr_epochs)s
     inst : instance of Epochs
         The data from which to compute the time-frequency representation.
+    %(freqs_tfr_epochs)s
     %(method_tfr_epochs)s
-    %(comment_tfr_attr)s
-
-        .. deprecated:: 1.7
-            Pass an instance of :class:`~mne.Epochs` as ``inst`` instead, or use
-            :class:`~mne.time_frequency.EpochsTFRArray` which retains the old API.
     %(tmin_tmax_psd)s
     %(picks_good_data_noref)s
     %(proj_psd)s
@@ -3087,14 +3021,10 @@ class EpochsTFR(BaseTFR, GetEpochsMixin):
 
     def __init__(
         self,
-        info=None,
-        data=None,
-        times=None,
-        freqs=None,
         *,
         inst=None,
+        freqs=None,
         method=None,
-        comment=None,
         tmin=None,
         tmax=None,
         picks=None,
@@ -3110,44 +3040,6 @@ class EpochsTFR(BaseTFR, GetEpochsMixin):
         **method_kw,
     ):
         from ..epochs import BaseEpochs
-
-        # deprecations. TODO remove after 1.7 release
-        depr_params = dict(info=info, data=data, times=times, comment=comment)
-        bad_params = list()
-        for name, param in depr_params.items():
-            if param is not None:
-                bad_params.append(name)
-        if len(bad_params):
-            _s = _pl(bad_params)
-            is_are = _pl(bad_params, "is", "are")
-            bad_params_list = '", "'.join(bad_params)
-            warn(
-                f'Parameter{_s} "{bad_params_list}" {is_are} deprecated and will be '
-                "removed in version 1.8. For a quick fix, use ``EpochsTFRArray`` with "
-                "the same parameters. For a long-term fix, see the docstring notes.",
-                FutureWarning,
-            )
-            if inst is not None:
-                raise ValueError(
-                    "Do not pass `inst` alongside deprecated params "
-                    f'"{bad_params_list}"; see docstring of AverageTFR for guidance.'
-                )
-            # sensible defaults are created in __setstate__ so only pass these through
-            # if they're user-specified
-            optional = dict(
-                freqs=freqs,
-                method=method,
-                events=events,
-                event_id=event_id,
-                selection=selection,
-                drop_log=drop_log,
-                metadata=metadata,
-            )
-            optional_params = {
-                key: val for key, val in optional.items() if val is not None
-            }
-            inst = depr_params | optional_params
-        # end TODO ↑↑↑↑↑↑
 
         # dict is allowed for __setstate__ compatibility
         _validate_type(
@@ -3448,8 +3340,6 @@ class EpochsTFR(BaseTFR, GetEpochsMixin):
         combine=None,
         layout=None,  # TODO deprecate; not used in orig implementation
         yscale="auto",
-        vmin=None,
-        vmax=None,
         vlim=(None, None),
         cnorm=None,
         cmap=None,
@@ -3477,8 +3367,6 @@ class EpochsTFR(BaseTFR, GetEpochsMixin):
             combine=combine,
             layout=layout,
             yscale=yscale,
-            vmin=vmin,
-            vmax=vmax,
             vlim=vlim,
             cnorm=cnorm,
             cmap=cmap,
@@ -3563,8 +3451,6 @@ class EpochsTFR(BaseTFR, GetEpochsMixin):
         mode="mean",
         dB=False,
         yscale="auto",
-        vmin=None,
-        vmax=None,
         vlim=(None, None),
         cnorm=None,
         cmap=None,
@@ -3589,8 +3475,6 @@ class EpochsTFR(BaseTFR, GetEpochsMixin):
             mode=mode,
             dB=dB,
             yscale=yscale,
-            vmin=vmin,
-            vmax=vmax,
             vlim=vlim,
             cnorm=cnorm,
             cmap=cmap,
@@ -3988,7 +3872,7 @@ def _get_data(inst, return_itc):
     from ..epochs import BaseEpochs
     from ..evoked import Evoked
 
-    if not isinstance(inst, (BaseEpochs, Evoked)):
+    if not isinstance(inst, BaseEpochs | Evoked):
         raise TypeError("inst must be Epochs or Evoked")
     if isinstance(inst, BaseEpochs):
         data = inst.get_data(copy=False)
@@ -4116,7 +4000,7 @@ def write_tfrs(fname, tfr, overwrite=False, *, verbose=None):
     """  # noqa E501
     _, write_hdf5 = _import_h5io_funcs()
     out = []
-    if not isinstance(tfr, (list, tuple)):
+    if not isinstance(tfr, list | tuple):
         tfr = [tfr]
     for ii, tfr_ in enumerate(tfr):
         comment = ii if getattr(tfr_, "comment", None) is None else tfr_.comment
@@ -4329,17 +4213,3 @@ def _prep_data_for_plot(
     if dB:
         data = 10 * np.log10(data)
     return data, times, freqs
-
-
-def _warn_deprecated_vmin_vmax(vlim, vmin, vmax):
-    if vmin is not None or vmax is not None:
-        warning = "Parameters `vmin` and `vmax` are deprecated, use `vlim` instead."
-        if vlim[0] is None and vlim[1] is None:
-            vlim = (vmin, vmax)
-        else:
-            warning += (
-                " You've also provided a (non-default) value for `vlim`, "
-                "so `vmin` and `vmax` will be ignored."
-            )
-        warn(warning, FutureWarning)
-    return vlim

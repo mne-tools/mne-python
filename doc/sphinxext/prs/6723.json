@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "d9d009fa4bd7f964a8a7756b93746fe9e814038d",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "tutorials/intro/plot_40_projectors_background.py": {
+      "a": 11,
+      "d": 9
+    },
+    "tutorials/preprocessing/plot_50_artifact_correction_ssp.py": {
+      "a": 370,
+      "d": 62
+    },
+    "tutorials/raw/plot_40_visualize_raw.py": {
+      "a": 2,
+      "d": 4
+    }
+  }
+}

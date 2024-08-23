@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "7168e683e319f99a3c57ec68f7f0e844eafcb463",
+  "authors": [
+    {
+      "n": "Maggie Clarke",
+      "e": "mdclarke@uw.edu"
+    }
+  ],
+  "changes": {
+    "examples/io/plot_read_noise_covariance_matrix.py": {
+      "a": 4,
+      "d": 6
+    }
+  }
+}

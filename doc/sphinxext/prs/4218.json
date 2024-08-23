@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "ddd84d8e199761fca6926f91c0493446e3ff0260",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/reference.py": {
+      "a": 60,
+      "d": 17
+    },
+    "mne/io/tests/test_reference.py": {
+      "a": 8,
+      "d": 1
+    }
+  }
+}

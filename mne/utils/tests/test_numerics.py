@@ -1,5 +1,7 @@
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 from copy import deepcopy
 from datetime import date
 from io import StringIO
@@ -26,6 +28,7 @@ from mne.utils import (
     _get_inst_data,
     _julian_to_date,
     _reg_pinv,
+    _replace_md5,
     _ReuseCycle,
     _time_mask,
     _undo_scaling_array,
@@ -602,3 +605,20 @@ def test_custom_lru_cache():
     with pytest.raises(RuntimeError, match="Unsupported sparse type"):
         my_fun_2(1, _eye_array(1, format="coo"))
     assert n_calls == [2, 2]  # never did any computation
+
+
+def test_replace_md5(tmp_path):
+    """Test _replace_md5."""
+    old = tmp_path / "test"
+    new = old.with_suffix(".new")
+    old.write_text("abcd")
+    new.write_text("abcde")
+    assert old.is_file()
+    assert new.is_file()
+    _replace_md5(str(new))
+    assert not new.is_file()
+    assert old.read_text() == "abcde"
+    new.write_text(old.read_text())
+    _replace_md5(str(new))
+    assert old.read_text() == "abcde"
+    assert not new.is_file()

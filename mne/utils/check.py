@@ -1,6 +1,6 @@
 """The check functions."""
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#
+
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -167,7 +167,35 @@ def _import_h5py():
 
 def _import_h5io_funcs():
     h5io = _soft_import("h5io", "HDF5-based I/O")
-    return h5io.read_hdf5, h5io.write_hdf5
+
+    # Saving to HDF5 does not support pathlib.Path objects, which are more and more used
+    # in MNE-Python.
+    # Related issue in h5io: https://github.com/h5io/h5io/issues/113
+    def cast_path_to_str(data: dict) -> dict:
+        """Cast all paths value to string in data."""
+        keys2cast = []
+        for key, value in data.items():
+            if isinstance(value, dict):
+                cast_path_to_str(value)
+            if isinstance(value, Path):
+                data[key] = value.as_posix()
+            if isinstance(key, Path):
+                keys2cast.append(key)
+        for key in keys2cast:
+            data[key.as_posix()] = data.pop(key)
+        return data
+
+    def write_hdf5(fname, data, *args, **kwargs):
+        """Write h5 and cast all paths to string in data."""
+        if isinstance(data, dict):
+            data = cast_path_to_str(data)
+        elif isinstance(data, list):
+            for k, elt in enumerate(data):
+                if isinstance(elt, dict):
+                    data[k] = cast_path_to_str(elt)
+        h5io.write_hdf5(fname, data, *args, **kwargs)
+
+    return h5io.read_hdf5, write_hdf5
 
 
 def _import_pymatreader_funcs(purpose):
@@ -186,7 +214,7 @@ def check_random_state(seed):
     """
     if seed is None or seed is np.random:
         return np.random.mtrand._rand
-    if isinstance(seed, (int, np.integer)):
+    if isinstance(seed, int | np.integer):
         return np.random.mtrand.RandomState(seed)
     if isinstance(seed, np.random.mtrand.RandomState):
         return seed
@@ -309,7 +337,7 @@ def _check_preload(inst, msg):
     from ..time_frequency import BaseTFR
     from ..time_frequency.spectrum import BaseSpectrum
 
-    if isinstance(inst, (BaseTFR, Evoked, BaseSpectrum, _BaseSourceEstimate)):
+    if isinstance(inst, BaseTFR | Evoked | BaseSpectrum | _BaseSourceEstimate):
         pass
     else:
         name = "epochs" if isinstance(inst, BaseEpochs) else "raw"
@@ -578,7 +606,7 @@ def _validate_type(item, types=None, item_name=None, type_name=None, *, extra=""
     elif types == "info":
         from .._fiff.meas_info import Info as types
 
-    if not isinstance(types, (list, tuple)):
+    if not isinstance(types, list | tuple):
         types = [types]
 
     check_types = sum(

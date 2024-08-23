@@ -1,0 +1,79 @@
+{
+  "merge_commit_sha": "548d8131d452720d9c6af7b74831c3182fd107fc",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/bem.py": {
+      "a": 4,
+      "d": 3
+    },
+    "mne/channels/interpolation.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/decoding/receptive_field.py": {
+      "a": 6,
+      "d": 6
+    },
+    "mne/decoding/tests/test_receptive_field.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/filter.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/fixes.py": {
+      "a": 16,
+      "d": 0
+    },
+    "mne/forward/_compute_forward.py": {
+      "a": 8,
+      "d": 8
+    },
+    "mne/forward/_lead_dots.py": {
+      "a": 10,
+      "d": 9
+    },
+    "mne/inverse_sparse/mxne_optim.py": {
+      "a": 14,
+      "d": 14
+    },
+    "mne/label.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/preprocessing/maxwell.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/source_estimate.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/surface.py": {
+      "a": 11,
+      "d": 11
+    },
+    "mne/tests/test_docstring_parameters.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/transforms.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/_3d.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

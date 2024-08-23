@@ -1,0 +1,55 @@
+{
+  "merge_commit_sha": "062b5e0a34d9dfc8c701fa0d86f2a017262207f2",
+  "authors": [
+    {
+      "n": "Mikolaj Magnuski",
+      "e": "mmagnuski@swps.edu.pl"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/bem.py": {
+      "a": 3,
+      "d": 7
+    },
+    "mne/defaults.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/export/tests/test_export.py": {
+      "a": 4,
+      "d": 1
+    },
+    "mne/io/eeglab/eeglab.py": {
+      "a": 59,
+      "d": 44
+    },
+    "mne/io/eeglab/tests/test_eeglab.py": {
+      "a": 34,
+      "d": 19
+    },
+    "mne/tests/test_bem.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/check.py": {
+      "a": 41,
+      "d": 0
+    },
+    "mne/utils/docs.py": {
+      "a": 18,
+      "d": 0
+    }
+  }
+}

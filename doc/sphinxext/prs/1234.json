@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "f127281d34540597e81dab029edbb67ed9a29be2",
+  "authors": [
+    {
+      "n": null,
+      "e": "flKazemakase@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/source/whats_new.rst": {
+      "a": 5,
+      "d": 0
+    },
+    "mne/fiff/edf/edf.py": {
+      "a": 122,
+      "d": 7
+    },
+    "mne/fiff/edf/tests/data/test.edf": {
+      "a": 7,
+      "d": 7
+    },
+    "mne/fiff/edf/tests/test_edf.py": {
+      "a": 87,
+      "d": 8
+    }
+  }
+}

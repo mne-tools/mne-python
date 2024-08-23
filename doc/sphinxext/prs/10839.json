@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "486519911d25ad2cc34c9bf6ad7c0a38e7f8aabd",
+  "authors": [
+    {
+      "n": "Carina",
+      "e": "carinaforster0611@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/preprocessing/infomax_.py": {
+      "a": 3,
+      "d": 1
+    }
+  }
+}

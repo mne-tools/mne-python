@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "c276f61c8ed23473834eea88af6e13966e0b834e",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/icons/toolbar_move_horizontal@2x.png": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/icons/toolbar_move_vertical@2x.png": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/icons/toolbar_separator_horizontal.png": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/icons/toolbar_separator_horizontal@2x.png": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/icons/toolbar_separator_vertical@2x.png": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/viz/_scraper.py": {
+      "a": 2,
+      "d": 9
+    },
+    "mne/viz/backends/_utils.py": {
+      "a": 67,
+      "d": 6
+    },
+    "mne/viz/backends/tests/test_utils.py": {
+      "a": 40,
+      "d": 1
+    }
+  }
+}

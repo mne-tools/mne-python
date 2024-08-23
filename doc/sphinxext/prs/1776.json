@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "fb3252956b06bffc1019ba23a3611e1ffd5fbbba",
+  "authors": [
+    {
+      "n": "Marijn van Vliet",
+      "e": "w.m.vanvliet@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/channels/interpolation.py": {
+      "a": 7,
+      "d": 1
+    },
+    "mne/channels/tests/test_interpolation.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/ecg.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

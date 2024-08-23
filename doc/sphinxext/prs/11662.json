@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "32000d4983ba904a5660ec7c31818d881e1cfa61",
+  "authors": [
+    {
+      "n": "Florin Pop",
+      "e": "florin@ae.studio"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/utils/check.py": {
+      "a": 6,
+      "d": 5
+    },
+    "mne/viz/backends/_utils.py": {
+      "a": 6,
+      "d": 4
+    }
+  }
+}

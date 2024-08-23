@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "e77de58173b0c2b3bd1a85ec42f55fd808d8b20e",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/inverse/plot_gamma_map_inverse.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/inverse/plot_mixed_norm_inverse.py": {
+      "a": 2,
+      "d": 3
+    },
+    "examples/inverse/plot_time_frequency_mixed_norm_inverse.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/viz/_3d.py": {
+      "a": 10,
+      "d": 4
+    },
+    "tutorials/source-modeling/plot_dipole_fit.py": {
+      "a": 3,
+      "d": 4
+    }
+  }
+}

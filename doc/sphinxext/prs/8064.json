@@ -1,0 +1,87 @@
+{
+  "merge_commit_sha": "a78e20d99f7d51f6b1617dc0330d139def76bc35",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/conf.py": {
+      "a": 1,
+      "d": 0
+    },
+    "examples/inverse/plot_mixed_source_space_inverse.py": {
+      "a": 12,
+      "d": 2
+    },
+    "mne/conftest.py": {
+      "a": 16,
+      "d": 0
+    },
+    "mne/defaults.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/source_estimate.py": {
+      "a": 97,
+      "d": 45
+    },
+    "mne/utils/docs.py": {
+      "a": 33,
+      "d": 4
+    },
+    "mne/viz/_3d.py": {
+      "a": 80,
+      "d": 32
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 411,
+      "d": 180
+    },
+    "mne/viz/_brain/_timeviewer.py": {
+      "a": 253,
+      "d": 109
+    },
+    "mne/viz/_brain/tests/test_brain.py": {
+      "a": 201,
+      "d": 63
+    },
+    "mne/viz/_brain/view.py": {
+      "a": 34,
+      "d": 29
+    },
+    "mne/viz/backends/_pysurfer_mayavi.py": {
+      "a": 13,
+      "d": 11
+    },
+    "mne/viz/backends/_pyvista.py": {
+      "a": 45,
+      "d": 19
+    },
+    "mne/viz/backends/base_renderer.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/backends/tests/test_renderer.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 66,
+      "d": 27
+    },
+    "setup.cfg": {
+      "a": 2,
+      "d": 1
+    },
+    "tutorials/source-modeling/plot_beamformer_lcmv.py": {
+      "a": 22,
+      "d": 3
+    }
+  }
+}

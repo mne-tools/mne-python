@@ -1,10 +1,6 @@
 """IO with fif files containing events."""
 
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
-#          Teon Brooks <teon.brooks@gmail.com>
-#          Clement Moutard <clement.moutard@polytechnique.org>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -1633,7 +1629,7 @@ def match_event_names(event_names, keys, *, on_missing="raise"):
         event_names = list(event_names)
 
     # ensure we have a list of `keys`
-    if isinstance(keys, (Sequence, np.ndarray)) and not isinstance(keys, str):
+    if isinstance(keys, Sequence | np.ndarray) and not isinstance(keys, str):
         keys = list(keys)
     else:
         keys = [keys]

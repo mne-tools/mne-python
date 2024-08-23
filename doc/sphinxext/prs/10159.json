@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "523576f6bd805dfbf3e882933d779c5a2fd6d740",
+  "authors": [
+    {
+      "n": "Alex Rockhill",
+      "e": "aprockhill@mailbox.org"
+    }
+  ],
+  "changes": {
+    "mne/conftest.py": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

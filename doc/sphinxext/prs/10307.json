@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "e6b53672ba66af749a075559aa2e94fe06802f3c",
+  "authors": [
+    {
+      "n": "Mikolaj Magnuski",
+      "e": "mmagnuski@swps.edu.pl"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/time_frequency/multitaper.py": {
+      "a": 38,
+      "d": 16
+    },
+    "mne/time_frequency/tests/test_psd.py": {
+      "a": 12,
+      "d": 1
+    }
+  }
+}

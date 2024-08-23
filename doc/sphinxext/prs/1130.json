@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "8270ec8847afbe784fe970a033d60896eb3d2bf0",
+  "authors": [
+    {
+      "n": "Saket Choudhary",
+      "e": "saketkc@gmail.com"
+    }
+  ],
+  "changes": {
+    "Makefile": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "3506ebbe9146b337dc22c05297c4d39daed93ac9",
+  "authors": [
+    {
+      "n": "jaeilepp",
+      "e": "jaeilepp@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/channels/layout.py": {
+      "a": 5,
+      "d": 2
+    },
+    "mne/channels/tests/test_layout.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/viz/topomap.py": {
+      "a": 10,
+      "d": 2
+    }
+  }
+}

@@ -1,0 +1,63 @@
+{
+  "merge_commit_sha": "7d1a25088fe2b2c64acd27af8672b2abd884cdce",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/_static/anr.jpeg": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/doe.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/erc.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/funding/amazon.svg": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/funding/anr.svg": {
+      "a": 6,
+      "d": 0
+    },
+    "doc/_static/funding/cds.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/funding/czi.svg": {
+      "a": 19,
+      "d": 0
+    },
+    "doc/_static/funding/doe.svg": {
+      "a": 1659,
+      "d": 0
+    },
+    "doc/_static/funding/erc.svg": {
+      "a": 662,
+      "d": 0
+    },
+    "doc/_static/funding/google.svg": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/funding/nih.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/funding/nsf.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/index.rst": {
+      "a": 9,
+      "d": 8
+    }
+  }
+}

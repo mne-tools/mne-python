@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "c4a83c5a1792fa68315baa87f1d7b26d9b6d709b",
+  "authors": [
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/utils/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/docs.py": {
+      "a": 40,
+      "d": 0
+    },
+    "mne/utils/tests/test_docs.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/viz/backends/_pysurfer_mayavi.py": {
+      "a": 5,
+      "d": 182
+    },
+    "mne/viz/backends/_vtki.py": {
+      "a": 24,
+      "d": 2
+    },
+    "mne/viz/backends/base_renderer.py": {
+      "a": 246,
+      "d": 0
+    }
+  }
+}

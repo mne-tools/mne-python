@@ -1,13 +1,14 @@
 """Some utility functions."""
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Clemens Brunner <clemens.brunner@gmail.com>
-#
+
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
 import inspect
 import numbers
 import operator
+import os
+import shutil
 import sys
 from contextlib import contextmanager
 from datetime import date, datetime, timedelta, timezone
@@ -635,10 +636,10 @@ def object_hash(x, h=None):
     elif isinstance(x, bytes):
         # must come before "str" below
         h.update(x)
-    elif isinstance(x, (str, float, int, type(None))):
+    elif isinstance(x, str | float | int | type(None)):
         h.update(str(type(x)).encode("utf-8"))
         h.update(str(x).encode("utf-8"))
-    elif isinstance(x, (np.ndarray, np.number, np.bool_)):
+    elif isinstance(x, np.ndarray | np.number | np.bool_):
         x = np.asarray(x)
         h.update(str(x.shape).encode("utf-8"))
         h.update(str(x.dtype).encode("utf-8"))
@@ -647,7 +648,7 @@ def object_hash(x, h=None):
         object_hash(_dt_to_stamp(x))
     elif sparse.issparse(x):
         h.update(str(type(x)).encode("utf-8"))
-        if not isinstance(x, (sparse.csr_array, sparse.csc_array)):
+        if not isinstance(x, sparse.csr_array | sparse.csc_array):
             raise RuntimeError(f"Unsupported sparse type {type(x)}")
         h.update(x.data.tobytes())
         h.update(x.indices.tobytes())
@@ -686,7 +687,7 @@ def object_size(x, memo=None):
     id_ = id(x)
     if id_ in memo:
         return 0  # do not add already existing ones
-    if isinstance(x, (bytes, str, int, float, type(None), Path)):
+    if isinstance(x, bytes | str | int | float | type(None) | Path):
         size = sys.getsizeof(x)
     elif isinstance(x, np.ndarray):
         # On newer versions of NumPy, just doing sys.getsizeof(x) works,
@@ -701,7 +702,7 @@ def object_size(x, memo=None):
         for key, value in x.items():
             size += object_size(key, memo)
             size += object_size(value, memo)
-    elif isinstance(x, (list, tuple)):
+    elif isinstance(x, list | tuple):
         size = sys.getsizeof(x) + sum(object_size(xx, memo) for xx in x)
     elif isinstance(x, datetime):
         size = object_size(_dt_to_stamp(x), memo)
@@ -717,7 +718,7 @@ def object_size(x, memo=None):
 
 def _is_sparse_cs(x):
     return isinstance(
-        x, (sparse.csr_matrix, sparse.csc_matrix, sparse.csr_array, sparse.csc_array)
+        x, sparse.csr_matrix | sparse.csc_matrix | sparse.csr_array | sparse.csc_array
     )
 
 
@@ -786,7 +787,7 @@ def object_diff(a, b, pre="", *, allclose=False):
                 out += object_diff(
                     a[key], b[key], pre=(pre + f"[{repr(key)}]"), allclose=allclose
                 )
-    elif isinstance(a, (list, tuple)):
+    elif isinstance(a, list | tuple):
         if len(a) != len(b):
             out += pre + f" length mismatch ({len(a)}, {len(b)})\n"
         else:
@@ -795,7 +796,7 @@ def object_diff(a, b, pre="", *, allclose=False):
     elif isinstance(a, float):
         if not _array_equal_nan(a, b, allclose):
             out += pre + f" value mismatch ({a}, {b})\n"
-    elif isinstance(a, (str, int, bytes, np.generic)):
+    elif isinstance(a, str | int | bytes | np.generic):
         if a != b:
             out += pre + f" value mismatch ({a}, {b})\n"
     elif a is None:
@@ -804,10 +805,10 @@ def object_diff(a, b, pre="", *, allclose=False):
     elif isinstance(a, np.ndarray):
         if not _array_equal_nan(a, b, allclose):
             out += pre + " array mismatch\n"
-    elif isinstance(a, (StringIO, BytesIO)):
+    elif isinstance(a, StringIO | BytesIO):
         if a.getvalue() != b.getvalue():
             out += pre + " StringIO mismatch\n"
-    elif isinstance(a, (datetime, date)):
+    elif isinstance(a, datetime | date):
         if (a - b).total_seconds() != 0:
             out += pre + f" {a.__class__.__name__} mismatch\n"
     elif sparse.issparse(a):
@@ -876,7 +877,7 @@ class _PCA:
                 "svd_solver='full'"
             )
         elif n_components >= 1:
-            if not isinstance(n_components, (numbers.Integral, np.integer)):
+            if not isinstance(n_components, numbers.Integral | np.integer):
                 raise ValueError(
                     f"n_components={repr(n_components)} must be of type int "
                     f"when greater than or equal to 1, "
@@ -1104,3 +1105,14 @@ def _array_repr(x):
     """Produce compact info about float ndarray x."""
     assert isinstance(x, np.ndarray), type(x)
     return f"shape : {x.shape}, range : [{np.nanmin(x):+0.2g}, {np.nanmax(x):+0.2g}]"
+
+
+def _replace_md5(fname):
+    """Replace a file based on MD5sum."""
+    # adapted from sphinx-gallery
+    assert fname.endswith(".new")
+    fname_old = fname[:-4]
+    if os.path.isfile(fname_old) and hashfunc(fname) == hashfunc(fname_old):
+        os.remove(fname)
+    else:
+        shutil.move(fname, fname_old)

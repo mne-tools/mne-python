@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "28cc5269865f3ae68822f3f63805e7db395e0c1a",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/realtime/tests/test_stim_client_server.py": {
+      "a": 5,
+      "d": 5
+    }
+  }
+}

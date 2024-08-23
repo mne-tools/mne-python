@@ -1,0 +1,51 @@
+{
+  "merge_commit_sha": "9613c71f24b8f3f289fcbace86be57dcc66360ed",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/preprocessing/plot_interpolate_bad_channels.py": {
+      "a": 23,
+      "d": 17
+    },
+    "mne/channels/channels.py": {
+      "a": 34,
+      "d": 7
+    },
+    "mne/channels/interpolation.py": {
+      "a": 52,
+      "d": 38
+    },
+    "mne/channels/tests/test_interpolation.py": {
+      "a": 49,
+      "d": 24
+    },
+    "mne/defaults.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/forward/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/forward/_field_interpolation.py": {
+      "a": 84,
+      "d": 40
+    },
+    "mne/forward/_lead_dots.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/viz/topomap.py": {
+      "a": 6,
+      "d": 2
+    }
+  }
+}

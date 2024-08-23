@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "134c50f731beed3913f2e2c24a0c3c60aae952f2",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    }
+  ],
+  "changes": {
+    "examples/preprocessing/plot_run_ica.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 14,
+      "d": 0
+    },
+    "tutorials/plot_artifacts_correction_ica.py": {
+      "a": 13,
+      "d": 0
+    }
+  }
+}

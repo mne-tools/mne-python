@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "d0e4c98368a553b72c8a805944cb8b5d55e60b48",
+  "authors": [
+    {
+      "n": "Mikolaj Magnuski",
+      "e": "mmagnuski@swps.edu.pl"
+    }
+  ],
+  "changes": {
+    "mne/fixes.py": {
+      "a": 432,
+      "d": 0
+    },
+    "mne/time_frequency/psd.py": {
+      "a": 7,
+      "d": 17
+    }
+  }
+}

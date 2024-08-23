@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "31805d288d4ff7f4bcae8d708d568b59a6c0e26d",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/time_frequency/multitaper.py": {
+      "a": 7,
+      "d": 1
+    }
+  }
+}

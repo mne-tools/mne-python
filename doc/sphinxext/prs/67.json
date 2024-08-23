@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "395e203452d16181b2da1a4dc18008734188c17c",
+  "authors": [
+    {
+      "n": "Daniel Strohmeier",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/source/whats_new.rst": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/artifacts/stim.py": {
+      "a": 61,
+      "d": 0
+    },
+    "mne/artifacts/tests/test_stim.py": {
+      "a": 32,
+      "d": 0
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "7472168a9ba8d7b54c5fecd0ce104b18d9147a74",
+  "authors": [
+    {
+      "n": "Juergen Dammers",
+      "e": "j.dammers@fz-juelich.de"
+    }
+  ],
+  "changes": {
+    "mne/fixes.py": {
+      "a": 13,
+      "d": 0
+    },
+    "mne/preprocessing/ctps_.py": {
+      "a": 7,
+      "d": 9
+    }
+  }
+}

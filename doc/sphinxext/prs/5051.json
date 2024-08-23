@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "9f6d4f4432eb218153d6b7da193d549a23739a3a",
+  "authors": [
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    }
+  ],
+  "changes": {
+    "mne/viz/topomap.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

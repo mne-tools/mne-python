@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "d2e5b55c91bde5a0627cdd7ac2895c948cea39a4",
+  "authors": [
+    {
+      "n": "Mohamed Sherif",
+      "e": null
+    }
+  ],
+  "changes": {
+    "tutorials/preprocessing/plot_40_artifact_correction_ica.py": {
+      "a": 2,
+      "d": 0
+    }
+  }
+}

@@ -1,0 +1,63 @@
+{
+  "merge_commit_sha": "a6fe01b56fa073d120c72454830bc858f8ea5ad0",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/Makefile": {
+      "a": 3,
+      "d": 3
+    },
+    "doc/conf.py": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/connectivity/plot_mixed_source_space_connectivity.py": {
+      "a": 3,
+      "d": 8
+    },
+    "examples/connectivity/plot_mne_inverse_connectivity_spectrum.py": {
+      "a": 5,
+      "d": 5
+    },
+    "examples/connectivity/plot_mne_inverse_label_connectivity.py": {
+      "a": 0,
+      "d": 1
+    },
+    "examples/connectivity/plot_mne_inverse_psi_visual.py": {
+      "a": 4,
+      "d": 4
+    },
+    "examples/inverse/plot_compute_mne_inverse_epochs_in_label.py": {
+      "a": 0,
+      "d": 1
+    },
+    "examples/inverse/plot_label_from_stc.py": {
+      "a": 0,
+      "d": 1
+    },
+    "examples/inverse/plot_label_source_activations.py": {
+      "a": 4,
+      "d": 5
+    },
+    "examples/inverse/plot_mixed_source_space_inverse.py": {
+      "a": 2,
+      "d": 4
+    },
+    "mne/label.py": {
+      "a": 7,
+      "d": 1
+    },
+    "mne/stats/cluster_level.py": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

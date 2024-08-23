@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "b786f219b15b881ff7e9a1a74f194a0818d657b0",
+  "authors": [
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    }
+  ],
+  "changes": {
+    "doc/tutorials/report.rst": {
+      "a": 4,
+      "d": 4
+    },
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/base.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/io/fiff/raw.py": {
+      "a": 6,
+      "d": 5
+    },
+    "mne/io/fiff/tests/test_raw_fiff.py": {
+      "a": 4,
+      "d": 7
+    },
+    "mne/utils/tests/test_check.py": {
+      "a": 11,
+      "d": 0
+    }
+  }
+}

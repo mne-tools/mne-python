@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "a4d91852fcecf2b9db99884653e255ba02eeecf9",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/preprocessing/plot_movement_compensation.py": {
+      "a": 23,
+      "d": 8
+    },
+    "mne/chpi.py": {
+      "a": 11,
+      "d": 5
+    },
+    "mne/viz/_3d.py": {
+      "a": 118,
+      "d": 10
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 11,
+      "d": 2
+    }
+  }
+}

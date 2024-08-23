@@ -1,0 +1,139 @@
+{
+  "merge_commit_sha": "c18283ab83c588f8dfc483bd3cd09683aa832aa0",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/_includes/units.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/preprocessing/plot_find_eog_artifacts.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/commands/mne_compute_proj_ecg.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/commands/mne_compute_proj_eog.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/cov.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/defaults.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/io/brainvision/brainvision.py": {
+      "a": 6,
+      "d": 6
+    },
+    "mne/io/curry/curry.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/edf/edf.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/edf/tests/test_edf.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/egi/tests/test_egi.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/tests/test_utils.py": {
+      "a": 5,
+      "d": 5
+    },
+    "mne/io/utils.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/tests/test_evoked.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/tests/test_report.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/docs.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/numerics.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/epochs.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/viz/evoked.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/misc.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/tests/test_raw.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/topo.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/topomap.py": {
+      "a": 3,
+      "d": 3
+    },
+    "tutorials/epochs/plot_20_visualize_epochs.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/epochs/plot_40_epochs_to_data_frame.py": {
+      "a": 3,
+      "d": 3
+    },
+    "tutorials/evoked/plot_10_evoked_overview.py": {
+      "a": 2,
+      "d": 2
+    },
+    "tutorials/intro/plot_10_overview.py": {
+      "a": 2,
+      "d": 2
+    },
+    "tutorials/preprocessing/plot_20_rejecting_bad_data.py": {
+      "a": 5,
+      "d": 5
+    },
+    "tutorials/preprocessing/plot_50_artifact_correction_ssp.py": {
+      "a": 3,
+      "d": 3
+    },
+    "tutorials/sample-datasets/plot_sleep.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/stats-sensor-space/plot_stats_cluster_erp.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

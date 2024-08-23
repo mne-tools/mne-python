@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "94202d929aef8517edbefb69eea534998adcb8fa",
+  "authors": [
+    {
+      "n": "jaeilepp",
+      "e": "jaeilepp@student.jyu.fi"
+    }
+  ],
+  "changes": {
+    ".travis.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/tests/test_filter.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

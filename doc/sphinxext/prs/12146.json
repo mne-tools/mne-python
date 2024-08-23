@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "72225b57014ea05cd26327e57c6852b969cbc570",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    ".pre-commit-config.yaml": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/devel.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/commands/mne_sys_info.py": {
+      "a": 8,
+      "d": 0
+    },
+    "mne/commands/tests/test_commands.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/config.py": {
+      "a": 74,
+      "d": 3
+    },
+    "mne/utils/tests/test_config.py": {
+      "a": 72,
+      "d": 2
+    }
+  }
+}

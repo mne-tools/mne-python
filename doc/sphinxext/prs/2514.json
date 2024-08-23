@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "936dce4d46f9de1c91a3f5b6836d81c1039d9dbe",
+  "authors": [
+    {
+      "n": "Jaakko Leppakangas",
+      "e": "jaeilepp@student.jyu.fi"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/visualization/plot_evoked_erf_erp.py": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/evoked.py": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/viz/evoked.py": {
+      "a": 82,
+      "d": 5
+    },
+    "mne/viz/tests/test_evoked.py": {
+      "a": 2,
+      "d": 0
+    }
+  }
+}

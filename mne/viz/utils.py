@@ -1,16 +1,9 @@
 """Utility functions for plotting M/EEG data."""
 
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Denis Engemann <denis.engemann@gmail.com>
-#          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
-#          Eric Larson <larson.eric.d@gmail.com>
-#          Mainak Jas <mainak@neuro.hut.fi>
-#          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
-#          Clemens Brunner <clemens.brunner@gmail.com>
-#          Daniel McCloy <dan@mccloy.info>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 import difflib
 import math
 import os
@@ -391,7 +384,7 @@ def _get_channel_plotting_order(order, ch_types, picks=None):
             for pick_idx, pick_type in enumerate(ch_types)
             if order_type == pick_type
         ]
-    elif not isinstance(order, (np.ndarray, list, tuple)):
+    elif not isinstance(order, np.ndarray | list | tuple):
         raise ValueError(f'order should be array-like; got "{order}" ({type(order)}).')
     if picks is not None:
         order = [ch for ch in order if ch in picks]
@@ -1290,7 +1283,7 @@ def _plot_sensors_2d(
 
     connect_picker = True
     if show_names:
-        if isinstance(show_names, (list, np.ndarray)):  # only given channels
+        if isinstance(show_names, list | np.ndarray):  # only given channels
             indices = [list(ch_names).index(name) for name in show_names]
         else:  # all channels
             indices = range(len(pos))
@@ -1359,7 +1352,7 @@ def _compute_scalings(scalings, inst, remove_dc=False, duration=10):
     from ..io import BaseRaw
 
     scalings = _handle_default("scalings_plot_raw", scalings)
-    if not isinstance(inst, (BaseRaw, BaseEpochs)):
+    if not isinstance(inst, BaseRaw | BaseEpochs):
         raise ValueError("Must supply either Raw or Epochs")
 
     for key, value in scalings.items():

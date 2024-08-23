@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "324899ae4f60fb5d4911bfd679e53e8815a081d1",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/12399.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/html/d3.v3.min.js": {
+      "a": 0,
+      "d": 5
+    },
+    "mne/html/mpld3.v0.2.min.js": {
+      "a": 0,
+      "d": 2
+    },
+    "mne/report/js_and_css/report.css": {
+      "a": 19,
+      "d": 0
+    },
+    "mne/report/js_and_css/report.sass": {
+      "a": 0,
+      "d": 19
+    },
+    "mne/report/report.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

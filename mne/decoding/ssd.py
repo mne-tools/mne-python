@@ -1,6 +1,4 @@
-# Author: Denis A. Engemann <denis.engemann@gmail.com>
-#         Victoria Peterson <victoriapeterson09@gmail.com>
-#         Thomas S. Binns <t.s.binns@outlook.com>
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -115,7 +113,7 @@ class SSD(BaseEstimator, TransformerMixin):
                     f"{param + '_freq'} must be defined in filter parameters for {key}"
                 )
             val = dicts[key][param + "_freq"]
-            if not isinstance(val, (int, float)):
+            if not isinstance(val, int | float):
                 _validate_type(val, ("numeric",), f"{key} {param}_freq")
         # check freq bands
         if (

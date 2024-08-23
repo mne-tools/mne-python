@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "a72e96ff8523f9b1a2bedb3f482fe2495a43e80f",
+  "authors": [
+    {
+      "n": "Teon L Brooks",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/io/base.py": {
+      "a": 2,
+      "d": 4
+    }
+  }
+}

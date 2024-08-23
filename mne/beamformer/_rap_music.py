@@ -1,8 +1,6 @@
 """Compute a Recursively Applied and Projected MUltiple Signal Classification (RAP-MUSIC)."""  # noqa
 
-# Authors: Yousra Bekhti <yousra.bekhti@gmail.com>
-#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 

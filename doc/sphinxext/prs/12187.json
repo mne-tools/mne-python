@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "2bc47d078999203a23a6c78ac55952c9e699c861",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/viz/_3d.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/backends/_pyvista.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/forward/20_source_alignment.py": {
+      "a": 1,
+      "d": 2
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "12b329c9421376160055957ae88784ec639cbe33",
+  "authors": [
+    {
+      "n": "Chris Holdgraf",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/_static/favicon.ico": {
+      "a": 0,
+      "d": 0
+    }
+  }
+}

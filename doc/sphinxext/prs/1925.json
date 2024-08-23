@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "5e0ecd54e9e970b0e4e9b7cd5ad58c8b0d6f3a61",
+  "authors": [
+    {
+      "n": "Marijn van Vliet",
+      "e": "w.m.vanvliet@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/epochs.py": {
+      "a": 3,
+      "d": 55
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 69,
+      "d": 2
+    }
+  }
+}

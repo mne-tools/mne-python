@@ -1,8 +1,11 @@
-# Configuration file for the Sphinx documentation builder.
-#
-# This file only contains a selection of the most common options. For a full
-# list see the documentation:
-# https://www.sphinx-doc.org/en/master/usage/configuration.html
+"""Configuration file for the Sphinx documentation builder.
+
+This file only contains a selection of the most common options. For a full
+list see the documentation:
+https://www.sphinx-doc.org/en/master/usage/configuration.html
+"""
+
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -51,6 +54,7 @@ curpath = Path(__file__).parent.resolve(strict=True)
 sys.path.append(str(curpath / "sphinxext"))
 
 from mne_doc_utils import report_scraper, reset_warnings  # noqa: E402
+from update_credit_rst import generate_credit_rst  # noqa: E402
 
 # -- Project information -----------------------------------------------------
 
@@ -121,6 +125,8 @@ templates_path = ["_templates"]
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
+
+# NB: changes here should also be made to the linkcheck target in the Makefile
 exclude_patterns = ["_includes", "changes/devel"]
 
 # The suffix of source filenames.
@@ -268,6 +274,7 @@ numpydoc_xref_aliases = {
     "EpochsFIF": "mne.Epochs",
     "EpochsEEGLAB": "mne.Epochs",
     "EpochsKIT": "mne.Epochs",
+    "RawANT": "mne.io.Raw",
     "RawBOXY": "mne.io.Raw",
     "RawBrainVision": "mne.io.Raw",
     "RawBTi": "mne.io.Raw",
@@ -614,9 +621,11 @@ linkcheck_ignore = [  # will be compiled to regex
     "https://doi.org/10.1073/",  # pnas.org
     "https://doi.org/10.1093/",  # academic.oup.com/sleep/
     "https://doi.org/10.1098/",  # royalsocietypublishing.org
+    "https://doi.org/10.1101/",  # www.biorxiv.org
     "https://doi.org/10.1111/",  # onlinelibrary.wiley.com/doi/10.1111/psyp
     "https://doi.org/10.1126/",  # www.science.org
     "https://doi.org/10.1137/",  # epubs.siam.org
+    "https://doi.org/10.1155/",  # www.hindawi.com/journals/cin
     "https://doi.org/10.1161/",  # www.ahajournals.org
     "https://doi.org/10.1162/",  # direct.mit.edu/neco/article/
     "https://doi.org/10.1167/",  # jov.arvojournals.org
@@ -629,6 +638,7 @@ linkcheck_ignore = [  # will be compiled to regex
     "https://www.intel.com/content/www/us/en/developer/tools/oneapi/onemkl.html",
     r"https://scholar.google.com/scholar\?cites=12188330066413208874&as_ylo=2014",
     r"https://scholar.google.com/scholar\?cites=1521584321377182930&as_ylo=2013",
+    "https://www.research.chop.edu/imaging",
     # 500 server error
     "https://openwetware.org/wiki/Beauchamp:FreeSurfer",
     # 503 Server error
@@ -652,6 +662,7 @@ linkcheck_ignore = [  # will be compiled to regex
 linkcheck_anchors = False  # saves a bit of time
 linkcheck_timeout = 15  # some can be quite slow
 linkcheck_retries = 3
+linkcheck_report_timeouts_as_broken = False
 
 # autodoc / autosummary
 autosummary_generate = True
@@ -1097,9 +1108,9 @@ html_context = {
             size=xl,
         ),
         dict(
-            name="Human Neuroscience Platforn at Fondation Campus Biotech Geneva",  # noqa E501
+            name="Fondation Campus Biotech Geneva",
             img="FCBG.svg",
-            url="https://hnp.fcbg.ch/",
+            url="https://fcbg.ch/",
             size=sm,
         ),
     ],
@@ -1650,6 +1661,7 @@ def setup(app):
     """Set up the Sphinx app."""
     app.connect("autodoc-process-docstring", append_attr_meth_examples)
     # High prio, will happen before SG
+    app.connect("builder-inited", generate_credit_rst, priority=10)
     app.connect("builder-inited", report_scraper.set_dirs, priority=20)
     app.connect("build-finished", make_gallery_redirects)
     app.connect("build-finished", make_api_redirects)

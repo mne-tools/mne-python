@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "333fd053af346e94d61732e10dca7356be5f3c51",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/html_templates/repr/ica.html.jinja": {
+      "a": 0,
+      "d": 4
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 139,
+      "d": 10
+    },
+    "mne/preprocessing/tests/test_ica.py": {
+      "a": 89,
+      "d": 2
+    },
+    "tutorials/preprocessing/40_artifact_correction_ica.py": {
+      "a": 37,
+      "d": 3
+    }
+  }
+}

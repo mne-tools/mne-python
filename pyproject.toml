@@ -12,7 +12,7 @@ authors = [
 maintainers = [{ name = "Dan McCloy", email = "dan@mccloy.info" }]
 license = { text = "BSD-3-Clause" }
 readme = { file = "README.rst", content-type = "text/x-rst" }
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 keywords = [
     "neuroscience",
     "neuroimaging",
@@ -107,6 +107,7 @@ full-no-qt = [
     "snirf",
     "defusedxml",
     "neo",
+    "antio",
     "formulaic",
 ]
 full = ["mne[full-no-qt]", "PyQt6!=6.6.0", "PyQt6-Qt6!=6.6.0,!=6.7.0"]
@@ -175,6 +176,8 @@ doc = [
     "ipython!=8.7.0",
     "selenium",
     "intersphinx_registry>=0.2405.27",
+    # https://github.com/sphinx-contrib/sphinxcontrib-towncrier/issues/92
+    "towncrier<24.7",
 ]
 dev = ["mne[test,doc]", "rcssmin"]
 
@@ -275,6 +278,8 @@ skips = ["*/test_*.py"] # assert statements are good practice with pytest
 report_level = "WARNING"
 ignore_roles = [
     "attr",
+    "bdg-primary-line",
+    "bdg-info-line",
     "class",
     "doc",
     "eq",
@@ -299,6 +304,7 @@ ignore_directives = [
     "automodule",
     "autosummary",
     "bibliography",
+    "card",
     "cssclass",
     "currentmodule",
     "dropdown",

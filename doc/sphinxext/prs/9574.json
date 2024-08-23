@@ -1,0 +1,247 @@
+{
+  "merge_commit_sha": "ec2aaa7b1ff40fa2d7a38bd1c376b217d251376f",
+  "authors": [
+    {
+      "n": "Alex Rockhill",
+      "e": "aprockhill@mailbox.org"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "mne/beamformer/_dics.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/beamformer/_lcmv.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/beamformer/_rap_music.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/beamformer/resolution_matrix.py": {
+      "a": 4,
+      "d": 5
+    },
+    "mne/bem.py": {
+      "a": 3,
+      "d": 7
+    },
+    "mne/channels/channels.py": {
+      "a": 14,
+      "d": 17
+    },
+    "mne/channels/layout.py": {
+      "a": 13,
+      "d": 15
+    },
+    "mne/channels/montage.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/chpi.py": {
+      "a": 3,
+      "d": 6
+    },
+    "mne/coreg.py": {
+      "a": 6,
+      "d": 3
+    },
+    "mne/cov.py": {
+      "a": 5,
+      "d": 10
+    },
+    "mne/decoding/csp.py": {
+      "a": 4,
+      "d": 6
+    },
+    "mne/decoding/ssd.py": {
+      "a": 1,
+      "d": 3
+    },
+    "mne/decoding/transformer.py": {
+      "a": 3,
+      "d": 5
+    },
+    "mne/dipole.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/epochs.py": {
+      "a": 4,
+      "d": 7
+    },
+    "mne/event.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/evoked.py": {
+      "a": 3,
+      "d": 5
+    },
+    "mne/forward/_field_interpolation.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/forward/_make_forward.py": {
+      "a": 3,
+      "d": 8
+    },
+    "mne/forward/forward.py": {
+      "a": 7,
+      "d": 10
+    },
+    "mne/io/array/array.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/io/base.py": {
+      "a": 3,
+      "d": 4
+    },
+    "mne/io/brainvision/brainvision.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/compensator.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/io/fiff/raw.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/io/kit/kit.py": {
+      "a": 3,
+      "d": 4
+    },
+    "mne/io/meas_info.py": {
+      "a": 11,
+      "d": 15
+    },
+    "mne/io/pick.py": {
+      "a": 10,
+      "d": 12
+    },
+    "mne/io/proj.py": {
+      "a": 7,
+      "d": 10
+    },
+    "mne/minimum_norm/inverse.py": {
+      "a": 4,
+      "d": 5
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/preprocessing/maxwell.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/preprocessing/nirs/nirs.py": {
+      "a": 3,
+      "d": 4
+    },
+    "mne/rank.py": {
+      "a": 6,
+      "d": 9
+    },
+    "mne/simulation/evoked.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/simulation/raw.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/source_estimate.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/source_space.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/surface.py": {
+      "a": 2,
+      "d": 5
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 4,
+      "d": 8
+    },
+    "mne/utils/config.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/utils/docs.py": {
+      "a": 15,
+      "d": 0
+    },
+    "mne/viz/_3d.py": {
+      "a": 5,
+      "d": 9
+    },
+    "mne/viz/misc.py": {
+      "a": 5,
+      "d": 5
+    },
+    "mne/viz/topo.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/viz/topomap.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/viz/utils.py": {
+      "a": 1,
+      "d": 2
+    }
+  }
+}

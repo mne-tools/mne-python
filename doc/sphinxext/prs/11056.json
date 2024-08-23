@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "e0df20d1dd9bdab5d44b76aeadc93c6e9731e4c1",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "tutorials/time-freq/20_sensors_time_frequency.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

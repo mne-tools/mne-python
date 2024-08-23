@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "b6bb7bf285b144c34a93b76963283b8d35e3f97c",
+  "authors": [
+    {
+      "n": "Denis A. Engemann",
+      "e": null
+    }
+  ],
+  "changes": {
+    "examples/time_frequency/plot_time_frequency_global_field_power.py": {
+      "a": 143,
+      "d": 0
+    }
+  }
+}

@@ -8,8 +8,10 @@ Plot the MNE brain and helmet
 This tutorial shows how to make the MNE helmet + brain image.
 """
 
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 # %%
 
 import mne

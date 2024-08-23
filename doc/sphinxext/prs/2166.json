@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "51c916fd676c5c5bae4ed86fa6f8fdb7357c8968",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".travis.yml": {
+      "a": 18,
+      "d": 16
+    },
+    "mne/viz/raw.py": {
+      "a": 7,
+      "d": 4
+    },
+    "mne/viz/utils.py": {
+      "a": 16,
+      "d": 28
+    }
+  }
+}

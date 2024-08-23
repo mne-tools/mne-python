@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "ad3dc3a6bbc342334f8b418cbd23b1786785620c",
+  "authors": [
+    {
+      "n": "Christian Brodbeck",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/misc.py": {
+      "a": 52,
+      "d": 17
+    },
+    "mne/viz/tests/test_misc.py": {
+      "a": 3,
+      "d": 0
+    },
+    "tutorials/plot_forward.py": {
+      "a": 10,
+      "d": 4
+    }
+  }
+}

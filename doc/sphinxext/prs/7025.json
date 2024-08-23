@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "0e09618b63085867204479bf2571a561d72f437c",
+  "authors": [
+    {
+      "n": "Marijn van Vliet",
+      "e": "w.m.vanvliet@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/inverse/plot_lcmv_beamformer.py": {
+      "a": 17,
+      "d": 6
+    },
+    "examples/inverse/plot_lcmv_beamformer_volume.py": {
+      "a": 11,
+      "d": 4
+    }
+  }
+}

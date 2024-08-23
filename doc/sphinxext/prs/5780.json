@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "aea196ef6dcf43dbda5ca16d40704eed9b0db1ee",
+  "authors": [
+    {
+      "n": "Cristóbal Moënne-Loccoz",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/io/reference.py": {
+      "a": 9,
+      "d": 9
+    },
+    "mne/io/tests/test_reference.py": {
+      "a": 47,
+      "d": 2
+    }
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "64dff6189215cbead61db81d6e6de811a05633e3",
+  "authors": [
+    {
+      "n": "Alex Rockhill",
+      "e": "aprockhill@mailbox.org"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/time_frequency/tests/test_tfr.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 9,
+      "d": 2
+    }
+  }
+}

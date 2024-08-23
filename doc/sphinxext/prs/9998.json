@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "a2ab1e25fde473dc1e47dcc83e4426ce60397461",
+  "authors": [
+    {
+      "n": "Marijn van Vliet",
+      "e": "w.m.vanvliet@gmail.com"
+    },
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/report/report.py": {
+      "a": 4,
+      "d": 2
+    }
+  }
+}

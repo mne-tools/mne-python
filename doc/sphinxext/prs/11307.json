@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "8585dd5a2867a1666d19178026b87bd6e98378b3",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/time_frequency/spectrum.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

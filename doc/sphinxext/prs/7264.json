@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "d977b5a87d8d6aaf0bcc5368fd0836c2c14d7c66",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/decoding/search_light.py": {
+      "a": 4,
+      "d": 5
+    },
+    "mne/decoding/tests/test_search_light.py": {
+      "a": 11,
+      "d": 1
+    }
+  }
+}

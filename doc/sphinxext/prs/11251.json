@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "fcfb565bdf253ca2a20e1c43d622752160def656",
+  "authors": [
+    {
+      "n": "Alex Rockhill",
+      "e": "aprockhill@mailbox.org"
+    }
+  ],
+  "changes": {
+    ".github/workflows/codespell_and_flake.yml": {
+      "a": 2,
+      "d": 1
+    },
+    "Makefile": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/eeglab/tests/test_eeglab.py": {
+      "a": 8,
+      "d": 8
+    }
+  }
+}

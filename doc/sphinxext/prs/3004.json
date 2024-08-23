@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "65ca3c13900453604292f0c1a1cf4cc282d1e132",
+  "authors": [
+    {
+      "n": "Jean-Rémi KING",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/time_frequency/psd.py": {
+      "a": 3,
+      "d": 5
+    }
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "b07c80fcfe44b57d53a2e4c3ff3ed35db94c90ff",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/forward/plot_source_space_morphing.py": {
+      "a": 68,
+      "d": 0
+    },
+    "mne/datasets/utils.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/bti/bti.py": {
+      "a": 23,
+      "d": 8
+    },
+    "mne/source_estimate.py": {
+      "a": 37,
+      "d": 1
+    },
+    "mne/source_space.py": {
+      "a": 134,
+      "d": 37
+    },
+    "mne/tests/test_source_space.py": {
+      "a": 64,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "merge_commit_sha": "db6c8221efeb4d7de881c937012dca8ff9fcf2f8",
+  "authors": [
+    {
+      "n": "Alex Rockhill",
+      "e": "aprockhill@mailbox.org"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 5,
+      "d": 0
+    },
+    "doc/conf.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/commands/mne_coreg.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/gui/__init__.py": {
+      "a": 53,
+      "d": 35
+    },
+    "mne/gui/_coreg.py": {
+      "a": 6,
+      "d": 1
+    },
+    "mne/gui/_ieeg_locate_gui.py": {
+      "a": 4,
+      "d": 1
+    },
+    "mne/gui/tests/test_coreg_gui.py": {
+      "a": 20,
+      "d": 0
+    },
+    "mne/gui/tests/test_ieeg_locate_gui.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/clinical/10_ieeg_localize.py": {
+      "a": 10,
+      "d": 9
+    },
+    "tutorials/forward/20_source_alignment.py": {
+      "a": 18,
+      "d": 18
+    }
+  }
+}

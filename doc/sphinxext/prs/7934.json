@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "31a82ecb3813e0016295ba1b8ec79fc10d2e2d6f",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 39,
+      "d": 114
+    },
+    "mne/viz/_brain/_timeviewer.py": {
+      "a": 11,
+      "d": 10
+    }
+  }
+}

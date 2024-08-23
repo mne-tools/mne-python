@@ -1,0 +1,55 @@
+{
+  "merge_commit_sha": "b3f4b05b3933a3b73458205c7e786166f90ad1f7",
+  "authors": [
+    {
+      "n": "Rob Luke",
+      "e": null
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/datasets/utils.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/egi/tests/test_egi.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/io/nirx/nirx.py": {
+      "a": 112,
+      "d": 54
+    },
+    "mne/io/nirx/tests/test_nirx.py": {
+      "a": 94,
+      "d": 1
+    },
+    "mne/io/snirf/_snirf.py": {
+      "a": 30,
+      "d": 6
+    },
+    "mne/io/snirf/tests/test_snirf.py": {
+      "a": 84,
+      "d": 3
+    }
+  }
+}
