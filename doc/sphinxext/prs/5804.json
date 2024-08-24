@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "10209218a4e169453f4d9eeadd1cb8a37a80c5a4",
+  "authors": [
+    {
+      "n": "Joan Massich",
+      "e": "mailsik@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/faq.rst": {
+      "a": 11,
+      "d": 11
+    },
+    "doc/glossary.rst": {
+      "a": 42,
+      "d": 35
+    },
+    "examples/time_frequency/plot_time_frequency_global_field_power.py": {
+      "a": 7,
+      "d": 7
+    },
+    "examples/visualization/plot_roi_erpimage_by_rt.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/evoked/plot_object_evoked.py": {
+      "a": 3,
+      "d": 2
+    },
+    "tutorials/source-modeling/plot_compute_covariance.py": {
+      "a": 10,
+      "d": 9
+    }
+  }
+}

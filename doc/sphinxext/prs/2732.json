@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "7e4f408e0a8ad14e9ae14f24731f0012a4dbf2c0",
+  "authors": [
+    {
+      "n": "jaeilepp",
+      "e": "jaeilepp@student.jyu.fi"
+    }
+  ],
+  "changes": {
+    "mne/viz/raw.py": {
+      "a": 13,
+      "d": 2
+    }
+  }
+}

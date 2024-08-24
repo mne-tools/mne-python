@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "5f53bd96450e138bf98605d0d90d8018651926d2",
+  "authors": [
+    {
+      "n": "Britta Westner",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/_static/institutions.png": {
+      "a": 0,
+      "d": 0
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "4ea477bf6e876d353b270445b0fd8ffb48841d89",
+  "authors": [
+    {
+      "n": "jaeilepp",
+      "e": "jaeilepp@student.jyu.fi"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/preprocessing/ecg.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

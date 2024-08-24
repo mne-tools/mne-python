@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "b1675730ac70d910abe43d042afa26bc653548c9",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "autofix-ci[bot]",
+      "e": "114827586+autofix-ci[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/12655.newfeature.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/viz/_3d.py": {
+      "a": 15,
+      "d": 4
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 14,
+      "d": 7
+    },
+    "tools/install_pre_requirements.sh": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

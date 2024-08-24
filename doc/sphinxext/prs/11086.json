@@ -1,0 +1,71 @@
+{
+  "merge_commit_sha": "bea8767a164bc43d02134bb7c9f063b1209a253c",
+  "authors": [
+    {
+      "n": "luz paz",
+      "e": "luzpaz@pm.me"
+    }
+  ],
+  "changes": {
+    ".github/ISSUE_TEMPLATE/documentation.md": {
+      "a": 1,
+      "d": 1
+    },
+    "Makefile": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/beamformer/tests/test_dics.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/bem.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/coreg.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/data/FreeSurferColorLUT.txt": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/filter.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/forward/forward.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/base.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/eeglab/tests/test_eeglab.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/snirf/_snirf.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/report/js_and_css/report.js": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/simulation/raw.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/docs.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 3,
+      "d": 3
+    }
+  }
+}

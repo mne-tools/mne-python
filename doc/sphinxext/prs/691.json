@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "d0aeec4b8d8fb0795b527b0306c51d2cd94775ed",
+  "authors": [
+    {
+      "n": "Romain Trachel",
+      "e": "trachelr@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/decoding/plot_decoding_csp_space.py": {
+      "a": 6,
+      "d": 0
+    },
+    "mne/decoding/csp.py": {
+      "a": 62,
+      "d": 8
+    },
+    "mne/decoding/tests/test_csp.py": {
+      "a": 29,
+      "d": 1
+    }
+  }
+}

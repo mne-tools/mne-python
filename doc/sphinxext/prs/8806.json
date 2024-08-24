@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "9b57cbd8ec711e3af33846e62ad7d1fbbdcaf5cd",
+  "authors": [
+    {
+      "n": "Adam Li",
+      "e": null
+    },
+    {
+      "n": "Andres Rodriguez",
+      "e": "rodriguezandr@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Andres Rodriguez",
+      "e": "rodriguezandr@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 4,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/datasets/utils.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/persyst/persyst.py": {
+      "a": 63,
+      "d": 15
+    },
+    "mne/io/persyst/tests/test_persyst.py": {
+      "a": 64,
+      "d": 15
+    }
+  }
+}

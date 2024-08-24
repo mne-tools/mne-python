@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "6aff6e6cc11e7428fe6a89bf8516d9b3669d3938",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/time_frequency/plot_time_frequency_simulated.py": {
+      "a": 2,
+      "d": 0
+    }
+  }
+}

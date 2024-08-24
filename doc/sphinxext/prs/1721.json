@@ -1,0 +1,255 @@
+{
+  "merge_commit_sha": "ec6eb7bfd6a7d10265dc0bfb9b0a73587d7f23de",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".gitignore": {
+      "a": 1,
+      "d": 0
+    },
+    "appveyor.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/Makefile": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/source/conf.py": {
+      "a": 3,
+      "d": 10
+    },
+    "doc/source/contributing.rst": {
+      "a": 3,
+      "d": 1
+    },
+    "doc/source/python_reference.rst": {
+      "a": 4,
+      "d": 23
+    },
+    "doc/sphinxext/docscrape.py": {
+      "a": 0,
+      "d": 497
+    },
+    "doc/sphinxext/docscrape_sphinx.py": {
+      "a": 0,
+      "d": 137
+    },
+    "doc/sphinxext/gen_rst.py": {
+      "a": 466,
+      "d": 217
+    },
+    "doc/sphinxext/numpy_ext/docscrape.py": {
+      "a": 58,
+      "d": 45
+    },
+    "doc/sphinxext/numpy_ext/docscrape_sphinx.py": {
+      "a": 30,
+      "d": 16
+    },
+    "doc/sphinxext/numpy_ext/numpydoc.py": {
+      "a": 54,
+      "d": 25
+    },
+    "doc/sphinxext/numpy_ext_old/__init__.py": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/sphinxext/numpy_ext_old/docscrape.py": {
+      "a": 0,
+      "d": 490
+    },
+    "doc/sphinxext/numpy_ext_old/docscrape_sphinx.py": {
+      "a": 0,
+      "d": 133
+    },
+    "doc/sphinxext/numpy_ext_old/numpydoc.py": {
+      "a": 0,
+      "d": 111
+    },
+    "examples/inverse/plot_gamma_map_inverse.py": {
+      "a": 2,
+      "d": 1
+    },
+    "examples/inverse/plot_read_inverse.py": {
+      "a": 5,
+      "d": 3
+    },
+    "examples/inverse/plot_read_source_space.py": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/plot_make_forward.py": {
+      "a": 5,
+      "d": 0
+    },
+    "examples/plot_read_bem_surfaces.py": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/plot_read_forward.py": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/plot_read_noise_covariance_matrix.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/__init__.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/channels/channels.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/decoding/classifier.py": {
+      "a": 6,
+      "d": 5
+    },
+    "mne/decoding/csp.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/epochs.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/event.py": {
+      "a": 5,
+      "d": 1
+    },
+    "mne/evoked.py": {
+      "a": 12,
+      "d": 14
+    },
+    "mne/filter.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/forward/_compute_forward.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/forward/_make_forward.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/forward/forward.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/constants.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/io/open.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/io/pick.py": {
+      "a": 7,
+      "d": 7
+    },
+    "mne/io/proc_history.py": {
+      "a": 24,
+      "d": 24
+    },
+    "mne/label.py": {
+      "a": 13,
+      "d": 6
+    },
+    "mne/parallel.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/eog.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 16,
+      "d": 23
+    },
+    "mne/preprocessing/ssp.py": {
+      "a": 0,
+      "d": 2
+    },
+    "mne/proj.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/realtime/client.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/realtime/mockclient.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/simulation/evoked.py": {
+      "a": 10,
+      "d": 9
+    },
+    "mne/source_estimate.py": {
+      "a": 31,
+      "d": 33
+    },
+    "mne/stats/multi_comp.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/tests/test_docstring_parameters.py": {
+      "a": 136,
+      "d": 0
+    },
+    "mne/time_frequency/csd.py": {
+      "a": 0,
+      "d": 2
+    },
+    "mne/time_frequency/stft.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 1,
+      "d": 8
+    },
+    "mne/transforms.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/utils.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/_3d.py": {
+      "a": 14,
+      "d": 2
+    },
+    "mne/viz/evoked.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/ica.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/viz/topo.py": {
+      "a": 2,
+      "d": 4
+    },
+    "mne/viz/topomap.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/utils.py": {
+      "a": 7,
+      "d": 2
+    }
+  }
+}

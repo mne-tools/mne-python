@@ -1,0 +1,55 @@
+{
+  "merge_commit_sha": "cf307a48e130ca27868c3706100bf2c402c9de1f",
+  "authors": [
+    {
+      "n": "Alex Rockhill",
+      "e": "aprockhill@mailbox.org"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/datasets/opm_data.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/forward/left_cerebellum_volume_source.py": {
+      "a": 5,
+      "d": 4
+    },
+    "examples/time_frequency/source_power_spectrum_opm.py": {
+      "a": 3,
+      "d": 3
+    },
+    "examples/visualization/3d_to_2d.py": {
+      "a": 20,
+      "d": 11
+    },
+    "mne/channels/montage.py": {
+      "a": 45,
+      "d": 3
+    },
+    "mne/channels/tests/test_montage.py": {
+      "a": 14,
+      "d": 3
+    },
+    "mne/data/image/custom_layout.lout": {
+      "a": 65,
+      "d": 23
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 15,
+      "d": 11
+    },
+    "tutorials/clinical/20_seeg.py": {
+      "a": 1,
+      "d": 3
+    },
+    "tutorials/clinical/30_ecog.py": {
+      "a": 18,
+      "d": 13
+    }
+  }
+}

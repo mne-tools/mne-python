@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "d528da8e94f5b4754e529a194c7393958b7a493b",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/report.py": {
+      "a": 58,
+      "d": 27
+    },
+    "mne/tests/test_report.py": {
+      "a": 47,
+      "d": 8
+    },
+    "server_environment.yml": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

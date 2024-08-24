@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "53a79ec1b6d3c42951263a1e1aa6e7f9a4c2c6be",
+  "authors": [
+    {
+      "n": "Rob Luke",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/channels/interpolation.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/nirs/_beer_lambert_law.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/preprocessing/nirs/_optical_density.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/nirs/_scalp_coupling_index.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/nirs/_tddr.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/nirs/nirs.py": {
+      "a": 19,
+      "d": 19
+    },
+    "mne/preprocessing/nirs/tests/test_nirs.py": {
+      "a": 23,
+      "d": 23
+    }
+  }
+}

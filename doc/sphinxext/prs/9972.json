@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "83d25a31d715b086f6c6e6fad3d082c5815562fa",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/gui/__init__.py": {
+      "a": 8,
+      "d": 8
+    },
+    "mne/gui/_coreg.py": {
+      "a": 7,
+      "d": 1
+    },
+    "mne/utils/docs.py": {
+      "a": 20,
+      "d": 0
+    },
+    "mne/viz/_3d.py": {
+      "a": 2,
+      "d": 5
+    }
+  }
+}

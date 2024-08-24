@@ -1,0 +1,51 @@
+{
+  "merge_commit_sha": "bfef3b614f616afc14cad6f5e8e9330627d515b5",
+  "authors": [
+    {
+      "n": "Joan Massich",
+      "e": "mailsik@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 4,
+      "d": 0
+    },
+    "doc/python_reference.rst": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/_digitization/_utils.py": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/_digitization/base.py": {
+      "a": 16,
+      "d": 0
+    },
+    "mne/channels/__init__.py": {
+      "a": 24,
+      "d": 1
+    },
+    "mne/channels/_dig_montage_utils.py": {
+      "a": 18,
+      "d": 18
+    },
+    "mne/channels/montage.py": {
+      "a": 331,
+      "d": 50
+    },
+    "mne/channels/tests/test_montage.py": {
+      "a": 371,
+      "d": 5
+    },
+    "mne/io/kit/tests/test_kit.py": {
+      "a": 2,
+      "d": 4
+    },
+    "mne/tests/test_docstring_parameters.py": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

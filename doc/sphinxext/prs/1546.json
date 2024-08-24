@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "1dcc1cba093a7eb8fc1dccb7cdb1aebd692a22f7",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    ".travis.yml": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

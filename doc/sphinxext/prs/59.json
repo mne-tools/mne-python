@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "187d462ec2f7e47384cf61aff912dc727f558a93",
+  "authors": [
+    {
+      "n": "Martin Luessi",
+      "e": null
+    }
+  ],
+  "changes": {
+    "examples/time_frequency/plot_compute_raw_data_spectrum.py": {
+      "a": 34,
+      "d": 17
+    },
+    "mne/epochs.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/fiff/evoked.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/fiff/proj.py": {
+      "a": 11,
+      "d": 8
+    },
+    "mne/fiff/raw.py": {
+      "a": 18,
+      "d": 0
+    },
+    "mne/time_frequency/psd.py": {
+      "a": 12,
+      "d": 2
+    },
+    "mne/time_frequency/tests/test_psd.py": {
+      "a": 6,
+      "d": 1
+    }
+  }
+}

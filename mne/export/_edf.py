@@ -1,10 +1,9 @@
-# Authors: MNE Developers
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
 import datetime as dt
-from typing import Callable
+from collections.abc import Callable
 
 import numpy as np
 
@@ -164,8 +163,6 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
         name = "_".join(filter(None, [first_name, middle_name, last_name]))
 
         birthday = subj_info.get("birthday")
-        if birthday is not None:
-            birthday = dt.date(*birthday)
         hand = subj_info.get("hand")
         weight = subj_info.get("weight")
         height = subj_info.get("height")

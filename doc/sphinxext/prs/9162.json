@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "bbcba957bcef31af9b49262ff1435a3c45c2e1df",
+  "authors": [
+    {
+      "n": "Ram PARI",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 4,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/viz/topo.py": {
+      "a": 8,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "4c44bd6ae90dd4d5c6c2e925d93f1b2fbf7bda6a",
+  "authors": [
+    {
+      "n": "Johann Benerradi",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 0,
+      "d": 2
+    }
+  }
+}

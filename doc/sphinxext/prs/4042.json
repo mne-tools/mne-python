@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "7bdeaf5a72865506195c773e64b7111ec95edbac",
+  "authors": [
+    {
+      "n": "Jussi Nurminen",
+      "e": "jnu@iki.fi"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/visualization/plot_topo_compare_conditions.py": {
+      "a": 0,
+      "d": 5
+    },
+    "mne/evoked.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/evoked.py": {
+      "a": 10,
+      "d": 2
+    },
+    "mne/viz/topo.py": {
+      "a": 21,
+      "d": 1
+    }
+  }
+}

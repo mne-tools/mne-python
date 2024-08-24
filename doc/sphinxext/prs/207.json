@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "65e9b588020c9a35fddf332a0e04fc2680037329",
+  "authors": [
+    {
+      "n": "Martin Luessi",
+      "e": null
+    }
+  ],
+  "changes": {
+    "examples/connectivity/plot_cwt_sensor_connectivity.py": {
+      "a": 1,
+      "d": 2
+    },
+    "examples/plot_topo_channel_epochs_image.py": {
+      "a": 2,
+      "d": 3
+    },
+    "examples/plot_topography.py": {
+      "a": 1,
+      "d": 2
+    },
+    "examples/time_frequency/plot_tfr_topography.py": {
+      "a": 4,
+      "d": 6
+    },
+    "mne/viz.py": {
+      "a": 366,
+      "d": 249
+    }
+  }
+}

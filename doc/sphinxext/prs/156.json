@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "706d211ed3bb516752990503e605e7ef4aa274bb",
+  "authors": [
+    {
+      "n": "Denis A. Engemann",
+      "e": null
+    }
+  ],
+  "changes": {
+    "examples/preprocessing/plot_find_ecg_artifacts.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "9d00983119a41e5e0292577e746c03474f981f8e",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/conftest.py": {
+      "a": 1,
+      "d": 0
+    },
+    "tools/azure_dependencies.sh": {
+      "a": 3,
+      "d": 1
+    },
+    "tools/github_actions_dependencies.sh": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

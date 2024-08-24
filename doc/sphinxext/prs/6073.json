@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "7288928c346a49efd3489c848fadff9dbc4c9f81",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/report.py": {
+      "a": 7,
+      "d": 6
+    }
+  }
+}

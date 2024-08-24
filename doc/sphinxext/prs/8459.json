@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "a738bab71c17fdb18621794bcf3aee84f9be8e32",
+  "authors": [
+    {
+      "n": "Mads Jensen",
+      "e": null
+    }
+  ],
+  "changes": {
+    "tutorials/machine-learning/plot_sensors_decoding.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

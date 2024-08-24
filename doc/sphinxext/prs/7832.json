@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "fe801b12256c798bdbcea32d444b9320c400bfcc",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/io/meas_info.py": {
+      "a": 6,
+      "d": 6
+    }
+  }
+}

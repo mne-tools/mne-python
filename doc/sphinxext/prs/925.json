@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "04a0e30246ea617ec8c8be7dee455476b0016ee5",
+  "authors": [
+    {
+      "n": "Praveen Sripad",
+      "e": "pravsripad@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/time_frequency/plot_single_trial_spectra.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/commands/mne_bti2fiff.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/cov.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/fiff/raw.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz.py": {
+      "a": 2,
+      "d": 0
+    }
+  }
+}

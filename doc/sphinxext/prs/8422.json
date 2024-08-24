@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "360e62d2d353fe158de758c1b8fbb5e44409a877",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/annotations.py": {
+      "a": 18,
+      "d": 0
+    },
+    "tutorials/intro/plot_20_events_from_raw.py": {
+      "a": 13,
+      "d": 14
+    }
+  }
+}

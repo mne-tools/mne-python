@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "5fc58e5ddd6afb7f2bfd7f22a579fb91001815af",
+  "authors": [
+    {
+      "n": "Jona Sassenhagen",
+      "e": "jona.sassenhagen@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/configure_git.rst": {
+      "a": 44,
+      "d": 40
+    },
+    "doc/git_links.inc": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

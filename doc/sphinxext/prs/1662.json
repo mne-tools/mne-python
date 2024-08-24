@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "7e298f07fe0347b725a6f71193f636c89f8c86db",
+  "authors": [
+    {
+      "n": "Mainak Jas",
+      "e": "mainakjas@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/realtime/fieldtrip_client.py": {
+      "a": 2,
+      "d": 0
+    }
+  }
+}

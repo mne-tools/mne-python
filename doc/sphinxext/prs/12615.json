@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "823e25deb03ee23b2df1fde9c03944c14d25ef94",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "tools/install_pre_requirements.sh": {
+      "a": 3,
+      "d": 1
+    },
+    "tutorials/time-freq/50_ssvep.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

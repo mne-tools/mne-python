@@ -1,0 +1,75 @@
+{
+  "merge_commit_sha": "f1f8e5413e04913011614e17f5daaa1ee84f973e",
+  "authors": [
+    {
+      "n": "Joan Massich",
+      "e": "mailsik@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 7,
+      "d": 1
+    },
+    "mne/channels/_standard_montage_utils.py": {
+      "a": 22,
+      "d": 31
+    },
+    "mne/channels/channels.py": {
+      "a": 23,
+      "d": 3
+    },
+    "mne/channels/montage.py": {
+      "a": 195,
+      "d": 38
+    },
+    "mne/channels/tests/test_channels.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/channels/tests/test_montage.py": {
+      "a": 274,
+      "d": 83
+    },
+    "mne/io/array/tests/test_array.py": {
+      "a": 4,
+      "d": 1
+    },
+    "mne/io/brainvision/tests/test_brainvision.py": {
+      "a": 27,
+      "d": 21
+    },
+    "mne/io/edf/tests/test_edf.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/eeglab/eeglab.py": {
+      "a": 50,
+      "d": 10
+    },
+    "mne/io/eeglab/tests/_utils.py": {
+      "a": 38,
+      "d": 0
+    },
+    "mne/io/eeglab/tests/test_eeglab.py": {
+      "a": 25,
+      "d": 33
+    },
+    "mne/io/fieldtrip/utils.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/io/tests/test_meas_info.py": {
+      "a": 8,
+      "d": 23
+    },
+    "mne/preprocessing/tests/test_ica.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/viz/tests/test_montage.py": {
+      "a": 10,
+      "d": 7
+    }
+  }
+}

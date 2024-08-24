@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "327777cd77b7ff41d26ebcc334161bbb07bc5db3",
+  "authors": [
+    {
+      "n": "Martin G. Schulz",
+      "e": "dev@mgschulz.de"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/viz/_figure.py": {
+      "a": 10,
+      "d": 9
+    },
+    "mne/viz/backends/_pyvista.py": {
+      "a": 3,
+      "d": 11
+    },
+    "mne/viz/backends/_utils.py": {
+      "a": 57,
+      "d": 1
+    },
+    "mne/viz/utils.py": {
+      "a": 2,
+      "d": 4
+    },
+    "requirements.txt": {
+      "a": 1,
+      "d": 0
+    },
+    "tools/github_actions_dependencies.sh": {
+      "a": 4,
+      "d": 0
+    }
+  }
+}

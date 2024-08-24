@@ -46,7 +46,7 @@ stc.crop(0.0, 0.2)
 img = stc.as_volume(src, mri_resolution=False)  # set True for full MRI resolution
 
 # Save it as a nifti file
-# nib.save(img, 'mne_%s_inverse.nii.gz' % method)
+# nib.save(img, f"mne_{method}_inverse.nii.gz")
 
 t1_fname = data_path / "subjects" / "sample" / "mri" / "T1.mgz"
 

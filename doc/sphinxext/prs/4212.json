@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "8526a27fc9fa43040a1fd72bcdf254cb428b82a9",
+  "authors": [
+    {
+      "n": "Fede Raimondo",
+      "e": "f.raimondo@fz-juelich.de"
+    }
+  ],
+  "changes": {
+    "mne/io/egi/egi.py": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

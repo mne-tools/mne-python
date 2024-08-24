@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "f2ae58f6bfdbabf0aaa06a6f650124f9b2788581",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".circleci/config.yml": {
+      "a": 24,
+      "d": 13
+    },
+    "examples/inverse/mixed_source_space_inverse.py": {
+      "a": 2,
+      "d": 2
+    },
+    "tools/circleci_dependencies.sh": {
+      "a": 2,
+      "d": 1
+    },
+    "tutorials/clinical/20_seeg.py": {
+      "a": 2,
+      "d": 2
+    },
+    "tutorials/inverse/60_visualize_stc.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

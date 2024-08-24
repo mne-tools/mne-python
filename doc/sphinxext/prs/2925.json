@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "6b0c16e77a0b8ba1a3b22d902b1b368037a5e05f",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "doc/_templates/function.rst": {
+      "a": 4,
+      "d": 0
+    },
+    "doc/conf.py": {
+      "a": 3,
+      "d": 2
+    },
+    "doc/python_reference.rst": {
+      "a": 3,
+      "d": 3
+    },
+    "doc/whats_new.rst": {
+      "a": 81,
+      "d": 81
+    },
+    "mne/commands/mne_surf2bem.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/decoding/transformer.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

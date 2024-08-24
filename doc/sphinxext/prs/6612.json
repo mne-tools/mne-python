@@ -1,0 +1,59 @@
+{
+  "merge_commit_sha": "935193090b2d101fbe5849d8392873ae0ecfd327",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".gitignore": {
+      "a": 1,
+      "d": 0
+    },
+    "README.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/conf.py": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/install/mne_python.rst": {
+      "a": 4,
+      "d": 1
+    },
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "environment.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/fixes.py": {
+      "a": 21,
+      "d": 0
+    },
+    "mne/forward/_compute_forward.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/surface.py": {
+      "a": 103,
+      "d": 83
+    },
+    "mne/tests/test_surface.py": {
+      "a": 5,
+      "d": 2
+    },
+    "mne/utils/config.py": {
+      "a": 7,
+      "d": 2
+    },
+    "requirements.txt": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

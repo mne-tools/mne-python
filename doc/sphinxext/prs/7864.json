@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "121364d0c59e36f6b71c25f5905297f1ead36116",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/references.bib": {
+      "a": 11,
+      "d": 1
+    },
+    "environment.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/datasets/utils.py": {
+      "a": 7,
+      "d": 10
+    },
+    "requirements.txt": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

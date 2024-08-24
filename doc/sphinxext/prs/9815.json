@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "48a33e376843b7ecc0279805b0b9e24c996ba972",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/epochs.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/utils/docs.py": {
+      "a": 7,
+      "d": 0
+    },
+    "mne/viz/epochs.py": {
+      "a": 6,
+      "d": 2
+    },
+    "mne/viz/raw.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/viz/tests/test_epochs.py": {
+      "a": 0,
+      "d": 1
+    }
+  }
+}

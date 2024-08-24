@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "963278c135ffd7972c42d2060491177fd527a7cd",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/meas_info.py": {
+      "a": 6,
+      "d": 0
+    },
+    "mne/tests/test_docstring_parameters.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/time_frequency/tests/test_tfr.py": {
+      "a": 4,
+      "d": 1
+    }
+  }
+}

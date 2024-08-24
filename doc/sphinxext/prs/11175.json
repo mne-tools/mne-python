@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "1f19c0fcf89d2cfa6b2702c9d9f5a485797d4ec6",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "examples/inverse/label_activation_from_stc.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/preprocessing/eog_artifact_histogram.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/preprocessing/50_artifact_correction_ssp.py": {
+      "a": 9,
+      "d": 14
+    }
+  }
+}

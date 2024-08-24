@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "5b2275657c8b79200c7d852cba8e02043cc2a68f",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 36,
+      "d": 46
+    },
+    "mne/preprocessing/tests/test_ica.py": {
+      "a": 34,
+      "d": 14
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "6b2d50e6ddbf2b274cec084b0e8ab8c29549afb9",
+  "authors": [
+    {
+      "n": "Mainak Jas",
+      "e": null
+    }
+  ],
+  "changes": {
+    "tutorials/plot_object_raw.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

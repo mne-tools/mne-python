@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "cedae25792da3dede4fa7fed943f4b7b7b1bb7c5",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/forward/plot_left_cerebellum_volume_source.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/source_space.py": {
+      "a": 57,
+      "d": 20
+    }
+  }
+}

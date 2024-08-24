@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "41d38b7a55afeb2a6a840d07a155dae837326ef0",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/utils/misc.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/viz/backends/_qt.py": {
+      "a": 4,
+      "d": 5
+    }
+  }
+}

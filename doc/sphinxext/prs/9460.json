@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "651720ea6954f458332d03f609c91c9c67bc8cab",
+  "authors": [
+    {
+      "n": "Ryan M.C. Law",
+      "e": "ryan.law@mrc-cbu.cam.ac.uk"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Ryan Law",
+      "e": "ryalaw@dccn.nl"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/io/ctf/ctf.py": {
+      "a": 5,
+      "d": 0
+    },
+    "tutorials/io/60_ctf_bst_auditory.py": {
+      "a": 3,
+      "d": 0
+    }
+  }
+}

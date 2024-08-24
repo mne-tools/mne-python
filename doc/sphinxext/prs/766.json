@@ -1,0 +1,103 @@
+{
+  "merge_commit_sha": "ae5165b2eb96d8adef298148f015cca1f7e5979a",
+  "authors": [
+    {
+      "n": "Christian Brodbeck",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/source/python_reference.rst": {
+      "a": 9,
+      "d": 0
+    },
+    "doc/source/whats_new.rst": {
+      "a": 6,
+      "d": 0
+    },
+    "mne/__init__.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/coreg.py": {
+      "a": 5,
+      "d": 0
+    },
+    "mne/fiff/kit/tests/__init__.py": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/fiff/kit/tests/data/test_mrk_post.sqd": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/fiff/kit/tests/data/test_mrk_pre.sqd": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/fiff/tests/__init__.py": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/gui/__init__.py": {
+      "a": 89,
+      "d": 0
+    },
+    "mne/gui/_coreg_gui.py": {
+      "a": 1372,
+      "d": 0
+    },
+    "mne/gui/_fiducials_gui.py": {
+      "a": 462,
+      "d": 0
+    },
+    "mne/gui/_file_traits.py": {
+      "a": 427,
+      "d": 0
+    },
+    "mne/gui/_kit2fiff_gui.py": {
+      "a": 518,
+      "d": 0
+    },
+    "mne/gui/_marker_gui.py": {
+      "a": 447,
+      "d": 0
+    },
+    "mne/gui/_viewer.py": {
+      "a": 340,
+      "d": 0
+    },
+    "mne/gui/tests/__init__.py": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/gui/tests/test_coreg_gui.py": {
+      "a": 157,
+      "d": 0
+    },
+    "mne/gui/tests/test_fiducials_gui.py": {
+      "a": 68,
+      "d": 0
+    },
+    "mne/gui/tests/test_file_traits.py": {
+      "a": 110,
+      "d": 0
+    },
+    "mne/gui/tests/test_kit2fiff_gui.py": {
+      "a": 65,
+      "d": 0
+    },
+    "mne/gui/tests/test_marker_gui.py": {
+      "a": 47,
+      "d": 0
+    },
+    "mne/utils.py": {
+      "a": 7,
+      "d": 0
+    },
+    "setup.py": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

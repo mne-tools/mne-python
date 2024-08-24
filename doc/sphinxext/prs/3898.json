@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "34a68cc849be748d062701b6b9fdf16e801be176",
+  "authors": [
+    {
+      "n": "ppasler",
+      "e": "paul@ppasler.de"
+    }
+  ],
+  "changes": {
+    "mne/beamformer/tests/test_dics.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/meas_info.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/io/tests/test_meas_info.py": {
+      "a": 7,
+      "d": 2
+    },
+    "mne/tests/test_source_estimate.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

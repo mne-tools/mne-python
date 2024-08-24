@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "030e087384a94c031ee45f348cbfbe3e95fe0a50",
+  "authors": [
+    {
+      "n": "dgwakeman",
+      "e": "dgwakeman@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/fiff/open.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

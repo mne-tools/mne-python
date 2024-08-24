@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "f91a3e163c052ad2714037f223794ab6c24d1fd2",
+  "authors": [
+    {
+      "n": "Denis A. Engemann",
+      "e": null
+    }
+  ],
+  "changes": {
+    "examples/decoding/plot_decoding_spatio_temporal_source.py": {
+      "a": 155,
+      "d": 0
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "1639ab47dd41a73e9e95962e766c80c102cc70f1",
+  "authors": [
+    {
+      "n": "Rob Luke",
+      "e": null
+    }
+  ],
+  "changes": {
+    "tutorials/preprocessing/plot_70_fnirs_processing.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

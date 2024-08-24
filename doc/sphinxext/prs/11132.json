@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "7db211bf5e906dfac7333315a49b1a2eb3b75067",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/conf.py": {
+      "a": 3,
+      "d": 4
+    },
+    "mne/conftest.py": {
+      "a": 2,
+      "d": 0
+    },
+    "tutorials/preprocessing/35_artifact_correction_regression.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "40e7e2ab9afc007e58cb03269c7738e9ee010532",
+  "authors": [
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".github/workflows/linux_conda.yml": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

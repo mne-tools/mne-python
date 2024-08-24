@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "1171b4a12f91756a1576077c181cf37b267da446",
+  "authors": [
+    {
+      "n": "Martin G. Schulz",
+      "e": "dev@mgschulz.de"
+    }
+  ],
+  "changes": {
+    "examples/preprocessing/plot_otp.py": {
+      "a": 3,
+      "d": 5
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "029e14a7f94e6dccb34b75ed2de408871ebbc798",
+  "authors": [
+    {
+      "n": "Stefan Repplinger",
+      "e": "stefan.repplinger@posteo.net"
+    }
+  ],
+  "changes": {
+    "mne/channels/channels.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

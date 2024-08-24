@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "740638148806a3d73214ab6505a57a571f23204a",
+  "authors": [
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/viz/_brain/_brain.py": {
+      "a": 58,
+      "d": 57
+    },
+    "mne/viz/_brain/_timeviewer.py": {
+      "a": 90,
+      "d": 16
+    },
+    "mne/viz/_brain/colormap.py": {
+      "a": 48,
+      "d": 33
+    },
+    "mne/viz/_brain/tests/test_brain.py": {
+      "a": 99,
+      "d": 6
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "2e7df491b5182069859d8fb7d6f4896a9f48392c",
+  "authors": [
+    {
+      "n": "Mark Wronkiewicz",
+      "e": "wronk.mark@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/preprocessing/maxwell.py": {
+      "a": 36,
+      "d": 23
+    },
+    "mne/preprocessing/tests/test_maxwell.py": {
+      "a": 43,
+      "d": 7
+    }
+  }
+}

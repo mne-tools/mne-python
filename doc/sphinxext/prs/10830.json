@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "c5e14281bfef445c245bd54633c48456427ef0b7",
+  "authors": [
+    {
+      "n": "Dominik Welke",
+      "e": "dominik.welke@web.de"
+    }
+  ],
+  "changes": {
+    "examples/forward/source_space_morphing.py": {
+      "a": 8,
+      "d": 10
+    }
+  }
+}

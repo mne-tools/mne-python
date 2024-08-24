@@ -1,11 +1,10 @@
 """Generate self-contained HTML reports from MNE objects."""
 
-# Authors: Alex Gramfort <alexandre.gramfort@inria.fr>
-#          Mainak Jas <mainak@neuro.hut.fi>
-#          Teon Brooks <teon.brooks@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
+from __future__ import annotations  # only needed for Python ≤ 3.9
 
 import base64
 import copy
@@ -24,7 +23,6 @@ from functools import partial
 from io import BytesIO, StringIO
 from pathlib import Path
 from shutil import copyfile
-from typing import Optional
 
 import numpy as np
 
@@ -299,7 +297,7 @@ def _html_element(*, id_, div_klass, html, title, tags):
 @dataclass
 class _ContentElement:
     name: str
-    section: Optional[str]
+    section: str | None
     dom_id: str
     tags: tuple[str]
     html: str
@@ -309,7 +307,7 @@ def _check_tags(tags) -> tuple[str]:
     # Must be iterable, but not a string
     if isinstance(tags, str):
         tags = (tags,)
-    elif isinstance(tags, (Sequence, np.ndarray)):
+    elif isinstance(tags, Sequence | np.ndarray):
         tags = tuple(tags)
     else:
         raise TypeError(
@@ -894,11 +892,11 @@ class Report:
 
     def _validate_input(self, items, captions, tag, comments=None):
         """Validate input."""
-        if not isinstance(items, (list, tuple)):
+        if not isinstance(items, list | tuple):
             items = [items]
-        if not isinstance(captions, (list, tuple)):
+        if not isinstance(captions, list | tuple):
             captions = [captions]
-        if not isinstance(comments, (list, tuple)) and comments is not None:
+        if not isinstance(comments, list | tuple) and comments is not None:
             comments = [comments]
         if comments is not None and len(comments) != len(items):
             raise ValueError(
@@ -1564,6 +1562,7 @@ class Report:
         event_id=None,
         sfreq,
         first_samp=0,
+        color=None,
         tags=("events",),
         replace=False,
     ):
@@ -1582,6 +1581,11 @@ class Report:
         first_samp : int
             The first sample point in the recording. This corresponds to
             ``raw.first_samp`` on files created with Elekta/Neuromag systems.
+        color : dict | None
+            Dictionary of event_id integers as keys and colors as values. This
+            parameter is directly passed to :func:`mne.viz.plot_events`.
+
+            .. versionadded:: 1.8.0
         %(tags_report)s
         %(replace_report)s
 
@@ -1595,6 +1599,7 @@ class Report:
             event_id=event_id,
             sfreq=sfreq,
             first_samp=first_samp,
+            color=color,
             title=title,
             section=None,
             image_format=self.image_format,
@@ -2762,7 +2767,7 @@ class Report:
 
         if pattern is None:
             pattern = [f"*{ext}" for ext in SUPPORTED_READ_RAW_EXTENSIONS]
-        elif not isinstance(pattern, (list, tuple)):
+        elif not isinstance(pattern, list | tuple):
             pattern = [pattern]
 
         # iterate through the possible patterns
@@ -3739,6 +3744,7 @@ class Report:
         *,
         events,
         event_id,
+        color,
         sfreq,
         first_samp,
         title,
@@ -3756,6 +3762,7 @@ class Report:
             event_id=event_id,
             sfreq=sfreq,
             first_samp=first_samp,
+            color=color,
             show=False,
         )
         _constrain_fig_resolution(fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES)
@@ -4303,10 +4310,6 @@ class _ReportScraper:
     is written to the same directory as the example script.
     """
 
-    def __init__(self):
-        self.app = None
-        self.files = dict()
-
     def __repr__(self):
         return "<ReportScraper>"
 
@@ -4325,25 +4328,25 @@ class _ReportScraper:
                 with open(img_fname, "w") as fid:
                     fid.write(_FA_FILE_CODE)
                 # copy HTML file
-                html_fname = op.basename(report.fname)
-                out_dir = op.join(
-                    self.app.builder.outdir,
-                    op.relpath(
-                        op.dirname(block_vars["target_file"]), self.app.builder.srcdir
-                    ),
+                html_fname = Path(report.fname).name
+                srcdir = Path(gallery_conf["src_dir"])
+                outdir = Path(gallery_conf["out_dir"])
+                out_dir = outdir / Path(block_vars["target_file"]).parent.relative_to(
+                    srcdir
                 )
                 os.makedirs(out_dir, exist_ok=True)
-                out_fname = op.join(out_dir, html_fname)
+                out_fname = out_dir / html_fname
+                copyfile(report.fname, out_fname)
                 assert op.isfile(report.fname)
-                self.files[report.fname] = out_fname
                 # embed links/iframe
                 data = _SCRAPER_TEXT.format(html_fname)
                 return data
         return ""
 
-    def copyfiles(self, *args, **kwargs):
-        for key, value in self.files.items():
-            copyfile(key, value)
+    def set_dirs(self, app):
+        # Inject something into sphinx_gallery_conf as this gets pickled properly
+        # during parallel example generation
+        app.config.sphinx_gallery_conf["out_dir"] = app.builder.outdir
 
 
 def _df_bootstrap_table(*, df, data_id):

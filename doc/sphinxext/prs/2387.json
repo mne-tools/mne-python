@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "17138ca0586bdb502af102fcaf9940808a80a326",
+  "authors": [
+    {
+      "n": "Mainak Jas",
+      "e": "mainakjas@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/preprocessing/stim.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/tests/test_stim.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

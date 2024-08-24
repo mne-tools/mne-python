@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "5701738ba10d65e2c5a713e0c6480aa04cd1a4ae",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".circleci/config.yml": {
+      "a": 6,
+      "d": 8
+    },
+    "doc/_templates/autosummary/class.rst": {
+      "a": 2,
+      "d": 5
+    },
+    "doc/_templates/autosummary/function.rst": {
+      "a": 2,
+      "d": 5
+    },
+    "doc/conf.py": {
+      "a": 2,
+      "d": 5
+    }
+  }
+}

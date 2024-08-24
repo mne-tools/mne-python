@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "2a9a0261d1fc27f1972efed13ed7287e9906ac7b",
+  "authors": [
+    {
+      "n": "Denis A. Engemann",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/python_reference.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/visualization/plot_parcellation.py": {
+      "a": 17,
+      "d": 0
+    },
+    "mne/datasets/__init__.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/datasets/tests/test_datasets.py": {
+      "a": 36,
+      "d": 0
+    },
+    "mne/datasets/utils.py": {
+      "a": 40,
+      "d": 4
+    }
+  }
+}

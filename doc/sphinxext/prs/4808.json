@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "5c9b89ac88c1747f50e0d665a7ccd3dd2b22c296",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/decoding/plot_decoding_xdawn_eeg.py": {
+      "a": 3,
+      "d": 3
+    },
+    "examples/preprocessing/plot_xdawn_denoising.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/cov.py": {
+      "a": 233,
+      "d": 259
+    },
+    "mne/decoding/csp.py": {
+      "a": 36,
+      "d": 28
+    },
+    "mne/decoding/tests/test_csp.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/fixes.py": {
+      "a": 281,
+      "d": 0
+    },
+    "mne/preprocessing/xdawn.py": {
+      "a": 19,
+      "d": 11
+    },
+    "mne/tests/test_cov.py": {
+      "a": 13,
+      "d": 7
+    }
+  }
+}

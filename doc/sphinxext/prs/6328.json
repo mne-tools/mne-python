@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "184486630b05c88948fd9044f40db98b707fe2d4",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "logo/generate_mne_logos.py": {
+      "a": 8,
+      "d": 5
+    }
+  }
+}

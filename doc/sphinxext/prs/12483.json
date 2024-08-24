@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "72799349bd6c4987dcef8e71adaf1a4a8cc6e061",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/12483.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/viz/backends/_qt.py": {
+      "a": 26,
+      "d": 18
+    },
+    "mne/viz/backends/_utils.py": {
+      "a": 4,
+      "d": 3
+    }
+  }
+}

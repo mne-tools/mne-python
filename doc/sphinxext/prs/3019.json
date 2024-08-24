@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "f2d2bcc41ffee3f27937948d8db5c5dc91c2d205",
+  "authors": [
+    {
+      "n": "jaeilepp",
+      "e": "jaeilepp@student.jyu.fi"
+    }
+  ],
+  "changes": {
+    "examples/realtime/plot_compute_rt_average.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/viz/evoked.py": {
+      "a": 4,
+      "d": 1
+    }
+  }
+}

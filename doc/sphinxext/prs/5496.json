@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "613df87f097323175784f3a7fdc32bbad0e604ac",
+  "authors": [
+    {
+      "n": "Jasper J.F. van den Bosch",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/epochs.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 6,
+      "d": 0
+    }
+  }
+}

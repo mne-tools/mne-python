@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "47304def9521ca29ae4835d5ef591e1d8fce7872",
+  "authors": [
+    {
+      "n": "Jona Sassenhagen",
+      "e": "jona.sassenhagen@gmail.com"
+    }
+  ],
+  "changes": {
+    "tutorials/plot_epoching_and_averaging.py": {
+      "a": 3,
+      "d": 2
+    }
+  }
+}

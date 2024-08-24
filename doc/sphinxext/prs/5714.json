@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "9db64d818d48d91da5ec1d790822c72326fcf5e7",
+  "authors": [
+    {
+      "n": "Joan Massich",
+      "e": "mailsik@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/visualization/plot_roi_erpimage_by_rt.py": {
+      "a": 18,
+      "d": 15
+    }
+  }
+}

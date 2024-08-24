@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "8ee29163c81d0509713037e3292755ce523857b9",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "bin/mne_compute_proj_ecg.py": {
+      "a": 13,
+      "d": 1
+    },
+    "bin/mne_compute_proj_eog.py": {
+      "a": 13,
+      "d": 1
+    },
+    "mne/artifacts/ecg.py": {
+      "a": 28,
+      "d": 7
+    },
+    "mne/artifacts/eog.py": {
+      "a": 7,
+      "d": 3
+    },
+    "mne/preprocessing/ssp.py": {
+      "a": 40,
+      "d": 7
+    }
+  }
+}

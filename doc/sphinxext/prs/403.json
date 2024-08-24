@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "ceb4dc25c96f87034bf2555c3f935d80fcc39768",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/cov.py": {
+      "a": 16,
+      "d": 8
+    },
+    "mne/epochs.py": {
+      "a": 12,
+      "d": 6
+    },
+    "mne/fiff/pick.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/forward.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/minimum_norm/inverse.py": {
+      "a": 9,
+      "d": 2
+    },
+    "mne/preprocessing/ssp.py": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

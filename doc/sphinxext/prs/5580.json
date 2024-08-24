@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "462695d5fbfcce6eed853dff6025076c7f616353",
+  "authors": [
+    {
+      "n": "Joan Massich",
+      "e": "mailsik@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 5,
+      "d": 1
+    },
+    "mne/io/edf/edf.py": {
+      "a": 29,
+      "d": 15
+    },
+    "mne/io/edf/tests/test_edf.py": {
+      "a": 41,
+      "d": 1
+    }
+  }
+}

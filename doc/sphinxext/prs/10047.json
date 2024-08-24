@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "6da538f2ac9f4d922a499ff407885dae08f1b6f2",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/utils/config.py": {
+      "a": 4,
+      "d": 4
+    },
+    "requirements.txt": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

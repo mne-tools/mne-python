@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "bfb3f81e4813f4d65af8c3d84933ee08a94b9d09",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "mne/externals/tempita/_looper.py": {
+      "a": 2,
+      "d": 2
+    },
+    "setup.cfg": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

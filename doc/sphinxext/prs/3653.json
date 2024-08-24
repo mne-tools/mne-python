@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "55c587d043aae896c233b4a21cb413ab88b07bc8",
+  "authors": [
+    {
+      "n": "Sheraz Khan",
+      "e": "sheraz.khan@pfizer.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/preprocessing/maxwell.py": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/preprocessing/tests/test_maxwell.py": {
+      "a": 8,
+      "d": 0
+    }
+  }
+}

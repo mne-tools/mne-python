@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "742065d5dd6c69223cc15bb7aca212e5d1a99988",
+  "authors": [
+    {
+      "n": "dependabot[bot]",
+      "e": "49699333+dependabot[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".github/workflows/release.yml": {
+      "a": 1,
+      "d": 1
+    },
+    ".github/workflows/tests.yml": {
+      "a": 2,
+      "d": 2
+    },
+    "examples/time_frequency/source_power_spectrum_opm.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "55b78208c360cfeb25fe09cbb7b0e5a19911463e",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/annotations.py": {
+      "a": 3,
+      "d": 2
+    }
+  }
+}

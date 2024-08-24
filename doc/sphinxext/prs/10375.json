@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "4cca31d0c84391531fb60b87d33d98a3af0022e7",
+  "authors": [
+    {
+      "n": "Alex Rockhill",
+      "e": "aprockhill@mailbox.org"
+    }
+  ],
+  "changes": {
+    "mne/source_estimate.py": {
+      "a": 25,
+      "d": 57
+    },
+    "mne/utils/docs.py": {
+      "a": 18,
+      "d": 0
+    }
+  }
+}

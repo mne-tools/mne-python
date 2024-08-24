@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "ad02680d49d4d827aef77cebbb0bef0c5a46c482",
+  "authors": [
+    {
+      "n": "Denis A. Engemann",
+      "e": null
+    }
+  ],
+  "changes": {
+    "examples/time_frequency/plot_tfr_topography.py": {
+      "a": 5,
+      "d": 3
+    }
+  }
+}

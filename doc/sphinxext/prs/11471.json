@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "c93c848f36219040de5fb9a8b8014472724e4143",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    ".github/workflows/compat_minimal.yml": {
+      "a": 3,
+      "d": 1
+    },
+    ".github/workflows/compat_old.yml": {
+      "a": 3,
+      "d": 1
+    },
+    ".github/workflows/linux_conda.yml": {
+      "a": 4,
+      "d": 2
+    },
+    ".github/workflows/macos_conda.yml": {
+      "a": 3,
+      "d": 1
+    },
+    "environment.yml": {
+      "a": 1,
+      "d": 0
+    },
+    "tools/github_actions_dependencies.sh": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

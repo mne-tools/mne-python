@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "bd0d47a28974694b0e7ac8775c226b0802208b69",
+  "authors": [
+    {
+      "n": "Teon L Brooks",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/channels/data/neighbors/KIT-157_neighb.mat": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/channels/data/neighbors/KIT-208_neighb.mat": {
+      "a": 0,
+      "d": 0
+    }
+  }
+}

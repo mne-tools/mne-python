@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "296154c3403532d131506bddd1d8f0a60cb4b562",
+  "authors": [
+    {
+      "n": "Jakub Kaczmarzyk",
+      "e": "jakub.kaczmarzyk@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/epochs.py": {
+      "a": 12,
+      "d": 1
+    },
+    "mne/evoked.py": {
+      "a": 11,
+      "d": 1
+    },
+    "mne/io/array/array.py": {
+      "a": 11,
+      "d": 1
+    },
+    "mne/io/meas_info.py": {
+      "a": 8,
+      "d": 0
+    },
+    "tutorials/plot_creating_data_structures.py": {
+      "a": 12,
+      "d": 2
+    }
+  }
+}

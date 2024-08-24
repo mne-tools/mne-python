@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "47d26ec99ac4b65deeac5c561860bb9ed7473878",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    },
+    {
+      "n": "autofix-ci[bot]",
+      "e": "114827586+autofix-ci[bot]@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/12584.newfeature.rst": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/report/report.py": {
+      "a": 16,
+      "d": 0
+    },
+    "tutorials/intro/70_report.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

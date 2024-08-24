@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "3a26fade683b6582e9c0693f9eb728260e266f58",
+  "authors": [
+    {
+      "n": "Robert Oostenveld",
+      "e": null
+    }
+  ],
+  "changes": {
+    "tutorials/preprocessing/plot_30_filtering_resampling.py": {
+      "a": 44,
+      "d": 31
+    }
+  }
+}

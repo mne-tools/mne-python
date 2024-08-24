@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "1bec9934efc131321e4e5ad3625bf09007250166",
+  "authors": [
+    {
+      "n": "Keith Doelling",
+      "e": "keith.doelling@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/channels/channels.py": {
+      "a": 8,
+      "d": 2
+    },
+    "mne/io/fieldtrip/tests/helpers.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/reference.py": {
+      "a": 34,
+      "d": 6
+    },
+    "mne/io/tests/test_reference.py": {
+      "a": 4,
+      "d": 4
+    }
+  }
+}

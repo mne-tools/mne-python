@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "f52272a4cacc12624f0e92270495c22191367bc9",
+  "authors": [
+    {
+      "n": "Martin G. Schulz",
+      "e": "dev@mgschulz.de"
+    },
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/epochs.py": {
+      "a": 2,
+      "d": 5
+    },
+    "mne/evoked.py": {
+      "a": 2,
+      "d": 3
+    },
+    "mne/utils/docs.py": {
+      "a": 6,
+      "d": 0
+    }
+  }
+}

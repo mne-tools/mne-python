@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "2daa7f621f6e1ec50fd8042a1bc19905368c6f2d",
+  "authors": [
+    {
+      "n": "dgwakeman",
+      "e": "dgwakeman@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/gui/_coreg_gui.py": {
+      "a": 4,
+      "d": 7
+    },
+    "mne/tests/test_transforms.py": {
+      "a": 12,
+      "d": 11
+    },
+    "mne/transforms.py": {
+      "a": 20,
+      "d": 48
+    }
+  }
+}

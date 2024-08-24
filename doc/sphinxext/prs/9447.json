@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "6953e748bad6cf4c55df71c1fb6bb702c0dd35fc",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 5,
+      "d": 1
+    },
+    "mne/channels/montage.py": {
+      "a": 163,
+      "d": 151
+    },
+    "mne/channels/tests/test_montage.py": {
+      "a": 36,
+      "d": 1
+    },
+    "mne/io/fieldtrip/tests/helpers.py": {
+      "a": 25,
+      "d": 66
+    },
+    "mne/io/fieldtrip/utils.py": {
+      "a": 23,
+      "d": 55
+    },
+    "mne/utils/numerics.py": {
+      "a": 17,
+      "d": 8
+    }
+  }
+}

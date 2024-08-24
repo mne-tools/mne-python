@@ -1,0 +1,55 @@
+{
+  "merge_commit_sha": "63522e48f0420081b5698591f0062c86ff4bcd38",
+  "authors": [
+    {
+      "n": null,
+      "e": "olaf.hauk@mrc-cbu.cam.ac.uk"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 4,
+      "d": 0
+    },
+    "doc/conf.py": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/python_reference.rst": {
+      "a": 3,
+      "d": 2
+    },
+    "examples/inverse/plot_mne_crosstalk_function.py": {
+      "a": 0,
+      "d": 67
+    },
+    "examples/inverse/plot_mne_point_spread_function.py": {
+      "a": 0,
+      "d": 82
+    },
+    "examples/inverse/plot_psf_ctf_vertices.py": {
+      "a": 97,
+      "d": 0
+    },
+    "mne/minimum_norm/__init__.py": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/minimum_norm/psf_ctf.py": {
+      "a": 5,
+      "d": 1
+    },
+    "mne/minimum_norm/resolution_matrix.py": {
+      "a": 284,
+      "d": 0
+    },
+    "mne/minimum_norm/tests/test_psf_ctf.py": {
+      "a": 10,
+      "d": 8
+    },
+    "mne/minimum_norm/tests/test_resolution_matrix.py": {
+      "a": 124,
+      "d": 0
+    }
+  }
+}

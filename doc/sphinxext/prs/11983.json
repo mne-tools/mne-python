@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "2e3f8058cd3e609d36949ba005b15b8c597cd5b1",
+  "authors": [
+    {
+      "n": "Adam Li",
+      "e": null
+    }
+  ],
+  "changes": {
+    ".github/CODEOWNERS": {
+      "a": 7,
+      "d": 7
+    }
+  }
+}

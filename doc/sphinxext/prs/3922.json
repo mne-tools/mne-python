@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "86777861f193d25d8c717bc01b7de048671554d1",
+  "authors": [
+    {
+      "n": "jaeilepp",
+      "e": "jaeilepp@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/ctf/info.py": {
+      "a": 14,
+      "d": 2
+    },
+    "mne/io/ctf/tests/test_ctf.py": {
+      "a": 17,
+      "d": 2
+    }
+  }
+}

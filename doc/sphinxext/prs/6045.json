@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "b52c9d5436bd3d887750249f47a24ec77dcd3c0d",
+  "authors": [
+    {
+      "n": "Sebastián Castaño-Candamil",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 5,
+      "d": 0
+    },
+    "mne/viz/topomap.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

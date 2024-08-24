@@ -1,0 +1,67 @@
+{
+  "merge_commit_sha": "397036343047346375672e8e78b9591914ae4a9a",
+  "authors": [
+    {
+      "n": "Denis A. Engemann",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/source/whats_new.rst": {
+      "a": 9,
+      "d": 1
+    },
+    "examples/connectivity/plot_cwt_sensor_connectivity.py": {
+      "a": 3,
+      "d": 3
+    },
+    "examples/datasets/plot_spm_faces_dataset.py": {
+      "a": 0,
+      "d": 2
+    },
+    "examples/plot_ssp_projs_topomaps.py": {
+      "a": 5,
+      "d": 5
+    },
+    "examples/plot_topo_channel_epochs_image.py": {
+      "a": 1,
+      "d": 2
+    },
+    "examples/stats/plot_sensor_permutation_test.py": {
+      "a": 1,
+      "d": 2
+    },
+    "examples/time_frequency/plot_tfr_topography.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/__init__.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/forward/tests/test_make_forward.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/layouts/__init__.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/layouts/layout.py": {
+      "a": 98,
+      "d": 16
+    },
+    "mne/layouts/tests/test_layout.py": {
+      "a": 99,
+      "d": 3
+    },
+    "mne/utils.py": {
+      "a": 28,
+      "d": 0
+    },
+    "mne/viz.py": {
+      "a": 10,
+      "d": 54
+    }
+  }
+}

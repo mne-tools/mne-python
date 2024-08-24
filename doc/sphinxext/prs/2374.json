@@ -1,0 +1,139 @@
+{
+  "merge_commit_sha": "08d49b8275a28665b6ca9dc6a69eb373a1aa417f",
+  "authors": [
+    {
+      "n": "Mark Wronkiewicz",
+      "e": "wronk.mark@gmail.com"
+    }
+  ],
+  "changes": {
+    "Makefile": {
+      "a": 4,
+      "d": 0
+    },
+    "doc/python_reference.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/whats_new.rst": {
+      "a": 9,
+      "d": 1
+    },
+    "mne/channels/channels.py": {
+      "a": 15,
+      "d": 3
+    },
+    "mne/commands/mne_show_fiff.py": {
+      "a": 27,
+      "d": 0
+    },
+    "mne/commands/tests/test_commands.py": {
+      "a": 8,
+      "d": 1
+    },
+    "mne/cov.py": {
+      "a": 1,
+      "d": 4
+    },
+    "mne/data/coil_def_Elekta.dat": {
+      "a": 7,
+      "d": 3
+    },
+    "mne/decoding/base.py": {
+      "a": 4,
+      "d": 3
+    },
+    "mne/dipole.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/forward/_compute_forward.py": {
+      "a": 29,
+      "d": 31
+    },
+    "mne/forward/_make_forward.py": {
+      "a": 32,
+      "d": 15
+    },
+    "mne/io/constants.py": {
+      "a": 5,
+      "d": 2
+    },
+    "mne/io/open.py": {
+      "a": 9,
+      "d": 1
+    },
+    "mne/io/pick.py": {
+      "a": 1,
+      "d": 3
+    },
+    "mne/io/proc_history.py": {
+      "a": 35,
+      "d": 13
+    },
+    "mne/io/tests/test_apply_function.py": {
+      "a": 6,
+      "d": 12
+    },
+    "mne/preprocessing/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/maxwell.py": {
+      "a": 698,
+      "d": 287
+    },
+    "mne/preprocessing/tests/test_ica.py": {
+      "a": 7,
+      "d": 10
+    },
+    "mne/preprocessing/tests/test_maxwell.py": {
+      "a": 344,
+      "d": 144
+    },
+    "mne/simulation/raw.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/source_space.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/stats/tests/test_cluster_level.py": {
+      "a": 12,
+      "d": 15
+    },
+    "mne/tests/test_chpi.py": {
+      "a": 4,
+      "d": 10
+    },
+    "mne/tests/test_dipole.py": {
+      "a": 2,
+      "d": 3
+    },
+    "mne/tests/test_filter.py": {
+      "a": 27,
+      "d": 39
+    },
+    "mne/tests/test_surface.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/tests/test_transforms.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/transforms.py": {
+      "a": 10,
+      "d": 9
+    },
+    "mne/utils.py": {
+      "a": 20,
+      "d": 0
+    },
+    "mne/viz/_3d.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "e4dd2286e397d3c40a92fefddaddc6273e683e1d",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/conf.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

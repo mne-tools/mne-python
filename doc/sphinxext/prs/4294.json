@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "4e8f76472b28f089f6853bd6440e2d5add9be050",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "mne/channels/channels.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/io/base.py": {
+      "a": 2,
+      "d": 9
+    },
+    "mne/preprocessing/stim.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils.py": {
+      "a": 13,
+      "d": 0
+    }
+  }
+}

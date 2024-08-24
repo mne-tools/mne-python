@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "7ce47156f6e7405977d4fc9c470b3358768049a5",
+  "authors": [
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/viz/backends/renderer.py": {
+      "a": 24,
+      "d": 4
+    },
+    "mne/viz/backends/tests/test_renderer.py": {
+      "a": 2,
+      "d": 1
+    },
+    "tutorials/source-modeling/plot_background_freesurfer_mne.py": {
+      "a": 10,
+      "d": 10
+    }
+  }
+}

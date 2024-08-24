@@ -1,0 +1,123 @@
+{
+  "merge_commit_sha": "6756eab3dc55dc9c8fc5d30c3e4a5f5ad18659bd",
+  "authors": [
+    {
+      "n": "Alex Rockhill",
+      "e": "aprockhill@mailbox.org"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    },
+    {
+      "n": "Robert Luke",
+      "e": "748691+rob-luke@users.noreply.github.com"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "doc/_includes/forward.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/changes/0.21.inc": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/changes/latest.inc": {
+      "a": 8,
+      "d": 0
+    },
+    "doc/mri.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/overview/cookbook.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/_freesurfer.py": {
+      "a": 83,
+      "d": 2
+    },
+    "mne/channels/montage.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/channels/tests/test_montage.py": {
+      "a": 1,
+      "d": 3
+    },
+    "mne/coreg.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/defaults.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/tag.py": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/io/tests/test_meas_info.py": {
+      "a": 12,
+      "d": 0
+    },
+    "mne/surface.py": {
+      "a": 33,
+      "d": 42
+    },
+    "mne/tests/test_surface.py": {
+      "a": 42,
+      "d": 39
+    },
+    "mne/transforms.py": {
+      "a": 16,
+      "d": 0
+    },
+    "mne/utils/docs.py": {
+      "a": 42,
+      "d": 0
+    },
+    "mne/viz/_3d.py": {
+      "a": 389,
+      "d": 419
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 101,
+      "d": 12
+    },
+    "mne/viz/_brain/tests/test_brain.py": {
+      "a": 32,
+      "d": 23
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 55,
+      "d": 40
+    },
+    "tutorials/clinical/10_ieeg_localize.py": {
+      "a": 41,
+      "d": 35
+    },
+    "tutorials/forward/20_source_alignment.py": {
+      "a": 8,
+      "d": 7
+    },
+    "tutorials/intro/40_sensor_locations.py": {
+      "a": 2,
+      "d": 2
+    },
+    "tutorials/io/30_reading_fnirs_data.py": {
+      "a": 10,
+      "d": 13
+    },
+    "tutorials/preprocessing/70_fnirs_processing.py": {
+      "a": 8,
+      "d": 13
+    }
+  }
+}

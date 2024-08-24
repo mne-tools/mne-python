@@ -1,0 +1,59 @@
+{
+  "merge_commit_sha": "e711615915c3c5c99b605d4b064f668684fec08b",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    },
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    },
+    {
+      "n": "Alex",
+      "e": "aprockhill@mailbox.org"
+    },
+    {
+      "n": "Alex",
+      "e": "aprockhill@mailbox.org"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "azure-pipelines.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/changes/1.0.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/beamformer/tests/test_lcmv.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/preprocessing/_csd.py": {
+      "a": 8,
+      "d": 0
+    },
+    "mne/preprocessing/tests/test_csd.py": {
+      "a": 15,
+      "d": 1
+    },
+    "mne/viz/backends/_utils.py": {
+      "a": 1,
+      "d": 18
+    },
+    "tools/azure_dependencies.sh": {
+      "a": 1,
+      "d": 1
+    },
+    "tools/github_actions_dependencies.sh": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

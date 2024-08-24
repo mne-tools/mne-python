@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "68f9a9fc34c6762d72d330782e21b5e9ec6e3bac",
+  "authors": [
+    {
+      "n": "Marijn van Vliet",
+      "e": "w.m.vanvliet@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/io/reference.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/tests/test_reference.py": {
+      "a": 28,
+      "d": 2
+    }
+  }
+}

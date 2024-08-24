@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "8eb11aa31e5b8e342f3909f4ba9836b822643ea0",
+  "authors": [
+    {
+      "n": "Chris Holdgraf",
+      "e": null
+    }
+  ],
+  "changes": {
+    "examples/decoding/plot_decoding_spatio_temporal_source.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/time_frequency/plot_source_space_time_frequency.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/surface.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

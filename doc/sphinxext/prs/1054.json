@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "080b67ae223704841b618cdd1451080fb5660268",
+  "authors": [
+    {
+      "n": "Mainak Jas",
+      "e": "mainak@neuro.hut.fi"
+    }
+  ],
+  "changes": {
+    "doc/source/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/realtime/ftclient_rt_average.py": {
+      "a": 78,
+      "d": 0
+    },
+    "mne/externals/FieldTrip.py": {
+      "a": 508,
+      "d": 0
+    },
+    "mne/realtime/__init__.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/realtime/fieldtrip_client.py": {
+      "a": 257,
+      "d": 0
+    }
+  }
+}

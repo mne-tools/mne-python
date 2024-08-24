@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "1e9b065b91d70d401b49c1b1a5a16767e00d9592",
+  "authors": [
+    {
+      "n": "Fahimeh Mamashli",
+      "e": "fahimeh.mamashli@pfizer.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 4,
+      "d": 3
+    },
+    "doc/changes/names.inc": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/epochs.py": {
+      "a": 30,
+      "d": 12
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 50,
+      "d": 11
+    }
+  }
+}

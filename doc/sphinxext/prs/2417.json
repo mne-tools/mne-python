@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "873aac06d2dd727d6b584fabc36863c3ebc7bd0e",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "doc/_static/mne_helmet.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/conf.py": {
+      "a": 3,
+      "d": 2
+    },
+    "doc/contributing.rst": {
+      "a": 10,
+      "d": 3
+    },
+    "doc/customizing_git.rst": {
+      "a": 4,
+      "d": 0
+    },
+    "examples/README.txt": {
+      "a": 8,
+      "d": 3
+    }
+  }
+}

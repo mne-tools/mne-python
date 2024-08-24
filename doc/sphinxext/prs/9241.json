@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "4080b4366fd5465a3f27df59f20cee050c430502",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 3,
+      "d": 0
+    },
+    "doc/preprocessing.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/channels/channels.py": {
+      "a": 11,
+      "d": 5
+    },
+    "mne/channels/interpolation.py": {
+      "a": 8,
+      "d": 48
+    },
+    "mne/channels/tests/test_interpolation.py": {
+      "a": 40,
+      "d": 2
+    },
+    "mne/preprocessing/__init__.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/preprocessing/interpolate.py": {
+      "a": 67,
+      "d": 0
+    },
+    "mne/preprocessing/tests/test_interpolate.py": {
+      "a": 60,
+      "d": 0
+    }
+  }
+}

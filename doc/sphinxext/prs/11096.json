@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "45d87fb0e5c34156c9568e04cd6ceef81140bed4",
+  "authors": [
+    {
+      "n": "Alex Rockhill",
+      "e": "aprockhill@mailbox.org"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/inverse.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "examples/inverse/dics_epochs.py": {
+      "a": 119,
+      "d": 0
+    },
+    "mne/beamformer/__init__.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/beamformer/_dics.py": {
+      "a": 73,
+      "d": 6
+    },
+    "mne/beamformer/tests/test_dics.py": {
+      "a": 72,
+      "d": 2
+    }
+  }
+}

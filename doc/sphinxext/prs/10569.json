@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "fc1112d8708e7ca8a8f7af6062c2927e538b55b2",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/forward/_field_interpolation.py": {
+      "a": 9,
+      "d": 2
+    },
+    "mne/io/open.py": {
+      "a": 5,
+      "d": 4
+    },
+    "mne/viz/_3d.py": {
+      "a": 4,
+      "d": 3
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

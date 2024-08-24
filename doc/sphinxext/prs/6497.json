@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "25b38f87c1a48385164396e0c5ad7a0dab85155d",
+  "authors": [
+    {
+      "n": "Joan Massich",
+      "e": "mailsik@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/io/nicolet/nicolet.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/nicolet/tests/test_nicolet.py": {
+      "a": 33,
+      "d": 0
+    }
+  }
+}

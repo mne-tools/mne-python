@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "ee64a44c569024d653f0cd4fa8ed8c6a4e0a6b76",
+  "authors": [
+    {
+      "n": "Britta Westner",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/gui/__init__.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

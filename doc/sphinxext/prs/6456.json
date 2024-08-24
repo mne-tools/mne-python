@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "0576ce744bb1649bab717a4a31c73d888673b32a",
+  "authors": [
+    {
+      "n": "Ivana Kojcic",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/manual/source_localization/forward.rst": {
+      "a": 8,
+      "d": 8
+    }
+  }
+}

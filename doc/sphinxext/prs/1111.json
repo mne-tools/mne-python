@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "78794f60f896cf2780902007b43ac191a4314a0c",
+  "authors": [
+    {
+      "n": "Christian Brodbeck",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/source/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/label.py": {
+      "a": 224,
+      "d": 68
+    },
+    "mne/tests/test_label.py": {
+      "a": 43,
+      "d": 18
+    }
+  }
+}

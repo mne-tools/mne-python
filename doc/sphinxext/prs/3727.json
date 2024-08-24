@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "9df58a59140c8a723373120a45756554e1d2b726",
+  "authors": [
+    {
+      "n": "jaeilepp",
+      "e": "jaeilepp@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/channels/montage.py": {
+      "a": 12,
+      "d": 4
+    },
+    "mne/channels/tests/test_montage.py": {
+      "a": 6,
+      "d": 0
+    }
+  }
+}

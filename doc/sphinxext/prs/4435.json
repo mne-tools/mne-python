@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "01ba44236708589fbc6f7dbd566b0c83ff5e6835",
+  "authors": [
+    {
+      "n": "jaeilepp",
+      "e": "jaeilepp@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/decoding/plot_decoding_csp_eeg.py": {
+      "a": 15,
+      "d": 19
+    },
+    "examples/decoding/plot_decoding_csp_space.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/decoding/csp.py": {
+      "a": 19,
+      "d": 35
+    },
+    "mne/viz/topomap.py": {
+      "a": 3,
+      "d": 1
+    }
+  }
+}

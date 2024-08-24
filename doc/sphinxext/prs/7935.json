@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "1d9058074ba6ae41cf35188380b38ff48c8d4d1b",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/channels/channels.py": {
+      "a": 5,
+      "d": 2
+    },
+    "mne/channels/layout.py": {
+      "a": 14,
+      "d": 7
+    },
+    "mne/viz/tests/test_evoked.py": {
+      "a": 7,
+      "d": 1
+    }
+  }
+}

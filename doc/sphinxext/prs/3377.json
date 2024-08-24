@@ -1,0 +1,71 @@
+{
+  "merge_commit_sha": "16b30b6665281e53ac2dd14c9a0074ff8ed59e02",
+  "authors": [
+    {
+      "n": "Christian Brodbeck",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/channels/data/layouts/KIT-UMD-3.lout": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/channels/data/neighbors/KIT-UMD-1_neighb.mat": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/channels/data/neighbors/KIT-UMD-2_neighb.mat": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/channels/data/neighbors/KIT-UMD-3_neighb.mat": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/channels/layout.py": {
+      "a": 16,
+      "d": 2
+    },
+    "mne/channels/tests/test_layout.py": {
+      "a": 30,
+      "d": 33
+    },
+    "mne/io/constants.py": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/io/kit/constants.py": {
+      "a": 43,
+      "d": 18
+    },
+    "mne/io/kit/kit.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/io/kit/tests/data/test_umd-raw.sqd": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/io/kit/tests/test_kit.py": {
+      "a": 15,
+      "d": 1
+    },
+    "mne/io/meas_info.py": {
+      "a": 29,
+      "d": 6
+    },
+    "mne/io/tests/test_meas_info.py": {
+      "a": 7,
+      "d": 0
+    },
+    "mne/io/tests/test_raw.py": {
+      "a": 2,
+      "d": 0
+    }
+  }
+}

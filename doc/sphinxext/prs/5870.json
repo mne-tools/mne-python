@@ -1,0 +1,63 @@
+{
+  "merge_commit_sha": "c6956e7c2385712a8b87c15682aaef5f0fcb9168",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "mne/cov.py": {
+      "a": 10,
+      "d": 178
+    },
+    "mne/io/base.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/fiff/tests/test_raw_fiff.py": {
+      "a": 0,
+      "d": 34
+    },
+    "mne/io/proc_history.py": {
+      "a": 1,
+      "d": 50
+    },
+    "mne/io/tests/test_proc_history.py": {
+      "a": 1,
+      "d": 11
+    },
+    "mne/preprocessing/tests/test_maxwell.py": {
+      "a": 3,
+      "d": 4
+    },
+    "mne/rank.py": {
+      "a": 234,
+      "d": 0
+    },
+    "mne/tests/test_cov.py": {
+      "a": 8,
+      "d": 124
+    },
+    "mne/tests/test_rank.py": {
+      "a": 169,
+      "d": 0
+    },
+    "mne/utils/__init__.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/utils/numerics.py": {
+      "a": 1,
+      "d": 72
+    },
+    "mne/utils/tests/test_numerics.py": {
+      "a": 39,
+      "d": 12
+    },
+    "mne/viz/utils.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

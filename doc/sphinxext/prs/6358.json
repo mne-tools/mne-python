@@ -1,0 +1,79 @@
+{
+  "merge_commit_sha": "532f6589e35c4519dc16bcf8768ed758e6b3fe45",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/_static/annotation-controls.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/glossary.rst": {
+      "a": 14,
+      "d": 10
+    },
+    "doc/whats_new.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/label.py": {
+      "a": 6,
+      "d": 3
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 14,
+      "d": 6
+    },
+    "mne/preprocessing/infomax_.py": {
+      "a": 5,
+      "d": 4
+    },
+    "mne/simulation/evoked.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/simulation/source.py": {
+      "a": 10,
+      "d": 4
+    },
+    "mne/stats/cluster_level.py": {
+      "a": 20,
+      "d": 8
+    },
+    "mne/stats/permutations.py": {
+      "a": 5,
+      "d": 2
+    },
+    "mne/utils/check.py": {
+      "a": 6,
+      "d": 6
+    },
+    "mne/utils/docs.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/circle.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/intro/plot_introduction.py": {
+      "a": 2,
+      "d": 0
+    },
+    "tutorials/intro/plot_object_annotations.py": {
+      "a": 262,
+      "d": 209
+    },
+    "tutorials/raw/plot_annotating_raw.py": {
+      "a": 249,
+      "d": 0
+    },
+    "tutorials/raw/plot_events.py": {
+      "a": 179,
+      "d": 0
+    }
+  }
+}

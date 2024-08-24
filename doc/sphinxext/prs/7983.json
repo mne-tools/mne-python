@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "31f4923342c112a1d9affcd580971af6ff09f0cc",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/preprocessing/maxwell.py": {
+      "a": 19,
+      "d": 5
+    },
+    "mne/preprocessing/tests/test_maxwell.py": {
+      "a": 15,
+      "d": 8
+    },
+    "tutorials/preprocessing/plot_60_maxwell_filtering_sss.py": {
+      "a": 12,
+      "d": 6
+    }
+  }
+}

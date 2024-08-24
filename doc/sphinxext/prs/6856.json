@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "03b58ad2e90fa6c609289c2ae49ba6cba06279eb",
+  "authors": [
+    {
+      "n": "Rob Luke",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 3
+    },
+    "mne/coreg.py": {
+      "a": 5,
+      "d": 1
+    },
+    "mne/defaults.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/nirx/nirx.py": {
+      "a": 31,
+      "d": 7
+    },
+    "mne/io/nirx/tests/test_nirx.py": {
+      "a": 61,
+      "d": 39
+    },
+    "mne/viz/_3d.py": {
+      "a": 24,
+      "d": 20
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 10,
+      "d": 1
+    }
+  }
+}

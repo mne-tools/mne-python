@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "e4ed71baf2b9e4175758e6d9939d7fe252b9d949",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "README.rst": {
+      "a": 5,
+      "d": 0
+    }
+  }
+}

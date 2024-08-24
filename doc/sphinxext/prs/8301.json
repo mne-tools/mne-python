@@ -1,0 +1,167 @@
+{
+  "merge_commit_sha": "ecf639298f7bc9b9e9406a712eb852cb95586c74",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/0.15.inc": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/changes/0.19.inc": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/changes/0.20.inc": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/python_reference.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/__init__.py": {
+      "a": 0,
+      "d": 17
+    },
+    "mne/beamformer/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/beamformer/_dics.py": {
+      "a": 3,
+      "d": 12
+    },
+    "mne/beamformer/_lcmv.py": {
+      "a": 2,
+      "d": 293
+    },
+    "mne/beamformer/tests/test_lcmv.py": {
+      "a": 1,
+      "d": 174
+    },
+    "mne/bem.py": {
+      "a": 7,
+      "d": 17
+    },
+    "mne/channels/__init__.py": {
+      "a": 0,
+      "d": 5
+    },
+    "mne/channels/channels.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/channels/montage.py": {
+      "a": 1,
+      "d": 31
+    },
+    "mne/channels/tests/test_montage.py": {
+      "a": 0,
+      "d": 9
+    },
+    "mne/epochs.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/filter.py": {
+      "a": 1,
+      "d": 4
+    },
+    "mne/io/kit/kit.py": {
+      "a": 2,
+      "d": 8
+    },
+    "mne/io/kit/tests/test_kit.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/io/nirx/tests/test_nirx.py": {
+      "a": 3,
+      "d": 5
+    },
+    "mne/io/pick.py": {
+      "a": 5,
+      "d": 34
+    },
+    "mne/io/tests/test_pick.py": {
+      "a": 6,
+      "d": 6
+    },
+    "mne/minimum_norm/tests/test_inverse.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/preprocessing/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/flat.py": {
+      "a": 1,
+      "d": 50
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 6,
+      "d": 16
+    },
+    "mne/preprocessing/tests/test_beer_lambert_law.py": {
+      "a": 0,
+      "d": 6
+    },
+    "mne/preprocessing/tests/test_flat.py": {
+      "a": 1,
+      "d": 6
+    },
+    "mne/preprocessing/tests/test_ica.py": {
+      "a": 4,
+      "d": 3
+    },
+    "mne/source_estimate.py": {
+      "a": 1,
+      "d": 105
+    },
+    "mne/source_space.py": {
+      "a": 1,
+      "d": 6
+    },
+    "mne/stats/cluster_level.py": {
+      "a": 6,
+      "d": 33
+    },
+    "mne/stats/tests/test_cluster_level.py": {
+      "a": 0,
+      "d": 5
+    },
+    "mne/tests/test_bem.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/tests/test_filter.py": {
+      "a": 6,
+      "d": 10
+    },
+    "mne/tests/test_source_estimate.py": {
+      "a": 0,
+      "d": 5
+    },
+    "mne/utils/check.py": {
+      "a": 0,
+      "d": 3
+    },
+    "mne/utils/docs.py": {
+      "a": 2,
+      "d": 6
+    },
+    "mne/viz/tests/test_epochs.py": {
+      "a": 0,
+      "d": 5
+    },
+    "mne/viz/topomap.py": {
+      "a": 6,
+      "d": 30
+    }
+  }
+}

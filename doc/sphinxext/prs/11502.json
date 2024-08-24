@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "0e305ee75fed512e8af6eba33bf5570652fa5069",
+  "authors": [
+    {
+      "n": "Moritz Gerster",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/base.py": {
+      "a": 10,
+      "d": 5
+    },
+    "mne/io/fiff/tests/test_raw_fiff.py": {
+      "a": 49,
+      "d": 1
+    }
+  }
+}

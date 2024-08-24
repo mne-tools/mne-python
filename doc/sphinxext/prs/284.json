@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "a28a9942b94a1ad9752accfefce88f48b6e89aee",
+  "authors": [
+    {
+      "n": "Martin Luessi",
+      "e": null
+    }
+  ],
+  "changes": {
+    "examples/connectivity/plot_mne_inverse_coherence_epochs.py": {
+      "a": 5,
+      "d": 21
+    }
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "9fc8623eebd62d31039e90927744e376f5ee611c",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/0.9.inc": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/changes/latest.inc": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/commands/mne_surf2bem.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/gui/__init__.py": {
+      "a": 12,
+      "d": 2
+    },
+    "mne/gui/_coreg_gui.py": {
+      "a": 26,
+      "d": 10
+    },
+    "mne/gui/_fiducials_gui.py": {
+      "a": 21,
+      "d": 53
+    },
+    "mne/gui/_viewer.py": {
+      "a": 4,
+      "d": 1
+    },
+    "mne/utils/config.py": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

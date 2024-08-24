@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "e1545e6214f09ffe0a84fed0bef9a17bc1a6386f",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/_templates/sidebar-quicklinks.html": {
+      "a": 4,
+      "d": 4
+    },
+    "doc/conf.py": {
+      "a": 143,
+      "d": 119
+    }
+  }
+}

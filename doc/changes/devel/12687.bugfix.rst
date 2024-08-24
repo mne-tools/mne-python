@@ -1,1 +1,0 @@
-In :func:`mne.io.read_raw_eyelink`, gracefully handle missing datetime in file by `Scott Huberty`_.

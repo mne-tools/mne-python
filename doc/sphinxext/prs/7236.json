@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "328e026795b787cbe6acd7ad2a8ea1535bad28a3",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".circleci/config.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "azure-pipelines.yml": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

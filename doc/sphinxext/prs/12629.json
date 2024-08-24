@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "dff97690517ac087d22ef6e42c1a13dbd3f3d9d8",
+  "authors": [
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    ".pre-commit-config.yaml": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/conftest.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/tests/test_bem.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

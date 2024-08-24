@@ -1,0 +1,79 @@
+{
+  "merge_commit_sha": "ca3bb6392e75c6f80707ce36241667fbe0e8d95e",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/conf.py": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/documentation.rst": {
+      "a": 1,
+      "d": 12
+    },
+    "doc/python_reference.rst": {
+      "a": 1,
+      "d": 18
+    },
+    "doc/whats_new.rst": {
+      "a": 18,
+      "d": 10
+    },
+    "examples/realtime/README.txt": {
+      "a": 0,
+      "d": 5
+    },
+    "examples/realtime/plot_compute_rt_average.py": {
+      "a": 0,
+      "d": 61
+    },
+    "examples/realtime/plot_compute_rt_decoder.py": {
+      "a": 0,
+      "d": 122
+    },
+    "examples/realtime/plot_ftclient_rt_average.py": {
+      "a": 0,
+      "d": 104
+    },
+    "examples/realtime/plot_ftclient_rt_compute_psd.py": {
+      "a": 0,
+      "d": 90
+    },
+    "examples/realtime/plot_lslclient_rt.py": {
+      "a": 0,
+      "d": 51
+    },
+    "examples/realtime/plot_rt_feedback_server.py": {
+      "a": 0,
+      "d": 124
+    },
+    "examples/realtime/rt_feedback_client.py": {
+      "a": 0,
+      "d": 71
+    },
+    "mne/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/decoding/transformer.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/epochs.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/tests/test_docstring_parameters.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/utils/mixin.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

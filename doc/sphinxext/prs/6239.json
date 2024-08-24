@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "03bc75e9067483166bb8ebbb2827ccaf45425031",
+  "authors": [
+    {
+      "n": "Oleh Kozynets",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/utils/docs.py": {
+      "a": 12,
+      "d": 10
+    },
+    "mne/viz/backends/_pysurfer_mayavi.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/backends/_vtki.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "3b2e6c914dbb820fec74cd1f4aca6e29e7e5c558",
+  "authors": [
+    {
+      "n": "ashdrew",
+      "e": "ashdrew@uw.edu"
+    }
+  ],
+  "changes": {
+    "tutorials/io/30_reading_fnirs_data.py": {
+      "a": 1,
+      "d": 2
+    }
+  }
+}

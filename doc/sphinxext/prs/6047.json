@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "9d71dc0c315190bb1572f534b55904035b54af59",
+  "authors": [
+    {
+      "n": "Joan Massich",
+      "e": "mailsik@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 6,
+      "d": 0
+    },
+    "mne/annotations.py": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/io/cnt/_utils.py": {
+      "a": 95,
+      "d": 0
+    },
+    "mne/io/cnt/cnt.py": {
+      "a": 199,
+      "d": 81
+    },
+    "mne/io/cnt/tests/test_cnt.py": {
+      "a": 35,
+      "d": 0
+    },
+    "mne/io/fieldtrip/tests/helpers.py": {
+      "a": 17,
+      "d": 15
+    },
+    "mne/io/utils.py": {
+      "a": 29,
+      "d": 6
+    }
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "dec30fe5e4266898ac2f93af39f64e3ae9686fb5",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/viz/epochs.py": {
+      "a": 16,
+      "d": 13
+    },
+    "mne/viz/ica.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

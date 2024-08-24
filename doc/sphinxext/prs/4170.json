@@ -1,0 +1,51 @@
+{
+  "merge_commit_sha": "c86a836e27caf4e34194aa74205e48c027bbedb2",
+  "authors": [
+    {
+      "n": "Jussi Nurminen",
+      "e": "jnu@iki.fi"
+    }
+  ],
+  "changes": {
+    "circle.yml": {
+      "a": 3,
+      "d": 0
+    },
+    "doc/manual/datasets_index.rst": {
+      "a": 11,
+      "d": 0
+    },
+    "doc/python_reference.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/datasets/plot_hf_sef_data.py": {
+      "a": 37,
+      "d": 0
+    },
+    "mne/datasets/__init__.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/datasets/hf_sef/__init__.py": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/datasets/hf_sef/hf_sef.py": {
+      "a": 99,
+      "d": 0
+    },
+    "mne/datasets/utils.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/tests/test_docstring_parameters.py": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

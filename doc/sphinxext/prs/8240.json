@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "e63190c3b63ed080d7e7442405277515823d9d18",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".coveragerc": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/conftest.py": {
+      "a": 39,
+      "d": 0
+    },
+    "requirements_testing.txt": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "1694d43b4ecfc3e680d4d5921b42ff043ecf78c1",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    },
+    {
+      "n": "autofix-ci[bot]",
+      "e": "114827586+autofix-ci[bot]@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/12733.newfeature.rst": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/epochs.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/mixin.py": {
+      "a": 13,
+      "d": 1
+    }
+  }
+}

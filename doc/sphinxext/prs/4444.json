@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "25c1e644d64dc6ec83776508591c7206031a15a9",
+  "authors": [
+    {
+      "n": "jaeilepp",
+      "e": "jaeilepp@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/gui/_coreg_gui.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/gui/_file_traits.py": {
+      "a": 36,
+      "d": 4
+    },
+    "mne/gui/tests/test_file_traits.py": {
+      "a": 15,
+      "d": 5
+    }
+  }
+}

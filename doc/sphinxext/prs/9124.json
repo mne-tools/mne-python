@@ -1,0 +1,51 @@
+{
+  "merge_commit_sha": "5ae29cd69aa6075dc9ecd97402571ff7b2a03d21",
+  "authors": [
+    {
+      "n": "Felix Klotzsche",
+      "e": "klotzsche@cbs.mpg.de"
+    },
+    {
+      "n": "Britta Westner",
+      "e": "britta.wstnr@gmail.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "eioe",
+      "e": "klotzsche@cbs.mpg.de"
+    },
+    {
+      "n": "Britta Westner",
+      "e": "britta.wstnr@gmail.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "mne/time_frequency/tests/test_tfr.py": {
+      "a": 252,
+      "d": 65
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 135,
+      "d": 6
+    }
+  }
+}

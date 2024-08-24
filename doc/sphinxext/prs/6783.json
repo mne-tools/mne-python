@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "df2cdd4654bcf562bb75dd1eb9137103b4b0a7c6",
+  "authors": [
+    {
+      "n": "José C. García Alanis",
+      "e": null
+    }
+  ],
+  "changes": {
+    ".circleci/config.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/overview/datasets_index.rst": {
+      "a": 27,
+      "d": 0
+    },
+    "examples/datasets/plot_limo_data.py": {
+      "a": 247,
+      "d": 106
+    },
+    "mne/datasets/__init__.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/datasets/utils.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/utils/config.py": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "2fd38c04c8bd07fc231064c50133c6de76cad4b7",
+  "authors": [
+    {
+      "n": "Louis Thibault",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/event.py": {
+      "a": 10,
+      "d": 5
+    },
+    "mne/fiff/raw.py": {
+      "a": 21,
+      "d": 11
+    }
+  }
+}

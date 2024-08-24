@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "239c83dfe0686084d1c96c945579dc8cc10e895c",
+  "authors": [
+    {
+      "n": "Phillip Alday",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/io/brainvision/brainvision.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/stats/regression.py": {
+      "a": 5,
+      "d": 4
+    },
+    "mne/stats/tests/test_regression.py": {
+      "a": 9,
+      "d": 1
+    }
+  }
+}

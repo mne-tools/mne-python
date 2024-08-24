@@ -1,7 +1,4 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
-#          Denis A. Engemann <denis.engemann@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -708,7 +705,7 @@ def compute_raw_covariance(
 
     # don't exclude any bad channels, inverses expect all channels present
     if picks is None:
-        # Need to include all channels e.g. if eog rejection is to be used
+        # Need to include all good channels e.g. if eog rejection is to be used
         picks = np.arange(raw.info["nchan"])
         pick_mask = np.isin(picks, _pick_data_channels(raw.info, with_ref_meg=False))
     else:
@@ -834,7 +831,7 @@ def _check_method_params(
         was_auto = True
         method = ["shrunk", "diagonal_fixed", "empirical", "factor_analysis"]
 
-    if not isinstance(method, (list, tuple)):
+    if not isinstance(method, list | tuple):
         method = [method]
 
     if not all(k in accepted_methods for k in method):
@@ -1616,7 +1613,7 @@ class _ShrunkCovariance(BaseEstimator):
 
         cov = self.estimator_.fit(X).covariance_
 
-        if not isinstance(self.shrinkage, (list, tuple)):
+        if not isinstance(self.shrinkage, list | tuple):
             shrinkage = [("all", self.shrinkage, np.arange(len(cov)))]
         else:
             shrinkage = self.shrinkage
@@ -1878,6 +1875,15 @@ def _smart_eigh(
             # Choose the subspace the same way we do for projections
             e, ev = _eigvec_subspace(e, ev, m)
         eig[picks], eigvec[np.ix_(picks, picks)], mask[picks] = e, ev, m
+        largest, smallest = e[-1], e[m][0]
+        if largest > 1e10 * smallest:
+            warn(
+                f"The largest eigenvalue of the {len(picks)}-channel {ch_type} "
+                f"covariance (rank={this_rank}) is over 10 orders of magnitude "
+                f"larger than the smallest ({largest:0.3g} > 1e10 * {smallest:0.3g}), "
+                "the resulting whitener will likely be unstable"
+            )
+
         # XXX : also handle ref for sEEG and ECoG
         if (
             ch_type == "eeg"

@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "0083c2b99f6ba9da3849dd9edef05b1063e1affa",
+  "authors": [
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/viz/_brain/_brain.py": {
+      "a": 25,
+      "d": 54
+    },
+    "mne/viz/_brain/_timeviewer.py": {
+      "a": 294,
+      "d": 231
+    }
+  }
+}

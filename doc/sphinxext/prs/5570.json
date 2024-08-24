@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "f38ab2e529cb73f91dda31bdd7288b722f5c99b9",
+  "authors": [
+    {
+      "n": "Teon L Brooks",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/manual/c_reference.rst": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/artemis123/artemis123.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/base.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/io/fiff/tests/test_raw_fiff.py": {
+      "a": 9,
+      "d": 7
+    },
+    "mne/io/utils.py": {
+      "a": 15,
+      "d": 0
+    }
+  }
+}

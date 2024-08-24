@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "32b04de7899d1d18b48b037c95967112b87860a5",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/source/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/label.py": {
+      "a": 98,
+      "d": 20
+    },
+    "mne/source_estimate.py": {
+      "a": 0,
+      "d": 5
+    },
+    "mne/tests/test_label.py": {
+      "a": 22,
+      "d": 0
+    }
+  }
+}

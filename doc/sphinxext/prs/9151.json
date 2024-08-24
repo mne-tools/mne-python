@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "39524d220bafae4935c9224140179b767ebd2689",
+  "authors": [
+    {
+      "n": "Matteo Anelli",
+      "e": "matteanelli.96.11@gmail.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/utils/check.py": {
+      "a": 10,
+      "d": 3
+    },
+    "mne/viz/evoked.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/viz/tests/test_evoked.py": {
+      "a": 5,
+      "d": 0
+    }
+  }
+}

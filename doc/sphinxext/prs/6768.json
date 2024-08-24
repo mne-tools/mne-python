@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "a551eb83f28c2b479718b0ed758cbb7fd57d0e7c",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/python_reference.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/cuda.py": {
+      "a": 32,
+      "d": 2
+    },
+    "mne/utils/config.py": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

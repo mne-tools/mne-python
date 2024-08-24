@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "5f623d90c8c71e91d07a7a44627bfa81411756a0",
+  "authors": [
+    {
+      "n": "alexandre barachant",
+      "e": null
+    }
+  ],
+  "changes": {
+    "examples/decoding/plot_decoding_xdawn_transformer.py": {
+      "a": 38,
+      "d": 12
+    }
+  }
+}

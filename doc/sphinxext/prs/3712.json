@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "7fea04ebb53d65e09c5877fbc0f227cf86b4cb92",
+  "authors": [
+    {
+      "n": "Asish Panda",
+      "e": "asishrocks95@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/manual/decoding.rst": {
+      "a": 0,
+      "d": 6
+    },
+    "doc/python_reference.rst": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

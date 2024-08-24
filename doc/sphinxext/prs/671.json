@@ -1,0 +1,63 @@
+{
+  "merge_commit_sha": "993ca205bf22e263a1e4a9ffdde99a3077eec31d",
+  "authors": [
+    {
+      "n": "Martin Luessi",
+      "e": null
+    }
+  ],
+  "changes": {
+    "examples/inverse/plot_compute_mne_inverse_volume.py": {
+      "a": 9,
+      "d": 4
+    },
+    "mne/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/beamformer/_lcmv.py": {
+      "a": 7,
+      "d": 7
+    },
+    "mne/beamformer/tests/test_lcmv.py": {
+      "a": 41,
+      "d": 33
+    },
+    "mne/connectivity/spectral.py": {
+      "a": 5,
+      "d": 4
+    },
+    "mne/label.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/minimum_norm/inverse.py": {
+      "a": 11,
+      "d": 10
+    },
+    "mne/minimum_norm/tests/test_inverse.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/minimum_norm/time_frequency.py": {
+      "a": 14,
+      "d": 9
+    },
+    "mne/source_estimate.py": {
+      "a": 460,
+      "d": 259
+    },
+    "mne/tests/test_source_estimate.py": {
+      "a": 59,
+      "d": 19
+    },
+    "mne/tests/test_viz.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz.py": {
+      "a": 7,
+      "d": 92
+    }
+  }
+}

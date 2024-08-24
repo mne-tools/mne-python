@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "63e4e3b98493dd488c9e5806daf83ea2bb227463",
+  "authors": [
+    {
+      "n": "Christopher J. Bailey",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/viz/_3d.py": {
+      "a": 2,
+      "d": 0
+    }
+  }
+}

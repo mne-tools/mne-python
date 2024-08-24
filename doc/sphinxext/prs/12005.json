@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "034e9dce29a5754c7134aa4753ca81149ff3f55c",
+  "authors": [
+    {
+      "n": "Marijn van Vliet",
+      "e": "w.m.vanvliet@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/viz/evoked_field.py": {
+      "a": 2,
+      "d": 1
+    },
+    "tutorials/evoked/20_visualize_evoked.py": {
+      "a": 0,
+      "d": 1
+    }
+  }
+}

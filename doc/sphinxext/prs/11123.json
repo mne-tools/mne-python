@@ -1,0 +1,163 @@
+{
+  "merge_commit_sha": "45720ccbae51927b4c7ceace3b89c7c294d21bab",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 7,
+      "d": 0
+    },
+    "examples/decoding/ems_filtering.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/decoding/linear_model_patterns.py": {
+      "a": 4,
+      "d": 2
+    },
+    "examples/decoding/receptive_field_mtrf.py": {
+      "a": 3,
+      "d": 3
+    },
+    "examples/inverse/mne_cov_power.py": {
+      "a": 7,
+      "d": 4
+    },
+    "examples/preprocessing/eeg_bridging.py": {
+      "a": 4,
+      "d": 3
+    },
+    "examples/preprocessing/eeg_csd.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/preprocessing/movement_compensation.py": {
+      "a": 9,
+      "d": 8
+    },
+    "examples/preprocessing/virtual_evoked.py": {
+      "a": 8,
+      "d": 7
+    },
+    "examples/stats/sensor_permutation_test.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/time_frequency/source_power_spectrum_opm.py": {
+      "a": 2,
+      "d": 2
+    },
+    "examples/time_frequency/time_frequency_erds.py": {
+      "a": 10,
+      "d": 1
+    },
+    "examples/visualization/evoked_topomap.py": {
+      "a": 17,
+      "d": 21
+    },
+    "mne/cov.py": {
+      "a": 46,
+      "d": 27
+    },
+    "mne/evoked.py": {
+      "a": 13,
+      "d": 14
+    },
+    "mne/io/proj.py": {
+      "a": 103,
+      "d": 35
+    },
+    "mne/preprocessing/_regress.py": {
+      "a": 15,
+      "d": 8
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 40,
+      "d": 35
+    },
+    "mne/report/report.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/time_frequency/spectrum.py": {
+      "a": 76,
+      "d": 95
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 79,
+      "d": 104
+    },
+    "mne/utils/docs.py": {
+      "a": 133,
+      "d": 123
+    },
+    "mne/viz/_proj.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/evoked.py": {
+      "a": 5,
+      "d": 5
+    },
+    "mne/viz/tests/test_topomap.py": {
+      "a": 126,
+      "d": 130
+    },
+    "mne/viz/topomap.py": {
+      "a": 554,
+      "d": 471
+    },
+    "mne/viz/utils.py": {
+      "a": 37,
+      "d": 0
+    },
+    "tutorials/epochs/15_baseline_regression.py": {
+      "a": 5,
+      "d": 3
+    },
+    "tutorials/epochs/40_autogenerate_metadata.py": {
+      "a": 2,
+      "d": 3
+    },
+    "tutorials/inverse/20_dipole_fit.py": {
+      "a": 3,
+      "d": 3
+    },
+    "tutorials/inverse/30_mne_dspm_loreta.py": {
+      "a": 1,
+      "d": 2
+    },
+    "tutorials/io/60_ctf_bst_auditory.py": {
+      "a": 4,
+      "d": 2
+    },
+    "tutorials/preprocessing/35_artifact_correction_regression.py": {
+      "a": 3,
+      "d": 3
+    },
+    "tutorials/preprocessing/70_fnirs_processing.py": {
+      "a": 8,
+      "d": 13
+    },
+    "tutorials/stats-sensor-space/75_cluster_ftest_spatiotemporal.py": {
+      "a": 3,
+      "d": 3
+    },
+    "tutorials/time-freq/20_sensors_time_frequency.py": {
+      "a": 4,
+      "d": 2
+    },
+    "tutorials/time-freq/50_ssvep.py": {
+      "a": 1,
+      "d": 4
+    }
+  }
+}

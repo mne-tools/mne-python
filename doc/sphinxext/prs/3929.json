@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "883a276f417e8df6e31d9db6eb3ab6e838daf270",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/minimum_norm/tests/test_time_frequency.py": {
+      "a": 18,
+      "d": 11
+    },
+    "mne/minimum_norm/time_frequency.py": {
+      "a": 4,
+      "d": 1
+    }
+  }
+}

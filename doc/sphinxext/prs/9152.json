@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "46d00e571a2bc7511f17ab103d64b4d6fafbde3d",
+  "authors": [
+    {
+      "n": "Maggie Clarke",
+      "e": "mdclarke@uw.edu"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 5,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/viz/epochs.py": {
+      "a": 11,
+      "d": 10
+    }
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "2bfac6534e07a1b6f6f2e41aea446cdfbc4a4b32",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/viz/_3d.py": {
+      "a": 6,
+      "d": 3
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 15,
+      "d": 8
+    }
+  }
+}

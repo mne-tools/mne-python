@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "16e7d2c89cc4f0430e701528588cbcec43e4f933",
+  "authors": [
+    {
+      "n": "ppasler",
+      "e": "paul@ppasler.de"
+    }
+  ],
+  "changes": {
+    "mne/preprocessing/ica.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

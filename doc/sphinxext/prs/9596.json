@@ -1,0 +1,91 @@
+{
+  "merge_commit_sha": "6c896a649d0de38dd68e98d2836aabe6fc17a123",
+  "authors": [
+    {
+      "n": "Martin G. Schulz",
+      "e": "dev@mgschulz.de"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Clemens Brunner",
+      "e": "clemens.brunner@gmail.com"
+    },
+    {
+      "n": "Clemens Brunner",
+      "e": "clemens.brunner@gmail.com"
+    },
+    {
+      "n": "Clemens Brunner",
+      "e": "clemens.brunner@gmail.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Clemens Brunner",
+      "e": "clemens.brunner@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/conftest.py": {
+      "a": 103,
+      "d": 2
+    },
+    "mne/utils/config.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/viz/_figure.py": {
+      "a": 235,
+      "d": 2244
+    },
+    "mne/viz/_mpl_figure.py": {
+      "a": 2352,
+      "d": 0
+    },
+    "mne/viz/backends/_utils.py": {
+      "a": 5,
+      "d": 0
+    },
+    "mne/viz/backends/renderer.py": {
+      "a": 6,
+      "d": 6
+    },
+    "mne/viz/epochs.py": {
+      "a": 6,
+      "d": 3
+    },
+    "mne/viz/ica.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/viz/raw.py": {
+      "a": 5,
+      "d": 3
+    },
+    "mne/viz/tests/test_epochs.py": {
+      "a": 83,
+      "d": 125
+    },
+    "mne/viz/tests/test_figure.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/viz/tests/test_ica.py": {
+      "a": 14,
+      "d": 14
+    },
+    "mne/viz/tests/test_raw.py": {
+      "a": 217,
+      "d": 221
+    },
+    "mne/viz/utils.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

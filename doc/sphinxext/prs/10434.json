@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "2e0753da5c0fee1768bda1a77a72f9b67e9ae863",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "tools/circleci_dependencies.sh": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

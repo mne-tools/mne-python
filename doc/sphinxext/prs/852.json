@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "4d1a6617239cdd21ed7aa7d9270dafd3f3c0a504",
+  "authors": [
+    {
+      "n": "Teon L Brooks",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/coreg.py": {
+      "a": 53,
+      "d": 0
+    },
+    "mne/fiff/kit/coreg.py": {
+      "a": 0,
+      "d": 53
+    },
+    "mne/fiff/kit/kit.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/fiff/kit/tests/test_coreg.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

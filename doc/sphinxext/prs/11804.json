@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "9b3a4d38a252e8e26980135229f68ca90d0fe359",
+  "authors": [
+    {
+      "n": "Daniel Tse",
+      "e": "xiezhibin.0.0.superman@gmail.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/snirf/_snirf.py": {
+      "a": 6,
+      "d": 1
+    }
+  }
+}

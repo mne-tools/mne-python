@@ -1,0 +1,63 @@
+{
+  "merge_commit_sha": "98fb5c26dee0b5c36a666e945fecd4423e0b712e",
+  "authors": [
+    {
+      "n": "Johann Benerradi",
+      "e": null
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    },
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    },
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/defaults.py": {
+      "a": 7,
+      "d": 0
+    },
+    "mne/io/base.py": {
+      "a": 122,
+      "d": 2
+    },
+    "mne/io/tests/test_raw.py": {
+      "a": 73,
+      "d": 0
+    },
+    "mne/tests/test_defaults.py": {
+      "a": 5,
+      "d": 47
+    }
+  }
+}

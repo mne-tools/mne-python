@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "7e241cce1f78d1a21a0607ae9e2186e7f964e402",
+  "authors": [
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/install/advanced.rst": {
+      "a": 4,
+      "d": 0
+    }
+  }
+}

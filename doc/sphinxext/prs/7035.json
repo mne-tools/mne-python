@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "e165f22dacd2a89c9181c2f2f97806eeea11dd37",
+  "authors": [
+    {
+      "n": "Rob Luke",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/python_reference.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/nirx/tests/test_nirx.py": {
+      "a": 7,
+      "d": 7
+    },
+    "mne/preprocessing/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/_beer_lambert_law.py": {
+      "a": 16,
+      "d": 3
+    },
+    "tutorials/preprocessing/plot_70_fnirs_processing.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "a9ab34c03a9cd06e3996379aed41413aae6619b1",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/dipole.py": {
+      "a": 2,
+      "d": 10
+    },
+    "tutorials/plot_brainstorm_phantom_elekta.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

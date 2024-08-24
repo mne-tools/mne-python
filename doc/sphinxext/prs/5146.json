@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "12c4d7a77e272e186564927746d8fccbe21d525d",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/preprocessing/ssp.py": {
+      "a": 24,
+      "d": 7
+    },
+    "mne/proj.py": {
+      "a": 55,
+      "d": 9
+    },
+    "mne/rank.py": {
+      "a": 5,
+      "d": 4
+    },
+    "mne/tests/test_proj.py": {
+      "a": 43,
+      "d": 11
+    },
+    "mne/tests/test_rank.py": {
+      "a": 15,
+      "d": 13
+    }
+  }
+}

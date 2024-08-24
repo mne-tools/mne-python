@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "4b47a143ac787fc5791e43be148e5aa498db19a8",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/glossary.rst": {
+      "a": 7,
+      "d": 3
+    },
+    "mne/beamformer/tests/test_dics.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/ecg.py": {
+      "a": 11,
+      "d": 0
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/report/report.py": {
+      "a": 6,
+      "d": 6
+    },
+    "mne/report/tests/test_report.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/docs.py": {
+      "a": 27,
+      "d": 17
+    },
+    "mne/viz/misc.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

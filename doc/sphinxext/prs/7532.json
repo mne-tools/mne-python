@@ -1,0 +1,115 @@
+{
+  "merge_commit_sha": "15b9c95db383a1462719d9fbf11f735fa774a0c6",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".circleci/config.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "README.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/_includes/forward.rst": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/_static/CoordinateSystems.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/HeadCS.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/amazon.svg": {
+      "a": 17,
+      "d": 0
+    },
+    "doc/_static/anr.jpeg": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/cds.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/doe.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/erc.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/google.svg": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/_static/mne_logo.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/mne_logo.svg": {
+      "a": 744,
+      "d": 0
+    },
+    "doc/_static/mne_logo_small.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/mne_logo_small.svg": {
+      "a": 70,
+      "d": 0
+    },
+    "doc/_static/nih.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/nsf.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/style.css": {
+      "a": 314,
+      "d": 251
+    },
+    "doc/_templates/layout.html": {
+      "a": 25,
+      "d": 36
+    },
+    "doc/_templates/navbar.html": {
+      "a": 29,
+      "d": 21
+    },
+    "doc/carousel.inc": {
+      "a": 26,
+      "d": 32
+    },
+    "doc/conf.py": {
+      "a": 2,
+      "d": 6
+    },
+    "doc/index.rst": {
+      "a": 56,
+      "d": 76
+    },
+    "doc/overview/index.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/whats_new.rst": {
+      "a": 0,
+      "d": 2
+    },
+    "logo/generate_mne_logos.py": {
+      "a": 9,
+      "d": 9
+    }
+  }
+}

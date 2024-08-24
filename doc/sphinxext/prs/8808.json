@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "d8201c9bbb2ade3e20dae0284f0333a80a62d3a9",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/minimum_norm/inverse.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/misc.py": {
+      "a": 5,
+      "d": 3
+    },
+    "mne/viz/_3d.py": {
+      "a": 23,
+      "d": 18
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/_brain/tests/test_brain.py": {
+      "a": 6,
+      "d": 4
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 41,
+      "d": 20
+    },
+    "mne/viz/utils.py": {
+      "a": 6,
+      "d": 6
+    }
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "f6b4dd8326975aac3f1a1ec9899dd38c04879c4a",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/gui/tests/test_file_traits.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/io/_digitization.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/egi/egimff.py": {
+      "a": 31,
+      "d": 43
+    },
+    "mne/io/egi/tests/test_egi.py": {
+      "a": 68,
+      "d": 38
+    },
+    "mne/io/meas_info.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

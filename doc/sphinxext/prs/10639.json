@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "db2c8fd8671a20857c8c56b71b116a6560b6638f",
+  "authors": [
+    {
+      "n": "Matti Toivonen",
+      "e": "matti.toivonen@megin.fi"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 3,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/channels/channels.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/io/fiff/tests/test_raw_fiff.py": {
+      "a": 7,
+      "d": 3
+    }
+  }
+}

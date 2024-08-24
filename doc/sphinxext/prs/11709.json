@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "4a9126b19950e8803c87c022aee2e04d6d2515f9",
+  "authors": [
+    {
+      "n": "Mathieu Scheltienne",
+      "e": "mathieu.scheltienne@fcbg.ch"
+    }
+  ],
+  "changes": {
+    "doc/install/installers.rst": {
+      "a": 4,
+      "d": 4
+    }
+  }
+}

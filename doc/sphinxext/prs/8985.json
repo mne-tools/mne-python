@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "0135fcabe720801d4bf00442a366a9f59eeeb1c7",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/conftest.py": {
+      "a": 7,
+      "d": 1
+    },
+    "mne/tests/test_source_estimate.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 89,
+      "d": 43
+    },
+    "mne/viz/_brain/callback.py": {
+      "a": 13,
+      "d": 42
+    },
+    "mne/viz/_brain/tests/test_brain.py": {
+      "a": 22,
+      "d": 2
+    }
+  }
+}

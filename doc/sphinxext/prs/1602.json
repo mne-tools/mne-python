@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "099742619867b85e918b4dc4d6bfab3d8f2e7e2c",
+  "authors": [
+    {
+      "n": "Denis A. Engemann",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/source/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/plot_evoked_topomap.py": {
+      "a": 4,
+      "d": 1
+    },
+    "mne/evoked.py": {
+      "a": 8,
+      "d": 4
+    },
+    "mne/viz/tests/test_topomap.py": {
+      "a": 5,
+      "d": 1
+    },
+    "mne/viz/topomap.py": {
+      "a": 29,
+      "d": 6
+    }
+  }
+}

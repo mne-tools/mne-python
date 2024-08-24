@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "05af70db83b9e9f78dfc7b0ce9af0e471e138a2b",
+  "authors": [
+    {
+      "n": "Denis A. Engemann",
+      "e": null
+    }
+  ],
+  "changes": {
+    "examples/stats/plot_cluster_stats_spatio_temporal_repeated_measures_anova.py": {
+      "a": 9,
+      "d": 6
+    }
+  }
+}

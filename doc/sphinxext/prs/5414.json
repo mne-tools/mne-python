@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "c78271f983093f2c0bb5ab89a58714e036539dd7",
+  "authors": [
+    {
+      "n": "Joan Massich",
+      "e": "mailsik@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/commands/mne_flash_bem.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

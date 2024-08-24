@@ -1,0 +1,87 @@
+{
+  "merge_commit_sha": "7b8a41751982740bed876de25870f01a6c5b253c",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/baseline.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/beamformer/tests/test_lcmv.py": {
+      "a": 5,
+      "d": 3
+    },
+    "mne/fiff/evoked.py": {
+      "a": 8,
+      "d": 0
+    },
+    "mne/fiff/open.py": {
+      "a": 5,
+      "d": 3
+    },
+    "mne/fiff/raw.py": {
+      "a": 5,
+      "d": 1
+    },
+    "mne/fiff/tag.py": {
+      "a": 90,
+      "d": 17
+    },
+    "mne/fiff/tests/test_evoked.py": {
+      "a": 4,
+      "d": 7
+    },
+    "mne/fiff/tests/test_raw.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/forward.py": {
+      "a": 4,
+      "d": 3
+    },
+    "mne/minimum_norm/tests/test_inverse.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/mixed_norm/tests/test_inverse.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/preprocessing/tests/test_ica.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/preprocessing/tests/test_ssp.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/tests/test_proj.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/tests/test_source_estimate.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/tests/test_surface.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/tests/test_utils.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/utils.py": {
+      "a": 2,
+      "d": 3
+    }
+  }
+}

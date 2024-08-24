@@ -1,0 +1,51 @@
+{
+  "merge_commit_sha": "db07d55c6ed0b09c6e3f31568b096070f5886a98",
+  "authors": [
+    {
+      "n": "Alex Rockhill",
+      "e": "aprockhill@mailbox.org"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/time_frequency.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/conftest.py": {
+      "a": 12,
+      "d": 0
+    },
+    "mne/epochs.py": {
+      "a": 7,
+      "d": 30
+    },
+    "mne/time_frequency/__init__.py": {
+      "a": 7,
+      "d": 1
+    },
+    "mne/time_frequency/spectrum.py": {
+      "a": 143,
+      "d": 4
+    },
+    "mne/time_frequency/tests/test_spectrum.py": {
+      "a": 79,
+      "d": 24
+    },
+    "mne/utils/docs.py": {
+      "a": 17,
+      "d": 0
+    },
+    "tutorials/simulation/10_array_objs.py": {
+      "a": 9,
+      "d": 39
+    }
+  }
+}

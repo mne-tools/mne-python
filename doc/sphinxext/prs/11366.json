@@ -1,0 +1,131 @@
+{
+  "merge_commit_sha": "d7570264afaa24da658bbd996ed50c2a37b0ffcf",
+  "authors": [
+    {
+      "n": "George O'Neill",
+      "e": null
+    },
+    {
+      "n": "Robert Seymour",
+      "e": "robbyseymour@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".circleci/config.yml": {
+      "a": 7,
+      "d": 0
+    },
+    "doc/_includes/data_formats.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/conf.py": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/datasets.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/glossary.rst": {
+      "a": 20,
+      "d": 0
+    },
+    "doc/overview/datasets_index.rst": {
+      "a": 13,
+      "d": 0
+    },
+    "doc/reading_raw_data.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/references.bib": {
+      "a": 15,
+      "d": 0
+    },
+    "mne/datasets/__init__.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/datasets/config.py": {
+      "a": 10,
+      "d": 2
+    },
+    "mne/datasets/ucl_opm_auditory/__init__.py": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/datasets/ucl_opm_auditory/ucl_opm_auditory.py": {
+      "a": 32,
+      "d": 0
+    },
+    "mne/datasets/utils.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/io/__init__.py": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/io/_read_raw.py": {
+      "a": 48,
+      "d": 27
+    },
+    "mne/io/fil/__init__.py": {
+      "a": 5,
+      "d": 0
+    },
+    "mne/io/fil/fil.py": {
+      "a": 298,
+      "d": 0
+    },
+    "mne/io/fil/sensors.py": {
+      "a": 145,
+      "d": 0
+    },
+    "mne/io/fil/tests/test_fil.py": {
+      "a": 146,
+      "d": 0
+    },
+    "mne/io/tests/test_read_raw.py": {
+      "a": 25,
+      "d": 3
+    },
+    "mne/preprocessing/_regress.py": {
+      "a": 3,
+      "d": 5
+    },
+    "mne/preprocessing/tests/test_regress.py": {
+      "a": 32,
+      "d": 1
+    },
+    "mne/utils/config.py": {
+      "a": 1,
+      "d": 0
+    },
+    "tools/circleci_download.sh": {
+      "a": 4,
+      "d": 1
+    },
+    "tutorials/io/10_reading_meg_data.py": {
+      "a": 8,
+      "d": 1
+    },
+    "tutorials/preprocessing/80_opm_processing.py": {
+      "a": 181,
+      "d": 0
+    }
+  }
+}

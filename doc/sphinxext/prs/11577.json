@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "367ed0ad708681c787b2088a4050352e46837c8d",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    }
+  ],
+  "changes": {
+    "azure-pipelines.yml": {
+      "a": 5,
+      "d": 5
+    },
+    "mne/utils/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/_testing.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/utils/config.py": {
+      "a": 13,
+      "d": 12
+    },
+    "mne/utils/tests/test_config.py": {
+      "a": 14,
+      "d": 4
+    }
+  }
+}

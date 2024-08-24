@@ -1,0 +1,103 @@
+{
+  "merge_commit_sha": "879361513bdd1c14ca4e223657517fe85b6085b0",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".circleci/config.yml": {
+      "a": 1,
+      "d": 5
+    },
+    ".git-blame-ignore-revs": {
+      "a": 14,
+      "d": 7
+    },
+    ".github/workflows/credit.yml": {
+      "a": 43,
+      "d": 0
+    },
+    ".gitignore": {
+      "a": 1,
+      "d": 1
+    },
+    ".mailmap": {
+      "a": 73,
+      "d": 34
+    },
+    ".pre-commit-config.yaml": {
+      "a": 8,
+      "d": 5
+    },
+    "doc/.gitignore": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/Makefile": {
+      "a": 1,
+      "d": 4
+    },
+    "doc/_templates/sidebar-quicklinks.html": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/devel/12774.other.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/conf.py": {
+      "a": 3,
+      "d": 0
+    },
+    "doc/credit.rst": {
+      "a": 12,
+      "d": 0
+    },
+    "doc/sphinxext/prs/12779.json": {
+      "a": 19,
+      "d": 0
+    },
+    "doc/sphinxext/update_credit_rst.py": {
+      "a": 425,
+      "d": 0
+    },
+    "ignore_words.txt": {
+      "a": 1,
+      "d": 0
+    },
+    "pyproject.toml": {
+      "a": 3,
+      "d": 0
+    },
+    "tools/check_mne_location.py": {
+      "a": 1,
+      "d": 0
+    },
+    "tools/dev/check_steering_committee.py": {
+      "a": 3,
+      "d": 2
+    },
+    "tools/dev/ensure_headers.py": {
+      "a": 1,
+      "d": 0
+    },
+    "tools/dev/gen_css_for_mne.py": {
+      "a": 2,
+      "d": 1
+    },
+    "tools/dev/generate_pyi_files.py": {
+      "a": 1,
+      "d": 0
+    },
+    "tools/dev/update_credit_json.py": {
+      "a": 88,
+      "d": 0
+    },
+    "tools/generate_codemeta.py": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

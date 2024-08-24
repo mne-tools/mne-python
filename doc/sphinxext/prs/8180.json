@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "db0bacc5a01bf1d45ede7d21b5cdedfa234ded36",
+  "authors": [
+    {
+      "n": "Rob Luke",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/viz/tests/test_epochs.py": {
+      "a": 8,
+      "d": 0
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "d0c566f34ecc8dc4d2914b9c59a9eaf42dca785c",
+  "authors": [
+    {
+      "n": "Jaakko Leppakangas",
+      "e": "jaeilepp@student.jyu.fi"
+    }
+  ],
+  "changes": {
+    "examples/time_frequency/plot_time_frequency_simulated.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "558a3a0e4e5bf6265e9c6c4904a8404ed635bb5f",
+  "authors": [
+    {
+      "n": "Andreas Højlund",
+      "e": "linahn@clin.au.dk"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/viz/ica.py": {
+      "a": 6,
+      "d": 7
+    },
+    "mne/viz/tests/test_ica.py": {
+      "a": 7,
+      "d": 1
+    }
+  }
+}

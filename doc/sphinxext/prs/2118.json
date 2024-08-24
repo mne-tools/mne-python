@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "748ae8366a8551b1454d41420e363798316334a6",
+  "authors": [
+    {
+      "n": "sviter",
+      "e": "sviter33@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/connectivity/spectral.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "767d84b0f73cbfefa94b400287f8579f970b85f9",
+  "authors": [
+    {
+      "n": "Jean-Rémi KING",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 6,
+      "d": 1
+    },
+    "mne/decoding/tests/test_time_gen.py": {
+      "a": 19,
+      "d": 1
+    },
+    "mne/decoding/time_gen.py": {
+      "a": 133,
+      "d": 59
+    }
+  }
+}

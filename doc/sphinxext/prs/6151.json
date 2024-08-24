@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "4555011717b9008f41eaa4926d598bb570e42fca",
+  "authors": [
+    {
+      "n": "Joan Massich",
+      "e": "mailsik@gmail.com"
+    }
+  ],
+  "changes": {
+    "environment.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/datasets/sleep_physionet/_utils.py": {
+      "a": 11,
+      "d": 3
+    },
+    "mne/datasets/sleep_physionet/tests/test_physionet.py": {
+      "a": 22,
+      "d": 7
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "48477b4803e1f4d1059bd480fe00f0c6dfddaeee",
+  "authors": [
+    {
+      "n": "Christian Brodbeck",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/datasets/sample/sample.py": {
+      "a": 2,
+      "d": 0
+    }
+  }
+}

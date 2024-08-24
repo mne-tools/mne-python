@@ -1,11 +1,11 @@
 """Test exporting functions."""
-# Authors: MNE Developers
-#
+
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
 from contextlib import nullcontext
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from pathlib import Path
 
 import numpy as np
@@ -200,7 +200,7 @@ def test_double_export_edf(tmp_path):
         his_id="12345",
         first_name="mne",
         last_name="python",
-        birthday=(1992, 1, 20),
+        birthday=date(1992, 1, 20),
         sex=1,
         weight=78.3,
         height=1.75,
@@ -356,7 +356,7 @@ def test_rawarray_edf(tmp_path):
     raw.info["subject_info"] = dict(
         first_name="mne",
         last_name="python",
-        birthday=(1992, 1, 20),
+        birthday=date(1992, 1, 20),
         sex=1,
         hand=3,
     )

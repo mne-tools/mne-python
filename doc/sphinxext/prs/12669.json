@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "88388994ca489c871ad5fa58adfd8af5e19bbb6c",
+  "authors": [
+    {
+      "n": "NoahMarkowitz",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/12669.newfeature.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/viz/_figure.py": {
+      "a": 8,
+      "d": 0
+    },
+    "mne/viz/tests/test_raw.py": {
+      "a": 5,
+      "d": 0
+    }
+  }
+}

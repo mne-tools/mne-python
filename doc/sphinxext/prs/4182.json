@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "0c44a12ac95276c7c102660974fa8f5e1b074b26",
+  "authors": [
+    {
+      "n": "jaeilepp",
+      "e": "jaeilepp@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/time_frequency/tests/test_tfr.py": {
+      "a": 10,
+      "d": 1
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 24,
+      "d": 18
+    }
+  }
+}

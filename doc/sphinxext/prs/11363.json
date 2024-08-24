@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "52590f330c3515b7871ee29063e991a5f2d79054",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "doc/conf.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "09d6c58a46d48749def8b8a01422c7cf35b88a25",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/0.20.inc": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "5faf63705cd795a846f305d9545fc2fd72b1fdee",
+  "authors": [
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/viz/_brain/_brain.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/viz/backends/_pyvista.py": {
+      "a": 1,
+      "d": 0
+    },
+    "tutorials/stats-source-space/plot_stats_cluster_spatio_temporal.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

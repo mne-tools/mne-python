@@ -1,0 +1,107 @@
+{
+  "merge_commit_sha": "deec72a2d14c3ecacc0f7d67b1a71593cb3ed0ce",
+  "authors": [
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    }
+  ],
+  "changes": {
+    "doc/changes/0.1.inc": {
+      "a": 18,
+      "d": 0
+    },
+    "doc/changes/0.10.inc": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/changes/0.11.inc": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/changes/0.12.inc": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/changes/0.13.inc": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/changes/0.14.inc": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/changes/0.15.inc": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/changes/0.16.inc": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/changes/0.17.inc": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/changes/0.18.inc": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/changes/0.19.inc": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/changes/0.2.inc": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/changes/0.20.inc": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/changes/0.21.inc": {
+      "a": 4,
+      "d": 4
+    },
+    "doc/changes/0.22.inc": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/changes/0.23.inc": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/changes/0.3.inc": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/changes/0.4.inc": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/changes/0.5.inc": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/changes/0.6.inc": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/changes/0.7.inc": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/changes/0.8.inc": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/changes/0.9.inc": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/whats_new.rst": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "d54cf6cc3803a9996b087dd66186003e1765e4b8",
+  "authors": [
+    {
+      "n": "Mainak Jas",
+      "e": "mainakjas@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/realtime/stim_server_client.py": {
+      "a": 54,
+      "d": 27
+    },
+    "mne/realtime/tests/test_stim_client_server.py": {
+      "a": 25,
+      "d": 8
+    }
+  }
+}

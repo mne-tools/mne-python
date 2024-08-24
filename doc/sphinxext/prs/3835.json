@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "b62de8656c4606ec3858bb098abcd6731659d62e",
+  "authors": [
+    {
+      "n": "Lorenzo Alfine",
+      "e": "lorenzo.alfine@gmail.com"
+    }
+  ],
+  "changes": {
+    "tutorials/plot_creating_data_structures.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "7b5c61cd951e5071170995fa885151711e8f48c0",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    },
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/0.24.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/report/report.py": {
+      "a": 4,
+      "d": 2
+    }
+  }
+}

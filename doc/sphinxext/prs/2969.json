@@ -1,0 +1,103 @@
+{
+  "merge_commit_sha": "055dbcf36cf7055ac647961dae37e47a31884881",
+  "authors": [
+    {
+      "n": "Yousra Bekhti",
+      "e": "yousra.bekhti@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/_static/style.css": {
+      "a": 58,
+      "d": 6
+    },
+    "doc/conf.py": {
+      "a": 5,
+      "d": 1
+    },
+    "doc/getting_started.rst": {
+      "a": 107,
+      "d": 528
+    },
+    "doc/index.rst": {
+      "a": 2,
+      "d": 1
+    },
+    "doc/install_mne_c.rst": {
+      "a": 258,
+      "d": 0
+    },
+    "doc/install_mne_python.rst": {
+      "a": 269,
+      "d": 0
+    },
+    "doc/manual/index.rst": {
+      "a": 115,
+      "d": 88
+    },
+    "doc/sphinxext/flow_diagram.py": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/sphinxext/gen_commands.py": {
+      "a": 8,
+      "d": 15
+    },
+    "doc/tutorials.rst": {
+      "a": 112,
+      "d": 52
+    },
+    "doc/tutorials/command_line.rst": {
+      "a": 19,
+      "d": 8
+    },
+    "doc/tutorials/mne-report.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/tutorials/preprocessing/artifacts_suppression.rst": {
+      "a": 88,
+      "d": 0
+    },
+    "doc/tutorials/preprocessing/basic_preprocessing.rst": {
+      "a": 59,
+      "d": 0
+    },
+    "doc/tutorials/preprocessing/data_selection.rst": {
+      "a": 90,
+      "d": 0
+    },
+    "doc/tutorials/report.rst": {
+      "a": 36,
+      "d": 24
+    },
+    "examples/README.txt": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/commands/mne_bti2fiff.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/commands/mne_coreg.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/commands/mne_kit2fiff.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/commands/mne_make_scalp_surfaces.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/commands/mne_maxfilter.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/plot_introduction.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

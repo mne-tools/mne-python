@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "4400c2bcc45f4e673fa011f396184486a1923ba6",
+  "authors": [
+    {
+      "n": "Sophie Herbst",
+      "e": null
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/epochs.py": {
+      "a": 32,
+      "d": 0
+    },
+    "mne/evoked.py": {
+      "a": 5,
+      "d": 2
+    },
+    "mne/forward/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/forward/_field_interpolation.py": {
+      "a": 41,
+      "d": 17
+    },
+    "mne/forward/tests/test_field_interpolation.py": {
+      "a": 22,
+      "d": 4
+    }
+  }
+}

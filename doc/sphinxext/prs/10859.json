@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "7cb4523eacd6bdc054721570de70ecfcfa38a42d",
+  "authors": [
+    {
+      "n": "ashdrew",
+      "e": "ashdrew@uw.edu"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "examples/inverse/multidict_reweighted_tfmxne.py": {
+      "a": 4,
+      "d": 6
+    }
+  }
+}

@@ -8,8 +8,10 @@ In this dataset, a Neuromag phantom was placed inside the Kernel OPM helmet and
 stimulated with 7 modules active (121 channels). Here we show some example traces.
 """
 
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 import numpy as np
 
 import mne

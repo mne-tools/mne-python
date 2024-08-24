@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "4353b2c0e1c00320ff743f3d1f3deece11bc49da",
+  "authors": [
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    }
+  ],
+  "changes": {
+    "mne/time_frequency/csd.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

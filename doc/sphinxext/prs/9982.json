@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "a50535b709d02acad0d48b9ac4bc701dc5659022",
+  "authors": [
+    {
+      "n": "Martin G. Schulz",
+      "e": "dev@mgschulz.de"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/config.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/utils/docs.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/viz/_figure.py": {
+      "a": 12,
+      "d": 12
+    },
+    "mne/viz/raw.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/utils.py": {
+      "a": 0,
+      "d": 1
+    }
+  }
+}

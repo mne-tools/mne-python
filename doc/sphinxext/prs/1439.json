@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "4befe9eb1cf5ef2114eab8b173682737b153668a",
+  "authors": [
+    {
+      "n": "Mainak Jas",
+      "e": "mainakjas@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/report.py": {
+      "a": 6,
+      "d": 4
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "83e46c4b4b3dc3901065ce44532f7f4a99299ddf",
+  "authors": [
+    {
+      "n": "Jaakko Leppakangas",
+      "e": "jaeilepp@student.jyu.fi"
+    }
+  ],
+  "changes": {
+    "mne/io/cnt/cnt.py": {
+      "a": 16,
+      "d": 10
+    }
+  }
+}

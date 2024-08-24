@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "010df1aac1b488d4a25312a83e0454650cba554d",
+  "authors": [
+    {
+      "n": "Teon L Brooks",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/evoked.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

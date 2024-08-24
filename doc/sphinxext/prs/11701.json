@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "cdcad6e14adf8e931dfec3d7da8329493e7a9c4b",
+  "authors": [
+    {
+      "n": "Thomas Moreau",
+      "e": "thomas.moreau.2010@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/event.py": {
+      "a": 3,
+      "d": 4
+    },
+    "mne/tests/test_event.py": {
+      "a": 6,
+      "d": 0
+    },
+    "mne/utils/__init__.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/utils/check.py": {
+      "a": 10,
+      "d": 0
+    }
+  }
+}

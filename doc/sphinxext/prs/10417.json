@@ -1,0 +1,55 @@
+{
+  "merge_commit_sha": "8f46d3ea80dabdf7f6499acfc7d114ef8a32302b",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/epochs.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/base.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/utils/docs.py": {
+      "a": 13,
+      "d": 0
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 1,
+      "d": 5
+    },
+    "mne/viz/_figure.py": {
+      "a": 1,
+      "d": 3
+    },
+    "mne/viz/_mpl_figure.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/epochs.py": {
+      "a": 5,
+      "d": 1
+    },
+    "mne/viz/ica.py": {
+      "a": 6,
+      "d": 3
+    },
+    "mne/viz/raw.py": {
+      "a": 4,
+      "d": 1
+    }
+  }
+}

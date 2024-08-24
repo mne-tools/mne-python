@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "f10d0d34a7a9e01c8d9f7db3fb35df528de68989",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/conf.py": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

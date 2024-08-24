@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "263110920da7985453be4e50a6b8dfea6afab0da",
+  "authors": [
+    {
+      "n": "Marijn van Vliet",
+      "e": "w.m.vanvliet@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/channels/data/montages/biosemi-128.txt": {
+      "a": 132,
+      "d": 0
+    },
+    "mne/channels/data/montages/biosemi-16.txt": {
+      "a": 20,
+      "d": 0
+    },
+    "mne/channels/data/montages/biosemi-160.txt": {
+      "a": 164,
+      "d": 0
+    },
+    "mne/channels/data/montages/biosemi-256.txt": {
+      "a": 260,
+      "d": 0
+    },
+    "mne/channels/data/montages/biosemi-32.txt": {
+      "a": 36,
+      "d": 0
+    },
+    "mne/channels/data/montages/biosemi-64.txt": {
+      "a": 68,
+      "d": 0
+    },
+    "mne/channels/layout.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

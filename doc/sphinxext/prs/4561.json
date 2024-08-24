@@ -1,0 +1,123 @@
+{
+  "merge_commit_sha": "f9443967f85880b95d36720bbd25d678bdccb6ad",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 4,
+      "d": 0
+    },
+    "examples/connectivity/plot_cwt_sensor_connectivity.py": {
+      "a": 3,
+      "d": 3
+    },
+    "examples/inverse/plot_dics_source_power.py": {
+      "a": 2,
+      "d": 2
+    },
+    "examples/time_frequency/plot_source_label_time_frequency.py": {
+      "a": 5,
+      "d": 5
+    },
+    "examples/time_frequency/plot_time_frequency_simulated.py": {
+      "a": 2,
+      "d": 2
+    },
+    "examples/visualization/plot_topo_customized.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/beamformer/_dics.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/beamformer/tests/test_dics.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/connectivity/effective.py": {
+      "a": 6,
+      "d": 5
+    },
+    "mne/connectivity/spectral.py": {
+      "a": 23,
+      "d": 30
+    },
+    "mne/connectivity/tests/test_effective.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/connectivity/tests/test_spectral.py": {
+      "a": 5,
+      "d": 5
+    },
+    "mne/decoding/tests/test_time_frequency.py": {
+      "a": 5,
+      "d": 5
+    },
+    "mne/decoding/time_frequency.py": {
+      "a": 19,
+      "d": 10
+    },
+    "mne/minimum_norm/tests/test_time_frequency.py": {
+      "a": 4,
+      "d": 7
+    },
+    "mne/minimum_norm/time_frequency.py": {
+      "a": 15,
+      "d": 18
+    },
+    "mne/tests/test_docstring_parameters.py": {
+      "a": 9,
+      "d": 1
+    },
+    "mne/time_frequency/csd.py": {
+      "a": 27,
+      "d": 21
+    },
+    "mne/time_frequency/multitaper.py": {
+      "a": 21,
+      "d": 18
+    },
+    "mne/time_frequency/tests/test_csd.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/time_frequency/tests/test_multitaper.py": {
+      "a": 23,
+      "d": 24
+    },
+    "mne/time_frequency/tests/test_stockwell.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/time_frequency/tests/test_tfr.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 38,
+      "d": 32
+    },
+    "mne/utils.py": {
+      "a": 8,
+      "d": 0
+    },
+    "tutorials/plot_stats_cluster_1samp_test_time_frequency.py": {
+      "a": 4,
+      "d": 4
+    },
+    "tutorials/plot_stats_cluster_time_frequency.py": {
+      "a": 5,
+      "d": 5
+    },
+    "tutorials/plot_stats_cluster_time_frequency_repeated_measures_anova.py": {
+      "a": 10,
+      "d": 9
+    }
+  }
+}

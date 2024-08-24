@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "117696c20f1fbf9a60015602c48373dccd7b3e9b",
+  "authors": [
+    {
+      "n": "jaeilepp",
+      "e": "jaeilepp@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/annotations.py": {
+      "a": 16,
+      "d": 6
+    },
+    "mne/io/base.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/tests/test_annotations.py": {
+      "a": 21,
+      "d": 6
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 15,
+      "d": 5
+    }
+  }
+}

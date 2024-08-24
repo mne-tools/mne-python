@@ -1,6 +1,6 @@
 """Test linalg utilities."""
-# Authors: Britta Westner <britta.wstnr@gmail.com>
-#
+
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 

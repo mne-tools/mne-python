@@ -1,0 +1,91 @@
+{
+  "merge_commit_sha": "1189d1a755f4297dcb7212d053f7e1b0d12fd082",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/0.10.inc": {
+      "a": 148,
+      "d": 0
+    },
+    "doc/changes/0.11.inc": {
+      "a": 92,
+      "d": 0
+    },
+    "doc/changes/0.12.inc": {
+      "a": 211,
+      "d": 0
+    },
+    "doc/changes/0.13.inc": {
+      "a": 248,
+      "d": 0
+    },
+    "doc/changes/0.14.inc": {
+      "a": 250,
+      "d": 0
+    },
+    "doc/changes/0.15.inc": {
+      "a": 329,
+      "d": 0
+    },
+    "doc/changes/0.16.inc": {
+      "a": 258,
+      "d": 0
+    },
+    "doc/changes/0.17.inc": {
+      "a": 317,
+      "d": 0
+    },
+    "doc/changes/0.18.inc": {
+      "a": 268,
+      "d": 0
+    },
+    "doc/changes/0.2.inc": {
+      "a": 40,
+      "d": 0
+    },
+    "doc/changes/0.3.inc": {
+      "a": 40,
+      "d": 0
+    },
+    "doc/changes/0.4.inc": {
+      "a": 52,
+      "d": 0
+    },
+    "doc/changes/0.5.inc": {
+      "a": 125,
+      "d": 0
+    },
+    "doc/changes/0.6.inc": {
+      "a": 156,
+      "d": 0
+    },
+    "doc/changes/0.7.inc": {
+      "a": 136,
+      "d": 0
+    },
+    "doc/changes/0.8.inc": {
+      "a": 194,
+      "d": 0
+    },
+    "doc/changes/0.9.inc": {
+      "a": 239,
+      "d": 0
+    },
+    "doc/changes/latest.inc": {
+      "a": 154,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 256,
+      "d": 0
+    },
+    "doc/whats_new.rst": {
+      "a": 20,
+      "d": 3531
+    }
+  }
+}

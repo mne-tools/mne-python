@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "c8f478ba33b2d0eed9e326b543476403e54dcd03",
+  "authors": [
+    {
+      "n": "Mathieu Scheltienne",
+      "e": "mathieu.scheltienne@fcbg.ch"
+    }
+  ],
+  "changes": {
+    "mne/channels/channels.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/channels/tests/test_channels.py": {
+      "a": 8,
+      "d": 1
+    }
+  }
+}

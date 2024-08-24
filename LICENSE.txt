@@ -1,4 +1,4 @@
-Copyright 2011-2023 MNE-Python authors
+Copyright 2011-2024 MNE-Python authors
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
 

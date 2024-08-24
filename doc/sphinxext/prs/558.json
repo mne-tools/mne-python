@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "0eed1ff1033b5614726a769a2ca0ed94569798ab",
+  "authors": [
+    {
+      "n": "Martin Luessi",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/source/whats_new.rst": {
+      "a": 5,
+      "d": 1
+    },
+    "mne/connectivity/tests/test_effective.py": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

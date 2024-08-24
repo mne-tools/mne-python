@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "2a359d02745cb9816c376ce3d3eed9ac7719a2f0",
+  "authors": [
+    {
+      "n": "Martin Luessi",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/source/python_reference.rst": {
+      "a": 6,
+      "d": 0
+    },
+    "examples/export/plot_epochs_to_nitime.py": {
+      "a": 5,
+      "d": 5
+    }
+  }
+}

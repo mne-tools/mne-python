@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "d5e125fb6367377262c94c0bbab593b67a2bf5cd",
+  "authors": [
+    {
+      "n": "Marijn van Vliet",
+      "e": "w.m.vanvliet@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 9,
+      "d": 10
+    },
+    "mne/viz/_brain/tests/test_brain.py": {
+      "a": 1,
+      "d": 2
+    }
+  }
+}

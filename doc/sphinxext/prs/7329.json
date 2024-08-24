@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "72e22a543f4b7c3404a04270b3fc67c6f3bca8a5",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 4,
+      "d": 3
+    },
+    "mne/preprocessing/infomax_.py": {
+      "a": 10,
+      "d": 2
+    },
+    "mne/preprocessing/tests/test_infomax.py": {
+      "a": 17,
+      "d": 0
+    }
+  }
+}

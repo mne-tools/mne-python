@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "62e88db6d04df32a248073e5d204a88bab6cb2cf",
+  "authors": [
+    {
+      "n": "Jevri Hanna",
+      "e": null
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/changes/names.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/minimum_norm/inverse.py": {
+      "a": 5,
+      "d": 10
+    },
+    "mne/minimum_norm/tests/test_inverse.py": {
+      "a": 21,
+      "d": 0
+    }
+  }
+}

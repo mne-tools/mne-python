@@ -1,5 +1,7 @@
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 """IIR and FIR filtering and resampling functions."""
 
 from collections import Counter
@@ -1775,7 +1777,7 @@ def _check_filterable(x, kind="filtered", alternative="filter"):
     from .evoked import Evoked
     from .io import BaseRaw
 
-    if isinstance(x, (BaseRaw, BaseEpochs, Evoked)):
+    if isinstance(x, BaseRaw | BaseEpochs | Evoked):
         try:
             name = x.__class__.__name__
         except Exception:
@@ -1903,7 +1905,7 @@ def _prep_polyphase(ratio, x_len, final_len, window):
     up = up // g_
     down = down // g_
     # Figure out our signal neighborhood and design window (adapted from SciPy)
-    if not isinstance(window, (list, np.ndarray)):
+    if not isinstance(window, list | np.ndarray):
         # Design a linear-phase low-pass FIR filter
         max_rate = max(up, down)
         f_c = 1.0 / max_rate  # cutoff of FIR filter (rel. to Nyquist)
@@ -2634,7 +2636,7 @@ class FilterMixin:
 
         # Should be guaranteed by our inheritance, and the fact that
         # mne.io.BaseRaw and _BaseSourceEstimate overrides this method
-        assert isinstance(self, (BaseEpochs, Evoked))
+        assert isinstance(self, BaseEpochs | Evoked)
 
         sfreq = float(sfreq)
         o_sfreq = self.info["sfreq"]

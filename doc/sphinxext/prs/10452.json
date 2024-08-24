@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "cd5a5608d2183efdab2625627584913cdeddbba6",
+  "authors": [
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/beamformer/tests/test_lcmv.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

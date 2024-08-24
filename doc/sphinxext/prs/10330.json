@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "9315ed6e77157b9536452bafc738ac97065f9ca1",
+  "authors": [
+    {
+      "n": "Martin G. Schulz",
+      "e": "dev@mgschulz.de"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/conftest.py": {
+      "a": 17,
+      "d": 8
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/viz/_figure.py": {
+      "a": 5,
+      "d": 0
+    },
+    "mne/viz/_mpl_figure.py": {
+      "a": 18,
+      "d": 0
+    },
+    "mne/viz/epochs.py": {
+      "a": 0,
+      "d": 12
+    },
+    "mne/viz/ica.py": {
+      "a": 13,
+      "d": 19
+    },
+    "mne/viz/raw.py": {
+      "a": 0,
+      "d": 14
+    },
+    "mne/viz/tests/test_ica.py": {
+      "a": 18,
+      "d": 17
+    }
+  }
+}

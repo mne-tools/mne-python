@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "6f9d6a2f0214cd21973843f9c662a62e1e00dda3",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "mne/cov.py": {
+      "a": 80,
+      "d": 3
+    },
+    "mne/epochs.py": {
+      "a": 8,
+      "d": 0
+    },
+    "mne/fiff/evoked.py": {
+      "a": 22,
+      "d": 18
+    },
+    "mne/fiff/raw.py": {
+      "a": 13,
+      "d": 19
+    },
+    "mne/tests/test_cov.py": {
+      "a": 33,
+      "d": 5
+    }
+  }
+}

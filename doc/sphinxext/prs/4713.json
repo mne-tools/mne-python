@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "58a188253aebaa1934fdfcc044731ce1222c9b93",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/viz/_3d.py": {
+      "a": 8,
+      "d": 3
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 5,
+      "d": 0
+    },
+    "tutorials/plot_source_alignment.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

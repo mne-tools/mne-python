@@ -1,0 +1,55 @@
+{
+  "merge_commit_sha": "7a1e900ad1db8a271142c32a8d7e5dd8d0e38ca7",
+  "authors": [
+    {
+      "n": "Alex Rockhill",
+      "e": "aprockhill@mailbox.org"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 7,
+      "d": 1
+    },
+    "examples/time_frequency/time_frequency_erds.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/stats/cluster_level.py": {
+      "a": 19,
+      "d": 16
+    },
+    "mne/stats/parametric.py": {
+      "a": 6,
+      "d": 3
+    },
+    "mne/stats/tests/test_parametric.py": {
+      "a": 6,
+      "d": 0
+    },
+    "tutorials/stats-sensor-space/50_cluster_between_time_freq.py": {
+      "a": 9,
+      "d": 9
+    },
+    "tutorials/stats-sensor-space/75_cluster_ftest_spatiotemporal.py": {
+      "a": 149,
+      "d": 8
+    },
+    "tutorials/stats-source-space/20_cluster_1samp_spatiotemporal.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/stats-source-space/30_cluster_ftest_spatiotemporal.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/stats-source-space/60_cluster_rmANOVA_spatiotemporal.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/stats-source-space/70_cluster_rmANOVA_time_freq.py": {
+      "a": 54,
+      "d": 50
+    }
+  }
+}

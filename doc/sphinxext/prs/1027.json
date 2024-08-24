@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "969ac4ba6167ddf255aac6fd8042f1d5e142232a",
+  "authors": [
+    {
+      "n": "Tal Linzen",
+      "e": "linzen@nyu.edu"
+    }
+  ],
+  "changes": {
+    ".travis.yml": {
+      "a": 21,
+      "d": 10
+    }
+  }
+}

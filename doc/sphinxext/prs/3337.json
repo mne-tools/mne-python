@@ -1,0 +1,75 @@
+{
+  "merge_commit_sha": "cd0300a12613b20052af79655e0a1a38a1ac5d06",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "circle.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/conf.py": {
+      "a": 8,
+      "d": 2
+    },
+    "doc/contributing.rst": {
+      "a": 216,
+      "d": 151
+    },
+    "doc/index.rst": {
+      "a": 2,
+      "d": 3
+    },
+    "doc/sphinxext/gen_commands.py": {
+      "a": 8,
+      "d": 5
+    },
+    "doc/sphinxext/numpy_ext/__init__.py": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/sphinxext/numpy_ext/docscrape.py": {
+      "a": 0,
+      "d": 514
+    },
+    "doc/sphinxext/numpy_ext/docscrape_sphinx.py": {
+      "a": 0,
+      "d": 240
+    },
+    "doc/sphinxext/numpy_ext/numpydoc.py": {
+      "a": 0,
+      "d": 192
+    },
+    "doc/whats_new.rst": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/decoding/csp.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/decoding/time_gen.py": {
+      "a": 27,
+      "d": 29
+    },
+    "mne/decoding/transformer.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/xdawn.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/utils.py": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "6f1c35b7ddb7c10bbae9cede4b3456889e6202b6",
+  "authors": [
+    {
+      "n": "Denis A. Engemann",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/viz.py": {
+      "a": 0,
+      "d": 4
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "d1662c1e74c738f5e2f177df82683174c73f1648",
+  "authors": [
+    {
+      "n": "sarasommariva",
+      "e": "sommariva@dima.unige.it"
+    }
+  ],
+  "changes": {
+    "doc/install/pre_install.rst": {
+      "a": 3,
+      "d": 0
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "a43db5731fad6bd1abed1faab0e723bbc38e7fff",
+  "authors": [
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/conftest.py": {
+      "a": 2,
+      "d": 0
+    }
+  }
+}

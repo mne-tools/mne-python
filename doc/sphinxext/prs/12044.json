@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "fd08b5273ed2e2c02cde409252e10b3b580f5f37",
+  "authors": [
+    {
+      "n": "Paul ROUJANSKY",
+      "e": "paul.roujansky@bioserenity.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/edf/edf.py": {
+      "a": 16,
+      "d": 17
+    },
+    "mne/io/edf/tests/test_edf.py": {
+      "a": 76,
+      "d": 1
+    }
+  }
+}

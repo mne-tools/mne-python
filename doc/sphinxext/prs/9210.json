@@ -1,0 +1,51 @@
+{
+  "merge_commit_sha": "53a86345321d5289e5895de2d59a1c188a182a74",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/baseline.py": {
+      "a": 77,
+      "d": 0
+    },
+    "mne/dipole.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/epochs.py": {
+      "a": 7,
+      "d": 80
+    },
+    "mne/evoked.py": {
+      "a": 127,
+      "d": 18
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 7,
+      "d": 2
+    },
+    "mne/tests/test_evoked.py": {
+      "a": 46,
+      "d": 4
+    },
+    "mne/tests/test_report.py": {
+      "a": 4,
+      "d": 2
+    },
+    "tutorials/evoked/plot_10_evoked_overview.py": {
+      "a": 20,
+      "d": 0
+    },
+    "tutorials/evoked/plot_20_visualize_evoked.py": {
+      "a": 4,
+      "d": 2
+    }
+  }
+}

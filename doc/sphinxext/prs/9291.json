@@ -1,0 +1,51 @@
+{
+  "merge_commit_sha": "d0a069547470ecbbf8210abae4ef06fff32d1e59",
+  "authors": [
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "environment.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/viz/backends/_notebook.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/viz/backends/_pyvista.py": {
+      "a": 9,
+      "d": 12
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 6,
+      "d": 1
+    },
+    "requirements.txt": {
+      "a": 1,
+      "d": 1
+    },
+    "tools/azure_dependencies.sh": {
+      "a": 1,
+      "d": 1
+    },
+    "tools/circleci_dependencies.sh": {
+      "a": 2,
+      "d": 1
+    },
+    "tools/github_actions_dependencies.sh": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

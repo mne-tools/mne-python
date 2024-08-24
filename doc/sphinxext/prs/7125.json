@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "ba810eb69b4ebac07cb8fb756a6b2b5ceee901dc",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/stats/cluster_level.py": {
+      "a": 8,
+      "d": 4
+    },
+    "tutorials/stats-source-space/plot_stats_cluster_spatio_temporal.py": {
+      "a": 2,
+      "d": 2
+    },
+    "tutorials/stats-source-space/plot_stats_cluster_spatio_temporal_2samp.py": {
+      "a": 2,
+      "d": 2
+    },
+    "tutorials/stats-source-space/plot_stats_cluster_spatio_temporal_repeated_measures_anova.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

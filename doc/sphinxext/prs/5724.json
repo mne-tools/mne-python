@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "c32f1363ed76be5cd96994c620a4853f52833194",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "Makefile": {
+      "a": 4,
+      "d": 1
+    },
+    "README.rst": {
+      "a": 6,
+      "d": 4
+    }
+  }
+}

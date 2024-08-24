@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "8c88601b261e9b7fa77e4d6cf724214f7a75862e",
+  "authors": [
+    {
+      "n": "Lorenz Esch",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/mne_cpp.rst": {
+      "a": 19,
+      "d": 10
+    }
+  }
+}

@@ -1,0 +1,155 @@
+{
+  "merge_commit_sha": "c42a7b7a6dee8a48239c293c32d21d88040b9adf",
+  "authors": [
+    {
+      "n": "Adam Li",
+      "e": null
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "MANIFEST.in": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "environment.yml": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/conftest.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/data/dataset_checksums.txt": {
+      "a": 46,
+      "d": 0
+    },
+    "mne/data/eegbci_checksums.txt": {
+      "a": 3058,
+      "d": 0
+    },
+    "mne/datasets/brainstorm/bst_auditory.py": {
+      "a": 4,
+      "d": 5
+    },
+    "mne/datasets/brainstorm/bst_phantom_ctf.py": {
+      "a": 4,
+      "d": 5
+    },
+    "mne/datasets/brainstorm/bst_phantom_elekta.py": {
+      "a": 4,
+      "d": 6
+    },
+    "mne/datasets/brainstorm/bst_raw.py": {
+      "a": 4,
+      "d": 5
+    },
+    "mne/datasets/brainstorm/bst_resting.py": {
+      "a": 4,
+      "d": 5
+    },
+    "mne/datasets/config.py": {
+      "a": 217,
+      "d": 0
+    },
+    "mne/datasets/eegbci/eegbci.py": {
+      "a": 55,
+      "d": 8
+    },
+    "mne/datasets/hf_sef/hf_sef.py": {
+      "a": 19,
+      "d": 54
+    },
+    "mne/datasets/limo/limo.py": {
+      "a": 116,
+      "d": 68
+    },
+    "mne/datasets/sleep_physionet/_utils.py": {
+      "a": 34,
+      "d": 13
+    },
+    "mne/datasets/sleep_physionet/tests/test_physionet.py": {
+      "a": 14,
+      "d": 11
+    },
+    "mne/datasets/tests/test_datasets.py": {
+      "a": 23,
+      "d": 17
+    },
+    "mne/datasets/utils.py": {
+      "a": 238,
+      "d": 419
+    },
+    "mne/export/_edf.py": {
+      "a": 6,
+      "d": 0
+    },
+    "mne/export/tests/test_export.py": {
+      "a": 3,
+      "d": 8
+    },
+    "mne/io/tests/test_constants.py": {
+      "a": 14,
+      "d": 4
+    },
+    "mne/tests/test_import_nesting.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/__init__.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/utils/check.py": {
+      "a": 23,
+      "d": 36
+    },
+    "mne/utils/fetching.py": {
+      "a": 0,
+      "d": 127
+    },
+    "mne/utils/misc.py": {
+      "a": 24,
+      "d": 0
+    },
+    "mne/utils/tests/test_fetching.py": {
+      "a": 0,
+      "d": 44
+    },
+    "requirements.txt": {
+      "a": 1,
+      "d": 0
+    },
+    "requirements_testing.txt": {
+      "a": 1,
+      "d": 0
+    },
+    "server_environment.yml": {
+      "a": 1,
+      "d": 0
+    },
+    "setup.py": {
+      "a": 2,
+      "d": 0
+    },
+    "tools/azure_dependencies.sh": {
+      "a": 1,
+      "d": 0
+    },
+    "tools/get_testing_version.sh": {
+      "a": 1,
+      "d": 1
+    },
+    "tools/github_actions_dependencies.sh": {
+      "a": 2,
+      "d": 0
+    }
+  }
+}

@@ -1,1 +1,0 @@
-Fixed a bug where :meth:`mne.Evoked.animate_topomap` did not work with :func:`mne.preprocessing.compute_current_source_density` - modified data, by `Michal Žák`_.

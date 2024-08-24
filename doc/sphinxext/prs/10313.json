@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "58e17f29b4daf65d013fcf90f6746b565160a016",
+  "authors": [
+    {
+      "n": "Alex Rockhill",
+      "e": "aprockhill@mailbox.org"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/preprocessing/movement_compensation.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/preprocessing/movement_detection.py": {
+      "a": 5,
+      "d": 2
+    },
+    "examples/visualization/3d_to_2d.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/preprocessing/60_maxwell_filtering_sss.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

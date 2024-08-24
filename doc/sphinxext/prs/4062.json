@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "7b27c333e2b8409002302dbfa40b073c652fbf7a",
+  "authors": [
+    {
+      "n": "Cristóbal Moënne-Loccoz",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/epochs.py": {
+      "a": 4,
+      "d": 2
+    }
+  }
+}

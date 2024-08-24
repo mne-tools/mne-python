@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "7ce3774a19b0e2faef28bc4bc4774ca3f1462607",
+  "authors": [
+    {
+      "n": "jmontoyam",
+      "e": "montoya.jair.m@gmail.com"
+    }
+  ],
+  "changes": {
+    ".travis.yml": {
+      "a": 1,
+      "d": 0
+    },
+    "MANIFEST.in": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/preprocessing/infomax_.py": {
+      "a": 48,
+      "d": 16
+    },
+    "mne/preprocessing/tests/data/eeglab_infomax_results_eeg_data.mat": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/preprocessing/tests/data/eeglab_infomax_results_meg_data.mat": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/preprocessing/tests/test_eeglab_infomax.py": {
+      "a": 178,
+      "d": 0
+    }
+  }
+}

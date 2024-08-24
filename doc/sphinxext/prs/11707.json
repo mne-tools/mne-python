@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "52fde5b8e4d9af5e10411911dd16e5cc11d80435",
+  "authors": [
+    {
+      "n": "Joshua Calder-Travis",
+      "e": null
+    },
+    {
+      "n": "Mathieu Scheltienne",
+      "e": "mathieu.scheltienne@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 2,
+      "d": 0
+    }
+  }
+}

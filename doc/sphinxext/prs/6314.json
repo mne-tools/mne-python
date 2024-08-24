@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "5a8533a2ab269c65dd61d7131a9aa9ffab52142b",
+  "authors": [
+    {
+      "n": "Christopher J. Bailey",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/glossary.rst": {
+      "a": 14,
+      "d": 0
+    }
+  }
+}

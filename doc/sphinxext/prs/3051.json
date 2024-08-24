@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "7774365d4ee44eb105b4b491a5f74ef525c7071c",
+  "authors": [
+    {
+      "n": "Jean-Rémi KING",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/preprocessing/ica.py": {
+      "a": 7,
+      "d": 7
+    }
+  }
+}

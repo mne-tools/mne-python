@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "cb1f1197f6521740c03ab84337cc253ac45c2195",
+  "authors": [
+    {
+      "n": "Guillaume Dumas",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/datasets/utils.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/edf/edf.py": {
+      "a": 7,
+      "d": 4
+    },
+    "mne/io/edf/tests/test_edf.py": {
+      "a": 10,
+      "d": 0
+    }
+  }
+}

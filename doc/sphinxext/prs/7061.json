@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "ef7d7c1899911b821312cc5be1558cc2d6ae4816",
+  "authors": [
+    {
+      "n": "ezemikulan",
+      "e": "e.mikulan@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/minimum_norm/inverse.py": {
+      "a": 6,
+      "d": 1
+    }
+  }
+}

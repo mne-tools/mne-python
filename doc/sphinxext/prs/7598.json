@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "b50a78fb3e099e148927734009ca2152b4635585",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/_ola.py": {
+      "a": 436,
+      "d": 0
+    },
+    "mne/filter.py": {
+      "a": 0,
+      "d": 96
+    },
+    "mne/preprocessing/otp.py": {
+      "a": 52,
+      "d": 49
+    },
+    "mne/preprocessing/utils.py": {
+      "a": 0,
+      "d": 59
+    },
+    "mne/simulation/raw.py": {
+      "a": 102,
+      "d": 105
+    },
+    "mne/tests/test_filter.py": {
+      "a": 8,
+      "d": 23
+    },
+    "mne/tests/test_ola.py": {
+      "a": 112,
+      "d": 0
+    }
+  }
+}

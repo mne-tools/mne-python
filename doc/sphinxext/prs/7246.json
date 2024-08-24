@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "17c5670b0f52243ee9e250f93250fd61a0d8edac",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "doc/conf.py": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/overview/index.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/overview/roadmap.rst": {
+      "a": 177,
+      "d": 0
+    },
+    "doc/sphinxext/gh_substitutions.py": {
+      "a": 30,
+      "d": 0
+    }
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "83f84ba2c914ce1cf2bde8dfe97f93742f194e6d",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/datasets/plot_brainstorm_data.py": {
+      "a": 2,
+      "d": 1
+    },
+    "examples/decoding/plot_linear_model_patterns.py": {
+      "a": 1,
+      "d": 0
+    },
+    "examples/inverse/plot_covariance_whitening_dspm.py": {
+      "a": 41,
+      "d": 34
+    },
+    "examples/time_frequency/plot_source_power_spectrum_opm.py": {
+      "a": 5,
+      "d": 3
+    }
+  }
+}

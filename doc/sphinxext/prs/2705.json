@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "c8bb2a36df34a9da29217f56e5d37a968c7ba4f5",
+  "authors": [
+    {
+      "n": "Jona Sassenhagen",
+      "e": "jona.sassenhagen@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/io/brainvision/brainvision.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "ef7c95fd4ec9256753f81e7572d3ecd9d44eff36",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/conf.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/cov.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/sample-datasets/plot_brainstorm_phantom_elekta.py": {
+      "a": 7,
+      "d": 8
+    },
+    "tutorials/sample-datasets/plot_sleep.py": {
+      "a": 7,
+      "d": 11
+    }
+  }
+}

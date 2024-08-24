@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "9ad12c935539d9ca0e6af0de90113f2fa8fc483e",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    },
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    },
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    },
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/viz/tests/test_topomap.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/viz/topomap.py": {
+      "a": 117,
+      "d": 123
+    },
+    "mne/viz/utils.py": {
+      "a": 8,
+      "d": 6
+    }
+  }
+}

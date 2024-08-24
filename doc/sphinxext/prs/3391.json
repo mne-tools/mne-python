@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "47bf725320f9b0cc06d973d6a8d94cf7da634f2e",
+  "authors": [
+    {
+      "n": "Christian Brodbeck",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/source_estimate.py": {
+      "a": 5,
+      "d": 1
+    },
+    "mne/viz/_3d.py": {
+      "a": 16,
+      "d": 3
+    }
+  }
+}

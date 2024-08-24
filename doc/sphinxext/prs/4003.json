@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "9e4ac8a4670b3906c9c9dea5acd574bdd318c85a",
+  "authors": [
+    {
+      "n": "Mikolaj Magnuski",
+      "e": "mmagnuski@swps.edu.pl"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/array/tests/test_array.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/time_frequency/psd.py": {
+      "a": 41,
+      "d": 24
+    },
+    "mne/time_frequency/tests/test_psd.py": {
+      "a": 16,
+      "d": 0
+    }
+  }
+}

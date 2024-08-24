@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "e8854e1f485de868273c7510dfb646039835da25",
+  "authors": [
+    {
+      "n": "Qian Chu",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/12676.bugfix.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/export/_edf.py": {
+      "a": 8,
+      "d": 3
+    },
+    "mne/export/tests/test_export.py": {
+      "a": 41,
+      "d": 0
+    }
+  }
+}

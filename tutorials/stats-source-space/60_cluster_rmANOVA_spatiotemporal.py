@@ -120,7 +120,7 @@ tstep = conditions[0].tstep * 1000  # convert to milliseconds
 # We'll only consider the left hemisphere in this tutorial.
 n_vertices_sample, n_times = conditions[0].lh_data.shape
 n_subjects = 6
-print("Simulating data for %d subjects." % n_subjects)
+print(f"Simulating data for {n_subjects} subjects.")
 
 #    Let's make sure our results replicate, so set the seed.
 np.random.seed(0)

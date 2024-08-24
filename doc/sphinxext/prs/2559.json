@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "07ca1676c051097a527cbfe838f0267fe038b342",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/io/meas_info.py": {
+      "a": 7,
+      "d": 1
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 6,
+      "d": 5
+    }
+  }
+}

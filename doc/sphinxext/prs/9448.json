@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "b05983ea589836c6f63ef665fcf12df659fc8930",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/conf.py": {
+      "a": 40,
+      "d": 31
+    },
+    "mne/utils/misc.py": {
+      "a": 6,
+      "d": 0
+    },
+    "mne/viz/backends/_pyvista.py": {
+      "a": 15,
+      "d": 7
+    },
+    "mne/viz/backends/_qt.py": {
+      "a": 5,
+      "d": 0
+    },
+    "tutorials/forward/35_eeg_no_mri.py": {
+      "a": 0,
+      "d": 5
+    }
+  }
+}

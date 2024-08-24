@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "d885e4a43dd407a3d4e137e57e7df34683ed9390",
+  "authors": [
+    {
+      "n": "nordme",
+      "e": "nordme@uw.edu"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "tutorials/epochs/plot_60_make_fixed_length_epochs.py": {
+      "a": 132,
+      "d": 0
+    }
+  }
+}

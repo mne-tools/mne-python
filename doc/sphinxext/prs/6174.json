@@ -1,0 +1,63 @@
+{
+  "merge_commit_sha": "9cc5d1457c29151eea73fa7f14619724182960c1",
+  "authors": [
+    {
+      "n": "Joan Massich",
+      "e": "mailsik@gmail.com"
+    }
+  ],
+  "changes": {
+    ".circleci/config.yml": {
+      "a": 3,
+      "d": 0
+    },
+    "MANIFEST.in": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/manual/datasets_index.rst": {
+      "a": 7,
+      "d": 0
+    },
+    "doc/python_reference.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/datasets/__init__.py": {
+      "a": 9,
+      "d": 0
+    },
+    "mne/datasets/_fsaverage/__init__.py": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/datasets/_fsaverage/base.py": {
+      "a": 146,
+      "d": 0
+    },
+    "mne/datasets/_fsaverage/bem.txt": {
+      "a": 11,
+      "d": 0
+    },
+    "mne/datasets/_fsaverage/root.txt": {
+      "a": 179,
+      "d": 0
+    },
+    "mne/datasets/tests/test_datasets.py": {
+      "a": 67,
+      "d": 18
+    },
+    "mne/datasets/utils.py": {
+      "a": 35,
+      "d": 1
+    },
+    "mne/utils/_testing.py": {
+      "a": 6,
+      "d": 2
+    }
+  }
+}

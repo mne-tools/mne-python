@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "862a5c93e132557a305b067f10da4b8c3bbfbfc8",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/decoding/base.py": {
+      "a": 1,
+      "d": 172
+    },
+    "mne/decoding/tests/test_transformer.py": {
+      "a": 8,
+      "d": 9
+    },
+    "mne/decoding/transformer.py": {
+      "a": 13,
+      "d": 3
+    },
+    "mne/externals/__init__.py": {
+      "a": 4,
+      "d": 3
+    },
+    "mne/externals/funcsigs.py": {
+      "a": 815,
+      "d": 0
+    },
+    "mne/fixes.py": {
+      "a": 127,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "merge_commit_sha": "ce50c2b20ac1197d79e68665900c9f6646505b13",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".gitignore": {
+      "a": 1,
+      "d": 0
+    },
+    ".travis.yml": {
+      "a": 6,
+      "d": 5
+    },
+    "azure-pipelines.yml": {
+      "a": 77,
+      "d": 0
+    },
+    "conftest.py": {
+      "a": 6,
+      "d": 2
+    },
+    "environment.yml": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/inverse_sparse/tests/test_mxne_inverse.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/utils/testing.py": {
+      "a": 2,
+      "d": 1
+    },
+    "requirements.txt": {
+      "a": 2,
+      "d": 2
+    },
+    "setup.cfg": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

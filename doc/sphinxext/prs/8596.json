@@ -1,0 +1,91 @@
+{
+  "merge_commit_sha": "5a62f4719f28733687b5dd1f8fb9674f9f641c2f",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "examples/io/README.txt": {
+      "a": 3,
+      "d": 2
+    },
+    "examples/io/plot_objects_from_arrays.py": {
+      "a": 0,
+      "d": 166
+    },
+    "examples/io/plot_read_and_write_raw_data.py": {
+      "a": 0,
+      "d": 45
+    },
+    "examples/io/plot_read_epochs.py": {
+      "a": 0,
+      "d": 48
+    },
+    "examples/io/plot_read_events.py": {
+      "a": 0,
+      "d": 77
+    },
+    "examples/io/plot_read_evoked.py": {
+      "a": 0,
+      "d": 36
+    },
+    "examples/io/plot_read_neo_format.py": {
+      "a": 34,
+      "d": 0
+    },
+    "examples/io/plot_read_proj.py": {
+      "a": 0,
+      "d": 64
+    },
+    "examples/preprocessing/plot_find_ecg_artifacts.py": {
+      "a": 0,
+      "d": 51
+    },
+    "examples/preprocessing/plot_find_eog_artifacts.py": {
+      "a": 0,
+      "d": 49
+    },
+    "examples/preprocessing/plot_metadata_query.py": {
+      "a": 0,
+      "d": 111
+    },
+    "examples/preprocessing/plot_rereference_eeg.py": {
+      "a": 0,
+      "d": 90
+    },
+    "examples/preprocessing/plot_resample.py": {
+      "a": 0,
+      "d": 83
+    },
+    "examples/time_frequency/plot_compute_raw_data_spectrum.py": {
+      "a": 0,
+      "d": 125
+    },
+    "tutorials/evoked/plot_10_evoked_overview.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/io/plot_10_reading_meg_data.py": {
+      "a": 2,
+      "d": 1
+    },
+    "tutorials/preprocessing/plot_10_preprocessing_overview.py": {
+      "a": 3,
+      "d": 3
+    },
+    "tutorials/preprocessing/plot_55_setting_eeg_reference.py": {
+      "a": 27,
+      "d": 0
+    },
+    "tutorials/raw/plot_20_event_arrays.py": {
+      "a": 5,
+      "d": 0
+    },
+    "tutorials/simulation/plot_creating_data_structures.py": {
+      "a": 151,
+      "d": 148
+    }
+  }
+}

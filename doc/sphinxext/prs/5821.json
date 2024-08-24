@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "b2b551274071f8b21fe2906631488b161c9aa312",
+  "authors": [
+    {
+      "n": "Larry Eisenman",
+      "e": "leisenman@wustl.edu"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/io/edf/edf.py": {
+      "a": 7,
+      "d": 2
+    },
+    "mne/io/edf/tests/data/duplicate_channel_labels.edf": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/io/edf/tests/test_edf.py": {
+      "a": 12,
+      "d": 1
+    },
+    "mne/io/meas_info.py": {
+      "a": 32,
+      "d": 16
+    },
+    "mne/io/tests/test_meas_info.py": {
+      "a": 11,
+      "d": 0
+    }
+  }
+}

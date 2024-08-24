@@ -1,7 +1,7 @@
-# Author: Proloy Das <pdas6@mgh.harvard.edu>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 import os
 from datetime import datetime, timezone
 
@@ -11,7 +11,7 @@ from ..._fiff.constants import FIFF
 from ..._fiff.meas_info import _empty_info
 from ..._fiff.utils import _file_size, _read_segments_file
 from ...annotations import Annotations
-from ...utils import fill_doc, logger, warn
+from ...utils import _check_fname, fill_doc, logger, warn
 from ..base import BaseRaw, _get_scaling
 
 CH_TYPE_MAPPING = {
@@ -126,10 +126,13 @@ def read_raw_nsx(
     STIM channels by default. Use func:`mne.find_events` to parse events
     encoded in such analog stim channels.
     """
-    input_fname = os.path.abspath(input_fname)
-    ext = os.path.splitext(input_fname)[1][1:].lower()
-    if ext[:2] != "ns":
-        raise NotImplementedError(f"Only NSx files are supported, got {ext}.")
+    input_fname = _check_fname(
+        input_fname, overwrite="read", must_exist=True, name="input_fname"
+    )
+    if not input_fname.suffix.lower().startswith(".ns"):
+        raise NotImplementedError(
+            f"Only NSx files are supported, got {input_fname.suffix}."
+        )
     return RawNSX(
         input_fname, stim_channel, eog, misc, preload=preload, verbose=verbose
     )

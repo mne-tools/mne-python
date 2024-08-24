@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "955f9149a56de39b4f51b94780e910a871e2efd3",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    },
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    },
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    },
+    {
+      "n": "Britta Westner",
+      "e": "britta.wstnr@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/_static/style.css": {
+      "a": 9,
+      "d": 1
+    },
+    "doc/conf.py": {
+      "a": 27,
+      "d": 20
+    },
+    "doc/install/contributing.rst": {
+      "a": 56,
+      "d": 21
+    }
+  }
+}

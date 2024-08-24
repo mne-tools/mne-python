@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "844d53c866bbea932dd6c89ab444bb7f882f0b6f",
+  "authors": [
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    }
+  ],
+  "changes": {
+    "README.rst": {
+      "a": 2,
+      "d": 2
+    },
+    "environment.yml": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 1,
+      "d": 6
+    },
+    "mne/viz/backends/_pyvista.py": {
+      "a": 1,
+      "d": 6
+    },
+    "mne/viz/conftest.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 1,
+      "d": 6
+    },
+    "requirements.txt": {
+      "a": 3,
+      "d": 3
+    },
+    "server_environment.yml": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

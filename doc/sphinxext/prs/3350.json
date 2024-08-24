@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "fff293de2003075d6b84f2716a43089910503f32",
+  "authors": [
+    {
+      "n": "Nick Foti",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/tutorials.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "tutorials/plot_point_spread.py": {
+      "a": 171,
+      "d": 0
+    }
+  }
+}

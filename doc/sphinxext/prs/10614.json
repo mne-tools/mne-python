@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "9f833658527a2c06ba833bffee33c9ba3a4a528a",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/evoked.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/viz/evoked.py": {
+      "a": 43,
+      "d": 6
+    },
+    "mne/viz/tests/test_evoked.py": {
+      "a": 14,
+      "d": 0
+    },
+    "mne/viz/utils.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/evoked/20_visualize_evoked.py": {
+      "a": 12,
+      "d": 0
+    }
+  }
+}

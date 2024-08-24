@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "6849756618335bb52bfb950050d9d1805528806f",
+  "authors": [
+    {
+      "n": "Chris Holdgraf",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/tests/test_utils.py": {
+      "a": 18,
+      "d": 1
+    },
+    "mne/utils.py": {
+      "a": 18,
+      "d": 3
+    }
+  }
+}

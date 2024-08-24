@@ -1,0 +1,67 @@
+{
+  "merge_commit_sha": "d495b13bb0b4bef05118e3bd75ce6860af641337",
+  "authors": [
+    {
+      "n": "Denis A. Engemann",
+      "e": null
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "vpeterson",
+      "e": "victoriapeterson09@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 6,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/conf.py": {
+      "a": 2,
+      "d": 1
+    },
+    "doc/python_reference.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/references.bib": {
+      "a": 21,
+      "d": 0
+    },
+    "examples/decoding/plot_ssd_spatial_filters.py": {
+      "a": 138,
+      "d": 0
+    },
+    "mne/decoding/__init__.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/decoding/ssd.py": {
+      "a": 288,
+      "d": 0
+    },
+    "mne/decoding/tests/test_ssd.py": {
+      "a": 233,
+      "d": 0
+    }
+  }
+}

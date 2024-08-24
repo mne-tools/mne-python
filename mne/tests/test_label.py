@@ -1,5 +1,4 @@
-# Author: Eric Larson <larson.eric.d@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -70,7 +69,7 @@ label_fname = test_path / "test-lh.label"
 # for hemi in ['lh', 'rh']:
 #    label = Label(np.unique((np.random.rand(100) * 10242).astype(int)),
 #                  hemi=hemi, comment='Test ' + hemi, subject='fsaverage')
-#    label.save(op.join(test_path, 'test-%s.label' % hemi))
+#    label.save(op.join(test_path, f'test-{hemi}.label'))
 
 
 # XXX : this was added for backward compat and keep the old test_label_in_src

@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "0683f1290b801945acfe6d0b7c99cfc245e17a3b",
+  "authors": [
+    {
+      "n": "Denis A. Engemann",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/source/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 13,
+      "d": 3
+    }
+  }
+}

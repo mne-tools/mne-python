@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "b7dd664ab27fcd1b61a15165369ad3cce51e0220",
+  "authors": [
+    {
+      "n": "Joan Massich",
+      "e": "mailsik@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/python_reference.rst": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/channels/__init__.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/channels/_dig_montage_utils.py": {
+      "a": 41,
+      "d": 9
+    },
+    "mne/channels/montage.py": {
+      "a": 164,
+      "d": 2
+    },
+    "mne/channels/tests/test_montage.py": {
+      "a": 59,
+      "d": 2
+    }
+  }
+}

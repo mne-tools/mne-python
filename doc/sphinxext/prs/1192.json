@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "440b544a7e7178838bfb2c62521b9a28d9c57aaf",
+  "authors": [
+    {
+      "n": "Christian Brodbeck",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/source/whats_new.rst": {
+      "a": 7,
+      "d": 1
+    },
+    "examples/inverse/plot_label_from_stc.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/label.py": {
+      "a": 110,
+      "d": 20
+    },
+    "mne/source_space.py": {
+      "a": 18,
+      "d": 3
+    },
+    "mne/tests/test_label.py": {
+      "a": 53,
+      "d": 12
+    },
+    "mne/tests/test_source_space.py": {
+      "a": 23,
+      "d": 16
+    }
+  }
+}

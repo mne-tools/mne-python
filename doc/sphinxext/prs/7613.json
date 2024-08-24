@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "fe1d1c6901e61a0578c76388a37af7b142597669",
+  "authors": [
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/viz/_brain/_timeviewer.py": {
+      "a": 7,
+      "d": 4
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "51d554ef9a2530877899a7eac33090851e8110ff",
+  "authors": [
+    {
+      "n": "Marijn van Vliet",
+      "e": "w.m.vanvliet@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/time_frequency/tests/test_tfr.py": {
+      "a": 15,
+      "d": 6
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 17,
+      "d": 9
+    }
+  }
+}

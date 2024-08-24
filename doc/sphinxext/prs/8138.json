@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "ae68fc4b23d505ec3b57f6a65a7c4fd2203784d8",
+  "authors": [
+    {
+      "n": "Johann Benerradi",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/channels/channels.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/channels/tests/test_channels.py": {
+      "a": 8,
+      "d": 7
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "d203c226bf9a6b74708ee9ebcea2bcc17eea7fb5",
+  "authors": [
+    {
+      "n": "Sondre Foslien",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/time_frequency/multitaper.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

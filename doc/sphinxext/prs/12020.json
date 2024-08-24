@@ -1,0 +1,75 @@
+{
+  "merge_commit_sha": "e99ea74de08bd19559bdcad754175b8d4b1f831a",
+  "authors": [
+    {
+      "n": "Mathieu Scheltienne",
+      "e": "mathieu.scheltienne@fcbg.ch"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/_includes/bem_model.rst": {
+      "a": 3,
+      "d": 2
+    },
+    "doc/_includes/forward.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/_includes/ssp.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/bem.py": {
+      "a": 30,
+      "d": 19
+    },
+    "mne/cov.py": {
+      "a": 5,
+      "d": 7
+    },
+    "mne/forward/_make_forward.py": {
+      "a": 6,
+      "d": 4
+    },
+    "mne/minimum_norm/inverse.py": {
+      "a": 7,
+      "d": 5
+    },
+    "mne/source_space/_source_space.py": {
+      "a": 25,
+      "d": 17
+    },
+    "mne/time_frequency/multitaper.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/docs.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/viz/evoked.py": {
+      "a": 7,
+      "d": 8
+    },
+    "tutorials/forward/90_compute_covariance.py": {
+      "a": 7,
+      "d": 10
+    },
+    "tutorials/inverse/30_mne_dspm_loreta.py": {
+      "a": 11,
+      "d": 6
+    }
+  }
+}

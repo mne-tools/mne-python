@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "f4f302f78486b9e6af99faac072e0ac6cda3b2d2",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/epochs.py": {
+      "a": 7,
+      "d": 9
+    },
+    "mne/evoked.py": {
+      "a": 6,
+      "d": 4
+    },
+    "mne/stats/regression.py": {
+      "a": 8,
+      "d": 9
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 6,
+      "d": 3
+    },
+    "mne/tests/test_evoked.py": {
+      "a": 4,
+      "d": 0
+    }
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "dd54d3c9c7c555c2c5d89f4a20a0f0d32cfc766b",
+  "authors": [
+    {
+      "n": "Joan Massich",
+      "e": "mailsik@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/channels/tests/test_montage.py": {
+      "a": 127,
+      "d": 5
+    },
+    "mne/io/brainvision/tests/test_brainvision.py": {
+      "a": 0,
+      "d": 29
+    },
+    "mne/io/cnt/tests/test_cnt.py": {
+      "a": 0,
+      "d": 25
+    },
+    "mne/io/edf/tests/test_edf.py": {
+      "a": 0,
+      "d": 71
+    },
+    "mne/io/eeglab/tests/test_eeglab.py": {
+      "a": 1,
+      "d": 29
+    },
+    "mne/io/egi/tests/test_egi.py": {
+      "a": 1,
+      "d": 32
+    },
+    "mne/io/nicolet/tests/test_nicolet.py": {
+      "a": 1,
+      "d": 29
+    }
+  }
+}

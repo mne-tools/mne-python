@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "ac9c1670e2c67613e11d3c466dc88159d89c62a6",
+  "authors": [
+    {
+      "n": "Teon L Brooks",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/source/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/edf/edf.py": {
+      "a": 10,
+      "d": 1
+    },
+    "mne/io/edf/tests/data/test_edf_eeglab.mat": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/io/edf/tests/test_edf.py": {
+      "a": 3,
+      "d": 3
+    }
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "5de659d2aa1dca4a0529e022036c9ff2a40ecc33",
+  "authors": [
+    {
+      "n": "Britta Westner",
+      "e": null
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan.mccloy@gmail.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "doc/references.bib": {
+      "a": 11,
+      "d": 0
+    },
+    "examples/inverse/plot_lcmv_beamformer.py": {
+      "a": 0,
+      "d": 125
+    },
+    "examples/inverse/plot_lcmv_beamformer_volume.py": {
+      "a": 0,
+      "d": 132
+    },
+    "tutorials/source-modeling/plot_beamformer_lcmv.py": {
+      "a": 274,
+      "d": 0
+    }
+  }
+}

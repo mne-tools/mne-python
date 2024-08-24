@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "a0d1125166029844923d896a76519b6e13a5a8b9",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/install/installers_platform_selector.html": {
+      "a": 4,
+      "d": 4
+    }
+  }
+}

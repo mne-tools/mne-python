@@ -1,0 +1,51 @@
+{
+  "merge_commit_sha": "4add7d137958468c5accc2a1877664ebb9603c23",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    }
+  ],
+  "changes": {
+    "MANIFEST.in": {
+      "a": 0,
+      "d": 1
+    },
+    "environment.yml": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/conftest.py": {
+      "a": 5,
+      "d": 3
+    },
+    "mne/viz/_brain/tests/test.ipynb": {
+      "a": 0,
+      "d": 123
+    },
+    "mne/viz/_brain/tests/test_notebook.py": {
+      "a": 108,
+      "d": 16
+    },
+    "mne/viz/conftest.py": {
+      "a": 129,
+      "d": 0
+    },
+    "mne/viz/tests/conftest.py": {
+      "a": 0,
+      "d": 45
+    },
+    "requirements.txt": {
+      "a": 2,
+      "d": 0
+    },
+    "requirements_testing.txt": {
+      "a": 2,
+      "d": 0
+    }
+  }
+}

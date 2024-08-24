@@ -1,0 +1,71 @@
+{
+  "merge_commit_sha": "d0cf4db4ba1f79cf31009b0c060ed64cc6b6de57",
+  "authors": [
+    {
+      "n": "Alex Rockhill",
+      "e": "aprockhill@mailbox.org"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "azure-pipelines.yml": {
+      "a": 3,
+      "d": 3
+    },
+    "doc/changes/1.0.inc": {
+      "a": 7,
+      "d": 7
+    },
+    "doc/changes/1.1.inc": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/changes/latest.inc": {
+      "a": 4,
+      "d": 3
+    },
+    "doc/conf.py": {
+      "a": 1,
+      "d": 0
+    },
+    "examples/inverse/evoked_ers_source_power.py": {
+      "a": 6,
+      "d": 1
+    },
+    "mne/conftest.py": {
+      "a": 17,
+      "d": 14
+    },
+    "mne/gui/__init__.py": {
+      "a": 34,
+      "d": 16
+    },
+    "mne/gui/tests/test_ieeg_locate.py": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/time_frequency/tests/test_spectrum.py": {
+      "a": 5,
+      "d": 4
+    },
+    "mne/utils/check.py": {
+      "a": 1,
+      "d": 0
+    },
+    "requirements.txt": {
+      "a": 1,
+      "d": 0
+    },
+    "tools/azure_dependencies.sh": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/clinical/10_ieeg_localize.py": {
+      "a": 3,
+      "d": 2
+    }
+  }
+}

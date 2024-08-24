@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "a6fa7fea3690137731b87cbce79a3c3cf0826c01",
+  "authors": [
+    {
+      "n": "Christian Brodbeck",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/evoked.py": {
+      "a": 8,
+      "d": 1
+    },
+    "mne/tests/test_evoked.py": {
+      "a": 7,
+      "d": 5
+    }
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "53ee179171629bbe41d7a4ebb713414b8fec0e5b",
+  "authors": [
+    {
+      "n": "Mainak Jas",
+      "e": "mainakjas@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/source/whats_new.rst": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/epochs.py": {
+      "a": 216,
+      "d": 121
+    },
+    "mne/io/base.py": {
+      "a": 2,
+      "d": 10
+    },
+    "mne/io/fiff/raw.py": {
+      "a": 2,
+      "d": 38
+    },
+    "mne/io/open.py": {
+      "a": 42,
+      "d": 1
+    },
+    "mne/io/write.py": {
+      "a": 14,
+      "d": 0
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 11,
+      "d": 0
+    },
+    "mne/viz/tests/test_epochs.py": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

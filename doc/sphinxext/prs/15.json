@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "9682cf0954ae2826207b4913ca681148e7735a39",
+  "authors": [
+    {
+      "n": "Martin Luessi",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/source/whats_new.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/fiff/raw.py": {
+      "a": 45,
+      "d": 22
+    },
+    "mne/fiff/tests/test_raw.py": {
+      "a": 30,
+      "d": 0
+    },
+    "mne/tests/test_raw.py": {
+      "a": 0,
+      "d": 46
+    }
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "ba053a6843a0acae892d6046ce9bc2c752fbbcb9",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/hitachi/tests/test_hitachi.py": {
+      "a": 51,
+      "d": 8
+    },
+    "mne/preprocessing/nirs/_beer_lambert_law.py": {
+      "a": 10,
+      "d": 3
+    },
+    "mne/preprocessing/nirs/_scalp_coupling_index.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/nirs/nirs.py": {
+      "a": 6,
+      "d": 3
+    },
+    "mne/utils/docs.py": {
+      "a": 39,
+      "d": 1
+    }
+  }
+}

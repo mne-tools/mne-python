@@ -1,0 +1,67 @@
+{
+  "merge_commit_sha": "10b537c26573d999597500a854c602d7fa81688c",
+  "authors": [
+    {
+      "n": "Mathieu Scheltienne",
+      "e": "mathieu.scheltienne@fcbg.ch"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 4,
+      "d": 0
+    },
+    "doc/conf.py": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/glossary.rst": {
+      "a": 22,
+      "d": 10
+    },
+    "mne/annotations.py": {
+      "a": 3,
+      "d": 4
+    },
+    "mne/epochs.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/event.py": {
+      "a": 32,
+      "d": 30
+    },
+    "mne/io/base.py": {
+      "a": 6,
+      "d": 5
+    },
+    "mne/io/kit/kit.py": {
+      "a": 2,
+      "d": 12
+    },
+    "mne/simulation/source.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/docs.py": {
+      "a": 23,
+      "d": 20
+    },
+    "mne/viz/misc.py": {
+      "a": 2,
+      "d": 3
+    }
+  }
+}

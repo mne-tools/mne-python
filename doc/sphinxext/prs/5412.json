@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "3b0270cad41e53da97fbaa96d2c361afc62e44a5",
+  "authors": [
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    }
+  ],
+  "changes": {
+    "mne/io/brainvision/brainvision.py": {
+      "a": 4,
+      "d": 1
+    },
+    "mne/io/brainvision/tests/data/testv2.vmrk": {
+      "a": 7,
+      "d": 6
+    },
+    "mne/io/brainvision/tests/test_brainvision.py": {
+      "a": 14,
+      "d": 1
+    }
+  }
+}

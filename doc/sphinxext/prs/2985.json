@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "af8a0369e8b5dcffd7ffbd188fb7ca5b499e799a",
+  "authors": [
+    {
+      "n": "Jean-Rémi KING",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/python_reference.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/__init__.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

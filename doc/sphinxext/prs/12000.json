@@ -1,0 +1,55 @@
+{
+  "merge_commit_sha": "77ba263489b86ee7ad8c8bf02c8e6cb10e0c74d8",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel.rst": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/transforms.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/docs.py": {
+      "a": 6,
+      "d": 2
+    },
+    "mne/viz/_3d.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 65,
+      "d": 50
+    },
+    "mne/viz/_brain/tests/test_brain.py": {
+      "a": 87,
+      "d": 22
+    },
+    "mne/viz/_brain/view.py": {
+      "a": 33,
+      "d": 24
+    },
+    "mne/viz/backends/_abstract.py": {
+      "a": 9,
+      "d": 9
+    },
+    "mne/viz/backends/_pyvista.py": {
+      "a": 62,
+      "d": 65
+    },
+    "mne/viz/backends/renderer.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/viz/backends/tests/test_renderer.py": {
+      "a": 0,
+      "d": 1
+    }
+  }
+}

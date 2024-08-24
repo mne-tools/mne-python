@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "3b4930abd32c00dc71da6c4a3e56a850a34ba185",
+  "authors": [
+    {
+      "n": "Alex Rockhill",
+      "e": "aprockhill@mailbox.org"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/utils/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/check.py": {
+      "a": 31,
+      "d": 0
+    },
+    "mne/utils/tests/test_check.py": {
+      "a": 11,
+      "d": 1
+    },
+    "mne/viz/topomap.py": {
+      "a": 1,
+      "d": 2
+    }
+  }
+}

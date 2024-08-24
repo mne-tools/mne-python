@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "5d2f027758ca2f456ae266dc02da15f250e0eb06",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "examples/io/plot_read_proj.py": {
+      "a": 4,
+      "d": 2
+    },
+    "tutorials/preprocessing/plot_artifacts_correction_rejection.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/raw/README.txt": {
+      "a": 3,
+      "d": 3
+    },
+    "tutorials/raw/plot_visualize_raw.py": {
+      "a": 164,
+      "d": 124
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "bb0b50c6be08961b10dfff8535c966f4c6675f46",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "README.rst": {
+      "a": 4,
+      "d": 4
+    }
+  }
+}

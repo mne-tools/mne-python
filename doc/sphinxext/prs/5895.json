@@ -1,0 +1,55 @@
+{
+  "merge_commit_sha": "8f6d2946c778ee2b131726f877e06b7a7c59d875",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/annotations.py": {
+      "a": 32,
+      "d": 8
+    },
+    "mne/commands/mne_clean_eog_ecg.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/epochs.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/filter.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/array/array.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/base.py": {
+      "a": 12,
+      "d": 3
+    },
+    "mne/preprocessing/ecg.py": {
+      "a": 58,
+      "d": 15
+    },
+    "mne/preprocessing/ssp.py": {
+      "a": 3,
+      "d": 6
+    },
+    "mne/preprocessing/tests/test_ecg.py": {
+      "a": 16,
+      "d": 0
+    },
+    "mne/tests/test_annotations.py": {
+      "a": 13,
+      "d": 3
+    }
+  }
+}

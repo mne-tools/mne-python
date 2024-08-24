@@ -1,0 +1,51 @@
+{
+  "merge_commit_sha": "76d84953b7d3dcbf1e1cd0ba5ded6cb1c8d96fe6",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/python_reference.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/annotations.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/filter.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/flat.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/preprocessing/maxwell.py": {
+      "a": 248,
+      "d": 96
+    },
+    "mne/preprocessing/tests/test_maxwell.py": {
+      "a": 18,
+      "d": 6
+    },
+    "mne/utils/docs.py": {
+      "a": 88,
+      "d": 0
+    },
+    "tutorials/preprocessing/plot_60_maxwell_filtering_sss.py": {
+      "a": 25,
+      "d": 11
+    }
+  }
+}

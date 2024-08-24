@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "e07cc5059cb6e2fb7e5abe0ed3db0fad7f590959",
+  "authors": [
+    {
+      "n": "Luke Bloy",
+      "e": "luke.bloy@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 6,
+      "d": 0
+    },
+    "mne/channels/channels.py": {
+      "a": 3,
+      "d": 6
+    },
+    "mne/commands/mne_anonymize.py": {
+      "a": 99,
+      "d": 0
+    },
+    "mne/commands/tests/test_commands.py": {
+      "a": 13,
+      "d": 2
+    },
+    "mne/io/meas_info.py": {
+      "a": 117,
+      "d": 12
+    },
+    "mne/io/tests/test_meas_info.py": {
+      "a": 93,
+      "d": 65
+    },
+    "mne/tests/test_report.py": {
+      "a": 18,
+      "d": 1
+    }
+  }
+}

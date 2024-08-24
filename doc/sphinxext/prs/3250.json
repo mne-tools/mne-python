@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "f04d1460d10ebe3b9466ccad9c077040d42a6d5f",
+  "authors": [
+    {
+      "n": "Fede Raimondo",
+      "e": "f.raimondo@fz-juelich.de"
+    }
+  ],
+  "changes": {
+    "mne/io/edf/edf.py": {
+      "a": 1,
+      "d": 3
+    }
+  }
+}

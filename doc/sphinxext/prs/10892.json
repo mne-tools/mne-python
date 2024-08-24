@@ -1,0 +1,71 @@
+{
+  "merge_commit_sha": "6921ed20975ae0b37be447bb5d2a185262f08ae7",
+  "authors": [
+    {
+      "n": "Marijn van Vliet",
+      "e": "w.m.vanvliet@gmail.com"
+    }
+  ],
+  "changes": {
+    "MANIFEST.in": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/file_io.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/__init__.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/channels/_standard_montage_utils.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/channels/tests/test_montage.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/io/__init__.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/besa/__init__.py": {
+      "a": 7,
+      "d": 0
+    },
+    "mne/io/besa/besa.py": {
+      "a": 243,
+      "d": 0
+    },
+    "mne/io/besa/tests/data/simulation.avr": {
+      "a": 35,
+      "d": 0
+    },
+    "mne/io/besa/tests/data/simulation.elp": {
+      "a": 33,
+      "d": 0
+    },
+    "mne/io/besa/tests/data/simulation.mul": {
+      "a": 202,
+      "d": 0
+    },
+    "mne/io/besa/tests/data/simulation_oldstyle.avr": {
+      "a": 34,
+      "d": 0
+    },
+    "mne/io/besa/tests/data/simulation_oldstyle.elp": {
+      "a": 33,
+      "d": 0
+    },
+    "mne/io/besa/tests/test_besa.py": {
+      "a": 74,
+      "d": 0
+    }
+  }
+}

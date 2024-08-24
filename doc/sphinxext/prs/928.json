@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "9044b1fa76fa17de4a5e98e1709fa82323279841",
+  "authors": [
+    {
+      "n": "Martin Luessi",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/fiff/raw.py": {
+      "a": 6,
+      "d": 0
+    }
+  }
+}

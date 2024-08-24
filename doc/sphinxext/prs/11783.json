@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "4cf0d1d5ca692cf8426933ef5e683b648b04203d",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/datasets/eegbci/eegbci.py": {
+      "a": 38,
+      "d": 41
+    },
+    "mne/datasets/utils.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

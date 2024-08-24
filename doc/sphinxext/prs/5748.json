@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "3bd81a08f2ba4a837d5a078c5b666d15a0434fc1",
+  "authors": [
+    {
+      "n": "Jona Sassenhagen",
+      "e": "jona.sassenhagen@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/viz/ica.py": {
+      "a": 34,
+      "d": 6
+    }
+  }
+}

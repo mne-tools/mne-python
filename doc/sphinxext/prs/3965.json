@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "f1490275d16886b877c52cd1ca65524344ba2bba",
+  "authors": [
+    {
+      "n": "Cristóbal Moënne-Loccoz",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/io/pick.py": {
+      "a": 5,
+      "d": 0
+    },
+    "mne/viz/evoked.py": {
+      "a": 7,
+      "d": 7
+    }
+  }
+}

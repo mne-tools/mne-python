@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "a39a0e8caa340ff22eba7441bec2399c93fa496d",
+  "authors": [
+    {
+      "n": "Rob Luke",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/snirf/_snirf.py": {
+      "a": 3,
+      "d": 3
+    }
+  }
+}

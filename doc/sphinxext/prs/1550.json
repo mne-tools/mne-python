@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "81201d762867ac3acaa36b001de36cc9a4978bc5",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "doc/source/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/layouts/layout.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/viz/topomap.py": {
+      "a": 8,
+      "d": 2
+    }
+  }
+}

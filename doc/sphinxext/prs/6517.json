@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "73e9f22ef2e9e3092121a09b46e74356606162d9",
+  "authors": [
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/inverse/plot_read_inverse.py": {
+      "a": 4,
+      "d": 2
+    }
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "033f8c13fb03772c26142a1782c18a2a65dc9e8e",
+  "authors": [
+    {
+      "n": "Luke Bloy",
+      "e": "luke.bloy@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/defaults.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/io/pick.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/viz/tests/test_epochs.py": {
+      "a": 52,
+      "d": 1
+    }
+  }
+}

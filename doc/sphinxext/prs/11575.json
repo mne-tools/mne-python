@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "52a42e2d5993232ce268155a8c002428ff046cae",
+  "authors": [
+    {
+      "n": "Joshua Calder-Travis",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/stats/tests/test_permutations.py": {
+      "a": 19,
+      "d": 2
+    }
+  }
+}

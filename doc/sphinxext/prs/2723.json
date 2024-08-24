@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "792af3dd160d21d66e8c59e0da12f3d6c841372e",
+  "authors": [
+    {
+      "n": "Jona Sassenhagen",
+      "e": "jona.sassenhagen@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/viz/tests/test_topomap.py": {
+      "a": 5,
+      "d": 1
+    },
+    "mne/viz/topomap.py": {
+      "a": 4,
+      "d": 0
+    }
+  }
+}

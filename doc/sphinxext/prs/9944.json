@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "1221b9ca280de1df1c52b6ab3960a3c99ca34968",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/conftest.py": {
+      "a": 7,
+      "d": 0
+    },
+    "mne/coreg.py": {
+      "a": 5,
+      "d": 0
+    },
+    "mne/gui/_coreg.py": {
+      "a": 13,
+      "d": 4
+    },
+    "mne/gui/tests/test_coreg_gui.py": {
+      "a": 5,
+      "d": 2
+    },
+    "mne/viz/backends/_abstract.py": {
+      "a": 6,
+      "d": 0
+    },
+    "mne/viz/backends/_notebook.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/viz/backends/_pysurfer_mayavi.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/viz/backends/_qt.py": {
+      "a": 3,
+      "d": 0
+    }
+  }
+}

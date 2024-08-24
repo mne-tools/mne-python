@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "f0948f862c82159781ce822b2bd7614298f924be",
+  "authors": [
+    {
+      "n": "ashdrew",
+      "e": "ashdrew@uw.edu"
+    }
+  ],
+  "changes": {
+    "doc/conf.py": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/install/installers.rst": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

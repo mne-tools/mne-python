@@ -1,0 +1,143 @@
+{
+  "merge_commit_sha": "0cd79a3608ab3817ee180c0f0c4d9307bf653d3a",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/_static/funding/amazon.svg": {
+      "a": 16,
+      "d": 17
+    },
+    "doc/_static/funding/anr.svg": {
+      "a": 14,
+      "d": 68
+    },
+    "doc/_static/funding/czi.svg": {
+      "a": 12,
+      "d": 19
+    },
+    "doc/_static/funding/doe.svg": {
+      "a": 72,
+      "d": 1658
+    },
+    "doc/_static/funding/erc-dark.svg": {
+      "a": 13,
+      "d": 658
+    },
+    "doc/_static/funding/erc.svg": {
+      "a": 13,
+      "d": 658
+    },
+    "doc/_static/funding/google.svg": {
+      "a": 9,
+      "d": 1
+    },
+    "doc/_static/funding/nih.svg": {
+      "a": 6,
+      "d": 81
+    },
+    "doc/_static/institution_logos/Aalto-dark.svg": {
+      "a": 11,
+      "d": 2466
+    },
+    "doc/_static/institution_logos/Aalto.svg": {
+      "a": 11,
+      "d": 2466
+    },
+    "doc/_static/institution_logos/Aarhus-dark.svg": {
+      "a": 2,
+      "d": 64
+    },
+    "doc/_static/institution_logos/Aarhus.svg": {
+      "a": 2,
+      "d": 64
+    },
+    "doc/_static/institution_logos/BIDS-dark.svg": {
+      "a": 52,
+      "d": 318
+    },
+    "doc/_static/institution_logos/BIDS.svg": {
+      "a": 52,
+      "d": 318
+    },
+    "doc/_static/institution_logos/BU.svg": {
+      "a": 4,
+      "d": 1
+    },
+    "doc/_static/institution_logos/CHOP-dark.svg": {
+      "a": 10,
+      "d": 1
+    },
+    "doc/_static/institution_logos/CHOP.svg": {
+      "a": 12,
+      "d": 1
+    },
+    "doc/_static/institution_logos/Inserm-dark.svg": {
+      "a": 12,
+      "d": 46
+    },
+    "doc/_static/institution_logos/Inserm.svg": {
+      "a": 12,
+      "d": 46
+    },
+    "doc/_static/institution_logos/Julich-dark.svg": {
+      "a": 2,
+      "d": 54
+    },
+    "doc/_static/institution_logos/Julich.svg": {
+      "a": 2,
+      "d": 54
+    },
+    "doc/_static/institution_logos/MGH.svg": {
+      "a": 7,
+      "d": 18
+    },
+    "doc/_static/institution_logos/MIT.svg": {
+      "a": 6,
+      "d": 8
+    },
+    "doc/_static/institution_logos/MPIB-dark.svg": {
+      "a": 1,
+      "d": 3
+    },
+    "doc/_static/institution_logos/MPIB.svg": {
+      "a": 21,
+      "d": 3
+    },
+    "doc/_static/institution_logos/Macquarie.svg": {
+      "a": 1,
+      "d": 222
+    },
+    "doc/_static/institution_logos/NYU-dark.svg": {
+      "a": 11,
+      "d": 66
+    },
+    "doc/_static/institution_logos/NYU.svg": {
+      "a": 11,
+      "d": 66
+    },
+    "doc/_static/institution_logos/SWPS-dark.svg": {
+      "a": 25,
+      "d": 151
+    },
+    "doc/_static/institution_logos/SWPS.svg": {
+      "a": 25,
+      "d": 151
+    },
+    "doc/_static/institution_logos/Telecom_Paris_Tech.svg": {
+      "a": 11,
+      "d": 1
+    },
+    "doc/_static/institution_logos/Washington-dark.svg": {
+      "a": 2,
+      "d": 33
+    },
+    "doc/_static/institution_logos/Washington.svg": {
+      "a": 2,
+      "d": 33
+    }
+  }
+}

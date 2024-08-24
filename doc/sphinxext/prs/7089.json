@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "3459c84cc7cc76c37356dbf163c7768f03c81182",
+  "authors": [
+    {
+      "n": "Chun-Hui Li",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/decoding/base.py": {
+      "a": 7,
+      "d": 2
+    },
+    "mne/decoding/tests/test_base.py": {
+      "a": 105,
+      "d": 20
+    }
+  }
+}

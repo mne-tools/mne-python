@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "b1dfd53f4c017b5b0e1e51af1d98d38e318c3676",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/fiff/tests/test_raw_fiff.py": {
+      "a": 12,
+      "d": 0
+    },
+    "mne/io/proj.py": {
+      "a": 13,
+      "d": 4
+    }
+  }
+}

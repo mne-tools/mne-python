@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "54177ca854ebff50b645239d781afbce441ecf2e",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/inverse/plot_vector_mne_solution.py": {
+      "a": 27,
+      "d": 3
+    },
+    "mne/minimum_norm/inverse.py": {
+      "a": 0,
+      "d": 3
+    },
+    "mne/minimum_norm/tests/test_inverse.py": {
+      "a": 0,
+      "d": 6
+    },
+    "mne/source_estimate.py": {
+      "a": 10,
+      "d": 4
+    },
+    "mne/tests/test_source_estimate.py": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/utils/docs.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

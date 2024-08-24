@@ -1,7 +1,8 @@
-# Authors: Adam Li <adam2392@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
+from __future__ import annotations  # only needed for Python ≤ 3.9
 
 import os
 import os.path as op
@@ -42,7 +43,7 @@ def fetch_dataset(
     accept=False,
     auth=None,
     token=None,
-):
+) -> Path | tuple[Path, str]:
     """Fetch an MNE-compatible dataset using pooch.
 
     Parameters

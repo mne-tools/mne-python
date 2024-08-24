@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "f176d91f0c2f6adeb7f7d6d196ff5271d636735d",
+  "authors": [
+    {
+      "n": "Jon Houck",
+      "e": null
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/references.bib": {
+      "a": 10,
+      "d": 0
+    },
+    "tutorials/forward/25_automated_coreg.py": {
+      "a": 9,
+      "d": 2
+    }
+  }
+}

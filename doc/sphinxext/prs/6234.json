@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "5d80e26f541d83dbd267c3e0957d8aa8e6a154f4",
+  "authors": [
+    {
+      "n": "Teon L Brooks",
+      "e": null
+    }
+  ],
+  "changes": {
+    "examples/realtime/plot_rt_feedback_server.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/realtime/mock_lsl_stream.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/realtime/tests/test_lsl_client.py": {
+      "a": 3,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "c72cdaf002b5ecae75cc5f525e224bcac153acba",
+  "authors": [
+    {
+      "n": "Adeline Fecker",
+      "e": null
+    }
+  ],
+  "changes": {
+    "examples/forward/left_cerebellum_volume_source.py": {
+      "a": 2,
+      "d": 4
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "ee639afd82c6ef2f04dc26eb156226a2fd0f1f2a",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "tutorials/epochs/60_make_fixed_length_epochs.py": {
+      "a": 9,
+      "d": 5
+    }
+  }
+}

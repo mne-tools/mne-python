@@ -1,0 +1,255 @@
+{
+  "merge_commit_sha": "a7bbdf0d5f2a1e228ed8c0240f97e1236fb81c76",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "azure-pipelines.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/conf.py": {
+      "a": 5,
+      "d": 19
+    },
+    "doc/install/advanced.rst": {
+      "a": 2,
+      "d": 24
+    },
+    "doc/install/contributing.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/install/mne_python.rst": {
+      "a": 0,
+      "d": 24
+    },
+    "doc/links.inc": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/overview/design_philosophy.rst": {
+      "a": 5,
+      "d": 4
+    },
+    "doc/overview/faq.rst": {
+      "a": 4,
+      "d": 5
+    },
+    "doc/overview/roadmap.rst": {
+      "a": 0,
+      "d": 14
+    },
+    "environment.yml": {
+      "a": 0,
+      "d": 3
+    },
+    "examples/visualization/3d_to_2d.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/channels/channels.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/commands/mne_coreg.py": {
+      "a": 14,
+      "d": 19
+    },
+    "mne/commands/mne_kit2fiff.py": {
+      "a": 4,
+      "d": 9
+    },
+    "mne/commands/tests/test_commands.py": {
+      "a": 2,
+      "d": 5
+    },
+    "mne/conftest.py": {
+      "a": 7,
+      "d": 39
+    },
+    "mne/dipole.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/gui/__init__.py": {
+      "a": 35,
+      "d": 120
+    },
+    "mne/gui/_backend.py": {
+      "a": 0,
+      "d": 53
+    },
+    "mne/gui/_coreg_gui.py": {
+      "a": 0,
+      "d": 2147
+    },
+    "mne/gui/_fiducials_gui.py": {
+      "a": 0,
+      "d": 515
+    },
+    "mne/gui/_file_traits.py": {
+      "a": 0,
+      "d": 577
+    },
+    "mne/gui/_help.py": {
+      "a": 0,
+      "d": 16
+    },
+    "mne/gui/_ieeg_locate_gui.py": {
+      "a": 0,
+      "d": 6
+    },
+    "mne/gui/_kit2fiff_gui.py": {
+      "a": 0,
+      "d": 758
+    },
+    "mne/gui/_marker_gui.py": {
+      "a": 0,
+      "d": 455
+    },
+    "mne/gui/_viewer.py": {
+      "a": 0,
+      "d": 564
+    },
+    "mne/gui/help/kit2fiff.json": {
+      "a": 0,
+      "d": 10
+    },
+    "mne/gui/tests/test_coreg_gui.py": {
+      "a": 1,
+      "d": 320
+    },
+    "mne/gui/tests/test_fiducials_gui.py": {
+      "a": 0,
+      "d": 68
+    },
+    "mne/gui/tests/test_file_traits.py": {
+      "a": 0,
+      "d": 137
+    },
+    "mne/gui/tests/test_kit2fiff_gui.py": {
+      "a": 0,
+      "d": 162
+    },
+    "mne/gui/tests/test_marker_gui.py": {
+      "a": 0,
+      "d": 78
+    },
+    "mne/io/egi/tests/test_egi.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/report/report.py": {
+      "a": 8,
+      "d": 8
+    },
+    "mne/report/tests/test_report.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/source_space.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/surface.py": {
+      "a": 8,
+      "d": 1
+    },
+    "mne/tests/test_docstring_parameters.py": {
+      "a": 4,
+      "d": 28
+    },
+    "mne/tests/test_import_nesting.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/__init__.py": {
+      "a": 5,
+      "d": 6
+    },
+    "mne/utils/_logging.py": {
+      "a": 0,
+      "d": 14
+    },
+    "mne/utils/_testing.py": {
+      "a": 0,
+      "d": 48
+    },
+    "mne/utils/check.py": {
+      "a": 5,
+      "d": 8
+    },
+    "mne/utils/config.py": {
+      "a": 1,
+      "d": 5
+    },
+    "mne/utils/tests/test_check.py": {
+      "a": 4,
+      "d": 13
+    },
+    "mne/viz/_3d.py": {
+      "a": 44,
+      "d": 111
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 5,
+      "d": 9
+    },
+    "mne/viz/_brain/tests/test_brain.py": {
+      "a": 2,
+      "d": 8
+    },
+    "mne/viz/backends/_abstract.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/backends/_pysurfer_mayavi.py": {
+      "a": 0,
+      "d": 511
+    },
+    "mne/viz/backends/_utils.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/viz/backends/renderer.py": {
+      "a": 45,
+      "d": 54
+    },
+    "mne/viz/backends/tests/_utils.py": {
+      "a": 0,
+      "d": 12
+    },
+    "mne/viz/backends/tests/test_renderer.py": {
+      "a": 2,
+      "d": 5
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 27,
+      "d": 64
+    },
+    "mne/viz/utils.py": {
+      "a": 7,
+      "d": 5
+    },
+    "requirements.txt": {
+      "a": 0,
+      "d": 3
+    },
+    "setup.py": {
+      "a": 0,
+      "d": 1
+    },
+    "tools/circleci_dependencies.sh": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/inverse/60_visualize_stc.py": {
+      "a": 4,
+      "d": 4
+    }
+  }
+}

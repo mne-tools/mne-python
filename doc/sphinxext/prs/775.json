@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "911e95f4cc8825f07395e6cb55d6a3d2a37bca59",
+  "authors": [
+    {
+      "n": "Mainak Jas",
+      "e": "mainakjas@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/fiff/bti/raw.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/filter.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/inverse_sparse/mxne_optim.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/preprocessing/ecg.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/tests/test_filter.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/tests/test_utils.py": {
+      "a": 10,
+      "d": 1
+    },
+    "mne/time_frequency/multitaper.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/time_frequency/tests/test_csd.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/utils.py": {
+      "a": 17,
+      "d": 0
+    }
+  }
+}

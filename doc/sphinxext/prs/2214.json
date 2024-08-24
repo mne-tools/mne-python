@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "bce71d0e2b90cc7ec8ab2cbecbc29c69100807d8",
+  "authors": [
+    {
+      "n": "Jaakko Leppakangas",
+      "e": "jaeilepp@student.jyu.fi"
+    }
+  ],
+  "changes": {
+    "doc/source/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/viz/epochs.py": {
+      "a": 237,
+      "d": 24
+    },
+    "mne/viz/raw.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/tests/test_epochs.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/viz/utils.py": {
+      "a": 16,
+      "d": 13
+    }
+  }
+}

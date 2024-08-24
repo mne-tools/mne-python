@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "af2b41e0272c681ad7a7b34ee3c3377f72e68cd7",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".gitignore": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/cited.rst": {
+      "a": 193,
+      "d": 110
+    },
+    "doc/sphinxext/cited_mne.py": {
+      "a": 12,
+      "d": 5
+    }
+  }
+}

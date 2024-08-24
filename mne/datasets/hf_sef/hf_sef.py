@@ -1,5 +1,6 @@
 #!/usr/bin/env python2
-# Authors: Jussi Nurminen <jnu@iki.fi>
+
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 

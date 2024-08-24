@@ -1,0 +1,75 @@
+{
+  "merge_commit_sha": "aafad953b07b0891cf179a00608293171a3226e4",
+  "authors": [
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 4,
+      "d": 0
+    },
+    "doc/conf.py": {
+      "a": 1,
+      "d": 0
+    },
+    "environment.yml": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/conftest.py": {
+      "a": 4,
+      "d": 1
+    },
+    "mne/epochs.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/evoked.py": {
+      "a": 24,
+      "d": 0
+    },
+    "mne/export/_brainvision.py": {
+      "a": 19,
+      "d": 0
+    },
+    "mne/export/_export.py": {
+      "a": 10,
+      "d": 30
+    },
+    "mne/export/tests/test_export.py": {
+      "a": 59,
+      "d": 14
+    },
+    "mne/io/base.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/brainvision/brainvision.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/utils/__init__.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/utils/check.py": {
+      "a": 5,
+      "d": 0
+    },
+    "mne/utils/docs.py": {
+      "a": 36,
+      "d": 7
+    },
+    "requirements_testing_extra.txt": {
+      "a": 1,
+      "d": 0
+    },
+    "tutorials/io/20_reading_eeg_data.py": {
+      "a": 3,
+      "d": 2
+    }
+  }
+}

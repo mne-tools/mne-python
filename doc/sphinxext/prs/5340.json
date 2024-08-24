@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "575164175b9c0faa506b6e87b25762c1e238403d",
+  "authors": [
+    {
+      "n": "Joan Massich",
+      "e": "mailsik@gmail.com"
+    }
+  ],
+  "changes": {
+    "CONTRIBUTING.md": {
+      "a": 13,
+      "d": 0
+    },
+    "MANIFEST.in": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "c38ccb70b8c40b28e484984f6151492da447da14",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/carousel.inc": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/index.rst": {
+      "a": 0,
+      "d": 30
+    }
+  }
+}

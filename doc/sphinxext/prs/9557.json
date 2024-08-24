@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "308a0abf7c8b8b14c9afc6db2e3ed5b57787be31",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/visualization/evoked_topomap.py": {
+      "a": 1,
+      "d": 0
+    },
+    "examples/visualization/evoked_whitening.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/viz/topomap.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/utils.py": {
+      "a": 3,
+      "d": 1
+    },
+    "tutorials/clinical/20_seeg.py": {
+      "a": 5,
+      "d": 2
+    }
+  }
+}

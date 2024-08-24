@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "6337b1e9bcd9fcdc5db15211acb8ead64015c242",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/simulation/plot_simulate_evoked_data.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/viz/_3d.py": {
+      "a": 12,
+      "d": 12
+    },
+    "mne/viz/backends/renderer.py": {
+      "a": 5,
+      "d": 0
+    }
+  }
+}

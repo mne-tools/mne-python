@@ -1,0 +1,51 @@
+{
+  "merge_commit_sha": "f64d6139464e83686cc44b15bc1b25774ffbf36c",
+  "authors": [
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/conf.py": {
+      "a": 18,
+      "d": 4
+    },
+    "environment.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/inverse/plot_mne_crosstalk_function.py": {
+      "a": 2,
+      "d": 5
+    },
+    "examples/inverse/plot_mne_point_spread_function.py": {
+      "a": 2,
+      "d": 3
+    },
+    "mne/viz/_3d.py": {
+      "a": 0,
+      "d": 4
+    },
+    "mne/viz/backends/_pyvista.py": {
+      "a": 163,
+      "d": 93
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 0,
+      "d": 3
+    },
+    "requirements.txt": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/misc/plot_ecog.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/simulation/plot_dics.py": {
+      "a": 9,
+      "d": 10
+    }
+  }
+}

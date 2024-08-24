@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "bbdf98b7d09b0c70db41ebfc203b3531e91c8e67",
+  "authors": [
+    {
+      "n": "Toomas Erik Anijärv",
+      "e": "toomaserikanijarv@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/viz/misc.py": {
+      "a": 11,
+      "d": 5
+    },
+    "tutorials/preprocessing/25_background_filtering.py": {
+      "a": 3,
+      "d": 4
+    }
+  }
+}

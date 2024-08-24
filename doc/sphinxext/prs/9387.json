@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "ca991d8f6ec9121c6da00147baa961c04c74fa2a",
+  "authors": [
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    }
+  ],
+  "changes": {
+    "doc/install/contributing.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/install/index.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/install/mne_python.rst": {
+      "a": 3,
+      "d": 3
+    }
+  }
+}

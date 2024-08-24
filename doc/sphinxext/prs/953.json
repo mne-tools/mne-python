@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "b48e9adac2103b6951bd091cea951c3879dd9958",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "examples/decoding/plot_decoding_time_generalization.py": {
+      "a": 93,
+      "d": 0
+    },
+    "mne/decoding/__init__.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/decoding/tests/test_time_gen.py": {
+      "a": 41,
+      "d": 0
+    },
+    "mne/decoding/time_gen.py": {
+      "a": 123,
+      "d": 0
+    }
+  }
+}

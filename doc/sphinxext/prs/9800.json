@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "6bb3eb742b880a520431e10bfb5b113872ff67a0",
+  "authors": [
+    {
+      "n": "Alex Rockhill",
+      "e": "aprockhill@mailbox.org"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/preprocessing.rst": {
+      "a": 13,
+      "d": 0
+    },
+    "mne/conftest.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/preprocessing/__init__.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/preprocessing/ieeg/__init__.py": {
+      "a": 7,
+      "d": 0
+    },
+    "mne/preprocessing/ieeg/_projection.py": {
+      "a": 104,
+      "d": 0
+    },
+    "mne/preprocessing/ieeg/tests/test_projection.py": {
+      "a": 68,
+      "d": 0
+    },
+    "mne/preprocessing/nirs/tests/__init__.py": {
+      "a": 0,
+      "d": 0
+    },
+    "tutorials/clinical/10_ieeg_localize.py": {
+      "a": 31,
+      "d": 3
+    }
+  }
+}

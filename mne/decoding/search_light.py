@@ -1,7 +1,7 @@
-# Author: Jean-Remi King <jeanremi.king@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 import logging
 
 import numpy as np
@@ -67,7 +67,7 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
         repr_str = "<" + super().__repr__()
         if hasattr(self, "estimators_"):
             repr_str = repr_str[:-1]
-            repr_str += ", fitted with %i estimators" % len(self.estimators_)
+            repr_str += f", fitted with {len(self.estimators_)} estimators"
         return repr_str + ">"
 
     def fit(self, X, y, **fit_params):
@@ -475,7 +475,7 @@ class GeneralizingEstimator(SlidingEstimator):
         repr_str = super().__repr__()
         if hasattr(self, "estimators_"):
             repr_str = repr_str[:-1]
-            repr_str += ", fitted with %i estimators>" % len(self.estimators_)
+            repr_str += f", fitted with {len(self.estimators_)} estimators>"
         return repr_str
 
     def _transform(self, X, method):

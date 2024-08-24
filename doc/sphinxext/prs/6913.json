@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "98ebb2e1333a491d40550e48fe2955992af7370e",
+  "authors": [
+    {
+      "n": "Kaisu Lankinen",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/glossary.rst": {
+      "a": 6,
+      "d": 0
+    }
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "dd45dba7acc7289cceaca6aa669c2f70264e6643",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/cuda.py": {
+      "a": 40,
+      "d": 53
+    },
+    "mne/filter.py": {
+      "a": 8,
+      "d": 15
+    },
+    "mne/tests/test_filter.py": {
+      "a": 20,
+      "d": 1
+    }
+  }
+}

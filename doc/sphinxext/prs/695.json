@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "3a930fed6c8f00a89a939d0bac82feea69b7482e",
+  "authors": [
+    {
+      "n": "Romain Trachel",
+      "e": "trachelr@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/decoding/csp.py": {
+      "a": 11,
+      "d": 7
+    }
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "2d183aade4f482ca39516edb6569b9ca450b8665",
+  "authors": [
+    {
+      "n": "Alex Rockhill",
+      "e": "aprockhill@mailbox.org"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/conf.py": {
+      "a": 31,
+      "d": 0
+    },
+    "requirements_doc.txt": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

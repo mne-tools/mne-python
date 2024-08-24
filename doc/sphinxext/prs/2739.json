@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "dda326cafc8b55e3c0749ee85bc2bea229b91762",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "mne/cov.py": {
+      "a": 9,
+      "d": 2
+    },
+    "mne/decoding/ems.py": {
+      "a": 13,
+      "d": 2
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "41fc42be6a229c7d41d2be59850fa4ba66a194f9",
+  "authors": [
+    {
+      "n": "Burkhard Maess",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/beamformer/_compute_beamformer.py": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

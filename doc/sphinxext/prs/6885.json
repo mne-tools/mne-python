@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "f59d54ef3632fa7bde410d8550a6276b4311895b",
+  "authors": [
+    {
+      "n": "Fahimeh Mamashli",
+      "e": "fahimeh.mamashli@pfizer.com"
+    }
+  ],
+  "changes": {
+    "mne/preprocessing/ica.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/tests/test_ica.py": {
+      "a": 4,
+      "d": 0
+    }
+  }
+}

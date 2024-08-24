@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "df7e00ecb760863bc6766e3052be625fc9a8ec5d",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/pick.py": {
+      "a": 51,
+      "d": 49
+    }
+  }
+}

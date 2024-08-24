@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "4415abb6388f8abd2249a0f09056de2f537736ac",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/channels/channels.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/io/fiff/tests/test_raw_fiff.py": {
+      "a": 12,
+      "d": 0
+    }
+  }
+}

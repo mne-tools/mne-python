@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "093ac9cdb8075b6bdd4ed62302be0353ffb5fd51",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/visualization/plot_evoked_topomap.py": {
+      "a": 19,
+      "d": 12
+    },
+    "mne/defaults.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/evoked.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/io/proj.py": {
+      "a": 6,
+      "d": 3
+    },
+    "mne/utils/docs.py": {
+      "a": 24,
+      "d": 8
+    },
+    "mne/viz/tests/test_topomap.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/topomap.py": {
+      "a": 93,
+      "d": 54
+    }
+  }
+}

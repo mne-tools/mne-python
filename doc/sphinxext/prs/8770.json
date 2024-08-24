@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "250eabfb3e5ca4806d302d6de12935daea418cc6",
+  "authors": [
+    {
+      "n": "Luke Bloy",
+      "e": "luke.bloy@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/chpi.py": {
+      "a": 9,
+      "d": 6
+    }
+  }
+}

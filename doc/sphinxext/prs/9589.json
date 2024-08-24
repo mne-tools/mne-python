@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "49253e74308137e14187561a204d784ea28f12a7",
+  "authors": [
+    {
+      "n": "Gansheng TAN",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/utils/docs.py": {
+      "a": 3,
+      "d": 3
+    }
+  }
+}

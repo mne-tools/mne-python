@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "f6a7fa74289192030dbbc5bc23b0bb9f25180a14",
+  "authors": [
+    {
+      "n": "Rob Luke",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/defaults.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

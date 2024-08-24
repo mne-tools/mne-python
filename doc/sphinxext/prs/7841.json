@@ -1,0 +1,339 @@
+{
+  "merge_commit_sha": "f641957dba4fbd4bfed8e3329cb33891792d3de5",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/_includes/bem_model.rst": {
+      "a": 5,
+      "d": 5
+    },
+    "doc/_includes/channel_interpolation.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/_includes/forward.rst": {
+      "a": 4,
+      "d": 4
+    },
+    "doc/_includes/inverse.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/changes/0.10.inc": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/changes/0.12.inc": {
+      "a": 4,
+      "d": 4
+    },
+    "doc/changes/0.13.inc": {
+      "a": 4,
+      "d": 4
+    },
+    "doc/changes/0.14.inc": {
+      "a": 3,
+      "d": 3
+    },
+    "doc/changes/0.15.inc": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/changes/0.16.inc": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/changes/0.17.inc": {
+      "a": 7,
+      "d": 7
+    },
+    "doc/changes/0.18.inc": {
+      "a": 10,
+      "d": 10
+    },
+    "doc/changes/0.19.inc": {
+      "a": 8,
+      "d": 8
+    },
+    "doc/changes/0.20.inc": {
+      "a": 9,
+      "d": 9
+    },
+    "doc/changes/0.6.inc": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/changes/0.7.inc": {
+      "a": 6,
+      "d": 6
+    },
+    "doc/changes/0.8.inc": {
+      "a": 3,
+      "d": 3
+    },
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/conf.py": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/install/pre_install.rst": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/overview/cookbook.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/overview/faq.rst": {
+      "a": 10,
+      "d": 10
+    },
+    "doc/overview/matlab.rst": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/overview/roadmap.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/python_reference.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/sphinxext/gen_commands.py": {
+      "a": 7,
+      "d": 8
+    },
+    "examples/connectivity/plot_mne_inverse_coherence_epochs.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/decoding/plot_ems_filtering.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/stats/plot_sensor_regression.py": {
+      "a": 3,
+      "d": 2
+    },
+    "examples/visualization/plot_evoked_topomap.py": {
+      "a": 4,
+      "d": 4
+    },
+    "examples/visualization/plot_topo_customized.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/bem.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/channels/channels.py": {
+      "a": 7,
+      "d": 7
+    },
+    "mne/channels/interpolation.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/channels/layout.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/channels/montage.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/commands/mne_anonymize.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/cov.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/decoding/csp.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/decoding/receptive_field.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/epochs.py": {
+      "a": 22,
+      "d": 19
+    },
+    "mne/evoked.py": {
+      "a": 7,
+      "d": 7
+    },
+    "mne/forward/_field_interpolation.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/io/base.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/eeglab/eeglab.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/egi/egi.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/label.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/minimum_norm/time_frequency.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/morph.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 26,
+      "d": 25
+    },
+    "mne/preprocessing/nirs/nirs.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/rank.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/report.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/simulation/raw.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/source_estimate.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/source_space.py": {
+      "a": 13,
+      "d": 13
+    },
+    "mne/stats/cluster_level.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/stats/permutations.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/stats/regression.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/surface.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/tests/test_docstring_parameters.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 22,
+      "d": 22
+    },
+    "mne/utils/docs.py": {
+      "a": 16,
+      "d": 8
+    },
+    "mne/viz/_3d.py": {
+      "a": 10,
+      "d": 8
+    },
+    "mne/viz/epochs.py": {
+      "a": 5,
+      "d": 4
+    },
+    "mne/viz/evoked.py": {
+      "a": 29,
+      "d": 28
+    },
+    "mne/viz/ica.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/misc.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/viz/topo.py": {
+      "a": 4,
+      "d": 5
+    },
+    "mne/viz/topomap.py": {
+      "a": 9,
+      "d": 29
+    },
+    "mne/viz/utils.py": {
+      "a": 6,
+      "d": 6
+    },
+    "tutorials/discussions/plot_background_filtering.py": {
+      "a": 4,
+      "d": 4
+    },
+    "tutorials/intro/plot_20_events_from_raw.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/io/plot_10_reading_meg_data.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/misc/plot_report.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/preprocessing/plot_15_handling_bad_channels.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/sample-datasets/plot_sleep.py": {
+      "a": 3,
+      "d": 2
+    },
+    "tutorials/simulation/plot_creating_data_structures.py": {
+      "a": 14,
+      "d": 13
+    },
+    "tutorials/simulation/plot_point_spread.py": {
+      "a": 4,
+      "d": 4
+    },
+    "tutorials/source-modeling/plot_forward.py": {
+      "a": 5,
+      "d": 9
+    },
+    "tutorials/source-modeling/plot_object_source_estimate.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/stats-sensor-space/plot_stats_spatio_temporal_cluster_sensors.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

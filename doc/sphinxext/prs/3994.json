@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "11826686eeb84572fa84883abcc3901ca721b166",
+  "authors": [
+    {
+      "n": "Mikolaj Magnuski",
+      "e": "mmagnuski@swps.edu.pl"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/epochs.py": {
+      "a": 10,
+      "d": 0
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 7,
+      "d": 0
+    }
+  }
+}

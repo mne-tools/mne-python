@@ -1,6 +1,6 @@
 """Some miscellaneous utility functions."""
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#
+
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -43,7 +43,7 @@ def _empty_hash(kind="md5"):
 
 def _pl(x, non_pl="", pl="s"):
     """Determine if plural should be used."""
-    len_x = x if isinstance(x, (int, np.generic)) else len(x)
+    len_x = x if isinstance(x, int | np.generic) else len(x)
     return non_pl if len_x == 1 else pl
 
 
@@ -389,7 +389,7 @@ def _assert_no_instances(cls, when=""):
                     and r is not locals()
                     and not inspect.isframe(r)
                 ):
-                    if isinstance(r, (list, dict, tuple)):
+                    if isinstance(r, list | dict | tuple):
                         rep = f"len={len(r)}"
                         r_ = gc.get_referrers(r)
                         types = (_fullname(x) for x in r_)

@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "3893c4e61d5d17526ecd8cb4b4cfbbf5799a195b",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/commands/mne_browse_raw.py": {
+      "a": 5,
+      "d": 1
+    },
+    "mne/viz/_figure.py": {
+      "a": 30,
+      "d": 23
+    },
+    "mne/viz/tests/test_raw.py": {
+      "a": 4,
+      "d": 0
+    }
+  }
+}

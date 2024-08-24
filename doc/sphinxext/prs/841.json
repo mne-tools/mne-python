@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "cd4e480db06ed39bcfb125f037b3d3be9c13e333",
+  "authors": [
+    {
+      "n": "Andrew R. Dykstra",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/label.py": {
+      "a": 3,
+      "d": 0
+    }
+  }
+}

@@ -12,7 +12,7 @@ authors = [
 maintainers = [{ name = "Dan McCloy", email = "dan@mccloy.info" }]
 license = { text = "BSD-3-Clause" }
 readme = { file = "README.rst", content-type = "text/x-rst" }
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 keywords = [
     "neuroscience",
     "neuroimaging",
@@ -37,7 +37,7 @@ classifiers = [
 ]
 scripts = { mne = "mne.commands.utils:main" }
 dependencies = [
-    "numpy>=1.23",
+    "numpy>=1.23,<3",
     "scipy>=1.9",
     "matplotlib>=3.6",
     "tqdm",
@@ -56,7 +56,7 @@ dependencies = [
 data = []
 
 # Dependencies for MNE-Python functions that use HDF5 I/O
-hdf5 = ["h5io", "pymatreader"]
+hdf5 = ["h5io>=0.2.4", "pymatreader"]
 
 # Dependencies for full MNE-Python functionality (other than raw/epochs export)
 # We first define a variant without any Qt bindings. The "complete" variant, mne[full],
@@ -107,6 +107,7 @@ full-no-qt = [
     "snirf",
     "defusedxml",
     "neo",
+    "antio",
 ]
 full = ["mne[full-no-qt]", "PyQt6!=6.6.0", "PyQt6-Qt6!=6.6.0,!=6.7.0"]
 full-pyqt6 = ["mne[full]"]
@@ -172,6 +173,8 @@ doc = [
     "ipython!=8.7.0",
     "selenium",
     "intersphinx_registry>=0.2405.27",
+    # https://github.com/sphinx-contrib/sphinxcontrib-towncrier/issues/92
+    "towncrier<24.7",
 ]
 dev = ["mne[test,doc]", "rcssmin"]
 
@@ -272,6 +275,8 @@ skips = ["*/test_*.py"] # assert statements are good practice with pytest
 report_level = "WARNING"
 ignore_roles = [
     "attr",
+    "bdg-primary-line",
+    "bdg-info-line",
     "class",
     "doc",
     "eq",
@@ -296,6 +301,7 @@ ignore_directives = [
     "automodule",
     "autosummary",
     "bibliography",
+    "card",
     "cssclass",
     "currentmodule",
     "dropdown",
@@ -307,6 +313,7 @@ ignore_directives = [
     "minigallery",
     "tabularcolumns",
     "toctree",
+    "related-software",
     "rst-class",
     "tab-set",
     "towncrier-draft-entries",

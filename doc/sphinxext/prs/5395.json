@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "2e808f876e8bc09c75b2238e6b87547604f5545c",
+  "authors": [
+    {
+      "n": "Jona Sassenhagen",
+      "e": "jona.sassenhagen@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/conf.py": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/documentation.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/glossary.rst": {
+      "a": 147,
+      "d": 0
+    }
+  }
+}

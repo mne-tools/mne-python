@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "52ea86beac5df90eb067776cf8226b72ae6df42f",
+  "authors": [
+    {
+      "n": "Fede Raimondo",
+      "e": "f.raimondo@fz-juelich.de"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/nihon/nihon.py": {
+      "a": 98,
+      "d": 26
+    },
+    "mne/io/nihon/tests/test_nihon.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

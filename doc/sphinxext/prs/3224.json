@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "a7525730809a7f591850a97039afa561730b7146",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/_templates/class.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/sphinxext/numpy_ext/docscrape.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/channels/channels.py": {
+      "a": 22,
+      "d": 1
+    },
+    "mne/dipole.py": {
+      "a": 39,
+      "d": 16
+    },
+    "mne/epochs.py": {
+      "a": 82,
+      "d": 37
+    },
+    "mne/io/base.py": {
+      "a": 50,
+      "d": 1
+    },
+    "mne/tests/test_docstring_parameters.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/utils.py": {
+      "a": 4,
+      "d": 0
+    }
+  }
+}

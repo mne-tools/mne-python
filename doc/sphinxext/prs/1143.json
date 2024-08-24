@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "65b7401f2bc78eaa1a73131b6e8070c12e3c3020",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/forward/_compute_forward.py": {
+      "a": 12,
+      "d": 9
+    }
+  }
+}

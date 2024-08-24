@@ -1,0 +1,115 @@
+{
+  "merge_commit_sha": "fdd7d3b901825c5c8981124e86790cd51d28bde4",
+  "authors": [
+    {
+      "n": "Martin Luessi",
+      "e": null
+    }
+  ],
+  "changes": {
+    "examples/datasets/plot_spm_faces_dataset.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/beamformer/_dics.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/beamformer/_lcmv.py": {
+      "a": 6,
+      "d": 3
+    },
+    "mne/beamformer/tests/test_lcmv.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/cov.py": {
+      "a": 14,
+      "d": 8
+    },
+    "mne/decoding/classifier.py": {
+      "a": 8,
+      "d": 4
+    },
+    "mne/epochs.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/fiff/evoked.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/fiff/kit/kit.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/fiff/kit/tests/test_kit.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/fiff/pick.py": {
+      "a": 9,
+      "d": 3
+    },
+    "mne/fiff/proj.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/fiff/raw.py": {
+      "a": 11,
+      "d": 9
+    },
+    "mne/forward/_make_forward.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/forward/forward.py": {
+      "a": 6,
+      "d": 4
+    },
+    "mne/layouts/layout.py": {
+      "a": 7,
+      "d": 3
+    },
+    "mne/preprocessing/ecg.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/eog.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 15,
+      "d": 14
+    },
+    "mne/preprocessing/ssp.py": {
+      "a": 10,
+      "d": 9
+    },
+    "mne/proj.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/realtime/epochs.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/tests/test_cov.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/time_frequency/csd.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/time_frequency/psd.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/viz.py": {
+      "a": 20,
+      "d": 11
+    }
+  }
+}

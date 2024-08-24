@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "a0dbca96c3a1dfabb7bf28c298d04684b12e6cc7",
+  "authors": [
+    {
+      "n": "Stefan Repplinger",
+      "e": "stefan.repplinger@posteo.net"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/viz/utils.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

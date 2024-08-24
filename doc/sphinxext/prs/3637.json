@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "4b6a1744e8be9e8ff6e1e238953f5b6667062673",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".travis.yml": {
+      "a": 2,
+      "d": 2
+    },
+    "appveyor.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/whats_new.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/time_frequency/plot_temporal_whitening.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/time_frequency/ar.py": {
+      "a": 33,
+      "d": 115
+    },
+    "mne/time_frequency/tests/test_ar.py": {
+      "a": 29,
+      "d": 14
+    },
+    "mne/utils.py": {
+      "a": 0,
+      "d": 1
+    }
+  }
+}

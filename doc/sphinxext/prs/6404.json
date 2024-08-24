@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "2191e3d403e6da5176e4fef646c454eadede2504",
+  "authors": [
+    {
+      "n": "Mainak Jas",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/install/mne_python.rst": {
+      "a": 10,
+      "d": 1
+    }
+  }
+}

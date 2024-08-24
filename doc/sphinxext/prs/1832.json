@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "47674c285a9d85a652a1db5cdeb823e4ad125eaf",
+  "authors": [
+    {
+      "n": null,
+      "e": "flKazemakase@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/preprocessing/infomax_.py": {
+      "a": 0,
+      "d": 1
+    }
+  }
+}

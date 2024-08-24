@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "e08029c2211807e8b4c2531268918a1e6a7898aa",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/event.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/gui/_kit2fiff_gui.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/io/fiff/tests/test_raw_fiff.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/minimum_norm/tests/test_inverse.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/utils.py": {
+      "a": 0,
+      "d": 2
+    }
+  }
+}

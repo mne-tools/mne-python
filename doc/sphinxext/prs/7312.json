@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "740fdce08d8de0cbfc232806686fcaf45de8dc56",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/overview/roadmap.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/dipole.py": {
+      "a": 5,
+      "d": 2
+    },
+    "mne/tests/test_dipole.py": {
+      "a": 3,
+      "d": 2
+    }
+  }
+}

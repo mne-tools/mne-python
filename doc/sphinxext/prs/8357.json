@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "c0388970e1d267713f5ead4e28c7ae297c8d36a1",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "examplename",
+      "e": "e.ort@vu.nl"
+    },
+    {
+      "n": "eort",
+      "e": "eduardxort@gmail.com"
+    },
+    {
+      "n": "examplename",
+      "e": "e.ort@vu.nl"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/fiff/raw.py": {
+      "a": 23,
+      "d": 6
+    },
+    "mne/io/fiff/tests/test_raw_fiff.py": {
+      "a": 11,
+      "d": 6
+    },
+    "mne/utils/check.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/utils/docs.py": {
+      "a": 14,
+      "d": 3
+    }
+  }
+}

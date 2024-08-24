@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "b470ddbd0eafcf18fa1af40fafa641b10b82c2d6",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/0.24.inc": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/report/report.py": {
+      "a": 53,
+      "d": 17
+    },
+    "mne/report/tests/test_report.py": {
+      "a": 36,
+      "d": 0
+    },
+    "tutorials/intro/70_report.py": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

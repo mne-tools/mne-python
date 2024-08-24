@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "8ea72065261f5cc03445e66980f782e9137b85a1",
+  "authors": [
+    {
+      "n": "jaeilepp",
+      "e": "jaeilepp@student.jyu.fi"
+    }
+  ],
+  "changes": {
+    "mne/io/base.py": {
+      "a": 1,
+      "d": 0
+    },
+    "tutorials/plot_background_filtering.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

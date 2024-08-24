@@ -1,0 +1,171 @@
+{
+  "merge_commit_sha": "2b2b0cff2fa82d07919a6947563a0b0ddba95499",
+  "authors": [
+    {
+      "n": "Mathieu Scheltienne",
+      "e": "mathieu.scheltienne@fcbg.ch"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/datasets/_fake/_fake.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/datasets/_fetch.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/datasets/_fsaverage/base.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/datasets/_infant/base.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/datasets/brainstorm/bst_auditory.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/datasets/brainstorm/bst_phantom_ctf.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/datasets/brainstorm/bst_phantom_elekta.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/datasets/brainstorm/bst_raw.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/datasets/brainstorm/bst_resting.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/datasets/config.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/datasets/eegbci/eegbci.py": {
+      "a": 3,
+      "d": 4
+    },
+    "mne/datasets/epilepsy_ecog/_data.py": {
+      "a": 2,
+      "d": 3
+    },
+    "mne/datasets/erp_core/erp_core.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/datasets/fieldtrip_cmc/fieldtrip_cmc.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/datasets/fnirs_motor/fnirs_motor.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/datasets/hf_sef/hf_sef.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/datasets/kiloword/kiloword.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/datasets/limo/limo.py": {
+      "a": 2,
+      "d": 3
+    },
+    "mne/datasets/misc/_misc.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/datasets/mtrf/mtrf.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/datasets/multimodal/multimodal.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/datasets/opm/opm.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/datasets/phantom_4dbti/phantom_4dbti.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/datasets/refmeg_noise/refmeg_noise.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/datasets/sample/sample.py": {
+      "a": 2,
+      "d": 3
+    },
+    "mne/datasets/sleep_physionet/_utils.py": {
+      "a": 4,
+      "d": 9
+    },
+    "mne/datasets/sleep_physionet/age.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/datasets/sleep_physionet/temazepam.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/datasets/sleep_physionet/tests/test_physionet.py": {
+      "a": 1,
+      "d": 5
+    },
+    "mne/datasets/somato/somato.py": {
+      "a": 2,
+      "d": 3
+    },
+    "mne/datasets/spm_face/spm_data.py": {
+      "a": 2,
+      "d": 3
+    },
+    "mne/datasets/ssvep/ssvep.py": {
+      "a": 2,
+      "d": 4
+    },
+    "mne/datasets/testing/_testing.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/datasets/tests/test_datasets.py": {
+      "a": 1,
+      "d": 5
+    },
+    "mne/datasets/utils.py": {
+      "a": 4,
+      "d": 8
+    },
+    "mne/datasets/visual_92_categories/visual_92_categories.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/tests/test_constants.py": {
+      "a": 1,
+      "d": 4
+    }
+  }
+}

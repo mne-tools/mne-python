@@ -1,0 +1,119 @@
+{
+  "merge_commit_sha": "8dc6afc53f3c0ee484859d7648af8f8bc6449b2c",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "examples/realtime/rt_feedback_server.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/beamformer/tests/test_lcmv.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/channels/channels.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/commands/tests/test_commands.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/cov.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/decoding/tests/test_base.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/forward/tests/test_forward.py": {
+      "a": 23,
+      "d": 7
+    },
+    "mne/gui/_file_traits.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/io/artemis123/tests/test_artemis123.py": {
+      "a": 5,
+      "d": 2
+    },
+    "mne/io/base.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/kit/kit.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/stats/permutations.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/stats/tests/test_regression.py": {
+      "a": 7,
+      "d": 3
+    },
+    "mne/tests/test_docstring_parameters.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 5,
+      "d": 1
+    },
+    "mne/tests/test_evoked.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/tests/test_label.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/tests/test_proj.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/tests/test_report.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/time_frequency/tests/test_multitaper.py": {
+      "a": 6,
+      "d": 3
+    },
+    "mne/viz/epochs.py": {
+      "a": 8,
+      "d": 4
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 8,
+      "d": 5
+    },
+    "mne/viz/tests/test_decoding.py": {
+      "a": 5,
+      "d": 5
+    },
+    "mne/viz/tests/test_raw.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/viz/tests/test_topo.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/topo.py": {
+      "a": 4,
+      "d": 1
+    },
+    "setup.cfg": {
+      "a": 6,
+      "d": 0
+    }
+  }
+}

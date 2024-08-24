@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "6d2ff00952ebc332ef514af397f65c66778c2c55",
+  "authors": [
+    {
+      "n": "Romek Goj",
+      "e": "roman.goj@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/viz.py": {
+      "a": 3,
+      "d": 3
+    }
+  }
+}

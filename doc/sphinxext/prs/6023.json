@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "64e3f3ba7c2a82ff039a06877334fe48fb400d6d",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/inverse/plot_custom_inverse_solver.py": {
+      "a": 3,
+      "d": 1
+    }
+  }
+}

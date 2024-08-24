@@ -1,0 +1,51 @@
+{
+  "merge_commit_sha": "6bf644f79e019a171ca4cf15dcb59a639f6c8090",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/inverse/plot_mixed_source_space_inverse.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/conftest.py": {
+      "a": 8,
+      "d": 0
+    },
+    "mne/forward/forward.py": {
+      "a": 79,
+      "d": 22
+    },
+    "mne/inverse_sparse/_gamma_map.py": {
+      "a": 1,
+      "d": 7
+    },
+    "mne/inverse_sparse/mxne_inverse.py": {
+      "a": 2,
+      "d": 14
+    },
+    "mne/minimum_norm/inverse.py": {
+      "a": 9,
+      "d": 41
+    },
+    "mne/minimum_norm/tests/test_inverse.py": {
+      "a": 107,
+      "d": 0
+    },
+    "mne/source_estimate.py": {
+      "a": 8,
+      "d": 9
+    },
+    "mne/utils/docs.py": {
+      "a": 15,
+      "d": 0
+    }
+  }
+}

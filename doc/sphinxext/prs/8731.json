@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "f394bbd643c49544bffd157ae42e341568d54c6e",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/meas_info.py": {
+      "a": 5,
+      "d": 2
+    },
+    "mne/io/tests/test_meas_info.py": {
+      "a": 14,
+      "d": 1
+    }
+  }
+}

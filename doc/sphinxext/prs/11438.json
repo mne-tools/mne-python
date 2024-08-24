@@ -1,0 +1,239 @@
+{
+  "merge_commit_sha": "32feb72477e496663ae9dd0baccb85aab704c4f8",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    }
+  ],
+  "changes": {
+    "examples/inverse/dics_source_power.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/inverse/source_space_snr.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/io/elekta_epochs.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/simulation/simulate_raw_data.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/time_frequency/source_power_spectrum_opm.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/_ola.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/baseline.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/chpi.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/commands/mne_browse_raw.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/commands/mne_maxfilter.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/commands/tests/test_commands.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/dipole.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/epochs.py": {
+      "a": 6,
+      "d": 6
+    },
+    "mne/evoked.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/filter.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/forward/tests/test_make_forward.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/html_templates/repr/epochs.html.jinja": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/inverse_sparse/tests/test_mxne_inverse.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/inverse_sparse/tests/test_mxne_optim.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/artemis123/tests/test_artemis123.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/base.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/eeglab/tests/test_eeglab.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/fiff/tests/test_raw_fiff.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/minimum_norm/tests/test_inverse.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/_fine_cal.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/preprocessing/annotate_amplitude.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/artifact_detection.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/preprocessing/maxfilter.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/preprocessing/maxwell.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/preprocessing/otp.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/realign.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/preprocessing/tests/test_fine_cal.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/tests/test_ica.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/tests/test_maxwell.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/proj.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/report/report.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/report/tests/test_report.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/simulation/raw.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/simulation/source.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/simulation/tests/test_raw.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/tests/test_annotations.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/tests/test_bem.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/tests/test_chpi.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/tests/test_rank.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/tests/test_source_space.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/tests/test_surface.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/mixin.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/_3d.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/_mpl_figure.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/_proj.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/backends/_abstract.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/misc.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/tests/test_epochs.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/tests/test_evoked.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/preprocessing/25_background_filtering.py": {
+      "a": 4,
+      "d": 4
+    },
+    "tutorials/preprocessing/50_artifact_correction_ssp.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

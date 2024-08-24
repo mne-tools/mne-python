@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "9019cc469a1500125e80e393bb978ab319cd91c1",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".travis.yml": {
+      "a": 10,
+      "d": 6
+    },
+    "mne/stats/regression.py": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

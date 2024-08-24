@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "ce9364bfccbbf83522f0dfe2c9498bcfece152ca",
+  "authors": [
+    {
+      "n": "akshay0724",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/channels/channels.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/channels/tests/test_montage.py": {
+      "a": 4,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,171 @@
+{
+  "merge_commit_sha": "8bddf07d25443889c1864819e4e1c9d795d3b2c8",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/connectivity/plot_mne_inverse_coherence_epochs.py": {
+      "a": 2,
+      "d": 2
+    },
+    "examples/stats/plot_cluster_stats_spatio_temporal.py": {
+      "a": 4,
+      "d": 4
+    },
+    "examples/stats/plot_cluster_stats_spatio_temporal_repeated_measures_anova.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/__init__.py": {
+      "a": 36,
+      "d": 36
+    },
+    "mne/connectivity/spectral.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/datasets/megsim/megsim.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/decoding/classifier.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/epochs.py": {
+      "a": 7,
+      "d": 8
+    },
+    "mne/fiff/__init__.py": {
+      "a": 7,
+      "d": 7
+    },
+    "mne/fiff/bti/raw.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/fiff/bti/tests/test_bti.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/fiff/cov.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/fiff/evoked.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/fiff/matrix.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/fiff/meas_info.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/fiff/proj.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/fiff/tests/test_evoked.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/fiff/tests/test_raw.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/forward/forward.py": {
+      "a": 14,
+      "d": 13
+    },
+    "mne/inverse_sparse/tests/test_mxne_optim.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/minimum_norm/__init__.py": {
+      "a": 6,
+      "d": 6
+    },
+    "mne/minimum_norm/inverse.py": {
+      "a": 11,
+      "d": 11
+    },
+    "mne/minimum_norm/tests/test_time_frequency.py": {
+      "a": 6,
+      "d": 5
+    },
+    "mne/minimum_norm/time_frequency.py": {
+      "a": 5,
+      "d": 5
+    },
+    "mne/preprocessing/__init__.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 5,
+      "d": 5
+    },
+    "mne/preprocessing/tests/test_ica.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/source_space.py": {
+      "a": 13,
+      "d": 13
+    },
+    "mne/stats/__init__.py": {
+      "a": 7,
+      "d": 7
+    },
+    "mne/stats/tests/test_cluster_level.py": {
+      "a": 7,
+      "d": 7
+    },
+    "mne/stats/tests/test_parametric.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/tests/test_coreg.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/tests/test_cov.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/tests/test_filter.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/tests/test_label.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/tests/test_source_estimate.py": {
+      "a": 7,
+      "d": 7
+    },
+    "mne/tests/test_utils.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/tests/test_viz.py": {
+      "a": 7,
+      "d": 7
+    },
+    "mne/time_frequency/csd.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

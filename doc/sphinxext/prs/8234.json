@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "bd1d12255deaa5b4b064aba9b7af428d27258e8a",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/channels/layout.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/utils/_logging.py": {
+      "a": 70,
+      "d": 6
+    },
+    "mne/utils/tests/test_logging.py": {
+      "a": 29,
+      "d": 1
+    },
+    "mne/viz/topomap.py": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/viz/utils.py": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

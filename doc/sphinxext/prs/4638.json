@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "8bf65d5032b8bf11c4efeba6ce6d954d88a0326d",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    }
+  ],
+  "changes": {
+    ".gitignore": {
+      "a": 0,
+      "d": 1
+    }
+  }
+}

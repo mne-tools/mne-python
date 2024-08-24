@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "1ec8f801893c05ff1f5dfd01a296d271cbeacd32",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/visualization/plot_montage.py": {
+      "a": 4,
+      "d": 2
+    },
+    "tutorials/misc/plot_ecog.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/simulation/plot_creating_data_structures.py": {
+      "a": 4,
+      "d": 5
+    }
+  }
+}

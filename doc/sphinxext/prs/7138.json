@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "a3a71b7d6606e8393f6e26f6a3c934b3084b5e03",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/_static/style.css": {
+      "a": 5,
+      "d": 0
+    },
+    "doc/conf.py": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/overview/datasets_index.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/epochs.py": {
+      "a": 5,
+      "d": 5
+    },
+    "mne/utils/mixin.py": {
+      "a": 9,
+      "d": 8
+    },
+    "tutorials/epochs/plot_10_epochs_overview.py": {
+      "a": 6,
+      "d": 3
+    },
+    "tutorials/epochs/plot_30_epochs_metadata.py": {
+      "a": 177,
+      "d": 0
+    },
+    "tutorials/epochs/plot_metadata_epochs.py": {
+      "a": 0,
+      "d": 154
+    }
+  }
+}

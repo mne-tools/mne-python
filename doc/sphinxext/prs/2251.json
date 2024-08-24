@@ -1,0 +1,55 @@
+{
+  "merge_commit_sha": "a2472257051de3b69115e0f4526e038021cc4afe",
+  "authors": [
+    {
+      "n": "Jaakko Leppakangas",
+      "e": "jaeilepp@student.jyu.fi"
+    }
+  ],
+  "changes": {
+    "doc/source/whats_new.rst": {
+      "a": 3,
+      "d": 0
+    },
+    "examples/preprocessing/plot_ica_from_raw.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 19,
+      "d": 2
+    },
+    "mne/viz/__init__.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/viz/epochs.py": {
+      "a": 250,
+      "d": 298
+    },
+    "mne/viz/ica.py": {
+      "a": 234,
+      "d": 24
+    },
+    "mne/viz/raw.py": {
+      "a": 204,
+      "d": 331
+    },
+    "mne/viz/tests/test_epochs.py": {
+      "a": 5,
+      "d": 3
+    },
+    "mne/viz/tests/test_ica.py": {
+      "a": 53,
+      "d": 0
+    },
+    "mne/viz/tests/test_raw.py": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/viz/utils.py": {
+      "a": 297,
+      "d": 1
+    }
+  }
+}

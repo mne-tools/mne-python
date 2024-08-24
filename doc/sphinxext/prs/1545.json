@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "d6fbb058ab0ddb284b2e8dc6fc88df770e284c94",
+  "authors": [
+    {
+      "n": "Marijn van Vliet",
+      "e": "w.m.vanvliet@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/source/whats_new.rst": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/io/tests/data/test_ica.lout": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/layouts/layout.py": {
+      "a": 160,
+      "d": 42
+    },
+    "mne/layouts/tests/test_layout.py": {
+      "a": 137,
+      "d": 49
+    }
+  }
+}

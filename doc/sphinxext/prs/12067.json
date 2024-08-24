@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "905c12c6eac0b6bd67dc88707c32f1f804ae56fd",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/io/__init__.py": {
+      "a": 1,
+      "d": 44
+    },
+    "mne/io/tests/test_deprecation.py": {
+      "a": 0,
+      "d": 10
+    },
+    "mne/source_space/__init__.py": {
+      "a": 1,
+      "d": 33
+    },
+    "mne/source_space/tests/test_source_space.py": {
+      "a": 0,
+      "d": 6
+    }
+  }
+}

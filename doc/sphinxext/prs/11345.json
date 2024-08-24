@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "f5d9a9eddefaffeedac46a79dfd149e6923fe048",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/time_frequency/spectrum.py": {
+      "a": 11,
+      "d": 4
+    }
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "44800aa75a0c7ef3b0b5352de51f722c382e64c3",
+  "authors": [
+    {
+      "n": "alexandre barachant",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/cov.py": {
+      "a": 145,
+      "d": 65
+    },
+    "mne/decoding/csp.py": {
+      "a": 21,
+      "d": 69
+    },
+    "mne/preprocessing/xdawn.py": {
+      "a": 1,
+      "d": 75
+    }
+  }
+}

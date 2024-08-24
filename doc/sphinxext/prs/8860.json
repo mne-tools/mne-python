@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "7efad3b52c7b79460b5aa05475e1287c2c6acc4e",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/preprocessing/_peak_finder.py": {
+      "a": 4,
+      "d": 3
+    },
+    "mne/preprocessing/eog.py": {
+      "a": 9,
+      "d": 2
+    }
+  }
+}

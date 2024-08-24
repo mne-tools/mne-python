@@ -1,0 +1,103 @@
+{
+  "merge_commit_sha": "53ce5871b6ceb466f665d41bc8db2938a2aa0084",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/annotations.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/artemis123/artemis123.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/io/base.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/boxy/boxy.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/io/ctf/ctf.py": {
+      "a": 3,
+      "d": 6
+    },
+    "mne/io/ctf/tests/test_ctf.py": {
+      "a": 6,
+      "d": 4
+    },
+    "mne/io/curry/curry.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/eeglab/eeglab.py": {
+      "a": 5,
+      "d": 4
+    },
+    "mne/io/egi/egi.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/egi/egimff.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/io/eximia/eximia.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/io/fiff/raw.py": {
+      "a": 7,
+      "d": 7
+    },
+    "mne/io/fiff/tests/test_raw_fiff.py": {
+      "a": 29,
+      "d": 6
+    },
+    "mne/io/nedf/nedf.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/io/nihon/nihon.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/io/nirx/nirx.py": {
+      "a": 5,
+      "d": 4
+    },
+    "mne/io/nirx/tests/test_nirx.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/persyst/persyst.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/io/snirf/_snirf.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/io/tests/test_raw.py": {
+      "a": 36,
+      "d": 3
+    },
+    "mne/utils/check.py": {
+      "a": 19,
+      "d": 8
+    },
+    "mne/utils/tests/test_check.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

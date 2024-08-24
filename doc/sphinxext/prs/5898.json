@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "bee5f219ab835e33746af62cac4f188ddd987227",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/conf.py": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/manual/datasets_index.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/visualization/plot_channel_epochs_image.py": {
+      "a": 11,
+      "d": 7
+    },
+    "tutorials/plot_python_intro.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/plot_sensors_decoding.py": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "76f38bdd351627504618516be29cf03947096a85",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    ".github/ISSUE_TEMPLATE/bug_report.md": {
+      "a": 26,
+      "d": 30
+    },
+    "CONTRIBUTING.rst": {
+      "a": 9,
+      "d": 19
+    },
+    "doc/_static/diagrams/git_setup.dot": {
+      "a": 64,
+      "d": 0
+    },
+    "doc/install/contributing.rst": {
+      "a": 60,
+      "d": 39
+    },
+    "doc/install/mne_python.rst": {
+      "a": 12,
+      "d": 1
+    },
+    "doc/links.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/overview/faq.rst": {
+      "a": 49,
+      "d": 19
+    }
+  }
+}

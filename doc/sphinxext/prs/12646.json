@@ -1,0 +1,155 @@
+{
+  "merge_commit_sha": "be5a1158a509bc8e9bb7801ab1690afdfaf4cb81",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/12646.bugfix.rst": {
+      "a": 10,
+      "d": 0
+    },
+    "mne/_fiff/proc_history.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/_fiff/tag.py": {
+      "a": 15,
+      "d": 22
+    },
+    "mne/_fiff/tests/test_meas_info.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/_fiff/write.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/channels/channels.py": {
+      "a": 7,
+      "d": 7
+    },
+    "mne/channels/tests/test_channels.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/fixes.py": {
+      "a": 10,
+      "d": 3
+    },
+    "mne/forward/forward.py": {
+      "a": 8,
+      "d": 8
+    },
+    "mne/io/eeglab/tests/test_eeglab.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/eyelink/tests/test_eyelink.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/label.py": {
+      "a": 6,
+      "d": 6
+    },
+    "mne/minimum_norm/tests/test_inverse.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/morph.py": {
+      "a": 29,
+      "d": 20
+    },
+    "mne/morph_map.py": {
+      "a": 5,
+      "d": 4
+    },
+    "mne/preprocessing/tests/test_maxwell.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/source_estimate.py": {
+      "a": 14,
+      "d": 14
+    },
+    "mne/source_space/_source_space.py": {
+      "a": 11,
+      "d": 9
+    },
+    "mne/stats/_adjacency.py": {
+      "a": 10,
+      "d": 9
+    },
+    "mne/stats/cluster_level.py": {
+      "a": 9,
+      "d": 5
+    },
+    "mne/stats/tests/test_cluster_level.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/stats/tests/test_permutations.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/surface.py": {
+      "a": 5,
+      "d": 5
+    },
+    "mne/tests/test_label.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/tests/test_morph.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/tests/test_morph_map.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/tests/test_source_estimate.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/numerics.py": {
+      "a": 9,
+      "d": 3
+    },
+    "mne/utils/tests/test_numerics.py": {
+      "a": 9,
+      "d": 9
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/viz/topomap.py": {
+      "a": 6,
+      "d": 6
+    },
+    "tools/environment_minimal.yml": {
+      "a": 15,
+      "d": 0
+    },
+    "tools/environment_old.yml": {
+      "a": 17,
+      "d": 0
+    },
+    "tools/github_actions_dependencies.sh": {
+      "a": 10,
+      "d": 9
+    },
+    "tools/github_actions_env_vars.sh": {
+      "a": 14,
+      "d": 16
+    },
+    "tools/install_pre_requirements.sh": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

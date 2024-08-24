@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "e61f8be7a8fbe77cfe2dc1aeede62440ebe216a5",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/event.py": {
+      "a": 36,
+      "d": 8
+    },
+    "mne/tests/test_event.py": {
+      "a": 32,
+      "d": 17
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "9b03152ebb9cc312e418f496d9c929ed01b902d2",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/conf.py": {
+      "a": 1,
+      "d": 0
+    },
+    "examples/inverse/plot_lcmv_beamformer_volume.py": {
+      "a": 8,
+      "d": 2
+    }
+  }
+}

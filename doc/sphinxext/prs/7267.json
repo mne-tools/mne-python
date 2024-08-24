@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "26b81437485f5287daa175c256608f011c185b67",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/viz/evoked.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/viz/topomap.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

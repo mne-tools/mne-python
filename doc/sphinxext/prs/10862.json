@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "2ac8b164dc5dd7ddfdd5b82a7c013eba4672cb61",
+  "authors": [
+    {
+      "n": "ashdrew",
+      "e": "ashdrew@uw.edu"
+    }
+  ],
+  "changes": {
+    "examples/io/read_xdf.py": {
+      "a": 2,
+      "d": 4
+    }
+  }
+}

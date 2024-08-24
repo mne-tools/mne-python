@@ -1,0 +1,51 @@
+{
+  "merge_commit_sha": "01d964670e502f497670e7653512dc05689a59d4",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "azure-pipelines.yml": {
+      "a": 2,
+      "d": 0
+    },
+    "bin/mne": {
+      "a": 0,
+      "d": 5
+    },
+    "doc/install/mne_python.rst": {
+      "a": 24,
+      "d": 5
+    },
+    "mne/gui/_backend.py": {
+      "a": 17,
+      "d": 34
+    },
+    "mne/gui/_kit2fiff_gui.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/gui/_marker_gui.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/utils/__init__.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/utils/check.py": {
+      "a": 19,
+      "d": 0
+    },
+    "mne/utils/config.py": {
+      "a": 4,
+      "d": 6
+    },
+    "setup.py": {
+      "a": 3,
+      "d": 1
+    }
+  }
+}

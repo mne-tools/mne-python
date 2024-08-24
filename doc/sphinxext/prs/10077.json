@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "3fd23c67578a8424e59df17b9026bddb0409b538",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/morph.py": {
+      "a": 17,
+      "d": 8
+    },
+    "mne/utils/__init__.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/utils/numerics.py": {
+      "a": 34,
+      "d": 0
+    },
+    "mne/utils/tests/test_numerics.py": {
+      "a": 50,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,55 @@
+{
+  "merge_commit_sha": "13d6aadcd1b9e3d1524daadc5ba3318ce2658c93",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/beamformer/_lcmv.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/decoding/base.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/decoding/csp.py": {
+      "a": 8,
+      "d": 8
+    },
+    "mne/decoding/ems.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/decoding/receptive_field.py": {
+      "a": 7,
+      "d": 7
+    },
+    "mne/decoding/search_light.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/decoding/transformer.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/base.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 8,
+      "d": 8
+    },
+    "mne/preprocessing/xdawn.py": {
+      "a": 5,
+      "d": 5
+    },
+    "mne/utils.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

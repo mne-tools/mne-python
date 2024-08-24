@@ -1,0 +1,103 @@
+{
+  "merge_commit_sha": "96e830b3b02394f2c6aaea619ab46664580ed72b",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/cov.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/epochs.py": {
+      "a": 17,
+      "d": 17
+    },
+    "mne/evoked.py": {
+      "a": 7,
+      "d": 2
+    },
+    "mne/forward/forward.py": {
+      "a": 5,
+      "d": 5
+    },
+    "mne/io/base.py": {
+      "a": 8,
+      "d": 4
+    },
+    "mne/io/eeglab/eeglab.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/io/fiff/tests/test_raw_fiff.py": {
+      "a": 20,
+      "d": 0
+    },
+    "mne/io/kit/kit.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/minimum_norm/inverse.py": {
+      "a": 5,
+      "d": 2
+    },
+    "mne/report/report.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/report/tests/test_report.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/source_estimate.py": {
+      "a": 19,
+      "d": 9
+    },
+    "mne/source_space.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/time_frequency/csd.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/transforms.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/utils/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/check.py": {
+      "a": 9,
+      "d": 2
+    },
+    "mne/utils/config.py": {
+      "a": 7,
+      "d": 2
+    },
+    "mne/utils/docs.py": {
+      "a": 5,
+      "d": 0
+    },
+    "mne/utils/tests/test_check.py": {
+      "a": 6,
+      "d": 6
+    },
+    "mne/utils/tests/test_config.py": {
+      "a": 11,
+      "d": 5
+    },
+    "mne/viz/tests/test_evoked.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

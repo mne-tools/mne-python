@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "13483b856318e3866a9ae1064a0d29decc17b2a9",
+  "authors": [
+    {
+      "n": "Alan Leggitt",
+      "e": "leggitta3@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/fiff/edf/edf.py": {
+      "a": 6,
+      "d": 0
+    },
+    "mne/fiff/edf/tests/test_edf.py": {
+      "a": 11,
+      "d": 0
+    }
+  }
+}

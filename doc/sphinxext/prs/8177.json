@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "92254198f02e19ca9227888fd2b1d5f8a90c8084",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/utils/config.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/utils/progressbar.py": {
+      "a": 13,
+      "d": 3
+    },
+    "mne/utils/tests/test_progressbar.py": {
+      "a": 14,
+      "d": 1
+    }
+  }
+}

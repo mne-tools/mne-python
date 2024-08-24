@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "a4347895e92ab188472b884c26a528fda2214b9e",
+  "authors": [
+    {
+      "n": "alexandre barachant",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/source/whats_new.rst": {
+      "a": 5,
+      "d": 0
+    },
+    "examples/decoding/plot_decoding_xdawn_eeg.py": {
+      "a": 101,
+      "d": 0
+    },
+    "examples/preprocessing/plot_xdawn_denoising.py": {
+      "a": 75,
+      "d": 0
+    },
+    "mne/preprocessing/__init__.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/preprocessing/tests/test_xdawn.py": {
+      "a": 145,
+      "d": 0
+    },
+    "mne/preprocessing/xdawn.py": {
+      "a": 557,
+      "d": 0
+    }
+  }
+}

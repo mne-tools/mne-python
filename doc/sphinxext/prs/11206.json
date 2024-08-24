@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "a8980714127579192e3b4b2ebcc2c51be824d053",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/conftest.py": {
+      "a": 7,
+      "d": 1
+    },
+    "mne/viz/backends/_notebook.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

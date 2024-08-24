@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "d6a58cb6ef9a8d69143c4629c3991ccbf250af42",
+  "authors": [
+    {
+      "n": "Mathieu Scheltienne",
+      "e": "mathieu.scheltienne@fcbg.ch"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/12338.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/development/contributing.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/channels/layout.py": {
+      "a": 136,
+      "d": 4
+    },
+    "mne/channels/tests/test_layout.py": {
+      "a": 116,
+      "d": 12
+    },
+    "mne/utils/docs.py": {
+      "a": 14,
+      "d": 10
+    },
+    "mne/viz/topo.py": {
+      "a": 11,
+      "d": 1
+    },
+    "mne/viz/topomap.py": {
+      "a": 3,
+      "d": 5
+    }
+  }
+}

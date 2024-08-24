@@ -1,0 +1,51 @@
+{
+  "merge_commit_sha": "89ec1d156595ca8289b3fc81b9a0ef1119d3655b",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".pre-commit-config.yaml": {
+      "a": 10,
+      "d": 0
+    },
+    "doc/_includes/dig_formats.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/development/contributing.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/documentation/design_philosophy.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/documentation/index.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/install/mne_tools_suite.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/decoding/tests/test_search_light.py": {
+      "a": 5,
+      "d": 1
+    },
+    "pyproject.toml": {
+      "a": 14,
+      "d": 0
+    },
+    "tools/azure_dependencies.sh": {
+      "a": 1,
+      "d": 1
+    },
+    "tools/github_actions_dependencies.sh": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

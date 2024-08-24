@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "747e1cb3873322adc5a7443ae7eb639577a06a00",
+  "authors": [
+    {
+      "n": "pbnsilva",
+      "e": "pedrobnsilva@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/io/base.py": {
+      "a": 0,
+      "d": 2
+    }
+  }
+}

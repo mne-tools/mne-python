@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "a1ac7575dc528d27243b5ed6dab354569df98a02",
+  "authors": [
+    {
+      "n": "Tal Linzen",
+      "e": "linzen@nyu.edu"
+    }
+  ],
+  "changes": {
+    "mne/layouts/KIT-157.lout": {
+      "a": 158,
+      "d": 0
+    },
+    "mne/layouts/layout.py": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/layouts/tests/test_layout.py": {
+      "a": 6,
+      "d": 0
+    }
+  }
+}

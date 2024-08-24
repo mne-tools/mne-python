@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "f80a8de283b45319e538b19c30e7eb9648380ca6",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/utils/_bunch.py": {
+      "a": 23,
+      "d": 13
+    },
+    "mne/utils/tests/test_bunch.py": {
+      "a": 25,
+      "d": 0
+    }
+  }
+}

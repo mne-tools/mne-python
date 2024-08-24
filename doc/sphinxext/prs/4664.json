@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "ddc8b342c8ba2462f304a05dee954d57225863e6",
+  "authors": [
+    {
+      "n": "Alexander Rudiuk",
+      "e": null
+    }
+  ],
+  "changes": {
+    "examples/decoding/decoding_rsa.py": {
+      "a": 0,
+      "d": 1
+    }
+  }
+}

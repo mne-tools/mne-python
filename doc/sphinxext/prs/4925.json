@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "107a887543447e3bf5d8f49b50378dd9cd6b87a8",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "mne/datasets/utils.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "ce4d514ad022c685084947c3e098cf5b16ba2821",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/viz/tests/test_evoked.py": {
+      "a": 13,
+      "d": 1
+    },
+    "mne/viz/utils.py": {
+      "a": 11,
+      "d": 1
+    }
+  }
+}

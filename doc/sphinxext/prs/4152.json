@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "85b471be65f046b81b681a3b061897868a697fbc",
+  "authors": [
+    {
+      "n": "Rodrigo Hübner",
+      "e": "rodrigohubner@utfpr.edu.br"
+    }
+  ],
+  "changes": {
+    "mne/dipole.py": {
+      "a": 6,
+      "d": 0
+    },
+    "mne/tests/test_dipole.py": {
+      "a": 4,
+      "d": 0
+    }
+  }
+}

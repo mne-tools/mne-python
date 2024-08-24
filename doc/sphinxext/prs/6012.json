@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "2797c6a61087ce4b465db3360c2db7edf61dcd84",
+  "authors": [
+    {
+      "n": "Mainak Jas",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/viz/epochs.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

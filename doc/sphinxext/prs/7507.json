@@ -1,0 +1,163 @@
+{
+  "merge_commit_sha": "c0b139bc2f9f8c14c5263415a3c5ab56b89f9124",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/connectivity/plot_mixed_source_space_connectivity.py": {
+      "a": 2,
+      "d": 2
+    },
+    "examples/connectivity/plot_mne_inverse_envelope_correlation.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/connectivity/plot_mne_inverse_envelope_correlation_volume.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/decoding/plot_decoding_csp_timefreq.py": {
+      "a": 2,
+      "d": 1
+    },
+    "examples/decoding/plot_decoding_spoc_CMC.py": {
+      "a": 3,
+      "d": 3
+    },
+    "examples/inverse/plot_tf_lcmv.py": {
+      "a": 2,
+      "d": 2
+    },
+    "examples/preprocessing/plot_eeg_csd.py": {
+      "a": 3,
+      "d": 4
+    },
+    "examples/preprocessing/plot_run_ica.py": {
+      "a": 2,
+      "d": 2
+    },
+    "examples/stats/plot_linear_regression_raw.py": {
+      "a": 2,
+      "d": 2
+    },
+    "examples/time_frequency/plot_time_frequency_global_field_power.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/channels/channels.py": {
+      "a": 15,
+      "d": 2
+    },
+    "mne/io/artemis123/artemis123.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/base.py": {
+      "a": 59,
+      "d": 20
+    },
+    "mne/io/brainvision/brainvision.py": {
+      "a": 20,
+      "d": 16
+    },
+    "mne/io/bti/bti.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/io/cnt/cnt.py": {
+      "a": 15,
+      "d": 18
+    },
+    "mne/io/curry/curry.py": {
+      "a": 10,
+      "d": 14
+    },
+    "mne/io/edf/edf.py": {
+      "a": 28,
+      "d": 20
+    },
+    "mne/io/eeglab/eeglab.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/egi/egi.py": {
+      "a": 6,
+      "d": 5
+    },
+    "mne/io/egi/egimff.py": {
+      "a": 112,
+      "d": 101
+    },
+    "mne/io/egi/tests/test_egi.py": {
+      "a": 6,
+      "d": 2
+    },
+    "mne/io/eximia/eximia.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/io/fiff/raw.py": {
+      "a": 4,
+      "d": 3
+    },
+    "mne/io/fiff/tests/test_raw_fiff.py": {
+      "a": 10,
+      "d": 11
+    },
+    "mne/io/kit/kit.py": {
+      "a": 7,
+      "d": 8
+    },
+    "mne/io/nicolet/nicolet.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/io/nirx/nirx.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/io/reference.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/tests/test_raw.py": {
+      "a": 32,
+      "d": 0
+    },
+    "mne/io/utils.py": {
+      "a": 3,
+      "d": 3
+    },
+    "tutorials/evoked/plot_eeg_erp.py": {
+      "a": 5,
+      "d": 5
+    },
+    "tutorials/preprocessing/plot_60_maxwell_filtering_sss.py": {
+      "a": 2,
+      "d": 2
+    },
+    "tutorials/raw/plot_10_raw_overview.py": {
+      "a": 2,
+      "d": 2
+    },
+    "tutorials/sample-datasets/plot_brainstorm_auditory.py": {
+      "a": 4,
+      "d": 5
+    },
+    "tutorials/source-modeling/plot_beamformer_lcmv.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/source-modeling/plot_eeg_mri_coords.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "b3dcbc9dca9d1c198f621143479bfbc7ba3f9b6a",
+  "authors": [
+    {
+      "n": "Denis A. Engemann",
+      "e": null
+    }
+  ],
+  "changes": {
+    "examples/plot_from_raw_to_epochs_to_evoked.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/viz.py": {
+      "a": 7,
+      "d": 1
+    }
+  }
+}

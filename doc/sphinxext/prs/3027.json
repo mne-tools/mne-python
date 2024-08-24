@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "39a3a3a89c6815ca529370ba0b5281e94920d290",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".gitignore": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/epochs.py": {
+      "a": 13,
+      "d": 3
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 6,
+      "d": 2
+    }
+  }
+}

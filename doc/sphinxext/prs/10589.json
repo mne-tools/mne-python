@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "438eefc036405cae3b25a4a3d91bedb690a2d36d",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "README.rst": {
+      "a": 6,
+      "d": 6
+    },
+    "doc/_static/style.css": {
+      "a": 6,
+      "d": 0
+    },
+    "doc/install/advanced.rst": {
+      "a": 32,
+      "d": 32
+    },
+    "doc/install/installers_platform_selector.html": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/install/manual_install.rst": {
+      "a": 17,
+      "d": 19
+    },
+    "doc/install/manual_install_platform_selector.html": {
+      "a": 56,
+      "d": 0
+    },
+    "doc/install/manual_install_python.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "requirements_doc.txt": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/clinical/10_ieeg_localize.py": {
+      "a": 3,
+      "d": 3
+    }
+  }
+}

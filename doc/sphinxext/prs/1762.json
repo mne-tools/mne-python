@@ -1,0 +1,67 @@
+{
+  "merge_commit_sha": "f3c8d3ac0c8873ab608fd0dff7b06b8b7d065cc7",
+  "authors": [
+    {
+      "n": "Chris Holdgraf",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/source/python_reference.rst": {
+      "a": 12,
+      "d": 0
+    },
+    "doc/source/whats_new.rst": {
+      "a": 4,
+      "d": 0
+    },
+    "examples/plot_clickable_image.py": {
+      "a": 66,
+      "d": 0
+    },
+    "mne/channels/__init__.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/channels/layout.py": {
+      "a": 84,
+      "d": 0
+    },
+    "mne/channels/tests/test_layout.py": {
+      "a": 34,
+      "d": 1
+    },
+    "mne/data/image/custom_layout.lout": {
+      "a": 24,
+      "d": 0
+    },
+    "mne/data/image/mni_brain.gif": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/io/meas_info.py": {
+      "a": 6,
+      "d": 3
+    },
+    "mne/viz/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/tests/test_raw.py": {
+      "a": 1,
+      "d": 14
+    },
+    "mne/viz/tests/test_utils.py": {
+      "a": 49,
+      "d": 3
+    },
+    "mne/viz/topo.py": {
+      "a": 9,
+      "d": 3
+    },
+    "mne/viz/utils.py": {
+      "a": 148,
+      "d": 1
+    }
+  }
+}

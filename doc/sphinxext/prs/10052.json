@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "d9862fdfa76dcace92d8749df5277b6388981fb0",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".circleci/config.yml": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

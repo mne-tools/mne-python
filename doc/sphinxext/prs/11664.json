@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "fe1d6edf38d203a4b5cbdedef207847f70b2ebab",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "environment.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/beamformer/_lcmv.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/beamformer/tests/test_lcmv.py": {
+      "a": 22,
+      "d": 5
+    },
+    "mne/io/meas_info.py": {
+      "a": 5,
+      "d": 8
+    },
+    "mne/utils/config.py": {
+      "a": 4,
+      "d": 3
+    },
+    "requirements.txt": {
+      "a": 1,
+      "d": 1
+    },
+    "tools/azure_dependencies.sh": {
+      "a": 2,
+      "d": 8
+    },
+    "tools/github_actions_dependencies.sh": {
+      "a": 1,
+      "d": 4
+    }
+  }
+}

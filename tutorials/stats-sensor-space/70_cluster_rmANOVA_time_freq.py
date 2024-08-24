@@ -239,14 +239,16 @@ F_obs, clusters, cluster_p_values, h0 = mne.stats.permutation_cluster_test(
     n_permutations=n_permutations,
     buffer_size=None,
     out_type="mask",
+    seed=0,
 )
 
 # %%
 # Create new stats image with only significant clusters:
 
 good_clusters = np.where(cluster_p_values < 0.05)[0]
-F_obs_plot = F_obs.copy()
-F_obs_plot[~clusters[np.squeeze(good_clusters)]] = np.nan
+F_obs_plot = np.full_like(F_obs, np.nan)
+for ii in good_clusters:
+    F_obs_plot[clusters[ii]] = F_obs[clusters[ii]]
 
 fig, ax = plt.subplots(figsize=(6, 4), layout="constrained")
 for f_image, cmap in zip([F_obs, F_obs_plot], ["gray", "autumn"]):

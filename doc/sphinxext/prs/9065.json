@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "8be65850012d54155758545594d671d9cc93e04b",
+  "authors": [
+    {
+      "n": "Silvia Cotroneo",
+      "e": "silvia.cotroneo@aalto.fi"
+    }
+  ],
+  "changes": {
+    "mne/viz/ica.py": {
+      "a": 9,
+      "d": 9
+    },
+    "tutorials/discussions/plot_background_statistics.py": {
+      "a": 9,
+      "d": 13
+    }
+  }
+}

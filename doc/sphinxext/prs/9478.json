@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "f5460789ec67f59bdd21d0f29898d38683b7d7d4",
+  "authors": [
+    {
+      "n": "Alex Rockhill",
+      "e": "aprockhill@mailbox.org"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/conf.py": {
+      "a": 7,
+      "d": 0
+    },
+    "mne/datasets/utils.py": {
+      "a": 2,
+      "d": 2
+    },
+    "tutorials/clinical/20_seeg.py": {
+      "a": 33,
+      "d": 9
+    },
+    "tutorials/clinical/30_ecog.py": {
+      "a": 4,
+      "d": 2
+    }
+  }
+}

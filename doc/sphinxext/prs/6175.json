@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "8aad459ab6d1443b38c5699822886a83ba2a8388",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/datasets/_fsaverage/base.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/config.py": {
+      "a": 11,
+      "d": 4
+    },
+    "mne/utils/tests/test_config.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

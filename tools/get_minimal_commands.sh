@@ -20,7 +20,7 @@ elif [ "${AZURE_CI}" == "true" ]; then
 elif [ "${CIRCLECI}" == "true" ]; then
 	echo "Setting MNE_ROOT for CircleCI"
 	echo "export MNE_ROOT=${MNE_ROOT}" >> "$BASH_ENV";
-	echo "export PATH=${MNE_ROOT}/bin:$PATH" >> "$BASH_ENV";
+	echo "export PATH=${MNE_ROOT}/bin:\$PATH" >> "$BASH_ENV";
 fi;
 if [[ "${CI_OS_NAME}" != "macos"* ]]; then
 	echo "Getting files for Linux..."

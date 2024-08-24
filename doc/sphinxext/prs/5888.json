@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "49a3e84755a44ef1d30b2f35d8b46f80de1b5688",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/_static/style.css": {
+      "a": 5,
+      "d": 1
+    },
+    "doc/install_mne_python.rst": {
+      "a": 15,
+      "d": 14
+    },
+    "environment.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/simulation/raw.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/plot_object_source_estimate.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

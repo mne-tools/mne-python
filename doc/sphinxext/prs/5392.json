@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "83217a86b28a07ed024d9647c942df1960519411",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "mne/datasets/utils.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/brainvision/brainvision.py": {
+      "a": 19,
+      "d": 17
+    },
+    "mne/io/brainvision/tests/test_brainvision.py": {
+      "a": 14,
+      "d": 0
+    }
+  }
+}

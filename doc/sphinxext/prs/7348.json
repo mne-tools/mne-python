@@ -1,0 +1,59 @@
+{
+  "merge_commit_sha": "afab0e1e9122997147008437aa4f5aa0c74a57cc",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/_includes/inverse.rst": {
+      "a": 68,
+      "d": 1
+    },
+    "doc/changes/latest.inc": {
+      "a": 11,
+      "d": 0
+    },
+    "mne/defaults.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/fixes.py": {
+      "a": 0,
+      "d": 27
+    },
+    "mne/minimum_norm/_eloreta.py": {
+      "a": 116,
+      "d": 98
+    },
+    "mne/minimum_norm/inverse.py": {
+      "a": 26,
+      "d": 24
+    },
+    "mne/minimum_norm/tests/test_inverse.py": {
+      "a": 139,
+      "d": 60
+    },
+    "mne/utils/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/docs.py": {
+      "a": 5,
+      "d": 1
+    },
+    "mne/utils/linalg.py": {
+      "a": 29,
+      "d": 0
+    },
+    "tutorials/source-modeling/plot_mne_dspm_source_localization.py": {
+      "a": 3,
+      "d": 5
+    },
+    "tutorials/source-modeling/plot_mne_solutions.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

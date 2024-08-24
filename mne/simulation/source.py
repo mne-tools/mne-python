@@ -1,11 +1,4 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
-#          Daniel Strohmeier <daniel.strohmeier@tu-ilmenau.de>
-#          Nathalie Gayraud <nat.gayraud@gmail.com>
-#          Kostiantyn Maksymenko <kostiantyn.maksymenko@gmail.com>
-#          Samuel Deslauriers-Gauthier <sam.deslauriers@gmail.com>
-#          Ivana Kojcic <ivana.kojcic@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 

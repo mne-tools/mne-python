@@ -1,0 +1,79 @@
+{
+  "merge_commit_sha": "0de802aab6d858132e92c4dd74534ca0299f960f",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 5,
+      "d": 1
+    },
+    "mne/annotations.py": {
+      "a": 185,
+      "d": 57
+    },
+    "mne/beamformer/_compute_beamformer.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/bem.py": {
+      "a": 4,
+      "d": 8
+    },
+    "mne/channels/channels.py": {
+      "a": 14,
+      "d": 12
+    },
+    "mne/dipole.py": {
+      "a": 4,
+      "d": 3
+    },
+    "mne/epochs.py": {
+      "a": 1,
+      "d": 3
+    },
+    "mne/forward/forward.py": {
+      "a": 4,
+      "d": 8
+    },
+    "mne/io/base.py": {
+      "a": 8,
+      "d": 5
+    },
+    "mne/morph.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/preprocessing/maxfilter.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/report.py": {
+      "a": 5,
+      "d": 3
+    },
+    "mne/source_space.py": {
+      "a": 6,
+      "d": 9
+    },
+    "mne/surface.py": {
+      "a": 4,
+      "d": 3
+    },
+    "mne/tests/test_annotations.py": {
+      "a": 143,
+      "d": 113
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 8,
+      "d": 6
+    },
+    "mne/utils/docs.py": {
+      "a": 24,
+      "d": 0
+    }
+  }
+}

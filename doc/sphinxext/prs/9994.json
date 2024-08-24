@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "6509aa8c75b5d1015983ccc9d229d2d9954a21f7",
+  "authors": [
+    {
+      "n": "Mathieu Scheltienne",
+      "e": "mathieu.scheltienne@fcbg.ch"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/epochs.py": {
+      "a": 5,
+      "d": 1
+    },
+    "mne/export/_egimff.py": {
+      "a": 10,
+      "d": 1
+    },
+    "mne/export/_export.py": {
+      "a": 24,
+      "d": 3
+    },
+    "mne/export/tests/test_export.py": {
+      "a": 14,
+      "d": 2
+    },
+    "mne/io/base.py": {
+      "a": 5,
+      "d": 1
+    },
+    "mne/utils/docs.py": {
+      "a": 15,
+      "d": 3
+    }
+  }
+}

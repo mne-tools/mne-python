@@ -1,7 +1,7 @@
-#!/usr/bin/env python
-# Authors: Lorenzo De Santis
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 """Create BEM surfaces using the watershed algorithm included with FreeSurfer.
 
 Examples

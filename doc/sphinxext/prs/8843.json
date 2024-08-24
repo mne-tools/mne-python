@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "bf57aa0fa63e1605355b4f89b76cadb6e88b94ff",
+  "authors": [
+    {
+      "n": "Manorama Kadwani",
+      "e": "54645550+mkadwani@users.noreply.github.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "tutorials/source-modeling/plot_fix_bem_in_blender.py": {
+      "a": 66,
+      "d": 0
+    }
+  }
+}

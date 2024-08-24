@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "c0d472b8894dc8f57d184d3a00debde602ce645a",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/visualization/plot_eeg_on_scalp.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/_3d.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/source-modeling/plot_dipole_orientations.py": {
+      "a": 4,
+      "d": 4
+    },
+    "tutorials/source-modeling/plot_source_alignment.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

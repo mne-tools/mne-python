@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "56e9fbe67a554272a71dfd2b9ae96eb7fd58d104",
+  "authors": [
+    {
+      "n": "kimcoco",
+      "e": "kimjico@gmail.com"
+    },
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 4,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 30,
+      "d": 10
+    },
+    "mne/preprocessing/tests/test_ica.py": {
+      "a": 51,
+      "d": 0
+    },
+    "mne/viz/tests/test_ica.py": {
+      "a": 10,
+      "d": 0
+    },
+    "mne/viz/tests/test_topomap.py": {
+      "a": 2,
+      "d": 0
+    }
+  }
+}

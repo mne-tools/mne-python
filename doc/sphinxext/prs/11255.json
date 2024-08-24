@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "83db99f7ae2bde0e96412e7e33cffdb6b23b6152",
+  "authors": [
+    {
+      "n": null,
+      "e": "myd7349@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/viz/topomap.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

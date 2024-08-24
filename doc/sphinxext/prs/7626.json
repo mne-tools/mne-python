@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "1e791d703768045f34b4e0f25433979c3faba11b",
+  "authors": [
+    {
+      "n": "Britta Westner",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/beamformer/_compute_beamformer.py": {
+      "a": 3,
+      "d": 3
+    }
+  }
+}

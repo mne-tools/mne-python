@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "a0e10457953dbcc98d5ba9a6b40f5c131d71b80e",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/minimum_norm/tests/test_time_frequency.py": {
+      "a": 21,
+      "d": 0
+    },
+    "mne/minimum_norm/time_frequency.py": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/time_frequency/multitaper.py": {
+      "a": 6,
+      "d": 1
+    }
+  }
+}

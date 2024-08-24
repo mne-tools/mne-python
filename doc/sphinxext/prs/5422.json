@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "b070c7087c2e575624515d70a6ec150f17d661e2",
+  "authors": [
+    {
+      "n": "Thomas Jochmann",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/faq.rst": {
+      "a": 3,
+      "d": 3
+    }
+  }
+}

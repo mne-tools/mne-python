@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "b1ecaab866d65754e6bb94f42aebacf6b149ecc9",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/source/python_reference.rst": {
+      "a": 4,
+      "d": 0
+    },
+    "doc/source/whats_new.rst": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/forward/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/forward/_make_forward.py": {
+      "a": 8,
+      "d": 8
+    },
+    "mne/forward/forward.py": {
+      "a": 45,
+      "d": 8
+    },
+    "mne/forward/tests/test_forward.py": {
+      "a": 14,
+      "d": 1
+    },
+    "mne/forward/tests/test_make_forward.py": {
+      "a": 6,
+      "d": 1
+    },
+    "mne/io/pick.py": {
+      "a": 3,
+      "d": 1
+    }
+  }
+}

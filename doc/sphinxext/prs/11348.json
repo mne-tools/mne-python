@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "ad8b91d752c9eb577dfbb96b4158ca0cb0ab2267",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "tutorials/clinical/30_ecog.py": {
+      "a": 4,
+      "d": 4
+    }
+  }
+}

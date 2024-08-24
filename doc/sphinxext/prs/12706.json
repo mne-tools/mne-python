@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "e5584427e6cc1bbcaf0c6dc114aeec6f716f97ae",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "tools/circleci_dependencies.sh": {
+      "a": 5,
+      "d": 1
+    },
+    "tutorials/preprocessing/70_fnirs_processing.py": {
+      "a": 4,
+      "d": 4
+    }
+  }
+}

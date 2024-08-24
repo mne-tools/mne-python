@@ -1,0 +1,139 @@
+{
+  "merge_commit_sha": "48aa54ad3277b58afdec20b7bcba603f0abdbddb",
+  "authors": [
+    {
+      "n": "Joan Massich",
+      "e": "mailsik@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/documentation.rst": {
+      "a": 4,
+      "d": 2
+    },
+    "doc/glossary.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/manual/appendix/bem_model.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/manual/appendix/c_EULA.rst": {
+      "a": 2,
+      "d": 1
+    },
+    "doc/manual/appendix/c_misc.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/manual/appendix/c_release_notes.rst": {
+      "a": 4,
+      "d": 4
+    },
+    "doc/manual/c_reference.rst": {
+      "a": 60,
+      "d": 58
+    },
+    "doc/manual/cookbook.rst": {
+      "a": 12,
+      "d": 6
+    },
+    "doc/manual/gui/analyze.rst": {
+      "a": 4,
+      "d": 4
+    },
+    "doc/manual/gui/browse.rst": {
+      "a": 3,
+      "d": 3
+    },
+    "doc/manual/io.rst": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/manual/matlab.rst": {
+      "a": 5,
+      "d": 4
+    },
+    "doc/manual/sample_dataset.rst": {
+      "a": 4,
+      "d": 4
+    },
+    "doc/manual/source_localization/c_forward.rst": {
+      "a": 891,
+      "d": 0
+    },
+    "doc/manual/source_localization/c_inverse.rst": {
+      "a": 535,
+      "d": 0
+    },
+    "doc/manual/source_localization/c_morph.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/manual/source_localization/coil_geometries.rst": {
+      "a": 266,
+      "d": 0
+    },
+    "doc/manual/source_localization/forward.rst": {
+      "a": 59,
+      "d": 516
+    },
+    "doc/manual/source_localization/inverse.rst": {
+      "a": 45,
+      "d": 140
+    },
+    "doc/manual/source_localization/morph_stc.rst": {
+      "a": 2,
+      "d": 3
+    },
+    "examples/inverse/plot_morph_surface_stc.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/inverse/plot_morph_volume_stc.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/source_space.py": {
+      "a": 7,
+      "d": 0
+    },
+    "tutorials/plot_background_freesurfer.py": {
+      "a": 2,
+      "d": 3
+    },
+    "tutorials/plot_brainstorm_auditory.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/plot_brainstorm_phantom_ctf.py": {
+      "a": 6,
+      "d": 2
+    },
+    "tutorials/plot_brainstorm_phantom_elekta.py": {
+      "a": 5,
+      "d": 3
+    },
+    "tutorials/plot_compute_covariance.py": {
+      "a": 4,
+      "d": 2
+    },
+    "tutorials/plot_dipole_orientations.py": {
+      "a": 8,
+      "d": 0
+    },
+    "tutorials/plot_forward.py": {
+      "a": 23,
+      "d": 6
+    },
+    "tutorials/plot_object_source_estimate.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/plot_source_alignment.py": {
+      "a": 6,
+      "d": 1
+    }
+  }
+}

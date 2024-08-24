@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "dd6e155fb47812139da33bb9226cc0e6e5792427",
+  "authors": [
+    {
+      "n": "Scott Huberty",
+      "e": null
+    },
+    {
+      "n": "Sammi Chekroud",
+      "e": "sammi.chekroud@psy.ox.ac.uk"
+    },
+    {
+      "n": "Mathieu Scheltienne",
+      "e": "mathieu.scheltienne@fcbg.ch"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/12759.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/preprocessing/eyetracking/_pupillometry.py": {
+      "a": 7,
+      "d": 3
+    },
+    "mne/preprocessing/eyetracking/tests/test_pupillometry.py": {
+      "a": 15,
+      "d": 8
+    }
+  }
+}

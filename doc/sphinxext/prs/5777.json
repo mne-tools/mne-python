@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "4b4e0630a6cf8577b16f66e62c544226c92ae232",
+  "authors": [
+    {
+      "n": "Simon Kern",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/manual/io.rst": {
+      "a": 5,
+      "d": 1
+    }
+  }
+}

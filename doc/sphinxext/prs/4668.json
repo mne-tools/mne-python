@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "d09c02fda48bce2a8bffe432d8dad191f8622ad2",
+  "authors": [
+    {
+      "n": "Yousra Bekhti",
+      "e": "yousra.bekhti@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/beamformer/_rap_music.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/beamformer/tests/test_rap_music.py": {
+      "a": 4,
+      "d": 0
+    }
+  }
+}

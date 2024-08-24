@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "ba960fd7752d2f041185ff35f139d511d98f3434",
+  "authors": [
+    {
+      "n": "Thomas Hartmann",
+      "e": "thomas.hartmann@th-ht.de"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 8,
+      "d": 0
+    },
+    "mne/datasets/utils.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/fieldtrip/fieldtrip.py": {
+      "a": 4,
+      "d": 1
+    },
+    "mne/io/fieldtrip/tests/test_fieldtrip.py": {
+      "a": 40,
+      "d": 2
+    },
+    "mne/io/fieldtrip/utils.py": {
+      "a": 37,
+      "d": 7
+    }
+  }
+}

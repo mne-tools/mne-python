@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "5389a456c400701c7bc7c7f8452fb4e6c53a11ae",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".travis.yml": {
+      "a": 2,
+      "d": 26
+    },
+    "mne/io/bti/bti.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/bti/tests/test_bti.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/preprocessing/tests/test_ica.py": {
+      "a": 8,
+      "d": 7
+    },
+    "mne/tests/common.py": {
+      "a": 3,
+      "d": 3
+    }
+  }
+}

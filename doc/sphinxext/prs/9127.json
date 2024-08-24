@@ -1,0 +1,51 @@
+{
+  "merge_commit_sha": "ab0f417b94767890e06ba62e6f770e46e912be6d",
+  "authors": [
+    {
+      "n": "Ram PARI",
+      "e": null
+    },
+    {
+      "n": "Britta Westner",
+      "e": "britta.wstnr@gmail.com"
+    },
+    {
+      "n": "Britta Westner",
+      "e": "britta.wstnr@gmail.com"
+    },
+    {
+      "n": "Britta Westner",
+      "e": "britta.wstnr@gmail.com"
+    },
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    },
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    },
+    {
+      "n": "Britta Westner",
+      "e": "britta.wstnr@gmail.com"
+    },
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "doc/references.bib": {
+      "a": 12,
+      "d": 0
+    },
+    "tutorials/preprocessing/plot_55_setting_eeg_reference.py": {
+      "a": 22,
+      "d": 0
+    }
+  }
+}

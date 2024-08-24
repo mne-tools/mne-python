@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "e6a1f5e6e9640d2d90349b387b1395bf842560d7",
+  "authors": [
+    {
+      "n": "Nicolas Legrand",
+      "e": "nicolas.legrand@cas.au.dk"
+    }
+  ],
+  "changes": {
+    "mne/stats/cluster_level.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

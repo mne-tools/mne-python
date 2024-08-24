@@ -1,0 +1,67 @@
+{
+  "merge_commit_sha": "5ea0d5bba127c462964fc94a8fedcd210b2ec39e",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "examples/decoding/plot_decoding_time_generalization.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/decoding/plot_ems_filtering.py": {
+      "a": 2,
+      "d": 1
+    },
+    "examples/plot_evoked_delayed_ssp.py": {
+      "a": 3,
+      "d": 2
+    },
+    "examples/plot_topo_customized.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/stats/plot_cluster_1samp_test_time_frequency.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/time_frequency/plot_compute_raw_data_spectrum.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/time_frequency/plot_source_power_spectrum.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/evoked.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/minimum_norm/tests/test_time_frequency.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/minimum_norm/time_frequency.py": {
+      "a": 15,
+      "d": 9
+    },
+    "mne/time_frequency/multitaper.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/time_frequency/psd.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/viz/epochs.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/viz/evoked.py": {
+      "a": 8,
+      "d": 4
+    }
+  }
+}

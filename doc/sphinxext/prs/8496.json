@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "49bb34f993b93a9ca28dda26f7bc23cb3af2bcb5",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/0.21.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/inverse/plot_label_source_activations.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/channels/tests/test_interpolation.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/tests/test_maxwell.py": {
+      "a": 9,
+      "d": 20
+    },
+    "mne/preprocessing/tests/test_xdawn.py": {
+      "a": 2,
+      "d": 7
+    },
+    "mne/viz/ica.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

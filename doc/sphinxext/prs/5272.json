@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "3022961cef39b79b750bd0c64660324cb2d08a73",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/visualization/plot_meg_sensors.py": {
+      "a": 17,
+      "d": 16
+    },
+    "mne/channels/channels.py": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/data/helmets/ARTEMIS123.fif.gz": {
+      "a": 0,
+      "d": 0
+    }
+  }
+}

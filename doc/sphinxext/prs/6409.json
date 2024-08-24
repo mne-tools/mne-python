@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "c2b917619c297110d4e1b9d907a10a16bd7473f7",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/preprocessing/tests/test_ica.py": {
+      "a": 4,
+      "d": 3
+    },
+    "mne/viz/epochs.py": {
+      "a": 3,
+      "d": 5
+    },
+    "mne/viz/ica.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/viz/raw.py": {
+      "a": 55,
+      "d": 13
+    },
+    "mne/viz/tests/test_raw.py": {
+      "a": 34,
+      "d": 9
+    },
+    "mne/viz/utils.py": {
+      "a": 14,
+      "d": 2
+    }
+  }
+}

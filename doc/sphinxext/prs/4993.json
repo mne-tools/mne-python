@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "c179f30b18e1290c7d9f2d1c730631dcc67e621c",
+  "authors": [
+    {
+      "n": "mathurinm",
+      "e": "mathurin.massias@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/inverse/plot_time_frequency_mixed_norm_inverse.py": {
+      "a": 7,
+      "d": 7
+    },
+    "mne/inverse_sparse/mxne_inverse.py": {
+      "a": 60,
+      "d": 17
+    },
+    "mne/inverse_sparse/mxne_optim.py": {
+      "a": 132,
+      "d": 10
+    },
+    "mne/inverse_sparse/tests/test_mxne_inverse.py": {
+      "a": 23,
+      "d": 10
+    },
+    "mne/inverse_sparse/tests/test_mxne_optim.py": {
+      "a": 69,
+      "d": 1
+    }
+  }
+}

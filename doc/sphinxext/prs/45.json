@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "d622caa3ffdcb74c561141cb4b6dbf1e8e2654a5",
+  "authors": [
+    {
+      "n": "Martin Luessi",
+      "e": null
+    }
+  ],
+  "changes": {
+    "bin/mne_compute_proj_ecg.py": {
+      "a": 15,
+      "d": 3
+    },
+    "bin/mne_compute_proj_eog.py": {
+      "a": 15,
+      "d": 3
+    },
+    "mne/preprocessing/ssp.py": {
+      "a": 23,
+      "d": 11
+    }
+  }
+}

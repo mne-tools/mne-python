@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "bd72072b1ff4690cdb2c4a7b36a15c93e25e8fee",
+  "authors": [
+    {
+      "n": "ZHANG Zhi",
+      "e": "zhi271.zhang@connect.polyu.hk"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 3,
+      "d": 1
+    },
+    "doc/changes/names.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/channels/montage.py": {
+      "a": 25,
+      "d": 2
+    },
+    "mne/channels/tests/test_montage.py": {
+      "a": 29,
+      "d": 0
+    },
+    "mne/io/constants.py": {
+      "a": 20,
+      "d": 0
+    },
+    "mne/io/meas_info.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/utils/docs.py": {
+      "a": 10,
+      "d": 0
+    }
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "b6c6fd2ec6e2f381e473b335c1fde54700a83134",
+  "authors": [
+    {
+      "n": "Christian Brodbeck",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/source/python_reference.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/__init__.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/coreg.py": {
+      "a": 196,
+      "d": 98
+    },
+    "mne/tests/test_coreg.py": {
+      "a": 10,
+      "d": 1
+    },
+    "mne/utils.py": {
+      "a": 20,
+      "d": 0
+    }
+  }
+}

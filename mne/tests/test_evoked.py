@@ -1,8 +1,4 @@
-# Author: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#         Denis Engemann <denis.engemann@gmail.com>
-#         Andrew Dykstra <andrew.r.dykstra@gmail.com>
-#         Mads Jensen <mje.mads@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -765,7 +761,7 @@ def test_array_epochs(tmp_path):
     rng = np.random.RandomState(42)
     data1 = rng.randn(20, 60)
     sfreq = 1e3
-    ch_names = ["EEG %03d" % (i + 1) for i in range(20)]
+    ch_names = [f"EEG {i + 1:03}" for i in range(20)]
     types = ["eeg"] * 20
     info = create_info(ch_names, sfreq, types)
     evoked1 = EvokedArray(data1, info, tmin=-0.01)
@@ -800,7 +796,7 @@ def test_array_epochs(tmp_path):
         EvokedArray(data1, info, kind="mean")
 
     # test match between channels info and data
-    ch_names = ["EEG %03d" % (i + 1) for i in range(19)]
+    ch_names = [f"EEG {i + 1:03}" for i in range(19)]
     types = ["eeg"] * 19
     info = create_info(ch_names, sfreq, types)
     pytest.raises(ValueError, EvokedArray, data1, info, tmin=-0.01)

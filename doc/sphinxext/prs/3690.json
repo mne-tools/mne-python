@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "8ede39da8e036ca707b890be14d9ad2f31255978",
+  "authors": [
+    {
+      "n": "Jona Sassenhagen",
+      "e": "jona.sassenhagen@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/channels/montage.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/channels/tests/test_montage.py": {
+      "a": 16,
+      "d": 10
+    }
+  }
+}

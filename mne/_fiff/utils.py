@@ -1,12 +1,4 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
-#          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
-#          Denis Engemann <denis.engemann@gmail.com>
-#          Teon Brooks <teon.brooks@gmail.com>
-#          Marijn van Vliet <w.m.vanvliet@gmail.com>
-#          Mainak Jas <mainak.jas@telecom-paristech.fr>
-#          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -254,7 +246,7 @@ def _read_segments_file(
 
 def read_str(fid, count=1):
     """Read string from a binary file in a python version compatible way."""
-    dtype = np.dtype(">S%i" % count)
+    dtype = np.dtype(f">S{count}")
     string = fid.read(dtype.itemsize)
     data = np.frombuffer(string, dtype=dtype)[0]
     bytestr = b"".join([data[0 : data.index(b"\x00") if b"\x00" in data else count]])

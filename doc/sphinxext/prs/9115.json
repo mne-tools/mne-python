@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "afce272d889feac294c2c1cd27e28ceb3e68f880",
+  "authors": [
+    {
+      "n": "Matteo Anelli",
+      "e": "matteanelli.96.11@gmail.com"
+    },
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 4,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/viz/epochs.py": {
+      "a": 5,
+      "d": 3
+    }
+  }
+}

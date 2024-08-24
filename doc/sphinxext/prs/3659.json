@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "65adad73899a68213a49f9b991ff2a48fca02a9f",
+  "authors": [
+    {
+      "n": "jaeilepp",
+      "e": "jaeilepp@student.jyu.fi"
+    }
+  ],
+  "changes": {
+    "mne/decoding/tests/test_ems.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

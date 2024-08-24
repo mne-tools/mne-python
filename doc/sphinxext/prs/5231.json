@@ -1,0 +1,51 @@
+{
+  "merge_commit_sha": "a6ac948a4331d4560ad60dc4ae18eca3704bd576",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "doc/python_reference.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/whats_new.rst": {
+      "a": 8,
+      "d": 0
+    },
+    "examples/inverse/plot_lcmv_beamformer_volume.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/beamformer/_dics.py": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/beamformer/_lcmv.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/minimum_norm/inverse.py": {
+      "a": 7,
+      "d": 3
+    },
+    "mne/source_estimate.py": {
+      "a": 85,
+      "d": 21
+    },
+    "mne/source_space.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/tests/test_source_estimate.py": {
+      "a": 44,
+      "d": 30
+    },
+    "mne/tests/test_source_space.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

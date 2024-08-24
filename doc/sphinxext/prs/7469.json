@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "25f6e5e097d8492bfcc3abb6e77804d372f68a9d",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/connectivity/plot_mne_inverse_envelope_correlation.py": {
+      "a": 1,
+      "d": 0
+    },
+    "examples/connectivity/plot_mne_inverse_psi_visual.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/forward/plot_forward_sensitivity_maps.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/utils/docs.py": {
+      "a": 6,
+      "d": 0
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 100,
+      "d": 78
+    },
+    "mne/viz/_brain/_timeviewer.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

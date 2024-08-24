@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "d30ff45e90da322142a6b6c9a017e2630fc88cbc",
+  "authors": [
+    {
+      "n": "Martin Luessi",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/viz/circle.py": {
+      "a": 6,
+      "d": 5
+    }
+  }
+}

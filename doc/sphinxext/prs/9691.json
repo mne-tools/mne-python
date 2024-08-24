@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "c890338c82c1da589221f41c59ee50cd2e185373",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/references.bib": {
+      "a": 6,
+      "d": 3
+    }
+  }
+}

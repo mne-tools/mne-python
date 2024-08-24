@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "b1786b2750b68b8d1d8501b3d2ae60ec40cb6d51",
+  "authors": [
+    {
+      "n": "Christian Brodbeck",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/defaults.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/gui/_fiducials_gui.py": {
+      "a": 9,
+      "d": 3
+    },
+    "mne/gui/_file_traits.py": {
+      "a": 4,
+      "d": 10
+    },
+    "mne/viz/_3d.py": {
+      "a": 84,
+      "d": 27
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 14,
+      "d": 2
+    }
+  }
+}

@@ -1,0 +1,63 @@
+{
+  "merge_commit_sha": "96fffbb3f4796ea116fe1775abdaf30c35c88c22",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 36,
+      "d": 0
+    },
+    "doc/file_io.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/inverse.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/__init__.py": {
+      "a": 0,
+      "d": 4
+    },
+    "mne/beamformer/__init__.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/beamformer/_dics.py": {
+      "a": 5,
+      "d": 339
+    },
+    "mne/beamformer/tests/test_dics.py": {
+      "a": 2,
+      "d": 148
+    },
+    "mne/preprocessing/eog.py": {
+      "a": 1,
+      "d": 8
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 4,
+      "d": 10
+    },
+    "mne/preprocessing/tests/test_eog.py": {
+      "a": 0,
+      "d": 6
+    },
+    "mne/preprocessing/tests/test_ica.py": {
+      "a": 4,
+      "d": 37
+    },
+    "mne/viz/tests/test_ica.py": {
+      "a": 0,
+      "d": 10
+    },
+    "mne/viz/tests/test_topomap.py": {
+      "a": 0,
+      "d": 2
+    }
+  }
+}

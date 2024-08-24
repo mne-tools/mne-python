@@ -1,0 +1,83 @@
+{
+  "merge_commit_sha": "b20e7964c12b5e8e34e4feba368a1a30d8f36903",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/references.bib": {
+      "a": 26,
+      "d": 0
+    },
+    "examples/connectivity/plot_cwt_sensor_connectivity.py": {
+      "a": 7,
+      "d": 5
+    },
+    "examples/connectivity/plot_mne_inverse_envelope_correlation.py": {
+      "a": 3,
+      "d": 7
+    },
+    "examples/connectivity/plot_mne_inverse_envelope_correlation_volume.py": {
+      "a": 3,
+      "d": 7
+    },
+    "examples/connectivity/plot_mne_inverse_psi_visual.py": {
+      "a": 7,
+      "d": 7
+    },
+    "examples/datasets/plot_brainstorm_data.py": {
+      "a": 6,
+      "d": 8
+    },
+    "examples/datasets/plot_limo_data.py": {
+      "a": 12,
+      "d": 18
+    },
+    "examples/decoding/decoding_rsa.py": {
+      "a": 9,
+      "d": 18
+    },
+    "examples/decoding/plot_decoding_csp_eeg.py": {
+      "a": 9,
+      "d": 16
+    },
+    "examples/decoding/plot_decoding_spoc_CMC.py": {
+      "a": 7,
+      "d": 7
+    },
+    "examples/decoding/plot_decoding_time_generalization_conditions.py": {
+      "a": 7,
+      "d": 8
+    },
+    "examples/decoding/plot_decoding_xdawn_eeg.py": {
+      "a": 5,
+      "d": 12
+    },
+    "examples/decoding/plot_ems_filtering.py": {
+      "a": 6,
+      "d": 8
+    },
+    "mne/datasets/utils.py": {
+      "a": 4,
+      "d": 5
+    },
+    "mne/decoding/csp.py": {
+      "a": 3,
+      "d": 5
+    },
+    "mne/decoding/ems.py": {
+      "a": 6,
+      "d": 8
+    },
+    "mne/decoding/receptive_field.py": {
+      "a": 6,
+      "d": 25
+    },
+    "mne/io/meas_info.py": {
+      "a": 5,
+      "d": 7
+    }
+  }
+}

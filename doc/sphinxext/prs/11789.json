@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "e28943603444353511bea8f22f5646153b7ec903",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/conftest.py": {
+      "a": 0,
+      "d": 2
+    },
+    "mne/time_frequency/tests/test_spectrum.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

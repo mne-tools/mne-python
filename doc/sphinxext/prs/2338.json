@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "8e40657cd7131d09dbcfbcafaad7613faf60a627",
+  "authors": [
+    {
+      "n": "Ross Maddox",
+      "e": "rkmaddox@uw.edu"
+    }
+  ],
+  "changes": {
+    "mne/io/brainvision/brainvision.py": {
+      "a": 32,
+      "d": 10
+    },
+    "mne/io/brainvision/tests/data/test.vmrk": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/io/brainvision/tests/test_brainvision.py": {
+      "a": 43,
+      "d": 2
+    }
+  }
+}

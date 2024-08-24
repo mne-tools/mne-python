@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "f1c048a763d6415d0743a248cd79bab089616f67",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/conf.py": {
+      "a": 5,
+      "d": 0
+    },
+    "examples/visualization/plot_channel_epochs_image.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

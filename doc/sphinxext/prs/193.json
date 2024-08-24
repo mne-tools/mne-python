@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "9063dc9da686322b356864253fec7108f5eaace4",
+  "authors": [
+    {
+      "n": "Martin Luessi",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/artifacts/ica.py": {
+      "a": 12,
+      "d": 2
+    }
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "d961a1223e3209a3be9708ec29f41ad3d4cd9cfd",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "Makefile": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/index.rst": {
+      "a": 22,
+      "d": 22
+    },
+    "logo/generate_mne_logos.py": {
+      "a": 4,
+      "d": 2
+    },
+    "tutorials/plot_epochs_objects.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

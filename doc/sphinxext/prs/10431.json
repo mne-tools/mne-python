@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "eb1ed981fcab62c0892c02cae9fa087bc08bc522",
+  "authors": [
+    {
+      "n": "Matthias Eberlein",
+      "e": "matthias.eberlein@tu-dresden.de"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/nihon/nihon.py": {
+      "a": 4,
+      "d": 5
+    },
+    "mne/io/nihon/tests/test_nihon.py": {
+      "a": 21,
+      "d": 0
+    }
+  }
+}

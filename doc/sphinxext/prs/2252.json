@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "138afe102c1410b512b6d6322237b9cec5101e84",
+  "authors": [
+    {
+      "n": "Mainak Jas",
+      "e": "mainak.jas@telecom-paristech.fr"
+    }
+  ],
+  "changes": {
+    "mne/report.py": {
+      "a": 10,
+      "d": 2
+    }
+  }
+}

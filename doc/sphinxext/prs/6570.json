@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "3eb246e4d71e1d6b81652224de7209213a4db3ed",
+  "authors": [
+    {
+      "n": "Robert Seymour",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/channels/data/layouts/KIT-125.lout": {
+      "a": 126,
+      "d": 0
+    },
+    "mne/channels/layout.py": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/io/kit/constants.py": {
+      "a": 4,
+      "d": 1
+    }
+  }
+}

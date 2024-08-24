@@ -1,0 +1,95 @@
+{
+  "merge_commit_sha": "42323bfc7e7ecf306ba3bfe5aac953a2130d5bae",
+  "authors": [
+    {
+      "n": "jaeilepp",
+      "e": "jaeilepp@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/documentation.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/python_reference.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/forward/plot_read_bem_surfaces.py": {
+      "a": 0,
+      "d": 32
+    },
+    "examples/visualization/plot_3d_to_2d.py": {
+      "a": 4,
+      "d": 3
+    },
+    "examples/visualization/plot_eeg_on_scalp.py": {
+      "a": 4,
+      "d": 4
+    },
+    "examples/visualization/plot_meg_sensors.py": {
+      "a": 6,
+      "d": 4
+    },
+    "mne/bem.py": {
+      "a": 6,
+      "d": 1
+    },
+    "mne/channels/channels.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/report.py": {
+      "a": 4,
+      "d": 3
+    },
+    "mne/source_space.py": {
+      "a": 27,
+      "d": 5
+    },
+    "mne/surface.py": {
+      "a": 11,
+      "d": 0
+    },
+    "mne/tests/test_report.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/viz/_3d.py": {
+      "a": 509,
+      "d": 3
+    },
+    "mne/viz/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/misc.py": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 69,
+      "d": 25
+    },
+    "mne/viz/utils.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/plot_ecog.py": {
+      "a": 5,
+      "d": 3
+    },
+    "tutorials/plot_forward.py": {
+      "a": 2,
+      "d": 2
+    },
+    "tutorials/plot_source_alignment.py": {
+      "a": 98,
+      "d": 0
+    }
+  }
+}

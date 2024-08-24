@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "52d1e3e016e5caadb040eb3fa30790a8895d8732",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/viz/epochs.py": {
+      "a": 14,
+      "d": 5
+    },
+    "mne/viz/tests/test_epochs.py": {
+      "a": 6,
+      "d": 1
+    },
+    "tutorials/clinical/20_seeg.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/epochs/10_epochs_overview.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/epochs/20_visualize_epochs.py": {
+      "a": 2,
+      "d": 3
+    },
+    "tutorials/epochs/30_epochs_metadata.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/evoked/40_whitened.py": {
+      "a": 2,
+      "d": 2
+    },
+    "tutorials/simulation/10_array_objs.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/simulation/80_dics.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

@@ -1,8 +1,4 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
-#          Denis Engemann <denis.engemann@gmail.com>
-#          Teon Brooks <teon.brooks@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -341,7 +337,7 @@ class ProjMixin:
             logger.info("The projections don't apply to these data. Doing nothing.")
             return self
         self._projector, self.info = _projector, info
-        if isinstance(self, (BaseRaw, Evoked)):
+        if isinstance(self, BaseRaw | Evoked):
             if self.preload:
                 self._data = np.dot(self._projector, self._data)
         else:  # BaseEpochs

@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "b1d62431845a897d113dd7c077207d5ec41d1e0c",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/_templates/autosummary/class.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/_templates/autosummary/class_no_inherited_members.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/_templates/autosummary/class_no_members.rst": {
+      "a": 8,
+      "d": 0
+    },
+    "doc/_templates/autosummary/function.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/conf.py": {
+      "a": 5,
+      "d": 0
+    },
+    "doc/file_io.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/reading_raw_data.rst": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

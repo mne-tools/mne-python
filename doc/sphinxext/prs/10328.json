@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "bdb7921aeeffbd8858113ca2101a4d46031393b4",
+  "authors": [
+    {
+      "n": "Alex Rockhill",
+      "e": "aprockhill@mailbox.org"
+    }
+  ],
+  "changes": {
+    "paper.md": {
+      "a": 7,
+      "d": 7
+    }
+  }
+}

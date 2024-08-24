@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "dc9bfe6970f6b0bd9ff3c8bcbe4147c56b13201b",
+  "authors": [
+    {
+      "n": "Denis A. Engemann",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/source/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/inverse/plot_compute_mne_inverse.py": {
+      "a": 9,
+      "d": 1
+    },
+    "examples/plot_from_raw_to_epochs_to_evoked.py": {
+      "a": 10,
+      "d": 0
+    },
+    "mne/fiff/evoked.py": {
+      "a": 146,
+      "d": 0
+    },
+    "mne/fiff/tests/test_evoked.py": {
+      "a": 45,
+      "d": 0
+    },
+    "mne/source_estimate.py": {
+      "a": 74,
+      "d": 0
+    },
+    "mne/tests/test_source_estimate.py": {
+      "a": 28,
+      "d": 0
+    }
+  }
+}

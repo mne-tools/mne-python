@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "ef0b547ec9ecd50dc9fa3312a0442406bd266130",
+  "authors": [
+    {
+      "n": "Jona Sassenhagen",
+      "e": "jona.sassenhagen@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/io/eeglab/eeglab.py": {
+      "a": 9,
+      "d": 3
+    },
+    "mne/io/eeglab/tests/test_eeglab.py": {
+      "a": 4,
+      "d": 2
+    }
+  }
+}

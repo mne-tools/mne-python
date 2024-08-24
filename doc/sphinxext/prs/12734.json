@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "5ee0f2fcd42021d29e3cd92279e83b51cd4fc4a7",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    },
+    {
+      "n": "autofix-ci[bot]",
+      "e": "114827586+autofix-ci[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Clemens Brunner",
+      "e": "clemens.brunner@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/12734.newfeature.rst": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/datasets/_fetch.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/datasets/utils.py": {
+      "a": 13,
+      "d": 9
+    }
+  }
+}

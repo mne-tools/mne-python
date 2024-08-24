@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "cc175020e8949b435a11cf9db82f6f25713508b2",
+  "authors": [
+    {
+      "n": "Quentin Bertrand",
+      "e": "quentin.bertrand@mila.quebec"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/inverse_sparse/mxne_optim.py": {
+      "a": 79,
+      "d": 27
+    }
+  }
+}

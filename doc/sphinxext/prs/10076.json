@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "01da5a32ac1a80cf0cc42684f154597595608ea0",
+  "authors": [
+    {
+      "n": "Jan Zerfowski",
+      "e": null
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 3,
+      "d": 1
+    },
+    "examples/time_frequency/time_frequency_erds.py": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

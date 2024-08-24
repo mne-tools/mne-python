@@ -1,0 +1,123 @@
+{
+  "merge_commit_sha": "203a96cbba2732d2e349a8f96065e74bbfd2a53b",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "mne/tests/test_docstring_parameters.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 2,
+      "d": 19
+    },
+    "mne/tests/test_utils.py": {
+      "a": 0,
+      "d": 969
+    },
+    "mne/time_frequency/tests/test_ar.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/time_frequency/tests/test_tfr.py": {
+      "a": 6,
+      "d": 1
+    },
+    "mne/utils.py": {
+      "a": 0,
+      "d": 3615
+    },
+    "mne/utils/__init__.py": {
+      "a": 43,
+      "d": 0
+    },
+    "mne/utils/check.py": {
+      "a": 332,
+      "d": 0
+    },
+    "mne/utils/config.py": {
+      "a": 528,
+      "d": 0
+    },
+    "mne/utils/docs.py": {
+      "a": 391,
+      "d": 0
+    },
+    "mne/utils/fetching.py": {
+      "a": 184,
+      "d": 0
+    },
+    "mne/utils/logging.py": {
+      "a": 337,
+      "d": 0
+    },
+    "mne/utils/misc.py": {
+      "a": 226,
+      "d": 0
+    },
+    "mne/utils/mixin.py": {
+      "a": 456,
+      "d": 0
+    },
+    "mne/utils/numerics.py": {
+      "a": 784,
+      "d": 0
+    },
+    "mne/utils/progressbar.py": {
+      "a": 250,
+      "d": 0
+    },
+    "mne/utils/testing.py": {
+      "a": 404,
+      "d": 0
+    },
+    "mne/utils/tests/test_check.py": {
+      "a": 38,
+      "d": 0
+    },
+    "mne/utils/tests/test_config.py": {
+      "a": 95,
+      "d": 0
+    },
+    "mne/utils/tests/test_docs.py": {
+      "a": 174,
+      "d": 0
+    },
+    "mne/utils/tests/test_fetching.py": {
+      "a": 29,
+      "d": 0
+    },
+    "mne/utils/tests/test_logging.py": {
+      "a": 114,
+      "d": 0
+    },
+    "mne/utils/tests/test_misc.py": {
+      "a": 8,
+      "d": 0
+    },
+    "mne/utils/tests/test_mixin.py": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/utils/tests/test_numerics.py": {
+      "a": 341,
+      "d": 0
+    },
+    "mne/utils/tests/test_progressbar.py": {
+      "a": 94,
+      "d": 0
+    },
+    "mne/utils/tests/test_testing.py": {
+      "a": 114,
+      "d": 0
+    },
+    "requirements.txt": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

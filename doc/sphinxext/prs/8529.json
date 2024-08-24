@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "5db8876c5ca038c5cc5f0277e2bf17a19ddde717",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/inverse/plot_morph_volume_stc.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/morph.py": {
+      "a": 54,
+      "d": 27
+    },
+    "mne/tests/test_morph.py": {
+      "a": 40,
+      "d": 23
+    }
+  }
+}

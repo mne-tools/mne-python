@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "199341c8017cf8a90593157de627997cd6cba691",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "mne/beamformer/_dics.py": {
+      "a": 13,
+      "d": 13
+    }
+  }
+}

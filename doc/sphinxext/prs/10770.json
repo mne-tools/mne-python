@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "faa543feffe057638a7c823479a5b5ad6ab3b3a2",
+  "authors": [
+    {
+      "n": "Mathieu Scheltienne",
+      "e": "mathieu.scheltienne@fcbg.ch"
+    }
+  ],
+  "changes": {
+    "mne/preprocessing/interpolate.py": {
+      "a": 4,
+      "d": 0
+    }
+  }
+}

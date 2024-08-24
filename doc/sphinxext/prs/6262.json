@@ -1,0 +1,71 @@
+{
+  "merge_commit_sha": "c086e760dc1c1f138e4b153102574abd571f62bd",
+  "authors": [
+    {
+      "n": "Denis A. Engemann",
+      "e": null
+    },
+    {
+      "n": "Marijn van Vliet",
+      "e": "w.m.vanvliet@gmail.com"
+    },
+    {
+      "n": "Luke Bloy",
+      "e": "luke.bloy@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/glossary.rst": {
+      "a": 10,
+      "d": 0
+    },
+    "doc/overview/roadmap.rst": {
+      "a": 3,
+      "d": 0
+    },
+    "doc/python_reference.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "examples/inverse/plot_evoked_ers_source_power.py": {
+      "a": 130,
+      "d": 0
+    },
+    "examples/inverse/plot_mne_cov_power.py": {
+      "a": 139,
+      "d": 0
+    },
+    "mne/inverse_sparse/_gamma_map.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/inverse_sparse/mxne_inverse.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/minimum_norm/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/minimum_norm/inverse.py": {
+      "a": 92,
+      "d": 68
+    },
+    "mne/minimum_norm/tests/test_inverse.py": {
+      "a": 53,
+      "d": 2
+    },
+    "mne/utils/docs.py": {
+      "a": 20,
+      "d": 6
+    }
+  }
+}

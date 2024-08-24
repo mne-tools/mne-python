@@ -1,6 +1,4 @@
-# Authors: Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
-#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -303,7 +301,7 @@ class SourceSpaces(list):
             _validate_type(s, dict, "source_spaces[%d]" % (si,))
             types.append(s.get("type", None))
             _check_option(
-                'source_spaces[%d]["type"]' % (si,),
+                f'source_spaces[{si}]["type"]',
                 types[-1],
                 ("surf", "discrete", "vol"),
             )
@@ -1667,7 +1665,7 @@ def setup_volume_source_space(
 
         .. note:: For a discrete source space (``pos`` is a dict),
                   ``mri`` must be None.
-    mri : str | None
+    mri : path-like | None
         The filename of an MRI volume (mgh or mgz) to create the
         interpolation matrix over. Source estimates obtained in the
         volume source space can then be morphed onto the MRI volume
@@ -1793,9 +1791,8 @@ def setup_volume_source_space(
         mri = _check_mri(mri, subject, subjects_dir)
         if isinstance(pos, dict):
             raise ValueError(
-                "Cannot create interpolation matrix for "
-                "discrete source space, mri must be None if "
-                "pos is a dict"
+                "Cannot create interpolation matrix for discrete source space, mri "
+                "must be None if pos is a dict"
             )
 
     if volume_label is not None:
@@ -2538,7 +2535,7 @@ def _filter_source_spaces(surf, limit, mri_head_t, src, n_jobs=None, verbose=Non
     elif src[0]["coord_frame"] == FIFF.FIFFV_COORD_MRI:
         out_str += "MRI coordinates."
     else:
-        out_str += "unknown (%d) coordinates." % src[0]["coord_frame"]
+        out_str += f"unknown ({src[0]['coord_frame']}) coordinates."
     logger.info(out_str)
     out_str = "Checking that the sources are inside the surface"
     if limit > 0.0:

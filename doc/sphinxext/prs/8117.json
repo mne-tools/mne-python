@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "1c29127598282be7f177406c02acde3fd38eb4d8",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "logo/generate_mne_logos.py": {
+      "a": 19,
+      "d": 2
+    },
+    "mne/icons/mne.qrc": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/icons/resources.py": {
+      "a": 824,
+      "d": 151
+    },
+    "mne/viz/_brain/_timeviewer.py": {
+      "a": 1,
+      "d": 14
+    },
+    "mne/viz/backends/_pyvista.py": {
+      "a": 27,
+      "d": 1
+    },
+    "setup.py": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

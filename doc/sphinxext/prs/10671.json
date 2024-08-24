@@ -1,0 +1,87 @@
+{
+  "merge_commit_sha": "fc53916dcc98184fde17d2d41973c156e24c02f9",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/_static/style.css": {
+      "a": 16,
+      "d": 1
+    },
+    "doc/conf.py": {
+      "a": 7,
+      "d": 3
+    },
+    "doc/index.rst": {
+      "a": 6,
+      "d": 12
+    },
+    "doc/install/check_installation.rst": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/install/contributing.rst": {
+      "a": 7,
+      "d": 6
+    },
+    "doc/install/index.rst": {
+      "a": 63,
+      "d": 2
+    },
+    "doc/install/install_type_selector.html": {
+      "a": 0,
+      "d": 40
+    },
+    "doc/install/installers.rst": {
+      "a": 74,
+      "d": 3
+    },
+    "doc/install/installers_platform_selector.html": {
+      "a": 0,
+      "d": 79
+    },
+    "doc/install/manual_install.rst": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/install/manual_install_python.rst": {
+      "a": 59,
+      "d": 44
+    },
+    "doc/overview/cite.rst": {
+      "a": 4,
+      "d": 4
+    },
+    "doc/sphinxext/sphinx_bootstrap_divs/__init__.py": {
+      "a": 0,
+      "d": 196
+    },
+    "doc/sphinxext/sphinx_bootstrap_divs/bootstrap_divs.css": {
+      "a": 0,
+      "d": 9
+    },
+    "doc/sphinxext/sphinx_bootstrap_divs/bootstrap_divs.js": {
+      "a": 0,
+      "d": 6
+    },
+    "requirements_doc.txt": {
+      "a": 2,
+      "d": 1
+    },
+    "tutorials/inverse/70_eeg_mri_coords.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

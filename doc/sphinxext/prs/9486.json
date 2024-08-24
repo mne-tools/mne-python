@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "b3768fe8347039e90d8e5a0bfd648315f9f345fa",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/datasets/_fsaverage/base.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

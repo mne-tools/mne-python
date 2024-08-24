@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "c602de23c70cd0af18256865f3b4b44b1be55ded",
+  "authors": [
+    {
+      "n": "jaeilepp",
+      "e": "jaeilepp@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/viz/evoked.py": {
+      "a": 10,
+      "d": 12
+    }
+  }
+}

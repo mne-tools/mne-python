@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "478d38ead72139bc6bb2e354e29438f7b5519ba2",
+  "authors": [
+    {
+      "n": "Thomas Hartmann",
+      "e": "thomas.hartmann@th-ht.de"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/datasets/utils.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/fieldtrip/fieldtrip.py": {
+      "a": 7,
+      "d": 1
+    },
+    "mne/io/fieldtrip/tests/test_fieldtrip.py": {
+      "a": 45,
+      "d": 3
+    },
+    "mne/io/fieldtrip/utils.py": {
+      "a": 18,
+      "d": 4
+    }
+  }
+}

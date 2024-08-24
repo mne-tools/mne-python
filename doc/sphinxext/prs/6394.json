@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "3a89b550c95ea7d55031d68503e16b6db296809c",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "tutorials/misc/plot_sensor_locations.py": {
+      "a": 215,
+      "d": 0
+    }
+  }
+}

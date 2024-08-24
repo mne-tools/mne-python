@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "e63da5125bc789c79ef9c05dc6e54592821b710d",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/commands/tests/test_commands.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/conftest.py": {
+      "a": 18,
+      "d": 12
+    },
+    "mne/gui/tests/test_gui_api.py": {
+      "a": 15,
+      "d": 3
+    },
+    "mne/utils/check.py": {
+      "a": 12,
+      "d": 11
+    },
+    "mne/utils/config.py": {
+      "a": 7,
+      "d": 12
+    },
+    "mne/viz/backends/_utils.py": {
+      "a": 32,
+      "d": 21
+    },
+    "mne/viz/backends/tests/_utils.py": {
+      "a": 0,
+      "d": 11
+    },
+    "mne/viz/tests/test_ica.py": {
+      "a": 10,
+      "d": 1
+    },
+    "requirements.txt": {
+      "a": 2,
+      "d": 0
+    }
+  }
+}

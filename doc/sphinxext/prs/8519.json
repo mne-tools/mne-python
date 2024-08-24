@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "23acc99e65aae9180ee72eddc2ba0ae2842e5e26",
+  "authors": [
+    {
+      "n": null,
+      "e": "olaf.hauk@mrc-cbu.cam.ac.uk"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/label.py": {
+      "a": 30,
+      "d": 4
+    },
+    "mne/tests/test_label.py": {
+      "a": 18,
+      "d": 0
+    }
+  }
+}

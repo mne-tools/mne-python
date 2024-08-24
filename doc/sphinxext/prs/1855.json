@@ -1,0 +1,63 @@
+{
+  "merge_commit_sha": "5bda2c003ec1cfd3b3deb4ef1fc32cebe3e1f91e",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/connectivity/spectral.py": {
+      "a": 6,
+      "d": 11
+    },
+    "mne/cov.py": {
+      "a": 4,
+      "d": 5
+    },
+    "mne/dipole.py": {
+      "a": 9,
+      "d": 7
+    },
+    "mne/epochs.py": {
+      "a": 12,
+      "d": 12
+    },
+    "mne/evoked.py": {
+      "a": 10,
+      "d": 8
+    },
+    "mne/io/base.py": {
+      "a": 7,
+      "d": 3
+    },
+    "mne/simulation/evoked.py": {
+      "a": 2,
+      "d": 7
+    },
+    "mne/source_estimate.py": {
+      "a": 10,
+      "d": 17
+    },
+    "mne/tests/test_utils.py": {
+      "a": 11,
+      "d": 1
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 7,
+      "d": 5
+    },
+    "mne/utils.py": {
+      "a": 12,
+      "d": 0
+    },
+    "mne/viz/misc.py": {
+      "a": 6,
+      "d": 6
+    },
+    "mne/viz/topomap.py": {
+      "a": 9,
+      "d": 8
+    }
+  }
+}

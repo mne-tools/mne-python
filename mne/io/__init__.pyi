@@ -17,6 +17,7 @@ __all__ = [
     "read_fiducials",
     "read_info",
     "read_raw",
+    "read_raw_ant",
     "read_raw_artemis123",
     "read_raw_bdf",
     "read_raw_boxy",
@@ -59,6 +60,7 @@ from ._fiff_wrap import (
     write_info,
 )
 from ._read_raw import read_raw
+from .ant import read_raw_ant
 from .array import RawArray
 from .artemis123 import read_raw_artemis123
 from .base import BaseRaw, concatenate_raws, match_channel_orders

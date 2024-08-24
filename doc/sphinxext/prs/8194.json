@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "62fabdbdd4453a52d9f87d15109ffe2e3eee8b87",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/inverse/plot_time_frequency_mixed_norm_inverse.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/_3d.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/viz/backends/_pysurfer_mayavi.py": {
+      "a": 21,
+      "d": 12
+    },
+    "mne/viz/backends/_pyvista.py": {
+      "a": 45,
+      "d": 59
+    },
+    "mne/viz/backends/_utils.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/viz/backends/tests/test_renderer.py": {
+      "a": 17,
+      "d": 12
+    }
+  }
+}

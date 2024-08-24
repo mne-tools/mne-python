@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "27c5d536808d9c8226047a825582b43df1218c95",
+  "authors": [
+    {
+      "n": "Alex Rockhill",
+      "e": "aprockhill@mailbox.org"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/viz/_3d.py": {
+      "a": 23,
+      "d": 13
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 123,
+      "d": 15
+    },
+    "mne/viz/_brain/tests/test_brain.py": {
+      "a": 14,
+      "d": 0
+    },
+    "mne/viz/backends/_abstract.py": {
+      "a": 9,
+      "d": 0
+    },
+    "mne/viz/backends/_pysurfer_mayavi.py": {
+      "a": 9,
+      "d": 6
+    },
+    "mne/viz/backends/_pyvista.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/viz/backends/tests/test_renderer.py": {
+      "a": 3,
+      "d": 3
+    }
+  }
+}

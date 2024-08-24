@@ -1,0 +1,187 @@
+{
+  "merge_commit_sha": "bde717c01d9d4eaa21233685b9ea4017b54a5a0c",
+  "authors": [
+    {
+      "n": "Dimitri Papadopoulos Orfanos",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/_ola.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/annotations.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/channels/channels.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/channels/layout.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/channels/montage.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/coreg.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/decoding/mixin.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/epochs.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/event.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/filter.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/fixes.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/gui/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/gui/tests/test_coreg.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/inverse_sparse/mxne_optim.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/base.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/meas_info.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/open.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/proj.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/tag.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/label.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/report/report.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/simulation/raw.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/simulation/source.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/surface.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/time_frequency/csd.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/transforms.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/utils/_bunch.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/_logging.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/utils/_testing.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/utils/check.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/utils/mixin.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/utils/numerics.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/utils/progressbar.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/_3d_overlay.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/_brain/_linkviewer.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/_brain/_scraper.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/_brain/callback.py": {
+      "a": 5,
+      "d": 5
+    },
+    "mne/viz/_brain/surface.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/_brain/tests/test_brain.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/backends/_notebook.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/backends/_pyvista.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/topomap.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/utils.py": {
+      "a": 3,
+      "d": 3
+    }
+  }
+}

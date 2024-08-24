@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "04bb93a2e8bf47e39049b9b2b874a23d1f079ee3",
+  "authors": [
+    {
+      "n": "Valerii",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/base.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/io/tests/test_raw.py": {
+      "a": 6,
+      "d": 0
+    }
+  }
+}

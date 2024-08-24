@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "e2357ad7848a3c3968678557ef5ded4602bed0c8",
+  "authors": [
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/inverse/plot_source_space_snr.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/inverse/plot_vector_mne_solution.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/viz/backends/_pysurfer_mayavi.py": {
+      "a": 2,
+      "d": 5
+    },
+    "mne/viz/backends/_pyvista.py": {
+      "a": 14,
+      "d": 12
+    },
+    "mne/viz/backends/_utils.py": {
+      "a": 7,
+      "d": 0
+    },
+    "mne/viz/backends/tests/test_renderer.py": {
+      "a": 2,
+      "d": 1
+    },
+    "tutorials/misc/plot_seeg.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/source-modeling/plot_visualize_stc.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "4f510337d5008a6fcfbaa134fbba921a49ec18b9",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/conf.py": {
+      "a": 4,
+      "d": 0
+    },
+    "tools/circleci_dependencies.sh": {
+      "a": 3,
+      "d": 4
+    },
+    "tools/setup_xvfb.sh": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

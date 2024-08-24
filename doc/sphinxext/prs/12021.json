@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "2138c173cee05651cab808526233037eaa4d8b94",
+  "authors": [
+    {
+      "n": "Dimitri Papadopoulos Orfanos",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/io/base.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/brainvision/brainvision.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

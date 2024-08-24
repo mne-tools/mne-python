@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "8705374530947482dae5c07d0ed3fa6e45c08861",
+  "authors": [
+    {
+      "n": "Joan Massich",
+      "e": "mailsik@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/source_estimate.py": {
+      "a": 32,
+      "d": 40
+    }
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "36f88e54cdcf27c785857025af602376463ad3ed",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "circle.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/_3d.py": {
+      "a": 35,
+      "d": 40
+    },
+    "tutorials/plot_mne_dspm_source_localization.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

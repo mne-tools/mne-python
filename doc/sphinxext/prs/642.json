@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "7a66502914ca8d9b63639900306e77b5defd5e11",
+  "authors": [
+    {
+      "n": "Yousra BEKHTI",
+      "e": "yousra.bekhti@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/viz.py": {
+      "a": 14,
+      "d": 6
+    }
+  }
+}

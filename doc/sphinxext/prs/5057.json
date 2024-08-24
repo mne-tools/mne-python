@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "3521f790656edbaf4a8b55e574f441f49078ff97",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/inverse/plot_mixed_source_space_inverse.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/time_frequency/plot_time_frequency_erds.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/time_frequency/tests/test_tfr.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/viz/topo.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

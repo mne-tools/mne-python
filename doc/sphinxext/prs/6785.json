@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "5efc6ecf638853a1b7c1f9922e8913fc0ce9d138",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/preprocessing/_peak_finder.py": {
+      "a": 5,
+      "d": 1
+    },
+    "mne/report.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/viz/misc.py": {
+      "a": 46,
+      "d": 14
+    },
+    "tutorials/source-modeling/plot_compute_covariance.py": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

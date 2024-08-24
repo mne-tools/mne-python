@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "fd667a2e4270d42e7a4942a1746dde4fee85a7ff",
+  "authors": [
+    {
+      "n": "Dirk Gütlin",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/time_frequency/tests/test_tfr.py": {
+      "a": 16,
+      "d": 5
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 29,
+      "d": 8
+    },
+    "mne/utils/__init__.py": {
+      "a": 5,
+      "d": 5
+    },
+    "mne/utils/numerics.py": {
+      "a": 28,
+      "d": 0
+    },
+    "mne/utils/tests/test_numerics.py": {
+      "a": 35,
+      "d": 3
+    }
+  }
+}

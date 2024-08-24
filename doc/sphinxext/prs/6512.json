@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "897c3b2d12d0562f888784c5e18c2da31ed27ceb",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "doc/conf.py": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/python_reference.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/__init__.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/bem.py": {
+      "a": 10,
+      "d": 8
+    },
+    "mne/surface.py": {
+      "a": 53,
+      "d": 1
+    },
+    "mne/tests/test_surface.py": {
+      "a": 21,
+      "d": 1
+    },
+    "mne/utils/docs.py": {
+      "a": 16,
+      "d": 2
+    },
+    "tutorials/source-modeling/plot_source_alignment.py": {
+      "a": 4,
+      "d": 0
+    }
+  }
+}

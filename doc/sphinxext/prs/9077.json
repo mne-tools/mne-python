@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "505e7a03e389e0552cf521dc044cf7ee93614be6",
+  "authors": [
+    {
+      "n": "Maggie Clarke",
+      "e": "mdclarke@uw.edu"
+    },
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    },
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    }
+  ],
+  "changes": {
+    "mne/viz/evoked.py": {
+      "a": 4,
+      "d": 3
+    }
+  }
+}

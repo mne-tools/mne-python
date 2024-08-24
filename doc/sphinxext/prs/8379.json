@@ -1,0 +1,187 @@
+{
+  "merge_commit_sha": "06298716dc48db52f69496e4248927f90925ee65",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    }
+  ],
+  "changes": {
+    ".circleci/config.yml": {
+      "a": 19,
+      "d": 111
+    },
+    ".gitignore": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/Makefile": {
+      "a": 17,
+      "d": 1
+    },
+    "doc/changes/latest.inc": {
+      "a": 3,
+      "d": 1
+    },
+    "doc/conf.py": {
+      "a": 23,
+      "d": 5
+    },
+    "examples/connectivity/plot_mixed_source_space_connectivity.py": {
+      "a": 4,
+      "d": 4
+    },
+    "examples/decoding/plot_receptive_field_mtrf.py": {
+      "a": 0,
+      "d": 3
+    },
+    "examples/inverse/plot_evoked_ers_source_power.py": {
+      "a": 23,
+      "d": 10
+    },
+    "examples/inverse/plot_mixed_source_space_inverse.py": {
+      "a": 14,
+      "d": 14
+    },
+    "examples/inverse/plot_psf_ctf_vertices.py": {
+      "a": 13,
+      "d": 9
+    },
+    "examples/inverse/plot_psf_ctf_vertices_lcmv.py": {
+      "a": 17,
+      "d": 14
+    },
+    "examples/inverse/plot_resolution_metrics.py": {
+      "a": 14,
+      "d": 4
+    },
+    "examples/inverse/plot_resolution_metrics_eegmeg.py": {
+      "a": 12,
+      "d": 2
+    },
+    "examples/inverse/plot_vector_mne_solution.py": {
+      "a": 4,
+      "d": 0
+    },
+    "examples/preprocessing/plot_find_ref_artifacts.py": {
+      "a": 7,
+      "d": 4
+    },
+    "examples/time_frequency/plot_source_power_spectrum_opm.py": {
+      "a": 28,
+      "d": 14
+    },
+    "examples/time_frequency/plot_time_frequency_erds.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/visualization/plot_meg_sensors.py": {
+      "a": 50,
+      "d": 22
+    },
+    "mne/conftest.py": {
+      "a": 34,
+      "d": 1
+    },
+    "mne/fixes.py": {
+      "a": 12,
+      "d": 3
+    },
+    "mne/minimum_norm/spatial_resolution.py": {
+      "a": 14,
+      "d": 15
+    },
+    "mne/morph.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/tests/test_maxwell.py": {
+      "a": 9,
+      "d": 20
+    },
+    "mne/simulation/raw.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/source_space.py": {
+      "a": 48,
+      "d": 17
+    },
+    "mne/tests/test_morph.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/__init__.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/utils/misc.py": {
+      "a": 26,
+      "d": 0
+    },
+    "mne/utils/numerics.py": {
+      "a": 16,
+      "d": 6
+    },
+    "mne/utils/tests/test_numerics.py": {
+      "a": 15,
+      "d": 0
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 71,
+      "d": 19
+    },
+    "mne/viz/_brain/tests/test_brain.py": {
+      "a": 26,
+      "d": 8
+    },
+    "mne/viz/backends/_pyvista.py": {
+      "a": 7,
+      "d": 0
+    },
+    "mne/viz/evoked.py": {
+      "a": 9,
+      "d": 2
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/viz/topomap.py": {
+      "a": 3,
+      "d": 1
+    },
+    "tools/circleci_download.sh": {
+      "a": 111,
+      "d": 0
+    },
+    "tutorials/misc/plot_ecog.py": {
+      "a": 8,
+      "d": 7
+    },
+    "tutorials/simulation/plot_dics.py": {
+      "a": 28,
+      "d": 26
+    },
+    "tutorials/source-modeling/plot_dipole_orientations.py": {
+      "a": 18,
+      "d": 22
+    },
+    "tutorials/source-modeling/plot_eeg_mri_coords.py": {
+      "a": 4,
+      "d": 3
+    },
+    "tutorials/source-modeling/plot_eeg_no_mri.py": {
+      "a": 2,
+      "d": 2
+    },
+    "tutorials/source-modeling/plot_visualize_stc.py": {
+      "a": 1,
+      "d": 2
+    }
+  }
+}

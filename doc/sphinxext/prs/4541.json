@@ -1,0 +1,287 @@
+{
+  "merge_commit_sha": "876192598da7c557dbf46a6dda2ced4b7088d4bb",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".travis.yml": {
+      "a": 27,
+      "d": 29
+    },
+    "Makefile": {
+      "a": 3,
+      "d": 3
+    },
+    "appveyor.yml": {
+      "a": 7,
+      "d": 4
+    },
+    "doc/advanced_setup.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/configure_git.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/contributing.rst": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/faq.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/git_links.inc": {
+      "a": 0,
+      "d": 2
+    },
+    "doc/known_projects.inc": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/beamformer/tests/test_lcmv.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/channels/tests/test_interpolation.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/commands/tests/test_commands.py": {
+      "a": 9,
+      "d": 6
+    },
+    "mne/connectivity/tests/test_spectral.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/coreg.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/decoding/base.py": {
+      "a": 2,
+      "d": 4
+    },
+    "mne/decoding/receptive_field.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/decoding/tests/test_base.py": {
+      "a": 8,
+      "d": 12
+    },
+    "mne/decoding/tests/test_csp.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/decoding/tests/test_ems.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/decoding/tests/test_receptive_field.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/decoding/tests/test_search_light.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/decoding/tests/test_time_gen.py": {
+      "a": 8,
+      "d": 8
+    },
+    "mne/decoding/tests/test_transformer.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/decoding/time_gen.py": {
+      "a": 2,
+      "d": 8
+    },
+    "mne/fixes.py": {
+      "a": 33,
+      "d": 0
+    },
+    "mne/forward/tests/test_field_interpolation.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/forward/tests/test_forward.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/forward/tests/test_make_forward.py": {
+      "a": 5,
+      "d": 4
+    },
+    "mne/inverse_sparse/tests/test_gamma_map.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/inverse_sparse/tests/test_mxne_inverse.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/io/array/tests/test_array.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/io/bti/tests/test_bti.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/io/ctf/tests/test_ctf.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/io/fiff/tests/test_raw_fiff.py": {
+      "a": 6,
+      "d": 5
+    },
+    "mne/io/tests/test_apply_function.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/io/tests/test_reference.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/minimum_norm/tests/test_inverse.py": {
+      "a": 6,
+      "d": 5
+    },
+    "mne/minimum_norm/tests/test_psf_ctf.py": {
+      "a": 4,
+      "d": 3
+    },
+    "mne/preprocessing/tests/test_eeglab_infomax.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/preprocessing/tests/test_ica.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/preprocessing/tests/test_maxwell.py": {
+      "a": 10,
+      "d": 9
+    },
+    "mne/simulation/tests/test_raw.py": {
+      "a": 4,
+      "d": 3
+    },
+    "mne/tests/test_bem.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/tests/test_chpi.py": {
+      "a": 6,
+      "d": 5
+    },
+    "mne/tests/test_cov.py": {
+      "a": 11,
+      "d": 11
+    },
+    "mne/tests/test_dipole.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/tests/test_docstring_parameters.py": {
+      "a": 4,
+      "d": 6
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/tests/test_evoked.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/tests/test_filter.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/tests/test_label.py": {
+      "a": 4,
+      "d": 3
+    },
+    "mne/tests/test_line_endings.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/tests/test_proj.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/tests/test_report.py": {
+      "a": 4,
+      "d": 3
+    },
+    "mne/tests/test_source_estimate.py": {
+      "a": 5,
+      "d": 5
+    },
+    "mne/tests/test_source_space.py": {
+      "a": 9,
+      "d": 7
+    },
+    "mne/tests/test_surface.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/tests/test_utils.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/time_frequency/tests/test_ar.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/time_frequency/tests/test_psd.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/time_frequency/tests/test_tfr.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/utils.py": {
+      "a": 17,
+      "d": 43
+    },
+    "mne/viz/_3d.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/viz/tests/test_decoding.py": {
+      "a": 6,
+      "d": 6
+    },
+    "mne/viz/tests/test_evoked.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/viz/tests/test_misc.py": {
+      "a": 4,
+      "d": 3
+    },
+    "mne/viz/tests/test_topomap.py": {
+      "a": 3,
+      "d": 3
+    },
+    "setup.cfg": {
+      "a": 2,
+      "d": 13
+    }
+  }
+}

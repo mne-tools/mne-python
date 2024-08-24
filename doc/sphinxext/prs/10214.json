@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "7ecd46fe444a9c7e9d2b0c7f63ef05af09d41082",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/gui/tests/test_ieeg_locate_gui.py": {
+      "a": 6,
+      "d": 3
+    }
+  }
+}

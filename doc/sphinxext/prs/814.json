@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "c3614e11dc054edb481a757106c83a1970657f37",
+  "authors": [
+    {
+      "n": "Andrew R. Dykstra",
+      "e": null
+    }
+  ],
+  "changes": {
+    "examples/inverse/plot_tf_dics.py": {
+      "a": 5,
+      "d": 1
+    },
+    "mne/beamformer/_dics.py": {
+      "a": 10,
+      "d": 3
+    },
+    "mne/beamformer/tests/test_dics.py": {
+      "a": 8,
+      "d": 0
+    }
+  }
+}

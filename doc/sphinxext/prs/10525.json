@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "706dd3a36096e88a12b3bfb207e348c26fe8625c",
+  "authors": [
+    {
+      "n": "Alex Rockhill",
+      "e": "aprockhill@mailbox.org"
+    }
+  ],
+  "changes": {
+    "examples/preprocessing/muscle_detection.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

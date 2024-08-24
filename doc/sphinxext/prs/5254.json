@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "34676a287b6af246df6b59fc9cce26ba7309fa54",
+  "authors": [
+    {
+      "n": "Jona Sassenhagen",
+      "e": "jona.sassenhagen@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/visualization/plot_roi_erpimage_by_rt.py": {
+      "a": 4,
+      "d": 8
+    },
+    "mne/channels/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/channels/channels.py": {
+      "a": 59,
+      "d": 0
+    },
+    "mne/channels/tests/test_channels.py": {
+      "a": 29,
+      "d": 2
+    },
+    "tutorials/plot_stats_cluster_erp.py": {
+      "a": 6,
+      "d": 17
+    }
+  }
+}

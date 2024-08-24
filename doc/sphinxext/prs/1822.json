@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "9b7a8b7442efa1a8f7756d75c782d8fc325e8be9",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "examples/inverse/plot_lcmv_beamformer_volume.py": {
+      "a": 8,
+      "d": 11
+    }
+  }
+}

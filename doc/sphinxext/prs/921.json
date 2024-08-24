@@ -1,0 +1,55 @@
+{
+  "merge_commit_sha": "bb7cbaf14b8e1be34fc671ed760b32621beab3e0",
+  "authors": [
+    {
+      "n": "Denis A. Engemann",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/source/getting_started.rst": {
+      "a": 4,
+      "d": 5
+    },
+    "doc/source/whats_new.rst": {
+      "a": 6,
+      "d": 2
+    },
+    "examples/inverse/plot_mixed_norm_L21_inverse.py": {
+      "a": 0,
+      "d": 3
+    },
+    "examples/inverse/plot_time_frequency_mixed_norm_inverse.py": {
+      "a": 0,
+      "d": 3
+    },
+    "examples/plot_evoked_delayed_ssp.py": {
+      "a": 1,
+      "d": 3
+    },
+    "examples/plot_megsim_data.py": {
+      "a": 0,
+      "d": 2
+    },
+    "examples/plot_shift_evoked.py": {
+      "a": 7,
+      "d": 4
+    },
+    "examples/preprocessing/plot_ica_from_epochs.py": {
+      "a": 0,
+      "d": 1
+    },
+    "examples/realtime/plot_compute_rt_average.py": {
+      "a": 7,
+      "d": 14
+    },
+    "mne/tests/test_viz.py": {
+      "a": 86,
+      "d": 77
+    },
+    "mne/viz.py": {
+      "a": 26,
+      "d": 19
+    }
+  }
+}

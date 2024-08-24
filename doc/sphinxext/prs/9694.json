@@ -1,0 +1,99 @@
+{
+  "merge_commit_sha": "a2036aaaf1f34a5fdfd84a6c1eb75986dd2608b7",
+  "authors": [
+    {
+      "n": "Adam Li",
+      "e": null
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Clemens Brunner",
+      "e": "clemens.brunner@gmail.com"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Clemens Brunner",
+      "e": "clemens.brunner@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 5,
+      "d": 0
+    },
+    "mne/conftest.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/datasets/utils.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/export/_edf.py": {
+      "a": 55,
+      "d": 13
+    },
+    "mne/export/_export.py": {
+      "a": 8,
+      "d": 4
+    },
+    "mne/export/tests/test_export.py": {
+      "a": 137,
+      "d": 16
+    },
+    "mne/io/base.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/io/edf/edf.py": {
+      "a": 101,
+      "d": 3
+    },
+    "mne/io/edf/tests/test_edf.py": {
+      "a": 19,
+      "d": 3
+    },
+    "mne/io/nihon/tests/test_nihon.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/docs.py": {
+      "a": 23,
+      "d": 3
+    }
+  }
+}

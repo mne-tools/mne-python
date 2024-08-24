@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "6bcf041825abde39aefce603022f900c0be80024",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/epochs.py": {
+      "a": 40,
+      "d": 11
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 37,
+      "d": 2
+    }
+  }
+}

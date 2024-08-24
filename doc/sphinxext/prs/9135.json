@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "62ca227ef00086cd644b2a1ddcb291501a506485",
+  "authors": [
+    {
+      "n": "Falach",
+      "e": "rotemfa0@gmail.com"
+    },
+    {
+      "n": "Britta Westner",
+      "e": "britta.wstnr@gmail.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "mne/channels/channels.py": {
+      "a": 21,
+      "d": 0
+    },
+    "mne/channels/tests/test_channels.py": {
+      "a": 25,
+      "d": 0
+    },
+    "mne/io/reference.py": {
+      "a": 3,
+      "d": 5
+    },
+    "mne/utils/docs.py": {
+      "a": 7,
+      "d": 0
+    }
+  }
+}

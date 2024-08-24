@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "0d88b2ef0ec924c1bcfdc6c1a9fe7b8cd7a752bd",
+  "authors": [
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/viz/_brain/__init__.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/viz/_brain/_linkviewer.py": {
+      "a": 160,
+      "d": 0
+    },
+    "mne/viz/_brain/_timeviewer.py": {
+      "a": 5,
+      "d": 443
+    },
+    "mne/viz/_brain/callback.py": {
+      "a": 185,
+      "d": 0
+    },
+    "mne/viz/_brain/mplcanvas.py": {
+      "a": 116,
+      "d": 0
+    },
+    "mne/viz/_brain/tests/test_brain.py": {
+      "a": 20,
+      "d": 2
+    }
+  }
+}

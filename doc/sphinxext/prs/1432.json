@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "5c0a828f030992729fff7b784b133b849bc0413c",
+  "authors": [
+    {
+      "n": "Denis A. Engemann",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/viz/topomap.py": {
+      "a": 11,
+      "d": 5
+    }
+  }
+}

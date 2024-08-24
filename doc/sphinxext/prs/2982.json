@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "5c390fd94c1adc9edbb232f71c36324ceaae25f6",
+  "authors": [
+    {
+      "n": "jaeilepp",
+      "e": "jaeilepp@student.jyu.fi"
+    }
+  ],
+  "changes": {
+    "circle.yml": {
+      "a": 0,
+      "d": 2
+    },
+    "mne/datasets/brainstorm/bst_auditory.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/datasets/brainstorm/bst_raw.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/datasets/brainstorm/bst_resting.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/datasets/utils.py": {
+      "a": 3,
+      "d": 2
+    }
+  }
+}

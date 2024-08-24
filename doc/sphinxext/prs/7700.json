@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "a2fab967c637309caa07b9e58f3b6294cb58902f",
+  "authors": [
+    {
+      "n": "Anton Nikolas Waniek",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/utils/docs.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

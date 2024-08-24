@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "9e6d4625c08e64ff5b20fef1eceb4be31b360e6c",
+  "authors": [
+    {
+      "n": "Mark Wronkiewicz",
+      "e": "wronk.mark@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/viz/_3d.py": {
+      "a": 9,
+      "d": 10
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 0,
+      "d": 1
+    }
+  }
+}

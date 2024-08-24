@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "9a9c69e2caa5a5b268f44a53f7c55faaa7d211f2",
+  "authors": [
+    {
+      "n": "Chris Holdgraf",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/manual/datasets_index.rst": {
+      "a": 21,
+      "d": 1
+    },
+    "doc/whats_new.rst": {
+      "a": 4,
+      "d": 0
+    }
+  }
+}

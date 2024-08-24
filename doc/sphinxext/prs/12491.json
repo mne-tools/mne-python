@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "b752d2a3cd247df18371eae6d8c29ebb8a938b87",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "autofix-ci[bot]",
+      "e": "114827586+autofix-ci[bot]@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    "README.rst": {
+      "a": 3,
+      "d": 3
+    },
+    "doc/changes/devel/12491.dependency.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/conftest.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/gui/tests/test_gui_api.py": {
+      "a": 3,
+      "d": 7
+    },
+    "mne/viz/backends/_utils.py": {
+      "a": 32,
+      "d": 75
+    },
+    "mne/viz/backends/tests/test_utils.py": {
+      "a": 1,
+      "d": 14
+    }
+  }
+}

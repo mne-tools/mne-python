@@ -1,0 +1,71 @@
+{
+  "merge_commit_sha": "3a5c623e2d709febd8a5337a9cb0ef97bfd4b9e8",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/source/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/__init__.py": {
+      "a": 4,
+      "d": 3
+    },
+    "mne/coreg/__init__.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/coreg/coreg.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/forward.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/minimum_norm/inverse.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/source_estimate.py": {
+      "a": 2,
+      "d": 43
+    },
+    "mne/source_space.py": {
+      "a": 612,
+      "d": 36
+    },
+    "mne/surface.py": {
+      "a": 108,
+      "d": 13
+    },
+    "mne/tests/test_source_space.py": {
+      "a": 93,
+      "d": 16
+    },
+    "mne/tests/test_surface.py": {
+      "a": 11,
+      "d": 1
+    },
+    "mne/tests/test_utils.py": {
+      "a": 22,
+      "d": 1
+    },
+    "mne/transforms/__init__.py": {
+      "a": 2,
+      "d": 3
+    },
+    "mne/transforms/transforms.py": {
+      "a": 55,
+      "d": 2
+    },
+    "mne/utils.py": {
+      "a": 26,
+      "d": 0
+    }
+  }
+}

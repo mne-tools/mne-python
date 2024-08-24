@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "baf1ad576c54918c95182a047e0a23183e64374d",
+  "authors": [
+    {
+      "n": "Scott Huberty",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/io/eyelink/_utils.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/eyetracking/calibration.py": {
+      "a": 2,
+      "d": 7
+    },
+    "mne/preprocessing/eyetracking/tests/test_calibration.py": {
+      "a": 11,
+      "d": 9
+    }
+  }
+}

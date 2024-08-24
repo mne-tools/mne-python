@@ -1,0 +1,63 @@
+{
+  "merge_commit_sha": "0ad37f0d156e74ed5949ad2a6046a5eb1826281d",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".coveragerc": {
+      "a": 5,
+      "d": 0
+    },
+    "mne/fixes.py": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/stats/cluster_level.py": {
+      "a": 119,
+      "d": 50
+    },
+    "mne/stats/tests/test_cluster_level.py": {
+      "a": 48,
+      "d": 25
+    },
+    "mne/surface.py": {
+      "a": 4,
+      "d": 4
+    },
+    "tutorials/stats-sensor-space/plot_stats_cluster_1samp_test_time_frequency.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/stats-sensor-space/plot_stats_cluster_erp.py": {
+      "a": 10,
+      "d": 9
+    },
+    "tutorials/stats-sensor-space/plot_stats_cluster_time_frequency.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/stats-sensor-space/plot_stats_spatio_temporal_cluster_sensors.py": {
+      "a": 2,
+      "d": 2
+    },
+    "tutorials/stats-source-space/plot_stats_cluster_spatio_temporal.py": {
+      "a": 0,
+      "d": 1
+    },
+    "tutorials/stats-source-space/plot_stats_cluster_spatio_temporal_2samp.py": {
+      "a": 0,
+      "d": 2
+    },
+    "tutorials/stats-source-space/plot_stats_cluster_spatio_temporal_repeated_measures_anova.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/stats-source-space/plot_stats_cluster_time_frequency_repeated_measures_anova.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

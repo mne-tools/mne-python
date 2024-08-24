@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "132c05128be3b94a2d1bccdbcc69f8456166ae82",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/defaults.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/source_estimate.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/docs.py": {
+      "a": 7,
+      "d": 2
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 29,
+      "d": 3
+    },
+    "mne/viz/_brain/view.py": {
+      "a": 2,
+      "d": 4
+    },
+    "mne/viz/backends/_pyvista.py": {
+      "a": 2,
+      "d": 2
+    },
+    "tutorials/source-modeling/plot_beamformer_lcmv.py": {
+      "a": 1,
+      "d": 2
+    }
+  }
+}

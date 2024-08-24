@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "1a62954a82835c4e9781151cdf0a387a0bc20dfd",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "mne/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/cov.py": {
+      "a": 30,
+      "d": 193
+    },
+    "mne/fiff/__init__.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/fiff/constants.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/fiff/cov.py": {
+      "a": 174,
+      "d": 0
+    },
+    "mne/minimum_norm/inverse.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/tests/test_cov.py": {
+      "a": 6,
+      "d": 11
+    }
+  }
+}

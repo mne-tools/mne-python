@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "86c98fe1cbcbca9b7e8e8e4433a7f5238f99ba54",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "circle.yml": {
+      "a": 2,
+      "d": 3
+    },
+    "examples/connectivity/plot_mne_inverse_coherence_epochs.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/viz/misc.py": {
+      "a": 8,
+      "d": 7
+    },
+    "tutorials/plot_brainstorm_auditory.py": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

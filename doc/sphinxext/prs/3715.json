@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "089cf3500ae98b3c5697e43ec06de421308146a0",
+  "authors": [
+    {
+      "n": "Leonardo S. Barbosa",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/channels/montage.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/channels/tests/test_montage.py": {
+      "a": 63,
+      "d": 48
+    }
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "f0a1ae5b8803dcb3c6486b4c0089ba3b1a490c48",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/visualization/plot_roi_erpimage_by_rt.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/io/brainvision/brainvision.py": {
+      "a": 4,
+      "d": 17
+    },
+    "mne/io/cnt/cnt.py": {
+      "a": 6,
+      "d": 5
+    },
+    "mne/io/cnt/tests/test_cnt.py": {
+      "a": 11,
+      "d": 17
+    },
+    "mne/io/eeglab/eeglab.py": {
+      "a": 4,
+      "d": 18
+    },
+    "mne/io/eeglab/tests/test_eeglab.py": {
+      "a": 2,
+      "d": 7
+    }
+  }
+}

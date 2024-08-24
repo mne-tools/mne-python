@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "428e73badd512e528aa7eb236785b30a2eaac53e",
+  "authors": [
+    {
+      "n": "Johann Benerradi",
+      "e": null
+    }
+  ],
+  "changes": {
+    "examples/visualization/plot_mne_helmet.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

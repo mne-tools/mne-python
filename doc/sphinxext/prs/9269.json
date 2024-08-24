@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "e57f087e8bb368f75dcc5dad95f70417f7b10172",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/preprocessing/eog.py": {
+      "a": 37,
+      "d": 31
+    },
+    "mne/preprocessing/tests/test_eog.py": {
+      "a": 18,
+      "d": 3
+    },
+    "mne/utils/docs.py": {
+      "a": 11,
+      "d": 0
+    }
+  }
+}

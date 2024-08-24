@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "b95fc4a9151f633d40074e7e43cb6f6487275a33",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "autofix-ci[bot]",
+      "e": "114827586+autofix-ci[bot]@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/12544.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/source_space/_source_space.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/source_space/tests/test_source_space.py": {
+      "a": 21,
+      "d": 0
+    }
+  }
+}

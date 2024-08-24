@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "2beb31277d5c09c2c0b80bed624773f40bd529b1",
+  "authors": [
+    {
+      "n": "jaeilepp",
+      "e": "jaeilepp@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/annotations.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/base.py": {
+      "a": 98,
+      "d": 5
+    },
+    "mne/io/fiff/raw.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 15,
+      "d": 4
+    },
+    "mne/preprocessing/tests/test_ica.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/tests/test_annotations.py": {
+      "a": 31,
+      "d": 2
+    },
+    "mne/viz/utils.py": {
+      "a": 2,
+      "d": 2
+    },
+    "tutorials/plot_ica_from_raw.py": {
+      "a": 11,
+      "d": 3
+    }
+  }
+}

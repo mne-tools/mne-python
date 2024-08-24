@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "66430ed77e2f08745b9f4622801c5dc4ca1a5d73",
+  "authors": [
+    {
+      "n": "Rob Luke",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/io/pick.py": {
+      "a": 10,
+      "d": 8
+    },
+    "mne/preprocessing/nirs/nirs.py": {
+      "a": 5,
+      "d": 2
+    },
+    "mne/preprocessing/nirs/tests/test_nirs.py": {
+      "a": 112,
+      "d": 4
+    }
+  }
+}

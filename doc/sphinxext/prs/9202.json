@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "88df35fc65015a65b806d825ea7ea39488ea597c",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/_static/style.css": {
+      "a": 8,
+      "d": 20
+    },
+    "doc/_templates/docs-toc.html": {
+      "a": 0,
+      "d": 17
+    },
+    "doc/_templates/layout.html": {
+      "a": 28,
+      "d": 11
+    },
+    "doc/_templates/sidebar-funders.html": {
+      "a": 0,
+      "d": 17
+    },
+    "doc/_templates/sidebar-quicklinks.html": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/conf.py": {
+      "a": 56,
+      "d": 18
+    },
+    "doc/funding.rst": {
+      "a": 50,
+      "d": 0
+    }
+  }
+}

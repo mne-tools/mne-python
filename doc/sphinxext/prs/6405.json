@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "d7d8c889112a40fb0bdb478dc7e393aac9c99b8d",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/conftest.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/viz/backends/_pysurfer_mayavi.py": {
+      "a": 5,
+      "d": 0
+    },
+    "mne/viz/backends/_pyvista.py": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/viz/backends/renderer.py": {
+      "a": 11,
+      "d": 6
+    },
+    "mne/viz/backends/tests/test_renderer.py": {
+      "a": 26,
+      "d": 30
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 19,
+      "d": 31
+    }
+  }
+}

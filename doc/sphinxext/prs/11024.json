@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "6d27c4260adcbad9c171688427453eaf99545cd1",
+  "authors": [
+    {
+      "n": "Mathieu Scheltienne",
+      "e": "mathieu.scheltienne@fcbg.ch"
+    }
+  ],
+  "changes": {
+    "doc/references.bib": {
+      "a": 0,
+      "d": 10
+    },
+    "mne/preprocessing/_csd.py": {
+      "a": 10,
+      "d": 9
+    }
+  }
+}

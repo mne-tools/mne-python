@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "217aecf9efad53dadf0c48aef99fd73c7b01244d",
+  "authors": [
+    {
+      "n": "Joan Massich",
+      "e": "mailsik@gmail.com"
+    }
+  ],
+  "changes": {
+    "MANIFEST.in": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/whats_new.rst": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/datasets/sleep_physionet/tests/test_physionet.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/edf/_utils.py": {
+      "a": 33,
+      "d": 0
+    },
+    "mne/io/edf/edf.py": {
+      "a": 37,
+      "d": 24
+    },
+    "mne/io/edf/gdf_encodes.txt": {
+      "a": 284,
+      "d": 0
+    },
+    "mne/io/edf/tests/test_edf.py": {
+      "a": 11,
+      "d": 0
+    },
+    "mne/io/edf/tests/test_gdf.py": {
+      "a": 11,
+      "d": 4
+    },
+    "setup.py": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

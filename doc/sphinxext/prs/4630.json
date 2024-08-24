@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "93958f591b3ffc2faac31b8d20b2bc2685810941",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/inverse/plot_rap_music.py": {
+      "a": 8,
+      "d": 7
+    },
+    "mne/viz/_3d.py": {
+      "a": 16,
+      "d": 2
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 0,
+      "d": 3
+    }
+  }
+}

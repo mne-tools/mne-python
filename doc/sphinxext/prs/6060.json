@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "41f6f2bcd0b8e90807837e131314be81e0cd5ca6",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/datasets/sleep_physionet/tests/test_physionet.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/utils/fetching.py": {
+      "a": 18,
+      "d": 11
+    },
+    "mne/utils/tests/test_fetching.py": {
+      "a": 25,
+      "d": 10
+    }
+  }
+}

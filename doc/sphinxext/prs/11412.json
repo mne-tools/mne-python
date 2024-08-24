@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "f6da05d18810f1a64572d341392299228220a460",
+  "authors": [
+    {
+      "n": "Mathieu Scheltienne",
+      "e": "mathieu.scheltienne@fcbg.ch"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "mne/channels/channels.py": {
+      "a": 5,
+      "d": 4
+    },
+    "mne/channels/interpolation.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

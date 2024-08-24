@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "7e867ce57cc035c32f1362734031d250b2ac0734",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/cov.py": {
+      "a": 23,
+      "d": 12
+    },
+    "mne/rank.py": {
+      "a": 53,
+      "d": 15
+    },
+    "mne/tests/test_cov.py": {
+      "a": 28,
+      "d": 8
+    },
+    "mne/utils/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/check.py": {
+      "a": 6,
+      "d": 2
+    },
+    "mne/utils/docs.py": {
+      "a": 13,
+      "d": 1
+    },
+    "mne/viz/tests/test_evoked.py": {
+      "a": 7,
+      "d": 10
+    }
+  }
+}

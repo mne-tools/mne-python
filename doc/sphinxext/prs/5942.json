@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "12a85495333e07a80d676dcb0e19a562bd7d380f",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/edf/_utils.py": {
+      "a": 8,
+      "d": 2
+    },
+    "mne/io/edf/edf.py": {
+      "a": 1,
+      "d": 4
+    }
+  }
+}

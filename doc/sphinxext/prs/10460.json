@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "6bb14380fcb2108b336a0436a6f17d929735a0db",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/base.py": {
+      "a": 31,
+      "d": 0
+    },
+    "mne/io/tests/test_raw.py": {
+      "a": 35,
+      "d": 2
+    }
+  }
+}

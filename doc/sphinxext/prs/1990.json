@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "d353056eceb24cd448f98f86695de5589772911c",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/plot_topo_compare_conditions.py": {
+      "a": 7,
+      "d": 4
+    },
+    "mne/epochs.py": {
+      "a": 30,
+      "d": 8
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 19,
+      "d": 8
+    }
+  }
+}

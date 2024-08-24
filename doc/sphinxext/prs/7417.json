@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "9e852f266025ba15464fafaad6327fcf73d5ffa1",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/annotations.py": {
+      "a": 7,
+      "d": 2
+    },
+    "mne/conftest.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/brainvision/brainvision.py": {
+      "a": 16,
+      "d": 28
+    },
+    "mne/io/brainvision/tests/test_brainvision.py": {
+      "a": 48,
+      "d": 17
+    },
+    "mne/utils/check.py": {
+      "a": 3,
+      "d": 2
+    }
+  }
+}

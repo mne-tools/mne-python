@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "917b000f6f707e23499225c0e621b13b48e0f52a",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/baseline.py": {
+      "a": 15,
+      "d": 15
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/check.py": {
+      "a": 4,
+      "d": 3
+    }
+  }
+}

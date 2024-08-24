@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "3b3c6e6565d3ec97faef18cab9a4323ba7b71b9d",
+  "authors": [
+    {
+      "n": "Jevri Hanna",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/viz/utils.py": {
+      "a": 6,
+      "d": 6
+    }
+  }
+}

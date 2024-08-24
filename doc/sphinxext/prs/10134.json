@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "61c5c51cacd998cde4bb0ba350738619a4bcee72",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 9,
+      "d": 13
+    },
+    "doc/conf.py": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/sphinxext/gh_substitutions.py": {
+      "a": 5,
+      "d": 5
+    },
+    "doc/sphinxext/newcontrib_substitutions.py": {
+      "a": 26,
+      "d": 0
+    }
+  }
+}

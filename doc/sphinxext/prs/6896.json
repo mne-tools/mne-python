@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "1fec322892911ba3a3175df378fbdc7458612845",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/channels/channels.py": {
+      "a": 5,
+      "d": 0
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 9,
+      "d": 0
+    }
+  }
+}

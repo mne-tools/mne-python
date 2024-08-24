@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "f88f22d52b3b5e2cba3f790965ac14d2fe4a13e0",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "examples/preprocessing/contralateral_referencing.py": {
+      "a": 3,
+      "d": 6
+    },
+    "mne/channels/channels.py": {
+      "a": 29,
+      "d": 16
+    },
+    "mne/channels/tests/test_channels.py": {
+      "a": 5,
+      "d": 0
+    }
+  }
+}

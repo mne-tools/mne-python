@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "7618a58eb45b75c3f00f08ebf18738f0f41e0886",
+  "authors": [
+    {
+      "n": "Luke Bloy",
+      "e": "luke.bloy@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/preprocessing/artifact_detection.py": {
+      "a": 29,
+      "d": 11
+    },
+    "mne/preprocessing/tests/test_artifact_detection.py": {
+      "a": 6,
+      "d": 0
+    }
+  }
+}

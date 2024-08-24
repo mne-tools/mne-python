@@ -1,0 +1,135 @@
+{
+  "merge_commit_sha": "ac7cab31cd028df88bc925fe6ef68fea4403756b",
+  "authors": [
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/conf.py": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/bem.py": {
+      "a": 10,
+      "d": 4
+    },
+    "mne/channels/montage.py": {
+      "a": 43,
+      "d": 12
+    },
+    "mne/channels/tests/test_montage.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/_digitization.py": {
+      "a": 44,
+      "d": 2
+    },
+    "mne/io/brainvision/tests/test_brainvision.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/io/cnt/cnt.py": {
+      "a": 4,
+      "d": 1
+    },
+    "mne/io/curry/curry.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/io/eeglab/eeglab.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/io/eeglab/tests/test_eeglab.py": {
+      "a": 6,
+      "d": 5
+    },
+    "mne/io/fieldtrip/utils.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/io/fiff/tests/test_raw_fiff.py": {
+      "a": 8,
+      "d": 1
+    },
+    "mne/io/hitachi/hitachi.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/hitachi/tests/test_hitachi.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/pick.py": {
+      "a": 10,
+      "d": 0
+    },
+    "mne/io/proj.py": {
+      "a": 3,
+      "d": 5
+    },
+    "mne/io/reference.py": {
+      "a": 4,
+      "d": 3
+    },
+    "mne/io/snirf/_snirf.py": {
+      "a": 6,
+      "d": 1
+    },
+    "mne/io/tests/test_raw.py": {
+      "a": 29,
+      "d": 8
+    },
+    "mne/io/tests/test_reference.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/minimum_norm/inverse.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/minimum_norm/tests/test_inverse.py": {
+      "a": 4,
+      "d": 1
+    },
+    "mne/preprocessing/nirs/_beer_lambert_law.py": {
+      "a": 5,
+      "d": 2
+    },
+    "mne/tests/test_bem.py": {
+      "a": 6,
+      "d": 3
+    },
+    "mne/utils/docs.py": {
+      "a": 5,
+      "d": 0
+    },
+    "mne/viz/backends/_utils.py": {
+      "a": 10,
+      "d": 7
+    },
+    "setup.cfg": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/clinical/30_ecog.py": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

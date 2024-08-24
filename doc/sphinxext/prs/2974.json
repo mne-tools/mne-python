@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "8fe026ef051216ca39d6622a661be1dc50f1e672",
+  "authors": [
+    {
+      "n": "Camilo Lamus",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/forward/forward.py": {
+      "a": 24,
+      "d": 15
+    },
+    "mne/forward/tests/test_forward.py": {
+      "a": 14,
+      "d": 8
+    }
+  }
+}

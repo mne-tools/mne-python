@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "faf4569ff3d26e79cc439727254460c6bae3aae1",
+  "authors": [
+    {
+      "n": "Alex Rockhill",
+      "e": "aprockhill@mailbox.org"
+    }
+  ],
+  "changes": {
+    "tutorials/clinical/10_ieeg_localize.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

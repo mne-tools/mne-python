@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "25e6dfa4d933b637ec0e60908976787a88191114",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/forward/_field_interpolation.py": {
+      "a": 3,
+      "d": 11
+    },
+    "mne/forward/_lead_dots.py": {
+      "a": 2,
+      "d": 38
+    },
+    "mne/forward/tests/test_field_interpolation.py": {
+      "a": 13,
+      "d": 17
+    },
+    "mne/forward/tests/test_make_forward.py": {
+      "a": 7,
+      "d": 11
+    }
+  }
+}

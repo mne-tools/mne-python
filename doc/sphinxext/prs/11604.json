@@ -1,0 +1,79 @@
+{
+  "merge_commit_sha": "267967920ac384cd8698f65670bfb9c2e8720a49",
+  "authors": [
+    {
+      "n": "Dimitri Papadopoulos Orfanos",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/datasets/brainstorm/bst_phantom_elekta.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/datasets/hf_sef/hf_sef.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/decoding/transformer.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/dipole.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/meas_info.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/io/open.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/proc_history.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/tests/test_meas_info.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/morph.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/preprocessing/artifact_detection.py": {
+      "a": 6,
+      "d": 6
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/maxwell.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/simulation/raw.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/tests/test_chpi.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/_brain/colormap.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/misc.py": {
+      "a": 3,
+      "d": 3
+    },
+    "tutorials/stats-sensor-space/10_background_stats.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

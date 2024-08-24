@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "b107d92ecc0526bd8cd90b0a06c13caa9a9ec87c",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/base.py": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/io/tests/test_raw.py": {
+      "a": 7,
+      "d": 0
+    }
+  }
+}

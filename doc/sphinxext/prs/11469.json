@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "70119b6430afe22d480ba0f0ec39a6ee560a0c67",
+  "authors": [
+    {
+      "n": "Sawradip Saha",
+      "e": null
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "agramfort@fb.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/conf.py": {
+      "a": 2,
+      "d": 1
+    },
+    "doc/sphinxext/unit_role.py": {
+      "a": 29,
+      "d": 0
+    },
+    "tutorials/preprocessing/25_background_filtering.py": {
+      "a": 7,
+      "d": 6
+    }
+  }
+}

@@ -1,0 +1,67 @@
+{
+  "merge_commit_sha": "44f4b0f027f8f926d155ea0dc23c17de21d0488e",
+  "authors": [
+    {
+      "n": "Rob Luke",
+      "e": null
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/channels/tests/test_interpolation.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/channels/tests/test_standard_montage.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/hitachi/tests/test_hitachi.py": {
+      "a": 5,
+      "d": 5
+    },
+    "mne/io/snirf/tests/test_snirf.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/nirs/_beer_lambert_law.py": {
+      "a": 7,
+      "d": 1
+    },
+    "mne/preprocessing/nirs/tests/test_beer_lambert_law.py": {
+      "a": 4,
+      "d": 1
+    },
+    "mne/preprocessing/nirs/tests/test_nirs.py": {
+      "a": 4,
+      "d": 1
+    },
+    "mne/preprocessing/nirs/tests/test_scalp_coupling_index.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/conftest.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/preprocessing/70_fnirs_processing.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

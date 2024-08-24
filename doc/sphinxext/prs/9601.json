@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "64d51d6b122c5520a13825a0a360623993075d66",
+  "authors": [
+    {
+      "n": "Alex Rockhill",
+      "e": "aprockhill@mailbox.org"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/channels/montage.py": {
+      "a": 18,
+      "d": 1
+    },
+    "mne/channels/tests/test_montage.py": {
+      "a": 9,
+      "d": 2
+    },
+    "mne/datasets/utils.py": {
+      "a": 2,
+      "d": 2
+    },
+    "tutorials/clinical/10_ieeg_localize.py": {
+      "a": 14,
+      "d": 26
+    },
+    "tutorials/clinical/20_seeg.py": {
+      "a": 33,
+      "d": 63
+    }
+  }
+}

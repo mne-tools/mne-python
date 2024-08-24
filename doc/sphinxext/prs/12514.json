@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "8ee98c95f4bc9866679fd49111f9b041b5b0e2fa",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/time_frequency/tests/test_tfr.py": {
+      "a": 12,
+      "d": 0
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 6,
+      "d": 2
+    }
+  }
+}

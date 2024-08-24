@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "c54d229913c5fe1bdb7a76b70930f66a89601c95",
+  "authors": [
+    {
+      "n": "Mathieu Scheltienne",
+      "e": "mathieu.scheltienne@fcbg.ch"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/conftest.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/egi/egimff.py": {
+      "a": 11,
+      "d": 1
+    },
+    "mne/io/egi/tests/test_egi.py": {
+      "a": 3,
+      "d": 3
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "b915f8481412633421c8546fe7c11f6af274c86d",
+  "authors": [
+    {
+      "n": "jaeilepp",
+      "e": "jaeilepp@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/io/edf/edf.py": {
+      "a": 27,
+      "d": 17
+    },
+    "mne/io/edf/tests/test_edf.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

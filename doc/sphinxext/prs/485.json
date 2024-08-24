@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "ae20baeb3fe621164341717720dbf9bea92577a9",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "bin/mne_compute_proj_ecg.py": {
+      "a": 4,
+      "d": 1
+    }
+  }
+}

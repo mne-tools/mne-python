@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "5b582a19bf79164bd86f297e467e3b1117a2a4eb",
+  "authors": [
+    {
+      "n": "Hamid",
+      "e": null
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "examples/inverse/mne_cov_power.py": {
+      "a": 1,
+      "d": 4
+    }
+  }
+}

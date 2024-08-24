@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "815db609f9142b88de54c297f9016abfc38da6c3",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "autofix-ci[bot]",
+      "e": "114827586+autofix-ci[bot]@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/12562.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/decoding/base.py": {
+      "a": 30,
+      "d": 8
+    },
+    "mne/decoding/csp.py": {
+      "a": 28,
+      "d": 4
+    },
+    "mne/decoding/tests/test_base.py": {
+      "a": 15,
+      "d": 6
+    },
+    "mne/decoding/tests/test_csp.py": {
+      "a": 27,
+      "d": 4
+    },
+    "mne/decoding/transformer.py": {
+      "a": 10,
+      "d": 2
+    }
+  }
+}

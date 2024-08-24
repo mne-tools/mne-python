@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "f37ef8e4ae07cd1c10118cb6e64e904333920924",
+  "authors": [
+    {
+      "n": "Alex Rockhill",
+      "e": "aprockhill@mailbox.org"
+    }
+  ],
+  "changes": {
+    "figures/Figure_6.png": {
+      "a": 0,
+      "d": 0
+    },
+    "figures/circle.png": {
+      "a": 0,
+      "d": 0
+    },
+    "figures/ecog.png": {
+      "a": 0,
+      "d": 0
+    },
+    "figures/electrode.png": {
+      "a": 0,
+      "d": 0
+    },
+    "paper.bib": {
+      "a": 58,
+      "d": 0
+    },
+    "paper.md": {
+      "a": 10,
+      "d": 10
+    }
+  }
+}

@@ -1,0 +1,83 @@
+{
+  "merge_commit_sha": "20fc139f6da759cf8a78b8fe0666060ada0b29d7",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/fiff/tests/test_evoked.py": {
+      "a": 4,
+      "d": 21
+    },
+    "mne/fiff/tests/test_raw.py": {
+      "a": 4,
+      "d": 20
+    },
+    "mne/layouts/tests/test_layout.py": {
+      "a": 2,
+      "d": 3
+    },
+    "mne/minimum_norm/tests/test_inverse.py": {
+      "a": 5,
+      "d": 4
+    },
+    "mne/mixed_norm/tests/test_optim.py": {
+      "a": 4,
+      "d": 1
+    },
+    "mne/preprocessing/tests/test_ica.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/tests/test_cov.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 4,
+      "d": 21
+    },
+    "mne/tests/test_event.py": {
+      "a": 2,
+      "d": 3
+    },
+    "mne/tests/test_label.py": {
+      "a": 4,
+      "d": 6
+    },
+    "mne/tests/test_proj.py": {
+      "a": 6,
+      "d": 6
+    },
+    "mne/tests/test_source_estimate.py": {
+      "a": 7,
+      "d": 8
+    },
+    "mne/tests/test_source_space.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/tests/test_surface.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/tests/test_transforms.py": {
+      "a": 3,
+      "d": 4
+    },
+    "mne/tests/test_utils.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/time_frequency/tests/test_multitaper.py": {
+      "a": 5,
+      "d": 10
+    },
+    "mne/utils.py": {
+      "a": 64,
+      "d": 0
+    }
+  }
+}

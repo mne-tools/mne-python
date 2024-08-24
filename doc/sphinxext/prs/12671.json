@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "564cc1a2fd0b3263a49660b6cfce04b2186d39dd",
+  "authors": [
+    {
+      "n": "Lumberbot (aka Jack)",
+      "e": null
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/install/installers.rst": {
+      "a": 6,
+      "d": 6
+    }
+  }
+}

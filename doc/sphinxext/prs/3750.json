@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "b7f691299ec60a6ba60bb6c30c917696dc5d3e55",
+  "authors": [
+    {
+      "n": "Keith Doelling",
+      "e": "keith.doelling@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/epochs.py": {
+      "a": 16,
+      "d": 0
+    }
+  }
+}

@@ -1,0 +1,67 @@
+{
+  "merge_commit_sha": "964ea6c360b3cd89733c554671d97dc9ec0054de",
+  "authors": [
+    {
+      "n": "Dirk Gütlin",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/io/artemis123/artemis123.py": {
+      "a": 2,
+      "d": 12
+    },
+    "mne/io/brainvision/brainvision.py": {
+      "a": 2,
+      "d": 6
+    },
+    "mne/io/bti/bti.py": {
+      "a": 2,
+      "d": 12
+    },
+    "mne/io/cnt/cnt.py": {
+      "a": 2,
+      "d": 12
+    },
+    "mne/io/ctf/ctf.py": {
+      "a": 2,
+      "d": 12
+    },
+    "mne/io/edf/edf.py": {
+      "a": 5,
+      "d": 30
+    },
+    "mne/io/eeglab/eeglab.py": {
+      "a": 6,
+      "d": 14
+    },
+    "mne/io/egi/egi.py": {
+      "a": 1,
+      "d": 6
+    },
+    "mne/io/egi/egimff.py": {
+      "a": 1,
+      "d": 6
+    },
+    "mne/io/eximia/eximia.py": {
+      "a": 2,
+      "d": 4
+    },
+    "mne/io/fiff/raw.py": {
+      "a": 2,
+      "d": 12
+    },
+    "mne/io/kit/kit.py": {
+      "a": 2,
+      "d": 9
+    },
+    "mne/io/nicolet/nicolet.py": {
+      "a": 2,
+      "d": 12
+    },
+    "mne/utils/docs.py": {
+      "a": 5,
+      "d": 5
+    }
+  }
+}

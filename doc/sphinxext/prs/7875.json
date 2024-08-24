@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "b2615a3cfe0dcc7f867fae576506fc520577bd2e",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    },
+    {
+      "n": "Clemens Brunner",
+      "e": "clemens.brunner@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/datasets/utils.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/edf/edf.py": {
+      "a": 13,
+      "d": 2
+    },
+    "mne/io/edf/tests/test_edf.py": {
+      "a": 8,
+      "d": 0
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "a7d479568b3f427f65d87452e5400235e6a73dc9",
+  "authors": [
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    }
+  ],
+  "changes": {
+    "pyproject.toml": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

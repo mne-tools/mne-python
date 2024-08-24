@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "3efd6f8b411571c481f45d03028c6fb9b83d43b1",
+  "authors": [
+    {
+      "n": "Asish Panda",
+      "e": "asishrocks95@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/decoding/plot_decoding_xdawn_transformer.py": {
+      "a": 48,
+      "d": 0
+    },
+    "mne/decoding/__init__.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/decoding/tests/test_xdawn.py": {
+      "a": 97,
+      "d": 0
+    },
+    "mne/decoding/xdawn.py": {
+      "a": 174,
+      "d": 0
+    },
+    "mne/preprocessing/xdawn.py": {
+      "a": 164,
+      "d": 128
+    }
+  }
+}

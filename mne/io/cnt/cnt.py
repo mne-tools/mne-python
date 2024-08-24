@@ -1,10 +1,9 @@
 """Conversion tool from Neuroscan CNT to FIF."""
 
-# Author: Jaakko Leppakangas <jaeilepp@student.jyu.fi>
-#         Joan Massich <mailsik@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 from os import path
 
 import numpy as np
@@ -449,7 +448,8 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format, he
 class RawCNT(BaseRaw):
     """Raw object from Neuroscan CNT file.
 
-    .. Note::
+    .. note::
+
         The channel positions are read from the file header. Channels that are
         not assigned with keywords ``eog``, ``ecg``, ``emg`` and ``misc`` are
         assigned as eeg channels. All the eeg channel locations are fit to a
@@ -460,10 +460,15 @@ class RawCNT(BaseRaw):
         the header are correct, it is probably safer to use a (standard)
         montage. See :func:`mne.channels.make_standard_montage`
 
+    .. note::
+
+        A CNT file can also come from the EEG manufacturer ANT Neuro, in which case the
+        function :func:`mne.io.read_raw_ant` should be used.
+
     Parameters
     ----------
     input_fname : path-like
-        Path to the CNT file.
+        Path to the Neuroscan CNT file.
     eog : list | tuple
         Names of channels or list of indices that should be designated
         EOG channels. If ``'auto'``, the channel names beginning with
@@ -491,16 +496,6 @@ class RawCNT(BaseRaw):
         if either contain a bad channel make channel bad.
         Defaults to ``'auto'``.
     %(preload)s
-    stim_channel : bool | None
-        Add a stim channel from the events. Defaults to None to trigger a
-        future warning.
-
-        .. warning:: This defaults to True in 0.18 but will change to False in
-                     0.19 (when no stim channel synthesis will be allowed)
-                     and be removed in 0.20; migrate code to use
-                     :func:`mne.events_from_annotations` instead.
-
-        .. versionadded:: 0.18
     %(verbose)s
 
     See Also
@@ -529,9 +524,16 @@ class RawCNT(BaseRaw):
             _date_format = "%m/%d/%y %H:%M:%S"
 
         input_fname = path.abspath(input_fname)
-        info, cnt_info = _get_cnt_info(
-            input_fname, eog, ecg, emg, misc, data_format, _date_format, header
-        )
+        try:
+            info, cnt_info = _get_cnt_info(
+                input_fname, eog, ecg, emg, misc, data_format, _date_format, header
+            )
+        except Exception:
+            raise RuntimeError(
+                "Could not read header from *.cnt file. mne.io.read_raw_cnt "
+                "supports Neuroscan CNT files only. If this file is an ANT Neuro CNT, "
+                "please use mne.io.read_raw_ant instead."
+            )
         last_samps = [cnt_info["n_samples"] - 1]
         super().__init__(
             info,

@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "0079f5b2973b979743ac97d9ba8ea882e50e3548",
+  "authors": [
+    {
+      "n": "Martin G. Schulz",
+      "e": "dev@mgschulz.de"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "mne/viz/_figure.py": {
+      "a": 2,
+      "d": 5
+    }
+  }
+}

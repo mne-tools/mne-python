@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "071d8a20fd7d39371b0b67c070a79f968b8ccd1e",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/datasets/utils.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/bti/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/bti/bti.py": {
+      "a": 69,
+      "d": 54
+    },
+    "mne/io/bti/read.py": {
+      "a": 8,
+      "d": 0
+    },
+    "mne/io/bti/tests/test_bti.py": {
+      "a": 10,
+      "d": 0
+    }
+  }
+}

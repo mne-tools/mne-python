@@ -1,6 +1,4 @@
-# Author: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#         Daniel Strohmeier <daniel.strohmeier@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -63,7 +61,7 @@ def _prepare_weights(forward, gain, source_weighting, weights, weights_min):
     if len(weights) != gain.shape[1]:
         raise ValueError(
             "weights do not have the correct dimension "
-            " (%d != %d)" % (len(weights), gain.shape[1])
+            f" ({len(weights)} != {gain.shape[1]})"
         )
     if len(source_weighting.shape) == 1:
         source_weighting *= weights
@@ -75,7 +73,7 @@ def _prepare_weights(forward, gain, source_weighting, weights, weights_min):
         mask = weights > weights_min
         gain = gain[:, mask]
         n_sources = np.sum(mask) // n_dip_per_pos
-        logger.info("Reducing source space to %d sources" % n_sources)
+        logger.info(f"Reducing source space to {n_sources} sources")
 
     return gain, source_weighting, mask
 
@@ -465,14 +463,14 @@ def mixed_norm(
     if n_mxne_iter < 1:
         raise ValueError(
             "MxNE has to be computed at least 1 time. "
-            "Requires n_mxne_iter >= 1, got %d" % n_mxne_iter
+            f"Requires n_mxne_iter >= 1, got {n_mxne_iter}"
         )
     if dgap_freq <= 0.0:
         raise ValueError(
             f"dgap_freq must be a positive integer. Got dgap_freq = {dgap_freq}"
         )
     if not (
-        isinstance(sure_alpha_grid, (np.ndarray, list)) or sure_alpha_grid == "auto"
+        isinstance(sure_alpha_grid, np.ndarray | list) or sure_alpha_grid == "auto"
     ):
         raise ValueError(
             'If not equal to "auto" sure_alpha_grid must be an '
@@ -651,7 +649,7 @@ def mixed_norm(
 
 def _window_evoked(evoked, size):
     """Window evoked (size in seconds)."""
-    if isinstance(size, (float, int)):
+    if isinstance(size, float | int):
         lsize = rsize = float(size)
     else:
         lsize, rsize = size

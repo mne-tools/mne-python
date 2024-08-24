@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "caae4b2b231abf4e58cd009f813c183d7d7b0234",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/chpi.py": {
+      "a": 44,
+      "d": 47
+    },
+    "mne/utils/progressbar.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

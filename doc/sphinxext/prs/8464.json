@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "6e3a560ba7d620acb0c7cac1a6eef74d93005708",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/base.py": {
+      "a": 30,
+      "d": 21
+    },
+    "mne/io/fiff/tests/test_raw_fiff.py": {
+      "a": 26,
+      "d": 5
+    },
+    "mne/preprocessing/stim.py": {
+      "a": 0,
+      "d": 1
+    }
+  }
+}

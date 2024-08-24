@@ -1,0 +1,119 @@
+{
+  "merge_commit_sha": "49cb69d72a57124709b5ed104b9d6255942cd939",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/annotations.py": {
+      "a": 9,
+      "d": 2
+    },
+    "mne/channels/channels.py": {
+      "a": 22,
+      "d": 10
+    },
+    "mne/decoding/base.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/decoding/csp.py": {
+      "a": 5,
+      "d": 5
+    },
+    "mne/decoding/ems.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/decoding/mixin.py": {
+      "a": 14,
+      "d": 2
+    },
+    "mne/decoding/search_light.py": {
+      "a": 8,
+      "d": 9
+    },
+    "mne/decoding/time_frequency.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/decoding/transformer.py": {
+      "a": 7,
+      "d": 7
+    },
+    "mne/dipole.py": {
+      "a": 3,
+      "d": 6
+    },
+    "mne/epochs.py": {
+      "a": 14,
+      "d": 10
+    },
+    "mne/event.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/evoked.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/filter.py": {
+      "a": 10,
+      "d": 11
+    },
+    "mne/io/base.py": {
+      "a": 19,
+      "d": 16
+    },
+    "mne/io/proj.py": {
+      "a": 8,
+      "d": 7
+    },
+    "mne/label.py": {
+      "a": 6,
+      "d": 4
+    },
+    "mne/morph.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 20,
+      "d": 17
+    },
+    "mne/report.py": {
+      "a": 3,
+      "d": 10
+    },
+    "mne/simulation/source.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/source_estimate.py": {
+      "a": 43,
+      "d": 30
+    },
+    "mne/source_space.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/tests/test_docstring_parameters.py": {
+      "a": 37,
+      "d": 7
+    },
+    "mne/time_frequency/csd.py": {
+      "a": 7,
+      "d": 1
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 11,
+      "d": 7
+    },
+    "mne/viz/utils.py": {
+      "a": 6,
+      "d": 1
+    }
+  }
+}

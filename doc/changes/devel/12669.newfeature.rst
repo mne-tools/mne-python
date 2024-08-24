@@ -1,2 +1,0 @@
-Added internals to allow modifying single-channel annotations in the Qt
-raw browser, by :newcontrib:`Noah Markowitz`.

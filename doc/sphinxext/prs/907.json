@@ -1,0 +1,59 @@
+{
+  "merge_commit_sha": "437e3d08a1f09e53e0605e41ee329e74dfa13f8c",
+  "authors": [
+    {
+      "n": "Martin Luessi",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/beamformer/_lcmv.py": {
+      "a": 1,
+      "d": 3
+    },
+    "mne/epochs.py": {
+      "a": 7,
+      "d": 17
+    },
+    "mne/fiff/compensator.py": {
+      "a": 11,
+      "d": 2
+    },
+    "mne/fiff/ctf.py": {
+      "a": 12,
+      "d": 8
+    },
+    "mne/fiff/evoked.py": {
+      "a": 4,
+      "d": 3
+    },
+    "mne/fiff/raw.py": {
+      "a": 14,
+      "d": 9
+    },
+    "mne/fiff/tests/test_compensator.py": {
+      "a": 51,
+      "d": 2
+    },
+    "mne/fiff/tests/test_raw.py": {
+      "a": 19,
+      "d": 1
+    },
+    "mne/forward/forward.py": {
+      "a": 18,
+      "d": 15
+    },
+    "mne/forward/tests/test_make_forward.py": {
+      "a": 15,
+      "d": 1
+    },
+    "mne/realtime/epochs.py": {
+      "a": 7,
+      "d": 10
+    },
+    "mne/tests/test_viz.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

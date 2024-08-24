@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "a458622f4b1b7daa7685ad1d79fe132b22082ed9",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "azure-pipelines.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/backends/_utils.py": {
+      "a": 11,
+      "d": 5
+    },
+    "requirements.txt": {
+      "a": 1,
+      "d": 1
+    },
+    "tools/azure_dependencies.sh": {
+      "a": 3,
+      "d": 3
+    },
+    "tools/circleci_dependencies.sh": {
+      "a": 1,
+      "d": 1
+    },
+    "tools/github_actions_dependencies.sh": {
+      "a": 4,
+      "d": 4
+    },
+    "tools/setup_xvfb.sh": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "f4ff521d09e3cf3b38d1b037161b55ef25502f0c",
+  "authors": [
+    {
+      "n": "Denis A. Engemann",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/layouts/EGI256.lout": {
+      "a": 257,
+      "d": 0
+    }
+  }
+}

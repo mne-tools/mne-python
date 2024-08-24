@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "8ac813c35941f70b317a36af91a6065453a7b0d8",
+  "authors": [
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/connectivity/plot_mne_inverse_envelope_correlation.py": {
+      "a": 1,
+      "d": 2
+    },
+    "examples/connectivity/plot_mne_inverse_psi_visual.py": {
+      "a": 2,
+      "d": 2
+    },
+    "examples/forward/plot_forward_sensitivity_maps.py": {
+      "a": 10,
+      "d": 13
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 11,
+      "d": 16
+    }
+  }
+}

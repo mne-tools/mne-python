@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "8a73a59beef4f896ef7f3c6ce4baede80f3ba7a6",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/connectivity/README.txt": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/cov.py": {
+      "a": 4,
+      "d": 3
+    },
+    "mne/dipole.py": {
+      "a": 8,
+      "d": 4
+    },
+    "mne/epochs.py": {
+      "a": 10,
+      "d": 2
+    },
+    "mne/io/meas_info.py": {
+      "a": 15,
+      "d": 13
+    },
+    "mne/morph.py": {
+      "a": 9,
+      "d": 2
+    },
+    "mne/viz/backends/_abstract.py": {
+      "a": 7,
+      "d": 2
+    },
+    "mne/viz/backends/_pyvista.py": {
+      "a": 7,
+      "d": 2
+    }
+  }
+}

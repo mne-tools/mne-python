@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "b251871936be2d6c6489bf05412a13a9654c1f52",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/time_frequency/psd.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/tests/test_raw.py": {
+      "a": 5,
+      "d": 0
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "1d4cc2749fccf4325ffd3e4efba594bcda5e5917",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/links.inc": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/preprocessing/plot_60_maxwell_filtering_sss.py": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

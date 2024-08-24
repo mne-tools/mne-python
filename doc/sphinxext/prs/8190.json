@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "f6b58d4ad1ee23a695b986b2e12e84af186be5cc",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/python_reference.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/source_estimate.py": {
+      "a": 105,
+      "d": 1
+    },
+    "mne/surface.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/tests/test_source_estimate.py": {
+      "a": 68,
+      "d": 5
+    },
+    "tutorials/misc/plot_ecog.py": {
+      "a": 22,
+      "d": 3
+    }
+  }
+}

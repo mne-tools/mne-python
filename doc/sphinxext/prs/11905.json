@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "1ee327014b9389962b70331f41b7de979e01140b",
+  "authors": [
+    {
+      "n": "Dmitrii Altukhov",
+      "e": "dm.altukhov@ya.ru"
+    }
+  ],
+  "changes": {
+    "mne/io/base.py": {
+      "a": 5,
+      "d": 4
+    },
+    "mne/io/utils.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/utils/check.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

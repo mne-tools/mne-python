@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "6df57c3d5995d281b21d84a31ab44c595a0dd74f",
+  "authors": [
+    {
+      "n": "Mathieu Scheltienne",
+      "e": "mathieu.scheltienne@fcbg.ch"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/proj.py": {
+      "a": 10,
+      "d": 1
+    },
+    "mne/io/tests/test_proj.py": {
+      "a": 24,
+      "d": 0
+    }
+  }
+}

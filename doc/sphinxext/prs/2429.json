@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "351f5f620c80e8854630929903a56b1d85e05924",
+  "authors": [
+    {
+      "n": "Chris Holdgraf",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/io/base.py": {
+      "a": 44,
+      "d": 8
+    },
+    "mne/io/fiff/tests/test_raw.py": {
+      "a": 14,
+      "d": 0
+    }
+  }
+}

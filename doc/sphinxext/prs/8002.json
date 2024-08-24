@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "7cc37e2f6a98a62d4d405fb88a9380ec754519a6",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/beamformer/tests/test_lcmv.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/channels/channels.py": {
+      "a": 19,
+      "d": 2
+    },
+    "mne/io/fiff/tests/test_raw_fiff.py": {
+      "a": 23,
+      "d": 13
+    },
+    "mne/io/proj.py": {
+      "a": 1,
+      "d": 2
+    }
+  }
+}

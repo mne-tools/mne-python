@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "95b49c1caead546a5cd45f7e21de3e8e9b6cfd9b",
+  "authors": [
+    {
+      "n": "Martin Luessi",
+      "e": null
+    }
+  ],
+  "changes": {
+    "setup.py": {
+      "a": 12,
+      "d": 2
+    }
+  }
+}

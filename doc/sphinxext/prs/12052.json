@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "40da6d9123debed6eaf8879c96c604b80c2f9f6e",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/viz/evoked_field.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/visualization/20_ui_events.py": {
+      "a": 0,
+      "d": 1
+    }
+  }
+}

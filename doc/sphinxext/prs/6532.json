@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "0bb360be833bde585f6d2cf59f9348e6b067dd48",
+  "authors": [
+    {
+      "n": "Joan Massich",
+      "e": "mailsik@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/io/eeglab/tests/test_eeglab.py": {
+      "a": 12,
+      "d": 41
+    }
+  }
+}

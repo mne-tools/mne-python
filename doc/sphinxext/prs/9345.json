@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "307c99722201649873867ecb5ddda96384af1942",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "tutorials/evoked/30_eeg_erp.py": {
+      "a": 286,
+      "d": 151
+    },
+    "tutorials/intro/15_inplace.py": {
+      "a": 16,
+      "d": 14
+    },
+    "tutorials/io/60_ctf_bst_auditory.py": {
+      "a": 19,
+      "d": 17
+    },
+    "tutorials/preprocessing/55_setting_eeg_reference.py": {
+      "a": 2,
+      "d": 0
+    }
+  }
+}

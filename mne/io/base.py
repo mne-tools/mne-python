@@ -1,12 +1,4 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
-#          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
-#          Denis Engemann <denis.engemann@gmail.com>
-#          Teon Brooks <teon.brooks@gmail.com>
-#          Marijn van Vliet <w.m.vanvliet@gmail.com>
-#          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
-#          Clemens Brunner <clemens.brunner@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -595,7 +587,7 @@ class BaseRaw(
     def _preload_data(self, preload):
         """Actually preload the data."""
         data_buffer = preload
-        if isinstance(preload, (bool, np.bool_)) and not preload:
+        if isinstance(preload, bool | np.bool_) and not preload:
             data_buffer = None
         logger.info(
             "Reading %d ... %d  =  %9.3f ... %9.3f secs..."
@@ -794,7 +786,7 @@ class BaseRaw(
             # Let's do automated type conversion to integer here
             if np.array(item[1]).dtype.kind == "i":
                 item1 = int(item1)
-            if isinstance(item1, (int, np.integer)):
+            if isinstance(item1, int | np.integer):
                 start, stop, step = item1, item1 + 1, 1
                 # Need to special case -1, because -1:0 will be empty
                 if start == -1:
@@ -807,7 +799,7 @@ class BaseRaw(
         if step is not None and step != 1:
             raise ValueError("step needs to be 1 : %d given" % step)
 
-        if isinstance(sel, (int, np.integer)):
+        if isinstance(sel, int | np.integer):
             sel = np.array([sel])
 
         if sel is not None and len(sel) == 0:
@@ -3083,25 +3075,44 @@ def concatenate_raws(
 
 
 @fill_doc
-def match_channel_orders(raws, copy=True):
-    """Ensure consistent channel order across raws.
+def match_channel_orders(insts=None, copy=True, *, raws=None):
+    """Ensure consistent channel order across instances (Raw, Epochs, or Evoked).
 
     Parameters
     ----------
-    raws : list
-        List of :class:`~mne.io.Raw` instances to order.
+    insts : list
+        List of :class:`~mne.io.Raw`, :class:`~mne.Epochs`,
+        or :class:`~mne.Evoked` instances to order.
     %(copy_df)s
+    raws : list
+        This parameter is deprecated and will be removed in mne version 1.9.
+        Please use ``insts`` instead.
 
     Returns
     -------
-    list of Raw
-        List of Raws with matched channel orders.
+    list of Raw | list of Epochs | list of Evoked
+        List of instances (Raw, Epochs, or Evoked) with channel orders matched
+        according to the order they had in the first item in the ``insts`` list.
     """
-    raws = deepcopy(raws) if copy else raws
-    ch_order = raws[0].ch_names
-    for raw in raws[1:]:
-        raw.reorder_channels(ch_order)
-    return raws
+    # XXX: remove "raws" parameter and logic below with MNE version 1.9
+    #      and remove default parameter value of insts
+    if raws is not None:
+        warn(
+            "The ``raws`` parameter is deprecated and will be removed in version "
+            "1.9. Use the ``insts`` parameter to suppress this warning.",
+            DeprecationWarning,
+        )
+        insts = raws
+    elif insts is None:
+        # both insts and raws is None
+        raise ValueError(
+            "You need to pass a list of Raw, Epochs, or Evoked to ``insts``."
+        )
+    insts = deepcopy(insts) if copy else insts
+    ch_order = insts[0].ch_names
+    for inst in insts[1:]:
+        inst.reorder_channels(ch_order)
+    return insts
 
 
 def _check_maxshield(allow_maxshield):

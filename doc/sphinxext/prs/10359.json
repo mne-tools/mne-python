@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "01b4bf2f3a4a7f259c4d3377c83aa6e07b62eb09",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".circleci/config.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/conf.py": {
+      "a": 38,
+      "d": 10
+    },
+    "mne/viz/_scraper.py": {
+      "a": 1,
+      "d": 0
+    },
+    "tools/circleci_dependencies.sh": {
+      "a": 2,
+      "d": 2
+    },
+    "tutorials/epochs/20_visualize_epochs.py": {
+      "a": 2,
+      "d": 2
+    },
+    "tutorials/intro/10_overview.py": {
+      "a": 0,
+      "d": 1
+    },
+    "tutorials/intro/15_inplace.py": {
+      "a": 4,
+      "d": 4
+    }
+  }
+}

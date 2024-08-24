@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "a78a355417bd46fc35b8650bf4a167d932242c83",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/commands/mne_coreg.py": {
+      "a": 19,
+      "d": 10
+    },
+    "mne/coreg.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/gui/__init__.py": {
+      "a": 9,
+      "d": 2
+    },
+    "mne/gui/_coreg_gui.py": {
+      "a": 10,
+      "d": 3
+    },
+    "mne/gui/_file_traits.py": {
+      "a": 11,
+      "d": 12
+    },
+    "mne/gui/_viewer.py": {
+      "a": 57,
+      "d": 11
+    },
+    "mne/gui/tests/test_coreg_gui.py": {
+      "a": 7,
+      "d": 0
+    },
+    "mne/surface.py": {
+      "a": 28,
+      "d": 16
+    }
+  }
+}

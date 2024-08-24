@@ -1,0 +1,111 @@
+{
+  "merge_commit_sha": "6097260d7fa6a239e3292f5b315a1ddc446d32fb",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".travis.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/_hdf5.py": {
+      "a": 4,
+      "d": 5
+    },
+    "mne/commands/tests/test_commands.py": {
+      "a": 5,
+      "d": 5
+    },
+    "mne/datasets/megsim/megsim.py": {
+      "a": 5,
+      "d": 4
+    },
+    "mne/datasets/megsim/urls.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/datasets/sample/sample.py": {
+      "a": 3,
+      "d": 4
+    },
+    "mne/datasets/somato/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/datasets/somato/somato.py": {
+      "a": 4,
+      "d": 17
+    },
+    "mne/datasets/spm_face/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/datasets/spm_face/spm_data.py": {
+      "a": 4,
+      "d": 17
+    },
+    "mne/datasets/testing/_testing.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/datasets/utils.py": {
+      "a": 12,
+      "d": 8
+    },
+    "mne/forward/forward.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/gui/tests/test_coreg_gui.py": {
+      "a": 4,
+      "d": 3
+    },
+    "mne/gui/tests/test_file_traits.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/preprocessing/tests/test_ica.py": {
+      "a": 1,
+      "d": 15
+    },
+    "mne/source_space.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/tests/test_coreg.py": {
+      "a": 7,
+      "d": 2
+    },
+    "mne/tests/test_hdf5.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/tests/test_report.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/tests/test_source_estimate.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/tests/test_utils.py": {
+      "a": 109,
+      "d": 57
+    },
+    "mne/utils.py": {
+      "a": 205,
+      "d": 329
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/viz/tests/test_ica.py": {
+      "a": 1,
+      "d": 15
+    }
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "8ed925e150e9af82e33bdb47f65afc4924a0fa5e",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/source/python_reference.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/inverse/plot_snr_estimate.py": {
+      "a": 29,
+      "d": 0
+    },
+    "mne/minimum_norm/__init__.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/minimum_norm/inverse.py": {
+      "a": 118,
+      "d": 0
+    },
+    "mne/minimum_norm/tests/test_snr.py": {
+      "a": 42,
+      "d": 0
+    },
+    "mne/viz/__init__.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/viz/evoked.py": {
+      "a": 40,
+      "d": 0
+    },
+    "mne/viz/tests/test_misc.py": {
+      "a": 19,
+      "d": 7
+    }
+  }
+}

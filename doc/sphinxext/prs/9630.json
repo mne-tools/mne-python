@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "8d8609ade86b6daca5173faa7414885bde04df29",
+  "authors": [
+    {
+      "n": "Alex Rockhill",
+      "e": "aprockhill@mailbox.org"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/channels/montage.py": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

@@ -1,0 +1,119 @@
+{
+  "merge_commit_sha": "7a1f14015cf0dc2ceac5c0d61a3f3be47eb9e6cf",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/__init__.py": {
+      "a": 3,
+      "d": 4
+    },
+    "mne/bem.py": {
+      "a": 1,
+      "d": 21
+    },
+    "mne/commands/mne_flash_bem_model.py": {
+      "a": 0,
+      "d": 145
+    },
+    "mne/commands/tests/test_commands.py": {
+      "a": 1,
+      "d": 7
+    },
+    "mne/cov.py": {
+      "a": 0,
+      "d": 11
+    },
+    "mne/decoding/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/decoding/csp.py": {
+      "a": 0,
+      "d": 6
+    },
+    "mne/decoding/transformer.py": {
+      "a": 1,
+      "d": 7
+    },
+    "mne/forward/forward.py": {
+      "a": 2,
+      "d": 28
+    },
+    "mne/gui/__init__.py": {
+      "a": 1,
+      "d": 6
+    },
+    "mne/io/__init__.py": {
+      "a": 0,
+      "d": 45
+    },
+    "mne/io/base.py": {
+      "a": 1,
+      "d": 23
+    },
+    "mne/io/brainvision/brainvision.py": {
+      "a": 3,
+      "d": 25
+    },
+    "mne/simulation/__init__.py": {
+      "a": 2,
+      "d": 4
+    },
+    "mne/simulation/evoked.py": {
+      "a": 1,
+      "d": 69
+    },
+    "mne/simulation/source.py": {
+      "a": 1,
+      "d": 110
+    },
+    "mne/stats/__init__.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/stats/parametric.py": {
+      "a": 0,
+      "d": 22
+    },
+    "mne/tests/test_dipole.py": {
+      "a": 2,
+      "d": 3
+    },
+    "mne/tests/test_docstring_parameters.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/tests/test_transforms.py": {
+      "a": 1,
+      "d": 37
+    },
+    "mne/transforms.py": {
+      "a": 1,
+      "d": 126
+    },
+    "mne/viz/__init__.py": {
+      "a": 2,
+      "d": 3
+    },
+    "mne/viz/epochs.py": {
+      "a": 1,
+      "d": 13
+    },
+    "mne/viz/tests/test_epochs.py": {
+      "a": 1,
+      "d": 4
+    },
+    "mne/viz/tests/test_topo.py": {
+      "a": 6,
+      "d": 4
+    },
+    "mne/viz/topo.py": {
+      "a": 1,
+      "d": 73
+    }
+  }
+}

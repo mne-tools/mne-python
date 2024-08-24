@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "376b07e00406fe40e70fac2d985045c56293e868",
+  "authors": [
+    {
+      "n": "Denis A. Engemann",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/source/whats_new.rst": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/io/egi/egi.py": {
+      "a": 6,
+      "d": 6
+    },
+    "mne/io/egi/tests/test_egi.py": {
+      "a": 1,
+      "d": 3
+    }
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "6857f10bd6470495635ffea190e673e91dc81ac6",
+  "authors": [
+    {
+      "n": "rcmdnk",
+      "e": "rcmdnk@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/12324.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/annotations.py": {
+      "a": 7,
+      "d": 1
+    },
+    "mne/tests/test_annotations.py": {
+      "a": 43,
+      "d": 0
+    }
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "5044aaebb242068da31bdd6fbb4782e8ea0adf9a",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/inverse/plot_lcmv_beamformer_volume.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/_3d.py": {
+      "a": 115,
+      "d": 70
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 9,
+      "d": 7
+    },
+    "mne/viz/_brain/colormap.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 72,
+      "d": 5
+    },
+    "tutorials/source-modeling/plot_mne_dspm_source_localization.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/source-modeling/plot_visualize_stc.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/stats-source-space/plot_stats_cluster_spatio_temporal.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

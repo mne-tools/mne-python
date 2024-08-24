@@ -1,0 +1,67 @@
+{
+  "merge_commit_sha": "be63cd40049a3d5526f9316c60b721cedf02bd74",
+  "authors": [
+    {
+      "n": "Chris Holdgraf",
+      "e": null
+    }
+  ],
+  "changes": {
+    "circle.yml": {
+      "a": 4,
+      "d": 0
+    },
+    "doc/python_reference.rst": {
+      "a": 18,
+      "d": 0
+    },
+    "doc/tutorials.rst": {
+      "a": 2,
+      "d": 1
+    },
+    "examples/decoding/plot_receptive_field.py": {
+      "a": 154,
+      "d": 0
+    },
+    "mne/datasets/__init__.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/datasets/mtrf/__init__.py": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/datasets/mtrf/mtrf.py": {
+      "a": 30,
+      "d": 0
+    },
+    "mne/datasets/utils.py": {
+      "a": 22,
+      "d": 11
+    },
+    "mne/decoding/__init__.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/decoding/receptive_field.py": {
+      "a": 362,
+      "d": 0
+    },
+    "mne/decoding/tests/test_receptive_field.py": {
+      "a": 150,
+      "d": 0
+    },
+    "mne/filter.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils.py": {
+      "a": 1,
+      "d": 0
+    },
+    "tutorials/plot_receptive_field.py": {
+      "a": 261,
+      "d": 0
+    }
+  }
+}

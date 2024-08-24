@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "8fde21e3da598dd53c01cd23e1b5bb24d6ecf6df",
+  "authors": [
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/gui/_coreg.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/viz/backends/_notebook.py": {
+      "a": 4,
+      "d": 2
+    }
+  }
+}

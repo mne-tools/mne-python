@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "42794b4472d0fbf8712bab2fb6a8705092291fdd",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/viz/montage.py": {
+      "a": 25,
+      "d": 1
+    },
+    "mne/viz/tests/test_montage.py": {
+      "a": 17,
+      "d": 1
+    }
+  }
+}

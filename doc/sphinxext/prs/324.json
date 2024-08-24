@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "929b10daea23e4e6d23bd736f9460ed6a95230c8",
+  "authors": [
+    {
+      "n": "Christian Brodbeck",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/source/python_reference.rst": {
+      "a": 311,
+      "d": 138
+    },
+    "mne/epochs.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/filter.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/preprocessing/__init__.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

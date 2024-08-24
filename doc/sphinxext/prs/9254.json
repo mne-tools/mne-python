@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "96b1d89364f867e9f901a2dcdd63d681371b6f98",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".circleci/config.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/_static/style.css": {
+      "a": 2,
+      "d": 1
+    },
+    "doc/_templates/layout.html": {
+      "a": 0,
+      "d": 12
+    },
+    "doc/references.bib": {
+      "a": 104,
+      "d": 134
+    },
+    "tutorials/epochs/plot_40_autogenerate_metadata.py": {
+      "a": 4,
+      "d": 4
+    }
+  }
+}

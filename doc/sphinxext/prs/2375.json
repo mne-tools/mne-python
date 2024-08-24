@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "b97e8732f748b18ddedf526c9673e78ab9620a5a",
+  "authors": [
+    {
+      "n": "Chris Holdgraf",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/channels/channels.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/io/fiff/tests/test_raw.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/pick.py": {
+      "a": 41,
+      "d": 1
+    },
+    "mne/io/tests/test_pick.py": {
+      "a": 5,
+      "d": 1
+    },
+    "mne/realtime/tests/test_mockclient.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/simulation/evoked.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/tests/test_event.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

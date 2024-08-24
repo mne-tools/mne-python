@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "fae9ada64b49afd9f6bb8161111a2aee9070c38c",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/install/manual_install.rst": {
+      "a": 2,
+      "d": 3
+    },
+    "doc/install/manual_install_platform_selector.html": {
+      "a": 5,
+      "d": 6
+    }
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "6e61eb5147d25da0618b2d2b91b538141e9a8b49",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/chpi.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/cov.py": {
+      "a": 16,
+      "d": 6
+    },
+    "mne/datasets/utils.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/dipole.py": {
+      "a": 228,
+      "d": 74
+    },
+    "mne/source_space.py": {
+      "a": 22,
+      "d": 15
+    },
+    "mne/tests/test_dipole.py": {
+      "a": 51,
+      "d": 28
+    },
+    "tutorials/plot_dipole_fit.py": {
+      "a": 4,
+      "d": 1
+    }
+  }
+}

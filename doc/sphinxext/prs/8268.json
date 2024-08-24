@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "eec85d4b864bb18fa0a5fa5b36a13b722d383bc8",
+  "authors": [
+    {
+      "n": "Denis A. Engemann",
+      "e": null
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "doc/references.bib": {
+      "a": 9,
+      "d": 0
+    },
+    "examples/inverse/plot_mne_cov_power.py": {
+      "a": 8,
+      "d": 1
+    },
+    "mne/cov.py": {
+      "a": 11,
+      "d": 22
+    },
+    "mne/minimum_norm/inverse.py": {
+      "a": 8,
+      "d": 0
+    }
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "4ef4ff748a3f83a2761ecf25093ae162821e84bb",
+  "authors": [
+    {
+      "n": "Martin Luessi",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/datasets/sample/sample.py": {
+      "a": 11,
+      "d": 4
+    },
+    "mne/datasets/spm_face/spm_data.py": {
+      "a": 8,
+      "d": 4
+    },
+    "mne/datasets/utils.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

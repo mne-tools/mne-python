@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "2f6d6b4667af1a3214e1a84ae21f8109429770a3",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/preprocessing.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/channels/__init__.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/channels/montage.py": {
+      "a": 55,
+      "d": 0
+    },
+    "mne/channels/tests/test_montage.py": {
+      "a": 33,
+      "d": 1
+    }
+  }
+}

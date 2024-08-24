@@ -1,0 +1,55 @@
+{
+  "merge_commit_sha": "64f384608b63ab6962d1e80c8c9ff1c2453d41b4",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 3,
+      "d": 0
+    },
+    "doc/overview/faq.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/decoding/base.py": {
+      "a": 28,
+      "d": 104
+    },
+    "mne/decoding/receptive_field.py": {
+      "a": 16,
+      "d": 6
+    },
+    "mne/decoding/search_light.py": {
+      "a": 36,
+      "d": 10
+    },
+    "mne/decoding/tests/test_base.py": {
+      "a": 24,
+      "d": 2
+    },
+    "mne/decoding/tests/test_receptive_field.py": {
+      "a": 39,
+      "d": 0
+    },
+    "mne/decoding/tests/test_search_light.py": {
+      "a": 25,
+      "d": 0
+    },
+    "mne/decoding/time_delaying_ridge.py": {
+      "a": 15,
+      "d": 3
+    },
+    "mne/fixes.py": {
+      "a": 1,
+      "d": 32
+    },
+    "mne/utils/docs.py": {
+      "a": 7,
+      "d": 0
+    }
+  }
+}

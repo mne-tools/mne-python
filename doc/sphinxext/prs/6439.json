@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "b07a871906ec4b03d40b3d8529e923b2d51037bf",
+  "authors": [
+    {
+      "n": "Luke Bloy",
+      "e": "luke.bloy@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/viz/epochs.py": {
+      "a": 8,
+      "d": 5
+    },
+    "mne/viz/tests/test_epochs.py": {
+      "a": 9,
+      "d": 0
+    }
+  }
+}

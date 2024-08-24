@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "cc74f7329d576bddaa5ec5f767efab5985c819a8",
+  "authors": [
+    {
+      "n": "dependabot[bot]",
+      "e": "49699333+dependabot[bot]@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    ".github/workflows/codeql-analysis.yml": {
+      "a": 1,
+      "d": 1
+    },
+    ".github/workflows/tests.yml": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

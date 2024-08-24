@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "630ef2fb56b5e934d0102381a0b12a20939dd05e",
+  "authors": [
+    {
+      "n": "Chris Holdgraf",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/io/base.py": {
+      "a": 8,
+      "d": 7
+    },
+    "mne/io/edf/tests/test_edf.py": {
+      "a": 15,
+      "d": 1
+    }
+  }
+}

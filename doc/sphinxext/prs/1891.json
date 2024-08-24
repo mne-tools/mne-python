@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "8e97c24e94c200664993b5f516df37e1387a08a5",
+  "authors": [
+    {
+      "n": "moutard",
+      "e": "clement.moutard@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/decoding/time_gen.py": {
+      "a": 28,
+      "d": 8
+    },
+    "mne/viz/decoding.py": {
+      "a": 42,
+      "d": 13
+    }
+  }
+}

@@ -1,0 +1,79 @@
+{
+  "merge_commit_sha": "da5ffc58556c475db36b8c0f6bcf9df5df9a9519",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/_digitization/_utils.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/bem.py": {
+      "a": 5,
+      "d": 2
+    },
+    "mne/channels/montage.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/data/coil_def.dat": {
+      "a": 128,
+      "d": 13
+    },
+    "mne/evoked.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/base.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/constants.py": {
+      "a": 25,
+      "d": 5
+    },
+    "mne/io/fiff/raw.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/fiff/tests/test_raw_fiff.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/io/meas_info.py": {
+      "a": 127,
+      "d": 12
+    },
+    "mne/io/proc_history.py": {
+      "a": 8,
+      "d": 9
+    },
+    "mne/io/tests/test_constants.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/io/tests/test_meas_info.py": {
+      "a": 38,
+      "d": 24
+    },
+    "mne/surface.py": {
+      "a": 5,
+      "d": 2
+    },
+    "mne/utils/numerics.py": {
+      "a": 7,
+      "d": 2
+    },
+    "mne/viz/_3d.py": {
+      "a": 3,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "5f76748c8d77f326925564fbae837062654dc32c",
+  "authors": [
+    {
+      "n": "Denis A. Engemann",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/decoding/time_gen.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

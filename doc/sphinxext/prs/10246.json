@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "585e444a709efb1aa5236182c3ba8052d1658cbb",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/html_templates/report/epochs.html.jinja": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "eeefc2ed0aa39c10eab3bd1ef883c9cacb6f7b86",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".github/workflows/codeql-analysis.yml": {
+      "a": 72,
+      "d": 0
+    },
+    "mne/filter.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/base.py": {
+      "a": 2,
+      "d": 3
+    },
+    "mne/utils/mixin.py": {
+      "a": 1,
+      "d": 2
+    }
+  }
+}

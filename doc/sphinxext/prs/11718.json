@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "dd9a4073eff6cf9320af1500b8a614a60a38fb95",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/stim.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/stats/tests/test_regression.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/check.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "merge_commit_sha": "01750aad31508519ecfe3e7945e54a3fbe1c9bbe",
+  "authors": [
+    {
+      "n": "Adam Li",
+      "e": null
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/channels/channels.py": {
+      "a": 41,
+      "d": 2
+    },
+    "mne/channels/montage.py": {
+      "a": 47,
+      "d": 6
+    },
+    "mne/channels/tests/test_montage.py": {
+      "a": 85,
+      "d": 1
+    },
+    "mne/io/_digitization.py": {
+      "a": 61,
+      "d": 7
+    }
+  }
+}

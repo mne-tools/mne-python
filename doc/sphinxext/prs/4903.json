@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "ed4ef2df783669b0b3fa5095a60f84caf8f1093e",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/defaults.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/viz/_3d.py": {
+      "a": 16,
+      "d": 5
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 6,
+      "d": 5
+    }
+  }
+}

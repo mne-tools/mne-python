@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "8cc1068aa34c0aa43cdd3d2f42ba4961d0a189e9",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/visualization/plot_meg_sensors.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/data/helmets/CTF_275.fif.gz": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/tests/test_surface.py": {
+      "a": 5,
+      "d": 2
+    }
+  }
+}

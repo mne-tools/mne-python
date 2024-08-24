@@ -1,0 +1,51 @@
+{
+  "merge_commit_sha": "3a9b06652f644a8bda3c99f91705396b7373368a",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 8,
+      "d": 0
+    },
+    "doc/mri.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "examples/datasets/spm_faces_dataset_sgskip.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/inverse/label_from_stc.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/commands/mne_kit2fiff.py": {
+      "a": 11,
+      "d": 2
+    },
+    "mne/conftest.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/gui/__init__.py": {
+      "a": 7,
+      "d": 1
+    },
+    "mne/gui/tests/test_kit2fiff_gui.py": {
+      "a": 5,
+      "d": 2
+    },
+    "mne/utils/docs.py": {
+      "a": 12,
+      "d": 1
+    },
+    "mne/viz/backends/renderer.py": {
+      "a": 5,
+      "d": 1
+    }
+  }
+}

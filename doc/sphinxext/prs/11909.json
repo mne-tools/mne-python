@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "d64981c5f26cbc85affe0edf3ad66b13521d51e5",
+  "authors": [
+    {
+      "n": "John Veillette",
+      "e": "johnv@uchicago.edu"
+    }
+  ],
+  "changes": {
+    "doc/install/mne_tools_suite.rst": {
+      "a": 2,
+      "d": 0
+    }
+  }
+}

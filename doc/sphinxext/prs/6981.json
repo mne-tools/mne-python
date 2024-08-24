@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "309a63861723e073b133181dee857ea01c2178ed",
+  "authors": [
+    {
+      "n": "Rob Luke",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/datasets/utils.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/nirx/tests/test_nirx.py": {
+      "a": 41,
+      "d": 5
+    }
+  }
+}

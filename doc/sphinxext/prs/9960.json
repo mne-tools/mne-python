@@ -1,0 +1,187 @@
+{
+  "merge_commit_sha": "ad095ba6e0e5b97ddbbb0def3846fa8551add30d",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Martin Schulz",
+      "e": "dev@earthman-music.de"
+    }
+  ],
+  "changes": {
+    ".circleci/config.yml": {
+      "a": 10,
+      "d": 4
+    },
+    ".gitignore": {
+      "a": 1,
+      "d": 0
+    },
+    "Makefile": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/conf.py": {
+      "a": 16,
+      "d": 0
+    },
+    "examples/inverse/compute_mne_inverse_raw_in_label.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/time_frequency/source_power_spectrum.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/time_frequency/source_space_time_frequency.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/conftest.py": {
+      "a": 20,
+      "d": 2
+    },
+    "mne/epochs.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/base.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/tests/test_ica.py": {
+      "a": 6,
+      "d": 7
+    },
+    "mne/report/report.py": {
+      "a": 8,
+      "d": 6
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 1,
+      "d": 3
+    },
+    "mne/utils/config.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/utils/docs.py": {
+      "a": 6,
+      "d": 3
+    },
+    "mne/utils/tests/test_config.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/_figure.py": {
+      "a": 24,
+      "d": 9
+    },
+    "mne/viz/_mpl_figure.py": {
+      "a": 5,
+      "d": 1
+    },
+    "mne/viz/_scraper.py": {
+      "a": 57,
+      "d": 0
+    },
+    "mne/viz/backends/_utils.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/epochs.py": {
+      "a": 5,
+      "d": 5
+    },
+    "mne/viz/ica.py": {
+      "a": 6,
+      "d": 5
+    },
+    "mne/viz/raw.py": {
+      "a": 5,
+      "d": 11
+    },
+    "mne/viz/tests/test_epochs.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/tests/test_figure.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/tests/test_ica.py": {
+      "a": 15,
+      "d": 15
+    },
+    "mne/viz/tests/test_scraper.py": {
+      "a": 24,
+      "d": 0
+    },
+    "mne/viz/utils.py": {
+      "a": 33,
+      "d": 10
+    },
+    "tools/circleci_dependencies.sh": {
+      "a": 1,
+      "d": 0
+    },
+    "tutorials/epochs/50_epochs_to_data_frame.py": {
+      "a": 6,
+      "d": 0
+    },
+    "tutorials/evoked/30_eeg_erp.py": {
+      "a": 2,
+      "d": 1
+    },
+    "tutorials/intro/10_overview.py": {
+      "a": 2,
+      "d": 2
+    },
+    "tutorials/preprocessing/15_handling_bad_channels.py": {
+      "a": 2,
+      "d": 1
+    },
+    "tutorials/preprocessing/20_rejecting_bad_data.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/preprocessing/30_filtering_resampling.py": {
+      "a": 3,
+      "d": 2
+    },
+    "tutorials/preprocessing/40_artifact_correction_ica.py": {
+      "a": 2,
+      "d": 1
+    },
+    "tutorials/preprocessing/45_projectors_background.py": {
+      "a": 4,
+      "d": 2
+    },
+    "tutorials/preprocessing/50_artifact_correction_ssp.py": {
+      "a": 6,
+      "d": 3
+    },
+    "tutorials/preprocessing/55_setting_eeg_reference.py": {
+      "a": 4,
+      "d": 2
+    },
+    "tutorials/raw/30_annotate_raw.py": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

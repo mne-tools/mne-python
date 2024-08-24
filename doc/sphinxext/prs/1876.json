@@ -1,0 +1,115 @@
+{
+  "merge_commit_sha": "73ed901a32895b3c17bef5494eec6a558b747b7f",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".travis.yml": {
+      "a": 1,
+      "d": 3
+    },
+    "doc/source/python_reference.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/inverse/plot_dipole_fit.py": {
+      "a": 2,
+      "d": 34
+    },
+    "examples/inverse/plot_rap_music.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/__init__.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/beamformer/_rap_music.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/beamformer/tests/test_rap_music.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/bem.py": {
+      "a": 11,
+      "d": 9
+    },
+    "mne/commands/mne_clean_eog_ecg.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/cov.py": {
+      "a": 5,
+      "d": 1
+    },
+    "mne/dipole.py": {
+      "a": 94,
+      "d": 18
+    },
+    "mne/filter.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/forward/_compute_forward.py": {
+      "a": 41,
+      "d": 0
+    },
+    "mne/forward/_make_forward.py": {
+      "a": 6,
+      "d": 4
+    },
+    "mne/forward/tests/test_make_forward.py": {
+      "a": 23,
+      "d": 4
+    },
+    "mne/io/__init__.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/io/base.py": {
+      "a": 0,
+      "d": 87
+    },
+    "mne/io/chpi.py": {
+      "a": 130,
+      "d": 0
+    },
+    "mne/io/fiff/tests/test_raw.py": {
+      "a": 1,
+      "d": 20
+    },
+    "mne/io/tests/test_chpi.py": {
+      "a": 52,
+      "d": 0
+    },
+    "mne/tests/test_bem.py": {
+      "a": 4,
+      "d": 7
+    },
+    "mne/viz/_3d.py": {
+      "a": 27,
+      "d": 59
+    },
+    "mne/viz/__init__.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/misc.py": {
+      "a": 34,
+      "d": 0
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 10,
+      "d": 9
+    },
+    "mne/viz/tests/test_misc.py": {
+      "a": 12,
+      "d": 3
+    }
+  }
+}

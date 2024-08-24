@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "26d14bafcef40af134074f23a28c26d5dfb19f96",
+  "authors": [
+    {
+      "n": "Teon L Brooks",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/manual/io.rst": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/kit/kit.py": {
+      "a": 14,
+      "d": 0
+    }
+  }
+}

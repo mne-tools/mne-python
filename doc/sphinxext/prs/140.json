@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "d895111057a43047b707e22d0078e89df27c2923",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/minimum_norm/time_frequency.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

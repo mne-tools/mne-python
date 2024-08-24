@@ -21,6 +21,7 @@ will only work properly when run in an interactive environment.
 #
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 import matplotlib.pyplot as plt
 
 import mne

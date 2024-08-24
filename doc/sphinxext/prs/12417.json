@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "0f5c91bbdfa0258c44c71ef8274cad22a90c13eb",
+  "authors": [
+    {
+      "n": "Kristijan Armeni",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/io/neuralynx/neuralynx.py": {
+      "a": 8,
+      "d": 51
+    }
+  }
+}

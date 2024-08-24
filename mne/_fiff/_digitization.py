@@ -1,9 +1,4 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
-#          Teon Brooks <teon.brooks@gmail.com>
-#          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
-#          Joan Massich <mailsik@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -225,7 +220,7 @@ def write_dig(fname, pts, coord_frame=None, *, overwrite=False, verbose=None):
         if len(bad_frames) > 0:
             raise ValueError(
                 "Points have coord_frame entries that are incompatible with "
-                "coord_frame=%i: %s." % (coord_frame, str(tuple(bad_frames)))
+                f"coord_frame={coord_frame}: {tuple(bad_frames)}."
             )
 
     with start_and_end_file(fname) as fid:

@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "f02e5576df7cfcee3fa435cafe66602e65ff76ec",
+  "authors": [
+    {
+      "n": "Rasmus Aagaard",
+      "e": null
+    },
+    {
+      "n": "roraa",
+      "e": "roraa@dtu.dk"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/edf/edf.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

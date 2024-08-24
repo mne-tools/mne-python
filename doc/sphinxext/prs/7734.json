@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "92914823931c1e330f79b91f4ff6d7f3ff397d7c",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 4,
+      "d": 0
+    },
+    "examples/inverse/plot_morph_surface_stc.py": {
+      "a": 37,
+      "d": 24
+    },
+    "mne/morph.py": {
+      "a": 152,
+      "d": 96
+    },
+    "mne/source_estimate.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/tests/test_morph.py": {
+      "a": 97,
+      "d": 5
+    }
+  }
+}

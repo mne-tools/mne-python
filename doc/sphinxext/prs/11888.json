@@ -1,0 +1,243 @@
+{
+  "merge_commit_sha": "921e02701b3c6fede08ba77cef321ee3a064de96",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "doc/_static/versions.json": {
+      "a": 2,
+      "d": 37
+    },
+    "doc/changes/devel.rst": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/changes/devel.rst.template": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/changes/v0.1.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/changes/v0.10.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/changes/v0.11.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/changes/v0.12.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/changes/v0.13.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/changes/v0.14.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/changes/v0.15.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/changes/v0.16.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/changes/v0.17.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/changes/v0.18.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/changes/v0.19.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/changes/v0.2.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/changes/v0.20.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/changes/v0.21.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/changes/v0.22.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/changes/v0.23.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/changes/v0.24.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/changes/v0.3.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/changes/v0.4.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/changes/v0.5.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/changes/v0.6.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/changes/v0.7.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/changes/v0.8.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/changes/v0.9.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/changes/v1.0.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/changes/v1.1.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/changes/v1.2.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/changes/v1.3.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/changes/v1.4.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/changes/v1.5.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/conf.py": {
+      "a": 5,
+      "d": 0
+    },
+    "doc/funding.rst": {
+      "a": 0,
+      "d": 2
+    },
+    "doc/glossary.rst": {
+      "a": 0,
+      "d": 2
+    },
+    "doc/install/advanced.rst": {
+      "a": 0,
+      "d": 2
+    },
+    "doc/install/check_installation.rst": {
+      "a": 0,
+      "d": 2
+    },
+    "doc/install/contributing.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/install/installers.rst": {
+      "a": 0,
+      "d": 2
+    },
+    "doc/install/manual_install.rst": {
+      "a": 0,
+      "d": 2
+    },
+    "doc/install/manual_install_python.rst": {
+      "a": 0,
+      "d": 2
+    },
+    "doc/install/mne_c.rst": {
+      "a": 0,
+      "d": 2
+    },
+    "doc/install/mne_tools_suite.rst": {
+      "a": 0,
+      "d": 2
+    },
+    "doc/links.inc": {
+      "a": 9,
+      "d": 94
+    },
+    "doc/old_versions/index.rst": {
+      "a": 18,
+      "d": 0
+    },
+    "doc/overview/design_philosophy.rst": {
+      "a": 0,
+      "d": 2
+    },
+    "doc/overview/faq.rst": {
+      "a": 0,
+      "d": 2
+    },
+    "doc/overview/get_help.rst": {
+      "a": 0,
+      "d": 2
+    },
+    "doc/overview/index.rst": {
+      "a": 0,
+      "d": 2
+    },
+    "doc/overview/learn_python.rst": {
+      "a": 0,
+      "d": 2
+    },
+    "doc/overview/matlab.rst": {
+      "a": 0,
+      "d": 2
+    },
+    "doc/overview/people.rst": {
+      "a": 0,
+      "d": 2
+    },
+    "doc/overview/roadmap.rst": {
+      "a": 0,
+      "d": 2
+    },
+    "doc/whats_new.rst": {
+      "a": 36,
+      "d": 36
+    },
+    "tutorials/clinical/30_ecog.py": {
+      "a": 1,
+      "d": 2
+    },
+    "tutorials/preprocessing/40_artifact_correction_ica.py": {
+      "a": 0,
+      "d": 1
+    }
+  }
+}

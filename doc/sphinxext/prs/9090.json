@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "cc80458ba6aec4f790a56cc445e3f024740732de",
+  "authors": [
+    {
+      "n": "Christian Mista",
+      "e": "cmista@ingenieria.uner.edu.ar"
+    }
+  ],
+  "changes": {
+    "tutorials/preprocessing/plot_40_artifact_correction_ica.py": {
+      "a": 15,
+      "d": 42
+    }
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "5f7c9b90fdf89bf7b33ee75b74f79fdb1128d42a",
+  "authors": [
+    {
+      "n": "Santeri Ruuskanen",
+      "e": null
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/conf.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/time_frequency/multitaper.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 10,
+      "d": 8
+    },
+    "mne/utils/docs.py": {
+      "a": 37,
+      "d": 13
+    }
+  }
+}

@@ -1,8 +1,7 @@
-# Authors: Juergen Dammers <j.dammers@fz-juelich.de>
-#          Denis Engemann <denis.engemann@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 import math
 
 import numpy as np
@@ -60,7 +59,7 @@ def ctps(data, is_raw=True):
         Engineering, IEEE Transactions on 55 (10), 2353-2362.
     """
     if not data.ndim == 3:
-        raise ValueError("Data must have 3 dimensions, not %i." % data.ndim)
+        raise ValueError(f"Data must have 3 dimensions, not {data.ndim}.")
 
     if is_raw:
         phase_angles = _compute_normalized_phase(data)

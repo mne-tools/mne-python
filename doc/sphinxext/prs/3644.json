@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "b45ac02756f4ce6644ab17a16ac0c77a6f4abb80",
+  "authors": [
+    {
+      "n": "Christian Brodbeck",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/coreg.py": {
+      "a": 6,
+      "d": 4
+    },
+    "mne/gui/_fiducials_gui.py": {
+      "a": 11,
+      "d": 9
+    }
+  }
+}

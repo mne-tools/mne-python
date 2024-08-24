@@ -1,0 +1,67 @@
+{
+  "merge_commit_sha": "d9c384f360005c2f88f2e71b706980aed417a7e4",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "README.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/source/cite.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/source/contributing.rst": {
+      "a": 4,
+      "d": 4
+    },
+    "doc/source/getting_started.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/source/git_links.inc": {
+      "a": 23,
+      "d": 23
+    },
+    "doc/source/known_projects.inc": {
+      "a": 3,
+      "d": 3
+    },
+    "doc/source/manual/analyze.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/source/manual/convert.rst": {
+      "a": 3,
+      "d": 3
+    },
+    "doc/source/mne-cpp.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/source/this_project.inc": {
+      "a": 2,
+      "d": 3
+    },
+    "doc/source/whats_new.rst": {
+      "a": 4,
+      "d": 4
+    },
+    "examples/plot_channel_epochs_image.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/circle.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

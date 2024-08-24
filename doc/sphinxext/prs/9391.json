@@ -1,0 +1,83 @@
+{
+  "merge_commit_sha": "5bc18f950aa4fec908873c528f68fcfc63f48f16",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/conf.py": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/reading_raw_data.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/conftest.py": {
+      "a": 6,
+      "d": 0
+    },
+    "mne/io/__init__.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/hitachi/__init__.py": {
+      "a": 7,
+      "d": 0
+    },
+    "mne/io/hitachi/hitachi.py": {
+      "a": 283,
+      "d": 0
+    },
+    "mne/io/hitachi/tests/test_hitachi.py": {
+      "a": 274,
+      "d": 0
+    },
+    "mne/io/nirx/nirx.py": {
+      "a": 6,
+      "d": 3
+    },
+    "mne/preprocessing/nirs/_beer_lambert_law.py": {
+      "a": 5,
+      "d": 3
+    },
+    "mne/preprocessing/nirs/_optical_density.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/preprocessing/nirs/_scalp_coupling_index.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/nirs/_tddr.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/preprocessing/nirs/nirs.py": {
+      "a": 18,
+      "d": 26
+    },
+    "mne/preprocessing/nirs/tests/test_beer_lambert_law.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/nirs/tests/test_nirs.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/docs.py": {
+      "a": 13,
+      "d": 0
+    },
+    "tutorials/io/30_reading_fnirs_data.py": {
+      "a": 6,
+      "d": 0
+    }
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "049295e9fd84c821db4537c9ea50efc20625b43d",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/conf.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/conftest.py": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/io/ctf/markers.py": {
+      "a": 5,
+      "d": 4
+    },
+    "mne/label.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/config.py": {
+      "a": 1,
+      "d": 4
+    },
+    "mne/viz/backends/_utils.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/viz/ica.py": {
+      "a": 2,
+      "d": 2
+    },
+    "requirements_doc.txt": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

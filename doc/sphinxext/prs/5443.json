@@ -1,0 +1,135 @@
+{
+  "merge_commit_sha": "d232d8ec611513044d6a60d732e8f1d50fb6b457",
+  "authors": [
+    {
+      "n": "Tommy Clausner",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/_templates/class.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/conf.py": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/documentation.rst": {
+      "a": 5,
+      "d": 1
+    },
+    "doc/manual/cookbook.rst": {
+      "a": 2,
+      "d": 1
+    },
+    "doc/python_reference.rst": {
+      "a": 3,
+      "d": 5
+    },
+    "doc/whats_new.rst": {
+      "a": 4,
+      "d": 1
+    },
+    "environment.yml": {
+      "a": 1,
+      "d": 0
+    },
+    "examples/inverse/plot_morph_data.py": {
+      "a": 0,
+      "d": 59
+    },
+    "examples/inverse/plot_morph_surface_stc.py": {
+      "a": 85,
+      "d": 0
+    },
+    "examples/inverse/plot_morph_volume_stc.py": {
+      "a": 88,
+      "d": 0
+    },
+    "examples/visualization/plot_xhemi.py": {
+      "a": 8,
+      "d": 6
+    },
+    "mne/__init__.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/beamformer/_compute_beamformer.py": {
+      "a": 189,
+      "d": 2
+    },
+    "mne/beamformer/_dics.py": {
+      "a": 8,
+      "d": 99
+    },
+    "mne/beamformer/_lcmv.py": {
+      "a": 9,
+      "d": 125
+    },
+    "mne/beamformer/tests/test_dics.py": {
+      "a": 9,
+      "d": 1
+    },
+    "mne/label.py": {
+      "a": 10,
+      "d": 6
+    },
+    "mne/morph.py": {
+      "a": 1475,
+      "d": 0
+    },
+    "mne/source_estimate.py": {
+      "a": 59,
+      "d": 519
+    },
+    "mne/surface.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/tests/test_morph.py": {
+      "a": 275,
+      "d": 0
+    },
+    "mne/tests/test_source_estimate.py": {
+      "a": 83,
+      "d": 65
+    },
+    "mne/tests/test_source_space.py": {
+      "a": 26,
+      "d": 10
+    },
+    "mne/utils.py": {
+      "a": 7,
+      "d": 0
+    },
+    "mne/viz/_3d.py": {
+      "a": 2,
+      "d": 2
+    },
+    "tutorials/plot_background_freesurfer.py": {
+      "a": 118,
+      "d": 0
+    },
+    "tutorials/plot_mne_dspm_source_localization.py": {
+      "a": 9,
+      "d": 4
+    },
+    "tutorials/plot_morph_stc.py": {
+      "a": 266,
+      "d": 0
+    },
+    "tutorials/plot_object_source_estimate.py": {
+      "a": 229,
+      "d": 0
+    },
+    "tutorials/plot_stats_cluster_spatio_temporal.py": {
+      "a": 5,
+      "d": 2
+    },
+    "tutorials/plot_stats_cluster_spatio_temporal_repeated_measures_anova.py": {
+      "a": 6,
+      "d": 2
+    }
+  }
+}

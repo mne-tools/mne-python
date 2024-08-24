@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "dcd6eb2e2e9ceee34a34e78accd6261e6bf417f2",
+  "authors": [
+    {
+      "n": "Denis A. Engemann",
+      "e": null
+    }
+  ],
+  "changes": {
+    "examples/plot_topo_customized.py": {
+      "a": 15,
+      "d": 10
+    },
+    "mne/time_frequency/psd.py": {
+      "a": 10,
+      "d": 8
+    },
+    "mne/time_frequency/tests/test_psd.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/viz/__init__.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/viz/raw.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/topo.py": {
+      "a": 9,
+      "d": 7
+    }
+  }
+}

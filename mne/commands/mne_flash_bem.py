@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """Create 3-layer BEM model from Flash MRI images.
 
 Examples
@@ -22,8 +21,8 @@ has been completed. In particular, the T1.mgz and brain.mgz MRI volumes
 should be, as usual, in the subject's mri directory.
 
 """  # noqa E501
-# Authors: Lorenzo De Santis
-#          Alexandre Gramfort
+
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 

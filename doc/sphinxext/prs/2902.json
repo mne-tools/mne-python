@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "8b3a6441b1076340acbd8392fc2962b2fac4020a",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/preprocessing/maxwell.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/tests/test_maxwell.py": {
+      "a": 7,
+      "d": 0
+    }
+  }
+}

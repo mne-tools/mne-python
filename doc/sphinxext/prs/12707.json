@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "26e5057adc81313bdb3084e3119bd334d7dc06bc",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/api/statistics.rst": {
+      "a": 7,
+      "d": 0
+    },
+    "doc/changes/devel/12707.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/references.bib": {
+      "a": 11,
+      "d": 0
+    },
+    "ignore_words.txt": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/stats/__init__.pyi": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/stats/erp.py": {
+      "a": 80,
+      "d": 0
+    },
+    "mne/stats/tests/test_erp.py": {
+      "a": 27,
+      "d": 0
+    }
+  }
+}

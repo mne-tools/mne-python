@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "0dc2ad484fe8d75fe5acbfbbd36f37123c4f6fab",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    ".travis.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "Makefile": {
+      "a": 4,
+      "d": 2
+    },
+    "appveyor.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/source/python_reference.rst": {
+      "a": 8,
+      "d": 0
+    },
+    "mne/bem.py": {
+      "a": 119,
+      "d": 1
+    },
+    "mne/commands/mne_watershed_bem.py": {
+      "a": 62,
+      "d": 0
+    },
+    "mne/commands/tests/test_commands.py": {
+      "a": 27,
+      "d": 2
+    },
+    "mne/utils.py": {
+      "a": 8,
+      "d": 1
+    }
+  }
+}

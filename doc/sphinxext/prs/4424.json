@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "b3a54072cd67068269d300d51def4014c1af1719",
+  "authors": [
+    {
+      "n": "Britta Westner",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/python_reference.rst": {
+      "a": 4,
+      "d": 0
+    },
+    "doc/whats_new.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "examples/inverse/plot_lcmv_beamformer_volume.py": {
+      "a": 14,
+      "d": 7
+    },
+    "mne/beamformer/_lcmv.py": {
+      "a": 1,
+      "d": 11
+    },
+    "mne/beamformer/tests/test_lcmv.py": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

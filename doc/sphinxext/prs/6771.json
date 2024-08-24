@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "2545faf2f1b755d33184b9b1bcbbd8cd77a4bf4e",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/links.inc": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/overview/design_philosophy.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/inverse/plot_dics_source_power.py": {
+      "a": 1,
+      "d": 0
+    },
+    "tutorials/preprocessing/plot_40_artifact_correction_ica.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

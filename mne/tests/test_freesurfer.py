@@ -1,5 +1,7 @@
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 from pathlib import Path
 
 import numpy as np
@@ -254,8 +256,8 @@ def test_read_freesurfer_lut(fname, tmp_path):
     colors = [(id_,) * 4 for id_ in ids]
     with open(fname, "w") as fid:
         for name, id_, color in zip(names, ids, colors):
-            out_color = " ".join("%3d" % x for x in color)
-            line = "%d    %s %s\n" % (id_, name, out_color)
+            out_color = " ".join(f"{x:03}" for x in color)
+            line = f"{id_}    {name} {out_color}\n"
             fid.write(line)
     lut, got_colors = read_freesurfer_lut(fname)
     assert len(lut) == len(got_colors) == len(names) == len(ids)
@@ -266,8 +268,8 @@ def test_read_freesurfer_lut(fname, tmp_path):
         assert lut[name] == id_
     with open(fname, "w") as fid:
         for name, id_, color in zip(names, ids, colors):
-            out_color = " ".join("%3d" % x for x in color[:3])  # wrong length!
-            line = "%d    %s %s\n" % (id_, name, out_color)
+            out_color = " ".join(f"{x:03}" for x in color[:3])  # wrong length!
+            line = f"{id_}    {name} {out_color}\n"
             fid.write(line)
     with pytest.raises(RuntimeError, match="formatted"):
         read_freesurfer_lut(fname)

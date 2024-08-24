@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "dacca023885184a5063152de6cf6705ceb721c16",
+  "authors": [
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".travis.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "azure-pipelines.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/conf.py": {
+      "a": 3,
+      "d": 4
+    },
+    "environment.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/morph.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/_3d.py": {
+      "a": 3,
+      "d": 6
+    },
+    "mne/viz/backends/_pyvista.py": {
+      "a": 7,
+      "d": 0
+    },
+    "requirements.txt": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "89fa95be4de530f38a19b2c9addbaec50336d8dc",
+  "authors": [
+    {
+      "n": "Christian Brodbeck",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/gui/_kit2fiff_gui.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/gui/_marker_gui.py": {
+      "a": 8,
+      "d": 1
+    },
+    "mne/gui/tests/test_marker_gui.py": {
+      "a": 26,
+      "d": 3
+    }
+  }
+}

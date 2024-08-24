@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "2a0b111349380429dcd5cab8abf1a211fd5eb408",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/conf.py": {
+      "a": 7,
+      "d": 1
+    },
+    "examples/time_frequency/time_frequency_erds.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/conftest.py": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/io/tag.py": {
+      "a": 22,
+      "d": 22
+    },
+    "mne/viz/tests/test_topomap.py": {
+      "a": 10,
+      "d": 3
+    },
+    "mne/viz/topomap.py": {
+      "a": 36,
+      "d": 21
+    },
+    "tools/azure_dependencies.sh": {
+      "a": 8,
+      "d": 10
+    },
+    "tools/github_actions_dependencies.sh": {
+      "a": 5,
+      "d": 9
+    },
+    "tools/github_actions_test.sh": {
+      "a": 5,
+      "d": 1
+    }
+  }
+}

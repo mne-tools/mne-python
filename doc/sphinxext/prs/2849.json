@@ -1,0 +1,95 @@
+{
+  "merge_commit_sha": "f1a3e085aca64d88afaca15dfeef406af24ddd91",
+  "authors": [
+    {
+      "n": "jaeilepp",
+      "e": "jaeilepp@student.jyu.fi"
+    }
+  ],
+  "changes": {
+    "circle.yml": {
+      "a": 66,
+      "d": 0
+    },
+    "examples/connectivity/plot_cwt_sensor_connectivity.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/connectivity/plot_mne_inverse_coherence_epochs.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/connectivity/plot_mne_inverse_connectivity_spectrum.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/connectivity/plot_mne_inverse_label_connectivity.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/connectivity/plot_sensor_connectivity.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/forward/plot_make_forward.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/simulation/plot_simulate_raw_data.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/stats/plot_cluster_stats_evoked.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/stats/plot_sensor_permutation_test.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/time_frequency/plot_compute_raw_data_spectrum.py": {
+      "a": 8,
+      "d": 6
+    },
+    "mne/datasets/megsim/megsim.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/datasets/megsim/urls.py": {
+      "a": 7,
+      "d": 0
+    },
+    "mne/datasets/utils.py": {
+      "a": 29,
+      "d": 25
+    },
+    "mne/forward/_lead_dots.py": {
+      "a": 26,
+      "d": 13
+    },
+    "tutorials/plot_cluster_methods_tutorial.py": {
+      "a": 6,
+      "d": 5
+    },
+    "tutorials/plot_cluster_stats_spatio_temporal.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/plot_cluster_stats_spatio_temporal_2samp.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/plot_epochs_to_data_frame.py": {
+      "a": 2,
+      "d": 3
+    },
+    "tutorials/plot_ica_from_raw.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/plot_spatio_temporal_cluster_stats_sensor.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "d167f95aa5534136f8390e3c971e668b5bb02ef2",
+  "authors": [
+    {
+      "n": "Adam Li",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/stats/permutations.py": {
+      "a": 2,
+      "d": 4
+    }
+  }
+}

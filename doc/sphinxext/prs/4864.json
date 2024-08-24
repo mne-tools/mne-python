@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "fce5e9810af6df61b4fea853f9bb940fcaa3e43c",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "doc/python_reference.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/whats_new.rst": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/io/__init__.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/eeglab/__init__.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/eeglab/eeglab.py": {
+      "a": 55,
+      "d": 7
+    },
+    "mne/io/eeglab/tests/test_eeglab.py": {
+      "a": 12,
+      "d": 0
+    }
+  }
+}

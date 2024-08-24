@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "23e10c19da1803159e24709a6dfdb9cde9413798",
+  "authors": [
+    {
+      "n": "Adonay Nunes",
+      "e": "adonay.s.nunes@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/annotations.py": {
+      "a": 13,
+      "d": 6
+    },
+    "mne/tests/test_annotations.py": {
+      "a": 39,
+      "d": 0
+    }
+  }
+}

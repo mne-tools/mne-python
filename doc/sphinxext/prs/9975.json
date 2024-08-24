@@ -1,0 +1,63 @@
+{
+  "merge_commit_sha": "7169435c716581d51fd407f96efa79eb6170a48e",
+  "authors": [
+    {
+      "n": "Mathieu Scheltienne",
+      "e": "mathieu.scheltienne@fcbg.ch"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/epochs.py": {
+      "a": 5,
+      "d": 2
+    },
+    "mne/export/_egimff.py": {
+      "a": 14,
+      "d": 2
+    },
+    "mne/export/_export.py": {
+      "a": 18,
+      "d": 5
+    },
+    "mne/export/tests/test_export.py": {
+      "a": 35,
+      "d": 5
+    },
+    "mne/io/base.py": {
+      "a": 6,
+      "d": 2
+    }
+  }
+}

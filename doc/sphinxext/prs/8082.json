@@ -1,0 +1,71 @@
+{
+  "merge_commit_sha": "64e3dd09ec3307586514bb8c063ff2d06d8b7986",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/datasets/utils.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/source_estimate.py": {
+      "a": 15,
+      "d": 10
+    },
+    "mne/surface.py": {
+      "a": 47,
+      "d": 0
+    },
+    "mne/tests/test_surface.py": {
+      "a": 7,
+      "d": 1
+    },
+    "mne/utils/docs.py": {
+      "a": 15,
+      "d": 0
+    },
+    "mne/viz/_3d.py": {
+      "a": 58,
+      "d": 14
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 42,
+      "d": 18
+    },
+    "mne/viz/_brain/_timeviewer.py": {
+      "a": 12,
+      "d": 5
+    },
+    "mne/viz/_brain/colormap.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/viz/_brain/surface.py": {
+      "a": 18,
+      "d": 14
+    },
+    "mne/viz/_brain/tests/test_brain.py": {
+      "a": 10,
+      "d": 8
+    },
+    "mne/viz/_brain/view.py": {
+      "a": 28,
+      "d": 22
+    },
+    "mne/viz/backends/_pyvista.py": {
+      "a": 27,
+      "d": 18
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 29,
+      "d": 3
+    },
+    "tutorials/source-modeling/plot_visualize_stc.py": {
+      "a": 15,
+      "d": 1
+    }
+  }
+}

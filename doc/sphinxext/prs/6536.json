@@ -1,0 +1,123 @@
+{
+  "merge_commit_sha": "f71468814df671700feb6460dce34c259ac77b39",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/beamformer/tests/test_lcmv.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/connectivity/tests/test_spectral.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/decoding/tests/test_transformer.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/epochs.py": {
+      "a": 20,
+      "d": 17
+    },
+    "mne/filter.py": {
+      "a": 14,
+      "d": 9
+    },
+    "mne/fixes.py": {
+      "a": 18,
+      "d": 10
+    },
+    "mne/io/edf/edf.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/simulation/evoked.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/simulation/raw.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/simulation/source.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/simulation/tests/test_evoked.py": {
+      "a": 5,
+      "d": 2
+    },
+    "mne/simulation/tests/test_raw.py": {
+      "a": 8,
+      "d": 2
+    },
+    "mne/simulation/tests/test_source.py": {
+      "a": 7,
+      "d": 1
+    },
+    "mne/source_estimate.py": {
+      "a": 4,
+      "d": 1
+    },
+    "mne/stats/cluster_level.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/stats/tests/test_cluster_level.py": {
+      "a": 6,
+      "d": 2
+    },
+    "mne/stats/tests/test_permutations.py": {
+      "a": 5,
+      "d": 1
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 8,
+      "d": 4
+    },
+    "mne/tests/test_filter.py": {
+      "a": 7,
+      "d": 11
+    },
+    "mne/tests/test_source_estimate.py": {
+      "a": 2,
+      "d": 3
+    },
+    "mne/time_frequency/csd.py": {
+      "a": 0,
+      "d": 3
+    },
+    "mne/time_frequency/stft.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/time_frequency/tests/test_psd.py": {
+      "a": 5,
+      "d": 4
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/check.py": {
+      "a": 7,
+      "d": 0
+    },
+    "mne/utils/numerics.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/utils/tests/test_check.py": {
+      "a": 10,
+      "d": 2
+    },
+    "tutorials/discussions/plot_background_filtering.py": {
+      "a": 5,
+      "d": 4
+    }
+  }
+}

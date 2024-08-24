@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "fbb9cb1137927f24848c9cd9a8bd92334fcf80ac",
+  "authors": [
+    {
+      "n": "Denis A. Engemann",
+      "e": null
+    }
+  ],
+  "changes": {
+    "examples/export/plot_epochs_as_data_frame.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/epochs.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/fiff/evoked.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/fiff/raw.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/source_estimate.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

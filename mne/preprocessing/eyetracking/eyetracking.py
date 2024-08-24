@@ -1,6 +1,4 @@
-# Authors: Dominik Welke <dominik.welke@mailbox.org>
-#          Scott Huberty <seh33@uw.edu>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 

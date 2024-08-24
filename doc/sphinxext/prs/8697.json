@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "9f231cfa8416b5bfe06dc996fa6d50c87b488d37",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    ".circleci/config.yml": {
+      "a": 0,
+      "d": 6
+    },
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/inverse/plot_multidict_reweighted_tfmxne.py": {
+      "a": 26,
+      "d": 39
+    },
+    "mne/inverse_sparse/mxne_inverse.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/inverse_sparse/mxne_optim.py": {
+      "a": 36,
+      "d": 25
+    },
+    "mne/inverse_sparse/tests/test_mxne_optim.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/time_frequency/_stft.py": {
+      "a": 19,
+      "d": 20
+    },
+    "mne/time_frequency/tests/test_stft.py": {
+      "a": 13,
+      "d": 6
+    }
+  }
+}

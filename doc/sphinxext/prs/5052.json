@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "9a7f28c52799044660a9844b6b115a2438cfaa7a",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/connectivity/spectral.py": {
+      "a": 3,
+      "d": 20
+    },
+    "mne/filter.py": {
+      "a": 5,
+      "d": 12
+    },
+    "mne/minimum_norm/tests/test_time_frequency.py": {
+      "a": 14,
+      "d": 29
+    },
+    "mne/minimum_norm/time_frequency.py": {
+      "a": 4,
+      "d": 16
+    },
+    "mne/time_frequency/csd.py": {
+      "a": 6,
+      "d": 55
+    },
+    "mne/time_frequency/multitaper.py": {
+      "a": 35,
+      "d": 18
+    },
+    "mne/time_frequency/tests/test_csd.py": {
+      "a": 89,
+      "d": 61
+    },
+    "mne/time_frequency/tests/test_multitaper.py": {
+      "a": 4,
+      "d": 2
+    }
+  }
+}

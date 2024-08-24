@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "4f57c7f5193016c996a104eb2abb1831f0a5d692",
+  "authors": [
+    {
+      "n": "Christian Brodbeck",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/__init__.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/minimum_norm/inverse.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/source_space.py": {
+      "a": 21,
+      "d": 3
+    },
+    "mne/surface.py": {
+      "a": 52,
+      "d": 7
+    },
+    "mne/tests/test_source_space.py": {
+      "a": 13,
+      "d": 2
+    },
+    "mne/tests/test_surface.py": {
+      "a": 16,
+      "d": 2
+    }
+  }
+}

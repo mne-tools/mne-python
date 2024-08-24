@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "64d5d222d008b84b0f1d4d341d1cd074e389ff21",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/bem.py": {
+      "a": 11,
+      "d": 13
+    },
+    "mne/preprocessing/maxwell.py": {
+      "a": 6,
+      "d": 5
+    },
+    "mne/source_space.py": {
+      "a": 5,
+      "d": 4
+    },
+    "mne/utils.py": {
+      "a": 10,
+      "d": 14
+    }
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "af858a3a4f9f94a8e462a9c7b626fdd91fe20c7a",
+  "authors": [
+    {
+      "n": "Christopher J. Bailey",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/source/whats_new.rst": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/inverse_sparse/mxne_inverse.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/pick.py": {
+      "a": 22,
+      "d": 12
+    },
+    "mne/minimum_norm/inverse.py": {
+      "a": 8,
+      "d": 3
+    },
+    "mne/minimum_norm/psf_ctf.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/minimum_norm/tests/test_inverse.py": {
+      "a": 66,
+      "d": 3
+    }
+  }
+}

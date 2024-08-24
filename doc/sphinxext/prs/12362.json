@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "a6f0331685bf6fc63001ed7ba6b379ee464fd91d",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/install/manual_install.rst": {
+      "a": 11,
+      "d": 10
+    }
+  }
+}

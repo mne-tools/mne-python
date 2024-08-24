@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "2690cc0a464a1a268d92e83d2cf314b2c21f1f03",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/0.21.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/brainvision/brainvision.py": {
+      "a": 8,
+      "d": 3
+    },
+    "mne/io/brainvision/tests/data/test.vhdr": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/brainvision/tests/test_brainvision.py": {
+      "a": 9,
+      "d": 2
+    }
+  }
+}

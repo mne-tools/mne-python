@@ -1,0 +1,55 @@
+{
+  "merge_commit_sha": "0a70b126e12315a713f56f0151620dbb218c219a",
+  "authors": [
+    {
+      "n": "Alex Rockhill",
+      "e": "aprockhill@mailbox.org"
+    }
+  ],
+  "changes": {
+    ".gitignore": {
+      "a": 0,
+      "d": 1
+    },
+    "brain.png": {
+      "a": 0,
+      "d": 0
+    },
+    "figures/Figure_1.png": {
+      "a": 0,
+      "d": 0
+    },
+    "figures/Figure_2.png": {
+      "a": 0,
+      "d": 0
+    },
+    "figures/Figure_3.png": {
+      "a": 0,
+      "d": 0
+    },
+    "figures/Figure_4.png": {
+      "a": 0,
+      "d": 0
+    },
+    "figures/Figure_5.png": {
+      "a": 0,
+      "d": 0
+    },
+    "figures/Figure_6.png": {
+      "a": 0,
+      "d": 0
+    },
+    "paper.bib": {
+      "a": 110,
+      "d": 0
+    },
+    "paper.md": {
+      "a": 87,
+      "d": 0
+    },
+    "test.png": {
+      "a": 0,
+      "d": 0
+    }
+  }
+}

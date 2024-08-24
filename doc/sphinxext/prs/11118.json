@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "2aceb47bb16698beebcff2118bdbf89abcaed3cc",
+  "authors": [
+    {
+      "n": "jwelzel",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/utils/_logging.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

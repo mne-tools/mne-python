@@ -1,7 +1,6 @@
 """T-test with permutations."""
 
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -87,7 +86,7 @@ def permutation_t_test(
     rng = check_random_state(seed)
     orders, _, extra = _get_1samp_orders(n_samples, n_permutations, tail, rng)
     perms = 2 * np.array(orders) - 1  # from 0, 1 -> 1, -1
-    logger.info("Permuting %d times%s..." % (len(orders), extra))
+    logger.info(f"Permuting {len(orders)} times{extra}...")
     parallel, my_max_stat, n_jobs = parallel_func(_max_stat, n_jobs)
     max_abs = np.concatenate(
         parallel(

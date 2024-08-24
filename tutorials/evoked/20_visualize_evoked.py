@@ -11,8 +11,10 @@ This tutorial shows the different visualization methods for
 As usual we'll start by importing the modules we need:
 """
 
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 # %%
 
 import numpy as np

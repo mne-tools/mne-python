@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "15f478791aa37e260a4d77b95a1a67166da95ccb",
+  "authors": [
+    {
+      "n": "fzamberlan",
+      "e": "44038765+fzamberlan@users.noreply.github.com"
+    },
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    }
+  ],
+  "changes": {
+    "mne/channels/_standard_montage_utils.py": {
+      "a": 1,
+      "d": 4
+    }
+  }
+}

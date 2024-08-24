@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "7d3ececcbb37133769d5262d05df7e3f9ebc7ec1",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/stats/parametric.py": {
+      "a": 4,
+      "d": 2
+    }
+  }
+}

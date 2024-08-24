@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "f6791a47f8e763bf5c35817fcf5a4c9448f9536f",
+  "authors": [
+    {
+      "n": "jaeilepp",
+      "e": "jaeilepp@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/python_reference.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/whats_new.rst": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/epochs.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/viz/epochs.py": {
+      "a": 22,
+      "d": 4
+    },
+    "mne/viz/ica.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/viz/raw.py": {
+      "a": 4,
+      "d": 15
+    },
+    "mne/viz/tests/test_epochs.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/viz/utils.py": {
+      "a": 20,
+      "d": 1
+    }
+  }
+}

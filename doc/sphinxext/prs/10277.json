@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "d53c5bb9d9c69c055b6bca680ee750ac235bbe58",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/datasets/config.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/nirx/_localized_abbr.py": {
+      "a": 60,
+      "d": 0
+    },
+    "mne/io/nirx/nirx.py": {
+      "a": 33,
+      "d": 10
+    },
+    "mne/io/nirx/tests/test_nirx.py": {
+      "a": 44,
+      "d": 28
+    }
+  }
+}

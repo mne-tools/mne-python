@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "d973a1fa714534eab6e553f8073ceb9abce35fae",
+  "authors": [
+    {
+      "n": "Adam Li",
+      "e": null
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/time_frequency/tests/test_tfr.py": {
+      "a": 72,
+      "d": 1
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 46,
+      "d": 12
+    },
+    "mne/utils/check.py": {
+      "a": 4,
+      "d": 4
+    }
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "00806ca8b7e33f65a9782bfe8eb9b08b89c9ec70",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/ica.py": {
+      "a": 11,
+      "d": 8
+    },
+    "mne/viz/tests/test_ica.py": {
+      "a": 14,
+      "d": 8
+    },
+    "tutorials/preprocessing/plot_40_artifact_correction_ica.py": {
+      "a": 5,
+      "d": 2
+    },
+    "tutorials/preprocessing/plot_45_ica_from_raw.py": {
+      "a": 12,
+      "d": 6
+    }
+  }
+}

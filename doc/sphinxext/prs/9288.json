@@ -1,0 +1,67 @@
+{
+  "merge_commit_sha": "f6d9c737cd3eb83b17b7cfead9e8fe78b3ffee53",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/_static/copybutton.js": {
+      "a": 0,
+      "d": 66
+    },
+    "doc/_static/institution_logos/Telecom_Paris_Tech.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/institution_logos/Telecom_Paris_Tech.svg": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/_static/mne_logo.svg": {
+      "a": 172,
+      "d": 740
+    },
+    "doc/_static/style.css": {
+      "a": 6,
+      "d": 5
+    },
+    "doc/_templates/copyright.html": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/_templates/docs-navbar.html": {
+      "a": 0,
+      "d": 20
+    },
+    "doc/_templates/homepage.html": {
+      "a": 44,
+      "d": 0
+    },
+    "doc/_templates/layout.html": {
+      "a": 6,
+      "d": 53
+    },
+    "doc/_templates/version-switcher.html": {
+      "a": 11,
+      "d": 0
+    },
+    "doc/conf.py": {
+      "a": 8,
+      "d": 5
+    },
+    "doc/funding.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/index.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "requirements_doc.txt": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

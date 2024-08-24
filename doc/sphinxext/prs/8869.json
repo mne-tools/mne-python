@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "b487dcf662a9249e67ab01823a75f227a637fd10",
+  "authors": [
+    {
+      "n": "Christian O'Reilly",
+      "e": null
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/datasets/_infant/ANTS2-0Months3T.txt": {
+      "a": 117,
+      "d": 0
+    },
+    "mne/datasets/_infant/base.py": {
+      "a": 6,
+      "d": 5
+    }
+  }
+}

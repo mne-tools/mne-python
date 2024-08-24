@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "57bd4a5e75008db9141f3458204b03551da57b8b",
+  "authors": [
+    {
+      "n": "Britta Westner",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/_includes/institutional-partners.rst": {
+      "a": 2,
+      "d": 1
+    },
+    "doc/_static/institution_logos/Donders.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/conf.py": {
+      "a": 5,
+      "d": 1
+    }
+  }
+}

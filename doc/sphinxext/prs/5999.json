@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "693bd2d8c958cd343d1c6ea4f132ad8714a0c116",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/inverse/plot_custom_inverse_solver.py": {
+      "a": 3,
+      "d": 5
+    },
+    "mne/forward/forward.py": {
+      "a": 41,
+      "d": 42
+    },
+    "mne/forward/tests/test_forward.py": {
+      "a": 40,
+      "d": 9
+    },
+    "mne/inverse_sparse/_gamma_map.py": {
+      "a": 5,
+      "d": 15
+    },
+    "mne/inverse_sparse/mxne_inverse.py": {
+      "a": 6,
+      "d": 21
+    },
+    "mne/io/pick.py": {
+      "a": 42,
+      "d": 13
+    },
+    "mne/minimum_norm/inverse.py": {
+      "a": 70,
+      "d": 107
+    },
+    "mne/minimum_norm/tests/test_inverse.py": {
+      "a": 6,
+      "d": 5
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "385a2555f35a50ad5881b6c8faac8cf78b0e4ae9",
+  "authors": [
+    {
+      "n": "Martin Luessi",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/tests/test_coreg.py": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

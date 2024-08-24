@@ -1,12 +1,6 @@
 """Tools for working with epoched data."""
 
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
-#          Daniel Strohmeier <daniel.strohmeier@tu-ilmenau.de>
-#          Denis Engemann <denis.engemann@gmail.com>
-#          Mainak Jas <mainak@neuro.hut.fi>
-#          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -564,7 +558,7 @@ class BaseEpochs(
                     )
 
             if n_events > 0:
-                logger.info("%d matching events found" % n_events)
+                logger.info(f"{n_events} matching events found")
             else:
                 # Allow reading empty epochs (ToDo: Maybe not anymore in the future)
                 if not self._allow_empty:
@@ -1562,7 +1556,7 @@ class BaseEpochs(
         out_of_bounds = (try_idx < 0) | (try_idx >= len(self.events))
         if out_of_bounds.any():
             first = indices[out_of_bounds][0]
-            raise IndexError("Epoch index %d is out of bounds" % first)
+            raise IndexError(f"Epoch index {first} is out of bounds")
         keep = np.setdiff1d(np.arange(len(self.events)), try_idx)
         self._getitem(keep, reason, copy=False, drop_event_id=False)
         count = len(try_idx)
@@ -1822,7 +1816,7 @@ class BaseEpochs(
         data_is_self_data = bool(self.preload)
         logger.debug(f"Data is self data: {data_is_self_data}")
         # only two types of epoch subselection allowed
-        assert isinstance(select, (slice, np.ndarray)), type(select)
+        assert isinstance(select, slice | np.ndarray), type(select)
         if not isinstance(select, slice):
             logger.debug("  Copying, fancy indexed epochs")
             data_is_self_data = False  # copy (fancy indexing)
@@ -3170,12 +3164,12 @@ def make_metadata(
     # This follows the approach taken in mne.Epochs
     # For strings and None, we don't know the start and stop samples in advance as the
     # time window can vary.
-    if isinstance(tmin, (type(None), list)):
+    if isinstance(tmin, type(None) | list):
         start_sample = None
     else:
         start_sample = int(round(tmin * sfreq))
 
-    if isinstance(tmax, (type(None), list)):
+    if isinstance(tmax, type(None) | list):
         stop_sample = None
     else:
         stop_sample = int(round(tmax * sfreq)) + 1
@@ -3386,7 +3380,7 @@ def _events_from_annotations(raw, events, event_id, annotations, on_missing):
     # if event_id is the names of events, map to events integers
     if isinstance(event_id, str):
         event_id = [event_id]
-    if isinstance(event_id, (list, tuple, set)):
+    if isinstance(event_id, list | tuple | set):
         if not set(event_id).issubset(set(event_id_tmp)):
             msg = (
                 "No matching annotations found for event_id(s) "
@@ -3631,7 +3625,7 @@ class Epochs(BaseEpochs):
         diff = int(round((self._raw_times[-1] - reject_tmax) * sfreq))
         reject_stop = stop - diff
 
-        logger.debug("    Getting epoch for %d-%d" % (start, stop))
+        logger.debug(f"    Getting epoch for {start}-{stop}")
         data = self._raw._check_bad_segment(
             start,
             stop,
@@ -3705,7 +3699,7 @@ class EpochsArray(BaseEpochs):
         data,
         info,
         events=None,
-        tmin=0,
+        tmin=0.0,
         event_id=None,
         reject=None,
         flat=None,
@@ -3858,7 +3852,7 @@ def equalize_epoch_counts(epochs_list, method="mintime", *, random_state=None):
     --------
     >>> equalize_epoch_counts([epochs1, epochs2])  # doctest: +SKIP
     """
-    if not all(isinstance(epoch, (BaseEpochs, EpochsTFR)) for epoch in epochs_list):
+    if not all(isinstance(epoch, BaseEpochs | EpochsTFR) for epoch in epochs_list):
         raise ValueError("All inputs must be Epochs instances")
     # make sure bad epochs are dropped
     for epoch in epochs_list:
@@ -4493,7 +4487,7 @@ def _concatenate_epochs(
     epochs_list, *, with_data=True, add_offset=True, on_mismatch="raise"
 ):
     """Auxiliary function for concatenating epochs."""
-    if not isinstance(epochs_list, (list, tuple)):
+    if not isinstance(epochs_list, list | tuple):
         raise TypeError(f"epochs_list must be a list or tuple, got {type(epochs_list)}")
 
     # to make warning messages only occur once during concatenation
@@ -4605,8 +4599,8 @@ def _concatenate_epochs(
         metadata = None
     elif n_have != len(metadata):
         raise ValueError(
-            "%d of %d epochs instances have metadata, either "
-            "all or none must have metadata" % (n_have, len(metadata))
+            f"{n_have} of {len(metadata)} epochs instances have metadata, either "
+            "all or none must have metadata"
         )
     else:
         pd = _check_pandas_installed(strict=False)

@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 r"""Compute SSP/PCA projections for ECG artifacts.
 
 Examples
@@ -10,8 +9,8 @@ Examples
                            --rej-grad 3000 --rej-mag 4000 --rej-eeg 100
 
 """
-# Authors : Alexandre Gramfort, Ph.D.
-#           Martin Luessi, Ph.D.
+
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 

@@ -14,8 +14,10 @@ raw data in this tutorial) cropping the `~mne.io.Raw` object to just 60
 seconds before loading it into RAM to save memory:
 """
 
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 # %%
 
 import os

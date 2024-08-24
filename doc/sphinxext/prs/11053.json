@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "dd3d0f4d616f619993b3b4ef6b1afec66737704d",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    ".github/workflows/codespell_and_flake.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "ignore_words.txt": {
+      "a": 0,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,59 @@
+{
+  "merge_commit_sha": "4c219c20a2ce07cde7dc26875200eeb6d7abeffb",
+  "authors": [
+    {
+      "n": "Alex Rockhill",
+      "e": "aprockhill@mailbox.org"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "azure-pipelines.yml": {
+      "a": 5,
+      "d": 0
+    },
+    "environment.yml": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/viz/_brain/tests/test_brain.py": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/viz/backends/_abstract.py": {
+      "a": 423,
+      "d": 31
+    },
+    "mne/viz/backends/_notebook.py": {
+      "a": 729,
+      "d": 11
+    },
+    "mne/viz/backends/_qt.py": {
+      "a": 734,
+      "d": 26
+    },
+    "mne/viz/backends/renderer.py": {
+      "a": 5,
+      "d": 0
+    },
+    "mne/viz/backends/tests/test_abstract.py": {
+      "a": 109,
+      "d": 0
+    },
+    "mne/viz/backends/tests/test_abstract_notebook.py": {
+      "a": 30,
+      "d": 0
+    },
+    "requirements.txt": {
+      "a": 2,
+      "d": 0
+    },
+    "server_environment.yml": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

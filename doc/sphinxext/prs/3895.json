@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "eb418d24e0cdab1254b4524e5893bf13bcc800ba",
+  "authors": [
+    {
+      "n": "jaeilepp",
+      "e": "jaeilepp@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/datasets/utils.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/edf/edf.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/io/edf/tests/test_edf.py": {
+      "a": 7,
+      "d": 0
+    }
+  }
+}

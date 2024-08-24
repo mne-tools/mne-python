@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "e4848ae37bc6847af3081600b4253c061ec454a4",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/bem.py": {
+      "a": 5,
+      "d": 1
+    },
+    "mne/externals/funcsigs.py": {
+      "a": 0,
+      "d": 815
+    },
+    "mne/externals/h5io/_h5io.py": {
+      "a": 119,
+      "d": 11
+    },
+    "mne/io/base.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/io/bti/bti.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/reference.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/epochs.py": {
+      "a": 0,
+      "d": 2
+    }
+  }
+}

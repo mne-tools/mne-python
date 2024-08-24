@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "af925f4fd7f0274fe6bc642561af2abeb954289d",
+  "authors": [
+    {
+      "n": "Chetan Gohil",
+      "e": "chetan.gohil@psych.ox.ac.uk"
+    }
+  ],
+  "changes": {
+    "mne/time_frequency/tfr.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

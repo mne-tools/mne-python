@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "a2da0c468ed371bfb77b7fbad76d2fe0b24672bd",
+  "authors": [
+    {
+      "n": "Daniel Strohmeier",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/proj.py": {
+      "a": 6,
+      "d": 6
+    }
+  }
+}

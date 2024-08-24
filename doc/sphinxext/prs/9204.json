@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "3afa03029f7237ff26b35b4fa4ae962661dcfd1d",
+  "authors": [
+    {
+      "n": "Jack Zhang",
+      "e": "me@jackzhang.me"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/io/eeglab/eeglab.py": {
+      "a": 5,
+      "d": 0
+    },
+    "mne/io/eeglab/tests/test_eeglab.py": {
+      "a": 7,
+      "d": 0
+    }
+  }
+}

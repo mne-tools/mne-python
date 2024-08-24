@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "b9485698c371b957a80e401d8ca94c4790192c32",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/compensator.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/io/ctf/info.py": {
+      "a": 28,
+      "d": 17
+    },
+    "mne/io/ctf/tests/test_ctf.py": {
+      "a": 31,
+      "d": 6
+    }
+  }
+}

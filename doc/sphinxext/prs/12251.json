@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "20174f448e5f70623c3c8eda048ae43cb0b39a05",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "azure-pipelines.yml": {
+      "a": 7,
+      "d": 8
+    },
+    "pyproject.toml": {
+      "a": 1,
+      "d": 0
+    },
+    "tools/azure_dependencies.sh": {
+      "a": 1,
+      "d": 1
+    },
+    "tools/github_actions_dependencies.sh": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

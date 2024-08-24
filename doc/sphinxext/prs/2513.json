@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "2e1f390e328fe71d93948a3d55cda66793da373a",
+  "authors": [
+    {
+      "n": "Jaakko Leppakangas",
+      "e": "jaeilepp@student.jyu.fi"
+    }
+  ],
+  "changes": {
+    "mne/viz/ica.py": {
+      "a": 4,
+      "d": 4
+    }
+  }
+}

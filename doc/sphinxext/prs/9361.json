@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "a3655f33e38d9703fe51b90d39d880557a2fc168",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".github/workflows/compat_minimal.yml": {
+      "a": 0,
+      "d": 16
+    },
+    ".github/workflows/compat_old.yml": {
+      "a": 0,
+      "d": 17
+    },
+    ".github/workflows/linux_conda.yml": {
+      "a": 0,
+      "d": 16
+    },
+    ".github/workflows/linux_pip.yml": {
+      "a": 0,
+      "d": 16
+    },
+    ".github/workflows/macos_conda.yml": {
+      "a": 0,
+      "d": 16
+    },
+    "doc/install/contributing.rst": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

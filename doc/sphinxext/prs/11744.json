@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "c4464741467547a4e93f2f807af57313cdfa2331",
+  "authors": [
+    {
+      "n": "Diptyajit Das",
+      "e": "bmedasdiptyajit@gmail.com"
+    },
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/channels/_standard_montage_utils.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/channels/data/montages/easycap-M43.txt": {
+      "a": 65,
+      "d": 0
+    },
+    "mne/channels/montage.py": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/channels/tests/test_montage.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

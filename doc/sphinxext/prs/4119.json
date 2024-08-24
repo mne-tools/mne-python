@@ -1,0 +1,51 @@
+{
+  "merge_commit_sha": "8fc2a545f494de0f828b931f2285dbff426e72ad",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/python_reference.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/whats_new.rst": {
+      "a": 3,
+      "d": 1
+    },
+    "examples/decoding/plot_receptive_field.py": {
+      "a": 2,
+      "d": 3
+    },
+    "mne/decoding/__init__.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/decoding/receptive_field.py": {
+      "a": 66,
+      "d": 35
+    },
+    "mne/decoding/tests/test_receptive_field.py": {
+      "a": 92,
+      "d": 5
+    },
+    "mne/decoding/time_delaying_ridge.py": {
+      "a": 243,
+      "d": 0
+    },
+    "mne/filter.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils.py": {
+      "a": 5,
+      "d": 4
+    },
+    "tutorials/plot_receptive_field.py": {
+      "a": 101,
+      "d": 17
+    }
+  }
+}

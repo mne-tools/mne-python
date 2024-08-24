@@ -1,0 +1,59 @@
+{
+  "merge_commit_sha": "fcbe5aec41cb346f5a3b0add845442ab93f6fcf3",
+  "authors": [
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "drammock@users.noreply.github.com"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "drammock@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    "examples/preprocessing/plot_rereference_eeg.py": {
+      "a": 8,
+      "d": 6
+    },
+    "mne/channels/channels.py": {
+      "a": 5,
+      "d": 54
+    },
+    "mne/io/fieldtrip/tests/helpers.py": {
+      "a": 0,
+      "d": 6
+    },
+    "mne/io/reference.py": {
+      "a": 9,
+      "d": 58
+    },
+    "mne/utils/docs.py": {
+      "a": 44,
+      "d": 0
+    },
+    "tutorials/evoked/plot_eeg_erp.py": {
+      "a": 11,
+      "d": 16
+    },
+    "tutorials/io/plot_20_reading_eeg_data.py": {
+      "a": 2,
+      "d": 1
+    },
+    "tutorials/preprocessing/plot_55_setting_eeg_reference.py": {
+      "a": 3,
+      "d": 10
+    }
+  }
+}

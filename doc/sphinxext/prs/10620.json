@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "7b34565088f0120e9795fba1acb16a74936105f2",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/preprocessing/_csd.py": {
+      "a": 4,
+      "d": 4
+    }
+  }
+}

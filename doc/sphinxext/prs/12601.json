@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "01a60d97a8cee2864dd81ac9c25d6ba126a4af2d",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/conf.py": {
+      "a": 12,
+      "d": 18
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 2,
+      "d": 4
+    },
+    "pyproject.toml": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

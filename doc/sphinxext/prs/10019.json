@@ -1,0 +1,67 @@
+{
+  "merge_commit_sha": "2791ba472a7a3cec6135b70441288384842bf6ff",
+  "authors": [
+    {
+      "n": "Adam Li",
+      "e": null
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/annotations.py": {
+      "a": 205,
+      "d": 0
+    },
+    "mne/epochs.py": {
+      "a": 79,
+      "d": 208
+    },
+    "mne/io/constants.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/tests/test_constants.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 199,
+      "d": 68
+    }
+  }
+}

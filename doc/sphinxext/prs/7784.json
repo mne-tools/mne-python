@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "292a4784f05ae607e97686d3ca05ae4c3852f8db",
+  "authors": [
+    {
+      "n": "Yu-Han Luo",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/stats/cluster_level.py": {
+      "a": 10,
+      "d": 9
+    }
+  }
+}

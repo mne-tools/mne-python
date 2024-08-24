@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "6b7352f2f9e4c7d26e06d1977984392ea61896ac",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/references.bib": {
+      "a": 15,
+      "d": 3
+    },
+    "examples/inverse/plot_mixed_norm_inverse.py": {
+      "a": 3,
+      "d": 10
+    },
+    "examples/inverse/plot_morph_surface_stc.py": {
+      "a": 7,
+      "d": 8
+    },
+    "examples/inverse/plot_rap_music.py": {
+      "a": 6,
+      "d": 8
+    },
+    "examples/inverse/plot_resolution_metrics.py": {
+      "a": 5,
+      "d": 8
+    },
+    "examples/inverse/plot_resolution_metrics_eegmeg.py": {
+      "a": 6,
+      "d": 9
+    },
+    "examples/inverse/plot_source_space_snr.py": {
+      "a": 3,
+      "d": 6
+    },
+    "examples/inverse/plot_tf_dics.py": {
+      "a": 7,
+      "d": 7
+    },
+    "examples/inverse/plot_time_frequency_mixed_norm_inverse.py": {
+      "a": 7,
+      "d": 16
+    }
+  }
+}

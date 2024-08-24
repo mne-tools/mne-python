@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "8891d764a4b580caa934e1864d43e1608a6d01d2",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "doc/source/getting_started.rst": {
+      "a": 2,
+      "d": 22
+    },
+    "examples/time_frequency/plot_source_label_time_frequency.py": {
+      "a": 84,
+      "d": 0
+    },
+    "examples/time_frequency/plot_source_space_time_frequency.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/baseline.py": {
+      "a": 5,
+      "d": 2
+    },
+    "mne/minimum_norm/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/minimum_norm/tests/test_time_frequency.py": {
+      "a": 28,
+      "d": 12
+    },
+    "mne/minimum_norm/time_frequency.py": {
+      "a": 192,
+      "d": 93
+    }
+  }
+}

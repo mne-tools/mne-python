@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "770af5643eb5130c727337af195089897b14cb19",
+  "authors": [
+    {
+      "n": "Saket Choudhary",
+      "e": "saketkc@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/tests/test_utils.py": {
+      "a": 5,
+      "d": 0
+    },
+    "mne/utils.py": {
+      "a": 8,
+      "d": 5
+    }
+  }
+}

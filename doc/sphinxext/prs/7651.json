@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "066db2d13e4520db3b04c6610f0dfb508ff54871",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/connectivity/plot_mne_inverse_envelope_correlation_volume.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/source_estimate.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "abfa0a6256b8f7f938ea91b1a7146c1a522f01dc",
+  "authors": [
+    {
+      "n": "Richard Scholz",
+      "e": null
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/12446.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/preprocessing/nirs/_beer_lambert_law.py": {
+      "a": 14,
+      "d": 4
+    },
+    "mne/preprocessing/nirs/tests/test_beer_lambert_law.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

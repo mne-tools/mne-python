@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "6e5beb64aa9abea19c89e321962856cfdb12ea5a",
+  "authors": [
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/viz/_3d.py": {
+      "a": 6,
+      "d": 2
+    },
+    "mne/viz/_brain/_timeviewer.py": {
+      "a": 55,
+      "d": 20
+    },
+    "mne/viz/_brain/tests/test_brain.py": {
+      "a": 5,
+      "d": 1
+    },
+    "mne/viz/backends/_pyvista.py": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

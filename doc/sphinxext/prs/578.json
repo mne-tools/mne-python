@@ -1,0 +1,83 @@
+{
+  "merge_commit_sha": "9cc08caf7878ac52d0f528fc350c513a68b26845",
+  "authors": [
+    {
+      "n": "Martin Luessi",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/source/python_reference.rst": {
+      "a": 4,
+      "d": 3
+    },
+    "doc/source/whats_new.rst": {
+      "a": 4,
+      "d": 1
+    },
+    "examples/inverse/plot_gamma_map_inverse.py": {
+      "a": 66,
+      "d": 0
+    },
+    "examples/inverse/plot_mixed_norm_L21_inverse.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/inverse/plot_time_frequency_mixed_norm_inverse.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/inverse_sparse/__init__.py": {
+      "a": 8,
+      "d": 0
+    },
+    "mne/inverse_sparse/_gamma_map.py": {
+      "a": 304,
+      "d": 0
+    },
+    "mne/inverse_sparse/mxne_debiasing.py": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/inverse_sparse/mxne_inverse.py": {
+      "a": 10,
+      "d": 4
+    },
+    "mne/inverse_sparse/mxne_optim.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/inverse_sparse/tests/__init__.py": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/inverse_sparse/tests/test_gamma_map.py": {
+      "a": 51,
+      "d": 0
+    },
+    "mne/inverse_sparse/tests/test_mxne_debiasing.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/inverse_sparse/tests/test_mxne_inverse.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/inverse_sparse/tests/test_mxne_optim.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/mixed_norm/__init__.py": {
+      "a": 5,
+      "d": 5
+    },
+    "mne/viz.py": {
+      "a": 6,
+      "d": 2
+    },
+    "setup.py": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

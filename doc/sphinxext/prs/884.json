@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "73a35fb025e7656901ecad508da5167744d5ecd3",
+  "authors": [
+    {
+      "n": "Christian Brodbeck",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/forward/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/forward/forward.py": {
+      "a": 23,
+      "d": 0
+    }
+  }
+}

@@ -69,10 +69,11 @@ pip-log.txt
 !.coveragerc
 coverage.xml
 tags
-doc/coverages
-doc/samples
-doc/fil-result
-doc/optipng.exe
+/doc/coverages
+/doc/samples
+/doc/fil-result
+/doc/optipng.exe
+/doc/sphinxext/.joblib
 sg_execution_times.rst
 sg_api_usage.rst
 sg_api_unused.dot
@@ -96,7 +97,7 @@ cover
 
 .venv/
 venv/
-*.json
+/*.json
 !codemeta.json
 .hypothesis/
 .ruff_cache/

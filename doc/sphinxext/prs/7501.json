@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "6354f8ab496421606d043646e101da0614d97261",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".circleci/config.yml": {
+      "a": 2,
+      "d": 2
+    },
+    "README.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "azure-pipelines.yml": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/install/advanced.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "environment.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "requirements.txt": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

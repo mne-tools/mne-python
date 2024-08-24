@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "2c659d59f89ff0e107c0af02d3cd5b506d8896cc",
+  "authors": [
+    {
+      "n": "Simon Kern",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/io/pick.py": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

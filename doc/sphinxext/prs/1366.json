@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "3aec0ec92ee3e92b1f72afafaf08d63190354ff6",
+  "authors": [
+    {
+      "n": "dgwakeman",
+      "e": "dgwakeman@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/connectivity/plot_mne_inverse_label_connectivity.py": {
+      "a": 2,
+      "d": 1
+    },
+    "examples/inverse/plot_label_from_stc.py": {
+      "a": 6,
+      "d": 4
+    },
+    "mne/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/label.py": {
+      "a": 39,
+      "d": 25
+    },
+    "mne/tests/test_label.py": {
+      "a": 45,
+      "d": 42
+    },
+    "mne/tests/test_source_estimate.py": {
+      "a": 7,
+      "d": 4
+    }
+  }
+}

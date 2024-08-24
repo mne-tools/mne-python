@@ -1,0 +1,187 @@
+{
+  "merge_commit_sha": "70973e15373c8b70b5117b3d09d714633a30ae62",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "mne/artifacts/stim.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/artifacts/tests/test_ecg.py": {
+      "a": 2,
+      "d": 3
+    },
+    "mne/artifacts/tests/test_eog.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/artifacts/tests/test_peak_finder.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/artifacts/tests/test_stim.py": {
+      "a": 5,
+      "d": 5
+    },
+    "mne/cov.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/epochs.py": {
+      "a": 6,
+      "d": 3
+    },
+    "mne/fiff/matrix.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/fiff/tests/test_evoked.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/fiff/tests/test_pick.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/fiff/tests/test_raw.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/filter.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/minimum_norm/tests/test_inverse.py": {
+      "a": 7,
+      "d": 7
+    },
+    "mne/minimum_norm/tests/test_time_frequency.py": {
+      "a": 6,
+      "d": 6
+    },
+    "mne/mixed_norm/debiasing.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/mixed_norm/tests/test_debiasing.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/mixed_norm/tests/test_inverse.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/mixed_norm/tests/test_optim.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/selection.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/simulation/evoked.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/simulation/tests/test_source.py": {
+      "a": 3,
+      "d": 5
+    },
+    "mne/source_space.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/stats/tests/test_cluster_level.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/stats/tests/test_permutations.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/tests/test_cov.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 8,
+      "d": 8
+    },
+    "mne/tests/test_event.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/tests/test_filter.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/tests/test_forward.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/tests/test_label.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/tests/test_misc.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/tests/test_proj.py": {
+      "a": 5,
+      "d": 5
+    },
+    "mne/tests/test_selection.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/tests/test_source_estimate.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/tests/test_source_space.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/tests/test_surface.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/tests/test_utils.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/tests/test_viz.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/time_frequency/tests/test_ar.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/time_frequency/tests/test_psd.py": {
+      "a": 5,
+      "d": 4
+    },
+    "mne/time_frequency/tests/test_stft.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/time_frequency/tests/test_tfr.py": {
+      "a": 9,
+      "d": 9
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/utils.py": {
+      "a": 5,
+      "d": 5
+    }
+  }
+}

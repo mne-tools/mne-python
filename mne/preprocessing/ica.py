@@ -1,10 +1,9 @@
 #
-# Authors: Denis A. Engemann <denis.engemann@gmail.com>
-#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Juergen Dammers <j.dammers@fz-juelich.de>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
+from __future__ import annotations  # only needed for Python ≤ 3.9
 
 import json
 import math
@@ -16,7 +15,7 @@ from dataclasses import dataclass, is_dataclass
 from inspect import Parameter, isfunction, signature
 from numbers import Integral
 from time import time
-from typing import Literal, Optional, Union
+from typing import Literal
 
 import numpy as np
 from scipy import stats
@@ -507,13 +506,13 @@ class ICA(ContainsMixin):
     def _get_infos_for_repr(self):
         @dataclass
         class _InfosForRepr:
-            fit_on: Optional[Literal["raw data", "epochs"]]
+            fit_on: Literal["raw data", "epochs"] | None
             fit_method: Literal["fastica", "infomax", "extended-infomax", "picard"]
-            fit_params: dict[str, Union[str, float]]
-            fit_n_iter: Optional[int]
-            fit_n_samples: Optional[int]
-            fit_n_components: Optional[int]
-            fit_n_pca_components: Optional[int]
+            fit_params: dict[str, str | float]
+            fit_n_iter: int | None
+            fit_n_samples: int | None
+            fit_n_components: int | None
+            fit_n_pca_components: int | None
             ch_types: list[str]
             excludes: list[str]
 
@@ -903,7 +902,7 @@ class ICA(ContainsMixin):
             n_pca = int(_exp_var_ncomp(use_ev, n_pca)[0])
         elif n_pca is None:
             n_pca = len(use_ev)
-        assert isinstance(n_pca, (int, np.int_))
+        assert isinstance(n_pca, int | np.int_)
 
         # If user passed a float, select the PCA components explaining the
         # given cumulative variance. This information will later be used to
@@ -1135,7 +1134,7 @@ class ICA(ContainsMixin):
             item_name="components",
             type_name="int, array-like of int, or None",
         )
-        if isinstance(components, (Sequence, np.ndarray)):
+        if isinstance(components, Sequence | np.ndarray):
             for item in components:
                 _validate_type(
                     item=item, types="int-like", item_name='Elements of "components"'
@@ -1152,7 +1151,7 @@ class ICA(ContainsMixin):
         elif ch_type is None:
             ch_types = inst.get_channel_types(unique=True, only_data_chs=True)
         else:
-            assert isinstance(ch_type, (Sequence, np.ndarray))
+            assert isinstance(ch_type, Sequence | np.ndarray)
             ch_types = ch_type
 
         assert len(ch_types) >= 1
@@ -1194,7 +1193,7 @@ class ICA(ContainsMixin):
             n_pca_components=0,
             verbose=False,
         )
-        if isinstance(inst, (BaseEpochs, Evoked)) and inst.baseline is not None:
+        if isinstance(inst, BaseEpochs | Evoked) and inst.baseline is not None:
             # Don't warn if data was baseline-corrected.
             with warnings.catch_warnings():
                 warnings.filterwarnings(
@@ -2221,7 +2220,7 @@ class ICA(ContainsMixin):
 
         _check_on_missing(on_baseline, "on_baseline", extras=("reapply",))
         reapply_baseline = False
-        if isinstance(inst, (BaseEpochs, Evoked)):
+        if isinstance(inst, BaseEpochs | Evoked):
             if getattr(inst, "baseline", None) is not None:
                 if on_baseline == "reapply":
                     reapply_baseline = True
@@ -2826,7 +2825,7 @@ def _ica_explained_variance(ica, inst, normalize=False):
     # check if ica is ICA and whether inst is Raw or Epochs
     if not isinstance(ica, ICA):
         raise TypeError("first argument must be an instance of ICA.")
-    if not isinstance(inst, (BaseRaw, BaseEpochs, Evoked)):
+    if not isinstance(inst, BaseRaw | BaseEpochs | Evoked):
         raise TypeError(
             "second argument must an instance of either Raw, Epochs or Evoked."
         )
@@ -2885,7 +2884,7 @@ def _serialize(dict_, outer_sep=";", inner_sep=":"):
             for subkey, subvalue in value.items():
                 if isinstance(subvalue, list):
                     if len(subvalue) > 0:
-                        if isinstance(subvalue[0], (int, np.integer)):
+                        if isinstance(subvalue[0], int | np.integer):
                             value[subkey] = [int(i) for i in subvalue]
 
         for cls in (np.random.RandomState, Covariance):

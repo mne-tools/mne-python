@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "8b3ca8a88909dcd14fd2619c08c9587effe232e0",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/install/mne_python.rst": {
+      "a": 6,
+      "d": 6
+    },
+    "environment.yml": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

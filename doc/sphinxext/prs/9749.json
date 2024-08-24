@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "c74cc7180b25f20b4b99d0144cbb6ef99c597e8a",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "MANIFEST.in": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/report/__init__.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/report/report.py": {
+      "a": 24,
+      "d": 24
+    },
+    "mne/report/tests/test_report.py": {
+      "a": 5,
+      "d": 4
+    }
+  }
+}

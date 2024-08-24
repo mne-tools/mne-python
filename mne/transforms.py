@@ -1,8 +1,6 @@
 """Helpers for various transformations."""
 
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Christian Brodbeck <christianbrodbeck@nyu.edu>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -445,7 +443,7 @@ def _ensure_trans(trans, fro="mri", to="head"):
         to_const = to
     del to
     err_str = f"trans must be a Transform between {from_str}<->{to_str}, got"
-    if not isinstance(trans, (list, tuple)):
+    if not isinstance(trans, list | tuple):
         trans = [trans]
     # Ensure that we have exactly one match
     idx = list()
@@ -1170,7 +1168,7 @@ class _SphericalSurfaceWarp:
         # 4. Smooth both surfaces using these coefficients, and evaluate at
         #     the "shape" points
         logger.info(
-            "    Matching %d points (%s) on smoothed surfaces" % (len(match_sph), match)
+            f"    Matching {len(match_sph)} points ({match}) on smoothed surfaces"
         )
         src_rad_az_pol = match_rad_az_pol.copy()
         src_rad_az_pol[0] = np.abs(np.dot(match_sph, src_coeffs))

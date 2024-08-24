@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "c1109e0001102b55c5dc056f88c12d9e9952a4c6",
+  "authors": [
+    {
+      "n": "moutard",
+      "e": "clement.moutard@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/io/base.py": {
+      "a": 5,
+      "d": 3
+    },
+    "mne/viz/raw.py": {
+      "a": 5,
+      "d": 2
+    }
+  }
+}

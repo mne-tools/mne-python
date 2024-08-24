@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "4396a3f7f073ba735d7e578f449496676fdc2bd7",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/_static/style.css": {
+      "a": 0,
+      "d": 5
+    },
+    "tutorials/epochs/40_autogenerate_metadata.py": {
+      "a": 2,
+      "d": 2
+    },
+    "tutorials/intro/70_report.py": {
+      "a": 8,
+      "d": 7
+    },
+    "tutorials/inverse/10_stc_class.py": {
+      "a": 4,
+      "d": 4
+    },
+    "tutorials/inverse/30_mne_dspm_loreta.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

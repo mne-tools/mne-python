@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "437ae4763bf843c9c84f823fec3abba3f6d79886",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/fixes.py": {
+      "a": 13,
+      "d": 0
+    },
+    "mne/viz/backends/_notebook.py": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,107 @@
+{
+  "merge_commit_sha": "8c1c30b7a5140f4a2cfaf1a2348cd04649aa1d68",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".circleci/config.yml": {
+      "a": 1,
+      "d": 1
+    },
+    ".gitignore": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/carousel.inc": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/forward/plot_left_cerebellum_volume_source.py": {
+      "a": 14,
+      "d": 17
+    },
+    "examples/inverse/plot_covariance_whitening_dspm.py": {
+      "a": 3,
+      "d": 0
+    },
+    "examples/inverse/plot_custom_inverse_solver.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/inverse/plot_mixed_norm_inverse.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/inverse/plot_multidict_reweighted_tfmxne.py": {
+      "a": 3,
+      "d": 3
+    },
+    "examples/inverse/plot_rap_music.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/inverse/plot_vector_mne_solution.py": {
+      "a": 3,
+      "d": 0
+    },
+    "examples/visualization/montage.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/visualization/plot_make_report.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/maxwell.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/tests/test_maxwell.py": {
+      "a": 7,
+      "d": 3
+    },
+    "tutorials/intro/plot_40_sensor_locations.py": {
+      "a": 1,
+      "d": 2
+    },
+    "tutorials/misc/plot_report.py": {
+      "a": 10,
+      "d": 10
+    },
+    "tutorials/source-modeling/plot_beamformer_lcmv.py": {
+      "a": 2,
+      "d": 2
+    },
+    "tutorials/source-modeling/plot_compute_covariance.py": {
+      "a": 2,
+      "d": 1
+    },
+    "tutorials/source-modeling/plot_dipole_fit.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/source-modeling/plot_forward.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/source-modeling/plot_mne_dspm_source_localization.py": {
+      "a": 24,
+      "d": 49
+    },
+    "tutorials/source-modeling/plot_mne_solutions.py": {
+      "a": 2,
+      "d": 2
+    },
+    "tutorials/source-modeling/plot_visualize_stc.py": {
+      "a": 2,
+      "d": 4
+    },
+    "tutorials/stats-source-space/plot_stats_cluster_time_frequency_repeated_measures_anova.py": {
+      "a": 7,
+      "d": 4
+    }
+  }
+}

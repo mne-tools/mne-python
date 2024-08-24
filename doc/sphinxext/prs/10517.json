@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "394ee2c810ea06ee472e65005893ce939d879fa2",
+  "authors": [
+    {
+      "n": "Alessandro Tonin",
+      "e": null
+    },
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    },
+    {
+      "n": "Alessandro Tonin",
+      "e": "alessandro.tonin@wysscenter.ch"
+    },
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/brainvision/brainvision.py": {
+      "a": 3,
+      "d": 3
+    }
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "071a98fae28bd7c32c6ce357076263ef01031994",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/install/installers.rst": {
+      "a": 2,
+      "d": 22
+    },
+    "doc/install/manual_install.rst": {
+      "a": 31,
+      "d": 31
+    },
+    "mne/preprocessing/ecg.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/preprocessing/tests/test_ecg.py": {
+      "a": 5,
+      "d": 0
+    },
+    "mne/rank.py": {
+      "a": 1,
+      "d": 1
+    },
+    "pyproject.toml": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

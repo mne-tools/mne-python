@@ -1,0 +1,423 @@
+{
+  "merge_commit_sha": "6e312e1254105b9f2546c3b91108b1f96b7f05c3",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".coveragerc": {
+      "a": 0,
+      "d": 1
+    },
+    ".lgtm.yml": {
+      "a": 0,
+      "d": 5
+    },
+    "MANIFEST.in": {
+      "a": 2,
+      "d": 1
+    },
+    "README.rst": {
+      "a": 8,
+      "d": 1
+    },
+    "azure-pipelines.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/conf.py": {
+      "a": 0,
+      "d": 3
+    },
+    "doc/install/index.rst": {
+      "a": 6,
+      "d": 13
+    },
+    "doc/links.inc": {
+      "a": 5,
+      "d": 0
+    },
+    "doc/overview/faq.rst": {
+      "a": 1,
+      "d": 2
+    },
+    "environment.yml": {
+      "a": 6,
+      "d": 2
+    },
+    "mne/__init__.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/beamformer/_compute_beamformer.py": {
+      "a": 5,
+      "d": 3
+    },
+    "mne/beamformer/tests/test_dics.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/beamformer/tests/test_external.py": {
+      "a": 4,
+      "d": 3
+    },
+    "mne/beamformer/tests/test_lcmv.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/bem.py": {
+      "a": 5,
+      "d": 2
+    },
+    "mne/channels/tests/test_channels.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/channels/tests/test_interpolation.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/conftest.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/datasets/testing/_testing.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/datasets/utils.py": {
+      "a": 3,
+      "d": 4
+    },
+    "mne/epochs.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/export/tests/test_export.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/externals/FieldTrip.py": {
+      "a": 0,
+      "d": 508
+    },
+    "mne/externals/__init__.py": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/externals/decorator.py": {
+      "a": 0,
+      "d": 454
+    },
+    "mne/externals/doccer.py": {
+      "a": 0,
+      "d": 149
+    },
+    "mne/externals/h5io/__init__.py": {
+      "a": 0,
+      "d": 6
+    },
+    "mne/externals/h5io/_h5io.py": {
+      "a": 0,
+      "d": 746
+    },
+    "mne/externals/pymatreader/__init__.py": {
+      "a": 0,
+      "d": 32
+    },
+    "mne/externals/pymatreader/pymatreader.py": {
+      "a": 0,
+      "d": 103
+    },
+    "mne/externals/pymatreader/utils.py": {
+      "a": 0,
+      "d": 263
+    },
+    "mne/externals/tqdm/__init__.py": {
+      "a": 0,
+      "d": 12
+    },
+    "mne/externals/tqdm/_tqdm/__init__.py": {
+      "a": 0,
+      "d": 40
+    },
+    "mne/externals/tqdm/_tqdm/__main__.py": {
+      "a": 0,
+      "d": 2
+    },
+    "mne/externals/tqdm/_tqdm/_main.py": {
+      "a": 0,
+      "d": 7
+    },
+    "mne/externals/tqdm/_tqdm/_monitor.py": {
+      "a": 0,
+      "d": 99
+    },
+    "mne/externals/tqdm/_tqdm/_tqdm.py": {
+      "a": 0,
+      "d": 7
+    },
+    "mne/externals/tqdm/_tqdm/_tqdm_gui.py": {
+      "a": 0,
+      "d": 7
+    },
+    "mne/externals/tqdm/_tqdm/_tqdm_notebook.py": {
+      "a": 0,
+      "d": 7
+    },
+    "mne/externals/tqdm/_tqdm/_tqdm_pandas.py": {
+      "a": 0,
+      "d": 46
+    },
+    "mne/externals/tqdm/_tqdm/_utils.py": {
+      "a": 0,
+      "d": 6
+    },
+    "mne/externals/tqdm/_tqdm/_version.py": {
+      "a": 0,
+      "d": 59
+    },
+    "mne/externals/tqdm/_tqdm/auto.py": {
+      "a": 0,
+      "d": 6
+    },
+    "mne/externals/tqdm/_tqdm/autonotebook.py": {
+      "a": 0,
+      "d": 18
+    },
+    "mne/externals/tqdm/_tqdm/cli.py": {
+      "a": 0,
+      "d": 228
+    },
+    "mne/externals/tqdm/_tqdm/contrib/__init__.py": {
+      "a": 0,
+      "d": 10
+    },
+    "mne/externals/tqdm/_tqdm/gui.py": {
+      "a": 0,
+      "d": 321
+    },
+    "mne/externals/tqdm/_tqdm/notebook.py": {
+      "a": 0,
+      "d": 261
+    },
+    "mne/externals/tqdm/_tqdm/std.py": {
+      "a": 0,
+      "d": 1464
+    },
+    "mne/externals/tqdm/_tqdm/tqdm.1": {
+      "a": 0,
+      "d": 255
+    },
+    "mne/externals/tqdm/_tqdm/utils.py": {
+      "a": 0,
+      "d": 345
+    },
+    "mne/fixes.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/forward/forward.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/base.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/eeglab/eeglab.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/io/eeglab/tests/test_eeglab.py": {
+      "a": 6,
+      "d": 7
+    },
+    "mne/io/fieldtrip/fieldtrip.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/io/fieldtrip/tests/helpers.py": {
+      "a": 1,
+      "d": 9
+    },
+    "mne/io/fieldtrip/tests/test_fieldtrip.py": {
+      "a": 10,
+      "d": 32
+    },
+    "mne/io/meas_info.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/nirx/nirx.py": {
+      "a": 7,
+      "d": 6
+    },
+    "mne/io/snirf/_snirf.py": {
+      "a": 2,
+      "d": 4
+    },
+    "mne/io/snirf/tests/test_snirf.py": {
+      "a": 2,
+      "d": 13
+    },
+    "mne/io/tests/test_raw.py": {
+      "a": 4,
+      "d": 3
+    },
+    "mne/minimum_norm/inverse.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/morph.py": {
+      "a": 6,
+      "d": 3
+    },
+    "mne/parallel.py": {
+      "a": 2,
+      "d": 5
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/nirs/tests/test_beer_lambert_law.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/preprocessing/tests/test_ica.py": {
+      "a": 7,
+      "d": 2
+    },
+    "mne/report/report.py": {
+      "a": 17,
+      "d": 3
+    },
+    "mne/report/tests/test_report.py": {
+      "a": 8,
+      "d": 6
+    },
+    "mne/source_estimate.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/tests/test_bem.py": {
+      "a": 9,
+      "d": 4
+    },
+    "mne/tests/test_docstring_parameters.py": {
+      "a": 0,
+      "d": 4
+    },
+    "mne/tests/test_import_nesting.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/tests/test_morph.py": {
+      "a": 4,
+      "d": 5
+    },
+    "mne/tests/test_source_estimate.py": {
+      "a": 7,
+      "d": 7
+    },
+    "mne/time_frequency/csd.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/time_frequency/tests/test_csd.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/time_frequency/tests/test_tfr.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/utils/__init__.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/utils/_logging.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/_testing.py": {
+      "a": 5,
+      "d": 2
+    },
+    "mne/utils/check.py": {
+      "a": 20,
+      "d": 3
+    },
+    "mne/utils/docs.py": {
+      "a": 74,
+      "d": 4
+    },
+    "mne/utils/progressbar.py": {
+      "a": 7,
+      "d": 1
+    },
+    "mne/utils/tests/test_progressbar.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/backends/_utils.py": {
+      "a": 5,
+      "d": 4
+    },
+    "mne/viz/conftest.py": {
+      "a": 1,
+      "d": 1
+    },
+    "requirements.txt": {
+      "a": 6,
+      "d": 2
+    },
+    "requirements_base.txt": {
+      "a": 9,
+      "d": 0
+    },
+    "requirements_doc.txt": {
+      "a": 1,
+      "d": 1
+    },
+    "requirements_hdf5.txt": {
+      "a": 3,
+      "d": 0
+    },
+    "setup.cfg": {
+      "a": 4,
+      "d": 4
+    },
+    "setup.py": {
+      "a": 8,
+      "d": 12
+    },
+    "tools/azure_dependencies.sh": {
+      "a": 1,
+      "d": 1
+    },
+    "tools/circleci_dependencies.sh": {
+      "a": 1,
+      "d": 2
+    },
+    "tools/github_actions_dependencies.sh": {
+      "a": 7,
+      "d": 1
+    },
+    "tutorials/clinical/30_ecog.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

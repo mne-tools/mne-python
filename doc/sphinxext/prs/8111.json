@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "989f2d4d6a58c73963fb907bf9da3a53587c9b62",
+  "authors": [
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/viz/_3d.py": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 38,
+      "d": 97
+    },
+    "mne/viz/_brain/_timeviewer.py": {
+      "a": 122,
+      "d": 160
+    },
+    "mne/viz/_brain/tests/test_brain.py": {
+      "a": 23,
+      "d": 10
+    },
+    "mne/viz/backends/_pyvista.py": {
+      "a": 82,
+      "d": 12
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

@@ -106,11 +106,11 @@ a.sphx-glr-backref-instance:hover {
 }
 /* backreference links: make non-MNE func/meth calls resemble regular code */
 a[class^="sphx-glr-backref-module"] {
-    color: rgb(var(--pst-color-text-base));
+    color: var(--pst-color-text-base);
 }
 /* backreference links: make MNE calls bold and colorful */
 a[class^="sphx-glr-backref-module-mne"] {
-    color: rgb(var(--pst-color-link));
+    color: var(--pst-color-link);
     font-weight: var(--mne-font-weight-semibold);
 }
 /* suppress redundant note at top of every tutorial and signature at the end */
@@ -126,8 +126,11 @@ p.sphx-glr-signature {
     border-radius: 0.5rem;
     /* ↓↓↓↓↓↓↓ these two rules copied from sphinx-design */
     box-shadow: 0 .125rem .25rem var(--sd-color-shadow) !important;
-    color: var(--sg-download-a-color);
+    text-decoration: none;
     transition: color .15s ease-in-out,background-color .15s ease-in-out,border-color .15s ease-in-out,box-shadow .15s ease-in-out;
+}
+.sphx-glr-download a.download code {
+    color: var(--sg-download-a-color);
 }
 .sphx-glr-download a.download::before {
     color: var(--sg-download-a-color);
@@ -204,16 +207,16 @@ aside.footnote:last-child {
 }
 
 /* ******************************************************* navbar icon links */
-.navbar-icon-links i.fa-square-github::before {
+.navbar-icon-links svg.fa-square-github {
     color: var(--mne-color-github);
 }
-.navbar-icon-links i.fa-discourse::before {
+.navbar-icon-links svg.fa-discourse {
     color: var(--mne-color-discourse);
 }
-.navbar-icon-links i.fa-discord::before {
+.navbar-icon-links svg.fa-discord {
     color: var(--mne-color-discord);
 }
-.navbar-icon-links i.fa-mastodon::before {
+.navbar-icon-links svg.fa-mastodon {
     color: var(--mne-color-mastodon);
 }
 
@@ -244,6 +247,9 @@ ul.quicklinks a {
     color: var(--pst-color-text-base);
     text-decoration: none;
 }
+ul.quicklinks a svg {
+    color: var(--pst-color-text-muted);
+}
 ul.quicklinks a:hover {
     text-decoration: none;
 }
@@ -264,7 +270,7 @@ div.frontpage-gallery {
 }
 div.frontpage-gallery a {
     text-decoration: none;
-    color: rgb(var(--pst-color-text-base));
+    color: var(--pst-color-text-base);
 }
 div.frontpage-gallery img.card-img {
     transform: scale(1.8);
@@ -289,7 +295,7 @@ div.frontpage-gallery:hover .fadeout {
    needed for dark mode. */
 div.card {
     border: 1px solid var(--pst-color-border);
-    background-color: rgb(var(--pst-color-background));
+    background-color: var(--pst-color-background);
 }
 .card-header {
     border-bottom-color: var(--pst-color-border);

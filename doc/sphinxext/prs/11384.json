@@ -1,0 +1,71 @@
+{
+  "merge_commit_sha": "1c4c2504ee553e0cdb8def2bb0499b02bc93bbe3",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    },
+    {
+      "n": "Jennifer Behnke",
+      "e": "jennifer.behnke@localhost"
+    },
+    {
+      "n": "Hakimeh Aslsardroud",
+      "e": "hakimeh.aslsardroud@localhost"
+    },
+    {
+      "n": "Pavel Navratil",
+      "e": "pavel.navratil@localhost"
+    }
+  ],
+  "changes": {
+    ".circleci/config.yml": {
+      "a": 1,
+      "d": 1
+    },
+    ".mailmap": {
+      "a": 6,
+      "d": 0
+    },
+    "CITATION.cff": {
+      "a": 43,
+      "d": 17
+    },
+    "SECURITY.md": {
+      "a": 3,
+      "d": 3
+    },
+    "codemeta.json": {
+      "a": 117,
+      "d": 39
+    },
+    "doc/_static/versions.json": {
+      "a": 7,
+      "d": 2
+    },
+    "doc/changes/1.3.inc": {
+      "a": 36,
+      "d": 3
+    },
+    "doc/cited.rst": {
+      "a": 3,
+      "d": 3
+    },
+    "doc/whats_new.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/_version.py": {
+      "a": 1,
+      "d": 1
+    },
+    "requirements_doc.txt": {
+      "a": 1,
+      "d": 1
+    },
+    "tools/circleci_download.sh": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

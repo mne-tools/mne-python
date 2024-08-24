@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "1a329b5f0554f76477b08f8cd2ccba09c40fb0c6",
+  "authors": [
+    {
+      "n": "Denis A. Engemann",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/time_frequency/tests/test_tfr.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 4,
+      "d": 0
+    }
+  }
+}

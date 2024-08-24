@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "474e1abc737d40d3c0a42a4362755b12321d3094",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/time_frequency/tests/test_tfr.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 3,
+      "d": 2
+    }
+  }
+}

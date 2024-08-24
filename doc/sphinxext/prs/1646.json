@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "aa3d81879c109f4ae060f18c95c0bc9fd512d1a7",
+  "authors": [
+    {
+      "n": "Martin Luessi",
+      "e": null
+    }
+  ],
+  "changes": {
+    "examples/stats/plot_cluster_1samp_test_time_frequency.py": {
+      "a": 2,
+      "d": 2
+    },
+    "examples/stats/plot_cluster_stats_time_frequency.py": {
+      "a": 3,
+      "d": 3
+    },
+    "examples/stats/plot_cluster_stats_time_frequency_repeated_measures_anova.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

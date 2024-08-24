@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "5c2a25567e5e1613c204ad40be58bf483db6a99e",
+  "authors": [
+    {
+      "n": "Marijn van Vliet",
+      "e": "w.m.vanvliet@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/inverse/source_space_snr.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

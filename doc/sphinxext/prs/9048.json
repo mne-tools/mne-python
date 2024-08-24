@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "51677154fea57d90cbe7a989c5b59803ec901064",
+  "authors": [
+    {
+      "n": "Ram PARI",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/simulation/raw.py": {
+      "a": 4,
+      "d": 7
+    }
+  }
+}

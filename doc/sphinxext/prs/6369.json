@@ -1,0 +1,51 @@
+{
+  "merge_commit_sha": "dbda5849082e686770c02e12d97f2ef6f048937f",
+  "authors": [
+    {
+      "n": "Joan Massich",
+      "e": "mailsik@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/python_reference.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/digitization/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/digitization/base.py": {
+      "a": 31,
+      "d": 1
+    },
+    "mne/io/ctf/ctf.py": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/io/meas_info.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/io/tests/test_raw.py": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/tests/test_digitization.py": {
+      "a": 40,
+      "d": 0
+    },
+    "mne/utils/_bunch.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/utils/numerics.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

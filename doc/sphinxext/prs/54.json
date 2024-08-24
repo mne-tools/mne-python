@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "doc/source/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/filter.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/tests/test_utils.py": {
+      "a": 11,
+      "d": 0
+    },
+    "mne/utils.py": {
+      "a": 158,
+      "d": 1
+    }
+  }
+}

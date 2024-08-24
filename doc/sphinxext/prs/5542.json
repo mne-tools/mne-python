@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "3c1546a97243b7bbf6901bfbbab9bdcf3b70aaf9",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/channels/channels.py": {
+      "a": 7,
+      "d": 2
+    },
+    "mne/channels/data/layouts/Neuromag_122.lout": {
+      "a": 123,
+      "d": 0
+    },
+    "mne/channels/layout.py": {
+      "a": 42,
+      "d": 4
+    },
+    "mne/viz/tests/test_topomap.py": {
+      "a": 31,
+      "d": 1
+    },
+    "mne/viz/topomap.py": {
+      "a": 18,
+      "d": 9
+    }
+  }
+}

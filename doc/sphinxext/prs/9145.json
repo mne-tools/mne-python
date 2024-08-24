@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "b24f531d39c954d7923d49ff454c50bb4dc8e43d",
+  "authors": [
+    {
+      "n": "Giorgio_M",
+      "e": "giorgio.marinato@unitn.it"
+    },
+    {
+      "n": "Britta Westner",
+      "e": "britta.wstnr@gmail.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "examples/preprocessing/plot_run_ica.py": {
+      "a": 0,
+      "d": 64
+    },
+    "tutorials/preprocessing/plot_40_artifact_correction_ica.py": {
+      "a": 51,
+      "d": 2
+    }
+  }
+}

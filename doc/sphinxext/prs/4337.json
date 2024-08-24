@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "07954161fc77636d7d28b00e5a4f1143a5c748e7",
+  "authors": [
+    {
+      "n": "Fede Raimondo",
+      "e": "f.raimondo@fz-juelich.de"
+    }
+  ],
+  "changes": {
+    "mne/channels/channels.py": {
+      "a": 4,
+      "d": 3
+    },
+    "mne/channels/tests/test_channels.py": {
+      "a": 38,
+      "d": 1
+    }
+  }
+}

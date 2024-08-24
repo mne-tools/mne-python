@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "815c52a9f0f1f438c0bbec7e7ef6da7a6c448b6d",
+  "authors": [
+    {
+      "n": "Sourav Singh",
+      "e": "ssouravsingh12@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/manual/source_localization/forward.rst": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

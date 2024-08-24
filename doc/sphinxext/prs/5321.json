@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "f2fcc5aec08893f2b29502992d8a283b83027b15",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/channels/interpolation.py": {
+      "a": 8,
+      "d": 4
+    },
+    "mne/channels/tests/test_interpolation.py": {
+      "a": 12,
+      "d": 0
+    }
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "c4d352adc86cff78aca589d7bae80694847d023b",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/epochs.py": {
+      "a": 11,
+      "d": 2
+    },
+    "mne/viz/epochs.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

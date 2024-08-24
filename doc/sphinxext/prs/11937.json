@@ -1,0 +1,127 @@
+{
+  "merge_commit_sha": "4afa3f44ef389ef4d50fba4f17f3359e2733c5cc",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".github/workflows/tests.yml": {
+      "a": 11,
+      "d": 0
+    },
+    "README.rst": {
+      "a": 7,
+      "d": 1
+    },
+    "doc/changes/devel.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "environment.yml": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/_fiff/tests/test_meas_info.py": {
+      "a": 4,
+      "d": 5
+    },
+    "mne/channels/_dig_montage_utils.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/channels/_standard_montage_utils.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/datasets/_fetch.py": {
+      "a": 5,
+      "d": 6
+    },
+    "mne/html_templates/_templates.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/io/egi/egimff.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/egi/events.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/egi/general.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/kit/coreg.py": {
+      "a": 12,
+      "d": 7
+    },
+    "mne/io/kit/tests/test_coreg.py": {
+      "a": 12,
+      "d": 4
+    },
+    "mne/io/nedf/nedf.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/maxfilter.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/report/tests/test_report.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/tests/test_label.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/time_frequency/tests/test_csd.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/__init__.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/utils/_testing.py": {
+      "a": 26,
+      "d": 42
+    },
+    "mne/utils/misc.py": {
+      "a": 10,
+      "d": 0
+    },
+    "mne/utils/numerics.py": {
+      "a": 3,
+      "d": 6
+    },
+    "mne/utils/tests/test_bunch.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/_brain/_scraper.py": {
+      "a": 1,
+      "d": 1
+    },
+    "pyproject.toml": {
+      "a": 3,
+      "d": 0
+    },
+    "requirements.txt": {
+      "a": 1,
+      "d": 1
+    },
+    "requirements_base.txt": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

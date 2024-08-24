@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "2291946a916798dff4e26a0f3a0c7a35d395fe6c",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/viz/_3d.py": {
+      "a": 8,
+      "d": 2
+    },
+    "mne/viz/tests/test_3d_mpl.py": {
+      "a": 9,
+      "d": 0
+    },
+    "tutorials/inverse/60_visualize_stc.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

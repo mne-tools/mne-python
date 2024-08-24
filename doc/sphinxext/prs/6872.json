@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "e78ac34a81216ad3bcccfcfa1ea991dc7c8bfdc3",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "tutorials/preprocessing/plot_30_filtering_resampling.py": {
+      "a": 229,
+      "d": 91
+    }
+  }
+}

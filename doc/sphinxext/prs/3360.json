@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "1a641d7bb800e8170d916b0289443abc9627b7eb",
+  "authors": [
+    {
+      "n": "Mikolaj Magnuski",
+      "e": "mmagnuski@swps.edu.pl"
+    }
+  ],
+  "changes": {
+    "mne/viz/epochs.py": {
+      "a": 11,
+      "d": 7
+    }
+  }
+}

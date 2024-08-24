@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "de256c8c314e3e158371e0fb90242f86af9a4753",
+  "authors": [
+    {
+      "n": "Fede Raimondo",
+      "e": "f.raimondo@fz-juelich.de"
+    }
+  ],
+  "changes": {
+    "mne/externals/h5io/_h5io.py": {
+      "a": 70,
+      "d": 6
+    }
+  }
+}

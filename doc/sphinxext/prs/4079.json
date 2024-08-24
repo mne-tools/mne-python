@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "a2c5bb1e2e7a1adbf31df02b5fdb9eae2f39e207",
+  "authors": [
+    {
+      "n": "jaeilepp",
+      "e": "jaeilepp@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/channels/tests/test_montage.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/egi/egi.py": {
+      "a": 13,
+      "d": 5
+    },
+    "mne/io/egi/tests/test_egi.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

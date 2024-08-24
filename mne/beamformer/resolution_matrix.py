@@ -1,9 +1,9 @@
 """Compute resolution matrix for beamformers."""
 
-# Authors: olaf.hauk@mrc-cbu.cam.ac.uk
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 import numpy as np
 
 from .._fiff.pick import pick_channels, pick_channels_forward, pick_info

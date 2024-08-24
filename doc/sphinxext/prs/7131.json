@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "9d2abf35b6983ceaf0016d68b7c63d49e8b7a093",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "azure-pipelines.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "environment.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/annotations.py": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/tests/test_annotations.py": {
+      "a": 19,
+      "d": 0
+    }
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "f0d9b8b22257562f4475d4eb72ca73bc14d5f469",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/preprocessing/plot_rereference_eeg.py": {
+      "a": 13,
+      "d": 7
+    },
+    "mne/io/reference.py": {
+      "a": 5,
+      "d": 3
+    },
+    "mne/io/tests/test_reference.py": {
+      "a": 7,
+      "d": 1
+    }
+  }
+}

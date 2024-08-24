@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "7218ac1f609211875e1a02a25a0c8d112ab799c2",
+  "authors": [
+    {
+      "n": "dependabot[bot]",
+      "e": "49699333+dependabot[bot]@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    ".github/workflows/codespell_and_flake.yml": {
+      "a": 1,
+      "d": 1
+    },
+    ".github/workflows/linux_pip.yml": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "c9752455b79de10fac672d3ed25911f2618f71cc",
+  "authors": [
+    {
+      "n": "Mathieu Scheltienne",
+      "e": "mathieu.scheltienne@fcbg.ch"
+    }
+  ],
+  "changes": {
+    "mne/decoding/csp.py": {
+      "a": 2,
+      "d": 9
+    },
+    "mne/utils/docs.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/topomap.py": {
+      "a": 7,
+      "d": 19
+    }
+  }
+}

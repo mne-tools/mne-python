@@ -1,0 +1,59 @@
+{
+  "merge_commit_sha": "b064e1db4b4aa5aeff09b1853006c58ebdc2ef06",
+  "authors": [
+    {
+      "n": "Joan Massich",
+      "e": "mailsik@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/conf.py": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/whats_new.rst": {
+      "a": 29,
+      "d": 13
+    },
+    "mne/annotations.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/io/base.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/brainvision/brainvision.py": {
+      "a": 87,
+      "d": 49
+    },
+    "mne/io/brainvision/tests/test_brainvision.py": {
+      "a": 51,
+      "d": 43
+    },
+    "mne/io/edf/edf.py": {
+      "a": 31,
+      "d": 10
+    },
+    "mne/io/edf/tests/test_edf.py": {
+      "a": 13,
+      "d": 5
+    },
+    "mne/io/eeglab/eeglab.py": {
+      "a": 85,
+      "d": 51
+    },
+    "mne/io/eeglab/tests/test_eeglab.py": {
+      "a": 26,
+      "d": 18
+    },
+    "mne/io/utils.py": {
+      "a": 11,
+      "d": 0
+    },
+    "mne/utils.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

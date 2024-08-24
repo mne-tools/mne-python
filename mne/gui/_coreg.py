@@ -1,5 +1,7 @@
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 import inspect
 import os
 import os.path as op
@@ -35,6 +37,7 @@ from ..defaults import DEFAULTS
 from ..io._read_raw import _get_supported, read_raw
 from ..surface import _CheckInside, _DistanceQuery
 from ..transforms import (
+    Transform,
     _ensure_trans,
     _get_trans,
     _get_transforms_to_coord_frame,
@@ -118,8 +121,8 @@ class CoregistrationUI(HasTraits):
         with a different color. Defaults to True.
     sensor_opacity : float
         The opacity of the sensors between 0 and 1. Defaults to 1.0.
-    trans : path-like
-        The path to the Head<->MRI transform FIF file ("-trans.fif").
+    trans : path-like | Transform
+        The Head<->MRI transform or the path to its FIF file ("-trans.fif").
     size : tuple
         The dimensions (width, height) of the rendering view. The default is
         (800, 600).
@@ -1165,7 +1168,7 @@ class CoregistrationUI(HasTraits):
         if isinstance(names, str):
             names = [names]
 
-        if not isinstance(value, (str, float, int, dict, type(None))):
+        if not isinstance(value, str | float | int | dict | type(None)):
             value = list(value)
             assert len(names) == len(value)
 
@@ -1541,10 +1544,10 @@ class CoregistrationUI(HasTraits):
         self._display_message(f"{fname} transform file is saved.")
         self._trans_modified = False
 
-    def _load_trans(self, fname):
-        mri_head_t = _ensure_trans(read_trans(fname, return_all=True), "mri", "head")[
-            "trans"
-        ]
+    def _load_trans(self, trans):
+        if not isinstance(trans, Transform):
+            trans = read_trans(trans, return_all=True)
+        mri_head_t = _ensure_trans(trans, "mri", "head")["trans"]
         rot_x, rot_y, rot_z = rotation_angles(mri_head_t)
         x, y, z = mri_head_t[:3, 3]
         self.coreg._update_params(
@@ -1554,7 +1557,7 @@ class CoregistrationUI(HasTraits):
         self._update_parameters()
         self._update_distance_estimation()
         self._update_plot()
-        self._display_message(f"{fname} transform file is loaded.")
+        self._display_message(f"{trans} transform file is loaded.")
 
     def _update_fiducials_label(self):
         if self._fiducials_file is None:

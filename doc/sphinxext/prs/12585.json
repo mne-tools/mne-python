@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "0b190849bac458e3dcbedb3b49f8e9891ded77ba",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/io/persyst/persyst.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

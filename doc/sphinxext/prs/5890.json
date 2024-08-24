@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "50c5da639662ce3f4cb30e5a397f51e4bd7dd5ce",
+  "authors": [
+    {
+      "n": "José C. García Alanis",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/manual/io.rst": {
+      "a": 10,
+      "d": 0
+    }
+  }
+}

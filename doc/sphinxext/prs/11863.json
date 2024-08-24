@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "7ce2b2c9a7bf7d3fb4b98633fc89f3b5653d66d3",
+  "authors": [
+    {
+      "n": "Mathieu Scheltienne",
+      "e": "mathieu.scheltienne@fcbg.ch"
+    }
+  ],
+  "changes": {
+    "examples/visualization/sensor_noise_level.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/intro/10_overview.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/preprocessing/10_preprocessing_overview.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

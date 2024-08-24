@@ -1,14 +1,13 @@
-# Authors: Eric Larson <larson.eric.d@gmail.com>
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-import os
-import os.path as op
+from pathlib import Path
 
 from ...utils import _check_option, _validate_type, get_subjects_dir, verbose
 from ..utils import _manifest_check_download
 
-PHANTOM_MANIFEST_PATH = op.dirname(__file__)
+PHANTOM_MANIFEST_PATH = Path(__file__).parent
 
 
 @verbose
@@ -24,7 +23,7 @@ def fetch_phantom(kind, subjects_dir=None, *, verbose=None):
 
     Returns
     -------
-    subject_dir : str
+    subject_dir : pathlib.Path
         The resulting phantom subject directory.
 
     See Also
@@ -54,9 +53,9 @@ def fetch_phantom(kind, subjects_dir=None, *, verbose=None):
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     subject = f"phantom_{kind}"
     subject_dir = subjects_dir / subject
-    os.makedirs(subject_dir, exist_ok=True)
+    subject_dir.mkdir(parents=True, exist_ok=True)
     _manifest_check_download(
-        manifest_path=op.join(PHANTOM_MANIFEST_PATH, f"{subject}.txt"),
+        manifest_path=PHANTOM_MANIFEST_PATH / f"{subject}.txt",
         destination=subjects_dir,
         url=phantoms[kind]["url"],
         hash_=phantoms[kind]["hash"],

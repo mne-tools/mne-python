@@ -1,0 +1,55 @@
+{
+  "merge_commit_sha": "15d2d83e606cca85a5502f741a88c4810476b255",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "doc/source/python_reference.rst": {
+      "a": 3,
+      "d": 0
+    },
+    "doc/source/whats_new.rst": {
+      "a": 3,
+      "d": 0
+    },
+    "examples/inverse/plot_time_frequency_mixed_norm_inverse.py": {
+      "a": 123,
+      "d": 0
+    },
+    "mne/fiff/__init__.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/mixed_norm/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/mixed_norm/inverse.py": {
+      "a": 178,
+      "d": 7
+    },
+    "mne/mixed_norm/optim.py": {
+      "a": 265,
+      "d": 15
+    },
+    "mne/mixed_norm/tests/test_inverse.py": {
+      "a": 46,
+      "d": 13
+    },
+    "mne/mixed_norm/tests/test_optim.py": {
+      "a": 54,
+      "d": 4
+    },
+    "mne/time_frequency/__init__.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/time_frequency/stft.py": {
+      "a": 3,
+      "d": 0
+    }
+  }
+}

@@ -1,0 +1,87 @@
+{
+  "merge_commit_sha": "2534cdbf5f7ad55ec24848935f9712b2ec94f67d",
+  "authors": [
+    {
+      "n": "Chris Holdgraf",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/python_reference.rst": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/whats_new.rst": {
+      "a": 6,
+      "d": 1
+    },
+    "examples/realtime/ftclient_rt_compute_psd.py": {
+      "a": 2,
+      "d": 2
+    },
+    "examples/time_frequency/plot_compute_raw_data_spectrum.py": {
+      "a": 18,
+      "d": 1
+    },
+    "examples/time_frequency/plot_epochs_spectra.py": {
+      "a": 21,
+      "d": 0
+    },
+    "examples/visualization/plot_topo_customized.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/decoding/transformer.py": {
+      "a": 10,
+      "d": 18
+    },
+    "mne/epochs.py": {
+      "a": 43,
+      "d": 23
+    },
+    "mne/minimum_norm/tests/test_time_frequency.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/simulation/tests/test_raw.py": {
+      "a": 16,
+      "d": 8
+    },
+    "mne/time_frequency/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/time_frequency/_stockwell.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/time_frequency/multitaper.py": {
+      "a": 79,
+      "d": 26
+    },
+    "mne/time_frequency/psd.py": {
+      "a": 256,
+      "d": 20
+    },
+    "mne/time_frequency/tests/test_multitaper.py": {
+      "a": 12,
+      "d": 5
+    },
+    "mne/time_frequency/tests/test_psd.py": {
+      "a": 121,
+      "d": 92
+    },
+    "mne/viz/epochs.py": {
+      "a": 24,
+      "d": 14
+    },
+    "mne/viz/raw.py": {
+      "a": 8,
+      "d": 9
+    },
+    "mne/viz/topomap.py": {
+      "a": 22,
+      "d": 12
+    }
+  }
+}

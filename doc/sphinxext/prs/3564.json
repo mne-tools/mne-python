@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "90d1b1f2fc6b772b825f76a047b34ec511b47f55",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/cuda.py": {
+      "a": 5,
+      "d": 4
+    },
+    "mne/utils.py": {
+      "a": 12,
+      "d": 0
+    }
+  }
+}

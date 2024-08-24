@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "dfe419501b2c77d8938f80845e1df283cebd0fb8",
+  "authors": [
+    {
+      "n": "Hubert Banville",
+      "e": null
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "tutorials/sample-datasets/plot_sleep.py": {
+      "a": 16,
+      "d": 2
+    }
+  }
+}

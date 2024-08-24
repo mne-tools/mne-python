@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "7ddeded7213f0f23707382eb1455f761f4a50957",
+  "authors": [
+    {
+      "n": "Joan Massich",
+      "e": "mailsik@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/contributing.rst": {
+      "a": 10,
+      "d": 0
+    }
+  }
+}

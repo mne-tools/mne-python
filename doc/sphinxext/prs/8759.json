@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "5feaee815b65ad4bf779987ee2ff9c5b154720c9",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/_read_raw.py": {
+      "a": 22,
+      "d": 12
+    },
+    "mne/io/egi/egi.py": {
+      "a": 10,
+      "d": 4
+    },
+    "mne/io/egi/tests/test_egi.py": {
+      "a": 6,
+      "d": 0
+    }
+  }
+}

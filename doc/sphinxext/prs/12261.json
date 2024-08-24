@@ -1,0 +1,303 @@
+{
+  "merge_commit_sha": "e7dd1588013179013a50d3f6b8e8f9ae0a185783",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    ".github/workflows/tests.yml": {
+      "a": 0,
+      "d": 1
+    },
+    ".pre-commit-config.yaml": {
+      "a": 8,
+      "d": 8
+    },
+    "mne/_fiff/tag.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/_fiff/tests/test_constants.py": {
+      "a": 6,
+      "d": 6
+    },
+    "mne/annotations.py": {
+      "a": 1,
+      "d": 3
+    },
+    "mne/beamformer/tests/test_rap_music.py": {
+      "a": 1,
+      "d": 3
+    },
+    "mne/channels/channels.py": {
+      "a": 19,
+      "d": 54
+    },
+    "mne/channels/interpolation.py": {
+      "a": 1,
+      "d": 4
+    },
+    "mne/channels/layout.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/commands/mne_freeview_bem_surfaces.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/coreg.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/datasets/sleep_physionet/_utils.py": {
+      "a": 1,
+      "d": 3
+    },
+    "mne/datasets/sleep_physionet/age.py": {
+      "a": 1,
+      "d": 3
+    },
+    "mne/decoding/base.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/decoding/search_light.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/decoding/time_frequency.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/decoding/transformer.py": {
+      "a": 5,
+      "d": 7
+    },
+    "mne/dipole.py": {
+      "a": 6,
+      "d": 6
+    },
+    "mne/epochs.py": {
+      "a": 5,
+      "d": 7
+    },
+    "mne/event.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/evoked.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/forward/forward.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/forward/tests/test_field_interpolation.py": {
+      "a": 8,
+      "d": 2
+    },
+    "mne/inverse_sparse/mxne_optim.py": {
+      "a": 5,
+      "d": 5
+    },
+    "mne/io/array/array.py": {
+      "a": 1,
+      "d": 3
+    },
+    "mne/io/artemis123/artemis123.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/base.py": {
+      "a": 5,
+      "d": 7
+    },
+    "mne/io/bti/bti.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/cnt/cnt.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/ctf/ctf.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/ctf/tests/test_ctf.py": {
+      "a": 1,
+      "d": 3
+    },
+    "mne/io/eeglab/eeglab.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/eeglab/tests/test_eeglab.py": {
+      "a": 1,
+      "d": 3
+    },
+    "mne/io/egi/egi.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/fiff/raw.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/fil/fil.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/hitachi/tests/test_hitachi.py": {
+      "a": 2,
+      "d": 6
+    },
+    "mne/io/kit/kit.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/io/nicolet/nicolet.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/nihon/nihon.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/label.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/preprocessing/eyetracking/eyetracking.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/interpolate.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/preprocessing/tests/test_annotate_amplitude.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/preprocessing/tests/test_eeglab_infomax.py": {
+      "a": 1,
+      "d": 3
+    },
+    "mne/preprocessing/tests/test_maxwell.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/source_estimate.py": {
+      "a": 5,
+      "d": 7
+    },
+    "mne/source_space/_source_space.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/stats/permutations.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/tests/test_annotations.py": {
+      "a": 5,
+      "d": 1
+    },
+    "mne/tests/test_docstring_parameters.py": {
+      "a": 1,
+      "d": 3
+    },
+    "mne/time_frequency/_stockwell.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/transforms.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/_bunch.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/_logging.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/_testing.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/utils/docs.py": {
+      "a": 384,
+      "d": 1148
+    },
+    "mne/utils/progressbar.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/_3d.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/viz/backends/_utils.py": {
+      "a": 2,
+      "d": 5
+    },
+    "mne/viz/epochs.py": {
+      "a": 2,
+      "d": 4
+    },
+    "mne/viz/evoked.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/viz/topomap.py": {
+      "a": 2,
+      "d": 3
+    },
+    "mne/viz/utils.py": {
+      "a": 1,
+      "d": 2
+    },
+    "pyproject.toml": {
+      "a": 0,
+      "d": 4
+    },
+    "tutorials/epochs/20_visualize_epochs.py": {
+      "a": 3,
+      "d": 1
+    },
+    "tutorials/inverse/20_dipole_fit.py": {
+      "a": 1,
+      "d": 2
+    },
+    "tutorials/raw/10_raw_overview.py": {
+      "a": 2,
+      "d": 2
+    },
+    "tutorials/stats-source-space/60_cluster_rmANOVA_spatiotemporal.py": {
+      "a": 1,
+      "d": 3
+    }
+  }
+}

@@ -1,0 +1,63 @@
+{
+  "merge_commit_sha": "057026f9a38c63607401ca568790202cf57a08c8",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/annotations.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/cov.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/dipole.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/epochs.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/event.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/evoked.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/forward/forward.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/minimum_norm/inverse.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/proj.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/source_space.py": {
+      "a": 6,
+      "d": 2
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/transforms.py": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

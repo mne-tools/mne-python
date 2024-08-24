@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "12dd9c950eeb59fb908afd0293a3a8fdc6e020a9",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/_static/style.css": {
+      "a": 26,
+      "d": 10
+    },
+    "requirements_doc.txt": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

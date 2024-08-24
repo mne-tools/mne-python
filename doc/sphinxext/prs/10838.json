@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "6eaca414e4b3dc89f64a2e5287ff9d6d8eb1ceb0",
+  "authors": [
+    {
+      "n": "Carina",
+      "e": "carinaforster0611@gmail.com"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "examples/io/read_noise_covariance_matrix.py": {
+      "a": 2,
+      "d": 3
+    }
+  }
+}

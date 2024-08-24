@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "e9c8a90b770cf345d3f5dca8d9623922e0cd0298",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/time_frequency/multitaper.py": {
+      "a": 3,
+      "d": 3
+    }
+  }
+}

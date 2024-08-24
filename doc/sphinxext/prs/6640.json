@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "c6226d792907be781095e93955e75a8f0ef0bfcb",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/time_frequency/plot_source_power_spectrum_opm.py": {
+      "a": 8,
+      "d": 1
+    },
+    "examples/time_frequency/plot_time_frequency_global_field_power.py": {
+      "a": 13,
+      "d": 11
+    },
+    "tutorials/epochs/plot_visualize_epochs.py": {
+      "a": 2,
+      "d": 4
+    },
+    "tutorials/raw/plot_40_visualize_raw.py": {
+      "a": 5,
+      "d": 3
+    }
+  }
+}

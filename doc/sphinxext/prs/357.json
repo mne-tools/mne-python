@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "876a3e9cb795f3eaa49df29fc1bdd94eb29ddcf9",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/fiff/evoked.py": {
+      "a": 46,
+      "d": 33
+    }
+  }
+}

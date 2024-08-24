@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "7c2cc67a1ea22e169d2528a920fd8054123dbab3",
+  "authors": [
+    {
+      "n": "Denis A. Engemann",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/decoding/classifier.py": {
+      "a": 13,
+      "d": 4
+    },
+    "mne/time_frequency/multitaper.py": {
+      "a": 11,
+      "d": 1
+    },
+    "mne/time_frequency/tests/test_multitaper.py": {
+      "a": 12,
+      "d": 4
+    }
+  }
+}

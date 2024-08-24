@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "419b9e2d0825d4660b39200391ed1ad9b8e1b892",
+  "authors": [
+    {
+      "n": "Alex Rockhill",
+      "e": "aprockhill@mailbox.org"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/preprocessing/muscle_ica.py": {
+      "a": 4,
+      "d": 5
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 5,
+      "d": 3
+    },
+    "mne/viz/ica.py": {
+      "a": 58,
+      "d": 16
+    },
+    "mne/viz/tests/test_ica.py": {
+      "a": 26,
+      "d": 5
+    },
+    "mne/viz/topomap.py": {
+      "a": 10,
+      "d": 4
+    }
+  }
+}

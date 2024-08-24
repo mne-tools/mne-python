@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "935866b466da206569cc508c65c003de9a36c65c",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/base.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/edf/edf.py": {
+      "a": 18,
+      "d": 14
+    },
+    "mne/io/edf/tests/test_gdf.py": {
+      "a": 13,
+      "d": 0
+    },
+    "mne/io/meas_info.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/tests/test_raw.py": {
+      "a": 4,
+      "d": 0
+    }
+  }
+}

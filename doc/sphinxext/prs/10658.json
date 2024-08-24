@@ -1,0 +1,115 @@
+{
+  "merge_commit_sha": "a2f6fe7cb6b1ef38fea697ee82cb97eb65c79217",
+  "authors": [
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    }
+  ],
+  "changes": {
+    "Makefile": {
+      "a": 0,
+      "d": 2
+    },
+    "README.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/conf.py": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/install/contributing.rst": {
+      "a": 6,
+      "d": 8
+    },
+    "doc/references.bib": {
+      "a": 12,
+      "d": 0
+    },
+    "examples/decoding/ems_filtering.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/time_frequency/time_frequency_global_field_power.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/channels/channels.py": {
+      "a": 92,
+      "d": 18
+    },
+    "mne/forward/forward.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/fiff/tests/test_raw_fiff.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/stats/_adjacency.py": {
+      "a": 15,
+      "d": 4
+    },
+    "mne/stats/cluster_level.py": {
+      "a": 44,
+      "d": 31
+    },
+    "mne/stats/parametric.py": {
+      "a": 2,
+      "d": 10
+    },
+    "mne/surface.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/docs.py": {
+      "a": 56,
+      "d": 14
+    },
+    "tutorials/clinical/10_ieeg_localize.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/machine-learning/50_decoding.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/stats-sensor-space/10_background_stats.py": {
+      "a": 30,
+      "d": 13
+    },
+    "tutorials/stats-sensor-space/40_cluster_1samp_time_freq.py": {
+      "a": 103,
+      "d": 18
+    },
+    "tutorials/stats-sensor-space/75_cluster_ftest_spatiotemporal.py": {
+      "a": 90,
+      "d": 43
+    },
+    "tutorials/stats-source-space/20_cluster_1samp_spatiotemporal.py": {
+      "a": 74,
+      "d": 30
+    },
+    "tutorials/stats-source-space/30_cluster_ftest_spatiotemporal.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/stats-source-space/60_cluster_rmANOVA_spatiotemporal.py": {
+      "a": 2,
+      "d": 2
+    },
+    "tutorials/stats-source-space/70_cluster_rmANOVA_time_freq.py": {
+      "a": 3,
+      "d": 3
+    },
+    "tutorials/time-freq/50_ssvep.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

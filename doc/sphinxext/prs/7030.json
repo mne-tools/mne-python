@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "965cffb205b3e5d11df8ac81c019716799125ded",
+  "authors": [
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/viz/_3d.py": {
+      "a": 17,
+      "d": 0
+    },
+    "tutorials/source-modeling/plot_mne_dspm_source_localization.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

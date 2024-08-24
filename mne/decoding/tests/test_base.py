@@ -1,6 +1,4 @@
-# Author: Jean-Remi King, <jeanremi.king@gmail.com>
-#         Marijn van Vliet, <w.m.vanvliet@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -69,6 +67,7 @@ def _make_data(n_samples=1000, n_features=5, n_targets=3):
     return X, Y, A
 
 
+@pytest.mark.filterwarnings("ignore:invalid value encountered in cast.*:RuntimeWarning")
 def test_get_coef():
     """Test getting linear coefficients (filters/patterns) from estimators."""
     from sklearn import svm

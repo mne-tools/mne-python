@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "add9e1620958b61f5509bea172ce8343975aee10",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/utils/docs.py": {
+      "a": 5,
+      "d": 4
+    },
+    "mne/viz/tests/test_topomap.py": {
+      "a": 14,
+      "d": 0
+    },
+    "mne/viz/topomap.py": {
+      "a": 12,
+      "d": 1
+    }
+  }
+}

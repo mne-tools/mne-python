@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "d8ea2f5e60174d61301dbefbed9c76c9adc01ec9",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    },
+    {
+      "n": "autofix-ci[bot]",
+      "e": "114827586+autofix-ci[bot]@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/12410.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/time_frequency/spectrum.py": {
+      "a": 1,
+      "d": 5
+    },
+    "mne/utils/docs.py": {
+      "a": 40,
+      "d": 6
+    },
+    "mne/utils/misc.py": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/viz/epochs.py": {
+      "a": 1,
+      "d": 13
+    },
+    "mne/viz/evoked.py": {
+      "a": 37,
+      "d": 24
+    },
+    "mne/viz/tests/test_evoked.py": {
+      "a": 23,
+      "d": 10
+    },
+    "mne/viz/utils.py": {
+      "a": 46,
+      "d": 11
+    }
+  }
+}

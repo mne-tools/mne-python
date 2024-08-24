@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "966442898b1db39fd4562a6999848653597a5d9c",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/forward/_field_interpolation.py": {
+      "a": 6,
+      "d": 2
+    },
+    "mne/source_space.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/transforms.py": {
+      "a": 8,
+      "d": 5
+    }
+  }
+}

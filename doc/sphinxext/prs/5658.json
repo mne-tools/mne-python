@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "ce8df3b1a4b2c168e4dd2acddd9b43b8a2d1fb3e",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/forward/forward.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/_3d.py": {
+      "a": 4,
+      "d": 6
+    },
+    "tutorials/plot_background_filtering.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/plot_background_statistics.py": {
+      "a": 4,
+      "d": 4
+    }
+  }
+}

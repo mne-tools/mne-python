@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "4a399a006b90daaf698bb5ca977dad5e703e5a54",
+  "authors": [
+    {
+      "n": "Mikolaj Magnuski",
+      "e": "mmagnuski@swps.edu.pl"
+    }
+  ],
+  "changes": {
+    "tutorials/plot_object_annotations.py": {
+      "a": 44,
+      "d": 23
+    }
+  }
+}

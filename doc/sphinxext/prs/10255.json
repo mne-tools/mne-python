@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "abf530f78ea39e5dfeaf3d33b0f994c706eb9e9e",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/gui/_coreg.py": {
+      "a": 62,
+      "d": 57
+    },
+    "mne/gui/tests/test_coreg_gui.py": {
+      "a": 5,
+      "d": 5
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "dddbe78f0c1a4140e9fd54904593a456b117f56a",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/epochs.py": {
+      "a": 8,
+      "d": 5
+    }
+  }
+}

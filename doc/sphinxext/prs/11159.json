@@ -1,0 +1,63 @@
+{
+  "merge_commit_sha": "63b430e7f18ab4b49ae35b5ecc8564993647be62",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/epochs.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/evoked.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/forward/forward.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/io/base.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/io/meas_info.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/minimum_norm/inverse.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/time_frequency/spectrum.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/utils/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/config.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/utils/misc.py": {
+      "a": 29,
+      "d": 0
+    },
+    "mne/utils/tests/test_misc.py": {
+      "a": 23,
+      "d": 0
+    }
+  }
+}

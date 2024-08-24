@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "0974fc51f0f9bc76c8ebeec3695726f2680b11ff",
+  "authors": [
+    {
+      "n": "Eduard",
+      "e": "eduardxort@gmail.com"
+    }
+  ],
+  "changes": {
+    "tutorials/preprocessing/plot_15_handling_bad_channels.py": {
+      "a": 4,
+      "d": 5
+    }
+  }
+}

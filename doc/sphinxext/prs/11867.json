@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "7c4e27c65c05e2252005e827b9c13e5ad91077c3",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/viz/topomap.py": {
+      "a": 3,
+      "d": 2
+    },
+    "tutorials/epochs/20_visualize_epochs.py": {
+      "a": 5,
+      "d": 6
+    }
+  }
+}

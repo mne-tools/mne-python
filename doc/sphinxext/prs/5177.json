@@ -1,0 +1,111 @@
+{
+  "merge_commit_sha": "a3e412691c8cdd734514084e1b421311b662f809",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/beamformer/__init__.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/beamformer/_compute_beamformer.py": {
+      "a": 0,
+      "d": 6
+    },
+    "mne/beamformer/_dics.py": {
+      "a": 1,
+      "d": 306
+    },
+    "mne/beamformer/_lcmv.py": {
+      "a": 2,
+      "d": 304
+    },
+    "mne/beamformer/tests/test_dics.py": {
+      "a": 2,
+      "d": 183
+    },
+    "mne/dipole.py": {
+      "a": 2,
+      "d": 3
+    },
+    "mne/evoked.py": {
+      "a": 7,
+      "d": 7
+    },
+    "mne/forward/forward.py": {
+      "a": 5,
+      "d": 17
+    },
+    "mne/inverse_sparse/mxne_inverse.py": {
+      "a": 12,
+      "d": 40
+    },
+    "mne/inverse_sparse/mxne_optim.py": {
+      "a": 1,
+      "d": 17
+    },
+    "mne/inverse_sparse/tests/test_mxne_inverse.py": {
+      "a": 18,
+      "d": 26
+    },
+    "mne/minimum_norm/tests/test_inverse.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/preprocessing/ssp.py": {
+      "a": 4,
+      "d": 19
+    },
+    "mne/preprocessing/tests/test_ssp.py": {
+      "a": 0,
+      "d": 13
+    },
+    "mne/simulation/evoked.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/tests/test_docstring_parameters.py": {
+      "a": 1,
+      "d": 9
+    },
+    "mne/time_frequency/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/time_frequency/csd.py": {
+      "a": 1,
+      "d": 151
+    },
+    "mne/time_frequency/tests/test_csd.py": {
+      "a": 19,
+      "d": 343
+    },
+    "mne/time_frequency/tests/test_tfr.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/evoked.py": {
+      "a": 12,
+      "d": 17
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 2,
+      "d": 3
+    },
+    "mne/viz/tests/test_topomap.py": {
+      "a": 0,
+      "d": 2
+    },
+    "mne/viz/topomap.py": {
+      "a": 8,
+      "d": 23
+    },
+    "mne/viz/utils.py": {
+      "a": 2,
+      "d": 8
+    }
+  }
+}

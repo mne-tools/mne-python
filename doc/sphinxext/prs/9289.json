@@ -1,0 +1,59 @@
+{
+  "merge_commit_sha": "c5b12979e4f3b0dd6861b71d26d4302e2288a027",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    },
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    },
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/references.bib": {
+      "a": 24,
+      "d": 14
+    },
+    "examples/io/plot_read_xdf.py": {
+      "a": 42,
+      "d": 0
+    },
+    "mne/datasets/utils.py": {
+      "a": 2,
+      "d": 2
+    },
+    "requirements_doc.txt": {
+      "a": 1,
+      "d": 0
+    },
+    "tutorials/io/plot_20_reading_eeg_data.py": {
+      "a": 101,
+      "d": 79
+    }
+  }
+}

@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "fc56f61f315f8f5ec4467ddb89573e15fb064cd8",
+  "authors": [
+    {
+      "n": "Phillip Alday",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/io/brainvision/brainvision.py": {
+      "a": 60,
+      "d": 5
+    },
+    "mne/io/brainvision/tests/data/test_highpass_hz.vhdr": {
+      "a": 103,
+      "d": 0
+    },
+    "mne/io/brainvision/tests/data/test_lowpass_s.vhdr": {
+      "a": 103,
+      "d": 0
+    },
+    "mne/io/brainvision/tests/data/test_mixed_highpass.vhdr": {
+      "a": 103,
+      "d": 0
+    },
+    "mne/io/brainvision/tests/data/test_mixed_highpass_hz.vhdr": {
+      "a": 103,
+      "d": 0
+    },
+    "mne/io/brainvision/tests/data/test_mixed_lowpass.vhdr": {
+      "a": 103,
+      "d": 0
+    },
+    "mne/io/brainvision/tests/data/test_mixed_lowpass_s.vhdr": {
+      "a": 103,
+      "d": 0
+    },
+    "mne/io/brainvision/tests/data/test_partially_disabled_hw_filter.vhdr": {
+      "a": 103,
+      "d": 0
+    },
+    "mne/io/brainvision/tests/test_brainvision.py": {
+      "a": 158,
+      "d": 2
+    }
+  }
+}

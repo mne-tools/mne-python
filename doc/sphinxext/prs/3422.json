@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "2921f56c5a23ae39e5d6b4a9173695925d291bae",
+  "authors": [
+    {
+      "n": "Christian Brodbeck",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/commands/mne_coreg.py": {
+      "a": 5,
+      "d": 5
+    },
+    "mne/commands/mne_kit2fiff.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/commands/mne_make_scalp_surfaces.py": {
+      "a": 5,
+      "d": 4
+    },
+    "mne/utils.py": {
+      "a": 13,
+      "d": 0
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "b97735d87a58df107192319f042e2875b99d8470",
+  "authors": [
+    {
+      "n": "Christian Brodbeck",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/channels/data/layouts/KIT-AS-2008.lout": {
+      "a": 158,
+      "d": 0
+    },
+    "mne/io/kit/constants.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

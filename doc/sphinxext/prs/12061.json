@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "a8b4638cf415838425fba34d2773c1007ac99ee1",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    }
+  ],
+  "changes": {
+    ".github/CODEOWNERS": {
+      "a": 5,
+      "d": 5
+    }
+  }
+}

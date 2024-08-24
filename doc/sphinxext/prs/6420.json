@@ -1,0 +1,99 @@
+{
+  "merge_commit_sha": "f4b66b57ba6ea6ccfa6b835a49198aa2d5778f9c",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "Makefile": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/_static/institution_logos/Aalto.svg": {
+      "a": 2466,
+      "d": 0
+    },
+    "doc/_static/institution_logos/Aarhus.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/institution_logos/BIDS.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/institution_logos/BU.svg": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/_static/institution_logos/CEA.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/institution_logos/Graz.jpg": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/institution_logos/Harvard.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/institution_logos/ICM.jpg": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/institution_logos/Ilmenau.gif": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/institution_logos/Inserm.svg": {
+      "a": 46,
+      "d": 0
+    },
+    "doc/_static/institution_logos/Julich.svg": {
+      "a": 41,
+      "d": 0
+    },
+    "doc/_static/institution_logos/MGH.svg": {
+      "a": 18,
+      "d": 0
+    },
+    "doc/_static/institution_logos/MIT.svg": {
+      "a": 9,
+      "d": 0
+    },
+    "doc/_static/institution_logos/Martinos.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/institution_logos/NYU.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/institution_logos/Telecom_Paris_Tech.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/institution_logos/Washington.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/institution_logos/inria.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/institutions.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/style.css": {
+      "a": 26,
+      "d": 6
+    },
+    "doc/_templates/layout.html": {
+      "a": 20,
+      "d": 1
+    }
+  }
+}

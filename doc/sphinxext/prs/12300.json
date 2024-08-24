@@ -1,0 +1,55 @@
+{
+  "merge_commit_sha": "fce9c5ed032cc7e7af0d7ea33f35e50d46510d64",
+  "authors": [
+    {
+      "n": "Scott Huberty",
+      "e": null
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "nafraw",
+      "e": "ping-keng.jao@alumni.epfl.ch"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/12300.apichange.rst": {
+      "a": 3,
+      "d": 0
+    },
+    "doc/changes/devel/12300.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/channels/tests/test_montage.py": {
+      "a": 5,
+      "d": 1
+    },
+    "mne/io/egi/egi.py": {
+      "a": 77,
+      "d": 74
+    },
+    "mne/io/egi/egimff.py": {
+      "a": 41,
+      "d": 114
+    },
+    "mne/io/egi/events.py": {
+      "a": 38,
+      "d": 2
+    },
+    "mne/io/egi/tests/test_egi.py": {
+      "a": 45,
+      "d": 15
+    },
+    "tutorials/preprocessing/90_eyetracking_data.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

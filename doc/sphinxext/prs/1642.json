@@ -1,0 +1,327 @@
+{
+  "merge_commit_sha": "b7cc0f9b45a95a91c357fd8d8f32c0897f13b4d7",
+  "authors": [
+    {
+      "n": "Denis A. Engemann",
+      "e": null
+    }
+  ],
+  "changes": {
+    "MANIFEST.in": {
+      "a": 7,
+      "d": 6
+    },
+    "doc/source/python_reference.rst": {
+      "a": 5,
+      "d": 9
+    },
+    "doc/source/whats_new.rst": {
+      "a": 6,
+      "d": 1
+    },
+    "examples/stats/plot_spatio_temporal_cluster_stats_sensor.py": {
+      "a": 157,
+      "d": 0
+    },
+    "mne/__init__.py": {
+      "a": 2,
+      "d": 4
+    },
+    "mne/channels/__init__.py": {
+      "a": 10,
+      "d": 0
+    },
+    "mne/channels/channels.py": {
+      "a": 46,
+      "d": 18
+    },
+    "mne/channels/data/layouts/CTF-275.lout": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/channels/data/layouts/CTF151.lay": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/channels/data/layouts/CTF275.lay": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/channels/data/layouts/EEG1005.lay": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/channels/data/layouts/EGI256.lout": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/channels/data/layouts/KIT-157.lout": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/channels/data/layouts/Vectorview-all.lout": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/channels/data/layouts/Vectorview-grad.lout": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/channels/data/layouts/Vectorview-mag.lout": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/channels/data/layouts/biosemi.lay": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/channels/data/layouts/magnesWH3600.lout": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/channels/data/montages/10-5-System_Mastoids_EGI129.csd": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/channels/data/montages/EGI_256.csd": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/channels/data/montages/GSN-HydroCel-128.sfp": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/channels/data/montages/GSN-HydroCel-129.sfp": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/channels/data/montages/GSN-HydroCel-256.sfp": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/channels/data/montages/GSN-HydroCel-257.sfp": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/channels/data/montages/GSN-HydroCel-32.sfp": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/channels/data/montages/GSN-HydroCel-64_1.0.sfp": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/channels/data/montages/GSN-HydroCel-65_1.0.sfp": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/channels/data/montages/easycap-M1.txt": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/channels/data/montages/easycap-M10.txt": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/channels/data/montages/standard_1005.elc": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/channels/data/montages/standard_1020.elc": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/channels/data/montages/standard_alphabetic.elc": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/channels/data/montages/standard_postfixed.elc": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/channels/data/montages/standard_prefixed.elc": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/channels/data/montages/standard_primed.elc": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/channels/data/neighbors/__init__.py": {
+      "a": 6,
+      "d": 0
+    },
+    "mne/channels/data/neighbors/biosemi16_neighb.mat": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/channels/data/neighbors/biosemi32_neighb.mat": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/channels/data/neighbors/biosemi64_neighb.mat": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/channels/data/neighbors/bti148_neighb.mat": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/channels/data/neighbors/bti248_neighb.mat": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/channels/data/neighbors/bti248grad_neighb.mat": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/channels/data/neighbors/ctf151_neighb.mat": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/channels/data/neighbors/ctf275_neighb.mat": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/channels/data/neighbors/ctf64_neighb.mat": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/channels/data/neighbors/easycap128ch-avg_neighb.mat": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/channels/data/neighbors/easycap32ch-avg_neighb.mat": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/channels/data/neighbors/easycap64ch-avg_neighb.mat": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/channels/data/neighbors/easycapM11_neighb.mat": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/channels/data/neighbors/easycapM14_neighb.mat": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/channels/data/neighbors/easycapM15_neighb.mat": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/channels/data/neighbors/easycapM1_neighb.mat": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/channels/data/neighbors/neuromag122_neighb.mat": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/channels/data/neighbors/neuromag306mag_neighb.mat": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/channels/data/neighbors/neuromag306planar_neighb.mat": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/channels/layout.py": {
+      "a": 197,
+      "d": 4
+    },
+    "mne/channels/tests/__init__.py": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/channels/tests/test_channels.py": {
+      "a": 14,
+      "d": 8
+    },
+    "mne/channels/tests/test_layout.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/channels/tests/test_montage.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/epochs.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/evoked.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/base.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/layouts/__init__.py": {
+      "a": 21,
+      "d": 2
+    },
+    "mne/montages/__init__.py": {
+      "a": 0,
+      "d": 3
+    },
+    "mne/montages/montage.py": {
+      "a": 0,
+      "d": 202
+    },
+    "mne/montages/tests/__init__.py": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/surface.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 7,
+      "d": 5
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/tests/test_epochs.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/tests/test_evoked.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/tests/test_montage.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/tests/test_topo.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/tests/test_topomap.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/topo.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/viz/topomap.py": {
+      "a": 10,
+      "d": 10
+    },
+    "setup.py": {
+      "a": 9,
+      "d": 7
+    }
+  }
+}

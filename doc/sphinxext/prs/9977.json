@@ -1,0 +1,131 @@
+{
+  "merge_commit_sha": "d995aa2aa8361ef29d2ffb896fc2387ed1cde2cc",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Mathieu Scheltienne",
+      "e": "73893616+mscheltienne@users.noreply.github.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "doc/changes/0.18.inc": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/changes/0.24.inc": {
+      "a": 4,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 0,
+      "d": 2
+    },
+    "doc/conf.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/epochs.py": {
+      "a": 5,
+      "d": 2
+    },
+    "mne/export/_egimff.py": {
+      "a": 14,
+      "d": 2
+    },
+    "mne/export/_export.py": {
+      "a": 18,
+      "d": 5
+    },
+    "mne/export/tests/test_export.py": {
+      "a": 35,
+      "d": 5
+    },
+    "mne/externals/pymatreader/pymatreader.py": {
+      "a": 2,
+      "d": 3
+    },
+    "mne/externals/pymatreader/utils.py": {
+      "a": 11,
+      "d": 2
+    },
+    "mne/gui/__init__.py": {
+      "a": 2,
+      "d": 5
+    },
+    "mne/gui/_coreg.py": {
+      "a": 7,
+      "d": 1
+    },
+    "mne/io/base.py": {
+      "a": 6,
+      "d": 2
+    },
+    "mne/io/eeglab/eeglab.py": {
+      "a": 5,
+      "d": 3
+    },
+    "mne/minimum_norm/tests/test_inverse.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/docs.py": {
+      "a": 20,
+      "d": 0
+    },
+    "mne/viz/_3d.py": {
+      "a": 6,
+      "d": 6
+    },
+    "mne/viz/topomap.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tools/github_actions_dependencies.sh": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

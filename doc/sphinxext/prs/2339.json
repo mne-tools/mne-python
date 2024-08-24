@@ -1,0 +1,815 @@
+{
+  "merge_commit_sha": "77ba8d1838c047aabb65262b32efe1515901eb10",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".gitignore": {
+      "a": 3,
+      "d": 3
+    },
+    "Makefile": {
+      "a": 3,
+      "d": 3
+    },
+    "doc/Makefile": {
+      "a": 28,
+      "d": 28
+    },
+    "doc/_images/mne_helmet.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/branch_dropdown.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/favicon.ico": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/flow_diagram.svg": {
+      "a": 204,
+      "d": 0
+    },
+    "doc/_static/forking_button.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/institutions.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/mne_logo.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/mne_logo_small.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/pull_button.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/style.css": {
+      "a": 46,
+      "d": 0
+    },
+    "doc/_templates/class.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_templates/function.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_templates/layout.html": {
+      "a": 4,
+      "d": 21
+    },
+    "doc/advanced_setup.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/cite.rst": {
+      "a": 4,
+      "d": 6
+    },
+    "doc/conf.py": {
+      "a": 107,
+      "d": 52
+    },
+    "doc/contributing.rst": {
+      "a": 10,
+      "d": 5
+    },
+    "doc/customizing_git.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/faq.rst": {
+      "a": 3,
+      "d": 1
+    },
+    "doc/getting_started.rst": {
+      "a": 321,
+      "d": 0
+    },
+    "doc/git_links.inc": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/index.rst": {
+      "a": 136,
+      "d": 0
+    },
+    "doc/known_projects.inc": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/links.inc": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/appendix/bem_model.rst": {
+      "a": 24,
+      "d": 49
+    },
+    "doc/manual/appendix/c_EULA.rst": {
+      "a": 8,
+      "d": 2
+    },
+    "doc/manual/appendix/c_misc.rst": {
+      "a": 99,
+      "d": 0
+    },
+    "doc/manual/appendix/c_release_notes.rst": {
+      "a": 91,
+      "d": 114
+    },
+    "doc/manual/appendix/martinos.rst": {
+      "a": 117,
+      "d": 0
+    },
+    "doc/manual/c_reference.rst": {
+      "a": 6442,
+      "d": 0
+    },
+    "doc/manual/cookbook.rst": {
+      "a": 412,
+      "d": 0
+    },
+    "doc/manual/datasets.rst": {
+      "a": 14,
+      "d": 75
+    },
+    "doc/manual/gui/analyze.rst": {
+      "a": 12,
+      "d": 85
+    },
+    "doc/manual/gui/browse.rst": {
+      "a": 31,
+      "d": 426
+    },
+    "doc/manual/gui/mne_analyze/MNE_preferences.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_analyze/adjust_alignment.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_analyze/adjust_lights.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_analyze/adjust_menu.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_analyze/cont_hpi_data.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_analyze/dipole_list.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_analyze/dipole_parameters.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_analyze/dipoles_menu.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_analyze/epoch_selector.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_analyze/field_mapping_pref.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_analyze/file_menu.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_analyze/hardcopy_controls.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_analyze/help_menu.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_analyze/image_dialog.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_analyze/label_list.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_analyze/labels_menu.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_analyze/main_window.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_analyze/movie_dialog.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_analyze/mri_viewer.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_analyze/open_dialog.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_analyze/overlay_management.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_analyze/patch_selection_dialog.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_analyze/save_label_timecourse.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_analyze/scales_dialog.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_analyze/surface_controls.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_analyze/surface_selection_dialog.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_analyze/timecourse_manager.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_analyze/view_menu.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_analyze/viewer.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_analyze/viewer_options.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_analyze/visualize_hpi.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_analyze/windows_menu.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_browse_raw/adjust_menu.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_browse_raw/adust_menu.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_browse_raw/average_pref.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_browse_raw/channel_selection.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_browse_raw/file_menu.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_browse_raw/filter_dialog.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_browse_raw/help_menu.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_browse_raw/main.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_browse_raw/manage_averages_dialog.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_browse_raw/new_selection.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_browse_raw/new_ssp.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_browse_raw/open_dialog copy.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_browse_raw/open_dialog.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_browse_raw/process_menu.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_browse_raw/process_menu2.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_browse_raw/scales_dialog.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_browse_raw/scales_dialog2.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_browse_raw/toolbar.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_browse_raw/windows_menu-0.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_browse_raw/windows_menu-1.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_browse_raw/windows_menu-10.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_browse_raw/windows_menu-11.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_browse_raw/windows_menu-12.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_browse_raw/windows_menu-13.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_browse_raw/windows_menu-14.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_browse_raw/windows_menu-15.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_browse_raw/windows_menu-16.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_browse_raw/windows_menu-17.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_browse_raw/windows_menu-2.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_browse_raw/windows_menu-3.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_browse_raw/windows_menu-4.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_browse_raw/windows_menu-5.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_browse_raw/windows_menu-6.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_browse_raw/windows_menu-7.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_browse_raw/windows_menu-8.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_browse_raw/windows_menu-9.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/gui/mne_browse_raw/windows_menu.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/index.rst": {
+      "a": 142,
+      "d": 0
+    },
+    "doc/manual/io.rst": {
+      "a": 343,
+      "d": 0
+    },
+    "doc/manual/matlab.rst": {
+      "a": 13,
+      "d": 7
+    },
+    "doc/manual/pics/CoordinateSystems.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/pics/Digitizer-example.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/pics/Flowchart.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/pics/HeadCS.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/pics/ICA_primer.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/pics/cover.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/pics/flat.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/pics/morphed.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/pics/neuromag.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/pics/orig.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/pics/proj-off-on.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/pics/title_page.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/preprocessing/bads.rst": {
+      "a": 3,
+      "d": 0
+    },
+    "doc/manual/preprocessing/filter.rst": {
+      "a": 3,
+      "d": 0
+    },
+    "doc/manual/preprocessing/ica.rst": {
+      "a": 118,
+      "d": 0
+    },
+    "doc/manual/preprocessing/overview.rst": {
+      "a": 3,
+      "d": 0
+    },
+    "doc/manual/preprocessing/ssp.rst": {
+      "a": 128,
+      "d": 0
+    },
+    "doc/manual/source_localization/covariance.rst": {
+      "a": 5,
+      "d": 0
+    },
+    "doc/manual/source_localization/forward.rst": {
+      "a": 28,
+      "d": 476
+    },
+    "doc/manual/source_localization/inverse.rst": {
+      "a": 520,
+      "d": 0
+    },
+    "doc/manual/source_localization/morph.rst": {
+      "a": 141,
+      "d": 0
+    },
+    "doc/manual/statistics.rst": {
+      "a": 100,
+      "d": 0
+    },
+    "doc/manual/time_frequency.rst": {
+      "a": 3,
+      "d": 0
+    },
+    "doc/manual/visualization.rst": {
+      "a": 3,
+      "d": 0
+    },
+    "doc/mne_cpp.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/python_reference.rst": {
+      "a": 5,
+      "d": 11
+    },
+    "doc/references.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/_static/default.css": {
+      "a": 0,
+      "d": 515
+    },
+    "doc/source/_static/institutions.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/_static/navy.css": {
+      "a": 0,
+      "d": 515
+    },
+    "doc/source/_templates/sidebar.html": {
+      "a": 0,
+      "d": 5
+    },
+    "doc/source/getting_started.rst": {
+      "a": 0,
+      "d": 102
+    },
+    "doc/source/index.rst": {
+      "a": 0,
+      "d": 57
+    },
+    "doc/source/manual.rst": {
+      "a": 0,
+      "d": 28
+    },
+    "doc/source/manual/AppB.rst": {
+      "a": 0,
+      "d": 294
+    },
+    "doc/source/manual/AppInstall.rst": {
+      "a": 0,
+      "d": 174
+    },
+    "doc/source/manual/convert.rst": {
+      "a": 0,
+      "d": 2312
+    },
+    "doc/source/manual/cookbook.rst": {
+      "a": 0,
+      "d": 1066
+    },
+    "doc/source/manual/intro.rst": {
+      "a": 0,
+      "d": 45
+    },
+    "doc/source/manual/list.rst": {
+      "a": 0,
+      "d": 439
+    },
+    "doc/source/manual/mne.rst": {
+      "a": 0,
+      "d": 1323
+    },
+    "doc/source/manual/morph.rst": {
+      "a": 0,
+      "d": 409
+    },
+    "doc/source/manual/pics/Averaging-flowchart.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/manual/utilities.rst": {
+      "a": 0,
+      "d": 1402
+    },
+    "doc/source/mne-python.rst": {
+      "a": 0,
+      "d": 29
+    },
+    "doc/source/python_tutorial.rst": {
+      "a": 0,
+      "d": 398
+    },
+    "doc/sphinxext/commands.py": {
+      "a": 80,
+      "d": 0
+    },
+    "doc/sphinxext/gen_rst.py": {
+      "a": 0,
+      "d": 1222
+    },
+    "doc/this_project.inc": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/tutorials.rst": {
+      "a": 84,
+      "d": 0
+    },
+    "doc/tutorials/_images/plot_read_and_write_raw_data.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/tutorials/_images/plot_read_epochs.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/tutorials/_images/plot_time_frequency.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/tutorials/command_line.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/tutorials/report.rst": {
+      "a": 3,
+      "d": 3
+    },
+    "doc/upload_html.sh": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/utils/extract_config_doc.py": {
+      "a": 0,
+      "d": 73
+    },
+    "doc/utils/lut2sphinxtbl.py": {
+      "a": 0,
+      "d": 65
+    },
+    "doc/utils/make_clean_config.py": {
+      "a": 0,
+      "d": 30
+    },
+    "doc/whats_new.rst": {
+      "a": 6,
+      "d": 7
+    },
+    "examples/README.txt": {
+      "a": 2,
+      "d": 2
+    },
+    "examples/forward/plot_decimate_head_surface.py": {
+      "a": 9,
+      "d": 9
+    },
+    "examples/preprocessing/plot_ica_from_epochs.py": {
+      "a": 0,
+      "d": 81
+    },
+    "examples/preprocessing/plot_run_ica.py": {
+      "a": 47,
+      "d": 0
+    },
+    "mne/connectivity/spectral.py": {
+      "a": 6,
+      "d": 7
+    },
+    "mne/decoding/time_gen.py": {
+      "a": 18,
+      "d": 20
+    },
+    "mne/io/base.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/io/edf/edf.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/meas_info.py": {
+      "a": 98,
+      "d": 1
+    },
+    "mne/label.py": {
+      "a": 8,
+      "d": 7
+    },
+    "mne/selection.py": {
+      "a": 12,
+      "d": 3
+    },
+    "mne/source_estimate.py": {
+      "a": 4,
+      "d": 5
+    },
+    "mne/stats/parametric.py": {
+      "a": 15,
+      "d": 15
+    },
+    "mne/viz/epochs.py": {
+      "a": 6,
+      "d": 4
+    },
+    "tutorials/README.txt": {
+      "a": 4,
+      "d": 0
+    },
+    "tutorials/plot_cluster_1samp_test_time_frequency.py": {
+      "a": 2,
+      "d": 0
+    },
+    "tutorials/plot_cluster_methods_tutorial.py": {
+      "a": 2,
+      "d": 0
+    },
+    "tutorials/plot_cluster_stats_spatio_temporal.py": {
+      "a": 2,
+      "d": 0
+    },
+    "tutorials/plot_cluster_stats_spatio_temporal_2samp.py": {
+      "a": 2,
+      "d": 0
+    },
+    "tutorials/plot_cluster_stats_spatio_temporal_repeated_measures_anova.py": {
+      "a": 2,
+      "d": 0
+    },
+    "tutorials/plot_cluster_stats_time_frequency.py": {
+      "a": 2,
+      "d": 0
+    },
+    "tutorials/plot_cluster_stats_time_frequency_repeated_measures_anova.py": {
+      "a": 2,
+      "d": 0
+    },
+    "tutorials/plot_creating_data_structures.py": {
+      "a": 180,
+      "d": 0
+    },
+    "tutorials/plot_epochs_objects.py": {
+      "a": 103,
+      "d": 0
+    },
+    "tutorials/plot_epochs_to_data_frame.py": {
+      "a": 2,
+      "d": 0
+    },
+    "tutorials/plot_ica_from_raw.py": {
+      "a": 11,
+      "d": 11
+    },
+    "tutorials/plot_info.py": {
+      "a": 90,
+      "d": 0
+    },
+    "tutorials/plot_introduction.py": {
+      "a": 373,
+      "d": 0
+    },
+    "tutorials/plot_modifying_data_inplace.py": {
+      "a": 74,
+      "d": 0
+    },
+    "tutorials/plot_raw_objects.py": {
+      "a": 133,
+      "d": 0
+    },
+    "tutorials/plot_source_localization_basics.py": {
+      "a": 98,
+      "d": 0
+    },
+    "tutorials/plot_spatio_temporal_cluster_stats_sensor.py": {
+      "a": 40,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,59 @@
+{
+  "merge_commit_sha": "bbfdb076e00727cbdd5aae6ced190c4a853dfdaf",
+  "authors": [
+    {
+      "n": "Jean-Rémi KING",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/python_reference.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/whats_new.rst": {
+      "a": 4,
+      "d": 0
+    },
+    "examples/decoding/decoding_rsa.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/decoding/plot_decoding_csp_eeg.py": {
+      "a": 16,
+      "d": 17
+    },
+    "examples/decoding/plot_decoding_csp_space.py": {
+      "a": 6,
+      "d": 4
+    },
+    "examples/decoding/plot_decoding_time_generalization_conditions.py": {
+      "a": 9,
+      "d": 7
+    },
+    "examples/decoding/plot_decoding_xdawn_eeg.py": {
+      "a": 9,
+      "d": 8
+    },
+    "examples/decoding/plot_ems_filtering.py": {
+      "a": 15,
+      "d": 14
+    },
+    "examples/decoding/plot_linear_model_patterns.py": {
+      "a": 50,
+      "d": 21
+    },
+    "mne/decoding/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/decoding/base.py": {
+      "a": 135,
+      "d": 38
+    },
+    "mne/decoding/tests/test_base.py": {
+      "a": 129,
+      "d": 0
+    }
+  }
+}

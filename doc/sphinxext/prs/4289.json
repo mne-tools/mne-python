@@ -1,0 +1,55 @@
+{
+  "merge_commit_sha": "525dab575f6003df9441a86358de5415c8e2eb1e",
+  "authors": [
+    {
+      "n": "Jona Sassenhagen",
+      "e": "jona.sassenhagen@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 4,
+      "d": 0
+    },
+    "examples/visualization/plot_channel_epochs_image.py": {
+      "a": 3,
+      "d": 3
+    },
+    "examples/visualization/plot_roi_erpimage_by_rt.py": {
+      "a": 71,
+      "d": 0
+    },
+    "mne/epochs.py": {
+      "a": 8,
+      "d": 5
+    },
+    "mne/viz/epochs.py": {
+      "a": 400,
+      "d": 120
+    },
+    "mne/viz/evoked.py": {
+      "a": 99,
+      "d": 66
+    },
+    "mne/viz/ica.py": {
+      "a": 8,
+      "d": 31
+    },
+    "mne/viz/tests/test_epochs.py": {
+      "a": 22,
+      "d": 6
+    },
+    "mne/viz/tests/test_evoked.py": {
+      "a": 13,
+      "d": 3
+    },
+    "mne/viz/utils.py": {
+      "a": 32,
+      "d": 5
+    },
+    "tutorials/plot_visualize_epochs.py": {
+      "a": 16,
+      "d": 4
+    }
+  }
+}

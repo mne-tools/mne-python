@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "8e080b2b0aa185ff54176688be68d3c515cbfd08",
+  "authors": [
+    {
+      "n": "Fede Raimondo",
+      "e": "f.raimondo@fz-juelich.de"
+    }
+  ],
+  "changes": {
+    "doc/source/whats_new.rst": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/io/reference.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/tests/test_reference.py": {
+      "a": 2,
+      "d": 0
+    }
+  }
+}

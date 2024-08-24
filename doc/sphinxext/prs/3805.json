@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "e2f79af9ad9d97a417aab8633161d10652fa158f",
+  "authors": [
+    {
+      "n": "Jona Sassenhagen",
+      "e": "jona.sassenhagen@gmail.com"
+    }
+  ],
+  "changes": {
+    "tutorials/plot_visualize_evoked.py": {
+      "a": 24,
+      "d": 21
+    }
+  }
+}

@@ -1,0 +1,59 @@
+{
+  "merge_commit_sha": "cdffbc0f437f185bd7fbb59a53f70e29419a500b",
+  "authors": [
+    {
+      "n": "Pierre Ablin",
+      "e": null
+    }
+  ],
+  "changes": {
+    "README.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/documentation.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/whats_new.rst": {
+      "a": 4,
+      "d": 0
+    },
+    "environment.yml": {
+      "a": 2,
+      "d": 0
+    },
+    "environment2.yml": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/preprocessing/plot_ica_comparison.py": {
+      "a": 65,
+      "d": 0
+    },
+    "examples/preprocessing/plot_run_ica.py": {
+      "a": 0,
+      "d": 2
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 54,
+      "d": 16
+    },
+    "mne/preprocessing/tests/test_ica.py": {
+      "a": 102,
+      "d": 47
+    },
+    "mne/utils.py": {
+      "a": 12,
+      "d": 13
+    },
+    "tutorials/plot_artifacts_correction_ica.py": {
+      "a": 19,
+      "d": 2
+    },
+    "tutorials/plot_ica_from_raw.py": {
+      "a": 15,
+      "d": 2
+    }
+  }
+}

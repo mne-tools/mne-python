@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "6021d4a49dd5f6064b2af58e6309b08c72e02606",
+  "authors": [
+    {
+      "n": "Naveen",
+      "e": null
+    }
+  ],
+  "changes": {
+    ".github/dependabot.yml": {
+      "a": 6,
+      "d": 0
+    }
+  }
+}

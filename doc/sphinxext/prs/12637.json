@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "1d56eb98790be00cb80704c347a22b17631048aa",
+  "authors": [
+    {
+      "n": "Nabil Alibou",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/io/eeglab/eeglab.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/kit/kit.py": {
+      "a": 5,
+      "d": 1
+    }
+  }
+}

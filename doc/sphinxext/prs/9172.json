@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "1e403b2f5708f624871eed7661a2b81b6259114c",
+  "authors": [
+    {
+      "n": "Valerii",
+      "e": null
+    },
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    },
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    },
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    },
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/data/html_templates.py": {
+      "a": 13,
+      "d": 3
+    },
+    "mne/io/base.py": {
+      "a": 5,
+      "d": 3
+    },
+    "mne/io/meas_info.py": {
+      "a": 7,
+      "d": 4
+    }
+  }
+}

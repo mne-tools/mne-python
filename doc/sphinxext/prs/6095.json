@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "d7cb4380664368ea9aa12efb5157058d66921323",
+  "authors": [
+    {
+      "n": "Achilleas Koutsou",
+      "e": "achilleas@koutsou.net"
+    }
+  ],
+  "changes": {
+    "mne/channels/montage.py": {
+      "a": 1,
+      "d": 2
+    }
+  }
+}

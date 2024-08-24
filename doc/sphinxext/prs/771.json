@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "85cb206d94758ff747e5a37eecf5e4094b2ff187",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/source/python_reference.rst": {
+      "a": 2,
+      "d": 1
+    },
+    "doc/source/whats_new.rst": {
+      "a": 5,
+      "d": 3
+    },
+    "mne/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/source_estimate.py": {
+      "a": 2,
+      "d": 80
+    },
+    "mne/surface.py": {
+      "a": 266,
+      "d": 4
+    },
+    "mne/tests/test_surface.py": {
+      "a": 17,
+      "d": 3
+    }
+  }
+}

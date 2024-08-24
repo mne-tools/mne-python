@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "c9f8ee2998e6a47d667076a9c76ee48da480e4e1",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "tutorials/stats-sensor-space/70_cluster_rmANOVA_time_freq.py": {
+      "a": 4,
+      "d": 2
+    }
+  }
+}

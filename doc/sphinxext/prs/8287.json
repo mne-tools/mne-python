@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "cffdc0843428b9841bd493a961e795e570e58549",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/_static/style.css": {
+      "a": 27,
+      "d": 4
+    },
+    "doc/index.rst": {
+      "a": 62,
+      "d": 27
+    },
+    "doc/overview/index.rst": {
+      "a": 2,
+      "d": 0
+    }
+  }
+}

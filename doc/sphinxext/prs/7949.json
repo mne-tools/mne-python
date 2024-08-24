@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "0de98a86938917eab0667249f54eb62719c73c6d",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/install/mne_python.rst": {
+      "a": 2,
+      "d": 2
+    },
+    "tutorials/sample-datasets/plot_sleep.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

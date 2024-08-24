@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "5c8e9665e674663e1ed5ae4c3093a91a2378412a",
+  "authors": [
+    {
+      "n": "Jean-Rémi KING",
+      "e": null
+    }
+  ],
+  "changes": {
+    "examples/decoding/plot_decoding_spatio_temporal_source.py": {
+      "a": 52,
+      "d": 89
+    }
+  }
+}

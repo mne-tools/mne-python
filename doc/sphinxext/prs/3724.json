@@ -1,0 +1,51 @@
+{
+  "merge_commit_sha": "33d76289203fd5bd6a5083a36e5aa6fb84ceae9e",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/bem.py": {
+      "a": 22,
+      "d": 25
+    },
+    "mne/commands/mne_make_scalp_surfaces.py": {
+      "a": 21,
+      "d": 40
+    },
+    "mne/commands/mne_surf2bem.py": {
+      "a": 2,
+      "d": 4
+    },
+    "mne/commands/tests/test_commands.py": {
+      "a": 16,
+      "d": 10
+    },
+    "mne/datasets/utils.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/fixes.py": {
+      "a": 79,
+      "d": 1
+    },
+    "mne/gui/_file_traits.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/gui/tests/test_fiducials_gui.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/source_space.py": {
+      "a": 5,
+      "d": 6
+    },
+    "mne/surface.py": {
+      "a": 19,
+      "d": 89
+    }
+  }
+}

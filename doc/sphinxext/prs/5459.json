@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "f7e2a95bf01981072c598bb806204e72630b26f6",
+  "authors": [
+    {
+      "n": "Sergey Antopolskiy",
+      "e": "s.antopolsky@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/epochs.py": {
+      "a": 8,
+      "d": 2
+    }
+  }
+}

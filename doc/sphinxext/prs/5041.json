@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "9f01effada074332ef93750138fc9deabef51ca9",
+  "authors": [
+    {
+      "n": "Jona Sassenhagen",
+      "e": "jona.sassenhagen@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/visualization/plot_channel_epochs_image.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/visualization/plot_roi_erpimage_by_rt.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/evoked.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/viz/epochs.py": {
+      "a": 24,
+      "d": 12
+    },
+    "mne/viz/evoked.py": {
+      "a": 27,
+      "d": 17
+    },
+    "mne/viz/utils.py": {
+      "a": 13,
+      "d": 10
+    },
+    "tutorials/plot_stats_spatio_temporal_cluster_sensors.py": {
+      "a": 35,
+      "d": 38
+    }
+  }
+}

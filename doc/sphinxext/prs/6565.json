@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "2828cf7952ba892ad3116752c88226e6fca008e5",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/preprocessing/ecg.py": {
+      "a": 7,
+      "d": 3
+    },
+    "mne/preprocessing/eog.py": {
+      "a": 9,
+      "d": 4
+    }
+  }
+}

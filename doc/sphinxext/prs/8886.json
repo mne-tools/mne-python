@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "3f1c589c93b891d3afe8cf5871cbe8e67c9887fe",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/commands/mne_report.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/io/base.py": {
+      "a": 10,
+      "d": 5
+    },
+    "mne/io/fiff/raw.py": {
+      "a": 9,
+      "d": 7
+    },
+    "mne/report.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/utils/tests/test_check.py": {
+      "a": 11,
+      "d": 5
+    },
+    "tutorials/misc/plot_report.py": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

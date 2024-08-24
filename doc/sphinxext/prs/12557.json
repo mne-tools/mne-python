@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "96ac7afc522cd4775113b2327b0be7dc3a483e8f",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/report/js_and_css/report.js": {
+      "a": 13,
+      "d": 11
+    }
+  }
+}

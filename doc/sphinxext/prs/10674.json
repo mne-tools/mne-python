@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "85bca4ccc4b957b6597799a7eb92b972a78a7fe1",
+  "authors": [
+    {
+      "n": "Simon Kern",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/ctf/info.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

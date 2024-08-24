@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "da1c1c44f162ec4a5cc6ed7cc862dcfe1cffbc0d",
+  "authors": [
+    {
+      "n": "Denis A. Engemann",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/simulation/__init__.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

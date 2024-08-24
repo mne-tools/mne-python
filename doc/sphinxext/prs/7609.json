@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "58984593fc3b8bbc51c8b9732b118f7ef8916677",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/filter.py": {
+      "a": 134,
+      "d": 72
+    },
+    "mne/io/base.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/fiff/tests/test_raw_fiff.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/tests/test_filter.py": {
+      "a": 51,
+      "d": 26
+    },
+    "mne/utils/docs.py": {
+      "a": 9,
+      "d": 0
+    },
+    "tutorials/preprocessing/plot_30_filtering_resampling.py": {
+      "a": 15,
+      "d": 1
+    }
+  }
+}

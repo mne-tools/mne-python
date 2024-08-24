@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "0ddde8c7703331644dbe06b1b023d979738eebb8",
+  "authors": [
+    {
+      "n": "Valerii",
+      "e": null
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/inverse/plot_mixed_source_space_inverse.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/_3d.py": {
+      "a": 31,
+      "d": 18
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 8,
+      "d": 1
+    }
+  }
+}

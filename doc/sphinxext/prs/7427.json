@@ -1,0 +1,59 @@
+{
+  "merge_commit_sha": "586c09f55615ffd8933ca7e2cc543d0e6bbe1ff5",
+  "authors": [
+    {
+      "n": "Rob Luke",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/channels/layout.py": {
+      "a": 29,
+      "d": 0
+    },
+    "mne/evoked.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/tests/test_evoked.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/viz/evoked.py": {
+      "a": 7,
+      "d": 5
+    },
+    "mne/viz/ica.py": {
+      "a": 5,
+      "d": 4
+    },
+    "mne/viz/tests/conftest.py": {
+      "a": 21,
+      "d": 2
+    },
+    "mne/viz/tests/test_topo.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/viz/tests/test_topomap.py": {
+      "a": 17,
+      "d": 16
+    },
+    "mne/viz/topo.py": {
+      "a": 6,
+      "d": 6
+    },
+    "mne/viz/topomap.py": {
+      "a": 36,
+      "d": 34
+    }
+  }
+}

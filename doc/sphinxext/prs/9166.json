@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "0c225f44f990b13c42389c56719f2008b0f9b4f6",
+  "authors": [
+    {
+      "n": "Steven Bierer",
+      "e": null
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    },
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/simulation/raw.py": {
+      "a": 11,
+      "d": 4
+    },
+    "mne/simulation/source.py": {
+      "a": 63,
+      "d": 38
+    },
+    "mne/simulation/tests/test_raw.py": {
+      "a": 28,
+      "d": 1
+    },
+    "mne/simulation/tests/test_source.py": {
+      "a": 36,
+      "d": 10
+    }
+  }
+}

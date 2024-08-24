@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "7cbd69caa638bb308c72eafe590b9c00cedfd21d",
+  "authors": [
+    {
+      "n": "ramonapariciog",
+      "e": "moncho_apa@hotmail.com"
+    }
+  ],
+  "changes": {
+    "mne/datasets/utils.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/egi/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/egi/egi.py": {
+      "a": 22,
+      "d": 33
+    },
+    "mne/io/egi/egimff.py": {
+      "a": 393,
+      "d": 0
+    },
+    "mne/io/egi/events.py": {
+      "a": 162,
+      "d": 0
+    },
+    "mne/io/egi/general.py": {
+      "a": 155,
+      "d": 0
+    },
+    "mne/io/egi/tests/test_egi.py": {
+      "a": 38,
+      "d": 3
+    }
+  }
+}

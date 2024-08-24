@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "3c4a6f6bbc258dcb68f5d80ba5dd9b0d9f258057",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/install/manual_install.rst": {
+      "a": 28,
+      "d": 18
+    }
+  }
+}

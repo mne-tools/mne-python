@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "bcf2b2f7d5479060d6cff9a227ffbb795cbe7f85",
+  "authors": [
+    {
+      "n": "Adam Li",
+      "e": null
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/nihon/nihon.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/io/nihon/tests/test_nihon.py": {
+      "a": 8,
+      "d": 0
+    }
+  }
+}

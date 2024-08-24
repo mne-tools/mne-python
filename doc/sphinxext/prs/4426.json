@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "a5677e94ea2f32ed9b5d7175c4215f44051bd2f8",
+  "authors": [
+    {
+      "n": "Marijn van Vliet",
+      "e": "w.m.vanvliet@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/simulation/tests/test_metrics.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/source_estimate.py": {
+      "a": 83,
+      "d": 31
+    },
+    "mne/tests/test_source_estimate.py": {
+      "a": 84,
+      "d": 36
+    }
+  }
+}

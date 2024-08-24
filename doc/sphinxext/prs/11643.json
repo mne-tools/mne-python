@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "4adddf7c871fb345afc8426902dab987d589c7b3",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/install/installers.rst": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

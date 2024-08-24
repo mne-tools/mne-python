@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "9163a465c9663a3a0587c3da0b80a72ca3e724de",
+  "authors": [
+    {
+      "n": "Martin Luessi",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/data/coil_def.dat": {
+      "a": 46,
+      "d": 1
+    }
+  }
+}

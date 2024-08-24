@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "2efa15cee622c4644e4d09ef5dc8d92c88c17de9",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".circleci/config.yml": {
+      "a": 5,
+      "d": 5
+    },
+    "doc/conf.py": {
+      "a": 5,
+      "d": 8
+    },
+    "doc/sphinxext/mne_doc_utils.py": {
+      "a": 15,
+      "d": 4
+    },
+    "mne/report/report.py": {
+      "a": 11,
+      "d": 15
+    },
+    "mne/report/tests/test_report.py": {
+      "a": 13,
+      "d": 10
+    },
+    "tools/circleci_bash_env.sh": {
+      "a": 2,
+      "d": 3
+    },
+    "tools/circleci_download.sh": {
+      "a": 4,
+      "d": 0
+    }
+  }
+}

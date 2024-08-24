@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "932af71c4a0828fa87ddc141cd223c5a4ad9bede",
+  "authors": [
+    {
+      "n": "Jean-Baptiste SCHIRATTI",
+      "e": "jean.baptiste.schiratti@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/io/reference.py": {
+      "a": 11,
+      "d": 3
+    },
+    "mne/io/tests/test_reference.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "80f8f9165daad65ae534c66ff0b86725aa2712c8",
+  "authors": [
+    {
+      "n": "jaeilepp",
+      "e": "jaeilepp@student.jyu.fi"
+    }
+  ],
+  "changes": {
+    "mne/io/brainvision/brainvision.py": {
+      "a": 4,
+      "d": 3
+    },
+    "mne/io/brainvision/tests/data/test.vhdr": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/brainvision/tests/test_brainvision.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

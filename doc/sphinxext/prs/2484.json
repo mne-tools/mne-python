@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "3125f6ef834a1796afc2fbb6b3805166751ae831",
+  "authors": [
+    {
+      "n": "Mark Wronkiewicz",
+      "e": "wronk.mark@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/stats/parametric.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "0141232b6509ac733de1f337a13ed9749229005c",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "mne/simulation/tests/test_evoked.py": {
+      "a": 70,
+      "d": 0
+    }
+  }
+}

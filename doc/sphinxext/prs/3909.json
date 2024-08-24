@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "953764b3ca2e9a9e4ee6a1d59fdf3d64ecdf2e2a",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/cov.py": {
+      "a": 23,
+      "d": 14
+    },
+    "mne/io/pick.py": {
+      "a": 8,
+      "d": 5
+    },
+    "mne/tests/test_cov.py": {
+      "a": 7,
+      "d": 1
+    }
+  }
+}

@@ -1,4 +1,4 @@
-# Author: John G Samuelsson <johnsam@mit.edu>
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -34,11 +34,13 @@ def test_cortical_signal_suppression():
     ave.data[eeg_ind][1, :] = np.sin(2 * np.pi * 239 * ave.times) * np.mean(
         np.abs(ave.data[eeg_ind][1, :])
     )
-    ave_f = cortical_signal_suppression(ave)
-    cort_power = np.sum(np.abs(ave.data[eeg_ind][0, :]))
-    deep_power = np.sum(np.abs(ave.data[eeg_ind][1, :]))
-    cort_power_f = np.sum(np.abs(ave_f.data[eeg_ind][0, :]))
-    deep_power_f = np.sum(np.abs(ave_f.data[eeg_ind][1, :]))
-    rel_SNR_gain = (deep_power_f / deep_power) / (cort_power_f / cort_power)
-    assert rel_SNR_gain > 0
-    assert ave_f.data.shape == ave.data.shape
+    # include test for gh-12373, that you can use MAG+EEG if you want
+    for mag_picks, ind in ((None, eeg_ind), ("eeg", mag_ind)):
+        ave_f = cortical_signal_suppression(ave, mag_picks=mag_picks)
+        assert ave_f.data.shape == ave.data.shape
+        cort_power = np.linalg.norm(ave.data[ind][0, :])
+        deep_power = np.linalg.norm(ave.data[ind][1, :])
+        cort_power_f = np.linalg.norm(ave_f.data[ind][0, :])
+        deep_power_f = np.linalg.norm(ave_f.data[ind][1, :])
+        rel_SNR_gain = (deep_power_f / deep_power) / (cort_power_f / cort_power)
+        assert rel_SNR_gain > 3, mag_picks

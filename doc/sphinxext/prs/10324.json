@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "0c3c52fa96365cfc8a6fc8b4b9e97d038ffaf385",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/channels/_standard_montage_utils.py": {
+      "a": 25,
+      "d": 10
+    },
+    "mne/channels/montage.py": {
+      "a": 14,
+      "d": 3
+    },
+    "mne/channels/tests/test_montage.py": {
+      "a": 20,
+      "d": 4
+    },
+    "mne/channels/tests/test_standard_montage.py": {
+      "a": 14,
+      "d": 14
+    },
+    "tutorials/forward/35_eeg_no_mri.py": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

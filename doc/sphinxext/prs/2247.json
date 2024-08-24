@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "f51168f03681380089cdf14fda87d3b517c3444d",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "Makefile": {
+      "a": 2,
+      "d": 8
+    },
+    "doc/source/mne_report_tutorial.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/source/python_tutorial.rst": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

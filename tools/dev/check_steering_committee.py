@@ -1,14 +1,20 @@
-# Install pygithub and add GITHUB_TOKEN as env var using a personal access token
-# with read:org, read:user, and read:project
-# https://docs.github.com/en/enterprise-server@3.6/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens
-# https://pygithub.readthedocs.io/
+"""Check the steering committee membership.
+
+Install pygithub and add GITHUB_TOKEN as env var using a personal access token
+with read:org, read:user, and read:project
+https://docs.github.com/en/enterprise-server@3.6/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens
+https://pygithub.readthedocs.io/
+"""  # noqa: E501
+
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-from collections import Counter
 import os
 import pprint
-from datetime import timezone, datetime, timedelta
+from collections import Counter
+from datetime import datetime, timedelta, timezone
+
 from github import Auth, Github
 from github.Commit import Commit
 from tqdm import tqdm

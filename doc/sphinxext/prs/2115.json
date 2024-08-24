@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "7b53ef6364ed3f945d92e2dd0bd9bd0d1f7174c9",
+  "authors": [
+    {
+      "n": "Mark Wronkiewicz",
+      "e": "wronk.mark@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/source/python_reference.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/data/coil_def_Elekta.dat": {
+      "a": 70,
+      "d": 0
+    },
+    "mne/preprocessing/__init__.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/preprocessing/maxwell.py": {
+      "a": 568,
+      "d": 0
+    },
+    "mne/preprocessing/tests/test_maxwell.py": {
+      "a": 138,
+      "d": 0
+    },
+    "setup.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

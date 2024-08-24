@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "46197d4926f4654dc1df2e0cabbfb26642fd884d",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/stats/cluster_level.py": {
+      "a": 8,
+      "d": 3
+    },
+    "mne/stats/tests/test_cluster_level.py": {
+      "a": 17,
+      "d": 2
+    }
+  }
+}

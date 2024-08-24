@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "7a16f2c4dce3d565cb2403091b7c7e7b2cc618f4",
+  "authors": [
+    {
+      "n": "Marijn van Vliet",
+      "e": "w.m.vanvliet@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/changes/names.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/overview/faq.rst": {
+      "a": 2,
+      "d": 2
+    },
+    "tutorials/source-modeling/plot_fix_bem_in_blender.py": {
+      "a": 3,
+      "d": 2
+    }
+  }
+}

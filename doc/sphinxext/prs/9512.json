@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "f1ff361a6426513bba4110b122ab867dea44e012",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".github/workflows/codespell_and_flake.yml": {
+      "a": 1,
+      "d": 1
+    },
+    ".github/workflows/linux_conda.yml": {
+      "a": 2,
+      "d": 2
+    },
+    "azure-pipelines.yml": {
+      "a": 6,
+      "d": 6
+    },
+    "requirements.txt": {
+      "a": 4,
+      "d": 3
+    },
+    "tools/azure_dependencies.sh": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

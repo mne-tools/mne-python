@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "14e10d78482ef917a8ce80e96f5db9605671bec3",
+  "authors": [
+    {
+      "n": "Chris Holdgraf",
+      "e": null
+    }
+  ],
+  "changes": {
+    "examples/preprocessing/plot_eog_artifact_histogram.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/preprocessing/plot_shift_evoked.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/pick.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

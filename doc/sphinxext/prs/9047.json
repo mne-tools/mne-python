@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "9798a638a50ed5a034d81f6619deee483fe57154",
+  "authors": [
+    {
+      "n": "kimcoco",
+      "e": "kimjico@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/stats/regression.py": {
+      "a": 2,
+      "d": 4
+    }
+  }
+}

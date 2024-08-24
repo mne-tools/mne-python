@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "6cca18958f4e297ed3ec239e1ecacf9a0deb1367",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "doc/source/whats_new.rst": {
+      "a": 3,
+      "d": 0
+    },
+    "examples/datasets/plot_spm_faces_dataset.py": {
+      "a": 4,
+      "d": 0
+    },
+    "examples/plot_extract_events_from_raw.py": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/tests/test_viz.py": {
+      "a": 7,
+      "d": 1
+    },
+    "mne/viz.py": {
+      "a": 36,
+      "d": 0
+    }
+  }
+}

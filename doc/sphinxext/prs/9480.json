@@ -1,0 +1,115 @@
+{
+  "merge_commit_sha": "fb7cf920c18a41d64aaa452bfb1b3bda5d9ae6a7",
+  "authors": [
+    {
+      "n": "Alex Rockhill",
+      "e": "aprockhill@mailbox.org"
+    }
+  ],
+  "changes": {
+    "doc/_includes/inverse.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/changes/0.13.inc": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/changes/0.21.inc": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/overview/datasets_index.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/decoding/decoding_spatio_temporal_source.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/io/README.txt": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/io/read_neo_format.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/decoding/receptive_field.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/inverse_sparse/mxne_optim.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/docs.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/clinical/20_seeg.py": {
+      "a": 2,
+      "d": 2
+    },
+    "tutorials/clinical/30_ecog.py": {
+      "a": 2,
+      "d": 2
+    },
+    "tutorials/epochs/10_epochs_overview.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/evoked/10_evoked_overview.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/evoked/30_eeg_erp.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/forward/90_compute_covariance.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/intro/10_overview.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/intro/50_configure_mne.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/inverse/30_mne_dspm_loreta.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/inverse/90_phantom_4DBTi.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/io/10_reading_meg_data.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/io/30_reading_fnirs_data.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/machine-learning/50_decoding.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/preprocessing/25_background_filtering.py": {
+      "a": 7,
+      "d": 7
+    },
+    "tutorials/raw/10_raw_overview.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/simulation/10_array_objs.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

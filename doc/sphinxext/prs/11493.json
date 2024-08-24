@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "0cafb670d2285ce6a96627429c040b2ad9e4a60e",
+  "authors": [
+    {
+      "n": "Denis A. Engemann",
+      "e": null
+    },
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "tutorials/simulation/10_array_objs.py": {
+      "a": 47,
+      "d": 0
+    }
+  }
+}

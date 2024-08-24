@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "5a9fe0332a768334b0e200a6b5ce50f0af3c4805",
+  "authors": [
+    {
+      "n": "jaeilepp",
+      "e": "jaeilepp@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/python_reference.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/channels/__init__.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/channels/channels.py": {
+      "a": 184,
+      "d": 6
+    },
+    "mne/channels/layout.py": {
+      "a": 4,
+      "d": 32
+    },
+    "mne/channels/tests/test_channels.py": {
+      "a": 44,
+      "d": 3
+    },
+    "tutorials/plot_stats_spatio_temporal_cluster_sensors.py": {
+      "a": 4,
+      "d": 4
+    }
+  }
+}

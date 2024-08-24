@@ -1,8 +1,4 @@
-# Authors: Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
-#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Eric Larson <larson.eric.d@gmail.com>
-#          Lorenzo De Santis <lorenzo.de-santis@u-psud.fr>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -95,7 +91,7 @@ class ConductorModel(dict):
 
     def __repr__(self):  # noqa: D105
         if self["is_sphere"]:
-            center = ", ".join("%0.1f" % (x * 1000.0) for x in self["r0"])
+            center = ", ".join(f"{x * 1000.:.1f}" for x in self["r0"])
             rad = self.radius
             if rad is None:  # no radius / MEG only
                 extra = f"Sphere (no layers): r0=[{center}] mm"
@@ -607,7 +603,7 @@ def _surfaces_to_bem(
             "number of elements (1 or 3)"
         )
     for si, surf in enumerate(surfs):
-        if isinstance(surf, (str, Path, os.PathLike)):
+        if isinstance(surf, str | Path | os.PathLike):
             surfs[si] = surf = read_surface(surf, return_dict=True)[-1]
     # Downsampling if the surface is isomorphic with a subdivided icosahedron
     if ico is not None:
@@ -945,7 +941,7 @@ def make_sphere_model(
         for k in range(len(relative_radii)):
             sphere["layers"][k]["rad"] = head_radius * sphere["layers"][k]["rel_rad"]
         rv = _fwd_eeg_fit_berg_scherg(sphere, 200, 3)
-        logger.info("\nEquiv. model fitting -> RV = %g %%" % (100 * rv))
+        logger.info(f"\nEquiv. model fitting -> RV = {100 * rv:g} %%")
         for k in range(3):
             s_k = sphere["layers"][-1]["sigma"] * sphere["lambda"][k]
             logger.info(f"mu{k + 1} = {sphere['mu'][k]:g}    lambda{k + 1} = {s_k:g}")
@@ -2470,7 +2466,7 @@ def make_scalp_surfaces(
             points=surf["rr"], triangles=surf["tris"], n_triangles=n_tri
         )
         dec_fname = str(fname_template).format(level)
-        logger.info("%i.2 Creating %s" % (ii, dec_fname))
+        logger.info(f"{ii}.2 Creating {dec_fname}")
         _check_file(dec_fname, overwrite)
         dec_surf = _surfaces_to_bem(
             [dict(rr=points, tris=tris)],

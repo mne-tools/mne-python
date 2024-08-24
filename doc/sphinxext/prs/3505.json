@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "9ed6a7e43c060cba4d7a16f4014293fc0bf975b0",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/preprocessing/infomax_.py": {
+      "a": 60,
+      "d": 63
+    }
+  }
+}

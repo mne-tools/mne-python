@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "f42f61284c280145c4f396aa3e9fa9ed504d7114",
+  "authors": [
+    {
+      "n": "Rob Luke",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/channels/interpolation.py": {
+      "a": 2,
+      "d": 4
+    },
+    "mne/channels/tests/test_interpolation.py": {
+      "a": 7,
+      "d": 1
+    }
+  }
+}

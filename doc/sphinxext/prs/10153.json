@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "433a4e19bb15b061c17a3fee3e9f8e8f6d8ea229",
+  "authors": [
+    {
+      "n": "Rob Luke",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/utils/docs.py": {
+      "a": 3,
+      "d": 1
+    },
+    "tutorials/io/30_reading_fnirs_data.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

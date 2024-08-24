@@ -1,0 +1,175 @@
+{
+  "merge_commit_sha": "9ac6547284bbd73b4c18d7d7031042585388005c",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/sphinxext/gen_commands.py": {
+      "a": 7,
+      "d": 2
+    },
+    "doc/whats_new.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/beamformer/_lcmv.py": {
+      "a": 24,
+      "d": 99
+    },
+    "mne/beamformer/_rap_music.py": {
+      "a": 2,
+      "d": 9
+    },
+    "mne/connectivity/effective.py": {
+      "a": 2,
+      "d": 3
+    },
+    "mne/connectivity/spectral.py": {
+      "a": 2,
+      "d": 3
+    },
+    "mne/decoding/__init__.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/decoding/csp.py": {
+      "a": 6,
+      "d": 15
+    },
+    "mne/decoding/tests/test_time_gen.py": {
+      "a": 0,
+      "d": 491
+    },
+    "mne/decoding/tests/test_transformer.py": {
+      "a": 3,
+      "d": 5
+    },
+    "mne/decoding/time_frequency.py": {
+      "a": 2,
+      "d": 11
+    },
+    "mne/decoding/time_gen.py": {
+      "a": 0,
+      "d": 1567
+    },
+    "mne/decoding/transformer.py": {
+      "a": 10,
+      "d": 25
+    },
+    "mne/event.py": {
+      "a": 7,
+      "d": 18
+    },
+    "mne/evoked.py": {
+      "a": 11,
+      "d": 16
+    },
+    "mne/filter.py": {
+      "a": 22,
+      "d": 38
+    },
+    "mne/forward/forward.py": {
+      "a": 9,
+      "d": 41
+    },
+    "mne/forward/tests/test_forward.py": {
+      "a": 0,
+      "d": 23
+    },
+    "mne/io/base.py": {
+      "a": 12,
+      "d": 27
+    },
+    "mne/io/edf/edf.py": {
+      "a": 1,
+      "d": 7
+    },
+    "mne/io/reference.py": {
+      "a": 7,
+      "d": 28
+    },
+    "mne/minimum_norm/inverse.py": {
+      "a": 2,
+      "d": 8
+    },
+    "mne/minimum_norm/time_frequency.py": {
+      "a": 3,
+      "d": 4
+    },
+    "mne/simulation/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/simulation/evoked.py": {
+      "a": 3,
+      "d": 76
+    },
+    "mne/simulation/tests/test_evoked.py": {
+      "a": 1,
+      "d": 8
+    },
+    "mne/tests/test_docstring_parameters.py": {
+      "a": 0,
+      "d": 13
+    },
+    "mne/time_frequency/csd.py": {
+      "a": 2,
+      "d": 10
+    },
+    "mne/time_frequency/multitaper.py": {
+      "a": 2,
+      "d": 3
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 8,
+      "d": 14
+    },
+    "mne/utils.py": {
+      "a": 0,
+      "d": 16
+    },
+    "mne/viz/_3d.py": {
+      "a": 2,
+      "d": 448
+    },
+    "mne/viz/__init__.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/viz/decoding.py": {
+      "a": 0,
+      "d": 238
+    },
+    "mne/viz/evoked.py": {
+      "a": 20,
+      "d": 59
+    },
+    "mne/viz/raw.py": {
+      "a": 3,
+      "d": 11
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 3,
+      "d": 8
+    },
+    "mne/viz/tests/test_decoding.py": {
+      "a": 0,
+      "d": 135
+    },
+    "mne/viz/tests/test_epochs.py": {
+      "a": 2,
+      "d": 3
+    },
+    "mne/viz/topomap.py": {
+      "a": 2,
+      "d": 12
+    },
+    "tutorials/plot_dipole_orientations.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

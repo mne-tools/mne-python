@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "8211e58a844bf6ac496f5ae63b8f3b85a591ab87",
+  "authors": [
+    {
+      "n": "Praveen Sripad",
+      "e": "pravsripad@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/io/base.py": {
+      "a": 4,
+      "d": 4
+    }
+  }
+}

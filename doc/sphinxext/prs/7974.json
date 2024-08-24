@@ -1,0 +1,63 @@
+{
+  "merge_commit_sha": "05df66f4441980211ba5e17279c1d89fd5e7b38c",
+  "authors": [
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Jan Sedivy",
+      "e": "sedivy@rtsoft.cz"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/brainvision/brainvision.py": {
+      "a": 108,
+      "d": 0
+    },
+    "mne/io/brainvision/tests/data/test_highpass.vhdr": {
+      "a": 1,
+      "d": 4
+    },
+    "mne/io/brainvision/tests/data/test_mixed_lowpass.vhdr": {
+      "a": 49,
+      "d": 6
+    },
+    "mne/io/brainvision/tests/test_brainvision.py": {
+      "a": 55,
+      "d": 1
+    },
+    "mne/utils/numerics.py": {
+      "a": 4,
+      "d": 1
+    },
+    "mne/utils/tests/test_numerics.py": {
+      "a": 2,
+      "d": 0
+    },
+    "tutorials/io/plot_20_reading_eeg_data.py": {
+      "a": 4,
+      "d": 2
+    }
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "94eb7cba22aa4a0786d5582ebc896e0b2464911f",
+  "authors": [
+    {
+      "n": "Mainak Jas",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/cited.rst": {
+      "a": 112,
+      "d": 0
+    },
+    "doc/cited_mne.py": {
+      "a": 251,
+      "d": 0
+    },
+    "doc/index.rst": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

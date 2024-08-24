@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "1783b970b39b5cf70363549d728cb108aff22286",
+  "authors": [
+    {
+      "n": "Rahul Nadkarni",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/channels/channels.py": {
+      "a": 17,
+      "d": 1
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 16,
+      "d": 0
+    }
+  }
+}

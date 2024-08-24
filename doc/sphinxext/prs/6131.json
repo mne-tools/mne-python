@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "205e9b2fe1e552ee6b76cfa5be0a6d64fd792fa1",
+  "authors": [
+    {
+      "n": "Bruno Nicenboim",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/cuda.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

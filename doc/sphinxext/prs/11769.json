@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "c874a7d764061e34098f84da49b6d598fed4bfba",
+  "authors": [
+    {
+      "n": "Nikolai M Chapochnikov",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/epochs.py": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/evoked.py": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/io/base.py": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/time_frequency/multitaper.py": {
+      "a": 7,
+      "d": 3
+    },
+    "mne/time_frequency/psd.py": {
+      "a": 5,
+      "d": 0
+    },
+    "mne/time_frequency/spectrum.py": {
+      "a": 10,
+      "d": 1
+    },
+    "mne/utils/docs.py": {
+      "a": 8,
+      "d": 0
+    }
+  }
+}

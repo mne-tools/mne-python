@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "04c58d73112916444b71710bd2b60f77723028fc",
+  "authors": [
+    {
+      "n": "Eduard",
+      "e": "eduardxort@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/preprocessing/plot_virtual_evoked.py": {
+      "a": 18,
+      "d": 2
+    }
+  }
+}

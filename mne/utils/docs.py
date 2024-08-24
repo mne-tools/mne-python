@@ -1,6 +1,6 @@
 """The documentation functions."""
-# Authors: Eric Larson <larson.eric.d@gmail.com>
-#
+
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -1273,6 +1273,11 @@ docdict["encoding_edf"] = """
 encoding : str
     Encoding of annotations channel(s). Default is "utf8" (the only correct
     encoding according to the EDF+ standard).
+"""
+
+docdict["encoding_nirx"] = """
+encoding : str
+    Text encoding of the NIRX header file. See :ref:`standard-encodings`.
 """
 
 docdict["epochs_preload"] = """
@@ -2917,11 +2922,15 @@ docdict["notes_plot_*_psd_func"] = _notes_plot_psd.format("function")
 docdict["notes_plot_psd_meth"] = _notes_plot_psd.format("method")
 
 docdict["notes_spectrum_array"] = """
-It is assumed that the data passed in represent spectral *power* (not amplitude,
-phase, model coefficients, etc) and downstream methods (such as
+If the data passed in is real-valued, it is assumed to represent spectral *power* (not
+amplitude, phase, etc), and downstream methods (such as
 :meth:`~mne.time_frequency.SpectrumArray.plot`) assume power data. If you pass in
-something other than power, at the very least axis labels will be inaccurate (and
-other things may also not work or be incorrect).
+real-valued data that is not power, axis labels will be incorrect.
+
+If the data passed in is complex-valued, it is assumed to represent Fourier
+coefficients. Downstream plotting methods will treat the data as such, attempting to
+convert this to power before visualisation. If you pass in complex-valued data that is
+not Fourier coefficients, axis labels will be incorrect.
 """
 
 docdict["notes_timefreqs_tfr_plot_joint"] = """
@@ -3988,6 +3997,19 @@ sensor_colors : array-like of color | dict | None
     shape ``(n_eeg, 3)`` or ``(n_eeg, 4)``.
 """
 
+docdict["sensor_scales"] = """
+sensor_scales : int | float | array-like | dict | None
+    Scale to use for the sensor glyphs. Can be None (default) to use default scale.
+    A dict should provide the Scale (values) for each channel type (keys), e.g.::
+
+        dict(eeg=eeg_scales)
+
+    Where the value (``eeg_scales`` above) can be broadcast to an array of values with
+    length that matches the number of channels of that type. A few examples of this
+    for the case above are the value ``10e-3``, a list of ``n_eeg`` values, or an NumPy
+    ndarray of shape ``(n_eeg,)``.
+"""
+
 docdict["sensors_topomap"] = """
 sensors : bool | str
     Whether to add markers for sensor locations. If :class:`str`, should be a
@@ -4129,6 +4151,17 @@ skip_by_annotation : str | list of str
 docdict["smooth"] = """
 smooth : float in [0, 1)
     The smoothing factor to be applied. Default 0 is no smoothing.
+"""
+
+docdict["spatial_colors"] = """\
+spatial_colors : bool | 'auto'
+    If True, the lines are color coded by mapping physical sensor
+    coordinates into color values. Spatially similar channels will have
+    similar colors. Bad channels will be dotted. If False, the good
+    channels are plotted black and bad channels red. If ``'auto'``, uses
+    True if channel locations are present, and False if channel locations
+    are missing or if the data contains only a single channel. Defaults to
+    ``'auto'``.
 """
 
 docdict["spatial_colors_psd"] = """\
@@ -4901,14 +4934,6 @@ vmin, vmax : float | {allowed}None
     ``min(data)`` or ``max(data)``, respectively.{extra}
 """
 
-docdict["vmin_vmax_tfr_plot"] = """
-vmin, vmax : float | None
-    Lower and upper bounds of the colormap. See ``vlim``.
-
-    .. deprecated:: 1.7
-        ``vmin`` and ``vmax`` will be removed in version 1.8.
-        Use ``vlim`` parameter instead.
-"""
 # ↓↓↓ this one still used, needs helper func refactor before we can migrate to `vlim`
 docdict["vmin_vmax_tfr_plot_topo"] = _vmin_vmax_template.format(
     allowed="", bounds=_bounds_symmetric, extra=""
@@ -5298,7 +5323,7 @@ def linkcode_resolve(domain, info):
         lineno = None
 
     if lineno:
-        linespec = "#L%d-L%d" % (lineno, lineno + len(source) - 1)
+        linespec = f"#L{lineno}-L{lineno + len(source) - 1}"
     else:
         linespec = ""
 

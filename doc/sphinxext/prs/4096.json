@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "de4eb02405d4c80610f00cdb26d4cf0dbb4282de",
+  "authors": [
+    {
+      "n": "jaeilepp",
+      "e": "jaeilepp@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/commands/mne_show_fiff.py": {
+      "a": 12,
+      "d": 4
+    },
+    "mne/commands/tests/test_commands.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/open.py": {
+      "a": 23,
+      "d": 7
+    }
+  }
+}

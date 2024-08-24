@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "fe0d3e3317eef48dd7f18bacda620c43abc8cb0c",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/beamformer/tests/test_dics.py": {
+      "a": 11,
+      "d": 2
+    },
+    "mne/beamformer/tests/test_lcmv.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/io/fieldtrip/fieldtrip.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/io/fieldtrip/tests/test_fieldtrip.py": {
+      "a": 6,
+      "d": 3
+    },
+    "mne/viz/_brain/tests/test_notebook.py": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

@@ -1,5 +1,4 @@
-# Author: Eric Larson <larson.eric.d@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -100,7 +99,7 @@ def test_import_nesting_hierarchy():
             super().__init__()
 
         def generic_visit(self, node):
-            if not isinstance(node, (ast.Import, ast.ImportFrom)):
+            if not isinstance(node, ast.Import | ast.ImportFrom):
                 super().generic_visit(node)
                 return
             stmt = " " * node.col_offset
@@ -142,7 +141,7 @@ def test_import_nesting_hierarchy():
         ("mne/utils/docs.py", "    import mne", "non-relative mne import"),
         (
             "mne/io/_read_raw.py",
-            "    from . import read_raw_artemis123, read_raw_bdf, read_raw_boxy, read_raw_brainvision, read_raw_cnt, read_raw_ctf, read_raw_curry, read_raw_edf, read_raw_eeglab, read_raw_egi, read_raw_eximia, read_raw_fieldtrip, read_raw_fif, read_raw_fil, read_raw_gdf, read_raw_kit, read_raw_nedf, read_raw_nicolet, read_raw_nihon, read_raw_nirx, read_raw_snirf",  # noqa: E501
+            "    from . import read_raw_ant, read_raw_artemis123, read_raw_bdf, read_raw_boxy, read_raw_brainvision, read_raw_cnt, read_raw_ctf, read_raw_curry, read_raw_edf, read_raw_eeglab, read_raw_egi, read_raw_eximia, read_raw_eyelink, read_raw_fieldtrip, read_raw_fif, read_raw_fil, read_raw_gdf, read_raw_kit, read_raw_nedf, read_raw_nicolet, read_raw_nihon, read_raw_nirx, read_raw_nsx, read_raw_persyst, read_raw_snirf",  # noqa: E501
             "non-explicit relative import",
         ),
         (

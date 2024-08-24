@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "dca676e32ad455aa6033e2fcc6bed4ace39acf67",
+  "authors": [
+    {
+      "n": "Teon L Brooks",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/channels/data/montages/biosemi-64.txt": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

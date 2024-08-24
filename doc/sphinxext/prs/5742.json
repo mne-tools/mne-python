@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "e4ed5fd91c93a69a7d34e9d304a2fc06494f9099",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/conf.py": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/tutorials/philosophy.rst": {
+      "a": 11,
+      "d": 11
+    },
+    "tutorials/plot_creating_data_structures.py": {
+      "a": 12,
+      "d": 12
+    },
+    "tutorials/plot_epoching_and_averaging.py": {
+      "a": 3,
+      "d": 2
+    },
+    "tutorials/plot_info.py": {
+      "a": 3,
+      "d": 5
+    },
+    "tutorials/plot_object_raw.py": {
+      "a": 19,
+      "d": 21
+    },
+    "tutorials/plot_point_spread.py": {
+      "a": 3,
+      "d": 4
+    }
+  }
+}

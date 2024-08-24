@@ -1,0 +1,75 @@
+{
+  "merge_commit_sha": "b873db2c77ca57bd95203eb23a36162f83a8ebb5",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/source/whats_new.rst": {
+      "a": 4,
+      "d": 1
+    },
+    "mne/baseline.py": {
+      "a": 5,
+      "d": 1
+    },
+    "mne/beamformer/tests/test_lcmv.py": {
+      "a": 8,
+      "d": 5
+    },
+    "mne/cov.py": {
+      "a": 15,
+      "d": 9
+    },
+    "mne/fiff/raw.py": {
+      "a": 29,
+      "d": 15
+    },
+    "mne/fiff/tests/test_raw.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/filter.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/label.py": {
+      "a": 10,
+      "d": 2
+    },
+    "mne/minimum_norm/tests/test_inverse.py": {
+      "a": 18,
+      "d": 3
+    },
+    "mne/preprocessing/peak_finder.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/tests/test_ica.py": {
+      "a": 5,
+      "d": 3
+    },
+    "mne/stats/cluster_level.py": {
+      "a": 4,
+      "d": 3
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/tests/test_filter.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/time_frequency/multitaper.py": {
+      "a": 6,
+      "d": 6
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

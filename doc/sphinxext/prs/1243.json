@@ -1,0 +1,55 @@
+{
+  "merge_commit_sha": "1ecda6ffdbe048bc9f19e800e10f63e64f2713f0",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/source/python_reference.rst": {
+      "a": 20,
+      "d": 0
+    },
+    "mne/fiff/__init__.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/fiff/array/__init__.py": {
+      "a": 5,
+      "d": 0
+    },
+    "mne/fiff/array/array.py": {
+      "a": 126,
+      "d": 0
+    },
+    "mne/fiff/array/tests/test_array.py": {
+      "a": 99,
+      "d": 0
+    },
+    "mne/fiff/bti/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/fiff/bti/bti.py": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/fiff/bti/tests/test_bti.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/fiff/pick.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/viz.py": {
+      "a": 4,
+      "d": 4
+    },
+    "setup.py": {
+      "a": 4,
+      "d": 3
+    }
+  }
+}

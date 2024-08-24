@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "18ca39583175a75fe19177520b0858942e78611f",
+  "authors": [
+    {
+      "n": "Luke Bloy",
+      "e": "luke.bloy@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/viz/_brain/_timeviewer.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

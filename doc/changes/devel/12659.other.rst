@@ -1,1 +1,0 @@
-Add link to BEst-Python in the list of related software. by `Ilian Azz`_.

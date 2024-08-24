@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "c45920796deabdd95f0a8ec40e5184605de85cc7",
+  "authors": [
+    {
+      "n": "Etienne de Montalivet",
+      "e": "etienne.demontalivet@protonmail.com"
+    }
+  ],
+  "changes": {
+    "mne/annotations.py": {
+      "a": 6,
+      "d": 0
+    },
+    "mne/io/base.py": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/io/fiff/raw.py": {
+      "a": 5,
+      "d": 0
+    }
+  }
+}

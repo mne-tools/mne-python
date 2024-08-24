@@ -1,0 +1,67 @@
+{
+  "merge_commit_sha": "84da5551c77a05596dc35362f004f98375f1a8de",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "README.rst": {
+      "a": 6,
+      "d": 6
+    },
+    "doc/changes/latest.inc": {
+      "a": 34,
+      "d": 0
+    },
+    "doc/changes/latest.inc.template": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/install/installers.rst": {
+      "a": 6,
+      "d": 6
+    },
+    "doc/whats_new.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/epochs.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/eyelink/eyelink.py": {
+      "a": 12,
+      "d": 42
+    },
+    "mne/utils/__init__.py": {
+      "a": 0,
+      "d": 10
+    },
+    "mne/utils/_testing.py": {
+      "a": 0,
+      "d": 45
+    },
+    "mne/utils/check.py": {
+      "a": 0,
+      "d": 7
+    },
+    "mne/viz/epochs.py": {
+      "a": 3,
+      "d": 9
+    },
+    "mne/viz/tests/test_epochs.py": {
+      "a": 22,
+      "d": 25
+    },
+    "requirements_base.txt": {
+      "a": 3,
+      "d": 3
+    },
+    "tools/github_actions_env_vars.sh": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

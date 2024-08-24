@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "f99943965c8c692106d801fe1c28b15078d66017",
+  "authors": [
+    {
+      "n": "Mainak Jas",
+      "e": "mainakjas@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/realtime/epochs.py": {
+      "a": 13,
+      "d": 7
+    }
+  }
+}

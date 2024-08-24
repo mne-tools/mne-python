@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "8b0b8a967b1a8e2fd88c47221f535d73ca7d6fb2",
+  "authors": [
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/label.py": {
+      "a": 15,
+      "d": 7
+    },
+    "mne/tests/test_label.py": {
+      "a": 6,
+      "d": 2
+    }
+  }
+}

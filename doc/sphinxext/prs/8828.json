@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "2f7df8843401433b28af0278666fe629fd9f0c28",
+  "authors": [
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    }
+  ],
+  "changes": {
+    "azure-pipelines.yml": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/viz/_3d.py": {
+      "a": 9,
+      "d": 8
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 5,
+      "d": 3
+    },
+    "mne/viz/backends/_pyvista.py": {
+      "a": 6,
+      "d": 4
+    },
+    "mne/viz/backends/_utils.py": {
+      "a": 11,
+      "d": 0
+    },
+    "mne/viz/backends/renderer.py": {
+      "a": 3,
+      "d": 1
+    }
+  }
+}

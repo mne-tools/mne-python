@@ -1,0 +1,55 @@
+{
+  "merge_commit_sha": "55ac67e0862ac517daa91c7c25eb99a13ea2a578",
+  "authors": [
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    }
+  ],
+  "changes": {
+    "conftest.py": {
+      "a": 17,
+      "d": 0
+    },
+    "doc/python_reference.rst": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/viz/_3d.py": {
+      "a": 46,
+      "d": 58
+    },
+    "mne/viz/__init__.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/viz/backends/__init__.py": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/viz/backends/_pysurfer_mayavi.py": {
+      "a": 66,
+      "d": 47
+    },
+    "mne/viz/backends/_utils.py": {
+      "a": 21,
+      "d": 0
+    },
+    "mne/viz/backends/renderer.py": {
+      "a": 47,
+      "d": 23
+    },
+    "mne/viz/backends/tests/_utils.py": {
+      "a": 23,
+      "d": 0
+    },
+    "mne/viz/backends/tests/test_renderer.py": {
+      "a": 53,
+      "d": 14
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 35,
+      "d": 24
+    }
+  }
+}

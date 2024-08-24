@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "201ce50343a7a6abe33c6383a6dbb3efce1489d2",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/carousel.inc": {
+      "a": 5,
+      "d": 5
+    }
+  }
+}

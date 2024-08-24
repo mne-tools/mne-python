@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "d32125d5da1996dd7537f652ecd022cc24055204",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/decoding/tests/test_receptive_field.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/export/tests/test_export.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/report/tests/test_report.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/tests/test_bem.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/viz/tests/test_misc.py": {
+      "a": 1,
+      "d": 0
+    },
+    "setup.cfg": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

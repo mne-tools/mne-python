@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "44f3c09324fbfbfaa46e88daf545cfe53ba14f62",
+  "authors": [
+    {
+      "n": "Christian Brodbeck",
+      "e": null
+    }
+  ],
+  "changes": {
+    "examples/plot_ssp_projs_sensitivity_map.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/cov.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/fiff/evoked.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/fiff/raw.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

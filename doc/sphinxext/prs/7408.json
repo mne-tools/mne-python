@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "a2d1461142d7d4dfdd23586c6d6fdd08d4671934",
+  "authors": [
+    {
+      "n": "Rob Luke",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/tests/conftest.py": {
+      "a": 26,
+      "d": 0
+    },
+    "mne/viz/tests/test_topo.py": {
+      "a": 9,
+      "d": 0
+    },
+    "mne/viz/tests/test_topomap.py": {
+      "a": 8,
+      "d": 14
+    },
+    "mne/viz/topo.py": {
+      "a": 6,
+      "d": 0
+    },
+    "tutorials/preprocessing/plot_70_fnirs_processing.py": {
+      "a": 15,
+      "d": 0
+    }
+  }
+}

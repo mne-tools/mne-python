@@ -1,0 +1,63 @@
+{
+  "merge_commit_sha": "8efbe5c3034ca6fc2c96b033ab63e42081788b38",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/forward/_field_interpolation.py": {
+      "a": 4,
+      "d": 1
+    },
+    "mne/forward/tests/test_field_interpolation.py": {
+      "a": 16,
+      "d": 1
+    },
+    "mne/stats/tests/test_parametric.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/time_frequency/_stockwell.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/time_frequency/tests/test_stft.py": {
+      "a": 7,
+      "d": 8
+    },
+    "mne/time_frequency/tests/test_stockwell.py": {
+      "a": 12,
+      "d": 1
+    },
+    "mne/time_frequency/tests/test_tfr.py": {
+      "a": 14,
+      "d": 4
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 4,
+      "d": 5
+    },
+    "mne/viz/ica.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/tests/test_ica.py": {
+      "a": 11,
+      "d": 0
+    },
+    "tutorials/plot_artifacts_correction_ica.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/plot_introduction.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

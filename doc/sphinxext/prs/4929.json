@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "0db9155293dc1d402eb762bdea04748d030ba8df",
+  "authors": [
+    {
+      "n": "Claire Braboszcz",
+      "e": "claire@guakamole.org"
+    }
+  ],
+  "changes": {
+    "tutorials/plot_stats_spatio_temporal_cluster_sensors.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

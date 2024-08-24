@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "1cf95cc90f2e13a73a75d1d46799f0414e2deead",
+  "authors": [
+    {
+      "n": "Dominik Welke",
+      "e": "dominik.welke@web.de"
+    }
+  ],
+  "changes": {
+    "mne/channels/montage.py": {
+      "a": 3,
+      "d": 3
+    }
+  }
+}

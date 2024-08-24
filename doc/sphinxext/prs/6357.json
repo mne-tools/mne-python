@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "595ab7e66fcc4854fa82eb6c00d5b20d5046fb3d",
+  "authors": [
+    {
+      "n": "Kambiz Tavabi",
+      "e": "ktavabi@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/commands/mne_browse_raw.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/source_estimate.py": {
+      "a": 4,
+      "d": 0
+    }
+  }
+}

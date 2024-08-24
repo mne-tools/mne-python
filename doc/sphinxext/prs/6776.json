@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "09a5b563e4060da6a105b208e412a56237513c08",
+  "authors": [
+    {
+      "n": "Christian Clauss",
+      "e": "cclauss@me.com"
+    }
+  ],
+  "changes": {
+    ".travis.yml": {
+      "a": 0,
+      "d": 1
+    }
+  }
+}

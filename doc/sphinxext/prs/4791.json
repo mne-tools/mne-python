@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "2c17fa7776497b7b021299b69ce6151adf8fe83d",
+  "authors": [
+    {
+      "n": "Christopher J. Bailey",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/constants.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/meas_info.py": {
+      "a": 12,
+      "d": 3
+    },
+    "mne/io/tests/test_meas_info.py": {
+      "a": 6,
+      "d": 0
+    }
+  }
+}

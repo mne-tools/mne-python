@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "08d699e15f891c39f2a145801dc1eb54caf1c16b",
+  "authors": [
+    {
+      "n": "Padma Sundaram",
+      "e": "tottochan@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/utils/docs.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

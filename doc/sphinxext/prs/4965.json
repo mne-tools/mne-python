@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "a4d027096fe21a35606b6fd02dfab6b1e9521cf8",
+  "authors": [
+    {
+      "n": "Jona Sassenhagen",
+      "e": "jona.sassenhagen@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/visualization/plot_channel_epochs_image.py": {
+      "a": 2,
+      "d": 2
+    },
+    "examples/visualization/plot_roi_erpimage_by_rt.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/utils.py": {
+      "a": 0,
+      "d": 1
+    },
+    "tutorials/plot_visualize_evoked.py": {
+      "a": 3,
+      "d": 5
+    }
+  }
+}

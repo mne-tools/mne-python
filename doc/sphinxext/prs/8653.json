@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "e40e592d3d2c6aeaa5c44bab2602d4aa486fc830",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/conf.py": {
+      "a": 0,
+      "d": 1
+    },
+    "examples/preprocessing/plot_eeg_csd.py": {
+      "a": 1,
+      "d": 1
+    },
+    "requirements_doc.txt": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

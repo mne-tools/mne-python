@@ -1,0 +1,55 @@
+{
+  "merge_commit_sha": "3b85ebb33c6f1f54671ee129c64ea6836fc874d1",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/epochs.py": {
+      "a": 16,
+      "d": 39
+    },
+    "mne/evoked.py": {
+      "a": 13,
+      "d": 6
+    },
+    "mne/io/base.py": {
+      "a": 10,
+      "d": 4
+    },
+    "mne/io/fiff/tests/test_raw_fiff.py": {
+      "a": 19,
+      "d": 0
+    },
+    "mne/io/meas_info.py": {
+      "a": 50,
+      "d": 2
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/utils/docs.py": {
+      "a": 7,
+      "d": 0
+    }
+  }
+}

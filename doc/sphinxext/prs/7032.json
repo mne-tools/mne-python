@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "bd8616679dbf757930e34cb4b5ddc6d3d242c57a",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/beamformer/_compute_beamformer.py": {
+      "a": 98,
+      "d": 86
+    },
+    "mne/fixes.py": {
+      "a": 27,
+      "d": 10
+    },
+    "mne/utils/__init__.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/utils/linalg.py": {
+      "a": 0,
+      "d": 86
+    }
+  }
+}

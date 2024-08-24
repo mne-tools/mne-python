@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "5ae3e54dfb403d8d3954d297d23f6df061f37a23",
+  "authors": [
+    {
+      "n": "Romek Goj",
+      "e": "roman.goj@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/source/whats_new.rst": {
+      "a": 4,
+      "d": 0
+    },
+    "examples/inverse/plot_lcmv_beamformer.py": {
+      "a": 25,
+      "d": 12
+    },
+    "examples/inverse/plot_lcmv_beamformer_volume.py": {
+      "a": 5,
+      "d": 1
+    },
+    "mne/beamformer/_lcmv.py": {
+      "a": 95,
+      "d": 9
+    },
+    "mne/beamformer/tests/test_lcmv.py": {
+      "a": 24,
+      "d": 3
+    },
+    "mne/minimum_norm/inverse.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

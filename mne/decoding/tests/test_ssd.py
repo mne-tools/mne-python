@@ -1,8 +1,8 @@
-# Author: Denis A. Engemann <denis.engemann@gmail.com>
-#         Victoria Peterson <victoriapeterson09@gmail.com>
-#         Thomas S. Binns <t.s.binns@outlook.com>
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
+import sys
 
 import numpy as np
 import pytest
@@ -471,4 +471,6 @@ def test_non_full_rank_data():
     assert np.linalg.matrix_rank(X) == rank
 
     ssd = SSD(info, filt_params_signal, filt_params_noise)
+    if sys.platform == "darwin":
+        pytest.skip("Unknown linalg bug (Accelerate?)")
     ssd.fit(X)

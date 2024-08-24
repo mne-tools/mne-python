@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "1e6af29a8e3cccbb94addea534462261ca555cd0",
+  "authors": [
+    {
+      "n": "Chris Holdgraf",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/connectivity/spectral.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/tests/test_reference.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/preprocessing/stim.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "8ce77a0ad91844b0bb2a5f99bf383f1cc9d39fe6",
+  "authors": [
+    {
+      "n": "Jeyhte Key",
+      "e": "jeythekey@tutanota.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 8,
+      "d": 0
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 92,
+      "d": 78
+    },
+    "mne/preprocessing/tests/test_ica.py": {
+      "a": 11,
+      "d": 1
+    }
+  }
+}

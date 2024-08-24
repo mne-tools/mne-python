@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "3e73a0ea8ac886622d8f167bcb1b44d496be8a28",
+  "authors": [
+    {
+      "n": "Dominik Welke",
+      "e": "dominik.welke@web.de"
+    }
+  ],
+  "changes": {
+    "mne/utils/docs.py": {
+      "a": 5,
+      "d": 2
+    }
+  }
+}

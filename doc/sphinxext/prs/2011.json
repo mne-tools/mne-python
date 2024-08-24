@@ -1,0 +1,59 @@
+{
+  "merge_commit_sha": "ee041955ef298fd5846cd0145ef95319bb5da86a",
+  "authors": [
+    {
+      "n": "Mainak Jas",
+      "e": "mainakjas@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/source/whats_new.rst": {
+      "a": 2,
+      "d": 2
+    },
+    "examples/plot_interpolate_bad_channels.py": {
+      "a": 21,
+      "d": 35
+    },
+    "mne/channels/channels.py": {
+      "a": 27,
+      "d": 3
+    },
+    "mne/channels/interpolation.py": {
+      "a": 59,
+      "d": 35
+    },
+    "mne/channels/tests/test_interpolation.py": {
+      "a": 87,
+      "d": 50
+    },
+    "mne/commands/tests/test_commands.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/evoked.py": {
+      "a": 8,
+      "d": 15
+    },
+    "mne/forward/__init__.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/forward/_field_interpolation.py": {
+      "a": 55,
+      "d": 29
+    },
+    "mne/io/tests/test_apply_function.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/tests/test_source_estimate.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/viz/tests/test_misc.py": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "93dc7dc9022ed861ddb2afda73143efbbaf6bf4a",
+  "authors": [
+    {
+      "n": "Alex Rockhill",
+      "e": "aprockhill@mailbox.org"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/visualization/brain.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/viz/backends/_pyvista.py": {
+      "a": 7,
+      "d": 14
+    },
+    "tutorials/inverse/35_dipole_orientations.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

@@ -1,0 +1,59 @@
+{
+  "merge_commit_sha": "9800cf3dbda3485f14d0ee4e92e70517abb520a4",
+  "authors": [
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".circleci/config.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/conf.py": {
+      "a": 3,
+      "d": 0
+    },
+    "doc/install/mne_python.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "environment.yml": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/conftest.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/utils/config.py": {
+      "a": 10,
+      "d": 3
+    },
+    "mne/viz/_brain/_timeviewer.py": {
+      "a": 10,
+      "d": 3
+    },
+    "mne/viz/_brain/tests/test_brain.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/viz/backends/_pyvista.py": {
+      "a": 96,
+      "d": 50
+    },
+    "requirements.txt": {
+      "a": 4,
+      "d": 2
+    },
+    "tutorials/machine-learning/plot_receptive_field.py": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

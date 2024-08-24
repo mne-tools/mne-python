@@ -1,0 +1,63 @@
+{
+  "merge_commit_sha": "fc88fe51565210144b4df4784352922f99799bab",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/io/base.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/brainvision/brainvision.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/bti/bti.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/bti/tests/test_bti.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/io/ctf/ctf.py": {
+      "a": 8,
+      "d": 10
+    },
+    "mne/io/egi/egi.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/egi/egimff.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/eyelink/tests/test_eyelink.py": {
+      "a": 9,
+      "d": 0
+    },
+    "mne/io/fiff/raw.py": {
+      "a": 6,
+      "d": 0
+    },
+    "mne/io/hitachi/hitachi.py": {
+      "a": 181,
+      "d": 186
+    },
+    "mne/io/kit/kit.py": {
+      "a": 71,
+      "d": 70
+    },
+    "mne/io/nihon/nihon.py": {
+      "a": 1,
+      "d": 3
+    },
+    "mne/io/tests/test_raw.py": {
+      "a": 31,
+      "d": 2
+    }
+  }
+}

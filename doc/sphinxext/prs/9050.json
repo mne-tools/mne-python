@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "f98e9222700e47308c0cd759410d82f6da058dda",
+  "authors": [
+    {
+      "n": "Matteo Anelli",
+      "e": "matteanelli.96.11@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/time_frequency/plot_source_power_spectrum_opm.py": {
+      "a": 2,
+      "d": 5
+    }
+  }
+}

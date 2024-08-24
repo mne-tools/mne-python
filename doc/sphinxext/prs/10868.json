@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "4b612d2e6411e64e27d6d9522c651e0d90bf1b8d",
+  "authors": [
+    {
+      "n": "ashdrew",
+      "e": "ashdrew@uw.edu"
+    }
+  ],
+  "changes": {
+    "examples/inverse/morph_surface_stc.py": {
+      "a": 7,
+      "d": 11
+    }
+  }
+}

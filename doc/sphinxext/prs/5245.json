@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "819d8933eeabddf5cc40632467e5518605d1e4a7",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "environment.yml": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

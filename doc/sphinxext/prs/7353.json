@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "8d22915819d85f82a27c36b9c1b06c0b2132fbe6",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "tutorials/evoked/plot_10_evoked_overview.py": {
+      "a": 315,
+      "d": 0
+    },
+    "tutorials/evoked/plot_object_evoked.py": {
+      "a": 0,
+      "d": 89
+    },
+    "tutorials/evoked/plot_visualize_evoked.py": {
+      "a": 2,
+      "d": 0
+    }
+  }
+}

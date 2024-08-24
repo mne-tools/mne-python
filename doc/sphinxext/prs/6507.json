@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "ec117dfea5a0f5e3591ab5d9710500ac4b2036f4",
+  "authors": [
+    {
+      "n": "Paul Roujansky",
+      "e": "paul@roujansky.eu"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/epochs.py": {
+      "a": 18,
+      "d": 9
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 24,
+      "d": 0
+    }
+  }
+}

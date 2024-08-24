@@ -1,0 +1,103 @@
+{
+  "merge_commit_sha": "00882bc2d24b07594c080af1a768f970476bdd4c",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".github/workflows/check_changelog.yml": {
+      "a": 15,
+      "d": 0
+    },
+    "doc/changes/devel.rst": {
+      "a": 2,
+      "d": 53
+    },
+    "doc/changes/devel.rst.template": {
+      "a": 0,
+      "d": 34
+    },
+    "doc/changes/devel/.gitignore": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/devel/12190.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/devel/12218.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/devel/12236.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/devel/12238.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/devel/12248.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/devel/12250.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/devel/12250.notable.rst": {
+      "a": 11,
+      "d": 0
+    },
+    "doc/changes/devel/12264.dependency.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/devel/12268.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/devel/12269.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/devel/12279.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/devel/12282.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/devel/12289.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/devel/12299.other.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/devel/12308.apichange.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/conf.py": {
+      "a": 9,
+      "d": 5
+    },
+    "doc/development/contributing.rst": {
+      "a": 51,
+      "d": 53
+    },
+    "doc/links.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "pyproject.toml": {
+      "a": 2,
+      "d": 0
+    }
+  }
+}

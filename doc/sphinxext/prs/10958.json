@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "622dc0cf358bd20523219d01f93d2f87b28c1c86",
+  "authors": [
+    {
+      "n": "Mathieu Scheltienne",
+      "e": "mathieu.scheltienne@fcbg.ch"
+    }
+  ],
+  "changes": {
+    "azure-pipelines.yml": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/utils/_testing.py": {
+      "a": 1,
+      "d": 31
+    }
+  }
+}

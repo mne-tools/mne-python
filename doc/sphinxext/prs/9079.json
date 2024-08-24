@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "b465989273481d3b6264964a0baf877d1e913873",
+  "authors": [
+    {
+      "n": "Steven Bierer",
+      "e": null
+    },
+    {
+      "n": "Steven Bierer",
+      "e": "neurolaunch@gmail.copm"
+    }
+  ],
+  "changes": {
+    "doc/references.bib": {
+      "a": 12,
+      "d": 0
+    },
+    "mne/minimum_norm/spatial_resolution.py": {
+      "a": 7,
+      "d": 11
+    }
+  }
+}

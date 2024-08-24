@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "ee5ecfe78d9a7ec5698ab015644e25d1b7596755",
+  "authors": [
+    {
+      "n": "Rodrigo Hübner",
+      "e": "rodrigohubner@utfpr.edu.br"
+    }
+  ],
+  "changes": {
+    "mne/decoding/base.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

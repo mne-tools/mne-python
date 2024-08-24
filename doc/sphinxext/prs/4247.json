@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "64b070cc6014955ac125facfeb83d7755def48cd",
+  "authors": [
+    {
+      "n": "jaeilepp",
+      "e": "jaeilepp@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/evoked.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/base.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/viz/evoked.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/viz/raw.py": {
+      "a": 5,
+      "d": 2
+    },
+    "mne/viz/tests/test_raw.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/viz/topo.py": {
+      "a": 24,
+      "d": 16
+    }
+  }
+}

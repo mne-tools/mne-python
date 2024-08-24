@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "c3e7571a9b698034cda94aae53004b55265057a9",
+  "authors": [
+    {
+      "n": "Jevri Hanna",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/preprocessing/ica.py": {
+      "a": 10,
+      "d": 7
+    },
+    "mne/preprocessing/tests/test_ica.py": {
+      "a": 54,
+      "d": 1
+    }
+  }
+}

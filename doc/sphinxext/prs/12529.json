@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "026e2622e9f32741ac20bc4c051bdc89bbbd3785",
+  "authors": [
+    {
+      "n": "tom",
+      "e": "tdonoghue.research@gmail.com"
+    }
+  ],
+  "changes": {
+    "README.rst": {
+      "a": 14,
+      "d": 14
+    }
+  }
+}

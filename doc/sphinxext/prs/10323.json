@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "3ccb6c0d6810f95b0ee22568e0bbefb24b3cd9d7",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "azure-pipelines.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/conftest.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/utils/docs.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/viz/_figure.py": {
+      "a": 33,
+      "d": 29
+    },
+    "mne/viz/backends/_utils.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/raw.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/viz/tests/test_raw.py": {
+      "a": 7,
+      "d": 7
+    },
+    "mne/viz/utils.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

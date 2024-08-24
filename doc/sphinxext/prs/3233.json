@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "0a861bf8fcbd3eb833cba9fc9468a2fd877532a9",
+  "authors": [
+    {
+      "n": "Yaroslav Halchenko",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/surface.py": {
+      "a": 3,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "21fc47f8c385da235fd3c9fad37882774e376b49",
+  "authors": [
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    }
+  ],
+  "changes": {
+    "doc/manual/datasets_index.rst": {
+      "a": 66,
+      "d": 43
+    },
+    "examples/datasets/plot_hf_sef_data.py": {
+      "a": 3,
+      "d": 1
+    },
+    "examples/inverse/plot_dics_source_power.py": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/time_frequency/plot_time_frequency_global_field_power.py": {
+      "a": 2,
+      "d": 0
+    },
+    "tutorials/sample-datasets/plot_phantom_4DBTi.py": {
+      "a": 2,
+      "d": 0
+    }
+  }
+}

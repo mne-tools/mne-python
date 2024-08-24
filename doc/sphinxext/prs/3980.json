@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "bba62a5e3b2d71ef0027e91fe1ba9530cc653e27",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".travis.yml": {
+      "a": 5,
+      "d": 5
+    },
+    "appveyor.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/decoding/csp.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/fiff/tests/test_raw_fiff.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "a294c335d5bc5911aa452dad801f2ae62ae80224",
+  "authors": [
+    {
+      "n": "Asish Panda",
+      "e": "asishrocks95@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/decoding/search_light.py": {
+      "a": 31,
+      "d": 5
+    },
+    "mne/decoding/tests/test_search_light.py": {
+      "a": 24,
+      "d": 0
+    }
+  }
+}

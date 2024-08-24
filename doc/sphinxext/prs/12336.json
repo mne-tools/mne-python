@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "f70378a922a46b5432a761281ae857ec747b984b",
+  "authors": [
+    {
+      "n": "Alex Rockhill",
+      "e": "aprockhill@mailbox.org"
+    },
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/12336.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/channels/channels.py": {
+      "a": 27,
+      "d": 11
+    },
+    "mne/channels/interpolation.py": {
+      "a": 116,
+      "d": 26
+    },
+    "mne/channels/tests/test_interpolation.py": {
+      "a": 50,
+      "d": 0
+    },
+    "mne/defaults.py": {
+      "a": 3,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "792306dfa81d540d12abb4dbfed1e3736adc85b5",
+  "authors": [
+    {
+      "n": "Mark Wronkiewicz",
+      "e": "wronk.mark@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/io/base.py": {
+      "a": 25,
+      "d": 4
+    },
+    "mne/io/tests/test_raw.py": {
+      "a": 20,
+      "d": 0
+    }
+  }
+}

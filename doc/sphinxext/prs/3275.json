@@ -1,0 +1,63 @@
+{
+  "merge_commit_sha": "6f69b79fea6c2af992a9a1efecaf5d9a8d8b2688",
+  "authors": [
+    {
+      "n": "Mikolaj Magnuski",
+      "e": "mmagnuski@swps.edu.pl"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 6,
+      "d": 0
+    },
+    "examples/preprocessing/plot_run_ica.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/epochs.py": {
+      "a": 27,
+      "d": 1
+    },
+    "mne/event.py": {
+      "a": 9,
+      "d": 2
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 53,
+      "d": 0
+    },
+    "mne/tests/test_event.py": {
+      "a": 5,
+      "d": 0
+    },
+    "mne/viz/epochs.py": {
+      "a": 24,
+      "d": 6
+    },
+    "mne/viz/ica.py": {
+      "a": 249,
+      "d": 2
+    },
+    "mne/viz/tests/test_ica.py": {
+      "a": 55,
+      "d": 1
+    },
+    "mne/viz/tests/test_utils.py": {
+      "a": 21,
+      "d": 1
+    },
+    "mne/viz/topomap.py": {
+      "a": 50,
+      "d": 0
+    },
+    "mne/viz/utils.py": {
+      "a": 26,
+      "d": 0
+    },
+    "tutorials/plot_artifacts_correction_ica.py": {
+      "a": 35,
+      "d": 3
+    }
+  }
+}

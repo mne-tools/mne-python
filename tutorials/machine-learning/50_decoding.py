@@ -1,5 +1,7 @@
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 r"""
 .. _tut-mvpa:
 
@@ -25,6 +27,7 @@ Let's start by loading data for a simple two-class problem:
 """
 
 # %%
+
 # sphinx_gallery_thumbnail_number = 6
 
 import matplotlib.pyplot as plt

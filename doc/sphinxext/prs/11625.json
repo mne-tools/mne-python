@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "4a605992c9001af6e2c19d9d82558eef8150833b",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/time_frequency/tests/test_spectrum.py": {
+      "a": 3,
+      "d": 4
+    }
+  }
+}

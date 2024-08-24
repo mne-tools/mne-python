@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "6f822578746945abd595a4772cfaa85ec6478d54",
+  "authors": [
+    {
+      "n": "Denis A. Engemann",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/source/whats_new.rst": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/__init__.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/epochs.py": {
+      "a": 2,
+      "d": 22
+    },
+    "mne/fiff/channels.py": {
+      "a": 76,
+      "d": 1
+    },
+    "mne/fiff/evoked.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/fiff/raw.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/fiff/tests/test_evoked.py": {
+      "a": 25,
+      "d": 1
+    },
+    "mne/fiff/tests/test_raw.py": {
+      "a": 27,
+      "d": 1
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 29,
+      "d": 1
+    }
+  }
+}

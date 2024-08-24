@@ -1,0 +1,71 @@
+{
+  "merge_commit_sha": "a240a55f78382baae269b2bc834fdfbec3a68899",
+  "authors": [
+    {
+      "n": "Hubert Banville",
+      "e": null
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/channels/montage.py": {
+      "a": 3,
+      "d": 12
+    },
+    "mne/conftest.py": {
+      "a": 10,
+      "d": 0
+    },
+    "mne/datasets/sleep_physionet/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/datasets/sleep_physionet/_utils.py": {
+      "a": 25,
+      "d": 6
+    },
+    "mne/datasets/sleep_physionet/age.py": {
+      "a": 27,
+      "d": 8
+    },
+    "mne/datasets/sleep_physionet/tests/test_physionet.py": {
+      "a": 69,
+      "d": 26
+    },
+    "mne/epochs.py": {
+      "a": 8,
+      "d": 14
+    },
+    "mne/forward/forward.py": {
+      "a": 2,
+      "d": 7
+    },
+    "mne/simulation/tests/test_evoked.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/utils/__init__.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/utils/check.py": {
+      "a": 29,
+      "d": 0
+    },
+    "mne/utils/tests/test_check.py": {
+      "a": 15,
+      "d": 1
+    },
+    "requirements_testing.txt": {
+      "a": 0,
+      "d": 1
+    }
+  }
+}

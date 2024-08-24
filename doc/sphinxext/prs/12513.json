@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "eee8e6fe580034f4a3a4fb13bdca3bfc99240708",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/12513.newfeature.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/report/report.py": {
+      "a": 72,
+      "d": 26
+    },
+    "mne/report/tests/test_report.py": {
+      "a": 41,
+      "d": 13
+    }
+  }
+}

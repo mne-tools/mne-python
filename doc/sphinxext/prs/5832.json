@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "78e9e728619193e5a41e4218bf39c12d2e130a90",
+  "authors": [
+    {
+      "n": "Joan Massich",
+      "e": "mailsik@gmail.com"
+    }
+  ],
+  "changes": {
+    ".travis.yml": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/externals/pymatreader/utils.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/preprocessing/tests/test_ica.py": {
+      "a": 1,
+      "d": 1
+    },
+    "requirements.txt": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

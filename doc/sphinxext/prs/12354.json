@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "6af181afff86c679e1ac6c94b65a7843e07ae923",
+  "authors": [
+    {
+      "n": "Marijn van Vliet",
+      "e": "w.m.vanvliet@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/12354.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/viz/evoked_field.py": {
+      "a": 16,
+      "d": 18
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 10,
+      "d": 1
+    }
+  }
+}

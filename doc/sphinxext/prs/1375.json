@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "dfadeef3dbc3ae4df7975aee75e7c47f5fed018c",
+  "authors": [
+    {
+      "n": "Romek Goj",
+      "e": "roman.goj@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/cov.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/epochs.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

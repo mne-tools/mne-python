@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "638847ea5539be32919b6ac4dd85ef8c4c3b79aa",
+  "authors": [
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    }
+  ],
+  "changes": {
+    "mne/time_frequency/tfr.py": {
+      "a": 4,
+      "d": 0
+    }
+  }
+}

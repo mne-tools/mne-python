@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "acb6685bd2edee2216defd26d2eecc30275d51ed",
+  "authors": [
+    {
+      "n": "Andrew R. Dykstra",
+      "e": null
+    }
+  ],
+  "changes": {
+    "examples/inverse/plot_mixed_norm_inverse.py": {
+      "a": 3,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,83 @@
+{
+  "merge_commit_sha": "1882f87647c0a87d22f5ed1c5af9f79a75f8dbc7",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/chpi.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/cov.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/filter.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/array/tests/test_array.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/simulation/source.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/simulation/tests/test_raw.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/source_space.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/tests/test_chpi.py": {
+      "a": 4,
+      "d": 1
+    },
+    "mne/tests/test_coreg.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/tests/test_evoked.py": {
+      "a": 2,
+      "d": 3
+    },
+    "mne/tests/test_import_nesting.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/tests/test_source_space.py": {
+      "a": 5,
+      "d": 6
+    },
+    "mne/time_frequency/tests/test_psd.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/utils.py": {
+      "a": 16,
+      "d": 35
+    },
+    "mne/viz/tests/test_epochs.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/tests/test_raw.py": {
+      "a": 3,
+      "d": 3
+    }
+  }
+}

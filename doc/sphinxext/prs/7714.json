@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "52fc7a9c2147c2f28ebe2d17eecb20978e859082",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "tutorials/preprocessing/plot_70_fnirs_processing.py": {
+      "a": 6,
+      "d": 4
+    },
+    "tutorials/source-modeling/plot_dipole_fit.py": {
+      "a": 6,
+      "d": 3
+    }
+  }
+}

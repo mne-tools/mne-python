@@ -1,0 +1,95 @@
+{
+  "merge_commit_sha": "581bf92ca33aa159cd5a5e509e8f4ccda986f979",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/cov.py": {
+      "a": 4,
+      "d": 1
+    },
+    "mne/datasets/__init__.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/datasets/_fake/__init__.py": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/datasets/_fake/_fake.py": {
+      "a": 25,
+      "d": 0
+    },
+    "mne/datasets/eegbci/eegbci.py": {
+      "a": 6,
+      "d": 52
+    },
+    "mne/datasets/megsim/megsim.py": {
+      "a": 5,
+      "d": 51
+    },
+    "mne/datasets/megsim/urls.py": {
+      "a": 20,
+      "d": 9
+    },
+    "mne/datasets/tests/test_datasets.py": {
+      "a": 28,
+      "d": 1
+    },
+    "mne/datasets/utils.py": {
+      "a": 105,
+      "d": 80
+    },
+    "mne/io/tests/test_chpi.py": {
+      "a": 28,
+      "d": 2
+    },
+    "mne/label.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/source_estimate.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/tests/test_cov.py": {
+      "a": 12,
+      "d": 4
+    },
+    "mne/tests/test_fixes.py": {
+      "a": 30,
+      "d": 2
+    },
+    "mne/tests/test_label.py": {
+      "a": 27,
+      "d": 3
+    },
+    "mne/tests/test_source_estimate.py": {
+      "a": 41,
+      "d": 7
+    },
+    "mne/tests/test_source_space.py": {
+      "a": 19,
+      "d": 9
+    },
+    "mne/viz/tests/test_topo.py": {
+      "a": 22,
+      "d": 7
+    },
+    "mne/viz/tests/test_utils.py": {
+      "a": 18,
+      "d": 3
+    },
+    "mne/viz/topo.py": {
+      "a": 1,
+      "d": 4
+    },
+    "setup.py": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

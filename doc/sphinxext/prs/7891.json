@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "0f9cf21c8ba6a8c30ed9c9d6f546fa50b1ba1a34",
+  "authors": [
+    {
+      "n": "Rob Luke",
+      "e": null
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "mne/io/nirx/nirx.py": {
+      "a": 40,
+      "d": 11
+    },
+    "mne/io/nirx/tests/test_nirx.py": {
+      "a": 21,
+      "d": 6
+    }
+  }
+}

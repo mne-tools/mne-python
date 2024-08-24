@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "27e0108b3a3d92973ceb92b339e18956499032f7",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/report.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

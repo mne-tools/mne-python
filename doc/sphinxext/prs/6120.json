@@ -1,0 +1,63 @@
+{
+  "merge_commit_sha": "56106059442264c43cdd489684418a35b2135fe4",
+  "authors": [
+    {
+      "n": "Teon L Brooks",
+      "e": null
+    }
+  ],
+  "changes": {
+    "README.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/python_reference.rst": {
+      "a": 3,
+      "d": 2
+    },
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "environment.yml": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/realtime/__init__.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/realtime/base_client.py": {
+      "a": 199,
+      "d": 0
+    },
+    "mne/realtime/fieldtrip_client.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/realtime/lsl_client.py": {
+      "a": 120,
+      "d": 0
+    },
+    "mne/realtime/tests/test_lsl_client.py": {
+      "a": 67,
+      "d": 0
+    },
+    "mne/utils/__init__.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/utils/_testing.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/utils/check.py": {
+      "a": 13,
+      "d": 0
+    },
+    "requirements.txt": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

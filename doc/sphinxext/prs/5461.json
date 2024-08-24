@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "9807547fee74b85f1db85295ae6d986523d68455",
+  "authors": [
+    {
+      "n": "Peter J. Molfese",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/preprocessing/eog.py": {
+      "a": 14,
+      "d": 8
+    },
+    "mne/preprocessing/tests/test_eog.py": {
+      "a": 4,
+      "d": 0
+    }
+  }
+}

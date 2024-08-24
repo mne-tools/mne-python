@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "4061f38ceec3727e08dccc5c9e8b2d8a408bf314",
+  "authors": [
+    {
+      "n": "Mathieu Scheltienne",
+      "e": "mathieu.scheltienne@fcbg.ch"
+    }
+  ],
+  "changes": {
+    "mne/viz/topomap.py": {
+      "a": 18,
+      "d": 15
+    }
+  }
+}

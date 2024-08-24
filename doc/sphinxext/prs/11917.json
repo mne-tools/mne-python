@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "ca83201eed98c1b6716542a9aa9e29684538f613",
+  "authors": [
+    {
+      "n": "Nikolai M Chapochnikov",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/filter.py": {
+      "a": 6,
+      "d": 4
+    },
+    "mne/io/base.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

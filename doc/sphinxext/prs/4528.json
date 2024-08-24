@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "cd775ca372fcc911d92297dc3131bac38530e131",
+  "authors": [
+    {
+      "n": "Jona Sassenhagen",
+      "e": "jona.sassenhagen@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/visualization/plot_roi_erpimage_by_rt.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/epochs.py": {
+      "a": 25,
+      "d": 10
+    }
+  }
+}

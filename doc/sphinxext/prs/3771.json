@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "0b104fa12a4710c38977879b7cb9779b1d36687d",
+  "authors": [
+    {
+      "n": "jaeilepp",
+      "e": "jaeilepp@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/forward/_make_forward.py": {
+      "a": 6,
+      "d": 1
+    },
+    "mne/source_space.py": {
+      "a": 28,
+      "d": 12
+    },
+    "mne/tests/test_source_space.py": {
+      "a": 4,
+      "d": 6
+    }
+  }
+}

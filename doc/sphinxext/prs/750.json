@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "be551d67972f4e3b82879e9e5c6b6eed3b37a2c1",
+  "authors": [
+    {
+      "n": "Christian Brodbeck",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/source/python_reference.rst": {
+      "a": 14,
+      "d": 0
+    },
+    "mne/__init__.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/stats/cluster_level.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/transforms/__init__.py": {
+      "a": 5,
+      "d": 1
+    },
+    "mne/transforms/coreg.py": {
+      "a": 843,
+      "d": 21
+    },
+    "mne/transforms/tests/test_coreg.py": {
+      "a": 139,
+      "d": 14
+    },
+    "mne/transforms/transforms.py": {
+      "a": 48,
+      "d": 9
+    },
+    "mne/utils.py": {
+      "a": 5,
+      "d": 0
+    },
+    "setup.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

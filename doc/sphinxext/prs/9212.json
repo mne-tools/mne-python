@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "5e38787306c147595252dbcf59572c017f4c8795",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    ".github/workflows/codespell_and_flake.yml": {
+      "a": 1,
+      "d": 0
+    },
+    ".github/workflows/compat_minimal.yml": {
+      "a": 1,
+      "d": 0
+    },
+    ".github/workflows/compat_old.yml": {
+      "a": 1,
+      "d": 0
+    },
+    ".github/workflows/linux_conda.yml": {
+      "a": 1,
+      "d": 0
+    },
+    ".github/workflows/linux_pip.yml": {
+      "a": 1,
+      "d": 0
+    },
+    ".github/workflows/macos_conda.yml": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

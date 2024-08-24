@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "9e0e02fa2f5995d4a41cb539fe1813a2e4b9d649",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".travis.yml": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/conftest.py": {
+      "a": 16,
+      "d": 0
+    },
+    "mne/filter.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/preprocessing/_peak_finder.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/_logging.py": {
+      "a": 4,
+      "d": 3
+    },
+    "mne/utils/check.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/utils/tests/test_logging.py": {
+      "a": 72,
+      "d": 70
+    },
+    "mne/viz/tests/test_ica.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

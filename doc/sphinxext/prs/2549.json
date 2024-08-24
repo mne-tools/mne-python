@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "f5dd1b5694bb42a974b8988a574f9dc741c7c77f",
+  "authors": [
+    {
+      "n": "jaeilepp",
+      "e": "jaeilepp@student.jyu.fi"
+    }
+  ],
+  "changes": {
+    "mne/forward/forward.py": {
+      "a": 22,
+      "d": 21
+    },
+    "mne/forward/tests/test_forward.py": {
+      "a": 2,
+      "d": 3
+    }
+  }
+}

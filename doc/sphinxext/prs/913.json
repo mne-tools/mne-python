@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "cf980143f2302af3d452d0d7615878674570a6d6",
+  "authors": [
+    {
+      "n": "Martin Luessi",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/source_estimate.py": {
+      "a": 11,
+      "d": 55
+    },
+    "mne/tests/test_source_estimate.py": {
+      "a": 0,
+      "d": 25
+    }
+  }
+}

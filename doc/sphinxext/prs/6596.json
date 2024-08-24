@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "060e40049f44893ffddb8a3dc28da7a5dc59f858",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    ".circleci/config.yml": {
+      "a": 9,
+      "d": 0
+    },
+    "doc/_static/diagrams/ica.dot": {
+      "a": 72,
+      "d": 0
+    },
+    "doc/conf.py": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/install/contributing.rst": {
+      "a": 0,
+      "d": 17
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 43,
+      "d": 39
+    },
+    "mne/viz/ica.py": {
+      "a": 4,
+      "d": 3
+    },
+    "tutorials/preprocessing/plot_40_artifact_correction_ica.py": {
+      "a": 508,
+      "d": 229
+    },
+    "tutorials/preprocessing/plot_45_ica_from_raw.py": {
+      "a": 0,
+      "d": 135
+    }
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "12395f9d9cf6ea3c72b225b62e052dd0d17d9889",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".circleci/config.yml": {
+      "a": 490,
+      "d": 490
+    },
+    ".github/workflows/tests.yml": {
+      "a": 27,
+      "d": 27
+    },
+    ".pre-commit-config.yaml": {
+      "a": 37,
+      "d": 37
+    },
+    ".yamllint.yml": {
+      "a": 0,
+      "d": 8
+    },
+    "azure-pipelines.yml": {
+      "a": 286,
+      "d": 286
+    },
+    "environment.yml": {
+      "a": 56,
+      "d": 56
+    }
+  }
+}

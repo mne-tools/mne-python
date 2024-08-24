@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "5eeca84cef086a3ee6edab577b138ffa43ff965c",
+  "authors": [
+    {
+      "n": "Jeff Stout",
+      "e": null
+    },
+    {
+      "n": "Jeff Stout",
+      "e": "stoutjd@nih.gov"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 4,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/simulation/raw.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/simulation/tests/test_raw.py": {
+      "a": 38,
+      "d": 3
+    }
+  }
+}

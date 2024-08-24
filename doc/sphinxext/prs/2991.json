@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "8e4b3472dca575dae469f994c648aaf117bf11ec",
+  "authors": [
+    {
+      "n": "Marijn van Vliet",
+      "e": "w.m.vanvliet@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/defaults.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/viz/evoked.py": {
+      "a": 3,
+      "d": 2
+    }
+  }
+}

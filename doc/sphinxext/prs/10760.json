@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "04b5ed9afb7722e72e43dd2082bdfc5e4c1c9d52",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/conftest.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/datasets/config.py": {
+      "a": 8,
+      "d": 4
+    },
+    "mne/decoding/time_delaying_ridge.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/filter.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/stats/regression.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

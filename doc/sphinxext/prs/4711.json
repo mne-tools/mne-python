@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "8ad8cf87ac8da137aebcd8d058ce19085cc8f21c",
+  "authors": [
+    {
+      "n": "Erik Hornberger",
+      "e": "erik.hornberger@shi-g.com"
+    }
+  ],
+  "changes": {
+    "tutorials/plot_epoching_and_averaging.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

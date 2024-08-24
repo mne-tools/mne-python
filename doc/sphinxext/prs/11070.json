@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "7ab69ab8ad6e90817d41b945e2b1e5daac26b8ff",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/cov.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/docs.py": {
+      "a": 43,
+      "d": 27
+    },
+    "mne/viz/epochs.py": {
+      "a": 2,
+      "d": 3
+    },
+    "mne/viz/raw.py": {
+      "a": 3,
+      "d": 4
+    },
+    "mne/viz/topomap.py": {
+      "a": 9,
+      "d": 7
+    }
+  }
+}

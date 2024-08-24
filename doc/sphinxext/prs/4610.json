@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "52c1e6f5472f823e49e5427e29548dfa594e9f44",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "doc/documentation.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/connectivity/plot_mixed_source_space_connectivity.py": {
+      "a": 1,
+      "d": 2
+    },
+    "examples/decoding/plot_decoding_csp_space.py": {
+      "a": 5,
+      "d": 5
+    },
+    "examples/decoding/plot_ems_filtering.py": {
+      "a": 2,
+      "d": 2
+    },
+    "examples/realtime/plot_compute_rt_decoder.py": {
+      "a": 2,
+      "d": 3
+    }
+  }
+}

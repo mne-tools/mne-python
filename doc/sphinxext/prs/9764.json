@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "6c0006dfc73588927936b95a1ae364556a55fbc0",
+  "authors": [
+    {
+      "n": "Adam Li",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/datasets/config.py": {
+      "a": 32,
+      "d": 72
+    }
+  }
+}

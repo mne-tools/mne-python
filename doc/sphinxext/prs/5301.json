@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "8b5e48aae28efb6d0f09a57244dcced7c041396d",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    }
+  ],
+  "changes": {
+    "CODE_OF_CONDUCT.md": {
+      "a": 46,
+      "d": 0
+    },
+    "MANIFEST.in": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

@@ -1,7 +1,4 @@
-# Authors: Marijn van Vliet <w.m.vanvliet@gmail.com>
-#          Susanna Aro <susanna.aro@aalto.fi>
-#          Roman Goj <roman.goj@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -146,9 +143,8 @@ class CrossSpectralDensity:
             frequencies = [frequencies]
         if len(frequencies) != data.shape[1]:
             raise ValueError(
-                "Number of frequencies does not match the number "
-                "of CSD matrices in the data array (%d != %d)."
-                % (len(frequencies), data.shape[1])
+                "Number of frequencies does not match the number of CSD matrices in "
+                f"the data array ({len(frequencies)} != {data.shape[1]})."
             )
         self.frequencies = frequencies
 
@@ -1376,7 +1372,7 @@ def _execute_csd_function(
     logger.info("[done]")
 
     if ch_names is None:
-        ch_names = ["SERIES%03d" % (i + 1) for i in range(n_channels)]
+        ch_names = [f"SERIES{i+1:03}" for i in range(n_channels)]
 
     return CrossSpectralDensity(
         csds_mean,

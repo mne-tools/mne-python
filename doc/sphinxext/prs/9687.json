@@ -1,0 +1,143 @@
+{
+  "merge_commit_sha": "5bafe5287dd27ef6e07a64609615326110536578",
+  "authors": [
+    {
+      "n": "Martin G. Schulz",
+      "e": "dev@mgschulz.de"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    ".github/workflows/compat_minimal.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "azure-pipelines.yml": {
+      "a": 7,
+      "d": 5
+    },
+    "doc/changes/latest.inc": {
+      "a": 5,
+      "d": 1
+    },
+    "doc/cited.rst": {
+      "a": 3,
+      "d": 3
+    },
+    "doc/visualization.rst": {
+      "a": 3,
+      "d": 0
+    },
+    "environment.yml": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/commands/mne_browse_raw.py": {
+      "a": 2,
+      "d": 3
+    },
+    "mne/conftest.py": {
+      "a": 48,
+      "d": 6
+    },
+    "mne/io/base.py": {
+      "a": 5,
+      "d": 4
+    },
+    "mne/utils/config.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/utils/docs.py": {
+      "a": 23,
+      "d": 0
+    },
+    "mne/utils/tests/test_config.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/viz/__init__.py": {
+      "a": 4,
+      "d": 1
+    },
+    "mne/viz/_figure.py": {
+      "a": 305,
+      "d": 56
+    },
+    "mne/viz/_mpl_figure.py": {
+      "a": 53,
+      "d": 187
+    },
+    "mne/viz/epochs.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/ica.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/raw.py": {
+      "a": 25,
+      "d": 10
+    },
+    "mne/viz/tests/test_epochs.py": {
+      "a": 16,
+      "d": 16
+    },
+    "mne/viz/tests/test_ica.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/viz/tests/test_raw.py": {
+      "a": 327,
+      "d": 226
+    },
+    "mne/viz/utils.py": {
+      "a": 32,
+      "d": 1
+    },
+    "requirements.txt": {
+      "a": 1,
+      "d": 0
+    },
+    "tools/github_actions_infos.sh": {
+      "a": 1,
+      "d": 0
+    },
+    "tools/github_actions_test.sh": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

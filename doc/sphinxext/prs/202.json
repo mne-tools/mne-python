@@ -1,0 +1,79 @@
+{
+  "merge_commit_sha": "adb4759575dc14ba10114022ff6147d1ea2b79d2",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/source/python_reference.rst": {
+      "a": 13,
+      "d": 0
+    },
+    "doc/source/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/connectivity/README.txt": {
+      "a": 6,
+      "d": 0
+    },
+    "examples/connectivity/plot_cwt_sensor_connectivity.py": {
+      "a": 80,
+      "d": 0
+    },
+    "examples/connectivity/plot_mne_inverse_coherence_epochs.py": {
+      "a": 133,
+      "d": 0
+    },
+    "examples/connectivity/plot_sensor_connectivity.py": {
+      "a": 114,
+      "d": 0
+    },
+    "mne/__init__.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/connectivity/__init__.py": {
+      "a": 5,
+      "d": 0
+    },
+    "mne/connectivity/spectral.py": {
+      "a": 964,
+      "d": 0
+    },
+    "mne/connectivity/tests/__init__.py": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/connectivity/tests/test_spectral.py": {
+      "a": 183,
+      "d": 0
+    },
+    "mne/connectivity/tests/test_utils.py": {
+      "a": 23,
+      "d": 0
+    },
+    "mne/connectivity/utils.py": {
+      "a": 45,
+      "d": 0
+    },
+    "mne/minimum_norm/inverse.py": {
+      "a": 53,
+      "d": 36
+    },
+    "mne/time_frequency/multitaper.py": {
+      "a": 47,
+      "d": 3
+    },
+    "mne/viz.py": {
+      "a": 45,
+      "d": 0
+    },
+    "setup.py": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

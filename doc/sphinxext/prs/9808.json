@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "2e3aca50802415686a4223c711f8f1d535d407c9",
+  "authors": [
+    {
+      "n": "Rob Luke",
+      "e": null
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/datasets/config.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/nirx/nirx.py": {
+      "a": 8,
+      "d": 5
+    },
+    "mne/io/nirx/tests/test_nirx.py": {
+      "a": 15,
+      "d": 4
+    },
+    "mne/io/snirf/tests/test_snirf.py": {
+      "a": 18,
+      "d": 4
+    },
+    "mne/io/tests/test_raw.py": {
+      "a": 9,
+      "d": 6
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "8eda56f0c0ca106194f81e9a27064291d1ffa245",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "tutorials/epochs/plot_60_make_fixed_length_epochs.py": {
+      "a": 31,
+      "d": 51
+    }
+  }
+}

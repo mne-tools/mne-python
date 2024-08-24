@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "141f061874197b795f2e6f3c9ce146e11e598316",
+  "authors": [
+    {
+      "n": "Jean-Rémi KING",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/morph.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "bc876405aeabb2e6ebcc47b468eecc14eb0f7ef9",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".travis.yml": {
+      "a": 0,
+      "d": 3
+    },
+    "doc/install/mne_python.rst": {
+      "a": 1,
+      "d": 2
+    },
+    "environment.yml": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

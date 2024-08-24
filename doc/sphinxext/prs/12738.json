@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "7ecd1416df18645957fd14198635294f824d149f",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/channels/channels.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/evoked.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/html_templates/_templates.py": {
+      "a": 5,
+      "d": 2
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 9,
+      "d": 7
+    },
+    "mne/report/report.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/viz/_3d.py": {
+      "a": 7,
+      "d": 6
+    },
+    "mne/viz/ui_events.py": {
+      "a": 8,
+      "d": 7
+    }
+  }
+}

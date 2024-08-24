@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "97bce190e1a9831395ed0c1ebf5365b248e023d3",
+  "authors": [
+    {
+      "n": "Reza Shoorangiz",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/viz/evoked.py": {
+      "a": 3,
+      "d": 3
+    }
+  }
+}

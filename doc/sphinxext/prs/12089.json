@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "647fdd309a6f4e386a246f522817f0ba3f616b6f",
+  "authors": [
+    {
+      "n": "Mainak Jas",
+      "e": null
+    }
+  ],
+  "changes": {
+    ".github/CODEOWNERS": {
+      "a": 9,
+      "d": 3
+    }
+  }
+}

@@ -1,0 +1,115 @@
+{
+  "merge_commit_sha": "1f096f76619b6f63316bbd609756337e9d3a7ae8",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "mne/tests/test_viz.py": {
+      "a": 0,
+      "d": 676
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/viz.py": {
+      "a": 0,
+      "d": 5223
+    },
+    "mne/viz/_3d.py": {
+      "a": 635,
+      "d": 0
+    },
+    "mne/viz/__init__.py": {
+      "a": 19,
+      "d": 0
+    },
+    "mne/viz/circle.py": {
+      "a": 408,
+      "d": 0
+    },
+    "mne/viz/epochs.py": {
+      "a": 449,
+      "d": 0
+    },
+    "mne/viz/evoked.py": {
+      "a": 292,
+      "d": 0
+    },
+    "mne/viz/ica.py": {
+      "a": 484,
+      "d": 0
+    },
+    "mne/viz/misc.py": {
+      "a": 506,
+      "d": 0
+    },
+    "mne/viz/raw.py": {
+      "a": 610,
+      "d": 0
+    },
+    "mne/viz/tests/__init__py": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 117,
+      "d": 0
+    },
+    "mne/viz/tests/test_circle.py": {
+      "a": 94,
+      "d": 0
+    },
+    "mne/viz/tests/test_epochs.py": {
+      "a": 118,
+      "d": 0
+    },
+    "mne/viz/tests/test_evoked.py": {
+      "a": 107,
+      "d": 0
+    },
+    "mne/viz/tests/test_ica.py": {
+      "a": 149,
+      "d": 0
+    },
+    "mne/viz/tests/test_misc.py": {
+      "a": 115,
+      "d": 0
+    },
+    "mne/viz/tests/test_raw.py": {
+      "a": 111,
+      "d": 0
+    },
+    "mne/viz/tests/test_topo.py": {
+      "a": 138,
+      "d": 0
+    },
+    "mne/viz/tests/test_topomap.py": {
+      "a": 150,
+      "d": 0
+    },
+    "mne/viz/tests/test_utils.py": {
+      "a": 28,
+      "d": 0
+    },
+    "mne/viz/topo.py": {
+      "a": 723,
+      "d": 0
+    },
+    "mne/viz/topomap.py": {
+      "a": 1029,
+      "d": 0
+    },
+    "mne/viz/utils.py": {
+      "a": 365,
+      "d": 0
+    },
+    "setup.py": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

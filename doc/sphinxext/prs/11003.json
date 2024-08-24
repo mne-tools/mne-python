@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "ef8b971340ddee0f7fe4a2a51c51ccc37d205b3e",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "azure-pipelines.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "tools/check_mne_location.py": {
+      "a": 10,
+      "d": 0
+    }
+  }
+}

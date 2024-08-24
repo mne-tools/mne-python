@@ -1,0 +1,71 @@
+{
+  "merge_commit_sha": "5832f7ac715d29bb65a4fdf5ea19dee280f4ffe8",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".travis.yml": {
+      "a": 6,
+      "d": 6
+    },
+    "doc/sphinxext/numpy_ext/docscrape.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/connectivity/spectral.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/decoding/base.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/epochs.py": {
+      "a": 13,
+      "d": 7
+    },
+    "mne/fixes.py": {
+      "a": 25,
+      "d": 2
+    },
+    "mne/io/brainvision/brainvision.py": {
+      "a": 8,
+      "d": 8
+    },
+    "mne/parallel.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 5,
+      "d": 4
+    },
+    "mne/preprocessing/maxwell.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/realtime/epochs.py": {
+      "a": 2,
+      "d": 5
+    },
+    "mne/tests/test_docstring_parameters.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/utils.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/viz/_3d.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/epochs.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

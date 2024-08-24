@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "19524d0fca2db68e0c358cd1eaf26f939a97ab7f",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    ".circleci/config.yml": {
+      "a": 6,
+      "d": 6
+    }
+  }
+}

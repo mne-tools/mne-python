@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "62828d56ff129a271433cf673e417eec596ffabc",
+  "authors": [
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    }
+  ],
+  "changes": {
+    "tutorials/plot_background_filtering.py": {
+      "a": 102,
+      "d": 3
+    }
+  }
+}

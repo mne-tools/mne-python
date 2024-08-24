@@ -1,0 +1,131 @@
+{
+  "merge_commit_sha": "a9d769ed7c7b29ed706216e26d43691a38ce6e47",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/source/_static/branch_dropdown.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/_static/forking_button.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/_static/pull_button.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/contributing.rst": {
+      "a": 649,
+      "d": 0
+    },
+    "doc/source/customizing_git.rst": {
+      "a": 7,
+      "d": 7
+    },
+    "doc/source/git_links.inc": {
+      "a": 27,
+      "d": 17
+    },
+    "doc/source/gitwash/branch_list.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/gitwash/branch_list_compare.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/gitwash/development_workflow.rst": {
+      "a": 0,
+      "d": 265
+    },
+    "doc/source/gitwash/following_latest.rst": {
+      "a": 0,
+      "d": 36
+    },
+    "doc/source/gitwash/forking_hell.rst": {
+      "a": 0,
+      "d": 33
+    },
+    "doc/source/gitwash/git_development.rst": {
+      "a": 0,
+      "d": 16
+    },
+    "doc/source/gitwash/git_install.rst": {
+      "a": 0,
+      "d": 26
+    },
+    "doc/source/gitwash/git_intro.rst": {
+      "a": 0,
+      "d": 18
+    },
+    "doc/source/gitwash/git_resources.rst": {
+      "a": 0,
+      "d": 59
+    },
+    "doc/source/gitwash/index.rst": {
+      "a": 0,
+      "d": 16
+    },
+    "doc/source/gitwash/patching.rst": {
+      "a": 0,
+      "d": 134
+    },
+    "doc/source/gitwash/set_up_fork.rst": {
+      "a": 0,
+      "d": 68
+    },
+    "doc/source/gitwash/setup.sh": {
+      "a": 0,
+      "d": 3
+    },
+    "doc/source/gitwash/this_project.inc": {
+      "a": 0,
+      "d": 5
+    },
+    "doc/source/known_projects.inc": {
+      "a": 6,
+      "d": 1
+    },
+    "doc/source/links.inc": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/mne-python.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/source/this_project.inc": {
+      "a": 5,
+      "d": 0
+    },
+    "examples/connectivity/plot_sensor_connectivity.py": {
+      "a": 5,
+      "d": 1
+    },
+    "examples/inverse/plot_dipole_fit_result.py": {
+      "a": 5,
+      "d": 1
+    },
+    "examples/inverse/plot_read_inverse.py": {
+      "a": 5,
+      "d": 1
+    },
+    "examples/inverse/plot_read_source_space.py": {
+      "a": 4,
+      "d": 1
+    },
+    "examples/plot_read_bem_surfaces.py": {
+      "a": 5,
+      "d": 1
+    },
+    "examples/plot_read_forward.py": {
+      "a": 5,
+      "d": 1
+    }
+  }
+}

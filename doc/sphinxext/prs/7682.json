@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "0adc1699cc235c0d3b9a5588cbd2dec818a59fd1",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/overview/roadmap.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/base.py": {
+      "a": 3,
+      "d": 12
+    },
+    "mne/utils/docs.py": {
+      "a": 10,
+      "d": 0
+    }
+  }
+}

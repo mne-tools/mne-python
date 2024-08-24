@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "d8768e2c0b4fbd65f92c9c7d625b03f4ec171d34",
+  "authors": [
+    {
+      "n": "Martin G. Schulz",
+      "e": "dev@mgschulz.de"
+    }
+  ],
+  "changes": {
+    "mne/viz/_figure.py": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

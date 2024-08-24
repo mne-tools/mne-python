@@ -1,0 +1,79 @@
+{
+  "merge_commit_sha": "ed64dc7bd0750bab2e99a1cfcbce2928eb37e202",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "CONTRIBUTING.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/_includes/institutional-partners.rst": {
+      "a": 41,
+      "d": 0
+    },
+    "doc/_static/institution_logos/CHOP.svg": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/_static/institution_logos/MPIB.svg": {
+      "a": 3,
+      "d": 0
+    },
+    "doc/_static/institution_logos/Macquarie.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/institution_logos/SWPS.svg": {
+      "a": 151,
+      "d": 0
+    },
+    "doc/_templates/version-switcher.html": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/conf.py": {
+      "a": 18,
+      "d": 1
+    },
+    "doc/funding.rst": {
+      "a": 19,
+      "d": 23
+    },
+    "doc/glossary.rst": {
+      "a": 5,
+      "d": 0
+    },
+    "doc/install/contributing.rst": {
+      "a": 3,
+      "d": 3
+    },
+    "doc/links.inc": {
+      "a": 10,
+      "d": 5
+    },
+    "doc/overview/development.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/overview/governance.rst": {
+      "a": 314,
+      "d": 0
+    },
+    "doc/overview/people.rst": {
+      "a": 44,
+      "d": 0
+    },
+    "doc/overview/roadmap.rst": {
+      "a": 140,
+      "d": 121
+    }
+  }
+}

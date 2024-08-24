@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "57b9de61c1ba0386654cec0d95145ea35f40ca31",
+  "authors": [
+    {
+      "n": "Alex Rockhill",
+      "e": "aprockhill@mailbox.org"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/surface.py": {
+      "a": 22,
+      "d": 7
+    },
+    "mne/tests/test_surface.py": {
+      "a": 6,
+      "d": 0
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 10,
+      "d": 2
+    }
+  }
+}

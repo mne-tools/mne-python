@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "39fab32f4a93bc7675fce4398fe3a05346cbae09",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/annotations.py": {
+      "a": 61,
+      "d": 29
+    },
+    "mne/io/fiff/tests/test_raw_fiff.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/tests/test_raw.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/tests/test_annotations.py": {
+      "a": 31,
+      "d": 27
+    },
+    "mne/utils/testing.py": {
+      "a": 11,
+      "d": 0
+    },
+    "mne/viz/raw.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/utils.py": {
+      "a": 4,
+      "d": 10
+    }
+  }
+}

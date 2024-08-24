@@ -1,0 +1,55 @@
+{
+  "merge_commit_sha": "7f537474e7a4846d62ea077b9c56b3d22736815f",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".gitignore": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/plot_read_and_write_raw_data.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/fiff/tests/data/fsaverage_audvis-meg-cropped-lh.stc": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/fiff/tests/data/fsaverage_audvis-meg-cropped-rh.stc": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/forward.py": {
+      "a": 18,
+      "d": 22
+    },
+    "mne/minimum_norm/inverse.py": {
+      "a": 12,
+      "d": 5
+    },
+    "mne/minimum_norm/tests/test_inverse.py": {
+      "a": 17,
+      "d": 11
+    },
+    "mne/mixed_norm/tests/test_inverse.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/source_space.py": {
+      "a": 19,
+      "d": 16
+    },
+    "mne/tests/test_source_estimate.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/tests/test_source_space.py": {
+      "a": 22,
+      "d": 17
+    }
+  }
+}

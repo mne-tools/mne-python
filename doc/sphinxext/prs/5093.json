@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "3b6302205bc13fd68f9be05f85b6a5f2b2f3990a",
+  "authors": [
+    {
+      "n": "Stefan Repplinger",
+      "e": "stefan.repplinger@posteo.net"
+    }
+  ],
+  "changes": {
+    "mne/evoked.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

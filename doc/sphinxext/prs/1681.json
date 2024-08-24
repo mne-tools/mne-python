@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "57bb75966bdbb8b627cdff1e9329af705c6a21c9",
+  "authors": [
+    {
+      "n": "Teon L Brooks",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/io/brainvision/brainvision.py": {
+      "a": 20,
+      "d": 16
+    },
+    "mne/io/edf/edf.py": {
+      "a": 48,
+      "d": 53
+    },
+    "mne/io/edf/tests/test_edf.py": {
+      "a": 5,
+      "d": 4
+    },
+    "mne/io/egi/egi.py": {
+      "a": 9,
+      "d": 9
+    }
+  }
+}

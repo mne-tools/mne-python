@@ -1,0 +1,243 @@
+{
+  "merge_commit_sha": "42948689ea8c3fdb926f36a211d4d83fb9382789",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "Makefile": {
+      "a": 2,
+      "d": 2
+    },
+    "examples/datasets/spm_faces_dataset.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/preprocessing/plot_ica_comparison.py": {
+      "a": 1,
+      "d": 0
+    },
+    "examples/time_frequency/plot_compute_raw_data_spectrum.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/time_frequency/plot_time_frequency_global_field_power.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/channels/channels.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/channels/tests/test_montage.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/commands/mne_bti2fiff.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/commands/mne_compute_proj_ecg.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/commands/mne_compute_proj_eog.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/commands/mne_coreg.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/commands/mne_kit2fiff.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/commands/mne_maxfilter.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/commands/mne_prepare_bem_model.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/commands/mne_report.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/commands/mne_setup_source_space.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/commands/mne_show_fiff.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/commands/mne_watershed_bem.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/commands/mne_what.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/commands/tests/test_commands.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/commands/utils.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/datasets/_fake/_fake.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/datasets/fieldtrip_cmc/fieldtrip_cmc.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/datasets/misc/_misc.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/datasets/mtrf/mtrf.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/datasets/multimodal/multimodal.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/datasets/phantom_4dbti/phantom_4dbti.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/datasets/somato/somato.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/filter.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/gui/_kit2fiff_gui.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/gui/_marker_gui.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/_digitization.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/io/artemis123/tests/test_artemis123.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/brainvision/tests/test_brainvision.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/ctf/tests/test_ctf.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/eeglab/tests/test_eeglab.py": {
+      "a": 5,
+      "d": 5
+    },
+    "mne/io/egi/egimff.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/kit/kit.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/maxwell.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/tests/test_ctps.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/tests/test_ica.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/tests/test_infomax.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/tests/test_coreg.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/tests/test_evoked.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/tests/test_label.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/tests/test_transforms.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/time_frequency/psd.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/time_frequency/tests/test_csd.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/time_frequency/tests/test_psd.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/time_frequency/tests/test_tfr.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/utils/check.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/viz/backends/_pysurfer_mayavi.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/viz/backends/_pyvista.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/viz/tests/test_misc.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/tests/test_topo.py": {
+      "a": 1,
+      "d": 1
+    },
+    "setup.cfg": {
+      "a": 1,
+      "d": 5
+    },
+    "setup.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/preprocessing/plot_45_projectors_background.py": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

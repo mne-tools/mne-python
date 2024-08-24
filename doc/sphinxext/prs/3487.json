@@ -1,0 +1,75 @@
+{
+  "merge_commit_sha": "b8ccffee83f0b6c15348924d1125f1b743ad9a5b",
+  "authors": [
+    {
+      "n": "Marijn van Vliet",
+      "e": "w.m.vanvliet@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/channels/channels.py": {
+      "a": 13,
+      "d": 21
+    },
+    "mne/channels/layout.py": {
+      "a": 0,
+      "d": 2
+    },
+    "mne/cov.py": {
+      "a": 7,
+      "d": 35
+    },
+    "mne/epochs.py": {
+      "a": 35,
+      "d": 370
+    },
+    "mne/evoked.py": {
+      "a": 25,
+      "d": 382
+    },
+    "mne/io/base.py": {
+      "a": 9,
+      "d": 209
+    },
+    "mne/io/fiff/raw.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/meas_info.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/io/pick.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 9,
+      "d": 244
+    },
+    "mne/source_estimate.py": {
+      "a": 2,
+      "d": 96
+    },
+    "mne/tests/test_utils.py": {
+      "a": 120,
+      "d": 1
+    },
+    "mne/utils.py": {
+      "a": 171,
+      "d": 0
+    },
+    "mne/viz/epochs.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/viz/ica.py": {
+      "a": 6,
+      "d": 6
+    },
+    "mne/viz/topomap.py": {
+      "a": 2,
+      "d": 3
+    }
+  }
+}

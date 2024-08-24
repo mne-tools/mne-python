@@ -1,0 +1,151 @@
+{
+  "merge_commit_sha": "5355095401dea28687d5158ddf8a2ec3bcef3451",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/cited.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/contributing.rst": {
+      "a": 3,
+      "d": 1
+    },
+    "doc/customizing_git.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/faq.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/getting_started.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/manual/index.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/manual/sample_dataset.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/martinos.rst": {
+      "a": 3,
+      "d": 1
+    },
+    "doc/mne_cpp.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/python_reference.rst": {
+      "a": 14,
+      "d": 0
+    },
+    "doc/references.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/tutorials.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/whats_new.rst": {
+      "a": 14,
+      "d": 7
+    },
+    "mne/bem.py": {
+      "a": 8,
+      "d": 8
+    },
+    "mne/epochs.py": {
+      "a": 15,
+      "d": 6
+    },
+    "mne/evoked.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/forward/forward.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/io/array/tests/test_array.py": {
+      "a": 2,
+      "d": 3
+    },
+    "mne/io/artemis123/artemis123.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/base.py": {
+      "a": 8,
+      "d": 3
+    },
+    "mne/io/brainvision/brainvision.py": {
+      "a": 6,
+      "d": 6
+    },
+    "mne/io/cnt/cnt.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/ctf/ctf.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/io/edf/edf.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/io/eeglab/eeglab.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/io/egi/egi.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/io/fiff/raw.py": {
+      "a": 0,
+      "d": 3
+    },
+    "mne/io/kit/kit.py": {
+      "a": 10,
+      "d": 10
+    },
+    "mne/io/kit/tests/test_kit.py": {
+      "a": 7,
+      "d": 3
+    },
+    "mne/io/meas_info.py": {
+      "a": 5,
+      "d": 8
+    },
+    "mne/io/nicolet/nicolet.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/io/tests/test_meas_info.py": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 0,
+      "d": 2
+    },
+    "mne/simulation/tests/test_raw.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 1,
+      "d": 2
+    }
+  }
+}

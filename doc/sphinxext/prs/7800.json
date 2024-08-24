@@ -1,0 +1,51 @@
+{
+  "merge_commit_sha": "bfe65c72be7ff6b21f64c75f066b9c0fb8629c90",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    },
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/preprocessing/plot_fnirs_artifact_removal.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/preprocessing/nirs/__init__.py": {
+      "a": 4,
+      "d": 3
+    },
+    "mne/preprocessing/nirs/_tddr.py": {
+      "a": 16,
+      "d": 7
+    },
+    "mne/preprocessing/tests/test_temporal_derivative_distribution_repair.py": {
+      "a": 2,
+      "d": 3
+    },
+    "mne/tests/test_docstring_parameters.py": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

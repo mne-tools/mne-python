@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "8ea5400fe42cb6c91ab3755ccd909f146f679294",
+  "authors": [
+    {
+      "n": "Eduard Ort",
+      "e": "eduardxort@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/chpi.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/tests/test_chpi.py": {
+      "a": 5,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "01a6ec08ee90266435cbccc460396e137313251e",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/datasets/testing/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/datasets/testing/_testing.py": {
+      "a": 8,
+      "d": 5
+    },
+    "mne/io/edf/edf.py": {
+      "a": 9,
+      "d": 2
+    },
+    "mne/io/edf/tests/test_edf.py": {
+      "a": 53,
+      "d": 2
+    }
+  }
+}

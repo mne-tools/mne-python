@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "09530fdb7a8c197f852bd0f91c9ddeaaca964ffc",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    }
+  ],
+  "changes": {
+    "Makefile": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/channels/montage.py": {
+      "a": 15,
+      "d": 16
+    },
+    "mne/channels/tests/test_montage.py": {
+      "a": 0,
+      "d": 4
+    }
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "2a9aadcdef282bf1dad6e04d39a855a5fc7c456e",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "doc/source/python_reference.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/source/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/plot_channel_epochs_image.py": {
+      "a": 72,
+      "d": 0
+    },
+    "mne/viz.py": {
+      "a": 94,
+      "d": 0
+    }
+  }
+}

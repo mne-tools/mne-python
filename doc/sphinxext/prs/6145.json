@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "bc5bd2dd0ea17f87c9f887ed48fc48d3f19094c1",
+  "authors": [
+    {
+      "n": "Mikolaj Magnuski",
+      "e": "mmagnuski@swps.edu.pl"
+    }
+  ],
+  "changes": {
+    "environment.yml": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

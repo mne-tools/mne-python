@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "66d839032bd66c0fd1d6f2761509b38ee88e5ec9",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/utils/tests/test_config.py": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

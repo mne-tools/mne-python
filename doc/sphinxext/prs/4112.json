@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "1574ad4342ec1b8b85ef109849a756b7a1b62c87",
+  "authors": [
+    {
+      "n": "Chris Holdgraf",
+      "e": null
+    }
+  ],
+  "changes": {
+    "examples/connectivity/plot_mne_inverse_coherence_epochs.py": {
+      "a": 43,
+      "d": 14
+    },
+    "examples/connectivity/plot_mne_inverse_label_connectivity.py": {
+      "a": 41,
+      "d": 11
+    },
+    "examples/time_frequency/plot_compute_raw_data_spectrum.py": {
+      "a": 38,
+      "d": 6
+    },
+    "examples/time_frequency/plot_time_frequency_simulated.py": {
+      "a": 115,
+      "d": 31
+    }
+  }
+}

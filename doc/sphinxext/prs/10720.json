@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "237fdfeb5efe4632b4bfeff1adacf87757a6e2ba",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "tools/generate_codemeta.py": {
+      "a": 108,
+      "d": 16
+    }
+  }
+}

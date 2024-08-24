@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "e7c770592bda0eadd526bdd172dcd3b4d212b5ba",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/io/base.py": {
+      "a": 84,
+      "d": 16
+    },
+    "mne/io/brainvision/tests/test_brainvision.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/bti/tests/test_bti.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/edf/edf.py": {
+      "a": 171,
+      "d": 157
+    },
+    "mne/io/edf/tests/test_edf.py": {
+      "a": 14,
+      "d": 10
+    },
+    "mne/io/egi/tests/test_egi.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/io/fiff/raw.py": {
+      "a": 4,
+      "d": 60
+    },
+    "mne/io/kit/kit.py": {
+      "a": 40,
+      "d": 61
+    },
+    "mne/io/kit/tests/test_kit.py": {
+      "a": 13,
+      "d": 0
+    }
+  }
+}

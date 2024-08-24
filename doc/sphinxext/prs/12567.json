@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "55cba826db9f5b7a9a28c6a12248108fddfadfa2",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/conf.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/commands/mne_freeview_bem_surfaces.py": {
+      "a": 5,
+      "d": 9
+    },
+    "mne/utils/config.py": {
+      "a": 25,
+      "d": 7
+    },
+    "mne/utils/tests/test_config.py": {
+      "a": 6,
+      "d": 0
+    }
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "3924c38cacf99c711138ca7d012bd08bb5992b31",
+  "authors": [
+    {
+      "n": "Mainak Jas",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/realtime/rt_feedback_server.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/realtime/stim_server_client.py": {
+      "a": 2,
+      "d": 6
+    },
+    "mne/realtime/tests/test_stim_client_server.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

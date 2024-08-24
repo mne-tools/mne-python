@@ -1,0 +1,59 @@
+{
+  "merge_commit_sha": "3f9399f90d6660f8dcd27b00fbd4bb0b48ecf477",
+  "authors": [
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    }
+  ],
+  "changes": {
+    "azure-pipelines.yml": {
+      "a": 7,
+      "d": 0
+    },
+    "conftest.py": {
+      "a": 9,
+      "d": 4
+    },
+    "environment.yml": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/viz/_3d.py": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/viz/backends/_pysurfer_mayavi.py": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/viz/backends/_utils.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/backends/_vtki.py": {
+      "a": 296,
+      "d": 0
+    },
+    "mne/viz/backends/renderer.py": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/viz/backends/tests/_utils.py": {
+      "a": 16,
+      "d": 5
+    },
+    "mne/viz/backends/tests/test_renderer.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 16,
+      "d": 10
+    },
+    "requirements.txt": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "merge_commit_sha": "248bb02ef73dc16487998e4099bbc58b006e3119",
+  "authors": [
+    {
+      "n": "Fede Raimondo",
+      "e": "f.raimondo@fz-juelich.de"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/visualization/plot_evoked_topomap.py": {
+      "a": 7,
+      "d": 0
+    },
+    "mne/evoked.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/viz/_3d.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/ica.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/misc.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/tests/test_topomap.py": {
+      "a": 8,
+      "d": 4
+    },
+    "mne/viz/topomap.py": {
+      "a": 55,
+      "d": 33
+    },
+    "mne/viz/utils.py": {
+      "a": 43,
+      "d": 18
+    }
+  }
+}

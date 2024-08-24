@@ -1,0 +1,63 @@
+{
+  "merge_commit_sha": "734e6ace282f510e017bc67851142c02954be440",
+  "authors": [
+    {
+      "n": "Evan Hathaway",
+      "e": null
+    },
+    {
+      "n": "Justus Schwabedal",
+      "e": "jschwabedal@gmail.com"
+    }
+  ],
+  "changes": {
+    "README.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/latest.inc": {
+      "a": 4,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/python_reference.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "environment.yml": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/egi/__init__.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/egi/egimff.py": {
+      "a": 237,
+      "d": 34
+    },
+    "mne/io/egi/tests/test_egi.py": {
+      "a": 82,
+      "d": 2
+    },
+    "requirements.txt": {
+      "a": 1,
+      "d": 0
+    },
+    "server_environment.yml": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

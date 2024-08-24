@@ -1,0 +1,119 @@
+{
+  "merge_commit_sha": "1c2791dc6447678957f3c00b1f44d4dd6f600cd0",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "doc/faq.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/manual/appendix/c_release_notes.rst": {
+      "a": 4,
+      "d": 6
+    },
+    "doc/manual/c_reference.rst": {
+      "a": 17,
+      "d": 17
+    },
+    "doc/manual/channel_interpolation.rst": {
+      "a": 2,
+      "d": 1
+    },
+    "doc/manual/decoding.rst": {
+      "a": 2,
+      "d": 1
+    },
+    "doc/manual/gui/analyze.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/manual/gui/browse.rst": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/manual/index.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/manual/io.rst": {
+      "a": 6,
+      "d": 8
+    },
+    "doc/manual/matlab.rst": {
+      "a": 5,
+      "d": 6
+    },
+    "doc/manual/memory.rst": {
+      "a": 2,
+      "d": 1
+    },
+    "doc/manual/pitfalls.rst": {
+      "a": 21,
+      "d": 5
+    },
+    "doc/manual/preprocessing/ssp.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/manual/sample_dataset.rst": {
+      "a": 4,
+      "d": 3
+    },
+    "doc/manual/source_localization/covariance.rst": {
+      "a": 0,
+      "d": 5
+    },
+    "doc/manual/source_localization/inverse.rst": {
+      "a": 49,
+      "d": 33
+    },
+    "doc/tutorials.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "examples/inverse/plot_make_inverse_operator.py": {
+      "a": 0,
+      "d": 84
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 2,
+      "d": 4
+    },
+    "mne/viz/ica.py": {
+      "a": 2,
+      "d": 4
+    },
+    "mne/viz/utils.py": {
+      "a": 4,
+      "d": 1
+    },
+    "tutorials/plot_artifacts_correction_rejection.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/plot_compute_covariance.py": {
+      "a": 3,
+      "d": 3
+    },
+    "tutorials/plot_eeg_erp.py": {
+      "a": 2,
+      "d": 2
+    },
+    "tutorials/plot_info.py": {
+      "a": 2,
+      "d": 0
+    },
+    "tutorials/plot_mne_dspm_source_localization.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/plot_object_raw.py": {
+      "a": 8,
+      "d": 9
+    }
+  }
+}

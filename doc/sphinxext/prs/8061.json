@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "b4e47862011f891cd9888930fde18897cc4df0e6",
+  "authors": [
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    }
+  ],
+  "changes": {
+    "mne/datasets/utils.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

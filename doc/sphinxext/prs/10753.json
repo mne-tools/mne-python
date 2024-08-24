@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "0d8f46934d524253b2bcb154460ac9ef17556ac5",
+  "authors": [
+    {
+      "n": "Mathieu Scheltienne",
+      "e": "mathieu.scheltienne@fcbg.ch"
+    },
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/viz/tests/test_topomap.py": {
+      "a": 9,
+      "d": 1
+    },
+    "mne/viz/topomap.py": {
+      "a": 17,
+      "d": 9
+    }
+  }
+}

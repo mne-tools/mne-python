@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "56bf0c9c49cfeac1aec6f1a2782c919506c4346a",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/0.21.inc": {
+      "a": 12,
+      "d": 0
+    }
+  }
+}

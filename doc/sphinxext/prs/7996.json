@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "4c32643b996e6306018b49401a22c3c1b3feea7f",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/time_frequency/_stockwell.py": {
+      "a": 9,
+      "d": 5
+    },
+    "mne/time_frequency/tests/test_stockwell.py": {
+      "a": 12,
+      "d": 2
+    }
+  }
+}

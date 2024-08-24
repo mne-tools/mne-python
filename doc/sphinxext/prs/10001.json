@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "923e6dd6f7a83af91e9bfdfc42b21805a411a978",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/brainvision/brainvision.py": {
+      "a": 10,
+      "d": 8
+    },
+    "mne/io/brainvision/tests/test_brainvision.py": {
+      "a": 21,
+      "d": 8
+    }
+  }
+}

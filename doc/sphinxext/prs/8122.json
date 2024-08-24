@@ -1,0 +1,59 @@
+{
+  "merge_commit_sha": "6d0b634bda6488919feb468855563674d430a421",
+  "authors": [
+    {
+      "n": "Rob Luke",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/channels/tests/test_interpolation.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/datasets/utils.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/nirx/nirx.py": {
+      "a": 2,
+      "d": 3
+    },
+    "mne/io/nirx/tests/test_nirx.py": {
+      "a": 90,
+      "d": 4
+    },
+    "mne/io/snirf/tests/test_snirf.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/tests/test_beer_lambert_law.py": {
+      "a": 6,
+      "d": 4
+    },
+    "mne/preprocessing/tests/test_nirs.py": {
+      "a": 4,
+      "d": 3
+    },
+    "mne/preprocessing/tests/test_optical_density.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/tests/test_scalp_coupling_index.py": {
+      "a": 4,
+      "d": 3
+    },
+    "mne/preprocessing/tests/test_temporal_derivative_distribution_repair.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/tests/conftest.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

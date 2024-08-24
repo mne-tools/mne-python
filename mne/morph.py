@@ -1,7 +1,4 @@
-# Author(s): Tommy Clausner <tommy.clausner@gmail.com>
-#            Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#            Eric Larson <larson.eric.d@gmail.com>
-
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -912,7 +909,7 @@ def _morphed_stc_as_volume(morph, stc, mri_resolution, mri_space, output):
     NiftiImage, NiftiHeader = _triage_output(output)
 
     # if MRI resolution is set manually as a single value, convert to tuple
-    if isinstance(mri_resolution, (int, float)):
+    if isinstance(mri_resolution, int | float):
         # use iso voxel size
         new_zooms = (float(mri_resolution),) * 3
     elif isinstance(mri_resolution, tuple):
@@ -994,8 +991,8 @@ def _get_src_data(src, mri_resolution=True):
             if s.get("interpolator", None) is None:
                 if mri_resolution:
                     raise RuntimeError(
-                        "MRI interpolator not present in src[%d], "
-                        "cannot use mri_resolution=True" % (si,)
+                        f"MRI interpolator not present in src[{si}], "
+                        "cannot use mri_resolution=True"
                     )
                 interpolator = None
                 break
@@ -1046,9 +1043,7 @@ def _interpolate_data(stc, morph, mri_resolution, mri_space, output):
 
     voxel_size_defined = False
 
-    if isinstance(mri_resolution, (int, float)) and not isinstance(
-        mri_resolution, bool
-    ):
+    if isinstance(mri_resolution, int | float) and not isinstance(mri_resolution, bool):
         # use iso voxel size
         mri_resolution = (float(mri_resolution),) * 3
 
@@ -1520,7 +1515,7 @@ def _apply_morph_data(morph, stc_from):
         stc_from_vertices = stc_from.vertices[vol_src_offset:]
         vertices_from = morph._vol_vertices_from
         for ii, (v1, v2) in enumerate(zip(vertices_from, stc_from_vertices)):
-            _check_vertices_match(v1, v2, "volume[%d]" % (ii,))
+            _check_vertices_match(v1, v2, f"volume[{ii}]")
         from_sl = slice(from_surf_stop, from_vol_stop)
         assert not from_used[from_sl].any()
         from_used[from_sl] = True

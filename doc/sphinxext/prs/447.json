@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "f0ec89479364df5ab4dad5ddf099938cc92e2136",
+  "authors": [
+    {
+      "n": "Denis A. Engemann",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/parallel.py": {
+      "a": 38,
+      "d": 6
+    },
+    "mne/stats/cluster_level.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/stats/tests/test_cluster_level.py": {
+      "a": 7,
+      "d": 1
+    }
+  }
+}

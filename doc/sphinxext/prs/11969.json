@@ -1,0 +1,51 @@
+{
+  "merge_commit_sha": "e2b3c03bf1b55863d5653ff091f3784e9ab34121",
+  "authors": [
+    {
+      "n": "Kristijan Armeni",
+      "e": null
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/datasets/config.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/__init__.pyi": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/neuralynx/__init__.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/neuralynx/neuralynx.py": {
+      "a": 199,
+      "d": 0
+    },
+    "mne/io/neuralynx/tests/__init__.py": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/io/neuralynx/tests/test_neuralynx.py": {
+      "a": 138,
+      "d": 0
+    }
+  }
+}

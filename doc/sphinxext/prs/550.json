@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "5e5de599e8010031720b45b90fc3a26ccbd5b361",
+  "authors": [
+    {
+      "n": "Martin Luessi",
+      "e": null
+    }
+  ],
+  "changes": {
+    "examples/time_frequency/plot_compute_source_psd_epochs.py": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "6a074844ccd1fd8eaf4f9b84095aaaaff357d532",
+  "authors": [
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "doc/conf.py": {
+      "a": 3,
+      "d": 0
+    }
+  }
+}

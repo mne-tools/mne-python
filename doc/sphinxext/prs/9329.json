@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "aa526c8ed7049046734ca28493d99e841672b0eb",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "tutorials/raw/30_annotate_raw.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

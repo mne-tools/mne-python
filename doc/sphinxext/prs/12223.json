@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "d8448e3940790eb3f03d3fbed0286ae75956f0c3",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".circleci/config.yml": {
+      "a": 7,
+      "d": 1
+    },
+    "mne/_fiff/meas_info.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/commands/mne_browse_raw.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/preprocessing/artifact_detection.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/preprocessing/maxwell.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/config.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

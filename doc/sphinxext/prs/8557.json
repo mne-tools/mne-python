@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "d34b797bf2d5df0356a2c6f6ef1cf2f549fcdac4",
+  "authors": [
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/install/contributing.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "ignore_words.txt": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/channels/tests/test_montage.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

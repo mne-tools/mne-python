@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "4359456cfc9debb581d290acf4b677f4c31bed92",
+  "authors": [
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/gui/_coreg.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/gui/tests/test_gui_api.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/icons/dark/actions/folder.svg": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/icons/light/actions/folder.svg": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/viz/backends/_abstract.py": {
+      "a": 8,
+      "d": 6
+    },
+    "mne/viz/backends/_notebook.py": {
+      "a": 37,
+      "d": 21
+    },
+    "mne/viz/backends/_qt.py": {
+      "a": 27,
+      "d": 18
+    }
+  }
+}

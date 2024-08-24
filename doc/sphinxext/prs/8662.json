@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "ae750c60b3a6f97b8ba610fecf272c10c5a4a227",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/io/base.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/time_frequency/psd.py": {
+      "a": 18,
+      "d": 14
+    },
+    "mne/time_frequency/tests/test_psd.py": {
+      "a": 16,
+      "d": 5
+    },
+    "mne/utils/docs.py": {
+      "a": 11,
+      "d": 0
+    },
+    "mne/viz/_figure.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/epochs.py": {
+      "a": 4,
+      "d": 1
+    },
+    "mne/viz/raw.py": {
+      "a": 7,
+      "d": 2
+    },
+    "mne/viz/tests/test_figure.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

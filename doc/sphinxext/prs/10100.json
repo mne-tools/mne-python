@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "e8f71755fc88b4d6a368b0b3e12c1d4ac1c1f3bc",
+  "authors": [
+    {
+      "n": "Mathieu Scheltienne",
+      "e": "mathieu.scheltienne@fcbg.ch"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/viz/backends/renderer.py": {
+      "a": 6,
+      "d": 1
+    },
+    "mne/viz/backends/tests/test_renderer.py": {
+      "a": 1,
+      "d": 1
+    },
+    "requirements.txt": {
+      "a": 1,
+      "d": 3
+    },
+    "tools/azure_dependencies.sh": {
+      "a": 2,
+      "d": 0
+    }
+  }
+}

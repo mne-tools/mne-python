@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "9324ffdaabc6c7d41785675592a65892525dad8c",
+  "authors": [
+    {
+      "n": "Joan Massich",
+      "e": "mailsik@gmail.com"
+    }
+  ],
+  "changes": {
+    "README.rst": {
+      "a": 3,
+      "d": 4
+    },
+    "appveyor.yml": {
+      "a": 0,
+      "d": 31
+    }
+  }
+}

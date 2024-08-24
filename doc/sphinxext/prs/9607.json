@@ -1,0 +1,63 @@
+{
+  "merge_commit_sha": "fe1086261e1849e983f36338aeb6a9b104b9a7a0",
+  "authors": [
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    }
+  ],
+  "changes": {
+    ".circleci/config.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/conf.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/conftest.py": {
+      "a": 20,
+      "d": 19
+    },
+    "mne/utils/config.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/_3d.py": {
+      "a": 7,
+      "d": 7
+    },
+    "mne/viz/_brain/tests/test_brain.py": {
+      "a": 10,
+      "d": 10
+    },
+    "mne/viz/backends/_qt.py": {
+      "a": 1,
+      "d": 4
+    },
+    "mne/viz/backends/_utils.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/backends/renderer.py": {
+      "a": 88,
+      "d": 65
+    },
+    "mne/viz/backends/tests/_utils.py": {
+      "a": 14,
+      "d": 3
+    },
+    "mne/viz/backends/tests/test_renderer.py": {
+      "a": 40,
+      "d": 12
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 3,
+      "d": 16
+    }
+  }
+}

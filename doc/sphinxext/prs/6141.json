@@ -1,0 +1,63 @@
+{
+  "merge_commit_sha": "c9fa690f0d551f4290872e1a4fba69d25ea2f6a3",
+  "authors": [
+    {
+      "n": "Teon L Brooks",
+      "e": null
+    }
+  ],
+  "changes": {
+    ".circleci/config.yml": {
+      "a": 1,
+      "d": 0
+    },
+    "README.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/python_reference.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "environment.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/realtime/plot_lslclient_rt.py": {
+      "a": 55,
+      "d": 0
+    },
+    "mne/realtime/__init__.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/realtime/base_client.py": {
+      "a": 16,
+      "d": 3
+    },
+    "mne/realtime/fieldtrip_client.py": {
+      "a": 93,
+      "d": 200
+    },
+    "mne/realtime/lsl_client.py": {
+      "a": 5,
+      "d": 5
+    },
+    "mne/realtime/mock_lsl_stream.py": {
+      "a": 83,
+      "d": 0
+    },
+    "mne/realtime/tests/test_lsl_client.py": {
+      "a": 24,
+      "d": 44
+    },
+    "requirements.txt": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

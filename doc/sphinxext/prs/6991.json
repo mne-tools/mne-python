@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "799c2ecb74604ad0ab432b6cee5739dca5c85ca6",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/bem.py": {
+      "a": 7,
+      "d": 5
+    }
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "7c02660735181abc992662fcbd82c4b6f28f4775",
+  "authors": [
+    {
+      "n": "Christian Brodbeck",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/channels/channels.py": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/channels/data/neighbors/KIT-NYU-2019_neighb.mat": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/channels/tests/test_channels.py": {
+      "a": 9,
+      "d": 2
+    },
+    "mne/io/kit/constants.py": {
+      "a": 21,
+      "d": 1
+    },
+    "mne/io/kit/kit.py": {
+      "a": 5,
+      "d": 6
+    }
+  }
+}

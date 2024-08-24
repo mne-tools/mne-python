@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "8d01478e04a7c30ac46db443e82e2a37c46bbdad",
+  "authors": [
+    {
+      "n": "Christian Brodbeck",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,199 @@
+{
+  "merge_commit_sha": "614488b79855cc3129a2ff645950dcd25d600ab5",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".travis.yml": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/source/python_reference.rst": {
+      "a": 14,
+      "d": 0
+    },
+    "doc/source/whats_new.rst": {
+      "a": 4,
+      "d": 0
+    },
+    "examples/inverse/plot_dipole_fit.py": {
+      "a": 81,
+      "d": 0
+    },
+    "examples/inverse/plot_dipole_fit_result.py": {
+      "a": 0,
+      "d": 85
+    },
+    "examples/plot_left_cerebellum_volume_source.py": {
+      "a": 2,
+      "d": 2
+    },
+    "make/install_python.ps1": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/__init__.py": {
+      "a": 5,
+      "d": 4
+    },
+    "mne/beamformer/_dics.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/bem.py": {
+      "a": 321,
+      "d": 0
+    },
+    "mne/channels/__init__.py": {
+      "a": 0,
+      "d": 2
+    },
+    "mne/channels/interpolation.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/channels/layout.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/channels/utils.py": {
+      "a": 0,
+      "d": 34
+    },
+    "mne/cov.py": {
+      "a": 72,
+      "d": 24
+    },
+    "mne/decoding/tests/test_time_gen.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/dipole.py": {
+      "a": 361,
+      "d": 26
+    },
+    "mne/epochs.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/forward/_compute_forward.py": {
+      "a": 303,
+      "d": 121
+    },
+    "mne/forward/_field_interpolation.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/forward/_make_forward.py": {
+      "a": 164,
+      "d": 162
+    },
+    "mne/forward/forward.py": {
+      "a": 20,
+      "d": 10
+    },
+    "mne/forward/tests/test_make_forward.py": {
+      "a": 37,
+      "d": 7
+    },
+    "mne/inverse_sparse/tests/test_gamma_map.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/array/tests/test_array.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/edf/edf.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/edf/tests/test_edf.py": {
+      "a": 13,
+      "d": 4
+    },
+    "mne/io/pick.py": {
+      "a": 6,
+      "d": 3
+    },
+    "mne/preprocessing/maxfilter.py": {
+      "a": 1,
+      "d": 68
+    },
+    "mne/preprocessing/tests/test_ssp.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/simulation/evoked.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/source_space.py": {
+      "a": 91,
+      "d": 88
+    },
+    "mne/surface.py": {
+      "a": 68,
+      "d": 28
+    },
+    "mne/tests/test_bem.py": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/tests/test_cov.py": {
+      "a": 13,
+      "d": 1
+    },
+    "mne/tests/test_dipole.py": {
+      "a": 99,
+      "d": 11
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/tests/test_evoked.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/tests/test_proj.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/tests/test_source_space.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/tests/test_surface.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/tests/test_transforms.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/time_frequency/ar.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/time_frequency/tests/test_tfr.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/transforms.py": {
+      "a": 32,
+      "d": 12
+    },
+    "mne/viz/_3d.py": {
+      "a": 14,
+      "d": 4
+    },
+    "setup.cfg": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

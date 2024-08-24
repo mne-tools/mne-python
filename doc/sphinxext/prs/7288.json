@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "2434a41d5ccc5729371a2de1d7ad9b946b168fd2",
+  "authors": [
+    {
+      "n": "Adam Li",
+      "e": null
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/annotations.py": {
+      "a": 9,
+      "d": 4
+    },
+    "mne/tests/test_annotations.py": {
+      "a": 13,
+      "d": 0
+    }
+  }
+}

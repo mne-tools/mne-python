@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "52e97df12b6da69a66e645c951a35795733ac9a5",
+  "authors": [
+    {
+      "n": "dengemann",
+      "e": "denis.engemann@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/decoding/plot_ssd_spatial_filters.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/decoding/ssd.py": {
+      "a": 22,
+      "d": 16
+    },
+    "mne/decoding/tests/test_ssd.py": {
+      "a": 94,
+      "d": 3
+    }
+  }
+}

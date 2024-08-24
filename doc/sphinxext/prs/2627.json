@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "073907fc72930ae0d6e0348832237b2555d278e2",
+  "authors": [
+    {
+      "n": "Emily Stephen",
+      "e": "emilyps14@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/advanced_setup.rst": {
+      "a": 7,
+      "d": 3
+    }
+  }
+}

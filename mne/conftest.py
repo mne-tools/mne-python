@@ -1,5 +1,4 @@
-# Author: Eric Larson <larson.eric.d@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -88,7 +87,6 @@ def pytest_configure(config):
         "pgtest",
         "pvtest",
         "allow_unclosed",
-        "allow_unclosed_pyside2",
     ):
         config.addinivalue_line("markers", marker)
 
@@ -1154,7 +1152,6 @@ def qt_windows_closed(request):
     """Ensure that no new Qt windows are open after a test."""
     _check_skip_backend("pyvistaqt")
     app = _init_mne_qtapp()
-    from qtpy import API_NAME
 
     app.processEvents()
     gc.collect()
@@ -1164,8 +1161,6 @@ def qt_windows_closed(request):
     app.processEvents()
     gc.collect()
     if "allow_unclosed" in marks:
-        return
-    if "allow_unclosed_pyside2" in marks and API_NAME.lower() == "pyside2":
         return
     # Don't check when the test fails
     if not _test_passed(request):

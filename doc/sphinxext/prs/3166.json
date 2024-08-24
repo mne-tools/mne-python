@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "d170cd108b11aa828696c2b50c3f5ccaef09bc7c",
+  "authors": [
+    {
+      "n": "Jona Sassenhagen",
+      "e": "jona.sassenhagen@gmail.com"
+    }
+  ],
+  "changes": {
+    "tutorials/plot_eeg_erp.py": {
+      "a": 64,
+      "d": 1
+    },
+    "tutorials/plot_epoching_and_averaging.py": {
+      "a": 12,
+      "d": 1
+    },
+    "tutorials/plot_visualize_evoked.py": {
+      "a": 24,
+      "d": 11
+    }
+  }
+}

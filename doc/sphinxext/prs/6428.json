@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "8dfbe7fd4d7528b5033407feba1bf0825682bf2a",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/preprocessing/plot_eog_artifact_histogram.py": {
+      "a": 5,
+      "d": 4
+    },
+    "tutorials/misc/plot_sensor_locations.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

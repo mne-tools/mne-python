@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "10b9ab9ef352a5f2fca4e786046b3c7ca7cf1098",
+  "authors": [
+    {
+      "n": "Dominik Krzeminski (dokato)",
+      "e": "raymon92@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/io/meas_info.py": {
+      "a": 4,
+      "d": 2
+    }
+  }
+}

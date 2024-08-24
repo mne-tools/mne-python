@@ -1,7 +1,4 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
-#          Denis Engemann <denis.engemann@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -760,7 +757,7 @@ class Label:
         """
         if isinstance(parts, str) and parts == "contiguous":
             return _split_label_contig(self, subject, subjects_dir)
-        elif isinstance(parts, (tuple, int)):
+        elif isinstance(parts, tuple | int):
             return split_label(self, parts, subject, subjects_dir, freesurfer)
         else:
             raise ValueError(

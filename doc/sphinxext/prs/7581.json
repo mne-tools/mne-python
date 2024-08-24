@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "8801dcb53262022a221738b96dda248ea786fe61",
+  "authors": [
+    {
+      "n": "Svea Marie Meyer",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 4,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/io/edf/edf.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

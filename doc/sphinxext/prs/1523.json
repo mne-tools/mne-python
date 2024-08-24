@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "77f3d7097096a8bf89bddb87bbedd96a63274c79",
+  "authors": [
+    {
+      "n": "Mainak Jas",
+      "e": "mainakjas@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/source/whats_new.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 40,
+      "d": 15
+    }
+  }
+}

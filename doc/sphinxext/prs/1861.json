@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "28bc08f7ed2996f3c80061ba397d47a074adf54c",
+  "authors": [
+    {
+      "n": "Teon L Brooks",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/source/whats_new.rst": {
+      "a": 4,
+      "d": 1
+    },
+    "examples/inverse/plot_lcmv_beamformer.py": {
+      "a": 4,
+      "d": 3
+    },
+    "mne/label.py": {
+      "a": 4,
+      "d": 1
+    },
+    "mne/tests/test_label.py": {
+      "a": 10,
+      "d": 29
+    }
+  }
+}

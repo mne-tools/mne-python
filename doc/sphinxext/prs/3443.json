@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "50f0a4062e0d4985fe953def7d608bd0b7452613",
+  "authors": [
+    {
+      "n": "Jean-Rémi KING",
+      "e": null
+    }
+  ],
+  "changes": {
+    "examples/decoding/plot_decoding_xdawn_transformer.py": {
+      "a": 3,
+      "d": 2
+    }
+  }
+}

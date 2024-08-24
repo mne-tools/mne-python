@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "ed67c91916022b2d6afd47aa2d01ea23d980336e",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/carousel.inc": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/visualization/plot_3d_to_2d.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/evoked.py": {
+      "a": 5,
+      "d": 3
+    },
+    "mne/viz/topomap.py": {
+      "a": 12,
+      "d": 4
+    },
+    "tutorials/plot_mne_dspm_source_localization.py": {
+      "a": 3,
+      "d": 2
+    },
+    "tutorials/plot_sensors_decoding.py": {
+      "a": 7,
+      "d": 7
+    },
+    "tutorials/plot_visualize_evoked.py": {
+      "a": 9,
+      "d": 5
+    }
+  }
+}

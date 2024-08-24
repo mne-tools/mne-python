@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "f125792c167b085cfe5be643344f9de93df1dd76",
+  "authors": [
+    {
+      "n": "Mainak Jas",
+      "e": "mainakjas@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/stats/plot_cluster_stats_time_frequency.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/layouts/layout.py": {
+      "a": 19,
+      "d": 4
+    },
+    "mne/layouts/tests/test_layout.py": {
+      "a": 4,
+      "d": 3
+    }
+  }
+}

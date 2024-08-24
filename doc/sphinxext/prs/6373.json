@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "5e3b220d121f83b5edbf0d2c6fe6586b4f493d29",
+  "authors": [
+    {
+      "n": "Ivana Kojcic",
+      "e": null
+    }
+  ],
+  "changes": {
+    "examples/simulation/plot_simulated_raw_data_using_subject_anatomy.py": {
+      "a": 67,
+      "d": 22
+    }
+  }
+}

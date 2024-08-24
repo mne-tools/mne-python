@@ -1,0 +1,67 @@
+{
+  "merge_commit_sha": "46f3fa12d06827d975ba925f183637ad6916eaa8",
+  "authors": [
+    {
+      "n": "Luke Bloy",
+      "e": "luke.bloy@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/beamformer/_compute_beamformer.py": {
+      "a": 0,
+      "d": 4
+    },
+    "mne/channels/interpolation.py": {
+      "a": 3,
+      "d": 5
+    },
+    "mne/cov.py": {
+      "a": 0,
+      "d": 8
+    },
+    "mne/forward/_make_forward.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/forward/forward.py": {
+      "a": 0,
+      "d": 8
+    },
+    "mne/io/ctf/tests/test_ctf.py": {
+      "a": 20,
+      "d": 14
+    },
+    "mne/io/meas_info.py": {
+      "a": 0,
+      "d": 6
+    },
+    "mne/io/pick.py": {
+      "a": 9,
+      "d": 15
+    },
+    "mne/io/tests/test_meas_info.py": {
+      "a": 5,
+      "d": 8
+    },
+    "mne/io/tests/test_pick.py": {
+      "a": 5,
+      "d": 2
+    },
+    "mne/minimum_norm/inverse.py": {
+      "a": 1,
+      "d": 11
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 12,
+      "d": 28
+    },
+    "mne/viz/tests/test_topomap.py": {
+      "a": 4,
+      "d": 0
+    }
+  }
+}

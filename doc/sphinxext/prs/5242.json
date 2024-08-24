@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "d8182e75d1be580e25556bb5e405b0657fc016fb",
+  "authors": [
+    {
+      "n": "Joan Massich",
+      "e": "mailsik@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/viz/evoked.py": {
+      "a": 6,
+      "d": 5
+    }
+  }
+}

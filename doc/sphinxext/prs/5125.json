@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "21d35c8963e9c616813fae8237ee6d8c6387c2dc",
+  "authors": [
+    {
+      "n": "Luke Bloy",
+      "e": "luke.bloy@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/preprocessing/ssp.py": {
+      "a": 4,
+      "d": 1
+    },
+    "mne/preprocessing/tests/test_ssp.py": {
+      "a": 57,
+      "d": 1
+    }
+  }
+}

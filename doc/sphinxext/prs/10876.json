@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "5c5c7bad9eee72758567ec65306b5793d0640be8",
+  "authors": [
+    {
+      "n": "ashdrew",
+      "e": "ashdrew@uw.edu"
+    }
+  ],
+  "changes": {
+    "tutorials/epochs/10_epochs_overview.py": {
+      "a": 2,
+      "d": 3
+    },
+    "tutorials/epochs/20_visualize_epochs.py": {
+      "a": 4,
+      "d": 5
+    },
+    "tutorials/epochs/30_epochs_metadata.py": {
+      "a": 1,
+      "d": 3
+    },
+    "tutorials/epochs/50_epochs_to_data_frame.py": {
+      "a": 4,
+      "d": 5
+    },
+    "tutorials/epochs/60_make_fixed_length_epochs.py": {
+      "a": 2,
+      "d": 4
+    }
+  }
+}

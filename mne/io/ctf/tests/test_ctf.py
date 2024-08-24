@@ -1,5 +1,4 @@
-# Authors: Eric Larson <larson.eric.d@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -210,7 +209,7 @@ def test_read_ctf(tmp_path):
                     c2[key],
                     atol=1e-6,
                     rtol=1e-4,
-                    err_msg='raw.info["chs"][%d][%s]' % (ii, key),
+                    err_msg=f'raw.info["chs"][{ii}][{key}]',
                 )
             # XXX 2016/02/24: fixed bug with normal computation that used
             # to exist, once mne-C tools are updated we should update our FIF
@@ -228,7 +227,7 @@ def test_read_ctf(tmp_path):
                     check,
                     atol=1e-6,
                     rtol=1e-4,
-                    err_msg='raw.info["chs"][%d][%s]' % (ii, key),
+                    err_msg=f'raw.info["chs"][{ii}][{key}]',
                 )
                 if (c2[key][3:] == 0.0).all():
                     check = [np.nan] * 3
@@ -239,7 +238,7 @@ def test_read_ctf(tmp_path):
                     check,
                     atol=1e-6,
                     rtol=1e-4,
-                    err_msg='raw.info["chs"][%d][%s]' % (ii, key),
+                    err_msg=f'raw.info["chs"][{ii}][{key}]',
                 )
 
         # Make sure all digitization points are in the MNE head coord frame

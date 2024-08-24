@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "88c0374a1f2751128ba57a439730979b8d01b472",
+  "authors": [
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    }
+  ],
+  "changes": {
+    "examples/visualization/evoked_topomap.py": {
+      "a": 1,
+      "d": 0
+    },
+    "tutorials/machine-learning/50_decoding.py": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

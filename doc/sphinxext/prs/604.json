@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "54d655264475c519589cc70a131e2edeba7bee04",
+  "authors": [
+    {
+      "n": "Denis A. Engemann",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/source/python_reference.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/source/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/time_frequency/plot_single_trial_spectra.py": {
+      "a": 84,
+      "d": 0
+    },
+    "mne/time_frequency/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/time_frequency/psd.py": {
+      "a": 68,
+      "d": 6
+    },
+    "mne/time_frequency/tests/test_psd.py": {
+      "a": 51,
+      "d": 3
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "b7daa3603d75062f713c84707da3a940c7de7266",
+  "authors": [
+    {
+      "n": "Adam Li",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/overview/people.rst": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

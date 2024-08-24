@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "80f93b302611033537bdd266c27fd7f99e63df83",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "mne/utils/misc.py": {
+      "a": 23,
+      "d": 16
+    },
+    "mne/utils/tests/test_misc.py": {
+      "a": 83,
+      "d": 4
+    }
+  }
+}

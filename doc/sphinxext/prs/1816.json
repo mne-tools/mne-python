@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "3226cbf6fbe4f0b9f9f6c390bd4707865efbcea3",
+  "authors": [
+    {
+      "n": "Denis A. Engemann",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/epochs.py": {
+      "a": 8,
+      "d": 4
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

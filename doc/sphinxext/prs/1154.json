@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "c23486285c2daa9f831c25a64444b5383449435e",
+  "authors": [
+    {
+      "n": "Denis A. Engemann",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/source/index.rst": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

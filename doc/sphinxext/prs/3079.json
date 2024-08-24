@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "3b82ea99fe1a4637cef5f757c7f0feaf4cd9501a",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/epochs.py": {
+      "a": 6,
+      "d": 1
+    },
+    "mne/evoked.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/filter.py": {
+      "a": 18,
+      "d": 10
+    },
+    "mne/io/base.py": {
+      "a": 109,
+      "d": 76
+    },
+    "mne/io/fiff/raw.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/fiff/tests/test_raw_fiff.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/tests/test_evoked.py": {
+      "a": 4,
+      "d": 2
+    }
+  }
+}

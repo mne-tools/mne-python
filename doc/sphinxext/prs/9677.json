@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "9b4ec7e68a6bb5ada2296058dce131397ebbeec4",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/conftest.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/preprocessing/artifact_detection.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/stats/cluster_level.py": {
+      "a": 3,
+      "d": 4
+    },
+    "mne/tests/test_rank.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/tests/test_numerics.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/_3d.py": {
+      "a": 3,
+      "d": 3
+    },
+    "tutorials/inverse/20_dipole_fit.py": {
+      "a": 4,
+      "d": 1
+    }
+  }
+}

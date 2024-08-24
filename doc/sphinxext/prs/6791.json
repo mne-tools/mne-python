@@ -1,0 +1,83 @@
+{
+  "merge_commit_sha": "e73dfe8ed1491ce2dada8ea70215229bdfc0c6eb",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".travis.yml": {
+      "a": 2,
+      "d": 2
+    },
+    "azure-pipelines.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/python_reference.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "examples/visualization/plot_montage.py": {
+      "a": 12,
+      "d": 28
+    },
+    "mne/_digitization/_utils.py": {
+      "a": 4,
+      "d": 1
+    },
+    "mne/channels/_standard_montage_utils.py": {
+      "a": 58,
+      "d": 36
+    },
+    "mne/channels/montage.py": {
+      "a": 6,
+      "d": 3
+    },
+    "mne/channels/tests/test_montage.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/channels/tests/test_standard_montage.py": {
+      "a": 36,
+      "d": 11
+    },
+    "mne/data/coil_def.dat": {
+      "a": 7,
+      "d": 7
+    },
+    "mne/datasets/limo/limo.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/forward/_make_forward.py": {
+      "a": 1,
+      "d": 7
+    },
+    "mne/io/tests/test_meas_info.py": {
+      "a": 5,
+      "d": 2
+    },
+    "mne/transforms.py": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/utils/docs.py": {
+      "a": 9,
+      "d": 0
+    },
+    "mne/viz/_3d.py": {
+      "a": 18,
+      "d": 32
+    },
+    "setup.cfg": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/source-modeling/plot_eeg_no_mri.py": {
+      "a": 14,
+      "d": 23
+    }
+  }
+}

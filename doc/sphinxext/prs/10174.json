@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "cda07d5d8f3e551799c0677b5dcce89d9f0dbdc7",
+  "authors": [
+    {
+      "n": "John Veillette",
+      "e": "johnv@uchicago.edu"
+    }
+  ],
+  "changes": {
+    "doc/install/pre_install.rst": {
+      "a": 3,
+      "d": 0
+    }
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "e1e7cc1f891308261dc98144890392111bf49afa",
+  "authors": [
+    {
+      "n": "Christian Brodbeck",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/inverse_sparse/_gamma_map.py": {
+      "a": 6,
+      "d": 3
+    },
+    "mne/inverse_sparse/mxne_inverse.py": {
+      "a": 26,
+      "d": 10
+    },
+    "mne/inverse_sparse/tests/test_gamma_map.py": {
+      "a": 8,
+      "d": 15
+    },
+    "mne/inverse_sparse/tests/test_mxne_inverse.py": {
+      "a": 14,
+      "d": 12
+    },
+    "mne/utils/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/_testing.py": {
+      "a": 10,
+      "d": 0
+    },
+    "mne/utils/docs.py": {
+      "a": 8,
+      "d": 0
+    }
+  }
+}

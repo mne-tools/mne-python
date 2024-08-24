@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "c437ed0bbcef3b6bf3a8beab2221ab5bff47722f",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/_static/reset-syntax.css": {
+      "a": 0,
+      "d": 9
+    },
+    "doc/_static/style.css": {
+      "a": 19,
+      "d": 1
+    },
+    "doc/_templates/layout.html": {
+      "a": 0,
+      "d": 2
+    },
+    "tutorials/intro/plot_10_overview.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

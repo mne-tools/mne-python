@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "325bfc30c6533b63b3fb675fbf34df14b5ddc6e6",
+  "authors": [
+    {
+      "n": "Mikolaj Magnuski",
+      "e": "mmagnuski@swps.edu.pl"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/viz/tests/test_raw.py": {
+      "a": 6,
+      "d": 0
+    },
+    "mne/viz/utils.py": {
+      "a": 11,
+      "d": 0
+    }
+  }
+}

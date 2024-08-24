@@ -1,0 +1,71 @@
+{
+  "merge_commit_sha": "3a4a048c5fc5ee77875a705848eb4be8354732f7",
+  "authors": [
+    {
+      "n": "Alex Rockhill",
+      "e": "aprockhill@mailbox.org"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/glossary.rst": {
+      "a": 10,
+      "d": 0
+    },
+    "doc/links.inc": {
+      "a": 0,
+      "d": 9
+    },
+    "mne/datasets/utils.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/defaults.py": {
+      "a": 38,
+      "d": 0
+    },
+    "mne/surface.py": {
+      "a": 21,
+      "d": 4
+    },
+    "mne/utils/docs.py": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/viz/_3d.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 109,
+      "d": 15
+    },
+    "mne/viz/_brain/tests/test_brain.py": {
+      "a": 6,
+      "d": 0
+    },
+    "mne/viz/backends/_pyvista.py": {
+      "a": 13,
+      "d": 7
+    },
+    "tutorials/clinical/10_ieeg_localize.py": {
+      "a": 0,
+      "d": 2
+    },
+    "tutorials/clinical/20_seeg.py": {
+      "a": 21,
+      "d": 3
+    },
+    "tutorials/inverse/60_visualize_stc.py": {
+      "a": 20,
+      "d": 11
+    }
+  }
+}

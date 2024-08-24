@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "523413f911e23bfef98ca92e3cfa00c80501f94d",
+  "authors": [
+    {
+      "n": "Ana Radanovic",
+      "e": null
+    },
+    {
+      "n": "Britta Westner",
+      "e": "britta.wstnr@gmail.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Britta Westner",
+      "e": "britta.wstnr@gmail.com"
+    }
+  ],
+  "changes": {
+    ".github/workflows/codespell_and_flake.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "Makefile": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/glossary.rst": {
+      "a": 8,
+      "d": 0
+    },
+    "doc/references.bib": {
+      "a": 10,
+      "d": 0
+    },
+    "mne/epochs.py": {
+      "a": 9,
+      "d": 4
+    },
+    "tutorials/epochs/plot_40_autogenerate_metadata.py": {
+      "a": 13,
+      "d": 8
+    }
+  }
+}

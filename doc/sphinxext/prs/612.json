@@ -1,0 +1,55 @@
+{
+  "merge_commit_sha": "7851b08c73d83fcbdb63230de90cfc47917345b8",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "doc/source/python_tutorial.rst": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/source/whats_new.rst": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/epochs.py": {
+      "a": 8,
+      "d": 19
+    },
+    "mne/fiff/__init__.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/fiff/compensator.py": {
+      "a": 89,
+      "d": 116
+    },
+    "mne/fiff/ctf.py": {
+      "a": 7,
+      "d": 9
+    },
+    "mne/fiff/kit/kit.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/fiff/raw.py": {
+      "a": 52,
+      "d": 20
+    },
+    "mne/fiff/tests/data/test_ctf_comp_raw.fif": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/fiff/tests/test_compensator.py": {
+      "a": 20,
+      "d": 0
+    },
+    "mne/fiff/tests/test_raw.py": {
+      "a": 37,
+      "d": 0
+    }
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "d45a85a841709e48861db73a3d4fde0619c243a9",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/preprocessing/ecg.py": {
+      "a": 12,
+      "d": 10
+    },
+    "mne/preprocessing/tests/test_ecg.py": {
+      "a": 11,
+      "d": 5
+    }
+  }
+}

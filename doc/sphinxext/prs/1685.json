@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "7ff78dd55ada4375b2d287d3fbe804dc8ad0b3c6",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "appveyor.yml": {
+      "a": 36,
+      "d": 0
+    },
+    "make/install_python.ps1": {
+      "a": 93,
+      "d": 0
+    }
+  }
+}

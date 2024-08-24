@@ -1,8 +1,4 @@
-# Authors: Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
-#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
-#          Eric Larson <larson.eric.d@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -165,7 +161,7 @@ def _create_meg_coil(coilset, ch, acc, do_es):
     else:
         raise RuntimeError(
             "Desired coil definition not found "
-            "(type = %d acc = %d)" % (ch["coil_type"], acc)
+            f"(type = {ch['coil_type']} acc = {acc})"
         )
 
     # Apply a coordinate transformation if so desired
@@ -421,7 +417,7 @@ def _prep_eeg_channels(info, exclude=(), verbose=None):
     # Get channel info and names for EEG channels
     eegchs = pick_info(info, picks)["chs"]
     eegnames = [info["ch_names"][p] for p in picks]
-    logger.info("Read %3d EEG channels from %s" % (len(picks), info_extra))
+    logger.info(f"Read {len(picks):3} EEG channels from {info_extra}")
 
     # Create EEG electrode descriptions
     eegels = _create_eeg_els(eegchs)

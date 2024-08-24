@@ -1,0 +1,83 @@
+{
+  "merge_commit_sha": "9a80b610299fe798285296682fc5c84558302d07",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 8,
+      "d": 0
+    },
+    "examples/visualization/plot_meg_sensors.py": {
+      "a": 2,
+      "d": 3
+    },
+    "mne/channels/channels.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/channels/layout.py": {
+      "a": 5,
+      "d": 4
+    },
+    "mne/channels/tests/test_layout.py": {
+      "a": 6,
+      "d": 4
+    },
+    "mne/datasets/utils.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/_digitization.py": {
+      "a": 8,
+      "d": 5
+    },
+    "mne/io/base.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/kit/constants.py": {
+      "a": 34,
+      "d": 1
+    },
+    "mne/io/kit/kit.py": {
+      "a": 198,
+      "d": 74
+    },
+    "mne/io/kit/tests/test_kit.py": {
+      "a": 66,
+      "d": 2
+    },
+    "mne/surface.py": {
+      "a": 14,
+      "d": 5
+    },
+    "mne/tests/test_surface.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/utils/docs.py": {
+      "a": 11,
+      "d": 3
+    },
+    "mne/viz/_3d.py": {
+      "a": 8,
+      "d": 4
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 1,
+      "d": 2
+    },
+    "tutorials/io/plot_10_reading_meg_data.py": {
+      "a": 13,
+      "d": 6
+    }
+  }
+}

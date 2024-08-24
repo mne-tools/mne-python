@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "301f194e709d45065a24293b0786b3c2d821d2cf",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/inverse/plot_lcmv_beamformer_volume.py": {
+      "a": 12,
+      "d": 7
+    },
+    "examples/inverse/plot_morph_volume_stc.py": {
+      "a": 15,
+      "d": 15
+    },
+    "mne/datasets/_fsaverage/base.py": {
+      "a": 4,
+      "d": 7
+    },
+    "mne/datasets/_fsaverage/bem.txt": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/morph.py": {
+      "a": 179,
+      "d": 101
+    },
+    "mne/source_estimate.py": {
+      "a": 1,
+      "d": 5
+    },
+    "mne/source_space.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/tests/test_morph.py": {
+      "a": 31,
+      "d": 14
+    }
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "6c641dd74f869f316877e43dc15ebc4cfe8077e6",
+  "authors": [
+    {
+      "n": "Fede Raimondo",
+      "e": "f.raimondo@fz-juelich.de"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/datasets/utils.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/egi/egimff.py": {
+      "a": 18,
+      "d": 0
+    },
+    "mne/io/egi/tests/test_egi.py": {
+      "a": 37,
+      "d": 0
+    }
+  }
+}

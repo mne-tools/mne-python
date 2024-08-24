@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "0b01386260f71eff2252d3ca81ba5ca143ba77da",
+  "authors": [
+    {
+      "n": "Denis A. Engemann",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/source/getting_started.rst": {
+      "a": 9,
+      "d": 4
+    },
+    "examples/plot_evoked_whitening.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/viz.py": {
+      "a": 22,
+      "d": 15
+    }
+  }
+}

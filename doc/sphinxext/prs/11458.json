@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "ae7ecf89f6d531e6b52ae69ea445be4a449de5e5",
+  "authors": [
+    {
+      "n": "Thomas S. Binns",
+      "e": "t.s.binns@outlook.com"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "agramfort@fb.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/decoding/ssd.py": {
+      "a": 54,
+      "d": 9
+    },
+    "mne/decoding/tests/test_ssd.py": {
+      "a": 21,
+      "d": 0
+    }
+  }
+}

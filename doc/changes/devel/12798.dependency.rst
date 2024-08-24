@@ -1,0 +1,1 @@
+- Minimum supported dependencies were updated in accordance with SPEC0_, most notably Python 3.10+ is now required.

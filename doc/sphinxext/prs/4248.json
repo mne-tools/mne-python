@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "f9892442ea3cfe2bc916e391998e64d216a61744",
+  "authors": [
+    {
+      "n": "LaetitiaG",
+      "e": "laetitia.grabot@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/minimum_norm/time_frequency.py": {
+      "a": 7,
+      "d": 2
+    }
+  }
+}

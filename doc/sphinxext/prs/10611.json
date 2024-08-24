@@ -1,0 +1,59 @@
+{
+  "merge_commit_sha": "d24d0766c8c16733d1fdcf4e908c722505e9d507",
+  "authors": [
+    {
+      "n": "Rob Luke",
+      "e": null
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/channels/tests/test_montage.py": {
+      "a": 30,
+      "d": 1
+    },
+    "mne/io/meas_info.py": {
+      "a": 27,
+      "d": 0
+    },
+    "mne/io/nirx/tests/test_nirx.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/snirf/tests/test_snirf.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/minimum_norm/tests/test_inverse.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/preprocessing/nirs/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/nirs/nirs.py": {
+      "a": 37,
+      "d": 0
+    },
+    "mne/preprocessing/nirs/tests/test_nirs.py": {
+      "a": 30,
+      "d": 2
+    },
+    "mne/preprocessing/tests/test_maxwell.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/tests/test_cov.py": {
+      "a": 5,
+      "d": 1
+    }
+  }
+}

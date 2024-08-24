@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "bfeb3fbed17d8e4868699119daf2db1eb65fd8fe",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/label.py": {
+      "a": 7,
+      "d": 6
+    },
+    "mne/simulation/evoked.py": {
+      "a": 6,
+      "d": 0
+    },
+    "mne/simulation/raw.py": {
+      "a": 7,
+      "d": 1
+    },
+    "mne/simulation/source.py": {
+      "a": 101,
+      "d": 15
+    },
+    "mne/simulation/tests/test_source.py": {
+      "a": 35,
+      "d": 13
+    },
+    "mne/source_estimate.py": {
+      "a": 3,
+      "d": 0
+    }
+  }
+}

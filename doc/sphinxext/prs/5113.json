@@ -1,0 +1,75 @@
+{
+  "merge_commit_sha": "394b2d668999232f53d3da48ffc23cce00771edf",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/channels/channels.py": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/channels/interpolation.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/channels/tests/test_interpolation.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/decoding/csp.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/ctf/tests/test_ctf.py": {
+      "a": 5,
+      "d": 3
+    },
+    "mne/io/fiff/tests/test_raw_fiff.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/reference.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/tests/test_reference.py": {
+      "a": 7,
+      "d": 5
+    },
+    "mne/preprocessing/tests/test_ica.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/realtime/tests/test_fieldtrip_client.py": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/time_frequency/tests/test_multitaper.py": {
+      "a": 5,
+      "d": 3
+    },
+    "mne/viz/evoked.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/viz/misc.py": {
+      "a": 5,
+      "d": 4
+    },
+    "mne/viz/tests/test_ica.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/viz/tests/test_topomap.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/plot_visualize_evoked.py": {
+      "a": 0,
+      "d": 2
+    }
+  }
+}

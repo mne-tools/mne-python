@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "bb26e23f7d4b73064edd6b7380a18eb3c191bcb4",
+  "authors": [
+    {
+      "n": "jaeilepp",
+      "e": "jaeilepp@student.jyu.fi"
+    }
+  ],
+  "changes": {
+    "examples/visualization/plot_clickable_image.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/visualization/plot_topography.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/decoding/base.py": {
+      "a": 2,
+      "d": 0
+    }
+  }
+}

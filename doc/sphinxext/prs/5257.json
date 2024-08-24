@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "a10845b59dcf537818e0192fbce3cef8f858dba3",
+  "authors": [
+    {
+      "n": "Jona Sassenhagen",
+      "e": "jona.sassenhagen@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/evoked.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/viz/evoked.py": {
+      "a": 39,
+      "d": 8
+    },
+    "mne/viz/tests/test_evoked.py": {
+      "a": 8,
+      "d": 0
+    },
+    "tutorials/plot_stats_cluster_erp.py": {
+      "a": 2,
+      "d": 4
+    }
+  }
+}

@@ -1,0 +1,67 @@
+{
+  "merge_commit_sha": "ae38e1b7927c8a2e4e3f46025965f0cab2e0b4ff",
+  "authors": [
+    {
+      "n": "Joan Massich",
+      "e": "mailsik@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/python_reference.rst": {
+      "a": 0,
+      "d": 2
+    },
+    "doc/whats_new.rst": {
+      "a": 7,
+      "d": 3
+    },
+    "mne/annotations.py": {
+      "a": 53,
+      "d": 7
+    },
+    "mne/io/__init__.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/brainvision/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/brainvision/brainvision.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/io/brainvision/tests/test_brainvision.py": {
+      "a": 3,
+      "d": 4
+    },
+    "mne/io/edf/edf.py": {
+      "a": 0,
+      "d": 26
+    },
+    "mne/io/edf/tests/test_edf.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/io/eeglab/__init__.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/io/eeglab/eeglab.py": {
+      "a": 20,
+      "d": 8
+    },
+    "mne/io/eeglab/tests/test_eeglab.py": {
+      "a": 14,
+      "d": 6
+    },
+    "mne/io/fiff/raw.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/tests/test_annotations.py": {
+      "a": 1,
+      "d": 8
+    }
+  }
+}

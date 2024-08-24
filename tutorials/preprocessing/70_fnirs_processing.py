@@ -5,15 +5,17 @@
 Preprocessing functional near-infrared spectroscopy (fNIRS) data
 ================================================================
 
-This tutorial covers how to convert functional near-infrared spectroscopy
-(fNIRS) data from raw measurements to relative oxyhaemoglobin (HbO) and
-deoxyhaemoglobin (HbR) concentration, view the average waveform, and
-topographic representation of the response.
+This tutorial covers how to convert functional near-infrared spectroscopy (fNIRS) data
+from raw measurements to relative oxyhaemoglobin (HbO) and deoxyhaemoglobin (HbR)
+concentration, view the average waveform, and topographic representation of the
+response.
 
 Here we will work with the :ref:`fNIRS motor data <fnirs-motor-dataset>`.
 """
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 # %%
 
 from itertools import compress

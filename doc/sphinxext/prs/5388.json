@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "83e16e22b74f3eefd8eb69a8390a63519cd501ba",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "mne/minimum_norm/inverse.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/minimum_norm/tests/test_inverse.py": {
+      "a": 17,
+      "d": 0
+    }
+  }
+}

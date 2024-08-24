@@ -1,0 +1,287 @@
+{
+  "merge_commit_sha": "d309e3dc37657e0dfbc0a663e5292db6f49e4e5b",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    ".circleci/config.yml": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/_static/font-source-code-pro.css": {
+      "a": 0,
+      "d": 167
+    },
+    "doc/_static/font-source-sans-pro.css": {
+      "a": 0,
+      "d": 131
+    },
+    "doc/_static/fonts/source_code_pro/EOT/SourceCodePro-Bold.eot": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/fonts/source_code_pro/EOT/SourceCodePro-BoldIt.eot": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/fonts/source_code_pro/EOT/SourceCodePro-It.eot": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/fonts/source_code_pro/EOT/SourceCodePro-Regular.eot": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/fonts/source_code_pro/EOT/SourceCodePro-Semibold.eot": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/fonts/source_code_pro/EOT/SourceCodePro-SemiboldIt.eot": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/fonts/source_code_pro/OTF/SourceCodePro-Bold.otf": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/fonts/source_code_pro/OTF/SourceCodePro-BoldIt.otf": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/fonts/source_code_pro/OTF/SourceCodePro-It.otf": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/fonts/source_code_pro/OTF/SourceCodePro-Regular.otf": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/fonts/source_code_pro/OTF/SourceCodePro-Semibold.otf": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/fonts/source_code_pro/OTF/SourceCodePro-SemiboldIt.otf": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/fonts/source_code_pro/TTF/SourceCodePro-Bold.ttf": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/fonts/source_code_pro/TTF/SourceCodePro-BoldIt.ttf": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/fonts/source_code_pro/TTF/SourceCodePro-It.ttf": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/fonts/source_code_pro/TTF/SourceCodePro-Regular.ttf": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/fonts/source_code_pro/TTF/SourceCodePro-Semibold.ttf": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/fonts/source_code_pro/TTF/SourceCodePro-SemiboldIt.ttf": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/fonts/source_code_pro/WOFF/SourceCodePro-Bold.otf.woff": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/fonts/source_code_pro/WOFF/SourceCodePro-BoldIt.otf.woff": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/fonts/source_code_pro/WOFF/SourceCodePro-It.otf.woff": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/fonts/source_code_pro/WOFF/SourceCodePro-Regular.otf.woff": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/fonts/source_code_pro/WOFF/SourceCodePro-Semibold.otf.woff": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/fonts/source_code_pro/WOFF/SourceCodePro-SemiboldIt.otf.woff": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/fonts/source_code_pro/WOFF2/SourceCodePro-Bold.ttf.woff2": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/fonts/source_code_pro/WOFF2/SourceCodePro-BoldIt.ttf.woff2": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/fonts/source_code_pro/WOFF2/SourceCodePro-It.ttf.woff2": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/fonts/source_code_pro/WOFF2/SourceCodePro-Regular.ttf.woff2": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/fonts/source_code_pro/WOFF2/SourceCodePro-Semibold.ttf.woff2": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/fonts/source_code_pro/WOFF2/SourceCodePro-SemiboldIt.ttf.woff2": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/fonts/source_sans_pro/OTF/SourceSansPro-Bold.otf": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/fonts/source_sans_pro/OTF/SourceSansPro-BoldIt.otf": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/fonts/source_sans_pro/OTF/SourceSansPro-It.otf": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/fonts/source_sans_pro/OTF/SourceSansPro-Light.otf": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/fonts/source_sans_pro/OTF/SourceSansPro-LightIt.otf": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/fonts/source_sans_pro/OTF/SourceSansPro-Regular.otf": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/fonts/source_sans_pro/OTF/SourceSansPro-Semibold.otf": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/fonts/source_sans_pro/OTF/SourceSansPro-SemiboldIt.otf": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/fonts/source_sans_pro/TTF/SourceSansPro-Bold.ttf": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/fonts/source_sans_pro/TTF/SourceSansPro-BoldIt.ttf": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/fonts/source_sans_pro/TTF/SourceSansPro-It.ttf": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/fonts/source_sans_pro/TTF/SourceSansPro-Light.ttf": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/fonts/source_sans_pro/TTF/SourceSansPro-LightIt.ttf": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/fonts/source_sans_pro/TTF/SourceSansPro-Regular.ttf": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/fonts/source_sans_pro/TTF/SourceSansPro-Semibold.ttf": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/fonts/source_sans_pro/TTF/SourceSansPro-SemiboldIt.ttf": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/fonts/source_sans_pro/WOFF/SourceSansPro-Bold.otf.woff": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/fonts/source_sans_pro/WOFF/SourceSansPro-BoldIt.otf.woff": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/fonts/source_sans_pro/WOFF/SourceSansPro-It.otf.woff": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/fonts/source_sans_pro/WOFF/SourceSansPro-Light.otf.woff": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/fonts/source_sans_pro/WOFF/SourceSansPro-LightIt.otf.woff": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/fonts/source_sans_pro/WOFF/SourceSansPro-Regular.otf.woff": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/fonts/source_sans_pro/WOFF/SourceSansPro-Semibold.otf.woff": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/fonts/source_sans_pro/WOFF/SourceSansPro-SemiboldIt.otf.woff": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/fonts/source_sans_pro/WOFF2/SourceSansPro-Bold.ttf.woff2": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/fonts/source_sans_pro/WOFF2/SourceSansPro-BoldIt.ttf.woff2": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/fonts/source_sans_pro/WOFF2/SourceSansPro-It.ttf.woff2": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/fonts/source_sans_pro/WOFF2/SourceSansPro-Light.ttf.woff2": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/fonts/source_sans_pro/WOFF2/SourceSansPro-LightIt.ttf.woff2": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/fonts/source_sans_pro/WOFF2/SourceSansPro-Regular.ttf.woff2": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/fonts/source_sans_pro/WOFF2/SourceSansPro-Semibold.ttf.woff2": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/fonts/source_sans_pro/WOFF2/SourceSansPro-SemiboldIt.ttf.woff2": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/style.css": {
+      "a": 36,
+      "d": 13
+    },
+    "doc/_templates/docs-navbar.html": {
+      "a": 18,
+      "d": 66
+    },
+    "doc/conf.py": {
+      "a": 15,
+      "d": 4
+    },
+    "requirements_doc.txt": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

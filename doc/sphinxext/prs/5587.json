@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "672d66b9f3121ef3ba7f7aba1c6050094c56904c",
+  "authors": [
+    {
+      "n": "Lorenz Esch",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/data/coil_def.dat": {
+      "a": 104,
+      "d": 91
+    },
+    "mne/io/constants.py": {
+      "a": 8,
+      "d": 4
+    },
+    "mne/io/tests/test_constants.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

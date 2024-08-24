@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "b8862d9d7549cdab9ed8d1e216f3bb8b268ac9e5",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/channels/montage.py": {
+      "a": 3,
+      "d": 4
+    },
+    "mne/channels/tests/test_montage.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/_digitization.py": {
+      "a": 1,
+      "d": 30
+    },
+    "mne/io/tests/test_digitization.py": {
+      "a": 0,
+      "d": 39
+    },
+    "mne/io/tests/test_raw.py": {
+      "a": 5,
+      "d": 3
+    }
+  }
+}

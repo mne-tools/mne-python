@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "9d47022eaa39d5ade0654dc9bc3f0b3eb3485a7c",
+  "authors": [
+    {
+      "n": "Mainak Jas",
+      "e": null
+    }
+  ],
+  "changes": {
+    ".circleci/config.yml": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

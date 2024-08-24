@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "5d1fc7af7301a26f3415a876efee3c08cda28bb1",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    ".travis.yml": {
+      "a": 2,
+      "d": 1
+    },
+    "MANIFEST.in": {
+      "a": 41,
+      "d": 19
+    },
+    "mne/viz/tests/__init__py": {
+      "a": 0,
+      "d": 0
+    },
+    "setup.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

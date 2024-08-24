@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "240df830bda18dc630f9bffea386ded3bd247ace",
+  "authors": [
+    {
+      "n": "Dominik Wetzel",
+      "e": null
+    },
+    {
+      "n": "Dominik Wetzel",
+      "e": "dominik.wetzel@fh-zwickau.de"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 3,
+      "d": 2
+    },
+    "doc/changes/names.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/fixes.py": {
+      "a": 5,
+      "d": 1
+    }
+  }
+}

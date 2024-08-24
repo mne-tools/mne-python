@@ -85,8 +85,10 @@ overlay of an anatomical parcellation (in this case, the parcellation from
 :footcite:`DestrieuxEtAl2010`).
 """
 
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 # %%
 
 import mne

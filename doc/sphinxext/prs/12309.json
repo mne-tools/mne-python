@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "a03a40d50f871b3d51da923ac156d50443162ea8",
+  "authors": [
+    {
+      "n": "Peter J. Molfese",
+      "e": null
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/12309.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/source_estimate.py": {
+      "a": 72,
+      "d": 0
+    },
+    "mne/tests/test_source_estimate.py": {
+      "a": 28,
+      "d": 0
+    }
+  }
+}

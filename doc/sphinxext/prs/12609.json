@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "cf0e12d9e329440408b19caef974ab95a1439686",
+  "authors": [
+    {
+      "n": "Fourcaud-Trocmé",
+      "e": "celicolimmo@free.fr"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/12609.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/stats/cluster_level.py": {
+      "a": 20,
+      "d": 20
+    },
+    "mne/stats/tests/test_cluster_level.py": {
+      "a": 13,
+      "d": 4
+    }
+  }
+}

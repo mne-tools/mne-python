@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "e0f8417275e3650500832ba40020509058f971f9",
+  "authors": [
+    {
+      "n": "Romain Trachel",
+      "e": "trachelr@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 3,
+      "d": 1
+    },
+    "examples/decoding/plot_decoding_xdawn_eeg.py": {
+      "a": 2,
+      "d": 2
+    },
+    "examples/realtime/plot_compute_rt_decoder.py": {
+      "a": 3,
+      "d": 3
+    },
+    "examples/realtime/rt_feedback_server.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/decoding/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/decoding/tests/test_transformer.py": {
+      "a": 9,
+      "d": 9
+    },
+    "mne/decoding/transformer.py": {
+      "a": 14,
+      "d": 7
+    }
+  }
+}

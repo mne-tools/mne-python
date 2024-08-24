@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "a77d9f05ee4b0b964e2098c0e247913f2412a900",
+  "authors": [
+    {
+      "n": "Martin Luessi",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/minimum_norm/time_frequency.py": {
+      "a": 5,
+      "d": 3
+    },
+    "mne/time_frequency/multitaper.py": {
+      "a": 13,
+      "d": 12
+    },
+    "mne/time_frequency/tests/test_multitaper.py": {
+      "a": 6,
+      "d": 6
+    }
+  }
+}

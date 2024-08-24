@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "df5f5509b87bb71c2dcb9992b28d7a57e7b190d9",
+  "authors": [
+    {
+      "n": "Romek Goj",
+      "e": "roman.goj@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/tests/test_utils.py": {
+      "a": 16,
+      "d": 1
+    },
+    "mne/utils.py": {
+      "a": 12,
+      "d": 8
+    }
+  }
+}

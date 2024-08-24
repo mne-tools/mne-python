@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "b27e06fb1d7f2d8445f7d26f3b4be907fe066335",
+  "authors": [
+    {
+      "n": "Catalina M. Galván",
+      "e": null
+    }
+  ],
+  "changes": {
+    "tutorials/sample-datasets/plot_brainstorm_auditory.py": {
+      "a": 4,
+      "d": 6
+    }
+  }
+}

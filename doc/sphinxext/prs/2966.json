@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "d8416766ea5302764a4716836ab9c3658511a578",
+  "authors": [
+    {
+      "n": "Mikolaj Magnuski",
+      "e": "mmagnuski@swps.edu.pl"
+    }
+  ],
+  "changes": {
+    "mne/preprocessing/ica.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

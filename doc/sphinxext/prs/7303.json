@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "f76c7b38614af324b5884176c1d526d960bca249",
+  "authors": [
+    {
+      "n": "Mikolaj Magnuski",
+      "e": "mmagnuski@swps.edu.pl"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/viz/tests/test_topomap.py": {
+      "a": 6,
+      "d": 0
+    },
+    "mne/viz/topomap.py": {
+      "a": 15,
+      "d": 6
+    }
+  }
+}

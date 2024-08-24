@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "a81a5f85507a8874ce2b59e9b3673e4155aa57aa",
+  "authors": [
+    {
+      "n": "Nataliia Kozhemiako",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/glossary.rst": {
+      "a": 18,
+      "d": 4
+    },
+    "examples/inverse/plot_compute_mne_inverse_raw_in_label.py": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/preprocessing/plot_head_positions.py": {
+      "a": 2,
+      "d": 0
+    }
+  }
+}

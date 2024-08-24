@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "8de73099c98679e0d6c9a5784e2d63ec95c5d4ef",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/io/nirx/nirx.py": {
+      "a": 9,
+      "d": 4
+    },
+    "mne/io/nirx/tests/test_nirx.py": {
+      "a": 18,
+      "d": 0
+    }
+  }
+}

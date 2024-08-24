@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "eec5fe96ead56b5d162f667bdca1c1c3ea39832c",
+  "authors": [
+    {
+      "n": "gemeinl",
+      "e": "lukas.gemein@gmx.de"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/epochs.py": {
+      "a": 14,
+      "d": 0
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 9,
+      "d": 0
+    }
+  }
+}
