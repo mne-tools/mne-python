@@ -19,7 +19,7 @@ if TYPE_CHECKING:
     from pathlib import Path
 
 
-data_path = testing.data_path(download=False) / "antio" / "CA_208"
+data_path = testing.data_path(download=False) / "antio"
 
 
 def read_raw_bv(fname: Path) -> BaseRaw:
@@ -43,47 +43,114 @@ def read_raw_bv(fname: Path) -> BaseRaw:
 
 
 @pytest.fixture(scope="module")
-def ca_208() -> dict[str, dict[str, Path]]:
+def ca_208() -> dict[str, dict[str, Path] | str | int | dict[str, str | int]]:
     """Return the paths to the CA_208 dataset containing 64 channel gel recordings."""
-    pytest.importorskip("antio", minversion="0.2.0")
+    pytest.importorskip("antio", minversion="0.3.0.dev")
 
     cnt = {
-        "short": data_path / "test_CA_208.cnt",
-        "amp-dc": data_path / "test_CA_208_amp_disconnection.cnt",
-        "start-stop": data_path / "test_CA_208_start_stop.cnt",
+        "short": data_path / "CA_208" / "test_CA_208.cnt",
+        "amp-dc": data_path / "CA_208" / "test_CA_208_amp_disconnection.cnt",
+        "start-stop": data_path / "CA_208" / "test_CA_208_start_stop.cnt",
     }
     bv = {key: value.with_suffix(".vhdr") for key, value in cnt.items()}
-    return {"cnt": cnt, "bv": bv}
+    return {
+        "name": "ca_208",
+        "cnt": cnt,
+        "bv": bv,
+        "eeg": 64,
+        "misc": 24,
+        "meas_date": "2024-08-14-10-44-47+0000",
+        "patient_info": {
+            "name": "antio test",
+            "his_id": "",
+            "birthday": "2024-08-14",
+            "sex": 0,
+        },
+        "machine_info": ("eego", "EE_225", ""),
+        "hospital": "",
+        }
 
 
-def test_io_data(ca_208: dict[str, dict[str, Path]]) -> None:
+@pytest.fixture(scope="session")
+def andy_101() -> dict[str, dict[str, Path] | str | int | dict[str, str | int]]:
+    """Return the path and info to the andy_101 dataset."""
+    pytest.importorskip("antio", minversion="0.3.0.dev")
+
+    cnt = {
+        "short": data_path / "andy_101" / "Andy_101-raw.cnt",
+    }
+    bv = {key: value.with_suffix(".vhdr") for key, value in cnt.items()}
+    return {
+        "name": "andy_101",
+        "cnt": cnt,
+        "bv": bv,
+        "eeg": 128,
+        "misc": 0,
+        "meas_date": "2024-08-19-16-17-07+0000",
+        "patient_info": {
+            "name": "Andy test_middle_name EEG_Exam",
+            "his_id": "test_subject_code",
+            "birthday": "2024-08-19",
+            "sex": 2,
+        },
+        # TODO: Investigate why the serial number is missing.
+        "machine_info": ("eego", "EE_226", ""),
+        "hospital": "",
+        }
+
+
+@pytest.mark.parametrize("dataset", ["andy_101", "ca_208"])
+def test_io_data(dataset, request):
     """Test loading of .cnt file."""
-    raw_cnt = read_raw_ant(ca_208["cnt"]["short"])
-    raw_bv = read_raw_bv(ca_208["bv"]["short"])
+    dataset = request.getfixturevalue(dataset)
+    raw_cnt = read_raw_ant(dataset["cnt"]["short"])
+    raw_bv = read_raw_bv(dataset["bv"]["short"])
     cnt = raw_cnt.get_data()
     bv = raw_bv.get_data()
     assert cnt.shape == bv.shape
     assert_allclose(raw_cnt.get_data(), raw_bv.get_data(), atol=1e-8)
 
 
-def test_io_info(ca_208: dict[str, dict[str, Path]]) -> None:
+@pytest.mark.parametrize("dataset", ["ca_208", "andy_101"])
+def test_io_info(dataset: dict[str, dict[str, Path]], request) -> None:
     """Test the info loaded from a .cnt file."""
-    raw_cnt = read_raw_ant(ca_208["cnt"]["short"])
-    raw_bv = read_raw_bv(ca_208["bv"]["short"])
+    dataset = request.getfixturevalue(dataset)
+    raw_cnt = read_raw_ant(dataset["cnt"]["short"])
+    raw_bv = read_raw_bv(dataset["bv"]["short"])
     assert raw_cnt.ch_names == raw_bv.ch_names
     assert raw_cnt.info["sfreq"] == raw_bv.info["sfreq"]
-    assert raw_cnt.get_channel_types() == ["eeg"] * 64 + ["misc"] * 24
-    with pytest.warns(
-        RuntimeWarning,
-        match="All EEG channels are not referenced to the same electrode.",
-    ):
-        raw_cnt = read_raw_ant(ca_208["cnt"]["short"], misc=None)
-    assert raw_cnt.get_channel_types() == ["eeg"] * len(raw_cnt.ch_names)
-    raw_cnt = read_raw_ant(ca_208["cnt"]["short"], eog="EOG")
-    idx = raw_cnt.ch_names.index("EOG")
-    ch_types = ["eeg"] * 64 + ["misc"] * 24
-    ch_types[idx] = "eog"
-    assert raw_cnt.get_channel_types() == ch_types
+    assert raw_cnt.get_channel_types() == (["eeg"] * dataset["eeg"]
+                                           + ["misc"] * dataset["misc"])
+    assert_allclose(
+        (
+            raw_bv.info["meas_date"] - raw_cnt.info["meas_date"]
+            ).total_seconds(), 0, atol=1e-3
+        )
+    if dataset["name"] == "ca_208":
+        with pytest.warns(
+            RuntimeWarning,
+            match="All EEG channels are not referenced to the same electrode.",
+        ):
+            raw_cnt = read_raw_ant(dataset["cnt"]["short"], misc=None)
+        assert raw_cnt.get_channel_types() == ["eeg"] * len(raw_cnt.ch_names)
+        raw_cnt = read_raw_ant(dataset["cnt"]["short"], eog="EOG")
+        idx = raw_cnt.ch_names.index("EOG")
+        ch_types = ["eeg"] * dataset["eeg"] + ["misc"] * dataset["misc"]
+        ch_types[idx] = "eog"
+        assert raw_cnt.get_channel_types() == ch_types
+
+
+@pytest.mark.parametrize("dataset", ["andy_101", "ca_208"])
+def test_subject_info(dataset, request):
+    """Test reading the data array."""
+    dataset = request.getfixturevalue(dataset)
+    raw_cnt = read_raw_ant(dataset["cnt"]["short"])
+    subject_info = raw_cnt.info["subject_info"]
+    assert subject_info["his_id"] == dataset["patient_info"]["his_id"]
+    assert subject_info["first_name"] == dataset["patient_info"]["name"]
+    assert subject_info["sex"] == dataset["patient_info"]["sex"]
+    assert subject_info["birthday"].strftime("%Y-%m-%d%z") == \
+        dataset["patient_info"]["birthday"]
 
 
 def test_io_amp_disconnection(ca_208: dict[str, dict[str, Path]]) -> None:

@@ -102,10 +102,16 @@ class RawANT(BaseRaw):
                 "Missing optional dependency 'antio'. Use pip or conda to install "
                 "'antio'."
             )
-        check_version("antio", "0.2.0")
+        check_version("antio", "0.3.0")
 
         from antio import read_cnt
-        from antio.parser import read_data, read_info, read_triggers
+        from antio.parser import (
+            read_device_info,
+            read_info,
+            read_meas_date,
+            read_subject_info,
+            read_triggers,
+        )
 
         fname = _check_fname(fname, overwrite="read", must_exist=True, name="fname")
         _validate_type(eog, (str, None), "eog")
@@ -132,6 +138,21 @@ class RawANT(BaseRaw):
         info = create_info(
             ch_names, sfreq=cnt.get_sample_frequency(), ch_types=ch_types
         )
+        info.set_meas_date(read_meas_date(cnt))
+        make, model, serial, site = read_device_info(cnt)
+        info['device_info'] = dict(
+            type = make,
+            model = model,
+            serial = serial,
+            site = site
+        )
+        his_id, name, sex, birthday = read_subject_info(cnt)
+        info['subject_info'] = dict(
+            his_id = his_id,
+            first_name = name,
+            sex = sex,
+            birthday = birthday
+    )
         if bipolars is not None:
             with info._unlock():
                 for idx in bipolars_idx:
