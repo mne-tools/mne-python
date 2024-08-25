@@ -108,8 +108,19 @@ def test_io_data(dataset, request):
     cnt = raw_cnt.get_data()
     bv = raw_bv.get_data()
     assert cnt.shape == bv.shape
-    assert_allclose(raw_cnt.get_data(), raw_bv.get_data(), atol=1e-8)
-
+    assert_allclose(cnt, bv, atol=1e-8)
+    _raw_cnt = read_raw_ant(dataset["cnt"]["short"], preload=False)
+    assert_allclose(
+        raw_cnt.crop(0.05, 1.05).get_data(),
+        _raw_cnt.crop(0.05, 1.05).load_data().get_data()
+        )
+    raw_cnt = read_raw_ant(dataset["cnt"]["short"], preload=False)
+    _raw_cnt = read_raw_ant(dataset["cnt"]["short"], preload=True)
+    bads = [raw_cnt.ch_names[idx] for idx in (1, 5, 10)]
+    assert_allclose(
+        raw_cnt.drop_channels(bads).get_data(),
+        _raw_cnt.drop_channels(bads).get_data()
+        )
 
 @pytest.mark.parametrize("dataset", ["ca_208", "andy_101"])
 def test_io_info(dataset: dict[str, dict[str, Path]], request) -> None:
