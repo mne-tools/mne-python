@@ -68,7 +68,7 @@ def ca_208() -> dict[str, dict[str, Path] | str | int | dict[str, str | int]]:
         },
         "machine_info": ("eego", "EE_225", ""),
         "hospital": "",
-        }
+    }
 
 
 @pytest.fixture(scope="session")
@@ -96,7 +96,7 @@ def andy_101() -> dict[str, dict[str, Path] | str | int | dict[str, str | int]]:
         # TODO: Investigate why the serial number is missing.
         "machine_info": ("eego", "EE_226", ""),
         "hospital": "",
-        }
+    }
 
 
 @pytest.mark.parametrize("dataset", ["andy_101", "ca_208"])
@@ -112,15 +112,15 @@ def test_io_data(dataset, request):
     _raw_cnt = read_raw_ant(dataset["cnt"]["short"], preload=False)
     assert_allclose(
         raw_cnt.crop(0.05, 1.05).get_data(),
-        _raw_cnt.crop(0.05, 1.05).load_data().get_data()
-        )
+        _raw_cnt.crop(0.05, 1.05).load_data().get_data(),
+    )
     raw_cnt = read_raw_ant(dataset["cnt"]["short"], preload=False)
     _raw_cnt = read_raw_ant(dataset["cnt"]["short"], preload=True)
     bads = [raw_cnt.ch_names[idx] for idx in (1, 5, 10)]
     assert_allclose(
-        raw_cnt.drop_channels(bads).get_data(),
-        _raw_cnt.drop_channels(bads).get_data()
-        )
+        raw_cnt.drop_channels(bads).get_data(), _raw_cnt.drop_channels(bads).get_data()
+    )
+
 
 @pytest.mark.parametrize("dataset", ["ca_208", "andy_101"])
 def test_io_info(dataset: dict[str, dict[str, Path]], request) -> None:
@@ -130,13 +130,14 @@ def test_io_info(dataset: dict[str, dict[str, Path]], request) -> None:
     raw_bv = read_raw_bv(dataset["bv"]["short"])
     assert raw_cnt.ch_names == raw_bv.ch_names
     assert raw_cnt.info["sfreq"] == raw_bv.info["sfreq"]
-    assert raw_cnt.get_channel_types() == (["eeg"] * dataset["eeg"]
-                                           + ["misc"] * dataset["misc"])
+    assert raw_cnt.get_channel_types() == (
+        ["eeg"] * dataset["eeg"] + ["misc"] * dataset["misc"]
+    )
     assert_allclose(
-        (
-            raw_bv.info["meas_date"] - raw_cnt.info["meas_date"]
-            ).total_seconds(), 0, atol=1e-3
-        )
+        (raw_bv.info["meas_date"] - raw_cnt.info["meas_date"]).total_seconds(),
+        0,
+        atol=1e-3,
+    )
     if dataset["name"] == "ca_208":
         with pytest.warns(
             RuntimeWarning,
@@ -160,8 +161,10 @@ def test_subject_info(dataset, request):
     assert subject_info["his_id"] == dataset["patient_info"]["his_id"]
     assert subject_info["first_name"] == dataset["patient_info"]["name"]
     assert subject_info["sex"] == dataset["patient_info"]["sex"]
-    assert subject_info["birthday"].strftime("%Y-%m-%d%z") == \
-        dataset["patient_info"]["birthday"]
+    assert (
+        subject_info["birthday"].strftime("%Y-%m-%d%z")
+        == dataset["patient_info"]["birthday"]
+    )
 
 
 def test_io_amp_disconnection(ca_208: dict[str, dict[str, Path]]) -> None:

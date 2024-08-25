@@ -142,31 +142,23 @@ class RawANT(BaseRaw):
         )
         info.set_meas_date(read_meas_date(cnt))
         make, model, serial, site = read_device_info(cnt)
-        info['device_info'] = dict(
-            type = make,
-            model = model,
-            serial = serial,
-            site = site
-        )
+        info["device_info"] = dict(type=make, model=model, serial=serial, site=site)
         his_id, name, sex, birthday = read_subject_info(cnt)
-        info['subject_info'] = dict(
-            his_id = his_id,
-            first_name = name,
-            sex = sex,
-            birthday = birthday
-    )
+        info["subject_info"] = dict(
+            his_id=his_id, first_name=name, sex=sex, birthday=birthday
+        )
         if bipolars is not None:
             with info._unlock():
                 for idx in bipolars_idx:
                     info["chs"][idx]["coil_type"] = FIFF.FIFFV_COIL_EEG_BIPOLAR
         first_samps = np.array((0,))
-        last_samps = (cnt.get_sample_count() - 1, )
+        last_samps = (cnt.get_sample_count() - 1,)
         raw_extras = {
-            'orig_nchan': cnt.get_channel_count(),
-            'orig_ch_units': ch_units,
-            'first_samples': np.array(first_samps),
-            'last_samples': np.array(last_samps),
-            }
+            "orig_nchan": cnt.get_channel_count(),
+            "orig_ch_units": ch_units,
+            "first_samples": np.array(first_samps),
+            "last_samples": np.array(last_samps),
+        }
         super().__init__(
             info,
             preload=preload,
@@ -174,8 +166,8 @@ class RawANT(BaseRaw):
             last_samps=last_samps,
             filenames=[fname],
             verbose=verbose,
-            raw_extras=[raw_extras]
-            )
+            raw_extras=[raw_extras],
+        )
         # look for annotations (called trigger by ant)
         onsets, durations, descriptions, impedances, disconnect = read_triggers(cnt)
         onsets, durations, descriptions = _prepare_annotations(
@@ -199,9 +191,9 @@ class RawANT(BaseRaw):
         from antio import read_cnt
         from antio.parser import read_data
 
-        ch_units = self._raw_extras[0]['orig_ch_units']
-        first_samples = self._raw_extras[0]['first_samples']
-        n_times = self._raw_extras[0]['last_samples'] + 1
+        ch_units = self._raw_extras[0]["orig_ch_units"]
+        first_samples = self._raw_extras[0]["first_samples"]
+        n_times = self._raw_extras[0]["last_samples"] + 1
         for first_samp, this_n_times in zip(first_samples, n_times):
             i_start = max(start, first_samp)
             i_stop = min(stop, this_n_times + first_samp)
@@ -215,6 +207,7 @@ class RawANT(BaseRaw):
             else:
                 # faster than doing one = one[idx]
                 np.take(one, idx, axis=0, out=data_view)
+
 
 def _handle_bipolar_channels(
     ch_names: list[str], ch_refs: list[str], bipolars: list[str] | tuple[str, ...]
