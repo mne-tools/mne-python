@@ -99,7 +99,7 @@ def andy_101() -> dict[str, dict[str, Path] | str | int | dict[str, str | int]]:
     }
 
 
-@pytest.mark.parametrize("dataset", ["andy_101", "ca_208"])
+@pytest.mark.parametrize("dataset", ["ca_208", "andy_101"])
 def test_io_data(dataset, request):
     """Test loading of .cnt file."""
     dataset = request.getfixturevalue(dataset)
@@ -122,39 +122,48 @@ def test_io_data(dataset, request):
     )
 
 
-@pytest.mark.parametrize("dataset", ["ca_208", "andy_101"])
-def test_io_info(dataset: dict[str, dict[str, Path]], request) -> None:
+def test_io_info_ca_208(ca_208: dict[str, dict[str, Path]]) -> None:
     """Test the info loaded from a .cnt file."""
-    dataset = request.getfixturevalue(dataset)
-    raw_cnt = read_raw_ant(dataset["cnt"]["short"])
-    raw_bv = read_raw_bv(dataset["bv"]["short"])
+    raw_cnt = read_raw_ant(ca_208["cnt"]["short"])
+    raw_bv = read_raw_bv(ca_208["bv"]["short"])
     assert raw_cnt.ch_names == raw_bv.ch_names
     assert raw_cnt.info["sfreq"] == raw_bv.info["sfreq"]
-    assert raw_cnt.get_channel_types() == (
-        ["eeg"] * dataset["eeg"] + ["misc"] * dataset["misc"]
-    )
+    assert raw_cnt.get_channel_types() == ["eeg"] * 64 + ["misc"] * 24
     assert_allclose(
         (raw_bv.info["meas_date"] - raw_cnt.info["meas_date"]).total_seconds(),
         0,
         atol=1e-3,
     )
-    if dataset["name"] == "ca_208":
-        with pytest.warns(
-            RuntimeWarning,
-            match="All EEG channels are not referenced to the same electrode.",
-        ):
-            raw_cnt = read_raw_ant(dataset["cnt"]["short"], misc=None)
-        assert raw_cnt.get_channel_types() == ["eeg"] * len(raw_cnt.ch_names)
-        raw_cnt = read_raw_ant(dataset["cnt"]["short"], eog="EOG")
-        idx = raw_cnt.ch_names.index("EOG")
-        ch_types = ["eeg"] * dataset["eeg"] + ["misc"] * dataset["misc"]
-        ch_types[idx] = "eog"
-        assert raw_cnt.get_channel_types() == ch_types
+    with pytest.warns(
+        RuntimeWarning,
+        match="All EEG channels are not referenced to the same electrode.",
+    ):
+        raw_cnt = read_raw_ant(ca_208["cnt"]["short"], misc=None)
+    assert raw_cnt.get_channel_types() == ["eeg"] * len(raw_cnt.ch_names)
+    raw_cnt = read_raw_ant(ca_208["cnt"]["short"], eog="EOG")
+    idx = raw_cnt.ch_names.index("EOG")
+    ch_types = ["eeg"] * 64 + ["misc"] * 24
+    ch_types[idx] = "eog"
+    assert raw_cnt.get_channel_types() == ch_types
+
+
+def test_io_info_andy_101(andy_101: dict[str, dict[str, Path]]) -> None:
+    """Test the info loaded from a .cnt file."""
+    raw_cnt = read_raw_ant(andy_101["cnt"]["short"])
+    raw_bv = read_raw_bv(andy_101["bv"]["short"])
+    assert raw_cnt.ch_names == raw_bv.ch_names
+    assert raw_cnt.info["sfreq"] == raw_bv.info["sfreq"]
+    assert raw_cnt.get_channel_types() == ["eeg"] * 128
+    assert_allclose(
+        (raw_bv.info["meas_date"] - raw_cnt.info["meas_date"]).total_seconds(),
+        0,
+        atol=1e-3,
+    )
 
 
 @pytest.mark.parametrize("dataset", ["andy_101", "ca_208"])
 def test_subject_info(dataset, request):
-    """Test reading the data array."""
+    """Test reading the subject info."""
     dataset = request.getfixturevalue(dataset)
     raw_cnt = read_raw_ant(dataset["cnt"]["short"])
     subject_info = raw_cnt.info["subject_info"]
@@ -165,6 +174,18 @@ def test_subject_info(dataset, request):
         subject_info["birthday"].strftime("%Y-%m-%d%z")
         == dataset["patient_info"]["birthday"]
     )
+
+
+@pytest.mark.parametrize("dataset", ["andy_101", "ca_208"])
+def test_machine_info(dataset, request):
+    """Test reading the machine info."""
+    dataset = request.getfixturevalue(dataset)
+    raw_cnt = read_raw_ant(dataset["cnt"]["short"])
+    device_info = raw_cnt.info["device_info"]
+    make, model, serial = dataset["machine_info"]
+    assert device_info["type"] == make
+    assert device_info["model"] == model
+    assert device_info["serial"] == serial
 
 
 def test_io_amp_disconnection(ca_208: dict[str, dict[str, Path]]) -> None:
