@@ -71,7 +71,7 @@ def ca_208() -> dict[str, dict[str, Path] | str | int | dict[str, str | int]]:
     }
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def andy_101() -> dict[str, dict[str, Path] | str | int | dict[str, str | int]]:
     """Return the path and info to the andy_101 dataset."""
     pytest.importorskip("antio", minversion="0.3.0.dev")
