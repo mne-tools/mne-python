@@ -1667,7 +1667,7 @@ class BaseRaw(
         -------
         fnames : List of path-like
             List of path-like objects containing the path to each file split.
-            .. versionadded:: 0.18.1
+            .. versionadded:: 0.19
 
         Notes
         -----
