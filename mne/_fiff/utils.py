@@ -316,6 +316,7 @@ def _construct_bids_filename(base, ext, part_idx, validate=True):
 def _make_split_fnames(fname, n_splits, split_naming):
     """Make a list of split filenames."""
     if n_splits == 1:
+        fname = Path(fname)
         return [fname]
     res = []
     base, ext = op.splitext(fname)
