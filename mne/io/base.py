@@ -1663,6 +1663,12 @@ class BaseRaw(
             .. versionadded:: 0.17
         %(verbose)s
 
+        Returns
+        -------
+        filenames : List of path-like
+            List of path-like objects containing the path to each file split.
+            .. versionadded:: 0.18.1
+
         Notes
         -----
         If Raw is a concatenation of several raw files, **be warned** that
@@ -1741,7 +1747,8 @@ class BaseRaw(
 
         cfg = _RawFidWriterCfg(buffer_size, split_size, drop_small_buffer, fmt)
         raw_fid_writer = _RawFidWriter(self, info, picks, projector, start, stop, cfg)
-        _write_raw(raw_fid_writer, fname, split_naming, overwrite)
+        filenames = _write_raw(raw_fid_writer, fname, split_naming, overwrite)
+        return(filenames)
 
     @verbose
     def export(
@@ -2677,6 +2684,7 @@ def _write_raw(raw_fid_writer, fpath, split_naming, overwrite):
         raise RuntimeError(f"Exceeded maximum number of splits ({MAX_N_SPLITS}).")
 
     logger.info("[done]")
+    return split_fnames
 
 
 class _ReservedFilename:
