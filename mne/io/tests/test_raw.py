@@ -371,11 +371,14 @@ def _test_raw_reader(
 
     # Check splitting raw files( 2 splits)
     filenames = raw.save(
-        out_fname, tmax=raw.times[-1], overwrite=True, buffer_size_sec=0.5, split_size=1066094
+        out_fname,
+        tmax=raw.times[-1],
+        overwrite=True,
+        buffer_size_sec=0.5,
+        split_size=1066094,
     )
     for filename in filenames:
         assert op.isfile(filename)
-    
 
     # Make sure concatenation works
     first_samp = raw.first_samp
