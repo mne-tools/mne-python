@@ -537,24 +537,28 @@ def test_split_files(tmp_path, mod, monkeypatch):
     with pytest.raises(FileExistsError, match="Destination file"):
         raw_1.save(split_fname, split_naming="bids", verbose=True)
     assert not split_fname.is_file()
-    split_fnames = raw_1.save(split_fname, split_naming="neuromag", verbose=True)  # okay
+    split_fnames = raw_1.save(
+        split_fname, split_naming="neuromag", verbose=True
+    )  # okay
     os.remove(split_fname)
     os.remove(split_fname_bids_part1)
     # Multiple splits
-    split_filenames = raw_1.save(split_fname, buffer_size_sec=1.0, split_size="10MB", verbose=True)
+    split_filenames = raw_1.save(
+        split_fname, buffer_size_sec=1.0, split_size="10MB", verbose=True
+    )
     # check that the filenames match the intended pattern
     assert split_fname.is_file()
     assert split_fname_elekta_part2.is_file()
     assert split_filenames == [split_fname, split_fname_elekta_part2]
     # check that filenames are being formatted correctly for BIDS
     split_filenames = raw_1.save(
-                                split_fname,
-                                buffer_size_sec=1.0,
-                                split_size="10MB",
-                                split_naming="bids",
-                                overwrite=True,
-                                verbose=True,
-                            )
+        split_fname,
+        buffer_size_sec=1.0,
+        split_size="10MB",
+        split_naming="bids",
+        overwrite=True,
+        verbose=True,
+    )
     assert split_fname_bids_part1.is_file()
     assert split_fname_bids_part2.is_file()
     assert split_filenames == [split_fname_bids_part1, split_fname_bids_part2]
