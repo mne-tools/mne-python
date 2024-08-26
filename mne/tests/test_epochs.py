@@ -1690,12 +1690,13 @@ def test_split_naming(
     if dst_fpath.parent != tmp_path:
         dst_fpath.parent.mkdir(parents=True)
 
-    epochs.save(dst_fpath, verbose=True, **save_kwargs)
+    split_fnames = epochs.save(dst_fpath, verbose=True, **save_kwargs)
 
     # check that the filenames match the intended pattern
     assert len(list(dst_fpath.parent.iterdir())) == n_files
     assert not (tmp_path / split_fname_fn(n_files)).is_file()
     want_paths = [tmp_path / split_fname_fn(i) for i in range(n_files)]
+    assert np.all(split_fnames == want_paths)
     for want_path in want_paths:
         assert want_path.is_file()
 
@@ -1725,9 +1726,9 @@ def test_split_naming(
     assert str(bad_path).count("_split-01") == 2
     assert not bad_path.is_file(), bad_path
     bids_path.split = None
-    epochs.save(bids_path, verbose=True, **save_kwargs)
-    for want_path in want_paths:
-        assert want_path.is_file()
+    split_fnames = epochs.save(bids_path, verbose=True, **save_kwargs)
+    for split_fname in split_fnames:
+        assert split_fname.is_file()
 
 
 @pytest.mark.parametrize(

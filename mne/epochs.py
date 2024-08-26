@@ -2195,6 +2195,12 @@ class BaseEpochs(
             .. versionadded:: 0.24
         %(verbose)s
 
+        Returns
+        -------
+        fnames : List of path-like
+            List of path-like objects containing the path to each file split.
+            .. versionadded:: 0.18.1
+
         Notes
         -----
         Bad epochs will be dropped before saving the epochs to disk.
@@ -2306,6 +2312,7 @@ class BaseEpochs(
             this_epochs.event_id = self.event_id
 
             _save_split(this_epochs, split_fnames, part_idx, n_parts, fmt, overwrite)
+        return split_fnames
 
     @verbose
     def export(self, fname, fmt="auto", *, overwrite=False, verbose=None):
