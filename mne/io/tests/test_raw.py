@@ -344,7 +344,9 @@ def _test_raw_reader(
     # Test saving and reading
     out_fname = op.join(tempdir, "test_raw.fif")
     raw = concatenate_raws([raw])
-    filenames = raw.save(out_fname, tmax=raw.times[-1], overwrite=True, buffer_size_sec=1)
+    filenames = raw.save(
+        out_fname, tmax=raw.times[-1], overwrite=True, buffer_size_sec=1
+    )
     for filename in filenames:
         assert op.isfile(filename)
     # Test saving with not correct extension

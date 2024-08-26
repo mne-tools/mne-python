@@ -1748,7 +1748,7 @@ class BaseRaw(
         cfg = _RawFidWriterCfg(buffer_size, split_size, drop_small_buffer, fmt)
         raw_fid_writer = _RawFidWriter(self, info, picks, projector, start, stop, cfg)
         filenames = _write_raw(raw_fid_writer, fname, split_naming, overwrite)
-        return(filenames)
+        return filenames
 
     @verbose
     def export(
