@@ -94,8 +94,8 @@ class RawANT(BaseRaw):
         misc: str | None,
         bipolars: list[str] | tuple[str, ...] | None,
         impedance_annotation: str,
-        preload: bool | NDArray,
         *,
+        preload: bool | NDArray,
         verbose=None,
     ) -> None:
         logger.info("Reading ANT file %s", fname)
@@ -321,8 +321,8 @@ def read_raw_ant(
     misc=r"BIP\d+",
     bipolars=None,
     impedance_annotation="impedance",
-    preload=False,
     *,
+    preload=False,
     verbose=None,
 ) -> RawANT:
     """
