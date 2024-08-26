@@ -369,6 +369,14 @@ def _test_raw_reader(
 
     assert raw3.info["kit_system_id"] == raw.info["kit_system_id"]
 
+    # Check splitting raw files( 2 splits)
+    filenames = raw.save(
+        out_fname, tmax=raw.times[-1], overwrite=True, buffer_size_sec=0.5, split_size=1066094
+    )
+    for filename in filenames:
+        assert op.isfile(filename)
+    
+
     # Make sure concatenation works
     first_samp = raw.first_samp
     last_samp = raw.last_samp
