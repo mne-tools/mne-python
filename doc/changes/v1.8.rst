@@ -129,7 +129,7 @@ New features
 - Add support for storing Fourier coefficients in :class:`mne.time_frequency.Spectrum`,
   :class:`mne.time_frequency.EpochsSpectrum`, :class:`mne.time_frequency.SpectrumArray`,
   and :class:`mne.time_frequency.EpochsSpectrumArray` objects, by `Thomas Binns`_. (`#12747 <https://github.com/mne-tools/mne-python/pulls/12747>`__)
-- :meth:`~mne.io.Raw` and :meth:`~mne.Epochs.save` now return the path to the saved file(s), by `Victor Ferat`_. (`#12811 <https://github.com/mne-tools/mne-python/pull/12811>`__)
+
 
 Other changes
 -------------
