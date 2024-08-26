@@ -523,9 +523,11 @@ def test_split_files(tmp_path, mod, monkeypatch):
 
     # Check that if BIDS is used and no split is needed it defaults to
     # simple writing without _split- entity.
-    raw_1.save(split_fname, split_naming="bids", verbose=True)
+    split_fnames = raw_1.save(split_fname, split_naming="bids", verbose=True)
     assert split_fname.is_file()
     assert not split_fname_bids_part1.is_file()
+    assert split_fnames == [split_fname]
+
     for split_naming in ("neuromag", "bids"):
         with pytest.raises(FileExistsError, match="Destination file"):
             raw_1.save(split_fname, split_naming=split_naming, verbose=True)
@@ -535,26 +537,27 @@ def test_split_files(tmp_path, mod, monkeypatch):
     with pytest.raises(FileExistsError, match="Destination file"):
         raw_1.save(split_fname, split_naming="bids", verbose=True)
     assert not split_fname.is_file()
-    raw_1.save(split_fname, split_naming="neuromag", verbose=True)  # okay
+    split_fnames = raw_1.save(split_fname, split_naming="neuromag", verbose=True)  # okay
     os.remove(split_fname)
     os.remove(split_fname_bids_part1)
-
-    raw_1.save(split_fname, buffer_size_sec=1.0, split_size="10MB", verbose=True)
-
+    # Multiple splits
+    split_filenames = raw_1.save(split_fname, buffer_size_sec=1.0, split_size="10MB", verbose=True)
     # check that the filenames match the intended pattern
     assert split_fname.is_file()
     assert split_fname_elekta_part2.is_file()
+    assert split_filenames == [split_fname, split_fname_elekta_part2]
     # check that filenames are being formatted correctly for BIDS
-    raw_1.save(
-        split_fname,
-        buffer_size_sec=1.0,
-        split_size="10MB",
-        split_naming="bids",
-        overwrite=True,
-        verbose=True,
-    )
+    split_filenames = raw_1.save(
+                                split_fname,
+                                buffer_size_sec=1.0,
+                                split_size="10MB",
+                                split_naming="bids",
+                                overwrite=True,
+                                verbose=True,
+                            )
     assert split_fname_bids_part1.is_file()
     assert split_fname_bids_part2.is_file()
+    assert split_filenames == [split_fname_bids_part1, split_fname_bids_part2]
 
     annot = Annotations(np.arange(20), np.ones((20,)), "test")
     raw_1.set_annotations(annot)
