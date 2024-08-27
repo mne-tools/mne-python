@@ -2199,7 +2199,7 @@ class BaseEpochs(
         -------
         fnames : List of path-like
             List of path-like objects containing the path to each file split.
-            .. versionadded:: 0.19
+            .. versionadded:: 1.9
 
         Notes
         -----
