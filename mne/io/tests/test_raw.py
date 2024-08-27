@@ -348,7 +348,7 @@ def _test_raw_reader(
         out_fname, tmax=raw.times[-1], overwrite=True, buffer_size_sec=1
     )
     for filename in filenames:
-        assert op.isfile(filename)
+        assert filename.is_file()
     # Test saving with not correct extension
     out_fname_h5 = op.join(tempdir, "test_raw.h5")
     with pytest.raises(OSError, match="raw must end with .fif or .fif.gz"):
