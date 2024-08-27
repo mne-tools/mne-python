@@ -1752,8 +1752,7 @@ def test_saved_fname_no_splitting(
     split_1_fpath = tmp_path / split_1_fname
 
     filenames = epochs.save(dst_fpath, split_naming=split_naming, verbose=True)
-    assert len(filenames) == 1
-    assert filenames[0] == Path(dst_fpath)
+    assert filenames == [dst_fpath]
 
     assert dst_fpath.is_file()
     assert not split_1_fpath.is_file()
