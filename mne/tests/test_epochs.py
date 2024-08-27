@@ -1696,7 +1696,7 @@ def test_split_naming(
     assert len(list(dst_fpath.parent.iterdir())) == n_files
     assert not (tmp_path / split_fname_fn(n_files)).is_file()
     want_paths = [tmp_path / split_fname_fn(i) for i in range(n_files)]
-    assert np.all(split_fnames == want_paths)
+    assert split_fnames == want_paths
     for want_path in want_paths:
         assert want_path.is_file()
 
