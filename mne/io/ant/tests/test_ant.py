@@ -54,8 +54,8 @@ def ca_208() -> dict[str, dict[str, Path] | str | int | dict[str, str | int]]:
     return {
         "cnt": cnt,
         "bv": bv,
-        "eeg": 64,
-        "misc": 24,
+        "n_eeg": 64,
+        "n_misc": 24,
         "meas_date": "2024-08-14-10-44-47+0000",
         "patient_info": {
             "name": "antio test",
@@ -78,8 +78,8 @@ def andy_101() -> dict[str, dict[str, Path] | str | int | dict[str, str | int]]:
     return {
         "cnt": cnt,
         "bv": bv,
-        "eeg": 128,
-        "misc": 0,
+        "n_eeg": 128,
+        "n_misc": 0,
         "meas_date": "2024-08-19-16-17-07+0000",
         "patient_info": {
             "name": "Andy test_middle_name EEG_Exam",
@@ -134,43 +134,49 @@ def test_io_data(dataset, request):
     assert_allclose(raw_cnt2.get_data(), raw_bv.get_data(), atol=1e-8)
 
 
-def test_io_info_ca_208(ca_208: dict[str, dict[str, Path]]) -> None:
-    """Test the info loaded from a .cnt file."""
-    raw_cnt = read_raw_ant(ca_208["cnt"]["short"])
-    raw_bv = read_raw_bv(ca_208["bv"]["short"])
+@pytest.mark.parametrize("dataset", ["ca_208", "andy_101"])
+def test_io_info(dataset, request):
+    """Test the ifo loaded from a .cnt file."""
+    dataset = request.getfixturevalue(dataset)
+    raw_cnt = read_raw_ant(dataset["cnt"]["short"])  # preload=False
+    raw_bv = read_raw_bv(dataset["bv"]["short"])
     assert raw_cnt.ch_names == raw_bv.ch_names
     assert raw_cnt.info["sfreq"] == raw_bv.info["sfreq"]
-    assert raw_cnt.get_channel_types() == ["eeg"] * 64 + ["misc"] * 24
+    assert (
+        raw_cnt.get_channel_types()
+        == ["eeg"] * dataset["n_eeg"] + ["misc"] * dataset["n_misc"]
+    )
     assert_allclose(
         (raw_bv.info["meas_date"] - raw_cnt.info["meas_date"]).total_seconds(),
         0,
         atol=1e-3,
     )
+
+
+def test_io_info_parse_misc(
+    ca_208: dict[str, dict[str, Path] | str | int | dict[str, str | int]],
+):
+    """Test parsing misc channels from a .cnt file."""
+    raw_cnt = read_raw_ant(ca_208["cnt"]["short"])
     with pytest.warns(
         RuntimeWarning,
         match="All EEG channels are not referenced to the same electrode.",
     ):
         raw_cnt = read_raw_ant(ca_208["cnt"]["short"], misc=None)
+    assert len(raw_cnt.ch_names) == ca_208["n_eeg"] + ca_208["n_misc"]
     assert raw_cnt.get_channel_types() == ["eeg"] * len(raw_cnt.ch_names)
+
+
+def test_io_info_parse_eog(
+    ca_208: dict[str, dict[str, Path] | str | int | dict[str, str | int]],
+):
+    """Test parsing EOG channels from a .cnt file."""
     raw_cnt = read_raw_ant(ca_208["cnt"]["short"], eog="EOG")
+    assert len(raw_cnt.ch_names) == ca_208["n_eeg"] + ca_208["n_misc"]
     idx = raw_cnt.ch_names.index("EOG")
-    ch_types = ["eeg"] * 64 + ["misc"] * 24
+    ch_types = ["eeg"] * ca_208["n_eeg"] + ["misc"] * ca_208["n_misc"]
     ch_types[idx] = "eog"
     assert raw_cnt.get_channel_types() == ch_types
-
-
-def test_io_info_andy_101(andy_101: dict[str, dict[str, Path]]) -> None:
-    """Test the info loaded from a .cnt file."""
-    raw_cnt = read_raw_ant(andy_101["cnt"]["short"])
-    raw_bv = read_raw_bv(andy_101["bv"]["short"])
-    assert raw_cnt.ch_names == raw_bv.ch_names
-    assert raw_cnt.info["sfreq"] == raw_bv.info["sfreq"]
-    assert raw_cnt.get_channel_types() == ["eeg"] * 128
-    assert_allclose(
-        (raw_bv.info["meas_date"] - raw_cnt.info["meas_date"]).total_seconds(),
-        0,
-        atol=1e-3,
-    )
 
 
 @pytest.mark.parametrize("dataset", ["andy_101", "ca_208"])
