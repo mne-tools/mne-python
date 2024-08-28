@@ -18,7 +18,7 @@ from mne.io import BaseRaw, read_raw_ant, read_raw_brainvision
 if TYPE_CHECKING:
     from pathlib import Path
 
-
+pytest.importorskip("antio", minversion="0.3.0")
 data_path = testing.data_path(download=False) / "antio"
 
 
@@ -45,8 +45,6 @@ def read_raw_bv(fname: Path) -> BaseRaw:
 @pytest.fixture(scope="module")
 def ca_208() -> dict[str, dict[str, Path] | str | int | dict[str, str | int]]:
     """Return the paths to the CA_208 dataset containing 64 channel gel recordings."""
-    pytest.importorskip("antio", minversion="0.3.0.dev")
-
     cnt = {
         "short": data_path / "CA_208" / "test_CA_208.cnt",
         "amp-dc": data_path / "CA_208" / "test_CA_208_amp_disconnection.cnt",
@@ -54,7 +52,6 @@ def ca_208() -> dict[str, dict[str, Path] | str | int | dict[str, str | int]]:
     }
     bv = {key: value.with_suffix(".vhdr") for key, value in cnt.items()}
     return {
-        "name": "ca_208",
         "cnt": cnt,
         "bv": bv,
         "eeg": 64,
@@ -74,14 +71,11 @@ def ca_208() -> dict[str, dict[str, Path] | str | int | dict[str, str | int]]:
 @pytest.fixture(scope="module")
 def andy_101() -> dict[str, dict[str, Path] | str | int | dict[str, str | int]]:
     """Return the path and info to the andy_101 dataset."""
-    pytest.importorskip("antio", minversion="0.3.0.dev")
-
     cnt = {
         "short": data_path / "andy_101" / "Andy_101-raw.cnt",
     }
     bv = {key: value.with_suffix(".vhdr") for key, value in cnt.items()}
     return {
-        "name": "andy_101",
         "cnt": cnt,
         "bv": bv,
         "eeg": 128,
@@ -93,7 +87,6 @@ def andy_101() -> dict[str, dict[str, Path] | str | int | dict[str, str | int]]:
             "birthday": "2024-08-19",
             "sex": 2,
         },
-        # TODO: Investigate why the serial number is missing.
         "machine_info": ("eego", "EE_226", ""),
         "hospital": "",
     }
