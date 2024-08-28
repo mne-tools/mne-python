@@ -189,7 +189,7 @@ def test_subject_info(dataset, request):
     assert subject_info["first_name"] == dataset["patient_info"]["name"]
     assert subject_info["sex"] == dataset["patient_info"]["sex"]
     assert (
-        subject_info["birthday"].strftime("%Y-%m-%d%z")
+        subject_info["birthday"].strftime("%Y-%m-%d")
         == dataset["patient_info"]["birthday"]
     )
 
