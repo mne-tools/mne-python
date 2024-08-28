@@ -92,6 +92,7 @@ def andy_101() -> dict[str, dict[str, Path] | str | int | dict[str, str | int]]:
     }
 
 
+@testing.requires_testing_data
 @pytest.mark.parametrize("dataset", ["ca_208", "andy_101"])
 def test_io_data(dataset, request):
     """Test loading of .cnt file."""
@@ -134,6 +135,7 @@ def test_io_data(dataset, request):
     assert_allclose(raw_cnt2.get_data(), raw_bv.get_data(), atol=1e-8)
 
 
+@testing.requires_testing_data
 @pytest.mark.parametrize("dataset", ["ca_208", "andy_101"])
 def test_io_info(dataset, request):
     """Test the ifo loaded from a .cnt file."""
@@ -153,6 +155,7 @@ def test_io_info(dataset, request):
     )
 
 
+@testing.requires_testing_data
 def test_io_info_parse_misc(
     ca_208: dict[str, dict[str, Path] | str | int | dict[str, str | int]],
 ):
@@ -167,6 +170,7 @@ def test_io_info_parse_misc(
     assert raw_cnt.get_channel_types() == ["eeg"] * len(raw_cnt.ch_names)
 
 
+@testing.requires_testing_data
 def test_io_info_parse_eog(
     ca_208: dict[str, dict[str, Path] | str | int | dict[str, str | int]],
 ):
@@ -179,6 +183,7 @@ def test_io_info_parse_eog(
     assert raw_cnt.get_channel_types() == ch_types
 
 
+@testing.requires_testing_data
 @pytest.mark.parametrize("dataset", ["andy_101", "ca_208"])
 def test_subject_info(dataset, request):
     """Test reading the subject info."""
@@ -194,6 +199,7 @@ def test_subject_info(dataset, request):
     )
 
 
+@testing.requires_testing_data
 @pytest.mark.parametrize("dataset", ["andy_101", "ca_208"])
 def test_machine_info(dataset, request):
     """Test reading the machine info."""
@@ -206,6 +212,7 @@ def test_machine_info(dataset, request):
     assert device_info["serial"] == serial
 
 
+@testing.requires_testing_data
 def test_io_amp_disconnection(ca_208: dict[str, dict[str, Path]]) -> None:
     """Test loading of .cnt file with amplifier disconnection."""
     raw_cnt = read_raw_ant(ca_208["cnt"]["amp-dc"])
@@ -236,6 +243,7 @@ def test_io_amp_disconnection(ca_208: dict[str, dict[str, Path]]) -> None:
     )
 
 
+@testing.requires_testing_data
 @pytest.mark.parametrize("description", ["impedance", "test"])
 def test_io_impedance(ca_208: dict[str, dict[str, Path]], description: str) -> None:
     """Test loading of impedances from a .cnt file."""
@@ -251,6 +259,7 @@ def test_io_impedance(ca_208: dict[str, dict[str, Path]], description: str) -> N
     assert len(annotations) == len(raw_cnt.impedances)
 
 
+@testing.requires_testing_data
 def test_io_segments(ca_208: dict[str, dict[str, Path]]) -> None:
     """Test reading a .cnt file with segents (start/stop)."""
     raw_cnt = read_raw_ant(ca_208["cnt"]["start-stop"])
