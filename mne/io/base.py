@@ -1663,6 +1663,12 @@ class BaseRaw(
             .. versionadded:: 0.17
         %(verbose)s
 
+        Returns
+        -------
+        fnames : List of path-like
+            List of path-like objects containing the path to each file split.
+            .. versionadded:: 1.9
+
         Notes
         -----
         If Raw is a concatenation of several raw files, **be warned** that
@@ -1741,7 +1747,8 @@ class BaseRaw(
 
         cfg = _RawFidWriterCfg(buffer_size, split_size, drop_small_buffer, fmt)
         raw_fid_writer = _RawFidWriter(self, info, picks, projector, start, stop, cfg)
-        _write_raw(raw_fid_writer, fname, split_naming, overwrite)
+        filenames = _write_raw(raw_fid_writer, fname, split_naming, overwrite)
+        return filenames
 
     @verbose
     def export(
@@ -2648,6 +2655,7 @@ def _write_raw(raw_fid_writer, fpath, split_naming, overwrite):
         fpath.name, n_splits=MAX_N_SPLITS + 1, split_naming=split_naming
     )
     is_next_split, prev_fname = True, None
+    output_fnames = []
     for part_idx in range(0, MAX_N_SPLITS):
         if not is_next_split:
             break
@@ -2672,11 +2680,15 @@ def _write_raw(raw_fid_writer, fpath, split_naming, overwrite):
             logger.info(f"Renaming BIDS split file {fpath.name}")
             prev_fname = dir_path / split_fnames[0]
             shutil.move(use_fpath, prev_fname)
+            output_fnames.append(prev_fname)
+        else:
+            output_fnames.append(use_fpath)
         prev_fname = use_fpath
     else:
         raise RuntimeError(f"Exceeded maximum number of splits ({MAX_N_SPLITS}).")
 
     logger.info("[done]")
+    return output_fnames
 
 
 class _ReservedFilename:

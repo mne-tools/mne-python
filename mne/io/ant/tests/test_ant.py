@@ -56,6 +56,7 @@ def ca_208() -> dict[str, dict[str, Path]]:
     return {"cnt": cnt, "bv": bv}
 
 
+@testing.requires_testing_data
 def test_io_data(ca_208: dict[str, dict[str, Path]]) -> None:
     """Test loading of .cnt file."""
     raw_cnt = read_raw_ant(ca_208["cnt"]["short"])
@@ -66,6 +67,7 @@ def test_io_data(ca_208: dict[str, dict[str, Path]]) -> None:
     assert_allclose(raw_cnt.get_data(), raw_bv.get_data(), atol=1e-8)
 
 
+@testing.requires_testing_data
 def test_io_info(ca_208: dict[str, dict[str, Path]]) -> None:
     """Test the info loaded from a .cnt file."""
     raw_cnt = read_raw_ant(ca_208["cnt"]["short"])
@@ -86,6 +88,7 @@ def test_io_info(ca_208: dict[str, dict[str, Path]]) -> None:
     assert raw_cnt.get_channel_types() == ch_types
 
 
+@testing.requires_testing_data
 def test_io_amp_disconnection(ca_208: dict[str, dict[str, Path]]) -> None:
     """Test loading of .cnt file with amplifier disconnection."""
     raw_cnt = read_raw_ant(ca_208["cnt"]["amp-dc"])
@@ -116,6 +119,7 @@ def test_io_amp_disconnection(ca_208: dict[str, dict[str, Path]]) -> None:
     )
 
 
+@testing.requires_testing_data
 @pytest.mark.parametrize("description", ["impedance", "test"])
 def test_io_impedance(ca_208: dict[str, dict[str, Path]], description: str) -> None:
     """Test loading of impedances from a .cnt file."""
@@ -131,6 +135,7 @@ def test_io_impedance(ca_208: dict[str, dict[str, Path]], description: str) -> N
     assert len(annotations) == len(raw_cnt.impedances)
 
 
+@testing.requires_testing_data
 def test_io_segments(ca_208: dict[str, dict[str, Path]]) -> None:
     """Test reading a .cnt file with segents (start/stop)."""
     raw_cnt = read_raw_ant(ca_208["cnt"]["start-stop"])
