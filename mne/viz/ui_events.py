@@ -270,7 +270,11 @@ def _get_event_channel(fig):
         if isinstance(fig, matplotlib.figure.Figure):
             fig.canvas.mpl_connect("close_event", delete_event_channel)
         elif isinstance(fig, BrowserBase):
-            fig.mne.viewbox.destroyed.connect(delete_event_channel)
+            # The matplotlib-based browser case is a matplotlib.figure.Figure so is already
+            # handled. Therefore we can assume this is the QT-based browser.
+            from mne_qt_browser._pg_figure import MNEQtBrowser
+            assert isinstance(fig, MNEQtBrowser)
+            fig.mne.viewbox.destroyed.connect(delete_event_channel)           
         else:
             assert hasattr(fig, "_renderer")  # figures like Brain, EvokedField, etc.
             fig._renderer._window_close_connect(delete_event_channel, after=False)
