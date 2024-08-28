@@ -96,23 +96,42 @@ def andy_101() -> dict[str, dict[str, Path] | str | int | dict[str, str | int]]:
 def test_io_data(dataset, request):
     """Test loading of .cnt file."""
     dataset = request.getfixturevalue(dataset)
-    raw_cnt = read_raw_ant(dataset["cnt"]["short"])
+    raw_cnt = read_raw_ant(dataset["cnt"]["short"])  # preload=False
     raw_bv = read_raw_bv(dataset["bv"]["short"])
     cnt = raw_cnt.get_data()
     bv = raw_bv.get_data()
     assert cnt.shape == bv.shape
     assert_allclose(cnt, bv, atol=1e-8)
-    _raw_cnt = read_raw_ant(dataset["cnt"]["short"], preload=False)
-    assert_allclose(
-        raw_cnt.crop(0.05, 1.05).get_data(),
-        _raw_cnt.crop(0.05, 1.05).load_data().get_data(),
-    )
+
+    # check preload=False and preload=False with raw.load_data()
+    raw_cnt.crop(0.05, 1.05)
+    raw_cnt2 = read_raw_ant(dataset["cnt"]["short"], preload=False)
+    raw_cnt2.crop(0.05, 1.05).load_data()
+    assert_allclose(raw_cnt.get_data(), raw_cnt2.get_data())
+
+    # check preload=False vs Brainvision file
+    raw_bv.crop(0.05, 1.05)
+    assert_allclose(raw_cnt.get_data(), raw_bv.get_data(), atol=1e-8)
+
+    # check preload=False vs BrainVision file after dropping channels
+    raw_cnt.pick(raw_cnt.ch_names[::2])
+    raw_bv.pick(raw_bv.ch_names[::2])
+    assert_allclose(raw_cnt.get_data(), raw_bv.get_data(), atol=1e-8)
+
+    # check after raw_cnt.load_data()
+    raw_cnt.load_data()
+    assert_allclose(raw_cnt.get_data(), raw_bv.get_data(), atol=1e-8)
+
+    # check preload True vs False
     raw_cnt = read_raw_ant(dataset["cnt"]["short"], preload=False)
-    _raw_cnt = read_raw_ant(dataset["cnt"]["short"], preload=True)
+    raw_cnt2 = read_raw_ant(dataset["cnt"]["short"], preload=True)
     bads = [raw_cnt.ch_names[idx] for idx in (1, 5, 10)]
     assert_allclose(
-        raw_cnt.drop_channels(bads).get_data(), _raw_cnt.drop_channels(bads).get_data()
+        raw_cnt.drop_channels(bads).get_data(), raw_cnt2.drop_channels(bads).get_data()
     )
+    raw_bv = read_raw_bv(dataset["bv"]["short"]).drop_channels(bads)
+    assert_allclose(raw_cnt.get_data(), raw_bv.get_data(), atol=1e-8)
+    assert_allclose(raw_cnt2.get_data(), raw_bv.get_data(), atol=1e-8)
 
 
 def test_io_info_ca_208(ca_208: dict[str, dict[str, Path]]) -> None:
