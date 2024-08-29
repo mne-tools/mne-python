@@ -26,9 +26,48 @@ repo_root = Path(__file__).parents[2]
 doc_root = repo_root / "doc"
 data_dir = doc_root / "sphinxext"
 
+# TODO: For contributor names there are three sources of potential truth:
+#
+# 1. names.inc
+# 2. GitHub profile names (that we pull dynamically here)
+# 3. commit history / .mailmap.
+#
+# All three names can mismatch. Currently we try to defer to names.inc since this
+# is assumed to have been chosen the most consciously/intentionally by contributors.
+# Though it is possible that people can change their preferred names as well, so
+# preferring GitHub profile info (when complete!) is probably preferable.
+
+# Allowed singletons
+single_names = "btkcodedev buildqa sviter Akshay".split()
+# Allowed abbrevitaions in first/last name
+abbreviations = ["T. Wang"]
+# Manual renames
+manual_renames = {
+    "alexandra": "Alexandra Corneyllie",  # 7600
+    "alexandra.corneyllie": "Alexandra Corneyllie",  # 7600
+    "akshay0724": "Akshay",  # 4046, TODO: Check singleton
+    "AnneSo": "Anne-Sophie Dubarry",  # 4910
+    "Basile": "Basile Pinsard",  # 1791
+    "ChristinaZhao": "Christina Zhao",  # 9075
+    "Drew, J.": "Jordan Drew",  # 10861
+    "Hamid": "Hamid Maymandi",  # 10849
+    "jwelzel": "Julius Welzel",  # 11118
+    "Jean-Rémi King": "Jean-Rémi King",
+    "Martin": "Martin Billinger",  # 8099, TODO: Check
+    "Mats": "Mats van Es",  # 11068
+    "Michael": "Michael Krause",  # 3304
+    "Naveen": "Naveen Srinivasan",  # 10787
+    "NoahMarkowitz": "Noah Markowitz",  # 12669
+    "PAB": "Pierre-Antoine Bannier",  # 9430
+    "Rob Luke": "Robert Luke",
+    "Sena": "Sena Er",  # 11029
+    "TzionaN": "Tziona NessAiver",  # 10953
+    "Valerii": "Valerii Chirkov",  # 9043
+    "Zhenya": "Evgenii Kalenkovich",  # 6310, TODO: Check
+}
+
 
 def _good_name(name):
-    single_names = "btkcodedev buildqa sviter".split()
     if name is None:
         return False
     assert isinstance(name, str), type(name)
@@ -36,16 +75,19 @@ def _good_name(name):
         return False
     if " " not in name and name not in single_names:  # at least two parts
         return False
-    if "Deleted" in name:  # Avoid "Deleted user", can have in our mailmap
+    if name not in abbreviations and "." in name.split()[0] or "." in name.split()[-1]:
         return False
+    if " " in name and name not in abbreviations:
+        first = name.split()[0]
+        last = name.split()[-1]
+        if first == first.upper() or last == last.upper():  # e.g., KING instead of King
+            return False
     return True
 
 
 @verbose
 def generate_credit_rst(app=None, *, verbose=False):
     """Get the credit RST."""
-    # TODO: Maybe someday deduplicate names.inc, GitHub profile names that we pull, and
-    # our commit history / .mailmap. All three names can mismatch.
     sphinx_logger.info("Creating code credit RST inclusion file")
     ignores = [
         int(ignore.split("#", maxsplit=1)[1].strip().split()[0][:-1])
@@ -84,6 +126,18 @@ def generate_credit_rst(app=None, *, verbose=False):
 
     unknown_emails: set[str] = set()
 
+    # Use doc/changes/*.rst to map PR numbers to names
+    pr_author_map = dict()
+    author_re = re.compile(r":gh:`([0-9]+)` by (?::newcontrib:)?`([a-zA-Z.\- ]+)`_?")
+    change_paths = sorted(
+        Path(f) for f in glob.glob(str(doc_root / "changes" / "*.rst"))
+    )
+    for change_path in change_paths:
+        for pr, name in author_re.findall(change_path.read_text("utf-8"), re.DOTALL):
+            if pr not in pr_author_map:
+                assert _good_name(name), f"{change_path.stem} bad {name=} in {pr=}"
+                pr_author_map[pr] = name
+
     # dict with (name, commit) keys, values are int change counts
     # ("commits" is really "PRs" for Python mode)
     commits: dict[tuple[str], int] = defaultdict(lambda: 0)
@@ -96,6 +150,7 @@ def generate_credit_rst(app=None, *, verbose=False):
     )
 
     bad_commits = set()
+    expected_bad_names = dict()
 
     for fname in sorted(glob.glob(str(data_dir / "prs" / "*.json"))):
         commit = Path(fname).stem  # PR number is in the filename
@@ -128,11 +183,35 @@ def generate_credit_rst(app=None, *, verbose=False):
                     name = name_map[author["e"]]
                 else:
                     name = author["n"]
+                    if not _good_name(name) and commit in pr_author_map:
+                        name = pr_author_map[commit]
+                        assert _good_name(name), f"Bad remap from #{commit}"
+                    elif name in manual_renames:
+                        assert _good_name(
+                            manual_renames[name]
+                        ), f"Bad manual rename: {name}"
+                        name = manual_renames[name]
+                    if " " in name:
+                        first, last = name.rsplit(" ", maxsplit=1)
+                        if last == last.upper() and len(last) > 1:
+                            last = last.capitalize()
+                        if first == first.upper() and len(first) > 1:
+                            first = first.capitalize()
+                        name = f"{first} {last}"
+                        assert not first.upper() == first, name
+                    assert _good_name(name), repr(name)
+                    if "King" in name:
+                        assert name == "Jean-Rémi King", name
+
                 if name is None:
                     bad_commits.add(commit)
                     continue
                 if name in used_authors:
                     continue
+                if not _good_name(name) and name not in expected_bad_names:
+                    expected_bad_names[name] = f"{name} from #{commit}"
+                    if author["e"]:
+                        expected_bad_names[name] += f" email {author['e']}"
                 assert name.strip(), repr(name)
                 used_authors.add(name)
                 # treat moves and permission changes like a single-line change
@@ -146,7 +225,7 @@ def generate_credit_rst(app=None, *, verbose=False):
             + " ".join(f"{bad}.json" for bad in sorted(bad_commits, key=int))
         )
 
-    # Check for duplicate names based on last name.
+    # Check for duplicate names based on last name, and also singleton names.
     # Below are surnames where we have more than one distinct contributor:
     name_counts = dict(
         Das=2,
@@ -156,17 +235,29 @@ def generate_credit_rst(app=None, *, verbose=False):
         Wong=2,
         Zhang=2,
     )
+    # Below are allowed singleton names
     last_map = defaultdict(lambda: set())
+    bad_names = set()
     for these_stats in stats.values():
         for name in these_stats:
+            assert name == name.strip(), f"Un-stripped name: {repr(name)}"
             last = name.split()[-1]
+            first = name.split()[0]
             last_map[last].add(name)
-    bad_names = dict()
+            name_where = expected_bad_names.get(name, name)
+            if last == name and name not in single_names:
+                bad_names.add(f"Singleton:    {name_where}")
+            if "." in last or "." in first and name not in abbreviations:
+                bad_names.add(f"Abbreviation: {name_where}")
+    bad_names = sorted(bad_names)
     for last, names in last_map.items():
         if len(names) > name_counts.get(last, 1):
-            bad_names[last] = sorted(names)
+            bad_names.append(f"Duplicates:    {sorted(names)}")
     if bad_names:
-        raise RuntimeError("Unexpected duplicate names found:\n" + "\n".join(bad_names))
+        raise RuntimeError(
+            "Unexpected possible duplicates or bad names found:\n"
+            + "\n".join(bad_names)
+        )
 
     unknown_emails = set(
         email
@@ -399,8 +490,9 @@ contributions by submodule as well below.
             else:
                 raise RuntimeError(f"Too many digits in {v}")
             idx = 0 if ki < (len(these_stats) - 1) // 10 + 1 else 1
-            if "[bot]" in k or "Lumberbot" in k:
+            if any(b in k for b in ("[bot]", "Lumberbot", "Deleted user")):
                 continue
+            assert _good_name(k)
             stat_lines.append(f":{BADGE_KINDS[idx]}:`{k} ({v_round})`")
         stat_lines = f"\n{indent}".join(stat_lines)
         if mi == 0:
