@@ -8,12 +8,14 @@ import warnings
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+import numpy as np
 import pytest
 from numpy.testing import assert_allclose
 
 from mne import Annotations
 from mne.datasets import testing
-from mne.io import BaseRaw, read_raw_ant, read_raw_brainvision
+from mne.io import BaseRaw, read_raw, read_raw_ant, read_raw_brainvision
+from mne.io.ant.ant import RawANT
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -213,7 +215,9 @@ def test_machine_info(dataset, request):
 
 
 @testing.requires_testing_data
-def test_io_amp_disconnection(ca_208: dict[str, dict[str, Path]]) -> None:
+def test_io_amp_disconnection(
+    ca_208: dict[str, dict[str, Path] | str | int | dict[str, str | int]],
+):
     """Test loading of .cnt file with amplifier disconnection."""
     raw_cnt = read_raw_ant(ca_208["cnt"]["amp-dc"])
     raw_bv = read_raw_bv(ca_208["bv"]["amp-dc"])
@@ -245,7 +249,10 @@ def test_io_amp_disconnection(ca_208: dict[str, dict[str, Path]]) -> None:
 
 @testing.requires_testing_data
 @pytest.mark.parametrize("description", ["impedance", "test"])
-def test_io_impedance(ca_208: dict[str, dict[str, Path]], description: str) -> None:
+def test_io_impedance(
+    ca_208: dict[str, dict[str, Path] | str | int | dict[str, str | int]],
+    description: str,
+):
     """Test loading of impedances from a .cnt file."""
     raw_cnt = read_raw_ant(ca_208["cnt"]["amp-dc"], impedance_annotation=description)
     assert isinstance(raw_cnt.impedances, list)
@@ -260,8 +267,44 @@ def test_io_impedance(ca_208: dict[str, dict[str, Path]], description: str) -> N
 
 
 @testing.requires_testing_data
-def test_io_segments(ca_208: dict[str, dict[str, Path]]) -> None:
+def test_io_segments(
+    ca_208: dict[str, dict[str, Path] | str | int | dict[str, str | int]],
+):
     """Test reading a .cnt file with segents (start/stop)."""
     raw_cnt = read_raw_ant(ca_208["cnt"]["start-stop"])
     raw_bv = read_raw_bv(ca_208["bv"]["start-stop"])
     assert_allclose(raw_cnt.get_data(), raw_bv.get_data(), atol=1e-8)
+
+
+@testing.requires_testing_data
+def test_annotations_and_preload(
+    ca_208: dict[str, dict[str, Path] | str | int | dict[str, str | int]],
+):
+    """Test annotation loading with preload True/False."""
+    raw_cnt_preloaded = read_raw_ant(ca_208["cnt"]["short"], preload=True)
+    assert len(raw_cnt_preloaded.annotations) == 2  # impedance measurements, start/end
+    raw_cnt = read_raw_ant(ca_208["cnt"]["short"], preload=False)
+    assert len(raw_cnt.annotations) == 2
+    raw_cnt.crop(2, 3)
+    assert len(raw_cnt.annotations) == 0
+    raw_cnt.load_data()
+    assert len(raw_cnt.annotations) == 0
+
+    raw_cnt_preloaded = read_raw_ant(ca_208["cnt"]["amp-dc"], preload=True)
+    assert len(raw_cnt_preloaded.annotations) == 5  # 4 impedances, 1 disconnection
+    raw_cnt = read_raw_ant(ca_208["cnt"]["amp-dc"], preload=False)
+    assert len(raw_cnt.annotations) == 5
+    idx = np.where(raw_cnt.annotations.description == "BAD_disconnection")[0]
+    onset = raw_cnt.annotations.onset[idx][0]
+    raw_cnt.crop(0, onset - 1)
+    assert len(raw_cnt.annotations) == 1  # initial impedance measurement
+    assert raw_cnt.annotations.description[0] == "impedance"
+
+
+@testing.requires_testing_data
+def test_read_raw(
+    ca_208: dict[str, dict[str, Path] | str | int | dict[str, str | int]],
+):
+    """Test loading through read_raw."""
+    raw = read_raw(ca_208["cnt"]["short"])
+    assert isinstance(raw, RawANT)
