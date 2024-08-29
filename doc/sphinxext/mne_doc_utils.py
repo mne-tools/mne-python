@@ -161,6 +161,11 @@ def reset_warnings(gallery_conf, fname):
         "A worker stopped while some jobs were given to the executor.*",
         category=UserWarning,
     )
+    # neo
+    warnings.filterwarnings(
+        "ignore",
+        "The 'copy' argument in Quantity is deprecated.*",
+    )
 
     # In case we use np.set_printoptions in any tutorials, we only
     # want it to affect those:

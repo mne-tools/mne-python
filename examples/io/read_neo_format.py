@@ -22,10 +22,10 @@ import neo
 import mne
 
 # %%
-# This example uses NEO's ``ExampleIO`` object for creating fake data. The data
-# will be all zeros, so the plot won't be very interesting, but it should
-# demonstrate the steps to using NEO data. For actual data and different file
-# formats, consult the NEO documentation.
+# This example uses NEO's ``ExampleIO`` object for creating fake data. The data will be
+# all zeros, so the plot won't be very interesting, but it should demonstrate the steps
+# to using NEO data. For actual data and different file formats, consult the NEO
+# documentation.
 
 reader = neo.io.ExampleIO("fakedata.nof")
 block = reader.read(lazy=False)[0]  # get the first block
