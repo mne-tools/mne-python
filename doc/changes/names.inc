@@ -127,7 +127,7 @@
 .. _Jan Zerfowski: https://github.com/jzerfowski
 .. _Jasper van den Bosch: https://github.com/ilogue
 .. _Jean-Baptiste Schiratti: https://github.com/jbschiratti
-.. _Jean-Remi King: https://github.com/kingjr
+.. _Jean-Rémi King: https://github.com/kingjr
 .. _Jeff Stout: https://megcore.nih.gov/index.php/Staff
 .. _Jennifer Behnke: https://github.com/JKBehnke
 .. _Jeroen Van Der Donckt: https://github.com/jvdd
