@@ -1742,7 +1742,6 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         """Update the horizontal scrollbar (time) selection indicator."""
         self.mne.hsel_patch.set_xy((self.mne.t_start, 0))
         self.mne.hsel_patch.set_width(self.mne.duration)
-        publish(self, TimeChange(time=self.mne.t_start))
 
     def _check_update_hscroll_clicked(self, event):
         """Handle clicks on horizontal scrollbar."""
@@ -2232,6 +2231,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         text = self._xtick_formatter(xdata, ax_type="vline")[:12]
         self.mne.vline_text.set_text(text)
         self._toggle_vline(True)
+        publish(self, TimeChange(time=xdata))
 
     def _toggle_vline(self, visible):
         """Show or hide the vertical line(s)."""
@@ -2326,16 +2326,12 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
     def _on_time_change_event(self, event):
         """Respond to the TimeChange UI event."""
         if self.mne.is_epochs:
-            last_time = self.mne.n_times / self.mne.info["sfreq"]
+            # last_time = self.mne.n_times / self.mne.info["sfreq"]
+            time = event.time
         else:
-            last_time = self.mne.inst.times[-1]
-        t_max = last_time - self.mne.duration
-        old_t_start = self.mne.t_start
-        self.mne.t_start = np.clip(event.time, self.mne.first_time, t_max)
-        if self.mne.t_start != old_t_start:
-            with disable_ui_events(self):
-                self._update_hscroll()
-                self._redraw(annotations=True)
+            time = np.clip(event.time, self.mne.inst.times[0], self.mne.inst.times[-1])
+        with disable_ui_events(self):
+            self._show_vline(time)
 
 
 class MNELineFigure(MNEFigure):
