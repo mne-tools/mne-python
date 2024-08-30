@@ -50,9 +50,11 @@ manual_renames = {
     "Basile": "Basile Pinsard",  # 1791
     "ChristinaZhao": "Christina Zhao",  # 9075
     "Drew, J.": "Jordan Drew",  # 10861
+    "enzo": "Enzo Altamiranda",  # 11351
+    "Frostime": "Yiping Zuo",  # 11773
+    "Gennadiy": "Gennadiy Belonosov",  # 11720
     "Hamid": "Hamid Maymandi",  # 10849
     "jwelzel": "Julius Welzel",  # 11118
-    "Jean-Rémi King": "Jean-Rémi King",
     "Martin": "Martin Billinger",  # 8099, TODO: Check
     "Mats": "Mats van Es",  # 11068
     "Michael": "Michael Krause",  # 3304
@@ -126,18 +128,6 @@ def generate_credit_rst(app=None, *, verbose=False):
 
     unknown_emails: set[str] = set()
 
-    # Use doc/changes/*.rst to map PR numbers to names
-    pr_author_map = dict()
-    author_re = re.compile(r":gh:`([0-9]+)` by (?::newcontrib:)?`([a-zA-Z.\- ]+)`_?")
-    change_paths = sorted(
-        Path(f) for f in glob.glob(str(doc_root / "changes" / "*.rst"))
-    )
-    for change_path in change_paths:
-        for pr, name in author_re.findall(change_path.read_text("utf-8"), re.DOTALL):
-            if pr not in pr_author_map:
-                assert _good_name(name), f"{change_path.stem} bad {name=} in {pr=}"
-                pr_author_map[pr] = name
-
     # dict with (name, commit) keys, values are int change counts
     # ("commits" is really "PRs" for Python mode)
     commits: dict[tuple[str], int] = defaultdict(lambda: 0)
@@ -183,10 +173,7 @@ def generate_credit_rst(app=None, *, verbose=False):
                     name = name_map[author["e"]]
                 else:
                     name = author["n"]
-                    if not _good_name(name) and commit in pr_author_map:
-                        name = pr_author_map[commit]
-                        assert _good_name(name), f"Bad remap from #{commit}"
-                    elif name in manual_renames:
+                    if name in manual_renames:
                         assert _good_name(
                             manual_renames[name]
                         ), f"Bad manual rename: {name}"
@@ -198,8 +185,8 @@ def generate_credit_rst(app=None, *, verbose=False):
                         if first == first.upper() and len(first) > 1:
                             first = first.capitalize()
                         name = f"{first} {last}"
-                        assert not first.upper() == first, name
-                    assert _good_name(name), repr(name)
+                        assert not first.upper() == first, f"Bad {name=} from {commit}"
+                    assert _good_name(name), f"Bad {name=} from {commit}"
                     if "King" in name:
                         assert name == "Jean-Rémi King", name
 

@@ -176,7 +176,7 @@ def pytest_configure(config):
     # nibabel <-> NumPy 2.0
     ignore:__array__ implementation doesn't accept a copy.*:DeprecationWarning
     # quantities via neo
-    ignore:The 'copy' argument in Quantity is deprecated.*:quantities.QuantitiesDeprecationWarning
+    ignore:The 'copy' argument in Quantity is deprecated.*:
     """  # noqa: E501
     for warning_line in warning_lines.split("\n"):
         warning_line = warning_line.strip()
