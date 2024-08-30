@@ -42,7 +42,6 @@ os.environ["MNE_BROWSER_THEME"] = "light"
 os.environ["MNE_3D_OPTION_THEME"] = "light"
 # https://numba.readthedocs.io/en/latest/reference/deprecation.html#deprecation-of-old-style-numba-captured-errors  # noqa: E501
 os.environ["NUMBA_CAPTURED_ERRORS"] = "new_style"
-sphinx_logger = sphinx.util.logging.getLogger("mne")
 mne.html_templates._templates._COLLAPSED = True  # collapse info _repr_html_
 
 # -- Path setup --------------------------------------------------------------
@@ -53,8 +52,8 @@ mne.html_templates._templates._COLLAPSED = True  # collapse info _repr_html_
 curpath = Path(__file__).parent.resolve(strict=True)
 sys.path.append(str(curpath / "sphinxext"))
 
-from mne_doc_utils import report_scraper, reset_warnings  # noqa: E402
-from update_credit_rst import generate_credit_rst  # noqa: E402
+from credit_tools import generate_credit_rst  # noqa: E402
+from mne_doc_utils import report_scraper, reset_warnings, sphinx_logger  # noqa: E402
 
 # -- Project information -----------------------------------------------------
 
