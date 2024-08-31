@@ -10,7 +10,7 @@ PCA / ICA components, a.k.a. spatial filters, are used to transform
 the channel data to new sources / virtual channels. The output is
 visualized on the average of all the epochs.
 """
-# Authors: Jean-Remi King <jeanremi.king@gmail.com>
+# Authors: Jean-Rémi King <jeanremi.king@gmail.com>
 #          Asish Panda <asishrocks95@gmail.com>
 #
 # License: BSD-3-Clause
