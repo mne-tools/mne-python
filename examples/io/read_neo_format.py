@@ -6,7 +6,7 @@ How to use data in neural ensemble (NEO) format
 ===============================================
 
 This example shows how to create an MNE-Python `~mne.io.Raw` object from data
-in the `neural ensemble <https://neo.readthedocs.io>`__ format. For general
+in the `neural ensemble <https://neo.readthedocs.io>`_ format. For general
 information on creating MNE-Python's data objects from NumPy arrays, see
 :ref:`tut-creating-data-structures`.
 """
@@ -14,8 +14,6 @@ information on creating MNE-Python's data objects from NumPy arrays, see
 # Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
-
-# %%
 
 import neo
 
