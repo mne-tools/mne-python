@@ -372,6 +372,46 @@ class TimeChange(UIEvent):
 
 @dataclass
 @fill_doc
+class TimeBrowse(UIEvent):
+    """Indicates that the user has selected a range of time.
+
+    Parameters
+    ----------
+    time : tuple of float
+        The new time range in seconds.
+
+    Attributes
+    ----------
+    %(ui_event_name_source)s
+    time : tuple of float
+        The new time range in seconds.
+    """
+
+    time: tuple(float, float)
+
+
+@dataclass
+@fill_doc
+class ChannelBrowse(UIEvent):
+    """Indicates that the user has selected a channel.
+
+    Parameters
+    ----------
+    channel : str
+        The new channel name.
+
+    Attributes
+    ----------
+    %(ui_event_name_source)s
+    channel : str
+        The new channel name.
+    """
+
+    channel: str
+
+
+@dataclass
+@fill_doc
 class PlaybackSpeed(UIEvent):
     """Indicates that the user has selected a different playback speed for videos.
 
