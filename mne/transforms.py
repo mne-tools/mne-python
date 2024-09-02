@@ -2039,7 +2039,9 @@ def apply_volume_registration_points(
     if sdr_morph is not None:
         _require_version("dipy", "SDR morph", "1.6.0")
         locs = sdr_morph.transform_points(
-            locs, sdr_morph.domain_grid2world, sdr_morph.domain_world2grid
+            locs,
+            coord2world=sdr_morph.domain_grid2world,
+            world2coord=sdr_morph.domain_world2grid,
         )
     locs = apply_trans(
         Transform(  # to static voxels
