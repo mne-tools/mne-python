@@ -1818,10 +1818,10 @@ def _compute_volume_registration(
             sigma_diff_vox = sigma_diff_mm / current_zoom
             affine_map = AffineMap(
                 reg_affine,  # apply registration here
-                static_zoomed.shape,
-                static_affine,
-                moving_zoomed.shape,
-                moving_affine,
+                domain_grid_shape=static_zoomed.shape,
+                domain_grid2world=static_affine,
+                codomain_grid_shape=moving_zoomed.shape,
+                codomain_grid2world=moving_affine,
             )
             moving_zoomed = affine_map.transform(moving_zoomed)
             metric = metrics.CCMetric(
@@ -1841,8 +1841,8 @@ def _compute_volume_registration(
                 moved_zoomed, reg_affine = affine_registration(
                     moving_zoomed,
                     static_zoomed,
-                    moving_affine,
-                    static_affine,
+                    moving_affine=moving_affine,
+                    static_affine=static_affine,
                     nbins=32,
                     metric="MI",
                     pipeline=pipeline_options[step],
@@ -1936,7 +1936,11 @@ def apply_volume_registration(
     moving -= cval
     static, static_affine = np.asarray(static.dataobj), static.affine
     affine_map = AffineMap(
-        reg_affine, static.shape, static_affine, moving.shape, moving_affine
+        reg_affine,
+        domain_grid_shape=static.shape,
+        domain_grid2world=static_affine,
+        codomain_grid_shape=moving.shape,
+        codomain_grid2world=moving_affine,
     )
     reg_data = affine_map.transform(moving, interpolation=interpolation)
     if sdr_morph is not None:
