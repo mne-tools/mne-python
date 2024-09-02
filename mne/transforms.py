@@ -1829,7 +1829,10 @@ def _compute_volume_registration(
                 sigma_diff=sigma_diff_vox,
                 radius=max(int(np.ceil(2 * sigma_diff_vox)), 1),
             )
-            sdr = imwarp.SymmetricDiffeomorphicRegistration(metric, niter[step])
+            sdr = imwarp.SymmetricDiffeomorphicRegistration(
+                metric,
+                level_iters=niter[step],
+            )
             with wrapped_stdout(indent="    ", cull_newlines=True):
                 sdr_morph = sdr.optimize(
                     static_zoomed, moving_zoomed, static_affine, static_affine
