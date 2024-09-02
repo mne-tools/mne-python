@@ -1835,7 +1835,10 @@ def _compute_volume_registration(
             )
             with wrapped_stdout(indent="    ", cull_newlines=True):
                 sdr_morph = sdr.optimize(
-                    static_zoomed, moving_zoomed, static_affine, static_affine
+                    static_zoomed,
+                    moving_zoomed,
+                    static_grid2world=static_affine,
+                    moving_grid2world=static_affine,
                 )
             moved_zoomed = sdr_morph.transform(moving_zoomed)
         else:
