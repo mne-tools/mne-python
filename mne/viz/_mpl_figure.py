@@ -58,7 +58,12 @@ from .._fiff.pick import (
 from ..fixes import _close_event
 from ..utils import Bunch, _click_ch_name, check_version, logger
 from ._figure import BrowserBase
-from .ui_events import TimeChange, disable_ui_events, publish, subscribe
+from .ui_events import (
+    TimeChange,
+    disable_ui_events,
+    publish,
+    subscribe,
+)
 from .utils import (
     DraggableLine,
     _events_off,

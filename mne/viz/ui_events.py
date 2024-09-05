@@ -377,14 +377,18 @@ class TimeBrowse(UIEvent):
 
     Parameters
     ----------
-    time : tuple of float
-        The new time range in seconds.
+    time_start : float
+        The new start time in seconds.
+    time_end : float
+        The new end time in seconds.
 
     Attributes
     ----------
     %(ui_event_name_source)s
-    time : tuple of float
-        The new time range in seconds.
+    time_start : float
+        The new start time in seconds.
+    time_end : float
+        The new end time in seconds.
     """
 
     time_start: float
@@ -398,17 +402,17 @@ class ChannelBrowse(UIEvent):
 
     Parameters
     ----------
-    channel : str
-        The new channel name.
+    channels : list of str
+        The new channel names.
 
     Attributes
     ----------
     %(ui_event_name_source)s
-    channel : str
-        The new channel name.
+    channels : list of str
+        The new channel names.
     """
 
-    channels: list of str
+    channels: list[str]
 
 
 @dataclass
