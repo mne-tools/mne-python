@@ -393,7 +393,7 @@ class TimeBrowse(UIEvent):
 @dataclass
 @fill_doc
 class ChannelBrowse(UIEvent):
-    """Indicates that the user has selected a channel.
+    """Indicates that the user has browsed to a new range of channels.
 
     Parameters
     ----------
