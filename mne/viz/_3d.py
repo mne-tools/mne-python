@@ -2365,7 +2365,7 @@ def plot_source_estimates(
 
         .. versionadded:: 0.15.0
     title : str | None
-        Title for the figure. If None, the subject name will be used.
+        Title for the figure and the subject name. If None, only the subject name will be used.
 
         .. versionadded:: 0.17.0
     %(show_traces)s
@@ -2444,6 +2444,7 @@ def plot_source_estimates(
                 view_layout=view_layout,
                 add_data_kwargs=add_data_kwargs,
                 brain_kwargs=brain_kwargs,
+                title=title,
                 **kwargs,
             )
 
@@ -2479,6 +2480,7 @@ def _plot_stc(
     view_layout,
     add_data_kwargs,
     brain_kwargs,
+    title,
 ):
     from ..source_estimate import _BaseVolSourceEstimate
     from .backends.renderer import _get_3d_backend, get_brain_class
@@ -2521,7 +2523,12 @@ def _plot_stc(
     if overlay_alpha == 0:
         smoothing_steps = 1  # Disable smoothing to save time.
 
-    title = subject if len(hemis) > 1 else f"{subject} - {hemis[0]}"
+    sub_info = subject if len(hemis) > 1 else f"{subject} - {hemis[0]}"
+    if not title:
+        title = sub_info
+    else:
+        title = f"{title}, {sub_info}"
+
     kwargs = {
         "subject": subject,
         "hemi": hemi,
@@ -3171,6 +3178,7 @@ def plot_vector_source_estimates(
     view_layout="vertical",
     add_data_kwargs=None,
     brain_kwargs=None,
+    title=None,
     verbose=None,
 ):
     """Plot VectorSourceEstimate with PyVista.
@@ -3288,6 +3296,7 @@ def plot_vector_source_estimates(
         cortex=cortex,
         foreground=foreground,
         size=size,
+        title=title,
         scale_factor=scale_factor,
         show_traces=show_traces,
         src=src,
