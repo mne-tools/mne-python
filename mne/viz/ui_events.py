@@ -407,7 +407,7 @@ class ChannelBrowse(UIEvent):
         The new channel name.
     """
 
-    channel: str
+    channels: list of str
 
 
 @dataclass
