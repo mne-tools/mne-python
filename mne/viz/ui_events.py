@@ -387,7 +387,8 @@ class TimeBrowse(UIEvent):
         The new time range in seconds.
     """
 
-    time: tuple(float, float)
+    time_start: float
+    time_end: float
 
 
 @dataclass
