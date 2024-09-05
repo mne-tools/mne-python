@@ -373,7 +373,7 @@ class TimeChange(UIEvent):
 @dataclass
 @fill_doc
 class TimeBrowse(UIEvent):
-    """Indicates that the user has selected a range of time.
+    """Indicates that the user has browsed to a new time range.
 
     Parameters
     ----------
