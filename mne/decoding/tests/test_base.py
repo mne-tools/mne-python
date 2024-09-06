@@ -13,6 +13,9 @@ from numpy.testing import (
     assert_array_less,
     assert_equal,
 )
+
+pytest.importorskip("sklearn")
+
 from sklearn import svm
 from sklearn.base import (
     BaseEstimator as sklearn_BaseEstimator,
@@ -33,7 +36,7 @@ from sklearn.model_selection import (
 )
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
-from sklearn.utils.estimator_checks import check_estimator
+from sklearn.utils.estimator_checks import parametrize_with_checks
 
 from mne import EpochsArray, create_info
 from mne.decoding import GeneralizingEstimator, Scaler, TransformerMixin, Vectorizer
@@ -453,16 +456,15 @@ def test_cross_val_multiscore():
         assert_array_equal(manual, auto)
 
 
-def test_sklearn_compliance():
+@parametrize_with_checks([LinearModel(LogisticRegression())])
+def test_sklearn_compliance(estimator, check):
     """Test LinearModel compliance with sklearn."""
-    lm = LinearModel(LogisticRegression())
     ignores = (
-        "check_dtype_object",
+        "check_n_features_in",  # maybe we should add this someday?
         "check_estimator_sparse_data",  # we densify
         "check_estimators_overwrite_params",  # self.model changes!
         "check_parameters_default_constructible",
     )
-    for est, check in check_estimator(lm, generate_only=True):
-        if any(ignore in str(check) for ignore in ignores):
-            continue
-        check(est)
+    if any(ignore in str(check) for ignore in ignores):
+        return
+    check(estimator)

@@ -77,9 +77,6 @@ class LinearModel(BaseEstimator):
 
         self.model = model
 
-    def _more_tags(self):
-        return {"no_validation": True}
-
     def __getattr__(self, attr):
         """Wrap to model for some attributes."""
         if attr in LinearModel._model_attr_wrap:
@@ -112,12 +109,13 @@ class LinearModel(BaseEstimator):
             Returns the modified instance.
         """
         X = check_array(X, input_name="X")
-        y = check_array(y, dtype=None, ensure_2d=False, input_name="y")
-        if y.ndim > 2:
-            raise ValueError(
-                f"LinearModel only accepts up to 2-dimensional y, got {y.shape} "
-                "instead."
-            )
+        if y is not None:
+            y = check_array(y, dtype=None, ensure_2d=False, input_name="y")
+            if y.ndim > 2:
+                raise ValueError(
+                    f"LinearModel only accepts up to 2-dimensional y, got {y.shape} "
+                    "instead."
+                )
 
         # fit the Model
         self.model.fit(X, y, **fit_params)

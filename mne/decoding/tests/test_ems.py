@@ -7,6 +7,9 @@ from pathlib import Path
 import numpy as np
 import pytest
 from numpy.testing import assert_array_almost_equal, assert_equal
+
+pytest.importorskip("sklearn")
+
 from sklearn.model_selection import StratifiedKFold
 
 from mne import Epochs, io, pick_types, read_events

@@ -57,9 +57,6 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
         self.allow_2d = allow_2d
         self.verbose = verbose
 
-    def _more_tags(self):
-        return {"no_validation": True, "requires_fit": False}
-
     @property
     def _estimator_type(self):
         return getattr(self.base_estimator, "_estimator_type", None)

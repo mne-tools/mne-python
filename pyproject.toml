@@ -255,6 +255,10 @@ ignore-decorators = [
 "examples/preprocessing/eeg_bridging.py" = [
     "E501", # line too long
 ]
+"mne/decoding/tests/test_*.py" = [
+    "E402", # Module level import not at top of file
+]
+
 
 [tool.pytest.ini_options]
 # -r f (failed), E (error), s (skipped), x (xfail), X (xpassed), w (warnings)

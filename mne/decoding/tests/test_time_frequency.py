@@ -6,6 +6,9 @@
 import numpy as np
 import pytest
 from numpy.testing import assert_array_equal
+
+pytest.importorskip("sklearn")
+
 from sklearn.base import clone
 
 from mne.decoding.time_frequency import TimeFrequency

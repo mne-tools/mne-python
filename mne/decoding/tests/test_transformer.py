@@ -12,6 +12,9 @@ from numpy.testing import (
     assert_array_equal,
     assert_equal,
 )
+
+pytest.importorskip("sklearn")
+
 from sklearn.decomposition import PCA
 from sklearn.kernel_ridge import KernelRidge
 

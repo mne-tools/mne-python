@@ -9,6 +9,9 @@ import numpy as np
 import pytest
 import sklearn
 from numpy.testing import assert_array_equal, assert_equal
+
+pytest.importorskip("sklearn")
+
 from sklearn.base import BaseEstimator, clone, is_classifier
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.ensemble import BaggingClassifier
@@ -18,7 +21,7 @@ from sklearn.model_selection import cross_val_predict
 from sklearn.multiclass import OneVsRestClassifier
 from sklearn.pipeline import make_pipeline
 from sklearn.svm import SVC
-from sklearn.utils.estimator_checks import check_estimator
+from sklearn.utils.estimator_checks import parametrize_with_checks
 
 from mne.decoding.search_light import GeneralizingEstimator, SlidingEstimator
 from mne.decoding.transformer import Vectorizer
@@ -341,10 +344,9 @@ def test_cross_val_predict():
 
 
 @pytest.mark.slowtest
-def test_sklearn_compliance():
+@parametrize_with_checks([SlidingEstimator(LogisticRegression(), allow_2d=True)])
+def test_sklearn_compliance(estimator, check):
     """Test LinearModel compliance with sklearn."""
-    est = SlidingEstimator(LogisticRegression(), allow_2d=True)
-
     ignores = (
         "check_estimator_sparse_data",  # we densify
         "check_classifiers_one_label_sample_weights",  # don't handle singleton
@@ -352,8 +354,12 @@ def test_sklearn_compliance():
         "check_classifiers_train",
         "check_decision_proba_consistency",
         "check_parameters_default_constructible",
+        # Should probably fix these?
+        "check_estimators_unfitted",
+        "check_transformer_data_not_an_array",
+        "check_n_features_in",
+        "check_fit2d_predict1d",
     )
-    for est, check in check_estimator(est, generate_only=True):
-        if any(ignore in str(check) for ignore in ignores):
-            continue
-        check(est)
+    if any(ignore in str(check) for ignore in ignores):
+        return
+    check(estimator)

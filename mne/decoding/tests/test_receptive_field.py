@@ -9,8 +9,11 @@ import pytest
 from numpy import einsum
 from numpy.fft import irfft, rfft
 from numpy.testing import assert_allclose, assert_array_equal, assert_equal
+
+pytest.importorskip("sklearn")
+
 from sklearn.linear_model import Ridge
-from sklearn.utils.estimator_checks import check_estimator
+from sklearn.utils.estimator_checks import parametrize_with_checks
 
 from mne.decoding import ReceptiveField, TimeDelayingRidge
 from mne.decoding.receptive_field import (
@@ -580,9 +583,9 @@ def test_linalg_warning():
             rf.fit(y, X)
 
 
-def test_tdr_sklearn_compliance():
+@parametrize_with_checks([TimeDelayingRidge(0, 10, 1.0, 0.1, "laplacian", n_jobs=1)])
+def test_tdr_sklearn_compliance(estimator, check):
     """Test sklearn estimator compliance."""
-    tdr = TimeDelayingRidge(0, 10, 1.0, 0.1, "laplacian", n_jobs=1)
     # We don't actually comply with a bunch of the regressor specs :(
     ignores = (
         "check_supervised_y_no_nan",
@@ -590,23 +593,36 @@ def test_tdr_sklearn_compliance():
         "check_parameters_default_constructible",
         "check_estimators_unfitted",
         "_invariance",
+        "check_complex_data",
+        "check_estimators_empty_data_messages",
+        "check_estimators_nan_inf",
+        "check_supervised_y_2d",
+        "check_n_features_in",
         "check_fit2d_1sample",
+        "check_fit1d",
+        "check_fit2d_predict1d",
+        "check_requires_y_none",
     )
-    for est, check in check_estimator(tdr, generate_only=True):
-        if any(ignore in str(check) for ignore in ignores):
-            continue
-        check(est)
+    if any(ignore in str(check) for ignore in ignores):
+        return
+    check(estimator)
 
 
-def test_rf_sklearn_compliance():
+@pytest.mark.filterwarnings("ignore:.*invalid value encountered in subtract.*:")
+@parametrize_with_checks([ReceptiveField(-1, 2, 1.0, estimator=Ridge(), patterns=True)])
+def test_rf_sklearn_compliance(estimator, check):
     """Test sklearn RF compliance."""
-    rf = ReceptiveField(-1, 2, 1.0, estimator=Ridge(), patterns=True)
     ignores = (
         "check_parameters_default_constructible",
         "_invariance",
         "check_fit2d_1sample",
+        # Should probably fix these?
+        "check_complex_data",
+        "check_dtype_object",
+        "check_estimators_empty_data_messages",
+        "check_n_features_in",
+        "check_fit2d_predict1d",
     )
-    for est, check in check_estimator(rf, generate_only=True):
-        if any(ignore in str(check) for ignore in ignores):
-            continue
-        check(est)
+    if any(ignore in str(check) for ignore in ignores):
+        return
+    check(estimator)

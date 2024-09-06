@@ -12,6 +12,9 @@ from numpy.testing import (
     assert_array_equal,
     assert_equal,
 )
+
+pytest.importorskip("sklearn")
+
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import StratifiedKFold, cross_val_score
 from sklearn.pipeline import Pipeline, make_pipeline

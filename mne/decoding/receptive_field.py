@@ -126,9 +126,6 @@ class ReceptiveField(BaseEstimator):
         self.n_jobs = n_jobs
         self.edge_correction = edge_correction
 
-    def _more_tags(self):
-        return {"no_validation": True}
-
     def __repr__(self):  # noqa: D105
         s = f"tmin, tmax : ({self.tmin:.3f}, {self.tmax:.3f}), "
         estimator = self.estimator
