@@ -1,5 +1,5 @@
 import numpy as np
-import mne
+# import mne
 from scipy.signal import filtfilt, detrend
 import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
@@ -19,31 +19,15 @@ def PCA_OBS(data, **kwargs):
     pca_info = PCAInfo()
 
     # Check all necessary arguments sent in
-    required_kws = ["debug_mode", "qrs", "filter_coords", "sr", "savename", "ch_names", "sub_nr", "condition",
-                    "current_channel"]
+    required_kws = ["qrs", "filter_coords", "sr"]
     assert all([kw in kwargs.keys() for kw in required_kws]), "Error. Some KWs not passed into PCA_OBS."
 
     # Extract all kwargs
-    debug_mode = kwargs['debug_mode']
     qrs = kwargs['qrs']
     filter_coords = kwargs['filter_coords']
     sr = kwargs['sr']
-    ch_names = kwargs['ch_names']
-    sub_nr = kwargs['sub_nr']
-    condition = kwargs['condition']
-    if debug_mode:  # Only need current channel and saving if we're debugging
-        current_channel = kwargs['current_channel']
-        savename = kwargs['savename']
 
     fs = sr
-
-    # Standard delay between QRS peak and artifact
-    delay = 0
-
-    Gwindow = 2
-    GHW = np.floor(Gwindow / 2).astype('int')
-    rcount = 0
-    firstplot = 1
 
     # set to baseline
     data = data.reshape(-1, 1)
@@ -58,9 +42,6 @@ def PCA_OBS(data, **kwargs):
     for idx in qrs[0]:
         if idx < len(peakplot[0, :]):
             peakplot[0, idx] = 1  # logical indexed locations of qrs events
-    # sh = np.zeros((1, delay))
-    # np1 = len(peakplot)
-    # peakplot = [sh, peakplot[0:np1 - delay]] # shifts indexed array by the delay - skipped here since delay=0
 
     peak_idx = np.nonzero(peakplot)[1]  # Selecting indices along columns
     peak_idx = peak_idx.reshape(-1, 1)
@@ -117,34 +98,6 @@ def PCA_OBS(data, **kwargs):
 
     # define selected number of  components using profile likelihood
     pca_info.nComponents = 4
-
-    # Creates plots
-    if debug_mode:
-        # plot pca variables figure
-        comp2plot = pca_info.nComponents
-        fig, axs = plt.subplots(2, 2)
-        for a in np.arange(comp2plot):
-            axs[0, 0].plot(pca_info.eigen_vectors[:, a], label=f"Data {a}")
-            axs[1, 1].plot(pca_info.factor_loadings[:, a], label=f"Data {a}")
-        axs[0, 0].set_title('Evec')
-        axs[1, 1].set_title('Factor Loadings')
-        axs[1, 1].set(xlabel='time')
-
-        axs[0, 1].plot(np.arange(len(pca_info.expl_var)), pca_info.expl_var, 'r*')
-        axs[0, 1].set(xlabel='components', ylabel='var explained (%)')
-        cum_explained = np.cumsum(pca_info.expl_var)
-        axs[0, 1].set_title(f"first {pca_info.nComponents} comp, {cum_explained[pca_info.nComponents]} % var")
-
-        axs[1, 0].plot(pca_info.eigen_values)
-        axs[1, 0].set_title('eigenvalues')
-        axs[1, 0].set(xlabel='components')
-
-        fig.suptitle(f"{sub_nr} thresholds PCA vars channel {current_channel}")
-        plt.tight_layout()
-        fig.savefig(f"{savename}_{condition}.jpg")
-
-    if debug_mode:
-        pca_info.chan = current_channel
     pca_info.meanEffect = mean_effect.T
     nComponents = pca_info.nComponents
 
@@ -153,20 +106,6 @@ def PCA_OBS(data, **kwargs):
     #######################################################################
     mean_effect = mean_effect.reshape(-1, 1)
     pca_template = np.c_[mean_effect, factor_loadings[:, 0:nComponents]]
-
-    # Plot template vars
-    if debug_mode:
-        # plot template vars
-        fig = plt.figure()
-        pcatime = (np.arange(-peak_range, peak_range+1))/fs
-        pcatime = pcatime.reshape(-1)
-        plt.plot(pcatime, std_effect)
-        plt.plot(pcatime, mean_effect)
-        plt.plot(pcatime, factor_loadings[:, 0: nComponents])
-        plt.legend(['std effect', 'mean effect', 'PCA_1', 'PCA_2', 'PCA_3', 'PCA_4'])
-        fig.suptitle(f"{sub_nr} papc channel {current_channel}")
-        plt.tight_layout()
-        fig.savefig(f"{savename}_templateVars_{condition}.jpg")
 
     ###################################################################################
     # Data Fitting
@@ -227,27 +166,6 @@ def PCA_OBS(data, **kwargs):
             except Exception as e:
                 print(f"Cannot fit middle section of data. Reason: {e}")
 
-    # Plot some channels
-    if debug_mode:
-        # check with plot what has been done
-        # First check if this channel is one we want to plot for debugging
-        plotChannel = 0
-        for ii in range(0,len(ch_names)):
-            if current_channel == ch_names[ii]:
-                plotChannel = 1
-
-        if plotChannel == 1:
-            fig = plt.figure()
-            plt.plot((np.arange(0, len(fitted_art[0, :]))/fs).reshape(-1, 1), data[:].T, zorder=0)
-            plt.plot((np.arange(0, len(fitted_art[0, :]))/fs).reshape(-1, 1), eegchan[:].T, 'r', zorder=5)
-            plt.plot((np.arange(0, len(fitted_art[0, :]))/fs).reshape(-1, 1), fitted_art[:].T, 'g', zorder=10)
-            plt.plot((np.arange(0, len(fitted_art[0, :]))/fs).reshape(-1, 1), (np.subtract(data[:], fitted_art[:])).T, 'm', zorder=15)
-            plt.legend(['raw data', 'filtered', 'fitted_art', 'clean'], loc='upper right').set_zorder(20)
-            plt.xlabel('time [s]')
-            plt.ylabel('amplitude [V]')
-            plt.title('Subject ' + sub_nr + ', channel ' + current_channel)
-            fig.savefig(f"{savename}_compareresults_{condition}.jpg")
-
     # Actually subtract the artefact, return needs to be the same shape as input data
     # One sample shift purely due to the fact the r-peaks are currently detected in MATLAB
     data = data.reshape(-1)
@@ -263,19 +181,6 @@ def PCA_OBS(data, **kwargs):
     # Original code is this:
     # data -= fitted_art
     # data = data.T.reshape(-1)
-
-    # Can't add annotations for window start and end (sample number added) to mne raw structure here
-    # Add it to the pca info class and store it that way
-    # Can then access in the main rm_heart_artefact and create the annotations
-    # Only save the pca vars if we're in debug mode
-    if debug_mode:
-        pca_info.window_start_idx = window_start_idx
-        pca_info.window_end_idx = window_end_idx
-        dataset_keywords = [a for a in dir(pca_info) if not a.startswith('__')]
-        fn = f"{savename}_{condition}_pca_info.h5"
-        with h5py.File(fn, "w") as outfile:
-            for keyword in dataset_keywords:
-                outfile.create_dataset(keyword, data=getattr(pca_info, keyword))
 
     # Can only return data
     return data

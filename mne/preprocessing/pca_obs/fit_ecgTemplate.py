@@ -68,11 +68,4 @@ def fit_ecgTemplate(data, pca_template, aPeak_idx, peak_range, pre_range, post_r
             fitecg.y_interpol = y_interpol
             fitecg.fitted_art = fitted_art  # Reassign if we've gone into this loop
 
-    # # Save to file to compare to matlab - only for debugging
-    # dataset_keywords = [a for a in dir(fitecg) if not a.startswith('__')]
-    # fn = f"/data/pt_02569/tmp_data/test_data/fitecg_test_{aPeak_idx[0]}_sub-001_tibial_S35.h5"
-    # with h5py.File(fn, "w") as outfile:
-    #     for keyword in dataset_keywords:
-    #         outfile.create_dataset(keyword, data=getattr(fitecg, keyword))
-
     return fitted_art, post_idx_nextPeak

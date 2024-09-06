@@ -1,6 +1,6 @@
 # Function to interpolate based on PCHIP rather than MNE inbuilt linear option
 
-import mne
+# import mne
 import numpy as np
 from scipy.interpolate import PchipInterpolator as pchip
 import matplotlib.pyplot as plt
@@ -8,22 +8,13 @@ import matplotlib.pyplot as plt
 
 def PCHIP_interpolation(data, **kwargs):
     # Check all necessary arguments sent in
-    required_kws = ["trigger_indices", "interpol_window_sec", "fs", "debug_mode"]
+    required_kws = ["trigger_indices", "interpol_window_sec", "fs"]
     assert all([kw in kwargs.keys() for kw in required_kws]), "Error. Some KWs not passed into PCA_OBS."
 
     # Extract all kwargs - more elegant ways to do this
     fs = kwargs['fs']
     interpol_window_sec = kwargs['interpol_window_sec']
     trigger_indices = kwargs['trigger_indices']
-    debug_mode = kwargs['debug_mode']
-
-    if debug_mode:
-        plt.figure()
-        # plot signal with artifact
-        plot_range = [-50, 100]
-        test_trial = 100
-        xx = (np.arange(plot_range[0], plot_range[1])) / fs * 1000
-        plt.plot(xx, data[trigger_indices[test_trial] + plot_range[0]:trigger_indices[test_trial] + plot_range[1]])
 
     # Convert intpol window to msec then convert to samples
     pre_window = round((interpol_window_sec[0]*1000) * fs / 1000)  # in samples
@@ -47,13 +38,5 @@ def PCHIP_interpolation(data, **kwargs):
 
         if np.mod(ii, 100) == 0:  # talk to the operator every 100th trial
             print(f'stimulation event {ii} \n')
-
-    if debug_mode:
-        # plot signal with interpolated artifact
-        plt.figure()
-        plt.plot(xx, data[trigger_indices[test_trial] + plot_range[0]: trigger_indices[test_trial] + plot_range[1]])
-        plt.title('After Correction')
-
-    plt.show()
 
     return data
