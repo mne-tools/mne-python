@@ -11,7 +11,7 @@ from .._fiff.meas_info import create_info
 from ..cov import _compute_rank_raw_array, _regularized_covariance, _smart_eigh
 from ..defaults import _BORDER_DEFAULT, _EXTRAPOLATE_DEFAULT, _INTERPOLATION_DEFAULT
 from ..evoked import EvokedArray
-from ..utils import _check_option, _validate_type, _verbose_safe_false, fill_doc, pinv
+from ..utils import _check_option, _validate_type, _verbose_safe_false, fill_doc, pinv, warn
 from .base import BaseEstimator
 from .mixin import TransformerMixin
 
@@ -385,6 +385,9 @@ class CSP(TransformerMixin, BaseEstimator):
         if components is None:
             components = np.arange(self.n_components)
 
+        if average is not None:
+            warn("`average` is deprecated and will be removed in 1.10.", FutureWarning)
+
         # set sampling frequency to have 1 component per time point
         info = cp.deepcopy(info)
         with info._unlock():
@@ -515,6 +518,9 @@ class CSP(TransformerMixin, BaseEstimator):
             units = "AU"
         if components is None:
             components = np.arange(self.n_components)
+
+        if average is not None:
+            warn("`average` is deprecated and will be removed in 1.10.", FutureWarning)
 
         # set sampling frequency to have 1 component per time point
         info = cp.deepcopy(info)
