@@ -25,11 +25,13 @@ if [[ "${PLATFORM}" == "Linux" ]]; then
 fi
 python -m pip install $STD_ARGS --only-binary ":all:" --default-timeout=60 \
 	--index-url "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" \
-	"numpy>=2.1.0.dev0" "scikit-learn>=1.6.dev0" "scipy>=1.15.0.dev0" \
+	"numpy>=2.1.0.dev0" "scipy>=1.15.0.dev0" \
 	"statsmodels>=0.15.0.dev0" "pandas>=3.0.0.dev0" "matplotlib>=3.10.0.dev0" \
 	$OTHERS
 
 # No Numba because it forces an old NumPy version
+# No sklearn from SPNW until we figure out https://github.com/scikit-learn/scikit-learn/pull/29677
+pip install $STD_ARGS --upgrade scikit-learn
 
 if [[ "${PLATFORM}" == "Linux" ]]; then
 	echo "pymatreader"
