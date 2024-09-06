@@ -270,10 +270,10 @@ def _read_elc(fname, head_size):
             if "Labels\n" in line:
                 break
             if ":" in line:
-                # Of the 'new' format: `E01	:	5.288	-3.658	119.693`
+                # Of the 'new' format: `E01 : 5.288 -3.658 119.693`
                 pos.append(list(map(float, line.split(":")[1].split())))
             else:
-                # Of the 'old' format: `5.288	-3.658	119.693`
+                # Of the 'old' format: `5.288 -3.658 119.693`
                 pos.append(list(map(float, line.split())))
 
         # Read labels
