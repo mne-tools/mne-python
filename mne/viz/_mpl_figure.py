@@ -59,6 +59,8 @@ from ..fixes import _close_event
 from ..utils import Bunch, _click_ch_name, check_version, logger
 from ._figure import BrowserBase
 from .ui_events import (
+    ChannelBrowse,
+    TimeBrowse,
     TimeChange,
     disable_ui_events,
     publish,
@@ -572,8 +574,14 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
             vline_text=vline_text,
         )
 
-        # Start listening to incoming UI events
+        # Start listening to incoming TimeChange UI events
         subscribe(self, "time_change", self._on_time_change_event)
+
+        # Start listening to incoming TimeBrowse UI events
+        subscribe(self, "time_browse", self._on_time_browse_event)
+
+        # Start listening to incoming ChannelBrowse UI events
+        subscribe(self, "channel_browse", self._on_channel_browse_event)
 
     def _get_size(self):
         return self.get_size_inches()
@@ -1743,10 +1751,20 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         self.mne.vsel_patch.set_height(self.mne.n_channels)
         self._update_yaxis_labels()
 
+        # Publish to event system
+        publish(self, ChannelBrowse(channels=self.mne.ch_names[self.mne.picks]))
+
     def _update_hscroll(self):
         """Update the horizontal scrollbar (time) selection indicator."""
         self.mne.hsel_patch.set_xy((self.mne.t_start, 0))
         self.mne.hsel_patch.set_width(self.mne.duration)
+        publish(
+            self,
+            TimeBrowse(
+                time_start=self.mne.t_start,
+                time_end=self.mne.t_start + self.mne.duration,
+            ),
+        )
 
     def _check_update_hscroll_clicked(self, event):
         """Handle clicks on horizontal scrollbar."""
@@ -2337,6 +2355,27 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
             time = np.clip(event.time, self.mne.inst.times[0], self.mne.inst.times[-1])
         with disable_ui_events(self):
             self._show_vline(time)
+
+    def _on_time_browse_event(self, event):
+        """Respond to the TimeBrowse UI event."""
+        time_start = event.time_start
+        time_end = event.time_end
+        self.mne.t_start = time_start
+        self.mne.duration = time_end - time_start
+        with disable_ui_events(self):
+            self._update_hscroll()
+            self._redraw(annotations=True)
+
+    def _on_channel_browse_event(self, event):
+        """Respond to the ChannelBrowse UI event."""
+        all_channels = self.mne.ch_names[self.mne.ch_order]
+        ch_indices = [np.where(all_channels == ch)[0][0] for ch in event.channels]
+        with disable_ui_events(self):
+            self.mne.ch_start = ch_indices[0]
+            self.mne.n_channels = len(ch_indices)
+            self._update_picks()
+            self._update_vscroll()
+            self._redraw(annotations=True)
 
 
 class MNELineFigure(MNEFigure):
