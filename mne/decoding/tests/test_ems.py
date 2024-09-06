@@ -7,6 +7,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 from numpy.testing import assert_array_almost_equal, assert_equal
+from sklearn.model_selection import StratifiedKFold
 
 from mne import Epochs, io, pick_types, read_events
 from mne.decoding import EMS, compute_ems
@@ -17,13 +18,9 @@ event_name = data_dir / "test-eve.fif"
 tmin, tmax = -0.2, 0.5
 event_id = dict(aud_l=1, vis_l=3)
 
-pytest.importorskip("sklearn")
-
 
 def test_ems():
     """Test event-matched spatial filters."""
-    from sklearn.model_selection import StratifiedKFold
-
     raw = io.read_raw_fif(raw_fname, preload=False)
 
     # create unequal number of events

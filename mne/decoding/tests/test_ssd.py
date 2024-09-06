@@ -7,6 +7,7 @@ import sys
 import numpy as np
 import pytest
 from numpy.testing import assert_array_almost_equal, assert_array_equal
+from sklearn.pipeline import Pipeline
 
 from mne import create_info, io
 from mne.decoding import CSP
@@ -298,9 +299,6 @@ def test_ssd_epoched_data():
 
 def test_ssd_pipeline():
     """Test if SSD works in a pipeline."""
-    pytest.importorskip("sklearn")
-    from sklearn.pipeline import Pipeline
-
     sf = 250
     X, A, S = simulate_data(n_trials=100, n_channels=20, n_samples=500)
     X_e = np.reshape(X, (100, 20, 500))

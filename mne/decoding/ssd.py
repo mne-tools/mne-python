@@ -4,12 +4,12 @@
 
 import numpy as np
 from scipy.linalg import eigh
+from sklearn.base import BaseEstimator, TransformerMixin
 
 from .._fiff.pick import _picks_to_idx
 from ..cov import Covariance, _regularized_covariance
 from ..defaults import _handle_default
 from ..filter import filter_data
-from ..fixes import BaseEstimator
 from ..rank import compute_rank
 from ..time_frequency import psd_array_welch
 from ..utils import (
@@ -20,7 +20,6 @@ from ..utils import (
     fill_doc,
     logger,
 )
-from .mixin import TransformerMixin
 
 
 @fill_doc
@@ -125,9 +124,9 @@ class SSD(BaseEstimator, TransformerMixin):
                 "The signal band-pass must be within the noise "
                 "band-pass!"
             )
-        self.picks_ = _picks_to_idx(info, picks, none="data", exclude="bads")
+        self.picks = _picks_to_idx(info, picks, none="data", exclude="bads")
         del picks
-        ch_types = info.get_channel_types(picks=self.picks_, unique=True)
+        ch_types = info.get_channel_types(picks=self.picks, unique=True)
         if len(ch_types) > 1:
             raise ValueError(
                 "At this point SSD only supports fitting "
@@ -184,7 +183,7 @@ class SSD(BaseEstimator, TransformerMixin):
             Returns the modified instance.
         """
         self._check_X(X)
-        X_aux = X[..., self.picks_, :]
+        X_aux = X[..., self.picks, :]
 
         X_signal = filter_data(X_aux, self.info["sfreq"], **self.filt_params_signal)
         X_noise = filter_data(X_aux, self.info["sfreq"], **self.filt_params_noise)
@@ -225,7 +224,7 @@ class SSD(BaseEstimator, TransformerMixin):
         # We assume that ordering by spectral ratio is more important
         # than the initial ordering. This ordering should be also learned when
         # fitting.
-        X_ssd = self.filters_.T @ X[..., self.picks_, :]
+        X_ssd = self.filters_.T @ X[..., self.picks, :]
         sorter_spec = Ellipsis
         if self.sort_by_spectral_ratio:
             _, sorter_spec = self.get_spectral_ratio(ssd_sources=X_ssd)
@@ -252,9 +251,9 @@ class SSD(BaseEstimator, TransformerMixin):
         if self.filters_ is None:
             raise RuntimeError("No filters available. Please first call fit")
         if self.return_filtered:
-            X_aux = X[..., self.picks_, :]
+            X_aux = X[..., self.picks, :]
             X = filter_data(X_aux, self.info["sfreq"], **self.filt_params_signal)
-        X_ssd = self.filters_.T @ X[..., self.picks_, :]
+        X_ssd = self.filters_.T @ X[..., self.picks, :]
         if X.ndim == 2:
             X_ssd = X_ssd[self.sorter_spec][: self.n_components]
         else:
@@ -330,6 +329,11 @@ class SSD(BaseEstimator, TransformerMixin):
         pick_patterns = self.patterns_[self.sorter_spec][: self.n_components].T
         X = pick_patterns @ X_ssd
         return X
+
+    @property
+    def picks_(self):
+        """Backward compatible wrapper for picks."""
+        return self.picks
 
 
 def _dimensionality_reduction(cov_signal, cov_noise, info, rank):

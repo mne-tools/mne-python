@@ -6,8 +6,10 @@ import numbers
 
 import numpy as np
 from scipy.stats import pearsonr
+from sklearn.base import clone, is_regressor
+from sklearn.metrics import r2_score
 
-from ..utils import _validate_type, fill_doc, pinv, verbose
+from ..utils import _validate_type, fill_doc, pinv
 from .base import BaseEstimator, _check_estimator, get_coef
 from .time_delaying_ridge import TimeDelayingRidge
 
@@ -65,7 +67,6 @@ class ReceptiveField(BaseEstimator):
         duration. Only used if ``estimator`` is float or None.
 
         .. versionadded:: 0.18
-    %(verbose)s
 
     Attributes
     ----------
@@ -101,7 +102,6 @@ class ReceptiveField(BaseEstimator):
     .. footbibliography::
     """  # noqa E501
 
-    @verbose
     def __init__(
         self,
         tmin,
@@ -114,12 +114,11 @@ class ReceptiveField(BaseEstimator):
         patterns=False,
         n_jobs=None,
         edge_correction=True,
-        verbose=None,
     ):
-        self.feature_names = feature_names
-        self.sfreq = float(sfreq)
         self.tmin = tmin
         self.tmax = tmax
+        self.sfreq = float(sfreq)
+        self.feature_names = feature_names
         self.estimator = 0.0 if estimator is None else estimator
         self.fit_intercept = fit_intercept
         self.scoring = scoring
@@ -186,8 +185,6 @@ class ReceptiveField(BaseEstimator):
             raise ValueError(
                 f"scoring must be one of {sorted(_SCORERS.keys())}, got {self.scoring} "
             )
-        from sklearn.base import clone, is_regressor
-
         X, y, _, self._y_dim = self._check_dimensions(X, y)
 
         if self.tmin > self.tmax:
@@ -514,8 +511,6 @@ def _corr_score(y_true, y, multioutput=None):
 
 
 def _r2_score(y_true, y, multioutput=None):
-    from sklearn.metrics import r2_score
-
     return r2_score(y_true, y, multioutput=multioutput)
 
 
