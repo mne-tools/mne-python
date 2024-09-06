@@ -4618,6 +4618,13 @@ title : str | None
     The title of the generated figure. If ``None`` (default), no title is
     displayed.
 """
+
+docdict["title_stc"] = """
+title : str | None
+    Title for the figure and the subject name. If None, only the subject name will be
+    used.
+"""
+
 docdict["title_tfr_plot"] = """
 title : str | 'auto' | None
     Title for the plot. If ``"auto"``, will use the channel name (if ``combine`` is

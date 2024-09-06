@@ -2255,6 +2255,7 @@ def plot_source_estimates(
     transparent=True,
     alpha=1.0,
     time_viewer="auto",
+    *,
     subjects_dir=None,
     figure=None,
     views="auto",
@@ -2364,8 +2365,7 @@ def plot_source_estimates(
         Defaults  to 'oct6'.
 
         .. versionadded:: 0.15.0
-    title : str | None
-        Title for the figure and the subject name. If None, only the subject name will be used.
+    %(title_stc)s
 
         .. versionadded:: 0.17.0
     %(show_traces)s
@@ -3161,6 +3161,7 @@ def plot_vector_source_estimates(
     vector_alpha=1.0,
     scale_factor=None,
     time_viewer="auto",
+    *,
     subjects_dir=None,
     figure=None,
     views="lateral",
@@ -3172,13 +3173,13 @@ def plot_vector_source_estimates(
     foreground=None,
     initial_time=None,
     time_unit="s",
+    title=None,
     show_traces="auto",
     src=None,
     volume_options=1.0,
     view_layout="vertical",
     add_data_kwargs=None,
     brain_kwargs=None,
-    title=None,
     verbose=None,
 ):
     """Plot VectorSourceEstimate with PyVista.
@@ -3250,6 +3251,9 @@ def plot_vector_source_estimates(
     time_unit : 's' | 'ms'
         Whether time is represented in seconds ("s", default) or
         milliseconds ("ms").
+    %(title_stc)s
+
+        .. versionadded:: 1.9
     %(show_traces)s
     %(src_volume_options)s
     %(view_layout)s
