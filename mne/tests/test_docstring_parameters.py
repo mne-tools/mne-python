@@ -109,7 +109,6 @@ subclass_name_ignores = (
         },
     ),
     (list, {"append", "count", "extend", "index", "insert", "pop", "remove", "sort"}),
-    (mne.fixes.BaseEstimator, {"get_params", "set_params", "fit_transform"}),
 )
 
 
