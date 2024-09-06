@@ -15,7 +15,6 @@ from ..utils import (
     _check_option,
     _validate_type,
     _verbose_safe_false,
-    copy_doc,
     fill_doc,
     pinv,
     warn,
@@ -273,8 +272,31 @@ class CSP(TransformerMixin, BaseEstimator):
             )
         return X[:, np.newaxis, :] * self.patterns_[: self.n_components].T
 
-    @copy_doc(TransformerMixin.fit_transform)
-    def fit_transform(self, X, y, **fit_params):  # noqa: D102
+    def fit_transform(self, X, y=None, **fit_params):
+        """Fit CSP to data, then transform it.
+
+        Fits transformer to ``X`` and ``y`` with optional parameters ``fit_params``, and
+        returns a transformed version of ``X``.
+
+        Parameters
+        ----------
+        X : array, shape (n_epochs, n_channels, n_times)
+            The data on which to estimate the CSP.
+        y : array, shape (n_epochs,)
+            The class for each epoch.
+        **fit_params : dict
+            Additional fitting parameters passed to the :meth:`mne.decoding.CSP.fit`
+            method. Not used for this class.
+
+        Returns
+        -------
+        X_csp : array, shape (n_epochs, n_components[, n_times])
+            If ``self.transform_into == 'average_power'`` then returns the power of CSP
+            features averaged over time and shape is ``(n_epochs, n_components)``. If
+            ``self.transform_into == 'csp_space'`` then returns the data in CSP space
+            and shape is ``(n_epochs, n_components, n_times)``.
+        """
+        # use parent TransformerMixin method but with custom docstring
         return super().fit_transform(X, y=y, **fit_params)
 
     @fill_doc
@@ -953,3 +975,30 @@ class SPoC(CSP):
             space and shape is (n_epochs, n_components, n_times).
         """
         return super().transform(X)
+
+    def fit_transform(self, X, y=None, **fit_params):
+        """Fit SPoC to data, then transform it.
+
+        Fits transformer to ``X`` and ``y`` with optional parameters ``fit_params``, and
+        returns a transformed version of ``X``.
+
+        Parameters
+        ----------
+        X : array, shape (n_epochs, n_channels, n_times)
+            The data on which to estimate the SPoC.
+        y : array, shape (n_epochs,)
+            The class for each epoch.
+        **fit_params : dict
+            Additional fitting parameters passed to the :meth:`mne.decoding.CSP.fit`
+            method. Not used for this class.
+
+        Returns
+        -------
+        X : array, shape (n_epochs, n_components[, n_times])
+            If ``self.transform_into == 'average_power'`` then returns the power of CSP
+            features averaged over time and shape is ``(n_epochs, n_components)``. If
+            ``self.transform_into == 'csp_space'`` then returns the data in CSP space
+            and shape is ``(n_epochs, n_components, n_times)``.
+        """
+        # use parent TransformerMixin method but with custom docstring
+        return super().fit_transform(X, y=y, **fit_params)
