@@ -113,7 +113,7 @@ class SSD(BaseEstimator, TransformerMixin):
                     f"{param + '_freq'} must be defined in filter parameters for {key}"
                 )
             val = dicts[key][param + "_freq"]
-            if not isinstance(val, (int, float)):
+            if not isinstance(val, int | float):
                 _validate_type(val, ("numeric",), f"{key} {param}_freq")
         # check freq bands
         if (
@@ -260,6 +260,31 @@ class SSD(BaseEstimator, TransformerMixin):
         else:
             X_ssd = X_ssd[:, self.sorter_spec, :][:, : self.n_components, :]
         return X_ssd
+
+    def fit_transform(self, X, y=None, **fit_params):
+        """Fit SSD to data, then transform it.
+
+        Fits transformer to ``X`` and ``y`` with optional parameters ``fit_params``, and
+        returns a transformed version of ``X``.
+
+        Parameters
+        ----------
+        X : array, shape ([n_epochs, ]n_channels, n_times)
+            The input data from which to estimate the SSD. Either 2D array obtained from
+            continuous data or 3D array obtained from epoched data.
+        y : None
+            Ignored; exists for compatibility with scikit-learn pipelines.
+        **fit_params : dict
+            Additional fitting parameters passed to the :meth:`mne.decoding.SSD.fit`
+            method. Not used for this class.
+
+        Returns
+        -------
+        X_ssd : array, shape ([n_epochs, ]n_components, n_times)
+            The processed data.
+        """
+        # use parent TransformerMixin method but with custom docstring
+        return super().fit_transform(X, y=y, **fit_params)
 
     def get_spectral_ratio(self, ssd_sources):
         """Get the spectal signal-to-noise ratio for each spatial filter.

@@ -73,6 +73,9 @@ _cleanup_agg
 _notebook_vtk_works
 _.drop_inds_
 
+# mne/io/ant/tests/test_ant.py
+andy_101
+
 # mne/io/snirf/tests/test_snirf.py
 _.dataTimeSeries
 _.sourceIndex

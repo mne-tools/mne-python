@@ -2799,7 +2799,8 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
     if info.get("device_info") is not None:
         start_block(fid, FIFF.FIFFB_DEVICE)
         di = info["device_info"]
-        write_string(fid, FIFF.FIFF_DEVICE_TYPE, di["type"])
+        if di.get("type") is not None:
+            write_string(fid, FIFF.FIFF_DEVICE_TYPE, di["type"])
         for key in ("model", "serial", "site"):
             if di.get(key) is not None:
                 write_string(fid, getattr(FIFF, "FIFF_DEVICE_" + key.upper()), di[key])
@@ -3169,7 +3170,7 @@ def create_info(ch_names, sfreq, ch_types="misc", verbose=None):
         this_ch_dict = ch_types_dict[ch_type]
         kind = this_ch_dict["kind"]
         # handle chpi, where kind is a *list* of FIFF constants:
-        kind = kind[0] if isinstance(kind, (list, tuple)) else kind
+        kind = kind[0] if isinstance(kind, list | tuple) else kind
         # mirror what tag.py does here
         coord_frame = _ch_coord_dict.get(kind, FIFF.FIFFV_COORD_UNKNOWN)
         coil_type = this_ch_dict.get("coil_type", FIFF.FIFFV_COIL_NONE)

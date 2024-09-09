@@ -337,7 +337,7 @@ class ProjMixin:
             logger.info("The projections don't apply to these data. Doing nothing.")
             return self
         self._projector, self.info = _projector, info
-        if isinstance(self, (BaseRaw, Evoked)):
+        if isinstance(self, BaseRaw | Evoked):
             if self.preload:
                 self._data = np.dot(self._projector, self._data)
         else:  # BaseEpochs

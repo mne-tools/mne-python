@@ -157,8 +157,6 @@ class Brain:
 
         .. versionchanged:: 0.23
            Default changed to "auto".
-    offscreen : bool
-        Deprecated and will be removed in 1.9, do not use.
     interaction : str
         Can be "trackball" (default) or "terrain", i.e. a turntable-style
         camera.
@@ -173,9 +171,6 @@ class Brain:
     %(theme_3d)s
     show : bool
         Display the window as soon as it is ready. Defaults to True.
-    block : bool
-        Deprecated and will be removed in 1.9, do not use. Consider using
-        :func:`matplotlib.pyplot.show` with ``block=True`` instead.
 
     Attributes
     ----------
@@ -292,25 +287,17 @@ class Brain:
         views="auto",
         *,
         offset="auto",
-        offscreen=None,
         interaction="trackball",
         units="mm",
         view_layout="vertical",
         silhouette=False,
         theme=None,
         show=True,
-        block=None,
     ):
         from ..backends.renderer import _get_renderer, backend
 
         _validate_type(subject, str, "subject")
         self._surf = surf
-        if offscreen is not None:
-            warn(
-                "The 'offscreen' parameter is deprecated and will be removed in 1.9. "
-                "as it has no effect",
-                FutureWarning,
-            )
         if hemi is None:
             hemi = "vol"
         hemi = self._check_hemi(hemi, extras=("both", "split", "vol"))
@@ -352,15 +339,9 @@ class Brain:
         subjects_dir = get_subjects_dir(subjects_dir)
         if subjects_dir is not None:
             subjects_dir = str(subjects_dir)
-        if block is not None:
-            warn(
-                "block is deprecated and will be removed in 1.9, use "
-                "plt.show(block=True) instead"
-            )
 
         self.time_viewer = False
         self._hash = time.time_ns()
-        self._block = block
         self._hemi = hemi
         self._units = units
         self._alpha = float(alpha)
@@ -529,8 +510,6 @@ class Brain:
         'Left': Decrease camera azimuth angle
         'Right': Increase camera azimuth angle
         """
-        from ..backends._utils import _qt_app_exec
-
         if self.time_viewer:
             return
         if not self._data:
@@ -618,8 +597,6 @@ class Brain:
         # finally, show the MplCanvas
         if self.show_traces:
             self.mpl_canvas.show()
-        if self._block:
-            _qt_app_exec(self._renderer.figure.store["app"])
 
     @safe_event
     def _clean(self):
@@ -1670,7 +1647,7 @@ class Brain:
                 cortex = colormap_map[cortex]
             else:
                 cortex = [cortex] * 2
-        if isinstance(cortex, (list, tuple)):
+        if isinstance(cortex, list | tuple):
             _check_option(
                 "len(cortex)",
                 len(cortex),
@@ -2385,7 +2362,7 @@ class Brain:
         head_mri_t = _get_trans(trans, "head", "mri", allow_none=False)[0]
         del trans
         n_dipoles = len(dipole)
-        if not isinstance(colors, (list, tuple)):
+        if not isinstance(colors, list | tuple):
             colors = [colors] * n_dipoles  # make into list
         if len(colors) != n_dipoles:
             raise ValueError(
@@ -2397,7 +2374,7 @@ class Brain:
         ]
         if scales is None:
             scales = 5 if self._units == "mm" else 5e-3
-        if not isinstance(scales, (list, tuple)):
+        if not isinstance(scales, list | tuple):
             scales = [scales] * n_dipoles  # make into list
         if len(scales) != n_dipoles:
             raise ValueError(
@@ -2566,7 +2543,7 @@ class Brain:
 
         if colors is None:
             colors = [fs_colors[label] / 255 for label in labels]
-        elif not isinstance(colors, (list, tuple)):
+        elif not isinstance(colors, list | tuple):
             colors = [colors] * len(labels)  # make into list
         colors = [
             _to_rgb(color, name=f"colors[{ci}]") for ci, color in enumerate(colors)
@@ -2713,6 +2690,7 @@ class Brain:
         max_dist=0.004,
         *,
         sensor_colors=None,
+        sensor_scales=None,
         verbose=None,
     ):
         """Add mesh objects to represent sensor positions.
@@ -2731,6 +2709,9 @@ class Brain:
         %(sensor_colors)s
 
             .. versionadded:: 1.6
+        %(sensor_scales)s
+
+            .. versionadded:: 1.9
         %(verbose)s
 
         Notes
@@ -2787,6 +2768,7 @@ class Brain:
                     self._units,
                     sensor_alpha=sensor_alpha,
                     sensor_colors=sensor_colors,
+                    sensor_scales=sensor_scales,
                 )
                 # sensors_actors can still be None
                 for item, actors in (sensors_actors or {}).items():
@@ -3067,11 +3049,7 @@ class Brain:
 
     def show(self):
         """Display the window."""
-        from ..backends._utils import _qt_app_exec
-
         self._renderer.show()
-        if self._block:
-            _qt_app_exec(self._renderer.figure.store["app"])
 
     @fill_doc
     def get_view(self, row=0, col=0, *, align=True):
@@ -4020,7 +3998,7 @@ class Brain:
 
     def _to_borders(self, label, hemi, borders, restrict_idx=None):
         """Convert a label/parc to borders."""
-        if not isinstance(borders, (bool, int)) or borders < 0:
+        if not isinstance(borders, bool | int) or borders < 0:
             raise ValueError("borders must be a bool or positive integer")
         if borders:
             n_vertices = label.size

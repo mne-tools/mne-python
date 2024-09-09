@@ -1654,7 +1654,7 @@ class _QtWidgetList(_AbstractWidgetList):
 
 class _QtWidget(_AbstractWdgt):
     def set_value(self, value):
-        if isinstance(self._widget, (QRadioButton, QToolButton, QPushButton)):
+        if isinstance(self._widget, QRadioButton | QToolButton | QPushButton):
             self._widget.click()
         else:
             if hasattr(self._widget, "setValue"):

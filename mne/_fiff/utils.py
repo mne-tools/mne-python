@@ -4,6 +4,7 @@
 
 import os
 import os.path as op
+from pathlib import Path
 
 import numpy as np
 
@@ -315,13 +316,16 @@ def _construct_bids_filename(base, ext, part_idx, validate=True):
 def _make_split_fnames(fname, n_splits, split_naming):
     """Make a list of split filenames."""
     if n_splits == 1:
+        fname = Path(fname)
         return [fname]
     res = []
     base, ext = op.splitext(fname)
     for i in range(n_splits):
         if split_naming == "neuromag":
-            res.append(f"{base}-{i:d}{ext}" if i else fname)
+            path = Path(f"{base}-{i:d}{ext}" if i else fname)
+            res.append(path)
         else:
             assert split_naming == "bids"
-            res.append(_construct_bids_filename(base, ext, i))
+            path = Path(_construct_bids_filename(base, ext, i))
+            res.append(path)
     return res

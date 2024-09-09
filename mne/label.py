@@ -757,7 +757,7 @@ class Label:
         """
         if isinstance(parts, str) and parts == "contiguous":
             return _split_label_contig(self, subject, subjects_dir)
-        elif isinstance(parts, (tuple, int)):
+        elif isinstance(parts, tuple | int):
             return split_label(self, parts, subject, subjects_dir, freesurfer)
         else:
             raise ValueError(

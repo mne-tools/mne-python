@@ -1,1 +1,0 @@
-Authorship headers in MNE-Python code have been standardized, by `Eric Larson`_.

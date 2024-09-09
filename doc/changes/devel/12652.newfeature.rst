@@ -1,1 +1,0 @@
-Add new parameter ``ignore_marker_types`` to :func:`~mne.io.read_raw_brainvision` to ignore marker types (and only use marker descriptions) when reading BrainVision files, by `Clemens Brunner`_.

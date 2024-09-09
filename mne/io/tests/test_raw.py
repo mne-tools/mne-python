@@ -317,7 +317,7 @@ def _test_raw_reader(
     full_data = raw._data
     assert raw.__class__.__name__ in repr(raw)  # to test repr
     assert raw.info.__class__.__name__ in repr(raw.info)
-    assert isinstance(raw.info["dig"], (type(None), list))
+    assert isinstance(raw.info["dig"], type(None) | list)
     data_max = np.nanmax(full_data)
     data_min = np.nanmin(full_data)
     # these limits could be relaxed if we actually find data with
@@ -344,8 +344,11 @@ def _test_raw_reader(
     # Test saving and reading
     out_fname = op.join(tempdir, "test_raw.fif")
     raw = concatenate_raws([raw])
-    raw.save(out_fname, tmax=raw.times[-1], overwrite=True, buffer_size_sec=1)
-
+    filenames = raw.save(
+        out_fname, tmax=raw.times[-1], overwrite=True, buffer_size_sec=1
+    )
+    for filename in filenames:
+        assert filename.is_file()
     # Test saving with not correct extension
     out_fname_h5 = op.join(tempdir, "test_raw.h5")
     with pytest.raises(OSError, match="raw must end with .fif or .fif.gz"):

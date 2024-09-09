@@ -110,7 +110,7 @@ class Scaler(TransformerMixin, BaseEstimator):
         self.with_std = with_std
         self.scalings = scalings
 
-        if not (scalings is None or isinstance(scalings, (dict, str))):
+        if not (scalings is None or isinstance(scalings, dict | str)):
             raise ValueError(
                 f"scalings type should be dict, str, or None, got {type(scalings)}"
             )

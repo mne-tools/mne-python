@@ -1,1 +1,0 @@
-Fix overflow when plotting source estimates where data is all zero (or close to zero), and fix the range of allowed values for the colorbar sliders, by `Marijn van Vliet`_.

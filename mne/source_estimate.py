@@ -1452,7 +1452,7 @@ class _BaseSourceEstimate(TimeMixin, FilterMixin):
         # triage surface vs volume source estimates
         col_names = list()
         kinds = ["VOL"] * len(self.vertices)
-        if isinstance(self, (_BaseSurfaceSourceEstimate, _BaseMixedSourceEstimate)):
+        if isinstance(self, _BaseSurfaceSourceEstimate | _BaseMixedSourceEstimate):
             kinds[:2] = ["LH", "RH"]
         for kind, vertno in zip(kinds, self.vertices):
             col_names.extend([f"{kind}_{vert}" for vert in vertno])
@@ -3646,7 +3646,7 @@ def _get_default_label_modes():
 
 
 def _get_allowed_label_modes(stc):
-    if isinstance(stc, (_BaseVolSourceEstimate, _BaseVectorSourceEstimate)):
+    if isinstance(stc, _BaseVolSourceEstimate | _BaseVectorSourceEstimate):
         return ("mean", "max", "auto")
     else:
         return _get_default_label_modes()
@@ -3689,7 +3689,7 @@ def _gen_extract_label_time_course(
             _get_allowed_label_modes(stc),
             "when using a vector and/or volume source estimate",
         )
-        if isinstance(stc, (_BaseVolSourceEstimate, _BaseVectorSourceEstimate)):
+        if isinstance(stc, _BaseVolSourceEstimate | _BaseVectorSourceEstimate):
             mode = "mean" if mode == "auto" else mode
         else:
             mode = "mean_flip" if mode == "auto" else mode
@@ -3794,7 +3794,7 @@ def extract_label_time_course(
     time courses.
     """
     # convert inputs to lists
-    if not isinstance(stcs, (list, tuple, GeneratorType)):
+    if not isinstance(stcs, list | tuple | GeneratorType):
         stcs = [stcs]
         return_several = False
         return_generator = False

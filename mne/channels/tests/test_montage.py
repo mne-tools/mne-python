@@ -300,7 +300,30 @@ def test_documented():
             ),
             "elc",
             None,
-            id="ASA electrode",
+            id="old ASA electrode (elc)",
+        ),
+        pytest.param(
+            partial(read_custom_montage, head_size=None),
+            (
+                "NumberPositions= 96\n"
+                "UnitPosition mm\n"
+                "Positions\n"
+                "E01	:	5.288	-3.658	119.693\n"
+                "E02	:	59.518	-4.031	101.404\n"
+                "E03	:	29.949	-50.988	98.145\n"
+                "Labels\n"
+                "E01	E02	E03\n"
+            ),
+            make_dig_montage(
+                ch_pos={
+                    "E01": [0.005288, -0.003658, 0.119693],
+                    "E02": [0.059518, -0.004031, 0.101404],
+                    "E03": [0.029949, -0.050988, 0.098145],
+                },
+            ),
+            "elc",
+            None,
+            id="new ASA electrode (elc)",
         ),
         pytest.param(
             partial(read_custom_montage, head_size=1),

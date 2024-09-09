@@ -135,7 +135,7 @@ def _prepare_source_params(
     # vertno: [lh_verts, rh_verts]
 
     k_idxs = None
-    if not isinstance(label, (Label, BiHemiLabel)):
+    if not isinstance(label, Label | BiHemiLabel):
         whole_K, whole_noise_norm, whole_vertno, _ = _assemble_kernel(
             inv, None, method, pick_ori, use_cps=use_cps
         )
@@ -146,7 +146,7 @@ def _prepare_source_params(
         else:
             assert not label
             K, noise_norm, vertno = whole_K, whole_noise_norm, whole_vertno
-    elif isinstance(label, (Label, BiHemiLabel)):
+    elif isinstance(label, Label | BiHemiLabel):
         K, noise_norm, vertno, _ = _assemble_kernel(
             inv, label, method, pick_ori, use_cps=use_cps
         )
@@ -500,7 +500,7 @@ def _source_induced_power(
             types=(Label, BiHemiLabel, list, tuple, None),
             type_name=("Label or BiHemiLabel", "list of labels", "None"),
         )
-        if isinstance(label, (list, tuple)):
+        if isinstance(label, list | tuple):
             for item in label:
                 _validate_type(
                     item,
@@ -560,7 +560,7 @@ def _source_induced_power(
     power = sum(o[0] for o in out)  # power shape: (n_verts, n_freqs, n_samps)
     power /= len(epochs_data)  # average power over epochs
 
-    if isinstance(label, (Label, BiHemiLabel)):
+    if isinstance(label, Label | BiHemiLabel):
         logger.info(
             f"Outputting power for {len(power)} vertices in label {label.name}."
         )
