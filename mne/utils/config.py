@@ -614,7 +614,7 @@ def _get_total_memory():
                 "(Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory",
             ]
         ).decode()
-        total_memory = int(o.strip().split()[1])
+        total_memory = int(o)
     elif platform.system() == "Linux":
         o = subprocess.check_output(["free", "-b"]).decode()
         total_memory = int(o.splitlines()[1].split()[1])
