@@ -102,7 +102,7 @@ def test_config(tmp_path):
     pytest.raises(TypeError, _get_stim_channel, [1], None)
 
 
-def test_sys_info_basic():
+def test_sys_info_basic(capsys):
     """Test info-showing utility."""
     out = ClosingStringIO()
     sys_info(fid=out, check_version=False)
@@ -110,6 +110,20 @@ def test_sys_info_basic():
     assert "numpy" in out
     # replace all in-line whitespace with single space
     out = "\n".join(" ".join(o.split()) for o in out.splitlines())
+    with capsys.disabled():
+        print(platform.system())
+
+        import subprocess
+
+        if platform.system() == "Windows":
+            o = subprocess.check_output(
+                [
+                    "powershell.exe",
+                    "(Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory",
+                ]
+            ).decode()
+            print(o)
+
     assert "? GiB" not in out
     if platform.system() == "Darwin":
         assert "Platform macOS-" in out
