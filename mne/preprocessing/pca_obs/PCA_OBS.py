@@ -171,16 +171,15 @@ def PCA_OBS(data, **kwargs):
     data = data.reshape(-1)
     fitted_art = fitted_art.reshape(-1)
 
-    # data -= fitted_art
-
-    data_ = np.zeros(len(data))
-    data_[0] = data[0]
-    data_[1:] = data[1:] - fitted_art[:-1]
-    data = data_
+    # One sample shift for my actual data (introduced using matlab r timings)
+    # data_ = np.zeros(len(data))
+    # data_[0] = data[0]
+    # data_[1:] = data[1:] - fitted_art[:-1]
+    # data = data_
 
     # Original code is this:
-    # data -= fitted_art
-    # data = data.T.reshape(-1)
+    data -= fitted_art
+    data = data.T.reshape(-1)
 
     # Can only return data
     return data

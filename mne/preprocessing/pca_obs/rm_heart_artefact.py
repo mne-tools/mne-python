@@ -44,7 +44,6 @@ if __name__ == '__main__':
     fwts = firls(ord+1, f, a)
 
     # run PCA_OBS
-    # In this case ch_names, current_channel and savename are dummy vars - not necessary really
     PCA_OBS_kwargs = dict(
         qrs=QRSevents_m, filter_coords=fwts, sr=sampling_rate
     )
@@ -57,7 +56,6 @@ if __name__ == '__main__':
 
     # Apply function should modifies the data in raw in place
     raw.apply_function(PCA_OBS, picks=esg_chans, **PCA_OBS_kwargs, n_jobs=len(esg_chans))
-
     epochs = Epochs(raw, events, event_id=event_id_dict, tmin=iv_epoch[0], tmax=iv_epoch[1],
                    baseline=tuple(iv_baseline))
     evoked_after = epochs.average()
@@ -70,5 +68,13 @@ if __name__ == '__main__':
     axes[1].plot(evoked_after.times, evoked_after.get_data().T)
     axes[1].set_ylim([-0.0005, 0.001])
     axes[1].set_title('After PCA-OBS')
+    plt.tight_layout()
+
+    # Comparison image
+    fig, axes = plt.subplots(1, 1)
+    axes.plot(evoked_before.times, evoked_before.get_data().T, color='black')
+    axes.set_ylim([-0.0005, 0.001])
+    axes.plot(evoked_after.times, evoked_after.get_data().T, color='green')
+    axes.set_title('Before (black) versus after (green)')
     plt.tight_layout()
     plt.show()
