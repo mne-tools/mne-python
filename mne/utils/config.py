@@ -611,8 +611,7 @@ def _get_total_memory():
         o = subprocess.check_output(
             [
                 "powershell.exe",
-                "(Get-WmiObject Win32_PhysicalMemory | "
-                "Measure-Object -Property Capacity -Sum).Sum",
+                "(Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory",
             ]
         ).decode()
         total_memory = int(o.strip().split()[1])
