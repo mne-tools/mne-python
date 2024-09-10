@@ -20,7 +20,7 @@ from mne.io.ant.ant import RawANT
 if TYPE_CHECKING:
     from pathlib import Path
 
-pytest.importorskip("antio", minversion="0.3.0")
+pytest.importorskip("antio", minversion="0.4.0")
 data_path = testing.data_path(download=False) / "antio"
 
 
@@ -94,8 +94,105 @@ def andy_101() -> dict[str, dict[str, Path] | str | int | dict[str, str | int]]:
     }
 
 
+@pytest.fixture(scope="module")
+def na_271() -> dict[str, dict[str, Path] | str | int]:
+    """Return the path to a dataset containing 128 channel recording.
+
+    The recording was done with an NA_271 net dipped in saline solution.
+    """
+    cnt = {
+        "short": data_path / "NA_271" / "test-na-271.cnt",
+        "legacy": data_path / "NA_271" / "test-na-271-legacy.cnt",
+    }
+    bv = {
+        "short": cnt["short"].with_suffix(".vhdr"),
+    }
+    return {
+        "cnt": cnt,
+        "bv": bv,
+        "ch_ref": "Z7",
+        "ch_unit": "uv",
+        "n_channels": 128,
+        "n_bips": 0,
+        "sfreq": 500,
+        "meas_date": "2024-09-06-10-45-07+0000",
+        "patient_info": {
+            "name": "antio test",
+            "id": "",
+            "birthday": "2024-08-14",
+            "sex": "",
+        },
+        "machine_info": ("eego", "EE_226", ""),
+        "hospital": "",
+    }
+
+
+@pytest.fixture(scope="module")
+def na_271_bips() -> dict[str, dict[str, Path] | str | int]:
+    """Return the path to a dataset containing 128 channel recording.
+
+    The recording was done with an NA_271 net dipped in saline solution and includes
+    bipolar channels.
+    """
+    cnt = {
+        "short": data_path / "NA_271_bips" / "test-na-271.cnt",
+        "legacy": data_path / "NA_271_bips" / "test-na-271-legacy.cnt",
+    }
+    bv = {
+        "short": cnt["short"].with_suffix(".vhdr"),
+    }
+    return {
+        "cnt": cnt,
+        "bv": bv,
+        "ch_ref": "Z7",
+        "ch_unit": "uv",
+        "n_channels": 128,
+        "n_bips": 6,
+        "sfreq": 1000,
+        "meas_date": "2024-09-06-10-37-23+0000",
+        "patient_info": {
+            "name": "antio test",
+            "id": "",
+            "birthday": "2024-08-14",
+            "sex": "",
+        },
+        "machine_info": ("eego", "EE_226", ""),
+        "hospital": "",
+    }
+
+
+@pytest.fixture(scope="module")
+def user_annotations() -> dict[str, dict[str, Path] | str | int]:
+    """Return the path to a dataset containing user annotations with floating pins."""
+    cnt = {
+        "short": data_path / "user_annotations" / "test-user-annotation.cnt",
+        "legacy": data_path / "user_annotations" / "test-user-annotation-legacy.cnt",
+    }
+    bv = {
+        "short": cnt["short"].with_suffix(".vhdr"),
+    }
+    return {
+        "cnt": cnt,
+        "bv": bv,
+        "ch_ref": "5Z",
+        "ch_unit": "uv",
+        "n_channels": 64,
+        "n_bips": 0,
+        "sfreq": 500,
+        "meas_date": "2024-08-29-16-15-44+0000",
+        "patient_info": {
+            "name": "test test",
+            "id": "",
+            "birthday": "2024-02-06",
+            "sex": "",
+        },
+        "machine_info": ("eego", "EE_225", ""),
+        "hospital": "",
+    }
+
+
 @testing.requires_testing_data
-@pytest.mark.parametrize("dataset", ["ca_208", "andy_101"])
+@pytest.mark.parametrize("dataset", ["ca_208", "andy_101", "na_271", "na_271_bips"])
 def test_io_data(dataset, request):
     """Test loading of .cnt file."""
     dataset = request.getfixturevalue(dataset)
@@ -138,7 +235,7 @@ def test_io_data(dataset, request):
 
 
 @testing.requires_testing_data
-@pytest.mark.parametrize("dataset", ["ca_208", "andy_101"])
+@pytest.mark.parametrize("dataset", ["ca_208", "andy_101", "na_271", "na_271_bips"])
 def test_io_info(dataset, request):
     """Test the ifo loaded from a .cnt file."""
     dataset = request.getfixturevalue(dataset)
@@ -186,7 +283,9 @@ def test_io_info_parse_eog(
 
 
 @testing.requires_testing_data
-@pytest.mark.parametrize("dataset", ["andy_101", "ca_208"])
+@pytest.mark.parametrize(
+    "dataset", ["andy_101", "ca_208", "na_271", "na_271_bips", "user_annotations"]
+)
 def test_subject_info(dataset, request):
     """Test reading the subject info."""
     dataset = request.getfixturevalue(dataset)
@@ -202,7 +301,9 @@ def test_subject_info(dataset, request):
 
 
 @testing.requires_testing_data
-@pytest.mark.parametrize("dataset", ["andy_101", "ca_208"])
+@pytest.mark.parametrize(
+    "dataset", ["andy_101", "ca_208", "na_271", "na_271_bips", "user_annotations"]
+)
 def test_machine_info(dataset, request):
     """Test reading the machine info."""
     dataset = request.getfixturevalue(dataset)
@@ -308,3 +409,16 @@ def test_read_raw(
     """Test loading through read_raw."""
     raw = read_raw(ca_208["cnt"]["short"])
     assert isinstance(raw, RawANT)
+
+
+@testing.requires_testing_data
+@pytest.mark.parametrize("preload", [True, False])
+def test_read_raw_with_user_annotations(
+    user_annotations: dict[str, dict[str, Path] | str | int | dict[str, str | int]],
+    preload: bool,
+):
+    """Test reading raw objects which have user annotations."""
+    raw = read_raw_ant(user_annotations["cnt"]["short"], preload=preload)
+    assert raw.annotations
+    assert "1000/user-annot" in raw.annotations.description
+    assert "1000/user-annot-2" in raw.annotations.description
