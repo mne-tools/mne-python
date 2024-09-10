@@ -2412,7 +2412,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         """Respond to the ChannelBrowse UI event."""
         old_n_channels = self.mne.n_channels
         picks = np.flatnonzero(
-            np.in1d(self.mne.ch_names[self.mne.ch_order], event.channels)
+            np.isin(self.mne.ch_names[self.mne.ch_order], event.channels)
         )
         if len(picks) == 0:
             return  # can't handle the event
