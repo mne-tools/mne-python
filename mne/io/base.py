@@ -2608,6 +2608,10 @@ class _ReadSegmentFileProtector:
             self, data, idx, fi, start, stop, cals, mult
         )
 
+    @property
+    def filenames(self) -> tuple[Path, ...]:
+        return tuple(self._filenames)
+
 
 class _RawShell:
     """Create a temporary raw object."""
