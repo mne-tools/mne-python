@@ -671,7 +671,10 @@ class BaseRaw(
 
     @property
     def filenames(self) -> tuple[Path | None, ...]:
-        """The filenames used."""
+        """The filenames used.
+
+        :type: :class:`tuple` of :class:`pathlib.Path` | ``None``
+        """
         return tuple(self._filenames)
 
     @filenames.setter

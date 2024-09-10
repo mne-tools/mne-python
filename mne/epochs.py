@@ -2014,7 +2014,10 @@ class BaseEpochs(
 
     @property
     def filename(self) -> Path | None:
-        """The filename if the epochs are loaded from disk."""
+        """The filename if the epochs are loaded from disk.
+
+        :type: :class:`pathlib.Path` | ``None``
+        """
         return self._filename
 
     @filename.setter
