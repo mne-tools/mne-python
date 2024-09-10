@@ -452,9 +452,23 @@ def test_read_raw_with_user_annotations(user_annotations: TypeDataset, preload: 
 
 
 @testing.requires_testing_data
-def test_read_raw_legacy_format():
+@pytest.mark.parametrize("dataset", ["na_271", "user_annotations"])
+def test_read_raw_legacy_format(dataset, request):
     """Test reading the legacy CNT format."""
-    pass
+    dataset = request.getfixturevalue(dataset)
+    raw_cnt = read_raw_ant(dataset["cnt"]["short"])  # preload=False
+    raw_bv = read_raw_bv(dataset["bv"]["short"])
+    assert raw_cnt.ch_names == raw_bv.ch_names
+    assert raw_cnt.info["sfreq"] == raw_bv.info["sfreq"]
+    assert (
+        raw_cnt.get_channel_types()
+        == ["eeg"] * dataset["n_eeg"] + ["misc"] * dataset["n_misc"]
+    )
+    assert_allclose(
+        (raw_bv.info["meas_date"] - raw_cnt.info["meas_date"]).total_seconds(),
+        0,
+        atol=1e-3,
+    )
 
 
 @testing.requires_testing_data
