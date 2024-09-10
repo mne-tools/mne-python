@@ -294,6 +294,24 @@ def test_io_info_parse_misc(ca_208: TypeDataset):
     assert raw_cnt.get_channel_types() == ["eeg"] * len(raw_cnt.ch_names)
 
 
+def test_io_info_parse_non_standard_misc(na_271_bips: TypeDataset):
+    """Test parsing misc channels with modified names from a .cnt file."""
+    with pytest.warns(
+        RuntimeWarning, match="EEG channels are not referenced to the same electrode"
+    ):
+        raw = read_raw_ant(na_271_bips["cnt"]["short"], misc=None)
+    assert raw.get_channel_types() == ["eeg"] * (
+        na_271_bips["n_eeg"] + na_271_bips["n_misc"]
+    )
+    raw = read_raw_ant(
+        na_271_bips["cnt"]["short"], preload=False, misc=r".{0,1}E.{1}G|Aux|Audio"
+    )
+    assert (
+        raw.get_channel_types()
+        == ["eeg"] * na_271_bips["n_eeg"] + ["misc"] * na_271_bips["n_misc"]
+    )
+
+
 @testing.requires_testing_data
 def test_io_info_parse_eog(ca_208: TypeDataset):
     """Test parsing EOG channels from a .cnt file."""
