@@ -56,11 +56,7 @@ from ..annotations import (
     _sync_onset,
     _write_annotations,
 )
-from ..channels.channels import (
-    InterpolationMixin,
-    ReferenceMixin,
-    UpdateChannelsMixin,
-)
+from ..channels.channels import InterpolationMixin, ReferenceMixin, UpdateChannelsMixin
 from ..defaults import _handle_default
 from ..event import concatenate_events, find_events
 from ..filter import (
@@ -675,9 +671,18 @@ class BaseRaw(
         return self._annotations
 
     @property
-    def filenames(self):
+    def filenames(self) -> tuple[Path, ...]:
         """The filenames used."""
         return tuple(self._filenames)
+
+    @filenames.setter
+    def filenames(self, value) -> list[Path]:
+        """The filenames used, cast to list of paths."""
+        _validate_type(value, (list, tuple), "filenames")
+        for k, elt in enumerate(value):
+            if elt is not None:
+                value[k] = _check_fname(elt, overwrite="read", must_exist=True)
+        self._filenames = list(value)
 
     @verbose
     def set_annotations(
