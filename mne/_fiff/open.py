@@ -5,6 +5,7 @@
 import os.path as op
 from gzip import GzipFile
 from io import SEEK_SET, BytesIO
+from pathlib import Path
 
 import numpy as np
 from scipy.sparse import issparse
@@ -43,8 +44,10 @@ def _fiff_get_fid(fname):
         fid = _NoCloseRead(fname)
         fid.seek(0)
     else:
-        fname = str(fname)
-        if op.splitext(fname)[1].lower() == ".gz":
+        if isinstance(fname, str):
+            warn("The file-name provided is a str instead of Path.")  # TODO: remove
+            fname = Path(fname)
+        if fname.suffixes[-1] == ".gz":
             logger.debug("Using gzip")
             fid = GzipFile(fname, "rb")  # Open in binary mode
         else:
@@ -68,7 +71,7 @@ def _get_next_fname(fid, fname, tree):
                     break
             if ent.kind == FIFF.FIFF_REF_FILE_NAME:
                 tag = read_tag(fid, ent.pos)
-                next_fname = op.join(op.dirname(fname), tag.data)
+                next_fname = op.join(op.dirname(fname), tag.data)  # TODO: use pathlib
             if ent.kind == FIFF.FIFF_REF_FILE_NUM:
                 # Some files don't have the name, just the number. So
                 # we construct the name from the current name.
