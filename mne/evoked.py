@@ -176,7 +176,7 @@ class Evoked(
     ):
         _validate_type(proj, bool, "'proj'")
         # Read the requested data
-        fname = str(_check_fname(fname=fname, must_exist=True, overwrite="read"))
+        fname = _check_fname(fname=fname, must_exist=True, overwrite="read")
         (
             self.info,
             self.nave,
@@ -196,6 +196,18 @@ class Evoked(
         if proj:
             self.apply_proj()
         self.filename = fname
+
+    @property
+    def filename(self) -> Path | None:
+        """The filename of the evoked object, if it exists.
+
+        :type: :class:`~pathlib.Path` | None
+        """
+        return self._filename
+
+    @filename.setter
+    def filename(self, value):
+        self._filename = Path(value) if value is not None else value
 
     @property
     def kind(self):
@@ -1481,6 +1493,7 @@ class EvokedArray(Evoked):
         self.baseline = baseline
         if self.baseline is not None:  # omit log msg if not baselining
             self.apply_baseline(self.baseline)
+        self._filename = None
 
 
 def _get_entries(fid, evoked_node, allow_maxshield=False):
@@ -1710,7 +1723,7 @@ def read_evokeds(
         saving, this will be reflected in their ``baseline`` attribute after
         reading.
     """
-    fname = str(_check_fname(fname, overwrite="read", must_exist=True))
+    fname = _check_fname(fname, overwrite="read", must_exist=True)
     check_fname(fname, "evoked", ("-ave.fif", "-ave.fif.gz", "_ave.fif", "_ave.fif.gz"))
     logger.info(f"Reading {fname} ...")
     return_list = True

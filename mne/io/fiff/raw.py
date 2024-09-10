@@ -3,7 +3,6 @@
 # Copyright the MNE-Python contributors.
 
 import copy
-import os
 import os.path as op
 
 import numpy as np
@@ -179,10 +178,8 @@ class Raw(BaseRaw):
                 endings += tuple([f"{e}.gz" for e in endings])
                 check_fname(fname, "raw", endings)
             # filename
-            fname = str(_check_fname(fname, "read", True, "fname"))
-            ext = os.path.splitext(fname)[1].lower()
-            whole_file = preload if ".gz" in ext else False
-            del ext
+            fname = _check_fname(fname, "read", True, "fname")
+            whole_file = preload if fname.suffix == ".gz" else False
         else:
             # file-like
             if not preload:

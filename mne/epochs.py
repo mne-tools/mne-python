@@ -2022,7 +2022,6 @@ class BaseEpochs(
 
     @filename.setter
     def filename(self, value):
-        """The filename if the epochs are loaded from disk, cast as Path."""  # noqa
         if value is not None:
             value = _check_fname(value, overwrite="read", must_exist=True)
         self._filename = value
