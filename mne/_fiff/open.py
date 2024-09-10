@@ -11,13 +11,7 @@ from scipy.sparse import issparse
 
 from ..utils import _file_like, logger, verbose, warn
 from .constants import FIFF
-from .tag import (
-    Tag,
-    _call_dict_names,
-    _matrix_info,
-    _read_tag_header,
-    read_tag,
-)
+from .tag import Tag, _call_dict_names, _matrix_info, _read_tag_header, read_tag
 from .tree import dir_tree_find, make_dir_tree
 
 
