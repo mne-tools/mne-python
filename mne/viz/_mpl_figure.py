@@ -58,14 +58,7 @@ from .._fiff.pick import (
 from ..fixes import _close_event
 from ..utils import Bunch, _click_ch_name, check_version, logger
 from ._figure import BrowserBase
-from .ui_events import (
-    ChannelBrowse,
-    TimeBrowse,
-    TimeChange,
-    disable_ui_events,
-    publish,
-    subscribe,
-)
+from .ui_events import ChannelBrowse, TimeBrowse, TimeChange, publish, subscribe
 from .utils import (
     DraggableLine,
     _events_off,
@@ -1743,7 +1736,6 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         self.mne.vsel_patch.set_xy((0, self.mne.ch_start))
         self.mne.vsel_patch.set_height(self.mne.n_channels)
         self._update_yaxis_labels()
-        # publish(self, ChannelBrowse(channels=self.mne.ch_names[self.mne.picks]))
 
     def _update_hscroll(self):
         """Update the horizontal scrollbar (time) selection indicator."""
@@ -2345,7 +2337,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         if t_end is None:
             t_end = t_start + self.mne.duration
         else:
-            t_end = min(t_end, self.mne.inst.times[-1])
+            t_end = min(t_end, self.mne.n_times / self.mne.info["sfreq"])
 
         # Don't publish an event if nothing changed.
         if (
