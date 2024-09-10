@@ -677,7 +677,7 @@ class BaseRaw(
 
     @filenames.setter
     def filenames(self, value) -> list[Path]:
-        """The filenames used, cast to list of paths."""
+        """The filenames used, cast to list of paths."""  # noqa: D401
         _validate_type(value, (list, tuple), "filenames")
         for k, elt in enumerate(value):
             if elt is not None:
@@ -715,15 +715,12 @@ class BaseRaw(
 
             if meas_date is None and annotations.orig_time is not None:
                 raise RuntimeError(
-                    "Ambiguous operation. Setting an Annotation"
-                    " object with known ``orig_time`` to a raw"
-                    " object which has ``meas_date`` set to"
-                    " None is ambiguous. Please, either set a"
-                    " meaningful ``meas_date`` to the raw"
-                    " object; or set ``orig_time`` to None in"
-                    " which case the annotation onsets would be"
-                    " taken in reference to the first sample of"
-                    " the raw object."
+                    "Ambiguous operation. Setting an Annotation object with known "
+                    "``orig_time`` to a raw object which has ``meas_date`` set to None "
+                    "is ambiguous. Please, either set a meaningful ``meas_date`` to "
+                    "the raw object; or set ``orig_time`` to None in which case the "
+                    "annotation onsets would be taken in reference to the first sample "
+                    "of the raw object."
                 )
 
             delta = 1.0 / self.info["sfreq"]
