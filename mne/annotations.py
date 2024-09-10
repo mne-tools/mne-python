@@ -3,7 +3,6 @@
 # Copyright the MNE-Python contributors.
 
 import json
-import os.path as op
 import re
 import warnings
 from collections import Counter, OrderedDict
@@ -1194,48 +1193,43 @@ def read_annotations(
     from .io.edf.edf import _read_annotations_edf
     from .io.eeglab.eeglab import _read_annotations_eeglab
 
-    fname = str(
-        _check_fname(
-            fname,
-            overwrite="read",
-            must_exist=True,
-            need_dir=str(fname).endswith(".ds"),  # for CTF
-            name="fname",
-        )
+    fname = _check_fname(
+        fname,
+        overwrite="read",
+        must_exist=True,
+        need_dir=str(fname).endswith(".ds"),  # for CTF
+        name="fname",
     )
-    name = op.basename(fname)
-    if name.endswith(("fif", "fif.gz")):
+    readers = {
+        ".csv": _read_annotations_csv,
+        ".cnt": _read_annotations_cnt,
+        ".ds": _read_annotations_ctf,
+        ".cef": _read_annotations_curry,
+        ".set": _read_annotations_eeglab,
+        ".edf": _read_annotations_edf,
+        ".bdf": _read_annotations_edf,
+        ".gdf": _read_annotations_edf,
+        ".vmrk": _read_annotations_brainvision,
+        ".amrk": _read_annotations_brainvision,
+        ".txt": _read_annotations_txt,
+    }
+    kwargs = {
+        ".vmrk": {"sfreq": sfreq, "ignore_marker_types": ignore_marker_types},
+        ".amrk": {"sfreq": sfreq, "ignore_marker_types": ignore_marker_types},
+        ".cef": {"sfreq": sfreq},
+        ".set": {"uint16_codec": uint16_codec},
+        ".edf": {"encoding": encoding},
+        ".bdf": {"encoding": encoding},
+        ".gdf": {"encoding": encoding},
+    }
+    if fname.suffix in readers:
+        annotations = readers[fname.suffix](fname, **kwargs.get(fname.suffix, {}))
+    elif fname.name.endswith(("fif", "fif.gz")):
         # Read FiF files
         ff, tree, _ = fiff_open(fname, preload=False)
         with ff as fid:
             annotations = _read_annotations_fif(fid, tree)
-    elif name.endswith("txt"):
-        annotations = _read_annotations_txt(fname)
-
-    elif name.endswith(("vmrk", "amrk")):
-        annotations = _read_annotations_brainvision(
-            fname, sfreq=sfreq, ignore_marker_types=ignore_marker_types
-        )
-
-    elif name.endswith("csv"):
-        annotations = _read_annotations_csv(fname)
-
-    elif name.endswith("cnt"):
-        annotations = _read_annotations_cnt(fname)
-
-    elif name.endswith("ds"):
-        annotations = _read_annotations_ctf(fname)
-
-    elif name.endswith("cef"):
-        annotations = _read_annotations_curry(fname, sfreq=sfreq)
-
-    elif name.endswith("set"):
-        annotations = _read_annotations_eeglab(fname, uint16_codec=uint16_codec)
-
-    elif name.endswith(("edf", "bdf", "gdf")):
-        annotations = _read_annotations_edf(fname, encoding=encoding)
-
-    elif name.startswith("events_") and fname.endswith("mat"):
+    elif fname.name.startswith("events_") and fname.suffix == ".mat":
         annotations = _read_brainstorm_annotations(fname)
     else:
         raise OSError(f'Unknown annotation file format "{fname}"')
