@@ -411,7 +411,7 @@ class BaseEpochs(
 
         .. versionadded:: 0.16
     %(drop_log)s
-    filename : str | None
+    filename : Path | None
         The filename (if the epochs are read from disk).
     %(metadata_epochs)s
 
@@ -683,7 +683,7 @@ class BaseEpochs(
             # more memory safe in most instances
             for ii, epoch in enumerate(self._data):
                 self._data[ii] = np.dot(self._projector, epoch)
-        self._filename = str(filename) if filename is not None else filename
+        self.filename = filename if filename is not None else filename
         if raw_sfreq is None:
             raw_sfreq = self.info["sfreq"]
         self._raw_sfreq = raw_sfreq
@@ -2013,9 +2013,14 @@ class BaseEpochs(
         return self
 
     @property
-    def filename(self):
-        """The filename."""
+    def filename(self) -> Path:
+        """The filename if the epochs are loaded from disk."""
         return self._filename
+
+    @filename.setter
+    def filename(self, value):
+        """The filename if the epochs are loaded from disk, cast as Path."""  # noqa
+        self._filename = _check_fname(value, overwrite="read", must_exist=True)
 
     def __repr__(self):
         """Build string representation."""

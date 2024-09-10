@@ -3,7 +3,6 @@
 # Copyright the MNE-Python contributors.
 
 import os
-import os.path as op
 import shutil
 from collections import defaultdict
 from contextlib import nullcontext
@@ -272,7 +271,7 @@ class BaseRaw(
             # STI 014 channel is native only to fif ... for all other formats
             # this was artificially added by the IO procedure, so remove it
             ch_names = list(info["ch_names"])
-            if ("STI 014" in ch_names) and not (self.filenames[0].endswith(".fif")):
+            if "STI 014" in ch_names and self.filenames[0].suffix != ".fif":
                 ch_names.remove("STI 014")
 
             # Each channel in the data must have a corresponding channel in
@@ -325,8 +324,8 @@ class BaseRaw(
         if current_comp != grade:
             if self.proj:
                 raise RuntimeError(
-                    "Cannot change compensation on data where "
-                    "projectors have been applied"
+                    "Cannot change compensation on data where projectors have been "
+                    "applied."
                 )
             # Figure out what operator to use (varies depending on preload)
             from_comp = current_comp if self.preload else self._read_comp_grade
@@ -2698,9 +2697,9 @@ def _write_raw(raw_fid_writer, fpath, split_naming, overwrite):
 
 
 class _ReservedFilename:
-    def __init__(self, fname):
+    def __init__(self, fname: Path):
         self.fname = fname
-        assert op.isdir(op.dirname(fname)), fname
+        assert fname.parent.exists(), fname
         with open(fname, "w"):
             pass
         self.remove = True
@@ -2710,7 +2709,7 @@ class _ReservedFilename:
 
     def __exit__(self, exc_type, exc_value, traceback):
         if self.remove:
-            os.remove(self.fname)
+            self.fname.unlink()
 
 
 @dataclass(frozen=True)
@@ -2908,7 +2907,7 @@ def _write_raw_data(
         ):
             start_block(fid, FIFF.FIFFB_REF)
             write_int(fid, FIFF.FIFF_REF_ROLE, FIFF.FIFFV_ROLE_NEXT_FILE)
-            write_string(fid, FIFF.FIFF_REF_FILE_NAME, op.basename(next_fname))
+            write_string(fid, FIFF.FIFF_REF_FILE_NAME, fname.name)
             if info["meas_id"] is not None:
                 write_id(fid, FIFF.FIFF_REF_FILE_ID, info["meas_id"])
             write_int(fid, FIFF.FIFF_REF_FILE_NUM, part_idx + 1)
