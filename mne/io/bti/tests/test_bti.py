@@ -356,7 +356,6 @@ def test_no_conversion(pdf, config, hs, exported):
         )
 
 
-@pytest.mark.filterwarnings("ignore::")
 @pytest.mark.parametrize("pdf, config, hs, exported", pdf_config_hs_exporteds)
 def test_bytes_io(pdf, config, hs, exported):
     """Test bti bytes-io API."""
