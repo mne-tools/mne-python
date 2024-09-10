@@ -30,6 +30,10 @@ from .misc import _pl
 _temp_home_dir = None
 
 
+class UnknownPlatformError(Exception):
+    """Exception raised for unknown platforms."""
+
+
 def set_cache_dir(cache_dir):
     """Set the directory to be used for temporary file storage.
 
@@ -622,7 +626,7 @@ def _get_total_memory():
         o = subprocess.check_output(["sysctl", "hw.memsize"]).decode()
         total_memory = int(o.split(":")[1].strip())
     else:
-        total_memory = -1
+        raise UnknownPlatformError("Could not determine total memory")
 
     return total_memory
 
@@ -698,10 +702,10 @@ def sys_info(
     out("Memory".ljust(ljust))
     try:
         total_memory = _get_total_memory()
-    except Exception:
+    except UnknownPlatformError:
         total_memory = "?"
     else:
-        total_memory = f"{total_memory / 1024**3:.1f}"
+        total_memory = f"{total_memory / 1024**3:.1f}"  # convert to GiB
     out(f"{total_memory} GiB\n")
     out("\n")
     ljust -= 3  # account for +/- symbols
