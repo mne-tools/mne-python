@@ -544,6 +544,7 @@ class BrowserBase(ABC):
     def _create_epoch_image_fig(self, pick):
         """Show epochs image for the selected channel."""
         from matplotlib.gridspec import GridSpec
+
         from mne.viz import plot_epochs_image
 
         ch_name = self.mne.ch_names[pick]
