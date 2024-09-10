@@ -2912,7 +2912,7 @@ def _write_raw_data(
         ):
             start_block(fid, FIFF.FIFFB_REF)
             write_int(fid, FIFF.FIFF_REF_ROLE, FIFF.FIFFV_ROLE_NEXT_FILE)
-            write_string(fid, FIFF.FIFF_REF_FILE_NAME, fname.name)
+            write_string(fid, FIFF.FIFF_REF_FILE_NAME, next_fname.name)
             if info["meas_id"] is not None:
                 write_id(fid, FIFF.FIFF_REF_FILE_ID, info["meas_id"])
             write_int(fid, FIFF.FIFF_REF_FILE_NUM, part_idx + 1)
