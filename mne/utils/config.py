@@ -610,7 +610,7 @@ def sys_info(
     show_paths=False,
     *,
     dependencies="user",
-    unicode=True,
+    unicode="auto",
     check_version=True,
 ):
     """Print system information.
@@ -627,8 +627,9 @@ def sys_info(
     dependencies : 'user' | 'developer'
         Show dependencies relevant for users (default) or for developers
         (i.e., output includes additional dependencies).
-    unicode : bool
-        Include Unicode symbols in output.
+    unicode : bool | "auto"
+        Include Unicode symbols in output. If "auto", corresponds to True on Linux and
+        macOS, and False on Windows.
 
         .. versionadded:: 0.24
     check_version : bool | float
@@ -641,6 +642,13 @@ def sys_info(
     _validate_type(dependencies, str)
     _check_option("dependencies", dependencies, ("user", "developer"))
     _validate_type(check_version, (bool, "numeric"), "check_version")
+    _validate_type(unicode, (bool, str), "unicode")
+    _check_option("unicode", unicode, ("auto", True, False))
+    if unicode == "auto":
+        if platform.system() in ("Darwin", "Linux"):
+            unicode = True
+        else:  # Windows
+            unicode = False
     ljust = 24 if dependencies == "developer" else 21
     platform_str = platform.platform()
 
