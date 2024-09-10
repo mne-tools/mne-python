@@ -680,7 +680,12 @@ class BaseRaw(
         _validate_type(value, (list, tuple), "filenames")
         for k, elt in enumerate(value):
             if elt is not None:
-                value[k] = _check_fname(elt, overwrite="read", must_exist=True)
+                value[k] = _check_fname(elt, overwrite="read", must_exist=False)
+                if not value[k].exists():
+                    # check existence separately from _check_fname since some
+                    # fileformats use directories instead of files and '_check_fname'
+                    # does not handle it correctly.
+                    raise FileNotFoundError(f"File {value[k]} not found.")
         self._filenames = list(value)
 
     @verbose
