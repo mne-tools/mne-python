@@ -72,7 +72,7 @@ def ca_208() -> TypeDataset:
     }
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def ca_208_refs() -> TypeDataset:
     """Return the paths and info to the CA_208_refs dataset.
 
