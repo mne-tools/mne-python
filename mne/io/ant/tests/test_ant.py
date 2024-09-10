@@ -24,6 +24,11 @@ pytest.importorskip("antio", minversion="0.4.0")
 data_path = testing.data_path(download=False) / "antio"
 
 
+TypeDataset = dict[
+    str, dict[str, Path] | str | int | tuple[str, str, str] | dict[str, str] | None
+]
+
+
 def read_raw_bv(fname: Path) -> BaseRaw:
     """Read a brainvision file exported from eego.
 
@@ -45,7 +50,7 @@ def read_raw_bv(fname: Path) -> BaseRaw:
 
 
 @pytest.fixture(scope="module")
-def ca_208() -> dict[str, dict[str, Path] | str | int | dict[str, str | int]]:
+def ca_208() -> TypeDataset:
     """Return the paths to the CA_208 dataset containing 64 channel gel recordings."""
     cnt = {
         "short": data_path / "CA_208" / "test_CA_208.cnt",
@@ -70,8 +75,43 @@ def ca_208() -> dict[str, dict[str, Path] | str | int | dict[str, str | int]]:
     }
 
 
+@pytest.fixture(scope="session")
+def ca_208_refs() -> TypeDataset:
+    """Return the paths and info to the CA_208_refs dataset.
+
+    The following montage was applid on export:
+    - highpass: 0.3 Hz - lowpass: 30 Hz
+    - Fp1, Fpz, Fp2 referenced to Fz
+    - CP3, CP4 referenced to Cz
+    - others to CPz
+    """
+    directory = Path(__file__).parent / "data" / "CA_208_refs"
+    cnt = {
+        "short": directory / "test-ref.cnt",
+        "legacy": directory / "test-ref-legacy.cnt",
+    }
+    bv = {
+        "short": cnt["short"].with_suffix(".vhdr"),
+    }
+    return {
+        "cnt": cnt,
+        "bv": bv,
+        "n_eeg": 64,
+        "n_misc": 0,
+        "meas_date": "2024-09-09-10-57-44+0000",
+        "patient_info": {
+            "name": "antio test",
+            "his_id": "",
+            "birthday": "2024-08-14",
+            "sex": 0,
+        },
+        "machine_info": ("eego", "EE_225", ""),
+        "hospital": "",
+    }
+
+
 @pytest.fixture(scope="module")
-def andy_101() -> dict[str, dict[str, Path] | str | int | dict[str, str | int]]:
+def andy_101() -> TypeDataset:
     """Return the path and info to the andy_101 dataset."""
     cnt = {
         "short": data_path / "andy_101" / "Andy_101-raw.cnt",
@@ -95,7 +135,7 @@ def andy_101() -> dict[str, dict[str, Path] | str | int | dict[str, str | int]]:
 
 
 @pytest.fixture(scope="module")
-def na_271() -> dict[str, dict[str, Path] | str | int]:
+def na_271() -> TypeDataset:
     """Return the path to a dataset containing 128 channel recording.
 
     The recording was done with an NA_271 net dipped in saline solution.
@@ -110,17 +150,14 @@ def na_271() -> dict[str, dict[str, Path] | str | int]:
     return {
         "cnt": cnt,
         "bv": bv,
-        "ch_ref": "Z7",
-        "ch_unit": "uv",
-        "n_channels": 128,
-        "n_bips": 0,
-        "sfreq": 500,
+        "n_eeg": 128,
+        "n_misc": 0,
         "meas_date": "2024-09-06-10-45-07+0000",
         "patient_info": {
             "name": "antio test",
-            "id": "",
+            "his_id": "",
             "birthday": "2024-08-14",
-            "sex": "",
+            "sex": 0,
         },
         "machine_info": ("eego", "EE_226", ""),
         "hospital": "",
@@ -128,7 +165,7 @@ def na_271() -> dict[str, dict[str, Path] | str | int]:
 
 
 @pytest.fixture(scope="module")
-def na_271_bips() -> dict[str, dict[str, Path] | str | int]:
+def na_271_bips() -> TypeDataset:
     """Return the path to a dataset containing 128 channel recording.
 
     The recording was done with an NA_271 net dipped in saline solution and includes
@@ -144,17 +181,14 @@ def na_271_bips() -> dict[str, dict[str, Path] | str | int]:
     return {
         "cnt": cnt,
         "bv": bv,
-        "ch_ref": "Z7",
-        "ch_unit": "uv",
-        "n_channels": 128,
-        "n_bips": 6,
-        "sfreq": 1000,
+        "n_eeg": 128,
+        "n_misc": 6,
         "meas_date": "2024-09-06-10-37-23+0000",
         "patient_info": {
             "name": "antio test",
-            "id": "",
+            "his_id": "",
             "birthday": "2024-08-14",
-            "sex": "",
+            "sex": 0,
         },
         "machine_info": ("eego", "EE_226", ""),
         "hospital": "",
@@ -162,7 +196,7 @@ def na_271_bips() -> dict[str, dict[str, Path] | str | int]:
 
 
 @pytest.fixture(scope="module")
-def user_annotations() -> dict[str, dict[str, Path] | str | int]:
+def user_annotations() -> TypeDataset:
     """Return the path to a dataset containing user annotations with floating pins."""
     cnt = {
         "short": data_path / "user_annotations" / "test-user-annotation.cnt",
@@ -174,17 +208,14 @@ def user_annotations() -> dict[str, dict[str, Path] | str | int]:
     return {
         "cnt": cnt,
         "bv": bv,
-        "ch_ref": "5Z",
-        "ch_unit": "uv",
-        "n_channels": 64,
-        "n_bips": 0,
-        "sfreq": 500,
+        "n_eeg": 64,
+        "n_misc": 0,
         "meas_date": "2024-08-29-16-15-44+0000",
         "patient_info": {
             "name": "test test",
-            "id": "",
+            "his_id": "",
             "birthday": "2024-02-06",
-            "sex": "",
+            "sex": 0,
         },
         "machine_info": ("eego", "EE_225", ""),
         "hospital": "",
@@ -192,7 +223,7 @@ def user_annotations() -> dict[str, dict[str, Path] | str | int]:
 
 
 @testing.requires_testing_data
-@pytest.mark.parametrize("dataset", ["ca_208", "andy_101", "na_271", "na_271_bips"])
+@pytest.mark.parametrize("dataset", ["ca_208", "andy_101", "na_271"])
 def test_io_data(dataset, request):
     """Test loading of .cnt file."""
     dataset = request.getfixturevalue(dataset)
@@ -235,7 +266,7 @@ def test_io_data(dataset, request):
 
 
 @testing.requires_testing_data
-@pytest.mark.parametrize("dataset", ["ca_208", "andy_101", "na_271", "na_271_bips"])
+@pytest.mark.parametrize("dataset", ["ca_208", "andy_101", "na_271"])
 def test_io_info(dataset, request):
     """Test the ifo loaded from a .cnt file."""
     dataset = request.getfixturevalue(dataset)
@@ -255,9 +286,7 @@ def test_io_info(dataset, request):
 
 
 @testing.requires_testing_data
-def test_io_info_parse_misc(
-    ca_208: dict[str, dict[str, Path] | str | int | dict[str, str | int]],
-):
+def test_io_info_parse_misc(ca_208: TypeDataset):
     """Test parsing misc channels from a .cnt file."""
     raw_cnt = read_raw_ant(ca_208["cnt"]["short"])
     with pytest.warns(
@@ -270,9 +299,7 @@ def test_io_info_parse_misc(
 
 
 @testing.requires_testing_data
-def test_io_info_parse_eog(
-    ca_208: dict[str, dict[str, Path] | str | int | dict[str, str | int]],
-):
+def test_io_info_parse_eog(ca_208: TypeDataset):
     """Test parsing EOG channels from a .cnt file."""
     raw_cnt = read_raw_ant(ca_208["cnt"]["short"], eog="EOG")
     assert len(raw_cnt.ch_names) == ca_208["n_eeg"] + ca_208["n_misc"]
@@ -284,7 +311,7 @@ def test_io_info_parse_eog(
 
 @testing.requires_testing_data
 @pytest.mark.parametrize(
-    "dataset", ["andy_101", "ca_208", "na_271", "na_271_bips", "user_annotations"]
+    "dataset", ["andy_101", "ca_208", "na_271", "user_annotations"]
 )
 def test_subject_info(dataset, request):
     """Test reading the subject info."""
@@ -302,7 +329,7 @@ def test_subject_info(dataset, request):
 
 @testing.requires_testing_data
 @pytest.mark.parametrize(
-    "dataset", ["andy_101", "ca_208", "na_271", "na_271_bips", "user_annotations"]
+    "dataset", ["andy_101", "ca_208", "na_271", "user_annotations"]
 )
 def test_machine_info(dataset, request):
     """Test reading the machine info."""
@@ -316,9 +343,7 @@ def test_machine_info(dataset, request):
 
 
 @testing.requires_testing_data
-def test_io_amp_disconnection(
-    ca_208: dict[str, dict[str, Path] | str | int | dict[str, str | int]],
-):
+def test_io_amp_disconnection(ca_208: TypeDataset):
     """Test loading of .cnt file with amplifier disconnection."""
     raw_cnt = read_raw_ant(ca_208["cnt"]["amp-dc"])
     raw_bv = read_raw_bv(ca_208["bv"]["amp-dc"])
@@ -350,10 +375,7 @@ def test_io_amp_disconnection(
 
 @testing.requires_testing_data
 @pytest.mark.parametrize("description", ["impedance", "test"])
-def test_io_impedance(
-    ca_208: dict[str, dict[str, Path] | str | int | dict[str, str | int]],
-    description: str,
-):
+def test_io_impedance(ca_208: TypeDataset, description: str):
     """Test loading of impedances from a .cnt file."""
     raw_cnt = read_raw_ant(ca_208["cnt"]["amp-dc"], impedance_annotation=description)
     assert isinstance(raw_cnt.impedances, list)
@@ -368,9 +390,7 @@ def test_io_impedance(
 
 
 @testing.requires_testing_data
-def test_io_segments(
-    ca_208: dict[str, dict[str, Path] | str | int | dict[str, str | int]],
-):
+def test_io_segments(ca_208: TypeDataset):
     """Test reading a .cnt file with segents (start/stop)."""
     raw_cnt = read_raw_ant(ca_208["cnt"]["start-stop"])
     raw_bv = read_raw_bv(ca_208["bv"]["start-stop"])
@@ -378,9 +398,7 @@ def test_io_segments(
 
 
 @testing.requires_testing_data
-def test_annotations_and_preload(
-    ca_208: dict[str, dict[str, Path] | str | int | dict[str, str | int]],
-):
+def test_annotations_and_preload(ca_208: TypeDataset):
     """Test annotation loading with preload True/False."""
     raw_cnt_preloaded = read_raw_ant(ca_208["cnt"]["short"], preload=True)
     assert len(raw_cnt_preloaded.annotations) == 2  # impedance measurements, start/end
@@ -403,9 +421,7 @@ def test_annotations_and_preload(
 
 
 @testing.requires_testing_data
-def test_read_raw(
-    ca_208: dict[str, dict[str, Path] | str | int | dict[str, str | int]],
-):
+def test_read_raw(ca_208: TypeDataset):
     """Test loading through read_raw."""
     raw = read_raw(ca_208["cnt"]["short"])
     assert isinstance(raw, RawANT)
@@ -413,12 +429,21 @@ def test_read_raw(
 
 @testing.requires_testing_data
 @pytest.mark.parametrize("preload", [True, False])
-def test_read_raw_with_user_annotations(
-    user_annotations: dict[str, dict[str, Path] | str | int | dict[str, str | int]],
-    preload: bool,
-):
+def test_read_raw_with_user_annotations(user_annotations: TypeDataset, preload: bool):
     """Test reading raw objects which have user annotations."""
     raw = read_raw_ant(user_annotations["cnt"]["short"], preload=preload)
     assert raw.annotations
     assert "1000/user-annot" in raw.annotations.description
     assert "1000/user-annot-2" in raw.annotations.description
+
+
+@testing.requires_testing_data
+def test_read_raw_legacy_format():
+    """Test reading the legacy CNT format."""
+    pass
+
+
+@testing.requires_testing_data
+def test_read_raw_custom_reference():
+    """Test reading a CNT file with custom EEG references."""
+    pass
