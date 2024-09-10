@@ -6,19 +6,16 @@ from __future__ import annotations
 
 import warnings
 from pathlib import Path
-from typing import TYPE_CHECKING
 
 import numpy as np
 import pytest
 from numpy.testing import assert_allclose
 
 from mne import Annotations
+from mne._fiff.constants import FIFF
 from mne.datasets import testing
 from mne.io import BaseRaw, read_raw, read_raw_ant, read_raw_brainvision
 from mne.io.ant.ant import RawANT
-
-if TYPE_CHECKING:
-    from pathlib import Path
 
 pytest.importorskip("antio", minversion="0.4.0")
 data_path = testing.data_path(download=False) / "antio"
@@ -85,10 +82,9 @@ def ca_208_refs() -> TypeDataset:
     - CP3, CP4 referenced to Cz
     - others to CPz
     """
-    directory = Path(__file__).parent / "data" / "CA_208_refs"
     cnt = {
-        "short": directory / "test-ref.cnt",
-        "legacy": directory / "test-ref-legacy.cnt",
+        "short": data_path / "CA_208_refs" / "test-ref.cnt",
+        "legacy": data_path / "CA_208_refs" / "test-ref-legacy.cnt",
     }
     bv = {
         "short": cnt["short"].with_suffix(".vhdr"),
@@ -444,6 +440,24 @@ def test_read_raw_legacy_format():
 
 
 @testing.requires_testing_data
-def test_read_raw_custom_reference():
+def test_read_raw_custom_reference(ca_208_refs: TypeDataset):
     """Test reading a CNT file with custom EEG references."""
-    pass
+    with pytest.warns(
+        RuntimeWarning, match="EEG channels are not referenced to the same electrode"
+    ):
+        raw = read_raw_ant(ca_208_refs["cnt"]["short"], preload=False)
+    for ch in raw.info["chs"]:
+        assert ch["coil_type"] == FIFF.FIFFV_COIL_EEG
+    bipolars = ("Fp1-Fz", "Fpz-Fz", "Fp2-Fz", "CP3-Cz", "CP4-Cz")
+    with pytest.warns(
+        RuntimeWarning, match="EEG channels are not referenced to the same electrode"
+    ):
+        raw = read_raw_ant(
+            ca_208_refs["cnt"]["short"], preload=False, bipolars=bipolars
+        )
+    assert all(elt in raw.ch_names for elt in bipolars)
+    for ch in raw.info["chs"]:
+        if ch["ch_name"] in bipolars:
+            assert ch["coil_type"] == FIFF.FIFFV_COIL_EEG_BIPOLAR
+        else:
+            assert ch["coil_type"] == FIFF.FIFFV_COIL_EEG
