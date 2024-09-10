@@ -2041,7 +2041,7 @@ def test_file_like(kind, preload, split, tmp_path):
         fname = test_fif_fname
     if preload is str:
         preload = str(tmp_path / "memmap")
-    with open(str(fname), "rb") as file_fid:
+    with open(fname, "rb") as file_fid:
         fid = BytesIO(file_fid.read()) if kind == "bytes" else file_fid
         assert not fid.closed
         assert not file_fid.closed
