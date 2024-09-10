@@ -247,7 +247,7 @@ class BaseRaw(
         if self._read_comp_grade is not None and len(info["comps"]):
             logger.info("Current compensation grade : %d" % self._read_comp_grade)
         self._comp = None
-        self._filenames = list(filenames)
+        self.filenames = list(filenames)
         _validate_type(orig_format, str, "orig_format")
         _check_option("orig_format", orig_format, ("double", "single", "int", "short"))
         self.orig_format = orig_format
@@ -484,7 +484,7 @@ class BaseRaw(
         ``preload=False``. Any implementation should only make use of:
 
         - self._raw_extras[fi]
-        - self._filenames[fi]
+        - self.filenames[fi]
 
         So be sure to store any information necessary for reading raw data
         in self._raw_extras[fi]. Things like ``info`` can be decoupled
@@ -1546,7 +1546,7 @@ class BaseRaw(
         self._read_picks = [self._read_picks[ri] for ri in keepers]
         assert all(len(r) == len(self._read_picks[0]) for r in self._read_picks)
         self._raw_extras = [self._raw_extras[ri] for ri in keepers]
-        self._filenames = [self._filenames[ri] for ri in keepers]
+        self.filenames = [self.filenames[ri] for ri in keepers]
         if self.preload:
             # slice and copy to avoid the reference to large array
             self._data = self._data[:, smin : smax + 1].copy()
@@ -1705,17 +1705,17 @@ class BaseRaw(
         check_fname(fname, "raw", endings, endings_err=endings_err)
 
         split_size = _get_split_size(split_size)
-        if not self.preload and str(fname) in self._filenames:
+        if not self.preload and fname in self.filenames:
             raise ValueError(
-                "You cannot save data to the same file."
-                " Please use a different filename."
+                "You cannot save data to the same file. Please use a different "
+                "filename."
             )
 
         if self.preload:
             if np.iscomplexobj(self._data):
                 warn(
-                    "Saving raw file with complex data. Loading with "
-                    "command-line MNE tools will not work."
+                    "Saving raw file with complex data. Loading with command-line MNE "
+                    "tools will not work."
                 )
 
         data_test = self[0, 0][0]
@@ -2054,7 +2054,7 @@ class BaseRaw(
             self._last_samps = np.r_[self._last_samps, r._last_samps]
             self._read_picks += r._read_picks
             self._raw_extras += r._raw_extras
-            self._filenames += r._filenames
+            self.filenames += r._filenames
         assert annotations.orig_time == self.info["meas_date"]
         # The above _combine_annotations gets everything synchronized to
         # first_samp. set_annotations (with no absolute time reference) assumes
@@ -2107,7 +2107,7 @@ class BaseRaw(
 
     @repr_html
     def _repr_html_(self):
-        basenames = [Path(f).name for f in self._filenames if f is not None]
+        basenames = [f.name for f in self.filenames if f is not None]
 
         # https://stackoverflow.com/a/10981895
         duration = timedelta(seconds=self.times[-1])
