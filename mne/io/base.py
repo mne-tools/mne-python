@@ -276,7 +276,9 @@ class BaseRaw(
             # STI 014 channel is native only to fif ... for all other formats
             # this was artificially added by the IO procedure, so remove it
             ch_names = list(info["ch_names"])
-            if ("STI 014" in ch_names) and not (self.filenames[0].endswith(".fif")):
+            if ("STI 014" in ch_names) and not (
+                str(self.filenames[0]).endswith(".fif")
+            ):
                 ch_names.remove("STI 014")
 
             # Each channel in the data must have a corresponding channel in
