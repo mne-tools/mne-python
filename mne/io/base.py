@@ -670,12 +670,12 @@ class BaseRaw(
         return self._annotations
 
     @property
-    def filenames(self) -> tuple[Path, ...]:
+    def filenames(self) -> tuple[Path | None, ...]:
         """The filenames used."""
         return tuple(self._filenames)
 
     @filenames.setter
-    def filenames(self, value) -> list[Path]:
+    def filenames(self, value):
         """The filenames used, cast to list of paths."""  # noqa: D401
         _validate_type(value, (list, tuple), "filenames")
         for k, elt in enumerate(value):
