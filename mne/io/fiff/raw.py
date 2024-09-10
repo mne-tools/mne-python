@@ -156,7 +156,7 @@ class Raw(BaseRaw):
             self.preload = False
         # If using a file-like object, fix the filenames to be representative
         # strings now instead of the file-like objects
-        self._filenames = [_get_fname_rep(fname) for fname in self._filenames]
+        self.filenames = [_get_fname_rep(fname) for fname in self.filenames]
 
     @verbose
     def _read_raw_file(
@@ -392,7 +392,7 @@ class Raw(BaseRaw):
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a segment of data from a file."""
         n_bad = 0
-        with _fiff_get_fid(self._filenames[fi]) as fid:
+        with _fiff_get_fid(self.filenames[fi]) as fid:
             bounds = self._raw_extras[fi]["bounds"]
             ents = self._raw_extras[fi]["ent"]
             nchan = self._raw_extras[fi]["orig_nchan"]

@@ -575,7 +575,7 @@ class RawCNT(BaseRaw):
         block_size = ((int(100e6) // n_bytes) // chunk_size) * chunk_size
         block_size = min(data_left, block_size)
         s_offset = start % channel_offset
-        with open(self._filenames[fi], "rb", buffering=0) as fid:
+        with open(self.filenames[fi], "rb", buffering=0) as fid:
             fid.seek(900 + f_channels * (75 + (start - s_offset) * n_bytes))
             for sample_start in np.arange(0, data_left, block_size) // f_channels:
                 # Earlier comment says n_samples is unreliable, but I think it

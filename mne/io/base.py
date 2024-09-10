@@ -2054,7 +2054,7 @@ class BaseRaw(
             self._last_samps = np.r_[self._last_samps, r._last_samps]
             self._read_picks += r._read_picks
             self._raw_extras += r._raw_extras
-            self.filenames += r._filenames
+            self.filenames += r._filenames  # use the private attribute to use the list
         assert annotations.orig_time == self.info["meas_date"]
         # The above _combine_annotations gets everything synchronized to
         # first_samp. set_annotations (with no absolute time reference) assumes
@@ -2071,7 +2071,7 @@ class BaseRaw(
             len(self._first_samps)
             == len(self._last_samps)
             == len(self._raw_extras)
-            == len(self._filenames)
+            == len(self.filenames)
             == len(self._read_picks)
         ):
             raise RuntimeError("Append error")  # should never happen

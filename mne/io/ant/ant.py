@@ -198,7 +198,7 @@ class RawANT(BaseRaw):
             i_start = max(start, first_samp)
             i_stop = min(stop, this_n_times + first_samp)
             # read and scale data array
-            cnt = read_cnt(str(self._filenames[fi]))
+            cnt = read_cnt(str(self.filenames[fi]))
             one = read_data(cnt, i_start, i_stop)
             _scale_data(one, ch_units)
             data_view = data[:, i_start - start : i_stop - start]

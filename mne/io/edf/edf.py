@@ -224,7 +224,7 @@ class RawEDF(BaseRaw):
             start,
             stop,
             self._raw_extras[fi],
-            self._filenames[fi],
+            self.filenames[fi],
             cals,
             mult,
         )
@@ -326,7 +326,7 @@ class RawGDF(BaseRaw):
             start,
             stop,
             self._raw_extras[fi],
-            self._filenames[fi],
+            self.filenames[fi],
             cals,
             mult,
         )
