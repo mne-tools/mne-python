@@ -265,6 +265,7 @@ def _read_elc(fname, head_size):
                 break
 
         # Read positions
+        new_style = False
         pos = []
         for line in fid:
             if "Labels\n" in line:
@@ -272,6 +273,7 @@ def _read_elc(fname, head_size):
             if ":" in line:
                 # Of the 'new' format: `E01 : 5.288 -3.658 119.693`
                 pos.append(list(map(float, line.split(":")[1].split())))
+                new_style = True
             else:
                 # Of the 'old' format: `5.288 -3.658 119.693`
                 pos.append(list(map(float, line.split())))
@@ -281,7 +283,13 @@ def _read_elc(fname, head_size):
         for line in fid:
             if not line or not set(line) - {" "}:
                 break
-            ch_names_.extend(line.strip(" ").strip("\n").split())
+            if new_style:
+                # Not sure how this format would deal with spaces in channel labels,
+                # but none of my test files had this, so let's wait until it comes up.
+                parsed = line.strip(" ").strip("\n").split()
+            else:
+                parsed = [line.strip(" ").strip("\n")]
+            ch_names_.extend(parsed)
 
     pos = np.array(pos) * scale
     if head_size is not None:
