@@ -841,12 +841,18 @@ def plot_events(
     color = _handle_event_colors(color, unique_events, event_id)
     import matplotlib.pyplot as plt
 
+    unique_events_id = np.array(unique_events_id)
+
     fig = None
+    figsize = plt.rcParams["figure.figsize"]
+    # XXX: low-hanging fruit scaling, this could be much improved
+    # beyond scaling factor 2, the figure gets too big
+    _scaling = min(max(1, len(unique_events_id) / 20), 2)
+    figsize_scaled = np.array(figsize) * _scaling
     if axes is None:
-        fig = plt.figure(layout="constrained")
+        fig = plt.figure(layout="constrained", figsize=tuple(figsize_scaled))
     ax = axes if axes else plt.gca()
 
-    unique_events_id = np.array(unique_events_id)
     min_event = np.min(unique_events_id)
     max_event = np.max(unique_events_id)
     max_x = (
