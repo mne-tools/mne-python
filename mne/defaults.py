@@ -93,7 +93,7 @@ DEFAULTS = dict(
         gsr="S",
         temperature="C",
         eyegaze="rad",
-        pupil="M",
+        pupil="µM",
     ),
     # scalings for the units
     scalings=dict(
