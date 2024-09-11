@@ -154,8 +154,9 @@ def test_ssd():
     ch_types = np.reshape([["mag"] * 10, ["eeg"] * 10], n_channels)
     info_2 = create_info(ch_names=n_channels, sfreq=sf, ch_types=ch_types)
 
+    ssd = SSD(info_2, filt_params_signal, filt_params_noise)
     with pytest.raises(ValueError, match="At this point SSD"):
-        ssd = SSD(info_2, filt_params_signal, filt_params_noise)
+        ssd.fit(X)
 
     # Number of channels
     info_3 = create_info(ch_names=n_channels + 1, sfreq=sf, ch_types="eeg")

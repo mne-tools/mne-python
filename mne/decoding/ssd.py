@@ -124,14 +124,8 @@ class SSD(BaseEstimator, TransformerMixin):
                 "The signal band-pass must be within the noise "
                 "band-pass!"
             )
-        self.picks = _picks_to_idx(info, picks, none="data", exclude="bads")
+        self.picks = picks
         del picks
-        ch_types = info.get_channel_types(picks=self.picks, unique=True)
-        if len(ch_types) > 1:
-            raise ValueError(
-                "At this point SSD only supports fitting "
-                "single channel types. Your info has %i types" % (len(ch_types))
-            )
         self.info = info
         self.freqs_signal = (filt_params_signal["l_freq"], filt_params_signal["h_freq"])
         self.freqs_noise = (filt_params_noise["l_freq"], filt_params_noise["h_freq"])
@@ -182,8 +176,15 @@ class SSD(BaseEstimator, TransformerMixin):
         self : instance of SSD
             Returns the modified instance.
         """
+        ch_types = self.info.get_channel_types(picks=self.picks, unique=True)
+        if len(ch_types) > 1:
+            raise ValueError(
+                "At this point SSD only supports fitting "
+                "single channel types. Your info has %i types" % (len(ch_types))
+            )
+        self.picks_ = _picks_to_idx(self.info, self.picks, none="data", exclude="bads")
         self._check_X(X)
-        X_aux = X[..., self.picks, :]
+        X_aux = X[..., self.picks_, :]
 
         X_signal = filter_data(X_aux, self.info["sfreq"], **self.filt_params_signal)
         X_noise = filter_data(X_aux, self.info["sfreq"], **self.filt_params_noise)
@@ -224,7 +225,7 @@ class SSD(BaseEstimator, TransformerMixin):
         # We assume that ordering by spectral ratio is more important
         # than the initial ordering. This ordering should be also learned when
         # fitting.
-        X_ssd = self.filters_.T @ X[..., self.picks, :]
+        X_ssd = self.filters_.T @ X[..., self.picks_, :]
         sorter_spec = Ellipsis
         if self.sort_by_spectral_ratio:
             _, sorter_spec = self.get_spectral_ratio(ssd_sources=X_ssd)
@@ -251,9 +252,9 @@ class SSD(BaseEstimator, TransformerMixin):
         if self.filters_ is None:
             raise RuntimeError("No filters available. Please first call fit")
         if self.return_filtered:
-            X_aux = X[..., self.picks, :]
+            X_aux = X[..., self.picks_, :]
             X = filter_data(X_aux, self.info["sfreq"], **self.filt_params_signal)
-        X_ssd = self.filters_.T @ X[..., self.picks, :]
+        X_ssd = self.filters_.T @ X[..., self.picks_, :]
         if X.ndim == 2:
             X_ssd = X_ssd[self.sorter_spec][: self.n_components]
         else:
@@ -329,11 +330,6 @@ class SSD(BaseEstimator, TransformerMixin):
         pick_patterns = self.patterns_[self.sorter_spec][: self.n_components].T
         X = pick_patterns @ X_ssd
         return X
-
-    @property
-    def picks_(self):
-        """Backward compatible wrapper for picks."""
-        return self.picks
 
 
 def _dimensionality_reduction(cov_signal, cov_noise, info, rank):
