@@ -2,7 +2,6 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-import os.path as op
 from gzip import GzipFile
 from io import SEEK_SET, BytesIO
 from pathlib import Path
@@ -58,6 +57,9 @@ def _fiff_get_fid(fname):
 
 def _get_next_fname(fid, fname, tree):
     """Get the next filename in split files."""
+    if isinstance(fname, str):
+        warn("The file-name provided is a str instead of Path.")  # TODO: remove
+        fname = Path(fname)
     nodes_list = dir_tree_find(tree, FIFF.FIFFB_REF)
     next_fname = None
     for nodes in nodes_list:
@@ -71,14 +73,14 @@ def _get_next_fname(fid, fname, tree):
                     break
             if ent.kind == FIFF.FIFF_REF_FILE_NAME:
                 tag = read_tag(fid, ent.pos)
-                next_fname = op.join(op.dirname(fname), tag.data)  # TODO: use pathlib
+                next_fname = fname.parent / tag.data
             if ent.kind == FIFF.FIFF_REF_FILE_NUM:
                 # Some files don't have the name, just the number. So
                 # we construct the name from the current name.
                 if next_fname is not None:
                     continue
                 next_num = read_tag(fid, ent.pos).data.item()
-                path, base = op.split(fname)
+                base = fname.name
                 idx = base.find(".")
                 idx2 = base.rfind("-")
                 num_str = base[idx2 + 1 : idx]
@@ -87,14 +89,13 @@ def _get_next_fname(fid, fname, tree):
 
                 if idx2 < 0 and next_num == 1:
                     # this is the first file, which may not be numbered
-                    next_fname = op.join(
-                        path,
-                        f"{base[:idx]}-{next_num:d}.{base[idx + 1 :]}",
+                    next_fname = (
+                        fname.parent / f"{base[:idx]}-{next_num:d}.{base[idx + 1 :]}"
                     )
                     continue
 
-                next_fname = op.join(
-                    path, f"{base[:idx2]}-{next_num:d}.{base[idx + 1 :]}"
+                next_fname = (
+                    fname.parent / f"{base[:idx2]}-{next_num:d}.{base[idx + 1 :]}"
                 )
         if next_fname is not None:
             break
