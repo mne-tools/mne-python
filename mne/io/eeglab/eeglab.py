@@ -70,6 +70,7 @@ def _check_eeglab_fname(fname, dataname):
 
 def _check_load_mat(fname, uint16_codec):
     """Check if the mat struct contains 'EEG'."""
+    fname = _check_fname(fname, "read", True)
     eeg = _readmat(fname, uint16_codec=uint16_codec)
     if "ALLEEG" in eeg:
         raise NotImplementedError(
@@ -755,7 +756,7 @@ def _read_annotations_eeglab(eeg, uint16_codec=None):
 
     Parameters
     ----------
-    eeg : object | str
+    eeg : object | str | Path
         'EEG' struct or the path to the (EEGLAB) .set file.
     uint16_codec : str | None
         If your \*.set file contains non-ascii characters, sometimes reading
@@ -769,7 +770,7 @@ def _read_annotations_eeglab(eeg, uint16_codec=None):
     annotations : instance of Annotations
         The annotations present in the file.
     """
-    if isinstance(eeg, str):
+    if isinstance(eeg, (str, Path, PathLike)):
         eeg = _check_load_mat(eeg, uint16_codec=uint16_codec)
 
     if not hasattr(eeg, "event"):
