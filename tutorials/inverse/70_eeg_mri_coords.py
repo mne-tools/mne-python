@@ -104,7 +104,12 @@ plot_glass_brain(
 #     You can also verify that these are correct (or manually convert voxels
 #     to MRI coords) by looking at the points in Freeview or tkmedit.
 
-dig_montage = read_custom_montage(fname_mon, head_size=None, coord_frame="mri")
+dig_montage = read_custom_montage(
+    fname_mon,
+    head_size=None,
+    coord_frame="mri",
+    verbose="error",  # because it contains a duplicate point
+)
 dig_montage.plot()
 
 ##############################################################################
