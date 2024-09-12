@@ -9,7 +9,7 @@ from pathlib import Path
 import numpy as np
 from scipy.sparse import issparse
 
-from ..utils import _file_like, logger, verbose, warn
+from ..utils import _check_fname, _file_like, logger, verbose, warn
 from .constants import FIFF
 from .tag import Tag, _call_dict_names, _matrix_info, _read_tag_header, read_tag
 from .tree import dir_tree_find, make_dir_tree
@@ -245,7 +245,8 @@ def show_fiff(
         raise ValueError("output must be list or str")
     if isinstance(tag, str):  # command mne show_fiff passes string
         tag = int(tag)
-    f, tree, directory = fiff_open(fname)
+    fname = _check_fname(fname, "read", True)
+    f, tree, _ = fiff_open(fname)
     # This gets set to 0 (unknown) by fiff_open, but FIFFB_ROOT probably
     # makes more sense for display
     tree["block"] = FIFF.FIFFB_ROOT
