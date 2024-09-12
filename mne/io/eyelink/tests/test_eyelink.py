@@ -193,6 +193,43 @@ def test_find_overlaps():
     assert overlap_df["eye"].iloc[0] == "both"
 
 
+@requires_testing_data
+@pytest.mark.parametrize("fname", [fname])
+def test_bino_to_mono(tmp_path, fname):
+    """Test a file that switched from binocular to monocular mid-recording."""
+    out_file = tmp_path / "tmp_eyelink.asc"
+    in_file = Path(fname)
+
+    with in_file.open() as file:
+        lines = file.readlines()
+        end_line = lines[-2]
+        end_ts = int(end_line.split("\t")[1])
+        # Now only left eye data
+        second_block = []
+        new_ts = end_ts + 1
+        info = ["GAZE", "LEFT", "RATE", "500.00", "TRACKING", "CR", "FILTER", "2"]
+        start = ["START", f"{new_ts}", "LEFT", "SAMPLES", "EVENTS"]
+        samples = ["SAMPLES"] + info
+        events = ["EVENTS"] + info
+        second_block.append("\t".join(start) + "\n")
+        second_block.append("\t".join(samples) + "\n")
+        second_block.append("\t".join(events) + "\n")
+        # Some fake data
+        left = ["960", "540", "0.0", "..."]  # x, y, pupil, status
+        NUM_FAKE_SAMPLES = 10
+        for ii in range(NUM_FAKE_SAMPLES):
+            ts = new_ts + ii
+            tokens = [f"{ts}"] + left
+            second_block.append("\t".join(tokens) + "\n")
+        end_ts = ts + 1
+        end_block = ["END", f"{end_ts}", "SAMPLES", "EVENTS", "RES", "45", "45"]
+        second_block.append("\t".join(end_block))
+        lines += second_block
+        with out_file.open("w") as file:
+            file.writelines(lines)
+    assert read_raw_eyelink(out_file)
+
+
 def _simulate_eye_tracking_data(in_file, out_file):
     out_file = Path(out_file)
 
