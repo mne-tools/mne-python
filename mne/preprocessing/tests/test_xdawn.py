@@ -19,7 +19,10 @@ from mne import (
 )
 from mne.fixes import _safe_svd
 from mne.io import read_raw_fif
-from mne.preprocessing.xdawn import Xdawn, _XdawnTransformer
+
+pytest.importorskip("sklearn")
+
+from mne.preprocessing.xdawn import Xdawn, _XdawnTransformer  # noqa: E402
 
 base_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
 raw_fname = base_dir / "test_raw.fif"

@@ -7,10 +7,9 @@ from inspect import signature
 
 import numpy as np
 import pytest
-import sklearn
 from numpy.testing import assert_array_equal, assert_equal
 
-pytest.importorskip("sklearn")
+sklearn = pytest.importorskip("sklearn")
 
 from sklearn.base import BaseEstimator, clone, is_classifier
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
