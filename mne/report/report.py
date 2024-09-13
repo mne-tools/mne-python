@@ -2550,8 +2550,6 @@ class Report:
             replace=replace,
         )
 
-
-
     ###########################################################################
     # global rendering functions
     @verbose
