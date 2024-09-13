@@ -298,9 +298,6 @@ class TimeDelayingRidge(BaseEstimator):
         self.edge_correction = edge_correction
         self.n_jobs = n_jobs
 
-    def _more_tags(self):
-        return {"no_validation": True}
-
     @property
     def _smin(self):
         return int(round(self.tmin * self.sfreq))

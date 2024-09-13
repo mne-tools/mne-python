@@ -4,12 +4,12 @@
 
 import numpy as np
 from scipy.linalg import eigh
+from sklearn.base import BaseEstimator, TransformerMixin
 
 from .._fiff.pick import _picks_to_idx
 from ..cov import Covariance, _regularized_covariance
 from ..defaults import _handle_default
 from ..filter import filter_data
-from ..fixes import BaseEstimator
 from ..rank import compute_rank
 from ..time_frequency import psd_array_welch
 from ..utils import (
@@ -20,7 +20,6 @@ from ..utils import (
     fill_doc,
     logger,
 )
-from .mixin import TransformerMixin
 
 
 @fill_doc
@@ -125,14 +124,8 @@ class SSD(BaseEstimator, TransformerMixin):
                 "The signal band-pass must be within the noise "
                 "band-pass!"
             )
-        self.picks_ = _picks_to_idx(info, picks, none="data", exclude="bads")
+        self.picks = picks
         del picks
-        ch_types = info.get_channel_types(picks=self.picks_, unique=True)
-        if len(ch_types) > 1:
-            raise ValueError(
-                "At this point SSD only supports fitting "
-                "single channel types. Your info has %i types" % (len(ch_types))
-            )
         self.info = info
         self.freqs_signal = (filt_params_signal["l_freq"], filt_params_signal["h_freq"])
         self.freqs_noise = (filt_params_noise["l_freq"], filt_params_noise["h_freq"])
@@ -183,6 +176,13 @@ class SSD(BaseEstimator, TransformerMixin):
         self : instance of SSD
             Returns the modified instance.
         """
+        ch_types = self.info.get_channel_types(picks=self.picks, unique=True)
+        if len(ch_types) > 1:
+            raise ValueError(
+                "At this point SSD only supports fitting "
+                "single channel types. Your info has %i types" % (len(ch_types))
+            )
+        self.picks_ = _picks_to_idx(self.info, self.picks, none="data", exclude="bads")
         self._check_X(X)
         X_aux = X[..., self.picks_, :]
 

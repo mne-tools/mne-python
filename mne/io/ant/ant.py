@@ -122,7 +122,7 @@ class RawANT(BaseRaw):
         _validate_type(impedance_annotation, (str,), "impedance_annotation")
         if len(impedance_annotation) == 0:
             raise ValueError("The impedance annotation cannot be an empty string.")
-        cnt = read_cnt(str(fname))
+        cnt = read_cnt(fname)
         # parse channels, sampling frequency, and create info
         ch_info = read_info(cnt)  # load in 2 lines for compat with antio 0.2 and 0.3
         ch_names, ch_units, ch_refs = ch_info[0], ch_info[1], ch_info[2]
@@ -198,7 +198,7 @@ class RawANT(BaseRaw):
             i_start = max(start, first_samp)
             i_stop = min(stop, this_n_times + first_samp)
             # read and scale data array
-            cnt = read_cnt(str(self._filenames[fi]))
+            cnt = read_cnt(self._filenames[fi])
             one = read_data(cnt, i_start, i_stop)
             _scale_data(one, ch_units)
             data_view = data[:, i_start - start : i_stop - start]

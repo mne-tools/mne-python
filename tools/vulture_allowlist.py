@@ -41,6 +41,10 @@ _use_test_3d_backend
 verbose_debug
 metadata_routing
 
+# Decoding
+_._more_tags
+deep
+
 # Backward compat or rarely used
 RawFIF
 estimate_head_mri_t
@@ -75,6 +79,7 @@ _.drop_inds_
 
 # mne/io/ant/tests/test_ant.py
 andy_101
+na_271
 
 # mne/io/snirf/tests/test_snirf.py
 _.dataTimeSeries
