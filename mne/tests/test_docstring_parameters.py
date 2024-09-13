@@ -109,7 +109,6 @@ subclass_name_ignores = (
         },
     ),
     (list, {"append", "count", "extend", "index", "insert", "pop", "remove", "sort"}),
-    (mne.fixes.BaseEstimator, {"get_params", "set_params", "fit_transform"}),
 )
 
 
@@ -175,7 +174,12 @@ def test_docstring_parameters():
             module = __import__(name, globals())
         for submod in name.split(".")[1:]:
             module = getattr(module, submod)
-        classes = inspect.getmembers(module, inspect.isclass)
+        try:
+            classes = inspect.getmembers(module, inspect.isclass)
+        except ModuleNotFoundError as exc:  # e.g., mne.decoding but no sklearn
+            if "'sklearn'" in str(exc):
+                continue
+            raise
         for cname, cls in classes:
             if cname.startswith("_"):
                 continue
@@ -326,7 +330,12 @@ def test_documented():
             module = __import__(name, globals())
         for submod in name.split(".")[1:]:
             module = getattr(module, submod)
-        classes = inspect.getmembers(module, inspect.isclass)
+        try:
+            classes = inspect.getmembers(module, inspect.isclass)
+        except ModuleNotFoundError as exc:  # e.g., mne.decoding but no sklearn
+            if "'sklearn'" in str(exc):
+                continue
+            raise
         functions = inspect.getmembers(module, inspect.isfunction)
         checks = list(classes) + list(functions)
         for this_name, cf in checks:

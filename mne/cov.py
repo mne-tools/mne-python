@@ -49,8 +49,8 @@ from .epochs import Epochs
 from .event import make_fixed_length_events
 from .evoked import EvokedArray
 from .fixes import (
-    BaseEstimator,
     EmpiricalCovariance,
+    _EstimatorMixin,
     _logdet,
     _safe_svd,
     empirical_covariance,
@@ -1512,7 +1512,7 @@ def _auto_low_rank_model(
 # Sklearn Estimators
 
 
-class _RegCovariance(BaseEstimator):
+class _RegCovariance(_EstimatorMixin):
     """Aux class."""
 
     def __init__(
@@ -1595,7 +1595,7 @@ class _RegCovariance(BaseEstimator):
         return self.estimator_.get_precision()
 
 
-class _ShrunkCovariance(BaseEstimator):
+class _ShrunkCovariance(_EstimatorMixin):
     """Aux class."""
 
     def __init__(self, store_precision, assume_centered, shrinkage=0.1):
