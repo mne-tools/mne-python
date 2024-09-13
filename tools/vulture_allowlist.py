@@ -79,6 +79,7 @@ _.drop_inds_
 
 # mne/io/ant/tests/test_ant.py
 andy_101
+na_271
 
 # mne/io/snirf/tests/test_snirf.py
 _.dataTimeSeries

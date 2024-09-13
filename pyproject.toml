@@ -106,7 +106,7 @@ full-no-qt = [
     "snirf",
     "defusedxml",
     "neo",
-    "antio",
+    "antio>=0.4.0",
 ]
 full = ["mne[full-no-qt]", "PyQt6!=6.6.0", "PyQt6-Qt6!=6.6.0,!=6.7.0"]
 full-pyqt6 = ["mne[full]"]
