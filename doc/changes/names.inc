@@ -80,6 +80,7 @@
 .. _Erkka Heinila: https://github.com/Teekuningas
 .. _Etienne de Montalivet: https://github.com/etiennedemontalivet
 .. _Evan Hathaway: https://github.com/ephathaway
+.. _Evgenii Kalenkovich: https://github.com/kalenkovich
 .. _Evgeny Goldstein: https://github.com/evgenygoldstein
 .. _Ezequiel Mikulan: https://github.com/ezemikulan
 .. _Ezequiel Mikulan: https://github.com/ezemikulan
@@ -126,7 +127,7 @@
 .. _Jan Zerfowski: https://github.com/jzerfowski
 .. _Jasper van den Bosch: https://github.com/ilogue
 .. _Jean-Baptiste Schiratti: https://github.com/jbschiratti
-.. _Jean-Remi King: https://github.com/kingjr
+.. _Jean-Rémi King: https://github.com/kingjr
 .. _Jeff Stout: https://megcore.nih.gov/index.php/Staff
 .. _Jennifer Behnke: https://github.com/JKBehnke
 .. _Jeroen Van Der Donckt: https://github.com/jvdd
@@ -151,7 +152,6 @@
 .. _Jukka Nenonen: https://www.linkedin.com/pub/jukka-nenonen/28/b5a/684
 .. _Jussi Nurminen: https://github.com/jjnurminen
 .. _Kaisu Lankinen: http://bishoplab.berkeley.edu/Kaisu.html
-.. _kalenkovich: https://github.com/kalenkovich
 .. _Katarina Slama: https://github.com/katarinaslama
 .. _Keith Doelling: https://github.com/kdoelling1919
 .. _Kostiantyn Maksymenko: https://github.com/makkostya

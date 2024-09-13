@@ -21,7 +21,7 @@ images of faces and body parts.
           build the images below.
 """
 
-# Authors: Jean-Remi King <jeanremi.king@gmail.com>
+# Authors: Jean-Rémi King <jeanremi.king@gmail.com>
 #          Jaakko Leppakangas <jaeilepp@student.jyu.fi>
 #          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #

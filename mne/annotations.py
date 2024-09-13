@@ -1146,8 +1146,8 @@ def read_annotations(
     r"""Read annotations from a file.
 
     This function reads a ``.fif``, ``.fif.gz``, ``.vmrk``, ``.amrk``,
-    ``.edf``, ``.txt``, ``.csv``, ``.cnt``, ``.cef``, or ``.set`` file and
-    makes an :class:`mne.Annotations` object.
+    ``.edf``, ``.bdf``, ``.gdf``, ``.txt``, ``.csv``, ``.cnt``, ``.cef``, or
+    ``.set`` file and makes an :class:`mne.Annotations` object.
 
     Parameters
     ----------

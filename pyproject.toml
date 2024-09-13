@@ -78,7 +78,6 @@ full-no-qt = [
     "jupyter",
     "python-picard",
     "joblib",
-    "psutil",
     "dipy",
     "vtk",
     "nilearn",
@@ -107,7 +106,7 @@ full-no-qt = [
     "snirf",
     "defusedxml",
     "neo",
-    "antio",
+    "antio>=0.4.0",
 ]
 full = ["mne[full-no-qt]", "PyQt6!=6.6.0", "PyQt6-Qt6!=6.6.0,!=6.7.0"]
 full-pyqt6 = ["mne[full]"]
@@ -175,6 +174,7 @@ doc = [
     "intersphinx_registry>=0.2405.27",
     # https://github.com/sphinx-contrib/sphinxcontrib-towncrier/issues/92
     "towncrier<24.7",
+    "psutil",
 ]
 dev = ["mne[test,doc]", "rcssmin"]
 
@@ -255,6 +255,10 @@ ignore-decorators = [
 "examples/preprocessing/eeg_bridging.py" = [
     "E501", # line too long
 ]
+"mne/decoding/tests/test_*.py" = [
+    "E402", # Module level import not at top of file
+]
+
 
 [tool.pytest.ini_options]
 # -r f (failed), E (error), s (skipped), x (xfail), X (xpassed), w (warnings)
@@ -362,7 +366,7 @@ package = "mne"
 directory = "doc/changes/devel/"
 filename = "doc/changes/devel.rst"
 title_format = "{version} ({project_date})"
-issue_format = "`#{issue} <https://github.com/mne-tools/mne-python/pulls/{issue}>`__"
+issue_format = "`#{issue} <https://github.com/mne-tools/mne-python/pull/{issue}>`__"
 
 [[tool.towncrier.type]]
 directory = "notable"
