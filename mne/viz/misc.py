@@ -845,8 +845,8 @@ def plot_events(
 
     fig = None
     figsize = plt.rcParams["figure.figsize"]
-    # XXX: low-hanging fruit scaling, this could be much improved
-    # beyond scaling factor 2, the figure gets too big
+    # assuming the user did not change matplotlib default params, the figsize of
+    # (6.4, 4.8) becomes too big if scaled beyond twice its size, so maximum 2
     _scaling = min(max(1, len(unique_events_id) / 20), 2)
     figsize_scaled = np.array(figsize) * _scaling
     if axes is None:
@@ -902,8 +902,16 @@ def plot_events(
     box = ax.get_position()
     factor = 0.8 if event_id is not None else 0.9
     ax.set_position([box.x0, box.y0, box.width * factor, box.height])
+    # spread legend entries over more columns, 40 still fit in one column
+    # (assuming non-user supplied fig)
+    ncols = int(np.ceil(len(unique_events_id) / 40))
     ax.legend(
-        handles, labels, loc="center left", bbox_to_anchor=(1, 0.5), fontsize="small"
+        handles,
+        labels,
+        loc="center left",
+        bbox_to_anchor=(1, 0.5),
+        fontsize="small",
+        ncols=ncols,
     )
     fig.canvas.draw()
     plt_show(show)
