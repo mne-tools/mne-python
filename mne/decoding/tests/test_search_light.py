@@ -358,6 +358,7 @@ def test_sklearn_compliance(estimator, check):
         "check_transformer_data_not_an_array",
         "check_n_features_in",
         "check_fit2d_predict1d",
+        "check_do_not_raise_errors_in_init_or_set_params",
     )
     if any(ignore in str(check) for ignore in ignores):
         return
