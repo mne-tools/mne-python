@@ -867,9 +867,9 @@ def plot_events(
             continue
         y = np.full(count, idx + 1 if equal_spacing else events[ev_mask, 2][0])
         if event_id is not None:
-            event_label = f"{event_id_rev[ev]} ({count})"
+            event_label = f"{event_id_rev[ev]} (id={ev}; N={count})"
         else:
-            event_label = f"N={count:d}"
+            event_label = f"id={ev}; N={count:d}"
         labels.append(event_label)
         kwargs = {}
         if ev in color:
