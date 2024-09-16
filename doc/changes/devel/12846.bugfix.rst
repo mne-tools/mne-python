@@ -1,0 +1,1 @@
+Enforce SI units for Eyetracking data (eyegaze data should be radians of visual angle, not pixels. Pupil size data should be meters). Updated tutorials so demonstrate how to convert data to SI units before analyses (:gh:`12846`` by `Scott Huberty`_)
