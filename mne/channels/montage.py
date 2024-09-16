@@ -836,7 +836,7 @@ def read_dig_fif(fname):
     read_dig_localite
     make_dig_montage
     """
-    _check_fname(fname, overwrite="read", must_exist=True)
+    fname = _check_fname(fname, overwrite="read", must_exist=True)
     # Load the dig data
     f, tree = fiff_open(fname)[:2]
     with f as fid:
