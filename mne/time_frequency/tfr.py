@@ -1533,7 +1533,8 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
         ]
         # deal with the "taper" dimension
         if self._needs_taper_dim:
-            expected_shape.insert(1, self._data.shape[1])
+            tapers_dim = 1 if _get_instance_type_string(self) != "Epochs" else 2
+            expected_shape.insert(1, self._data.shape[tapers_dim])
         self._shape = tuple(expected_shape)
 
     @verbose
