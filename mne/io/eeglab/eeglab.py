@@ -770,7 +770,7 @@ def _read_annotations_eeglab(eeg, uint16_codec=None):
     annotations : instance of Annotations
         The annotations present in the file.
     """
-    if isinstance(eeg, (str, Path, PathLike)):
+    if isinstance(eeg, (str | Path | PathLike)):
         eeg = _check_load_mat(eeg, uint16_codec=uint16_codec)
 
     if not hasattr(eeg, "event"):
