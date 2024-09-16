@@ -92,51 +92,51 @@ class CoregistrationUI(HasTraits):
 
     Parameters
     ----------
-    info_file : None | str
+    info_file : None | path-like
         The FIFF file with digitizer data for coregistration.
     %(subject)s
     %(subjects_dir)s
     %(fiducials)s
     head_resolution : bool
-        If True, use a high-resolution head surface. Defaults to False.
+        If ``True``, use a high-resolution head surface. Defaults to ``False``.
     head_opacity : float
-        The opacity of the head surface. Defaults to 0.8.
+        The opacity of the head surface. Defaults to ``0.8``.
     hpi_coils : bool
-        If True, display the HPI coils. Defaults to True.
+        If ``True``, display the HPI coils. Defaults to ``True``.
     head_shape_points : bool
-        If True, display the head shape points. Defaults to True.
+        If ``True``, display the head shape points. Defaults to ``True``.
     eeg_channels : bool
-        If True, display the EEG channels. Defaults to True.
+        If ``True``, display the EEG channels. Defaults to ``True``.
     meg_channels : bool
-        If True, display the MEG channels. Defaults to False.
+        If ``True``, display the MEG channels. Defaults to ``False``.
     fnirs_channels : bool
-        If True, display the fNIRS channels. Defaults to True.
+        If ``True``, display the fNIRS channels. Defaults to ``True``.
     orient_glyphs : bool
-        If True, orient the sensors towards the head surface. Default to False.
+        If ``True``, orient the sensors towards the head surface. Default to ``False``.
     scale_by_distance : bool
-        If True, scale the sensors based on their distance to the head surface.
-        Defaults to True.
+        If ``True``, scale the sensors based on their distance to the head surface.
+        Defaults to ``True``.
     mark_inside : bool
-        If True, mark the head shape points that are inside the head surface
-        with a different color. Defaults to True.
+        If ``True``, mark the head shape points that are inside the head surface
+        with a different color. Defaults to ``True``.
     sensor_opacity : float
-        The opacity of the sensors between 0 and 1. Defaults to 1.0.
+        The opacity of the sensors between ``0`` and ``1``. Defaults to ``1.``.
     trans : path-like | Transform
-        The Head<->MRI transform or the path to its FIF file ("-trans.fif").
+        The Head<->MRI transform or the path to its FIF file (``"-trans.fif"``).
     size : tuple
         The dimensions (width, height) of the rendering view. The default is
-        (800, 600).
-    bgcolor : tuple | str
+        ``(800, 600)``.
+    bgcolor : tuple of float | str
         The background color as a tuple (red, green, blue) of float
-        values between 0 and 1 or a valid color name (i.e. 'white'
-        or 'w'). Defaults to 'grey'.
+        values between ``0`` and ``1`` or a valid color name (i.e. ``'white'``
+        or ``'w'``). Defaults to ``'grey'``.
     show : bool
-        Display the window as soon as it is ready. Defaults to True.
+        Display the window as soon as it is ready. Defaults to ``True``.
     block : bool
         Whether to halt program execution until the GUI has been closed
         (``True``) or not (``False``, default).
     %(fullscreen)s
-        The default is False.
+        The default is ``False``.
 
         .. versionadded:: 1.1
     %(interaction_scene)s
@@ -457,10 +457,9 @@ class CoregistrationUI(HasTraits):
                 tuple(supported),
                 endings_err=tuple(supported),
             )
-            fname = str(_check_fname(fname, overwrite="read"))  # cast to str
-
+            fname = Path(fname)
             # ctf ds `files` are actually directories
-            if fname.endswith((".ds",)):
+            if fname.suffix == ".ds":
                 info_file = _check_fname(
                     fname, overwrite="read", must_exist=True, need_dir=True
                 )
@@ -473,7 +472,7 @@ class CoregistrationUI(HasTraits):
             valid = False
         if valid:
             style = dict(border="initial")
-            self._info_file = str(info_file)
+            self._info_file = info_file
         else:
             style = dict(border="2px solid #ff0000")
         self._forward_widget_command("info_file_field", "set_style", style)
@@ -712,7 +711,7 @@ class CoregistrationUI(HasTraits):
     def _info_file_changed(self, change=None):
         if not self._info_file:
             return
-        elif self._info_file.endswith((".fif", ".fif.gz")):
+        elif self._info_file.name.endswith((".fif", ".fif.gz")):
             fid, tree, _ = fiff_open(self._info_file)
             fid.close()
             if len(dir_tree_find(tree, FIFF.FIFFB_MEAS_INFO)) > 0:
@@ -1911,7 +1910,7 @@ class CoregistrationUI(HasTraits):
             tooltip="Save the transform file to disk",
             layout=save_trans_layout,
             filter_="Head->MRI transformation (*-trans.fif *_trans.fif)",
-            initial_directory=str(Path(self._info_file).parent),
+            initial_directory=self._info_file.parent,
         )
         self._widgets["load_trans"] = self._renderer._dock_add_file_button(
             name="load_trans",
@@ -1920,7 +1919,7 @@ class CoregistrationUI(HasTraits):
             tooltip="Load the transform file from disk",
             layout=save_trans_layout,
             filter_="Head->MRI transformation (*-trans.fif *_trans.fif)",
-            initial_directory=str(Path(self._info_file).parent),
+            initial_directory=self._info_file.parent,
         )
         self._renderer._layout_add_widget(trans_layout, save_trans_layout)
         self._widgets["reset_trans"] = self._renderer._dock_add_button(

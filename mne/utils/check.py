@@ -52,10 +52,10 @@ def check_fname(fname, filetype, endings, endings_err=()):
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         Name of the file.
     filetype : str
-        Type of file. e.g., ICA, Epochs etc.
+        Type of file. e.g., ICA, Epochs, etc.
     endings : tuple
         Acceptable endings for the filename.
     endings_err : tuple
