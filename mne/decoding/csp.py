@@ -6,6 +6,7 @@ import copy as cp
 
 import numpy as np
 from scipy.linalg import eigh
+from sklearn.base import BaseEstimator, TransformerMixin
 
 from .._fiff.meas_info import create_info
 from ..cov import _compute_rank_raw_array, _regularized_covariance, _smart_eigh
@@ -19,8 +20,6 @@ from ..utils import (
     pinv,
     warn,
 )
-from .base import BaseEstimator
-from .mixin import TransformerMixin
 
 
 @fill_doc
