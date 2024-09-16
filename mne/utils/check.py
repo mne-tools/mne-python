@@ -255,7 +255,7 @@ def _check_fname(
     *,
     check_bids_split=False,
     verbose=None,
-):
+) -> Path:
     """Check for file existence, and return its absolute path."""
     _validate_type(fname, "path-like", name)
     # special case for MNE-BIDS, check split
