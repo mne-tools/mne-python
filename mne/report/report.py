@@ -9,7 +9,6 @@ from __future__ import annotations  # only needed for Python ≤ 3.9
 import base64
 import copy
 import dataclasses
-import fnmatch
 import io
 import os
 import os.path as op
@@ -2703,14 +2702,13 @@ class Report:
 
         Parameters
         ----------
-        data_path : str
-            Path to the folder containing data whose HTML report will be
-            created.
+        data_path : path-like
+            Path to the folder containing data whose HTML report will be created.
         pattern : None | str | list of str
-            Filename pattern(s) to include in the report.
-            For example, ``[\*raw.fif, \*ave.fif]`` will include `~mne.io.Raw`
-            as well as `~mne.Evoked` files. If ``None``, include all supported
-            file formats.
+            Filename global pattern(s) to include in the report.
+            For example, ``['\*raw.fif', '\*ave.fif']`` will include
+            :class:`~mne.io.Raw` as well as :class:`~mne.Evoked` files. If ``None``,
+            include all supported file formats.
 
             .. versionchanged:: 0.23
                Include supported non-FIFF files by default.
@@ -2724,9 +2722,9 @@ class Report:
             -> bem -> forward-solution -> inverse-operator -> source-estimate.
 
             .. versionadded:: 0.24.0
-        on_error : str
-            What to do if a file cannot be rendered. Can be 'ignore',
-            'warn' (default), or 'raise'.
+        on_error : ``'ignore'`` | ``'warn'`` | ``'raise'``
+            What to do if a file cannot be rendered. Can be ``'ignore'``, ``'warn'``
+            (default), or ``'raise'``.
         %(image_format_report)s
 
             .. versionadded:: 0.15
@@ -2735,16 +2733,15 @@ class Report:
 
             .. versionadded:: 0.16
         n_time_points_evokeds, n_time_points_stcs : int | None
-            The number of equidistant time points to render for `~mne.Evoked`
-            and `~mne.SourceEstimate` data, respectively. If ``None``,
-            will render each `~mne.Evoked` at 21 and each `~mne.SourceEstimate`
-            at 51 time points, unless the respective data contains fewer time
-            points, in which call all will be rendered.
+            The number of equidistant time points to render for :class:`~mne.Evoked`
+            and :class:`~mne.SourceEstimate` data, respectively. If ``None``,
+            will render each :class:`~mne.Evoked` at 21 and each
+            :class:`~mne.SourceEstimate` at 51 time points, unless the respective data
+            contains fewer time points, in which case all will be rendered.
 
             .. versionadded:: 0.24.0
         raw_butterfly : bool
-            Whether to render butterfly plots for (decimated) `~mne.io.Raw`
-            data.
+            Whether to render butterfly plots for (decimated) :class:`~mne.io.Raw` data.
 
             .. versionadded:: 0.24.0
         %(stc_plot_kwargs_report)s
@@ -2755,37 +2752,34 @@ class Report:
             .. versionadded:: 0.24.0
         %(verbose)s
         """
-        _validate_type(data_path, "path-like", "data_path")
-        data_path = str(data_path)
+        self.data_path = _check_fname(
+            data_path,
+            overwrite="read",
+            must_exist=True,
+            name="data_path",
+            need_dir=True,
+        )
         image_format = _check_image_format(self, image_format)
         _check_option("on_error", on_error, ["ignore", "warn", "raise"])
 
-        self.data_path = data_path
-
         if self.title is None:
-            self.title = f"MNE Report for {self.data_path[-20:]}"
+            self.title = f"MNE Report for {self.data_path.name[-20:]}"
 
         if pattern is None:
             pattern = [f"*{ext}" for ext in SUPPORTED_READ_RAW_EXTENSIONS]
-        elif not isinstance(pattern, list | tuple):
-            pattern = [pattern]
+        else:
+            if not isinstance(pattern, list | tuple):
+                pattern = [pattern]
+            for elt in pattern:
+                _validate_type(elt, str, "pattern")
 
         # iterate through the possible patterns
         fnames = list()
         for p in pattern:
-            data_path = str(
-                _check_fname(
-                    fname=self.data_path,
-                    overwrite="read",
-                    must_exist=True,
-                    name="Directory or folder",
-                    need_dir=True,
-                )
-            )
-            fnames.extend(sorted(_recursive_search(data_path, p)))
+            fnames.extend(sorted(data_path.rglob(p)))
 
         if not fnames and not render_bem:
-            raise RuntimeError(f"No matching files found in {self.data_path}")
+            raise RuntimeError(f"No matching files found in {self.data_path}.")
 
         fnames_to_remove = []
         for fname in fnames:
@@ -4270,19 +4264,6 @@ class Report:
             html_partial=html_partial,
             replace=replace,
         )
-
-
-def _recursive_search(path, pattern):
-    """Auxiliary function for recursive_search of the directory."""
-    filtered_files = list()
-    for dirpath, _, files in os.walk(path):
-        for f in fnmatch.filter(files, pattern):
-            # only the following file types are supported
-            # this ensures equitable distribution of jobs
-            if f.endswith(VALID_EXTENSIONS):
-                filtered_files.append(op.realpath(op.join(dirpath, f)))
-
-    return filtered_files
 
 
 ###############################################################################
