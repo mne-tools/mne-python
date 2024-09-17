@@ -2790,23 +2790,23 @@ class Report:
             # For split files, only keep the first one.
             if _endswith(fname, ("raw", "sss", "meg")):
                 kwargs = dict(fname=fname, preload=False)
-                if fname.endswith((".fif", ".fif.gz")):
+                if fname.name.endswith((".fif", ".fif.gz")):
                     kwargs["allow_maxshield"] = "yes"
                 inst = read_raw(**kwargs)
 
                 if len(inst.filenames) > 1:
                     fnames_to_remove.extend(inst.filenames[1:])
             # For STCs, only keep one hemisphere
-            elif fname.endswith("-lh.stc") or fname.endswith("-rh.stc"):
-                first_hemi_fname = fname
+            elif fname.name.endswith("-lh.stc") or fname.name.endswith("-rh.stc"):
+                first_hemi_fname = fname.name
                 if first_hemi_fname.endswidth("-lh.stc"):
                     second_hemi_fname = first_hemi_fname.replace("-lh.stc", "-rh.stc")
                 else:
                     second_hemi_fname = first_hemi_fname.replace("-rh.stc", "-lh.stc")
 
                 if (
-                    second_hemi_fname in fnames
-                    and first_hemi_fname not in fnames_to_remove
+                    fname.parent / second_hemi_fname in fnames
+                    and fname.parent / first_hemi_fname not in fnames_to_remove
                 ):
                     fnames_to_remove.extend(first_hemi_fname)
             else:
