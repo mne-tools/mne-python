@@ -2776,7 +2776,9 @@ class Report:
         # iterate through the possible patterns
         fnames = list()
         for p in pattern:
-            fnames.extend(sorted(data_path.rglob(p)))
+            for match in data_path.rglob(p):
+                if match.name.endswith(VALID_EXTENSIONS):
+                    fnames.append(match)
 
         if not fnames and not render_bem:
             raise RuntimeError(f"No matching files found in {self.data_path}.")
