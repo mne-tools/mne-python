@@ -2690,6 +2690,7 @@ class Brain:
         max_dist=0.004,
         *,
         sensor_colors=None,
+        sensor_scales=None,
         verbose=None,
     ):
         """Add mesh objects to represent sensor positions.
@@ -2708,6 +2709,9 @@ class Brain:
         %(sensor_colors)s
 
             .. versionadded:: 1.6
+        %(sensor_scales)s
+
+            .. versionadded:: 1.9
         %(verbose)s
 
         Notes
@@ -2764,6 +2768,7 @@ class Brain:
                     self._units,
                     sensor_alpha=sensor_alpha,
                     sensor_colors=sensor_colors,
+                    sensor_scales=sensor_scales,
                 )
                 # sensors_actors can still be None
                 for item, actors in (sensors_actors or {}).items():

@@ -3990,6 +3990,19 @@ sensor_colors : array-like of color | dict | None
     shape ``(n_eeg, 3)`` or ``(n_eeg, 4)``.
 """
 
+docdict["sensor_scales"] = """
+sensor_scales : int | float | array-like | dict | None
+    Scale to use for the sensor glyphs. Can be None (default) to use default scale.
+    A dict should provide the Scale (values) for each channel type (keys), e.g.::
+
+        dict(eeg=eeg_scales)
+
+    Where the value (``eeg_scales`` above) can be broadcast to an array of values with
+    length that matches the number of channels of that type. A few examples of this
+    for the case above are the value ``10e-3``, a list of ``n_eeg`` values, or an NumPy
+    ndarray of shape ``(n_eeg,)``.
+"""
+
 docdict["sensors_topomap"] = """
 sensors : bool | str
     Whether to add markers for sensor locations. If :class:`str`, should be a
