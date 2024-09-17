@@ -4,6 +4,7 @@
 
 import copy
 import os.path as op
+from pathlib import Path
 
 import numpy as np
 
@@ -94,8 +95,10 @@ class Raw(BaseRaw):
     ):
         raws = []
         do_check_ext = not _file_like(fname)
+        fnames = []
         next_fname = fname
         while next_fname is not None:
+            fnames.append(next_fname)
             raw, next_fname, buffer_size_sec = self._read_raw_file(
                 next_fname, allow_maxshield, preload, do_check_ext
             )
@@ -120,13 +123,12 @@ class Raw(BaseRaw):
         _check_raw_compatibility(raws)
         super().__init__(
             copy.deepcopy(raws[0].info),
-            False,
-            [r.first_samp for r in raws],
-            [r.last_samp for r in raws],
-            [r.filename for r in raws],
-            [r._raw_extras for r in raws],
-            raws[0].orig_format,
-            None,
+            preload=False,
+            first_samps=[r.first_samp for r in raws],
+            last_samps=[r.last_samp for r in raws],
+            raw_extras=[r._raw_extras for r in raws],
+            orig_format=raws[0].orig_format,
+            dtype=None,
             buffer_size_sec=buffer_size_sec,
             verbose=verbose,
         )
@@ -153,9 +155,23 @@ class Raw(BaseRaw):
             self._preload_data(preload)
         else:
             self.preload = False
-        # If using a file-like object, fix the filenames to be representative
-        # strings now instead of the file-like objects
-        self.filenames = [_get_fname_rep(fname) for fname in self.filenames]
+        # If using a file-like object, fix the filenames to be Path or None
+        filenames = list()
+        for extra in self._raw_extras:
+            if isinstance(extra["filename"], Path):
+                fname = extra["filename"]
+            else:
+                # Try to get a filename from the file-like object
+                try:
+                    fname = Path(extra["filename"].name)
+                except Exception:
+                    fname = None
+                # We requipre preloading of file-like objects, which should have already
+                # happened. So now we remove the file-like object to avoid serialization
+                # errors.
+                extra["filename"] = fname
+            filenames.append(fname)
+        self.filenames = filenames
 
     @verbose
     def _read_raw_file(
@@ -185,7 +201,6 @@ class Raw(BaseRaw):
             if not preload:
                 raise ValueError("preload must be used with file-like objects")
             whole_file = True
-        fname_rep = _get_fname_rep(fname)
         ff, tree, _ = fiff_open(fname, preload=whole_file)
         with ff as fid:
             #   Read the measurement info
@@ -200,7 +215,7 @@ class Raw(BaseRaw):
                 if len(raw_node) == 0:
                     raw_node = dir_tree_find(meas, FIFF.FIFFB_IAS_RAW_DATA)
                     if len(raw_node) == 0:
-                        raise ValueError(f"No raw data in {fname_rep}")
+                        raise ValueError(f"No raw data in {_get_fname_rep(fname)}")
                     _check_maxshield(allow_maxshield)
                     with info._unlock():
                         info["maxshield"] = True
@@ -233,7 +248,6 @@ class Raw(BaseRaw):
                 _check_entry(first, nent)
 
             raw = _RawShell()
-            raw.filename = fname
             raw.first_samp = first_samp
             if info["meas_date"] is None and annotations is not None:
                 # we need to adjust annotations.onset as when there is no meas
@@ -315,7 +329,11 @@ class Raw(BaseRaw):
                     tag = read_tag(fid, ent.pos)
                     nskip = int(tag.data.item())
 
-            next_fname = _get_next_fname(fid, fname_rep, tree)
+            try:
+                this_name = Path(fname.name)
+            except Exception:
+                this_name = None
+            next_fname = _get_next_fname(fid, this_name, tree)
 
         # reformat raw_extras to be a dict of list/ndarray rather than
         # list of dict (faster access)
@@ -335,6 +353,7 @@ class Raw(BaseRaw):
         del raw_extras["first"]
         del raw_extras["last"]
         del raw_extras["nsamp"]
+        raw_extras["filename"] = fname
 
         raw.last_samp = first_samp - 1
         raw.orig_format = orig_format
@@ -389,7 +408,7 @@ class Raw(BaseRaw):
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a segment of data from a file."""
         n_bad = 0
-        with _fiff_get_fid(self.filenames[fi]) as fid:
+        with _fiff_get_fid(self._raw_extras[fi]["filename"]) as fid:
             bounds = self._raw_extras[fi]["bounds"]
             ents = self._raw_extras[fi]["ent"]
             nchan = self._raw_extras[fi]["orig_nchan"]

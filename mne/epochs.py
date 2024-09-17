@@ -4280,10 +4280,10 @@ class EpochsFIF(BaseEpochs):
             raise ValueError("preload must be used with file-like objects")
 
         fnames = [fname]
+        fname_rep = _get_fname_rep(fname)
         ep_list = list()
         raw = list()
         for fname in fnames:
-            fname_rep = _get_fname_rep(fname)
             logger.info(f"Reading {fname_rep} ...")
             fid, tree, _ = fiff_open(fname, preload=preload)
             next_fname = _get_next_fname(fid, fname, tree)

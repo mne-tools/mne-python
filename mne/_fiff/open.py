@@ -9,7 +9,7 @@ from pathlib import Path
 import numpy as np
 from scipy.sparse import issparse
 
-from ..utils import _check_fname, _file_like, logger, verbose, warn
+from ..utils import _check_fname, _file_like, _validate_type, logger, verbose, warn
 from .constants import FIFF
 from .tag import Tag, _call_dict_names, _matrix_info, _read_tag_header, read_tag
 from .tree import dir_tree_find, make_dir_tree
@@ -57,9 +57,7 @@ def _fiff_get_fid(fname):
 
 def _get_next_fname(fid, fname, tree):
     """Get the next filename in split files."""
-    if isinstance(fname, str):
-        warn("The file-name provided is a str instead of Path.")  # TODO: remove
-        fname = Path(fname)
+    _validate_type(fname, (Path, None), "fname")
     nodes_list = dir_tree_find(tree, FIFF.FIFFB_REF)
     next_fname = None
     for nodes in nodes_list:
@@ -71,6 +69,11 @@ def _get_next_fname(fid, fname, tree):
                 if role != FIFF.FIFFV_ROLE_NEXT_FILE:
                     next_fname = None
                     break
+            if ent.kind not in (FIFF.FIFF_REF_FILE_NAME, FIFF.FIFF_REF_FILE_NUM):
+                continue
+            # If we can't resolve it, assume/hope it's in the current directory
+            if fname is None:
+                fname = Path().resolve()
             if ent.kind == FIFF.FIFF_REF_FILE_NAME:
                 tag = read_tag(fid, ent.pos)
                 next_fname = fname.parent / tag.data

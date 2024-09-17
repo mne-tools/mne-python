@@ -137,7 +137,7 @@ class BaseRaw(
         Iterable of the last sample number from each raw file. For unsplit raw
         files this should be a length-one list or tuple. If None, then preload
         must be an ndarray.
-    filenames : tuple
+    filenames : tuple | None
         Tuple of length one (for unsplit raw files) or length > 1 (for split
         raw files).
     raw_extras : list of dict
@@ -185,7 +185,7 @@ class BaseRaw(
         preload=False,
         first_samps=(0,),
         last_samps=None,
-        filenames=(None,),
+        filenames=None,
         raw_extras=(None,),
         orig_format="double",
         dtype=np.float64,
@@ -236,6 +236,8 @@ class BaseRaw(
                 "Bad cals for channels %s" % {ii: self.ch_names[ii] for ii in bad}
             )
         self._cals = cals
+        if raw_extras is None:
+            raw_extras = [None] * len(first_samps)
         self._raw_extras = list(dict() if r is None else r for r in raw_extras)
         for r in self._raw_extras:
             r["orig_nchan"] = info["nchan"]
@@ -246,6 +248,8 @@ class BaseRaw(
         if self._read_comp_grade is not None and len(info["comps"]):
             logger.info("Current compensation grade : %d" % self._read_comp_grade)
         self._comp = None
+        if filenames is None:
+            filenames = [None] * len(first_samps)
         self.filenames = list(filenames)
         _validate_type(orig_format, str, "orig_format")
         _check_option("orig_format", orig_format, ("double", "single", "int", "short"))
@@ -3162,6 +3166,11 @@ def _check_maxshield(allow_maxshield):
 
 def _get_fname_rep(fname):
     if not _file_like(fname):
-        return fname
+        out = str(fname)
     else:
-        return "File-like"
+        out = "file-like"
+        try:
+            out += f' "{fname.name}"'
+        except Exception:
+            pass
+    return out

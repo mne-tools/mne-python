@@ -2035,10 +2035,12 @@ def test_file_like(kind, preload, split, tmp_path):
     if split:
         fname = tmp_path / "test_raw.fif"
         read_raw_fif(test_fif_fname).save(fname, split_size="5MB")
-        assert fname.is_file()
-        assert Path(str(fname)[:-4] + "-1.fif").is_file()
+        fnames = (fname, Path(str(fname)[:-4] + "-1.fif"))
     else:
         fname = test_fif_fname
+        fnames = (test_fif_fname,)
+    for f in fnames:
+        assert f.is_file()
     if preload is str:
         preload = str(tmp_path / "memmap")
     with open(fname, "rb") as file_fid:
@@ -2058,9 +2060,20 @@ def test_file_like(kind, preload, split, tmp_path):
             test_preloading=False,
             test_kwargs=False,
         )
-        _test_raw_reader(read_raw_fif, **kwargs)
+        raw = _test_raw_reader(read_raw_fif, **kwargs)
         assert not fid.closed
         assert not file_fid.closed
+        want_filenames = list(fnames)
+        if kind == "bytes":
+            # BytesIO doesn't have a .name attribute, moreover the split file will not
+            # be correctly resolved
+            want_filenames = [None]
+        want_filenames = tuple(want_filenames)
+        assert raw.filenames == want_filenames
+        if kind == "bytes":
+            assert fname.name not in raw._repr_html_()
+        else:
+            assert fname.name in raw._repr_html_()
     assert file_fid.closed
 
 
