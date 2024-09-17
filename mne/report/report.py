@@ -2778,7 +2778,7 @@ class Report:
         # iterate through the possible patterns
         fnames = list()
         for p in pattern:
-            for match in data_path.rglob(p):
+            for match in self.data_path.rglob(p):
                 if match.name.endswith(VALID_EXTENSIONS):
                     fnames.append(match)
 
