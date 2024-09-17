@@ -2595,7 +2595,7 @@ class Report:
         assert self.data_path is not None
 
         for fname in fnames:
-            logger.info(f"Rendering : {op.join('…' + self.data_path[-20:], fname)}")
+            logger.info(f"Rendering: {fname}")
 
             title = Path(fname).name
             try:
