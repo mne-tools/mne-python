@@ -1190,7 +1190,7 @@ class _QtDock(_AbstractDock, _QtLayout):
 
     def _dock_add_text(self, name, value, placeholder, *, callback=None, layout=None):
         layout = self._dock_layout if layout is None else layout
-        widget = QLineEdit(value)
+        widget = QLineEdit(str(value))
         widget.setPlaceholderText(placeholder)
         self._layout_add_widget(layout, widget)
         if callback is not None:

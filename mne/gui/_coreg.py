@@ -15,7 +15,7 @@ from functools import partial
 from pathlib import Path
 
 import numpy as np
-from traitlets import Bool, Float, HasTraits, Unicode, observe
+from traitlets import Bool, Float, HasTraits, Instance, Unicode, observe
 
 from .._fiff.constants import FIFF
 from .._fiff.meas_info import _empty_info, read_fiducials, read_info, write_fiducials
@@ -155,7 +155,7 @@ class CoregistrationUI(HasTraits):
     _subjects_dir = Unicode()
     _lock_fids = Bool()
     _current_fiducial = Unicode()
-    _info_file = Unicode()
+    _info_file = Instance(Path, default_value=Path("."))
     _orient_glyphs = Bool()
     _scale_by_distance = Bool()
     _mark_inside = Bool()
