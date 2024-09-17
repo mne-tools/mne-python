@@ -580,10 +580,12 @@ def _plot_ica_properties_as_arrays(*, ica, inst, picks, n_jobs):
 # TOC FUNCTIONS
 
 
-def _endswith(fname, suffixes):
+def _endswith(fname: str | Path, suffixes):
     """Aux function to test if file name includes the specified suffixes."""
     if isinstance(suffixes, str):
         suffixes = [suffixes]
+    if isinstance(fname, Path):
+        fname = fname.name
     for suffix in suffixes:
         for ext in SUPPORTED_READ_RAW_EXTENSIONS:
             if fname.endswith(
