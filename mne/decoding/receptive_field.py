@@ -117,7 +117,7 @@ class ReceptiveField(BaseEstimator):
     ):
         self.tmin = tmin
         self.tmax = tmax
-        self.sfreq = float(sfreq)
+        self.sfreq = sfreq
         self.feature_names = feature_names
         self.estimator = 0.0 if estimator is None else estimator
         self.fit_intercept = fit_intercept
@@ -154,7 +154,7 @@ class ReceptiveField(BaseEstimator):
                 X,
                 self.tmin,
                 self.tmax,
-                self.sfreq,
+                self.sfreq_,
                 fill_mean=self.fit_intercept_,
             )
             X = _reshape_for_est(X)
@@ -182,12 +182,13 @@ class ReceptiveField(BaseEstimator):
             raise ValueError(
                 f"scoring must be one of {sorted(_SCORERS.keys())}, got {self.scoring} "
             )
+        self.sfreq_ = float(self.sfreq)
         X, y, _, self._y_dim = self._check_dimensions(X, y)
 
         if self.tmin > self.tmax:
             raise ValueError(f"tmin ({self.tmin}) must be at most tmax ({self.tmax})")
         # Initialize delays
-        self.delays_ = _times_to_delays(self.tmin, self.tmax, self.sfreq)
+        self.delays_ = _times_to_delays(self.tmin, self.tmax, self.sfreq_)
 
         # Define the slice that we should use in the middle
         self.valid_samples_ = _delays_to_slice(self.delays_)
@@ -200,7 +201,7 @@ class ReceptiveField(BaseEstimator):
             estimator = TimeDelayingRidge(
                 self.tmin,
                 self.tmax,
-                self.sfreq,
+                self.sfreq_,
                 alpha=self.estimator,
                 fit_intercept=self.fit_intercept_,
                 n_jobs=self.n_jobs,
