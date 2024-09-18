@@ -1955,7 +1955,7 @@ class ICA(ContainsMixin):
         has been modified to 45 Hz as a default based on the criteria being
         more accurate in practice.
 
-        If `inst` is supplied without sensor positions, only the first criterion
+        If ``inst`` is supplied without sensor positions, only the first criterion
         (slope) is applied.
 
         Parameters
