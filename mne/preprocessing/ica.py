@@ -1978,7 +1978,7 @@ class ICA(ContainsMixin):
         Returns
         -------
         muscle_idx : list of int
-            The indices of muscle related components, sorted by score.
+            The indices of muscle-related components, sorted by score.
         scores : np.ndarray of float, shape (``n_components_``) | list of array
             The correlation scores.
 
