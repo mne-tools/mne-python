@@ -1995,7 +1995,7 @@ class ICA(ContainsMixin):
         """
         _validate_type(threshold, "numeric", "threshold")
 
-        slope_score, focus_score, smoothness_score= None, None, None
+        slope_score, focus_score, smoothness_score = None, None, None
 
         sources = self.get_sources(inst, start=start, stop=stop)
         components = self.get_components()
@@ -2049,7 +2049,11 @@ class ICA(ContainsMixin):
             pass  # Send some warning that only one criterion will be used
 
         # multiply all criteria that are present
-        scores = [score for score in [slope_score, focus_score, smoothness_score] if score is not None]
+        scores = [
+            score
+            for score in [slope_score, focus_score, smoothness_score]
+            if score is not None
+        ]
         n_criteria = len(scores)
         scores = np.prod(np.array(scores), axis=0)
 
