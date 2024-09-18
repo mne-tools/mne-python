@@ -1,1 +1,0 @@
-Fix bug introduced in :gh:`12846` where the pupil channel SI unit was incorrectly set to Moles instead of Meters. (by `Scott Huberty`_)
