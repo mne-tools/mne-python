@@ -63,7 +63,7 @@ class RawBrainVision(BaseRaw):
 
     Notes
     -----
-    If the BrainVision header file contained impedance measurements, these may be
+    If the BrainVision header file contains impedance measurements, these may be
     accessed using ``raw.impedances`` after reading using this function.
 
     BrainVision markers consist of a type and a description (in addition to other fields
@@ -980,7 +980,7 @@ def read_raw_brainvision(
 
     Notes
     -----
-    If the BrainVision header file contained impedance measurements, these may be
+    If the BrainVision header file contains impedance measurements, these may be
     accessed using ``raw.impedances`` after reading using this function.
 
     BrainVision markers consist of a type and a description (in addition to other fields
