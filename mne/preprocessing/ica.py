@@ -1939,7 +1939,7 @@ class ICA(ContainsMixin):
         sphere=None,
         verbose=None,
     ):
-        """Detect muscle related components.
+        """Detect muscle-related components.
 
         Detection is based on :footcite:`DharmapraniEtAl2016` which uses
         data from a subject who has been temporarily paralyzed
@@ -1971,7 +1971,7 @@ class ICA(ContainsMixin):
         l_freq : float
             Low frequency for muscle-related power.
         h_freq : float
-            High frequency for msucle related power.
+            High frequency for muscle-related power.
         %(sphere_topomap_auto)s
         %(verbose)s
 
