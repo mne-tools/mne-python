@@ -65,7 +65,7 @@ DEFAULTS = dict(
         gsr="S",
         temperature="C",
         eyegaze="rad",
-        pupil="M",
+        pupil="m",
     ),
     units=dict(
         mag="fT",
@@ -93,7 +93,7 @@ DEFAULTS = dict(
         gsr="S",
         temperature="C",
         eyegaze="rad",
-        pupil="µM",
+        pupil="µm",
     ),
     # scalings for the units
     scalings=dict(
@@ -157,7 +157,7 @@ DEFAULTS = dict(
         gsr=1.0,
         temperature=0.1,
         eyegaze=2e-1,
-        pupil=10e-6,
+        pupil=1e-2,
     ),
     scalings_cov_rank=dict(
         mag=1e12,
@@ -184,7 +184,7 @@ DEFAULTS = dict(
         hbr=(0, 20),
         csd=(-50.0, 50.0),
         eyegaze=(-1, 1),
-        pupil=(0.0, 20),
+        pupil=(-1.0, 1.0),
     ),
     titles=dict(
         mag="Magnetometers",
