@@ -64,7 +64,10 @@ class RawBrainVision(BaseRaw):
     Notes
     -----
     If the BrainVision header file contains impedance measurements, these may be
-    accessed using ``raw.impedances`` after reading using this function.
+    accessed using ``raw.impedances`` after reading using this function. However,
+    this attribute will NOT be available after a save and re-load of the data.
+    That is, it is only available when reading data directly from the BrainVision
+    header file.
 
     BrainVision markers consist of a type and a description (in addition to other fields
     like onset and duration). In contrast, annotations in MNE only have a description.
@@ -981,7 +984,10 @@ def read_raw_brainvision(
     Notes
     -----
     If the BrainVision header file contains impedance measurements, these may be
-    accessed using ``raw.impedances`` after reading using this function.
+    accessed using ``raw.impedances`` after reading using this function. However,
+    this attribute will NOT be available after a save and re-load of the data.
+    That is, it is only available when reading data directly from the BrainVision
+    header file.
 
     BrainVision markers consist of a type and a description (in addition to other fields
     like onset and duration). In contrast, annotations in MNE only have a description.
