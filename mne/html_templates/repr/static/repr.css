@@ -43,7 +43,7 @@ this file apply (plus whatever default styling the IDE applies).
     /*
     Selectors in a `@layer` will always be lower-precedence than selectors outside the
     layer. So even though e.g. `div.output_html` is present in the sphinx-rendered
-    website docs, the styles here won't take effect there as, long as some other rule
+    website docs, the styles here won't take effect there as long as some other rule
     somewhere in the page's CSS targets the same element.
 
     In IDEs or Jupyter notebooks, though, the CSS files from the sphinx theme,
