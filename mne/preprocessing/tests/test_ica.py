@@ -1520,6 +1520,15 @@ def test_ica_labels():
     ica.find_bads_muscle(raw)
     assert "muscle" in ica.labels_
 
+    # Try without sensor locations
+    raw.set_montage(None)
+    with catch_logging() as log:
+        labels, scores = ica.find_bads_muscle(raw, threshold=0.35)
+    log = log.getvalue()
+    assert "based on the 'slope' criterion" in log
+    assert "muscle" in ica.labels_
+    assert labels == [3]
+
 
 @testing.requires_testing_data
 @pytest.mark.parametrize(
