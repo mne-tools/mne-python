@@ -51,6 +51,7 @@ this file apply (plus whatever default styling the IDE applies).
 
     Notes:
 
+    - the selector `.accordion-body` is for MNE Reports
     - the selector `.output_html` is for VSCode's notebook interface
     - the selector `.jp-RenderedHTML` is for Jupyter notebook
     - variables starting with `--theme-` are VSCode-specific.
@@ -65,14 +66,17 @@ this file apply (plus whatever default styling the IDE applies).
         --mne-button-hover-bg-color: var(--theme-button-hover-background, var(--jp-info-color1));
         --mne-button-radius: var(--jp-border-radius, 0.25rem);
     }
+    /* chevron position/alignment; in VSCode it looks ok without adjusting */
+    .accordion-body .mne-repr-section-toggle > button,
     .jp-RenderedHTML .mne-repr-section-toggle > button {
-        /* Jupyter only; in VSCode it looks ok without this */
-        padding: 0 0 40% 20% !important;
+        padding: 0 0 45% 25% !important;
     }
+    /* chevron color; MNE Report doesn't have light/dark mode */
     div.output_html .mne-repr-section-toggle > button > svg > path,
     .jp-RenderedHTML .mne-repr-section-toggle > button > svg > path {
         fill: var(--mne-toggle-color);
     }
+    .accordion-body .mne-ch-names-btn,
     div.output_html .mne-ch-names-btn,
     .jp-RenderedHTML .mne-ch-names-btn {
         -webkit-border-radius: var(--mne-button-radius);
@@ -88,11 +92,13 @@ this file apply (plus whatever default styling the IDE applies).
         text-align: center;
         text-decoration: none;
     }
+    .accordion-body .mne-ch-names-btn:hover,
     div.output_html .mne.ch-names-btn:hover,
     .jp-RenderedHTML .mne-ch-names-btn:hover {
         background-color: var(--mne-button-hover-bg-color);
         text-decoration: underline;
     }
+    .accordion-body .mne-ch-names-btn:focus-visible,
     div.output_html .mne-ch-names-btn:focus-visible,
     .jp-RenderedHTML .mne-ch-names-btn:focus-visible {
         outline: 0.1875rem solid var(--mne-button-bg-color) !important;
