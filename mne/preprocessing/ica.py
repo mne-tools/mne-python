@@ -2014,11 +2014,14 @@ class ICA(ContainsMixin):
 
         # Need sensor positions for the criteria below, so return with only one score
         # if no positions available
-        picks = _picks_to_idx(inst.info, self.ch_names, "all", exclude=(), allow_empty=False)
+        picks = _picks_to_idx(
+            inst.info, self.ch_names, "all", exclude=(), allow_empty=False
+        )
         if not _check_ch_locs(inst.info, picks=picks):
             logger.warning(
                 "No sensor positions found. Scores for bad muscle components are only "
-                "based on the 'slope' criterion.")
+                "based on the 'slope' criterion."
+            )
             scores = slope_score
             self.labels_["muscle"] = [
                 idx for idx, score in enumerate(scores) if score > threshold
