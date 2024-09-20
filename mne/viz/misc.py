@@ -899,19 +899,31 @@ def plot_events(
     # reverse order so that the highest numbers are at the top
     # (match plot order)
     handles, labels = handles[::-1], labels[::-1]
+
+    # spread legend entries over more columns, 25 still ~fit in one column
+    # (assuming non-user supplied fig)
+    ncols = int(np.ceil(len(unique_events_id) / 25))
+
+    # Make space for legend
     box = ax.get_position()
     factor = 0.8 if event_id is not None else 0.9
+    factor -= 0.1 * (ncols - 1)
     ax.set_position([box.x0, box.y0, box.width * factor, box.height])
-    # spread legend entries over more columns, 30 still fit in one column
-    # (assuming non-user supplied fig)
-    ncols = int(np.ceil(len(unique_events_id) / 30))
+
+    # Try some adjustments to squeeze as much information into the legend
+    # without cutting off the ends
     ax.legend(
         handles,
         labels,
         loc="center left",
         bbox_to_anchor=(1, 0.5),
-        fontsize="x-small",
-        labelspacing=0.25,
+        fontsize="small",
+        borderpad=0,  # default 0.4
+        labelspacing=0.25,  # default 0.5
+        columnspacing=1.0,  # default 2
+        handletextpad=0,  # default 0.8
+        markerscale=2,  # default 1
+        borderaxespad=0.2,  # default 0.5
         ncols=ncols,
     )
     fig.canvas.draw()
