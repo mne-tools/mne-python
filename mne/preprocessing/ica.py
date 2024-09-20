@@ -62,6 +62,7 @@ from ..utils import (
     _PCA,
     Bunch,
     _check_all_same_channel_names,
+    _check_ch_locs,
     _check_compensation_grade,
     _check_fname,
     _check_on_missing,
@@ -2011,42 +2012,50 @@ class ICA(ContainsMixin):
         # so logistic with shift -0.5 and slope 0.25 so -0.5 -> 0.5 and 0->1
         slope_score = expit((slopes + 0.5) / 0.25)
 
-        # Need sensor positions for the criteria below
-        try:
-            # compute metric #2: distance from the vertex of focus
-            components_norm = abs(components) / np.max(abs(components), axis=0)
-            # we need to retrieve the position from the channels that were used to
-            # fit the ICA. N.B: picks in _find_topomap_coords includes bad channels
-            # even if they are not provided explicitly.
+        # Need sensor positions for the criteria below, so return with only one score
+        # if no positions available
+        picks = _picks_to_idx(inst.info, self.ch_names, "all", exclude=(), allow_empty=False)
+        if not _check_ch_locs(inst.info, picks=picks):
+            logger.warning(
+                "No sensor positions found. Scores for bad muscle components are only "
+                "based on the 'slope' criterion.")
+            scores = slope_score
+            self.labels_["muscle"] = [
+                idx for idx, score in enumerate(scores) if score > threshold
+            ]
+            return self.labels_["muscle"], scores
 
-            pos = _find_topomap_coords(
-                inst.info, picks=self.ch_names, sphere=sphere, ignore_overlap=True
-            )
-            assert pos.shape[0] == components.shape[0]  # pos for each sensor
-            pos -= pos.mean(axis=0)  # center
-            dists = np.linalg.norm(pos, axis=1)
-            dists /= dists.max()
-            focus_dists = np.dot(dists, components_norm)
+        # compute metric #2: distance from the vertex of focus
+        components_norm = abs(components) / np.max(abs(components), axis=0)
+        # we need to retrieve the position from the channels that were used to
+        # fit the ICA. N.B: picks in _find_topomap_coords includes bad channels
+        # even if they are not provided explicitly.
 
-            # focus distance is ~65% of max electrode distance with 10% slope
-            # (assumes typical head size)
-            focus_score = expit((focus_dists - 0.65) / 0.1)
+        pos = _find_topomap_coords(
+            inst.info, picks=self.ch_names, sphere=sphere, ignore_overlap=True
+        )
+        assert pos.shape[0] == components.shape[0]  # pos for each sensor
+        pos -= pos.mean(axis=0)  # center
+        dists = np.linalg.norm(pos, axis=1)
+        dists /= dists.max()
+        focus_dists = np.dot(dists, components_norm)
 
-            # compute metric #3: smoothness
-            smoothnesses = np.zeros((components.shape[1],))
-            dists = distance.squareform(distance.pdist(pos))
-            dists = 1 - (dists / dists.max())  # invert
-            for idx, comp in enumerate(components.T):
-                comp_dists = distance.squareform(distance.pdist(comp[:, np.newaxis]))
-                comp_dists /= comp_dists.max()
-                smoothnesses[idx] = np.multiply(dists, comp_dists).sum()
+        # focus distance is ~65% of max electrode distance with 10% slope
+        # (assumes typical head size)
+        focus_score = expit((focus_dists - 0.65) / 0.1)
 
-            # smoothnessness is around 150 for muscle and 450 otherwise
-            # so use reversed logistic centered at 300 with 100 slope
-            smoothness_score = 1 - expit((smoothnesses - 300) / 100)
+        # compute metric #3: smoothness
+        smoothnesses = np.zeros((components.shape[1],))
+        dists = distance.squareform(distance.pdist(pos))
+        dists = 1 - (dists / dists.max())  # invert
+        for idx, comp in enumerate(components.T):
+            comp_dists = distance.squareform(distance.pdist(comp[:, np.newaxis]))
+            comp_dists /= comp_dists.max()
+            smoothnesses[idx] = np.multiply(dists, comp_dists).sum()
 
-        except Exception:
-            pass  # Send some warning that only one criterion will be used
+        # smoothnessness is around 150 for muscle and 450 otherwise
+        # so use reversed logistic centered at 300 with 100 slope
+        smoothness_score = 1 - expit((smoothnesses - 300) / 100)
 
         # multiply all criteria that are present
         scores = [
