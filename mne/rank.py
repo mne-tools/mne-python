@@ -484,7 +484,7 @@ def _compute_rank(
         else:
             # Use empirical estimation
             assert rank_type == "estimated"
-            if isinstance(inst, (BaseRaw, BaseEpochs)):
+            if isinstance(inst, BaseRaw | BaseEpochs):
                 if isinstance(inst, BaseRaw):
                     data = inst.get_data(picks, reject_by_annotation="omit")
                 else:  # isinstance(inst, BaseEpochs):

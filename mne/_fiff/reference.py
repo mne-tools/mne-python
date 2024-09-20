@@ -175,7 +175,7 @@ def add_reference_channels(inst, ref_channels, copy=True):
     if copy:
         inst = inst.copy()
 
-    if isinstance(inst, (BaseRaw, Evoked)):
+    if isinstance(inst, BaseRaw | Evoked):
         data = inst._data
         refs = np.zeros((len(ref_channels), data.shape[1]))
         data = np.vstack((data, refs))
@@ -410,7 +410,7 @@ def _get_ch_type(inst, ch_type):
         _check_option("ch_type", ch_type, valid_ch_types)
         if ch_type != "auto":
             ch_type = [ch_type]
-    elif isinstance(ch_type, (list, tuple)):
+    elif isinstance(ch_type, list | tuple):
         for type_ in ch_type:
             _validate_type(type_, str, "ch_type")
             _check_option("ch_type", type_, valid_ch_types[1:])

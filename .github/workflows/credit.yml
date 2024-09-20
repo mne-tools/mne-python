@@ -3,11 +3,11 @@ name: Contributor credit
 on:  # yamllint disable-line rule:truthy
   # Scheduled actions only run on the main repo branch, which is exactly what we want
   schedule:
-    # TODO: After making sure it works in `main` for a while, switch to monthly
-    # - cron: '0 0 1 * *'  # first day of the month at midnight
-    - cron: '0 0 * * *'  # every day at midnight
+    - cron: '0 0 1 * *'  # At 00:00 on day-of-month 1
+  workflow_dispatch:
 
 permissions:
+  contents: write
   pull-requests: write
 
 jobs:
@@ -23,7 +23,6 @@ jobs:
         with:
           python-version: '3.12'
       - run: pip install pygithub -e .
-      - run: git checkout -b credit
       - run: python tools/dev/update_credit_json.py
       - run: git add -f doc/sphinxext/prs/*.json
       - run: |
@@ -35,8 +34,11 @@ jobs:
       - name: Create PR
         run: |
           set -xeo pipefail
-          git config --global user.email "114827586+autofix-ci[bot]@users.noreply.github.com"
-          git config --global user.name "autofix-ci[bot]"
-          git commit -am "MAINT: Update code credit"
-          gh pr create -B main -H credit --title "MAINT: Update code credit" --body "Created by \"${{ github.workflow }}\" GitHub action." --label "no-changelog-entry-needed"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+          git checkout -b credit
+          git commit -am "MAINT: Update code credit [ci skip]"
+          git push origin credit
+          PR_NUM=$(gh pr create --base main --head credit --title "MAINT: Update code credit" --body "Created by \"${{ github.workflow }}\" GitHub action." --label "no-changelog-entry-needed")
+          echo "Opened https://github.com/mne-tools/mne-python/pull/${PR_NUM}" >> $GITHUB_STEP_SUMMARY
         if: steps.status.outputs.dirty == 'true'

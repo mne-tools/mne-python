@@ -1,1 +1,0 @@
-Fix for new sklearn metadata routing protocol in decoding search_light, by `Alex Gramfort`_

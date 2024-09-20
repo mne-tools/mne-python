@@ -1,1 +1,0 @@
-Fix incorrect RuntimeWarning (different channel filter settings) in EDF/BDF import, by `Clemens Brunner`_.

@@ -943,7 +943,7 @@ def _check_destination(destination, info, head_frame):
         raise RuntimeError(
             "destination can only be set if using the head coordinate frame"
         )
-    if isinstance(destination, (str, Path)):
+    if isinstance(destination, str | Path):
         recon_trans = _get_trans(destination, "meg", "head")[0]
     elif isinstance(destination, Transform):
         recon_trans = destination

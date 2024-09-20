@@ -15,13 +15,20 @@ Again, thanks for contributing!
 
 -->
 
-#### Reference issue
-Example: Fixes #1234.
+#### Reference issue (if any)
+
+<!-- Example:
+
+Fixes #1234.
+
+-->
 
 
 #### What does this implement/fix?
-Explain your changes.
+
+<!-- Explain your changes. -->
 
 
 #### Additional information
-Any additional information you think is important.
+
+<!-- Any additional information you think is important. -->

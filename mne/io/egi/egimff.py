@@ -354,7 +354,7 @@ def _read_raw_egi_mff(
     preload=False,
     channel_naming="E%d",
     *,
-    events_as_annotations=False,
+    events_as_annotations=True,
     verbose=None,
 ):
     """Read EGI mff binary as raw object."""

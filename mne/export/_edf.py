@@ -3,7 +3,7 @@
 # Copyright the MNE-Python contributors.
 
 import datetime as dt
-from typing import Callable
+from collections.abc import Callable
 
 import numpy as np
 

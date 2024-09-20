@@ -1146,8 +1146,8 @@ def read_annotations(
     r"""Read annotations from a file.
 
     This function reads a ``.fif``, ``.fif.gz``, ``.vmrk``, ``.amrk``,
-    ``.edf``, ``.txt``, ``.csv``, ``.cnt``, ``.cef``, or ``.set`` file and
-    makes an :class:`mne.Annotations` object.
+    ``.edf``, ``.bdf``, ``.gdf``, ``.txt``, ``.csv``, ``.cnt``, ``.cef``, or
+    ``.set`` file and makes an :class:`mne.Annotations` object.
 
     Parameters
     ----------
@@ -1479,7 +1479,7 @@ def _check_event_id(event_id, raw):
     elif event_id == "auto":
         if isinstance(raw, RawBrainVision):
             return _BVEventParser()
-        elif isinstance(raw, (Raw, RawArray)) and _check_bv_annot(
+        elif isinstance(raw, Raw | RawArray) and _check_bv_annot(
             raw.annotations.description
         ):
             logger.info("Non-RawBrainVision raw using branvision markers")

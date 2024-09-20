@@ -11,7 +11,7 @@ fit a linear classifier to identify a discriminatory topography at a given time
 instant and subsequently assess whether this linear model can accurately
 predict all of the time samples of a second set of conditions.
 """
-# Authors: Jean-Remi King <jeanremi.king@gmail.com>
+# Authors: Jean-Rémi King <jeanremi.king@gmail.com>
 #          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Denis Engemann <denis.engemann@gmail.com>
 #
