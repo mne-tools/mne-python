@@ -2,6 +2,7 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+import platform
 from contextlib import nullcontext
 
 import numpy as np
@@ -340,7 +341,9 @@ def test_get_coef_multiclass_full(n_classes, n_channels, n_times):
     if n_times > 1:
         want += (n_times, n_times)
     assert scores.shape == want
-    assert_array_less(0.8, scores)
+    # On Windows LBFGS can fail to converge, so we need to be a bit more tol here
+    limit = 0.7 if platform.system() == "Windows" else 0.8
+    assert_array_less(limit, scores)
     clf.fit(X, y)
     patterns = get_coef(clf, "patterns_", inverse_transform=True)
     assert patterns.shape == (n_classes, n_channels, n_times)
