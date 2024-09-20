@@ -1522,10 +1522,8 @@ def test_ica_labels():
 
     # Try without sensor locations
     raw.set_montage(None)
-    with catch_logging() as log:
+    with pytest.warns(RuntimeWarning, match="based on the 'slope' criterion"):
         labels, scores = ica.find_bads_muscle(raw, threshold=0.35)
-    log = log.getvalue()
-    assert "based on the 'slope' criterion" in log
     assert "muscle" in ica.labels_
     assert labels == [3]
 

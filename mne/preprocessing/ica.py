@@ -2018,7 +2018,7 @@ class ICA(ContainsMixin):
             inst.info, self.ch_names, "all", exclude=(), allow_empty=False
         )
         if not _check_ch_locs(inst.info, picks=picks):
-            logger.warning(
+            warn(
                 "No sensor positions found. Scores for bad muscle components are only "
                 "based on the 'slope' criterion."
             )
