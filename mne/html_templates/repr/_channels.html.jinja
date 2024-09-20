@@ -8,10 +8,8 @@
 {% set collapsed_row_class = "" %}
 {% endif %}
 
-<tr class="mne-repr-section-header {{ section_class_name }}" {% if collapsed %} title="Show section" {% else %} title="Hide section" {% endif %}
-    onclick="toggleVisibility('{{ section_class_name }}')">
-    {%include 'static/_toggle.html.jinja' %}
-</tr>
+{%include 'static/_section_header_row.html.jinja' %}
+
 {% for channel_type, channels in (info | format_channels).items() %}
 {% set channel_names_good = channels["good"] | map(attribute='name_html') | join(', ') %}
 <tr class="repr-element {{ section_class_name }} {{ collapsed_row_class }}">

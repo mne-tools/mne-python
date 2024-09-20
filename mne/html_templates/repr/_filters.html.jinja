@@ -8,10 +8,8 @@
 {% set collapsed_row_class = "" %}
 {% endif %}
 
-<tr class="mne-repr-section-header {{ section_class_name }}" {% if collapsed %} title="Show section" {% else %} title="Hide section" {% endif %}
-    onclick="toggleVisibility('{{ section_class_name }}')">
-    {%include 'static/_toggle.html.jinja' %}
-</tr>
+{%include 'static/_section_header_row.html.jinja' %}
+
 {% if info["highpass"] is defined and info["highpass"] is not none %}
 <tr class="repr-element {{ section_class_name }} {{ collapsed_row_class }}">
     <td class="mne-repr-section-toggle"></td>
