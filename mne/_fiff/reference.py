@@ -22,6 +22,35 @@ from .pick import _ELECTRODE_CH_TYPES, pick_channels, pick_channels_forward, pic
 from .proj import _has_eeg_average_ref_proj, make_eeg_average_ref_proj, setup_proj
 
 
+def _check_before_reference(inst, ref_from, ref_to, ch_type):
+    """Prepare instance for referencing."""
+    # Check to see that data is preloaded
+    _check_preload(inst, "Applying a reference")
+
+    ch_type = _get_ch_type(inst, ch_type)
+    ch_dict = {**{type_: True for type_ in ch_type}, "meg": False, "ref_meg": False}
+    eeg_idx = pick_types(inst.info, **ch_dict)
+
+    if ref_to is None:
+        ref_to = [inst.ch_names[i] for i in eeg_idx]
+        extra = "EEG channels found"
+    else:
+        extra = "channels supplied"
+    if len(ref_to) == 0:
+        raise ValueError(f"No {extra} to apply the reference to")
+
+    _check_ssp(inst, ref_from + ref_to)
+
+    # If the reference touches EEG/ECoG/sEEG/DBS electrodes, note in the
+    # info that a non-CAR has been applied.
+    ref_to_channels = pick_channels(inst.ch_names, ref_to, ordered=True)
+    if len(np.intersect1d(ref_to_channels, eeg_idx)) > 0:
+        with inst.info._unlock():
+            inst.info["custom_ref_applied"] = FIFF.FIFFV_MNE_CUSTOM_REF_ON
+
+    return ref_to
+
+
 def _check_ssp(inst, ref_items):
     """Check for SSPs that may block re-referencing."""
     projs_to_remove = []
@@ -54,35 +83,6 @@ def _check_ssp(inst, ref_items):
 
     # Need to call setup_proj after changing the projs:
     inst._projector, _ = setup_proj(inst.info, add_eeg_ref=False, activate=False)
-
-
-def _check_before_reference(inst, ref_from, ref_to, ch_type):
-    """Prepare instance for referencing."""
-    # Check to see that data is preloaded
-    _check_preload(inst, "Applying a reference")
-
-    ch_type = _get_ch_type(inst, ch_type)
-    ch_dict = {**{type_: True for type_ in ch_type}, "meg": False, "ref_meg": False}
-    eeg_idx = pick_types(inst.info, **ch_dict)
-
-    if ref_to is None:
-        ref_to = [inst.ch_names[i] for i in eeg_idx]
-        extra = "EEG channels found"
-    else:
-        extra = "channels supplied"
-    if len(ref_to) == 0:
-        raise ValueError(f"No {extra} to apply the reference to")
-
-    _check_ssp(inst, ref_from + ref_to)
-
-    # If the reference touches EEG/ECoG/sEEG/DBS electrodes, note in the
-    # info that a non-CAR has been applied.
-    ref_to_channels = pick_channels(inst.ch_names, ref_to, ordered=True)
-    if len(np.intersect1d(ref_to_channels, eeg_idx)) > 0:
-        with inst.info._unlock():
-            inst.info["custom_ref_applied"] = FIFF.FIFFV_MNE_CUSTOM_REF_ON
-
-    return ref_to
 
 
 def _check_before_dict_reference(inst, ref_dict):
