@@ -1939,14 +1939,15 @@ class ICA(ContainsMixin):
         sphere=None,
         verbose=None,
     ):
-        """Detect muscle related components.
+        """Detect muscle-related components.
 
         Detection is based on :footcite:`DharmapraniEtAl2016` which uses
         data from a subject who has been temporarily paralyzed
         :footcite:`WhithamEtAl2007`. The criteria are threefold:
-        1) Positive log-log spectral slope from 7 to 45 Hz
-        2) Peripheral component power (farthest away from the vertex)
-        3) A single focal point measured by low spatial smoothness
+
+        #. Positive log-log spectral slope from 7 to 45 Hz
+        #. Peripheral component power (farthest away from the vertex)
+        #. A single focal point measured by low spatial smoothness
 
         The threshold is relative to the slope, focal point and smoothness
         of a typical muscle-related ICA component. Note the high frequency
@@ -1970,14 +1971,14 @@ class ICA(ContainsMixin):
         l_freq : float
             Low frequency for muscle-related power.
         h_freq : float
-            High frequency for msucle related power.
+            High frequency for muscle-related power.
         %(sphere_topomap_auto)s
         %(verbose)s
 
         Returns
         -------
         muscle_idx : list of int
-            The indices of EOG related components, sorted by score.
+            The indices of muscle-related components, sorted by score.
         scores : np.ndarray of float, shape (``n_components_``) | list of array
             The correlation scores.
 
@@ -2105,7 +2106,7 @@ class ICA(ContainsMixin):
 
         See Also
         --------
-        find_bads_ecg, find_bads_ref
+        find_bads_ecg, find_bads_ref, find_bads_muscle
         """
         _validate_type(threshold, (str, "numeric"), "threshold")
         if isinstance(threshold, str):
