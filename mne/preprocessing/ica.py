@@ -1616,17 +1616,16 @@ class ICA(ContainsMixin):
         Cross-trial phase statistics :footcite:`DammersEtAl2008` or Pearson
         correlation can be used for detection.
 
-        .. note:: If no ECG channel is available, routine attempts to create
-                  an artificial ECG based on cross-channel averaging.
+        .. note:: If no ECG channel is available, an artificial ECG channel will be
+                  created based on cross-channel averaging of ``"mag"``or ``"grad"``
+                  channels. If neither of these channel types are available in
+                  ``inst``, artificial ECG channel creation is impossible.
 
         Parameters
         ----------
         inst : instance of Raw, Epochs or Evoked
             Object to compute sources from.
-        ch_name : str
-            The name of the channel to use for ECG peak detection.
-            The argument is mandatory if the dataset contains no ECG
-            channels.
+        %(ch_name_ecg)s
         threshold : float | 'auto'
             Value above which a feature is classified as outlier. See Notes.
 
@@ -1696,7 +1695,7 @@ class ICA(ContainsMixin):
         idx_ecg = _get_ecg_channel_index(ch_name, inst)
 
         if idx_ecg is None:
-            ecg, times = _make_ecg(
+            ecg, _ = _make_ecg(
                 inst, start, stop, reject_by_annotation=reject_by_annotation
             )
         else:
