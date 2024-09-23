@@ -1617,7 +1617,7 @@ class ICA(ContainsMixin):
         correlation can be used for detection.
 
         .. note:: If no ECG channel is available, an artificial ECG channel will be
-                  created based on cross-channel averaging of ``"mag"``or ``"grad"``
+                  created based on cross-channel averaging of ``"mag"`` or ``"grad"``
                   channels. If neither of these channel types are available in
                   ``inst``, artificial ECG channel creation is impossible.
 
