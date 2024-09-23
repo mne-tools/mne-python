@@ -43,9 +43,7 @@ def _fiff_get_fid(fname):
         fid = _NoCloseRead(fname)
         fid.seek(0)
     else:
-        if isinstance(fname, str):
-            warn("The file-name provided is a str instead of Path.")  # TODO: remove
-            fname = Path(fname)
+        _validate_type(fname, Path, "fname", extra="or file-like")
         if fname.suffixes[-1] == ".gz":
             logger.debug("Using gzip")
             fid = GzipFile(fname, "rb")  # Open in binary mode

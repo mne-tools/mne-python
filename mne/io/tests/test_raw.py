@@ -384,6 +384,7 @@ def _test_raw_reader(
         concat_raw.annotations.onset[idx],
         expected_bad_boundary_onset,
         decimal=boundary_decimal,
+        err_msg="BAD boundary onset mismatch",
     )
 
     if raw.info["meas_id"] is not None:

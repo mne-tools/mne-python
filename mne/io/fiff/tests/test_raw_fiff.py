@@ -8,6 +8,7 @@ import pathlib
 import pickle
 import shutil
 import sys
+from contextlib import nullcontext
 from copy import deepcopy
 from functools import partial
 from io import BytesIO
@@ -2019,7 +2020,7 @@ def test_memmap(tmp_path):
 @pytest.mark.parametrize(
     "preload",
     [
-        True,
+        pytest.param(True, id="preload=True"),
         pytest.param(str, marks=pytest.mark.slowtest),
     ],
 )
@@ -2056,18 +2057,22 @@ def test_file_like(kind, preload, split, tmp_path):
         kwargs = dict(
             fname=fid,
             preload=preload,
-            on_split_missing="ignore",
+            on_split_missing="warn",
             test_preloading=False,
             test_kwargs=False,
         )
-        raw = _test_raw_reader(read_raw_fif, **kwargs)
-        assert not fid.closed
-        assert not file_fid.closed
         want_filenames = list(fnames)
+        ctx = nullcontext()
         if kind == "bytes":
             # BytesIO doesn't have a .name attribute, moreover the split file will not
             # be correctly resolved
             want_filenames = [None]
+            if split:
+                ctx = pytest.warns(RuntimeWarning, match="Split raw file detected")
+        with ctx:
+            raw = _test_raw_reader(read_raw_fif, **kwargs)
+        assert not fid.closed
+        assert not file_fid.closed
         want_filenames = tuple(want_filenames)
         assert raw.filenames == want_filenames
         if kind == "bytes":

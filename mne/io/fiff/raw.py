@@ -95,15 +95,26 @@ class Raw(BaseRaw):
     ):
         raws = []
         do_check_ext = not _file_like(fname)
-        fnames = []
+        filenames = []
         next_fname = fname
         while next_fname is not None:
-            fnames.append(next_fname)
             raw, next_fname, buffer_size_sec = self._read_raw_file(
                 next_fname, allow_maxshield, preload, do_check_ext
             )
             do_check_ext = False
             raws.append(raw)
+            # If using a file-like object, fix the filenames to be Path or None
+            extra = raw._raw_extras
+            fname = None
+            if isinstance(extra["filename"], Path):
+                fname = extra["filename"]
+            else:
+                # Try to get a filename from the file-like object
+                try:
+                    fname = Path(extra["filename"].name)
+                except Exception:
+                    pass
+            filenames.append(fname)
             if next_fname is not None:
                 if not op.exists(next_fname):
                     msg = (
@@ -116,9 +127,6 @@ class Raw(BaseRaw):
                     )
                     _on_missing(on_split_missing, msg, name="on_split_missing")
                     break
-        if _file_like(fname):
-            # avoid serialization error when copying file-like
-            fname = None  # noqa
 
         _check_raw_compatibility(raws)
         super().__init__(
@@ -126,6 +134,7 @@ class Raw(BaseRaw):
             preload=False,
             first_samps=[r.first_samp for r in raws],
             last_samps=[r.last_samp for r in raws],
+            filenames=filenames,
             raw_extras=[r._raw_extras for r in raws],
             orig_format=raws[0].orig_format,
             dtype=None,
@@ -155,23 +164,11 @@ class Raw(BaseRaw):
             self._preload_data(preload)
         else:
             self.preload = False
-        # If using a file-like object, fix the filenames to be Path or None
-        filenames = list()
+        # If using a file-like object, fix the filenames to be representative
+        # strings now instead of the file-like objects
         for extra in self._raw_extras:
-            if isinstance(extra["filename"], Path):
-                fname = extra["filename"]
-            else:
-                # Try to get a filename from the file-like object
-                try:
-                    fname = Path(extra["filename"].name)
-                except Exception:
-                    fname = None
-                # We requipre preloading of file-like objects, which should have already
-                # happened. So now we remove the file-like object to avoid serialization
-                # errors.
-                extra["filename"] = fname
-            filenames.append(fname)
-        self.filenames = filenames
+            if not isinstance(extra["filename"], Path):
+                extra["filename"] = None
 
     @verbose
     def _read_raw_file(
