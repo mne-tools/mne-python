@@ -15,14 +15,51 @@ To do so, use the function ``antio.parser.read_triggers``.
 
 from antio import read_cnt
 from antio.parser import read_triggers
+from matplotlib import pyplot as plt
 
 from mne.datasets import testing
 from mne.io import read_raw_ant
+from mne.viz import plot_topomap
 
 fname = testing.data_path() / "antio" / "CA_208" / "test_CA_208.cnt"
 cnt = read_cnt(fname)
 _, _, _, impedances, _ = read_triggers(cnt)
 
-raw = read_raw_ant(fname)
+raw = read_raw_ant(fname, eog=r"EOG")
 impedances = [{ch: imp[k] for k, ch in enumerate(raw.ch_names)} for imp in impedances]
-print(impedances[0])  # impendance measurement at the beginning of the recording
+print(impedances[0])  # impedances measurement at the beginning of the recording
+
+# %%
+# Note that the impedance measurement contains all channels, including the bipolar ones.
+# To make it visual, we can plot a topographic map of the impedances before and after
+# the recording for the EEG channels only.
+
+raw.pick("eeg").set_montage("standard_1020")
+impedances = [{ch: imp[ch] for ch in raw.ch_names} for imp in impedances]
+
+f, ax = plt.subplots(1, 2, layout="constrained", figsize=(10, 5))
+f.suptitle("Impedances (kOhm)")
+impedance = list(impedances[0].values())
+plot_topomap(
+    impedance,
+    raw.info,
+    vlim=(0, 50),
+    axes=ax[0],
+    show=False,
+    names=[f"{elt:.1f}" for elt in impedance],
+)
+ax[0].set_title("Impedances at the beginning of the recording")
+impedance = list(impedances[0].values())
+plot_topomap(
+    impedance,
+    raw.info,
+    vlim=(0, 50),
+    axes=ax[1],
+    show=False,
+    names=[f"{elt:.1f}" for elt in impedance],
+)
+ax[1].set_title("Impedances at the end of the recording")
+plt.show()
+
+# %%
+# In this very short test file, the impedances are stable over time.
