@@ -179,7 +179,7 @@ raw.pick(picks="eyetrack").plot(scalings=custom_scalings)
 # position for each sample in the file. MNE will read in these data if they are
 # present in the file, but will label their channel types as ``'misc'``.
 #
-#  .. warning:: Eyelink's EDF2ASC API allows for modification of the data
+# .. warning:: Eyelink's EDF2ASC API allows for modification of the data
 #              and format that is converted to ASCII. However, MNE-Python
 #              assumes a specific structure, which the default parameters of
 #              EDF2ASC follow. ASCII files should be tab-deliminted, and both
