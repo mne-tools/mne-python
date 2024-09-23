@@ -13,6 +13,10 @@ time-segment during which an impedance measurement was performed as
 To do so, use the function ``antio.parser.read_triggers``.
 """
 
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
+
 from antio import read_cnt
 from antio.parser import read_triggers
 from matplotlib import pyplot as plt
