@@ -901,8 +901,8 @@ def plot_events(
     handles, labels = handles[::-1], labels[::-1]
 
     # spread legend entries over more columns, 25 still ~fit in one column
-    # (assuming non-user supplied fig)
-    ncols = int(np.ceil(len(unique_events_id) / 25))
+    # (assuming non-user supplied fig), max at 3 columns
+    ncols = min(int(np.ceil(len(unique_events_id) / 25)), 3)
 
     # Make space for legend
     box = ax.get_position()
