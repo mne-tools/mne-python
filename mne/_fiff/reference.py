@@ -39,7 +39,20 @@ def _check_before_reference(inst, ref_from, ref_to, ch_type):
     if len(ref_to) == 0:
         raise ValueError(f"No {extra} to apply the reference to")
 
-    # After referencing, existing SSPs might not be valid anymore.
+    _check_ssp(inst, ref_from + ref_to)
+
+    # If the reference touches EEG/ECoG/sEEG/DBS electrodes, note in the
+    # info that a non-CAR has been applied.
+    ref_to_channels = pick_channels(inst.ch_names, ref_to, ordered=True)
+    if len(np.intersect1d(ref_to_channels, eeg_idx)) > 0:
+        with inst.info._unlock():
+            inst.info["custom_ref_applied"] = FIFF.FIFFV_MNE_CUSTOM_REF_ON
+
+    return ref_to
+
+
+def _check_ssp(inst, ref_items):
+    """Check for SSPs that may block re-referencing."""
     projs_to_remove = []
     for i, proj in enumerate(inst.info["projs"]):
         # Remove any average reference projections
@@ -55,10 +68,7 @@ def _check_before_reference(inst, ref_from, ref_to, ch_type):
         # Inactive SSPs may block re-referencing
         elif (
             not proj["active"]
-            and len(
-                [ch for ch in (ref_from + ref_to) if ch in proj["data"]["col_names"]]
-            )
-            > 0
+            and len([ch for ch in ref_items if ch in proj["data"]["col_names"]]) > 0
         ):
             raise RuntimeError(
                 "Inactive signal space projection (SSP) operators are "
@@ -74,14 +84,72 @@ def _check_before_reference(inst, ref_from, ref_to, ch_type):
     # Need to call setup_proj after changing the projs:
     inst._projector, _ = setup_proj(inst.info, add_eeg_ref=False, activate=False)
 
-    # If the reference touches EEG/ECoG/sEEG/DBS electrodes, note in the
-    # info that a non-CAR has been applied.
-    ref_to_channels = pick_channels(inst.ch_names, ref_to, ordered=True)
-    if len(np.intersect1d(ref_to_channels, eeg_idx)) > 0:
-        with inst.info._unlock():
-            inst.info["custom_ref_applied"] = FIFF.FIFFV_MNE_CUSTOM_REF_ON
 
-    return ref_to
+def _check_before_dict_reference(inst, ref_dict):
+    """Prepare instance for dict-based referencing."""
+    # Check to see that data is preloaded
+    _check_preload(inst, "Applying a reference")
+
+    # Promote all values to list-like. This simplifies our logic and also helps catch
+    # self-referencing cases like `{"Cz": ["Cz"]}`
+    _refdict = {k: [v] if isinstance(v, str) else list(v) for k, v in ref_dict.items()}
+
+    # Check that keys are strings and values are lists-of-strings
+    key_types = {type(k) for k in _refdict}
+    value_types = {type(v) for val in _refdict.values() for v in val}
+    for elem_name, elem in dict(key=key_types, value=value_types).items():
+        if bad_elem := elem - {str}:
+            raise TypeError(
+                f"{elem_name.capitalize()}s in the ref_channels dict must be strings. "
+                f"Your dict has {elem_name}s of type "
+                f'{", ".join(map(lambda x: x.__name__, bad_elem))}.'
+            )
+
+    # Check that keys are valid channels and values are lists-of-valid-channels
+    ch_set = set(inst.ch_names)
+    bad_ch_set = set(inst.info["bads"])
+    keys = set(_refdict)
+    values = set(sum(_refdict.values(), []))
+    for elem_name, elem in dict(key=keys, value=values).items():
+        if bad_elem := elem - ch_set:
+            raise ValueError(
+                f'ref_channels dict contains invalid {elem_name}(s) '
+                f'({", ".join(bad_elem)}) '
+                "that are not names of channels in the instance."
+            )
+        # Check that values are not bad channels
+        if bad_elem := elem.intersection(bad_ch_set):
+            warn(
+                f"ref_channels dict contains {elem_name}(s) "
+                f"({', '.join(bad_elem)}) "
+                "that are marked as bad channels."
+            )
+
+    _check_ssp(inst, keys.union(values))
+
+    # Check for self-referencing
+    self_ref = [[k] == v for k, v in _refdict.items()]
+    if any(self_ref):
+        which = np.array(list(_refdict))[np.nonzero(self_ref)]
+        for ch in which:
+            warn(f"Channel {ch} is self-referenced, which will nullify the channel.")
+
+    # Check that channel types match. First unpack list-like vals into separate items:
+    pairs = [(k, v) for k in _refdict for v in _refdict[k]]
+    ch_type_map = dict(zip(inst.ch_names, inst.get_channel_types()))
+    mismatch = [ch_type_map[k] != ch_type_map[v] for k, v in pairs]
+    if any(mismatch):
+        mismatch_pairs = np.array(pairs)[mismatch]
+        for k, v in mismatch_pairs:
+            warn(
+                f"Channel {k} ({ch_type_map[k]}) is referenced to channel {v} which is "
+                f"a different channel type ({ch_type_map[v]})."
+            )
+
+    # convert channel names to indices
+    keys_ix = pick_channels(inst.ch_names, list(_refdict), ordered=True)
+    vals_ix = (pick_channels(inst.ch_names, v, ordered=True) for v in _refdict.values())
+    return dict(zip(keys_ix, vals_ix))
 
 
 def _apply_reference(inst, ref_from, ref_to=None, forward=None, ch_type="auto"):
@@ -123,6 +191,22 @@ def _apply_reference(inst, ref_from, ref_to=None, forward=None, ch_type="auto"):
         ref_data = None
 
     return inst, ref_data
+
+
+def _apply_dict_reference(inst, ref_dict):
+    """Apply a dict-based custom EEG referencing scheme."""
+    # this converts all keys to channel indices and all values to arrays of ch. indices:
+    ref_dict = _check_before_dict_reference(inst, ref_dict)
+
+    data = inst._data
+    orig_data = data.copy()
+    for ref_to, ref_from in ref_dict.items():
+        ref_data = orig_data[..., ref_from, :].mean(-2, keepdims=True)
+        data[..., [ref_to], :] -= ref_data
+
+    with inst.info._unlock():
+        inst.info["custom_ref_applied"] = FIFF.FIFFV_MNE_CUSTOM_REF_ON
+    return inst, None
 
 
 @fill_doc
@@ -316,17 +400,22 @@ def set_eeg_reference(
     Returns
     -------
     inst : instance of Raw | Epochs | Evoked
-        Data with EEG channels re-referenced. If ``ref_channels='average'`` and
+        Data with EEG channels re-referenced. If ``ref_channels="average"`` and
         ``projection=True`` a projection will be added instead of directly
         re-referencing the data.
     ref_data : array
         Array of reference data subtracted from EEG channels. This will be
-        ``None`` if ``projection=True`` or ``ref_channels='REST'``.
+        ``None`` if ``projection=True``, or if ``ref_channels`` is ``"REST"`` or a
+        :class:`dict`.
     %(set_eeg_reference_see_also_notes)s
     """
     from ..forward import Forward
 
     _check_can_reref(inst)
+
+    if isinstance(ref_channels, dict):
+        logger.info("Applying a custom dict-based reference.")
+        return _apply_dict_reference(inst, ref_channels)
 
     ch_type = _get_ch_type(inst, ch_type)
 

@@ -7,6 +7,7 @@ import numbers
 import numpy as np
 from scipy.stats import pearsonr
 from sklearn.base import clone, is_regressor
+from sklearn.exceptions import NotFittedError
 from sklearn.metrics import r2_score
 
 from ..utils import _validate_type, fill_doc, pinv
@@ -293,7 +294,7 @@ class ReceptiveField(BaseEstimator):
             be obtained using ``y_pred[rf.valid_samples_]``.
         """
         if not hasattr(self, "delays_"):
-            raise ValueError("Estimator has not been fit yet.")
+            raise NotFittedError("Estimator has not been fit yet.")
         X, _, X_dim = self._check_dimensions(X, None, predict=True)[:3]
         del _
         # convert to sklearn and back
