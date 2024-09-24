@@ -33,30 +33,35 @@ def test_what(tmp_path, verbose_debug):
     # test files
     fnames = glob.glob(str(data_path / "MEG" / "sample" / "*.fif"))
     fnames += glob.glob(str(data_path / "subjects" / "sample" / "bem" / "*.fif"))
+    fnames += [str(fname)]
     fnames = sorted(fnames)
     want_dict = dict(
         eve="events",
         ave="evoked",
         cov="cov",
+        ica="ica",
         inv="inverse",
         fwd="forward",
         trans="transform",
         proj="proj",
         raw="raw",
-        meg="raw",
         sol="bem solution",
         bem="bem surfaces",
         src="src",
         dense="bem surfaces",
-        sparse="bem surfaces",
         head="bem surfaces",
         fiducials="fiducials",
     )
+    got = set()
     for fname in fnames:
+        print(fname)
         kind = Path(fname).stem.split("-")[-1]
         if len(kind) > 5:
             kind = kind.split("_")[-1]
         this = what(fname)
         assert this == want_dict[kind], fname
+        print()
+        got.add(kind)
+    assert set(want_dict) == got
     fname = data_path / "MEG" / "sample" / "sample_audvis-ave_xfit.dip"
     assert what(fname) == "unknown"
