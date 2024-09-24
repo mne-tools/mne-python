@@ -121,8 +121,10 @@ class Raw(BaseRaw):
         #    (magic) does not store the file-like object.
         # 2. We need to ensure "filenames" passed to the constructor below gets a list
         #    of Path or None.
-        # 3. We need to (after calling super().__init__) to remove the file-like objects
-        #    from _raw_extras.
+        # 3. We need to remove the file-like objects from _raw_extras. This must
+        #    be done *after* the super().__init__ call, because the constructor
+        #    needs the file-like objects to read the data (which it will do because we
+        #    force preloading for file-like objects).
 
         # Avoid file-like in _get_argvalues (1)
         fname = _path_from_fname(fname)
