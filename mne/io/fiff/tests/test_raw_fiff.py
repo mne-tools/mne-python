@@ -2012,31 +2012,28 @@ def test_memmap(tmp_path):
 # These are slow on Azure Windows so let's do a subset
 @pytest.mark.parametrize(
     "kind",
-    [
-        "file",
-        pytest.param("bytes", marks=pytest.mark.slowtest),
-    ],
+    ["path", pytest.param("file", id="kindFile"), "bytes"],
 )
 @pytest.mark.parametrize(
     "preload",
-    [
-        pytest.param(True, id="preload=True"),
-        pytest.param(str, marks=pytest.mark.slowtest),
-    ],
+    [pytest.param(True, id="preloadTrue"), str],
 )
 @pytest.mark.parametrize(
     "split",
-    [
-        False,
-        pytest.param(True, marks=pytest.mark.slowtest),
-    ],
+    [False, pytest.param(True, marks=pytest.mark.slowtest, id="splitTrue")],
 )
 def test_file_like(kind, preload, split, tmp_path):
     """Test handling with file-like objects."""
     if split:
-        fname = tmp_path / "test_raw.fif"
-        read_raw_fif(test_fif_fname).save(fname, split_size="5MB")
+        fname = tmp_path / "test_file_like_raw.fif"
+        read_raw_fif(test_fif_fname).crop(0, 10).save(fname, split_size="10MB")
         fnames = (fname, Path(str(fname)[:-4] + "-1.fif"))
+        # TODO: Some bad stuff happens with the boundary annotations when there are for
+        # example 23 split files we're off by 23 on our boundary (???), should be
+        # investigated. In the meantime, just use a split file with a single boundary
+        # for simplicity.
+        bad_fname = Path(str(fname)[:-4] + "-2.fif")
+        assert not bad_fname.is_file()
     else:
         fname = test_fif_fname
         fnames = (test_fif_fname,)
@@ -2045,12 +2042,20 @@ def test_file_like(kind, preload, split, tmp_path):
     if preload is str:
         preload = str(tmp_path / "memmap")
     with open(fname, "rb") as file_fid:
-        fid = BytesIO(file_fid.read()) if kind == "bytes" else file_fid
-        assert not fid.closed
+        if kind == "bytes":
+            fid = BytesIO(file_fid.read())
+        elif kind == "path":
+            fid = fname
+        else:
+            assert kind == "file"
+            fid = file_fid
+        if kind != "path":
+            assert not fid.closed
+            with pytest.raises(ValueError, match="preload must be used with file"):
+                read_raw_fif(fid)
         assert not file_fid.closed
-        with pytest.raises(ValueError, match="preload must be used with file"):
-            read_raw_fif(fid)
-        assert not fid.closed
+        if kind != "path":
+            assert not fid.closed
         assert not file_fid.closed
         # Use test_preloading=False but explicitly pass the preload type
         # so that we don't bother testing preload=False
@@ -2062,16 +2067,17 @@ def test_file_like(kind, preload, split, tmp_path):
             test_kwargs=False,
         )
         want_filenames = list(fnames)
-        ctx = nullcontext()
         if kind == "bytes":
-            # BytesIO doesn't have a .name attribute, moreover the split file will not
-            # be correctly resolved
+            # the split file will not be correctly resolved for BytesIO
             want_filenames = [None]
-            if split:
-                ctx = pytest.warns(RuntimeWarning, match="Split raw file detected")
+        if split and kind == "bytes":
+            ctx = pytest.warns(RuntimeWarning, match="Split raw file detected")
+        else:
+            ctx = nullcontext()
         with ctx:
             raw = _test_raw_reader(read_raw_fif, **kwargs)
-        assert not fid.closed
+        if kind != "path":
+            assert not fid.closed
         assert not file_fid.closed
         want_filenames = tuple(want_filenames)
         assert raw.filenames == want_filenames

@@ -40,12 +40,13 @@ class _NoCloseRead:
 def _fiff_get_fid(fname):
     """Open a FIF file with no additional parsing."""
     if _file_like(fname):
+        logger.debug("Using file-like I/O")
         fid = _NoCloseRead(fname)
         fid.seek(0)
     else:
         _validate_type(fname, Path, "fname", extra="or file-like")
         if fname.suffixes[-1] == ".gz":
-            logger.debug("Using gzip")
+            logger.debug("Using gzip I/O")
             fid = GzipFile(fname, "rb")  # Open in binary mode
         else:
             logger.debug("Using normal I/O")
@@ -190,7 +191,7 @@ def _fiff_open(fname, fid, preload):
             pos = tag.next_pos
             directory.append(tag)
 
-    tree, _ = make_dir_tree(fid, directory)
+    tree, _ = make_dir_tree(fid, directory, indent=1)
 
     logger.debug("[done]")
 

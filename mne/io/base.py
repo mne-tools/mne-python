@@ -2075,7 +2075,10 @@ class BaseRaw(
             annotations.onset -= self.first_samp / self.info["sfreq"]
         self.set_annotations(annotations)
         for edge_samp in edge_samps:
-            onset = _sync_onset(self, (edge_samp) / self.info["sfreq"], True)
+            onset = _sync_onset(self, edge_samp / self.info["sfreq"], True)
+            logger.debug(
+                f"Marking edge at {edge_samp} samples " f"(maps to {onset:0.3f} sec)"
+            )
             self.annotations.append(onset, 0.0, "BAD boundary")
             self.annotations.append(onset, 0.0, "EDGE boundary")
         if not (

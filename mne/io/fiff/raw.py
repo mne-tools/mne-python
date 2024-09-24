@@ -193,6 +193,7 @@ class Raw(BaseRaw):
             # filename
             fname = _check_fname(fname, "read", True, "fname")
             whole_file = preload if fname.suffix == ".gz" else False
+            assert isinstance(fname, Path), f"Expected Path, got {type(fname)=}"
         else:
             # file-like
             if not preload:
@@ -326,10 +327,14 @@ class Raw(BaseRaw):
                     tag = read_tag(fid, ent.pos)
                     nskip = int(tag.data.item())
 
-            try:
-                this_name = Path(fname.name)
-            except Exception:
-                this_name = None
+            if _file_like(fname):
+                try:
+                    this_name = Path(fname.name)
+                except Exception:
+                    this_name = None
+            else:
+                assert isinstance(fname, Path)
+                this_name = fname
             next_fname = _get_next_fname(fid, this_name, tree)
 
         # reformat raw_extras to be a dict of list/ndarray rather than
