@@ -97,7 +97,6 @@ class Raw(BaseRaw):
         do_check_ext = not _file_like(fname)
         filenames = []
         next_fname = fname
-        fname = _path_from_fname(fname)
         while next_fname is not None:
             raw, next_fname, buffer_size_sec = self._read_raw_file(
                 next_fname, allow_maxshield, preload, do_check_ext
@@ -105,7 +104,7 @@ class Raw(BaseRaw):
             do_check_ext = False
             raws.append(raw)
             # If using a file-like object, fix the filenames to be Path or None.
-            # It's also important to actually change the variable named "fname"
+            # It's also important to actually change the variable named "fname" (below)
             # so that the _get_argvalues does not store the file-like object.
             filenames.append(_path_from_fname(raw._raw_extras["filename"]))
             if next_fname is not None:
@@ -120,6 +119,7 @@ class Raw(BaseRaw):
                     )
                     _on_missing(on_split_missing, msg, name="on_split_missing")
                     break
+        fname = _path_from_fname(fname)
 
         _check_raw_compatibility(raws)
         super().__init__(
