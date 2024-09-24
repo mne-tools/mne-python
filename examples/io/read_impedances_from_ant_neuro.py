@@ -6,7 +6,7 @@ Getting impedances from ANT Neuro .cnt
 ======================================
 
 The ``.cnt`` file format from ANT Neuro stores impedance information in the form of
-triggers. The function :func:`mne.io.read_raw_ant` reads this information and mark the
+triggers. The function :func:`mne.io.read_raw_ant` reads this information and marks the
 time-segment during which an impedance measurement was performed as
 :class:`~mne.Annotations` with the description set in the argument
 ``impedance_annotation``. However, it doesn't extract the impedance values themselves.
@@ -35,8 +35,8 @@ print(impedances[0])  # impedances measurement at the beginning of the recording
 
 # %%
 # Note that the impedance measurement contains all channels, including the bipolar ones.
-# To make it visual, we can plot a topographic map of the impedances before and after
-# the recording for the EEG channels only.
+# We can visualize the impedances on a topographic map; below we show a topography of
+# impedances before and after the recording for the EEG channels only.
 
 raw.pick("eeg").set_montage("standard_1020")
 impedances = [{ch: imp[ch] for ch in raw.ch_names} for imp in impedances]
