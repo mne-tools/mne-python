@@ -193,7 +193,6 @@ class Raw(BaseRaw):
             # filename
             fname = _check_fname(fname, "read", True, "fname")
             whole_file = preload if fname.suffix == ".gz" else False
-            assert isinstance(fname, Path), f"Expected Path, got {type(fname)=}"
         else:
             # file-like
             if not preload:
