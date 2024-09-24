@@ -237,11 +237,18 @@ ignore-decorators = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"tutorials/time-freq/10_spectrum_class.py" = [
+"examples/*/*.py" = [
+    "D205", # 1 blank line required between summary line and description
+    "D400", # First line should end with a period
+]
+"examples/preprocessing/eeg_bridging.py" = [
     "E501", # line too long
 ]
 "mne/datasets/*/*.py" = [
     "D103", # Missing docstring in public function
+]
+"mne/decoding/tests/test_*.py" = [
+    "E402", # Module level import not at top of file
 ]
 "mne/utils/tests/test_docs.py" = [
     "D101", # Missing docstring in public class
@@ -249,14 +256,11 @@ ignore-decorators = [
     "D411", # Missing blank line before section
     "D414", # Section has no content
 ]
-"examples/*/*.py" = [
-    "D205", # 1 blank line required between summary line and description
+"tutorials/*/*.py" = [
+    "D400", # First line should end with a period
 ]
-"examples/preprocessing/eeg_bridging.py" = [
+"tutorials/time-freq/10_spectrum_class.py" = [
     "E501", # line too long
-]
-"mne/decoding/tests/test_*.py" = [
-    "E402", # Module level import not at top of file
 ]
 
 
