@@ -2024,10 +2024,12 @@ def test_memmap(tmp_path):
 )
 def test_file_like(kind, preload, split, tmp_path):
     """Test handling with file-like objects."""
+    fname = tmp_path / "test_file_like_raw.fif"
+    fnames = (fname,)
+    this_raw = read_raw_fif(test_fif_fname).crop(0, 4).pick("mag")
     if split:
-        fname = tmp_path / "test_file_like_raw.fif"
-        read_raw_fif(test_fif_fname).crop(0, 10).save(fname, split_size="10MB")
-        fnames = (fname, Path(str(fname)[:-4] + "-1.fif"))
+        this_raw.save(fname, split_size="5MB")
+        fnames += (Path(str(fname)[:-4] + "-1.fif"),)
         # TODO: Some bad stuff happens with the boundary annotations when there are for
         # example 23 split files we're off by 23 on our boundary (???), should be
         # investigated. In the meantime, just use a split file with a single boundary
@@ -2035,8 +2037,7 @@ def test_file_like(kind, preload, split, tmp_path):
         bad_fname = Path(str(fname)[:-4] + "-2.fif")
         assert not bad_fname.is_file()
     else:
-        fname = test_fif_fname
-        fnames = (test_fif_fname,)
+        this_raw.save(fname)
     for f in fnames:
         assert f.is_file()
     if preload is str:

@@ -97,24 +97,17 @@ class Raw(BaseRaw):
         do_check_ext = not _file_like(fname)
         filenames = []
         next_fname = fname
+        fname = _path_from_fname(fname)
         while next_fname is not None:
             raw, next_fname, buffer_size_sec = self._read_raw_file(
                 next_fname, allow_maxshield, preload, do_check_ext
             )
             do_check_ext = False
             raws.append(raw)
-            # If using a file-like object, fix the filenames to be Path or None
-            extra = raw._raw_extras
-            fname = None
-            if isinstance(extra["filename"], Path):
-                fname = extra["filename"]
-            else:
-                # Try to get a filename from the file-like object
-                try:
-                    fname = Path(extra["filename"].name)
-                except Exception:
-                    pass
-            filenames.append(fname)
+            # If using a file-like object, fix the filenames to be Path or None.
+            # It's also important to actually change the variable named "fname"
+            # so that the _get_argvalues does not store the file-like object.
+            filenames.append(_path_from_fname(raw._raw_extras["filename"]))
             if next_fname is not None:
                 if not op.exists(next_fname):
                     msg = (
@@ -326,15 +319,7 @@ class Raw(BaseRaw):
                     tag = read_tag(fid, ent.pos)
                     nskip = int(tag.data.item())
 
-            if _file_like(fname):
-                try:
-                    this_name = Path(fname.name)
-                except Exception:
-                    this_name = None
-            else:
-                assert isinstance(fname, Path)
-                this_name = fname
-            next_fname = _get_next_fname(fid, this_name, tree)
+            next_fname = _get_next_fname(fid, _path_from_fname(fname), tree)
 
         # reformat raw_extras to be a dict of list/ndarray rather than
         # list of dict (faster access)
@@ -553,3 +538,13 @@ def read_raw_fif(
         verbose=verbose,
         on_split_missing=on_split_missing,
     )
+
+
+def _path_from_fname(fname) -> Path | None:
+    if not isinstance(fname, Path):
+        # Try to get a filename from the file-like object
+        try:
+            fname = Path(fname.name)
+        except Exception:
+            fname = None
+    return fname
