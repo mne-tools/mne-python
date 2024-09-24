@@ -57,6 +57,12 @@ repos:
         files: ^doc/changes/names.inc|^.mailmap
         args: ["--ignore-case"]
 
+  - repo: https://github.com/pappasam/toml-sort
+    rev: v0.23.1
+    hooks:
+      - id: toml-sort-fix
+        files: pyproject.toml
+
 # The following are too slow to run on local commits, so let's only run on CIs:
 #
 #   - repo: https://github.com/pre-commit/mirrors-mypy
