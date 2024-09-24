@@ -161,20 +161,45 @@ iframe.sg_report {
     top: 0;
 }
 
-/* TODO: Either pydata-sphinx-theme (for using Bootstrap) or sphinx-gallery (for adding table formatting) should fix this */
-.table-striped-columns>:not(caption)>tr>:nth-child(2n),.table-striped>tbody>tr:nth-of-type(odd)>* {
-    --bs-table-accent-bg: var(--bs-table-striped-bg);
-    color: var(--pst-color-text-base);
-}
-.table-hover>tbody>tr:hover>* {
-    --bs-table-accent-bg: var(--bs-table-hover-bg);
-    color: var(--pst-color-text-base);
-}
-.rendered_html table {
-    color: var(--pst-color-text-base);
-}
+/* ******************************************************** HTML repr tables */
 
-
+/* make table responsive to pydata-sphinx-theme's light/dark mode */
+.table > :not(caption) > * > * {
+    color: var(--pst-color-text-base);
+}
+.mne-repr-table tbody tr:hover {
+    background-color: var(--pst-color-table-row-hover-bg);
+}
+.mne-repr-section-toggle > button > svg > path {
+    fill: var(--pst-color-text-base);
+}
+/* make the expand/collapse button look nicer */
+.mne-repr-section-toggle > button {
+    padding: 20%;
+}
+/* make section header rows more distinct (and harmonize with pydata-sphinx-theme table
+style in the process). Color copied from pydata-sphinx-theme; 2px copied from bootstrap.
+*/
+.mne-repr-table th {
+    border-bottom: 2px solid var(--pst-color-primary);
+}
+/* harmonize the channel names buttons with the rest of the table */
+.mne-ch-names-btn {
+    font-size: inherit;
+    padding: 0.25rem;
+    min-width: 1.5rem;
+    font-weight: bold;
+}
+/*
+.mne-ch-names-btn:hover {
+    background-color: var(--pst-color-);
+    text-decoration: underline;
+}
+.mne-ch-names-btn:focus-visible {
+    outline: 0.1875rem solid var(--pst-color-accent);
+    outline-offset: 0.1875rem;
+}
+*/
 /* ***************************************************** sphinx-design fixes */
 p.btn a {
     color: unset;
