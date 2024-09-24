@@ -6,8 +6,8 @@ import datetime
 import os
 import pathlib
 import pickle
+import platform
 import shutil
-import sys
 from contextlib import nullcontext
 from copy import deepcopy
 from functools import partial
@@ -1985,7 +1985,7 @@ def test_memmap(tmp_path):
     new_data = np.linspace(0, 1, len(raw_0.times))[np.newaxis]
     ch = RawArray(new_data, new_ch_info)
     raw_0.add_channels([ch])
-    if sys.platform == "darwin":
+    if platform.system() == "Darwin":
         assert not hasattr(raw_0._data, "filename")
     else:
         assert raw_0._data.filename == memmaps[2]
@@ -2041,6 +2041,8 @@ def test_file_like(kind, preload, split, tmp_path):
     for f in fnames:
         assert f.is_file()
     if preload is str:
+        if platform.system() == "Windows":
+            pytest.skip("Cannot test preload=str on Windows")
         preload = str(tmp_path / "memmap")
     with open(fname, "rb") as file_fid:
         if kind == "bytes":
@@ -2119,7 +2121,7 @@ def test_bad_acq(fname):
 
 @testing.requires_testing_data
 @pytest.mark.skipif(
-    sys.platform not in ("darwin", "linux"), reason="Needs proper symlinking"
+    platform.system() not in ("Linux", "Darwin"), reason="Needs proper symlinking"
 )
 def test_split_symlink(tmp_path):
     """Test split files with symlinks."""
