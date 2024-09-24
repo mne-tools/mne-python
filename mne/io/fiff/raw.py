@@ -164,8 +164,10 @@ class Raw(BaseRaw):
             self._preload_data(preload)
         else:
             self.preload = False
-        # If using a file-like object, fix the filenames to be representative
-        # strings now instead of the file-like objects
+        # If using a file-like object, remove them from the extras (we should be fully
+        # preloaded, and file-like objects break serialization). We could make these
+        # representative strings using _get_fname_rep, but this breaks the API
+        # that they are Path or None. So just turn them into None.
         for extra in self._raw_extras:
             if not isinstance(extra["filename"], Path):
                 extra["filename"] = None
