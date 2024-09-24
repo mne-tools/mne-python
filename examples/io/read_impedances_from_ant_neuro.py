@@ -1,9 +1,17 @@
 """
-.. _ex-io-ant-impedances:
+.. _ex-io-impedances:
 
-======================================
-Getting impedances from ANT Neuro .cnt
-======================================
+=================================
+Getting impedances from raw files
+=================================
+
+Many EEG systems provide impedance measurements for each channel within their file
+format. MNE does not parse this information and does not store it in the
+:class:`~mne.io.Raw` object. However, it is possible to extract this information from
+the raw data and store it in a separate data structure.
+
+ANT Neuro
+---------
 
 The ``.cnt`` file format from ANT Neuro stores impedance information in the form of
 triggers. The function :func:`mne.io.read_raw_ant` reads this information and marks the
