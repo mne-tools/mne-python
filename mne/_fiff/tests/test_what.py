@@ -23,7 +23,7 @@ def test_what(tmp_path, verbose_debug):
     """Test mne.what."""
     pytest.importorskip("sklearn")
     # ICA
-    ica = ICA(max_iter=1)
+    ica = ICA(max_iter=1, random_state=0)
     raw = RawArray(np.random.RandomState(0).randn(3, 10), create_info(3, 1000.0, "eeg"))
     with _record_warnings():  # convergence sometimes
         ica.fit(raw)
@@ -57,6 +57,6 @@ def test_what(tmp_path, verbose_debug):
         if len(kind) > 5:
             kind = kind.split("_")[-1]
         this = what(fname)
-        assert this == want_dict[kind]
+        assert this == want_dict[kind], fname
     fname = data_path / "MEG" / "sample" / "sample_audvis-ave_xfit.dip"
     assert what(fname) == "unknown"
