@@ -114,10 +114,17 @@ class Raw(BaseRaw):
                     )
                     _on_missing(on_split_missing, msg, name="on_split_missing")
                     break
-        # If using a file-like object, we need to fix filenames to be Path or None.
-        # We must change both the variable named "fname" here so that _get_argvalues
-        # does not store the file-like object, and change "filenames" passed to the
-        # constructor below so that it gets a list of Path or None.
+        # If using a file-like object, we need to be careful about serialization and
+        # types.
+        #
+        # 1. We must change both the variable named "fname" here so that _get_argvalues
+        #    (magic) does not store the file-like object.
+        # 2. We need to ensure "filenames" passed to the constructor below gets a list
+        #    of Path or None.
+        # 3. We need to (after calling super().__init__) to remove the file-like objects
+        #    from _raw_extras.
+
+        # Avoid file-like in _get_argvalues (1)
         fname = _path_from_fname(fname)
 
         _check_raw_compatibility(raws)
@@ -126,6 +133,7 @@ class Raw(BaseRaw):
             preload=False,
             first_samps=[r.first_samp for r in raws],
             last_samps=[r.last_samp for r in raws],
+            # Avoid file-like objects in raw.filenames (2)
             filenames=[_path_from_fname(r._raw_extras["filename"]) for r in raws],
             raw_extras=[r._raw_extras for r in raws],
             orig_format=raws[0].orig_format,
@@ -156,8 +164,7 @@ class Raw(BaseRaw):
             self._preload_data(preload)
         else:
             self.preload = False
-        # If using a file-like object, remove them from the extras -- we should be
-        # preloaded, and file-like objects break serialization
+        # Avoid file-like objects in _raw_extras (3)
         for extra in self._raw_extras:
             if not isinstance(extra["filename"], Path):
                 extra["filename"] = None
