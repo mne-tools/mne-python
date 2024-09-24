@@ -95,7 +95,6 @@ class Raw(BaseRaw):
     ):
         raws = []
         do_check_ext = not _file_like(fname)
-        filenames = []
         next_fname = fname
         while next_fname is not None:
             raw, next_fname, buffer_size_sec = self._read_raw_file(
@@ -103,10 +102,6 @@ class Raw(BaseRaw):
             )
             do_check_ext = False
             raws.append(raw)
-            # If using a file-like object, fix the filenames to be Path or None.
-            # It's also important to actually change the variable named "fname" (below)
-            # so that the _get_argvalues does not store the file-like object.
-            filenames.append(_path_from_fname(raw._raw_extras["filename"]))
             if next_fname is not None:
                 if not op.exists(next_fname):
                     msg = (
@@ -119,6 +114,10 @@ class Raw(BaseRaw):
                     )
                     _on_missing(on_split_missing, msg, name="on_split_missing")
                     break
+        # If using a file-like object, we need to fix filenames to be Path or None.
+        # We must change both the variable named "fname" here so that _get_argvalues
+        # does not store the file-like object, and change "filenames" passed to the
+        # constructor below so that it gets a list of Path or None.
         fname = _path_from_fname(fname)
 
         _check_raw_compatibility(raws)
@@ -127,7 +126,7 @@ class Raw(BaseRaw):
             preload=False,
             first_samps=[r.first_samp for r in raws],
             last_samps=[r.last_samp for r in raws],
-            filenames=filenames,
+            filenames=[_path_from_fname(r._raw_extras["filename"]) for r in raws],
             raw_extras=[r._raw_extras for r in raws],
             orig_format=raws[0].orig_format,
             dtype=None,
