@@ -224,7 +224,7 @@ def _read_segments_file(
     # Read up to 100 MB of data at a time, block_size is in data samples
     block_size = ((int(100e6) // n_bytes) // n_channels) * n_channels
     block_size = min(data_left, block_size)
-    with open(raw._filenames[fi], "rb", buffering=0) as fid:
+    with open(raw.filenames[fi], "rb", buffering=0) as fid:
         fid.seek(data_offset)
         # extract data in chunks
         for sample_start in np.arange(0, data_left, block_size) // n_channels:

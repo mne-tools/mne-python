@@ -3036,6 +3036,7 @@ def read_ica(fname, verbose=None):
         The ICA estimator.
     """
     check_fname(fname, "ICA", ("-ica.fif", "-ica.fif.gz", "_ica.fif", "_ica.fif.gz"))
+    fname = _check_fname(fname, overwrite="read", must_exist=True)
 
     logger.info(f"Reading {fname} ...")
     fid, tree, _ = fiff_open(fname)

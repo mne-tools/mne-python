@@ -1006,7 +1006,7 @@ class RawBTi(BaseRaw):
         # make Raw repr work if we have a BytesIO as input
         filename = bti_info["pdf"]
         if isinstance(filename, BytesIO):
-            filename = repr(filename)
+            filename = None
         super().__init__(
             info,
             preload,

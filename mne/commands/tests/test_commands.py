@@ -194,7 +194,7 @@ def test_make_scalp_surfaces(tmp_path, monkeypatch):
     dense_fname = op.join(subj_dir, "sample-head-dense.fif")
     medium_fname = op.join(subj_dir, "sample-head-medium.fif")
     with ArgvSetter(cmd, disable_stdout=False, disable_stderr=False):
-        monkeypatch.delenv("FREESURFER_HOME")
+        monkeypatch.delenv("FREESURFER_HOME", raising=False)
         with pytest.raises(RuntimeError, match="The FreeSurfer environ"):
             mne_make_scalp_surfaces.run()
         shutil.copy(op.join(surf_path, "lh.seghead"), surf_path_new)

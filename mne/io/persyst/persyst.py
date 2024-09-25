@@ -263,7 +263,7 @@ class RawPersyst(BaseRaw):
         """
         dtype = self._raw_extras[fi]["dtype"]
         n_chs = self._raw_extras[fi]["n_chs"]
-        dat_fname = self._filenames[fi]
+        dat_fname = self.filenames[fi]
 
         # compute samples count based on start and stop
         time_length_samps = stop - start

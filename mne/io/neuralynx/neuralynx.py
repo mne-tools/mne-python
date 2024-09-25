@@ -314,7 +314,7 @@ class RawNeuralynx(BaseRaw):
         from quantities import Hz
 
         nlx_reader = NeuralynxIO(
-            dirname=self._filenames[fi],
+            dirname=self.filenames[fi],
             **_exclude_kwarg(self._raw_extras[0]["exclude_fnames"]),
         )
         neo_block = nlx_reader.read(lazy=True)
