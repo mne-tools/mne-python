@@ -2051,16 +2051,15 @@ class BaseRaw(
         assert annotations.orig_time == self.info["meas_date"]
         edge_samps = list()
         for ri, r in enumerate(raws):
-            n_samples = self.last_samp - self.first_samp + 1
+            edge_samps.append(self.last_samp - self.first_samp + 1)
             annotations = _combine_annotations(
                 annotations,
                 r.annotations,
-                n_samples,
+                edge_samps[-1],
                 self.first_samp,
                 r.first_samp,
                 self.info["sfreq"],
             )
-            edge_samps.append(sum(self._last_samps) - sum(self._first_samps) + (ri + 1))
             self._first_samps = np.r_[self._first_samps, r._first_samps]
             self._last_samps = np.r_[self._last_samps, r._last_samps]
             self._read_picks += r._read_picks

@@ -2030,10 +2030,6 @@ def test_file_like(kind, preload, split, tmp_path):
     if split:
         this_raw.save(fname, split_size="5MB")
         fnames += (Path(str(fname)[:-4] + "-1.fif"),)
-        # TODO: Some bad stuff happens with the boundary annotations when there are for
-        # example 23 split files we're off by 23 on our boundary (???), should be
-        # investigated. In the meantime, just use a split file with a single boundary
-        # for simplicity.
         bad_fname = Path(str(fname)[:-4] + "-2.fif")
         assert not bad_fname.is_file()
     else:
