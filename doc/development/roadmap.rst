@@ -51,20 +51,6 @@ for cases that FieldTrip also supports.
 
 More details are in :gh:`4859`.
 
-Modernization of realtime processing
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-LSL has become the de facto standard for streaming data from EEG/MEG systems.
-We should deprecate `MNE-Realtime`_ in favor of the newly minted `MNE-LSL`_.
-We should then fully support MNE-LSL using modern coding best practices such as CI
-integration.
-
-Core components of commonly used real-time processing pipelines should be implemented in
-MNE-LSL, including but not limited to realtime IIR filtering, artifact rejection,
-montage and reference setting, and online averaging. Integration with standard
-MNE-Python plotting routines (evoked joint plots, topomaps, etc.) should be
-supported with continuous updating.
-
 In progress
 -----------
 
@@ -118,6 +104,21 @@ limitations and challenges with it. We should work to use some other backend
    as well.
 
 The meta-issue for tracking to-do lists for surface plotting is :gh:`7162`.
+
+Modernization of realtime processing
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+LSL has become the de facto standard for streaming data from EEG/MEG systems.
+We should deprecate `MNE-Realtime`_ in favor of the newly minted `MNE-LSL`_.
+We should then fully support MNE-LSL using modern coding best practices such as CI
+integration.
+
+Core components of commonly used real-time processing pipelines should be implemented in
+MNE-LSL, including but not limited to realtime IIR filtering, artifact rejection,
+montage and reference setting, and online averaging. Integration with standard
+MNE-Python plotting routines (evoked joint plots, topomaps, etc.) should be
+supported with continuous updating.
+
 
 .. _documentation-updates:
 
