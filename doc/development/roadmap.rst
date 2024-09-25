@@ -10,46 +10,8 @@ Code projects, while others require more extensive work.
 Open
 ----
 
-Clustering statistics API
-^^^^^^^^^^^^^^^^^^^^^^^^^
-The current clustering statistics code has limited functionality. It should be
-re-worked to create a new ``cluster_based_statistic`` or similar function.
 
-The new API will likely be along the lines of::
 
-   cluster_stat(obs, design, *, alpha=0.05, cluster_alpha=0.05, ...)
-
-with:
-
-``obs`` : :class:`pandas.DataFrame`
-    Has columns like "subject", "condition", and "data".
-    The "data" column holds things like :class:`mne.Evoked`,
-    :class:`mne.SourceEstimate`, :class:`mne.time_frequency.Spectrum`, etc.
-``design`` : `str`
-    Likely Wilkinson notation to mirror :func:`patsy.dmatrices` (e.g., this is
-    is used by :class:`statsmodels.regression.linear_model.OLS`). Getting from the
-    string to the design matrix could be done via Patsy or more likely
-    `Formulaic <https://matthewwardrop.github.io/formulaic/>`__.
-
-This generic API will support mixed within- and between-subjects designs,
-different statistical functions/tests, etc. This should be achievable without
-introducing any significant speed penalty (e.g., < 10% slower) compared to the existing
-more specialized/limited functions, since most computation cost is in clustering rather
-than statistical testing.
-
-The clustering function will return a user-friendly ``ClusterStat`` object or similar
-that retains information about dimensionality, significance, etc. and facilitates
-plotting and interpretation of results.
-
-Clear tutorials will be needed to:
-
-1. Show how different contrasts can be done (toy data).
-2. Show some common analyses on real data (time-freq, sensor space, source space, etc.)
-
-Regression tests will be written to ensure equivalent outputs when compared to FieldTrip
-for cases that FieldTrip also supports.
-
-More details are in :gh:`4859`.
 
 In progress
 -----------
@@ -118,6 +80,47 @@ MNE-LSL, including but not limited to realtime IIR filtering, artifact rejection
 montage and reference setting, and online averaging. Integration with standard
 MNE-Python plotting routines (evoked joint plots, topomaps, etc.) should be
 supported with continuous updating.
+
+Clustering statistics API
+^^^^^^^^^^^^^^^^^^^^^^^^^
+The current clustering statistics code has limited functionality. It should be
+re-worked to create a new ``cluster_based_statistic`` or similar function.
+
+The new API will likely be along the lines of::
+
+   cluster_stat(obs, design, *, alpha=0.05, cluster_alpha=0.05, ...)
+
+with:
+
+``obs`` : :class:`pandas.DataFrame`
+    Has columns like "subject", "condition", and "data".
+    The "data" column holds things like :class:`mne.Evoked`,
+    :class:`mne.SourceEstimate`, :class:`mne.time_frequency.Spectrum`, etc.
+``design`` : `str`
+    Likely Wilkinson notation to mirror :func:`patsy.dmatrices` (e.g., this is
+    is used by :class:`statsmodels.regression.linear_model.OLS`). Getting from the
+    string to the design matrix could be done via Patsy or more likely
+    `Formulaic <https://matthewwardrop.github.io/formulaic/>`__.
+
+This generic API will support mixed within- and between-subjects designs,
+different statistical functions/tests, etc. This should be achievable without
+introducing any significant speed penalty (e.g., < 10% slower) compared to the existing
+more specialized/limited functions, since most computation cost is in clustering rather
+than statistical testing.
+
+The clustering function will return a user-friendly ``ClusterStat`` object or similar
+that retains information about dimensionality, significance, etc. and facilitates
+plotting and interpretation of results.
+
+Clear tutorials will be needed to:
+
+1. Show how different contrasts can be done (toy data).
+2. Show some common analyses on real data (time-freq, sensor space, source space, etc.)
+
+Regression tests will be written to ensure equivalent outputs when compared to FieldTrip
+for cases that FieldTrip also supports.
+
+More details are in :gh:`4859`; progress in :gh:`12663`.
 
 
 .. _documentation-updates:
