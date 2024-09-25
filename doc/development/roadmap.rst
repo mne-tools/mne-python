@@ -10,7 +10,77 @@ Code projects, while others require more extensive work.
 Open
 ----
 
+Type Annotations
+^^^^^^^^^^^^^^^^
 
+We would like to have type annotations for as much of our codebase as is practicable.
+The main motivation for this is to improve the end-user experience when writing analysis
+code that uses MNE-Python (i.e., code-completion suggestions, which rely on static
+analysis / type hints). The main discussion of how to go about this is in :gh:`12243`.
+Some piecemeal progress has been made (e.g., :gh:`12250`) but there isn't currently
+anyone actively chipping away at this, hence its status as "open" rather than "in
+progress".
+
+Docstring De-duplication
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+For many years, MNE-Python has used a technique borrowed from SciPy (called
+`doccer <https://github.com/scipy/scipy/blob/f054bfe5514f35dd47f06b0c2f762b7a857a63b0/scipy/_lib/doccer.py>`__)
+for improving the consistency of parameter names and descriptions that recur across our
+API. For example, parameters for number of parallel jobs to use, for specifying random
+seeds, or for controlling the appearance of a colorbar on a plot --- all of these appear
+in multiple functions/methods in MNE-Python. The approach works by re-defining a
+function's ``__doc__`` attribute at import time, filling in placeholders in the
+docstring's parameter list with fully spelled-out equivalents (which are stored in a big
+dictionary called the ``docdict``). There are two major downsides:
+
+1. Many docstrings can't be read (at least not in full) while browsing the source code.
+2. Static code analyzers don't have access to the completed docstrings, so things like
+   hover-tooltips in IDEs are less useful than they would be if the docstrings were
+   complete in-place.
+
+A possible route forward:
+
+- Convert all docstrings to be fully spelled out in the source code.
+- Instead of maintaining the ``docdict``, maintain a registry of sets of
+  function+parameter combinations that ought to be identical.
+- Add a test that the entries in the registry are indeed identical, so that
+  inconsistencies cannot be introduced in existing code.
+- Add a test that parses docstrings in any *newly added* functions and looks for
+  parameter names that maybe should be added to the registry of identical docstrings.
+- To allow for parameter descriptions that should be *nearly* identical (e.g., the same
+  except one refers to :class:`~mne.io.Raw` objects and the other refers to
+  :class:`~mne.Epochs` objects), consider using regular expressions to check the
+  "identity" of the parameter descriptions.
+
+The main discussion is in :gh:`8218`; a wider discussion among maintainers of other
+packages in the Scientific Python Ecosystem is
+`here <https://github.com/scientific-python/summit-2024/issues/27>`__.
+
+Containerization
+^^^^^^^^^^^^^^^^
+
+Users sometimes encounter difficulty getting a working MNE-Python environment on shared
+resources (such as compute clusters), due to various problems (old versions of package
+managers or graphics libraries, lack of sufficient permissions, etc). Providing a
+robust and up-to-date containerized distribution of MNE-Python would alleviate some of
+these issues. Initial efforts can be seen in the
+`MNE-Docker repository <https://github.com/mne-tools/mne-docker>`__; these efforts
+should be revived, brought up-to-date as necessary, and integrated into our normal
+release process so that the images do not become stale.
+
+Education
+^^^^^^^^^
+
+Live workshops/tutorials/trainings on MNE-Python have historically been organized
+*ad-hoc* rather than centrally. Instructors for these workshops are often approached
+directly by the organization or group desiring to host the training, and there is often
+no way for users outside that group to attend (or even learn about the opportunity). At
+a minimum, we would like to have a process for keeping track of educational events that
+feature MNE-Python or other tools in the MNE suite. Ideally, we would go further and
+initiate a recurring series of tutorials that could be advertised widely. Such events
+might even provide a small revenue stream for MNE-Python, to support things like
+continuous integration costs.
 
 
 In progress
