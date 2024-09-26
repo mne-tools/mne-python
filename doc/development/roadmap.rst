@@ -131,24 +131,6 @@ were incomplete. New classes are being built from the ground up:
 Other related issues: :gh:`6290`, :gh:`7671`, :gh:`8026`, :gh:`8724`, :gh:`9045`,
 and PRs: :gh:`6609`, :gh:`6629`, :gh:`6672`, :gh:`6673`, :gh:`8397`, :gh:`8892`.
 
-3D visualization
-^^^^^^^^^^^^^^^^
-Historically we have used Mayavi for 3D visualization, but have faced
-limitations and challenges with it. We should work to use some other backend
-(e.g., PyVista) to get major improvements, such as:
-
-1. *Proper notebook support (through ``ipyvtklink``)* (complete; updated to use ``trame``)
-2. *Better interactivity with surface plots* (complete)
-3. Time-frequency plotting (complementary to volume-based
-   :ref:`time-frequency-viz`)
-4. Integration of multiple functions as done in ``mne_analyze``, e.g.,
-   simultaneous source estimate viewing, field map
-   viewing, head surface display, etc. These are all currently available in
-   separate functions, but we should be able to combine them in a single plot
-   as well.
-
-The meta-issue for tracking to-do lists for surface plotting is :gh:`7162`.
-
 Modernization of realtime processing
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -215,6 +197,22 @@ Our documentation has many minor issues, which can be found under the tag
 
 Completed
 ---------
+
+3D visualization
+^^^^^^^^^^^^^^^^
+Historically we used Mayavi for 3D visualization, but faced limitations and challenges
+with it. We switched to PyVista to get major improvements, such as:
+
+1. *Proper notebook support (through ``ipyvtklink``)* (complete; updated to use ``trame``)
+2. *Better interactivity with surface plots* (complete)
+3. Time-frequency plotting (complementary to volume-based
+   :ref:`time-frequency-viz`)
+4. Integration of multiple functions as done in ``mne_analyze``, e.g.,
+   simultaneous source estimate viewing, field map
+   viewing, head surface display, etc. These were all available in
+   separate functions, but can now be combined in a single plot.
+
+The meta-issue tracking to-do lists for surface plotting was :gh:`7162`.
 
 Improved sEEG/ECoG/DBS support
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
