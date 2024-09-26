@@ -306,8 +306,8 @@ def test_read_write_info(tmp_path):
     assert info["hpi_meas"][0]["creator"] == creator
     assert info["subject_info"]["his_id"] == creator
     assert info["gantry_angle"] == gantry_angle
-    assert info["subject_info"]["height"] == 2.3
-    assert info["subject_info"]["weight"] == 11.1
+    assert_allclose(info["subject_info"]["height"], 2.3)
+    assert_allclose(info["subject_info"]["weight"], 11.1)
     for key in ["secs", "usecs", "version"]:
         assert info["meas_id"][key] == meas_id[key]
     assert_array_equal(info["meas_id"]["machid"], meas_id["machid"])
@@ -565,6 +565,18 @@ def test_check_consistency():
     del info2["chs"][0]["loc"]
     with pytest.raises(KeyError, match="key missing"):
         info2._check_consistency()
+
+    # bad subject_info entries
+    info2 = info.copy()
+    with pytest.raises(TypeError, match="must be an instance"):
+        info2["subject_info"] = "bad"
+    info2["subject_info"] = dict()
+    with pytest.raises(TypeError, match="must be an instance"):
+        info2["subject_info"]["height"] = "bad"
+    with pytest.raises(TypeError, match="must be an instance"):
+        info2["subject_info"]["weight"] = [0]
+    with pytest.raises(TypeError, match=r'subject_info\["height"\] must be an .*'):
+        info2["subject_info"] = {"height": "bad"}
 
 
 def _test_anonymize_info(base_info):
@@ -867,10 +879,8 @@ def test_field_round_trip(tmp_path):
     write_info(fname, info)
     info_read = read_info(fname)
     assert_object_equal(info, info_read)
-    info["helium_info"]["meas_date"] = (1, 2)
     with pytest.raises(TypeError, match="datetime"):
-        # trigger the check
-        info["helium_info"] = info["helium_info"]
+        info["helium_info"]["meas_date"] = (1, 2)
 
 
 def test_equalize_channels():

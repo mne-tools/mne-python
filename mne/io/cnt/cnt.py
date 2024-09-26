@@ -405,6 +405,7 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format, he
         "first_name": first_name,
         "last_name": last_name,
     }
+    subject_info = {key: val for key, val in subject_info.items() if val is not None}
 
     if eog == "auto":
         eog = _find_channels(ch_names, "EOG")
