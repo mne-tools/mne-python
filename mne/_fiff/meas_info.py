@@ -1064,7 +1064,7 @@ class HeliumInfo(ValidatedDict):
     }
 
     def __init__(self, initial):
-        _validate_type(initial, dict, "subject_info")
+        _validate_type(initial, dict, "helium_info")
         super().__init__()
         for key, val in initial.items():
             self[key] = val
