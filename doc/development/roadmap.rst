@@ -107,17 +107,29 @@ MNE-Python. See :gh:`6784`.
 
 Time-frequency classes
 ^^^^^^^^^^^^^^^^^^^^^^
-Our current codebase implements classes related to :term:`TFRs <tfr>` that
-remain incomplete. We should implement new classes from the ground up
-that can hold frequency data (``Spectrum``), cross-spectral data
-(``CrossSpectrum``), multitaper estimates (``MultitaperSpectrum``), and
-time-varying estimates (``Spectrogram``). These should work for
-continuous, epoched, and averaged sensor data, as well as source-space brain
-data.
+Historically our codebase had classes related to :term:`TFRs <tfr>` that
+were incomplete. New classes are being built from the ground up:
 
-See related issues :gh:`6290`, :gh:`7671`, :gh:`8026`, :gh:`8724`, :gh:`9045`,
-and PRs :gh:`6609`, :gh:`6629`, :gh:`6672`, :gh:`6673`, :gh:`8397`, and
-:gh:`8892`.
+- new classes :class:`~mne.time_frequency.Spectrum` and
+  :class:`~mne.time_frequency.EpochsSpectrum` (implemented in :gh:`10184`, with
+  follow-up tweaks and bugfixes in :gh:`11178`, :gh:`11259`, :gh:`11280`, :gh:`11345`,
+  :gh:`11418`, :gh:`11563`, :gh:`11680`, :gh:`11682`, :gh:`11778`, :gh:`11921`,
+  :gh:`11978`, :gh:`12747`), and corresponding array-based constructors
+  :class:`~mne.time_frequency.SpectrumArray` and
+  :class:`~mne.time_frequency.EpochsSpectrumArray` (:gh:`11803`).
+
+- new class :class:`~mne.time_frequency.RawTFR` and updated classes
+  :class:`~mne.time_frequency.EpochsTFR` and :class:`~mne.time_frequency.AverageTFR`,
+  and corresponding array-based constructors :class:`~mne.time_frequency.RawTFRArray`,
+  :class:`~mne.time_frequency.EpochsTFRArray` and
+  :class:`~mne.time_frequency.AverageTFRArray` (implemented in :gh:`11282`, with
+  follow-ups in :gh:`12514`, :gh:`12842`).
+
+- new/updated classes for source-space frequency and time-frequency data are not yet
+  implemented.
+
+Other related issues: :gh:`6290`, :gh:`7671`, :gh:`8026`, :gh:`8724`, :gh:`9045`,
+and PRs: :gh:`6609`, :gh:`6629`, :gh:`6672`, :gh:`6673`, :gh:`8397`, :gh:`8892`.
 
 3D visualization
 ^^^^^^^^^^^^^^^^
