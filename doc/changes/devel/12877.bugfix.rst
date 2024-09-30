@@ -1,0 +1,3 @@
+Fix bug where creating a :class:`~mne.time_frequency.SpectrumArray` from a
+:class:`numpy.ndarray` would require online the 'good' data channels to be present in
+the :class:`~mne.Info`, by `Mathieu Scheltienne`_.
