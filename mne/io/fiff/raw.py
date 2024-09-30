@@ -550,9 +550,12 @@ def read_raw_fif(
 
 def _path_from_fname(fname) -> Path | None:
     if not isinstance(fname, Path):
-        # Try to get a filename from the file-like object
-        try:
-            fname = Path(fname.name)
-        except Exception:
-            fname = None
+        if isinstance(fname, str):
+            fname = Path(fname)
+        else:
+            # Try to get a filename from the file-like object
+            try:
+                fname = Path(fname.name)
+            except Exception:
+                fname = None
     return fname

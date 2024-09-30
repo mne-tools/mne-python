@@ -2180,3 +2180,12 @@ def test_expand_user(tmp_path, monkeypatch):
 
     raw = read_raw_fif(fname=path_home, preload=True)
     raw.save(fname=path_home, overwrite=True)
+
+
+@pytest.mark.parametrize("cast", [pathlib.Path, str])
+def test_init_kwargs(cast):
+    """Test for pull/12843#issuecomment-2380491528."""
+    raw = read_raw_fif(cast(test_fif_fname))
+    raw2 = read_raw_fif(**raw._init_kwargs)
+    for r in (raw, raw2):
+        assert isinstance(r._init_kwargs["fname"], pathlib.Path)
