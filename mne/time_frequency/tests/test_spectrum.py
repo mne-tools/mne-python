@@ -620,7 +620,7 @@ def test_plot_spectrum_array_with_bads():
     raw.info["bads"] = [raw.ch_names[1]]
     spectrum = raw.compute_psd()
     with pytest.raises(
-        ValueError, match=re.escape("match the number of good + bads data channels")
+        ValueError, match=re.escape("number of good + bad data channels")
     ):
         SpectrumArray(spectrum.get_data(), spectrum.info, spectrum.freqs)
     spectrum2 = SpectrumArray(
