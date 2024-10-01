@@ -683,6 +683,7 @@ linkcheck_ignore = [  # will be compiled to regex
     "https://speakerdeck.com/dengemann/",
     "https://www.dtu.dk/english/service/phonebook/person",
     "https://www.gnu.org/software/make/",
+    "https://www.macports.org/",
     # SSL problems sometimes
     "http://ilabs.washington.edu",
     "https://psychophysiology.cpmc.columbia.edu",
