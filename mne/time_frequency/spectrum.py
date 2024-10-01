@@ -1243,7 +1243,7 @@ def _check_data_shape(data, info, freqs, dim_names, weights, is_epoched):
     if got_n_chan != want_n_chan:
         raise ValueError(
             f"The number of channels in `data` ({got_n_chan}) must match the number of "
-            f"good + bads data channels in `info` ({want_n_chan})."
+            f"good + bad data channels in `info` ({want_n_chan})."
         )
 
     # given we limit max array size and ensure channel & freq dims present, only one of

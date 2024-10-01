@@ -505,7 +505,7 @@ def test_spectrum_array_errors():
         EpochsSpectrumArray(data, info, freqs, dim_names=("epoch", "freq", "channel"))
     # test mismatching number of channels
     with pytest.raises(
-        ValueError, match=re.escape("number of good + bads data channels")
+        ValueError, match=re.escape("number of good + bad data channels")
     ):
         EpochsSpectrumArray(data[:, :-1, :], info, freqs, dim_names=dim_names)
     # test incorrect taper position
