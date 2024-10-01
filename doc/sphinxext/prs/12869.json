@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "1dd07a4ee95a3a16f2e0b6cf97b3e0416595dc7a",
+  "authors": [
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Mathieu Scheltienne",
+      "e": "mathieu.scheltienne@gmail.com"
+    }
+  ],
+  "changes": {
+    ".pre-commit-config.yaml": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/decoding/receptive_field.py": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

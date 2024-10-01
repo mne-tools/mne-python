@@ -1,0 +1,195 @@
+{
+  "merge_commit_sha": "10ff91a339642f75e18ba1497b60ead88c24cd2b",
+  "authors": [
+    {
+      "n": "Mathieu Scheltienne",
+      "e": "mathieu.scheltienne@fcbg.ch"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/12843.bugfix.rst": {
+      "a": 3,
+      "d": 0
+    },
+    "doc/changes/devel/12843.other.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/_fiff/open.py": {
+      "a": 22,
+      "d": 21
+    },
+    "mne/_fiff/tests/test_what.py": {
+      "a": 9,
+      "d": 4
+    },
+    "mne/_fiff/tree.py": {
+      "a": 9,
+      "d": 6
+    },
+    "mne/_fiff/utils.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/_fiff/what.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/annotations.py": {
+      "a": 32,
+      "d": 38
+    },
+    "mne/channels/montage.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/chpi.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/commands/tests/test_commands.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/epochs.py": {
+      "a": 15,
+      "d": 6
+    },
+    "mne/evoked.py": {
+      "a": 19,
+      "d": 6
+    },
+    "mne/export/_eeglab.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/gui/_coreg.py": {
+      "a": 29,
+      "d": 30
+    },
+    "mne/gui/_gui.py": {
+      "a": 13,
+      "d": 15
+    },
+    "mne/io/base.py": {
+      "a": 67,
+      "d": 43
+    },
+    "mne/io/boxy/boxy.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/brainvision/brainvision.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/bti/bti.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/cnt/cnt.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/ctf/ctf.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/curry/curry.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/edf/edf.py": {
+      "a": 4,
+      "d": 3
+    },
+    "mne/io/eeglab/eeglab.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/io/egi/egimff.py": {
+      "a": 1,
+      "d": 4
+    },
+    "mne/io/fiff/raw.py": {
+      "a": 43,
+      "d": 23
+    },
+    "mne/io/fiff/tests/test_raw_fiff.py": {
+      "a": 52,
+      "d": 29
+    },
+    "mne/io/hitachi/hitachi.py": {
+      "a": 2,
+      "d": 3
+    },
+    "mne/io/kit/kit.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/nedf/nedf.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/neuralynx/neuralynx.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/nihon/nihon.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/persyst/persyst.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/tests/test_raw.py": {
+      "a": 6,
+      "d": 3
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/preprocessing/tests/test_maxwell.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/proj.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/report/report.py": {
+      "a": 41,
+      "d": 56
+    },
+    "mne/source_space/_source_space.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/tests/test_annotations.py": {
+      "a": 22,
+      "d": 0
+    },
+    "mne/utils/check.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/viz/backends/_notebook.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/backends/_qt.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/raw.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}
