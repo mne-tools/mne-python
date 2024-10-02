@@ -146,8 +146,6 @@ test_extra = [
     "snirf",
     "neo",
     "mne-bids",
-    "
-    ",
 ]
 
 # Dependencies for building the documentation
