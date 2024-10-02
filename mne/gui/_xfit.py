@@ -1,3 +1,4 @@
+from copy import deepcopy
 from functools import partial
 from pathlib import Path
 
@@ -219,10 +220,22 @@ class DipoleFitUI:
             if surf_map["map_kind"] == "meg":
                 helmet_mesh = surf_map["mesh"]
                 helmet_mesh._polydata.compute_normals()  # needed later
+                helmet_mesh._actor.prop.culling = "back"
                 self._actors["helmet"] = helmet_mesh._actor
+                # For MEG fieldlines, we want to occlude the ones not facing us,
+                # otherwise it's hard to interpret them. Since the "contours" object
+                # does not support backface culling, we create an opaque mesh to put in
+                # front of the contour lines with frontface culling.
+                occl_surf = deepcopy(surf_map["surf"])
+                occl_surf["rr"] -= 1e-3 * occl_surf["nn"]
+                occl_act, _ = fig._renderer.surface(occl_surf, color="white")
+                occl_act.prop.culling = "front"
+                occl_act.prop.lighting = False
+                self._actors["occlusion_surf"] = occl_act
             elif surf_map["map_kind"] == "eeg":
                 head_mesh = surf_map["mesh"]
                 head_mesh._polydata.compute_normals()  # needed later
+                head_mesh._actor.prop.culling = "back"
                 self._actors["head"] = head_mesh._actor
 
         show_meg = (self._ch_type is None or self._ch_type == "meg") and any(
@@ -251,6 +264,7 @@ class DipoleFitUI:
                 to_cf_t=self._to_cf_t,
                 alpha=0.2,
             )
+            self._actors["head"].prop.culling = "back"
 
         sensors = _plot_sensors_3d(
             renderer=fig._renderer,
@@ -290,6 +304,8 @@ class DipoleFitUI:
         # Toggle buttons for various meshes
         layout = r._dock_add_group_box("Meshes")
         for actor_name in self._actors.keys():
+            if actor_name == "occlusion_surf":
+                continue
             r._dock_add_check_box(
                 name=actor_name,
                 value=True,
@@ -405,7 +421,10 @@ class DipoleFitUI:
 
         # Collect all relevant information on the dipole in a dict.
         colors = _get_color_list()
-        dip_num = len(self._dipoles)
+        if len(self._dipoles) == 0:
+            dip_num = 0
+        else:
+            dip_num = max(self._dipoles.keys()) + 1
         dip.name = f"dip{dip_num}"
         dip_color = colors[dip_num % len(colors)]
         if helmet_coords is not None:
@@ -431,30 +450,43 @@ class DipoleFitUI:
         # Add a row to the dipole list
         r = self._renderer
         hlayout = r._dock_add_layout(vertical=False)
-        r._dock_add_check_box(
-            name="",
-            value=True,
-            callback=partial(self._on_dipole_toggle, dip_num=dip_num),
-            layout=hlayout,
+        widgets = []
+        widgets.append(
+            r._dock_add_check_box(
+                name="",
+                value=True,
+                callback=partial(self._on_dipole_toggle, dip_num=dip_num),
+                layout=hlayout,
+            )
         )
-        r._dock_add_text(
-            name=dip.name,
-            value=dip.name,
-            placeholder="name",
-            callback=partial(self._on_dipole_set_name, dip_num=dip_num),
-            layout=hlayout,
+        widgets.append(
+            r._dock_add_text(
+                name=dip.name,
+                value=dip.name,
+                placeholder="name",
+                callback=partial(self._on_dipole_set_name, dip_num=dip_num),
+                layout=hlayout,
+            )
         )
-        r._dock_add_check_box(
-            name="Fix ori",
-            value=True,
-            callback=partial(self._on_dipole_toggle_fix_orientation, dip_num=dip_num),
-            layout=hlayout,
+        widgets.append(
+            r._dock_add_check_box(
+                name="Fix ori",
+                value=True,
+                callback=partial(
+                    self._on_dipole_toggle_fix_orientation, dip_num=dip_num
+                ),
+                layout=hlayout,
+            )
         )
-        r._dock_add_button(
-            name="D",
-            callback=partial(self._on_dipole_delete, dip_num=dip_num),
-            layout=hlayout,
+        widgets.append(
+            r._dock_add_button(
+                name="",
+                icon="clear",
+                callback=partial(self._on_dipole_delete, dip_num=dip_num),
+                layout=hlayout,
+            )
         )
+        dipole_dict["widgets"] = widgets
         r._layout_add_widget(self._dipole_box, hlayout)
 
         # Compute dipole timecourse, update arrow size.
@@ -675,6 +707,8 @@ class DipoleFitUI:
         dipole["line_artist"].remove()
         dipole["brain_arrow_actor"].visibility = False
         dipole["helmet_arrow_actor"].visibility = False
+        for widget in dipole["widgets"]:
+            widget.hide()
         del self._dipoles[dip_num]
         self._fit_timecourses()
         self._renderer._update()
