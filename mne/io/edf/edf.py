@@ -1,19 +1,13 @@
 """Reading tools from EDF, EDF+, BDF, and GDF."""
 
-# Authors: Teon Brooks <teon.brooks@gmail.com>
-#          Martin Billinger <martin.billinger@tugraz.at>
-#          Nicolas Barascud <nicolas.barascud@ens.fr>
-#          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
-#          Joan Massich <mailsik@gmail.com>
-#          Clemens Brunner <clemens.brunner@gmail.com>
-#          Jeroen Van Der Donckt (IDlab - imec) <jeroen.vanderdonckt@ugent.be>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
 import os
 import re
 from datetime import date, datetime, timedelta, timezone
+from pathlib import Path
 
 import numpy as np
 from scipy.interpolate import interp1d
@@ -231,7 +225,7 @@ class RawEDF(BaseRaw):
             start,
             stop,
             self._raw_extras[fi],
-            self._filenames[fi],
+            self.filenames[fi],
             cals,
             mult,
         )
@@ -333,7 +327,7 @@ class RawGDF(BaseRaw):
             start,
             stop,
             self._raw_extras[fi],
-            self._filenames[fi],
+            self.filenames[fi],
             cals,
             mult,
         )
@@ -766,7 +760,7 @@ def _parse_prefilter_string(prefiltering):
 
 
 def _prefilter_float(filt):
-    if isinstance(filt, (int, float, np.number)):
+    if isinstance(filt, int | float | np.number):
         return filt
     if filt == "DC":
         return 0.0
@@ -1935,7 +1929,7 @@ def _read_annotations_edf(annotations, ch_names=None, encoding="utf8"):
         The annotations.
     """
     pat = "([+-]\\d+\\.?\\d*)(\x15(\\d+\\.?\\d*))?(\x14.*?)\x14\x00"
-    if isinstance(annotations, str):
+    if isinstance(annotations, str | Path):
         with open(annotations, "rb") as annot_file:
             triggers = re.findall(pat.encode(), annot_file.read())
             triggers = [tuple(map(lambda x: x.decode(encoding), t)) for t in triggers]

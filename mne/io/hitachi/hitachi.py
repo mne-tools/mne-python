@@ -1,5 +1,4 @@
-# Authors: Eric Larson <larson.eric.d@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -69,11 +68,11 @@ class RawHitachi(BaseRaw):
 
     @verbose
     def __init__(self, fname, preload=False, *, verbose=None):
-        if not isinstance(fname, (list, tuple)):
+        if not isinstance(fname, list | tuple):
             fname = [fname]
         fname = list(fname)  # our own list that we can modify
         for fi, this_fname in enumerate(fname):
-            fname[fi] = str(_check_fname(this_fname, "read", True, f"fname[{fi}]"))
+            fname[fi] = _check_fname(this_fname, "read", True, f"fname[{fi}]")
         infos = list()
         probes = list()
         last_samps = list()
@@ -102,11 +101,10 @@ class RawHitachi(BaseRaw):
         raw_extras = [dict(probes=probes)]
         # One representative filename is good enough here
         # (additional filenames indicate temporal concat, not ch concat)
-        filenames = [fname[0]]
         super().__init__(
             info,
             preload,
-            filenames=filenames,
+            filenames=[fname[0]],
             last_samps=last_samps,
             raw_extras=raw_extras,
             verbose=verbose,

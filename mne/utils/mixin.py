@@ -1,6 +1,6 @@
 """Some utility functions."""
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#
+
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -66,7 +66,7 @@ class SizeMixin:
 
         if isinstance(self, Evoked):
             return object_hash(dict(info=self.info, data=self.data))
-        elif isinstance(self, (BaseEpochs, BaseRaw)):
+        elif isinstance(self, BaseEpochs | BaseRaw):
             _check_preload(self, "Hashing ")
             return object_hash(dict(info=self.info, data=self._data))
         else:
@@ -153,7 +153,7 @@ class GetEpochsMixin:
 
         # Convert string to indices
         if (
-            isinstance(item, (list, tuple))
+            isinstance(item, list | tuple)
             and len(item) > 0
             and isinstance(item[0], str)
         ):
@@ -213,7 +213,7 @@ class GetEpochsMixin:
             drop_log = list(inst.drop_log)
             if reason is not None:
                 _validate_type(reason, (list, tuple, str), "reason")
-                if isinstance(reason, (list, tuple)):
+                if isinstance(reason, list | tuple):
                     for r in reason:
                         _validate_type(r, str, r)
                 if isinstance(reason, str):
@@ -256,7 +256,7 @@ class GetEpochsMixin:
         """Find entries in event dict."""
         from ..event import match_event_names  # avoid circular import
 
-        keys = keys if isinstance(keys, (list, tuple)) else [keys]
+        keys = keys if isinstance(keys, list | tuple) else [keys]
         try:
             # Assume it's a condition name
             return np.where(
@@ -749,7 +749,7 @@ class ExtendedTimeMixin(TimeMixin):
         from ..dipole import DipoleFixed
         from ..evoked import Evoked
 
-        if isinstance(self, (Evoked, DipoleFixed)):
+        if isinstance(self, Evoked | DipoleFixed):
             self.first = int(round(self.times[0] * self.info["sfreq"]))
             self.last = len(self.times) + self.first - 1
 

@@ -1,12 +1,6 @@
 """Conversion tool from BrainVision EEG to FIF."""
-# Authors: Teon Brooks <teon.brooks@gmail.com>
-#          Christian Brodbeck <christianbrodbeck@nyu.edu>
-#          Eric Larson <larson.eric.d@gmail.com>
-#          Jona Sassenhagen <jona.sassenhagen@gmail.com>
-#          Phillip Alday <phillip.alday@unisa.edu.au>
-#          Okba Bekhelifi <okba.bekhelifi@gmail.com>
-#          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
-#
+
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -69,6 +63,12 @@ class RawBrainVision(BaseRaw):
 
     Notes
     -----
+    If the BrainVision header file contains impedance measurements, these may be
+    accessed using ``raw.impedances`` after reading using this function. However,
+    this attribute will NOT be available after a save and re-load of the data.
+    That is, it is only available when reading data directly from the BrainVision
+    header file.
+
     BrainVision markers consist of a type and a description (in addition to other fields
     like onset and duration). In contrast, annotations in MNE only have a description.
     Therefore, a BrainVision marker of type "Stimulus" and description "S  1" will be
@@ -176,7 +176,7 @@ class RawBrainVision(BaseRaw):
             )
         else:
             offsets = self._raw_extras[fi]["offsets"]
-            with open(self._filenames[fi], "rb") as fid:
+            with open(self.filenames[fi], "rb") as fid:
                 fid.seek(offsets[start])
                 block = np.empty((n_data_ch, stop - start))
                 for ii in range(stop - start):
@@ -216,7 +216,7 @@ def _read_segments_c(raw, data, idx, fi, start, stop, cals, mult):
     n_bytes = _fmt_byte_dict[fmt]
     n_channels = raw._raw_extras[fi]["orig_nchan"]
     block = np.zeros((n_channels, stop - start))
-    with open(raw._filenames[fi], "rb", buffering=0) as fid:
+    with open(raw.filenames[fi], "rb", buffering=0) as fid:
         ids = np.arange(idx.start, idx.stop) if isinstance(idx, slice) else idx
         for ch_id in ids:
             fid.seek(start * n_bytes + ch_id * n_bytes * n_samples)
@@ -983,6 +983,12 @@ def read_raw_brainvision(
 
     Notes
     -----
+    If the BrainVision header file contains impedance measurements, these may be
+    accessed using ``raw.impedances`` after reading using this function. However,
+    this attribute will NOT be available after a save and re-load of the data.
+    That is, it is only available when reading data directly from the BrainVision
+    header file.
+
     BrainVision markers consist of a type and a description (in addition to other fields
     like onset and duration). In contrast, annotations in MNE only have a description.
     Therefore, a BrainVision marker of type "Stimulus" and description "S  1" will be

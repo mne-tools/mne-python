@@ -1,7 +1,4 @@
-# Author: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#         Denis Engemann <denis.engemann@gmail.com>
-#         Stefan Appelhoff <stefan.appelhoff@mailbox.org>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -1693,12 +1690,13 @@ def test_split_naming(
     if dst_fpath.parent != tmp_path:
         dst_fpath.parent.mkdir(parents=True)
 
-    epochs.save(dst_fpath, verbose=True, **save_kwargs)
+    split_fnames = epochs.save(dst_fpath, verbose=True, **save_kwargs)
 
     # check that the filenames match the intended pattern
     assert len(list(dst_fpath.parent.iterdir())) == n_files
     assert not (tmp_path / split_fname_fn(n_files)).is_file()
     want_paths = [tmp_path / split_fname_fn(i) for i in range(n_files)]
+    assert split_fnames == want_paths
     for want_path in want_paths:
         assert want_path.is_file()
 
@@ -1728,9 +1726,9 @@ def test_split_naming(
     assert str(bad_path).count("_split-01") == 2
     assert not bad_path.is_file(), bad_path
     bids_path.split = None
-    epochs.save(bids_path, verbose=True, **save_kwargs)
-    for want_path in want_paths:
-        assert want_path.is_file()
+    split_fnames = epochs.save(bids_path, verbose=True, **save_kwargs)
+    for split_fname in split_fnames:
+        assert split_fname.is_file()
 
 
 @pytest.mark.parametrize(
@@ -1753,7 +1751,8 @@ def test_saved_fname_no_splitting(
     dst_fpath = tmp_path / dst_fname
     split_1_fpath = tmp_path / split_1_fname
 
-    epochs.save(dst_fpath, split_naming=split_naming, verbose=True)
+    filenames = epochs.save(dst_fpath, split_naming=split_naming, verbose=True)
+    assert filenames == [dst_fpath]
 
     assert dst_fpath.is_file()
     assert not split_1_fpath.is_file()

@@ -1,7 +1,4 @@
-# Authors: Lukas Breuer <l.breuer@fz-juelich.de>
-#          Juergen Dammers <j.dammers@fz-juelich.de>
-#          Denis A. Engeman <denis.engemann@gemail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 

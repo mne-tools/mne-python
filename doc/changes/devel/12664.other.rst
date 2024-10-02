@@ -1,1 +1,0 @@
-Improved clarity of parameter documentation for `mne.decoding.SSD.fit`, by `Thomas Binns`_.

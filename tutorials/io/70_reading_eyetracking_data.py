@@ -1,5 +1,7 @@
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 r"""
 .. _tut-importing-eyetracking-data:
 
@@ -76,29 +78,43 @@ x-coordinate increased. When the participant moved their gaze down to read a
 new line, the y-coordinate *increased*, which is why the ``ypos_right`` channel
 in the plot below increases over time (for example, at about 4-seconds, and
 at about 8-seconds).
+
+.. seealso::
+
+    :ref:`tut-eyetrack`
 """
 
 # %%
-from mne.datasets import misc
-from mne.io import read_raw_eyelink
+import mne
 
 # %%
-fpath = misc.data_path() / "eyetracking" / "eyelink"
-raw = read_raw_eyelink(fpath / "px_textpage_ws.asc", create_annotations=["blinks"])
-custom_scalings = dict(eyegaze=1e3)
+fpath = mne.datasets.misc.data_path() / "eyetracking" / "eyelink"
+fname = fpath / "px_textpage_ws.asc"
+raw = mne.io.read_raw_eyelink(fname, create_annotations=["blinks"])
+cal = mne.preprocessing.eyetracking.read_eyelink_calibration(
+    fname,
+    screen_distance=0.7,
+    screen_size=(0.53, 0.3),
+    screen_resolution=(1920, 1080),
+)[0]
+mne.preprocessing.eyetracking.convert_units(raw, calibration=cal, to="radians")
+
+# %%
+# Visualizing the data
+# ^^^^^^^^^^^^^^^^^^^^
+
+# %%
+cal.plot()
+
+# %%
+custom_scalings = dict(pupil=1e3)
 raw.pick(picks="eyetrack").plot(scalings=custom_scalings)
 
-
 # %%
-# .. important:: The (0, 0) pixel coordinates are at the top-left of the
-#               trackable area of the screen. Gaze towards lower areas of the
-#               the screen will yield a relatively higher y-coordinate.
-#
 # Note that we passed a custom `dict` to the ``'scalings'`` argument of
-# `mne.io.Raw.plot`. This is because MNE's default plot scalings for eye
-# position data are calibrated for HREF data, which are stored in radians
-# (read below).
-
+# `mne.io.Raw.plot`. This is because MNE expects the data to be in SI units
+# (radians for eyegaze data, and meters for pupil size data), but we did not convert
+# the pupil size data in this example.
 
 # %%
 # Head-Referenced Eye Angle (HREF)
@@ -122,9 +138,11 @@ raw.pick(picks="eyetrack").plot(scalings=custom_scalings)
 
 
 # %%
-fpath = misc.data_path() / "eyetracking" / "eyelink"
-raw = read_raw_eyelink(fpath / "HREF_textpage_ws.asc", create_annotations=["blinks"])
-raw.pick(picks="eyetrack").plot()
+fpath = mne.datasets.misc.data_path() / "eyetracking" / "eyelink"
+fname_href = fpath / "HREF_textpage_ws.asc"
+raw = mne.io.read_raw_eyelink(fname_href, create_annotations=["blinks"])
+custom_scalings = dict(pupil=1e3)
+raw.pick(picks="eyetrack").plot(scalings=custom_scalings)
 
 # %%
 # Pupil Position
@@ -161,7 +179,7 @@ raw.pick(picks="eyetrack").plot()
 # position for each sample in the file. MNE will read in these data if they are
 # present in the file, but will label their channel types as ``'misc'``.
 #
-#  .. warning:: Eyelink's EDF2ASC API allows for modification of the data
+# .. warning:: Eyelink's EDF2ASC API allows for modification of the data
 #              and format that is converted to ASCII. However, MNE-Python
 #              assumes a specific structure, which the default parameters of
 #              EDF2ASC follow. ASCII files should be tab-deliminted, and both

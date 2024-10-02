@@ -1,2 +1,0 @@
-In :func:`mne.export.export_raw` (``fmt='edf'``), when padding data to create equal-length data blocks,
-edge-padding is favored over zero-padding in order to avoid accidentally enlarging physical range, by `Qian Chu`_.

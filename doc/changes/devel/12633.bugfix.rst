@@ -1,1 +1,0 @@
-Fix bug where :func:`mne.time_frequency.csd_multitaper`, :func:`mne.time_frequency.csd_fourier`, :func:`mne.time_frequency.csd_array_multitaper`, and :func:`mne.time_frequency.csd_array_fourier` would return cross-spectral densities with the ``fmin`` and ``fmax`` frequencies missing, by `Thomas Binns`_

@@ -1,12 +1,6 @@
 """Tools for working with epoched data."""
 
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
-#          Daniel Strohmeier <daniel.strohmeier@tu-ilmenau.de>
-#          Denis Engemann <denis.engemann@gmail.com>
-#          Mainak Jas <mainak@neuro.hut.fi>
-#          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -417,7 +411,7 @@ class BaseEpochs(
 
         .. versionadded:: 0.16
     %(drop_log)s
-    filename : str | None
+    filename : Path | None
         The filename (if the epochs are read from disk).
     %(metadata_epochs)s
 
@@ -689,7 +683,7 @@ class BaseEpochs(
             # more memory safe in most instances
             for ii, epoch in enumerate(self._data):
                 self._data[ii] = np.dot(self._projector, epoch)
-        self._filename = str(filename) if filename is not None else filename
+        self.filename = filename if filename is not None else filename
         if raw_sfreq is None:
             raw_sfreq = self.info["sfreq"]
         self._raw_sfreq = raw_sfreq
@@ -1824,7 +1818,7 @@ class BaseEpochs(
         data_is_self_data = bool(self.preload)
         logger.debug(f"Data is self data: {data_is_self_data}")
         # only two types of epoch subselection allowed
-        assert isinstance(select, (slice, np.ndarray)), type(select)
+        assert isinstance(select, slice | np.ndarray), type(select)
         if not isinstance(select, slice):
             logger.debug("  Copying, fancy indexed epochs")
             data_is_self_data = False  # copy (fancy indexing)
@@ -2021,9 +2015,18 @@ class BaseEpochs(
         return self
 
     @property
-    def filename(self):
-        """The filename."""
+    def filename(self) -> Path | None:
+        """The filename if the epochs are loaded from disk.
+
+        :type: :class:`pathlib.Path` | ``None``
+        """
         return self._filename
+
+    @filename.setter
+    def filename(self, value):
+        if value is not None:
+            value = _check_fname(value, overwrite="read", must_exist=True)
+        self._filename = value
 
     def __repr__(self):
         """Build string representation."""
@@ -2203,6 +2206,12 @@ class BaseEpochs(
             .. versionadded:: 0.24
         %(verbose)s
 
+        Returns
+        -------
+        fnames : List of path-like
+            List of path-like objects containing the path to each file split.
+            .. versionadded:: 1.9
+
         Notes
         -----
         Bad epochs will be dropped before saving the epochs to disk.
@@ -2314,6 +2323,7 @@ class BaseEpochs(
             this_epochs.event_id = self.event_id
 
             _save_split(this_epochs, split_fnames, part_idx, n_parts, fmt, overwrite)
+        return split_fnames
 
     @verbose
     def export(self, fname, fmt="auto", *, overwrite=False, verbose=None):
@@ -3172,12 +3182,12 @@ def make_metadata(
     # This follows the approach taken in mne.Epochs
     # For strings and None, we don't know the start and stop samples in advance as the
     # time window can vary.
-    if isinstance(tmin, (type(None), list)):
+    if isinstance(tmin, type(None) | list):
         start_sample = None
     else:
         start_sample = int(round(tmin * sfreq))
 
-    if isinstance(tmax, (type(None), list)):
+    if isinstance(tmax, type(None) | list):
         stop_sample = None
     else:
         stop_sample = int(round(tmax * sfreq)) + 1
@@ -3388,7 +3398,7 @@ def _events_from_annotations(raw, events, event_id, annotations, on_missing):
     # if event_id is the names of events, map to events integers
     if isinstance(event_id, str):
         event_id = [event_id]
-    if isinstance(event_id, (list, tuple, set)):
+    if isinstance(event_id, list | tuple | set):
         if not set(event_id).issubset(set(event_id_tmp)):
             msg = (
                 "No matching annotations found for event_id(s) "
@@ -3860,7 +3870,7 @@ def equalize_epoch_counts(epochs_list, method="mintime", *, random_state=None):
     --------
     >>> equalize_epoch_counts([epochs1, epochs2])  # doctest: +SKIP
     """
-    if not all(isinstance(epoch, (BaseEpochs, EpochsTFR)) for epoch in epochs_list):
+    if not all(isinstance(epoch, BaseEpochs | EpochsTFR) for epoch in epochs_list):
         raise ValueError("All inputs must be Epochs instances")
     # make sure bad epochs are dropped
     for epoch in epochs_list:
@@ -4267,15 +4277,15 @@ class EpochsFIF(BaseEpochs):
                 filetype="epochs",
                 endings=("-epo.fif", "-epo.fif.gz", "_epo.fif", "_epo.fif.gz"),
             )
-            fname = str(_check_fname(fname=fname, must_exist=True, overwrite="read"))
+            fname = _check_fname(fname=fname, must_exist=True, overwrite="read")
         elif not preload:
             raise ValueError("preload must be used with file-like objects")
 
         fnames = [fname]
+        fname_rep = _get_fname_rep(fname)
         ep_list = list()
         raw = list()
         for fname in fnames:
-            fname_rep = _get_fname_rep(fname)
             logger.info(f"Reading {fname_rep} ...")
             fid, tree, _ = fiff_open(fname, preload=preload)
             next_fname = _get_next_fname(fid, fname, tree)
@@ -4495,7 +4505,7 @@ def _concatenate_epochs(
     epochs_list, *, with_data=True, add_offset=True, on_mismatch="raise"
 ):
     """Auxiliary function for concatenating epochs."""
-    if not isinstance(epochs_list, (list, tuple)):
+    if not isinstance(epochs_list, list | tuple):
         raise TypeError(f"epochs_list must be a list or tuple, got {type(epochs_list)}")
 
     # to make warning messages only occur once during concatenation

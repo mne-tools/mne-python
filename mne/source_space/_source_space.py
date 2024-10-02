@@ -1,6 +1,4 @@
-# Authors: Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
-#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -882,7 +880,7 @@ def read_source_spaces(fname, patch_stats=False, verbose=None):
     write_source_spaces, setup_source_space, setup_volume_source_space
     """
     # be more permissive on read than write (fwd/inv can contain src)
-    fname = str(_check_fname(fname, overwrite="read", must_exist=True))
+    fname = _check_fname(fname, overwrite="read", must_exist=True)
     check_fname(
         fname,
         "source space",
@@ -1667,7 +1665,7 @@ def setup_volume_source_space(
 
         .. note:: For a discrete source space (``pos`` is a dict),
                   ``mri`` must be None.
-    mri : str | None
+    mri : path-like | None
         The filename of an MRI volume (mgh or mgz) to create the
         interpolation matrix over. Source estimates obtained in the
         volume source space can then be morphed onto the MRI volume
@@ -1793,9 +1791,8 @@ def setup_volume_source_space(
         mri = _check_mri(mri, subject, subjects_dir)
         if isinstance(pos, dict):
             raise ValueError(
-                "Cannot create interpolation matrix for "
-                "discrete source space, mri must be None if "
-                "pos is a dict"
+                "Cannot create interpolation matrix for discrete source space, mri "
+                "must be None if pos is a dict"
             )
 
     if volume_label is not None:

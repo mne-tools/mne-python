@@ -6,8 +6,8 @@ Getting started with mne.Report
 ===============================
 
 :class:`mne.Report` is a way to create interactive HTML summaries of your data.
-These reports can show many different visualizations for one or multiple
-participants. A common use case is creating diagnostic summaries to check data
+These reports can show many different visualizations for one or multiple participants.
+A common use case is creating diagnostic summaries to check data
 quality at different stages in the processing pipeline. The report can show
 things like plots of data before and after each preprocessing step, epoch
 rejection statistics, MRI slices with overlaid BEM shells, all the way up to
@@ -20,8 +20,10 @@ something directly within the browser. This tutorial covers the basics of
 building a report. As usual, we will start by importing the modules and data we need:
 """
 
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 # %%
 
 import tempfile

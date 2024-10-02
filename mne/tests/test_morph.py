@@ -1,7 +1,7 @@
-# Author: Tommy Clausner <Tommy.Clausner@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 from inspect import signature
 
 import numpy as np
@@ -1137,7 +1137,11 @@ def test_resample_equiv(from_shape, from_affine, to_shape, to_affine, order, see
 
     interp = "linear" if order == 1 else "nearest"
     got_dipy = dipy.align.imaffine.AffineMap(
-        None, to_shape, to_affine, from_shape, from_affine
+        None,
+        domain_grid_shape=to_shape,
+        domain_grid2world=to_affine,
+        codomain_grid_shape=from_shape,
+        codomain_grid2world=from_affine,
     ).transform(from_data, interpolation=interp, resample_only=True)
     # XXX possibly some error in dipy or nibabel (/SciPy), or some boundary
     # condition?

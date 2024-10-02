@@ -5,16 +5,18 @@
 Working with events
 ===================
 
-This tutorial describes event representation and how event arrays are used to
-subselect data.
+This tutorial describes event representation and how event arrays are used to subselect
+data.
 
 As usual we'll start by importing the modules we need, loading some
 :ref:`example data <sample-dataset>`, and cropping the :class:`~mne.io.Raw`
 object to just 60 seconds before loading it into RAM to save memory:
 """
 
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 # %%
 
 import os
@@ -156,8 +158,8 @@ event_dict = {
 # :func:`mne.viz.plot_events` will plot each event versus its sample number
 # (or, if you provide the sampling frequency, it will plot them versus time in
 # seconds). It can also account for the offset between sample number and sample
-# index in Neuromag systems, with the ``first_samp`` parameter. If an event
-# dictionary is provided, it will be used to generate a legend:
+# index in Neuromag systems, with the ``first_samp`` parameter.
+# If an event dictionary is provided, it will be used to generate a legend:
 
 fig = mne.viz.plot_events(
     events, sfreq=raw.info["sfreq"], first_samp=raw.first_samp, event_id=event_dict

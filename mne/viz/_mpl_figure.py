@@ -31,8 +31,7 @@ matplotlib.figure.Figure
                                - evoked.plot_joint()  TODO Not yet implemented
 """
 
-# Authors: Daniel McCloy <dan@mccloy.info>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 

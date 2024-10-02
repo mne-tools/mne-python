@@ -6,10 +6,8 @@ at which the fix is no longer needed.
 # originally copied from scikit-learn
 
 """
-# Authors: Emmanuelle Gouillart <emmanuelle.gouillart@normalesup.org>
-#          Gael Varoquaux <gael.varoquaux@normalesup.org>
-#          Fabian Pedregosa <fpedregosa@acm.org>
-#          Lars Buitinck <L.J.Buitinck@uva.nl>
+
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -21,9 +19,7 @@ import inspect
 import operator as operator_module
 import os
 import warnings
-from io import StringIO
 from math import log
-from pprint import pprint
 
 import numpy as np
 
@@ -136,231 +132,6 @@ def _get_img_fdata(img):
     return data.astype(dtype)
 
 
-##############################################################################
-# adapted from scikit-learn
-
-
-_DEFAULT_TAGS = {
-    "array_api_support": False,
-    "non_deterministic": False,
-    "requires_positive_X": False,
-    "requires_positive_y": False,
-    "X_types": ["2darray"],
-    "poor_score": False,
-    "no_validation": False,
-    "multioutput": False,
-    "allow_nan": False,
-    "stateless": False,
-    "multilabel": False,
-    "_skip_test": False,
-    "_xfail_checks": False,
-    "multioutput_only": False,
-    "binary_only": False,
-    "requires_fit": True,
-    "preserves_dtype": [np.float64],
-    "requires_y": False,
-    "pairwise": False,
-}
-
-
-class BaseEstimator:
-    """Base class for all estimators in scikit-learn.
-
-    Notes
-    -----
-    All estimators should specify all the parameters that can be set
-    at the class level in their ``__init__`` as explicit keyword
-    arguments (no ``*args`` or ``**kwargs``).
-    """
-
-    @classmethod
-    def _get_param_names(cls):
-        """Get parameter names for the estimator."""
-        # fetch the constructor or the original constructor before
-        # deprecation wrapping if any
-        init = getattr(cls.__init__, "deprecated_original", cls.__init__)
-        if init is object.__init__:
-            # No explicit constructor to introspect
-            return []
-
-        # introspect the constructor arguments to find the model parameters
-        # to represent
-        init_signature = inspect.signature(init)
-        # Consider the constructor parameters excluding 'self'
-        parameters = [
-            p
-            for p in init_signature.parameters.values()
-            if p.name != "self" and p.kind != p.VAR_KEYWORD
-        ]
-        for p in parameters:
-            if p.kind == p.VAR_POSITIONAL:
-                raise RuntimeError(
-                    "scikit-learn estimators should always "
-                    "specify their parameters in the signature"
-                    " of their __init__ (no varargs)."
-                    f" {cls} with constructor {init_signature} doesn't "
-                    " follow this convention."
-                )
-        # Extract and sort argument names excluding 'self'
-        return sorted([p.name for p in parameters])
-
-    def get_params(self, deep=True):
-        """Get parameters for this estimator.
-
-        Parameters
-        ----------
-        deep : bool, optional
-            If True, will return the parameters for this estimator and
-            contained subobjects that are estimators.
-
-        Returns
-        -------
-        params : dict
-            Parameter names mapped to their values.
-        """
-        out = dict()
-        for key in self._get_param_names():
-            # We need deprecation warnings to always be on in order to
-            # catch deprecated param values.
-            # This is set in utils/__init__.py but it gets overwritten
-            # when running under python3 somehow.
-            warnings.simplefilter("always", DeprecationWarning)
-            try:
-                with warnings.catch_warnings(record=True) as w:
-                    value = getattr(self, key, None)
-                if len(w) and w[0].category is DeprecationWarning:
-                    # if the parameter is deprecated, don't show it
-                    continue
-            finally:
-                warnings.filters.pop(0)
-
-            # XXX: should we rather test if instance of estimator?
-            if deep and hasattr(value, "get_params"):
-                deep_items = value.get_params().items()
-                out.update((key + "__" + k, val) for k, val in deep_items)
-            out[key] = value
-        return out
-
-    def set_params(self, **params):
-        """Set the parameters of this estimator.
-
-        The method works on simple estimators as well as on nested objects
-        (such as pipelines). The latter have parameters of the form
-        ``<component>__<parameter>`` so that it's possible to update each
-        component of a nested object.
-
-        Parameters
-        ----------
-        **params : dict
-            Parameters.
-
-        Returns
-        -------
-        inst : instance
-            The object.
-        """
-        if not params:
-            # Simple optimisation to gain speed (inspect is slow)
-            return self
-        valid_params = self.get_params(deep=True)
-        for key, value in params.items():
-            split = key.split("__", 1)
-            if len(split) > 1:
-                # nested objects case
-                name, sub_name = split
-                if name not in valid_params:
-                    raise ValueError(
-                        f"Invalid parameter {name} for estimator {self}. "
-                        "Check the list of available parameters "
-                        "with `estimator.get_params().keys()`."
-                    )
-                sub_object = valid_params[name]
-                sub_object.set_params(**{sub_name: value})
-            else:
-                # simple objects case
-                if key not in valid_params:
-                    raise ValueError(
-                        f"Invalid parameter {key} for estimator "
-                        f"{self.__class__.__name__}. "
-                        "Check the list of available parameters "
-                        "with `estimator.get_params().keys()`."
-                    )
-                setattr(self, key, value)
-        return self
-
-    def __repr__(self):  # noqa: D105
-        params = StringIO()
-        pprint(self.get_params(deep=False), params)
-        params.seek(0)
-        class_name = self.__class__.__name__
-        return f"{class_name}({params.read().strip()})"
-
-    # __getstate__ and __setstate__ are omitted because they only contain
-    # conditionals that are not satisfied by our objects (e.g.,
-    # ``if type(self).__module__.startswith('sklearn.')``.
-
-    def _more_tags(self):
-        return _DEFAULT_TAGS
-
-    def _get_tags(self):
-        collected_tags = {}
-        for base_class in reversed(inspect.getmro(self.__class__)):
-            if hasattr(base_class, "_more_tags"):
-                # need the if because mixins might not have _more_tags
-                # but might do redundant work in estimators
-                # (i.e. calling more tags on BaseEstimator multiple times)
-                more_tags = base_class._more_tags(self)
-                collected_tags.update(more_tags)
-        return collected_tags
-
-
-# newer sklearn deprecates importing from sklearn.metrics.scoring,
-# but older sklearn does not expose check_scoring in sklearn.metrics.
-def _get_check_scoring():
-    try:
-        from sklearn.metrics import check_scoring  # noqa
-    except ImportError:
-        from sklearn.metrics.scorer import check_scoring  # noqa
-    return check_scoring
-
-
-def _check_fit_params(X, fit_params, indices=None):
-    """Check and validate the parameters passed during `fit`.
-
-    Parameters
-    ----------
-    X : array-like of shape (n_samples, n_features)
-        Data array.
-
-    fit_params : dict
-        Dictionary containing the parameters passed at fit.
-
-    indices : array-like of shape (n_samples,), default=None
-        Indices to be selected if the parameter has the same size as
-        `X`.
-
-    Returns
-    -------
-    fit_params_validated : dict
-        Validated parameters. We ensure that the values support
-        indexing.
-    """
-    try:
-        from sklearn.utils.validation import (
-            _check_fit_params as _sklearn_check_fit_params,
-        )
-
-        return _sklearn_check_fit_params(X, fit_params, indices)
-    except ImportError:
-        from sklearn.model_selection import _validation
-
-        fit_params_validated = {
-            k: _validation._index_param_value(X, v, indices)
-            for k, v in fit_params.items()
-        }
-        return fit_params_validated
-
-
 ###############################################################################
 # Copied from sklearn to simplify code paths
 
@@ -403,7 +174,54 @@ def empirical_covariance(X, assume_centered=False):
     return covariance
 
 
-class EmpiricalCovariance(BaseEstimator):
+class _EstimatorMixin:
+    def _param_names(self):
+        return inspect.getfullargspec(self.__init__).args[1:]
+
+    def get_params(self, deep=True):
+        """Get parameters for this estimator.
+
+        Parameters
+        ----------
+        deep : bool, default=True
+            If True, will return the parameters for this estimator and
+            contained subobjects that are estimators.
+
+        Returns
+        -------
+        params : dict
+            Parameter names mapped to their values.
+        """
+        out = dict()
+        for key in self._param_names():
+            out[key] = getattr(self, key)
+        return out
+
+    def set_params(self, **params):
+        """Set the parameters of this estimator.
+
+        The method works on simple estimators as well as on nested objects
+        (such as pipelines). The latter have parameters of the form
+        ``<component>__<parameter>`` so that it's possible to update each
+        component of a nested object.
+
+        Parameters
+        ----------
+        **params : dict
+            Estimator parameters.
+
+        Returns
+        -------
+        self : object
+            Estimator instance.
+        """
+        param_names = self._param_names()
+        for key in params:
+            if key in param_names:
+                setattr(self, key, params[key])
+
+
+class EmpiricalCovariance(_EstimatorMixin):
     """Maximum likelihood covariance estimator.
 
     Read more in the :ref:`User Guide <covariance>`.
@@ -778,7 +596,7 @@ def _crop_colorbar(cbar, cbar_vmin, cbar_vmax):
 try:
     import numba
 
-    if _compare_version(numba.__version__, "<", "0.53.1"):
+    if _compare_version(numba.__version__, "<", "0.56.4"):
         raise ImportError
     prange = numba.prange
 

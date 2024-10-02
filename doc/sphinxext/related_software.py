@@ -7,15 +7,21 @@ To add a package to the list:
 3. If it's not on PyPI, add it to the MANUAL_PACKAGES dictionary.
 """
 
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
+
 import functools
 import importlib.metadata
 import os
 import pathlib
+import urllib.error
 import urllib.request
 
 import joblib
 from docutils import nodes
 from docutils.parsers.rst import Directive
+from mne_doc_utils import sphinx_logger
 from sphinx.errors import ExtensionError
 from sphinx.util.display import status_iterator
 
@@ -138,8 +144,14 @@ def _get_installer_packages():
 
 
 @functools.lru_cache
-def _get_packages():
-    packages = _get_installer_packages()
+def _get_packages() -> dict[str, str]:
+    try:
+        packages = _get_installer_packages()
+    except urllib.error.URLError as exc:  # e.g., bad internet connection
+        if not REQUIRE_METADATA:
+            sphinx_logger.warning(f"Could not fetch package list, got: {exc}")
+            return dict()
+        raise
     # There can be duplicates in manual and installer packages because some of the
     # PyPI entries for installer packages are incorrect or unusable (see above), so
     # we don't enforce that. But PyPI and manual should be disjoint:

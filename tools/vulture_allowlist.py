@@ -1,4 +1,14 @@
-# Testing stuff
+"""Vulture allowlist.
+
+Python names that we want Vulture to ignore need to be added to this file, see:
+
+https://github.com/jendrikseipp/vulture/blob/main/README.md#whitelists
+"""
+
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
+
 numba_conditional
 options_3d
 invisible_fig
@@ -31,6 +41,10 @@ _use_test_3d_backend
 verbose_debug
 metadata_routing
 
+# Decoding
+_._more_tags
+deep
+
 # Backward compat or rarely used
 RawFIF
 estimate_head_mri_t
@@ -62,6 +76,10 @@ _download_all_example_data  # CIs
 _cleanup_agg
 _notebook_vtk_works
 _.drop_inds_
+
+# mne/io/ant/tests/test_ant.py
+andy_101
+na_271
 
 # mne/io/snirf/tests/test_snirf.py
 _.dataTimeSeries

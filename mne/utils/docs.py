@@ -1,6 +1,6 @@
 """The documentation functions."""
-# Authors: Eric Larson <larson.eric.d@gmail.com>
-#
+
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -3702,13 +3702,20 @@ ref_channels : str | list of str
 """
 
 docdict["ref_channels_set_eeg_reference"] = """
-ref_channels : list of str | str
+ref_channels : list of str | str | dict
     Can be:
 
-    - The name(s) of the channel(s) used to construct the reference.
+    - The name(s) of the channel(s) used to construct the reference for
+      every channel of ``ch_type``.
     - ``'average'`` to apply an average reference (default)
     - ``'REST'`` to use the Reference Electrode Standardization Technique
       infinity reference :footcite:`Yao2001`.
+    - A dictionary mapping names of data channels to (lists of) names of
+      reference channels. For example, {'A1': 'A3'} would replace the
+      data in channel 'A1' with the difference between 'A1' and 'A3'. To take
+      the average of multiple channels as reference, supply a list of channel
+      names as the dictionary value, e.g. {'A1': ['A2', 'A3']} would replace
+      channel A1 with ``A1 - mean(A2, A3)``.
     - An empty list, in which case MNE will not attempt any re-referencing of
       the data
 """
@@ -3997,6 +4004,19 @@ sensor_colors : array-like of color | dict | None
     shape ``(n_eeg, 3)`` or ``(n_eeg, 4)``.
 """
 
+docdict["sensor_scales"] = """
+sensor_scales : int | float | array-like | dict | None
+    Scale to use for the sensor glyphs. Can be None (default) to use default scale.
+    A dict should provide the Scale (values) for each channel type (keys), e.g.::
+
+        dict(eeg=eeg_scales)
+
+    Where the value (``eeg_scales`` above) can be broadcast to an array of values with
+    length that matches the number of channels of that type. A few examples of this
+    for the case above are the value ``10e-3``, a list of ``n_eeg`` values, or an NumPy
+    ndarray of shape ``(n_eeg,)``.
+"""
+
 docdict["sensors_topomap"] = """
 sensors : bool | str
     Whether to add markers for sensor locations. If :class:`str`, should be a
@@ -4035,6 +4055,15 @@ Some common referencing schemes and the corresponding value for the
 - REST
     The given EEG electrodes are referenced to a point at infinity using the
     lead fields in ``forward``, which helps standardize the signals.
+
+- Different references for different channels
+    Set ``ref_channels`` to a dictionary mapping source channel names (str)
+    to the reference channel names (str or list of str). Unlike the other
+    approaches where the same reference is applied globally, you can set
+    different references for different channels with this method. For example,
+    to re-reference channel 'A1' to 'A2' and 'B1' to the average of 'B2' and
+    'B3', set ``ref_channels={'A1': 'A2', 'B1': ['B2', 'B3']}``. Warnings are
+    issued when a mapping involves bad channels or channels of different types.
 
 1. If a reference is requested that is not the average reference, this
    function removes any pre-existing average reference projections.
@@ -4921,14 +4950,6 @@ vmin, vmax : float | {allowed}None
     ``min(data)`` or ``max(data)``, respectively.{extra}
 """
 
-docdict["vmin_vmax_tfr_plot"] = """
-vmin, vmax : float | None
-    Lower and upper bounds of the colormap. See ``vlim``.
-
-    .. deprecated:: 1.7
-        ``vmin`` and ``vmax`` will be removed in version 1.8.
-        Use ``vlim`` parameter instead.
-"""
 # ↓↓↓ this one still used, needs helper func refactor before we can migrate to `vlim`
 docdict["vmin_vmax_tfr_plot_topo"] = _vmin_vmax_template.format(
     allowed="", bounds=_bounds_symmetric, extra=""

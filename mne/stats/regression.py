@@ -1,9 +1,4 @@
-# Authors: Tal Linzen <linzen@nyu.edu>
-#          Teon Brooks <teon.brooks@gmail.com>
-#          Denis A. Engemann <denis.engemann@gmail.com>
-#          Jona Sassenhagen <jona.sassenhagen@gmail.com>
-#          Marijn van Vliet <w.m.vanvliet@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -97,7 +92,7 @@ def linear_regression(inst, design_matrix, names=None):
         parameters = [p[name] for p in lm_params]
         for ii, value in enumerate(parameters):
             out_ = out.copy()
-            if not isinstance(out_, (SourceEstimate, Evoked)):
+            if not isinstance(out_, SourceEstimate | Evoked):
                 raise RuntimeError("Invalid container.")
             out_._data[:] = value
             parameters[ii] = out_
@@ -354,11 +349,11 @@ def _prepare_rerp_preds(
 
     # time windows (per event type) are converted to sample points from times
     # int(round()) to be safe and match Epochs constructor behavior
-    if isinstance(tmin, (float, int)):
+    if isinstance(tmin, float | int):
         tmin_s = {cond: int(round(tmin * sfreq)) for cond in conds}
     else:
         tmin_s = {cond: int(round(tmin.get(cond, -0.1) * sfreq)) for cond in conds}
-    if isinstance(tmax, (float, int)):
+    if isinstance(tmax, float | int):
         tmax_s = {cond: int(round(tmax * sfreq) + 1) for cond in conds}
     else:
         tmax_s = {cond: int(round(tmax.get(cond, 1.0) * sfreq)) + 1 for cond in conds}

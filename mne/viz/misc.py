@@ -1,12 +1,6 @@
 """Functions to make simple plots with M/EEG data."""
 
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Denis Engemann <denis.engemann@gmail.com>
-#          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
-#          Eric Larson <larson.eric.d@gmail.com>
-#          Cathy Nangini <cnangini@gmail.com>
-#          Mainak Jas <mainak@neuro.hut.fi>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -703,7 +697,7 @@ def plot_bem(
                     raise OSError(f"Surface {surf_fname} does not exist.")
 
     # TODO: Refactor with / improve _ensure_src to do this
-    if isinstance(src, (str, Path, os.PathLike)):
+    if isinstance(src, str | Path | os.PathLike):
         src = Path(src)
         if not src.exists():
             # convert to Path until get_subjects_dir returns a Path object
@@ -847,12 +841,18 @@ def plot_events(
     color = _handle_event_colors(color, unique_events, event_id)
     import matplotlib.pyplot as plt
 
+    unique_events_id = np.array(unique_events_id)
+
     fig = None
+    figsize = plt.rcParams["figure.figsize"]
+    # assuming the user did not change matplotlib default params, the figsize of
+    # (6.4, 4.8) becomes too big if scaled beyond twice its size, so maximum 2
+    _scaling = min(max(1, len(unique_events_id) / 10), 2)
+    figsize_scaled = np.array(figsize) * _scaling
     if axes is None:
-        fig = plt.figure(layout="constrained")
+        fig = plt.figure(layout="constrained", figsize=tuple(figsize_scaled))
     ax = axes if axes else plt.gca()
 
-    unique_events_id = np.array(unique_events_id)
     min_event = np.min(unique_events_id)
     max_event = np.max(unique_events_id)
     max_x = (
@@ -867,9 +867,9 @@ def plot_events(
             continue
         y = np.full(count, idx + 1 if equal_spacing else events[ev_mask, 2][0])
         if event_id is not None:
-            event_label = f"{event_id_rev[ev]} ({count})"
+            event_label = f"{event_id_rev[ev]}\n(id:{ev}; N:{count})"
         else:
-            event_label = f"N={count:d}"
+            event_label = f"id:{ev}; N:{count:d}"
         labels.append(event_label)
         kwargs = {}
         if ev in color:
@@ -899,11 +899,32 @@ def plot_events(
     # reverse order so that the highest numbers are at the top
     # (match plot order)
     handles, labels = handles[::-1], labels[::-1]
+
+    # spread legend entries over more columns, 25 still ~fit in one column
+    # (assuming non-user supplied fig), max at 3 columns
+    ncols = min(int(np.ceil(len(unique_events_id) / 25)), 3)
+
+    # Make space for legend
     box = ax.get_position()
     factor = 0.8 if event_id is not None else 0.9
+    factor -= 0.1 * (ncols - 1)
     ax.set_position([box.x0, box.y0, box.width * factor, box.height])
+
+    # Try some adjustments to squeeze as much information into the legend
+    # without cutting off the ends
     ax.legend(
-        handles, labels, loc="center left", bbox_to_anchor=(1, 0.5), fontsize="small"
+        handles,
+        labels,
+        loc="center left",
+        bbox_to_anchor=(1, 0.5),
+        fontsize="small",
+        borderpad=0,  # default 0.4
+        labelspacing=0.25,  # default 0.5
+        columnspacing=1.0,  # default 2
+        handletextpad=0,  # default 0.8
+        markerscale=2,  # default 1
+        borderaxespad=0.2,  # default 0.5
+        ncols=ncols,
     )
     fig.canvas.draw()
     plt_show(show)
@@ -973,7 +994,7 @@ def adjust_axes(axes, remove_spines=("top", "right"), grid=True):
     grid : bool
         Turn grid on (True) or off (False).
     """
-    axes = [axes] if not isinstance(axes, (list, tuple, np.ndarray)) else axes
+    axes = [axes] if not isinstance(axes, list | tuple | np.ndarray) else axes
     for ax in axes:
         if grid:
             ax.grid(zorder=0)

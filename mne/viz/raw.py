@@ -1,9 +1,6 @@
 """Functions to plot raw M/EEG data."""
 
-# Authors: Eric Larson <larson.eric.d@gmail.com>
-#          Jaakko Leppakangas <jaeilepp@student.jyu.fi>
-#          Daniel McCloy <dan.mccloy@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -339,7 +336,7 @@ def plot_raw(
     # generate window title; allow instances without a filename (e.g., ICA)
     if title is None:
         title = "<unknown>"
-        fnames = raw._filenames.copy()
+        fnames = raw._filenames.copy()  # use the private attribute to get a list
         if len(fnames):
             title = fnames.pop(0)
             extra = f" ... (+ {len(fnames)} more)" if len(fnames) else ""

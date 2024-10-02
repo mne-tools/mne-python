@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 r"""Browse raw data.
 
 This uses :func:`mne.io.read_raw` so it supports the same formats
@@ -13,7 +12,7 @@ Examples
                      --eve sample_audvis_raw-eve.fif
 """
 
-# Authors : Eric Larson, PhD
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 

@@ -1,6 +1,6 @@
 """inst.to_data_frame() helper functions."""
-# Authors: Daniel McCloy <dan@mccloy.info>
-#
+
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 

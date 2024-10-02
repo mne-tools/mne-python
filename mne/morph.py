@@ -1,7 +1,4 @@
-# Author(s): Tommy Clausner <tommy.clausner@gmail.com>
-#            Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#            Eric Larson <larson.eric.d@gmail.com>
-
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -912,7 +909,7 @@ def _morphed_stc_as_volume(morph, stc, mri_resolution, mri_space, output):
     NiftiImage, NiftiHeader = _triage_output(output)
 
     # if MRI resolution is set manually as a single value, convert to tuple
-    if isinstance(mri_resolution, (int, float)):
+    if isinstance(mri_resolution, int | float):
         # use iso voxel size
         new_zooms = (float(mri_resolution),) * 3
     elif isinstance(mri_resolution, tuple):
@@ -1046,9 +1043,7 @@ def _interpolate_data(stc, morph, mri_resolution, mri_space, output):
 
     voxel_size_defined = False
 
-    if isinstance(mri_resolution, (int, float)) and not isinstance(
-        mri_resolution, bool
-    ):
+    if isinstance(mri_resolution, int | float) and not isinstance(mri_resolution, bool):
         # use iso voxel size
         mri_resolution = (float(mri_resolution),) * 3
 
@@ -1165,7 +1160,13 @@ def _compute_morph_sdr(mri_from, mri_to, niter_affine, niter_sdr, zooms):
     ) = _compute_volume_registration(
         mri_from, mri_to, zooms=zooms, niter=niter, pipeline=pipeline
     )
-    pre_affine = AffineMap(pre_affine, to_shape, to_affine, from_shape, from_affine)
+    pre_affine = AffineMap(
+        pre_affine,
+        domain_grid_shape=to_shape,
+        domain_grid2world=to_affine,
+        codomain_grid_shape=from_shape,
+        codomain_grid2world=from_affine,
+    )
     return to_shape, zooms, to_affine, pre_affine, sdr_morph
 
 

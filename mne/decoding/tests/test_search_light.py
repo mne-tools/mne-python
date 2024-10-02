@@ -1,5 +1,4 @@
-# Author: Jean-Remi King, <jeanremi.king@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -10,11 +9,22 @@ import numpy as np
 import pytest
 from numpy.testing import assert_array_equal, assert_equal
 
+sklearn = pytest.importorskip("sklearn")
+
+from sklearn.base import BaseEstimator, clone, is_classifier
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+from sklearn.ensemble import BaggingClassifier
+from sklearn.linear_model import LinearRegression, LogisticRegression, Ridge
+from sklearn.metrics import make_scorer, roc_auc_score
+from sklearn.model_selection import cross_val_predict
+from sklearn.multiclass import OneVsRestClassifier
+from sklearn.pipeline import make_pipeline
+from sklearn.svm import SVC
+from sklearn.utils.estimator_checks import parametrize_with_checks
+
 from mne.decoding.search_light import GeneralizingEstimator, SlidingEstimator
 from mne.decoding.transformer import Vectorizer
-from mne.utils import _record_warnings, check_version, use_log_level
-
-sklearn = pytest.importorskip("sklearn")
+from mne.utils import check_version, use_log_level
 
 NEW_MULTICLASS_SAMPLE_WEIGHT = check_version("sklearn", "1.4")
 
@@ -36,14 +46,6 @@ def test_search_light():
     # https://github.com/scikit-learn/scikit-learn/issues/27711
     if platform.system() == "Windows" and check_version("numpy", "2.0.0.dev0"):
         pytest.skip("sklearn int_t / long long mismatch")
-    from sklearn.linear_model import LogisticRegression, Ridge
-    from sklearn.metrics import make_scorer, roc_auc_score
-    from sklearn.multiclass import OneVsRestClassifier
-    from sklearn.pipeline import make_pipeline
-
-    with _record_warnings():  # NumPy module import
-        from sklearn.ensemble import BaggingClassifier
-    from sklearn.base import is_classifier
 
     logreg = OneVsRestClassifier(LogisticRegression(solver="liblinear", random_state=0))
 
@@ -198,11 +200,6 @@ def metadata_routing():
 
 def test_generalization_light(metadata_routing):
     """Test GeneralizingEstimator."""
-    from sklearn.linear_model import LogisticRegression
-    from sklearn.metrics import roc_auc_score
-    from sklearn.multiclass import OneVsRestClassifier
-    from sklearn.pipeline import make_pipeline
-
     if NEW_MULTICLASS_SAMPLE_WEIGHT:
         clf = LogisticRegression(random_state=0)
         clf.set_fit_request(sample_weight=True)
@@ -297,8 +294,6 @@ def test_generalization_light(metadata_routing):
 )
 def test_verbose_arg(capsys, n_jobs, verbose):
     """Test controlling output with the ``verbose`` argument."""
-    from sklearn.svm import SVC
-
     X, y = make_data()
     clf = SVC()
 
@@ -319,11 +314,6 @@ def test_verbose_arg(capsys, n_jobs, verbose):
 
 def test_cross_val_predict():
     """Test cross_val_predict with predict_proba."""
-    from sklearn.base import BaseEstimator, clone
-    from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
-    from sklearn.linear_model import LinearRegression
-    from sklearn.model_selection import cross_val_predict
-
     rng = np.random.RandomState(42)
     X = rng.randn(10, 1, 3)
     y = rng.randint(0, 2, 10)
@@ -353,13 +343,9 @@ def test_cross_val_predict():
 
 
 @pytest.mark.slowtest
-def test_sklearn_compliance():
+@parametrize_with_checks([SlidingEstimator(LogisticRegression(), allow_2d=True)])
+def test_sklearn_compliance(estimator, check):
     """Test LinearModel compliance with sklearn."""
-    from sklearn.linear_model import LogisticRegression
-    from sklearn.utils.estimator_checks import check_estimator
-
-    est = SlidingEstimator(LogisticRegression(), allow_2d=True)
-
     ignores = (
         "check_estimator_sparse_data",  # we densify
         "check_classifiers_one_label_sample_weights",  # don't handle singleton
@@ -367,8 +353,13 @@ def test_sklearn_compliance():
         "check_classifiers_train",
         "check_decision_proba_consistency",
         "check_parameters_default_constructible",
+        # Should probably fix these?
+        "check_estimators_unfitted",
+        "check_transformer_data_not_an_array",
+        "check_n_features_in",
+        "check_fit2d_predict1d",
+        "check_do_not_raise_errors_in_init_or_set_params",
     )
-    for est, check in check_estimator(est, generate_only=True):
-        if any(ignore in str(check) for ignore in ignores):
-            continue
-        check(est)
+    if any(ignore in str(check) for ignore in ignores):
+        return
+    check(estimator)

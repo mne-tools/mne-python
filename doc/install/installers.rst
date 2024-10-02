@@ -7,14 +7,17 @@ MNE-Python installers are the easiest way to install MNE-Python and
 all dependencies. They also provide many additional
 Python packages and tools. Got any questions? Let us know on the `MNE Forum`_!
 
+Platform-specific installers
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 .. tab-set::
-    :class: platform-selector-tabset
+    :class: install-selector-tabset
 
     .. tab-item:: Linux
         :class-content: text-center
-        :name: linux-installers
+        :name: install-linux
 
-        .. button-link:: https://github.com/mne-tools/mne-installers/releases/download/v1.7.1/MNE-Python-1.7.1_0-Linux.sh
+        .. button-link:: https://github.com/mne-tools/mne-installers/releases/download/v1.8.0/MNE-Python-1.8.0_0-Linux.sh
             :ref-type: ref
             :color: primary
             :shadow:
@@ -28,14 +31,14 @@ Python packages and tools. Got any questions? Let us know on the `MNE Forum`_!
 
         .. code-block:: console
 
-            $ sh ./MNE-Python-1.7.1_0-Linux.sh
+            $ sh ./MNE-Python-1.8.0_0-Linux.sh
 
 
     .. tab-item:: macOS (Intel)
         :class-content: text-center
-        :name: macos-intel-installers
+        :name: install-macos-intel
 
-        .. button-link:: https://github.com/mne-tools/mne-installers/releases/download/v1.7.1/MNE-Python-1.7.1_0-macOS_Intel.pkg
+        .. button-link:: https://github.com/mne-tools/mne-installers/releases/download/v1.8.0/MNE-Python-1.8.0_0-macOS_Intel.pkg
             :ref-type: ref
             :color: primary
             :shadow:
@@ -49,9 +52,9 @@ Python packages and tools. Got any questions? Let us know on the `MNE Forum`_!
 
     .. tab-item:: macOS (Apple Silicon)
         :class-content: text-center
-        :name: macos-apple-installers
+        :name: install-macos-apple
 
-        .. button-link:: https://github.com/mne-tools/mne-installers/releases/download/v1.7.1/MNE-Python-1.7.1_0-macOS_M1.pkg
+        .. button-link:: https://github.com/mne-tools/mne-installers/releases/download/v1.8.0/MNE-Python-1.8.0_0-macOS_M1.pkg
             :ref-type: ref
             :color: primary
             :shadow:
@@ -65,9 +68,9 @@ Python packages and tools. Got any questions? Let us know on the `MNE Forum`_!
 
     .. tab-item:: Windows
         :class-content: text-center
-        :name: windows-installers
+        :name: install-windows
 
-        .. button-link:: https://github.com/mne-tools/mne-installers/releases/download/v1.7.1/MNE-Python-1.7.1_0-Windows.exe
+        .. button-link:: https://github.com/mne-tools/mne-installers/releases/download/v1.8.0/MNE-Python-1.8.0_0-Windows.exe
             :ref-type: ref
             :color: primary
             :shadow:
@@ -107,3 +110,54 @@ bundles to the ``Applications`` folder on macOS.
    applications to start, especially on the very first run – which may take
    particularly long on Apple Silicon-based computers. Subsequent runs should
    usually be much faster.
+
+Uninstallation
+^^^^^^^^^^^^^^
+
+To remove the MNE-Python distribution provided by our installers above:
+
+1. Remove relevant lines from your shell initialization scripts if you
+   added them at installation time. To do this, you can run from the MNE Prompt:
+
+   .. code-block:: bash
+
+       $ conda init --reverse
+
+   Or you can manually edit shell initialization scripts, e.g., ``~/.bashrc`` or
+   ``~/.bash_profile``.
+
+2. Follow the instructions below to remove the MNE-Python conda installation for your platform:
+
+   .. tab-set::
+       :class: uninstall-selector-tabset
+
+       .. tab-item:: Linux
+           :name: uninstall-linux
+
+           In a BASH terminal you can do:
+
+           .. code-block:: bash
+
+               $ which python
+               /home/username/mne-python/1.8.0_0/bin/python
+               $ rm -Rf /home/$USER/mne-python
+               $ rm /home/$USER/.local/share/applications/mne-python-*.desktop
+
+       .. tab-item:: macOS
+           :name: uninstall-macos
+
+           You can simply `drag the MNE-Python folder to the trash in the Finder <https://support.apple.com/en-us/102610>`__.
+
+           Alternatively, you can do something like:
+
+           .. code-block:: bash
+
+               $ which python
+               /Users/username/Applications/MNE-Python/1.8.0_0/.mne-python/bin/python
+               $ rm -Rf /Users/$USER/Applications/MNE-Python  # if user-specific
+               $ rm -Rf /Applications/MNE-Python              # if system-wide
+
+       .. tab-item:: Windows
+           :name: uninstall-windows
+
+           To uninstall MNE-Python, you can remove the application using the `Windows Control Panel <https://support.microsoft.com/en-us/windows/uninstall-or-remove-apps-and-programs-in-windows-4b55f974-2cc6-2d2b-d092-5905080eaf98>`__.

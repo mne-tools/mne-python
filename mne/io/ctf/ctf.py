@@ -1,8 +1,6 @@
 """Conversion tool from CTF to FIF."""
 
-# Authors: Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
-#          Eric Larson <larson.eric.d@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -197,7 +195,7 @@ class RawCTF(BaseRaw):
         trial_start_idx, r_lims, d_lims = _blk_read_lims(
             start, stop, int(si["block_size"])
         )
-        with open(self._filenames[fi], "rb") as fid:
+        with open(self.filenames[fi], "rb") as fid:
             for bi in range(len(r_lims)):
                 samp_offset = (bi + trial_start_idx) * si["res4_nsamp"]
                 n_read = min(si["n_samp_tot"] - samp_offset, si["block_size"])

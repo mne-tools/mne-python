@@ -1,10 +1,4 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
-#          Denis Engemann <denis.engemann@gmail.com>
-#          Andrew Dykstra <andrew.r.dykstra@gmail.com>
-#          Mads Jensen <mje.mads@gmail.com>
-#          Jona Sassenhagen <jona.sassenhagen@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -182,7 +176,7 @@ class Evoked(
     ):
         _validate_type(proj, bool, "'proj'")
         # Read the requested data
-        fname = str(_check_fname(fname=fname, must_exist=True, overwrite="read"))
+        fname = _check_fname(fname=fname, must_exist=True, overwrite="read")
         (
             self.info,
             self.nave,
@@ -202,6 +196,18 @@ class Evoked(
         if proj:
             self.apply_proj()
         self.filename = fname
+
+    @property
+    def filename(self) -> Path | None:
+        """The filename of the evoked object, if it exists.
+
+        :type: :class:`~pathlib.Path` | None
+        """
+        return self._filename
+
+    @filename.setter
+    def filename(self, value):
+        self._filename = Path(value) if value is not None else value
 
     @property
     def kind(self):
@@ -1489,6 +1495,7 @@ class EvokedArray(Evoked):
         self.baseline = baseline
         if self.baseline is not None:  # omit log msg if not baselining
             self.apply_baseline(self.baseline)
+        self._filename = None
 
 
 def _get_entries(fid, evoked_node, allow_maxshield=False):
@@ -1570,7 +1577,7 @@ def combine_evoked(all_evoked, weights):
 
     .. Warning::
         Other than cases like simple subtraction mentioned above (where all
-        weights are -1 or 1), if you provide numeric weights instead of using
+        weights are ``-1`` or ``1``), if you provide numeric weights instead of using
         ``'equal'`` or ``'nave'``, the resulting `~mne.Evoked` object's
         ``.nave`` attribute (which is used to scale noise covariance when
         applying the inverse operator) may not be suitable for inverse imaging.
@@ -1579,7 +1586,7 @@ def combine_evoked(all_evoked, weights):
     ----------
     all_evoked : list of Evoked
         The evoked datasets.
-    weights : list of float | 'equal' | 'nave'
+    weights : list of float | ``'equal'`` | ``'nave'``
         The weights to apply to the data of each evoked instance, or a string
         describing the weighting strategy to apply: ``'nave'`` computes
         sum-to-one weights proportional to each object's ``nave`` attribute;
@@ -1689,7 +1696,7 @@ def read_evokeds(
                   baseline correction, but merely omit the optional, additional
                   baseline correction.
     kind : str
-        Either 'average' or 'standard_error', the type of data to read.
+        Either ``'average'`` or ``'standard_error'``, the type of data to read.
     proj : bool
         If False, available projectors won't be applied to the data.
     allow_maxshield : bool | str (default False)
@@ -1697,7 +1704,7 @@ def read_evokeds(
         active compensation (MaxShield). Data recorded with MaxShield should
         generally not be loaded directly, but should first be processed using
         SSS/tSSS to remove the compensation signals that may also affect brain
-        activity. Can also be "yes" to load without eliciting a warning.
+        activity. Can also be ``"yes"`` to load without eliciting a warning.
     %(verbose)s
 
     Returns
@@ -1718,7 +1725,7 @@ def read_evokeds(
         saving, this will be reflected in their ``baseline`` attribute after
         reading.
     """
-    fname = str(_check_fname(fname, overwrite="read", must_exist=True))
+    fname = _check_fname(fname, overwrite="read", must_exist=True)
     check_fname(fname, "evoked", ("-ave.fif", "-ave.fif.gz", "_ave.fif", "_ave.fif.gz"))
     logger.info(f"Reading {fname} ...")
     return_list = True
@@ -1998,7 +2005,7 @@ def _write_evokeds(fname, evoked, check=True, *, on_mismatch="raise", overwrite=
             fname, "evoked", ("-ave.fif", "-ave.fif.gz", "_ave.fif", "_ave.fif.gz")
         )
 
-    if not isinstance(evoked, (list, tuple)):
+    if not isinstance(evoked, list | tuple):
         evoked = [evoked]
 
     warned = False

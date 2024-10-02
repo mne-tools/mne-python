@@ -1,15 +1,11 @@
 #
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Eric Larson <larson.eric.d@gmail.com>
-#          Joan Massich <mailsik@gmail.com>
-#          Guillaume Favelier <guillaume.favelier@gmail.com>
-#          Oleh Kozynets <ok7mailbox@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
 import os
 import platform
+from contextlib import nullcontext
 from pathlib import Path
 from shutil import copyfile
 
@@ -546,6 +542,116 @@ def test_brain_init(renderer_pyvistaqt, tmp_path, pixel_ratio, brain_gc):
     )
     for a, b, p, color in zip(annots, borders, alphas, colors):
         brain.add_annotation(str(a), b, p, color=color)
+    brain.close()
+
+
+# TODO: Figure out why brain_gc is problematic here on PyQt5
+@pytest.mark.allow_unclosed
+@testing.requires_testing_data
+@pytest.mark.parametrize(
+    "sensor_colors, sensor_scales, expectation",
+    [
+        (
+            {"seeg": ["k"] * 5},
+            {"seeg": [2] * 6},
+            pytest.raises(
+                ValueError,
+                match=r"Invalid value for the 'len\(sensor_colors\['seeg'\]\)' "
+                r"parameter. Allowed values are \d+ and \d+, but got \d+ instead",
+            ),
+        ),
+        (
+            {"seeg": ["k"] * 6},
+            {"seeg": [2] * 5},
+            pytest.raises(
+                ValueError,
+                match=r"Invalid value for the 'len\(sensor_scales\['seeg'\]\)' "
+                r"parameter. Allowed values are \d+ and \d+, but got \d+ instead",
+            ),
+        ),
+        (
+            "NotAColor",
+            2,
+            pytest.raises(
+                ValueError,
+                match=r".* is not a valid color value",
+            ),
+        ),
+        (
+            "k",
+            "k",
+            pytest.raises(
+                AssertionError,
+                match=r"scales for .* must contain only numerical values, got .* "
+                r"instead.",
+            ),
+        ),
+        (
+            "k",
+            2,
+            nullcontext(),
+        ),
+        (
+            ["k"] * 6,
+            [2] * 6,
+            nullcontext(),
+        ),
+        (
+            {"seeg": ["k"] * 6},
+            {"seeg": [2] * 6},
+            nullcontext(),
+        ),
+    ],
+)
+def test_add_sensors_scales(
+    renderer_interactive_pyvistaqt,
+    sensor_colors,
+    sensor_scales,
+    expectation,
+):
+    """Test sensor_scales parameter."""
+    kwargs = dict(subject=subject, subjects_dir=subjects_dir)
+    hemi = "lh"
+    surf = "white"
+    cortex = "low_contrast"
+    title = "test"
+    size = (300, 300)
+
+    brain = Brain(
+        hemi=hemi,
+        surf=surf,
+        size=size,
+        title=title,
+        cortex=cortex,
+        units="m",
+        silhouette=dict(decimate=0.95),
+        **kwargs,
+    )
+
+    proj_info = create_info([f"Ch{i}" for i in range(1, 7)], 1000, "seeg")
+    pos = (
+        np.array(
+            [
+                [25.85, 9.04, -5.38],
+                [33.56, 9.04, -5.63],
+                [40.44, 9.04, -5.06],
+                [46.75, 9.04, -6.78],
+                [-30.08, 9.04, 28.23],
+                [-32.95, 9.04, 37.99],
+            ]
+        )
+        / 1000
+    )
+    proj_info.set_montage(
+        make_dig_montage(ch_pos=dict(zip(proj_info.ch_names, pos)), coord_frame="head")
+    )
+    with expectation:
+        brain.add_sensors(
+            proj_info,
+            trans=fname_trans,
+            sensor_colors=sensor_colors,
+            sensor_scales=sensor_scales,
+        )
     brain.close()
 
 

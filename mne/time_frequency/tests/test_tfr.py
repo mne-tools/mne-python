@@ -1,5 +1,7 @@
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 import datetime
 import re
 from itertools import product
@@ -1526,6 +1528,13 @@ def test_epochs_compute_tfr_stockwell(epochs, freqs, return_itc):
         assert_array_almost_equal(itc.get_data(), 1.0, decimal=15)
     assert isinstance(tfr, AverageTFR)
     assert tfr.comment == "1"
+
+
+@pytest.mark.parametrize("output", ("complex", "phase"))
+def test_epochs_compute_tfr_multitaper_complex_phase(epochs, output):
+    """Test Epochs.compute_tfr(output="complex"/"phase")."""
+    tfr = epochs.compute_tfr("multitaper", freqs_linspace, output=output)
+    assert len(tfr.shape) == 5
 
 
 @pytest.mark.parametrize("copy", (False, True))

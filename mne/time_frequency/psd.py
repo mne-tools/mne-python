@@ -1,6 +1,4 @@
-# Authors : Alexandre Gramfort, alexandre.gramfort@inria.fr (2011)
-#           Denis A. Engemann <denis.engemann@gmail.com>
-# License : BSD-3-Clause
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 

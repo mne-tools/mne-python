@@ -1,5 +1,4 @@
-# Author: Mark Wronkiewicz <wronk@uw.edu>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -854,7 +853,7 @@ def _check_reg_match(sss_py, sss_mf, comp_tol):
             assert n_in == _get_n_moments(inf["in_order"])
         assert inf["components"][:n_in].sum() == inf["nfree"]
     assert_allclose(
-        info_py["nfree"], info_mf["nfree"], atol=comp_tol, err_msg=sss_py._filenames[0]
+        info_py["nfree"], info_mf["nfree"], atol=comp_tol, err_msg=sss_py.filenames[0]
     )
 
 

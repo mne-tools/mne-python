@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "50ce70a9d04645988a3fddead56e6892faa940fe",
+  "authors": [
+    {
+      "n": "Mathieu Scheltienne",
+      "e": "mathieu.scheltienne@fcbg.ch"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".pre-commit-config.yaml": {
+      "a": 6,
+      "d": 0
+    },
+    "pyproject.toml": {
+      "a": 311,
+      "d": 314
+    }
+  }
+}

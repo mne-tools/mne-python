@@ -1,13 +1,8 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Denis Engemann <denis.engemann@gmail.com>
-#          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
-#          Eric Larson <larson.eric.d@gmail.com>
-#          Mainak Jas <mainak@neuro.hut.fi>
-#          Mark Wronkiewicz <wronk.mark@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+from contextlib import nullcontext
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -266,6 +261,161 @@ def _assert_n_actors(fig, renderer, n_actors):
     __tracebackhide__ = True
     assert isinstance(fig, Figure3D)
     assert len(fig.plotter.renderer.actors) == n_actors
+
+
+@pytest.mark.slowtest  # can be slow on OSX
+@testing.requires_testing_data
+@pytest.mark.parametrize(
+    "test_ecog, test_seeg, sensor_colors, sensor_scales, expectation",
+    [
+        (
+            True,
+            True,
+            "k",
+            2,
+            pytest.raises(
+                TypeError,
+                match="sensor_colors must be an instance of dict or "
+                "None when more than one channel type",
+            ),
+        ),
+        (
+            True,
+            True,
+            {"ecog": "k", "seeg": "k"},
+            2,
+            pytest.raises(
+                TypeError,
+                match="sensor_scales must be an instance of dict or "
+                "None when more than one channel type",
+            ),
+        ),
+        (
+            True,
+            True,
+            {"ecog": ["k"] * 2, "seeg": "k"},
+            {"ecog": 2, "seeg": 2},
+            pytest.raises(
+                ValueError,
+                match=r"Invalid value for the 'len\(sensor_colors\['ecog'\]\)' "
+                r"parameter. Allowed values are \d+ and \d+, but got \d+ instead",
+            ),
+        ),
+        (
+            True,
+            True,
+            {"ecog": "k", "seeg": ["k"] * 2},
+            {"ecog": 2, "seeg": 2},
+            pytest.raises(
+                ValueError,
+                match=r"Invalid value for the 'len\(sensor_colors\['seeg'\]\)' "
+                r"parameter. Allowed values are \d+ and \d+, but got \d+ instead",
+            ),
+        ),
+        (
+            True,
+            True,
+            {"ecog": "k", "seeg": "k"},
+            {"ecog": [2] * 2, "seeg": 2},
+            pytest.raises(
+                ValueError,
+                match=r"Invalid value for the 'len\(sensor_scales\['ecog'\]\)' "
+                r"parameter. Allowed values are \d+ and \d+, but got \d+ instead",
+            ),
+        ),
+        (
+            True,
+            True,
+            {"ecog": "k", "seeg": "k"},
+            {"ecog": 2, "seeg": [2] * 2},
+            pytest.raises(
+                ValueError,
+                match=r"Invalid value for the 'len\(sensor_scales\['seeg'\]\)' "
+                r"parameter. Allowed values are \d+ and \d+, but got \d+ instead",
+            ),
+        ),
+        (
+            True,
+            True,
+            {"ecog": "NotAColor", "seeg": "NotAColor"},
+            {"ecog": 2, "seeg": 2},
+            pytest.raises(
+                ValueError,
+                match=r".* is not a valid color value",
+            ),
+        ),
+        (
+            True,
+            True,
+            {"ecog": "k", "seeg": "k"},
+            {"ecog": "k", "seeg": 2},
+            pytest.raises(
+                AssertionError,
+                match=r"scales for .* must contain only numerical values, got .* "
+                r"instead.",
+            ),
+        ),
+        (
+            True,
+            True,
+            {"ecog": "k", "seeg": "k"},
+            {"ecog": 2, "seeg": 2},
+            nullcontext(),
+        ),
+        (
+            True,
+            True,
+            {"ecog": [0, 0, 0], "seeg": [0, 0, 0]},
+            {"ecog": 2, "seeg": 2},
+            nullcontext(),
+        ),
+        (
+            True,
+            True,
+            {"ecog": ["k"] * 10, "seeg": ["k"] * 10},
+            {"ecog": [2] * 10, "seeg": [2] * 10},
+            nullcontext(),
+        ),
+        (
+            True,
+            False,
+            "k",
+            2,
+            nullcontext(),
+        ),
+    ],
+)
+def test_plot_alignment_ieeg(
+    renderer, test_ecog, test_seeg, sensor_colors, sensor_scales, expectation
+):
+    """Test plotting of iEEG sensors."""
+    # Load evoked:
+    evoked = read_evokeds(evoked_fname)[0]
+    # EEG only
+    evoked_eeg = evoked.copy().pick_types(eeg=True)
+    with evoked_eeg.info._unlock():
+        evoked_eeg.info["projs"] = []  # "remove" avg proj
+    eeg_channels = pick_types(evoked_eeg.info, eeg=True)
+    # Set 10 EEG channels to ecog, 10 to seeg
+    evoked_eeg.set_channel_types(
+        {evoked_eeg.ch_names[ch]: "ecog" for ch in eeg_channels[:10]}
+    )
+    evoked_eeg.set_channel_types(
+        {evoked_eeg.ch_names[ch]: "seeg" for ch in eeg_channels[10:20]}
+    )
+    evoked_ecog_seeg = evoked_eeg.pick_types(seeg=True, ecog=True)
+    this_info = evoked_ecog_seeg.info
+    # Test plot:
+    with expectation:
+        fig = plot_alignment(
+            this_info,
+            ecog=test_ecog,
+            seeg=test_seeg,
+            sensor_colors=sensor_colors,
+            sensor_scales=sensor_scales,
+        )
+        assert isinstance(fig, Figure3D)
+        renderer.backend._close_all()
 
 
 @pytest.mark.slowtest  # Slow on Azure

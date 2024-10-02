@@ -74,8 +74,8 @@ Dependencies
 The minimum required dependencies to run MNE-Python are:
 
 - `Python <https://www.python.org>`__ ≥ 3.9
-- `NumPy <https://numpy.org>`__ ≥ 1.23
-- `SciPy <https://scipy.org>`__ ≥ 1.9
+- `NumPy <https://numpy.org>`__ ≥ 1.24
+- `SciPy <https://scipy.org>`__ ≥ 1.10
 - `Matplotlib <https://matplotlib.org>`__ ≥ 3.6
 - `Pooch <https://www.fatiando.org/pooch/latest/>`__ ≥ 1.5
 - `tqdm <https://tqdm.github.io>`__
@@ -85,8 +85,8 @@ The minimum required dependencies to run MNE-Python are:
 
 For full functionality, some functions require:
 
-- `scikit-learn <https://scikit-learn.org/stable/>`__ ≥ 1.1
-- `Joblib <https://joblib.readthedocs.io/en/latest/index.html>`__ ≥ 0.15 (for parallelization)
+- `scikit-learn <https://scikit-learn.org/stable/>`__ ≥ 1.2
+- `Joblib <https://joblib.readthedocs.io/en/latest/index.html>`__ ≥ 1.2 (for parallelization)
 - `mne-qt-browser <https://github.com/mne-tools/mne-qt-browser>`__ ≥ 0.5 (for fast raw data visualization)
 - `Qt <https://www.qt.io>`__ ≥ 5.15 via one of the following bindings (for fast raw data visualization and interactive 3D visualization):
 
@@ -94,16 +94,16 @@ For full functionality, some functions require:
   - `PyQt6 <https://www.riverbankcomputing.com/software/pyqt/>`__ ≥ 6.0
   - `PyQt5 <https://www.riverbankcomputing.com/software/pyqt/>`__ ≥ 5.15
 
-- `Numba <https://numba.pydata.org>`__ ≥ 0.54.0
+- `Numba <https://numba.pydata.org>`__ ≥ 0.56.4
 - `NiBabel <https://nipy.org/nibabel/>`__ ≥ 3.2.1
 - `OpenMEEG <https://openmeeg.github.io>`__ ≥ 2.5.6
-- `pandas <https://pandas.pydata.org>`__ ≥ 1.3.2
+- `pandas <https://pandas.pydata.org>`__ ≥ 1.5.2
 - `Picard <https://pierreablin.github.io/picard/>`__ ≥ 0.3
 - `CuPy <https://cupy.dev>`__ ≥ 9.0.0 (for NVIDIA CUDA acceleration)
 - `DIPY <https://dipy.org>`__ ≥ 1.4.0
 - `imageio <https://imageio.readthedocs.io/en/stable/>`__ ≥ 2.8.0
-- `PyVista <https://pyvista.org>`__ ≥ 0.32 (for 3D visualization)
-- `PyVistaQt <https://qtdocs.pyvista.org>`__ ≥ 0.4 (for 3D visualization)
+- `PyVista <https://pyvista.org>`__ ≥ 0.37 (for 3D visualization)
+- `PyVistaQt <https://qtdocs.pyvista.org>`__ ≥ 0.9 (for 3D visualization)
 - `mffpy <https://github.com/BEL-Public/mffpy>`__ ≥ 0.5.7
 - `h5py <https://www.h5py.org>`__
 - `h5io <https://github.com/h5io/h5io>`__

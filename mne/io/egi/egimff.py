@@ -1,5 +1,7 @@
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 """EGI NetStation Load Function."""
 
 import datetime
@@ -352,7 +354,7 @@ def _read_raw_egi_mff(
     preload=False,
     channel_naming="E%d",
     *,
-    events_as_annotations=False,
+    events_as_annotations=True,
     verbose=None,
 ):
     """Read EGI mff binary as raw object."""
@@ -543,9 +545,6 @@ class RawMff(BaseRaw):
                     % (pns_samples, eeg_samples)
                 )
 
-        self._filenames = [file_bin]
-        self._raw_extras = [egi_info]
-
         super().__init__(
             info,
             preload=preload,
@@ -634,7 +633,7 @@ class RawMff(BaseRaw):
         # TODO: Refactor this reading with the PNS reading in a single function
         # (DRY)
         samples_to_read = stop - start
-        with open(self._filenames[fi], "rb", buffering=0) as fid:
+        with open(self.filenames[fi], "rb", buffering=0) as fid:
             # Go to starting block
             current_block = 0
             current_block_info = None

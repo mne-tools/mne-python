@@ -1,7 +1,4 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
-#          Denis A. Engemann <denis.engemann@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -52,8 +49,8 @@ from .epochs import Epochs
 from .event import make_fixed_length_events
 from .evoked import EvokedArray
 from .fixes import (
-    BaseEstimator,
     EmpiricalCovariance,
+    _EstimatorMixin,
     _logdet,
     _safe_svd,
     empirical_covariance,
@@ -834,7 +831,7 @@ def _check_method_params(
         was_auto = True
         method = ["shrunk", "diagonal_fixed", "empirical", "factor_analysis"]
 
-    if not isinstance(method, (list, tuple)):
+    if not isinstance(method, list | tuple):
         method = [method]
 
     if not all(k in accepted_methods for k in method):
@@ -1515,7 +1512,7 @@ def _auto_low_rank_model(
 # Sklearn Estimators
 
 
-class _RegCovariance(BaseEstimator):
+class _RegCovariance(_EstimatorMixin):
     """Aux class."""
 
     def __init__(
@@ -1598,7 +1595,7 @@ class _RegCovariance(BaseEstimator):
         return self.estimator_.get_precision()
 
 
-class _ShrunkCovariance(BaseEstimator):
+class _ShrunkCovariance(_EstimatorMixin):
     """Aux class."""
 
     def __init__(self, store_precision, assume_centered, shrinkage=0.1):
@@ -1616,7 +1613,7 @@ class _ShrunkCovariance(BaseEstimator):
 
         cov = self.estimator_.fit(X).covariance_
 
-        if not isinstance(self.shrinkage, (list, tuple)):
+        if not isinstance(self.shrinkage, list | tuple):
             shrinkage = [("all", self.shrinkage, np.arange(len(cov)))]
         else:
             shrinkage = self.shrinkage

@@ -15,8 +15,10 @@ orientation of the dipoles and the impact on the resulting source estimate.
 See :ref:`inverse_orientation_constraints` for related information.
 """
 
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 # %%
 # Load data
 # ---------

@@ -1,11 +1,9 @@
-# Authors: Mainak Jas <mainak@neuro.hut.fi>
-#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Romain Trachel <trachelr@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
 import numpy as np
+from sklearn.base import BaseEstimator, TransformerMixin
 
 from .._fiff.pick import (
     _pick_data_channels,
@@ -18,8 +16,6 @@ from ..cov import _check_scalings_user
 from ..filter import filter_data
 from ..time_frequency import psd_array_multitaper
 from ..utils import _check_option, _validate_type, fill_doc, verbose
-from .base import BaseEstimator
-from .mixin import TransformerMixin
 
 
 class _ConstantScaler:
@@ -113,7 +109,7 @@ class Scaler(TransformerMixin, BaseEstimator):
         self.with_std = with_std
         self.scalings = scalings
 
-        if not (scalings is None or isinstance(scalings, (dict, str))):
+        if not (scalings is None or isinstance(scalings, dict | str)):
             raise ValueError(
                 f"scalings type should be dict, str, or None, got {type(scalings)}"
             )

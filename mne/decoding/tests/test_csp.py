@@ -1,8 +1,4 @@
-# Author: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#         Romain Trachel <trachelr@gmail.com>
-#         Alexandre Barachant <alexandre.barachant@gmail.com>
-#         Jean-Remi King <jeanremi.king@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -16,6 +12,13 @@ from numpy.testing import (
     assert_array_equal,
     assert_equal,
 )
+
+pytest.importorskip("sklearn")
+
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import StratifiedKFold, cross_val_score
+from sklearn.pipeline import Pipeline, make_pipeline
+from sklearn.svm import SVC
 
 from mne import Epochs, compute_proj_raw, io, pick_types, read_events
 from mne.decoding import CSP, LinearModel, Scaler, SPoC, get_coef
@@ -259,11 +262,6 @@ def test_csp():
 @pytest.mark.parametrize("reg", [None, 0.001, "oas"])
 def test_regularized_csp(ch_type, rank, reg):
     """Test Common Spatial Patterns algorithm using regularized covariance."""
-    pytest.importorskip("sklearn")
-    from sklearn.linear_model import LogisticRegression
-    from sklearn.model_selection import StratifiedKFold, cross_val_score
-    from sklearn.pipeline import make_pipeline
-
     raw = io.read_raw_fif(raw_fname).pick(ch_type, exclude="bads").load_data()
     n_orig = len(raw.ch_names)
     ch_decim = 2
@@ -377,10 +375,6 @@ def test_regularized_csp(ch_type, rank, reg):
 
 def test_csp_pipeline():
     """Test if CSP works in a pipeline."""
-    pytest.importorskip("sklearn")
-    from sklearn.pipeline import Pipeline
-    from sklearn.svm import SVC
-
     csp = CSP(reg=1, norm_trace=False)
     svc = SVC()
     pipe = Pipeline([("CSP", csp), ("SVC", svc)])

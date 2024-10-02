@@ -1,9 +1,6 @@
 """Qt implementation of _Renderer and GUI."""
 
-# Authors: Guillaume Favelier <guillaume.favelier@gmail.com>
-#          Eric Larson <larson.eric.d@gmail.com>
-#          Alex Rockhill <aprockhill@mailbox.org>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -1193,7 +1190,7 @@ class _QtDock(_AbstractDock, _QtLayout):
 
     def _dock_add_text(self, name, value, placeholder, *, callback=None, layout=None):
         layout = self._dock_layout if layout is None else layout
-        widget = QLineEdit(value)
+        widget = QLineEdit(str(value))
         widget.setPlaceholderText(placeholder)
         self._layout_add_widget(layout, widget)
         if callback is not None:
@@ -1657,7 +1654,7 @@ class _QtWidgetList(_AbstractWidgetList):
 
 class _QtWidget(_AbstractWdgt):
     def set_value(self, value):
-        if isinstance(self._widget, (QRadioButton, QToolButton, QPushButton)):
+        if isinstance(self._widget, QRadioButton | QToolButton | QPushButton):
             self._widget.click()
         else:
             if hasattr(self._widget, "setValue"):
