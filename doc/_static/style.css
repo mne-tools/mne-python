@@ -21,8 +21,6 @@ html[data-theme="light"] {
     --copybtn-opacity: 0.75;
     /* card header bg color */
     --mne-color-card-header: rgba(0, 0, 0, 0.05);
-    /* section headings */
-    --mne-color-heading: #003e80;
     /* sphinx-gallery overrides */
     --sg-download-a-background-color: var(--pst-color-primary);
     --sg-download-a-background-image: unset;
@@ -41,8 +39,6 @@ html[data-theme="dark"] {
     --copybtn-opacity: 0.25;
     /* card header bg color */
     --mne-color-card-header: rgba(255, 255, 255, 0.2);
-    /* section headings */
-    --mne-color-heading: #b8cbe0;
     /* sphinx-gallery overrides */
     --sg-download-a-background-color: var(--pst-color-primary);
     --sg-download-a-background-image: unset;
@@ -51,9 +47,6 @@ html[data-theme="dark"] {
     --sg-download-a-hover-background-color: var(--pst-color-primary-highlight);
     --sg-download-a-hover-box-shadow-1: none;
     --sg-download-a-hover-box-shadow-2: none;
-}
-h1, h2, h3, h4, h5, h6 {
-    color: var(--mne-color-heading);
 }
 
 /* ************************************************************ Sphinx fixes */
