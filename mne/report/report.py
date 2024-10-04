@@ -2436,13 +2436,6 @@ class Report:
         decim : int
             Use this decimation factor for generating MRI/BEM images
             (since it can be time consuming).
-        src : SourceSpaces | path-like | None
-            SourceSpaces instance or path to a source space to plot individual
-            sources as scatter-plot. Sources will be shown on exactly one slice
-            (whichever slice is closest to each source in the given orientation
-            plane). Path can be absolute or relative to the subject's ``bem``
-            folder.
-            .. versionadded:: 1.9
         width : int
             The width of the MRI images (in pixels). Larger values will have
             clearer surface lines, but will create larger HTML files.
@@ -2462,7 +2455,6 @@ class Report:
             subject=subject,
             subjects_dir=subjects_dir,
             decim=decim,
-            src=src,
             n_jobs=n_jobs,
             width=width,
             image_format=self.image_format,
@@ -3051,7 +3043,6 @@ class Report:
         image_format,
         orientation,
         decim=2,
-        src=None,
         n_jobs=None,
         width=512,
         tags,
@@ -3071,7 +3062,7 @@ class Report:
             mri_fname=mri_fname,
             surfaces=surfaces,
             orientation=orientation,
-            src=src,
+            src=None,
             show=False,
             show_orientation="always",
             width=width,
@@ -4250,7 +4241,6 @@ class Report:
         decim,
         n_jobs,
         width=512,
-        src=None,
         image_format,
         title,
         tags,
@@ -4280,7 +4270,6 @@ class Report:
                 surfaces=surfaces,
                 orientation=orientation,
                 decim=decim,
-                src=src,
                 n_jobs=n_jobs,
                 width=width,
                 image_format=image_format,
