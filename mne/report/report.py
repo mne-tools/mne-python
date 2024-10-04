@@ -3371,6 +3371,34 @@ class Report:
             replace=replace,
         )
 
+        if self.subject:
+            kwargs = dict(
+                info=forward["info"],
+                trans=forward["mri_head_t"],
+                src=forward["src"],
+                subject=subject,
+                subjects_dir=subjects_dir,
+                dig=True,
+                meg=["helmet", "sensors"],
+                show_axes=True,
+                eeg=dict(original=0.2, projected=0.8),
+                coord_frame="mri",
+            )        
+            img, caption = _iterate_trans_views(
+                function=plot_alignment, alpha=0.5, **kwargs
+            )
+            self._add_image(
+                img=img,
+                title=title,
+                section=section,
+                caption=caption,
+                image_format="png",
+                tags=tags,
+                replace=replace,
+            )
+
+
+
     def _add_inverse_operator(
         self,
         *,
