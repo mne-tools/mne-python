@@ -1213,6 +1213,8 @@ class _QtDock(_AbstractDock, _QtLayout):
     ):
         layout = self._dock_layout if layout is None else layout
         weakself = weakref.ref(self)
+        if initial_directory is not None:
+            initial_directory = str(initial_directory)
 
         def callback():
             self = weakself()

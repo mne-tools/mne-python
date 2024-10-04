@@ -1507,9 +1507,16 @@ def _plot_sensors_3d(
         elif ch_type in _MEG_CH_TYPES_SPLIT:
             ch_type = "meg"
         # only plot sensor locations if channels/original in selection
-        plot_sensors = (ch_type != "fnirs" or "channels" in fnirs) and (
-            ch_type != "eeg" or "original" in eeg
-        )
+        plot_sensors = True
+        if ch_type == "fnirs":
+            if not fnirs or "channels" not in fnirs:
+                plot_sensors = False
+        elif ch_type == "eeg":
+            if not eeg or "original" not in eeg:
+                plot_sensors = False
+        elif ch_type == "meg":
+            if not meg or "sensors" not in meg:
+                plot_sensors = False
         # plot sensors
         if isinstance(ch_coord, tuple):  # is meg, plot coil
             ch_coord = dict(rr=ch_coord[0] * unit_scalar, tris=ch_coord[1])
@@ -1558,7 +1565,7 @@ def _plot_sensors_3d(
     assert isinstance(sensor_colors, dict)
     assert isinstance(sensor_scales, dict)
     for ch_type, sens_loc in locs.items():
-        logger.debug(f"Drawing {ch_type} sensors")
+        logger.debug(f"Drawing {ch_type} sensors ({len(sens_loc)})")
         assert len(sens_loc)  # should be guaranteed above
         colors = to_rgba_array(sensor_colors.get(ch_type, defaults[ch_type + "_color"]))
         scales = np.atleast_1d(

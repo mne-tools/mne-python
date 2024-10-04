@@ -1278,7 +1278,14 @@ class CoregistrationUI(HasTraits):
             fnirs=self._defaults["sensor_opacity"],
             meg=0.25,
         )
-        picks = pick_types(self._info, ref_meg=False, meg=True, eeg=True, fnirs=True)
+        picks = pick_types(
+            self._info,
+            ref_meg=False,
+            meg=True,
+            eeg=True,
+            fnirs=True,
+            exclude=(),
+        )
         these_actors = _plot_sensors_3d(
             self._renderer,
             self._info,
@@ -1295,7 +1302,7 @@ class CoregistrationUI(HasTraits):
             nearest=self._nearest,
             **plot_types,
         )
-        sens_actors = sum(these_actors.values(), list())
+        sens_actors = sum((these_actors or {}).values(), list())
         self._update_actor("sensors", sens_actors)
 
     def _add_head_surface(self):
@@ -1760,7 +1767,7 @@ class CoregistrationUI(HasTraits):
         )
         self._widgets["meg"] = self._renderer._dock_add_check_box(
             name="Show MEG sensors",
-            value=self._helmet,
+            value=self._meg_channels,
             callback=self._set_meg_channels,
             tooltip="Enable/Disable MEG sensors",
             layout=view_options_layout,
