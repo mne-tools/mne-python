@@ -20,6 +20,9 @@ html[data-theme="light"] {
     /* ↓↓↓ use default "primary" colors for "info" */
     --pst-color-info: var(--pst-teal-500);
     --pst-color-info-bg: var(--pst-teal-200);
+    /* ↓↓↓ use "warning" colors for "secondary" */
+    --pst-color-secondary: var(--pst-color-warning);
+    --pst-color-secondary-bg: var(--pst-color-warning-bg);
     /* ↓↓↓ make sure new primary (link) color propogates to links on code */
     --pst-color-inline-code-links: var(--pst-color-link);
     /* topbar logo links */
@@ -47,6 +50,9 @@ html[data-theme="dark"] {
     /* ↓↓↓ use default "primary" colors for "info" */
     --pst-color-info: var(--pst-teal-400);
     --pst-color-info-bg: var(--pst-teal-800);
+    /* ↓↓↓ use "warning" colors for "secondary" */
+    --pst-color-secondary: var(--pst-color-warning);
+    --pst-color-secondary-bg: var(--pst-color-warning-bg);
     /* ↓↓↓ make sure new primary (link) color propogates to links on code */
     --pst-color-inline-code-links: var(--pst-color-link);
     /* topbar logo links */
