@@ -2476,7 +2476,7 @@ class Report:
             image_format=self.image_format,
             title=title,
             tags=tags,
-            section=None, # No nesting
+            section=None,  # No nesting
             replace=replace,
         )
 
@@ -3394,18 +3394,18 @@ class Report:
                 show_axes=True,
                 eeg=dict(original=0.2, projected=0.8),
                 coord_frame="mri",
-            )        
+            )
             img, caption = _iterate_trans_views(
                 function=plot_alignment, alpha=0.5, **kwargs
             )
             self._add_image(
                 img=img,
-                title='Alignment',
+                title="Alignment",
                 section=section,
                 caption=caption,
                 image_format="png",
                 tags=tags,
-                replace=replace
+                replace=replace,
             )
             # Source space
             kwargs = dict(
@@ -3417,14 +3417,13 @@ class Report:
             )
             self._add_image(
                 img=img,
-                title='Source space',
+                title="Source space",
                 section=section,
                 caption=caption,
                 image_format="png",
                 tags=tags,
-                replace=replace
+                replace=replace,
             )
-
 
     def _add_inverse_operator(
         self,
