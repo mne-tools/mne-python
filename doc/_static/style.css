@@ -25,6 +25,8 @@ html[data-theme="light"] {
     --pst-color-secondary-bg: var(--pst-color-warning-bg);
     /* ↓↓↓ make sure new primary (link) color propogates to links on code */
     --pst-color-inline-code-links: var(--pst-color-link);
+    /* ↓↓↓ make sure new secondary (hover) color propogates to hovering on table rows */
+    --pst-color-table-row-hover-bg: var(--pst-color-secondary-bg);
     /* topbar logo links */
     --mne-color-github: #000;
     --mne-color-discourse: #d0232b;
@@ -55,6 +57,8 @@ html[data-theme="dark"] {
     --pst-color-secondary-bg: var(--pst-color-warning-bg);
     /* ↓↓↓ make sure new primary (link) color propogates to links on code */
     --pst-color-inline-code-links: var(--pst-color-link);
+    /* ↓↓↓ make sure new secondary (hover) color propogates to hovering on table rows */
+    --pst-color-table-row-hover-bg: var(--pst-color-secondary-bg);
     /* topbar logo links */
     --mne-color-github: rgb(240, 246, 252);  /* from their logo SVG */
     --mne-color-discourse: #FFF9AE;  /* from their logo SVG */
