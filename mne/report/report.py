@@ -484,6 +484,21 @@ def _get_bem_contour_figs_as_arrays(
     return out
 
 
+def _iterate_alignment_views(function, alpha, **kwargs):
+    """Auxiliary function to iterate over views in trans fig."""
+    from ..viz.backends.renderer import MNE_3D_BACKEND_TESTING
+
+    # TODO: Eventually maybe we should expose the size option?
+    size = (80, 80) if MNE_3D_BACKEND_TESTING else (800, 800)
+    fig = create_3d_figure(size, bgcolor=(0.5, 0.5, 0.5))
+    from ..viz.backends.renderer import backend
+
+    try:
+        return _itv(function, fig, **kwargs)
+    finally:
+        backend._close_3d_figure(fig)
+
+
 def _iterate_trans_views(function, alpha, **kwargs):
     """Auxiliary function to iterate over views in trans fig."""
     from ..viz.backends.renderer import MNE_3D_BACKEND_TESTING
@@ -1409,7 +1424,7 @@ class Report:
             subjects_dir=subjects_dir,
             title=title,
             image_format=self.image_format,
-            section=None,
+            section=title,
             tags=tags,
             replace=replace,
         )
@@ -2454,12 +2469,14 @@ class Report:
         self._add_bem(
             subject=subject,
             subjects_dir=subjects_dir,
+            src=None,
             decim=decim,
             n_jobs=n_jobs,
             width=width,
             image_format=self.image_format,
             title=title,
             tags=tags,
+            section=None, # No nesting
             replace=replace,
         )
 
@@ -3042,6 +3059,7 @@ class Report:
         surfaces,
         image_format,
         orientation,
+        src=None,
         decim=2,
         n_jobs=None,
         width=512,
@@ -3062,7 +3080,7 @@ class Report:
             mri_fname=mri_fname,
             surfaces=surfaces,
             orientation=orientation,
-            src=None,
+            src=src,
             show=False,
             show_orientation="always",
             width=width,
@@ -3363,13 +3381,15 @@ class Report:
         )
 
         if self.subject:
+            src = forward["src"]
+            trans = forward["mri_head_t"]
+            # Alignment
             kwargs = dict(
                 info=forward["info"],
-                trans=forward["mri_head_t"],
-                src=forward["src"],
+                trans=trans,
+                src=src,
                 subject=subject,
                 subjects_dir=subjects_dir,
-                dig=True,
                 meg=["helmet", "sensors"],
                 show_axes=True,
                 eeg=dict(original=0.2, projected=0.8),
@@ -3380,14 +3400,30 @@ class Report:
             )
             self._add_image(
                 img=img,
-                title=title,
+                title='Alignment',
                 section=section,
                 caption=caption,
                 image_format="png",
                 tags=tags,
-                replace=replace,
+                replace=replace
             )
-
+            # Source space
+            kwargs = dict(
+                trans=trans,
+                subjects_dir=subjects_dir,
+            )
+            img, caption = _iterate_alignment_views(
+                function=src.plot, alpha=0.5, **kwargs
+            )
+            self._add_image(
+                img=img,
+                title='Source space',
+                section=section,
+                caption=caption,
+                image_format="png",
+                tags=tags,
+                replace=replace
+            )
 
 
     def _add_inverse_operator(
@@ -4238,11 +4274,13 @@ class Report:
         *,
         subject,
         subjects_dir,
+        src,
         decim,
         n_jobs,
         width=512,
         image_format,
         title,
+        section,
         tags,
         replace,
     ):
@@ -4269,6 +4307,7 @@ class Report:
                 mri_fname=mri_fname,
                 surfaces=surfaces,
                 orientation=orientation,
+                src=src,
                 decim=decim,
                 n_jobs=n_jobs,
                 width=width,
@@ -4293,7 +4332,7 @@ class Report:
         )
         self._add_or_replace(
             title=title,
-            section=None,  # no nesting
+            section=section,
             tags=tags,
             html_partial=html_partial,
             replace=replace,
