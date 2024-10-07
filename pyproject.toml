@@ -111,7 +111,7 @@ full-no-qt = [
   "numba",
   "openmeeg>=2.5.5",
   "pandas",
-  "pyarrow", # only needed to avoid a deprecation warning in pandas
+  "pyarrow",  # only needed to avoid a deprecation warning in pandas
   "pybv",
   "pyobjc-framework-Cocoa>=5.2.0; platform_system=='Darwin'",
   "python-picard",
@@ -179,7 +179,7 @@ Homepage = "https://mne.tools/"
 "Source Code" = "https://github.com/mne-tools/mne-python/"
 
 [tool.bandit.assert_used]
-skips = ["*/test_*.py"] # assert statements are good practice with pytest
+skips = ["*/test_*.py"]  # assert statements are good practice with pytest
 
 [tool.changelog-bot]
 
@@ -211,7 +211,7 @@ exclude = [
   "/mne/**/tests",
   "/tools",
   "/tutorials",
-] # tracked by git, but we don't want to ship those files
+]  # tracked by git, but we don't want to ship those files
 
 [tool.hatch.version]
 raw-options = {version_scheme = "release-branch-semver"}
@@ -320,37 +320,37 @@ exclude = ["__init__.py", "constants.py", "resources.py"]
 
 [tool.ruff.lint]
 ignore = [
-  "D100", # Missing docstring in public module
-  "D104", # Missing docstring in public package
-  "D413", # Missing blank line after last section
+  "D100",  # Missing docstring in public module
+  "D104",  # Missing docstring in public package
+  "D413",  # Missing blank line after last section
 ]
 select = ["A", "B006", "D", "E", "F", "I", "UP", "UP031", "W"]
 
 [tool.ruff.lint.per-file-ignores]
 "examples/*/*.py" = [
-  "D205", # 1 blank line required between summary line and description
-  "D400", # First line should end with a period
+  "D205",  # 1 blank line required between summary line and description
+  "D400",  # First line should end with a period
 ]
 "examples/preprocessing/eeg_bridging.py" = [
-  "E501", # line too long
+  "E501",  # line too long
 ]
 "mne/datasets/*/*.py" = [
-  "D103", # Missing docstring in public function
+  "D103",  # Missing docstring in public function
 ]
 "mne/decoding/tests/test_*.py" = [
-  "E402", # Module level import not at top of file
+  "E402",  # Module level import not at top of file
 ]
 "mne/utils/tests/test_docs.py" = [
-  "D101", # Missing docstring in public class
-  "D410", # Missing blank line after section
-  "D411", # Missing blank line before section
-  "D414", # Section has no content
+  "D101",  # Missing docstring in public class
+  "D410",  # Missing blank line after section
+  "D411",  # Missing blank line before section
+  "D414",  # Section has no content
 ]
 "tutorials/*/*.py" = [
-  "D400", # First line should end with a period
+  "D400",  # First line should end with a period
 ]
 "tutorials/time-freq/10_spectrum_class.py" = [
-  "E501", # line too long
+  "E501",  # line too long
 ]
 
 [tool.ruff.lint.pydocstyle]
