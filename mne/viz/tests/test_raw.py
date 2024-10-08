@@ -1090,63 +1090,82 @@ def test_plot_sensors(raw):
     pytest.raises(TypeError, plot_sensors, raw)  # needs to be info
     pytest.raises(ValueError, plot_sensors, raw.info, kind="sasaasd")
     plt.close("all")
+
     fig, sels = raw.plot_sensors("select", show_names=True)
     ax = fig.axes[0]
 
-    # Click with no sensors
-    _fake_click(fig, ax, (0.0, 0.0), xform="data")
-    _fake_click(fig, ax, (0, 0.0), xform="data", kind="release")
+    # Lasso with no sensors.
+    _fake_click(fig, ax, (-0.14, 0.14), xform="data")
+    _fake_click(fig, ax, (-0.13, 0.13), xform="data", kind="motion")
+    _fake_click(fig, ax, (-0.13, 0.14), xform="data", kind="motion")
+    _fake_click(fig, ax, (-0.13, 0.14), xform="data", kind="release")
     assert fig.lasso.selection == []
 
-    # Lasso with 1 sensor (upper left)
-    _fake_click(fig, ax, (0, 1), xform="ax")
-    fig.canvas.draw()
+    # Lasso with 1 sensor (upper left).
+    _fake_click(fig, ax, (-0.13, 0.14), xform="data")
     assert fig.lasso.selection == []
     _fake_click(fig, ax, (-0.11, 0.14), xform="data", kind="motion")
     _fake_click(fig, ax, (-0.11, 0.065), xform="data", kind="motion")
-    _fake_keypress(fig, "shift")
-    _fake_click(fig, ax, (-0.15, 0.065), xform="data", kind="release", key="shift")
+    _fake_click(fig, ax, (-0.13, 0.065), xform="data", kind="motion")
+    _fake_click(fig, ax, (-0.13, 0.14), xform="ax", kind="motion")
+    _fake_click(fig, ax, (-0.13, 0.14), xform="ax", kind="release")
     assert fig.lasso.selection == ["MEG 0121"]
 
-    # check that point appearance changes
+    # Use SHIFT key to lasso an additional sensor.
+    _fake_keypress(fig, "shift")
+    _fake_click(fig, ax, (-0.17, 0.07), xform="data")
+    _fake_click(fig, ax, (-0.17, 0.05), xform="data", kind="motion")
+    _fake_click(fig, ax, (-0.15, 0.05), xform="data", kind="motion")
+    _fake_click(fig, ax, (-0.15, 0.07), xform="data", kind="motion")
+    _fake_click(fig, ax, (-0.15, 0.07), xform="data", kind="release")
+    _fake_keypress(fig, "shift", kind="release")
+    assert fig.lasso.selection == ["MEG 0111", "MEG 0121"]
+
+    # Check that the two selected sensors have a different appearance.
     fc = fig.lasso.collection.get_facecolors()
     ec = fig.lasso.collection.get_edgecolors()
-    assert (fc[:, -1] == [0.5, 1.0, 0.5]).all()
-    assert (ec[:, -1] == [0.25, 1.0, 0.25]).all()
+    assert (fc[2:, -1] == 0.5).all()
+    assert (ec[2:, -1] == 0.25).all()
+    assert (fc[:2, -1] == 1.0).all()
+    assert (ec[:2:, -1] == 1.0).all()
 
-    _fake_click(fig, ax, (-0.11, 0.065), xform="data", kind="motion", key="shift")
-    xy = ax.collections[0].get_offsets()
-    _fake_click(fig, ax, xy[2], xform="data", key="shift")  # single sel
-    assert fig.lasso.selection == ["MEG 0121", "MEG 0131"]
-    _fake_click(fig, ax, xy[2], xform="data", key="alt")  # deselect
+    # Use ALT key to remove a sensor from the lasso.
+    _fake_keypress(fig, "alt")
+    _fake_click(fig, ax, (-0.17, 0.07), xform="data")
+    _fake_click(fig, ax, (-0.17, 0.05), xform="data", kind="motion")
+    _fake_click(fig, ax, (-0.15, 0.05), xform="data", kind="motion")
+    _fake_click(fig, ax, (-0.15, 0.07), xform="data", kind="motion")
+    _fake_click(fig, ax, (-0.15, 0.07), xform="data", kind="release")
+    _fake_keypress(fig, "alt", kind="release")
     assert fig.lasso.selection == ["MEG 0121"]
+
     plt.close("all")
 
     raw.info["dev_head_t"] = None  # like empty room
     with pytest.warns(RuntimeWarning, match="identity"):
         raw.plot_sensors()
 
-    # Test plotting with sphere='eeglab'
+    # Test plotting with sphere='eeglab'.
     info = create_info(ch_names=["Fpz", "Oz", "T7", "T8"], sfreq=100, ch_types="eeg")
     data = 1e-6 * np.random.rand(4, 100)
     raw_eeg = RawArray(data=data, info=info)
     raw_eeg.set_montage("biosemi64")
     raw_eeg.plot_sensors(sphere="eeglab")
 
-    # Should work with "FPz" as well
+    # Should work with "FPz" as well.
     raw_eeg.rename_channels({"Fpz": "FPz"})
     raw_eeg.plot_sensors(sphere="eeglab")
 
-    # Should still work without Fpz/FPz, as long as we still have Oz
+    # Should still work without Fpz/FPz, as long as we still have Oz.
     raw_eeg.drop_channels("FPz")
     raw_eeg.plot_sensors(sphere="eeglab")
 
-    # Should raise if Oz is missing too, as we cannot reconstruct Fpz anymore
+    # Should raise if Oz is missing too, as we cannot reconstruct Fpz anymore.
     raw_eeg.drop_channels("Oz")
     with pytest.raises(ValueError, match="could not find: Fpz"):
         raw_eeg.plot_sensors(sphere="eeglab")
 
-    # Should raise if we don't have a montage
+    # Should raise if we don't have a montage.
     chs = deepcopy(raw_eeg.info["chs"])
     raw_eeg.set_montage(None)
     with raw_eeg.info._unlock():

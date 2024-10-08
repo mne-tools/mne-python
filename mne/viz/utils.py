@@ -807,12 +807,12 @@ def _fake_click(fig, ax, point, xform="ax", button=1, kind="press", key=None):
     )
 
 
-def _fake_keypress(fig, key):
+def _fake_keypress(fig, key, kind="press"):
     from matplotlib import backend_bases
 
     fig.canvas.callbacks.process(
-        "key_press_event",
-        backend_bases.KeyEvent(name="key_press_event", canvas=fig.canvas, key=key),
+        f"key_{kind}_event",
+        backend_bases.KeyEvent(name=f"key_{kind}_event", canvas=fig.canvas, key=key),
     )
 
 
@@ -1715,9 +1715,9 @@ class SelectFromCollection:
         path = Path(verts)
         inds = np.nonzero([path.intersects_path(p) for p in self.paths])[0]
         if self.canvas._key == "shift":  # Appending selection.
-            self.selection_inds = np.union1d(self.selection_inds, inds)
+            self.selection_inds = np.union1d(self.selection_inds, inds).astype("int")
         elif self.canvas._key == "alt":  # Removing selection.
-            self.selection_inds = np.setdiff1d(self.selection_inds, inds)
+            self.selection_inds = np.setdiff1d(self.selection_inds, inds).astype("int")
         else:
             self.selection_inds = inds
         self.selection = [self.names[i] for i in self.selection_inds]
