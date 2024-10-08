@@ -39,7 +39,7 @@ def dipolefit(
     bem=None,
     initial_time=None,
     trans=None,
-    rank=None,
+    rank="info",
     show_density=True,
     subject=None,
     subjects_dir=None,
@@ -123,7 +123,7 @@ class DipoleFitUI:
         bem=None,
         initial_time=None,
         trans=None,
-        rank=None,
+        rank="info",
         show_density=True,
         subject=None,
         subjects_dir=None,
@@ -412,7 +412,7 @@ class DipoleFitUI:
             cov_picked,
             self._bem,
             trans=self._trans,
-            min_dist=0,
+            rank=self._rank,
             verbose=False,
         )[0]
 
@@ -584,6 +584,7 @@ class DipoleFitUI:
                     pos=dip["dip"].pos[0],  # position is always fixed
                     ori=dip["dip"].ori[0] if dip["fix_ori"] else None,
                     trans=self._trans,
+                    rank=self._rank,
                     verbose=False,
                 )
                 if dip["fix_ori"]:
