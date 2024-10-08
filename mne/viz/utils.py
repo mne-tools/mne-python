@@ -1738,7 +1738,7 @@ class SelectFromCollection:
 
     def select_many(self, inds):
         """Select many sensors using indices (for predefined selections)."""
-        self.selected_inds = inds
+        self.selection_inds = inds
         self.selection = [self.names[i] for i in self.selection_inds]
         self.style_objects()
 

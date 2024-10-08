@@ -1223,6 +1223,9 @@ def plot_evoked_topo(
         ``fig.lasso.selection``.
 
         .. versionadded:: 1.9.0
+    exclude : list of str | ``'bads'``
+        Channels names to exclude from the plot. If ``'bads'``, the
+        bad channels are excluded. By default, exclude is set to ``'bads'``.
     show : bool
         Show figure if True.
 
