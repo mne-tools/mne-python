@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "52d2c268171070643e6946497ab192dee9b68b69",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "conftest.py": {
+      "a": 6,
+      "d": 0
+    },
+    "mne/gui/tests/test_coreg_gui.py": {
+      "a": 0,
+      "d": 9
+    },
+    "mne/report.py": {
+      "a": 5,
+      "d": 5
+    },
+    "setup.cfg": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

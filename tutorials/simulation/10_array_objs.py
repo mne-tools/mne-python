@@ -11,6 +11,10 @@ existing :class:`NumPy array <numpy.ndarray>` of (real or synthetic) data.
 We begin by importing the necessary Python modules:
 """
 
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
+
 # %%
 
 import numpy as np
@@ -230,4 +234,4 @@ spectrum = mne.time_frequency.SpectrumArray(
     info=info,
 )
 
-spectrum.plot(spatial_colors=False)
+spectrum.plot(spatial_colors=False, amplitude=False)

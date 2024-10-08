@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "474da964415c5233e955663b56e85531093be0a4",
+  "authors": [
+    {
+      "n": "Alex Rockhill",
+      "e": "aprockhill@mailbox.org"
+    }
+  ],
+  "changes": {
+    "mne/_freesurfer.py": {
+      "a": 13,
+      "d": 0
+    },
+    "mne/source_space.py": {
+      "a": 1,
+      "d": 14
+    },
+    "mne/viz/_3d.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/viz/misc.py": {
+      "a": 2,
+      "d": 3
+    }
+  }
+}

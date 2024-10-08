@@ -30,6 +30,7 @@ seconds of data.
 #          Joan Massich <mailsik@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 
@@ -47,22 +48,22 @@ from mne.datasets.sleep_physionet.age import fetch_data
 # Load the data
 # -------------
 #
-# Here we download the data from two subjects and the end goal is to obtain
-# :term:`epochs` and its associated ground truth.
+# Here we download the data of two subjects. The end goal is to obtain
+# :term:`epochs` and the associated ground truth.
 #
 # MNE-Python provides us with
 # :func:`mne.datasets.sleep_physionet.age.fetch_data` to conveniently download
 # data from the Sleep Physionet dataset
 # :footcite:`KempEtAl2000,GoldbergerEtAl2000`.
 # Given a list of subjects and records, the fetcher downloads the data and
-# provides us for each subject, a pair of files:
+# provides us with a pair of files for each subject:
 #
 # * ``-PSG.edf`` containing the polysomnography. The :term:`raw` data from the
 #   EEG helmet,
 # * ``-Hypnogram.edf`` containing the :term:`annotations` recorded by an
 #   expert.
 #
-# Combining these two in a :class:`mne.io.Raw` object then we can extract
+# Combining these two in a :class:`mne.io.Raw` object will allow us to extract
 # :term:`events` based on the descriptions of the annotations to obtain the
 # :term:`epochs`.
 #
@@ -74,7 +75,11 @@ ALICE, BOB = 0, 1
 [alice_files, bob_files] = fetch_data(subjects=[ALICE, BOB], recording=[1])
 
 raw_train = mne.io.read_raw_edf(
-    alice_files[0], stim_channel="Event marker", infer_types=True, preload=True
+    alice_files[0],
+    stim_channel="Event marker",
+    infer_types=True,
+    preload=True,
+    verbose="error",  # ignore issues with stored filter settings
 )
 annot_train = mne.read_annotations(alice_files[1])
 
@@ -171,7 +176,11 @@ print(epochs_train)
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 raw_test = mne.io.read_raw_edf(
-    bob_files[0], stim_channel="Event marker", infer_types=True, preload=True
+    bob_files[0],
+    stim_channel="Event marker",
+    infer_types=True,
+    preload=True,
+    verbose="error",
 )
 annot_test = mne.read_annotations(bob_files[1])
 annot_test.crop(annot_test[1]["onset"] - 30 * 60, annot_test[-2]["onset"] + 30 * 60)
@@ -218,6 +227,7 @@ for ax, title, epochs in zip([ax1, ax2], ["Alice", "Bob"], [epochs_train, epochs
             axes=ax,
             show=False,
             average=True,
+            amplitude=False,
             spatial_colors=False,
             picks="data",
             exclude="bads",
@@ -305,7 +315,7 @@ y_pred = pipe.predict(epochs_test)
 y_test = epochs_test.events[:, 2]
 acc = accuracy_score(y_test, y_pred)
 
-print("Accuracy score: {}".format(acc))
+print(f"Accuracy score: {acc}")
 
 ##############################################################################
 # In short, yes. We can predict Bob's sleeping stages based on Alice's data.

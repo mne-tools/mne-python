@@ -1,0 +1,55 @@
+{
+  "merge_commit_sha": "cecbf0fb1dc919254bb6095db491b2d7c5f68003",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".circleci/config.yml": {
+      "a": 5,
+      "d": 9
+    },
+    ".github/workflows/circle_artifacts.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "azure-pipelines.yml": {
+      "a": 0,
+      "d": 34
+    },
+    "doc/Makefile": {
+      "a": 27,
+      "d": 93
+    },
+    "doc/conf.py": {
+      "a": 30,
+      "d": 45
+    },
+    "doc/install/contributing.rst": {
+      "a": 2,
+      "d": 14
+    },
+    "doc/sphinxext/gen_commands.py": {
+      "a": 16,
+      "d": 13
+    },
+    "environment.yml": {
+      "a": 1,
+      "d": 0
+    },
+    "requirements_testing_extra.txt": {
+      "a": 2,
+      "d": 1
+    },
+    "tools/circleci_download.sh": {
+      "a": 5,
+      "d": 9
+    },
+    "tools/github_actions_dependencies.sh": {
+      "a": 4,
+      "d": 1
+    }
+  }
+}

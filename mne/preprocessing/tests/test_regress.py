@@ -1,6 +1,6 @@
-# Author: Eric Larson <larson.eric.d@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import numpy as np
 import pytest
@@ -41,6 +41,19 @@ def test_regress_artifact():
     epochs, betas = regress_artifact(epochs, picks="eog", picks_artifact="eog")
     assert np.ptp(epochs.get_data("eog")) < 1e-15  # constant value
     assert_allclose(betas, 1)
+    # proj should only be required of channels being processed
+    raw = read_raw_fif(raw_fname).crop(0, 1).load_data()
+    raw.del_proj()
+    raw.set_eeg_reference(projection=True)
+    model = EOGRegression(proj=False, picks="meg", picks_artifact="eog")
+    model.fit(raw)
+    model.apply(raw)
+    model = EOGRegression(proj=False, picks="eeg", picks_artifact="eog")
+    with pytest.raises(RuntimeError, match="Projections need to be applied"):
+        model.fit(raw)
+    raw.del_proj()
+    with pytest.raises(RuntimeError, match="No average reference for the EEG"):
+        model.fit(raw)
 
 
 @testing.requires_testing_data

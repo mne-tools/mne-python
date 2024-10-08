@@ -11,6 +11,7 @@ reconstructions
 # Author: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 
@@ -28,9 +29,7 @@ fname = meg_path / "sample_audvis-meg"
 stc = mne.read_source_estimate(fname)
 
 n_vertices, n_samples = stc.data.shape
-print(
-    "stc data size: %s (nb of vertices) x %s (nb of samples)" % (n_vertices, n_samples)
-)
+print(f"stc data size: {n_vertices} (nb of vertices) x {n_samples} (nb of samples)")
 
 # View source activations
 plt.plot(stc.times, stc.data[::100, :].T)

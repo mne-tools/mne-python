@@ -1,12 +1,8 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Denis Engemann <denis.engemann@gmail.com>
-#          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
-#          Eric Larson <larson.eric.d@gmail.com>
-#          Mainak Jas <mainak@neuro.hut.fi>
-#          Mark Wronkiewicz <wronk.mark@gmail.com>
-#
-# License: Simplified BSD
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
+from contextlib import nullcontext
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -35,6 +31,7 @@ from mne._fiff._digitization import write_dig
 from mne._fiff.constants import FIFF
 from mne.bem import read_bem_solution, read_bem_surfaces
 from mne.datasets import testing
+from mne.defaults import DEFAULTS
 from mne.io import read_info, read_raw_bti, read_raw_ctf, read_raw_kit, read_raw_nirx
 from mne.minimum_norm import apply_inverse
 from mne.source_estimate import _BaseVolSourceEstimate
@@ -65,7 +62,7 @@ dip_fname = data_dir / "MEG" / "sample" / "sample_audvis_trunc_set1.dip"
 ctf_fname = data_dir / "CTF" / "testdata_ctf.ds"
 nirx_fname = data_dir / "NIRx" / "nirscout" / "nirx_15_2_recording_w_short"
 
-io_dir = Path(__file__).parent.parent.parent / "io"
+io_dir = Path(__file__).parents[2] / "io"
 base_dir = io_dir / "tests" / "data"
 evoked_fname = base_dir / "test-ave.fif"
 
@@ -102,13 +99,20 @@ def test_plot_head_positions():
     pos = np.random.RandomState(0).randn(4, 10)
     pos[:, 0] = np.arange(len(pos))
     destination = (0.0, 0.0, 0.04)
-    with _record_warnings():  # old MPL will cause a warning
-        plot_head_positions(pos)
-        plot_head_positions(pos, mode="field", info=info, destination=destination)
-        plot_head_positions([pos, pos])  # list support
-        pytest.raises(ValueError, plot_head_positions, ["pos"])
-        pytest.raises(ValueError, plot_head_positions, pos[:, :9])
-    pytest.raises(ValueError, plot_head_positions, pos, "foo")
+    plot_head_positions(pos)
+    plot_head_positions(pos, mode="field", info=info, destination=destination)
+    plot_head_positions([pos, pos])  # list support
+    fig, ax = plt.subplots()
+    with pytest.raises(TypeError, match="instance of Axes3D"):
+        plot_head_positions(pos, mode="field", info=info, axes=ax)
+    fig, ax = plt.subplots(subplot_kw=dict(projection="3d"))
+    plot_head_positions(pos, mode="field", info=info, axes=ax)
+    with pytest.raises(TypeError, match="must be an instance of ndarray"):
+        plot_head_positions(["foo"])
+    with pytest.raises(ValueError, match="must be dim"):
+        plot_head_positions(pos[:, :9])
+    with pytest.raises(ValueError, match="Allowed values"):
+        plot_head_positions(pos, "foo")
     with pytest.raises(ValueError, match="shape"):
         plot_head_positions(pos, axes=1.0)
 
@@ -124,11 +128,11 @@ def test_plot_sparse_source_estimates(renderer_interactive, brain_gc):
     vertices = [s["vertno"] for s in sample_src]
     n_time = 5
     n_verts = sum(len(v) for v in vertices)
-    stc_data = np.zeros((n_verts * n_time))
+    stc_data = np.zeros(n_verts * n_time)
     stc_size = stc_data.size
-    stc_data[
-        (np.random.rand(stc_size // 20) * stc_size).astype(int)
-    ] = np.random.RandomState(0).rand(stc_data.size // 20)
+    stc_data[(np.random.rand(stc_size // 20) * stc_size).astype(int)] = (
+        np.random.RandomState(0).rand(stc_data.size // 20)
+    )
     stc_data.shape = (n_verts, n_time)
     stc = SourceEstimate(stc_data, vertices, 1, 1)
 
@@ -195,8 +199,16 @@ def test_plot_evoked_field(renderer):
     assert isinstance(fig, EvokedField)
     fig._rescale()
     fig.set_time(0.05)
+    assert fig._current_time == 0.05
     fig.set_contours(10)
-    fig.set_vmax(2)
+    assert fig._n_contours == 10
+    assert fig._widgets["contours"].get_value() == 10
+    fig.set_vmax(2e-12, kind="meg")
+    assert fig._surf_maps[1]["contours"][-1] == 2e-12
+    assert (
+        fig._widgets["vmax_slider_meg"].get_value()
+        == DEFAULTS["scalings"]["grad"] * 2e-12
+    )
 
     fig = evoked.plot_field(maps, time_viewer=False)
     assert isinstance(fig, Figure3D)
@@ -249,6 +261,161 @@ def _assert_n_actors(fig, renderer, n_actors):
     __tracebackhide__ = True
     assert isinstance(fig, Figure3D)
     assert len(fig.plotter.renderer.actors) == n_actors
+
+
+@pytest.mark.slowtest  # can be slow on OSX
+@testing.requires_testing_data
+@pytest.mark.parametrize(
+    "test_ecog, test_seeg, sensor_colors, sensor_scales, expectation",
+    [
+        (
+            True,
+            True,
+            "k",
+            2,
+            pytest.raises(
+                TypeError,
+                match="sensor_colors must be an instance of dict or "
+                "None when more than one channel type",
+            ),
+        ),
+        (
+            True,
+            True,
+            {"ecog": "k", "seeg": "k"},
+            2,
+            pytest.raises(
+                TypeError,
+                match="sensor_scales must be an instance of dict or "
+                "None when more than one channel type",
+            ),
+        ),
+        (
+            True,
+            True,
+            {"ecog": ["k"] * 2, "seeg": "k"},
+            {"ecog": 2, "seeg": 2},
+            pytest.raises(
+                ValueError,
+                match=r"Invalid value for the 'len\(sensor_colors\['ecog'\]\)' "
+                r"parameter. Allowed values are \d+ and \d+, but got \d+ instead",
+            ),
+        ),
+        (
+            True,
+            True,
+            {"ecog": "k", "seeg": ["k"] * 2},
+            {"ecog": 2, "seeg": 2},
+            pytest.raises(
+                ValueError,
+                match=r"Invalid value for the 'len\(sensor_colors\['seeg'\]\)' "
+                r"parameter. Allowed values are \d+ and \d+, but got \d+ instead",
+            ),
+        ),
+        (
+            True,
+            True,
+            {"ecog": "k", "seeg": "k"},
+            {"ecog": [2] * 2, "seeg": 2},
+            pytest.raises(
+                ValueError,
+                match=r"Invalid value for the 'len\(sensor_scales\['ecog'\]\)' "
+                r"parameter. Allowed values are \d+ and \d+, but got \d+ instead",
+            ),
+        ),
+        (
+            True,
+            True,
+            {"ecog": "k", "seeg": "k"},
+            {"ecog": 2, "seeg": [2] * 2},
+            pytest.raises(
+                ValueError,
+                match=r"Invalid value for the 'len\(sensor_scales\['seeg'\]\)' "
+                r"parameter. Allowed values are \d+ and \d+, but got \d+ instead",
+            ),
+        ),
+        (
+            True,
+            True,
+            {"ecog": "NotAColor", "seeg": "NotAColor"},
+            {"ecog": 2, "seeg": 2},
+            pytest.raises(
+                ValueError,
+                match=r".* is not a valid color value",
+            ),
+        ),
+        (
+            True,
+            True,
+            {"ecog": "k", "seeg": "k"},
+            {"ecog": "k", "seeg": 2},
+            pytest.raises(
+                AssertionError,
+                match=r"scales for .* must contain only numerical values, got .* "
+                r"instead.",
+            ),
+        ),
+        (
+            True,
+            True,
+            {"ecog": "k", "seeg": "k"},
+            {"ecog": 2, "seeg": 2},
+            nullcontext(),
+        ),
+        (
+            True,
+            True,
+            {"ecog": [0, 0, 0], "seeg": [0, 0, 0]},
+            {"ecog": 2, "seeg": 2},
+            nullcontext(),
+        ),
+        (
+            True,
+            True,
+            {"ecog": ["k"] * 10, "seeg": ["k"] * 10},
+            {"ecog": [2] * 10, "seeg": [2] * 10},
+            nullcontext(),
+        ),
+        (
+            True,
+            False,
+            "k",
+            2,
+            nullcontext(),
+        ),
+    ],
+)
+def test_plot_alignment_ieeg(
+    renderer, test_ecog, test_seeg, sensor_colors, sensor_scales, expectation
+):
+    """Test plotting of iEEG sensors."""
+    # Load evoked:
+    evoked = read_evokeds(evoked_fname)[0]
+    # EEG only
+    evoked_eeg = evoked.copy().pick_types(eeg=True)
+    with evoked_eeg.info._unlock():
+        evoked_eeg.info["projs"] = []  # "remove" avg proj
+    eeg_channels = pick_types(evoked_eeg.info, eeg=True)
+    # Set 10 EEG channels to ecog, 10 to seeg
+    evoked_eeg.set_channel_types(
+        {evoked_eeg.ch_names[ch]: "ecog" for ch in eeg_channels[:10]}
+    )
+    evoked_eeg.set_channel_types(
+        {evoked_eeg.ch_names[ch]: "seeg" for ch in eeg_channels[10:20]}
+    )
+    evoked_ecog_seeg = evoked_eeg.pick_types(seeg=True, ecog=True)
+    this_info = evoked_ecog_seeg.info
+    # Test plot:
+    with expectation:
+        fig = plot_alignment(
+            this_info,
+            ecog=test_ecog,
+            seeg=test_seeg,
+            sensor_colors=sensor_colors,
+            sensor_scales=sensor_scales,
+        )
+        assert isinstance(fig, Figure3D)
+        renderer.backend._close_all()
 
 
 @pytest.mark.slowtest  # Slow on Azure
@@ -747,7 +914,7 @@ def test_process_clim_plot(renderer_interactive, brain_gc):
     vertices = [s["vertno"] for s in sample_src]
     n_time = 5
     n_verts = sum(len(v) for v in vertices)
-    stc_data = np.random.RandomState(0).rand((n_verts * n_time))
+    stc_data = np.random.RandomState(0).rand(n_verts * n_time)
     stc_data.shape = (n_verts, n_time)
     stc = SourceEstimate(stc_data, vertices, 1, 1, "sample")
 
@@ -869,7 +1036,7 @@ def test_stc_mpl():
     vertices = [s["vertno"] for s in sample_src]
     n_time = 5
     n_verts = sum(len(v) for v in vertices)
-    stc_data = np.ones((n_verts * n_time))
+    stc_data = np.ones(n_verts * n_time)
     stc_data.shape = (n_verts, n_time)
     stc = SourceEstimate(stc_data, vertices, 1, 1, "sample")
     stc.plot(
@@ -1197,11 +1364,11 @@ def test_link_brains(renderer_interactive):
     vertices = [s["vertno"] for s in sample_src]
     n_time = 5
     n_verts = sum(len(v) for v in vertices)
-    stc_data = np.zeros((n_verts * n_time))
+    stc_data = np.zeros(n_verts * n_time)
     stc_size = stc_data.size
-    stc_data[
-        (np.random.rand(stc_size // 20) * stc_size).astype(int)
-    ] = np.random.RandomState(0).rand(stc_data.size // 20)
+    stc_data[(np.random.rand(stc_size // 20) * stc_size).astype(int)] = (
+        np.random.RandomState(0).rand(stc_data.size // 20)
+    )
     stc_data.shape = (n_verts, n_time)
     stc = SourceEstimate(stc_data, vertices, 1, 1)
 

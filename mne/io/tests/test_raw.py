@@ -1,8 +1,8 @@
 """Generic tests that all raw classes should run."""
-# Authors: MNE Developers
-#          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
-#
+
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import math
 import os
@@ -29,10 +29,9 @@ from mne._fiff.meas_info import Info, _get_valid_units, _writing_info_hdf5
 from mne._fiff.pick import _ELECTRODE_CH_TYPES, _FNIRS_CH_TYPES_SPLIT
 from mne._fiff.proj import Projection
 from mne._fiff.utils import _mult_cal_one
-from mne.datasets import testing
-from mne.fixes import _numpy_h5py_dep
 from mne.io import BaseRaw, RawArray, read_raw_fif
 from mne.io.base import _get_scaling
+from mne.transforms import Transform
 from mne.utils import (
     _import_h5io_funcs,
     _raw_annot,
@@ -318,7 +317,7 @@ def _test_raw_reader(
     full_data = raw._data
     assert raw.__class__.__name__ in repr(raw)  # to test repr
     assert raw.info.__class__.__name__ in repr(raw.info)
-    assert isinstance(raw.info["dig"], (type(None), list))
+    assert isinstance(raw.info["dig"], type(None) | list)
     data_max = np.nanmax(full_data)
     data_min = np.nanmin(full_data)
     # these limits could be relaxed if we actually find data with
@@ -334,7 +333,7 @@ def _test_raw_reader(
     assert meas_date is None or meas_date >= _stamp_to_dt((0, 0))
 
     # test repr_html
-    assert "Good channels" in raw._repr_html_()
+    assert "Channels" in raw._repr_html_()
 
     # test resetting raw
     if test_kwargs:
@@ -343,10 +342,13 @@ def _test_raw_reader(
         assert_array_equal(raw.times, raw2.times)
 
     # Test saving and reading
-    out_fname = op.join(tempdir, "test_raw.fif")
+    out_fname = op.join(tempdir, "test_out_raw.fif")
     raw = concatenate_raws([raw])
-    raw.save(out_fname, tmax=raw.times[-1], overwrite=True, buffer_size_sec=1)
-
+    filenames = raw.save(
+        out_fname, tmax=raw.times[-1], overwrite=True, buffer_size_sec=1
+    )
+    for filename in filenames:
+        assert filename.is_file()
     # Test saving with not correct extension
     out_fname_h5 = op.join(tempdir, "test_raw.h5")
     with pytest.raises(OSError, match="raw must end with .fif or .fif.gz"):
@@ -370,18 +372,21 @@ def _test_raw_reader(
     # Make sure concatenation works
     first_samp = raw.first_samp
     last_samp = raw.last_samp
-    concat_raw = concatenate_raws([raw.copy(), raw])
+    concat_raw = concatenate_raws([raw.copy(), raw], verbose="debug")
     assert concat_raw.n_times == 2 * raw.n_times
     assert concat_raw.first_samp == first_samp
     assert concat_raw.last_samp - last_samp + first_samp == last_samp + 1
     idx = np.where(concat_raw.annotations.description == "BAD boundary")[0]
+    assert len(idx) == 1
+    assert len(concat_raw.times) == 2 * n_samp
 
     expected_bad_boundary_onset = raw._last_time
 
     assert_array_almost_equal(
         concat_raw.annotations.onset[idx],
-        expected_bad_boundary_onset,
+        [expected_bad_boundary_onset],
         decimal=boundary_decimal,
+        err_msg="BAD boundary onset mismatch",
     )
 
     if raw.info["meas_id"] is not None:
@@ -440,7 +445,7 @@ def _test_raw_reader(
     if check_version("h5io"):
         read_hdf5, write_hdf5 = _import_h5io_funcs()
         fname_h5 = op.join(tempdir, "info.h5")
-        with _writing_info_hdf5(raw.info), _numpy_h5py_dep():
+        with _writing_info_hdf5(raw.info):
             write_hdf5(fname_h5, raw.info)
             new_info = Info(read_hdf5(fname_h5))
         assert object_diff(new_info, raw.info) == ""
@@ -603,7 +608,6 @@ def _test_concat(reader, *args):
                 assert_allclose(data, raw1[:, :][0])
 
 
-@testing.requires_testing_data
 def test_time_as_index():
     """Test indexing of raw times."""
     raw = read_raw_fif(raw_fname)
@@ -764,7 +768,7 @@ def test_5839():
         )
         return raw
 
-    raw_A, raw_B = [raw_factory((x, 0)) for x in [0, 2]]
+    raw_A, raw_B = (raw_factory((x, 0)) for x in [0, 2])
     raw_A.append(raw_B)
 
     assert_array_equal(raw_A.annotations.onset, EXPECTED_ONSET)
@@ -1011,3 +1015,21 @@ def test_resamp_noop():
     data_before = raw.get_data()
     data_after = raw.resample(sfreq=raw.info["sfreq"]).get_data()
     assert_array_equal(data_before, data_after)
+
+
+def test_concatenate_raw_dev_head_t():
+    """Test concatenating raws with dev-head-t including nans."""
+    data = np.random.randn(3, 10)
+    info = create_info(3, 1000.0, ["mag", "grad", "grad"])
+    raw = RawArray(data, info)
+    raw.info["dev_head_t"] = Transform("meg", "head", np.eye(4))
+    raw.info["dev_head_t"]["trans"][0, 0] = np.nan
+    raw2 = raw.copy()
+    concatenate_raws([raw, raw2])
+
+
+def test_last_samp():
+    """Test that getting the last sample works."""
+    raw = read_raw_fif(raw_fname).crop(0, 0.1).load_data()
+    last_data = raw._data[:, [-1]]
+    assert_array_equal(raw[:, -1][0], last_data)

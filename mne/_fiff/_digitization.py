@@ -1,10 +1,6 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
-#          Teon Brooks <teon.brooks@gmail.com>
-#          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
-#          Joan Massich <mailsik@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import heapq
 from collections import Counter
@@ -131,14 +127,15 @@ class DigPoint(dict):
             id_ = _cardinal_kind_rev.get(self["ident"], "Unknown cardinal")
         else:
             id_ = _dig_kind_proper[_dig_kind_rev.get(self["kind"], "unknown")]
-            id_ = "%s #%s" % (id_, self["ident"])
+            id_ = f"{id_} #{self['ident']}"
         id_ = id_.rjust(10)
         cf = _coord_frame_name(self["coord_frame"])
+        x, y, z = self["r"]
         if "voxel" in cf:
-            pos = ("(%0.1f, %0.1f, %0.1f)" % tuple(self["r"])).ljust(25)
+            pos = (f"({x:0.1f}, {y:0.1f}, {z:0.1f})").ljust(25)
         else:
-            pos = ("(%0.1f, %0.1f, %0.1f) mm" % tuple(1000 * self["r"])).ljust(25)
-        return "<DigPoint | %s : %s : %s frame>" % (id_, pos, cf)
+            pos = (f"({x * 1e3:0.1f}, {y * 1e3:0.1f}, {z * 1e3:0.1f}) mm").ljust(25)
+        return f"<DigPoint | {id_} : {pos} : {cf} frame>"
 
     # speed up info copy by only deep copying the mutable item
     def __deepcopy__(self, memodict):
@@ -223,7 +220,7 @@ def write_dig(fname, pts, coord_frame=None, *, overwrite=False, verbose=None):
         if len(bad_frames) > 0:
             raise ValueError(
                 "Points have coord_frame entries that are incompatible with "
-                "coord_frame=%i: %s." % (coord_frame, str(tuple(bad_frames)))
+                f"coord_frame={coord_frame}: {tuple(bad_frames)}."
             )
 
     with start_and_end_file(fname) as fid:
@@ -342,13 +339,13 @@ def _get_fid_coords(dig, raise_error=True):
     if len(fid_coord_frames) > 0 and raise_error:
         if set(fid_coord_frames.keys()) != set(["nasion", "lpa", "rpa"]):
             raise ValueError(
-                "Some fiducial points are missing (got %s)." % fid_coord_frames.keys()
+                f"Some fiducial points are missing (got {fid_coord_frames.keys()})."
             )
 
         if len(set(fid_coord_frames.values())) > 1:
             raise ValueError(
                 "All fiducial points must be in the same coordinate system "
-                "(got %s)" % len(fid_coord_frames)
+                f"(got {len(fid_coord_frames)})"
             )
 
     coord_frame = fid_coord_frames.popitem()[1] if fid_coord_frames else None
@@ -361,8 +358,8 @@ def _coord_frame_const(coord_frame):
 
     if not isinstance(coord_frame, str) or coord_frame not in _str_to_frame:
         raise ValueError(
-            "coord_frame must be one of %s, got %s"
-            % (sorted(_str_to_frame.keys()), coord_frame)
+            f"coord_frame must be one of {sorted(_str_to_frame.keys())}, got "
+            f"{coord_frame}"
         )
     return _str_to_frame[coord_frame]
 
@@ -413,9 +410,7 @@ def _make_dig_points(
     if lpa is not None:
         lpa = np.asarray(lpa)
         if lpa.shape != (3,):
-            raise ValueError(
-                "LPA should have the shape (3,) instead of %s" % (lpa.shape,)
-            )
+            raise ValueError(f"LPA should have the shape (3,) instead of {lpa.shape}")
         dig.append(
             {
                 "r": lpa,
@@ -428,7 +423,7 @@ def _make_dig_points(
         nasion = np.asarray(nasion)
         if nasion.shape != (3,):
             raise ValueError(
-                "Nasion should have the shape (3,) instead of %s" % (nasion.shape,)
+                f"Nasion should have the shape (3,) instead of {nasion.shape}"
             )
         dig.append(
             {
@@ -441,9 +436,7 @@ def _make_dig_points(
     if rpa is not None:
         rpa = np.asarray(rpa)
         if rpa.shape != (3,):
-            raise ValueError(
-                "RPA should have the shape (3,) instead of %s" % (rpa.shape,)
-            )
+            raise ValueError(f"RPA should have the shape (3,) instead of {rpa.shape}")
         dig.append(
             {
                 "r": rpa,
@@ -456,8 +449,7 @@ def _make_dig_points(
         hpi = np.asarray(hpi)
         if hpi.ndim != 2 or hpi.shape[1] != 3:
             raise ValueError(
-                "HPI should have the shape (n_points, 3) instead "
-                "of %s" % (hpi.shape,)
+                f"HPI should have the shape (n_points, 3) instead of {hpi.shape}"
             )
         for idx, point in enumerate(hpi):
             dig.append(
@@ -472,8 +464,8 @@ def _make_dig_points(
         extra_points = np.asarray(extra_points)
         if len(extra_points) and extra_points.shape[1] != 3:
             raise ValueError(
-                "Points should have the shape (n_points, 3) "
-                "instead of %s" % (extra_points.shape,)
+                "Points should have the shape (n_points, 3) instead of "
+                f"{extra_points.shape}"
             )
         for idx, point in enumerate(extra_points):
             dig.append(

@@ -1,8 +1,8 @@
 """Dipole viz specific functions."""
 
-# Authors: Eric Larson <larson.eric.d@gmail.com>
-#
-# License: Simplified BSD
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import os.path as op
 

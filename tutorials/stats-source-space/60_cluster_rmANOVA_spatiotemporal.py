@@ -20,6 +20,7 @@ across space and time.
 #          Denis Engemannn <denis.engemann@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 
@@ -119,7 +120,7 @@ tstep = conditions[0].tstep * 1000  # convert to milliseconds
 # We'll only consider the left hemisphere in this tutorial.
 n_vertices_sample, n_times = conditions[0].lh_data.shape
 n_subjects = 6
-print("Simulating data for %d subjects." % n_subjects)
+print(f"Simulating data for {n_subjects} subjects.")
 
 #    Let's make sure our results replicate, so set the seed.
 np.random.seed(0)
@@ -284,9 +285,7 @@ brain.show_view("medial")
 
 inds_t, inds_v = [
     (clusters[cluster_ind]) for ii, cluster_ind in enumerate(good_cluster_inds)
-][
-    0
-]  # first cluster
+][0]  # first cluster
 
 times = np.arange(X[0].shape[1]) * tstep * 1e3
 

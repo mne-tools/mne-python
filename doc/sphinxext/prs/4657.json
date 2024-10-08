@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "47368ab51847c4551e9df789f0de2fc5df3e17cc",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/channels/montage.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

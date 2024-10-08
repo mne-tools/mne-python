@@ -1,3 +1,7 @@
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
+
 from pathlib import Path
 
 import numpy as np
@@ -8,9 +12,7 @@ from scipy.signal import lfilter
 from mne import io
 from mne.time_frequency.ar import _yule_walker, fit_iir_model_raw
 
-raw_fname = (
-    Path(__file__).parent.parent.parent / "io" / "tests" / "data" / "test_raw.fif"
-)
+raw_fname = Path(__file__).parents[2] / "io" / "tests" / "data" / "test_raw.fif"
 
 
 def test_yule_walker():

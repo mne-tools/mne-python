@@ -12,6 +12,7 @@ Compute a Recursively Applied and Projected MUltiple Signal Classification
 # Author: Yousra Bekhti <yousra.bekhti@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 

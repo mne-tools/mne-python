@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "aeeb111f8555b49460583a34c573437358c1cb9f",
+  "authors": [
+    {
+      "n": "Alex Rockhill",
+      "e": "aprockhill@mailbox.org"
+    }
+  ],
+  "changes": {
+    "mne/viz/backends/_pyvista.py": {
+      "a": 5,
+      "d": 3
+    }
+  }
+}

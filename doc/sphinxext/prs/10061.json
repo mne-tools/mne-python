@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "1514d0c72e4f0c45b00af9138925512f52640ea9",
+  "authors": [
+    {
+      "n": "Mathieu Scheltienne",
+      "e": "mathieu.scheltienne@fcbg.ch"
+    }
+  ],
+  "changes": {
+    "mne/utils/docs.py": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

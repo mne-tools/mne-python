@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "d66a8683911d217b594a82f46cedd209e52912e3",
+  "authors": [
+    {
+      "n": "Nathalie",
+      "e": "nat.gayraud@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/simulation/source.py": {
+      "a": 41,
+      "d": 29
+    },
+    "mne/simulation/tests/test_source.py": {
+      "a": 35,
+      "d": 0
+    }
+  }
+}

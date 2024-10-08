@@ -1,0 +1,87 @@
+{
+  "merge_commit_sha": "c1b029af86bf1304526164fa42edb3ecd7ef3be3",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/forward/tests/test_make_forward.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/array/array.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/io/array/tests/test_array.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/io/base.py": {
+      "a": 10,
+      "d": 8
+    },
+    "mne/io/brainvision/brainvision.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/brainvision/tests/test_brainvision.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/bti/bti.py": {
+      "a": 67,
+      "d": 93
+    },
+    "mne/io/bti/tests/test_bti.py": {
+      "a": 24,
+      "d": 29
+    },
+    "mne/io/ctf/tests/test_ctf.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/io/edf/tests/test_edf.py": {
+      "a": 2,
+      "d": 3
+    },
+    "mne/io/egi/egi.py": {
+      "a": 101,
+      "d": 124
+    },
+    "mne/io/egi/tests/data/test_egi.txt": {
+      "a": 257,
+      "d": 0
+    },
+    "mne/io/egi/tests/test_egi.py": {
+      "a": 27,
+      "d": 10
+    },
+    "mne/io/fiff/tests/test_raw_fiff.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/kit/kit.py": {
+      "a": 3,
+      "d": 4
+    },
+    "mne/io/kit/tests/test_kit.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/meas_info.py": {
+      "a": 2,
+      "d": 6
+    },
+    "mne/io/nicolet/tests/test_nicolet.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/tests/test_raw.py": {
+      "a": 29,
+      "d": 41
+    }
+  }
+}

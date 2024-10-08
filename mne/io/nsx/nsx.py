@@ -1,6 +1,7 @@
-# Author: Proloy Das <pdas6@mgh.harvard.edu>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
+
 import os
 from datetime import datetime, timezone
 
@@ -10,7 +11,7 @@ from ..._fiff.constants import FIFF
 from ..._fiff.meas_info import _empty_info
 from ..._fiff.utils import _file_size, _read_segments_file
 from ...annotations import Annotations
-from ...utils import fill_doc, logger, warn
+from ...utils import _check_fname, fill_doc, logger, warn
 from ..base import BaseRaw, _get_scaling
 
 CH_TYPE_MAPPING = {
@@ -87,7 +88,7 @@ nsx_header_dict = {
 @fill_doc
 def read_raw_nsx(
     input_fname, stim_channel=True, eog=None, misc=None, preload=False, *, verbose=None
-):
+) -> "RawNSX":
     """Reader function for NSx (Blackrock Microsystems) files.
 
     Parameters
@@ -125,10 +126,13 @@ def read_raw_nsx(
     STIM channels by default. Use func:`mne.find_events` to parse events
     encoded in such analog stim channels.
     """
-    input_fname = os.path.abspath(input_fname)
-    ext = os.path.splitext(input_fname)[1][1:].lower()
-    if ext[:2] != "ns":
-        raise NotImplementedError(f"Only NSx files are supported, got {ext}.")
+    input_fname = _check_fname(
+        input_fname, overwrite="read", must_exist=True, name="input_fname"
+    )
+    if not input_fname.suffix.lower().startswith(".ns"):
+        raise NotImplementedError(
+            f"Only NSx files are supported, got {input_fname.suffix}."
+        )
     return RawNSX(
         input_fname, stim_channel, eog, misc, preload=preload, verbose=verbose
     )
@@ -177,7 +181,7 @@ class RawNSX(BaseRaw):
         preload=False,
         verbose=None,
     ):
-        logger.info("Extracting NSX parameters from {}...".format(input_fname))
+        logger.info(f"Extracting NSX parameters from {input_fname}...")
         input_fname = os.path.abspath(input_fname)
         (
             info,
@@ -190,7 +194,7 @@ class RawNSX(BaseRaw):
         ) = _get_hdr_info(input_fname, stim_channel=stim_channel, eog=eog, misc=misc)
         raw_extras["orig_format"] = orig_format
         first_samps = (raw_extras["timestamp"][0],)
-        super(RawNSX, self).__init__(
+        super().__init__(
             info,
             first_samps=first_samps,
             last_samps=[first_samps[0] + n_samples - 1],
@@ -310,7 +314,7 @@ def _read_header_22_and_above(fname):
         basic_header[x] = basic_header[x] * 1e-3
 
     ver_major, ver_minor = basic_header.pop("ver_major"), basic_header.pop("ver_minor")
-    basic_header["spec"] = "{}.{}".format(ver_major, ver_minor)
+    basic_header["spec"] = f"{ver_major}.{ver_minor}"
 
     data_header = list()
     index = 0
@@ -354,9 +358,9 @@ def _get_hdr_info(fname, stim_channel=True, eog=None, misc=None):
     ch_names = list(nsx_info["extended"]["electrode_label"])
     ch_types = list(nsx_info["extended"]["type"])
     ch_units = list(nsx_info["extended"]["units"])
-    ch_names, ch_types, ch_units = [
+    ch_names, ch_types, ch_units = (
         list(map(bytes.decode, xx)) for xx in (ch_names, ch_types, ch_units)
-    ]
+    )
     max_analog_val = nsx_info["extended"]["max_analog_val"].astype("double")
     min_analog_val = nsx_info["extended"]["min_analog_val"].astype("double")
     max_digital_val = nsx_info["extended"]["max_digital_val"].astype("double")

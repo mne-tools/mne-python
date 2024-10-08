@@ -1,7 +1,8 @@
 """Some utility functions."""
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#
+
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import logging
 import os
@@ -54,7 +55,7 @@ class ProgressBar:
         *,
         which_tqdm=None,
         **kwargs,
-    ):  # noqa: D102
+    ):
         # The following mimics this, but with configurable module to use
         # from ..externals.tqdm import auto
         import tqdm
@@ -132,12 +133,14 @@ class ProgressBar:
             will be computed as
             ``(self.cur_value + increment_value / max_value) * 100``.
         """
-        self._tqdm.update(increment_value)
+        try:
+            self._tqdm.update(increment_value)
+        except TypeError:  # can happen during GC on Windows
+            pass
 
     def __iter__(self):
         """Iterate to auto-increment the pbar with 1."""
-        for x in self._tqdm:
-            yield x
+        yield from self._tqdm
 
     def subset(self, idx):
         """Make a joblib-friendly index subset updater.
@@ -177,7 +180,11 @@ class ProgressBar:
         self._thread.join()
         self._mmap = None
         if op.isfile(self._mmap_fname):
-            os.remove(self._mmap_fname)
+            try:
+                os.remove(self._mmap_fname)
+            # happens on Windows sometimes
+            except PermissionError:  # pragma: no cover
+                pass
 
     def __del__(self):
         """Ensure output completes."""
@@ -187,7 +194,7 @@ class ProgressBar:
 
 class _UpdateThread(Thread):
     def __init__(self, pb):
-        super(_UpdateThread, self).__init__(daemon=True)
+        super().__init__(daemon=True)
         self._mne_run = True
         self._mne_pb = pb
 

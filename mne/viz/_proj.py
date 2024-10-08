@@ -1,8 +1,8 @@
 """Functions for plotting projectors."""
 
-# Authors: Eric Larson <larson.eric.d@gmail.com>
-#
-# License: Simplified BSD
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from copy import deepcopy
 

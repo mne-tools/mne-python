@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "43e7ab99ccc7d7e006af81804147b57abf882b7e",
+  "authors": [
+    {
+      "n": "Alex Rockhill",
+      "e": "aprockhill@mailbox.org"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/gui/_ieeg_locate_gui.py": {
+      "a": 106,
+      "d": 38
+    },
+    "mne/gui/tests/test_ieeg_locate_gui.py": {
+      "a": 17,
+      "d": 4
+    }
+  }
+}

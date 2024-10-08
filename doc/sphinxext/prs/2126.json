@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "11a5bcf8bf14efe6de58606ee8b5002d833c550c",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/forward/forward.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/base.py": {
+      "a": 14,
+      "d": 4
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/realtime/tests/test_mockclient.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/tests/test_event.py": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

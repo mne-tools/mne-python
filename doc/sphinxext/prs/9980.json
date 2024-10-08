@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "84dd3ff13cf9fad9212456cdb9066ff6e4122142",
+  "authors": [
+    {
+      "n": "Alex Rockhill",
+      "e": "aprockhill@mailbox.org"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/source_estimate.py": {
+      "a": 31,
+      "d": 18
+    },
+    "mne/tests/test_source_estimate.py": {
+      "a": 4,
+      "d": 4
+    },
+    "tutorials/clinical/30_ecog.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

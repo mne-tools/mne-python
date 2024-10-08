@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "6397b15a2b978dbf5ad9e4946fb66987b03f74bc",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/source/_static/navy.css": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/source/_templates/layout.html": {
+      "a": 3,
+      "d": 0
+    }
+  }
+}

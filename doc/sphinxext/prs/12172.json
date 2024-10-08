@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "b988e67d9916ed651c381b867e8bf10c3a470905",
+  "authors": [
+    {
+      "n": "Scott Huberty",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/io/eyelink/_utils.py": {
+      "a": 2,
+      "d": 0
+    }
+  }
+}

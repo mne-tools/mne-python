@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "4a99b6fff771031763c774eab9f66d32f2702f21",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".travis.yml": {
+      "a": 2,
+      "d": 2
+    },
+    "appveyor.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/decoding/plot_receptive_field.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/decoding/receptive_field.py": {
+      "a": 34,
+      "d": 22
+    },
+    "mne/decoding/tests/test_receptive_field.py": {
+      "a": 148,
+      "d": 79
+    },
+    "mne/decoding/time_delaying_ridge.py": {
+      "a": 7,
+      "d": 6
+    },
+    "setup.cfg": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/plot_receptive_field.py": {
+      "a": 9,
+      "d": 9
+    }
+  }
+}

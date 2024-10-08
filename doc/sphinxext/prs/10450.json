@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "38ffd9b1edff7ecf1ed507dfc9c9a4cf3730451c",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".github/workflows/codespell_and_flake.yml": {
+      "a": 1,
+      "d": 1
+    },
+    ".github/workflows/compat_minimal.yml": {
+      "a": 1,
+      "d": 2
+    },
+    ".github/workflows/compat_old.yml": {
+      "a": 1,
+      "d": 2
+    },
+    ".github/workflows/linux_conda.yml": {
+      "a": 1,
+      "d": 2
+    },
+    ".github/workflows/linux_pip.yml": {
+      "a": 1,
+      "d": 2
+    },
+    ".github/workflows/macos_conda.yml": {
+      "a": 1,
+      "d": 2
+    }
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "8ef95c9afacc9139922896f805395a3166bafb74",
+  "authors": [
+    {
+      "n": "Maksymenko Kostiantyn",
+      "e": "makkostya@ukr.net"
+    }
+  ],
+  "changes": {
+    "doc/python_reference.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/label.py": {
+      "a": 159,
+      "d": 1
+    },
+    "mne/tests/test_label.py": {
+      "a": 40,
+      "d": 1
+    }
+  }
+}

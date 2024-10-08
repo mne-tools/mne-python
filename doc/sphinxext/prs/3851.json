@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "990159a3b1598b931449828bf6345e8a97bad6d0",
+  "authors": [
+    {
+      "n": "jaeilepp",
+      "e": "jaeilepp@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/baseline.py": {
+      "a": 5,
+      "d": 4
+    },
+    "mne/minimum_norm/time_frequency.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

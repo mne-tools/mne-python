@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "d7c8fe391ac6c0b01b66d7e328689f3dbe9a51dd",
+  "authors": [
+    {
+      "n": "Sen-wen DENG",
+      "e": null
+    },
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/preprocessing/artifact_detection.py": {
+      "a": 29,
+      "d": 15
+    }
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "248fe7eeb45d596592b4dc3277a229afc7b55a3d",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 1,
+      "d": 59
+    },
+    "mne/viz/topomap.py": {
+      "a": 101,
+      "d": 78
+    },
+    "tutorials/plot_dipole_fit.py": {
+      "a": 3,
+      "d": 7
+    },
+    "tutorials/plot_visualize_evoked.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

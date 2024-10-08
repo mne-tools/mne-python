@@ -14,6 +14,7 @@ amplitude bias due to the non-convexity of the L0.5/L2 mixed norm penalty.
 #         Daniel Strohmeier <daniel.strohmeier@tu-ilmenau.de>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 
@@ -89,7 +90,7 @@ dipoles, residual = mixed_norm(
 t = 0.083
 tidx = evoked.time_as_index(t).item()
 for di, dip in enumerate(dipoles, 1):
-    print(f"Dipole #{di} GOF at {1000 * t:0.1f} ms: " f"{float(dip.gof[tidx]):0.1f}%")
+    print(f"Dipole #{di} GOF at {1000 * t:0.1f} ms: {float(dip.gof[tidx]):0.1f}%")
 
 # %%
 # Plot dipole activations
@@ -136,7 +137,7 @@ plot_sparse_source_estimates(
     forward["src"],
     stc,
     bgcolor=(1, 1, 1),
-    fig_name="%s (cond %s)" % (solver, condition),
+    fig_name=f"{solver} (cond {condition})",
     opacity=0.1,
 )
 
@@ -158,7 +159,7 @@ plot_sparse_source_estimates(
     src_fsaverage,
     stc_fsaverage,
     bgcolor=(1, 1, 1),
-    fig_name="Morphed %s (cond %s)" % (solver, condition),
+    fig_name=f"Morphed {solver} (cond {condition})",
     opacity=0.1,
 )
 

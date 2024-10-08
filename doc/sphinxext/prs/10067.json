@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "151b8a6cf92524d7e97ea63592b6d3707c38e2b4",
+  "authors": [
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/nirx/tests/test_nirx.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/preprocessing/annotate_nan.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/preprocessing/artifact_detection.py": {
+      "a": 16,
+      "d": 9
+    },
+    "mne/preprocessing/flat.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/tests/test_artifact_detection.py": {
+      "a": 33,
+      "d": 13
+    },
+    "mne/preprocessing/tests/test_flat.py": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

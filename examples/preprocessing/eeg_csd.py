@@ -15,6 +15,7 @@ or more distinct topography, reducing the negative impact of volume conduction.
 # Authors: Alex Rockhill <aprockhill@mailbox.org>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 
@@ -48,8 +49,8 @@ raw_csd.plot()
 # %%
 # Also look at the power spectral densities:
 
-raw.compute_psd().plot(picks="data", exclude="bads")
-raw_csd.compute_psd().plot(picks="data", exclude="bads")
+raw.compute_psd().plot(picks="data", exclude="bads", amplitude=False)
+raw_csd.compute_psd().plot(picks="data", exclude="bads", amplitude=False)
 
 # %%
 # CSD can also be computed on Evoked (averaged) data.
@@ -88,7 +89,7 @@ for i, lambda2 in enumerate([0, 1e-7, 1e-5, 1e-3]):
         this_evoked_csd.plot_topomap(
             0.1, axes=ax[i, j], contours=4, time_unit="s", colorbar=False, show=False
         )
-        ax[i, j].set_title("stiffness=%i\nλ²=%s" % (m, lambda2))
+        ax[i, j].set_title(f"stiffness={m}\nλ²={lambda2}")
 
 # %%
 # References

@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "b8bf44c0910e28fe437f348db10427e6354725d7",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/_static/mne_logo.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/mne_logo_small.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/generate_mne_logos.py": {
+      "a": 154,
+      "d": 0
+    },
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    }
+  }
+}

@@ -1,7 +1,8 @@
 """Localizations for meas_date extraction."""
-# Authors: Eric Larson <larson.eric.d@gmail.com>
-#
+
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # This file was generated on 2021/01/31 on an Ubuntu system.
 # When getting "unsupported locale setting" on Ubuntu (e.g., with localepurge),
@@ -40,6 +41,7 @@ for loc in ('en_US.utf8', 'de_DE', 'fr_FR', 'it_IT'):
 print('}\n')
 """
 
+# TODO: this should really be outsourced to a dedicated module like arrow or babel
 _localized_abbr = {
     "en_US.utf8": {
         "month": {

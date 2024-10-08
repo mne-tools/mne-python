@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "38bd3c4fccf06445b6f5e8cdfa2a763c5bc95b5a",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/datasets/utils.py": {
+      "a": 2,
+      "d": 1
+    },
+    "tutorials/plot_phantom_4DBTi.py": {
+      "a": 1,
+      "d": 2
+    }
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "4308cc3912808d12f65e595221cc36ac60017503",
+  "authors": [
+    {
+      "n": "Rob Luke",
+      "e": null
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Clemens Brunner",
+      "e": "clemens.brunner@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Clemens Brunner",
+      "e": "clemens.brunner@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/annotations.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/tests/test_annotations.py": {
+      "a": 5,
+      "d": 0
+    },
+    "tutorials/preprocessing/70_fnirs_processing.py": {
+      "a": 19,
+      "d": 4
+    }
+  }
+}

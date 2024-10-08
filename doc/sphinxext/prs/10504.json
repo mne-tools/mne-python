@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "493418e6e30c9ef85c57aabc6702c1724dd8d82b",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/channels/channels.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/channels/tests/test_channels.py": {
+      "a": 18,
+      "d": 1
+    }
+  }
+}

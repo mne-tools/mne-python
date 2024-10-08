@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "971aabad689f18951f810605125bd865c88315a0",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "doc/source/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/epochs.py": {
+      "a": 8,
+      "d": 30
+    },
+    "mne/fiff/proj.py": {
+      "a": 54,
+      "d": 0
+    },
+    "mne/fiff/raw.py": {
+      "a": 121,
+      "d": 83
+    },
+    "mne/fiff/tests/test_raw.py": {
+      "a": 30,
+      "d": 0
+    },
+    "mne/preprocessing/ssp.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 20,
+      "d": 3
+    },
+    "mne/utils.py": {
+      "a": 6,
+      "d": 0
+    }
+  }
+}

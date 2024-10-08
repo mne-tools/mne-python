@@ -1,9 +1,6 @@
-# Authors: Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
-#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
-#          Eric Larson <larson.eric.d@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # The computations in this code were primarily derived from Matti Hämäläinen's
 # C code.
@@ -92,7 +89,7 @@ def _read_coil_def_file(fname, use_registry=True):
     if not use_registry or fname not in _coil_registry:
         big_val = 0.5
         coils = list()
-        with open(fname, "r") as fid:
+        with open(fname) as fid:
             lines = fid.readlines()
         lines = lines[::-1]
         while len(lines) > 0:
@@ -126,7 +123,7 @@ def _read_coil_def_file(fname, use_registry=True):
                 vals = np.fromstring(line, sep=" ")
                 if len(vals) != 7:
                     raise RuntimeError(
-                        f"Could not interpret line {p + 1} as 7 points:\n" f"{line}"
+                        f"Could not interpret line {p + 1} as 7 points:\n{line}"
                     )
                 # Read and verify data for each integration point
                 w.append(vals[0])
@@ -155,7 +152,7 @@ def _create_meg_coil(coilset, ch, acc, do_es):
     """Create a coil definition using templates, transform if necessary."""
     # Also change the coordinate frame if so desired
     if ch["kind"] not in [FIFF.FIFFV_MEG_CH, FIFF.FIFFV_REF_MEG_CH]:
-        raise RuntimeError("%s is not a MEG channel" % ch["ch_name"])
+        raise RuntimeError(f"{ch['ch_name']} is not a MEG channel")
 
     # Simple linear search from the coil definitions
     for coil in coilset:
@@ -164,7 +161,7 @@ def _create_meg_coil(coilset, ch, acc, do_es):
     else:
         raise RuntimeError(
             "Desired coil definition not found "
-            "(type = %d acc = %d)" % (ch["coil_type"], acc)
+            f"(type = {ch['coil_type']} acc = {acc})"
         )
 
     # Apply a coordinate transformation if so desired
@@ -203,8 +200,8 @@ def _create_eeg_el(ch, t=None):
     """Create an electrode definition, transform coords if necessary."""
     if ch["kind"] != FIFF.FIFFV_EEG_CH:
         raise RuntimeError(
-            "%s is not an EEG channel. Cannot create an "
-            "electrode definition." % ch["ch_name"]
+            f"{ch['ch_name']} is not an EEG channel. Cannot create an electrode "
+            "definition."
         )
     if t is None:
         t = Transform("head", "head")  # identity, no change
@@ -283,7 +280,7 @@ def _setup_bem(bem, bem_extra, neeg, mri_head_t, allow_none=False, verbose=None)
     logger.info("")
     _validate_type(bem, ("path-like", ConductorModel), bem)
     if not isinstance(bem, ConductorModel):
-        logger.info("Setting up the BEM model using %s...\n" % bem_extra)
+        logger.info(f"Setting up the BEM model using {bem_extra}...\n")
         bem = read_bem_solution(bem)
     else:
         bem = bem.copy()
@@ -291,15 +288,15 @@ def _setup_bem(bem, bem_extra, neeg, mri_head_t, allow_none=False, verbose=None)
         logger.info("Using the sphere model.\n")
         if len(bem["layers"]) == 0 and neeg > 0:
             raise RuntimeError(
-                "Spherical model has zero shells, cannot use " "with EEG data"
+                "Spherical model has zero shells, cannot use with EEG data"
             )
         if bem["coord_frame"] != FIFF.FIFFV_COORD_HEAD:
             raise RuntimeError("Spherical model is not in head coordinates")
     else:
         if bem["surfs"][0]["coord_frame"] != FIFF.FIFFV_COORD_MRI:
             raise RuntimeError(
-                "BEM is in %s coordinates, should be in MRI"
-                % (_coord_frame_name(bem["surfs"][0]["coord_frame"]),)
+                f'BEM is in {_coord_frame_name(bem["surfs"][0]["coord_frame"])} '
+                'coordinates, should be in MRI'
             )
         if neeg > 0 and len(bem["surfs"]) == 1:
             raise RuntimeError(
@@ -307,12 +304,10 @@ def _setup_bem(bem, bem_extra, neeg, mri_head_t, allow_none=False, verbose=None)
                 "for EEG forward calculations, consider "
                 "using a 3-layer BEM instead"
             )
-        logger.info(
-            "Employing the head->MRI coordinate transform with the " "BEM model."
-        )
+        logger.info("Employing the head->MRI coordinate transform with the BEM model.")
         # fwd_bem_set_head_mri_t: Set the coordinate transformation
         bem["head_mri_t"] = _ensure_trans(mri_head_t, "head", "mri")
-        logger.info("BEM model %s is now set up" % op.split(bem_extra)[1])
+        logger.info(f"BEM model {op.split(bem_extra)[1]} is now set up")
         logger.info("")
     return bem
 
@@ -422,7 +417,7 @@ def _prep_eeg_channels(info, exclude=(), verbose=None):
     # Get channel info and names for EEG channels
     eegchs = pick_info(info, picks)["chs"]
     eegnames = [info["ch_names"][p] for p in picks]
-    logger.info("Read %3d EEG channels from %s" % (len(picks), info_extra))
+    logger.info(f"Read {len(picks):3} EEG channels from {info_extra}")
 
     # Create EEG electrode descriptions
     eegels = _create_eeg_els(eegchs)
@@ -485,7 +480,7 @@ def _prepare_for_forward(
 
     # make a new dict with the relevant information
     arg_list = [info_extra, trans, src, bem_extra, meg, eeg, mindist, n_jobs, verbose]
-    cmd = "make_forward_solution(%s)" % (", ".join([str(a) for a in arg_list]))
+    cmd = f"make_forward_solution({', '.join(str(a) for a in arg_list)})"
     mri_id = dict(machid=np.zeros(2, np.int32), version=0, secs=0, usecs=0)
 
     info_trans = str(trans) if isinstance(trans, Path) else trans
@@ -526,7 +521,7 @@ def _prepare_for_forward(
     for s in src:
         transform_surface_to(s, "head", mri_head_t)
     logger.info(
-        "Source spaces are now in %s coordinates." % _coord_frame_name(s["coord_frame"])
+        f"Source spaces are now in {_coord_frame_name(s['coord_frame'])} coordinates."
     )
 
     # Prepare the BEM model
@@ -660,7 +655,7 @@ def make_forward_solution(
     followed by :func:`mne.convert_forward_solution`.
 
     .. note::
-        If the BEM solution was computed with :doc:`OpenMEEG <openmeeg:index>`
+        If the BEM solution was computed with `OpenMEEG <https://openmeeg.github.io>`__
         in :func:`mne.make_bem_solution`, then OpenMEEG will automatically
         be used to compute the forward solution.
 
@@ -688,14 +683,14 @@ def make_forward_solution(
         info_extra = "instance of Info"
 
     # Report the setup
-    logger.info("Source space          : %s" % src)
-    logger.info("MRI -> head transform : %s" % trans)
-    logger.info("Measurement data      : %s" % info_extra)
+    logger.info(f"Source space          : {src}")
+    logger.info(f"MRI -> head transform : {trans}")
+    logger.info(f"Measurement data      : {info_extra}")
     if isinstance(bem, ConductorModel) and bem["is_sphere"]:
-        logger.info("Sphere model      : origin at %s mm" % (bem["r0"],))
+        logger.info(f"Sphere model      : origin at {bem['r0']} mm")
         logger.info("Standard field computations")
     else:
-        logger.info("Conductor model   : %s" % bem_extra)
+        logger.info(f"Conductor model   : {bem_extra}")
         logger.info("Accurate field computations")
     logger.info(
         "Do computations in %s coordinates", _coord_frame_name(FIFF.FIFFV_COORD_HEAD)
@@ -818,8 +813,9 @@ def make_forward_dipole(dipole, bem, info, trans=None, n_jobs=None, *, verbose=N
         head = "The following dipoles are outside the inner skull boundary"
         msg = len(head) * "#" + "\n" + head + "\n"
         for t, pos in zip(times[np.logical_not(inuse)], pos[np.logical_not(inuse)]):
-            msg += "    t={:.0f} ms, pos=({:.0f}, {:.0f}, {:.0f}) mm\n".format(
-                t * 1000.0, pos[0] * 1000.0, pos[1] * 1000.0, pos[2] * 1000.0
+            msg += (
+                f"    t={t * 1000.0:.0f} ms, pos=({pos[0] * 1000.0:.0f}, "
+                f"{pos[1] * 1000.0:.0f}, {pos[2] * 1000.0:.0f}) mm\n"
             )
         msg += len(head) * "#"
         logger.error(msg)

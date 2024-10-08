@@ -1,14 +1,14 @@
 """Generate self-contained HTML reports from MNE objects."""
 
-# Authors: Alex Gramfort <alexandre.gramfort@inria.fr>
-#          Mainak Jas <mainak@neuro.hut.fi>
-#          Teon Brooks <teon.brooks@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
+
+from __future__ import annotations  # only needed for Python ≤ 3.9
 
 import base64
+import copy
 import dataclasses
-import fnmatch
 import io
 import os
 import os.path as op
@@ -22,7 +22,6 @@ from functools import partial
 from io import BytesIO, StringIO
 from pathlib import Path
 from shutil import copyfile
-from typing import Optional, Tuple
 
 import numpy as np
 
@@ -58,7 +57,6 @@ from ..utils import (
     _safe_input,
     _validate_type,
     _verbose_safe_false,
-    check_version,
     fill_doc,
     get_subjects_dir,
     logger,
@@ -140,9 +138,8 @@ CONTENT_ORDER = (
 )
 
 html_include_dir = Path(__file__).parent / "js_and_css"
-template_dir = Path(__file__).parent / "templates"
 JAVASCRIPT = (html_include_dir / "report.js").read_text(encoding="utf-8")
-CSS = (html_include_dir / "report.sass").read_text(encoding="utf-8")
+CSS = (html_include_dir / "report.css").read_text(encoding="utf-8")
 
 MAX_IMG_RES = 100  # in dots per inch
 MAX_IMG_WIDTH = 850  # in pixels
@@ -299,17 +296,17 @@ def _html_element(*, id_, div_klass, html, title, tags):
 @dataclass
 class _ContentElement:
     name: str
-    section: Optional[str]
+    section: str | None
     dom_id: str
-    tags: Tuple[str]
+    tags: tuple[str]
     html: str
 
 
-def _check_tags(tags) -> Tuple[str]:
+def _check_tags(tags) -> tuple[str]:
     # Must be iterable, but not a string
     if isinstance(tags, str):
         tags = (tags,)
-    elif isinstance(tags, (Sequence, np.ndarray)):
+    elif isinstance(tags, Sequence | np.ndarray):
         tags = tuple(tags)
     else:
         raise TypeError(
@@ -420,23 +417,21 @@ def _fig_to_img(fig, *, image_format="png", own_figure=True):
     # https://pillow.readthedocs.io/en/stable/handbook/image-file-formats.html
     mpl_kwargs = dict()
     pil_kwargs = dict()
-    has_pillow = check_version("PIL")
-    if has_pillow:
-        if image_format == "webp":
-            pil_kwargs.update(lossless=True, method=6)
-        elif image_format == "png":
-            pil_kwargs.update(optimize=True, compress_level=9)
+    if image_format == "webp":
+        pil_kwargs.update(lossless=True, method=6)
+    elif image_format == "png":
+        pil_kwargs.update(optimize=True, compress_level=9)
     if pil_kwargs:
         # matplotlib modifies the passed dict, which is a bug
         mpl_kwargs["pil_kwargs"] = pil_kwargs.copy()
-    with warnings.catch_warnings():
-        fig.savefig(output, format=image_format, dpi=dpi, **mpl_kwargs)
+
+    fig.savefig(output, format=image_format, dpi=dpi, **mpl_kwargs)
 
     if own_figure:
         plt.close(fig)
 
     # Remove alpha
-    if image_format != "svg" and has_pillow:
+    if image_format != "svg":
         from PIL import Image
 
         output.seek(0)
@@ -453,36 +448,6 @@ def _fig_to_img(fig, *, image_format="png", own_figure=True):
         if image_format == "svg"
         else base64.b64encode(output).decode("ascii")
     )
-
-
-def _scale_mpl_figure(fig, scale):
-    """Magic scaling helper.
-
-    Keeps font size and artist sizes constant
-    0.5 : current font - 4pt
-    2.0 : current font + 4pt
-
-    This is a heuristic but it seems to work for most cases.
-    """
-    scale = float(scale)
-    fig.set_size_inches(fig.get_size_inches() * scale)
-    fig.set_dpi(fig.get_dpi() * scale)
-    import matplotlib as mpl
-
-    if scale >= 1:
-        sfactor = scale**2
-    else:
-        sfactor = -((1.0 / scale) ** 2)
-    for text in fig.findobj(mpl.text.Text):
-        fs = text.get_fontsize()
-        new_size = fs + sfactor
-        if new_size <= 0:
-            raise ValueError(
-                "could not rescale matplotlib fonts, consider " 'increasing "scale"'
-            )
-        text.set_fontsize(new_size)
-
-    fig.canvas.draw()
 
 
 def _get_bem_contour_figs_as_arrays(
@@ -615,10 +580,12 @@ def _plot_ica_properties_as_arrays(*, ica, inst, picks, n_jobs):
 # TOC FUNCTIONS
 
 
-def _endswith(fname, suffixes):
+def _endswith(fname: str | Path, suffixes):
     """Aux function to test if file name includes the specified suffixes."""
     if isinstance(suffixes, str):
         suffixes = [suffixes]
+    if isinstance(fname, Path):
+        fname = fname.name
     for suffix in suffixes:
         for ext in SUPPORTED_READ_RAW_EXTENSIONS:
             if fname.endswith(
@@ -663,11 +630,11 @@ def open_report(fname, **params):
         state = read_hdf5(fname, title="mnepython")
         for param in params.keys():
             if param not in state:
-                raise ValueError("The loaded report has no attribute %s" % param)
+                raise ValueError(f"The loaded report has no attribute {param}")
             if params[param] != state[param]:
                 raise ValueError(
-                    "Attribute '%s' of loaded report does not "
-                    "match the given parameter." % param
+                    f"Attribute '{param}' of loaded report does not "
+                    "match the given parameter."
                 )
         report = Report()
         report.__setstate__(state)
@@ -688,34 +655,16 @@ mne_logo = base64.b64encode(mne_logo_path.read_bytes()).decode("ascii")
 _ALLOWED_IMAGE_FORMATS = ("png", "svg", "webp")
 
 
-def _webp_supported():
-    good = check_version("matplotlib", "3.6") and check_version("PIL")
-    if good:
-        from PIL import features
-
-        good = features.check("webp")
-    return good
-
-
-def _check_scale(scale):
-    """Ensure valid scale value is passed."""
-    if np.isscalar(scale) and scale <= 0:
-        raise ValueError("scale must be positive, not %s" % scale)
-
-
 def _check_image_format(rep, image_format):
     """Ensure fmt is valid."""
     if rep is None or image_format is not None:
         allowed = list(_ALLOWED_IMAGE_FORMATS) + ["auto"]
         extra = ""
-        if not _webp_supported():
-            allowed.pop(allowed.index("webp"))
-            extra = '("webp" supported on matplotlib 3.6+ with PIL installed)'
         _check_option("image_format", image_format, allowed_values=allowed, extra=extra)
     else:
         image_format = rep.image_format
     if image_format == "auto":
-        image_format = "webp" if _webp_supported() else "png"
+        image_format = "webp"
     return image_format
 
 
@@ -741,7 +690,6 @@ class Report:
         ``'webp'`` if available and ``'png'`` otherwise).
         ``'svg'`` uses vector graphics, so fidelity is higher but can increase
         file size and browser image rendering time as well.
-        ``'webp'`` format requires matplotlib >= 3.6.
 
         .. versionadded:: 0.15
         .. versionchanged:: 1.3
@@ -845,7 +793,7 @@ class Report:
         self.include = []
         self.lang = "en-us"  # language setting for the HTML file
         if not isinstance(raw_psd, bool) and not isinstance(raw_psd, dict):
-            raise TypeError("raw_psd must be bool or dict, got %s" % (type(raw_psd),))
+            raise TypeError(f"raw_psd must be bool or dict, got {type(raw_psd)}")
         self.raw_psd = raw_psd
         self._init_render()  # Initialize the renderer
 
@@ -945,11 +893,11 @@ class Report:
 
     def _validate_input(self, items, captions, tag, comments=None):
         """Validate input."""
-        if not isinstance(items, (list, tuple)):
+        if not isinstance(items, list | tuple):
             items = [items]
-        if not isinstance(captions, (list, tuple)):
+        if not isinstance(captions, list | tuple):
             captions = [captions]
-        if not isinstance(comments, (list, tuple)) and comments is not None:
+        if not isinstance(comments, list | tuple) and comments is not None:
             comments = [comments]
         if comments is not None and len(comments) != len(items):
             raise ValueError(
@@ -963,6 +911,64 @@ class Report:
                 f"got {len(captions)} and {len(items)}"
             )
         return items, captions, comments
+
+    def copy(self):
+        """Return a deepcopy of the report.
+
+        Returns
+        -------
+        report : instance of Report
+            The copied report.
+        """
+        return copy.deepcopy(self)
+
+    def get_contents(self):
+        """Get the content of the report.
+
+        Returns
+        -------
+        titles : list of str
+            The title of each content element.
+        tags : list of list of str
+            The tags for each content element, one list per element.
+        htmls : list of str
+            The HTML contents for each element.
+
+        Notes
+        -----
+        .. versionadded:: 1.7
+        """
+        htmls, _, titles, tags = self._content_as_html()
+        return titles, tags, htmls
+
+    def reorder(self, order):
+        """Reorder the report content.
+
+        Parameters
+        ----------
+        order : array-like of int
+            The indices of the new order (as if you were reordering an array).
+            For example if there are 4 elements in the report,
+            ``order=[3, 0, 1, 2]`` would take the last element and move it to
+            the front. In other words, ``elements = [elements[ii] for ii in order]]``.
+
+        Notes
+        -----
+        .. versionadded:: 1.7
+        """
+        _validate_type(order, "array-like", "order")
+        order = np.array(order)
+        if order.dtype.kind != "i" or order.ndim != 1:
+            raise ValueError(
+                "order must be an array of integers, got "
+                f"{order.ndim}D array of dtype {order.dtype}"
+            )
+        n_elements = len(self._content)
+        if not np.array_equal(np.sort(order), np.arange(n_elements)):
+            raise ValueError(
+                f"order must be a permutation of range({n_elements}), got:\n{order}"
+            )
+        self._content = [self._content[ii] for ii in order]
 
     def _content_as_html(self):
         """Generate HTML representations based on the added content & sections.
@@ -1004,7 +1010,7 @@ class Report:
                 ]
                 section_htmls = [el.html for el in section_elements]
                 section_tags = tuple(
-                    sorted((set([t for el in section_elements for t in el.tags])))
+                    sorted(set([t for el in section_elements for t in el.tags]))
                 )
                 section_dom_id = self._get_dom_id(
                     section=None,  # root level of document
@@ -1038,18 +1044,12 @@ class Report:
     @property
     def html(self):
         """A list of HTML representations for all content elements."""
-        htmls, _, _, _ = self._content_as_html()
-        return htmls
+        return self._content_as_html()[0]
 
     @property
     def tags(self):
-        """All tags currently used in the report."""
-        tags = []
-        for c in self._content:
-            tags.extend(c.tags)
-
-        tags = tuple(sorted(set(tags)))
-        return tags
+        """A sorted tuple of all tags currently used in the report."""
+        return tuple(sorted(set(sum(self._content_as_html()[3], ()))))
 
     def add_custom_css(self, css):
         """Add custom CSS to the report.
@@ -1091,6 +1091,7 @@ class Report:
         *,
         psd=True,
         projs=None,
+        image_kwargs=None,
         topomap_kwargs=None,
         drop_log_ignore=("IGNORED",),
         tags=("epochs",),
@@ -1119,6 +1120,18 @@ class Report:
             If ``True``, add PSD plots based on all ``epochs``. If ``False``,
             do not add PSD plots.
         %(projs_report)s
+        image_kwargs : dict | None
+            Keyword arguments to pass to the "epochs image"-generating
+            function (:meth:`mne.Epochs.plot_image`).
+            Keys are channel types, values are dicts containing kwargs to pass.
+            For example, to use the rejection limits per channel type you could pass::
+
+                image_kwargs=dict(
+                    grad=dict(vmin=-reject['grad'], vmax=-reject['grad']),
+                    mag=dict(vmin=-reject['mag'], vmax=reject['mag']),
+                )
+
+            .. versionadded:: 1.7
         %(topomap_kwargs)s
         drop_log_ignore : array-like of str
             The drop reasons to ignore when creating the drop log bar plot.
@@ -1129,7 +1142,7 @@ class Report:
 
         Notes
         -----
-        .. versionadded:: 0.24.0
+        .. versionadded:: 0.24
         """
         tags = _check_tags(tags)
         add_projs = self.projs if projs is None else projs
@@ -1137,6 +1150,7 @@ class Report:
             epochs=epochs,
             psd=psd,
             add_projs=add_projs,
+            image_kwargs=image_kwargs,
             topomap_kwargs=topomap_kwargs,
             drop_log_ignore=drop_log_ignore,
             section=title,
@@ -1549,6 +1563,7 @@ class Report:
         event_id=None,
         sfreq,
         first_samp=0,
+        color=None,
         tags=("events",),
         replace=False,
     ):
@@ -1567,6 +1582,11 @@ class Report:
         first_samp : int
             The first sample point in the recording. This corresponds to
             ``raw.first_samp`` on files created with Elekta/Neuromag systems.
+        color : dict | None
+            Dictionary of event_id integers as keys and colors as values. This
+            parameter is directly passed to :func:`mne.viz.plot_events`.
+
+            .. versionadded:: 1.8.0
         %(tags_report)s
         %(replace_report)s
 
@@ -1580,6 +1600,7 @@ class Report:
             event_id=event_id,
             sfreq=sfreq,
             first_samp=first_samp,
+            color=color,
             title=title,
             section=None,
             image_format=self.image_format,
@@ -1723,7 +1744,10 @@ class Report:
     def _add_ica_artifact_scores(
         self, *, ica, scores, artifact_type, image_format, section, tags, replace
     ):
-        fig = ica.plot_scores(scores=scores, title=None, show=False)
+        assert artifact_type in ("EOG", "ECG")
+        fig = ica.plot_scores(
+            scores=scores, title=None, labels=artifact_type.lower(), show=False
+        )
         _constrain_fig_resolution(fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES)
         self._add_figure(
             fig=fig,
@@ -2270,7 +2294,7 @@ class Report:
         elif caption is None and len(figs) == 1:
             captions = [None]
         elif caption is None and len(figs) > 1:
-            captions = [f"Figure {i+1}" for i in range(len(figs))]
+            captions = [f"Figure {i + 1}" for i in range(len(figs))]
         else:
             captions = tuple(caption)
 
@@ -2382,7 +2406,7 @@ class Report:
         )
         self._add_or_replace(
             title=title,
-            section=None,
+            section=section,
             tags=tags,
             html_partial=html_partial,
             replace=replace,
@@ -2551,9 +2575,7 @@ class Report:
                     f"</script>"
                 )
             elif inc_fname.endswith(".css"):
-                include.append(
-                    f'<style type="text/css">\n' f"{file_content}\n" f"</style>"
-                )
+                include.append(f'<style type="text/css">\n{file_content}\n</style>')
         self.include = "".join(include)
 
     def _iterate_files(
@@ -2573,7 +2595,7 @@ class Report:
         assert self.data_path is not None
 
         for fname in fnames:
-            logger.info(f"Rendering : {op.join('…' + self.data_path[-20:], fname)}")
+            logger.info(f"Rendering: {fname}")
 
             title = Path(fname).name
             try:
@@ -2682,14 +2704,13 @@ class Report:
 
         Parameters
         ----------
-        data_path : str
-            Path to the folder containing data whose HTML report will be
-            created.
+        data_path : path-like
+            Path to the folder containing data whose HTML report will be created.
         pattern : None | str | list of str
-            Filename pattern(s) to include in the report.
-            For example, ``[\*raw.fif, \*ave.fif]`` will include `~mne.io.Raw`
-            as well as `~mne.Evoked` files. If ``None``, include all supported
-            file formats.
+            Filename global pattern(s) to include in the report.
+            For example, ``['\*raw.fif', '\*ave.fif']`` will include
+            :class:`~mne.io.Raw` as well as :class:`~mne.Evoked` files. If ``None``,
+            include all supported file formats.
 
             .. versionchanged:: 0.23
                Include supported non-FIFF files by default.
@@ -2703,9 +2724,9 @@ class Report:
             -> bem -> forward-solution -> inverse-operator -> source-estimate.
 
             .. versionadded:: 0.24.0
-        on_error : str
-            What to do if a file cannot be rendered. Can be 'ignore',
-            'warn' (default), or 'raise'.
+        on_error : ``'ignore'`` | ``'warn'`` | ``'raise'``
+            What to do if a file cannot be rendered. Can be ``'ignore'``, ``'warn'``
+            (default), or ``'raise'``.
         %(image_format_report)s
 
             .. versionadded:: 0.15
@@ -2714,16 +2735,15 @@ class Report:
 
             .. versionadded:: 0.16
         n_time_points_evokeds, n_time_points_stcs : int | None
-            The number of equidistant time points to render for `~mne.Evoked`
-            and `~mne.SourceEstimate` data, respectively. If ``None``,
-            will render each `~mne.Evoked` at 21 and each `~mne.SourceEstimate`
-            at 51 time points, unless the respective data contains fewer time
-            points, in which call all will be rendered.
+            The number of equidistant time points to render for :class:`~mne.Evoked`
+            and :class:`~mne.SourceEstimate` data, respectively. If ``None``,
+            will render each :class:`~mne.Evoked` at 21 and each
+            :class:`~mne.SourceEstimate` at 51 time points, unless the respective data
+            contains fewer time points, in which case all will be rendered.
 
             .. versionadded:: 0.24.0
         raw_butterfly : bool
-            Whether to render butterfly plots for (decimated) `~mne.io.Raw`
-            data.
+            Whether to render butterfly plots for (decimated) :class:`~mne.io.Raw` data.
 
             .. versionadded:: 0.24.0
         %(stc_plot_kwargs_report)s
@@ -2734,60 +2754,59 @@ class Report:
             .. versionadded:: 0.24.0
         %(verbose)s
         """
-        _validate_type(data_path, "path-like", "data_path")
-        data_path = str(data_path)
+        self.data_path = _check_fname(
+            data_path,
+            overwrite="read",
+            must_exist=True,
+            name="data_path",
+            need_dir=True,
+        )
         image_format = _check_image_format(self, image_format)
         _check_option("on_error", on_error, ["ignore", "warn", "raise"])
 
-        self.data_path = data_path
-
         if self.title is None:
-            self.title = f"MNE Report for {self.data_path[-20:]}"
+            self.title = f"MNE Report for {self.data_path.name[-20:]}"
 
         if pattern is None:
             pattern = [f"*{ext}" for ext in SUPPORTED_READ_RAW_EXTENSIONS]
-        elif not isinstance(pattern, (list, tuple)):
-            pattern = [pattern]
+        else:
+            if not isinstance(pattern, list | tuple):
+                pattern = [pattern]
+            for elt in pattern:
+                _validate_type(elt, str, "pattern")
 
         # iterate through the possible patterns
         fnames = list()
         for p in pattern:
-            data_path = str(
-                _check_fname(
-                    fname=self.data_path,
-                    overwrite="read",
-                    must_exist=True,
-                    name="Directory or folder",
-                    need_dir=True,
-                )
-            )
-            fnames.extend(sorted(_recursive_search(data_path, p)))
+            for match in self.data_path.rglob(p):
+                if match.name.endswith(VALID_EXTENSIONS):
+                    fnames.append(match)
 
         if not fnames and not render_bem:
-            raise RuntimeError(f"No matching files found in {self.data_path}")
+            raise RuntimeError(f"No matching files found in {self.data_path}.")
 
         fnames_to_remove = []
         for fname in fnames:
             # For split files, only keep the first one.
             if _endswith(fname, ("raw", "sss", "meg")):
                 kwargs = dict(fname=fname, preload=False)
-                if fname.endswith((".fif", ".fif.gz")):
+                if fname.name.endswith((".fif", ".fif.gz")):
                     kwargs["allow_maxshield"] = "yes"
                 inst = read_raw(**kwargs)
 
                 if len(inst.filenames) > 1:
                     fnames_to_remove.extend(inst.filenames[1:])
             # For STCs, only keep one hemisphere
-            elif fname.endswith("-lh.stc") or fname.endswith("-rh.stc"):
-                first_hemi_fname = fname
+            elif fname.name.endswith("-lh.stc") or fname.name.endswith("-rh.stc"):
+                first_hemi_fname = fname.name
                 if first_hemi_fname.endswidth("-lh.stc"):
                     second_hemi_fname = first_hemi_fname.replace("-lh.stc", "-rh.stc")
                 else:
                     second_hemi_fname = first_hemi_fname.replace("-rh.stc", "-lh.stc")
 
                 if (
-                    second_hemi_fname in fnames
-                    and first_hemi_fname not in fnames_to_remove
+                    fname.parent / second_hemi_fname in fnames
+                    and fname.parent / first_hemi_fname not in fnames_to_remove
                 ):
                     fnames_to_remove.extend(first_hemi_fname)
             else:
@@ -2805,15 +2824,11 @@ class Report:
         else:
             # only warn if relevant
             if any(_endswith(fname, "cov") for fname in fnames):
-                warn("`info_fname` not provided. Cannot render " "-cov.fif(.gz) files.")
+                warn("`info_fname` not provided. Cannot render -cov.fif(.gz) files.")
             if any(_endswith(fname, "trans") for fname in fnames):
-                warn(
-                    "`info_fname` not provided. Cannot render " "-trans.fif(.gz) files."
-                )
+                warn("`info_fname` not provided. Cannot render -trans.fif(.gz) files.")
             if any(_endswith(fname, "proj") for fname in fnames):
-                warn(
-                    "`info_fname` not provided. Cannot render " "-proj.fif(.gz) files."
-                )
+                warn("`info_fname` not provided. Cannot render -proj.fif(.gz) files.")
             info, sfreq = None, None
 
         cov = None
@@ -2822,7 +2837,7 @@ class Report:
 
         # render plots in parallel; check that n_jobs <= # of files
         logger.info(
-            f"Iterating over {len(fnames)} potential files " f"(this may take some "
+            f"Iterating over {len(fnames)} potential files (this may take some "
         )
         parallel, p_fun, n_jobs = parallel_func(
             self._iterate_files, n_jobs, max_jobs=len(fnames)
@@ -2860,7 +2875,7 @@ class Report:
                 )
 
         if sort_content:
-            self._content = self._sort(content=self._content, order=CONTENT_ORDER)
+            self._sort(order=CONTENT_ORDER)
 
     def __getstate__(self):
         """Get the state of the report as a dictionary."""
@@ -2932,19 +2947,17 @@ class Report:
         if fname is None:
             if self.data_path is None:
                 self.data_path = os.getcwd()
-                warn(f"`data_path` not provided. Using {self.data_path} " f"instead")
+                warn(f"`data_path` not provided. Using {self.data_path} instead")
             fname = op.join(self.data_path, "report.html")
 
         fname = str(_check_fname(fname, overwrite=overwrite, name=fname))
         fname = op.realpath(fname)  # resolve symlinks
 
         if sort_content:
-            self._content = self._sort(content=self._content, order=CONTENT_ORDER)
+            self._sort(order=CONTENT_ORDER)
 
         if not overwrite and op.isfile(fname):
-            msg = (
-                f"Report already exists at location {fname}. " f"Overwrite it (y/[n])? "
-            )
+            msg = f"Report already exists at location {fname}. Overwrite it (y/[n])? "
             answer = _safe_input(msg, alt="pass overwrite=True")
             if answer.lower() == "y":
                 overwrite = True
@@ -2997,35 +3010,28 @@ class Report:
         """Do nothing when entering the context block."""
         return self
 
-    def __exit__(self, type, value, traceback):
+    def __exit__(self, exception_type, value, traceback):
         """Save the report when leaving the context block."""
         if self.fname is not None:
             self.save(self.fname, open_browser=False, overwrite=True)
 
-    @staticmethod
-    def _sort(content, order):
+    def _sort(self, *, order):
         """Reorder content to reflect "natural" ordering."""
-        content_unsorted = content.copy()
-        content_sorted = []
         content_sorted_idx = []
-        del content
 
         # First arrange content with known tags in the predefined order
         for tag in order:
-            for idx, content in enumerate(content_unsorted):
+            for idx, content in enumerate(self._content):
                 if tag in content.tags:
                     content_sorted_idx.append(idx)
-                    content_sorted.append(content)
 
         # Now simply append the rest (custom tags)
-        content_remaining = [
-            content
-            for idx, content in enumerate(content_unsorted)
-            if idx not in content_sorted_idx
-        ]
-
-        content_sorted = [*content_sorted, *content_remaining]
-        return content_sorted
+        self.reorder(
+            np.r_[
+                content_sorted_idx,
+                np.setdiff1d(np.arange(len(self._content)), content_sorted_idx),
+            ]
+        )
 
     def _render_one_bem_axis(
         self,
@@ -3142,7 +3148,7 @@ class Report:
 
         del orig_annotations
 
-        captions = [f"Segment {i+1} of {len(images)}" for i in range(len(images))]
+        captions = [f"Segment {i + 1} of {len(images)}" for i in range(len(images))]
 
         self._add_slider(
             figs=None,
@@ -3217,7 +3223,9 @@ class Report:
             init_kwargs, plot_kwargs = _split_psd_kwargs(kwargs=add_psd)
             init_kwargs.setdefault("fmax", fmax)
             plot_kwargs.setdefault("show", False)
-            fig = raw.compute_psd(**init_kwargs).plot(**plot_kwargs)
+            with warnings.catch_warnings():
+                warnings.simplefilter(action="ignore", category=FutureWarning)
+                fig = raw.compute_psd(**init_kwargs).plot(**plot_kwargs)
             _constrain_fig_resolution(fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES)
             self._add_figure(
                 fig=fig,
@@ -3535,7 +3543,9 @@ class Report:
                 continue
 
             vmax[ch_type] = (
-                np.abs(evoked.copy().pick(ch_type, verbose=False).data).max()
+                np.abs(
+                    evoked.copy().pick(ch_type, exclude="bads", verbose=False).data
+                ).max()
             ) * scalings[ch_type]
             if ch_type == "grad":
                 vmin[ch_type] = 0
@@ -3656,6 +3666,17 @@ class Report:
         n_jobs,
         replace,
     ):
+        # Summary table
+        self._add_html_repr(
+            inst=evoked,
+            title="Info",
+            tags=tags,
+            section=section,
+            replace=replace,
+            div_klass="evoked",
+        )
+
+        # Joint plot
         ch_types = _get_data_ch_types(evoked)
         self._add_evoked_joint(
             evoked=evoked,
@@ -3666,6 +3687,8 @@ class Report:
             topomap_kwargs=topomap_kwargs,
             replace=replace,
         )
+
+        # Topomaps
         self._add_evoked_topomap_slider(
             evoked=evoked,
             ch_types=ch_types,
@@ -3677,6 +3700,8 @@ class Report:
             n_jobs=n_jobs,
             replace=replace,
         )
+
+        # GFP
         self._add_evoked_gfp(
             evoked=evoked,
             ch_types=ch_types,
@@ -3686,6 +3711,7 @@ class Report:
             replace=replace,
         )
 
+        # Whitened evoked
         if noise_cov is not None:
             self._add_evoked_whitened(
                 evoked=evoked,
@@ -3716,6 +3742,7 @@ class Report:
         *,
         events,
         event_id,
+        color,
         sfreq,
         first_samp,
         title,
@@ -3733,6 +3760,7 @@ class Report:
             event_id=event_id,
             sfreq=sfreq,
             first_samp=first_samp,
+            color=color,
             show=False,
         )
         _constrain_fig_resolution(fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES)
@@ -3784,11 +3812,11 @@ class Report:
             if fmax > 0.5 * epochs.info["sfreq"]:
                 fmax = np.inf
 
-        fig = epochs_for_psd.compute_psd(fmax=fmax).plot(show=False)
+        fig = epochs_for_psd.compute_psd(fmax=fmax).plot(amplitude=False, show=False)
         _constrain_fig_resolution(fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES)
         duration = round(epoch_duration * len(epochs_for_psd), 1)
         caption = (
-            f"PSD calculated from {len(epochs_for_psd)} epochs " f"({duration:.1f} s)."
+            f"PSD calculated from {len(epochs_for_psd)} epochs ({duration:.1f} s)."
         )
         self._add_figure(
             fig=fig,
@@ -3825,63 +3853,9 @@ class Report:
             metadata.index.name = "Epoch #"
 
         assert metadata.index.is_unique
-        index_name = metadata.index.name  # store for later use
+        data_id = metadata.index.name  # store for later use
         metadata = metadata.reset_index()  # We want "proper" columns only
-        html = metadata.to_html(
-            border=0,
-            index=False,
-            show_dimensions=True,
-            justify="unset",
-            float_format=lambda x: f"{round(x, 3):.3f}",
-            classes="table table-hover table-striped "
-            "table-sm table-responsive small",
-        )
-        del metadata
-
-        # Massage the table such that it woks nicely with bootstrap-table
-        htmls = html.split("\n")
-        header_pattern = "<th>(.*)</th>"
-
-        for idx, html in enumerate(htmls):
-            if "<table" in html:
-                htmls[idx] = html.replace(
-                    "<table",
-                    "<table "
-                    'id="mytable" '
-                    'data-toggle="table" '
-                    f'data-unique-id="{index_name}" '
-                    'data-search="true" '  # search / filter
-                    'data-search-highlight="true" '
-                    'data-show-columns="true" '  # show/hide columns
-                    'data-show-toggle="true" '  # allow card view
-                    'data-show-columns-toggle-all="true" '
-                    'data-click-to-select="true" '
-                    'data-show-copy-rows="true" '
-                    'data-show-export="true" '  # export to a file
-                    'data-export-types="[csv]" '
-                    'data-export-options=\'{"fileName": "metadata"}\' '
-                    'data-icon-size="sm" '
-                    'data-height="400"',
-                )
-                continue
-            elif "<tr" in html:
-                # Add checkbox for row selection
-                htmls[idx] = (
-                    f"{html}\n" f'<th data-field="state" data-checkbox="true"></th>'
-                )
-                continue
-
-            col_headers = re.findall(pattern=header_pattern, string=html)
-            if col_headers:
-                # Make columns sortable
-                assert len(col_headers) == 1
-                col_header = col_headers[0]
-                htmls[idx] = html.replace(
-                    "<th>",
-                    f'<th data-field="{col_header.lower()}" ' f'data-sortable="true">',
-                )
-
-        html = "\n".join(htmls)
+        html = _df_bootstrap_table(df=metadata, data_id=data_id)
         self._add_html_element(
             div_klass="epochs",
             tags=tags,
@@ -3897,6 +3871,7 @@ class Report:
         epochs,
         psd,
         add_projs,
+        image_kwargs,
         topomap_kwargs,
         drop_log_ignore,
         image_format,
@@ -3931,9 +3906,17 @@ class Report:
         ch_types = _get_data_ch_types(epochs)
         epochs.load_data()
 
+        _validate_type(image_kwargs, (dict, None), "image_kwargs")
+        # ensure dict with shallow copy because we will modify it
+        image_kwargs = dict() if image_kwargs is None else image_kwargs.copy()
+
         for ch_type in ch_types:
             with use_log_level(_verbose_safe_false(level="error")):
-                figs = epochs.copy().pick(ch_type, verbose=False).plot_image(show=False)
+                figs = (
+                    epochs.copy()
+                    .pick(ch_type, verbose=False)
+                    .plot_image(show=False, **image_kwargs.pop(ch_type, dict()))
+                )
 
             assert len(figs) == 1
             fig = figs[0]
@@ -3944,7 +3927,7 @@ class Report:
                 assert "eeg" in ch_type
                 title_start = "ERP image"
 
-            title = f"{title_start} " f'({_handle_default("titles")[ch_type]})'
+            title = f'{title_start} ({_handle_default("titles")[ch_type]})'
 
             self._add_figure(
                 fig=fig,
@@ -3955,6 +3938,12 @@ class Report:
                 section=section,
                 replace=replace,
                 own_figure=True,
+            )
+        if image_kwargs:
+            raise ValueError(
+                f"Ensure the keys in image_kwargs map onto channel types plotted in "
+                f"epochs.plot_image() of {ch_types}, could not use: "
+                f"{list(image_kwargs)}"
             )
 
         # Drop log
@@ -4281,28 +4270,6 @@ class Report:
         )
 
 
-def _clean_tags(tags):
-    if isinstance(tags, str):
-        tags = (tags,)
-
-    # Replace any whitespace characters with dashes
-    tags_cleaned = tuple(re.sub(r"[\s*]", "-", tag) for tag in tags)
-    return tags_cleaned
-
-
-def _recursive_search(path, pattern):
-    """Auxiliary function for recursive_search of the directory."""
-    filtered_files = list()
-    for dirpath, dirnames, files in os.walk(path):
-        for f in fnmatch.filter(files, pattern):
-            # only the following file types are supported
-            # this ensures equitable distribution of jobs
-            if f.endswith(VALID_EXTENSIONS):
-                filtered_files.append(op.realpath(op.join(dirpath, f)))
-
-    return filtered_files
-
-
 ###############################################################################
 # Scraper for sphinx-gallery
 
@@ -4311,11 +4278,10 @@ _SCRAPER_TEXT = """
 
     .. container:: row
 
-        .. rubric:: The `HTML document <{0}>`__ written by :meth:`mne.Report.save`:
-
         .. raw:: html
 
-            <iframe class="sg_report" sandbox="allow-scripts" src="{0}"></iframe>
+            <strong><a href="{0}">The generated HTML document.</a></strong>
+            <iframe class="sg_report" sandbox="allow-scripts allow-modals" src="{0}"></iframe>
 
 """  # noqa: E501
 # Adapted from fa-file-code
@@ -4328,10 +4294,6 @@ class _ReportScraper:
     Only works properly if conf.py is configured properly and the file
     is written to the same directory as the example script.
     """
-
-    def __init__(self):
-        self.app = None
-        self.files = dict()
 
     def __repr__(self):
         return "<ReportScraper>"
@@ -4351,22 +4313,76 @@ class _ReportScraper:
                 with open(img_fname, "w") as fid:
                     fid.write(_FA_FILE_CODE)
                 # copy HTML file
-                html_fname = op.basename(report.fname)
-                out_dir = op.join(
-                    self.app.builder.outdir,
-                    op.relpath(
-                        op.dirname(block_vars["target_file"]), self.app.builder.srcdir
-                    ),
+                html_fname = Path(report.fname).name
+                srcdir = Path(gallery_conf["src_dir"])
+                outdir = Path(gallery_conf["out_dir"])
+                out_dir = outdir / Path(block_vars["target_file"]).parent.relative_to(
+                    srcdir
                 )
                 os.makedirs(out_dir, exist_ok=True)
-                out_fname = op.join(out_dir, html_fname)
+                out_fname = out_dir / html_fname
+                copyfile(report.fname, out_fname)
                 assert op.isfile(report.fname)
-                self.files[report.fname] = out_fname
                 # embed links/iframe
                 data = _SCRAPER_TEXT.format(html_fname)
                 return data
         return ""
 
-    def copyfiles(self, *args, **kwargs):
-        for key, value in self.files.items():
-            copyfile(key, value)
+    def set_dirs(self, app):
+        # Inject something into sphinx_gallery_conf as this gets pickled properly
+        # during parallel example generation
+        app.config.sphinx_gallery_conf["out_dir"] = app.builder.outdir
+
+
+def _df_bootstrap_table(*, df, data_id):
+    html = df.to_html(
+        border=0,
+        index=False,
+        show_dimensions=True,
+        justify="unset",
+        float_format=lambda x: f"{x:.3f}",
+        classes="table table-hover table-striped table-sm table-responsive small",
+        na_rep="",
+    )
+    htmls = html.split("\n")
+    header_pattern = "<th>(.*)</th>"
+
+    for idx, html in enumerate(htmls):
+        if "<table" in html:
+            htmls[idx] = html.replace(
+                "<table",
+                "<table "
+                'id="mytable" '
+                'data-toggle="table" '
+                f'data-unique-id="{data_id}" '
+                'data-search="true" '  # search / filter
+                'data-search-highlight="true" '
+                'data-show-columns="true" '  # show/hide columns
+                'data-show-toggle="true" '  # allow card view
+                'data-show-columns-toggle-all="true" '
+                'data-click-to-select="true" '
+                'data-show-copy-rows="true" '
+                'data-show-export="true" '  # export to a file
+                'data-export-types="[csv]" '
+                'data-export-options=\'{"fileName": "metadata"}\' '
+                'data-icon-size="sm" '
+                'data-height="400"',
+            )
+            continue
+        elif "<tr" in html:
+            # Add checkbox for row selection
+            htmls[idx] = f'{html}\n<th data-field="state" data-checkbox="true"></th>'
+            continue
+
+        col_headers = re.findall(pattern=header_pattern, string=html)
+        if col_headers:
+            # Make columns sortable
+            assert len(col_headers) == 1
+            col_header = col_headers[0]
+            htmls[idx] = html.replace(
+                "<th>",
+                f'<th data-field="{col_header.lower()}" data-sortable="true">',
+            )
+
+    html = "\n".join(htmls)
+    return html

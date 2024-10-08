@@ -1,9 +1,6 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Eric Larson <larson.eric.d@gmail.com>
-#          Joan Massich <mailsik@gmail.com>
-#          Guillaume Favelier <guillaume.favelier@gmail.com>
-#
-# License: Simplified BSD
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import os
 import platform
@@ -193,7 +190,7 @@ def test_renderer(renderer, monkeypatch):
         "-uc",
         "import mne; mne.viz.create_3d_figure((800, 600), show=True); "
         "backend = mne.viz.get_3d_backend(); "
-        "assert backend == %r, backend" % (backend,),
+        f"assert backend == {repr(backend)}, backend",
     ]
     monkeypatch.setenv("MNE_3D_BACKEND", backend)
     run_subprocess(cmd)

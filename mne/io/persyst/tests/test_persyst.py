@@ -1,6 +1,6 @@
-# Authors: Adam Li  <adam2392@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import os
 import shutil
@@ -84,7 +84,7 @@ def test_persyst_dates(tmp_path):
 
     # reformat the lay file to have testdate with
     # "/" character
-    with open(fname_lay, "r") as fin:
+    with open(fname_lay) as fin:
         with open(new_fname_lay, "w") as fout:
             # for each line in the input file
             for idx, line in enumerate(fin):
@@ -100,7 +100,7 @@ def test_persyst_dates(tmp_path):
     # reformat the lay file to have testdate with
     # "-" character
     os.remove(new_fname_lay)
-    with open(fname_lay, "r") as fin:
+    with open(fname_lay) as fin:
         with open(new_fname_lay, "w") as fout:
             # for each line in the input file
             for idx, line in enumerate(fin):
@@ -162,7 +162,7 @@ def test_persyst_moved_file(tmp_path):
     # to the full path, but it should still not work
     # as reader requires lay and dat file to be in
     # same directory
-    with open(fname_lay, "r") as fin:
+    with open(fname_lay) as fin:
         with open(new_fname_lay, "w") as fout:
             # for each line in the input file
             for idx, line in enumerate(fin):
@@ -215,7 +215,7 @@ def test_persyst_errors(tmp_path):
     shutil.copy(fname_dat, new_fname_dat)
 
     # reformat the lay file
-    with open(fname_lay, "r") as fin:
+    with open(fname_lay) as fin:
         with open(new_fname_lay, "w") as fout:
             # for each line in the input file
             for idx, line in enumerate(fin):
@@ -228,7 +228,7 @@ def test_persyst_errors(tmp_path):
 
     # reformat the lay file
     os.remove(new_fname_lay)
-    with open(fname_lay, "r") as fin:
+    with open(fname_lay) as fin:
         with open(new_fname_lay, "w") as fout:
             # for each line in the input file
             for idx, line in enumerate(fin):
@@ -236,13 +236,13 @@ def test_persyst_errors(tmp_path):
                     line = "WaveformCount=1\n"
                 fout.write(line)
     # file should break
-    with pytest.raises(RuntimeError, match="Channels in lay " "file do not"):
+    with pytest.raises(RuntimeError, match="Channels in lay file do not"):
         read_raw_persyst(new_fname_lay)
 
     # reformat the lay file to have testdate
     # improperly specified
     os.remove(new_fname_lay)
-    with open(fname_lay, "r") as fin:
+    with open(fname_lay) as fin:
         with open(new_fname_lay, "w") as fout:
             # for each line in the input file
             for idx, line in enumerate(fin):

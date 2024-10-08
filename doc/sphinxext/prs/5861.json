@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "647c7d3a95042b6f3d673855e89f3dc9029bddd6",
+  "authors": [
+    {
+      "n": "Joan Massich",
+      "e": "mailsik@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/edf/edf.py": {
+      "a": 8,
+      "d": 10
+    },
+    "mne/io/edf/tests/data/test_stim_channel.edf": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/io/edf/tests/test_edf.py": {
+      "a": 23,
+      "d": 2
+    }
+  }
+}

@@ -1,0 +1,107 @@
+{
+  "merge_commit_sha": "601a98f580aafbee3ea7687d91ffda7e83b57af5",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/conf.py": {
+      "a": 18,
+      "d": 8
+    },
+    "doc/documentation.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/manual/cookbook.rst": {
+      "a": 2,
+      "d": 1
+    },
+    "doc/python_reference.rst": {
+      "a": 15,
+      "d": 1
+    },
+    "doc/whats_new.rst": {
+      "a": 22,
+      "d": 22
+    },
+    "examples/decoding/decoding_rsa.py": {
+      "a": 3,
+      "d": 0
+    },
+    "examples/inverse/plot_gamma_map_inverse.py": {
+      "a": 3,
+      "d": 1
+    },
+    "examples/inverse/plot_time_frequency_mixed_norm_inverse.py": {
+      "a": 3,
+      "d": 3
+    },
+    "examples/preprocessing/plot_resample.py": {
+      "a": 0,
+      "d": 2
+    },
+    "mne/__init__.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/channels/channels.py": {
+      "a": 6,
+      "d": 6
+    },
+    "mne/decoding/mixin.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/io/meas_info.py": {
+      "a": 5,
+      "d": 1
+    },
+    "mne/io/reference.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/transforms.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/plot_compute_covariance.py": {
+      "a": 7,
+      "d": 5
+    },
+    "tutorials/plot_creating_data_structures.py": {
+      "a": 5,
+      "d": 4
+    },
+    "tutorials/plot_info.py": {
+      "a": 15,
+      "d": 17
+    },
+    "tutorials/plot_modifying_data_inplace.py": {
+      "a": 11,
+      "d": 12
+    },
+    "tutorials/plot_object_epochs.py": {
+      "a": 6,
+      "d": 8
+    },
+    "tutorials/plot_object_evoked.py": {
+      "a": 6,
+      "d": 4
+    },
+    "tutorials/plot_object_raw.py": {
+      "a": 15,
+      "d": 18
+    },
+    "tutorials/plot_python_intro.py": {
+      "a": 24,
+      "d": 24
+    },
+    "tutorials/plot_visualize_evoked.py": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

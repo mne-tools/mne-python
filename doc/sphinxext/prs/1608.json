@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "a26c0f6eefdf34e92a21c3a217715011f2cb27a4",
+  "authors": [
+    {
+      "n": "Marijn van Vliet",
+      "e": "w.m.vanvliet@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/channels.py": {
+      "a": 4,
+      "d": 4
+    }
+  }
+}

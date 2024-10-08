@@ -8,8 +8,8 @@ const refreshScrollSpy = () =>{
 }
 
 const propagateScrollSpyURL = () => {
-  $(window).on('activate.bs.scrollspy', (event) => {
-    history.replaceState({}, "", event.relatedTarget);
+  window.addEventListener('activate.bs.scrollspy', (e) => {
+    history.replaceState({}, "", e.relatedTarget);
   });
 }
 
@@ -40,10 +40,10 @@ const toggleTagVisibility = (tagName) => {
 
     if (visibleTagNamesOfCurrentElement.size === 0) {  // hide
       $(currentElement).slideToggle('fast', () => {
-        $(currentElement).addClass('d-none');
+        currentElement.classList.add('d-none');
       });
     } else if ($(currentElement).hasClass('d-none')) {  // show
-      $(currentElement).removeClass('d-none');
+      currentElement.classList.remove('d-none');
       $(currentElement).slideToggle('fast');
     }
   })
@@ -52,12 +52,12 @@ const toggleTagVisibility = (tagName) => {
   tagBadgeElements.forEach((badgeElement) => {
     if (tag.visible) {
       badgeElement.removeAttribute('data-mne-tag-hidden');
-      $(badgeElement).removeClass('bg-secondary');
-      $(badgeElement).addClass('bg-primary');
+      badgeElement.classList.remove('bg-secondary');
+      badgeElement.classList.add('bg-primary');
     } else {
       badgeElement.setAttribute('data-mne-tag-hidden', true);
-      $(badgeElement).removeClass('bg-primary');
-      $(badgeElement).addClass('bg-secondary');
+      badgeElement.classList.remove('bg-primary');
+      badgeElement.classList.add('bg-secondary');
     }
   })
 
@@ -164,11 +164,13 @@ const _handleTocLinkClick = (e) => {
     const tocLinkElement = e.target;
     const targetDomId = tocLinkElement.getAttribute('href');
     const targetElement = document.querySelector(targetDomId);
-    const top = $(targetElement).offset().top;
-    /* Update URL to reflect the current scroll position */
-    var url = document.URL.replace(/#.*$/, "");
-    url = url + targetDomId;
-    window.location.href = url;
+    const top = targetElement.getBoundingClientRect().top + window.scrollY;
+ 
+    // Update URL to reflect the current scroll position.
+    // We use history.pushState to change the URL without causing the browser to scroll.
+    history.pushState(null, "", targetDomId);
+
+    // Now scroll to the correct position.
     window.scrollTo(0, top - margin);
 }
 
@@ -192,6 +194,17 @@ const addSliderEventHandlers = () => {
     slider.addEventListener('input', (e) => {
       const sliderValue = parseInt(e.target.value);
       $(carousel).carousel(sliderValue);
+    })
+
+    // Allow focussing the slider with a click on the slider or carousel, so keyboard
+    // controls (left / right arrow) can be enabled.
+    // This also appears to be the only way to focus the slider in Safari:
+    // https://itnext.io/fixing-focus-for-safari-b5916fef1064?gi=c1b8b043fa9b
+    slider.addEventListener('click', () => {
+      slider.focus({preventScroll: true})
+    })
+    carousel.addEventListener('click', () => {
+      slider.focus({preventScroll: true})
     })
   })
 }
@@ -235,7 +248,8 @@ const disableGlobalKeysInSearchBox = () => {
   })
 }
 
-$(document).ready(() => {
+/* Run once all content is fully loaded. */
+window.addEventListener('load', () => {
   gatherTags();
   updateTagCountBadges();
   addFilterByTagsCheckboxEventHandlers();
@@ -248,6 +262,7 @@ $(document).ready(() => {
   propagateScrollSpyURL();
 });
 
+/* Resizing the window throws off the scroll spy and top-margin handling. */
 window.onresize = () => {
   fixTopMargin();
   refreshScrollSpy();

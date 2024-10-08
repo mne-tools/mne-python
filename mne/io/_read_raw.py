@@ -1,14 +1,14 @@
 """Generic wrapper function read_raw for specific read_raw_xxx readers."""
 
-# Authors: Clemens Brunner <clemens.brunner@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
-
+# Copyright the MNE-Python contributors.
 
 from functools import partial
 from pathlib import Path
 
 from ..utils import fill_doc
+from .base import BaseRaw
 
 
 def _read_unsupported(fname, **kwargs):
@@ -24,6 +24,7 @@ def _read_unsupported(fname, **kwargs):
 # supported read file formats
 def _get_supported():
     from . import (
+        read_raw_ant,
         read_raw_artemis123,
         read_raw_bdf,
         read_raw_boxy,
@@ -35,6 +36,7 @@ def _get_supported():
         read_raw_eeglab,
         read_raw_egi,
         read_raw_eximia,
+        read_raw_eyelink,
         read_raw_fieldtrip,
         read_raw_fif,
         read_raw_fil,
@@ -44,6 +46,8 @@ def _get_supported():
         read_raw_nicolet,
         read_raw_nihon,
         read_raw_nirx,
+        read_raw_nsx,
+        read_raw_persyst,
         read_raw_snirf,
     )
 
@@ -57,7 +61,7 @@ def _get_supported():
         ".fif": dict(FIF=read_raw_fif),
         ".fif.gz": dict(FIF=read_raw_fif),
         ".set": dict(EEGLAB=read_raw_eeglab),
-        ".cnt": dict(CNT=read_raw_cnt),
+        ".cnt": dict(CNT=read_raw_cnt, ANT=read_raw_ant),
         ".mff": dict(EGI=read_raw_egi),
         ".nxe": dict(eximia=read_raw_eximia),
         ".hdr": dict(NIRx=read_raw_nirx),
@@ -82,6 +86,10 @@ def _get_supported():
         ".cef": dict(CURRY=read_raw_curry),
         # NEDF
         ".nedf": dict(NEDF=read_raw_nedf),
+        # EyeLink
+        ".asc": dict(EyeLink=read_raw_eyelink),
+        ".ns3": dict(NSx=read_raw_nsx),
+        ".lay": dict(Persyst=read_raw_persyst),
     }
 
 
@@ -109,7 +117,7 @@ def split_name_ext(fname):
 
 
 @fill_doc
-def read_raw(fname, *, preload=False, verbose=None, **kwargs):
+def read_raw(fname, *, preload=False, verbose=None, **kwargs) -> BaseRaw:
     """Read raw file.
 
     This function is a convenient wrapper for readers defined in `mne.io`. The
@@ -118,15 +126,31 @@ def read_raw(fname, *, preload=False, verbose=None, **kwargs):
 
     The following readers are currently supported:
 
-    `~mne.io.read_raw_artemis123`, `~mne.io.read_raw_bdf`,
-    `~mne.io.read_raw_boxy`, `~mne.io.read_raw_brainvision`,
-    `~mne.io.read_raw_cnt`, `~mne.io.read_raw_ctf`, `~mne.io.read_raw_edf`,
-    `~mne.io.read_raw_eeglab`, `~mne.io.read_raw_egi`,
-    `~mne.io.read_raw_eximia`, `~mne.io.read_raw_fieldtrip`,
-    `~mne.io.read_raw_fif`,  `~mne.io.read_raw_gdf`, `~mne.io.read_raw_kit`,
-    `~mne.io.read_raw_fil`,
-    `~mne.io.read_raw_nicolet`, `~mne.io.read_raw_nirx`,
-    `~mne.io.read_raw_curry`, and `~mne.io.read_raw_nedf`.
+    * `~mne.io.read_raw_ant`
+    * `~mne.io.read_raw_artemis123`
+    * `~mne.io.read_raw_bdf`
+    * `~mne.io.read_raw_boxy`
+    * `~mne.io.read_raw_brainvision`
+    * `~mne.io.read_raw_cnt`
+    * `~mne.io.read_raw_ctf`
+    * `~mne.io.read_raw_curry`
+    * `~mne.io.read_raw_edf`
+    * `~mne.io.read_raw_eeglab`
+    * `~mne.io.read_raw_egi`
+    * `~mne.io.read_raw_eximia`
+    * `~mne.io.read_raw_eyelink`
+    * `~mne.io.read_raw_fieldtrip`
+    * `~mne.io.read_raw_fif`
+    * `~mne.io.read_raw_fil`
+    * `~mne.io.read_raw_gdf`
+    * `~mne.io.read_raw_kit`
+    * `~mne.io.read_raw_nedf`
+    * `~mne.io.read_raw_nicolet`
+    * `~mne.io.read_raw_nihon`
+    * `~mne.io.read_raw_nirx`
+    * `~mne.io.read_raw_nsx`
+    * `~mne.io.read_raw_persyst`
+    * `~mne.io.read_raw_snirf`
 
     Parameters
     ----------

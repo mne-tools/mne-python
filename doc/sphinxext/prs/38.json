@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "dac473e1be85086a7509ec4f5285ced4a9d12254",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "mne/viz.py": {
+      "a": 28,
+      "d": 6
+    }
+  }
+}

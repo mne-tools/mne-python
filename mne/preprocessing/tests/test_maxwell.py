@@ -1,6 +1,6 @@
-# Author: Mark Wronkiewicz <wronk@uw.edu>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import pathlib
 import re
@@ -57,7 +57,7 @@ from mne.utils import (
     use_log_level,
 )
 
-io_path = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
+io_path = Path(__file__).parents[2] / "io" / "tests" / "data"
 raw_small_fname = io_path / "test_raw.fif"
 
 data_path = testing.data_path(download=False)
@@ -121,7 +121,7 @@ tri_sss_ctc_cal_reg_in_fname = triux_path / "triux_bmlhus_erm_ctc_cal_regIn_raw_
 tri_ctc_fname = triux_path / "ct_sparse_BMLHUS.fif"
 tri_cal_fname = triux_path / "sss_cal_BMLHUS.dat"
 
-io_dir = Path(__file__).parent.parent.parent / "io"
+io_dir = Path(__file__).parents[2] / "io"
 fname_ctf_raw = io_dir / "tests" / "data" / "test_ctf_comp_raw.fif"
 ctf_fname_continuous = data_path / "CTF" / "testdata_ctf.ds"
 
@@ -172,11 +172,7 @@ def _assert_n_free(raw_sss, lower, upper=None):
     """Check the DOF."""
     upper = lower if upper is None else upper
     n_free = raw_sss.info["proc_history"][0]["max_info"]["sss_info"]["nfree"]
-    assert lower <= n_free <= upper, "nfree fail: %s <= %s <= %s" % (
-        lower,
-        n_free,
-        upper,
-    )
+    assert lower <= n_free <= upper, f"nfree fail: {lower} <= {n_free} <= {upper}"
 
 
 def _assert_mag_coil_type(info, coil_type):
@@ -458,7 +454,7 @@ def test_multipolar_bases():
     sss_data = loadmat(bases_fname)
     exp = dict(int_order=int_order, ext_order=ext_order)
     for origin in ((0, 0, 0.04), (0, 0.02, 0.02)):
-        o_str = "".join("%d" % (1000 * n) for n in origin)
+        o_str = "".join(f"{int(1000 * n)}" for n in origin)
         exp.update(origin=origin)
         S_tot = _sss_basis_basic(exp, coils, method="alternative")
         # Test our real<->complex conversion functions
@@ -672,7 +668,7 @@ def test_spatiotemporal():
     kwargs = dict(origin=mf_head_origin, regularize=None, bad_condition="ignore")
     for st_duration, tol in zip(st_durations, tols):
         # Load tSSS data depending on st_duration and get data
-        tSSS_fname = sss_path / ("test_move_anon_st%0ds_raw_sss.fif" % st_duration)
+        tSSS_fname = sss_path / f"test_move_anon_st{int(st_duration)}s_raw_sss.fif"
         tsss_bench = read_crop(tSSS_fname)
         # Because Elekta's tSSS sometimes(!) lumps the tail window of data
         # onto the previous buffer if it's shorter than st_duration, we have to
@@ -729,7 +725,8 @@ def test_spatiotemporal_only():
     raw_tsss = maxwell_filter(raw, st_duration=tmax, st_correlation=1.0, st_only=True)
     assert_allclose(raw[:][0], raw_tsss[:][0])
     # degenerate
-    pytest.raises(ValueError, maxwell_filter, raw, st_only=True)  # no ST
+    with pytest.raises(ValueError, match="must not be None if st_only"):
+        maxwell_filter(raw, st_only=True)
     # two-step process equivalent to single-step process
     raw_tsss = maxwell_filter(raw, st_duration=tmax, st_only=True)
     raw_tsss = maxwell_filter(raw_tsss)
@@ -770,7 +767,7 @@ def test_fine_calibration():
     log = log.getvalue()
     assert "Using fine calibration" in log
     assert fine_cal_fname.stem in log
-    assert_meg_snr(raw_sss, sss_fine_cal, 82, 611)
+    assert_meg_snr(raw_sss, sss_fine_cal, 1.3, 180)  # similar to MaxFilter
     py_cal = raw_sss.info["proc_history"][0]["max_info"]["sss_cal"]
     assert py_cal is not None
     assert len(py_cal) > 0
@@ -811,15 +808,11 @@ def test_fine_calibration():
         regularize=None,
         bad_condition="ignore",
     )
-    assert_meg_snr(raw_sss_3D, sss_fine_cal, 1.0, 6.0)
+    assert_meg_snr(raw_sss_3D, sss_fine_cal, 0.9, 6.0)
+    assert_meg_snr(raw_sss_3D, raw_sss, 1.1, 6.0)  # slightly better than 1D
     raw_ctf = read_crop(fname_ctf_raw).apply_gradient_compensation(0)
-    pytest.raises(
-        RuntimeError,
-        maxwell_filter,
-        raw_ctf,
-        origin=(0.0, 0.0, 0.04),
-        calibration=fine_cal_fname,
-    )
+    with pytest.raises(RuntimeError, match="Not all MEG channels"):
+        maxwell_filter(raw_ctf, origin=(0.0, 0.0, 0.04), calibration=fine_cal_fname)
 
 
 @pytest.mark.slowtest
@@ -860,7 +853,7 @@ def _check_reg_match(sss_py, sss_mf, comp_tol):
             assert n_in == _get_n_moments(inf["in_order"])
         assert inf["components"][:n_in].sum() == inf["nfree"]
     assert_allclose(
-        info_py["nfree"], info_mf["nfree"], atol=comp_tol, err_msg=sss_py._filenames[0]
+        info_py["nfree"], info_mf["nfree"], atol=comp_tol, err_msg=sss_py.filenames[0]
     )
 
 
@@ -883,18 +876,19 @@ def test_cross_talk(tmp_path):
     assert len(py_ctc) > 0
     with pytest.raises(TypeError, match="path-like"):
         maxwell_filter(raw, cross_talk=raw)
-    pytest.raises(ValueError, maxwell_filter, raw, cross_talk=raw_fname)
+    with pytest.raises(ValueError, match="Invalid cross-talk FIF"):
+        maxwell_filter(raw, cross_talk=raw_fname)
     mf_ctc = sss_ctc.info["proc_history"][0]["max_info"]["sss_ctc"]
     del mf_ctc["block_id"]  # we don't write this
-    assert isinstance(py_ctc["decoupler"], sparse.csc_matrix)
-    assert isinstance(mf_ctc["decoupler"], sparse.csc_matrix)
+    assert isinstance(py_ctc["decoupler"], sparse.csc_array)
+    assert isinstance(mf_ctc["decoupler"], sparse.csc_array)
     assert_array_equal(py_ctc["decoupler"].toarray(), mf_ctc["decoupler"].toarray())
     # I/O roundtrip
     fname = tmp_path / "test_sss_raw.fif"
     sss_ctc.save(fname)
     sss_ctc_read = read_raw_fif(fname)
     mf_ctc_read = sss_ctc_read.info["proc_history"][0]["max_info"]["sss_ctc"]
-    assert isinstance(mf_ctc_read["decoupler"], sparse.csc_matrix)
+    assert isinstance(mf_ctc_read["decoupler"], sparse.csc_array)
     assert_array_equal(
         mf_ctc_read["decoupler"].toarray(), mf_ctc["decoupler"].toarray()
     )
@@ -915,13 +909,8 @@ def test_cross_talk(tmp_path):
     with pytest.warns(RuntimeWarning, match="Not all cross-talk channels"):
         maxwell_filter(raw_missing, cross_talk=ctc_fname)
     # MEG channels not in cross-talk
-    pytest.raises(
-        RuntimeError,
-        maxwell_filter,
-        raw_ctf,
-        origin=(0.0, 0.0, 0.04),
-        cross_talk=ctc_fname,
-    )
+    with pytest.raises(RuntimeError, match="Missing MEG channels"):
+        maxwell_filter(raw_ctf, origin=(0.0, 0.0, 0.04), cross_talk=ctc_fname)
 
 
 @testing.requires_testing_data
@@ -969,10 +958,10 @@ def test_head_translation():
         read_info(sample_fname)["dev_head_t"]["trans"],
     )
     # Degenerate cases
-    pytest.raises(
-        RuntimeError, maxwell_filter, raw, destination=mf_head_origin, coord_frame="meg"
-    )
-    pytest.raises(ValueError, maxwell_filter, raw, destination=[0.0] * 4)
+    with pytest.raises(RuntimeError, match=".* can only be set .* head .*"):
+        maxwell_filter(raw, destination=mf_head_origin, coord_frame="meg")
+    with pytest.raises(ValueError, match="destination must be"):
+        maxwell_filter(raw, destination=[0.0] * 4)
 
 
 # TODO: Eventually add simulation tests mirroring Taulu's original paper
@@ -993,7 +982,7 @@ def _assert_shielding(raw_sss, erm_power, min_factor, max_factor=np.inf, meg="ma
     factor = erm_power / sss_power
     assert (
         min_factor <= factor < max_factor
-    ), "Shielding factor not %0.3f <= %0.3f < %0.3f" % (min_factor, factor, max_factor)
+    ), f"Shielding factor not {min_factor:0.3f} <= {factor:0.3f} < {max_factor:0.3f}"
 
 
 @buggy_mkl_svd
@@ -1346,7 +1335,7 @@ def test_shielding_factor(tmp_path):
     assert counts[0] == 3
     # Show it by rewriting the 3D as 1D and testing it
     temp_fname = tmp_path / "test_cal.dat"
-    with open(fine_cal_fname_3d, "r") as fid:
+    with open(fine_cal_fname_3d) as fid:
         with open(temp_fname, "w") as fid_out:
             for line in fid:
                 fid_out.write(" ".join(line.strip().split(" ")[:14]) + "\n")
@@ -1394,7 +1383,7 @@ def test_all():
     coord_frames = ("head", "head", "meg", "head")
     ctcs = (ctc_fname, ctc_fname, ctc_fname, ctc_mgh_fname)
     mins = (3.5, 3.5, 1.2, 0.9)
-    meds = (10.8, 10.4, 3.2, 6.0)
+    meds = (10.8, 10.2, 3.2, 5.9)
     st_durs = (1.0, 1.0, 1.0, None)
     destinations = (None, sample_fname, None, None)
     origins = (mf_head_origin, mf_head_origin, mf_meg_origin, mf_head_origin)
@@ -1435,7 +1424,7 @@ def test_triux():
     sss_py = maxwell_filter(
         raw, coord_frame="meg", regularize=None, calibration=tri_cal_fname
     )
-    assert_meg_snr(sss_py, read_crop(tri_sss_cal_fname), 22, 200)
+    assert_meg_snr(sss_py, read_crop(tri_sss_cal_fname), 5, 100)
     # ctc+cal
     sss_py = maxwell_filter(
         raw,
@@ -1444,7 +1433,7 @@ def test_triux():
         calibration=tri_cal_fname,
         cross_talk=tri_ctc_fname,
     )
-    assert_meg_snr(sss_py, read_crop(tri_sss_ctc_cal_fname), 28, 200)
+    assert_meg_snr(sss_py, read_crop(tri_sss_ctc_cal_fname), 5, 100)
     # regularization
     sss_py = maxwell_filter(raw, coord_frame="meg", regularize="in")
     sss_mf = read_crop(tri_sss_reg_fname)
@@ -1830,8 +1819,9 @@ def test_prepare_emptyroom_bads(bads):
 @pytest.mark.parametrize("set_annot_when", ("before", "after"))
 @pytest.mark.parametrize("raw_meas_date", ("orig", None))
 @pytest.mark.parametrize("raw_er_meas_date", ("orig", None))
+@pytest.mark.parametrize("equal_sfreq", (False, True))
 def test_prepare_emptyroom_annot_first_samp(
-    set_annot_when, raw_meas_date, raw_er_meas_date
+    set_annot_when, raw_meas_date, raw_er_meas_date, equal_sfreq
 ):
     """Test prepare_emptyroom."""
     raw = read_raw_fif(raw_fname, allow_maxshield="yes", verbose=False)
@@ -1871,12 +1861,15 @@ def test_prepare_emptyroom_annot_first_samp(
         assert set_annot_when == "after"
         meas_date = "from_raw"
         want_date = raw.info["meas_date"]
+    if not equal_sfreq:
+        with raw_er.info._unlock():
+            raw_er.info["sfreq"] -= 100
     raw_er_prepared = maxwell_filter_prepare_emptyroom(
         raw_er=raw_er, raw=raw, meas_date=meas_date, emit_warning=True
     )
     assert raw_er.first_samp == raw_er_first_samp_orig
     assert raw_er_prepared.info["meas_date"] == want_date
-    assert raw_er_prepared.first_samp == raw.first_samp
+    assert raw_er_prepared.first_time == raw.first_time
 
     # Ensure (movement) annotations carry over regardless of whether they're
     # set before or after preparation
@@ -1888,7 +1881,8 @@ def test_prepare_emptyroom_annot_first_samp(
     prop_bad = np.isnan(raw.get_data([0], reject_by_annotation="nan")).mean()
     assert 0.3 < prop_bad < 0.4
     assert len(raw_er_prepared.annotations) == want_annot
-    prop_bad_er = np.isnan(
-        raw_er_prepared.get_data([0], reject_by_annotation="nan")
-    ).mean()
-    assert_allclose(prop_bad, prop_bad_er)
+    if equal_sfreq:
+        prop_bad_er = np.isnan(
+            raw_er_prepared.get_data([0], reject_by_annotation="nan")
+        ).mean()
+        assert_allclose(prop_bad, prop_bad_er)

@@ -1,9 +1,8 @@
 """Conversion tool from CTF to FIF."""
 
-# Authors: Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
-#          Eric Larson <larson.eric.d@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import os
 
@@ -32,7 +31,7 @@ from .trans import _make_ctf_coord_trans_set
 @fill_doc
 def read_raw_ctf(
     directory, system_clock="truncate", preload=False, clean_names=False, verbose=None
-):
+) -> "RawCTF":
     """Raw object from CTF directory.
 
     Parameters
@@ -54,11 +53,6 @@ def read_raw_ctf(
     -------
     raw : instance of RawCTF
         The raw data.
-        See :class:`mne.io.Raw` for documentation of attributes and methods.
-
-    See Also
-    --------
-    mne.io.Raw : Documentation of attributes and methods of RawCTF.
 
     Notes
     -----
@@ -110,17 +104,17 @@ class RawCTF(BaseRaw):
         preload=False,
         verbose=None,
         clean_names=False,
-    ):  # noqa: D102
+    ):
         # adapted from mne_ctf2fiff.c
         directory = str(
             _check_fname(directory, "read", True, "directory", need_dir=True)
         )
         if not directory.endswith(".ds"):
             raise TypeError(
-                'directory must be a directory ending with ".ds", ' f"got {directory}"
+                f'directory must be a directory ending with ".ds", got {directory}'
             )
         _check_option("system_clock", system_clock, ["ignore", "truncate"])
-        logger.info("ds directory : %s" % directory)
+        logger.info(f"ds directory : {directory}")
         res4 = _read_res4(directory)  # Read the magical res4 file
         coils = _read_hc(directory)  # Read the coil locations
         eeg = _read_eeg(directory)  # Read the EEG electrode loc info
@@ -168,7 +162,7 @@ class RawCTF(BaseRaw):
                 f"file(s): {missing_names}, and the following file(s) had no "
                 f"valid samples: {no_samps}"
             )
-        super(RawCTF, self).__init__(
+        super().__init__(
             info,
             preload,
             first_samps=first_samps,
@@ -201,7 +195,7 @@ class RawCTF(BaseRaw):
         trial_start_idx, r_lims, d_lims = _blk_read_lims(
             start, stop, int(si["block_size"])
         )
-        with open(self._filenames[fi], "rb") as fid:
+        with open(self.filenames[fi], "rb") as fid:
             for bi in range(len(r_lims)):
                 samp_offset = (bi + trial_start_idx) * si["res4_nsamp"]
                 n_read = min(si["n_samp_tot"] - samp_offset, si["block_size"])
@@ -231,7 +225,7 @@ def _clean_names_inst(inst):
 
 def _get_sample_info(fname, res4, system_clock):
     """Determine the number of valid samples."""
-    logger.info("Finding samples for %s: " % (fname,))
+    logger.info(f"Finding samples for {fname}: ")
     if CTF.SYSTEM_CLOCK_CH in res4["ch_names"]:
         clock_ch = res4["ch_names"].index(CTF.SYSTEM_CLOCK_CH)
     else:
@@ -246,7 +240,7 @@ def _get_sample_info(fname, res4, system_clock):
         fid.seek(0, 0)
         if (st_size - CTF.HEADER_SIZE) % (4 * res4["nsamp"] * res4["nchan"]) != 0:
             raise RuntimeError(
-                "The number of samples is not an even multiple " "of the trial size"
+                "The number of samples is not an even multiple of the trial size"
             )
         n_samp_tot = (st_size - CTF.HEADER_SIZE) // (4 * res4["nchan"])
         n_trial = n_samp_tot // res4["nsamp"]

@@ -1,8 +1,6 @@
-# Authors: Denis Engemann <denis.engemann@gmail.com>
-#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Teon Brooks <teon.brooks@gmail.com>
-#
-# License: Simplified BSD
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # Set our plotters to test mode
 
@@ -14,12 +12,11 @@ import pytest
 
 from mne.channels import make_dig_montage, make_standard_montage, read_dig_fif
 
-p_dir = Path(__file__).parent.parent.parent / "io" / "kit" / "tests" / "data"
+p_dir = Path(__file__).parents[2] / "io" / "kit" / "tests" / "data"
 elp = p_dir / "test_elp.txt"
 hsp = p_dir / "test_hsp.txt"
 hpi = p_dir / "test_mrk.sqd"
-point_names = ["nasion", "lpa", "rpa", "1", "2", "3", "4", "5"]
-io_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
+io_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
 fif_fname = io_dir / "test_raw.fif"
 
 

@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "0623de9142aa1aeabfde66f065618ef78e613ee5",
+  "authors": [
+    {
+      "n": "Mikolaj Magnuski",
+      "e": "mmagnuski@swps.edu.pl"
+    }
+  ],
+  "changes": {
+    "tutorials/plot_artifacts_correction_ica.py": {
+      "a": 18,
+      "d": 14
+    }
+  }
+}

@@ -1,0 +1,63 @@
+{
+  "merge_commit_sha": "5995a3a5cbd1fa935c106fc72a688d59b21c7f65",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "Makefile": {
+      "a": 1,
+      "d": 1
+    },
+    "bin/mne": {
+      "a": 46,
+      "d": 0
+    },
+    "mne/commands/mne_browse_raw.py": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/commands/mne_bti2fiff.py": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/commands/mne_clean_eog_ecg.py": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/commands/mne_compute_proj_ecg.py": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/commands/mne_compute_proj_eog.py": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/commands/mne_flash_bem_model.py": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/commands/mne_kit2fiff.py": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/commands/mne_make_scalp_surfaces.py": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/commands/mne_maxfilter.py": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/commands/mne_surf2bem.py": {
+      "a": 0,
+      "d": 0
+    },
+    "setup.py": {
+      "a": 5,
+      "d": 8
+    }
+  }
+}

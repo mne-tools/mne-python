@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "7331ad6e0613f32f7dfb0c675fd8f58ee0f1d07c",
+  "authors": [
+    {
+      "n": "Joan Massich",
+      "e": "mailsik@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/io/base.py": {
+      "a": 5,
+      "d": 1
+    },
+    "mne/io/fiff/raw.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/tests/test_raw.py": {
+      "a": 43,
+      "d": 0
+    }
+  }
+}

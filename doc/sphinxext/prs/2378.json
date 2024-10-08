@@ -1,0 +1,135 @@
+{
+  "merge_commit_sha": "26e88fbe56e9c5675d3a66a9cbe3c47d8cc21c7d",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/sphinxext/flow_diagram.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/inverse/plot_covariance_whitening_dspm.py": {
+      "a": 2,
+      "d": 1
+    },
+    "examples/realtime/ftclient_rt_average.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/channels/layout.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/decoding/csp.py": {
+      "a": 4,
+      "d": 3
+    },
+    "mne/epochs.py": {
+      "a": 5,
+      "d": 2
+    },
+    "mne/event.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/fixes.py": {
+      "a": 0,
+      "d": 2
+    },
+    "mne/forward/_lead_dots.py": {
+      "a": 14,
+      "d": 10
+    },
+    "mne/forward/tests/test_field_interpolation.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/io/base.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/io/bti/bti.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/bti/tests/test_bti.py": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/io/edf/edf.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/io/egi/egi.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/label.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/preprocessing/infomax_.py": {
+      "a": 2,
+      "d": 4
+    },
+    "mne/preprocessing/maxwell.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/preprocessing/tests/test_ica.py": {
+      "a": 4,
+      "d": 1
+    },
+    "mne/preprocessing/tests/test_infomax.py": {
+      "a": 98,
+      "d": 55
+    },
+    "mne/preprocessing/xdawn.py": {
+      "a": 5,
+      "d": 4
+    },
+    "mne/source_estimate.py": {
+      "a": 11,
+      "d": 15
+    },
+    "mne/tests/test_cov.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/transforms.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/viz/epochs.py": {
+      "a": 16,
+      "d": 10
+    },
+    "mne/viz/evoked.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/viz/ica.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/viz/topo.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/viz/topomap.py": {
+      "a": 4,
+      "d": 2
+    }
+  }
+}

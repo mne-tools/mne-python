@@ -1,9 +1,8 @@
 """Notebook implementation of _Renderer and GUI."""
 
-# Authors: Guillaume Favelier <guillaume.favelier@gmail.com>
-#          Alex Rockhill <aprockhill@mailbox.org>
-#
-# License: Simplified BSD
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import os
 import os.path as op
@@ -975,7 +974,7 @@ class _IpyDialog(_AbstractDialog):
         callback,
         *,
         icon="Warning",
-        buttons=[],
+        buttons=(),
         modal=True,
         window=None,
     ):
@@ -1189,7 +1188,7 @@ class _IpyDock(_AbstractDock, _IpyLayout):
 
     def _dock_add_text(self, name, value, placeholder, *, callback=None, layout=None):
         layout = self._dock_layout if layout is None else layout
-        widget = Text(value=value, placeholder=placeholder)
+        widget = Text(value=str(value), placeholder=placeholder)
         if callback is not None:
             widget.observe(_generate_callback(callback), names="value")
         self._layout_add_widget(layout, widget)
@@ -1201,7 +1200,7 @@ class _IpyDock(_AbstractDock, _IpyLayout):
         desc,
         func,
         *,
-        filter=None,
+        filter_=None,
         initial_directory=None,
         save=False,
         is_directory=False,

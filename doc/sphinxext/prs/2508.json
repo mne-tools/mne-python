@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "533e718d389c1c6a12b22c138dbc725be0746ff1",
+  "authors": [
+    {
+      "n": "Denis A. Engemann",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/manual/cookbook.rst": {
+      "a": 8,
+      "d": 0
+    },
+    "mne/bem.py": {
+      "a": 5,
+      "d": 1
+    },
+    "mne/io/bti/bti.py": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "972ca8c980246fc0245504889e5087d0bc14919b",
+  "authors": [
+    {
+      "n": "Adam Li",
+      "e": null
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/channels/montage.py": {
+      "a": 28,
+      "d": 7
+    },
+    "mne/channels/tests/test_montage.py": {
+      "a": 38,
+      "d": 0
+    },
+    "mne/io/meas_info.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/utils/docs.py": {
+      "a": 8,
+      "d": 0
+    }
+  }
+}

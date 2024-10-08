@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "6ad28a461fe29d96e5d822e2de6c4c9d1b7c2537",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "autofix-ci[bot]",
+      "e": "114827586+autofix-ci[bot]@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/12721.bugfix.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/commands/mne_browse_raw.py": {
+      "a": 9,
+      "d": 0
+    },
+    "mne/viz/_mpl_figure.py": {
+      "a": 9,
+      "d": 1
+    },
+    "mne/viz/tests/test_raw.py": {
+      "a": 37,
+      "d": 0
+    }
+  }
+}

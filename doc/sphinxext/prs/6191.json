@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "b9a76420a4a436c8460c3d431ef2a5ae78af866a",
+  "authors": [
+    {
+      "n": "Jona Sassenhagen",
+      "e": "jona.sassenhagen@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/manual/migrating.rst": {
+      "a": 31,
+      "d": 29
+    }
+  }
+}

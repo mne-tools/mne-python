@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "3091cac2e780a3baf1763fc888da22660e5554a2",
+  "authors": [
+    {
+      "n": "Rob Luke",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/channels/channels.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/io/nirx/nirx.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/nirx/tests/test_nirx.py": {
+      "a": 11,
+      "d": 11
+    },
+    "mne/preprocessing/nirs/_beer_lambert_law.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/preprocessing/tests/test_beer_lambert_law.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/topomap.py": {
+      "a": 3,
+      "d": 0
+    },
+    "tutorials/preprocessing/plot_70_fnirs_processing.py": {
+      "a": 60,
+      "d": 1
+    }
+  }
+}

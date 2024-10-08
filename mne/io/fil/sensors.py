@@ -1,6 +1,6 @@
-# Authors: George O'Neill <g.o'neill@ucl.ac.uk>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from copy import deepcopy
 

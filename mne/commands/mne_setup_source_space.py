@@ -1,4 +1,7 @@
-#!/usr/bin/env python
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
+
 """Set up bilateral hemisphere surface-based source space with subsampling.
 
 Examples
@@ -67,7 +70,7 @@ def run():
     parser.add_option(
         "--oct",
         dest="oct",
-        help="use the recursively subdivided octahedron " "to create the source space.",
+        help="use the recursively subdivided octahedron to create the source space.",
         default=None,
         type="int",
     )
@@ -118,7 +121,7 @@ def run():
     subjects_dir = options.subjects_dir
     spacing = options.spacing
     ico = options.ico
-    oct = options.oct
+    oct_ = options.oct
     surface = options.surface
     n_jobs = options.n_jobs
     add_dist = options.add_dist
@@ -128,20 +131,22 @@ def run():
     overwrite = True if options.overwrite is not None else False
 
     # Parse source spacing option
-    spacing_options = [ico, oct, spacing]
+    spacing_options = [ico, oct_, spacing]
     n_options = len([x for x in spacing_options if x is not None])
+    use_spacing = "oct6"
     if n_options > 1:
         raise ValueError("Only one spacing option can be set at the same time")
     elif n_options == 0:
         # Default to oct6
-        use_spacing = "oct6"
+        pass
     elif n_options == 1:
         if ico is not None:
             use_spacing = "ico" + str(ico)
-        elif oct is not None:
-            use_spacing = "oct" + str(oct)
+        elif oct_ is not None:
+            use_spacing = "oct" + str(oct_)
         elif spacing is not None:
             use_spacing = spacing
+    del ico, oct_, spacing
     # Generate filename
     if fname is None:
         if subject_to is None:

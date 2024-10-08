@@ -1,0 +1,51 @@
+{
+  "merge_commit_sha": "3fd31bb969a0073e26463682c1fafd7dad62a2cb",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/event.py": {
+      "a": 39,
+      "d": 24
+    },
+    "mne/gui/tests/test_file_traits.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/tag.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/tests/data/fsaverage-fiducials.fif": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/io/tests/data/test_raw-annot.fif": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/io/tests/test_meas_info.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/io/tests/test_show_fiff.py": {
+      "a": 29,
+      "d": 0
+    },
+    "mne/tests/test_event.py": {
+      "a": 50,
+      "d": 24
+    },
+    "mne/utils/tests/test_testing.py": {
+      "a": 0,
+      "d": 24
+    }
+  }
+}

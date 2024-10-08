@@ -1,6 +1,6 @@
-# Authors: Eric Larson <larson.eric.d@gmail.com>
-
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import numpy as np
 from scipy.signal import get_window
@@ -51,23 +51,21 @@ class _Interp2:
             raise ValueError("Must be at least one control point")
         if not (self.control_points >= 0).all():
             raise ValueError(
-                "All control points must be positive (got %s)"
-                % (self.control_points[:3],)
+                f"All control points must be positive (got {self.control_points[:3]})"
             )
         if isinstance(values, np.ndarray):
             values = [values]
-        if isinstance(values, (list, tuple)):
+        if isinstance(values, list | tuple):
             for v in values:
                 if not (v is None or isinstance(v, np.ndarray)):
                     raise TypeError(
-                        'All entries in "values" must be ndarray '
-                        "or None, got %s" % (type(v),)
+                        'All entries in "values" must be ndarray or None, got '
+                        f"{type(v)}"
                     )
                 if v is not None and v.shape[0] != len(self.control_points):
                     raise ValueError(
-                        "Values, if provided, must be the same "
-                        "length as the number of control points "
-                        "(%s), got %s" % (len(self.control_points), v.shape[0])
+                        "Values, if provided, must be the same length as the number of "
+                        f"control points ({len(self.control_points)}), got {v.shape[0]}"
                     )
             use_values = values
 
@@ -83,9 +81,7 @@ class _Interp2:
         self._left = self._right = self._use_interp = None
         known_types = ("cos2", "linear", "zero", "hann")
         if interp not in known_types:
-            raise ValueError(
-                'interp must be one of %s, got "%s"' % (known_types, interp)
-            )
+            raise ValueError(f'interp must be one of {known_types}, got "{interp}"')
         self._interp = interp
 
     def feed_generator(self, n_pts):
@@ -94,10 +90,10 @@ class _Interp2:
         n_pts = _ensure_int(n_pts, "n_pts")
         original_position = self._position
         stop = self._position + n_pts
-        logger.debug("Feed %s (%s-%s)" % (n_pts, self._position, stop))
+        logger.debug(f"Feed {n_pts} ({self._position}-{stop})")
         used = np.zeros(n_pts, bool)
         if self._left is None:  # first one
-            logger.debug("  Eval @ %s (%s)" % (0, self.control_points[0]))
+            logger.debug(f"  Eval @ 0 ({self.control_points[0]})")
             self._left = self.values(self.control_points[0])
             if len(self.control_points) == 1:
                 self._right = self._left
@@ -106,7 +102,7 @@ class _Interp2:
         # Left zero-order hold condition
         if self._position < self.control_points[self._left_idx]:
             n_use = min(self.control_points[self._left_idx] - self._position, n_pts)
-            logger.debug("  Left ZOH %s" % n_use)
+            logger.debug(f"  Left ZOH {n_use}")
             this_sl = slice(None, n_use)
             assert used[this_sl].size == n_use
             assert not used[this_sl].any()
@@ -131,7 +127,7 @@ class _Interp2:
                     self._left_idx += 1
                     self._use_interp = None  # need to recreate it
                 eval_pt = self.control_points[self._left_idx + 1]
-                logger.debug("  Eval @ %s (%s)" % (self._left_idx + 1, eval_pt))
+                logger.debug(f"  Eval @ {self._left_idx + 1} ({eval_pt})")
                 self._right = self.values(eval_pt)
             assert self._right is not None
             left_point = self.control_points[self._left_idx]
@@ -152,8 +148,7 @@ class _Interp2:
             n_use = min(stop, right_point) - self._position
             if n_use > 0:
                 logger.debug(
-                    "  Interp %s %s (%s-%s)"
-                    % (self._interp, n_use, left_point, right_point)
+                    f"  Interp {self._interp} {n_use} ({left_point}-{right_point})"
                 )
                 interp_start = self._position - left_point
                 assert interp_start >= 0
@@ -174,7 +169,7 @@ class _Interp2:
         if self.control_points[self._left_idx] <= self._position:
             n_use = stop - self._position
             if n_use > 0:
-                logger.debug("  Right ZOH %s" % n_use)
+                logger.debug(f"  Right ZOH {n_use}")
                 this_sl = slice(n_pts - n_use, None)
                 assert not used[this_sl].any()
                 used[this_sl] = True
@@ -217,12 +212,12 @@ class _Interp2:
 def _check_store(store):
     if isinstance(store, np.ndarray):
         store = [store]
-    if isinstance(store, (list, tuple)) and all(
+    if isinstance(store, list | tuple) and all(
         isinstance(s, np.ndarray) for s in store
     ):
         store = _Storer(*store)
     if not callable(store):
-        raise TypeError("store must be callable, got type %s" % (type(store),))
+        raise TypeError(f"store must be callable, got type {type(store)}")
     return store
 
 
@@ -287,21 +282,21 @@ class _COLA:
         n_overlap = _ensure_int(n_overlap, "n_overlap")
         n_total = _ensure_int(n_total, "n_total")
         if n_samples <= 0:
-            raise ValueError("n_samples must be > 0, got %s" % (n_samples,))
+            raise ValueError(f"n_samples must be > 0, got {n_samples}")
         if n_overlap < 0:
-            raise ValueError("n_overlap must be >= 0, got %s" % (n_overlap,))
+            raise ValueError(f"n_overlap must be >= 0, got {n_overlap}")
         if n_total < 0:
-            raise ValueError("n_total must be >= 0, got %s" % (n_total,))
+            raise ValueError(f"n_total must be >= 0, got {n_total}")
         self._n_samples = int(n_samples)
         self._n_overlap = int(n_overlap)
         del n_samples, n_overlap
         if n_total < self._n_samples:
             raise ValueError(
-                "Number of samples per window (%d) must be at "
-                "most the total number of samples (%s)" % (self._n_samples, n_total)
+                f"Number of samples per window ({self._n_samples}) must be at "
+                f"most the total number of samples ({n_total})"
             )
         if not callable(process):
-            raise TypeError("process must be callable, got type %s" % (type(process),))
+            raise TypeError(f"process must be callable, got type {type(process)}")
         self._process = process
         self._step = self._n_samples - self._n_overlap
         self._store = _check_store(store)
@@ -336,8 +331,7 @@ class _COLA:
         del window, window_name
         if delta > 0:
             logger.info(
-                "    The final %0.3f s will be lumped into the "
-                "final window" % (delta / sfreq,)
+                f"    The final {delta / sfreq} s will be lumped into the final window"
             )
 
     @property
@@ -353,16 +347,12 @@ class _COLA:
             self._in_buffers = [None] * len(datas)
         if len(datas) != len(self._in_buffers):
             raise ValueError(
-                "Got %d array(s), needed %d" % (len(datas), len(self._in_buffers))
+                f"Got {len(datas)} array(s), needed {len(self._in_buffers)}"
             )
         for di, data in enumerate(datas):
             if not isinstance(data, np.ndarray) or data.ndim < 1:
                 raise TypeError(
-                    "data entry %d must be an 2D ndarray, got %s"
-                    % (
-                        di,
-                        type(data),
-                    )
+                    f"data entry {di} must be an 2D ndarray, got {type(data)}"
                 )
             if self._in_buffers[di] is None:
                 # In practice, users can give large chunks, so we use
@@ -375,25 +365,19 @@ class _COLA:
                 or self._in_buffers[di].dtype != data.dtype
             ):
                 raise TypeError(
-                    "data must dtype %s and shape[:-1]==%s, "
-                    "got dtype %s shape[:-1]=%s"
-                    % (
-                        self._in_buffers[di].dtype,
-                        self._in_buffers[di].shape[:-1],
-                        data.dtype,
-                        data.shape[:-1],
-                    )
+                    f"data must dtype {self._in_buffers[di].dtype} and "
+                    f"shape[:-1]=={self._in_buffers[di].shape[:-1]}, got dtype "
+                    f"{data.dtype} shape[:-1]={data.shape[:-1]}"
                 )
             logger.debug(
-                "    + Appending %d->%d"
-                % (self._in_offset, self._in_offset + data.shape[-1])
+                f"    + Appending {self._in_offset:d}->"
+                f"{self._in_offset + data.shape[-1]:d}"
             )
             self._in_buffers[di] = np.concatenate([self._in_buffers[di], data], -1)
             if self._in_offset > self.stops[-1]:
                 raise ValueError(
-                    "data (shape %s) exceeded expected total "
-                    "buffer size (%s > %s)"
-                    % (data.shape, self._in_offset, self.stops[-1])
+                    f"data (shape {data.shape}) exceeded expected total buffer size ("
+                    f"{self._in_offset} > {self.stops[-1]})"
                 )
         # Check to see if we can process the next chunk and dump outputs
         while self._idx < len(self.starts) and self._in_offset >= self.stops[self._idx]:
@@ -410,7 +394,7 @@ class _COLA:
             if self._idx == 0:
                 for offset in range(self._n_samples - self._step, 0, -self._step):
                     this_window[:offset] += self._window[-offset:]
-            logger.debug("    * Processing %d->%d" % (start, stop))
+            logger.debug(f"    * Processing {start}->{stop}")
             this_proc = [in_[..., :this_len].copy() for in_ in self._in_buffers]
             if not all(
                 proc.shape[-1] == this_len == this_window.size for proc in this_proc
@@ -433,7 +417,7 @@ class _COLA:
             delta = next_start - self.starts[self._idx - 1]
             for di in range(len(self._in_buffers)):
                 self._in_buffers[di] = self._in_buffers[di][..., delta:]
-            logger.debug("    - Shifting input/output buffers by %d samples" % (delta,))
+            logger.debug(f"    - Shifting input/output buffers by {delta:d} samples")
             self._store(*[o[..., :delta] for o in self._out_buffers])
             for ob in self._out_buffers:
                 ob[..., :-delta] = ob[..., delta:]
@@ -452,9 +436,9 @@ def _check_cola(win, nperseg, step, window_name, tol=1e-10):
     deviation = np.max(np.abs(binsums - const))
     if deviation > tol:
         raise ValueError(
-            "segment length %d with step %d for %s window "
+            f"segment length {nperseg:d} with step {step:d} for {window_name} window "
             "type does not provide a constant output "
-            "(%g%% deviation)" % (nperseg, step, window_name, 100 * deviation / const)
+            f"({100 * deviation / const:g}% deviation)"
         )
     return const
 
@@ -465,7 +449,7 @@ class _Storer:
     def __init__(self, *outs, picks=None):
         for oi, out in enumerate(outs):
             if not isinstance(out, np.ndarray) or out.ndim < 1:
-                raise TypeError("outs[oi] must be >= 1D ndarray, got %s" % (out,))
+                raise TypeError(f"outs[oi] must be >= 1D ndarray, got {out}")
         self.outs = outs
         self.idx = 0
         self.picks = picks

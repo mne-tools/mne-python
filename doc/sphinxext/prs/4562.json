@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "300f8734796c1d10da94f45eb8de0e9ee45fa90e",
+  "authors": [
+    {
+      "n": "Yousra Bekhti",
+      "e": "yousra.bekhti@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 6,
+      "d": 0
+    },
+    "examples/inverse/plot_custom_inverse_solver.py": {
+      "a": 9,
+      "d": 8
+    },
+    "mne/inverse_sparse/_gamma_map.py": {
+      "a": 7,
+      "d": 10
+    },
+    "mne/inverse_sparse/mxne_inverse.py": {
+      "a": 35,
+      "d": 24
+    },
+    "mne/inverse_sparse/tests/test_gamma_map.py": {
+      "a": 37,
+      "d": 2
+    },
+    "mne/inverse_sparse/tests/test_mxne_inverse.py": {
+      "a": 51,
+      "d": 1
+    },
+    "mne/minimum_norm/inverse.py": {
+      "a": 50,
+      "d": 10
+    }
+  }
+}

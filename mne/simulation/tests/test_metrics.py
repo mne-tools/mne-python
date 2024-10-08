@@ -1,7 +1,6 @@
-# Author: Yousra Bekhti <yousra.bekhti@gmail.com>
-#         Mark Wronkiewicz <wronk@uw.edu>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import numpy as np
 import pytest

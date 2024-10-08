@@ -1,50 +1,76 @@
 repos:
-  - repo: https://github.com/psf/black
-    rev: 23.11.0
-    hooks:
-      - id: black
-        args: [--quiet]
-
   # Ruff mne
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.1.5
+    rev: v0.6.8
     hooks:
       - id: ruff
-        name: ruff mne
+        name: ruff lint mne
         args: ["--fix"]
-        files: ^mne/
-
-  # Ruff tutorials and examples
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.1.5
-    hooks:
+        files: ^mne/|^tools/
+        exclude: vulture_allowlist.py
       - id: ruff
-        name: ruff tutorials and examples
+        name: ruff lint mne preview
+        args: ["--fix", "--preview", "--select=NPY201"]
+        files: ^mne/|^tools/
+      - id: ruff
+        name: ruff lint doc, tutorials, and examples
         # D103: missing docstring in public function
         # D400: docstring first line must end with period
-        args: ["--ignore=D103,D400"]
-        files: ^tutorials/|^examples/
+        args: ["--ignore=D103,D400", "--fix"]
+        files: ^doc/|^tutorials/|^examples/
+      - id: ruff-format
+        files: ^mne/|^doc/|^tutorials/|^examples/|^tools/
 
   # Codespell
   - repo: https://github.com/codespell-project/codespell
-    rev: v2.2.6
+    rev: v2.3.0
     hooks:
       - id: codespell
         additional_dependencies:
           - tomli
-        files: ^mne/|^doc/|^examples/|^tutorials/
+        files: ^mne/|^doc/|^examples/|^tutorials/|^tools/
         types_or: [python, bib, rst, inc]
 
   # yamllint
   - repo: https://github.com/adrienverge/yamllint.git
-    rev: v1.33.0
+    rev: v1.35.1
     hooks:
       - id: yamllint
         args: [--strict, -c, .yamllint.yml]
 
   # rstcheck
   - repo: https://github.com/rstcheck/rstcheck.git
-    rev: v6.2.0
+    rev: v6.2.4
     hooks:
       - id: rstcheck
+        additional_dependencies:
+          - tomli
         files: ^doc/.*\.(rst|inc)$
+        # Credit is problematic because we generate an include on the fly
+        exclude: ^doc/credit.rst$
+
+  # sorting
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: file-contents-sorter
+        files: ^doc/changes/names.inc|^.mailmap
+        args: ["--ignore-case"]
+
+  - repo: https://github.com/pappasam/toml-sort
+    rev: v0.23.1
+    hooks:
+      - id: toml-sort-fix
+        files: pyproject.toml
+
+# The following are too slow to run on local commits, so let's only run on CIs:
+#
+#   - repo: https://github.com/pre-commit/mirrors-mypy
+#     rev: v1.9.0
+#     hooks:
+#       - id: mypy
+#
+#   - repo: https://github.com/jendrikseipp/vulture
+#     rev: 'v2.11'  # or any later Vulture version
+#     hooks:
+#       - id: vulture

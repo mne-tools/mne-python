@@ -1,6 +1,6 @@
-# Author: Eric Larson <larson.eric.d@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from pathlib import Path
 
@@ -17,7 +17,7 @@ from mne.io import read_raw_fif
 from mne.io.array import RawArray
 from mne.io.tests.test_raw import _test_raw_reader
 
-base_dir = Path(__file__).parent.parent.parent / "tests" / "data"
+base_dir = Path(__file__).parents[2] / "tests" / "data"
 fif_fname = base_dir / "test_raw.fif"
 
 
@@ -35,7 +35,7 @@ def test_long_names():
     info = create_info(["a" * 16] * 11, 1000.0, verbose="error")
     data = np.zeros((11, 1000))
     raw = RawArray(data, info)
-    assert raw.ch_names == ["a" * 16 + "-%s" % ii for ii in range(11)]
+    assert raw.ch_names == ["a" * 16 + f"-{ii}" for ii in range(11)]
 
 
 def test_array_copy():
@@ -150,7 +150,9 @@ def test_array_raw():
 
     # plotting
     raw2.plot()
-    raw2.compute_psd(tmax=2.0, n_fft=1024).plot(average=True, spatial_colors=False)
+    raw2.compute_psd(tmax=2.0, n_fft=1024).plot(
+        average=True, amplitude=False, spatial_colors=False
+    )
     plt.close("all")
 
     # epoching
@@ -183,5 +185,5 @@ def test_array_raw():
     raw = RawArray(data, info)
     raw.set_montage(montage)
     spectrum = raw.compute_psd()
-    spectrum.plot(average=False)  # looking for nonexistent layout
+    spectrum.plot(average=False, amplitude=False)  # looking for nonexistent layout
     spectrum.plot_topo()

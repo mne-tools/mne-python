@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "ff40ce33418a786b23b534a6cfcb44cca5f6b105",
+  "authors": [
+    {
+      "n": "kimcoco",
+      "e": "kimjico@gmail.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "examples/inverse/evoked_ers_source_power.py": {
+      "a": 5,
+      "d": 6
+    }
+  }
+}

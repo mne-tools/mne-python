@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "ad54e0ffae82d86fc96f8cfef312637ae96a3da5",
+  "authors": [
+    {
+      "n": "Alex Rockhill",
+      "e": "aprockhill@mailbox.org"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "paper.md": {
+      "a": 3,
+      "d": 1
+    }
+  }
+}

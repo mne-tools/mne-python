@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "3df939c6eae7e906f298db6715669a8084865d49",
+  "authors": [
+    {
+      "n": "jaeilepp",
+      "e": "jaeilepp@student.jyu.fi"
+    }
+  ],
+  "changes": {
+    "mne/channels/montage.py": {
+      "a": 5,
+      "d": 4
+    }
+  }
+}

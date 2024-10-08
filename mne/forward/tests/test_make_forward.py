@@ -1,3 +1,7 @@
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
+
 from itertools import product
 from pathlib import Path
 
@@ -42,6 +46,7 @@ from mne.source_space._source_space import (
 from mne.surface import _get_ico_surface
 from mne.transforms import Transform
 from mne.utils import (
+    _record_warnings,
     catch_logging,
     requires_mne,
     requires_mne_mark,
@@ -51,9 +56,7 @@ from mne.utils import (
 
 data_path = testing.data_path(download=False)
 fname_meeg = data_path / "MEG" / "sample" / "sample_audvis_trunc-meg-eeg-oct-4-fwd.fif"
-fname_raw = (
-    Path(__file__).parent.parent.parent / "io" / "tests" / "data" / "test_raw.fif"
-)
+fname_raw = Path(__file__).parents[2] / "io" / "tests" / "data" / "test_raw.fif"
 fname_evo = data_path / "MEG" / "sample" / "sample_audvis_trunc-ave.fif"
 fname_cov = data_path / "MEG" / "sample" / "sample_audvis_trunc-cov.fif"
 fname_dip = data_path / "MEG" / "sample" / "sample_audvis_trunc_set1.dip"
@@ -64,7 +67,7 @@ fname_bem = subjects_dir / "sample" / "bem" / "sample-1280-1280-1280-bem-sol.fif
 fname_aseg = subjects_dir / "sample" / "mri" / "aseg.mgz"
 fname_bem_meg = subjects_dir / "sample" / "bem" / "sample-1280-bem-sol.fif"
 
-io_path = Path(__file__).parent.parent.parent / "io"
+io_path = Path(__file__).parents[2] / "io"
 bti_dir = io_path / "bti" / "tests" / "data"
 kit_dir = io_path / "kit" / "tests" / "data"
 trans_path = kit_dir / "trans-sample.fif"
@@ -198,7 +201,7 @@ def test_magnetic_dipole():
     r0 = coils[0]["rmag"][[0]]
     with pytest.raises(RuntimeError, match="Coil too close"):
         _magnetic_dipole_field_vec(r0, coils[:1])
-    with pytest.warns(RuntimeWarning, match="Coil too close"):
+    with _record_warnings(), pytest.warns(RuntimeWarning, match="Coil too close"):
         fwd = _magnetic_dipole_field_vec(r0, coils[:1], too_close="warning")
     assert not np.isfinite(fwd).any()
     with np.errstate(invalid="ignore"):
@@ -293,7 +296,10 @@ def test_make_forward_solution_bti(fname_src_small):
     "other",
     [
         pytest.param("MNE-C", marks=requires_mne_mark()),
-        pytest.param("openmeeg", marks=requires_openmeeg_mark()),
+        pytest.param(
+            "openmeeg",
+            marks=[requires_openmeeg_mark(), pytest.mark.slowtest],
+        ),
     ],
 )
 def test_make_forward_solution_ctf(tmp_path, fname_src_small, other):
@@ -400,6 +406,7 @@ def test_make_forward_solution_ctf(tmp_path, fname_src_small, other):
     repr(fwd_py)
 
 
+@pytest.mark.slowtest
 @testing.requires_testing_data
 def test_make_forward_solution_basic():
     """Test making M-EEG forward solution from python."""

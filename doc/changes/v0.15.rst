@@ -10,7 +10,7 @@ Changelog
 
 - Add .bvef extension (BrainVision Electrodes File) to ``mne.channels.read_montage`` by `Jean-Baptiste Schiratti`_
 
-- Add :func:`mne.decoding.cross_val_multiscore` to allow scoring of multiple tasks, typically used with :class:`mne.decoding.SlidingEstimator`, by `Jean-Remi King`_
+- Add :func:`mne.decoding.cross_val_multiscore` to allow scoring of multiple tasks, typically used with :class:`mne.decoding.SlidingEstimator`, by `Jean-Rémi King`_
 
 - Add :class:`mne.decoding.ReceptiveField` module for modeling electrode response to input features by `Chris Holdgraf`_
 
@@ -20,7 +20,7 @@ Changelog
 
 - Add example of time-frequency decoding with CSP by `Laura Gwilliams`_
 
-- Add :class:`mne.decoding.SPoC` to fit and apply spatial filters based on continuous target variables, by `Jean-Remi King`_ and `Alexandre Barachant`_
+- Add :class:`mne.decoding.SPoC` to fit and apply spatial filters based on continuous target variables, by `Jean-Rémi King`_ and `Alexandre Barachant`_
 
 - Add Fieldtrip's electromyogram dataset, by `Alexandre Barachant`_
 
@@ -74,7 +74,7 @@ Changelog
 
 - Add function :func:`mne.channels.get_builtin_montages` to list all built-in montages by `Clemens Brunner`_
 
-- :class:`mne.decoding.SlidingEstimator` and :class:`mne.decoding.GeneralizingEstimator` now accept ``**fit_params`` at fitting by `Jean-Remi King`_
+- :class:`mne.decoding.SlidingEstimator` and :class:`mne.decoding.GeneralizingEstimator` now accept ``**fit_params`` at fitting by `Jean-Rémi King`_
 
 - Add :class:`mne.VectorSourceEstimate` class which enables working with both source power and dipole orientations by `Marijn van Vliet`_
 
@@ -220,13 +220,13 @@ API
 
 - Make the goodness of fit (GOF) of the dipoles returned by :func:`mne.beamformer.rap_music` consistent with the GOF of dipoles returned by :func:`mne.fit_dipole` by `Alex Gramfort`_.
 
-- :class:`mne.decoding.SlidingEstimator` will now replace ``mne.decoding.TimeDecoding`` to make it generic and fully compatible with scikit-learn, by `Jean-Remi King`_ and `Alex Gramfort`_
+- :class:`mne.decoding.SlidingEstimator` will now replace ``mne.decoding.TimeDecoding`` to make it generic and fully compatible with scikit-learn, by `Jean-Rémi King`_ and `Alex Gramfort`_
 
-- :class:`mne.decoding.GeneralizingEstimator` will now replace ``mne.decoding.GeneralizationAcrossTime`` to make it generic and fully compatible with scikit-learn, by `Jean-Remi King`_ and `Alex Gramfort`_
+- :class:`mne.decoding.GeneralizingEstimator` will now replace ``mne.decoding.GeneralizationAcrossTime`` to make it generic and fully compatible with scikit-learn, by `Jean-Rémi King`_ and `Alex Gramfort`_
 
-- ``mne.viz.decoding.plot_gat_times``, ``mne.viz.decoding.plot_gat_matrix`` are now deprecated. Use matplotlib instead as shown in the examples, by `Jean-Remi King`_ and `Alex Gramfort`_
+- ``mne.viz.decoding.plot_gat_times``, ``mne.viz.decoding.plot_gat_matrix`` are now deprecated. Use matplotlib instead as shown in the examples, by `Jean-Rémi King`_ and `Alex Gramfort`_
 
-- Add ``norm_trace`` parameter to control single-epoch covariance normalization in :class:mne.decoding.CSP, by `Jean-Remi King`_
+- Add ``norm_trace`` parameter to control single-epoch covariance normalization in :class:`mne.decoding.CSP`, by `Jean-Rémi King`_
 
 - Allow passing a list of channel names as ``show_names`` in function  :func:`mne.viz.plot_sensors` and methods :meth:`mne.Evoked.plot_sensors`, :meth:`mne.Epochs.plot_sensors` and :meth:`mne.io.Raw.plot_sensors` to show only a subset of channel names by `Jaakko Leppakangas`_
 
@@ -302,7 +302,7 @@ People who contributed to this release  (in alphabetical order):
 * Fede Raimondo
 * Jaakko Leppakangas
 * Jean-Baptiste Schiratti
-* Jean-Remi King
+* Jean-Rémi King
 * Jesper Duemose Nielsen
 * Joan Massich
 * Jon Houck

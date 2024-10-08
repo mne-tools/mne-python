@@ -1,8 +1,6 @@
-# Authors: Marijn van Vliet <w.m.vanvliet@gmail.com>
-#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Teon Brooks <teon.brooks@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import itertools
 from contextlib import nullcontext
@@ -37,7 +35,7 @@ from mne.epochs import BaseEpochs, make_fixed_length_epochs
 from mne.io import RawArray, read_raw_fif
 from mne.utils import _record_warnings, catch_logging
 
-base_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
+base_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
 raw_fname = base_dir / "test_raw.fif"
 data_dir = testing.data_path(download=False) / "MEG" / "sample"
 fif_fname = data_dir / "sample_audvis_trunc_raw.fif"
@@ -301,7 +299,7 @@ def test_set_eeg_reference_ch_type(ch_type, msg, projection):
     # gh-8739
     raw2 = RawArray(data, create_info(5, 1000.0, ["mag"] * 4 + ["misc"]))
     with pytest.raises(
-        ValueError, match="No EEG, ECoG, sEEG or DBS channels " "found to rereference."
+        ValueError, match="No EEG, ECoG, sEEG or DBS channels found to rereference."
     ):
         set_eeg_reference(raw2, ch_type="auto", projection=projection)
 
@@ -361,6 +359,160 @@ def test_set_eeg_reference_rest():
     assert 0.005 < exp_var_old <= 0.009
     exp_var = 1 - np.linalg.norm(evoked.data[:, idx] - want) / norm
     assert 0.995 < exp_var <= 1
+
+
+@testing.requires_testing_data
+@pytest.mark.parametrize("inst_type", ["raw", "epochs"])
+@pytest.mark.parametrize(
+    "ref_channels, expectation",
+    [
+        (
+            {2: "EEG 001"},
+            pytest.raises(
+                TypeError,
+                match="Keys in the ref_channels dict must be strings. "
+                "Your dict has keys of type int.",
+            ),
+        ),
+        (
+            {"EEG 001": (1, 2)},
+            pytest.raises(
+                TypeError,
+                match="Values in the ref_channels dict must be strings. "
+                "Your dict has values of type int.",
+            ),
+        ),
+        (
+            {"EEG 001": [1, 2]},
+            pytest.raises(
+                TypeError,
+                match="Values in the ref_channels dict must be strings. "
+                "Your dict has values of type int.",
+            ),
+        ),
+        (
+            {"EEG 999": "EEG 001"},
+            pytest.raises(
+                ValueError,
+                match=r"ref_channels dict contains invalid key\(s\) \(EEG 999\) "
+                "that are not names of channels in the instance.",
+            ),
+        ),
+        (
+            {"EEG 001": "EEG 999"},
+            pytest.raises(
+                ValueError,
+                match=r"ref_channels dict contains invalid value\(s\) \(EEG 999\) "
+                "that are not names of channels in the instance.",
+            ),
+        ),
+        (
+            {"EEG 001": "EEG 057"},
+            pytest.warns(
+                RuntimeWarning,
+                match=r"ref_channels dict contains value\(s\) \(EEG 057\) "
+                "that are marked as bad channels.",
+            ),
+        ),
+        (
+            {"EEG 001": "STI 001"},
+            pytest.warns(
+                RuntimeWarning,
+                match=(
+                    r"Channel EEG 001 \(eeg\) is referenced to channel "
+                    r"STI 001 which is a different channel type \(stim\)."
+                ),
+            ),
+        ),
+        (
+            {"EEG 001": "EEG 001"},
+            pytest.warns(
+                RuntimeWarning,
+                match=(
+                    "Channel EEG 001 is self-referenced, "
+                    "which will nullify the channel."
+                ),
+            ),
+        ),
+        (
+            {"EEG 001": "EEG 002", "EEG 002": "EEG 003", "EEG 003": "EEG 005"},
+            nullcontext(),
+        ),
+        (
+            {
+                "EEG 001": ["EEG 002", "EEG 003"],
+                "EEG 002": "EEG 003",
+                "EEG 003": "EEG 005",
+            },
+            nullcontext(),
+        ),
+    ],
+)
+def test_set_eeg_reference_dict(ref_channels, inst_type, expectation):
+    """Test setting dict-based reference."""
+    if inst_type == "raw":
+        inst = read_raw_fif(fif_fname).crop(0, 1).pick(picks=["eeg", "stim"])
+    # Test re-referencing Epochs object
+    elif inst_type == "epochs":
+        raw = read_raw_fif(fif_fname, preload=False)
+        events = read_events(eve_fname)
+        inst = Epochs(
+            raw,
+            events=events,
+            event_id=1,
+            tmin=-0.2,
+            tmax=0.5,
+            preload=False,
+        )
+    with pytest.raises(
+        RuntimeError,
+        match="By default, MNE does not load data.*Applying a reference requires.*",
+    ):
+        inst.set_eeg_reference(ref_channels=ref_channels)
+    inst.load_data()
+    inst.info["bads"] = ["EEG 057"]
+    with expectation:
+        reref, _ = set_eeg_reference(inst.copy(), ref_channels, copy=False)
+
+    if isinstance(expectation, nullcontext):
+        # Check that the custom_ref_applied is set correctly:
+        assert reref.info["custom_ref_applied"] == FIFF.FIFFV_MNE_CUSTOM_REF_ON
+
+        # Get raw data
+        _data = inst._data
+
+        # Get that channels that were and weren't re-referenced:
+        ch_raw = pick_channels(
+            inst.ch_names,
+            [ch for ch in inst.ch_names if ch not in list(ref_channels.keys())],
+        )
+        ch_reref = pick_channels(inst.ch_names, list(ref_channels.keys()), ordered=True)
+
+        # Check that the non re-reference channels are untouched:
+        assert_allclose(
+            _data[..., ch_raw, :], reref._data[..., ch_raw, :], 1e-6, atol=1e-15
+        )
+
+        # Compute the reference data:
+        ref_data = []
+        for val in ref_channels.values():
+            if isinstance(val, str):
+                val = [val]  # pick_channels expects a list
+            ref_data.append(
+                _data[..., pick_channels(inst.ch_names, val, ordered=True), :].mean(
+                    -2, keepdims=True
+                )
+            )
+        if inst_type == "epochs":
+            ref_data = np.concatenate(ref_data, axis=1)
+        else:
+            ref_data = np.squeeze(np.array(ref_data))
+        assert_allclose(
+            _data[..., ch_reref, :],
+            reref._data[..., ch_reref, :] + ref_data,
+            1e-6,
+            atol=1e-15,
+        )
 
 
 @testing.requires_testing_data
@@ -735,7 +887,7 @@ def test_add_reorder(n_ref):
     # gh-8300
     raw = read_raw_fif(raw_fname).crop(0, 0.1).del_proj().pick("eeg")
     assert len(raw.ch_names) == 60
-    chs = ["EEG %03d" % (60 + ii) for ii in range(1, n_ref)] + ["EEG 000"]
+    chs = [f"EEG {60 + ii:03}" for ii in range(1, n_ref)] + ["EEG 000"]
     with pytest.raises(RuntimeError, match="preload"):
         with _record_warnings():  # ignore multiple warning
             add_reference_channels(raw, chs, copy=False)
@@ -751,7 +903,7 @@ def test_add_reorder(n_ref):
     assert_array_equal(data[-1], 0.0)
     assert raw.ch_names[-n_ref:] == chs
     raw.reorder_channels(raw.ch_names[-1:] + raw.ch_names[:-1])
-    assert raw.ch_names == ["EEG %03d" % ii for ii in range(60 + n_ref)]
+    assert raw.ch_names == [f"EEG {ii:03}" for ii in range(60 + n_ref)]
     data_new = raw.get_data()
     data_new = np.concatenate([data_new[1:], data_new[:1]])
     assert_allclose(data, data_new)

@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "84cee6d70c435b520ab3a3229c6c57d5634fccaf",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/conf.py": {
+      "a": 4,
+      "d": 1
+    },
+    "doc/manual/c_reference.rst": {
+      "a": 4,
+      "d": 7
+    },
+    "doc/manual/source_localization/morph_stc.rst": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

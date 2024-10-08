@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "a4d4c10c6546bd53fa01f7b81ca87c6d2c0f155a",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/names.inc": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/conf.py": {
+      "a": 6,
+      "d": 0
+    },
+    "doc/development/contributing.rst": {
+      "a": 0,
+      "d": 2
+    },
+    "doc/help/faq.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/cov.py": {
+      "a": 2,
+      "d": 3
+    }
+  }
+}

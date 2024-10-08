@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "075f9933038235b1df83e5cef48ca6bb54bb5948",
+  "authors": [
+    {
+      "n": "Mainak Jas",
+      "e": "mainakjas@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/source/contributing.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 14,
+      "d": 8
+    },
+    "mne/viz/ica.py": {
+      "a": 41,
+      "d": 18
+    }
+  }
+}

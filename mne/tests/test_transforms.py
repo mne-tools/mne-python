@@ -1,6 +1,6 @@
-# Author: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import itertools
 import os
@@ -63,7 +63,7 @@ fname_eve = data_path / "MEG" / "sample" / "sample_audvis_trunc_raw-eve.fif"
 subjects_dir = data_path / "subjects"
 fname_t1 = subjects_dir / "fsaverage" / "mri" / "T1.mgz"
 
-base_dir = Path(__file__).parent.parent / "io" / "tests" / "data"
+base_dir = Path(__file__).parents[1] / "io" / "tests" / "data"
 fname_trans = base_dir / "sample-audvis-raw-trans.txt"
 test_fif_fname = base_dir / "test_raw.fif"
 ctf_fname = base_dir / "test_ctf_raw.fif"
@@ -502,6 +502,7 @@ def test_fit_matched_points(quats, scaling, do_scale):
     fro = rng.randn(10, 3)
     translation = rng.randn(3)
     for qi, quat in enumerate(quats):
+        print(qi)
         to = scaling * np.dot(quat_to_rot(quat), fro.T).T + translation
         for corrupted in (False, True):
             # mess up a point

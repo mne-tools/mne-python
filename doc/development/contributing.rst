@@ -93,8 +93,8 @@ Setting up your local development environment
 Configuring git
 ~~~~~~~~~~~~~~~
 
-.. note:: Git GUI alternative
-    :class: sidebar
+.. admonition:: Git GUI alternative
+    :class: sidebar note
 
     `GitHub desktop`_ is a GUI alternative to command line git that some users
     appreciate; it is available for |windows| Windows and |apple| MacOS.
@@ -230,8 +230,8 @@ of how that structure is set up is given here:
 Creating the virtual environment
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. note:: Supported Python environments
-    :class: sidebar
+.. admonition:: Supported Python environments
+    :class: sidebar note
 
     We strongly recommend the `Anaconda`_ or `Miniconda`_ environment managers
     for Python. Other setups are possible but are not officially supported by
@@ -242,8 +242,8 @@ Creating the virtual environment
 
 These instructions will set up a Python environment that is separated from your
 system-level Python and any other managed Python environments on your computer.
-This lets you switch between different versions of Python (MNE-Python requires
-version 3.8 or higher) and also switch between the stable and development
+This lets you switch between different versions of Python and also switch between
+the stable and development
 versions of MNE-Python (so you can, for example, use the same computer to
 analyze your data with the stable release, and also work with the latest
 development version to fix bugs or add new features). Even if you've already
@@ -304,11 +304,11 @@ be reflected the next time you open a Python interpreter and ``import mne``
 Finally, we'll add a few dependencies that are not needed for running
 MNE-Python, but are needed for locally running our test suite::
 
-    $ pip install -r requirements_testing.txt
+    $ pip install -e ".[test]"
 
 And for building our documentation::
 
-    $ pip install -r requirements_doc.txt
+    $ pip install -e ".[doc]"
     $ conda install graphviz
 
 .. note::
@@ -329,9 +329,15 @@ To build documentation, you will also require `optipng`_:
 - On Windows, unzip :file:`optipng.exe` from the `optipng for Windows`_ archive
   into the :file:`doc/` folder. This step is optional for Windows users.
 
-You can also choose to install some optional linters for reStructuredText::
+There are additional optional dependencies needed to run various tests, such as
+scikit-learn for decoding tests, or nibabel for MRI tests. If you want to run all the
+tests, consider using our MNE installers (which provide these dependencies) or pay
+attention to the skips that ``pytest`` reports and install the relevant libraries.
+For example, this traceback::
 
-    $ conda install -c conda-forge sphinx-autobuild doc8
+    SKIPPED [2] mne/io/eyelink/tests/test_eyelink.py:14: could not import 'pandas': No module named 'pandas'
+
+indicates that ``pandas`` needs to be installed in order to run the Eyelink tests.
 
 
 .. _basic-git:
@@ -369,7 +375,7 @@ feature, you should first synchronize your local ``main`` branch with the
     $ git merge upstream/main      # synchronize local main branch with remote upstream main branch
     $ git checkout -b new-feature-x  # create local branch "new-feature-x" and check it out
 
-.. note:: Alternative
+.. tip::
     :class: sidebar
 
     You can save some typing by using ``git pull upstream/main`` to replace
@@ -585,42 +591,54 @@ Describe your changes in the changelog
 --------------------------------------
 
 Include in your changeset a brief description of the change in the
-:ref:`changelog <whats_new>` (:file:`doc/changes/devel.rst`; this can be
-skipped for very minor changes like correcting typos in the documentation).
+:ref:`changelog <whats_new>` using towncrier_ format, which aggregates small,
+properly-named ``.rst`` files to create a changelog. This can be
+skipped for very minor changes like correcting typos in the documentation.
 
-There are different sections of the changelog for each release, and separate
-**subsections for bugfixes, new features, and changes to the public API.**
-Please be sure to add your entry to the appropriate subsection.
+There are six separate sections for changes, based on change type.
+To add a changelog entry to a given section, name it as
+:file:`doc/changes/devel/<PR-number>.<type>.rst`. The types are:
 
-The styling and positioning of the entry depends on whether you are a
-first-time contributor or have been mentioned in the changelog before.
+notable
+    For overarching changes, e.g., adding type hints package-wide. These are rare.
+dependency
+    For changes to dependencies, e.g., adding a new dependency or changing
+    the minimum version of an existing dependency.
+bugfix
+    For bug fixes. Can change code behavior with no deprecation period.
+apichange
+    Code behavior changes that require a deprecation period.
+newfeature
+    For new features.
+other
+    For changes that don't fit into any of the above categories, e.g.,
+    internal refactorings.
 
-First-time contributors
-"""""""""""""""""""""""
+For example, for an enhancement PR with number 12345, the changelog entry should be
+added as a new file :file:`doc/changes/devel/12345.enhancement.rst`. The file should
+contain:
 
-Welcome to MNE-Python! We're very happy to have you here. 🤗 And to ensure you
-get proper credit for your work, please add a changelog entry with the
-following pattern **at the top** of the respective subsection (bugs,
-enhancements, etc.):
+1. A brief description of the change, typically in a single line of one or two
+   sentences.
+2. reST links to **public** API endpoints like functions (``:func:``),
+   classes (``:class:``), and methods (``:meth:``). If changes are only internal
+   to private functions/attributes, mention internal refactoring rather than name
+   the private attributes changed.
+3. Author credit. If you are a new contributor (we're very happy to have you here! 🤗),
+   you should using the ``:newcontrib:`` reST role, whereas previous contributors should
+   use a standard reST link to their name. For example, a new contributor could write:
 
-.. code-block:: rst
+   .. code-block:: rst
 
+      Short description of the changes, by :newcontrib:`Firstname Lastname`.
 
-  Bugs
-  ----
+   And an previous contributor could write:
 
-  - Short description of the changes (:gh:`0000` by :newcontrib:`Firstname Lastname`)
+   .. code-block:: rst
 
-  - ...
+      Short description of the changes, by `Firstname Lastname`_.
 
-where ``0000`` must be replaced with the respective GitHub pull request (PR)
-number, and ``Firstname Lastname`` must be replaced with your full name.
-
-It is usually best to wait to add a line to the changelog until your PR is
-finalized, to avoid merge conflicts (since the changelog is updated with
-almost every PR).
-
-Lastly, make sure that your name is included in the list of authors in
+Make sure that your name is included in the list of authors in
 :file:`doc/changes/names.inc`, otherwise the documentation build will fail.
 To add an author name, append a line with the following pattern (note
 how the syntax is different from that used in the changelog):
@@ -632,27 +650,13 @@ how the syntax is different from that used in the changelog):
 Many contributors opt to link to their GitHub profile that way. Have a look
 at the existing entries in the file to get some inspiration.
 
-Recurring contributors
-""""""""""""""""""""""
-
-The changelog entry should follow the following patterns:
-
-.. code-block:: rst
-
-    - Short description of the changes from one contributor (:gh:`0000` by `Contributor Name`_)
-    - Short description of the changes from several contributors (:gh:`0000` by `Contributor Name`_, `Second Contributor`_, and `Third Contributor`_)
-
-where ``0000`` must be replaced with the respective GitHub pull request (PR)
-number. Mind the Oxford comma in the case of multiple contributors.
-
 Sometimes, changes that shall appear as a single changelog entry are spread out
-across multiple PRs. In this case, name all relevant PRs, separated by
-commas:
+across multiple PRs. In this case, edit the existing towncrier file for the relevant
+change, and append additional PR numbers in parentheticals with the ``:gh:`` role like:
 
 .. code-block:: rst
 
-    - Short description of the changes from one contributor in multiple PRs (:gh:`0000`, :gh:`1111` by `Contributor Name`_)
-    - Short description of the changes from several contributors in multiple PRs (:gh:`0000`, :gh:`1111` by `Contributor Name`_, `Second Contributor`_, and `Third Contributor`_)
+    Short description of the changes, by `Firstname Lastname`_. (:gh:`12346`)
 
 Test locally before opening pull requests (PRs)
 -----------------------------------------------
@@ -861,8 +865,8 @@ to both visualization functions and tutorials/examples.
 Running the test suite
 ~~~~~~~~~~~~~~~~~~~~~~
 
-.. note:: pytest flags
-    :class: sidebar
+.. admonition:: pytest flags
+    :class: sidebar tip
 
     The ``-x`` flag exits the pytest run when any test fails; this can speed
     up debugging when running all tests in a file or module.

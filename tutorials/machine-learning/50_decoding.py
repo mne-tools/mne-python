@@ -1,3 +1,7 @@
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
+
 r"""
 .. _tut-mvpa:
 
@@ -23,6 +27,7 @@ Let's start by loading data for a simple two-class problem:
 """
 
 # %%
+
 # sphinx_gallery_thumbnail_number = 6
 
 import matplotlib.pyplot as plt
@@ -143,7 +148,7 @@ scores = cross_val_multiscore(clf, X, y, cv=5, n_jobs=None)
 
 # Mean scores across cross-validation splits
 score = np.mean(scores, axis=0)
-print("Spatio-temporal: %0.1f%%" % (100 * score,))
+print(f"Spatio-temporal: {100 * score:0.1f}%")
 
 # %%
 # PSDEstimator
@@ -222,7 +227,7 @@ print("Spatio-temporal: %0.1f%%" % (100 * score,))
 csp = CSP(n_components=3, norm_trace=False)
 clf_csp = make_pipeline(csp, LinearModel(LogisticRegression(solver="liblinear")))
 scores = cross_val_multiscore(clf_csp, X, y, cv=5, n_jobs=None)
-print("CSP: %0.1f%%" % (100 * scores.mean(),))
+print(f"CSP: {100 * scores.mean():0.1f}%")
 
 # %%
 # Source power comodulation (SPoC)

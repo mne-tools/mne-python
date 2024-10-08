@@ -11,6 +11,7 @@ evoked dataset.
 # Author: Annalisa Pascarella <a.pascarella@iac.cnr.it>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 
@@ -119,7 +120,8 @@ fwd = mne.make_forward_solution(
 del src  # save memory
 
 leadfield = fwd["sol"]["data"]
-print("Leadfield size : %d sensors x %d dipoles" % leadfield.shape)
+ns, nd = leadfield.shape
+print(f"Leadfield size : {ns} sensors x {nd} dipoles")
 print(
     f"The fwd source space contains {len(fwd['src'])} spaces and "
     f"{sum(s['nuse'] for s in fwd['src'])} vertices"

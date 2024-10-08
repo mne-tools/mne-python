@@ -1,7 +1,8 @@
 """Test reading of NEDF format."""
-# Author: Tristan Stenner <nedf@nicht.dienstli.ch>
-#
+
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import pytest
 from numpy.testing import assert_allclose, assert_array_equal
@@ -27,6 +28,8 @@ stimhdr = b"""
     </EEGSettings>
     <STIMSettings/>
 </nedf>\x00"""
+
+pytest.importorskip("defusedxml")
 
 
 @pytest.mark.parametrize("nacc", (0, 3))

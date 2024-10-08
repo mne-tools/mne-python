@@ -35,6 +35,7 @@ In summary, the example:
 # Authors: Jose C. Garcia Alanis <alanis.jcg@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 import matplotlib.pyplot as plt
@@ -106,7 +107,7 @@ fig.suptitle("Distribution of events in LIMO epochs")
 print(limo_epochs.metadata.head())
 
 # %%
-# Now let's take a closer look at the information in the epochs
+# Now let us take a closer look at the information in the epochs
 # metadata.
 
 # We want include all columns in the summary table
@@ -189,7 +190,7 @@ phase_coh = limo_epochs.metadata["phase-coherence"]
 # get levels of phase coherence
 levels = sorted(phase_coh.unique())
 # create labels for levels of phase coherence (i.e., 0 - 85%)
-labels = ["{0:.2f}".format(i) for i in np.arange(0.0, 0.90, 0.05)]
+labels = [f"{i:.2f}" for i in np.arange(0.0, 0.90, 0.05)]
 
 # create dict of evokeds for each level of phase-coherence
 evokeds = {

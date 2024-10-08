@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "d0ba4b355bc88165b9e29b379599f0468e1bd5e9",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/base.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/tests/test_proj.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/time_frequency/psd.py": {
+      "a": 14,
+      "d": 5
+    },
+    "mne/time_frequency/tests/test_psd.py": {
+      "a": 21,
+      "d": 9
+    },
+    "mne/viz/raw.py": {
+      "a": 11,
+      "d": 2
+    }
+  }
+}

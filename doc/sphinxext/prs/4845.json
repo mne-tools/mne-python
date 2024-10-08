@@ -1,0 +1,71 @@
+{
+  "merge_commit_sha": "79959786786311aedd20da272fb4de94a20f16ef",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 10,
+      "d": 0
+    },
+    "mne/annotations.py": {
+      "a": 25,
+      "d": 12
+    },
+    "mne/io/base.py": {
+      "a": 49,
+      "d": 18
+    },
+    "mne/io/constants.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/fiff/raw.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/io/fiff/tests/test_raw_fiff.py": {
+      "a": 61,
+      "d": 9
+    },
+    "mne/io/meas_info.py": {
+      "a": 10,
+      "d": 0
+    },
+    "mne/io/open.py": {
+      "a": 7,
+      "d": 3
+    },
+    "mne/io/tag.py": {
+      "a": 17,
+      "d": 3
+    },
+    "mne/io/tests/test_meas_info.py": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/io/utils.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/write.py": {
+      "a": 10,
+      "d": 5
+    },
+    "mne/tests/test_annotations.py": {
+      "a": 35,
+      "d": 4
+    },
+    "mne/viz/raw.py": {
+      "a": 14,
+      "d": 4
+    },
+    "mne/viz/utils.py": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

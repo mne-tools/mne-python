@@ -1,9 +1,9 @@
 """Base classes and functions for 2D browser backends."""
 
-# Authors: Daniel McCloy <dan@mccloy.info>
-#          Martin Schulz <dev@earthman-music.de>
-#
-# License: Simplified BSD
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
+
 import importlib
 from abc import ABC, abstractmethod
 from collections import OrderedDict
@@ -72,7 +72,7 @@ class BrowserBase(ABC):
             self.mne.instance_type = "epochs"
         else:
             raise TypeError(
-                "Expected an instance of Raw, Epochs, or ICA, " f"got {type(inst)}."
+                f"Expected an instance of Raw, Epochs, or ICA, got {type(inst)}."
             )
 
         logger.debug(f"Opening {self.mne.instance_type} browser...")
@@ -237,6 +237,14 @@ class BrowserBase(ABC):
         self._update_projector()
 
         return color, pick, marked_bad
+
+    def _toggle_single_channel_annotation(self, ch_pick, annot_idx):
+        current_ch_names = list(self.mne.inst.annotations.ch_names[annot_idx])
+        if ch_pick in current_ch_names:
+            current_ch_names.remove(ch_pick)
+        else:
+            current_ch_names.append(ch_pick)
+        self.mne.inst.annotations.ch_names[annot_idx] = tuple(current_ch_names)
 
     def _toggle_bad_epoch(self, xtime):
         epoch_num = self._get_epoch_num_from_time(xtime)
@@ -434,9 +442,7 @@ class BrowserBase(ABC):
         # proj checkboxes are for viz only and shouldn't modify the instance)
         if self.mne.instance_type in ("raw", "epochs"):
             self.mne.inst.info["bads"] = self.mne.info["bads"]
-            logger.info(
-                f"Channels marked as bad:\n" f"{self.mne.info['bads'] or 'none'}"
-            )
+            logger.info(f"Channels marked as bad:\n{self.mne.info['bads'] or 'none'}")
         # ICA excludes
         elif self.mne.instance_type == "ica":
             self.mne.ica.exclude = [

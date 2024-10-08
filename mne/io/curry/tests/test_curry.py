@@ -1,8 +1,7 @@
 #
-# Authors: Dirk Gütlin <dirk.guetlin@stud.sbg.ac.at>
-#
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from datetime import datetime, timezone
 from pathlib import Path
@@ -324,7 +323,7 @@ def test_check_missing_files():
 
 
 def _mock_info_file(src, dst, sfreq, time_step):
-    with open(src, "r") as in_file, open(dst, "w") as out_file:
+    with open(src) as in_file, open(dst, "w") as out_file:
         for line in in_file:
             if "SampleFreqHz" in line:
                 out_file.write(line.replace("500", str(sfreq)))

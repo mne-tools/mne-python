@@ -17,6 +17,7 @@ __all__ = [
     "read_fiducials",
     "read_info",
     "read_raw",
+    "read_raw_ant",
     "read_raw_artemis123",
     "read_raw_bdf",
     "read_raw_boxy",
@@ -37,6 +38,7 @@ __all__ = [
     "read_raw_hitachi",
     "read_raw_kit",
     "read_raw_nedf",
+    "read_raw_neuralynx",
     "read_raw_nicolet",
     "read_raw_nihon",
     "read_raw_nirx",
@@ -58,6 +60,7 @@ from ._fiff_wrap import (
     write_info,
 )
 from ._read_raw import read_raw
+from .ant import read_raw_ant
 from .array import RawArray
 from .artemis123 import read_raw_artemis123
 from .base import BaseRaw, concatenate_raws, match_channel_orders
@@ -79,6 +82,7 @@ from .fil import read_raw_fil
 from .hitachi import read_raw_hitachi
 from .kit import read_epochs_kit, read_raw_kit
 from .nedf import read_raw_nedf
+from .neuralynx import read_raw_neuralynx
 from .nicolet import read_raw_nicolet
 from .nihon import read_raw_nihon
 from .nirx import read_raw_nirx

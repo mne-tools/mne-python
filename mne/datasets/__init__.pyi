@@ -24,6 +24,7 @@ __all__ = [
     "opm",
     "phantom_4dbti",
     "phantom_kernel",
+    "phantom_kit",
     "refmeg_noise",
     "sample",
     "sleep_physionet",
@@ -52,6 +53,7 @@ from . import (
     opm,
     phantom_4dbti,
     phantom_kernel,
+    phantom_kit,
     refmeg_noise,
     sample,
     sleep_physionet,
@@ -64,7 +66,7 @@ from . import (
 )
 from ._fetch import fetch_dataset
 from ._fsaverage.base import fetch_fsaverage
-from ._infant.base import fetch_infant_template
+from ._infant import fetch_infant_template
 from ._phantom.base import fetch_phantom
 from .utils import (
     _download_all_example_data,

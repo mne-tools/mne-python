@@ -5,13 +5,17 @@
 Preprocessing functional near-infrared spectroscopy (fNIRS) data
 ================================================================
 
-This tutorial covers how to convert functional near-infrared spectroscopy
-(fNIRS) data from raw measurements to relative oxyhaemoglobin (HbO) and
-deoxyhaemoglobin (HbR) concentration, view the average waveform, and
-topographic representation of the response.
+This tutorial covers how to convert functional near-infrared spectroscopy (fNIRS) data
+from raw measurements to relative oxyhaemoglobin (HbO) and deoxyhaemoglobin (HbR)
+concentration, view the average waveform, and topographic representation of the
+response.
 
 Here we will work with the :ref:`fNIRS motor data <fnirs-motor-dataset>`.
 """
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
+
 # %%
 
 from itertools import compress
@@ -155,7 +159,9 @@ raw_haemo.plot(n_channels=len(raw_haemo.ch_names), duration=500, show_scrollbars
 raw_haemo_unfiltered = raw_haemo.copy()
 raw_haemo.filter(0.05, 0.7, h_trans_bandwidth=0.2, l_trans_bandwidth=0.02)
 for when, _raw in dict(Before=raw_haemo_unfiltered, After=raw_haemo).items():
-    fig = _raw.compute_psd().plot(average=True, picks="data", exclude="bads")
+    fig = _raw.compute_psd().plot(
+        average=True, amplitude=False, picks="data", exclude="bads"
+    )
     fig.suptitle(f"{when} filtering", weight="bold", size="x-large")
 
 # %%
@@ -166,7 +172,7 @@ for when, _raw in dict(Before=raw_haemo_unfiltered, After=raw_haemo).items():
 # and the unwanted heart rate component has been removed, we can extract epochs
 # related to each of the experimental conditions.
 #
-# First we extract the events of interest and visualise them to ensure they are
+# First we extract the events of interest and visualize them to ensure they are
 # correct.
 
 events, event_dict = mne.events_from_annotations(raw_haemo)
@@ -175,7 +181,7 @@ fig = mne.viz.plot_events(events, event_id=event_dict, sfreq=raw_haemo.info["sfr
 
 # %%
 # Next we define the range of our epochs, the rejection criteria,
-# baseline correction, and extract the epochs. We visualise the log of which
+# baseline correction, and extract the epochs. We visualize the log of which
 # epochs were dropped.
 
 reject_criteria = dict(hbo=80e-6)
@@ -203,7 +209,7 @@ epochs.plot_drop_log()
 # -------------------------------------------
 #
 # Now we can view the haemodynamic response for our tapping condition.
-# We visualise the response for both the oxy- and deoxyhaemoglobin, and
+# We visualize the response for both the oxy- and deoxyhaemoglobin, and
 # observe the expected peak in HbO at around 6 seconds consistently across
 # trials, and the consistent dip in HbR that is slightly delayed relative to
 # the HbO peak.
@@ -242,7 +248,7 @@ epochs["Control"].average().plot_image(axes=axes[:, 0], clim=clims)
 epochs["Tapping"].average().plot_image(axes=axes[:, 1], clim=clims)
 for column, condition in enumerate(["Control", "Tapping"]):
     for ax in axes[:, column]:
-        ax.set_title("{}: {}".format(condition, ax.get_title()))
+        ax.set_title(f"{condition}: {ax.get_title()}")
 
 
 # %%
@@ -290,7 +296,7 @@ epochs["Tapping"].average(picks="hbo").plot_joint(
 # ---------------------------------------
 #
 # Finally we generate topo maps for the left and right conditions to view
-# the location of activity. First we visualise the HbO activity.
+# the location of activity. First we visualize the HbO activity.
 
 times = np.arange(4.0, 11.0, 1.0)
 epochs["Tapping/Left"].average(picks="hbo").plot_topomap(times=times, **topomap_args)
@@ -342,7 +348,7 @@ evoked_diff.plot_topomap(
 
 for column, condition in enumerate(["Tapping Left", "Tapping Right", "Left-Right"]):
     for row, chroma in enumerate(["HbO", "HbR"]):
-        axes[row, column].set_title("{}: {}".format(chroma, condition))
+        axes[row, column].set_title(f"{chroma}: {condition}")
 
 # %%
 # Lastly, we can also look at the individual waveforms to see what is

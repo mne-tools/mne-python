@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "1ae1c28c42496c4465494b46aa69eec2313eb3f5",
+  "authors": [
+    {
+      "n": "ashdrew",
+      "e": "ashdrew@uw.edu"
+    }
+  ],
+  "changes": {
+    "examples/preprocessing/movement_compensation.py": {
+      "a": 4,
+      "d": 7
+    }
+  }
+}

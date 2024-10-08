@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "4d81e9b6e300f671d3de19a06ee69300ae6cf1b1",
+  "authors": [
+    {
+      "n": "Tal Linzen",
+      "e": "linzen@nyu.edu"
+    }
+  ],
+  "changes": {
+    "examples/plot_evoked_topomap.py": {
+      "a": 39,
+      "d": 34
+    },
+    "mne/fiff/evoked.py": {
+      "a": 11,
+      "d": 5
+    },
+    "mne/tests/test_viz.py": {
+      "a": 10,
+      "d": 0
+    },
+    "mne/viz.py": {
+      "a": 32,
+      "d": 7
+    }
+  }
+}

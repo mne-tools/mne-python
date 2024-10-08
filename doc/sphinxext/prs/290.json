@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "0b0cfaad1ee679654e0a314f322941870ac6bda3",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "examples/inverse/plot_compute_mne_inverse_epochs_in_label.py": {
+      "a": 6,
+      "d": 6
+    },
+    "examples/inverse/plot_label_source_activations.py": {
+      "a": 38,
+      "d": 6
+    },
+    "mne/source_estimate.py": {
+      "a": 20,
+      "d": 12
+    }
+  }
+}

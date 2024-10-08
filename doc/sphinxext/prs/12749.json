@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "3cc01923a591b933a0d6ecef5a12b8e185495eef",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "tools/get_minimal_commands.sh": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

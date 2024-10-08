@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "57248c9ad7b17e76cf3bcfe25e9b2ffc3cff38d6",
+  "authors": [
+    {
+      "n": "Adam Li",
+      "e": null
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "examples/inverse/plot_label_source_activations.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/misc/plot_seeg.py": {
+      "a": 20,
+      "d": 3
+    }
+  }
+}

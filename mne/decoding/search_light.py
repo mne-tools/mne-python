@@ -1,15 +1,18 @@
-# Author: Jean-Remi King <jeanremi.king@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
+
 import logging
 
 import numpy as np
+from sklearn.base import BaseEstimator, TransformerMixin, clone
+from sklearn.metrics import check_scoring
+from sklearn.preprocessing import LabelEncoder
+from sklearn.utils import check_array
 
-from ..fixes import _get_check_scoring
 from ..parallel import parallel_func
 from ..utils import ProgressBar, _parse_verbose, array_split_idx, fill_doc, verbose
-from .base import BaseEstimator, _check_estimator
-from .mixin import TransformerMixin
+from .base import _check_estimator
 
 
 @fill_doc
@@ -45,7 +48,7 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
         position=0,
         allow_2d=False,
         verbose=None,
-    ):  # noqa: D102
+    ):
         _check_estimator(base_estimator)
         self.base_estimator = base_estimator
         self.n_jobs = n_jobs
@@ -54,18 +57,15 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
         self.allow_2d = allow_2d
         self.verbose = verbose
 
-    def _more_tags(self):
-        return {"no_validation": True, "requires_fit": False}
-
     @property
     def _estimator_type(self):
         return getattr(self.base_estimator, "_estimator_type", None)
 
     def __repr__(self):  # noqa: D105
-        repr_str = "<" + super(SlidingEstimator, self).__repr__()
+        repr_str = "<" + super().__repr__()
         if hasattr(self, "estimators_"):
             repr_str = repr_str[:-1]
-            repr_str += ", fitted with %i estimators" % len(self.estimators_)
+            repr_str += f", fitted with {len(self.estimators_)} estimators"
         return repr_str + ">"
 
     def fit(self, X, y, **fit_params):
@@ -142,7 +142,7 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
         X = self._check_Xy(X)
         method = _check_method(self.base_estimator, method)
         if X.shape[-1] != len(self.estimators_):
-            raise ValueError("The number of estimators does not match " "X.shape[-1]")
+            raise ValueError("The number of estimators does not match X.shape[-1]")
         # For predictions/transforms the parallelization is across the data and
         # not across the estimators to avoid memory load.
         parallel, p_func, n_jobs = parallel_func(
@@ -253,9 +253,10 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
 
     def _check_Xy(self, X, y=None):
         """Aux. function to check input data."""
-        X = np.asarray(X)
+        # Once we require sklearn 1.1+ we should do something like:
+        X = check_array(X, ensure_2d=False, allow_nd=True, input_name="X")
         if y is not None:
-            y = np.asarray(y)
+            y = check_array(y, dtype=None, ensure_2d=False, input_name="y")
             if len(X) != len(y) or len(y) < 1:
                 raise ValueError("X and y must have the same length.")
         if X.ndim < 3:
@@ -292,11 +293,9 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
         score : array, shape (n_samples, n_estimators)
             Score for each estimator/task.
         """  # noqa: E501
-        check_scoring = _get_check_scoring()
-
         X = self._check_Xy(X, y)
         if X.shape[-1] != len(self.estimators_):
-            raise ValueError("The number of estimators does not match " "X.shape[-1]")
+            raise ValueError("The number of estimators does not match X.shape[-1]")
 
         scoring = check_scoring(self.base_estimator, self.scoring)
         y = _fix_auc(scoring, y)
@@ -319,9 +318,8 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
     def classes_(self):
         if not hasattr(self.estimators_[0], "classes_"):
             raise AttributeError(
-                "classes_ attribute available only if "
-                "base_estimator has it, and estimator %s does"
-                " not" % (self.estimators_[0],)
+                "classes_ attribute available only if base_estimator has it, and "
+                f"estimator {self.estimators_[0]} does not"
             )
         return self.estimators_[0].classes_
 
@@ -350,8 +348,6 @@ def _sl_fit(estimator, X, y, pb, **fit_params):
     estimators_ : list of estimators
         The fitted estimators.
     """
-    from sklearn.base import clone
-
     estimators_ = list()
     for ii in range(X.shape[-1]):
         est = clone(estimator)
@@ -443,7 +439,7 @@ def _check_method(estimator, method):
     if method == "transform" and not hasattr(estimator, "transform"):
         method = "predict"
     if not hasattr(estimator, method):
-        ValueError("base_estimator does not have `%s` method." % method)
+        ValueError(f"base_estimator does not have `{method}` method.")
     return method
 
 
@@ -465,10 +461,10 @@ class GeneralizingEstimator(SlidingEstimator):
     """
 
     def __repr__(self):  # noqa: D105
-        repr_str = super(GeneralizingEstimator, self).__repr__()
+        repr_str = super().__repr__()
         if hasattr(self, "estimators_"):
             repr_str = repr_str[:-1]
-            repr_str += ", fitted with %i estimators>" % len(self.estimators_)
+            repr_str += f", fitted with {len(self.estimators_)} estimators>"
         return repr_str
 
     def _transform(self, X, method):
@@ -593,7 +589,6 @@ class GeneralizingEstimator(SlidingEstimator):
         score : array, shape (n_samples, n_estimators, n_slices)
             Score for each estimator / data slice couple.
         """  # noqa: E501
-        check_scoring = _get_check_scoring()
         X = self._check_Xy(X, y)
         # For predictions/transforms the parallelization is across the data and
         # not across the estimators to avoid memory load.
@@ -712,8 +707,6 @@ def _gl_score(estimators, scoring, X, y, pb):
 
 
 def _fix_auc(scoring, y):
-    from sklearn.preprocessing import LabelEncoder
-
     # This fixes sklearn's inability to compute roc_auc when y not in [0, 1]
     # scikit-learn/scikit-learn#6874
     if scoring is not None:
@@ -725,7 +718,7 @@ def _fix_auc(scoring, y):
         ):
             if np.ndim(y) != 1 or len(set(y)) != 2:
                 raise ValueError(
-                    "roc_auc scoring can only be computed for " "two-class problems."
+                    "roc_auc scoring can only be computed for two-class problems."
                 )
             y = LabelEncoder().fit_transform(y)
     return y

@@ -2,9 +2,10 @@
 
 For each supported file format, implement a test.
 """
-# Authors: Alex Rockhill <aprockhill@mailbox.org>
-#
+
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from pathlib import Path
 
@@ -27,7 +28,7 @@ eeg_fname = data_path / "test_eeg.mat"
 coords_fname = data_path / "test_eeg_pos.mat"
 csd_fname = data_path / "test_eeg_csd.mat"
 
-io_path = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
+io_path = Path(__file__).parents[2] / "io" / "tests" / "data"
 raw_fname = io_path / "test_raw.fif"
 
 
@@ -72,7 +73,7 @@ def test_csd_matlab(evoked_csd_sphere):
     assert_allclose(evoked_csd_data, csd, atol=2e-7)
 
     with pytest.raises(
-        ValueError, match=("CSD already applied, " "should not be reapplied")
+        ValueError, match=("CSD already applied, should not be reapplied")
     ):
         compute_current_source_density(evoked_csd, sphere=sphere)
 
@@ -123,15 +124,13 @@ def test_csd_degenerate(evoked_csd_sphere):
     with pytest.raises(TypeError, match="n_legendre_terms must be"):
         compute_current_source_density(evoked, n_legendre_terms=0.1, sphere=sphere)
 
-    with pytest.raises(
-        ValueError, match=("n_legendre_terms must be " "greater than 0")
-    ):
+    with pytest.raises(ValueError, match=("n_legendre_terms must be greater than 0")):
         compute_current_source_density(evoked, n_legendre_terms=0, sphere=sphere)
 
     with pytest.raises(ValueError, match="sphere must be"):
         compute_current_source_density(evoked, sphere=-0.1)
 
-    with pytest.raises(ValueError, match=("sphere radius must be " "greater than 0")):
+    with pytest.raises(ValueError, match=("sphere radius must be greater than 0")):
         compute_current_source_density(evoked, sphere=(-0.1, 0.0, 0.0, -1.0))
 
     with pytest.raises(TypeError):

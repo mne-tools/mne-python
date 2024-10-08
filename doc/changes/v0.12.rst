@@ -20,9 +20,9 @@ Changelog
 
 - Add system config utility :func:`mne.sys_info` by `Eric Larson`_
 
-- Automatic cross-validation and scoring metrics in ``mne.decoding.GeneralizationAcrossTime``, by `Jean-Remi King`_
+- Automatic cross-validation and scoring metrics in ``mne.decoding.GeneralizationAcrossTime``, by `Jean-Rémi King`_
 
-- ``mne.decoding.GeneralizationAcrossTime`` accepts non-deterministic cross-validations, by `Jean-Remi King`_
+- ``mne.decoding.GeneralizationAcrossTime`` accepts non-deterministic cross-validations, by `Jean-Rémi King`_
 
 - Add plotting RMS of gradiometer pairs in :func:`mne.viz.plot_evoked_topo` by `Jaakko Leppakangas`_
 
@@ -40,7 +40,7 @@ Changelog
 
 - Add :func:`mne.io.read_raw_cnt` for reading Neuroscan CNT files by `Jaakko Leppakangas`_
 
-- Add ``decim`` parameter to ``mne.time_frequency.cwt_morlet``, by `Jean-Remi King`_
+- Add ``decim`` parameter to ``mne.time_frequency.cwt_morlet``, by `Jean-Rémi King`_
 
 - Add method :func:`mne.Epochs.plot_topo_image` by `Jaakko Leppakangas`_
 
@@ -75,7 +75,7 @@ BUG
 
 - MEG projectors are removed after Maxwell filtering by `Eric Larson`_
 
-- Fix ``mne.decoding.TimeDecoding`` to allow specifying ``clf`` by `Jean-Remi King`_
+- Fix ``mne.decoding.TimeDecoding`` to allow specifying ``clf`` by `Jean-Rémi King`_
 
 - Fix bug with units (uV) in 'Brain Vision Data Exchange Header File Version 1.0' by `Federico Raimondo`_
 
@@ -83,7 +83,7 @@ BUG
 
 - Fix bug in rank calculation of ``mne.utils.estimate_rank``, ``mne.io.Raw.estimate_rank``, and covariance functions where the tolerance was set to slightly too small a value, new 'auto' mode uses values from ``scipy.linalg.orth`` by `Eric Larson`_.
 
-- Fix bug when specifying irregular ``train_times['slices']`` in ``mne.decoding.GeneralizationAcrossTime``, by `Jean-Remi King`_
+- Fix bug when specifying irregular ``train_times['slices']`` in ``mne.decoding.GeneralizationAcrossTime``, by `Jean-Rémi King`_
 
 - Fix colorbar range on norm data by `Jaakko Leppakangas`_
 
@@ -125,11 +125,11 @@ BUG
 
 - Fix bug in :func:`mne.compute_raw_covariance` where rejection by non-data channels (e.g. EOG) was not done properly by `Eric Larson`_.
 
-- Change default scoring method of ``mne.decoding.GeneralizationAcrossTime`` and ``mne.decoding.TimeDecoding`` to estimate the scores within the cross-validation as in scikit-learn_ as opposed to across all cross-validated ``y_pred``. The method can be changed with the ``score_mode`` parameter by `Jean-Remi King`_
+- Change default scoring method of ``mne.decoding.GeneralizationAcrossTime`` and ``mne.decoding.TimeDecoding`` to estimate the scores within the cross-validation as in scikit-learn_ as opposed to across all cross-validated ``y_pred``. The method can be changed with the ``score_mode`` parameter by `Jean-Rémi King`_
 
 - Fix bug in :func:`mne.io.Raw.save` where, in rare cases, automatically split files could end up writing an extra empty file that wouldn't be read properly by `Eric Larson`_
 
-- Fix :class:``mne.realtime.StimServer`` by removing superfluous argument ``ip`` used while initializing the object by `Mainak Jas`_.
+- Fix ``mne.realtime.StimServer`` by removing superfluous argument ``ip`` used while initializing the object by `Mainak Jas`_.
 
 - Fix removal of projectors in :func:`mne.preprocessing.maxwell_filter` in ``st_only=True`` mode by `Eric Larson`_
 
@@ -144,7 +144,7 @@ API
 
 - Deprecated function ``mne.time_frequency.multitaper_psd`` and replaced by ``mne.time_frequency.psd_multitaper`` by `Chris Holdgraf`_
 
-- The ``y_pred`` attribute in ``mne.decoding.GeneralizationAcrossTime`` and ``mne.decoding.TimeDecoding`` is now a numpy array, by `Jean-Remi King`_
+- The ``y_pred`` attribute in ``mne.decoding.GeneralizationAcrossTime`` and ``mne.decoding.TimeDecoding`` is now a numpy array, by `Jean-Rémi King`_
 
 - The :func:`mne.bem.fit_sphere_to_headshape` function now default to ``dig_kinds='auto'`` which will use extra digitization points, falling back to extra plus eeg digitization points if there not enough extra points are available.
 
@@ -154,7 +154,7 @@ API
 
 - To unify and extend the behavior of :func:`mne.compute_raw_covariance` relative to :func:`mne.compute_covariance`, the default parameter ``tstep=0.2`` now discards any epochs at the end of the :class:`mne.io.Raw` instance that are not the full ``tstep`` duration. This will slightly change the computation of :func:`mne.compute_raw_covariance`, but should only potentially have a big impact if the :class:`mne.io.Raw` instance is short relative to ``tstep`` and the last, too short (now discarded) epoch contained data inconsistent with the epochs that preceded it.
 
-- The default ``picks=None`` in :func:`mne.io.Raw.filter` now picks eeg, meg, seeg, and ecog channels, by `Jean-Remi King`_ and `Eric Larson`_
+- The default ``picks=None`` in :func:`mne.io.Raw.filter` now picks eeg, meg, seeg, and ecog channels, by `Jean-Rémi King`_ and `Eric Larson`_
 
 - EOG, ECG and EMG channels are now plotted by default (if present in data) when using :func:`mne.viz.plot_evoked` by `Marijn van Vliet`_
 
@@ -168,44 +168,44 @@ API
 
 - The C wrapper ``mne.do_forward_solution`` has been deprecated in favor of the native Python version :func:`mne.make_forward_solution` by `Eric Larson`_
 
-- The ``events`` parameter of :func:`mne.EpochsArray` is set by default to chronological time-samples and event values to 1, by `Jean-Remi King`_
+- The ``events`` parameter of :func:`mne.EpochsArray` is set by default to chronological time-samples and event values to 1, by `Jean-Rémi King`_
 
 Authors
 ~~~~~~~
 
 The committer list for this release is the following (preceded by number of commits):
 
-* 348	Eric Larson
-* 347	Jaakko Leppakangas
-* 157	Alexandre Gramfort
-* 139	Jona Sassenhagen
-* 67	Jean-Remi King
-* 32	Chris Holdgraf
-* 31	Denis A. Engemann
-* 30	Mainak Jas
-* 16	Christopher J. Bailey
-* 13	Marijn van Vliet
-* 10	Mark Wronkiewicz
-* 9	Teon Brooks
-* 9	kaichogami
-* 8	Clément Moutard
-* 5	Camilo Lamus
-* 5	mmagnuski
-* 4	Christian Brodbeck
-* 4	Daniel McCloy
-* 4	Yousra Bekhti
-* 3	Fede Raimondo
-* 1	Jussi Nurminen
-* 1	MartinBaBer
-* 1	Mikolaj Magnuski
-* 1	Natalie Klein
-* 1	Niklas Wilming
-* 1	Richard Höchenberger
-* 1	Sagun Pai
-* 1	Sourav Singh
-* 1	Tom Dupré la Tour
-* 1	jona-sassenhagen@
-* 1	kambysese
-* 1	pbnsilva
-* 1	sviter
-* 1	zuxfoucault
+* 348 Eric Larson
+* 347 Jaakko Leppakangas
+* 157 Alexandre Gramfort
+* 139 Jona Sassenhagen
+* 67 Jean-Rémi King
+* 32 Chris Holdgraf
+* 31 Denis A. Engemann
+* 30 Mainak Jas
+* 16 Christopher J. Bailey
+* 13 Marijn van Vliet
+* 10 Mark Wronkiewicz
+* 9 Teon Brooks
+* 9 kaichogami
+* 8 Clément Moutard
+* 5 Camilo Lamus
+* 5 mmagnuski
+* 4 Christian Brodbeck
+* 4 Daniel McCloy
+* 4 Yousra Bekhti
+* 3 Fede Raimondo
+* 1 Jussi Nurminen
+* 1 MartinBaBer
+* 1 Mikolaj Magnuski
+* 1 Natalie Klein
+* 1 Niklas Wilming
+* 1 Richard Höchenberger
+* 1 Sagun Pai
+* 1 Sourav Singh
+* 1 Tom Dupré la Tour
+* 1 jona-sassenhagen@
+* 1 kambysese
+* 1 pbnsilva
+* 1 sviter
+* 1 zuxfoucault

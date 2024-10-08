@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "ff70048d8ba11c9a395ddb11d07dd0afd16254da",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/time_frequency/tests/test_tfr.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/viz/tests/test_topomap.py": {
+      "a": 5,
+      "d": 3
+    },
+    "requirements.txt": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

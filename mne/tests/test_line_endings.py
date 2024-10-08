@@ -1,7 +1,6 @@
-# Author: Eric Larson <larson.eric.d@gmail.com>
-#         Adapted from vispy
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import os
 import sys
@@ -53,7 +52,7 @@ def _assert_line_endings(dir_):
         ".cov",
         ".label",
     )
-    for dirpath, dirnames, filenames in os.walk(dir_):
+    for dirpath, _, filenames in os.walk(dir_):
         for fname in filenames:
             if op.splitext(fname)[1] not in good_exts or fname in skip_files:
                 continue
@@ -63,7 +62,7 @@ def _assert_line_endings(dir_):
                 with open(filename, "rb") as fid:
                     text = fid.read().decode("utf-8")
             except UnicodeDecodeError:
-                report.append("In %s found non-decodable bytes" % relfilename)
+                report.append(f"In {relfilename} found non-decodable bytes")
             else:
                 crcount = text.count("\r")
                 if crcount:
@@ -73,8 +72,7 @@ def _assert_line_endings(dir_):
                     )
     if len(report) > 0:
         raise AssertionError(
-            "Found %s files with incorrect endings:\n%s"
-            % (len(report), "\n".join(report))
+            f"Found {len(report)} files with incorrect endings:\n" + "\n".join(report)
         )
 
 

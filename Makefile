@@ -4,7 +4,7 @@ PYTHON ?= python
 PYTESTS ?= py.test
 CODESPELL_SKIPS ?= "doc/_build,doc/auto_*,*.fif,*.eve,*.gz,*.tgz,*.zip,*.mat,*.stc,*.label,*.w,*.bz2,*.annot,*.sulc,*.log,*.local-copy,*.orig_avg,*.inflated_avg,*.gii,*.pyc,*.doctree,*.pickle,*.inv,*.png,*.edf,*.touch,*.thickness,*.nofix,*.volume,*.defect_borders,*.mgh,lh.*,rh.*,COR-*,FreeSurferColorLUT.txt,*.examples,.xdebug_mris_calc,bad.segments,BadChannels,*.hist,empty_file,*.orig,*.js,*.map,*.ipynb,searchindex.dat,install_mne_c.rst,plot_*.rst,*.rst.txt,c_EULA.rst*,*.html,gdf_encodes.txt,*.svg,references.bib,*.css,*.edf,*.bdf,*.vhdr"
 CODESPELL_DIRS ?= mne/ doc/ tutorials/ examples/
-all: clean inplace test test-doc
+all: clean test-doc
 
 clean-pyc:
 	find . -name "*.pyc" | xargs rm -f
@@ -24,8 +24,8 @@ clean-cache:
 
 clean: clean-build clean-pyc clean-so clean-ctags clean-cache
 
-wheel_quiet:
-	$(PYTHON) setup.py -q sdist bdist_wheel
+wheel:
+	$(PYTHON) -m build -w
 
 sample_data:
 	@python -c "import mne; mne.datasets.sample.data_path(verbose=True);"
@@ -54,10 +54,7 @@ pep: pre-commit
 codespell:  # running manually
 	@codespell --builtin clear,rare,informal,names,usage -w -i 3 -q 3 -S $(CODESPELL_SKIPS) --ignore-words=ignore_words.txt --uri-ignore-words-list=bu $(CODESPELL_DIRS)
 
-check-manifest:
-	check-manifest -q --ignore .circleci/config.yml,doc,logo,mne/io/*/tests/data*,mne/io/tests/data,mne/preprocessing/tests/data,.DS_Store,mne/_version.py
-
-check-readme: clean wheel_quiet
+check-readme: clean wheel
 	twine check dist/*
 
 nesting:

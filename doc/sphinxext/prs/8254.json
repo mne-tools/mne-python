@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "b911a769d098b17bf5d40c472a2bed16db8b371d",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/epochs.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/evoked.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/minimum_norm/inverse.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/source_space.py": {
+      "a": 2,
+      "d": 5
+    },
+    "mne/viz/tests/test_evoked.py": {
+      "a": 1,
+      "d": 2
+    },
+    "tutorials/source-modeling/plot_forward.py": {
+      "a": 10,
+      "d": 5
+    },
+    "tutorials/source-modeling/plot_mne_solutions.py": {
+      "a": 3,
+      "d": 4
+    },
+    "tutorials/source-modeling/plot_visualize_stc.py": {
+      "a": 4,
+      "d": 5
+    }
+  }
+}

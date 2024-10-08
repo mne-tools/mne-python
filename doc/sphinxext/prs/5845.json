@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "faefe1e78091d1df63c365869660441747146ca1",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "appveyor.yml": {
+      "a": 4,
+      "d": 3
+    },
+    "environment.yml": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

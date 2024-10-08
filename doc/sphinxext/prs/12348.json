@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "8eb10e36ebfdac990ed86da919f2729177090dd2",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "motofumi-fushimi",
+      "e": "30593537+motofumi-fushimi@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    ".mailmap": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/devel/12348.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/preprocessing/maxwell.py": {
+      "a": 6,
+      "d": 1
+    },
+    "mne/preprocessing/tests/test_maxwell.py": {
+      "a": 18,
+      "d": 25
+    }
+  }
+}

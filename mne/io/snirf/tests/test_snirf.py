@@ -1,6 +1,8 @@
-# Authors: Robert Luke  <mail@robertluke.net>
-#          simplified BSD-3 license
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
+import datetime
 import shutil
 
 import numpy as np
@@ -53,7 +55,6 @@ nirx_nirsport2_103_2 = (
 snirf_nirsport2_20219 = (
     testing_path / "SNIRF" / "NIRx" / "NIRSport2" / "2021.9" / "2021-10-01_002.snirf"
 )
-nirx_nirsport2_20219 = testing_path / "NIRx" / "nirsport_v2" / "aurora_2021_9"
 
 # Kernel
 kernel_hb = testing_path / "SNIRF" / "Kernel" / "Flow50" / "Portal_2021_11" / "hb.snirf"
@@ -131,6 +132,7 @@ def test_snirf_gowerlabs():
 def test_snirf_basic():
     """Test reading SNIRF files."""
     raw = read_raw_snirf(sfnirs_homer_103_wShort, preload=True)
+    assert raw.info["subject_info"]["his_id"] == "default"
 
     # Test data import
     assert raw._data.shape == (26, 145)
@@ -241,21 +243,27 @@ def test_snirf_nonstandard(tmp_path):
     fname = str(tmp_path) + "/mod.snirf"
     # Manually mark up the file to match MNE-NIRS custom tags
     with h5py.File(fname, "r+") as f:
-        f.create_dataset("nirs/metaDataTags/middleName", data=["X".encode("UTF-8")])
-        f.create_dataset("nirs/metaDataTags/lastName", data=["Y".encode("UTF-8")])
-        f.create_dataset("nirs/metaDataTags/sex", data=["1".encode("UTF-8")])
+        f.create_dataset("nirs/metaDataTags/middleName", data=[b"X"])
+        f.create_dataset("nirs/metaDataTags/lastName", data=[b"Y"])
+        f.create_dataset("nirs/metaDataTags/sex", data=[b"1"])
     raw = read_raw_snirf(fname, preload=True)
+    assert raw.info["subject_info"]["first_name"] == "default"  # pull from his_id
+    with h5py.File(fname, "r+") as f:
+        f.create_dataset("nirs/metaDataTags/firstName", data=[b"W"])
+    raw = read_raw_snirf(fname, preload=True)
+    assert raw.info["subject_info"]["first_name"] == "W"
     assert raw.info["subject_info"]["middle_name"] == "X"
     assert raw.info["subject_info"]["last_name"] == "Y"
     assert raw.info["subject_info"]["sex"] == 1
+    assert raw.info["subject_info"]["his_id"] == "default"
     with h5py.File(fname, "r+") as f:
         del f["nirs/metaDataTags/sex"]
-        f.create_dataset("nirs/metaDataTags/sex", data=["2".encode("UTF-8")])
+        f.create_dataset("nirs/metaDataTags/sex", data=[b"2"])
     raw = read_raw_snirf(fname, preload=True)
     assert raw.info["subject_info"]["sex"] == 2
     with h5py.File(fname, "r+") as f:
         del f["nirs/metaDataTags/sex"]
-        f.create_dataset("nirs/metaDataTags/sex", data=["0".encode("UTF-8")])
+        f.create_dataset("nirs/metaDataTags/sex", data=[b"0"])
     raw = read_raw_snirf(fname, preload=True)
     assert raw.info["subject_info"]["sex"] == 0
 
@@ -507,7 +515,10 @@ def test_birthday(tmp_path, monkeypatch):
         a.save()
 
     raw = read_raw_snirf(fname)
-    assert raw.info["subject_info"]["birthday"] == (1950, 1, 1)
+    assert raw.info["subject_info"]["birthday"] == datetime.date(1950, 1, 1)
+    # TODO: trigger some setting checkers that should maybe be in the reader (like
+    # those for subject_info)
+    raw.info.copy()
 
 
 @requires_testing_data

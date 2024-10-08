@@ -1,14 +1,11 @@
 #
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Eric Larson <larson.eric.d@gmail.com>
-#          Joan Massich <mailsik@gmail.com>
-#          Guillaume Favelier <guillaume.favelier@gmail.com>
-#          Oleh Kozynets <ok7mailbox@gmail.com>
-#
-# License: Simplified BSD
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import os
-import sys
+import platform
+from contextlib import nullcontext
 from pathlib import Path
 from shutil import copyfile
 
@@ -548,6 +545,116 @@ def test_brain_init(renderer_pyvistaqt, tmp_path, pixel_ratio, brain_gc):
     brain.close()
 
 
+# TODO: Figure out why brain_gc is problematic here on PyQt5
+@pytest.mark.allow_unclosed
+@testing.requires_testing_data
+@pytest.mark.parametrize(
+    "sensor_colors, sensor_scales, expectation",
+    [
+        (
+            {"seeg": ["k"] * 5},
+            {"seeg": [2] * 6},
+            pytest.raises(
+                ValueError,
+                match=r"Invalid value for the 'len\(sensor_colors\['seeg'\]\)' "
+                r"parameter. Allowed values are \d+ and \d+, but got \d+ instead",
+            ),
+        ),
+        (
+            {"seeg": ["k"] * 6},
+            {"seeg": [2] * 5},
+            pytest.raises(
+                ValueError,
+                match=r"Invalid value for the 'len\(sensor_scales\['seeg'\]\)' "
+                r"parameter. Allowed values are \d+ and \d+, but got \d+ instead",
+            ),
+        ),
+        (
+            "NotAColor",
+            2,
+            pytest.raises(
+                ValueError,
+                match=r".* is not a valid color value",
+            ),
+        ),
+        (
+            "k",
+            "k",
+            pytest.raises(
+                AssertionError,
+                match=r"scales for .* must contain only numerical values, got .* "
+                r"instead.",
+            ),
+        ),
+        (
+            "k",
+            2,
+            nullcontext(),
+        ),
+        (
+            ["k"] * 6,
+            [2] * 6,
+            nullcontext(),
+        ),
+        (
+            {"seeg": ["k"] * 6},
+            {"seeg": [2] * 6},
+            nullcontext(),
+        ),
+    ],
+)
+def test_add_sensors_scales(
+    renderer_interactive_pyvistaqt,
+    sensor_colors,
+    sensor_scales,
+    expectation,
+):
+    """Test sensor_scales parameter."""
+    kwargs = dict(subject=subject, subjects_dir=subjects_dir)
+    hemi = "lh"
+    surf = "white"
+    cortex = "low_contrast"
+    title = "test"
+    size = (300, 300)
+
+    brain = Brain(
+        hemi=hemi,
+        surf=surf,
+        size=size,
+        title=title,
+        cortex=cortex,
+        units="m",
+        silhouette=dict(decimate=0.95),
+        **kwargs,
+    )
+
+    proj_info = create_info([f"Ch{i}" for i in range(1, 7)], 1000, "seeg")
+    pos = (
+        np.array(
+            [
+                [25.85, 9.04, -5.38],
+                [33.56, 9.04, -5.63],
+                [40.44, 9.04, -5.06],
+                [46.75, 9.04, -6.78],
+                [-30.08, 9.04, 28.23],
+                [-32.95, 9.04, 37.99],
+            ]
+        )
+        / 1000
+    )
+    proj_info.set_montage(
+        make_dig_montage(ch_pos=dict(zip(proj_info.ch_names, pos)), coord_frame="head")
+    )
+    with expectation:
+        brain.add_sensors(
+            proj_info,
+            trans=fname_trans,
+            sensor_colors=sensor_colors,
+            sensor_scales=sensor_scales,
+        )
+    brain.close()
+
+
 def _assert_view_allclose(
     brain,
     roll,
@@ -662,15 +769,20 @@ def test_single_hemi(hemi, renderer_interactive_pyvistaqt, brain_gc):
 
 @testing.requires_testing_data
 @pytest.mark.slowtest
-def test_brain_save_movie(tmp_path, renderer, brain_gc):
+@pytest.mark.parametrize("interactive_state", (False, True))
+def test_brain_save_movie(tmp_path, renderer, brain_gc, interactive_state):
     """Test saving a movie of a Brain instance."""
-    from imageio_ffmpeg import count_frames_and_secs
+    imageio_ffmpeg = pytest.importorskip("imageio_ffmpeg")
+    # TODO: Figure out why this fails -- some imageio_ffmpeg error
+    if os.getenv("MNE_CI_KIND", "") == "conda" and platform.system() == "Linux":
+        pytest.skip("Test broken for unknown reason on conda linux")
 
     brain = _create_testing_brain(
         hemi="lh", time_viewer=False, cortex=["r", "b"]
     )  # custom binarized
     filename = tmp_path / "brain_test.mov"
-    for interactive_state in (False, True):
+
+    try:
         # for coverage, we set interactivity
         if interactive_state:
             brain._renderer.plotter.enable()
@@ -688,11 +800,12 @@ def test_brain_save_movie(tmp_path, renderer, brain_gc):
             filename, time_dilation=1.0, tmin=tmin, tmax=tmax, interpolation="nearest"
         )
         assert filename.is_file()
-        _, nsecs = count_frames_and_secs(filename)
+        _, nsecs = imageio_ffmpeg.count_frames_and_secs(filename)
         assert_allclose(duration, nsecs, atol=0.2)
 
         os.remove(filename)
-    brain.close()
+    finally:
+        brain.close()
 
 
 _TINY_SIZE = (350, 300)
@@ -1035,8 +1148,8 @@ def test_brain_traces(renderer_interactive_pyvistaqt, hemi, src, tmp_path, brain
             subject=brain._subject,
             subjects_dir=brain._subjects_dir,
         )
-        label = "{}:{} MNI: {}".format(
-            hemi_prefix, str(vertex_id).ljust(6), ", ".join("%5.1f" % m for m in mni)
+        label = f"{hemi_prefix}:{str(vertex_id).ljust(6)} MNI: " + ", ".join(
+            f"{m:5.1f}" for m in mni
         )
 
         assert line.get_label() == label
@@ -1073,7 +1186,7 @@ something
         src_dir=str(tmp_path),
         compress_images=[],
         image_srcset=[],
-        matplotlib_animations=False,
+        matplotlib_animations=(False, None),
     )
     scraper = _BrainScraper()
     rst = scraper(block, block_vars, gallery_conf)
@@ -1093,15 +1206,12 @@ something
 # TODO: don't skip on Windows, see
 # https://github.com/mne-tools/mne-python/pull/10935
 # for some reason there is a dependency issue with ipympl even using pyvista
-@pytest.mark.skipif(sys.platform == "win32", reason="ipympl issue on Windows")
+@pytest.mark.skipif(platform.system() == "Windows", reason="ipympl issue on Windows")
 @testing.requires_testing_data
 def test_brain_scraper(renderer_interactive_pyvistaqt, brain_gc, tmp_path):
     """Test a simple scraping example."""
     pytest.importorskip("sphinx_gallery")
-    from qtpy import API_NAME
 
-    if API_NAME.lower() == "pyside6":
-        pytest.skip("Error in event loop on PySidie6")
     stc = read_source_estimate(fname_stc, subject="sample")
     size = (600, 400)
     brain = stc.plot(
@@ -1121,7 +1231,7 @@ def test_brain_scraper(renderer_interactive_pyvistaqt, brain_gc, tmp_path):
         src_dir=str(tmp_path),
         compress_images=[],
         image_srcset=[],
-        matplotlib_animations=False,
+        matplotlib_animations=(False, None),
     )
     scraper = _BrainScraper()
     rst = scraper(block, block_vars, gallery_conf)
@@ -1134,8 +1244,7 @@ def test_brain_scraper(renderer_interactive_pyvistaqt, brain_gc, tmp_path):
     img = image.imread(fname)
     w = img.shape[1]
     w0 = size[0]
-    # With matplotlib 3.6 on Linux+conda we get a width of 624,
-    # similar tweak in test_brain_init above
+    # On Linux+conda we get a width of 624, similar tweak in test_brain_init above
     assert np.isclose(w, w0, atol=30) or np.isclose(
         w, w0 * 2, atol=30
     ), f"w ∉ {{{w0}, {2 * w0}}}"  # HiDPI
@@ -1355,7 +1464,7 @@ def _create_testing_brain(
     rng = np.random.RandomState(0)
     vertices = [s["vertno"] for s in sample_src]
     n_verts = sum(len(v) for v in vertices)
-    stc_data = np.zeros((n_verts * n_time))
+    stc_data = np.zeros(n_verts * n_time)
     stc_size = stc_data.size
     stc_data[(rng.rand(stc_size // 20) * stc_size).astype(int)] = rng.rand(
         stc_data.size // 20

@@ -1,11 +1,9 @@
 """Dynamic Imaging of Coherent Sources (DICS)."""
 
-# Authors: Marijn van Vliet <w.m.vanvliet@gmail.com>
-#          Britta Westner <britta.wstnr@gmail.com>
-#          Susanna Aro <susanna.aro@aalto.fi>
-#          Roman Goj <roman.goj@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
+
 import numpy as np
 
 from .._fiff.pick import pick_channels, pick_info
@@ -239,9 +237,8 @@ def make_dics(
             for key in csd_rank:
                 if key not in noise_rank or csd_rank[key] != noise_rank[key]:
                     raise ValueError(
-                        "%s data rank (%s) did not match the "
-                        "noise rank (%s)"
-                        % (key, csd_rank[key], noise_rank.get(key, None))
+                        f"{key} data rank ({csd_rank[key]}) did not match the noise "
+                        f"rank ({noise_rank.get(key, None)})"
                     )
         csd_int_rank.append(sum(csd_rank.values()))
 
@@ -346,7 +343,7 @@ def _apply_dics(data, filters, info, tmin, tfr=False):
 
     for i, M in enumerate(data):
         if not one_epoch:
-            logger.info("Processing epoch : %d" % (i + 1))
+            logger.info(f"Processing epoch : {i + 1}")
 
         # Apply SSPs
         if not tfr:  # save computation, only compute once

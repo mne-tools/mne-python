@@ -1,10 +1,6 @@
-#!/usr/bin/env python
-
-# Authors: Denis A. Engemann  <denis.engemann@gmail.com>
-#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
-#
-#          simplified bsd-3 license
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 """Create high-resolution head surfaces for coordinate alignment.
 
@@ -15,6 +11,7 @@ Examples
     $ mne make_scalp_surfaces --overwrite --subject sample
 
 """
+
 import os
 import sys
 
@@ -74,7 +71,7 @@ def run():
         "-n",
         "--no-decimate",
         dest="no_decimate",
-        help="Disable medium and sparse decimations " "(dense only)",
+        help="Disable medium and sparse decimations (dense only)",
         action="store_true",
     )
     _add_verbose_flag(parser)

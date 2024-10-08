@@ -1,9 +1,6 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Denis Engemann <denis.engemann@gmail.com>
-#          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
-#          Eric Larson <larson.eric.d@gmail.com>
-#
-# License: Simplified BSD
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import copy
 from pathlib import Path
@@ -22,6 +19,7 @@ from mne import pick_info, pick_types
 from mne._fiff.constants import FIFF
 from mne._fiff.meas_info import _empty_info
 from mne.channels import (
+    Layout,
     find_layout,
     make_eeg_layout,
     make_grid_layout,
@@ -31,7 +29,7 @@ from mne.channels.layout import _box_size, _find_topomap_coords, generate_2d_lay
 from mne.defaults import HEAD_SIZE_DEFAULT
 from mne.io import read_info, read_raw_kit
 
-io_dir = Path(__file__).parent.parent.parent / "io"
+io_dir = Path(__file__).parents[2] / "io"
 fif_fname = io_dir / "tests" / "data" / "test_raw.fif"
 lout_path = io_dir / "tests" / "data"
 bti_dir = io_dir / "bti" / "tests" / "data"
@@ -91,6 +89,18 @@ def _get_test_info():
     test_info._update_redundant()
     test_info._check_consistency()
     return test_info
+
+
+@pytest.fixture(scope="module")
+def layout():
+    """Get a layout."""
+    return Layout(
+        (0.1, 0.2, 0.1, 1.2),
+        pos=np.array([[0, 0, 0.1, 0.1], [0.2, 0.2, 0.1, 0.1], [0.4, 0.4, 0.1, 0.1]]),
+        names=["0", "1", "2"],
+        ids=[0, 1, 2],
+        kind="test",
+    )
 
 
 def test_io_layout_lout(tmp_path):
@@ -223,23 +233,17 @@ def test_make_grid_layout(tmp_path):
 
 def test_find_layout():
     """Test finding layout."""
-    pytest.raises(ValueError, find_layout, _get_test_info(), ch_type="meep")
+    with pytest.raises(ValueError, match="Invalid value for the 'ch_type'"):
+        find_layout(_get_test_info(), ch_type="meep")
 
     sample_info = read_info(fif_fname)
-    grads = pick_types(sample_info, meg="grad")
-    sample_info2 = pick_info(sample_info, grads)
-
-    mags = pick_types(sample_info, meg="mag")
-    sample_info3 = pick_info(sample_info, mags)
-
-    # mock new convention
+    sample_info2 = pick_info(sample_info, pick_types(sample_info, meg="grad"))
+    sample_info3 = pick_info(sample_info, pick_types(sample_info, meg="mag"))
     sample_info4 = copy.deepcopy(sample_info)
-    for ii, name in enumerate(sample_info4["ch_names"]):
+    for ii, name in enumerate(sample_info4["ch_names"]):  # mock new convention
         new = name.replace(" ", "")
         sample_info4["chs"][ii]["ch_name"] = new
-
-    eegs = pick_types(sample_info, meg=False, eeg=True)
-    sample_info5 = pick_info(sample_info, eegs)
+    sample_info5 = pick_info(sample_info, pick_types(sample_info, meg=False, eeg=True))
 
     lout = find_layout(sample_info, ch_type=None)
     assert lout.kind == "Vectorview-all"
@@ -403,3 +407,100 @@ def test_generate_2d_layout():
     # Make sure background image normalizing is correct
     lt_bg = generate_2d_layout(xy, bg_image=bg_image)
     assert_allclose(lt_bg.pos[:, :2].max(), xy.max() / float(sbg))
+
+
+def test_layout_copy(layout):
+    """Test copying a layout."""
+    layout2 = layout.copy()
+    assert_allclose(layout.pos, layout2.pos)
+    assert layout.names == layout2.names
+    layout2.names[0] = "foo"
+    layout2.pos[0, 0] = 0.8
+    assert layout.names != layout2.names
+    assert layout.pos[0, 0] != layout2.pos[0, 0]
+
+
+@pytest.mark.parametrize(
+    "picks, exclude",
+    [
+        ([0, 1], ()),
+        (["0", 1], ()),
+        (None, ["2"]),
+        (None, "2"),
+        (None, [2]),
+        (None, 2),
+        ("all", 2),
+        ("all", "2"),
+        (slice(0, 2), ()),
+        (("0", "1"), ("0", "1")),
+        (("0", 1), ("0", "1")),
+        (("0", 1), (0, "1")),
+        (set(["0", 1]), ()),
+        (set([0, 1]), set()),
+        (None, set([2])),
+        (np.array([0, 1]), ()),
+        (None, np.array([2])),
+        (np.array(["0", "1"]), ()),
+    ],
+)
+def test_layout_pick(layout, picks, exclude):
+    """Test selection of channels in a layout."""
+    layout2 = layout.copy()
+    layout2.pick(picks, exclude)
+    assert layout2.names == layout.names[:2]
+    assert_allclose(layout2.pos, layout.pos[:2, :])
+
+
+def test_layout_pick_more(layout):
+    """Test more channel selection in a layout."""
+    layout2 = layout.copy()
+    layout2.pick(0)
+    assert len(layout2.names) == 1
+    assert layout2.names[0] == layout.names[0]
+    assert_allclose(layout2.pos, layout.pos[:1, :])
+
+    layout2 = layout.copy()
+    layout2.pick("all", exclude=("0", "1"))
+    assert len(layout2.names) == 1
+    assert layout2.names[0] == layout.names[2]
+    assert_allclose(layout2.pos, layout.pos[2:, :])
+
+    layout2 = layout.copy()
+    layout2.pick("all", exclude=("0", 1))
+    assert len(layout2.names) == 1
+    assert layout2.names[0] == layout.names[2]
+    assert_allclose(layout2.pos, layout.pos[2:, :])
+
+
+def test_layout_pick_errors(layout):
+    """Test validation of layout.pick."""
+    with pytest.raises(TypeError, match="must be a list, tuple, set or ndarray"):
+        layout.pick(lambda x: x)
+    with pytest.raises(TypeError, match="must be a list, tuple, set or ndarray"):
+        layout.pick(None, lambda x: x)
+    with pytest.raises(TypeError, match="must be integers or strings"):
+        layout.pick([0, lambda x: x])
+    with pytest.raises(TypeError, match="must be integers or strings"):
+        layout.pick(None, [0, lambda x: x])
+    with pytest.raises(ValueError, match="does not match any channels"):
+        layout.pick("foo")
+    with pytest.raises(ValueError, match="does not match any channels"):
+        layout.pick(None, "foo")
+    with pytest.raises(ValueError, match="does not match any channels"):
+        layout.pick(101)
+    with pytest.raises(ValueError, match="does not match any channels"):
+        layout.pick(None, 101)
+    with pytest.warns(RuntimeWarning, match="has duplicates which will be ignored"):
+        layout.copy().pick(["0", "0"])
+    with pytest.warns(RuntimeWarning, match="has duplicates which will be ignored"):
+        layout.copy().pick(["0", 0])
+    with pytest.warns(RuntimeWarning, match="has duplicates which will be ignored"):
+        layout.copy().pick(None, ["0", "0"])
+    with pytest.warns(RuntimeWarning, match="has duplicates which will be ignored"):
+        layout.copy().pick(None, ["0", 0])
+    with pytest.raises(RuntimeError, match="selection yielded no remaining channels"):
+        layout.copy().pick(None, ["0", "1", "2"])
+    with pytest.raises(ValueError, match="must be a 1D array-like"):
+        layout.copy().pick(None, np.array([[0, 1]]))
+    with pytest.raises(TypeError, match="slice of integers"):
+        layout.copy().pick(slice("2342342342", 0, 3), ())

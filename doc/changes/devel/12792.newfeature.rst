@@ -1,0 +1,1 @@
+Add reader for ANT Neuro files in the ``*.cnt`` format with :func:`~mne.io.read_raw_ant`, by `Mathieu Scheltienne`_, `Eric Larson`_ and `Proloy Das`_.

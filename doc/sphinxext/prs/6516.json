@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "70789c466133eaba410e1fc254c4b88723e30b77",
+  "authors": [
+    {
+      "n": "Maksymenko Kostiantyn",
+      "e": "makkostya@ukr.net"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/simulation/source.py": {
+      "a": 8,
+      "d": 0
+    },
+    "mne/simulation/tests/test_source.py": {
+      "a": 8,
+      "d": 0
+    }
+  }
+}

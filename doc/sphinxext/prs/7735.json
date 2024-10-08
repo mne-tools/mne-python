@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "12fc0e7686be7fdf07e28ca97370c2fafed9c6be",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/source_estimate.py": {
+      "a": 5,
+      "d": 0
+    },
+    "mne/tests/test_source_estimate.py": {
+      "a": 4,
+      "d": 0
+    }
+  }
+}

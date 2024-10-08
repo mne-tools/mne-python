@@ -1,0 +1,71 @@
+{
+  "merge_commit_sha": "27502c56a8e4cb4a92ad057b6aa42517c672f698",
+  "authors": [
+    {
+      "n": "Denis A. Engemann",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/source/python_reference.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/source/whats_new.rst": {
+      "a": 5,
+      "d": 0
+    },
+    "examples/inverse/plot_covariance_whitening_dspm.py": {
+      "a": 157,
+      "d": 0
+    },
+    "examples/plot_evoked_whitening.py": {
+      "a": 57,
+      "d": 23
+    },
+    "mne/beamformer/tests/test_lcmv.py": {
+      "a": 4,
+      "d": 3
+    },
+    "mne/cov.py": {
+      "a": 574,
+      "d": 83
+    },
+    "mne/evoked.py": {
+      "a": 39,
+      "d": 0
+    },
+    "mne/fixes.py": {
+      "a": 173,
+      "d": 0
+    },
+    "mne/io/pick.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/tests/test_pick.py": {
+      "a": 44,
+      "d": 4
+    },
+    "mne/tests/test_cov.py": {
+      "a": 145,
+      "d": 7
+    },
+    "mne/utils.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/viz/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/evoked.py": {
+      "a": 230,
+      "d": 1
+    },
+    "mne/viz/tests/test_evoked.py": {
+      "a": 12,
+      "d": 1
+    }
+  }
+}

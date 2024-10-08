@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "3d4a4f66232448de542ac076df7b57115644978a",
+  "authors": [
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    }
+  ],
+  "changes": {
+    "mne/epochs.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/evoked.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/io/base.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/source_estimate.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/utils/dataframe.py": {
+      "a": 6,
+      "d": 3
+    }
+  }
+}

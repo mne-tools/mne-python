@@ -1,7 +1,6 @@
-# Authors: Alexandre Barachant <alexandre.barachant@gmail.com>
-#          Jean-Remi King <jeanremi.king@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from pathlib import Path
 
@@ -18,12 +17,14 @@ from mne import (
     pick_types,
     read_events,
 )
-from mne.decoding import Vectorizer
 from mne.fixes import _safe_svd
 from mne.io import read_raw_fif
-from mne.preprocessing.xdawn import Xdawn, _XdawnTransformer
 
-base_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
+pytest.importorskip("sklearn")
+
+from mne.preprocessing.xdawn import Xdawn, _XdawnTransformer  # noqa: E402
+
+base_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
 raw_fname = base_dir / "test_raw.fif"
 event_name = base_dir / "test-eve.fif"
 
@@ -334,7 +335,7 @@ def _simulate_erplike_mixed_data(n_epochs=100, n_channels=10):
     events[:, 2] = y
 
     info = create_info(
-        ch_names=["C{:02d}".format(i) for i in range(n_channels)],
+        ch_names=[f"C{i:02d}" for i in range(n_channels)],
         ch_types=["eeg"] * n_channels,
         sfreq=sfreq,
     )
@@ -353,6 +354,8 @@ def test_xdawn_decoding_performance():
     from sklearn.model_selection import KFold
     from sklearn.pipeline import make_pipeline
     from sklearn.preprocessing import MinMaxScaler
+
+    from mne.decoding import Vectorizer
 
     n_xdawn_comps = 3
     expected_accuracy = 0.98

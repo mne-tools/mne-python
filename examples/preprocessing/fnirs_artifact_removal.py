@@ -12,6 +12,7 @@ how artifact correction techniques attempt to correct the data.
 # Authors: Robert Luke <mail@robertluke.net>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 

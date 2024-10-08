@@ -1,18 +1,17 @@
-# Authors: Joan Massich <mailsik@gmail.com>
-#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
+
 import csv
 import os.path as op
 from collections import OrderedDict
 from functools import partial
 
 import numpy as np
-from defusedxml import ElementTree
 
 from .._freesurfer import get_mni_fiducials
 from ..transforms import _sph_to_cart
-from ..utils import _pl, warn
+from ..utils import _pl, _soft_import, warn
 from . import __file__ as _CHANNELS_INIT_FILE
 from .montage import make_dig_montage
 
@@ -67,7 +66,7 @@ def _str_names(ch_names):
 def _safe_np_loadtxt(fname, **kwargs):
     out = np.genfromtxt(fname, **kwargs)
     ch_names = _str_names(out["f0"])
-    others = tuple(out["f%d" % ii] for ii in range(1, len(out.dtype.fields)))
+    others = tuple(out[f"f{ii}"] for ii in range(1, len(out.dtype.fields)))
     return (ch_names,) + others
 
 
@@ -99,7 +98,7 @@ def _mgh_or_standard(basename, head_size, coord_frame="unknown"):
 
     pos = np.array(pos) / 1000.0
     ch_pos = _check_dupes_odict(ch_names_, pos)
-    nasion, lpa, rpa = [ch_pos.pop(n) for n in fid_names]
+    nasion, lpa, rpa = (ch_pos.pop(n) for n in fid_names)
     if head_size is None:
         scale = 1.0
     else:
@@ -109,7 +108,7 @@ def _mgh_or_standard(basename, head_size, coord_frame="unknown"):
     # if we are in MRI/MNI coordinates, we need to replace nasion, LPA, and RPA
     # with those of fsaverage for ``trans='fsaverage'`` to work
     if coord_frame == "mri":
-        lpa, nasion, rpa = [x["r"].copy() for x in get_mni_fiducials("fsaverage")]
+        lpa, nasion, rpa = (x["r"].copy() for x in get_mni_fiducials("fsaverage"))
     nasion *= scale
     lpa *= scale
     rpa *= scale
@@ -184,7 +183,7 @@ def _read_sfp(fname, head_size):
     ch_pos = _check_dupes_odict(ch_names, pos)
     del xs, ys, zs, ch_names
     # no one grants that fid names are there.
-    nasion, lpa, rpa = [ch_pos.pop(n, None) for n in fid_names]
+    nasion, lpa, rpa = (ch_pos.pop(n, None) for n in fid_names)
 
     if head_size is not None:
         scale = head_size / np.median(np.linalg.norm(pos, axis=-1))
@@ -231,6 +230,11 @@ def _check_dupes_odict(ch_names, pos):
 def _read_elc(fname, head_size):
     """Read .elc files.
 
+    The `.elc` files are so-called "asa electrode files". ASA here stands for
+    Advances Source Analysis, and is a software package developed and sold by
+    the ANT Neuro company. They provide a device for sensor digitization, called
+    'xensor', which produces the `.elc` files.
+
     Parameters
     ----------
     fname : str
@@ -242,12 +246,12 @@ def _read_elc(fname, head_size):
     Returns
     -------
     montage : instance of DigMontage
-        The montage in [m].
+        The montage units are [m].
     """
     fid_names = ("Nz", "LPA", "RPA")
 
-    ch_names_, pos = [], []
     with open(fname) as fid:
+        # Read units
         # _read_elc does require to detect the units. (see _mgh_or_standard)
         for line in fid:
             if "UnitPosition" in line:
@@ -255,26 +259,44 @@ def _read_elc(fname, head_size):
                 scale = dict(m=1.0, mm=1e-3)[units]
                 break
         else:
-            raise RuntimeError("Could not detect units in file %s" % fname)
+            raise RuntimeError(f"Could not detect units in file {fname}")
         for line in fid:
             if "Positions\n" in line:
                 break
+
+        # Read positions
+        new_style = False
         pos = []
         for line in fid:
             if "Labels\n" in line:
                 break
-            pos.append(list(map(float, line.split())))
+            if ":" in line:
+                # Of the 'new' format: `E01 : 5.288 -3.658 119.693`
+                pos.append(list(map(float, line.split(":")[1].split())))
+                new_style = True
+            else:
+                # Of the 'old' format: `5.288 -3.658 119.693`
+                pos.append(list(map(float, line.split())))
+
+        # Read labels
+        ch_names_ = []
         for line in fid:
             if not line or not set(line) - {" "}:
                 break
-            ch_names_.append(line.strip(" ").strip("\n"))
+            if new_style:
+                # Not sure how this format would deal with spaces in channel labels,
+                # but none of my test files had this, so let's wait until it comes up.
+                parsed = line.strip(" ").strip("\n").split()
+            else:
+                parsed = [line.strip(" ").strip("\n")]
+            ch_names_.extend(parsed)
 
     pos = np.array(pos) * scale
     if head_size is not None:
         pos *= head_size / np.median(np.linalg.norm(pos, axis=1))
 
     ch_pos = _check_dupes_odict(ch_names_, pos)
-    nasion, lpa, rpa = [ch_pos.pop(n, None) for n in fid_names]
+    nasion, lpa, rpa = (ch_pos.pop(n, None) for n in fid_names)
 
     return make_dig_montage(
         ch_pos=ch_pos, coord_frame="unknown", nasion=nasion, lpa=lpa, rpa=rpa
@@ -304,7 +326,7 @@ def _read_theta_phi_in_degrees(fname, head_size, fid_names=None, add_fiducials=F
 
     nasion, lpa, rpa = None, None, None
     if fid_names is not None:
-        nasion, lpa, rpa = [ch_pos.pop(n, None) for n in fid_names]
+        nasion, lpa, rpa = (ch_pos.pop(n, None) for n in fid_names)
 
     return make_dig_montage(
         ch_pos=ch_pos, coord_frame="unknown", nasion=nasion, lpa=lpa, rpa=rpa
@@ -332,7 +354,7 @@ def _read_elp_besa(fname, head_size):
 
     fid_names = ("Nz", "LPA", "RPA")
     # No one grants that the fid names actually exist.
-    nasion, lpa, rpa = [ch_pos.pop(n, None) for n in fid_names]
+    nasion, lpa, rpa = (ch_pos.pop(n, None) for n in fid_names)
 
     return make_dig_montage(ch_pos=ch_pos, nasion=nasion, lpa=lpa, rpa=rpa)
 
@@ -343,7 +365,8 @@ def _read_brainvision(fname, head_size):
     # standard electrode positions: X-axis from T7 to T8, Y-axis from Oz to
     # Fpz, Z-axis orthogonal from XY-plane through Cz, fit to a sphere if
     # idealized (when radius=1), specified in millimeters
-    root = ElementTree.parse(fname).getroot()
+    defusedxml = _soft_import("defusedxml", "reading BrainVision montages")
+    root = defusedxml.ElementTree.parse(fname).getroot()
     ch_names = [s.text for s in root.findall("./Electrode/Name")]
     theta = [float(s.text) for s in root.findall("./Electrode/Theta")]
     pol = np.deg2rad(np.array(theta))
@@ -382,7 +405,7 @@ def _read_xyz(fname):
     ch_names = []
     pos = []
     file_format = op.splitext(fname)[1].lower()
-    with open(fname, "r") as f:
+    with open(fname) as f:
         if file_format != ".xyz":
             f.readline()  # skip header
         delimiter = "," if file_format == ".csv" else "\t"

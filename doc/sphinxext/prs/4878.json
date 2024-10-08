@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "491b412ee4f521e98a13e95d032e1c13ad67d3cb",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/bem.py": {
+      "a": 15,
+      "d": 9
+    },
+    "mne/commands/mne_make_scalp_surfaces.py": {
+      "a": 7,
+      "d": 6
+    }
+  }
+}

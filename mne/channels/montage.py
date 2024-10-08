@@ -1,15 +1,6 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Denis Engemann <denis.engemann@gmail.com>
-#          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
-#          Eric Larson <larson.eric.d@gmail.com>
-#          Marijn van Vliet <w.m.vanvliet@gmail.com>
-#          Jona Sassenhagen <jona.sassenhagen@gmail.com>
-#          Teon Brooks <teon.brooks@gmail.com>
-#          Christian Brodbeck <christianbrodbeck@nyu.edu>
-#          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
-#          Joan Massich <mailsik@gmail.com>
-#
-# License: Simplified BSD
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import os.path as op
 import re
@@ -368,17 +359,19 @@ class DigMontage:
     @copy_function_doc_to_method_doc(plot_montage)
     def plot(
         self,
-        scale_factor=20,
+        *,
+        scale=None,
+        scale_factor=None,
         show_names=True,
         kind="topomap",
         show=True,
         sphere=None,
-        *,
         axes=None,
         verbose=None,
     ):
         return plot_montage(
             self,
+            scale=scale,
             scale_factor=scale_factor,
             show_names=show_names,
             kind=kind,
@@ -440,7 +433,7 @@ class DigMontage:
                 (
                     "Cannot add two DigMontage objects if they contain duplicated"
                     " channel names. Duplicated channel(s) found: {}."
-                ).format(", ".join(["%r" % v for v in sorted(ch_names_intersection)]))
+                ).format(", ".join([f"{v!r}" for v in sorted(ch_names_intersection)]))
             )
 
         # Check for unique matching fiducials
@@ -460,7 +453,7 @@ class DigMontage:
                     raise RuntimeError(
                         "Cannot add two DigMontage objects if "
                         "fiducial locations do not match "
-                        "(%s)" % kk
+                        f"({kk})"
                     )
 
             # keep self
@@ -784,7 +777,7 @@ def read_dig_dat(fname):
 
     fname = _check_fname(fname, overwrite="read", must_exist=True)
 
-    with open(fname, "r") as fid:
+    with open(fname) as fid:
         lines = fid.readlines()
 
     ch_names, poss = list(), list()
@@ -795,8 +788,8 @@ def read_dig_dat(fname):
             continue
         elif len(items) != 5:
             raise ValueError(
-                "Error reading %s, line %s has unexpected number of entries:\n"
-                "%s" % (fname, i, line.rstrip())
+                f"Error reading {fname}, line {i} has unexpected number of entries:\n"
+                f"{line.rstrip()}"
             )
         num = items[1]
         if num == "67":
@@ -843,7 +836,7 @@ def read_dig_fif(fname):
     read_dig_localite
     make_dig_montage
     """
-    _check_fname(fname, overwrite="read", must_exist=True)
+    fname = _check_fname(fname, overwrite="read", must_exist=True)
     # Load the dig data
     f, tree = fiff_open(fname)[:2]
     with f as fid:
@@ -1206,14 +1199,14 @@ def _set_montage(info, montage, match_case=True, match_alias=False, on_missing="
         n_dup = len(ch_pos) - len(ch_pos_use)
         if n_dup:
             raise ValueError(
-                "Cannot use match_case=False as %s montage "
-                "name(s) require case sensitivity" % n_dup
+                f"Cannot use match_case=False as {n_dup} montage "
+                "name(s) require case sensitivity"
             )
         n_dup = len(info_names_use) - len(set(info_names_use))
         if n_dup:
             raise ValueError(
-                "Cannot use match_case=False as %s channel "
-                "name(s) require case sensitivity" % n_dup
+                f"Cannot use match_case=False as {n_dup} channel "
+                "name(s) require case sensitivity"
             )
         ch_pos = ch_pos_use
         del ch_pos_use
@@ -1351,7 +1344,7 @@ def _read_isotrak_elp_points(fname):
         and 'points'.
     """
     value_pattern = r"\-?\d+\.?\d*e?\-?\d*"
-    coord_pattern = r"({0})\s+({0})\s+({0})\s*$".format(value_pattern)
+    coord_pattern = rf"({value_pattern})\s+({value_pattern})\s+({value_pattern})\s*$"
 
     with open(fname) as fid:
         file_str = fid.read()
@@ -1473,11 +1466,9 @@ def read_dig_polhemus_isotrak(fname, ch_names=None, unit="m"):
             data["ch_pos"] = OrderedDict(zip(ch_names, points))
         else:
             raise ValueError(
-                (
-                    "Length of ``ch_names`` does not match the number of points"
-                    " in {fname}. Expected ``ch_names`` length {n_points:d},"
-                    " given {n_chnames:d}"
-                ).format(fname=fname, n_points=points.shape[0], n_chnames=len(ch_names))
+                "Length of ``ch_names`` does not match the number of points in "
+                f"{fname}. Expected ``ch_names`` length {points.shape[0]}, given "
+                f"{len(ch_names)}"
             )
 
     return make_dig_montage(**data)
@@ -1485,7 +1476,7 @@ def read_dig_polhemus_isotrak(fname, ch_names=None, unit="m"):
 
 def _is_polhemus_fastscan(fname):
     header = ""
-    with open(fname, "r") as fid:
+    with open(fname) as fid:
         for line in fid:
             if not line.startswith("%"):
                 break
@@ -1528,7 +1519,7 @@ def read_polhemus_fastscan(
     _check_option("fname", ext, VALID_FILE_EXT)
 
     if not _is_polhemus_fastscan(fname):
-        msg = "%s does not contain a valid Polhemus FastSCAN header" % fname
+        msg = f"{fname} does not contain a valid Polhemus FastSCAN header"
         _on_missing(on_header_missing, msg)
 
     points = _scale * np.loadtxt(fname, comments="%", ndmin=2)
@@ -1546,7 +1537,10 @@ def _read_eeglab_locations(fname):
     return ch_names, pos
 
 
-def read_custom_montage(fname, head_size=HEAD_SIZE_DEFAULT, coord_frame=None):
+@verbose
+def read_custom_montage(
+    fname, head_size=HEAD_SIZE_DEFAULT, coord_frame=None, *, verbose=None
+):
     """Read a montage from a file.
 
     Parameters
@@ -1567,6 +1561,7 @@ def read_custom_montage(fname, head_size=HEAD_SIZE_DEFAULT, coord_frame=None):
         for most readers but ``"head"`` for EEGLAB.
 
         .. versionadded:: 0.20
+    %(verbose)s
 
     Returns
     -------
@@ -1620,7 +1615,7 @@ def read_custom_montage(fname, head_size=HEAD_SIZE_DEFAULT, coord_frame=None):
 
     if ext in SUPPORTED_FILE_EXT["eeglab"]:
         if head_size is None:
-            raise ValueError("``head_size`` cannot be None for '{}'".format(ext))
+            raise ValueError(f"``head_size`` cannot be None for '{ext}'")
         ch_names, pos = _read_eeglab_locations(fname)
         scale = head_size / np.median(np.linalg.norm(pos, axis=-1))
         pos *= scale
@@ -1641,7 +1636,7 @@ def read_custom_montage(fname, head_size=HEAD_SIZE_DEFAULT, coord_frame=None):
 
     elif ext in SUPPORTED_FILE_EXT["generic (Theta-phi in degrees)"]:
         if head_size is None:
-            raise ValueError("``head_size`` cannot be None for '{}'".format(ext))
+            raise ValueError(f"``head_size`` cannot be None for '{ext}'")
         montage = _read_theta_phi_in_degrees(
             fname, head_size=head_size, fid_names=("Nz", "LPA", "RPA")
         )
@@ -1710,11 +1705,9 @@ def compute_dev_head_t(montage):
 
     if not (len(hpi_head) == len(hpi_dev) and len(hpi_dev) > 0):
         raise ValueError(
-            (
-                "To compute Device-to-Head transformation, the same number of HPI"
-                " points in device and head coordinates is required. (Got {dev}"
-                " points in device and {head} points in head coordinate systems)"
-            ).format(dev=len(hpi_dev), head=len(hpi_head))
+            "To compute Device-to-Head transformation, the same number of HPI"
+            f" points in device and head coordinates is required. (Got {len(hpi_dev)}"
+            f" points in device and {len(hpi_head)} points in head coordinate systems)"
         )
 
     trans = _quat_to_affine(_fit_matched_points(hpi_dev, hpi_head)[0])

@@ -1,9 +1,9 @@
 """Conversion tool from Neuroscan CNT to FIF."""
 
-# Author: Jaakko Leppakangas <jaeilepp@student.jyu.fi>
-#         Joan Massich <mailsik@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
+
 from os import path
 
 import numpy as np
@@ -14,7 +14,7 @@ from ..._fiff.meas_info import _empty_info
 from ..._fiff.utils import _create_chs, _find_channels, _mult_cal_one, read_str
 from ...annotations import Annotations
 from ...channels.layout import _topo_to_sphere
-from ...utils import _check_option, fill_doc, warn
+from ...utils import _check_option, _validate_type, fill_doc, warn
 from ..base import BaseRaw
 from ._utils import (
     CNTEventType3,
@@ -169,9 +169,11 @@ def read_raw_cnt(
     emg=(),
     data_format="auto",
     date_format="mm/dd/yy",
+    *,
+    header="auto",
     preload=False,
     verbose=None,
-):
+) -> "RawCNT":
     """Read CNT data as raw object.
 
     .. Note::
@@ -219,6 +221,13 @@ def read_raw_cnt(
         Defaults to ``'auto'``.
     date_format : ``'mm/dd/yy'`` | ``'dd/mm/yy'``
         Format of date in the header. Defaults to ``'mm/dd/yy'``.
+    header : ``'auto'`` | ``'new'`` | ``'old'``
+        Defines the header format. Used to describe how bad channels
+        are formatted. If auto, reads using old and new header and
+        if either contain a bad channel make channel bad.
+        Defaults to ``'auto'``.
+
+        .. versionadded:: 1.6
     %(preload)s
     %(verbose)s
 
@@ -244,12 +253,13 @@ def read_raw_cnt(
         emg=emg,
         data_format=data_format,
         date_format=date_format,
+        header=header,
         preload=preload,
         verbose=verbose,
     )
 
 
-def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format):
+def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format, header):
     """Read the cnt header."""
     data_offset = 900  # Size of the 'SETUP' header.
     cnt_info = dict()
@@ -281,7 +291,7 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format):
         fid.seek(205)
         session_label = read_str(fid, 20)
 
-        session_date = "%s %s" % (read_str(fid, 10), read_str(fid, 12))
+        session_date = f"{read_str(fid, 10)} {read_str(fid, 12)}"
         meas_date = _session_date_2_meas_date(session_date, date_format)
 
         fid.seek(370)
@@ -298,7 +308,8 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format):
         # Header has a field for number of samples, but it does not seem to be
         # too reliable. That's why we have option for setting n_bytes manually.
         fid.seek(864)
-        n_samples = np.fromfile(fid, dtype="<i4", count=1).item()
+        n_samples = np.fromfile(fid, dtype="<u4", count=1).item()
+        n_samples_header = n_samples
         fid.seek(869)
         lowcutoff = np.fromfile(fid, dtype="f4", count=1).item()
         fid.seek(2, 1)
@@ -324,12 +335,24 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format):
                 )
                 n_bytes = 2
                 n_samples = data_size // (n_bytes * n_channels)
+                # See: PR #12393
+                annotations = _read_annotations_cnt(input_fname, data_format="int16")
+                if annotations.onset[-1] * sfreq > n_samples:
+                    n_bytes = 4
+                    n_samples = n_samples_header
+                    warn(
+                        "Annotations are outside data range. "
+                        "Changing data format to 'int32'."
+                    )
             else:
                 n_bytes = data_size // (n_samples * n_channels)
         else:
             n_bytes = 2 if data_format == "int16" else 4
             n_samples = data_size // (n_bytes * n_channels)
 
+            # See PR #12393
+            if n_samples_header != 0:
+                n_samples = n_samples_header
         # Channel offset refers to the size of blocks per channel in the file.
         cnt_info["channel_offset"] = np.fromfile(fid, dtype="<i4", count=1).item()
         if cnt_info["channel_offset"] > 1:
@@ -340,13 +363,23 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format):
         ch_names, cals, baselines, chs, pos = (list(), list(), list(), list(), list())
 
         bads = list()
+        _validate_type(header, str, "header")
+        _check_option("header", header, ("auto", "new", "old"))
         for ch_idx in range(n_channels):  # ELECTLOC fields
             fid.seek(data_offset + 75 * ch_idx)
             ch_name = read_str(fid, 10)
             ch_names.append(ch_name)
-            fid.seek(data_offset + 75 * ch_idx + 4)
-            if np.fromfile(fid, dtype="u1", count=1).item():
-                bads.append(ch_name)
+
+            # Some files have bad channels marked differently in the header.
+            if header in ("new", "auto"):
+                fid.seek(data_offset + 75 * ch_idx + 14)
+                if np.fromfile(fid, dtype="u1", count=1).item():
+                    bads.append(ch_name)
+            if header in ("old", "auto"):
+                fid.seek(data_offset + 75 * ch_idx + 4)
+                if np.fromfile(fid, dtype="u1", count=1).item():
+                    bads.append(ch_name)
+
             fid.seek(data_offset + 75 * ch_idx + 19)
             xy = np.fromfile(fid, dtype="f4", count=2)
             xy[1] *= -1  # invert y-axis
@@ -372,6 +405,7 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format):
         "first_name": first_name,
         "last_name": last_name,
     }
+    subject_info = {key: val for key, val in subject_info.items() if val is not None}
 
     if eog == "auto":
         eog = _find_channels(ch_names, "EOG")
@@ -415,7 +449,8 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format):
 class RawCNT(BaseRaw):
     """Raw object from Neuroscan CNT file.
 
-    .. Note::
+    .. note::
+
         The channel positions are read from the file header. Channels that are
         not assigned with keywords ``eog``, ``ecg``, ``emg`` and ``misc`` are
         assigned as eeg channels. All the eeg channel locations are fit to a
@@ -426,10 +461,15 @@ class RawCNT(BaseRaw):
         the header are correct, it is probably safer to use a (standard)
         montage. See :func:`mne.channels.make_standard_montage`
 
+    .. note::
+
+        A CNT file can also come from the EEG manufacturer ANT Neuro, in which case the
+        function :func:`mne.io.read_raw_ant` should be used.
+
     Parameters
     ----------
     input_fname : path-like
-        Path to the CNT file.
+        Path to the Neuroscan CNT file.
     eog : list | tuple
         Names of channels or list of indices that should be designated
         EOG channels. If ``'auto'``, the channel names beginning with
@@ -451,17 +491,12 @@ class RawCNT(BaseRaw):
         Defaults to ``'auto'``.
     date_format : ``'mm/dd/yy'`` | ``'dd/mm/yy'``
         Format of date in the header. Defaults to ``'mm/dd/yy'``.
+    header : ``'auto'`` | ``'new'`` | ``'old'``
+        Defines the header format. Used to describe how bad channels
+        are formatted. If auto, reads using old and new header and
+        if either contain a bad channel make channel bad.
+        Defaults to ``'auto'``.
     %(preload)s
-    stim_channel : bool | None
-        Add a stim channel from the events. Defaults to None to trigger a
-        future warning.
-
-        .. warning:: This defaults to True in 0.18 but will change to False in
-                     0.19 (when no stim channel synthesis will be allowed)
-                     and be removed in 0.20; migrate code to use
-                     :func:`mne.events_from_annotations` instead.
-
-        .. versionadded:: 0.18
     %(verbose)s
 
     See Also
@@ -478,9 +513,11 @@ class RawCNT(BaseRaw):
         emg=(),
         data_format="auto",
         date_format="mm/dd/yy",
+        *,
+        header="auto",
         preload=False,
         verbose=None,
-    ):  # noqa: D102
+    ):
         _check_option("date_format", date_format, ["mm/dd/yy", "dd/mm/yy"])
         if date_format == "dd/mm/yy":
             _date_format = "%d/%m/%y %H:%M:%S"
@@ -488,11 +525,18 @@ class RawCNT(BaseRaw):
             _date_format = "%m/%d/%y %H:%M:%S"
 
         input_fname = path.abspath(input_fname)
-        info, cnt_info = _get_cnt_info(
-            input_fname, eog, ecg, emg, misc, data_format, _date_format
-        )
+        try:
+            info, cnt_info = _get_cnt_info(
+                input_fname, eog, ecg, emg, misc, data_format, _date_format, header
+            )
+        except Exception:
+            raise RuntimeError(
+                "Could not read header from *.cnt file. mne.io.read_raw_cnt "
+                "supports Neuroscan CNT files only. If this file is an ANT Neuro CNT, "
+                "please use mne.io.read_raw_ant instead."
+            )
         last_samps = [cnt_info["n_samples"] - 1]
-        super(RawCNT, self).__init__(
+        super().__init__(
             info,
             preload,
             filenames=[input_fname],
@@ -520,6 +564,7 @@ class RawCNT(BaseRaw):
         channel_offset = self._raw_extras[fi]["channel_offset"]
         baselines = self._raw_extras[fi]["baselines"]
         n_bytes = self._raw_extras[fi]["n_bytes"]
+        n_samples = self._raw_extras[fi]["n_samples"]
         dtype = "<i4" if n_bytes == 4 else "<i2"
         chunk_size = channel_offset * f_channels  # Size of chunks in file.
         # The data is divided into blocks of samples / channel.
@@ -531,11 +576,18 @@ class RawCNT(BaseRaw):
         block_size = ((int(100e6) // n_bytes) // chunk_size) * chunk_size
         block_size = min(data_left, block_size)
         s_offset = start % channel_offset
-        with open(self._filenames[fi], "rb", buffering=0) as fid:
+        with open(self.filenames[fi], "rb", buffering=0) as fid:
             fid.seek(900 + f_channels * (75 + (start - s_offset) * n_bytes))
             for sample_start in np.arange(0, data_left, block_size) // f_channels:
+                # Earlier comment says n_samples is unreliable, but I think it
+                # is because it needed to be changed to unsigned int
+                # See: PR #12393
                 sample_stop = sample_start + min(
-                    (block_size // f_channels, data_left // f_channels - sample_start)
+                    (
+                        n_samples,
+                        block_size // f_channels,
+                        data_left // f_channels - sample_start,
+                    )
                 )
                 n_samps = sample_stop - sample_start
                 one = np.zeros((n_channels, n_samps))

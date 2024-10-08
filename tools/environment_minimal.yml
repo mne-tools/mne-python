@@ -1,0 +1,15 @@
+name: mne
+channels:
+  - conda-forge
+dependencies:
+  - python>=3.9
+  - pip
+  - numpy
+  - scipy
+  - matplotlib
+  - tqdm
+  - pooch
+  - decorator
+  - packaging
+  - jinja2
+  - lazy_loader

@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "b6571d655fa053a976320d48f987e5a696062656",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/connectivity/plot_mixed_source_space_connectivity.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/inverse/plot_mixed_source_space_inverse.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/minimum_norm/inverse.py": {
+      "a": 7,
+      "d": 5
+    },
+    "mne/minimum_norm/tests/test_inverse.py": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "52f34d33013aadd92150d43f52234969ea9a621a",
+  "authors": [
+    {
+      "n": "Mathieu Scheltienne",
+      "e": "mathieu.scheltienne@fcbg.ch"
+    }
+  ],
+  "changes": {
+    "examples/visualization/publication_figure.py": {
+      "a": 4,
+      "d": 6
+    },
+    "examples/visualization/sensor_noise_level.py": {
+      "a": 3,
+      "d": 3
+    },
+    "tutorials/inverse/20_dipole_fit.py": {
+      "a": 1,
+      "d": 2
+    },
+    "tutorials/inverse/60_visualize_stc.py": {
+      "a": 4,
+      "d": 5
+    },
+    "tutorials/io/60_ctf_bst_auditory.py": {
+      "a": 12,
+      "d": 13
+    },
+    "tutorials/preprocessing/70_fnirs_processing.py": {
+      "a": 2,
+      "d": 3
+    },
+    "tutorials/simulation/70_point_spread.py": {
+      "a": 10,
+      "d": 11
+    },
+    "tutorials/simulation/80_dics.py": {
+      "a": 5,
+      "d": 6
+    },
+    "tutorials/stats-source-space/60_cluster_rmANOVA_spatiotemporal.py": {
+      "a": 1,
+      "d": 2
+    }
+  }
+}

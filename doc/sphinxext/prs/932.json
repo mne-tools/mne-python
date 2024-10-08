@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "882fb9a5a06dc54cdc09df418490a76d065574ac",
+  "authors": [
+    {
+      "n": "Hari Bharadwaj",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/fiff/edf/edf.py": {
+      "a": 5,
+      "d": 4
+    },
+    "mne/fiff/edf/tests/data/biosemi.hpts": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/fiff/edf/tests/test_edf.py": {
+      "a": 6,
+      "d": 1
+    }
+  }
+}

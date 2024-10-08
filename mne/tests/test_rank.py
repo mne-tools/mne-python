@@ -1,3 +1,7 @@
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
+
 import itertools
 from pathlib import Path
 
@@ -26,8 +30,9 @@ from mne.rank import (
     compute_rank,
     estimate_rank,
 )
+from mne.utils import catch_logging
 
-base_dir = Path(__file__).parent.parent / "io" / "tests" / "data"
+base_dir = Path(__file__).parents[1] / "io" / "tests" / "data"
 cov_fname = base_dir / "test-cov.fif"
 raw_fname = base_dir / "test_raw.fif"
 ave_fname = base_dir / "test-ave.fif"
@@ -175,7 +180,7 @@ def test_cov_rank_estimation(rank_method, proj, meg):
 
             # count channel types
             ch_types = this_info.get_channel_types()
-            n_eeg, n_mag, n_grad = [ch_types.count(k) for k in ["eeg", "mag", "grad"]]
+            n_eeg, n_mag, n_grad = (ch_types.count(k) for k in ["eeg", "mag", "grad"])
             n_meg = n_mag + n_grad
             has_sss = n_meg > 0 and len(this_info["proc_history"]) > 0
             if has_sss:
@@ -206,7 +211,10 @@ def test_rank_epochs(rank_method, proj):
     raw = read_raw_fif(raw_fname, preload=True)
     epochs = make_fixed_length_epochs(raw, preload=True, proj=False)
     rank_raw = compute_rank(raw, rank_method, proj=proj)
-    rank_epochs = compute_rank(epochs, rank_method, proj=proj)
+    with catch_logging(verbose=True) as log:
+        rank_epochs = compute_rank(epochs, rank_method, proj=proj)
+    log = log.getvalue()
+    assert "{" not in log
     assert rank_raw == rank_epochs
 
 
@@ -296,21 +304,25 @@ def test_explicit_bads_pick():
     # Default picks=None
     raw.info["bads"] = list()
     noise_cov_1 = compute_raw_covariance(raw, picks=None)
+    assert noise_cov_1["bads"] == raw.info["bads"]
     rank = compute_rank(noise_cov_1, info=raw.info)
     assert rank == dict(meg=303, eeg=60)
     assert raw.info["bads"] == []
 
     raw.info["bads"] = ["EEG 002", "EEG 012", "EEG 015", "MEG 0122"]
     noise_cov = compute_raw_covariance(raw, picks=None)
+    assert noise_cov["bads"] == []
+    assert not any(bad in noise_cov["names"] for bad in raw.info["bads"])
     rank = compute_rank(noise_cov, info=raw.info)
-    assert rank == dict(meg=302, eeg=57)
+    want_rank = dict(meg=302, eeg=57)
     assert raw.info["bads"] == ["EEG 002", "EEG 012", "EEG 015", "MEG 0122"]
 
     # Explicit picks
     picks = pick_types(raw.info, meg=True, eeg=True, exclude=[])
     noise_cov_2 = compute_raw_covariance(raw, picks=picks)
+    assert noise_cov_2["bads"] == raw.info["bads"]  # correctly populated
     rank = compute_rank(noise_cov_2, info=raw.info)
-    assert rank == dict(meg=303, eeg=60)
+    assert rank == want_rank
     assert raw.info["bads"] == ["EEG 002", "EEG 012", "EEG 015", "MEG 0122"]
 
     assert_array_equal(noise_cov_1["data"], noise_cov_2["data"])
@@ -323,4 +335,4 @@ def test_explicit_bads_pick():
 
     raw.info["bads"] = ["EEG 002", "EEG 012", "EEG 015", "MEG 0122"]
     rank = compute_rank(raw)
-    assert rank == dict(meg=302, eeg=57)
+    assert rank == want_rank

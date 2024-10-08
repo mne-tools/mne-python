@@ -1,11 +1,8 @@
 """Functions to plot on circle as for connectivity."""
 
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Denis Engemann <denis.engemann@gmail.com>
-#          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
-#
-# License: Simplified BSD
-
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from functools import partial
 from itertools import cycle
@@ -59,11 +56,9 @@ def circular_layout(
     if group_boundaries is not None:
         boundaries = np.array(group_boundaries, dtype=np.int64)
         if np.any(boundaries >= n_nodes) or np.any(boundaries < 0):
-            raise ValueError(
-                '"group_boundaries" has to be between 0 and ' "n_nodes - 1."
-            )
+            raise ValueError('"group_boundaries" has to be between 0 and n_nodes - 1.')
         if len(boundaries) > 1 and np.any(np.diff(boundaries) <= 0):
-            raise ValueError('"group_boundaries" must have non-decreasing ' "values.")
+            raise ValueError('"group_boundaries" must have non-decreasing values.')
         n_group_sep = len(group_boundaries)
     else:
         n_group_sep = 0
@@ -96,7 +91,13 @@ def circular_layout(
 
 
 def _plot_connectivity_circle_onpick(
-    event, fig=None, ax=None, indices=None, n_nodes=0, node_angles=None, ylim=[9, 10]
+    event,
+    fig=None,
+    ax=None,
+    indices=None,
+    n_nodes=0,
+    node_angles=None,
+    ylim=(9, 10),
 ):
     """Isolate connections around a single node when user left clicks a node.
 
@@ -165,7 +166,7 @@ def _plot_connectivity_circle(
 
     if node_angles is not None:
         if len(node_angles) != n_nodes:
-            raise ValueError("node_angles has to be the same length " "as node_names")
+            raise ValueError("node_angles has to be the same length as node_names")
         # convert it to radians
         node_angles = node_angles * np.pi / 180
     else:

@@ -1,19 +1,27 @@
 """Base class copy from sklearn.base."""
-# Authors: Gael Varoquaux <gael.varoquaux@normalesup.org>
-#          Romain Trachel <trachelr@gmail.com>
-#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Jean-Remi King <jeanremi.king@gmail.com>
-#
+
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import datetime as dt
 import numbers
 
 import numpy as np
+from sklearn import model_selection as models
+from sklearn.base import (  # noqa: F401
+    BaseEstimator,
+    TransformerMixin,
+    clone,
+    is_classifier,
+)
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import check_scoring
+from sklearn.model_selection import KFold, StratifiedKFold, check_cv
+from sklearn.utils import check_array, indexable
 
-from ..fixes import BaseEstimator, _check_fit_params, _get_check_scoring
 from ..parallel import parallel_func
-from ..utils import verbose, warn
+from ..utils import _pl, logger, verbose, warn
 
 
 class LinearModel(BaseEstimator):
@@ -63,16 +71,11 @@ class LinearModel(BaseEstimator):
         "classes_",
     )
 
-    def __init__(self, model=None):  # noqa: D102
+    def __init__(self, model=None):
         if model is None:
-            from sklearn.linear_model import LogisticRegression
-
             model = LogisticRegression(solver="liblinear")
 
         self.model = model
-
-    def _more_tags(self):
-        return {"no_validation": True}
 
     def __getattr__(self, attr):
         """Wrap to model for some attributes."""
@@ -105,17 +108,14 @@ class LinearModel(BaseEstimator):
         self : instance of LinearModel
             Returns the modified instance.
         """
-        X, y = np.asarray(X), np.asarray(y)
-        if X.ndim != 2:
-            raise ValueError(
-                "LinearModel only accepts 2-dimensional X, got "
-                "%s instead." % (X.shape,)
-            )
-        if y.ndim > 2:
-            raise ValueError(
-                "LinearModel only accepts up to 2-dimensional y, "
-                "got %s instead." % (y.shape,)
-            )
+        X = check_array(X, input_name="X")
+        if y is not None:
+            y = check_array(y, dtype=None, ensure_2d=False, input_name="y")
+            if y.ndim > 2:
+                raise ValueError(
+                    f"LinearModel only accepts up to 2-dimensional y, got {y.shape} "
+                    "instead."
+                )
 
         # fit the Model
         self.model.fit(X, y, **fit_params)
@@ -149,17 +149,13 @@ class LinearModel(BaseEstimator):
 def _set_cv(cv, estimator=None, X=None, y=None):
     """Set the default CV depending on whether clf is classifier/regressor."""
     # Detect whether classification or regression
-    from sklearn.base import is_classifier
 
     if estimator in ["classifier", "regressor"]:
         est_is_classifier = estimator == "classifier"
     else:
         est_is_classifier = is_classifier(estimator)
     # Setup CV
-    from sklearn import model_selection as models
-    from sklearn.model_selection import KFold, StratifiedKFold, check_cv
-
-    if isinstance(cv, (int, np.int64)):
+    if isinstance(cv, int | np.int64):
         XFold = StratifiedKFold if est_is_classifier else KFold
         cv = XFold(n_splits=cv)
     elif isinstance(cv, str):
@@ -200,31 +196,47 @@ def _check_estimator(estimator, get_params=True):
 
 def _get_inverse_funcs(estimator, terminal=True):
     """Retrieve the inverse functions of an pipeline or an estimator."""
-    inverse_func = [False]
+    inverse_func = list()
+    estimators = list()
     if hasattr(estimator, "steps"):
         # if pipeline, retrieve all steps by nesting
-        inverse_func = list()
         for _, est in estimator.steps:
             inverse_func.extend(_get_inverse_funcs(est, terminal=False))
+            estimators.append(est.__class__.__name__)
     elif hasattr(estimator, "inverse_transform"):
         # if not pipeline attempt to retrieve inverse function
-        inverse_func = [estimator.inverse_transform]
+        inverse_func.append(estimator.inverse_transform)
+        estimators.append(estimator.__class__.__name__)
+    else:
+        inverse_func.append(False)
+        estimators.append("Unknown")
 
     # If terminal node, check that that the last estimator is a classifier,
     # and remove it from the transformers.
     if terminal:
         last_is_estimator = inverse_func[-1] is False
-        all_invertible = False not in inverse_func[:-1]
-        if last_is_estimator and all_invertible:
+        logger.debug(f"  Last estimator is an estimator: {last_is_estimator}")
+        non_invertible = np.where(
+            [inv_func is False for inv_func in inverse_func[:-1]]
+        )[0]
+        if last_is_estimator and len(non_invertible) == 0:
             # keep all inverse transformation and remove last estimation
+            logger.debug("  Removing inverse transformation from inverse list.")
             inverse_func = inverse_func[:-1]
         else:
+            if len(non_invertible):
+                bad = ", ".join(estimators[ni] for ni in non_invertible)
+                warn(
+                    f"Cannot inverse transform non-invertible "
+                    f"estimator{_pl(non_invertible)}: {bad}."
+                )
             inverse_func = list()
 
     return inverse_func
 
 
-def get_coef(estimator, attr="filters_", inverse_transform=False):
+@verbose
+def get_coef(estimator, attr="filters_", inverse_transform=False, *, verbose=None):
     """Retrieve the coefficients of an estimator ending with a Linear Model.
 
     This is typically useful to retrieve "spatial filters" or "spatial
@@ -240,6 +252,7 @@ def get_coef(estimator, attr="filters_", inverse_transform=False):
     inverse_transform : bool
         If True, returns the coefficients after inverse transforming them with
         the transformer steps of the estimator.
+    %(verbose)s
 
     Returns
     -------
@@ -252,6 +265,7 @@ def get_coef(estimator, attr="filters_", inverse_transform=False):
     """
     # Get the coefficients of the last estimator in case of nested pipeline
     est = estimator
+    logger.debug(f"Getting coefficients from estimator: {est.__class__.__name__}")
     while hasattr(est, "steps"):
         est = est.steps[-1][1]
 
@@ -260,15 +274,15 @@ def get_coef(estimator, attr="filters_", inverse_transform=False):
     # If SlidingEstimator, loop across estimators
     if hasattr(est, "estimators_"):
         coef = list()
-        for this_est in est.estimators_:
+        for ei, this_est in enumerate(est.estimators_):
+            if ei == 0:
+                logger.debug("  Extracting coefficients from SlidingEstimator.")
             coef.append(get_coef(this_est, attr, inverse_transform))
         coef = np.transpose(coef)
         coef = coef[np.newaxis]  # fake a sample dimension
         squeeze_first_dim = True
     elif not hasattr(est, attr):
-        raise ValueError(
-            "This estimator does not have a %s attribute:\n%s" % (attr, est)
-        )
+        raise ValueError(f"This estimator does not have a {attr} attribute:\n{est}")
     else:
         coef = getattr(est, attr)
 
@@ -280,14 +294,16 @@ def get_coef(estimator, attr="filters_", inverse_transform=False):
     if inverse_transform:
         if not hasattr(estimator, "steps") and not hasattr(est, "estimators_"):
             raise ValueError(
-                "inverse_transform can only be applied onto " "pipeline estimators."
+                "inverse_transform can only be applied onto pipeline estimators."
             )
         # The inverse_transform parameter will call this method on any
         # estimator contained in the pipeline, in reverse order.
         for inverse_func in _get_inverse_funcs(estimator)[::-1]:
+            logger.debug(f"  Applying inverse transformation: {inverse_func}.")
             coef = inverse_func(coef)
 
     if squeeze_first_dim:
+        logger.debug("  Squeezing first dimension of coefficients.")
         coef = coef[0]
 
     return coef
@@ -367,12 +383,6 @@ def cross_val_multiscore(
         Array of scores of the estimator for each run of the cross validation.
     """
     # This code is copied from sklearn
-    from sklearn.base import clone, is_classifier
-    from sklearn.model_selection._split import check_cv
-    from sklearn.utils import indexable
-
-    check_scoring = _get_check_scoring()
-
     X, y, groups = indexable(X, y, groups)
 
     cv = check_cv(cv, y, classifier=is_classifier(estimator))
@@ -425,12 +435,16 @@ def _fit_and_score(
 ):
     """Fit estimator and compute scores for a given dataset split."""
     #  This code is adapted from sklearn
+    from sklearn.model_selection import _validation
     from sklearn.utils.metaestimators import _safe_split
     from sklearn.utils.validation import _num_samples
 
     # Adjust length of sample weights
+
     fit_params = fit_params if fit_params is not None else {}
-    fit_params = _check_fit_params(X, fit_params, train)
+    fit_params = {
+        k: _validation._index_param_value(X, v, train) for k, v in fit_params.items()
+    }
 
     if parameters is not None:
         estimator.set_params(**parameters)
@@ -457,15 +471,13 @@ def _fit_and_score(
             if return_train_score:
                 train_score = error_score
             warn(
-                "Classifier fit failed. The score on this train-test"
-                " partition for these parameters will be set to %f. "
-                "Details: \n%r" % (error_score, e)
+                "Classifier fit failed. The score on this train-test partition for "
+                f"these parameters will be set to {error_score}. Details: \n{e!r}"
             )
         else:
             raise ValueError(
-                "error_score must be the string 'raise' or a"
-                " numeric value. (Hint: if using 'raise', please"
-                " make sure that it has been spelled correctly.)"
+                "error_score must be the string 'raise' or a numeric value. (Hint: if "
+                "using 'raise', please make sure that it has been spelled correctly.)"
             )
 
     else:

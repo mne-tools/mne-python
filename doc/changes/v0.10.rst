@@ -24,7 +24,7 @@ Changelog
 
 - Add ICA plotters for raw and epoch components by `Jaakko Leppakangas`_
 
-- Add new object ``mne.decoding.TimeDecoding`` for decoding sensors' evoked response across time by `Jean-Remi King`_
+- Add new object ``mne.decoding.TimeDecoding`` for decoding sensors' evoked response across time by `Jean-Rémi King`_
 
 - Add command ``mne freeview_bem_surfaces`` to quickly check BEM surfaces with Freeview by `Alex Gramfort`_.
 
@@ -91,7 +91,7 @@ BUG
 
 - Fix dropping of events after downsampling stim channels by `Marijn van Vliet`_
 
-- Fix scaling in :func:``mne.viz.utils._setup_vmin_vmax`` by `Jaakko Leppakangas`_
+- Fix scaling in ``mne.viz.utils._setup_vmin_vmax`` by `Jaakko Leppakangas`_
 
 - Fix order of component selection in :class:`mne.decoding.CSP` by `Clemens Brunner`_
 
@@ -128,7 +128,7 @@ The committer list for this release is the following (preceded by number of comm
 *  97  Teon Brooks
 *  81  Lorenzo De Santis
 *  55  Yousra Bekhti
-*  54  Jean-Remi King
+*  54  Jean-Rémi King
 *  48  Romain Trachel
 *  45  Mainak Jas
 *  40  Alexandre Barachant

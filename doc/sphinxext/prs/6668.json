@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "3db196b0e0ecee3718ae2945b9a0a977902513e5",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/bem.py": {
+      "a": 39,
+      "d": 21
+    },
+    "mne/commands/mne_coreg.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/commands/mne_report.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/commands/mne_watershed_bem.py": {
+      "a": 21,
+      "d": 5
+    }
+  }
+}

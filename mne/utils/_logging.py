@@ -1,7 +1,8 @@
 """Some utility functions."""
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#
+
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import contextlib
 import importlib
@@ -11,8 +12,9 @@ import os.path as op
 import re
 import sys
 import warnings
+from collections.abc import Callable
 from io import StringIO
-from typing import Any, Callable, TypeVar
+from typing import Any, TypeVar
 
 from decorator import FunctionMaker
 
@@ -158,7 +160,7 @@ class use_log_level:
     This message will be printed!
     """
 
-    def __init__(self, verbose=None, *, add_frames=None):  # noqa: D102
+    def __init__(self, verbose=None, *, add_frames=None):
         self._level = verbose
         self._add_frames = add_frames
         self._old_frames = _filter.add_frames
@@ -289,7 +291,7 @@ def set_log_file(fname=None, output_format="%(message)s", overwrite=None):
 def _remove_close_handlers(logger):
     for h in list(logger.handlers):
         # only remove our handlers (get along nicely with nose)
-        if isinstance(h, (logging.FileHandler, logging.StreamHandler)):
+        if isinstance(h, logging.FileHandler | logging.StreamHandler):
             if isinstance(h, logging.FileHandler):
                 h.close()
             logger.removeHandler(h)
@@ -358,7 +360,7 @@ class WrapStdOut:
         if hasattr(sys.stdout, name):
             return getattr(sys.stdout, name)
         else:
-            raise AttributeError("'file' object has not attribute '%s'" % name)
+            raise AttributeError(f"'file' object has not attribute '{name}'")
 
 
 _verbose_dec_re = re.compile("^<decorator-gen-[0-9]+>$")

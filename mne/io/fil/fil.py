@@ -1,6 +1,6 @@
-# Authors: George O'Neill <g.o'neill@ucl.ac.uk>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import json
 import pathlib
@@ -24,7 +24,9 @@ from .sensors import (
 
 
 @verbose
-def read_raw_fil(binfile, precision="single", preload=False, *, verbose=None):
+def read_raw_fil(
+    binfile, precision="single", preload=False, *, verbose=None
+) -> "RawFIL":
     """Raw object from FIL-OPMEG formatted data.
 
     Parameters
@@ -114,11 +116,11 @@ class RawFIL(BaseRaw):
         else:
             warn("No sensor position information found.")
 
-        with open(files["meg"], "r") as fid:
+        with open(files["meg"]) as fid:
             meg = json.load(fid)
         info = _compose_meas_info(meg, chans)
 
-        super(RawFIL, self).__init__(
+        super().__init__(
             info,
             preload,
             filenames=[files["bin"]],
@@ -128,7 +130,7 @@ class RawFIL(BaseRaw):
         )
 
         if files["coordsystem"].is_file():
-            with open(files["coordsystem"], "r") as fid:
+            with open(files["coordsystem"]) as fid:
                 csys = json.load(fid)
             hc = csys["HeadCoilCoordinates"]
 
@@ -263,16 +265,14 @@ def _convert_channel_info(chans):
 def _compose_meas_info(meg, chans):
     """Create info structure."""
     info = _empty_info(meg["SamplingFrequency"])
-
     # Collect all the necessary data from the structures read
     info["meas_id"] = get_new_file_id()
     tmp = _convert_channel_info(chans)
     info["chs"] = _refine_sensor_orientation(tmp)
-    # info['chs'] = _convert_channel_info(chans)
     info["line_freq"] = meg["PowerLineFrequency"]
+    info._update_redundant()
     info["bads"] = _read_bad_channels(chans)
     info._unlocked = False
-    info._update_redundant()
     return info
 
 
@@ -306,12 +306,12 @@ def _from_tsv(fname, dtypes=None):
     data_dict = dict()
     if dtypes is None:
         dtypes = [str] * info.shape[1]
-    if not isinstance(dtypes, (list, tuple)):
+    if not isinstance(dtypes, list | tuple):
         dtypes = [dtypes] * info.shape[1]
     if not len(dtypes) == info.shape[1]:
         raise ValueError(
-            "dtypes length mismatch. Provided: {0}, "
-            "Expected: {1}".format(len(dtypes), info.shape[1])
+            f"dtypes length mismatch. Provided: {len(dtypes)}, "
+            f"Expected: {info.shape[1]}"
         )
     for i, name in enumerate(column_names):
         data_dict[name] = info[:, i].astype(dtypes[i]).tolist()

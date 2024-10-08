@@ -1,0 +1,63 @@
+{
+  "merge_commit_sha": "fa11149b9d246c115ea0794ce9c819c36ec34f72",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".github/workflows/codespell_and_flake.yml": {
+      "a": 1,
+      "d": 0
+    },
+    "Makefile": {
+      "a": 3,
+      "d": 3
+    },
+    "ignore_words.txt": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/coreg.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/decoding/ssd.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/evoked.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/brainvision/brainvision.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/curry/curry.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/nihon/nihon.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/tests/test_eeglab_infomax.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/dataframe.py": {
+      "a": 15,
+      "d": 4
+    },
+    "tutorials/stats-sensor-space/75_cluster_ftest_spatiotemporal.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

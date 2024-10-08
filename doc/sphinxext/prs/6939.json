@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "731973aaa2e7b3b7dac1e7cc75a482586a165151",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/preprocessing/flat.py": {
+      "a": 9,
+      "d": 3
+    },
+    "mne/preprocessing/tests/test_flat.py": {
+      "a": 19,
+      "d": 1
+    }
+  }
+}

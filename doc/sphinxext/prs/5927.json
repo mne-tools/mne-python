@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "c7f9624cf1af7ec9751daa32adc96f4adc02a233",
+  "authors": [
+    {
+      "n": "Joan Massich",
+      "e": "mailsik@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/conf.py": {
+      "a": 14,
+      "d": 1
+    }
+  }
+}

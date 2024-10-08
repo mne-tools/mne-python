@@ -1,3 +1,7 @@
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
+
 import webbrowser
 
 import pytest
@@ -120,12 +124,12 @@ def test_copy_doc():
 def test_copy_function_doc_to_method_doc():
     """Test decorator for re-using function docstring as method docstrings."""
 
-    def f1(object, a, b, c):
+    def f1(obj, a, b, c):
         """Docstring for f1.
 
         Parameters
         ----------
-        object : object
+        obj : object
             Some object. This description also has
 
             blank lines in it.
@@ -136,7 +140,7 @@ def test_copy_function_doc_to_method_doc():
         """
         pass
 
-    def f2(object):
+    def f2(obj):
         """Docstring for f2.
 
         Parameters
@@ -150,7 +154,7 @@ def test_copy_function_doc_to_method_doc():
         """
         pass
 
-    def f3(object):
+    def f3(obj):
         """Docstring for f3.
 
         Parameters
@@ -160,11 +164,11 @@ def test_copy_function_doc_to_method_doc():
         """
         pass
 
-    def f4(object):
+    def f4(obj):
         """Docstring for f4."""
         pass
 
-    def f5(object):  # noqa: D410, D411, D414
+    def f5(obj):  # noqa: D410, D411, D414
         """Docstring for f5.
 
         Parameters

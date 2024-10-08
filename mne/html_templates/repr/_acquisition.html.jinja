@@ -1,0 +1,97 @@
+{% set section = "Acquisition" %}
+{% set section_class_name = section | lower | append_uuid %}
+
+{# Collapse content during documentation build. #}
+{% if collapsed %}
+{% set collapsed_row_class = "mne-repr-collapsed" %}
+{% else %}
+{% set collapsed_row_class = "" %}
+{% endif %}
+
+{%include 'static/_section_header_row.html.jinja' %}
+
+{% if duration %}
+<tr class="repr-element {{ section_class_name }} {{ collapsed_row_class }}">
+    <td class="mne-repr-section-toggle"></td>
+    <td>Duration</td>
+    <td>{{ duration }} (HH:MM:SS)</td>
+</tr>
+{% endif %}
+{% if inst is defined and inst | has_attr("kind") and inst | has_attr("nave") %}
+<tr class="repr-element {{ section_class_name }} {{ collapsed_row_class }}">
+    <td class="mne-repr-section-toggle"></td>
+    <td>Aggregation</td>
+    {% if inst.kind == "average" %}
+    <td>average of {{ inst.nave }} epochs</td>
+    {% elif inst.kind == "standard_error" %}
+    <td>standard error of {{ inst.nave }} epochs</td>
+    {% else %}
+    <td>{{ inst.kind }} ({{ inst.nave }} epochs)</td>
+    {% endif %}
+</tr>
+{% endif %}
+{% if inst is defined and inst | has_attr("comment") %}
+<tr class="repr-element {{ section_class_name }} {{ collapsed_row_class }}">
+    <td class="mne-repr-section-toggle"></td>
+    <td>Condition</td>
+    <td>{{inst.comment}}</td>
+</tr>
+{% endif %}
+{% if inst is defined and inst | has_attr("events") %}
+<tr class="repr-element {{ section_class_name }} {{ collapsed_row_class }}">
+    <td class="mne-repr-section-toggle"></td>
+    <td>Total number of events</td>
+    <td>{{ inst.events | length }}</td>
+</tr>
+{% endif %}
+{% if event_counts is defined %}
+<tr class="repr-element {{ section_class_name }} {{ collapsed_row_class }}">
+    <td class="mne-repr-section-toggle"></td>
+    <td>Events counts</td>
+    {% if events is not none %}
+    <td>
+        {% for e in event_counts %}
+        {{ e }}
+        {% if not loop.last %}<br />{% endif %}
+        {% endfor %}
+    </td>
+    {% else %}
+    <td>Not available</td>
+    {% endif %}
+</tr>
+{% endif %}
+{% if inst is defined and inst | has_attr("tmin") and inst | has_attr("tmax") %}
+<tr class="repr-element {{ section_class_name }} {{ collapsed_row_class }}">
+    <td class="mne-repr-section-toggle"></td>
+    <td>Time range</td>
+    <td>{{ inst | format_time_range }}</td>
+</tr>
+{% endif %}
+{% if inst is defined and inst | has_attr("baseline") %}
+<tr class="repr-element {{ section_class_name }} {{ collapsed_row_class }}">
+    <td class="mne-repr-section-toggle"></td>
+    <td>Baseline</td>
+    <td>{{ inst | format_baseline }}</td>
+</tr>
+{% endif %}
+{% if info["sfreq"] is defined and info["sfreq"] is not none %}
+<tr class="repr-element {{ section_class_name }} {{ collapsed_row_class }}">
+    <td class="mne-repr-section-toggle"></td>
+    <td>Sampling frequency</td>
+    <td>{{ "%0.2f" | format(info["sfreq"]) }} Hz</td>
+</tr>
+{% endif %}
+{% if inst is defined and inst.times is defined %}
+<tr class="repr-element {{ section_class_name }} {{ collapsed_row_class }}">
+    <td class="mne-repr-section-toggle"></td>
+    <td>Time points</td>
+    <td>{{ inst.times | length | format_number }}</td>
+</tr>
+{% endif %}
+{% if inst is defined and inst | has_attr("metadata") %}
+<tr class="repr-element {{ section_class_name }} {{ collapsed_row_class }}">
+    <td class="mne-repr-section-toggle"></td>
+    <td>Metadata</td>
+    <td>{{ inst | format_metadata }}</td>
+</tr>
+{% endif %}

@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "0b20f152d0fdcb1c6217c60f06e9ba087d291fa8",
+  "authors": [
+    {
+      "n": "Nicolas Legrand",
+      "e": "nicolas.legrand@cas.au.dk"
+    }
+  ],
+  "changes": {
+    "tutorials/misc/plot_modifying_data_inplace.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

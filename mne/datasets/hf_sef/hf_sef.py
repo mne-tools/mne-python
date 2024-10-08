@@ -1,6 +1,8 @@
 #!/usr/bin/env python2
-# Authors: Jussi Nurminen <jnu@iki.fi>
-# License: BSD Style.
+
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 
 import os

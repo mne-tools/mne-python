@@ -1,8 +1,6 @@
-# Authors: Robert Luke <mail@robertluke.net>
-#          Eric Larson <larson.eric.d@gmail.com>
-#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import numpy as np
 import pytest
@@ -77,7 +75,7 @@ def test_beer_lambert_v_matlab():
     pymatreader = pytest.importorskip("pymatreader")
     raw = read_raw_nirx(fname_nirx_15_0)
     raw = optical_density(raw)
-    raw = beer_lambert_law(raw, ppf=0.121)
+    raw = beer_lambert_law(raw, ppf=(0.121, 0.121))
     raw._data *= 1e6  # Scale to uM for comparison to MATLAB
 
     matlab_fname = (

@@ -1,9 +1,8 @@
-# Author: Eric Larson <larson.eric.d@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 
-from .._fiff import _io_dep_getattr
 from .._fiff.pick import (
     _DATA_CH_TYPES_ORDER_DEFAULT,
     _DATA_CH_TYPES_SPLIT,
@@ -17,11 +16,3 @@ __all__ = [
     "_DATA_CH_TYPES_ORDER_DEFAULT",
     "_DATA_CH_TYPES_SPLIT",
 ]
-
-
-def __getattr__(name):
-    try:
-        return globals()[name]
-    except KeyError:
-        pass
-    return _io_dep_getattr(name, "pick")

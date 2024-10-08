@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "2d2e2ce2dc95813c88ee13d4452be4118952c170",
+  "authors": [
+    {
+      "n": "Johann Benerradi",
+      "e": null
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "mne/viz/epochs.py": {
+      "a": 4,
+      "d": 6
+    },
+    "tutorials/epochs/plot_10_epochs_overview.py": {
+      "a": 10,
+      "d": 12
+    }
+  }
+}

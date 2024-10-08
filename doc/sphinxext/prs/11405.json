@@ -1,0 +1,131 @@
+{
+  "merge_commit_sha": "cc377dabd5a4e449d2bc706470a2ed16ea2339fe",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".circleci/config.yml": {
+      "a": 13,
+      "d": 6
+    },
+    "doc/api/datasets.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/documentation/datasets.rst": {
+      "a": 13,
+      "d": 0
+    },
+    "examples/datasets/kernel_phantom.py": {
+      "a": 103,
+      "d": 0
+    },
+    "mne/_fiff/_digitization.py": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/bem.py": {
+      "a": 4,
+      "d": 1
+    },
+    "mne/channels/channels.py": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/coreg.py": {
+      "a": 6,
+      "d": 4
+    },
+    "mne/data/helmets/Kernel_Flux.fif.gz": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/data/helmets/Kernel_Flux_ch_pos.txt": {
+      "a": 202,
+      "d": 0
+    },
+    "mne/datasets/__init__.pyi": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/datasets/config.py": {
+      "a": 8,
+      "d": 0
+    },
+    "mne/datasets/phantom_kernel/__init__.py": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/datasets/phantom_kernel/phantom_kernel.py": {
+      "a": 32,
+      "d": 0
+    },
+    "mne/datasets/utils.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/gui/_coreg.py": {
+      "a": 28,
+      "d": 31
+    },
+    "mne/surface.py": {
+      "a": 77,
+      "d": 2
+    },
+    "mne/tests/test_transforms.py": {
+      "a": 17,
+      "d": 0
+    },
+    "mne/transforms.py": {
+      "a": 52,
+      "d": 0
+    },
+    "mne/utils/config.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/utils/docs.py": {
+      "a": 19,
+      "d": 7
+    },
+    "mne/viz/_3d.py": {
+      "a": 72,
+      "d": 21
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 14,
+      "d": 13
+    },
+    "mne/viz/backends/_pyvista.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/utils.py": {
+      "a": 2,
+      "d": 2
+    },
+    "tools/circleci_download.sh": {
+      "a": 3,
+      "d": 0
+    },
+    "tutorials/inverse/35_dipole_orientations.py": {
+      "a": 2,
+      "d": 2
+    },
+    "tutorials/inverse/80_brainstorm_phantom_elekta.py": {
+      "a": 2,
+      "d": 2
+    },
+    "tutorials/inverse/90_phantom_4DBTi.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

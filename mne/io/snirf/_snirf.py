@@ -1,6 +1,6 @@
-# Authors: Robert Luke <mail@robertluke.net>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import datetime
 import re
@@ -20,7 +20,9 @@ from ..nirx.nirx import _convert_fnirs_to_head
 
 
 @fill_doc
-def read_raw_snirf(fname, optode_frame="unknown", preload=False, verbose=None):
+def read_raw_snirf(
+    fname, optode_frame="unknown", preload=False, verbose=None
+) -> "RawSNIRF":
     """Reader for a continuous wave SNIRF data.
 
     .. note:: This reader supports the .snirf file type only,
@@ -56,7 +58,7 @@ def read_raw_snirf(fname, optode_frame="unknown", preload=False, verbose=None):
 
 
 def _open(fname):
-    return open(fname, "r", encoding="latin-1")
+    return open(fname, encoding="latin-1")
 
 
 @fill_doc
@@ -88,7 +90,7 @@ class RawSNIRF(BaseRaw):
         h5py = _import_h5py()
 
         fname = str(_check_fname(fname, "read", True, "fname"))
-        logger.info("Loading %s" % fname)
+        logger.info(f"Loading {fname}")
 
         with h5py.File(fname, "r") as dat:
             if "data2" in dat["nirs"]:
@@ -165,7 +167,7 @@ class RawSNIRF(BaseRaw):
                         for c in channels
                     ]
                 )
-                sources = [f"S{int(s)}" for s in sources]
+                sources = {int(s): f"S{int(s)}" for s in sources}
 
             if "detectorLabels_disabled" in dat["nirs/probe"]:
                 # This is disabled as
@@ -182,7 +184,7 @@ class RawSNIRF(BaseRaw):
                         for c in channels
                     ]
                 )
-                detectors = [f"D{int(d)}" for d in detectors]
+                detectors = {int(d): f"D{int(d)}" for d in detectors}
 
             # Extract source and detector locations
             # 3D positions are optional in SNIRF,
@@ -221,9 +223,6 @@ class RawSNIRF(BaseRaw):
                     "location information"
                 )
 
-            assert len(sources) == srcPos3D.shape[0]
-            assert len(detectors) == detPos3D.shape[0]
-
             chnames = []
             ch_types = []
             for chan in channels:
@@ -245,9 +244,9 @@ class RawSNIRF(BaseRaw):
                         )[0]
                     )
                     ch_name = (
-                        sources[src_idx - 1]
+                        sources[src_idx]
                         + "_"
-                        + detectors[det_idx - 1]
+                        + detectors[det_idx]
                         + " "
                         + str(fnirs_wavelengths[wve_idx - 1])
                     )
@@ -262,7 +261,7 @@ class RawSNIRF(BaseRaw):
                     # Convert between SNIRF processed names and MNE type names
                     dt_id = dt_id.lower().replace("dod", "fnirs_od")
 
-                    ch_name = sources[src_idx - 1] + "_" + detectors[det_idx - 1]
+                    ch_name = sources[src_idx] + "_" + detectors[det_idx]
 
                     if dt_id == "fnirs_od":
                         wve_idx = int(
@@ -285,7 +284,8 @@ class RawSNIRF(BaseRaw):
 
             subject_info = {}
             names = np.array(dat.get("nirs/metaDataTags/SubjectID"))
-            subject_info["first_name"] = _correct_shape(names)[0].decode("UTF-8")
+            names = _correct_shape(names)[0].decode("UTF-8")
+            subject_info["his_id"] = names
             # Read non standard (but allowed) custom metadata tags
             if "lastName" in dat.get("nirs/metaDataTags/"):
                 ln = dat.get("/nirs/metaDataTags/lastName")[0].decode("UTF-8")
@@ -293,6 +293,12 @@ class RawSNIRF(BaseRaw):
             if "middleName" in dat.get("nirs/metaDataTags/"):
                 m = dat.get("/nirs/metaDataTags/middleName")[0].decode("UTF-8")
                 subject_info["middle_name"] = m
+            if "firstName" in dat.get("nirs/metaDataTags/"):
+                fn = dat.get("/nirs/metaDataTags/firstName")[0].decode("UTF-8")
+                subject_info["first_name"] = fn
+            else:
+                # MNE < 1.7 used to not write the firstName tag, so pull it from names
+                subject_info["first_name"] = names.split("_")[0]
             if "sex" in dat.get("nirs/metaDataTags/"):
                 s = dat.get("/nirs/metaDataTags/sex")[0].decode("UTF-8")
                 if s in {"M", "Male", "1", "m"}:
@@ -412,10 +418,10 @@ class RawSNIRF(BaseRaw):
                 info["dig"] = dig
 
             str_date = _correct_shape(
-                np.array((dat.get("/nirs/metaDataTags/MeasurementDate")))
+                np.array(dat.get("/nirs/metaDataTags/MeasurementDate"))
             )[0].decode("UTF-8")
             str_time = _correct_shape(
-                np.array((dat.get("/nirs/metaDataTags/MeasurementTime")))
+                np.array(dat.get("/nirs/metaDataTags/MeasurementTime"))
             )[0].decode("UTF-8")
             str_datetime = str_date + str_time
 
@@ -449,7 +455,7 @@ class RawSNIRF(BaseRaw):
                 )
                 birth_matched = re.fullmatch(r"(\d+)-(\d+)-(\d+)", str_birth)
                 if birth_matched is not None:
-                    birthday = (
+                    birthday = datetime.date(
                         int(birth_matched.groups()[0]),
                         int(birth_matched.groups()[1]),
                         int(birth_matched.groups()[2]),
@@ -457,7 +463,7 @@ class RawSNIRF(BaseRaw):
                     with info._unlock():
                         info["subject_info"]["birthday"] = birthday
 
-            super(RawSNIRF, self).__init__(
+            super().__init__(
                 info,
                 preload,
                 filenames=[fname],

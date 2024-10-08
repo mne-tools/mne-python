@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "f0f3b4d828bebff58e30841c5d4402b2823cc505",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/channels/channels.py": {
+      "a": 25,
+      "d": 6
+    },
+    "mne/channels/tests/test_channels.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

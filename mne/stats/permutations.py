@@ -1,8 +1,8 @@
 """T-test with permutations."""
 
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#
-# License: Simplified BSD
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from math import sqrt
 
@@ -86,7 +86,7 @@ def permutation_t_test(
     rng = check_random_state(seed)
     orders, _, extra = _get_1samp_orders(n_samples, n_permutations, tail, rng)
     perms = 2 * np.array(orders) - 1  # from 0, 1 -> 1, -1
-    logger.info("Permuting %d times%s..." % (len(orders), extra))
+    logger.info(f"Permuting {len(orders)} times{extra}...")
     parallel, my_max_stat, n_jobs = parallel_func(_max_stat, n_jobs)
     max_abs = np.concatenate(
         parallel(
@@ -145,7 +145,7 @@ def bootstrap_confidence_interval(
     rng = check_random_state(random_state)
     boot_indices = rng.choice(indices, replace=True, size=(n_bootstraps, len(indices)))
     stat = np.array([stat_fun(arr[inds]) for inds in boot_indices])
-    ci = (((1 - ci) / 2) * 100, ((1 - ((1 - ci) / 2))) * 100)
+    ci = (((1 - ci) / 2) * 100, (1 - ((1 - ci) / 2)) * 100)
     ci_low, ci_up = np.percentile(stat, ci, axis=0)
     return np.array([ci_low, ci_up])
 

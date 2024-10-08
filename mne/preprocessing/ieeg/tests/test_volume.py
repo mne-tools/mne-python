@@ -1,7 +1,8 @@
 """Test ieeg volume functions."""
-# Authors: Alex Rockhill <aprockhill@mailbox.org>
-#
+
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import numpy as np
 import pytest

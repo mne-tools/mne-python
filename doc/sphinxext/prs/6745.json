@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "e16d112026d22850a12a5db8d819f334f7ff0886",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/conf.py": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/python_reference.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "examples/visualization/plot_publication_figure.py": {
+      "a": 165,
+      "d": 0
+    },
+    "mne/utils/docs.py": {
+      "a": 44,
+      "d": 0
+    },
+    "mne/viz/_3d.py": {
+      "a": 84,
+      "d": 80
+    },
+    "mne/viz/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 35,
+      "d": 1
+    }
+  }
+}

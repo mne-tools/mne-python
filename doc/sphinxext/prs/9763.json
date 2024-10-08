@@ -1,0 +1,167 @@
+{
+  "merge_commit_sha": "0b503d8b64bd1383eee0450c3998700ad354a1ef",
+  "authors": [
+    {
+      "n": "Adam Li",
+      "e": null
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 4,
+      "d": 0
+    },
+    "doc/conf.py": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/datasets.rst": {
+      "a": 2,
+      "d": 1
+    },
+    "examples/visualization/3d_to_2d.py": {
+      "a": 15,
+      "d": 7
+    },
+    "mne/datasets/__init__.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/datasets/_fake/_fake.py": {
+      "a": 5,
+      "d": 4
+    },
+    "mne/datasets/_fetch.py": {
+      "a": 292,
+      "d": 0
+    },
+    "mne/datasets/brainstorm/bst_auditory.py": {
+      "a": 6,
+      "d": 6
+    },
+    "mne/datasets/brainstorm/bst_phantom_ctf.py": {
+      "a": 6,
+      "d": 6
+    },
+    "mne/datasets/brainstorm/bst_phantom_elekta.py": {
+      "a": 6,
+      "d": 6
+    },
+    "mne/datasets/brainstorm/bst_raw.py": {
+      "a": 7,
+      "d": 6
+    },
+    "mne/datasets/brainstorm/bst_resting.py": {
+      "a": 6,
+      "d": 6
+    },
+    "mne/datasets/config.py": {
+      "a": 5,
+      "d": 4
+    },
+    "mne/datasets/epilepsy_ecog/_data.py": {
+      "a": 6,
+      "d": 5
+    },
+    "mne/datasets/erp_core/erp_core.py": {
+      "a": 6,
+      "d": 5
+    },
+    "mne/datasets/fieldtrip_cmc/fieldtrip_cmc.py": {
+      "a": 6,
+      "d": 6
+    },
+    "mne/datasets/fnirs_motor/fnirs_motor.py": {
+      "a": 6,
+      "d": 5
+    },
+    "mne/datasets/hf_sef/hf_sef.py": {
+      "a": 24,
+      "d": 10
+    },
+    "mne/datasets/kiloword/kiloword.py": {
+      "a": 5,
+      "d": 4
+    },
+    "mne/datasets/misc/_misc.py": {
+      "a": 5,
+      "d": 4
+    },
+    "mne/datasets/mtrf/mtrf.py": {
+      "a": 6,
+      "d": 5
+    },
+    "mne/datasets/multimodal/multimodal.py": {
+      "a": 6,
+      "d": 5
+    },
+    "mne/datasets/opm/opm.py": {
+      "a": 6,
+      "d": 5
+    },
+    "mne/datasets/phantom_4dbti/phantom_4dbti.py": {
+      "a": 6,
+      "d": 5
+    },
+    "mne/datasets/refmeg_noise/refmeg_noise.py": {
+      "a": 7,
+      "d": 6
+    },
+    "mne/datasets/sample/sample.py": {
+      "a": 7,
+      "d": 5
+    },
+    "mne/datasets/somato/somato.py": {
+      "a": 7,
+      "d": 5
+    },
+    "mne/datasets/spm_face/spm_data.py": {
+      "a": 7,
+      "d": 5
+    },
+    "mne/datasets/ssvep/ssvep.py": {
+      "a": 8,
+      "d": 5
+    },
+    "mne/datasets/testing/_testing.py": {
+      "a": 7,
+      "d": 5
+    },
+    "mne/datasets/tests/test_datasets.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/datasets/utils.py": {
+      "a": 49,
+      "d": 235
+    },
+    "mne/datasets/visual_92_categories/visual_92_categories.py": {
+      "a": 6,
+      "d": 4
+    },
+    "mne/export/tests/test_export.py": {
+      "a": 2,
+      "d": 4
+    },
+    "setup.py": {
+      "a": 0,
+      "d": 1
+    },
+    "tutorials/clinical/20_seeg.py": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

@@ -1,6 +1,6 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#
-# License: Simplified BSD
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from pathlib import Path
 
@@ -29,7 +29,7 @@ from mne.viz.utils import (
     concatenate_images,
 )
 
-base_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
+base_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
 raw_fname = base_dir / "test_raw.fif"
 cov_fname = base_dir / "test-cov.fif"
 ev_fname = base_dir / "test_raw-eve.fif"
@@ -100,7 +100,6 @@ def test_add_background_image():
         # Background without changing aspect
         if ii == 0:
             ax_im = add_background_image(f, im)
-            return
             assert ax_im.get_aspect() == "auto"
             for ax in axs:
                 assert ax.get_aspect() == 1

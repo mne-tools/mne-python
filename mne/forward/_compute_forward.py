@@ -1,10 +1,6 @@
-# Authors: Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
-#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
-#          Eric Larson <larson.eric.d@gmail.com>
-#          Mark Wronkiewicz <wronk@uw.edu>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # The computations in this code were primarily derived from Matti Hämäläinen's
 # C code.
@@ -54,9 +50,9 @@ def _check_coil_frame(coils, coord_frame, bem):
     if coord_frame != FIFF.FIFFV_COORD_MRI:
         if coord_frame == FIFF.FIFFV_COORD_HEAD:
             # Make a transformed duplicate
-            coils, coord_Frame = _dup_coil_set(coils, coord_frame, bem["head_mri_t"])
+            coils, coord_frame = _dup_coil_set(coils, coord_frame, bem["head_mri_t"])
         else:
-            raise RuntimeError("Bad coil coordinate frame %s" % coord_frame)
+            raise RuntimeError(f"Bad coil coordinate frame {coord_frame}")
     return coils, coord_frame
 
 
@@ -660,7 +656,7 @@ def _magnetic_dipole_field_vec(rrs, coils, too_close="raise"):
     rmags, cosmags, ws, bins = _triage_coils(coils)
     fwd, min_dist = _compute_mdfv(rrs, rmags, cosmags, ws, bins, too_close)
     if min_dist < _MIN_DIST_LIMIT:
-        msg = "Coil too close (dist = %g mm)" % (min_dist * 1000,)
+        msg = f"Coil too close (dist = {min_dist * 1000:g} mm)"
         if too_close == "raise":
             raise RuntimeError(msg)
         func = warn if too_close == "warning" else logger.info
@@ -807,8 +803,8 @@ def _compute_forwards_meeg(rr, *, sensors, fwd_data, n_jobs, silent=False):
         # Do the actual forward calculation for a list MEG/EEG sensors
         if not silent:
             logger.info(
-                "Computing %s at %d source location%s "
-                "(free orientations)..." % (coil_type.upper(), len(rr), _pl(rr))
+                f"Computing {coil_type.upper()} at {len(rr)} source location{_pl(rr)} "
+                "(free orientations)..."
             )
         # Calculate forward solution using spherical or BEM model
         B = fun(

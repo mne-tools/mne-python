@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "ef381aaa52d7ec985bdb544c3625b2ff31022d02",
+  "authors": [
+    {
+      "n": "Yousra Bekhti",
+      "e": "yousra.bekhti@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/inverse/plot_lcmv_beamformer.py": {
+      "a": 1,
+      "d": 4
+    }
+  }
+}

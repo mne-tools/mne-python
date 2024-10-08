@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "db22d67b65b07dec07f3f65cbc52d8d146c8265b",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/install/contributing.rst": {
+      "a": 5,
+      "d": 5
+    },
+    "mne/simulation/tests/test_metrics.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/utils/docs.py": {
+      "a": 5,
+      "d": 13
+    },
+    "mne/utils/tests/test_docs.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/_brain/tests/test_brain.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

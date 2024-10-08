@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "98b01534297e38ec6e876d3753f04bc7e82473e0",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/conf.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/decoding/transformer.py": {
+      "a": 1,
+      "d": 4
+    },
+    "mne/time_frequency/multitaper.py": {
+      "a": 1,
+      "d": 4
+    },
+    "mne/time_frequency/psd.py": {
+      "a": 1,
+      "d": 4
+    },
+    "mne/utils/docs.py": {
+      "a": 7,
+      "d": 1
+    },
+    "mne/viz/epochs.py": {
+      "a": 1,
+      "d": 4
+    },
+    "mne/viz/topomap.py": {
+      "a": 1,
+      "d": 4
+    }
+  }
+}

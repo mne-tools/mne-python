@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "2502260f48b84299c00530ab09fdc9e2b2a4cddf",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".circleci/config.yml": {
+      "a": 8,
+      "d": 17
+    },
+    ".travis.yml": {
+      "a": 4,
+      "d": 1
+    },
+    "doc/conf.py": {
+      "a": 2,
+      "d": 1
+    },
+    "examples/inverse/plot_morph_volume_stc.py": {
+      "a": 1,
+      "d": 2
+    },
+    "requirements.txt": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "2b4605fbf50d1d03edc34ad013b5b4577f948b81",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/utils/docs.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/viz/_figure.py": {
+      "a": 171,
+      "d": 27
+    },
+    "mne/viz/epochs.py": {
+      "a": 11,
+      "d": 24
+    },
+    "mne/viz/raw.py": {
+      "a": 11,
+      "d": 18
+    },
+    "mne/viz/tests/test_figure.py": {
+      "a": 7,
+      "d": 1
+    },
+    "mne/viz/tests/test_raw.py": {
+      "a": 22,
+      "d": 19
+    },
+    "mne/viz/utils.py": {
+      "a": 5,
+      "d": 85
+    },
+    "tutorials/epochs/plot_20_visualize_epochs.py": {
+      "a": 25,
+      "d": 25
+    },
+    "tutorials/raw/plot_40_visualize_raw.py": {
+      "a": 3,
+      "d": 3
+    }
+  }
+}

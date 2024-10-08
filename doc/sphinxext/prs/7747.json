@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "4f493e1fd240acab1a3838a8c3f82fa062b76e97",
+  "authors": [
+    {
+      "n": "Kyle Mathewson",
+      "e": "kylemath@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/defaults.py": {
+      "a": 5,
+      "d": 1
+    },
+    "mne/viz/_3d.py": {
+      "a": 30,
+      "d": 7
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 29,
+      "d": 0
+    },
+    "tutorials/preprocessing/plot_70_fnirs_processing.py": {
+      "a": 4,
+      "d": 2
+    }
+  }
+}

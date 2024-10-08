@@ -1,8 +1,8 @@
 """Container classes for spectral data."""
 
-# Authors: Dan McCloy <dan@mccloy.info>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from copy import deepcopy
 from functools import partial
@@ -24,6 +24,7 @@ from ..html_templates import _get_html_template
 from ..utils import (
     GetEpochsMixin,
     _build_data_frame,
+    _check_method_kwargs,
     _check_pandas_index_arguments,
     _check_pandas_installed,
     _check_sphere,
@@ -45,22 +46,19 @@ from ..utils.check import (
     check_fname,
 )
 from ..utils.misc import _pl
-from ..utils.spectrum import _split_psd_kwargs
+from ..utils.spectrum import _get_instance_type_string, _split_psd_kwargs
 from ..viz.topo import _plot_timeseries, _plot_timeseries_unified, _plot_topo
 from ..viz.topomap import _make_head_outlines, _prepare_topomap_plot, plot_psds_topomap
 from ..viz.utils import (
     _format_units_psd,
     _get_plot_ch_type,
+    _make_combine_callable,
     _plot_psd,
     _prepare_sensor_names,
     plt_show,
 )
-from .multitaper import psd_array_multitaper
+from .multitaper import _psd_from_mt, psd_array_multitaper
 from .psd import _check_nfft, psd_array_welch
-
-
-def _identity_function(x):
-    return x
 
 
 class SpectrumMixin:
@@ -81,7 +79,7 @@ class SpectrumMixin:
         method="auto",
         average=False,
         dB=True,
-        estimate="auto",
+        estimate="power",
         xscale="linear",
         area_mode="std",
         area_alpha=0.33,
@@ -283,7 +281,7 @@ class SpectrumMixin:
         This method returns ``None`` and has a side effect of (maybe) updating
         the ``method_kw`` dict.
         """
-        if method == "welch" and method_kw.get("n_fft", None) is None:
+        if method == "welch" and method_kw.get("n_fft") is None:
             tm = _time_mask(self.times, tmin, tmax, sfreq=self.info["sfreq"])
             method_kw["n_fft"] = min(np.sum(tm), 2048)
 
@@ -317,29 +315,12 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
             )
         # method
         self._inst_type = type(inst)
-        method = _validate_method(method, self._get_instance_type_string())
-        # don't allow complex output
+        method = _validate_method(method, _get_instance_type_string(self))
         psd_funcs = dict(welch=psd_array_welch, multitaper=psd_array_multitaper)
-        if method_kw.get("output", "") == "complex":
-            warn(
-                f"Complex output support in {type(self).__name__} objects is "
-                "deprecated and will be removed in version 1.7. If you need complex "
-                f"output please use mne.time_frequency.{psd_funcs[method].__name__}() "
-                "instead.",
-                FutureWarning,
-            )
         # triage method and kwargs. partial() doesn't check validity of kwargs,
         # so we do it manually to save compute time if any are invalid.
-        invalid_ix = np.isin(
-            list(method_kw), list(signature(psd_funcs[method]).parameters), invert=True
-        )
-        if invalid_ix.any():
-            invalid_kw = np.array(list(method_kw))[invalid_ix].tolist()
-            s = _pl(invalid_kw)
-            raise TypeError(
-                f'Got unexpected keyword argument{s} {", ".join(invalid_kw)} '
-                f'for PSD method "{method}".'
-            )
+        psd_funcs = dict(welch=psd_array_welch, multitaper=psd_array_multitaper)
+        _check_method_kwargs(psd_funcs[method], method_kw, msg=f'PSD method "{method}"')
         self._psd_func = partial(psd_funcs[method], remove_dc=remove_dc, **method_kw)
 
         # apply proj if desired
@@ -358,7 +339,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         self.info = pick_info(inst.info, sel=self._picks, copy=True)
 
         # assign some attributes
-        self.preload = True  # needed for __getitem__, doesn't mean anything
+        self.preload = True  # needed for __getitem__, never False
         self._method = method
         # self._dims may also get updated by child classes
         self._dims = (
@@ -371,8 +352,12 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
             self._dims = self._dims[:-1] + ("taper",) + self._dims[-1:]
         # record data type (for repr and html_repr)
         self._data_type = (
-            "Fourier Coefficients" if "taper" in self._dims else "Power Spectrum"
+            "Fourier Coefficients"
+            if method_kw.get("output") == "complex"
+            else "Power Spectrum"
         )
+        # set nave (child constructor overrides this for Evoked input)
+        self._nave = None
 
     def __eq__(self, other):
         """Test equivalence of two Spectrum instances."""
@@ -380,7 +365,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
 
     def __getstate__(self):
         """Prepare object for serialization."""
-        inst_type_str = self._get_instance_type_string()
+        inst_type_str = _get_instance_type_string(self)
         out = dict(
             method=self.method,
             data=self._data,
@@ -390,6 +375,8 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
             inst_type_str=inst_type_str,
             data_type=self._data_type,
             info=self.info,
+            nave=self.nave,
+            weights=self.weights,
         )
         return out
 
@@ -406,16 +393,16 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         self._sfreq = state["sfreq"]
         self.info = Info(**state["info"])
         self._data_type = state["data_type"]
+        self._nave = state.get("nave")  # objs saved before #11282 won't have `nave`
+        self._weights = state.get("weights")  # objs saved before #12747 won't have
         self.preload = True
         # instance type
         inst_types = dict(Raw=Raw, Epochs=Epochs, Evoked=Evoked, Array=np.ndarray)
         self._inst_type = inst_types[state["inst_type_str"]]
-        if "weights" in state and state["weights"] is not None:
-            self._mt_weights = state["weights"]
 
     def __repr__(self):
         """Build string representation of the Spectrum object."""
-        inst_type_str = self._get_instance_type_string()
+        inst_type_str = _get_instance_type_string(self)
         # shape & dimension names
         dims = " × ".join(
             [f"{dim[0]} {dim[1]}s" for dim in zip(self.shape, self._dims)]
@@ -429,7 +416,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
     @repr_html
     def _repr_html_(self, caption=None):
         """Build HTML representation of the Spectrum object."""
-        inst_type_str = self._get_instance_type_string()
+        inst_type_str = _get_instance_type_string(self)
         units = [f"{ch_type}: {unit}" for ch_type, unit in self.units().items()]
         t = _get_html_template("repr", "spectrum.html.jinja")
         t = t.render(spectrum=self, inst_type=inst_type_str, units=units)
@@ -456,7 +443,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
             warn(f'Zero value in spectrum for channel{s} {", ".join(chs)}', UserWarning)
 
     def _returns_complex_tapers(self, **method_kw):
-        return method_kw.get("output", "") == "complex" and self.method == "multitaper"
+        return self.method == "multitaper" and method_kw.get("output") == "complex"
 
     def _compute_spectra(self, data, fmin, fmax, n_jobs, method_kw, verbose):
         # make the spectra
@@ -467,45 +454,27 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         if self._returns_complex_tapers(**method_kw):
             fourier_coefs, freqs, weights = result
             self._data = fourier_coefs
-            self._mt_weights = weights
+            self._weights = weights
         else:
             psds, freqs = result
             self._data = psds
+            self._weights = None
         # assign properties (._data already assigned above)
         self._freqs = freqs
         # this is *expected* shape, it gets asserted later in _check_values()
         # (and then deleted afterwards)
         self._shape = (len(self.ch_names), len(self.freqs))
-        # append n_welch_segments
+        # append n_welch_segments (use "" as .get() default since None considered valid)
         if method_kw.get("average", "") in (None, False):
             n_welch_segments = _compute_n_welch_segments(data.shape[-1], method_kw)
             self._shape += (n_welch_segments,)
         # insert n_tapers
         if self._returns_complex_tapers(**method_kw):
-            self._shape = self._shape[:-1] + (self._mt_weights.size,) + self._shape[-1:]
+            self._shape = self._shape[:-1] + (self._weights.size,) + self._shape[-1:]
         # we don't need these anymore, and they make save/load harder
         del self._picks
         del self._psd_func
         del self._time_mask
-
-    def _get_instance_type_string(self):
-        """Get string representation of the originating instance type."""
-        from ..epochs import BaseEpochs
-        from ..evoked import Evoked, EvokedArray
-        from ..io import BaseRaw
-
-        parent_classes = self._inst_type.__bases__
-        if BaseRaw in parent_classes:
-            inst_type_str = "Raw"
-        elif BaseEpochs in parent_classes:
-            inst_type_str = "Epochs"
-        elif self._inst_type in (Evoked, EvokedArray):
-            inst_type_str = "Evoked"
-        elif self._inst_type is np.ndarray:
-            inst_type_str = "Array"
-        else:
-            raise RuntimeError(f"Unknown instance type {self._inst_type} in Spectrum")
-        return inst_type_str
 
     @property
     def _detrend_picks(self):
@@ -517,12 +486,24 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         return self.info["ch_names"]
 
     @property
+    def data(self):
+        return self._data
+
+    @property
     def freqs(self):
         return self._freqs
 
     @property
     def method(self):
         return self._method
+
+    @property
+    def nave(self):
+        return self._nave
+
+    @property
+    def weights(self):
+        return self._weights
 
     @property
     def sfreq(self):
@@ -591,7 +572,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         picks=None,
         average=False,
         dB=True,
-        amplitude="auto",
+        amplitude=False,
         xscale="linear",
         ci="sd",
         ci_alpha=0.3,
@@ -611,57 +592,54 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
 
             .. versionchanged:: 1.5
                 In version 1.5, the default behavior changed so that all
-                :term:`data channels` (not just "good" data channels) are shown
-                by default.
+                :term:`data channels` (not just "good" data channels) are shown by
+                default.
         average : bool
-            Whether to average across channels before plotting. If ``True``,
-            interactive plotting of scalp topography is disabled, and
-            parameters ``ci`` and ``ci_alpha`` control the style of the
-            confidence band around the mean. Default is ``False``.
+            Whether to average across channels before plotting. If ``True``, interactive
+            plotting of scalp topography is disabled, and parameters ``ci`` and
+            ``ci_alpha`` control the style of the confidence band around the mean.
+            Default is ``False``.
         %(dB_spectrum_plot)s
-        amplitude : bool | 'auto'
+        amplitude : bool
             Whether to plot an amplitude spectrum (``True``) or power spectrum
-            (``False``). If ``'auto'``, will plot a power spectrum when
-            ``dB=True`` and an amplitude spectrum otherwise. Default is
-            ``'auto'``.
+            (``False``).
+
+                .. versionchanged:: 1.8
+                    In version 1.8, the default changed to ``amplitude=False``.
         %(xscale_plot_psd)s
         ci : float | 'sd' | 'range' | None
-            Type of confidence band drawn around the mean when
-            ``average=True``. If ``'sd'`` the band spans ±1 standard deviation
-            across channels. If ``'range'`` the band spans the range across
-            channels at each frequency. If a :class:`float`, it indicates the
-            (bootstrapped) confidence interval to display, and must satisfy
-            ``0 < ci <= 100``. If ``None``, no band is drawn. Default is
-            ``sd``.
+            Type of confidence band drawn around the mean when ``average=True``. If
+            ``'sd'`` the band spans ±1 standard deviation across channels. If
+            ``'range'`` the band spans the range across channels at each frequency. If a
+            :class:`float`, it indicates the (bootstrapped) confidence interval to
+            display, and must satisfy ``0 < ci <= 100``. If ``None``, no band is drawn.
+            Default is ``sd``.
         ci_alpha : float
-            Opacity of the confidence band. Must satisfy
-            ``0 <= ci_alpha <= 1``. Default is 0.3.
+            Opacity of the confidence band. Must satisfy ``0 <= ci_alpha <= 1``. Default
+            is 0.3.
         %(color_plot_psd)s
         alpha : float | None
             Opacity of the spectrum line(s). If :class:`float`, must satisfy
             ``0 <= alpha <= 1``. If ``None``, opacity will be ``1`` when
-            ``average=True`` and ``0.1`` when ``average=False``. Default is
-            ``None``.
+            ``average=True`` and ``0.1`` when ``average=False``. Default is ``None``.
         %(spatial_colors_psd)s
         %(sphere_topomap_auto)s
         %(exclude_spectrum_plot)s
 
             .. versionchanged:: 1.5
-                In version 1.5, the default behavior changed from
-                ``exclude='bads'`` to ``exclude=()``.
+                In version 1.5, the default behavior changed from ``exclude='bads'`` to
+                ``exclude=()``.
         %(axes_spectrum_plot_topomap)s
         %(show)s
 
         Returns
         -------
         fig : instance of matplotlib.figure.Figure
-            Figure with spectra plotted in separate subplots for each channel
-            type.
+            Figure with spectra plotted in separate subplots for each channel type.
         """
         # Must nest this _mpl_figure import because of the BACKEND global
         # stuff
         from ..viz._mpl_figure import _line_figure, _split_picks_by_type
-        from .multitaper import _psd_from_mt
 
         # arg checking
         ci = _check_ci(ci)
@@ -671,10 +649,12 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         scalings = _handle_default("scalings", None)
         titles = _handle_default("titles", None)
         units = _handle_default("units", None)
-        if amplitude == "auto":
-            estimate = "power" if dB else "amplitude"
-        else:  # amplitude is boolean
-            estimate = "amplitude" if amplitude else "power"
+
+        _validate_type(amplitude, bool, "amplitude")
+        estimate = "amplitude" if amplitude else "power"
+
+        logger.info(f"Plotting {estimate} spectral density ({dB=}).")
+
         # split picks by channel type
         picks = _picks_to_idx(
             self.info, picks, "data", exclude=exclude, with_ref_meg=False
@@ -682,38 +662,13 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         (picks_list, units_list, scalings_list, titles_list) = _split_picks_by_type(
             self, picks, units, scalings, titles
         )
-        # handle unaggregated multitaper
-        if hasattr(self, "_mt_weights"):
-            logger.info("Aggregating multitaper estimates before plotting...")
-            _f = partial(_psd_from_mt, weights=self._mt_weights)
-        # handle unaggregated Welch
-        elif "segment" in self._dims:
-            logger.info("Aggregating Welch estimates (median) before plotting...")
-            seg_axis = self._dims.index("segment")
-            _f = partial(np.nanmedian, axis=seg_axis)
-        else:  # "normal" cases
-            _f = _identity_function
-        ch_axis = self._dims.index("channel")
-        psd_list = [_f(self._data.take(_p, axis=ch_axis)) for _p in picks_list]
-        # handle epochs
-        if "epoch" in self._dims:
-            # XXX TODO FIXME decide how to properly aggregate across repeated
-            # measures (epochs) and non-repeated but correlated measures
-            # (channels) when calculating stddev or a CI. For across-channel
-            # aggregation, doi:10.1007/s10162-012-0321-8 used hotellings T**2
-            # with a correction factor that estimated data rank using monte
-            # carlo simulations; seems like we could use our own data rank
-            # estimation methods to similar effect. Their exact approach used
-            # complex spectra though, here we've already converted to power;
-            # not sure if that makes an important difference? Anyway that
-            # aggregation would need to happen in the _plot_psd function
-            # though, not here... for now we just average like we always did.
-
-            # only log message if averaging will actually have an effect
-            if self._data.shape[0] > 1:
-                logger.info("Averaging across epochs...")
-            # epoch axis should always be the first axis
-            psd_list = [_p.mean(axis=0) for _p in psd_list]
+        # prepare data (e.g. aggregate across dims, convert complex to power)
+        psd_list = [
+            self._prepare_data_for_plot(
+                self._data.take(_p, axis=self._dims.index("channel"))
+            )
+            for _p in picks_list
+        ]
         # initialize figure
         fig, axes = _line_figure(self, axes, picks=picks)
         # don't add ylabels & titles if figure has unexpected number of axes
@@ -782,8 +737,8 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
             layout = find_layout(self.info)
 
         psds, freqs = self.get_data(return_freqs=True)
-        if "epoch" in self._dims:
-            psds = np.mean(psds, axis=self._dims.index("epoch"))
+        # prepare data (e.g. aggregate across dims, convert complex to power)
+        psds = self._prepare_data_for_plot(psds)
         if dB:
             psds = 10 * np.log10(psds)
             y_label = "dB"
@@ -895,8 +850,8 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         outlines = _make_head_outlines(sphere, pos, outlines, clip_origin)
 
         psds, freqs = self.get_data(picks=picks, return_freqs=True)
-        if "epoch" in self._dims:
-            psds = np.mean(psds, axis=self._dims.index("epoch"))
+        # prepare data (e.g. aggregate across dims, convert complex to power)
+        psds = self._prepare_data_for_plot(psds)
         psds *= scaling**2
 
         if merge_channels:
@@ -933,6 +888,42 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
             axes=axes,
             show=show,
         )
+
+    def _prepare_data_for_plot(self, data):
+        # handle unaggregated Welch
+        if "segment" in self._dims:
+            logger.info("Aggregating Welch estimates (median) before plotting...")
+            data = np.nanmedian(data, axis=self._dims.index("segment"))
+        # handle unaggregated multitaper (also handles complex -> power)
+        elif "taper" in self._dims:
+            logger.info("Aggregating multitaper estimates before plotting...")
+            data = _psd_from_mt(data, self.weights)
+
+        # handle complex data (should only be Welch remaining)
+        if np.iscomplexobj(data):
+            data = (data * data.conj()).real  # Scaling may be slightly off
+
+        # handle epochs
+        if "epoch" in self._dims:
+            # XXX TODO FIXME decide how to properly aggregate across repeated
+            # measures (epochs) and non-repeated but correlated measures
+            # (channels) when calculating stddev or a CI. For across-channel
+            # aggregation, doi:10.1007/s10162-012-0321-8 used hotellings T**2
+            # with a correction factor that estimated data rank using monte
+            # carlo simulations; seems like we could use our own data rank
+            # estimation methods to similar effect. Their exact approach used
+            # complex spectra though, here we've already converted to power;
+            # not sure if that makes an important difference? Anyway that
+            # aggregation would need to happen in the _plot_psd function
+            # though, not here... for now we just average like we always did.
+
+            # only log message if averaging will actually have an effect
+            if data.shape[0] > 1:
+                logger.info("Averaging across epochs before plotting...")
+            # epoch axis should always be the first axis
+            data = data.mean(axis=0)
+
+        return data
 
     @verbose
     def save(self, fname, *, overwrite=False, verbose=None):
@@ -995,7 +986,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         # check pandas once here, instead of in each private utils function
         pd = _check_pandas_installed()  # noqa
         # triage for Epoch-derived or unaggregated spectra
-        from_epo = self._dims[0] == "epoch"
+        from_epo = _get_instance_type_string(self) == "Epochs"
         unagg_welch = "segment" in self._dims
         unagg_mt = "taper" in self._dims
         # arg checking
@@ -1058,9 +1049,8 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
             for that channel type.
         """
         units = _handle_default("si_units", None)
-        power = not hasattr(self, "_mt_weights")
         return {
-            ch_type: _format_units_psd(units[ch_type], power=power, latex=latex)
+            ch_type: _format_units_psd(units[ch_type], power=True, latex=latex)
             for ch_type in sorted(self.get_channel_types(unique=True))
         }
 
@@ -1101,9 +1091,16 @@ class Spectrum(BaseSpectrum):
         Frequencies at which the amplitude, power, or fourier coefficients
         have been computed.
     %(info_not_none)s
-    method : str
-        The method used to compute the spectrum (``'welch'`` or
-        ``'multitaper'``).
+    method : ``'welch'``| ``'multitaper'``
+        The method used to compute the spectrum.
+    nave : int | None
+        The number of trials averaged together when generating the spectrum. ``None``
+        indicates no averaging is known to have occurred.
+    weights : array | None
+        The weights for each taper. Only present if spectra computed with
+        ``method='multitaper'`` and ``output='complex'``.
+
+        .. versionadded:: 1.8
 
     See Also
     --------
@@ -1165,13 +1162,21 @@ class Spectrum(BaseSpectrum):
             data = self.inst.get_data(
                 self._picks, start, stop + 1, reject_by_annotation=rba
             )
+            if np.any(np.isnan(data)) and method == "multitaper":
+                raise NotImplementedError(
+                    'Cannot use method="multitaper" when reject_by_annotation=True. '
+                    'Please use method="welch" instead.'
+                )
+
         else:  # Evoked
             data = self.inst.data[self._picks][:, self._time_mask]
+        # set nave
+        self._nave = getattr(inst, "nave", None)
         # compute the spectra
         self._compute_spectra(data, fmin, fmax, n_jobs, method_kw, verbose)
         # check for correct shape and bad values
         self._check_values()
-        del self._shape
+        del self._shape  # calculated from self._data henceforth
         # save memory
         del self.inst
 
@@ -1204,7 +1209,8 @@ class Spectrum(BaseSpectrum):
            requested data values and the corresponding times), accessing
            :class:`~mne.time_frequency.Spectrum` values via subscript does
            **not** return the corresponding frequency bin values. If you need
-           them, use ``spectrum.freqs[freq_indices]``.
+           them, use ``spectrum.freqs[freq_indices]`` or
+           ``spectrum.get_data(..., return_freqs=True)``.
         """
         from ..io import BaseRaw
 
@@ -1212,21 +1218,59 @@ class Spectrum(BaseSpectrum):
         return BaseRaw._getitem(self, item, return_times=False)
 
 
-def _check_data_shape(data, freqs, info, ndim):
-    if data.ndim != ndim:
-        raise ValueError(f"Data must be a {ndim}D array.")
-    want_n_chan = _pick_data_channels(info).size
-    want_n_freq = freqs.size
-    got_n_chan, got_n_freq = data.shape[-2:]
+def _check_data_shape(data, info, freqs, dim_names, weights, is_epoched):
+    if data.ndim != len(dim_names):
+        raise ValueError(
+            f"Expected data to have {len(dim_names)} dimensions, got {data.ndim}."
+        )
+
+    allowed_dims = ["epoch", "channel", "freq", "segment", "taper"]
+    if not is_epoched:
+        allowed_dims.remove("epoch")
+    # TODO maybe we should be nice and allow plural versions of each dimname?
+    for dim in dim_names:
+        _check_option("dim_names", dim, allowed_dims)
+    if "channel" not in dim_names or "freq" not in dim_names:
+        raise ValueError("Both 'channel' and 'freq' must be present in `dim_names`.")
+
+    if list(dim_names).index("channel") != int(is_epoched):
+        raise ValueError(
+            f"'channel' must be the {'second' if is_epoched else 'first'} dimension of "
+            "the data."
+        )
+    want_n_chan = _pick_data_channels(info, exclude=()).size
+    got_n_chan = data.shape[list(dim_names).index("channel")]
     if got_n_chan != want_n_chan:
         raise ValueError(
-            f"The number of channels in `data` ({got_n_chan}) must match the "
-            f"number of good data channels in `info` ({want_n_chan})."
+            f"The number of channels in `data` ({got_n_chan}) must match the number of "
+            f"good + bad data channels in `info` ({want_n_chan})."
         )
+
+    # given we limit max array size and ensure channel & freq dims present, only one of
+    # taper or segment can be present
+    if "taper" in dim_names:
+        if dim_names[-2] != "taper":  # _psd_from_mt assumes this (called when plotting)
+            raise ValueError(
+                "'taper' must be the second to last dimension of the data."
+            )
+        # expect weights for each taper
+        actual = None if weights is None else weights.size
+        expected = data.shape[list(dim_names).index("taper")]
+        if actual != expected:
+            raise ValueError(
+                f"Expected size of `weights` to be {expected} to match 'n_tapers' in "
+                f"`data`, got {actual}."
+            )
+    elif "segment" in dim_names and dim_names[-1] != "segment":
+        raise ValueError("'segment' must be the last dimension of the data.")
+
+    # freq being in wrong position ruled out by above checks
+    want_n_freq = freqs.size
+    got_n_freq = data.shape[list(dim_names).index("freq")]
     if got_n_freq != want_n_freq:
         raise ValueError(
-            f"The last dimension of `data` ({got_n_freq}) must have the same "
-            f"number of elements as `freqs` ({want_n_freq})."
+            f"The number of frequencies in `data` ({got_n_freq}) must match the number "
+            f"of elements in `freqs` ({want_n_freq})."
         )
 
 
@@ -1236,10 +1280,22 @@ class SpectrumArray(Spectrum):
 
     Parameters
     ----------
-    data : array, shape (n_channels, n_freqs)
-        The power spectral density for each channel.
+    data : ndarray, shape (n_channels, [n_tapers], n_freqs, [n_segments])
+        The spectra for each channel.
     %(info_not_none)s
-    %(freqs_tfr)s
+    %(freqs_tfr_array)s
+    dim_names : tuple of str
+        The name of the dimensions in the data, in the order they occur. Must contain
+        ``'channel'`` and ``'freq'``;  if data are unaggregated estimates, also include
+        either a ``'segment'`` (e.g., Welch-like algorithms) or ``'taper'`` (e.g.,
+        multitaper algorithms) dimension. If including ``'taper'``, you should also pass
+        a ``weights`` parameter.
+
+        .. versionadded:: 1.8
+    weights : ndarray | None
+        Weights for the ``'taper'`` dimension, if present (see ``dim_names``).
+
+        .. versionadded:: 1.8
     %(verbose)s
 
     See Also
@@ -1262,21 +1318,31 @@ class SpectrumArray(Spectrum):
         data,
         info,
         freqs,
+        dim_names=("channel", "freq"),
+        weights=None,
         *,
         verbose=None,
     ):
-        _check_data_shape(data, freqs, info, ndim=2)
+        # (channel, [taper], freq, [segment])
+        _check_option("data.ndim", data.ndim, (2, 3))  # only allow one extra dimension
+
+        _check_data_shape(data, info, freqs, dim_names, weights, is_epoched=False)
 
         self.__setstate__(
             dict(
                 method="unknown",
                 data=data,
                 sfreq=info["sfreq"],
-                dims=("channel", "freq"),
+                dims=dim_names,
                 freqs=freqs,
                 inst_type_str="Array",
-                data_type="Power Spectrum",
+                data_type=(
+                    "Fourier Coefficients"
+                    if np.iscomplexobj(data)
+                    else "Power Spectrum"
+                ),
                 info=info,
+                weights=weights,
             )
         )
 
@@ -1312,8 +1378,13 @@ class EpochsSpectrum(BaseSpectrum, GetEpochsMixin):
         Frequencies at which the amplitude, power, or fourier coefficients
         have been computed.
     %(info_not_none)s
-    method : str
-        The method used to compute the spectrum ('welch' or 'multitaper').
+    method : ``'welch'``| ``'multitaper'``
+        The method used to compute the spectrum.
+    weights : array | None
+        The weights for each taper. Only present if spectra computed with
+        ``method='multitaper'`` and ``output='complex'``.
+
+        .. versionadded:: 1.8
 
     See Also
     --------
@@ -1437,28 +1508,30 @@ class EpochsSpectrum(BaseSpectrum, GetEpochsMixin):
         spectrum : instance of Spectrum
             The aggregated spectrum object.
         """
-        if isinstance(method, str):
-            method = getattr(np, method)  # mean, median, std, etc
-            method = partial(method, axis=0)
+        _validate_type(method, ("str", "callable"), "method")
+        method = _make_combine_callable(
+            method, axis=0, valid=("mean", "median"), keepdims=False
+        )
         if not callable(method):
             raise ValueError(
                 '"method" must be a valid string or callable, '
                 f"got a {type(method).__name__} ({method})."
             )
         # averaging unaggregated spectral estimates are not supported
-        if hasattr(self, "_mt_weights"):
-            raise NotImplementedError(
-                "Averaging complex spectra is not supported. Consider "
-                "averaging the signals before computing the complex spectrum."
-            )
-        elif "segment" in self._dims:
+        if "segment" in self._dims:
             raise NotImplementedError(
                 "Averaging individual Welch segments across epochs is not "
                 "supported. Consider averaging the signals before computing "
                 "the Welch spectrum estimates."
             )
+        if "taper" in self._dims:
+            raise NotImplementedError(
+                "Averaging multitaper tapers across epochs is not supported. Consider "
+                "averaging the signals before computing the complex spectrum."
+            )
         # serialize the object and update data, dims, and data type
         state = super().__getstate__()
+        state["nave"] = state["data"].shape[0]
         state["data"] = method(state["data"])
         state["dims"] = state["dims"][1:]
         state["data_type"] = f'Averaged {state["data_type"]}'
@@ -1485,12 +1558,24 @@ class EpochsSpectrumArray(EpochsSpectrum):
 
     Parameters
     ----------
-    data : array, shape (n_epochs, n_channels, n_freqs)
-        The power spectral density for each channel in each epoch.
+    data : ndarray, shape (n_epochs, n_channels, [n_tapers], n_freqs, [n_segments])
+        The spectra for each channel in each epoch.
     %(info_not_none)s
-    %(freqs_tfr)s
+    %(freqs_tfr_array)s
     %(events_epochs)s
     %(event_id)s
+    dim_names : tuple of str
+        The name of the dimensions in the data, in the order they occur. Must contain
+        ``'channel'`` and ``'freq'``;  if data are unaggregated estimates, also include
+        either a ``'segment'`` (e.g., Welch-like algorithms) or ``'taper'`` (e.g.,
+        multitaper algorithms) dimension. If including ``'taper'``, you should also pass
+        a ``weights`` parameter.
+
+        .. versionadded:: 1.8
+    weights : ndarray | None
+        Weights for the ``'taper'`` dimension, if present (see ``dim_names``).
+
+        .. versionadded:: 1.8
     %(verbose)s
 
     See Also
@@ -1514,31 +1599,44 @@ class EpochsSpectrumArray(EpochsSpectrum):
         freqs,
         events=None,
         event_id=None,
+        dim_names=("epoch", "channel", "freq"),
+        weights=None,
         *,
         verbose=None,
     ):
-        _check_data_shape(data, freqs, info, ndim=3)
+        # (epoch, channel, [taper], freq, [segment])
+        _check_option("data.ndim", data.ndim, (3, 4))  # only allow one extra dimension
+
+        if list(dim_names).index("epoch") != 0:
+            raise ValueError("'epoch' must be the first dimension of `data`.")
         if events is not None and data.shape[0] != events.shape[0]:
             raise ValueError(
-                f"The first dimension of `data` ({data.shape[0]}) must match the "
-                f"first dimension of `events` ({events.shape[0]})."
+                f"The first dimension of `data` ({data.shape[0]}) must match the first "
+                f"dimension of `events` ({events.shape[0]})."
             )
+
+        _check_data_shape(data, info, freqs, dim_names, weights, is_epoched=True)
 
         self.__setstate__(
             dict(
                 method="unknown",
                 data=data,
                 sfreq=info["sfreq"],
-                dims=("epoch", "channel", "freq"),
+                dims=dim_names,
                 freqs=freqs,
                 inst_type_str="Array",
-                data_type="Power Spectrum",
+                data_type=(
+                    "Fourier Coefficients"
+                    if np.iscomplexobj(data)
+                    else "Power Spectrum"
+                ),
                 info=info,
                 events=events,
                 event_id=event_id,
                 metadata=None,
                 selection=np.arange(data.shape[0]),
                 drop_log=tuple(tuple() for _ in range(data.shape[0])),
+                weights=weights,
             )
         )
 
@@ -1549,7 +1647,8 @@ def read_spectrum(fname):
     Parameters
     ----------
     fname : path-like
-        Path to a spectrum file in HDF5 format.
+        Path to a spectrum file in HDF5 format, which should end with ``.h5`` or
+        ``.hdf5``.
 
     Returns
     -------

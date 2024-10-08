@@ -1,21 +1,19 @@
-# Author: Denis Engemann <denis.engemann@gmail.com>
-#         Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#         Jean-Remi King <jeanremi.king@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from collections import Counter
 
 import numpy as np
+from sklearn.base import BaseEstimator, TransformerMixin
 
 from .._fiff.pick import _picks_to_idx, pick_info, pick_types
 from ..parallel import parallel_func
 from ..utils import logger, verbose
 from .base import _set_cv
-from .mixin import EstimatorMixin, TransformerMixin
 
 
-class EMS(TransformerMixin, EstimatorMixin):
+class EMS(BaseEstimator, TransformerMixin):
     """Transformer to compute event-matched spatial filters.
 
     This version of EMS :footcite:`SchurgerEtAl2013` operates on the entire
@@ -41,9 +39,9 @@ class EMS(TransformerMixin, EstimatorMixin):
 
     def __repr__(self):  # noqa: D105
         if hasattr(self, "filters_"):
-            return "<EMS: fitted with %i filters on %i classes.>" % (
-                len(self.filters_),
-                len(self.classes_),
+            return (
+                f"<EMS: fitted with {len(self.filters_)} filters "
+                f"on {len(self.classes_)} classes.>"
             )
         else:
             return "<EMS: not fitted.>"
@@ -167,7 +165,7 @@ def compute_ems(
     if len(conditions) != 2:
         raise ValueError(
             "Currently this function expects exactly 2 "
-            "conditions but you gave me %i" % len(conditions)
+            f"conditions but you gave me {len(conditions)}"
         )
 
     ev = epochs.events[:, 2]

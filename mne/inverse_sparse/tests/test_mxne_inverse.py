@@ -1,7 +1,6 @@
-# Author: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#         Daniel Strohmeier <daniel.strohmeier@tu-ilmenau.de>
-#
-# License: Simplified BSD
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import numpy as np
 import pytest
@@ -37,7 +36,7 @@ fname_cov = data_path / "MEG" / "sample" / "sample_audvis-cov.fif"
 fname_raw = data_path / "MEG" / "sample" / "sample_audvis_trunc_raw.fif"
 fname_fwd = data_path / "MEG" / "sample" / "sample_audvis_trunc-meg-eeg-oct-6-fwd.fif"
 label = "Aud-rh"
-fname_label = data_path / "MEG" / "sample" / "labels" / ("%s.label" % label)
+fname_label = data_path / "MEG" / "sample" / "labels" / f"{label}.label"
 
 
 @pytest.fixture(scope="module", params=[testing._pytest_param])

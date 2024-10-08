@@ -1,8 +1,7 @@
-# -*- coding: UTF-8 -*-
-# Authors: Thomas Hartmann <thomas.hartmann@th-ht.de>
-#          Dirk Gütlin <dirk.guetlin@stud.sbg.ac.at>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
+
 import os
 from functools import partial
 
@@ -184,7 +183,7 @@ def get_epochs(system):
         else:
             event_id = [int(cfg_local["eventvalue"])]
 
-        event_id = [id for id in event_id if id in events[:, 2]]
+        event_id = [id_ for id_ in event_id if id_ in events[:, 2]]
 
     epochs = mne.Epochs(
         raw_data,
@@ -204,7 +203,7 @@ def get_evoked(system):
     return epochs.average(picks=np.arange(len(epochs.ch_names)))
 
 
-def check_info_fields(expected, actual, has_raw_info, ignore_long=True):
+def check_info_fields(expected, actual, has_raw_info):
     """
     Check if info fields are equal.
 

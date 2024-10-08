@@ -1,6 +1,6 @@
-# Authors: Eric Larson <larson.eric.d@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import datetime as dt
 import re
@@ -16,7 +16,7 @@ from ..nirx.nirx import _read_csv_rows_cols
 
 
 @fill_doc
-def read_raw_hitachi(fname, preload=False, verbose=None):
+def read_raw_hitachi(fname, preload=False, verbose=None) -> "RawHitachi":
     """Reader for a Hitachi fNIRS recording.
 
     Parameters
@@ -68,11 +68,11 @@ class RawHitachi(BaseRaw):
 
     @verbose
     def __init__(self, fname, preload=False, *, verbose=None):
-        if not isinstance(fname, (list, tuple)):
+        if not isinstance(fname, list | tuple):
             fname = [fname]
         fname = list(fname)  # our own list that we can modify
         for fi, this_fname in enumerate(fname):
-            fname[fi] = str(_check_fname(this_fname, "read", True, f"fname[{fi}]"))
+            fname[fi] = _check_fname(this_fname, "read", True, f"fname[{fi}]")
         infos = list()
         probes = list()
         last_samps = list()
@@ -95,17 +95,16 @@ class RawHitachi(BaseRaw):
             info = infos[0]
         if len(set(last_samps)) != 1:
             raise RuntimeError(
-                "All files must have the same number of " "samples, got: {last_samps}"
+                "All files must have the same number of samples, got: {last_samps}"
             )
         last_samps = [last_samps[0]]
         raw_extras = [dict(probes=probes)]
         # One representative filename is good enough here
         # (additional filenames indicate temporal concat, not ch concat)
-        filenames = [fname[0]]
         super().__init__(
             info,
             preload,
-            filenames=filenames,
+            filenames=[fname[0]],
             last_samps=last_samps,
             raw_extras=raw_extras,
             verbose=verbose,
@@ -135,7 +134,7 @@ class RawHitachi(BaseRaw):
 
 
 def _get_hitachi_info(fname, S_offset, D_offset, ignore_names):
-    logger.info("Loading %s" % fname)
+    logger.info(f"Loading {fname}")
     raw_extra = dict(fname=fname)
     info_extra = dict()
     subject_info = dict()
@@ -267,7 +266,7 @@ def _get_hitachi_info(fname, S_offset, D_offset, ignore_names):
         "3x11": "ETG-4000",
     }
     _check_option("Hitachi mode", mode, sorted(names))
-    n_row, n_col = [int(x) for x in mode.split("x")]
+    n_row, n_col = (int(x) for x in mode.split("x"))
     logger.info(f"Constructing pairing matrix for {names[mode]} ({mode})")
     pairs = _compute_pairs(n_row, n_col, n=1 + (mode == "3x3"))
     assert n_nirs == len(pairs) * 2
@@ -283,9 +282,7 @@ def _get_hitachi_info(fname, S_offset, D_offset, ignore_names):
         # nominal wavelength
         sidx, didx = pairs[ii // 2]
         nom_freq = fnirs_wavelengths[np.argmin(np.abs(acc_freq - fnirs_wavelengths))]
-        ch_names[idx] = (
-            f"S{S_offset + sidx + 1}_" f"D{D_offset + didx + 1} " f"{nom_freq}"
-        )
+        ch_names[idx] = f"S{S_offset + sidx + 1}_D{D_offset + didx + 1} {nom_freq}"
     offsets = np.array(pairs, int).max(axis=0) + 1
 
     # figure out bounds
@@ -293,7 +290,7 @@ def _get_hitachi_info(fname, S_offset, D_offset, ignore_names):
     last_samp = len(bounds) - 2
 
     if age is not None and meas_date is not None:
-        subject_info["birthday"] = (
+        subject_info["birthday"] = dt.date(
             meas_date.year - age,
             meas_date.month,
             meas_date.day,

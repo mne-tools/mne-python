@@ -1,10 +1,8 @@
-# Authors: Mainak Jas <mainak@neuro.hut.fi>
-#          Teon Brooks <teon.brooks@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import base64
-import copy
 import glob
 import os
 import pickle
@@ -35,9 +33,8 @@ from mne.report import report as report_mod
 from mne.report.report import (
     _ALLOWED_IMAGE_FORMATS,
     CONTENT_ORDER,
-    _webp_supported,
 )
-from mne.utils import Bunch
+from mne.utils import Bunch, _record_warnings
 from mne.utils._testing import assert_object_equal
 from mne.viz import plot_alignment
 
@@ -56,13 +53,9 @@ trans_fname = sample_meg_dir / "sample_audvis_trunc-trans.fif"
 inv_fname = sample_meg_dir / "sample_audvis_trunc-meg-eeg-oct-6-meg-inv.fif"
 stc_fname = sample_meg_dir / "sample_audvis_trunc-meg"
 mri_fname = subjects_dir / "sample" / "mri" / "T1.mgz"
-bdf_fname = (
-    Path(__file__).parent.parent.parent / "io" / "edf" / "tests" / "data" / "test.bdf"
-)
-edf_fname = (
-    Path(__file__).parent.parent.parent / "io" / "edf" / "tests" / "data" / "test.edf"
-)
-base_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
+bdf_fname = Path(__file__).parents[2] / "io" / "edf" / "tests" / "data" / "test.bdf"
+edf_fname = Path(__file__).parents[2] / "io" / "edf" / "tests" / "data" / "test.edf"
+base_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
 evoked_fname = base_dir / "test-ave.fif"
 nirs_fname = (
     data_dir / "SNIRF" / "NIRx" / "NIRSport2" / "1.0.3" / "2021-05-05_001.snirf"
@@ -102,6 +95,8 @@ def invisible_fig(monkeypatch):
 @testing.requires_testing_data
 def test_render_report(renderer_pyvistaqt, tmp_path, invisible_fig):
     """Test rendering *.fif files for mne report."""
+    pytest.importorskip("pymatreader")
+
     raw_fname_new = tmp_path / "temp_raw.fif"
     raw_fname_new_bids = tmp_path / "temp_meg.fif"
     ms_fname_new = tmp_path / "temp_ms_raw.fif"
@@ -288,7 +283,7 @@ def test_add_custom_js(tmp_path):
 
     report = Report()
     report.add_figure(fig=fig, title="Test section")
-    custom_js = "function hello() {\n" '  alert("Hello, report!");\n' "}"
+    custom_js = 'function hello() {\n  alert("Hello, report!");\n}'
     report.add_custom_js(js=custom_js)
 
     assert custom_js in report.include
@@ -356,7 +351,7 @@ def test_report_raw_psd_and_date(tmp_path):
     assert isinstance(report.html, list)
     assert "PSD" in "".join(report.html)
     assert "Unknown" not in "".join(report.html)
-    assert "GMT" in "".join(report.html)
+    assert "UTC" in "".join(report.html)
 
     # test kwargs passed through to underlying array func
     Report(raw_psd=dict(window="boxcar"))
@@ -639,7 +634,7 @@ def test_remove():
     r.add_figure(fig=fig2, title="figure2", tags=("slider",))
 
     # Test removal by title
-    r2 = copy.deepcopy(r)
+    r2 = r.copy()
     removed_index = r2.remove(title="figure1")
     assert removed_index == 2
     assert len(r2.html) == 3
@@ -648,7 +643,7 @@ def test_remove():
     assert r2.html[2] == r.html[3]
 
     # Test restricting to section
-    r2 = copy.deepcopy(r)
+    r2 = r.copy()
     removed_index = r2.remove(title="figure1", tags=("othertag",))
     assert removed_index == 1
     assert len(r2.html) == 3
@@ -693,7 +688,7 @@ def test_add_or_replace(tags):
     assert len(r.html) == 4
     assert len(r._content) == 4
 
-    old_r = copy.deepcopy(r)
+    old_r = r.copy()
 
     # Replace our last occurrence of title='duplicate'
     r.add_figure(
@@ -766,7 +761,7 @@ def test_add_or_replace_section():
     assert len(r.html) == 3
     assert len(r._content) == 3
 
-    old_r = copy.deepcopy(r)
+    old_r = r.copy()
     assert r.html[0] == old_r.html[0]
     assert r.html[1] == old_r.html[1]
     assert r.html[2] == old_r.html[2]
@@ -795,14 +790,18 @@ def test_scraper(tmp_path):
     r.add_figure(fig=fig1, title="a")
     r.add_figure(fig=fig2, title="b")
     # Mock a Sphinx + sphinx_gallery config
-    app = Bunch(builder=Bunch(srcdir=tmp_path, outdir=tmp_path / "_build" / "html"))
+    srcdir = tmp_path
+    outdir = tmp_path / "_build" / "html"
     scraper = _ReportScraper()
-    scraper.app = app
-    gallery_conf = dict(src_dir=app.builder.srcdir, builder_name="html")
-    img_fname = app.builder.srcdir / "auto_examples" / "images" / "sg_img.png"
-    target_file = app.builder.srcdir / "auto_examples" / "sg.py"
+    gallery_conf = dict(builder_name="html", src_dir=srcdir)
+    app = Bunch(
+        builder=Bunch(outdir=outdir),
+        config=Bunch(sphinx_gallery_conf=gallery_conf),
+    )
+    scraper.set_dirs(app)
+    img_fname = srcdir / "auto_examples" / "images" / "sg_img.png"
+    target_file = srcdir / "auto_examples" / "sg.py"
     os.makedirs(img_fname.parent)
-    os.makedirs(app.builder.outdir)
     block_vars = dict(
         image_path_iterator=(img for img in [str(img_fname)]),
         example_globals=dict(a=1),
@@ -817,14 +816,13 @@ def test_scraper(tmp_path):
     rst = scraper(block, block_vars, gallery_conf)
     # Once it's saved, add it
     assert rst == ""
-    fname = tmp_path / "my_html.html"
+    fname = srcdir / "my_html.html"
     r.save(fname, open_browser=False)
-    rst = scraper(block, block_vars, gallery_conf)
-    out_html = app.builder.outdir / "auto_examples" / "my_html.html"
+    out_html = outdir / "auto_examples" / "my_html.html"
     assert not out_html.is_file()
-    scraper.copyfiles()
+    rst = scraper(block, block_vars, gallery_conf)
     assert out_html.is_file()
-    assert rst.count('"') == 6
+    assert rst.count('"') == 8
     assert "<iframe" in rst
     assert img_fname.with_suffix(".svg").is_file()
 
@@ -885,6 +883,8 @@ def test_manual_report_2d(tmp_path, invisible_fig):
     raw = read_raw_fif(raw_fname)
     raw.pick(raw.ch_names[:6]).crop(10, None)
     raw.info.normalize_proj()
+    raw_non_preloaded = raw.copy()
+    raw.load_data()
     cov = read_cov(cov_fname)
     cov = pick_channels_cov(cov, raw.ch_names)
     events = read_events(events_fname)
@@ -900,7 +900,12 @@ def test_manual_report_2d(tmp_path, invisible_fig):
         events=events, event_id=event_id, tmin=-0.2, tmax=0.5, sfreq=raw.info["sfreq"]
     )
     epochs_without_metadata = Epochs(
-        raw=raw, events=events, event_id=event_id, baseline=None
+        raw=raw,
+        events=events,
+        event_id=event_id,
+        baseline=None,
+        decim=10,
+        verbose="error",
     )
     epochs_with_metadata = Epochs(
         raw=raw,
@@ -908,9 +913,11 @@ def test_manual_report_2d(tmp_path, invisible_fig):
         event_id=metadata_event_id,
         baseline=None,
         metadata=metadata,
+        decim=10,
+        verbose="error",
     )
     evokeds = read_evokeds(evoked_fname)
-    evoked = evokeds[0].pick("eeg")
+    evoked = evokeds[0].pick("eeg").decimate(10, verbose="error")
 
     with pytest.warns(ConvergenceWarning, match="did not converge"):
         ica = ICA(n_components=3, max_iter=1, random_state=42).fit(
@@ -918,6 +925,13 @@ def test_manual_report_2d(tmp_path, invisible_fig):
         )
     ica_ecg_scores = ica_eog_scores = np.array([3, 0, 0])
     ica_ecg_evoked = ica_eog_evoked = epochs_without_metadata.average()
+
+    # Normally, ICA.find_bads_*() assembles the labels_ dict; since we didn't run any
+    # of these methods, fill in some fake values manually.
+    ica.labels_ = {
+        "ecg/0/fake ECG channel": [0],
+        "eog/0/fake EOG channel": [1],
+    }
 
     r.add_raw(raw=raw, title="my raw data", tags=("raw",), psd=True, projs=False)
     r.add_raw(raw=raw, title="my raw data 2", psd=False, projs=False, butterfly=1)
@@ -928,14 +942,18 @@ def test_manual_report_2d(tmp_path, invisible_fig):
         tags=("epochs",),
         psd=False,
         projs=False,
+        image_kwargs=dict(mag=dict(colorbar=False)),
     )
+    with pytest.raises(ValueError, match="map onto channel types"):
+        r.add_epochs(epochs=epochs_without_metadata, image_kwargs=dict(a=1), title="a")
     r.add_epochs(
         epochs=epochs_without_metadata, title="my epochs 2", psd=1, projs=False
     )
     r.add_epochs(
         epochs=epochs_without_metadata, title="my epochs 2", psd=True, projs=False
     )
-    assert "Metadata" not in r.html[-1]
+    assert "Metadata" in r.html[-1]
+    assert "No metadata set" in r.html[-1]
 
     # Try with metadata
     r.add_epochs(
@@ -945,6 +963,7 @@ def test_manual_report_2d(tmp_path, invisible_fig):
         projs=False,
     )
     assert "Metadata" in r.html[-1]
+    assert "25 rows × 7 columns" in r.html[-1]
 
     with pytest.raises(ValueError, match="requested to calculate PSD on a duration"):
         r.add_epochs(
@@ -964,11 +983,11 @@ def test_manual_report_2d(tmp_path, invisible_fig):
     )
     r.add_ica(ica=ica, title="my ica", inst=None)
     with pytest.raises(RuntimeError, match="not preloaded"):
-        r.add_ica(ica=ica, title="ica", inst=raw)
+        r.add_ica(ica=ica, title="ica", inst=raw_non_preloaded)
     r.add_ica(
         ica=ica,
         title="my ica with raw inst",
-        inst=raw.copy().load_data(),
+        inst=raw,
         picks=[2],
         ecg_evoked=ica_ecg_evoked,
         eog_evoked=ica_eog_evoked,
@@ -1001,8 +1020,12 @@ def test_manual_report_2d(tmp_path, invisible_fig):
     for ch in evoked_no_ch_locs.info["chs"]:
         ch["loc"][:3] = np.nan
 
-    with pytest.warns(
-        RuntimeWarning, match="No EEG channel locations found, cannot create joint plot"
+    with (
+        _record_warnings(),
+        pytest.warns(
+            RuntimeWarning,
+            match="No EEG channel locations found, cannot create joint plot",
+        ),
     ):
         r.add_evokeds(
             evokeds=evoked_no_ch_locs,
@@ -1030,7 +1053,10 @@ def test_manual_report_2d(tmp_path, invisible_fig):
     for ch in ica_no_ch_locs.info["chs"]:
         ch["loc"][:3] = np.nan
 
-    with pytest.warns(RuntimeWarning, match="No Magnetometers channel locations"):
+    with (
+        _record_warnings(),
+        pytest.warns(RuntimeWarning, match="No Magnetometers channel locations"),
+    ):
         r.add_ica(
             ica=ica_no_ch_locs, picks=[0], inst=raw.copy().load_data(), title="ICA"
         )
@@ -1054,7 +1080,10 @@ def test_manual_report_3d(tmp_path, renderer):
     add_kwargs = dict(
         trans=trans_fname, info=info, subject="sample", subjects_dir=subjects_dir
     )
-    with pytest.warns(RuntimeWarning, match="could not be calculated"):
+    with (
+        _record_warnings(),
+        pytest.warns(RuntimeWarning, match="could not be calculated"),
+    ):
         r.add_trans(title="coreg no dig", **add_kwargs)
     with info._unlock():
         info["dig"] = dig
@@ -1087,24 +1116,53 @@ def test_sorting(tmp_path):
     """Test that automated ordering based on tags works."""
     r = Report()
 
-    r.add_code(code="E = m * c**2", title="intelligence >9000", tags=("bem",))
-    r.add_code(code="a**2 + b**2 = c**2", title="Pythagoras", tags=("evoked",))
-    r.add_code(code="🧠", title="source of truth", tags=("source-estimate",))
-    r.add_code(code="🥦", title="veggies", tags=("raw",))
+    titles = ["intelligence >9000", "Pythagoras", "source of truth", "veggies"]
+    r.add_code(code="E = m * c**2", title=titles[0], tags=("bem",))
+    r.add_code(code="a**2 + b**2 = c**2", title=titles[1], tags=("evoked",))
+    r.add_code(code="🧠", title=titles[2], tags=("source-estimate",))
+    r.add_code(code="🥦", title=titles[3], tags=("raw",))
 
     # Check that repeated calls of add_* actually continuously appended to
     # the report
     orig_order = ["bem", "evoked", "source-estimate", "raw"]
     assert [c.tags[0] for c in r._content] == orig_order
 
+    # tags property behavior and get_contents
+    assert list(r.tags) == sorted(orig_order)
+    titles, tags, htmls = r.get_contents()
+    assert set(sum(tags, ())) == set(r.tags)
+    assert len(titles) == len(tags) == len(htmls) == len(r._content)
+    for title, tag, html in zip(titles, tags, htmls):
+        title = title.replace(">", "&gt;")
+        assert title in html
+        for t in tag:
+            assert t in html
+
     # Now check the actual sorting
-    content_sorted = r._sort(content=r._content, order=CONTENT_ORDER)
+    r_sorted = r.copy()
+    r_sorted._sort(order=CONTENT_ORDER)
     expected_order = ["raw", "evoked", "bem", "source-estimate"]
 
-    assert content_sorted != r._content
-    assert [c.tags[0] for c in content_sorted] == expected_order
+    assert r_sorted._content != r._content
+    assert [c.tags[0] for c in r_sorted._content] == expected_order
+    assert [c.tags[0] for c in r._content] == orig_order
 
-    r.save(fname=tmp_path / "report.html", sort_content=True, open_browser=False)
+    r.copy().save(fname=tmp_path / "report.html", sort_content=True, open_browser=False)
+
+    # Manual sorting should be the same
+    r_sorted = r.copy()
+    order = np.argsort([CONTENT_ORDER.index(t) for t in orig_order])
+    r_sorted.reorder(order)
+
+    assert r_sorted._content != r._content
+    got_order = [c.tags[0] for c in r_sorted._content]
+    assert [c.tags[0] for c in r._content] == orig_order  # original unmodified
+    assert got_order == expected_order
+
+    with pytest.raises(ValueError, match="order must be a permutation"):
+        r.reorder(np.arange(len(r._content) + 1))
+    with pytest.raises(ValueError, match="array of integers"):
+        r.reorder([1.0])
 
 
 @pytest.mark.parametrize(
@@ -1146,11 +1204,6 @@ def test_tags(tags, str_or_array, wrong_dtype, invalid_chars):
 @pytest.mark.parametrize("image_format", _ALLOWED_IMAGE_FORMATS)
 def test_image_format(image_format):
     """Test image format support."""
-    if image_format == "webp":
-        if not _webp_supported():
-            with pytest.raises(ValueError, match="matplotlib"):
-                Report(image_format="webp")
-            return
     r = Report(image_format=image_format)
     fig1, _ = _get_example_figures()
     r.add_figure(fig1, "fig1")

@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "1bd2cbcce26c5dbbdc5eb5ab0c8c0f018ba4a893",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "azure-pipelines.yml": {
+      "a": 5,
+      "d": 4
+    },
+    "mne/conftest.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/tests/test_source_estimate.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/backends/_qt.py": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/viz/utils.py": {
+      "a": 4,
+      "d": 0
+    },
+    "requirements_testing.txt": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

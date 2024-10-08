@@ -1,5 +1,6 @@
-# Author : Martin Luessi mluessi@nmr.mgh.harvard.edu (2012)
-# License : BSD-3-Clause
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # Parts of this code were copied from NiTime http://nipy.sourceforge.net/nitime
 
@@ -283,9 +284,7 @@ def _compute_mt_params(n_times, sfreq, bandwidth, low_bias, adaptive, verbose=No
     """Triage windowing and multitaper parameters."""
     # Compute standardized half-bandwidth
     if isinstance(bandwidth, str):
-        logger.info(
-            '    Using standard spectrum estimation with "%s" window' % (bandwidth,)
-        )
+        logger.info(f'    Using standard spectrum estimation with "{bandwidth}" window')
         window_fun = get_window(bandwidth, n_times)[np.newaxis]
         return window_fun, np.ones(1), False
 
@@ -295,9 +294,8 @@ def _compute_mt_params(n_times, sfreq, bandwidth, low_bias, adaptive, verbose=No
         half_nbw = 4.0
     if half_nbw < 0.5:
         raise ValueError(
-            "bandwidth value %s yields a normalized half-bandwidth of "
-            "%s < 0.5, use a value of at least %s"
-            % (bandwidth, half_nbw, sfreq / n_times)
+            f"bandwidth value {bandwidth} yields a normalized half-bandwidth of "
+            f"{half_nbw} < 0.5, use a value of at least {sfreq / n_times}"
         )
 
     # Compute DPSS windows
@@ -306,14 +304,13 @@ def _compute_mt_params(n_times, sfreq, bandwidth, low_bias, adaptive, verbose=No
         n_times, half_nbw, n_tapers_max, sym=False, low_bias=low_bias
     )
     logger.info(
-        "    Using multitaper spectrum estimation with %d DPSS "
-        "windows" % len(eigvals)
+        f"    Using multitaper spectrum estimation with {len(eigvals)} DPSS windows"
     )
 
     if adaptive and len(eigvals) < 3:
         warn(
             "Not adaptively combining the spectral estimators due to a "
-            "low number of tapers (%s < 3)." % (len(eigvals),)
+            f"low number of tapers ({len(eigvals)} < 3)."
         )
         adaptive = False
 
@@ -463,7 +460,7 @@ def psd_array_multitaper(
 
 @verbose
 def tfr_array_multitaper(
-    epoch_data,
+    data,
     sfreq,
     freqs,
     n_cycles=7.0,
@@ -484,11 +481,11 @@ def tfr_array_multitaper(
 
     Parameters
     ----------
-    epoch_data : array of shape (n_epochs, n_channels, n_times)
+    data : array of shape (n_epochs, n_channels, n_times)
         The epochs.
     sfreq : float
         Sampling frequency of the data in Hz.
-    %(freqs_tfr)s
+    %(freqs_tfr_array)s
     %(n_cycles_tfr)s
     zero_mean : bool
         If True, make sure the wavelets have a mean of zero. Defaults to True.
@@ -506,12 +503,13 @@ def tfr_array_multitaper(
         * ``'avg_power_itc'`` : average of single trial power and inter-trial
           coherence across trials.
     %(n_jobs)s
+        The parallelization is implemented across channels.
     %(verbose)s
 
     Returns
     -------
     out : array
-        Time frequency transform of ``epoch_data``.
+        Time frequency transform of ``data``.
 
         - if ``output in ('complex',' 'phase')``, array of shape
           ``(n_epochs, n_chans, n_tapers, n_freqs, n_times)``
@@ -542,7 +540,7 @@ def tfr_array_multitaper(
     from .tfr import _compute_tfr
 
     return _compute_tfr(
-        epoch_data,
+        data,
         freqs,
         sfreq=sfreq,
         method="multitaper",

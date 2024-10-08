@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "c8e1759c75d1cbec43d19b6e49cbb43c8f01d51c",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/0.19.inc": {
+      "a": 7,
+      "d": 0
+    },
+    "doc/conf.py": {
+      "a": 5,
+      "d": 0
+    },
+    "examples/visualization/plot_channel_epochs_image.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/channels/montage.py": {
+      "a": 14,
+      "d": 4
+    },
+    "mne/channels/tests/test_montage.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/conftest.py": {
+      "a": 2,
+      "d": 0
+    }
+  }
+}
