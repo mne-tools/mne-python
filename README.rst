@@ -43,9 +43,6 @@ only, use pip_ in a terminal:
 
     $ pip install --upgrade mne
 
-The current MNE-Python release requires Python 3.9 or higher. MNE-Python 0.17
-was the last release to support Python 2.7.
-
 For more complete instructions, including our standalone installers and more
 advanced installation methods, please refer to the `installation guide`_.
 
