@@ -51,7 +51,7 @@ scripts = {mne = "mne.commands.utils:main"}
 [project.optional-dependencies]
 # Leave this one here for backward-compat
 data = []
-dev = ["mne[test,doc]", "rcssmin"]
+dev = ["mne[doc,test]", "rcssmin"]
 # Dependencies for building the documentation
 doc = [
   "graphviz",
