@@ -65,6 +65,22 @@ and type:
     $ git clone https://github.com/mne-tools/mne-python.git
 
 
+Dependencies
+^^^^^^^^^^^^
+
+The minimum required dependencies to run MNE-Python are:
+
+- `Python <https://www.python.org>`__ ≥ 3.10
+- `NumPy <https://numpy.org>`__ ≥ 1.24
+- `SciPy <https://scipy.org>`__ ≥ 1.10
+- `Matplotlib <https://matplotlib.org>`__ ≥ 3.6
+- `Pooch <https://www.fatiando.org/pooch/latest/>`__ ≥ 1.5
+- `tqdm <https://tqdm.github.io>`__
+- `Jinja2 <https://palletsprojects.com/p/jinja/>`__
+- `decorator <https://github.com/micheles/decorator>`__
+- `lazy_loader <https://pypi.org/project/lazy_loader/>`__
+
+
 Contributing
 ^^^^^^^^^^^^
 
