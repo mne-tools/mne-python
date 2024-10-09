@@ -77,7 +77,7 @@ core_deps_bullets = [
     f"- `{key} <{url}>`__{core_deps_pins[key.lower()]}"
     for key, url in CORE_DEPS_URLS.items()
 ]
-core_deps_rst = "\n".join(core_deps_bullets)
+core_deps_rst = "\n" + "\n".join(core_deps_bullets) + "\n"
 
 # rewrite the README file
 lines = README_PATH.read_text("utf-8").splitlines()
