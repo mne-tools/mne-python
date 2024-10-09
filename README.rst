@@ -75,14 +75,15 @@ The minimum required dependencies to run MNE-Python are:
 
 .. ↓↓↓ BEGIN CORE DEPS LIST. DO NOT EDIT! HANDLED BY PRE-COMMIT HOOK ↓↓↓
 - `Python <https://www.python.org>`__ ≥ 3.9
-- `NumPy <https://numpy.org>`__ ≥ 1.24
-- `SciPy <https://scipy.org>`__ ≥ 1.10
+- `NumPy <https://numpy.org>`__ ≥ 1.23, < 3
+- `SciPy <https://scipy.org>`__ ≥ 1.9
 - `Matplotlib <https://matplotlib.org>`__ ≥ 3.6
 - `Pooch <https://www.fatiando.org/pooch/latest/>`__ ≥ 1.5
 - `tqdm <https://tqdm.github.io>`__
 - `Jinja2 <https://palletsprojects.com/p/jinja/>`__
 - `decorator <https://github.com/micheles/decorator>`__
-- `lazy_loader <https://pypi.org/project/lazy_loader/>`__
+- `lazy-loader <https://pypi.org/project/lazy_loader>`__ ≥ 0.3
+- `packaging <https://packaging.pypa.io/en/stable/>`__
 .. ↑↑↑ END CORE DEPS LIST. DO NOT EDIT! HANDLED BY PRE-COMMIT HOOK ↑↑↑
 
 For full functionality, some functions require:
