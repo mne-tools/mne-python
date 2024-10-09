@@ -74,6 +74,10 @@ repos:
         additional_dependencies: ["mne"]
 
 
+# these should *not* be run on CIs:
+ci:
+  skip: [dependency-sync]  # needs MNE to work, which exceeds the free tier space alloc.
+
 # The following are too slow to run on local commits, so let's only run on CIs:
 #
 #   - repo: https://github.com/pre-commit/mirrors-mypy
