@@ -685,6 +685,8 @@ class BaseRaw(
     def filenames(self, value):
         """The filenames used, cast to list of paths."""  # noqa: D401
         _validate_type(value, (list, tuple), "filenames")
+        if isinstance(value, tuple):
+            value = list(value)
         for k, elt in enumerate(value):
             if elt is not None:
                 value[k] = _check_fname(elt, overwrite="read", must_exist=False)
