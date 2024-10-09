@@ -52,7 +52,10 @@ pattern = re.compile(r"(?P<name>[A-Za-z_\-\d]+)(?P<pin>[<>=]+.*)?")
 core_deps_pins = {
     dep["name"]: _prettify_pin(dep["pin"]) for dep in map(pattern.match, core_deps)
 }
-
+# don't show upper pin on NumPy (not important for users, just devs)
+new_pin = core_deps_pins["numpy"].split(",")
+new_pin.remove(" < 3")
+core_deps_pins["numpy"] = new_pin[0]
 
 # make sure our URLs dict is minimal and complete
 missing_urls = set(core_deps_pins) - {dep.lower() for dep in CORE_DEPS_URLS}
@@ -68,24 +71,25 @@ if missing_urls:
 if extra_urls:
     _s = _pl(extra_urls)
     warn(f"Superfluous URL{_s} for package{_s} {', '.join(extra_urls)}; {update_msg}")
+
 # construct the rST
 core_deps_bullets = [
     f"- `{key} <{url}>`__{core_deps_pins[key.lower()]}"
     for key, url in CORE_DEPS_URLS.items()
 ]
-core_deps_rst = "\n".join(core_deps_bullets) + "\n"
+core_deps_rst = "\n".join(core_deps_bullets)
+
 # rewrite the README file
+lines = README_PATH.read_text("utf-8").splitlines()
+out_lines = list()
 skip = False
-with open(README_PATH, "r+") as fid:
-    lines = fid.readlines()
-    fid.seek(0)
-    for line in lines:
-        if line.strip() == BEGIN:
-            skip = True
-            fid.write(line)
-            fid.write(core_deps_rst)
-        if line.strip() == END:
-            skip = False
-        if not skip:
-            fid.write(line)
-    fid.truncate()
+for line in lines:
+    if line.strip() == BEGIN:
+        skip = True
+        out_lines.append(line)
+        out_lines.append(core_deps_rst)
+    if line.strip() == END:
+        skip = False
+    if not skip:
+        out_lines.append(line)
+README_PATH.write_text("\n".join(out_lines) + "\n", encoding="utf-8")
