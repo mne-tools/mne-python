@@ -70,7 +70,7 @@ repos:
         name: Sync dependency list between pyproject.toml and README.rst
         language: python
         entry: ./tools/hooks/sync_dependencies.py
-        files: README\.rst$
+        files: pyproject.toml
         additional_dependencies: ["mne"]
 
 
