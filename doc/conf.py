@@ -166,7 +166,7 @@ intersphinx_mapping = {
     "mne-gui-addons": ("https://mne.tools/mne-gui-addons", None),
     "picard": ("https://pierreablin.github.io/picard/", None),
     "eeglabio": ("https://eeglabio.readthedocs.io/en/latest", None),
-    "pybv": ("https://pybv.readthedocs.io/en/latest/", None),
+    "pybv": ("https://pybv.readthedocs.io/en/latest", None),
 }
 intersphinx_mapping.update(
     get_intersphinx_mapping(
