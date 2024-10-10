@@ -64,7 +64,6 @@ from ..filter import (
     _check_resamp_noop,
     _resamp_ratio_len,
     _resample_stim_channels,
-    notch_filter,
     resample,
 )
 from ..html_templates import _get_html_template
@@ -86,7 +85,6 @@ from ..utils import (
     _file_like,
     _get_argvalues,
     _get_stim_channel,
-    _pl,
     _scale_dataframe_data,
     _stamp_to_dt,
     _time_mask,
@@ -1182,118 +1180,6 @@ class BaseRaw(
             pad=pad,
             verbose=verbose,
         )
-
-    @verbose
-    def notch_filter(
-        self,
-        freqs,
-        picks=None,
-        filter_length="auto",
-        notch_widths=None,
-        trans_bandwidth=1.0,
-        n_jobs=None,
-        method="fir",
-        iir_params=None,
-        mt_bandwidth=None,
-        p_value=0.05,
-        phase="zero",
-        fir_window="hamming",
-        fir_design="firwin",
-        pad="reflect_limited",
-        skip_by_annotation=("edge", "bad_acq_skip"),
-        verbose=None,
-    ):
-        """Notch filter a subset of channels.
-
-        Parameters
-        ----------
-        freqs : float | array of float | None
-            Specific frequencies to filter out from data, e.g.,
-            ``np.arange(60, 241, 60)`` in the US or ``np.arange(50, 251, 50)``
-            in Europe. ``None`` can only be used with the mode
-            ``'spectrum_fit'``, where an F test is used to find sinusoidal
-            components.
-        %(picks_all_data)s
-        %(filter_length_notch)s
-        notch_widths : float | array of float | None
-            Width of each stop band (centred at each freq in freqs) in Hz.
-            If None, ``freqs / 200`` is used.
-        trans_bandwidth : float
-            Width of the transition band in Hz.
-            Only used for ``method='fir'`` and ``method='iir'``.
-        %(n_jobs_fir)s
-        %(method_fir)s
-        %(iir_params)s
-        mt_bandwidth : float | None
-            The bandwidth of the multitaper windowing function in Hz.
-            Only used in 'spectrum_fit' mode.
-        p_value : float
-            P-value to use in F-test thresholding to determine significant
-            sinusoidal components to remove when ``method='spectrum_fit'`` and
-            ``freqs=None``. Note that this will be Bonferroni corrected for the
-            number of frequencies, so large p-values may be justified.
-        %(phase)s
-        %(fir_window)s
-        %(fir_design)s
-        %(pad_fir)s
-            The default is ``'reflect_limited'``.
-
-            .. versionadded:: 0.15
-        %(skip_by_annotation)s
-        %(verbose)s
-
-        Returns
-        -------
-        raw : instance of Raw
-            The raw instance with filtered data.
-
-        See Also
-        --------
-        mne.filter.notch_filter
-        mne.io.Raw.filter
-
-        Notes
-        -----
-        Applies a zero-phase notch filter to the channels selected by
-        "picks". By default the data of the Raw object is modified inplace.
-
-        The Raw object has to have the data loaded e.g. with ``preload=True``
-        or ``self.load_data()``.
-
-        .. note:: If n_jobs > 1, more memory is required as
-                  ``len(picks) * n_times`` additional time points need to
-                  be temporarily stored in memory.
-
-        For details, see :func:`mne.filter.notch_filter`.
-        """
-        fs = float(self.info["sfreq"])
-        picks = _picks_to_idx(self.info, picks, exclude=(), none="data_or_ica")
-        _check_preload(self, "raw.notch_filter")
-        onsets, ends = _annotations_starts_stops(self, skip_by_annotation, invert=True)
-        logger.info(
-            "Filtering raw data in %d contiguous segment%s" % (len(onsets), _pl(onsets))
-        )
-        for si, (start, stop) in enumerate(zip(onsets, ends)):
-            notch_filter(
-                self._data[:, start:stop],
-                fs,
-                freqs,
-                filter_length=filter_length,
-                notch_widths=notch_widths,
-                trans_bandwidth=trans_bandwidth,
-                method=method,
-                iir_params=iir_params,
-                mt_bandwidth=mt_bandwidth,
-                p_value=p_value,
-                picks=picks,
-                n_jobs=n_jobs,
-                copy=False,
-                phase=phase,
-                fir_window=fir_window,
-                fir_design=fir_design,
-                pad=pad,
-            )
-        return self
 
     @verbose
     def resample(
