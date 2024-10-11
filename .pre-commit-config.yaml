@@ -63,6 +63,21 @@ repos:
       - id: toml-sort-fix
         files: pyproject.toml
 
+  # dependencies
+  - repo: local
+    hooks:
+      - id: dependency-sync
+        name: Sync dependency list between pyproject.toml and README.rst
+        language: python
+        entry: ./tools/hooks/sync_dependencies.py
+        files: pyproject.toml
+        additional_dependencies: ["mne"]
+
+
+# these should *not* be run on CIs:
+ci:
+  skip: [dependency-sync]  # needs MNE to work, which exceeds the free tier space alloc.
+
 # The following are too slow to run on local commits, so let's only run on CIs:
 #
 #   - repo: https://github.com/pre-commit/mirrors-mypy
