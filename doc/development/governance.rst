@@ -253,6 +253,72 @@ steering council shall be scheduled. The maintainer team shall set up a confiden
 submission system for applications (consisting of short candidate statements), such as a
 dedicated email address, Google form, or similar confidential submission mechanism.
 
+Institutional Partners and funding
+==================================
+
+The leadership roles for the project are :ref:`defined above <leadership roles>`. No
+outside institution, individual, or legal entity has the ability to own,
+control, usurp, or influence the project other than by participating in
+the Project in one of those roles. However, because
+institutions can be an important funding mechanism for the project, it
+is important to formally acknowledge institutional participation in the
+project. These are Institutional Partners.
+
+An Institutional Contributor is any individual Project Contributor who
+contributes to the project as part of their official duties at an
+Institutional Partner. Likewise, an Institutional Project Leader is anyone
+in a Project leadership role who contributes to the project as part
+of their official duties at an Institutional Partner.
+
+With these definitions, an Institutional Partner is any recognized legal
+entity in any country that employs at least 1 Institutional Contributor or
+Institutional Project Leader. Institutional Partners can be for-profit or
+non-profit entities.
+
+Institutions become eligible to become an Institutional Partner by
+employing individuals who actively contribute to The Project as part of
+their official duties. To state this another way, the only way for a
+Partner to influence the project is by actively contributing to the open
+development of the project, in equal terms to any other member of the
+community of Contributors and Leaders. Merely using Project
+Software in institutional context does not allow an entity to become an
+Institutional Partner. Financial gifts do not enable an entity to become
+an Institutional Partner. Once an institution becomes eligible for
+Institutional Partnership, the Steering Council must nominate and
+approve the Partnership.
+
+If, at some point, an existing Institutional Partner stops having any
+contributing employees, then a one year grace period commences. If, at
+the end of this one-year period, they continue not to have any
+contributing employees, then their Institutional Partnership will
+lapse, and resuming it will require going through the normal process
+for new Partnerships.
+
+An Institutional Partner is free to pursue funding for their work on The
+Project through any legal means. This could involve a non-profit
+organization raising money from private foundations and donors or a
+for-profit company building proprietary products and services that
+leverage Project Software and Services. Funding acquired by
+Institutional Partners to work on The Project is called Institutional
+Funding. However, no funding obtained by an Institutional Partner can
+override Project Leadership. If a Partner has funding to do MNE-Python work
+and the Project Leadership decides to not pursue that work as a project, the
+Partner is free to pursue it on their own. However, in this situation,
+that part of the Partner’s work will not be under the MNE-Python umbrella and
+cannot use the Project trademarks in any way that suggests a formal
+relationship.
+
+Institutional Partner benefits are:
+
+- optional acknowledgement on the MNE-Python website and in talks
+- ability to acknowledge their own funding sources on the MNE-Python
+  website and in talks
+- ability to influence the project through the participation of their
+  Institutional Contributors and Institutional Project Leaders.
+- invitation of the Council Members to MNE-Python Developer Meetings
+
+A list of current Institutional Partners is maintained at the page
+:ref:`supporting-institutions`.
 
 Document history
 ================
