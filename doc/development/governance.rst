@@ -11,9 +11,38 @@ elements of our community interact, including the relationship between
 open source collaborative development and work that may be funded by
 for-profit or non-profit entities.
 
+The Project
+===========
+
+The MNE-Python Project (The Project) is an open source software project. The
+goal of The Project is to develop open source software for analysis of
+neuroscience data in Python. The Project is released under the BSD (or similar)
+open source license, developed openly and is hosted publicly under the
+``mne-tools`` GitHub organization.
+
+The Project is developed by a team of distributed developers, called
+Contributors. Contributors are individuals who have contributed code,
+documentation, designs, or other work to the Project. Anyone can be a
+Contributor. Contributors can be affiliated with any legal entity or
+none. Contributors participate in the project by submitting, reviewing,
+and discussing GitHub Pull Requests and Issues and participating in open
+and public Project discussions on GitHub, Discourse, and other
+channels. The foundation of Project participation is openness and
+transparency.
+
+The Project Community consists of all Contributors and Users of the
+Project. Contributors work on behalf of and are responsible to the
+larger Project Community and we strive to keep the barrier between
+Contributors and Users as low as possible.
+
+The Project is not a legal entity, nor does it currently have any formal
+relationships with legal entities.
+
+Governance Model
+================
 
 Leadership Roles
-================
+^^^^^^^^^^^^^^^^
 
 The MNE-Python leadership structure shall consist of:
 
@@ -87,7 +116,7 @@ guidance. *Duties:*
 - Periodically communicating with Steering Council to impart guidance
 
 Meetings
-========
+^^^^^^^^
 
 Maintainer meetings
 -------------------
@@ -112,7 +141,7 @@ meeting, any governance changes proposed since the prior meeting shall be discus
 may be adopted by vote.
 
 Population of Leadership Roles
-==============================
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Maintainer Team
 ---------------
@@ -212,7 +241,7 @@ Anyone may propose individuals for potential invitation. Appointment and removal
 the External Advisory Board is determined by the Steering Council.
 
 Decision Making Process
-=======================
+^^^^^^^^^^^^^^^^^^^^^^^
 
 Announcement of Elections
 -------------------------
