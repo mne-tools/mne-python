@@ -41,6 +41,8 @@ relationships with legal entities.
 Governance Model
 ================
 
+.. _leadership-roles:
+
 Leadership Roles
 ^^^^^^^^^^^^^^^^
 
@@ -285,7 +287,7 @@ dedicated email address, Google form, or similar confidential submission mechani
 Institutional Partners and funding
 ==================================
 
-The leadership roles for the project are :ref:`defined above <leadership roles>`. No
+The leadership roles for the project are :ref:`defined above <leadership-roles>`. No
 outside institution, individual, or legal entity has the ability to own,
 control, usurp, or influence the project other than by participating in
 the Project in one of those roles. However, because
