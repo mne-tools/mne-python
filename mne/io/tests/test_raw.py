@@ -735,19 +735,20 @@ def test_get_data_reject():
     raw.set_annotations(Annotations(onset=[0], duration=[0], description="bad"))
     data = raw.get_data(reject_by_annotation="omit", verbose=True)
     assert data.shape == (len(ch_names), n_times - 1)
-    raw.set_annotations(Annotations(onset=[raw.times[-1]], duration=[0], description="bad"))
+    raw.set_annotations(
+        Annotations(onset=[raw.times[-1]], duration=[0], description="bad")
+    )
     data = raw.get_data(reject_by_annotation="omit", verbose=True)
     assert data.shape == (len(ch_names), n_times - 1)
 
     # Test that 1-sample annotations are handled correctly, when they occur
     # because of cropping
-    raw.set_annotations(Annotations(onset=[raw.times[-1]], duration=[1/fs], description="bad"))
+    raw.set_annotations(
+        Annotations(onset=[raw.times[-1]], duration=[1 / fs], description="bad")
+    )
     with catch_logging() as log:
         data = raw.get_data(reject_by_annotation="omit", start=1, verbose=True)
-        msg = (
-            "Omitting 1 of 999 (0.10%) samples, retaining 998 (99.90%)"
-            + " samples."
-        )
+        msg = "Omitting 1 of 999 (0.10%) samples, retaining 998 (99.90%)" + " samples."
         assert log.getvalue().strip() == msg
     print(data.shape)
     assert data.shape == (len(ch_names), n_times - 2)
