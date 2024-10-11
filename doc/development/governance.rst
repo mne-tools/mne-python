@@ -245,7 +245,7 @@ the External Advisory Board is determined by the Steering Council.
 Decision Making Process
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-Announcement of Elections
+Announcement of elections
 -------------------------
 
 All votes shall be open for at least ten days and shall be announced 14 days in advance
@@ -253,7 +253,7 @@ to all eligible voters by email. The voting deadline shall also be added to the 
 team’s shared Google calendar. At least one reminder shall be sent out half-way through
 the voting period.
 
-Voting Mechanism
+Voting mechanism
 ----------------
 
 All elections shall be held as anonymous online votes using ElectionBuddy or a similar
