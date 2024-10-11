@@ -432,7 +432,7 @@ def test_raw_reject(first_samp):
         return_times=True,  # 1-112 s
     )
     bad_times = np.concatenate(
-        [np.arange(200, 400), np.arange(10000, 10800), np.arange(10500, 11000)]
+        [np.arange(200, 401), np.arange(10000, 10801), np.arange(10500, 11001)]
     )
     expected_times = np.setdiff1d(np.arange(100, 11200), bad_times) / sfreq
     assert_allclose(times, expected_times)
@@ -450,7 +450,7 @@ def test_raw_reject(first_samp):
     t_stop = 18.0
     assert raw.times[-1] > t_stop
     n_stop = int(round(t_stop * raw.info["sfreq"]))
-    n_drop = int(round(4 * raw.info["sfreq"]))
+    n_drop = int(round(4 * raw.info["sfreq"]) + 2)
     assert len(raw.times) >= n_stop
     data, times = raw.get_data(range(10), 0, n_stop, "omit", True)
     assert data.shape == (10, n_stop - n_drop)
@@ -558,8 +558,8 @@ def test_annotation_filtering(first_samp):
     raw = raws[0].copy()
     raw.set_annotations(Annotations([0.0], [0.5], ["BAD_ACQ_SKIP"]))
     my_data, times = raw.get_data(reject_by_annotation="omit", return_times=True)
-    assert_allclose(times, raw.times[500:])
-    assert my_data.shape == (1, 500)
+    assert_allclose(times, raw.times[501:])
+    assert my_data.shape == (1, 499)
     raw_filt = raw.copy().filter(skip_by_annotation="bad_acq_skip", **kwargs_stop)
     expected = data.copy()
     expected[:, 500:] = 0
@@ -586,7 +586,7 @@ def test_annotation_omit(first_samp):
     expected = raw[0][0]
     assert_allclose(raw.get_data(reject_by_annotation=None), expected)
     # nan
-    expected[0, 500:1500] = np.nan
+    expected[0, 500:1501] = np.nan
     assert_allclose(raw.get_data(reject_by_annotation="nan"), expected)
     got = np.concatenate(
         [

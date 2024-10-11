@@ -706,29 +706,51 @@ def test_meas_date_orig_time():
 
 def test_get_data_reject():
     """Test if reject_by_annotation is working correctly."""
-    fs = 256
+    fs = 100
     ch_names = ["C3", "Cz", "C4"]
     info = create_info(ch_names, sfreq=fs)
-    raw = RawArray(np.zeros((len(ch_names), 10 * fs)), info)
+    n_times = 10 * fs
+    raw = RawArray(np.zeros((len(ch_names), n_times)), info)
     raw.set_annotations(Annotations(onset=[2, 4], duration=[3, 2], description="bad"))
 
     with catch_logging() as log:
         data = raw.get_data(reject_by_annotation="omit", verbose=True)
         msg = (
-            "Omitting 1024 of 2560 (40.00%) samples, retaining 1536"
-            + " (60.00%) samples."
+            "Omitting 401 of 1000 (40.10%) samples, retaining 599"
+            + " (59.90%) samples."
         )
         assert log.getvalue().strip() == msg
-    assert data.shape == (len(ch_names), 1536)
+    assert data.shape == (len(ch_names), 599)
     with catch_logging() as log:
         data = raw.get_data(reject_by_annotation="nan", verbose=True)
         msg = (
-            "Setting 1024 of 2560 (40.00%) samples to NaN, retaining 1536"
-            + " (60.00%) samples."
+            "Setting 401 of 1000 (40.10%) samples to NaN, retaining 599"
+            + " (59.90%) samples."
         )
         assert log.getvalue().strip() == msg
-    assert data.shape == (len(ch_names), 2560)  # shape doesn't change
-    assert np.isnan(data).sum() == 3072  # but NaNs are introduced instead
+    assert data.shape == (len(ch_names), n_times)  # shape doesn't change
+    assert np.isnan(data).sum() == 1203  # but NaNs are introduced instead
+
+    # Test that 1-sample annotations at start and end of recording are handled
+    raw.set_annotations(Annotations(onset=[0], duration=[0], description="bad"))
+    data = raw.get_data(reject_by_annotation="omit", verbose=True)
+    assert data.shape == (len(ch_names), n_times - 1)
+    raw.set_annotations(Annotations(onset=[raw.times[-1]], duration=[0], description="bad"))
+    data = raw.get_data(reject_by_annotation="omit", verbose=True)
+    assert data.shape == (len(ch_names), n_times - 1)
+
+    # Test that 1-sample annotations are handled correctly, when they occur
+    # because of cropping
+    raw.set_annotations(Annotations(onset=[raw.times[-1]], duration=[1/fs], description="bad"))
+    with catch_logging() as log:
+        data = raw.get_data(reject_by_annotation="omit", start=1, verbose=True)
+        msg = (
+            "Omitting 1 of 999 (0.10%) samples, retaining 998 (99.90%)"
+            + " samples."
+        )
+        assert log.getvalue().strip() == msg
+    print(data.shape)
+    assert data.shape == (len(ch_names), n_times - 2)
 
 
 def test_5839():
