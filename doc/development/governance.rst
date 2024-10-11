@@ -51,8 +51,8 @@ The MNE-Python leadership structure shall consist of:
 Maintainer Team
 ---------------
 
-The **maintainer team** is responsible for implementing changes to the software and
-supporting the user community. *Duties:*
+The maintainer team is responsible for implementing changes to the software and
+supporting the user community. Duties:
 
 - Infrastructure/large-scale software decisions, in partnership with the steering
   council
@@ -71,8 +71,8 @@ automatically.
 Steering Council
 ----------------
 
-The **Steering Council** is responsible for guiding and shepherding the project on a
-day-to-day basis. *Duties:*
+The Steering Council is responsible for guiding and shepherding the project on a
+day-to-day basis. Duties:
 
 - Obtaining funding (either by writing grants specifically for MNE development, or
   convincing others to include funds for MNE development in their research grants)
@@ -100,8 +100,8 @@ afforded to maintainers (passwords, merge rights, etc).
 Chair of the Steering Council
 -----------------------------
 
-The **Chair of the Steering Council** is responsible for liaising between the Steering
-Council and the community. *Duties:*
+The Chair of the Steering Council is responsible for liaising between the Steering
+Council and the community. Duties:
 
 - Convening the steering council meetings
 - Calling for votes when consensus fails
@@ -111,8 +111,8 @@ Council and the community. *Duties:*
 External Advisory Board
 -----------------------
 
-The **External Advisory Board** is responsible for high-level roadmap and funding
-guidance. *Duties:*
+The External Advisory Board is responsible for high-level roadmap and funding
+guidance. Duties:
 
 - Attendance at advisory board meetings (approx. every 1-2 years)
 - Periodically communicating with Steering Council to impart guidance
