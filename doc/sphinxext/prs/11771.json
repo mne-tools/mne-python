@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "d78d0f5b0a6dedb4faf49950b07d72bdcc53557f",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/conf.py": {
+      "a": 3,
+      "d": 0
+    }
+  }
+}

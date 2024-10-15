@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "bbcd975b1288a1a5a34088fed57caa67988d5922",
+  "authors": [
+    {
+      "n": "rcmdnk",
+      "e": "rcmdnk@gmail.com"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/annotations.py": {
+      "a": 6,
+      "d": 2
+    },
+    "mne/tests/test_annotations.py": {
+      "a": 9,
+      "d": 0
+    }
+  }
+}

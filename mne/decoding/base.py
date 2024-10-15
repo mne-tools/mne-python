@@ -1,9 +1,6 @@
 """Base class copy from sklearn.base."""
-# Authors: Gael Varoquaux <gael.varoquaux@normalesup.org>
-#          Romain Trachel <trachelr@gmail.com>
-#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Jean-Remi King <jeanremi.king@gmail.com>
-#
+
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -11,9 +8,18 @@ import datetime as dt
 import numbers
 
 import numpy as np
-from scipy.sparse import issparse
+from sklearn import model_selection as models
+from sklearn.base import (  # noqa: F401
+    BaseEstimator,
+    TransformerMixin,
+    clone,
+    is_classifier,
+)
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import check_scoring
+from sklearn.model_selection import KFold, StratifiedKFold, check_cv
+from sklearn.utils import check_array, indexable
 
-from ..fixes import BaseEstimator, _check_fit_params, _get_check_scoring
 from ..parallel import parallel_func
 from ..utils import _pl, logger, verbose, warn
 
@@ -67,14 +73,9 @@ class LinearModel(BaseEstimator):
 
     def __init__(self, model=None):
         if model is None:
-            from sklearn.linear_model import LogisticRegression
-
             model = LogisticRegression(solver="liblinear")
 
         self.model = model
-
-    def _more_tags(self):
-        return {"no_validation": True}
 
     def __getattr__(self, attr):
         """Wrap to model for some attributes."""
@@ -107,22 +108,14 @@ class LinearModel(BaseEstimator):
         self : instance of LinearModel
             Returns the modified instance.
         """
-        # Once we require sklearn 1.1+ we should do:
-        # from sklearn.utils import check_array
-        # X = check_array(X, input_name="X")
-        # y = check_array(y, dtype=None, ensure_2d=False, input_name="y")
-        if issparse(X):
-            raise TypeError("X should be a dense array, got sparse instead.")
-        X, y = np.asarray(X), np.asarray(y)
-        if X.ndim != 2:
-            raise ValueError(
-                f"LinearModel only accepts 2-dimensional X, got {X.shape} instead."
-            )
-        if y.ndim > 2:
-            raise ValueError(
-                f"LinearModel only accepts up to 2-dimensional y, got {y.shape} "
-                "instead."
-            )
+        X = check_array(X, input_name="X")
+        if y is not None:
+            y = check_array(y, dtype=None, ensure_2d=False, input_name="y")
+            if y.ndim > 2:
+                raise ValueError(
+                    f"LinearModel only accepts up to 2-dimensional y, got {y.shape} "
+                    "instead."
+                )
 
         # fit the Model
         self.model.fit(X, y, **fit_params)
@@ -156,17 +149,13 @@ class LinearModel(BaseEstimator):
 def _set_cv(cv, estimator=None, X=None, y=None):
     """Set the default CV depending on whether clf is classifier/regressor."""
     # Detect whether classification or regression
-    from sklearn.base import is_classifier
 
     if estimator in ["classifier", "regressor"]:
         est_is_classifier = estimator == "classifier"
     else:
         est_is_classifier = is_classifier(estimator)
     # Setup CV
-    from sklearn import model_selection as models
-    from sklearn.model_selection import KFold, StratifiedKFold, check_cv
-
-    if isinstance(cv, (int, np.int64)):
+    if isinstance(cv, int | np.int64):
         XFold = StratifiedKFold if est_is_classifier else KFold
         cv = XFold(n_splits=cv)
     elif isinstance(cv, str):
@@ -394,12 +383,6 @@ def cross_val_multiscore(
         Array of scores of the estimator for each run of the cross validation.
     """
     # This code is copied from sklearn
-    from sklearn.base import clone, is_classifier
-    from sklearn.model_selection._split import check_cv
-    from sklearn.utils import indexable
-
-    check_scoring = _get_check_scoring()
-
     X, y, groups = indexable(X, y, groups)
 
     cv = check_cv(cv, y, classifier=is_classifier(estimator))
@@ -452,12 +435,16 @@ def _fit_and_score(
 ):
     """Fit estimator and compute scores for a given dataset split."""
     #  This code is adapted from sklearn
+    from sklearn.model_selection import _validation
     from sklearn.utils.metaestimators import _safe_split
     from sklearn.utils.validation import _num_samples
 
     # Adjust length of sample weights
+
     fit_params = fit_params if fit_params is not None else {}
-    fit_params = _check_fit_params(X, fit_params, train)
+    fit_params = {
+        k: _validation._index_param_value(X, v, train) for k, v in fit_params.items()
+    }
 
     if parameters is not None:
         estimator.set_params(**parameters)

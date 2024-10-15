@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "b28ec9b08101f6b4441bd486d47692c3b6b4ef28",
+  "authors": [
+    {
+      "n": "Denis A. Engemann",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/source/whats_new.rst": {
+      "a": 4,
+      "d": 0
+    },
+    "examples/plot_topo_compare_conditions.py": {
+      "a": 9,
+      "d": 5
+    },
+    "mne/layouts/layout.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/tests/test_viz.py": {
+      "a": 11,
+      "d": 0
+    },
+    "mne/viz.py": {
+      "a": 155,
+      "d": 23
+    }
+  }
+}

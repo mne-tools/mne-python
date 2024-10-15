@@ -1,6 +1,6 @@
 """Some utility functions."""
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#
+
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -133,7 +133,10 @@ class ProgressBar:
             will be computed as
             ``(self.cur_value + increment_value / max_value) * 100``.
         """
-        self._tqdm.update(increment_value)
+        try:
+            self._tqdm.update(increment_value)
+        except TypeError:  # can happen during GC on Windows
+            pass
 
     def __iter__(self):
         """Iterate to auto-increment the pbar with 1."""
@@ -177,7 +180,11 @@ class ProgressBar:
         self._thread.join()
         self._mmap = None
         if op.isfile(self._mmap_fname):
-            os.remove(self._mmap_fname)
+            try:
+                os.remove(self._mmap_fname)
+            # happens on Windows sometimes
+            except PermissionError:  # pragma: no cover
+                pass
 
     def __del__(self):
         """Ensure output completes."""

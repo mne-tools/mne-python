@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "65a4eb0407985c3320ed6efa058f4d97a324131c",
+  "authors": [
+    {
+      "n": "jaeilepp",
+      "e": "jaeilepp@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/channels/tests/test_interpolation.py": {
+      "a": 2,
+      "d": 3
+    },
+    "mne/epochs.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/evoked.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/io/array/array.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/fiff/tests/test_raw_fiff.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/tests/test_evoked.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/transforms.py": {
+      "a": 5,
+      "d": 0
+    }
+  }
+}

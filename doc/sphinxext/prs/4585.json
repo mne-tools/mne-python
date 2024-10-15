@@ -1,0 +1,83 @@
+{
+  "merge_commit_sha": "c6a9c3e4cc4cf3e671e05bd01fae890d6aa2b523",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "circle.yml": {
+      "a": 6,
+      "d": 2
+    },
+    "doc/documentation.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "examples/connectivity/plot_mne_inverse_psi_visual.py": {
+      "a": 6,
+      "d": 3
+    },
+    "examples/datasets/plot_brainstorm_data.py": {
+      "a": 2,
+      "d": 2
+    },
+    "examples/datasets/plot_megsim_data_single_trial.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/datasets/plot_spm_faces_dataset.py": {
+      "a": 3,
+      "d": 11
+    },
+    "examples/decoding/plot_decoding_csp_eeg.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/decoding/plot_decoding_csp_timefreq.py": {
+      "a": 5,
+      "d": 3
+    },
+    "examples/decoding/plot_decoding_spoc_CMC.py": {
+      "a": 2,
+      "d": 2
+    },
+    "examples/decoding/plot_ems_filtering.py": {
+      "a": 1,
+      "d": 2
+    },
+    "examples/decoding/plot_receptive_field.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/datasets/brainstorm/bst_auditory.py": {
+      "a": 5,
+      "d": 9
+    },
+    "mne/datasets/brainstorm/bst_phantom_ctf.py": {
+      "a": 5,
+      "d": 9
+    },
+    "mne/datasets/brainstorm/bst_phantom_elekta.py": {
+      "a": 6,
+      "d": 9
+    },
+    "mne/datasets/brainstorm/bst_raw.py": {
+      "a": 4,
+      "d": 9
+    },
+    "mne/datasets/brainstorm/bst_resting.py": {
+      "a": 5,
+      "d": 9
+    },
+    "mne/datasets/utils.py": {
+      "a": 182,
+      "d": 133
+    },
+    "mne/utils.py": {
+      "a": 26,
+      "d": 9
+    }
+  }
+}

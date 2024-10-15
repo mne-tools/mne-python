@@ -1,10 +1,9 @@
 """Base classes and functions for 2D browser backends."""
 
-# Authors: Daniel McCloy <dan@mccloy.info>
-#          Martin Schulz <dev@earthman-music.de>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 import importlib
 from abc import ABC, abstractmethod
 from collections import OrderedDict
@@ -238,6 +237,14 @@ class BrowserBase(ABC):
         self._update_projector()
 
         return color, pick, marked_bad
+
+    def _toggle_single_channel_annotation(self, ch_pick, annot_idx):
+        current_ch_names = list(self.mne.inst.annotations.ch_names[annot_idx])
+        if ch_pick in current_ch_names:
+            current_ch_names.remove(ch_pick)
+        else:
+            current_ch_names.append(ch_pick)
+        self.mne.inst.annotations.ch_names[annot_idx] = tuple(current_ch_names)
 
     def _toggle_bad_epoch(self, xtime):
         epoch_num = self._get_epoch_num_from_time(xtime)

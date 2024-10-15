@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "80fadbc7d5e586d90a14cc60ae82b602eee04dd5",
+  "authors": [
+    {
+      "n": "cmoutard",
+      "e": "clement.moutard@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/time_frequency/tests/test_tfr.py": {
+      "a": 39,
+      "d": 2
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 87,
+      "d": 40
+    }
+  }
+}

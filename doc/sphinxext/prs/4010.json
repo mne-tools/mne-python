@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "d94aee0c4f2143af435effc829e28fd20e2e8e76",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/bem.py": {
+      "a": 15,
+      "d": 16
+    },
+    "mne/coreg.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/source_space.py": {
+      "a": 8,
+      "d": 49
+    },
+    "mne/surface.py": {
+      "a": 60,
+      "d": 25
+    }
+  }
+}

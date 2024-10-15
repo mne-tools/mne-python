@@ -1,5 +1,7 @@
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 import datetime
 import re
 from itertools import product
@@ -943,6 +945,23 @@ def test_add_channels():
     pytest.raises(ValueError, tfr_meg.add_channels, [tfr_meg])
     pytest.raises(TypeError, tfr_meg.add_channels, tfr_badsf)
 
+    # Test for EpochsTFR(Array)
+    tfr1 = EpochsTFRArray(
+        info=mne.create_info(["EEG 001"], 1000, "eeg"),
+        data=np.zeros((5, 1, 2, 3)),  # epochs, channels, freqs, times
+        times=[0.1, 0.2, 0.3],
+        freqs=[0.1, 0.2],
+    )
+    tfr2 = EpochsTFRArray(
+        info=mne.create_info(["EEG 002", "EEG 003"], 1000, "eeg"),
+        data=np.zeros((5, 2, 2, 3)),  # epochs, channels, freqs, times
+        times=[0.1, 0.2, 0.3],
+        freqs=[0.1, 0.2],
+    )
+    tfr1.add_channels([tfr2])
+    assert tfr1.ch_names == ["EEG 001", "EEG 002", "EEG 003"]
+    assert tfr1.data.shape == (5, 3, 2, 3)
+
 
 def test_compute_tfr():
     """Test _compute_tfr function."""
@@ -1509,6 +1528,13 @@ def test_epochs_compute_tfr_stockwell(epochs, freqs, return_itc):
         assert_array_almost_equal(itc.get_data(), 1.0, decimal=15)
     assert isinstance(tfr, AverageTFR)
     assert tfr.comment == "1"
+
+
+@pytest.mark.parametrize("output", ("complex", "phase"))
+def test_epochs_compute_tfr_multitaper_complex_phase(epochs, output):
+    """Test Epochs.compute_tfr(output="complex"/"phase")."""
+    tfr = epochs.compute_tfr("multitaper", freqs_linspace, output=output)
+    assert len(tfr.shape) == 5
 
 
 @pytest.mark.parametrize("copy", (False, True))

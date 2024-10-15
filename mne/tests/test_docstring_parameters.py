@@ -1,5 +1,4 @@
-# Author: Eric Larson <larson.eric.d@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -70,7 +69,6 @@ docstring_ignores = {
     "mne.fixes",
     "mne.io.meas_info.Info",
 }
-char_limit = 800  # XX eventually we should probably get this lower
 tab_ignores = [
     "mne.channels.tests.test_montage",
     "mne.io.curry.tests.test_curry",
@@ -111,7 +109,6 @@ subclass_name_ignores = (
         },
     ),
     (list, {"append", "count", "extend", "index", "insert", "pop", "remove", "sort"}),
-    (mne.fixes.BaseEstimator, {"get_params", "set_params", "fit_transform"}),
 )
 
 
@@ -177,7 +174,12 @@ def test_docstring_parameters():
             module = __import__(name, globals())
         for submod in name.split(".")[1:]:
             module = getattr(module, submod)
-        classes = inspect.getmembers(module, inspect.isclass)
+        try:
+            classes = inspect.getmembers(module, inspect.isclass)
+        except ModuleNotFoundError as exc:  # e.g., mne.decoding but no sklearn
+            if "'sklearn'" in str(exc):
+                continue
+            raise
         for cname, cls in classes:
             if cname.startswith("_"):
                 continue
@@ -257,7 +259,6 @@ find_tag
 get_score_funcs
 get_version
 invert_transform
-is_power2
 is_fixed_orient
 make_eeg_average_ref_proj
 make_projector
@@ -329,7 +330,12 @@ def test_documented():
             module = __import__(name, globals())
         for submod in name.split(".")[1:]:
             module = getattr(module, submod)
-        classes = inspect.getmembers(module, inspect.isclass)
+        try:
+            classes = inspect.getmembers(module, inspect.isclass)
+        except ModuleNotFoundError as exc:  # e.g., mne.decoding but no sklearn
+            if "'sklearn'" in str(exc):
+                continue
+            raise
         functions = inspect.getmembers(module, inspect.isfunction)
         checks = list(classes) + list(functions)
         for this_name, cf in checks:

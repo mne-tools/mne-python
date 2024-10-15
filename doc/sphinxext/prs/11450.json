@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "d9964f568a02c8f9d900c84ebb8e857dfcad9844",
+  "authors": [
+    {
+      "n": "Mikolaj Magnuski",
+      "e": "mmagnuski@swps.edu.pl"
+    },
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/decoding/search_light.py": {
+      "a": 68,
+      "d": 25
+    },
+    "mne/decoding/tests/test_search_light.py": {
+      "a": 27,
+      "d": 1
+    },
+    "mne/utils/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/_logging.py": {
+      "a": 19,
+      "d": 11
+    },
+    "mne/utils/progressbar.py": {
+      "a": 8,
+      "d": 2
+    }
+  }
+}

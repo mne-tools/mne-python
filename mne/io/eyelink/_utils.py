@@ -1,5 +1,6 @@
 """Helper functions for reading eyelink ASCII files."""
-# Authors: Scott Huberty <seh33@uw.edu>
+
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -187,8 +188,18 @@ def _get_recording_datetime(fname):
                     # Eyelink measdate timestamps are timezone naive.
                     # Force datetime to be in UTC.
                     # Even though dt is probably in local time zone.
-                    dt_naive = datetime.strptime(dt_str, fmt)
-                    return dt_naive.replace(tzinfo=tz)  # make it dt aware
+                    try:
+                        dt_naive = datetime.strptime(dt_str, fmt)
+                    except ValueError:
+                        # date string is missing or in an unexpected format
+                        logger.info(
+                            "Could not detect date from file with date entry: "
+                            f"{repr(dt_str)}"
+                        )
+                        return
+                    else:
+                        return dt_naive.replace(tzinfo=tz)  # make it dt aware
+        return
 
 
 def _get_metadata(raw_extras):

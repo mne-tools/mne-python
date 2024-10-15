@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "ad3378490c66fa749873b295de3087646bf59890",
+  "authors": [
+    {
+      "n": "Martin Luessi",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/forward/forward.py": {
+      "a": 8,
+      "d": 5
+    },
+    "mne/forward/tests/test_forward.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/minimum_norm/inverse.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/minimum_norm/tests/test_inverse.py": {
+      "a": 0,
+      "d": 4
+    }
+  }
+}

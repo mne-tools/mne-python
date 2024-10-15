@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "e579fdb81d7d0ca30e7821cd61ea52ec6189e388",
+  "authors": [
+    {
+      "n": "Carina",
+      "e": "carinaforster0611@gmail.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Phillip Alday",
+      "e": "palday@users.noreply.github.com"
+    },
+    {
+      "n": "Phillip Alday",
+      "e": "palday@users.noreply.github.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Phillip Alday",
+      "e": "palday@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    "doc/references.bib": {
+      "a": 10,
+      "d": 0
+    },
+    "tutorials/epochs/15_baseline_regression.py": {
+      "a": 285,
+      "d": 0
+    }
+  }
+}

@@ -1,0 +1,63 @@
+{
+  "merge_commit_sha": "851885cb713b7e5b44775d40efdc4ad935ff1aa9",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/bem.py": {
+      "a": 99,
+      "d": 47
+    },
+    "mne/dipole.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/surface.py": {
+      "a": 7,
+      "d": 0
+    },
+    "mne/tests/test_bem.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/check.py": {
+      "a": 5,
+      "d": 20
+    },
+    "mne/viz/_3d.py": {
+      "a": 33,
+      "d": 93
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 8,
+      "d": 3
+    },
+    "tutorials/sample-datasets/plot_brainstorm_phantom_elekta.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/source-modeling/plot_source_alignment.py": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

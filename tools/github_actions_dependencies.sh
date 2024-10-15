@@ -8,17 +8,18 @@ INSTALL_ARGS="-e"
 INSTALL_KIND="test_extra,hdf5"
 if [ ! -z "$CONDA_ENV" ]; then
 	echo "Uninstalling MNE for CONDA_ENV=${CONDA_ENV}"
-	conda remove -c conda-forge --force -yq mne-base
-	python -m pip uninstall -y mne
-	if [[ "${RUNNER_OS}" != "Windows" ]]; then
+	# This will fail if mne-base is not in the env (like in our minimial/old envs, so ||true them):
+	conda remove -c conda-forge --force -yq mne-base || true
+	python -m pip uninstall -y mne || true
+	# If using bare environment.yml and not on windows, do a non-editable install
+	if [[ "${RUNNER_OS}" != "Windows" ]] && [[ "${CONDA_ENV}" != "environment_"* ]]; then
 		INSTALL_ARGS=""
 	fi
-elif [ ! -z "$CONDA_DEPENDENCIES" ]; then
-	echo "Using Mamba to install CONDA_DEPENDENCIES=${CONDA_DEPENDENCIES}"
-	mamba install -y $CONDA_DEPENDENCIES
-	# for compat_minimal and compat_old, we don't want to --upgrade
-	STD_ARGS="--progress-bar off"
-	INSTALL_KIND="test"
+	# If on minimal or old, just install testing deps
+	if [[ "${CONDA_ENV}" == "environment_"* ]]; then
+		INSTALL_KIND="test"
+		STD_ARGS="--progress-bar off"
+	fi
 else
 	test "${MNE_CI_KIND}" == "pip-pre"
 	STD_ARGS="$STD_ARGS --pre"

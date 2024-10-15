@@ -1,6 +1,4 @@
-# Author: Teon Brooks <teon.brooks@gmail.com>
-#         Stefan Appelhoff <stefan.appelhoff@mailbox.org>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -87,10 +85,6 @@ bv_fif_fname = data_path / "montage" / "bv_dig_raw.fif"
 locs_montage_fname = data_path / "EEGLAB" / "test_chans.locs"
 evoked_fname = data_path / "montage" / "level2_raw-ave.fif"
 eeglab_fname = data_path / "EEGLAB" / "test_raw.set"
-bdf_fname1 = data_path / "BDF" / "test_generator_2.bdf"
-bdf_fname2 = data_path / "BDF" / "test_bdf_stim_channel.bdf"
-egi_fname1 = data_path / "EGI" / "test_egi.mff"
-cnt_fname = data_path / "CNT" / "scan41_short.cnt"
 fnirs_dname = data_path / "NIRx" / "nirscout" / "nirx_15_2_recording_w_short"
 mgh70_fname = data_path / "SSS" / "mgh70_raw.fif"
 subjects_dir = data_path / "subjects"
@@ -104,10 +98,8 @@ bv_fname = io_dir / "brainvision" / "tests" / "data" / "test.vhdr"
 fif_fname = io_dir / "tests" / "data" / "test_raw.fif"
 edf_path = io_dir / "edf" / "tests" / "data" / "test.edf"
 bdf_path = io_dir / "edf" / "tests" / "data" / "test_bdf_eeglab.mat"
-egi_fname2 = io_dir / "egi" / "tests" / "data" / "test_egi.raw"
 vhdr_path = io_dir / "brainvision" / "tests" / "data" / "test.vhdr"
 ctf_fif_fname = io_dir / "tests" / "data" / "test_ctf_comp_raw.fif"
-nicolet_fname = io_dir / "nicolet" / "tests" / "data" / "test_nicolet_raw.data"
 
 
 def _make_toy_raw(n_channels):
@@ -308,7 +300,66 @@ def test_documented():
             ),
             "elc",
             None,
-            id="ASA electrode",
+            id="old ASA electrode (elc)",
+        ),
+        pytest.param(
+            partial(read_custom_montage, head_size=None),
+            (
+                "NumberPositions= 96\n"
+                "UnitPosition mm\n"
+                "Positions\n"
+                "E01	:	5.288	-3.658	119.693\n"
+                "E02	:	59.518	-4.031	101.404\n"
+                "E03	:	29.949	-50.988	98.145\n"
+                "Labels\n"
+                "E01	E02	E03\n"
+            ),
+            make_dig_montage(
+                ch_pos={
+                    "E01": [0.005288, -0.003658, 0.119693],
+                    "E02": [0.059518, -0.004031, 0.101404],
+                    "E03": [0.029949, -0.050988, 0.098145],
+                },
+            ),
+            "elc",
+            None,
+            id="new ASA electrode (elc)",
+        ),
+        pytest.param(
+            partial(read_custom_montage, head_size=None),
+            (
+                "ReferenceLabel\n"
+                "avg\n"
+                "UnitPosition	mm\n"
+                "NumberPositions=	6\n"
+                "Positions\n"
+                "-69.2574 10.5895 -25.0009\n"
+                "3.3791 94.6594 32.2592\n"
+                "77.2856 12.0537 -30.2488\n"
+                "4.6147 121.8858 8.6370\n"
+                "-31.3669 54.0269 94.9191\n"
+                "-8.7495 56.5653 99.6655\n"
+                "Labels\n"
+                "LPA\n"
+                "Nz\n"
+                "RPA\n"
+                "EEG 000\n"
+                "EEG 001\n"
+                "EEG 002\n"
+            ),
+            make_dig_montage(
+                ch_pos={
+                    "EEG 000": [0.004615, 0.121886, 0.008637],
+                    "EEG 001": [-0.031367, 0.054027, 0.094919],
+                    "EEG 002": [-0.00875, 0.056565, 0.099665],
+                },
+                nasion=[0.003379, 0.094659, 0.032259],
+                lpa=[-0.069257, 0.010589, -0.025001],
+                rpa=[0.077286, 0.012054, -0.030249],
+            ),
+            "elc",
+            None,
+            id="another old ASA electrode (elc)",
         ),
         pytest.param(
             partial(read_custom_montage, head_size=1),
@@ -530,8 +581,26 @@ def test_montage_readers(reader, file_content, expected_dig, ext, warning, tmp_p
     actual_ch_pos = dig_montage._get_ch_pos()
     expected_ch_pos = expected_dig._get_ch_pos()
     for kk in actual_ch_pos:
-        assert_allclose(actual_ch_pos[kk], expected_ch_pos[kk], atol=1e-5)
+        assert_allclose(actual_ch_pos[kk], expected_ch_pos[kk], atol=1e-5, err_msg=kk)
     assert len(dig_montage.dig) == len(expected_dig.dig)
+    for key in ("nasion", "lpa", "rpa"):
+        expected = [
+            d
+            for d in expected_dig.dig
+            if d["kind"] == FIFF.FIFFV_POINT_CARDINAL
+            and d["ident"] == getattr(FIFF, f"FIFFV_POINT_{key.upper()}")
+        ]
+        got = [
+            d
+            for d in dig_montage.dig
+            if d["kind"] == FIFF.FIFFV_POINT_CARDINAL
+            and d["ident"] == getattr(FIFF, f"FIFFV_POINT_{key.upper()}")
+        ]
+        assert len(expected) in (0, 1), key
+        assert len(got) in (0, 1), key
+        assert len(expected) == len(got)
+        if len(expected):
+            assert_allclose(got[0]["r"], expected[0]["r"], atol=1e-5, err_msg=key)
     for d1, d2 in zip(dig_montage.dig, expected_dig.dig):
         assert d1["coord_frame"] == d2["coord_frame"]
         for key in ("coord_frame", "ident", "kind"):
@@ -1080,7 +1149,11 @@ def test_egi_dig_montage(tmp_path):
     )
 
     # Test accuracy and embedding within raw object
-    raw_egi = read_raw_egi(egi_raw_fname, channel_naming="EEG %03d")
+    raw_egi = read_raw_egi(
+        egi_raw_fname,
+        channel_naming="EEG %03d",
+        events_as_annotations=True,
+    )
 
     raw_egi.set_montage(dig_montage)
     test_raw_egi = read_raw_fif(egi_fif_fname)
@@ -1106,17 +1179,6 @@ def test_egi_dig_montage(tmp_path):
     fname_temp = tmp_path / "egi_test.fif"
     _check_roundtrip(dig_montage, fname_temp, "unknown")
     _check_roundtrip(dig_montage_in_head, fname_temp)
-
-
-def _pop_montage(dig_montage, ch_name):
-    # remove reference that was not used in old API
-    name_idx = dig_montage.ch_names.index(ch_name)
-    dig_idx = dig_montage._get_dig_names().index(ch_name)
-
-    del dig_montage.dig[dig_idx]
-    del dig_montage.ch_names[name_idx]
-    for k in range(dig_idx, len(dig_montage.dig)):
-        dig_montage.dig[k]["ident"] -= 1
 
 
 @testing.requires_testing_data
@@ -1442,21 +1504,6 @@ def _check_roundtrip(montage, fname, coord_frame="head"):
     assert_equal(repr(montage), repr(montage_read))
     assert_equal(_check_get_coord_frame(montage_read.dig), coord_frame)
     assert_dig_allclose(montage, montage_read)
-
-
-def _fake_montage(ch_names):
-    pos = np.random.RandomState(42).randn(len(ch_names), 3)
-    return make_dig_montage(ch_pos=dict(zip(ch_names, pos)), coord_frame="head")
-
-
-cnt_ignore_warns = [
-    pytest.mark.filterwarnings(
-        "ignore:.*Could not parse meas date from the header. Setting to None."
-    ),
-    pytest.mark.filterwarnings(
-        "ignore:.*Could not define the number of bytes automatically. Defaulting to 2."
-    ),
-]
 
 
 def test_digmontage_constructor_errors():
@@ -1966,7 +2013,7 @@ def test_montage_add_fiducials():
     subjects_dir = data_path / "subjects"
     subject = "sample"
     fid_fname = subjects_dir / subject / "bem" / "sample-fiducials.fif"
-    test_fids, test_coord_frame = read_fiducials(fid_fname)
+    test_fids, _ = read_fiducials(fid_fname)
     test_fids = np.array([f["r"] for f in test_fids])
 
     # create test montage and add estimated fiducials

@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "47796f3349ddd84abec06f02c1bc263039dd30e8",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/preprocessing/tests/test_xdawn.py": {
+      "a": 11,
+      "d": 6
+    },
+    "mne/utils/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/_testing.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/check.py": {
+      "a": 3,
+      "d": 4
+    },
+    "mne/utils/config.py": {
+      "a": 23,
+      "d": 23
+    }
+  }
+}

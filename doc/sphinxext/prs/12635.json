@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "07b69b33ffa6cbf7e4117590817e81123b03f17e",
+  "authors": [
+    {
+      "n": "Lumberbot (aka Jack)",
+      "e": null
+    },
+    {
+      "n": "Clemens Brunner",
+      "e": "clemens.brunner@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/12616.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/channels/channels.py": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/time_frequency/tests/test_tfr.py": {
+      "a": 17,
+      "d": 0
+    }
+  }
+}

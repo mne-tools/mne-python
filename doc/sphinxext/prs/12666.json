@@ -1,0 +1,67 @@
+{
+  "merge_commit_sha": "663d7417fcf498f87c960e656672558f7efed698",
+  "authors": [
+    {
+      "n": "Lumberbot (aka Jack)",
+      "e": null
+    },
+    {
+      "n": "Clemens Brunner",
+      "e": "clemens.brunner@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".github/workflows/release.yml": {
+      "a": 2,
+      "d": 4
+    },
+    "CITATION.cff": {
+      "a": 3,
+      "d": 3
+    },
+    "azure-pipelines.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "codemeta.json": {
+      "a": 3,
+      "d": 3
+    },
+    "doc/changes/devel/12633.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/v1.7.rst": {
+      "a": 17,
+      "d": 0
+    },
+    "mne/conftest.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/edf/edf.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/io/edf/tests/test_edf.py": {
+      "a": 17,
+      "d": 19
+    },
+    "mne/io/fiff/tests/test_raw_fiff.py": {
+      "a": 4,
+      "d": 3
+    },
+    "pyproject.toml": {
+      "a": 1,
+      "d": 1
+    },
+    "tools/generate_codemeta.py": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "1cf59be1e6454f6ef5aa81209866346c1c0fbd65",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/io/pick.py": {
+      "a": 1,
+      "d": 2
+    }
+  }
+}

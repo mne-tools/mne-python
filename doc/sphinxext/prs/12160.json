@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "fcb59266b7616dd99908c6dac0e2295722b0c567",
+  "authors": [
+    {
+      "n": "Jacob Woessner",
+      "e": "Woessner.jacob@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/_fiff/meas_info.py": {
+      "a": 6,
+      "d": 0
+    },
+    "mne/_fiff/reference.py": {
+      "a": 11,
+      "d": 1
+    }
+  }
+}

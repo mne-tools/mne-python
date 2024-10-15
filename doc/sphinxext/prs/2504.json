@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "7e24e720801842286c058f89a97a7cee35414c3a",
+  "authors": [
+    {
+      "n": "Denis A. Engemann",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/stats/cluster_level.py": {
+      "a": 8,
+      "d": 8
+    }
+  }
+}

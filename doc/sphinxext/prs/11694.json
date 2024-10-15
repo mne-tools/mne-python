@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "1e6aa7d99530f4cd11505665307b5667fe126b8a",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/forward/forward.py": {
+      "a": 7,
+      "d": 76
+    },
+    "mne/forward/tests/test_forward.py": {
+      "a": 43,
+      "d": 2
+    },
+    "mne/proj.py": {
+      "a": 9,
+      "d": 6
+    }
+  }
+}

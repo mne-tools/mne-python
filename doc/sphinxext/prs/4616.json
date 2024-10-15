@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "f39093ef0d8099c88458abbdc25a8b8dfca3eea1",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/viz/evoked.py": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

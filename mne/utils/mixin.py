@@ -1,6 +1,6 @@
 """Some utility functions."""
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#
+
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -12,6 +12,7 @@ from copy import deepcopy
 import numpy as np
 
 from ._logging import verbose, warn
+from ._typing import Self
 from .check import _check_pandas_installed, _check_preload, _validate_type
 from .numerics import _time_mask, object_hash, object_size
 
@@ -65,7 +66,7 @@ class SizeMixin:
 
         if isinstance(self, Evoked):
             return object_hash(dict(info=self.info, data=self.data))
-        elif isinstance(self, (BaseEpochs, BaseRaw)):
+        elif isinstance(self, BaseEpochs | BaseRaw):
             _check_preload(self, "Hashing ")
             return object_hash(dict(info=self.info, data=self._data))
         else:
@@ -75,7 +76,10 @@ class SizeMixin:
 class GetEpochsMixin:
     """Class to add epoch selection and metadata to certain classes."""
 
-    def __getitem__(self, item):
+    def __getitem__(
+        self: Self,
+        item,
+    ) -> Self:
         """Return an Epochs object with a copied subset of epochs.
 
         Parameters
@@ -149,7 +153,7 @@ class GetEpochsMixin:
 
         # Convert string to indices
         if (
-            isinstance(item, (list, tuple))
+            isinstance(item, list | tuple)
             and len(item) > 0
             and isinstance(item[0], str)
         ):
@@ -209,7 +213,7 @@ class GetEpochsMixin:
             drop_log = list(inst.drop_log)
             if reason is not None:
                 _validate_type(reason, (list, tuple, str), "reason")
-                if isinstance(reason, (list, tuple)):
+                if isinstance(reason, list | tuple):
                     for r in reason:
                         _validate_type(r, str, r)
                 if isinstance(reason, str):
@@ -252,7 +256,7 @@ class GetEpochsMixin:
         """Find entries in event dict."""
         from ..event import match_event_names  # avoid circular import
 
-        keys = keys if isinstance(keys, (list, tuple)) else [keys]
+        keys = keys if isinstance(keys, list | tuple) else [keys]
         try:
             # Assume it's a condition name
             return np.where(
@@ -415,7 +419,7 @@ class GetEpochsMixin:
                 if len(metadata) != len(self.events):
                     raise ValueError(
                         "metadata must have the same number of "
-                        "rows (%d) as events (%d)" % (len(metadata), len(self.events))
+                        f"rows ({len(metadata)}) as events ({len(self.events)})"
                     )
                 if reset_index:
                     if hasattr(self, "selection"):
@@ -444,7 +448,7 @@ class GetEpochsMixin:
                 n_col = metadata.shape[1]
             else:
                 n_col = len(metadata[0])
-            n_col = " with %d columns" % n_col
+            n_col = f" with {n_col} columns"
         else:
             n_col = ""
         if hasattr(self, "_metadata") and self._metadata is not None:
@@ -745,7 +749,7 @@ class ExtendedTimeMixin(TimeMixin):
         from ..dipole import DipoleFixed
         from ..evoked import Evoked
 
-        if isinstance(self, (Evoked, DipoleFixed)):
+        if isinstance(self, Evoked | DipoleFixed):
             self.first = int(round(self.times[0] * self.info["sfreq"]))
             self.last = len(self.times) + self.first - 1
 

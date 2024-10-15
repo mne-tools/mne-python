@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "c2d9a3fab4de5cc9974cc4bc23ec84c0a3e5bfca",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 20,
+      "d": 25
+    },
+    "mne/preprocessing/tests/test_ica.py": {
+      "a": 98,
+      "d": 104
+    },
+    "mne/utils/docs.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/viz/tests/test_ica.py": {
+      "a": 7,
+      "d": 11
+    },
+    "tutorials/preprocessing/plot_40_artifact_correction_ica.py": {
+      "a": 9,
+      "d": 6
+    }
+  }
+}

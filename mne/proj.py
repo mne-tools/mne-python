@@ -1,5 +1,4 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -35,7 +34,7 @@ from .utils import (
 
 
 @verbose
-def read_proj(fname, verbose=None):
+def read_proj(fname, *, verbose=None):
     """Read projections from a FIF file.
 
     Parameters
@@ -57,6 +56,7 @@ def read_proj(fname, verbose=None):
     check_fname(
         fname, "projection", ("-proj.fif", "-proj.fif.gz", "_proj.fif", "_proj.fif.gz")
     )
+    fname = _check_fname(fname, overwrite="read", must_exist=True)
 
     ff, tree, _ = fiff_open(fname)
     with ff as fid:

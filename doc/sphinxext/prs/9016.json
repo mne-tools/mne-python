@@ -1,0 +1,59 @@
+{
+  "merge_commit_sha": "9e5916e6ad3951e43106fae55f9312e7de1d59b2",
+  "authors": [
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/viz/_brain/_brain.py": {
+      "a": 124,
+      "d": 280
+    },
+    "mne/viz/_brain/callback.py": {
+      "a": 0,
+      "d": 32
+    },
+    "mne/viz/_brain/mplcanvas.py": {
+      "a": 0,
+      "d": 128
+    },
+    "mne/viz/_brain/tests/test.ipynb": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/backends/_abstract.py": {
+      "a": 189,
+      "d": 9
+    },
+    "mne/viz/backends/_notebook.py": {
+      "a": 141,
+      "d": 52
+    },
+    "mne/viz/backends/_pysurfer_mayavi.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/backends/_pyvista.py": {
+      "a": 6,
+      "d": 3
+    },
+    "mne/viz/backends/_qt.py": {
+      "a": 194,
+      "d": 26
+    },
+    "mne/viz/utils.py": {
+      "a": 6,
+      "d": 0
+    }
+  }
+}

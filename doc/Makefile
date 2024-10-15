@@ -65,10 +65,7 @@ html_dev-noplot: html-noplot
 html_dev-front: html-front
 
 linkcheck:
-	@$(SPHINXBUILD) -b linkcheck -D nitpicky=0 -D plot_gallery=0 -D exclude_patterns="cited.rst,whats_new.rst,configure_git.rst" -d _build/doctrees . _build/linkcheck
-
-linkcheck-grep:
-	@! grep -h "^.*:.*: \[\(\(local\)\|\(broken\)\)\]" _build/linkcheck/output.txt
+	@$(SPHINXBUILD) -b linkcheck -D nitpicky=0 -q -D plot_gallery=0 -D exclude_patterns="cited.rst,whats_new.rst,configure_git.rst,_includes,changes/devel" -d _build/doctrees . _build/linkcheck
 
 doctest:
 	$(SPHINXBUILD) -b doctest $(ALLSPHINXOPTS) _build/doctest
@@ -79,3 +76,6 @@ view:
 	@python -c "import webbrowser; webbrowser.open_new_tab('file://$(PWD)/_build/html/sg_execution_times.html')"
 
 show: view
+
+serve:
+	python -m http.server -d _build/html

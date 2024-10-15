@@ -1,12 +1,6 @@
 #!/usr/bin/env python
 
-# Authors: Thorsten Kranz <thorstenkranz@gmail.com>
-#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
-#          Eric Larson <larson.eric.d@gmail.com>
-#          Denis Engemann <denis.engemann@gmail.com>
-#          Fernando Perez (bin_perm_rep function)
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -306,7 +300,7 @@ def _get_components(x_in, adjacency, return_list=True):
         row = np.concatenate((row, idx))
         col = np.concatenate((col, idx))
         data = np.concatenate((data, np.ones(len(idx), dtype=data.dtype)))
-        adjacency = sparse.coo_matrix((data, (row, col)), shape=shape)
+        adjacency = sparse.coo_array((data, (row, col)), shape=shape)
         _, components = connected_components(adjacency)
     if return_list:
         start = np.min(components)
@@ -348,7 +342,7 @@ def _find_clusters(
         threshold-free cluster enhancement.
     tail : -1 | 0 | 1
         Type of comparison
-    adjacency : scipy.sparse.coo_matrix, None, or list
+    adjacency : scipy.sparse.coo_array, None, or list
         Defines adjacency between features. The matrix is assumed to
         be symmetric and only the upper triangular half is used.
         If adjacency is a list, it is assumed that each entry stores the
@@ -547,12 +541,16 @@ def _find_clusters_1dir(x, x_in, adjacency, max_step, t_power, ndimage):
             raise Exception(
                 "Data should be 1D when using a adjacency to define clusters."
             )
-        if isinstance(adjacency, sparse.spmatrix) or adjacency is False:
+        if isinstance(adjacency, sparse.spmatrix):
+            adjacency = sparse.coo_array(adjacency)
+        if sparse.issparse(adjacency) or adjacency is False:
             clusters = _get_components(x_in, adjacency)
         elif isinstance(adjacency, list):  # use temporal adjacency
             clusters = _get_clusters_st(x_in, adjacency, max_step)
         else:
-            raise ValueError("adjacency must be a sparse matrix or list")
+            raise TypeError(
+                f"adjacency must be a sparse array or list, got {type(adjacency)}"
+            )
         if t_power == 1:
             sums = [_masked_sum(x, c) for c in clusters]
         else:
@@ -1606,14 +1604,14 @@ def _get_partitions_from_adjacency(adjacency, n_times, verbose=None):
         test_adj = np.zeros((len(adjacency), len(adjacency)), dtype="bool")
         for vi in range(len(adjacency)):
             test_adj[adjacency[vi], vi] = True
-        test_adj = sparse.coo_matrix(test_adj, dtype="float")
+        test_adj = sparse.coo_array(test_adj, dtype="float")
     else:
         test = np.ones(adjacency.shape[0])
         test_adj = adjacency
 
     part_clusts = _find_clusters(test, 0, 1, test_adj)[0]
     if len(part_clusts) > 1:
-        logger.info("%i disjoint adjacency sets found" % len(part_clusts))
+        logger.info(f"{len(part_clusts)} disjoint adjacency sets found")
         partitions = np.zeros(len(test), dtype="int")
         for ii, pc in enumerate(part_clusts):
             partitions[pc] = ii

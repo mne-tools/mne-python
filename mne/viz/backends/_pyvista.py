@@ -4,11 +4,7 @@ Core visualization operations based on PyVista.
 Actual implementation of _Renderer and _Projection classes.
 """
 
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Eric Larson <larson.eric.d@gmail.com>
-#          Guillaume Favelier <guillaume.favelier@gmail.com>
-#          Joan Massich <mailsik@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -97,7 +93,7 @@ class PyVistaFigure(Figure3D):
         self,
         plotter=None,
         show=False,
-        title="PyVista Scene",
+        title="MNE-Python 3D Figure",
         size=(600, 600),
         shape=(1, 1),
         background_color="black",
@@ -204,7 +200,8 @@ class _PyVistaRenderer(_AbstractRenderer):
         fig=None,
         size=(600, 600),
         bgcolor="black",
-        name="PyVista Scene",
+        *,
+        name=None,
         show=False,
         shape=(1, 1),
         notebook=None,
@@ -1086,13 +1083,6 @@ def _to_pos(azimuth, elevation):
     return x, y, z
 
 
-def _mat_to_array(vtk_mat):
-    e = [vtk_mat.GetElement(i, j) for i in range(4) for j in range(4)]
-    arr = np.array(e, dtype=float)
-    arr.shape = (4, 4)
-    return arr
-
-
 def _3d_to_2d(plotter, xyz):
     # https://vtk.org/Wiki/VTK/Examples/Cxx/Utilities/Coordinate
     coordinate = vtkCoordinate()
@@ -1198,10 +1188,17 @@ def _set_3d_view(
         _process_events(figure.plotter)
 
 
-def _set_3d_title(figure, title, size=16):
-    figure.plotter.add_text(title, font_size=size, color="white", name="title")
+def _set_3d_title(figure, title, size=16, *, color="white", position="upper_left"):
+    handle = figure.plotter.add_text(
+        title,
+        font_size=size,
+        color=color,
+        position=position,
+        name="title",
+    )
     figure.plotter.update()
     _process_events(figure.plotter)
+    return handle
 
 
 def _check_3d_figure(figure):

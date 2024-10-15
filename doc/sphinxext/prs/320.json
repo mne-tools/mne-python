@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "7e1026beff25b29128e6c3ef6fd1160d9b6caee6",
+  "authors": [
+    {
+      "n": "Christian Brodbeck",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/source/python_tutorial.rst": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/cov.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/epochs.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/fiff/evoked.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/fiff/raw.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/label.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 11,
+      "d": 15
+    },
+    "mne/source_estimate.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

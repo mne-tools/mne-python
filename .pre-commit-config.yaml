@@ -1,16 +1,17 @@
 repos:
   # Ruff mne
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.4.4
+    rev: v0.6.9
     hooks:
       - id: ruff
         name: ruff lint mne
         args: ["--fix"]
-        files: ^mne/
+        files: ^mne/|^tools/
+        exclude: vulture_allowlist.py
       - id: ruff
         name: ruff lint mne preview
         args: ["--fix", "--preview", "--select=NPY201"]
-        files: ^mne/
+        files: ^mne/|^tools/
       - id: ruff
         name: ruff lint doc, tutorials, and examples
         # D103: missing docstring in public function
@@ -18,16 +19,16 @@ repos:
         args: ["--ignore=D103,D400", "--fix"]
         files: ^doc/|^tutorials/|^examples/
       - id: ruff-format
-        files: ^mne/|^doc/|^tutorials/|^examples/
+        files: ^mne/|^doc/|^tutorials/|^examples/|^tools/
 
   # Codespell
   - repo: https://github.com/codespell-project/codespell
-    rev: v2.2.6
+    rev: v2.3.0
     hooks:
       - id: codespell
         additional_dependencies:
           - tomli
-        files: ^mne/|^doc/|^examples/|^tutorials/
+        files: ^mne/|^doc/|^examples/|^tutorials/|^tools/
         types_or: [python, bib, rst, inc]
 
   # yamllint
@@ -39,12 +40,43 @@ repos:
 
   # rstcheck
   - repo: https://github.com/rstcheck/rstcheck.git
-    rev: v6.2.0
+    rev: v6.2.4
     hooks:
       - id: rstcheck
         additional_dependencies:
           - tomli
         files: ^doc/.*\.(rst|inc)$
+        # Credit is problematic because we generate an include on the fly
+        exclude: ^doc/credit.rst$
+
+  # sorting
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: file-contents-sorter
+        files: ^doc/changes/names.inc|^.mailmap
+        args: ["--ignore-case"]
+
+  - repo: https://github.com/pappasam/toml-sort
+    rev: v0.23.1
+    hooks:
+      - id: toml-sort-fix
+        files: pyproject.toml
+
+  # dependencies
+  - repo: local
+    hooks:
+      - id: dependency-sync
+        name: Sync dependency list between pyproject.toml and README.rst
+        language: python
+        entry: ./tools/hooks/sync_dependencies.py
+        files: pyproject.toml
+        additional_dependencies: ["mne"]
+
+
+# these should *not* be run on CIs:
+ci:
+  skip: [dependency-sync]  # needs MNE to work, which exceeds the free tier space alloc.
 
 # The following are too slow to run on local commits, so let's only run on CIs:
 #

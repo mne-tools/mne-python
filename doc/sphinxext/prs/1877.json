@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "7bb23ab445a9aaee82d0b30250ee3d379dcc771c",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/io/meas_info.py": {
+      "a": 7,
+      "d": 7
+    },
+    "mne/io/proc_history.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/io/tests/test_meas_info.py": {
+      "a": 14,
+      "d": 0
+    }
+  }
+}

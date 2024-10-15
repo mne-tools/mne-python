@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "670330a1ead288f11cc3ffd5ca9d65136ca55ccd",
+  "authors": [
+    {
+      "n": "Scott Huberty",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/12846.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "examples/visualization/eyetracking_plot_heatmap.py": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/defaults.py": {
+      "a": 9,
+      "d": 9
+    },
+    "tutorials/io/70_reading_eyetracking_data.py": {
+      "a": 33,
+      "d": 17
+    },
+    "tutorials/preprocessing/90_eyetracking_data.py": {
+      "a": 32,
+      "d": 8
+    }
+  }
+}

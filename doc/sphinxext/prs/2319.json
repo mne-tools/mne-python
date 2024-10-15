@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "569ca6a7d38e6e13af2dd73eb1052d8123bf4ec0",
+  "authors": [
+    {
+      "n": "jmontoyam",
+      "e": "montoya.jair.m@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/tests/test_utils.py": {
+      "a": 15,
+      "d": 1
+    },
+    "mne/utils.py": {
+      "a": 38,
+      "d": 0
+    }
+  }
+}

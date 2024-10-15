@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "e43b5d897228df7de41799583df2e38adbcffc6e",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/viz/_3d.py": {
+      "a": 213,
+      "d": 199
+    },
+    "mne/viz/tests/test_3d_mpl.py": {
+      "a": 2,
+      "d": 2
+    },
+    "tutorials/clinical/20_seeg.py": {
+      "a": 3,
+      "d": 4
+    },
+    "tutorials/inverse/50_beamformer_lcmv.py": {
+      "a": 0,
+      "d": 2
+    }
+  }
+}

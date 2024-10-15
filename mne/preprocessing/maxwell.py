@@ -1,8 +1,4 @@
-# Authors: Mark Wronkiewicz <wronk.mark@gmail.com>
-#          Eric Larson <larson.eric.d@gmail.com>
-#          Jussi Nurminen <jnu@iki.fi>
-
-
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -181,7 +177,8 @@ def maxwell_filter_prepare_emptyroom(
 
     # handle first_samp
     raw_er_prepared.annotations.onset += raw.first_time - raw_er_prepared.first_time
-    raw_er_prepared._cropped_samp = raw._cropped_samp
+    # don't copy _cropped_samp directly, as sfreqs may differ
+    raw_er_prepared._cropped_samp = raw_er_prepared.time_as_index(raw.first_time).item()
 
     # handle annotations
     if annotations != "keep":
@@ -946,7 +943,7 @@ def _check_destination(destination, info, head_frame):
         raise RuntimeError(
             "destination can only be set if using the head coordinate frame"
         )
-    if isinstance(destination, (str, Path)):
+    if isinstance(destination, str | Path):
         recon_trans = _get_trans(destination, "meg", "head")[0]
     elif isinstance(destination, Transform):
         recon_trans = destination
@@ -1420,12 +1417,6 @@ def _col_norm_pinv(x):
 def _sq(x):
     """Square quickly."""
     return x * x
-
-
-def _check_finite(data):
-    """Ensure data is finite."""
-    if not np.isfinite(data).all():
-        raise RuntimeError("data contains non-finite numbers")
 
 
 def _sph_harm_norm(order, degree):

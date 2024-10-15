@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "5bc0a8ff7a4abc047c845b3f0f0d0edf71bb05e2",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "MANIFEST.in": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/conftest.py": {
+      "a": 55,
+      "d": 0
+    },
+    "setup.cfg": {
+      "a": 0,
+      "d": 38
+    }
+  }
+}

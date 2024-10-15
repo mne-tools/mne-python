@@ -1,0 +1,91 @@
+{
+  "merge_commit_sha": "dcb05a22cff16539e5753496668fa0a0b14b6c9a",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/_static/style.css": {
+      "a": 35,
+      "d": 10
+    },
+    "mne/html_templates/repr/_acquisition.html.jinja": {
+      "a": 13,
+      "d": 23
+    },
+    "mne/html_templates/repr/_channels.html.jinja": {
+      "a": 7,
+      "d": 17
+    },
+    "mne/html_templates/repr/_filters.html.jinja": {
+      "a": 6,
+      "d": 16
+    },
+    "mne/html_templates/repr/_general.html.jinja": {
+      "a": 8,
+      "d": 18
+    },
+    "mne/html_templates/repr/epochs.html.jinja": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/html_templates/repr/evoked.html.jinja": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/html_templates/repr/forward.html.jinja": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/html_templates/repr/ica.html.jinja": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/html_templates/repr/info.html.jinja": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/html_templates/repr/inverse_operator.html.jinja": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/html_templates/repr/raw.html.jinja": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/html_templates/repr/spectrum.html.jinja": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/html_templates/repr/static/_section_header_row.html.jinja": {
+      "a": 12,
+      "d": 0
+    },
+    "mne/html_templates/repr/static/repr.css": {
+      "a": 95,
+      "d": 93
+    },
+    "mne/html_templates/repr/static/repr.js": {
+      "a": 17,
+      "d": 29
+    },
+    "mne/html_templates/repr/tfr.html.jinja": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/intro/70_report.py": {
+      "a": 2,
+      "d": 2
+    },
+    "tutorials/io/70_reading_eyetracking_data.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/raw/20_event_arrays.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

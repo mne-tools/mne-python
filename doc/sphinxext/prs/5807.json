@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "49fd91882f52130ff66c613c2178bf7d981d1bd5",
+  "authors": [
+    {
+      "n": "Jevri Hanna",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/channels/channels.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 170,
+      "d": 58
+    },
+    "mne/preprocessing/tests/test_ica.py": {
+      "a": 25,
+      "d": 10
+    },
+    "mne/viz/topomap.py": {
+      "a": 5,
+      "d": 2
+    }
+  }
+}

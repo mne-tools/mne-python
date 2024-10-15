@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "e221c6cb71ec42f7eebe1c5ea81089d78c91d4a8",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".git-blame-ignore-revs": {
+      "a": 1,
+      "d": 0
+    },
+    "examples/inverse/morph_volume_stc.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/morph.py": {
+      "a": 7,
+      "d": 1
+    },
+    "mne/preprocessing/ieeg/_volume.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/tests/test_morph.py": {
+      "a": 5,
+      "d": 1
+    },
+    "mne/transforms.py": {
+      "a": 22,
+      "d": 10
+    }
+  }
+}

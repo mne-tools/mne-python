@@ -1,0 +1,91 @@
+{
+  "merge_commit_sha": "864426c4839bab05fd0d142ee20938c336c0b78e",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".travis.yml": {
+      "a": 1,
+      "d": 2
+    },
+    "README.rst": {
+      "a": 6,
+      "d": 7
+    },
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/datasets/sleep_physionet/tests/test_physionet.py": {
+      "a": 4,
+      "d": 19
+    },
+    "mne/decoding/base.py": {
+      "a": 2,
+      "d": 5
+    },
+    "mne/decoding/tests/test_base.py": {
+      "a": 2,
+      "d": 5
+    },
+    "mne/filter.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/fixes.py": {
+      "a": 3,
+      "d": 183
+    },
+    "mne/preprocessing/maxwell.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/preprocessing/tests/test_infomax.py": {
+      "a": 4,
+      "d": 9
+    },
+    "mne/time_frequency/multitaper.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/viz/_figure.py": {
+      "a": 18,
+      "d": 15
+    },
+    "mne/viz/epochs.py": {
+      "a": 5,
+      "d": 11
+    },
+    "mne/viz/evoked.py": {
+      "a": 1,
+      "d": 4
+    },
+    "mne/viz/ica.py": {
+      "a": 1,
+      "d": 4
+    },
+    "mne/viz/raw.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 0,
+      "d": 2
+    },
+    "mne/viz/tests/test_raw.py": {
+      "a": 2,
+      "d": 4
+    },
+    "mne/viz/tests/test_topo.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/utils.py": {
+      "a": 4,
+      "d": 17
+    }
+  }
+}

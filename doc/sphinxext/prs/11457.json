@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "5024b32782f7bf8e4dd944e57a3269c1b92d07d5",
+  "authors": [
+    {
+      "n": "Zvi Baratz",
+      "e": "z.baratz@gmail.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/time_frequency/spectrum.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

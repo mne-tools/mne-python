@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "2d4b1d847222364fad93a4f9bc4f9d5b17542f46",
+  "authors": [
+    {
+      "n": "Yaroslav Halchenko",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/decoding/tests/test_receptive_field.py": {
+      "a": 4,
+      "d": 1
+    }
+  }
+}

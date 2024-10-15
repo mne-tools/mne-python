@@ -1,5 +1,4 @@
-# Authors: Denis A. Engemann <denis.engemann@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -60,7 +59,7 @@ def test_ctps():
         data = get_data(n_trials, j_extent)
         ks_dyn, pk_dyn, phase_trial = ctps(data)
         data2 = _compute_normalized_phase(data)
-        ks_dyn2, pk_dyn2, phase_trial2 = ctps(data2, is_raw=False)
+        ks_dyn2, pk_dyn2, _ = ctps(data2, is_raw=False)
         for a, b in zip([ks_dyn, pk_dyn, phase_trial], [ks_dyn2, pk_dyn2, data2]):
             assert_array_equal(a, b)
             assert a.min() >= 0

@@ -1,5 +1,7 @@
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 import numpy as np
 import pytest
 from numpy.fft import fft, fftfreq
@@ -895,7 +897,7 @@ def test_reporting_iir(phase, ftype, btype, order, output):
         "IIR",
         btype,
         ftype,
-        "Filter order %d" % (order_eff * order_mult,),
+        f"Filter order {int(order_eff * order_mult)}",
         "Cutoff " if btype == "lowpass" else "Cutoffs ",
     ]
     if phase == "forward":
@@ -973,7 +975,7 @@ def test_reporting_fir(phase, fir_window, btype):
         "FIR",
         btype,
         fir_window.capitalize(),
-        "Filter length: %d samples" % (n_taps,),
+        f"Filter length: {n_taps} samples",
         "passband ripple",
         "stopband attenuation",
     ]

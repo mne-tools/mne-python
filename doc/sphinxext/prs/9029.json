@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "6cfd3040aed69d9970c618b782e6126ed56adb65",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/conftest.py": {
+      "a": 55,
+      "d": 42
+    },
+    "mne/viz/_brain/tests/test_brain.py": {
+      "a": 11,
+      "d": 29
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 4,
+      "d": 18
+    }
+  }
+}

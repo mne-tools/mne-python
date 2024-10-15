@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "c6d26627a3b0a8ceae33a2f1e59f81207e4d4456",
+  "authors": [
+    {
+      "n": "Alex Rockhill",
+      "e": "aprockhill@mailbox.org"
+    }
+  ],
+  "changes": {
+    "doc/conf.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/stats-sensor-space/70_cluster_rmANOVA_time_freq.py": {
+      "a": 0,
+      "d": 0
+    }
+  }
+}

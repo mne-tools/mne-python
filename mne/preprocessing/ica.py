@@ -1,10 +1,9 @@
 #
-# Authors: Denis A. Engemann <denis.engemann@gmail.com>
-#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Juergen Dammers <j.dammers@fz-juelich.de>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
+from __future__ import annotations  # only needed for Python ≤ 3.9
 
 import json
 import math
@@ -16,7 +15,7 @@ from dataclasses import dataclass, is_dataclass
 from inspect import Parameter, isfunction, signature
 from numbers import Integral
 from time import time
-from typing import Literal, Optional, Union
+from typing import Literal
 
 import numpy as np
 from scipy import stats
@@ -63,6 +62,7 @@ from ..utils import (
     _PCA,
     Bunch,
     _check_all_same_channel_names,
+    _check_ch_locs,
     _check_compensation_grade,
     _check_fname,
     _check_on_missing,
@@ -507,13 +507,13 @@ class ICA(ContainsMixin):
     def _get_infos_for_repr(self):
         @dataclass
         class _InfosForRepr:
-            fit_on: Optional[Literal["raw data", "epochs"]]
+            fit_on: Literal["raw data", "epochs"] | None
             fit_method: Literal["fastica", "infomax", "extended-infomax", "picard"]
-            fit_params: dict[str, Union[str, float]]
-            fit_n_iter: Optional[int]
-            fit_n_samples: Optional[int]
-            fit_n_components: Optional[int]
-            fit_n_pca_components: Optional[int]
+            fit_params: dict[str, str | float]
+            fit_n_iter: int | None
+            fit_n_samples: int | None
+            fit_n_components: int | None
+            fit_n_pca_components: int | None
             ch_types: list[str]
             excludes: list[str]
 
@@ -903,7 +903,7 @@ class ICA(ContainsMixin):
             n_pca = int(_exp_var_ncomp(use_ev, n_pca)[0])
         elif n_pca is None:
             n_pca = len(use_ev)
-        assert isinstance(n_pca, (int, np.int_))
+        assert isinstance(n_pca, int | np.int_)
 
         # If user passed a float, select the PCA components explaining the
         # given cumulative variance. This information will later be used to
@@ -1135,7 +1135,7 @@ class ICA(ContainsMixin):
             item_name="components",
             type_name="int, array-like of int, or None",
         )
-        if isinstance(components, (Sequence, np.ndarray)):
+        if isinstance(components, Sequence | np.ndarray):
             for item in components:
                 _validate_type(
                     item=item, types="int-like", item_name='Elements of "components"'
@@ -1152,7 +1152,7 @@ class ICA(ContainsMixin):
         elif ch_type is None:
             ch_types = inst.get_channel_types(unique=True, only_data_chs=True)
         else:
-            assert isinstance(ch_type, (Sequence, np.ndarray))
+            assert isinstance(ch_type, Sequence | np.ndarray)
             ch_types = ch_type
 
         assert len(ch_types) >= 1
@@ -1194,7 +1194,7 @@ class ICA(ContainsMixin):
             n_pca_components=0,
             verbose=False,
         )
-        if isinstance(inst, (BaseEpochs, Evoked)) and inst.baseline is not None:
+        if isinstance(inst, BaseEpochs | Evoked) and inst.baseline is not None:
             # Don't warn if data was baseline-corrected.
             with warnings.catch_warnings():
                 warnings.filterwarnings(
@@ -1616,17 +1616,16 @@ class ICA(ContainsMixin):
         Cross-trial phase statistics :footcite:`DammersEtAl2008` or Pearson
         correlation can be used for detection.
 
-        .. note:: If no ECG channel is available, routine attempts to create
-                  an artificial ECG based on cross-channel averaging.
+        .. note:: If no ECG channel is available, an artificial ECG channel will be
+                  created based on cross-channel averaging of ``"mag"`` or ``"grad"``
+                  channels. If neither of these channel types are available in
+                  ``inst``, artificial ECG channel creation is impossible.
 
         Parameters
         ----------
         inst : instance of Raw, Epochs or Evoked
             Object to compute sources from.
-        ch_name : str
-            The name of the channel to use for ECG peak detection.
-            The argument is mandatory if the dataset contains no ECG
-            channels.
+        %(ch_name_ecg)s
         threshold : float | 'auto'
             Value above which a feature is classified as outlier. See Notes.
 
@@ -1696,7 +1695,7 @@ class ICA(ContainsMixin):
         idx_ecg = _get_ecg_channel_index(ch_name, inst)
 
         if idx_ecg is None:
-            ecg, times = _make_ecg(
+            ecg, _ = _make_ecg(
                 inst, start, stop, reject_by_annotation=reject_by_annotation
             )
         else:
@@ -1940,20 +1939,24 @@ class ICA(ContainsMixin):
         sphere=None,
         verbose=None,
     ):
-        """Detect muscle related components.
+        """Detect muscle-related components.
 
         Detection is based on :footcite:`DharmapraniEtAl2016` which uses
         data from a subject who has been temporarily paralyzed
         :footcite:`WhithamEtAl2007`. The criteria are threefold:
-        1) Positive log-log spectral slope from 7 to 45 Hz
-        2) Peripheral component power (farthest away from the vertex)
-        3) A single focal point measured by low spatial smoothness
+
+        #. Positive log-log spectral slope from 7 to 45 Hz
+        #. Peripheral component power (farthest away from the vertex)
+        #. A single focal point measured by low spatial smoothness
 
         The threshold is relative to the slope, focal point and smoothness
         of a typical muscle-related ICA component. Note the high frequency
         of the power spectral density slope was 75 Hz in the reference but
         has been modified to 45 Hz as a default based on the criteria being
         more accurate in practice.
+
+        If ``inst`` is supplied without sensor positions, only the first criterion
+        (slope) is applied.
 
         Parameters
         ----------
@@ -1971,14 +1974,14 @@ class ICA(ContainsMixin):
         l_freq : float
             Low frequency for muscle-related power.
         h_freq : float
-            High frequency for msucle related power.
+            High frequency for muscle-related power.
         %(sphere_topomap_auto)s
         %(verbose)s
 
         Returns
         -------
         muscle_idx : list of int
-            The indices of EOG related components, sorted by score.
+            The indices of muscle-related components, sorted by score.
         scores : np.ndarray of float, shape (``n_components_``) | list of array
             The correlation scores.
 
@@ -1992,6 +1995,8 @@ class ICA(ContainsMixin):
         """
         _validate_type(threshold, "numeric", "threshold")
 
+        slope_score, focus_score, smoothness_score = None, None, None
+
         sources = self.get_sources(inst, start=start, stop=stop)
         components = self.get_components()
 
@@ -2002,11 +2007,32 @@ class ICA(ContainsMixin):
             psds = psds.mean(axis=0)
         slopes = np.polyfit(np.log10(freqs), np.log10(psds).T, 1)[0]
 
+        # typical muscle slope is ~0.15, non-muscle components negative
+        # so logistic with shift -0.5 and slope 0.25 so -0.5 -> 0.5 and 0->1
+        slope_score = expit((slopes + 0.5) / 0.25)
+
+        # Need sensor positions for the criteria below, so return with only one score
+        # if no positions available
+        picks = _picks_to_idx(
+            inst.info, self.ch_names, "all", exclude=(), allow_empty=False
+        )
+        if not _check_ch_locs(inst.info, picks=picks):
+            warn(
+                "No sensor positions found. Scores for bad muscle components are only "
+                "based on the 'slope' criterion."
+            )
+            scores = slope_score
+            self.labels_["muscle"] = [
+                idx for idx, score in enumerate(scores) if score > threshold
+            ]
+            return self.labels_["muscle"], scores
+
         # compute metric #2: distance from the vertex of focus
         components_norm = abs(components) / np.max(abs(components), axis=0)
         # we need to retrieve the position from the channels that were used to
         # fit the ICA. N.B: picks in _find_topomap_coords includes bad channels
         # even if they are not provided explicitly.
+
         pos = _find_topomap_coords(
             inst.info, picks=self.ch_names, sphere=sphere, ignore_overlap=True
         )
@@ -2015,6 +2041,10 @@ class ICA(ContainsMixin):
         dists = np.linalg.norm(pos, axis=1)
         dists /= dists.max()
         focus_dists = np.dot(dists, components_norm)
+
+        # focus distance is ~65% of max electrode distance with 10% slope
+        # (assumes typical head size)
+        focus_score = expit((focus_dists - 0.65) / 0.1)
 
         # compute metric #3: smoothness
         smoothnesses = np.zeros((components.shape[1],))
@@ -2025,20 +2055,22 @@ class ICA(ContainsMixin):
             comp_dists /= comp_dists.max()
             smoothnesses[idx] = np.multiply(dists, comp_dists).sum()
 
-        # typical muscle slope is ~0.15, non-muscle components negative
-        # so logistic with shift -0.5 and slope 0.25 so -0.5 -> 0.5 and 0->1
-        slope_score = expit((slopes + 0.5) / 0.25)
-        # focus distance is ~65% of max electrode distance with 10% slope
-        # (assumes typical head size)
-        focus_score = expit((focus_dists - 0.65) / 0.1)
         # smoothnessness is around 150 for muscle and 450 otherwise
         # so use reversed logistic centered at 300 with 100 slope
         smoothness_score = 1 - expit((smoothnesses - 300) / 100)
-        # multiply so that all three components must be present
-        scores = slope_score * focus_score * smoothness_score
+
+        # multiply all criteria that are present
+        scores = [
+            score
+            for score in [slope_score, focus_score, smoothness_score]
+            if score is not None
+        ]
+        n_criteria = len(scores)
+        scores = np.prod(np.array(scores), axis=0)
+
         # scale the threshold by the use of three metrics
         self.labels_["muscle"] = [
-            idx for idx, score in enumerate(scores) if score > threshold**3
+            idx for idx, score in enumerate(scores) if score > threshold**n_criteria
         ]
         return self.labels_["muscle"], scores
 
@@ -2106,7 +2138,7 @@ class ICA(ContainsMixin):
 
         See Also
         --------
-        find_bads_ecg, find_bads_ref
+        find_bads_ecg, find_bads_ref, find_bads_muscle
         """
         _validate_type(threshold, (str, "numeric"), "threshold")
         if isinstance(threshold, str):
@@ -2221,7 +2253,7 @@ class ICA(ContainsMixin):
 
         _check_on_missing(on_baseline, "on_baseline", extras=("reapply",))
         reapply_baseline = False
-        if isinstance(inst, (BaseEpochs, Evoked)):
+        if isinstance(inst, BaseEpochs | Evoked):
             if getattr(inst, "baseline", None) is not None:
                 if on_baseline == "reapply":
                     reapply_baseline = True
@@ -2826,7 +2858,7 @@ def _ica_explained_variance(ica, inst, normalize=False):
     # check if ica is ICA and whether inst is Raw or Epochs
     if not isinstance(ica, ICA):
         raise TypeError("first argument must be an instance of ICA.")
-    if not isinstance(inst, (BaseRaw, BaseEpochs, Evoked)):
+    if not isinstance(inst, BaseRaw | BaseEpochs | Evoked):
         raise TypeError(
             "second argument must an instance of either Raw, Epochs or Evoked."
         )
@@ -2885,7 +2917,7 @@ def _serialize(dict_, outer_sep=";", inner_sep=":"):
             for subkey, subvalue in value.items():
                 if isinstance(subvalue, list):
                     if len(subvalue) > 0:
-                        if isinstance(subvalue[0], (int, np.integer)):
+                        if isinstance(subvalue[0], int | np.integer):
                             value[subkey] = [int(i) for i in subvalue]
 
         for cls in (np.random.RandomState, Covariance):
@@ -3004,6 +3036,7 @@ def read_ica(fname, verbose=None):
         The ICA estimator.
     """
     check_fname(fname, "ICA", ("-ica.fif", "-ica.fif.gz", "_ica.fif", "_ica.fif.gz"))
+    fname = _check_fname(fname, overwrite="read", must_exist=True)
 
     logger.info(f"Reading {fname} ...")
     fid, tree, _ = fiff_open(fname)

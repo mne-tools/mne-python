@@ -1,6 +1,4 @@
-# Author: Denis Engemann <denis.engemann@gmail.com>
-#         Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -1521,6 +1519,13 @@ def test_ica_labels():
         ica.fit(raw, picks="eeg")
     ica.find_bads_muscle(raw)
     assert "muscle" in ica.labels_
+
+    # Try without sensor locations
+    raw.set_montage(None)
+    with pytest.warns(RuntimeWarning, match="based on the 'slope' criterion"):
+        labels, scores = ica.find_bads_muscle(raw, threshold=0.35)
+    assert "muscle" in ica.labels_
+    assert labels == [3]
 
 
 @testing.requires_testing_data

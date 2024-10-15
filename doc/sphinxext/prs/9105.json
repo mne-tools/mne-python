@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "1026ad762371b0a802c67af89e163434ac9640b6",
+  "authors": [
+    {
+      "n": "Catalina M. Galván",
+      "e": null
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "mne/datasets/sleep_physionet/age.py": {
+      "a": 3,
+      "d": 9
+    }
+  }
+}

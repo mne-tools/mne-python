@@ -1,16 +1,9 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
-#          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
-#          Denis Engemann <denis.engemann@gmail.com>
-#          Andrew Dykstra <andrew.r.dykstra@gmail.com>
-#          Teon Brooks <teon.brooks@gmail.com>
-#          Daniel McCloy <dan.mccloy@gmail.com>
-#          Ana Radanovic <radanovica@protonmail.com>
-#          Erica Peterson <nordme@uw.edu>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+
+from __future__ import annotations  # only needed for Python ≤ 3.9
 
 import os.path as op
 import string
@@ -20,11 +13,10 @@ from copy import deepcopy
 from dataclasses import dataclass
 from functools import partial
 from pathlib import Path
-from typing import Union
 
 import numpy as np
 from scipy.io import loadmat
-from scipy.sparse import csr_matrix, lil_matrix
+from scipy.sparse import csr_array, lil_array
 from scipy.spatial import Delaunay
 from scipy.stats import zscore
 
@@ -260,7 +252,7 @@ def unify_bad_channels(insts):
     valid_types = (BaseRaw, Epochs, Evoked, BaseSpectrum)
     for inst in insts:
         _validate_type(inst, valid_types, "each object in insts")
-        if type(inst) != inst_type:
+        if type(inst) is not inst_type:
             raise ValueError("All insts must be the same type")
 
     # ensure all insts have the same channels and channel order
@@ -601,6 +593,8 @@ class UpdateChannelsMixin:
 
         bad_idx = [self.ch_names.index(ch) for ch in ch_names if ch in self.ch_names]
         idx = np.setdiff1d(np.arange(len(self.ch_names)), bad_idx)
+        if len(idx) == 0:
+            raise ValueError("All channels would be dropped.")
         return self._pick_drop_channels(idx)
 
     @verbose
@@ -696,6 +690,7 @@ class UpdateChannelsMixin:
         # avoid circular imports
         from ..epochs import BaseEpochs
         from ..io import BaseRaw
+        from ..time_frequency import EpochsTFR
 
         _validate_type(add_list, (list, tuple), "Input")
 
@@ -708,6 +703,9 @@ class UpdateChannelsMixin:
         elif isinstance(self, BaseEpochs):
             con_axis = 1
             comp_class = BaseEpochs
+        elif isinstance(self, EpochsTFR):
+            con_axis = 1
+            comp_class = EpochsTFR
         else:
             con_axis = 0
             comp_class = type(self)
@@ -1028,7 +1026,7 @@ class _BuiltinChannelAdjacency:
     name: str
     description: str
     fname: str
-    source_url: Union[str, None]
+    source_url: str | None
 
 
 _ft_neighbor_url_t = string.Template(
@@ -1332,7 +1330,7 @@ def read_ch_adjacency(fname, picks=None):
 
     Returns
     -------
-    ch_adjacency : scipy.sparse.csr_matrix, shape (n_channels, n_channels)
+    ch_adjacency : scipy.sparse.csr_array, shape (n_channels, n_channels)
         The adjacency matrix.
     ch_names : list
         The list of channel names present in adjacency matrix.
@@ -1433,7 +1431,7 @@ def _ch_neighbor_adjacency(ch_names, neighbors):
     ch_adjacency = np.eye(len(ch_names), dtype=bool)
     for ii, neigbs in enumerate(neighbors):
         ch_adjacency[ii, [ch_names.index(i) for i in neigbs]] = True
-    ch_adjacency = csr_matrix(ch_adjacency)
+    ch_adjacency = csr_array(ch_adjacency)
     return ch_adjacency
 
 
@@ -1455,7 +1453,7 @@ def find_ch_adjacency(info, ch_type):
 
     Returns
     -------
-    ch_adjacency : scipy.sparse.csr_matrix, shape (n_channels, n_channels)
+    ch_adjacency : scipy.sparse.csr_array, shape (n_channels, n_channels)
         The adjacency matrix.
     ch_names : list
         The list of channel names present in adjacency matrix.
@@ -1568,7 +1566,7 @@ def _compute_ch_adjacency(info, ch_type):
 
     Returns
     -------
-    ch_adjacency : scipy.sparse.csr_matrix, shape (n_channels, n_channels)
+    ch_adjacency : scipy.sparse.csr_array, shape (n_channels, n_channels)
         The adjacency matrix.
     ch_names : list
         The list of channel names present in adjacency matrix.
@@ -1607,9 +1605,9 @@ def _compute_ch_adjacency(info, ch_type):
                 for jj in range(2):
                     ch_adjacency[idx * 2 + ii, neigbs * 2 + jj] = True
                     ch_adjacency[idx * 2 + ii, idx * 2 + jj] = True  # pair
-        ch_adjacency = csr_matrix(ch_adjacency)
+        ch_adjacency = csr_array(ch_adjacency)
     else:
-        ch_adjacency = lil_matrix(neighbors)
+        ch_adjacency = lil_array(neighbors)
         ch_adjacency.setdiag(np.repeat(1, ch_adjacency.shape[0]))
         ch_adjacency = ch_adjacency.tocsr()
 
@@ -2099,7 +2097,7 @@ def read_vectorview_selection(name, fname=None, info=None, verbose=None):
         List with channel names in the selection.
     """
     # convert name to list of string
-    if not isinstance(name, (list, tuple)):
+    if not isinstance(name, list | tuple):
         name = [name]
     if isinstance(info, Info):
         picks = pick_types(info, meg=True, exclude=())

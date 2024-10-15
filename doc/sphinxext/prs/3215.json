@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "76245d0bc41170e1e02c0410659121eedaffe135",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/bem.py": {
+      "a": 6,
+      "d": 0
+    },
+    "mne/simulation/raw.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/simulation/tests/test_raw.py": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/tests/test_bem.py": {
+      "a": 5,
+      "d": 4
+    },
+    "mne/tests/test_label.py": {
+      "a": 8,
+      "d": 0
+    },
+    "mne/viz/tests/test_raw.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/viz/utils.py": {
+      "a": 3,
+      "d": 1
+    }
+  }
+}

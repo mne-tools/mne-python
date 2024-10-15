@@ -1,7 +1,4 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
-#          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -69,7 +66,7 @@ def _compute_exg_proj(
         projs = []
     else:
         projs = cp.deepcopy(raw.info["projs"])
-        logger.info("Including %d SSP projectors from raw file" % len(projs))
+        logger.info(f"Including {len(projs)} SSP projectors from raw file")
 
     if avg_ref:
         eeg_proj = make_eeg_average_ref_proj(raw.info)

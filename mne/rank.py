@@ -1,6 +1,6 @@
 """Some utility functions for rank estimation."""
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#
+
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -340,7 +340,7 @@ def compute_rank(
 
     This function will normalize the rows of the data (typically
     channels or vertices) such that non-zero singular values
-    should be close to one.
+    should be close to one. It operates on :term:`data channels` only.
 
     Parameters
     ----------
@@ -413,7 +413,10 @@ def _compute_rank(
         info = info.copy()
         info["bads"] = []
         inst = pick_channels_cov(
-            inst, set(inst["names"]) & set(info["ch_names"]), exclude=[], ordered=False
+            inst,
+            set(inst["names"]) & set(info["ch_names"]),
+            exclude=info["bads"] + inst["bads"],
+            ordered=False,
         )
         if info["ch_names"] != inst["names"]:
             info = pick_info(
@@ -474,14 +477,14 @@ def _compute_rank(
                 logger.info(
                     f"    {ch_type_}: rank {this_rank} after "
                     f"{n_proj} projector{_pl(n_proj)} applied to "
-                    "{n_chan} channel{_pl(n_chan)}"
+                    f"{n_chan} channel{_pl(n_chan)}"
                 )
             else:
                 logger.info(f"    {ch_type_}: rank {this_rank} from info")
         else:
             # Use empirical estimation
             assert rank_type == "estimated"
-            if isinstance(inst, (BaseRaw, BaseEpochs)):
+            if isinstance(inst, BaseRaw | BaseEpochs):
                 if isinstance(inst, BaseRaw):
                     data = inst.get_data(picks, reject_by_annotation="omit")
                 else:  # isinstance(inst, BaseEpochs):

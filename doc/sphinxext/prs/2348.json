@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "0497f8fdce9ec6e8bc6b0e854fa10af545538276",
+  "authors": [
+    {
+      "n": "Teon L Brooks",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/evoked.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/report.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/viz/topomap.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

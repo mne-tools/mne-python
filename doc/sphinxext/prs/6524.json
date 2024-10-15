@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "047c9a707593095e8b2dd1af5e40afc82e7742aa",
+  "authors": [
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/viz/_3d.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/backends/_pysurfer_mayavi.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/backends/_pyvista.py": {
+      "a": 20,
+      "d": 9
+    },
+    "mne/viz/backends/base_renderer.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/backends/tests/test_renderer.py": {
+      "a": 7,
+      "d": 8
+    }
+  }
+}

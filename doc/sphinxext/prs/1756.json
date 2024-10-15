@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "6761a2aa8afbf4758cb929ed7530fdacd5c83656",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/decoding/plot_decoding_spatio_temporal_source.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/stats/plot_cluster_stats_spatio_temporal_repeated_measures_anova.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/forward/forward.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/label.py": {
+      "a": 6,
+      "d": 6
+    },
+    "mne/source_estimate.py": {
+      "a": 12,
+      "d": 10
+    },
+    "mne/source_space.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/surface.py": {
+      "a": 8,
+      "d": 0
+    },
+    "mne/viz/raw.py": {
+      "a": 28,
+      "d": 12
+    }
+  }
+}

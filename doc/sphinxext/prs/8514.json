@@ -1,0 +1,59 @@
+{
+  "merge_commit_sha": "c046c9c84a0f7f9874fd0f58ef259eaa5e2f6c08",
+  "authors": [
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    }
+  ],
+  "changes": {
+    ".github/workflows/codespell_and_flake.yml": {
+      "a": 38,
+      "d": 0
+    },
+    ".github/workflows/compat_minimal.yml": {
+      "a": 65,
+      "d": 0
+    },
+    ".github/workflows/compat_old.yml": {
+      "a": 60,
+      "d": 0
+    },
+    ".github/workflows/linux_conda.yml": {
+      "a": 6,
+      "d": 5
+    },
+    ".github/workflows/linux_pip.yml": {
+      "a": 60,
+      "d": 0
+    },
+    ".github/workflows/macos_conda.yml": {
+      "a": 4,
+      "d": 3
+    },
+    ".travis.yml": {
+      "a": 0,
+      "d": 135
+    },
+    "azure-pipelines.yml": {
+      "a": 244,
+      "d": 230
+    },
+    "tools/get_minimal_commands.sh": {
+      "a": 19,
+      "d": 17
+    },
+    "tools/github_actions_dependencies.sh": {
+      "a": 15,
+      "d": 2
+    },
+    "tools/github_actions_download.sh": {
+      "a": 3,
+      "d": 1
+    },
+    "tools/github_actions_test.sh": {
+      "a": 22,
+      "d": 1
+    }
+  }
+}

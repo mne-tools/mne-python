@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "638d45ffe124e294f9bfe1c37ec00ca65ec2c739",
+  "authors": [
+    {
+      "n": "Teon L Brooks",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/source/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/meas_info.py": {
+      "a": 22,
+      "d": 1
+    },
+    "mne/io/tests/test_meas_info.py": {
+      "a": 40,
+      "d": 0
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

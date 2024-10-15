@@ -1,10 +1,6 @@
 """Functions to plot M/EEG data on topo (one axes per channel)."""
 
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Denis Engemann <denis.engemann@gmail.com>
-#          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
-#          Eric Larson <larson.eric.d@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -14,7 +10,7 @@ from functools import partial
 import numpy as np
 from scipy import ndimage
 
-from .._fiff.pick import channel_type, pick_types
+from .._fiff.pick import _picks_to_idx, channel_type, pick_types
 from ..defaults import _handle_default
 from ..utils import Bunch, _check_option, _clean_names, _is_numeric, _to_rgb, fill_doc
 from .utils import (
@@ -330,8 +326,7 @@ def _plot_topo(
 
     for ax, ch_idx in my_topo_plot:
         if layout.kind == "Vectorview-all" and ylim is not None:
-            this_type = {"mag": 0, "grad": 1}[channel_type(info, ch_idx)]
-            ylim_ = [v[this_type] if _check_vlim(v) else v for v in ylim]
+            ylim_ = ylim.get(channel_type(info, ch_idx))
         else:
             ylim_ = ylim
 
@@ -388,18 +383,14 @@ def _plot_topo_onpick(event, show_func):
 
 def _compute_ax_scalings(bn, xlim, ylim):
     """Compute scale factors for a unified plot."""
-    if isinstance(ylim[0], (tuple, list, np.ndarray)):
-        ylim = (ylim[0][0], ylim[1][0])
+    if isinstance(ylim, dict):
+        # Take the first (ymin, ymax) entry.
+        ylim = next(iter(ylim.values()))
     pos = bn.pos
     bn.x_s = pos[2] / (xlim[1] - xlim[0])
     bn.x_t = pos[0] - bn.x_s * xlim[0]
     bn.y_s = pos[3] / (ylim[1] - ylim[0])
     bn.y_t = pos[1] - bn.y_s * ylim[0]
-
-
-def _check_vlim(vlim):
-    """Check the vlim."""
-    return not np.isscalar(vlim) and vlim is not None
 
 
 def _imshow_tfr(
@@ -974,6 +965,16 @@ def _plot_evoked_topo(
 
     if layout is None:
         layout = find_layout(info, exclude=exclude)
+    else:
+        layout = layout.pick(
+            "all",
+            exclude=_picks_to_idx(
+                info,
+                exclude if exclude != "bads" else info["bads"],
+                exclude=(),
+                allow_empty=True,
+            ),
+        )
 
     if not merge_channels:
         # XXX. at the moment we are committed to 1- / 2-sensor-types layouts
@@ -998,13 +999,11 @@ def _plot_evoked_topo(
             > 0
         )
         if is_meg:
-            types_used = list(types_used)[::-1]  # -> restore kwarg order
             picks = [
                 pick_types(info, meg=kk, ref_meg=False, exclude=exclude)
                 for kk in types_used
             ]
         elif is_nirs:
-            types_used = list(types_used)[::-1]  # -> restore kwarg order
             picks = [
                 pick_types(info, fnirs=kk, ref_meg=False, exclude=exclude)
                 for kk in types_used
@@ -1035,21 +1034,15 @@ def _plot_evoked_topo(
 
     if ylim is None:
         # find minima and maxima over all evoked data for each channel pick
-        ymaxes = np.array([max((e.data[t]).max() for e in evoked) for t in picks])
-        ymins = np.array([min((e.data[t]).min() for e in evoked) for t in picks])
-
-        ylim_ = (ymins, ymaxes)
+        ylim_ = dict()
+        for ch_type, p in zip(types_used, picks):
+            ylim_[ch_type] = [
+                min([e.data[p].min() for e in evoked]),
+                max([e.data[p].max() for e in evoked]),
+            ]
     elif isinstance(ylim, dict):
         ylim_ = _handle_default("ylim", ylim)
-        ylim_ = [ylim_[kk] for kk in types_used]
-        # extra unpack to avoid bug #1700
-        if len(ylim_) == 1:
-            ylim_ = ylim_[0]
-        else:
-            ylim_ = [np.array(yl) for yl in ylim_]
-            # Transposing to avoid Zipping confusion
-            if is_meg or is_nirs:
-                ylim_ = list(map(list, zip(*ylim_)))
+        ylim_ = {kk: ylim_[kk] for kk in types_used}
     else:
         raise TypeError(f"ylim must be None or a dict. Got {type(ylim)}.")
 

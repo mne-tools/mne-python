@@ -1,0 +1,103 @@
+{
+  "merge_commit_sha": "6107c3a6377eb07c2ba1c5a93cea54122fe74d64",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/datasets/opm_data.py": {
+      "a": 2,
+      "d": 2
+    },
+    "examples/forward/left_cerebellum_volume_source.py": {
+      "a": 0,
+      "d": 1
+    },
+    "examples/inverse/read_inverse.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/preprocessing/movement_detection.py": {
+      "a": 0,
+      "d": 1
+    },
+    "examples/time_frequency/source_power_spectrum_opm.py": {
+      "a": 2,
+      "d": 3
+    },
+    "examples/visualization/3d_to_2d.py": {
+      "a": 5,
+      "d": 6
+    },
+    "examples/visualization/eeg_on_scalp.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/viz/_3d.py": {
+      "a": 27,
+      "d": 21
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 8,
+      "d": 5
+    },
+    "tools/circleci_dependencies.sh": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/clinical/20_seeg.py": {
+      "a": 2,
+      "d": 2
+    },
+    "tutorials/clinical/30_ecog.py": {
+      "a": 3,
+      "d": 3
+    },
+    "tutorials/forward/20_source_alignment.py": {
+      "a": 2,
+      "d": 3
+    },
+    "tutorials/forward/25_automated_coreg.py": {
+      "a": 10,
+      "d": 4
+    },
+    "tutorials/forward/30_forward.py": {
+      "a": 2,
+      "d": 2
+    },
+    "tutorials/forward/35_eeg_no_mri.py": {
+      "a": 6,
+      "d": 9
+    },
+    "tutorials/intro/40_sensor_locations.py": {
+      "a": 1,
+      "d": 0
+    },
+    "tutorials/inverse/35_dipole_orientations.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/inverse/70_eeg_mri_coords.py": {
+      "a": 2,
+      "d": 2
+    },
+    "tutorials/inverse/80_brainstorm_phantom_elekta.py": {
+      "a": 0,
+      "d": 1
+    },
+    "tutorials/inverse/85_brainstorm_phantom_ctf.py": {
+      "a": 0,
+      "d": 1
+    },
+    "tutorials/inverse/90_phantom_4DBTi.py": {
+      "a": 0,
+      "d": 1
+    }
+  }
+}

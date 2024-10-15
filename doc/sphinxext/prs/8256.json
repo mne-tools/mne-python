@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "66314aca8df5e13deef848fd0aebea3c9c64c34d",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/datasets/plot_opm_data.py": {
+      "a": 10,
+      "d": 4
+    },
+    "examples/inverse/plot_custom_inverse_solver.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/inverse/plot_mixed_norm_inverse.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/inverse/plot_multidict_reweighted_tfmxne.py": {
+      "a": 3,
+      "d": 3
+    },
+    "examples/inverse/plot_rap_music.py": {
+      "a": 2,
+      "d": 1
+    },
+    "examples/visualization/plot_make_report.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

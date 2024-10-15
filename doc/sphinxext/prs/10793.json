@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "9423ce676734d74e0551132ab4d6698d9bab3807",
+  "authors": [
+    {
+      "n": "Alex Ciok",
+      "e": null
+    }
+  ],
+  "changes": {
+    "tutorials/README.txt": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

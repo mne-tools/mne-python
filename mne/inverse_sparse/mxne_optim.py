@@ -1,6 +1,4 @@
-# Author: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#         Daniel Strohmeier <daniel.strohmeier@gmail.com>
-#         Mathurin Massias <mathurin.massias@gmail.com>
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -1622,7 +1620,7 @@ def iterative_tf_mixed_norm_solver(
             w_time = 1.0 / w_time
             w_time[w_time < 0.0] = 0.0
 
-        X, Z, active_set_, E_, _ = _tf_mixed_norm_solver_bcd_active_set(
+        X, Z, active_set_, _, _ = _tf_mixed_norm_solver_bcd_active_set(
             M,
             G[:, active_set],
             alpha_space,

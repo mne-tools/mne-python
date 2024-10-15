@@ -1,5 +1,7 @@
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 from pathlib import Path
 
 import numpy as np
@@ -291,6 +293,7 @@ def test_basics(this_fname):
     _test_raw_reader(read_raw_eyelink, fname=this_fname, test_preloading=False)
 
 
+@requires_testing_data
 def test_annotations_without_offset(tmp_path):
     """Test read of annotations without offset."""
     out_file = tmp_path / "tmp_eyelink.asc"
@@ -301,7 +304,6 @@ def test_annotations_without_offset(tmp_path):
     ts = lines[-3].split("\t")[0]
     line = f"MSG\t{ts} test string\n"
     lines = lines[:-3] + [line] + lines[-3:]
-
     with open(out_file, "w") as file:
         file.writelines(lines)
 
@@ -316,3 +318,20 @@ def test_annotations_without_offset(tmp_path):
     assert raw.annotations[1]["description"] == "SYNCTIME"
     assert_allclose(raw.annotations[-1]["onset"], onset1)
     assert_allclose(raw.annotations[1]["onset"], onset2 - 2 / raw.info["sfreq"])
+
+
+@requires_testing_data
+def test_no_datetime(tmp_path):
+    """Test reading a file with no datetime."""
+    out_file = tmp_path / "tmp_eyelink.asc"
+    with open(fname) as file:
+        lines = file.readlines()
+    # remove the timestamp from the datetime line
+    lines[1] = lines[1].split(":")[0] + ":"
+    with open(out_file, "w") as file:
+        file.writelines(lines)
+    raw = read_raw_eyelink(out_file)
+    assert raw.info["meas_date"] is None
+    # Sanity check that a None meas_date doesn't change annotation times
+    # First annotation in this file is a fixation at 0.004 seconds
+    np.testing.assert_allclose(raw.annotations.onset[0], 0.004)

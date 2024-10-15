@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "e3a40fc1b173cb4b49356864aa3551237c5d0d2d",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/_static/style.css": {
+      "a": 8,
+      "d": 0
+    },
+    "doc/conf.py": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

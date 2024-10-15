@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "4656e131bd04c85335531f475dffdb35388d0d4e",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/epochs.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/base.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/_figure.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/viz/epochs.py": {
+      "a": 8,
+      "d": 2
+    },
+    "mne/viz/raw.py": {
+      "a": 8,
+      "d": 2
+    },
+    "mne/viz/tests/test_figure.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/topomap.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

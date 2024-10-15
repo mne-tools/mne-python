@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "092cf9002c0510de7d66255a8b11e3a591036f92",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "doc/sphinxext/contrib_avatars.py": {
+      "a": 26,
+      "d": 18
+    },
+    "tools/circleci_bash_env.sh": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

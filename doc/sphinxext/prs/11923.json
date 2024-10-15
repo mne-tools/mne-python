@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "6a701d39b24c337c59295b38d88fd7e5ebaa25ef",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/conftest.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/fieldtrip/tests/test_fieldtrip.py": {
+      "a": 0,
+      "d": 8
+    },
+    "mne/viz/backends/_pyvista.py": {
+      "a": 24,
+      "d": 34
+    },
+    "mne/viz/backends/tests/test_renderer.py": {
+      "a": 2,
+      "d": 0
+    },
+    "tools/circleci_bash_env.sh": {
+      "a": 0,
+      "d": 1
+    },
+    "tutorials/forward/50_background_freesurfer_mne.py": {
+      "a": 1,
+      "d": 0
+    },
+    "tutorials/inverse/50_beamformer_lcmv.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/simulation/70_point_spread.py": {
+      "a": 0,
+      "d": 1
+    }
+  }
+}

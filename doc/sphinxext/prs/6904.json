@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "050e3f84efc2be7dafaf65408f6b3152d41938ec",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/io/proj.py": {
+      "a": 14,
+      "d": 27
+    },
+    "mne/utils/docs.py": {
+      "a": 55,
+      "d": 0
+    },
+    "mne/viz/topomap.py": {
+      "a": 17,
+      "d": 67
+    },
+    "tutorials/preprocessing/plot_50_artifact_correction_ssp.py": {
+      "a": 2,
+      "d": 2
+    },
+    "tutorials/raw/plot_40_visualize_raw.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

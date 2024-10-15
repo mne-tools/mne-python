@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "24ce31b48eb0921924573330149ba61f2b0e15ad",
+  "authors": [
+    {
+      "n": "robintibor",
+      "e": "robintibor@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/io/edf/edf.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

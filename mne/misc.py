@@ -1,6 +1,4 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Scott Burns <sburns@nmr.mgh.harvard.edu>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -81,19 +79,3 @@ def read_reject_parameters(fname):
             reject[reject_pynames[reject_names.index(words[0])]] = float(words[1])
 
     return reject
-
-
-def read_flat_parameters(fname):
-    """Read flat channel rejection parameters from .cov or .ave config file."""
-    with open(fname) as f:
-        lines = f.readlines()
-
-    reject_names = ["gradFlat", "magFlat", "eegFlat", "eogFlat", "ecgFlat"]
-    reject_pynames = ["grad", "mag", "eeg", "eog", "ecg"]
-    flat = dict()
-    for line in lines:
-        words = line.split()
-        if words[0] in reject_names:
-            flat[reject_pynames[reject_names.index(words[0])]] = float(words[1])
-
-    return flat

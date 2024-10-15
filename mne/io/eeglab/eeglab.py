@@ -1,7 +1,4 @@
-# Authors: Mainak Jas <mainak.jas@telecom-paristech.fr>
-#          Jona Sassenhagen <jona.sassenhagen@gmail.com>
-#          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -73,6 +70,7 @@ def _check_eeglab_fname(fname, dataname):
 
 def _check_load_mat(fname, uint16_codec):
     """Check if the mat struct contains 'EEG'."""
+    fname = _check_fname(fname, "read", True)
     eeg = _readmat(fname, uint16_codec=uint16_codec)
     if "ALLEEG" in eeg:
         raise NotImplementedError(
@@ -91,7 +89,7 @@ def _check_load_mat(fname, uint16_codec):
 
 def _to_loc(ll):
     """Check if location exists."""
-    if isinstance(ll, (int, float)) or len(ll) > 0:
+    if isinstance(ll, int | float) or len(ll) > 0:
         return ll
     else:
         return np.nan
@@ -385,7 +383,7 @@ def read_epochs_eeglab(
 
     Returns
     -------
-    epochs : instance of Epochs
+    EpochsEEGLAB : instance of BaseEpochs
         The epochs.
 
     See Also
@@ -627,7 +625,7 @@ class EpochsEEGLAB(BaseEpochs):
             epochs = _bunchify(eeg.epoch)
             events = _bunchify(eeg.event)
             for ep in epochs:
-                if isinstance(ep.eventtype, (int, float)):
+                if isinstance(ep.eventtype, int | float):
                     ep.eventtype = str(ep.eventtype)
                 if not isinstance(ep.eventtype, str):
                     event_type = "/".join([str(et) for et in ep.eventtype])
@@ -665,7 +663,7 @@ class EpochsEEGLAB(BaseEpochs):
                 events[idx, 0] = event_latencies[idx]
                 events[idx, 1] = prev_stim
                 events[idx, 2] = event_id[event_name[idx]]
-        elif isinstance(events, (str, Path, PathLike)):
+        elif isinstance(events, str | Path | PathLike):
             events = read_events(events)
 
         logger.info(f"Extracting parameters from {input_fname}...")
@@ -673,9 +671,7 @@ class EpochsEEGLAB(BaseEpochs):
 
         for key, val in event_id.items():
             if val not in events[:, 2]:
-                raise ValueError(
-                    f"No matching events found for {key} (event id {val:i})"
-                )
+                raise ValueError(f"No matching events found for {key} (event id {val})")
 
         if isinstance(eeg.data, str):
             data_fname = _check_eeglab_fname(input_fname, eeg.data)
@@ -760,7 +756,7 @@ def _read_annotations_eeglab(eeg, uint16_codec=None):
 
     Parameters
     ----------
-    eeg : object | str
+    eeg : object | str | Path
         'EEG' struct or the path to the (EEGLAB) .set file.
     uint16_codec : str | None
         If your \*.set file contains non-ascii characters, sometimes reading
@@ -774,14 +770,14 @@ def _read_annotations_eeglab(eeg, uint16_codec=None):
     annotations : instance of Annotations
         The annotations present in the file.
     """
-    if isinstance(eeg, str):
+    if isinstance(eeg, (str | Path | PathLike)):
         eeg = _check_load_mat(eeg, uint16_codec=uint16_codec)
 
     if not hasattr(eeg, "event"):
         events = []
     elif isinstance(eeg.event, dict) and np.array(eeg.event["latency"]).ndim > 0:
         events = _dol_to_lod(eeg.event)
-    elif not isinstance(eeg.event, (np.ndarray, list)):
+    elif not isinstance(eeg.event, np.ndarray | list):
         events = [eeg.event]
     else:
         events = eeg.event

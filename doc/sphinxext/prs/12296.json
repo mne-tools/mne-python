@@ -1,0 +1,127 @@
+{
+  "merge_commit_sha": "35f0ef65d02af33acf55ba01fa5aa62d8697e117",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/conf.py": {
+      "a": 27,
+      "d": 24
+    },
+    "mne/annotations.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/epochs.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/artemis123/artemis123.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/boxy/boxy.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/bti/bti.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/cnt/cnt.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/ctf/ctf.py": {
+      "a": 1,
+      "d": 6
+    },
+    "mne/io/curry/curry.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/edf/edf.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/io/eeglab/eeglab.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/egi/egi.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/eximia/eximia.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/eyelink/eyelink.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/fieldtrip/fieldtrip.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/fiff/raw.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/fil/fil.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/io/hitachi/hitachi.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/kit/kit.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/nedf/nedf.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/neuralynx/neuralynx.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/nicolet/nicolet.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/nihon/nihon.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/nirx/nirx.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/io/nsx/nsx.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/persyst/persyst.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/snirf/_snirf.py": {
+      "a": 3,
+      "d": 1
+    },
+    "pyproject.toml": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

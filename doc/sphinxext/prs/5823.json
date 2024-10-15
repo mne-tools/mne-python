@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "68410a1468b7fa5d72ec631a844a1b448caf8223",
+  "authors": [
+    {
+      "n": "Thomas Hartmann",
+      "e": "thomas.hartmann@th-ht.de"
+    }
+  ],
+  "changes": {
+    "mne/externals/pymatreader/utils.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

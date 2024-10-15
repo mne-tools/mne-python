@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "9ae99424325ef5f100c0774f469a948884fe8b07",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/12450.other.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/export/_brainvision.py": {
+      "a": 141,
+      "d": 2
+    }
+  }
+}

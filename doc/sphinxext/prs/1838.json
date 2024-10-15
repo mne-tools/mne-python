@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "ab0bf315742959780bdc7ddd18d5147b7e7f32ce",
+  "authors": [
+    {
+      "n": "Clement Moutard",
+      "e": "clement.moutard@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/event.py": {
+      "a": 11,
+      "d": 1
+    },
+    "mne/tests/test_event.py": {
+      "a": 22,
+      "d": 1
+    }
+  }
+}

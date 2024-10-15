@@ -1,5 +1,4 @@
-# Authors: Eric Larson <larson.eric.d@gmail.com>
-
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -56,7 +55,7 @@ class _Interp2:
             )
         if isinstance(values, np.ndarray):
             values = [values]
-        if isinstance(values, (list, tuple)):
+        if isinstance(values, list | tuple):
             for v in values:
                 if not (v is None or isinstance(v, np.ndarray)):
                     raise TypeError(
@@ -213,7 +212,7 @@ class _Interp2:
 def _check_store(store):
     if isinstance(store, np.ndarray):
         store = [store]
-    if isinstance(store, (list, tuple)) and all(
+    if isinstance(store, list | tuple) and all(
         isinstance(s, np.ndarray) for s in store
     ):
         store = _Storer(*store)

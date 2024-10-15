@@ -1,6 +1,4 @@
-# # Authors: MNE Developers
-#            Stefan Appelhoff <stefan.appelhoff@mailbox.org>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -308,8 +306,8 @@ def test_read_write_info(tmp_path):
     assert info["hpi_meas"][0]["creator"] == creator
     assert info["subject_info"]["his_id"] == creator
     assert info["gantry_angle"] == gantry_angle
-    assert info["subject_info"]["height"] == 2.3
-    assert info["subject_info"]["weight"] == 11.1
+    assert_allclose(info["subject_info"]["height"], 2.3)
+    assert_allclose(info["subject_info"]["weight"], 11.1)
     for key in ["secs", "usecs", "version"]:
         assert info["meas_id"][key] == meas_id[key]
     assert_array_equal(info["meas_id"]["machid"], meas_id["machid"])
@@ -568,6 +566,18 @@ def test_check_consistency():
     with pytest.raises(KeyError, match="key missing"):
         info2._check_consistency()
 
+    # bad subject_info entries
+    info2 = info.copy()
+    with pytest.raises(TypeError, match="must be an instance"):
+        info2["subject_info"] = "bad"
+    info2["subject_info"] = dict()
+    with pytest.raises(TypeError, match="must be an instance"):
+        info2["subject_info"]["height"] = "bad"
+    with pytest.raises(TypeError, match="must be an instance"):
+        info2["subject_info"]["weight"] = [0]
+    with pytest.raises(TypeError, match=r'subject_info\["height"\] must be an .*'):
+        info2["subject_info"] = {"height": "bad"}
+
 
 def _test_anonymize_info(base_info):
     """Test that sensitive information can be anonymized."""
@@ -592,7 +602,7 @@ def _test_anonymize_info(base_info):
             his_id="foobar",
             last_name="bar",
             first_name="bar",
-            birthday=(1987, 4, 8),
+            birthday=date(1987, 4, 8),
             sex=0,
             hand=1,
         )
@@ -616,7 +626,7 @@ def _test_anonymize_info(base_info):
     # this bday is 3653 days different. the change in day is due to a
     # different number of leap days between 1987 and 1977 than between
     # 2010 and 2000.
-    exp_info["subject_info"]["birthday"] = (1977, 4, 7)
+    exp_info["subject_info"]["birthday"] = date(1977, 4, 7)
     exp_info["meas_date"] = default_anon_dos
     exp_info._unlocked = False
 
@@ -644,7 +654,7 @@ def _test_anonymize_info(base_info):
     # exp 3 tests is a supplied daysback
     delta_t_2 = timedelta(days=43)
     with exp_info_3._unlock():
-        exp_info_3["subject_info"]["birthday"] = (1987, 2, 24)
+        exp_info_3["subject_info"]["birthday"] = date(1987, 2, 24)
         exp_info_3["meas_date"] = meas_date - delta_t_2
     for key in ("file_id", "meas_id"):
         value = exp_info_3.get(key)
@@ -803,23 +813,23 @@ def test_csr_csc(tmp_path):
     sss_ctc = info["proc_history"][0]["max_info"]["sss_ctc"]
     ct = sss_ctc["decoupler"].copy()
     # CSC
-    assert isinstance(ct, sparse.csc_matrix)
+    assert isinstance(ct, sparse.csc_array)
     fname = tmp_path / "test.fif"
     write_info(fname, info)
     info_read = read_info(fname)
     ct_read = info_read["proc_history"][0]["max_info"]["sss_ctc"]["decoupler"]
-    assert isinstance(ct_read, sparse.csc_matrix)
+    assert isinstance(ct_read, sparse.csc_array)
     assert_array_equal(ct_read.toarray(), ct.toarray())
     # Now CSR
     csr = ct.tocsr()
-    assert isinstance(csr, sparse.csr_matrix)
+    assert isinstance(csr, sparse.csr_array)
     assert_array_equal(csr.toarray(), ct.toarray())
     info["proc_history"][0]["max_info"]["sss_ctc"]["decoupler"] = csr
     fname = tmp_path / "test1.fif"
     write_info(fname, info)
     info_read = read_info(fname)
     ct_read = info_read["proc_history"][0]["max_info"]["sss_ctc"]["decoupler"]
-    assert isinstance(ct_read, sparse.csc_matrix)  # this gets cast to CSC
+    assert isinstance(ct_read, sparse.csc_array)  # this gets cast to CSC
     assert_array_equal(ct_read.toarray(), ct.toarray())
 
 
@@ -860,12 +870,17 @@ def test_field_round_trip(tmp_path):
             info[key] = _generate_meas_id()
         info["device_info"] = dict(type="a", model="b", serial="c", site="d")
         info["helium_info"] = dict(
-            he_level_raw=1.0, helium_level=2.0, orig_file_guid="e", meas_date=(1, 2)
+            he_level_raw=1.0,
+            helium_level=2.0,
+            orig_file_guid="e",
+            meas_date=_stamp_to_dt((1, 2)),
         )
     fname = tmp_path / "temp-info.fif"
     write_info(fname, info)
     info_read = read_info(fname)
     assert_object_equal(info, info_read)
+    with pytest.raises(TypeError, match="datetime"):
+        info["helium_info"]["meas_date"] = (1, 2)
 
 
 def test_equalize_channels():
@@ -896,18 +911,17 @@ def test_repr_html():
         info["projs"] = []
     assert "Projections" not in info._repr_html_()
     info["bads"] = []
-    assert "None" in info._repr_html_()
+    assert "Bad " not in info._repr_html_()
     info["bads"] = ["MEG 2443", "EEG 053"]
-    assert "MEG 2443" in info._repr_html_()
-    assert "EEG 053" in info._repr_html_()
+    assert "Bad " in info._repr_html_()  # 1 for each channel type
 
     html = info._repr_html_()
     for ch in [  # good channel counts
-        "203 Gradiometers",
-        "102 Magnetometers",
-        "9 Stimulus",
-        "59 EEG",
-        "1 EOG",
+        "203",  # grad
+        "102",  # mag
+        "9",  # stim
+        "59",  # eeg
+        "1",  # eog
     ]:
         assert ch in html
 

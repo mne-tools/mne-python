@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "6fd6dbd3350ff62f4093205df76bfda351a0ef6c",
+  "authors": [
+    {
+      "n": "Sheraz Khan",
+      "e": "sheraz.khan@pfizer.com"
+    }
+  ],
+  "changes": {
+    "doc/python_reference.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/whats_new.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "examples/visualization/plot_evoked_arrowmap.py": {
+      "a": 74,
+      "d": 0
+    },
+    "mne/viz/__init__.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/tests/test_topomap.py": {
+      "a": 18,
+      "d": 1
+    },
+    "mne/viz/topomap.py": {
+      "a": 175,
+      "d": 0
+    },
+    "tutorials/plot_visualize_evoked.py": {
+      "a": 8,
+      "d": 0
+    }
+  }
+}

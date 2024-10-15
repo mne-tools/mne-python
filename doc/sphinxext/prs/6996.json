@@ -1,0 +1,51 @@
+{
+  "merge_commit_sha": "eb9fa1eb489491868453ed8a3c75440708547542",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/dipole.py": {
+      "a": 15,
+      "d": 14
+    },
+    "mne/epochs.py": {
+      "a": 2,
+      "d": 37
+    },
+    "mne/evoked.py": {
+      "a": 19,
+      "d": 57
+    },
+    "mne/filter.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/forward/forward.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/tests/test_dipole.py": {
+      "a": 4,
+      "d": 1
+    },
+    "mne/tests/test_evoked.py": {
+      "a": 40,
+      "d": 8
+    },
+    "mne/utils/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/mixin.py": {
+      "a": 45,
+      "d": 0
+    }
+  }
+}

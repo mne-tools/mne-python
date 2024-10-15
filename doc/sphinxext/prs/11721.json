@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "13dd05a48aeeb952deb183bede8ed588ae55f7a6",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "azure-pipelines.yml": {
+      "a": 5,
+      "d": 3
+    },
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/viz/backends/_pyvista.py": {
+      "a": 5,
+      "d": 1
+    },
+    "mne/viz/backends/_qt.py": {
+      "a": 30,
+      "d": 9
+    },
+    "requirements.txt": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

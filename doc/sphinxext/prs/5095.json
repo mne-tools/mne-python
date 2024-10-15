@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "613e1c6931edb6da151036595789dc9923988ac7",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/channels/channels.py": {
+      "a": 7,
+      "d": 11
+    },
+    "mne/utils.py": {
+      "a": 10,
+      "d": 7
+    },
+    "mne/viz/tests/test_topomap.py": {
+      "a": 14,
+      "d": 1
+    },
+    "mne/viz/topomap.py": {
+      "a": 2,
+      "d": 2
+    },
+    "tutorials/plot_brainstorm_auditory.py": {
+      "a": 2,
+      "d": 3
+    }
+  }
+}

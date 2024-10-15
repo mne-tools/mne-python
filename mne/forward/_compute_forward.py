@@ -1,9 +1,4 @@
-# Authors: Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
-#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
-#          Eric Larson <larson.eric.d@gmail.com>
-#          Mark Wronkiewicz <wronk@uw.edu>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -55,7 +50,7 @@ def _check_coil_frame(coils, coord_frame, bem):
     if coord_frame != FIFF.FIFFV_COORD_MRI:
         if coord_frame == FIFF.FIFFV_COORD_HEAD:
             # Make a transformed duplicate
-            coils, coord_Frame = _dup_coil_set(coils, coord_frame, bem["head_mri_t"])
+            coils, coord_frame = _dup_coil_set(coils, coord_frame, bem["head_mri_t"])
         else:
             raise RuntimeError(f"Bad coil coordinate frame {coord_frame}")
     return coils, coord_frame
@@ -808,8 +803,8 @@ def _compute_forwards_meeg(rr, *, sensors, fwd_data, n_jobs, silent=False):
         # Do the actual forward calculation for a list MEG/EEG sensors
         if not silent:
             logger.info(
-                "Computing %s at %d source location%s "
-                "(free orientations)..." % (coil_type.upper(), len(rr), _pl(rr))
+                f"Computing {coil_type.upper()} at {len(rr)} source location{_pl(rr)} "
+                "(free orientations)..."
             )
         # Calculate forward solution using spherical or BEM model
         B = fun(

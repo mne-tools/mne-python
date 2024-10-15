@@ -1,6 +1,4 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -12,10 +10,10 @@ from functools import partial
 from typing import Any
 
 import numpy as np
-from scipy.sparse import csc_matrix, csr_matrix
+from scipy.sparse import csc_array, csr_array
 
 from ..utils import _check_option, warn
-from ..utils.numerics import _julian_to_cal
+from ..utils.numerics import _julian_to_date
 from .constants import (
     FIFF,
     _ch_coil_type_named,
@@ -197,41 +195,34 @@ def _read_matrix(fid, tag, shape, rlims):
         # We need to make a copy so that we can own the data, otherwise we get:
         #     _sparsetools.csr_sort_indices(len(self.indptr) - 1, self.indptr,
         # E   ValueError: WRITEBACKIFCOPY base is read-only
-        data = np.frombuffer(fid.read(bit * nnz), dtype=dtype).copy()
+        data = np.frombuffer(fid.read(bit * nnz), dtype=dtype).astype(np.float32)
         shape = (dims[1], dims[2])
         if matrix_coding == "sparse CCS":
             tmp_indices = fid.read(4 * nnz)
             indices = np.frombuffer(tmp_indices, dtype=">i4")
             tmp_ptr = fid.read(4 * (ncol + 1))
             indptr = np.frombuffer(tmp_ptr, dtype=">i4")
-            if indptr[-1] > len(indices) or np.any(indptr < 0):
-                # There was a bug in MNE-C that caused some data to be
-                # stored without byte swapping
-                indices = np.concatenate(
-                    (
-                        np.frombuffer(tmp_indices[: 4 * (nrow + 1)], dtype=">i4"),
-                        np.frombuffer(tmp_indices[4 * (nrow + 1) :], dtype="<i4"),
-                    )
-                )
-                indptr = np.frombuffer(tmp_ptr, dtype="<i4")
-            data = csc_matrix((data, indices, indptr), shape=shape)
+            swap = nrow
+            klass = csc_array
         else:
             assert matrix_coding == "sparse RCS", matrix_coding
             tmp_indices = fid.read(4 * nnz)
             indices = np.frombuffer(tmp_indices, dtype=">i4")
             tmp_ptr = fid.read(4 * (nrow + 1))
             indptr = np.frombuffer(tmp_ptr, dtype=">i4")
-            if indptr[-1] > len(indices) or np.any(indptr < 0):
-                # There was a bug in MNE-C that caused some data to be
-                # stored without byte swapping
-                indices = np.concatenate(
-                    (
-                        np.frombuffer(tmp_indices[: 4 * (ncol + 1)], dtype=">i4"),
-                        np.frombuffer(tmp_indices[4 * (ncol + 1) :], dtype="<i4"),
-                    )
+            swap = ncol
+            klass = csr_array
+        if indptr[-1] > len(indices) or np.any(indptr < 0):
+            # There was a bug in MNE-C that caused some data to be
+            # stored without byte swapping
+            indices = np.concatenate(
+                (
+                    np.frombuffer(tmp_indices[: 4 * (swap + 1)], dtype=">i4"),
+                    np.frombuffer(tmp_indices[4 * (swap + 1) :], dtype="<i4"),
                 )
-                indptr = np.frombuffer(tmp_ptr, dtype="<i4")
-            data = csr_matrix((data, indices, indptr), shape=shape)
+            )
+            indptr = np.frombuffer(tmp_ptr, dtype="<i4")
+        data = klass((data, indices, indptr), shape=shape)
     return data
 
 
@@ -378,7 +369,7 @@ def _read_dir_entry_struct(fid, tag, shape, rlims):
 
 def _read_julian(fid, tag, shape, rlims):
     """Read julian tag."""
-    return _julian_to_cal(int(np.frombuffer(fid.read(4), dtype=">i4").item()))
+    return _julian_to_date(int(np.frombuffer(fid.read(4), dtype=">i4").item()))
 
 
 # Read types call dict

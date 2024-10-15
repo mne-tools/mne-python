@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "fdd56d5c6e5c8ac3bfa649abfa84b225d1629e9f",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/decoding/base.py": {
+      "a": 6,
+      "d": 0
+    },
+    "mne/io/array/tests/test_array.py": {
+      "a": 10,
+      "d": 2
+    },
+    "mne/report/tests/test_report.py": {
+      "a": 19,
+      "d": 13
+    },
+    "mne/time_frequency/spectrum.py": {
+      "a": 21,
+      "d": 2
+    },
+    "mne/utils/docs.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/utils/spectrum.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/tests/test_epochs.py": {
+      "a": 6,
+      "d": 4
+    },
+    "mne/viz/tests/test_raw.py": {
+      "a": 15,
+      "d": 11
+    }
+  }
+}

@@ -1,18 +1,16 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
-#          Teon Brooks <teon.brooks@gmail.com>
-#          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
 import contextlib
 import datetime
 import operator
+import re
 import string
-from collections import Counter, OrderedDict, defaultdict
+from collections import Counter, OrderedDict
 from collections.abc import Mapping
 from copy import deepcopy
+from functools import partial
 from io import BytesIO
 from textwrap import shorten
 
@@ -309,6 +307,9 @@ def _unique_channel_names(ch_names, max_length=None, verbose=None):
     return ch_names
 
 
+# %% Mixin classes
+
+
 class MontageMixin:
     """Mixin for Montage getting and setting."""
 
@@ -550,6 +551,9 @@ class SetChannelsMixin(MontageMixin):
             eyegaze, fnirs_cw_amplitude, fnirs_fd_ac_amplitude, fnirs_fd_phase,
             fnirs_od, gof, gsr, hbo, hbr, ias, misc, pupil, ref_meg, resp,
             seeg, stim, syst, temperature.
+
+        When working with eye-tracking data, see
+        :func:`mne.preprocessing.eyetracking.set_channel_types_eyetrack`.
 
         .. versionadded:: 0.9.0
         """
@@ -923,6 +927,152 @@ class ContainsMixin:
         return ch_types
 
 
+# %% ValidatedDict class
+
+
+class ValidatedDict(dict):
+    _attributes = {}  # subclasses should set this to validated attributes
+
+    def __init__(self, *args, **kwargs):
+        self._unlocked = True
+        super().__init__(*args, **kwargs)
+        self._unlocked = False
+
+    def __getstate__(self):
+        """Get state (for pickling)."""
+        return {"_unlocked": self._unlocked}
+
+    def __setstate__(self, state):
+        """Set state (for pickling)."""
+        self._unlocked = state["_unlocked"]
+
+    def __setitem__(self, key, val):
+        """Attribute setter."""
+        # During unpickling, the _unlocked attribute has not been set, so
+        # let __setstate__ do it later and act unlocked now
+        unlocked = getattr(self, "_unlocked", True)
+        if key in self._attributes:
+            if isinstance(self._attributes[key], str):
+                if not unlocked:
+                    raise RuntimeError(self._attributes[key])
+            else:
+                val = self._attributes[key](
+                    val, info=self
+                )  # attribute checker function
+        else:
+            class_name = self.__class__.__name__
+            extra = ""
+            if "temp" in self._attributes:
+                var_name = _camel_to_snake(class_name)
+                extra = (
+                    f"You can set {var_name}['temp'] to store temporary objects in "
+                    f"{class_name} instances, but these will not survive an I/O "
+                    "round-trip."
+                )
+            raise RuntimeError(
+                f"{class_name} does not support directly setting the key {repr(key)}. "
+                + extra
+            )
+        super().__setitem__(key, val)
+
+    def update(self, other=None, **kwargs):
+        """Update method using __setitem__()."""
+        iterable = other.items() if isinstance(other, Mapping) else other
+        if other is not None:
+            for key, val in iterable:
+                self[key] = val
+        for key, val in kwargs.items():
+            self[key] = val
+
+    def copy(self):
+        """Copy the instance.
+
+        Returns
+        -------
+        info : instance of Info
+            The copied info.
+        """
+        return deepcopy(self)
+
+    def __repr__(self):
+        """Return a string representation."""
+        mapping = ", ".join(f"{key}: {val}" for key, val in self.items())
+        return f"<{_camel_to_snake(self.__class__.__name__)} | {mapping}>"
+
+
+# %% Subject info
+
+
+def _check_types(x, *, info, name, types, cast=None):
+    _validate_type(x, types, name)
+    if cast is not None and x is not None:
+        x = cast(x)
+    return x
+
+
+class SubjectInfo(ValidatedDict):
+    _attributes = {
+        "id": partial(_check_types, name='subject_info["id"]', types=int),
+        "his_id": partial(_check_types, name='subject_info["his_id"]', types=str),
+        "last_name": partial(_check_types, name='subject_info["last_name"]', types=str),
+        "first_name": partial(
+            _check_types, name='subject_info["first_name"]', types=str
+        ),
+        "middle_name": partial(
+            _check_types, name='subject_info["middle_name"]', types=str
+        ),
+        "birthday": partial(
+            _check_types, name='subject_info["birthday"]', types=(datetime.date, None)
+        ),
+        "sex": partial(_check_types, name='subject_info["sex"]', types=int),
+        "hand": partial(_check_types, name='subject_info["hand"]', types=int),
+        "weight": partial(
+            _check_types, name='subject_info["weight"]', types="numeric", cast=float
+        ),
+        "height": partial(
+            _check_types, name='subject_info["height"]', types="numeric", cast=float
+        ),
+    }
+
+    def __init__(self, initial):
+        _validate_type(initial, dict, "subject_info")
+        super().__init__()
+        for key, val in initial.items():
+            self[key] = val
+
+
+class HeliumInfo(ValidatedDict):
+    _attributes = {
+        "he_level_raw": partial(
+            _check_types,
+            name='helium_info["he_level_raw"]',
+            types="numeric",
+            cast=float,
+        ),
+        "helium_level": partial(
+            _check_types,
+            name='helium_info["helium_level"]',
+            types="numeric",
+            cast=float,
+        ),
+        "orig_file_guid": partial(
+            _check_types, name='helium_info["orig_file_guid"]', types=str
+        ),
+        "meas_date": partial(
+            _check_types, name='helium_info["meas_date"]', types=datetime.datetime
+        ),
+    }
+
+    def __init__(self, initial):
+        _validate_type(initial, dict, "helium_info")
+        super().__init__()
+        for key, val in initial.items():
+            self[key] = val
+
+
+# %% Info class and helpers
+
+
 def _format_trans(obj, key):
     from ..transforms import Transform
 
@@ -994,11 +1144,6 @@ def _check_bads(bads, *, info):
     return MNEBadsList(bads=bads, info=info)
 
 
-def _check_description(description, *, info):
-    _validate_type(description, (None, str), "info['description']")
-    return description
-
-
 def _check_dev_head_t(dev_head_t, *, info):
     from ..transforms import Transform, _ensure_trans
 
@@ -1008,48 +1153,8 @@ def _check_dev_head_t(dev_head_t, *, info):
     return dev_head_t
 
 
-def _check_experimenter(experimenter, *, info):
-    _validate_type(experimenter, (None, str), "experimenter")
-    return experimenter
-
-
-def _check_line_freq(line_freq, *, info):
-    _validate_type(line_freq, (None, "numeric"), "line_freq")
-    line_freq = float(line_freq) if line_freq is not None else line_freq
-    return line_freq
-
-
-def _check_subject_info(subject_info, *, info):
-    _validate_type(subject_info, (None, dict), "subject_info")
-    return subject_info
-
-
-def _check_device_info(device_info, *, info):
-    _validate_type(
-        device_info,
-        (
-            None,
-            dict,
-        ),
-        "device_info",
-    )
-    return device_info
-
-
-def _check_helium_info(helium_info, *, info):
-    _validate_type(
-        helium_info,
-        (
-            None,
-            dict,
-        ),
-        "helium_info",
-    )
-    return helium_info
-
-
 # TODO: Add fNIRS convention to loc
-class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
+class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
     """Measurement information.
 
     This data structure behaves like a dictionary. It contains all metadata
@@ -1331,8 +1436,12 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
             Helium level (%) after position correction.
         orig_file_guid : str
             Original file GUID.
-        meas_date : tuple of int
+        meas_date : datetime.datetime
             The helium level meas date.
+
+            .. versionchanged:: 1.8
+               This is stored as a :class:`~python:datetime.datetime` object
+               instead of a tuple of seconds/microseconds.
 
     * ``hpi_meas`` list of dict:
 
@@ -1446,8 +1555,12 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
             First name.
         middle_name : str
             Middle name.
-        birthday : tuple of int
-            Birthday in (year, month, day) format.
+        birthday : datetime.date
+            The subject birthday.
+
+            .. versionchanged:: 1.8
+               This is stored as a :class:`~python:datetime.date` object
+               instead of a tuple of seconds/microseconds.
         sex : int
             Subject sex (0=unknown, 1=male, 2=female).
         hand : int
@@ -1481,24 +1594,28 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
         "custom_ref_applied": "custom_ref_applied cannot be set directly. "
         "Please use method inst.set_eeg_reference() "
         "instead.",
-        "description": _check_description,
+        "description": partial(_check_types, name="description", types=(str, None)),
         "dev_ctf_t": "dev_ctf_t cannot be set directly.",
         "dev_head_t": _check_dev_head_t,
-        "device_info": _check_device_info,
+        "device_info": partial(_check_types, name="device_info", types=(dict, None)),
         "dig": "dig cannot be set directly. "
         "Please use method inst.set_montage() instead.",
         "events": "events cannot be set directly.",
-        "experimenter": _check_experimenter,
+        "experimenter": partial(_check_types, name="experimenter", types=(str, None)),
         "file_id": "file_id cannot be set directly.",
         "gantry_angle": "gantry_angle cannot be set directly.",
-        "helium_info": _check_helium_info,
+        "helium_info": partial(
+            _check_types, name="helium_info", types=(dict, None), cast=HeliumInfo
+        ),
         "highpass": "highpass cannot be set directly. "
         "Please use method inst.filter() instead.",
         "hpi_meas": "hpi_meas can not be set directly.",
         "hpi_results": "hpi_results cannot be set directly.",
         "hpi_subsystem": "hpi_subsystem cannot be set directly.",
         "kit_system_id": "kit_system_id cannot be set directly.",
-        "line_freq": _check_line_freq,
+        "line_freq": partial(
+            _check_types, name="line_freq", types=("numeric", None), cast=float
+        ),
         "lowpass": "lowpass cannot be set directly. "
         "Please use method inst.filter() instead.",
         "maxshield": "maxshield cannot be set directly.",
@@ -1520,7 +1637,9 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
         "instead.",
         "sfreq": "sfreq cannot be set directly. "
         "Please use method inst.resample() instead.",
-        "subject_info": _check_subject_info,
+        "subject_info": partial(
+            _check_types, name="subject_info", types=(dict, None), cast=SubjectInfo
+        ),
         "temp": lambda x, info=None: x,
         "utc_offset": "utc_offset cannot be set directly.",
         "working_dir": "working_dir cannot be set directly.",
@@ -1528,8 +1647,8 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
     }
 
     def __init__(self, *args, **kwargs):
-        self._unlocked = True
         super().__init__(*args, **kwargs)
+        self._unlocked = True
         # Deal with h5io writing things as dict
         if "bads" in self:
             self["bads"] = MNEBadsList(bads=self["bads"], info=self)
@@ -1558,45 +1677,15 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
         else:
             self["meas_date"] = _ensure_meas_date_none_or_dt(meas_date)
         self._unlocked = False
-
-    def __getstate__(self):
-        """Get state (for pickling)."""
-        return {"_unlocked": self._unlocked}
+        # with validation and casting
+        for key in ("helium_info", "subject_info"):
+            if key in self:
+                self[key] = self[key]
 
     def __setstate__(self, state):
         """Set state (for pickling)."""
-        self._unlocked = state["_unlocked"]
+        super().__setstate__(state)
         self["bads"] = MNEBadsList(bads=self["bads"], info=self)
-
-    def __setitem__(self, key, val):
-        """Attribute setter."""
-        # During unpickling, the _unlocked attribute has not been set, so
-        # let __setstate__ do it later and act unlocked now
-        unlocked = getattr(self, "_unlocked", True)
-        if key in self._attributes:
-            if isinstance(self._attributes[key], str):
-                if not unlocked:
-                    raise RuntimeError(self._attributes[key])
-            else:
-                val = self._attributes[key](
-                    val, info=self
-                )  # attribute checker function
-        else:
-            raise RuntimeError(
-                f"Info does not support directly setting the key {repr(key)}. "
-                "You can set info['temp'] to store temporary objects in an "
-                "Info instance, but these will not survive an I/O round-trip."
-            )
-        super().__setitem__(key, val)
-
-    def update(self, other=None, **kwargs):
-        """Update method using __setitem__()."""
-        iterable = other.items() if isinstance(other, Mapping) else other
-        if other is not None:
-            for key, val in iterable:
-                self[key] = val
-        for key, val in kwargs.items():
-            self[key] = val
 
     @contextlib.contextmanager
     def _unlock(self, *, update_redundant=False, check_after=False):
@@ -1616,16 +1705,6 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
                 self._check_consistency()
         finally:
             self._unlocked = state
-
-    def copy(self):
-        """Copy the instance.
-
-        Returns
-        -------
-        info : instance of Info
-            The copied info.
-        """
-        return deepcopy(self)
 
     def normalize_proj(self):
         """(Re-)Normalize projection vectors after subselection.
@@ -1682,7 +1761,7 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
                 else:
                     entr = v.strftime("%Y-%m-%d %H:%M:%S %Z")
             elif k == "kit_system_id" and v is not None:
-                entr = "%i (%s)" % (v, KIT_SYSNAMES.get(v, "unknown"))
+                entr = f"{v} ({KIT_SYSNAMES.get(v, 'unknown')})"
             elif k == "dig" and v is not None:
                 counts = Counter(d["kind"] for d in v)
                 counts = [
@@ -1717,6 +1796,8 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
                 entr = str(bool(v))
                 if not v:
                     non_empty -= 1  # don't count if 0
+            elif isinstance(v, ValidatedDict):
+                entr = repr(v)
             else:
                 try:
                     this_len = len(v)
@@ -1838,84 +1919,18 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
 
     @property
     def ch_names(self):
-        return self["ch_names"]
+        try:
+            ch_names = self["ch_names"]
+        except KeyError:
+            ch_names = []
 
-    def _get_chs_for_repr(self):
-        titles = _handle_default("titles")
-
-        # good channels
-        good_names = defaultdict(lambda: list())
-        for ci, ch_name in enumerate(self["ch_names"]):
-            if ch_name in self["bads"]:
-                continue
-            ch_type = channel_type(self, ci)
-            good_names[ch_type].append(ch_name)
-        good_channels = ", ".join(
-            [f"{len(v)} {titles.get(k, k.upper())}" for k, v in good_names.items()]
-        )
-        for key in ("ecg", "eog"):  # ensure these are present
-            if key not in good_names:
-                good_names[key] = list()
-        for key, val in good_names.items():
-            good_names[key] = ", ".join(val) or "Not available"
-
-        # bad channels
-        bad_channels = ", ".join(self["bads"]) or "None"
-
-        return good_channels, bad_channels, good_names["ecg"], good_names["eog"]
+        return ch_names
 
     @repr_html
-    def _repr_html_(self, caption=None, duration=None, filenames=None):
+    def _repr_html_(self):
         """Summarize info for HTML representation."""
-        if isinstance(caption, str):
-            html = f"<h4>{caption}</h4>"
-        else:
-            html = ""
-
-        good_channels, bad_channels, ecg, eog = self._get_chs_for_repr()
-
-        # TODO
-        # Most of the following checks are to ensure that we get a proper repr
-        # for Forward['info'] (and probably others like
-        # InverseOperator['info']??), which doesn't seem to follow our standard
-        # Info structure used elsewhere.
-        # Proposed solution for a future refactoring:
-        # Forward['info'] should get its own Info subclass (with respective
-        # repr).
-
-        # meas date
-        meas_date = self.get("meas_date")
-        if meas_date is not None:
-            meas_date = meas_date.strftime("%B %d, %Y  %H:%M:%S") + " GMT"
-
-        projs = self.get("projs")
-        if projs:
-            projs = [
-                f'{p["desc"]} : {"on" if p["active"] else "off"}' for p in self["projs"]
-            ]
-        else:
-            projs = None
-
         info_template = _get_html_template("repr", "info.html.jinja")
-        sections = ("General", "Channels", "Data")
-        return html + info_template.render(
-            sections=sections,
-            caption=caption,
-            meas_date=meas_date,
-            projs=projs,
-            ecg=ecg,
-            eog=eog,
-            good_channels=good_channels,
-            bad_channels=bad_channels,
-            dig=self.get("dig"),
-            subject_info=self.get("subject_info"),
-            lowpass=self.get("lowpass"),
-            highpass=self.get("highpass"),
-            sfreq=self.get("sfreq"),
-            experimenter=self.get("experimenter"),
-            duration=duration,
-            filenames=filenames,
-        )
+        return info_template.render(info=self)
 
     def save(self, fname):
         """Write measurement info in fif file.
@@ -2423,10 +2438,10 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
                 si["hand"] = int(tag.data.item())
             elif kind == FIFF.FIFF_SUBJ_WEIGHT:
                 tag = read_tag(fid, pos)
-                si["weight"] = tag.data
+                si["weight"] = float(tag.data.item())
             elif kind == FIFF.FIFF_SUBJ_HEIGHT:
                 tag = read_tag(fid, pos)
-                si["height"] = tag.data
+                si["height"] = float(tag.data.item())
     info["subject_info"] = si
     del si
 
@@ -2472,7 +2487,9 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
                 hi["orig_file_guid"] = str(tag.data)
             elif kind == FIFF.FIFF_MEAS_DATE:
                 tag = read_tag(fid, pos)
-                hi["meas_date"] = tuple(int(t) for t in tag.data)
+                hi["meas_date"] = _ensure_meas_date_none_or_dt(
+                    tuple(int(t) for t in tag.data),
+                )
     info["helium_info"] = hi
     del hi
 
@@ -2842,7 +2859,8 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
     if info.get("device_info") is not None:
         start_block(fid, FIFF.FIFFB_DEVICE)
         di = info["device_info"]
-        write_string(fid, FIFF.FIFF_DEVICE_TYPE, di["type"])
+        if di.get("type") is not None:
+            write_string(fid, FIFF.FIFF_DEVICE_TYPE, di["type"])
         for key in ("model", "serial", "site"):
             if di.get(key) is not None:
                 write_string(fid, getattr(FIFF, "FIFF_DEVICE_" + key.upper()), di[key])
@@ -2858,7 +2876,7 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
             write_float(fid, FIFF.FIFF_HELIUM_LEVEL, hi["helium_level"])
         if hi.get("orig_file_guid") is not None:
             write_string(fid, FIFF.FIFF_ORIG_FILE_GUID, hi["orig_file_guid"])
-        write_int(fid, FIFF.FIFF_MEAS_DATE, hi["meas_date"])
+        write_int(fid, FIFF.FIFF_MEAS_DATE, _dt_to_stamp(hi["meas_date"]))
         end_block(fid, FIFF.FIFFB_HELIUM)
         del hi
 
@@ -3212,7 +3230,7 @@ def create_info(ch_names, sfreq, ch_types="misc", verbose=None):
         this_ch_dict = ch_types_dict[ch_type]
         kind = this_ch_dict["kind"]
         # handle chpi, where kind is a *list* of FIFF constants:
-        kind = kind[0] if isinstance(kind, (list, tuple)) else kind
+        kind = kind[0] if isinstance(kind, list | tuple) else kind
         # mirror what tag.py does here
         coord_frame = _ch_coord_dict.get(kind, FIFF.FIFFV_COORD_UNKNOWN)
         coil_type = this_ch_dict.get("coil_type", FIFF.FIFFV_COIL_NONE)
@@ -3468,13 +3486,7 @@ def anonymize_info(info, daysback=None, keep_his=False, verbose=None):
         if none_meas_date:
             subject_info.pop("birthday", None)
         elif subject_info.get("birthday") is not None:
-            dob = datetime.datetime(
-                subject_info["birthday"][0],
-                subject_info["birthday"][1],
-                subject_info["birthday"][2],
-            )
-            dob -= delta_t
-            subject_info["birthday"] = dob.year, dob.month, dob.day
+            subject_info["birthday"] = subject_info["birthday"] - delta_t
 
         for key in ("weight", "height"):
             if subject_info.get(key) is not None:
@@ -3511,9 +3523,11 @@ def anonymize_info(info, daysback=None, keep_his=False, verbose=None):
         if hi.get("orig_file_guid") is not None:
             hi["orig_file_guid"] = default_str
         if none_meas_date and hi.get("meas_date") is not None:
-            hi["meas_date"] = DATE_NONE
+            hi["meas_date"] = _ensure_meas_date_none_or_dt(DATE_NONE)
         elif hi.get("meas_date") is not None:
-            hi["meas_date"] = _add_timedelta_to_stamp(hi["meas_date"], -delta_t)
+            hi["meas_date"] = _ensure_meas_date_none_or_dt(
+                _add_timedelta_to_stamp(hi["meas_date"], -delta_t)
+            )
 
     di = info.get("device_info")
     if di is not None:
@@ -3743,3 +3757,7 @@ def _get_fnirs_ch_pos(info):
     for optode in [*srcs, *dets]:
         ch_pos[optode] = _optode_position(info, optode)
     return ch_pos
+
+
+def _camel_to_snake(s):
+    return re.sub(r"(?<!^)(?=[A-Z])", "_", s).lower()

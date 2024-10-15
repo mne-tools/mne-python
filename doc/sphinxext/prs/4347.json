@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "032c654121907a490d11dafb87b4e9ea27c1ed85",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".gitignore": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 2
+    },
+    "examples/visualization/make_report.py": {
+      "a": 23,
+      "d": 10
+    },
+    "mne/commands/mne_report.py": {
+      "a": 6,
+      "d": 1
+    },
+    "mne/report.py": {
+      "a": 135,
+      "d": 131
+    },
+    "mne/tests/test_report.py": {
+      "a": 10,
+      "d": 0
+    },
+    "mne/transforms.py": {
+      "a": 14,
+      "d": 9
+    },
+    "mne/viz/_3d.py": {
+      "a": 15,
+      "d": 3
+    }
+  }
+}

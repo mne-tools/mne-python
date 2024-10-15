@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "000ebe8909933a20572685a7770c349478775bd4",
+  "authors": [
+    {
+      "n": "Teon L Brooks",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/io/base.py": {
+      "a": 4,
+      "d": 5
+    },
+    "mne/io/brainvision/brainvision.py": {
+      "a": 1,
+      "d": 3
+    },
+    "mne/io/edf/edf.py": {
+      "a": 1,
+      "d": 3
+    },
+    "mne/io/egi/egi.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/io/fiff/raw.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/kit/kit.py": {
+      "a": 15,
+      "d": 15
+    }
+  }
+}

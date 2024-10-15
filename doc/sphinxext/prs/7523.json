@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "225c90a591c6755b5660fc6d74f5f3b7c4cc1544",
+  "authors": [
+    {
+      "n": "Ariel Rokem",
+      "e": "arokem@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/preprocessing/ica.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

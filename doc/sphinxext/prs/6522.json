@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "7e4caaf4142d476d3f108a1a0b1c77beeb447915",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/install/pre_install.rst": {
+      "a": 35,
+      "d": 4
+    }
+  }
+}

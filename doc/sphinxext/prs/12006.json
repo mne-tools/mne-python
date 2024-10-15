@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "d79606beef83e0b77512668ceb4945364113efbc",
+  "authors": [
+    {
+      "n": "Gonzalo Reina",
+      "e": null
+    },
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "doc/changes/names.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/epochs.py": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/evoked.py": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/io/base.py": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/time_frequency/spectrum.py": {
+      "a": 12,
+      "d": 1
+    },
+    "mne/time_frequency/tests/test_spectrum.py": {
+      "a": 11,
+      "d": 1
+    },
+    "mne/utils/docs.py": {
+      "a": 7,
+      "d": 4
+    }
+  }
+}

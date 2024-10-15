@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "e014f859ebd7db68d0a41158711c9e06fb87c867",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "examples/plot_megsim_data_single_trial.py": {
+      "a": 35,
+      "d": 0
+    }
+  }
+}

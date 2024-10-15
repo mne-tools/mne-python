@@ -1,14 +1,4 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Denis Engemann <denis.engemann@gmail.com>
-#          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
-#          Eric Larson <larson.eric.d@gmail.com>
-#          Marijn van Vliet <w.m.vanvliet@gmail.com>
-#          Jona Sassenhagen <jona.sassenhagen@gmail.com>
-#          Teon Brooks <teon.brooks@gmail.com>
-#          Christian Brodbeck <christianbrodbeck@nyu.edu>
-#          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
-#          Joan Massich <mailsik@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -369,17 +359,19 @@ class DigMontage:
     @copy_function_doc_to_method_doc(plot_montage)
     def plot(
         self,
-        scale_factor=20,
+        *,
+        scale=None,
+        scale_factor=None,
         show_names=True,
         kind="topomap",
         show=True,
         sphere=None,
-        *,
         axes=None,
         verbose=None,
     ):
         return plot_montage(
             self,
+            scale=scale,
             scale_factor=scale_factor,
             show_names=show_names,
             kind=kind,
@@ -844,7 +836,7 @@ def read_dig_fif(fname):
     read_dig_localite
     make_dig_montage
     """
-    _check_fname(fname, overwrite="read", must_exist=True)
+    fname = _check_fname(fname, overwrite="read", must_exist=True)
     # Load the dig data
     f, tree = fiff_open(fname)[:2]
     with f as fid:
@@ -1545,7 +1537,10 @@ def _read_eeglab_locations(fname):
     return ch_names, pos
 
 
-def read_custom_montage(fname, head_size=HEAD_SIZE_DEFAULT, coord_frame=None):
+@verbose
+def read_custom_montage(
+    fname, head_size=HEAD_SIZE_DEFAULT, coord_frame=None, *, verbose=None
+):
     """Read a montage from a file.
 
     Parameters
@@ -1566,6 +1561,7 @@ def read_custom_montage(fname, head_size=HEAD_SIZE_DEFAULT, coord_frame=None):
         for most readers but ``"head"`` for EEGLAB.
 
         .. versionadded:: 0.20
+    %(verbose)s
 
     Returns
     -------

@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "25094d7a0abe4ae17bff5f0e1f59c429770cfd19",
+  "authors": [
+    {
+      "n": "Rob Luke",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/_includes/institutional-partners.rst": {
+      "a": 2,
+      "d": 1
+    },
+    "doc/_static/institution_logos/AE-Studio-dark.svg": {
+      "a": 5,
+      "d": 0
+    },
+    "doc/_static/institution_logos/AE-Studio-light.svg": {
+      "a": 5,
+      "d": 0
+    },
+    "doc/conf.py": {
+      "a": 14,
+      "d": 0
+    }
+  }
+}

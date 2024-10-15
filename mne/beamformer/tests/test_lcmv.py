@@ -1,5 +1,7 @@
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 from contextlib import nullcontext
 from copy import deepcopy
 from inspect import signature
@@ -208,7 +210,7 @@ def test_lcmv_vector():
     mne_ori = stc_vector_mne.data[mapping, :, np.arange(n_vertices)]
     mne_ori /= np.linalg.norm(mne_ori, axis=-1)[:, np.newaxis]
     mne_angles = np.rad2deg(np.arccos(np.sum(mne_ori * source_nn, axis=-1)))
-    assert np.mean(mne_angles) < 35
+    assert np.mean(mne_angles) < 36
 
     # Now let's do LCMV
     data_cov = mne.make_ad_hoc_cov(info)  # just a stub for later

@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "ebfaf79e6476741b30d4c636a5c8c93ce075ae33",
+  "authors": [
+    {
+      "n": "Alejandro Weinstein",
+      "e": "alejandro.weinstein@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/io/meas_info.py": {
+      "a": 2,
+      "d": 0
+    }
+  }
+}

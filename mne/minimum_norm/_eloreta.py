@@ -1,5 +1,4 @@
-# Authors: Eric Larson <larson.eric.d@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -89,7 +88,7 @@ def _compute_eloreta(inv, lambda2, options):
     )
     G_R_Gt = _this_normalize_R(G, R, G_3)
     extra = " (this make take a while)" if n_orient == 3 else ""
-    logger.info("        Fitting up to %d iterations%s..." % (max_iter, extra))
+    logger.info(f"        Fitting up to {max_iter} iterations{extra}...")
     for kk in range(max_iter):
         # 1. Compute inverse of the weights (stabilized) and C
         s, u = eigh(G_R_Gt)
@@ -124,7 +123,7 @@ def _compute_eloreta(inv, lambda2, options):
         )
         if delta < eps:
             logger.info(
-                "        Converged on iteration %d (%0.2g < %0.2g)" % (kk, delta, eps)
+                f"        Converged on iteration {kk} ({delta:.2g} < {eps:.2g})"
             )
             break
     else:

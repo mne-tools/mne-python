@@ -1,5 +1,4 @@
-# Authors: Eric Larson <larson.eric.d@gmail.com>
-
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -529,7 +528,7 @@ def read_fine_calibration(fname):
                 except ValueError:  # something other than e.g. 113 or 2642
                     pass
                 else:
-                    ch_name = "MEG" + "%04d" % ch_name
+                    ch_name = f"MEG{int(ch_name):04}"
             # (x, y, z), x-norm 3-vec, y-norm 3-vec, z-norm 3-vec
             # and 1 or 3 imbalance terms
             ch_names.append(ch_name)

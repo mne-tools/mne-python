@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "f3a7dece8d4361265e055f617e98c197c7cba07e",
+  "authors": [
+    {
+      "n": "Alex Rockhill",
+      "e": "aprockhill@mailbox.org"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/source_space.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/dipole.py": {
+      "a": 63,
+      "d": 2
+    },
+    "mne/label.py": {
+      "a": 0,
+      "d": 52
+    },
+    "mne/tests/test_dipole.py": {
+      "a": 11,
+      "d": 1
+    },
+    "mne/tests/test_label.py": {
+      "a": 3,
+      "d": 21
+    },
+    "tutorials/inverse/20_dipole_fit.py": {
+      "a": 12,
+      "d": 15
+    }
+  }
+}

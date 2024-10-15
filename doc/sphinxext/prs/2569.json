@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "9253da5c7b3ddfd7f44a0250a1c8b43109ad480d",
+  "authors": [
+    {
+      "n": "Jona Sassenhagen",
+      "e": "jona.sassenhagen@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/__init__.py": {
+      "a": 2,
+      "d": 3
+    },
+    "mne/channels/channels.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/time_frequency/tests/test_tfr.py": {
+      "a": 27,
+      "d": 4
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 61,
+      "d": 0
+    },
+    "mne/utils.py": {
+      "a": 73,
+      "d": 0
+    }
+  }
+}

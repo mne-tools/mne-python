@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "f6213029576560493a3c5c5f4bcef63e24ffc108",
+  "authors": [
+    {
+      "n": "Rob Luke",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/datasets/config.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/snirf/_snirf.py": {
+      "a": 88,
+      "d": 53
+    },
+    "mne/io/snirf/tests/test_snirf.py": {
+      "a": 48,
+      "d": 19
+    },
+    "mne/io/tests/test_raw.py": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/preprocessing/nirs/nirs.py": {
+      "a": 47,
+      "d": 29
+    },
+    "tutorials/io/30_reading_fnirs_data.py": {
+      "a": 20,
+      "d": 1
+    }
+  }
+}

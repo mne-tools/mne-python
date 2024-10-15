@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "f7c223e53b21c668191c1b36166850b5e3041511",
+  "authors": [
+    {
+      "n": "Félix Raimundo",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/baseline.py": {
+      "a": 7,
+      "d": 4
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 35,
+      "d": 14
+    }
+  }
+}

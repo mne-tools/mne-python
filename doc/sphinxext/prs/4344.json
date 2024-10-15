@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "12de055f9f2755430f33ba81e785d75a80a75228",
+  "authors": [
+    {
+      "n": "Annalisa Pascarella",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/python_reference.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/__init__.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/source_space.py": {
+      "a": 45,
+      "d": 1
+    },
+    "mne/tests/test_source_space.py": {
+      "a": 31,
+      "d": 2
+    }
+  }
+}

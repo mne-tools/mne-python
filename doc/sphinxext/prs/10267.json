@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "69e2ce6016f49c915ac37f4adf57db347d4d14f2",
+  "authors": [
+    {
+      "n": "Martin G. Schulz",
+      "e": "dev@mgschulz.de"
+    }
+  ],
+  "changes": {
+    "examples/README.txt": {
+      "a": 5,
+      "d": 0
+    },
+    "tutorials/README.txt": {
+      "a": 5,
+      "d": 0
+    }
+  }
+}

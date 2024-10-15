@@ -1,6 +1,4 @@
-# Authors: Eric Larson <larson.eric.d@gmail.com>
-#          Qian Chu <qianchu99@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -13,7 +11,7 @@ from ..utils import _validate_type, logger, verbose, warn
 
 
 @verbose
-def realign_raw(raw, other, t_raw, t_other, verbose=None):
+def realign_raw(raw, other, t_raw, t_other, *, verbose=None):
     """Realign two simultaneous recordings.
 
     Due to clock drift, recordings at a given same sample rate made by two
@@ -113,7 +111,7 @@ def realign_raw(raw, other, t_raw, t_other, verbose=None):
         )
     logger.info("Resampling other")
     sfreq_new = raw.info["sfreq"] * first_ord
-    other.load_data().resample(sfreq_new, verbose=True)
+    other.load_data().resample(sfreq_new)
     with other.info._unlock():
         other.info["sfreq"] = raw.info["sfreq"]
 

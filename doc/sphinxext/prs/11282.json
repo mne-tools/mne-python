@@ -1,0 +1,195 @@
+{
+  "merge_commit_sha": "925f522829f74ded48935f39b51ef270adc70923",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    "doc/api/time_frequency.rst": {
+      "a": 5,
+      "d": 0
+    },
+    "doc/changes/devel/11282.apichange.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/devel/11282.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/devel/11282.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/conf.py": {
+      "a": 4,
+      "d": 0
+    },
+    "examples/decoding/decoding_csp_timefreq.py": {
+      "a": 10,
+      "d": 8
+    },
+    "examples/inverse/dics_epochs.py": {
+      "a": 3,
+      "d": 3
+    },
+    "examples/time_frequency/time_frequency_erds.py": {
+      "a": 2,
+      "d": 3
+    },
+    "examples/time_frequency/time_frequency_simulated.py": {
+      "a": 38,
+      "d": 42
+    },
+    "mne/beamformer/tests/test_dics.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/channels/channels.py": {
+      "a": 3,
+      "d": 7
+    },
+    "mne/conftest.py": {
+      "a": 46,
+      "d": 9
+    },
+    "mne/decoding/time_frequency.py": {
+      "a": 11,
+      "d": 11
+    },
+    "mne/epochs.py": {
+      "a": 142,
+      "d": 7
+    },
+    "mne/evoked.py": {
+      "a": 61,
+      "d": 0
+    },
+    "mne/html_templates/repr/tfr.html.jinja": {
+      "a": 60,
+      "d": 0
+    },
+    "mne/io/base.py": {
+      "a": 64,
+      "d": 0
+    },
+    "mne/minimum_norm/tests/test_inverse.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/time_frequency/__init__.pyi": {
+      "a": 10,
+      "d": 2
+    },
+    "mne/time_frequency/_stockwell.py": {
+      "a": 47,
+      "d": 32
+    },
+    "mne/time_frequency/multitaper.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/time_frequency/spectrum.py": {
+      "a": 39,
+      "d": 48
+    },
+    "mne/time_frequency/tests/test_spectrum.py": {
+      "a": 8,
+      "d": 4
+    },
+    "mne/time_frequency/tests/test_tfr.py": {
+      "a": 683,
+      "d": 511
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 2578,
+      "d": 1484
+    },
+    "mne/utils/__init__.pyi": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/utils/_testing.py": {
+      "a": 10,
+      "d": 0
+    },
+    "mne/utils/check.py": {
+      "a": 20,
+      "d": 2
+    },
+    "mne/utils/docs.py": {
+      "a": 588,
+      "d": 138
+    },
+    "mne/utils/mixin.py": {
+      "a": 10,
+      "d": 9
+    },
+    "mne/utils/numerics.py": {
+      "a": 14,
+      "d": 3
+    },
+    "mne/utils/spectrum.py": {
+      "a": 22,
+      "d": 0
+    },
+    "mne/viz/tests/test_topo.py": {
+      "a": 23,
+      "d": 12
+    },
+    "mne/viz/tests/test_topomap.py": {
+      "a": 11,
+      "d": 3
+    },
+    "mne/viz/topo.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/viz/topomap.py": {
+      "a": 2,
+      "d": 4
+    },
+    "mne/viz/utils.py": {
+      "a": 18,
+      "d": 5
+    },
+    "pyproject.toml": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/intro/10_overview.py": {
+      "a": 2,
+      "d": 2
+    },
+    "tutorials/stats-sensor-space/40_cluster_1samp_time_freq.py": {
+      "a": 2,
+      "d": 3
+    },
+    "tutorials/stats-sensor-space/50_cluster_between_time_freq.py": {
+      "a": 5,
+      "d": 13
+    },
+    "tutorials/stats-sensor-space/70_cluster_rmANOVA_time_freq.py": {
+      "a": 2,
+      "d": 3
+    },
+    "tutorials/stats-sensor-space/75_cluster_ftest_spatiotemporal.py": {
+      "a": 3,
+      "d": 4
+    },
+    "tutorials/time-freq/20_sensors_time_frequency.py": {
+      "a": 5,
+      "d": 7
+    }
+  }
+}

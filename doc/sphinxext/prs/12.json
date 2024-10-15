@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "4073148134e4941d13fae7a8ac992bd09f27091d",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "mne/artifacts/ecg.py": {
+      "a": 30,
+      "d": 13
+    },
+    "mne/artifacts/tests/test_ecg.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/epochs.py": {
+      "a": 22,
+      "d": 11
+    },
+    "mne/source_estimate.py": {
+      "a": 2,
+      "d": 0
+    }
+  }
+}

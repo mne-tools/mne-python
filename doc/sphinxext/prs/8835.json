@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "7b6b2c53d6f14fee8fa4515b9ca2a30ec0e7daeb",
+  "authors": [
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Mainak Jas",
+      "e": "jasmainak@users.noreply.github.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Mainak Jas",
+      "e": "jasmainak@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    "mne/viz/backends/renderer.py": {
+      "a": 45,
+      "d": 45
+    }
+  }
+}

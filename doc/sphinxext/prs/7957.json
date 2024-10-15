@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "666d169921897047b37b21d8f05cfbe02acd7f58",
+  "authors": [
+    {
+      "n": "Luke Bloy",
+      "e": "luke.bloy@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/time_frequency/tests/test_tfr.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 20,
+      "d": 0
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "f6fb7db3a435265bb7de19ee10b78a3cb4b344ba",
+  "authors": [
+    {
+      "n": "Mainak Jas",
+      "e": "mainakjas@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/decoding/tests/test_transformer.py": {
+      "a": 5,
+      "d": 0
+    },
+    "mne/decoding/transformer.py": {
+      "a": 1,
+      "d": 4
+    }
+  }
+}

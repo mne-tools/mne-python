@@ -1,5 +1,7 @@
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 import pickle
 from itertools import product
 from os import path as op
@@ -394,15 +396,15 @@ def _test_fourier_multitaper_parameters(epochs, csd_epochs, csd_array):
         fmin=20,
         fmax=10,
     )
-    raises(ValueError, csd_epochs, epochs, fmin=20, fmax=20.1)
+    raises(ValueError, csd_epochs, epochs, fmin=20.11, fmax=20.19)
     raises(
         ValueError,
         csd_array,
         epochs._data,
         epochs.info["sfreq"],
         epochs.tmin,
-        fmin=20,
-        fmax=20.1,
+        fmin=20.11,
+        fmax=20.19,
     )
     raises(ValueError, csd_epochs, epochs, tmin=0.15, tmax=0.1)
     raises(

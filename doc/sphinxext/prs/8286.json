@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "a95ecdcb57172d284c5d7c4c1b672254d18903b3",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/0.21.inc": {
+      "a": 12,
+      "d": 0
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/_brain/tests/test_brain.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

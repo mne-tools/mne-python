@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "5e52983a22a5e1727f01d4b1240c111dc09a7ff0",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "tutorials/preprocessing/plot_45_projectors_background.py": {
+      "a": 0,
+      "d": 1
+    }
+  }
+}

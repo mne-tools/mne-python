@@ -1,9 +1,4 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Denis Engemann <denis.engemann@gmail.com>
-#          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
-#          Eric Larson <larson.eric.d@gmail.com>
-#          Robert Luke <mail@robertluke.net>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -573,6 +568,24 @@ def test_plot_topomap_basic():
     assert_array_equal(evoked_grad.info["bads"], orig_bads)
 
 
+def test_plot_psds_topomap_colorbar():
+    """Test plot_psds_topomap colorbar option."""
+    raw = read_raw_fif(raw_fname)
+    picks = pick_types(raw.info, meg="grad")
+    info = pick_info(raw.info, picks)
+    freqs = np.arange(3.0, 9.5)
+    rng = np.random.default_rng(42)
+    psd = np.abs(rng.standard_normal((len(picks), len(freqs))))
+    bands = {"theta": [4, 8]}
+
+    plt.close("all")
+    fig_cbar = plot_psds_topomap(psd, freqs, info, colorbar=True, bands=bands)
+    assert len(fig_cbar.axes) == 2
+
+    fig_nocbar = plot_psds_topomap(psd, freqs, info, colorbar=False, bands=bands)
+    assert len(fig_nocbar.axes) == 1
+
+
 def test_plot_tfr_topomap():
     """Test plotting of TFR data."""
     raw = read_raw_fif(raw_fname)
@@ -673,7 +686,7 @@ def test_plot_topomap_neuromag122():
     evoked = read_evokeds(evoked_fname, "Left Auditory", baseline=(None, 0))
     evoked.pick(picks="grad")
     evoked.pick(evoked.ch_names[:122])
-    ch_names = ["MEG %03d" % k for k in range(1, 123)]
+    ch_names = [f"MEG {k:03}" for k in range(1, 123)]
     for c in evoked.info["chs"]:
         c["coil_type"] = FIFF.FIFFV_COIL_NM_122
     evoked.rename_channels(

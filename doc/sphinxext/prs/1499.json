@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "dd0bc5e7305168d9ee367626f2fdfc344078854e",
+  "authors": [
+    {
+      "n": "Denis A. Engemann",
+      "e": null
+    }
+  ],
+  "changes": {
+    "examples/plot_read_noise_covariance_matrix.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/time_frequency/plot_source_label_time_frequency.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/stats/cluster_level.py": {
+      "a": 87,
+      "d": 62
+    },
+    "mne/viz/misc.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

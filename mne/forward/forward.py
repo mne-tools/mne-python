@@ -1,7 +1,4 @@
-# Authors: Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
-#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -56,6 +53,7 @@ from ..io import BaseRaw, RawArray
 from ..label import Label
 from ..source_estimate import _BaseSourceEstimate, _BaseVectorSourceEstimate
 from ..source_space._source_space import (
+    SourceSpaces,
     _get_src_nn,
     _read_source_spaces_from_tree,
     _set_source_space_vertices,
@@ -225,17 +223,11 @@ class Forward(dict):
 
     @repr_html
     def _repr_html_(self):
-        (
-            good_chs,
-            bad_chs,
-            _,
-            _,
-        ) = self["info"]._get_chs_for_repr()
         src_descr, src_ori = self._get_src_type_and_ori_for_repr()
+
         t = _get_html_template("repr", "forward.html.jinja")
         html = t.render(
-            good_channels=good_chs,
-            bad_channels=bad_chs,
+            info=self["info"],
             source_space_descr=src_descr,
             source_orientation=src_ori,
         )
@@ -298,7 +290,7 @@ def _block_diag(A, n):
 
     Returns
     -------
-    bd : scipy.sparse.spmatrix
+    bd : scipy.sparse.csc_array
         The block diagonal matrix
     """
     if sparse.issparse(A):  # then make block sparse
@@ -317,7 +309,7 @@ def _block_diag(A, n):
     jj = jj * np.ones(ma, dtype=np.int64)[:, None]
     jj = jj.T.ravel()  # column indices foreach sparse bd
 
-    bd = sparse.coo_matrix((A.T.ravel(), np.c_[ii, jj].T)).tocsc()
+    bd = sparse.coo_array((A.T.ravel(), np.c_[ii, jj].T)).tocsc()
 
     return bd
 
@@ -803,11 +795,11 @@ def convert_forward_solution(
             fix_rot = _block_diag(fwd["source_nn"].T, 1)
             # newer versions of numpy require explicit casting here, so *= no
             # longer works
-            fwd["sol"]["data"] = (fwd["_orig_sol"] * fix_rot).astype("float32")
+            fwd["sol"]["data"] = (fwd["_orig_sol"] @ fix_rot).astype("float32")
             fwd["sol"]["ncol"] = fwd["nsource"]
             if fwd["sol_grad"] is not None:
                 x = sparse.block_diag([fix_rot] * 3)
-                fwd["sol_grad"]["data"] = fwd["_orig_sol_grad"] * x  # dot prod
+                fwd["sol_grad"]["data"] = fwd["_orig_sol_grad"] @ x
                 fwd["sol_grad"]["ncol"] = 3 * fwd["nsource"]
         fwd["source_ori"] = FIFF.FIFFV_MNE_FIXED_ORI
         fwd["surf_ori"] = True
@@ -834,21 +826,21 @@ def convert_forward_solution(
             fix_rot = _block_diag(fwd["source_nn"].T, 1)
             # newer versions of numpy require explicit casting here, so *= no
             # longer works
-            fwd["sol"]["data"] = (fwd["_orig_sol"] * fix_rot).astype("float32")
+            fwd["sol"]["data"] = (fwd["_orig_sol"] @ fix_rot).astype("float32")
             fwd["sol"]["ncol"] = fwd["nsource"]
             if fwd["sol_grad"] is not None:
                 x = sparse.block_diag([fix_rot] * 3)
-                fwd["sol_grad"]["data"] = fwd["_orig_sol_grad"] * x  # dot prod
+                fwd["sol_grad"]["data"] = fwd["_orig_sol_grad"] @ x
                 fwd["sol_grad"]["ncol"] = 3 * fwd["nsource"]
             fwd["source_ori"] = FIFF.FIFFV_MNE_FIXED_ORI
             fwd["surf_ori"] = True
         else:
             surf_rot = _block_diag(fwd["source_nn"].T, 3)
-            fwd["sol"]["data"] = fwd["_orig_sol"] * surf_rot
+            fwd["sol"]["data"] = fwd["_orig_sol"] @ surf_rot
             fwd["sol"]["ncol"] = 3 * fwd["nsource"]
             if fwd["sol_grad"] is not None:
                 x = sparse.block_diag([surf_rot] * 3)
-                fwd["sol_grad"]["data"] = fwd["_orig_sol_grad"] * x  # dot prod
+                fwd["sol_grad"]["data"] = fwd["_orig_sol_grad"] @ x
                 fwd["sol_grad"]["ncol"] = 9 * fwd["nsource"]
             fwd["source_ori"] = FIFF.FIFFV_MNE_FREE_ORI
             fwd["surf_ori"] = True
@@ -922,7 +914,10 @@ def _write_forward_hdf5(fname, fwd):
 
 def _read_forward_hdf5(fname):
     read_hdf5, _ = _import_h5io_funcs()
-    return Forward(read_hdf5(fname)["fwd"])
+    fwd = Forward(read_hdf5(fname)["fwd"])
+    fwd["info"] = Info(fwd["info"])
+    fwd["src"] = SourceSpaces(fwd["src"])
+    return fwd
 
 
 def _write_forward_solution(fid, fwd):
@@ -1976,7 +1971,7 @@ def _do_forward_solution(
 
     # check for meas to exist as string, or try to make evoked
     _validate_type(meas, ("path-like", BaseRaw, BaseEpochs, Evoked), "meas")
-    if isinstance(meas, (BaseRaw, BaseEpochs, Evoked)):
+    if isinstance(meas, BaseRaw | BaseEpochs | Evoked):
         meas_file = op.join(temp_dir, "info.fif")
         write_info(meas_file, meas.info)
         meas = meas_file
@@ -2002,7 +1997,7 @@ def _do_forward_solution(
                     "trans was a dict, but could not be "
                     "written to disk as a transform file"
                 )
-        elif isinstance(trans, (str, Path, PathLike)):
+        elif isinstance(trans, str | Path | PathLike):
             _check_fname(trans, "read", must_exist=True, name="trans")
             trans = Path(trans)
         else:
@@ -2018,7 +2013,7 @@ def _do_forward_solution(
                     "mri was a dict, but could not be "
                     "written to disk as a transform file"
                 )
-        elif isinstance(mri, (str, Path, PathLike)):
+        elif isinstance(mri, str | Path | PathLike):
             _check_fname(mri, "read", must_exist=True, name="mri")
             mri = Path(mri)
         else:

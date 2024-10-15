@@ -63,7 +63,7 @@ Enhancements
 
 - Show all good channel types and counts when printing a :class:`mne.Info` in the notebook (:gh:`9725` by `Valerii Chirkov`_ and `Eric Larson`_)
 
-- Speed up point decimation in :func:`mne.io.read_raw_kit` by vectorization and use of :class:`scipy.spatial.cKDTree` (:gh:`9568` by `Jean-Remi King`_ and `Eric Larson`_)
+- Speed up point decimation in :func:`mne.io.read_raw_kit` by vectorization and use of :class:`scipy.spatial.cKDTree` (:gh:`9568` by `Jean-Rémi King`_ and `Eric Larson`_)
 
 - Add ability to export EDF+ files using :func:`mne.export.export_raw` (:gh:`9643` by `Adam Li`_)
 
@@ -383,7 +383,7 @@ People who contributed to this release in alphabetical order
 * Guillaume Favelier
 * Hubert Banville
 * Jan Sosulski+
-* Jean-Remi King
+* Jean-Rémi King
 * Jeff Stout
 * Johann Benerradi
 * John Samuelsson+

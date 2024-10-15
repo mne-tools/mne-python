@@ -1,5 +1,4 @@
-# Author: Eric Larson <larson.eric.d@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -88,7 +87,6 @@ def pytest_configure(config):
         "pgtest",
         "pvtest",
         "allow_unclosed",
-        "allow_unclosed_pyside2",
     ):
         config.addinivalue_line("markers", marker)
 
@@ -148,6 +146,7 @@ def pytest_configure(config):
     # PySide6
     ignore:Enum value .* is marked as deprecated:DeprecationWarning
     ignore:Function.*is marked as deprecated, please check the documentation.*:DeprecationWarning
+    ignore:Failed to disconnect.*:RuntimeWarning
     # pkg_resources usage bug
     ignore:Implementing implicit namespace packages.*:DeprecationWarning
     ignore:Deprecated call to `pkg_resources.*:DeprecationWarning
@@ -176,6 +175,8 @@ def pytest_configure(config):
     ignore:__array_wrap__ must accept context and return_scalar arguments.*:DeprecationWarning
     # nibabel <-> NumPy 2.0
     ignore:__array__ implementation doesn't accept a copy.*:DeprecationWarning
+    # quantities via neo
+    ignore:The 'copy' argument in Quantity is deprecated.*:
     """  # noqa: E501
     for warning_line in warning_lines.split("\n"):
         warning_line = warning_line.strip()
@@ -1153,7 +1154,6 @@ def qt_windows_closed(request):
     """Ensure that no new Qt windows are open after a test."""
     _check_skip_backend("pyvistaqt")
     app = _init_mne_qtapp()
-    from qtpy import API_NAME
 
     app.processEvents()
     gc.collect()
@@ -1163,8 +1163,6 @@ def qt_windows_closed(request):
     app.processEvents()
     gc.collect()
     if "allow_unclosed" in marks:
-        return
-    if "allow_unclosed_pyside2" in marks and API_NAME.lower() == "pyside2":
         return
     # Don't check when the test fails
     if not _test_passed(request):

@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "a067a3fbf2c19e60237e1b7ee76ed3ee9038a366",
+  "authors": [
+    {
+      "n": "Ram PARI",
+      "e": null
+    },
+    {
+      "n": "Mainak Jas",
+      "e": "jasmainak@users.noreply.github.com"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    },
+    {
+      "n": "Mainak Jas",
+      "e": "jasmainak@users.noreply.github.com"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/viz/topo.py": {
+      "a": 16,
+      "d": 17
+    }
+  }
+}

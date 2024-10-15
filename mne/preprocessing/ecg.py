@@ -1,7 +1,4 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Denis Engemann <denis.engemann@gmail.com>
-#          Eric Larson <larson.eric.d@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -188,8 +185,8 @@ def find_ecg_events(
     %(filter_length_ecg)s
     return_ecg : bool
         Return the ECG data. This is especially useful if no ECG channel
-        is present in the input data, so one will be synthesized. Defaults to
-        ``False``.
+        is present in the input data, so one will be synthesized (only works if MEG
+        channels are present in the data). Defaults to ``False``.
     %(reject_by_annotation_all)s
 
         .. versionadded:: 0.18
@@ -199,8 +196,8 @@ def find_ecg_events(
     -------
     ecg_events : array
         The events corresponding to the peaks of the R waves.
-    ch_ecg : string
-        Name of channel used.
+    ch_ecg : int | None
+        Index of channel used.
     average_pulse : float
         The estimated average pulse. If no ECG events could be found, this will
         be zero.
@@ -288,8 +285,8 @@ def find_ecg_events(
     duration_min = duration_sec / 60.0
     average_pulse = n_events / duration_min
     logger.info(
-        "Number of ECG events detected : %d (average pulse %d / "
-        "min.)" % (n_events, average_pulse)
+        f"Number of ECG events detected : {n_events} "
+        f"(average pulse {average_pulse} / min.)"
     )
 
     ecg_events = np.array(
@@ -299,6 +296,7 @@ def find_ecg_events(
             event_id * np.ones(n_events, int),
         ]
     ).T
+
     out = (ecg_events, idx_ecg, average_pulse)
     ecg = ecg[np.newaxis]  # backward compat output 2D
     if return_ecg:
@@ -327,8 +325,6 @@ def _get_ecg_channel_index(ch_name, inst):
 
     if len(ecg_idx) == 0:
         return None
-        # raise RuntimeError('No ECG channel found. Please specify ch_name '
-        #                    'parameter e.g. MEG 1531')
 
     if len(ecg_idx) > 1:
         warn(
@@ -488,7 +484,9 @@ def create_ecg_epochs(
 def _make_ecg(inst, start, stop, reject_by_annotation=False, verbose=None):
     """Create ECG signal from cross channel average."""
     if not any(c in inst for c in ["mag", "grad"]):
-        raise ValueError("Unable to generate artificial ECG channel")
+        raise ValueError(
+            "Generating an artificial ECG channel can only be done for MEG data."
+        )
     for ch in ["mag", "grad"]:
         if ch in inst:
             break

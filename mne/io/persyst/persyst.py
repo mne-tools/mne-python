@@ -1,7 +1,7 @@
-# Authors: Adam Li <adam2392@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 import os
 import os.path as op
 from collections import OrderedDict
@@ -263,7 +263,7 @@ class RawPersyst(BaseRaw):
         """
         dtype = self._raw_extras[fi]["dtype"]
         n_chs = self._raw_extras[fi]["n_chs"]
-        dat_fname = self._filenames[fi]
+        dat_fname = self.filenames[fi]
 
         # compute samples count based on start and stop
         time_length_samps = stop - start
@@ -314,6 +314,7 @@ def _get_subjectinfo(patient_dict):
         "his_id": patient_dict.get("id"),
         "birthday": birthdate,
     }
+    subject_info = {key: val for key, val in subject_info.items() if val is not None}
 
     # Recode sex values
     sex_dict = dict(
@@ -449,6 +450,7 @@ def _process_lay_line(line, section):
         if section == "comments":
             # Persyst Comments output 5 variables "," separated
             time_sec, duration, state, var_type, text = line.split(",", 4)
+            del var_type, state
             status = 2
             key = text
             value = (time_sec, duration)

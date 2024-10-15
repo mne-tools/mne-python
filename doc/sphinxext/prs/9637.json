@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "89a975df53bea691398000b5a8e5261c3fb9ac0d",
+  "authors": [
+    {
+      "n": "Mathieu Scheltienne",
+      "e": "mathieu.scheltienne@fcbg.ch"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 4,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/reference.py": {
+      "a": 22,
+      "d": 9
+    },
+    "mne/io/tests/test_reference.py": {
+      "a": 7,
+      "d": 7
+    },
+    "mne/utils/docs.py": {
+      "a": 5,
+      "d": 4
+    }
+  }
+}

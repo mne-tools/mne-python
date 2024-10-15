@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "078ad48bae80534bd7d88926a9a13a4df5d765e5",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".circleci/config.yml": {
+      "a": 1,
+      "d": 0
+    },
+    ".github/dependabot.yml": {
+      "a": 4,
+      "d": 0
+    },
+    ".github/workflows/tests.yml": {
+      "a": 0,
+      "d": 1
+    },
+    "environment.yml": {
+      "a": 3,
+      "d": 2
+    },
+    "tools/circleci_dependencies.sh": {
+      "a": 2,
+      "d": 1
+    },
+    "tools/github_actions_env_vars.sh": {
+      "a": 1,
+      "d": 1
+    },
+    "tools/install_pre_requirements.sh": {
+      "a": 3,
+      "d": 1
+    },
+    "tutorials/inverse/50_beamformer_lcmv.py": {
+      "a": 2,
+      "d": 0
+    }
+  }
+}

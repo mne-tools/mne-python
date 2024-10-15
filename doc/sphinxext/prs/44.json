@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "9d946c7ff78141433fa7ed5fa7bb443ca855659c",
+  "authors": [
+    {
+      "n": "Martin Luessi",
+      "e": null
+    }
+  ],
+  "changes": {
+    "bin/mne_compute_proj_ecg.py": {
+      "a": 13,
+      "d": 13
+    },
+    "bin/mne_compute_proj_eog.py": {
+      "a": 13,
+      "d": 13
+    },
+    "bin/mne_maxfilter.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

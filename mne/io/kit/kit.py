@@ -3,10 +3,7 @@
 RawKIT class is adapted from Denis Engemann et al.'s mne_bti2fiff.py.
 """
 
-# Authors: Teon Brooks <teon.brooks@gmail.com>
-#          Joan Massich <mailsik@gmail.com>
-#          Christian Brodbeck <christianbrodbeck@nyu.edu>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -53,7 +50,7 @@ def _call_digitization(info, mrk, elp, hsp, kit_info, *, bad_coils=()):
     # prepare mrk
     if isinstance(mrk, list):
         mrk = [
-            read_mrk(marker) if isinstance(marker, (str, Path, PathLike)) else marker
+            read_mrk(marker) if isinstance(marker, str | Path | PathLike) else marker
             for marker in mrk
         ]
         mrk = np.mean(mrk, axis=0)
@@ -213,7 +210,7 @@ class RawKIT(BaseRaw):
         assert n_bytes in (2, 4)
         # Read up to 100 MB of data at a time.
         blk_size = min(data_left, (100000000 // n_bytes // nchan) * nchan)
-        with open(self._filenames[fi], "rb", buffering=0) as fid:
+        with open(self.filenames[fi], "rb", buffering=0) as fid:
             # extract data
             pointer = start * nchan * n_bytes
             fid.seek(sqd["dirs"][KIT.DIR_INDEX_RAW_DATA]["offset"] + pointer)
@@ -395,7 +392,7 @@ class EpochsKIT(BaseEpochs):
         standardize_names=None,
         verbose=None,
     ):
-        if isinstance(events, (str, PathLike, Path)):
+        if isinstance(events, str | PathLike | Path):
             events = read_events(events)
 
         input_fname = str(
@@ -423,9 +420,7 @@ class EpochsKIT(BaseEpochs):
 
         for key, val in event_id.items():
             if val not in events[:, 2]:
-                raise ValueError(
-                    "No matching events found for %s (event id %i)" % (key, val)
-                )
+                raise ValueError(f"No matching events found for {key} (event id {val})")
 
         data = self._read_kit_data()
         assert data.shape == (
@@ -560,6 +555,7 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None, verbose=
         sqd["nchan"] = channel_count = int(np.fromfile(fid, INT32, 1)[0])
         comment = _read_name(fid, n=256)
         create_time, last_modified_time = np.fromfile(fid, INT32, 2)
+        del last_modified_time
         fid.seek(KIT.INT * 3, SEEK_CUR)  # reserved
         dewar_style = np.fromfile(fid, INT32, 1)[0]
         fid.seek(KIT.INT * 3, SEEK_CUR)  # spare
@@ -575,6 +571,7 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None, verbose=
         else:
             adc_range = np.fromfile(fid, FLOAT64, 1)[0]
         adc_polarity, adc_allocated, adc_stored = np.fromfile(fid, INT32, 3)
+        del adc_polarity
         system_name = system_name.replace("\x00", "")
         system_name = system_name.strip().replace("\n", "/")
         model_name = model_name.replace("\x00", "")
@@ -793,6 +790,7 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None, verbose=
                     mri_type, meg_type, mri_done, this_meg_done = np.fromfile(
                         fid, INT32, 4
                     )
+                    del mri_type, meg_type, mri_done
                     meg_done[mi] = bool(this_meg_done)
                     fid.seek(3 * KIT.DOUBLE, SEEK_CUR)  # mri_pos
                     mrk[mi] = np.fromfile(fid, FLOAT64, 3)
@@ -1022,8 +1020,12 @@ def read_epochs_kit(
 
     Returns
     -------
-    epochs : instance of Epochs
+    EpochsKIT : instance of BaseEpochs
         The epochs.
+
+    See Also
+    --------
+    mne.Epochs : Documentation of attributes and methods.
 
     Notes
     -----

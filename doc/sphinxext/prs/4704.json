@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "4f61d23742382181f3a5fb12969abb48b7f30311",
+  "authors": [
+    {
+      "n": "Jen Evans",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/io/egi/egimff.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

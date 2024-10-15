@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "6fb9aaef6380033ad2fdeeaf38f0724fdb1aff70",
+  "authors": [
+    {
+      "n": "Xabier de Zuazo",
+      "e": "xabier@zuazo.org"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/12650.other.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/help/faq.rst": {
+      "a": 5,
+      "d": 3
+    },
+    "mne/utils/docs.py": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

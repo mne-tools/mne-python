@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "50d65402a8234c6b97b66dc1b75ff6249c348129",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/parallel.py": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

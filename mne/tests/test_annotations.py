@@ -1,6 +1,4 @@
-# Authors: Jaakko Leppakangas <jaeilepp@student.jyu.fi>
-#          Robert Luke <mail@robertluke.net>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -194,7 +192,7 @@ def test_crop(tmp_path):
     events = mne.find_events(raw)
     onset = events[events[:, 2] == 1, 0] / raw.info["sfreq"]
     duration = np.full_like(onset, 0.5)
-    description = ["bad %d" % k for k in range(len(onset))]
+    description = [f"bad {k}" for k in range(len(onset))]
     annot = mne.Annotations(
         onset, duration, description, orig_time=raw.info["meas_date"]
     )
@@ -1171,7 +1169,7 @@ def test_annotations_simple_iteration():
             elements.values(), EXPECTED_ELEMENTS_TYPE, expected_values
         ):
             assert np.isscalar(elem)
-            assert type(elem) == expected_type
+            assert isinstance(elem, expected_type)
             assert elem == expected_value
 
 
@@ -1806,3 +1804,25 @@ def test_count_annotations():
     annotations = Annotations([0, 1, 2], [1, 2, 1], ["T0", "T1", "T0"])
     assert annotations.count() == {"T0": 2, "T1": 1}
     assert count_annotations(annotations) == {"T0": 2, "T1": 1}
+
+
+@pytest.mark.parametrize("split_size", ["1GB", "5MB"])
+def test_append_splits_boundary(tmp_path, split_size):
+    """Test that split files don't break bad boundary annotations."""
+    fname = tmp_path / "test_append_raw.fif"
+    raw_orig = RawArray(
+        np.random.default_rng(0).normal(size=(100, 100000)),
+        create_info(100, 1000.0, "eeg"),
+    )
+    onset = len(raw_orig.times) / raw_orig.info["sfreq"] + raw_orig.first_time
+    raw_orig.save(fname, split_size=split_size)
+    raw = read_raw_fif(fname).load_data()
+    if split_size == "1GB":
+        assert len(raw.filenames) == 1
+    else:
+        assert len(raw.filenames) == 10
+    assert_allclose(raw.get_data(), raw_orig.get_data(), rtol=1e-5)
+    raw.append(raw.copy())
+    assert len(raw.annotations) == 2
+    assert raw.annotations.description[0] == "BAD boundary"
+    assert_allclose(raw.annotations.onset, [onset] * 2)

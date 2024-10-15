@@ -1,4 +1,5 @@
 #
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -960,7 +961,7 @@ def test_extract_label_time_course_volume(
             assert repr(missing) in log
         else:
             assert "does not contain" not in log
-        assert "\n%d/%d atlas regions had at least" % (n_want, n_tot) in log
+        assert f"\n{n_want}/{n_tot} atlas regions had at least" in log
         assert len(label_tc) == 1
         label_tc = label_tc[0]
         assert label_tc.shape == (n_tot,) + end_shape
@@ -1462,7 +1463,7 @@ def test_source_estime_project(real):
     want_nn /= np.linalg.norm(want_nn, axis=1, keepdims=True)
 
     stc = VolVectorSourceEstimate(data, [np.arange(n_src)], 0, 1)
-    stc_max, directions = stc.project("pca")
+    _, directions = stc.project("pca")
     flips = np.sign(np.sum(directions * want_nn, axis=1, keepdims=True))
     directions *= flips
     assert_allclose(directions, want_nn, atol=2e-6)
@@ -1521,9 +1522,6 @@ def invs():
     expected_nn = np.concatenate([_get_src_nn(s) for s in fwd["src"]])
     assert_allclose(fixed["source_nn"], expected_nn, atol=1e-7)
     return evoked, free, free_surf, freeish, fixed, fixedish
-
-
-bad_normal = pytest.param("normal", marks=pytest.mark.xfail(raises=AssertionError))
 
 
 @pytest.mark.parametrize("pick_ori", [None, "normal", "vector"])
@@ -1610,7 +1608,7 @@ def test_vol_adjacency():
     n_vertices = vol[0]["inuse"].sum()
     assert_equal(adjacency.shape, (n_vertices, n_vertices))
     assert np.all(adjacency.data == 1)
-    assert isinstance(adjacency, sparse.coo_matrix)
+    assert isinstance(adjacency, sparse.coo_array)
 
     adjacency2 = spatio_temporal_src_adjacency(vol, n_times=2)
     assert_equal(adjacency2.shape, (2 * n_vertices, 2 * n_vertices))

@@ -1,16 +1,14 @@
 """Generate self-contained HTML reports from MNE objects."""
 
-# Authors: Alex Gramfort <alexandre.gramfort@inria.fr>
-#          Mainak Jas <mainak@neuro.hut.fi>
-#          Teon Brooks <teon.brooks@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
+from __future__ import annotations  # only needed for Python ≤ 3.9
 
 import base64
 import copy
 import dataclasses
-import fnmatch
 import io
 import os
 import os.path as op
@@ -24,7 +22,6 @@ from functools import partial
 from io import BytesIO, StringIO
 from pathlib import Path
 from shutil import copyfile
-from typing import Optional
 
 import numpy as np
 
@@ -141,7 +138,6 @@ CONTENT_ORDER = (
 )
 
 html_include_dir = Path(__file__).parent / "js_and_css"
-template_dir = Path(__file__).parent / "templates"
 JAVASCRIPT = (html_include_dir / "report.js").read_text(encoding="utf-8")
 CSS = (html_include_dir / "report.css").read_text(encoding="utf-8")
 
@@ -300,7 +296,7 @@ def _html_element(*, id_, div_klass, html, title, tags):
 @dataclass
 class _ContentElement:
     name: str
-    section: Optional[str]
+    section: str | None
     dom_id: str
     tags: tuple[str]
     html: str
@@ -310,7 +306,7 @@ def _check_tags(tags) -> tuple[str]:
     # Must be iterable, but not a string
     if isinstance(tags, str):
         tags = (tags,)
-    elif isinstance(tags, (Sequence, np.ndarray)):
+    elif isinstance(tags, Sequence | np.ndarray):
         tags = tuple(tags)
     else:
         raise TypeError(
@@ -584,10 +580,12 @@ def _plot_ica_properties_as_arrays(*, ica, inst, picks, n_jobs):
 # TOC FUNCTIONS
 
 
-def _endswith(fname, suffixes):
+def _endswith(fname: str | Path, suffixes):
     """Aux function to test if file name includes the specified suffixes."""
     if isinstance(suffixes, str):
         suffixes = [suffixes]
+    if isinstance(fname, Path):
+        fname = fname.name
     for suffix in suffixes:
         for ext in SUPPORTED_READ_RAW_EXTENSIONS:
             if fname.endswith(
@@ -895,11 +893,11 @@ class Report:
 
     def _validate_input(self, items, captions, tag, comments=None):
         """Validate input."""
-        if not isinstance(items, (list, tuple)):
+        if not isinstance(items, list | tuple):
             items = [items]
-        if not isinstance(captions, (list, tuple)):
+        if not isinstance(captions, list | tuple):
             captions = [captions]
-        if not isinstance(comments, (list, tuple)) and comments is not None:
+        if not isinstance(comments, list | tuple) and comments is not None:
             comments = [comments]
         if comments is not None and len(comments) != len(items):
             raise ValueError(
@@ -1565,6 +1563,7 @@ class Report:
         event_id=None,
         sfreq,
         first_samp=0,
+        color=None,
         tags=("events",),
         replace=False,
     ):
@@ -1583,6 +1582,11 @@ class Report:
         first_samp : int
             The first sample point in the recording. This corresponds to
             ``raw.first_samp`` on files created with Elekta/Neuromag systems.
+        color : dict | None
+            Dictionary of event_id integers as keys and colors as values. This
+            parameter is directly passed to :func:`mne.viz.plot_events`.
+
+            .. versionadded:: 1.8.0
         %(tags_report)s
         %(replace_report)s
 
@@ -1596,6 +1600,7 @@ class Report:
             event_id=event_id,
             sfreq=sfreq,
             first_samp=first_samp,
+            color=color,
             title=title,
             section=None,
             image_format=self.image_format,
@@ -2590,7 +2595,7 @@ class Report:
         assert self.data_path is not None
 
         for fname in fnames:
-            logger.info(f"Rendering : {op.join('…' + self.data_path[-20:], fname)}")
+            logger.info(f"Rendering: {fname}")
 
             title = Path(fname).name
             try:
@@ -2699,14 +2704,13 @@ class Report:
 
         Parameters
         ----------
-        data_path : str
-            Path to the folder containing data whose HTML report will be
-            created.
+        data_path : path-like
+            Path to the folder containing data whose HTML report will be created.
         pattern : None | str | list of str
-            Filename pattern(s) to include in the report.
-            For example, ``[\*raw.fif, \*ave.fif]`` will include `~mne.io.Raw`
-            as well as `~mne.Evoked` files. If ``None``, include all supported
-            file formats.
+            Filename global pattern(s) to include in the report.
+            For example, ``['\*raw.fif', '\*ave.fif']`` will include
+            :class:`~mne.io.Raw` as well as :class:`~mne.Evoked` files. If ``None``,
+            include all supported file formats.
 
             .. versionchanged:: 0.23
                Include supported non-FIFF files by default.
@@ -2720,9 +2724,9 @@ class Report:
             -> bem -> forward-solution -> inverse-operator -> source-estimate.
 
             .. versionadded:: 0.24.0
-        on_error : str
-            What to do if a file cannot be rendered. Can be 'ignore',
-            'warn' (default), or 'raise'.
+        on_error : ``'ignore'`` | ``'warn'`` | ``'raise'``
+            What to do if a file cannot be rendered. Can be ``'ignore'``, ``'warn'``
+            (default), or ``'raise'``.
         %(image_format_report)s
 
             .. versionadded:: 0.15
@@ -2731,16 +2735,15 @@ class Report:
 
             .. versionadded:: 0.16
         n_time_points_evokeds, n_time_points_stcs : int | None
-            The number of equidistant time points to render for `~mne.Evoked`
-            and `~mne.SourceEstimate` data, respectively. If ``None``,
-            will render each `~mne.Evoked` at 21 and each `~mne.SourceEstimate`
-            at 51 time points, unless the respective data contains fewer time
-            points, in which call all will be rendered.
+            The number of equidistant time points to render for :class:`~mne.Evoked`
+            and :class:`~mne.SourceEstimate` data, respectively. If ``None``,
+            will render each :class:`~mne.Evoked` at 21 and each
+            :class:`~mne.SourceEstimate` at 51 time points, unless the respective data
+            contains fewer time points, in which case all will be rendered.
 
             .. versionadded:: 0.24.0
         raw_butterfly : bool
-            Whether to render butterfly plots for (decimated) `~mne.io.Raw`
-            data.
+            Whether to render butterfly plots for (decimated) :class:`~mne.io.Raw` data.
 
             .. versionadded:: 0.24.0
         %(stc_plot_kwargs_report)s
@@ -2751,60 +2754,59 @@ class Report:
             .. versionadded:: 0.24.0
         %(verbose)s
         """
-        _validate_type(data_path, "path-like", "data_path")
-        data_path = str(data_path)
+        self.data_path = _check_fname(
+            data_path,
+            overwrite="read",
+            must_exist=True,
+            name="data_path",
+            need_dir=True,
+        )
         image_format = _check_image_format(self, image_format)
         _check_option("on_error", on_error, ["ignore", "warn", "raise"])
 
-        self.data_path = data_path
-
         if self.title is None:
-            self.title = f"MNE Report for {self.data_path[-20:]}"
+            self.title = f"MNE Report for {self.data_path.name[-20:]}"
 
         if pattern is None:
             pattern = [f"*{ext}" for ext in SUPPORTED_READ_RAW_EXTENSIONS]
-        elif not isinstance(pattern, (list, tuple)):
-            pattern = [pattern]
+        else:
+            if not isinstance(pattern, list | tuple):
+                pattern = [pattern]
+            for elt in pattern:
+                _validate_type(elt, str, "pattern")
 
         # iterate through the possible patterns
         fnames = list()
         for p in pattern:
-            data_path = str(
-                _check_fname(
-                    fname=self.data_path,
-                    overwrite="read",
-                    must_exist=True,
-                    name="Directory or folder",
-                    need_dir=True,
-                )
-            )
-            fnames.extend(sorted(_recursive_search(data_path, p)))
+            for match in self.data_path.rglob(p):
+                if match.name.endswith(VALID_EXTENSIONS):
+                    fnames.append(match)
 
         if not fnames and not render_bem:
-            raise RuntimeError(f"No matching files found in {self.data_path}")
+            raise RuntimeError(f"No matching files found in {self.data_path}.")
 
         fnames_to_remove = []
         for fname in fnames:
             # For split files, only keep the first one.
             if _endswith(fname, ("raw", "sss", "meg")):
                 kwargs = dict(fname=fname, preload=False)
-                if fname.endswith((".fif", ".fif.gz")):
+                if fname.name.endswith((".fif", ".fif.gz")):
                     kwargs["allow_maxshield"] = "yes"
                 inst = read_raw(**kwargs)
 
                 if len(inst.filenames) > 1:
                     fnames_to_remove.extend(inst.filenames[1:])
             # For STCs, only keep one hemisphere
-            elif fname.endswith("-lh.stc") or fname.endswith("-rh.stc"):
-                first_hemi_fname = fname
+            elif fname.name.endswith("-lh.stc") or fname.name.endswith("-rh.stc"):
+                first_hemi_fname = fname.name
                 if first_hemi_fname.endswidth("-lh.stc"):
                     second_hemi_fname = first_hemi_fname.replace("-lh.stc", "-rh.stc")
                 else:
                     second_hemi_fname = first_hemi_fname.replace("-rh.stc", "-lh.stc")
 
                 if (
-                    second_hemi_fname in fnames
-                    and first_hemi_fname not in fnames_to_remove
+                    fname.parent / second_hemi_fname in fnames
+                    and fname.parent / first_hemi_fname not in fnames_to_remove
                 ):
                     fnames_to_remove.extend(first_hemi_fname)
             else:
@@ -3740,6 +3742,7 @@ class Report:
         *,
         events,
         event_id,
+        color,
         sfreq,
         first_samp,
         title,
@@ -3757,6 +3760,7 @@ class Report:
             event_id=event_id,
             sfreq=sfreq,
             first_samp=first_samp,
+            color=color,
             show=False,
         )
         _constrain_fig_resolution(fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES)
@@ -4266,28 +4270,6 @@ class Report:
         )
 
 
-def _clean_tags(tags):
-    if isinstance(tags, str):
-        tags = (tags,)
-
-    # Replace any whitespace characters with dashes
-    tags_cleaned = tuple(re.sub(r"[\s*]", "-", tag) for tag in tags)
-    return tags_cleaned
-
-
-def _recursive_search(path, pattern):
-    """Auxiliary function for recursive_search of the directory."""
-    filtered_files = list()
-    for dirpath, dirnames, files in os.walk(path):
-        for f in fnmatch.filter(files, pattern):
-            # only the following file types are supported
-            # this ensures equitable distribution of jobs
-            if f.endswith(VALID_EXTENSIONS):
-                filtered_files.append(op.realpath(op.join(dirpath, f)))
-
-    return filtered_files
-
-
 ###############################################################################
 # Scraper for sphinx-gallery
 
@@ -4296,11 +4278,10 @@ _SCRAPER_TEXT = """
 
     .. container:: row
 
-        .. rubric:: The `HTML document <{0}>`__ written by :meth:`mne.Report.save`:
-
         .. raw:: html
 
-            <iframe class="sg_report" sandbox="allow-scripts" src="{0}"></iframe>
+            <strong><a href="{0}">The generated HTML document.</a></strong>
+            <iframe class="sg_report" sandbox="allow-scripts allow-modals" src="{0}"></iframe>
 
 """  # noqa: E501
 # Adapted from fa-file-code
@@ -4313,10 +4294,6 @@ class _ReportScraper:
     Only works properly if conf.py is configured properly and the file
     is written to the same directory as the example script.
     """
-
-    def __init__(self):
-        self.app = None
-        self.files = dict()
 
     def __repr__(self):
         return "<ReportScraper>"
@@ -4336,25 +4313,25 @@ class _ReportScraper:
                 with open(img_fname, "w") as fid:
                     fid.write(_FA_FILE_CODE)
                 # copy HTML file
-                html_fname = op.basename(report.fname)
-                out_dir = op.join(
-                    self.app.builder.outdir,
-                    op.relpath(
-                        op.dirname(block_vars["target_file"]), self.app.builder.srcdir
-                    ),
+                html_fname = Path(report.fname).name
+                srcdir = Path(gallery_conf["src_dir"])
+                outdir = Path(gallery_conf["out_dir"])
+                out_dir = outdir / Path(block_vars["target_file"]).parent.relative_to(
+                    srcdir
                 )
                 os.makedirs(out_dir, exist_ok=True)
-                out_fname = op.join(out_dir, html_fname)
+                out_fname = out_dir / html_fname
+                copyfile(report.fname, out_fname)
                 assert op.isfile(report.fname)
-                self.files[report.fname] = out_fname
                 # embed links/iframe
                 data = _SCRAPER_TEXT.format(html_fname)
                 return data
         return ""
 
-    def copyfiles(self, *args, **kwargs):
-        for key, value in self.files.items():
-            copyfile(key, value)
+    def set_dirs(self, app):
+        # Inject something into sphinx_gallery_conf as this gets pickled properly
+        # during parallel example generation
+        app.config.sphinx_gallery_conf["out_dir"] = app.builder.outdir
 
 
 def _df_bootstrap_table(*, df, data_id):

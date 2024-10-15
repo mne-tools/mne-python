@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "b5dcc7a89d87cca33572478e73c8dc445c47e7f0",
+  "authors": [
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    }
+  ],
+  "changes": {
+    "tutorials/plot_info.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

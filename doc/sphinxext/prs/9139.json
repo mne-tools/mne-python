@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "598cde5e7b6304a06d80fd68dbd3c163d2563711",
+  "authors": [
+    {
+      "n": "Catalina M. Galván",
+      "e": null
+    }
+  ],
+  "changes": {
+    "tutorials/source-modeling/plot_dipole_orientations.py": {
+      "a": 4,
+      "d": 0
+    }
+  }
+}

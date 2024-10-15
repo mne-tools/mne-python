@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "e39e1f04cdaf4f7b7b1e1586e085ae790af1243f",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/io/artemis123/artemis123.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/bti/bti.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

@@ -1,14 +1,10 @@
 """Functions to make 3D plots with M/EEG data."""
 
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Denis Engemann <denis.engemann@gmail.com>
-#          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
-#          Eric Larson <larson.eric.d@gmail.com>
-#          Mainak Jas <mainak@neuro.hut.fi>
-#          Mark Wronkiewicz <wronk.mark@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
+from __future__ import annotations  # only needed for Python ≤ 3.9
 
 import os
 import os.path as op
@@ -19,7 +15,6 @@ from dataclasses import dataclass
 from functools import partial
 from itertools import cycle
 from pathlib import Path
-from typing import Optional
 
 import numpy as np
 from scipy.spatial import ConvexHull, Delaunay
@@ -130,6 +125,7 @@ def plot_head_positions(
     mode="traces",
     cmap="viridis",
     direction="z",
+    *,
     show=True,
     destination=None,
     info=None,
@@ -169,9 +165,11 @@ def plot_head_positions(
 
         .. versionadded:: 0.16
     axes : array-like, shape (3, 2)
-        The matplotlib axes to use. Only used for ``mode == 'traces'``.
+        The matplotlib axes to use.
 
         .. versionadded:: 0.16
+        .. versionchanged:: 1.8
+           Added support for making use of this argument when ``mode="field"``.
 
     Returns
     -------
@@ -191,9 +189,11 @@ def plot_head_positions(
         destination = destination["trans"][:3].copy()
         destination[:, 3] *= 1000
 
-    if not isinstance(pos, (list, tuple)):
+    if not isinstance(pos, list | tuple):
         pos = [pos]
+    pos = list(pos)  # make our own mutable copy
     for ii, p in enumerate(pos):
+        _validate_type(p, np.ndarray, f"pos[{ii}]")
         p = np.array(p, float)
         if p.ndim != 2 or p.shape[1] != 10:
             raise ValueError(
@@ -315,9 +315,15 @@ def plot_head_positions(
         from mpl_toolkits.mplot3d import Axes3D  # noqa: F401, analysis:ignore
         from mpl_toolkits.mplot3d.art3d import Line3DCollection
 
-        fig, ax = plt.subplots(
-            1, subplot_kw=dict(projection="3d"), layout="constrained"
-        )
+        _validate_type(axes, (Axes3D, None), "ax", extra="when mode='field'")
+        if axes is None:
+            _, ax = plt.subplots(
+                1, subplot_kw=dict(projection="3d"), layout="constrained"
+            )
+        else:
+            ax = axes
+        fig = ax.get_figure()
+        del axes
 
         # First plot the trajectory as a colormap:
         # http://matplotlib.org/examples/pylab_examples/multicolored_line.html
@@ -520,6 +526,8 @@ def plot_alignment(
     fig=None,
     interaction="terrain",
     sensor_colors=None,
+    *,
+    sensor_scales=None,
     verbose=None,
 ):
     """Plot head, sensor, and source space alignment in 3D.
@@ -611,6 +619,9 @@ def plot_alignment(
 
         .. versionchanged:: 1.6
             Support for passing a ``dict`` was added.
+    %(sensor_scales)s
+
+        .. versionadded:: 1.9
     %(verbose)s
 
     Returns
@@ -703,31 +714,33 @@ def plot_alignment(
         # Some stuff is natively in head coords, others in MRI coords
         msg = (
             "A head<->mri transformation matrix (trans) is required "
-            f"to plot %s in {coord_frame} coordinates, "
+            f"to plot {{}} in {coord_frame} coordinates, "
             "`trans=None` is not allowed"
         )
         if fwd is not None:
             fwd_frame = _frame_to_str[fwd["coord_frame"]]
             if fwd_frame != coord_frame:
-                raise ValueError(msg % f"a {fwd_frame}-coordinate forward solution")
+                raise ValueError(
+                    msg.format(f"a {fwd_frame}-coordinate forward solution")
+                )
         if src is not None:
             src_frame = _frame_to_str[src[0]["coord_frame"]]
             if src_frame != coord_frame:
-                raise ValueError(msg % f"a {src_frame}-coordinate source space")
+                raise ValueError(msg.format(f"a {src_frame}-coordinate source space"))
         if mri_fiducials is not False and coord_frame != "mri":
-            raise ValueError(msg % "mri fiducials")
+            raise ValueError(msg.format("mri fiducials"))
         # only enforce needing `trans` if there are channels in "head"/"device"
         if picks.size and coord_frame == "mri":
-            raise ValueError(msg % "sensors")
+            raise ValueError(msg.format("sensors"))
         # if only plotting sphere model no trans needed
         if bem is not None:
             if not bem["is_sphere"]:
                 if coord_frame != "mri":
-                    raise ValueError(msg % "a BEM")
+                    raise ValueError(msg.format("a BEM"))
             elif surfaces not in (["brain"], []):  # can only plot these
-                raise ValueError(msg % (", ".join(surfaces) + " surfaces"))
+                raise ValueError(msg.format(", ".join(surfaces) + " surfaces"))
         elif len(surfaces) > 0 and coord_frame != "mri":
-            raise ValueError(msg % (", ".join(surfaces) + " surfaces"))
+            raise ValueError(msg.format(", ".join(surfaces) + " surfaces"))
         trans = Transform("head", "mri")  # not used so just use identity
     # get transforms
     head_mri_t = _get_trans(trans, "head", "mri")[0]
@@ -898,6 +911,7 @@ def plot_alignment(
             "m",
             sensor_alpha=sensor_alpha,
             sensor_colors=sensor_colors,
+            sensor_scales=sensor_scales,
         )
 
     if src is not None:
@@ -1202,7 +1216,7 @@ def _plot_mri_fiducials(
         mri_fiducials = subjects_dir / subject / "bem" / (subject + "-fiducials.fif")
     if isinstance(mri_fiducials, str) and mri_fiducials == "estimated":
         mri_fiducials = get_mni_fiducials(subject, subjects_dir)
-    elif isinstance(mri_fiducials, (str, Path, os.PathLike)):
+    elif isinstance(mri_fiducials, str | Path | os.PathLike):
         mri_fiducials, cf = read_fiducials(mri_fiducials)
         if cf != FIFF.FIFFV_COORD_MRI:
             raise ValueError("Fiducials are not in MRI space")
@@ -1472,6 +1486,7 @@ def _plot_sensors_3d(
     check_inside=None,
     nearest=None,
     sensor_colors=None,
+    sensor_scales=None,
 ):
     """Render sensors in a 3D scene."""
     from matplotlib.colors import to_rgba_array
@@ -1492,9 +1507,16 @@ def _plot_sensors_3d(
         elif ch_type in _MEG_CH_TYPES_SPLIT:
             ch_type = "meg"
         # only plot sensor locations if channels/original in selection
-        plot_sensors = (ch_type != "fnirs" or "channels" in fnirs) and (
-            ch_type != "eeg" or "original" in eeg
-        )
+        plot_sensors = True
+        if ch_type == "fnirs":
+            if not fnirs or "channels" not in fnirs:
+                plot_sensors = False
+        elif ch_type == "eeg":
+            if not eeg or "original" not in eeg:
+                plot_sensors = False
+        elif ch_type == "meg":
+            if not meg or "sensors" not in meg:
+                plot_sensors = False
         # plot sensors
         if isinstance(ch_coord, tuple):  # is meg, plot coil
             ch_coord = dict(rr=ch_coord[0] * unit_scalar, tris=ch_coord[1])
@@ -1527,23 +1549,44 @@ def _plot_sensors_3d(
             sensor_colors = {
                 list(locs)[0]: to_rgba_array(sensor_colors),
             }
+        if sensor_scales is not None and not isinstance(sensor_scales, dict):
+            sensor_scales = {
+                list(locs)[0]: sensor_scales,
+            }
     else:
         extra = f"when more than one channel type ({list(locs)}) is plotted"
     _validate_type(sensor_colors, types, "sensor_colors", extra=extra)
+    _validate_type(sensor_scales, types, "sensor_scales", extra=extra)
     del extra, types
     if sensor_colors is None:
         sensor_colors = dict()
+    if sensor_scales is None:
+        sensor_scales = dict()
     assert isinstance(sensor_colors, dict)
+    assert isinstance(sensor_scales, dict)
     for ch_type, sens_loc in locs.items():
-        logger.debug(f"Drawing {ch_type} sensors")
+        logger.debug(f"Drawing {ch_type} sensors ({len(sens_loc)})")
         assert len(sens_loc)  # should be guaranteed above
         colors = to_rgba_array(sensor_colors.get(ch_type, defaults[ch_type + "_color"]))
+        scales = np.atleast_1d(
+            sensor_scales.get(ch_type, defaults[ch_type + "_scale"] * unit_scalar)
+        )
         _check_option(
             f"len(sensor_colors[{repr(ch_type)}])",
             colors.shape[0],
             (len(sens_loc), 1),
         )
-        scale = defaults[ch_type + "_scale"] * unit_scalar
+        _check_option(
+            f"len(sensor_scales[{repr(ch_type)}])",
+            scales.shape[0],
+            (len(sens_loc), 1),
+        )
+        # Check that the scale is numerical
+        assert np.issubdtype(scales.dtype, np.number), (
+            f"scales for {ch_type} must contain only numerical values, "
+            f"got {scales} instead."
+        )
+
         this_alpha = sensor_alpha[ch_type]
         if isinstance(sens_loc[0], dict):  # meg coil
             if len(colors) == 1:
@@ -1559,13 +1602,13 @@ def _plot_sensors_3d(
         else:
             sens_loc = np.array(sens_loc, float)
             mask = ~np.isnan(sens_loc).any(axis=1)
-            if len(colors) == 1:
+            if len(colors) == 1 and len(scales) == 1:
                 # Single color mode (one actor)
                 actor, _ = _plot_glyphs(
                     renderer=renderer,
                     loc=sens_loc[mask] * unit_scalar,
                     color=colors[0, :3],
-                    scale=scale,
+                    scale=scales[0],
                     opacity=this_alpha * colors[0, 3],
                     orient_glyphs=orient_glyphs,
                     scale_by_distance=scale_by_distance,
@@ -1575,9 +1618,47 @@ def _plot_sensors_3d(
                     nearest=nearest,
                 )
                 actors[ch_type].append(actor)
-            else:
-                # Multi-color mode (multiple actors)
+            elif len(colors) == len(sens_loc) and len(scales) == 1:
+                # Multi-color single scale mode (multiple actors)
                 for loc, color, usable in zip(sens_loc, colors, mask):
+                    if not usable:
+                        continue
+                    actor, _ = _plot_glyphs(
+                        renderer=renderer,
+                        loc=loc * unit_scalar,
+                        color=color[:3],
+                        scale=scales[0],
+                        opacity=this_alpha * color[3],
+                        orient_glyphs=orient_glyphs,
+                        scale_by_distance=scale_by_distance,
+                        project_points=project_points,
+                        surf=surf,
+                        check_inside=check_inside,
+                        nearest=nearest,
+                    )
+                    actors[ch_type].append(actor)
+            elif len(colors) == 1 and len(scales) == len(sens_loc):
+                # Multi-scale single color mode (multiple actors)
+                for loc, scale, usable in zip(sens_loc, scales, mask):
+                    if not usable:
+                        continue
+                    actor, _ = _plot_glyphs(
+                        renderer=renderer,
+                        loc=loc * unit_scalar,
+                        color=colors[0, :3],
+                        scale=scale,
+                        opacity=this_alpha * colors[0, 3],
+                        orient_glyphs=orient_glyphs,
+                        scale_by_distance=scale_by_distance,
+                        project_points=project_points,
+                        surf=surf,
+                        check_inside=check_inside,
+                        nearest=nearest,
+                    )
+                    actors[ch_type].append(actor)
+            else:
+                # Multi-color multi-scale mode (multiple actors)
+                for loc, color, scale, usable in zip(sens_loc, colors, scales, mask):
                     if not usable:
                         continue
                     actor, _ = _plot_glyphs(
@@ -2869,7 +2950,7 @@ def plot_volume_source_estimates(
         Can also be a string to use the ``bg_img`` file in the subject's
         MRI directory (default is ``'T1.mgz'``).
         Not used in "glass brain" plotting.
-    colorbar : bool, optional
+    colorbar : bool
         If True, display a colorbar on the right of the plots.
     %(colormap)s
     %(clim)s
@@ -3388,7 +3469,7 @@ def plot_sparse_source_estimates(
     ]
 
     known_modes = ["cone", "sphere"]
-    if not isinstance(modes, (list, tuple)) or not all(
+    if not isinstance(modes, list | tuple) or not all(
         mode in known_modes for mode in modes
     ):
         raise ValueError('mode must be a list containing only "cone" or "sphere"')
@@ -3446,7 +3527,7 @@ def plot_sparse_source_estimates(
 
     colors = cycle(colors)
 
-    logger.info("Total number of active sources: %d" % len(unique_vertnos))
+    logger.info(f"Total number of active sources: {unique_vertnos}")
 
     if labels is not None:
         colors = [
@@ -3467,7 +3548,7 @@ def plot_sparse_source_estimates(
         mode = modes[1] if is_common else modes[0]
         scale_factor = scale_factors[1] if is_common else scale_factors[0]
 
-        if isinstance(scale_factor, (np.ndarray, list, tuple)) and len(
+        if isinstance(scale_factor, np.ndarray | list | tuple) and len(
             unique_vertnos
         ) == len(scale_factor):
             scale_factor = scale_factor[idx]
@@ -4097,10 +4178,10 @@ def plot_brain_colorbar(
 
 @dataclass()
 class _3d_Options:
-    antialias: Optional[bool]
-    depth_peeling: Optional[bool]
-    smooth_shading: Optional[bool]
-    multi_samples: Optional[int]
+    antialias: bool | None
+    depth_peeling: bool | None
+    smooth_shading: bool | None
+    multi_samples: int | None
 
 
 _3d_options = _3d_Options(

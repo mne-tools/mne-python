@@ -1,7 +1,4 @@
-# Author: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#         Denis Engemann <denis.engemann@gmail.com>
-#         Stefan Appelhoff <stefan.appelhoff@mailbox.org>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -121,7 +118,7 @@ def test_event_repeated():
     """Test epochs takes into account repeated events."""
     n_samples = 100
     n_channels = 2
-    ch_names = ["chan%i" % i for i in range(n_channels)]
+    ch_names = [f"chan{i}" for i in range(n_channels)]
     info = mne.create_info(ch_names=ch_names, sfreq=1000.0)
     data = np.zeros((n_channels, n_samples))
     raw = mne.io.RawArray(data, info)
@@ -1693,12 +1690,13 @@ def test_split_naming(
     if dst_fpath.parent != tmp_path:
         dst_fpath.parent.mkdir(parents=True)
 
-    epochs.save(dst_fpath, verbose=True, **save_kwargs)
+    split_fnames = epochs.save(dst_fpath, verbose=True, **save_kwargs)
 
     # check that the filenames match the intended pattern
     assert len(list(dst_fpath.parent.iterdir())) == n_files
     assert not (tmp_path / split_fname_fn(n_files)).is_file()
     want_paths = [tmp_path / split_fname_fn(i) for i in range(n_files)]
+    assert split_fnames == want_paths
     for want_path in want_paths:
         assert want_path.is_file()
 
@@ -1728,9 +1726,9 @@ def test_split_naming(
     assert str(bad_path).count("_split-01") == 2
     assert not bad_path.is_file(), bad_path
     bids_path.split = None
-    epochs.save(bids_path, verbose=True, **save_kwargs)
-    for want_path in want_paths:
-        assert want_path.is_file()
+    split_fnames = epochs.save(bids_path, verbose=True, **save_kwargs)
+    for split_fname in split_fnames:
+        assert split_fname.is_file()
 
 
 @pytest.mark.parametrize(
@@ -1753,7 +1751,8 @@ def test_saved_fname_no_splitting(
     dst_fpath = tmp_path / dst_fname
     split_1_fpath = tmp_path / split_1_fname
 
-    epochs.save(dst_fpath, split_naming=split_naming, verbose=True)
+    filenames = epochs.save(dst_fpath, split_naming=split_naming, verbose=True)
+    assert filenames == [dst_fpath]
 
     assert dst_fpath.is_file()
     assert not split_1_fpath.is_file()
@@ -3001,6 +3000,21 @@ def test_epoch_eq():
         epochs.equalize_event_counts(1.5)
 
 
+def test_equalize_epoch_counts_random():
+    """Test random equalization of epochs."""
+    raw, events, picks = _get_data()
+    # create epochs with unequal counts
+    events_1 = events[events[:, 2] == event_id]
+    epochs_1 = Epochs(raw, events_1, event_id, tmin, tmax, picks=picks)
+    events_2 = events[events[:, 2] == event_id_2]
+    epochs_2 = Epochs(raw, events_2, event_id_2, tmin, tmax, picks=picks)
+    epochs_1.drop_bad()
+    epochs_2.drop_bad()
+    assert len(epochs_1) != len(epochs_2)
+    equalize_epoch_counts([epochs_1, epochs_2], method="random")
+    assert len(epochs_1) == len(epochs_2)
+
+
 def test_access_by_name(tmp_path):
     """Test accessing epochs by event name and on_missing for rare events."""
     raw, events, picks = _get_data()
@@ -3687,7 +3701,7 @@ def test_array_epochs(tmp_path, browser_backend):
     # creating
     data = rng.random_sample((10, 20, 300))
     sfreq = 1e3
-    ch_names = ["EEG %03d" % (i + 1) for i in range(20)]
+    ch_names = [f"EEG {i + 1:03}" for i in range(20)]
     types = ["eeg"] * 20
     info = create_info(ch_names, sfreq, types)
     events = np.c_[np.arange(1, 600, 60), np.zeros(10, int), [1, 2] * 5]
@@ -4330,7 +4344,7 @@ def test_make_metadata_bounded_by_row_or_tmin_tmax_event_names(tmin, tmax):
     raw.set_annotations(annots)
     events, event_id = mne.events_from_annotations(raw=raw)
 
-    metadata, events_new, event_id_new = mne.epochs.make_metadata(
+    metadata, events_new, _ = mne.epochs.make_metadata(
         events=events,
         event_id=event_id,
         tmin=tmin,

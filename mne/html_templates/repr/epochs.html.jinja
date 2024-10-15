@@ -1,22 +1,10 @@
-<table class="table table-hover table-striped table-sm table-responsive small">
-    <tr>
-        <th>Number of events</th>
-        <td>{{ epochs.events|length }}</td>
-    </tr>
-    <tr>
-        <th>Events</th>
-        {% if events is not none %}
-        <td>{{ events|join('<br/>') | safe }}</td>
-        {% else %}
-        <td>Not available</td>
-        {% endif %}
-    </tr>
-    <tr>
-        <th>Time range</th>
-        <td>{{ '%.3f'|format(epochs.tmin) }} – {{ '%.3f'|format(epochs.tmax) }} s</td>
-    </tr>
-    <tr>
-        <th>Baseline</th>
-        <td>{{ baseline }}</td>
-    </tr>
+{%include '_js_and_css.html.jinja' %}
+
+{% set info = inst.info %}
+
+<table class="table mne-repr-table">
+    {%include '_general.html.jinja' %}
+    {%include '_acquisition.html.jinja' %}
+    {%include '_channels.html.jinja' %}
+    {%include '_filters.html.jinja' %}
 </table>

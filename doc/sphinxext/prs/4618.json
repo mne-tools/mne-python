@@ -1,0 +1,99 @@
+{
+  "merge_commit_sha": "72a9b26153ed6e71218dd6f13b57412bb5def205",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "examples/datasets/plot_spm_faces_dataset.py": {
+      "a": 0,
+      "d": 1
+    },
+    "examples/forward/plot_forward_sensitivity_maps.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/forward/plot_source_space_morphing.py": {
+      "a": 0,
+      "d": 1
+    },
+    "examples/inverse/plot_covariance_whitening_dspm.py": {
+      "a": 0,
+      "d": 1
+    },
+    "examples/inverse/plot_custom_inverse_solver.py": {
+      "a": 2,
+      "d": 2
+    },
+    "examples/inverse/plot_gamma_map_inverse.py": {
+      "a": 0,
+      "d": 1
+    },
+    "examples/inverse/plot_mixed_norm_inverse.py": {
+      "a": 2,
+      "d": 2
+    },
+    "examples/inverse/plot_mixed_source_space_inverse.py": {
+      "a": 1,
+      "d": 2
+    },
+    "examples/inverse/plot_time_frequency_mixed_norm_inverse.py": {
+      "a": 0,
+      "d": 1
+    },
+    "examples/simulation/plot_simulate_evoked_data.py": {
+      "a": 2,
+      "d": 3
+    },
+    "mne/beamformer/_lcmv.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/datasets/utils.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/forward/forward.py": {
+      "a": 28,
+      "d": 18
+    },
+    "mne/inverse_sparse/_gamma_map.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/inverse_sparse/mxne_inverse.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/inverse_sparse/tests/test_gamma_map.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/inverse_sparse/tests/test_mxne_inverse.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/pick.py": {
+      "a": 12,
+      "d": 11
+    },
+    "mne/minimum_norm/inverse.py": {
+      "a": 89,
+      "d": 87
+    },
+    "mne/minimum_norm/tests/test_inverse.py": {
+      "a": 119,
+      "d": 78
+    },
+    "mne/simulation/evoked.py": {
+      "a": 11,
+      "d": 6
+    }
+  }
+}

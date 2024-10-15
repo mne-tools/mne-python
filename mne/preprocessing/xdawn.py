@@ -1,7 +1,4 @@
-# Authors: Alexandre Barachant <alexandre.barachant@gmail.com>
-#          Asish Panda <asishrocks95@gmail.com>
-#          Jean-Remi King <jeanremi.king@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -572,7 +569,7 @@ class Xdawn(_XdawnTransformer):
         if event_id is None:
             event_id = self.event_id_
 
-        if not isinstance(inst, (BaseRaw, BaseEpochs, Evoked)):
+        if not isinstance(inst, BaseRaw | BaseEpochs | Evoked):
             raise ValueError("Data input must be Raw, Epochs or Evoked type")
         picks = _pick_data_channels(inst.info)
 
@@ -669,11 +666,11 @@ class Xdawn(_XdawnTransformer):
             mask = np.ones(len(sources), dtype=bool)
             mask[np.unique(include)] = False
             sources[mask] = 0.0
-            logger.info("Zeroing out %i Xdawn components" % mask.sum())
+            logger.info(f"Zeroing out {int(mask.sum())} Xdawn components")
         elif exclude not in (None, list()):
             exclude_ = np.unique(exclude)
             sources[exclude_] = 0.0
-            logger.info("Zeroing out %i Xdawn components" % len(exclude_))
+            logger.info(f"Zeroing out {len(exclude_)} Xdawn components")
         logger.info("Inverse transforming to sensor space")
         data = np.dot(self.patterns_[eid].T, sources)
 

@@ -1,0 +1,67 @@
+{
+  "merge_commit_sha": "f2d019339ad786d8704d63a52871ade6d05f3248",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 6,
+      "d": 0
+    },
+    "examples/inverse/plot_gamma_map_inverse.py": {
+      "a": 6,
+      "d": 8
+    },
+    "examples/inverse/plot_mixed_norm_inverse.py": {
+      "a": 7,
+      "d": 1
+    },
+    "mne/beamformer/_rap_music.py": {
+      "a": 60,
+      "d": 35
+    },
+    "mne/beamformer/tests/test_rap_music.py": {
+      "a": 22,
+      "d": 15
+    },
+    "mne/forward/forward.py": {
+      "a": 30,
+      "d": 17
+    },
+    "mne/forward/tests/test_forward.py": {
+      "a": 10,
+      "d": 1
+    },
+    "mne/inverse_sparse/_gamma_map.py": {
+      "a": 16,
+      "d": 23
+    },
+    "mne/inverse_sparse/mxne_inverse.py": {
+      "a": 71,
+      "d": 23
+    },
+    "mne/inverse_sparse/tests/test_gamma_map.py": {
+      "a": 46,
+      "d": 24
+    },
+    "mne/inverse_sparse/tests/test_mxne_inverse.py": {
+      "a": 129,
+      "d": 24
+    },
+    "mne/io/proj.py": {
+      "a": 6,
+      "d": 1
+    },
+    "mne/minimum_norm/inverse.py": {
+      "a": 10,
+      "d": 5
+    },
+    "mne/minimum_norm/tests/test_inverse.py": {
+      "a": 44,
+      "d": 29
+    }
+  }
+}

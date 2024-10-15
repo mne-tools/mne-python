@@ -1,6 +1,4 @@
-# Authors: Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
-#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -13,7 +11,7 @@ from copy import deepcopy
 from functools import partial
 
 import numpy as np
-from scipy.sparse import csr_matrix, triu
+from scipy.sparse import csr_array, triu
 from scipy.sparse.csgraph import dijkstra
 from scipy.spatial.distance import cdist
 
@@ -191,7 +189,7 @@ class SourceSpaces(list):
             The number of triangles in the subsampled surface.
         use_tris : ndarray, shape (nuse_tri, 3)
             The subsampled surface triangulation.
-        dist : scipy.sparse.csr_matrix, shape (n_src, n_src) | None
+        dist : scipy.sparse.csr_array, shape (n_src, n_src) | None
             The distances (euclidean for volume, along the cortical surface for
             surfaces) between source points.
         dist_limit : float
@@ -262,7 +260,7 @@ class SourceSpaces(list):
             The MRI dimensions (in voxels).
         neighbor_vert : ndarray
             The 26-neighborhood information for each vertex.
-        interpolator : scipy.sparse.csr_matrix | None
+        interpolator : scipy.sparse.csr_array | None
             The linear interpolator to go from the subsampled volume vertices
             to the high-resolution volume.
         shape : tuple of int
@@ -303,7 +301,7 @@ class SourceSpaces(list):
             _validate_type(s, dict, "source_spaces[%d]" % (si,))
             types.append(s.get("type", None))
             _check_option(
-                'source_spaces[%d]["type"]' % (si,),
+                f'source_spaces[{si}]["type"]',
                 types[-1],
                 ("surf", "discrete", "vol"),
             )
@@ -882,7 +880,7 @@ def read_source_spaces(fname, patch_stats=False, verbose=None):
     write_source_spaces, setup_source_space, setup_volume_source_space
     """
     # be more permissive on read than write (fwd/inv can contain src)
-    fname = str(_check_fname(fname, overwrite="read", must_exist=True))
+    fname = _check_fname(fname, overwrite="read", must_exist=True)
     check_fname(
         fname,
         "source space",
@@ -1378,7 +1376,7 @@ def _write_one_source_space(fid, this, verbose=None):
         mri_width, mri_height, mri_depth, nvox = _src_vol_dims(this)
         interpolator = this.get("interpolator")
         if interpolator is None:
-            interpolator = csr_matrix((nvox, this["np"]))
+            interpolator = csr_array((nvox, this["np"]))
         write_float_sparse_rcs(
             fid, FIFF.FIFF_MNE_SOURCE_SPACE_INTERPOLATOR, interpolator
         )
@@ -1403,7 +1401,9 @@ def _write_one_source_space(fid, this, verbose=None):
     if this["dist"] is not None:
         # Save only upper triangular portion of the matrix
         dists = this["dist"].copy()
-        dists = triu(dists, format=dists.format)
+        # Shouldn't need this cast but on SciPy 1.9.3 at least this returns a csr_matrix
+        # instead of csr_array
+        dists = csr_array(triu(dists, format=dists.format))
         write_float_sparse_rcs(fid, FIFF.FIFF_MNE_SOURCE_SPACE_DIST, dists)
         write_float_matrix(
             fid,
@@ -1665,7 +1665,7 @@ def setup_volume_source_space(
 
         .. note:: For a discrete source space (``pos`` is a dict),
                   ``mri`` must be None.
-    mri : str | None
+    mri : path-like | None
         The filename of an MRI volume (mgh or mgz) to create the
         interpolation matrix over. Source estimates obtained in the
         volume source space can then be morphed onto the MRI volume
@@ -1791,9 +1791,8 @@ def setup_volume_source_space(
         mri = _check_mri(mri, subject, subjects_dir)
         if isinstance(pos, dict):
             raise ValueError(
-                "Cannot create interpolation matrix for "
-                "discrete source space, mri must be None if "
-                "pos is a dict"
+                "Cannot create interpolation matrix for discrete source space, mri "
+                "must be None if pos is a dict"
             )
 
     if volume_label is not None:
@@ -2356,7 +2355,7 @@ def _add_interpolator(sp):
         order=1,
         inuse=inuse,
     )
-    assert isinstance(interp, csr_matrix)
+    assert isinstance(interp, csr_array)
 
     # Compose the sparse matrices
     for si, s in enumerate(sp):
@@ -2381,7 +2380,7 @@ def _add_interpolator(sp):
             indices = interp.indices[mask]
             data = interp.data[mask]
             assert data.shape == indices.shape == (indptr[-1],)
-            this_interp = csr_matrix((data, indices, indptr), shape=interp.shape)
+            this_interp = csr_array((data, indices, indptr), shape=interp.shape)
         s["interpolator"] = this_interp
         logger.info(
             "    %d/%d nonzero values for %s"
@@ -2406,7 +2405,7 @@ def _grid_interp(from_shape, to_shape, trans, order=1, inuse=None):
     data = np.concatenate(data)
     indices = np.concatenate(indices)
     indptr = np.cumsum(indptr)
-    interp = csr_matrix((data, indices, indptr), shape=shape)
+    interp = csr_array((data, indices, indptr), shape=shape)
     return interp
 
 
@@ -2536,7 +2535,7 @@ def _filter_source_spaces(surf, limit, mri_head_t, src, n_jobs=None, verbose=Non
     elif src[0]["coord_frame"] == FIFF.FIFFV_COORD_MRI:
         out_str += "MRI coordinates."
     else:
-        out_str += "unknown (%d) coordinates." % src[0]["coord_frame"]
+        out_str += f"unknown ({src[0]['coord_frame']}) coordinates."
     logger.info(out_str)
     out_str = "Checking that the sources are inside the surface"
     if limit > 0.0:
@@ -2748,7 +2747,7 @@ def add_source_space_distances(src, dist_limit=np.inf, n_jobs=None, *, verbose=N
             i, j = np.meshgrid(s["vertno"], s["vertno"])
             i = i.ravel()[idx]
             j = j.ravel()[idx]
-            s["dist"] = csr_matrix(
+            s["dist"] = csr_array(
                 (d, (i, j)), shape=(s["np"], s["np"]), dtype=np.float32
             )
             s["dist_limit"] = np.array([dist_limit], np.float32)

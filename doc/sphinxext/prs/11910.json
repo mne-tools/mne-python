@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "4b9a778e8eb922d0b2437b818a6d039f2fe0a465",
+  "authors": [
+    {
+      "n": "Scott Huberty",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/devel.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/eyelink/_utils.py": {
+      "a": 534,
+      "d": 5
+    },
+    "mne/io/eyelink/eyelink.py": {
+      "a": 18,
+      "d": 543
+    },
+    "mne/io/eyelink/tests/test_eyelink.py": {
+      "a": 2,
+      "d": 3
+    },
+    "mne/io/tests/test_raw.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/preprocessing/eyetracking/tests/test_pupillometry.py": {
+      "a": 1,
+      "d": 3
+    },
+    "tutorials/preprocessing/90_eyetracking_data.py": {
+      "a": 2,
+      "d": 9
+    }
+  }
+}

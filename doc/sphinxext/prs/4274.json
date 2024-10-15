@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "4b4615d7f163263556edece4d5e4c1b28a165922",
+  "authors": [
+    {
+      "n": "Laura Gwilliams",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/decoding/base.py": {
+      "a": 22,
+      "d": 23
+    },
+    "mne/decoding/tests/test_base.py": {
+      "a": 12,
+      "d": 8
+    }
+  }
+}

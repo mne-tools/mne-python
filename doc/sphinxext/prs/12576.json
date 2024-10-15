@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "2448974c87828a4f4c2aac0e7c51376556e257b7",
+  "authors": [
+    {
+      "n": "Alex Rockhill",
+      "e": "aprockhill@mailbox.org"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Marijn van Vliet",
+      "e": "w.m.vanvliet@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/12576.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/_freesurfer.py": {
+      "a": 11,
+      "d": 7
+    },
+    "mne/surface.py": {
+      "a": 1,
+      "d": 3
+    },
+    "mne/tests/test_surface.py": {
+      "a": 0,
+      "d": 2
+    },
+    "mne/utils/docs.py": {
+      "a": 7,
+      "d": 3
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 5,
+      "d": 22
+    }
+  }
+}

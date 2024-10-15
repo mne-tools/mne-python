@@ -1,0 +1,159 @@
+{
+  "merge_commit_sha": "13852f58bced5a49434d06e50d98efcf6b4292de",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    ".github/workflows/credit.yml": {
+      "a": 1,
+      "d": 1
+    },
+    ".mailmap": {
+      "a": 10,
+      "d": 8
+    },
+    "doc/changes/names.inc": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/changes/v0.10.rst": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/changes/v0.11.rst": {
+      "a": 3,
+      "d": 3
+    },
+    "doc/changes/v0.12.rst": {
+      "a": 10,
+      "d": 10
+    },
+    "doc/changes/v0.13.rst": {
+      "a": 13,
+      "d": 13
+    },
+    "doc/changes/v0.14.rst": {
+      "a": 7,
+      "d": 7
+    },
+    "doc/changes/v0.15.rst": {
+      "a": 8,
+      "d": 8
+    },
+    "doc/changes/v0.16.rst": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/changes/v0.18.rst": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/changes/v0.20.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/changes/v0.21.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/changes/v0.22.rst": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/changes/v0.23.rst": {
+      "a": 3,
+      "d": 3
+    },
+    "doc/changes/v0.24.rst": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/changes/v0.8.rst": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/changes/v0.9.rst": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/changes/v1.1.rst": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/changes/v1.7.rst": {
+      "a": 90,
+      "d": 90
+    },
+    "doc/changes/v1.8.rst": {
+      "a": 63,
+      "d": 63
+    },
+    "doc/conf.py": {
+      "a": 2,
+      "d": 3
+    },
+    "doc/sphinxext/credit_tools.py": {
+      "a": 88,
+      "d": 9
+    },
+    "doc/sphinxext/mne_doc_utils.py": {
+      "a": 7,
+      "d": 0
+    },
+    "doc/sphinxext/related_software.py": {
+      "a": 10,
+      "d": 2
+    },
+    "examples/decoding/decoding_csp_timefreq.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/decoding/decoding_rsa_sgskip.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/decoding/decoding_spatio_temporal_source.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/decoding/decoding_spoc_CMC.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/decoding/decoding_time_generalization_conditions.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/decoding/decoding_unsupervised_spatial_filter.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/decoding/ems_filtering.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/decoding/linear_model_patterns.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/io/read_neo_format.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/conftest.py": {
+      "a": 2,
+      "d": 0
+    },
+    "pyproject.toml": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

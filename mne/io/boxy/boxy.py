@@ -1,5 +1,4 @@
-# Authors: Kyle Mathewson, Jonathan Kuziek <kuziek@ualberta.ca>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -215,7 +214,7 @@ class RawBOXY(BaseRaw):
         filetype = self._raw_extras[fi]["filetype"]
         col_names = self._raw_extras[fi]["col_names"]
         offsets = self._raw_extras[fi]["offsets"]
-        boxy_file = self._filenames[fi]
+        boxy_file = self.filenames[fi]
 
         # Non-parsed multiplexes sources, so we need source_num times as many
         # lines in that case

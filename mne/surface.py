@@ -1,8 +1,4 @@
-# Authors: Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
-#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
-#          Denis A. Engemann <denis.engemann@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -21,7 +17,7 @@ from pathlib import Path
 
 import numpy as np
 from scipy.ndimage import binary_dilation
-from scipy.sparse import coo_matrix, csr_matrix
+from scipy.sparse import coo_array, csr_array
 from scipy.spatial import ConvexHull, Delaunay
 from scipy.spatial.distance import cdist
 
@@ -398,7 +394,7 @@ def _triangle_neighbors(tris, npts):
     rows = tris.ravel()
     cols = np.repeat(np.arange(len(tris)), 3)
     data = np.ones(len(cols))
-    csr = coo_matrix((data, (rows, cols)), shape=(npts, len(tris))).tocsr()
+    csr = coo_array((data, (rows, cols)), shape=(npts, len(tris))).tocsr()
     neighbor_tri = [
         csr.indices[start:stop] for start, stop in zip(csr.indptr[:-1], csr.indptr[1:])
     ]
@@ -842,12 +838,6 @@ class _CheckInside:
 def _fread3(fobj):
     """Read 3 bytes and adjust."""
     b1, b2, b3 = np.fromfile(fobj, ">u1", 3).astype(np.int64)
-    return (b1 << 16) + (b2 << 8) + b3
-
-
-def _fread3_many(fobj, n):
-    """Read 3-byte ints from an open binary file object."""
-    b1, b2, b3 = np.fromfile(fobj, ">u1", 3 * n).reshape(-1, 3).astype(np.int64).T
     return (b1 << 16) + (b2 << 8) + b3
 
 
@@ -1731,7 +1721,7 @@ def _mesh_edges(tris=None):
     a, b, c = tris.T
     x = np.concatenate((a, b, c))
     y = np.concatenate((b, c, a))
-    edges = coo_matrix((ones_ntris, (x, y)), shape=(npoints, npoints))
+    edges = coo_array((ones_ntris, (x, y)), shape=(npoints, npoints))
     edges = edges.tocsr()
     edges = edges + edges.T
     return edges
@@ -1752,14 +1742,14 @@ def mesh_dist(tris, vert):
 
     Returns
     -------
-    dist_matrix : scipy.sparse.csr_matrix
+    dist_matrix : scipy.sparse.csr_array
         Sparse matrix with distances between adjacent vertices.
     """
     edges = mesh_edges(tris).tocoo()
 
     # Euclidean distances between neighboring vertices
     dist = np.linalg.norm(vert[edges.row, :] - vert[edges.col, :], axis=1)
-    dist_matrix = csr_matrix((dist, (edges.row, edges.col)), shape=edges.shape)
+    dist_matrix = csr_array((dist, (edges.row, edges.col)), shape=edges.shape)
     return dist_matrix
 
 

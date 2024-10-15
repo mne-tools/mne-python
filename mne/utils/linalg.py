@@ -17,8 +17,8 @@ Significant performance gains can be achieved by ensuring that inputs
 are Fortran contiguous because that's what LAPACK requires. Without this,
 inputs will be memcopied.
 """
-# Authors: Eric Larson <larson.eric.d@gmail.com>
-#
+
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -85,7 +85,7 @@ def _repeated_svd(x, lwork, overwrite_a=False):
     if info > 0:
         raise np.linalg.LinAlgError("SVD did not converge")
     if info < 0:
-        raise ValueError("illegal value in %d-th argument of internal gesdd" % -info)
+        raise ValueError(f"illegal value in {-info}-th argument of internal gesdd")
     return u, s, v
 
 
@@ -134,15 +134,13 @@ def eigh(a, overwrite_a=False, check_finite=True):
     if info == 0:
         return w, v
     if info < 0:
-        raise ValueError(
-            "illegal value in argument %d of internal %s" % (-info, driver)
-        )
+        raise ValueError(f"illegal value in argument {-info} of internal {driver}")
     else:
         raise linalg.LinAlgError(
             "internal fortran routine failed to converge: "
-            "%i off-diagonal elements of an "
+            f"{info} off-diagonal elements of an "
             "intermediate tridiagonal form did not converge"
-            " to zero." % info
+            " to zero."
         )
 
 

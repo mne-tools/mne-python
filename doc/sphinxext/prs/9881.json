@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "44ac64b42a942846061e42a2f0064f430df56153",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/channels/layout.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/channels/tests/test_layout.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/report/report.py": {
+      "a": 59,
+      "d": 25
+    },
+    "mne/report/tests/test_report.py": {
+      "a": 42,
+      "d": 0
+    },
+    "mne/utils/check.py": {
+      "a": 20,
+      "d": 3
+    },
+    "mne/utils/tests/test_check.py": {
+      "a": 29,
+      "d": 2
+    },
+    "mne/viz/evoked.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/viz/utils.py": {
+      "a": 3,
+      "d": 2
+    }
+  }
+}

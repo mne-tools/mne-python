@@ -1,5 +1,7 @@
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 import os
 import subprocess
 import sys
@@ -26,8 +28,8 @@ def test_html_repr():
     os.environ[key] = "True"  # HTML repr on
     info = mne.create_info(10, 256)
     r = info._repr_html_()
-    assert r.startswith("<details open")
-    assert r.endswith("</details>")
+    assert r.startswith("<script type=")
+    assert r.endswith("</table>")
     os.environ[key] = "False"  # HTML repr off
     r = info._repr_html_()
     assert r.startswith("<pre>")
@@ -35,7 +37,7 @@ def test_html_repr():
 
     del os.environ[key]
     if existing_value is not None:
-        os.environ[key, existing_value]
+        os.environ[key] = existing_value
 
 
 @pytest.mark.parametrize("kind", ("stdout", "stderr"))

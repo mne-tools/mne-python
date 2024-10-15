@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "d89655b94dd590e544f2195062fdf8292b14f6e3",
+  "authors": [
+    {
+      "n": "Teon L Brooks",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/fiff/edf/edf.py": {
+      "a": 98,
+      "d": 14
+    }
+  }
+}

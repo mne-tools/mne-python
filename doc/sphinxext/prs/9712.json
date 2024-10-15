@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "8983996fdeb679157db102de075852bce97796b0",
+  "authors": [
+    {
+      "n": "Reza Shoorangiz",
+      "e": null
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 3,
+      "d": 1
+    },
+    "doc/changes/names.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/curry/curry.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

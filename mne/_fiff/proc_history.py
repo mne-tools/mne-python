@@ -1,11 +1,10 @@
-# Authors: Denis A. Engemann <denis.engemann@gmail.com>
-#          Eric Larson <larson.eric.d@gmail.com>
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
 import numpy as np
 
-from ..fixes import _csc_matrix_cast
+from ..fixes import _csc_array_cast
 from ..utils import _check_fname, warn
 from .constants import FIFF
 from .open import fiff_open, read_tag
@@ -198,7 +197,7 @@ _sss_ctc_ids = (
     FIFF.FIFF_DECOUPLER_MATRIX,
 )
 _sss_ctc_writers = (write_id, write_int, write_string, write_float_sparse)
-_sss_ctc_casters = (dict, np.array, str, _csc_matrix_cast)
+_sss_ctc_casters = (dict, np.array, str, _csc_array_cast)
 
 _sss_cal_keys = ("cal_chans", "cal_corrs")
 _sss_cal_ids = (FIFF.FIFF_SSS_CAL_CHANS, FIFF.FIFF_SSS_CAL_CORRS)

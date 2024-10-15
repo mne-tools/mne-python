@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "de3128b5f3434490943eff92dd9a4efbb5a8dca2",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/datasets/tests/test_datasets.py": {
+      "a": 14,
+      "d": 2
+    },
+    "mne/datasets/utils.py": {
+      "a": 7,
+      "d": 3
+    },
+    "mne/label.py": {
+      "a": 34,
+      "d": 25
+    }
+  }
+}

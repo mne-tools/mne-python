@@ -1,10 +1,6 @@
 """IO with fif files containing events."""
 
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
-#          Teon Brooks <teon.brooks@gmail.com>
-#          Clement Moutard <clement.moutard@polytechnique.org>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -523,7 +519,7 @@ def _find_events(
         else:
             logger.info(
                 f"Trigger channel {ch_name} has a non-zero initial value of "
-                "{initial_value} (consider using initial_event=True to detect this "
+                f"{initial_value} (consider using initial_event=True to detect this "
                 "event)"
             )
 
@@ -1204,7 +1200,7 @@ class AcqParserFIF:
         if self.categories:
             s += "\nAveraging categories:"
             for cat in self.categories:
-                s += '\n%d: "%s"' % (cat["index"], cat["comment"])
+                s += f'\n{cat["index"]}: "{cat["comment"]}"'
         s += ">"
         return s
 
@@ -1633,7 +1629,7 @@ def match_event_names(event_names, keys, *, on_missing="raise"):
         event_names = list(event_names)
 
     # ensure we have a list of `keys`
-    if isinstance(keys, (Sequence, np.ndarray)) and not isinstance(keys, str):
+    if isinstance(keys, Sequence | np.ndarray) and not isinstance(keys, str):
         keys = list(keys)
     else:
         keys = [keys]

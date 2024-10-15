@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "bcf9b597231d0cca33aa03a55ec409d7ff9747ed",
+  "authors": [
+    {
+      "n": "jaeilepp",
+      "e": "jaeilepp@student.jyu.fi"
+    }
+  ],
+  "changes": {
+    "mne/evoked.py": {
+      "a": 7,
+      "d": 4
+    },
+    "mne/viz/topo.py": {
+      "a": 5,
+      "d": 4
+    }
+  }
+}

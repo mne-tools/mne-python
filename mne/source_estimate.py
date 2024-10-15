@@ -1,8 +1,4 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
-#          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
-#          Mads Jensen <mje.mads@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -23,7 +19,7 @@ from .baseline import rescale
 from .cov import Covariance
 from .evoked import _get_peak
 from .filter import FilterMixin, _check_fun, resample
-from .fixes import _safe_svd
+from .fixes import _eye_array, _safe_svd
 from .parallel import parallel_func
 from .source_space._source_space import (
     SourceSpaces,
@@ -479,7 +475,7 @@ def _make_stc(
 def _verify_source_estimate_compat(a, b):
     """Make sure two SourceEstimates are compatible for arith. operations."""
     compat = False
-    if type(a) != type(b):
+    if type(a) is not type(b):
         raise ValueError(f"Cannot combine {type(a)} and {type(b)}.")
     if len(a.vertices) == len(b.vertices):
         if all(np.array_equal(av, vv) for av, vv in zip(a.vertices, b.vertices)):
@@ -1455,7 +1451,7 @@ class _BaseSourceEstimate(TimeMixin, FilterMixin):
         # triage surface vs volume source estimates
         col_names = list()
         kinds = ["VOL"] * len(self.vertices)
-        if isinstance(self, (_BaseSurfaceSourceEstimate, _BaseMixedSourceEstimate)):
+        if isinstance(self, _BaseSurfaceSourceEstimate | _BaseMixedSourceEstimate):
             kinds[:2] = ["LH", "RH"]
         for kind, vertno in zip(kinds, self.vertices):
             col_names.extend([f"{kind}_{vert}" for vert in vertno])
@@ -3112,7 +3108,7 @@ def spatio_temporal_src_adjacency(src, n_times, dist=None, verbose=None):
 
     Returns
     -------
-    adjacency : ~scipy.sparse.coo_matrix
+    adjacency : ~scipy.sparse.coo_array
         The adjacency matrix describing the spatio-temporal
         graph structure. If N is the number of vertices in the
         source space, the N first nodes in the graph are the
@@ -3174,7 +3170,7 @@ def spatio_temporal_tris_adjacency(tris, n_times, remap_vertices=False, verbose=
 
     Returns
     -------
-    adjacency : ~scipy.sparse.coo_matrix
+    adjacency : ~scipy.sparse.coo_array
         The adjacency matrix describing the spatio-temporal
         graph structure. If N is the number of vertices in the
         source space, the N first nodes in the graph are the
@@ -3186,7 +3182,7 @@ def spatio_temporal_tris_adjacency(tris, n_times, remap_vertices=False, verbose=
         tris = np.searchsorted(np.unique(tris), tris)
 
     edges = mesh_edges(tris)
-    edges = (edges + sparse.eye(edges.shape[0], format="csr")).tocoo()
+    edges = (edges + _eye_array(edges.shape[0])).tocoo()
     return _get_adjacency_from_edges(edges, n_times)
 
 
@@ -3210,7 +3206,7 @@ def spatio_temporal_dist_adjacency(src, n_times, dist, verbose=None):
 
     Returns
     -------
-    adjacency : ~scipy.sparse.coo_matrix
+    adjacency : ~scipy.sparse.coo_array
         The adjacency matrix describing the spatio-temporal
         graph structure. If N is the number of vertices in the
         source space, the N first nodes in the graph are the
@@ -3255,7 +3251,7 @@ def spatial_src_adjacency(src, dist=None, verbose=None):
 
     Returns
     -------
-    adjacency : ~scipy.sparse.coo_matrix
+    adjacency : ~scipy.sparse.coo_array
         The adjacency matrix describing the spatial graph structure.
     """
     return spatio_temporal_src_adjacency(src, 1, dist)
@@ -3276,7 +3272,7 @@ def spatial_tris_adjacency(tris, remap_vertices=False, verbose=None):
 
     Returns
     -------
-    adjacency : ~scipy.sparse.coo_matrix
+    adjacency : ~scipy.sparse.coo_array
         The adjacency matrix describing the spatial graph structure.
     """
     return spatio_temporal_tris_adjacency(tris, 1, remap_vertices)
@@ -3300,7 +3296,7 @@ def spatial_dist_adjacency(src, dist, verbose=None):
 
     Returns
     -------
-    adjacency : ~scipy.sparse.coo_matrix
+    adjacency : ~scipy.sparse.coo_array
         The adjacency matrix describing the spatial graph structure.
     """
     return spatio_temporal_dist_adjacency(src, 1, dist)
@@ -3321,7 +3317,7 @@ def spatial_inter_hemi_adjacency(src, dist, verbose=None):
 
     Returns
     -------
-    adjacency : ~scipy.sparse.coo_matrix
+    adjacency : ~scipy.sparse.coo_array
         The adjacency matrix describing the spatial graph structure.
         Typically this should be combined (addititively) with another
         existing intra-hemispheric adjacency matrix, e.g. computed
@@ -3329,8 +3325,8 @@ def spatial_inter_hemi_adjacency(src, dist, verbose=None):
     """
     src = _ensure_src(src, kind="surface")
     adj = cdist(src[0]["rr"][src[0]["vertno"]], src[1]["rr"][src[1]["vertno"]])
-    adj = sparse.csr_matrix(adj <= dist, dtype=int)
-    empties = [sparse.csr_matrix((nv, nv), dtype=int) for nv in adj.shape]
+    adj = sparse.csr_array(adj <= dist, dtype=int)
+    empties = [sparse.csr_array((nv, nv), dtype=int) for nv in adj.shape]
     adj = sparse.vstack(
         [sparse.hstack([empties[0], adj]), sparse.hstack([adj.T, empties[1]])]
     )
@@ -3359,7 +3355,7 @@ def _get_adjacency_from_edges(edges, n_times, verbose=None):
     data = np.ones(
         edges.data.size * n_times + 2 * n_vertices * (n_times - 1), dtype=np.int64
     )
-    adjacency = sparse.coo_matrix((data, (row, col)), shape=(n_times * n_vertices,) * 2)
+    adjacency = sparse.coo_array((data, (row, col)), shape=(n_times * n_vertices,) * 2)
     return adjacency
 
 
@@ -3470,7 +3466,7 @@ def _prepare_label_extraction(stc, labels, src, mode, allow_empty, use_sparse):
             # Efficiency shortcut: use linearity early to avoid redundant
             # calculations
             elif mode == "mean":
-                vertidx = sparse.csr_matrix(vertidx.mean(axis=0))
+                vertidx = sparse.csr_array(vertidx.mean(axis=0)[np.newaxis])
             label_vertidx.append(vertidx)
             label_flip.append(None)
             continue
@@ -3643,7 +3639,7 @@ def _get_default_label_modes():
 
 
 def _get_allowed_label_modes(stc):
-    if isinstance(stc, (_BaseVolSourceEstimate, _BaseVectorSourceEstimate)):
+    if isinstance(stc, _BaseVolSourceEstimate | _BaseVectorSourceEstimate):
         return ("mean", "max", "auto")
     else:
         return _get_default_label_modes()
@@ -3686,7 +3682,7 @@ def _gen_extract_label_time_course(
             _get_allowed_label_modes(stc),
             "when using a vector and/or volume source estimate",
         )
-        if isinstance(stc, (_BaseVolSourceEstimate, _BaseVectorSourceEstimate)):
+        if isinstance(stc, _BaseVolSourceEstimate | _BaseVectorSourceEstimate):
             mode = "mean" if mode == "auto" else mode
         else:
             mode = "mean_flip" if mode == "auto" else mode
@@ -3725,7 +3721,7 @@ def _gen_extract_label_time_course(
             label_tc = np.zeros((n_labels,) + stc.data.shape[1:], dtype=stc.data.dtype)
         for i, (vertidx, flip) in enumerate(zip(label_vertidx, src_flip)):
             if vertidx is not None:
-                if isinstance(vertidx, sparse.csr_matrix):
+                if isinstance(vertidx, sparse.csr_array):
                     assert mri_resolution
                     assert vertidx.shape[1] == stc.data.shape[0]
                     this_data = np.reshape(stc.data, (stc.data.shape[0], -1))
@@ -3791,7 +3787,7 @@ def extract_label_time_course(
     time courses.
     """
     # convert inputs to lists
-    if not isinstance(stcs, (list, tuple, GeneratorType)):
+    if not isinstance(stcs, list | tuple | GeneratorType):
         stcs = [stcs]
         return_several = False
         return_generator = False

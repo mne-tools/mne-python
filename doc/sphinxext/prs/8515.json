@@ -1,0 +1,75 @@
+{
+  "merge_commit_sha": "d73e0ab014c1fe6125d80f4649a5c066858d8c5f",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/datasets/brainstorm/bst_auditory.py": {
+      "a": 6,
+      "d": 6
+    },
+    "mne/datasets/brainstorm/bst_phantom_ctf.py": {
+      "a": 6,
+      "d": 6
+    },
+    "mne/datasets/brainstorm/bst_phantom_elekta.py": {
+      "a": 6,
+      "d": 6
+    },
+    "mne/datasets/brainstorm/bst_raw.py": {
+      "a": 6,
+      "d": 6
+    },
+    "mne/datasets/brainstorm/bst_resting.py": {
+      "a": 6,
+      "d": 6
+    },
+    "mne/datasets/utils.py": {
+      "a": 25,
+      "d": 22
+    },
+    "mne/decoding/ssd.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/report.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/utils/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/check.py": {
+      "a": 12,
+      "d": 0
+    },
+    "mne/utils/docs.py": {
+      "a": 6,
+      "d": 0
+    },
+    "mne/utils/progressbar.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/utils/tests/test_check.py": {
+      "a": 13,
+      "d": 1
+    },
+    "mne/utils/tests/test_progressbar.py": {
+      "a": 7,
+      "d": 0
+    },
+    "tools/circleci_download.sh": {
+      "a": 6,
+      "d": 6
+    }
+  }
+}

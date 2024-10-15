@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "54e07b3257ee44ae28c5253f47ef73909ef23bfd",
+  "authors": [
+    {
+      "n": "Victor Férat",
+      "e": "victor.ferat@live.Fr"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/commands/mne_prepare_bem_model.py": {
+      "a": 55,
+      "d": 0
+    },
+    "mne/commands/tests/test_commands.py": {
+      "a": 21,
+      "d": 2
+    }
+  }
+}

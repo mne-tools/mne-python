@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "1ef6ebeccb4361da5ea18a4a35f731cd9a1bfc74",
+  "authors": [
+    {
+      "n": "Christian Brodbeck",
+      "e": null
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 5,
+      "d": 0
+    },
+    "examples/visualization/plot_montage.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/channels/_standard_montage_utils.py": {
+      "a": 19,
+      "d": 28
+    },
+    "mne/channels/montage.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

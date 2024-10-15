@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "1206b996eeff4f4ae359ca1188078f8a16474431",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".github/workflows/check_changelog.yml": {
+      "a": 1,
+      "d": 0
+    },
+    ".github/workflows/release.yml": {
+      "a": 2,
+      "d": 4
+    }
+  }
+}

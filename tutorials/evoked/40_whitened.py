@@ -5,8 +5,7 @@
 Plotting whitened data
 ======================
 
-This tutorial demonstrates how to plot :term:`whitened <whitening>`
-evoked data.
+This tutorial demonstrates how to plot :term:`whitened <whitening>` evoked data.
 
 Data are whitened for many processes, including dipole fitting, source
 localization and some decoding algorithms. Viewing whitened data thus gives
@@ -16,8 +15,10 @@ Let's start by loading some data and computing a signal (spatial) covariance
 that we'll consider to be noise.
 """
 
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 # %%
 
 import mne

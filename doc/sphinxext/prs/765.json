@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "b10acb752ca725c28db33af0bf97e4c6a4ea75f0",
+  "authors": [
+    {
+      "n": "Yousra BEKHTI",
+      "e": "yousra.bekhti@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/beamformer/_dics.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/beamformer/_lcmv.py": {
+      "a": 3,
+      "d": 1
+    }
+  }
+}

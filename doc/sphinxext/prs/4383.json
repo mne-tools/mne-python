@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "c2fc6dba536f159068f2d0b3cb27839d867db7c0",
+  "authors": [
+    {
+      "n": "Christian Brodbeck",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/documentation.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/visualization/plot_xhemi.py": {
+      "a": 47,
+      "d": 0
+    },
+    "mne/source_estimate.py": {
+      "a": 57,
+      "d": 25
+    },
+    "mne/surface.py": {
+      "a": 109,
+      "d": 78
+    },
+    "mne/tests/test_surface.py": {
+      "a": 20,
+      "d": 13
+    }
+  }
+}

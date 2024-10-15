@@ -1,0 +1,1 @@
+Improve documentation clarity of ``fit_transform`` methods for :class:`mne.decoding.SSD`, :class:`mne.decoding.CSP`, and :class:`mne.decoding.SPoC` classes, by `Thomas Binns`_.

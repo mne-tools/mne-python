@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "eed10bdf499aee6abc88f92b806bc81b0cd83615",
+  "authors": [
+    {
+      "n": "Denis A. Engemann",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/source/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/stats/multi_comp.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/stats/tests/test_multi_comp.py": {
+      "a": 4,
+      "d": 1
+    }
+  }
+}
