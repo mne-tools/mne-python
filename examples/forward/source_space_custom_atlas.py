@@ -64,21 +64,37 @@ subprocess.run(["mri_convert", T1_participant_path, T1_participant_nifti])
 
 # Compute template to subject anatomical transform
 template_to_anat_transform_path = Path(mri_path, "template_to_anat.mat")
-subprocess.run(["flirt", 
-                "-in", atlas_template_T1_path, 
-                "-ref", T1_participant_nifti,
-                "-out", Path(mri_path, "T1_atlas_coreg"),
-                "-omat", template_to_anat_transform_path])
+subprocess.run(
+    [
+        "flirt",
+        "-in",
+        atlas_template_T1_path,
+        "-ref",
+        T1_participant_nifti,
+        "-out",
+        Path(mri_path, "T1_atlas_coreg"),
+        "-omat",
+        template_to_anat_transform_path,
+    ]
+)
 
 # Apply the transform to the atlas
 atlas_participant = Path(mri_path, "yeo_atlas.nii.gz")
 
-subprocess.run(["flirt",
-                "-in", atlas_path,
-                "-ref", T1_participant_nifti,
-                "-out", atlas_participant,
-                "-applyxfm -init", template_to_anat_transform_path,
-                "-interp nearestneighbour"])
+subprocess.run(
+    [
+        "flirt",
+        "-in",
+        atlas_path,
+        "-ref",
+        T1_participant_nifti,
+        "-out",
+        atlas_participant,
+        "-applyxfm -init",
+        template_to_anat_transform_path,
+        "-interp nearestneighbour",
+    ]
+)
 
 # Convert resulting atlas from nifti to mgz
 # The filename must finish with aseg, to indicate to MNE that it is a proper atlas segmentation.
