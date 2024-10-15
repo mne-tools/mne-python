@@ -21,7 +21,7 @@ Any atlas can be used instead of Yeo, provided each region contains a single lab
 
 # %%
 
-import os
+import subprocess
 from pathlib import Path as Path
 
 import nilearn.datasets
@@ -47,9 +47,9 @@ subject_mri_path = Path(subjects_mri_dir, "sample")
 mri_path = Path(subject_mri_path, "mri")
 T1_participant_path = Path(mri_path, "brain.mgz")
 
-assert os.path.exists(atlas_path)
-assert os.path.exists(atlas_template_T1_path)
-assert os.path.exists(T1_participant_path)
+assert atlas_path.is_file()
+assert atlas_template_T1_path.is_file()
+assert T1_participant_path.is_file()
 
 # %%
 # The first step is to put the atlas in subject space.
@@ -59,35 +59,36 @@ assert os.path.exists(T1_participant_path)
 
 # FSL does not know how to read .mgz, so we need to convert the T1 to nifti format
 # With FreeSurfer:
-T1_participant_nifti = str(T1_participant_path).replace("mgz", "nii.gz")
-os.system(f"mri_convert {T1_participant_path} {T1_participant_nifti}")
+T1_participant_nifti = Path(str(T1_participant_path).replace("mgz", "nii.gz"))
+subprocess.run(["mri_convert", T1_participant_path, T1_participant_nifti])
 
 # Compute template to subject anatomical transform
 template_to_anat_transform_path = Path(mri_path, "template_to_anat.mat")
-os.system(
-    "flirt -in {} -ref {} -out {} -omat {}".format(
-        atlas_template_T1_path,
-        T1_participant_nifti,
-        Path(mri_path, "T1_atlas_coreg"),
-        template_to_anat_transform_path,
-    )
-)
+subprocess.run(["flirt", 
+                "-in", atlas_template_T1_path, 
+                "-ref", T1_participant_nifti,
+                "-out", Path(mri_path, "T1_atlas_coreg"),
+                "-omat", template_to_anat_transform_path])
 
 # Apply the transform to the atlas
 atlas_participant = Path(mri_path, "yeo_atlas.nii.gz")
-os.system(
-    f"flirt -in {atlas_path} -ref {T1_participant_nifti} -out {atlas_participant} -applyxfm -init {template_to_anat_transform_path} -interp nearestneighbour"
-)
+
+subprocess.run(["flirt",
+                "-in", atlas_path,
+                "-ref", T1_participant_nifti,
+                "-out", atlas_participant,
+                "-applyxfm -init", template_to_anat_transform_path,
+                "-interp nearestneighbour"])
 
 # Convert resulting atlas from nifti to mgz
 # The filename must finish with aseg, to indicate to MNE that it is a proper atlas segmentation.
-atlas_converted = str(atlas_participant).replace(".nii.gz", "aseg.mgz")
-os.system(f"mri_convert {atlas_participant} {atlas_converted}")
+atlas_converted = Path(str(atlas_participant).replace(".nii.gz", "aseg.mgz"))
+subprocess.run(["mri_convert", atlas_participant, atlas_converted])
 
-assert os.path.exists(T1_participant_nifti)
-assert os.path.exists(template_to_anat_transform_path)
-assert os.path.exists(atlas_participant)
-assert os.path.exists(atlas_converted)
+assert T1_participant_nifti.is_file()
+assert template_to_anat_transform_path.is_file()
+assert atlas_participant.is_file()
+assert atlas_converted.is_file()
 
 # %%
 # With the atlas in participant space, we're still missing one ingredient.
