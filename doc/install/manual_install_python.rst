@@ -13,13 +13,14 @@ We recommend using a ``conda``-based Python installation, such as
 our pre-built :ref:`installers`, which use ``conda`` environments under the hood.
 
 .. warning::
-   Anaconda, the company that develops the Anaconda and Miniconda Python
-   distributions, is now strictly enforcing its end-user license agreement.
-   This means that if you're found using the software in a commercial setting,
-   you may be required to purchase a license. If you're unsure about your
-   usage, we highly recommend using Miniforge or our installers instead. These
-   options, by default, avoid Anaconda packages and rely on community-created
-   packages from the `conda-forge`_ project.
+   Anaconda Inc., the company that develops the Anaconda and Miniconda Python
+   distributions,
+   `changed their terms of service <https://www.anaconda.com/blog/update-on-anacondas-terms-of-service-for-academia-and-research>`__
+   in March of 2024. If you're unsure about whether your usage situation requires a paid
+   license, we recommend using Miniforge or our pre-built installer instead. These
+   options, by default, install packages only from the community-maintained `conda-forge`_
+   distribution channel, and avoid the distribution channels covered by Anaconda's terms
+   of service.
 
 .. _other-py-distros:
 
