@@ -3640,7 +3640,7 @@ def _get_default_label_modes():
 
 def _get_allowed_label_modes(stc):
     if isinstance(stc, _BaseVolSourceEstimate | _BaseVectorSourceEstimate):
-        return ("mean", "max", "auto")
+        return ("mean", "pca_flip" "max", "auto")
     else:
         return _get_default_label_modes()
 
