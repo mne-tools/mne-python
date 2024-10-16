@@ -1,0 +1,1 @@
+Add an example to use :func:`mne.extract_label_time_course` with custom atlas, by `Fabrice Guibert`_.
