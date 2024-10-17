@@ -75,6 +75,7 @@ from ..viz import (
     plot_compare_evokeds,
     plot_cov,
     plot_events,
+    plot_projs_joint,
     plot_projs_topomap,
     set_3d_view,
     use_browser_backend,
@@ -1613,27 +1614,43 @@ class Report:
         self,
         *,
         info,
-        projs=None,
         title,
+        projs=None,
         topomap_kwargs=None,
         tags=("ssp",),
+        joint=False,
+        picks_trace=None,
+        section=None,
         replace=False,
     ):
         """Render (SSP) projection vectors.
 
         Parameters
         ----------
-        info : instance of Info | path-like
-            An `~mne.Info` structure or the path of a file containing one. This
-            is required to create the topographic plots.
+        info : instance of Info | instance of Evoked | path-like
+            An `~mne.Info` structure or the path of a file containing one.
+        title : str
+            The title corresponding to the :class:`~mne.Projection` object.
         projs : iterable of mne.Projection | path-like | None
             The projection vectors to add to the report. Can be the path to a
             file that will be loaded via `mne.read_proj`. If ``None``, the
             projectors are taken from ``info['projs']``.
-        title : str
-            The title corresponding to the `~mne.Projection` object.
         %(topomap_kwargs)s
         %(tags_report)s
+        joint : bool
+            If True (default False), plot the projectors using
+            :func:`mne.viz.plot_projs_joint`, otherwise use
+            :func:`mne.viz.plot_projs_topomap`. If True, then ``info`` must be an
+            instance of :class:`mne.Evoked`.
+
+            .. versionadded:: 1.9
+        %(picks_plot_projs_joint_trace)s
+            Only used when ``joint=True``.
+
+            .. versionadded:: 1.9
+        %(section_report)s
+
+            .. versionadded:: 1.9
         %(replace_report)s
 
         Notes
@@ -1646,10 +1663,11 @@ class Report:
             projs=projs,
             title=title,
             image_format=self.image_format,
-            section=None,
+            section=section,
             tags=tags,
             topomap_kwargs=topomap_kwargs,
             replace=replace,
+            joint=joint,
         )
 
     def _add_ica_overlay(self, *, ica, inst, image_format, section, tags, replace):
@@ -2970,9 +2988,10 @@ class Report:
 
             if is_hdf5:
                 _, write_hdf5 = _import_h5io_funcs()
-                write_hdf5(
-                    fname, self.__getstate__(), overwrite=overwrite, title="mnepython"
-                )
+                import h5py
+
+                with h5py.File(fname, "a") as f:
+                    write_hdf5(f, self.__getstate__(), title="mnepython")
             else:
                 # Add header, TOC, and footer.
                 header_html = _html_header_element(
@@ -3262,26 +3281,27 @@ class Report:
         section,
         topomap_kwargs,
         replace,
+        picks_trace=None,
+        joint=False,
     ):
+        evoked = None
         if isinstance(info, Info):  # no-op
             pass
         elif hasattr(info, "info"):  # try to get the file name
-            if isinstance(info, BaseRaw):
-                fname = info.filenames[0]
-            # elif isinstance(info, (Evoked, BaseEpochs)):
-            #     fname = info.filename
-            else:
-                fname = ""
+            if isinstance(info, Evoked):
+                evoked = info
             info = info.info
         else:  # read from a file
-            fname = info
-            info = read_info(fname, verbose=False)
+            info = read_info(info, verbose=False)
+        if joint and evoked is None:
+            raise ValueError(
+                "joint=True requires an evoked instance to be passed as the info"
+            )
 
         if projs is None:
             projs = info["projs"]
         elif not isinstance(projs, list):
-            fname = projs
-            projs = read_proj(fname)
+            projs = read_proj(projs)
 
         if not projs:
             raise ValueError("No SSP projectors found")
@@ -3294,19 +3314,29 @@ class Report:
             )
 
         topomap_kwargs = self._validate_topomap_kwargs(topomap_kwargs)
-        fig = plot_projs_topomap(
-            projs=projs,
-            info=info,
-            colorbar=True,
-            vlim="joint",
-            show=False,
-            **topomap_kwargs,
-        )
-        # TODO This seems like a bad idea, better to provide a way to set a
-        # desired size in plot_projs_topomap, but that uses prepare_trellis...
-        # hard to see how (6, 4) could work in all number-of-projs by
-        # number-of-channel-types conditions...
-        fig.set_size_inches((6, 4))
+        if evoked is None:
+            fig = plot_projs_topomap(
+                projs=projs,
+                info=info,
+                colorbar=True,
+                vlim="joint",
+                show=False,
+                **topomap_kwargs,
+            )
+            # TODO This seems like a bad idea, better to provide a way to set a
+            # desired size in plot_projs_topomap, but that uses prepare_trellis...
+            # hard to see how (6, 4) could work in all number-of-projs by
+            # number-of-channel-types conditions...
+            fig.set_size_inches((6, 4))
+        else:
+            fig = plot_projs_joint(
+                projs,
+                evoked=evoked,
+                picks_trace=picks_trace,
+                topomap_kwargs=topomap_kwargs,
+                show=False,
+            )
+
         _constrain_fig_resolution(fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES)
         self._add_figure(
             fig=fig,
