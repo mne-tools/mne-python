@@ -206,7 +206,7 @@ def _html_inverse_operator_element(*, id_, repr_, source_space, title, tags):
 
 
 def _html_slider_element(
-    *, id_, images, captions, start_idx, image_format, title, tags, klass=""
+    *, id_, images, captions, start_idx, image_format, title, tags, show, klass=""
 ):
     captions_ = []
     for caption in captions:
@@ -224,6 +224,7 @@ def _html_slider_element(
         start_idx=start_idx,
         image_format=image_format,
         klass=klass,
+        show="show" if show else "",
     )
 
 
@@ -253,13 +254,14 @@ def _html_code_element(*, id_, code, language, title, tags):
     )
 
 
-def _html_section_element(*, id_, div_klass, htmls, title, tags):
+def _html_section_element(*, id_, div_klass, htmls, title, tags, show):
     return _renderer("section.html.jinja")(
         id=id_,
         div_klass=div_klass,
         htmls=htmls,
         title=title,
         tags=tags,
+        show="show" if show else "",
     )
 
 
@@ -284,13 +286,14 @@ def _html_bem_element(
     )
 
 
-def _html_element(*, id_, div_klass, html, title, tags):
+def _html_element(*, id_, div_klass, html, title, tags, show):
     return _renderer("html.html.jinja")(
         id=id_,
         div_klass=div_klass,
         html=html,
         title=title,
         tags=tags,
+        show="show" if show else "",
     )
 
 
@@ -353,20 +356,34 @@ def _constrain_fig_resolution(fig, *, max_width, max_res):
     ----------
     fig : matplotlib.figure.Figure
         The figure whose DPI to adjust.
-    max_width : int
+    max_width : int | None
         The max. allowed width, in pixels.
-    max_res : int
+    max_res : float | None
         The max. allowed resolution, in DPI.
 
     Returns
     -------
     Nothing, alters the figure's properties in-place.
     """
-    dpi = min(max_res, max_width / fig.get_size_inches()[0])
-    fig.set_dpi(dpi)
+    dpi = orig_dpi = fig.get_dpi()
+    # Limited by figure width?
+    if max_width is not None:
+        dpi = min(dpi, max_width / fig.get_size_inches()[0])
+    # Limited by resolution?
+    if max_res is not None:
+        dpi = min(dpi, max_res)
+    if orig_dpi != dpi:
+        fig.set_dpi(dpi)
 
 
-def _fig_to_img(fig, *, image_format="png", own_figure=True):
+def _fig_to_img(
+    fig,
+    *,
+    image_format="png",
+    own_figure=True,
+    max_width=MAX_IMG_WIDTH,
+    max_res=MAX_IMG_RES,
+):
     """Plot figure and create a binary image."""
     # fig can be ndarray, mpl Figure, PyVista Figure
     import matplotlib.pyplot as plt
@@ -377,7 +394,7 @@ def _fig_to_img(fig, *, image_format="png", own_figure=True):
         # auto-close in all cases
         fig = _ndarray_to_fig(fig)
         if own_figure:
-            _constrain_fig_resolution(fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES)
+            _constrain_fig_resolution(fig, max_width=max_width, max_res=max_res)
         own_figure = True  # close the figure we just created
     elif isinstance(fig, Figure):
         pass  # nothing to do
@@ -405,7 +422,7 @@ def _fig_to_img(fig, *, image_format="png", own_figure=True):
             )
         fig = _ndarray_to_fig(img)
         if own_figure:
-            _constrain_fig_resolution(fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES)
+            _constrain_fig_resolution(fig, max_width=max_width, max_res=max_res)
         own_figure = True  # close the fig we just created
 
     output = BytesIO()
@@ -502,7 +519,7 @@ def _iterate_trans_views(function, alpha, **kwargs):
         backend._close_3d_figure(fig)
 
 
-def _itv(function, fig, **kwargs):
+def _itv(function, fig, *, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES, **kwargs):
     from ..viz.backends.renderer import MNE_3D_BACKEND_TESTING, backend
 
     function(fig=fig, **kwargs)
@@ -538,12 +555,14 @@ def _itv(function, fig, **kwargs):
     except BaseException as e:
         caption = "Distances could not be calculated from digitized points"
         warn(f"{caption}: {e}")
-    img = _fig_to_img(images, image_format="png")
+    img = _fig_to_img(images, image_format="png", max_width=max_width, max_res=max_res)
 
     return img, caption
 
 
-def _plot_ica_properties_as_arrays(*, ica, inst, picks, n_jobs):
+def _plot_ica_properties_as_arrays(
+    *, ica, inst, picks, n_jobs, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES
+):
     """Parallelize ICA component properties plotting, and return arrays.
 
     Returns
@@ -557,7 +576,7 @@ def _plot_ica_properties_as_arrays(*, ica, inst, picks, n_jobs):
         figs = ica.plot_properties(inst=inst, picks=pick, show=False)
         assert len(figs) == 1
         fig = figs[0]
-        _constrain_fig_resolution(fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES)
+        _constrain_fig_resolution(fig, max_width=max_width, max_res=max_res)
         with io.BytesIO() as buff:
             fig.savefig(
                 buff,
@@ -601,6 +620,13 @@ def _endswith(fname: str | Path, suffixes):
     return False
 
 
+_backward_compat_map = dict(
+    img_max_width=MAX_IMG_WIDTH,
+    img_max_res=MAX_IMG_RES,
+    collapse=(),
+)
+
+
 def open_report(fname, **params):
     """Read a saved report or, if it doesn't exist yet, create a new one.
 
@@ -629,13 +655,16 @@ def open_report(fname, **params):
         # Check **params with the loaded report
         read_hdf5, _ = _import_h5io_funcs()
         state = read_hdf5(fname, title="mnepython")
-        for param in params.keys():
+        for param in params:
             if param not in state:
-                raise ValueError(f"The loaded report has no attribute {param}")
+                if param in _backward_compat_map:
+                    state[param] = _backward_compat_map[param]
+                else:
+                    raise ValueError(f"The loaded report has no attribute {param}")
             if params[param] != state[param]:
                 raise ValueError(
-                    f"Attribute '{param}' of loaded report does not "
-                    "match the given parameter."
+                    f"Attribute '{param}' of loaded report ({params[param]}) does not "
+                    f"match the given parameter ({state[param]})."
                 )
         report = Report()
         report.__setstate__(state)
@@ -752,6 +781,19 @@ class Report:
         List of sections.
     lang : str
         language setting for the HTML file.
+    img_max_width : int | None
+        Maximum image width in pixels.
+
+        .. versionadded:: 1.9
+    img_max_res : float | None
+        Maximum image resolution in dots per inch.
+
+        .. versionadded:: 1.9
+    collapse : tuple of str
+        List of elements to collapse by default. Defaults to an empty list.
+        Can contain "section" and/or "subsection".
+
+        .. versionadded:: 1.9
 
     Notes
     -----
@@ -773,6 +815,9 @@ class Report:
         raw_psd=False,
         projs=False,
         *,
+        img_max_width=MAX_IMG_WIDTH,
+        img_max_res=MAX_IMG_RES,
+        collapse=(),
         verbose=None,
     ):
         self.info_fname = str(info_fname) if info_fname is not None else None
@@ -793,6 +838,9 @@ class Report:
         self._content = []
         self.include = []
         self.lang = "en-us"  # language setting for the HTML file
+        self.img_max_width = img_max_width
+        self.img_max_res = img_max_res
+        self.collapse = collapse
         if not isinstance(raw_psd, bool) and not isinstance(raw_psd, dict):
             raise TypeError(f"raw_psd must be bool or dict, got {type(raw_psd)}")
         self.raw_psd = raw_psd
@@ -800,6 +848,44 @@ class Report:
 
         self.fname = None  # The name of the saved report
         self.data_path = None
+
+    @property
+    def img_max_width(self):
+        return self._img_max_width
+
+    @img_max_width.setter
+    def img_max_width(self, value):
+        _validate_type(value, ("int-like", None), "img_max_width")
+        if value is not None:
+            value = int(value)
+            if value < 1:
+                raise ValueError(f"img_max_width must be at least 1, got {value}")
+        self._img_max_width = value
+
+    @property
+    def img_max_res(self):
+        return self._img_max_res
+
+    @img_max_res.setter
+    def img_max_res(self, value):
+        _validate_type(value, ("numeric", None), "img_max_res")
+        if value is not None:
+            value = float(value)
+            if value < 1:
+                raise ValueError(f"img_max_res must be at least 1, got {value}")
+        self._img_max_res = value
+
+    @property
+    def collapse(self):
+        return self._collapse
+
+    @collapse.setter
+    def collapse(self, value):
+        _validate_type(value, (list, tuple), "collapse")
+        for vi, v in enumerate(value):
+            _validate_type(v, str, f"collapse[{vi}]")
+            _check_option(f"collapse[{vi}]", v, ("section", "subsection"))
+        self._collapse = tuple(value)
 
     def __repr__(self):
         """Print useful info about report."""
@@ -862,6 +948,9 @@ class Report:
             "data_path",
             "lang",
             "fname",
+            "img_max_width",
+            "img_max_res",
+            "collapse",
         )
 
     def _get_dom_id(self, *, section, title, extra_exclude=None):
@@ -1027,6 +1116,7 @@ class Report:
                     tags=section_tags,
                     title=content_element.section,
                     div_klass="section",
+                    show="section" not in self.collapse,
                 )
                 htmls.append(section_html)
                 dom_ids.append(section_dom_id)
@@ -1678,7 +1768,6 @@ class Report:
 
         fig = ica.plot_overlay(inst=inst_, show=False, on_baseline="reapply")
         del inst_
-        _constrain_fig_resolution(fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES)
         self._add_figure(
             fig=fig,
             title="Original and cleaned signal",
@@ -1706,7 +1795,12 @@ class Report:
             picks = list(range(ica.n_components_))
 
         figs = _plot_ica_properties_as_arrays(
-            ica=ica, inst=inst, picks=picks, n_jobs=n_jobs
+            ica=ica,
+            inst=inst,
+            picks=picks,
+            n_jobs=n_jobs,
+            max_width=MAX_IMG_WIDTH,
+            max_res=MAX_IMG_RES,
         )
         assert len(figs) == len(picks)
 
@@ -1747,7 +1841,6 @@ class Report:
     ):
         with use_browser_backend("matplotlib"):
             fig = ica.plot_sources(inst=inst, show=False)
-        _constrain_fig_resolution(fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES)
         self._add_figure(
             fig=fig,
             title=f"Original and cleaned {artifact_type} epochs",
@@ -1766,7 +1859,6 @@ class Report:
         fig = ica.plot_scores(
             scores=scores, title=None, labels=artifact_type.lower(), show=False
         )
-        _constrain_fig_resolution(fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES)
         self._add_figure(
             fig=fig,
             title=f"Scores for matching {artifact_type} patterns",
@@ -1795,7 +1887,6 @@ class Report:
         title = "ICA component topographies"
         if len(figs) == 1:
             fig = figs[0]
-            _constrain_fig_resolution(fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES)
             self._add_figure(
                 fig=fig,
                 title=title,
@@ -2239,10 +2330,35 @@ class Report:
             replace=replace,
         )
 
+    def _constrain_fig_resolution(self, fig):
+        return _constrain_fig_resolution(fig, self.img_max_width, self.img_max_res)
+
+    def _fig_to_img(self, *, fig, image_format, own_figure=True):
+        return _fig_to_img(
+            fig,
+            image_format=image_format,
+            own_figure=own_figure,
+            max_width=self.img_max_width,
+            max_res=self.img_max_res,
+        )
+
     def _add_figure(
-        self, *, fig, title, caption, image_format, tags, section, replace, own_figure
+        self,
+        *,
+        fig,
+        title,
+        caption,
+        image_format,
+        tags,
+        section,
+        replace,
+        own_figure,
     ):
-        img = _fig_to_img(fig=fig, image_format=image_format, own_figure=own_figure)
+        img = self._fig_to_img(
+            fig=fig,
+            image_format=image_format,
+            own_figure=own_figure,
+        )
         self._add_image(
             img=img,
             title=title,
@@ -2421,6 +2537,7 @@ class Report:
             title=title,
             tags=tags,
             div_klass="custom-html",
+            show="subsection" not in self.collapse,
         )
         self._add_or_replace(
             title=title,
@@ -2511,7 +2628,11 @@ class Report:
             )
         elif figs:  # figs can be None if imgs is provided
             imgs = [
-                _fig_to_img(fig=fig, image_format=image_format, own_figure=own_figure)
+                self._fig_to_img(
+                    fig=fig,
+                    image_format=image_format,
+                    own_figure=own_figure,
+                )
                 for fig in figs
             ]
 
@@ -2524,6 +2645,7 @@ class Report:
             image_format=image_format,
             start_idx=start_idx,
             klass=klass,
+            show="subsection" not in self.collapse,
         )
         return html_partial
 
@@ -2990,7 +3112,7 @@ class Report:
                 _, write_hdf5 = _import_h5io_funcs()
                 import h5py
 
-                with h5py.File(fname, "a") as f:
+                with h5py.File(fname, "a") as f:  # Read/write if exists, else create
                     write_hdf5(f, self.__getstate__(), title="mnepython")
             else:
                 # Add header, TOC, and footer.
@@ -3151,15 +3273,14 @@ class Report:
                     scalings=scalings,
                     show=False,
                 )
-            _constrain_fig_resolution(fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES)
-            images = [_fig_to_img(fig=fig, image_format=image_format)]
+            images = [self._fig_to_img(fig=fig, image_format=image_format)]
 
             for start, duration in zip(t_starts[1:], durations[1:]):
                 fig.mne.t_start = start
                 fig.mne.duration = duration
                 fig._update_hscroll()
                 fig._redraw(annotations=False)
-                images.append(_fig_to_img(fig=fig, image_format=image_format))
+                images.append(self._fig_to_img(fig=fig, image_format=image_format))
         except Exception:
             raise
         finally:
@@ -3245,7 +3366,6 @@ class Report:
             with warnings.catch_warnings():
                 warnings.simplefilter(action="ignore", category=FutureWarning)
                 fig = raw.compute_psd(**init_kwargs).plot(**plot_kwargs)
-            _constrain_fig_resolution(fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES)
             self._add_figure(
                 fig=fig,
                 title="PSD",
@@ -3337,7 +3457,6 @@ class Report:
                 show=False,
             )
 
-        _constrain_fig_resolution(fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES)
         self._add_figure(
             fig=fig,
             title=title,
@@ -3425,7 +3544,7 @@ class Report:
         #         src=src
         #     )
         #     set_3d_view(fig, focalpoint=(0., 0., 0.06))
-        #     img = _fig_to_img(fig=fig, image_format=image_format)
+        #     img = self._fig_to_img(fig=fig, image_format=image_format)
 
         #     src_img_html = partial(
         #         _html_image_element,
@@ -3478,7 +3597,6 @@ class Report:
                     )
                 )
 
-            _constrain_fig_resolution(fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES)
             title = f'Time course ({_handle_default("titles")[ch_type]})'
             self._add_figure(
                 fig=fig,
@@ -3503,7 +3621,7 @@ class Report:
             figsize=(2.5 * len(ch_types), 2),
             layout="constrained",
         )
-        _constrain_fig_resolution(fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES)
+        self._constrain_fig_resolution(fig)
         ch_type_ax_map = dict(
             zip(
                 ch_types,
@@ -3650,7 +3768,6 @@ class Report:
             if idx < len(ch_types) - 1:
                 ax[idx].set_xlabel(None)
 
-        _constrain_fig_resolution(fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES)
         title = "Global field power"
         self._add_figure(
             fig=fig,
@@ -3668,7 +3785,6 @@ class Report:
     ):
         """Render whitened evoked."""
         fig = evoked.plot_white(noise_cov=noise_cov, show=False)
-        _constrain_fig_resolution(fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES)
         title = "Whitened"
 
         self._add_figure(
@@ -3793,7 +3909,6 @@ class Report:
             color=color,
             show=False,
         )
-        _constrain_fig_resolution(fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES)
         self._add_figure(
             fig=fig,
             title=title,
@@ -3843,7 +3958,6 @@ class Report:
                 fmax = np.inf
 
         fig = epochs_for_psd.compute_psd(fmax=fmax).plot(amplitude=False, show=False)
-        _constrain_fig_resolution(fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES)
         duration = round(epoch_duration * len(epochs_for_psd), 1)
         caption = (
             f"PSD calculated from {len(epochs_for_psd)} epochs ({duration:.1f} s)."
@@ -3866,6 +3980,7 @@ class Report:
             tags=tags,
             title=title,
             html=html,
+            show="subsection" not in self.collapse,
         )
         self._add_or_replace(
             title=title,
@@ -3950,7 +4065,6 @@ class Report:
 
             assert len(figs) == 1
             fig = figs[0]
-            _constrain_fig_resolution(fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES)
             if ch_type in ("mag", "grad"):
                 title_start = "ERF image"
             else:
@@ -3993,9 +4107,6 @@ class Report:
             else:
                 fig = epochs.plot_drop_log(
                     subject=self.subject, ignore=drop_log_ignore, show=False
-                )
-                _constrain_fig_resolution(
-                    fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES
                 )
                 self._add_figure(
                     fig=fig,
@@ -4040,7 +4151,6 @@ class Report:
         figs = [fig_cov, fig_svd]
         titles = ("Covariance matrix", "Singular values")
         for fig, title in zip(figs, titles):
-            _constrain_fig_resolution(fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES)
             self._add_figure(
                 fig=fig,
                 title=title,
@@ -4082,7 +4192,11 @@ class Report:
             coord_frame="mri",
         )
         img, caption = _iterate_trans_views(
-            function=plot_alignment, alpha=alpha, **kwargs
+            function=plot_alignment,
+            alpha=alpha,
+            max_width=self.img_max_width,
+            max_res=self.img_max_res,
+            **kwargs,
         )
         self._add_image(
             img=img,
@@ -4173,7 +4287,9 @@ class Report:
                     ax.imshow(brain.screenshot(time_viewer=True, mode="rgb"))
                     ax.axis("off")
                     _constrain_fig_resolution(
-                        fig, max_width=stc_plot_kwargs["size"][0], max_res=MAX_IMG_RES
+                        fig,
+                        max_width=stc_plot_kwargs["size"][0],
+                        max_res=self.img_max_res,
                     )
                     figs.append(fig)
                     plt.close(fig)
@@ -4202,12 +4318,12 @@ class Report:
                     _constrain_fig_resolution(
                         fig_lh,
                         max_width=stc_plot_kwargs["size"][0],
-                        max_res=MAX_IMG_RES,
+                        max_res=self.img_max_res,
                     )
                     _constrain_fig_resolution(
                         fig_rh,
                         max_width=stc_plot_kwargs["size"][0],
-                        max_res=MAX_IMG_RES,
+                        max_res=self.img_max_res,
                     )
                     figs.append(brain_lh)
                     figs.append(brain_rh)
