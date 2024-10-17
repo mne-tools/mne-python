@@ -9,7 +9,6 @@ from __future__ import annotations  # only needed for Python ≤ 3.9
 import base64
 import copy
 import dataclasses
-import io
 import os
 import os.path as op
 import re
@@ -383,6 +382,7 @@ def _fig_to_img(
     own_figure=True,
     max_width=MAX_IMG_WIDTH,
     max_res=MAX_IMG_RES,
+    **mpl_kwargs,
 ):
     """Plot figure and create a binary image."""
     # fig can be ndarray, mpl Figure, PyVista Figure
@@ -397,7 +397,8 @@ def _fig_to_img(
             _constrain_fig_resolution(fig, max_width=max_width, max_res=max_res)
         own_figure = True  # close the figure we just created
     elif isinstance(fig, Figure):
-        pass  # nothing to do
+        if own_figure:
+            _constrain_fig_resolution(fig, max_width=max_width, max_res=max_res)
     else:
         # Don't attempt a mne_qt_browser import here (it might pull in Qt
         # libraries we don't want), so use a probably good enough class name
@@ -433,7 +434,6 @@ def _fig_to_img(
     )
 
     # https://pillow.readthedocs.io/en/stable/handbook/image-file-formats.html
-    mpl_kwargs = dict()
     pil_kwargs = dict()
     if image_format == "webp":
         pil_kwargs.update(lossless=True, method=6)
@@ -443,13 +443,16 @@ def _fig_to_img(
         # matplotlib modifies the passed dict, which is a bug
         mpl_kwargs["pil_kwargs"] = pil_kwargs.copy()
 
-    fig.savefig(output, format=image_format, dpi=dpi, **mpl_kwargs)
+    mpl_format = image_format
+    if image_format == "ndarray":
+        mpl_format = "png"
+    fig.savefig(output, format=mpl_format, dpi=dpi, **mpl_kwargs)
 
     if own_figure:
         plt.close(fig)
 
     # Remove alpha
-    if image_format != "svg":
+    if image_format not in ("svg", "ndarray"):
         from PIL import Image
 
         output.seek(0)
@@ -460,12 +463,16 @@ def _fig_to_img(
             output = BytesIO()
             new.save(output, format=image_format, dpi=(dpi, dpi), **pil_kwargs)
 
-    output = output.getvalue()
-    return (
-        output.decode("utf-8")
-        if image_format == "svg"
-        else base64.b64encode(output).decode("ascii")
-    )
+    if image_format == "ndarray":
+        output.seek(0)
+        output = plt.imread(output, format="png")
+    else:
+        output = output.getvalue()
+        if image_format == "svg":
+            output = output.decode("utf-8")
+        else:
+            output = base64.b64encode(output).decode("ascii")
+    return output
 
 
 def _get_bem_contour_figs_as_arrays(
@@ -570,24 +577,17 @@ def _plot_ica_properties_as_arrays(
     outs : list of array
         The properties plots as NumPy arrays.
     """
-    import matplotlib.pyplot as plt
 
     def _plot_one_ica_property(*, ica, inst, pick):
         figs = ica.plot_properties(inst=inst, picks=pick, show=False)
         assert len(figs) == 1
-        fig = figs[0]
-        _constrain_fig_resolution(fig, max_width=max_width, max_res=max_res)
-        with io.BytesIO() as buff:
-            fig.savefig(
-                buff,
-                format="png",
-                pad_inches=0,
-            )
-            buff.seek(0)
-            fig_array = plt.imread(buff, format="png")
-
-        plt.close(fig)
-        return fig_array
+        return _fig_to_img(
+            figs[0],
+            max_width=max_width,
+            max_res=max_res,
+            image_format="ndarray",
+            pad_inches=0,
+        )
 
     parallel, p_fun, n_jobs = parallel_func(
         func=_plot_one_ica_property, n_jobs=n_jobs, max_jobs=len(picks)
@@ -738,6 +738,19 @@ class Report:
         the data. Defaults to ``False``.
 
         .. versionadded:: 0.21
+    img_max_width : int | None
+        Maximum image width in pixels.
+
+        .. versionadded:: 1.9
+    img_max_res : float | None
+        Maximum image resolution in dots per inch.
+
+        .. versionadded:: 1.9
+    collapse : tuple of str
+        List of elements to collapse by default. Defaults to an empty list.
+        Can contain "section" and/or "subsection".
+
+        .. versionadded:: 1.9
     %(verbose)s
 
     Attributes
@@ -2330,16 +2343,14 @@ class Report:
             replace=replace,
         )
 
-    def _constrain_fig_resolution(self, fig):
-        return _constrain_fig_resolution(fig, self.img_max_width, self.img_max_res)
-
-    def _fig_to_img(self, *, fig, image_format, own_figure=True):
+    def _fig_to_img(self, *, fig, image_format, own_figure=True, **mpl_kwargs):
         return _fig_to_img(
             fig,
             image_format=image_format,
             own_figure=own_figure,
             max_width=self.img_max_width,
             max_res=self.img_max_res,
+            **mpl_kwargs,
         )
 
     def _add_figure(
@@ -3621,7 +3632,6 @@ class Report:
             figsize=(2.5 * len(ch_types), 2),
             layout="constrained",
         )
-        self._constrain_fig_resolution(fig)
         ch_type_ax_map = dict(
             zip(
                 ch_types,
@@ -3640,12 +3650,11 @@ class Report:
             )
             ch_type_ax_map[ch_type][0].set_title(ch_type)
 
-        with BytesIO() as buff:
-            fig.savefig(buff, format="png", pad_inches=0)
-            plt.close(fig)
-            buff.seek(0)
-            fig_array = plt.imread(buff, format="png")
-        return fig_array
+        return self._fig_to_img(
+            fig=fig,
+            image_format="ndarray",
+            pad_inches=0,
+        )
 
     def _add_evoked_topomap_slider(
         self,
@@ -4347,7 +4356,10 @@ class Report:
             section=section,
             tags=tags,
             replace=replace,
+            own_figure=False,  # prevent rescaling
         )
+        for fig in figs:
+            plt.close(fig)
 
     def _add_bem(
         self,

@@ -1123,7 +1123,7 @@ destination : path-like | array-like, shape (3,) | instance of Transform | None
 
     ``None``
       Will not change the head position.
-    :class:`mne.Transform`
+    :class:`~mne.transform.Transform`
       A MEG device<->head transformation, e.g. ``info["dev_head_t"]``.
     :class:`numpy.ndarray`
       A 3-element array giving the coordinates to translate to (with no rotations).
