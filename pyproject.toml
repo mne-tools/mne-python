@@ -56,7 +56,7 @@ dev = ["mne[doc,test]", "rcssmin"]
 doc = [
   "graphviz",
   "intersphinx_registry>=0.2405.27",
-  "ipython!=8.7.0",
+  "ipython!=8.7.0",  # is it actually needed for docs?  also in "full-no-qt" and "test"
   "memory_profiler",
   "mne-bids",
   "mne-connectivity",
@@ -99,6 +99,7 @@ full-no-qt = [
   "imageio>=2.6.1",
   "ipyevents",
   "ipympl",
+  "ipython!=8.7.0",  # for notebook backend; also in "doc" and "test"
   "ipywidgets",
   "joblib",
   "jupyter",
@@ -111,6 +112,7 @@ full-no-qt = [
   "numba",
   "openmeeg>=2.5.5",
   "pandas",
+  "pillow",  # for `Brain.save_image` and `mne.Report`
   "pyarrow",  # only needed to avoid a deprecation warning in pandas
   "pybv",
   "pyobjc-framework-Cocoa>=5.2.0; platform_system=='Darwin'",
@@ -139,6 +141,7 @@ hdf5 = ["h5io>=0.2.4", "pymatreader"]
 # Dependencies for running the test infrastructure
 test = [
   "codespell",
+  "ipython!=8.7.0",  # for testing notebook backend; also in "full-no-qt" and "doc"
   "mypy",
   "numpydoc",
   "pre-commit",
@@ -159,9 +162,11 @@ test_extra = [
   "eeglabio",
   "imageio-ffmpeg>=0.4.1",
   "imageio>=2.6.1",
+  "jupyter_client",
   "mne-bids",
   "mne[test]",
   "nbclient",
+  "nbformat",
   "neo",
   "nitime",
   "pybv",
