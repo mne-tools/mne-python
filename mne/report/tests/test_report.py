@@ -1131,7 +1131,7 @@ def test_report_tweaks(tmp_path, monkeypatch):
     imgs = img_re.findall(fname.read_text(encoding="utf-8"))
     assert len(imgs) == 2
     img = plt.imread(BytesIO(base64.b64decode(imgs[1].encode("ascii"))))
-    assert img.shape == (1000, 1000, 3)
+    assert img.shape == (1000, 1000, 3)  # figure.figsize * Report.img_max_res
 
     # Now let's do unconstrained
     r = Report(image_format="png")
@@ -1142,7 +1142,7 @@ def test_report_tweaks(tmp_path, monkeypatch):
     imgs = img_re.findall(fname.read_text(encoding="utf-8"))
     assert len(imgs) == 2
     img = plt.imread(BytesIO(base64.b64decode(imgs[1].encode("ascii"))))
-    assert img.shape == (2000, 2000, 3)
+    assert img.shape == (2000, 2000, 3)  # figure.figsize * figure.dpi
 
 
 @pytest.mark.slowtest  # 30 s on Azure
