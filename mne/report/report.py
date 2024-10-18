@@ -1600,6 +1600,7 @@ class Report:
         alpha=None,
         tags=("coregistration",),
         section=None,
+        coord_frame="mri",
         replace=False,
     ):
         """Add a coregistration visualization to the report.
@@ -1627,6 +1628,8 @@ class Report:
         %(section_report)s
 
             .. versionadded:: 1.9
+        coord_frame : 'auto' | 'head' | 'meg' | 'mri'
+            Coordinate frame used for plotting. See :func:`mne.viz.plot_alignment`.
         %(replace_report)s
 
         Notes
@@ -1643,6 +1646,7 @@ class Report:
             title=title,
             section=section,
             tags=tags,
+            coord_frame=coord_frame,
             replace=replace,
         )
 
@@ -4218,6 +4222,7 @@ class Report:
         title,
         section,
         tags,
+        coord_frame,
         replace,
     ):
         """Render trans (only PNG)."""
@@ -4234,7 +4239,7 @@ class Report:
             dig=True,
             meg=["helmet", "sensors"],
             show_axes=True,
-            coord_frame="mri",
+            coord_frame=coord_frame,
         )
         img, caption = _iterate_trans_views(
             function=plot_alignment,
