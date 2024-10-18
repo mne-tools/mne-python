@@ -239,7 +239,7 @@ def _html_image_element(
         image_format=image_format,
         div_klass=div_klass,
         img_klass=img_klass,
-        show=show,
+        show="show" if show else "",
     )
 
 
@@ -746,9 +746,9 @@ class Report:
         Maximum image resolution in dots per inch.
 
         .. versionadded:: 1.9
-    collapse : tuple of str
-        List of elements to collapse by default. Defaults to an empty list.
-        Can contain "section" and/or "subsection".
+    collapse : tuple of str | str
+        Tuple of elements to collapse by default. Defaults to an empty tuple.
+        For now the only option it can contain is "section".
 
         .. versionadded:: 1.9
     %(verbose)s
@@ -803,8 +803,7 @@ class Report:
 
         .. versionadded:: 1.9
     collapse : tuple of str
-        List of elements to collapse by default. Defaults to an empty list.
-        Can contain "section" and/or "subsection".
+        Tuple of elements to collapse by default. See above.
 
         .. versionadded:: 1.9
 
@@ -894,10 +893,12 @@ class Report:
 
     @collapse.setter
     def collapse(self, value):
-        _validate_type(value, (list, tuple), "collapse")
+        _validate_type(value, (list, tuple, str), "collapse")
+        if isinstance(value, str):
+            value = [value]
         for vi, v in enumerate(value):
             _validate_type(v, str, f"collapse[{vi}]")
-            _check_option(f"collapse[{vi}]", v, ("section", "subsection"))
+            _check_option(f"collapse[{vi}]", v, ("section",))
         self._collapse = tuple(value)
 
     def __repr__(self):
@@ -1669,6 +1670,7 @@ class Report:
         first_samp=0,
         color=None,
         tags=("events",),
+        section=None,
         replace=False,
     ):
         """Add events to the report.
@@ -1692,6 +1694,9 @@ class Report:
 
             .. versionadded:: 1.8.0
         %(tags_report)s
+        %(section_report)s
+
+            .. versionadded:: 1.9
         %(replace_report)s
 
         Notes
@@ -1706,7 +1711,7 @@ class Report:
             first_samp=first_samp,
             color=color,
             title=title,
-            section=None,
+            section=section,
             image_format=self.image_format,
             tags=tags,
             replace=replace,
@@ -2548,7 +2553,7 @@ class Report:
             title=title,
             tags=tags,
             div_klass="custom-html",
-            show="subsection" not in self.collapse,
+            show=True,
         )
         self._add_or_replace(
             title=title,
@@ -2656,7 +2661,7 @@ class Report:
             image_format=image_format,
             start_idx=start_idx,
             klass=klass,
-            show="subsection" not in self.collapse,
+            show=True,
         )
         return html_partial
 
@@ -3989,7 +3994,7 @@ class Report:
             tags=tags,
             title=title,
             html=html,
-            show="subsection" not in self.collapse,
+            show=True,
         )
         self._add_or_replace(
             title=title,
