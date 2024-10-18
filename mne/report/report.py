@@ -1431,6 +1431,7 @@ class Report:
         n_time_points=None,
         tags=("source-estimate",),
         replace=False,
+        section=None,
         stc_plot_kwargs=None,
     ):
         """Add a `~mne.SourceEstimate` (STC) to the report.
@@ -1454,6 +1455,9 @@ class Report:
             contains fewer time points, in which case all will be rendered.
         %(tags_report)s
         %(replace_report)s
+        %(section_report)s
+
+            .. versionadded:: 1.9
         %(stc_plot_kwargs_report)s
 
         Notes
@@ -1470,7 +1474,7 @@ class Report:
             subjects_dir=subjects_dir,
             n_time_points=n_time_points,
             stc_plot_kwargs=stc_plot_kwargs,
-            section=None,
+            section=section,
             replace=replace,
         )
 
@@ -1483,6 +1487,7 @@ class Report:
         subject=None,
         subjects_dir=None,
         tags=("forward-solution",),
+        section=None,
         replace=False,
     ):
         """Add a forward solution.
@@ -1501,6 +1506,9 @@ class Report:
         subjects_dir : path-like | None
             The FreeSurfer ``SUBJECTS_DIR``.
         %(tags_report)s
+        %(section_report)s
+
+            .. versionadded:: 1.9
         %(replace_report)s
 
         Notes
@@ -1515,7 +1523,7 @@ class Report:
             subjects_dir=subjects_dir,
             title=title,
             image_format=self.image_format,
-            section=None,
+            section=section,
             tags=tags,
             replace=replace,
         )
@@ -1530,6 +1538,7 @@ class Report:
         subjects_dir=None,
         trans=None,
         tags=("inverse-operator",),
+        section=None,
         replace=False,
     ):
         """Add an inverse operator.
@@ -1551,6 +1560,9 @@ class Report:
         trans : path-like | instance of Transform | None
             The ``head -> MRI`` transformation for ``subject``.
         %(tags_report)s
+        %(section_report)s
+
+            .. versionadded:: 1.9
         %(replace_report)s
 
         Notes
@@ -1571,7 +1583,7 @@ class Report:
             trans=trans,
             title=title,
             image_format=self.image_format,
-            section=None,
+            section=section,
             tags=tags,
             replace=replace,
         )
@@ -1587,6 +1599,7 @@ class Report:
         subjects_dir=None,
         alpha=None,
         tags=("coregistration",),
+        section=None,
         replace=False,
     ):
         """Add a coregistration visualization to the report.
@@ -1611,6 +1624,9 @@ class Report:
             be between 0 and 1 (inclusive), where 1 means fully opaque. If
             ``None``, will use the MNE-Python default value.
         %(tags_report)s
+        %(section_report)s
+
+            .. versionadded:: 1.9
         %(replace_report)s
 
         Notes
@@ -1625,7 +1641,7 @@ class Report:
             subjects_dir=subjects_dir,
             alpha=alpha,
             title=title,
-            section=None,
+            section=section,
             tags=tags,
             replace=replace,
         )
@@ -2257,7 +2273,14 @@ class Report:
 
     @fill_doc
     def add_code(
-        self, code, title, *, language="python", tags=("code",), replace=False
+        self,
+        code,
+        title,
+        *,
+        language="python",
+        tags=("code",),
+        section=None,
+        replace=False,
     ):
         """Add a code snippet (e.g., an analysis script) to the report.
 
@@ -2275,6 +2298,9 @@ class Report:
             The programming language of ``code``. This will be used for syntax
             highlighting. Can be ``'auto'`` to try to auto-detect the language.
         %(tags_report)s
+        %(section_report)s
+
+            .. versionadded:: 1.9
         %(replace_report)s
 
         Notes
@@ -2287,7 +2313,7 @@ class Report:
             code=code,
             title=title,
             language=language,
-            section=None,
+            section=section,
             tags=tags,
             replace=replace,
         )
@@ -2574,6 +2600,7 @@ class Report:
         width=512,
         n_jobs=None,
         tags=("bem",),
+        section=None,
         replace=False,
     ):
         """Render a visualization of the boundary element model (BEM) surfaces.
@@ -2595,6 +2622,9 @@ class Report:
             each dimension (typically 512, default) is reasonable.
         %(n_jobs)s
         %(tags_report)s
+        %(section_report)s
+
+            .. versionadded:: 1.9
         %(replace_report)s
 
         Notes
@@ -2612,6 +2642,7 @@ class Report:
             image_format=self.image_format,
             title=title,
             tags=tags,
+            section=section,
             replace=replace,
         )
 
@@ -4377,6 +4408,7 @@ class Report:
         image_format,
         title,
         tags,
+        section,
         replace,
     ):
         """Render mri+bem (only PNG)."""
@@ -4426,7 +4458,7 @@ class Report:
         )
         self._add_or_replace(
             title=title,
-            section=None,  # no nesting
+            section=section,
             tags=tags,
             html_partial=html_partial,
             replace=replace,
