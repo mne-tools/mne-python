@@ -2,7 +2,7 @@ name: mne
 channels:
   - conda-forge
 dependencies:
-  - python>=3.10
+  - python >=3.10
   - pip
   - numpy
   - scipy
@@ -28,25 +28,25 @@ dependencies:
   - psutil
   - numexpr
   - imageio
-  - spyder-kernels>=1.10.0
-  - imageio>=2.6.1
-  - imageio-ffmpeg>=0.4.1
-  - vtk>=9.2
+  - spyder-kernels >=1.10.0
+  - imageio >=2.6.1
+  - imageio-ffmpeg >=0.4.1
+  - vtk >=9.2
   - traitlets
-  - pyvista>=0.32,!=0.35.2,!=0.38.0,!=0.38.1,!=0.38.2,!=0.38.3,!=0.38.4,!=0.38.5,!=0.38.6,!=0.42.0
-  - pyvistaqt>=0.4
-  - qdarkstyle!=3.2.2
+  - pyvista >=0.32,!=0.35.2,!=0.38.0,!=0.38.1,!=0.38.2,!=0.38.3,!=0.38.4,!=0.38.5,!=0.38.6,!=0.42.0
+  - pyvistaqt >=0.4
+  - qdarkstyle !=3.2.2
   - darkdetect
   - dipy
   - nibabel
-  - openmeeg>=2.5.5
+  - openmeeg >=2.5.5
   - nilearn
   - python-picard
   - qtpy
-  - pyside6
+  - pyside6 !=6.8.0,!=6.8.0.1
   - mne-base
   - seaborn-base
-  - mffpy>=0.5.7
+  - mffpy >=0.5.7
   - ipyevents
   - ipywidgets
   - ipympl
@@ -59,7 +59,7 @@ dependencies:
   - mne-qt-browser
   - pymatreader
   - eeglabio
-  - edfio>=0.2.1
+  - edfio >=0.2.1
   - pybv
   - mamba
   - lazy_loader
