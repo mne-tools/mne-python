@@ -593,7 +593,8 @@ def test_validate_input():
 
 def test_open_report(tmp_path):
     """Test the open_report function."""
-    pytest.importorskip("h5io")
+    h5py = pytest.importorskip("h5py")
+    h5io = pytest.importorskip("h5io")
     hdf5 = str(tmp_path / "report.h5")
 
     # Test creating a new report through the open_report function
@@ -604,6 +605,11 @@ def test_open_report(tmp_path):
         report.add_figure(fig=fig1, title="evoked response")
     # Exiting the context block should have triggered saving to HDF5
     assert Path(hdf5).exists()
+
+    # Let's add some companion data to the HDF5 file
+    with h5py.File(hdf5, "r+") as f:
+        h5io.write_hdf5(f, "test", title="companion")
+    assert h5io.read_hdf5(hdf5, title="companion") == "test"
 
     # Load the HDF5 version of the report and check equivalence
     report2 = open_report(hdf5)
@@ -621,7 +627,11 @@ def test_open_report(tmp_path):
     # Check that the context manager doesn't swallow exceptions
     with pytest.raises(ZeroDivisionError):
         with open_report(hdf5, subjects_dir=str(tmp_path)) as report:
+            assert h5io.read_hdf5(hdf5, title="companion") == "test"
             1 / 0
+
+    # Check that our companion data survived
+    assert h5io.read_hdf5(hdf5, title="companion") == "test"
 
 
 def test_remove():
