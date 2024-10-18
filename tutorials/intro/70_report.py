@@ -203,6 +203,7 @@ report.add_projs(
     joint=True,  # use joint version of the plot
 )
 report.save("report_projs.html", overwrite=True)
+del raw_full, events, ecg_evoked
 
 # %%
 # Adding `~mne.preprocessing.ICA`
