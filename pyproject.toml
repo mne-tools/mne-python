@@ -131,7 +131,7 @@ full-no-qt = [
   "trame",
   "trame-vtk",
   "trame-vuetify",
-  "vtk",
+  "vtk>=9.2",
   "xlrd",
 ]
 full-pyqt6 = ["mne[full]"]
