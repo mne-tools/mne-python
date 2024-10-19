@@ -184,8 +184,26 @@ report.save("report_cov.html", overwrite=True)
 ecg_proj_path = sample_dir / "sample_audvis_ecg-proj.fif"
 report = mne.Report(title="Projectors example")
 report.add_projs(info=raw_path, title="Projs from info")
-report.add_projs(info=raw_path, projs=ecg_proj_path, title="ECG projs from path")
+
+# Now a joint plot
+events = mne.read_events(sample_dir / "sample_audvis_ecg-eve.fif")
+raw_full = mne.io.read_raw(sample_dir / "sample_audvis_raw.fif").crop(0, 60).load_data()
+ecg_evoked = mne.Epochs(
+    raw=raw_full,
+    events=events,
+    tmin=-0.5,
+    tmax=0.5,
+    baseline=(None, None),
+).average()
+report.img_max_width = None  # do not constrain image width
+report.add_projs(
+    info=ecg_evoked,
+    projs=ecg_proj_path,
+    title="ECG projs from path",
+    joint=True,  # use joint version of the plot
+)
 report.save("report_projs.html", overwrite=True)
+del raw_full, events, ecg_evoked
 
 # %%
 # Adding `~mne.preprocessing.ICA`
