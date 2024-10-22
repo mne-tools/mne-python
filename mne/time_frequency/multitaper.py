@@ -505,7 +505,8 @@ def tfr_array_multitaper(
           coherence across trials.
 
     return_weights : bool, default False
-        If True, return the taper weights. Only applies if ``output="complex"``.
+        If True, return the taper weights. Only applies if ``output='complex'`` or
+        ``'phase'``.
 
         .. versionadded:: 1.9.0
 
@@ -528,7 +529,7 @@ def tfr_array_multitaper(
         contain the average power and the imaginary values contain the
         inter-trial coherence: :math:`out = power_{avg} + i * ITC`.
     weights : array of shape (n_tapers, n_freqs)
-        The taper weights. Only returned if ``output="complex"`` and
+        The taper weights. Only returned if ``output='complex'`` or ``'phase'`` and
         ``return_weights=True``.
 
     See Also
