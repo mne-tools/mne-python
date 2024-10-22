@@ -1,0 +1,3 @@
+- openblas
+- pip
+- spyder-kernels >= 1.10.0
