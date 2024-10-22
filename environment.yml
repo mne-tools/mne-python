@@ -3,14 +3,15 @@ channels:
   - conda-forge
 dependencies:
   - python >=3.10
-  - pip
+  - aaaaaaaaaa
+  - antio >=0.4.0
   - darkdetect
   - decorator
   - defusedxml
   - dipy
   - edfio >=0.2.1
   - eeglabio
-  - h5io
+  - h5io >=0.2.4
   - h5py
   - imageio >=2.6.1
   - imageio-ffmpeg >=0.4.1
@@ -21,31 +22,25 @@ dependencies:
   - jinja2
   - joblib
   - jupyter
-  - jupyter_client
-  - lazy_loader
-  - mamba
-  - matplotlib
+  - lazy_loader >=0.3
+  - matplotlib >=3.6
   - mffpy >=0.5.7
-  - mne-base
   - mne-qt-browser
-  - nbclient
-  - nbformat
   - nibabel
   - nilearn
   - numba
-  - numexpr
-  - numpy
+  - numpy >=1.23,<3
   - openblas
   - openmeeg >=2.5.5
   - packaging
   - pandas
   - pillow
+  - pip
   - pooch >=1.5
-  - psutil
   - pyarrow
   - pybv
   - pymatreader
-  - pyside6 !=6.8.0,!=6.8.0.1
+  - PySide6 !=6.7.0,!=6.8.0,!=6.8.0.1
   - python-neo
   - python-picard
   - pyvista >=0.32,!=0.35.2,!=0.38.0,!=0.38.1,!=0.38.2,!=0.38.3,!=0.38.4,!=0.38.5,!=0.38.6,!=0.42.0
@@ -53,10 +48,12 @@ dependencies:
   - qdarkstyle !=3.2.2
   - qtpy
   - scikit-learn
-  - scipy
-  - seaborn-base
+  - scipy >=1.9
+  - sip
+  - snirf
   - spyder-kernels >=1.10.0
   - statsmodels
+  - threadpoolctl
   - tqdm
   - traitlets
   - trame
@@ -64,3 +61,5 @@ dependencies:
   - trame-vuetify
   - vtk >=9.2
   - xlrd
+  - pip:
+      - pyobjc-framework-Cocoa >=5.2.0;platform_system=='Darwin'

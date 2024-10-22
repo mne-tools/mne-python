@@ -20,6 +20,7 @@ classifiers = [
   "Topic :: Software Development",
 ]
 dependencies = [
+  "aaaaaaaaaa",
   "decorator",
   "jinja2",
   "lazy_loader >= 0.3",
