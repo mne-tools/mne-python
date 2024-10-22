@@ -44,6 +44,7 @@ def plot_ica_sources(
     title=None,
     show=True,
     block=False,
+    psd_args=None,
     show_first_samp=False,
     show_scrollbars=True,
     time_format="float",
@@ -85,6 +86,10 @@ def plot_ica_sources(
         Whether to halt program execution until the figure is closed.
         Useful for interactive selection of components in raw and epoch
         plotter. For evoked, this parameter has no effect. Defaults to False.
+    psd_args : dict | None
+        Dictionary of arguments to pass to :meth:`~mne.Epochs.compute_psd` in
+        interactive  mode. Ignored if ``inst`` is not supplied. If ``None``,
+        nothing is passed. Defaults to ``None``.     
     show_first_samp : bool
         If True, show time axis relative to the ``raw.first_samp``.
     %(show_scrollbars)s
@@ -133,6 +138,7 @@ def plot_ica_sources(
             show=show,
             title=title,
             block=block,
+            psd_args=psd_args,
             show_first_samp=show_first_samp,
             show_scrollbars=show_scrollbars,
             time_format=time_format,
@@ -1278,6 +1284,7 @@ def _plot_sources(
     show,
     title,
     block,
+    psd_args,
     show_scrollbars,
     show_first_samp,
     time_format,
@@ -1431,6 +1438,7 @@ def _plot_sources(
         use_opengl=use_opengl,
         theme=theme,
         overview_mode=overview_mode,
+        psd_args=psd_args,
         splash=splash,
     )
     if is_epo:
