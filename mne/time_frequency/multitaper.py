@@ -469,6 +469,7 @@ def tfr_array_multitaper(
     use_fft=True,
     decim=1,
     output="complex",
+    return_weights=False,
     n_jobs=None,
     *,
     verbose=None,
@@ -502,6 +503,12 @@ def tfr_array_multitaper(
         * ``'itc'`` : inter-trial coherence.
         * ``'avg_power_itc'`` : average of single trial power and inter-trial
           coherence across trials.
+
+    return_weights : bool, default False
+        If True, return the taper weights. Only applies if ``output="complex"``.
+
+        .. versionadded:: 1.9.0
+
     %(n_jobs)s
         The parallelization is implemented across channels.
     %(verbose)s
@@ -520,6 +527,9 @@ def tfr_array_multitaper(
         If ``output`` is ``'avg_power_itc'``, the real values in ``out``
         contain the average power and the imaginary values contain the
         inter-trial coherence: :math:`out = power_{avg} + i * ITC`.
+    weights : array of shape (n_tapers, n_freqs)
+        The taper weights. Only returned if ``output="complex"`` and
+        ``return_weights=True``.
 
     See Also
     --------
@@ -550,6 +560,7 @@ def tfr_array_multitaper(
         use_fft=use_fft,
         decim=decim,
         output=output,
+        return_weights=return_weights,
         n_jobs=n_jobs,
         verbose=verbose,
     )

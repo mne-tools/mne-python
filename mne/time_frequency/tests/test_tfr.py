@@ -432,16 +432,20 @@ def test_tfr_morlet():
 def test_dpsswavelet():
     """Test DPSS tapers."""
     freqs = np.arange(5, 25, 3)
-    Ws = _make_dpss(
-        1000, freqs=freqs, n_cycles=freqs / 2.0, time_bandwidth=4.0, zero_mean=True
+    Ws, weights = _make_dpss(
+        1000,
+        freqs=freqs,
+        n_cycles=freqs / 2.0,
+        time_bandwidth=4.0,
+        zero_mean=True,
+        return_weights=True,
     )
 
-    assert len(Ws) == 3  # 3 tapers expected
+    assert np.shape(Ws)[:2] == (3, len(freqs))  # 3 tapers expected
+    assert np.shape(Ws)[:2] == np.shape(weights)  # weights of shape (tapers, freqs)
 
     # Check that zero mean is true
     assert np.abs(np.mean(np.real(Ws[0][0]))) < 1e-5
-
-    assert len(Ws[0]) == len(freqs)  # As many wavelets as asked for
 
 
 @pytest.mark.slowtest
