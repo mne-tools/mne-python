@@ -1439,7 +1439,7 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
         self._decim = defaults["decim"]
         self.preload = True
         self._set_times(self._raw_times)
-        self._weights = state.get("weights")  # objs saved before #XXX won't have
+        self._weights = state.get("weights")  # objs saved before #12910 won't have
         # Handle instance type. Prior to gh-11282, Raw was not a possibility so if
         # `inst_type_str` is missing it must be Epochs or Evoked
         unknown_class = Epochs if "epoch" in self._dims else Evoked
