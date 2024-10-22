@@ -1,0 +1,1 @@
+Fix bug in :func:`mne.io.read_raw_gdf` when NumPy >= 2 is used, by `Clemens Brunner`_.
