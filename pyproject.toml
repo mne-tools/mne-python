@@ -144,7 +144,7 @@ test = [
   "mypy",
   "numpydoc",
   "pre-commit",
-  "pytest >= 8.0.0rc2",
+  "pytest >= 8.0",
   "pytest-cov",
   "pytest-qt",
   "pytest-timeout",
