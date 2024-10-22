@@ -71,7 +71,6 @@ repos:
         language: python
         entry: ./tools/hooks/update_environment_file.py
         files: pyproject.toml
-        additional_dependencies: ["PyYAML"]
   - repo: local
     hooks:
       - id: dependency-sync

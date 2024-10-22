@@ -4,10 +4,10 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+import re
 from pathlib import Path
 
 import tomllib
-import yaml
 
 repo_root = Path(__file__).resolve().parents[2]
 with open(repo_root / "pyproject.toml", "rb") as fid:
@@ -22,27 +22,38 @@ for section, section_deps in pyproj["project"]["optional-dependencies"].items():
         deps |= set(section_deps)
 recursive_deps = set(d for d in deps if d.startswith("mne["))
 deps -= recursive_deps
+deps |= {"pip"}
+
+
+def remove_spaces(version_spec):
+    """Remove spaces in version specs (conda is stricter than pip about this).
+
+    https://docs.conda.io/projects/conda/en/latest/user-guide/concepts/pkg-specs.html#package-match-specifications
+    """
+    return "".join(version_spec.split())
+
+
+def split_dep(dep):
+    """Separate package name from version spec."""
+    pattern = re.compile(r"([^!=<>]+)?([!=<>].*)?")
+    groups = list(pattern.match(dep).groups())
+    groups[1] = "" if groups[1] is None else remove_spaces(groups[1])
+    return tuple(map(str.strip, groups))
+
 
 # python version
-req_python = "".join(pyproj["project"]["requires-python"].split())
-py_spec = f"python {req_python}"
-
-# load extra packages that *can't* be in `pyproject.toml`
-with open(".conda-extra-dependencies.yml") as fid:
-    deps |= set(yaml.safe_load(fid))
+req_python = remove_spaces(pyproj["project"]["requires-python"])
 
 # handle package name differences, and split package name from version spec
 translations = dict(neo="python-neo")
 pip_deps = set()
 conda_deps = set()
 for dep in deps:
-    package_name, version_spec, *_ = [*dep.split(maxsplit=1), ""]
+    package_name, version_spec = split_dep(dep)
     package_name = translations.get(package_name, package_name)
-    # collapse spaces in version spec (cf. https://docs.conda.io/projects/conda/en/latest/user-guide/concepts/pkg-specs.html#package-match-specifications)  # noqa E501
-    version_spec = "".join(version_spec.split())
-    line = f"  - {package_name} {version_spec}".rstrip()
-    # use pip for anything that needs e.g. `platform_system=='Darwin'` triaging
-    if "platform_system" in version_spec:
+    line = f"  - {package_name} {version_spec}".rstrip()  # rstrip in case spec == ""
+    # use pip for packages needing e.g. `platform_system` or `python_version` triaging
+    if ";" in version_spec:
         pip_deps.add(f"    {line}")
     else:
         conda_deps.add(line)
@@ -59,9 +70,8 @@ name: mne
 channels:
   - conda-forge
 dependencies:
-  - {py_spec}
+  - python {req_python}
 {"\n".join(sorted(conda_deps, key=str.casefold))}
 {pip_section}"""
 
-with open(repo_root / "environment.yml", "w") as fid:
-    fid.write(env)
+(repo_root / "environment.yml").write_text(env)

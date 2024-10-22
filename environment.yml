@@ -29,7 +29,6 @@ dependencies:
   - nilearn
   - numba
   - numpy >=1.23,<3
-  - openblas
   - openmeeg >=2.5.5
   - packaging
   - pandas
@@ -50,7 +49,6 @@ dependencies:
   - scipy >=1.9
   - sip
   - snirf
-  - spyder-kernels >=1.10.0
   - statsmodels
   - threadpoolctl
   - tqdm

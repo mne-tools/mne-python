@@ -56,7 +56,7 @@ dev = ["mne[doc,test]", "rcssmin"]
 doc = [
   "graphviz",
   "intersphinx_registry >= 0.2405.27",
-  "ipython != 8.7.0",  # is it actually needed for docs?  also in "full-no-qt" and "test"
+  "ipython != 8.7.0",  # also in "full-no-qt" and "test"
   "memory_profiler",
   "mne-bids",
   "mne-connectivity",
