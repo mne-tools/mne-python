@@ -1,7 +1,7 @@
 repos:
   # Ruff mne
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.6.8
+    rev: v0.7.0
     hooks:
       - id: ruff
         name: ruff lint mne
@@ -51,7 +51,7 @@ repos:
 
   # sorting
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.6.0
+    rev: v5.0.0
     hooks:
       - id: file-contents-sorter
         files: ^doc/changes/names.inc|^.mailmap
@@ -62,6 +62,21 @@ repos:
     hooks:
       - id: toml-sort-fix
         files: pyproject.toml
+
+  # dependencies
+  - repo: local
+    hooks:
+      - id: dependency-sync
+        name: Sync dependency list between pyproject.toml and README.rst
+        language: python
+        entry: ./tools/hooks/sync_dependencies.py
+        files: pyproject.toml
+        additional_dependencies: ["mne"]
+
+
+# these should *not* be run on CIs:
+ci:
+  skip: [dependency-sync]  # needs MNE to work, which exceeds the free tier space alloc.
 
 # The following are too slow to run on local commits, so let's only run on CIs:
 #

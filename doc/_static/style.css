@@ -13,6 +13,20 @@
 
 
 html[data-theme="light"] {
+    /* pydata-sphinx-theme overrides */
+    /* ↓↓↓ use default "info" colors for "primary" */
+    --pst-color-primary: #276be9;
+    --pst-color-primary-bg: #dce7fc;
+    /* ↓↓↓ use default "primary" colors for "info" */
+    --pst-color-info: var(--pst-teal-500);
+    --pst-color-info-bg: var(--pst-teal-200);
+    /* ↓↓↓ use "warning" colors for "secondary" */
+    --pst-color-secondary: var(--pst-color-warning);
+    --pst-color-secondary-bg: var(--pst-color-warning-bg);
+    /* ↓↓↓ make sure new primary (link) color propogates to links on code */
+    --pst-color-inline-code-links: var(--pst-color-link);
+    /* ↓↓↓ make sure new secondary (hover) color propogates to hovering on table rows */
+    --pst-color-table-row-hover-bg: var(--pst-color-secondary-bg);
     /* topbar logo links */
     --mne-color-github: #000;
     --mne-color-discourse: #d0232b;
@@ -21,8 +35,6 @@ html[data-theme="light"] {
     --copybtn-opacity: 0.75;
     /* card header bg color */
     --mne-color-card-header: rgba(0, 0, 0, 0.05);
-    /* section headings */
-    --mne-color-heading: #003e80;
     /* sphinx-gallery overrides */
     --sg-download-a-background-color: var(--pst-color-primary);
     --sg-download-a-background-image: unset;
@@ -33,6 +45,20 @@ html[data-theme="light"] {
     --sg-download-a-hover-box-shadow-2: none;
 }
 html[data-theme="dark"] {
+    /* pydata-sphinx-theme overrides */
+    /* ↓↓↓ use default "info" colors for "primary" */
+    --pst-color-primary: #79a3f2;
+    --pst-color-primary-bg: #06245d;
+    /* ↓↓↓ use default "primary" colors for "info" */
+    --pst-color-info: var(--pst-teal-400);
+    --pst-color-info-bg: var(--pst-teal-800);
+    /* ↓↓↓ use "warning" colors for "secondary" */
+    --pst-color-secondary: var(--pst-color-warning);
+    --pst-color-secondary-bg: var(--pst-color-warning-bg);
+    /* ↓↓↓ make sure new primary (link) color propogates to links on code */
+    --pst-color-inline-code-links: var(--pst-color-link);
+    /* ↓↓↓ make sure new secondary (hover) color propogates to hovering on table rows */
+    --pst-color-table-row-hover-bg: var(--pst-color-secondary-bg);
     /* topbar logo links */
     --mne-color-github: rgb(240, 246, 252);  /* from their logo SVG */
     --mne-color-discourse: #FFF9AE;  /* from their logo SVG */
@@ -41,8 +67,6 @@ html[data-theme="dark"] {
     --copybtn-opacity: 0.25;
     /* card header bg color */
     --mne-color-card-header: rgba(255, 255, 255, 0.2);
-    /* section headings */
-    --mne-color-heading: #b8cbe0;
     /* sphinx-gallery overrides */
     --sg-download-a-background-color: var(--pst-color-primary);
     --sg-download-a-background-image: unset;
@@ -51,9 +75,6 @@ html[data-theme="dark"] {
     --sg-download-a-hover-background-color: var(--pst-color-primary-highlight);
     --sg-download-a-hover-box-shadow-1: none;
     --sg-download-a-hover-box-shadow-2: none;
-}
-h1, h2, h3, h4, h5, h6 {
-    color: var(--mne-color-heading);
 }
 
 /* ************************************************************ Sphinx fixes */
