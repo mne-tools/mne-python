@@ -6,8 +6,9 @@ import datetime
 import os
 import pathlib
 import pickle
+import platform
 import shutil
-import sys
+from contextlib import nullcontext
 from copy import deepcopy
 from functools import partial
 from io import BytesIO
@@ -1984,7 +1985,7 @@ def test_memmap(tmp_path):
     new_data = np.linspace(0, 1, len(raw_0.times))[np.newaxis]
     ch = RawArray(new_data, new_ch_info)
     raw_0.add_channels([ch])
-    if sys.platform == "darwin":
+    if platform.system() == "Darwin":
         assert not hasattr(raw_0._data, "filename")
     else:
         assert raw_0._data.filename == memmaps[2]
@@ -2011,56 +2012,78 @@ def test_memmap(tmp_path):
 # These are slow on Azure Windows so let's do a subset
 @pytest.mark.parametrize(
     "kind",
-    [
-        "file",
-        pytest.param("bytes", marks=pytest.mark.slowtest),
-    ],
+    ["path", pytest.param("file", id="kindFile"), "bytes"],
 )
 @pytest.mark.parametrize(
     "preload",
-    [
-        True,
-        pytest.param(str, marks=pytest.mark.slowtest),
-    ],
+    [pytest.param(True, id="preloadTrue"), str],
 )
 @pytest.mark.parametrize(
     "split",
-    [
-        False,
-        pytest.param(True, marks=pytest.mark.slowtest),
-    ],
+    [False, pytest.param(True, marks=pytest.mark.slowtest, id="splitTrue")],
 )
 def test_file_like(kind, preload, split, tmp_path):
     """Test handling with file-like objects."""
+    fname = tmp_path / "test_file_like_raw.fif"
+    fnames = (fname,)
+    this_raw = read_raw_fif(test_fif_fname).crop(0, 4).pick("mag")
     if split:
-        fname = tmp_path / "test_raw.fif"
-        read_raw_fif(test_fif_fname).save(fname, split_size="5MB")
-        assert fname.is_file()
-        assert Path(str(fname)[:-4] + "-1.fif").is_file()
+        this_raw.save(fname, split_size="5MB")
+        fnames += (Path(str(fname)[:-4] + "-1.fif"),)
+        bad_fname = Path(str(fname)[:-4] + "-2.fif")
+        assert not bad_fname.is_file()
     else:
-        fname = test_fif_fname
+        this_raw.save(fname)
+    for f in fnames:
+        assert f.is_file()
     if preload is str:
+        if platform.system() == "Windows":
+            pytest.skip("Cannot test preload=str on Windows")
         preload = str(tmp_path / "memmap")
-    with open(str(fname), "rb") as file_fid:
-        fid = BytesIO(file_fid.read()) if kind == "bytes" else file_fid
-        assert not fid.closed
+    with open(fname, "rb") as file_fid:
+        if kind == "bytes":
+            fid = BytesIO(file_fid.read())
+        elif kind == "path":
+            fid = fname
+        else:
+            assert kind == "file"
+            fid = file_fid
+        if kind != "path":
+            assert not fid.closed
+            with pytest.raises(ValueError, match="preload must be used with file"):
+                read_raw_fif(fid)
         assert not file_fid.closed
-        with pytest.raises(ValueError, match="preload must be used with file"):
-            read_raw_fif(fid)
-        assert not fid.closed
+        if kind != "path":
+            assert not fid.closed
         assert not file_fid.closed
         # Use test_preloading=False but explicitly pass the preload type
         # so that we don't bother testing preload=False
         kwargs = dict(
             fname=fid,
             preload=preload,
-            on_split_missing="ignore",
+            on_split_missing="warn",
             test_preloading=False,
             test_kwargs=False,
         )
-        _test_raw_reader(read_raw_fif, **kwargs)
-        assert not fid.closed
+        want_filenames = list(fnames)
+        if kind == "bytes":
+            # the split file will not be correctly resolved for BytesIO
+            want_filenames = [None]
+        if split and kind == "bytes":
+            ctx = pytest.warns(RuntimeWarning, match="Split raw file detected")
+        else:
+            ctx = nullcontext()
+        with ctx:
+            raw = _test_raw_reader(read_raw_fif, **kwargs)
+        if kind != "path":
+            assert not fid.closed
         assert not file_fid.closed
+        want_filenames = tuple(want_filenames)
+        assert raw.filenames == want_filenames
+        if kind == "bytes":
+            assert fname.name not in raw._repr_html_()
+        else:
+            assert fname.name in raw._repr_html_()
     assert file_fid.closed
 
 
@@ -2094,7 +2117,7 @@ def test_bad_acq(fname):
 
 @testing.requires_testing_data
 @pytest.mark.skipif(
-    sys.platform not in ("darwin", "linux"), reason="Needs proper symlinking"
+    platform.system() not in ("Linux", "Darwin"), reason="Needs proper symlinking"
 )
 def test_split_symlink(tmp_path):
     """Test split files with symlinks."""
@@ -2157,3 +2180,12 @@ def test_expand_user(tmp_path, monkeypatch):
 
     raw = read_raw_fif(fname=path_home, preload=True)
     raw.save(fname=path_home, overwrite=True)
+
+
+@pytest.mark.parametrize("cast", [pathlib.Path, str])
+def test_init_kwargs(cast):
+    """Test for pull/12843#issuecomment-2380491528."""
+    raw = read_raw_fif(cast(test_fif_fname))
+    raw2 = read_raw_fif(**raw._init_kwargs)
+    for r in (raw, raw2):
+        assert isinstance(r._init_kwargs["fname"], pathlib.Path)

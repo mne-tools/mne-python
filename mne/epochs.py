@@ -411,7 +411,7 @@ class BaseEpochs(
 
         .. versionadded:: 0.16
     %(drop_log)s
-    filename : str | None
+    filename : Path | None
         The filename (if the epochs are read from disk).
     %(metadata_epochs)s
 
@@ -683,7 +683,7 @@ class BaseEpochs(
             # more memory safe in most instances
             for ii, epoch in enumerate(self._data):
                 self._data[ii] = np.dot(self._projector, epoch)
-        self._filename = str(filename) if filename is not None else filename
+        self.filename = filename if filename is not None else filename
         if raw_sfreq is None:
             raw_sfreq = self.info["sfreq"]
         self._raw_sfreq = raw_sfreq
@@ -2013,9 +2013,18 @@ class BaseEpochs(
         return self
 
     @property
-    def filename(self):
-        """The filename."""
+    def filename(self) -> Path | None:
+        """The filename if the epochs are loaded from disk.
+
+        :type: :class:`pathlib.Path` | ``None``
+        """
         return self._filename
+
+    @filename.setter
+    def filename(self, value):
+        if value is not None:
+            value = _check_fname(value, overwrite="read", must_exist=True)
+        self._filename = value
 
     def __repr__(self):
         """Build string representation."""
@@ -4266,15 +4275,15 @@ class EpochsFIF(BaseEpochs):
                 filetype="epochs",
                 endings=("-epo.fif", "-epo.fif.gz", "_epo.fif", "_epo.fif.gz"),
             )
-            fname = str(_check_fname(fname=fname, must_exist=True, overwrite="read"))
+            fname = _check_fname(fname=fname, must_exist=True, overwrite="read")
         elif not preload:
             raise ValueError("preload must be used with file-like objects")
 
         fnames = [fname]
+        fname_rep = _get_fname_rep(fname)
         ep_list = list()
         raw = list()
         for fname in fnames:
-            fname_rep = _get_fname_rep(fname)
             logger.info(f"Reading {fname_rep} ...")
             fid, tree, _ = fiff_open(fname, preload=preload)
             next_fname = _get_next_fname(fid, fname, tree)

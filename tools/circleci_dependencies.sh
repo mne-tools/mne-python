@@ -10,8 +10,9 @@ python -m pip install --pre --progress-bar off \
 python -m pip install --upgrade --progress-bar off \
     --only-binary "numpy,dipy,scipy,matplotlib,pandas,statsmodels" \
     -ve .[full,test,doc] "numpy>=2" \
-    "git+https://github.com/larsoner/pyvista.git@refcycle" \
-    git+https://github.com/sphinx-gallery/sphinx-gallery.git \
+    "git+https://github.com/pyvista/pyvista.git" \
+    "git+https://github.com/sphinx-gallery/sphinx-gallery.git" \
+    "git+https://github.com/mne-tools/mne-bids.git" \
     \
     alphaCSC autoreject bycycle conpy emd fooof meggie \
     mne-ari mne-bids-pipeline mne-faster mne-features \

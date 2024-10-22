@@ -306,7 +306,7 @@ def extract_chpi_locs_kit(raw, stim_channel="MISC 064", *, verbose=None):
     dtype = np.dtype([("good", "<u4"), ("data", "<f8", (4,))])
     assert dtype.itemsize == header["size"], (dtype.itemsize, header["size"])
     all_data = list()
-    for fname in raw._filenames:
+    for fname in raw.filenames:
         with open(fname) as fid:
             fid.seek(header["offset"])
             all_data.append(
