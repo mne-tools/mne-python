@@ -506,7 +506,6 @@ def _compute_tfr(
         n_tapers, n_freqs, n_times)``. If output is ``'avg_power_itc'``, the
         real values in the ``output`` contain average power' and the imaginary
         values contain the ITC: ``out = avg_power + i * itc``.
-
     weights : array of shape (n_tapers, n_freqs)
         The taper weights. Only returned if method='multitaper', output='complex' or
         'phase', and return_weights=True.
