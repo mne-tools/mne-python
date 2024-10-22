@@ -89,7 +89,7 @@ def plot_ica_sources(
     psd_args : dict | None
         Dictionary of arguments to pass to :meth:`~mne.Epochs.compute_psd` in
         interactive  mode. Ignored if ``inst`` is not supplied. If ``None``,
-        nothing is passed. Defaults to ``None``.     
+        nothing is passed. Defaults to ``None``.
     show_first_samp : bool
         If True, show time axis relative to the ``raw.first_samp``.
     %(show_scrollbars)s
