@@ -14,7 +14,7 @@ if __name__ == "__main__":
     # Set variables
     subject_id = "sub-001"
     cond_name = "median"
-    sampling_rate = 1000
+    fs = 1000  # sampling rate
     esg_chans = [
         "S35",
         "S24",
@@ -62,7 +62,7 @@ if __name__ == "__main__":
 
     # Setting paths
     input_path = "/data/pt_02569/tmp_data/prepared_py/" + subject_id + "/esg/prepro/"
-    fname = f"noStimart_sr{sampling_rate}_{cond_name}_withqrs_pchip"
+    fname = f"noStimart_sr{fs}_{cond_name}_withqrs_pchip"
     raw = read_raw_fif(input_path + fname + ".fif", preload=True)
 
     # Find ECG events - no ECG channel in data, uses synthetic
@@ -75,7 +75,6 @@ if __name__ == "__main__":
     ecg_event_samples = np.asarray([[ecg_event[0] for ecg_event in ecg_events]])
 
     # Create filter coefficients
-    fs = sampling_rate
     a = [0, 0, 1, 1]
     f = [0, 0.4 / (fs / 2), 0.9 / (fs / 2), 1]  # 0.9 Hz highpass filter
     # f = [0 0.4 / (fs / 2) 0.5 / (fs / 2) 1] # 0.5 Hz highpass filter
@@ -83,8 +82,6 @@ if __name__ == "__main__":
     fwts = firls(ord + 1, f, a)
 
     # run PCA_OBS
-    PCA_OBS_kwargs = dict(qrs=ecg_event_samples, filter_coords=fwts, sr=sampling_rate)
-
     events, event_ids = events_from_annotations(raw)
     event_id_dict = {key: value for key, value in event_ids.items() if key == "qrs"}
     epochs = Epochs(
@@ -99,7 +96,13 @@ if __name__ == "__main__":
 
     # Apply function should modifies the data in raw in place
     raw.apply_function(
-        PCA_OBS, picks=esg_chans, **PCA_OBS_kwargs, n_jobs=len(esg_chans)
+        PCA_OBS, 
+        picks=esg_chans, 
+        n_jobs=len(esg_chans), 
+        **{ # args sent to PCA_OBS
+            "qrs": ecg_event_samples, 
+            "filter_coords": fwts, 
+        }, 
     )
     epochs = Epochs(
         raw,

@@ -31,7 +31,6 @@ if __name__ == "__main__":
     ) = find_ecg_events(raw)
     # Extract just sample timings of ecg events
     ecg_event_samples = np.asarray([[ecg_event[0] for ecg_event in ecg_events]])
-    # print(ecg_events)
 
     # Create filter coefficients
     fs = raw.info["sfreq"]
@@ -42,21 +41,27 @@ if __name__ == "__main__":
     fwts = firls(ord + 1, f, a)
 
     # For heartbeat epochs
-    iv_baseline = [-300 / 1000, -200 / 1000]
-    iv_epoch = [-400 / 1000, 600 / 1000]
+    iv_baseline = [-300 / 1000, -200 / 1000]  # 300 ms before to 200 ms after
+    iv_epoch = [-400 / 1000, 600 / 1000]  # 300 ms before to 200 ms after
 
     # run PCA_OBS
     # Algorithm is extremely sensitive to accurate R-peak timings, won't work as well with the artificial ECG
     # channel estimation as we have here
-    PCA_OBS_kwargs = dict(qrs=ecg_event_samples, filter_coords=fwts, sr=fs)
-
     epochs = Epochs(
         raw, ecg_events, tmin=iv_epoch[0], tmax=iv_epoch[1], baseline=tuple(iv_baseline)
     )
     evoked_before = epochs.average()
 
     # Apply function should modifies the data in raw in place
-    raw.apply_function(PCA_OBS, picks="eeg", **PCA_OBS_kwargs, n_jobs=10)
+    raw.apply_function(
+        PCA_OBS, 
+        picks="eeg", 
+        n_jobs=10
+        **{ # args sent to PCA_OBS
+            "qrs": ecg_event_samples, 
+            "filter_coords": fwts, 
+        },
+    )
     epochs = Epochs(
         raw, ecg_events, tmin=iv_epoch[0], tmax=iv_epoch[1], baseline=tuple(iv_baseline)
     )

@@ -3,6 +3,7 @@
 import numpy as np
 from scipy.interpolate import PchipInterpolator as pchip
 
+# TODO: only place defined. is this used?
 
 def PCHIP_interpolation(data, **kwargs):
     # Check all necessary arguments sent in

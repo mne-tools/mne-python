@@ -1,13 +1,18 @@
 import math
 
 import numpy as np
-from fit_ecgTemplate import fit_ecgTemplate
+from mne.preprocessing.pca_obs.fit_ecgTemplate import fit_ecgTemplate
 
 from scipy.signal import detrend, filtfilt
 from sklearn.decomposition import PCA
 
 
-def PCA_OBS(data, **kwargs):
+def PCA_OBS(
+    data, 
+    qrs,
+    filter_coords,
+    **kwargs
+):
     # Declare class to hold pca information
     class PCAInfo:
         def __init__(self):
@@ -16,18 +21,9 @@ def PCA_OBS(data, **kwargs):
     # Instantiate class
     pca_info = PCAInfo()
 
-    # Check all necessary arguments sent in
-    required_kws = ["qrs", "filter_coords", "sr"]
-    assert all(
-        [kw in kwargs.keys() for kw in required_kws]
-    ), "Error. Some KWs not passed into PCA_OBS."
-
     # Extract all kwargs
     qrs = kwargs["qrs"]
     filter_coords = kwargs["filter_coords"]
-    sr = kwargs["sr"]
-
-    fs = sr
 
     # set to baseline
     data = data.reshape(-1, 1)
@@ -66,7 +62,6 @@ def PCA_OBS(data, **kwargs):
     pa = peak_count  # Number of QRS complexes detected
     while peak_idx[pa - 1, 0] + peak_range > len(data[0]):
         pa = pa - 1
-    steps = 1 * pa
     peak_count = pa
 
     # Filter channel
@@ -87,7 +82,6 @@ def PCA_OBS(data, **kwargs):
     mean_effect = np.mean(
         pcamat, axis=0
     )  # [1 x time], contains the mean over all epochs
-    std_effect = np.std(pcamat, axis=0)  # want mean and std of each column
     dpcamat = detrend(pcamat, type="constant", axis=1)  # [time x epoch]
 
     ###################################################################
