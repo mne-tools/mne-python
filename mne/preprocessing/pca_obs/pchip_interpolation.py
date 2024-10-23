@@ -1,23 +1,18 @@
 # Function to interpolate based on PCHIP rather than MNE inbuilt linear option
 
+from typing import Any
 import numpy as np
 from scipy.interpolate import PchipInterpolator as pchip
+from numpy.typing import NDArray
 
 # TODO: only place defined. is this used?
 
-def PCHIP_interpolation(data, **kwargs):
-    # Check all necessary arguments sent in
-    required_kws = ["trigger_indices", "interpol_window_sec", "fs"]
-    if not all(
-        [kw in kwargs.keys() for kw in required_kws]
-    ):
-        raise RuntimeError("Some KWs not passed into PCA_OBS.")
-
-    # Extract all kwargs - more elegant ways to do this
-    fs = kwargs["fs"]
-    interpol_window_sec = kwargs["interpol_window_sec"]
-    trigger_indices = kwargs["trigger_indices"]
-
+def PCHIP_interpolation(
+    data: NDArray[Any], 
+    trigger_indices,
+    interpol_window_sec,
+    fs,
+):
     # Convert intpol window to msec then convert to samples
     pre_window = round((interpol_window_sec[0] * 1000) * fs / 1000)  # in samples
     post_window = round((interpol_window_sec[1] * 1000) * fs / 1000)  # in samples

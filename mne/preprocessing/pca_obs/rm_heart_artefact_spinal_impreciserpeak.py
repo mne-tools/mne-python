@@ -3,6 +3,13 @@
 
 from matplotlib import pyplot as plt
 from mne.preprocessing.pca_obs.PCA_OBS import PCA_OBS
+from mne.preprocessing.pca_obs import ESG_CHANS
+from mne.preprocessing.pca_obs import (
+    fs,
+    iv_baseline,
+    iv_epoch,
+    raw,
+)
 from scipy.signal import firls
 import numpy as np
 from mne import Epochs, events_from_annotations
@@ -10,60 +17,6 @@ from mne.io import read_raw_fif
 from mne.preprocessing import find_ecg_events
 
 if __name__ == "__main__":
-    # Incredibly slow without parallelization
-    # Set variables
-    subject_id = "sub-001"
-    cond_name = "median"
-    fs = 1000  # sampling rate
-    esg_chans = [
-        "S35",
-        "S24",
-        "S36",
-        "Iz",
-        "S17",
-        "S15",
-        "S32",
-        "S22",
-        "S19",
-        "S26",
-        "S28",
-        "S9",
-        "S13",
-        "S11",
-        "S7",
-        "SC1",
-        "S4",
-        "S18",
-        "S8",
-        "S31",
-        "SC6",
-        "S12",
-        "S16",
-        "S5",
-        "S30",
-        "S20",
-        "S34",
-        "AC",
-        "S21",
-        "S25",
-        "L1",
-        "S29",
-        "S14",
-        "S33",
-        "S3",
-        "AL",
-        "L4",
-        "S6",
-        "S23",
-    ]
-    # For heartbeat epochs
-    iv_baseline = [-300 / 1000, -200 / 1000]
-    iv_epoch = [-400 / 1000, 600 / 1000]
-
-    # Setting paths
-    input_path = "/data/pt_02569/tmp_data/prepared_py/" + subject_id + "/esg/prepro/"
-    fname = f"noStimart_sr{fs}_{cond_name}_withqrs_pchip"
-    raw = read_raw_fif(input_path + fname + ".fif", preload=True)
 
     # Find ECG events - no ECG channel in data, uses synthetic
     (
@@ -97,12 +50,11 @@ if __name__ == "__main__":
     # Apply function should modifies the data in raw in place
     raw.apply_function(
         PCA_OBS, 
-        picks=esg_chans, 
-        n_jobs=len(esg_chans), 
-        **{ # args sent to PCA_OBS
-            "qrs": ecg_event_samples, 
-            "filter_coords": fwts, 
-        }, 
+        picks=ESG_CHANS, 
+        n_jobs=len(ESG_CHANS), 
+        # args sent to PCA_OBS
+        qrs=ecg_event_samples, 
+        filter_coords=fwts, 
     )
     epochs = Epochs(
         raw,

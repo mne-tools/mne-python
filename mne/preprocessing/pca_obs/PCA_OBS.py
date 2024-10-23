@@ -1,17 +1,19 @@
 import math
+from typing import Any
 
 import numpy as np
 from mne.preprocessing.pca_obs.fit_ecgTemplate import fit_ecgTemplate
 
 from scipy.signal import detrend, filtfilt
 from sklearn.decomposition import PCA
+from numpy.typing import NDArray
 
 
 def PCA_OBS(
-    data, 
-    qrs,
-    filter_coords,
-    **kwargs
+    data: NDArray[Any], 
+    qrs: NDArray[Any],
+    filter_coords: NDArray[Any],
+    **_  # TODO: are there any other kwargs passed in? 
 ):
     # Declare class to hold pca information
     class PCAInfo:
@@ -20,10 +22,6 @@ def PCA_OBS(
 
     # Instantiate class
     pca_info = PCAInfo()
-
-    # Extract all kwargs
-    qrs = kwargs["qrs"]
-    filter_coords = kwargs["filter_coords"]
 
     # set to baseline
     data = data.reshape(-1, 1)
