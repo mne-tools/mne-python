@@ -1,17 +1,16 @@
-import numpy as np
-# import mne
-from scipy.signal import filtfilt, detrend
-import matplotlib.pyplot as plt
-from sklearn.decomposition import PCA
-from fit_ecgTemplate import fit_ecgTemplate
 import math
-import h5py
+
+import numpy as np
+from fit_ecgTemplate import fit_ecgTemplate
+
+# import mne
+from scipy.signal import detrend, filtfilt
+from sklearn.decomposition import PCA
 
 
 def PCA_OBS(data, **kwargs):
-
     # Declare class to hold pca information
-    class PCAInfo():
+    class PCAInfo:
         def __init__(self):
             pass
 
@@ -20,12 +19,14 @@ def PCA_OBS(data, **kwargs):
 
     # Check all necessary arguments sent in
     required_kws = ["qrs", "filter_coords", "sr"]
-    assert all([kw in kwargs.keys() for kw in required_kws]), "Error. Some KWs not passed into PCA_OBS."
+    assert all(
+        [kw in kwargs.keys() for kw in required_kws]
+    ), "Error. Some KWs not passed into PCA_OBS."
 
     # Extract all kwargs
-    qrs = kwargs['qrs']
-    filter_coords = kwargs['filter_coords']
-    sr = kwargs['sr']
+    qrs = kwargs["qrs"]
+    filter_coords = kwargs["filter_coords"]
+    sr = kwargs["sr"]
 
     fs = sr
 
@@ -50,19 +51,21 @@ def PCA_OBS(data, **kwargs):
     ################################################################
     # Preparatory work - reserving memory, configure sizes, de-trend
     ################################################################
-    print('Pulse artifact subtraction in progress...Please wait!')
+    print("Pulse artifact subtraction in progress...Please wait!")
 
     # define peak range based on RR
     RR = np.diff(peak_idx[:, 0])
     mRR = np.median(RR)
-    peak_range = round(mRR/2)  # Rounds to an integer
+    peak_range = round(mRR / 2)  # Rounds to an integer
     midP = peak_range + 1
-    baseline_range = [0, round(peak_range/8)]
-    n_samples_fit = round(peak_range/8)  # sample fit for interpolation between fitted artifact windows
+    baseline_range = [0, round(peak_range / 8)]
+    n_samples_fit = round(
+        peak_range / 8
+    )  # sample fit for interpolation between fitted artifact windows
 
     # make sure array is long enough for PArange (if not cut off  last ECG peak)
     pa = peak_count  # Number of QRS complexes detected
-    while peak_idx[pa-1, 0] + peak_range > len(data[0]):
+    while peak_idx[pa - 1, 0] + peak_range > len(data[0]):
         pa = pa - 1
     steps = 1 * pa
     peak_count = pa
@@ -71,16 +74,22 @@ def PCA_OBS(data, **kwargs):
     eegchan = filtfilt(filter_coords, 1, data)
 
     # build PCA matrix(heart-beat-epochs x window-length)
-    pcamat = np.zeros((peak_count - 1, 2*peak_range+1))  # [epoch x time]
+    pcamat = np.zeros((peak_count - 1, 2 * peak_range + 1))  # [epoch x time]
     # picking out heartbeat epochs
     for p in range(1, peak_count):
-        pcamat[p-1, :] = eegchan[0, peak_idx[p, 0] - peak_range: peak_idx[p, 0] + peak_range+1]
+        pcamat[p - 1, :] = eegchan[
+            0, peak_idx[p, 0] - peak_range : peak_idx[p, 0] + peak_range + 1
+        ]
 
     # detrending matrix(twice)
-    pcamat = detrend(pcamat, type='constant', axis=1)  # [epoch x time] - detrended along the epoch
-    mean_effect = np.mean(pcamat, axis=0)  # [1 x time], contains the mean over all epochs
+    pcamat = detrend(
+        pcamat, type="constant", axis=1
+    )  # [epoch x time] - detrended along the epoch
+    mean_effect = np.mean(
+        pcamat, axis=0
+    )  # [1 x time], contains the mean over all epochs
     std_effect = np.std(pcamat, axis=0)  # want mean and std of each column
-    dpcamat = detrend(pcamat, type='constant', axis=1)  # [time x epoch]
+    dpcamat = detrend(pcamat, type="constant", axis=1)  # [time x epoch]
 
     ###################################################################
     # Perform PCA with sklearn
@@ -90,7 +99,7 @@ def PCA_OBS(data, **kwargs):
     pca.fit(dpcamat)
     eigen_vectors = pca.components_
     eigen_values = pca.explained_variance_
-    factor_loadings = pca.components_.T*np.sqrt(pca.explained_variance_)
+    factor_loadings = pca.components_.T * np.sqrt(pca.explained_variance_)
     pca_info.eigen_vectors = eigen_vectors
     pca_info.factor_loadings = factor_loadings
     pca_info.eigen_values = eigen_values
@@ -116,34 +125,55 @@ def PCA_OBS(data, **kwargs):
         # Deals with start portion of data
         if p == 0:
             pre_range = peak_range
-            post_range = math.floor((peak_idx[p + 1] - peak_idx[p])/2)
+            post_range = math.floor((peak_idx[p + 1] - peak_idx[p]) / 2)
             if post_range > peak_range:
                 post_range = peak_range
             try:
                 post_idx_nextPeak = []
-                fitted_art, post_idx_nextPeak = fit_ecgTemplate(data, pca_template, peak_idx[p], peak_range,
-                                                                pre_range, post_range, baseline_range, midP,
-                                                                fitted_art, post_idx_nextPeak, n_samples_fit)
+                fitted_art, post_idx_nextPeak = fit_ecgTemplate(
+                    data,
+                    pca_template,
+                    peak_idx[p],
+                    peak_range,
+                    pre_range,
+                    post_range,
+                    baseline_range,
+                    midP,
+                    fitted_art,
+                    post_idx_nextPeak,
+                    n_samples_fit,
+                )
                 # Appending to list instead of using counter
                 window_start_idx.append(peak_idx[p] - peak_range)
                 window_end_idx.append(peak_idx[p] + peak_range)
             except Exception as e:
-                print(f'Cannot fit first ECG epoch. Reason: {e}')
+                print(f"Cannot fit first ECG epoch. Reason: {e}")
 
         # Deals with last edge of data
         elif p == peak_count:
-            print('On last section - almost there!')
+            print("On last section - almost there!")
             try:
                 pre_range = math.floor((peak_idx[p] - peak_idx[p - 1]) / 2)
                 post_range = peak_range
                 if pre_range > peak_range:
                     pre_range = peak_range
-                fitted_art, _ = fit_ecgTemplate(data, pca_template, peak_idx(p), peak_range, pre_range, post_range,
-                                                baseline_range, midP, fitted_art, post_idx_nextPeak, n_samples_fit)
+                fitted_art, _ = fit_ecgTemplate(
+                    data,
+                    pca_template,
+                    peak_idx(p),
+                    peak_range,
+                    pre_range,
+                    post_range,
+                    baseline_range,
+                    midP,
+                    fitted_art,
+                    post_idx_nextPeak,
+                    n_samples_fit,
+                )
                 window_start_idx.append(peak_idx[p] - peak_range)
                 window_end_idx.append(peak_idx[p] + peak_range)
             except Exception as e:
-                print(f'Cannot fit last ECG epoch. Reason: {e}')
+                print(f"Cannot fit last ECG epoch. Reason: {e}")
 
         # Deals with middle portion of data
         else:
@@ -157,10 +187,22 @@ def PCA_OBS(data, **kwargs):
                 if post_range > peak_range:
                     post_range = peak_range
 
-                aTemplate = pca_template[midP - peak_range-1:midP + peak_range+1, :]
-                fitted_art, post_idx_nextPeak = fit_ecgTemplate(data, aTemplate, peak_idx[p], peak_range, pre_range,
-                                                                post_range, baseline_range, midP, fitted_art,
-                                                                post_idx_nextPeak, n_samples_fit)
+                aTemplate = pca_template[
+                    midP - peak_range - 1 : midP + peak_range + 1, :
+                ]
+                fitted_art, post_idx_nextPeak = fit_ecgTemplate(
+                    data,
+                    aTemplate,
+                    peak_idx[p],
+                    peak_range,
+                    pre_range,
+                    post_range,
+                    baseline_range,
+                    midP,
+                    fitted_art,
+                    post_idx_nextPeak,
+                    n_samples_fit,
+                )
                 window_start_idx.append(peak_idx[p] - peak_range)
                 window_end_idx.append(peak_idx[p] + peak_range)
             except Exception as e:
