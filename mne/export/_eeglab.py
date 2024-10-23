@@ -4,6 +4,7 @@
 
 import numpy as np
 
+from ..annotations import _sync_onset
 from ..utils import _check_eeglabio_installed
 
 _check_eeglabio_installed()
@@ -26,7 +27,9 @@ def _export_raw(fname, raw):
 
     annotations = [
         raw.annotations.description,
-        raw.annotations.onset,
+        # subtract raw.first_time because EEGLAB marks events starting from the first
+        # available data point and ignores raw.first_time
+        _sync_onset(raw, raw.annotations.onset, inverse=False),
         raw.annotations.duration,
     ]
     eeglabio.raw.export_set(
