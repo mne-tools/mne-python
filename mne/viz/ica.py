@@ -415,12 +415,12 @@ def plot_ica_properties(
     log_scale=False,
     topomap_args=None,
     image_args=None,
+    psd_args=None,
     figsize=None,
     show=True,
     reject="auto",
     reject_by_annotation=True,
     *,
-    psd_args=None,
     estimate="power",
     verbose=None,
 ):
