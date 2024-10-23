@@ -1,0 +1,1 @@
+Fixed behavior of :func:`mne.viz.plot_source_estimates` where the ``title`` was not displayed properly, by :newcontrib:`Shristi Baral`.
