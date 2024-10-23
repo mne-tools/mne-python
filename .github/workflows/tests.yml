@@ -103,6 +103,7 @@ jobs:
         with:
           environment-file: ${{ env.CONDA_ENV }}
           environment-name: mne
+          generate-run-shell: false  # https://github.com/mamba-org/setup-micromamba/issues/130#issuecomment-1746964394
           create-args: >-
             python=${{ env.PYTHON_VERSION }}
             mamba
