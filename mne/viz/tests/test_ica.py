@@ -301,7 +301,7 @@ def test_plot_ica_sources(raw_orig, browser_backend, monkeypatch):
 
     # dtype can change int->np.int64 after load, test it explicitly
     ica.n_components_ = np.int64(ica.n_components_)
-
+    
     # test clicks on y-label (need >2 secs for plot_properties() to work)
     long_raw = raw_orig.crop(0, 5)
     fig = ica.plot_sources(long_raw)
@@ -370,6 +370,9 @@ def test_plot_ica_sources(raw_orig, browser_backend, monkeypatch):
     leg = ax.get_legend()
     assert len(leg.get_texts()) == len(ica.exclude) == 1
 
+    # test passing psd_args argument
+    ica.plot_sources(epochs, psd_args=dict(fmax = 50))
+    
     # plot with bad channels excluded
     ica.exclude = [0]
     ica.plot_sources(evoked)
