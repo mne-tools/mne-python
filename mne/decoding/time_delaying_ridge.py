@@ -287,27 +287,22 @@ class TimeDelayingRidge(BaseEstimator):
         n_jobs=None,
         edge_correction=True,
     ):
-        if tmin > tmax:
-            raise ValueError(f"tmin must be <= tmax, got {tmin} and {tmax}")
-        self.tmin = float(tmin)
-        self.tmax = float(tmax)
-        self.sfreq = float(sfreq)
-        self.alpha = float(alpha)
+        self.tmin = tmin
+        self.tmax = tmax
+        self.sfreq = sfreq
+        self.alpha = alpha
         self.reg_type = reg_type
         self.fit_intercept = fit_intercept
         self.edge_correction = edge_correction
         self.n_jobs = n_jobs
 
-    def _more_tags(self):
-        return {"no_validation": True}
-
     @property
     def _smin(self):
-        return int(round(self.tmin * self.sfreq))
+        return int(round(self.tmin_ * self.sfreq_))
 
     @property
     def _smax(self):
-        return int(round(self.tmax * self.sfreq)) + 1
+        return int(round(self.tmax_ * self.sfreq_)) + 1
 
     def fit(self, X, y):
         """Estimate the coefficients of the linear model.
@@ -326,6 +321,12 @@ class TimeDelayingRidge(BaseEstimator):
         """
         _validate_type(X, "array-like", "X")
         _validate_type(y, "array-like", "y")
+        self.tmin_ = float(self.tmin)
+        self.tmax_ = float(self.tmax)
+        self.sfreq_ = float(self.sfreq)
+        self.alpha_ = float(self.alpha)
+        if self.tmin_ > self.tmax_:
+            raise ValueError(f"tmin must be <= tmax, got {self.tmin_} and {self.tmax_}")
         X = np.asarray(X, dtype=float)
         y = np.asarray(y, dtype=float)
         if X.ndim == 3:
@@ -352,7 +353,7 @@ class TimeDelayingRidge(BaseEstimator):
             self.edge_correction,
         )
         self.coef_ = _fit_corrs(
-            self.cov_, x_y_, n_ch_x, self.reg_type, self.alpha, n_ch_x
+            self.cov_, x_y_, n_ch_x, self.reg_type, self.alpha_, n_ch_x
         )
         # This is the sklearn formula from LinearModel (will be 0. for no fit)
         if self.fit_intercept:

@@ -342,7 +342,7 @@ def _test_raw_reader(
         assert_array_equal(raw.times, raw2.times)
 
     # Test saving and reading
-    out_fname = op.join(tempdir, "test_raw.fif")
+    out_fname = op.join(tempdir, "test_out_raw.fif")
     raw = concatenate_raws([raw])
     filenames = raw.save(
         out_fname, tmax=raw.times[-1], overwrite=True, buffer_size_sec=1
@@ -372,18 +372,21 @@ def _test_raw_reader(
     # Make sure concatenation works
     first_samp = raw.first_samp
     last_samp = raw.last_samp
-    concat_raw = concatenate_raws([raw.copy(), raw])
+    concat_raw = concatenate_raws([raw.copy(), raw], verbose="debug")
     assert concat_raw.n_times == 2 * raw.n_times
     assert concat_raw.first_samp == first_samp
     assert concat_raw.last_samp - last_samp + first_samp == last_samp + 1
     idx = np.where(concat_raw.annotations.description == "BAD boundary")[0]
+    assert len(idx) == 1
+    assert len(concat_raw.times) == 2 * n_samp
 
     expected_bad_boundary_onset = raw._last_time
 
     assert_array_almost_equal(
         concat_raw.annotations.onset[idx],
-        expected_bad_boundary_onset,
+        [expected_bad_boundary_onset],
         decimal=boundary_decimal,
+        err_msg="BAD boundary onset mismatch",
     )
 
     if raw.info["meas_id"] is not None:

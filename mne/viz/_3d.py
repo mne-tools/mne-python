@@ -50,6 +50,8 @@ from ..surface import (
 )
 from ..transforms import (
     Transform,
+    _angle_between_quats,
+    _angle_dist_between_rigid,
     _ensure_trans,
     _find_trans,
     _frame_to_str,
@@ -131,6 +133,7 @@ def plot_head_positions(
     info=None,
     color="k",
     axes=None,
+    totals=False,
 ):
     """Plot head positions.
 
@@ -149,10 +152,9 @@ def plot_head_positions(
         directional axes in "field" mode.
     show : bool
         Show figure if True. Defaults to True.
-    destination : str | array-like, shape (3,) | None
-        The destination location for the head, assumed to be in head
-        coordinates. See :func:`mne.preprocessing.maxwell_filter` for
-        details.
+    destination : path-like | array-like, shape (3,) | instance of Transform | None
+        The destination location for the head. See
+        :func:`mne.preprocessing.maxwell_filter` for details.
 
         .. versionadded:: 0.16
     %(info)s If provided, will be used to show the destination position when
@@ -164,12 +166,16 @@ def plot_head_positions(
         arrows in ``mode == 'field'``.
 
         .. versionadded:: 0.16
-    axes : array-like, shape (3, 2)
+    axes : array-like, shape (3, 2) or (4, 2)
         The matplotlib axes to use.
 
         .. versionadded:: 0.16
         .. versionchanged:: 1.8
            Added support for making use of this argument when ``mode="field"``.
+    totals : bool
+        If True and in traces mode, show the total distance and angle in a fourth row.
+
+        .. versionadded:: 1.9
 
     Returns
     -------
@@ -182,12 +188,12 @@ def plot_head_positions(
     from ..preprocessing.maxwell import _check_destination
 
     _check_option("mode", mode, ["traces", "field"])
+    _validate_type(totals, bool, "totals")
     dest_info = dict(dev_head_t=None) if info is None else info
     destination = _check_destination(destination, dest_info, head_frame=True)
     if destination is not None:
         destination = _ensure_trans(destination, "head", "meg")  # probably inv
-        destination = destination["trans"][:3].copy()
-        destination[:, 3] *= 1000
+        destination = destination["trans"]
 
     if not isinstance(pos, list | tuple):
         pos = [pos]
@@ -228,15 +234,17 @@ def plot_head_positions(
                 surf["rr"] *= 1000.0
     helmet_color = DEFAULTS["coreg"]["helmet_color"]
     if mode == "traces":
+        want_shape = (3 + int(totals), 2)
         if axes is None:
-            axes = plt.subplots(3, 2, sharex=True)[1]
+            _, axes = plt.subplots(*want_shape, sharex=True, layout="constrained")
         else:
             axes = np.array(axes)
-        if axes.shape != (3, 2):
-            raise ValueError(f"axes must have shape (3, 2), got {axes.shape}")
+        _check_option("axes.shape", axes.shape, (want_shape,))
         fig = axes[0, 0].figure
-
-        labels = ["xyz", ("$q_1$", "$q_2$", "$q_3$")]
+        labels = [["x (mm)", "y (mm)", "z (mm)"], ["$q_1$", "$q_2$", "$q_3$"]]
+        if totals:
+            labels[0].append("dist (mm)")
+            labels[1].append("angle (°)")
         for ii, (quat, coord) in enumerate(zip(use_quats.T, use_trans.T)):
             axes[ii, 0].plot(t, coord, color, lw=1.0, zorder=3)
             axes[ii, 0].set(ylabel=labels[0][ii], xlim=t[[0, -1]])
@@ -245,9 +253,19 @@ def plot_head_positions(
             for b in borders[:-1]:
                 for jj in range(2):
                     axes[ii, jj].axvline(t[b], color="r")
-        for ii, title in enumerate(("Position (mm)", "Rotation (quat)")):
-            axes[0, ii].set(title=title)
-            axes[-1, ii].set(xlabel="Time (s)")
+        if totals:
+            vals = [
+                np.linalg.norm(use_trans, axis=-1),
+                np.rad2deg(_angle_between_quats(use_quats)),
+            ]
+            ii = -1
+            for ci, val in enumerate(vals):
+                axes[ii, ci].plot(t, val, color, lw=1.0, zorder=3)
+                axes[ii, ci].set(ylabel=labels[ci][ii], xlim=t[[0, -1]])
+        titles = ["Position", "Rotation"]
+        for ci, title in enumerate(titles):
+            axes[0, ci].set(title=title)
+            axes[-1, ci].set(xlabel="Time (s)")
         if rrs is not None:
             pos_bads = np.any(
                 [
@@ -305,10 +323,18 @@ def plot_head_positions(
 
         if destination is not None:
             vals = np.array(
-                [destination[:, 3], rot_to_quat(destination[:, :3])]
+                [1000 * destination[:3, 3], rot_to_quat(destination[:3, :3])]
             ).T.ravel()
-            for ax, val in zip(fig.axes, vals):
+            for ax, val in zip(axes[:3].ravel(), vals):
                 ax.axhline(val, color="r", ls=":", zorder=2, lw=1.0)
+            if totals:
+                dest_ang, dest_dist = _angle_dist_between_rigid(
+                    destination,
+                    angle_units="deg",
+                    distance_units="mm",
+                )
+                axes[-1, 0].axhline(dest_dist, color="r", ls=":", zorder=2, lw=1.0)
+                axes[-1, 1].axhline(dest_ang, color="r", ls=":", zorder=2, lw=1.0)
 
     else:  # mode == 'field':
         from matplotlib.colors import Normalize
@@ -1507,9 +1533,16 @@ def _plot_sensors_3d(
         elif ch_type in _MEG_CH_TYPES_SPLIT:
             ch_type = "meg"
         # only plot sensor locations if channels/original in selection
-        plot_sensors = (ch_type != "fnirs" or "channels" in fnirs) and (
-            ch_type != "eeg" or "original" in eeg
-        )
+        plot_sensors = True
+        if ch_type == "fnirs":
+            if not fnirs or "channels" not in fnirs:
+                plot_sensors = False
+        elif ch_type == "eeg":
+            if not eeg or "original" not in eeg:
+                plot_sensors = False
+        elif ch_type == "meg":
+            if not meg or "sensors" not in meg:
+                plot_sensors = False
         # plot sensors
         if isinstance(ch_coord, tuple):  # is meg, plot coil
             ch_coord = dict(rr=ch_coord[0] * unit_scalar, tris=ch_coord[1])
@@ -1558,7 +1591,7 @@ def _plot_sensors_3d(
     assert isinstance(sensor_colors, dict)
     assert isinstance(sensor_scales, dict)
     for ch_type, sens_loc in locs.items():
-        logger.debug(f"Drawing {ch_type} sensors")
+        logger.debug(f"Drawing {ch_type} sensors ({len(sens_loc)})")
         assert len(sens_loc)  # should be guaranteed above
         colors = to_rgba_array(sensor_colors.get(ch_type, defaults[ch_type + "_color"]))
         scales = np.atleast_1d(

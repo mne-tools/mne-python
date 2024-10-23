@@ -2,22 +2,16 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-import os.path as op
 from gzip import GzipFile
 from io import SEEK_SET, BytesIO
+from pathlib import Path
 
 import numpy as np
 from scipy.sparse import issparse
 
-from ..utils import _file_like, logger, verbose, warn
+from ..utils import _check_fname, _file_like, _validate_type, logger, verbose, warn
 from .constants import FIFF
-from .tag import (
-    Tag,
-    _call_dict_names,
-    _matrix_info,
-    _read_tag_header,
-    read_tag,
-)
+from .tag import Tag, _call_dict_names, _matrix_info, _read_tag_header, read_tag
 from .tree import dir_tree_find, make_dir_tree
 
 
@@ -46,12 +40,13 @@ class _NoCloseRead:
 def _fiff_get_fid(fname):
     """Open a FIF file with no additional parsing."""
     if _file_like(fname):
+        logger.debug("Using file-like I/O")
         fid = _NoCloseRead(fname)
         fid.seek(0)
     else:
-        fname = str(fname)
-        if op.splitext(fname)[1].lower() == ".gz":
-            logger.debug("Using gzip")
+        _validate_type(fname, Path, "fname", extra="or file-like")
+        if fname.suffixes[-1] == ".gz":
+            logger.debug("Using gzip I/O")
             fid = GzipFile(fname, "rb")  # Open in binary mode
         else:
             logger.debug("Using normal I/O")
@@ -61,6 +56,7 @@ def _fiff_get_fid(fname):
 
 def _get_next_fname(fid, fname, tree):
     """Get the next filename in split files."""
+    _validate_type(fname, (Path, None), "fname")
     nodes_list = dir_tree_find(tree, FIFF.FIFFB_REF)
     next_fname = None
     for nodes in nodes_list:
@@ -72,16 +68,21 @@ def _get_next_fname(fid, fname, tree):
                 if role != FIFF.FIFFV_ROLE_NEXT_FILE:
                     next_fname = None
                     break
+            if ent.kind not in (FIFF.FIFF_REF_FILE_NAME, FIFF.FIFF_REF_FILE_NUM):
+                continue
+            # If we can't resolve it, assume/hope it's in the current directory
+            if fname is None:
+                fname = Path().resolve()
             if ent.kind == FIFF.FIFF_REF_FILE_NAME:
                 tag = read_tag(fid, ent.pos)
-                next_fname = op.join(op.dirname(fname), tag.data)
+                next_fname = fname.parent / tag.data
             if ent.kind == FIFF.FIFF_REF_FILE_NUM:
                 # Some files don't have the name, just the number. So
                 # we construct the name from the current name.
                 if next_fname is not None:
                     continue
                 next_num = read_tag(fid, ent.pos).data.item()
-                path, base = op.split(fname)
+                base = fname.name
                 idx = base.find(".")
                 idx2 = base.rfind("-")
                 num_str = base[idx2 + 1 : idx]
@@ -90,14 +91,13 @@ def _get_next_fname(fid, fname, tree):
 
                 if idx2 < 0 and next_num == 1:
                     # this is the first file, which may not be numbered
-                    next_fname = op.join(
-                        path,
-                        f"{base[:idx]}-{next_num:d}.{base[idx + 1 :]}",
+                    next_fname = (
+                        fname.parent / f"{base[:idx]}-{next_num:d}.{base[idx + 1 :]}"
                     )
                     continue
 
-                next_fname = op.join(
-                    path, f"{base[:idx2]}-{next_num:d}.{base[idx + 1 :]}"
+                next_fname = (
+                    fname.parent / f"{base[:idx2]}-{next_num:d}.{base[idx + 1 :]}"
                 )
         if next_fname is not None:
             break
@@ -191,7 +191,7 @@ def _fiff_open(fname, fid, preload):
             pos = tag.next_pos
             directory.append(tag)
 
-    tree, _ = make_dir_tree(fid, directory)
+    tree, _ = make_dir_tree(fid, directory, indent=1)
 
     logger.debug("[done]")
 
@@ -247,7 +247,8 @@ def show_fiff(
         raise ValueError("output must be list or str")
     if isinstance(tag, str):  # command mne show_fiff passes string
         tag = int(tag)
-    f, tree, directory = fiff_open(fname)
+    fname = _check_fname(fname, "read", True)
+    f, tree, _ = fiff_open(fname)
     # This gets set to 0 (unknown) by fiff_open, but FIFFB_ROOT probably
     # makes more sense for display
     tree["block"] = FIFF.FIFFB_ROOT

@@ -1160,7 +1160,13 @@ def _compute_morph_sdr(mri_from, mri_to, niter_affine, niter_sdr, zooms):
     ) = _compute_volume_registration(
         mri_from, mri_to, zooms=zooms, niter=niter, pipeline=pipeline
     )
-    pre_affine = AffineMap(pre_affine, to_shape, to_affine, from_shape, from_affine)
+    pre_affine = AffineMap(
+        pre_affine,
+        domain_grid_shape=to_shape,
+        domain_grid2world=to_affine,
+        codomain_grid_shape=from_shape,
+        codomain_grid2world=from_affine,
+    )
     return to_shape, zooms, to_affine, pre_affine, sdr_morph
 
 

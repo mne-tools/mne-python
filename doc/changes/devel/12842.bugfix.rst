@@ -1,0 +1,1 @@
+Fix bug where :meth:`mne.Epochs.compute_tfr` could not be used with the multitaper method and complex or phase outputs, by `Thomas Binns`_.

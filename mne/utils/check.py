@@ -52,10 +52,10 @@ def check_fname(fname, filetype, endings, endings_err=()):
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         Name of the file.
     filetype : str
-        Type of file. e.g., ICA, Epochs etc.
+        Type of file. e.g., ICA, Epochs, etc.
     endings : tuple
         Acceptable endings for the filename.
     endings_err : tuple
@@ -255,7 +255,7 @@ def _check_fname(
     *,
     check_bids_split=False,
     verbose=None,
-):
+) -> Path:
     """Check for file existence, and return its absolute path."""
     _validate_type(fname, "path-like", name)
     # special case for MNE-BIDS, check split

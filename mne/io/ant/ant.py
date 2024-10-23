@@ -84,8 +84,6 @@ class RawANT(BaseRaw):
     %(verbose)s
     """
 
-    _extra_attributes = ("impedances",)
-
     @verbose
     def __init__(
         self,
@@ -122,7 +120,7 @@ class RawANT(BaseRaw):
         _validate_type(impedance_annotation, (str,), "impedance_annotation")
         if len(impedance_annotation) == 0:
             raise ValueError("The impedance annotation cannot be an empty string.")
-        cnt = read_cnt(str(fname))
+        cnt = read_cnt(fname)
         # parse channels, sampling frequency, and create info
         ch_info = read_info(cnt)  # load in 2 lines for compat with antio 0.2 and 0.3
         ch_names, ch_units, ch_refs = ch_info[0], ch_info[1], ch_info[2]
@@ -169,7 +167,7 @@ class RawANT(BaseRaw):
             raw_extras=[raw_extras],
         )
         # look for annotations (called trigger by ant)
-        onsets, durations, descriptions, impedances, disconnect = read_triggers(cnt)
+        onsets, durations, descriptions, _, disconnect = read_triggers(cnt)
         onsets, durations, descriptions = _prepare_annotations(
             onsets, durations, descriptions, disconnect, impedance_annotation
         )
@@ -177,15 +175,6 @@ class RawANT(BaseRaw):
         durations = np.array(durations) / self.info["sfreq"]
         annotations = Annotations(onsets, duration=durations, description=descriptions)
         self.set_annotations(annotations)
-        # set impedance similarly as for brainvision files
-        self._impedances = [
-            {ch: imp[k] for k, ch in enumerate(ch_names)} for imp in impedances
-        ]
-
-    @property
-    def impedances(self) -> list[dict[str, float]]:
-        """List of impedance measurements."""
-        return self._impedances
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         from antio import read_cnt
@@ -198,7 +187,7 @@ class RawANT(BaseRaw):
             i_start = max(start, first_samp)
             i_stop = min(stop, this_n_times + first_samp)
             # read and scale data array
-            cnt = read_cnt(str(self._filenames[fi]))
+            cnt = read_cnt(self._filenames[fi])
             one = read_data(cnt, i_start, i_stop)
             _scale_data(one, ch_units)
             data_view = data[:, i_start - start : i_stop - start]
@@ -331,7 +320,6 @@ def read_raw_ant(
     raw : instance of RawANT
         A Raw object containing ANT data.
         See :class:`mne.io.Raw` for documentation of attributes and methods.
-        The impedance measurements are stored in the extra attribute ``raw.impedances``.
     """
     return RawANT(
         fname,

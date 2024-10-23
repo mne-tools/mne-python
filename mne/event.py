@@ -519,7 +519,7 @@ def _find_events(
         else:
             logger.info(
                 f"Trigger channel {ch_name} has a non-zero initial value of "
-                "{initial_value} (consider using initial_event=True to detect this "
+                f"{initial_value} (consider using initial_event=True to detect this "
                 "event)"
             )
 

@@ -210,7 +210,7 @@ class RawKIT(BaseRaw):
         assert n_bytes in (2, 4)
         # Read up to 100 MB of data at a time.
         blk_size = min(data_left, (100000000 // n_bytes // nchan) * nchan)
-        with open(self._filenames[fi], "rb", buffering=0) as fid:
+        with open(self.filenames[fi], "rb", buffering=0) as fid:
             # extract data
             pointer = start * nchan * n_bytes
             fid.seek(sqd["dirs"][KIT.DIR_INDEX_RAW_DATA]["offset"] + pointer)
