@@ -1,7 +1,8 @@
 # Calls PCA_OBS which in turn calls fit_ecgTemplate to remove the heart artefact via PCA_OBS (Principal Component
 # Analysis, Optimal Basis Sets)
 
-from PCA_OBS import *
+from matplotlib import pyplot as plt
+from mne.preprocessing.pca_obs.PCA_OBS import PCA_OBS
 from scipy.io import loadmat
 from scipy.signal import firls
 

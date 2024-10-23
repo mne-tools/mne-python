@@ -3,7 +3,6 @@ import math
 import numpy as np
 from fit_ecgTemplate import fit_ecgTemplate
 
-# import mne
 from scipy.signal import detrend, filtfilt
 from sklearn.decomposition import PCA
 

@@ -1,6 +1,5 @@
 # Function to interpolate based on PCHIP rather than MNE inbuilt linear option
 
-# import mne
 import numpy as np
 from scipy.interpolate import PchipInterpolator as pchip
 
@@ -8,9 +7,10 @@ from scipy.interpolate import PchipInterpolator as pchip
 def PCHIP_interpolation(data, **kwargs):
     # Check all necessary arguments sent in
     required_kws = ["trigger_indices", "interpol_window_sec", "fs"]
-    assert all(
+    if not all(
         [kw in kwargs.keys() for kw in required_kws]
-    ), "Error. Some KWs not passed into PCA_OBS."
+    ):
+        raise RuntimeError("Some KWs not passed into PCA_OBS.")
 
     # Extract all kwargs - more elegant ways to do this
     fs = kwargs["fs"]

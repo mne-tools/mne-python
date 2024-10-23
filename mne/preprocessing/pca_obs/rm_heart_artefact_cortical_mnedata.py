@@ -5,7 +5,7 @@ import os
 
 import matplotlib.pyplot as plt
 import numpy as np
-from PCA_OBS import *
+from mne.preprocessing.pca_obs.PCA_OBS import PCA_OBS
 from scipy.signal import firls
 
 from mne import Epochs
