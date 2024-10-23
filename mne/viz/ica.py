@@ -86,18 +86,18 @@ def plot_ica_sources(
         Whether to halt program execution until the figure is closed.
         Useful for interactive selection of components in raw and epoch
         plotter. For evoked, this parameter has no effect. Defaults to False.
-    psd_args : dict | None
-        Dictionary of arguments to pass to :meth:`~mne.Epochs.compute_psd` in
-        interactive  mode. Ignored if ``inst`` is not supplied. If ``None``,
-        nothing is passed. Defaults to ``None``.
-
-        .. versionadded:: 1.9
     show_first_samp : bool
         If True, show time axis relative to the ``raw.first_samp``.
     %(show_scrollbars)s
     %(time_format)s
     %(precompute)s
     %(use_opengl)s
+    psd_args : dict | None
+        Dictionary of arguments to pass to :meth:`~mne.Epochs.compute_psd` in
+        interactive  mode. Ignored if ``inst`` is not supplied. If ``None``,
+        nothing is passed. Defaults to ``None``.
+
+        .. versionadded:: 1.9
     %(theme_pg)s
 
         .. versionadded:: 1.0
