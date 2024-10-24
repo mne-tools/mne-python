@@ -167,7 +167,6 @@ def reset_warnings(gallery_conf, fname):
     warnings.filterwarnings(
         "ignore",
         ".*argument in Quantity.*",
-        category=UserWarning,
     )
 
     # In case we use np.set_printoptions in any tutorials, we only
