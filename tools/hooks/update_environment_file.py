@@ -22,7 +22,7 @@ for section, section_deps in pyproj["project"]["optional-dependencies"].items():
         deps |= set(section_deps)
 recursive_deps = set(d for d in deps if d.startswith("mne["))
 deps -= recursive_deps
-deps |= {"pip"}
+deps |= {"pip", "openblas"}
 
 
 def remove_spaces(version_spec):
