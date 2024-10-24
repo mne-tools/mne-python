@@ -13,6 +13,7 @@ python -m pip install --upgrade --progress-bar off \
     "git+https://github.com/larsoner/pyvista.git@refcycle" \
     git+https://github.com/sphinx-gallery/sphinx-gallery.git \
     \
+    antio \
     alphaCSC autoreject bycycle conpy emd fooof meggie \
     mne-ari mne-bids-pipeline mne-faster mne-features \
     mne-icalabel mne-lsl mne-microstates mne-nirs mne-rsa \
