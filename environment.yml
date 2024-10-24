@@ -30,6 +30,7 @@ dependencies:
   - nilearn
   - numba
   - numpy >=1.23,<3
+  - openblas
   - openmeeg >=2.5.5
   - packaging
   - pandas
