@@ -1094,32 +1094,48 @@ def test_plot_sensors(raw):
     ax = fig.axes[0]
 
     # Click with no sensors
-    _fake_click(fig, ax, (0.0, 0.0), xform="data")
-    _fake_click(fig, ax, (0, 0.0), xform="data", kind="release")
+    _fake_click(fig, ax, (-0.14, 0.14), xform="data")
+    _fake_click(fig, ax, (-0.13, 0.13), xform="data", kind="motion")
+    _fake_click(fig, ax, (-0.13, 0.14), xform="data", kind="motion")
+    _fake_click(fig, ax, (-0.13, 0.14), xform="data", kind="release")
     assert fig.lasso.selection == []
 
     # Lasso with 1 sensor (upper left)
-    _fake_click(fig, ax, (0, 1), xform="ax")
-    fig.canvas.draw()
-    assert fig.lasso.selection == []
-    _fake_click(fig, ax, (0.65, 1), xform="ax", kind="motion")
-    _fake_click(fig, ax, (0.65, 0.7), xform="ax", kind="motion")
-    _fake_keypress(fig, "control")
-    _fake_click(fig, ax, (0, 0.7), xform="ax", kind="release", key="control")
+    _fake_click(fig, ax, (-0.13, 0.13), xform="data")
+    _fake_click(fig, ax, (-0.11, 0.13), xform="data", kind="motion")
+    _fake_click(fig, ax, (-0.11, 0.06), xform="data", kind="motion")
+    _fake_click(fig, ax, (-0.13, 0.06), xform="data", kind="motion")
+    _fake_click(fig, ax, (-0.13, 0.13), xform="data", kind="motion")
+    _fake_click(fig, ax, (-0.13, 0.13), xform="data", kind="release")
     assert fig.lasso.selection == ["MEG 0121"]
 
-    # check that point appearance changes
+    # Use SHIFT key to lasso an additional sensor.
+    _fake_keypress(fig, "shift")
+    _fake_click(fig, ax, (-0.17, 0.07), xform="data")
+    _fake_click(fig, ax, (-0.17, 0.05), xform="data", kind="motion")
+    _fake_click(fig, ax, (-0.15, 0.05), xform="data", kind="motion")
+    _fake_click(fig, ax, (-0.15, 0.07), xform="data", kind="motion")
+    _fake_click(fig, ax, (-0.15, 0.07), xform="data", kind="release")
+    _fake_keypress(fig, "shift", kind="release")
+    assert fig.lasso.selection == ["MEG 0111", "MEG 0121"]
+
+    # Check that the two selected sensors have a different appearance.
     fc = fig.lasso.collection.get_facecolors()
     ec = fig.lasso.collection.get_edgecolors()
-    assert (fc[:, -1] == [0.5, 1.0, 0.5]).all()
-    assert (ec[:, -1] == [0.25, 1.0, 0.25]).all()
+    assert (fc[2:, -1] == 0.5).all()
+    assert (ec[2:, -1] == 0.25).all()
+    assert (fc[:2, -1] == 1.0).all()
+    assert (ec[:2:, -1] == 1.0).all()
 
-    _fake_click(fig, ax, (0.7, 1), xform="ax", kind="motion", key="control")
-    xy = ax.collections[0].get_offsets()
-    _fake_click(fig, ax, xy[2], xform="data", key="control")  # single sel
-    assert fig.lasso.selection == ["MEG 0121", "MEG 0131"]
-    _fake_click(fig, ax, xy[2], xform="data", key="control")  # deselect
-    assert fig.lasso.selection == ["MEG 0121"]
+    # Use ALT key to remove a sensor from the lasso.
+    _fake_keypress(fig, "alt")
+    _fake_click(fig, ax, (-0.17, 0.07), xform="data")
+    _fake_click(fig, ax, (-0.17, 0.05), xform="data", kind="motion")
+    _fake_click(fig, ax, (-0.15, 0.05), xform="data", kind="motion")
+    _fake_click(fig, ax, (-0.15, 0.07), xform="data", kind="motion")
+    _fake_click(fig, ax, (-0.15, 0.07), xform="data", kind="release")
+    _fake_keypress(fig, "alt", kind="release")
+
     plt.close("all")
 
     raw.info["dev_head_t"] = None  # like empty room
