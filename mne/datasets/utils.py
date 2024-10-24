@@ -347,9 +347,8 @@ def _download_all_example_data(verbose=True):
         sleep_physionet,
     )
 
-    eegbci.load_data(1, [6, 10, 14], update_path=True)
-    for subj in range(4):
-        eegbci.load_data(subj + 1, runs=[3], update_path=True)
+    eegbci.load_data(subjects=1, runs=[6, 10, 14], update_path=True)
+    eegbci.load_data(subjects=range(1, 5), runs=[3], update_path=True)
     logger.info("[done eegbci]")
 
     sleep_physionet.age.fetch_data(subjects=[0, 1], recording=[1])
