@@ -106,6 +106,7 @@ jobs:
           create-args: >-
             python=${{ env.PYTHON_VERSION }}
             mamba
+            nomkl
         if: ${{ !startswith(matrix.kind, 'pip') }}
       # Make sure we have the right Python
       - run: python -c "import platform; assert platform.machine() == 'arm64', platform.machine()"
