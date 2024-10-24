@@ -21,7 +21,9 @@ def data_path(url, path=None, force_update=False, update_path=None, *, verbose=N
 
     This is a low-level function useful for getting a local copy of a remote EEGBCI
     dataset :footcite:`SchalkEtAl2004`, which is also available at PhysioNet
-    :footcite:`GoldbergerEtAl2000`.
+    :footcite:`GoldbergerEtAl2000`. Metadata, such as the meaning of event markers
+    may be obtained from the
+    `PhysioNet documentation page <https://physionet.org/content/eegmmidb/1.0.0/>`_.
 
     Parameters
     ----------
@@ -104,7 +106,9 @@ def load_data(
     """Get paths to local copies of EEGBCI dataset files.
 
     This will fetch data for the EEGBCI dataset :footcite:`SchalkEtAl2004`, which is
-    also available at PhysioNet :footcite:`GoldbergerEtAl2000`.
+    also available at PhysioNet :footcite:`GoldbergerEtAl2000`. Metadata, such as the
+    meaning of event markers may be obtained from the
+    `PhysioNet documentation page <https://physionet.org/content/eegmmidb/1.0.0/>`_.
 
     Parameters
     ----------

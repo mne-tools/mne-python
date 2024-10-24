@@ -161,9 +161,10 @@ EEGBCI motor imagery
 ====================
 :func:`mne.datasets.eegbci.load_data`
 
-The EEGBCI dataset is documented in :footcite:`SchalkEtAl2004`. The data set is
-available at PhysioNet :footcite:`GoldbergerEtAl2000`. The dataset contains
-64-channel EEG recordings from 109 subjects and 14 runs on each subject in EDF+
+The EEGBCI dataset is documented in :footcite:`SchalkEtAl2004` and on the
+`PhysioNet documentation page <https://physionet.org/content/eegmmidb/1.0.0/>`_.
+The data set is available at PhysioNet :footcite:`GoldbergerEtAl2000`.
+It 64-channel EEG recordings from 109 subjects and 14 runs on each subject in EDF+
 format. The recordings were made using the BCI2000 system. To load a subject,
 do::
 
