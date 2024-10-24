@@ -64,6 +64,10 @@ for dep in deps:
     else:
         conda_deps.add(line)
 
+# TODO: temporary workaround while we wait for a release containing the fix for
+# https://github.com/mamba-org/mamba/issues/3467
+pip_deps.remove("      - pyobjc-framework-Cocoa >=5.2.0;platform_system=='Darwin'")
+
 # prepare the pip dependencies section
 newline = "\n"  # python < 3.12 forbids backslash in {} part of f-string
 pip_section = f"""\
