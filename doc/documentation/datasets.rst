@@ -164,15 +164,20 @@ EEGBCI motor imagery
 The EEGBCI dataset is documented in :footcite:`SchalkEtAl2004` and on the
 `PhysioNet documentation page <https://physionet.org/content/eegmmidb/1.0.0/>`_.
 The data set is available at PhysioNet :footcite:`GoldbergerEtAl2000`.
-It 64-channel EEG recordings from 109 subjects and 14 runs on each subject in EDF+
-format. The recordings were made using the BCI2000 system. To load a subject,
-do::
+It contains 64-channel EEG recordings from 109 subjects and 14 runs on each
+subject in EDF+ format. The recordings were made using the BCI2000 system.
+To load a subject, do::
 
     from mne.io import concatenate_raws, read_raw_edf
     from mne.datasets import eegbci
-    raw_fnames = eegbci.load_data(subject, runs)
+    subjects = [1]  # may vary
+    runs = [4, 8, 12]  # may vary
+    raw_fnames = eegbci.load_data(subjects, runs)
     raws = [read_raw_edf(f, preload=True) for f in raw_fnames]
+    # concatenate runs from subject
     raw = concatenate_raws(raws)
+    # make channel names follow standard conventions
+    eegbci.standardize(raw)
 
 .. topic:: Examples
 
