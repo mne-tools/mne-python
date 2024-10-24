@@ -44,14 +44,20 @@ def split_dep(dep):
 # python version
 req_python = remove_spaces(pyproj["project"]["requires-python"])
 
-# handle package name differences, and split package name from version spec
+# split package name from version spec
 translations = dict(neo="python-neo")
 pip_deps = set()
 conda_deps = set()
 for dep in deps:
     package_name, version_spec = split_dep(dep)
+    # handle package name differences
     package_name = translations.get(package_name, package_name)
-    line = f"  - {package_name} {version_spec}".rstrip()  # rstrip in case spec == ""
+    # PySide6==6.7.0 only exists on PyPI, not conda-forge, so excluding it in
+    # `environment.yaml` breaks the solver
+    if package_name == "PySide6":
+        version_spec = version_spec.replace("!=6.7.0,", "")
+    # rstrip output line in case `version_spec` == ""
+    line = f"  - {package_name} {version_spec}".rstrip()
     # use pip for packages needing e.g. `platform_system` or `python_version` triaging
     if ";" in version_spec:
         pip_deps.add(f"    {line}")
