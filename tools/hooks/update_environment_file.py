@@ -65,9 +65,10 @@ for dep in deps:
         conda_deps.add(line)
 
 # prepare the pip dependencies section
+newline = "\n"  # python < 3.12 forbids backslash in {} part of f-string
 pip_section = f"""\
   - pip:
-{"\n".join(sorted(pip_deps, key=str.casefold))}
+{newline.join(sorted(pip_deps, key=str.casefold))}
 """
 pip_section = pip_section if len(pip_deps) else ""
 # prepare the env file
@@ -77,7 +78,7 @@ channels:
   - conda-forge
 dependencies:
   - python {req_python}
-{"\n".join(sorted(conda_deps, key=str.casefold))}
+{newline.join(sorted(conda_deps, key=str.casefold))}
 {pip_section}"""
 
 (repo_root / "environment.yml").write_text(env)
