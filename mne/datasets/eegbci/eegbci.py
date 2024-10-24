@@ -92,8 +92,9 @@ def data_path(url, path=None, force_update=False, update_path=None, *, verbose=N
 
 @verbose
 def load_data(
-    subject,
+    subjects,
     runs,
+    *,
     path=None,
     force_update=False,
     update_path=None,
@@ -107,8 +108,8 @@ def load_data(
 
     Parameters
     ----------
-    subject : int
-        The subject to use. Can be in the range of 1-109 (inclusive).
+    subjects : int | list of int
+        The subjects to use. Can be in the range of 1-109 (inclusive).
     runs : int | list of int
         The runs to use (see Notes for details).
     path : None | path-like
@@ -163,6 +164,9 @@ def load_data(
 
     t0 = time.time()
 
+    if not hasattr(subjects, "__iter__"):
+        subjects = [subjects]
+
     if not hasattr(runs, "__iter__"):
         runs = [runs]
 
@@ -198,20 +202,22 @@ def load_data(
     # fetch the file(s)
     data_paths = []
     sz = 0
-    for run in runs:
-        file_part = f"S{subject:03d}/S{subject:03d}R{run:02d}.edf"
-        destination = Path(base_path, file_part)
-        data_paths.append(destination)
-        if destination.exists():
-            if force_update:
-                destination.unlink()
-            else:
-                continue
-        if sz == 0:  # log once
-            logger.info("Downloading EEGBCI data")
-        fetcher.fetch(file_part)
-        # update path in config if desired
-        sz += destination.stat().st_size
+    for subject in subjects:
+        for run in runs:
+            file_part = f"S{subject:03d}/S{subject:03d}R{run:02d}.edf"
+            destination = Path(base_path, file_part)
+            data_paths.append(destination)
+            if destination.exists():
+                if force_update:
+                    destination.unlink()
+                else:
+                    continue
+            if sz == 0:  # log once
+                logger.info("Downloading EEGBCI data")
+            fetcher.fetch(file_part)
+            # update path in config if desired
+            sz += destination.stat().st_size
+
     _do_path_update(path, update_path, config_key, name)
     if sz > 0:
         _log_time_size(t0, sz)
