@@ -66,8 +66,15 @@ repos:
   # dependencies
   - repo: local
     hooks:
+      - id: update-env-file
+        name: Copy dependency changes from pyproject.toml to environment.yml
+        language: python
+        entry: ./tools/hooks/update_environment_file.py
+        files: pyproject.toml
+  - repo: local
+    hooks:
       - id: dependency-sync
-        name: Sync dependency list between pyproject.toml and README.rst
+        name: Copy core dependencies from pyproject.toml to README.rst
         language: python
         entry: ./tools/hooks/sync_dependencies.py
         files: pyproject.toml
