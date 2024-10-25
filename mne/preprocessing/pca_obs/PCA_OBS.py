@@ -13,7 +13,7 @@ def PCA_OBS(
     data: NDArray[Any], 
     qrs: NDArray[Any],
     filter_coords: NDArray[Any],
-    **_  # TODO: are there any other kwargs passed in? 
+    **_  # TODO: are there any other kwargs passed in? No - this is all I believe
 ):
     # Declare class to hold pca information
     class PCAInfo:
