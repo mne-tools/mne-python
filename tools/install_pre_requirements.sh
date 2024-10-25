@@ -57,8 +57,8 @@ python -m pip install $STD_ARGS git+https://github.com/pierreablin/picard
 echo "pyvistaqt"
 pip install $STD_ARGS git+https://github.com/pyvista/pyvistaqt
 
-echo "imageio, imageio-ffmpeg, xlrd, mffpy"
-pip install $STD_ARGS imageio imageio-ffmpeg xlrd mffpy traitlets pybv eeglabio
+echo "imageio-ffmpeg, xlrd, mffpy"
+pip install $STD_ARGS imageio-ffmpeg xlrd mffpy traitlets pybv eeglabio
 
 echo "mne-qt-browser"
 pip install $STD_ARGS git+https://github.com/mne-tools/mne-qt-browser
