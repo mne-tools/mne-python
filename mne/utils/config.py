@@ -771,10 +771,12 @@ def sys_info(
         use_mod_names += (
             "# Testing",
             "pytest",
-            "nbclient",
             "statsmodels",
             "numpydoc",
             "flake8",
+            "jupyter_client",
+            "nbclient",
+            "nbformat",
             "pydocstyle",
             "nitime",
             "imageio",
