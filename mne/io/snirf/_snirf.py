@@ -340,16 +340,18 @@ class RawSNIRF(BaseRaw):
                 ch_types.append(ch_type)
                 del ch_root, ch_name, ch_type
 
-            data_scale = None
+            # Create mne structure
+            info = create_info(chnames, sampling_rate, ch_types=ch_types)
+
             if need_data_scale:
                 snirf_data_unit = np.array(
                     dat.get("nirs/data1/measurementList1/dataUnit", b"M")
                 )
                 snirf_data_unit = snirf_data_unit.item().decode("utf-8")
-                data_scale = _get_dataunit_scaling(snirf_data_unit)
-
-            # Create mne structure
-            info = create_info(chnames, sampling_rate, ch_types=ch_types)
+                scale = _get_dataunit_scaling(snirf_data_unit)
+                if scale is not None:
+                    for ch in info["chs"]:
+                        ch["cal"] = 1.0 / scale
 
             subject_info = {}
             names = np.array(dat.get("nirs/metaDataTags/SubjectID"))
@@ -562,13 +564,11 @@ class RawSNIRF(BaseRaw):
                     with info._unlock():
                         info["subject_info"]["birthday"] = birthday
 
-            raw_extras = dict(data_scale=data_scale)
             super().__init__(
                 info,
                 preload,
                 filenames=[fname],
                 last_samps=[last_samps],
-                raw_extras=[raw_extras],
                 verbose=verbose,
             )
 
@@ -595,10 +595,6 @@ class RawSNIRF(BaseRaw):
             one = dat["/nirs/data1/dataTimeSeries"][start:stop].T
 
         _mult_cal_one(data, one, idx, cals, mult)
-
-        data_scale = self._raw_extras[fi]["data_scale"]
-        if data_scale is not None:
-            one *= data_scale
 
 
 # Helper function for when the numpy array has shape (), i.e. just one element.
