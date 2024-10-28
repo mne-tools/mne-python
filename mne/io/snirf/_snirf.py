@@ -17,6 +17,7 @@ from ...transforms import _frame_to_str, apply_trans
 from ...utils import (
     NamedInt,
     _check_fname,
+    _check_option,
     _import_h5py,
     fill_doc,
     logger,
@@ -144,16 +145,14 @@ class RawSNIRF(BaseRaw):
             if (optode_frame == "unknown") & (manufacturer == "Gowerlabs"):
                 optode_frame = "head"
 
-            snirf_data_type = np.array(
-                dat.get("nirs/data1/measurementList1/dataType")
-            ).item()
-            if snirf_data_type not in _AVAILABLE_SNIRF_DATA_TYPES:
-                raise RuntimeError(
-                    "File does not contain a supported data type. "
-                    "MNE only supports reading the following data types "
-                    f"{_AVAILABLE_SNIRF_DATA_TYPES}, but received type "
-                    f"{snirf_data_type}."
-                )
+            snirf_data_type = _correct_shape(
+                np.array(dat.get("nirs/data1/measurementList1/dataType"))
+            )[0]
+            _check_option(
+                "SNIRF data type",
+                snirf_data_type,
+                list(_AVAILABLE_SNIRF_DATA_TYPES),
+            )
 
             last_samps = dat.get("/nirs/data1/dataTimeSeries").shape[0] - 1
 
@@ -292,6 +291,7 @@ class RawSNIRF(BaseRaw):
                             0
                         ]
                     )
+                    # append wavelength
                     ch_name = f"{ch_name} {fnirs_wavelengths[wve_idx - 1]}"
                     if snirf_data_type == SNIRF_CW_AMPLITUDE:
                         ch_type = "fnirs_cw_amplitude"
@@ -301,6 +301,7 @@ class RawSNIRF(BaseRaw):
                                 np.array(dat.get(f"{ch_root}/dataTypeIndex"))
                             )[0]
                         )
+                        # append time delay
                         ch_name = f"{ch_name} bin{fnirs_time_delays[bin_idx - 1]}"
                         ch_type = "fnirs_td_gated_amplitude"
                     else:
@@ -310,6 +311,7 @@ class RawSNIRF(BaseRaw):
                                 np.array(dat.get(f"{ch_root}/dataTypeIndex"))
                             )[0]
                         )
+                        # append moment order
                         ch_name = (
                             f"{ch_name} moment{fnirs_moment_orders[moment_idx - 1]}"
                         )
@@ -336,6 +338,7 @@ class RawSNIRF(BaseRaw):
                     ch_type = dt_id
                 chnames.append(ch_name)
                 ch_types.append(ch_type)
+                del ch_root, ch_name, ch_type
 
             data_scale = None
             if need_data_scale:
@@ -440,7 +443,8 @@ class RawSNIRF(BaseRaw):
                             )[0]
                         )
                         info["chs"][idx]["loc"][10] = (
-                            fnirs_time_delays[bin_idx - 1] * fnirs_time_delay_widths
+                            fnirs_time_delays[bin_idx - 1]
+                            * fnirs_time_delay_widths[bin_idx - 1]
                         )
                     else:
                         assert snirf_data_type == SNIRF_TD_MOMENTS_AMPLITUDE
