@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "bc323fb0b38abc8f31aa0f31b2c4868c4d2aad96",
+  "authors": [
+    {
+      "n": "Christian Brodbeck",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/io/kit/kit.py": {
+      "a": 7,
+      "d": 5
+    },
+    "mne/io/kit/tests/test_kit.py": {
+      "a": 5,
+      "d": 0
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "33d5db7296c3df407d013a44b1684bf448b432cd",
+  "authors": [
+    {
+      "n": "Marijn van Vliet",
+      "e": "w.m.vanvliet@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/viz/backends/_notebook.py": {
+      "a": 4,
+      "d": 5
+    }
+  }
+}

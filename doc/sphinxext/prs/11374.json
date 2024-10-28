@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "66fdc9f4af9f6eb71db8a3952ef9bb5e8cf7578d",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".github/workflows/compat_old.yml": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

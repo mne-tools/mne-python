@@ -1,0 +1,103 @@
+{
+  "merge_commit_sha": "d44b98154806443f89984b3dff81f066c12cf6a8",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/channels/montage.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/channels/tests/test_layout.py": {
+      "a": 2,
+      "d": 8
+    },
+    "mne/channels/tests/test_montage.py": {
+      "a": 2,
+      "d": 6
+    },
+    "mne/forward/_make_forward.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/forward/tests/test_make_forward.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/__init__.py": {
+      "a": 7,
+      "d": 3
+    },
+    "mne/io/brainvision/brainvision.py": {
+      "a": 2,
+      "d": 3
+    },
+    "mne/io/bti/bti.py": {
+      "a": 31,
+      "d": 39
+    },
+    "mne/io/bti/tests/test_bti.py": {
+      "a": 8,
+      "d": 8
+    },
+    "mne/io/edf/edf.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/io/edf/tests/test_edf.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/io/egi/egi.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/io/kit/kit.py": {
+      "a": 0,
+      "d": 3
+    },
+    "mne/io/kit/tests/test_kit.py": {
+      "a": 0,
+      "d": 3
+    },
+    "mne/io/meas_info.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/reference.py": {
+      "a": 0,
+      "d": 3
+    },
+    "mne/io/tag.py": {
+      "a": 27,
+      "d": 25
+    },
+    "mne/io/tests/test_meas_info.py": {
+      "a": 27,
+      "d": 14
+    },
+    "mne/io/tests/test_reference.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 2,
+      "d": 3
+    },
+    "mne/realtime/fieldtrip_client.py": {
+      "a": 0,
+      "d": 2
+    },
+    "mne/viz/_3d.py": {
+      "a": 5,
+      "d": 3
+    },
+    "mne/viz/tests/test_topomap.py": {
+      "a": 0,
+      "d": 2
+    }
+  }
+}

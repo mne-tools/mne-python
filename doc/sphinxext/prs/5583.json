@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "28ce1c39503e86f343ac3d4520881019461b2ef6",
+  "authors": [
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    }
+  ],
+  "changes": {
+    "doc/manual/io.rst": {
+      "a": 29,
+      "d": 3
+    }
+  }
+}

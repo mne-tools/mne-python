@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "40b668f8ea6d0d4412f586493d98ebd071a5081c",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/bem.py": {
+      "a": 41,
+      "d": 5
+    },
+    "mne/commands/mne_freeview_bem_surfaces.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/bti/bti.py": {
+      "a": 11,
+      "d": 3
+    },
+    "mne/io/meas_info.py": {
+      "a": 4,
+      "d": 1
+    },
+    "mne/viz/epochs.py": {
+      "a": 3,
+      "d": 3
+    }
+  }
+}

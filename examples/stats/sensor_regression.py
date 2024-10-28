@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _ex-sensor-regression:
 
@@ -19,31 +18,29 @@ word-level information about various psycholinguistically relevant features
 of the words for which we have EEG activity.
 
 For the general methodology, see e.g. :footcite:`HaukEtAl2006`.
-
-References
-----------
-.. footbibliography::
 """
 # Authors: Tal Linzen <linzen@nyu.edu>
 #          Denis A. Engemann <denis.engemann@gmail.com>
 #          Jona Sassenhagen <jona.sassenhagen@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 
 import pandas as pd
+
 import mne
-from mne.stats import linear_regression, fdr_correction
-from mne.viz import plot_compare_evokeds
 from mne.datasets import kiloword
+from mne.stats import fdr_correction, linear_regression
+from mne.viz import plot_compare_evokeds
 
 # Load the data
-path = kiloword.data_path() / 'kword_metadata-epo.fif'
+path = kiloword.data_path() / "kword_metadata-epo.fif"
 epochs = mne.read_epochs(path)
 print(epochs.metadata.head())
 
-##############################################################################
+# %%
 # Psycholinguistically relevant word characteristics are continuous. I.e.,
 # concreteness or imaginability is a graded property. In the metadata,
 # we have concreteness ratings on a 5-point scale. We can show the dependence
@@ -55,10 +52,11 @@ df[name] = pd.cut(df[name], 11, labels=False) / 10
 colors = {str(val): val for val in df[name].unique()}
 epochs.metadata = df.assign(Intercept=1)  # Add an intercept for later
 evokeds = {val: epochs[name + " == " + val].average() for val in colors}
-plot_compare_evokeds(evokeds, colors=colors, split_legend=True,
-                     cmap=(name + " Percentile", "viridis"))
+plot_compare_evokeds(
+    evokeds, colors=colors, split_legend=True, cmap=(name + " Percentile", "viridis")
+)
 
-##############################################################################
+# %%
 # We observe that there appears to be a monotonic dependence of EEG on
 # concreteness. We can also conduct a continuous analysis: single-trial level
 # regression with concreteness as a continuous (although here, binned)
@@ -67,10 +65,11 @@ plot_compare_evokeds(evokeds, colors=colors, split_legend=True,
 names = ["Intercept", name]
 res = linear_regression(epochs, epochs.metadata[names], names=names)
 for cond in names:
-    res[cond].beta.plot_joint(title=cond, ts_args=dict(time_unit='s'),
-                              topomap_args=dict(time_unit='s'))
+    res[cond].beta.plot_joint(
+        title=cond, ts_args=dict(time_unit="s"), topomap_args=dict(time_unit="s")
+    )
 
-##############################################################################
+# %%
 # Because the :func:`~mne.stats.linear_regression` function also estimates
 # p values, we can --
 # after applying FDR correction for multiple comparisons -- also visualise the
@@ -82,4 +81,9 @@ for cond in names:
 # by dark contour lines.
 reject_H0, fdr_pvals = fdr_correction(res["Concreteness"].p_val.data)
 evoked = res["Concreteness"].beta
-evoked.plot_image(mask=reject_H0, time_unit='s')
+evoked.plot_image(mask=reject_H0, time_unit="s")
+
+# %%
+# References
+# ----------
+# .. footbibliography::

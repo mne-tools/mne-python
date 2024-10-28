@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "4b0f362df04b21249faf6c9a2495c71c337a14a8",
+  "authors": [
+    {
+      "n": "akshay0724",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/decoding/transformer.py": {
+      "a": 26,
+      "d": 0
+    }
+  }
+}

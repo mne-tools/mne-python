@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "8ade1fffea0bd7d252fae5d4d2f60207e95c6f69",
+  "authors": [
+    {
+      "n": "Jean-Rémi KING",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/decoding/tests/test_time_gen.py": {
+      "a": 4,
+      "d": 1
+    },
+    "mne/preprocessing/tests/test_ica.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/tests/test_infomax.py": {
+      "a": 17,
+      "d": 9
+    }
+  }
+}

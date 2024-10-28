@@ -1,0 +1,83 @@
+{
+  "merge_commit_sha": "59429c3b8022f61cf3539dc421cadff4ab675d24",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/baseline.py": {
+      "a": 5,
+      "d": 3
+    },
+    "mne/conftest.py": {
+      "a": 22,
+      "d": 13
+    },
+    "mne/epochs.py": {
+      "a": 32,
+      "d": 21
+    },
+    "mne/forward/forward.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/io/base.py": {
+      "a": 20,
+      "d": 17
+    },
+    "mne/io/pick.py": {
+      "a": 7,
+      "d": 12
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 11,
+      "d": 20
+    },
+    "mne/preprocessing/realign.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/preprocessing/tests/test_ica.py": {
+      "a": 4,
+      "d": 1
+    },
+    "mne/stats/tests/test_cluster_level.py": {
+      "a": 1,
+      "d": 18
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/tests/test_event.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/utils/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/mixin.py": {
+      "a": 10,
+      "d": 3
+    },
+    "mne/utils/numerics.py": {
+      "a": 19,
+      "d": 1
+    },
+    "mne/utils/tests/test_numerics.py": {
+      "a": 10,
+      "d": 1
+    }
+  }
+}

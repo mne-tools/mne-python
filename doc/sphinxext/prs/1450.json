@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "a26113eaf8fbc16e96aa07bb0cb11db58127fb33",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/inverse/plot_read_source_space.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/source_space.py": {
+      "a": 4,
+      "d": 1
+    },
+    "mne/tests/test_label.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

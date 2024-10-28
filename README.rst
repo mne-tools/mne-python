@@ -1,91 +1,68 @@
 .. -*- mode: rst -*-
 
-|GH-Linux|_ |GH-macOS|_ |Cirrus|_ |Azure|_ |Circle|_ |Codecov|_ |PyPI|_ |conda-forge|_ |Zenodo|_
-
-|MNE|_
-
-.. |GH-Linux| image:: https://github.com/mne-tools/mne-python/workflows/linux%20/%20conda/badge.svg?branch=main
-.. _GH-Linux: https://github.com/mne-tools/mne-python/actions?query=branch:main+event:push
-
-.. |GH-macOS| image:: https://github.com/mne-tools/mne-python/workflows/macos%20/%20conda/badge.svg?branch=main
-.. _GH-macOS: https://github.com/mne-tools/mne-python/actions?query=branch:main+event:push
-
-.. |Cirrus| image:: https://api.cirrus-ci.com/github/mne-tools/mne-python.svg
-.. _Cirrus: https://cirrus-ci.com/github/mne-tools/mne-python
-
-.. |Azure| image:: https://dev.azure.com/mne-tools/mne-python/_apis/build/status/mne-tools.mne-python?branchName=main
-.. _Azure: https://dev.azure.com/mne-tools/mne-python/_build/latest?definitionId=1&branchName=main
-
-.. |Circle| image:: https://circleci.com/gh/mne-tools/mne-python.svg?style=shield
-.. _Circle: https://circleci.com/gh/mne-tools/mne-python
-
-.. |Codecov| image:: https://codecov.io/gh/mne-tools/mne-python/branch/main/graph/badge.svg
-.. _Codecov: https://codecov.io/gh/mne-tools/mne-python
-
-.. |PyPI| image:: https://img.shields.io/pypi/dm/mne.svg?label=PyPI%20downloads
-.. _PyPI: https://pypi.org/project/mne/
-
-.. |conda-forge| image:: https://img.shields.io/conda/dn/conda-forge/mne.svg?label=Conda%20downloads
-.. _conda-forge: https://anaconda.org/conda-forge/mne
-
-.. |Zenodo| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.592483.svg
-.. _Zenodo: https://doi.org/10.5281/zenodo.592483
-
-.. |MNE| image:: https://mne.tools/stable/_static/mne_logo.svg
-.. _MNE: https://mne.tools/dev/
+|MNE|
 
 MNE-Python
 ==========
 
-`MNE-Python software`_ is an open-source Python package for exploring,
+MNE-Python is an open-source Python package for exploring,
 visualizing, and analyzing human neurophysiological data such as MEG, EEG, sEEG,
 ECoG, and more. It includes modules for data input/output, preprocessing,
 visualization, source estimation, time-frequency analysis, connectivity analysis,
-machine learning, and statistics.
+machine learning, statistics, and more.
 
 
 Documentation
 ^^^^^^^^^^^^^
 
-`MNE documentation`_ for MNE-Python is available online.
+`Documentation`_ for MNE-Python encompasses installation instructions, tutorials,
+and examples for a wide variety of topics, contributing guidelines, and an API
+reference.
 
 
-Installing MNE-Python
-^^^^^^^^^^^^^^^^^^^^^
+Forum
+^^^^^^
 
-To install the latest stable version of MNE-Python, you can use pip_ in a terminal:
+The `user forum`_ is the best place to ask questions about MNE-Python usage or
+the contribution process. The forum also features job opportunities and other
+announcements.
 
-.. code-block:: console
-
-    $ pip install -U mne
-
-- MNE-Python 0.17 was the last release to support Python 2.7
-- MNE-Python 0.18 requires Python 3.5 or higher
-- MNE-Python 0.21 requires Python 3.6 or higher
-- MNE-Python 0.24 requires Python 3.7 or higher
-- MNE-Python 1.4 requires Python 3.8 or higher
-
-For more complete instructions and more advanced installation methods (e.g. for
-the latest development version), see the `installation guide`_.
+If you find a bug or have an idea for a new feature that should be added to
+MNE-Python, please use the
+`issue tracker <https://github.com/mne-tools/mne-python/issues/new/choose>`__ of
+our GitHub repository.
 
 
-Get the latest code
-^^^^^^^^^^^^^^^^^^^
+Installation
+^^^^^^^^^^^^
 
-To install the latest version of the code using pip_ open a terminal and type:
+To install the latest stable version of MNE-Python with minimal dependencies
+only, use pip_ in a terminal:
 
 .. code-block:: console
 
-    $ pip install -U https://github.com/mne-tools/mne-python/archive/main.zip
+    $ pip install --upgrade mne
 
-To get the latest code using `git <https://git-scm.com/>`__, open a terminal and type:
+For more complete instructions, including our standalone installers and more
+advanced installation methods, please refer to the `installation guide`_.
+
+
+Get the development version
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+To install the latest development version of MNE-Python using pip_, open a
+terminal and type:
+
+.. code-block:: console
+
+    $ pip install --upgrade https://github.com/mne-tools/mne-python/archive/refs/heads/main.zip
+
+To clone the repository with `git <https://git-scm.com/>`__, open a terminal
+and type:
 
 .. code-block:: console
 
     $ git clone https://github.com/mne-tools/mne-python.git
-
-Alternatively, you can also download a
-`zip file of the latest development version <https://github.com/mne-tools/mne-python/archive/main.zip>`__.
 
 
 Dependencies
@@ -93,88 +70,75 @@ Dependencies
 
 The minimum required dependencies to run MNE-Python are:
 
-- Python >= 3.8
-- NumPy >= 1.18.1
-- SciPy >= 1.6.3
-- Matplotlib >= 3.1.0
-- pooch >= 1.5
-- tqdm
-- Jinja2
-- decorator
+.. ↓↓↓ BEGIN CORE DEPS LIST. DO NOT EDIT! HANDLED BY PRE-COMMIT HOOK ↓↓↓
 
-For full functionality, some functions require:
+- `Python <https://www.python.org>`__ ≥ 3.9
+- `NumPy <https://numpy.org>`__ ≥ 1.23
+- `SciPy <https://scipy.org>`__ ≥ 1.9
+- `Matplotlib <https://matplotlib.org>`__ ≥ 3.6
+- `Pooch <https://www.fatiando.org/pooch/latest/>`__ ≥ 1.5
+- `tqdm <https://tqdm.github.io>`__
+- `Jinja2 <https://palletsprojects.com/p/jinja/>`__
+- `decorator <https://github.com/micheles/decorator>`__
+- `lazy-loader <https://pypi.org/project/lazy_loader>`__ ≥ 0.3
+- `packaging <https://packaging.pypa.io/en/stable/>`__
 
-- Scikit-learn >= 0.22.0
-- joblib >= 0.15 (for parallelization control)
-- Numba >= 0.48.0
-- NiBabel >= 2.5.0
-- OpenMEEG >= 2.5.5
-- Pandas >= 1.0.0
-- Picard >= 0.3
-- CuPy >= 7.1.1 (for NVIDIA CUDA acceleration)
-- DIPY >= 1.1.0
-- Imageio >= 2.6.1
-- PyVista >= 0.32
-- pyvistaqt >= 0.4
-- mffpy >= 0.5.7
-- h5py
-- h5io
-- pymatreader
+.. ↑↑↑ END CORE DEPS LIST. DO NOT EDIT! HANDLED BY PRE-COMMIT HOOK ↑↑↑
 
-Contributing to MNE-Python
-^^^^^^^^^^^^^^^^^^^^^^^^^^
+Contributing
+^^^^^^^^^^^^
 
-Please see the documentation on the MNE-Python homepage:
-
-https://mne.tools/dev/install/contributing.html
+Please see the `contributing guidelines <https://mne.tools/dev/development/contributing.html>`__ on our documentation website.
 
 
-Forum
-^^^^^^
+About
+^^^^^
 
-https://mne.discourse.group
-
-
-Licensing
-^^^^^^^^^
-
-MNE-Python is **BSD-licenced** (BSD-3-Clause):
-
-    This software is OSI Certified Open Source Software.
-    OSI Certified is a certification mark of the Open Source Initiative.
-
-    Copyright (c) 2011-2022, authors of MNE-Python.
-    All rights reserved.
-
-    Redistribution and use in source and binary forms, with or without
-    modification, are permitted provided that the following conditions are met:
-
-    * Redistributions of source code must retain the above copyright notice,
-      this list of conditions and the following disclaimer.
-
-    * Redistributions in binary form must reproduce the above copyright notice,
-      this list of conditions and the following disclaimer in the documentation
-      and/or other materials provided with the distribution.
-
-    * Neither the names of MNE-Python authors nor the names of any
-      contributors may be used to endorse or promote products derived from
-      this software without specific prior written permission.
-
-    **This software is provided by the copyright holders and contributors
-    "as is" and any express or implied warranties, including, but not
-    limited to, the implied warranties of merchantability and fitness for
-    a particular purpose are disclaimed. In no event shall the copyright
-    owner or contributors be liable for any direct, indirect, incidental,
-    special, exemplary, or consequential damages (including, but not
-    limited to, procurement of substitute goods or services; loss of use,
-    data, or profits; or business interruption) however caused and on any
-    theory of liability, whether in contract, strict liability, or tort
-    (including negligence or otherwise) arising in any way out of the use
-    of this software, even if advised of the possibility of such
-    damage.**
++---------+------------+----------------+
+| CI      | |Codecov|  | |Bandit|       |
++---------+------------+----------------+
+| Package | |PyPI|     | |conda-forge|  |
++---------+------------+----------------+
+| Docs    | |Docs|     | |Discourse|    |
++---------+------------+----------------+
+| Meta    | |Zenodo|   | |OpenSSF|      |
++---------+------------+----------------+
 
 
-.. _MNE-Python software: https://mne.tools/dev/
-.. _MNE documentation: https://mne.tools/dev/overview/index.html
+License
+^^^^^^^
+
+MNE-Python is licensed under the BSD-3-Clause license.
+
+
+.. _Documentation: https://mne.tools/dev/
+.. _user forum: https://mne.discourse.group
 .. _installation guide: https://mne.tools/dev/install/index.html
 .. _pip: https://pip.pypa.io/en/stable/
+
+.. |PyPI| image:: https://img.shields.io/pypi/dm/mne.svg?label=PyPI
+   :target: https://pypi.org/project/mne/
+
+.. |conda-forge| image:: https://img.shields.io/conda/dn/conda-forge/mne.svg?label=Conda
+   :target: https://anaconda.org/conda-forge/mne
+
+.. |Docs| image:: https://img.shields.io/badge/Docs-online-green?label=Documentation
+   :target: https://mne.tools/dev/
+
+.. |Zenodo| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.592483.svg
+   :target: https://doi.org/10.5281/zenodo.592483
+
+.. |Discourse| image:: https://img.shields.io/discourse/status?label=Forum&server=https%3A%2F%2Fmne.discourse.group%2F
+   :target: https://mne.discourse.group/
+
+.. |Codecov| image:: https://img.shields.io/codecov/c/github/mne-tools/mne-python?label=Coverage
+   :target: https://codecov.io/gh/mne-tools/mne-python
+
+.. |Bandit| image:: https://img.shields.io/badge/Security-Bandit-yellow.svg
+   :target: https://github.com/PyCQA/bandit
+
+.. |OpenSSF| image:: https://www.bestpractices.dev/projects/7783/badge
+   :target: https://www.bestpractices.dev/projects/7783
+
+.. |MNE| image:: https://mne.tools/dev/_static/mne_logo_gray.svg
+   :target: https://mne.tools/dev/

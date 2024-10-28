@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "06962e287e7ce4f2f40b2defbbb47c9c7e986b96",
+  "authors": [
+    {
+      "n": "Jussi Nurminen",
+      "e": "jnu@iki.fi"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/viz/tests/test_topo.py": {
+      "a": 17,
+      "d": 0
+    },
+    "mne/viz/topo.py": {
+      "a": 54,
+      "d": 3
+    }
+  }
+}

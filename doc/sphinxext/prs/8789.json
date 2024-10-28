@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "a36c74f8b88b93e41806c14465ff1308bf585c4a",
+  "authors": [
+    {
+      "n": "Christian Brodbeck",
+      "e": null
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/egi/egimff.py": {
+      "a": 47,
+      "d": 10
+    },
+    "mne/io/egi/tests/test_egi.py": {
+      "a": 7,
+      "d": 0
+    }
+  }
+}

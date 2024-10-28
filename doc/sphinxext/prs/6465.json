@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "ca870d2f04c20cee8957257df5f2d2c64d448b34",
+  "authors": [
+    {
+      "n": "Joan Massich",
+      "e": "mailsik@gmail.com"
+    }
+  ],
+  "changes": {
+    "tutorials/evoked/plot_eeg_erp.py": {
+      "a": 4,
+      "d": 19
+    }
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "merge_commit_sha": "74e098581f06cbf078cdbb0eb3379e7e02d40bd4",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/preprocessing/plot_run_ica.py": {
+      "a": 0,
+      "d": 1
+    },
+    "examples/visualization/plot_evoked_topomap.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/evoked.py": {
+      "a": 7,
+      "d": 2
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 6,
+      "d": 4
+    },
+    "mne/viz/ica.py": {
+      "a": 4,
+      "d": 3
+    },
+    "mne/viz/tests/test_ica.py": {
+      "a": 12,
+      "d": 6
+    },
+    "mne/viz/tests/test_topomap.py": {
+      "a": 9,
+      "d": 4
+    },
+    "mne/viz/topomap.py": {
+      "a": 60,
+      "d": 53
+    },
+    "tutorials/preprocessing/plot_40_artifact_correction_ica.py": {
+      "a": 0,
+      "d": 1
+    }
+  }
+}

@@ -1,4 +1,4 @@
-on: [status]
+on: [status]  # yamllint disable-line rule:truthy
 jobs:
   circleci_artifacts_redirector_job:
     if: "${{ startsWith(github.event.context, 'ci/circleci: build_docs') }}"
@@ -6,9 +6,10 @@ jobs:
     name: Run CircleCI artifacts redirector
     steps:
       - name: GitHub Action step
-        uses: larsoner/circleci-artifacts-redirector-action@master
+        uses: scientific-python/circleci-artifacts-redirector-action@master
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
-          artifact-path: 0/dev/index.html
+          api-token: ${{ secrets.CIRCLECI_TOKEN }}
+          artifact-path: 0/html/sg_execution_times.html
           circleci-jobs: build_docs,build_docs_main
           job-title: Check the rendered docs here!

@@ -1,0 +1,83 @@
+{
+  "merge_commit_sha": "fefa7dba887089a46cf5e0f8836ff6fb07be2552",
+  "authors": [
+    {
+      "n": "Moritz Gerster",
+      "e": null
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/channels/channels.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/channels/tests/test_interpolation.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/cov.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/forward/_field_interpolation.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/io/proj.py": {
+      "a": 94,
+      "d": 34
+    },
+    "mne/io/reference.py": {
+      "a": 19,
+      "d": 6
+    },
+    "mne/io/tests/test_reference.py": {
+      "a": 40,
+      "d": 33
+    },
+    "mne/proj.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/tests/test_proj.py": {
+      "a": 98,
+      "d": 11
+    },
+    "mne/tests/test_rank.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/utils/docs.py": {
+      "a": 14,
+      "d": 0
+    },
+    "requirements_doc.txt": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

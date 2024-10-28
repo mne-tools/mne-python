@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "c2e88b0498d23b067374444038455c7ea2428650",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/preprocessing/ica.py": {
+      "a": 8,
+      "d": 22
+    }
+  }
+}

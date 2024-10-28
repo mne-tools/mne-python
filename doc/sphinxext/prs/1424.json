@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "05a38415479692438a526f87ea9b965b1c7a356d",
+  "authors": [
+    {
+      "n": "Denis A. Engemann",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/surface.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/viz/_3d.py": {
+      "a": 9,
+      "d": 5
+    },
+    "mne/viz/utils.py": {
+      "a": 0,
+      "d": 1
+    }
+  }
+}

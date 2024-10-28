@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "bcbde3bcdc62e1e3e1bf967f2f79c51f9fc4168e",
+  "authors": [
+    {
+      "n": "Larry Eisenman",
+      "e": "lneisenman@hotmail.com"
+    }
+  ],
+  "changes": {
+    "doc/faq.rst": {
+      "a": 12,
+      "d": 0
+    },
+    "doc/install_mne_python.rst": {
+      "a": 12,
+      "d": 0
+    }
+  }
+}

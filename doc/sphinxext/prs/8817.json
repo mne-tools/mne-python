@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "9069a696fa9b55e3376cb8f4f013b8e8a40c1929",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/viz/tests/test_topomap.py": {
+      "a": 13,
+      "d": 0
+    },
+    "mne/viz/topomap.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

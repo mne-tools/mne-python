@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "a307bbd5ea99d5ef35a5526ed9816b530b7e04a5",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".github/workflows/circle_artifacts.yml": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "fe7ee249d09f9b69453f23d1a5114dbed47927dd",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".circleci/config.yml": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/datasets/sleep_physionet/__init__.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/datasets/utils.py": {
+      "a": 3,
+      "d": 3
+    },
+    "tutorials/sample-datasets/plot_sleep.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

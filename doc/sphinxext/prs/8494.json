@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "e70247800458ff0a36fbe90b134841087ce95c6e",
+  "authors": [
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    }
+  ],
+  "changes": {
+    "environment.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "requirements.txt": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

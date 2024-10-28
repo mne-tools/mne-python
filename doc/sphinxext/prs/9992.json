@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "8c611886826db50f42b4ccbd6fd5718269d1fb31",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "requirements_doc.txt": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

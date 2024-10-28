@@ -1,12 +1,10 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Eric Larson <larson.eric.d@gmail.com>
-#          Joan Massich <mailsik@gmail.com>
-#          Guillaume Favelier <guillaume.favelier@gmail.com>
-#
-# License: Simplified BSD
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
+
+import warnings
 
 import pytest
-import warnings
 
 
 def has_pyvista():
@@ -35,10 +33,12 @@ def has_imageio_ffmpeg():
     """Check if imageio-ffmpeg is installed."""
     try:
         import imageio_ffmpeg  # noqa: F401
+
         return True
     except ImportError:
         return False
 
 
 skips_if_not_pyvistaqt = pytest.mark.skipif(
-    not has_pyvistaqt(), reason='requires pyvistaqt')
+    not has_pyvistaqt(), reason="requires pyvistaqt"
+)

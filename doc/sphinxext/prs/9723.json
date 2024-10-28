@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "f20ffa0eb46e76baf4e30437bc03d765da83b38a",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/funding.rst": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/links.inc": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

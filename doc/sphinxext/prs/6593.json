@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "e5a99df7c3440a3ca188218c12b82a212f779e09",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/viz/ica.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

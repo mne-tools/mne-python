@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "e09fa30b86ba2af0574e01abe45f9674cdd5cc4d",
+  "authors": [
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    }
+  ],
+  "changes": {
+    ".github/workflows/ci.yml": {
+      "a": 75,
+      "d": 0
+    },
+    ".travis.yml": {
+      "a": 2,
+      "d": 17
+    },
+    "mne/beamformer/tests/test_lcmv.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/conftest.py": {
+      "a": 6,
+      "d": 6
+    },
+    "mne/viz/_brain/tests/test_brain.py": {
+      "a": 1,
+      "d": 3
+    },
+    "mne/viz/backends/_pyvista.py": {
+      "a": 2,
+      "d": 0
+    }
+  }
+}

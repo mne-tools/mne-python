@@ -1,0 +1,119 @@
+{
+  "merge_commit_sha": "bf03a03c91bc64b8a9cf72d75a399cfcb89c0662",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "examples/datasets/brainstorm_data.py": {
+      "a": 3,
+      "d": 1
+    },
+    "examples/preprocessing/eeg_csd.py": {
+      "a": 2,
+      "d": 2
+    },
+    "examples/preprocessing/find_ref_artifacts.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/io/array/tests/test_array.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/report/report.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/time_frequency/spectrum.py": {
+      "a": 36,
+      "d": 27
+    },
+    "mne/time_frequency/tests/test_spectrum.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/viz/tests/test_epochs.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/viz/tests/test_raw.py": {
+      "a": 17,
+      "d": 14
+    },
+    "mne/viz/utils.py": {
+      "a": 9,
+      "d": 24
+    },
+    "tutorials/clinical/60_sleep.py": {
+      "a": 1,
+      "d": 0
+    },
+    "tutorials/epochs/20_visualize_epochs.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/epochs/30_epochs_metadata.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/intro/10_overview.py": {
+      "a": 7,
+      "d": 7
+    },
+    "tutorials/inverse/80_brainstorm_phantom_elekta.py": {
+      "a": 3,
+      "d": 1
+    },
+    "tutorials/inverse/95_phantom_KIT.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/io/60_ctf_bst_auditory.py": {
+      "a": 6,
+      "d": 2
+    },
+    "tutorials/preprocessing/10_preprocessing_overview.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/preprocessing/30_filtering_resampling.py": {
+      "a": 12,
+      "d": 6
+    },
+    "tutorials/preprocessing/50_artifact_correction_ssp.py": {
+      "a": 8,
+      "d": 1
+    },
+    "tutorials/preprocessing/59_head_positions.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/preprocessing/70_fnirs_processing.py": {
+      "a": 3,
+      "d": 1
+    },
+    "tutorials/raw/40_visualize_raw.py": {
+      "a": 7,
+      "d": 7
+    },
+    "tutorials/simulation/10_array_objs.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/time-freq/10_spectrum_class.py": {
+      "a": 4,
+      "d": 4
+    },
+    "tutorials/time-freq/20_sensors_time_frequency.py": {
+      "a": 3,
+      "d": 1
+    }
+  }
+}

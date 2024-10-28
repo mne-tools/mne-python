@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "93c75710e7b991e78466e8361bf2d15d3bffa77a",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/viz/epochs.py": {
+      "a": 28,
+      "d": 49
+    },
+    "mne/viz/ica.py": {
+      "a": 3,
+      "d": 6
+    },
+    "mne/viz/raw.py": {
+      "a": 17,
+      "d": 38
+    },
+    "mne/viz/utils.py": {
+      "a": 119,
+      "d": 60
+    },
+    "tutorials/preprocessing/plot_15_handling_bad_channels.py": {
+      "a": 4,
+      "d": 2
+    }
+  }
+}

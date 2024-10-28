@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "400de94d556e9ec6c6f6308024a6e3417e54ba9a",
+  "authors": [
+    {
+      "n": "Alex Rockhill",
+      "e": "aprockhill@mailbox.org"
+    }
+  ],
+  "changes": {
+    "mne/channels/channels.py": {
+      "a": 1,
+      "d": 100
+    },
+    "mne/channels/tests/test_channels.py": {
+      "a": 1,
+      "d": 15
+    },
+    "mne/epochs.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/evoked.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/base.py": {
+      "a": 3,
+      "d": 4
+    },
+    "mne/io/meas_info.py": {
+      "a": 106,
+      "d": 6
+    },
+    "mne/io/tests/test_meas_info.py": {
+      "a": 22,
+      "d": 1
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

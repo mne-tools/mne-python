@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "6e5d6e87ab83dd62c8e1cd95b9f8691b43fb9774",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "tutorials/preprocessing/45_projectors_background.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

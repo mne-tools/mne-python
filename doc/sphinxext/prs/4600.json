@@ -1,0 +1,59 @@
+{
+  "merge_commit_sha": "12f35943facddea33d32e99308fd4f148ecede05",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "mne/channels/channels.py": {
+      "a": 8,
+      "d": 0
+    },
+    "mne/channels/tests/test_channels.py": {
+      "a": 5,
+      "d": 0
+    },
+    "mne/io/array/tests/test_array.py": {
+      "a": 13,
+      "d": 0
+    },
+    "mne/io/artemis123/artemis123.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/io/artemis123/tests/test_artemis123.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/brainvision/tests/test_brainvision.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/edf/tests/test_edf.py": {
+      "a": 9,
+      "d": 5
+    },
+    "mne/io/egi/tests/test_egi.py": {
+      "a": 11,
+      "d": 10
+    },
+    "mne/io/meas_info.py": {
+      "a": 23,
+      "d": 1
+    },
+    "mne/io/tests/test_reference.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/io/write.py": {
+      "a": 2,
+      "d": 7
+    },
+    "mne/viz/evoked.py": {
+      "a": 3,
+      "d": 2
+    }
+  }
+}

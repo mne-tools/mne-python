@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "bdd7a12f94aadbfb547d97b02f4de1cc02197e33",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/conf.py": {
+      "a": 6,
+      "d": 5
+    },
+    "mne/channels/tests/test_interpolation.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/conftest.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/inverse_sparse/tests/test_mxne_inverse.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/artemis123/tests/test_artemis123.py": {
+      "a": 5,
+      "d": 1
+    },
+    "mne/simulation/tests/test_raw.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/utils/docs.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/tests/test_evoked.py": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

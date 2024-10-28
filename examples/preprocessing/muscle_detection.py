@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _ex-muscle-artifacts:
 
@@ -28,19 +27,20 @@ surrounding "BAD" annotation.
 # Authors: Adonay Nunes <adonay.s.nunes@gmail.com>
 #          Luke Bloy <luke.bloy@gmail.com>
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 
 import matplotlib.pyplot as plt
 import numpy as np
+
 from mne.datasets.brainstorm import bst_auditory
 from mne.io import read_raw_ctf
 from mne.preprocessing import annotate_muscle_zscore
 
-
 # Load data
 data_path = bst_auditory.data_path()
-raw_fname = data_path / 'MEG' / 'bst_auditory' / 'S01_AEF_20131218_01.ds'
+raw_fname = data_path / "MEG" / "bst_auditory" / "S01_AEF_20131218_01.ds"
 
 raw = read_raw_ctf(raw_fname, preload=False)
 
@@ -65,8 +65,12 @@ threshold_muscle = 5  # z-score
 # Choose one channel type, if there are axial gradiometers and magnetometers,
 # select magnetometers as they are more sensitive to muscle activity.
 annot_muscle, scores_muscle = annotate_muscle_zscore(
-    raw, ch_type="mag", threshold=threshold_muscle, min_length_good=0.2,
-    filter_freq=[110, 140])
+    raw,
+    ch_type="mag",
+    threshold=threshold_muscle,
+    min_length_good=0.2,
+    filter_freq=[110, 140],
+)
 
 # %%
 # Plot muscle z-scores across recording
@@ -74,8 +78,8 @@ annot_muscle, scores_muscle = annotate_muscle_zscore(
 
 fig, ax = plt.subplots()
 ax.plot(raw.times, scores_muscle)
-ax.axhline(y=threshold_muscle, color='r')
-ax.set(xlabel='time, (s)', ylabel='zscore', title='Muscle activity')
+ax.axhline(y=threshold_muscle, color="r")
+ax.set(xlabel="time, (s)", ylabel="zscore", title="Muscle activity")
 # %%
 # View the annotations
 # --------------------------------------------------------------------------

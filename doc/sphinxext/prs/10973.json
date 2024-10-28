@@ -1,0 +1,111 @@
+{
+  "merge_commit_sha": "2a25dd1c090bbcf2e3a3a148eac41e88d6d369dc",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/_static/institution_logos/BIDS-dark.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/institution_logos/BIDS-dark.svg": {
+      "a": 318,
+      "d": 0
+    },
+    "doc/_static/institution_logos/BIDS.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/institution_logos/BIDS.svg": {
+      "a": 318,
+      "d": 0
+    },
+    "doc/_static/style.css": {
+      "a": 120,
+      "d": 98
+    },
+    "doc/_templates/layout.html": {
+      "a": 69,
+      "d": 9
+    },
+    "doc/conf.py": {
+      "a": 3,
+      "d": 4
+    },
+    "requirements_doc.txt": {
+      "a": 1,
+      "d": 1
+    },
+    "tools/circleci_dependencies.sh": {
+      "a": 0,
+      "d": 1
+    },
+    "tutorials/epochs/20_visualize_epochs.py": {
+      "a": 2,
+      "d": 1
+    },
+    "tutorials/epochs/30_epochs_metadata.py": {
+      "a": 2,
+      "d": 1
+    },
+    "tutorials/evoked/10_evoked_overview.py": {
+      "a": 2,
+      "d": 1
+    },
+    "tutorials/evoked/20_visualize_evoked.py": {
+      "a": 2,
+      "d": 1
+    },
+    "tutorials/forward/50_background_freesurfer_mne.py": {
+      "a": 10,
+      "d": 8
+    },
+    "tutorials/intro/20_events_from_raw.py": {
+      "a": 2,
+      "d": 1
+    },
+    "tutorials/intro/40_sensor_locations.py": {
+      "a": 7,
+      "d": 5
+    },
+    "tutorials/io/10_reading_meg_data.py": {
+      "a": 2,
+      "d": 1
+    },
+    "tutorials/preprocessing/15_handling_bad_channels.py": {
+      "a": 2,
+      "d": 1
+    },
+    "tutorials/preprocessing/40_artifact_correction_ica.py": {
+      "a": 12,
+      "d": 8
+    },
+    "tutorials/preprocessing/45_projectors_background.py": {
+      "a": 2,
+      "d": 1
+    },
+    "tutorials/preprocessing/50_artifact_correction_ssp.py": {
+      "a": 2,
+      "d": 1
+    },
+    "tutorials/raw/10_raw_overview.py": {
+      "a": 10,
+      "d": 5
+    },
+    "tutorials/raw/20_event_arrays.py": {
+      "a": 2,
+      "d": 1
+    },
+    "tutorials/simulation/10_array_objs.py": {
+      "a": 9,
+      "d": 6
+    },
+    "tutorials/stats-sensor-space/10_background_stats.py": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

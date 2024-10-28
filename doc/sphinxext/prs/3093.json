@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "3ca35b7e3d6403e77788158922e7924146696761",
+  "authors": [
+    {
+      "n": "Jona Sassenhagen",
+      "e": "jona.sassenhagen@gmail.com"
+    }
+  ],
+  "changes": {
+    "README.rst": {
+      "a": 12,
+      "d": 11
+    }
+  }
+}

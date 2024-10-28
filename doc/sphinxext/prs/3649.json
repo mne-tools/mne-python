@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "570eab27f3871389cc10ef529eb10c667bb07b51",
+  "authors": [
+    {
+      "n": "jaeilepp",
+      "e": "jaeilepp@student.jyu.fi"
+    }
+  ],
+  "changes": {
+    "mne/viz/evoked.py": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

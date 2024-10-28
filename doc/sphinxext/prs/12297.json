@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "40256aef4dd5b417be91ce544fa8031cc2abd9bf",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel.rst": {
+      "a": 3,
+      "d": 2
+    },
+    "doc/conf.py": {
+      "a": 12,
+      "d": 13
+    },
+    "mne/io/brainvision/brainvision.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/bti/bti.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/eeglab/eeglab.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/fieldtrip/fieldtrip.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/io/kit/kit.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/nedf/nedf.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

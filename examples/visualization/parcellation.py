@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _ex-parcellation:
 
@@ -23,41 +22,63 @@ parcellation from :footcite:`KhanEtAl2018`.
 #         Denis Engemann <denis.engemann@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 
 import mne
+
 Brain = mne.viz.get_brain_class()
 
-subjects_dir = mne.datasets.sample.data_path() / 'subjects'
-mne.datasets.fetch_hcp_mmp_parcellation(subjects_dir=subjects_dir,
-                                        verbose=True)
+subjects_dir = mne.datasets.sample.data_path() / "subjects"
+mne.datasets.fetch_hcp_mmp_parcellation(subjects_dir=subjects_dir, verbose=True)
 
-mne.datasets.fetch_aparc_sub_parcellation(subjects_dir=subjects_dir,
-                                          verbose=True)
+mne.datasets.fetch_aparc_sub_parcellation(subjects_dir=subjects_dir, verbose=True)
 
 labels = mne.read_labels_from_annot(
-    'fsaverage', 'HCPMMP1', 'lh', subjects_dir=subjects_dir)
+    "fsaverage", "HCPMMP1", "lh", subjects_dir=subjects_dir
+)
 
-brain = Brain('fsaverage', 'lh', 'inflated', subjects_dir=subjects_dir,
-              cortex='low_contrast', background='white', size=(800, 600))
-brain.add_annotation('HCPMMP1')
-aud_label = [label for label in labels if label.name == 'L_A1_ROI-lh'][0]
+brain = Brain(
+    "fsaverage",
+    "lh",
+    "inflated",
+    subjects_dir=subjects_dir,
+    cortex="low_contrast",
+    background="white",
+    size=(800, 600),
+)
+brain.add_annotation("HCPMMP1")
+aud_label = [label for label in labels if label.name == "L_A1_ROI-lh"][0]
 brain.add_label(aud_label, borders=False)
 
 # %%
 # We can also plot a combined set of labels (23 per hemisphere).
 
-brain = Brain('fsaverage', 'lh', 'inflated', subjects_dir=subjects_dir,
-              cortex='low_contrast', background='white', size=(800, 600))
-brain.add_annotation('HCPMMP1_combined')
+brain = Brain(
+    "fsaverage",
+    "lh",
+    "inflated",
+    subjects_dir=subjects_dir,
+    cortex="low_contrast",
+    background="white",
+    size=(800, 600),
+)
+brain.add_annotation("HCPMMP1_combined")
 
 # %%
 # We can add another custom parcellation
 
-brain = Brain('fsaverage', 'lh', 'inflated', subjects_dir=subjects_dir,
-              cortex='low_contrast', background='white', size=(800, 600))
-brain.add_annotation('aparc_sub')
+brain = Brain(
+    "fsaverage",
+    "lh",
+    "inflated",
+    subjects_dir=subjects_dir,
+    cortex="low_contrast",
+    background="white",
+    size=(800, 600),
+)
+brain.add_annotation("aparc_sub")
 
 # %%
 # References

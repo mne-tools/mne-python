@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 r"""Convert surface to BEM FIF file.
 
 Examples
@@ -10,9 +9,10 @@ Examples
         --id=4
 
 """
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#
+
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import sys
 
@@ -25,12 +25,19 @@ def run():
 
     parser = get_optparser(__file__)
 
-    parser.add_option("-s", "--surf", dest="surf",
-                      help="Surface in Freesurfer format", metavar="FILE")
-    parser.add_option("-f", "--fif", dest="fif",
-                      help="FIF file produced", metavar="FILE")
-    parser.add_option("-i", "--id", dest="id", default=4,
-                      help=("Surface Id (e.g. 4 for head surface)"))
+    parser.add_option(
+        "-s", "--surf", dest="surf", help="Surface in Freesurfer format", metavar="FILE"
+    )
+    parser.add_option(
+        "-f", "--fif", dest="fif", help="FIF file produced", metavar="FILE"
+    )
+    parser.add_option(
+        "-i",
+        "--id",
+        dest="id",
+        default=4,
+        help=("Surface Id (e.g. 4 for head surface)"),
+    )
 
     options, args = parser.parse_args()
 
@@ -38,9 +45,8 @@ def run():
         parser.print_help()
         sys.exit(1)
 
-    print("Converting %s to BEM FIF file." % options.surf)
-    surf = mne.bem._surfaces_to_bem([options.surf], [int(options.id)],
-                                    sigmas=[1])
+    print(f"Converting {options.surf} to BEM FIF file.")
+    surf = mne.bem._surfaces_to_bem([options.surf], [int(options.id)], sigmas=[1])
     mne.write_bem_surfaces(options.fif, surf)
 
 

@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "614424718fa911cc0cfacc0df85652b3efaee358",
+  "authors": [
+    {
+      "n": "Alex Rockhill",
+      "e": "aprockhill@mailbox.org"
+    }
+  ],
+  "changes": {
+    "mne/channels/channels.py": {
+      "a": 2,
+      "d": 0
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "a5ce1cbf7b29fdfd964bd9eb36b10319d2b3025b",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".git-blame-ignore-revs": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

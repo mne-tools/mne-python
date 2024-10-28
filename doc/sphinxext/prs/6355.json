@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "06c7785aabe72fc7394cc6e6ba1c7d5aec1d2c76",
+  "authors": [
+    {
+      "n": "Joan Massich",
+      "e": "mailsik@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/annotations.py": {
+      "a": 15,
+      "d": 6
+    },
+    "mne/io/brainvision/brainvision.py": {
+      "a": 4,
+      "d": 11
+    },
+    "mne/tests/test_annotations.py": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/utils/__init__.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/utils/misc.py": {
+      "a": 10,
+      "d": 6
+    }
+  }
+}

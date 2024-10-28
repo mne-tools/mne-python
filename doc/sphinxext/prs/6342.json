@@ -1,0 +1,79 @@
+{
+  "merge_commit_sha": "f26d81604a45577ff17bb2e63eb57cf66219eaa1",
+  "authors": [
+    {
+      "n": "Teon L Brooks",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/conf.py": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/realtime/plot_compute_rt_average.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/realtime/plot_compute_rt_decoder.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/realtime/plot_ftclient_rt_average.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/realtime/plot_ftclient_rt_compute_psd.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/realtime/plot_lslclient_rt.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/realtime/plot_rt_feedback_server.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/realtime/rt_feedback_client.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/conftest.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/realtime/client.py": {
+      "a": 5,
+      "d": 1
+    },
+    "mne/realtime/epochs.py": {
+      "a": 6,
+      "d": 1
+    },
+    "mne/realtime/fieldtrip_client.py": {
+      "a": 6,
+      "d": 1
+    },
+    "mne/realtime/lsl_client.py": {
+      "a": 6,
+      "d": 1
+    },
+    "mne/realtime/mock_lsl_stream.py": {
+      "a": 6,
+      "d": 1
+    },
+    "mne/realtime/mockclient.py": {
+      "a": 6,
+      "d": 1
+    },
+    "mne/realtime/stim_server_client.py": {
+      "a": 7,
+      "d": 1
+    }
+  }
+}

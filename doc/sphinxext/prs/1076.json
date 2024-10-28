@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "5a3fa6dcddce37802c71be3477abcc8f975eed57",
+  "authors": [
+    {
+      "n": "Martin Luessi",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/sphinxext/gen_rst.py": {
+      "a": 5,
+      "d": 2
+    }
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "34c944a6c2e67f7ba464a5520726d3890dc73f07",
+  "authors": [
+    {
+      "n": "Hongjiang YE",
+      "e": "hongjiang.ye@outlook.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 4,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/decoding/csp.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

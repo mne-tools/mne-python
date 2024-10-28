@@ -1,0 +1,63 @@
+{
+  "merge_commit_sha": "17e1c2906c64e13e1f60213b5422ef7c103eae7c",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/python_reference.rst": {
+      "a": 7,
+      "d": 0
+    },
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/inverse/plot_dics_source_power.py": {
+      "a": 1,
+      "d": 0
+    },
+    "examples/inverse/plot_lcmv_beamformer.py": {
+      "a": 1,
+      "d": 0
+    },
+    "examples/inverse/plot_lcmv_beamformer_volume.py": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/beamformer/__init__.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/beamformer/_compute_beamformer.py": {
+      "a": 110,
+      "d": 2
+    },
+    "mne/beamformer/_dics.py": {
+      "a": 11,
+      "d": 11
+    },
+    "mne/beamformer/_lcmv.py": {
+      "a": 22,
+      "d": 16
+    },
+    "mne/beamformer/tests/test_dics.py": {
+      "a": 19,
+      "d": 3
+    },
+    "mne/beamformer/tests/test_lcmv.py": {
+      "a": 24,
+      "d": 3
+    },
+    "mne/utils.py": {
+      "a": 2,
+      "d": 0
+    },
+    "tutorials/plot_dics.py": {
+      "a": 6,
+      "d": 0
+    }
+  }
+}

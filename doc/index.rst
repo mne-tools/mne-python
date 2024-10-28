@@ -1,3 +1,5 @@
+:html_theme.sidebar_secondary.remove:
+
 .. title:: MNE
 
 .. The page title must be in rST for it to show in next/prev page buttons.
@@ -33,7 +35,7 @@ MNE-Python Homepage
    :hidden:
 
    Install <install/index>
-   Documentation <overview/index>
-   API Reference <python_reference>
-   Get help <overview/get_help>
-   Development <overview/development>
+   Documentation <documentation/index>
+   API Reference <api/python_reference>
+   Get help <help/index>
+   Development <development/index>

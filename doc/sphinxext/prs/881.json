@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "7883ecbb4c81e076be6bd514cb81b4847947e8f8",
+  "authors": [
+    {
+      "n": "Martin Luessi",
+      "e": null
+    }
+  ],
+  "changes": {
+    ".travis.yml": {
+      "a": 18,
+      "d": 6
+    }
+  }
+}

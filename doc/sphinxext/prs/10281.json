@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "6422d6c033c3a9d6221c2848dbb4b0cd6d8848f7",
+  "authors": [
+    {
+      "n": "Mikolaj Magnuski",
+      "e": "mmagnuski@swps.edu.pl"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/time_frequency/multitaper.py": {
+      "a": 9,
+      "d": 7
+    },
+    "mne/time_frequency/tests/test_tfr.py": {
+      "a": 29,
+      "d": 14
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 29,
+      "d": 14
+    }
+  }
+}

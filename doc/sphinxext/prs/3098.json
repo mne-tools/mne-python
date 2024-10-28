@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "b96689e6d67c3c1d1375e2f728dfb31bfbebedac",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/stats/parametric.py": {
+      "a": 4,
+      "d": 1
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/tests/test_utils.py": {
+      "a": 7,
+      "d": 1
+    },
+    "mne/utils.py": {
+      "a": 10,
+      "d": 1
+    }
+  }
+}

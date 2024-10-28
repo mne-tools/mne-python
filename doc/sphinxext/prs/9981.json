@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "a8522d213cf4b54ef682f2a874065bf62af65fdb",
+  "authors": [
+    {
+      "n": "Alex Rockhill",
+      "e": "aprockhill@mailbox.org"
+    }
+  ],
+  "changes": {
+    "doc/conf.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

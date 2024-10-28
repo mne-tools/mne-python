@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "4e5ca1bf86429d976d86223480bd091d4b3888e2",
+  "authors": [
+    {
+      "n": "TzionaN",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/glossary.rst": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

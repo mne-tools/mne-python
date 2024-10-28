@@ -1,10 +1,12 @@
-# Author: John Samuelsson <johnsam@mit.edu>
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import numpy as np
 
+from .._fiff.pick import _picks_to_idx
 from ..evoked import Evoked
-from ..io.pick import _picks_to_idx
-from ..utils import verbose, _validate_type, _ensure_int
+from ..utils import _ensure_int, _validate_type, verbose
 
 
 def _temp_proj(ref_2, ref_1, raw_data, n_proj=6):
@@ -29,8 +31,9 @@ def _temp_proj(ref_2, ref_1, raw_data, n_proj=6):
 
 
 @verbose
-def cortical_signal_suppression(evoked, picks=None, mag_picks=None,
-                                grad_picks=None, n_proj=6, *, verbose=None):
+def cortical_signal_suppression(
+    evoked, picks=None, mag_picks=None, grad_picks=None, n_proj=6, *, verbose=None
+):
     """Apply cortical signal suppression (CSS) to evoked data.
 
     Parameters
@@ -40,12 +43,12 @@ def cortical_signal_suppression(evoked, picks=None, mag_picks=None,
         gradiometer, and EEG channels.
     %(picks_good_data)s
     mag_picks : array-like of int
-        Array of the magnetometer channel indices that will be used to find
-        the reference data. If None (default), all magnetometers will
+        Array of the first set of channel indices that will be used to find
+        the common temporal subspace. If None (default), all magnetometers will
         be used.
     grad_picks : array-like of int
-        Array of the gradiometer channel indices that will be used to find
-        the reference data. If None (default), all gradiometers will
+        Array of the second set of channel indices that will be used to find
+        the common temporal subspace. If None (default), all gradiometers will
         be used.
     n_proj : int
         The number of projection vectors.
@@ -54,28 +57,29 @@ def cortical_signal_suppression(evoked, picks=None, mag_picks=None,
     Returns
     -------
     evoked_subcortical : instance of Evoked
-        The evoked object with cortical contributions to the EEG data
-        suppressed.
+        The evoked object with contributions from the ``mag_picks`` and ``grad_picks``
+        channels removed from the ``picks`` channels.
 
     Notes
     -----
-    This method removes the common signal subspace between the magnetometer
-    data and the gradiometer data from the EEG data. This is done by a temporal
-    projection using ``n_proj`` number of projection vectors. For reference,
-    see :footcite:`Samuelsson2019`.
+    This method removes the common signal subspace between two sets of
+    channels (``mag_picks`` and ``grad_picks``) from a set of channels
+    (``picks``) via a temporal projection using ``n_proj`` number of
+    projection vectors. In the reference publication :footcite:`Samuelsson2019`,
+    the joint subspace between magnetometers and gradiometers is used to
+    suppress the cortical signal in the EEG data. In principle, other
+    combinations of sensor types (or channels) could be used to suppress
+    signals from other sources.
 
     References
     ----------
     .. footbibliography::
     """
-    _validate_type(evoked, Evoked, 'evoked')
-    n_proj = _ensure_int(n_proj, 'n_proj')
-    picks = _picks_to_idx(
-        evoked.info, picks, none='data', exclude='bads')
-    mag_picks = _picks_to_idx(
-        evoked.info, mag_picks, none='mag', exclude='bads')
-    grad_picks = _picks_to_idx(
-        evoked.info, grad_picks, none='grad', exclude='bads')
+    _validate_type(evoked, Evoked, "evoked")
+    n_proj = _ensure_int(n_proj, "n_proj")
+    picks = _picks_to_idx(evoked.info, picks, none="data", exclude="bads")
+    mag_picks = _picks_to_idx(evoked.info, mag_picks, none="mag", exclude="bads")
+    grad_picks = _picks_to_idx(evoked.info, grad_picks, none="grad", exclude="bads")
     evoked_subcortical = evoked.copy()
 
     # Get data

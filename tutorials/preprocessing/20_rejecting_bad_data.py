@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _tut-reject-data-spans:
 
@@ -18,17 +17,26 @@ and downsampled version of the example data, and we'll also load an events
 array to use when converting the continuous data to epochs:
 """
 
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
+
 # %%
 
 import os
+
+import numpy as np
+
 import mne
 
 sample_data_folder = mne.datasets.sample.data_path()
-sample_data_raw_file = os.path.join(sample_data_folder, 'MEG', 'sample',
-                                    'sample_audvis_filt-0-40_raw.fif')
+sample_data_raw_file = os.path.join(
+    sample_data_folder, "MEG", "sample", "sample_audvis_filt-0-40_raw.fif"
+)
 raw = mne.io.read_raw_fif(sample_data_raw_file, verbose=False)
-events_file = os.path.join(sample_data_folder, 'MEG', 'sample',
-                           'sample_audvis_filt-0-40_raw-eve.fif')
+events_file = os.path.join(
+    sample_data_folder, "MEG", "sample", "sample_audvis_filt-0-40_raw-eve.fif"
+)
 events = mne.read_events(events_file)
 
 # %%
@@ -51,7 +59,7 @@ events = mne.read_events(events_file)
 # existing annotation labels can be selected for use.
 
 fig = raw.plot()
-fig.fake_keypress('a')  # Simulates user pressing 'a' on the keyboard.
+fig.fake_keypress("a")  # Simulates user pressing 'a' on the keyboard.
 
 # %%
 # You can see that you need to add a description first to start with
@@ -97,11 +105,12 @@ fig.fake_keypress('a')  # Simulates user pressing 'a' on the keyboard.
 
 # sphinx_gallery_thumbnail_number = 3
 eog_events = mne.preprocessing.find_eog_events(raw)
-onsets = eog_events[:, 0] / raw.info['sfreq'] - 0.25
+onsets = eog_events[:, 0] / raw.info["sfreq"] - 0.25
 durations = [0.5] * len(eog_events)
-descriptions = ['bad blink'] * len(eog_events)
-blink_annot = mne.Annotations(onsets, durations, descriptions,
-                              orig_time=raw.info['meas_date'])
+descriptions = ["bad blink"] * len(eog_events)
+blink_annot = mne.Annotations(
+    onsets, durations, descriptions, orig_time=raw.info["meas_date"]
+)
 raw.set_annotations(blink_annot)
 
 # %%
@@ -132,17 +141,16 @@ raw.plot(events=eog_events, order=eeg_picks)
 # .. note:: We need to take ``raw.first_time`` into account, otherwise the
 #           onsets will be incorrect!
 
-onsets = [
-    raw.first_time + 30,
-    raw.first_time + 180
-]
+onsets = [raw.first_time + 30, raw.first_time + 180]
 durations = [60, 60]
-descriptions = ['block_1', 'block_2']
+descriptions = ["block_1", "block_2"]
 
-block_annots = mne.Annotations(onset=onsets,
-                               duration=durations,
-                               description=descriptions,
-                               orig_time=raw.info['meas_date'])
+block_annots = mne.Annotations(
+    onset=onsets,
+    duration=durations,
+    description=descriptions,
+    orig_time=raw.info["meas_date"],
+)
 raw.set_annotations(raw.annotations + block_annots)  # add to existing
 raw.plot()
 
@@ -154,7 +162,7 @@ break_annots = mne.preprocessing.annotate_break(
     raw=raw,
     min_break_duration=20,  # consider segments of at least 20 s duration
     t_start_after_previous=5,  # start annotation 5 s after end of previous one
-    t_stop_before_next=2  # stop annotation 2 s before beginning of next one
+    t_stop_before_next=2,  # stop annotation 2 s before beginning of next one
 )
 
 raw.set_annotations(raw.annotations + break_annots)  # add to existing
@@ -190,7 +198,7 @@ events_subset = events_subset[3:-3]
 break_annots = mne.preprocessing.annotate_break(
     raw=raw,
     events=events_subset,  # passing events will ignore existing annotations
-    min_break_duration=25  # pick a longer break duration this time
+    min_break_duration=25,  # pick a longer break duration this time
 )
 
 # replace existing annotations (otherwise it becomes difficult to see any
@@ -201,8 +209,8 @@ raw.plot(events=events_subset)
 # %%
 # .. _`tut-reject-epochs-section`:
 #
-# Rejecting Epochs based on channel amplitude
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# Rejecting Epochs based on peak-to-peak channel amplitude
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
 # Besides "bad" annotations, the :class:`mne.Epochs` class constructor has
 # another means of rejecting epochs, based on signal amplitude thresholds for
@@ -213,14 +221,14 @@ raw.plot(events=events_subset)
 # can be used to set *minimum* acceptable peak-to-peak amplitudes for each
 # channel type in an epoch:
 
-reject_criteria = dict(mag=3000e-15,     # 3000 fT
-                       grad=3000e-13,    # 3000 fT/cm
-                       eeg=100e-6,       # 100 µV
-                       eog=200e-6)       # 200 µV
+reject_criteria = dict(
+    mag=3000e-15,  # 3000 fT
+    grad=3000e-13,  # 3000 fT/cm
+    eeg=100e-6,  # 100 µV
+    eog=200e-6,
+)  # 200 µV
 
-flat_criteria = dict(mag=1e-15,          # 1 fT
-                     grad=1e-13,         # 1 fT/cm
-                     eeg=1e-6)           # 1 µV
+flat_criteria = dict(mag=1e-15, grad=1e-13, eeg=1e-6)  # 1 fT  # 1 fT/cm  # 1 µV
 
 # %%
 # The values that are appropriate are dataset- and hardware-dependent, so some
@@ -238,9 +246,17 @@ flat_criteria = dict(mag=1e-15,          # 1 fT
 # generated with the :meth:`~mne.Epochs.plot_drop_log` method:
 
 raw.set_annotations(blink_annot)  # restore the EOG annotations
-epochs = mne.Epochs(raw, events, tmin=-0.2, tmax=0.5, reject_tmax=0,
-                    reject=reject_criteria, flat=flat_criteria,
-                    reject_by_annotation=False, preload=True)
+epochs = mne.Epochs(
+    raw,
+    events,
+    tmin=-0.2,
+    tmax=0.5,
+    reject_tmax=0,
+    reject=reject_criteria,
+    flat=flat_criteria,
+    reject_by_annotation=False,
+    preload=True,
+)
 epochs.plot_drop_log()
 
 # %%
@@ -251,8 +267,16 @@ epochs.plot_drop_log()
 # fluctuations were probably blink-related, and were subsumed by rejections
 # based on the "bad blink" label).
 
-epochs = mne.Epochs(raw, events, tmin=-0.2, tmax=0.5, reject_tmax=0,
-                    reject=reject_criteria, flat=flat_criteria, preload=True)
+epochs = mne.Epochs(
+    raw,
+    events,
+    tmin=-0.2,
+    tmax=0.5,
+    reject_tmax=0,
+    reject=reject_criteria,
+    flat=flat_criteria,
+    preload=True,
+)
 epochs.plot_drop_log()
 
 # %%
@@ -298,13 +322,117 @@ epochs.drop_bad()
 # :meth:`~mne.Epochs.drop_bad` later instead; this can also be a way of
 # imposing progressively more stringent rejection criteria:
 
-stronger_reject_criteria = dict(mag=2000e-15,     # 2000 fT
-                                grad=2000e-13,    # 2000 fT/cm
-                                eeg=100e-6,       # 100 µV
-                                eog=100e-6)       # 100 µV
+stronger_reject_criteria = dict(
+    mag=2000e-15,  # 2000 fT
+    grad=2000e-13,  # 2000 fT/cm
+    eeg=100e-6,  # 100 µV
+    eog=100e-6,
+)  # 100 µV
 
 epochs.drop_bad(reject=stronger_reject_criteria)
 print(epochs.drop_log)
+
+# %%
+# .. _`tut-reject-epochs-func-section`:
+#
+# Rejecting Epochs using callables (functions)
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# Sometimes it is useful to reject epochs based criteria other than
+# peak-to-peak amplitudes. For example, we might want to reject epochs
+# based on the maximum or minimum amplitude of a channel.
+# In this case, the `mne.Epochs.drop_bad` function also accepts
+# callables (functions) in the ``reject`` and ``flat`` parameters. This
+# allows us to define functions to reject epochs based on our desired criteria.
+#
+# Let's begin by generating Epoch data with large artifacts in one eeg channel
+# in order to demonstrate the versatility of this approach.
+
+raw.crop(0, 5)
+raw.del_proj()
+chans = raw.info["ch_names"][-5:-1]
+raw.pick(chans)
+data = raw.get_data()
+
+new_data = data
+new_data[0, 180:200] *= 1e3
+new_data[0, 460:580] += 1e-3
+edit_raw = mne.io.RawArray(new_data, raw.info)
+
+# Create fixed length epochs of 1 second
+events = mne.make_fixed_length_events(edit_raw, id=1, duration=1.0, start=0)
+epochs = mne.Epochs(edit_raw, events, tmin=0, tmax=1, baseline=None)
+epochs.plot(scalings=dict(eeg=50e-5))
+
+# %%
+# As you can see, we have two large artifacts in the first channel. One large
+# spike in amplitude and one large increase in amplitude.
+
+# Let's try to reject the epoch containing the spike in amplitude based on the
+# maximum amplitude of the first channel. Please note that the callable in
+# ``reject`` must return a (good, reason) tuple. Where the good must be bool
+# and reason must be a str, list, or tuple where each entry is a str.
+
+epochs = mne.Epochs(
+    edit_raw,
+    events,
+    tmin=0,
+    tmax=1,
+    baseline=None,
+    preload=True,
+)
+
+epochs.drop_bad(
+    reject=dict(eeg=lambda x: ((np.max(x, axis=1) > 1e-2).any(), "max amp"))
+)
+epochs.plot(scalings=dict(eeg=50e-5))
+
+# %%
+# Here, the epoch containing the spike in amplitude was rejected for having a
+# maximum amplitude greater than 1e-2 Volts. Notice the use of the ``any()``
+# function to check if any of the channels exceeded the threshold. We could
+# have also used the ``all()`` function to check if all channels exceeded the
+# threshold.
+
+# Next, let's try to reject the epoch containing the increase in amplitude
+# using the median.
+
+epochs = mne.Epochs(
+    edit_raw,
+    events,
+    tmin=0,
+    tmax=1,
+    baseline=None,
+    preload=True,
+)
+
+epochs.drop_bad(
+    reject=dict(eeg=lambda x: ((np.median(x, axis=1) > 1e-4).any(), "median amp"))
+)
+epochs.plot(scalings=dict(eeg=50e-5))
+
+# %%
+# Finally, let's try to reject both epochs using a combination of the maximum
+# and median. We'll define a custom function and use boolean operators to
+# combine the two criteria.
+
+
+def reject_criteria(x):
+    max_condition = np.max(x, axis=1) > 1e-2
+    median_condition = np.median(x, axis=1) > 1e-4
+    return ((max_condition.any() or median_condition.any()), ["max amp", "median amp"])
+
+
+epochs = mne.Epochs(
+    edit_raw,
+    events,
+    tmin=0,
+    tmax=1,
+    baseline=None,
+    preload=True,
+)
+
+epochs.drop_bad(reject=dict(eeg=reject_criteria))
+epochs.plot(events=True)
 
 # %%
 # Note that a complementary Python module, the `autoreject package`_, uses

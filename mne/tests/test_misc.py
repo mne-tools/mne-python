@@ -1,12 +1,12 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from pathlib import Path
 
 from mne.misc import parse_config
 
-ave_fname = Path(__file__).parent.parent / "io" / "tests" / "data" / "test.ave"
+ave_fname = Path(__file__).parents[1] / "io" / "tests" / "data" / "test.ave"
 
 
 def test_parse_ave():

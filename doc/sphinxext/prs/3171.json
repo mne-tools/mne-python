@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "0ac35dc88f4711fbd54677025dd15a0627b18b39",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/stats/parametric.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "b75032c8a0713e6ff80f7b7127d085857f319b2f",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/viz/topomap.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/evoked/plot_20_visualize_evoked.py": {
+      "a": 7,
+      "d": 8
+    }
+  }
+}

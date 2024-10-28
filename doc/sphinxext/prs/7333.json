@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "d9e729fb8c7379437f6f9647c494f76a67e489a9",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".circleci/config.yml": {
+      "a": 1,
+      "d": 0
+    },
+    ".travis.yml": {
+      "a": 1,
+      "d": 0
+    },
+    "azure-pipelines.yml": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/forward/forward.py": {
+      "a": 13,
+      "d": 11
+    },
+    "mne/minimum_norm/tests/test_inverse.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/surface.py": {
+      "a": 8,
+      "d": 6
+    }
+  }
+}

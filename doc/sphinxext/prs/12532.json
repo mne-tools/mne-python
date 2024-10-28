@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "067715af11030c3dbe54362a957de132170c3f43",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "azure-pipelines.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/fixes.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/proj.py": {
+      "a": 6,
+      "d": 3
+    },
+    "tools/install_pre_requirements.sh": {
+      "a": 1,
+      "d": 2
+    }
+  }
+}

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _tut-compute-covariance:
 
@@ -6,13 +5,16 @@
 Computing a covariance matrix
 =============================
 
-Many methods in MNE, including source estimation and some classification
-algorithms, require covariance estimations from the recordings.
-In this tutorial we cover the basics of sensor covariance computations and
-construct a noise covariance matrix that can be used when computing the
-minimum-norm inverse solution. For more information, see
+Many methods in MNE, including source estimation and some classification algorithms,
+require covariance estimations from the recordings. In this tutorial we cover the basics
+of sensor covariance computations and construct a noise covariance matrix that can be
+used when computing the minimum-norm inverse solution. For more information, see
 :ref:`minimum_norm_estimates`.
 """
+
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 
@@ -20,19 +22,18 @@ import mne
 from mne.datasets import sample
 
 # %%
-# Source estimation method such as MNE require a noise estimations from the
+# Source estimation methods such as MNE require noise estimates from the
 # recordings. In this tutorial we cover the basics of noise covariance and
 # construct a noise covariance matrix that can be used when computing the
 # inverse solution. For more information, see :ref:`minimum_norm_estimates`.
 
 data_path = sample.data_path()
-raw_empty_room_fname = (data_path / 'MEG' / 'sample' /
-                        'ernoise_raw.fif')
+raw_empty_room_fname = data_path / "MEG" / "sample" / "ernoise_raw.fif"
 raw_empty_room = mne.io.read_raw_fif(raw_empty_room_fname)
-raw_fname = data_path / 'MEG' / 'sample' / 'sample_audvis_raw.fif'
+raw_fname = data_path / "MEG" / "sample" / "sample_audvis_raw.fif"
 raw = mne.io.read_raw_fif(raw_fname)
-raw.set_eeg_reference('average', projection=True)
-raw.info['bads'] += ['EEG 053']  # bads + 1 more
+raw.set_eeg_reference("average", projection=True)
+raw.info["bads"] += ["EEG 053"]  # bads + 1 more
 
 
 # %%
@@ -54,13 +55,12 @@ raw.info['bads'] += ['EEG 053']  # bads + 1 more
 # the MEG data, and, hence, we want to make sure they get stored in the
 # covariance object.
 
-raw_empty_room.info['bads'] = [
-    bb for bb in raw.info['bads'] if 'EEG' not in bb]
+raw_empty_room.info["bads"] = [bb for bb in raw.info["bads"] if "EEG" not in bb]
 raw_empty_room.add_proj(
-    [pp.copy() for pp in raw.info['projs'] if 'EEG' not in pp['desc']])
+    [pp.copy() for pp in raw.info["projs"] if "EEG" not in pp["desc"]]
+)
 
-noise_cov = mne.compute_raw_covariance(
-    raw_empty_room, tmin=0, tmax=None)
+noise_cov = mne.compute_raw_covariance(raw_empty_room, tmin=0, tmax=None)
 
 # %%
 # Now that you have the covariance matrix in an MNE-Python object you can
@@ -73,9 +73,16 @@ noise_cov = mne.compute_raw_covariance(
 # covariance matrix will be inaccurate. In MNE this is done by default, but
 # just to be sure, we define it here manually.
 events = mne.find_events(raw)
-epochs = mne.Epochs(raw, events, event_id=1, tmin=-0.2, tmax=0.5,
-                    baseline=(-0.2, 0.0), decim=3,  # we'll decimate for speed
-                    verbose='error')  # and ignore the warning about aliasing
+epochs = mne.Epochs(
+    raw,
+    events,
+    event_id=1,
+    tmin=-0.2,
+    tmax=0.5,
+    baseline=(-0.2, 0.0),
+    decim=3,  # we'll decimate for speed
+    verbose="error",
+)  # and ignore the warning about aliasing
 
 # %%
 # Note that this method also attenuates any activity in your
@@ -105,12 +112,11 @@ noise_cov_baseline.plot(epochs.info, proj=True)
 # available. Unfortunately it is not easy to tell the effective number of
 # samples, hence, to choose the appropriate regularization.
 # In MNE-Python, regularization is done using advanced regularization methods
-# described in :footcite:p:`EngemannGramfort2015`. For this the 'auto' option
-# can be used. With this option cross-validation will be used to learn the
+# described in :footcite:t:`EngemannGramfort2015`. For this the ``'auto'`` option
+# can be used. With this option, cross-validation will be used to learn the
 # optimal regularization:
 
-noise_cov_reg = mne.compute_covariance(epochs, tmax=0., method='auto',
-                                       rank=None)
+noise_cov_reg = mne.compute_covariance(epochs, tmax=0.0, method="auto", rank=None)
 
 # %%
 # This procedure evaluates the noise covariance quantitatively by how well it
@@ -127,7 +133,7 @@ noise_cov_reg = mne.compute_covariance(epochs, tmax=0., method='auto',
 # true degrees of freedom, e.g. ``ddof=3`` with 2 active SSP vectors):
 
 evoked = epochs.average()
-evoked.plot_white(noise_cov_reg, time_unit='s')
+evoked.plot_white(noise_cov_reg, time_unit="s")
 
 # %%
 # This plot displays both, the whitened evoked signals for each channels and
@@ -152,33 +158,30 @@ evoked.plot_white(noise_cov_reg, time_unit='s')
 # compared (see :ref:`ex-evoked-whitening`):
 
 noise_covs = mne.compute_covariance(
-    epochs, tmax=0., method=('empirical', 'shrunk'), return_estimators=True,
-    rank=None)
-evoked.plot_white(noise_covs, time_unit='s')
+    epochs, tmax=0.0, method=("empirical", "shrunk"), return_estimators=True, rank=None
+)
+evoked.plot_white(noise_covs, time_unit="s")
 
 
-##############################################################################
+# %%
 # This will plot the whitened evoked for the optimal estimator and display the
 # :term:`GFP` for all estimators as separate lines in the related panel.
-
-
-##############################################################################
+#
 # Finally, let's have a look at the difference between empty room and
-# event related covariance, hacking the "method" option so that their types
+# event related covariance, hacking the ``"method"`` option so that their types
 # are shown in the legend of the plot.
 
-evoked_meg = evoked.copy().pick('meg')
-noise_cov['method'] = 'empty_room'
-noise_cov_baseline['method'] = 'baseline'
-evoked_meg.plot_white([noise_cov_baseline, noise_cov], time_unit='s')
+evoked_meg = evoked.copy().pick("meg")
+noise_cov["method"] = "empty_room"
+noise_cov_baseline["method"] = "baseline"
+evoked_meg.plot_white([noise_cov_baseline, noise_cov], time_unit="s")
 
-##############################################################################
+# %%
 # Based on the negative log-likelihood, the baseline covariance
 # seems more appropriate. Improper regularization can lead to overestimation of
 # source amplitudes, see :footcite:p:`EngemannGramfort2015` for more
 # information and examples.
-
-# %%
+#
 # References
 # ----------
 #

@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "575193c1b189733071a0623bf436c08daeab671c",
+  "authors": [
+    {
+      "n": "Johann Benerradi",
+      "e": null
+    },
+    {
+      "n": "Robert Luke",
+      "e": "748691+rob-luke@users.noreply.github.com"
+    },
+    {
+      "n": "Robert Luke",
+      "e": "748691+rob-luke@users.noreply.github.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/preprocessing/nirs/_tddr.py": {
+      "a": 13,
+      "d": 10
+    },
+    "mne/preprocessing/nirs/tests/test_temporal_derivative_distribution_repair.py": {
+      "a": 28,
+      "d": 11
+    }
+  }
+}

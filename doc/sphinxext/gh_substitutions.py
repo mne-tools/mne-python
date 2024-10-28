@@ -1,10 +1,12 @@
-# -*- coding: utf-8 -*-
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from docutils.nodes import reference
 from docutils.parsers.rst.roles import set_classes
 
 
-def gh_role(name, rawtext, text, lineno, inliner, options={}, content=[]):
+def gh_role(name, rawtext, text, lineno, inliner, options={}, content=[]):  # noqa: B006
     """Link to a GitHub issue.
 
     adapted from
@@ -17,14 +19,14 @@ def gh_role(name, rawtext, text, lineno, inliner, options={}, content=[]):
         # direct link mode
         slug = text
     else:
-        slug = 'issues/' + text
-    text = '#' + text
-    ref = 'https://github.com/mne-tools/mne-python/' + slug
+        slug = "issues/" + text
+    text = "#" + text
+    ref = "https://github.com/mne-tools/mne-python/" + slug
     set_classes(options)
     node = reference(rawtext, text, refuri=ref, **options)
     return [node], []
 
 
 def setup(app):
-    app.add_role('gh', gh_role)
+    app.add_role("gh", gh_role)
     return

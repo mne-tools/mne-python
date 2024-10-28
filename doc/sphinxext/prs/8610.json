@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "5ba77c8b947001da1598671503b165f232687dca",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/beamformer/_compute_beamformer.py": {
+      "a": 24,
+      "d": 2
+    },
+    "mne/beamformer/_dics.py": {
+      "a": 13,
+      "d": 10
+    },
+    "mne/beamformer/_lcmv.py": {
+      "a": 4,
+      "d": 22
+    },
+    "mne/beamformer/tests/test_dics.py": {
+      "a": 64,
+      "d": 10
+    },
+    "mne/beamformer/tests/test_lcmv.py": {
+      "a": 101,
+      "d": 32
+    },
+    "mne/conftest.py": {
+      "a": 15,
+      "d": 4
+    },
+    "mne/minimum_norm/tests/test_inverse.py": {
+      "a": 44,
+      "d": 17
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "37c378dc6ce7ed7004697b33ebcdb4670950bb2f",
+  "authors": [
+    {
+      "n": "Martin Luessi",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/viz.py": {
+      "a": 9,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "fd1723fecccdbe01150b033a2943b03d9fe5292b",
+  "authors": [
+    {
+      "n": "Eduard",
+      "e": "eduardxort@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/source_estimate.py": {
+      "a": 5,
+      "d": 4
+    }
+  }
+}

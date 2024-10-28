@@ -1,0 +1,51 @@
+{
+  "merge_commit_sha": "c30e70c53cd25997a8a9831ab5c3e827dd5f2966",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/python_reference.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/annotations.py": {
+      "a": 3,
+      "d": 19
+    },
+    "mne/filter.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/preprocessing/__init__.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/preprocessing/flat.py": {
+      "a": 99,
+      "d": 0
+    },
+    "mne/preprocessing/tests/test_flat.py": {
+      "a": 61,
+      "d": 0
+    },
+    "mne/utils/__init__.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/utils/numerics.py": {
+      "a": 15,
+      "d": 0
+    },
+    "mne/utils/progressbar.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

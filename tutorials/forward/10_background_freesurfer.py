@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _tut-freesurfer-reconstruction:
 
@@ -86,16 +85,21 @@ overlay of an anatomical parcellation (in this case, the parcellation from
 :footcite:`DestrieuxEtAl2010`).
 """
 
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
+
 # %%
 
 import mne
 
 sample_data_folder = mne.datasets.sample.data_path()
-subjects_dir = sample_data_folder / 'subjects'
+subjects_dir = sample_data_folder / "subjects"
 Brain = mne.viz.get_brain_class()
-brain = Brain('sample', hemi='lh', surf='pial',
-              subjects_dir=subjects_dir, size=(800, 600))
-brain.add_annotation('aparc.a2009s', borders=False)
+brain = Brain(
+    "sample", hemi="lh", surf="pial", subjects_dir=subjects_dir, size=(800, 600)
+)
+brain.add_annotation("aparc.a2009s", borders=False)
 
 # %%
 # Use with MNE-Python

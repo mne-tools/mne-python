@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "d956e0310e165740d0e129edb350598eb51becba",
+  "authors": [
+    {
+      "n": "Hari Bharadwaj",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/source/whats_new.rst": {
+      "a": 3,
+      "d": 0
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "90f1d507f889c49987fa4c5627917cf3caec1b57",
+  "authors": [
+    {
+      "n": "Rob Luke",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/preprocessing/nirs/nirs.py": {
+      "a": 12,
+      "d": 0
+    },
+    "mne/preprocessing/tests/test_beer_lambert_law.py": {
+      "a": 8,
+      "d": 2
+    }
+  }
+}

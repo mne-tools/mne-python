@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "61feb1686b8859bd666866f62c1179e6c0ddbe08",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".travis.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "azure-pipelines.yml": {
+      "a": 3,
+      "d": 5
+    },
+    "environment.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "requirements.txt": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

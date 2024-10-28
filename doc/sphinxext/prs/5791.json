@@ -1,0 +1,147 @@
+{
+  "merge_commit_sha": "382205d1f2074987b2540464b83d90f4785fc6cb",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".circleci/config.yml": {
+      "a": 175,
+      "d": 63
+    },
+    "doc/Makefile": {
+      "a": 6,
+      "d": 6
+    },
+    "doc/conf.py": {
+      "a": 9,
+      "d": 3
+    },
+    "doc/contributing.rst": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/documentation.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/faq.rst": {
+      "a": 6,
+      "d": 6
+    },
+    "doc/git_links.inc": {
+      "a": 9,
+      "d": 9
+    },
+    "doc/install_mne_c.rst": {
+      "a": 6,
+      "d": 6
+    },
+    "doc/known_projects.inc": {
+      "a": 3,
+      "d": 3
+    },
+    "doc/manual/appendix/bem_model.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/manual/datasets_index.rst": {
+      "a": 4,
+      "d": 4
+    },
+    "doc/manual/io.rst": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/mne_cpp.rst": {
+      "a": 19,
+      "d": 19
+    },
+    "doc/python_reference.rst": {
+      "a": 2,
+      "d": 2
+    },
+    "examples/datasets/plot_brainstorm_data.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/decoding/plot_decoding_csp_eeg.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/decoding/plot_receptive_field_mtrf.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/beamformer/_dics.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/channels/channels.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/filter.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/gui/__init__.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/stats/parametric.py": {
+      "a": 0,
+      "d": 1
+    },
+    "tutorials/plot_background_filtering.py": {
+      "a": 15,
+      "d": 13
+    },
+    "tutorials/plot_brainstorm_auditory.py": {
+      "a": 3,
+      "d": 2
+    },
+    "tutorials/plot_brainstorm_phantom_ctf.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/plot_brainstorm_phantom_elekta.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/plot_dipole_fit.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/plot_introduction.py": {
+      "a": 2,
+      "d": 2
+    },
+    "tutorials/plot_python_intro.py": {
+      "a": 2,
+      "d": 2
+    },
+    "tutorials/plot_sensors_decoding.py": {
+      "a": 5,
+      "d": 5
+    },
+    "tutorials/plot_source_alignment.py": {
+      "a": 4,
+      "d": 3
+    },
+    "tutorials/plot_stats_spatio_temporal_cluster_sensors.py": {
+      "a": 3,
+      "d": 3
+    },
+    "tutorials/plot_visualize_evoked.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

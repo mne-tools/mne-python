@@ -1,18 +1,22 @@
 #!/bin/bash -ef
 
-echo "Installing setuptools and sphinx"
-python -m pip install --upgrade "pip!=20.3.0"
-python -m pip install --upgrade --progress-bar off setuptools wheel
-python -m pip install --upgrade --progress-bar off --pre sphinx
-if [[ "$CIRCLE_JOB" == "linkcheck"* ]]; then
-	echo "Installing minimal linkcheck dependencies"
-	python -m pip install --progress-bar off pillow pytest -r requirements_base.txt -r requirements_doc.txt
-else  # standard doc build
-	echo "Installing doc build dependencies"
-	python -m pip install --upgrade --progress-bar off PyQt6
-	python -m pip install --upgrade --progress-bar off --only-binary "numpy,scipy,matplotlib,pandas,statsmodels" -r requirements.txt -r requirements_testing.txt -r requirements_doc.txt
-	python -m pip install --upgrade --progress-bar off https://github.com/mne-tools/mne-qt-browser/zipball/main https://github.com/sphinx-gallery/sphinx-gallery/zipball/master
-	# deal with comparisons and escapes (https://app.circleci.com/pipelines/github/mne-tools/mne-python/9686/workflows/3fd32b47-3254-4812-8b9a-8bab0d646d18/jobs/32934)
-	python -m pip install --upgrade --progress-bar off quantities
-fi
-python -m pip install -e .
+python -m pip install --upgrade "pip!=20.3.0" build
+# This can be removed once dipy > 1.9.0 is released
+python -m pip install --upgrade --progress-bar off \
+    numpy scipy h5py
+python -m pip install --pre --progress-bar off \
+    --extra-index-url "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" \
+    "dipy>1.9"
+python -m pip install --upgrade --progress-bar off \
+    --only-binary "numpy,dipy,scipy,matplotlib,pandas,statsmodels" \
+    -ve .[full,test,doc] "numpy>=2" \
+    "git+https://github.com/pyvista/pyvista.git" \
+    "git+https://github.com/sphinx-gallery/sphinx-gallery.git" \
+    "git+https://github.com/mne-tools/mne-bids.git" \
+    \
+    alphaCSC autoreject bycycle conpy emd fooof meggie \
+    mne-ari mne-bids-pipeline mne-faster mne-features \
+    mne-icalabel mne-lsl mne-microstates mne-nirs mne-rsa \
+    neurodsp neurokit2 niseq nitime openneuro-py pactools \
+    plotly pycrostates pyprep pyriemann python-picard sesameeg \
+    sleepecg tensorpac yasa

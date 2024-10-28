@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _ex-ems-filtering:
 
@@ -20,47 +19,53 @@ condition. Finally a topographic plot is created which exhibits the temporal
 evolution of the spatial filters.
 """
 # Author: Denis Engemann <denis.engemann@gmail.com>
-#         Jean-Remi King <jeanremi.king@gmail.com>
+#         Jean-Rémi King <jeanremi.king@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
+from sklearn.model_selection import StratifiedKFold
 
 import mne
-from mne import io, EvokedArray
+from mne import EvokedArray, io
 from mne.datasets import sample
 from mne.decoding import EMS, compute_ems
-from sklearn.model_selection import StratifiedKFold
 
 print(__doc__)
 
 data_path = sample.data_path()
 
 # Preprocess the data
-meg_path = data_path / 'MEG' / 'sample'
-raw_fname = meg_path / 'sample_audvis_filt-0-40_raw.fif'
-event_fname = meg_path / 'sample_audvis_filt-0-40_raw-eve.fif'
-event_ids = {'AudL': 1, 'VisL': 3}
+meg_path = data_path / "MEG" / "sample"
+raw_fname = meg_path / "sample_audvis_filt-0-40_raw.fif"
+event_fname = meg_path / "sample_audvis_filt-0-40_raw-eve.fif"
+event_ids = {"AudL": 1, "VisL": 3}
 
 # Read data and create epochs
 raw = io.read_raw_fif(raw_fname, preload=True)
-raw.filter(0.5, 45, fir_design='firwin')
+raw.filter(0.5, 45, fir_design="firwin")
 events = mne.read_events(event_fname)
 
-picks = mne.pick_types(raw.info, meg='grad', eeg=False, stim=False, eog=True,
-                       exclude='bads')
+raw.pick(["grad", "eog"], exclude="bads")
 
-epochs = mne.Epochs(raw, events, event_ids, tmin=-0.2, tmax=0.5, picks=picks,
-                    baseline=None, reject=dict(grad=4000e-13, eog=150e-6),
-                    preload=True)
-epochs.drop_bad()
-epochs.pick_types(meg='grad')
+epochs = mne.Epochs(
+    raw,
+    events,
+    event_ids,
+    tmin=-0.2,
+    tmax=0.5,
+    baseline=None,
+    reject=dict(grad=4000e-13, eog=150e-6),
+    preload=True,
+)
+epochs.pick("grad")
 
 # Setup the data to use it a scikit-learn way:
-X = epochs.get_data()  # The MEG data
+X = epochs.get_data(copy=False)  # The MEG data
 y = epochs.events[:, 2]  # The conditions indices
 n_epochs, n_channels, n_times = X.shape
 
@@ -99,23 +104,27 @@ filters = np.mean(filters, axis=0)
 
 # Plot individual trials
 plt.figure()
-plt.title('single trial surrogates')
-plt.imshow(X_transform[y.argsort()], origin='lower', aspect='auto',
-           extent=[epochs.times[0], epochs.times[-1], 1, len(X_transform)],
-           cmap='RdBu_r')
-plt.xlabel('Time (ms)')
-plt.ylabel('Trials (reordered by condition)')
+plt.title("single trial surrogates")
+plt.imshow(
+    X_transform[y.argsort()],
+    origin="lower",
+    aspect="auto",
+    extent=[epochs.times[0], epochs.times[-1], 1, len(X_transform)],
+    cmap="RdBu_r",
+)
+plt.xlabel("Time (ms)")
+plt.ylabel("Trials (reordered by condition)")
 
 # Plot average response
 plt.figure()
-plt.title('Average EMS signal')
+plt.title("Average EMS signal")
 mappings = [(key, value) for key, value in event_ids.items()]
 for key, value in mappings:
     ems_ave = X_transform[y == value]
     plt.plot(epochs.times, ems_ave.mean(0), label=key)
-plt.xlabel('Time (ms)')
-plt.ylabel('a.u.')
-plt.legend(loc='best')
+plt.xlabel("Time (ms)")
+plt.ylabel("a.u.")
+plt.legend(loc="best")
 plt.show()
 
 # Visualize spatial filters across time

@@ -1,8 +1,7 @@
 """BrainVision module for conversion to FIF."""
 
-# Author: Teon Brooks <teon.brooks@gmail.com>
-#         Stefan Appelhoff <stefan.appelhoff@mailbox.org>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from .brainvision import read_raw_brainvision

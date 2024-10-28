@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "8baaa7675ea34d3b98dd2875ad8b5efaf6d44d16",
+  "authors": [
+    {
+      "n": "Alex Rockhill",
+      "e": "aprockhill@mailbox.org"
+    }
+  ],
+  "changes": {
+    "mne/viz/backends/_notebook.py": {
+      "a": 2,
+      "d": 10
+    },
+    "mne/viz/backends/_qt.py": {
+      "a": 1,
+      "d": 9
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "400f5389c8dbaafa97e0c8f0c66c4d38b7720a60",
+  "authors": [
+    {
+      "n": "Mainak Jas",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/io/fiff/raw.py": {
+      "a": 3,
+      "d": 4
+    }
+  }
+}

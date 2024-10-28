@@ -1,0 +1,227 @@
+{
+  "merge_commit_sha": "a71e2c046dcdfdb3e59fd26d1654c73e08a1f03f",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".travis.yml": {
+      "a": 4,
+      "d": 8
+    },
+    "doc/source/python_reference.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/commands/mne_browse_raw.py": {
+      "a": 1,
+      "d": 3
+    },
+    "mne/commands/mne_bti2fiff.py": {
+      "a": 1,
+      "d": 3
+    },
+    "mne/commands/mne_clean_eog_ecg.py": {
+      "a": 28,
+      "d": 44
+    },
+    "mne/commands/mne_compute_proj_ecg.py": {
+      "a": 3,
+      "d": 4
+    },
+    "mne/commands/mne_compute_proj_eog.py": {
+      "a": 3,
+      "d": 4
+    },
+    "mne/commands/mne_flash_bem_model.py": {
+      "a": 6,
+      "d": 1
+    },
+    "mne/commands/mne_kit2fiff.py": {
+      "a": 1,
+      "d": 3
+    },
+    "mne/commands/mne_make_scalp_surfaces.py": {
+      "a": 1,
+      "d": 3
+    },
+    "mne/commands/mne_maxfilter.py": {
+      "a": 1,
+      "d": 3
+    },
+    "mne/commands/mne_report.py": {
+      "a": 15,
+      "d": 4
+    },
+    "mne/commands/mne_surf2bem.py": {
+      "a": 1,
+      "d": 3
+    },
+    "mne/commands/tests/test_commands.py": {
+      "a": 82,
+      "d": 40
+    },
+    "mne/coreg.py": {
+      "a": 54,
+      "d": 63
+    },
+    "mne/cuda.py": {
+      "a": 85,
+      "d": 135
+    },
+    "mne/evoked.py": {
+      "a": 144,
+      "d": 151
+    },
+    "mne/forward/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/forward/forward.py": {
+      "a": 98,
+      "d": 122
+    },
+    "mne/forward/tests/test_forward.py": {
+      "a": 33,
+      "d": 12
+    },
+    "mne/gui/_coreg_gui.py": {
+      "a": 11,
+      "d": 11
+    },
+    "mne/gui/_kit2fiff_gui.py": {
+      "a": 61,
+      "d": 86
+    },
+    "mne/gui/_marker_gui.py": {
+      "a": 29,
+      "d": 49
+    },
+    "mne/gui/_viewer.py": {
+      "a": 21,
+      "d": 31
+    },
+    "mne/gui/tests/test_coreg_gui.py": {
+      "a": 15,
+      "d": 1
+    },
+    "mne/gui/tests/test_kit2fiff_gui.py": {
+      "a": 16,
+      "d": 2
+    },
+    "mne/gui/tests/test_marker_gui.py": {
+      "a": 16,
+      "d": 2
+    },
+    "mne/label.py": {
+      "a": 15,
+      "d": 20
+    },
+    "mne/minimum_norm/inverse.py": {
+      "a": 177,
+      "d": 196
+    },
+    "mne/minimum_norm/tests/test_inverse.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/preprocessing/maxfilter.py": {
+      "a": 7,
+      "d": 4
+    },
+    "mne/realtime/tests/test_fieldtrip_client.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/report.py": {
+      "a": 105,
+      "d": 156
+    },
+    "mne/source_space.py": {
+      "a": 9,
+      "d": 13
+    },
+    "mne/surface.py": {
+      "a": 64,
+      "d": 107
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 57,
+      "d": 6
+    },
+    "mne/tests/test_evoked.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/tests/test_filter.py": {
+      "a": 10,
+      "d": 4
+    },
+    "mne/tests/test_label.py": {
+      "a": 21,
+      "d": 2
+    },
+    "mne/tests/test_report.py": {
+      "a": 68,
+      "d": 27
+    },
+    "mne/tests/test_source_space.py": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/tests/test_surface.py": {
+      "a": 49,
+      "d": 12
+    },
+    "mne/tests/test_transforms.py": {
+      "a": 62,
+      "d": 6
+    },
+    "mne/tests/test_utils.py": {
+      "a": 17,
+      "d": 9
+    },
+    "mne/transforms.py": {
+      "a": 16,
+      "d": 75
+    },
+    "mne/utils.py": {
+      "a": 48,
+      "d": 61
+    },
+    "mne/viz/_3d.py": {
+      "a": 41,
+      "d": 20
+    },
+    "mne/viz/__init__.py": {
+      "a": 8,
+      "d": 9
+    },
+    "mne/viz/epochs.py": {
+      "a": 5,
+      "d": 3
+    },
+    "mne/viz/ica.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/misc.py": {
+      "a": 12,
+      "d": 0
+    },
+    "mne/viz/tests/test_epochs.py": {
+      "a": 15,
+      "d": 3
+    },
+    "mne/viz/tests/test_ica.py": {
+      "a": 8,
+      "d": 4
+    },
+    "mne/viz/tests/test_topo.py": {
+      "a": 10,
+      "d": 2
+    }
+  }
+}

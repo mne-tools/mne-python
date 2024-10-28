@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "fa119971035fb8cf0f92acc98c846645d5f410d2",
+  "authors": [
+    {
+      "n": "Marijn van Vliet",
+      "e": "w.m.vanvliet@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/tutorials/report.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/report.py": {
+      "a": 147,
+      "d": 53
+    },
+    "mne/tests/test_report.py": {
+      "a": 64,
+      "d": 10
+    }
+  }
+}

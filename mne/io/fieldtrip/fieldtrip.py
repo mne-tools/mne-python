@@ -1,20 +1,23 @@
-# -*- coding: UTF-8 -*-
-# Authors: Thomas Hartmann <thomas.hartmann@th-ht.de>
-#          Dirk Gütlin <dirk.guetlin@stud.sbg.ac.at>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import numpy as np
 
-from .utils import _create_info, _set_tmin, _create_events, \
-    _create_event_metadata, _validate_ft_struct
-from ...utils import _check_fname, _import_pymatreader_funcs
-from ..array.array import RawArray
 from ...epochs import EpochsArray
 from ...evoked import EvokedArray
+from ...utils import _check_fname, _import_pymatreader_funcs
+from ..array.array import RawArray
+from .utils import (
+    _create_event_metadata,
+    _create_events,
+    _create_info,
+    _set_tmin,
+    _validate_ft_struct,
+)
 
 
-def read_raw_fieldtrip(fname, info, data_name='data'):
+def read_raw_fieldtrip(fname, info, data_name="data") -> RawArray:
     """Load continuous (raw) data from a FieldTrip preprocessing structure.
 
     This function expects to find single trial raw data (FT_DATATYPE_RAW) in
@@ -43,13 +46,16 @@ def read_raw_fieldtrip(fname, info, data_name='data'):
     -------
     raw : instance of RawArray
         A Raw Object containing the loaded data.
-    """
-    read_mat = _import_pymatreader_funcs('FieldTrip I/O')
-    fname = _check_fname(fname, overwrite='read', must_exist=True)
+        See :class:`mne.io.Raw` for documentation of attributes and methods.
 
-    ft_struct = read_mat(fname,
-                         ignore_fields=['previous'],
-                         variable_names=[data_name])
+    See Also
+    --------
+    mne.io.Raw : Documentation of attributes and methods of RawArray.
+    """
+    read_mat = _import_pymatreader_funcs("FieldTrip I/O")
+    fname = _check_fname(fname, overwrite="read", must_exist=True)
+
+    ft_struct = read_mat(fname, ignore_fields=["previous"], variable_names=[data_name])
 
     # load data and set ft_struct to the heading dictionary
     ft_struct = ft_struct[data_name]
@@ -57,7 +63,7 @@ def read_raw_fieldtrip(fname, info, data_name='data'):
     _validate_ft_struct(ft_struct)
 
     info = _create_info(ft_struct, info)  # create info structure
-    data = np.array(ft_struct['trial'])  # create the main data array
+    data = np.array(ft_struct["trial"])  # create the main data array
 
     if data.ndim > 2:
         data = np.squeeze(data)
@@ -66,15 +72,17 @@ def read_raw_fieldtrip(fname, info, data_name='data'):
         data = data[np.newaxis, ...]
 
     if data.ndim != 2:
-        raise RuntimeError('The data you are trying to load does not seem to '
-                           'be raw data')
+        raise RuntimeError(
+            "The data you are trying to load does not seem to be raw data"
+        )
 
     raw = RawArray(data, info)  # create an MNE RawArray
     return raw
 
 
-def read_epochs_fieldtrip(fname, info, data_name='data',
-                          trialinfo_column=0):
+def read_epochs_fieldtrip(
+    fname, info, data_name="data", trialinfo_column=0
+) -> EpochsArray:
     """Load epoched data from a FieldTrip preprocessing structure.
 
     This function expects to find epoched data in the structure data_name is
@@ -109,10 +117,8 @@ def read_epochs_fieldtrip(fname, info, data_name='data',
     epochs : instance of EpochsArray
         An EpochsArray containing the loaded data.
     """
-    read_mat = _import_pymatreader_funcs('FieldTrip I/O')
-    ft_struct = read_mat(fname,
-                         ignore_fields=['previous'],
-                         variable_names=[data_name])
+    read_mat = _import_pymatreader_funcs("FieldTrip I/O")
+    ft_struct = read_mat(fname, ignore_fields=["previous"], variable_names=[data_name])
 
     # load data and set ft_struct to the heading dictionary
     ft_struct = ft_struct[data_name]
@@ -120,7 +126,7 @@ def read_epochs_fieldtrip(fname, info, data_name='data',
     _validate_ft_struct(ft_struct)
 
     info = _create_info(ft_struct, info)  # create info structure
-    data = np.array(ft_struct['trial'])  # create the epochs data array
+    data = np.array(ft_struct["trial"])  # create the epochs data array
     events = _create_events(ft_struct, trialinfo_column)
     if events is not None:
         metadata = _create_event_metadata(ft_struct)
@@ -128,13 +134,13 @@ def read_epochs_fieldtrip(fname, info, data_name='data',
         metadata = None
     tmin = _set_tmin(ft_struct)  # create start time
 
-    epochs = EpochsArray(data=data, info=info, tmin=tmin,
-                         events=events, metadata=metadata, proj=False)
+    epochs = EpochsArray(
+        data=data, info=info, tmin=tmin, events=events, metadata=metadata, proj=False
+    )
     return epochs
 
 
-def read_evoked_fieldtrip(fname, info, comment=None,
-                          data_name='data'):
+def read_evoked_fieldtrip(fname, info, comment=None, data_name="data"):
     """Load evoked data from a FieldTrip timelocked structure.
 
     This function expects to find timelocked data in the structure data_name is
@@ -166,16 +172,14 @@ def read_evoked_fieldtrip(fname, info, comment=None,
     evoked : instance of EvokedArray
         An EvokedArray containing the loaded data.
     """
-    read_mat = _import_pymatreader_funcs('FieldTrip I/O')
-    ft_struct = read_mat(fname,
-                         ignore_fields=['previous'],
-                         variable_names=[data_name])
+    read_mat = _import_pymatreader_funcs("FieldTrip I/O")
+    ft_struct = read_mat(fname, ignore_fields=["previous"], variable_names=[data_name])
     ft_struct = ft_struct[data_name]
 
     _validate_ft_struct(ft_struct)
 
     info = _create_info(ft_struct, info)  # create info structure
-    data_evoked = ft_struct['avg']  # create evoked data
+    data_evoked = ft_struct["avg"]  # create evoked data
 
     evoked = EvokedArray(data_evoked, info, comment=comment)
     return evoked

@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "2c2f4223337a162cd2b39c4d001bd720d8f2cfb5",
+  "authors": [
+    {
+      "n": "Denis A. Engemann",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/source/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/beamformer/_lcmv.py": {
+      "a": 16,
+      "d": 19
+    },
+    "mne/beamformer/tests/test_lcmv.py": {
+      "a": 4,
+      "d": 1
+    }
+  }
+}

@@ -1,8 +1,9 @@
-# Authors: George O'Neill <g.o'neill@ucl.ac.uk>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from copy import deepcopy
+
 import numpy as np
 
 from ...utils import logger
@@ -32,10 +33,9 @@ def _refine_sensor_orientation(chanin):
                 if np.isnan(targetloc.sum()) is False:
                     targetloc = targetloc.reshape(3, 4, order="F")
                     tmploc[:, 2] = targetloc[:, 3]
-                    tmploc[:, 1] = flipFlag * np.cross(tmploc[:, 2],
-                                                       tmploc[:, 3])
+                    tmploc[:, 1] = flipFlag * np.cross(tmploc[:, 2], tmploc[:, 3])
                     chanout[ii]["loc"] = tmploc.reshape(12, order="F")
-    logger.info('[done]')
+    logger.info("[done]")
     return chanout
 
 

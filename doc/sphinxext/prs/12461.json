@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "69d29637db82563cd56d8effc396124f243cf4fb",
+  "authors": [
+    {
+      "n": "Will Turner",
+      "e": "williamfrancisturner@gmail.com"
+    },
+    {
+      "n": "Will Turner",
+      "e": "wturner@student.unimelb.edu.au"
+    }
+  ],
+  "changes": {
+    ".github/CONTRIBUTING.md": {
+      "a": 1,
+      "d": 1
+    },
+    ".github/PULL_REQUEST_TEMPLATE.md": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/changes/devel/12461.other.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 2,
+      "d": 0
+    }
+  }
+}

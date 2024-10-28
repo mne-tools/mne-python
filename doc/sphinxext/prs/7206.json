@@ -1,0 +1,67 @@
+{
+  "merge_commit_sha": "d2a5660db534c2d67af514b3d89b08abb67aa696",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/epochs.py": {
+      "a": 62,
+      "d": 3
+    },
+    "mne/evoked.py": {
+      "a": 53,
+      "d": 4
+    },
+    "mne/io/base.py": {
+      "a": 59,
+      "d": 189
+    },
+    "mne/io/edf/tests/test_edf.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/io/fiff/tests/test_raw_fiff.py": {
+      "a": 31,
+      "d": 11
+    },
+    "mne/source_estimate.py": {
+      "a": 58,
+      "d": 3
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 53,
+      "d": 28
+    },
+    "mne/tests/test_evoked.py": {
+      "a": 36,
+      "d": 13
+    },
+    "mne/tests/test_source_estimate.py": {
+      "a": 32,
+      "d": 15
+    },
+    "mne/utils/__init__.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/utils/check.py": {
+      "a": 29,
+      "d": 7
+    },
+    "mne/utils/dataframe.py": {
+      "a": 88,
+      "d": 0
+    },
+    "mne/utils/docs.py": {
+      "a": 61,
+      "d": 0
+    }
+  }
+}

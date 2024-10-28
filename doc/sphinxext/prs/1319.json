@@ -1,0 +1,75 @@
+{
+  "merge_commit_sha": "46a6babf98bf697ae6174c3b6fcf8361fc299316",
+  "authors": [
+    {
+      "n": "Denis A. Engemann",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/source/python_reference.rst": {
+      "a": 7,
+      "d": 1
+    },
+    "doc/source/whats_new.rst": {
+      "a": 7,
+      "d": 0
+    },
+    "examples/datasets/plot_spm_faces_dataset.py": {
+      "a": 21,
+      "d": 23
+    },
+    "examples/preprocessing/plot_ica_from_epochs.py": {
+      "a": 30,
+      "d": 98
+    },
+    "examples/preprocessing/plot_ica_from_raw.py": {
+      "a": 35,
+      "d": 169
+    },
+    "mne/epochs.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/preprocessing/__init__.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/preprocessing/bads.py": {
+      "a": 36,
+      "d": 0
+    },
+    "mne/preprocessing/ecg.py": {
+      "a": 126,
+      "d": 25
+    },
+    "mne/preprocessing/eog.py": {
+      "a": 103,
+      "d": 32
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 1020,
+      "d": 560
+    },
+    "mne/preprocessing/tests/test_ecg.py": {
+      "a": 5,
+      "d": 2
+    },
+    "mne/preprocessing/tests/test_ica.py": {
+      "a": 111,
+      "d": 78
+    },
+    "mne/tests/test_viz.py": {
+      "a": 64,
+      "d": 4
+    },
+    "mne/utils.py": {
+      "a": 36,
+      "d": 3
+    },
+    "mne/viz.py": {
+      "a": 491,
+      "d": 94
+    }
+  }
+}

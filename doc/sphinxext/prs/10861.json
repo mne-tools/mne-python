@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "e49525c470b01b04c7270dc054bbfa7600021262",
+  "authors": [
+    {
+      "n": "Drew, J.",
+      "e": null
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 3,
+      "d": 0
+    }
+  }
+}

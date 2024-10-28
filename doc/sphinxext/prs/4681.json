@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "14595ede292ac1db1cfcc0b85ef7a9c303a12e72",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/decoding/receptive_field.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/decoding/tests/test_receptive_field.py": {
+      "a": 8,
+      "d": 6
+    }
+  }
+}

@@ -1,13 +1,19 @@
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
+
 from docutils import nodes
 
 
-def unit_role(name, rawtext, text, lineno, inliner, options={}, content=[]):
+def unit_role(name, rawtext, text, lineno, inliner, options={}, content=[]):  # noqa: B006
     parts = text.split()
 
     def pass_error_to_sphinx(rawtext, text, lineno, inliner):
         msg = inliner.reporter.error(
-            'The :unit: role requires a space-separated number and unit; '
-            f'got {text}', line=lineno)
+            "The :unit: role requires a space-separated number and unit; "
+            f"got {text}",
+            line=lineno,
+        )
         prb = inliner.problematic(rawtext, rawtext, msg)
         return [prb], [msg]
 
@@ -20,10 +26,10 @@ def unit_role(name, rawtext, text, lineno, inliner, options={}, content=[]):
     except ValueError:
         return pass_error_to_sphinx(rawtext, text, lineno, inliner)
     # input is well-formatted: proceed
-    node = nodes.Text('\u202F'.join(parts))
+    node = nodes.Text("\u202f".join(parts))
     return [node], []
 
 
 def setup(app):
-    app.add_role('unit', unit_role)
+    app.add_role("unit", unit_role)
     return

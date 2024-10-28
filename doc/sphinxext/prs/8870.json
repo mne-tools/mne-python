@@ -1,0 +1,83 @@
+{
+  "merge_commit_sha": "53f1b859d2bea2a432e153a02c386b428c71d566",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/0.12.inc": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/changes/latest.inc": {
+      "a": 3,
+      "d": 2
+    },
+    "doc/sensor_space.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/inverse/plot_tf_dics.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/__init__.py": {
+      "a": 6,
+      "d": 2
+    },
+    "mne/beamformer/tests/test_lcmv.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/channels/__init__.py": {
+      "a": 4,
+      "d": 1
+    },
+    "mne/channels/channels.py": {
+      "a": 166,
+      "d": 2
+    },
+    "mne/selection.py": {
+      "a": 0,
+      "d": 189
+    },
+    "mne/tests/test_read_vectorview_selection.py": {
+      "a": 13,
+      "d": 12
+    },
+    "mne/utils/docs.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/tests/test_check.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/viz/raw.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/viz/utils.py": {
+      "a": 6,
+      "d": 4
+    },
+    "tutorials/simulation/plot_dics.py": {
+      "a": 2,
+      "d": 1
+    },
+    "tutorials/stats-sensor-space/plot_stats_cluster_1samp_test_time_frequency.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

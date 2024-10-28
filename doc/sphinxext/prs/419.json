@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "633145e4e0d6555109ff1c46f29eca8270b18b32",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/source/python_tutorial.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/fiff/meas_info.py": {
+      "a": 9,
+      "d": 3
+    },
+    "mne/fiff/raw.py": {
+      "a": 75,
+      "d": 19
+    },
+    "mne/fiff/tests/test_raw.py": {
+      "a": 52,
+      "d": 27
+    },
+    "mne/fiff/write.py": {
+      "a": 14,
+      "d": 0
+    },
+    "mne/tests/test_proj.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils.py": {
+      "a": 10,
+      "d": 0
+    }
+  }
+}

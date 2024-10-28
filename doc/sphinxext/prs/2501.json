@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "127c85d90614aafbd3e10453ee62ffbb481cbd0b",
+  "authors": [
+    {
+      "n": "Teon L Brooks",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/epochs.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/base.py": {
+      "a": 25,
+      "d": 1
+    }
+  }
+}

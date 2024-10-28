@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "a48c9b99ff2af47dcc86a8d76427457f0a74626a",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/conftest.py": {
+      "a": 6,
+      "d": 1
+    },
+    "mne/viz/backends/_pyvista.py": {
+      "a": 8,
+      "d": 7
+    },
+    "mne/viz/backends/_qt.py": {
+      "a": 13,
+      "d": 1
+    },
+    "mne/viz/backends/_utils.py": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

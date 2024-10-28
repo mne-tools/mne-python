@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "83c716268344f79d2621f2fc7498b0c9e8975b2e",
+  "authors": [
+    {
+      "n": "Dominique Makowski",
+      "e": "D.Makowski@sussex.ac.uk"
+    }
+  ],
+  "changes": {
+    "mne/io/reference.py": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/preprocessing/_csd.py": {
+      "a": 3,
+      "d": 0
+    }
+  }
+}

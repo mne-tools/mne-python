@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "4c2f1c69747a2a9bbbbd54b1d009765c9b0129b1",
+  "authors": [
+    {
+      "n": "Luke Bloy",
+      "e": "luke.bloy@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/io/base.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/fiff/tests/test_raw_fiff.py": {
+      "a": 3,
+      "d": 0
+    }
+  }
+}

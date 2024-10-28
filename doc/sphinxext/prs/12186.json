@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "6874483f6033743510a1ab0766c56ea007db1c20",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/time_frequency/spectrum.py": {
+      "a": 7,
+      "d": 5
+    },
+    "mne/time_frequency/tests/test_spectrum.py": {
+      "a": 8,
+      "d": 5
+    },
+    "tutorials/preprocessing/50_artifact_correction_ssp.py": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

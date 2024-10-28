@@ -1,0 +1,25 @@
+{% set section = "Channels" %}
+{% set section_class_name = section | lower | append_uuid %}
+
+{# Collapse content during documentation build. #}
+{% if collapsed %}
+{% set collapsed_row_class = "mne-repr-collapsed" %}
+{% else %}
+{% set collapsed_row_class = "" %}
+{% endif %}
+
+{%include 'static/_section_header_row.html.jinja' %}
+
+{% for channel_type, channels in (info | format_channels).items() %}
+    {% include 'static/_channels.html.jinja' %}
+{% endfor %}
+
+<tr class="repr-element {{ section_class_name }} {{ collapsed_row_class }}">
+    <td class="mne-repr-section-toggle"></td>
+    <td>Head & sensor digitization</td>
+    {% if info["dig"] is not none %}
+    <td>{{ info["dig"] | length }} points</td>
+    {% else %}
+    <td>Not available</td>
+    {% endif %}
+</tr>

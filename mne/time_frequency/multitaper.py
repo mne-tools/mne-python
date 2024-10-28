@@ -1,12 +1,17 @@
-# Author : Martin Luessi mluessi@nmr.mgh.harvard.edu (2012)
-# License : BSD-3-Clause
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # Parts of this code were copied from NiTime http://nipy.sourceforge.net/nitime
 
 import numpy as np
+from scipy.fft import rfft, rfftfreq
+from scipy.integrate import trapezoid
+from scipy.signal import get_window
+from scipy.signal.windows import dpss as sp_dpss
 
 from ..parallel import parallel_func
-from ..utils import warn, verbose, logger, _check_option
+from ..utils import _check_option, logger, verbose, warn
 
 
 def dpss_windows(N, half_nbw, Kmax, *, sym=True, norm=None, low_bias=True):
@@ -58,14 +63,11 @@ def dpss_windows(N, half_nbw, Kmax, *, sym=True, norm=None, low_bias=True):
     ----------
     .. footbibliography::
     """
-    from scipy.signal.windows import dpss as sp_dpss
-
-    dpss, eigvals = sp_dpss(N, half_nbw, Kmax, sym=sym, norm=norm,
-                            return_ratios=True)
+    dpss, eigvals = sp_dpss(N, half_nbw, Kmax, sym=sym, norm=norm, return_ratios=True)
     if low_bias:
-        idx = (eigvals > 0.9)
+        idx = eigvals > 0.9
         if not idx.any():
-            warn('Could not properly use low_bias, keeping lowest-bias taper')
+            warn("Could not properly use low_bias, keeping lowest-bias taper")
             idx = [np.argmax(eigvals)]
         dpss, eigvals = dpss[idx], eigvals[idx]
     assert len(dpss) > 0  # should never happen
@@ -73,8 +75,7 @@ def dpss_windows(N, half_nbw, Kmax, *, sym=True, norm=None, low_bias=True):
     return dpss, eigvals
 
 
-def _psd_from_mt_adaptive(x_mt, eigvals, freq_mask, max_iter=250,
-                          return_weights=False):
+def _psd_from_mt_adaptive(x_mt, eigvals, freq_mask, max_iter=250, return_weights=False):
     r"""Use iterative procedure to compute the PSD from tapered spectra.
 
     .. note:: Modified from NiTime.
@@ -107,16 +108,16 @@ def _psd_from_mt_adaptive(x_mt, eigvals, freq_mask, max_iter=250,
     n_signals, n_tapers, n_freqs = x_mt.shape
 
     if len(eigvals) != n_tapers:
-        raise ValueError('Need one eigenvalue for each taper')
+        raise ValueError("Need one eigenvalue for each taper")
 
     if n_tapers < 3:
-        raise ValueError('Not enough tapers to compute adaptive weights.')
+        raise ValueError("Not enough tapers to compute adaptive weights.")
 
     rt_eig = np.sqrt(eigvals)
 
     # estimate the variance from an estimate with fixed weights
     psd_est = _psd_from_mt(x_mt, rt_eig[np.newaxis, :, np.newaxis])
-    x_var = np.trapz(psd_est, dx=np.pi / n_freqs) / (2 * np.pi)
+    x_var = trapezoid(psd_est, dx=np.pi / n_freqs) / (2 * np.pi)
     del psd_est
 
     # allocate space for output
@@ -150,8 +151,9 @@ def _psd_from_mt_adaptive(x_mt, eigvals, freq_mask, max_iter=250,
 
         err = np.zeros_like(xk)
         for n in range(max_iter):
-            d_k = (psd_iter / (eigvals[:, np.newaxis] * psd_iter +
-                               (1 - eigvals[:, np.newaxis]) * var))
+            d_k = psd_iter / (
+                eigvals[:, np.newaxis] * psd_iter + (1 - eigvals[:, np.newaxis]) * var
+            )
             d_k *= rt_eig[:, np.newaxis]
             # Test for convergence -- this is overly conservative, since
             # iteration only stops when all frequencies have converged.
@@ -161,7 +163,7 @@ def _psd_from_mt_adaptive(x_mt, eigvals, freq_mask, max_iter=250,
             # across frequencies. If the maximum RMS error across freqs is
             # less than 1e-10, then we're converged
             err -= d_k
-            if np.max(np.mean(err ** 2, axis=0)) < 1e-10:
+            if np.max(np.mean(err**2, axis=0)) < 1e-10:
                 break
 
             # update the iterative estimate with this d_k
@@ -169,7 +171,7 @@ def _psd_from_mt_adaptive(x_mt, eigvals, freq_mask, max_iter=250,
             err = d_k
 
         if n == max_iter - 1:
-            warn('Iterative multi-taper PSD computation did not converge.')
+            warn("Iterative multi-taper PSD computation did not converge.")
 
         psd[i, :] = psd_iter
 
@@ -224,13 +226,14 @@ def _csd_from_mt(x_mt, y_mt, weights_x, weights_y):
         The computed CSD
     """
     csd = np.sum(weights_x * x_mt * (weights_y * y_mt).conj(), axis=-2)
-    denom = (np.sqrt((weights_x * weights_x.conj()).real.sum(axis=-2)) *
-             np.sqrt((weights_y * weights_y.conj()).real.sum(axis=-2)))
+    denom = np.sqrt((weights_x * weights_x.conj()).real.sum(axis=-2)) * np.sqrt(
+        (weights_y * weights_y.conj()).real.sum(axis=-2)
+    )
     csd *= 2 / denom
     return csd
 
 
-def _mt_spectra(x, dpss, sfreq, n_fft=None):
+def _mt_spectra(x, dpss, sfreq, n_fft=None, remove_dc=True):
     """Compute tapered spectra.
 
     Parameters
@@ -244,6 +247,7 @@ def _mt_spectra(x, dpss, sfreq, n_fft=None):
     n_fft : int | None
         Length of the FFT. If None, the number of samples in the input signal
         will be used.
+    %(remove_dc)s
 
     Returns
     -------
@@ -252,76 +256,88 @@ def _mt_spectra(x, dpss, sfreq, n_fft=None):
     freqs : array, shape=(n_freqs,)
         The frequency points in Hz of the spectra
     """
-    from scipy.fft import rfft, rfftfreq
     if n_fft is None:
         n_fft = x.shape[-1]
 
     # remove mean (do not use in-place subtraction as it may modify input x)
-    x = x - np.mean(x, axis=-1, keepdims=True)
+    if remove_dc:
+        x = x - np.mean(x, axis=-1, keepdims=True)
 
     # only keep positive frequencies
-    freqs = rfftfreq(n_fft, 1. / sfreq)
+    freqs = rfftfreq(n_fft, 1.0 / sfreq)
 
     # The following is equivalent to this, but uses less memory:
     # x_mt = fftpack.fft(x[:, np.newaxis, :] * dpss, n=n_fft)
     n_tapers = dpss.shape[0] if dpss.ndim > 1 else 1
-    x_mt = np.zeros(x.shape[:-1] + (n_tapers, len(freqs)),
-                    dtype=np.complex128)
+    x_mt = np.zeros(x.shape[:-1] + (n_tapers, len(freqs)), dtype=np.complex128)
     for idx, sig in enumerate(x):
         x_mt[idx] = rfft(sig[..., np.newaxis, :] * dpss, n=n_fft)
     # Adjust DC and maybe Nyquist, depending on one-sided transform
-    x_mt[..., 0] /= np.sqrt(2.)
+    x_mt[..., 0] /= np.sqrt(2.0)
     if n_fft % 2 == 0:
-        x_mt[..., -1] /= np.sqrt(2.)
+        x_mt[..., -1] /= np.sqrt(2.0)
     return x_mt, freqs
 
 
 @verbose
-def _compute_mt_params(n_times, sfreq, bandwidth, low_bias, adaptive,
-                       verbose=None):
+def _compute_mt_params(n_times, sfreq, bandwidth, low_bias, adaptive, verbose=None):
     """Triage windowing and multitaper parameters."""
     # Compute standardized half-bandwidth
-    from scipy.signal import get_window
     if isinstance(bandwidth, str):
-        logger.info('    Using standard spectrum estimation with "%s" window'
-                    % (bandwidth,))
+        logger.info(f'    Using standard spectrum estimation with "{bandwidth}" window')
         window_fun = get_window(bandwidth, n_times)[np.newaxis]
         return window_fun, np.ones(1), False
 
     if bandwidth is not None:
-        half_nbw = float(bandwidth) * n_times / (2. * sfreq)
+        half_nbw = float(bandwidth) * n_times / (2.0 * sfreq)
     else:
-        half_nbw = 4.
+        half_nbw = 4.0
     if half_nbw < 0.5:
         raise ValueError(
-            'bandwidth value %s yields a normalized half-bandwidth of '
-            '%s < 0.5, use a value of at least %s'
-            % (bandwidth, half_nbw, sfreq / n_times))
+            f"bandwidth value {bandwidth} yields a normalized half-bandwidth of "
+            f"{half_nbw} < 0.5, use a value of at least {sfreq / n_times}"
+        )
 
     # Compute DPSS windows
     n_tapers_max = int(2 * half_nbw)
-    window_fun, eigvals = dpss_windows(n_times, half_nbw, n_tapers_max,
-                                       sym=False, low_bias=low_bias)
-    logger.info('    Using multitaper spectrum estimation with %d DPSS '
-                'windows' % len(eigvals))
+    window_fun, eigvals = dpss_windows(
+        n_times, half_nbw, n_tapers_max, sym=False, low_bias=low_bias
+    )
+    logger.info(
+        f"    Using multitaper spectrum estimation with {len(eigvals)} DPSS windows"
+    )
 
     if adaptive and len(eigvals) < 3:
-        warn('Not adaptively combining the spectral estimators due to a '
-             'low number of tapers (%s < 3).' % (len(eigvals),))
+        warn(
+            "Not adaptively combining the spectral estimators due to a "
+            f"low number of tapers ({len(eigvals)} < 3)."
+        )
         adaptive = False
 
     return window_fun, eigvals, adaptive
 
 
 @verbose
-def psd_array_multitaper(x, sfreq, fmin=0.0, fmax=np.inf, bandwidth=None,
-                         adaptive=False, low_bias=True, normalization='length',
-                         output='power', n_jobs=None, *, max_iter=150,
-                         verbose=None):
+def psd_array_multitaper(
+    x,
+    sfreq,
+    fmin=0.0,
+    fmax=np.inf,
+    bandwidth=None,
+    adaptive=False,
+    low_bias=True,
+    normalization="length",
+    remove_dc=True,
+    output="power",
+    n_jobs=None,
+    *,
+    max_iter=150,
+    verbose=None,
+):
     r"""Compute power spectral density (PSD) using a multi-taper method.
 
     The power spectral density is computed with DPSS
-    tapers\ :footcite:p:`Slepian1978`.
+    tapers :footcite:p:`Slepian1978`.
 
     Parameters
     ----------
@@ -342,6 +358,7 @@ def psd_array_multitaper(x, sfreq, fmin=0.0, fmax=np.inf, bandwidth=None,
         Only use tapers with more than 90%% spectral concentration within
         bandwidth.
     %(normalization)s
+    %(remove_dc)s
     output : str
         The format of the returned ``psds`` array, ``'complex'`` or
         ``'power'``:
@@ -379,8 +396,7 @@ def psd_array_multitaper(x, sfreq, fmin=0.0, fmax=np.inf, bandwidth=None,
     ----------
     .. footbibliography::
     """
-    from scipy.fft import rfftfreq
-    _check_option('normalization', normalization, ['length', 'full'])
+    _check_option("normalization", normalization, ["length", "full"])
 
     # Reshape data so its 2-D for parallelization
     ndim_in = x.ndim
@@ -390,18 +406,19 @@ def psd_array_multitaper(x, sfreq, fmin=0.0, fmax=np.inf, bandwidth=None,
     x = x.reshape(-1, n_times)
 
     dpss, eigvals, adaptive = _compute_mt_params(
-        n_times, sfreq, bandwidth, low_bias, adaptive)
+        n_times, sfreq, bandwidth, low_bias, adaptive
+    )
     n_tapers = len(dpss)
     weights = np.sqrt(eigvals)[np.newaxis, :, np.newaxis]
 
     # decide which frequencies to keep
-    freqs = rfftfreq(n_times, 1. / sfreq)
+    freqs = rfftfreq(n_times, 1.0 / sfreq)
     freq_mask = (freqs >= fmin) & (freqs <= fmax)
     freqs = freqs[freq_mask]
     n_freqs = len(freqs)
 
-    if output == 'complex':
-        psd = np.zeros((x.shape[0], n_tapers, n_freqs), dtype='complex')
+    if output == "complex":
+        psd = np.zeros((x.shape[0], n_tapers, n_freqs), dtype="complex")
     else:
         psd = np.zeros((x.shape[0], n_freqs))
 
@@ -409,13 +426,14 @@ def psd_array_multitaper(x, sfreq, fmin=0.0, fmax=np.inf, bandwidth=None,
     n_chunk = max(50000000 // (len(freq_mask) * len(eigvals) * 16), 1)
     offsets = np.concatenate((np.arange(0, x.shape[0], n_chunk), [x.shape[0]]))
     for start, stop in zip(offsets[:-1], offsets[1:]):
-        x_mt = _mt_spectra(x[start:stop], dpss, sfreq)[0]
-        if output == 'power':
+        x_mt = _mt_spectra(x[start:stop], dpss, sfreq, remove_dc=remove_dc)[0]
+        if output == "power":
             if not adaptive:
                 psd[start:stop] = _psd_from_mt(x_mt[:, :, freq_mask], weights)
             else:
-                parallel, my_psd_from_mt_adaptive, n_jobs = \
-                    parallel_func(_psd_from_mt_adaptive, n_jobs)
+                parallel, my_psd_from_mt_adaptive, n_jobs = parallel_func(
+                    _psd_from_mt_adaptive, n_jobs
+                )
                 n_splits = min(stop - start, n_jobs)
                 out = parallel(
                     my_psd_from_mt_adaptive(x, eigvals, freq_mask, max_iter)
@@ -425,26 +443,36 @@ def psd_array_multitaper(x, sfreq, fmin=0.0, fmax=np.inf, bandwidth=None,
         else:
             psd[start:stop] = x_mt[:, :, freq_mask]
 
-    if normalization == 'full':
+    if normalization == "full":
         psd /= sfreq
 
     # Combining/reshaping to original data shape
-    last_dims = (n_freqs,) if output == 'power' else (n_tapers, n_freqs)
+    last_dims = (n_freqs,) if output == "power" else (n_tapers, n_freqs)
     psd.shape = dshape + last_dims
     if ndim_in == 1:
         psd = psd[0]
 
-    if output == 'complex':
+    if output == "complex":
         return psd, freqs, weights
     else:
         return psd, freqs
 
 
 @verbose
-def tfr_array_multitaper(epoch_data, sfreq, freqs, n_cycles=7.0,
-                         zero_mean=True, time_bandwidth=4.0, use_fft=True,
-                         decim=1, output='complex', n_jobs=None, *,
-                         verbose=None):
+def tfr_array_multitaper(
+    data,
+    sfreq,
+    freqs,
+    n_cycles=7.0,
+    zero_mean=True,
+    time_bandwidth=4.0,
+    use_fft=True,
+    decim=1,
+    output="complex",
+    n_jobs=None,
+    *,
+    verbose=None,
+):
     """Compute Time-Frequency Representation (TFR) using DPSS tapers.
 
     Same computation as `~mne.time_frequency.tfr_multitaper`, but operates on
@@ -453,11 +481,11 @@ def tfr_array_multitaper(epoch_data, sfreq, freqs, n_cycles=7.0,
 
     Parameters
     ----------
-    epoch_data : array of shape (n_epochs, n_channels, n_times)
+    data : array of shape (n_epochs, n_channels, n_times)
         The epochs.
     sfreq : float
         Sampling frequency of the data in Hz.
-    %(freqs_tfr)s
+    %(freqs_tfr_array)s
     %(n_cycles_tfr)s
     zero_mean : bool
         If True, make sure the wavelets have a mean of zero. Defaults to True.
@@ -475,12 +503,13 @@ def tfr_array_multitaper(epoch_data, sfreq, freqs, n_cycles=7.0,
         * ``'avg_power_itc'`` : average of single trial power and inter-trial
           coherence across trials.
     %(n_jobs)s
+        The parallelization is implemented across channels.
     %(verbose)s
 
     Returns
     -------
     out : array
-        Time frequency transform of ``epoch_data``.
+        Time frequency transform of ``data``.
 
         - if ``output in ('complex',' 'phase')``, array of shape
           ``(n_epochs, n_chans, n_tapers, n_freqs, n_times)``
@@ -502,14 +531,25 @@ def tfr_array_multitaper(epoch_data, sfreq, freqs, n_cycles=7.0,
 
     Notes
     -----
-    %(temporal-window_tfr_notes)s
+    %(temporal_window_tfr_intro)s
+    %(temporal_window_tfr_multitaper_notes)s
     %(time_bandwidth_tfr_notes)s
 
     .. versionadded:: 0.14.0
     """
     from .tfr import _compute_tfr
-    return _compute_tfr(epoch_data, freqs, sfreq=sfreq,
-                        method='multitaper', n_cycles=n_cycles,
-                        zero_mean=zero_mean, time_bandwidth=time_bandwidth,
-                        use_fft=use_fft, decim=decim, output=output,
-                        n_jobs=n_jobs, verbose=verbose)
+
+    return _compute_tfr(
+        data,
+        freqs,
+        sfreq=sfreq,
+        method="multitaper",
+        n_cycles=n_cycles,
+        zero_mean=zero_mean,
+        time_bandwidth=time_bandwidth,
+        use_fft=use_fft,
+        decim=decim,
+        output=output,
+        n_jobs=n_jobs,
+        verbose=verbose,
+    )

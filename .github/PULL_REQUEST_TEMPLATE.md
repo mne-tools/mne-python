@@ -1,5 +1,7 @@
+<!--
+
 Thanks for contributing a pull request! Please make sure you have read the
-[contribution guidelines](https://mne.tools/dev/install/contributing.html)
+[contribution guidelines](https://mne.tools/dev/development/contributing.html)
 before submitting.
 
 Please be aware that we are a loose team of volunteers so patience is
@@ -11,13 +13,22 @@ case, we ask for your understanding during the review process.
 
 Again, thanks for contributing!
 
-#### Reference issue
-Example: Fixes #1234.
+-->
+
+#### Reference issue (if any)
+
+<!-- Example:
+
+Fixes #1234.
+
+-->
 
 
 #### What does this implement/fix?
-Explain your changes.
+
+<!-- Explain your changes. -->
 
 
 #### Additional information
-Any additional information you think is important.
+
+<!-- Any additional information you think is important. -->

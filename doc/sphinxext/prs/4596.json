@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "1742decca63dd6d1bb6517a7b3ce465aebf1943f",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/inverse/plot_mixed_norm_inverse.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/_3d.py": {
+      "a": 3,
+      "d": 2
+    }
+  }
+}

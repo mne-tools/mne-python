@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "d759c60d718811988998e9c1c24d5326f7da7a22",
+  "authors": [
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "examples/visualization/plot_publication_figure.py": {
+      "a": 127,
+      "d": 3
+    }
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "08c8cad249e6e180096b0c8c3e9075ca6ae31bd6",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/inverse/psf_ctf_vertices.py": {
+      "a": 48,
+      "d": 5
+    },
+    "mne/conftest.py": {
+      "a": 11,
+      "d": 2
+    },
+    "mne/minimum_norm/inverse.py": {
+      "a": 16,
+      "d": 7
+    },
+    "mne/minimum_norm/resolution_matrix.py": {
+      "a": 45,
+      "d": 56
+    },
+    "mne/minimum_norm/spatial_resolution.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/minimum_norm/tests/test_resolution_matrix.py": {
+      "a": 88,
+      "d": 60
+    },
+    "mne/minimum_norm/tests/test_resolution_metrics.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "7a87d0c627c98c840cc86664355c9fbb38229e28",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/viz/utils.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

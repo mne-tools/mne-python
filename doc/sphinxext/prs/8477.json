@@ -1,0 +1,79 @@
+{
+  "merge_commit_sha": "a1a3e27b437c3eab6b029d89ea4b2b50464ef073",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".travis.yml": {
+      "a": 3,
+      "d": 3
+    },
+    "examples/inverse/plot_label_source_activations.py": {
+      "a": 1,
+      "d": 1
+    },
+    "ignore_words.txt": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/beamformer/tests/test_lcmv.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/channels/tests/test_montage.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/conftest.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/inverse_sparse/tests/test_mxne_inverse.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/artemis123/artemis123.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/curry/tests/test_curry.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/persyst/tests/test_persyst.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/tests/test_meas_info.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/tests/test_reference.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/tests/test_chpi.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/tests/test_source_estimate.py": {
+      "a": 5,
+      "d": 0
+    },
+    "mne/tests/test_source_space.py": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/utils/tests/test_check.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/viz/tests/conftest.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

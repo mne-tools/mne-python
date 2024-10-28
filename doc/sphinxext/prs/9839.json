@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "718a14901f81de8a0261e1f7e2529378cce783c1",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/viz/backends/renderer.py": {
+      "a": 0,
+      "d": 1
+    }
+  }
+}

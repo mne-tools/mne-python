@@ -1,9 +1,6 @@
-# Authors: Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
-#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
-#          Denis A. Engemann <denis.engemann@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # Many of the computations in this code were derived from Matti Hämäläinen's
 # C code.
@@ -11,22 +8,36 @@
 import os
 
 import numpy as np
+from scipy.sparse import csr_array
 
-from .io.constants import FIFF
-from .io.open import fiff_open
-from .io.tag import find_tag
-from .io.tree import dir_tree_find
-from .io.write import (start_block, end_block, write_string,
-                       start_and_end_file, write_float_sparse_rcs, write_int)
-from .surface import (read_surface, _triangle_neighbors, _compute_nearest,
-                      _normalize_vectors, _get_tri_supp_geom,
-                      _find_nearest_tri_pts)
-from .utils import get_subjects_dir, warn, logger, verbose
+from ._fiff.constants import FIFF
+from ._fiff.open import fiff_open
+from ._fiff.tag import find_tag
+from ._fiff.tree import dir_tree_find
+from ._fiff.write import (
+    end_block,
+    start_and_end_file,
+    start_block,
+    write_float_sparse_rcs,
+    write_int,
+    write_string,
+)
+from .fixes import _eye_array
+from .surface import (
+    _compute_nearest,
+    _find_nearest_tri_pts,
+    _get_tri_supp_geom,
+    _normalize_vectors,
+    _triangle_neighbors,
+    read_surface,
+)
+from .utils import get_subjects_dir, logger, verbose, warn
 
 
 @verbose
-def read_morph_map(subject_from, subject_to, subjects_dir=None, xhemi=False,
-                   verbose=None):
+def read_morph_map(
+    subject_from, subject_to, subjects_dir=None, xhemi=False, verbose=None
+):
     """Read morph map.
 
     Morph maps can be generated with mne_make_morph_maps. If one isn't
@@ -49,7 +60,7 @@ def read_morph_map(subject_from, subject_to, subjects_dir=None, xhemi=False,
 
     Returns
     -------
-    left_map, right_map : ~scipy.sparse.csr_matrix
+    left_map, right_map : ~scipy.sparse.csr_array
         The morph maps for the 2 hemispheres.
     """
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
@@ -60,22 +71,25 @@ def read_morph_map(subject_from, subject_to, subjects_dir=None, xhemi=False,
         try:
             os.mkdir(mmap_dir)
         except Exception:
-            warn('Could not find or make morph map directory "%s"' % mmap_dir)
+            warn(f'Could not find or make morph map directory "{mmap_dir}"')
 
     # filename components
     if xhemi:
         if subject_to != subject_from:
             raise NotImplementedError(
                 "Morph-maps between hemispheres are currently only "
-                "implemented for subject_to == subject_from")
-        map_name_temp = '%s-%s-xhemi'
-        log_msg = 'Creating morph map %s -> %s xhemi'
+                "implemented for subject_to == subject_from"
+            )
+        map_name_temp = "%s-%s-xhemi"
+        log_msg = "Creating morph map %s -> %s xhemi"
     else:
-        map_name_temp = '%s-%s'
-        log_msg = 'Creating morph map %s -> %s'
+        map_name_temp = "%s-%s"
+        log_msg = "Creating morph map %s -> %s"
 
-    map_names = [map_name_temp % (subject_from, subject_to),
-                 map_name_temp % (subject_to, subject_from)]
+    map_names = [
+        map_name_temp % (subject_from, subject_to),
+        map_name_temp % (subject_to, subject_from),
+    ]
 
     # find existing file
     fname = None
@@ -84,16 +98,16 @@ def read_morph_map(subject_from, subject_to, subjects_dir=None, xhemi=False,
         if fname.exists():
             return _read_morph_map(fname, subject_from, subject_to)
     # if file does not exist, make it
-    logger.info('Morph map "%s" does not exist, creating it and saving it to '
-                'disk' % fname)
+    logger.info(
+        f'Morph map "{fname}" does not exist, creating it and saving it to disk'
+    )
     logger.info(log_msg % (subject_from, subject_to))
     mmap_1 = _make_morph_map(subject_from, subject_to, subjects_dir, xhemi)
     if subject_to == subject_from:
         mmap_2 = None
     else:
         logger.info(log_msg % (subject_to, subject_from))
-        mmap_2 = _make_morph_map(subject_to, subject_from, subjects_dir,
-                                 xhemi)
+        mmap_2 = _make_morph_map(subject_to, subject_from, subjects_dir, xhemi)
     _write_morph_map(fname, subject_from, subject_to, mmap_1, mmap_2)
     return mmap_1
 
@@ -105,7 +119,7 @@ def _read_morph_map(fname, subject_from, subject_to):
         # Locate all maps
         maps = dir_tree_find(tree, FIFF.FIFFB_MNE_MORPH_MAP)
         if len(maps) == 0:
-            raise ValueError('Morphing map data not found')
+            raise ValueError("Morphing map data not found")
 
         # Find the correct ones
         left_map = None
@@ -120,14 +134,14 @@ def _read_morph_map(fname, subject_from, subject_to):
                     if tag.data == FIFF.FIFFV_MNE_SURF_LEFT_HEMI:
                         tag = find_tag(fid, m, FIFF.FIFF_MNE_MORPH_MAP)
                         left_map = tag.data
-                        logger.info('    Left-hemisphere map read.')
+                        logger.info("    Left-hemisphere map read.")
                     elif tag.data == FIFF.FIFFV_MNE_SURF_RIGHT_HEMI:
                         tag = find_tag(fid, m, FIFF.FIFF_MNE_MORPH_MAP)
                         right_map = tag.data
-                        logger.info('    Right-hemisphere map read.')
+                        logger.info("    Right-hemisphere map read.")
 
     if left_map is None or right_map is None:
-        raise ValueError('Could not find both hemispheres in %s' % fname)
+        raise ValueError(f"Could not find both hemispheres in {fname}")
 
     return left_map, right_map
 
@@ -138,8 +152,7 @@ def _write_morph_map(fname, subject_from, subject_to, mmap_1, mmap_2):
         with start_and_end_file(fname) as fid:
             _write_morph_map_(fid, subject_from, subject_to, mmap_1, mmap_2)
     except Exception as exp:
-        warn('Could not write morph-map file "%s" (error: %s)'
-             % (fname, exp))
+        warn(f'Could not write morph-map file "{fname}" (error: {exp})')
 
 
 def _write_morph_map_(fid, subject_from, subject_to, mmap_1, mmap_2):
@@ -177,26 +190,27 @@ def _make_morph_map(subject_from, subject_to, subjects_dir, xhemi):
     """
     subjects_dir = get_subjects_dir(subjects_dir)
     if xhemi:
-        reg = '%s.sphere.left_right'
-        hemis = (('lh', 'rh'), ('rh', 'lh'))
+        reg = "%s.sphere.left_right"
+        hemis = (("lh", "rh"), ("rh", "lh"))
     else:
-        reg = '%s.sphere.reg'
-        hemis = (('lh', 'lh'), ('rh', 'rh'))
+        reg = "%s.sphere.reg"
+        hemis = (("lh", "lh"), ("rh", "rh"))
 
-    return [_make_morph_map_hemi(subject_from, subject_to, subjects_dir,
-                                 reg % hemi_from, reg % hemi_to)
-            for hemi_from, hemi_to in hemis]
+    return [
+        _make_morph_map_hemi(
+            subject_from, subject_to, subjects_dir, reg % hemi_from, reg % hemi_to
+        )
+        for hemi_from, hemi_to in hemis
+    ]
 
 
-def _make_morph_map_hemi(subject_from, subject_to, subjects_dir, reg_from,
-                         reg_to):
+def _make_morph_map_hemi(subject_from, subject_to, subjects_dir, reg_from, reg_to):
     """Construct morph map for one hemisphere."""
-    from scipy.sparse import csr_matrix, eye as speye
     # add speedy short-circuit for self-maps
     if subject_from == subject_to and reg_from == reg_to:
         fname = subjects_dir / subject_from / "surf" / reg_from
         n_pts = len(read_surface(fname, verbose=False)[0])
-        return speye(n_pts, n_pts, format='csr')
+        return _eye_array(n_pts, format="csr")
 
     # load surfaces and normalize points to be on unit sphere
     fname = subjects_dir / subject_from / "surf" / reg_from
@@ -207,7 +221,7 @@ def _make_morph_map_hemi(subject_from, subject_to, subjects_dir, reg_from,
     _normalize_vectors(to_rr)
 
     # from surface: get nearest neighbors, find triangles for each vertex
-    nn_pts_idx = _compute_nearest(from_rr, to_rr, method='cKDTree')
+    nn_pts_idx = _compute_nearest(from_rr, to_rr, method="KDTree")
     from_pt_tris = _triangle_neighbors(from_tri, len(from_rr))
     from_pt_tris = [from_pt_tris[pt_idx].astype(int) for pt_idx in nn_pts_idx]
     from_pt_lens = np.cumsum([0] + [len(x) for x in from_pt_tris])
@@ -220,13 +234,14 @@ def _make_morph_map_hemi(subject_from, subject_to, subjects_dir, reg_from,
     weights = []
     tri_geom = _get_tri_supp_geom(dict(rr=from_rr, tris=from_tri))
     weights, tri_inds = _find_nearest_tri_pts(
-        to_rr, from_pt_tris, from_pt_lens, run_all=False, reproject=False,
-        **tri_geom)
+        to_rr, from_pt_tris, from_pt_lens, run_all=False, reproject=False, **tri_geom
+    )
 
     nn_idx = from_tri[tri_inds]
     weights = np.array(weights)
 
     row_ind = np.repeat(np.arange(len(to_rr)), 3)
-    this_map = csr_matrix((weights.ravel(), (row_ind, nn_idx.ravel())),
-                          shape=(len(to_rr), len(from_rr)))
+    this_map = csr_array(
+        (weights.ravel(), (row_ind, nn_idx.ravel())), shape=(len(to_rr), len(from_rr))
+    )
     return this_map

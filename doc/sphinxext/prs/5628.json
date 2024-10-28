@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "46585fb139a15d024941eb24273f7a0ab097515c",
+  "authors": [
+    {
+      "n": "Joan Massich",
+      "e": "mailsik@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/manual/datasets_index.rst": {
+      "a": 2,
+      "d": 3
+    },
+    "examples/datasets/plot_brainstorm_data.py": {
+      "a": 4,
+      "d": 3
+    },
+    "mne/datasets/utils.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

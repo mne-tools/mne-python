@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "c14ee59f039927c3b7911949c43ed0c1e24769de",
+  "authors": [
+    {
+      "n": "Denis A. Engemann",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/preprocessing/ssp.py": {
+      "a": 18,
+      "d": 8
+    }
+  }
+}

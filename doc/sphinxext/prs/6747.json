@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "dbed4f6f0e7c3c1efd1a76ba29f3149bbf6e15d1",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/install/advanced.rst": {
+      "a": 4,
+      "d": 2
+    },
+    "doc/install/contributing.rst": {
+      "a": 15,
+      "d": 8
+    }
+  }
+}

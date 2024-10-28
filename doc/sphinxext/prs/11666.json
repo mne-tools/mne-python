@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "e9fd6e78283f4c0655dfe80e1e86053181543f8f",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Timur Sokhin",
+      "e": "qwinpin@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/annotations.py": {
+      "a": 2,
+      "d": 5
+    },
+    "mne/tests/test_annotations.py": {
+      "a": 5,
+      "d": 0
+    }
+  }
+}

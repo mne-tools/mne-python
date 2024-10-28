@@ -1,0 +1,71 @@
+{
+  "merge_commit_sha": "ce95d7388d3fc0c739c510dcedcc736eb67af692",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/datasets/plot_spm_faces_dataset.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/decoding/plot_decoding_spatio_temporal_source.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/forward/plot_make_forward.py": {
+      "a": 2,
+      "d": 3
+    },
+    "examples/forward/plot_read_forward.py": {
+      "a": 2,
+      "d": 3
+    },
+    "examples/inverse/plot_dics_beamformer.py": {
+      "a": 1,
+      "d": 2
+    },
+    "examples/inverse/plot_label_from_stc.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/inverse/plot_mne_crosstalk_function.py": {
+      "a": 4,
+      "d": 7
+    },
+    "examples/inverse/plot_mne_point_spread_function.py": {
+      "a": 4,
+      "d": 7
+    },
+    "examples/inverse/plot_time_frequency_mixed_norm_inverse.py": {
+      "a": 3,
+      "d": 3
+    },
+    "examples/plot_compute_mne_inverse.py": {
+      "a": 1,
+      "d": 2
+    },
+    "examples/stats/plot_cluster_stats_spatio_temporal.py": {
+      "a": 1,
+      "d": 2
+    },
+    "examples/stats/plot_cluster_stats_spatio_temporal_2samp.py": {
+      "a": 2,
+      "d": 2
+    },
+    "examples/stats/plot_cluster_stats_spatio_temporal_repeated_measures_anova.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/viz/_3d.py": {
+      "a": 26,
+      "d": 20
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 45,
+      "d": 22
+    }
+  }
+}

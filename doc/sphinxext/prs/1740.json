@@ -1,0 +1,83 @@
+{
+  "merge_commit_sha": "083524fc9e7979053b4a40b68ae242d1cf18e153",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/source/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/_hdf5.py": {
+      "a": 0,
+      "d": 8
+    },
+    "mne/channels/layout.py": {
+      "a": 13,
+      "d": 6
+    },
+    "mne/channels/tests/test_montage.py": {
+      "a": 4,
+      "d": 1
+    },
+    "mne/gui/tests/test_kit2fiff_gui.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/io/base.py": {
+      "a": 12,
+      "d": 17
+    },
+    "mne/io/brainvision/brainvision.py": {
+      "a": 8,
+      "d": 27
+    },
+    "mne/io/bti/bti.py": {
+      "a": 5,
+      "d": 17
+    },
+    "mne/io/constants.py": {
+      "a": 14,
+      "d": 24
+    },
+    "mne/io/edf/edf.py": {
+      "a": 11,
+      "d": 18
+    },
+    "mne/io/egi/egi.py": {
+      "a": 4,
+      "d": 10
+    },
+    "mne/io/fiff/raw.py": {
+      "a": 18,
+      "d": 0
+    },
+    "mne/io/fiff/tests/test_raw.py": {
+      "a": 4,
+      "d": 1
+    },
+    "mne/io/kit/kit.py": {
+      "a": 7,
+      "d": 19
+    },
+    "mne/io/meas_info.py": {
+      "a": 249,
+      "d": 51
+    },
+    "mne/io/proc_history.py": {
+      "a": 16,
+      "d": 4
+    },
+    "mne/simulation/evoked.py": {
+      "a": 5,
+      "d": 5
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 2,
+      "d": 3
+    }
+  }
+}

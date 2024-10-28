@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "03dc756c9fa93f3929cc47d1012fb103959a766c",
+  "authors": [
+    {
+      "n": "Jean-Rémi KING",
+      "e": null
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/coreg.py": {
+      "a": 38,
+      "d": 19
+    }
+  }
+}

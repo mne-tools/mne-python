@@ -1,0 +1,55 @@
+{
+  "merge_commit_sha": "fb98000c6b9998b3a05ab3d887d0e65c4d3d72a0",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "MANIFEST.in": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/datasets.rst": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/datasets/__init__.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/datasets/_phantom/__init__.py": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/datasets/_phantom/base.py": {
+      "a": 62,
+      "d": 0
+    },
+    "mne/datasets/_phantom/phantom_otaniemi.txt": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/datasets/tests/test_datasets.py": {
+      "a": 33,
+      "d": 6
+    },
+    "mne/dipole.py": {
+      "a": 4,
+      "d": 0
+    },
+    "setup.py": {
+      "a": 1,
+      "d": 0
+    },
+    "tutorials/inverse/80_brainstorm_phantom_elekta.py": {
+      "a": 21,
+      "d": 6
+    }
+  }
+}

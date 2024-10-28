@@ -1,6 +1,10 @@
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
+
 import numpy as np
 
-from .. utils import logger, verbose, _pl
+from ..utils import _pl, logger, verbose
 
 
 @verbose
@@ -50,11 +54,11 @@ def peak_finder(x0, thresh=None, extrema=1, verbose=None):
     s = x0.size
 
     if x0.ndim >= 2 or s == 0:
-        raise ValueError('The input data must be a non empty 1D vector')
+        raise ValueError("The input data must be a non empty 1D vector")
 
     if thresh is None:
         thresh = (np.max(x0) - np.min(x0)) / 4
-        logger.debug('Peak finder automatic threshold: %0.2g' % (thresh,))
+        logger.debug(f"Peak finder automatic threshold: {thresh:0.2g}")
 
     assert extrema in [-1, 1]
 
@@ -77,14 +81,13 @@ def peak_finder(x0, thresh=None, extrema=1, verbose=None):
     min_mag = np.min(x)
 
     if length > 2:  # Function with peaks and valleys
-
         # Set initial parameters for loop
         temp_mag = min_mag
         found_peak = False
         left_min = min_mag
 
         # Deal with first point a little differently since tacked it on
-        # Calculate the sign of the derivative since we taked the first point
+        # Calculate the sign of the derivative since we took the first point
         # on it does not necessarily alternate like the rest.
         signDx = np.sign(np.diff(x[:3]))
         if signDx[0] <= 0:  # The first point is larger or equal to the second
@@ -111,8 +114,9 @@ def peak_finder(x0, thresh=None, extrema=1, verbose=None):
             ii += 1  # This is a peak
             # Reset peak finding if we had a peak and the next peak is bigger
             # than the last or the left min was small enough to reset.
-            if found_peak and ((x[ii] > peak_mag[-1]) or
-                               (left_min < peak_mag[-1] - thresh)):
+            if found_peak and (
+                (x[ii] > peak_mag[-1]) or (left_min < peak_mag[-1] - thresh)
+            ):
                 temp_mag = min_mag
                 found_peak = False
 
@@ -166,16 +170,15 @@ def peak_finder(x0, thresh=None, extrema=1, verbose=None):
 
     # ensure output type array
     if not isinstance(peak_inds, np.ndarray):
-        peak_inds = np.atleast_1d(peak_inds).astype('int64')
+        peak_inds = np.atleast_1d(peak_inds).astype("int64")
 
     if not isinstance(peak_mags, np.ndarray):
-        peak_mags = np.atleast_1d(peak_mags).astype('float64')
+        peak_mags = np.atleast_1d(peak_mags).astype("float64")
 
     # Plot if no output desired
     if len(peak_inds) == 0:
-        logger.info('No significant peaks found')
+        logger.info("No significant peaks found")
     else:
-        logger.info('Found %d significant peak%s'
-                    % (len(peak_inds), _pl(peak_inds)))
+        logger.info(f"Found {len(peak_inds)} significant peak{_pl(peak_inds)}")
 
     return peak_inds, peak_mags

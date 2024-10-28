@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "530988c7475f9a60cfa137972b8523180aaa3c0f",
+  "authors": [
+    {
+      "n": "Alex Rockhill",
+      "e": "aprockhill@mailbox.org"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/time_frequency.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/time_frequency/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/time_frequency/csd.py": {
+      "a": 49,
+      "d": 3
+    },
+    "mne/time_frequency/tests/test_csd.py": {
+      "a": 21,
+      "d": 1
+    }
+  }
+}

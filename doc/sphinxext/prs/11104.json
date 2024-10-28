@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "bc30e0e8c687cd91f75432df97e4f348ee8d73eb",
+  "authors": [
+    {
+      "n": "Marijn van Vliet",
+      "e": "w.m.vanvliet@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/channels/montage.py": {
+      "a": 0,
+      "d": 8
+    },
+    "mne/channels/tests/test_montage.py": {
+      "a": 0,
+      "d": 11
+    }
+  }
+}

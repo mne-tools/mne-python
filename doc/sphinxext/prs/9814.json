@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "dd5ca5b7c5a66c5a6afc31089e0bbb58e9e1f2c5",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/conf.py": {
+      "a": 6,
+      "d": 5
+    },
+    "mne/report/report.py": {
+      "a": 18,
+      "d": 23
+    },
+    "mne/utils/misc.py": {
+      "a": 6,
+      "d": 1
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 2,
+      "d": 0
+    },
+    "tutorials/intro/70_report.py": {
+      "a": 2,
+      "d": 15
+    },
+    "tutorials/io/10_reading_meg_data.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}
