@@ -427,14 +427,19 @@ def test_snirf_kernel(kind):
     if kind == "hb":
         # Test data import
         assert raw._data.shape == (180 * 2, 14)
-        assert raw.copy().pick("hbo")._data.shape == (180, 14)
-        assert raw.copy().pick("hbr")._data.shape == (180, 14)
+        hbo_data = raw.get_data("hbo")
+        hbr_data = raw.get_data("hbr")
+        assert hbo_data.shape == hbr_data.shape == (180, 14)
+        hbo_norm = np.nanmedian(np.linalg.norm(hbo_data, axis=-1))
+        hbr_norm = np.nanmedian(np.linalg.norm(hbr_data, axis=-1))
+        assert 1 < hbr_norm < hbo_norm < 3
         n_nan = 20
     else:
         assert raw._data.shape == (1080, 14)
-        assert (
-            raw.copy().pick("fnirs_td_moments_amplitude")._data.shape == raw._data.shape
-        )
+        data = raw.get_data("fnirs_td_moments_amplitude")
+        assert data.shape == raw._data.shape
+        norm = np.nanmedian(np.linalg.norm(data, axis=-1))
+        assert 1e5 < norm < 1e6  # TODO: 429256, is this reasonable Molars!??
         n_nan = 60
 
     assert_allclose(raw.info["sfreq"], 8.257638)

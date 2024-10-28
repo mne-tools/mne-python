@@ -304,6 +304,7 @@ class RawSNIRF(BaseRaw):
                         # append time delay
                         ch_name = f"{ch_name} bin{fnirs_time_delays[bin_idx - 1]}"
                         ch_type = "fnirs_td_gated_amplitude"
+                        need_data_scale = True
                     else:
                         assert snirf_data_type == SNIRF_TD_MOMENTS_AMPLITUDE
                         moment_idx = int(
@@ -316,6 +317,7 @@ class RawSNIRF(BaseRaw):
                             f"{ch_name} moment{fnirs_moment_orders[moment_idx - 1]}"
                         )
                         ch_type = "fnirs_td_moments_amplitude"
+                        need_data_scale = True
 
                 elif snirf_data_type == SNIRF_PROCESSED:
                     dt_id = _correct_shape(
@@ -333,7 +335,14 @@ class RawSNIRF(BaseRaw):
                         )
                         suffix = str(fnirs_wavelengths[wve_idx - 1])
                     else:
+                        if dt_id not in ("hbo", "hbr"):
+                            raise RuntimeError(
+                                "read_raw_snirf can only handle processed "
+                                "data in the form of optical density or "
+                                f"HbO/HbR, but got type f{dt_id}"
+                            )
                         suffix = dt_id.lower()
+                        need_data_scale = True
                     ch_name = f"{ch_name} {suffix}"
                     ch_type = dt_id
                 chnames.append(ch_name)
@@ -351,7 +360,7 @@ class RawSNIRF(BaseRaw):
                 scale = _get_dataunit_scaling(snirf_data_unit)
                 if scale is not None:
                     for ch in info["chs"]:
-                        ch["cal"] = 1.0 / scale
+                        ch["cal"] = scale
 
             subject_info = {}
             names = np.array(dat.get("nirs/metaDataTags/SubjectID"))
