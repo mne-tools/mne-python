@@ -637,10 +637,10 @@ def _get_dataunit_scaling(hbx_unit):
         return scalings[hbx_unit]
     except KeyError:
         raise RuntimeError(
-            f"The Hb unit {hbx_unit} is not supported "
+            f"The Hb unit {repr(hbx_unit)} is not supported "
             "by MNE. Please report this error as a GitHub "
             "issue to inform the developers."
-        )
+        ) from None
 
 
 def _extract_sampling_rate(dat):
