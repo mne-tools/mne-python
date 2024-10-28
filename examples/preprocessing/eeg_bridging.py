@@ -65,7 +65,7 @@ ed_data = dict()  # electrical distance/bridging data
 raw_data = dict()  # store infos for electrode positions
 for sub in range(1, 11):
     print(f"Computing electrode bridges for subject {sub}")
-    raw_fname = mne.datasets.eegbci.load_data(subject=sub, runs=(1,))[0]
+    raw_fname = mne.datasets.eegbci.load_data(subjects=sub, runs=(1,))[0]
     raw = mne.io.read_raw(raw_fname, preload=True, verbose=False)
     mne.datasets.eegbci.standardize(raw)  # set channel names
     raw.set_montage(montage, verbose=False)
