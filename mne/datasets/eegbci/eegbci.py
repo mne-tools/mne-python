@@ -179,7 +179,7 @@ def load_data(
             "The ``subject`` parameter is deprecated and will be removed in version "
             "1.9. Use the ``subjects`` parameter (note the `s`) to suppress this "
             "warning.",
-            DeprecationWarning,
+            FutureWarning,
         )
         del subject
     if subjects is None or runs is None:

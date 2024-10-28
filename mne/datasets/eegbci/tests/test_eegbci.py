@@ -16,7 +16,7 @@ def test_eegbci_download(tmp_path, fake_retrieve):
     assert fake_retrieve.call_count == 4
 
     # XXX: remove in version 1.9
-    with pytest.warns(DeprecationWarning, match="The ``subject``"):
+    with pytest.warns(FutureWarning, match="The ``subject``"):
         fnames = eegbci.load_data(
             subject=subjects, runs=[3], path=tmp_path, update_path=False
         )
