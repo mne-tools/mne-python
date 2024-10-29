@@ -83,6 +83,9 @@ class RawArray(BaseRaw):
             f"Creating RawArray with {dtype.__name__} data, "
             f"n_channels={data.shape[0]}, n_times={data.shape[1]}"
         )
+
+        __import__("inspect").currentframe().f_locals.update(locals())
+
         super().__init__(
             info, data, first_samps=(int(first_samp),), dtype=dtype, verbose=verbose
         )

@@ -162,6 +162,9 @@ class RawCTF(BaseRaw):
                 f"file(s): {missing_names}, and the following file(s) had no "
                 f"valid samples: {no_samps}"
             )
+
+        __import__("inspect").currentframe().f_locals.update(locals())
+
         super().__init__(
             info,
             preload,

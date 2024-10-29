@@ -287,6 +287,8 @@ class RawNeuralynx(BaseRaw):
             description=["BAD_ACQ_SKIP"] * len(gap_start_ids),
         )
 
+        __import__("inspect").currentframe().f_locals.update(locals())
+
         super().__init__(
             info=info,
             last_samps=[sizes_sorted.sum() - 1],

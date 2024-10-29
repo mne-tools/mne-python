@@ -536,6 +536,7 @@ class RawCNT(BaseRaw):
                 "please use mne.io.read_raw_ant instead."
             )
         last_samps = [cnt_info["n_samples"] - 1]
+        __import__("inspect").currentframe().f_locals.update(locals())
         super().__init__(
             info,
             preload,

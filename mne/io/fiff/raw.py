@@ -130,6 +130,9 @@ class Raw(BaseRaw):
         fname = _path_from_fname(fname)
 
         _check_raw_compatibility(raws)
+
+        __import__("inspect").currentframe().f_locals.update(locals())
+
         super().__init__(
             copy.deepcopy(raws[0].info),
             preload=False,

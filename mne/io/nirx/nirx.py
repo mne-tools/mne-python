@@ -477,6 +477,8 @@ class RawNIRX(BaseRaw):
                 annot_mask |= mask
                 nan_mask[key] = None  # shouldn't need again
 
+        __import__("inspect").currentframe().f_locals.update(locals())
+
         super().__init__(
             info,
             preload,

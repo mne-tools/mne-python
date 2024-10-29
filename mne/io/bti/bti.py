@@ -1007,6 +1007,7 @@ class RawBTi(BaseRaw):
         filename = bti_info["pdf"]
         if isinstance(filename, BytesIO):
             filename = None
+        __import__("inspect").currentframe().f_locals.update(locals())
         super().__init__(
             info,
             preload,

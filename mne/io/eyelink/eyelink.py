@@ -105,6 +105,9 @@ class RawEyelink(BaseRaw):
             fname, find_overlaps, overlap_threshold, apply_offsets
         )
         # ======================== Create Raw Object =========================
+
+        __import__("inspect").currentframe().f_locals.update(locals())
+
         super().__init__(
             info,
             preload=eye_ch_data,

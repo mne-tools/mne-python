@@ -185,6 +185,9 @@ class RawEDF(BaseRaw):
 
         # Raw attributes
         last_samps = [edf_info["nsamples"] - 1]
+
+        __import__("inspect").currentframe().f_locals.update(locals())
+
         super().__init__(
             info,
             preload,

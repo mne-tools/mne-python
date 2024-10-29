@@ -151,6 +151,9 @@ class RawNedf(BaseRaw):
         with info._unlock():
             info["meas_date"] = header["meas_date"]
         raw_extra = dict(dt=dt, dt_last=dt_last, n_full=n_full)
+
+        __import__("inspect").currentframe().f_locals.update(locals())
+
         super().__init__(
             info,
             preload=preload,

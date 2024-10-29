@@ -168,6 +168,9 @@ class RawBOXY(BaseRaw):
         assert len(raw_extras["offsets"]) == delta + 1
         if filetype == "non-parsed":
             delta //= raw_extras["source_num"]
+
+        __import__("inspect").currentframe().f_locals.update(locals())
+
         super().__init__(
             info,
             preload,

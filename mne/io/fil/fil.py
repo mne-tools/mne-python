@@ -120,6 +120,8 @@ class RawFIL(BaseRaw):
             meg = json.load(fid)
         info = _compose_meas_info(meg, chans)
 
+        __import__("inspect").currentframe().f_locals.update(locals())
+
         super().__init__(
             info,
             preload,
