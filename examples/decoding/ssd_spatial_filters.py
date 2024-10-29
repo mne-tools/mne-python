@@ -2,7 +2,7 @@
 .. _ex-ssd-spatial-filters:
 
 ===========================================================
-Compute Spectro-Spatial Decomposition (SSD) spatial filters
+Compute Spatio-Spectral Decomposition (SSD) spatial filters
 ===========================================================
 
 In this example, we will compute spatial filters for retaining
