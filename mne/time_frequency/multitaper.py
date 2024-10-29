@@ -469,9 +469,9 @@ def tfr_array_multitaper(
     use_fft=True,
     decim=1,
     output="complex",
-    return_weights=False,
     n_jobs=None,
     *,
+    return_weights=False,
     verbose=None,
 ):
     """Compute Time-Frequency Representation (TFR) using DPSS tapers.
@@ -504,14 +504,13 @@ def tfr_array_multitaper(
         * ``'avg_power_itc'`` : average of single trial power and inter-trial
           coherence across trials.
 
+    %(n_jobs)s
+        The parallelization is implemented across channels.
     return_weights : bool, default False
         If True, return the taper weights. Only applies if ``output='complex'`` or
         ``'phase'``.
 
         .. versionadded:: 1.9.0
-
-    %(n_jobs)s
-        The parallelization is implemented across channels.
     %(verbose)s
 
     Returns
