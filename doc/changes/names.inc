@@ -273,6 +273,7 @@
 .. _Sheraz Khan: https://github.com/SherazKhan
 .. _Silvia Cotroneo: https://github.com/sfc-neuro
 .. _Simeon Wong: https://github.com/dtxe
+.. _Simon M. Hofmann: https://github.com/SHEscher
 .. _Simon Kern: https://skjerns.de
 .. _Simon Kornblith: https://simonster.com
 .. _Sondre Foslien: https://github.com/sondrfos

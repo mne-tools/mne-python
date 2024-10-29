@@ -1,9 +1,9 @@
 """
 .. _ex-ssd-spatial-filters:
 
-===========================================================
-Compute Spatio-Spectral Decomposition (SSD) spatial filters
-===========================================================
+================================================================
+Compute spatial filters with Spatio-Spectral Decomposition (SSD)
+================================================================
 
 In this example, we will compute spatial filters for retaining
 oscillatory brain activity and down-weighting 1/f background signals
