@@ -41,7 +41,6 @@ jobs:
     name: '${{ matrix.os }} / ${{ matrix.kind }} / ${{ matrix.python }}'
     needs: style
     timeout-minutes: 70
-    continue-on-error: true
     runs-on: ${{ matrix.os }}
     defaults:
       run:
@@ -54,6 +53,7 @@ jobs:
       MNE_CI_KIND: '${{ matrix.kind }}'
       CI_OS_NAME: '${{ matrix.os }}'
     strategy:
+      fail-fast: false
       matrix:
         include:
           - os: ubuntu-latest
@@ -132,4 +132,4 @@ jobs:
       - uses: codecov/codecov-action@v4
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-        if: always()
+        if: success() || failure()
