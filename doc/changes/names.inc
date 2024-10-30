@@ -275,6 +275,7 @@
 .. _Simeon Wong: https://github.com/dtxe
 .. _Simon Kern: https://skjerns.de
 .. _Simon Kornblith: https://simonster.com
+.. _Simon M. Hofmann: https://github.com/SHEscher
 .. _Sondre Foslien: https://github.com/sondrfos
 .. _Sophie Herbst: https://github.com/SophieHerbst
 .. _Stanislas Chambon: https://github.com/Slasnista
