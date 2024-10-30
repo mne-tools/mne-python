@@ -97,7 +97,7 @@ print(
 
 for sub in (1, 2):
     raw = mne.io.read_raw_edf(
-        mne.datasets.eegbci.load_data(subject=sub, runs=(1,))[0], preload=True
+        mne.datasets.eegbci.load_data(subjects=sub, runs=(1,))[0], preload=True
     )
     mne.datasets.eegbci.standardize(raw)  # set channel names
     montage = mne.channels.make_standard_montage("standard_1005")
