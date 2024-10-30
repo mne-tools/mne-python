@@ -40,7 +40,7 @@ jobs:
   pytest:
     name: '${{ matrix.os }} / ${{ matrix.kind }} / ${{ matrix.python }}'
     needs: style
-    timeout-minutes: 70
+    timeout-minutes: 80
     runs-on: ${{ matrix.os }}
     defaults:
       run:
