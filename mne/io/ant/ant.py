@@ -31,7 +31,7 @@ if TYPE_CHECKING:
 
     from numpy.typing import NDArray
 
-_UNITS: dict[str, float] = {"uv": 1e-6, "µV": 1e-6}
+_UNITS: dict[str, float] = {"uv": 1e-6, "µv": 1e-6}
 
 
 @fill_doc
