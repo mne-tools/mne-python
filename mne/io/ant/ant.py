@@ -143,8 +143,12 @@ class RawANT(BaseRaw):
         info["device_info"] = dict(type=make, model=model, serial=serial, site=site)
         his_id, name, sex, birthday = read_subject_info(cnt)
         info["subject_info"] = dict(
-            his_id=his_id, first_name=name, sex=sex, birthday=birthday
+            his_id=his_id,
+            first_name=name,
+            sex=sex,
         )
+        if birthday is not None:
+            info["subject_info"]["birthday"] = birthday
         if bipolars is not None:
             with info._unlock():
                 for idx in bipolars_idx:
