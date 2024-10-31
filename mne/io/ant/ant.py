@@ -31,7 +31,7 @@ if TYPE_CHECKING:
 
     from numpy.typing import NDArray
 
-units = {"uv": 1e-6}
+_UNITS: dict[str, float] = {"uv": 1e-6, "µV": 1e-6}
 
 
 @fill_doc
@@ -298,8 +298,8 @@ def _scale_data(data: NDArray[np.float64], ch_units: list[str]) -> None:
     for idx, unit in enumerate(ch_units):
         units_index[unit].append(idx)
     for unit, value in units_index.items():
-        if unit in units:
-            data[np.array(value, dtype=np.int16), :] *= units[unit]
+        if unit in _UNITS:
+            data[np.array(value, dtype=np.int16), :] *= _UNITS[unit]
         else:
             warn(
                 f"Unit {unit} not recognized, not scaling. Please report the unit on "
