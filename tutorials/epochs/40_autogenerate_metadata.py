@@ -188,7 +188,7 @@ metadata, events, event_id = mne.epochs.make_metadata(
 )
 
 # visualize response times regardless of side
-metadata["response"].plot.hist(bins=50, title="Response Times")
+metadata["response"].plot.hist(bins=50, title="Response Times (first response)")
 
 # the "first_response" column contains only "left" and "right" entries, derived
 # from the initial event named "response/left" and "response/right"
@@ -210,6 +210,11 @@ metadata.loc[
 ]
 
 # %%
+# Looking at the ``stimulus/compatible/target_left`` and
+# ``stimulus/compatible/target_right`` columns, you will see that both always contain a
+# numerical value (one is always zero, the other is not). This is because both events
+# occurred within the time window of 1.5 seconds.
+#
 # This can easily lead to confusion during later stages of processing, so let's
 # create a column for the first stimulus – which will always be the time-locked
 # stimulus, as our time interval starts at 0 seconds. We can pass a **list** of
@@ -267,6 +272,10 @@ metadata.loc[
     metadata["stimulus_side"] == metadata["first_response"], "response_correct"
 ] = True
 
+metadata
+
+# %%
+# Count the number of correct and incorrect responses:
 
 correct_response_count = metadata["response_correct"].sum()
 print(
@@ -278,13 +287,14 @@ print(
 # Creating ``Epochs`` with metadata, and visualizing ERPs
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
-# It's finally time to create our epochs! We set the metadata directly on
-# instantiation via the ``metadata`` parameter. Also, it is important to
-# remember to pass ``events`` and ``event_id`` as returned from
+# The metadata is ready. Now it's finally time to create our epochs!
+# We will assign the metadata directly on epochs creation
+# via the ``metadata`` parameter. Also, it is important to
+# remember to pass the ``events`` and ``event_id`` that were returned from
 # `~mne.epochs.make_metadata`, as we only created metadata for a subset of
-# our original events by passing ``row_events``. Otherwise, the length
-# of the metadata and the number of epochs would not match, which would raise
-# an error.
+# our original events by passing ``row_events``. If we were to pass to "original"
+# values instead, the length of the metadata and the number of epochs would mismatch,
+# which would raise an error.
 
 epochs_tmin, epochs_tmax = -0.1, 0.4  # epochs range: [-0.1, 0.4] s
 reject = {"eeg": 250e-6}  # exclude epochs with strong artifacts
@@ -300,6 +310,11 @@ epochs = mne.Epochs(
 )
 
 # %%
+# You probably also noticed that 9 epchs were dropped because they exceeded our
+# rejection limits. This is another reason why it is important to assign the metadata on
+# epochs creation: the metadata will be updated automatically to reflect the actual
+# epochs that were kept.
+#
 # Lastly, let's visualize the ERPs associated with the visual stimulation, once
 # for all trials with correct responses, and once for all trials with correct
 # responses and a response time greater than 0.5 seconds
@@ -308,10 +323,11 @@ vis_erp = epochs["response_correct"].average()
 vis_erp_slow = epochs["(response_correct) & (response > 0.5)"].average()
 
 fig, ax = plt.subplots(2, figsize=(6, 6), layout="constrained")
-vis_erp.plot(gfp=True, spatial_colors=True, axes=ax[0])
-vis_erp_slow.plot(gfp=True, spatial_colors=True, axes=ax[1])
+vis_erp.plot(gfp=True, spatial_colors=True, axes=ax[0], show=False)
+vis_erp_slow.plot(gfp=True, spatial_colors=True, axes=ax[1], show=False)
 ax[0].set_title("Visual ERPs – All Correct Responses")
 ax[1].set_title("Visual ERPs – Slow Correct Responses")
+fig
 
 # %%
 # Aside from the fact that the data for the (much fewer) slow responses looks
