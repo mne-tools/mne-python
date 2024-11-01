@@ -29,7 +29,6 @@ This tutorial is loosely divided into two parts:
    negativity (ERN), i.e. the ERP component associated with incorrect
    behavioral responses.
 
-
 .. _tut-autogenerate-metadata-preparation:
 
 Preparation
