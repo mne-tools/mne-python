@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "d4c0d1c4062110db8c1af0bee47df969d8968d8b",
+  "authors": [
+    {
+      "n": "Mathieu Scheltienne",
+      "e": "mathieu.scheltienne@fcbg.ch"
+    }
+  ],
+  "changes": {
+    "pyproject.toml": {
+      "a": 18,
+      "d": 17
+    }
+  }
+}
