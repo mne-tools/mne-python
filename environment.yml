@@ -30,7 +30,7 @@ dependencies:
   - nilearn
   - numba
   - numpy >=1.23,<3
-  - openmeeg >=2.5.5
+  - openmeeg =2.5.12=*_1
   - packaging
   - pandas
   - pillow
