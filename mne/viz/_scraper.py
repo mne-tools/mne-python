@@ -52,8 +52,7 @@ class _MNEQtBrowserScraper:
 
 @contextmanager
 def _screenshot_mode(browser):
-    need_zen = browser.mne.scrollbars_visible
-    if need_zen:
+    if need_zen := browser.mne.scrollbars_visible:
         browser._toggle_zenmode()
     try:
         yield
