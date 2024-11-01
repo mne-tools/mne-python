@@ -1,1 +1,1 @@
-Fix decimal places of :class:`float` :attr:`mne.Evoked.nave` in :meth:`mne.Evoked.plot` and :meth:`mne.Evoked.plot_image`, by `Gennadiy Belonosov`_.
+Fix decimal places of :class:`float` `mne.Evoked.nave` in :meth:`mne.Evoked.plot` and :meth:`mne.Evoked.plot_image`, by `Gennadiy Belonosov`_.
