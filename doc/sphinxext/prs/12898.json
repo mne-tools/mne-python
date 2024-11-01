@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "b831c28f96ef177462e3cab632f8910d44d22c22",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "doc/install/manual_install_python.rst": {
+      "a": 13,
+      "d": 4
+    },
+    "doc/links.inc": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}
