@@ -315,23 +315,35 @@ epochs = mne.Epochs(
 # epochs creation: the metadata will be updated automatically to reflect the actual
 # epochs that were kept.
 #
-# Lastly, let's visualize the ERPs associated with the visual stimulation, once
-# for all trials with correct responses, and once for all trials with correct
-# responses and a response time greater than 0.5 seconds
-# (i.e., slow responses).
+# Lastly, let's visualize the ERPs associated with the visual stimulation. We will only
+# consider trials with correct responses and produce three plots:
+# one for all correct responses, one for correct slow responses (response time slower
+# than 0.5 s), and one for correct fast responses (response time up to 0.5 s).
+
 vis_erp = epochs["response_correct"].average()
 vis_erp_slow = epochs["(response_correct) & (response > 0.5)"].average()
+vis_erp_fast = epochs["(response_correct) & (response <= 0.5)"].average()
 
-fig, ax = plt.subplots(2, figsize=(6, 6), layout="constrained")
+fig, ax = plt.subplots(3, figsize=(6, 8), layout="constrained")
 vis_erp.plot(gfp=True, spatial_colors=True, axes=ax[0], show=False)
 vis_erp_slow.plot(gfp=True, spatial_colors=True, axes=ax[1], show=False)
-ax[0].set_title("Visual ERPs – All Correct Responses")
-ax[1].set_title("Visual ERPs – Slow Correct Responses")
+vis_erp_fast.plot(gfp=True, spatial_colors=True, axes=ax[2], show=False)
+
+# Set titles
+ax[0].set_title("All Correct Responses")
+ax[1].set_title("Slow Correct Responses")
+ax[2].set_title("Fast Correct Responses")
+fig.suptitle("Visual ERPs", fontweight="bold")
+
+# Turn of x axes for the first two plots
+ax[0].xaxis.set_visible(False)
+ax[1].xaxis.set_visible(False)
+
 fig
 
 # %%
 # Aside from the fact that the data for the (much fewer) slow responses looks
-# noisier – which is entirely to be expected – not much of an ERP difference
+# noisier  – which is entirely to be expected – not much of an ERP difference
 # can be seen.
 #
 # .. _tut-autogenerate-metadata-ern:
