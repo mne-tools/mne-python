@@ -9,6 +9,7 @@ from sklearn.decomposition import PCA
 from numpy.typing import NDArray
 
 
+# TODO: Are we able to split this into smaller segmented functions?
 def pca_obs(
     data: NDArray[Any], 
     qrs: NDArray[Any],
@@ -19,6 +20,8 @@ def pca_obs(
         def __init__(self):
             pass
 
+    # NOTE: Here aswell, is there a reason we are storing this 
+    # to a class? Shouldn't variables suffice?
     # Instantiate class
     pca_info = PCAInfo()
 
@@ -96,7 +99,7 @@ def pca_obs(
     pca_info.expl_var = pca.explained_variance_ratio_
 
     # define selected number of  components using profile likelihood
-    pca_info.nComponents = 4
+    pca_info.nComponents = 4  # TODO: Is this a variable? Or constant? Seems like a variable
     pca_info.meanEffect = mean_effect.T
     nComponents = pca_info.nComponents
 
@@ -127,7 +130,6 @@ def pca_obs(
                     peak_range,
                     pre_range,
                     post_range,
-                    baseline_range,
                     midP,
                     fitted_art,
                     post_idx_nextPeak,
@@ -154,7 +156,6 @@ def pca_obs(
                     peak_range,
                     pre_range,
                     post_range,
-                    baseline_range,
                     midP,
                     fitted_art,
                     post_idx_nextPeak,
@@ -187,7 +188,6 @@ def pca_obs(
                     peak_range,
                     pre_range,
                     post_range,
-                    baseline_range,
                     midP,
                     fitted_art,
                     post_idx_nextPeak,

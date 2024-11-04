@@ -10,7 +10,6 @@ def fit_ecgTemplate(
     peak_range,
     pre_range,
     post_range,
-    baseline_range,
     midP,
     fitted_art,
     post_idx_previousPeak: list,
