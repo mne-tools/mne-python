@@ -56,11 +56,10 @@ if __name__ == "__main__":
     raw.apply_function(
         pca_obs, 
         picks="eeg", 
-        n_jobs=10
-        **{ # args sent to PCA_OBS
-            "qrs": ecg_event_samples, 
-            "filter_coords": fwts, 
-        },
+        n_jobs=10,
+        # args sent to PCA_OBS
+        qrs=ecg_event_samples, 
+        filter_coords=fwts, 
     )
     epochs = Epochs(
         raw, ecg_events, tmin=iv_epoch[0], tmax=iv_epoch[1], baseline=tuple(iv_baseline)

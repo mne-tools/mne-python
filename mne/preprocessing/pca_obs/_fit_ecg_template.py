@@ -19,8 +19,8 @@ def fit_ecg_template(
     Fits the ECG to a template signal (?) 
     and returns the fitted artefact and the index of the next peak. (?)
 
-    .. note:: This should only be used on data which is ... (TODO: are there any conditions that must be met to use our algos?)
-
+    (TODO: are there any conditions that must be met to use our algos?)
+    .. note:: This should only be used on data which is ... 
 
     # TODO: Fill out input/output and raises
     Parameters
@@ -38,7 +38,7 @@ def fit_ecg_template(
 
     Returns
     -------
-        _type_: _description_
+        tuple[np.ndarray, list]: the fitted artifact and the next peak index (if available)
     """
     # Declare class to hold ecg fit information
     class fitECG:

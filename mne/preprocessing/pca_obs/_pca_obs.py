@@ -13,7 +13,23 @@ def pca_obs(
     data: np.ndarray, 
     qrs: np.ndarray,
     filter_coords: np.ndarray,
-):
+) -> np.ndarray:
+    """
+    Algorithm to perform the PCA OBS (Principal Component Analysis, Optimal Basis Sets) 
+    algorithm to remove the heart artefact from EEG data.
+
+    .. note:: This should only be used on data which is ... (TODO: are there any conditions that must be met to use our algos?)
+
+    Parameters
+    ----------
+        data (np.ndarray): The data which we want to remove the heart artefact from.
+        qrs (np.ndarray): _description_
+        filter_coords (np.ndarray): _description_
+
+    Returns
+    -------
+        np.ndarray: The data with the heart artefact removed.
+    """
     # Declare class to hold pca information
     class PCAInfo:
         def __init__(self):

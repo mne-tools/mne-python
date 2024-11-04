@@ -2,15 +2,15 @@
 # Analysis, Optimal Basis Sets)
 
 from matplotlib import pyplot as plt
-from mne.preprocessing.pca_obs import pca_obs
 from scipy.io import loadmat
 from scipy.signal import firls
-from mne.preprocessing.pca_obs import ESG_CHANS
 from mne.preprocessing.pca_obs import (
     fs,
     iv_baseline,
     iv_epoch,
     raw,
+    pca_obs,
+    ESG_CHANS,
 )
 from mne import Epochs, events_from_annotations
 
