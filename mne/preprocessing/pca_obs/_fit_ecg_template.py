@@ -3,7 +3,7 @@ from scipy.interpolate import PchipInterpolator as pchip
 from scipy.signal import detrend
 
 
-def fit_ecgTemplate(
+def fit_ecg_template(
     data,
     pca_template,
     aPeak_idx,
@@ -14,7 +14,32 @@ def fit_ecgTemplate(
     fitted_art,
     post_idx_previousPeak: list,
     n_samples_fit,
-):
+) -> tuple[np.ndarray, list]:
+    """TODO: Write docstring about what we do here.
+    Fits the ECG to a template signal (?) 
+    and returns the fitted artefact and the index of the next peak. (?)
+
+    .. note:: This should only be used on data which is ... (TODO: are there any conditions that must be met to use our algos?)
+
+
+    # TODO: Fill out input/output and raises
+    Parameters
+    ----------
+        data (_type_): _description_
+        pca_template (_type_): _description_
+        aPeak_idx (_type_): _description_
+        peak_range (_type_): _description_
+        pre_range (_type_): _description_
+        post_range (_type_): _description_
+        midP (_type_): _description_
+        fitted_art (_type_): _description_
+        post_idx_previousPeak (list): _description_
+        n_samples_fit (_type_): _description_
+
+    Returns
+    -------
+        _type_: _description_
+    """
     # Declare class to hold ecg fit information
     class fitECG:
         def __init__(self):

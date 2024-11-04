@@ -1,4 +1,4 @@
-# Calls PCA_OBS which in turn calls fit_ecgTemplate to remove the heart artefact via PCA_OBS (Principal Component
+# Calls PCA_OBS which in turn calls fit_ecg_template to remove the heart artefact via PCA_OBS (Principal Component
 # Analysis, Optimal Basis Sets)
 
 from matplotlib import pyplot as plt
@@ -13,7 +13,6 @@ from mne.preprocessing.pca_obs import (
     raw,
 )
 from mne import Epochs, events_from_annotations
-from mne.io import read_raw_fif
 
 
 if __name__ == "__main__":

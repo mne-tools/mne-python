@@ -2,18 +2,17 @@ import math
 from typing import Any
 
 import numpy as np
-from mne.preprocessing.pca_obs.fit_ecgTemplate import fit_ecgTemplate
+from mne.preprocessing.pca_obs import fit_ecg_template
 
 from scipy.signal import detrend, filtfilt
 from sklearn.decomposition import PCA
-from numpy.typing import NDArray
 
 
 # TODO: Are we able to split this into smaller segmented functions?
 def pca_obs(
-    data: NDArray[Any], 
-    qrs: NDArray[Any],
-    filter_coords: NDArray[Any],
+    data: np.ndarray, 
+    qrs: np.ndarray,
+    filter_coords: np.ndarray,
 ):
     # Declare class to hold pca information
     class PCAInfo:
@@ -53,7 +52,6 @@ def pca_obs(
     mRR = np.median(RR)
     peak_range = round(mRR / 2)  # Rounds to an integer
     midP = peak_range + 1
-    baseline_range = [0, round(peak_range / 8)]
     n_samples_fit = round(
         peak_range / 8
     )  # sample fit for interpolation between fitted artifact windows
@@ -123,7 +121,7 @@ def pca_obs(
                 post_range = peak_range
             try:
                 post_idx_nextPeak = []
-                fitted_art, post_idx_nextPeak = fit_ecgTemplate(
+                fitted_art, post_idx_nextPeak = fit_ecg_template(
                     data,
                     pca_template,
                     peak_idx[p],
@@ -149,7 +147,7 @@ def pca_obs(
                 post_range = peak_range
                 if pre_range > peak_range:
                     pre_range = peak_range
-                fitted_art, _ = fit_ecgTemplate(
+                fitted_art, _ = fit_ecg_template(
                     data,
                     pca_template,
                     peak_idx(p),
@@ -181,7 +179,7 @@ def pca_obs(
                 aTemplate = pca_template[
                     midP - peak_range - 1 : midP + peak_range + 1, :
                 ]
-                fitted_art, post_idx_nextPeak = fit_ecgTemplate(
+                fitted_art, post_idx_nextPeak = fit_ecg_template(
                     data,
                     aTemplate,
                     peak_idx[p],

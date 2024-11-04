@@ -5,10 +5,12 @@
 # Copyright the MNE-Python contributors.
 
 from mne.io import read_raw_fif
-from .pca_obs import pca_obs
+from ._pca_obs import pca_obs
+from ._fit_ecg_template import fit_ecg_template
 
 __all__ = [
-    "pca_obs"
+    "pca_obs",
+    "fit_ecg_template"
 ]
 
 # TODO: description of what this is
