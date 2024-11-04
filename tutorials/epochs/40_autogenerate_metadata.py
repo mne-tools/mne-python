@@ -359,11 +359,11 @@ fig
 #
 # Since we want to time-lock our analysis to responses, for the automated
 # metadata generation we'll consider events occurring up to 1500 ms before
-# the response trigger.
+# the response trigger so we can be sure to capture the stimulation event as well.
 #
 # We only wish to consider the **last** stimulus and response in each time
 # window: Remember that we're dealing with rapid stimulus presentations in
-# this paradigm; taking the last response (at time point zero) and the last
+# this paradigm; taking the last response (time point zero) and the last
 # stimulus (the one closest to the response) ensures that we actually create
 # the right stimulus-response pairings. We can achieve this by passing the
 # ``keep_last`` parameter, which works exactly like ``keep_first`` we used
@@ -383,6 +383,8 @@ metadata, events, event_id = mne.epochs.make_metadata(
     row_events=row_events,
     keep_last=keep_last,
 )
+
+metadata
 
 # %%
 # Exactly like in the previous example, we create new columns ``stimulus_side``
@@ -424,7 +426,7 @@ metadata
 # period close to the response event should not be used for baseline
 # correction. But at the same time, we don't want to use a baseline
 # period that extends too far away from the button event. The following values
-# seem to work quite well.
+# seem to work quite well. Remember: Time point zero is the response event.
 
 epochs_tmin, epochs_tmax = -0.6, 0.4
 baseline = (-0.4, -0.2)
@@ -446,7 +448,8 @@ epochs = mne.Epochs(
 # actually have a stimulus. We use ``epochs.metadata`` (and not ``metadata``)
 # because when creating the epochs, we passed the ``reject`` parameter, and
 # MNE-Python always ensures that ``epochs.metadata`` stays in sync with the
-# available epochs.
+# available epochs. During epochs creation, several epochs were dropped as they
+# exceeded the rejection limits.
 
 epochs.metadata.loc[epochs.metadata["last_stimulus"].isna(), :]
 
