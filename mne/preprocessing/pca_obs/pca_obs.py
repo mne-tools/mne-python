@@ -9,11 +9,10 @@ from sklearn.decomposition import PCA
 from numpy.typing import NDArray
 
 
-def PCA_OBS(
+def pca_obs(
     data: NDArray[Any], 
     qrs: NDArray[Any],
     filter_coords: NDArray[Any],
-    **_  # TODO: are there any other kwargs passed in? No - this is all I believe
 ):
     # Declare class to hold pca information
     class PCAInfo:

@@ -2,7 +2,7 @@
 # Analysis, Optimal Basis Sets)
 
 from matplotlib import pyplot as plt
-from mne.preprocessing.pca_obs.PCA_OBS import PCA_OBS
+from mne.preprocessing.pca_obs import pca_obs
 from scipy.io import loadmat
 from scipy.signal import firls
 from mne.preprocessing.pca_obs import ESG_CHANS
@@ -46,7 +46,7 @@ if __name__ == "__main__":
 
     # Apply function should modifies the data in raw in place
     raw.apply_function(
-        PCA_OBS, 
+        pca_obs, 
         picks=ESG_CHANS, 
         n_jobs=len(ESG_CHANS),
         # args sent to PCA_OBS

@@ -5,7 +5,7 @@ import os
 
 import matplotlib.pyplot as plt
 import numpy as np
-from mne.preprocessing.pca_obs.PCA_OBS import PCA_OBS
+from mne.preprocessing.pca_obs import pca_obs
 from scipy.signal import firls
 
 from mne import Epochs
@@ -54,7 +54,7 @@ if __name__ == "__main__":
 
     # Apply function should modifies the data in raw in place
     raw.apply_function(
-        PCA_OBS, 
+        pca_obs, 
         picks="eeg", 
         n_jobs=10
         **{ # args sent to PCA_OBS

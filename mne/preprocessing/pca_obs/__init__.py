@@ -1,6 +1,15 @@
-from dataclasses import dataclass
-from mne.io import Raw, read_raw_fif
+"""Principle Component Analysis of OBS (PCA-OBS)."""  # TODO: What's OBS?
 
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
+
+from mne.io import read_raw_fif
+from .pca_obs import pca_obs
+
+__all__ = [
+    "pca_obs"
+]
 
 # TODO: description of what this is
 ESG_CHANS = [

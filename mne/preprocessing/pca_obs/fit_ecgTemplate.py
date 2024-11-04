@@ -13,7 +13,7 @@ def fit_ecgTemplate(
     baseline_range,
     midP,
     fitted_art,
-    post_idx_previousPeak,
+    post_idx_previousPeak: list,
     n_samples_fit,
 ):
     # Declare class to hold ecg fit information
@@ -22,6 +22,7 @@ def fit_ecgTemplate(
             pass
 
     # Instantiate class
+    # TODO: Why are we storing this to a class? Can't we just use the variables and write to them?
     fitecg = fitECG()
 
     # post_idx_nextpeak is passed in in PCA_OBS, used here as post_idx_previouspeak
@@ -53,46 +54,48 @@ def fit_ecgTemplate(
 
     post_idx_nextPeak = [aPeak_idx[0] + post_range]
 
-    # Check it's not empty
-    if len(post_idx_previousPeak) != 0:
-        # interpolate time between peaks
-        intpol_window = np.ceil(
-            [post_idx_previousPeak[0], aPeak_idx[0] - pre_range]
-        ).astype("int")  # interpolation window
-        fitecg.intpol_window = intpol_window
+    # if last peak, return
+    if not post_idx_previousPeak:
+        return fitted_art, post_idx_nextPeak
 
-        if intpol_window[0] < intpol_window[1]:
-            # Piecewise Cubic Hermite Interpolating Polynomial(PCHIP) + replace EEG data
+    # interpolate time between peaks
+    intpol_window = np.ceil(
+        [post_idx_previousPeak[0], aPeak_idx[0] - pre_range]
+    ).astype("int")  # interpolation window
+    fitecg.intpol_window = intpol_window
 
-            # You have x_fit which is two slices on either side of the interpolation window endpoints
-            # You have y_fit which is the y vals corresponding to x values above
-            # You have x_interpol which is the time points between the two slices in x_fit that you want to interpolate
-            # You have y_interpol which is values from pchip at the time points specified in x_interpol
-            x_interpol = np.arange(
-                intpol_window[0], intpol_window[1] + 1, 1
-            )  # points to be interpolated in pt - the gap between the endpoints of the window
-            x_fit = np.concatenate(
-                [
-                    np.arange(
-                        intpol_window[0] - n_samples_fit, intpol_window[0] + 1, 1
-                    ),
-                    np.arange(
-                        intpol_window[1], intpol_window[1] + n_samples_fit + 1, 1
-                    ),
-                ]
-            )  # Entire range of x values in this step (taking some number of samples before and after the window)
-            y_fit = fitted_art[0, x_fit]
-            y_interpol = pchip(x_fit, y_fit)(x_interpol)  # perform interpolation
+    if intpol_window[0] < intpol_window[1]:
+        # Piecewise Cubic Hermite Interpolating Polynomial(PCHIP) + replace EEG data
 
-            # Then make fitted artefact in the desired range equal to the completed fit above
-            fitted_art[0, post_idx_previousPeak[0] : aPeak_idx[0] - pre_range + 1] = (
-                y_interpol
-            )
+        # You have x_fit which is two slices on either side of the interpolation window endpoints
+        # You have y_fit which is the y vals corresponding to x values above
+        # You have x_interpol which is the time points between the two slices in x_fit that you want to interpolate
+        # You have y_interpol which is values from pchip at the time points specified in x_interpol
+        x_interpol = np.arange(
+            intpol_window[0], intpol_window[1] + 1, 1
+        )  # points to be interpolated in pt - the gap between the endpoints of the window
+        x_fit = np.concatenate(
+            [
+                np.arange(
+                    intpol_window[0] - n_samples_fit, intpol_window[0] + 1, 1
+                ),
+                np.arange(
+                    intpol_window[1], intpol_window[1] + n_samples_fit + 1, 1
+                ),
+            ]
+        )  # Entire range of x values in this step (taking some number of samples before and after the window)
+        y_fit = fitted_art[0, x_fit]
+        y_interpol = pchip(x_fit, y_fit)(x_interpol)  # perform interpolation
 
-            fitecg.x_fit = x_fit
-            fitecg.y_fit = y_fit
-            fitecg.x_interpol = x_interpol
-            fitecg.y_interpol = y_interpol
-            fitecg.fitted_art = fitted_art  # Reassign if we've gone into this loop
+        # Then make fitted artefact in the desired range equal to the completed fit above
+        fitted_art[0, post_idx_previousPeak[0] : aPeak_idx[0] - pre_range + 1] = (
+            y_interpol
+        )
+
+        fitecg.x_fit = x_fit
+        fitecg.y_fit = y_fit
+        fitecg.x_interpol = x_interpol
+        fitecg.y_interpol = y_interpol
+        fitecg.fitted_art = fitted_art  # Reassign if we've gone into this loop
 
     return fitted_art, post_idx_nextPeak
