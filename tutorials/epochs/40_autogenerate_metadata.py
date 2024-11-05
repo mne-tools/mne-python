@@ -482,7 +482,7 @@ mne.viz.plot_compare_evokeds(
 )
 
 # topoplot of average field from time 0.0-0.1 s
-fig = resp_erp_incorrect.plot_topomap(times=0.05, average=0.05, size=3)
+fig = resp_erp_incorrect.plot_topomap(times=0.05, average=0.1, size=3)
 fig.suptitle("Avg. topography 0–100 ms after incorrect responses", fontsize=16)
 
 # %%
