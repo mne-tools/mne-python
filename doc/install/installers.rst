@@ -93,7 +93,7 @@ Platform-specific installers
         :class: font-weight-bold mt-3
         :click-parent:
 
-        |code| Go to IDE Setup
+        |rocket| Go to IDE Setup
 
     Once installation completes, **set up your IDE**!
 
