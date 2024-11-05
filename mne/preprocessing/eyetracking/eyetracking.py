@@ -9,9 +9,66 @@ from ..._fiff.constants import FIFF
 from ...epochs import BaseEpochs
 from ...evoked import Evoked
 from ...io import BaseRaw
-from ...utils import _check_option, _validate_type, logger, warn
+from ...utils import _check_option, _validate_type, logger, verbose, warn
 from .calibration import Calibration
 from .utils import _check_calibration
+
+
+@verbose
+def find_blinks(
+    inst,
+    *,
+    chs_src=None,
+    method="by_dropout",
+    dropout_value=None,
+    description="BAD_blink",
+    chs_dest=None,
+    verbose=None,
+):
+    """Find blinks in eye-tracking data and create corresponding annotations.
+
+    Parameters
+    ----------
+    inst : instance of Raw
+        The data instance to use for finding blinks. Must contain pupil channels.
+    chs_src : list | None
+        A list of channel names that will be used to find blinks. None (default) will
+        result in selecting all channels of type ``pupil``. See Notes for more
+        information.
+    method : str
+        Which method to use to find blinks in ``inst``. Currently the only supported
+        method is ``'by_dropout'`` (default), which uses the value specified via
+        ``dropout_value`` to identify blinks.
+    dropout_value : float | None
+        Which value in the data denotes a dropout. In Eyelink data, this is ``0``,
+        whereas for other eye-tracking data this may be ``np.nan``, or something else.
+        Defaults to None, which sets the ``dropout_value`` to ``np.nan``.
+    description : str
+        Which description to use for the blink annotations. Defaults to ``'BAD_blink'``.
+    chs_dest : list | None
+        A list of channel names that will be associated with the blink annotations.
+        None (default) and passing an empty lists will associate each blink annotation
+        with all channels in ``inst``.
+    %(verbose)s
+
+    Returns
+    -------
+    annots : mne.Annotations
+        The annotations objects containing blink annotations.
+
+    Notes
+    -----
+    If multiple channels are used to find blinks in ``inst``, resulting overlapping
+    blink annotations are always merged over all channels. That is, if a left and a
+    right pupil channel would be used for blink detection, and each on their own would
+    produce overlapping blink annotations with onsets ``[1.5, 1.6]`` and durations
+    ``[0.2, 0.3]``, respectively, then passing both channels into this function will
+    result in a single blink annotation with onset ``1.5`` and duration ``0.4``.
+    Note that this corresponds to the minimum onset and the maximum offset between
+    the two annotations.
+    """
+    logger.info("Found blinks")
+    return
 
 
 # specific function to set eyetrack channels
@@ -153,7 +210,8 @@ def _convert_deg_to_rad(array):
     return array * np.pi / 180.0
 
 
-def convert_units(inst, calibration, to="radians"):
+@verbose
+def convert_units(inst, calibration, to="radians", verbose=None):
     """Convert Eyegaze data from pixels to radians of visual angle or vice versa.
 
     .. warning::
@@ -176,6 +234,7 @@ def convert_units(inst, calibration, to="radians"):
         (in pixels).
     to : str
         Must be either ``"radians"`` or ``"pixels"``, indicating the desired unit.
+    %(verbose)s
 
     Returns
     -------
