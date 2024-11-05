@@ -343,7 +343,7 @@ fig
 
 # %%
 # Aside from the fact that the data for the (much fewer) slow responses looks
-# noisier  – which is entirely to be expected – not much of an ERP difference
+# noisier – which is entirely to be expected – not much of an ERP difference
 # can be seen.
 #
 # .. _tut-autogenerate-metadata-ern:
@@ -426,7 +426,7 @@ metadata
 # period close to the response event should not be used for baseline
 # correction. But at the same time, we don't want to use a baseline
 # period that extends too far away from the button event. The following values
-# seem to work quite well. Remember: Time point zero is the response event.
+# seem to work quite well. Remember: time point zero is the response event.
 
 epochs_tmin, epochs_tmax = -0.6, 0.4
 baseline = (-0.4, -0.2)
