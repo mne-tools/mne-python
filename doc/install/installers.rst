@@ -21,7 +21,7 @@ Platform-specific installers
             :ref-type: ref
             :color: primary
             :shadow:
-            :class: font-weight-bold mt-3
+            :class: font-weight-bold mt-3 install-download-button
 
             |cloud-arrow-down| |ensp| Download for Linux
 
@@ -42,7 +42,7 @@ Platform-specific installers
             :ref-type: ref
             :color: primary
             :shadow:
-            :class: font-weight-bold mt-3
+            :class: font-weight-bold mt-3 install-download-button
 
             |cloud-arrow-down| |ensp| Download for macOS (Intel)
 
@@ -58,7 +58,7 @@ Platform-specific installers
             :ref-type: ref
             :color: primary
             :shadow:
-            :class: font-weight-bold mt-3
+            :class: font-weight-bold mt-3 install-download-button
 
             |cloud-arrow-down| |ensp| Download for macOS (Apple Silicon)
 
@@ -74,11 +74,28 @@ Platform-specific installers
             :ref-type: ref
             :color: primary
             :shadow:
-            :class: font-weight-bold mt-3
+            :class: font-weight-bold mt-3 install-download-button
 
             |cloud-arrow-down| |ensp| Download for Windows
 
         **Supported platforms:** Windows 10 and newer
+
+.. card::
+    :class-body: text-center
+    :class-card: install-download-alert hidden
+
+    .. We have to use a button-link here because button-ref doesn't properly nested parse the inline code
+
+    .. button-link:: ./ides.html
+        :ref-type: ref
+        :color: success
+        :shadow:
+        :class: font-weight-bold mt-3
+        :click-parent:
+
+        |code| Go to IDE Setup
+
+    Once installation completes, **set up your IDE**!
 
 .. raw:: html
 
