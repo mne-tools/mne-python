@@ -526,8 +526,6 @@ ax.set_ylabel("Amplitude (µV)", fontweight="bold")
 ax.set_title("Channel: FCz")
 fig.suptitle("ERN (Difference Wave)", fontweight="bold")
 
-fig
-
 # %%
 # References
 # ^^^^^^^^^^
