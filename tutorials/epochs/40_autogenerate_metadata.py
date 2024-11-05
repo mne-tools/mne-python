@@ -190,13 +190,15 @@ metadata, events, event_id = mne.epochs.make_metadata(
 # visualize response times regardless of side
 metadata["response"].plot.hist(bins=50, title="Response Times (first response)")
 
-# the "first_response" column contains only "left" and "right" entries, derived
-# from the initial event named "response/left" and "response/right"
+# %%
+# The ``first_response`` column contains only ``"left"`` and ``"right"`` entries,
+# derived from the respective initial events ``"response/left"`` and
+# ``"response/right"``:
 print(metadata["first_response"])
 
 # %%
-# We're facing a similar issue with the stimulus events, and now there are not
-# only two, but **four** different types: ``stimulus/compatible/target_left``,
+# For stimulus events, there are not only two, but **four** different types:
+# ``stimulus/compatible/target_left``,
 # ``stimulus/compatible/target_right``, ``stimulus/incompatible/target_left``,
 # and ``stimulus/incompatible/target_right``. What's more, because in the
 # present paradigm stimuli were presented in rapid succession, sometimes
@@ -310,7 +312,7 @@ epochs = mne.Epochs(
 )
 
 # %%
-# You probably also noticed that 9 epchs were dropped because they exceeded our
+# You probably also noticed that 9 epochs were dropped because they exceeded our
 # rejection limits. This is another reason why it is important to assign the metadata on
 # epochs creation: the metadata will be updated automatically to reflect the actual
 # epochs that were kept.
@@ -462,7 +464,8 @@ epochs.metadata.loc[epochs.metadata["last_stimulus"].isna(), :]
 epochs = epochs["last_stimulus.notna()"]
 
 # %%
-# Time to calculate the ERPs for correct  and incorrect responses.
+# Now it's time  to calculate the ERPs for correct  and incorrect responses.
+#
 # For visualization, we'll only look at sensor ``FCz``, which is known to show
 # the ERN nicely in the given paradigm. We'll also create a topoplot to get an
 # impression of the average scalp potentials measured in the first 100 ms after
@@ -487,7 +490,7 @@ fig.suptitle("Avg. topography 0–100 ms after incorrect responses", fontsize=16
 # responses, compared to correct responses. The topoplot, too, leaves no doubt:
 # what we're looking at is, in fact, the ERN.
 #
-# Some researchers suggest to construct the difference wave between ERPs for
+# Some researchers suggest to construct the **difference wave** between ERPs for
 # correct and incorrect responses, as it more clearly reveals signal
 # differences, while ideally also improving the signal-to-noise ratio (under
 # the assumption that the noise level in "correct" and "incorrect" trials is
