@@ -467,10 +467,7 @@ epochs = epochs["last_stimulus.notna()"]
 # Now it's time  to calculate the ERPs for correct  and incorrect responses.
 #
 # For visualization, we'll only look at sensor ``FCz``, which is known to show
-# the ERN nicely in the given paradigm. We'll also create a topoplot to get an
-# impression of the average scalp potentials measured in the first 100 ms after
-# an incorrect response.
-
+# the ERN nicely in the given paradigm.
 resp_erp_correct = epochs["response_correct"].average()
 resp_erp_incorrect = epochs["not response_correct"].average()
 
@@ -481,9 +478,14 @@ mne.viz.plot_compare_evokeds(
     title="ERPs at FCz, time-locked to response",
 )
 
+# %%
+# We'll also create a topoplot to get an
+# impression of the average scalp potentials measured in the first 100 ms after
+# an incorrect response.
+
 # topoplot of average field from time 0.0-0.1 s
 fig = resp_erp_incorrect.plot_topomap(times=0.05, average=0.1, size=3)
-fig.suptitle("Avg. topography 0–100 ms after incorrect responses", fontsize=16)
+fig.suptitle("Mean topography after incorrect responses", fontsize=16)
 
 # %%
 # We can see a strong negative deflection immediately after incorrect
