@@ -41,7 +41,7 @@ We will also convert the `~mne.Annotations` contained in this dataset to events
 by calling `mne.events_from_annotations`.
 """
 
-# Authors: The MNE-Python contributors.
+# Authors: Richard Höchenberger <richard.hoechenberger@gmail.com>
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
