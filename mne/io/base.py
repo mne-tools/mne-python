@@ -984,7 +984,7 @@ class BaseRaw(
         _check_option(
             "reject_by_annotation", reject_by_annotation.lower(), ["omit", "nan"]
         )
-        onsets, ends = _annotations_starts_stops(self, ["BAD"])
+        onsets, ends = _annotations_starts_stops(self, ["BAD"], include_last=True)
         keep = (onsets < stop) & (ends >= start)
         onsets = np.maximum(onsets[keep], start)
         ends = np.minimum(ends[keep], stop)
@@ -1000,7 +1000,7 @@ class BaseRaw(
         for onset, end in zip(onsets, ends):
             if onset > end:
                 continue
-            used[onset - start : end - start + 1] = False
+            used[onset - start : end - start] = False
         used = np.concatenate([[False], used, [False]])
         starts = np.where(~used[:-1] & used[1:])[0] + start
         stops = np.where(used[:-1] & ~used[1:])[0] + start
