@@ -116,6 +116,37 @@ use a different binding, you can instead install MNE-Python via ``pip``:
 
 .. _CUDA:
 
+Fixing dock icons on Linux
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+On newer versions of Ubuntu (e.g., 24.04), applications must supply a ``.desktop``
+file associated with them, otherwise a generic icon will be used like:
+
+.. image:: ../_static/default_linux_dock_icon.png
+   :alt: Default Linux dock icon
+
+To fix this, you can create a ``.desktop`` file for MNE-Python. Here is an example
+file that you can save as ``~/.local/share/applications/mne-python.desktop`` after
+fixing the path to the MNE-Python icon, which you can download
+`here <https://github.com/mne-tools/mne-python/blob/922a7801a0ca6af225c7b861fe6bd97b1518af3a/mne/icons/mne_default_icon.png>`__
+if needed:
+
+.. code-block:: ini
+
+    [Desktop Entry]
+    Type=Application
+    Version=1.5
+    Name=MNE-Python
+    StartupWMClass=MNE-Python
+    Icon=/path/to/mne-python/mne/icons/mne_default_icon.png
+    SingleMainWindow=true
+    NoDisplay=true
+
+It should make the icon appear correctly in the dock:
+
+.. image:: ../_static/mne_python_dock_icon.png
+   :alt: MNE-Python dock icon
+
 GPU acceleration with CUDA
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
