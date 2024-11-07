@@ -341,8 +341,6 @@ fig.suptitle("Visual ERPs", fontweight="bold")
 ax[0].xaxis.set_visible(False)
 ax[1].xaxis.set_visible(False)
 
-fig
-
 # %%
 # Aside from the fact that the data for the (much fewer) slow responses looks
 # noisier – which is entirely to be expected – not much of an ERP difference
