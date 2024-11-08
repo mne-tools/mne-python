@@ -61,6 +61,8 @@ class LinearModel(BaseEstimator):
     .. footbibliography::
     """
 
+    # TODO: Properly refactor this using
+    # https://github.com/scikit-learn/scikit-learn/issues/30237#issuecomment-2465572885
     _model_attr_wrap = (
         "transform",
         "predict",
