@@ -66,6 +66,7 @@ class LinearModel(BaseEstimator):
         "predict",
         "predict_proba",
         "_estimator_type",
+        "__tags__",
         "decision_function",
         "score",
         "classes_",
