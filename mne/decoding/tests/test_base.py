@@ -441,7 +441,8 @@ def test_cross_val_multiscore():
     # raise an error if scoring is defined at cross-val-score level and
     # search light, because search light does not return a 1-dimensional
     # prediction.
-    pytest.raises(ValueError, cross_val_multiscore, clf, X, y, cv=cv, scoring="roc_auc")
+    with pytest.raises(ValueError, match="multi_class must be"):
+        cross_val_multiscore(clf, X, y, cv=cv, scoring="roc_auc", n_jobs=1)
     clf = SlidingEstimator(logreg, scoring="roc_auc")
     scores_auc = cross_val_multiscore(clf, X, y, cv=cv, n_jobs=None)
     scores_auc_manual = list()
