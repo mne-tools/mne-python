@@ -79,7 +79,7 @@ def _least_square_evoked(epochs_data, events, tmin, sfreq):
         sel = events[:, 2] == this_class
 
         # build toeplitz matrix
-        trig = np.zeros((n_samples, 1))
+        trig = np.zeros((n_samples,))
         ix_trig = (events[sel, 0]) + n_min
         trig[ix_trig] = 1
         toeplitz.append(linalg.toeplitz(trig[0:window], trig))

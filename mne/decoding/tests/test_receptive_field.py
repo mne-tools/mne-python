@@ -174,6 +174,7 @@ def test_time_delay():
 
 @pytest.mark.slowtest  # slow on Azure
 @pytest.mark.parametrize("n_jobs", n_jobs_test)
+@pytest.mark.filterwarnings("ignore:Estimator .* has no __sklearn_tags__.*")
 def test_receptive_field_basic(n_jobs):
     """Test model prep and fitting."""
     # Make sure estimator pulling works
