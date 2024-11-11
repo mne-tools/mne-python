@@ -37,6 +37,7 @@ from sklearn.model_selection import (
 )
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
+from sklearn.utils import get_tags
 from sklearn.utils.estimator_checks import parametrize_with_checks
 
 from mne import EpochsArray, create_info
@@ -94,10 +95,18 @@ def _make_data(n_samples=1000, n_features=5, n_targets=3):
 def test_get_coef():
     """Test getting linear coefficients (filters/patterns) from estimators."""
     lm_classification = LinearModel()
-    assert is_classifier(lm_classification)
+    assert hasattr(lm_classification, "__sklearn_tags__")
+    print(lm_classification.__sklearn_tags__)
+    assert is_classifier(lm_classification.model)
+    assert is_classifier(lm_classification), get_tags(lm_classification).estimator_type
+    assert not is_regressor(lm_classification.model)
+    assert not is_regressor(lm_classification)
 
     lm_regression = LinearModel(Ridge())
+    assert is_regressor(lm_regression.model)
     assert is_regressor(lm_regression)
+    assert not is_classifier(lm_regression.model)
+    assert not is_classifier(lm_regression)
 
     parameters = {"kernel": ["linear"], "C": [1, 10]}
     lm_gs_classification = LinearModel(

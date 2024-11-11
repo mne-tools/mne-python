@@ -11,6 +11,7 @@ import numpy as np
 from sklearn import model_selection as models
 from sklearn.base import (  # noqa: F401
     BaseEstimator,
+    MetaEstimatorMixin,
     TransformerMixin,
     clone,
     is_classifier,
@@ -18,13 +19,13 @@ from sklearn.base import (  # noqa: F401
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import check_scoring
 from sklearn.model_selection import KFold, StratifiedKFold, check_cv
-from sklearn.utils import check_array, indexable
+from sklearn.utils import check_array, get_tags, indexable
 
 from ..parallel import parallel_func
 from ..utils import _pl, logger, verbose, warn
 
 
-class LinearModel(BaseEstimator):
+class LinearModel(MetaEstimatorMixin, BaseEstimator):
     """Compute and store patterns from linear models.
 
     The linear model coefficients (filters) are used to extract discriminant
@@ -79,6 +80,10 @@ class LinearModel(BaseEstimator):
             model = LogisticRegression(solver="liblinear")
 
         self.model = model
+
+    def __sklearn_tags__(self):
+        """Get sklearn tags."""
+        return get_tags(self.model)
 
     def __getattr__(self, attr):
         """Wrap to model for some attributes."""
