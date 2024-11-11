@@ -40,6 +40,7 @@ from mne.utils import (
     catch_logging,
     check_version,
     object_diff,
+    sizeof_fmt,
 )
 
 raw_fname = op.join(
@@ -783,9 +784,8 @@ def test_repr():
     info = create_info(3, sfreq)
     raw = RawArray(np.zeros((3, 10 * sfreq)), info)
     r = repr(raw)
-    assert (
-        re.search("<RawArray | 3 x 2560 (10.0 s), ~.* kB, data loaded>", r) is not None
-    ), r
+    size_str = sizeof_fmt(raw._size)
+    assert r == f"<RawArray | 3 x 2560 (10.0 s), ~{size_str}, data loaded>"
     assert raw._repr_html_()
 
 
