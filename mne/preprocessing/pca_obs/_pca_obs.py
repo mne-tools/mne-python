@@ -7,6 +7,9 @@ from sklearn.decomposition import PCA
 from scipy.interpolate import PchipInterpolator as pchip
 from scipy.signal import detrend
 
+# TODO: This needs to be pulled out of the subfolder we've created and moved into the more 'normal' MNE setup
+# with the _pca_obs in preprocessing as a single file only, _init integrated in their __init__.py and .pyi
+
 def fit_ecg_template(
     data,
     pca_template,
