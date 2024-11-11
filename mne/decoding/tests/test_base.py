@@ -37,7 +37,6 @@ from sklearn.model_selection import (
 )
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
-from sklearn.utils import get_tags
 from sklearn.utils.estimator_checks import parametrize_with_checks
 
 from mne import EpochsArray, create_info
@@ -98,7 +97,7 @@ def test_get_coef():
     assert hasattr(lm_classification, "__sklearn_tags__")
     print(lm_classification.__sklearn_tags__)
     assert is_classifier(lm_classification.model)
-    assert is_classifier(lm_classification), get_tags(lm_classification).estimator_type
+    assert is_classifier(lm_classification)
     assert not is_regressor(lm_classification.model)
     assert not is_regressor(lm_classification)
 

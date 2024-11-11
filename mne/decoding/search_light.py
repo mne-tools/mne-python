@@ -8,7 +8,7 @@ import numpy as np
 from sklearn.base import BaseEstimator, MetaEstimatorMixin, TransformerMixin, clone
 from sklearn.metrics import check_scoring
 from sklearn.preprocessing import LabelEncoder
-from sklearn.utils import check_array, get_tags
+from sklearn.utils import check_array
 
 from ..parallel import parallel_func
 from ..utils import ProgressBar, _parse_verbose, array_split_idx, fill_doc, verbose
@@ -63,6 +63,8 @@ class SlidingEstimator(MetaEstimatorMixin, TransformerMixin, BaseEstimator):
 
     def __sklearn_tags__(self):
         """Get sklearn tags."""
+        from sklearn.utils import get_tags
+
         tags = super().__sklearn_tags__()
         sub_tags = get_tags(self.base_estimator)
         tags.estimator_type = sub_tags.estimator_type

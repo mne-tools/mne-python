@@ -19,7 +19,7 @@ from sklearn.base import (  # noqa: F401
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import check_scoring
 from sklearn.model_selection import KFold, StratifiedKFold, check_cv
-from sklearn.utils import check_array, get_tags, indexable
+from sklearn.utils import check_array, indexable
 
 from ..parallel import parallel_func
 from ..utils import _pl, logger, verbose, warn
@@ -83,6 +83,8 @@ class LinearModel(MetaEstimatorMixin, BaseEstimator):
 
     def __sklearn_tags__(self):
         """Get sklearn tags."""
+        from sklearn.utils import get_tags  # added in 1.6
+
         return get_tags(self.model)
 
     def __getattr__(self, attr):
