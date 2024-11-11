@@ -61,7 +61,7 @@ tstart_esg = -0.007
 tmax_esg = 0.007
 
 # Define timing of heartbeat epochs
-iv_baseline = [-300 / 1000, -200 / 1000]
+iv_baseline = [-400 / 1000, -300 / 1000]
 iv_epoch = [-400 / 1000, 600 / 1000]
 
 ###############################################################################
@@ -81,7 +81,7 @@ for count, block_file in enumerate(block_files):
     events, event_dict = events_from_annotations(raw)
     trigger_name = 'Median - Stimulation'
 
-    fix_stim_artifact(raw, events=events, event_id=trigger_name, tmin=tstart_esg, tmax=tmax_esg, mode='linear',
+    fix_stim_artifact(raw, events=events, event_id=event_dict[trigger_name], tmin=tstart_esg, tmax=tmax_esg, mode='linear',
                       stim_channel=None)
 
     # Downsample the data
@@ -102,8 +102,6 @@ qrs_event_time = [x / fs for x in ecg_event_samples.reshape(-1)]  # Divide by sa
 duration = np.repeat(0.0, len(ecg_event_samples))
 description = ['qrs'] * len(ecg_event_samples)
 
-print(ecg_event_samples)
-print(qrs_event_time)
 raw_concat.annotations.append(qrs_event_time, duration, description, ch_names=[esg_chans]*len(qrs_event_time))
 
 ###############################################################################
@@ -150,16 +148,6 @@ epochs = Epochs(
 evoked_after = epochs.average()
 
 ###############################################################################
-# Comparison image
-fig, axes = plt.subplots(2, 1)
-axes[0].plot(evoked_before.times, evoked_before.get_data().T)
-axes[0].set_ylim([-0.0005, 0.001])
-axes[0].set_title("Before PCA-OBS")
-axes[1].plot(evoked_after.times, evoked_after.get_data().T)
-axes[1].set_ylim([-0.0005, 0.001])
-axes[1].set_title("After PCA-OBS")
-plt.tight_layout()
-
 # Comparison image
 fig, axes = plt.subplots(1, 1)
 axes.plot(evoked_before.times, evoked_before.get_data().T, color="black")
