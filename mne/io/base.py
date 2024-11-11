@@ -1924,6 +1924,11 @@ class BaseRaw(
         """Number of time points."""
         return self.last_samp - self.first_samp + 1
 
+    @property
+    def duration(self):
+        """Duration of the data in seconds."""
+        return self.times[-1]
+
     def __len__(self):
         """Return the number of time points.
 
@@ -2116,7 +2121,7 @@ class BaseRaw(
         size_str += f", data{'' if self.preload else ' not'} loaded"
         s = (
             f"{name}{len(self.ch_names)} x {self.n_times} "
-            f"({self.times[-1]:0.1f} s), ~{size_str}"
+            f"({self.duration:0.1f} s), ~{size_str}"
         )
         return f"<{self.__class__.__name__} | {s}>"
 
@@ -2124,14 +2129,7 @@ class BaseRaw(
     def _repr_html_(self):
         basenames = [f.name for f in self.filenames if f is not None]
 
-        # https://stackoverflow.com/a/10981895
-        duration = timedelta(seconds=self.times[-1])
-        hours, remainder = divmod(duration.seconds, 3600)
-        minutes, seconds = divmod(remainder, 60)
-        seconds += duration.microseconds / 1e6
-        seconds = np.ceil(seconds)  # always take full seconds
-
-        duration = f"{int(hours):02d}:{int(minutes):02d}:{int(seconds):02d}"
+        duration = self._get_duration_string()
 
         raw_template = _get_html_template("repr", "raw.html.jinja")
         return raw_template.render(
@@ -2139,6 +2137,16 @@ class BaseRaw(
             filenames=basenames,
             duration=duration,
         )
+
+    def _get_duration_string(self):
+        duration = timedelta(seconds=self.duration)
+        # https://stackoverflow.com/a/10981895
+        hours, remainder = divmod(duration.seconds, 3600)
+        minutes, seconds = divmod(remainder, 60)
+        seconds += duration.microseconds / 1e6
+        seconds = np.ceil(seconds)  # always take full seconds
+
+        return f"{int(hours):02d}:{int(minutes):02d}:{int(seconds):02d}"
 
     def add_events(self, events, stim_channel=None, replace=False):
         """Add events to stim channel.

@@ -1,0 +1,1 @@
+Add convenience :attr:`mne.io.BaseRaw.duration` property to centralize duration calculation for the textual (``__repr__``) and html (``_repr_html_``, used by e.g. Jupyter) display of :class:`mne.io.BaseRaw` instances, by :newcontrib:`Leonardo Rochael Almeida`.
