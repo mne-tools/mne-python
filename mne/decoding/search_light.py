@@ -70,6 +70,7 @@ class SlidingEstimator(MetaEstimatorMixin, TransformerMixin, BaseEstimator):
             if tags.estimator_type == kind:
                 attr = f"{kind}_tags"
                 setattr(tags, attr, getattr(sub_tags, attr))
+                break
         return tags
 
     def __repr__(self):  # noqa: D105
