@@ -44,8 +44,11 @@ python -m pip install $STD_ARGS git+https://github.com/nilearn/nilearn
 
 echo "VTK"
 # No pre until PyVista fixes a bug
-# python -m pip install $STD_ARGS --only-binary ":all:" --extra-index-url "https://wheels.vtk.org" vtk
-python -m pip install $STD_ARGS vtk
+if [[ "${PLATFORM}" == "Windows" ]]; then
+	python -m pip install $STD_ARGS "vtk<9.4"  # 9.4 requires GLSL 1.5 and Azure win only has 1.3
+else
+	python -m pip install $STD_ARGS --only-binary ":all:" --extra-index-url "https://wheels.vtk.org" vtk
+fi
 python -c "import vtk"
 
 echo "PyVista"
