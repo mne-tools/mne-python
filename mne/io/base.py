@@ -1927,7 +1927,7 @@ class BaseRaw(
     @property
     def duration(self):
         """Duration of the data in seconds."""
-        return self.times[-1]
+        return self.n_times / self.info["sfreq"]
 
     def __len__(self):
         """Return the number of time points.
@@ -2139,14 +2139,11 @@ class BaseRaw(
         )
 
     def _get_duration_string(self):
-        duration = timedelta(seconds=self.duration)
         # https://stackoverflow.com/a/10981895
-        hours, remainder = divmod(duration.seconds, 3600)
+        duration = np.ceil(self.duration)  # always take full seconds
+        hours, remainder = divmod(duration, 3600)
         minutes, seconds = divmod(remainder, 60)
-        seconds += duration.microseconds / 1e6
-        seconds = np.ceil(seconds)  # always take full seconds
-
-        return f"{int(hours):02d}:{int(minutes):02d}:{int(seconds):02d}"
+        return f"{hours:02.0f}:{minutes:02.0f}:{seconds:02.0f}"
 
     def add_events(self, events, stim_channel=None, replace=False):
         """Add events to stim channel.
