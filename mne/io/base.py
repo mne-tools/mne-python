@@ -179,7 +179,7 @@ class BaseRaw(
     # NOTE: If you add a new attribute to this class and get a Sphinx warning like:
     #     docstring of mne.io.base.BaseRaw:71:
     #     WARNING: py:obj reference target not found: duration [ref.obj]
-    # You need to add the attribute to doc/conf.py nitpick_ignore. You should also
+    # You need to add the attribute to doc/conf.py nitpick_ignore_regex. You should also
     # consider adding it to the Attributes list for Raw in mne/io/fiff/raw.py.
 
     _extra_attributes = ()

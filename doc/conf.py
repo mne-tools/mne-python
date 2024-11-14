@@ -734,9 +734,9 @@ nitpick_ignore_regex = [
     ("py:.*", r"mne\.io\..*\.Epochs.*"),  # EpochsKIT etc.
     (  # BaseRaw attributes are documented in Raw
         "py:obj",
-        "(filename|metadata|proj|times|tmax|tmin|annotations|ch_names|"
-        "|compensation_grade|duration|filenames|first_samp|first_time|"
-        "last_samp|n_times|proj|times|tmax|tmin)",
+        "(filename|metadata|proj|times|tmax|tmin|annotations|ch_names"
+        "|compensation_grade|duration|filenames|first_samp|first_time"
+        "|last_samp|n_times|proj|times|tmax|tmin)",
     ),
 ]
 suppress_warnings = [
