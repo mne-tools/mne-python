@@ -315,7 +315,7 @@ def _test_raw_reader(
     ids = [id(ch["loc"]) for ch in raw.info["chs"]]
     assert len(set(ids)) == len(ids)
 
-    full_data = raw._data
+    full_data = raw.get_data()
     assert raw.__class__.__name__ in repr(raw)  # to test repr
     assert raw.info.__class__.__name__ in repr(raw.info)
     assert isinstance(raw.info["dig"], type(None) | list)
@@ -355,7 +355,7 @@ def _test_raw_reader(
     with pytest.raises(OSError, match="raw must end with .fif or .fif.gz"):
         raw.save(out_fname_h5)
 
-    raw3 = read_raw_fif(out_fname)
+    raw3 = read_raw_fif(out_fname, allow_maxshield="yes")
     assert_named_constants(raw3.info)
     assert set(raw.info.keys()) == set(raw3.info.keys())
     assert_allclose(
