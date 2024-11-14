@@ -176,6 +176,12 @@ class BaseRaw(
           (only needed for types that support on-demand disk reads)
     """
 
+    # NOTE: If you add a new attribute to this class and get a Sphinx warning like:
+    #     docstring of mne.io.base.BaseRaw:71:
+    #     WARNING: py:obj reference target not found: duration [ref.obj]
+    # You need to add the attribute to doc/conf.py nitpick_ignore. You should also
+    # consider adding it to the Attributes list for Raw in mne/io/fiff/raw.py.
+
     _extra_attributes = ()
 
     @verbose
@@ -1926,7 +1932,10 @@ class BaseRaw(
 
     @property
     def duration(self):
-        """Duration of the data in seconds."""
+        """Duration of the data in seconds.
+
+        .. versionadded:: 1.9
+        """
         return self.n_times / self.info["sfreq"]
 
     def __len__(self):
