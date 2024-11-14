@@ -233,7 +233,7 @@ def test_volume_stc(tmp_path):
     assert isinstance(stc, VolSourceEstimate)
 
     assert "sample" in repr(stc)
-    assert " kB" in repr(stc)
+    assert " KiB" in repr(stc)
 
     stc_new = stc
     fname_temp = tmp_path / ("temp-vl.stc")
