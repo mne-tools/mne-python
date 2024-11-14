@@ -2193,6 +2193,7 @@ def test_init_kwargs(cast):
 
 
 @pytest.mark.slowtest
+@testing.requires_testing_data
 @pytest.mark.parametrize("fname", [ms_fname, tri_fname])
 def test_fif_files(fname):
     """Test reading of various FIF files."""
