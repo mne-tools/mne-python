@@ -1,1 +1,1 @@
-Fix displayed units in :func:`mne.utils.sizeof_fmt` to correctly use KiB, MiB, GiB, and so on, by `Clemens Brunner`_.
+Fix displayed units in :func:`mne.utils.misc.sizeof_fmt` to correctly use KiB, MiB, GiB, and so on, by `Clemens Brunner`_.
