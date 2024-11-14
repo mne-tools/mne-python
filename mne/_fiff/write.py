@@ -72,7 +72,9 @@ def write_int(fid, kind, data):
     data_size = 4
     data = np.asarray(data)
     if data.dtype.kind not in "uib" and data.size > 0:
-        raise TypeError(f"Cannot safely write data with dtype {data.dtype} as int")
+        raise TypeError(
+            f"Cannot safely write data kind {kind} with dtype {data.dtype} as int",
+        )
     max_val = data.max() if data.size > 0 else 0
     if max_val > INT32_MAX:
         raise TypeError(
