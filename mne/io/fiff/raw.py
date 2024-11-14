@@ -73,9 +73,12 @@ class Raw(BaseRaw):
         Time vector in seconds. Starts from 0, independently of `first_samp`
         value. Time interval between consecutive time samples is equal to the
         inverse of the sampling frequency.
+    duration : float
+        The duration of the raw file in seconds.
+
+        .. versionadded:: 1.9
     preload : bool
         Indicates whether raw data are in memory.
-    %(verbose)s
     """
 
     _extra_attributes = (
