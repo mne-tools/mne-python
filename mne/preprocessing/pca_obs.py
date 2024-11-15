@@ -1,11 +1,19 @@
+"""Principle Component Analysis Optimal Basis Sets (PCA-OBS)."""
+
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
+
 import math
-from typing import Any
 
 import numpy as np
 from scipy.signal import detrend, filtfilt
 from sklearn.decomposition import PCA
 from scipy.interpolate import PchipInterpolator as pchip
 from scipy.signal import detrend
+
+from mne.io.fiff.raw import Raw
+from mne.utils import logger, warn
 
 # TODO: This needs to be pulled out of the subfolder we've created and moved into the more 'normal' MNE setup
 # with the _pca_obs in preprocessing as a single file only, _init integrated in their __init__.py and .pyi
@@ -132,9 +140,19 @@ def fit_ecg_template(
     return fitted_art, post_idx_nextPeak
 
 
+def apply_pca_obs(raw: Raw, picks: list[str], n_jobs: int, qrs: np.ndarray, filter_coords: np.ndarray) -> None:
+    raw.apply_function(
+        _pca_obs,
+        picks=picks,
+        n_jobs=n_jobs,
+        # args sent to PCA_OBS
+        qrs=qrs,
+        filter_coords=filter_coords,
+    )
+
 # TODO: Are we able to split this into smaller segmented functions?
-def pca_obs(
-    data: np.ndarray, 
+def _pca_obs(
+    data: np.ndarray,
     qrs: np.ndarray,
     filter_coords: np.ndarray,
 ) -> np.ndarray:
@@ -146,9 +164,13 @@ def pca_obs(
 
     Parameters
     ----------
-        data (np.ndarray): The data which we want to remove the heart artefact from.
-        qrs (np.ndarray): _description_
-        filter_coords (np.ndarray): _description_
+    data: ndarray, shape (n_channels, n_times)
+        The data which we want to remove the heart artefact from.
+
+    qrs: ndarray, shape (n_peaks, 1)
+        Array of times in (s), of detected R-peaks in ECG channel.
+        
+    filter_coords: ndarray 
 
     Returns
     -------
@@ -185,7 +207,7 @@ def pca_obs(
     ################################################################
     # Preparatory work - reserving memory, configure sizes, de-trend
     ################################################################
-    print("Pulse artifact subtraction in progress...Please wait!")
+    logger.info("Pulse artifact subtraction in progress...Please wait!")
 
     # define peak range based on RR
     RR = np.diff(peak_idx[:, 0])
@@ -277,11 +299,11 @@ def pca_obs(
                 window_start_idx.append(peak_idx[p] - peak_range)
                 window_end_idx.append(peak_idx[p] + peak_range)
             except Exception as e:
-                print(f"Cannot fit first ECG epoch. Reason: {e}")
+                warn(f"Cannot fit first ECG epoch. Reason: {e}")
 
         # Deals with last edge of data
         elif p == peak_count:
-            print("On last section - almost there!")
+            logger.info("On last section - almost there!")
             try:
                 pre_range = math.floor((peak_idx[p] - peak_idx[p - 1]) / 2)
                 post_range = peak_range
@@ -302,7 +324,7 @@ def pca_obs(
                 window_start_idx.append(peak_idx[p] - peak_range)
                 window_end_idx.append(peak_idx[p] + peak_range)
             except Exception as e:
-                print(f"Cannot fit last ECG epoch. Reason: {e}")
+                warn(f"Cannot fit last ECG epoch. Reason: {e}")
 
         # Deals with middle portion of data
         else:
@@ -334,7 +356,7 @@ def pca_obs(
                 window_start_idx.append(peak_idx[p] - peak_range)
                 window_end_idx.append(peak_idx[p] + peak_range)
             except Exception as e:
-                print(f"Cannot fit middle section of data. Reason: {e}")
+                warn(f"Cannot fit middle section of data. Reason: {e}")
 
     # Actually subtract the artefact, return needs to be the same shape as input data
     data = data.reshape(-1)
