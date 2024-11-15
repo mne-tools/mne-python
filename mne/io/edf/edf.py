@@ -824,10 +824,19 @@ def _read_edf_header(
                     for info in id_info[4:]:
                         if "=" in info:
                             key, value = info.split("=")
+                            err = f"patient {key} info cannot be {value}, skipping."
                             if key in ["weight", "height"]:
-                                patient[key] = float(value)
+                                try:
+                                    patient[key] = float(value)
+                                except ValueError:
+                                    logger.debug(err)
+                                    continue
                             elif key in ["hand"]:
-                                patient[key] = int(value)
+                                try:
+                                    patient[key] = int(value)
+                                except ValueError:
+                                    logger.debug(err)
+                                    continue
                             else:
                                 warn(f"Invalid patient information {key}")
 
