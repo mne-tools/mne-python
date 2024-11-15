@@ -24,7 +24,7 @@ for more details on the dataset and application for ESG data.
 # Copyright the MNE-Python contributors.
 
 from matplotlib import pyplot as plt
-from mne.preprocessing.pca_obs import pca_obs
+import mne
 from mne.preprocessing import find_ecg_events, fix_stim_artifact
 from mne.io import read_raw_eeglab
 from scipy.signal import firls
@@ -38,7 +38,11 @@ from mne import Epochs, events_from_annotations, concatenate_raws
 # Set the target directory to your desired location
 import openneuro as on
 import glob
+
+# add the path where you want the OpenNeuro data downloaded. Files total around 8 GB
+# target_dir = "/home/steinnhm/personal/mne-data"
 target_dir = '/data/pt_02569/test_data'
+
 file_list = glob.glob(target_dir + '/sub-001/eeg/*median*.set')
 if file_list:
     print('Data is already downloaded')
@@ -128,13 +132,12 @@ epochs = Epochs(
 evoked_before = epochs.average()
 
 # Apply function - modifies the data in place
-raw_concat.apply_function(
-    pca_obs,
-    picks=esg_chans,
-    n_jobs=len(esg_chans),
-    # args sent to PCA_OBS
-    qrs=ecg_event_samples,
-    filter_coords=fwts,
+mne.preprocessing.apply_pca_obs(
+    raw_concat, 
+    picks=esg_chans, 
+    n_jobs=4, 
+    qrs=ecg_event_samples, 
+    filter_coords=fwts
 )
 
 epochs = Epochs(
