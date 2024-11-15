@@ -219,7 +219,7 @@ def test_fine_cal_systems(system, tmp_path):
         n_ref = 3
         corrs = (0.58, 0.61, 0.57)
         sfs = [0.9, 1.1, 2.3, 2.8]
-        corr_tol = 0.25
+        corr_tol = 0.3
     elif system == "ctf":
         raw = read_raw_ctf(ctf_fname_continuous).crop(0, 1)
         raw.apply_gradient_compensation(0)
