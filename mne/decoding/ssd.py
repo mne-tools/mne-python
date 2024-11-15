@@ -23,7 +23,7 @@ from ..utils import (
 
 
 @fill_doc
-class SSD(BaseEstimator, TransformerMixin):
+class SSD(TransformerMixin, BaseEstimator):
     """
     Signal decomposition using the Spatio-Spectral Decomposition (SSD).
 

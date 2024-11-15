@@ -13,7 +13,7 @@ from ..utils import logger, verbose
 from .base import _set_cv
 
 
-class EMS(BaseEstimator, TransformerMixin):
+class EMS(TransformerMixin, BaseEstimator):
     """Transformer to compute event-matched spatial filters.
 
     This version of EMS :footcite:`SchurgerEtAl2013` operates on the entire

@@ -3232,7 +3232,7 @@ def make_metadata(
 
     # keep_first and keep_last names
     start_idx = stop_idx
-    metadata[columns[start_idx:]] = ""
+    metadata[columns[start_idx:]] = None
 
     # We're all set, let's iterate over all events and fill in in the
     # respective cells in the metadata. We will subset this to include only

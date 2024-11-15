@@ -51,6 +51,7 @@ data_dir = testing_path / "MEG" / "sample"
 fif_fname = data_dir / "sample_audvis_trunc_raw.fif"
 ms_fname = testing_path / "SSS" / "test_move_anon_raw.fif"
 skip_fname = testing_path / "misc" / "intervalrecording_raw.fif"
+tri_fname = testing_path / "SSS" / "TRIUX" / "triux_bmlhus_erm_raw.fif"
 
 base_dir = Path(__file__).parents[2] / "tests" / "data"
 test_fif_fname = base_dir / "test_raw.fif"
@@ -2189,3 +2190,18 @@ def test_init_kwargs(cast):
     raw2 = read_raw_fif(**raw._init_kwargs)
     for r in (raw, raw2):
         assert isinstance(r._init_kwargs["fname"], pathlib.Path)
+
+
+@pytest.mark.slowtest
+@testing.requires_testing_data
+@pytest.mark.parametrize("fname", [ms_fname, tri_fname])
+def test_fif_files(fname):
+    """Test reading of various FIF files."""
+    _test_raw_reader(
+        read_raw_fif,
+        fname=fname,
+        allow_maxshield="yes",
+        verbose="error",
+        test_kwargs=False,
+        test_preloading=False,
+    )

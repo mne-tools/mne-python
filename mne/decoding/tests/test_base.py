@@ -94,10 +94,18 @@ def _make_data(n_samples=1000, n_features=5, n_targets=3):
 def test_get_coef():
     """Test getting linear coefficients (filters/patterns) from estimators."""
     lm_classification = LinearModel()
+    assert hasattr(lm_classification, "__sklearn_tags__")
+    print(lm_classification.__sklearn_tags__)
+    assert is_classifier(lm_classification.model)
     assert is_classifier(lm_classification)
+    assert not is_regressor(lm_classification.model)
+    assert not is_regressor(lm_classification)
 
     lm_regression = LinearModel(Ridge())
+    assert is_regressor(lm_regression.model)
     assert is_regressor(lm_regression)
+    assert not is_classifier(lm_regression.model)
+    assert not is_classifier(lm_regression)
 
     parameters = {"kernel": ["linear"], "C": [1, 10]}
     lm_gs_classification = LinearModel(
@@ -433,7 +441,8 @@ def test_cross_val_multiscore():
     # raise an error if scoring is defined at cross-val-score level and
     # search light, because search light does not return a 1-dimensional
     # prediction.
-    pytest.raises(ValueError, cross_val_multiscore, clf, X, y, cv=cv, scoring="roc_auc")
+    with pytest.raises(ValueError, match="multi_class must be"):
+        cross_val_multiscore(clf, X, y, cv=cv, scoring="roc_auc", n_jobs=1)
     clf = SlidingEstimator(logreg, scoring="roc_auc")
     scores_auc = cross_val_multiscore(clf, X, y, cv=cv, n_jobs=None)
     scores_auc_manual = list()

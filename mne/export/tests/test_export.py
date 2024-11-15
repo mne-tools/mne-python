@@ -380,6 +380,16 @@ def test_export_edf_signal_clipping(tmp_path, physical_range, exceeded_bound):
 
 
 @edfio_mark()
+def test_export_edf_with_constant_channel(tmp_path):
+    """Test if exporting to edf works if a channel contains only constant values."""
+    temp_fname = tmp_path / "test.edf"
+    raw = RawArray(np.zeros((1, 10)), info=create_info(1, 1))
+    raw.export(temp_fname)
+    raw_read = read_raw_edf(temp_fname, preload=True)
+    assert_array_equal(raw_read.get_data(), np.zeros((1, 10)))
+
+
+@edfio_mark()
 @pytest.mark.parametrize(
     ("input_path", "warning_msg"),
     [

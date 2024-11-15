@@ -8,12 +8,12 @@ import numpy as np
 from scipy import linalg
 from scipy.signal import fftconvolve
 from scipy.sparse.csgraph import laplacian
+from sklearn.base import BaseEstimator, RegressorMixin
 
 from ..cuda import _setup_cuda_fft_multiply_repeated
 from ..filter import next_fast_len
 from ..fixes import jit
 from ..utils import ProgressBar, _check_option, _validate_type, logger, warn
-from .base import BaseEstimator
 
 
 def _compute_corrs(
@@ -226,7 +226,7 @@ def _fit_corrs(x_xt, x_y, n_ch_x, reg_type, alpha, n_ch_in):
     return w
 
 
-class TimeDelayingRidge(BaseEstimator):
+class TimeDelayingRidge(RegressorMixin, BaseEstimator):
     """Ridge regression of data with time delays.
 
     Parameters

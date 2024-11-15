@@ -844,8 +844,9 @@ def _plot_lines(
 def _add_nave(ax, nave):
     """Add nave to axes."""
     if nave is not None:
+        text_nave = f"={nave}" if round(nave) == nave else rf"$\approx${round(nave, 2)}"
         ax.annotate(
-            r"N$_{\mathrm{ave}}$=" + f"{nave}",
+            r"N$_{\mathrm{ave}}$" + text_nave,
             ha="right",
             va="bottom",
             xy=(1, 1),

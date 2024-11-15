@@ -161,6 +161,7 @@
 .. _Lau Møller Andersen: https://github.com/ualsbombe
 .. _Laura Gwilliams: https://lauragwilliams.github.io
 .. _Leonardo Barbosa: https://github.com/noreun
+.. _Leonardo Rochael Almeida: https://github.com/leorochael
 .. _Liberty Hamilton: https://github.com/libertyh
 .. _Lorenzo Desantis: https://github.com/lorenzo-desantis/
 .. _Lukas Breuer: https://www.researchgate.net/profile/Lukas-Breuer-2
@@ -275,6 +276,7 @@
 .. _Simeon Wong: https://github.com/dtxe
 .. _Simon Kern: https://skjerns.de
 .. _Simon Kornblith: https://simonster.com
+.. _Simon M. Hofmann: https://github.com/SHEscher
 .. _Sondre Foslien: https://github.com/sondrfos
 .. _Sophie Herbst: https://github.com/SophieHerbst
 .. _Stanislas Chambon: https://github.com/Slasnista

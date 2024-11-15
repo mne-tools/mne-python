@@ -216,6 +216,7 @@ _known_config_wildcards = (
     "MNE_NIRS",  # mne-nirs
     "MNE_KIT2FIFF",  # mne-kit-gui
     "MNE_ICALABEL",  # mne-icalabel
+    "MNE_LSL",  # mne-lsl
 )
 
 
@@ -771,10 +772,12 @@ def sys_info(
         use_mod_names += (
             "# Testing",
             "pytest",
-            "nbclient",
             "statsmodels",
             "numpydoc",
             "flake8",
+            "jupyter_client",
+            "nbclient",
+            "nbformat",
             "pydocstyle",
             "nitime",
             "imageio",
