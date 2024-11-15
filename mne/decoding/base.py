@@ -11,6 +11,7 @@ import numpy as np
 from sklearn import model_selection as models
 from sklearn.base import (  # noqa: F401
     BaseEstimator,
+    MetaEstimatorMixin,
     TransformerMixin,
     clone,
     is_classifier,
@@ -24,7 +25,7 @@ from ..parallel import parallel_func
 from ..utils import _pl, logger, verbose, warn
 
 
-class LinearModel(BaseEstimator):
+class LinearModel(MetaEstimatorMixin, BaseEstimator):
     """Compute and store patterns from linear models.
 
     The linear model coefficients (filters) are used to extract discriminant
@@ -61,11 +62,14 @@ class LinearModel(BaseEstimator):
     .. footbibliography::
     """
 
+    # TODO: Properly refactor this using
+    # https://github.com/scikit-learn/scikit-learn/issues/30237#issuecomment-2465572885
     _model_attr_wrap = (
         "transform",
         "predict",
         "predict_proba",
         "_estimator_type",
+        "__tags__",
         "decision_function",
         "score",
         "classes_",
@@ -76,6 +80,12 @@ class LinearModel(BaseEstimator):
             model = LogisticRegression(solver="liblinear")
 
         self.model = model
+
+    def __sklearn_tags__(self):
+        """Get sklearn tags."""
+        from sklearn.utils import get_tags  # added in 1.6
+
+        return get_tags(self.model)
 
     def __getattr__(self, attr):
         """Wrap to model for some attributes."""

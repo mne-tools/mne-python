@@ -40,8 +40,7 @@ jobs:
   pytest:
     name: '${{ matrix.os }} / ${{ matrix.kind }} / ${{ matrix.python }}'
     needs: style
-    timeout-minutes: 70
-    continue-on-error: true
+    timeout-minutes: 80
     runs-on: ${{ matrix.os }}
     defaults:
       run:
@@ -54,6 +53,7 @@ jobs:
       MNE_CI_KIND: '${{ matrix.kind }}'
       CI_OS_NAME: '${{ matrix.os }}'
     strategy:
+      fail-fast: false
       matrix:
         include:
           - os: ubuntu-latest
@@ -99,13 +99,14 @@ jobs:
           sed -i '/dipy/d' environment.yml
           sed -i 's/- mne$/- mne-base/' environment.yml
         if: matrix.os == 'ubuntu-latest' && startswith(matrix.kind, 'conda') && matrix.python == '3.12'
-      - uses: mamba-org/setup-micromamba@v1
+      - uses: mamba-org/setup-micromamba@v2
         with:
           environment-file: ${{ env.CONDA_ENV }}
           environment-name: mne
           create-args: >-
             python=${{ env.PYTHON_VERSION }}
             mamba
+            nomkl
         if: ${{ !startswith(matrix.kind, 'pip') }}
       # Make sure we have the right Python
       - run: python -c "import platform; assert platform.machine() == 'arm64', platform.machine()"
@@ -131,4 +132,4 @@ jobs:
       - uses: codecov/codecov-action@v4
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-        if: always()
+        if: success() || failure()

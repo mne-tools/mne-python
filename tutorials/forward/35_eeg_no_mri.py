@@ -48,7 +48,7 @@ bem = fs_dir / "bem" / "fsaverage-5120-5120-5120-bem-sol.fif"
 # .. note:: See :ref:`plot_montage` to view all the standard EEG montages
 #           available in MNE-Python.
 
-(raw_fname,) = eegbci.load_data(subject=1, runs=[6])
+(raw_fname,) = eegbci.load_data(subjects=1, runs=[6])
 raw = mne.io.read_raw_edf(raw_fname, preload=True)
 
 # Clean channel names to be able to use a standard 1005 montage
@@ -82,7 +82,7 @@ mne.viz.plot_alignment(
 fwd = mne.make_forward_solution(
     raw.info, trans=trans, src=src, bem=bem, eeg=True, mindist=5.0, n_jobs=None
 )
-print(fwd)
+fwd
 
 ##############################################################################
 # From here on, standard inverse imaging methods can be used!

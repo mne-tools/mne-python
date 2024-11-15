@@ -939,7 +939,7 @@ def compute_covariance(
         except ``'factor_analysis'`` and ``'pca'``)::
 
             {'diagonal_fixed': {'grad': 0.1, 'mag': 0.1, 'eeg': 0.1, ...},
-             'shrinkage': {'shrikage': 0.1},
+             'shrinkage': {'shrinkage': 0.1},
              'shrunk': {'shrinkage': np.logspace(-4, 0, 30)},
              'pca': {'iter_n_components': None},
              'factor_analysis': {'iter_n_components': None}}

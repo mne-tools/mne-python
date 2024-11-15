@@ -166,7 +166,7 @@ intersphinx_mapping = {
     "mne-gui-addons": ("https://mne.tools/mne-gui-addons", None),
     "picard": ("https://pierreablin.github.io/picard/", None),
     "eeglabio": ("https://eeglabio.readthedocs.io/en/latest", None),
-    "pybv": ("https://pybv.readthedocs.io/en/latest/", None),
+    "pybv": ("https://pybv.readthedocs.io/en/latest", None),
 }
 intersphinx_mapping.update(
     get_intersphinx_mapping(
@@ -732,10 +732,12 @@ nitpick_ignore_regex = [
     ("py:.*", r"mne\.io\..*\.Raw.*"),  # RawEDF etc.
     ("py:.*", r"mne\.epochs\.EpochsFIF.*"),
     ("py:.*", r"mne\.io\..*\.Epochs.*"),  # EpochsKIT etc.
-    (
+    (  # BaseRaw attributes are documented in Raw
         "py:obj",
-        "(filename|metadata|proj|times|tmax|tmin|annotations|ch_names|compensation_grade|filenames|first_samp|first_time|last_samp|n_times|proj|times|tmax|tmin)",
-    ),  # noqa: E501
+        "(filename|metadata|proj|times|tmax|tmin|annotations|ch_names"
+        "|compensation_grade|duration|filenames|first_samp|first_time"
+        "|last_samp|n_times|proj|times|tmax|tmin)",
+    ),
 ]
 suppress_warnings = [
     "image.nonlocal_uri",  # we intentionally link outside
