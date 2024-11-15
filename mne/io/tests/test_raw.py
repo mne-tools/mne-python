@@ -40,6 +40,7 @@ from mne.utils import (
     catch_logging,
     check_version,
     object_diff,
+    sizeof_fmt,
 )
 
 raw_fname = op.join(
@@ -314,7 +315,7 @@ def _test_raw_reader(
     ids = [id(ch["loc"]) for ch in raw.info["chs"]]
     assert len(set(ids)) == len(ids)
 
-    full_data = raw._data
+    full_data = raw.get_data()
     assert raw.__class__.__name__ in repr(raw)  # to test repr
     assert raw.info.__class__.__name__ in repr(raw.info)
     assert isinstance(raw.info["dig"], type(None) | list)
@@ -354,7 +355,7 @@ def _test_raw_reader(
     with pytest.raises(OSError, match="raw must end with .fif or .fif.gz"):
         raw.save(out_fname_h5)
 
-    raw3 = read_raw_fif(out_fname)
+    raw3 = read_raw_fif(out_fname, allow_maxshield="yes")
     assert_named_constants(raw3.info)
     assert set(raw.info.keys()) == set(raw3.info.keys())
     assert_allclose(
@@ -777,15 +778,44 @@ def test_5839():
     assert raw_A.annotations.orig_time == _stamp_to_dt((0, 0))
 
 
-def test_repr():
+def test_duration_property():
+    """Test BaseRAW.duration property."""
+    sfreq = 1000
+    info = create_info(ch_names=["EEG 001"], sfreq=sfreq)
+    raw = BaseRaw(info, last_samps=[sfreq * 60 - 1])
+    assert raw.duration == 60
+
+
+@pytest.mark.parametrize("sfreq", [1, 10, 100, 1000])
+@pytest.mark.parametrize(
+    "duration, expected",
+    [
+        (0.1, "00:00:01"),
+        (1, "00:00:01"),
+        (59, "00:00:59"),
+        (59.1, "00:01:00"),
+        (60, "00:01:00"),
+        (60.1, "00:01:01"),
+        (61, "00:01:01"),
+        (61.1, "00:01:02"),
+    ],
+)
+def test_get_duration_string(sfreq, duration, expected):
+    """Test BaseRAW_get_duration_string() method."""
+    info = create_info(ch_names=["EEG 001"], sfreq=sfreq)
+    raw = BaseRaw(info, last_samps=[sfreq * duration - 1])
+    assert raw._get_duration_string() == expected
+
+
+@pytest.mark.parametrize("sfreq", [1, 10, 100, 256, 1000])
+def test_repr(sfreq):
     """Test repr of Raw."""
-    sfreq = 256
     info = create_info(3, sfreq)
-    raw = RawArray(np.zeros((3, 10 * sfreq)), info)
+    sample_count = 10 * sfreq
+    raw = RawArray(np.zeros((3, sample_count)), info)
     r = repr(raw)
-    assert (
-        re.search("<RawArray | 3 x 2560 (10.0 s), ~.* kB, data loaded>", r) is not None
-    ), r
+    size_str = sizeof_fmt(raw._size)
+    assert r == f"<RawArray | 3 x {sample_count} (10.0 s), ~{size_str}, data loaded>"
     assert raw._repr_html_()
 
 

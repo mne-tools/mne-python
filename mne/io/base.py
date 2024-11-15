@@ -176,6 +176,12 @@ class BaseRaw(
           (only needed for types that support on-demand disk reads)
     """
 
+    # NOTE: If you add a new attribute to this class and get a Sphinx warning like:
+    #     docstring of mne.io.base.BaseRaw:71:
+    #     WARNING: py:obj reference target not found: duration [ref.obj]
+    # You need to add the attribute to doc/conf.py nitpick_ignore_regex. You should also
+    # consider adding it to the Attributes list for Raw in mne/io/fiff/raw.py.
+
     _extra_attributes = ()
 
     @verbose
@@ -1924,6 +1930,14 @@ class BaseRaw(
         """Number of time points."""
         return self.last_samp - self.first_samp + 1
 
+    @property
+    def duration(self):
+        """Duration of the data in seconds.
+
+        .. versionadded:: 1.9
+        """
+        return self.n_times / self.info["sfreq"]
+
     def __len__(self):
         """Return the number of time points.
 
@@ -2116,7 +2130,7 @@ class BaseRaw(
         size_str += f", data{'' if self.preload else ' not'} loaded"
         s = (
             f"{name}{len(self.ch_names)} x {self.n_times} "
-            f"({self.times[-1]:0.1f} s), ~{size_str}"
+            f"({self.duration:0.1f} s), ~{size_str}"
         )
         return f"<{self.__class__.__name__} | {s}>"
 
@@ -2124,14 +2138,7 @@ class BaseRaw(
     def _repr_html_(self):
         basenames = [f.name for f in self.filenames if f is not None]
 
-        # https://stackoverflow.com/a/10981895
-        duration = timedelta(seconds=self.times[-1])
-        hours, remainder = divmod(duration.seconds, 3600)
-        minutes, seconds = divmod(remainder, 60)
-        seconds += duration.microseconds / 1e6
-        seconds = np.ceil(seconds)  # always take full seconds
-
-        duration = f"{int(hours):02d}:{int(minutes):02d}:{int(seconds):02d}"
+        duration = self._get_duration_string()
 
         raw_template = _get_html_template("repr", "raw.html.jinja")
         return raw_template.render(
@@ -2139,6 +2146,13 @@ class BaseRaw(
             filenames=basenames,
             duration=duration,
         )
+
+    def _get_duration_string(self):
+        # https://stackoverflow.com/a/10981895
+        duration = np.ceil(self.duration)  # always take full seconds
+        hours, remainder = divmod(duration, 3600)
+        minutes, seconds = divmod(remainder, 60)
+        return f"{hours:02.0f}:{minutes:02.0f}:{seconds:02.0f}"
 
     def add_events(self, events, stim_channel=None, replace=False):
         """Add events to stim channel.
