@@ -19,7 +19,8 @@ for more details on the dataset and application for ESG data.
 
 """
 
-# Authors: Emma Bailey <bailey@cbs.mpg.de>, Steinn Hauser Magnusson <hausersteinn@gmail.com>
+# Authors: Emma Bailey <bailey@cbs.mpg.de>,
+#          Steinn Hauser Magnusson <hausersteinn@gmail.com>
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -135,7 +136,7 @@ evoked_before = epochs.average()
 mne.preprocessing.apply_pca_obs(
     raw_concat, 
     picks=esg_chans, 
-    n_jobs=4, 
+    n_jobs=5,
     qrs=ecg_event_samples, 
     filter_coords=fwts
 )
@@ -154,9 +155,11 @@ evoked_after = epochs.average()
 # Comparison image
 fig, axes = plt.subplots(1, 1)
 axes.plot(evoked_before.times, evoked_before.get_data().T, color="black")
-axes.set_ylim([-0.0005, 0.001])
 axes.plot(evoked_after.times, evoked_after.get_data().T, color="green")
-axes.set_title("Before (black) versus after (green)")
+axes.set_ylim([-0.0005, 0.001])
+axes.set_ylabel('Amplitude (V)')
+axes.set_xlabel('Time (s)')
+axes.set_title("Before (black) vs. After (green)")
 plt.tight_layout()
 plt.show()
 

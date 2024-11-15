@@ -1,6 +1,7 @@
 """Principle Component Analysis Optimal Basis Sets (PCA-OBS)."""
 
-# Authors: The MNE-Python contributors.
+# Authors: Emma Bailey <bailey@cbs.mpg.de>,
+#          Steinn Hauser Magnusson <hausersteinn@gmail.com>
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -15,8 +16,8 @@ from scipy.signal import detrend
 from mne.io.fiff.raw import Raw
 from mne.utils import logger, warn
 
-# TODO: This needs to be pulled out of the subfolder we've created and moved into the more 'normal' MNE setup
-# with the _pca_obs in preprocessing as a single file only, _init integrated in their __init__.py and .pyi
+
+# TODO: check arguments passed in, raise errors, tests
 
 def fit_ecg_template(
     data,
@@ -27,47 +28,37 @@ def fit_ecg_template(
     post_range,
     midP,
     fitted_art,
-    post_idx_previousPeak: list,
+    post_idx_previousPeak,
     n_samples_fit,
 ) -> tuple[np.ndarray, list]:
-    """TODO: Write docstring about what we do here.
-    Fits the ECG to a template signal (?)
-    and returns the fitted artefact and the index of the next peak. (?)
+    """
+    Fits the heartbeat artefact found in the data
+    Returns the fitted artefact and the index of the next peak.
 
-    (TODO: are there any conditions that must be met to use our algos?)
-    .. note:: This should only be used on data which is ...
-
-    # TODO: Fill out input/output and raises
     Parameters
     ----------
-        data (_type_): _description_
-        pca_template (_type_): _description_
-        aPeak_idx (_type_): _description_
-        peak_range (_type_): _description_
-        pre_range (_type_): _description_
-        post_range (_type_): _description_
-        midP (_type_): _description_
-        fitted_art (_type_): _description_
-        post_idx_previousPeak (list): _description_
-        n_samples_fit (_type_): _description_
+        data (ndarray): Data from the raw signal (n_channels, n_times)
+        pca_template (ndarray): Mean heartbeat and first N (4) principal components of the heartbeat matrix
+        aPeak_idx (int): Sample index of current R-peak
+        peak_range (int): Half the median RR-interval
+        pre_range (int): Number of samples to fit before the R-peak
+        post_range (int): Number of samples to fit after the R-peak
+        midP (float): Sample index marking middle of the median RR interval in the signal.
+                      Used to extract relevant part of PCA_template.
+        fitted_art (ndarray): The computed heartbeat artefact computed to remove from the data
+        post_idx_previousPeak (optional int): Sample index of previous R-peak
+        n_samples_fit (int): Sample fit for interpolation between fitted artifact windows.
+                                Helps reduce sharp edges at the end of fitted heartbeat events.
 
     Returns
     -------
         tuple[np.ndarray, list]: the fitted artifact and the next peak index (if available)
     """
-    # Declare class to hold ecg fit information
-    class fitECG:
-        def __init__(self):
-            pass
-
-    # Instantiate class
-    # TODO: Why are we storing this to a class? Can't we just use the variables and write to them?
-    fitecg = fitECG()
 
     # post_idx_nextpeak is passed in in PCA_OBS, used here as post_idx_previouspeak
     # Then nextpeak is returned at the end and the process repeats
     # select window of template
-    template = pca_template[midP - peak_range - 1 : midP + peak_range + 1, :]
+    template = pca_template[midP - peak_range - 1: midP + peak_range + 1, :]
 
     # select window of data and detrend it
     slice = data[0, aPeak_idx[0] - peak_range : aPeak_idx[0] + peak_range + 1]
@@ -77,31 +68,19 @@ def fit_ecg_template(
     least_square = np.linalg.lstsq(template, detrended_data, rcond=None)
     pad_fit = np.dot(template, least_square[0])
 
-    # fit artifact, I already loop through externally channel to channel
-    fitted_art[0, aPeak_idx[0] - pre_range - 1 : aPeak_idx[0] + post_range] = pad_fit[
-        midP - pre_range - 1 : midP + post_range
+    # fit artifact
+    fitted_art[0, aPeak_idx[0] - pre_range - 1: aPeak_idx[0] + post_range] = pad_fit[
+        midP - pre_range - 1: midP + post_range
     ].T
 
-    fitecg.fitted_art = fitted_art
-    fitecg.template = template
-    fitecg.detrended_data = detrended_data
-    fitecg.pad_fit = pad_fit
-    fitecg.aPeak_idx = aPeak_idx
-    fitecg.midP = midP
-    fitecg.peak_range = peak_range
-    fitecg.data = data
-
-    post_idx_nextPeak = [aPeak_idx[0] + post_range]
-
     # if last peak, return
-    if not post_idx_previousPeak:
-        return fitted_art, post_idx_nextPeak
+    if post_idx_previousPeak is None:
+        return fitted_art, aPeak_idx[0] + post_range
 
     # interpolate time between peaks
     intpol_window = np.ceil(
-        [post_idx_previousPeak[0], aPeak_idx[0] - pre_range]
+        [post_idx_previousPeak, aPeak_idx[0] - pre_range]
     ).astype("int")  # interpolation window
-    fitecg.intpol_window = intpol_window
 
     if intpol_window[0] < intpol_window[1]:
         # Piecewise Cubic Hermite Interpolating Polynomial(PCHIP) + replace EEG data
@@ -127,17 +106,11 @@ def fit_ecg_template(
         y_interpol = pchip(x_fit, y_fit)(x_interpol)  # perform interpolation
 
         # Then make fitted artefact in the desired range equal to the completed fit above
-        fitted_art[0, post_idx_previousPeak[0] : aPeak_idx[0] - pre_range + 1] = (
+        fitted_art[0, post_idx_previousPeak: aPeak_idx[0] - pre_range + 1] = (
             y_interpol
         )
 
-        fitecg.x_fit = x_fit
-        fitecg.y_fit = y_fit
-        fitecg.x_interpol = x_interpol
-        fitecg.y_interpol = y_interpol
-        fitecg.fitted_art = fitted_art  # Reassign if we've gone into this loop
-
-    return fitted_art, post_idx_nextPeak
+    return fitted_art, aPeak_idx[0] + post_range
 
 
 def apply_pca_obs(raw: Raw, picks: list[str], n_jobs: int, qrs: np.ndarray, filter_coords: np.ndarray) -> None:
@@ -160,8 +133,6 @@ def _pca_obs(
     Algorithm to perform the PCA OBS (Principal Component Analysis, Optimal Basis Sets) 
     algorithm to remove the heart artefact from EEG data.
 
-    .. note:: This should only be used on data which is ... (TODO: are there any conditions that must be met to use our algos?)
-
     Parameters
     ----------
     data: ndarray, shape (n_channels, n_times)
@@ -170,21 +141,13 @@ def _pca_obs(
     qrs: ndarray, shape (n_peaks, 1)
         Array of times in (s), of detected R-peaks in ECG channel.
         
-    filter_coords: ndarray 
+    filter_coords: ndarray (N, )
+        The numerator coefficient vector of the filter passed to scipy.signal.filtfilt
 
     Returns
     -------
-        np.ndarray: The data with the heart artefact removed.
+        np.ndarray: The data with the heart artefact suppressed.
     """
-    # Declare class to hold pca information
-    class PCAInfo:
-        def __init__(self):
-            pass
-
-    # NOTE: Here aswell, is there a reason we are storing this 
-    # to a class? Shouldn't variables suffice?
-    # Instantiate class
-    pca_info = PCAInfo()
 
     # set to baseline
     data = data.reshape(-1, 1)
@@ -250,18 +213,10 @@ def _pca_obs(
     # run PCA(performs SVD(singular value decomposition))
     pca = PCA(svd_solver="full")
     pca.fit(dpcamat)
-    eigen_vectors = pca.components_
-    eigen_values = pca.explained_variance_
     factor_loadings = pca.components_.T * np.sqrt(pca.explained_variance_)
-    pca_info.eigen_vectors = eigen_vectors
-    pca_info.factor_loadings = factor_loadings
-    pca_info.eigen_values = eigen_values
-    pca_info.expl_var = pca.explained_variance_ratio_
 
     # define selected number of  components using profile likelihood
-    pca_info.nComponents = 4  # TODO: Is this a variable? Or constant? Seems like a variable
-    pca_info.meanEffect = mean_effect.T
-    nComponents = pca_info.nComponents
+    nComponents = 4
 
     #######################################################################
     # Make template of the ECG artefact
@@ -282,7 +237,7 @@ def _pca_obs(
             if post_range > peak_range:
                 post_range = peak_range
             try:
-                post_idx_nextPeak = []
+                post_idx_nextPeak = None
                 fitted_art, post_idx_nextPeak = fit_ecg_template(
                     data,
                     pca_template,
@@ -302,7 +257,7 @@ def _pca_obs(
                 warn(f"Cannot fit first ECG epoch. Reason: {e}")
 
         # Deals with last edge of data
-        elif p == peak_count:
+        elif p == peak_count-1:
             logger.info("On last section - almost there!")
             try:
                 pre_range = math.floor((peak_idx[p] - peak_idx[p - 1]) / 2)
@@ -312,7 +267,7 @@ def _pca_obs(
                 fitted_art, _ = fit_ecg_template(
                     data,
                     pca_template,
-                    peak_idx(p),
+                    peak_idx[p],
                     peak_range,
                     pre_range,
                     post_range,
