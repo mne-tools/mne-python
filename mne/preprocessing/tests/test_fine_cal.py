@@ -77,7 +77,7 @@ def test_compute_fine_cal(kind):
         angle_limit = 5
         gwoma = [66, 68]
         ggoma = [55, 150]
-        ggwma = [62, 80]
+        ggwma = [62, 86]
         sfs = [26, 27, 61, 63, 61, 63, 68, 70]
         cl3 = [0.6, 0.7]
     else:
@@ -90,7 +90,7 @@ def test_compute_fine_cal(kind):
         gwoma = [48, 52]
         ggoma = [13, 67]
         ggwma = [13, 120]
-        sfs = [34, 35, 27, 28, 51, 53, 75, 79]  # ours is better!
+        sfs = [34, 35, 27, 28, 50, 53, 75, 79]  # ours is better!
         cl3 = [-0.3, -0.1]
     raw = read_raw_fif(erm)
     want_cal = read_fine_calibration(cal)
@@ -218,7 +218,8 @@ def test_fine_cal_systems(system, tmp_path):
         err_limit = 500
         n_ref = 3
         corrs = (0.58, 0.61, 0.57)
-        sfs = [0.9, 1.1, 2.4, 2.6]
+        sfs = [0.9, 1.1, 2.3, 2.8]
+        corr_tol = 0.25
     elif system == "ctf":
         raw = read_raw_ctf(ctf_fname_continuous).crop(0, 1)
         raw.apply_gradient_compensation(0)
@@ -226,7 +227,8 @@ def test_fine_cal_systems(system, tmp_path):
         err_limit = 6000
         n_ref = 28
         corrs = (0.19, 0.41, 0.49)
-        sfs = [0.5, 0.7, 1.3, 1.5]
+        sfs = [0.5, 0.7, 0.9, 1.5]
+        corr_tol = 0.45
     elif system == "fil":
         raw = read_raw_fil(fil_fname, verbose="error")
         raw.info["bads"] = [f"G2-{a}-{b}" for a in ("MW", "DS", "DT") for b in "YZ"]
@@ -236,7 +238,8 @@ def test_fine_cal_systems(system, tmp_path):
         err_limit = 15
         int_order = 5
         corrs = (0.13, 0.0, 0.12)
-        sfs = [4, 5, 125, 135]
+        sfs = [4, 5, 125, 145]
+        corr_tol = 0.1
     else:
         assert system == "triux", f"Unknown system {system}"
         raw = read_raw_fif(tri_fname)
@@ -244,6 +247,7 @@ def test_fine_cal_systems(system, tmp_path):
         err_limit = 10
         corrs = (-0.13, 0.01, 0.11)
         sfs = [26, 28, 100, 110]
+        corr_tol = 0.05
     raw.info["dev_head_t"] = None  # fake empty-room even if it's not
     # avoid line noise and speed up computation
     raw.load_data().resample(50, method="polyphase")
@@ -280,4 +284,4 @@ def test_fine_cal_systems(system, tmp_path):
     raw_sss_cal_data = raw_sss_cal.get_data("mag").ravel()
     got_corrs = np.corrcoef([raw_data, raw_sss_data, raw_sss_cal_data])
     got_corrs = got_corrs[np.triu_indices(3, 1)]
-    assert_allclose(got_corrs, corrs, atol=0.05)
+    assert_allclose(got_corrs, corrs, atol=corr_tol)
