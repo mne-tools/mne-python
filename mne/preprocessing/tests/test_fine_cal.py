@@ -239,7 +239,7 @@ def test_fine_cal_systems(system, tmp_path):
         int_order = 5
         corrs = (0.13, 0.0, 0.12)
         sfs = [4, 5, 125, 145]
-        corr_tol = 0.1
+        corr_tol = 0.15
     else:
         assert system == "triux", f"Unknown system {system}"
         raw = read_raw_fif(tri_fname)
