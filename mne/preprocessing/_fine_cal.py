@@ -129,6 +129,11 @@ def compute_fine_calibration(
     ext_order = _ensure_int(ext_order, "ext_order")
     origin = _check_origin(origin, raw.info, "meg", disp=True)
     _check_option("raw.info['bads']", raw.info["bads"], ([],))
+    _validate_type(err_limit, "numeric", "err_limit")
+    _validate_type(angle_limit, "numeric", "angle_limit")
+    for key, val in dict(err_limit=err_limit, angle_limit=angle_limit).items():
+        if val < 0:
+            raise ValueError(f"{key} must be greater than or equal to 0, got {val}")
     # Fine cal should not include ref channels
     picks = pick_types(raw.info, meg=True, ref_meg=False)
     if raw.info["dev_head_t"] is not None:

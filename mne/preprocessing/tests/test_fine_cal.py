@@ -94,6 +94,10 @@ def test_compute_fine_cal(kind):
         cl3 = [-0.3, -0.1]
     raw = read_raw_fif(erm)
     want_cal = read_fine_calibration(cal)
+    with pytest.raises(ValueError, match="err_limit.*greater.*0"):
+        compute_fine_calibration(raw, err_limit=-1)
+    with pytest.raises(ValueError, match="angle_limit.*greater.*0"):
+        compute_fine_calibration(raw, angle_limit=-1)
     got_cal, counts = compute_fine_calibration(
         raw,
         cross_talk=ctc,
