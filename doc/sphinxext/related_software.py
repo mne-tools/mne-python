@@ -30,7 +30,6 @@ from sphinx.util.display import status_iterator
 # If it's available on PyPI, add it to this set:
 PYPI_PACKAGES = {
     "alphaCSC",
-    "meegkit",
     "meggie",
     "niseq",
     "sesameeg",
@@ -97,6 +96,11 @@ MANUAL_PACKAGES = {
     "emd": {
         "Home-page": "https://emd.readthedocs.io/en/stable",
         "Summary": "Empirical Mode Decomposition in Python.",
+    },
+    # Needs a release with homepage set properly
+    "meegkit": {
+        "Home-page": "https://nbara.github.io/python-meegkit",
+        "Summary": "Denoising tools for M/EEG processing.",
     },
     # not on PyPI
     "conpy": {
