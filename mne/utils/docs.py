@@ -4663,8 +4663,9 @@ title : str | 'auto' | None
     plot. If ``None``, no title is shown. Default is ``None``.
 """
 docdict["tmax_raw"] = """
-tmax : float
+tmax : float | None
     End time of the raw data to use in seconds (cannot exceed data duration).
+    If ``None`` (default), the current end of the data is used.
 """
 
 docdict["tmin"] = """
