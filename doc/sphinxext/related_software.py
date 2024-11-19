@@ -30,8 +30,10 @@ from sphinx.util.display import status_iterator
 # If it's available on PyPI, add it to this set:
 PYPI_PACKAGES = {
     "alphaCSC",
+    "meegkit",
     "meggie",
     "niseq",
+    "pycrostates",
     "sesameeg",
 }
 
@@ -96,11 +98,6 @@ MANUAL_PACKAGES = {
     "emd": {
         "Home-page": "https://emd.readthedocs.io/en/stable",
         "Summary": "Empirical Mode Decomposition in Python.",
-    },
-    # Needs https://github.com/vferat/pycrostates/pull/188 and a release
-    "pycrostates": {
-        "Home-page": "https://pycrostates.readthedocs.io",
-        "Summary": "A simple open source Python package for EEG microstate segmentation.",  # noqa: E501
     },
     # not on PyPI
     "conpy": {
