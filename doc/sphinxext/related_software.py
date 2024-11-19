@@ -33,7 +33,6 @@ PYPI_PACKAGES = {
     "meegkit",
     "meggie",
     "niseq",
-    "pycrostates",
     "sesameeg",
 }
 
