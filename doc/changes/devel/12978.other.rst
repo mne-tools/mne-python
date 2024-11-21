@@ -1,1 +1,1 @@
-Fix a mistake in :ref:`_tut-artifact-regression` where the wrong regression coefficients were applied, by `Jacob Phelan`_.
+Fix a mistake in :ref:`_tut-artifact-regression` where the wrong regression coefficients were applied, by :newcontrib:`Jacob Phelan`.
