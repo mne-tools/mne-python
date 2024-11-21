@@ -1152,6 +1152,7 @@ def plot_evoked_topo(
     background_color="w",
     noise_cov=None,
     exclude="bads",
+    select=False,
     show=True,
 ):
     """Plot 2D topography of evoked responses.
@@ -1217,6 +1218,15 @@ def plot_evoked_topo(
     exclude : list of str | ``'bads'``
         Channels names to exclude from the plot. If ``'bads'``, the
         bad channels are excluded. By default, exclude is set to ``'bads'``.
+    select : bool
+        Whether to enable the lasso-selection tool to enable the user to select
+        channels. The selected channels will be available in
+        ``fig.lasso.selection``.
+
+        .. versionadded:: 1.9.0
+    exclude : list of str | ``'bads'``
+        Channels names to exclude from the plot. If ``'bads'``, the
+        bad channels are excluded. By default, exclude is set to ``'bads'``.
     show : bool
         Show figure if True.
 
@@ -1273,10 +1283,11 @@ def plot_evoked_topo(
         font_color=font_color,
         merge_channels=merge_grads,
         legend=legend,
+        noise_cov=noise_cov,
         axes=axes,
         exclude=exclude,
+        select=select,
         show=show,
-        noise_cov=noise_cov,
     )
 
 
