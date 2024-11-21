@@ -5,6 +5,8 @@
 """EGI NetStation Load Function."""
 
 import datetime
+import fnmatch
+import itertools
 import math
 import os.path as op
 import re
@@ -14,7 +16,7 @@ from pathlib import Path
 import numpy as np
 
 from ..._fiff.constants import FIFF
-from ..._fiff.meas_info import _empty_info, _ensure_meas_date_none_or_dt, create_info
+from ..._fiff.meas_info import create_info
 from ..._fiff.proj import setup_proj
 from ..._fiff.utils import _create_chs, _mult_cal_one
 from ...annotations import Annotations
@@ -22,7 +24,6 @@ from ...channels.montage import make_dig_montage
 from ...evoked import EvokedArray
 from ...utils import _check_fname, _check_option, _soft_import, logger, verbose, warn
 from ..base import BaseRaw
-from .events import _combine_triggers, _read_events, _triage_include_exclude
 from .general import (
     _block_r,
     _extract,
@@ -33,6 +34,14 @@ from .general import (
 )
 
 REFERENCE_NAMES = ("VREF", "Vertex Reference")
+
+
+# TODO: Running list
+# - [ ] Add support for reading in the PNS data
+# - [ ] Add tutorial for reading calibration data
+# - [ ] Annotate acquisition skips
+# - [ ] Add support for reading in the channel status (bad channels)
+# - [ ] Replace _read_header with mffpy functions?
 
 
 def _read_mff_header(filepath):
@@ -381,17 +390,19 @@ class RawMff(BaseRaw):
     def __init__(
         self,
         input_fname,
-        eog=None,
-        misc=None,
-        include=None,
-        exclude=None,
-        preload=False,
-        channel_naming="E%d",
+        eog=None,  # XXX: allow user to specify EOG channels?
+        misc=None,  # XXX: allow user to specify misc channels?
+        include=None,  # XXX: Now We dont create stim channels. Remove this?
+        exclude=None,  # XXX: Ditto. But maybe we can exclude events from annots.
+        preload=False,  # XXX: Make this work again
+        channel_naming="E%d",  # XXX: Do we need to still support this?
         *,
-        events_as_annotations=True,
+        events_as_annotations=True,  # XXX: This is now the only way. Remove?
         verbose=None,
     ):
         """Init the RawMff class."""
+        mffpy = _import_mffpy()
+
         input_fname = str(
             _check_fname(
                 input_fname,
@@ -402,61 +413,45 @@ class RawMff(BaseRaw):
             )
         )
         logger.info(f"Reading EGI MFF Header from {input_fname}...")
-        egi_info = _read_header(input_fname)
-        if eog is None:
-            eog = []
-        if misc is None:
-            misc = np.where(np.array(egi_info["chan_type"]) != "eeg")[0].tolist()
+        ################################### MFF Info ###################################
+        mff_reader = mffpy.Reader(input_fname)
+        mff_reader.set_unit("EEG", "V")
+        # mff_reader.set_unit("PNS", "V") XXX: need to test this
 
-        logger.info("    Reading events ...")
-        egi_events, egi_info, mff_events = _read_events(input_fname, egi_info)
-        cals = _get_eeg_calibration_info(input_fname, egi_info)
-        logger.info("    Assembling measurement info ...")
-        event_codes = egi_info["event_codes"]
-        include = _triage_include_exclude(include, exclude, egi_events, egi_info)
-        if egi_info["n_events"] > 0 and not events_as_annotations:
-            logger.info('    Synthesizing trigger channel "STI 014" ...')
-            if all(ch.startswith("D") for ch in include):
-                # support the DIN format DIN1, DIN2, ..., DIN9, DI10, DI11, ... DI99,
-                # D100, D101, ..., D255 that we get when sending 0-255 triggers on a
-                # parallel port.
-                events_ids = list()
-                for ch in include:
-                    while not ch[0].isnumeric():
-                        ch = ch[1:]
-                    events_ids.append(int(ch))
-            else:
-                events_ids = np.arange(len(include)) + 1
-            egi_info["new_trigger"] = _combine_triggers(
-                egi_events[[c in include for c in event_codes]], remapping=events_ids
-            )
-            self.event_id = dict(
-                zip([e for e in event_codes if e in include], events_ids)
-            )
-            if egi_info["new_trigger"] is not None:
-                egi_events = np.vstack([egi_events, egi_info["new_trigger"]])
-        else:
-            self.event_id = None
-            egi_info["new_trigger"] = None
-        assert egi_events.shape[1] == egi_info["last_samps"][-1]
+        meas_date = mff_reader.startdatetime.astimezone(datetime.timezone.utc)
+        sfreq = mff_reader.sampling_rates["EEG"]
+        # XXX: Can we have different sampling rates for EEG and PNS?
 
-        meas_dt_utc = egi_info["meas_dt_local"].astimezone(datetime.timezone.utc)
-        info = _empty_info(egi_info["sfreq"])
-        info["meas_date"] = _ensure_meas_date_none_or_dt(meas_dt_utc)
-        info["utc_offset"] = egi_info["utc_offset"]
-        info["device_info"] = dict(type=egi_info["device"])
+        xml_files = mff_reader.directory.files_by_type[".xml"]
+        info_files = fnmatch.filter(xml_files, "info?")
+        # XXX: usually info1.xml is EEG and info2.xml is PNS
+        if len(info_files) > 1:
+            raise NotImplementedError("TODO: Support for PNS data")
 
-        # read in the montage, if it exists
-        ch_names, mon = _read_locs(input_fname, egi_info, channel_naming)
-        # Second: Stim
-        ch_names.extend(list(egi_info["event_codes"]))
-        n_extra = len(event_codes) + len(misc) + len(eog) + len(egi_info["pns_names"])
-        if egi_info["new_trigger"] is not None:
-            ch_names.append("STI 014")  # channel for combined events
-            n_extra += 1
+        ################################## Channels ###################################
+        with mff_reader.directory.filepointer(info_files[0]) as fp:
+            mff_info = mffpy.XML.from_file(fp)
+        _ = mff_info.generalInformation["montageName"]  # XXX: Do we need this?
+        sensor_fname = fnmatch.filter(xml_files, "sensorLayout")
+        assert len(sensor_fname) == 1  # XXX: remove
+        sensor_fname = sensor_fname[0]
+        with mff_reader.directory.filepointer(sensor_fname) as fp:
+            sensor_layout = mffpy.XML.from_file(fp).get_content()["sensors"]
+        ch_pos = dict()
+        for ch in sensor_layout.values():
+            if ch["type"] not in [0, 1]:  # XXX: find out what type 2 is. Its not EEG
+                continue
+            name = f"E{ch['number']}" if ch["name"] == "None" else ch["name"]
+            loc = np.array([ch["x"], ch["y"], ch["z"]]) / 1000  # XXX: check units
+            ch_pos[name] = loc
+        montage = make_dig_montage(ch_pos=ch_pos, coord_frame="head")
 
-        # Third: PNS
-        ch_names.extend(egi_info["pns_names"])
+        ################################## Samples ####################################
+        # XXX: This probably won't work as intended when there are acquisition skips
+        # XXX: I think that is why mffpy prefers get_physical_samples_from_epoch
+        eeg, _ = mff_reader.get_physical_samples()["EEG"]
+        # change dtype to float64
+        eeg = eeg.astype(np.float64)  # MNE expects float64
 
         cals = np.concatenate([cals, np.ones(n_extra)])
         assert len(cals) == len(ch_names), (len(cals), len(ch_names))
@@ -547,37 +542,39 @@ class RawMff(BaseRaw):
 
         super().__init__(
             info,
-            preload=preload,
-            orig_format="single",
-            filenames=[file_bin],
-            first_samps=first_samps,
-            last_samps=last_samps,
-            raw_extras=[egi_info],
+            preload=eeg,  # XXX: Make eager/lazy loading work again
+            orig_format="single",  # XXX: Check if this is still correct
+            filenames=[input_fname],  # XXX: multiple files? I need an example
+            first_samps=(0,),  # XXX: multiple files?
+            last_samps=None,  # XXX: multiple files?
+            raw_extras=(None,),  # XXX: do we still need this?
             verbose=verbose,
         )
 
-        # Annotate acquisition skips
-        for first, prev_last in zip(
-            egi_info["first_samps"][1:], egi_info["last_samps"][:-1]
-        ):
-            gap = first - prev_last
-            assert gap >= 0
-            if gap:
-                annot["onset"].append((prev_last - 0.5) / egi_info["sfreq"])
-                annot["duration"].append(gap / egi_info["sfreq"])
-                annot["description"].append("BAD_ACQ_SKIP")
+        ################################## Annotations #################################
+        # TODO: Annotate acquisition skips
+        #
+        # Create Annotations from events
+        events_xmls = fnmatch.filter(xml_files, "Events*")
+        if not events_xmls:
+            raise RuntimeError("No events found in MFF file.")
+        mff_events = {}
+        for event_file in events_xmls:
+            with mff_reader.directory.filepointer(event_file) as fp:
+                categories = mffpy.XML.from_file(fp)
+            mff_events[event_file] = categories.get_content()["event"]
 
-        # create events from annotations
-        if events_as_annotations:
-            for code, samples in mff_events.items():
-                if code not in include:
-                    continue
-                annot["onset"].extend(np.array(samples) / egi_info["sfreq"])
-                annot["duration"].extend([0.0] * len(samples))
-                annot["description"].extend([code] * len(samples))
-
-        if len(annot["onset"]):
-            self.set_annotations(Annotations(**annot))
+        onsets = []
+        durations = []
+        descriptions = []
+        mff_events = list(itertools.chain.from_iterable(mff_events.values()))
+        for event in mff_events:
+            onset_dt = event["beginTime"].astimezone(datetime.timezone.utc)
+            ts = (onset_dt - self.info["meas_date"]).total_seconds()
+            onsets.append(ts)
+            durations.append(event["duration"] / 1000)
+            descriptions.append(event["code"])
+        self.set_annotations(Annotations(onsets, durations, descriptions))
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of data."""
