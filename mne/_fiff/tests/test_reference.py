@@ -896,7 +896,7 @@ def test_add_reorder(n_ref):
         ctx = nullcontext()
     else:
         assert n_ref == 2
-        ctx = pytest.warns(RuntimeWarning, match="locations of multiple")
+        ctx = pytest.warns(RuntimeWarning, match="this channel is unknown or ambiguous")
     with ctx:
         add_reference_channels(raw, chs, copy=False)
     data = raw.get_data()
