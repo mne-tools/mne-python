@@ -251,8 +251,10 @@ class Vectorizer(TransformerMixin):
 
     Examples
     --------
-    clf = make_pipeline(SpatialFilter(), _XdawnTransformer(), Vectorizer(),
-                        LogisticRegression())
+    >>> from sklearn.linear_model import LogisticRegression
+    >>> from sklearn.pipeline import make_pipeline
+    >>> from sklearn.preprocessing import StandardScaler
+    >>> clf = make_pipeline(Vectorizer(), StandardScaler(), LogisticRegression())
     """
 
     def fit(self, X, y=None):
