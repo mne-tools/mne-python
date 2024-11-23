@@ -318,5 +318,5 @@
 .. _Yousra Bekhti: https://www.linkedin.com/pub/yousra-bekhti/56/886/421
 .. _Yu-Han Luo: https://github.com/yh-luo
 .. _Zhi Zhang: https://github.com/tczhangzhi/
-.. _Zvi Baratz: https://github.com/ZviBaratz
 .. _Ziyi ZENG: https://github.com/ZiyiTsang
+.. _Zvi Baratz: https://github.com/ZviBaratz
