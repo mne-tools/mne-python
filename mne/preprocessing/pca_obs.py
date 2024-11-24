@@ -39,17 +39,19 @@ def fit_ecg_template(
     Parameters
     ----------
         data (ndarray): Data from the raw signal (n_channels, n_times)
-        pca_template (ndarray): Mean heartbeat and first N (4) principal components of the heartbeat matrix
+        pca_template (ndarray): Mean heartbeat and first N (default 4) 
+            principal components of the heartbeat matrix
         a_peak_idx (int): Sample index of current R-peak
         peak_range (int): Half the median RR-interval
         pre_range (int): Number of samples to fit before the R-peak
         post_range (int): Number of samples to fit after the R-peak
-        mid_p (float): Sample index marking middle of the median RR interval in the signal.
-                      Used to extract relevant part of PCA_template.
-        fitted_art (ndarray): The computed heartbeat artefact computed to remove from the data
+        mid_p (float): Sample index marking middle of the median RR interval 
+            in the signal. Used to extract relevant part of PCA_template.
+        fitted_art (ndarray): The computed heartbeat artefact computed to 
+            remove from the data
         post_idx_previous_peak (optional int): Sample index of previous R-peak
         n_samples_fit (int): Sample fit for interpolation between fitted artifact windows.
-                                Helps reduce sharp edges at the end of fitted heartbeat events.
+            Helps reduce sharp edges at the end of fitted heartbeat events.
 
     Returns
     -------
@@ -114,10 +116,32 @@ def fit_ecg_template(
     return fitted_art, a_peak_idx[0] + post_range
 
 
-def apply_pca_obs(raw: Raw, picks: list[str], n_jobs: int, qrs: np.ndarray, filter_coords: np.ndarray) -> None:
+def apply_pca_obs(
+    raw: Raw, 
+    picks: list[str], 
+    qrs: np.ndarray, 
+    filter_coords: np.ndarray,
+    n_components: int = 4,
+    n_jobs: Optional[int] = None, 
+) -> None:
     """
     Main convenience function for applying the PCA-OBS algorithm 
-    to certain picks of a Raw object.
+    to certain picks of a Raw object. Updates the Raw object in-place.
+
+    Parameters
+    ----------
+    raw: Raw
+        The raw data to process
+    picks: list[str]
+        Channels in the Raw object to remove the heart artefact from
+    qrs: ndarray, shape (n_peaks, 1)
+        Array of times in (s), of detected R-peaks in ECG channel.
+    filter_coords: ndarray (N, )
+        The numerator coefficient vector of the filter passed to scipy.signal.filtfilt
+    n_components: int, default 4
+        Number of PCA components to use to form the OBS
+    n_jobs: int, default None
+        Number of jobs to perform the PCA-OBS processing in parallel
     """
     raw.apply_function(
         _pca_obs,
@@ -126,32 +150,18 @@ def apply_pca_obs(raw: Raw, picks: list[str], n_jobs: int, qrs: np.ndarray, filt
         # args sent to PCA_OBS
         qrs=qrs,
         filter_coords=filter_coords,
+        n_components=n_components,
     )
 
 def _pca_obs(
     data: np.ndarray,
     qrs: np.ndarray,
     filter_coords: np.ndarray,
-    n_components: int = 4 # number of components to pick from the PCA 
+    n_components: int,
 ) -> np.ndarray:
     """
     Algorithm to perform the PCA OBS (Principal Component Analysis, Optimal Basis Sets) 
-    algorithm to remove the heart artefact from EEG data.
-
-    Parameters
-    ----------
-    data: ndarray, shape (n_channels, n_times)
-        The data which we want to remove the heart artefact from.
-
-    qrs: ndarray, shape (n_peaks, 1)
-        Array of times in (s), of detected R-peaks in ECG channel.
-        
-    filter_coords: ndarray (N, )
-        The numerator coefficient vector of the filter passed to scipy.signal.filtfilt
-
-    Returns
-    -------
-        np.ndarray: The data with the heart artefact suppressed.
+    algorithm to remove the heart artefact from EEG data (shape [n_channels, n_times])
     """
 
     # set to baseline
