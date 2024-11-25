@@ -44,6 +44,7 @@ __all__ = [
     "realign_raw",
     "regress_artifact",
     "write_fine_calibration",
+    "apply_pca_obs",
 ]
 from . import eyetracking, ieeg, nirs
 from ._annotate_amplitude import annotate_amplitude
@@ -89,3 +90,4 @@ from .realign import realign_raw
 from .ssp import compute_proj_ecg, compute_proj_eog
 from .stim import fix_stim_artifact
 from .xdawn import Xdawn
+from .pca_obs import apply_pca_obs
