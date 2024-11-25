@@ -464,9 +464,11 @@ class UpdateChannelsMixin:
 
         Notes
         -----
-        The channel names given are assumed to be a set, i.e. the order
-        does not matter. The original order of the channels is preserved.
-        You can use ``reorder_channels`` to set channel order if necessary.
+        If ``ordered`` is ``False``, the channel names given via ``ch_names`` are
+        assumed to be a set, that is, their order does not matter. In that case, the
+        original order of the channels in the data is preserved. Apart from using
+        ``ordered=True``, you may also use ``reorder_channels`` to set channel order,
+        if necessary.
 
         .. versionadded:: 0.9.0
         """

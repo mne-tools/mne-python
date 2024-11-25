@@ -129,7 +129,7 @@ jobs:
           path: ~/mne_data
       - run: ./tools/github_actions_download.sh
       - run: ./tools/github_actions_test.sh
-      - uses: codecov/codecov-action@v4
+      - uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
         if: success() || failure()

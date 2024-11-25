@@ -97,10 +97,10 @@ MANUAL_PACKAGES = {
         "Home-page": "https://emd.readthedocs.io/en/stable",
         "Summary": "Empirical Mode Decomposition in Python.",
     },
-    # Needs https://github.com/vferat/pycrostates/pull/188 and a release
-    "pycrostates": {
-        "Home-page": "https://pycrostates.readthedocs.io",
-        "Summary": "A simple open source Python package for EEG microstate segmentation.",  # noqa: E501
+    # Needs a release with homepage set properly
+    "meegkit": {
+        "Home-page": "https://nbara.github.io/python-meegkit",
+        "Summary": "Denoising tools for M/EEG processing.",
     },
     # not on PyPI
     "conpy": {

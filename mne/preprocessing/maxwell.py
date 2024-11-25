@@ -2,7 +2,7 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-from collections import Counter, OrderedDict
+from collections import Counter
 from functools import partial
 from math import factorial
 from os import path as op
@@ -2070,7 +2070,7 @@ def _overlap_projector(data_int, data_res, corr):
     return V_principal
 
 
-def _prep_fine_cal(info, fine_cal):
+def _prep_fine_cal(info, fine_cal, *, ignore_ref):
     from ._fine_cal import read_fine_calibration
 
     _validate_type(fine_cal, (dict, "path-like"))
@@ -2081,17 +2081,18 @@ def _prep_fine_cal(info, fine_cal):
         extra = "dict"
     logger.info(f"    Using fine calibration {extra}")
     ch_names = _clean_names(info["ch_names"], remove_whitespace=True)
-    info_to_cal = OrderedDict()
+    info_to_cal = dict()
     missing = list()
-    for ci, name in enumerate(fine_cal["ch_names"]):
-        if name not in ch_names:
+    names_clean = _clean_names(fine_cal["ch_names"], remove_whitespace=True)
+    for ci, (name, name_clean) in enumerate(zip(fine_cal["ch_names"], names_clean)):
+        if name_clean not in ch_names:
             missing.append(name)
         else:
-            oi = ch_names.index(name)
+            oi = ch_names.index(name_clean)
             info_to_cal[oi] = ci
-    meg_picks = pick_types(info, meg=True, exclude=[])
+    meg_picks = pick_types(info, meg=True, exclude=[], ref_meg=not ignore_ref)
     if len(info_to_cal) != len(meg_picks):
-        bad = sorted({ch_names[pick] for pick in meg_picks} - set(fine_cal["ch_names"]))
+        bad = sorted({ch_names[pick] for pick in meg_picks} - set(names_clean))
         raise RuntimeError(
             f"Not all MEG channels found in fine calibration file, missing:\n{bad}"
         )
@@ -2102,9 +2103,9 @@ def _prep_fine_cal(info, fine_cal):
 
 def _update_sensor_geometry(info, fine_cal, ignore_ref):
     """Replace sensor geometry information and reorder cal_chs."""
-    info_to_cal, fine_cal, ch_names = _prep_fine_cal(info, fine_cal)
-    grad_picks = pick_types(info, meg="grad", exclude=())
-    mag_picks = pick_types(info, meg="mag", exclude=())
+    info_to_cal, fine_cal, _ = _prep_fine_cal(info, fine_cal, ignore_ref=ignore_ref)
+    grad_picks = pick_types(info, meg="grad", exclude=(), ref_meg=not ignore_ref)
+    mag_picks = pick_types(info, meg="mag", exclude=(), ref_meg=not ignore_ref)
 
     # Determine gradiometer imbalances and magnetometer calibrations
     grad_imbalances = np.array(
@@ -2134,7 +2135,11 @@ def _update_sensor_geometry(info, fine_cal, ignore_ref):
         assert not used[oi]
         used[oi] = True
         info_ch = info["chs"][oi]
-        ch_num = int(fine_cal["ch_names"][ci].lstrip("MEG").lstrip("0"))
+        # This only works for VV-like names
+        try:
+            ch_num = int(fine_cal["ch_names"][ci].lstrip("MEG").lstrip("0"))
+        except ValueError:  # invalid literal for int() with base 10
+            ch_num = oi
         cal_chans.append([ch_num, info_ch["coil_type"]])
 
         # Some .dat files might only rotate EZ, so we must check first that
@@ -2174,7 +2179,7 @@ def _update_sensor_geometry(info, fine_cal, ignore_ref):
         # Channel positions are not changed
         info_ch["loc"][3:] = cal_loc[3:]
         assert info_ch["coord_frame"] == FIFF.FIFFV_COORD_DEVICE
-    meg_picks = pick_types(info, meg=True, exclude=())
+    meg_picks = pick_types(info, meg=True, exclude=(), ref_meg=not ignore_ref)
     assert used[meg_picks].all()
     assert not used[np.setdiff1d(np.arange(len(used)), meg_picks)].any()
     # This gets written to the Info struct
@@ -2186,7 +2191,7 @@ def _update_sensor_geometry(info, fine_cal, ignore_ref):
     np.clip(ang_shift, -1.0, 1.0, ang_shift)
     np.rad2deg(np.arccos(ang_shift), ang_shift)  # Convert to degrees
     logger.info(
-        "        Adjusted coil positions by (μ ± σ): "
+        "        Adjusted coil orientations by (μ ± σ): "
         f"{np.mean(ang_shift):0.1f}° ± {np.std(ang_shift):0.1f}° "
         f"(max: {np.max(np.abs(ang_shift)):0.1f}°)"
     )
