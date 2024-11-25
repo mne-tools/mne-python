@@ -127,6 +127,7 @@ def apply_pca_obs(
     """
     Main convenience function for applying the PCA-OBS algorithm 
     to certain picks of a Raw object. Updates the Raw object in-place.
+    Makes sanity checks for all inputs.
 
     Parameters
     ----------
@@ -143,6 +144,13 @@ def apply_pca_obs(
     n_jobs: int, default None
         Number of jobs to perform the PCA-OBS processing in parallel
     """
+
+    if not qrs:
+        raise ValueError("qrs must not be empty")
+    
+    if not filter_coords:
+        raise ValueError("filter_coords must not be empty")
+
     raw.apply_function(
         _pca_obs,
         picks=picks,
