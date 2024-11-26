@@ -34,7 +34,7 @@ MNE_ADD_CONTRIBUTOR_IMAGE=true in your environment to generate it.</p>"""
         driver.get(f"file://{infile}")
         wait = WebDriverWait(driver, 20)
         wait.until(lambda d: d.find_element(by=By.ID, value="contributor-avatars"))
-        body = driver.find_element(by=By.TAG_NAME, value="body").get_attribute(
+        body = driver.find_element(by=By.TAG_NAME, value="body").get_property(
             "innerHTML"
         )
         driver.quit()

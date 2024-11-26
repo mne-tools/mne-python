@@ -97,7 +97,6 @@ def reset_warnings(gallery_conf, fname):
         "__array_wrap__ must accept context and return_scalar.*",
         # selenium
         "setting remote_server_addr",
-        "using WebElement",
     ):
         warnings.filterwarnings(  # deal with other modules having bad imports
             "ignore", message=f".*{key}.*", category=DeprecationWarning
