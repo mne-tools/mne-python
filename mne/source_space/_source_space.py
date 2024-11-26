@@ -2904,11 +2904,13 @@ def _get_vertex_map_nn(
             was = one
             one = neigh[np.where(~morph_inuse[neigh])[0]]
             if len(one) == 0:
-                raise RuntimeError("vertex %d would be used multiple times." % one)
+                raise RuntimeError(f"vertex {one} would be used multiple times.")
             one = one[0]
             logger.info(
                 "Source space vertex moved from %d to %d because of "
-                "double occupation." % (was, one)
+                "double occupation.",
+                was,
+                one,
             )
         best[v] = one
         morph_inuse[one] = True

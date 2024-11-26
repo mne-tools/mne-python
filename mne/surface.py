@@ -1229,7 +1229,7 @@ def _create_surf_spacing(surf, hemi, subject, stype, ico_surf, subjects_dir):
                 inds = np.where(np.logical_not(surf["inuse"][neigh]))[0]
                 if len(inds) == 0:
                     raise RuntimeError(
-                        "Could not find neighbor for vertex %d / %d" % (k, nmap)
+                        f"Could not find neighbor for vertex {k} / {nmap}."
                     )
                 else:
                     mmap[k] = neigh[inds[-1]]
@@ -1241,10 +1241,9 @@ def _create_surf_spacing(surf, hemi, subject, stype, ico_surf, subjects_dir):
                 )
             elif mmap[k] < 0 or mmap[k] > surf["np"]:
                 raise RuntimeError(
-                    "Map number out of range (%d), this is "
-                    "probably due to inconsistent surfaces. "
-                    "Parts of the FreeSurfer reconstruction "
-                    "need to be redone." % mmap[k]
+                    f"Map number out of range ({mmap[k]}), this is probably due to "
+                    "inconsistent surfaces. Parts of the FreeSurfer reconstruction "
+                    "need to be redone."
                 )
             surf["inuse"][mmap[k]] = True
 
@@ -1461,8 +1460,8 @@ def _decimate_surface_sphere(rr, tris, n_triangles):
     n_dup = len(idx) - len(np.unique(idx))
     if n_dup:
         raise RuntimeError(
-            "Could not reduce to %d triangles using ico, "
-            "%d/%d vertices were duplicates" % (n_triangles, n_dup, len(idx))
+            f"Could not reduce to {n_triangles} triangles using ico, "
+            f"{n_dup}/{len(idx)} vertices were duplicates."
         )
     logger.info("[done]")
     return rr[idx], ico_surf["tris"]

@@ -339,6 +339,9 @@ select = ["A", "B006", "D", "E", "F", "I", "UP", "UP031", "W"]
 "examples/preprocessing/eeg_bridging.py" = [
   "E501",  # line too long
 ]
+"mne/__init__.pyi" = [
+  "A004",  # Import *** is shadowing a Python builtin
+]
 "mne/datasets/*/*.py" = [
   "D103",  # Missing docstring in public function
 ]

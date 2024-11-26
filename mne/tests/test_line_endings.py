@@ -67,8 +67,7 @@ def _assert_line_endings(dir_):
                 crcount = text.count("\r")
                 if crcount:
                     report.append(
-                        "In %s found %i/%i CR/LF"
-                        % (relfilename, crcount, text.count("\n"))
+                        f"In {relfilename} found {crcount}/{text.count("\n")} CR/LF."
                     )
     if len(report) > 0:
         raise AssertionError(
