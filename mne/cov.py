@@ -263,7 +263,7 @@ class Covariance(dict):
         if self["diag"] != (self.data.ndim == 1):
             raise RuntimeError(
                 "Covariance attributes inconsistent, got data with "
-                f"dimensionality {self.data.ndim} but diag={self["diag"]}"
+                f"dimensionality {self.data.ndim} but diag={self['diag']}"
             )
         return np.diag(self.data) if self["diag"] else self.data.copy()
 
