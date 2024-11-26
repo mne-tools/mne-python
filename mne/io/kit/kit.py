@@ -535,7 +535,7 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None, verbose=
         # check file format version
         version, revision = np.fromfile(fid, INT32, 2)
         if version < 2 or (version == 2 and revision < 3):
-            version_string = f"V{version}R{version:03i}"
+            version_string = f"V{version}R{revision:03d}"
             if allow_unknown_format:
                 unsupported_format = True
                 warn(f"Force loading KIT format {version_string}")
@@ -877,7 +877,7 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None, verbose=
             eeg_name = ch_name.lower()
             # some files have all EEG labeled as EEG
             if ch_name in ("", "EEG") or standardize_names:
-                ch_name = f"{ch_type_label} {ch_type_index:03i}"
+                ch_name = f"{ch_type_label} {ch_type_index:03d}"
             unit = FIFF.FIFF_UNIT_V
             loc = np.zeros(12)
             if eeg_name and eeg_name in dig:
