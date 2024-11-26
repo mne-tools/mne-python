@@ -535,7 +535,7 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None, verbose=
         # check file format version
         version, revision = np.fromfile(fid, INT32, 2)
         if version < 2 or (version == 2 and revision < 3):
-            version_string = "V%iR%03i" % (version, revision)
+            version_string = f"V{version}R{version:03i}"
             if allow_unknown_format:
                 unsupported_format = True
                 warn(f"Force loading KIT format {version_string}")
@@ -726,8 +726,8 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None, verbose=
                 sqd["n_samples"] = sqd["frame_length"] * sqd["n_epochs"]
         else:
             raise OSError(
-                "Invalid acquisition type: %i. Your file is neither "
-                "continuous nor epoched data." % (acq_type,)
+                f"Invalid acquisition type: {acq_type}. Your file is neither "
+                "continuous nor epoched data."
             )
 
         #
@@ -842,7 +842,7 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None, verbose=
         if ch["type"] in KIT.CHANNELS_MEG:
             ch_name = ch.get("name", "")
             if ch_name == "" or standardize_names:
-                ch_name = "MEG %03d" % idx
+                ch_name = f"MEG {idx:03d}"
             # create three orthogonal vector
             # ch_angles[0]: theta, ch_angles[1]: phi
             theta, phi = np.radians(ch["loc"][3:])
@@ -877,7 +877,7 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None, verbose=
             eeg_name = ch_name.lower()
             # some files have all EEG labeled as EEG
             if ch_name in ("", "EEG") or standardize_names:
-                ch_name = "%s %03i" % (ch_type_label, ch_type_index)
+                ch_name = f"{ch_type_label} {ch_type_index:03i}"
             unit = FIFF.FIFF_UNIT_V
             loc = np.zeros(12)
             if eeg_name and eeg_name in dig:

@@ -263,7 +263,7 @@ class Covariance(dict):
         if self["diag"] != (self.data.ndim == 1):
             raise RuntimeError(
                 "Covariance attributes inconsistent, got data with "
-                "dimensionality %d but diag=%s" % (self.data.ndim, self["diag"])
+                f"dimensionality {self.data.ndim} but diag={self["diag"]}"
             )
         return np.diag(self.data) if self["diag"] else self.data.copy()
 
@@ -560,8 +560,8 @@ def _check_n_samples(n_samples, n_chan):
         raise ValueError("No samples found to compute the covariance matrix")
     if n_samples < n_samples_min:
         warn(
-            "Too few samples (required : %d got : %d), covariance "
-            "estimate may be unreliable" % (n_samples_min, n_samples)
+            f"Too few samples (required : {n_samples_min} got : {n_samples}), "
+            "covariance estimate may be unreliable"
         )
 
 

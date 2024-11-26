@@ -372,7 +372,7 @@ def write_events(filename, events, *, overwrite=False, verbose=None):
     else:
         with open(filename, "w") as f:
             for e in events:
-                f.write("%6d %6d %3d\n" % tuple(e))
+                f.write(f"{e[0]:6d} {e[1]:6d} {e[2]:3d}\n")
 
 
 def _find_stim_steps(data, first_samp, pad_start=None, pad_stop=None, merge=0):

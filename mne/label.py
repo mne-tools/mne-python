@@ -1027,10 +1027,12 @@ class BiHemiLabel:
         self.hemi = "both"
 
     def __repr__(self):  # noqa: D105
-        temp = "<BiHemiLabel | %s, lh : %i vertices,  rh : %i vertices>"
         name = "unknown, " if self.subject is None else self.subject + ", "
         name += repr(self.name) if self.name is not None else "unnamed"
-        return temp % (name, len(self.lh), len(self.rh))
+        return (
+            f"<BiHemiLabel | {name}, "
+            f"lh : {len(self.lh)} vertices,  rh : {self.rh} vertices>"
+        )
 
     def __len__(self):
         """Return the number of vertices.
@@ -1206,16 +1208,16 @@ def write_label(filename, label, verbose=None):
 
     logger.info(f"Saving label to : {filename}")
 
-    with open(filename, "wb") as fid:
+    with open(filename, "w", encoding="utf-8") as fid:
         n_vertices = len(label.vertices)
         data = np.zeros((n_vertices, 5), dtype=np.float64)
         data[:, 0] = label.vertices
         data[:, 1:4] = 1e3 * label.pos
         data[:, 4] = label.values
-        fid.write(b"#%s\n" % label.comment.encode())
-        fid.write(b"%d\n" % n_vertices)
-        for d in data:
-            fid.write(b"%d %f %f %f %f\n" % tuple(d))
+        fid.write(f"#{label.comment}\n")
+        fid.write(f"{n_vertices}\n")
+        for vert, pos, val in zip(label.vertices, 1e3 * label.pos, label.values):
+            fid.write(f"{vert} {pos[0]:f} {pos[1]:f} {pos[2]:f} {val:f}\n")
 
 
 def _prep_label_split(label, subject=None, subjects_dir=None):
@@ -1822,7 +1824,7 @@ def grow_labels(
 
     # names
     if names is None:
-        names = ["Label_%i-%s" % items for items in enumerate(hemis)]
+        names = [f"Label_{ii}-{h}" for ii, h in enumerate(hemis)]
     else:
         if np.isscalar(names):
             names = [names]
@@ -2226,8 +2228,10 @@ def _get_annot_fname(annot_fname, subject, hemi, parc, subjects_dir):
             hemis = [hemi]
 
         subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-        dst = str(subjects_dir / subject / "label" / f"%s.{parc}.annot")
-        annot_fname = [dst % hemi_ for hemi_ in hemis]
+        annot_fname = [
+            str(subjects_dir / subject / "label" / f"{hemi_}.{parc}.annot")
+            for hemi_ in hemis
+        ]
 
     return annot_fname, hemis
 
@@ -2338,7 +2342,7 @@ def read_labels_from_annot(
             if len(vertices) == 0:
                 # label is not part of cortical surface
                 continue
-            label_name = label_name.decode()
+            label_name = label_name.decode("utf-8")
             orig_names.add(label_name)
             name = f"{label_name}-{hemi}"
             if (regexp is not None) and not r_.match(name):

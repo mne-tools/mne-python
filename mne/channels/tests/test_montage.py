@@ -1086,11 +1086,11 @@ def test_fif_dig_montage(tmp_path):
     raw_bv = read_raw_brainvision(bv_fname, preload=True)
     raw_bv_2 = raw_bv.copy()
     mapping = dict()
-    for ii, ch_name in enumerate(raw_bv.ch_names):
-        mapping[ch_name] = "EEG%03d" % (ii + 1,)
+    for ii, ch_name in enumerate(raw_bv.ch_names, 1):
+        mapping[ch_name] = f"EEG{ii:03d}"
     raw_bv.rename_channels(mapping)
-    for ii, ch_name in enumerate(raw_bv_2.ch_names):
-        mapping[ch_name] = "EEG%03d" % (ii + 33,)
+    for ii, ch_name in enumerate(raw_bv_2.ch_names, 33):
+        mapping[ch_name] = f"EEG{ii:03d}"
     raw_bv_2.rename_channels(mapping)
     raw_bv.add_channels([raw_bv_2])
     for ch in raw_bv.info["chs"]:
@@ -1119,7 +1119,7 @@ def test_fif_dig_montage(tmp_path):
     # Roundtrip of non-FIF start
     montage = make_dig_montage(hsp=read_polhemus_fastscan(hsp), hpi=read_mrk(hpi))
     elp_points = read_polhemus_fastscan(elp)
-    ch_pos = {"EEG%03d" % (k + 1): pos for k, pos in enumerate(elp_points[8:])}
+    ch_pos = {f"EEG{k:03d}": pos for k, pos in enumerate(elp_points[8:], 1)}
     montage += make_dig_montage(
         nasion=elp_points[0], lpa=elp_points[1], rpa=elp_points[2], ch_pos=ch_pos
     )
@@ -1398,7 +1398,7 @@ def test_set_montage_mgh(rename):
 
         def renamer(x):
             try:
-                return "EEG %03d" % (_MGH60.index(x) + 1,)
+                return f"EEG {_MGH60.index(x) + 1:03d}"
             except ValueError:
                 return x
 
@@ -1920,11 +1920,11 @@ def test_get_montage():
     # rename channels to make it have the full set
     # of channels
     mapping = dict()
-    for ii, ch_name in enumerate(raw_bv.ch_names):
-        mapping[ch_name] = "EEG%03d" % (ii + 1,)
+    for ii, ch_name in enumerate(raw_bv.ch_names, 1):
+        mapping[ch_name] = f"EEG{ii:03d}"
     raw_bv.rename_channels(mapping)
-    for ii, ch_name in enumerate(raw_bv_2.ch_names):
-        mapping[ch_name] = "EEG%03d" % (ii + 33,)
+    for ii, ch_name in enumerate(raw_bv_2.ch_names, 33):
+        mapping[ch_name] = f"EEG{ii:03d}"
     raw_bv_2.rename_channels(mapping)
     raw_bv.add_channels([raw_bv_2])
     for ch in raw_bv.info["chs"]:

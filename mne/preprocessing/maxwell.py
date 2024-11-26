@@ -746,7 +746,7 @@ def _run_maxwell_filter(
         tsss_valid = (stop - start) >= st_duration
         rel_times = raw_sss.times[start:stop]
         t_str = f"{rel_times[[0, -1]][0]:8.3f} - {rel_times[[0, -1]][1]:8.3f} s"
-        t_str += ("(#%d/%d)" % (ii + 1, len(starts))).rjust(2 * n_sig + 5)
+        t_str += (f"(#{ii + 1}/{len(starts)})").rjust(2 * n_sig + 5)
 
         # Get original data
         orig_data = raw_sss._data[meg_picks[good_mask], start:stop]
@@ -864,10 +864,8 @@ def _run_maxwell_filter(
             )
         elif st_when == "never" and head_pos[0] is not None:
             logger.info(
-                "        Used % 2d head position%s for %s",
-                n_positions,
-                _pl(n_positions),
-                t_str,
+                f"        Used {n_positions: 2d} head position{_pl(n_positions)} "
+                f"for {t_str}",
             )
         raw_sss._data[meg_picks, start:stop] = out_meg_data
         raw_sss._data[pos_picks, start:stop] = out_pos_data
@@ -1054,13 +1052,12 @@ def _do_tSSS(
         np.asarray_chkfinite(resid)
         t_proj = _overlap_projector(orig_in_data, resid, st_correlation)
     # Apply projector according to Eq. 12 in :footcite:`TauluSimola2006`
-    msg = "        Projecting %2d intersecting tSSS component%s for %s" % (
-        t_proj.shape[1],
-        _pl(t_proj.shape[1], " "),
-        t_str,
+    msg = (
+        f"        Projecting {t_proj.shape[1]:2d} intersecting tSSS "
+        f"component{_pl(t_proj.shape[1], ' ')} for {t_str}"
     )
     if n_positions > 1:
-        msg += " (across %2d position%s)" % (n_positions, _pl(n_positions, " "))
+        msg += f" (across {n_positions:2d} position{_pl(n_positions, ' ')})"
     logger.info(msg)
     clean_data -= np.dot(np.dot(clean_data, t_proj), t_proj.T)
 
@@ -1099,7 +1096,7 @@ def _copy_preload_add_channels(raw, add_channels, copy, info):
         off = len(raw.ch_names)
         chpi_chs = [
             dict(
-                ch_name="CHPI%03d" % (ii + 1),
+                ch_name=f"CHPI{ii:03d}",
                 logno=ii + 1,
                 scanno=off + ii + 1,
                 unit_mul=-1,

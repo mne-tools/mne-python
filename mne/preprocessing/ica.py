@@ -1012,7 +1012,7 @@ class ICA(ContainsMixin):
 
     def _update_ica_names(self):
         """Update ICA names when n_components_ is set."""
-        self._ica_names = ["ICA%03d" % ii for ii in range(self.n_components_)]
+        self._ica_names = [f"ICA{ii:03d}" for ii in range(self.n_components_)]
 
     def _transform(self, data):
         """Compute sources from data (operates inplace)."""
@@ -1553,7 +1553,7 @@ class ICA(ContainsMixin):
             else:
                 raise ValueError(f"Unknown measure {measure}")
             idx += [this_idx]
-            self.labels_["%s/%i/" % (prefix, ii) + ch] = list(this_idx)
+            self.labels_[f"{prefix}/{ii}/{ch}"] = list(this_idx)
 
         # remove duplicates but keep order by score, even across multiple
         # ref channels

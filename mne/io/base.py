@@ -239,7 +239,7 @@ class BaseRaw(
         bad = np.where(cals == 0)[0]
         if len(bad) > 0:
             raise ValueError(
-                "Bad cals for channels %s" % {ii: self.ch_names[ii] for ii in bad}
+                f"Bad cals for channels {dict((ii, self.ch_names[ii]) for ii in bad)}"
             )
         self._cals = cals
         if raw_extras is None:
@@ -594,9 +594,9 @@ class BaseRaw(
         data_buffer = preload
         if isinstance(preload, bool | np.bool_) and not preload:
             data_buffer = None
+        t = self.times
         logger.info(
-            "Reading %d ... %d  =  %9.3f ... %9.3f secs..."
-            % (0, len(self.times) - 1, 0.0, self.times[-1])
+            f"Reading 0 ... {len(t) - 1}  =  {0.0:9.3f} ... {t[-1]:9.3f} secs..."
         )
         self._data = self._read_segment(data_buffer=data_buffer)
         assert len(self._data) == self.info["nchan"]
