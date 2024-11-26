@@ -2434,7 +2434,7 @@ class FilterMixin:
 
         # savitzky-golay filtering
         window_length = (int(np.round(s_freq / h_freq)) // 2) * 2 + 1
-        logger.info("Using savgol length %d" % window_length)
+        logger.info("Using savgol length %d", window_length)
         self._data[:] = signal.savgol_filter(
             self._data, axis=-1, polyorder=5, window_length=window_length
         )
@@ -2548,8 +2548,9 @@ class FilterMixin:
                 self, skip_by_annotation, invert=True
             )
             logger.info(
-                "Filtering raw data in %d contiguous segment%s"
-                % (len(onsets), _pl(onsets))
+                "Filtering raw data in %d contiguous segment%s",
+                len(onsets),
+                _pl(onsets),
             )
         else:
             onsets, ends = np.array([0]), np.array([self._data.shape[1]])
@@ -2872,9 +2873,14 @@ def design_mne_c_filter(
     h_width = (int(((n_freqs - 1) * h_trans_bandwidth) / (0.5 * sfreq)) + 1) // 2
     h_start = int(((n_freqs - 1) * h_freq) / (0.5 * sfreq))
     logger.info(
-        "filter : %7.3f ... %6.1f Hz   bins : %d ... %d of %d "
-        "hpw : %d lpw : %d"
-        % (l_freq, h_freq, l_start, h_start, n_freqs, l_width, h_width)
+        "filter : %7.3f ... %6.1f Hz   bins : %d ... %d of %d " "hpw : %d lpw : %d",
+        l_freq,
+        h_freq,
+        l_start,
+        h_start,
+        n_freqs,
+        l_width,
+        h_width,
     )
     if l_freq > 0:
         start = l_start - l_width + 1

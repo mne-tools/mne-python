@@ -2804,8 +2804,8 @@ def write_labels_to_annot(
 
         if None in hemi_names:
             msg = (
-                "Found %i labels with no name. Writing annotation file"
-                "requires all labels named" % (hemi_names.count(None))
+                f"Found {hemi_names.count(None)} labels with no name. Writing "
+                "annotation file requires all labels named."
             )
             # raise the error immediately rather than crash with an
             # uninformative error later (e.g. cannot join NoneType)
@@ -2814,10 +2814,7 @@ def write_labels_to_annot(
         # Assign unlabeled vertices to an "unknown" label
         unlabeled = annot == -1
         if np.any(unlabeled):
-            msg = "Assigning %i unlabeled vertices to 'unknown-%s'" % (
-                unlabeled.sum(),
-                hemi,
-            )
+            msg = f"Assigning {unlabeled.sum()} unlabeled vertices to 'unknown-{hemi}'."
             logger.info(msg)
 
             # find an unused color (try shades of gray first)
@@ -2879,7 +2876,7 @@ def write_labels_to_annot(
 
     # write it
     for fname, annot, ctab, hemi_names in to_save:
-        logger.info("   writing %d labels to %s" % (len(hemi_names), fname))
+        logger.info("   writing %d labels to %s", len(hemi_names), fname)
         _write_annot(fname, annot, ctab, hemi_names, table_name)
 
 

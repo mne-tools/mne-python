@@ -252,7 +252,7 @@ class BaseRaw(
         # reader or MNE-C converted CTF->FIF files)
         self._read_comp_grade = self.compensation_grade  # read property
         if self._read_comp_grade is not None and len(info["comps"]):
-            logger.info("Current compensation grade : %d" % self._read_comp_grade)
+            logger.info("Current compensation grade : %d", self._read_comp_grade)
         self._comp = None
         if filenames is None:
             filenames = [None] * len(first_samps)
@@ -341,7 +341,7 @@ class BaseRaw(
             from_comp = current_comp if self.preload else self._read_comp_grade
             comp = make_compensator(self.info, from_comp, grade)
             logger.info(
-                "Compensator constructed to change %d -> %d" % (current_comp, grade)
+                "Compensator constructed to change %d -> %d", current_comp, grade
             )
             set_current_comp(self.info, grade)
             # We might need to apply it to our data now
@@ -818,7 +818,7 @@ class BaseRaw(
         if start is None:
             start = 0
         if step is not None and step != 1:
-            raise ValueError("step needs to be 1 : %d given" % step)
+            raise ValueError(f"step needs to be 1 : {step} given")
 
         if isinstance(sel, int | np.integer):
             sel = np.array([sel])
@@ -1277,7 +1277,7 @@ class BaseRaw(
         _check_preload(self, "raw.notch_filter")
         onsets, ends = _annotations_starts_stops(self, skip_by_annotation, invert=True)
         logger.info(
-            "Filtering raw data in %d contiguous segment%s" % (len(onsets), _pl(onsets))
+            "Filtering raw data in %d contiguous segment%s", len(onsets), _pl(onsets)
         )
         for si, (start, stop) in enumerate(zip(onsets, ends)):
             notch_filter(
@@ -3053,7 +3053,7 @@ def _check_raw_compatibility(raw):
                     f"raw[{ri}]['info'][{kind}] do not match: {sorted(mismatch)}"
                 )
         if any(raw[ri]._cals != raw[0]._cals):
-            raise ValueError("raw[%d]._cals must match" % ri)
+            raise ValueError(f"raw[{ri}]._cals must match")
         if len(raw[0].info["projs"]) != len(raw[ri].info["projs"]):
             raise ValueError("SSP projectors in raw files must be the same")
         if not all(

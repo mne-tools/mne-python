@@ -714,8 +714,9 @@ class ICA(ContainsMixin):
             self._reset()
 
         logger.info(
-            "Fitting ICA to data using %i channels "
-            "(please be patient, this may take a while)" % len(picks)
+            "Fitting ICA to data using %i channels (please be patient, this may take "
+            "a while)",
+            len(picks),
         )
 
         # n_components could be float 0 < x < 1, but that's okay here
