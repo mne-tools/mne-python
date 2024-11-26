@@ -814,7 +814,7 @@ def construct_iir_filter(
         # use order-based design
         f_pass = np.atleast_1d(f_pass)
         if f_pass.ndim > 1:
-            raise ValueError("frequencies must be 1D, got %dD" % f_pass.ndim)
+            raise ValueError(f"frequencies must be 1D, got {f_pass.ndim}D")
         edge_freqs = ", ".join(f"{f:0.2f}" for f in f_pass)
         Wp = f_pass / (float(sfreq) / 2)
         # IT will de designed
@@ -849,7 +849,7 @@ def construct_iir_filter(
             else:
                 ptype, pmul = "(forward)", 1
             logger.info(
-                "- Filter order %d %s" % (pmul * iir_params["order"] * len(Wp), ptype)
+                "- Filter order %d %s", pmul * iir_params["order"] * len(Wp), ptype
             )
         else:
             # use gpass / gstop design
@@ -2065,7 +2065,7 @@ def detrend(x, order=1, axis=-1):
         True
     """
     if axis > len(x.shape):
-        raise ValueError("x does not have %d axes" % axis)
+        raise ValueError(f"x does not have {axis} axes")
     if order == 0:
         fit = "constant"
     elif order == 1:

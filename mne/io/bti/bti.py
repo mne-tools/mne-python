@@ -515,9 +515,8 @@ def _read_config(fname):
             n_read = fid.tell() - start_bytes
             if n_read != ub["hdr"]["user_space_size"]:
                 raise RuntimeError(
-                    "Internal MNE reading error, read size %d "
-                    "!= %d expected size for kind %s"
-                    % (n_read, ub["hdr"]["user_space_size"], kind)
+                    f"Internal MNE reading error, read size {n_read} "
+                    f"!= {ub['hdr']['user_space_size']} expected size for kind {kind}."
                 )
             ub.update(dta)  # finally update the userblock data
             _correct_offset(fid)  # after reading.

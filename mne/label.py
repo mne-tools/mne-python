@@ -152,7 +152,7 @@ def _n_colors(n, bytes_=False, cmap="hsv"):
     """
     n_max = 2**10
     if n > n_max:
-        raise NotImplementedError("Can't produce more than %i unique colors" % n_max)
+        raise NotImplementedError(f"Can't produce more than {n_max} unique colors.")
 
     from .viz.utils import _get_cmap
 
@@ -164,8 +164,8 @@ def _n_colors(n, bytes_=False, cmap="hsv"):
         for ii, c in enumerate(colors):
             if np.any(np.all(colors[:ii] == c, 1)):
                 raise RuntimeError(
-                    "Could not get %d unique colors from %s "
-                    "colormap. Try using a different colormap." % (n, cmap)
+                    f"Could not get {n} unique colors from {cmap} "
+                    "colormap. Try using a different colormap."
                 )
     return colors
 
@@ -311,7 +311,7 @@ class Label:
         name = "unknown, " if self.subject is None else self.subject + ", "
         name += repr(self.name) if self.name is not None else "unnamed"
         n_vert = len(self)
-        return "<Label | %s, %s : %i vertices>" % (name, self.hemi, n_vert)
+        return f"<Label | {name}, {self.hemi} : {n_vert} vertices>"
 
     def __len__(self):
         """Return the number of vertices.
@@ -1370,7 +1370,7 @@ def split_label(label, parts=2, subject=None, subjects_dir=None, freesurfer=Fals
         n_parts = len(names)
 
     if n_parts < 2:
-        raise ValueError("Can't split label into %i parts" % n_parts)
+        raise ValueError(f"Can't split label into {n_parts} parts.")
 
     # find the spherical surface
     surf_fname = ".".join((label.hemi, "sphere"))
@@ -1802,13 +1802,13 @@ def grow_labels(
             n_colors, n = colors.shape
 
         if n_colors != n_seeds and n_colors != 1:
-            msg = "Number of colors (%d) and seeds (%d) are not compatible." % (
-                n_colors,
-                n_seeds,
+            msg = (
+                f"Number of colors ({n_colors}) and seeds ({n_seeds}) are not "
+                "compatible."
             )
             raise ValueError(msg)
         if n != 4:
-            msg = "Colors must have 4 values (RGB and alpha), not %d." % n
+            msg = f"Colors must have 4 values (RGB and alpha), not {n}."
             raise ValueError(msg)
 
     # make the arrays the same length as seeds
@@ -2173,7 +2173,7 @@ def _read_annot(fname):
             ctab = np.zeros((n_entries, 5), np.int64)
             for i in range(n_entries):
                 name_length = np.fromfile(fid, ">i4", 1)[0]
-                name = np.fromfile(fid, "|S%d" % name_length, 1)[0]
+                name = np.fromfile(fid, f"|S{name_length}", 1)[0]
                 names.append(name)
                 ctab[i, :4] = np.fromfile(fid, ">i4", 4)
                 ctab[i, 4] = (
@@ -2189,13 +2189,13 @@ def _read_annot(fname):
             n_entries = np.fromfile(fid, ">i4", 1)[0]
             ctab = np.zeros((n_entries, 5), np.int64)
             length = np.fromfile(fid, ">i4", 1)[0]
-            np.fromfile(fid, "|S%d" % length, 1)  # Orig table path
+            np.fromfile(fid, f"|S{length}", 1)  # Orig table path
             entries_to_read = np.fromfile(fid, ">i4", 1)[0]
             names = list()
             for i in range(entries_to_read):
                 np.fromfile(fid, ">i4", 1)  # Structure
                 name_length = np.fromfile(fid, ">i4", 1)[0]
-                name = np.fromfile(fid, "|S%d" % name_length, 1)[0]
+                name = np.fromfile(fid, f"|S{name_length}", 1)[0]
                 names.append(name)
                 ctab[i, :4] = np.fromfile(fid, ">i4", 4)
                 ctab[i, 4] = ctab[i, 0] + ctab[i, 1] * (2**8) + ctab[i, 2] * (2**16)
@@ -2355,7 +2355,7 @@ def read_labels_from_annot(
             labels.append(label)
 
         n_read = len(labels) - n_read
-        logger.info("   read %d labels from %s" % (n_read, fname))
+        logger.info("   read %d labels from %s", n_read, fname)
 
     # sort the labels by label name
     if sort:

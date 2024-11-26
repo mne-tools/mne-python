@@ -279,8 +279,8 @@ def _set_stimchannels(inst, info, stim, stim_code):
             stim = np.asarray(stim, int)
             if stim.max() >= inst._raw_extras[0]["nchan"]:
                 raise ValueError(
-                    "Got stim=%s, but sqd file only has %i channels"
-                    % (stim, inst._raw_extras[0]["nchan"])
+                    f"Got stim={stim}, but sqd file only has "
+                    f"{inst._raw_extras[0]['nchan']} channels."
                 )
 
         # modify info
@@ -603,10 +603,9 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None, verbose=
             use_fll_type = fll_types[np.searchsorted(fll_types, fll_type) - 1]
             warn(
                 "Unknown site filter settings (FLL) for system "
-                '"%s" model "%s" (ID %s), will assume FLL %d->%d, check '
-                "your data for correctness, including channel scales and "
-                "filter settings!"
-                % (system_name, model_name, sysid, fll_type, use_fll_type)
+                f'"{system_name}" model "{model_name}" (ID {sysid}), will assume FLL '
+                f"{fll_type}->{use_fll_type}, check your data for correctness, "
+                "including channel scales and filter settings!"
             )
             fll_type = use_fll_type
 
@@ -628,8 +627,8 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None, verbose=
             if channel_type in KIT.CHANNELS_MEG:
                 if channel_type not in KIT.CH_TO_FIFF_COIL:
                     raise NotImplementedError(
-                        "KIT channel type %i can not be read. Please contact "
-                        "the mne-python developers." % channel_type
+                        "KIT channel type {channel_type} can not be read. Please "
+                        "contact the mne-python developers."
                     )
                 channels.append(
                     {
@@ -660,7 +659,7 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None, verbose=
             elif channel_type == KIT.CHANNEL_NULL:
                 channels.append({"type": channel_type})
             else:
-                raise OSError("Unknown KIT channel type: %i" % channel_type)
+                raise OSError("Unknown KIT channel type: {channel_type}")
         exg_gains = np.array(exg_gains)
 
         #
@@ -807,7 +806,7 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None, verbose=
     # precompute conversion factor for reading data
     if unsupported_format:
         if sysid not in LEGACY_AMP_PARAMS:
-            raise OSError("Legacy parameters for system ID %i unavailable" % (sysid,))
+            raise OSError(f"Legacy parameters for system ID {sysid} unavailable.")
         adc_range, adc_stored = LEGACY_AMP_PARAMS[sysid]
     is_meg = np.array([ch["type"] in KIT.CHANNELS_MEG for ch in channels])
     ad_to_volt = adc_range / (2.0**adc_stored)

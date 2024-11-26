@@ -157,8 +157,8 @@ def _get_signalfname(filepath):
         }
     if "EEG" not in all_files:
         raise FileNotFoundError(
-            "Could not find any EEG data in the %d file%s found in %s:\n%s"
-            % (len(infofiles), _pl(infofiles), filepath, "\n".join(infofiles))
+            f"Could not find any EEG data in the {len(infofiles)} file{_pl(infofiles)} "
+            f"found in {filepath}:\n{'\n'.join(infofiles)}"
         )
     return all_files
 

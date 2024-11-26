@@ -765,8 +765,11 @@ def _manifest_check_download(manifest_path, destination, url, hash_):
         if not (destination / name).is_file():
             need.append(name)
     logger.info(
-        "%d file%s missing from %s in %s"
-        % (len(need), _pl(need), manifest_path.name, destination)
+        "%d file%s missing from %s in %s",
+        len(need),
+        _pl(need),
+        manifest_path.name,
+        destination,
     )
     if len(need) > 0:
         downloader = pooch.HTTPDownloader(**_downloader_params())

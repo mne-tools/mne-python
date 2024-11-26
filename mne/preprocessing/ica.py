@@ -1070,10 +1070,9 @@ class ICA(ContainsMixin):
             else:
                 raise ValueError("Data input must be of Raw, Epochs or Evoked type")
             raise RuntimeError(
-                "%s %s match fitted data: %i channels "
-                "fitted but %i channels supplied. \nPlease "
-                "provide %s compatible with ica.ch_names"
-                % (kind, do, len(self.ch_names), len(picks), kind)
+                f"{kind} {do} match fitted data: {len(self.ch_names)} channels "
+                f"fitted but {len(picks)} channels supplied. \nPlease "
+                f"provide {kind} compatible with 'ica.ch_names'."
             )
         return picks
 
@@ -2307,10 +2306,9 @@ class ICA(ContainsMixin):
         # special case where epochs come picked but fit was 'unpicked'.
         if len(picks) != len(self.ch_names):
             raise RuntimeError(
-                "Epochs don't match fitted data: %i channels "
-                "fitted but %i channels supplied. \nPlease "
-                "provide Epochs compatible with "
-                "ica.ch_names" % (len(self.ch_names), len(picks))
+                f"Epochs don't match fitted data: {len(self.ch_names)} channels "
+                f"fitted but {len(picks)} channels supplied. \nPlease "
+                "provide Epochs compatible with 'ica.ch_names'."
             )
 
         data = np.hstack(epochs.get_data(picks))

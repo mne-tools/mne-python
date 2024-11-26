@@ -268,7 +268,7 @@ def test_multiple_files(tmp_path):
     # going in reverse order so the last fname is the first file (need later)
     raws = [None] * len(tmins)
     for ri in range(len(tmins) - 1, -1, -1):
-        fname = tmp_path / ("test_raw_split-%d_raw.fif" % ri)
+        fname = tmp_path / (f"test_raw_split-{ri}_raw.fif")
         raw.save(fname, tmin=tmins[ri], tmax=tmaxs[ri])
         raws[ri] = read_raw_fif(fname)
         assert (
