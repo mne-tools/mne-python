@@ -37,6 +37,7 @@ MNE_ADD_CONTRIBUTOR_IMAGE=true in your environment to generate it.</p>"""
         body = driver.find_element(by=By.TAG_NAME, value="body").get_property(
             "innerHTML"
         )
+        assert isinstance(body, str), type(body)
         driver.quit()
     with open(outfile, "w") as fid:
         fid.write(body)
