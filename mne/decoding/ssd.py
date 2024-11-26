@@ -156,7 +156,7 @@ class SSD(TransformerMixin, BaseEstimator):
         if n_chan != self.info["nchan"]:
             raise ValueError(
                 "Info must match the input data."
-                "Found %i channels but expected %i." % (n_chan, self.info["nchan"])
+                f"Found {n_chan} channels but expected {self.info['nchan']}."
             )
 
     def fit(self, X, y=None):
@@ -180,7 +180,7 @@ class SSD(TransformerMixin, BaseEstimator):
         if len(ch_types) > 1:
             raise ValueError(
                 "At this point SSD only supports fitting "
-                "single channel types. Your info has %i types" % (len(ch_types))
+                f"single channel types. Your info has {len(ch_types)} types."
             )
         self.picks_ = _picks_to_idx(self.info, self.picks, none="data", exclude="bads")
         self._check_X(X)
@@ -405,15 +405,13 @@ def _dimensionality_reduction(cov_signal, cov_noise, info, rank):
             eigvects[:, :rank], np.eye(rank) * (eigvals[:rank] ** -0.5)
         )
         logger.info(
-            "Projecting covariance of %i channels to %i rank subspace"
-            % (
-                n_channels,
-                rank,
-            )
+            "Projecting covariance of %i channels to %i rank subspace",
+            n_channels,
+            rank,
         )
     else:
         rank_proj = np.eye(n_channels)
-        logger.info("Preserving covariance rank (%i)" % (rank,))
+        logger.info("Preserving covariance rank (%i)", rank)
 
     # project covariance matrices to rank subspace
     cov_signal = np.matmul(rank_proj.T, np.matmul(cov_signal, rank_proj))

@@ -30,12 +30,8 @@ from ._fiff.proj import (
     _read_proj,
     _write_proj,
 )
-from ._fiff.proj import (
-    activate_proj as _activate_proj,
-)
-from ._fiff.proj import (
-    make_projector as _make_projector,
-)
+from ._fiff.proj import activate_proj as _activate_proj
+from ._fiff.proj import make_projector as _make_projector
 from ._fiff.tag import find_tag
 from ._fiff.tree import dir_tree_find
 from .defaults import (
@@ -267,7 +263,7 @@ class Covariance(dict):
         if self["diag"] != (self.data.ndim == 1):
             raise RuntimeError(
                 "Covariance attributes inconsistent, got data with "
-                "dimensionality %d but diag=%s" % (self.data.ndim, self["diag"])
+                f"dimensionality {self.data.ndim} but diag={self['diag']}"
             )
         return np.diag(self.data) if self["diag"] else self.data.copy()
 
@@ -564,8 +560,8 @@ def _check_n_samples(n_samples, n_chan):
         raise ValueError("No samples found to compute the covariance matrix")
     if n_samples < n_samples_min:
         warn(
-            "Too few samples (required : %d got : %d), covariance "
-            "estimate may be unreliable" % (n_samples_min, n_samples)
+            f"Too few samples (required : {n_samples_min} got : {n_samples}), "
+            "covariance estimate may be unreliable"
         )
 
 
@@ -743,7 +739,7 @@ def compute_raw_covariance(
         _check_n_samples(n_samples, len(picks))
         data -= mu[:, None] * (mu[None, :] / n_samples)
         data /= n_samples - 1.0
-        logger.info("Number of samples used : %d" % n_samples)
+        logger.info("Number of samples used : %d", n_samples)
         logger.info("[done]")
         ch_names = [raw.info["ch_names"][k] for k in picks]
         bads = [b for b in raw.info["bads"] if b in ch_names]
@@ -1182,7 +1178,7 @@ def compute_covariance(
         # add extra info
         cov.update(method=this_method, **data)
         covs.append(cov)
-    logger.info("Number of samples used : %d" % n_samples_tot)
+    logger.info("Number of samples used : %d", n_samples_tot)
     covs.sort(key=lambda c: c["loglik"], reverse=True)
 
     if len(covs) > 1:
@@ -1466,8 +1462,8 @@ def _auto_low_rank_model(
     max_n = max(list(deepcopy(iter_n_components)))
     if max_n > data.shape[1]:
         warn(
-            "You are trying to estimate %i components on matrix "
-            "with %i features." % (max_n, data.shape[1])
+            f"You are trying to estimate {max_n} components on matrix "
+            f"with {data.shape[1]} features."
         )
 
     for ii, n in enumerate(iter_n_components):
@@ -1479,7 +1475,7 @@ def _auto_low_rank_model(
         if np.isinf(score) or score > 0:
             logger.info("... infinite values encountered. stopping estimation")
             break
-        logger.info("... rank: %i - loglik: %0.3f" % (n, score))
+        logger.info("... rank: %i - loglik: %0.3f", n, score)
         if score != -np.inf:
             scores[ii] = score
 
@@ -1498,7 +1494,7 @@ def _auto_low_rank_model(
 
     i_score = np.nanargmax(scores)
     best = est.n_components = iter_n_components[i_score]
-    logger.info("... best model at rank = %i" % best)
+    logger.info("... best model at rank = %i", best)
     runtime_info = {
         "ranks": np.array(iter_n_components),
         "scores": scores,
@@ -1831,7 +1827,7 @@ def _smart_eigh(
     if isinstance(C, Covariance):
         C = C["data"]
     if ncomp > 0:
-        logger.info("    Created an SSP operator (subspace dimension = %d)" % ncomp)
+        logger.info("    Created an SSP operator (subspace dimension = %d)", ncomp)
         C = np.dot(proj, np.dot(C, proj.T))
 
     noise_cov = Covariance(C, ch_names, [], projs, 0)
@@ -2274,8 +2270,9 @@ def compute_whitener(
     n_nzero = nzero.sum()
     logger.info(
         "    Created the whitener using a noise covariance matrix "
-        "with rank %d (%d small eigenvalues omitted)"
-        % (n_nzero, noise_cov["dim"] - n_nzero)
+        "with rank %d (%d small eigenvalues omitted)",
+        n_nzero,
+        noise_cov["dim"] - n_nzero,
     )
 
     # Do the requested projection
@@ -2403,8 +2400,10 @@ def _read_cov(fid, node, cov_kind, limited=False, verbose=None):
                     data = tag.data
                     diag = True
                     logger.info(
-                        "    %d x %d diagonal covariance (kind = "
-                        "%d) found." % (dim, dim, cov_kind)
+                        "    %d x %d diagonal covariance (kind = " "%d) found.",
+                        dim,
+                        dim,
+                        cov_kind,
                     )
 
             else:
@@ -2417,15 +2416,19 @@ def _read_cov(fid, node, cov_kind, limited=False, verbose=None):
                     data.flat[:: dim + 1] /= 2.0
                     diag = False
                     logger.info(
-                        "    %d x %d full covariance (kind = %d) "
-                        "found." % (dim, dim, cov_kind)
+                        "    %d x %d full covariance (kind = %d) " "found.",
+                        dim,
+                        dim,
+                        cov_kind,
                     )
                 else:
                     diag = False
                     data = tag.data
                     logger.info(
-                        "    %d x %d sparse covariance (kind = %d)"
-                        " found." % (dim, dim, cov_kind)
+                        "    %d x %d sparse covariance (kind = %d)" " found.",
+                        dim,
+                        dim,
+                        cov_kind,
                     )
 
             #   Read the possibly precomputed decomposition
@@ -2468,7 +2471,7 @@ def _read_cov(fid, node, cov_kind, limited=False, verbose=None):
 
             return cov
 
-    logger.info("    Did not find the desired covariance matrix (kind = %d)" % cov_kind)
+    logger.info("    Did not find the desired covariance matrix (kind = %d)", cov_kind)
 
     return None
 

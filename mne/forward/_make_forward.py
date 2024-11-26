@@ -466,8 +466,7 @@ def _prepare_for_forward(
             '"do_all" option should be used.'
         )
     logger.info(
-        "Read %d source spaces a total of %d active source locations"
-        % (len(src), nsource)
+        "Read %d source spaces a total of %d active source locations", len(src), nsource
     )
     # Delete some keys to clean up the source space:
     for key in ["working_dir", "command_line"]:
