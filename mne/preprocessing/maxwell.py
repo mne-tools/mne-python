@@ -2672,9 +2672,7 @@ def find_bad_channels_maxwell(
         )
 
         t = chunk_raw.times[[0, -1]] + start / raw.info["sfreq"]
-        logger.info(
-            "        Interval %3d: %8.3f - %8.3f", (si + 1,) + tuple(t[[0, -1]])
-        )
+        logger.info(f"        Interval {si + 1:3d}: {t[0]:8.3f} - {t[-1]:8.3f}")
 
         # Flat pass: SD < 0.01 fT/cm or 0.01 fT for at 30 ms (or 20 samples)
         n = stop - start
