@@ -2330,10 +2330,9 @@ class ICA(ContainsMixin):
         # special case where evoked come picked but fit was 'unpicked'.
         if len(picks) != len(self.ch_names):
             raise RuntimeError(
-                "Evoked does not match fitted data: %i channels"
-                " fitted but %i channels supplied. \nPlease "
-                "provide an Evoked object that's compatible "
-                "with ica.ch_names" % (len(self.ch_names), len(picks))
+                f"Evoked does not match fitted data: {len(self.ch_names)} channels "
+                f"fitted but {len(picks)} channels supplied. \nPlease "
+                "provide an Evoked object that's compatible with ica.ch_names."
             )
 
         data = evoked.data[picks]

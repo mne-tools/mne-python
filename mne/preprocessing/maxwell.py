@@ -494,7 +494,7 @@ def _prep_maxwell_filter(
     if len(extended_proj) > 0:
         extended_proj_ = list()
         for pi, proj in enumerate(extended_proj):
-            item = "extended_proj[%d]" % (pi,)
+            item = f"extended_proj[{pi}]"
             _validate_type(proj, Projection, item)
             got_names = proj["data"]["col_names"]
             missing = sorted(set(good_names) - set(got_names))
@@ -507,8 +507,8 @@ def _prep_maxwell_filter(
             extended_proj_.append(proj["data"]["data"][:, idx])
         extended_proj = np.concatenate(extended_proj_)
         logger.info(
-            "    Extending external SSS basis using %d projection "
-            "vectors" % (len(extended_proj),)
+            "    Extending external SSS basis using %d projection " "vectors",
+            len(extended_proj),
         )
 
     #
@@ -864,8 +864,10 @@ def _run_maxwell_filter(
             )
         elif st_when == "never" and head_pos[0] is not None:
             logger.info(
-                "        Used % 2d head position%s for %s"
-                % (n_positions, _pl(n_positions), t_str)
+                "        Used % 2d head position%s for %s",
+                n_positions,
+                _pl(n_positions),
+                t_str,
             )
         raw_sss._data[meg_picks, start:stop] = out_meg_data
         raw_sss._data[pos_picks, start:stop] = out_pos_data
