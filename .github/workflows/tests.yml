@@ -83,7 +83,7 @@ jobs:
           fetch-depth: 0
       - run: ./tools/github_actions_env_vars.sh
       # Xvfb/OpenGL
-      - uses: pyvista/setup-headless-display-action@main
+      - uses: pyvista/setup-headless-display-action@v3
         with:
           qt: true
           pyvista: false
