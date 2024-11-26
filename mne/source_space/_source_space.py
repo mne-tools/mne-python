@@ -298,7 +298,7 @@ class SourceSpaces(list):
     def kind(self):
         types = list()
         for si, s in enumerate(self):
-            _validate_type(s, dict, "source_spaces[%d]" % (si,))
+            _validate_type(s, dict, f"source_spaces[{si}]")
             types.append(s.get("type", None))
             _check_option(
                 f'source_spaces[{si}]["type"]',
@@ -448,8 +448,8 @@ class SourceSpaces(list):
                 else:
                     r += f", shape={ss['shape']}"
             elif ss_type == "surf":
-                r += " (%s), n_vertices=%i" % (_get_hemi(ss)[0], ss["np"])
-            r += ", n_used=%i" % (ss["nuse"],)
+                r += f" ({_get_hemi(ss)[0]}), n_vertices={ss["np"]}"
+            r += f", n_used={ss["nuse"]}"
             if si == 0:
                 extra += [_coord_frame_name(int(ss["coord_frame"])) + " coords"]
             ss_repr.append(f"<{r}>")
@@ -853,7 +853,7 @@ def _read_source_spaces_from_tree(fid, tree, patch_stats=False, verbose=None):
 
         src.append(this)
 
-    logger.info("    %d source spaces read" % len(spaces))
+    logger.info("    %d source spaces read", len(spaces))
     return SourceSpaces(src)
 
 
@@ -942,7 +942,7 @@ def _read_one_source_space(fid, this):
         elif src_type == FIFF.FIFFV_MNE_SPACE_DISCRETE:
             res["type"] = "discrete"
         else:
-            raise ValueError("Unknown source space type (%d)" % src_type)
+            raise ValueError(f"Unknown source space type ({src_type})")
 
     if res["type"] == "vol":
         tag = find_tag(fid, this, FIFF.FIFF_MNE_SOURCE_SPACE_VOXEL_DIMS)
@@ -1262,7 +1262,7 @@ def _write_source_spaces_to_fid(fid, src, verbose=None):
         _write_one_source_space(fid, s, verbose)
         end_block(fid, FIFF.FIFFB_MNE_SOURCE_SPACE)
         logger.info("    [done]")
-    logger.info("    %d source spaces written" % len(src))
+    logger.info("    %d source spaces written", len(src))
 
 
 @verbose
@@ -1450,7 +1450,7 @@ def _check_spacing(spacing, verbose=None):
         stype = "spacing"
         sval = _ensure_int(spacing, "spacing", types)
         if sval < 2:
-            raise ValueError("spacing must be >= 2, got %d" % (sval,))
+            raise ValueError(f"spacing must be >= 2, got {sval}.")
     if stype == "all":
         logger.info("Include all vertices")
         ico_surf = None
@@ -1552,11 +1552,14 @@ def setup_source_space(
         logger.info(f"Loading {surf}...")
         # Setup the surface spacing in the MRI coord frame
         if stype != "all":
-            logger.info("Mapping %s %s -> %s (%d) ..." % (hemi, subject, stype, sval))
+            logger.info("Mapping %s %s -> %s (%d) ...", hemi, subject, stype, sval)
         s = _create_surf_spacing(surf, hemi, subject, stype, ico_surf, subjects_dir)
         logger.info(
-            "loaded %s %d/%d selected to source space (%s)"
-            % (op.split(surf)[1], s["nuse"], s["np"], src_type_str)
+            "loaded %s %d/%d selected to source space (%s)",
+            op.split(surf)[1],
+            s["nuse"],
+            s["np"],
+            src_type_str,
         )
         src.append(s)
         logger.info("")  # newline after both subject types are run

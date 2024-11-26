@@ -1223,7 +1223,7 @@ def _get_decomp(
             scale = np.mean(np.linalg.norm(S_decomp[:n_int], axis=0))
         mask = np.linalg.norm(extended_proj, axis=0) > thresh
         extended_remove = list(np.where(~mask)[0] + S_decomp.shape[1])
-        logger.debug("    Reducing %d -> %d" % (extended_proj.shape[1], mask.sum()))
+        logger.debug("    Reducing %d -> %d", extended_proj.shape[1], mask.sum())
         extended_proj /= np.linalg.norm(extended_proj, axis=0) / scale
         S_decomp = np.concatenate([S_decomp, extended_proj], axis=-1)
         if extended_proj.shape[1]:
@@ -2114,7 +2114,7 @@ def _update_sensor_geometry(info, fine_cal, ignore_ref):
     if grad_imbalances.shape[0] not in [0, 1, 3]:
         raise ValueError(
             "Must have 1 (x) or 3 (x, y, z) point-like "
-            + "magnetometers. Currently have %i" % grad_imbalances.shape[0]
+            f"magnetometers. Currently have {grad_imbalances.shape[0]}."
         )
     mag_cals = np.array([fine_cal["imb_cals"][info_to_cal[mi]] for mi in mag_picks])
     # Now let's actually construct our point-like adjustment coils for grads
@@ -2607,8 +2607,10 @@ def find_bad_channels_maxwell(
             stops.extend(ss)
     min_count = min(_ensure_int(min_count, "min_count"), len(starts))
     logger.info(
-        "Scanning for bad channels in %d interval%s (%0.1f s) ..."
-        % (len(starts), _pl(starts), step / raw.info["sfreq"])
+        "Scanning for bad channels in %d interval%s (%0.1f s) ...",
+        len(starts),
+        _pl(starts),
+        step / raw.info["sfreq"],
     )
     params = _prep_maxwell_filter(
         raw,
@@ -2672,7 +2674,7 @@ def find_bad_channels_maxwell(
 
         t = chunk_raw.times[[0, -1]] + start / raw.info["sfreq"]
         logger.info(
-            "        Interval %3d: %8.3f - %8.3f" % ((si + 1,) + tuple(t[[0, -1]]))
+            "        Interval %3d: %8.3f - %8.3f", (si + 1,) + tuple(t[[0, -1]])
         )
 
         # Flat pass: SD < 0.01 fT/cm or 0.01 fT for at 30 ms (or 20 samples)
@@ -2725,8 +2727,9 @@ def find_bad_channels_maxwell(
 
             if n_iter == 1 and len(chunk_flats):
                 logger.info(
-                    "            Flat (%2d): %s"
-                    % (len(chunk_flats), " ".join(chunk_flats))
+                    "            Flat (%2d): %s",
+                    len(chunk_flats),
+                    " ".join(chunk_flats),
                 )
             delta -= chunk_raw.get_data(these_picks)
             # p2p
