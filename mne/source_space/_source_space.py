@@ -1867,7 +1867,7 @@ def setup_volume_source_space(
             surf = read_bem_surfaces(
                 bem, s_id=FIFF.FIFFV_BEM_SURF_ID_BRAIN, verbose=False
             )
-            logger.info("Loaded inner skull from %s (%d nodes)" % (bem, surf["np"]))
+            logger.info("Loaded inner skull from %s (%d nodes)", bem, surf["np"])
         elif bem is not None and bem.get("is_sphere") is False:
             # read bem surface in the MRI coordinate frame
             which = np.where(
@@ -1890,7 +1890,7 @@ def setup_volume_source_space(
             else:
                 surf = surface
             logger.info(
-                "Loaded bounding surface from %s (%d nodes)" % (surface, surf["np"])
+                "Loaded bounding surface from %s (%d nodes)", surface, surf["np"]
             )
             surf = deepcopy(surf)
             surf["rr"] *= 1e-3  # must be converted to meters
@@ -2012,9 +2012,9 @@ def _make_discrete_source_space(pos, coord_frame="mri"):
     _normalize_vectors(nn)
     nz = np.sum(np.sum(nn * nn, axis=1) == 0)
     if nz != 0:
-        raise RuntimeError("%d sources have zero length normal" % nz)
+        raise RuntimeError("%d sources have zero length normal", nz)
     logger.info("Positions (in meters) and orientations")
-    logger.info("%d sources" % npts)
+    logger.info("%d sources", npts)
 
     # Ready to make the source space
     sp = dict(
@@ -2140,7 +2140,9 @@ def _make_volume_source_space(
     del surf
     logger.info(
         "%d sources remaining after excluding the sources outside "
-        "the surface and less than %6.1f mm inside." % (sp["nuse"], mindist)
+        "the surface and less than %6.1f mm inside.",
+        sp["nuse"],
+        mindist,
     )
 
     # Restrict sources to volume of interest
@@ -2166,7 +2168,7 @@ def _make_volume_source_space(
             good = _get_atlas_values(vol_info, sp["rr"][sp["vertno"]]) == id_
             n_good = good.sum()
             logger.info(
-                "    Selected %d voxel%s from %s" % (n_good, _pl(n_good), volume_label)
+                "    Selected %d voxel%s from %s", n_good, _pl(n_good), volume_label
             )
             if n_good == 0:
                 warn(
@@ -2383,8 +2385,10 @@ def _add_interpolator(sp):
             this_interp = csr_array((data, indices, indptr), shape=interp.shape)
         s["interpolator"] = this_interp
         logger.info(
-            "    %d/%d nonzero values for %s"
-            % (len(s["interpolator"].data), nvox, s["seg_name"])
+            "    %d/%d nonzero values for %s",
+            len(s["interpolator"].data),
+            nvox,
+            s["seg_name"],
         )
     logger.info("[done]")
 
@@ -2586,7 +2590,8 @@ def _filter_source_spaces(surf, limit, mri_head_t, src, n_jobs=None, verbose=Non
             extras += ["s", "they are"] if omit_outside > 1 else ["", "it is"]
             logger.info(
                 "    %d source space point%s omitted because %s "
-                "outside the inner skull surface." % tuple(extras)
+                "outside the inner skull surface.",
+                *tuple(extras),
             )
         if omit_limit > 0:
             extras = [omit_limit]
@@ -2594,7 +2599,8 @@ def _filter_source_spaces(surf, limit, mri_head_t, src, n_jobs=None, verbose=Non
             extras += [limit]
             logger.info(
                 "    %d source space point%s omitted because of the "
-                "%6.1f-mm distance limit." % tuple(extras)
+                "%6.1f-mm distance limit.",
+                *tuple(extras),
             )
         # Adjust the patch inds as well if necessary
         if omit_limit + omit_outside > 0:
@@ -2713,8 +2719,8 @@ def add_source_space_distances(src, dist_limit=np.inf, n_jobs=None, *, verbose=N
     max_n = max(s["nuse"] for s in src)
     if not patch_only and max_n > _DIST_WARN_LIMIT:
         warn(
-            "Computing distances for %d source space points (in one "
-            "hemisphere) will be very slow, consider using add_dist=False" % (max_n,)
+            f"Computing distances for {max_n} source space points (in one "
+            "hemisphere) will be very slow, consider using add_dist=False"
         )
     for s in src:
         adjacency = mesh_dist(s["tris"], s["rr"])

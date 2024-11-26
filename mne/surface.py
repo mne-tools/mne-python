@@ -214,8 +214,9 @@ def get_meg_helmet_surf(info, trans=None, *, verbose=None):
             ]
         )
         logger.info(
-            "Getting helmet for system %s (derived from %d MEG "
-            "channel locations)" % (system, len(rr))
+            "Getting helmet for system %s (derived from %d MEG " "channel locations)",
+            system,
+            len(rr),
         )
         hull = ConvexHull(rr)
         rr = rr[np.unique(hull.simplices)]
@@ -557,11 +558,14 @@ def _get_surf_neighbors(surf, k):
     nneighbors = len(verts)
     nneigh_max = len(surf["neighbor_tri"][k])
     if nneighbors > nneigh_max:
-        raise RuntimeError("Too many neighbors for vertex %d" % k)
+        raise RuntimeError(f"Too many neighbors for vertex {k}.")
     elif nneighbors != nneigh_max:
         logger.info(
             "    Incorrect number of distinct neighbors for vertex"
-            " %d (%d instead of %d) [fixed]." % (k, nneighbors, nneigh_max)
+            " %d (%d instead of %d) [fixed].",
+            k,
+            nneighbors,
+            nneigh_max,
         )
     return verts
 
