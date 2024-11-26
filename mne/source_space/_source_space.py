@@ -448,7 +448,7 @@ class SourceSpaces(list):
                 else:
                     r += f", shape={ss['shape']}"
             elif ss_type == "surf":
-                r += f" ({_get_hemi(ss)[0]}), n_vertices={ss["np"]}"
+                r += f" ({_get_hemi(ss)[0]}), n_vertices={ss['np']}"
             r += f", n_used={ss['nuse']}"
             if si == 0:
                 extra += [_coord_frame_name(int(ss["coord_frame"])) + " coords"]
