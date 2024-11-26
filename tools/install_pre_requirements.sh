@@ -14,7 +14,8 @@ QT_BINDING="PyQt6"
 echo "PyQt6 and scientific-python-nightly-wheels dependencies"
 python -m pip install $STD_ARGS pip setuptools packaging \
 	threadpoolctl cycler fonttools kiwisolver pyparsing pillow python-dateutil \
-	patsy pytz tzdata nibabel tqdm trx-python joblib numexpr "$QT_BINDING"
+	patsy pytz tzdata nibabel tqdm trx-python joblib numexpr "$QT_BINDING" \
+	py-cpuinfo
 echo "NumPy/SciPy/pandas etc."
 python -m pip uninstall -yq numpy
 python -m pip install $STD_ARGS --only-binary ":all:" --default-timeout=60 \
