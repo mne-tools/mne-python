@@ -126,6 +126,7 @@ epochs = Epochs(
 evoked_before = epochs.average()
 
 # Apply function - modifies the data in place
+# Optionally high-pass filter the data before applying PCA-OBS to remove low frequency drifts
 mne.preprocessing.apply_pca_obs(
     raw_concat, 
     picks=esg_chans, 
