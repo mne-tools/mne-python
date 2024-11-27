@@ -110,13 +110,6 @@ description = ['qrs'] * len(ecg_event_samples)
 raw_concat.annotations.append(qrs_event_time, duration, description, ch_names=[esg_chans]*len(qrs_event_time))
 
 ###############################################################################
-# Create filter coefficients
-a = [0, 0, 1, 1]
-f = [0, 0.4 / (fs / 2), 0.9 / (fs / 2), 1]  # 0.9 Hz highpass filter
-ord = round(3 * fs / 0.5)
-fwts = firls(ord + 1, f, a)
-
-###############################################################################
 # Create evoked response about the detected R-peaks before cardiac artefact correction
 # Apply PCA-OBS to remove the cardiac artefact
 # Create evoked response about the detected R-peaks after cardiac artefact correction
@@ -137,8 +130,7 @@ mne.preprocessing.apply_pca_obs(
     raw_concat, 
     picks=esg_chans, 
     n_jobs=5,
-    qrs=ecg_event_samples, 
-    filter_coords=fwts
+    qrs=ecg_event_samples
 )
 
 epochs = Epochs(

@@ -9,7 +9,7 @@ import math
 
 import numpy as np
 from scipy.interpolate import PchipInterpolator as pchip
-from scipy.signal import detrend, filtfilt
+from scipy.signal import detrend
 from sklearn.decomposition import PCA
 
 from mne.io.fiff.raw import Raw
@@ -113,7 +113,6 @@ def apply_pca_obs(
     raw: Raw,
     picks: list[str],
     qrs: np.ndarray,
-    filter_coords: np.ndarray,
     n_components: int = 4,
     n_jobs: int | None = None,
 ) -> None:
@@ -130,18 +129,15 @@ def apply_pca_obs(
         Channels in the Raw object to remove the heart artefact from
     qrs: ndarray, shape (n_peaks, 1)
         Array of times in (s), of detected R-peaks in ECG channel.
-    filter_coords: ndarray (N, )
-        The numerator coefficient vector of the filter passed to scipy.signal.filtfilt
     n_components: int, default 4
         Number of PCA components to use to form the OBS
     n_jobs: int, default None
         Number of jobs to perform the PCA-OBS processing in parallel
     """
-    if not qrs:
-        raise ValueError("qrs must not be empty")
-
-    if not filter_coords:
-        raise ValueError("filter_coords must not be empty")
+    # TODO: Causes error 'ValueError: The truth value of an array with more than one element is ambiguous. Use a.any() or a.all()'
+    # Removed for now
+    # if not qrs:
+    #     raise ValueError("qrs must not be empty")
 
     raw.apply_function(
         _pca_obs,
@@ -149,7 +145,6 @@ def apply_pca_obs(
         n_jobs=n_jobs,
         # args sent to PCA_OBS
         qrs=qrs,
-        filter_coords=filter_coords,
         n_components=n_components,
     )
 
@@ -157,7 +152,6 @@ def apply_pca_obs(
 def _pca_obs(
     data: np.ndarray,
     qrs: np.ndarray,
-    filter_coords: np.ndarray,
     n_components: int,
 ) -> np.ndarray:
     """
@@ -199,14 +193,11 @@ def _pca_obs(
     while peak_idx[peak_count - 1, 0] + peak_range > len(data[0]):
         peak_count = peak_count - 1  # reduce number of QRS complexes detected
 
-    # Filter channel
-    eegchan = filtfilt(filter_coords, 1, data)
-
     # build PCA matrix(heart-beat-epochs x window-length)
     pcamat = np.zeros((peak_count - 1, 2 * peak_range + 1))  # [epoch x time]
     # picking out heartbeat epochs
     for p in range(1, peak_count):
-        pcamat[p - 1, :] = eegchan[
+        pcamat[p - 1, :] = data[
             0, peak_idx[p, 0] - peak_range : peak_idx[p, 0] + peak_range + 1
         ]
 

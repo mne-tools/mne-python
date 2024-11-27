@@ -28,22 +28,16 @@ def short_raw_data():
 @pytest.mark.parametrize(
     # TODO: Are there any parameters we can cycle through to
     # test multiple? Different fs, windows, highpass freqs, etc.?
-    # TODO: how do we determine qrs and filter_coords? What are these?
-    ("fs", "highpass_freq", "qrs", "filter_coords"),
+    # TODO: how do we determine qrs? What are these?
+    # QRS is marking the sample index of R-peaks in the signal
+    ("fs", "highpass_freq", "qrs"),
     [
         (0.2, 1.0, 100, 200),
         (0.1, 2.0, 100, 200),
     ],
 )
-def test_heart_artifact_removal(short_raw, fs, highpass_freq, qrs, filter_coords):
+def test_heart_artifact_removal(short_raw, fs, highpass_freq, qrs):
     """Test PCA-OBS analysis and heart artifact removal of ECG datasets."""
-    # get the sampling frequency of the test data and
-    # generate the filter coords as in our example
-    fs = short_raw.info["sfreq"]
-    a = [0, 0, 1, 1]
-    f = [0, 0.4 / (fs / 2), 0.9 / (fs / 2), 1]  # 0.9 Hz highpass filter
-    ord_ = round(3 * fs / 0.5)
-    filter_coords = firls(ord_ + 1, f, a)
 
     # extract the QRS
     ecg_events, _, _ = find_ecg_events(short_raw, ch_name=None)
@@ -55,7 +49,6 @@ def test_heart_artifact_removal(short_raw, fs, highpass_freq, qrs, filter_coords
         raw=short_raw,
         picks=["eeg"],
         qrs=ecg_event_samples,
-        filter_coords=filter_coords,
     )
     # raw.get_data() ? to get shapes to compare
 
@@ -64,7 +57,7 @@ def test_heart_artifact_removal(short_raw, fs, highpass_freq, qrs, filter_coords
     # # Do something with fs and highpass as processing of the data?
 
     # # call pca_obs algorithm
-    # result = pca_obs(raw, qrs=qrs, filter_coords=filter_coords)
+    # result = pca_obs(raw, qrs=qrs)
 
     # # assert results
     # assert result is not None
