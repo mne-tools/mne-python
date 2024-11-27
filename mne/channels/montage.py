@@ -409,6 +409,16 @@ class DigMontage:
             The filename to use. Should end in .fif or .fif.gz.
         %(overwrite)s
         %(verbose)s
+
+        See Also
+        --------
+        read_dig_fif
+
+        Notes
+        -----
+        .. warning:: The channel names will **not** be saved, so
+           when reading back via :func:`mne.channels.read_dig_fif`,
+           new channel names will be made up on the spot.
         """
         coord_frame = _check_get_coord_frame(self.dig)
         write_dig(fname, self.dig, coord_frame, overwrite=overwrite)
@@ -809,9 +819,9 @@ def read_dig_dat(fname):
 
 
 def read_dig_fif(fname):
-    r"""Read digitized points from a .fif file.
+    r"""Read digitized points from a FIF file.
 
-    Note that electrode names are not present in the .fif file so
+    Note that electrode names are not present in the FIF file so
     they are here defined with the convention from VectorView
     systems (EEG001, EEG002, etc.)
 
