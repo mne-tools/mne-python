@@ -2629,7 +2629,7 @@ class _ReadSegmentFileProtector:
     def __init__(self, raw):
         self.__raw = raw
         assert hasattr(raw, "_projector")
-        self.filenames = raw.filenames
+        self._filenames = raw._filenames
         self._raw_extras = raw._raw_extras
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
