@@ -1297,7 +1297,7 @@ class ICA(ContainsMixin):
         out._data = data_
         out._first_samps = [out.first_samp]
         out._last_samps = [out.last_samp]
-        out._filenames = [None]
+        out.filenames = [None]
         out.preload = True
         out._projector = None
         self._export_info(out.info, raw, add_channels)
