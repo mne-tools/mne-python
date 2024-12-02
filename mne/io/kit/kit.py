@@ -404,7 +404,7 @@ class EpochsKIT(BaseEpochs):
         )
         kit_info.update(input_fname=input_fname)
         self._raw_extras = [kit_info]
-        self._filenames = []
+        self.filenames = []
         if len(events) != self._raw_extras[0]["n_epochs"]:
             raise ValueError("Event list does not match number of epochs.")
 
