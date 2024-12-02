@@ -264,7 +264,7 @@ stages:
           - bash: |
               set -eo pipefail
               git clone --depth 1 https://github.com/pyvista/setup-headless-display-action.git
-              bash setup-headless-display-action/windows/install_opengl.sh
+              MESA3D_VERSION=24.3.0 bash setup-headless-display-action/windows/install_opengl.sh
             displayName: Install OpenGL
           - bash: ./tools/azure_dependencies.sh
             displayName: Install dependencies with pip
