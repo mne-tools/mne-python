@@ -82,9 +82,9 @@ day-to-day basis. Duties:
   artifacts”)
 - Coordination with the larger Scientific Python ecosystem
 - Large-scale changes to the software (e.g., type hints, docdict, things that affect
-  multiple submodules), in partnership with the maintainer team
+  multiple submodules), in partnership with the Maintainer Team
 - Infrastructure decisions (e.g., dependency version policy, release cadence, CI
-  management, etc), in partnership with the maintainer team
+  management, etc), in partnership with the Maintainer Team
 - Any other governance task not mentioned elsewhere, and that falls outside of the
   responsibilities of other teams
 - Attendance at Steering Council meetings (approx. every 2 weeks; time to be decided
@@ -120,21 +120,21 @@ guidance. Duties:
 Meetings
 ^^^^^^^^
 
-Maintainer meetings
+Maintainer Meetings
 -------------------
 
 The Maintainer Team can decide if there should be maintainer meetings or not. These
 could be either discussion meetings or social meetings to keep in touch with each other
 (or something completely different!). Frequency and time could vary.
 
-Steering Council meetings
+Steering Council Meetings
 -------------------------
 
 The Steering Council will have mandatory meetings every two weeks to discuss project
 management and funding. The Steering Council may decide to change meeting time or
 frequency at their discretion.
 
-All-hands meetings
+All-hands Meetings
 ------------------
 
 At least once a year, all maintainers and Steering Council members should come together
@@ -155,10 +155,10 @@ Appointment
   their anticipated needs for the coming year. During the meeting, they shall decide how
   many new maintainers they want to add to their team. New maintainers are selected from
   applications by a vote of the currently-serving maintainers and the Steering Council.
-- Ad-hoc additions are possible by initiative of the steering council for exceptional
+- Ad-hoc additions are possible by initiative of the Steering Council for exceptional
   circumstances, e.g., hiring someone with grant funds to specifically do MNE
   maintenance. These ad-hoc additions do not necessarily require a vote from the
-  maintainer team, as the job application procedures of the hiring institution are
+  Maintainer Team, as the job application procedures of the hiring institution are
   assumed to be sufficiently rigorous to avoid bias, nepotism, etc.
 
 Duration of service
@@ -181,15 +181,15 @@ circumstances:
   visible from simple metrics like GitHub or forum activity reports). Maintainers who do
   not dispute their inactivity (or fail to respond within 14 days, or longer at the
   discretion of the Steering Council) shall be removed from the Maintainer Team. In
-  cases where the steering council and the maintainer still disagree about the alleged
+  cases where the Steering Council and the maintainer still disagree about the alleged
   inactivity, removal may still occur by a two-thirds majority vote of the rest of the
-  maintainer team.
+  Maintainer Team.
 - *Conduct*. At any time, a maintainer may be removed by unanimous vote of the
   code-of-conduct committee, for violations of our community guidelines (in accordance
   with the enforcement guidelines outlined therein).
 
 *Reinstatement*. Maintainers who voluntarily resigned may be re-appointed on an ad-hoc
-basis by a vote of the current maintainer team. Maintainers removed for inactivity may
+basis by a vote of the current Maintainer Team. Maintainers removed for inactivity may
 re-apply to an annual call for new maintainers. Maintainers removed for reasons of
 conduct may be reinstated only if their eligibility is allowed/restored by the
 code-of-conduct committee in accordance with the enforcement section of our Community
@@ -206,8 +206,8 @@ staggered such that no more than half of the seats shall be open for election in
 given year. Upon first constitution, the Steering Council decides which 50% of the
 members shall be granted an initial three year term to initiate the staggering.
 
-The maintainer team and current Steering Council will vote to fill the open seats on the
-Steering Council. Candidates can be (self-)nominated from the current maintainer team
+The Maintainer Team and current Steering Council will vote to fill the open seats on the
+Steering Council. Candidates can be (self-)nominated from the current Maintainer Team
 and Steering Council.
 
 At any time, the Steering Council may increase the number of seats on the Council to
@@ -245,7 +245,7 @@ the External Advisory Board is determined by the Steering Council.
 Decision Making Process
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-Announcement of elections
+Announcement of Elections
 -------------------------
 
 All votes shall be open for at least ten days and shall be announced 14 days in advance
@@ -253,7 +253,7 @@ to all eligible voters by email. The voting deadline shall also be added to the 
 team’s shared Google calendar. At least one reminder shall be sent out half-way through
 the voting period.
 
-Voting mechanism
+Voting Mechanism
 ----------------
 
 All elections shall be held as anonymous online votes using ElectionBuddy or a similar
@@ -265,7 +265,7 @@ possible for a voter to reject all candidates by submitting a blank ballot, so t
 single person is running for a seat it is still possible for them to fail to be elected
 if enough voters cast blank ballots.
 
-Voting for the steering council
+Voting for the Steering Council
 -------------------------------
 
 Votes for Steering Council membership shall be scheduled as-needed to address Steering
@@ -273,18 +273,18 @@ Council workload, and advertised to eligible candidates (i.e., the Maintainer Te
 a minimum of 14 days, after which a vote of current maintainers and Steering Council
 members shall be scheduled.
 
-Voting for the maintainer team
+Voting for the Maintainer Team
 ------------------------------
 
-Votes for additions to the maintainer team shall be scheduled promptly following the
-annual all-hands meeting. The maintainer team shall advertise the open seats via online
+Votes for additions to the Maintainer Team shall be scheduled promptly following the
+annual all-hands meeting. The Maintainer Team shall advertise the open seats via online
 MNE-Python channels. Applications (consisting of a short candidate statement) must be
 open for a minimum of 14 days, after which a vote of the current maintainers and
 Steering Council shall be scheduled. The Maintainer Team shall set up a confidential
 submission system for applications (consisting of short candidate statements), such as a
 dedicated email address, Google form, or similar confidential submission mechanism.
 
-Institutional Partners and funding
+Institutional Partners and Funding
 ==================================
 
 The leadership roles for the project are :ref:`defined above <leadership-roles>`. No
@@ -351,7 +351,7 @@ Institutional Partner benefits are:
 A list of current Institutional Partners is maintained at the page
 :ref:`supporting-institutions`.
 
-Document history
+Document History
 ================
 
 https://github.com/mne-tools/mne-python/commits/main/doc/overview/governance.rst
