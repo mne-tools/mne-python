@@ -409,9 +409,20 @@ class DigMontage:
             The filename to use. Should end in .fif or .fif.gz.
         %(overwrite)s
         %(verbose)s
+
+        See Also
+        --------
+        mne.channels.read_dig_fif
+
+        Notes
+        -----
+        .. versionchanged:: 1.9
+           Added support for saving the associated channel names.
         """
         coord_frame = _check_get_coord_frame(self.dig)
-        write_dig(fname, self.dig, coord_frame, overwrite=overwrite)
+        write_dig(
+            fname, self.dig, coord_frame, overwrite=overwrite, ch_names=self.ch_names
+        )
 
     def __iadd__(self, other):
         """Add two DigMontages in place.
@@ -835,17 +846,23 @@ def read_dig_fif(fname):
     read_dig_hpts
     read_dig_localite
     make_dig_montage
+
+    Notes
+    -----
+    .. versionchanged:: 1.9
+       Added support for saving the associated channel names.
     """
     fname = _check_fname(fname, overwrite="read", must_exist=True)
     # Load the dig data
     f, tree = fiff_open(fname)[:2]
     with f as fid:
-        dig = _read_dig_fif(fid, tree)
+        dig, ch_names = _read_dig_fif(fid, tree, return_ch_names=True)
 
-    ch_names = []
-    for d in dig:
-        if d["kind"] == FIFF.FIFFV_POINT_EEG:
-            ch_names.append(f"EEG{d['ident']:03d}")
+    if ch_names is None:  # backward compat from when we didn't save the names
+        ch_names = []
+        for d in dig:
+            if d["kind"] == FIFF.FIFFV_POINT_EEG:
+                ch_names.append(f"EEG{d['ident']:03d}")
 
     montage = DigMontage(dig=dig, ch_names=ch_names)
     return montage

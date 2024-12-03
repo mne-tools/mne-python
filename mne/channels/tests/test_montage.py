@@ -19,6 +19,7 @@ from numpy.testing import (
     assert_equal,
 )
 
+import mne.channels.montage
 from mne import (
     __file__ as _mne_file,
 )
@@ -56,6 +57,7 @@ from mne.channels.montage import (
     _BUILTIN_STANDARD_MONTAGES,
     _check_get_coord_frame,
     transform_to_head,
+    write_dig,
 )
 from mne.coreg import get_mni_fiducials
 from mne.datasets import testing
@@ -1074,7 +1076,7 @@ def test_set_dig_montage_with_nan_positions():
 
 
 @testing.requires_testing_data
-def test_fif_dig_montage(tmp_path):
+def test_fif_dig_montage(tmp_path, monkeypatch):
     """Test FIF dig montage support."""
     dig_montage = read_dig_fif(fif_dig_montage_fname)
 
@@ -1119,16 +1121,32 @@ def test_fif_dig_montage(tmp_path):
     # Roundtrip of non-FIF start
     montage = make_dig_montage(hsp=read_polhemus_fastscan(hsp), hpi=read_mrk(hpi))
     elp_points = read_polhemus_fastscan(elp)
-    ch_pos = {f"EEG{k:03d}": pos for k, pos in enumerate(elp_points[8:], 1)}
-    montage += make_dig_montage(
+    ch_pos = {f"ECoG{k:03d}": pos for k, pos in enumerate(elp_points[3:], 1)}
+    assert len(elp_points) == 8  # there are only 8 but pretend the last are ECoG
+    other = make_dig_montage(
         nasion=elp_points[0], lpa=elp_points[1], rpa=elp_points[2], ch_pos=ch_pos
     )
+    assert other.ch_names[0].startswith("ECoG")
+    montage += other
+    assert montage.ch_names[0].startswith("ECoG")
     _check_roundtrip(montage, fname_temp, "unknown")
     montage = transform_to_head(montage)
     _check_roundtrip(montage, fname_temp)
     montage.dig[0]["coord_frame"] = FIFF.FIFFV_COORD_UNKNOWN
     with pytest.raises(RuntimeError, match="Only a single coordinate"):
         montage.save(fname_temp)
+    montage.dig[0]["coord_frame"] = FIFF.FIFFV_COORD_HEAD
+
+    # Check that old-style files can be read, too, using EEG001 etc.
+    def write_dig_no_ch_names(*args, **kwargs):
+        kwargs["ch_names"] = None
+        return write_dig(*args, **kwargs)
+
+    monkeypatch.setattr(mne.channels.montage, "write_dig", write_dig_no_ch_names)
+    montage.save(fname_temp, overwrite=True)
+    montage_read = read_dig_fif(fname_temp)
+    default_ch_names = [f"EEG{ii:03d}" for ii in range(1, 6)]
+    assert montage_read.ch_names == default_ch_names
 
 
 @testing.requires_testing_data
@@ -1495,15 +1513,15 @@ def test_montage_positions_similar(fname, montage, n_eeg, n_good, bads):
     assert_array_less(0, ang)  # but not equal
 
 
-# XXX: this does not check ch_names + it cannot work because of write_dig
 def _check_roundtrip(montage, fname, coord_frame="head"):
     """Check roundtrip writing."""
     montage.save(fname, overwrite=True)
     montage_read = read_dig_fif(fname=fname)
 
-    assert_equal(repr(montage), repr(montage_read))
-    assert_equal(_check_get_coord_frame(montage_read.dig), coord_frame)
+    assert repr(montage) == repr(montage_read)
+    assert _check_get_coord_frame(montage_read.dig) == coord_frame
     assert_dig_allclose(montage, montage_read)
+    assert montage.ch_names == montage_read.ch_names
 
 
 def test_digmontage_constructor_errors():
