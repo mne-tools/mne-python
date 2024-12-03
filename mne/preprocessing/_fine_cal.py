@@ -6,7 +6,7 @@ from collections import defaultdict
 from functools import partial
 
 import numpy as np
-from scipy.optimize import fmin_cobyla
+from scipy.optimize import minimize
 
 from .._fiff.pick import pick_info, pick_types
 from .._fiff.tag import _coil_trans_to_loc, _loc_to_coil_trans
@@ -16,6 +16,7 @@ from ..transforms import _find_vector_rotation
 from ..utils import (
     _check_fname,
     _check_option,
+    _clean_names,
     _ensure_int,
     _pl,
     _reg_pinv,
@@ -43,6 +44,9 @@ def compute_fine_calibration(
     origin=(0.0, 0.0, 0.0),
     cross_talk=None,
     calibration=None,
+    *,
+    angle_limit=5.0,
+    err_limit=5.0,
     verbose=None,
 ):
     """Compute fine calibration from empty-room data.
@@ -68,6 +72,17 @@ def compute_fine_calibration(
         Dictionary with existing calibration. If provided, the magnetometer
         imbalances and adjusted normals will be used and only the gradiometer
         imbalances will be estimated (see step 2 in Notes below).
+    angle_limit : float
+        The maximum permitted angle in degrees between the original and adjusted
+        magnetometer normals. If the angle is exceeded, the segment is treated as
+        an outlier and discarded.
+
+        .. versionadded:: 1.9
+    err_limit : float
+        The maximum error (in percent) for each channel in order for a segment to
+        be used.
+
+        .. versionadded:: 1.9
     %(verbose)s
 
     Returns
@@ -114,6 +129,12 @@ def compute_fine_calibration(
     ext_order = _ensure_int(ext_order, "ext_order")
     origin = _check_origin(origin, raw.info, "meg", disp=True)
     _check_option("raw.info['bads']", raw.info["bads"], ([],))
+    _validate_type(err_limit, "numeric", "err_limit")
+    _validate_type(angle_limit, "numeric", "angle_limit")
+    for key, val in dict(err_limit=err_limit, angle_limit=angle_limit).items():
+        if val < 0:
+            raise ValueError(f"{key} must be greater than or equal to 0, got {val}")
+    # Fine cal should not include ref channels
     picks = pick_types(raw.info, meg=True, ref_meg=False)
     if raw.info["dev_head_t"] is not None:
         raise ValueError(
@@ -144,7 +165,7 @@ def compute_fine_calibration(
     locs = np.array([ch["loc"] for ch in info["chs"]])
     zs = locs[mag_picks, -3:].copy()
     if calibration is not None:
-        _, calibration, _ = _prep_fine_cal(info, calibration)
+        _, calibration, _ = _prep_fine_cal(info, calibration, ignore_ref=True)
         for pi, pick in enumerate(mag_picks):
             idx = calibration["ch_names"].index(info["ch_names"][pick])
             cals[pick] = calibration["imb_cals"][idx].item()
@@ -164,7 +185,14 @@ def compute_fine_calibration(
             data = raw[picks, start:stop][0]
             if ctc is not None:
                 data = ctc.dot(data)
-            z, cal, good = _adjust_mag_normals(info, data, origin, ext_order)
+            z, cal, good = _adjust_mag_normals(
+                info,
+                data,
+                origin,
+                ext_order,
+                angle_limit=angle_limit,
+                err_limit=err_limit,
+            )
             if good:
                 z_list.append(z)
                 cal_list.append(cal)
@@ -213,7 +241,8 @@ def compute_fine_calibration(
         cals[ii : ii + 1] if ii in mag_picks else imb[ii]
         for ii in range(len(info["ch_names"]))
     ]
-    calibration = dict(ch_names=info["ch_names"], locs=locs, imb_cals=imb_cals)
+    ch_names = _clean_names(info["ch_names"], remove_whitespace=True)
+    calibration = dict(ch_names=ch_names, locs=locs, imb_cals=imb_cals)
     return calibration, count
 
 
@@ -252,7 +281,7 @@ def _vector_angle(x, y):
     )
 
 
-def _adjust_mag_normals(info, data, origin, ext_order):
+def _adjust_mag_normals(info, data, origin, ext_order, *, angle_limit, err_limit):
     """Adjust coil normals using magnetometers and empty-room data."""
     # in principle we could allow using just mag or mag+grad, but MF uses
     # just mag so let's follow suit
@@ -317,9 +346,16 @@ def _adjust_mag_normals(info, data, origin, ext_order):
             )
 
             # Figure out the additive term for z-component
-            zs[cal_idx] = fmin_cobyla(
-                objective, old_z, cons=(), rhobeg=1e-3, rhoend=1e-4, disp=False
-            )
+            zs[cal_idx] = minimize(
+                objective,
+                old_z,
+                bounds=[(-2, 2)] * 3,
+                # BFGS is the default for minimize but COBYLA converges faster
+                method="COBYLA",
+                # Start with a small relative step because nominal geometry information
+                # should be fairly accurate to begin with
+                options=dict(rhobeg=1e-1),
+            ).x
 
             # Do in-place adjustment to all_coils
             cals[cal_idx] = 1.0 / np.linalg.norm(zs[cal_idx])
@@ -347,12 +383,15 @@ def _adjust_mag_normals(info, data, origin, ext_order):
     # Chunk is usable if all angles and errors are both small
     reason = list()
     max_angle = np.max(angles)
-    if max_angle >= 5.0:
-        reason.append(f"max angle {max_angle:0.2f} >= 5°")
+    if max_angle >= angle_limit:
+        reason.append(f"max angle {max_angle:0.2f} >= {angle_limit:0.1f}°")
     each_err = _data_err(data, S_tot, cals, axis=-1)[picks_mag]
-    n_bad = (each_err > 5.0).sum()
+    n_bad = (each_err > err_limit).sum()
     if n_bad:
-        reason.append(f"{n_bad} residual{_pl(n_bad)} > 5%")
+        reason.append(
+            f"{n_bad} residual{_pl(n_bad)} > {err_limit:0.1f}% "
+            f"(max: {each_err.max():0.2f}%)"
+        )
     reason = ", ".join(reason)
     if reason:
         reason = f" ({reason})"

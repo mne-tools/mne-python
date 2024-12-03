@@ -1118,14 +1118,20 @@ depth : None | float | dict
 """
 
 docdict["destination_maxwell_dest"] = """
-destination : path-like | array-like, shape (3,) | None
-    The destination location for the head. Can be ``None``, which
-    will not change the head position, or a path to a FIF file
-    containing a MEG device<->head transformation, or a 3-element array
-    giving the coordinates to translate to (with no rotations).
-    For example, ``destination=(0, 0, 0.04)`` would translate the bases
-    as ``--trans default`` would in MaxFilter™ (i.e., to the default
-    head location).
+destination : path-like | array-like, shape (3,) | instance of Transform | None
+    The destination location for the head. Can be:
+
+    ``None``
+      Will not change the head position.
+    :class:`~mne.transforms.Transform`
+      A MEG device<->head transformation, e.g. ``info["dev_head_t"]``.
+    :class:`numpy.ndarray`
+      A 3-element array giving the coordinates to translate to (with no rotations).
+      For example, ``destination=(0, 0, 0.04)`` would translate the bases
+      as ``--trans default`` would in MaxFilter™ (i.e., to the default
+      head location).
+    ``path-like``
+      A path to a FIF file containing the destination MEG device<->head transformation.
 """
 
 docdict["detrend_epochs"] = """
@@ -4212,9 +4218,12 @@ splash : bool
 docdict["split_naming"] = """
 split_naming : 'neuromag' | 'bids'
     When splitting files, append a filename partition with the appropriate
-    naming schema: for ``'neuromag'``, a split file ``fname.fif`` will be named
-    ``fname.fif``, ``fname-1.fif``, ``fname-2.fif`` etc.; while for ``'bids'``,
-    it will be named ``fname_split-01.fif``, ``fname_split-02.fif``, etc.
+    naming schema. For ``'neuromag'``, a split file ``fname.fif`` will be named
+    ``fname.fif``, ``fname-1.fif``, ``fname-2.fif``, and so on. For ``'bids'``,
+    a filename is expected to consist of parts separated by underscores, like
+    ``<part-1>_<part-N>_<suffix>.fif``, and the according split naming will
+    return filenames like ``<part-1>_<part-N>_split-01_<suffix>.fif``,
+    ``<part-1>_<part-N>_split-02_<suffix>.fif``, and so on.
 """
 
 docdict["src_eltc"] = """
@@ -4654,8 +4663,9 @@ title : str | 'auto' | None
     plot. If ``None``, no title is shown. Default is ``None``.
 """
 docdict["tmax_raw"] = """
-tmax : float
+tmax : float | None
     End time of the raw data to use in seconds (cannot exceed data duration).
+    If ``None`` (default), the current end of the data is used.
 """
 
 docdict["tmin"] = """

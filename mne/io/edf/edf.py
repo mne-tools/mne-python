@@ -824,10 +824,19 @@ def _read_edf_header(
                     for info in id_info[4:]:
                         if "=" in info:
                             key, value = info.split("=")
+                            err = f"patient {key} info cannot be {value}, skipping."
                             if key in ["weight", "height"]:
-                                patient[key] = float(value)
+                                try:
+                                    patient[key] = float(value)
+                                except ValueError:
+                                    logger.debug(err)
+                                    continue
                             elif key in ["hand"]:
-                                patient[key] = int(value)
+                                try:
+                                    patient[key] = int(value)
+                                except ValueError:
+                                    logger.debug(err)
+                                    continue
                             else:
                                 warn(f"Invalid patient information {key}")
 
@@ -1443,7 +1452,7 @@ def _read_gdf_header(fname, exclude, include=None):
                     ne = np.fromfile(fid, UINT8, 3)
                     n_events = ne[0]
                     for i in range(1, len(ne)):
-                        n_events = n_events + ne[i] * 2 ** (i * 8)
+                        n_events = n_events + int(ne[i]) * 2 ** (i * 8)
                     event_sr = np.fromfile(fid, FLOAT32, 1)[0]
 
                 pos = np.fromfile(fid, UINT32, n_events) - 1  # 1-based inds

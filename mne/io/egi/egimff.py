@@ -141,8 +141,8 @@ def _read_mff_header(filepath):
             n_chans = n_chans + 1
     if n_chans != summaryinfo["n_channels"]:
         raise RuntimeError(
-            "Number of defined channels (%d) did not match the "
-            "expected channels (%d)" % (n_chans, summaryinfo["n_channels"])
+            f"Number of defined channels ({n_chans}) did not match the "
+            f"expected channels ({summaryinfo['n_channels']})."
         )
 
     # Check presence of PNS data
@@ -541,8 +541,8 @@ class RawMff(BaseRaw):
                 annot["description"].append("BAD_EGI_PSG")
             elif pns_samples != eeg_samples:
                 raise RuntimeError(
-                    "PNS samples (%d) did not match EEG samples (%d)"
-                    % (pns_samples, eeg_samples)
+                    f"PNS samples ({pns_samples}) did not match EEG samples "
+                    f"({eeg_samples})."
                 )
 
         super().__init__(

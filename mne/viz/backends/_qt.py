@@ -965,7 +965,7 @@ class _QtDialog(_AbstractDialog):
                         callback(button_name)
                     finally:
                         widget.unsetCursor()
-                        break
+                    break
 
         widget.buttonClicked.connect(func)
         return _QtDialogWidget(widget, modal)

@@ -9,7 +9,7 @@ from importlib.resources import files
 from os import path as op
 from pathlib import Path
 
-from ...utils import _url_to_local_path, logger, verbose
+from ...utils import _url_to_local_path, logger, verbose, warn
 from ..utils import _do_path_update, _downloader_params, _get_path, _log_time_size
 
 EEGMI_URL = "https://physionet.org/files/eegmmidb/1.0.0/"
@@ -21,7 +21,9 @@ def data_path(url, path=None, force_update=False, update_path=None, *, verbose=N
 
     This is a low-level function useful for getting a local copy of a remote EEGBCI
     dataset :footcite:`SchalkEtAl2004`, which is also available at PhysioNet
-    :footcite:`GoldbergerEtAl2000`.
+    :footcite:`GoldbergerEtAl2000`. Metadata, such as the meaning of event markers
+    may be obtained from the
+    `PhysioNet documentation page <https://physionet.org/content/eegmmidb/1.0.0/>`_.
 
     Parameters
     ----------
@@ -92,8 +94,10 @@ def data_path(url, path=None, force_update=False, update_path=None, *, verbose=N
 
 @verbose
 def load_data(
-    subject,
-    runs,
+    subjects=None,
+    runs=None,
+    *,
+    subject=None,
     path=None,
     force_update=False,
     update_path=None,
@@ -103,14 +107,19 @@ def load_data(
     """Get paths to local copies of EEGBCI dataset files.
 
     This will fetch data for the EEGBCI dataset :footcite:`SchalkEtAl2004`, which is
-    also available at PhysioNet :footcite:`GoldbergerEtAl2000`.
+    also available at PhysioNet :footcite:`GoldbergerEtAl2000`. Metadata, such as the
+    meaning of event markers may be obtained from the
+    `PhysioNet documentation page <https://physionet.org/content/eegmmidb/1.0.0/>`_.
 
     Parameters
     ----------
-    subject : int
-        The subject to use. Can be in the range of 1-109 (inclusive).
+    subjects : int | list of int
+        The subjects to use. Can be in the range of 1-109 (inclusive).
     runs : int | list of int
         The runs to use (see Notes for details).
+    subject : int
+        This parameter is deprecated and will be removed in mne version 1.9.
+        Please use ``subjects`` instead.
     path : None | path-like
         Location of where to look for the EEGBCI data. If ``None``, the environment
         variable or config parameter ``MNE_DATASETS_EEGBCI_PATH`` is used. If neither
@@ -149,11 +158,11 @@ def load_data(
     For example, one could do::
 
         >>> from mne.datasets import eegbci
-        >>> eegbci.load_data(1, [6, 10, 14], "~/datasets") # doctest:+SKIP
+        >>> eegbci.load_data([1, 2], [6, 10, 14], "~/datasets") # doctest:+SKIP
 
-    This would download runs 6, 10, and 14 (hand/foot motor imagery) runs from subject 1
-    in the EEGBCI dataset to "~/datasets" and prompt the user to store this path in the
-    config (if it does not already exist).
+    This would download runs 6, 10, and 14 (hand/foot motor imagery) runs from subjects
+    1 and 2 in the EEGBCI dataset to "~/datasets" and prompt the user to store this path
+    in the config (if it does not already exist).
 
     References
     ----------
@@ -161,7 +170,26 @@ def load_data(
     """
     import pooch
 
+    # XXX: Remove this with mne 1.9 ↓↓↓
+    # Also remove the subject parameter at that point.
+    # Also remove the `None` default for subjects and runs params at that point.
+    if subject is not None:
+        subjects = subject
+        warn(
+            "The ``subject`` parameter is deprecated and will be removed in version "
+            "1.9. Use the ``subjects`` parameter (note the `s`) to suppress this "
+            "warning.",
+            FutureWarning,
+        )
+        del subject
+    if subjects is None or runs is None:
+        raise ValueError("You must pass the parameters ``subjects`` and ``runs``.")
+    # ↑↑↑
+
     t0 = time.time()
+
+    if not hasattr(subjects, "__iter__"):
+        subjects = [subjects]
 
     if not hasattr(runs, "__iter__"):
         runs = [runs]
@@ -198,20 +226,22 @@ def load_data(
     # fetch the file(s)
     data_paths = []
     sz = 0
-    for run in runs:
-        file_part = f"S{subject:03d}/S{subject:03d}R{run:02d}.edf"
-        destination = Path(base_path, file_part)
-        data_paths.append(destination)
-        if destination.exists():
-            if force_update:
-                destination.unlink()
-            else:
-                continue
-        if sz == 0:  # log once
-            logger.info("Downloading EEGBCI data")
-        fetcher.fetch(file_part)
-        # update path in config if desired
-        sz += destination.stat().st_size
+    for subject in subjects:
+        for run in runs:
+            file_part = f"S{subject:03d}/S{subject:03d}R{run:02d}.edf"
+            destination = Path(base_path, file_part)
+            data_paths.append(destination)
+            if destination.exists():
+                if force_update:
+                    destination.unlink()
+                else:
+                    continue
+            if sz == 0:  # log once
+                logger.info("Downloading EEGBCI data")
+            fetcher.fetch(file_part)
+            # update path in config if desired
+            sz += destination.stat().st_size
+
     _do_path_update(path, update_path, config_key, name)
     if sz > 0:
         _log_time_size(t0, sz)

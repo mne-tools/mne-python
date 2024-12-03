@@ -5,7 +5,7 @@
 import logging
 
 import numpy as np
-from sklearn.base import BaseEstimator, TransformerMixin, clone
+from sklearn.base import BaseEstimator, MetaEstimatorMixin, TransformerMixin, clone
 from sklearn.metrics import check_scoring
 from sklearn.preprocessing import LabelEncoder
 from sklearn.utils import check_array
@@ -16,7 +16,7 @@ from .base import _check_estimator
 
 
 @fill_doc
-class SlidingEstimator(BaseEstimator, TransformerMixin):
+class SlidingEstimator(MetaEstimatorMixin, TransformerMixin, BaseEstimator):
     """Search Light.
 
     Fit, predict and score a series of models to each subset of the dataset
@@ -60,6 +60,20 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
     @property
     def _estimator_type(self):
         return getattr(self.base_estimator, "_estimator_type", None)
+
+    def __sklearn_tags__(self):
+        """Get sklearn tags."""
+        from sklearn.utils import get_tags
+
+        tags = super().__sklearn_tags__()
+        sub_tags = get_tags(self.base_estimator)
+        tags.estimator_type = sub_tags.estimator_type
+        for kind in ("classifier", "regressor", "transformer"):
+            if tags.estimator_type == kind:
+                attr = f"{kind}_tags"
+                setattr(tags, attr, getattr(sub_tags, attr))
+                break
+        return tags
 
     def __repr__(self):  # noqa: D105
         repr_str = "<" + super().__repr__()

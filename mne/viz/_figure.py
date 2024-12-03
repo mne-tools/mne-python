@@ -534,6 +534,7 @@ class BrowserBase(ABC):
             self.mne.ica_inst,
             picks=pick,
             axes=axes,
+            psd_args=self.mne.psd_args,
             precomputed_data=self.mne.data_ica_properties,
             show=False,
         )

@@ -31,7 +31,7 @@ if TYPE_CHECKING:
 
     from numpy.typing import NDArray
 
-units = {"uv": 1e-6}
+_UNITS: dict[str, float] = {"uv": 1e-6, "µv": 1e-6}
 
 
 @fill_doc
@@ -143,8 +143,12 @@ class RawANT(BaseRaw):
         info["device_info"] = dict(type=make, model=model, serial=serial, site=site)
         his_id, name, sex, birthday = read_subject_info(cnt)
         info["subject_info"] = dict(
-            his_id=his_id, first_name=name, sex=sex, birthday=birthday
+            his_id=his_id,
+            first_name=name,
+            sex=sex,
         )
+        if birthday is not None:
+            info["subject_info"]["birthday"] = birthday
         if bipolars is not None:
             with info._unlock():
                 for idx in bipolars_idx:
@@ -187,7 +191,7 @@ class RawANT(BaseRaw):
             i_start = max(start, first_samp)
             i_stop = min(stop, this_n_times + first_samp)
             # read and scale data array
-            cnt = read_cnt(self._filenames[fi])
+            cnt = read_cnt(self.filenames[fi])
             one = read_data(cnt, i_start, i_stop)
             _scale_data(one, ch_units)
             data_view = data[:, i_start - start : i_stop - start]
@@ -294,8 +298,8 @@ def _scale_data(data: NDArray[np.float64], ch_units: list[str]) -> None:
     for idx, unit in enumerate(ch_units):
         units_index[unit].append(idx)
     for unit, value in units_index.items():
-        if unit in units:
-            data[np.array(value, dtype=np.int16), :] *= units[unit]
+        if unit in _UNITS:
+            data[np.array(value, dtype=np.int16), :] *= _UNITS[unit]
         else:
             warn(
                 f"Unit {unit} not recognized, not scaling. Please report the unit on "

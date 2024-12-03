@@ -175,6 +175,18 @@ def empirical_covariance(X, assume_centered=False):
 
 
 class _EstimatorMixin:
+    def __sklearn_tags__(self):
+        # If we get here, we should have sklearn installed
+        from sklearn.utils import Tags, TargetTags
+
+        return Tags(
+            estimator_type=None,
+            target_tags=TargetTags(required=False),
+            transformer_tags=None,
+            regressor_tags=None,
+            classifier_tags=None,
+        )
+
     def _param_names(self):
         return inspect.getfullargspec(self.__init__).args[1:]
 

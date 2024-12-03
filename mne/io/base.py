@@ -176,6 +176,12 @@ class BaseRaw(
           (only needed for types that support on-demand disk reads)
     """
 
+    # NOTE: If you add a new attribute to this class and get a Sphinx warning like:
+    #     docstring of mne.io.base.BaseRaw:71:
+    #     WARNING: py:obj reference target not found: duration [ref.obj]
+    # You need to add the attribute to doc/conf.py nitpick_ignore_regex. You should also
+    # consider adding it to the Attributes list for Raw in mne/io/fiff/raw.py.
+
     _extra_attributes = ()
 
     @verbose
@@ -233,7 +239,7 @@ class BaseRaw(
         bad = np.where(cals == 0)[0]
         if len(bad) > 0:
             raise ValueError(
-                "Bad cals for channels %s" % {ii: self.ch_names[ii] for ii in bad}
+                f"Bad cals for channels {dict((ii, self.ch_names[ii]) for ii in bad)}"
             )
         self._cals = cals
         if raw_extras is None:
@@ -246,7 +252,7 @@ class BaseRaw(
         # reader or MNE-C converted CTF->FIF files)
         self._read_comp_grade = self.compensation_grade  # read property
         if self._read_comp_grade is not None and len(info["comps"]):
-            logger.info("Current compensation grade : %d" % self._read_comp_grade)
+            logger.info("Current compensation grade : %d", self._read_comp_grade)
         self._comp = None
         if filenames is None:
             filenames = [None] * len(first_samps)
@@ -335,7 +341,7 @@ class BaseRaw(
             from_comp = current_comp if self.preload else self._read_comp_grade
             comp = make_compensator(self.info, from_comp, grade)
             logger.info(
-                "Compensator constructed to change %d -> %d" % (current_comp, grade)
+                "Compensator constructed to change %d -> %d", current_comp, grade
             )
             set_current_comp(self.info, grade)
             # We might need to apply it to our data now
@@ -588,9 +594,9 @@ class BaseRaw(
         data_buffer = preload
         if isinstance(preload, bool | np.bool_) and not preload:
             data_buffer = None
+        t = self.times
         logger.info(
-            "Reading %d ... %d  =  %9.3f ... %9.3f secs..."
-            % (0, len(self.times) - 1, 0.0, self.times[-1])
+            f"Reading 0 ... {len(t) - 1}  =  {0.0:9.3f} ... {t[-1]:9.3f} secs..."
         )
         self._data = self._read_segment(data_buffer=data_buffer)
         assert len(self._data) == self.info["nchan"]
@@ -812,7 +818,7 @@ class BaseRaw(
         if start is None:
             start = 0
         if step is not None and step != 1:
-            raise ValueError("step needs to be 1 : %d given" % step)
+            raise ValueError(f"step needs to be 1 : {step} given")
 
         if isinstance(sel, int | np.integer):
             sel = np.array([sel])
@@ -1271,7 +1277,7 @@ class BaseRaw(
         _check_preload(self, "raw.notch_filter")
         onsets, ends = _annotations_starts_stops(self, skip_by_annotation, invert=True)
         logger.info(
-            "Filtering raw data in %d contiguous segment%s" % (len(onsets), _pl(onsets))
+            "Filtering raw data in %d contiguous segment%s", len(onsets), _pl(onsets)
         )
         for si, (start, stop) in enumerate(zip(onsets, ends)):
             notch_filter(
@@ -1924,6 +1930,14 @@ class BaseRaw(
         """Number of time points."""
         return self.last_samp - self.first_samp + 1
 
+    @property
+    def duration(self):
+        """Duration of the data in seconds.
+
+        .. versionadded:: 1.9
+        """
+        return self.n_times / self.info["sfreq"]
+
     def __len__(self):
         """Return the number of time points.
 
@@ -2116,7 +2130,7 @@ class BaseRaw(
         size_str += f", data{'' if self.preload else ' not'} loaded"
         s = (
             f"{name}{len(self.ch_names)} x {self.n_times} "
-            f"({self.times[-1]:0.1f} s), ~{size_str}"
+            f"({self.duration:0.1f} s), ~{size_str}"
         )
         return f"<{self.__class__.__name__} | {s}>"
 
@@ -2124,14 +2138,7 @@ class BaseRaw(
     def _repr_html_(self):
         basenames = [f.name for f in self.filenames if f is not None]
 
-        # https://stackoverflow.com/a/10981895
-        duration = timedelta(seconds=self.times[-1])
-        hours, remainder = divmod(duration.seconds, 3600)
-        minutes, seconds = divmod(remainder, 60)
-        seconds += duration.microseconds / 1e6
-        seconds = np.ceil(seconds)  # always take full seconds
-
-        duration = f"{int(hours):02d}:{int(minutes):02d}:{int(seconds):02d}"
+        duration = self._get_duration_string()
 
         raw_template = _get_html_template("repr", "raw.html.jinja")
         return raw_template.render(
@@ -2139,6 +2146,13 @@ class BaseRaw(
             filenames=basenames,
             duration=duration,
         )
+
+    def _get_duration_string(self):
+        # https://stackoverflow.com/a/10981895
+        duration = np.ceil(self.duration)  # always take full seconds
+        hours, remainder = divmod(duration, 3600)
+        minutes, seconds = divmod(remainder, 60)
+        return f"{hours:02.0f}:{minutes:02.0f}:{seconds:02.0f}"
 
     def add_events(self, events, stim_channel=None, replace=False):
         """Add events to stim channel.
@@ -3039,7 +3053,7 @@ def _check_raw_compatibility(raw):
                     f"raw[{ri}]['info'][{kind}] do not match: {sorted(mismatch)}"
                 )
         if any(raw[ri]._cals != raw[0]._cals):
-            raise ValueError("raw[%d]._cals must match" % ri)
+            raise ValueError(f"raw[{ri}]._cals must match")
         if len(raw[0].info["projs"]) != len(raw[ri].info["projs"]):
             raise ValueError("SSP projectors in raw files must be the same")
         if not all(

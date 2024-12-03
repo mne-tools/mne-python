@@ -341,8 +341,8 @@ class DigMontage:
         n_eeg = sum([1 for d in dig if d["kind"] == FIFF.FIFFV_POINT_EEG])
         if n_eeg != len(ch_names):
             raise ValueError(
-                "The number of EEG channels (%d) does not match the number"
-                " of channel names provided (%d)" % (n_eeg, len(ch_names))
+                f"The number of EEG channels ({n_eeg}) does not match the number"
+                f" of channel names provided ({len(ch_names)})"
             )
 
         self.dig = dig
@@ -845,7 +845,7 @@ def read_dig_fif(fname):
     ch_names = []
     for d in dig:
         if d["kind"] == FIFF.FIFFV_POINT_EEG:
-            ch_names.append("EEG%03d" % d["ident"])
+            ch_names.append(f"EEG{d['ident']:03d}")
 
     montage = DigMontage(dig=dig, ch_names=ch_names)
     return montage
@@ -927,7 +927,7 @@ def read_dig_hpts(fname, unit="mm"):
     out = np.genfromtxt(fname, comments="#", dtype=(_str, _str, "f8", "f8", "f8"))
     kind, label = _str_names(out["f0"]), _str_names(out["f1"])
     kind = [k.lower() for k in kind]
-    xyz = np.array([out["f%d" % ii] for ii in range(2, 5)]).T
+    xyz = np.array([out[f"f{ii}"] for ii in range(2, 5)]).T
     xyz *= _scale
     del _scale
     fid_idx_to_label = {"1": "lpa", "2": "nasion", "3": "rpa"}

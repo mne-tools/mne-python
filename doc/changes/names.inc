@@ -119,6 +119,7 @@
 .. _Ivo de Jong: https://github.com/ivopascal
 .. _Jaakko Leppakangas: https://github.com/jaeilepp
 .. _Jack Zhang: https://github.com/jackz314
+.. _Jacob Phelan: https://github.com/JacPhe
 .. _Jacob Woessner: https://github.com/withmywoessner
 .. _Jair Montoya Martinez: https://github.com/jmontoyam
 .. _Jan Ebert: https://www.jan-ebert.com/
@@ -161,6 +162,7 @@
 .. _Lau Møller Andersen: https://github.com/ualsbombe
 .. _Laura Gwilliams: https://lauragwilliams.github.io
 .. _Leonardo Barbosa: https://github.com/noreun
+.. _Leonardo Rochael Almeida: https://github.com/leorochael
 .. _Liberty Hamilton: https://github.com/libertyh
 .. _Lorenzo Desantis: https://github.com/lorenzo-desantis/
 .. _Lukas Breuer: https://www.researchgate.net/profile/Lukas-Breuer-2
@@ -275,6 +277,7 @@
 .. _Simeon Wong: https://github.com/dtxe
 .. _Simon Kern: https://skjerns.de
 .. _Simon Kornblith: https://simonster.com
+.. _Simon M. Hofmann: https://github.com/SHEscher
 .. _Sondre Foslien: https://github.com/sondrfos
 .. _Sophie Herbst: https://github.com/SophieHerbst
 .. _Stanislas Chambon: https://github.com/Slasnista
@@ -315,4 +318,5 @@
 .. _Yousra Bekhti: https://www.linkedin.com/pub/yousra-bekhti/56/886/421
 .. _Yu-Han Luo: https://github.com/yh-luo
 .. _Zhi Zhang: https://github.com/tczhangzhi/
+.. _Ziyi ZENG: https://github.com/ZiyiTsang
 .. _Zvi Baratz: https://github.com/ZviBaratz
