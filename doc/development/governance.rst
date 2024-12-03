@@ -51,17 +51,17 @@ The MNE-Python leadership structure shall consist of:
 Maintainer Team
 ---------------
 
-The maintainer team is responsible for implementing changes to the software and
+The Maintainer Team is responsible for implementing changes to the software and
 supporting the user community. Duties:
 
-- Infrastructure/large-scale software decisions, in partnership with the steering
-  council
+- Infrastructure/large-scale software decisions, in partnership with the Steering
+  Council
 - Reviewing and merging pull requests
 - Responding to issues on GitHub
 - Monitoring CI failures and addressing them
 - Community maintenance: answering forum posts, holding office hours
 - Community information: social media announcements (releases, new features, etc)
-- Training new members of the maintainer team
+- Training new members of the Maintainer Team
 
 *Note:* different permissions may be given to each maintainer based on the work they do
 (e.g., GitHub repository triage/merge/admin permissions, social media account access,
@@ -76,7 +76,7 @@ day-to-day basis. Duties:
 
 - Obtaining funding (either by writing grants specifically for MNE development, or
   convincing others to include funds for MNE development in their research grants)
-- Translating high-level roadmap guidance from the advisory board (e.g. “better support
+- Translating high-level roadmap guidance from the Advisory Board (e.g. “better support
   for OPMs”) into actionable roadmap items (e.g., “Add support for OPM manufacturers
   besides QuSpin, and add standard preprocessing routines for coreg and OPM-specific
   artifacts”)
@@ -85,16 +85,16 @@ day-to-day basis. Duties:
   multiple submodules), in partnership with the maintainer team
 - Infrastructure decisions (e.g., dependency version policy, release cadence, CI
   management, etc), in partnership with the maintainer team
-- Any other Governance task not mentioned elsewhere, and that falls outside of the
+- Any other governance task not mentioned elsewhere, and that falls outside of the
   responsibilities of other teams
 - Attendance at Steering Council meetings (approx. every 2 weeks; time to be decided
   among SC members)
-- Attendance at advisory board meetings (approx. every 1-2 years)
+- Attendance at Advisory Board meetings (approx. every 1-2 years)
 - Write funding proposals
-- Communicate/coordinate with maintainer team
+- Communicate/coordinate with Maintainer Team
 
 Members of the Steering Council shall additionally be considered as members of the
-maintainer team, *ex officio*, and thus shall have the necessary rights and privileges
+Maintainer Team, *ex officio*, and thus shall have the necessary rights and privileges
 afforded to maintainers (passwords, merge rights, etc).
 
 Chair of the Steering Council
@@ -103,7 +103,7 @@ Chair of the Steering Council
 The Chair of the Steering Council is responsible for liaising between the Steering
 Council and the community. Duties:
 
-- Convening the steering council meetings
+- Convening the Steering Council meetings
 - Calling for votes when consensus fails
 - Communicating important decisions (and the context for why those decisions were
   taken) to the community
@@ -114,7 +114,7 @@ External Advisory Board
 The External Advisory Board is responsible for high-level roadmap and funding
 guidance. Duties:
 
-- Attendance at advisory board meetings (approx. every 1-2 years)
+- Attendance at Advisory Board meetings (approx. every 1-2 years)
 - Periodically communicating with Steering Council to impart guidance
 
 Meetings
@@ -123,7 +123,7 @@ Meetings
 Maintainer meetings
 -------------------
 
-The maintainer team can decide if there should be maintainer meetings or not. These
+The Maintainer Team can decide if there should be maintainer meetings or not. These
 could be either discussion meetings or social meetings to keep in touch with each other
 (or something completely different!). Frequency and time could vary.
 
@@ -137,7 +137,7 @@ frequency at their discretion.
 All-hands meetings
 ------------------
 
-At least once a year, all Maintainers and Steering Council members should come together
+At least once a year, all maintainers and Steering Council members should come together
 in a (possibly virtual) meeting. Meeting time will be determined via poll. During this
 meeting, any governance changes proposed since the prior meeting shall be discussed and
 may be adopted by vote.
@@ -164,7 +164,7 @@ Appointment
 Duration of service
 ~~~~~~~~~~~~~~~~~~~
 
-Appointment to the maintainer team is for an indefinite term.
+Appointment to the Maintainer Team is for an indefinite term.
 
 Termination
 ~~~~~~~~~~~
@@ -180,7 +180,7 @@ circumstances:
   by highlighting ways they have been working in the MNE community that may not be
   visible from simple metrics like GitHub or forum activity reports). Maintainers who do
   not dispute their inactivity (or fail to respond within 14 days, or longer at the
-  discretion of the Steering Council) shall be removed from the maintainer team. In
+  discretion of the Steering Council) shall be removed from the Maintainer Team. In
   cases where the steering council and the maintainer still disagree about the alleged
   inactivity, removal may still occur by a two-thirds majority vote of the rest of the
   maintainer team.
@@ -238,7 +238,7 @@ e.g., passwords, merge rights, etc) can occur under the following circumstances:
 External Advisory Board
 -----------------------
 
-The external advisory board shall be populated by invitation from the Steering Council.
+The External Advisory Board shall be populated by invitation from the Steering Council.
 Anyone may propose individuals for potential invitation. Appointment and removal from
 the External Advisory Board is determined by the Steering Council.
 
@@ -268,9 +268,9 @@ if enough voters cast blank ballots.
 Voting for the steering council
 -------------------------------
 
-Votes for steering council membership shall be scheduled as-needed to address steering
-council workload, and advertised to eligible candidates (i.e., the maintainer team) for
-a minimum of 14 days, after which a vote of current maintainers and steering council
+Votes for Steering Council membership shall be scheduled as-needed to address Steering
+Council workload, and advertised to eligible candidates (i.e., the Maintainer Team) for
+a minimum of 14 days, after which a vote of current maintainers and Steering Council
 members shall be scheduled.
 
 Voting for the maintainer team
@@ -280,7 +280,7 @@ Votes for additions to the maintainer team shall be scheduled promptly following
 annual all-hands meeting. The maintainer team shall advertise the open seats via online
 MNE-Python channels. Applications (consisting of a short candidate statement) must be
 open for a minimum of 14 days, after which a vote of the current maintainers and
-steering council shall be scheduled. The maintainer team shall set up a confidential
+Steering Council shall be scheduled. The Maintainer Team shall set up a confidential
 submission system for applications (consisting of short candidate statements), such as a
 dedicated email address, Google form, or similar confidential submission mechanism.
 
