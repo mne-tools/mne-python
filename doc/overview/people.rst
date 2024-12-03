@@ -27,9 +27,9 @@ Maintainer Team
 Steering Council
 ----------------
 
-* TBD
-
-**"*"** indicates chairperson
+* `Britta Westner`_
+* `Daniel McCloy`_ (chair)
+* `Eric Larson`_
 
 Advisory Board
 --------------
