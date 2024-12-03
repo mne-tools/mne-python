@@ -5,7 +5,6 @@
 import numpy as np
 from scipy.fft import irfft, rfft
 
-
 from .utils import (
     _check_option,
     _explain_exception,
@@ -18,6 +17,7 @@ from .utils import (
 )
 
 _cuda_capable = False
+
 
 def get_shared_mem(
     shape,
@@ -45,10 +45,11 @@ def get_shared_mem(
 
     Returns
     -------
-    a mapped array: np.ndarray 
+    a mapped array: np.ndarray
         An array to be passed into cupy.asarray, which does not copy if shared memory is already allocated.
     """
     from numba import cuda
+
     return cuda.mapped_array(
         shape,
         dtype=dtype,
@@ -58,6 +59,7 @@ def get_shared_mem(
         portable=portable,
         wc=wc,
     )
+
 
 def get_cuda_memory(kind="available"):
     """Get the amount of free memory for CUDA operations.

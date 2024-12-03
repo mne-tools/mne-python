@@ -16,8 +16,8 @@ from scipy.signal import butter, freqz, sosfreqz
 from scipy.signal import resample as sp_resample
 
 from mne import Epochs, create_info
-from mne.cuda import get_shared_mem
 from mne._fiff.pick import _DATA_CH_TYPES_SPLIT
+from mne.cuda import get_shared_mem
 from mne.filter import (
     _length_factors,
     _overlap_add_filter,
@@ -858,7 +858,7 @@ def test_cuda_resampling():
             for fro, to in ((1, 2), (2, 1), (1, 3), (3, 1)):
                 a1 = resample(a, fro, to, n_jobs=None, npad="auto", window=window)
                 x = get_shared_mem(a.shape)
-                x[:] = a 
+                x[:] = a
                 a2 = resample(a, fro, to, n_jobs="cuda", npad="auto", window=window)
                 assert_allclose(a1, a2, rtol=1e-7, atol=1e-14)
     assert_array_almost_equal(a1, a2, 14)
