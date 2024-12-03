@@ -1,0 +1,1 @@
+Short description of the changes, by :newcontrib:`Scott Robertson`.
