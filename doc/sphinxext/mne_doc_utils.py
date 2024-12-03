@@ -95,8 +95,6 @@ def reset_warnings(gallery_conf, fname):
         r"numpy\.core is deprecated and has been renamed to numpy\._core",
         # matplotlib
         "__array_wrap__ must accept context and return_scalar.*",
-        # selenium
-        "setting remote_server_addr",
     ):
         warnings.filterwarnings(  # deal with other modules having bad imports
             "ignore", message=f".*{key}.*", category=DeprecationWarning
