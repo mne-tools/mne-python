@@ -45,8 +45,8 @@ def get_shared_mem(
 
     Returns
     -------
-    a mapped array: np.ndarray
-        An array to be passed into cupy.asarray, which does not copy if
+    a mapped array: np.ndarray 
+        An array to be passed into cupy.asarray, which does not copy if 
         shared memory is already allocated.
     """
     from numba import cuda
