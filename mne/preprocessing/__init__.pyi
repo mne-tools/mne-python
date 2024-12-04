@@ -86,8 +86,8 @@ from .maxwell import (
     maxwell_filter_prepare_emptyroom,
 )
 from .otp import oversampled_temporal_projection
+from .pca_obs import apply_pca_obs
 from .realign import realign_raw
 from .ssp import compute_proj_ecg, compute_proj_eog
 from .stim import fix_stim_artifact
 from .xdawn import Xdawn
-from .pca_obs import apply_pca_obs
