@@ -9,6 +9,7 @@ from scipy.fft import irfft, rfft
 from .utils import (
     _check_option,
     _explain_exception,
+    _soft_import,
     fill_doc,
     get_config,
     logger,
@@ -47,6 +48,7 @@ def _share_cuda_mem(x, n_jobs):
         An array to be passed into cupy.asarray, which does not copy if
         shared memory is already allocated.
     """
+    _soft_import("numba", "using shared memory")
     from numba import cuda
 
     from mne.fixes import has_numba
