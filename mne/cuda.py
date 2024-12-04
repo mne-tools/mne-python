@@ -19,24 +19,18 @@ from .utils import (
 
 _cuda_capable = False
 
-
-def get_shared_mem(
-    shape,
-    dtype=np.float64,
-    strides=None,
-    order="C",
-    stream=0,
-    portable=False,
-    wc=True,
+def _share_cuda_mem(
+    x, n_jobs
 ):
     """Get shared memory space to avoid copying from cpu to gpu when possible.
 
     Allocate a mapped ndarray with a buffer that is pinned and mapped on
     to the device. Similar to np.empty()
 
-    It is recommended to gate this function with
-        os.getenv("MNE_USE_NUMBA").lower() == "true"
-    to avoid import errors.
+    Requires
+    --------
+    numba
+
 
     Parameters
     ----------
@@ -54,18 +48,16 @@ def get_shared_mem(
         An array to be passed into cupy.asarray, which does not copy if
         shared memory is already allocated.
     """
-    _soft_import("numba", "using shared memory")
     from numba import cuda
+    from mne.fixes import has_numba
 
-    return cuda.mapped_array(
-        shape,
-        dtype=dtype,
-        strides=strides,
-        order=order,
-        stream=stream,
-        portable=portable,
-        wc=wc,
-    )
+    if n_jobs == "cuda" and _cuda_capable and has_numba:
+        from numba import cuda
+        out = cuda.mapped_array(x.shape, ...)
+        out[:] = x
+    else:
+        out = x
+    return out
 
 
 def get_cuda_memory(kind="available"):
@@ -225,7 +217,8 @@ def _setup_cuda_fft_multiply_repeated(n_jobs, h, n_fft, kind="FFT FIR filtering"
 
             try:
                 # do the IFFT normalization now so we don't have to later
-                h_fft = cupy.asarray(cuda_dict["h_fft"])
+                h_fft = _share_cuda_mem(cuda_dict["h_fft"], n_jobs)
+                h_fft = cupy.asarray(h_fft)
                 logger.info(f"Using CUDA for {kind}")
             except Exception as exp:
                 logger.info(
@@ -324,6 +317,8 @@ def _setup_cuda_fft_resample(n_jobs, W, new_len):
             try:
                 import cupy
 
+                W = _share_cuda_mem(W, n_jobs)
+
                 # do the IFFT normalization now so we don't have to later
                 W = cupy.asarray(W)
                 logger.info("Using CUDA for FFT resampling")
@@ -349,6 +344,7 @@ def _setup_cuda_fft_resample(n_jobs, W, new_len):
 def _cuda_upload_rfft(x, n, axis=-1):
     """Upload and compute rfft."""
     import cupy
+    x = _share_cuda_mem(x, "cuda")
 
     return cupy.fft.rfft(cupy.asarray(x), n=n, axis=axis)
 
@@ -356,6 +352,7 @@ def _cuda_upload_rfft(x, n, axis=-1):
 def _cuda_irfft_get(x, n, axis=-1):
     """Compute irfft and get."""
     import cupy
+    x = _share_cuda_mem(x, "cuda")
 
     return cupy.fft.irfft(x, n=n, axis=axis).get()
 
