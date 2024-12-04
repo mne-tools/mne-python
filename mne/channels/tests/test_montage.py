@@ -140,7 +140,8 @@ def test_dig_montage_trans(tmp_path):
     _ensure_trans(trans)
     # ensure that we can save and load it, too
     fname = tmp_path / "temp-mon.fif"
-    _check_roundtrip(montage, fname, "mri")
+    with pytest.warns(RuntimeWarning, match="MNE naming conventions"):
+        _check_roundtrip(montage, fname, "mri")
     # test applying a trans
     position1 = montage.get_positions()
     montage.apply_trans(trans)
@@ -1078,10 +1079,10 @@ def test_set_dig_montage_with_nan_positions():
 @testing.requires_testing_data
 def test_fif_dig_montage(tmp_path, monkeypatch):
     """Test FIF dig montage support."""
-    dig_montage = read_dig_fif(fif_dig_montage_fname)
+    dig_montage = read_dig_fif(fif_dig_montage_fname, verbose="error")
 
     # test round-trip IO
-    fname_temp = tmp_path / "test.fif"
+    fname_temp = tmp_path / "test-dig.fif"
     _check_roundtrip(dig_montage, fname_temp)
 
     # Make a BrainVision file like the one the user would have had
@@ -1134,7 +1135,7 @@ def test_fif_dig_montage(tmp_path, monkeypatch):
     _check_roundtrip(montage, fname_temp)
     montage.dig[0]["coord_frame"] = FIFF.FIFFV_COORD_UNKNOWN
     with pytest.raises(RuntimeError, match="Only a single coordinate"):
-        montage.save(fname_temp)
+        montage.save(fname_temp, overwrite=True)
     montage.dig[0]["coord_frame"] = FIFF.FIFFV_COORD_HEAD
 
     # Check that old-style files can be read, too, using EEG001 etc.
@@ -1193,8 +1194,8 @@ def test_egi_dig_montage(tmp_path):
         atol=1e-4,
     )
 
-    # test round-trip IO
-    fname_temp = tmp_path / "egi_test.fif"
+    # test round-trip IO (with GZ)
+    fname_temp = tmp_path / "egi_test-dig.fif.gz"
     _check_roundtrip(dig_montage, fname_temp, "unknown")
     _check_roundtrip(dig_montage_in_head, fname_temp)
 
@@ -1348,7 +1349,7 @@ def test_read_dig_captrak(tmp_path):
     )
 
     montage = transform_to_head(montage)  # transform_to_head has to be tested
-    _check_roundtrip(montage=montage, fname=str(tmp_path / "bvct_test.fif"))
+    _check_roundtrip(montage=montage, fname=tmp_path / "bvct_test-dig.fif")
 
     fid, _ = _get_fid_coords(montage.dig)
     assert_allclose(
@@ -1928,7 +1929,7 @@ def test_get_montage():
 
     # 4. read in BV test dataset and make sure montage
     # fulfills roundtrip on non-standard montage
-    dig_montage = read_dig_fif(fif_dig_montage_fname)
+    dig_montage = read_dig_fif(fif_dig_montage_fname, verbose="error")
 
     # Make a BrainVision file like the one the user would have had
     # with testing dataset 'test.vhdr'

@@ -46,6 +46,7 @@ from ..utils import (
     _on_missing,
     _pl,
     _validate_type,
+    check_fname,
     copy_function_doc_to_method_doc,
     fill_doc,
     verbose,
@@ -419,6 +420,8 @@ class DigMontage:
         .. versionchanged:: 1.9
            Added support for saving the associated channel names.
         """
+        fname = _check_fname(fname, overwrite=overwrite)
+        check_fname(fname, "montage", ("-dig.fif", "-dig.fif.gz"))
         coord_frame = _check_get_coord_frame(self.dig)
         write_dig(
             fname, self.dig, coord_frame, overwrite=overwrite, ch_names=self.ch_names
@@ -819,17 +822,15 @@ def read_dig_dat(fname):
     return make_dig_montage(electrodes, nasion, lpa, rpa)
 
 
-def read_dig_fif(fname):
+@verbose
+def read_dig_fif(fname, *, verbose=None):
     r"""Read digitized points from a .fif file.
-
-    Note that electrode names are not present in the .fif file so
-    they are here defined with the convention from VectorView
-    systems (EEG001, EEG002, etc.)
 
     Parameters
     ----------
     fname : path-like
         FIF file from which to read digitization locations.
+    %(verbose)s
 
     Returns
     -------
@@ -850,9 +851,14 @@ def read_dig_fif(fname):
     Notes
     -----
     .. versionchanged:: 1.9
-       Added support for reading the associated channel names.
+       Added support for reading the associated channel names, if present.
+
+    In some files, electrode names are not present (e.g., in older files).
+    For those files, the channel names are defined with the convention from
+    VectorView systems (EEG001, EEG002, etc.).
     """
-    fname = _check_fname(fname, overwrite="read", must_exist=True)
+    check_fname(fname, "montage", ("-dig.fif", "-dig.fif.gz"))
+    fname = _check_fname(fname=fname, must_exist=True, overwrite="read")
     # Load the dig data
     f, tree = fiff_open(fname)[:2]
     with f as fid:
@@ -1589,6 +1595,7 @@ def read_custom_montage(
     --------
     make_dig_montage
     make_standard_montage
+    read_dig_fif
 
     Notes
     -----
