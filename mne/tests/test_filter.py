@@ -402,6 +402,7 @@ def test_resample(method):
 
 def test_resample_scipy():
     """Test resampling against SciPy."""
+    from mne.cuda import _cuda_capable  # allow above funs to set it
     n_jobs_test = (1, "cuda")
     for window in ("boxcar", "hann"):
         for N in (100, 101, 102, 103):
@@ -409,7 +410,7 @@ def test_resample_scipy():
             err_msg = f"{N}: {window}"
             x_2_sp = sp_resample(x, 2 * N, window=window)
             for n_jobs in n_jobs_test:
-                if n_jobs == "cuda":
+                if n_jobs == "cuda" and _cuda_capable:
                     tmp = x
                     x = get_shared_mem(x.shape)
                     x[:] = tmp
@@ -425,9 +426,10 @@ def test_resample_scipy():
 @pytest.mark.parametrize("n_jobs", (2, "cuda"))
 def test_n_jobs(n_jobs):
     """Test resampling against SciPy."""
+    from mne.cuda import _cuda_capable  # allow above funs to set it
     x = np.random.RandomState(0).randn(4, 100)
 
-    if n_jobs == "cuda":
+    if n_jobs == "cuda" and _cuda_capable:
         tmp = x
         x = get_shared_mem(x.shape)
         x[:] = tmp
@@ -851,15 +853,19 @@ def test_cuda_fir():
 
 def test_cuda_resampling():
     """Test CUDA resampling."""
+    from mne.cuda import _cuda_capable  # allow above funs to set it
     rng = np.random.RandomState(0)
     for window in ("boxcar", "triang"):
         for N in (997, 1000):  # one prime, one even
             a = rng.randn(2, N)
             for fro, to in ((1, 2), (2, 1), (1, 3), (3, 1)):
                 a1 = resample(a, fro, to, n_jobs=None, npad="auto", window=window)
-                x = get_shared_mem(a.shape)
-                x[:] = a
-                a2 = resample(a, fro, to, n_jobs="cuda", npad="auto", window=window)
+                if _cuda_capable:
+                    x = get_shared_mem(a.shape)
+                    x[:] = a
+                    a2 = resample(x, fro, to, n_jobs="cuda", npad="auto", window=window)
+                else:
+                    a2 = resample(a, fro, to, n_jobs="cuda", npad="auto", window=window)
                 assert_allclose(a1, a2, rtol=1e-7, atol=1e-14)
     assert_array_almost_equal(a1, a2, 14)
     assert_array_equal(resample(np.zeros(2), 2, 1, n_jobs="cuda"), np.zeros(4))
