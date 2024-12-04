@@ -421,7 +421,6 @@ def test_resample_scipy():
 def test_n_jobs(n_jobs):
     """Test resampling against SciPy."""
     x = np.random.RandomState(0).randn(4, 100)
-
     y1 = resample(x, 2, 1, n_jobs=None)
     y2 = resample(x, 2, 1, n_jobs=n_jobs)
     assert_allclose(y1, y2)
