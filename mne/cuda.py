@@ -9,7 +9,6 @@ from scipy.fft import irfft, rfft
 from .utils import (
     _check_option,
     _explain_exception,
-    _soft_import,
     fill_doc,
     get_config,
     logger,
