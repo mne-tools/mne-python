@@ -13,9 +13,6 @@ from scipy.signal import detrend
 from sklearn.decomposition import PCA
 
 from mne.io.fiff.raw import Raw
-from mne.utils import logger, warn
-
-# TODO: check arguments passed in, raise errors, tests
 
 
 def fit_ecg_template(
@@ -31,7 +28,8 @@ def fit_ecg_template(
     n_samples_fit: int,
 ) -> tuple[np.ndarray, int]:
     """
-    Fits the heartbeat artefact found in the data
+    Fits the heartbeat artefact found in the data.
+
     Returns the fitted artefact and the index of the next peak.
 
     Parameters
@@ -48,8 +46,8 @@ def fit_ecg_template(
         fitted_art (ndarray): The computed heartbeat artefact computed to
             remove from the data
         post_idx_previous_peak (optional int): Sample index of previous R-peak
-        n_samples_fit (int): Sample fit for interpolation between fitted artifact windows.
-            Helps reduce sharp edges at the end of fitted heartbeat events.
+        n_samples_fit (int): Sample fit for interpolation in fitted artifact
+            windows. Helps reduce sharp edges at end of fitted heartbeat events
 
     Returns
     -------
@@ -61,52 +59,55 @@ def fit_ecg_template(
     template = pca_template[mid_p - peak_range - 1 : mid_p + peak_range + 1, :]
 
     # select window of data and detrend it
-    slice = data[0, a_peak_idx[0] - peak_range : a_peak_idx[0] + peak_range + 1]
-    detrended_data = detrend(slice.reshape(-1), type="constant")
+    slice_ = data[a_peak_idx - peak_range : a_peak_idx + peak_range + 1]
+
+    detrended_data = detrend(slice_, type="constant")
 
     # maps data on template and then maps it again back to the sensor space
     least_square = np.linalg.lstsq(template, detrended_data, rcond=None)
     pad_fit = np.dot(template, least_square[0])
 
     # fit artifact
-    fitted_art[0, a_peak_idx[0] - pre_range - 1 : a_peak_idx[0] + post_range] = pad_fit[
+    fitted_art[a_peak_idx - pre_range - 1 : a_peak_idx + post_range] = pad_fit[
         mid_p - pre_range - 1 : mid_p + post_range
     ].T
 
     # if last peak, return
     if post_idx_previous_peak is None:
-        return fitted_art, a_peak_idx[0] + post_range
+        return fitted_art, a_peak_idx + post_range
 
     # interpolate time between peaks
-    intpol_window = np.ceil([post_idx_previous_peak, a_peak_idx[0] - pre_range]).astype(
+    intpol_window = np.ceil([post_idx_previous_peak, a_peak_idx - pre_range]).astype(
         int
     )  # interpolation window
 
     if intpol_window[0] < intpol_window[1]:
         # Piecewise Cubic Hermite Interpolating Polynomial(PCHIP) + replace EEG data
 
-        # You have x_fit which is two slices on either side of the interpolation window endpoints
+        # You have x_fit which is two slices on either side of the interpolation window
+        #   endpoints
         # You have y_fit which is the y vals corresponding to x values above
-        # You have x_interpol which is the time points between the two slices in x_fit that you want to interpolate
-        # You have y_interpol which is values from pchip at the time points specified in x_interpol
-        x_interpol = np.arange(
-            intpol_window[0], intpol_window[1] + 1, 1
-        )  # points to be interpolated in pt - the gap between the endpoints of the window
+        # You have x_interpol which is the time points between the two slices in x_fit
+        #   that you want to interpolate
+        # You have y_interpol which is values from pchip at the time points specified in
+        #   x_interpol
+        # points to be interpolated in pt - the gap between the endpoints of the window
+        x_interpol = np.arange(intpol_window[0], intpol_window[1] + 1, 1)
+        # Entire range of x values in this step (taking some
+        # number of samples before and after the window)
         x_fit = np.concatenate(
             [
                 np.arange(intpol_window[0] - n_samples_fit, intpol_window[0] + 1, 1),
                 np.arange(intpol_window[1], intpol_window[1] + n_samples_fit + 1, 1),
             ]
-        )  # Entire range of x values in this step (taking some number of samples before and after the window)
-        y_fit = fitted_art[0, x_fit]
+        )
+        y_fit = fitted_art[x_fit]
         y_interpol = pchip(x_fit, y_fit)(x_interpol)  # perform interpolation
 
-        # Then make fitted artefact in the desired range equal to the completed fit above
-        fitted_art[0, post_idx_previous_peak : a_peak_idx[0] - pre_range + 1] = (
-            y_interpol
-        )
+        # make fitted artefact in the desired range equal to the completed fit above
+        fitted_art[post_idx_previous_peak : a_peak_idx - pre_range + 1] = y_interpol
 
-    return fitted_art, a_peak_idx[0] + post_range
+    return fitted_art, a_peak_idx + post_range
 
 
 def apply_pca_obs(
@@ -117,9 +118,9 @@ def apply_pca_obs(
     n_jobs: int | None = None,
 ) -> None:
     """
-    Main convenience function for applying the PCA-OBS algorithm
-    to certain picks of a Raw object. Updates the Raw object in-place.
-    Makes sanity checks for all inputs.
+    Apply the PCA-OBS algorithm to picks of a Raw object.
+
+    Update the Raw object in-place. Make sanity checks for all inputs.
 
     Parameters
     ----------
@@ -134,10 +135,13 @@ def apply_pca_obs(
     n_jobs: int, default None
         Number of jobs to perform the PCA-OBS processing in parallel
     """
-    # TODO: Causes error 'ValueError: The truth value of an array with more than one element is ambiguous. Use a.any() or a.all()'
-    # Removed for now
-    # if not qrs:
-    #     raise ValueError("qrs must not be empty")
+    # sanity checks
+    if len(qrs.shape) > 1:
+        raise ValueError("qrs must be a 1d array")
+    if not isinstance(n_jobs, int) or n_jobs < 1:
+        raise ValueError("n_jobs must be an integer greater than 0")
+    if not picks:
+        raise ValueError("picks must be a list of channel names")
 
     raw.apply_function(
         _pca_obs,
@@ -154,35 +158,22 @@ def _pca_obs(
     qrs: np.ndarray,
     n_components: int,
 ) -> np.ndarray:
-    """
-    algorithm to remove the heart artefact from EEG data (shape [n_channels, n_times]).
-    """
+    """Algorithm to remove heart artefact from EEG data (array of length n_times)."""
     # set to baseline
-    data = data.reshape(-1, 1)
-    data = data.T
-    data = data - np.mean(data, axis=1)
+    data = data - np.mean(data)
 
-    # Allocate memory
+    # Allocate memory for artifact which will be subtracted from the data
     fitted_art = np.zeros(data.shape)
-    peakplot = np.zeros(data.shape)
 
-    # Extract QRS events
-    for idx in qrs[0]:
-        if idx < len(peakplot[0, :]):
-            peakplot[0, idx] = 1  # logical indexed locations of qrs events
-
-    peak_idx = np.nonzero(peakplot)[1]  # Selecting indices along columns
-    peak_idx = peak_idx.reshape(-1, 1)
+    # Extract QRS event indexes which are within out data timeframe
+    peak_idx = qrs[qrs < len(data)]
     peak_count = len(peak_idx)
 
     ##################################################################
     # Preparatory work - reserving memory, configure sizes, de-trend #
     ##################################################################
-    logger.info("Pulse artifact subtraction in progress...Please wait!")
-
     # define peak range based on RR
-    RR = np.diff(peak_idx[:, 0])
-    mRR = np.median(RR)
+    mRR = np.median(np.diff(peak_idx))
     peak_range = round(mRR / 2)  # Rounds to an integer
     mid_p = peak_range + 1
     n_samples_fit = round(
@@ -190,16 +181,15 @@ def _pca_obs(
     )  # sample fit for interpolation between fitted artifact windows
 
     # make sure array is long enough for PArange (if not cut off  last ECG peak)
-    while peak_idx[peak_count - 1, 0] + peak_range > len(data[0]):
+    # NOTE: Here we previously checked for the last part of the window to be big enough.
+    while peak_idx[peak_count - 1] + peak_range > len(data):
         peak_count = peak_count - 1  # reduce number of QRS complexes detected
 
     # build PCA matrix(heart-beat-epochs x window-length)
     pcamat = np.zeros((peak_count - 1, 2 * peak_range + 1))  # [epoch x time]
     # picking out heartbeat epochs
     for p in range(1, peak_count):
-        pcamat[p - 1, :] = data[
-            0, peak_idx[p, 0] - peak_range : peak_idx[p, 0] + peak_range + 1
-        ]
+        pcamat[p - 1, :] = data[peak_idx[p] - peak_range : peak_idx[p] + peak_range + 1]
 
     # detrending matrix(twice)
     pcamat = detrend(
@@ -218,7 +208,7 @@ def _pca_obs(
     pca.fit(dpcamat)
     factor_loadings = pca.components_.T * np.sqrt(pca.explained_variance_)
 
-    # define selected number of  components using profile likelihood
+    # define selected number of components using profile likelihood
 
     #####################################
     # Make template of the ECG artefact #
@@ -231,95 +221,87 @@ def _pca_obs(
     ################
     window_start_idx = []
     window_end_idx = []
+    post_idx_nextPeak = None
+
     for p in range(peak_count):
+        # if the current peak doesn't have enough data in the
+        # start of the peak_range, skip fitting the artifact
+        if peak_idx[p] - peak_range < 0:
+            continue
+
         # Deals with start portion of data
         if p == 0:
             pre_range = peak_range
             post_range = math.floor((peak_idx[p + 1] - peak_idx[p]) / 2)
             if post_range > peak_range:
                 post_range = peak_range
-            try:
-                post_idx_nextPeak = None
-                fitted_art, post_idx_nextPeak = fit_ecg_template(
-                    data=data,
-                    pca_template=pca_template,
-                    a_peak_idx=peak_idx[p],
-                    peak_range=peak_range,
-                    pre_range=pre_range,
-                    post_range=post_range,
-                    mid_p=mid_p,
-                    fitted_art=fitted_art,
-                    post_idx_previous_peak=post_idx_nextPeak,
-                    n_samples_fit=n_samples_fit,
-                )
-                # Appending to list instead of using counter
-                window_start_idx.append(peak_idx[p] - peak_range)
-                window_end_idx.append(peak_idx[p] + peak_range)
-            except Exception as e:
-                warn(f"Cannot fit first ECG epoch. Reason: {e}")
+
+            fitted_art, post_idx_nextPeak = fit_ecg_template(
+                data=data,
+                pca_template=pca_template,
+                a_peak_idx=peak_idx[p],
+                peak_range=peak_range,
+                pre_range=pre_range,
+                post_range=post_range,
+                mid_p=mid_p,
+                fitted_art=fitted_art,
+                post_idx_previous_peak=post_idx_nextPeak,
+                n_samples_fit=n_samples_fit,
+            )
+            # Appending to list instead of using counter
+            window_start_idx.append(peak_idx[p] - peak_range)
+            window_end_idx.append(peak_idx[p] + peak_range)
 
         # Deals with last edge of data
         elif p == peak_count - 1:
-            logger.info("On last section - almost there!")
-            try:
-                pre_range = math.floor((peak_idx[p] - peak_idx[p - 1]) / 2)
-                post_range = peak_range
-                if pre_range > peak_range:
-                    pre_range = peak_range
-                fitted_art, _ = fit_ecg_template(
-                    data=data,
-                    pca_template=pca_template,
-                    a_peak_idx=peak_idx[p],
-                    peak_range=peak_range,
-                    pre_range=pre_range,
-                    post_range=post_range,
-                    mid_p=mid_p,
-                    fitted_art=fitted_art,
-                    post_idx_previous_peak=post_idx_nextPeak,
-                    n_samples_fit=n_samples_fit,
-                )
-                window_start_idx.append(peak_idx[p] - peak_range)
-                window_end_idx.append(peak_idx[p] + peak_range)
-            except Exception as e:
-                warn(f"Cannot fit last ECG epoch. Reason: {e}")
+            pre_range = math.floor((peak_idx[p] - peak_idx[p - 1]) / 2)
+            post_range = peak_range
+            if pre_range > peak_range:
+                pre_range = peak_range
+            fitted_art, _ = fit_ecg_template(
+                data=data,
+                pca_template=pca_template,
+                a_peak_idx=peak_idx[p],
+                peak_range=peak_range,
+                pre_range=pre_range,
+                post_range=post_range,
+                mid_p=mid_p,
+                fitted_art=fitted_art,
+                post_idx_previous_peak=post_idx_nextPeak,
+                n_samples_fit=n_samples_fit,
+            )
+            window_start_idx.append(peak_idx[p] - peak_range)
+            window_end_idx.append(peak_idx[p] + peak_range)
 
         # Deals with middle portion of data
         else:
-            try:
-                # ---------------- Processing of central data - --------------------
-                # cycle through peak artifacts identified by peakplot
-                pre_range = math.floor((peak_idx[p] - peak_idx[p - 1]) / 2)
-                post_range = math.floor((peak_idx[p + 1] - peak_idx[p]) / 2)
-                if pre_range >= peak_range:
-                    pre_range = peak_range
-                if post_range > peak_range:
-                    post_range = peak_range
+            # ---------------- Processing of central data - --------------------
+            # cycle through peak artifacts identified by peakplot
+            pre_range = math.floor((peak_idx[p] - peak_idx[p - 1]) / 2)
+            post_range = math.floor((peak_idx[p + 1] - peak_idx[p]) / 2)
+            if pre_range >= peak_range:
+                pre_range = peak_range
+            if post_range > peak_range:
+                post_range = peak_range
 
-                a_template = pca_template[
-                    mid_p - peak_range - 1 : mid_p + peak_range + 1, :
-                ]
-                fitted_art, post_idx_nextPeak = fit_ecg_template(
-                    data=data,
-                    pca_template=a_template,
-                    a_peak_idx=peak_idx[p],
-                    peak_range=peak_range,
-                    pre_range=pre_range,
-                    post_range=post_range,
-                    mid_p=mid_p,
-                    fitted_art=fitted_art,
-                    post_idx_previous_peak=post_idx_nextPeak,
-                    n_samples_fit=n_samples_fit,
-                )
-                window_start_idx.append(peak_idx[p] - peak_range)
-                window_end_idx.append(peak_idx[p] + peak_range)
-            except Exception as e:
-                warn(f"Cannot fit middle section of data. Reason: {e}")
+            a_template = pca_template[
+                mid_p - peak_range - 1 : mid_p + peak_range + 1, :
+            ]
+            fitted_art, post_idx_nextPeak = fit_ecg_template(
+                data=data,
+                pca_template=a_template,
+                a_peak_idx=peak_idx[p],
+                peak_range=peak_range,
+                pre_range=pre_range,
+                post_range=post_range,
+                mid_p=mid_p,
+                fitted_art=fitted_art,
+                post_idx_previous_peak=post_idx_nextPeak,
+                n_samples_fit=n_samples_fit,
+            )
+            window_start_idx.append(peak_idx[p] - peak_range)
+            window_end_idx.append(peak_idx[p] + peak_range)
 
     # Actually subtract the artefact, return needs to be the same shape as input data
-    data = data.reshape(-1)
-    fitted_art = fitted_art.reshape(-1)
-
     data -= fitted_art
-    data = data.T.reshape(-1)
-
     return data
