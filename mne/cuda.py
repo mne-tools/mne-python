@@ -216,8 +216,7 @@ def _setup_cuda_fft_multiply_repeated(n_jobs, h, n_fft, kind="FFT FIR filtering"
 
             try:
                 # do the IFFT normalization now so we don't have to later
-                h_fft = _share_cuda_mem(cuda_dict["h_fft"], n_jobs)
-                h_fft = cupy.asarray(h_fft)
+                h_fft = cupy.asarray(_share_cuda_mem(cuda_dict["h_fft"], n_jobs))
                 logger.info(f"Using CUDA for {kind}")
             except Exception as exp:
                 logger.info(
@@ -316,7 +315,7 @@ def _setup_cuda_fft_resample(n_jobs, W, new_len):
             try:
                 import cupy
 
-                W = _share_cuda_mem(W, n_jobs)
+                W = _share_cuda_mem(W, "cuda")
 
                 # do the IFFT normalization now so we don't have to later
                 W = cupy.asarray(W)
