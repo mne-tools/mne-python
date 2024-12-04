@@ -3,6 +3,7 @@
 # Copyright the MNE-Python contributors.
 
 import numpy as np
+import os
 from scipy.fft import irfft, rfft
 
 from .utils import (
@@ -18,7 +19,6 @@ from .utils import (
 
 _cuda_capable = False
 
-
 def get_shared_mem(
     shape,
     dtype=np.float64,
@@ -32,6 +32,10 @@ def get_shared_mem(
 
     Allocate a mapped ndarray with a buffer that is pinned and mapped on
     to the device. Similar to np.empty()
+
+    It is recommended to gate this function with 
+        os.getenv("MNE_USE_NUMBA").lower() == "true"
+    to avoid import errors. 
 
     Parameters
     ----------
