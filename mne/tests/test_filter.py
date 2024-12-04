@@ -402,8 +402,8 @@ def test_resample(method):
 
 def test_resample_scipy():
     """Test resampling against SciPy."""
-    from mne.cuda import _cuda_capable  # allow above funs to set it
-
+    from mne.cuda import _cuda_capable# allow cuda.init_cuda() to set it
+    from mne.fixes import has_numba
     n_jobs_test = (1, "cuda")
     for window in ("boxcar", "hann"):
         for N in (100, 101, 102, 103):
@@ -411,7 +411,7 @@ def test_resample_scipy():
             err_msg = f"{N}: {window}"
             x_2_sp = sp_resample(x, 2 * N, window=window)
             for n_jobs in n_jobs_test:
-                if n_jobs == "cuda" and _cuda_capable:
+                if n_jobs == "cuda" and _cuda_capable and has_numba:
                     tmp = x
                     x = get_shared_mem(x.shape)
                     x[:] = tmp
@@ -427,11 +427,11 @@ def test_resample_scipy():
 @pytest.mark.parametrize("n_jobs", (2, "cuda"))
 def test_n_jobs(n_jobs):
     """Test resampling against SciPy."""
-    from mne.cuda import _cuda_capable  # allow above funs to set it
-
+    from mne.cuda import _cuda_capable# allow cuda.init_cuda() to set it
+    from mne.fixes import has_numba
     x = np.random.RandomState(0).randn(4, 100)
 
-    if n_jobs == "cuda" and _cuda_capable:
+    if n_jobs == "cuda" and _cuda_capable and has_numba:
         tmp = x
         x = get_shared_mem(x.shape)
         x[:] = tmp
@@ -855,15 +855,15 @@ def test_cuda_fir():
 
 def test_cuda_resampling():
     """Test CUDA resampling."""
-    from mne.cuda import _cuda_capable  # allow above funs to set it
-
+    from mne.cuda import _cuda_capable# allow cuda.init_cuda() to set it
+    from mne.fixes import has_numba
     rng = np.random.RandomState(0)
     for window in ("boxcar", "triang"):
         for N in (997, 1000):  # one prime, one even
             a = rng.randn(2, N)
             for fro, to in ((1, 2), (2, 1), (1, 3), (3, 1)):
                 a1 = resample(a, fro, to, n_jobs=None, npad="auto", window=window)
-                if _cuda_capable:
+                if _cuda_capable and has_numba:
                     x = get_shared_mem(a.shape)
                     x[:] = a
                     a2 = resample(x, fro, to, n_jobs="cuda", npad="auto", window=window)
