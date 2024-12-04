@@ -19,9 +19,8 @@ from .utils import (
 
 _cuda_capable = False
 
-def _share_cuda_mem(
-    x, n_jobs
-):
+
+def _share_cuda_mem(x, n_jobs):
     """Get shared memory space to avoid copying from cpu to gpu when possible.
 
     Allocate a mapped ndarray with a buffer that is pinned and mapped on
@@ -49,10 +48,12 @@ def _share_cuda_mem(
         shared memory is already allocated.
     """
     from numba import cuda
+
     from mne.fixes import has_numba
 
     if n_jobs == "cuda" and _cuda_capable and has_numba:
         from numba import cuda
+
         out = cuda.mapped_array(x.shape, ...)
         out[:] = x
     else:
@@ -344,6 +345,7 @@ def _setup_cuda_fft_resample(n_jobs, W, new_len):
 def _cuda_upload_rfft(x, n, axis=-1):
     """Upload and compute rfft."""
     import cupy
+
     x = _share_cuda_mem(x, "cuda")
 
     return cupy.fft.rfft(cupy.asarray(x), n=n, axis=axis)
@@ -352,6 +354,7 @@ def _cuda_upload_rfft(x, n, axis=-1):
 def _cuda_irfft_get(x, n, axis=-1):
     """Compute irfft and get."""
     import cupy
+
     x = _share_cuda_mem(x, "cuda")
 
     return cupy.fft.irfft(x, n=n, axis=axis).get()
