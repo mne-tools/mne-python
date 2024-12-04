@@ -105,7 +105,7 @@ subject = mne.datasets.fetch_infant_template("6mo", subjects_dir, verbose=True)
 # in the MRI coordinate frame, which can be used to compute the
 # MRI<->head transform ``trans``:
 fname_1020 = subjects_dir / subject / "montages" / "10-20-montage.fif"
-mon = mne.channels.read_dig_fif(fname_1020)
+mon = mne.channels.read_dig_fif(fname_1020, verbose="error")  # should be named -dig.fif
 mon.rename_channels({f"EEG{ii:03d}": ch_name for ii, ch_name in enumerate(ch_names, 1)})
 trans = mne.channels.compute_native_head_t(mon)
 raw.set_montage(mon)
