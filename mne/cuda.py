@@ -54,6 +54,7 @@ def get_shared_mem(
         An array to be passed into cupy.asarray, which does not copy if
         shared memory is already allocated.
     """
+    _soft_import("numba", "using shared memory")
     from numba import cuda
 
     return cuda.mapped_array(
