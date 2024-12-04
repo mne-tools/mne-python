@@ -46,6 +46,7 @@ from ..utils import (
     _on_missing,
     _pl,
     _validate_type,
+    check_fname,
     copy_function_doc_to_method_doc,
     fill_doc,
     verbose,
@@ -409,9 +410,22 @@ class DigMontage:
             The filename to use. Should end in .fif or .fif.gz.
         %(overwrite)s
         %(verbose)s
+
+        See Also
+        --------
+        mne.channels.read_dig_fif
+
+        Notes
+        -----
+        .. versionchanged:: 1.9
+           Added support for saving the associated channel names.
         """
+        fname = _check_fname(fname, overwrite=overwrite)
+        check_fname(fname, "montage", ("-dig.fif", "-dig.fif.gz"))
         coord_frame = _check_get_coord_frame(self.dig)
-        write_dig(fname, self.dig, coord_frame, overwrite=overwrite)
+        write_dig(
+            fname, self.dig, coord_frame, overwrite=overwrite, ch_names=self.ch_names
+        )
 
     def __iadd__(self, other):
         """Add two DigMontages in place.
@@ -808,17 +822,15 @@ def read_dig_dat(fname):
     return make_dig_montage(electrodes, nasion, lpa, rpa)
 
 
-def read_dig_fif(fname):
+@verbose
+def read_dig_fif(fname, *, verbose=None):
     r"""Read digitized points from a .fif file.
-
-    Note that electrode names are not present in the .fif file so
-    they are here defined with the convention from VectorView
-    systems (EEG001, EEG002, etc.)
 
     Parameters
     ----------
     fname : path-like
         FIF file from which to read digitization locations.
+    %(verbose)s
 
     Returns
     -------
@@ -835,17 +847,28 @@ def read_dig_fif(fname):
     read_dig_hpts
     read_dig_localite
     make_dig_montage
+
+    Notes
+    -----
+    .. versionchanged:: 1.9
+       Added support for reading the associated channel names, if present.
+
+    In some files, electrode names are not present (e.g., in older files).
+    For those files, the channel names are defined with the convention from
+    VectorView systems (EEG001, EEG002, etc.).
     """
-    fname = _check_fname(fname, overwrite="read", must_exist=True)
+    check_fname(fname, "montage", ("-dig.fif", "-dig.fif.gz"))
+    fname = _check_fname(fname=fname, must_exist=True, overwrite="read")
     # Load the dig data
     f, tree = fiff_open(fname)[:2]
     with f as fid:
-        dig = _read_dig_fif(fid, tree)
+        dig, ch_names = _read_dig_fif(fid, tree, return_ch_names=True)
 
-    ch_names = []
-    for d in dig:
-        if d["kind"] == FIFF.FIFFV_POINT_EEG:
-            ch_names.append(f"EEG{d['ident']:03d}")
+    if ch_names is None:  # backward compat from when we didn't save the names
+        ch_names = []
+        for d in dig:
+            if d["kind"] == FIFF.FIFFV_POINT_EEG:
+                ch_names.append(f"EEG{d['ident']:03d}")
 
     montage = DigMontage(dig=dig, ch_names=ch_names)
     return montage
@@ -1572,6 +1595,7 @@ def read_custom_montage(
     --------
     make_dig_montage
     make_standard_montage
+    read_dig_fif
 
     Notes
     -----
