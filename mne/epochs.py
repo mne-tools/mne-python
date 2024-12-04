@@ -895,6 +895,8 @@ class BaseEpochs(
         """Determine if epoch is good."""
         if isinstance(data, str):
             return False, (data,)
+        if data == 'OUT_OF_BOUNDS':
+            return False, ('OUT_OF_BOUNDS',)
         if data is None:
             return False, ("NO_DATA",)
         n_times = len(self.times)
@@ -3644,6 +3646,10 @@ class Epochs(BaseEpochs):
         reject_stop = stop - diff
 
         logger.debug(f"    Getting epoch for {start}-{stop}")
+        n_times_raw = self._raw.n_times
+        if start < 0 or stop > n_times_raw:
+            warn(f'Epoch {idx}: sample numbers [{start}, {stop}] are out of bounds for raw data with {n_times_raw} samples. This epoch will be dropped.')
+            return 'OUT_OF_BOUNDS'
         data = self._raw._check_bad_segment(
             start,
             stop,
