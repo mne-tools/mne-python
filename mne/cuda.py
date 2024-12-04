@@ -48,9 +48,6 @@ def _share_cuda_mem(x, n_jobs):
         An array to be passed into cupy.asarray, which does not copy if
         shared memory is already allocated.
     """
-    _soft_import("numba", "using shared memory")
-    from numba import cuda
-
     from mne.fixes import has_numba
 
     if n_jobs == "cuda" and _cuda_capable and has_numba:
