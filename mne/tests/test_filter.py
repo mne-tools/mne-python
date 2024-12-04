@@ -403,6 +403,7 @@ def test_resample(method):
 def test_resample_scipy():
     """Test resampling against SciPy."""
     from mne.cuda import _cuda_capable  # allow above funs to set it
+
     n_jobs_test = (1, "cuda")
     for window in ("boxcar", "hann"):
         for N in (100, 101, 102, 103):
@@ -427,6 +428,7 @@ def test_resample_scipy():
 def test_n_jobs(n_jobs):
     """Test resampling against SciPy."""
     from mne.cuda import _cuda_capable  # allow above funs to set it
+
     x = np.random.RandomState(0).randn(4, 100)
 
     if n_jobs == "cuda" and _cuda_capable:
@@ -854,6 +856,7 @@ def test_cuda_fir():
 def test_cuda_resampling():
     """Test CUDA resampling."""
     from mne.cuda import _cuda_capable  # allow above funs to set it
+
     rng = np.random.RandomState(0)
     for window in ("boxcar", "triang"):
         for N in (997, 1000):  # one prime, one even
