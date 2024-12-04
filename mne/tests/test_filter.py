@@ -402,8 +402,9 @@ def test_resample(method):
 
 def test_resample_scipy():
     """Test resampling against SciPy."""
-    from mne.cuda import _cuda_capable# allow cuda.init_cuda() to set it
+    from mne.cuda import _cuda_capable  # allow cuda.init_cuda() to set it
     from mne.fixes import has_numba
+
     n_jobs_test = (1, "cuda")
     for window in ("boxcar", "hann"):
         for N in (100, 101, 102, 103):
@@ -427,8 +428,9 @@ def test_resample_scipy():
 @pytest.mark.parametrize("n_jobs", (2, "cuda"))
 def test_n_jobs(n_jobs):
     """Test resampling against SciPy."""
-    from mne.cuda import _cuda_capable# allow cuda.init_cuda() to set it
+    from mne.cuda import _cuda_capable  # allow cuda.init_cuda() to set it
     from mne.fixes import has_numba
+
     x = np.random.RandomState(0).randn(4, 100)
 
     if n_jobs == "cuda" and _cuda_capable and has_numba:
@@ -855,8 +857,9 @@ def test_cuda_fir():
 
 def test_cuda_resampling():
     """Test CUDA resampling."""
-    from mne.cuda import _cuda_capable# allow cuda.init_cuda() to set it
+    from mne.cuda import _cuda_capable  # allow cuda.init_cuda() to set it
     from mne.fixes import has_numba
+
     rng = np.random.RandomState(0)
     for window in ("boxcar", "triang"):
         for N in (997, 1000):  # one prime, one even
