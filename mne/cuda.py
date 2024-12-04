@@ -49,7 +49,7 @@ def _share_cuda_mem(x):
     """
     from mne.fixes import has_numba
 
-    if n_jobs == "cuda" and _cuda_capable and has_numba:
+    if _cuda_capable and has_numba:
         from numba import cuda
 
         out = cuda.mapped_array(x.shape, ...)
