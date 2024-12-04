@@ -20,7 +20,7 @@ from .utils import (
 _cuda_capable = False
 
 
-def _share_cuda_mem(x, n_jobs):
+def _share_cuda_mem(x):
     """Get shared memory space to avoid copying from cpu to gpu when possible.
 
     Allocate a mapped ndarray with a buffer that is pinned and mapped on
@@ -216,7 +216,7 @@ def _setup_cuda_fft_multiply_repeated(n_jobs, h, n_fft, kind="FFT FIR filtering"
 
             try:
                 # do the IFFT normalization now so we don't have to later
-                h_fft = cupy.asarray(_share_cuda_mem(cuda_dict["h_fft"], "cuda"))
+                h_fft = cupy.asarray(_share_cuda_mem(cuda_dict["h_fft"]))
                 logger.info(f"Using CUDA for {kind}")
             except Exception as exp:
                 logger.info(
@@ -315,7 +315,7 @@ def _setup_cuda_fft_resample(n_jobs, W, new_len):
             try:
                 import cupy
 
-                W = _share_cuda_mem(W, "cuda")
+                W = _share_cuda_mem(W)
 
                 # do the IFFT normalization now so we don't have to later
                 W = cupy.asarray(W)
@@ -343,7 +343,7 @@ def _cuda_upload_rfft(x, n, axis=-1):
     """Upload and compute rfft."""
     import cupy
 
-    x = _share_cuda_mem(x, "cuda")
+    x = _share_cuda_mem(x)
 
     return cupy.fft.rfft(cupy.asarray(x), n=n, axis=axis)
 
@@ -352,7 +352,7 @@ def _cuda_irfft_get(x, n, axis=-1):
     """Compute irfft and get."""
     import cupy
 
-    x = _share_cuda_mem(x, "cuda")
+    x = _share_cuda_mem(x)
 
     return cupy.fft.irfft(x, n=n, axis=axis).get()
 
