@@ -850,7 +850,7 @@ def read_dig_fif(fname):
     Notes
     -----
     .. versionchanged:: 1.9
-       Added support for saving the associated channel names.
+       Added support for reading the associated channel names.
     """
     fname = _check_fname(fname, overwrite="read", must_exist=True)
     # Load the dig data
