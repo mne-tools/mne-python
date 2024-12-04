@@ -39,7 +39,7 @@ trans = "fsaverage"  # MNE has a built-in fsaverage transformation
 src = fs_dir / "bem" / "fsaverage-ico-5-src.fif"
 bem = fs_dir / "bem" / "fsaverage-5120-5120-5120-bem-sol.fif"
 
-##############################################################################
+# %%
 # Load the data
 # ^^^^^^^^^^^^^
 #
@@ -52,11 +52,7 @@ bem = fs_dir / "bem" / "fsaverage-5120-5120-5120-bem-sol.fif"
 raw = mne.io.read_raw_edf(raw_fname, preload=True)
 
 # Clean channel names to be able to use a standard 1005 montage
-new_names = dict(
-    (ch_name, ch_name.rstrip(".").upper().replace("Z", "z").replace("FP", "Fp"))
-    for ch_name in raw.ch_names
-)
-raw.rename_channels(new_names)
+eegbci.standardize(raw)
 
 # Read and set the EEG electrode locations, which are already in fsaverage's
 # space (MNI space) for standard_1020:
@@ -75,7 +71,7 @@ mne.viz.plot_alignment(
     dig="fiducials",
 )
 
-##############################################################################
+# %%
 # Setup source space and compute forward
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -84,7 +80,7 @@ fwd = mne.make_forward_solution(
 )
 fwd
 
-##############################################################################
+# %%
 # From here on, standard inverse imaging methods can be used!
 #
 # Infant MRI surrogates
@@ -96,7 +92,7 @@ data = np.random.RandomState(0).randn(len(ch_names), 1000)
 info = mne.create_info(ch_names, 1000.0, "eeg")
 raw = mne.io.RawArray(data, info)
 
-##############################################################################
+# %%
 # Get an infant MRI template
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^
 # To use an infant head model for M/EEG data, you can use
@@ -104,7 +100,7 @@ raw = mne.io.RawArray(data, info)
 
 subject = mne.datasets.fetch_infant_template("6mo", subjects_dir, verbose=True)
 
-##############################################################################
+# %%
 # It comes with several helpful built-in files, including a 10-20 montage
 # in the MRI coordinate frame, which can be used to compute the
 # MRI<->head transform ``trans``:
@@ -115,7 +111,7 @@ trans = mne.channels.compute_native_head_t(mon)
 raw.set_montage(mon)
 print(trans)
 
-##############################################################################
+# %%
 # There are also BEM and source spaces:
 
 bem_dir = subjects_dir / subject / "bem"
@@ -125,7 +121,7 @@ print(src)
 fname_bem = bem_dir / f"{subject}-5120-5120-5120-bem-sol.fif"
 bem = mne.read_bem_solution(fname_bem)
 
-##############################################################################
+# %%
 # You can ensure everything is as expected by plotting the result:
 fig = mne.viz.plot_alignment(
     raw.info,
@@ -141,7 +137,7 @@ fig = mne.viz.plot_alignment(
 )
 mne.viz.set_3d_view(fig, 25, 70, focalpoint=[0, -0.005, 0.01])
 
-##############################################################################
+# %%
 # From here, standard forward and inverse operators can be computed
 #
 # If you have digitized head positions or MEG data, consider using

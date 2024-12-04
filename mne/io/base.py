@@ -239,7 +239,7 @@ class BaseRaw(
         bad = np.where(cals == 0)[0]
         if len(bad) > 0:
             raise ValueError(
-                "Bad cals for channels %s" % {ii: self.ch_names[ii] for ii in bad}
+                f"Bad cals for channels {dict((ii, self.ch_names[ii]) for ii in bad)}"
             )
         self._cals = cals
         if raw_extras is None:
@@ -252,7 +252,7 @@ class BaseRaw(
         # reader or MNE-C converted CTF->FIF files)
         self._read_comp_grade = self.compensation_grade  # read property
         if self._read_comp_grade is not None and len(info["comps"]):
-            logger.info("Current compensation grade : %d" % self._read_comp_grade)
+            logger.info("Current compensation grade : %d", self._read_comp_grade)
         self._comp = None
         if filenames is None:
             filenames = [None] * len(first_samps)
@@ -341,7 +341,7 @@ class BaseRaw(
             from_comp = current_comp if self.preload else self._read_comp_grade
             comp = make_compensator(self.info, from_comp, grade)
             logger.info(
-                "Compensator constructed to change %d -> %d" % (current_comp, grade)
+                "Compensator constructed to change %d -> %d", current_comp, grade
             )
             set_current_comp(self.info, grade)
             # We might need to apply it to our data now
@@ -594,9 +594,9 @@ class BaseRaw(
         data_buffer = preload
         if isinstance(preload, bool | np.bool_) and not preload:
             data_buffer = None
+        t = self.times
         logger.info(
-            "Reading %d ... %d  =  %9.3f ... %9.3f secs..."
-            % (0, len(self.times) - 1, 0.0, self.times[-1])
+            f"Reading 0 ... {len(t) - 1}  =  {0.0:9.3f} ... {t[-1]:9.3f} secs..."
         )
         self._data = self._read_segment(data_buffer=data_buffer)
         assert len(self._data) == self.info["nchan"]
@@ -818,7 +818,7 @@ class BaseRaw(
         if start is None:
             start = 0
         if step is not None and step != 1:
-            raise ValueError("step needs to be 1 : %d given" % step)
+            raise ValueError(f"step needs to be 1 : {step} given")
 
         if isinstance(sel, int | np.integer):
             sel = np.array([sel])
@@ -1277,7 +1277,7 @@ class BaseRaw(
         _check_preload(self, "raw.notch_filter")
         onsets, ends = _annotations_starts_stops(self, skip_by_annotation, invert=True)
         logger.info(
-            "Filtering raw data in %d contiguous segment%s" % (len(onsets), _pl(onsets))
+            "Filtering raw data in %d contiguous segment%s", len(onsets), _pl(onsets)
         )
         for si, (start, stop) in enumerate(zip(onsets, ends)):
             notch_filter(
@@ -3053,7 +3053,7 @@ def _check_raw_compatibility(raw):
                     f"raw[{ri}]['info'][{kind}] do not match: {sorted(mismatch)}"
                 )
         if any(raw[ri]._cals != raw[0]._cals):
-            raise ValueError("raw[%d]._cals must match" % ri)
+            raise ValueError(f"raw[{ri}]._cals must match")
         if len(raw[0].info["projs"]) != len(raw[ri].info["projs"]):
             raise ValueError("SSP projectors in raw files must be the same")
         if not all(

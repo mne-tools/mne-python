@@ -76,10 +76,10 @@ def _pick_isotrak_and_hpi_coils(res4, coils, t):
                 dig.append(d)
                 n_coil_head += 1
     if n_coil_head > 0:
-        logger.info("    Polhemus data for %d HPI coils added" % n_coil_head)
+        logger.info("    Polhemus data for %d HPI coils added", n_coil_head)
     if n_coil_dev > 0:
         logger.info(
-            "    Device coordinate locations for %d HPI coils added" % n_coil_dev
+            "    Device coordinate locations for %d HPI coils added", n_coil_dev
         )
     return dig, [hpi_result]
 
@@ -417,7 +417,7 @@ def _pick_eeg_pos(c):
             eeg["np"] += 1
     if eeg["np"] == 0:
         return None
-    logger.info("Picked positions of %d EEG channels from channel info" % eeg["np"])
+    logger.info("Picked positions of %d EEG channels from channel info", eeg["np"])
     return eeg
 
 
@@ -475,14 +475,14 @@ def _add_eeg_pos(eeg, t, c):
             extra_count += 1
     if eeg_assigned > 0:
         logger.info(
-            "    %d EEG electrode locations assigned to channel info." % eeg_assigned
+            "    %d EEG electrode locations assigned to channel info.", eeg_assigned
         )
     for count, kind in zip(
         (fid_count, eeg_count, extra_count),
         ("fiducials", "EEG locations", "extra points"),
     ):
         if count > 0:
-            logger.info("    %d %s added to Polhemus data." % (count, kind))
+            logger.info("    %d %s added to Polhemus data.", count, kind)
 
 
 _filt_map = {CTF.CTFV_FILTER_LOWPASS: "lowpass", CTF.CTFV_FILTER_HIGHPASS: "highpass"}

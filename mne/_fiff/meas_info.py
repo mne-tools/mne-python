@@ -319,7 +319,8 @@ class MontageMixin:
 
         Returns
         -------
-        %(montage)s
+        montage : None | DigMontage
+            A copy of the channel positions, if available, otherwise ``None``.
         """
         from ..channels.montage import make_dig_montage
         from ..transforms import _frame_to_str

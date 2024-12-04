@@ -543,12 +543,12 @@ def _test_raw_crop(reader, t_prop, kwargs):
     raw_2, raw_3 = raw_1.copy(), raw_1.copy()
     t_tot = raw_1.times[-1] * 3 + 2.0 / raw_1.info["sfreq"]
     raw_concat = concatenate_raws([raw_1, raw_2, raw_3])
-    assert len(raw_concat._filenames) == 3
+    assert len(raw_concat.filenames) == 3
     assert_allclose(raw_concat.times[-1], t_tot)
     assert_allclose(raw_concat.first_time, first_time)
     # keep all instances, but crop to t_start at the beginning
     raw_concat.crop(t_start, None)
-    assert len(raw_concat._filenames) == 3
+    assert len(raw_concat.filenames) == 3
     assert_allclose(raw_concat.times[-1], t_tot - t_start, atol=atol)
     assert_allclose(
         raw_concat.first_time,
@@ -558,7 +558,7 @@ def _test_raw_crop(reader, t_prop, kwargs):
     )
     # drop the first instance
     raw_concat.crop(crop_t, None)
-    assert len(raw_concat._filenames) == 2
+    assert len(raw_concat.filenames) == 2
     assert_allclose(raw_concat.times[-1], t_tot - t_start - crop_t, atol=atol)
     assert_allclose(
         raw_concat.first_time,
@@ -568,7 +568,7 @@ def _test_raw_crop(reader, t_prop, kwargs):
     )
     # drop the second instance, leaving just one
     raw_concat.crop(crop_t, None)
-    assert len(raw_concat._filenames) == 1
+    assert len(raw_concat.filenames) == 1
     assert_allclose(raw_concat.times[-1], t_tot - t_start - 2 * crop_t, atol=atol)
     assert_allclose(
         raw_concat.first_time,

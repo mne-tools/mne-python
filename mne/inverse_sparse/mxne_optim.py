@@ -232,8 +232,11 @@ def _mixed_norm_solver_bcd(
             gap = p_obj - highest_d_obj
             E.append(p_obj)
             logger.debug(
-                "Iteration %d :: p_obj %f :: dgap %f :: n_active %d"
-                % (i + 1, p_obj, gap, np.sum(active_set) / n_orient)
+                "Iteration %d :: p_obj %f :: dgap %f :: n_active %d",
+                i + 1,
+                p_obj,
+                gap,
+                np.sum(active_set) / n_orient,
             )
 
             if gap < tol:
@@ -255,7 +258,7 @@ def _mixed_norm_solver_bcd(
                 # z = np.linalg.solve(C, np.ones(K))
                 u, s, _ = np.linalg.svd(C, hermitian=True)
                 if s[-1] <= 1e-6 * s[0] or not np.isfinite(s).all():
-                    logger.debug("Iteration %d: LinAlg Error" % (i + 1))
+                    logger.debug("Iteration %d: LinAlg Error", i + 1)
                     continue
                 z = ((u * 1 / s) @ u.T).sum(0)
                 c = z / z.sum()
@@ -508,15 +511,13 @@ def mixed_norm_solver(
             gap = p_obj - highest_d_obj
             E.append(p_obj)
             logger.info(
-                "Iteration %d :: p_obj %f :: dgap %f :: "
-                "n_active_start %d :: n_active_end %d"
-                % (
-                    k + 1,
-                    p_obj,
-                    gap,
-                    as_size // n_orient,
-                    np.sum(active_set) // n_orient,
-                )
+                "Iteration %d :: p_obj %f :: dgap %f :: n_active_start %d :: n_active_"
+                "end %d",
+                k + 1,
+                p_obj,
+                gap,
+                as_size // n_orient,
+                np.sum(active_set) // n_orient,
             )
             if gap < tol:
                 logger.info(f"Convergence reached ! (gap: {gap} < {tol})")
@@ -689,7 +690,7 @@ def iterative_mixed_norm_solver(
                 solver=solver,
             )
 
-        logger.info("active set size %d" % (_active_set.sum() / n_orient))
+        logger.info("active set size %d", _active_set.sum() / n_orient)
 
         if _active_set.sum() > 0:
             active_set[active_set] = _active_set
@@ -707,7 +708,7 @@ def iterative_mixed_norm_solver(
                 and np.all(active_set == active_set_0)
                 and np.all(np.abs(X - X0) < tol)
             ):
-                print("Convergence reached after %d reweightings!" % k)
+                logger.info("Convergence reached after %d reweightings!", k)
                 break
         else:
             active_set = np.zeros_like(active_set)
@@ -1215,8 +1216,9 @@ def _tf_mixed_norm_solver_bcd_(
             converged = gap < tol
             E.append(p_obj)
             logger.info(
-                "\n    Iteration %d :: n_active %d"
-                % (i + 1, np.sum(active_set) / n_orient)
+                "\n    Iteration %d :: n_active %d",
+                i + 1,
+                np.sum(active_set) / n_orient,
             )
             logger.info(f"    dgap {gap:.2e} :: p_obj {p_obj} :: d_obj {d_obj}")
 
@@ -1349,8 +1351,11 @@ def _tf_mixed_norm_solver_bcd_active_set(
                 w_time,
             )
             logger.info(
-                "\ndgap %.2e :: p_obj %f :: d_obj %f :: n_active %d"
-                % (gap, p_obj, d_obj, np.sum(active_set) / n_orient)
+                "\ndgap %.2e :: p_obj %f :: d_obj %f :: n_active %d",
+                gap,
+                p_obj,
+                d_obj,
+                np.sum(active_set) / n_orient,
             )
             if gap < tol:
                 logger.info("\nConvergence reached!\n")
@@ -1651,22 +1656,26 @@ def iterative_tf_mixed_norm_solver(
             E.append(p_obj)
 
             logger.info(
-                "Iteration %d: active set size=%d, E=%f"
-                % (k + 1, active_set.sum() / n_orient, p_obj)
+                "Iteration %d: active set size=%d, E=%f",
+                k + 1,
+                active_set.sum() / n_orient,
+                p_obj,
             )
 
             # Check convergence
             if np.array_equal(active_set, active_set_0):
                 max_diff = np.amax(np.abs(Z - Z0))
                 if max_diff < tol:
-                    print("Convergence reached after %d reweightings!" % k)
+                    logger.info("Convergence reached after %d reweightings!", k)
                     break
         else:
             p_obj = 0.5 * np.linalg.norm(M) ** 2.0
             E.append(p_obj)
             logger.info(
-                "Iteration %d: as_size=%d, E=%f"
-                % (k + 1, active_set.sum() / n_orient, p_obj)
+                "Iteration %d: as_size=%d, E=%f",
+                k + 1,
+                active_set.sum() / n_orient,
+                p_obj,
             )
             break
 

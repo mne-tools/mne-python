@@ -814,7 +814,7 @@ def construct_iir_filter(
         # use order-based design
         f_pass = np.atleast_1d(f_pass)
         if f_pass.ndim > 1:
-            raise ValueError("frequencies must be 1D, got %dD" % f_pass.ndim)
+            raise ValueError(f"frequencies must be 1D, got {f_pass.ndim}D")
         edge_freqs = ", ".join(f"{f:0.2f}" for f in f_pass)
         Wp = f_pass / (float(sfreq) / 2)
         # IT will de designed
@@ -849,7 +849,7 @@ def construct_iir_filter(
             else:
                 ptype, pmul = "(forward)", 1
             logger.info(
-                "- Filter order %d %s" % (pmul * iir_params["order"] * len(Wp), ptype)
+                "- Filter order %d %s", pmul * iir_params["order"] * len(Wp), ptype
             )
         else:
             # use gpass / gstop design
@@ -2065,7 +2065,7 @@ def detrend(x, order=1, axis=-1):
         True
     """
     if axis > len(x.shape):
-        raise ValueError("x does not have %d axes" % axis)
+        raise ValueError(f"x does not have {axis} axes")
     if order == 0:
         fit = "constant"
     elif order == 1:
@@ -2434,7 +2434,7 @@ class FilterMixin:
 
         # savitzky-golay filtering
         window_length = (int(np.round(s_freq / h_freq)) // 2) * 2 + 1
-        logger.info("Using savgol length %d" % window_length)
+        logger.info("Using savgol length %d", window_length)
         self._data[:] = signal.savgol_filter(
             self._data, axis=-1, polyorder=5, window_length=window_length
         )
@@ -2548,8 +2548,9 @@ class FilterMixin:
                 self, skip_by_annotation, invert=True
             )
             logger.info(
-                "Filtering raw data in %d contiguous segment%s"
-                % (len(onsets), _pl(onsets))
+                "Filtering raw data in %d contiguous segment%s",
+                len(onsets),
+                _pl(onsets),
             )
         else:
             onsets, ends = np.array([0]), np.array([self._data.shape[1]])
@@ -2872,9 +2873,14 @@ def design_mne_c_filter(
     h_width = (int(((n_freqs - 1) * h_trans_bandwidth) / (0.5 * sfreq)) + 1) // 2
     h_start = int(((n_freqs - 1) * h_freq) / (0.5 * sfreq))
     logger.info(
-        "filter : %7.3f ... %6.1f Hz   bins : %d ... %d of %d "
-        "hpw : %d lpw : %d"
-        % (l_freq, h_freq, l_start, h_start, n_freqs, l_width, h_width)
+        "filter : %7.3f ... %6.1f Hz   bins : %d ... %d of %d " "hpw : %d lpw : %d",
+        l_freq,
+        h_freq,
+        l_start,
+        h_start,
+        n_freqs,
+        l_width,
+        h_width,
     )
     if l_freq > 0:
         start = l_start - l_width + 1

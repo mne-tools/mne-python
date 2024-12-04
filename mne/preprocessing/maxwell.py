@@ -494,7 +494,7 @@ def _prep_maxwell_filter(
     if len(extended_proj) > 0:
         extended_proj_ = list()
         for pi, proj in enumerate(extended_proj):
-            item = "extended_proj[%d]" % (pi,)
+            item = f"extended_proj[{pi}]"
             _validate_type(proj, Projection, item)
             got_names = proj["data"]["col_names"]
             missing = sorted(set(good_names) - set(got_names))
@@ -507,8 +507,8 @@ def _prep_maxwell_filter(
             extended_proj_.append(proj["data"]["data"][:, idx])
         extended_proj = np.concatenate(extended_proj_)
         logger.info(
-            "    Extending external SSS basis using %d projection "
-            "vectors" % (len(extended_proj),)
+            "    Extending external SSS basis using %d projection " "vectors",
+            len(extended_proj),
         )
 
     #
@@ -746,7 +746,7 @@ def _run_maxwell_filter(
         tsss_valid = (stop - start) >= st_duration
         rel_times = raw_sss.times[start:stop]
         t_str = f"{rel_times[[0, -1]][0]:8.3f} - {rel_times[[0, -1]][1]:8.3f} s"
-        t_str += ("(#%d/%d)" % (ii + 1, len(starts))).rjust(2 * n_sig + 5)
+        t_str += (f"(#{ii + 1}/{len(starts)})").rjust(2 * n_sig + 5)
 
         # Get original data
         orig_data = raw_sss._data[meg_picks[good_mask], start:stop]
@@ -864,8 +864,8 @@ def _run_maxwell_filter(
             )
         elif st_when == "never" and head_pos[0] is not None:
             logger.info(
-                "        Used % 2d head position%s for %s"
-                % (n_positions, _pl(n_positions), t_str)
+                f"        Used {n_positions: 2d} head position{_pl(n_positions)} "
+                f"for {t_str}",
             )
         raw_sss._data[meg_picks, start:stop] = out_meg_data
         raw_sss._data[pos_picks, start:stop] = out_pos_data
@@ -1052,13 +1052,12 @@ def _do_tSSS(
         np.asarray_chkfinite(resid)
         t_proj = _overlap_projector(orig_in_data, resid, st_correlation)
     # Apply projector according to Eq. 12 in :footcite:`TauluSimola2006`
-    msg = "        Projecting %2d intersecting tSSS component%s for %s" % (
-        t_proj.shape[1],
-        _pl(t_proj.shape[1], " "),
-        t_str,
+    msg = (
+        f"        Projecting {t_proj.shape[1]:2d} intersecting tSSS "
+        f"component{_pl(t_proj.shape[1], ' ')} for {t_str}"
     )
     if n_positions > 1:
-        msg += " (across %2d position%s)" % (n_positions, _pl(n_positions, " "))
+        msg += f" (across {n_positions:2d} position{_pl(n_positions, ' ')})"
     logger.info(msg)
     clean_data -= np.dot(np.dot(clean_data, t_proj), t_proj.T)
 
@@ -1097,7 +1096,7 @@ def _copy_preload_add_channels(raw, add_channels, copy, info):
         off = len(raw.ch_names)
         chpi_chs = [
             dict(
-                ch_name="CHPI%03d" % (ii + 1),
+                ch_name=f"CHPI{ii:03d}",
                 logno=ii + 1,
                 scanno=off + ii + 1,
                 unit_mul=-1,
@@ -1223,7 +1222,7 @@ def _get_decomp(
             scale = np.mean(np.linalg.norm(S_decomp[:n_int], axis=0))
         mask = np.linalg.norm(extended_proj, axis=0) > thresh
         extended_remove = list(np.where(~mask)[0] + S_decomp.shape[1])
-        logger.debug("    Reducing %d -> %d" % (extended_proj.shape[1], mask.sum()))
+        logger.debug("    Reducing %d -> %d", extended_proj.shape[1], mask.sum())
         extended_proj /= np.linalg.norm(extended_proj, axis=0) / scale
         S_decomp = np.concatenate([S_decomp, extended_proj], axis=-1)
         if extended_proj.shape[1]:
@@ -2114,7 +2113,7 @@ def _update_sensor_geometry(info, fine_cal, ignore_ref):
     if grad_imbalances.shape[0] not in [0, 1, 3]:
         raise ValueError(
             "Must have 1 (x) or 3 (x, y, z) point-like "
-            + "magnetometers. Currently have %i" % grad_imbalances.shape[0]
+            f"magnetometers. Currently have {grad_imbalances.shape[0]}."
         )
     mag_cals = np.array([fine_cal["imb_cals"][info_to_cal[mi]] for mi in mag_picks])
     # Now let's actually construct our point-like adjustment coils for grads
@@ -2607,8 +2606,10 @@ def find_bad_channels_maxwell(
             stops.extend(ss)
     min_count = min(_ensure_int(min_count, "min_count"), len(starts))
     logger.info(
-        "Scanning for bad channels in %d interval%s (%0.1f s) ..."
-        % (len(starts), _pl(starts), step / raw.info["sfreq"])
+        "Scanning for bad channels in %d interval%s (%0.1f s) ...",
+        len(starts),
+        _pl(starts),
+        step / raw.info["sfreq"],
     )
     params = _prep_maxwell_filter(
         raw,
@@ -2671,9 +2672,7 @@ def find_bad_channels_maxwell(
         )
 
         t = chunk_raw.times[[0, -1]] + start / raw.info["sfreq"]
-        logger.info(
-            "        Interval %3d: %8.3f - %8.3f" % ((si + 1,) + tuple(t[[0, -1]]))
-        )
+        logger.info(f"        Interval {si + 1:3d}: {t[0]:8.3f} - {t[-1]:8.3f}")
 
         # Flat pass: SD < 0.01 fT/cm or 0.01 fT for at 30 ms (or 20 samples)
         n = stop - start
@@ -2725,8 +2724,9 @@ def find_bad_channels_maxwell(
 
             if n_iter == 1 and len(chunk_flats):
                 logger.info(
-                    "            Flat (%2d): %s"
-                    % (len(chunk_flats), " ".join(chunk_flats))
+                    "            Flat (%2d): %s",
+                    len(chunk_flats),
+                    " ".join(chunk_flats),
                 )
             delta -= chunk_raw.get_data(these_picks)
             # p2p

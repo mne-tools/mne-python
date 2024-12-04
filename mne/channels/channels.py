@@ -1648,13 +1648,10 @@ def fix_mag_coil_types(info, use_cal=False):
               Therefore the use of ``fix_mag_coil_types`` is not mandatory.
     """
     old_mag_inds = _get_T1T2_mag_inds(info, use_cal)
-
+    n_mag = len(pick_types(info, meg="mag", exclude=[]))
     for ii in old_mag_inds:
         info["chs"][ii]["coil_type"] = FIFF.FIFFV_COIL_VV_MAG_T3
-    logger.info(
-        "%d of %d magnetometer types replaced with T3."
-        % (len(old_mag_inds), len(pick_types(info, meg="mag", exclude=[])))
-    )
+    logger.info(f"{len(old_mag_inds)} of {n_mag} magnetometer types replaced with T3.")
     info._check_consistency()
 
 

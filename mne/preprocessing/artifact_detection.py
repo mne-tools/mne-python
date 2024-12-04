@@ -213,9 +213,11 @@ def annotate_movement(
         onsets, offsets = hp_ts[onsets], hp_ts[offsets]
         bad_pct = 100 * (offsets - onsets).sum() / t_tot
         logger.info(
-            "Omitting %5.1f%% (%3d segments): "
-            "ω >= %5.1f°/s (max: %0.1f°/s)"
-            % (bad_pct, len(onsets), rotation_velocity_limit, np.rad2deg(r.max()))
+            "Omitting %5.1f%% (%3d segments): " "ω >= %5.1f°/s (max: %0.1f°/s)",
+            bad_pct,
+            len(onsets),
+            rotation_velocity_limit,
+            np.rad2deg(r.max()),
         )
         annot += _annotations_from_mask(
             hp_ts, bad_mask, "BAD_mov_rotat_vel", orig_time=orig_time
@@ -231,9 +233,11 @@ def annotate_movement(
         onsets, offsets = hp_ts[onsets], hp_ts[offsets]
         bad_pct = 100 * (offsets - onsets).sum() / t_tot
         logger.info(
-            "Omitting %5.1f%% (%3d segments): "
-            "v >= %5.4fm/s (max: %5.4fm/s)"
-            % (bad_pct, len(onsets), translation_velocity_limit, v.max())
+            "Omitting %5.1f%% (%3d segments): " "v >= %5.4fm/s (max: %5.4fm/s)",
+            bad_pct,
+            len(onsets),
+            translation_velocity_limit,
+            v.max(),
         )
         annot += _annotations_from_mask(
             hp_ts, bad_mask, "BAD_mov_trans_vel", orig_time=orig_time
@@ -282,9 +286,11 @@ def annotate_movement(
         onsets, offsets = hp_ts[onsets], hp_ts[offsets]
         bad_pct = 100 * (offsets - onsets).sum() / t_tot
         logger.info(
-            "Omitting %5.1f%% (%3d segments): "
-            "disp >= %5.4fm (max: %5.4fm)"
-            % (bad_pct, len(onsets), mean_distance_limit, disp.max())
+            "Omitting %5.1f%% (%3d segments): " "disp >= %5.4fm (max: %5.4fm)",
+            bad_pct,
+            len(onsets),
+            mean_distance_limit,
+            disp.max(),
         )
         annot += _annotations_from_mask(
             hp_ts, bad_mask, "BAD_mov_dist", orig_time=orig_time
@@ -367,8 +373,9 @@ def _raw_hp_weights(raw, pos):
     mask = hp_ts <= raw.times[-1]
     if not mask.all():
         logger.info(
-            "          Removing %d samples > raw.times[-1] (%s)"
-            % (np.sum(~mask), raw.times[-1])
+            "          Removing %d samples > raw.times[-1] (%s)",
+            np.sum(~mask),
+            raw.times[-1],
         )
         hp = hp[mask]
     del mask, hp_ts
