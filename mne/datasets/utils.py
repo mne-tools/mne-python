@@ -356,8 +356,12 @@ def _download_all_example_data(verbose=True):
 
     # If the user has SUBJECTS_DIR, respect it, if not, set it to the EEG one
     # (probably on CircleCI, or otherwise advanced user)
-    fetch_fsaverage(None)
+    fetch_fsaverage(subjects_dir=None)
     logger.info("[done fsaverage]")
+
+    # Now also update the sample dataset path, if not already SUBJECTS_DIR
+    # (some tutorials make use of these files)
+    fetch_fsaverage(subjects_dir=paths["sample"] / "subjects")
 
     fetch_infant_template("6mo")
     logger.info("[done infant_template]")
