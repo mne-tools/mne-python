@@ -14,13 +14,7 @@ from ..._fiff.meas_info import _empty_info
 from ..._fiff.utils import _create_chs, _find_channels, _mult_cal_one, read_str
 from ...annotations import Annotations
 from ...channels.layout import _topo_to_sphere
-from ...utils import (
-    _check_option,
-    _validate_type,
-    fill_doc,
-    warn,
-    _explain_exception
-)
+from ...utils import _check_option, _explain_exception, _validate_type, fill_doc, warn
 from ..base import BaseRaw
 from ._utils import (
     CNTEventType3,
