@@ -39,7 +39,7 @@ def _share_cuda_mem(x):
     -------
     a mapped array: np.ndarray
         An array to be passed into cupy.asarray, which does not copy if
-        shared memory is already allocated. If cuda and numba are not 
+        shared memory is already allocated. If cuda and numba are not
         available, return the original array.
     """
     from mne.fixes import has_numba
