@@ -161,7 +161,7 @@ def _read_annotations_cnt(fname, data_format="int16"):
             if str(keypad) != "0":
                 description.append("KeyPad Response" + " " + str(keypad))
             elif event.KeyBoard != 0:
-                description.append("Keyboard Response" + " " + str(event.KeyBoard))
+                description.append(f"Keyboard Response {event.KeyBoard}")
             else:
                 description.append(str(event.StimType))
 
