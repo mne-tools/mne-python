@@ -159,7 +159,7 @@ def _read_annotations_cnt(fname, data_format="int16"):
             # Lower nibble (4 bits) keypad button press
             keypad = event.KeyPad_Accept[0] & 0x0F
             if str(keypad) != "0":
-                description.append("KeyPad Response" + " " + str(keypad))
+                description.append(f"KeyPad Response {keypad}")
             elif event.KeyBoard != 0:
                 description.append(f"Keyboard Response {event.KeyBoard}")
             else:
