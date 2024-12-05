@@ -155,7 +155,7 @@ def _read_annotations_cnt(fname, data_format="int16"):
         for event in my_events:
             # Extract the 4-bit fields
             # Upper nibble (4 bits) currently not used
-            accept = (event.KeyPad_Accept[0] & 0xF0) >> 4
+            # accept = (event.KeyPad_Accept[0] & 0xF0) >> 4
             # Lower nibble (4 bits) keypad button press
             keypad = event.KeyPad_Accept[0] & 0x0F
             if str(keypad) != "0":
