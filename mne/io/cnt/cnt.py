@@ -14,7 +14,13 @@ from ..._fiff.meas_info import _empty_info
 from ..._fiff.utils import _create_chs, _find_channels, _mult_cal_one, read_str
 from ...annotations import Annotations
 from ...channels.layout import _topo_to_sphere
-from ...utils import _check_option, _validate_type, fill_doc, warn
+from ...utils import (
+    _check_option,
+    _validate_type,
+    fill_doc,
+    warn,
+    _explain_exception
+)
 from ..base import BaseRaw
 from ._utils import (
     CNTEventType3,
@@ -547,7 +553,8 @@ class RawCNT(BaseRaw):
             )
         except Exception:
             raise RuntimeError(
-                "Could not read header from *.cnt file. mne.io.read_raw_cnt "
+                f"{_explain_exception()}\n"
+                "WARNING: mne.io.read_raw_cnt "
                 "supports Neuroscan CNT files only. If this file is an ANT Neuro CNT, "
                 "please use mne.io.read_raw_ant instead."
             )
