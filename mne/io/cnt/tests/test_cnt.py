@@ -57,7 +57,7 @@ def test_auto_data():
     third = pytest.warns(RuntimeWarning, match="Omitted 6 annot")
     with first, second, third:
         raw = read_raw_cnt(input_fname=fname_bad_spans)
-
+    # Test that responses are read properly
     assert 'KeyPad Response 1' in raw.annotations.description
     assert raw.info["bads"] == ["F8"]
 
@@ -68,7 +68,6 @@ def test_auto_data():
 
     # make sure we use annotations event if we synthesized stim
     assert len(raw.annotations) == 6
-    # Test that responses are read properly
 
     eog_chs = pick_types(raw.info, eog=True, exclude=[])
     assert len(eog_chs) == 2  # test eog='auto'
