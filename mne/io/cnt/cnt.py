@@ -150,7 +150,23 @@ def _read_annotations_cnt(fname, data_format="int16"):
             np.array([e.KeyPad_Accept for e in my_events])
         )
 
-        description = np.array([str(e.StimType) for e in my_events])
+        # Check to see if there are any button presses
+        description = []
+        for event in my_events:
+            # Extract the 4-bit fields
+            # Upper nibble (4 bits) currently not used
+            accept = (event.KeyPad_Accept[0] & 0xF0) >> 4
+            # Lower nibble (4 bits) keypad button press
+            keypad = event.KeyPad_Accept[0] & 0x0F
+            if str(keypad) != '0':
+                description.append("KeyPad Response" + " " + str(keypad))
+            elif event.KeyBoard != 0:
+                description.append("Keyboard Response" +
+                                   " " + str(event.KeyBoard))
+            else:
+                description.append(str(event.StimType))
+
+        description = np.array(description)
 
         onset, duration, description = _update_bad_span_onset(
             accept_reject, onset / sfreq, duration, description

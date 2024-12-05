@@ -58,6 +58,7 @@ def test_auto_data():
     with first, second, third:
         raw = read_raw_cnt(input_fname=fname_bad_spans)
 
+    assert 'KeyPad Response 1' in raw.annotations.description
     assert raw.info["bads"] == ["F8"]
 
     with _no_parse, pytest.warns(RuntimeWarning, match="number of bytes"):
@@ -67,6 +68,7 @@ def test_auto_data():
 
     # make sure we use annotations event if we synthesized stim
     assert len(raw.annotations) == 6
+    # Test that responses are read properly
 
     eog_chs = pick_types(raw.info, eog=True, exclude=[])
     assert len(eog_chs) == 2  # test eog='auto'
