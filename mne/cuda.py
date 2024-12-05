@@ -33,19 +33,14 @@ def _share_cuda_mem(x):
 
     Parameters
     ----------
-    portable: bool
-        a boolean flag to allow the allocated device memory to be
-              usable in multiple devices.
-    wc: bool
-        a boolean flag to enable writecombined allocation which is faster
-        to write by the host and to read by the device, but slower to
-        write by the host and slower to write by the device.
+    x : 1-d array
 
     Returns
     -------
     a mapped array: np.ndarray
         An array to be passed into cupy.asarray, which does not copy if
-        shared memory is already allocated.
+        shared memory is already allocated. If cuda and numba are not 
+        available, return the original array.
     """
     from mne.fixes import has_numba
 
