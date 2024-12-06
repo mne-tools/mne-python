@@ -56,7 +56,7 @@ else:
 esg_chans = ["S35", "S24", "S36", "Iz", "S17", "S15", "S32", "S22", "S19", "S26", "S28",
              "S9", "S13", "S11", "S7", "SC1", "S4", "S18", "S8", "S31", "SC6", "S12",
              "S16", "S5", "S30", "S20", "S34", "S21", "S25", "L1", "S29", "S14", "S33",
-             "S3", "L4", "S6", "S23", 'ECG']
+             "S3", "L4", "S6", "S23"]
 
 # Sampling rate
 fs = 1000
@@ -79,8 +79,8 @@ block_files = sorted(block_files)
 for count, block_file in enumerate(block_files):
     raw = read_raw_eeglab(block_file, eog=(), preload=True, uint16_codec=None, verbose=None)
 
-    # Isolate the ESG channels only
-    raw.pick(esg_chans)
+    # Isolate the ESG channels (including ECG for R-peak detection)
+    raw.pick(esg_chans + ['ECG'])
 
     # Find trigger timings to remove the stimulation artefact
     events, event_dict = events_from_annotations(raw)
