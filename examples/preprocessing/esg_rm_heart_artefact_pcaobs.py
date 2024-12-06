@@ -131,7 +131,7 @@ mne.preprocessing.apply_pca_obs(
     raw_concat, 
     picks=esg_chans, 
     n_jobs=5,
-    qrs=ecg_event_samples
+    qrs=ecg_event_samples.reshape(-1)
 )
 
 epochs = Epochs(

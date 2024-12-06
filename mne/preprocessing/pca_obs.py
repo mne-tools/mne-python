@@ -129,7 +129,7 @@ def apply_pca_obs(
     picks: list[str]
         Channels in the Raw object to remove the heart artefact from
     qrs: ndarray, shape (n_peaks, 1)
-        Array of times in (s), of detected R-peaks in ECG channel.
+        Array of times in (sample indices), of detected R-peaks in ECG channel.
     n_components: int, default 4
         Number of PCA components to use to form the OBS
     n_jobs: int, default None
