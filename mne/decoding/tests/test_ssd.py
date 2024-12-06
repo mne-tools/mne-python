@@ -1,25 +1,29 @@
-# Author: Denis A. Engemann <denis.engemann@gmail.com>
-#         Victoria Peterson <victoriapeterson09@gmail.com>
-#         Thomas S. Binns <t.s.binns@outlook.com>
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
+
+import sys
 
 import numpy as np
 import pytest
 from numpy.testing import assert_array_almost_equal, assert_array_equal
-from mne import io
-from mne.time_frequency import psd_array_welch
-from mne.decoding.ssd import SSD
-from mne.utils import requires_sklearn
-from mne.filter import filter_data
-from mne import create_info
+
+pytest.importorskip("sklearn")
+
+from sklearn.pipeline import Pipeline
+
+from mne import create_info, io
 from mne.decoding import CSP
+from mne.decoding.ssd import SSD
+from mne.filter import filter_data
+from mne.time_frequency import psd_array_welch
 
 freqs_sig = 9, 12
 freqs_noise = 8, 13
 
 
 def simulate_data(
-    freqs_sig=[9, 12],
+    freqs_sig=(9, 12),
     n_trials=100,
     n_channels=20,
     n_samples=500,
@@ -150,8 +154,9 @@ def test_ssd():
     ch_types = np.reshape([["mag"] * 10, ["eeg"] * 10], n_channels)
     info_2 = create_info(ch_names=n_channels, sfreq=sf, ch_types=ch_types)
 
+    ssd = SSD(info_2, filt_params_signal, filt_params_noise)
     with pytest.raises(ValueError, match="At this point SSD"):
-        ssd = SSD(info_2, filt_params_signal, filt_params_noise)
+        ssd.fit(X)
 
     # Number of channels
     info_3 = create_info(ch_names=n_channels + 1, sfreq=sf, ch_types="eeg")
@@ -296,11 +301,8 @@ def test_ssd_epoched_data():
     )
 
 
-@requires_sklearn
 def test_ssd_pipeline():
     """Test if SSD works in a pipeline."""
-    from sklearn.pipeline import Pipeline
-
     sf = 250
     X, A, S = simulate_data(n_trials=100, n_channels=20, n_samples=500)
     X_e = np.reshape(X, (100, 20, 500))
@@ -471,4 +473,6 @@ def test_non_full_rank_data():
     assert np.linalg.matrix_rank(X) == rank
 
     ssd = SSD(info, filt_params_signal, filt_params_noise)
+    if sys.platform == "darwin":
+        pytest.skip("Unknown linalg bug (Accelerate?)")
     ssd.fit(X)

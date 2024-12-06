@@ -1,36 +1,39 @@
-# Author: Mainak Jas <mainak@neuro.hut.fi>
-#         Romain Trachel <trachelr@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from pathlib import Path
 
 import numpy as np
-
 import pytest
 from numpy.testing import (
-    assert_array_equal,
-    assert_array_almost_equal,
     assert_allclose,
+    assert_array_almost_equal,
+    assert_array_equal,
     assert_equal,
 )
 
-from mne import io, read_events, Epochs, pick_types
+pytest.importorskip("sklearn")
+
+from sklearn.decomposition import PCA
+from sklearn.kernel_ridge import KernelRidge
+
+from mne import Epochs, io, pick_types, read_events
 from mne.decoding import (
-    Scaler,
     FilterEstimator,
     PSDEstimator,
-    Vectorizer,
-    UnsupervisedSpatialFilter,
+    Scaler,
     TemporalFilter,
+    UnsupervisedSpatialFilter,
+    Vectorizer,
 )
 from mne.defaults import DEFAULTS
-from mne.utils import requires_sklearn, check_version, use_log_level
+from mne.utils import use_log_level
 
 tmin, tmax = -0.2, 0.5
 event_id = dict(aud_l=1, vis_l=3)
 start, stop = 0, 8
-data_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
+data_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
 raw_fname = data_dir / "test_raw.fif"
 event_name = data_dir / "test-eve.fif"
 
@@ -56,15 +59,10 @@ def test_scaler(info, method):
     epochs = Epochs(
         raw, events, event_id, tmin, tmax, picks=picks, baseline=(None, 0), preload=True
     )
-    epochs_data = epochs.get_data()
+    epochs_data = epochs.get_data(copy=False)
     y = epochs.events[:, -1]
 
     epochs_data_t = epochs_data.transpose([1, 0, 2])
-    if method in ("mean", "median"):
-        if not check_version("sklearn"):
-            with pytest.raises(ImportError, match="No module"):
-                Scaler(info, method)
-            return
 
     if info:
         info = epochs.info
@@ -116,7 +114,7 @@ def test_scaler(info, method):
         picks=np.arange(len(raw.ch_names)),
     )  # non-data chs
     scaler = Scaler(epochs_bad.info, None)
-    pytest.raises(ValueError, scaler.fit, epochs_bad.get_data(), y)
+    pytest.raises(ValueError, scaler.fit, epochs_bad.get_data(copy=False), y)
 
 
 def test_filterestimator():
@@ -130,7 +128,7 @@ def test_filterestimator():
     epochs = Epochs(
         raw, events, event_id, tmin, tmax, picks=picks, baseline=(None, 0), preload=True
     )
-    epochs_data = epochs.get_data()
+    epochs_data = epochs.get_data(copy=False)
 
     # Add tests for different combinations of l_freq and h_freq
     filt = FilterEstimator(epochs.info, l_freq=40, h_freq=80)
@@ -181,7 +179,7 @@ def test_psdestimator():
     epochs = Epochs(
         raw, events, event_id, tmin, tmax, picks=picks, baseline=(None, 0), preload=True
     )
-    epochs_data = epochs.get_data()
+    epochs_data = epochs.get_data(copy=False)
     psd = PSDEstimator(2 * np.pi, 0, np.inf)
     y = epochs.events[:, -1]
     X = psd.fit_transform(epochs_data, y)
@@ -217,12 +215,8 @@ def test_vectorizer():
     pytest.raises(ValueError, vect.inverse_transform, np.random.rand(102, 12, 12))
 
 
-@requires_sklearn
 def test_unsupervised_spatial_filter():
     """Test unsupervised spatial filter."""
-    from sklearn.decomposition import PCA
-    from sklearn.kernel_ridge import KernelRidge
-
     raw = io.read_raw_fif(raw_fname)
     events = read_events(event_name)
     picks = pick_types(
@@ -245,7 +239,7 @@ def test_unsupervised_spatial_filter():
     pytest.raises(ValueError, UnsupervisedSpatialFilter, KernelRidge(2))
 
     # Test fit
-    X = epochs.get_data()
+    X = epochs.get_data(copy=False)
     n_components = 4
     usf = UnsupervisedSpatialFilter(PCA(n_components))
     usf.fit(X)

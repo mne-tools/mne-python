@@ -1,70 +1,60 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Denis Engemann <denis.engemann@gmail.com>
-#          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
-#          Eric Larson <larson.eric.d@gmail.com>
-#          Marijn van Vliet <w.m.vanvliet@gmail.com>
-#          Jona Sassenhagen <jona.sassenhagen@gmail.com>
-#          Teon Brooks <teon.brooks@gmail.com>
-#          Christian Brodbeck <christianbrodbeck@nyu.edu>
-#          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
-#          Joan Massich <mailsik@gmail.com>
-#
-# License: Simplified BSD
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
-from collections import OrderedDict
-from dataclasses import dataclass
-from copy import deepcopy
 import os.path as op
 import re
+from collections import OrderedDict
+from copy import deepcopy
+from dataclasses import dataclass
 
 import numpy as np
 
-from ..defaults import HEAD_SIZE_DEFAULT
-from .._freesurfer import get_mni_fiducials
-from ..viz import plot_montage
-from ..transforms import (
-    apply_trans,
-    get_ras_to_neuromag_trans,
-    _sph_to_cart,
-    _topo_to_sph,
-    _frame_to_str,
-    Transform,
-    _verbose_frames,
-    _fit_matched_points,
-    _quat_to_affine,
-    _ensure_trans,
-)
-from ..io._digitization import (
+from .._fiff._digitization import (
+    _coord_frame_const,
     _count_points_by_type,
     _ensure_fiducials_head,
-    _get_dig_eeg,
-    _make_dig_points,
-    write_dig,
-    _read_dig_fif,
     _format_dig_points,
-    _get_fid_coords,
-    _coord_frame_const,
     _get_data_as_dict_from_dig,
+    _get_dig_eeg,
+    _get_fid_coords,
+    _make_dig_points,
+    _read_dig_fif,
+    write_dig,
 )
-from ..io.meas_info import create_info
-from ..io.open import fiff_open
-from ..io.pick import pick_types, _picks_to_idx, channel_type
-from ..io.constants import FIFF, CHANNEL_LOC_ALIASES
+from .._fiff.constants import CHANNEL_LOC_ALIASES, FIFF
+from .._fiff.meas_info import create_info
+from .._fiff.open import fiff_open
+from .._fiff.pick import _picks_to_idx, channel_type, pick_types
+from .._freesurfer import get_mni_fiducials
+from ..defaults import HEAD_SIZE_DEFAULT
+from ..transforms import (
+    Transform,
+    _ensure_trans,
+    _fit_matched_points,
+    _frame_to_str,
+    _quat_to_affine,
+    _sph_to_cart,
+    _topo_to_sph,
+    _verbose_frames,
+    apply_trans,
+    get_ras_to_neuromag_trans,
+)
 from ..utils import (
-    warn,
-    copy_function_doc_to_method_doc,
-    _pl,
-    verbose,
-    _check_option,
-    _validate_type,
     _check_fname,
+    _check_option,
     _on_missing,
+    _pl,
+    _validate_type,
+    check_fname,
+    copy_function_doc_to_method_doc,
     fill_doc,
-    _docdict,
+    verbose,
+    warn,
 )
-
-from ._dig_montage_utils import _read_dig_montage_egi
-from ._dig_montage_utils import _parse_brainvision_dig_montage
+from ..utils.docs import docdict
+from ..viz import plot_montage
+from ._dig_montage_utils import _parse_brainvision_dig_montage, _read_dig_montage_egi
 
 
 @dataclass
@@ -352,8 +342,8 @@ class DigMontage:
         n_eeg = sum([1 for d in dig if d["kind"] == FIFF.FIFFV_POINT_EEG])
         if n_eeg != len(ch_names):
             raise ValueError(
-                "The number of EEG channels (%d) does not match the number"
-                " of channel names provided (%d)" % (n_eeg, len(ch_names))
+                f"The number of EEG channels ({n_eeg}) does not match the number"
+                f" of channel names provided ({len(ch_names)})"
             )
 
         self.dig = dig
@@ -370,17 +360,19 @@ class DigMontage:
     @copy_function_doc_to_method_doc(plot_montage)
     def plot(
         self,
-        scale_factor=20,
+        *,
+        scale=None,
+        scale_factor=None,
         show_names=True,
         kind="topomap",
         show=True,
         sphere=None,
-        *,
         axes=None,
         verbose=None,
     ):
         return plot_montage(
             self,
+            scale=scale,
             scale_factor=scale_factor,
             show_names=show_names,
             kind=kind,
@@ -418,9 +410,22 @@ class DigMontage:
             The filename to use. Should end in .fif or .fif.gz.
         %(overwrite)s
         %(verbose)s
+
+        See Also
+        --------
+        mne.channels.read_dig_fif
+
+        Notes
+        -----
+        .. versionchanged:: 1.9
+           Added support for saving the associated channel names.
         """
+        fname = _check_fname(fname, overwrite=overwrite)
+        check_fname(fname, "montage", ("-dig.fif", "-dig.fif.gz"))
         coord_frame = _check_get_coord_frame(self.dig)
-        write_dig(fname, self.dig, coord_frame, overwrite=overwrite)
+        write_dig(
+            fname, self.dig, coord_frame, overwrite=overwrite, ch_names=self.ch_names
+        )
 
     def __iadd__(self, other):
         """Add two DigMontages in place.
@@ -442,7 +447,7 @@ class DigMontage:
                 (
                     "Cannot add two DigMontage objects if they contain duplicated"
                     " channel names. Duplicated channel(s) found: {}."
-                ).format(", ".join(["%r" % v for v in sorted(ch_names_intersection)]))
+                ).format(", ".join([f"{v!r}" for v in sorted(ch_names_intersection)]))
             )
 
         # Check for unique matching fiducials
@@ -462,7 +467,7 @@ class DigMontage:
                     raise RuntimeError(
                         "Cannot add two DigMontage objects if "
                         "fiducial locations do not match "
-                        "(%s)" % kk
+                        f"({kk})"
                     )
 
             # keep self
@@ -786,7 +791,7 @@ def read_dig_dat(fname):
 
     fname = _check_fname(fname, overwrite="read", must_exist=True)
 
-    with open(fname, "r") as fid:
+    with open(fname) as fid:
         lines = fid.readlines()
 
     ch_names, poss = list(), list()
@@ -797,8 +802,8 @@ def read_dig_dat(fname):
             continue
         elif len(items) != 5:
             raise ValueError(
-                "Error reading %s, line %s has unexpected number of entries:\n"
-                "%s" % (fname, i, line.rstrip())
+                f"Error reading {fname}, line {i} has unexpected number of entries:\n"
+                f"{line.rstrip()}"
             )
         num = items[1]
         if num == "67":
@@ -817,17 +822,15 @@ def read_dig_dat(fname):
     return make_dig_montage(electrodes, nasion, lpa, rpa)
 
 
-def read_dig_fif(fname):
+@verbose
+def read_dig_fif(fname, *, verbose=None):
     r"""Read digitized points from a .fif file.
-
-    Note that electrode names are not present in the .fif file so
-    they are here defined with the convention from VectorView
-    systems (EEG001, EEG002, etc.)
 
     Parameters
     ----------
     fname : path-like
         FIF file from which to read digitization locations.
+    %(verbose)s
 
     Returns
     -------
@@ -844,17 +847,28 @@ def read_dig_fif(fname):
     read_dig_hpts
     read_dig_localite
     make_dig_montage
+
+    Notes
+    -----
+    .. versionchanged:: 1.9
+       Added support for reading the associated channel names, if present.
+
+    In some files, electrode names are not present (e.g., in older files).
+    For those files, the channel names are defined with the convention from
+    VectorView systems (EEG001, EEG002, etc.).
     """
-    _check_fname(fname, overwrite="read", must_exist=True)
+    check_fname(fname, "montage", ("-dig.fif", "-dig.fif.gz"))
+    fname = _check_fname(fname=fname, must_exist=True, overwrite="read")
     # Load the dig data
     f, tree = fiff_open(fname)[:2]
     with f as fid:
-        dig = _read_dig_fif(fid, tree)
+        dig, ch_names = _read_dig_fif(fid, tree, return_ch_names=True)
 
-    ch_names = []
-    for d in dig:
-        if d["kind"] == FIFF.FIFFV_POINT_EEG:
-            ch_names.append("EEG%03d" % d["ident"])
+    if ch_names is None:  # backward compat from when we didn't save the names
+        ch_names = []
+        for d in dig:
+            if d["kind"] == FIFF.FIFFV_POINT_EEG:
+                ch_names.append(f"EEG{d['ident']:03d}")
 
     montage = DigMontage(dig=dig, ch_names=ch_names)
     return montage
@@ -928,7 +942,7 @@ def read_dig_hpts(fname, unit="mm"):
         eeg    F7  -6.1042  -68.2969   45.4939
         ...
     """
-    from ._standard_montage_utils import _str_names, _str
+    from ._standard_montage_utils import _str, _str_names
 
     fname = _check_fname(fname, overwrite="read", must_exist=True)
     _scale = _check_unit_and_get_scaling(unit)
@@ -936,7 +950,7 @@ def read_dig_hpts(fname, unit="mm"):
     out = np.genfromtxt(fname, comments="#", dtype=(_str, _str, "f8", "f8", "f8"))
     kind, label = _str_names(out["f0"]), _str_names(out["f1"])
     kind = [k.lower() for k in kind]
-    xyz = np.array([out["f%d" % ii] for ii in range(2, 5)]).T
+    xyz = np.array([out[f"f{ii}"] for ii in range(2, 5)]).T
     xyz *= _scale
     del _scale
     fid_idx_to_label = {"1": "lpa", "2": "nasion", "3": "rpa"}
@@ -1171,25 +1185,22 @@ def _set_montage(info, montage, match_case=True, match_alias=False, on_missing="
     chs = [info["chs"][ii] for ii in picks]
     non_names = [info["chs"][ii]["ch_name"] for ii in non_picks]
     del picks
-    ref_pos = [ch["loc"][3:6] for ch in chs]
+    ref_pos = np.array([ch["loc"][3:6] for ch in chs])
 
     # keep reference location from EEG-like channels if they
     # already exist and are all the same.
-    custom_eeg_ref_dig = False
     # Note: ref position is an empty list for fieldtrip data
-    if ref_pos:
-        if (
-            all([np.equal(ref_pos[0], pos).all() for pos in ref_pos])
-            and not np.equal(ref_pos[0], [0, 0, 0]).all()
-        ):
-            eeg_ref_pos = ref_pos[0]
-            # since we have an EEG reference position, we have
-            # to add it into the info['dig'] as EEG000
-            custom_eeg_ref_dig = True
-    if not custom_eeg_ref_dig:
+    if len(ref_pos) and ref_pos[0].any() and (ref_pos[0] == ref_pos).all():
+        eeg_ref_pos = ref_pos[0]
+        # since we have an EEG reference position, we have
+        # to add it into the info['dig'] as EEG000
+        custom_eeg_ref_dig = True
+    else:
         refs = set(ch_pos) & {"EEG000", "REF"}
         assert len(refs) <= 1
         eeg_ref_pos = np.zeros(3) if not refs else ch_pos.pop(refs.pop())
+        custom_eeg_ref_dig = False
+    del ref_pos
 
     # This raises based on info being subset/superset of montage
     info_names = [ch["ch_name"] for ch in chs]
@@ -1211,14 +1222,14 @@ def _set_montage(info, montage, match_case=True, match_alias=False, on_missing="
         n_dup = len(ch_pos) - len(ch_pos_use)
         if n_dup:
             raise ValueError(
-                "Cannot use match_case=False as %s montage "
-                "name(s) require case sensitivity" % n_dup
+                f"Cannot use match_case=False as {n_dup} montage "
+                "name(s) require case sensitivity"
             )
         n_dup = len(info_names_use) - len(set(info_names_use))
         if n_dup:
             raise ValueError(
-                "Cannot use match_case=False as %s channel "
-                "name(s) require case sensitivity" % n_dup
+                f"Cannot use match_case=False as {n_dup} channel "
+                "name(s) require case sensitivity"
             )
         ch_pos = ch_pos_use
         del ch_pos_use
@@ -1278,7 +1289,7 @@ def _set_montage(info, montage, match_case=True, match_alias=False, on_missing="
             f"Not setting position{_pl(extra)} of {len(extra)} {types} "
             f"channel{_pl(extra)} found in montage:\n{names}\n"
             "Consider setting the channel types to be of "
-            f'{_docdict["montage_types"]} '
+            f'{docdict["montage_types"]} '
             "using inst.set_channel_types before calling inst.set_montage, "
             "or omit these channels when creating your montage."
         )
@@ -1356,7 +1367,7 @@ def _read_isotrak_elp_points(fname):
         and 'points'.
     """
     value_pattern = r"\-?\d+\.?\d*e?\-?\d*"
-    coord_pattern = r"({0})\s+({0})\s+({0})\s*$".format(value_pattern)
+    coord_pattern = rf"({value_pattern})\s+({value_pattern})\s+({value_pattern})\s*$"
 
     with open(fname) as fid:
         file_str = fid.read()
@@ -1478,11 +1489,9 @@ def read_dig_polhemus_isotrak(fname, ch_names=None, unit="m"):
             data["ch_pos"] = OrderedDict(zip(ch_names, points))
         else:
             raise ValueError(
-                (
-                    "Length of ``ch_names`` does not match the number of points"
-                    " in {fname}. Expected ``ch_names`` length {n_points:d},"
-                    " given {n_chnames:d}"
-                ).format(fname=fname, n_points=points.shape[0], n_chnames=len(ch_names))
+                "Length of ``ch_names`` does not match the number of points in "
+                f"{fname}. Expected ``ch_names`` length {points.shape[0]}, given "
+                f"{len(ch_names)}"
             )
 
     return make_dig_montage(**data)
@@ -1490,7 +1499,7 @@ def read_dig_polhemus_isotrak(fname, ch_names=None, unit="m"):
 
 def _is_polhemus_fastscan(fname):
     header = ""
-    with open(fname, "r") as fid:
+    with open(fname) as fid:
         for line in fid:
             if not line.startswith("%"):
                 break
@@ -1533,7 +1542,7 @@ def read_polhemus_fastscan(
     _check_option("fname", ext, VALID_FILE_EXT)
 
     if not _is_polhemus_fastscan(fname):
-        msg = "%s does not contain a valid Polhemus FastSCAN header" % fname
+        msg = f"{fname} does not contain a valid Polhemus FastSCAN header"
         _on_missing(on_header_missing, msg)
 
     points = _scale * np.loadtxt(fname, comments="%", ndmin=2)
@@ -1551,7 +1560,10 @@ def _read_eeglab_locations(fname):
     return ch_names, pos
 
 
-def read_custom_montage(fname, head_size=HEAD_SIZE_DEFAULT, coord_frame=None):
+@verbose
+def read_custom_montage(
+    fname, head_size=HEAD_SIZE_DEFAULT, coord_frame=None, *, verbose=None
+):
     """Read a montage from a file.
 
     Parameters
@@ -1572,6 +1584,7 @@ def read_custom_montage(fname, head_size=HEAD_SIZE_DEFAULT, coord_frame=None):
         for most readers but ``"head"`` for EEGLAB.
 
         .. versionadded:: 0.20
+    %(verbose)s
 
     Returns
     -------
@@ -1582,6 +1595,7 @@ def read_custom_montage(fname, head_size=HEAD_SIZE_DEFAULT, coord_frame=None):
     --------
     make_dig_montage
     make_standard_montage
+    read_dig_fif
 
     Notes
     -----
@@ -1595,12 +1609,12 @@ def read_custom_montage(fname, head_size=HEAD_SIZE_DEFAULT, coord_frame=None):
     :func:`make_dig_montage` that takes arrays as input.
     """
     from ._standard_montage_utils import (
-        _read_theta_phi_in_degrees,
-        _read_sfp,
+        _read_brainvision,
         _read_csd,
         _read_elc,
         _read_elp_besa,
-        _read_brainvision,
+        _read_sfp,
+        _read_theta_phi_in_degrees,
         _read_xyz,
     )
 
@@ -1625,7 +1639,7 @@ def read_custom_montage(fname, head_size=HEAD_SIZE_DEFAULT, coord_frame=None):
 
     if ext in SUPPORTED_FILE_EXT["eeglab"]:
         if head_size is None:
-            raise ValueError("``head_size`` cannot be None for '{}'".format(ext))
+            raise ValueError(f"``head_size`` cannot be None for '{ext}'")
         ch_names, pos = _read_eeglab_locations(fname)
         scale = head_size / np.median(np.linalg.norm(pos, axis=-1))
         pos *= scale
@@ -1646,7 +1660,7 @@ def read_custom_montage(fname, head_size=HEAD_SIZE_DEFAULT, coord_frame=None):
 
     elif ext in SUPPORTED_FILE_EXT["generic (Theta-phi in degrees)"]:
         if head_size is None:
-            raise ValueError("``head_size`` cannot be None for '{}'".format(ext))
+            raise ValueError(f"``head_size`` cannot be None for '{ext}'")
         montage = _read_theta_phi_in_degrees(
             fname, head_size=head_size, fid_names=("Nz", "LPA", "RPA")
         )
@@ -1715,11 +1729,9 @@ def compute_dev_head_t(montage):
 
     if not (len(hpi_head) == len(hpi_dev) and len(hpi_dev) > 0):
         raise ValueError(
-            (
-                "To compute Device-to-Head transformation, the same number of HPI"
-                " points in device and head coordinates is required. (Got {dev}"
-                " points in device and {head} points in head coordinate systems)"
-            ).format(dev=len(hpi_dev), head=len(hpi_head))
+            "To compute Device-to-Head transformation, the same number of HPI"
+            f" points in device and head coordinates is required. (Got {len(hpi_dev)}"
+            f" points in device and {len(hpi_head)} points in head coordinate systems)"
         )
 
     trans = _quat_to_affine(_fit_matched_points(hpi_dev, hpi_head)[0])

@@ -1,9 +1,12 @@
-# Authors: Juergen Dammers <j.dammers@fz-juelich.de>
-#          Denis Engemann <denis.engemann@gmail.com>
-#
-# License: Simplified BSD
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
+
 import math
+
 import numpy as np
+from scipy.signal import hilbert
+from scipy.special import logsumexp
 
 
 def _compute_normalized_phase(data):
@@ -19,8 +22,6 @@ def _compute_normalized_phase(data):
     phase_angles : ndarray, shape (n_epochs, n_sources, n_times)
         The normalized phase angles.
     """
-    from scipy.signal import hilbert
-
     return (np.angle(hilbert(data)) + np.pi) / (2 * np.pi)
 
 
@@ -58,7 +59,7 @@ def ctps(data, is_raw=True):
         Engineering, IEEE Transactions on 55 (10), 2353-2362.
     """
     if not data.ndim == 3:
-        raise ValueError("Data must have 3 dimensions, not %i." % data.ndim)
+        raise ValueError(f"Data must have 3 dimensions, not {data.ndim}.")
 
     if is_raw:
         phase_angles = _compute_normalized_phase(data)
@@ -142,8 +143,6 @@ def _prob_kuiper(d, n_eff, dtype="f8"):
     [2] Kuiper NH 1962. Proceedings of the Koninklijke Nederlands Akademie
     van Wetenschappen, ser Vol 63 pp 38-47
     """
-    from scipy.special import logsumexp
-
     n_time_slices = np.size(d)  # single value or vector
     n_points = 100
 

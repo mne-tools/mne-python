@@ -1,12 +1,12 @@
-# Author: Jean-Remi King <jeanremi.king@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import numpy as np
-from .mixin import TransformerMixin
-from .base import BaseEstimator
+from sklearn.base import BaseEstimator, TransformerMixin
+
 from ..time_frequency.tfr import _compute_tfr
-from ..utils import fill_doc, _check_option, verbose
+from ..utils import _check_option, fill_doc, verbose
 
 
 @fill_doc
@@ -72,7 +72,7 @@ class TimeFrequency(TransformerMixin, BaseEstimator):
         output="complex",
         n_jobs=1,
         verbose=None,
-    ):  # noqa: D102
+    ):
         """Init TimeFrequency transformer."""
         # Check non-average output
         output = _check_option("output", output, ["complex", "power", "phase"])
@@ -148,17 +148,17 @@ class TimeFrequency(TransformerMixin, BaseEstimator):
         # Compute time-frequency
         Xt = _compute_tfr(
             X,
-            self.freqs,
-            self.sfreq,
-            self.method,
-            self.n_cycles,
-            True,
-            self.time_bandwidth,
-            self.use_fft,
-            self.decim,
-            self.output,
-            self.n_jobs,
-            self.verbose,
+            freqs=self.freqs,
+            sfreq=self.sfreq,
+            method=self.method,
+            n_cycles=self.n_cycles,
+            zero_mean=True,
+            time_bandwidth=self.time_bandwidth,
+            use_fft=self.use_fft,
+            decim=self.decim,
+            output=self.output,
+            n_jobs=self.n_jobs,
+            verbose=self.verbose,
         )
 
         # Back to original shape

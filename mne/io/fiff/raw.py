@@ -1,37 +1,38 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
-#          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
-#          Denis Engemann <denis.engemann@gmail.com>
-#          Teon Brooks <teon.brooks@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import copy
-import os
 import os.path as op
+from pathlib import Path
 
 import numpy as np
 
-from ..constants import FIFF
-from ..open import fiff_open, _fiff_get_fid, _get_next_fname
-from ..meas_info import read_meas_info
-from ..tree import dir_tree_find
-from ..tag import read_tag, read_tag_info
-from ..base import BaseRaw, _RawShell, _check_raw_compatibility, _check_maxshield
-from ..utils import _mult_cal_one
-
+from ..._fiff.constants import FIFF
+from ..._fiff.meas_info import read_meas_info
+from ..._fiff.open import _fiff_get_fid, _get_next_fname, fiff_open
+from ..._fiff.tag import _call_dict, read_tag
+from ..._fiff.tree import dir_tree_find
+from ..._fiff.utils import _mult_cal_one
 from ...annotations import Annotations, _read_annotations_fif
-
+from ...channels import fix_mag_coil_types
 from ...event import AcqParserFIF
 from ...utils import (
+    _check_fname,
+    _file_like,
+    _on_missing,
     check_fname,
+    fill_doc,
     logger,
     verbose,
     warn,
-    fill_doc,
-    _file_like,
-    _on_missing,
-    _check_fname,
+)
+from ..base import (
+    BaseRaw,
+    _check_maxshield,
+    _check_raw_compatibility,
+    _get_fname_rep,
+    _RawShell,
 )
 
 
@@ -72,10 +73,19 @@ class Raw(BaseRaw):
         Time vector in seconds. Starts from 0, independently of `first_samp`
         value. Time interval between consecutive time samples is equal to the
         inverse of the sampling frequency.
+    duration : float
+        The duration of the raw file in seconds.
+
+        .. versionadded:: 1.9
     preload : bool
         Indicates whether raw data are in memory.
-    %(verbose)s
     """
+
+    _extra_attributes = (
+        "fix_mag_coil_types",
+        "acqparser",
+        "_read_raw_file",  # this would be ugly to move, but maybe we should
+    )
 
     @verbose
     def __init__(
@@ -85,7 +95,7 @@ class Raw(BaseRaw):
         preload=False,
         on_split_missing="raise",
         verbose=None,
-    ):  # noqa: D102
+    ):
         raws = []
         do_check_ext = not _file_like(fname)
         next_fname = fname
@@ -107,20 +117,32 @@ class Raw(BaseRaw):
                     )
                     _on_missing(on_split_missing, msg, name="on_split_missing")
                     break
-        if _file_like(fname):
-            # avoid serialization error when copying file-like
-            fname = None  # noqa
+        # If using a file-like object, we need to be careful about serialization and
+        # types.
+        #
+        # 1. We must change both the variable named "fname" here so that _get_argvalues
+        #    (magic) does not store the file-like object.
+        # 2. We need to ensure "filenames" passed to the constructor below gets a list
+        #    of Path or None.
+        # 3. We need to remove the file-like objects from _raw_extras. This must
+        #    be done *after* the super().__init__ call, because the constructor
+        #    needs the file-like objects to read the data (which it will do because we
+        #    force preloading for file-like objects).
+
+        # Avoid file-like in _get_argvalues (1)
+        fname = _path_from_fname(fname)
 
         _check_raw_compatibility(raws)
-        super(Raw, self).__init__(
+        super().__init__(
             copy.deepcopy(raws[0].info),
-            False,
-            [r.first_samp for r in raws],
-            [r.last_samp for r in raws],
-            [r.filename for r in raws],
-            [r._raw_extras for r in raws],
-            raws[0].orig_format,
-            None,
+            preload=False,
+            first_samps=[r.first_samp for r in raws],
+            last_samps=[r.last_samp for r in raws],
+            # Avoid file-like objects in raw.filenames (2)
+            filenames=[_path_from_fname(r._raw_extras["filename"]) for r in raws],
+            raw_extras=[r._raw_extras for r in raws],
+            orig_format=raws[0].orig_format,
+            dtype=None,
             buffer_size_sec=buffer_size_sec,
             verbose=verbose,
         )
@@ -147,16 +169,17 @@ class Raw(BaseRaw):
             self._preload_data(preload)
         else:
             self.preload = False
-        # If using a file-like object, fix the filenames to be representative
-        # strings now instead of the file-like objects
-        self._filenames = [_get_fname_rep(fname) for fname in self._filenames]
+        # Avoid file-like objects in _raw_extras (3)
+        for extra in self._raw_extras:
+            if not isinstance(extra["filename"], Path):
+                extra["filename"] = None
 
     @verbose
     def _read_raw_file(
         self, fname, allow_maxshield, preload, do_check_ext=True, verbose=None
     ):
         """Read in header information from a raw file."""
-        logger.info("Opening raw data file %s..." % fname)
+        logger.info(f"Opening raw data file {fname}...")
 
         #   Read in the whole file if preload is on and .fif.gz (saves time)
         if not _file_like(fname):
@@ -172,16 +195,13 @@ class Raw(BaseRaw):
                 endings += tuple([f"{e}.gz" for e in endings])
                 check_fname(fname, "raw", endings)
             # filename
-            fname = str(_check_fname(fname, "read", True, "fname"))
-            ext = os.path.splitext(fname)[1].lower()
-            whole_file = preload if ".gz" in ext else False
-            del ext
+            fname = _check_fname(fname, "read", True, "fname")
+            whole_file = preload if fname.suffix == ".gz" else False
         else:
             # file-like
             if not preload:
                 raise ValueError("preload must be used with file-like objects")
             whole_file = True
-        fname_rep = _get_fname_rep(fname)
         ff, tree, _ = fiff_open(fname, preload=whole_file)
         with ff as fid:
             #   Read the measurement info
@@ -196,7 +216,7 @@ class Raw(BaseRaw):
                 if len(raw_node) == 0:
                     raw_node = dir_tree_find(meas, FIFF.FIFFB_IAS_RAW_DATA)
                     if len(raw_node) == 0:
-                        raise ValueError("No raw data in %s" % fname_rep)
+                        raise ValueError(f"No raw data in {_get_fname_rep(fname)}")
                     _check_maxshield(allow_maxshield)
                     with info._unlock():
                         info["maxshield"] = True
@@ -229,7 +249,6 @@ class Raw(BaseRaw):
                 _check_entry(first, nent)
 
             raw = _RawShell()
-            raw.filename = fname
             raw.first_samp = first_samp
             if info["meas_date"] is None and annotations is not None:
                 # we need to adjust annotations.onset as when there is no meas
@@ -243,48 +262,40 @@ class Raw(BaseRaw):
             nskip = 0
             orig_format = None
 
+            _byte_dict = {
+                FIFF.FIFFT_DAU_PACK16: 2,
+                FIFF.FIFFT_SHORT: 2,
+                FIFF.FIFFT_FLOAT: 4,
+                FIFF.FIFFT_DOUBLE: 8,
+                FIFF.FIFFT_INT: 4,
+                FIFF.FIFFT_COMPLEX_FLOAT: 8,
+                FIFF.FIFFT_COMPLEX_DOUBLE: 16,
+            }
+            _orig_format_dict = {
+                FIFF.FIFFT_DAU_PACK16: "short",
+                FIFF.FIFFT_SHORT: "short",
+                FIFF.FIFFT_FLOAT: "single",
+                FIFF.FIFFT_DOUBLE: "double",
+                FIFF.FIFFT_INT: "int",
+                FIFF.FIFFT_COMPLEX_FLOAT: "single",
+                FIFF.FIFFT_COMPLEX_DOUBLE: "double",
+            }
+
             for k in range(first, nent):
                 ent = directory[k]
                 # There can be skips in the data (e.g., if the user unclicked)
                 # an re-clicked the button
-                if ent.kind == FIFF.FIFF_DATA_SKIP:
-                    tag = read_tag(fid, ent.pos)
-                    nskip = int(tag.data.item())
-                elif ent.kind == FIFF.FIFF_DATA_BUFFER:
+                if ent.kind == FIFF.FIFF_DATA_BUFFER:
                     #   Figure out the number of samples in this buffer
-                    if ent.type == FIFF.FIFFT_DAU_PACK16:
-                        nsamp = ent.size // (2 * nchan)
-                    elif ent.type == FIFF.FIFFT_SHORT:
-                        nsamp = ent.size // (2 * nchan)
-                    elif ent.type == FIFF.FIFFT_FLOAT:
-                        nsamp = ent.size // (4 * nchan)
-                    elif ent.type == FIFF.FIFFT_DOUBLE:
-                        nsamp = ent.size // (8 * nchan)
-                    elif ent.type == FIFF.FIFFT_INT:
-                        nsamp = ent.size // (4 * nchan)
-                    elif ent.type == FIFF.FIFFT_COMPLEX_FLOAT:
-                        nsamp = ent.size // (8 * nchan)
-                    elif ent.type == FIFF.FIFFT_COMPLEX_DOUBLE:
-                        nsamp = ent.size // (16 * nchan)
-                    else:
-                        raise ValueError(
-                            "Cannot handle data buffers of type " "%d" % ent.type
-                        )
+                    try:
+                        div = _byte_dict[ent.type]
+                    except KeyError:
+                        raise RuntimeError(
+                            f"Cannot handle data buffers of type {ent.type}"
+                        ) from None
+                    nsamp = ent.size // (div * nchan)
                     if orig_format is None:
-                        if ent.type == FIFF.FIFFT_DAU_PACK16:
-                            orig_format = "short"
-                        elif ent.type == FIFF.FIFFT_SHORT:
-                            orig_format = "short"
-                        elif ent.type == FIFF.FIFFT_FLOAT:
-                            orig_format = "single"
-                        elif ent.type == FIFF.FIFFT_DOUBLE:
-                            orig_format = "double"
-                        elif ent.type == FIFF.FIFFT_INT:
-                            orig_format = "int"
-                        elif ent.type == FIFF.FIFFT_COMPLEX_FLOAT:
-                            orig_format = "single"
-                        elif ent.type == FIFF.FIFFT_COMPLEX_DOUBLE:
-                            orig_format = "double"
+                        orig_format = _orig_format_dict[ent.type]
 
                     #  Do we have an initial skip pending?
                     if first_skip > 0:
@@ -315,8 +326,11 @@ class Raw(BaseRaw):
                         )
                     )
                     first_samp += nsamp
+                elif ent.kind == FIFF.FIFF_DATA_SKIP:
+                    tag = read_tag(fid, ent.pos)
+                    nskip = int(tag.data.item())
 
-            next_fname = _get_next_fname(fid, fname_rep, tree)
+            next_fname = _get_next_fname(fid, _path_from_fname(fname), tree)
 
         # reformat raw_extras to be a dict of list/ndarray rather than
         # list of dict (faster access)
@@ -336,6 +350,7 @@ class Raw(BaseRaw):
         del raw_extras["first"]
         del raw_extras["last"]
         del raw_extras["nsamp"]
+        raw_extras["filename"] = fname
 
         raw.last_samp = first_samp - 1
         raw.orig_format = orig_format
@@ -348,13 +363,11 @@ class Raw(BaseRaw):
         raw._cals = cals
         raw._raw_extras = raw_extras
         logger.info(
-            "    Range : %d ... %d =  %9.3f ... %9.3f secs"
-            % (
-                raw.first_samp,
-                raw.last_samp,
-                float(raw.first_samp) / info["sfreq"],
-                float(raw.last_samp) / info["sfreq"],
-            )
+            "    Range : %d ... %d =  %9.3f ... %9.3f secs",
+            raw.first_samp,
+            raw.last_samp,
+            float(raw.first_samp) / info["sfreq"],
+            float(raw.last_samp) / info["sfreq"],
         )
 
         raw.info = info
@@ -369,22 +382,17 @@ class Raw(BaseRaw):
         if self._dtype_ is not None:
             return self._dtype_
         dtype = None
-        for raw_extra, filename in zip(self._raw_extras, self._filenames):
+        for raw_extra in self._raw_extras:
             for ent in raw_extra["ent"]:
                 if ent is not None:
-                    with _fiff_get_fid(filename) as fid:
-                        fid.seek(ent.pos, 0)
-                        tag = read_tag_info(fid)
-                        if tag is not None:
-                            if tag.type in (
-                                FIFF.FIFFT_COMPLEX_FLOAT,
-                                FIFF.FIFFT_COMPLEX_DOUBLE,
-                            ):
-                                dtype = np.complex128
-                            else:
-                                dtype = np.float64
-                    if dtype is not None:
-                        break
+                    if ent.type in (
+                        FIFF.FIFFT_COMPLEX_FLOAT,
+                        FIFF.FIFFT_COMPLEX_DOUBLE,
+                    ):
+                        dtype = np.complex128
+                    else:
+                        dtype = np.float64
+                    break
             if dtype is not None:
                 break
         if dtype is None:
@@ -395,7 +403,7 @@ class Raw(BaseRaw):
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a segment of data from a file."""
         n_bad = 0
-        with _fiff_get_fid(self._filenames[fi]) as fid:
+        with _fiff_get_fid(self._raw_extras[fi]["filename"]) as fid:
             bounds = self._raw_extras[fi]["bounds"]
             ents = self._raw_extras[fi]["ent"]
             nchan = self._raw_extras[fi]["orig_nchan"]
@@ -409,27 +417,31 @@ class Raw(BaseRaw):
                 first_pick = max(start - first, 0)
                 last_pick = min(nsamp, stop - first)
                 picksamp = last_pick - first_pick
-                # only read data if it exists
-                if ent is not None:
-                    one = read_tag(
-                        fid,
-                        ent.pos,
-                        shape=(nsamp, nchan),
-                        rlims=(first_pick, last_pick),
-                    ).data
-                    try:
-                        one.shape = (picksamp, nchan)
-                    except AttributeError:  # one is None
-                        n_bad += picksamp
-                    else:
-                        _mult_cal_one(
-                            data[:, offset : (offset + picksamp)],
-                            one.T,
-                            idx,
-                            cals,
-                            mult,
-                        )
+                this_start = offset
                 offset += picksamp
+                this_stop = offset
+                # only read data if it exists
+                if ent is None:
+                    continue  # just use zeros for gaps
+                # faster to always read full tag, taking advantage of knowing the header
+                # already (cutting out some of read_tag) ...
+                fid.seek(ent.pos + 16, 0)
+                one = _call_dict[ent.type](fid, ent, shape=None, rlims=None)
+                try:
+                    one.shape = (nsamp, nchan)
+                except AttributeError:  # one is None
+                    n_bad += picksamp
+                else:
+                    # ... then pick samples we want
+                    if first_pick != 0 or last_pick != nsamp:
+                        one = one[first_pick:last_pick]
+                    _mult_cal_one(
+                        data[:, this_start:this_stop],
+                        one.T,
+                        idx,
+                        cals,
+                        mult,
+                    )
             if n_bad:
                 warn(
                     f"FIF raw buffer could not be read, acquisition error "
@@ -465,8 +477,6 @@ class Raw(BaseRaw):
                   current estimates computed by the MNE software is very small.
                   Therefore the use of mne_fix_mag_coil_types is not mandatory.
         """
-        from ...channels import fix_mag_coil_types
-
         fix_mag_coil_types(self.info)
         return self
 
@@ -483,13 +493,6 @@ class Raw(BaseRaw):
         return self._acqparser
 
 
-def _get_fname_rep(fname):
-    if not _file_like(fname):
-        return fname
-    else:
-        return "File-like"
-
-
 def _check_entry(first, nent):
     """Sanity check entries."""
     if first >= nent:
@@ -499,7 +502,7 @@ def _check_entry(first, nent):
 @fill_doc
 def read_raw_fif(
     fname, allow_maxshield=False, preload=False, on_split_missing="raise", verbose=None
-):
+) -> Raw:
     """Reader function for Raw FIF data.
 
     Parameters
@@ -544,3 +547,16 @@ def read_raw_fif(
         verbose=verbose,
         on_split_missing=on_split_missing,
     )
+
+
+def _path_from_fname(fname) -> Path | None:
+    if not isinstance(fname, Path):
+        if isinstance(fname, str):
+            fname = Path(fname)
+        else:
+            # Try to get a filename from the file-like object
+            try:
+                fname = Path(fname.name)
+            except Exception:
+                fname = None
+    return fname

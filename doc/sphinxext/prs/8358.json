@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "7781b9eb8604cc9e2c466a10e90ea83bf6202cd6",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "SECURITY.md": {
+      "a": 30,
+      "d": 0
+    }
+  }
+}

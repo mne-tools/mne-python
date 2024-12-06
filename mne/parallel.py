@@ -1,15 +1,23 @@
 """Parallel util function."""
 
-# Author: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#
-# License: Simplified BSD
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import logging
 import multiprocessing
 import os
 
-from . import get_config
-from .utils import logger, verbose, warn, ProgressBar, _validate_type, _ensure_int
+from .utils import (
+    ProgressBar,
+    _ensure_int,
+    _validate_type,
+    get_config,
+    logger,
+    use_log_level,
+    verbose,
+    warn,
+)
 
 
 @verbose
@@ -113,7 +121,12 @@ def parallel_func(
         logger.debug(f"Got {n_jobs} parallel jobs after requesting {n_jobs_orig}")
         if max_jobs is not None:
             n_jobs = min(n_jobs, max(_ensure_int(max_jobs, "max_jobs"), 1))
-        my_func = delayed(func)
+
+        def run_verbose(*args, verbose=logger.level, **kwargs):
+            with use_log_level(verbose=verbose):
+                return func(*args, **kwargs)
+
+        my_func = delayed(run_verbose)
 
     if total is not None:
 
@@ -130,7 +143,7 @@ def _check_n_jobs(n_jobs):
     n_jobs = _ensure_int(n_jobs, "n_jobs", must_be="an int or None")
     if os.getenv("MNE_FORCE_SERIAL", "").lower() in ("true", "1") and n_jobs != 1:
         n_jobs = 1
-        logger.info("... MNE_FORCE_SERIAL set. Processing in forced " "serial mode.")
+        logger.info("... MNE_FORCE_SERIAL set. Processing in forced serial mode.")
     elif n_jobs <= 0:
         n_cores = multiprocessing.cpu_count()
         n_jobs_orig = n_jobs

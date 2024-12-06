@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "d109dd8d438e0287dd7b98a167166879204f41a8",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/time_frequency/tests/test_csd.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/time_frequency/tests/test_tfr.py": {
+      "a": 1,
+      "d": 3
+    },
+    "setup.cfg": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

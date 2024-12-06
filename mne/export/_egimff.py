@@ -1,17 +1,17 @@
-# Authors: MNE Developers
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
-import os
-import shutil
 import datetime
+import os
 import os.path as op
+import shutil
 
 import numpy as np
 
+from .._fiff.pick import pick_channels, pick_types
 from ..io.egi.egimff import _import_mffpy
-from ..io.pick import pick_types, pick_channels
-from ..utils import verbose, warn, _check_fname
+from ..utils import _check_fname, verbose, warn
 
 
 @verbose
@@ -49,12 +49,11 @@ def export_evokeds_mff(fname, evoked, history=None, *, overwrite=False, verbose=
     using MFF read functions.
     """
     mffpy = _import_mffpy("Export evokeds to MFF.")
-    import pytz
 
     info = evoked[0].info
     if np.round(info["sfreq"]) != info["sfreq"]:
         raise ValueError(
-            "Sampling frequency must be a whole number. " f'sfreq: {info["sfreq"]}'
+            f'Sampling frequency must be a whole number. sfreq: {info["sfreq"]}'
         )
     sampling_rate = int(info["sfreq"])
 
@@ -72,7 +71,7 @@ def export_evokeds_mff(fname, evoked, history=None, *, overwrite=False, verbose=
     if op.exists(fname):
         os.remove(fname) if op.isfile(fname) else shutil.rmtree(fname)
     writer = mffpy.Writer(fname)
-    current_time = pytz.utc.localize(datetime.datetime.utcnow())
+    current_time = datetime.datetime.now(datetime.timezone.utc)
     writer.addxml("fileInfo", recordTime=current_time)
     try:
         device = info["device_info"]["type"]

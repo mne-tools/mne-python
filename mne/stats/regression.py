@@ -1,21 +1,18 @@
-# Authors: Tal Linzen <linzen@nyu.edu>
-#          Teon Brooks <teon.brooks@gmail.com>
-#          Denis A. Engemann <denis.engemann@gmail.com>
-#          Jona Sassenhagen <jona.sassenhagen@gmail.com>
-#          Marijn van Vliet <w.m.vanvliet@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
-from inspect import isgenerator
 from collections import namedtuple
+from inspect import isgenerator
 
 import numpy as np
+from scipy import linalg, sparse, stats
 
-from ..source_estimate import SourceEstimate
+from .._fiff.pick import _picks_to_idx, pick_info, pick_types
 from ..epochs import BaseEpochs
 from ..evoked import Evoked, EvokedArray
-from ..utils import logger, _reject_data_segments, warn, fill_doc
-from ..io.pick import pick_types, pick_info, _picks_to_idx
+from ..source_estimate import SourceEstimate
+from ..utils import _reject_data_segments, fill_doc, logger, warn
 
 
 def linear_regression(inst, design_matrix, names=None):
@@ -58,7 +55,7 @@ def linear_regression(inst, design_matrix, names=None):
         ``(n_channels, n_timepoints)``.
     """
     if names is None:
-        names = ["x%i" % i for i in range(design_matrix.shape[1])]
+        names = [f"x{i}" for i in range(design_matrix.shape[1])]
 
     if isinstance(inst, BaseEpochs):
         picks = pick_types(
@@ -73,9 +70,9 @@ def linear_regression(inst, design_matrix, names=None):
             exclude=["bads"],
         )
         if [inst.ch_names[p] for p in picks] != inst.ch_names:
-            warn("Fitting linear model to non-data or bad channels. " "Check picking")
+            warn("Fitting linear model to non-data or bad channels. Check picking")
         msg = "Fitting linear model to epochs"
-        data = inst.get_data()
+        data = inst.get_data(copy=False)
         out = EvokedArray(np.zeros(data.shape[1:]), inst.info, inst.tmin)
     elif isgenerator(inst):
         msg = "Fitting linear model to source estimates (generator input)"
@@ -86,10 +83,8 @@ def linear_regression(inst, design_matrix, names=None):
         out = inst[0]
         data = np.array([i.data for i in inst])
     else:
-        raise ValueError("Input must be epochs or iterable of source " "estimates")
-    logger.info(
-        msg + ", (%s targets, %s regressors)" % (np.prod(data.shape[1:]), len(names))
-    )
+        raise ValueError("Input must be epochs or iterable of source estimates")
+    logger.info(msg + f", ({np.prod(data.shape[1:])} targets, {len(names)} regressors)")
     lm_params = _fit_lm(data, design_matrix, names)
     lm = namedtuple("lm", "beta stderr t_val p_val mlog10_p_val")
     lm_fits = {}
@@ -97,7 +92,7 @@ def linear_regression(inst, design_matrix, names=None):
         parameters = [p[name] for p in lm_params]
         for ii, value in enumerate(parameters):
             out_ = out.copy()
-            if not isinstance(out_, (SourceEstimate, Evoked)):
+            if not isinstance(out_, SourceEstimate | Evoked):
                 raise RuntimeError("Invalid container.")
             out_._data[:] = value
             parameters[ii] = out_
@@ -108,8 +103,6 @@ def linear_regression(inst, design_matrix, names=None):
 
 def _fit_lm(data, design_matrix, names):
     """Aux function."""
-    from scipy import stats, linalg
-
     n_samples = len(data)
     n_features = np.prod(data.shape[1:])
     if design_matrix.ndim != 2:
@@ -118,7 +111,7 @@ def _fit_lm(data, design_matrix, names):
 
     if n_samples != n_rows:
         raise ValueError(
-            "Number of rows in design matrix must be equal " "to number of observations"
+            "Number of rows in design matrix must be equal to number of observations"
         )
     if n_predictors != len(names):
         raise ValueError(
@@ -264,11 +257,9 @@ def linear_regression_raw(
     ----------
     .. footbibliography::
     """
-    from scipy import linalg
-
     if isinstance(solver, str):
         if solver not in {"cholesky"}:
-            raise ValueError("No such solver: {}".format(solver))
+            raise ValueError(f"No such solver: {solver}")
         if solver == "cholesky":
 
             def solver(X, y):
@@ -306,9 +297,10 @@ def linear_regression_raw(
     coefs = solver(X, data.T)
     if coefs.shape[0] != data.shape[0]:
         raise ValueError(
-            "solver output has unexcepted shape. Supply a "
+            f"solver output has unexcepted shape {coefs.shape}. Supply a "
             "function that returns coefficients in the form "
-            "(n_targets, n_features), where targets == channels."
+            "(n_targets, n_features), where "
+            f"n_targets == n_channels == {data.shape[0]}."
         )
 
     # construct Evoked objects to be returned from output
@@ -352,20 +344,18 @@ def _prepare_rerp_preds(
     n_samples, sfreq, events, event_id=None, tmin=-0.1, tmax=1, covariates=None
 ):
     """Build predictor matrix and metadata (e.g. condition time windows)."""
-    from scipy import sparse
-
     conds = list(event_id)
     if covariates is not None:
         conds += list(covariates)
 
     # time windows (per event type) are converted to sample points from times
     # int(round()) to be safe and match Epochs constructor behavior
-    if isinstance(tmin, (float, int)):
+    if isinstance(tmin, float | int):
         tmin_s = {cond: int(round(tmin * sfreq)) for cond in conds}
     else:
         tmin_s = {cond: int(round(tmin.get(cond, -0.1) * sfreq)) for cond in conds}
-    if isinstance(tmax, (float, int)):
-        tmax_s = {cond: int(round((tmax * sfreq)) + 1) for cond in conds}
+    if isinstance(tmax, float | int):
+        tmax_s = {cond: int(round(tmax * sfreq) + 1) for cond in conds}
     else:
         tmax_s = {cond: int(round(tmax.get(cond, 1.0) * sfreq)) + 1 for cond in conds}
 
@@ -385,16 +375,16 @@ def _prepare_rerp_preds(
             ids = (
                 [event_id[cond]] if isinstance(event_id[cond], int) else event_id[cond]
             )
-            onsets = -(events[np.in1d(events[:, 2], ids), 0] + tmin_)
+            onsets = -(events[np.isin(events[:, 2], ids), 0] + tmin_)
             values = np.ones((len(onsets), n_lags))
 
         else:  # for predictors from covariates, e.g. continuous ones
             covs = covariates[cond]
             if len(covs) != len(events):
                 error = (
-                    "Condition {0} from ``covariates`` is "
-                    "not the same length as ``events``"
-                ).format(cond)
+                    f"Condition {cond} from ``covariates`` is not the same length as "
+                    "``events``"
+                )
                 raise ValueError(error)
             onsets = -(events[np.where(covs != 0), 0] + tmin_)[0]
             v = np.asarray(covs)[np.nonzero(covs)].astype(float)

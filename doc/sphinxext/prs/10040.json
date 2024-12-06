@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "a3d20ad4a003bbb873bec1237d4941c9498fe1ab",
+  "authors": [
+    {
+      "n": "Mathieu Scheltienne",
+      "e": "mathieu.scheltienne@fcbg.ch"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/fiff/raw.py": {
+      "a": 5,
+      "d": 0
+    },
+    "mne/tests/test_annotations.py": {
+      "a": 15,
+      "d": 0
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "fbec15ccfaba7d9ab8d817a10073450f1cec8811",
+  "authors": [
+    {
+      "n": "Jona Sassenhagen",
+      "e": "jona.sassenhagen@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/time_frequency/tfr.py": {
+      "a": 3,
+      "d": 3
+    }
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "a1cbb6bf96612dec707e19876bef492f9f5d12d0",
+  "authors": [
+    {
+      "n": "Alexander Rudiuk",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/channels/tests/test_interpolation.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/io/tests/test_meas_info.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/preprocessing/tests/test_ica.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/preprocessing/tests/test_xdawn.py": {
+      "a": 0,
+      "d": 1
+    }
+  }
+}

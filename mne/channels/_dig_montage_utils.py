@@ -1,22 +1,10 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Denis Engemann <denis.engemann@gmail.com>
-#          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
-#          Eric Larson <larson.eric.d@gmail.com>
-#          Marijn van Vliet <w.m.vanvliet@gmail.com>
-#          Jona Sassenhagen <jona.sassenhagen@gmail.com>
-#          Teon Brooks <teon.brooks@gmail.com>
-#          Christian Brodbeck <christianbrodbeck@nyu.edu>
-#          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
-#          Joan Massich <mailsik@gmail.com>
-#
-# License: Simplified BSD
-
-import xml.etree.ElementTree as ElementTree
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import numpy as np
 
-
-from ..utils import _check_fname, Bunch, warn
+from ..utils import Bunch, _check_fname, _soft_import, warn
 
 
 def _read_dig_montage_egi(
@@ -26,13 +14,13 @@ def _read_dig_montage_egi(
 ):
     if not _all_data_kwargs_are_none:
         raise ValueError(
-            "hsp, hpi, elp, point_names, fif must all be " "None if egi is not None"
+            "hsp, hpi, elp, point_names, fif must all be None if egi is not None"
         )
     _check_fname(fname, overwrite="read", must_exist=True)
-
-    root = ElementTree.parse(fname).getroot()
+    defusedxml = _soft_import("defusedxml", "reading EGI montages")
+    root = defusedxml.ElementTree.parse(fname).getroot()
     ns = root.tag[root.tag.index("{") : root.tag.index("}") + 1]
-    sensors = root.find("%ssensorLayout/%ssensors" % (ns, ns))
+    sensors = root.find(f"{ns}sensorLayout/{ns}sensors")
     fids = dict()
     dig_ch_pos = dict()
 
@@ -50,10 +38,10 @@ def _read_dig_montage_egi(
 
         # EEG Channels
         if kind == 0:
-            dig_ch_pos["EEG %03d" % number] = coordinates
+            dig_ch_pos[f"EEG {number:03d}"] = coordinates
         # Reference
         elif kind == 1:
-            dig_ch_pos["EEG %03d" % (len(dig_ch_pos.keys()) + 1)] = coordinates
+            dig_ch_pos[f"EEG {len(dig_ch_pos) + 1:03d}"] = coordinates
         # Fiducials
         elif kind == 2:
             fid_name = fid_name_map[name]
@@ -61,8 +49,8 @@ def _read_dig_montage_egi(
         # Unknown
         else:
             warn(
-                "Unknown sensor type %s detected. Skipping sensor..."
-                "Proceed with caution!" % kind
+                f"Unknown sensor type {kind} detected. Skipping sensor..."
+                "Proceed with caution!"
             )
 
     return Bunch(
@@ -77,8 +65,8 @@ def _read_dig_montage_egi(
 
 def _parse_brainvision_dig_montage(fname, scale):
     FID_NAME_MAP = {"Nasion": "nasion", "RPA": "rpa", "LPA": "lpa"}
-
-    root = ElementTree.parse(fname).getroot()
+    defusedxml = _soft_import("defusedxml", "reading BrainVision montages")
+    root = defusedxml.ElementTree.parse(fname).getroot()
     sensors = root.find("CapTrakElectrodeList")
 
     fids, dig_ch_pos = dict(), dict()

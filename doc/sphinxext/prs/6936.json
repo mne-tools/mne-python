@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "3557ed1028ef8d572f3da294e23899376dc9e32d",
+  "authors": [
+    {
+      "n": "Adonay Nunes",
+      "e": "adonay.s.nunes@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/overview/faq.rst": {
+      "a": 23,
+      "d": 1
+    }
+  }
+}

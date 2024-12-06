@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "fc3f2b56bc172eb3b747751e636d55b0cbb56861",
+  "authors": [
+    {
+      "n": "Martin G. Schulz",
+      "e": "dev@mgschulz.de"
+    },
+    {
+      "n": "Mainak Jas",
+      "e": "jasmainak@users.noreply.github.com"
+    },
+    {
+      "n": "Mainak Jas",
+      "e": "jasmainak@users.noreply.github.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/report.py": {
+      "a": 48,
+      "d": 4
+    }
+  }
+}

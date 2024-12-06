@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "0271393994bf44d6a2489b078912733b62de1bee",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "tutorials/plot_object_epochs.py": {
+      "a": 11,
+      "d": 7
+    }
+  }
+}

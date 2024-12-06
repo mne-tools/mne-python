@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "d158117a716512fbe96d8ff6c4d735f1e9601d09",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/overview/roadmap.rst": {
+      "a": 41,
+      "d": 36
+    },
+    "mne/report/tests/test_report.py": {
+      "a": 7,
+      "d": 4
+    }
+  }
+}

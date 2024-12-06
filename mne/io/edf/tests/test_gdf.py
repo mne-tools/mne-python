@@ -1,20 +1,18 @@
-# Authors: Alexandre Barachant <alexandre.barachant@gmail.com>
-#          Nicolas Barascud <nicolas.barascud@ens.fr>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
-from datetime import datetime, timezone, timedelta
 import shutil
+from datetime import date, datetime, timedelta, timezone
 
-import pytest
-from numpy.testing import assert_array_almost_equal, assert_array_equal, assert_equal
 import numpy as np
 import scipy.io as sio
+from numpy.testing import assert_array_almost_equal, assert_array_equal, assert_equal
 
+from mne import events_from_annotations, find_events, pick_types
 from mne.datasets import testing
 from mne.io import read_raw_gdf
 from mne.io.tests.test_raw import _test_raw_reader
-from mne import pick_types, find_events, events_from_annotations
 
 data_path = testing.data_path(download=False)
 gdf1_path = data_path / "GDF" / "test_gdf_1.25"
@@ -37,7 +35,7 @@ def test_gdf_data():
     # Test Status is added as event
     EXPECTED_EVS_ONSETS = raw._raw_extras[0]["events"][1]
     EXPECTED_EVS_ID = {
-        "{}".format(evs): i
+        f"{evs}": i
         for i, evs in enumerate(
             [
                 32769,
@@ -99,9 +97,14 @@ def test_gdf2_birthday(tmp_path):
         fid.seek(176, 0)
         assert np.fromfile(fid, np.uint64, 1)[0] == d
     raw = read_raw_gdf(new_fname, eog=None, misc=None, preload=True)
-    assert raw._raw_extras[0]["subject_info"]["age"] == 44
-    # XXX this is a bug, it should be populated...
-    assert raw.info["subject_info"] is None
+    assert "subject_info" not in raw._raw_extras[0]
+    assert raw.info["subject_info"] is not None
+    birthdate = datetime(1, 1, 1, tzinfo=timezone.utc) + offset_44_yr
+    assert raw.info["subject_info"]["birthday"] == date(
+        birthdate.year,
+        birthdate.month,
+        birthdate.day,
+    )
 
 
 @testing.requires_testing_data
@@ -113,7 +116,7 @@ def test_gdf2_data():
         misc=None,
         preload=True,
     )
-    assert raw._raw_extras[0]["subject_info"]["age"] is None
+    assert raw.info["subject_info"]["birthday"] == date(1, 1, 1)
 
     picks = pick_types(raw.info, meg=False, eeg=True, exclude="bads")
     data, _ = raw[picks]
@@ -146,8 +149,7 @@ def test_gdf2_data():
 @testing.requires_testing_data
 def test_one_channel_gdf():
     """Test a one-channel GDF file."""
-    with pytest.warns(RuntimeWarning, match="different highpass"):
-        ecg = read_raw_gdf(gdf_1ch_path, preload=True)
+    ecg = read_raw_gdf(gdf_1ch_path, preload=True)
     assert ecg["ECG"][0].shape == (1, 4500)
     assert 150.0 == ecg.info["sfreq"]
 

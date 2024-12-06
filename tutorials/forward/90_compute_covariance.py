@@ -5,13 +5,16 @@
 Computing a covariance matrix
 =============================
 
-Many methods in MNE, including source estimation and some classification
-algorithms, require covariance estimations from the recordings.
-In this tutorial we cover the basics of sensor covariance computations and
-construct a noise covariance matrix that can be used when computing the
-minimum-norm inverse solution. For more information, see
+Many methods in MNE, including source estimation and some classification algorithms,
+require covariance estimations from the recordings. In this tutorial we cover the basics
+of sensor covariance computations and construct a noise covariance matrix that can be
+used when computing the minimum-norm inverse solution. For more information, see
 :ref:`minimum_norm_estimates`.
 """
+
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 
@@ -19,7 +22,7 @@ import mne
 from mne.datasets import sample
 
 # %%
-# Source estimation method such as MNE require a noise estimations from the
+# Source estimation methods such as MNE require noise estimates from the
 # recordings. In this tutorial we cover the basics of noise covariance and
 # construct a noise covariance matrix that can be used when computing the
 # inverse solution. For more information, see :ref:`minimum_norm_estimates`.
@@ -109,8 +112,8 @@ noise_cov_baseline.plot(epochs.info, proj=True)
 # available. Unfortunately it is not easy to tell the effective number of
 # samples, hence, to choose the appropriate regularization.
 # In MNE-Python, regularization is done using advanced regularization methods
-# described in :footcite:p:`EngemannGramfort2015`. For this the 'auto' option
-# can be used. With this option cross-validation will be used to learn the
+# described in :footcite:t:`EngemannGramfort2015`. For this the ``'auto'`` option
+# can be used. With this option, cross-validation will be used to learn the
 # optimal regularization:
 
 noise_cov_reg = mne.compute_covariance(epochs, tmax=0.0, method="auto", rank=None)
@@ -160,14 +163,12 @@ noise_covs = mne.compute_covariance(
 evoked.plot_white(noise_covs, time_unit="s")
 
 
-##############################################################################
+# %%
 # This will plot the whitened evoked for the optimal estimator and display the
 # :term:`GFP` for all estimators as separate lines in the related panel.
-
-
-##############################################################################
+#
 # Finally, let's have a look at the difference between empty room and
-# event related covariance, hacking the "method" option so that their types
+# event related covariance, hacking the ``"method"`` option so that their types
 # are shown in the legend of the plot.
 
 evoked_meg = evoked.copy().pick("meg")
@@ -175,13 +176,12 @@ noise_cov["method"] = "empty_room"
 noise_cov_baseline["method"] = "baseline"
 evoked_meg.plot_white([noise_cov_baseline, noise_cov], time_unit="s")
 
-##############################################################################
+# %%
 # Based on the negative log-likelihood, the baseline covariance
 # seems more appropriate. Improper regularization can lead to overestimation of
 # source amplitudes, see :footcite:p:`EngemannGramfort2015` for more
 # information and examples.
-
-# %%
+#
 # References
 # ----------
 #

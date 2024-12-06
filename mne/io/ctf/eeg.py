@@ -1,18 +1,18 @@
 """Read .eeg files."""
 
-# Author: Eric Larson <larson.eric.d<gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
+
+from os import listdir
+from os.path import join
 
 import numpy as np
-from os.path import join
-from os import listdir
 
-from ...utils import logger, warn
-from ..constants import FIFF
-from .res4 import _make_ctf_name
+from ..._fiff.constants import FIFF
 from ...transforms import apply_trans
-
+from ...utils import logger, warn
+from .res4 import _make_ctf_name
 
 _cardinal_dict = dict(
     nasion=FIFF.FIFFV_POINT_NASION,
@@ -45,7 +45,7 @@ def _read_eeg(directory):
             if len(line) > 0:
                 parts = line.decode("utf-8").split()
                 if len(parts) != 5:
-                    raise RuntimeError("Illegal data in EEG position file: %s" % line)
+                    raise RuntimeError(f"Illegal data in EEG position file: {line}")
                 r = np.array([float(p) for p in parts[2:]]) / 100.0
                 if (r * r).sum() > 1e-4:
                     label = parts[1]
@@ -71,14 +71,14 @@ def _read_pos(directory, transformations):
     elif len(fname) > 1:
         warn("    Found multiple pos files. Extra digitizer points not added.")
         return list()
-    logger.info("    Reading digitizer points from %s..." % fname)
+    logger.info(f"    Reading digitizer points from {fname}...")
     if transformations["t_ctf_head_head"] is None:
         warn("    No transformation found. Extra digitizer points not added.")
         return list()
     fname = fname[0]
     digs = list()
     i = 2000
-    with open(fname, "r") as fid:
+    with open(fname) as fid:
         for line in fid:
             line = line.strip()
             if len(line) > 0:

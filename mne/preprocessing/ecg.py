@@ -1,20 +1,17 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Denis Engemann <denis.engemann@gmail.com>
-#          Eric Larson <larson.eric.d@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import numpy as np
 
+from .._fiff.meas_info import create_info
+from .._fiff.pick import _picks_to_idx, pick_channels, pick_types
 from ..annotations import _annotations_starts_stops
-from ..utils import logger, verbose, sum_squared, warn, int_like
-from ..filter import filter_data
-from ..epochs import Epochs, BaseEpochs
-from ..io.base import BaseRaw
+from ..epochs import BaseEpochs, Epochs
 from ..evoked import Evoked
-from ..io import RawArray
-from ..io.meas_info import create_info
-from ..io.pick import _picks_to_idx, pick_types, pick_channels
+from ..filter import filter_data
+from ..io import BaseRaw, RawArray
+from ..utils import int_like, logger, sum_squared, verbose, warn
 
 
 @verbose
@@ -188,8 +185,8 @@ def find_ecg_events(
     %(filter_length_ecg)s
     return_ecg : bool
         Return the ECG data. This is especially useful if no ECG channel
-        is present in the input data, so one will be synthesized. Defaults to
-        ``False``.
+        is present in the input data, so one will be synthesized (only works if MEG
+        channels are present in the data). Defaults to ``False``.
     %(reject_by_annotation_all)s
 
         .. versionadded:: 0.18
@@ -199,8 +196,8 @@ def find_ecg_events(
     -------
     ecg_events : array
         The events corresponding to the peaks of the R waves.
-    ch_ecg : string
-        Name of channel used.
+    ch_ecg : int | None
+        Index of channel used.
     average_pulse : float
         The estimated average pulse. If no ECG events could be found, this will
         be zero.
@@ -217,7 +214,7 @@ def find_ecg_events(
     del reject_by_annotation
     idx_ecg = _get_ecg_channel_index(ch_name, raw)
     if idx_ecg is not None:
-        logger.info("Using channel %s to identify heart beats." % raw.ch_names[idx_ecg])
+        logger.info(f"Using channel {raw.ch_names[idx_ecg]} to identify heart beats.")
         ecg = raw.get_data(picks=idx_ecg)
     else:
         ecg, _ = _make_ecg(raw, start=None, stop=None)
@@ -288,8 +285,8 @@ def find_ecg_events(
     duration_min = duration_sec / 60.0
     average_pulse = n_events / duration_min
     logger.info(
-        "Number of ECG events detected : %d (average pulse %d / "
-        "min.)" % (n_events, average_pulse)
+        f"Number of ECG events detected : {n_events} "
+        f"(average pulse {average_pulse} / min.)"
     )
 
     ecg_events = np.array(
@@ -299,6 +296,7 @@ def find_ecg_events(
             event_id * np.ones(n_events, int),
         ]
     ).T
+
     out = (ecg_events, idx_ecg, average_pulse)
     ecg = ecg[np.newaxis]  # backward compat output 2D
     if return_ecg:
@@ -322,18 +320,15 @@ def _get_ecg_channel_index(ch_name, inst):
         )
     else:
         if ch_name not in inst.ch_names:
-            raise ValueError("%s not in channel list (%s)" % (ch_name, inst.ch_names))
+            raise ValueError(f"{ch_name} not in channel list ({inst.ch_names})")
         ecg_idx = pick_channels(inst.ch_names, include=[ch_name])
 
     if len(ecg_idx) == 0:
         return None
-        # raise RuntimeError('No ECG channel found. Please specify ch_name '
-        #                    'parameter e.g. MEG 1531')
 
     if len(ecg_idx) > 1:
         warn(
-            "More than one ECG channel found. Using only %s."
-            % inst.ch_names[ecg_idx[0]]
+            f"More than one ECG channel found. Using only {inst.ch_names[ecg_idx[0]]}."
         )
 
     return ecg_idx[0]
@@ -489,7 +484,9 @@ def create_ecg_epochs(
 def _make_ecg(inst, start, stop, reject_by_annotation=False, verbose=None):
     """Create ECG signal from cross channel average."""
     if not any(c in inst for c in ["mag", "grad"]):
-        raise ValueError("Unable to generate artificial ECG channel")
+        raise ValueError(
+            "Generating an artificial ECG channel can only be done for MEG data."
+        )
     for ch in ["mag", "grad"]:
         if ch in inst:
             break
@@ -531,7 +528,7 @@ def _make_ecg(inst, start, stop, reject_by_annotation=False, verbose=None):
             picks,
             return_times=True,
             **kwargs,
-            reject_by_annotation=reject_by_annotation
+            reject_by_annotation=reject_by_annotation,
         )
     elif isinstance(inst, BaseEpochs):
         ecg = np.hstack(inst.copy().get_data(picks, **kwargs))

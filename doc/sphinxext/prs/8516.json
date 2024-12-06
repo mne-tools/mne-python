@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "e82aee041d55fc0f18dd18a94939646be3fcca7f",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "examples/io/plot_objects_from_arrays.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/_figure.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/viz/epochs.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/viz/tests/test_epochs.py": {
+      "a": 16,
+      "d": 2
+    },
+    "tutorials/evoked/plot_whitened.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

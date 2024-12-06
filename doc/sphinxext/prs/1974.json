@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "d6ed0e35b4d85926ef155c1c830baba31d3fa7c6",
+  "authors": [
+    {
+      "n": "manoj kumar",
+      "e": "mechcoder@google.com"
+    }
+  ],
+  "changes": {
+    "mne/epochs.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

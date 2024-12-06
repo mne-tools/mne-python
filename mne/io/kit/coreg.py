@@ -1,10 +1,9 @@
 """Coordinate Point Extractor for KIT system."""
 
-# Author: Teon Brooks <teon.brooks@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
-import pickle
 import re
 from collections import OrderedDict
 from os import SEEK_CUR, PathLike
@@ -12,16 +11,21 @@ from pathlib import Path
 
 import numpy as np
 
-from .constants import KIT, FIFF
-from .._digitization import _make_dig_points
+from ..._fiff._digitization import _make_dig_points
+from ...channels.montage import (
+    _check_dig_shape,
+    read_custom_montage,
+    read_dig_polhemus_isotrak,
+    read_polhemus_fastscan,
+)
 from ...transforms import (
     Transform,
+    als_ras_trans,
     apply_trans,
     get_ras_to_neuromag_trans,
-    als_ras_trans,
 )
-from ...utils import warn, _check_option, _check_fname
-
+from ...utils import _check_fname, _check_option, warn
+from .constants import FIFF, KIT
 
 INT32 = "<i4"
 FLOAT64 = "<f8"
@@ -34,7 +38,7 @@ def read_mrk(fname):
     ----------
     fname : path-like
         Absolute path to Marker file.
-        File formats allowed: \*.sqd, \*.mrk, \*.txt, \*.pickled.
+        File formats allowed: \*.sqd, \*.mrk, \*.txt.
 
     Returns
     -------
@@ -43,9 +47,8 @@ def read_mrk(fname):
     """
     from .kit import _read_dirs
 
-    fname = Path(fname)
-    _check_option("file extension", fname.suffix, (".sqd", ".mrk", ".txt", ".pickled"))
-    _check_fname(fname, "read", must_exist=True, name="mrk file")
+    fname = Path(_check_fname(fname, "read", must_exist=True, name="mrk file"))
+    _check_option("file extension", fname.suffix, (".sqd", ".mrk", ".txt"))
     if fname.suffix in (".sqd", ".mrk"):
         with open(fname, "rb", buffering=0) as fid:
             dirs = _read_dirs(fid)
@@ -61,21 +64,14 @@ def read_mrk(fname):
                 if meg_done:
                     pts.append(meg_pts)
             mrk_points = np.array(pts)
-    elif fname.suffix == ".txt":
+    else:
+        assert fname.suffix == ".txt"
         mrk_points = _read_dig_kit(fname, unit="m")
-    elif fname.suffix == ".pickled":
-        with open(fname, "rb") as fid:
-            food = pickle.load(fid)
-        try:
-            mrk_points = food["mrk"]
-        except Exception:
-            err = "%r does not contain marker points." % fname
-            raise ValueError(err)
 
     # check output
     mrk_points = np.asarray(mrk_points)
     if mrk_points.shape != (5, 3):
-        err = "%r is no marker file, shape is " "%s" % (fname, mrk_points.shape)
+        err = f"{repr(fname)} is no marker file, shape is {mrk_points.shape}"
         raise ValueError(err)
     return mrk_points
 
@@ -103,7 +99,7 @@ def read_sns(fname):
     return locs
 
 
-def _set_dig_kit(mrk, elp, hsp, eeg):
+def _set_dig_kit(mrk, elp, hsp, eeg, *, bad_coils=()):
     """Add landmark points and head shape data to the KIT instance.
 
     Digitizer data (elp and hsp) are represented in [mm] in the Polhemus
@@ -122,6 +118,9 @@ def _set_dig_kit(mrk, elp, hsp, eeg):
         Digitizer head shape points, or path to head shape file. If more
         than 10`000 points are in the head shape, they are automatically
         decimated.
+    bad_coils : list
+        Indices of bad marker coils (up to two). Bad coils will be excluded
+        when computing the device-head transformation.
     eeg : dict
         Ordered dict of EEG dig points.
 
@@ -134,37 +133,40 @@ def _set_dig_kit(mrk, elp, hsp, eeg):
     hpi_results : list
         The hpi results.
     """
-    from ...coreg import fit_matched_points, _decimate_points
+    from ...coreg import _decimate_points, fit_matched_points
 
-    if isinstance(hsp, (str, Path, PathLike)):
+    if isinstance(hsp, str | Path | PathLike):
         hsp = _read_dig_kit(hsp)
     n_pts = len(hsp)
     if n_pts > KIT.DIG_POINTS:
         hsp = _decimate_points(hsp, res=0.005)
         n_new = len(hsp)
         warn(
-            "The selected head shape contained {n_in} points, which is "
-            "more than recommended ({n_rec}), and was automatically "
-            "downsampled to {n_new} points. The preferred way to "
-            "downsample is using FastScan.".format(
-                n_in=n_pts, n_rec=KIT.DIG_POINTS, n_new=n_new
-            )
+            f"The selected head shape contained {n_pts} points, which is more than "
+            f"recommended ({KIT.DIG_POINTS}), and was automatically downsampled to "
+            f"{n_new} points. The preferred way to downsample is using FastScan."
         )
 
-    if isinstance(elp, (str, Path, PathLike)):
+    if isinstance(elp, str | Path | PathLike):
         elp_points = _read_dig_kit(elp)
         if len(elp_points) != 8:
             raise ValueError(
-                "File %r should contain 8 points; got shape "
-                "%s." % (elp, elp_points.shape)
+                f"File {repr(elp)} should contain 8 points; got shape "
+                f"{elp_points.shape}."
             )
         elp = elp_points
-    elif len(elp) not in (6, 7, 8):
-        raise ValueError(
-            "ELP should contain 6 ~ 8 points; got shape " "%s." % (elp.shape,)
-        )
-    if isinstance(mrk, (str, Path, PathLike)):
+        if len(bad_coils) > 0:
+            elp = np.delete(elp, np.array(bad_coils) + 3, 0)
+    # check we have at least 3 marker coils (whether read from file or
+    # passed in directly)
+    if len(elp) not in (6, 7, 8):
+        raise ValueError(f"ELP should contain 6 ~ 8 points; got shape {elp.shape}.")
+    if isinstance(mrk, str | Path | PathLike):
         mrk = read_mrk(mrk)
+        if len(bad_coils) > 0:
+            mrk = np.delete(mrk, bad_coils, 0)
+    if len(mrk) not in (3, 4, 5):
+        raise ValueError(f"MRK should contain 3 ~ 5 points; got shape {mrk.shape}.")
 
     mrk = apply_trans(als_ras_trans, mrk)
 
@@ -203,13 +205,6 @@ def _set_dig_kit(mrk, elp, hsp, eeg):
 
 def _read_dig_kit(fname, unit="auto"):
     # Read dig points from a file and return ndarray, using FastSCAN for .txt
-    from ...channels.montage import (
-        read_polhemus_fastscan,
-        read_dig_polhemus_isotrak,
-        read_custom_montage,
-        _check_dig_shape,
-    )
-
     fname = _check_fname(fname, "read", must_exist=True, name="hsp or elp file")
     assert unit in ("auto", "m", "mm")
     _check_option("file extension", fname.suffix, (".hsp", ".elp", ".mat", ".txt"))

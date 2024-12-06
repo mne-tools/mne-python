@@ -1,52 +1,52 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
-#          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
-#          Denis Engemann <denis.engemann@gmail.com>
-#          Teon Brooks <teon.brooks@gmail.com>
-#          Marijn van Vliet <w.m.vanvliet@gmail.com>
-#          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
-#          Clemens Brunner <clemens.brunner@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
-from contextlib import nullcontext
-from copy import deepcopy
-from datetime import timedelta
 import os
-import os.path as op
 import shutil
 from collections import defaultdict
+from contextlib import nullcontext
+from copy import deepcopy
+from dataclasses import dataclass, field
+from datetime import timedelta
+from inspect import getfullargspec
+from pathlib import Path
 
 import numpy as np
 
-from .constants import FIFF
-from .utils import _construct_bids_filename, _check_orig_units
-from .pick import pick_types, pick_channels, pick_info, _picks_to_idx, channel_type
-from .meas_info import write_meas_info, _ensure_infos_match, ContainsMixin
-from .proj import setup_proj, activate_proj, _proj_equal, ProjMixin
-from ..channels.channels import (
-    UpdateChannelsMixin,
+from .._fiff.compensator import make_compensator, set_current_comp
+from .._fiff.constants import FIFF
+from .._fiff.meas_info import (
+    ContainsMixin,
     SetChannelsMixin,
-    InterpolationMixin,
+    _ensure_infos_match,
     _unit2human,
+    write_meas_info,
 )
-from .compensator import set_current_comp, make_compensator
-from .write import (
+from .._fiff.pick import (
+    _picks_to_idx,
+    channel_type,
+    pick_channels,
+    pick_info,
+    pick_types,
+)
+from .._fiff.proj import ProjMixin, _proj_equal, activate_proj, setup_proj
+from .._fiff.utils import _check_orig_units, _make_split_fnames
+from .._fiff.write import (
+    _NEXT_FILE_BUFFER,
+    _get_split_size,
+    end_block,
     start_and_end_file,
     start_block,
-    end_block,
-    write_dau_pack16,
-    write_float,
-    write_double,
     write_complex64,
     write_complex128,
-    write_int,
+    write_dau_pack16,
+    write_double,
+    write_float,
     write_id,
+    write_int,
     write_string,
-    _get_split_size,
-    _NEXT_FILE_BUFFER,
 )
-
 from ..annotations import (
     Annotations,
     _annotations_starts_stops,
@@ -55,48 +55,53 @@ from ..annotations import (
     _sync_onset,
     _write_annotations,
 )
+from ..channels.channels import InterpolationMixin, ReferenceMixin, UpdateChannelsMixin
+from ..defaults import _handle_default
+from ..event import concatenate_events, find_events
 from ..filter import (
     FilterMixin,
-    notch_filter,
-    resample,
+    _check_fun,
+    _check_resamp_noop,
     _resamp_ratio_len,
     _resample_stim_channels,
-    _check_fun,
+    notch_filter,
+    resample,
 )
+from ..html_templates import _get_html_template
 from ..parallel import parallel_func
-from ..utils import (
-    _check_fname,
-    _check_pandas_installed,
-    sizeof_fmt,
-    _check_pandas_index_arguments,
-    fill_doc,
-    copy_doc,
-    check_fname,
-    _get_stim_channel,
-    _stamp_to_dt,
-    logger,
-    verbose,
-    _time_mask,
-    warn,
-    SizeMixin,
-    copy_function_doc_to_method_doc,
-    _validate_type,
-    _check_preload,
-    _get_argvalues,
-    _check_option,
-    _build_data_frame,
-    _convert_times,
-    _scale_dataframe_data,
-    _check_time_format,
-    _arange_div,
-    TimeMixin,
-    repr_html,
-    _pl,
-)
-from ..defaults import _handle_default
-from ..viz import plot_raw, _RAW_CLIP_DEF
-from ..event import find_events, concatenate_events
 from ..time_frequency.spectrum import Spectrum, SpectrumMixin, _validate_method
+from ..time_frequency.tfr import RawTFR
+from ..utils import (
+    SizeMixin,
+    TimeMixin,
+    _arange_div,
+    _build_data_frame,
+    _check_fname,
+    _check_option,
+    _check_pandas_index_arguments,
+    _check_pandas_installed,
+    _check_preload,
+    _check_time_format,
+    _convert_times,
+    _file_like,
+    _get_argvalues,
+    _get_stim_channel,
+    _pl,
+    _scale_dataframe_data,
+    _stamp_to_dt,
+    _time_mask,
+    _validate_type,
+    check_fname,
+    copy_doc,
+    copy_function_doc_to_method_doc,
+    fill_doc,
+    logger,
+    repr_html,
+    sizeof_fmt,
+    verbose,
+    warn,
+)
+from ..viz import _RAW_CLIP_DEF, plot_raw
 
 
 @fill_doc
@@ -104,6 +109,7 @@ class BaseRaw(
     ProjMixin,
     ContainsMixin,
     UpdateChannelsMixin,
+    ReferenceMixin,
     SetChannelsMixin,
     InterpolationMixin,
     TimeMixin,
@@ -131,7 +137,7 @@ class BaseRaw(
         Iterable of the last sample number from each raw file. For unsplit raw
         files this should be a length-one list or tuple. If None, then preload
         must be an ndarray.
-    filenames : tuple
+    filenames : tuple | None
         Tuple of length one (for unsplit raw files) or length > 1 (for split
         raw files).
     raw_extras : list of dict
@@ -170,6 +176,14 @@ class BaseRaw(
           (only needed for types that support on-demand disk reads)
     """
 
+    # NOTE: If you add a new attribute to this class and get a Sphinx warning like:
+    #     docstring of mne.io.base.BaseRaw:71:
+    #     WARNING: py:obj reference target not found: duration [ref.obj]
+    # You need to add the attribute to doc/conf.py nitpick_ignore_regex. You should also
+    # consider adding it to the Attributes list for Raw in mne/io/fiff/raw.py.
+
+    _extra_attributes = ()
+
     @verbose
     def __init__(
         self,
@@ -177,7 +191,7 @@ class BaseRaw(
         preload=False,
         first_samps=(0,),
         last_samps=None,
-        filenames=(None,),
+        filenames=None,
         raw_extras=(None,),
         orig_format="double",
         dtype=np.float64,
@@ -185,13 +199,13 @@ class BaseRaw(
         orig_units=None,
         *,
         verbose=None,
-    ):  # noqa: D102
+    ):
         # wait until the end to preload data, but triage here
         if isinstance(preload, np.ndarray):
             # some functions (e.g., filtering) only work w/64-bit data
             if preload.dtype not in (np.float64, np.complex128):
                 raise RuntimeError(
-                    "datatype must be float64 or complex128, " "not %s" % preload.dtype
+                    f"datatype must be float64 or complex128, not {preload.dtype}"
                 )
             if preload.dtype != dtype:
                 raise ValueError("preload and dtype must match")
@@ -203,7 +217,7 @@ class BaseRaw(
         else:
             if last_samps is None:
                 raise ValueError(
-                    "last_samps must be given unless preload is " "an ndarray"
+                    "last_samps must be given unless preload is an ndarray"
                 )
             if not preload:
                 self.preload = False
@@ -225,9 +239,11 @@ class BaseRaw(
         bad = np.where(cals == 0)[0]
         if len(bad) > 0:
             raise ValueError(
-                "Bad cals for channels %s" % {ii: self.ch_names[ii] for ii in bad}
+                f"Bad cals for channels {dict((ii, self.ch_names[ii]) for ii in bad)}"
             )
         self._cals = cals
+        if raw_extras is None:
+            raw_extras = [None] * len(first_samps)
         self._raw_extras = list(dict() if r is None else r for r in raw_extras)
         for r in self._raw_extras:
             r["orig_nchan"] = info["nchan"]
@@ -236,9 +252,11 @@ class BaseRaw(
         # reader or MNE-C converted CTF->FIF files)
         self._read_comp_grade = self.compensation_grade  # read property
         if self._read_comp_grade is not None and len(info["comps"]):
-            logger.info("Current compensation grade : %d" % self._read_comp_grade)
+            logger.info("Current compensation grade : %d", self._read_comp_grade)
         self._comp = None
-        self._filenames = list(filenames)
+        if filenames is None:
+            filenames = [None] * len(first_samps)
+        self.filenames = list(filenames)
         _validate_type(orig_format, str, "orig_format")
         _check_option("orig_format", orig_format, ("double", "single", "int", "short"))
         self.orig_format = orig_format
@@ -247,8 +265,7 @@ class BaseRaw(
         if orig_units:
             if not isinstance(orig_units, dict):
                 raise ValueError(
-                    "orig_units must be of type dict, but got "
-                    " {}".format(type(orig_units))
+                    f"orig_units must be of type dict, but got {type(orig_units)}"
                 )
 
             # original units need to be truncated to 15 chars or renamed
@@ -264,7 +281,7 @@ class BaseRaw(
             # STI 014 channel is native only to fif ... for all other formats
             # this was artificially added by the IO procedure, so remove it
             ch_names = list(info["ch_names"])
-            if ("STI 014" in ch_names) and not (self.filenames[0].endswith(".fif")):
+            if "STI 014" in ch_names and self.filenames[0].suffix != ".fif":
                 ch_names.remove("STI 014")
 
             # Each channel in the data must have a corresponding channel in
@@ -273,15 +290,13 @@ class BaseRaw(
             if not all(ch_correspond):
                 ch_without_orig_unit = ch_names[ch_correspond.index(False)]
                 raise ValueError(
-                    "Channel {} has no associated original "
-                    "unit.".format(ch_without_orig_unit)
+                    f"Channel {ch_without_orig_unit} has no associated original unit."
                 )
 
             # Final check of orig_units, editing a unit if it is not a valid
             # unit
             orig_units = _check_orig_units(orig_units)
         self._orig_units = orig_units or dict()  # always a dict
-        self._projectors = list()
         self._projector = None
         self._dtype_ = dtype
         self.set_annotations(None)
@@ -319,14 +334,14 @@ class BaseRaw(
         if current_comp != grade:
             if self.proj:
                 raise RuntimeError(
-                    "Cannot change compensation on data where "
-                    "projectors have been applied"
+                    "Cannot change compensation on data where projectors have been "
+                    "applied."
                 )
             # Figure out what operator to use (varies depending on preload)
             from_comp = current_comp if self.preload else self._read_comp_grade
             comp = make_compensator(self.info, from_comp, grade)
             logger.info(
-                "Compensator constructed to change %d -> %d" % (current_comp, grade)
+                "Compensator constructed to change %d -> %d", current_comp, grade
             )
             set_current_comp(self.info, grade)
             # We might need to apply it to our data now
@@ -397,8 +412,8 @@ class BaseRaw(
         if isinstance(data_buffer, np.ndarray):
             if data_buffer.shape != data_shape:
                 raise ValueError(
-                    "data_buffer has incorrect shape: %s != %s"
-                    % (data_buffer.shape, data_shape)
+                    f"data_buffer has incorrect shape: "
+                    f"{data_buffer.shape} != {data_shape}"
                 )
             data = data_buffer
         else:
@@ -478,7 +493,7 @@ class BaseRaw(
         ``preload=False``. Any implementation should only make use of:
 
         - self._raw_extras[fi]
-        - self._filenames[fi]
+        - self.filenames[fi]
 
         So be sure to store any information necessary for reading raw data
         in self._raw_extras[fi]. Things like ``info`` can be decoupled
@@ -577,11 +592,11 @@ class BaseRaw(
     def _preload_data(self, preload):
         """Actually preload the data."""
         data_buffer = preload
-        if isinstance(preload, (bool, np.bool_)) and not preload:
+        if isinstance(preload, bool | np.bool_) and not preload:
             data_buffer = None
+        t = self.times
         logger.info(
-            "Reading %d ... %d  =  %9.3f ... %9.3f secs..."
-            % (0, len(self.times) - 1, 0.0, self.times[-1])
+            f"Reading 0 ... {len(t) - 1}  =  {0.0:9.3f} ... {t[-1]:9.3f} secs..."
         )
         self._data = self._read_segment(data_buffer=data_buffer)
         assert len(self._data) == self.info["nchan"]
@@ -642,8 +657,7 @@ class BaseRaw(
             delta = 0
         elif self.info["meas_date"] is None:
             raise ValueError(
-                'origin must be None when info["meas_date"] '
-                "is None, got %s" % (origin,)
+                f'origin must be None when info["meas_date"] is None, got {origin}'
             )
         else:
             first_samp_in_abs_time = self.info["meas_date"] + timedelta(
@@ -652,7 +666,7 @@ class BaseRaw(
             delta = (origin - first_samp_in_abs_time).total_seconds()
         times = np.atleast_1d(times) + delta
 
-        return super(BaseRaw, self).time_as_index(times, use_rounding)
+        return super().time_as_index(times, use_rounding)
 
     @property
     def _raw_lengths(self):
@@ -666,9 +680,28 @@ class BaseRaw(
         return self._annotations
 
     @property
-    def filenames(self):
-        """The filenames used."""
+    def filenames(self) -> tuple[Path | None, ...]:
+        """The filenames used.
+
+        :type: :class:`tuple` of :class:`pathlib.Path` | ``None``
+        """
         return tuple(self._filenames)
+
+    @filenames.setter
+    def filenames(self, value):
+        """The filenames used, cast to list of paths."""  # noqa: D401
+        _validate_type(value, (list, tuple), "filenames")
+        if isinstance(value, tuple):
+            value = list(value)
+        for k, elt in enumerate(value):
+            if elt is not None:
+                value[k] = _check_fname(elt, overwrite="read", must_exist=False)
+                if not value[k].exists():
+                    # check existence separately from _check_fname since some
+                    # fileformats use directories instead of files and '_check_fname'
+                    # does not handle it correctly.
+                    raise FileNotFoundError(f"File {value[k]} not found.")
+        self._filenames = list(value)
 
     @verbose
     def set_annotations(
@@ -701,15 +734,12 @@ class BaseRaw(
 
             if meas_date is None and annotations.orig_time is not None:
                 raise RuntimeError(
-                    "Ambiguous operation. Setting an Annotation"
-                    " object with known ``orig_time`` to a raw"
-                    " object which has ``meas_date`` set to"
-                    " None is ambiguous. Please, either set a"
-                    " meaningful ``meas_date`` to the raw"
-                    " object; or set ``orig_time`` to None in"
-                    " which case the annotation onsets would be"
-                    " taken in reference to the first sample of"
-                    " the raw object."
+                    "Ambiguous operation. Setting an Annotation object with known "
+                    "``orig_time`` to a raw object which has ``meas_date`` set to None "
+                    "is ambiguous. Please, either set a meaningful ``meas_date`` to "
+                    "the raw object; or set ``orig_time`` to None in which case the "
+                    "annotation onsets would be taken in reference to the first sample "
+                    "of the raw object."
                 )
 
             delta = 1.0 / self.info["sfreq"]
@@ -764,7 +794,7 @@ class BaseRaw(
 
         if len(item) != 2:  # should be channels and time instants
             raise RuntimeError(
-                "Unable to access raw data (need both channels " "and time)"
+                "Unable to access raw data (need both channels and time)"
             )
 
         sel = _picks_to_idx(self.info, item[0])
@@ -777,17 +807,20 @@ class BaseRaw(
             # Let's do automated type conversion to integer here
             if np.array(item[1]).dtype.kind == "i":
                 item1 = int(item1)
-            if isinstance(item1, (int, np.integer)):
+            if isinstance(item1, int | np.integer):
                 start, stop, step = item1, item1 + 1, 1
+                # Need to special case -1, because -1:0 will be empty
+                if start == -1:
+                    stop = None
             else:
                 raise ValueError("Must pass int or slice to __getitem__")
 
         if start is None:
             start = 0
         if step is not None and step != 1:
-            raise ValueError("step needs to be 1 : %d given" % step)
+            raise ValueError(f"step needs to be 1 : {step} given")
 
-        if isinstance(sel, (int, np.integer)):
+        if isinstance(sel, int | np.integer):
             sel = np.array([sel])
 
         if sel is not None and len(sel) == 0:
@@ -1069,19 +1102,50 @@ class BaseRaw(
         if dtype is not None and dtype != self._data.dtype:
             self._data = self._data.astype(dtype)
 
+        args = getfullargspec(fun).args + getfullargspec(fun).kwonlyargs
+        if channel_wise is False:
+            if ("ch_idx" in args) or ("ch_name" in args):
+                raise ValueError(
+                    "apply_function cannot access ch_idx or ch_name "
+                    "when channel_wise=False"
+                )
+        if "ch_idx" in args:
+            logger.info("apply_function requested to access ch_idx")
+        if "ch_name" in args:
+            logger.info("apply_function requested to access ch_name")
+
         if channel_wise:
             parallel, p_fun, n_jobs = parallel_func(_check_fun, n_jobs)
             if n_jobs == 1:
                 # modify data inplace to save memory
-                for idx in picks:
-                    self._data[idx, :] = _check_fun(fun, data_in[idx, :], **kwargs)
+                for ch_idx in picks:
+                    if "ch_idx" in args:
+                        kwargs.update(ch_idx=ch_idx)
+                    if "ch_name" in args:
+                        kwargs.update(ch_name=self.info["ch_names"][ch_idx])
+                    self._data[ch_idx, :] = _check_fun(
+                        fun, data_in[ch_idx, :], **kwargs
+                    )
             else:
                 # use parallel function
                 data_picks_new = parallel(
-                    p_fun(fun, data_in[p], **kwargs) for p in picks
+                    p_fun(
+                        fun,
+                        data_in[ch_idx],
+                        **kwargs,
+                        **{
+                            k: v
+                            for k, v in [
+                                ("ch_name", self.info["ch_names"][ch_idx]),
+                                ("ch_idx", ch_idx),
+                            ]
+                            if k in args
+                        },
+                    )
+                    for ch_idx in picks
                 )
-                for pp, p in enumerate(picks):
-                    self._data[p, :] = data_picks_new[pp]
+                for run_idx, ch_idx in enumerate(picks):
+                    self._data[ch_idx, :] = data_picks_new[run_idx]
         else:
             self._data[picks, :] = _check_fun(fun, data_in[picks, :], **kwargs)
 
@@ -1106,7 +1170,7 @@ class BaseRaw(
         skip_by_annotation=("edge", "bad_acq_skip"),
         pad="reflect_limited",
         verbose=None,
-    ):  # noqa: D102
+    ):
         return super().filter(
             l_freq,
             h_freq,
@@ -1162,7 +1226,7 @@ class BaseRaw(
             If None, ``freqs / 200`` is used.
         trans_bandwidth : float
             Width of the transition band in Hz.
-            Only used for ``method='fir'``.
+            Only used for ``method='fir'`` and ``method='iir'``.
         %(n_jobs_fir)s
         %(method_fir)s
         %(iir_params)s
@@ -1213,7 +1277,7 @@ class BaseRaw(
         _check_preload(self, "raw.notch_filter")
         onsets, ends = _annotations_starts_stops(self, skip_by_annotation, invert=True)
         logger.info(
-            "Filtering raw data in %d contiguous segment%s" % (len(onsets), _pl(onsets))
+            "Filtering raw data in %d contiguous segment%s", len(onsets), _pl(onsets)
         )
         for si, (start, stop) in enumerate(zip(onsets, ends)):
             notch_filter(
@@ -1241,12 +1305,14 @@ class BaseRaw(
     def resample(
         self,
         sfreq,
+        *,
         npad="auto",
-        window="boxcar",
+        window="auto",
         stim_picks=None,
         n_jobs=None,
         events=None,
-        pad="reflect_limited",
+        pad="auto",
+        method="fft",
         verbose=None,
     ):
         """Resample all channels.
@@ -1275,7 +1341,7 @@ class BaseRaw(
         ----------
         sfreq : float
             New sample rate to use.
-        %(npad)s
+        %(npad_resample)s
         %(window_resample)s
         stim_picks : list of int | None
             Stim channels. These channels are simply subsampled or
@@ -1288,10 +1354,12 @@ class BaseRaw(
             An optional event matrix. When specified, the onsets of the events
             are resampled jointly with the data. NB: The input events are not
             modified, but a new array is returned with the raw instead.
-        %(pad)s
-            The default is ``'reflect_limited'``.
+        %(pad_resample_auto)s
 
             .. versionadded:: 0.15
+        %(method_resample)s
+
+            .. versionadded:: 1.7
         %(verbose)s
 
         Returns
@@ -1316,8 +1384,6 @@ class BaseRaw(
         ``self.load_data()``, but this increases memory requirements. The
         resulting raw object will have the data loaded into memory.
         """
-        from ..filter import _check_resamp_noop
-
         sfreq = float(sfreq)
         o_sfreq = float(self.info["sfreq"])
         if _check_resamp_noop(sfreq, o_sfreq):
@@ -1347,7 +1413,13 @@ class BaseRaw(
             )
 
         kwargs = dict(
-            up=sfreq, down=o_sfreq, npad=npad, window=window, n_jobs=n_jobs, pad=pad
+            up=sfreq,
+            down=o_sfreq,
+            npad=npad,
+            window=window,
+            n_jobs=n_jobs,
+            pad=pad,
+            method=method,
         )
         ratio, n_news = zip(
             *(
@@ -1458,13 +1530,13 @@ class BaseRaw(
             tmax = max_time
 
         if tmin > tmax:
-            raise ValueError("tmin (%s) must be less than tmax (%s)" % (tmin, tmax))
+            raise ValueError(f"tmin ({tmin}) must be less than tmax ({tmax})")
         if tmin < 0.0:
-            raise ValueError("tmin (%s) must be >= 0" % (tmin,))
+            raise ValueError(f"tmin ({tmin}) must be >= 0")
         elif tmax - int(not include_tmax) / self.info["sfreq"] > max_time:
             raise ValueError(
-                "tmax (%s) must be less than or equal to the max "
-                "time (%0.4f s)" % (tmax, max_time)
+                f"tmax ({tmax}) must be less than or equal to the max "
+                f"time ({max_time:0.4f} s)"
             )
 
         smin, smax = np.where(
@@ -1493,7 +1565,7 @@ class BaseRaw(
         self._read_picks = [self._read_picks[ri] for ri in keepers]
         assert all(len(r) == len(self._read_picks[0]) for r in self._read_picks)
         self._raw_extras = [self._raw_extras[ri] for ri in keepers]
-        self._filenames = [self._filenames[ri] for ri in keepers]
+        self.filenames = [self.filenames[ri] for ri in keepers]
         if self.preload:
             # slice and copy to avoid the reference to large array
             self._data = self._data[:, smin : smax + 1].copy()
@@ -1612,6 +1684,12 @@ class BaseRaw(
             .. versionadded:: 0.17
         %(verbose)s
 
+        Returns
+        -------
+        fnames : List of path-like
+            List of path-like objects containing the path to each file split.
+            .. versionadded:: 1.9
+
         Notes
         -----
         If Raw is a concatenation of several raw files, **be warned** that
@@ -1636,42 +1714,37 @@ class BaseRaw(
         endings_err = (".fif", ".fif.gz")
 
         # convert to str, check for overwrite a few lines later
-        fname = str(_check_fname(fname, overwrite=True, verbose="error"))
+        fname = _check_fname(
+            fname,
+            overwrite=True,
+            verbose="error",
+            check_bids_split=True,
+            name="fname",
+        )
         check_fname(fname, "raw", endings, endings_err=endings_err)
 
         split_size = _get_split_size(split_size)
-        if not self.preload and fname in self._filenames:
+        if not self.preload and fname in self.filenames:
             raise ValueError(
-                "You cannot save data to the same file."
-                " Please use a different filename."
+                "You cannot save data to the same file. Please use a different "
+                "filename."
             )
 
         if self.preload:
             if np.iscomplexobj(self._data):
                 warn(
-                    "Saving raw file with complex data. Loading with "
-                    "command-line MNE tools will not work."
+                    "Saving raw file with complex data. Loading with command-line MNE "
+                    "tools will not work."
                 )
-
-        type_dict = dict(
-            short=FIFF.FIFFT_DAU_PACK16,
-            int=FIFF.FIFFT_INT,
-            single=FIFF.FIFFT_FLOAT,
-            double=FIFF.FIFFT_DOUBLE,
-        )
-        _check_option("fmt", fmt, type_dict.keys())
-        reset_dict = dict(short=False, int=False, single=True, double=True)
-        reset_range = reset_dict[fmt]
-        data_type = type_dict[fmt]
 
         data_test = self[0, 0][0]
         if fmt == "short" and np.iscomplexobj(data_test):
             raise ValueError(
-                'Complex data must be saved as "single" or ' '"double", not "short"'
+                'Complex data must be saved as "single" or "double", not "short"'
             )
 
         # check for file existence and expand `~` if present
-        fname = str(_check_fname(fname=fname, overwrite=overwrite, verbose="error"))
+        fname = _check_fname(fname=fname, overwrite=overwrite, verbose="error")
 
         if proj:
             info = deepcopy(self.info)
@@ -1692,25 +1765,11 @@ class BaseRaw(
         # write the raw file
         _validate_type(split_naming, str, "split_naming")
         _check_option("split_naming", split_naming, ("neuromag", "bids"))
-        _write_raw(
-            fname,
-            self,
-            info,
-            picks,
-            fmt,
-            data_type,
-            reset_range,
-            start,
-            stop,
-            buffer_size,
-            projector,
-            drop_small_buffer,
-            split_size,
-            split_naming,
-            0,
-            None,
-            overwrite,
-        )
+
+        cfg = _RawFidWriterCfg(buffer_size, split_size, drop_small_buffer, fmt)
+        raw_fid_writer = _RawFidWriter(self, info, picks, projector, start, stop, cfg)
+        filenames = _write_raw(raw_fid_writer, fname, split_naming, overwrite)
+        return filenames
 
     @verbose
     def export(
@@ -1770,9 +1829,7 @@ class BaseRaw(
             stop = self.time_as_index(float(tmax), use_rounding=True)[0] + 1
         stop = min(stop, self.last_samp - self.first_samp + 1)
         if stop <= start or stop <= 0:
-            raise ValueError(
-                "tmin (%s) and tmax (%s) yielded no samples" % (tmin, tmax)
-            )
+            raise ValueError(f"tmin ({tmin}) and tmax ({tmax}) yielded no samples")
         return start, stop
 
     @copy_function_doc_to_method_doc(plot_raw)
@@ -1810,8 +1867,10 @@ class BaseRaw(
         precompute=None,
         use_opengl=None,
         *,
+        picks=None,
         theme=None,
         overview_mode=None,
+        splash=True,
         verbose=None,
     ):
         return plot_raw(
@@ -1847,8 +1906,10 @@ class BaseRaw(
             time_format=time_format,
             precompute=precompute,
             use_opengl=use_opengl,
+            picks=picks,
             theme=theme,
             overview_mode=overview_mode,
+            splash=splash,
             verbose=verbose,
         )
 
@@ -1868,6 +1929,14 @@ class BaseRaw(
     def n_times(self):
         """Number of time points."""
         return self.last_samp - self.first_samp + 1
+
+    @property
+    def duration(self):
+        """Duration of the data in seconds.
+
+        .. versionadded:: 1.9
+        """
+        return self.n_times / self.info["sfreq"]
 
     def __len__(self):
         """Return the number of time points.
@@ -1998,21 +2067,20 @@ class BaseRaw(
         assert annotations.orig_time == self.info["meas_date"]
         edge_samps = list()
         for ri, r in enumerate(raws):
-            n_samples = self.last_samp - self.first_samp + 1
+            edge_samps.append(self.last_samp - self.first_samp + 1)
             annotations = _combine_annotations(
                 annotations,
                 r.annotations,
-                n_samples,
+                edge_samps[-1],
                 self.first_samp,
                 r.first_samp,
                 self.info["sfreq"],
             )
-            edge_samps.append(sum(self._last_samps) - sum(self._first_samps) + (ri + 1))
             self._first_samps = np.r_[self._first_samps, r._first_samps]
             self._last_samps = np.r_[self._last_samps, r._last_samps]
             self._read_picks += r._read_picks
             self._raw_extras += r._raw_extras
-            self._filenames += r._filenames
+            self._filenames += r._filenames  # use the private attribute to use the list
         assert annotations.orig_time == self.info["meas_date"]
         # The above _combine_annotations gets everything synchronized to
         # first_samp. set_annotations (with no absolute time reference) assumes
@@ -2022,14 +2090,17 @@ class BaseRaw(
             annotations.onset -= self.first_samp / self.info["sfreq"]
         self.set_annotations(annotations)
         for edge_samp in edge_samps:
-            onset = _sync_onset(self, (edge_samp) / self.info["sfreq"], True)
+            onset = _sync_onset(self, edge_samp / self.info["sfreq"], True)
+            logger.debug(
+                f"Marking edge at {edge_samp} samples " f"(maps to {onset:0.3f} sec)"
+            )
             self.annotations.append(onset, 0.0, "BAD boundary")
             self.annotations.append(onset, 0.0, "EDGE boundary")
         if not (
             len(self._first_samps)
             == len(self._last_samps)
             == len(self._raw_extras)
-            == len(self._filenames)
+            == len(self.filenames)
             == len(self._read_picks)
         ):
             raise RuntimeError("Append error")  # should never happen
@@ -2038,7 +2109,7 @@ class BaseRaw(
         """Clean up the object.
 
         Does nothing for objects that close their file descriptors.
-        Things like RawFIF will override this method.
+        Things like Raw will override this method.
         """
         pass  # noqa
 
@@ -2054,38 +2125,34 @@ class BaseRaw(
 
     def __repr__(self):  # noqa: D105
         name = self.filenames[0]
-        name = "" if name is None else op.basename(name) + ", "
+        name = "" if name is None else Path(name).name + ", "
         size_str = str(sizeof_fmt(self._size))  # str in case it fails -> None
-        size_str += ", data%s loaded" % ("" if self.preload else " not")
-        s = "%s%s x %s (%0.1f s), ~%s" % (
-            name,
-            len(self.ch_names),
-            self.n_times,
-            self.times[-1],
-            size_str,
+        size_str += f", data{'' if self.preload else ' not'} loaded"
+        s = (
+            f"{name}{len(self.ch_names)} x {self.n_times} "
+            f"({self.duration:0.1f} s), ~{size_str}"
         )
-        return "<%s | %s>" % (self.__class__.__name__, s)
+        return f"<{self.__class__.__name__} | {s}>"
 
     @repr_html
-    def _repr_html_(self, caption=None):
-        from ..html_templates import repr_templates_env
+    def _repr_html_(self):
+        basenames = [f.name for f in self.filenames if f is not None]
 
-        basenames = [os.path.basename(f) for f in self._filenames if f is not None]
+        duration = self._get_duration_string()
 
-        # https://stackoverflow.com/a/10981895
-        duration = timedelta(seconds=self.times[-1])
-        hours, remainder = divmod(duration.seconds, 3600)
-        minutes, seconds = divmod(remainder, 60)
-        seconds += duration.microseconds / 1e6
-        seconds = np.ceil(seconds)  # always take full seconds
-
-        duration = f"{int(hours):02d}:{int(minutes):02d}:{int(seconds):02d}"
-        raw_template = repr_templates_env.get_template("raw.html.jinja")
+        raw_template = _get_html_template("repr", "raw.html.jinja")
         return raw_template.render(
-            info_repr=self.info._repr_html_(caption=caption),
+            inst=self,
             filenames=basenames,
             duration=duration,
         )
+
+    def _get_duration_string(self):
+        # https://stackoverflow.com/a/10981895
+        duration = np.ceil(self.duration)  # always take full seconds
+        hours, remainder = divmod(duration, 3600)
+        minutes, seconds = divmod(remainder, 60)
+        return f"{hours:02.0f}:{minutes:02.0f}:{seconds:02.0f}"
 
     def add_events(self, events, stim_channel=None, replace=False):
         """Add events to stim channel.
@@ -2117,13 +2184,13 @@ class BaseRaw(
         stim_channel = _get_stim_channel(stim_channel, self.info)
         pick = pick_channels(self.ch_names, stim_channel, ordered=False)
         if len(pick) == 0:
-            raise ValueError("Channel %s not found" % stim_channel)
+            raise ValueError(f"Channel {stim_channel} not found")
         pick = pick[0]
         idx = events[:, 0].astype(int)
         if np.any(idx < self.first_samp) or np.any(idx > self.last_samp):
             raise ValueError(
-                "event sample numbers must be between %s and %s"
-                % (self.first_samp, self.last_samp)
+                f"event sample numbers must be between {self.first_samp} "
+                f"and {self.last_samp}"
             )
         if not all(idx == events[:, 0]):
             raise ValueError("event sample numbers must be integers")
@@ -2147,7 +2214,9 @@ class BaseRaw(
         tmin=None,
         tmax=None,
         picks=None,
+        exclude=(),
         proj=False,
+        remove_dc=True,
         reject_by_annotation=True,
         *,
         n_jobs=1,
@@ -2159,11 +2228,15 @@ class BaseRaw(
         Parameters
         ----------
         %(method_psd)s
-            Default is ``'welch'``.
+            Note that ``"multitaper"`` cannot be used if ``reject_by_annotation=True``
+            and there are ``"bad_*"`` annotations in the :class:`~mne.io.Raw` data;
+            in such cases use ``"welch"``. Default is ``'welch'``.
         %(fmin_fmax_psd)s
         %(tmin_tmax_psd)s
         %(picks_good_data_noref)s
+        %(exclude_psd)s
         %(proj_psd)s
+        %(remove_dc)s
         %(reject_by_annotation_psd)s
         %(n_jobs)s
         %(verbose)s
@@ -2193,8 +2266,73 @@ class BaseRaw(
             tmin=tmin,
             tmax=tmax,
             picks=picks,
+            exclude=exclude,
+            proj=proj,
+            remove_dc=remove_dc,
+            reject_by_annotation=reject_by_annotation,
+            n_jobs=n_jobs,
+            verbose=verbose,
+            **method_kw,
+        )
+
+    @verbose
+    def compute_tfr(
+        self,
+        method,
+        freqs,
+        *,
+        tmin=None,
+        tmax=None,
+        picks=None,
+        proj=False,
+        output="power",
+        reject_by_annotation=True,
+        decim=1,
+        n_jobs=None,
+        verbose=None,
+        **method_kw,
+    ):
+        """Compute a time-frequency representation of sensor data.
+
+        Parameters
+        ----------
+        %(method_tfr)s
+        %(freqs_tfr)s
+        %(tmin_tmax_psd)s
+        %(picks_good_data_noref)s
+        %(proj_psd)s
+        %(output_compute_tfr)s
+        %(reject_by_annotation_tfr)s
+        %(decim_tfr)s
+        %(n_jobs)s
+        %(verbose)s
+        %(method_kw_tfr)s
+
+        Returns
+        -------
+        tfr : instance of RawTFR
+            The time-frequency-resolved power estimates of the data.
+
+        Notes
+        -----
+        .. versionadded:: 1.7
+
+        References
+        ----------
+        .. footbibliography::
+        """
+        _check_option("output", output, ("power", "phase", "complex"))
+        method_kw["output"] = output
+        return RawTFR(
+            self,
+            method=method,
+            freqs=freqs,
+            tmin=tmin,
+            tmax=tmax,
+            picks=picks,
             proj=proj,
             reject_by_annotation=reject_by_annotation,
+            decim=decim,
             n_jobs=n_jobs,
             verbose=verbose,
             **method_kw,
@@ -2262,7 +2400,9 @@ class BaseRaw(
         data = _scale_dataframe_data(self, data, picks, scalings)
         # prepare extra columns / multiindex
         mindex = list()
-        times = _convert_times(self, times, time_format)
+        times = _convert_times(
+            times, time_format, self.info["meas_date"], self.first_time
+        )
         mindex.append(("time", times))
         # build DataFrame
         df = _build_data_frame(
@@ -2289,8 +2429,6 @@ class BaseRaw(
             If data_frame=False, returns None. If data_frame=True, returns
             results in a pandas.DataFrame (requires pandas).
         """
-        from scipy.stats import scoreatpercentile as q
-
         nchan = self.info["nchan"]
 
         # describe each channel
@@ -2302,9 +2440,9 @@ class BaseRaw(
             cols["type"].append(channel_type(self.info, i))
             cols["unit"].append(_unit2human[ch["unit"]])
             cols["min"].append(np.min(data))
-            cols["Q1"].append(q(data, 25))
+            cols["Q1"].append(np.percentile(data, 25))
             cols["median"].append(np.median(data))
-            cols["Q3"].append(q(data, 75))
+            cols["Q3"].append(np.percentile(data, 75))
             cols["max"].append(np.max(data))
 
         if data_frame:  # return data frame
@@ -2369,26 +2507,6 @@ def _allocate_data(preload, shape, dtype):
     return data
 
 
-def _index_as_time(index, sfreq, first_samp=0, use_first_samp=False):
-    """Convert indices to time.
-
-    Parameters
-    ----------
-    index : list-like | int
-        List of ints or int representing points in time.
-    use_first_samp : boolean
-        If True, the time returned is relative to the session onset, else
-        relative to the recording onset.
-
-    Returns
-    -------
-    times : ndarray
-        Times corresponding to the index supplied.
-    """
-    times = np.atleast_1d(index) + (first_samp if use_first_samp else 0)
-    return times / sfreq
-
-
 def _convert_slice(sel):
     if len(sel) and (np.diff(sel) == 1).all():
         return slice(sel[0], sel[-1] + 1)
@@ -2410,7 +2528,7 @@ def _get_ch_factors(inst, units, picks_idxs):
     Returns
     -------
     ch_factors : ndarray of floats, shape(len(picks),)
-        The sacling factors for each channel, ordered according
+        The scaling factors for each channel, ordered according
         to picks.
 
     """
@@ -2467,7 +2585,7 @@ def _get_scaling(ch_type, target_unit):
     unit_list = target_unit.split("/")
     if ch_type not in si_units.keys():
         raise KeyError(
-            f"{ch_type} is not a channel type that can be scaled " "from units."
+            f"{ch_type} is not a channel type that can be scaled from units."
         )
     si_unit_list = si_units_splitted[ch_type]
     if len(unit_list) != len(si_unit_list):
@@ -2519,17 +2637,20 @@ class _ReadSegmentFileProtector:
             self, data, idx, fi, start, stop, cals, mult
         )
 
+    @property
+    def filenames(self) -> tuple[Path, ...]:
+        return tuple(self._filenames)
+
 
 class _RawShell:
     """Create a temporary raw object."""
 
-    def __init__(self):  # noqa: D102
+    def __init__(self):
         self.first_samp = None
         self.last_samp = None
         self._first_time = None
         self._last_time = None
         self._cals = None
-        self._rawdir = None
         self._projector = None
 
     @property
@@ -2548,104 +2669,67 @@ class _RawShell:
 
 ###############################################################################
 # Writing
-def _write_raw(
-    fname,
-    raw,
-    info,
-    picks,
-    fmt,
-    data_type,
-    reset_range,
-    start,
-    stop,
-    buffer_size,
-    projector,
-    drop_small_buffer,
-    split_size,
-    split_naming,
-    part_idx,
-    prev_fname,
-    overwrite,
-):
+
+# Assume we never hit more than 100 splits, like for epochs
+MAX_N_SPLITS = 100
+
+
+def _write_raw(raw_fid_writer, fpath, split_naming, overwrite):
     """Write raw file with splitting."""
-    # we've done something wrong if we hit this
-    n_times_max = len(raw.times)
-    if start >= stop or stop > n_times_max:
-        raise RuntimeError(
-            "Cannot write raw file with no data: %s -> %s "
-            "(max: %s) requested" % (start, stop, n_times_max)
-        )
-
-    # Expand `~` if present
-    fname = str(_check_fname(fname=fname, overwrite=overwrite))
-
-    base, ext = op.splitext(fname)
-    if part_idx > 0:
-        if split_naming == "neuromag":
-            # insert index in filename
-            use_fname = "%s-%d%s" % (base, part_idx, ext)
+    dir_path = fpath.parent
+    _check_fname(
+        dir_path,
+        overwrite="read",
+        must_exist=True,
+        name="parent directory",
+        need_dir=True,
+    )
+    # We have to create one extra filename here to make the for loop below happy,
+    # but it will raise an error if it actually gets used
+    split_fnames = _make_split_fnames(
+        fpath.name, n_splits=MAX_N_SPLITS + 1, split_naming=split_naming
+    )
+    is_next_split, prev_fname = True, None
+    output_fnames = []
+    for part_idx in range(0, MAX_N_SPLITS):
+        if not is_next_split:
+            break
+        bids_special_behavior = part_idx == 0 and split_naming == "bids"
+        if bids_special_behavior:
+            reserved_fname = dir_path / split_fnames[0]
+            logger.info(f"Reserving possible split file {reserved_fname.name}")
+            _check_fname(reserved_fname, overwrite)
+            reserved_ctx = _ReservedFilename(reserved_fname)
+            use_fpath = fpath
         else:
-            assert split_naming == "bids"
-            use_fname = _construct_bids_filename(base, ext, part_idx + 1)
-            # check for file existence
-            _check_fname(use_fname, overwrite)
-    else:
-        use_fname = fname
-    # reserve our BIDS split fname in case we need to split
-    if split_naming == "bids" and part_idx == 0:
-        # reserve our possible split name
-        reserved_fname = _construct_bids_filename(base, ext, part_idx + 1)
-        logger.info(f"Reserving possible split file {op.basename(reserved_fname)}")
-        _check_fname(reserved_fname, overwrite)
-        ctx = _ReservedFilename(reserved_fname)
-    else:
-        reserved_fname = use_fname
-        ctx = nullcontext()
-    logger.info("Writing %s" % use_fname)
+            reserved_ctx = nullcontext()
+            use_fpath = dir_path / split_fnames[part_idx]
+        next_fname = split_fnames[part_idx + 1]
+        _check_fname(use_fpath, overwrite)
 
-    picks = _picks_to_idx(info, picks, "all", ())
-    with start_and_end_file(use_fname) as fid:
-        cals = _start_writing_raw(
-            fid, info, picks, data_type, reset_range, raw.annotations
-        )
-        with ctx:
-            final_fname = _write_raw_fid(
-                raw,
-                info,
-                picks,
-                fid,
-                cals,
-                part_idx,
-                start,
-                stop,
-                buffer_size,
-                prev_fname,
-                split_size,
-                use_fname,
-                projector,
-                drop_small_buffer,
-                fmt,
-                fname,
-                reserved_fname,
-                data_type,
-                reset_range,
-                split_naming,
-                overwrite=True,  # we've started writing already above
-            )
-    if final_fname != use_fname:
-        assert split_naming == "bids"
-        logger.info(f"Renaming BIDS split file {op.basename(final_fname)}")
-        ctx.remove = False
-        shutil.move(use_fname, final_fname)
-    if part_idx == 0:
-        logger.info("[done]")
-    return final_fname, part_idx
+        logger.info(f"Writing {use_fpath}")
+        with start_and_end_file(use_fpath) as fid, reserved_ctx:
+            is_next_split = raw_fid_writer.write(fid, part_idx, prev_fname, next_fname)
+            logger.info(f"Closing {use_fpath}")
+        if bids_special_behavior and is_next_split:
+            logger.info(f"Renaming BIDS split file {fpath.name}")
+            prev_fname = dir_path / split_fnames[0]
+            shutil.move(use_fpath, prev_fname)
+            output_fnames.append(prev_fname)
+        else:
+            output_fnames.append(use_fpath)
+        prev_fname = use_fpath
+    else:
+        raise RuntimeError(f"Exceeded maximum number of splits ({MAX_N_SPLITS}).")
+
+    logger.info("[done]")
+    return output_fnames
 
 
 class _ReservedFilename:
-    def __init__(self, fname):
+    def __init__(self, fname: Path):
         self.fname = fname
-        assert op.isdir(op.dirname(fname)), fname
+        assert fname.parent.exists(), fname
         with open(fname, "w"):
             pass
         self.remove = True
@@ -2655,32 +2739,108 @@ class _ReservedFilename:
 
     def __exit__(self, exc_type, exc_value, traceback):
         if self.remove:
-            os.remove(self.fname)
+            self.fname.unlink()
 
 
-def _write_raw_fid(
+@dataclass(frozen=True)
+class _RawFidWriterCfg:
+    buffer_size: int
+    split_size: int
+    drop_small_buffer: bool
+    fmt: str
+    reset_range: bool = field(init=False)
+    data_type: int = field(init=False)
+
+    def __post_init__(self):
+        type_dict = dict(
+            short=FIFF.FIFFT_DAU_PACK16,
+            int=FIFF.FIFFT_INT,
+            single=FIFF.FIFFT_FLOAT,
+            double=FIFF.FIFFT_DOUBLE,
+        )
+        _check_option("fmt", self.fmt, type_dict.keys())
+        reset_dict = dict(short=False, int=False, single=True, double=True)
+        object.__setattr__(self, "reset_range", reset_dict[self.fmt])
+        object.__setattr__(self, "data_type", type_dict[self.fmt])
+
+
+class _RawFidWriter:
+    def __init__(self, raw, info, picks, projector, start, stop, cfg):
+        self.raw = raw
+        self.picks = _picks_to_idx(info, picks, "all", ())
+        self.info = pick_info(info, sel=self.picks, copy=True)
+        for k in range(self.info["nchan"]):
+            #   Scan numbers may have been messed up
+            self.info["chs"][k]["scanno"] = k + 1  # scanno starts at 1 in FIF format
+            if cfg.reset_range:
+                self.info["chs"][k]["range"] = 1.0
+        self.projector = projector
+        # self.start is the only mutable attribute in this design!
+        self.start, self.stop = start, stop
+        self.cfg = cfg
+
+    def write(self, fid, part_idx, prev_fname, next_fname):
+        self._check_start_stop_within_bounds()
+        start_block(fid, FIFF.FIFFB_MEAS)
+        _write_raw_metadata(
+            fid,
+            self.info,
+            self.cfg.data_type,
+            self.cfg.reset_range,
+            self.raw.annotations,
+        )
+        self.start = _write_raw_data(
+            self.raw,
+            self.info,
+            self.picks,
+            fid,
+            part_idx,
+            self.start,
+            self.stop,
+            self.cfg.buffer_size,
+            prev_fname,
+            self.cfg.split_size,
+            next_fname,
+            self.projector,
+            self.cfg.drop_small_buffer,
+            self.cfg.fmt,
+        )
+        end_block(fid, FIFF.FIFFB_MEAS)
+        is_next_split = self.start < self.stop
+        return is_next_split
+
+    def _check_start_stop_within_bounds(self):
+        # we've done something wrong if we hit this
+        n_times_max = len(self.raw.times)
+        error_msg = (
+            f"Can't write raw file with no data: {self.start} -> {self.stop} "
+            f"(max: {n_times_max}) requested"
+        )
+        if self.start >= self.stop or self.stop > n_times_max:
+            raise RuntimeError(error_msg)
+
+
+def _write_raw_data(
     raw,
     info,
     picks,
     fid,
-    cals,
     part_idx,
     start,
     stop,
     buffer_size,
     prev_fname,
     split_size,
-    use_fname,
+    next_fname,
     projector,
     drop_small_buffer,
     fmt,
-    fname,
-    reserved_fname,
-    data_type,
-    reset_range,
-    split_naming,
-    overwrite,
 ):
+    # Start the raw data
+    data_kind = "IAS_" if info.get("maxshield", False) else ""
+    data_kind = getattr(FIFF, f"FIFFB_{data_kind}RAW_DATA")
+    start_block(fid, data_kind)
+
     first_samp = raw.first_samp + start
     if first_samp != 0:
         write_int(fid, FIFF.FIFF_FIRST_SAMPLE, first_samp)
@@ -2700,8 +2860,8 @@ def _write_raw_fid(
         raise ValueError(
             'file is larger than "split_size" after writing '
             "measurement information, you must use a larger "
-            "value for split size: %s plus enough bytes for "
-            "the chosen buffer_size" % pos_prev
+            f"value for split size: {pos_prev} plus enough bytes for "
+            "the chosen buffer_size"
         )
 
     # Check to see if this has acquisition skips and, if so, if we can
@@ -2713,7 +2873,7 @@ def _write_raw_fid(
     sk_onsets, sk_ends = _annotations_starts_stops(raw, "bad_acq_skip")
     do_skips = False
     if len(sk_onsets) > 0:
-        if np.in1d(sk_onsets, firsts).all() and np.in1d(sk_ends, lasts).all():
+        if np.isin(sk_onsets, firsts).all() and np.isin(sk_ends, lasts).all():
             do_skips = True
         else:
             if part_idx == 0:
@@ -2722,8 +2882,10 @@ def _write_raw_fid(
                     "output buffer_size, will be written as zeroes."
                 )
 
+    cals = [ch["cal"] * ch["range"] for ch in info["chs"]]
+    # Write the blocks
     n_current_skip = 0
-    final_fname = use_fname
+    new_start = start
     for first, last in zip(firsts, lasts):
         if do_skips:
             if ((first >= sk_onsets) & (last <= sk_ends)).any():
@@ -2745,7 +2907,7 @@ def _write_raw_fid(
             data = np.dot(projector, data)
 
         if drop_small_buffer and (first > start) and (len(times) < buffer_size):
-            logger.info("Skipping data chunk due to small buffer ... " "[done]")
+            logger.info("Skipping data chunk due to small buffer ... [done]")
             break
         logger.debug(f"Writing FIF {first:6d} ... {last:6d} ...")
         _write_raw_buffer(fid, data, cals, fmt)
@@ -2757,19 +2919,15 @@ def _write_raw_fid(
             # This should occur on the first buffer write of the file, so
             # we should mention the space required for the meas info
             raise ValueError(
-                "buffer size (%s) is too large for the given split size (%s) "
-                "by %s bytes after writing info (%s) and leaving enough space "
-                'for end tags (%s): decrease "buffer_size_sec" or increase '
-                '"split_size".'
-                % (
-                    this_buff_size_bytes,
-                    split_size,
-                    overage,
-                    pos_prev,
-                    _NEXT_FILE_BUFFER,
-                )
+                f"buffer size ({this_buff_size_bytes}) is too large for the "
+                f"given split size ({split_size}) "
+                f"by {overage} bytes after writing info ({pos_prev}) and "
+                "leaving enough space "
+                f'for end tags ({_NEXT_FILE_BUFFER}): decrease "buffer_size_sec" '
+                'or increase "split_size".'
             )
 
+        new_start = last
         # Split files if necessary, leave some space for next file info
         # make sure we check to make sure we actually *need* another buffer
         # with the "and" check
@@ -2777,48 +2935,23 @@ def _write_raw_fid(
             pos >= split_size - this_buff_size_bytes - _NEXT_FILE_BUFFER
             and first + buffer_size < stop
         ):
-            final_fname = reserved_fname
-            next_fname, next_idx = _write_raw(
-                fname,
-                raw,
-                info,
-                picks,
-                fmt,
-                data_type,
-                reset_range,
-                first + buffer_size,
-                stop,
-                buffer_size,
-                projector,
-                drop_small_buffer,
-                split_size,
-                split_naming,
-                part_idx + 1,
-                final_fname,
-                overwrite,
-            )
-
             start_block(fid, FIFF.FIFFB_REF)
             write_int(fid, FIFF.FIFF_REF_ROLE, FIFF.FIFFV_ROLE_NEXT_FILE)
-            write_string(fid, FIFF.FIFF_REF_FILE_NAME, op.basename(next_fname))
+            write_string(fid, FIFF.FIFF_REF_FILE_NAME, next_fname.name)
             if info["meas_id"] is not None:
                 write_id(fid, FIFF.FIFF_REF_FILE_ID, info["meas_id"])
-            write_int(fid, FIFF.FIFF_REF_FILE_NUM, next_idx)
+            write_int(fid, FIFF.FIFF_REF_FILE_NUM, part_idx + 1)
             end_block(fid, FIFF.FIFFB_REF)
+
             break
         pos_prev = pos
 
-    logger.info("Closing %s" % use_fname)
-    if info.get("maxshield", False):
-        end_block(fid, FIFF.FIFFB_IAS_RAW_DATA)
-    else:
-        end_block(fid, FIFF.FIFFB_RAW_DATA)
-    end_block(fid, FIFF.FIFFB_MEAS)
-    return final_fname
+    end_block(fid, data_kind)
+    return new_start
 
 
 @fill_doc
-def _start_writing_raw(fid, info, sel, data_type, reset_range, annotations):
+def _write_raw_metadata(fid, info, data_type, reset_range, annotations):
     """Start write raw data in file.
 
     Parameters
@@ -2826,9 +2959,6 @@ def _start_writing_raw(fid, info, sel, data_type, reset_range, annotations):
     fid : file
         The created file.
     %(info_not_none)s
-    sel : array of int | None
-        Indices of channels to include. If None, all channels
-        are included.
     data_type : int
         The data_type in case it is necessary. Should be 4 (FIFFT_FLOAT),
         5 (FIFFT_DOUBLE), 16 (FIFFT_DAU_PACK16), or 3 (FIFFT_INT) for raw data.
@@ -2837,35 +2967,13 @@ def _start_writing_raw(fid, info, sel, data_type, reset_range, annotations):
     annotations : instance of Annotations
         The annotations to write.
 
-    Returns
-    -------
-    fid : file
-        The file descriptor.
-    cals : list
-        calibration factors.
     """
-    #
-    # Measurement info
-    #
-    info = pick_info(info, sel)
-
     #
     # Create the file and save the essentials
     #
-    start_block(fid, FIFF.FIFFB_MEAS)
     write_id(fid, FIFF.FIFF_BLOCK_ID)
     if info["meas_id"] is not None:
         write_id(fid, FIFF.FIFF_PARENT_BLOCK_ID, info["meas_id"])
-
-    cals = []
-    for k in range(info["nchan"]):
-        #
-        #   Scan numbers may have been messed up
-        #
-        info["chs"][k]["scanno"] = k + 1  # scanno starts at 1 in FIF format
-        if reset_range is True:
-            info["chs"][k]["range"] = 1.0
-        cals.append(info["chs"][k]["cal"] * info["chs"][k]["range"])
 
     write_meas_info(fid, info, data_type=data_type, reset_range=reset_range)
 
@@ -2874,16 +2982,6 @@ def _start_writing_raw(fid, info, sel, data_type, reset_range, annotations):
     #
     if len(annotations) > 0:  # don't save empty annot
         _write_annotations(fid, annotations)
-
-    #
-    # Start the raw data
-    #
-    if info.get("maxshield", False):
-        start_block(fid, FIFF.FIFFB_IAS_RAW_DATA)
-    else:
-        start_block(fid, FIFF.FIFFB_RAW_DATA)
-
-    return cals
 
 
 def _write_raw_buffer(fid, buf, cals, fmt):
@@ -2926,7 +3024,7 @@ def _write_raw_buffer(fid, buf, cals, fmt):
             write_function = write_complex128
         else:
             raise ValueError(
-                'only "single" and "double" supported for ' "writing complex data"
+                'only "single" and "double" supported for writing complex data'
             )
 
     buf = buf / np.ravel(cals)[:, None]
@@ -2944,7 +3042,7 @@ def _check_raw_compatibility(raw):
             a, b = raw[ri].info[key], raw[0].info[key]
             if a != b:
                 raise ValueError(
-                    f"raw[{ri}].info[{key}] must match:\n" f"{repr(a)} != {repr(b)}"
+                    f"raw[{ri}].info[{key}] must match:\n{repr(a)} != {repr(b)}"
                 )
         for kind in ("bads", "ch_names"):
             set1 = set(raw[0].info[kind])
@@ -2952,10 +3050,10 @@ def _check_raw_compatibility(raw):
             mismatch = set1.symmetric_difference(set2)
             if mismatch:
                 raise ValueError(
-                    f"raw[{ri}]['info'][{kind}] do not match: " f"{sorted(mismatch)}"
+                    f"raw[{ri}]['info'][{kind}] do not match: {sorted(mismatch)}"
                 )
         if any(raw[ri]._cals != raw[0]._cals):
-            raise ValueError("raw[%d]._cals must match" % ri)
+            raise ValueError(f"raw[{ri}]._cals must match")
         if len(raw[0].info["projs"]) != len(raw[ri].info["projs"]):
             raise ValueError("SSP projectors in raw files must be the same")
         if not all(
@@ -3011,7 +3109,7 @@ def concatenate_raws(
     if events_list is not None:
         if len(events_list) != len(raws):
             raise ValueError(
-                "`raws` and `event_list` are required " "to be of the same length"
+                "`raws` and `event_list` are required to be of the same length"
             )
         first, last = zip(*[(r.first_samp, r.last_samp) for r in raws])
         events = concatenate_events(events_list, first, last)
@@ -3024,25 +3122,44 @@ def concatenate_raws(
 
 
 @fill_doc
-def match_channel_orders(raws, copy=True):
-    """Ensure consistent channel order across raws.
+def match_channel_orders(insts=None, copy=True, *, raws=None):
+    """Ensure consistent channel order across instances (Raw, Epochs, or Evoked).
 
     Parameters
     ----------
-    raws : list
-        List of :class:`~mne.io.Raw` instances to order.
+    insts : list
+        List of :class:`~mne.io.Raw`, :class:`~mne.Epochs`,
+        or :class:`~mne.Evoked` instances to order.
     %(copy_df)s
+    raws : list
+        This parameter is deprecated and will be removed in mne version 1.9.
+        Please use ``insts`` instead.
 
     Returns
     -------
-    list of Raw
-        List of Raws with matched channel orders.
+    list of Raw | list of Epochs | list of Evoked
+        List of instances (Raw, Epochs, or Evoked) with channel orders matched
+        according to the order they had in the first item in the ``insts`` list.
     """
-    raws = deepcopy(raws) if copy else raws
-    ch_order = raws[0].ch_names
-    for raw in raws[1:]:
-        raw.reorder_channels(ch_order)
-    return raws
+    # XXX: remove "raws" parameter and logic below with MNE version 1.9
+    #      and remove default parameter value of insts
+    if raws is not None:
+        warn(
+            "The ``raws`` parameter is deprecated and will be removed in version "
+            "1.9. Use the ``insts`` parameter to suppress this warning.",
+            DeprecationWarning,
+        )
+        insts = raws
+    elif insts is None:
+        # both insts and raws is None
+        raise ValueError(
+            "You need to pass a list of Raw, Epochs, or Evoked to ``insts``."
+        )
+    insts = deepcopy(insts) if copy else insts
+    ch_order = insts[0].ch_names
+    for inst in insts[1:]:
+        inst.reorder_channels(ch_order)
+    return insts
 
 
 def _check_maxshield(allow_maxshield):
@@ -3063,3 +3180,15 @@ def _check_maxshield(allow_maxshield):
             " want to load the data despite this warning."
         )
         raise ValueError(msg)
+
+
+def _get_fname_rep(fname):
+    if not _file_like(fname):
+        out = str(fname)
+    else:
+        out = "file-like"
+        try:
+            out += f' "{fname.name}"'
+        except Exception:
+            pass
+    return out

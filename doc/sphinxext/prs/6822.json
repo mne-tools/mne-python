@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "5a623c7da096017c8fe27e7f357671e19ae5e66d",
+  "authors": [
+    {
+      "n": "Joan Massich",
+      "e": "mailsik@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/_templates/navbar.html": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

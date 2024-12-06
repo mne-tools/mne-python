@@ -14,12 +14,14 @@ formed through merging two labels.
 # Author: Christian Brodbeck <christianbrodbeck@nyu.edu>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 
+import matplotlib.pyplot as plt
+
 import mne
 from mne.datasets import sample
-import matplotlib.pyplot as plt
 
 print(__doc__)
 
@@ -57,8 +59,8 @@ plt.xlim(stc.times[0], stc.times[-1])
 
 # add a legend including center-of-mass mni coordinates to the plot
 labels = [
-    "LH: center of mass = %s" % mni_lh.round(2),
-    "RH: center of mass = %s" % mni_rh.round(2),
+    f"LH: center of mass = {mni_lh.round(2)}",
+    f"RH: center of mass = {mni_rh.round(2)}",
     "Combined LH & RH",
 ]
 plt.figlegend([hl, hr, hb], labels, loc="lower center")

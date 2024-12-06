@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "23de0270b725b1eea298798d9ac927f807831f11",
+  "authors": [
+    {
+      "n": "Martin Luessi",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/source/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/__init__.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/fiff/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/fiff/pick.py": {
+      "a": 14,
+      "d": 75
+    },
+    "mne/fiff/tests/test_pick.py": {
+      "a": 1,
+      "d": 14
+    },
+    "mne/selection.py": {
+      "a": 99,
+      "d": 0
+    },
+    "mne/tests/test_selection.py": {
+      "a": 29,
+      "d": 0
+    }
+  }
+}

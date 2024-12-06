@@ -14,16 +14,18 @@ baseline covariance matrices.
 #          Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 
 import numpy as np
+
 import mne
+from mne.beamformer import apply_dics_csd, apply_lcmv_cov, make_dics, make_lcmv
 from mne.cov import compute_covariance
 from mne.datasets import somato
+from mne.minimum_norm import apply_inverse_cov, make_inverse_operator
 from mne.time_frequency import csd_morlet
-from mne.beamformer import make_dics, apply_dics_csd, make_lcmv, apply_lcmv_cov
-from mne.minimum_norm import make_inverse_operator, apply_inverse_cov
 
 print(__doc__)
 
@@ -32,12 +34,7 @@ print(__doc__)
 data_path = somato.data_path()
 subject = "01"
 task = "somato"
-raw_fname = (
-    data_path
-    / "sub-{}".format(subject)
-    / "meg"
-    / "sub-{}_task-{}_meg.fif".format(subject, task)
-)
+raw_fname = data_path / f"sub-{subject}" / "meg" / f"sub-{subject}_task-{task}_meg.fif"
 
 # crop to 5 minutes to save memory
 raw = mne.io.read_raw_fif(raw_fname).crop(0, 300)
@@ -57,10 +54,7 @@ epochs = mne.Epochs(
 
 # Read forward operator and point to freesurfer subject directory
 fname_fwd = (
-    data_path
-    / "derivatives"
-    / "sub-{}".format(subject)
-    / "sub-{}_task-{}-fwd.fif".format(subject, task)
+    data_path / "derivatives" / f"sub-{subject}" / f"sub-{subject}_task-{task}-fwd.fif"
 )
 subjects_dir = data_path / "derivatives" / "freesurfer" / "subjects"
 
@@ -101,7 +95,6 @@ common_cov = baseline_cov + active_cov
 baseline_cov.plot(epochs.info)
 
 # %%
-
 # Compute some source estimates
 # -----------------------------
 # Here we will use DICS, LCMV beamformer, and dSPM.
@@ -167,6 +160,7 @@ stc_dspm = _gen_mne(active_cov, baseline_cov, common_cov, fwd, epochs.info)
 # ---------------------
 # DICS:
 
+# sphinx_gallery_thumbnail_number = 3
 brain_dics = stc_dics.plot(
     hemi="rh",
     subjects_dir=subjects_dir,

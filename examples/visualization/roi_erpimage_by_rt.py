@@ -9,8 +9,7 @@ This will produce what is sometimes called an event related
 potential / field (ERP/ERF) image.
 
 The EEGLAB example file, which contains an experiment with button press
-responses to simple visual stimuli, is read in and response times are
-calculated.
+responses to simple visual stimuli, is read in and response times are calculated.
 Regions of Interest are determined by the channel types (in 10/20 channel
 notation, even channels are right, odd are left, and 'z' are central). The
 median and the Global Field Power within each channel group is calculated,
@@ -19,12 +18,13 @@ and the trials are plotted, sorting by response time.
 # Authors: Jona Sassenhagen <jona.sassenhagen@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 
 import mne
-from mne.event import define_target_events
 from mne.channels import make_1020_channel_selections
+from mne.event import define_target_events
 
 print(__doc__)
 

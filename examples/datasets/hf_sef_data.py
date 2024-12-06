@@ -10,12 +10,13 @@ This example looks at high-frequency SEF responses.
 # Author: Jussi Nurminen (jnu@iki.fi)
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 
+import os
 
 import mne
-import os
 from mne.datasets import hf_sef
 
 fname_evoked = os.path.join(hf_sef.data_path(), "MEG/subject_b/hf_sef_15min-ave.fif")

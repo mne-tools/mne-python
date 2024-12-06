@@ -1,17 +1,20 @@
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
+
 from pathlib import Path
 
 import numpy as np
-from numpy.testing import assert_almost_equal
 import pytest
-
-from scipy.linalg import svd, pinv
 import scipy.io as sio
+from numpy.testing import assert_almost_equal
+from scipy.linalg import pinv, svd
 
-from mne.io import read_raw_fif
 from mne import pick_types
+from mne.datasets import testing
+from mne.io import read_raw_fif
 from mne.preprocessing.infomax_ import infomax
 from mne.utils import random_permutation
-from mne.datasets import testing
 
 base_dir = Path(__file__).parent / "data"
 testing_path = testing.data_path(download=False)
@@ -76,9 +79,9 @@ def test_mne_python_vs_eeglab():
         Y = generate_data_for_comparing_against_eeglab_infomax(ch_type, random_state)
         N, T = Y.shape
         for method in methods:
-            eeglab_results_file = "eeglab_%s_results_%s_data.mat" % (
-                method,
-                dict(eeg="eeg", mag="meg")[ch_type],
+            eeglab_results_file = (
+                f"eeglab_{method}_results_"
+                f"{dict(eeg='eeg', mag='meg')[ch_type]}_data.mat"
             )
 
             # For comparison against eeglab, make sure the following
@@ -170,9 +173,7 @@ def test_mne_python_vs_eeglab():
             sources = np.dot(unmixing, Y)
             mixing = pinv(unmixing)
 
-            mvar = (
-                np.sum(mixing**2, axis=0) * np.sum(sources**2, axis=1) / (N * T - 1)
-            )
+            mvar = np.sum(mixing**2, axis=0) * np.sum(sources**2, axis=1) / (N * T - 1)
             windex = np.argsort(mvar)[::-1]
 
             unmixing_ordered = unmixing[windex, :]

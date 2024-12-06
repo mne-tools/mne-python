@@ -1,0 +1,51 @@
+{
+  "merge_commit_sha": "d0f8da7d0f53a7c596b78f22d09197637b9230aa",
+  "authors": [
+    {
+      "n": "Jona Sassenhagen",
+      "e": "jona.sassenhagen@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/io/pick.py": {
+      "a": 31,
+      "d": 0
+    },
+    "mne/time_frequency/tests/test_tfr.py": {
+      "a": 44,
+      "d": 1
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 487,
+      "d": 47
+    },
+    "mne/viz/epochs.py": {
+      "a": 6,
+      "d": 5
+    },
+    "mne/viz/evoked.py": {
+      "a": 18,
+      "d": 52
+    },
+    "mne/viz/topo.py": {
+      "a": 8,
+      "d": 3
+    },
+    "mne/viz/topomap.py": {
+      "a": 29,
+      "d": 37
+    },
+    "mne/viz/utils.py": {
+      "a": 70,
+      "d": 0
+    },
+    "tutorials/plot_sensors_time_frequency.py": {
+      "a": 14,
+      "d": 4
+    },
+    "tutorials/plot_visualize_evoked.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,55 @@
+{
+  "merge_commit_sha": "a2b655f4dce5b848137932cfed504297c3b167cc",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 0,
+      "d": 3
+    },
+    "examples/decoding/plot_decoding_time_generalization_conditions.py": {
+      "a": 17,
+      "d": 40
+    },
+    "examples/decoding/plot_decoding_xdawn_transformer.py": {
+      "a": 0,
+      "d": 76
+    },
+    "mne/decoding/__init__.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/decoding/search_light.py": {
+      "a": 10,
+      "d": 10
+    },
+    "mne/decoding/tests/test_search_light.py": {
+      "a": 21,
+      "d": 21
+    },
+    "mne/decoding/transformer.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/tests/test_xdawn.py": {
+      "a": 11,
+      "d": 11
+    },
+    "mne/preprocessing/xdawn.py": {
+      "a": 4,
+      "d": 5
+    },
+    "tutorials/plot_sensors_decoding.py": {
+      "a": 15,
+      "d": 0
+    }
+  }
+}

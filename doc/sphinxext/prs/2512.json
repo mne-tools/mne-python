@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "511a6293a0c9da989f0a039c67edc03be2cf947d",
+  "authors": [
+    {
+      "n": "Denis A. Engemann",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/io/bti/bti.py": {
+      "a": 55,
+      "d": 27
+    },
+    "mne/io/bti/tests/test_bti.py": {
+      "a": 40,
+      "d": 13
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "a6d407da0b263ee098357c15daf0040c463bab98",
+  "authors": [
+    {
+      "n": "Alex Rockhill",
+      "e": "aprockhill@mailbox.org"
+    }
+  ],
+  "changes": {
+    "mne/viz/circle.py": {
+      "a": 37,
+      "d": 33
+    },
+    "tutorials/clinical/20_seeg.py": {
+      "a": 1,
+      "d": 3
+    }
+  }
+}

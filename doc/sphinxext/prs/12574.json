@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "7c0c07a1dfb8229a9fafd81b993b6cc75ce10a27",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "doc/conf.py": {
+      "a": 15,
+      "d": 257
+    },
+    "doc/sphinxext/mne_doc_utils.py": {
+      "a": 245,
+      "d": 0
+    },
+    "pyproject.toml": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

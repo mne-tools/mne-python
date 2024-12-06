@@ -1,25 +1,28 @@
-# Authors: Robert Luke <mail@robertluke.net>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
-import re
-import numpy as np
 import datetime
+import re
 
-from ..base import BaseRaw
-from ..meas_info import create_info, _format_dig_points
-from ..utils import _mult_cal_one
-from ...annotations import Annotations
-from ...utils import logger, verbose, fill_doc, warn, _check_fname, _import_h5py
-from ..constants import FIFF
-from .._digitization import _make_dig_points
-from ...transforms import _frame_to_str, apply_trans
-from ..nirx.nirx import _convert_fnirs_to_head
+import numpy as np
+
+from ..._fiff._digitization import _make_dig_points
+from ..._fiff.constants import FIFF
+from ..._fiff.meas_info import _format_dig_points, create_info
+from ..._fiff.utils import _mult_cal_one
 from ..._freesurfer import get_mni_fiducials
+from ...annotations import Annotations
+from ...transforms import _frame_to_str, apply_trans
+from ...utils import _check_fname, _import_h5py, fill_doc, logger, verbose, warn
+from ..base import BaseRaw
+from ..nirx.nirx import _convert_fnirs_to_head
 
 
 @fill_doc
-def read_raw_snirf(fname, optode_frame="unknown", preload=False, verbose=None):
+def read_raw_snirf(
+    fname, optode_frame="unknown", preload=False, verbose=None
+) -> "RawSNIRF":
     """Reader for a continuous wave SNIRF data.
 
     .. note:: This reader supports the .snirf file type only,
@@ -55,7 +58,7 @@ def read_raw_snirf(fname, optode_frame="unknown", preload=False, verbose=None):
 
 
 def _open(fname):
-    return open(fname, "r", encoding="latin-1")
+    return open(fname, encoding="latin-1")
 
 
 @fill_doc
@@ -87,7 +90,7 @@ class RawSNIRF(BaseRaw):
         h5py = _import_h5py()
 
         fname = str(_check_fname(fname, "read", True, "fname"))
-        logger.info("Loading %s" % fname)
+        logger.info(f"Loading {fname}")
 
         with h5py.File(fname, "r") as dat:
             if "data2" in dat["nirs"]:
@@ -102,7 +105,7 @@ class RawSNIRF(BaseRaw):
                 optode_frame = "head"
 
             snirf_data_type = np.array(
-                dat.get("nirs/data1/measurementList1" "/dataType")
+                dat.get("nirs/data1/measurementList1/dataType")
             ).item()
             if snirf_data_type not in [1, 99999]:
                 # 1 = Continuous Wave
@@ -164,7 +167,7 @@ class RawSNIRF(BaseRaw):
                         for c in channels
                     ]
                 )
-                sources = [f"S{int(s)}" for s in sources]
+                sources = {int(s): f"S{int(s)}" for s in sources}
 
             if "detectorLabels_disabled" in dat["nirs/probe"]:
                 # This is disabled as
@@ -181,7 +184,7 @@ class RawSNIRF(BaseRaw):
                         for c in channels
                     ]
                 )
-                detectors = [f"D{int(d)}" for d in detectors]
+                detectors = {int(d): f"D{int(d)}" for d in detectors}
 
             # Extract source and detector locations
             # 3D positions are optional in SNIRF,
@@ -220,9 +223,6 @@ class RawSNIRF(BaseRaw):
                     "location information"
                 )
 
-            assert len(sources) == srcPos3D.shape[0]
-            assert len(detectors) == detPos3D.shape[0]
-
             chnames = []
             ch_types = []
             for chan in channels:
@@ -244,9 +244,9 @@ class RawSNIRF(BaseRaw):
                         )[0]
                     )
                     ch_name = (
-                        sources[src_idx - 1]
+                        sources[src_idx]
                         + "_"
-                        + detectors[det_idx - 1]
+                        + detectors[det_idx]
                         + " "
                         + str(fnirs_wavelengths[wve_idx - 1])
                     )
@@ -261,7 +261,7 @@ class RawSNIRF(BaseRaw):
                     # Convert between SNIRF processed names and MNE type names
                     dt_id = dt_id.lower().replace("dod", "fnirs_od")
 
-                    ch_name = sources[src_idx - 1] + "_" + detectors[det_idx - 1]
+                    ch_name = sources[src_idx] + "_" + detectors[det_idx]
 
                     if dt_id == "fnirs_od":
                         wve_idx = int(
@@ -284,7 +284,8 @@ class RawSNIRF(BaseRaw):
 
             subject_info = {}
             names = np.array(dat.get("nirs/metaDataTags/SubjectID"))
-            subject_info["first_name"] = _correct_shape(names)[0].decode("UTF-8")
+            names = _correct_shape(names)[0].decode("UTF-8")
+            subject_info["his_id"] = names
             # Read non standard (but allowed) custom metadata tags
             if "lastName" in dat.get("nirs/metaDataTags/"):
                 ln = dat.get("/nirs/metaDataTags/lastName")[0].decode("UTF-8")
@@ -292,6 +293,12 @@ class RawSNIRF(BaseRaw):
             if "middleName" in dat.get("nirs/metaDataTags/"):
                 m = dat.get("/nirs/metaDataTags/middleName")[0].decode("UTF-8")
                 subject_info["middle_name"] = m
+            if "firstName" in dat.get("nirs/metaDataTags/"):
+                fn = dat.get("/nirs/metaDataTags/firstName")[0].decode("UTF-8")
+                subject_info["first_name"] = fn
+            else:
+                # MNE < 1.7 used to not write the firstName tag, so pull it from names
+                subject_info["first_name"] = names.split("_")[0]
             if "sex" in dat.get("nirs/metaDataTags/"):
                 s = dat.get("/nirs/metaDataTags/sex")[0].decode("UTF-8")
                 if s in {"M", "Male", "1", "m"}:
@@ -411,15 +418,20 @@ class RawSNIRF(BaseRaw):
                 info["dig"] = dig
 
             str_date = _correct_shape(
-                np.array((dat.get("/nirs/metaDataTags/MeasurementDate")))
+                np.array(dat.get("/nirs/metaDataTags/MeasurementDate"))
             )[0].decode("UTF-8")
             str_time = _correct_shape(
-                np.array((dat.get("/nirs/metaDataTags/MeasurementTime")))
+                np.array(dat.get("/nirs/metaDataTags/MeasurementTime"))
             )[0].decode("UTF-8")
             str_datetime = str_date + str_time
 
             # Several formats have been observed so we try each in turn
-            for dt_code in ["%Y-%m-%d%H:%M:%SZ", "%Y-%m-%d%H:%M:%S"]:
+            for dt_code in [
+                "%Y-%m-%d%H:%M:%SZ",
+                "%Y-%m-%d%H:%M:%S",
+                "%Y-%m-%d%H:%M:%S.%f",
+                "%Y-%m-%d%H:%M:%S.%f%z",
+            ]:
                 try:
                     meas_date = datetime.datetime.strptime(str_datetime, dt_code)
                 except ValueError:
@@ -438,12 +450,12 @@ class RawSNIRF(BaseRaw):
                 info["meas_date"] = meas_date
 
             if "DateOfBirth" in dat.get("nirs/metaDataTags/"):
-                str_birth = np.array((dat.get("/nirs/metaDataTags/" "DateOfBirth")))[
-                    0
-                ].decode()
+                str_birth = (
+                    np.array(dat.get("/nirs/metaDataTags/DateOfBirth")).item().decode()
+                )
                 birth_matched = re.fullmatch(r"(\d+)-(\d+)-(\d+)", str_birth)
                 if birth_matched is not None:
-                    birthday = (
+                    birthday = datetime.date(
                         int(birth_matched.groups()[0]),
                         int(birth_matched.groups()[1]),
                         int(birth_matched.groups()[2]),
@@ -451,7 +463,7 @@ class RawSNIRF(BaseRaw):
                     with info._unlock():
                         info["subject_info"]["birthday"] = birthday
 
-            super(RawSNIRF, self).__init__(
+            super().__init__(
                 info,
                 preload,
                 filenames=[fname],
@@ -466,7 +478,7 @@ class RawSNIRF(BaseRaw):
             for key in dat["nirs"]:
                 if "stim" in key:
                     data = np.atleast_2d(np.array(dat.get("/nirs/" + key + "/data")))
-                    if data.size > 0:
+                    if data.shape[1] >= 3:
                         desc = _correct_shape(
                             np.array(dat.get("/nirs/" + key + "/name"))
                         )[0]
@@ -480,7 +492,7 @@ class RawSNIRF(BaseRaw):
         """Read a segment of data from a file."""
         import h5py
 
-        with h5py.File(self._filenames[0], "r") as dat:
+        with h5py.File(self.filenames[0], "r") as dat:
             one = dat["/nirs/data1/dataTimeSeries"][start:stop].T
 
         _mult_cal_one(data, one, idx, cals, mult)
@@ -521,6 +533,11 @@ def _get_lengthunit_scaling(length_unit):
 
 def _extract_sampling_rate(dat):
     """Extract the sample rate from the time field."""
+    # This is a workaround to provide support for Artinis data.
+    # It allows for a 1% variation in the sampling times relative
+    # to the average sampling rate of the file.
+    MAXIMUM_ALLOWED_SAMPLING_JITTER_PERCENTAGE = 1.0
+
     time_data = np.array(dat.get("nirs/data1/time"))
     sampling_rate = 0
     if len(time_data) == 2:
@@ -528,16 +545,30 @@ def _extract_sampling_rate(dat):
         sampling_rate = 1.0 / (time_data[1] - time_data[0])
     else:
         # specified as time points
-        fs_diff = np.around(np.diff(time_data), decimals=4)
-        if len(np.unique(fs_diff)) == 1:
+        periods = np.diff(time_data)
+        uniq_periods = np.unique(periods.round(decimals=4))
+        if uniq_periods.size == 1:
             # Uniformly sampled data
-            sampling_rate = 1.0 / np.unique(fs_diff).item()
+            sampling_rate = 1.0 / uniq_periods.item()
         else:
-            warn(
-                "MNE does not currently support reading "
-                "SNIRF files with non-uniform sampled data."
+            # Hopefully uniformly sampled data with some precision issues.
+            # This is a workaround to provide support for Artinis data.
+            mean_period = np.mean(periods)
+            sampling_rate = 1.0 / mean_period
+            ideal_times = np.linspace(time_data[0], time_data[-1], time_data.size)
+            max_jitter = np.max(np.abs(time_data - ideal_times))
+            percent_jitter = 100.0 * max_jitter / mean_period
+            msg = (
+                f"Found jitter of {percent_jitter:3f}% in sample times. Sampling "
+                f"rate has been set to {sampling_rate:1f}."
             )
-
+            if percent_jitter > MAXIMUM_ALLOWED_SAMPLING_JITTER_PERCENTAGE:
+                warn(
+                    f"{msg} Note that MNE-Python does not currently support SNIRF "
+                    "files with non-uniformly-sampled data."
+                )
+            else:
+                logger.info(msg)
     time_unit = _get_metadata_str(dat, "TimeUnit")
     time_unit_scaling = _get_timeunit_scaling(time_unit)
     sampling_rate *= time_unit_scaling

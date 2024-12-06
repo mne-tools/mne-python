@@ -1,11 +1,10 @@
 """KIT constants."""
 
-# Authors: Teon Brooks <teon.brooks@gmail.com>
-#          Christian Brodbeck <christianbrodbeck@nyu.edu>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
-from ..constants import FIFF
+from ..._fiff.constants import FIFF
 from ...utils import BunchConst
 
 

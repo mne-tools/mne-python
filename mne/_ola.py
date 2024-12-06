@@ -1,11 +1,11 @@
-# Authors: Eric Larson <larson.eric.d@gmail.com>
-
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import numpy as np
+from scipy.signal import get_window
 
-from .utils import _ensure_int, verbose, logger
-
+from .utils import _ensure_int, logger, verbose
 
 ###############################################################################
 # Class for interpolation between adjacent points
@@ -51,23 +51,21 @@ class _Interp2:
             raise ValueError("Must be at least one control point")
         if not (self.control_points >= 0).all():
             raise ValueError(
-                "All control points must be positive (got %s)"
-                % (self.control_points[:3],)
+                f"All control points must be positive (got {self.control_points[:3]})"
             )
         if isinstance(values, np.ndarray):
             values = [values]
-        if isinstance(values, (list, tuple)):
+        if isinstance(values, list | tuple):
             for v in values:
                 if not (v is None or isinstance(v, np.ndarray)):
                     raise TypeError(
-                        'All entries in "values" must be ndarray '
-                        "or None, got %s" % (type(v),)
+                        'All entries in "values" must be ndarray or None, got '
+                        f"{type(v)}"
                     )
                 if v is not None and v.shape[0] != len(self.control_points):
                     raise ValueError(
-                        "Values, if provided, must be the same "
-                        "length as the number of control points "
-                        "(%s), got %s" % (len(self.control_points), v.shape[0])
+                        "Values, if provided, must be the same length as the number of "
+                        f"control points ({len(self.control_points)}), got {v.shape[0]}"
                     )
             use_values = values
 
@@ -84,9 +82,7 @@ class _Interp2:
         self.name = name
         known_types = ("cos2", "linear", "zero", "hann")
         if interp not in known_types:
-            raise ValueError(
-                'interp must be one of %s, got "%s"' % (known_types, interp)
-            )
+            raise ValueError(f'interp must be one of {known_types}, got "{interp}"')
         self._interp = interp
 
     def feed_generator(self, n_pts):
@@ -220,12 +216,12 @@ class _Interp2:
 def _check_store(store):
     if isinstance(store, np.ndarray):
         store = [store]
-    if isinstance(store, (list, tuple)) and all(
+    if isinstance(store, list | tuple) and all(
         isinstance(s, np.ndarray) for s in store
     ):
         store = _Storer(*store)
     if not callable(store):
-        raise TypeError("store must be callable, got type %s" % (type(store),))
+        raise TypeError(f"store must be callable, got type {type(store)}")
     return store
 
 
@@ -287,27 +283,25 @@ class _COLA:
         name="COLA",
         verbose=None,
     ):
-        from scipy.signal import get_window
-
         n_samples = _ensure_int(n_samples, "n_samples")
         n_overlap = _ensure_int(n_overlap, "n_overlap")
         n_total = _ensure_int(n_total, "n_total")
         if n_samples <= 0:
-            raise ValueError("n_samples must be > 0, got %s" % (n_samples,))
+            raise ValueError(f"n_samples must be > 0, got {n_samples}")
         if n_overlap < 0:
-            raise ValueError("n_overlap must be >= 0, got %s" % (n_overlap,))
+            raise ValueError(f"n_overlap must be >= 0, got {n_overlap}")
         if n_total < 0:
-            raise ValueError("n_total must be >= 0, got %s" % (n_total,))
+            raise ValueError(f"n_total must be >= 0, got {n_total}")
         self._n_samples = int(n_samples)
         self._n_overlap = int(n_overlap)
         del n_samples, n_overlap
         if n_total < self._n_samples:
             raise ValueError(
-                "Number of samples per window (%d) must be at "
-                "most the total number of samples (%s)" % (self._n_samples, n_total)
+                f"Number of samples per window ({self._n_samples}) must be at "
+                f"most the total number of samples ({n_total})"
             )
         if not callable(process):
-            raise TypeError("process must be callable, got type %s" % (type(process),))
+            raise TypeError(f"process must be callable, got type {type(process)}")
         self._process = process
         self._step = self._n_samples - self._n_overlap
         self._store = _check_store(store)
@@ -330,21 +324,14 @@ class _COLA:
         sfreq = float(sfreq)
         pl = "s" if len(self.starts) != 1 else ""
         logger.info(
-            "    Processing %4d data chunk%s of (at least) %0.1f s "
-            "with %0.1f s overlap and %s windowing"
-            % (
-                len(self.starts),
-                pl,
-                self._n_samples / sfreq,
-                self._n_overlap / sfreq,
-                window_name,
-            )
+            f"    Processing {len(self.starts):4d} data chunk{pl} of (at least) "
+            f"{self._n_samples / sfreq:0.1f} s with "
+            f"{self._n_overlap / sfreq:0.1f} s overlap and {window_name} windowing"
         )
         del window, window_name
         if delta > 0:
             logger.info(
-                "    The final %0.3f s will be lumped into the "
-                "final window" % (delta / sfreq,)
+                f"    The final {delta / sfreq} s will be lumped into the final window"
             )
 
     @property
@@ -360,17 +347,13 @@ class _COLA:
             self._in_buffers = [None] * len(datas)
         if len(datas) != len(self._in_buffers):
             raise ValueError(
-                "Got %d array(s), needed %d" % (len(datas), len(self._in_buffers))
+                f"Got {len(datas)} array(s), needed {len(self._in_buffers)}"
             )
         current_offset = 0  # should be updated below
         for di, data in enumerate(datas):
             if not isinstance(data, np.ndarray) or data.ndim < 1:
                 raise TypeError(
-                    "data entry %d must be an 2D ndarray, got %s"
-                    % (
-                        di,
-                        type(data),
-                    )
+                    f"data entry {di} must be an 2D ndarray, got {type(data)}"
                 )
             if self._in_buffers[di] is None:
                 # In practice, users can give large chunks, so we use
@@ -383,14 +366,9 @@ class _COLA:
                 or self._in_buffers[di].dtype != data.dtype
             ):
                 raise TypeError(
-                    "data must dtype %s and shape[:-1]==%s, "
-                    "got dtype %s shape[:-1]=%s"
-                    % (
-                        self._in_buffers[di].dtype,
-                        self._in_buffers[di].shape[:-1],
-                        data.dtype,
-                        data.shape[:-1],
-                    )
+                    f"data must dtype {self._in_buffers[di].dtype} and "
+                    f"shape[:-1]=={self._in_buffers[di].shape[:-1]}, got dtype "
+                    f"{data.dtype} shape[:-1]={data.shape[:-1]}"
                 )
             # This gets updated on first iteration, so store it before it updates
             if di == 0:
@@ -402,9 +380,8 @@ class _COLA:
             self._in_buffers[di] = np.concatenate([self._in_buffers[di], data], -1)
             if self._in_offset > self.stops[-1]:
                 raise ValueError(
-                    "data (shape %s) exceeded expected total "
-                    "buffer size (%s > %s)"
-                    % (data.shape, self._in_offset, self.stops[-1])
+                    f"data (shape {data.shape}) exceeded expected total buffer size ("
+                    f"{self._in_offset} > {self.stops[-1]})"
                 )
         # Check to see if we can process the next chunk and dump outputs
         while self._idx < len(self.starts) and self._in_offset >= self.stops[self._idx]:
@@ -484,7 +461,7 @@ class _Storer:
     def __init__(self, *outs, picks=None):
         for oi, out in enumerate(outs):
             if not isinstance(out, np.ndarray) or out.ndim < 1:
-                raise TypeError("outs[oi] must be >= 1D ndarray, got %s" % (out,))
+                raise TypeError(f"outs[oi] must be >= 1D ndarray, got {out}")
         self.outs = outs
         self.idx = 0
         self.picks = picks

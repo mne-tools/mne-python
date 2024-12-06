@@ -11,16 +11,16 @@ to a brain label.
 # Author: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 
 import mne
 from mne.datasets import sample
-from mne.minimum_norm import apply_inverse_epochs, read_inverse_operator
-from mne.minimum_norm import apply_inverse
+from mne.minimum_norm import apply_inverse, apply_inverse_epochs, read_inverse_operator
 
 print(__doc__)
 

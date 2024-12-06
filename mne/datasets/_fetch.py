@@ -1,31 +1,32 @@
-# Authors: Adam Li <adam2392@gmail.com>
-#
-# License: BSD Style.
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
-import sys
+from __future__ import annotations  # only needed for Python ≤ 3.9
+
 import os
 import os.path as op
+import sys
+import time
 from pathlib import Path
 from shutil import rmtree
-import time
 
 from .. import __version__ as mne_version
-from ..utils import logger, warn, _safe_input
+from ..fixes import _compare_version
+from ..utils import _safe_input, logger, warn
 from .config import (
-    _bst_license_text,
+    MISC_VERSIONED,
     RELEASES,
     TESTING_VERSIONED,
-    MISC_VERSIONED,
+    _bst_license_text,
 )
 from .utils import (
     _dataset_version,
     _do_path_update,
+    _downloader_params,
     _get_path,
     _log_time_size,
-    _downloader_params,
 )
-from ..fixes import _compare_version
-
 
 _FAKE_VERSION = None  # used for monkeypatching while testing versioning
 
@@ -42,7 +43,7 @@ def fetch_dataset(
     accept=False,
     auth=None,
     token=None,
-):
+) -> Path | tuple[Path, str]:
     """Fetch an MNE-compatible dataset using pooch.
 
     Parameters
@@ -56,7 +57,7 @@ def fetch_dataset(
         What to do after downloading the file. ``"unzip"`` and ``"untar"`` will
         decompress the downloaded file in place; for custom extraction (e.g.,
         only extracting certain files from the archive) pass an instance of
-        :class:`pooch.Unzip` or :class:`pooch.Untar`. If ``None`` (the
+        ``pooch.Unzip`` or ``pooch.Untar``. If ``None`` (the
         default), the files are left as-is.
     path : None | str
         Directory in which to put the dataset. If ``None``, the dataset
@@ -87,10 +88,10 @@ def fetch_dataset(
         Default is ``False``.
     auth : tuple | None
         Optional authentication tuple containing the username and
-        password/token, passed to :class:`pooch.HTTPDownloader` (e.g.,
+        password/token, passed to ``pooch.HTTPDownloader`` (e.g.,
         ``auth=('foo', 012345)``).
     token : str | None
-        Optional authentication token passed to :class:`pooch.HTTPDownloader`.
+        Optional authentication token passed to ``pooch.HTTPDownloader``.
 
     Returns
     -------
@@ -219,11 +220,9 @@ def fetch_dataset(
             else:
                 # If they don't have stdin, just accept the license
                 # https://github.com/mne-tools/mne-python/issues/8513#issuecomment-726823724  # noqa: E501
-                answer = _safe_input("%sAgree (y/[n])? " % _bst_license_text, use="y")
+                answer = _safe_input(f"{_bst_license_text}Agree (y/[n])? ", use="y")
             if answer.lower() != "y":
-                raise RuntimeError(
-                    "You must agree to the license to use this " "dataset"
-                )
+                raise RuntimeError("You must agree to the license to use this dataset")
     # downloader & processors
     download_params = _downloader_params(auth=auth, token=token)
     if name == "fake":
@@ -297,13 +296,12 @@ def fetch_dataset(
     if check_version and (
         _compare_version(data_version, "<", mne_version.strip(".git"))
     ):
+        # OK to `nosec` because it's false positive (misidentified as SQL)
         warn(
-            "The {name} dataset (version {current}) is older than "
-            "mne-python (version {newest}). If the examples fail, "
-            "you may need to update the {name} dataset by using "
-            "mne.datasets.{name}.data_path(force_update=True)".format(
-                name=name, current=data_version, newest=mne_version
-            )
+            f"The {name} dataset (version {data_version}) is older than "
+            f"mne-python (version {mne_version}). If the examples fail, "
+            f"you may need to update the {name} dataset by using "
+            f"mne.datasets.{name}.data_path(force_update=True)"  # nosec B608
         )
     _log_time_size(t0, sz)
     return (final_path, data_version) if return_version else final_path

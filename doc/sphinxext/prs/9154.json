@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "b1148741a95ac102e250d47c4f965c0df3e62618",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/datasets/spm_faces_dataset.py": {
+      "a": 2,
+      "d": 1
+    },
+    "examples/preprocessing/plot_find_ref_artifacts.py": {
+      "a": 4,
+      "d": 2
+    },
+    "examples/preprocessing/plot_ica_comparison.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/preprocessing/plot_run_ica.py": {
+      "a": 3,
+      "d": 1
+    },
+    "tutorials/preprocessing/plot_40_artifact_correction_ica.py": {
+      "a": 3,
+      "d": 3
+    }
+  }
+}

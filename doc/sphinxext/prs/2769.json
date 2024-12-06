@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "fd2ccb6908ceb806702ccbea77f206260fa129c9",
+  "authors": [
+    {
+      "n": "jaeilepp",
+      "e": "jaeilepp@student.jyu.fi"
+    }
+  ],
+  "changes": {
+    "mne/io/brainvision/brainvision.py": {
+      "a": 5,
+      "d": 17
+    },
+    "mne/io/bti/bti.py": {
+      "a": 23,
+      "d": 12
+    },
+    "mne/io/egi/egi.py": {
+      "a": 6,
+      "d": 15
+    },
+    "mne/io/kit/kit.py": {
+      "a": 42,
+      "d": 36
+    },
+    "mne/io/tests/test_raw.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/io/utils.py": {
+      "a": 8,
+      "d": 4
+    }
+  }
+}

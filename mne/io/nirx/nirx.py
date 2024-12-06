@@ -1,38 +1,41 @@
-# Authors: Robert Luke <mail@robertluke.net>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
-from configparser import ConfigParser, RawConfigParser
-import glob as glob
-import re as re
-import os.path as op
 import datetime as dt
+import glob as glob
 import json
+import os.path as op
+import re as re
+from configparser import ConfigParser, RawConfigParser
 
 import numpy as np
+from scipy.io import loadmat
 
-from ._localized_abbr import _localized_abbr
-from ..base import BaseRaw
-from ..utils import _mult_cal_one
-from ..constants import FIFF
-from ..meas_info import create_info, _format_dig_points
-from ...annotations import Annotations
+from ..._fiff.constants import FIFF
+from ..._fiff.meas_info import _format_dig_points, create_info
+from ..._fiff.utils import _mult_cal_one
 from ..._freesurfer import get_mni_fiducials
-from ...transforms import apply_trans, _get_trans
+from ...annotations import Annotations
+from ...transforms import _get_trans, apply_trans
 from ...utils import (
-    logger,
-    verbose,
-    fill_doc,
-    warn,
     _check_fname,
-    _validate_type,
     _check_option,
     _mask_to_onsets_offsets,
+    _validate_type,
+    fill_doc,
+    logger,
+    verbose,
+    warn,
 )
+from ..base import BaseRaw
+from ._localized_abbr import _localized_abbr
 
 
 @fill_doc
-def read_raw_nirx(fname, saturated="annotate", preload=False, verbose=None):
+def read_raw_nirx(
+    fname, saturated="annotate", *, preload=False, encoding="latin-1", verbose=None
+) -> "RawNIRX":
     """Reader for a NIRX fNIRS recording.
 
     Parameters
@@ -41,6 +44,7 @@ def read_raw_nirx(fname, saturated="annotate", preload=False, verbose=None):
         Path to the NIRX data folder or header file.
     %(saturated)s
     %(preload)s
+    %(encoding_nirx)s
     %(verbose)s
 
     Returns
@@ -57,11 +61,13 @@ def read_raw_nirx(fname, saturated="annotate", preload=False, verbose=None):
     -----
     %(nirx_notes)s
     """
-    return RawNIRX(fname, saturated, preload, verbose)
+    return RawNIRX(
+        fname, saturated, preload=preload, encoding=encoding, verbose=verbose
+    )
 
 
 def _open(fname):
-    return open(fname, "r", encoding="latin-1")
+    return open(fname, encoding="latin-1")
 
 
 @fill_doc
@@ -74,6 +80,7 @@ class RawNIRX(BaseRaw):
         Path to the NIRX data folder or header file.
     %(saturated)s
     %(preload)s
+    %(encoding_nirx)s
     %(verbose)s
 
     See Also
@@ -86,10 +93,8 @@ class RawNIRX(BaseRaw):
     """
 
     @verbose
-    def __init__(self, fname, saturated, preload=False, verbose=None):
-        from scipy.io import loadmat
-
-        logger.info("Loading %s" % fname)
+    def __init__(self, fname, saturated, *, preload=False, encoding=None, verbose=None):
+        logger.info(f"Loading {fname}")
         _validate_type(fname, "path-like", "fname")
         _validate_type(saturated, str, "saturated")
         _check_option("saturated", saturated, ("annotate", "nan", "ignore"))
@@ -99,11 +104,8 @@ class RawNIRX(BaseRaw):
 
         fname = str(_check_fname(fname, "read", True, "fname", need_dir=True))
 
-        json_config = glob.glob("%s/*%s" % (fname, "config.json"))
-        if len(json_config):
-            is_aurora = True
-        else:
-            is_aurora = False
+        json_config = glob.glob(f"{fname}/*{'config.json'}")
+        is_aurora = len(json_config)
 
         if is_aurora:
             # NIRSport2 devices using Aurora software
@@ -128,7 +130,7 @@ class RawNIRX(BaseRaw):
                 "config.txt",
                 "probeInfo.mat",
             )
-            n_dat = len(glob.glob("%s/*%s" % (fname, "dat")))
+            n_dat = len(glob.glob(f"{fname}/*{'dat'}"))
             if n_dat != 1:
                 warn(
                     "A single dat file was expected in the specified path, "
@@ -141,7 +143,7 @@ class RawNIRX(BaseRaw):
         files = dict()
         nan_mask = dict()
         for key in keys:
-            files[key] = glob.glob("%s/*%s" % (fname, key))
+            files[key] = glob.glob(f"{fname}/*{key}")
             fidx = 0
             if len(files[key]) != 1:
                 if key not in ("wl1", "wl2"):
@@ -176,7 +178,7 @@ class RawNIRX(BaseRaw):
         # Read header file
         # The header file isn't compliant with the configparser. So all the
         # text between comments must be removed before passing to parser
-        with _open(files["hdr"]) as f:
+        with open(files["hdr"], encoding=encoding) as f:
             hdr_str_all = f.read()
         hdr_str = re.sub("#.*?#", "", hdr_str_all, flags=re.DOTALL)
         if is_aurora:
@@ -200,7 +202,7 @@ class RawNIRX(BaseRaw):
             if hdr["GeneralInfo"]["NIRStar"] not in ['"15.0"', '"15.2"', '"15.3"']:
                 raise RuntimeError(
                     "MNE does not support this NIRStar version"
-                    " (%s)" % (hdr["GeneralInfo"]["NIRStar"],)
+                    f" ({hdr['GeneralInfo']['NIRStar']})"
                 )
             if (
                 "NIRScout" not in hdr["GeneralInfo"]["Device"]
@@ -208,8 +210,8 @@ class RawNIRX(BaseRaw):
             ):
                 warn(
                     "Only import of data from NIRScout devices have been "
-                    "thoroughly tested. You are using a %s device. "
-                    % hdr["GeneralInfo"]["Device"]
+                    f'thoroughly tested. You are using a {hdr["GeneralInfo"]["Device"]}'
+                    " device."
                 )
 
         # Parse required header fields
@@ -240,6 +242,7 @@ class RawNIRX(BaseRaw):
                 '"%a %d %b %Y""%H:%M:%S.%f"',
                 '"%a, %d %b %Y""%H:%M:%S.%f"',
                 "%Y-%m-%d %H:%M:%S.%f",
+                '"%Y年%m月%d日""%H:%M:%S.%f"',
             ]:
                 try:
                     meas_date = dt.datetime.strptime(loc_datetime_str, dt_code)
@@ -341,7 +344,7 @@ class RawNIRX(BaseRaw):
         else:
             subject_info["sex"] = FIFF.FIFFV_SUBJ_SEX_UNKNOWN
         if inf["age"] != "":
-            subject_info["birthday"] = (
+            subject_info["birthday"] = dt.date(
                 meas_date.year - int(inf["age"]),
                 meas_date.month,
                 meas_date.day,
@@ -474,7 +477,7 @@ class RawNIRX(BaseRaw):
                 annot_mask |= mask
                 nan_mask[key] = None  # shouldn't need again
 
-        super(RawNIRX, self).__init__(
+        super().__init__(
             info,
             preload,
             filenames=[fname],

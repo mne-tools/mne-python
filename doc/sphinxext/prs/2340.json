@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "11af4dcfc9d7a5a00d9b033a9a21c1f93ab29beb",
+  "authors": [
+    {
+      "n": "Teon L Brooks",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/bem.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 4,
+      "d": 2
+    }
+  }
+}

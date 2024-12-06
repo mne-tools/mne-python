@@ -1,0 +1,51 @@
+{
+  "merge_commit_sha": "49fef4e73b95ffd62607f7da0579afe8601f45c9",
+  "authors": [
+    {
+      "n": "jaeilepp",
+      "e": "jaeilepp@student.jyu.fi"
+    }
+  ],
+  "changes": {
+    "mne/channels/channels.py": {
+      "a": 11,
+      "d": 7
+    },
+    "mne/defaults.py": {
+      "a": 9,
+      "d": 8
+    },
+    "mne/epochs.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/evoked.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/constants.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/meas_info.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/pick.py": {
+      "a": 12,
+      "d": 5
+    },
+    "mne/io/tests/test_pick.py": {
+      "a": 11,
+      "d": 0
+    },
+    "mne/viz/evoked.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/raw.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

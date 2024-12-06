@@ -1,12 +1,6 @@
-# Authors: Denis A. Engemann  <denis.engemann@gmail.com>
-#          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
-#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
-#          Yuval Harpaz <yuvharpaz@gmail.com>
-#          Joan Massich <mailsik@gmail.com>
-#          Teon Brooks <teon.brooks@gmail.com>
-#
-#          simplified BSD-3 license
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import functools
 import os.path as op
@@ -15,31 +9,30 @@ from itertools import count
 
 import numpy as np
 
-from ...utils import logger, verbose, _stamp_to_dt, path_like
-from ...transforms import combine_transforms, invert_transform, Transform
-from .._digitization import _make_bti_dig_points
-from ..constants import FIFF
-from .. import BaseRaw, _coil_trans_to_loc, _loc_to_coil_trans, _empty_info
-from ..utils import _mult_cal_one, read_str
+from ..._fiff._digitization import _make_bti_dig_points
+from ..._fiff.constants import FIFF
+from ..._fiff.meas_info import _empty_info
+from ..._fiff.tag import _coil_trans_to_loc, _loc_to_coil_trans
+from ..._fiff.utils import _mult_cal_one, read_str
+from ...transforms import Transform, combine_transforms, invert_transform
+from ...utils import _stamp_to_dt, _validate_type, logger, path_like, verbose
+from ..base import BaseRaw
 from .constants import BTI
 from .read import (
-    read_int32,
-    read_int16,
-    read_float,
-    read_double,
-    read_transform,
     read_char,
+    read_dev_header,
+    read_double,
+    read_double_matrix,
+    read_float,
+    read_float_matrix,
+    read_int16,
+    read_int16_matrix,
+    read_int32,
     read_int64,
+    read_transform,
     read_uint16,
     read_uint32,
-    read_double_matrix,
-    read_float_matrix,
-    read_int16_matrix,
-    read_dev_header,
 )
-
-FIFF_INFO_DIG_FIELDS = ("kind", "ident", "r", "coord_frame")
-FIFF_INFO_DIG_DEFAULTS = (None, None, None, FIFF.FIFFV_COORD_HEAD)
 
 BTI_WH2500_REF_MAG = ("MxA", "MyA", "MzA", "MxaA", "MyaA", "MzaA")
 BTI_WH2500_REF_GRAD = ("GxxA", "GyyA", "GyxA", "GzaA", "GzyA")
@@ -68,13 +61,13 @@ def _instantiate_default_info_chs():
 class _bytes_io_mock_context:
     """Make a context for BytesIO."""
 
-    def __init__(self, target):  # noqa: D102
+    def __init__(self, target):
         self.target = target
 
     def __enter__(self):  # noqa: D105
         return self.target
 
-    def __exit__(self, type, value, tb):  # noqa: D105
+    def __exit__(self, exception_type, value, tb):  # noqa: D105
         pass
 
 
@@ -134,28 +127,28 @@ def _rename_channels(names, ecg_ch="E31", eog_ch=("E63", "E64")):
         List of names, channel names in Neuromag style
     """
     new = list()
-    ref_mag, ref_grad, eog, eeg, ext = [count(1) for _ in range(5)]
+    ref_mag, ref_grad, eog, eeg, ext = (count(1) for _ in range(5))
     for i, name in enumerate(names, 1):
         if name.startswith("A"):
-            name = "MEG %3.3d" % i
+            name = f"MEG {i:03d}"
         elif name == "RESPONSE":
             name = "STI 013"
         elif name == "TRIGGER":
             name = "STI 014"
         elif any(name == k for k in eog_ch):
-            name = "EOG %3.3d" % next(eog)
+            name = f"EOG {next(eog):03d}"
         elif name == ecg_ch:
             name = "ECG 001"
         elif name.startswith("E"):
-            name = "EEG %3.3d" % next(eeg)
+            name = f"EEG {next(eeg):03d}"
         elif name == "UACurrent":
             name = "UTL 001"
         elif name.startswith("M"):
-            name = "RFM %3.3d" % next(ref_mag)
+            name = f"RFM {next(ref_mag):03d}"
         elif name.startswith("G"):
-            name = "RFG %3.3d" % next(ref_grad)
+            name = f"RFG {next(ref_grad):03d}"
         elif name.startswith("X"):
-            name = "EXT %3.3d" % next(ext)
+            name = f"EXT {next(ext):03d}"
 
         new += [name]
 
@@ -172,7 +165,7 @@ def _read_head_shape(fname):
         dig_points = read_double_matrix(fid, _n_dig_points, 3)
 
     # reorder to lpa, rpa, nasion so = is direct.
-    nasion, lpa, rpa = [idx_points[_, :] for _ in [2, 0, 1]]
+    nasion, lpa, rpa = (idx_points[_, :] for _ in [2, 0, 1])
     hpi = idx_points[3 : len(idx_points), :]
 
     return nasion, lpa, rpa, hpi, dig_points
@@ -183,7 +176,7 @@ def _check_nan_dev_head_t(dev_ctf_t):
     has_nan = np.isnan(dev_ctf_t["trans"])
     if np.any(has_nan):
         logger.info(
-            "Missing values BTI dev->head transform. " "Replacing with identity matrix."
+            "Missing values BTI dev->head transform. Replacing with identity matrix."
         )
         dev_ctf_t["trans"] = np.identity(4)
 
@@ -283,14 +276,14 @@ def _read_config(fname):
                 elif kind == BTI.UB_B_COH_POINTS:
                     dta["n_points"] = read_int32(fid)
                     dta["status"] = read_int32(fid)
-                    dta["points"] = []
-                    for pnt in range(16):
-                        d = {
+                    dta["points"] = [
+                        {
                             "pos": read_double_matrix(fid, 1, 3),
                             "direction": read_double_matrix(fid, 1, 3),
                             "error": read_double(fid),
                         }
-                        dta["points"] += [d]
+                        for _ in range(16)
+                    ]
 
                 elif kind == BTI.UB_B_CCP_XFM_BLOCK:
                     dta["method"] = read_int32(fid)
@@ -326,8 +319,8 @@ def _read_config(fname):
 
                     if num_channels is None:
                         raise ValueError(
-                            "Cannot find block %s to determine "
-                            "number of channels" % BTI.UB_B_WHC_CHAN_MAP_VER
+                            f"Cannot find block {BTI.UB_B_WHC_CHAN_MAP_VER} to "
+                            "determine number of channels"
                         )
 
                     dta["channels"] = list()
@@ -351,12 +344,12 @@ def _read_config(fname):
 
                     if num_subsys is None:
                         raise ValueError(
-                            "Cannot find block %s to determine"
-                            " number of subsystems" % BTI.UB_B_WHS_SUBSYS_VER
+                            f"Cannot find block {BTI.UB_B_WHS_SUBSYS_VER} to determine"
+                            " number of subsystems"
                         )
 
                     dta["subsys"] = list()
-                    for sub_key in range(num_subsys):
+                    for _ in range(num_subsys):
                         d = {
                             "subsys_type": read_int16(fid),
                             "subsys_num": read_int16(fid),
@@ -522,9 +515,8 @@ def _read_config(fname):
             n_read = fid.tell() - start_bytes
             if n_read != ub["hdr"]["user_space_size"]:
                 raise RuntimeError(
-                    "Internal MNE reading error, read size %d "
-                    "!= %d expected size for kind %s"
-                    % (n_read, ub["hdr"]["user_space_size"], kind)
+                    f"Internal MNE reading error, read size {n_read} "
+                    f"!= {ub['hdr']['user_space_size']} expected size for kind {kind}."
                 )
             ub.update(dta)  # finally update the userblock data
             _correct_offset(fid)  # after reading.
@@ -569,7 +561,7 @@ def _read_config(fname):
                 fid.seek(4, 1)
                 dev["reserved"] = read_str(fid, 32)
                 dta.update({"dev": dev, "loops": []})
-                for loop in range(dev["total_loops"]):
+                for _ in range(dev["total_loops"]):
                     d = {
                         "position": read_double_matrix(fid, 1, 3),
                         "orientation": read_double_matrix(fid, 1, 3),
@@ -770,82 +762,6 @@ def _read_pfid_ed(fid):
     return out
 
 
-def _read_coil_def(fid):
-    """Read coil definition."""
-    coildef = {
-        "position": read_double_matrix(fid, 1, 3),
-        "orientation": read_double_matrix(fid, 1, 3),
-        "radius": read_double(fid),
-        "wire_radius": read_double(fid),
-        "turns": read_int16(fid),
-    }
-
-    fid.seek(fid, 2, 1)
-    coildef["checksum"] = read_int32(fid)
-    coildef["reserved"] = read_str(fid, 32)
-
-
-def _read_ch_config(fid):
-    """Read BTi channel config."""
-    cfg = {
-        "name": read_str(fid, BTI.FILE_CONF_CH_NAME),
-        "chan_no": read_int16(fid),
-        "ch_type": read_uint16(fid),
-        "sensor_no": read_int16(fid),
-    }
-
-    fid.seek(fid, BTI.FILE_CONF_CH_NEXT, 1)
-
-    cfg.update(
-        {
-            "gain": read_float(fid),
-            "units_per_bit": read_float(fid),
-            "yaxis_label": read_str(fid, BTI.FILE_CONF_CH_YLABEL),
-            "aar_val": read_double(fid),
-            "checksum": read_int32(fid),
-            "reserved": read_str(fid, BTI.FILE_CONF_CH_RESERVED),
-        }
-    )
-
-    _correct_offset(fid)
-
-    # Then the channel info
-    ch_type, chan = cfg["ch_type"], dict()
-    chan["dev"] = {
-        "size": read_int32(fid),
-        "checksum": read_int32(fid),
-        "reserved": read_str(fid, 32),
-    }
-    if ch_type in [BTI.CHTYPE_MEG, BTI.CHTYPE_REF]:
-        chan["loops"] = [_read_coil_def(fid) for d in range(chan["dev"]["total_loops"])]
-
-    elif ch_type == BTI.CHTYPE_EEG:
-        chan["impedance"] = read_float(fid)
-        chan["padding"] = read_str(fid, BTI.FILE_CONF_CH_PADDING)
-        chan["transform"] = read_transform(fid)
-        chan["reserved"] = read_char(fid, BTI.FILE_CONF_CH_RESERVED)
-
-    elif ch_type in [
-        BTI.CHTYPE_TRIGGER,
-        BTI.CHTYPE_EXTERNAL,
-        BTI.CHTYPE_UTILITY,
-        BTI.CHTYPE_DERIVED,
-    ]:
-        chan["user_space_size"] = read_int32(fid)
-        if ch_type == BTI.CHTYPE_TRIGGER:
-            fid.seek(2, 1)
-        chan["reserved"] = read_str(fid, BTI.FILE_CONF_CH_RESERVED)
-
-    elif ch_type == BTI.CHTYPE_SHORTED:
-        chan["reserved"] = read_str(fid, BTI.FILE_CONF_CH_RESERVED)
-
-    cfg["chan"] = chan
-
-    _correct_offset(fid)
-
-    return cfg
-
-
 def _read_bti_header_pdf(pdf_fname):
     """Read header from pdf file."""
     with _bti_open(pdf_fname, "rb") as fid:
@@ -904,26 +820,24 @@ def _read_bti_header_pdf(pdf_fname):
 
         # actual header ends here, so dar seems ok.
 
-        info["epochs"] = [_read_epoch(fid) for epoch in range(info["total_epochs"])]
+        info["epochs"] = [_read_epoch(fid) for _ in range(info["total_epochs"])]
 
-        info["chs"] = [_read_channel(fid) for ch in range(info["total_chans"])]
+        info["chs"] = [_read_channel(fid) for _ in range(info["total_chans"])]
 
-        info["events"] = [_read_event(fid) for event in range(info["total_events"])]
+        info["events"] = [_read_event(fid) for _ in range(info["total_events"])]
 
-        info["processes"] = [
-            _read_process(fid) for process in range(info["total_processes"])
-        ]
+        info["processes"] = [_read_process(fid) for _ in range(info["total_processes"])]
 
         info["assocfiles"] = [
-            _read_assoc_file(fid) for af in range(info["total_associated_files"])
+            _read_assoc_file(fid) for _ in range(info["total_associated_files"])
         ]
 
         info["edclasses"] = [
-            _read_pfid_ed(fid) for ed_class in range(info["total_ed_classes"])
+            _read_pfid_ed(fid) for _ in range(info["total_ed_classes"])
         ]
 
         info["extra_data"] = fid.read(start - fid.tell())
-        info["pdf_fname"] = pdf_fname
+        info["pdf"] = pdf_fname
 
     info["total_slices"] = sum(e["pts_in_epoch"] for e in info["epochs"])
 
@@ -1073,7 +987,8 @@ class RawBTi(BaseRaw):
         eog_ch=("E63", "E64"),
         preload=False,
         verbose=None,
-    ):  # noqa: D102
+    ):
+        _validate_type(pdf_fname, ("path-like", BytesIO), "pdf_fname")
         info, bti_info = _get_bti_info(
             pdf_fname=pdf_fname,
             config_fname=config_fname,
@@ -1086,14 +1001,15 @@ class RawBTi(BaseRaw):
             sort_by_ch_name=sort_by_ch_name,
             eog_ch=eog_ch,
         )
-        self.bti_ch_labels = [c["chan_label"] for c in bti_info["chs"]]
+        bti_info["bti_ch_labels"] = [c["chan_label"] for c in bti_info["chs"]]
         # make Raw repr work if we have a BytesIO as input
-        if isinstance(pdf_fname, BytesIO):
-            pdf_fname = repr(pdf_fname)
-        super(RawBTi, self).__init__(
+        filename = bti_info["pdf"]
+        if isinstance(filename, BytesIO):
+            filename = None
+        super().__init__(
             info,
             preload,
-            filenames=[pdf_fname],
+            filenames=[filename],
             raw_extras=[bti_info],
             last_samps=[bti_info["total_slices"] - 1],
             verbose=verbose,
@@ -1102,7 +1018,7 @@ class RawBTi(BaseRaw):
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a segment of data from a file."""
         bti_info = self._raw_extras[fi]
-        fname = bti_info["pdf_fname"]
+        fname_or_bytes = bti_info["pdf"]
         dtype = bti_info["dtype"]
         assert len(bti_info["chs"]) == self._raw_extras[fi]["orig_nchan"]
         n_channels = len(bti_info["chs"])
@@ -1115,7 +1031,7 @@ class RawBTi(BaseRaw):
         block_size = ((int(100e6) // n_bytes) // n_channels) * n_channels
         block_size = min(data_left, block_size)
         # extract data in chunks
-        with _bti_open(fname, "rb") as fid:
+        with _bti_open(fname_or_bytes, "rb") as fid:
             fid.seek(bti_info["bytes_per_slice"] * start, 0)
             for sample_start in np.arange(0, data_left, block_size) // n_channels:
                 count = min(block_size, data_left - sample_start * n_channels)
@@ -1158,7 +1074,7 @@ def _make_bti_digitization(
 ):
     with info._unlock():
         if head_shape_fname:
-            logger.info("... Reading digitization points from %s" % head_shape_fname)
+            logger.info(f"... Reading digitization points from {head_shape_fname}")
 
             nasion, lpa, rpa, hpi, dig_points = _read_head_shape(head_shape_fname)
             info["dig"], dev_head_t, ctf_head_t = _make_bti_dig_points(
@@ -1211,9 +1127,7 @@ def _get_bti_info(
 
     """
     if pdf_fname is None:
-        logger.info(
-            "No pdf_fname passed, trying to construct partial info " "from config"
-        )
+        logger.info("No pdf_fname passed, trying to construct partial info from config")
     if pdf_fname is not None and not isinstance(pdf_fname, BytesIO):
         if not op.isabs(pdf_fname):
             pdf_fname = op.abspath(pdf_fname)
@@ -1230,9 +1144,9 @@ def _get_bti_info(
                     break
         if not op.isfile(config_fname):
             raise ValueError(
-                "Could not find the config file %s. Please check"
+                f"Could not find the config file {config_fname}. Please check"
                 " whether you are in the right directory "
-                "or pass the full name" % config_fname
+                "or pass the full name"
             )
 
     if head_shape_fname is not None and not isinstance(head_shape_fname, BytesIO):
@@ -1242,16 +1156,23 @@ def _get_bti_info(
 
         if not op.isfile(head_shape_fname):
             raise ValueError(
-                'Could not find the head_shape file "%s". '
+                f'Could not find the head_shape file "{orig_name}". '
                 "You should check whether you are in the "
                 "right directory, pass the full file name, "
-                "or pass head_shape_fname=None." % orig_name
+                "or pass head_shape_fname=None."
             )
 
-    logger.info("Reading 4D PDF file %s..." % pdf_fname)
+    logger.info(f"Reading 4D PDF file {pdf_fname}...")
     bti_info = _read_bti_header(
         pdf_fname, config_fname, sort_by_ch_name=sort_by_ch_name
     )
+    extras = dict(
+        pdf_fname=pdf_fname,
+        head_shape_fname=head_shape_fname,
+        config_fname=config_fname,
+    )
+    for key, val in extras.items():
+        bti_info[key] = None if isinstance(val, BytesIO) else val
 
     dev_ctf_t = Transform(
         "ctf_meg", "ctf_head", _correct_trans(bti_info["bti_transform"][0])
@@ -1326,7 +1247,7 @@ def _get_bti_info(
                 if convert:
                     if idx == 0:
                         logger.info(
-                            "... putting coil transforms in Neuromag " "coordinates"
+                            "... putting coil transforms in Neuromag coordinates"
                         )
                     t = _loc_to_coil_trans(bti_info["chs"][idx]["loc"])
                     t = _convert_coil_trans(t, dev_ctf_t, bti_dev_t)
@@ -1422,7 +1343,7 @@ def read_raw_bti(
     eog_ch=("E63", "E64"),
     preload=False,
     verbose=None,
-):
+) -> RawBTi:
     """Raw object from 4D Neuroimaging MagnesWH3600 data.
 
     .. note::

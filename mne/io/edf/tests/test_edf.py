@@ -1,43 +1,40 @@
-# Authors: Teon Brooks <teon.brooks@gmail.com>
-#          Martin Billinger <martin.billinger@tugraz.at>
-#          Alan Leggitt <alan.leggitt@ucsf.edu>
-#          Alexandre Barachant <alexandre.barachant@gmail.com>
-#          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
-#          Joan Massich <mailsik@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
+import datetime
 from contextlib import nullcontext
 from functools import partial
 from pathlib import Path
 
 import numpy as np
+import pytest
 from numpy.testing import (
+    assert_allclose,
     assert_array_almost_equal,
     assert_array_equal,
     assert_equal,
-    assert_allclose,
 )
 from scipy.io import loadmat
 
-import pytest
-
-from mne import pick_types, Annotations
-from mne.annotations import events_from_annotations, read_annotations
+from mne import Annotations, pick_types
+from mne._fiff.pick import channel_indices_by_type, get_channel_type_constants
+from mne.annotations import _ndarray_ch_names, events_from_annotations, read_annotations
 from mne.datasets import testing
-from mne.utils import requires_pandas
-from mne.io import read_raw_edf, read_raw_bdf, read_raw_fif, edf, read_raw_gdf
-from mne.io.tests.test_raw import _test_raw_reader
+from mne.io import edf, read_raw_bdf, read_raw_edf, read_raw_fif, read_raw_gdf
 from mne.io.edf.edf import (
+    _edf_str,
+    _parse_prefilter_string,
+    _prefilter_float,
     _read_annotations_edf,
     _read_ch,
-    _parse_prefilter_string,
-    _edf_str,
     _read_edf_header,
     _read_header,
+    _set_prefilter,
 )
-from mne.io.pick import channel_indices_by_type, get_channel_type_constants
+from mne.io.tests.test_raw import _test_raw_reader
 from mne.tests.test_annotations import _assert_annotations_equal
+from mne.utils import _record_warnings
 
 td_mark = testing._pytest_mark()
 
@@ -48,8 +45,6 @@ edf_path = data_dir / "test.edf"
 duplicate_channel_labels_path = data_dir / "duplicate_channel_labels.edf"
 edf_uneven_path = data_dir / "test_uneven_samp.edf"
 bdf_eeglab_path = data_dir / "test_bdf_eeglab.mat"
-edf_eeglab_path = data_dir / "test_edf_eeglab.mat"
-edf_uneven_eeglab_path = data_dir / "test_uneven_samp.mat"
 edf_stim_channel_path = data_dir / "test_edf_stim_channel.edf"
 edf_txt_stim_channel_path = data_dir / "test_edf_stim_channel.txt"
 
@@ -97,7 +92,7 @@ def test_orig_units():
 def test_units_params():
     """Test enforcing original channel units."""
     with pytest.raises(
-        ValueError, match=r"Unit for channel .* is present .* cannot " "overwrite it"
+        ValueError, match=r"Unit for channel .* is present .* cannot overwrite it"
     ):
         _ = read_raw_edf(edf_path, units="V", preload=True)
 
@@ -118,19 +113,41 @@ def test_edf_temperature(monkeypatch):
     assert raw.get_channel_types()[0] == "temperature"
 
 
+@testing.requires_testing_data
 def test_subject_info(tmp_path):
     """Test exposure of original channel units."""
-    raw = read_raw_edf(edf_path)
-    assert raw.info["subject_info"] is None  # XXX this is arguably a bug
-    edf_info = raw._raw_extras[0]
-    assert edf_info["subject_info"] is not None
-    want = {"id": "X", "sex": "X", "birthday": "X", "name": "X"}
+    raw = read_raw_edf(edf_stim_resamp_path, preload=True)
+
+    # check subject_info from `info`
+    assert raw.info["subject_info"] is not None
+    want = {
+        "his_id": "X",
+        "sex": 1,
+        "birthday": datetime.date(1967, 10, 9),
+        "last_name": "X",
+    }
     for key, val in want.items():
-        assert edf_info["subject_info"][key] == val, key
+        assert raw.info["subject_info"][key] == val, key
+
+    # add information
+    raw.info["subject_info"]["hand"] = 0
+
+    # save raw to FIF and load it back
     fname = tmp_path / "test_raw.fif"
     raw.save(fname)
     raw = read_raw_fif(fname)
-    assert raw.info["subject_info"] is None  # XXX should eventually round-trip
+
+    # check subject_info from `info`
+    assert raw.info["subject_info"] is not None
+    want = {
+        "his_id": "X",
+        "sex": 1,
+        "birthday": datetime.date(1967, 10, 9),
+        "last_name": "X",
+        "hand": 0,
+    }
+    for key, val in want.items():
+        assert raw.info["subject_info"][key] == val
 
 
 def test_bdf_data():
@@ -193,8 +210,53 @@ def test_bdf_crop_save_stim_channel(tmp_path):
 def test_edf_others(fname, stim_channel):
     """Test EDF with various sampling rates and overlapping annotations."""
     _test_raw_reader(
-        read_raw_edf, input_fname=fname, stim_channel=stim_channel, verbose="error"
+        read_raw_edf,
+        input_fname=fname,
+        stim_channel=stim_channel,
+        verbose="error",
+        test_preloading=False,
+        preload=True,  # no preload=False for mixed sfreqs
     )
+
+
+@testing.requires_testing_data
+@pytest.mark.parametrize("stim_channel", (None, False, "auto"))
+def test_edf_different_sfreqs(stim_channel):
+    """Test EDF with various sampling rates."""
+    rng = np.random.RandomState(0)
+    # load with and without preloading, should produce the same results
+    raw1 = read_raw_edf(
+        input_fname=edf_reduced,
+        stim_channel=stim_channel,
+        verbose="error",
+        preload=False,
+    )
+    raw2 = read_raw_edf(
+        input_fname=edf_reduced,
+        stim_channel=stim_channel,
+        verbose="error",
+        preload=True,
+    )
+
+    picks = rng.permutation(np.arange(len(raw1.ch_names) - 1))[:10]
+    data1, times1 = raw1[picks, :]
+    data2, times2 = raw2[picks, :]
+    assert_allclose(data1, data2, err_msg="Data mismatch with preload")
+    assert_allclose(times1, times2)
+
+    # loading slices should throw a warning as they have different
+    # edge artifacts than when loading the entire file at once
+    with pytest.warns(RuntimeWarning, match="mixed sampling frequencies"):
+        data1, times1 = raw1[picks, :512]
+    data2, times2 = raw2[picks, :512]
+
+    # should NOT throw a warning when loading channels that have all the same
+    # sampling frequency - here, no edge artifacts can appear
+    picks = np.arange(15, 20)  # these channels all have 512 Hz
+    data1, times1 = raw1[picks, :512]
+    data2, times2 = raw2[picks, :512]
+    assert_allclose(data1, data2, err_msg="Data mismatch with preload")
+    assert_allclose(times1, times2)
 
 
 def test_edf_data_broken(tmp_path):
@@ -277,19 +339,19 @@ def test_parse_annotation(tmp_path):
 
     want_onset, want_duration, want_description = zip(
         *[
-            [180.0, 0.0, "Lights off"],
-            [180.0, 0.0, "Close door"],
-            [180.0, 0.0, "Lights off"],
-            [180.0, 0.0, "Close door"],
             [3.14, 4.2, "nothing"],
+            [180.0, 0.0, "Lights off"],
+            [180.0, 0.0, "Close door"],
+            [180.0, 0.0, "Lights off"],
+            [180.0, 0.0, "Close door"],
             [1800.2, 25.5, "Apnea"],
         ]
     )
     for tal_channel in [tal_channel_A, tal_channel_B]:
-        onset, duration, description = _read_annotations_edf([tal_channel])
-        assert_allclose(onset, want_onset)
-        assert_allclose(duration, want_duration)
-        assert description == want_description
+        annotations = _read_annotations_edf([tal_channel])
+        assert_allclose(annotations.onset, want_onset)
+        assert_allclose(annotations.duration, want_duration)
+        assert_array_equal(annotations.description, want_description)
 
 
 def test_find_events_backward_compatibility():
@@ -329,14 +391,14 @@ def test_no_data_channels():
     annot_2 = raw.annotations
     _assert_annotations_equal(annot, annot_2)
     # only annotations (should warn)
-    with pytest.warns(RuntimeWarning, match="read_annotations"):
+    with _record_warnings(), pytest.warns(RuntimeWarning, match="read_annotations"):
         read_raw_edf(edf_annot_only)
 
 
-@requires_pandas
 @pytest.mark.parametrize("fname", [edf_path, bdf_path])
 def test_to_data_frame(fname):
     """Test EDF/BDF Raw Pandas exporter."""
+    pytest.importorskip("pandas")
     ext = fname.suffix
     if ext == ".edf":
         raw = read_raw_edf(fname, preload=True, verbose="error")
@@ -399,20 +461,14 @@ def test_read_annot(tmp_path):
     with open(annot_file, "wb") as f:
         f.write(annot)
 
-    onset, duration, desc = _read_annotations_edf(annotations=str(annot_file))
-    annotation = Annotations(
-        onset=onset, duration=duration, description=desc, orig_time=None
-    )
-    _assert_annotations_equal(annotation, EXPECTED_ANNOTATIONS)
+    annotations = _read_annotations_edf(annotations=str(annot_file))
+    _assert_annotations_equal(annotations, EXPECTED_ANNOTATIONS)
 
     # Now test when reading from buffer of data
     with open(annot_file, "rb") as fid:
         ch_data = np.fromfile(fid, dtype="<i2", count=len(annot))
-    onset, duration, desc = _read_annotations_edf([ch_data])
-    annotation = Annotations(
-        onset=onset, duration=duration, description=desc, orig_time=None
-    )
-    _assert_annotations_equal(annotation, EXPECTED_ANNOTATIONS)
+    annotations = _read_annotations_edf([ch_data])
+    _assert_annotations_equal(annotations, EXPECTED_ANNOTATIONS)
 
 
 @testing.requires_testing_data
@@ -429,6 +485,81 @@ def test_read_utf8_annotations():
     raw = read_raw_edf(edf_utf8_annotations)
     assert raw.annotations[0]["description"] == "RECORD START"
     assert raw.annotations[1]["description"] == "仰卧"
+
+
+def test_read_annotations_edf(tmp_path):
+    """Test reading annotations from EDF file."""
+    annot = (
+        b"+1.1\x14Event A@@CH1\x14\x00\x00"
+        b"+1.2\x14Event A\x14\x00\x00"
+        b"+1.3\x14Event B@@CH1\x14\x00\x00"
+        b"+1.3\x14Event B@@CH2\x14\x00\x00"
+        b"+1.4\x14Event A@@CH3\x14\x00\x00"
+        b"+1.5\x14Event B\x14\x00\x00"
+    )
+    annot_file = tmp_path / "annotations.edf"
+    with open(annot_file, "wb") as f:
+        f.write(annot)
+
+    # Test reading annotations from channel data
+    with open(annot_file, "rb") as f:
+        tal_channel = _read_ch(
+            f,
+            subtype="EDF",
+            dtype="<i2",
+            samp=-1,
+            dtype_byte=None,
+        )
+
+    # Read annotations without input channel names: annotations are left untouched and
+    # assigned as global
+    annotations = _read_annotations_edf(tal_channel, ch_names=None, encoding="latin1")
+    assert_allclose(annotations.onset, [1.1, 1.2, 1.3, 1.3, 1.4, 1.5])
+    assert not any(annotations.duration)  # all durations are 0
+    assert_array_equal(
+        annotations.description,
+        [
+            "Event A@@CH1",
+            "Event A",
+            "Event B@@CH1",
+            "Event B@@CH2",
+            "Event A@@CH3",
+            "Event B",
+        ],
+    )
+    assert_array_equal(
+        annotations.ch_names, _ndarray_ch_names([(), (), (), (), (), ()])
+    )
+
+    # Read annotations with complete input channel names: each annotation is parsed and
+    # associated to a channel
+    annotations = _read_annotations_edf(
+        tal_channel, ch_names=["CH1", "CH2", "CH3"], encoding="latin1"
+    )
+    assert_allclose(annotations.onset, [1.1, 1.2, 1.3, 1.4, 1.5])
+    assert not any(annotations.duration)  # all durations are 0
+    assert_array_equal(
+        annotations.description, ["Event A", "Event A", "Event B", "Event A", "Event B"]
+    )
+    assert_array_equal(
+        annotations.ch_names,
+        _ndarray_ch_names([("CH1",), (), ("CH1", "CH2"), ("CH3",), ()]),
+    )
+
+    # Read annotations with incomplete input channel names: "CH3" is missing from input
+    # channels, turning the related annotation into a global one
+    annotations = _read_annotations_edf(
+        tal_channel, ch_names=["CH1", "CH2"], encoding="latin1"
+    )
+    assert_allclose(annotations.onset, [1.1, 1.2, 1.3, 1.4, 1.5])
+    assert not any(annotations.duration)  # all durations are 0
+    assert_array_equal(
+        annotations.description,
+        ["Event A", "Event A", "Event B", "Event A@@CH3", "Event B"],
+    )
+    assert_array_equal(
+        annotations.ch_names, _ndarray_ch_names([("CH1",), (), ("CH1", "CH2"), (), ()])
+    )
 
 
 def test_read_latin1_annotations(tmp_path):
@@ -448,9 +579,19 @@ def test_read_latin1_annotations(tmp_path):
         b"+1.8\x14\xf4\x14\x00\x00"  # +1.8 ô
         b"+1.9\x14\xfb\x14\x00\x00"  # +1.9 û
     )
-    annot_file = tmp_path / "annotations.txt"
+    annot_file = tmp_path / "annotations.edf"
     with open(annot_file, "wb") as f:
         f.write(annot)
+
+    # Test reading directly from file
+    annotations = read_annotations(fname=annot_file, encoding="latin1")
+    assert_allclose(annotations.onset, [1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9])
+    assert not any(annotations.duration)  # all durations are 0
+    assert_array_equal(
+        annotations.description, ["é", "à", "è", "ù", "â", "ê", "î", "ô", "û"]
+    )
+
+    # Test reading annotations from channel data
     with open(annot_file, "rb") as f:
         tal_channel = _read_ch(
             f,
@@ -459,39 +600,114 @@ def test_read_latin1_annotations(tmp_path):
             samp=-1,
             dtype_byte=None,
         )
-    onset, duration, description = _read_annotations_edf(
-        tal_channel,
-        encoding="latin1",
+    annotations = _read_annotations_edf(tal_channel, encoding="latin1")
+    assert_allclose(annotations.onset, [1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9])
+    assert not any(annotations.duration)  # all durations are 0
+    assert_array_equal(
+        annotations.description, ["é", "à", "è", "ù", "â", "ê", "î", "ô", "û"]
     )
-    assert onset == (1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9)
-    assert not any(duration)  # all durations are 0
-    assert description == ("é", "à", "è", "ù", "â", "ê", "î", "ô", "û")
 
     with pytest.raises(Exception, match="Encountered invalid byte in"):
         _read_annotations_edf(tal_channel)  # default encoding="utf8" fails
+    with pytest.raises(Exception, match="'utf-8' codec can't decode.*"):
+        _read_annotations_edf(str(annot_file))  # default encoding="utf8" fails
 
 
-def test_edf_prefilter_parse():
+@pytest.mark.parametrize(
+    "prefiltering, hp, lp",
+    [
+        pytest.param(["HP: 1Hz LP: 30Hz"], ["1"], ["30"], id="basic edf"),
+        pytest.param(["LP: 30Hz HP: 1Hz"], ["1"], ["30"], id="reversed order"),
+        pytest.param(["HP: 1 LP: 30"], ["1"], ["30"], id="w/o Hz"),
+        pytest.param(["HP: 0,1 LP: 30,5"], ["0.1"], ["30.5"], id="using comma"),
+        pytest.param(
+            ["HP:0.1Hz LP:75Hz N:50Hz"], ["0.1"], ["75"], id="with notch filter"
+        ),
+        pytest.param([""], [""], [""], id="empty string"),
+        pytest.param(["HP: DC; LP: 410"], ["DC"], ["410"], id="bdf_dc"),
+        pytest.param(
+            ["", "HP:0.1Hz LP:75Hz N:50Hz", ""],
+            ["", "0.1", ""],
+            ["", "75", ""],
+            id="multi-ch",
+        ),
+    ],
+)
+def test_edf_parse_prefilter_string(prefiltering, hp, lp):
     """Test prefilter strings from header are parsed correctly."""
-    prefilter_basic = ["HP: 0Hz LP: 0Hz"]
-    highpass, lowpass = _parse_prefilter_string(prefilter_basic)
-    assert_array_equal(highpass, ["0"])
-    assert_array_equal(lowpass, ["0"])
+    highpass, lowpass = _parse_prefilter_string(prefiltering)
+    assert_array_equal(highpass, hp)
+    assert_array_equal(lowpass, lp)
 
-    prefilter_normal_multi_ch = ["HP: 1Hz LP: 30Hz"] * 10
-    highpass, lowpass = _parse_prefilter_string(prefilter_normal_multi_ch)
-    assert_array_equal(highpass, ["1"] * 10)
-    assert_array_equal(lowpass, ["30"] * 10)
 
-    prefilter_unfiltered_ch = prefilter_normal_multi_ch + [""]
-    highpass, lowpass = _parse_prefilter_string(prefilter_unfiltered_ch)
-    assert_array_equal(highpass, ["1"] * 10)
-    assert_array_equal(lowpass, ["30"] * 10)
+@pytest.mark.parametrize(
+    "prefilter_string, expected",
+    [
+        ("0", 0),
+        ("1.1", 1.1),
+        ("DC", 0),
+        ("", np.nan),
+        ("1.1.1", np.nan),
+        (1.1, 1.1),
+        (1, 1),
+        (np.float32(1.1), np.float32(1.1)),
+        (np.nan, np.nan),
+    ],
+)
+def test_edf_prefilter_float(prefilter_string, expected):
+    """Test to make float from prefilter string."""
+    assert_equal(_prefilter_float(prefilter_string), expected)
 
-    prefilter_edf_specs_doc = ["HP:0.1Hz LP:75Hz N:50Hz"]
-    highpass, lowpass = _parse_prefilter_string(prefilter_edf_specs_doc)
-    assert_array_equal(highpass, ["0.1"])
-    assert_array_equal(lowpass, ["75"])
+
+@pytest.mark.parametrize(
+    "edf_info, hp, lp, hp_warn, lp_warn",
+    [
+        ({"highpass": ["0"], "lowpass": ["1.1"]}, -1, 1.1, False, False),
+        ({"highpass": [""], "lowpass": [""]}, -1, -1, False, False),
+        ({"highpass": ["DC"], "lowpass": [""]}, -1, -1, False, False),
+        ({"highpass": [1], "lowpass": [2]}, 1, 2, False, False),
+        ({"highpass": [np.nan], "lowpass": [np.nan]}, -1, -1, False, False),
+        ({"highpass": ["1", "2"], "lowpass": ["3", "4"]}, 2, 3, True, True),
+        ({"highpass": [np.nan, 1], "lowpass": ["", 3]}, 1, 3, True, True),
+        ({"highpass": [np.nan, np.nan], "lowpass": [1, 2]}, -1, 1, False, True),
+        ({}, -1, -1, False, False),
+    ],
+)
+def test_edf_set_prefilter(edf_info, hp, lp, hp_warn, lp_warn):
+    """Test _set_prefilter function."""
+    info = {"lowpass": -1, "highpass": -1}
+
+    if hp_warn:
+        ctx = pytest.warns(
+            RuntimeWarning,
+            match=(
+                "Channels contain different highpass filters. "
+                "Highest filter setting will be stored."
+            ),
+        )
+    else:
+        ctx = nullcontext()
+    with ctx:
+        _set_prefilter(
+            info, edf_info, list(range(len(edf_info.get("highpass", [])))), "highpass"
+        )
+
+    if lp_warn:
+        ctx = pytest.warns(
+            RuntimeWarning,
+            match=(
+                "Channels contain different lowpass filters. "
+                "Lowest filter setting will be stored."
+            ),
+        )
+    else:
+        ctx = nullcontext()
+    with ctx:
+        _set_prefilter(
+            info, edf_info, list(range(len(edf_info.get("lowpass", [])))), "lowpass"
+        )
+    assert info["highpass"] == hp
+    assert info["lowpass"] == lp
 
 
 @testing.requires_testing_data
@@ -571,9 +787,23 @@ def test_edf_stim_ch_pick_up(test_input, EXPECTED):
 
 
 @testing.requires_testing_data
-def test_bdf_multiple_annotation_channels():
+@pytest.mark.parametrize(
+    "exclude_after_unique, warns",
+    [
+        (False, False),
+        (True, True),
+    ],
+)
+def test_bdf_multiple_annotation_channels(exclude_after_unique, warns):
     """Test BDF with multiple annotation channels."""
-    raw = read_raw_bdf(bdf_multiple_annotations_path)
+    if warns:
+        ctx = pytest.warns(RuntimeWarning, match="Channel names are not unique")
+    else:
+        ctx = nullcontext()
+    with ctx:
+        raw = read_raw_bdf(
+            bdf_multiple_annotations_path, exclude_after_unique=exclude_after_unique
+        )
     assert len(raw.annotations) == 10
     descriptions = np.array(
         [
@@ -638,7 +868,7 @@ def test_invalid_date(tmp_path):
     edf[172] = ord("2")
     with open(fname, "wb") as f:
         f.write(edf)
-    with pytest.warns(RuntimeWarning, match="Invalid date"):
+    with pytest.warns(RuntimeWarning, match="Invalid measurement date"):
         read_raw_edf(fname)
 
     # another invalid date 29.00.14 (0 is not a month)
@@ -646,7 +876,7 @@ def test_invalid_date(tmp_path):
     edf[172] = ord("0")
     with open(fname, "wb") as f:
         f.write(edf)
-    with pytest.warns(RuntimeWarning, match="Invalid date"):
+    with pytest.warns(RuntimeWarning, match="Invalid measurement date"):
         read_raw_edf(fname)
 
 
@@ -658,37 +888,40 @@ def test_empty_chars():
 def _hp_lp_rev(*args, **kwargs):
     out, orig_units = _read_edf_header(*args, **kwargs)
     out["lowpass"], out["highpass"] = out["highpass"], out["lowpass"]
-    # this will happen for test_edf_stim_resamp.edf
-    if (
-        len(out["lowpass"])
-        and out["lowpass"][0] == "0.000"
-        and len(out["highpass"])
-        and out["highpass"][0] == "0.0"
-    ):
-        out["highpass"][0] = "10.0"
+    return out, orig_units
+
+
+def _hp_lp_mod(*args, **kwargs):
+    out, orig_units = _read_edf_header(*args, **kwargs)
+    out["lowpass"][:] = "1"
+    out["highpass"][:] = "10"
     return out, orig_units
 
 
 @pytest.mark.filterwarnings("ignore:.*too long.*:RuntimeWarning")
 @pytest.mark.parametrize(
-    "fname, lo, hi, warns",
+    "fname, lo, hi, warns, patch_func",
     [
-        (edf_path, 256, 0, False),
-        (edf_uneven_path, 50, 0, False),
-        (edf_stim_channel_path, 64, 0, False),
-        pytest.param(edf_overlap_annot_path, 64, 0, False, marks=td_mark),
-        pytest.param(edf_reduced, 256, 0, False, marks=td_mark),
-        pytest.param(test_generator_edf, 100, 0, False, marks=td_mark),
-        pytest.param(edf_stim_resamp_path, 256, 0, True, marks=td_mark),
+        (edf_path, 256, 0, False, "rev"),
+        (edf_uneven_path, 50, 0, False, "rev"),
+        (edf_stim_channel_path, 64, 0, False, "rev"),
+        pytest.param(edf_overlap_annot_path, 64, 0, False, "rev", marks=td_mark),
+        pytest.param(edf_reduced, 256, 0, False, "rev", marks=td_mark),
+        pytest.param(test_generator_edf, 100, 0, False, "rev", marks=td_mark),
+        pytest.param(edf_stim_resamp_path, 256, 0, False, "rev", marks=td_mark),
+        pytest.param(edf_stim_resamp_path, 256, 0, True, "mod", marks=td_mark),
     ],
 )
-def test_hp_lp_reversed(fname, lo, hi, warns, monkeypatch):
+def test_hp_lp_reversed(fname, lo, hi, warns, patch_func, monkeypatch):
     """Test HP/LP reversed (gh-8584)."""
     fname = str(fname)
     raw = read_raw_edf(fname)
     assert raw.info["lowpass"] == lo
     assert raw.info["highpass"] == hi
-    monkeypatch.setattr(edf.edf, "_read_edf_header", _hp_lp_rev)
+    if patch_func == "rev":
+        monkeypatch.setattr(edf.edf, "_read_edf_header", _hp_lp_rev)
+    elif patch_func == "mod":
+        monkeypatch.setattr(edf.edf, "_read_edf_header", _hp_lp_mod)
     if warns:
         ctx = pytest.warns(RuntimeWarning, match="greater than lowpass")
         new_lo, new_hi = raw.info["sfreq"] / 2.0, 0.0
@@ -726,6 +959,32 @@ def test_exclude():
         assert ch not in raw.ch_names
 
 
+@pytest.mark.parametrize(
+    "EXPECTED, exclude, exclude_after_unique, warns",
+    [
+        (["EEG F2-Ref"], "EEG F1-Ref", False, False),
+        (["EEG F1-Ref-0", "EEG F2-Ref", "EEG F1-Ref-1"], "EEG F1-Ref-1", False, True),
+        (["EEG F2-Ref"], ["EEG F1-Ref"], False, False),
+        (["EEG F2-Ref"], "EEG F1-Ref", True, True),
+        (["EEG F1-Ref-0", "EEG F2-Ref"], "EEG F1-Ref-1", True, True),
+        (["EEG F1-Ref-0", "EEG F2-Ref", "EEG F1-Ref-1"], ["EEG F1-Ref"], True, True),
+    ],
+)
+def test_exclude_duplicate_channel_data(exclude, exclude_after_unique, warns, EXPECTED):
+    """Test exclude parameter for duplicate channel data."""
+    if warns:
+        ctx = pytest.warns(RuntimeWarning, match="Channel names are not unique")
+    else:
+        ctx = nullcontext()
+    with ctx:
+        raw = read_raw_edf(
+            duplicate_channel_labels_path,
+            exclude=exclude,
+            exclude_after_unique=exclude_after_unique,
+        )
+    assert raw.ch_names == EXPECTED
+
+
 def test_include():
     """Test include parameter."""
     raw = read_raw_edf(edf_path, include=["I1", "I2"])
@@ -734,9 +993,34 @@ def test_include():
     raw = read_raw_edf(edf_path, include="I[1-4]")
     assert sorted(raw.ch_names) == ["I1", "I2", "I3", "I4"]
 
-    with pytest.raises(ValueError) as e:
+    with pytest.raises(ValueError, match="'exclude' must be empty if 'include' is "):
         raw = read_raw_edf(edf_path, include=["I1", "I2"], exclude="I[1-4]")
-        assert str(e.value) == "'exclude' must be empty" "if 'include' is assigned."
+
+
+@pytest.mark.parametrize(
+    "EXPECTED, include, exclude_after_unique, warns",
+    [
+        (["EEG F1-Ref-0", "EEG F1-Ref-1"], "EEG F1-Ref", False, True),
+        ([], "EEG F1-Ref-1", False, False),
+        (["EEG F1-Ref-0", "EEG F1-Ref-1"], ["EEG F1-Ref"], False, True),
+        (["EEG F1-Ref-0", "EEG F1-Ref-1"], "EEG F1-Ref", True, True),
+        (["EEG F1-Ref-1"], "EEG F1-Ref-1", True, True),
+        ([], ["EEG F1-Ref"], True, True),
+    ],
+)
+def test_include_duplicate_channel_data(include, exclude_after_unique, warns, EXPECTED):
+    """Test include parameter for duplicate channel data."""
+    if warns:
+        ctx = pytest.warns(RuntimeWarning, match="Channel names are not unique")
+    else:
+        ctx = nullcontext()
+    with ctx:
+        raw = read_raw_edf(
+            duplicate_channel_labels_path,
+            include=include,
+            exclude_after_unique=exclude_after_unique,
+        )
+    assert raw.ch_names == EXPECTED
 
 
 @testing.requires_testing_data
@@ -893,3 +1177,16 @@ def test_ch_types():
     raw = read_raw_edf(edf_chtypes_path, units="uV")  # should be okay
     data_units = raw.get_data()
     assert_allclose(data, data_units)
+
+
+@testing.requires_testing_data
+def test_anonymization():
+    """Test that RawEDF anonymizes data in memory."""
+    # gh-11966
+    raw = read_raw_edf(edf_stim_resamp_path)
+    for key in ("meas_date", "subject_info"):
+        assert key not in raw._raw_extras[0]
+    bday = raw.info["subject_info"]["birthday"]
+    assert bday == datetime.date(1967, 10, 9)
+    raw.anonymize()
+    assert raw.info["subject_info"]["birthday"] != bday

@@ -1,21 +1,19 @@
-# Authors: Robert Luke <mail@robertluke.net>
-#          Eric Larson <larson.eric.d@gmail.com>
-#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
-import pytest
 import numpy as np
+import pytest
 from numpy.testing import assert_allclose, assert_array_less
 
+from mne.datasets import testing
 from mne.datasets.testing import data_path
 from mne.io import read_raw_nirx
 from mne.preprocessing.nirs import (
+    beer_lambert_law,
     optical_density,
     scalp_coupling_index,
-    beer_lambert_law,
 )
-from mne.datasets import testing
 
 fname_nirx_15_0 = (
     data_path(download=False) / "NIRx" / "nirscout" / "nirx_15_0_recording"

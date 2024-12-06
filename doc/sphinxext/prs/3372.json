@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "abbc09736cccefe4e4b5dcd7865836aad4b08980",
+  "authors": [
+    {
+      "n": "jaeilepp",
+      "e": "jaeilepp@student.jyu.fi"
+    }
+  ],
+  "changes": {
+    "mne/simulation/evoked.py": {
+      "a": 8,
+      "d": 2
+    },
+    "mne/simulation/tests/test_evoked.py": {
+      "a": 7,
+      "d": 2
+    }
+  }
+}

@@ -1,36 +1,49 @@
 """Some miscellaneous utility functions."""
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#
-# License: BSD-3-Clause
 
-from contextlib import contextmanager, ExitStack
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
+
 import fnmatch
 import gc
+import hashlib
 import inspect
-from math import log
 import os
-from queue import Queue, Empty
-from string import Formatter
 import subprocess
 import sys
-from threading import Thread
 import traceback
+import weakref
+from contextlib import ExitStack, contextmanager
+from importlib.resources import files
+from math import log
+from queue import Empty, Queue
+from string import Formatter
+from textwrap import dedent
+from threading import Thread
 
 import numpy as np
+from decorator import FunctionMaker
 
-from ..utils import _check_option, _validate_type
 from ._logging import logger, verbose, warn
+from .check import _check_option, _validate_type
 
-# TODO: remove try/except when our min version is py 3.9
-try:
-    from importlib.resources import files
-except ImportError:
-    from importlib_resources import files
+
+def _identity_function(x):
+    return x
+
+
+# TODO: no longer needed when py3.9 is minimum supported version
+def _empty_hash(kind="md5"):
+    func = getattr(hashlib, kind)
+    if "usedforsecurity" in inspect.signature(func).parameters:
+        return func(usedforsecurity=False)
+    else:
+        return func()
 
 
 def _pl(x, non_pl="", pl="s"):
     """Determine if plural should be used."""
-    len_x = x if isinstance(x, (int, np.generic)) else len(x)
+    len_x = x if isinstance(x, int | np.generic) else len(x)
     return non_pl if len_x == 1 else pl
 
 
@@ -147,20 +160,7 @@ def run_subprocess(command, return_code=False, verbose=None, *args, **kwargs):
                     break
                 else:
                     out = out.decode("utf-8")
-                    # Strip newline at end of the string, otherwise we'll end
-                    # up with two subsequent newlines (as the logger adds one)
-                    #
-                    # XXX Once we drop support for Python <3.9, uncomment the
-                    # following line and remove the if/else block below.
-                    #
-                    # log_out = out.removesuffix('\n')
-                    if sys.version_info[:2] >= (3, 9):
-                        log_out = out.removesuffix("\n")
-                    elif out.endswith("\n"):
-                        log_out = out[:-1]
-                    else:
-                        log_out = out
-
+                    log_out = out.removesuffix("\n")
                     logger.info(log_out)
                     all_out += out
 
@@ -171,19 +171,7 @@ def run_subprocess(command, return_code=False, verbose=None, *args, **kwargs):
                     break
                 else:
                     err = err.decode("utf-8")
-                    # Strip newline at end of the string, otherwise we'll end
-                    # up with two subsequent newlines (as the logger adds one)
-                    #
-                    # XXX Once we drop support for Python <3.9, uncomment the
-                    # following line and remove the if/else block below.
-                    #
-                    # err_out = err.removesuffix('\n')
-                    if sys.version_info[:2] >= (3, 9):
-                        err_out = err.removesuffix("\n")
-                    elif err.endswith("\n"):
-                        err_out = err[:-1]
-                    else:
-                        err_out = err
+                    err_out = err.removesuffix("\n")
 
                     # Leave this as logger.warning rather than warn(...) to
                     # mirror the logger.info above for stdout. This function
@@ -258,7 +246,7 @@ def running_subprocess(command, after="wait", verbose=None, *args, **kwargs):
     else:
         command = [str(s) for s in command]
         command_str = " ".join(s for s in command)
-    logger.info("Running subprocess: %s" % command_str)
+    logger.info(f"Running subprocess: {command_str}")
     try:
         p = subprocess.Popen(command, *args, **kwargs)
     except Exception:
@@ -266,7 +254,7 @@ def running_subprocess(command, after="wait", verbose=None, *args, **kwargs):
             command_name = command.split()[0]
         else:
             command_name = command[0]
-        logger.error("Command not found: %s" % command_name)
+        logger.error(f"Command not found: {command_name}")
         raise
     try:
         with ExitStack() as stack:
@@ -281,9 +269,8 @@ def running_subprocess(command, after="wait", verbose=None, *args, **kwargs):
 def _clean_names(names, remove_whitespace=False, before_dash=True):
     """Remove white-space on topo matching.
 
-    This function handles different naming
-    conventions for old VS new VectorView systems (`remove_whitespace`).
-    Also it allows to remove system specific parts in CTF channel names
+    This function handles different naming conventions for old VS new VectorView systems
+    (`remove_whitespace`) and removes system specific parts in CTF channel names
     (`before_dash`).
 
     Usage
@@ -293,7 +280,6 @@ def _clean_names(names, remove_whitespace=False, before_dash=True):
 
     # for CTF
     ch_names = _clean_names(epochs.ch_names, before_dash=True)
-
     """
     cleaned = []
     for name in names:
@@ -304,7 +290,10 @@ def _clean_names(names, remove_whitespace=False, before_dash=True):
         if name.endswith("_v"):
             name = name[:-2]
         cleaned.append(name)
-
+    if len(set(cleaned)) != len(names):
+        # this was probably not a VectorView or CTF dataset, and we now broke the
+        # dataset by creating duplicates, so let's use the original channel names.
+        return names
     return cleaned
 
 
@@ -344,14 +333,14 @@ def sizeof_fmt(num):
     size : str
         The size in human-readable format.
     """
-    units = ["bytes", "kB", "MB", "GB", "TB", "PB"]
+    units = ["bytes", "KiB", "MiB", "GiB", "TiB", "PiB"]
     decimals = [0, 0, 1, 2, 2, 2]
     if num > 1:
         exponent = min(int(log(num, 1024)), len(units) - 1)
         quotient = float(num) / 1024**exponent
         unit = units[exponent]
         num_decimals = decimals[exponent]
-        format_string = "{0:.%sf} {1}" % (num_decimals)
+        format_string = f"{{0:.{num_decimals}f}} {{1}}"
         return format_string.format(quotient, unit)
     if num == 0:
         return "0 bytes"
@@ -400,7 +389,7 @@ def _assert_no_instances(cls, when=""):
                     and r is not locals()
                     and not inspect.isframe(r)
                 ):
-                    if isinstance(r, (list, dict, tuple)):
+                    if isinstance(r, list | dict | tuple):
                         rep = f"len={len(r)}"
                         r_ = gc.get_referrers(r)
                         types = (_fullname(x) for x in r_)
@@ -475,3 +464,46 @@ def repr_html(f):
             return f(*args, **kwargs)
 
     return wrapper
+
+
+def _auto_weakref(function):
+    """Create weakrefs to self (or other free vars in __closure__) then evaluate.
+
+    When a nested function is defined within an instance method, and the function makes
+    use of ``self``, it creates a reference cycle that the Python garbage collector is
+    not smart enough to resolve, so the parent object is never GC'd. (The reference to
+    ``self`` becomes part of the ``__closure__`` of the nested function).
+
+    This decorator allows the nested function to access ``self`` without increasing the
+    reference counter on ``self``, which will prevent the memory leak. If the referent
+    is not found (usually because already GC'd) it will short-circuit the decorated
+    function and return ``None``.
+    """
+    names = function.__code__.co_freevars
+    assert len(names) == len(function.__closure__)
+    __weakref_values__ = dict()
+    evaldict = dict(__weakref_values__=__weakref_values__)
+    for name, value in zip(names, function.__closure__):
+        __weakref_values__[name] = weakref.ref(value.cell_contents)
+    body = dedent(inspect.getsource(function))
+    body = body.splitlines()
+    for li, line in enumerate(body):
+        if line.startswith(" "):
+            body = body[li:]
+            break
+    old_body = "\n".join(body)
+    body = """\
+def %(name)s(%(signature)s):
+"""
+    for name in names:
+        body += f"""
+    {name} = __weakref_values__[{repr(name)}]()
+    if {name} is None:
+        return
+"""
+    body = body + old_body
+    fm = FunctionMaker(function)
+    fun = fm.make(body, evaldict, addsource=True)
+    fun.__globals__.update(function.__globals__)
+    assert fun.__closure__ is None, fun.__closure__
+    return fun

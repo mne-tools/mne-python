@@ -1,12 +1,12 @@
-# Authors: Daniel Strohmeier <daniel.strohmeier@tu-ilmenau.de>
-#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from math import sqrt
+
 import numpy as np
 
-from ..utils import check_random_state, logger, verbose, fill_doc
+from ..utils import check_random_state, fill_doc, logger, verbose
 
 
 @fill_doc
@@ -124,14 +124,14 @@ def compute_bias(M, G, X, max_iter=1000, tol=1e-6, n_orient=1, verbose=None):
 
         if Ddiff < tol:
             logger.info(
-                "Debiasing converged after %d iterations "
-                "max(|D - D0| = %e < %e)" % (i, Ddiff, tol)
+                f"Debiasing converged after {i} iterations "
+                f"max(|D - D0| = {Ddiff:e} < {tol:e})"
             )
             break
     else:
         Ddiff = np.linalg.norm(D - D0, np.inf)
         logger.info(
-            "Debiasing did not converge after %d iterations! "
-            "max(|D - D0| = %e >= %e)" % (max_iter, Ddiff, tol)
+            f"Debiasing did not converge after {max_iter} iterations! "
+            f"max(|D - D0| = {Ddiff:e} >= {tol:e})"
         )
     return D

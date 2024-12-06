@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "01929ae628236bdb886c5f0a81a81b90c04beb67",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "mne/viz/_3d.py": {
+      "a": 5,
+      "d": 5
+    }
+  }
+}

@@ -1,14 +1,14 @@
-# Authors: Lukas Breuer <l.breuer@fz-juelich.de>
-#          Juergen Dammers <j.dammers@fz-juelich.de>
-#          Denis A. Engeman <denis.engemann@gemail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import math
 
 import numpy as np
+from scipy.special import expit
+from scipy.stats import kurtosis
 
-from ..utils import logger, verbose, check_random_state, random_permutation
+from ..utils import check_random_state, logger, random_permutation, verbose
 
 
 @verbose
@@ -116,9 +116,6 @@ def infomax(
            analysis using an extended infomax algorithm for mixed subgaussian
            and supergaussian sources. Neural Computation, 11(2), 417-441, 1999.
     """
-    from scipy.stats import kurtosis
-    from scipy.special import expit
-
     rng = check_random_state(random_state)
 
     # define some default parameters
@@ -145,7 +142,7 @@ def infomax(
     if block is None:
         block = int(math.floor(math.sqrt(n_samples / 3.0)))
 
-    logger.info("Computing%sInfomax ICA" % " Extended " if extended else " ")
+    logger.info(f"Computing{' Extended ' if extended else ' '}Infomax ICA")
 
     # collect parameters
     nblock = n_samples // block
@@ -269,8 +266,11 @@ def infomax(
 
             if verbose:
                 logger.info(
-                    "step %d - lrate %5f, wchange %8.8f, angledelta %4.1f deg"
-                    % (step, l_rate, change, angledelta)
+                    "step %d - lrate %5f, wchange %8.8f, angledelta %4.1f deg",
+                    step,
+                    l_rate,
+                    change,
+                    angledelta,
                 )
 
             # anneal learning rate
@@ -320,8 +320,8 @@ def infomax(
             if l_rate > min_l_rate:
                 if verbose:
                     logger.info(
-                        "... lowering learning rate to %g"
-                        "\n... re-starting..." % l_rate
+                        f"... lowering learning rate to {l_rate:g}"
+                        "\n... re-starting..."
                     )
             else:
                 raise ValueError(

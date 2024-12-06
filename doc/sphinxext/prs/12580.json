@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "5a5b4f10467664b1444873ab879f4ae5724eedbb",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "pyproject.toml": {
+      "a": 2,
+      "d": 2
+    },
+    "tools/pyqt6_requirements.txt": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

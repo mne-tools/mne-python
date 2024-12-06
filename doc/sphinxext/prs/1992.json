@@ -1,0 +1,123 @@
+{
+  "merge_commit_sha": "8a69ca9240e97245c5c19692ccc6f04a4271b85e",
+  "authors": [
+    {
+      "n": "Denis A. Engemann",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/beamformer/_dics.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/channels/channels.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/channels/layout.py": {
+      "a": 9,
+      "d": 10
+    },
+    "mne/connectivity/spectral.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/forward/_field_interpolation.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/forward/forward.py": {
+      "a": 5,
+      "d": 5
+    },
+    "mne/forward/tests/test_field_interpolation.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/base.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/bti/bti.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/bti/tests/test_bti.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/meas_info.py": {
+      "a": 7,
+      "d": 7
+    },
+    "mne/io/open.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/proj.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/minimum_norm/inverse.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/ecg.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/source_estimate.py": {
+      "a": 6,
+      "d": 6
+    },
+    "mne/source_space.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/stats/cluster_level.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/surface.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/tests/test_utils.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/_3d.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/epochs.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/evoked.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/topo.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/viz/topomap.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/utils.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

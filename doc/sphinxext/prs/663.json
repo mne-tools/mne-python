@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "4f08ce2001bc024e777d59b2936de2ba9f99b601",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "mne/minimum_norm/inverse.py": {
+      "a": 10,
+      "d": 24
+    },
+    "mne/minimum_norm/time_frequency.py": {
+      "a": 4,
+      "d": 4
+    }
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "e8207aecf6bff7dda7b4290d2e30daed6b776669",
+  "authors": [
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/viz/_3d.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/backends/_pyvista.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/viz/backends/_qt.py": {
+      "a": 2,
+      "d": 1
+    },
+    "tutorials/sample-datasets/plot_phantom_4DBTi.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/source-modeling/plot_source_alignment.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "7795da0e6678797db127ebef967a1ca8d785d5b3",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".travis.yml": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/fiff/brainvision/brainvision.py": {
+      "a": 17,
+      "d": 7
+    },
+    "mne/fiff/tag.py": {
+      "a": 6,
+      "d": 3
+    },
+    "mne/forward/forward.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/gui/_file_traits.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/gui/tests/test_coreg_gui.py": {
+      "a": 9,
+      "d": 10
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/time_frequency/tests/test_csd.py": {
+      "a": 8,
+      "d": 8
+    },
+    "mne/utils.py": {
+      "a": 8,
+      "d": 3
+    }
+  }
+}

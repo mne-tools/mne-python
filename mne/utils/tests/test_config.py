@@ -1,18 +1,28 @@
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
+
 import os
 import platform
-import pytest
+import re
+from functools import partial
 from pathlib import Path
+from urllib.error import URLError
 
+import pytest
+
+import mne
+import mne.utils.config
 from mne.utils import (
-    set_config,
+    ClosingStringIO,
+    _get_stim_channel,
     get_config,
     get_config_path,
-    set_memmap_min_size,
-    _get_stim_channel,
-    sys_info,
-    ClosingStringIO,
     get_subjects_dir,
-    requires_mne_qt_browser,
+    requires_good_network,
+    set_config,
+    set_memmap_min_size,
+    sys_info,
 )
 
 
@@ -92,24 +102,42 @@ def test_config(tmp_path):
     pytest.raises(TypeError, _get_stim_channel, [1], None)
 
 
-def test_sys_info():
+def test_sys_info_basic():
     """Test info-showing utility."""
     out = ClosingStringIO()
-    sys_info(fid=out)
+    sys_info(fid=out, check_version=False)
     out = out.getvalue()
     assert "numpy" in out
-
+    # replace all in-line whitespace with single space
+    out = "\n".join(" ".join(o.split()) for o in out.splitlines())
+    assert "? GiB" not in out
     if platform.system() == "Darwin":
-        assert "Platform             macOS-" in out
+        assert "Platform macOS-" in out
     elif platform.system() == "Linux":
-        assert "Platform             Linux" in out
+        assert "Platform Linux" in out
 
 
-@requires_mne_qt_browser
+def test_sys_info_complete():
+    """Test that sys_info is sufficiently complete."""
+    tomllib = pytest.importorskip("tomllib")  # python 3.11+
+    pyproject = Path(__file__).parents[3] / "pyproject.toml"
+    if not pyproject.is_file():
+        pytest.skip("Does not appear to be a dev installation")
+    out = ClosingStringIO()
+    sys_info(fid=out, check_version=False, dependencies="developer")
+    out = out.getvalue()
+    pyproject = tomllib.loads(pyproject.read_text("utf-8"))
+    deps = pyproject["project"]["optional-dependencies"]["test_extra"]
+    for dep in deps:
+        dep = dep.split("[")[0].split(">")[0]
+        assert f" {dep}" in out, f"Missing in dev config: {dep}"
+
+
 def test_sys_info_qt_browser():
     """Test if mne_qt_browser is correctly detected."""
+    pytest.importorskip("mne_qt_browser")
     out = ClosingStringIO()
-    sys_info(fid=out)
+    sys_info(fid=out, check_version=False)
     out = out.getvalue()
     assert "mne-qt-browser" in out
 
@@ -134,3 +162,73 @@ def test_get_subjects_dir(tmp_path, monkeypatch):
     monkeypatch.setenv("HOME", str(tmp_path))
     monkeypatch.setenv("USERPROFILE", str(tmp_path))  # Windows
     assert str(get_subjects_dir("~/foo")) == str(subjects_dir)
+
+    monkeypatch.setenv("SUBJECTS_DIR", str(tmp_path / "doesntexist"))
+    with pytest.warns(RuntimeWarning, match="MNE-Python config"):
+        get_subjects_dir()
+    with pytest.raises(FileNotFoundError, match="MNE-Python config"):
+        get_subjects_dir(raise_error=True)
+
+
+@pytest.mark.slowtest
+@requires_good_network
+def test_sys_info_check_outdated(monkeypatch):
+    """Test sys info checking."""
+    # Old (actually ping GitHub)
+    monkeypatch.setattr(mne, "__version__", "0.1")
+    out = ClosingStringIO()
+    sys_info(fid=out, check_version=10)
+    out = out.getvalue()
+    assert "(outdated, release " in out
+    assert "updating.html" in out
+
+    # Timeout (will call urllib.open)
+    out = ClosingStringIO()
+    sys_info(fid=out, check_version=1e-12)
+    out = out.getvalue()
+    assert re.match(".*unable to check.*timeout.*", out, re.DOTALL) is not None
+    assert "updating.html" not in out
+
+
+def test_sys_info_check_other(monkeypatch):
+    """Test other failure modes of the sys info check."""
+
+    def bad_open(url, timeout, msg):
+        raise URLError(msg)
+
+    # SSL error
+    out = ClosingStringIO()
+    with monkeypatch.context() as m:
+        m.setattr(mne.utils.config, "urlopen", partial(bad_open, msg="SSL: CERT"))
+        sys_info(fid=out)
+    out = out.getvalue()
+    assert re.match(".*unable to check.*SSL.*", out, re.DOTALL) is not None
+
+    # Other error
+    out = ClosingStringIO()
+    with monkeypatch.context() as m:
+        m.setattr(mne.utils.config, "urlopen", partial(bad_open, msg="foo bar"))
+        sys_info(fid=out)
+    out = out.getvalue()
+    match = re.match(".*unable to .*unknown error: .*foo bar.*", out, re.DOTALL)
+    assert match is not None
+
+    # Match
+    monkeypatch.setattr(
+        mne.utils.config,
+        "_get_latest_version",
+        lambda timeout: "1.5.1",
+    )
+    monkeypatch.setattr(mne, "__version__", "1.5.1")
+    out = ClosingStringIO()
+    sys_info(fid=out)
+    out = out.getvalue()
+    assert " 1.5.1 (latest release)" in out
+
+    # Devel
+    monkeypatch.setattr(mne, "__version__", "1.6.dev0")
+    out = ClosingStringIO()
+    sys_info(fid=out)
+    out = out.getvalue()
+    assert "devel, " in out
+    assert "updating.html" not in out

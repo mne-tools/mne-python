@@ -1,54 +1,59 @@
-# Author: Eric Larson <larson.eric.d@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from pathlib import Path
 
 import numpy as np
-from numpy.testing import assert_allclose, assert_array_less, assert_array_equal
+import pytest
+from numpy.testing import assert_allclose, assert_array_equal, assert_array_less
 from scipy.interpolate import interp1d
 from scipy.spatial.distance import cdist
-import pytest
 
-from mne import pick_types, pick_info
-from mne.forward._compute_forward import _MAG_FACTOR
-from mne.io import (
-    read_raw_fif,
-    read_raw_artemis123,
-    read_raw_ctf,
-    read_info,
-    RawArray,
-    read_raw_kit,
-)
-from mne.io.constants import FIFF
+from mne import pick_info, pick_types
+from mne._fiff.constants import FIFF
 from mne.chpi import (
+    _chpi_locs_to_times_dig,
+    _compute_good_distances,
+    _get_hpi_initial_fit,
+    _setup_ext_proj,
     compute_chpi_amplitudes,
     compute_chpi_locs,
     compute_chpi_snr,
     compute_head_pos,
-    _setup_ext_proj,
-    _chpi_locs_to_times_dig,
-    _compute_good_distances,
     extract_chpi_locs_ctf,
-    head_pos_to_trans_rot_t,
-    read_head_pos,
-    write_head_pos,
+    extract_chpi_locs_kit,
     filter_chpi,
     get_active_chpi,
     get_chpi_info,
-    _get_hpi_initial_fit,
-    extract_chpi_locs_kit,
+    head_pos_to_trans_rot_t,
+    read_head_pos,
+    write_head_pos,
 )
 from mne.datasets import testing
+from mne.forward._compute_forward import _MAG_FACTOR
+from mne.io import (
+    RawArray,
+    read_info,
+    read_raw_artemis123,
+    read_raw_ctf,
+    read_raw_fif,
+    read_raw_kit,
+)
 from mne.simulation import add_chpi
-from mne.transforms import rot_to_quat, _angle_between_quats
-from mne.utils import catch_logging, assert_meg_snr, verbose, object_diff
+from mne.transforms import _angle_between_quats, rot_to_quat
+from mne.utils import (
+    _record_warnings,
+    assert_meg_snr,
+    catch_logging,
+    object_diff,
+    verbose,
+)
 from mne.viz import plot_head_positions
 
-base_dir = Path(__file__).parent.parent / "io" / "tests" / "data"
+base_dir = Path(__file__).parents[1] / "io" / "tests" / "data"
 ctf_fname = base_dir / "test_ctf_raw.fif"
 hp_fif_fname = base_dir / "test_chpi_raw_sss.fif"
-hp_fname = base_dir / "test_chpi_raw_hp.txt"
 raw_fname = base_dir / "test_raw.fif"
 
 data_path = testing.data_path(download=False)
@@ -91,7 +96,7 @@ def test_chpi_adjust():
     msg = [
         "HPIFIT: 5 coils digitized in order 5 1 4 3 2",
         "HPIFIT: 3 coils accepted: 1 2 4",
-        "Hpi coil moments (3 5):",
+        "Hpi coil moments (3, 5):",
         "2.08542e-15 -1.52486e-15 -1.53484e-15",
         "2.14516e-15 2.09608e-15 7.30303e-16",
         "-3.2318e-16 -4.25666e-16 2.69997e-15",
@@ -203,7 +208,7 @@ def _assert_quats(
     # maxfilter produces some times that are implausibly large (weird)
     if not np.isclose(t[0], t_est[0], atol=1e-1):  # within 100 ms
         raise AssertionError(
-            "Start times not within 100 ms: %0.3f != %0.3f" % (t[0], t_est[0])
+            f"Start times not within 100 ms: {t[0]:0.3f} != {t_est[0]:0.3f}"
         )
     use_mask = (t >= t_est[0]) & (t <= t_est[-1])
     t = t[use_mask]
@@ -222,10 +227,9 @@ def _assert_quats(
     distances = np.sqrt(np.sum((trans - trans_est_interp) ** 2, axis=1))
     assert np.isfinite(distances).all()
     arg_worst = np.argmax(distances)
-    assert distances[arg_worst] <= dist_tol, "@ %0.3f seconds: %0.3f > %0.3f mm" % (
-        t[arg_worst],
-        1000 * distances[arg_worst],
-        1000 * dist_tol,
+    assert distances[arg_worst] <= dist_tol, (
+        f"@ {t[arg_worst]:0.3f} seconds: "
+        f"{1000 * distances[arg_worst]:0.3f} > {1000 * dist_tol:0.3f} mm"
     )
 
     # limit rotation difference between MF and our estimation
@@ -233,10 +237,9 @@ def _assert_quats(
     quats_est_interp = interp1d(t_est, quats_est, axis=0)(t)
     angles = 180 * _angle_between_quats(quats_est_interp, quats) / np.pi
     arg_worst = np.argmax(angles)
-    assert angles[arg_worst] <= angle_tol, "@ %0.3f seconds: %0.3f > %0.3f deg" % (
-        t[arg_worst],
-        angles[arg_worst],
-        angle_tol,
+    assert angles[arg_worst] <= angle_tol, (
+        f"@ {t[arg_worst]:0.3f} seconds: "
+        f"{angles[arg_worst]:0.3f} > {angle_tol:0.3f} deg"
     )
 
     # error calculation difference
@@ -364,8 +367,8 @@ def test_calculate_chpi_positions_vv():
             pick_types(raw_bad.info, meg=True)[::16],
         ]
     )
-    raw_bad.pick_channels([raw_bad.ch_names[pick] for pick in picks], ordered=False)
-    with pytest.warns(RuntimeWarning, match="Discrepancy"):
+    raw_bad.pick([raw_bad.ch_names[pick] for pick in picks])
+    with _record_warnings(), pytest.warns(RuntimeWarning, match="Discrepancy"):
         with catch_logging() as log_file:
             _calculate_chpi_positions(raw_bad, t_step_min=1.0, verbose=True)
     # ignore HPI info header and [done] footer
@@ -420,6 +423,15 @@ def test_calculate_chpi_positions_artemis():
     _assert_quats(
         py_quats, mf_quats, dist_tol=0.001, angle_tol=1.0, err_rtol=0.7, vel_atol=1e-2
     )
+
+
+@testing.requires_testing_data
+def test_warn_maxwell_filtered():
+    """Test that trying to compute locations on Maxwell filtered data warns."""
+    raw = read_raw_fif(sss_fif_fname).crop(0, 1)
+    with pytest.warns(RuntimeWarning, match="Maxwell filter"):
+        amps = compute_chpi_amplitudes(raw)
+    assert len(amps["times"]) > 0  # but for this file, it does work!
 
 
 @testing.requires_testing_data
@@ -693,7 +705,7 @@ def test_chpi_subtraction_filter_chpi():
     raw.crop(0, 16)
     # remove cHPI status chans
     raw_c = read_raw_fif(sss_hpisubt_fname).crop(0, 16).load_data()
-    raw_c.pick_types(meg=True, eeg=True, eog=True, ecg=True, stim=True, misc=True)
+    raw_c.pick(["meg", "eeg", "eog", "ecg", "stim", "misc"])
     assert_meg_snr(raw, raw_c, 143, 624)
     # cHPI suppressed but not line freqs (or others)
     assert_suppressed(raw, raw_orig, np.arange(83, 324, 60), [30, 60, 150])
@@ -752,7 +764,7 @@ def test_chpi_subtraction_filter_chpi():
 
 
 @testing.requires_testing_data
-def test_calculate_head_pos_ctf():
+def test_calculate_head_pos_ctf(tmp_path):
     """Test extracting of cHPI positions from CTF data."""
     raw = read_raw_ctf(ctf_chpi_fname)
     chpi_locs = extract_chpi_locs_ctf(raw)
@@ -764,9 +776,28 @@ def test_calculate_head_pos_ctf():
     )  # 7 mm/s
     plot_head_positions(quats, info=raw.info)
 
-    raw = read_raw_fif(ctf_fname)
     with pytest.raises(RuntimeError, match="Could not find"):
-        extract_chpi_locs_ctf(raw)
+        extract_chpi_locs_ctf(read_raw_fif(ctf_fname))
+
+    # save-load should not affect result
+    fname_temp = tmp_path / "test_ctf_raw.fif"
+    raw.save(fname_temp)
+    raw_read = read_raw_fif(fname_temp)
+    # the two attributes used by compute_head_pos
+    assert_allclose(
+        raw.info["dev_head_t"]["trans"], raw_read.info["dev_head_t"]["trans"]
+    )
+    with pytest.warns(RuntimeWarning, match="is poor"):
+        head_rrs = _get_hpi_initial_fit(raw.info, verbose="debug")
+    with pytest.warns(RuntimeWarning, match="is poor"):
+        head_rrs_2 = _get_hpi_initial_fit(raw_read.info, verbose="debug")
+    assert_allclose(head_rrs, head_rrs_2, atol=1e-5)
+    quats_2 = compute_head_pos(raw_read.info, chpi_locs)
+    _assert_quats(quats, quats_2, dist_tol=1e-5, angle_tol=0.1)
+    chpi_locs_2 = extract_chpi_locs_ctf(raw_read)
+    assert_allclose(chpi_locs["rrs"], chpi_locs_2["rrs"], atol=1e-5)
+    quats_3 = compute_head_pos(raw_read.info, chpi_locs_2)
+    _assert_quats(quats, quats_3, dist_tol=1e-5, angle_tol=0.1)
 
 
 @testing.requires_testing_data

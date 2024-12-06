@@ -1,13 +1,14 @@
 """Test ieeg volume functions."""
-# Authors: Alex Rockhill <aprockhill@mailbox.org>
-#
+
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import numpy as np
 import pytest
 
-from mne.coreg import get_mni_fiducials
 from mne.channels import make_dig_montage
+from mne.coreg import get_mni_fiducials
 from mne.datasets import testing
 from mne.preprocessing.ieeg import make_montage_volume, warp_montage
 from mne.transforms import apply_trans, compute_volume_registration

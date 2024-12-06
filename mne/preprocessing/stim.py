@@ -1,29 +1,27 @@
-# Authors: Daniel Strohmeier <daniel.strohmeier@tu-ilmenau.de>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import numpy as np
-from ..evoked import Evoked
-from ..epochs import BaseEpochs
-from ..io import BaseRaw
-from ..event import find_events
+from scipy.interpolate import interp1d
+from scipy.signal.windows import hann
 
-from ..io.pick import _picks_to_idx
-from ..utils import _check_preload, _check_option, fill_doc
+from .._fiff.pick import _picks_to_idx
+from ..epochs import BaseEpochs
+from ..event import find_events
+from ..evoked import Evoked
+from ..io import BaseRaw
+from ..utils import _check_option, _check_preload, fill_doc
 
 
 def _get_window(start, end):
     """Return window which has length as much as parameter start - end."""
-    from scipy.signal.windows import hann
-
     window = 1 - np.r_[hann(4)[:2], np.ones(np.abs(end - start) - 4), hann(4)[-2:]].T
     return window
 
 
 def _fix_artifact(data, window, picks, first_samp, last_samp, mode):
     """Modify original data by using parameter data."""
-    from scipy.interpolate import interp1d
-
     if mode == "linear":
         x = np.array([first_samp, last_samp])
         f = interp1d(x, data[:, (first_samp, last_samp)][picks])
@@ -83,7 +81,7 @@ def fix_stim_artifact(
     s_end = int(np.ceil(inst.info["sfreq"] * tmax))
     if (mode == "window") and (s_end - s_start) < 4:
         raise ValueError(
-            "Time range is too short. Use a larger interval " 'or set mode to "linear".'
+            'Time range is too short. Use a larger interval or set mode to "linear".'
         )
     window = None
     if mode == "window":
@@ -110,7 +108,7 @@ def fix_stim_artifact(
     elif isinstance(inst, BaseEpochs):
         if inst.reject is not None:
             raise RuntimeError(
-                "Reject is already applied. Use reject=None " "in the constructor."
+                "Reject is already applied. Use reject=None in the constructor."
             )
         e_start = int(np.ceil(inst.info["sfreq"] * inst.tmin))
         first_samp = s_start - e_start
@@ -126,6 +124,6 @@ def fix_stim_artifact(
         _fix_artifact(data, window, picks, first_samp, last_samp, mode)
 
     else:
-        raise TypeError("Not a Raw or Epochs or Evoked (got %s)." % type(inst))
+        raise TypeError(f"Not a Raw or Epochs or Evoked (got {type(inst)}).")
 
     return inst

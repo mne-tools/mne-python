@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "7b2304840405f1d7956494c735c91d8bff094e7e",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "doc/_static/js/contrib-avatars.js": {
+      "a": 51,
+      "d": 0
+    },
+    "doc/_static/style.css": {
+      "a": 11,
+      "d": 2
+    },
+    "doc/_templates/layout.html": {
+      "a": 3,
+      "d": 0
+    }
+  }
+}

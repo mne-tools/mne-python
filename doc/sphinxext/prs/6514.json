@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "23fdb4136384696b866288032ceb5c47a4e0a589",
+  "authors": [
+    {
+      "n": "Joan Massich",
+      "e": "mailsik@gmail.com"
+    },
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/commands/utils.py": {
+      "a": 5,
+      "d": 20
+    },
+    "mne/conftest.py": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

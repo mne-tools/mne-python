@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "658ddbe28a3dcb2d6d00bf15c3507ceb837e25d5",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "mne/io/ctf/info.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

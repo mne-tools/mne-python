@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "fea6bdc752b765bb447615b077b235a948b0f8e4",
+  "authors": [
+    {
+      "n": "Martin Luessi",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/data/mne_analyze.sel": {
+      "a": 13,
+      "d": 0
+    },
+    "mne/fiff/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/fiff/pick.py": {
+      "a": 73,
+      "d": 0
+    },
+    "mne/fiff/tests/test_pick.py": {
+      "a": 15,
+      "d": 1
+    },
+    "setup.py": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

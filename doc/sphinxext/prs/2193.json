@@ -1,0 +1,71 @@
+{
+  "merge_commit_sha": "77a5801f45d9e6ed059a37aace5387faefb530ce",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/source/python_reference.rst": {
+      "a": 4,
+      "d": 1
+    },
+    "doc/source/python_tutorial.rst": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/source/whats_new.rst": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/__init__.py": {
+      "a": 5,
+      "d": 5
+    },
+    "mne/bem.py": {
+      "a": 872,
+      "d": 6
+    },
+    "mne/coreg.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/dipole.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/forward/_compute_forward.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/forward/_make_forward.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/source_space.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/surface.py": {
+      "a": 8,
+      "d": 301
+    },
+    "mne/tests/test_bem.py": {
+      "a": 155,
+      "d": 2
+    },
+    "mne/tests/test_dipole.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/tests/test_docstring_parameters.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/tests/test_surface.py": {
+      "a": 2,
+      "d": 21
+    }
+  }
+}

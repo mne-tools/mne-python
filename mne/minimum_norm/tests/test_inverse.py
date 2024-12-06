@@ -1,61 +1,64 @@
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
+
+import copy
 import re
 from pathlib import Path
 
 import numpy as np
+import pytest
 from numpy.testing import (
-    assert_array_almost_equal,
-    assert_equal,
     assert_allclose,
+    assert_array_almost_equal,
     assert_array_equal,
     assert_array_less,
+    assert_equal,
 )
 from scipy import sparse
 
-import pytest
-import copy
-
 import mne
-from mne.datasets import testing
-from mne.label import read_label, label_sign_flip
-from mne.event import read_events
-from mne.epochs import Epochs, EpochsArray, make_fixed_length_epochs
-from mne.forward import restrict_forward_to_stc, apply_forward, is_fixed_orient
-from mne.source_estimate import read_source_estimate, VolSourceEstimate
-from mne.source_space import _get_src_nn
-from mne.surface import _normal_orth
 from mne import (
-    read_cov,
-    read_forward_solution,
-    read_evokeds,
+    Covariance,
+    EvokedArray,
+    SourceEstimate,
+    combine_evoked,
+    compute_raw_covariance,
+    convert_forward_solution,
+    make_ad_hoc_cov,
+    make_forward_solution,
+    make_sphere_model,
+    pick_channels_forward,
     pick_types,
     pick_types_forward,
-    make_forward_solution,
-    EvokedArray,
-    convert_forward_solution,
-    Covariance,
-    combine_evoked,
-    SourceEstimate,
-    make_sphere_model,
-    make_ad_hoc_cov,
-    pick_channels_forward,
-    compute_raw_covariance,
+    read_cov,
+    read_evokeds,
+    read_forward_solution,
 )
-from mne.io import read_raw_fif, read_info
+from mne.datasets import testing
+from mne.epochs import Epochs, EpochsArray, make_fixed_length_epochs
+from mne.event import read_events
+from mne.forward import apply_forward, is_fixed_orient, restrict_forward_to_stc
+from mne.io import read_info, read_raw_fif
+from mne.label import label_sign_flip, read_label
 from mne.minimum_norm import (
-    apply_inverse,
-    read_inverse_operator,
-    apply_inverse_raw,
-    apply_inverse_epochs,
-    apply_inverse_tfr_epochs,
-    make_inverse_operator,
-    apply_inverse_cov,
-    write_inverse_operator,
-    prepare_inverse_operator,
-    compute_rank_inverse,
     INVERSE_METHODS,
+    apply_inverse,
+    apply_inverse_cov,
+    apply_inverse_epochs,
+    apply_inverse_raw,
+    apply_inverse_tfr_epochs,
+    compute_rank_inverse,
+    make_inverse_operator,
+    prepare_inverse_operator,
+    read_inverse_operator,
+    write_inverse_operator,
 )
-from mne.time_frequency import EpochsTFR
-from mne.utils import catch_logging, _record_warnings
+from mne.source_estimate import VolSourceEstimate, read_source_estimate
+from mne.source_space._source_space import _get_src_nn
+from mne.surface import _normal_orth
+from mne.time_frequency import EpochsTFRArray
+from mne.utils import _record_warnings, catch_logging
 
 test_path = testing.data_path(download=False)
 s_path = test_path / "MEG" / "sample"
@@ -84,7 +87,6 @@ fname_trans = s_path / "sample_audvis_trunc-trans.fif"
 subjects_dir = test_path / "subjects"
 s_path_bem = subjects_dir / "sample" / "bem"
 fname_bem = s_path_bem / "sample-320-320-320-bem-sol.fif"
-fname_bem_homog = s_path_bem / "sample-320-bem-sol.fif"
 src_fname = s_path_bem / "sample-oct-4-src.fif"
 
 snr = 3.0
@@ -129,7 +131,7 @@ def _compare(a, b):
                 if k not in b and k not in skip_types:
                     raise ValueError(
                         "First one had one second one didn't:\n"
-                        "%s not in %s" % (k, b.keys())
+                        f"{k} not in {b.keys()}"
                     )
                 if k not in skip_types:
                     last_keys.pop()
@@ -139,13 +141,13 @@ def _compare(a, b):
                 if k not in a and k not in skip_types:
                     raise ValueError(
                         "Second one had one first one didn't:\n"
-                        "%s not in %s" % (k, sorted(a.keys()))
+                        f"{k} not in {sorted(a.keys())}"
                     )
         elif isinstance(a, list):
             assert len(a) == len(b)
             for i, j in zip(a, b):
                 _compare(i, j)
-        elif isinstance(a, sparse.csr_matrix):
+        elif isinstance(a, sparse.csr_array):
             assert_array_almost_equal(a.data, b.data)
             assert_equal(a.indices, b.indices)
             assert_equal(a.indptr, b.indptr)
@@ -224,9 +226,7 @@ def _compare_inverses_approx(
         stc_2 /= norms
         corr = np.corrcoef(stc_1.ravel(), stc_2.ravel())[0, 1]
         assert corr > ctol
-        assert_allclose(
-            stc_1, stc_2, rtol=rtol, atol=atol, err_msg="%s: %s" % (method, corr)
-        )
+        assert_allclose(stc_1, stc_2, rtol=rtol, atol=atol, err_msg=f"{method}: {corr}")
 
 
 def _compare_io(inv_op, *, out_file_ext=".fif", tmp_path):
@@ -305,7 +305,7 @@ def test_make_inverse_operator_loose(evoked, tmp_path):
         )
     log = log.getvalue()
     assert "MEG: rank 302 computed" in log
-    assert "limit = 1/%d" % fwd_op["nsource"] in log
+    assert f"limit = 1/{fwd_op['nsource']}" in log
     assert "Loose (0.2)" in repr(my_inv_op)
     _compare_io(my_inv_op, tmp_path=tmp_path)
     assert_equal(inverse_operator["units"], "Am")
@@ -346,7 +346,7 @@ def test_inverse_operator_channel_ordering(evoked, noise_cov):
             evoked.info, fwd_orig, noise_cov, loose=0.2, depth=depth, verbose=True
         )
     log = log.getvalue()
-    assert "limit = 1/%s" % fwd_orig["nsource"] in log
+    assert f"limit = 1/{fwd_orig['nsource']}" in log
     stc_1 = apply_inverse(evoked, inv_orig, lambda2, "dSPM")
 
     # Assume that a raw reordering applies to both evoked and noise_cov,
@@ -540,7 +540,7 @@ def test_localization_bias_free(
 @pytest.mark.slowtest
 def test_apply_inverse_sphere(evoked, tmp_path):
     """Test applying an inverse with a sphere model (rank-deficient)."""
-    evoked.pick_channels(evoked.ch_names[:306:8])
+    evoked.pick(evoked.ch_names[:306:8])
     with evoked.info._unlock():
         evoked.info["projs"] = []
     cov = make_ad_hoc_cov(evoked.info)
@@ -741,14 +741,14 @@ def assert_stc_res(evoked, stc, forward, res, atol=1e-20):
     __tracebackhide__ = True
     with _record_warnings():  # all positive or large values
         estimated = apply_forward(forward, stc, evoked.info)
-    meg, eeg = "meg" in estimated, "eeg" in estimated
-    evoked = evoked.copy().pick_types(meg=meg, eeg=eeg, exclude=())
+    picks = list(filter(lambda x: x in estimated, ["meg", "eeg"]))
+    evoked = evoked.copy().pick(picks, exclude=())
     evoked.apply_proj()
-    res = res.copy().pick_types(meg=meg, eeg=eeg, exclude=())
+    res = res.copy().pick(picks, exclude=())
     estimated.info["bads"] = evoked.info["bads"]  # proj the same channels
     estimated.add_proj(evoked.info["projs"]).apply_proj()
-    estimated.pick_channels(res.ch_names, ordered=True)
-    evoked.pick_channels(res.ch_names, ordered=True)
+    estimated.pick(res.ch_names)
+    evoked.pick(res.ch_names)
     recon = estimated.data + res.data
     assert_allclose(evoked.data, recon.data, atol=atol, rtol=1e-6)
 
@@ -772,7 +772,7 @@ def test_inverse_residual(evoked, method, pick_ori):
     if method == "eLORETA" and pick_ori == "vector":  # works but slow
         return
     # use fname_inv as it will be faster than fname_full (fewer verts and chs)
-    evoked = evoked.pick_types(meg=True)
+    evoked = evoked.pick("meg", exclude="bads")
     if pick_ori is None:  # use fixed
         inv = read_inverse_operator(fname_inv_fixed_depth)
     else:
@@ -966,6 +966,11 @@ def test_inverse_operator_noise_cov_rank(evoked, noise_cov):
     assert compute_rank_inverse(inv) == 64
     inv = make_inverse_operator(evoked.info, fwd_op, noise_cov, rank=dict(meg=64))
     assert compute_rank_inverse(inv) == 64
+
+    bad_cov = noise_cov.copy()
+    bad_cov["data"][0, 0] *= 1e12
+    with pytest.warns(RuntimeWarning, match="orders of magnitude"):
+        make_inverse_operator(evoked.info, fwd_op, bad_cov, rank=dict(meg=64))
 
     fwd_op = read_forward_solution_eeg(fname_fwd, surf_ori=True)
     inv = make_inverse_operator(evoked.info, fwd_op, noise_cov, rank=dict(eeg=20))
@@ -1376,11 +1381,11 @@ def test_apply_inverse_tfr(return_generator):
     times = np.arange(sfreq) / sfreq  # make epochs 1s long
     data = rng.random((n_epochs, len(info.ch_names), freqs.size, times.size))
     data = data + 1j * data  # make complex to simulate amplitude + phase
-    epochs_tfr = EpochsTFR(info, data, times=times, freqs=freqs)
+    epochs_tfr = EpochsTFRArray(info=info, data=data, times=times, freqs=freqs)
     epochs_tfr.apply_baseline((0, 0.5))
     pick_ori = "vector"
 
-    with pytest.raises(ValueError, match="Expected 2 inverse operators, " "got 3"):
+    with pytest.raises(ValueError, match="Expected 2 inverse operators, got 3"):
         apply_inverse_tfr_epochs(epochs_tfr, [inverse_operator] * 3, lambda2)
 
     # test epochs
@@ -1616,7 +1621,7 @@ def test_inverse_mixed_loose(mixed_fwd_cov_evoked):
 def test_sss_rank():
     """Test passing rank explicitly during inverse computation."""
     # make raw match the fwd and cov, doesn't matter that they are mismatched
-    raw = mne.io.read_raw_fif(fname_sss).pick_types(meg=True)
+    raw = mne.io.read_raw_fif(fname_sss).pick("meg")
     raw.rename_channels(
         {ch_name: f"{ch_name[:3]} {ch_name[3:]}" for ch_name in raw.ch_names}
     )

@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "67d65c4ae68c2267a2a5042c87ca93f3570e0c66",
+  "authors": [
+    {
+      "n": "Martin Luessi",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/source/mne-python.rst": {
+      "a": 8,
+      "d": 1
+    }
+  }
+}

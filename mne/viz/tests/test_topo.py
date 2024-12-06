@@ -1,37 +1,31 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Denis Engemann <denis.engemann@gmail.com>
-#          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
-#          Eric Larson <larson.eric.d@gmail.com>
-#          Robert Luke <mail@robertluke.net>
-#
-# License: Simplified BSD
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from collections import namedtuple
 from pathlib import Path
 
-import numpy as np
-import pytest
 import matplotlib
 import matplotlib.pyplot as plt
+import numpy as np
+import pytest
 
-from mne import read_events, Epochs, read_cov, compute_proj_evoked
+from mne import Epochs, compute_proj_evoked, read_cov, read_events
 from mne.channels import read_layout
 from mne.io import read_raw_fif
-from mne.time_frequency.tfr import AverageTFR
+from mne.time_frequency.tfr import AverageTFRArray
 from mne.utils import _record_warnings
-
 from mne.viz import (
-    plot_topo_image_epochs,
     _get_presser,
     mne_analyze_colormap,
     plot_evoked_topo,
+    plot_topo_image_epochs,
 )
 from mne.viz.evoked import _line_plot_onselect
+from mne.viz.topo import _imshow_tfr, _plot_update_evoked_topo_proj, iter_topography
 from mne.viz.utils import _fake_click
 
-from mne.viz.topo import _plot_update_evoked_topo_proj, iter_topography, _imshow_tfr
-
-base_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
+base_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
 evoked_fname = base_dir / "test-ave.fif"
 raw_fname = base_dir / "test_raw.fif"
 event_name = base_dir / "test-eve.fif"
@@ -114,7 +108,7 @@ def test_plot_joint():
 
     # test proj options
     assert len(evoked.info["projs"]) == 0
-    evoked.pick_types(meg=True)
+    evoked.pick(picks="meg")
     evoked.add_proj(compute_proj_evoked(evoked, n_mag=1, n_grad=1, meg="combined"))
     assert len(evoked.info["projs"]) == 1
     with pytest.raises(ValueError, match="must match ts_args"):
@@ -125,13 +119,13 @@ def test_plot_joint():
     plt.close("all")
 
     # test sEEG (gh:8733)
-    evoked.del_proj().pick_types("mag")  # avoid overlapping positions error
+    evoked.del_proj().pick("mag")  # avoid overlapping positions error
     mapping = {ch_name: "seeg" for ch_name in evoked.ch_names}
     evoked.set_channel_types(mapping, on_unit_change="ignore")
     evoked.plot_joint()
 
     # test DBS (gh:8739)
-    evoked = _get_epochs().average().pick_types("mag")
+    evoked = _get_epochs().average().pick("mag")
     mapping = {ch_name: "dbs" for ch_name in evoked.ch_names}
     evoked.set_channel_types(mapping, on_unit_change="ignore")
     evoked.plot_joint()
@@ -163,9 +157,9 @@ def test_plot_topo():
             [evoked, evoked], merge_grads=True, color=np.array(["blue", "red"])
         )
 
-    picked_evoked = evoked.copy().pick_channels(evoked.ch_names[:3])
-    picked_evoked_eeg = evoked.copy().pick_types(meg=False, eeg=True)
-    picked_evoked_eeg.pick_channels(picked_evoked_eeg.ch_names[:3])
+    picked_evoked = evoked.copy().pick(evoked.ch_names[:3])
+    picked_evoked_eeg = evoked.copy().pick(picks="eeg")
+    picked_evoked_eeg.pick(picked_evoked_eeg.ch_names[:3])
 
     # test scaling
     for ylim in [dict(mag=[-600, 600]), None]:
@@ -217,7 +211,7 @@ def test_plot_topo():
     plt.close("all")
     cov = read_cov(cov_fname)
     cov["projs"] = []
-    evoked.pick_types(meg=True).plot_topo(noise_cov=cov)
+    evoked.pick(picks="meg").plot_topo(noise_cov=cov)
     plt.close("all")
 
     # Test exclude parameter
@@ -285,7 +279,7 @@ def test_plot_topo_image_epochs():
     _fake_click(fig, fig.axes[0], (0.08, 0.64))
     assert num_figures_before + 1 == len(plt.get_fignums())
     # test for auto-showing a colorbar when only 1 sensor type
-    ep = epochs.copy().pick_types(meg=False, eeg=True)
+    ep = epochs.copy().pick(picks="eeg")
     fig = plot_topo_image_epochs(ep, vmin=None, vmax=None, colorbar=None, cmap=cmap)
     ax = [x for x in fig.get_children() if isinstance(x, matplotlib.axes.Axes)]
     # include inset axes (newer MPL)
@@ -310,23 +304,25 @@ def test_plot_tfr_topo():
     data = np.random.RandomState(0).randn(
         len(epochs.ch_names), n_freqs, len(epochs.times)
     )
-    tfr = AverageTFR(epochs.info, data, epochs.times, np.arange(n_freqs), nave)
-    plt.close("all")
-    fig = tfr.plot_topo(
-        baseline=(None, 0), mode="ratio", title="Average power", vmin=0.0, vmax=14.0
+    tfr = AverageTFRArray(
+        info=epochs.info,
+        data=data,
+        times=epochs.times,
+        freqs=np.arange(n_freqs),
+        nave=nave,
     )
+    plt.close("all")
+    fig = tfr.plot_topo(baseline=(None, 0), mode="ratio", vmin=0.0, vmax=14.0)
 
     # test complex
     tfr.data = tfr.data * (1 + 1j)
     plt.close("all")
-    fig = tfr.plot_topo(
-        baseline=(None, 0), mode="ratio", title="Average power", vmin=0.0, vmax=14.0
-    )
+    fig = tfr.plot_topo(baseline=(None, 0), mode="ratio", vmin=0.0, vmax=14.0)
 
     # test opening tfr by clicking
     num_figures_before = len(plt.get_fignums())
     # could use np.reshape(fig.axes[-1].images[0].get_extent(), (2, 2)).mean(1)
-    with pytest.warns(RuntimeWarning, match="not masking"):
+    with _record_warnings(), pytest.warns(RuntimeWarning, match="not masking"):
         _fake_click(fig, fig.axes[0], (0.08, 0.65))
     assert num_figures_before + 1 == len(plt.get_fignums())
     plt.close("all")
@@ -336,21 +332,30 @@ def test_plot_tfr_topo():
 
     # nonuniform freqs
     freqs = np.logspace(*np.log10([3, 10]), num=3)
-    tfr = AverageTFR(epochs.info, data, epochs.times, freqs, nave)
-    fig = tfr.plot([4], baseline=(None, 0), mode="mean", vmax=14.0, show=False)
+    tfr = AverageTFRArray(
+        info=epochs.info, data=data, times=epochs.times, freqs=freqs, nave=nave
+    )
+    fig = tfr.plot([4], baseline=(None, 0), mode="mean", vlim=(None, 14.0), show=False)
     assert fig[0].axes[0].get_yaxis().get_scale() == "log"
 
     # one timesample
-    tfr = AverageTFR(epochs.info, data[:, :, [0]], epochs.times[[1]], freqs, nave)
+    tfr = AverageTFRArray(
+        info=epochs.info,
+        data=data[:, :, [0]],
+        times=epochs.times[[1]],
+        freqs=freqs,
+        nave=nave,
+    )
+
     with _record_warnings():  # matplotlib equal left/right
-        tfr.plot([4], baseline=None, vmax=14.0, show=False, yscale="linear")
+        tfr.plot([4], baseline=None, vlim=(None, 14.0), show=False, yscale="linear")
 
     # one frequency bin, log scale required: as it doesn't make sense
     # to plot log scale for one value, we test whether yscale is set to linear
     vmin, vmax = 0.0, 2.0
     fig, ax = plt.subplots()
     tmin, tmax = epochs.times[0], epochs.times[-1]
-    with pytest.warns(RuntimeWarning, match="not masking"):
+    with _record_warnings(), pytest.warns(RuntimeWarning, match="not masking"):
         _imshow_tfr(
             ax,
             3,
@@ -373,7 +378,7 @@ def test_plot_tfr_topo():
     # ValueError when freq[0] == 0 and yscale == 'log'
     these_freqs = freqs[:3].copy()
     these_freqs[0] = 0
-    with pytest.warns(RuntimeWarning, match="not masking"):
+    with _record_warnings(), pytest.warns(RuntimeWarning, match="not masking"):
         pytest.raises(
             ValueError,
             _imshow_tfr,

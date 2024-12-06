@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "3fff7d99287809a5ed086ffd58029b2b4e2228c2",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "autofix-ci[bot]",
+      "e": "114827586+autofix-ci[bot]@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/12719.apichange.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 8,
+      "d": 2
+    }
+  }
+}

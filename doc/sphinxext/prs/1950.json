@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "af34b75bb1657cf4f16b0da23fc4fdc7c9fa0d9e",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "Makefile": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/parallel.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/stats/cluster_level.py": {
+      "a": 9,
+      "d": 5
+    },
+    "mne/stats/tests/test_cluster_level.py": {
+      "a": 39,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "2f0d2f3ee2422dfb721d1bcc7138ff1a6fccd662",
+  "authors": [
+    {
+      "n": "dependabot[bot]",
+      "e": "49699333+dependabot[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".github/workflows/tests.yml": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

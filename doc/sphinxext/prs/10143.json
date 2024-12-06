@@ -1,0 +1,55 @@
+{
+  "merge_commit_sha": "a2e3080c2b64f7a5242c1ecb9675aaef1874db4b",
+  "authors": [
+    {
+      "n": "Mathieu Scheltienne",
+      "e": "mathieu.scheltienne@fcbg.ch"
+    }
+  ],
+  "changes": {
+    "doc/changes/0.21.inc": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/preprocessing.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/__init__.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/preprocessing/annotate_amplitude.py": {
+      "a": 254,
+      "d": 0
+    },
+    "mne/preprocessing/flat.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/preprocessing/maxwell.py": {
+      "a": 5,
+      "d": 5
+    },
+    "mne/preprocessing/tests/test_annotate_amplitude.py": {
+      "a": 394,
+      "d": 0
+    },
+    "mne/preprocessing/tests/test_flat.py": {
+      "a": 12,
+      "d": 5
+    },
+    "mne/preprocessing/tests/test_maxwell.py": {
+      "a": 3,
+      "d": 2
+    },
+    "tools/setup_xvfb.sh": {
+      "a": 9,
+      "d": 0
+    }
+  }
+}

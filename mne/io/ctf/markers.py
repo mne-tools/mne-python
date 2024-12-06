@@ -1,14 +1,15 @@
-# Author: Joan Massich <mailsik@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
-import numpy as np
 import os.path as op
 from io import BytesIO
 
+import numpy as np
+
 from ...annotations import Annotations
-from .res4 import _read_res4
 from .info import _convert_time
+from .res4 import _read_res4
 
 
 def _get_markers(fname):

@@ -1,27 +1,27 @@
-# Author: Martin Luessi <mluessi@nmr.mgh.harvard.edu>
-#
-# License: Simplified BSD
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
-import pytest
 import numpy as np
-from numpy.testing import assert_array_almost_equal, assert_allclose
+import pytest
+from numpy.testing import assert_allclose, assert_array_almost_equal
 
 import mne
-from mne.datasets import testing
 from mne import (
-    read_cov,
-    read_forward_solution,
-    read_evokeds,
-    convert_forward_solution,
     VectorSourceEstimate,
+    convert_forward_solution,
+    pick_types_forward,
+    read_cov,
+    read_evokeds,
+    read_forward_solution,
 )
 from mne.cov import regularize
+from mne.datasets import testing
+from mne.dipole import Dipole
 from mne.inverse_sparse import gamma_map
 from mne.inverse_sparse.mxne_inverse import make_stc_from_dipoles
 from mne.minimum_norm.tests.test_inverse import assert_stc_res, assert_var_exp_log
-from mne import pick_types_forward
 from mne.utils import assert_stcs_equal, catch_logging
-from mne.dipole import Dipole
 
 data_path = testing.data_path(download=False)
 fname_evoked = data_path / "MEG" / "sample" / "sample_audvis-ave.fif"
@@ -69,7 +69,7 @@ def test_gamma_map_standard():
     evoked.crop(tmin=0.1, tmax=0.14)  # crop to window around peak
 
     cov = read_cov(fname_cov)
-    cov = regularize(cov, evoked.info, rank=None)
+    cov = regularize(cov, evoked.info)
 
     alpha = 0.5
     with catch_logging() as log:
@@ -161,7 +161,7 @@ def test_gamma_map_vol_sphere():
     evoked.crop(tmin=0.1, tmax=0.16)  # crop to window around peak
 
     cov = read_cov(fname_cov)
-    cov = regularize(cov, evoked.info, rank=None)
+    cov = regularize(cov, evoked.info, rank=dict(eeg=58))
 
     info = evoked.info
     sphere = mne.make_sphere_model(r0=(0.0, 0.0, 0.0), head_radius=0.080)

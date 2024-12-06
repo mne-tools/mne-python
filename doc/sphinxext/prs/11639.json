@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "4eb9ef04c50710dba840ceaac6dc4f69ffefdd31",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/conftest.py": {
+      "a": 41,
+      "d": 0
+    },
+    "mne/datasets/eegbci/eegbci.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/datasets/eegbci/tests/test_eegbci.py": {
+      "a": 14,
+      "d": 0
+    },
+    "mne/datasets/sleep_physionet/tests/test_physionet.py": {
+      "a": 4,
+      "d": 29
+    },
+    "tutorials/preprocessing/40_artifact_correction_ica.py": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

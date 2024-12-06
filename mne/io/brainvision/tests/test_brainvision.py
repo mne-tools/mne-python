@@ -1,25 +1,25 @@
 """Test reading of BrainVision format."""
-# Author: Teon Brooks <teon.brooks@gmail.com>
-#         Stefan Appelhoff <stefan.appelhoff@mailbox.org>
-#
-# License: BSD-3-Clause
 
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
+
+import datetime
 import re
 import shutil
 from pathlib import Path
 
 import numpy as np
-from numpy.testing import assert_array_equal, assert_allclose
 import pytest
+from numpy.testing import assert_allclose, assert_array_equal
 
-import datetime
-from mne.utils import _stamp_to_dt, object_diff
-from mne import pick_types, read_annotations, concatenate_raws
-from mne.io.constants import FIFF
-from mne.io import read_raw_fif, read_raw_brainvision
-from mne.io.tests.test_raw import _test_raw_reader
-from mne.datasets import testing
+from mne import concatenate_raws, pick_types, read_annotations
+from mne._fiff.constants import FIFF
 from mne.annotations import events_from_annotations
+from mne.datasets import testing
+from mne.io import read_raw_brainvision, read_raw_fif
+from mne.io.tests.test_raw import _test_raw_reader
+from mne.utils import _record_warnings, _stamp_to_dt, object_diff
 
 data_dir = Path(__file__).parent / "data"
 vhdr_path = data_dir / "test.vhdr"
@@ -58,9 +58,6 @@ vamp_ahdr = data_path / "Brainvision" / "test_VAmp.ahdr"
 # Test for nanovolts as unit
 vhdr_units_path = data_dir / "test_units.vhdr"
 
-# Test bad date
-vhdr_bad_date = data_dir / "test_bad_date.vhdr"
-
 eeg_bin = data_dir / "test_bin_raw.fif"
 eog = ["HL", "HR", "Vb"]
 
@@ -70,6 +67,8 @@ eog = ["HL", "HR", "Vb"]
 #       working)
 #      This should be amend in its own PR.
 montage = data_dir / "test.hpts"
+
+_no_dig = pytest.warns(RuntimeWarning, match="No info on DataPoints")
 
 
 def test_orig_units(recwarn):
@@ -132,14 +131,14 @@ def _mocked_meas_date_data(tmp_path_factory):
     """Prepare files for mocked_meas_date_file fixture."""
     # Prepare the files
     tmp_path = tmp_path_factory.mktemp("brainvision_mocked_meas_date")
-    vhdr_fname, vmrk_fname, eeg_fname = [
+    vhdr_fname, vmrk_fname, eeg_fname = (
         tmp_path / ff.name for ff in [vhdr_path, vmrk_path, eeg_path]
-    ]
+    )
     for orig, dest in zip([vhdr_path, eeg_path], [vhdr_fname, eeg_fname]):
         shutil.copyfile(orig, dest)
 
     # Get the marker information
-    with open(vmrk_path, "r") as fin:
+    with open(vmrk_path) as fin:
         lines = fin.readlines()
 
     return vhdr_fname, vmrk_fname, lines
@@ -330,7 +329,7 @@ def test_ch_names_comma(tmp_path):
         shutil.copyfile(src, tmp_path / dest)
 
     comma_vhdr = tmp_path / "test.vhdr"
-    with open(comma_vhdr, "r") as fin:
+    with open(comma_vhdr) as fin:
         lines = fin.readlines()
 
     new_lines = []
@@ -372,7 +371,7 @@ def test_brainvision_data_highpass_filters():
 
     w = [str(ww.message) for ww in w]
     assert not any("different lowpass filters" in ww for ww in w), w
-    assert all("different highpass filters" in ww for ww in w), w
+    assert any("different highpass filters" in ww for ww in w), w
 
     assert raw.info["highpass"] == 1.0 / (2 * np.pi * 10)
     assert raw.info["lowpass"] == 250.0
@@ -394,7 +393,7 @@ def test_brainvision_data_highpass_filters():
     w = [str(ww.message) for ww in w]
     assert not any("will be dropped" in ww for ww in w), w
     assert not any("different lowpass filters" in ww for ww in w), w
-    assert all("different highpass filters" in ww for ww in w), w
+    assert any("different highpass filters" in ww for ww in w), w
 
     assert raw.info["highpass"] == 5.0
     assert raw.info["lowpass"] == 250.0
@@ -419,7 +418,7 @@ def test_brainvision_data_lowpass_filters():
 
     expected_warnings = zip(lowpass_warning, highpass_warning)
 
-    assert all(any([lp, hp]) for lp, hp in expected_warnings)
+    assert any(any([lp, hp]) for lp, hp in expected_warnings)
 
     assert raw.info["highpass"] == 1.0 / (2 * np.pi * 10)
     assert raw.info["lowpass"] == 250.0
@@ -443,7 +442,7 @@ def test_brainvision_data_lowpass_filters():
 
     expected_warnings = zip(lowpass_warning, highpass_warning)
 
-    assert all(any([lp, hp]) for lp, hp in expected_warnings)
+    assert any(any([lp, hp]) for lp, hp in expected_warnings)
 
     assert raw.info["highpass"] == 1.0 / (2 * np.pi * 10)
     assert raw.info["lowpass"] == 1.0 / (2 * np.pi * 0.004)
@@ -464,7 +463,7 @@ def test_brainvision_data_partially_disabled_hw_filters():
 
     expected_warnings = zip(trigger_warning, lowpass_warning, highpass_warning)
 
-    assert all(any([trg, lp, hp]) for trg, lp, hp in expected_warnings)
+    assert any(any([trg, lp, hp]) for trg, lp, hp in expected_warnings)
 
     assert raw.info["highpass"] == 0.0
     assert raw.info["lowpass"] == 500.0
@@ -472,7 +471,7 @@ def test_brainvision_data_partially_disabled_hw_filters():
 
 def test_brainvision_data_software_filters_latin1_global_units():
     """Test reading raw Brain Vision files."""
-    with pytest.warns(RuntimeWarning, match="software filter"):
+    with _no_dig, pytest.warns(RuntimeWarning, match="software filter"):
         raw = _test_raw_reader(
             read_raw_brainvision,
             vhdr_fname=vhdr_old_path,
@@ -484,7 +483,7 @@ def test_brainvision_data_software_filters_latin1_global_units():
     assert raw.info["lowpass"] == 50.0
 
     # test sensor name with spaces (#9299)
-    with pytest.warns(RuntimeWarning, match="software filter"):
+    with _no_dig, pytest.warns(RuntimeWarning, match="software filter"):
         raw = _test_raw_reader(
             read_raw_brainvision,
             vhdr_fname=vhdr_old_longname_path,
@@ -535,11 +534,10 @@ def test_brainvision_data():
         elif ch["ch_name"] == "ReRef":
             assert ch["kind"] == FIFF.FIFFV_MISC_CH
             assert ch["unit"] == FIFF.FIFF_UNIT_CEL
-        elif ch["ch_name"] in raw_py.info["ch_names"]:
+        else:
+            assert ch["ch_name"] in raw_py.info["ch_names"], f"Unknown: {ch['ch_name']}"
             assert ch["kind"] == FIFF.FIFFV_EEG_CH
             assert ch["unit"] == FIFF.FIFF_UNIT_V
-        else:
-            raise RuntimeError("Unknown Channel: %s" % ch["ch_name"])
 
     # test loading v2
     read_raw_brainvision(vhdr_v2_path, eog=eog, preload=True, verbose="error")
@@ -565,7 +563,7 @@ def test_brainvision_data():
 
 def test_brainvision_vectorized_data():
     """Test reading BrainVision data files with vectorized data."""
-    with pytest.warns(RuntimeWarning, match="software filter"):
+    with _no_dig, pytest.warns(RuntimeWarning, match="software filter"):
         raw = read_raw_brainvision(vhdr_old_path, preload=True)
 
     assert_array_equal(raw._data.shape, (29, 251))
@@ -610,7 +608,10 @@ def test_brainvision_vectorized_data():
 def test_coodinates_extraction():
     """Test reading of [Coordinates] section if present."""
     # vhdr 2 has a Coordinates section
-    with pytest.warns(RuntimeWarning, match="coordinate information"):
+    with (
+        _record_warnings(),
+        pytest.warns(RuntimeWarning, match="coordinate information"),
+    ):
         raw = read_raw_brainvision(vhdr_v2_path)
 
     # Basic check of extracted coordinates
@@ -657,6 +658,49 @@ def test_read_vmrk_annotations(tmp_path):
         for item in head:
             temp.write(item)
     read_annotations(fname, sfreq=sfreq)
+
+
+def test_ignore_marker_types():
+    """Test ignore marker types."""
+    # default behavior (do not ignore marker types)
+    raw = read_raw_brainvision(vhdr_path)
+    expected_descriptions = [
+        "New Segment/",
+        "Stimulus/S253",
+        "Stimulus/S255",
+        "Event/254",
+        "Stimulus/S255",
+        "Event/254",
+        "Stimulus/S255",
+        "Stimulus/S253",
+        "Stimulus/S255",
+        "Response/R255",
+        "Event/254",
+        "Stimulus/S255",
+        "SyncStatus/Sync On",
+        "Optic/O  1",
+    ]
+    assert_array_equal(raw.annotations.description, expected_descriptions)
+
+    # ignore marker types
+    raw = read_raw_brainvision(vhdr_path, ignore_marker_types=True)
+    expected_descriptions = [
+        "",
+        "S253",
+        "S255",
+        "254",
+        "S255",
+        "254",
+        "S255",
+        "S253",
+        "S255",
+        "R255",
+        "254",
+        "S255",
+        "Sync On",
+        "O  1",
+    ]
+    assert_array_equal(raw.annotations.description, expected_descriptions)
 
 
 @testing.requires_testing_data

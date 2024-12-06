@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "aabdefdc97c035f8d269b6acdc4065a4ee21786c",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/datasets/_fetch.py": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

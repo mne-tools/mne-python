@@ -1,5 +1,6 @@
-#!/usr/bin/env python
-# Authors: Christian Brodbeck  <christianbrodbeck@nyu.edu>
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 """Open the coregistration GUI.
 
@@ -18,7 +19,7 @@ import mne
 
 def run():
     """Run command."""
-    from mne.commands.utils import get_optparser, _add_verbose_flag
+    from mne.commands.utils import _add_verbose_flag, get_optparser
 
     parser = get_optparser(__file__)
 
@@ -40,30 +41,11 @@ def run():
         help="FIFF file with digitizer data for coregistration",
     )
     parser.add_option(
-        "-t",
-        "--tabbed",
-        dest="tabbed",
-        action="store_true",
-        default=False,
-        help="Option for small screens: Combine "
-        "the data source panel and the coregistration panel "
-        "into a single panel with tabs.",
-    )
-    parser.add_option(
-        "--no-guess-mri",
-        dest="guess_mri_subject",
-        action="store_false",
-        default=None,
-        help="Prevent the GUI from automatically guessing and "
-        "changing the MRI subject when a new head shape source "
-        "file is selected.",
-    )
-    parser.add_option(
         "--head-opacity",
         type=float,
         default=None,
         dest="head_opacity",
-        help="The opacity of the head surface, in the range " "[0, 1].",
+        help="The opacity of the head surface, in the range [0, 1].",
     )
     parser.add_option(
         "--high-res-head",
@@ -90,20 +72,7 @@ def run():
         type=str,
         default=None,
         dest="interaction",
-        help='Interaction style to use, can be "trackball" or ' '"terrain".',
-    )
-    parser.add_option(
-        "--scale",
-        type=float,
-        default=None,
-        dest="scale",
-        help="Scale factor for the scene.",
-    )
-    parser.add_option(
-        "--simple-rendering",
-        action="store_false",
-        dest="advanced_rendering",
-        help="Use simplified OpenGL rendering",
+        help='Interaction style to use, can be "trackball" or "terrain".',
     )
     _add_verbose_flag(parser)
 
@@ -112,7 +81,7 @@ def run():
     if options.low_res_head:
         if options.high_res_head:
             raise ValueError(
-                "Can't specify --high-res-head and " "--low-res-head at the same time."
+                "Can't specify --high-res-head and --low-res-head at the same time."
             )
         head_high_res = False
     elif options.high_res_head:
@@ -131,18 +100,13 @@ def run():
 
     faulthandler.enable()
     mne.gui.coregistration(
-        options.tabbed,
         inst=options.inst,
         subject=options.subject,
         subjects_dir=subjects_dir,
-        guess_mri_subject=options.guess_mri_subject,
         head_opacity=options.head_opacity,
         head_high_res=head_high_res,
         trans=trans,
-        scrollable=True,
         interaction=options.interaction,
-        scale=options.scale,
-        advanced_rendering=options.advanced_rendering,
         show=True,
         block=True,
         verbose=options.verbose,

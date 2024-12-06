@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "a3431eff2d7143faf57bc7f6f12e8d703bab7b19",
+  "authors": [
+    {
+      "n": "Jona Sassenhagen",
+      "e": "jona.sassenhagen@gmail.com"
+    }
+  ],
+  "changes": {
+    "tutorials/plot_object_epochs.py": {
+      "a": 24,
+      "d": 0
+    }
+  }
+}

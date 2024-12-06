@@ -1,22 +1,23 @@
-# Author: Adonay Nunes <adonay.s.nunes@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import numpy as np
 import pytest
-
 from numpy.testing import assert_allclose, assert_array_equal
+
+from mne import Annotations, events_from_annotations
 from mne.chpi import read_head_pos
 from mne.datasets import testing
 from mne.io import read_raw_fif
 from mne.preprocessing import (
-    annotate_movement,
-    compute_average_dev_head_t,
-    annotate_muscle_zscore,
     annotate_break,
+    annotate_movement,
+    annotate_muscle_zscore,
+    compute_average_dev_head_t,
 )
-from mne import Annotations, events_from_annotations
 from mne.tests.test_annotations import _assert_annotations_equal
+from mne.transforms import _angle_dist_between_rigid, quat_to_rot, rot_to_quat
 
 data_path = testing.data_path(download=False)
 sss_path = data_path / "SSS"
@@ -34,6 +35,7 @@ def test_movement_annotation_head_correction(meas_date):
         raw.set_meas_date(None)
     else:
         assert meas_date == "orig"
+    raw_unannot = raw.copy()
 
     # Check 5 rotation segments are detected
     annot_rot, [] = annotate_movement(raw, pos, rotation_velocity_limit=5)
@@ -66,7 +68,7 @@ def test_movement_annotation_head_correction(meas_date):
     _assert_annotations_equal(annot_all_2, annot_all)
     assert annot_all.orig_time == raw.info["meas_date"]
     raw.set_annotations(annot_all)
-    dev_head_t = compute_average_dev_head_t(raw, pos)
+    dev_head_t = compute_average_dev_head_t(raw, pos)["trans"]
 
     dev_head_t_ori = np.array(
         [
@@ -77,12 +79,82 @@ def test_movement_annotation_head_correction(meas_date):
         ]
     )
 
-    assert_allclose(dev_head_t_ori, dev_head_t["trans"], rtol=1e-5, atol=0)
+    assert_allclose(dev_head_t_ori, dev_head_t, rtol=1e-5, atol=0)
+
+    with pytest.raises(ValueError, match="Number of .* must match .*"):
+        compute_average_dev_head_t([raw], [pos] * 2)
+    # Using two identical ones should be identical ...
+    dev_head_t_double = compute_average_dev_head_t([raw] * 2, [pos] * 2)["trans"]
+    assert_allclose(dev_head_t, dev_head_t_double)
+    # ... unannotated and annotated versions differ ...
+    dev_head_t_unannot = compute_average_dev_head_t(raw_unannot, pos)["trans"]
+    rot_tol = 1.5e-3
+    mov_tol = 1e-3
+    assert not np.allclose(
+        dev_head_t_unannot[:3, :3],
+        dev_head_t[:3, :3],
+        atol=rot_tol,
+        rtol=0,
+    )
+    assert not np.allclose(
+        dev_head_t_unannot[:3, 3],
+        dev_head_t[:3, 3],
+        atol=mov_tol,
+        rtol=0,
+    )
+    # ... and Averaging the two is close to (but not identical!) to operating on the two
+    # files. Note they shouldn't be identical because there are more time points
+    # included in the unannotated version!
+    dev_head_t_naive = np.eye(4)
+    dev_head_t_naive[:3, :3] = quat_to_rot(
+        np.mean(
+            rot_to_quat(np.array([dev_head_t[:3, :3], dev_head_t_unannot[:3, :3]])),
+            axis=0,
+        )
+    )
+    dev_head_t_naive[:3, 3] = np.mean(
+        [dev_head_t[:3, 3], dev_head_t_unannot[:3, 3]], axis=0
+    )
+    dev_head_t_combo = compute_average_dev_head_t([raw, raw_unannot], [pos] * 2)[
+        "trans"
+    ]
+    unit_kw = dict(distance_units="mm", angle_units="deg")
+    deg_annot_combo, mm_annot_combo = _angle_dist_between_rigid(
+        dev_head_t,
+        dev_head_t_combo,
+        **unit_kw,
+    )
+    deg_unannot_combo, mm_unannot_combo = _angle_dist_between_rigid(
+        dev_head_t_unannot,
+        dev_head_t_combo,
+        **unit_kw,
+    )
+    deg_annot_unannot, mm_annot_unannot = _angle_dist_between_rigid(
+        dev_head_t,
+        dev_head_t_unannot,
+        **unit_kw,
+    )
+    deg_combo_naive, mm_combo_naive = _angle_dist_between_rigid(
+        dev_head_t_combo,
+        dev_head_t_naive,
+        **unit_kw,
+    )
+    # combo<->naive closer than combo<->annotated closer than annotated<->unannotated
+    assert 0.05 < deg_combo_naive < deg_annot_combo < deg_annot_unannot < 1.5
+    assert 0.1 < mm_combo_naive < mm_annot_combo < mm_annot_unannot < 2
+    # combo<->naive closer than combo<->unannotated closer than annotated<->unannotated
+    assert 0.05 < deg_combo_naive < deg_unannot_combo < deg_annot_unannot < 1.5
+    assert 0.12 < mm_combo_naive < mm_unannot_combo < mm_annot_unannot < 2.0
 
     # Smoke test skipping time due to previous annotations.
     raw.set_annotations(Annotations([raw.times[0]], 0.1, "bad"))
     annot_dis, _ = annotate_movement(raw, pos, mean_distance_limit=0.02)
     assert annot_dis.duration.size == 1
+
+    # really far should warn
+    pos[:, 4] += 5
+    with pytest.warns(RuntimeWarning, match="Implausible head position"):
+        compute_average_dev_head_t(raw, pos)
 
 
 @testing.requires_testing_data
@@ -113,7 +185,7 @@ def test_muscle_annotation_without_meeg_data(meas_date):
     if meas_date is None:
         raw.set_meas_date(None)
     raw.crop(0, 0.1).load_data()
-    raw.pick_types(meg=False, stim=True)
+    raw.pick("stim")
     with pytest.raises(ValueError, match="No M/EEG channel types found"):
         annotate_muscle_zscore(raw, threshold=10)
 

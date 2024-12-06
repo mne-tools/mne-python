@@ -5,14 +5,18 @@
 The Info data structure
 =======================
 
-This tutorial describes the :class:`mne.Info` data structure, which keeps track
-of various recording details, and is attached to :class:`~mne.io.Raw`,
+This tutorial describes the :class:`mne.Info` data structure, which keeps track of
+various recording details, and is attached to :class:`~mne.io.Raw`,
 :class:`~mne.Epochs`, and :class:`~mne.Evoked` objects.
 
 We will begin by loading the Python modules we need, and loading the same
 :ref:`example data <sample-dataset>` we used in the :ref:`introductory tutorial
 <tut-overview>`:
 """
+
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 
@@ -182,7 +186,7 @@ eeg_indices = mne.pick_types(info, meg=False, eeg=True)
 print(mne.pick_info(info, eeg_indices)["nchan"])
 
 # %%
-# We can also get a nice HTML representation in IPython like:
+# We can also get a nice HTML representation in IPython like this:
 
 info
 

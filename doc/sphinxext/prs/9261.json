@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "3ea17053b81df811e4a13f01985bce2f2d0291e6",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/epochs.py": {
+      "a": 56,
+      "d": 27
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 14,
+      "d": 0
+    }
+  }
+}

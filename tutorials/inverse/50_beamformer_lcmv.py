@@ -12,13 +12,13 @@ reconstruct source activity using an LCMV beamformer.
 #          Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD-3-Clause
-
-# %%
+# Copyright the MNE-Python contributors.
 
 import matplotlib.pyplot as plt
+
 import mne
-from mne.datasets import sample, fetch_fsaverage
-from mne.beamformer import make_lcmv, apply_lcmv
+from mne.beamformer import apply_lcmv, make_lcmv
+from mne.datasets import fetch_fsaverage, sample
 
 # %%
 # Introduction to beamformers
@@ -28,11 +28,13 @@ from mne.beamformer import make_lcmv, apply_lcmv
 # at each of those source points independently. A set of weights is
 # constructed for each defined source location which defines the contribution
 # of each sensor to this source.
+#
 # Beamformers are often used for their focal reconstructions and their ability
 # to reconstruct deeper sources. They can also suppress external noise sources.
 # The beamforming method applied in this tutorial is the linearly constrained
 # minimum variance (LCMV) beamformer :footcite:`VanVeenEtAl1997` operates on
 # time series.
+#
 # Frequency-resolved data can be reconstructed with the dynamic imaging of
 # coherent sources (DICS) beamforming method :footcite:`GrossEtAl2001`.
 # As we will see in the following, the spatial filter is computed from two
@@ -54,7 +56,7 @@ raw_fname = meg_path / "sample_audvis_filt-0-40_raw.fif"
 raw = mne.io.read_raw_fif(raw_fname)
 raw.info["bads"] = ["MEG 2443"]  # bad MEG channel
 
-# Set up the epoching
+# Set up epoching
 event_id = 1  # those are the trials with left-ear auditory stimuli
 tmin, tmax = -0.2, 0.5
 events = mne.find_events(raw)
@@ -274,7 +276,7 @@ brain = stc_vec.plot_3d(
     # Could do this for a 3-panel figure:
     # view_layout='horizontal', views=['coronal', 'sagittal', 'axial'],
     brain_kwargs=dict(silhouette=True),
-    **kwargs
+    **kwargs,
 )
 
 # %%
@@ -288,7 +290,7 @@ peak_vox, _ = stc_vec.get_peak(tmin=0.08, tmax=0.1, vert_as_index=True)
 ori_labels = ["x", "y", "z"]
 fig, ax = plt.subplots(1)
 for ori, label in zip(stc_vec.data[peak_vox, :, :], ori_labels):
-    ax.plot(stc_vec.times, ori, label="%s component" % label)
+    ax.plot(stc_vec.times, ori, label=f"{label} component")
 ax.legend(loc="lower right")
 ax.set(
     title="Activity per orientation in the peak voxel",

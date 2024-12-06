@@ -1,28 +1,23 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
-#          Daniel Strohmeier <daniel.strohmeier@tu-ilmenau.de>
-#          Nathalie Gayraud <nat.gayraud@gmail.com>
-#          Kostiantyn Maksymenko <kostiantyn.maksymenko@gmail.com>
-#          Samuel Deslauriers-Gauthier <sam.deslauriers@gmail.com>
-#          Ivana Kojcic <ivana.kojcic@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import numpy as np
 
-from ..source_estimate import SourceEstimate, VolSourceEstimate
-from ..source_space import _ensure_src
 from ..fixes import rng_uniform
-from ..utils import (
-    check_random_state,
-    warn,
-    _check_option,
-    fill_doc,
-    _ensure_int,
-    _ensure_events,
-)
 from ..label import Label
+from ..source_estimate import SourceEstimate, VolSourceEstimate
+from ..source_space._source_space import _ensure_src
 from ..surface import _compute_nearest
+from ..utils import (
+    _check_option,
+    _ensure_events,
+    _ensure_int,
+    _validate_type,
+    check_random_state,
+    fill_doc,
+    warn,
+)
 
 
 @fill_doc
@@ -176,8 +171,8 @@ def simulate_sparse_stc(
         subject = subject_src
     elif subject_src is not None and subject != subject_src:
         raise ValueError(
-            "subject argument (%s) did not match the source "
-            "space subject_his_id (%s)" % (subject, subject_src)
+            f"subject argument ({subject}) did not match the source "
+            f"space subject_his_id ({subject_src})"
         )
     data = np.zeros((n_dipoles, len(times)))
     for i_dip in range(n_dipoles):
@@ -195,14 +190,14 @@ def simulate_sparse_stc(
         datas = data
     elif n_dipoles > len(labels):
         raise ValueError(
-            "Number of labels (%d) smaller than n_dipoles (%d) "
-            "is not allowed." % (len(labels), n_dipoles)
+            f"Number of labels ({len(labels)}) smaller than n_dipoles ({n_dipoles:d}) "
+            "is not allowed."
         )
     else:
         if n_dipoles != len(labels):
             warn(
                 "The number of labels is different from the number of "
-                "dipoles. %s dipole(s) will be generated." % min(n_dipoles, len(labels))
+                f"dipoles. {min(n_dipoles, len(labels))} dipole(s) will be generated."
             )
         labels = labels[:n_dipoles] if n_dipoles < len(labels) else labels
 
@@ -327,9 +322,8 @@ def simulate_stc(
             d = len(v) - len(np.unique(v))
             if d > 0:
                 raise RuntimeError(
-                    "Labels had %s overlaps in the %s "
-                    "hemisphere, "
-                    "they must be non-overlapping" % (d, hemi)
+                    f"Labels had {d} overlaps in the {hemi} "
+                    "hemisphere, they must be non-overlapping"
                 )
     # the data is in the order left, right
     data = list()
@@ -429,8 +423,7 @@ class SourceSimulator:
             Events associated to the waveform(s) to specify when the activity
             should occur.
         """
-        if not isinstance(label, Label):
-            raise ValueError("label must be a Label," "not %s" % type(label))
+        _validate_type(label, Label, "label")
 
         # If it is not a list then make it one
         if not isinstance(waveform, list) and np.ndim(waveform) == 2:
@@ -443,8 +436,7 @@ class SourceSimulator:
         if len(waveform) != len(events):
             raise ValueError(
                 "Number of waveforms and events should match or "
-                "there should be a single waveform (%d != %d)."
-                % (len(waveform), len(events))
+                f"there should be a single waveform ({len(waveform)} != {len(events)})."
             )
         events = _ensure_events(events).astype(np.int64)
         # Update the last sample possible based on events + waveforms
@@ -557,13 +549,13 @@ class SourceSimulator:
             wf_stop = self._last_samples[ind[i]]
 
             # Recover the indices of the event that should be in the chunk
-            waveform_ind = np.in1d(
+            waveform_ind = np.isin(
                 np.arange(wf_start, wf_stop + 1),
                 np.arange(start_sample, stop_sample + 1),
             )
 
             # Recover the indices that correspond to the overlap
-            stc_ind = np.in1d(
+            stc_ind = np.isin(
                 np.arange(start_sample, stop_sample + 1),
                 np.arange(wf_start, wf_stop + 1),
             )

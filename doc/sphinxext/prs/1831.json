@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "f08e0d01439237025de4e04a0ad2588f40a373f7",
+  "authors": [
+    {
+      "n": "Teon L Brooks",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/io/edf/edf.py": {
+      "a": 49,
+      "d": 107
+    },
+    "mne/io/edf/tests/data/test_uneven_samp.edf": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/io/edf/tests/data/test_uneven_samp.mat": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/io/edf/tests/test_edf.py": {
+      "a": 15,
+      "d": 0
+    }
+  }
+}

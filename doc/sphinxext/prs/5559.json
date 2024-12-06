@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "bcabf319eab3dcd3902125da344d13eafd1669a6",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "examples/decoding/plot_decoding_time_generalization_conditions.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/decoding/plot_linear_model_patterns.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/decoding/base.py": {
+      "a": 4,
+      "d": 1
+    },
+    "mne/decoding/tests/test_base.py": {
+      "a": 12,
+      "d": 7
+    },
+    "mne/decoding/tests/test_ems.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/decoding/tests/test_search_light.py": {
+      "a": 27,
+      "d": 17
+    },
+    "tutorials/plot_sensors_decoding.py": {
+      "a": 3,
+      "d": 2
+    }
+  }
+}

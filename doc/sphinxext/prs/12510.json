@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "6c4418c2dc00d8d84ee7fc29acc6d04dfc4e7fac",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/12510.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/export/_edf.py": {
+      "a": 6,
+      "d": 3
+    },
+    "mne/export/tests/test_export.py": {
+      "a": 27,
+      "d": 0
+    },
+    "mne/utils/docs.py": {
+      "a": 16,
+      "d": 13
+    }
+  }
+}

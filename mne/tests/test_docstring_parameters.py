@@ -1,17 +1,17 @@
-# Author: Eric Larson <larson.eric.d@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import importlib
 import inspect
+import re
 from pathlib import Path
 from pkgutil import walk_packages
-import re
 
 import pytest
 
 import mne
-from mne.utils import requires_numpydoc, _pl, _record_warnings
+from mne.utils import _pl, _record_warnings
 
 public_modules = [
     # the list of modules users need to access for all functionality
@@ -67,10 +67,8 @@ def _func_name(func, cls=None):
 # functions to ignore args / docstring of
 docstring_ignores = {
     "mne.fixes",
-    "mne.io.write",
     "mne.io.meas_info.Info",
 }
-char_limit = 800  # XX eventually we should probably get this lower
 tab_ignores = [
     "mne.channels.tests.test_montage",
     "mne.io.curry.tests.test_curry",
@@ -111,11 +109,10 @@ subclass_name_ignores = (
         },
     ),
     (list, {"append", "count", "extend", "index", "insert", "pop", "remove", "sort"}),
-    (mne.fixes.BaseEstimator, {"get_params", "set_params", "fit_transform"}),
 )
 
 
-def check_parameters_match(func, cls=None):
+def check_parameters_match(func, *, cls=None, where):
     """Check docstring, return list of incorrect results."""
     from numpydoc.validate import validate
 
@@ -130,7 +127,7 @@ def check_parameters_match(func, cls=None):
             if issubclass(cls, subclass) and name.split(".")[-1] in ignores:
                 return list()
     incorrect = [
-        "%s : %s : %s" % (name, err[0], err[1])
+        f"{where} : {name} : {err[0]} : {err[1]}"
         for err in validate(name)["errors"]
         if err[0] not in error_ignores
         and (name.split(".")[-1], err[0]) not in error_ignores_specific
@@ -158,17 +155,15 @@ def check_parameters_match(func, cls=None):
             verbose_default = sig.parameters["verbose"].default
             if verbose_default is not None:
                 incorrect += [
-                    f"{name} : verbose default is not None, " f"got: {verbose_default}"
+                    f"{name} : verbose default is not None, got: {verbose_default}"
                 ]
     return incorrect
 
 
 @pytest.mark.slowtest
-@requires_numpydoc
 def test_docstring_parameters():
     """Test module docstring formatting."""
-    from numpydoc import docscrape
-
+    npd = pytest.importorskip("numpydoc")
     incorrect = []
     for name in public_modules:
         # Assert that by default we import all public names with `import mne`
@@ -179,31 +174,40 @@ def test_docstring_parameters():
             module = __import__(name, globals())
         for submod in name.split(".")[1:]:
             module = getattr(module, submod)
-        classes = inspect.getmembers(module, inspect.isclass)
+        try:
+            classes = inspect.getmembers(module, inspect.isclass)
+        except ModuleNotFoundError as exc:  # e.g., mne.decoding but no sklearn
+            if "'sklearn'" in str(exc):
+                continue
+            raise
         for cname, cls in classes:
             if cname.startswith("_"):
                 continue
-            incorrect += check_parameters_match(cls)
-            cdoc = docscrape.ClassDoc(cls)
+            incorrect += check_parameters_match(cls, where=name)
+            cdoc = npd.docscrape.ClassDoc(cls)
             for method_name in cdoc.methods:
                 method = getattr(cls, method_name)
-                incorrect += check_parameters_match(method, cls=cls)
+                incorrect += check_parameters_match(method, cls=cls, where=name)
             if (
                 hasattr(cls, "__call__")
                 and "of type object" not in str(cls.__call__)
                 and "of ABCMeta object" not in str(cls.__call__)
             ):
-                incorrect += check_parameters_match(cls.__call__, cls)
+                incorrect += check_parameters_match(
+                    cls.__call__,
+                    cls=cls,
+                    where=name,
+                )
         functions = inspect.getmembers(module, inspect.isfunction)
         for fname, func in functions:
             if fname.startswith("_"):
                 continue
-            incorrect += check_parameters_match(func)
+            incorrect += check_parameters_match(func, where=name)
     incorrect = sorted(list(set(incorrect)))
-    msg = "\n" + "\n".join(incorrect)
-    msg += "\n%d error%s" % (len(incorrect), _pl(incorrect))
     if len(incorrect) > 0:
-        raise AssertionError(msg)
+        raise AssertionError(
+            f"{len(incorrect)} error{_pl(incorrect)} found:\n" + "\n".join(incorrect)
+        )
 
 
 def test_tabs():
@@ -217,8 +221,8 @@ def test_tabs():
                 continue
             source = inspect.getsource(mod)
             assert "\t" not in source, (
-                '"%s" has tabs, please remove them '
-                "or add it to the ignore list" % modname
+                f'"{modname}" has tabs, please remove them '
+                "or add it to the ignore list"
             )
 
 
@@ -241,7 +245,6 @@ TransformerMixin
 UpdateChannelsMixin
 activate_proj
 adjust_axes
-apply_maxfilter
 apply_trans
 channel_type
 combine_kit_markers
@@ -252,15 +255,11 @@ detrend
 dir_tree_find
 fast_cross_3d
 fiff_open
-find_source_space_hemi
 find_tag
 get_score_funcs
 get_version
 invert_transform
-is_power2
 is_fixed_orient
-kit2fiff
-label_src_vertno_sel
 make_eeg_average_ref_proj
 make_projector
 mesh_dist
@@ -273,7 +272,6 @@ plot_raw_psd_topo
 plot_source_spectrogram
 prepare_inverse_operator
 read_fiducials
-read_tag
 rescale
 setup_proj
 source_estimate_quantification
@@ -281,17 +279,15 @@ tddr
 whiten_evoked
 write_fiducials
 write_info
-""".split(
-    "\n"
-)
+""".split("\n")
 
 
 def test_documented():
     """Test that public functions and classes are documented."""
-    doc_dir = (Path(__file__).parent.parent.parent / "doc").absolute()
+    doc_dir = (Path(__file__).parents[2] / "doc" / "api").absolute()
     doc_file = doc_dir / "python_reference.rst"
     if not doc_file.is_file():
-        pytest.skip("Documentation file not found: %s" % doc_file)
+        pytest.skip(f"Documentation file not found: {doc_file}")
     api_files = (
         "covariance",
         "creating_from_arrays",
@@ -334,23 +330,29 @@ def test_documented():
             module = __import__(name, globals())
         for submod in name.split(".")[1:]:
             module = getattr(module, submod)
-        classes = inspect.getmembers(module, inspect.isclass)
+        try:
+            classes = inspect.getmembers(module, inspect.isclass)
+        except ModuleNotFoundError as exc:  # e.g., mne.decoding but no sklearn
+            if "'sklearn'" in str(exc):
+                continue
+            raise
         functions = inspect.getmembers(module, inspect.isfunction)
         checks = list(classes) + list(functions)
-        for name, cf in checks:
-            if not name.startswith("_") and name not in known_names:
+        for this_name, cf in checks:
+            if not this_name.startswith("_") and this_name not in known_names:
                 from_mod = inspect.getmodule(cf).__name__
                 if (
                     from_mod.startswith("mne")
                     and not any(from_mod.startswith(x) for x in documented_ignored_mods)
-                    and name not in documented_ignored_names
+                    and this_name not in documented_ignored_names
                     and not hasattr(cf, "_deprecated_original")
                 ):
-                    missing.append("%s (%s.%s)" % (name, from_mod, name))
+                    missing.append(f"{name} : {from_mod}.{this_name}")
+    missing = sorted(set(missing))
     if len(missing) > 0:
         raise AssertionError(
-            "\n\nFound new public members missing from "
-            "doc/python_reference.rst:\n\n* " + "\n* ".join(sorted(set(missing)))
+            f"{len(missing)} new public member{_pl(missing)} missing from "
+            "doc/python_reference.rst:\n" + "\n".join(missing)
         )
 
 
@@ -359,9 +361,9 @@ def test_docdict_order():
     from mne.utils.docs import docdict
 
     # read the file as text, and get entries via regex
-    docs_path = Path(__file__).parent.parent / "utils" / "docs.py"
+    docs_path = Path(__file__).parents[1] / "utils" / "docs.py"
     assert docs_path.is_file(), docs_path
-    with open(docs_path, "r", encoding="UTF-8") as fid:
+    with open(docs_path, encoding="UTF-8") as fid:
         docs = fid.read()
     entries = re.findall(r'docdict\[(?:\n    )?["\'](.+)["\']\n?\] = ', docs)
     # test length & uniqueness

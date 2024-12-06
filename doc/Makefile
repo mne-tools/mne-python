@@ -23,12 +23,12 @@ help:
 	@echo "  html-noplot      to make standalone HTML files without plotting"
 	@echo "  clean            to clean HTML files"
 	@echo "  linkcheck        to check all external links for integrity"
-	@echo "  linkcheck-grep   to grep the linkcheck resut"
+	@echo "  linkcheck-grep   to grep the linkcheck result"
 	@echo "  doctest          to run all doctests embedded in the documentation (if enabled)"
 	@echo "  view             to view the built HTML"
 
 clean:
-	-rm -rf _build auto_examples auto_tutorials generated *.stc *.fif *.nii.gz
+	-rm -rf _build sg_execution_times.rst auto_examples auto_tutorials generated *.stc *.fif *.nii.gz
 
 html:
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) _build/html
@@ -65,10 +65,7 @@ html_dev-noplot: html-noplot
 html_dev-front: html-front
 
 linkcheck:
-	@$(SPHINXBUILD) -b linkcheck -D nitpicky=0 -D plot_gallery=0 -D exclude_patterns="cited.rst,whats_new.rst,configure_git.rst" -d _build/doctrees . _build/linkcheck
-
-linkcheck-grep:
-	@! grep -h "^.*:.*: \[\(\(local\)\|\(broken\)\)\]" _build/linkcheck/output.txt
+	@$(SPHINXBUILD) -b linkcheck -D nitpicky=0 -q -D plot_gallery=0 -D exclude_patterns="cited.rst,whats_new.rst,configure_git.rst,_includes,changes/devel" -d _build/doctrees . _build/linkcheck
 
 doctest:
 	$(SPHINXBUILD) -b doctest $(ALLSPHINXOPTS) _build/doctest
@@ -76,6 +73,9 @@ doctest:
 	      "results in _build/doctest/output.txt."
 
 view:
-	@python -c "import webbrowser; webbrowser.open_new_tab('file://$(PWD)/_build/html/index.html')"
+	@python -c "import webbrowser; webbrowser.open_new_tab('file://$(PWD)/_build/html/sg_execution_times.html')"
 
 show: view
+
+serve:
+	python -m http.server -d _build/html

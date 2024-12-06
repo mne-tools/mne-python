@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "bd3fa021b2161ddf77418c35a139e3546ca5a986",
+  "authors": [
+    {
+      "n": "Rob Luke",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/install/pre_install.rst": {
+      "a": 2,
+      "d": 0
+    }
+  }
+}

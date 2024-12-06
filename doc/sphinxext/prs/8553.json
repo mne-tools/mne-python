@@ -1,0 +1,51 @@
+{
+  "merge_commit_sha": "9139c345ef40a6b5c4a1ee4e6943ae76e25d8276",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/defaults.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/gui/_coreg_gui.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/gui/_viewer.py": {
+      "a": 12,
+      "d": 6
+    },
+    "mne/viz/_3d.py": {
+      "a": 40,
+      "d": 16
+    },
+    "mne/viz/backends/_pysurfer_mayavi.py": {
+      "a": 35,
+      "d": 3
+    },
+    "mne/viz/backends/_pyvista.py": {
+      "a": 16,
+      "d": 3
+    },
+    "mne/viz/backends/_utils.py": {
+      "a": 2,
+      "d": 1
+    },
+    "tutorials/source-modeling/plot_source_alignment.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

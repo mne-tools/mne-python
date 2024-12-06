@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "47e15a8d78ac4315187322e7b2f8c99f5d5b4239",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/install/contributing.rst": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/conftest.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/datasets/sleep_physionet/_utils.py": {
+      "a": 4,
+      "d": 6
+    },
+    "mne/viz/evoked.py": {
+      "a": 5,
+      "d": 3
+    },
+    "mne/viz/misc.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

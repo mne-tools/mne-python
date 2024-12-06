@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "3fd2c912f25d7c6344edb44e77bd19f036db1c5c",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "pyproject.toml": {
+      "a": 4,
+      "d": 4
+    },
+    "tools/circleci_dependencies.sh": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

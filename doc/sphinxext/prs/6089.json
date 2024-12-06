@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "8610eddc10d2e32bdb42e59085aaae506819e140",
+  "authors": [
+    {
+      "n": "Jean-Rémi KING",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/decoding/receptive_field.py": {
+      "a": 8,
+      "d": 8
+    },
+    "mne/decoding/tests/test_receptive_field.py": {
+      "a": 5,
+      "d": 1
+    },
+    "tutorials/plot_receptive_field.py": {
+      "a": 1,
+      "d": 5
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "75a408ed7069bdcd6c6fd12ae12385328ef13e70",
+  "authors": [
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/viz/backends/_qt.py": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

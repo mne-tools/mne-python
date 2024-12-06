@@ -22,16 +22,16 @@ The procedure consists of:
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 
 import mne
-from mne.time_frequency import tfr_morlet
-from mne.stats import permutation_cluster_test
 from mne.datasets import sample
+from mne.stats import permutation_cluster_test
 
 print(__doc__)
 
@@ -77,7 +77,7 @@ epochs_condition_1 = mne.Epochs(
     reject=reject,
     preload=True,
 )
-epochs_condition_1.pick_channels([ch_name])
+epochs_condition_1.pick([ch_name])
 
 # Load condition 2
 event_id = 2
@@ -92,7 +92,7 @@ epochs_condition_2 = mne.Epochs(
     reject=reject,
     preload=True,
 )
-epochs_condition_2.pick_channels([ch_name])
+epochs_condition_2.pick([ch_name])
 
 # %%
 # Factor to downsample the temporal dimension of the TFR computed by
@@ -103,24 +103,17 @@ epochs_condition_2.pick_channels([ch_name])
 decim = 2
 freqs = np.arange(7, 30, 3)  # define frequencies of interest
 n_cycles = 1.5
-
-tfr_epochs_1 = tfr_morlet(
-    epochs_condition_1,
-    freqs,
+tfr_kwargs = dict(
+    method="morlet",
+    freqs=freqs,
     n_cycles=n_cycles,
     decim=decim,
     return_itc=False,
     average=False,
 )
 
-tfr_epochs_2 = tfr_morlet(
-    epochs_condition_2,
-    freqs,
-    n_cycles=n_cycles,
-    decim=decim,
-    return_itc=False,
-    average=False,
-)
+tfr_epochs_1 = epochs_condition_1.compute_tfr(**tfr_kwargs)
+tfr_epochs_2 = epochs_condition_2.compute_tfr(**tfr_kwargs)
 
 tfr_epochs_1.apply_baseline(mode="ratio", baseline=(None, 0))
 tfr_epochs_2.apply_baseline(mode="ratio", baseline=(None, 0))
@@ -138,6 +131,7 @@ F_obs, clusters, cluster_p_values, H0 = permutation_cluster_test(
     n_permutations=100,
     threshold=threshold,
     tail=0,
+    seed=np.random.default_rng(seed=8675309),
 )
 
 # %%
@@ -146,8 +140,7 @@ F_obs, clusters, cluster_p_values, H0 = permutation_cluster_test(
 
 times = 1e3 * epochs_condition_1.times  # change unit to ms
 
-fig, (ax, ax2) = plt.subplots(2, 1, figsize=(6, 4))
-fig.subplots_adjust(0.12, 0.08, 0.96, 0.94, 0.2, 0.43)
+fig, (ax, ax2) = plt.subplots(2, 1, figsize=(6, 4), layout="constrained")
 
 # Compute the difference in evoked to determine which was greater since
 # we used a 1-way ANOVA which tested for a difference in population means

@@ -1,19 +1,19 @@
 """Generic tests that all raw classes should run."""
-# Authors: MNE Developers
-#          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
-#
-# License: BSD-3-Clause
 
-from contextlib import redirect_stdout
-from io import StringIO
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
+
 import math
 import os
+import re
+from contextlib import redirect_stdout
+from io import StringIO
 from os import path as op
 from pathlib import Path
-import re
 
-import pytest
 import numpy as np
+import pytest
 from numpy.testing import (
     assert_allclose,
     assert_array_almost_equal,
@@ -22,28 +22,26 @@ from numpy.testing import (
 )
 
 import mne
-from mne import concatenate_raws, create_info, Annotations, pick_types
-from mne.datasets import testing
-from mne.fixes import _numpy_h5py_dep
-from mne.io import read_raw_fif, RawArray, BaseRaw, Info, _writing_info_hdf5
-from mne.io._digitization import _dig_kind_dict
+from mne import Annotations, concatenate_raws, create_info, pick_types
+from mne._fiff._digitization import DigPoint, _dig_kind_dict
+from mne._fiff.constants import FIFF
+from mne._fiff.meas_info import Info, _get_valid_units, _writing_info_hdf5
+from mne._fiff.pick import _ELECTRODE_CH_TYPES, _FNIRS_CH_TYPES_SPLIT
+from mne._fiff.proj import Projection
+from mne._fiff.utils import _mult_cal_one
+from mne.io import BaseRaw, RawArray, read_raw_fif
 from mne.io.base import _get_scaling
-from mne.io.pick import _ELECTRODE_CH_TYPES, _FNIRS_CH_TYPES_SPLIT
+from mne.transforms import Transform
 from mne.utils import (
-    _TempDir,
-    catch_logging,
+    _import_h5io_funcs,
     _raw_annot,
     _stamp_to_dt,
-    object_diff,
+    _TempDir,
+    catch_logging,
     check_version,
-    requires_pandas,
-    _import_h5io_funcs,
+    object_diff,
+    sizeof_fmt,
 )
-from mne.io.meas_info import _get_valid_units
-from mne.io._digitization import DigPoint
-from mne.io.proj import Projection
-from mne.io.utils import _mult_cal_one
-from mne.io.constants import FIFF
 
 raw_fname = op.join(
     op.dirname(__file__), "..", "..", "io", "tests", "data", "test_raw.fif"
@@ -62,6 +60,25 @@ def assert_named_constants(info):
         ".*FIFF_UNITM_.*",
     ):
         assert re.match(check, r, re.DOTALL) is not None, (check, r)
+
+
+def assert_attributes(raw):
+    """Assert that the instance keeps all its extra attributes in _raw_extras."""
+    __tracebackhide__ = True
+    assert isinstance(raw, BaseRaw)
+    base_attrs = set(dir(BaseRaw(create_info(1, 1000.0, "eeg"), last_samps=[1])))
+    base_attrs = base_attrs.union(
+        [
+            "_data",  # in the case of preloaded data
+            "__slotnames__",  # something about being decorated (?)
+        ]
+    )
+    for attr in raw._extra_attributes:
+        assert attr not in base_attrs
+        base_attrs.add(attr)
+    got_attrs = set(dir(raw))
+    extra = got_attrs.difference(base_attrs)
+    assert extra == set()
 
 
 def test_orig_units():
@@ -155,7 +172,7 @@ def _test_raw_reader(
         # test projection vs cals and data units
         other_raw = reader(preload=False, **kwargs)
         other_raw.del_proj()
-        eeg = meg = fnirs = False
+        eeg = meg = fnirs = seeg = eyetrack = False
         if "eeg" in raw:
             eeg, atol = True, 1e-18
         elif "grad" in raw:
@@ -166,10 +183,23 @@ def _test_raw_reader(
             fnirs, atol = "hbo", 1e-10
         elif "hbr" in raw:
             fnirs, atol = "hbr", 1e-10
-        else:
-            assert "fnirs_cw_amplitude" in raw, "New channel type necessary?"
+        elif "fnirs_cw_amplitude" in raw:
             fnirs, atol = "fnirs_cw_amplitude", 1e-10
-        picks = pick_types(other_raw.info, meg=meg, eeg=eeg, fnirs=fnirs)
+        elif "eyegaze" in raw:
+            eyetrack = "eyegaze", 1e-3
+        else:
+            # e.g., https://github.com/mne-tools/mne-python/pull/11432/files
+            assert "seeg" in raw, "New channel type necessary? See gh-11432 for example"
+            seeg, atol = True, 1e-18
+
+        picks = pick_types(
+            other_raw.info,
+            meg=meg,
+            eeg=eeg,
+            fnirs=fnirs,
+            seeg=seeg,
+            eyetrack=eyetrack,
+        )
         col_names = [other_raw.ch_names[pick] for pick in picks]
         proj = np.ones((1, len(picks)))
         proj /= np.sqrt(proj.shape[1])
@@ -280,16 +310,17 @@ def _test_raw_reader(
         raw = reader(**kwargs)
     n_samp = len(raw.times)
     assert_named_constants(raw.info)
+    assert_attributes(raw)
     # smoke test for gh #9743
     ids = [id(ch["loc"]) for ch in raw.info["chs"]]
     assert len(set(ids)) == len(ids)
 
-    full_data = raw._data
+    full_data = raw.get_data()
     assert raw.__class__.__name__ in repr(raw)  # to test repr
     assert raw.info.__class__.__name__ in repr(raw.info)
-    assert isinstance(raw.info["dig"], (type(None), list))
-    data_max = full_data.max()
-    data_min = full_data.min()
+    assert isinstance(raw.info["dig"], type(None) | list)
+    data_max = np.nanmax(full_data)
+    data_min = np.nanmin(full_data)
     # these limits could be relaxed if we actually find data with
     # huge values (in SI units)
     assert data_max < 1e5
@@ -303,7 +334,7 @@ def _test_raw_reader(
     assert meas_date is None or meas_date >= _stamp_to_dt((0, 0))
 
     # test repr_html
-    assert "Good channels" in raw.info._repr_html_()
+    assert "Channels" in raw._repr_html_()
 
     # test resetting raw
     if test_kwargs:
@@ -312,16 +343,19 @@ def _test_raw_reader(
         assert_array_equal(raw.times, raw2.times)
 
     # Test saving and reading
-    out_fname = op.join(tempdir, "test_raw.fif")
+    out_fname = op.join(tempdir, "test_out_raw.fif")
     raw = concatenate_raws([raw])
-    raw.save(out_fname, tmax=raw.times[-1], overwrite=True, buffer_size_sec=1)
-
+    filenames = raw.save(
+        out_fname, tmax=raw.times[-1], overwrite=True, buffer_size_sec=1
+    )
+    for filename in filenames:
+        assert filename.is_file()
     # Test saving with not correct extension
     out_fname_h5 = op.join(tempdir, "test_raw.h5")
     with pytest.raises(OSError, match="raw must end with .fif or .fif.gz"):
         raw.save(out_fname_h5)
 
-    raw3 = read_raw_fif(out_fname)
+    raw3 = read_raw_fif(out_fname, allow_maxshield="yes")
     assert_named_constants(raw3.info)
     assert set(raw.info.keys()) == set(raw3.info.keys())
     assert_allclose(
@@ -339,18 +373,21 @@ def _test_raw_reader(
     # Make sure concatenation works
     first_samp = raw.first_samp
     last_samp = raw.last_samp
-    concat_raw = concatenate_raws([raw.copy(), raw])
+    concat_raw = concatenate_raws([raw.copy(), raw], verbose="debug")
     assert concat_raw.n_times == 2 * raw.n_times
     assert concat_raw.first_samp == first_samp
     assert concat_raw.last_samp - last_samp + first_samp == last_samp + 1
     idx = np.where(concat_raw.annotations.description == "BAD boundary")[0]
+    assert len(idx) == 1
+    assert len(concat_raw.times) == 2 * n_samp
 
     expected_bad_boundary_onset = raw._last_time
 
     assert_array_almost_equal(
         concat_raw.annotations.onset[idx],
-        expected_bad_boundary_onset,
+        [expected_bad_boundary_onset],
         decimal=boundary_decimal,
+        err_msg="BAD boundary onset mismatch",
     )
 
     if raw.info["meas_id"] is not None:
@@ -409,7 +446,7 @@ def _test_raw_reader(
     if check_version("h5io"):
         read_hdf5, write_hdf5 = _import_h5io_funcs()
         fname_h5 = op.join(tempdir, "info.h5")
-        with _writing_info_hdf5(raw.info), _numpy_h5py_dep():
+        with _writing_info_hdf5(raw.info):
             write_hdf5(fname_h5, raw.info)
             new_info = Info(read_hdf5(fname_h5))
         assert object_diff(new_info, raw.info) == ""
@@ -506,12 +543,12 @@ def _test_raw_crop(reader, t_prop, kwargs):
     raw_2, raw_3 = raw_1.copy(), raw_1.copy()
     t_tot = raw_1.times[-1] * 3 + 2.0 / raw_1.info["sfreq"]
     raw_concat = concatenate_raws([raw_1, raw_2, raw_3])
-    assert len(raw_concat._filenames) == 3
+    assert len(raw_concat.filenames) == 3
     assert_allclose(raw_concat.times[-1], t_tot)
     assert_allclose(raw_concat.first_time, first_time)
     # keep all instances, but crop to t_start at the beginning
     raw_concat.crop(t_start, None)
-    assert len(raw_concat._filenames) == 3
+    assert len(raw_concat.filenames) == 3
     assert_allclose(raw_concat.times[-1], t_tot - t_start, atol=atol)
     assert_allclose(
         raw_concat.first_time,
@@ -521,7 +558,7 @@ def _test_raw_crop(reader, t_prop, kwargs):
     )
     # drop the first instance
     raw_concat.crop(crop_t, None)
-    assert len(raw_concat._filenames) == 2
+    assert len(raw_concat.filenames) == 2
     assert_allclose(raw_concat.times[-1], t_tot - t_start - crop_t, atol=atol)
     assert_allclose(
         raw_concat.first_time,
@@ -531,7 +568,7 @@ def _test_raw_crop(reader, t_prop, kwargs):
     )
     # drop the second instance, leaving just one
     raw_concat.crop(crop_t, None)
-    assert len(raw_concat._filenames) == 1
+    assert len(raw_concat.filenames) == 1
     assert_allclose(raw_concat.times[-1], t_tot - t_start - 2 * crop_t, atol=atol)
     assert_allclose(
         raw_concat.first_time,
@@ -572,7 +609,6 @@ def _test_concat(reader, *args):
                 assert_allclose(data, raw1[:, :][0])
 
 
-@testing.requires_testing_data
 def test_time_as_index():
     """Test indexing of raw times."""
     raw = read_raw_fif(raw_fname)
@@ -733,7 +769,7 @@ def test_5839():
         )
         return raw
 
-    raw_A, raw_B = [raw_factory((x, 0)) for x in [0, 2]]
+    raw_A, raw_B = (raw_factory((x, 0)) for x in [0, 2])
     raw_A.append(raw_B)
 
     assert_array_equal(raw_A.annotations.onset, EXPECTED_ONSET)
@@ -742,15 +778,44 @@ def test_5839():
     assert raw_A.annotations.orig_time == _stamp_to_dt((0, 0))
 
 
-def test_repr():
+def test_duration_property():
+    """Test BaseRAW.duration property."""
+    sfreq = 1000
+    info = create_info(ch_names=["EEG 001"], sfreq=sfreq)
+    raw = BaseRaw(info, last_samps=[sfreq * 60 - 1])
+    assert raw.duration == 60
+
+
+@pytest.mark.parametrize("sfreq", [1, 10, 100, 1000])
+@pytest.mark.parametrize(
+    "duration, expected",
+    [
+        (0.1, "00:00:01"),
+        (1, "00:00:01"),
+        (59, "00:00:59"),
+        (59.1, "00:01:00"),
+        (60, "00:01:00"),
+        (60.1, "00:01:01"),
+        (61, "00:01:01"),
+        (61.1, "00:01:02"),
+    ],
+)
+def test_get_duration_string(sfreq, duration, expected):
+    """Test BaseRAW_get_duration_string() method."""
+    info = create_info(ch_names=["EEG 001"], sfreq=sfreq)
+    raw = BaseRaw(info, last_samps=[sfreq * duration - 1])
+    assert raw._get_duration_string() == expected
+
+
+@pytest.mark.parametrize("sfreq", [1, 10, 100, 256, 1000])
+def test_repr(sfreq):
     """Test repr of Raw."""
-    sfreq = 256
     info = create_info(3, sfreq)
-    raw = RawArray(np.zeros((3, 10 * sfreq)), info)
+    sample_count = 10 * sfreq
+    raw = RawArray(np.zeros((3, sample_count)), info)
     r = repr(raw)
-    assert (
-        re.search("<RawArray | 3 x 2560 (10.0 s), ~.* kB, data loaded>", r) is not None
-    ), r
+    size_str = sizeof_fmt(raw._size)
+    assert r == f"<RawArray | 3 x {sample_count} (10.0 s), ~{size_str}, data loaded>"
     assert raw._repr_html_()
 
 
@@ -811,10 +876,10 @@ def test_describe_print():
     )
 
 
-@requires_pandas
 @pytest.mark.slowtest
 def test_describe_df():
     """Test returned data frame of describe method."""
+    pytest.importorskip("pandas")
     fname = Path(__file__).parent / "data" / "test_raw.fif"
     raw = read_raw_fif(fname)
 
@@ -980,3 +1045,21 @@ def test_resamp_noop():
     data_before = raw.get_data()
     data_after = raw.resample(sfreq=raw.info["sfreq"]).get_data()
     assert_array_equal(data_before, data_after)
+
+
+def test_concatenate_raw_dev_head_t():
+    """Test concatenating raws with dev-head-t including nans."""
+    data = np.random.randn(3, 10)
+    info = create_info(3, 1000.0, ["mag", "grad", "grad"])
+    raw = RawArray(data, info)
+    raw.info["dev_head_t"] = Transform("meg", "head", np.eye(4))
+    raw.info["dev_head_t"]["trans"][0, 0] = np.nan
+    raw2 = raw.copy()
+    concatenate_raws([raw, raw2])
+
+
+def test_last_samp():
+    """Test that getting the last sample works."""
+    raw = read_raw_fif(raw_fname).crop(0, 0.1).load_data()
+    last_data = raw._data[:, [-1]]
+    assert_array_equal(raw[:, -1][0], last_data)

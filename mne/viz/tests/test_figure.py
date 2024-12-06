@@ -1,8 +1,9 @@
-# Authors: Daniel McCloy <dan@mccloy.info>
-#
-# License: Simplified BSD
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import pytest
+
 from mne.viz._figure import _get_browser
 
 

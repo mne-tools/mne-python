@@ -1,3 +1,8 @@
-"""Jinja2 HTML templates."""
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
-from ._templates import repr_templates_env, report_templates_env
+"""Jinja2 HTML templates."""
+import lazy_loader as lazy
+
+(__getattr__, __dir__, __all__) = lazy.attach_stub(__name__, __file__)

@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "c4119388444e5867ee1a054100c78f57c9f2da25",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 3,
+      "d": 1
+    },
+    "doc/python_reference.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/epochs.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/utils/docs.py": {
+      "a": 69,
+      "d": 1
+    },
+    "mne/viz/tests/test_epochs.py": {
+      "a": 21,
+      "d": 6
+    },
+    "mne/viz/topomap.py": {
+      "a": 94,
+      "d": 101
+    },
+    "tutorials/epochs/plot_20_visualize_epochs.py": {
+      "a": 30,
+      "d": 1
+    }
+  }
+}

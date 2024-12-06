@@ -1,17 +1,21 @@
 #
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import os
-from xml.dom.minidom import parse
 import re
 
 import numpy as np
 
-from ...utils import _pl
+from ...utils import _pl, _soft_import
 
 
 def _extract(tags, filepath=None, obj=None):
     """Extract info from XML."""
+    _soft_import("defusedxml", "reading EGI MFF data")
+    from defusedxml.minidom import parse
+
     if obj is not None:
         fileobj = obj
     elif filepath is not None:
@@ -29,6 +33,9 @@ def _extract(tags, filepath=None, obj=None):
 
 def _get_gains(filepath):
     """Parse gains."""
+    _soft_import("defusedxml", "reading EGI MFF data")
+    from defusedxml.minidom import parse
+
     file_obj = parse(filepath)
     objects = file_obj.getElementsByTagName("calibration")
     gains = dict()
@@ -45,6 +52,9 @@ def _get_gains(filepath):
 
 def _get_ep_info(filepath):
     """Get epoch info."""
+    _soft_import("defusedxml", "reading EGI MFF data")
+    from defusedxml.minidom import parse
+
     epochfile = filepath + "/epochs.xml"
     epochlist = parse(epochfile)
     epochs = epochlist.getElementsByTagName("epoch")
@@ -104,9 +114,9 @@ def _get_blocks(filepath):
             position = fid.tell()
 
     if any([n != n_channels[0] for n in n_channels]):
-        raise RuntimeError("All the blocks don't have the same amount of " "channels.")
+        raise RuntimeError("All the blocks don't have the same amount of channels.")
     if any([f != sfreq[0] for f in sfreq]):
-        raise RuntimeError("All the blocks don't have the same sampling " "frequency.")
+        raise RuntimeError("All the blocks don't have the same sampling frequency.")
     if len(samples_block) < 1:
         raise RuntimeError("There seems to be no data")
     samples_block = np.array(samples_block)
@@ -122,6 +132,9 @@ def _get_blocks(filepath):
 
 def _get_signalfname(filepath):
     """Get filenames."""
+    _soft_import("defusedxml", "reading EGI MFF data")
+    from defusedxml.minidom import parse
+
     listfiles = os.listdir(filepath)
     binfiles = list(
         f for f in listfiles if "signal" in f and f[-4:] == ".bin" and f[0] != "."
@@ -139,13 +152,14 @@ def _get_signalfname(filepath):
         elif len(infobj.getElementsByTagName("PNSData")):
             signal_type = "PNS"
         all_files[signal_type] = {
-            "signal": "signal{}.bin".format(bin_num_str),
+            "signal": f"signal{bin_num_str}.bin",
             "info": infofile,
         }
     if "EEG" not in all_files:
+        infofiles_str = "\n".join(infofiles)
         raise FileNotFoundError(
-            "Could not find any EEG data in the %d file%s found in %s:\n%s"
-            % (len(infofiles), _pl(infofiles), filepath, "\n".join(infofiles))
+            f"Could not find any EEG data in the {len(infofiles)} file{_pl(infofiles)} "
+            f"found in {filepath}:\n{infofiles_str}"
         )
     return all_files
 

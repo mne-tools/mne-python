@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "60346f64bce19a5657920fe63f8e1ab4a6498db0",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".github/workflows/tests.yml": {
+      "a": 3,
+      "d": 3
+    },
+    "doc/sphinxext/mne_doc_utils.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/conftest.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/decoding/receptive_field.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/decoding/tests/test_receptive_field.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/stats/regression.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/stats/tests/test_regression.py": {
+      "a": 3,
+      "d": 1
+    }
+  }
+}

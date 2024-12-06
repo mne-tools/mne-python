@@ -1,12 +1,10 @@
 """Bunch-related classes."""
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Eric Larson <larson.eric.d@gmail.com>
-#          Joan Massich <mailsik@gmail.com>
-#
+
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from copy import deepcopy
-
 
 ###############################################################################
 # Create a Bunch class that acts like a struct (mybunch.key = val)
@@ -15,7 +13,7 @@ from copy import deepcopy
 class Bunch(dict):
     """Dictionary-like object that exposes its keys as attributes."""
 
-    def __init__(self, **kwargs):  # noqa: D102
+    def __init__(self, **kwargs):
         dict.__init__(self, kwargs)
         self.__dict__ = self
 
@@ -63,7 +61,7 @@ class _Named:
         return out
 
     def __str__(self):  # noqa: D105
-        return "%s (%s)" % (str(self.__class__.mro()[-2](self)), self._name)
+        return f"{self.__class__.mro()[-2](self)} ({self._name})"
 
     __repr__ = __str__
 

@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "711da1d40783c8f37cea85e0b338c5e08e5dad93",
+  "authors": [
+    {
+      "n": "Alex Rockhill",
+      "e": "aprockhill@mailbox.org"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/transforms.py": {
+      "a": 11,
+      "d": 4
+    },
+    "tutorials/clinical/10_ieeg_localize.py": {
+      "a": 7,
+      "d": 10
+    }
+  }
+}

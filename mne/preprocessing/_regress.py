@@ -1,27 +1,26 @@
-# Authors: Eric Larson <larson.eric.d@gmail.com>
-#          Marijn van Vliet <w.m.vanvliet@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import numpy as np
 
-from ..defaults import _INTERPOLATION_DEFAULT, _EXTRAPOLATE_DEFAULT, _BORDER_DEFAULT
+from .._fiff.pick import _picks_to_idx, pick_info
+from ..defaults import _BORDER_DEFAULT, _EXTRAPOLATE_DEFAULT, _INTERPOLATION_DEFAULT
 from ..epochs import BaseEpochs
-from ..io.pick import _picks_to_idx
-from ..io.base import BaseRaw
-from ..utils import (
-    _check_preload,
-    _validate_type,
-    _check_option,
-    verbose,
-    fill_doc,
-    copy_function_doc_to_method_doc,
-    _check_fname,
-    _import_h5io_funcs,
-)
+from ..evoked import Evoked
+from ..io import BaseRaw
 from ..minimum_norm.inverse import _needs_eeg_average_ref_proj
+from ..utils import (
+    _check_fname,
+    _check_option,
+    _check_preload,
+    _import_h5io_funcs,
+    _validate_type,
+    copy_function_doc_to_method_doc,
+    fill_doc,
+    verbose,
+)
 from ..viz import plot_regression_weights
-from .. import Evoked
 
 
 @verbose
@@ -177,9 +176,7 @@ class EOGRegression:
         reference (see :func:`mne.set_eeg_reference`) before performing EOG
         regression.
         """
-        self._check_inst(inst)
-        picks = _picks_to_idx(inst.info, self.picks, none="data", exclude=self.exclude)
-        picks_artifact = _picks_to_idx(inst.info, self.picks_artifact)
+        picks, picks_artifact = self._check_inst(inst)
 
         # Calculate regression coefficients. Add a row of ones to also fit the
         # intercept.
@@ -231,9 +228,7 @@ class EOGRegression:
         """
         if copy:
             inst = inst.copy()
-        self._check_inst(inst)
-        picks = _picks_to_idx(inst.info, self.picks, none="data", exclude=self.exclude)
-        picks_artifact = _picks_to_idx(inst.info, self.picks_artifact)
+        picks, picks_artifact = self._check_inst(inst)
 
         # Check that the channels are compatible with the regression weights.
         ref_picks = _picks_to_idx(
@@ -323,19 +318,25 @@ class EOGRegression:
         _validate_type(
             inst, (BaseRaw, BaseEpochs, Evoked), "inst", "Raw, Epochs, Evoked"
         )
-        if _needs_eeg_average_ref_proj(inst.info):
+        picks = _picks_to_idx(inst.info, self.picks, none="data", exclude=self.exclude)
+        picks_artifact = _picks_to_idx(inst.info, self.picks_artifact)
+        all_picks = np.unique(np.concatenate([picks, picks_artifact]))
+        use_info = pick_info(inst.info, all_picks)
+        del all_picks
+        if _needs_eeg_average_ref_proj(use_info):
             raise RuntimeError(
-                "No reference for the EEG channels has been "
-                "set. Use inst.set_eeg_reference() to do so."
+                "No average reference for the EEG channels has been "
+                "set. Use inst.set_eeg_reference(projection=True) to do so."
             )
         if self.proj and not inst.proj:
             inst.apply_proj()
-        if not inst.proj and len(inst.info.get("projs", [])) > 0:
+        if not inst.proj and len(use_info.get("projs", [])) > 0:
             raise RuntimeError(
                 "Projections need to be applied before "
                 "regression can be performed. Use the "
                 ".apply_proj() method to do so."
             )
+        return picks, picks_artifact
 
     def __repr__(self):
         """Produce a string representation of this object."""

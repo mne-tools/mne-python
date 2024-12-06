@@ -1,35 +1,37 @@
-# Authors: Eric Larson <larson.eric.d@gmail.com>
-
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from collections import defaultdict
 from functools import partial
 
 import numpy as np
+from scipy.optimize import minimize
 
+from .._fiff.pick import pick_info, pick_types
+from .._fiff.tag import _coil_trans_to_loc, _loc_to_coil_trans
 from ..bem import _check_origin
-from ..io.pick import pick_info, pick_types
-from ..io import _loc_to_coil_trans, _coil_trans_to_loc, BaseRaw
+from ..io import BaseRaw
 from ..transforms import _find_vector_rotation
 from ..utils import (
+    _check_fname,
+    _check_option,
+    _clean_names,
+    _ensure_int,
+    _pl,
+    _reg_pinv,
+    _validate_type,
+    check_fname,
     logger,
     verbose,
-    check_fname,
-    _check_fname,
-    _pl,
-    _ensure_int,
-    _check_option,
-    _validate_type,
-    _reg_pinv,
 )
-
 from .maxwell import (
     _col_norm_pinv,
-    _trans_sss_basis,
-    _prep_mf_coils,
     _get_grad_point_coilsets,
-    _read_cross_talk,
     _prep_fine_cal,
+    _prep_mf_coils,
+    _read_cross_talk,
+    _trans_sss_basis,
 )
 
 
@@ -42,6 +44,9 @@ def compute_fine_calibration(
     origin=(0.0, 0.0, 0.0),
     cross_talk=None,
     calibration=None,
+    *,
+    angle_limit=5.0,
+    err_limit=5.0,
     verbose=None,
 ):
     """Compute fine calibration from empty-room data.
@@ -67,6 +72,17 @@ def compute_fine_calibration(
         Dictionary with existing calibration. If provided, the magnetometer
         imbalances and adjusted normals will be used and only the gradiometer
         imbalances will be estimated (see step 2 in Notes below).
+    angle_limit : float
+        The maximum permitted angle in degrees between the original and adjusted
+        magnetometer normals. If the angle is exceeded, the segment is treated as
+        an outlier and discarded.
+
+        .. versionadded:: 1.9
+    err_limit : float
+        The maximum error (in percent) for each channel in order for a segment to
+        be used.
+
+        .. versionadded:: 1.9
     %(verbose)s
 
     Returns
@@ -113,6 +129,12 @@ def compute_fine_calibration(
     ext_order = _ensure_int(ext_order, "ext_order")
     origin = _check_origin(origin, raw.info, "meg", disp=True)
     _check_option("raw.info['bads']", raw.info["bads"], ([],))
+    _validate_type(err_limit, "numeric", "err_limit")
+    _validate_type(angle_limit, "numeric", "angle_limit")
+    for key, val in dict(err_limit=err_limit, angle_limit=angle_limit).items():
+        if val < 0:
+            raise ValueError(f"{key} must be greater than or equal to 0, got {val}")
+    # Fine cal should not include ref channels
     picks = pick_types(raw.info, meg=True, ref_meg=False)
     if raw.info["dev_head_t"] is not None:
         raise ValueError(
@@ -143,7 +165,7 @@ def compute_fine_calibration(
     locs = np.array([ch["loc"] for ch in info["chs"]])
     zs = locs[mag_picks, -3:].copy()
     if calibration is not None:
-        _, calibration, _ = _prep_fine_cal(info, calibration)
+        _, calibration, _ = _prep_fine_cal(info, calibration, ignore_ref=True)
         for pi, pick in enumerate(mag_picks):
             idx = calibration["ch_names"].index(info["ch_names"][pick])
             cals[pick] = calibration["imb_cals"][idx].item()
@@ -152,18 +174,25 @@ def compute_fine_calibration(
         cal_list = list()
         z_list = list()
         logger.info(
-            "Adjusting normals for %s magnetometers "
-            "(averaging over %s time intervals)" % (len(mag_picks), len(time_idxs) - 1)
+            f"Adjusting normals for {len(mag_picks)} magnetometers "
+            f"(averaging over {len(time_idxs) - 1} time intervals)"
         )
         for start, stop in zip(time_idxs[:-1], time_idxs[1:]):
             logger.info(
-                "    Processing interval %0.3f - %0.3f s"
-                % (start / info["sfreq"], stop / info["sfreq"])
+                f"    Processing interval {start / info['sfreq']:0.3f} - "
+                f"{stop / info['sfreq']:0.3f} s"
             )
             data = raw[picks, start:stop][0]
             if ctc is not None:
                 data = ctc.dot(data)
-            z, cal, good = _adjust_mag_normals(info, data, origin, ext_order)
+            z, cal, good = _adjust_mag_normals(
+                info,
+                data,
+                origin,
+                ext_order,
+                angle_limit=angle_limit,
+                err_limit=err_limit,
+            )
             if good:
                 z_list.append(z)
                 cal_list.append(cal)
@@ -188,14 +217,12 @@ def compute_fine_calibration(
     #
     if len(grad_picks) > 0:
         extra = "X direction" if n_imbalance == 1 else ("XYZ directions")
-        logger.info(
-            "Computing imbalance for %s gradimeters (%s)" % (len(grad_picks), extra)
-        )
+        logger.info(f"Computing imbalance for {len(grad_picks)} gradimeters ({extra})")
         imb_list = list()
         for start, stop in zip(time_idxs[:-1], time_idxs[1:]):
             logger.info(
-                "    Processing interval %0.3f - %0.3f s"
-                % (start / info["sfreq"], stop / info["sfreq"])
+                f"    Processing interval {start / info['sfreq']:0.3f} - "
+                f"{stop / info['sfreq']:0.3f} s"
             )
             data = raw[picks, start:stop][0]
             if ctc is not None:
@@ -214,7 +241,8 @@ def compute_fine_calibration(
         cals[ii : ii + 1] if ii in mag_picks else imb[ii]
         for ii in range(len(info["ch_names"]))
     ]
-    calibration = dict(ch_names=info["ch_names"], locs=locs, imb_cals=imb_cals)
+    ch_names = _clean_names(info["ch_names"], remove_whitespace=True)
+    calibration = dict(ch_names=ch_names, locs=locs, imb_cals=imb_cals)
     return calibration, count
 
 
@@ -253,10 +281,8 @@ def _vector_angle(x, y):
     )
 
 
-def _adjust_mag_normals(info, data, origin, ext_order):
+def _adjust_mag_normals(info, data, origin, ext_order, *, angle_limit, err_limit):
     """Adjust coil normals using magnetometers and empty-room data."""
-    from scipy.optimize import fmin_cobyla
-
     # in principle we could allow using just mag or mag+grad, but MF uses
     # just mag so let's follow suit
     mag_scale = 100.0
@@ -320,9 +346,16 @@ def _adjust_mag_normals(info, data, origin, ext_order):
             )
 
             # Figure out the additive term for z-component
-            zs[cal_idx] = fmin_cobyla(
-                objective, old_z, cons=(), rhobeg=1e-3, rhoend=1e-4, disp=False
-            )
+            zs[cal_idx] = minimize(
+                objective,
+                old_z,
+                bounds=[(-2, 2)] * 3,
+                # BFGS is the default for minimize but COBYLA converges faster
+                method="COBYLA",
+                # Start with a small relative step because nominal geometry information
+                # should be fairly accurate to begin with
+                options=dict(rhobeg=1e-1),
+            ).x
 
             # Do in-place adjustment to all_coils
             cals[cal_idx] = 1.0 / np.linalg.norm(zs[cal_idx])
@@ -350,12 +383,15 @@ def _adjust_mag_normals(info, data, origin, ext_order):
     # Chunk is usable if all angles and errors are both small
     reason = list()
     max_angle = np.max(angles)
-    if max_angle >= 5.0:
-        reason.append(f"max angle {max_angle:0.2f} >= 5°")
+    if max_angle >= angle_limit:
+        reason.append(f"max angle {max_angle:0.2f} >= {angle_limit:0.1f}°")
     each_err = _data_err(data, S_tot, cals, axis=-1)[picks_mag]
-    n_bad = (each_err > 5.0).sum()
+    n_bad = (each_err > err_limit).sum()
     if n_bad:
-        reason.append(f"{n_bad} residual{_pl(n_bad)} > 5%")
+        reason.append(
+            f"{n_bad} residual{_pl(n_bad)} > {err_limit:0.1f}% "
+            f"(max: {each_err.max():0.2f}%)"
+        )
     reason = ", ".join(reason)
     if reason:
         reason = f" ({reason})"
@@ -512,7 +548,7 @@ def read_fine_calibration(fname):
     fname = _check_fname(fname, overwrite="read", must_exist=True)
     check_fname(fname, "cal", (".dat",))
     ch_names, locs, imb_cals = list(), list(), list()
-    with open(fname, "r") as fid:
+    with open(fname) as fid:
         for line in fid:
             if line[0] in "#\n":
                 continue
@@ -521,7 +557,7 @@ def read_fine_calibration(fname):
                 raise RuntimeError(
                     "Error parsing fine calibration file, "
                     "should have 14 or 16 entries per line "
-                    "but found %s on line:\n%s" % (len(vals), line)
+                    f"but found {len(vals)} on line:\n{line}"
                 )
             # `vals` contains channel number
             ch_name = vals[0]
@@ -531,7 +567,7 @@ def read_fine_calibration(fname):
                 except ValueError:  # something other than e.g. 113 or 2642
                     pass
                 else:
-                    ch_name = "MEG" + "%04d" % ch_name
+                    ch_name = f"MEG{int(ch_name):04}"
             # (x, y, z), x-norm 3-vec, y-norm 3-vec, z-norm 3-vec
             # and 1 or 3 imbalance terms
             ch_names.append(ch_name)

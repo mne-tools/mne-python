@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "bb2beaf266254e1c2870e7a4b3cbc53d7cb72214",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "azure-pipelines.yml": {
+      "a": 22,
+      "d": 10
+    },
+    "mne/conftest.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/decoding/tests/test_base.py": {
+      "a": 4,
+      "d": 20
+    },
+    "mne/epochs.py": {
+      "a": 4,
+      "d": 1
+    },
+    "mne/label.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 6,
+      "d": 6
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/viz/topomap.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

@@ -1,51 +1,52 @@
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
+
 from copy import deepcopy
-from datetime import datetime, timezone
+from datetime import date
 from io import StringIO
 from pathlib import Path
 
 import numpy as np
-from numpy.testing import assert_array_equal, assert_allclose
 import pytest
-from scipy import sparse
+from numpy.testing import assert_allclose, assert_array_equal
 
-from mne import read_evokeds, read_cov, pick_types
-from mne.io.pick import _picks_by_type
+from mne import pick_types, read_cov, read_evokeds
+from mne._fiff.pick import _picks_by_type
 from mne.epochs import make_fixed_length_epochs
+from mne.fixes import _eye_array
 from mne.io import read_raw_fif
 from mne.time_frequency import tfr_morlet
 from mne.utils import (
+    _PCA,
+    _apply_scaling_array,
+    _apply_scaling_cov,
+    _array_equal_nan,
+    _custom_lru_cache,
+    _date_to_julian,
+    _freq_mask,
     _get_inst_data,
-    hashfunc,
-    sum_squared,
+    _julian_to_date,
+    _reg_pinv,
+    _replace_md5,
+    _ReuseCycle,
+    _time_mask,
+    _undo_scaling_array,
+    _undo_scaling_cov,
     compute_corr,
     create_slices,
-    _time_mask,
-    _freq_mask,
-    random_permutation,
-    _reg_pinv,
-    object_size,
-    object_hash,
-    object_diff,
-    _apply_scaling_cov,
-    _undo_scaling_cov,
-    _apply_scaling_array,
-    _undo_scaling_array,
-    _PCA,
-    requires_sklearn,
-    _array_equal_nan,
-    _julian_to_cal,
-    _cal_to_julian,
-    _dt_to_julian,
-    _julian_to_dt,
     grand_average,
-    _ReuseCycle,
+    hashfunc,
     numerics,
-    _custom_lru_cache,
+    object_diff,
+    object_hash,
+    object_size,
+    random_permutation,
+    sum_squared,
 )
-from mne.utils.numerics import _LRU_CACHES, _LRU_CACHE_MAXSIZES
+from mne.utils.numerics import _LRU_CACHE_MAXSIZES, _LRU_CACHES
 
-
-base_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
+base_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
 fname_raw = base_dir / "test_raw.fif"
 ave_fname = base_dir / "test-ave.fif"
 cov_fname = base_dir / "test-cov.fif"
@@ -56,7 +57,7 @@ def test_get_inst_data():
     raw = read_raw_fif(fname_raw)
     raw.crop(tmax=1.0)
     assert_array_equal(_get_inst_data(raw), raw._data)
-    raw.pick_channels(raw.ch_names[:2])
+    raw.pick(raw.ch_names[:2])
 
     epochs = make_fixed_length_epochs(raw, 0.5)
     assert_array_equal(_get_inst_data(epochs), epochs._data)
@@ -230,7 +231,7 @@ def test_cov_scaling():
     cov2 = read_cov(cov_fname)["data"]
 
     assert_array_equal(cov, cov2)
-    evoked.pick_channels(
+    evoked.pick(
         [evoked.ch_names[k] for k in pick_types(evoked.info, meg=True, eeg=True)]
     )
     picks_list = _picks_by_type(evoked.info)
@@ -314,11 +315,11 @@ def test_object_size():
         (150, 500, np.ones(20)),
         (30, 400, dict()),
         (400, 1000, dict(a=np.ones(50))),
-        (200, 900, sparse.eye(20, format="csc")),
-        (200, 900, sparse.eye(20, format="csr")),
+        (200, 900, _eye_array(20, format="csc")),
+        (200, 900, _eye_array(20, format="csr")),
     ):
         size = object_size(obj)
-        assert lower < size < upper, "%s < %s < %s:\n%s" % (lower, size, upper, obj)
+        assert lower < size < upper, f"{lower} < {size} < {upper}:\n{obj}"
     # views work properly
     x = dict(a=1)
     assert object_size(x) < 1000
@@ -416,14 +417,14 @@ def test_hash():
     pytest.raises(RuntimeError, object_diff, d1, d2)
     pytest.raises(RuntimeError, object_hash, d1)
 
-    x = sparse.eye(2, 2, format="csc")
-    y = sparse.eye(2, 2, format="csr")
+    x = _eye_array(2, format="csc")
+    y = _eye_array(2, format="csr")
     assert "type mismatch" in object_diff(x, y)
-    y = sparse.eye(2, 2, format="csc")
+    y = _eye_array(2, format="csc")
     assert len(object_diff(x, y)) == 0
     y[1, 1] = 2
     assert "elements" in object_diff(x, y)
-    y = sparse.eye(3, 3, format="csc")
+    y = _eye_array(3, format="csc")
     assert "shape" in object_diff(x, y)
     y = 0
     assert "type mismatch" in object_diff(x, y)
@@ -433,11 +434,11 @@ def test_hash():
     assert object_hash(np.bool_(True)) != 0
 
 
-@requires_sklearn
 @pytest.mark.parametrize("n_components", (None, 0.9999, 8, "mle"))
 @pytest.mark.parametrize("whiten", (True, False))
 def test_pca(n_components, whiten):
     """Test PCA equivalence."""
+    pytest.importorskip("sklearn")
     from sklearn.decomposition import PCA
 
     n_samples, n_dim = 1000, 10
@@ -450,7 +451,7 @@ def test_pca(n_components, whiten):
     assert_array_equal(X, X_orig)
     X_mne = pca_mne.fit_transform(X)
     assert_array_equal(X, X_orig)
-    assert_allclose(X_skl, X_mne)
+    assert_allclose(X_skl, X_mne * np.sign(np.sum(X_skl * X_mne, axis=0)))
     assert pca_mne.n_components_ == pca_skl.n_components_
     for key in (
         "mean_",
@@ -459,6 +460,10 @@ def test_pca(n_components, whiten):
         "explained_variance_ratio_",
     ):
         val_skl, val_mne = getattr(pca_skl, key), getattr(pca_mne, key)
+        if key == "components_":
+            val_mne = val_mne * np.sign(
+                np.sum(val_skl * val_mne, axis=1, keepdims=True)
+            )
         assert_allclose(val_skl, val_mne)
     if isinstance(n_components, float):
         assert pca_mne.n_components_ == n_dim - 1
@@ -489,19 +494,12 @@ def test_julian_conversions():
     # A.D. 2018 Oct 3   12:00:00.0  2458395.000000
 
     jds = [2423219, 2458395, 2445701]
-    dds = [
-        datetime(1922, 6, 13, 12, 0, 0, tzinfo=timezone.utc),
-        datetime(2018, 10, 3, 12, 0, 0, tzinfo=timezone.utc),
-        datetime(1984, 1, 1, 12, 0, 0, tzinfo=timezone.utc),
-    ]
     cals = [(1922, 6, 13), (2018, 10, 3), (1984, 1, 1)]
+    dds = [date(*c) for c in cals]
 
     for dd, cal, jd in zip(dds, cals, jds):
-        assert dd == _julian_to_dt(jd)
-        assert cal == _julian_to_cal(jd)
-
-        assert jd == _dt_to_julian(dd)
-        assert jd == _cal_to_julian(cal[0], cal[1], cal[2])
+        assert dd == _julian_to_date(jd)
+        assert jd == _date_to_julian(dd)
 
 
 def test_grand_average_empty_sequence():
@@ -600,10 +598,27 @@ def test_custom_lru_cache():
     assert my_fun(1, np.array([2]), 3) == "int, ndarray, int"
     assert n_calls == [2, 1]
     assert len(_LRU_CACHES[fun_hash]) == 2
-    assert my_fun_2(1, sparse.eye(1, format="csc")) == "int, csc_matrix"
+    assert my_fun_2(1, _eye_array(1, format="csc")) == "int, csc_array"
     assert n_calls == [2, 2]
     assert len(_LRU_CACHES[fun_2_hash]) == 1  # other got popped
     # we could add support for this eventually, but don't bother for now
     with pytest.raises(RuntimeError, match="Unsupported sparse type"):
-        my_fun_2(1, sparse.eye(1, format="coo"))
+        my_fun_2(1, _eye_array(1, format="coo"))
     assert n_calls == [2, 2]  # never did any computation
+
+
+def test_replace_md5(tmp_path):
+    """Test _replace_md5."""
+    old = tmp_path / "test"
+    new = old.with_suffix(".new")
+    old.write_text("abcd")
+    new.write_text("abcde")
+    assert old.is_file()
+    assert new.is_file()
+    _replace_md5(str(new))
+    assert not new.is_file()
+    assert old.read_text() == "abcde"
+    new.write_text(old.read_text())
+    _replace_md5(str(new))
+    assert old.read_text() == "abcde"
+    assert not new.is_file()

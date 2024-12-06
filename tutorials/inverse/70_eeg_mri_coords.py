@@ -5,19 +5,20 @@
 EEG source localization given electrode locations on an MRI
 ===========================================================
 
-This tutorial explains how to compute the forward operator from EEG data when
-the electrodes are in MRI voxel coordinates.
+This tutorial explains how to compute the forward operator from EEG data when the
+electrodes are in MRI voxel coordinates.
 """
 
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 
 import nibabel
-from nilearn.plotting import plot_glass_brain
 import numpy as np
+from nilearn.plotting import plot_glass_brain
 
 import mne
 from mne.channels import compute_native_head_t, read_custom_montage
@@ -103,7 +104,12 @@ plot_glass_brain(
 #     You can also verify that these are correct (or manually convert voxels
 #     to MRI coords) by looking at the points in Freeview or tkmedit.
 
-dig_montage = read_custom_montage(fname_mon, head_size=None, coord_frame="mri")
+dig_montage = read_custom_montage(
+    fname_mon,
+    head_size=None,
+    coord_frame="mri",
+    verbose="error",  # because it contains a duplicate point
+)
 dig_montage.plot()
 
 ##############################################################################
@@ -119,7 +125,7 @@ print(trans)  # should be mri->head, as the "native" space here is MRI
 # shown by :meth:`~mne.io.Raw.plot_sensors`.
 
 raw = mne.io.read_raw_fif(fname_raw)
-raw.pick_types(meg=False, eeg=True, stim=True, exclude=()).load_data()
+raw.pick(picks=["eeg", "stim"]).load_data()
 raw.set_montage(dig_montage)
 raw.plot_sensors(show_names=True)
 

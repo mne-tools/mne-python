@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "270b77768e4d2cf0f3f7ae4defd229c9f39eb2af",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/annotations.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/channels/_standard_montage_utils.py": {
+      "a": 8,
+      "d": 7
+    },
+    "mne/channels/montage.py": {
+      "a": 21,
+      "d": 20
+    },
+    "mne/datasets/utils.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/io/what.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/tests/test_annotations.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/utils/mixin.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

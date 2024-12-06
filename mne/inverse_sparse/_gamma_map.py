@@ -1,19 +1,20 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
-# License: Simplified BSD
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import numpy as np
 
+from ..fixes import _safe_svd
 from ..forward import is_fixed_orient
 from ..minimum_norm.inverse import _check_reference, _log_exp_var
 from ..utils import logger, verbose, warn
 from .mxne_inverse import (
     _check_ori,
+    _compute_residual,
+    _make_dipoles_sparse,
     _make_sparse_stc,
     _prepare_gain,
     _reapply_source_weighting,
-    _compute_residual,
-    _make_dipoles_sparse,
 )
 
 
@@ -59,8 +60,6 @@ def _gamma_map_opt(
     active_set : array, shape=(n_active,)
         Indices of active sources.
     """
-    from scipy import linalg
-
     G = G.copy()
     M = M.copy()
 
@@ -81,7 +80,7 @@ def _gamma_map_opt(
 
     if n_sources % group_size != 0:
         raise ValueError(
-            "Number of sources has to be evenly dividable by the " "group size"
+            "Number of sources has to be evenly dividable by the group size"
         )
 
     n_active = n_sources
@@ -112,7 +111,7 @@ def _gamma_map_opt(
         CM = np.dot(G * gammas[np.newaxis, :], G.T)
         CM.flat[:: n_sensors + 1] += alpha
         # Invert CM keeping symmetry
-        U, S, _ = linalg.svd(CM, full_matrices=False)
+        U, S, _ = _safe_svd(CM, full_matrices=False)
         S = S[np.newaxis, :]
         del CM
         CMinv = np.dot(U / (S + eps), U.T)
@@ -158,8 +157,8 @@ def _gamma_map_opt(
         breaking = err < tol or n_active == 0
         if len(gammas) != last_size or breaking:
             logger.info(
-                "Iteration: %d\t active set size: %d\t convergence: "
-                "%0.3e" % (itno, len(gammas), err)
+                f"Iteration: {itno}\t active set size: {len(gammas)}\t convergence: "
+                f"{err:.3e}"
             )
             last_size = len(gammas)
 

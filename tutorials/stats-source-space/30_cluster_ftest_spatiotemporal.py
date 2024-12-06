@@ -13,6 +13,7 @@ permutation test across space and time.
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Eric Larson <larson.eric.d@gmail.com>
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 
@@ -21,8 +22,8 @@ from scipy import stats as stats
 
 import mne
 from mne import spatial_src_adjacency
-from mne.stats import spatio_temporal_cluster_test, summarize_clusters_stc
 from mne.datasets import sample
+from mne.stats import spatio_temporal_cluster_test, summarize_clusters_stc
 
 print(__doc__)
 
@@ -55,7 +56,7 @@ n_vertices_fsave, n_times = stc.data.shape
 tstep = stc.tstep * 1000  # convert to milliseconds
 
 n_subjects1, n_subjects2 = 6, 7
-print("Simulating data for %d and %d subjects." % (n_subjects1, n_subjects2))
+print(f"Simulating data for {n_subjects1} and {n_subjects2} subjects.")
 
 #    Let's make sure our results replicate, so set the seed.
 np.random.seed(0)

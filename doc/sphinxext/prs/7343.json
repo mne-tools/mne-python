@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "cc24a220a4e421f527e7616773c79dbccd04f4ed",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/viz/misc.py": {
+      "a": 24,
+      "d": 14
+    },
+    "mne/viz/tests/test_misc.py": {
+      "a": 5,
+      "d": 3
+    },
+    "tutorials/intro/plot_10_overview.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

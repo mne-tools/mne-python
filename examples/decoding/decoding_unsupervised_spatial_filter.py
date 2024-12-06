@@ -10,21 +10,21 @@ PCA / ICA components, a.k.a. spatial filters, are used to transform
 the channel data to new sources / virtual channels. The output is
 visualized on the average of all the epochs.
 """
-# Authors: Jean-Remi King <jeanremi.king@gmail.com>
+# Authors: Jean-Rémi King <jeanremi.king@gmail.com>
 #          Asish Panda <asishrocks95@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
+from sklearn.decomposition import PCA, FastICA
 
 import mne
 from mne.datasets import sample
 from mne.decoding import UnsupervisedSpatialFilter
-
-from sklearn.decomposition import PCA, FastICA
 
 print(__doc__)
 
@@ -59,7 +59,7 @@ epochs = mne.Epochs(
     verbose=False,
 )
 
-X = epochs.get_data()
+X = epochs.get_data(copy=False)
 
 ##############################################################################
 # Transform data with PCA computed on the average ie evoked response

@@ -1,5 +1,3 @@
-.. include:: ../links.inc
-
 Overview of the MNE tools suite
 ===============================
 
@@ -23,50 +21,25 @@ Related software
   types like functional near-infrared spectroscopy (fNIRS). MNE-Python is
   collaboratively developed and has more than 200 contributors.
 
-- :ref:`MNE MATLAB <mne_matlab>` provides a MATLAB interface to the .fif file
-  format and other MNE data structures, and provides example MATLAB
+- `MNE-MATLAB`_ provides a MATLAB interface to the .fif
+  file format and other MNE data structures, and provides example MATLAB
   implementations of some of the core analysis functionality of MNE-C. It is
-  distributed alongside MNE-C, and can also be downloaded from the `MNE-MATLAB
-  git repository`_.
+  distributed alongside MNE-C, and can also be downloaded from the `MNE-MATLAB`_ GitHub repository.
 
 - :ref:`MNE-CPP <mne_cpp>` provides core MNE functionality implemented in
   C++ and is primarily intended for embedded and real-time applications.
 
 There is also a growing ecosystem of other Python packages that work alongside
-MNE-Python, including packages for:
+MNE-Python, including:
 
 .. note:: Something missing?
     :class: sidebar
 
     If you know of a package that is related but not listed here, feel free to
-    :ref:`make a pull request <contributing>` to add it to this list.
+    to add it to this list by :ref:`making a pull request <contributing>` to update
+    `doc/sphinxext/related_software.py <https://github.com/mne-tools/mne-python/blob/main/doc/sphinxext/related_software.py>`__.
 
-- a graphical user interface for MNE-Python (`MNELAB`_)
-- easily importing MEG data from the Human Connectome Project for
-  use with MNE-Python (`MNE-HCP`_)
-- managing MNE projects so that they comply with the `Brain
-  Imaging Data Structure`_ specification (`MNE-BIDS`_)
-- automatic bad channel detection and interpolation (`autoreject`_)
-- convolutional sparse dictionary learning and waveform shape estimation
-  (`alphaCSC`_)
-- independent component analysis (ICA) with good performance on real data
-  (`PICARD`_)
-- phase-amplitude coupling (`pactools`_)
-- representational similarity analysis (`rsa`_)
-- microstate analysis (`microstate`_)
-- connectivity analysis using dynamic imaging of coherent sources (DICS)
-  (`conpy`_)
-- general-purpose statistical analysis of M/EEG data (`eelbrain`_)
-- post-hoc modification of linear models (`posthoc`_)
-- a python implementation of the Preprocessing Pipeline (PREP) for EEG data
-  (`pyprep`_)
-- automatic multi-dipole localization and uncertainty quantification with
-  the Bayesian algorithm SESAME (`sesameeg`_)
-- GLM and group level analysis of near-infrared spectroscopy data (`mne-nirs`_)
-- High-level EEG Python library for all kinds of EEG inverse solutions (`invertmeeg`_)
-- All-Resolutions Inference (ARI) for statistically valid circular inference
-  and effect localization (`MNE-ARI`_)
-
+.. related-software::
 
 What should I install?
 ^^^^^^^^^^^^^^^^^^^^^^
@@ -100,7 +73,6 @@ Help with installation is available through the `MNE Forum`_. See the
 .. _MNELAB: https://github.com/cbrnr/mnelab
 .. _autoreject: https://autoreject.github.io/
 .. _alphaCSC: https://alphacsc.github.io/
-.. _picard: https://pierreablin.github.io/picard/
 .. _pactools: https://pactools.github.io/
 .. _rsa: https://github.com/wmvanvliet/mne-rsa
 .. _microstate: https://github.com/wmvanvliet/mne_microstates
@@ -109,6 +81,10 @@ Help with installation is available through the `MNE Forum`_. See the
 .. _posthoc: https://users.aalto.fi/~vanvlm1/posthoc/python/
 .. _pyprep: https://github.com/sappelhoff/pyprep
 .. _sesameeg: https://pybees.github.io/sesameeg
-.. _mne-nirs: https://github.com/mne-tools/mne-nirs
 .. _invertmeeg: https://github.com/LukeTheHecker/invert
 .. _MNE-ARI: https://github.com/john-veillette/mne_ari
+.. _niseq: https://github.com/john-veillette/niseq
+.. _Meggie: https://github.com/cibr-jyu/meggie
+.. _MEM: https://github.com/multifunkim/best-python
+
+.. include:: ../links.inc

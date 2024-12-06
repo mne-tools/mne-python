@@ -1,30 +1,27 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Eric Larson <larson.eric.d@gmail.com>
-#          Joan Massich <mailsik@gmail.com>
-#          Guillaume Favelier <guillaume.favelier@gmail.com>
-#
-# License: Simplified BSD
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
+import platform
 from colorsys import rgb_to_hls
-from contextlib import nullcontext
 
 import numpy as np
 import pytest
 
 from mne import create_info
 from mne.io import RawArray
-from mne.viz.backends._utils import (
-    _get_colormap_from_array,
-    _check_color,
-    _qt_is_dark,
-    _pixmap_to_ndarray,
-)
 from mne.utils import _check_qt_version
+from mne.viz.backends._utils import (
+    _check_color,
+    _get_colormap_from_array,
+    _pixmap_to_ndarray,
+    _qt_is_dark,
+)
 
 
 def test_get_colormap_from_array():
     """Test setting a colormap."""
-    from matplotlib.colors import ListedColormap, LinearSegmentedColormap
+    from matplotlib.colors import LinearSegmentedColormap, ListedColormap
 
     cmap = _get_colormap_from_array()
     assert isinstance(cmap, LinearSegmentedColormap)
@@ -64,21 +61,11 @@ def test_theme_colors(pg_backend, theme, monkeypatch, tmp_path):
     monkeypatch.setattr(darkdetect, "theme", lambda: "light")
     raw = RawArray(np.zeros((1, 1000)), create_info(1, 1000.0, "eeg"))
     _, api = _check_qt_version(return_api=True)
-    if api in ("PyQt6", "PySide6"):
-        if theme == "dark":  # we force darkdetect to say the sys is light
-            ctx = pytest.warns(RuntimeWarning, match="not yet supported")
-        else:
-            ctx = nullcontext()
-        return_early = True
-    else:
-        ctx = nullcontext()
-        return_early = False
-    with ctx:
-        fig = raw.plot(theme=theme)
-    if return_early:
-        return  # we could add a ton of conditionals below, but KISS
+    fig = raw.plot(theme=theme)
     is_dark = _qt_is_dark(fig)
     # on Darwin these checks get complicated, so don't bother for now
+    if platform.system() == "Darwin":
+        pytest.skip("Problems on macOS")
     if theme == "dark":
         assert is_dark, theme
     elif theme == "light":

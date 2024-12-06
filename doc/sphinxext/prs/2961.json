@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "bc724819b62985445184a7f2e381a13ce175b944",
+  "authors": [
+    {
+      "n": "Mainak Jas",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/conf.py": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/manual/index.rst": {
+      "a": 8,
+      "d": 0
+    },
+    "doc/manual/migrating.rst": {
+      "a": 54,
+      "d": 0
+    }
+  }
+}

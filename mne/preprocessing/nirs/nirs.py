@@ -1,15 +1,13 @@
-# Authors: Robert Luke <mail@robertluke.net>
-#          Eric Larson <larson.eric.d@gmail.com>
-#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import re
+
 import numpy as np
 
-from ...io.pick import _picks_to_idx, pick_types
-from ...utils import fill_doc, _check_option, _validate_type
-
+from ..._fiff.pick import _picks_to_idx, pick_types
+from ...utils import _check_option, _validate_type, fill_doc
 
 # Standardized fNIRS channel name regexs
 _S_D_F_RE = re.compile(r"S(\d+)_D(\d+) (\d+\.?\d*)")
@@ -126,7 +124,7 @@ def _check_channels_ordered(info, pair_vals, *, throw_errors=True, check_bads=Tr
     pair_vals = np.array(pair_vals)
     if pair_vals.shape != (2,):
         raise ValueError(
-            f"Exactly two {error_word} must exist in info, got " f"{list(pair_vals)}"
+            f"Exactly two {error_word} must exist in info, got {list(pair_vals)}"
         )
     # In principle we do not need to require that these be sorted --
     # all we need to do is change our sorted() below to make use of a

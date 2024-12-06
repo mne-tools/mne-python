@@ -1,38 +1,39 @@
-# Authors: Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
-#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Eric Larson <larson.eric.d@gmail.com>
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # The computations in this code were primarily derived from Matti Hämäläinen's
 # C code.
 
+import inspect
 from copy import deepcopy
 
 import numpy as np
+from scipy.interpolate import interp1d
 
+from .._fiff.constants import FIFF
+from .._fiff.meas_info import _simplify_info
+from .._fiff.pick import pick_info, pick_types
+from .._fiff.proj import _has_eeg_average_ref_proj, make_projector
 from ..bem import _check_origin
 from ..cov import make_ad_hoc_cov
-from ..io.constants import FIFF
-from ..io.pick import pick_types, pick_info
-from ..io.meas_info import _simplify_info
-from ..io.proj import _has_eeg_average_ref_proj, make_projector
+from ..epochs import BaseEpochs, EpochsArray
+from ..evoked import Evoked, EvokedArray
+from ..fixes import _safe_svd
 from ..surface import get_head_surf, get_meg_helmet_surf
-from ..transforms import transform_surface_to, _find_trans, _get_trans
-from ._make_forward import _create_meg_coils, _create_eeg_els, _read_coil_defs
+from ..transforms import _find_trans, _get_trans, transform_surface_to
+from ..utils import _check_fname, _check_option, _pl, _reg_pinv, logger, verbose
 from ._lead_dots import (
+    _do_cross_dots,
     _do_self_dots,
     _do_surface_dots,
     _get_legen_table,
-    _do_cross_dots,
 )
-from ..utils import logger, verbose, _check_option, _reg_pinv, _pl, _check_fname
-from ..epochs import EpochsArray, BaseEpochs
-from ..evoked import Evoked, EvokedArray
+from ._make_forward import _create_eeg_els, _create_meg_coils, _read_coil_defs
 
 
 def _setup_dots(mode, info, coils, ch_type):
     """Set up dot products."""
-    from scipy.interpolate import interp1d
-
     int_rad = 0.06
     noise = make_ad_hoc_cov(info, dict(mag=20e-15, grad=5e-13, eeg=1e-6))
     n_coeff, interp = (50, "nearest") if mode == "fast" else (100, "linear")
@@ -88,17 +89,18 @@ def _compute_mapping_matrix(fmd, info):
 
 def _pinv_trunc(x, miss):
     """Compute pseudoinverse, truncating at most "miss" fraction of varexp."""
-    from scipy import linalg
-
-    u, s, v = linalg.svd(x, full_matrices=False)
+    u, s, v = _safe_svd(x, full_matrices=False)
 
     # Eigenvalue truncation
     varexp = np.cumsum(s)
     varexp /= varexp[-1]
     n = np.where(varexp >= (1.0 - miss))[0][0] + 1
     logger.info(
-        "    Truncating at %d/%d components to omit less than %g "
-        "(%0.2g)" % (n, len(s), miss, 1.0 - varexp[n - 1])
+        "    Truncating at %d/%d components to omit less than %g " "(%0.2g)",
+        n,
+        len(s),
+        miss,
+        1.0 - varexp[n - 1],
     )
     s = 1.0 / s[:n]
     inv = ((u[:, :n] * s) @ v[:n]).T
@@ -262,7 +264,10 @@ def _as_meg_type_inst(inst, ch_type="grad", mode="fast"):
     # compute data by multiplying by the 'gain matrix' from
     # original sensors to virtual sensors
     if hasattr(inst, "get_data"):
-        data = inst.get_data()
+        kwargs = dict()
+        if "copy" in inspect.getfullargspec(inst.get_data).kwonlyargs:
+            kwargs["copy"] = False
+        data = inst.get_data(**kwargs)
     else:
         data = inst.data
 
@@ -347,7 +352,7 @@ def _make_surface_mapping(
         raise KeyError('surf must have both "rr" and "nn"')
     if "coord_frame" not in surf:
         raise KeyError(
-            "The surface coordinate frame must be specified " 'in surf["coord_frame"]'
+            'The surface coordinate frame must be specified in surf["coord_frame"]'
         )
     _check_option("mode", mode, ["accurate", "fast"])
 
@@ -391,12 +396,12 @@ def _make_surface_mapping(
     # Step 2. Calculate the dot products
     #
     int_rad, noise, lut_fun, n_fact = _setup_dots(mode, info, coils, ch_type)
-    logger.info("Computing dot products for %i %s..." % (len(coils), type_str))
+    logger.info("Computing dot products for %i %s...", len(coils), type_str)
     self_dots = _do_self_dots(
         int_rad, False, coils, origin, ch_type, lut_fun, n_fact, n_jobs
     )
     sel = np.arange(len(surf["rr"]))  # eventually we should do sub-selection
-    logger.info("Computing dot products for %i surface locations..." % len(sel))
+    logger.info("Computing dot products for %i surface locations...", len(sel))
     surface_dots = _do_surface_dots(
         int_rad, False, coils, surf, sel, origin, ch_type, lut_fun, n_fact, n_jobs
     )

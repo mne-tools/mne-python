@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "4eac2dd9e8c70ea3c3c4db98533376c3ed31fde4",
+  "authors": [
+    {
+      "n": "Niklas Wilming",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/io/ctf/ctf.py": {
+      "a": 3,
+      "d": 1
+    }
+  }
+}

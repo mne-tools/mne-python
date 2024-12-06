@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "04997085e5f9cb67ed9a7a61d28551906f615580",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/_static/annotation-controls.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/cookbook.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/intro/plot_10_overview.py": {
+      "a": 2,
+      "d": 0
+    },
+    "tutorials/preprocessing/plot_10_preprocessing_overview.py": {
+      "a": 7,
+      "d": 14
+    },
+    "tutorials/preprocessing/plot_15_handling_bad_channels.py": {
+      "a": 268,
+      "d": 0
+    },
+    "tutorials/preprocessing/plot_20_rejecting_bad_data.py": {
+      "a": 199,
+      "d": 163
+    },
+    "tutorials/raw/plot_30_annotate_raw.py": {
+      "a": 9,
+      "d": 6
+    }
+  }
+}

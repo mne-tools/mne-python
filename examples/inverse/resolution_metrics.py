@@ -14,13 +14,13 @@ namely Figure 3 (peak localisation error for PSFs, L2-MNE vs dSPM) and Figure 4
 # Author: Olaf Hauk <olaf.hauk@mrc-cbu.cam.ac.uk>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 
 import mne
 from mne.datasets import sample
-from mne.minimum_norm import make_inverse_resolution_matrix
-from mne.minimum_norm import resolution_metrics
+from mne.minimum_norm import make_inverse_resolution_matrix, resolution_metrics
 
 print(__doc__)
 

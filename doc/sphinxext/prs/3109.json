@@ -1,0 +1,447 @@
+{
+  "merge_commit_sha": "dd945658a8d45b2b867d6d3e379050086a9e64e0",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "doc/index.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/manual/memory.rst": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/manual/migrating.rst": {
+      "a": 2,
+      "d": 2
+    },
+    "examples/connectivity/plot_cwt_sensor_connectivity.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/connectivity/plot_mne_inverse_coherence_epochs.py": {
+      "a": 1,
+      "d": 2
+    },
+    "examples/connectivity/plot_mne_inverse_connectivity_spectrum.py": {
+      "a": 1,
+      "d": 2
+    },
+    "examples/connectivity/plot_mne_inverse_label_connectivity.py": {
+      "a": 1,
+      "d": 2
+    },
+    "examples/connectivity/plot_mne_inverse_psi_visual.py": {
+      "a": 1,
+      "d": 2
+    },
+    "examples/connectivity/plot_sensor_connectivity.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/datasets/plot_brainstorm_data.py": {
+      "a": 1,
+      "d": 2
+    },
+    "examples/datasets/plot_megsim_data.py": {
+      "a": 2,
+      "d": 2
+    },
+    "examples/decoding/plot_decoding_csp_space.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/decoding/plot_decoding_sensors.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/decoding/plot_decoding_spatio_temporal_source.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/decoding/plot_decoding_time_generalization_conditions.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/decoding/plot_decoding_xdawn_eeg.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/decoding/plot_ems_filtering.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/decoding/plot_linear_model_patterns.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/inverse/plot_compute_mne_inverse_epochs_in_label.py": {
+      "a": 1,
+      "d": 2
+    },
+    "examples/inverse/plot_compute_mne_inverse_raw_in_label.py": {
+      "a": 1,
+      "d": 2
+    },
+    "examples/inverse/plot_dics_beamformer.py": {
+      "a": 1,
+      "d": 2
+    },
+    "examples/inverse/plot_dics_source_power.py": {
+      "a": 1,
+      "d": 2
+    },
+    "examples/inverse/plot_lcmv_beamformer.py": {
+      "a": 1,
+      "d": 2
+    },
+    "examples/inverse/plot_lcmv_beamformer_volume.py": {
+      "a": 1,
+      "d": 2
+    },
+    "examples/inverse/plot_tf_dics.py": {
+      "a": 2,
+      "d": 3
+    },
+    "examples/inverse/plot_tf_lcmv.py": {
+      "a": 2,
+      "d": 3
+    },
+    "examples/io/plot_read_and_write_raw_data.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/io/plot_read_epochs.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/plot_extract_events_from_raw.py": {
+      "a": 1,
+      "d": 2
+    },
+    "examples/plot_from_raw_to_epochs_to_evoked.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/preprocessing/plot_corrmap_detection.py": {
+      "a": 1,
+      "d": 3
+    },
+    "examples/preprocessing/plot_define_target_events.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/preprocessing/plot_eog_artifact_histogram.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/preprocessing/plot_estimate_covariance_matrix_baseline.py": {
+      "a": 2,
+      "d": 2
+    },
+    "examples/preprocessing/plot_estimate_covariance_matrix_raw.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/preprocessing/plot_find_ecg_artifacts.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/preprocessing/plot_find_eog_artifacts.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/preprocessing/plot_maxwell_filter.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/preprocessing/plot_movement_compensation.py": {
+      "a": 3,
+      "d": 2
+    },
+    "examples/preprocessing/plot_rereference_eeg.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/preprocessing/plot_resample.py": {
+      "a": 1,
+      "d": 2
+    },
+    "examples/preprocessing/plot_run_ica.py": {
+      "a": 1,
+      "d": 2
+    },
+    "examples/preprocessing/plot_xdawn_denoising.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/realtime/plot_compute_rt_average.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/realtime/plot_compute_rt_decoder.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/realtime/rt_feedback_server.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/simulation/plot_simulate_evoked_data.py": {
+      "a": 9,
+      "d": 11
+    },
+    "examples/simulation/plot_simulate_raw_data.py": {
+      "a": 3,
+      "d": 2
+    },
+    "examples/stats/plot_cluster_stats_evoked.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/stats/plot_fdr_stats_evoked.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/stats/plot_sensor_permutation_test.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/stats/plot_sensor_regression.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/time_frequency/plot_compute_raw_data_spectrum.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/time_frequency/plot_compute_source_psd_epochs.py": {
+      "a": 1,
+      "d": 2
+    },
+    "examples/time_frequency/plot_epochs_spectra.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/time_frequency/plot_source_label_time_frequency.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/time_frequency/plot_source_power_spectrum.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/time_frequency/plot_source_space_time_frequency.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/time_frequency/plot_stockwell.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/time_frequency/plot_temporal_whitening.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/time_frequency/plot_time_frequency_multitaper_sensors.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/time_frequency/plot_time_frequency_sensors.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/visualization/plot_channel_epochs_image.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/visualization/plot_evoked_delayed_ssp.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/visualization/plot_evoked_topomap_delayed_ssp.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/visualization/plot_evoked_whitening.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/visualization/plot_meg_sensors.py": {
+      "a": 3,
+      "d": 2
+    },
+    "examples/visualization/plot_topo_channel_epochs_image.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/visualization/plot_topo_compare_conditions.py": {
+      "a": 1,
+      "d": 2
+    },
+    "examples/visualization/plot_topo_customized.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/beamformer/tests/test_dics.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/beamformer/tests/test_lcmv.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/channels/tests/test_interpolation.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/commands/mne_browse_raw.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/commands/mne_clean_eog_ecg.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/commands/mne_compute_proj_ecg.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/commands/mne_compute_proj_eog.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/decoding/tests/test_csp.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/decoding/tests/test_ems.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/decoding/tests/test_time_gen.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/decoding/tests/test_transformer.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/io/tests/test_proc_history.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/minimum_norm/tests/test_time_frequency.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/preprocessing/tests/test_xdawn.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/realtime/tests/test_mockclient.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/stats/tests/test_regression.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/tests/test_event.py": {
+      "a": 6,
+      "d": 6
+    },
+    "mne/time_frequency/tests/test_ar.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/time_frequency/tests/test_psd.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/time_frequency/tests/test_stockwell.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/time_frequency/tests/test_tfr.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/tests/test_decoding.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/tests/test_epochs.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/tests/test_evoked.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/tests/test_ica.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/tests/test_misc.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/tests/test_raw.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/tests/test_topo.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/tests/test_topomap.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/plot_cluster_1samp_test_time_frequency.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/plot_cluster_stats_spatio_temporal.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/plot_cluster_stats_spatio_temporal_repeated_measures_anova.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/plot_cluster_stats_time_frequency.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/plot_cluster_stats_time_frequency_repeated_measures_anova.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/plot_epochs_to_data_frame.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/plot_ica_from_raw.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/plot_introduction.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/plot_source_localization_basics.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/plot_spatio_temporal_cluster_stats_sensor.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

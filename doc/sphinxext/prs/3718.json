@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "f7ffe8aa068c1c743f6968ec09705270bef60c08",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/_templates/layout.html": {
+      "a": 3,
+      "d": 3
+    },
+    "doc/index.rst": {
+      "a": 7,
+      "d": 21
+    },
+    "doc/python_reference.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/sphinxext/cited_mne.py": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

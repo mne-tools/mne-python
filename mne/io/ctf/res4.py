@@ -1,9 +1,8 @@
 """Read .res4 files."""
 
-# Authors: Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
-#          Eric Larson <larson.eric.d@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import os.path as op
 
@@ -19,7 +18,7 @@ def _make_ctf_name(directory, extra, raise_error=True):
     found = True
     if not op.isfile(fname):
         if raise_error:
-            raise OSError("Standard file %s not found" % fname)
+            raise OSError(f"Standard file {fname} not found")
         found = False
     return fname, found
 
@@ -43,7 +42,7 @@ def _read_ustring(fid, n_bytes):
 
 def _read_int2(fid):
     """Read int from short."""
-    return np.fromfile(fid, ">i2", 1)[0]
+    return _auto_cast(np.fromfile(fid, ">i2", 1)[0])
 
 
 def _read_int(fid):
@@ -82,7 +81,7 @@ def _read_comp_coeff(fid, d):
             ("coeff_type", ">i4"),
             ("d0", ">i4"),
             ("ncoeff", ">i2"),
-            ("sensors", "S%s" % CTF.CTFV_SENSOR_LABEL, CTF.CTFV_MAX_BALANCING),
+            ("sensors", f"S{CTF.CTFV_SENSOR_LABEL}", CTF.CTFV_MAX_BALANCING),
             ("coeffs", ">f8", CTF.CTFV_MAX_BALANCING),
         ]
     )
@@ -208,6 +207,9 @@ def _read_res4(dsdir):
             coil["area"] *= 1e-4
         # convert to dict
         chs = [dict(zip(chs.dtype.names, x)) for x in chs]
+        for ch in chs:
+            for key, val in ch.items():
+                ch[key] = _auto_cast(val)
         res["chs"] = chs
         for k in range(res["nchan"]):
             res["chs"][k]["ch_name"] = res["ch_names"][k]
@@ -216,3 +218,15 @@ def _read_res4(dsdir):
         _read_comp_coeff(fid, res)
     logger.info("    res4 data read.")
     return res
+
+
+def _auto_cast(x):
+    # Upcast scalars
+    if isinstance(x, np.ScalarType):
+        if x.dtype.kind == "i":
+            if x.dtype != np.int64:
+                x = x.astype(np.int64)
+        elif x.dtype.kind == "f":
+            if x.dtype != np.float64:
+                x = x.astype(np.float64)
+    return x

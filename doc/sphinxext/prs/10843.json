@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "e8b76b94dee4176ceb48e72bd284b5fb3db5c837",
+  "authors": [
+    {
+      "n": "Scott Huberty",
+      "e": null
+    }
+  ],
+  "changes": {
+    "examples/inverse/dics_source_power.py": {
+      "a": 6,
+      "d": 6
+    }
+  }
+}

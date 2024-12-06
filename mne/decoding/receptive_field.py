@@ -1,20 +1,27 @@
-# Authors: Chris Holdgraf <choldgraf@gmail.com>
-#          Eric Larson <larson.eric.d@gmail.com>
-
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import numbers
 
 import numpy as np
+from scipy.stats import pearsonr
+from sklearn.base import (
+    BaseEstimator,
+    MetaEstimatorMixin,
+    clone,
+    is_regressor,
+)
+from sklearn.exceptions import NotFittedError
+from sklearn.metrics import r2_score
 
-from .base import get_coef, BaseEstimator, _check_estimator
+from ..utils import _validate_type, fill_doc, pinv
+from .base import _check_estimator, get_coef
 from .time_delaying_ridge import TimeDelayingRidge
-from ..fixes import is_regressor
-from ..utils import _validate_type, verbose, fill_doc
 
 
 @fill_doc
-class ReceptiveField(BaseEstimator):
+class ReceptiveField(MetaEstimatorMixin, BaseEstimator):
     """Fit a receptive field model.
 
     This allows you to fit an encoding model (stimulus to brain) or a decoding
@@ -66,7 +73,6 @@ class ReceptiveField(BaseEstimator):
         duration. Only used if ``estimator`` is float or None.
 
         .. versionadded:: 0.18
-    %(verbose)s
 
     Attributes
     ----------
@@ -102,7 +108,6 @@ class ReceptiveField(BaseEstimator):
     .. footbibliography::
     """  # noqa E501
 
-    @verbose
     def __init__(
         self,
         tmin,
@@ -115,12 +120,11 @@ class ReceptiveField(BaseEstimator):
         patterns=False,
         n_jobs=None,
         edge_correction=True,
-        verbose=None,
     ):
-        self.feature_names = feature_names
-        self.sfreq = float(sfreq)
         self.tmin = tmin
         self.tmax = tmax
+        self.sfreq = sfreq
+        self.feature_names = feature_names
         self.estimator = 0.0 if estimator is None else estimator
         self.fit_intercept = fit_intercept
         self.scoring = scoring
@@ -129,31 +133,35 @@ class ReceptiveField(BaseEstimator):
         self.edge_correction = edge_correction
 
     def __repr__(self):  # noqa: D105
-        s = "tmin, tmax : (%.3f, %.3f), " % (self.tmin, self.tmax)
+        s = f"tmin, tmax : ({self.tmin:.3f}, {self.tmax:.3f}), "
         estimator = self.estimator
         if not isinstance(estimator, str):
             estimator = type(self.estimator)
-        s += "estimator : %s, " % (estimator,)
+        s += f"estimator : {estimator}, "
         if hasattr(self, "coef_"):
             if self.feature_names is not None:
                 feats = self.feature_names
                 if len(feats) == 1:
-                    s += "feature: %s, " % feats[0]
+                    s += f"feature: {feats[0]}, "
                 else:
-                    s += "features : [%s, ..., %s], " % (feats[0], feats[-1])
+                    s += f"features : [{feats[0]}, ..., {feats[-1]}], "
             s += "fit: True"
         else:
             s += "fit: False"
         if hasattr(self, "scores_"):
-            s += "scored (%s)" % self.scoring
-        return "<ReceptiveField | %s>" % s
+            s += f"scored ({self.scoring})"
+        return f"<ReceptiveField | {s}>"
 
     def _delay_and_reshape(self, X, y=None):
         """Delay and reshape the variables."""
         if not isinstance(self.estimator_, TimeDelayingRidge):
             # X is now shape (n_times, n_epochs, n_feats, n_delays)
             X = _delay_time_series(
-                X, self.tmin, self.tmax, self.sfreq, fill_mean=self.fit_intercept
+                X,
+                self.tmin,
+                self.tmax,
+                self.sfreq_,
+                fill_mean=self.fit_intercept_,
             )
             X = _reshape_for_est(X)
             # Concat times + epochs
@@ -176,36 +184,32 @@ class ReceptiveField(BaseEstimator):
         self : instance
             The instance so you can chain operations.
         """
-        from scipy import linalg
-
         if self.scoring not in _SCORERS.keys():
             raise ValueError(
-                "scoring must be one of %s, got"
-                "%s " % (sorted(_SCORERS.keys()), self.scoring)
+                f"scoring must be one of {sorted(_SCORERS.keys())}, got {self.scoring} "
             )
-        from sklearn.base import clone
-
+        self.sfreq_ = float(self.sfreq)
         X, y, _, self._y_dim = self._check_dimensions(X, y)
 
         if self.tmin > self.tmax:
-            raise ValueError(
-                "tmin (%s) must be at most tmax (%s)" % (self.tmin, self.tmax)
-            )
+            raise ValueError(f"tmin ({self.tmin}) must be at most tmax ({self.tmax})")
         # Initialize delays
-        self.delays_ = _times_to_delays(self.tmin, self.tmax, self.sfreq)
+        self.delays_ = _times_to_delays(self.tmin, self.tmax, self.sfreq_)
 
         # Define the slice that we should use in the middle
         self.valid_samples_ = _delays_to_slice(self.delays_)
 
         if isinstance(self.estimator, numbers.Real):
             if self.fit_intercept is None:
-                self.fit_intercept = True
+                self.fit_intercept_ = True
+            else:
+                self.fit_intercept_ = self.fit_intercept
             estimator = TimeDelayingRidge(
                 self.tmin,
                 self.tmax,
-                self.sfreq,
+                self.sfreq_,
                 alpha=self.estimator,
-                fit_intercept=self.fit_intercept,
+                fit_intercept=self.fit_intercept_,
                 n_jobs=self.n_jobs,
                 edge_correction=self.edge_correction,
             )
@@ -216,17 +220,16 @@ class ReceptiveField(BaseEstimator):
                 and estimator.fit_intercept != self.fit_intercept
             ):
                 raise ValueError(
-                    "Estimator fit_intercept (%s) != initialization "
-                    "fit_intercept (%s), initialize ReceptiveField with the "
-                    "same fit_intercept value or use fit_intercept=None"
-                    % (estimator.fit_intercept, self.fit_intercept)
+                    f"Estimator fit_intercept ({estimator.fit_intercept}) != "
+                    f"initialization fit_intercept ({self.fit_intercept}), initialize "
+                    "ReceptiveField with the same fit_intercept value or use "
+                    "fit_intercept=None"
                 )
-            self.fit_intercept = estimator.fit_intercept
+            self.fit_intercept_ = estimator.fit_intercept
         else:
             raise ValueError(
-                "`estimator` must be a float or an instance"
-                " of `BaseEstimator`,"
-                " got type %s." % type(self.estimator)
+                "`estimator` must be a float or an instance of `BaseEstimator`, got "
+                f"type {self.estimator}."
             )
         self.estimator_ = estimator
         del estimator
@@ -240,8 +243,8 @@ class ReceptiveField(BaseEstimator):
         # Update feature names if we have none
         if (self.feature_names is not None) and (len(self.feature_names) != n_feats):
             raise ValueError(
-                "n_features in X does not match feature names "
-                "(%s != %s)" % (n_feats, len(self.feature_names))
+                f"n_features in X does not match feature names ({n_feats} != "
+                f"{len(self.feature_names)})"
             )
 
         # Create input features
@@ -267,7 +270,7 @@ class ReceptiveField(BaseEstimator):
             # Inverse output covariance
             if y.ndim == 2 and y.shape[1] != 1:
                 y = y - y.mean(0, keepdims=True)
-                inv_Y = linalg.pinv(np.cov(y.T))
+                inv_Y = pinv(np.cov(y.T))
             else:
                 inv_Y = 1.0 / float(n_times * n_epochs - 1)
             del y
@@ -296,7 +299,7 @@ class ReceptiveField(BaseEstimator):
             be obtained using ``y_pred[rf.valid_samples_]``.
         """
         if not hasattr(self, "delays_"):
-            raise ValueError("Estimator has not been fit yet.")
+            raise NotFittedError("Estimator has not been fit yet.")
         X, _, X_dim = self._check_dimensions(X, None, predict=True)[:3]
         del _
         # convert to sklearn and back
@@ -354,6 +357,8 @@ class ReceptiveField(BaseEstimator):
         return scores
 
     def _check_dimensions(self, X, y, predict=False):
+        _validate_type(X, "array-like", "X")
+        _validate_type(y, ("array-like", None), "y")
         X_dim = X.ndim
         y_dim = y.ndim if y is not None else 0
         if X_dim == 2:
@@ -366,8 +371,8 @@ class ReceptiveField(BaseEstimator):
                     y = y[:, np.newaxis, :]  # epochs
                 else:
                     raise ValueError(
-                        "y must be shape (n_times[, n_epochs]"
-                        "[,n_outputs], got %s" % (y.shape,)
+                        "y must be shape (n_times[, n_epochs][,n_outputs], got "
+                        f"{y.shape}"
                     )
         elif X.ndim == 3:
             if y is not None:
@@ -375,28 +380,26 @@ class ReceptiveField(BaseEstimator):
                     y = y[:, :, np.newaxis]  # Add an outputs dim
                 elif y.ndim != 3:
                     raise ValueError(
-                        "If X has 3 dimensions, " "y must have 2 or 3 dimensions"
+                        "If X has 3 dimensions, y must have 2 or 3 dimensions"
                     )
         else:
             raise ValueError(
-                "X must be shape (n_times[, n_epochs],"
-                " n_features), got %s" % (X.shape,)
+                f"X must be shape (n_times[, n_epochs], n_features), got {X.shape}"
             )
         if y is not None:
             if X.shape[0] != y.shape[0]:
                 raise ValueError(
-                    "X and y do not have the same n_times\n"
-                    "%s != %s" % (X.shape[0], y.shape[0])
+                    f"X and y do not have the same n_times\n{X.shape[0]} != "
+                    f"{y.shape[0]}"
                 )
             if X.shape[1] != y.shape[1]:
                 raise ValueError(
-                    "X and y do not have the same n_epochs\n"
-                    "%s != %s" % (X.shape[1], y.shape[1])
+                    f"X and y do not have the same n_epochs\n{X.shape[1]} != "
+                    f"{y.shape[1]}"
                 )
-            if predict and y.shape[-1] != len(self.estimator_.coef_):
+            if predict and y.shape[-1] not in (len(self.estimator_.coef_), 1):
                 raise ValueError(
-                    "Number of outputs does not match"
-                    " estimator coefficients dimensions"
+                    "Number of outputs does not match estimator coefficients dimensions"
                 )
         return X, y, X_dim, y_dim
 
@@ -502,20 +505,16 @@ def _reshape_for_est(X_del):
 
 # Create a correlation scikit-learn-style scorer
 def _corr_score(y_true, y, multioutput=None):
-    from scipy.stats import pearsonr
-
     assert multioutput == "raw_values"
     for this_y in (y_true, y):
         if this_y.ndim != 2:
             raise ValueError(
-                "inputs must be shape (samples, outputs), got %s" % (this_y.shape,)
+                f"inputs must be shape (samples, outputs), got {this_y.shape}"
             )
     return np.array([pearsonr(y_true[:, ii], y[:, ii])[0] for ii in range(y.shape[-1])])
 
 
 def _r2_score(y_true, y, multioutput=None):
-    from sklearn.metrics import r2_score
-
     return r2_score(y_true, y, multioutput=multioutput)
 
 

@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "2c6b0dd6407c7c6b30f4a2437d85b88edbe08c62",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/channels/channels.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/io/bti/bti.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

@@ -9,14 +9,18 @@ The aim of this tutorial is to teach you how to compute and apply a linear
 minimum-norm inverse method on evoked/raw/epochs data.
 """
 
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
+
 # %%
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 
 import mne
 from mne.datasets import sample
-from mne.minimum_norm import make_inverse_operator, apply_inverse
+from mne.minimum_norm import apply_inverse, make_inverse_operator
 
 # %%
 # Process MEG data
@@ -30,7 +34,7 @@ events = mne.find_events(raw, stim_channel="STI 014")
 event_id = dict(aud_l=1)  # event trigger and conditions
 tmin = -0.2  # start of each epoch (200ms before the trigger)
 tmax = 0.5  # end of each epoch (500ms after the trigger)
-raw.info["bads"] = ["MEG 2443", "EEG 053"]
+raw.info["bads"] = ["MEG 2443", "EEG 053"]  # mark known bad channels
 baseline = (None, 0)  # means from the first instant to t = 0
 reject = dict(grad=4000e-13, mag=4e-12, eog=150e-6)
 
@@ -90,19 +94,24 @@ inverse_operator = make_inverse_operator(
 )
 del fwd
 
-# You can write it to disk with::
-#
-#     >>> from mne.minimum_norm import write_inverse_operator
-#     >>> write_inverse_operator('sample_audvis-meg-oct-6-inv.fif',
-#                                inverse_operator)
-
 # %%
+# .. note::
+#
+#     You can write the inverse operator to disk with:
+#
+#     .. code-block::
+#
+#         from mne.minimum_norm import write_inverse_operator
+#         write_inverse_operator(
+#             "sample_audvis-meg-oct-6-inv.fif", inverse_operator
+#         )
+#
 # Compute inverse solution
 # ------------------------
 # We can use this to compute the inverse solution and obtain source time
 # courses:
 
-method = "dSPM"
+method = "dSPM"  # could choose MNE, sLORETA, or eLORETA instead
 snr = 3.0
 lambda2 = 1.0 / snr**2
 stc, residual = apply_inverse(
@@ -122,7 +131,7 @@ stc, residual = apply_inverse(
 
 fig, ax = plt.subplots()
 ax.plot(1e3 * stc.times, stc.data[::100, :].T)
-ax.set(xlabel="time (ms)", ylabel="%s value" % method)
+ax.set(xlabel="time (ms)", ylabel=f"{method} value")
 
 # %%
 # Examine the original data and the residual after fitting:

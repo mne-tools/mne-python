@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "8c9c078e38cc4c7d67aa4e4f8a9b19eb32bb075e",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/io/meas_info.py": {
+      "a": 4,
+      "d": 5
+    },
+    "mne/io/tests/test_meas_info.py": {
+      "a": 2,
+      "d": 1
+    },
+    "tools/circleci_dependencies.sh": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

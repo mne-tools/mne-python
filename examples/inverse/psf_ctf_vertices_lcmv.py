@@ -12,12 +12,13 @@ functions.
 # Author: Olaf Hauk <olaf.hauk@mrc-cbu.cam.ac.uk>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 
 import mne
-from mne.datasets import sample
 from mne.beamformer import make_lcmv, make_lcmv_resolution_matrix
+from mne.datasets import sample
 from mne.minimum_norm import get_cross_talk
 
 print(__doc__)
@@ -142,7 +143,7 @@ brain_pre = stc_pre.plot(
 brain_pre.add_text(
     0.1,
     0.9,
-    "LCMV beamformer with pre-stimulus\ndata " "covariance matrix",
+    "LCMV beamformer with pre-stimulus\ndata covariance matrix",
     "title",
     font_size=16,
 )
@@ -167,7 +168,7 @@ brain_post = stc_post.plot(
 brain_post.add_text(
     0.1,
     0.9,
-    "LCMV beamformer with post-stimulus\ndata " "covariance matrix",
+    "LCMV beamformer with post-stimulus\ndata covariance matrix",
     "title",
     font_size=16,
 )

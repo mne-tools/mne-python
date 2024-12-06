@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "0d063a7c80c9e87dbf7d5ae537bc3c93b5c2229d",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    ".github/CODEOWNERS": {
+      "a": 34,
+      "d": 2
+    }
+  }
+}

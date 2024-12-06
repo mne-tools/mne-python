@@ -1,40 +1,39 @@
-# Author: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#         Daniel Strohmeier <daniel.strohmeier@gmail.com>
-#
-# License: Simplified BSD
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import numpy as np
 
-from ..source_estimate import SourceEstimate, _BaseSourceEstimate, _make_stc
+from .._fiff.proj import deactivate_proj
+from ..dipole import Dipole
+from ..fixes import _safe_svd
+from ..forward import is_fixed_orient
 from ..minimum_norm.inverse import (
-    combine_xyz,
-    _prepare_forward,
     _check_reference,
     _log_exp_var,
+    _prepare_forward,
+    combine_xyz,
 )
-from ..forward import is_fixed_orient
-from ..io.proj import deactivate_proj
+from ..source_estimate import SourceEstimate, _BaseSourceEstimate, _make_stc
 from ..utils import (
-    logger,
-    verbose,
     _check_depth,
     _check_option,
-    sum_squared,
     _validate_type,
     check_random_state,
+    logger,
+    sum_squared,
+    verbose,
     warn,
 )
-from ..dipole import Dipole
-
 from .mxne_optim import (
-    mixed_norm_solver,
-    iterative_mixed_norm_solver,
     _Phi,
-    tf_mixed_norm_solver,
-    iterative_tf_mixed_norm_solver,
-    norm_l2inf,
-    norm_epsilon_inf,
     groups_norm2,
+    iterative_mixed_norm_solver,
+    iterative_tf_mixed_norm_solver,
+    mixed_norm_solver,
+    norm_epsilon_inf,
+    norm_l2inf,
+    tf_mixed_norm_solver,
 )
 
 
@@ -54,9 +53,7 @@ def _prepare_weights(forward, gain, source_weighting, weights, weights_min):
         weights = np.max(np.abs(weights.data), axis=1)
     weights_max = np.max(weights)
     if weights_min > weights_max:
-        raise ValueError(
-            "weights_min > weights_max (%s > %s)" % (weights_min, weights_max)
-        )
+        raise ValueError(f"weights_min > weights_max ({weights_min} > {weights_max})")
     weights_min = weights_min / weights_max
     weights = weights / weights_max
     n_dip_per_pos = 1 if is_fixed_orient(forward) else 3
@@ -64,7 +61,7 @@ def _prepare_weights(forward, gain, source_weighting, weights, weights_min):
     if len(weights) != gain.shape[1]:
         raise ValueError(
             "weights do not have the correct dimension "
-            " (%d != %d)" % (len(weights), gain.shape[1])
+            f" ({len(weights)} != {gain.shape[1]})"
         )
     if len(source_weighting.shape) == 1:
         source_weighting *= weights
@@ -76,7 +73,7 @@ def _prepare_weights(forward, gain, source_weighting, weights, weights_min):
         mask = weights > weights_min
         gain = gain[:, mask]
         n_sources = np.sum(mask) // n_dip_per_pos
-        logger.info("Reducing source space to %d sources" % n_sources)
+        logger.info(f"Reducing source space to {n_sources} sources")
 
     return gain, source_weighting, mask
 
@@ -313,7 +310,7 @@ def make_stc_from_dipoles(dipoles, src, verbose=None):
         raise ValueError(
             "Dipoles must be an instance of Dipole or "
             "a list of instances of Dipole. "
-            "Got %s!" % type(dipoles)
+            f"Got {type(dipoles)}!"
         )
     tmin = dipoles[0].times[0]
     tstep = dipoles[0].times[1] - tmin
@@ -325,7 +322,7 @@ def make_stc_from_dipoles(dipoles, src, verbose=None):
     for i in range(len(dipoles)):
         if not np.all(dipoles[i].pos == dipoles[i].pos[0]):
             raise ValueError(
-                "Only dipoles with fixed position over time " "are supported!"
+                "Only dipoles with fixed position over time are supported!"
             )
         X[i] = dipoles[i].amplitude
         idx = np.all(source_rr == dipoles[i].pos[0], axis=1)
@@ -456,38 +453,35 @@ def mixed_norm(
     ----------
     .. footbibliography::
     """
-    from scipy import linalg
-
     _validate_type(alpha, ("numeric", str), "alpha")
     if isinstance(alpha, str):
         _check_option("alpha", alpha, ("sure",))
     elif not 0.0 <= alpha < 100:
         raise ValueError(
-            'If not equal to "sure" alpha must be in [0, 100). '
-            "Got alpha = %s" % alpha
+            f'If not equal to "sure" alpha must be in [0, 100). Got alpha = {alpha}'
         )
     if n_mxne_iter < 1:
         raise ValueError(
             "MxNE has to be computed at least 1 time. "
-            "Requires n_mxne_iter >= 1, got %d" % n_mxne_iter
+            f"Requires n_mxne_iter >= 1, got {n_mxne_iter}"
         )
     if dgap_freq <= 0.0:
         raise ValueError(
-            "dgap_freq must be a positive integer." " Got dgap_freq = %s" % dgap_freq
+            f"dgap_freq must be a positive integer. Got dgap_freq = {dgap_freq}"
         )
     if not (
-        isinstance(sure_alpha_grid, (np.ndarray, list)) or sure_alpha_grid == "auto"
+        isinstance(sure_alpha_grid, np.ndarray | list) or sure_alpha_grid == "auto"
     ):
         raise ValueError(
             'If not equal to "auto" sure_alpha_grid must be an '
-            "array. Got %s" % type(sure_alpha_grid)
+            f"array. Got {type(sure_alpha_grid)}"
         )
     if (isinstance(sure_alpha_grid, str) and sure_alpha_grid != "auto") and (
         isinstance(alpha, str) and alpha != "sure"
     ):
         raise Exception(
             "If sure_alpha_grid is manually specified, alpha must "
-            'be "sure". Got %s' % alpha
+            f'be "sure". Got {alpha}'
         )
     pca = True
     if not isinstance(evoked, list):
@@ -520,7 +514,7 @@ def mixed_norm(
     M = np.dot(whitener, M)
 
     if time_pca:
-        U, s, Vh = linalg.svd(M, full_matrices=False)
+        U, s, Vh = _safe_svd(M, full_matrices=False)
         if not isinstance(time_pca, bool) and isinstance(time_pca, int):
             U = U[:, :time_pca]
             s = s[:time_pca]
@@ -556,7 +550,7 @@ def mixed_norm(
             dgap_freq=dgap_freq,
             verbose=verbose,
         )
-        logger.info("Selected alpha: %s" % best_alpha_)
+        logger.info(f"Selected alpha: {best_alpha_}")
     else:
         if n_mxne_iter == 1:
             X, active_set, E = mixed_norm_solver(
@@ -655,7 +649,7 @@ def mixed_norm(
 
 def _window_evoked(evoked, size):
     """Window evoked (size in seconds)."""
-    if isinstance(size, (float, int)):
+    if isinstance(size, float | int):
         lsize = rsize = float(size)
     else:
         lsize, rsize = size
@@ -789,24 +783,22 @@ def tf_mixed_norm(
     info = evoked.info
 
     if not (0.0 <= alpha < 100.0):
-        raise ValueError("alpha must be in [0, 100). " "Got alpha = %s" % alpha)
+        raise ValueError(f"alpha must be in [0, 100). Got alpha = {alpha}")
 
     if not (0.0 <= l1_ratio <= 1.0):
-        raise ValueError(
-            "l1_ratio must be in range [0, 1]." " Got l1_ratio = %s" % l1_ratio
-        )
+        raise ValueError(f"l1_ratio must be in range [0, 1]. Got l1_ratio = {l1_ratio}")
     alpha_space = alpha * (1.0 - l1_ratio)
     alpha_time = alpha * l1_ratio
 
     if n_tfmxne_iter < 1:
         raise ValueError(
             "TF-MxNE has to be computed at least 1 time. "
-            "Requires n_tfmxne_iter >= 1, got %s" % n_tfmxne_iter
+            f"Requires n_tfmxne_iter >= 1, got {n_tfmxne_iter}"
         )
 
     if dgap_freq <= 0.0:
         raise ValueError(
-            "dgap_freq must be a positive integer." " Got dgap_freq = %s" % dgap_freq
+            f"dgap_freq must be a positive integer. Got dgap_freq = {dgap_freq}"
         )
 
     tstep = np.atleast_1d(tstep)
@@ -814,7 +806,7 @@ def tf_mixed_norm(
     if len(tstep) != len(wsize):
         raise ValueError(
             "The same number of window sizes and steps must be "
-            "passed. Got tstep = %s and wsize = %s" % (tstep, wsize)
+            f"passed. Got tstep = {tstep} and wsize = {wsize}"
         )
 
     forward, gain, gain_info, whitener, source_weighting, mask = _prepare_gain(
@@ -879,9 +871,7 @@ def tf_mixed_norm(
         )
 
     if active_set.sum() == 0:
-        raise Exception(
-            "No active dipoles found. " "alpha_space/alpha_time are too big."
-        )
+        raise Exception("No active dipoles found. alpha_space/alpha_time are too big.")
 
     # Compute estimated whitened sensor data for each dipole (dip, ch, time)
     gain_active = gain[:, active_set]
@@ -1039,7 +1029,7 @@ def _compute_mxne_sure(
         # warm start - first iteration (leverages convexity)
         logger.info("Warm starting...")
         for j, alpha in enumerate(alpha_grid):
-            logger.info("alpha: %s" % alpha)
+            logger.info(f"alpha: {alpha}")
             X, a_set = _run_solver(alpha, M, 1)
             X_eps, a_set_eps = _run_solver(alpha, M_eps, 1)
             coefs_grid_1_0[j][a_set, :] = X
@@ -1054,7 +1044,7 @@ def _compute_mxne_sure(
             coefs_grid_2 = coefs_grid_2_0.copy()
             logger.info("Fitting SURE on grid.")
             for j, alpha in enumerate(alpha_grid):
-                logger.info("alpha: %s" % alpha)
+                logger.info(f"alpha: {alpha}")
                 if active_sets[j].sum() > 0:
                     w = gprime(coefs_grid_1[j])
                     X, a_set = _run_solver(alpha, M, n_mxne_iter - 1, w_init=w)
@@ -1091,7 +1081,7 @@ def _compute_mxne_sure(
     for i, (coef1, coef2) in enumerate(zip(coefs_grid_1, coefs_grid_2)):
         sure_path[i] = _compute_sure_val(coef1, coef2, gain, M, sigma, delta, eps)
         if verbose:
-            logger.info("alpha %s :: sure %s" % (alpha_grid[i], sure_path[i]))
+            logger.info(f"alpha {alpha_grid[i]} :: sure {sure_path[i]}")
     best_alpha_ = alpha_grid[np.argmin(sure_path)]
 
     X = coefs_grid_1[np.argmin(sure_path)]

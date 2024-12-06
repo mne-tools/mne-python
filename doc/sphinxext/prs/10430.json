@@ -1,0 +1,83 @@
+{
+  "merge_commit_sha": "af685332c76332e6ab50aeb401276a89c9e3cce1",
+  "authors": [
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "azure-pipelines.yml": {
+      "a": 40,
+      "d": 44
+    },
+    "doc/install/check_installation.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "environment.yml": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/conftest.py": {
+      "a": 9,
+      "d": 9
+    },
+    "mne/gui/__init__.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/gui/_ieeg_locate_gui.py": {
+      "a": 17,
+      "d": 17
+    },
+    "mne/utils/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/check.py": {
+      "a": 13,
+      "d": 11
+    },
+    "mne/utils/config.py": {
+      "a": 13,
+      "d": 5
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/_brain/_linkviewer.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/backends/_qt.py": {
+      "a": 24,
+      "d": 19
+    },
+    "mne/viz/backends/_utils.py": {
+      "a": 6,
+      "d": 7
+    },
+    "mne/viz/backends/tests/_utils.py": {
+      "a": 9,
+      "d": 7
+    },
+    "mne/viz/utils.py": {
+      "a": 2,
+      "d": 2
+    },
+    "requirements.txt": {
+      "a": 1,
+      "d": 0
+    },
+    "tools/github_actions_dependencies.sh": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

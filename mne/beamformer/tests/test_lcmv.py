@@ -1,49 +1,52 @@
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
+
 from contextlib import nullcontext
 from copy import deepcopy
 from inspect import signature
 
-import pytest
 import numpy as np
-from scipy import linalg
-from scipy.spatial.distance import cdist
+import pytest
 from numpy.testing import (
+    assert_allclose,
     assert_array_almost_equal,
     assert_array_equal,
-    assert_allclose,
     assert_array_less,
 )
+from scipy import linalg
+from scipy.spatial.distance import cdist
 
 import mne
-from mne.transforms import apply_trans, invert_transform
 from mne import (
-    convert_forward_solution,
-    read_forward_solution,
-    compute_rank,
-    VolVectorSourceEstimate,
-    VolSourceEstimate,
     EvokedArray,
+    VolSourceEstimate,
+    VolVectorSourceEstimate,
+    compute_rank,
+    convert_forward_solution,
     pick_channels_cov,
+    read_forward_solution,
     read_vectorview_selection,
 )
+from mne._fiff.compensator import set_current_comp
+from mne._fiff.constants import FIFF
 from mne.beamformer import (
-    make_lcmv,
+    Beamformer,
     apply_lcmv,
+    apply_lcmv_cov,
     apply_lcmv_epochs,
     apply_lcmv_raw,
-    Beamformer,
-    read_beamformer,
-    apply_lcmv_cov,
     make_dics,
+    make_lcmv,
+    read_beamformer,
 )
 from mne.beamformer._compute_beamformer import _prepare_beamformer_input
 from mne.datasets import testing
-from mne.io.compensator import set_current_comp
-from mne.io.constants import FIFF
-from mne.minimum_norm import make_inverse_operator, apply_inverse
+from mne.minimum_norm import apply_inverse, make_inverse_operator
 from mne.minimum_norm.tests.test_inverse import _assert_free_ori_match
 from mne.simulation import simulate_evoked
-from mne.utils import object_diff, requires_version, catch_logging, _record_warnings
-
+from mne.transforms import apply_trans, invert_transform
+from mne.utils import _record_warnings, catch_logging, object_diff
 
 data_path = testing.data_path(download=False)
 fname_raw = data_path / "MEG" / "sample" / "sample_audvis_trunc_raw.fif"
@@ -101,7 +104,7 @@ def _get_data(
     bads = [raw.ch_names[pick] for pick in bad_picks]
     assert not any(pick in picks for pick in bad_picks)
     picks = np.concatenate([picks, bad_picks])
-    raw.pick_channels([raw.ch_names[ii] for ii in picks], ordered=True)
+    raw.pick([raw.ch_names[ii] for ii in picks])
     del picks
 
     raw.info["bads"] = bads  # add more bads
@@ -193,7 +196,7 @@ def test_lcmv_vector():
 
     # Figure out our indices
     mask = np.concatenate(
-        [np.in1d(s["vertno"], v) for s, v in zip(forward["src"], vertices)]
+        [np.isin(s["vertno"], v) for s, v in zip(forward["src"], vertices)]
     )
     mapping = np.where(mask)[0]
     assert_array_equal(source_rr, forward["source_rr"][mapping])
@@ -207,7 +210,7 @@ def test_lcmv_vector():
     mne_ori = stc_vector_mne.data[mapping, :, np.arange(n_vertices)]
     mne_ori /= np.linalg.norm(mne_ori, axis=-1)[:, np.newaxis]
     mne_angles = np.rad2deg(np.arccos(np.sum(mne_ori * source_nn, axis=-1)))
-    assert np.mean(mne_angles) < 35
+    assert np.mean(mne_angles) < 36
 
     # Now let's do LCMV
     data_cov = mne.make_ad_hoc_cov(info)  # just a stub for later
@@ -257,7 +260,6 @@ def test_lcmv_vector():
 
 
 @pytest.mark.slowtest
-@requires_version("h5io")
 @testing.requires_testing_data
 @pytest.mark.parametrize(
     "reg, proj, kind",
@@ -270,6 +272,7 @@ def test_lcmv_vector():
 )
 def test_make_lcmv_bem(tmp_path, reg, proj, kind):
     """Test LCMV with evoked data and single trials."""
+    pytest.importorskip("h5io")
     (
         raw,
         epochs,
@@ -292,6 +295,15 @@ def test_make_lcmv_bem(tmp_path, reg, proj, kind):
     filters = make_lcmv(evoked.info, fwd, data_cov, reg=reg, noise_cov=noise_cov)
     stc = apply_lcmv(evoked, filters)
     stc.crop(0.02, None)
+
+    # Smoke test for label= support for surfaces only
+    label = mne.read_label(fname_label)
+    if kind == "volume":
+        ctx = pytest.raises(ValueError, match="volume source space")
+    else:
+        ctx = nullcontext()
+    with ctx:
+        make_lcmv(evoked.info, fwd, data_cov, reg=reg, noise_cov=noise_cov, label=label)
 
     stc_pow = np.sum(np.abs(stc.data), axis=1)
     idx = np.argmax(stc_pow)
@@ -370,7 +382,7 @@ def test_make_lcmv_bem(tmp_path, reg, proj, kind):
     assert "unknown subject" not in repr(filters)
     assert f'{fwd["nsource"]} vert' in repr(filters)
     assert "20 ch" in repr(filters)
-    assert "rank %s" % rank in repr(filters)
+    assert f"rank {rank}" in repr(filters)
 
     # I/O
     fname = tmp_path / "filters.h5"
@@ -451,7 +463,7 @@ def test_make_lcmv_bem(tmp_path, reg, proj, kind):
 
     # Test if wrong channel selection is detected in application of filter
     evoked_ch = deepcopy(evoked)
-    evoked_ch.pick_channels(evoked_ch.ch_names[1:])
+    evoked_ch.pick(evoked_ch.ch_names[1:])
     filters = make_lcmv(
         evoked.info, forward_vol, data_cov, reg=0.01, noise_cov=noise_cov
     )
@@ -490,9 +502,7 @@ def test_make_lcmv_bem(tmp_path, reg, proj, kind):
 
     # check whether a filters object without src_type throws expected warning
     del filters["src_type"]  # emulate 0.16 behaviour to cause warning
-    with pytest.warns(
-        RuntimeWarning, match="spatial filter does not contain " "src_type"
-    ):
+    with pytest.warns(RuntimeWarning, match="spatial filter does not contain src_type"):
         apply_lcmv(evoked, filters)
 
     # Now test single trial using fixed orientation forward solution
@@ -579,19 +589,22 @@ def test_make_lcmv_sphere(pick_ori, weight_norm):
     fwd_sphere = mne.make_forward_solution(evoked.info, None, src, sphere)
 
     # Test that we get an error if not reducing rank
-    with pytest.raises(ValueError, match="Singular matrix detected"):
-        with pytest.warns(RuntimeWarning, match="positive semidefinite"):
-            make_lcmv(
-                evoked.info,
-                fwd_sphere,
-                data_cov,
-                reg=0.1,
-                noise_cov=noise_cov,
-                weight_norm=weight_norm,
-                pick_ori=pick_ori,
-                reduce_rank=False,
-                rank="full",
-            )
+    with (
+        pytest.raises(ValueError, match="Singular matrix detected"),
+        _record_warnings(),
+        pytest.warns(RuntimeWarning, match="positive semidefinite"),
+    ):
+        make_lcmv(
+            evoked.info,
+            fwd_sphere,
+            data_cov,
+            reg=0.1,
+            noise_cov=noise_cov,
+            weight_norm=weight_norm,
+            pick_ori=pick_ori,
+            reduce_rank=False,
+            rank="full",
+        )
 
     # Now let's reduce it
     filters = make_lcmv(
@@ -652,7 +665,7 @@ def test_lcmv_cov(weight_norm, pick_ori):
     )
     for cov in (data_cov, noise_cov):
         this_cov = pick_channels_cov(cov, evoked.ch_names, ordered=False)
-        this_evoked = evoked.copy().pick_channels(this_cov["names"], ordered=True)
+        this_evoked = evoked.copy().pick(this_cov["names"])
         this_cov["projs"] = this_evoked.info["projs"]
         assert this_evoked.ch_names == this_cov["names"]
         stc = apply_lcmv_cov(this_cov, filters)
@@ -714,7 +727,7 @@ def test_lcmv_reg_proj(proj, weight_norm):
     """Test LCMV with and without proj."""
     raw = mne.io.read_raw_fif(fname_raw, preload=True)
     events = mne.find_events(raw)
-    raw.pick_types(meg=True)
+    raw.pick(picks="meg", exclude="bads")
     assert len(raw.ch_names) == 305
     epochs = mne.Epochs(raw, events, None, preload=True, proj=proj)
     with pytest.warns(RuntimeWarning, match="Too few samples"):
@@ -737,7 +750,7 @@ def test_lcmv_reg_proj(proj, weight_norm):
     # And also with and without noise_cov
     with pytest.raises(ValueError, match="several sensor types"):
         make_lcmv(epochs.info, forward, data_cov, reg=0.05, noise_cov=None)
-    epochs.pick_types(meg="grad")
+    epochs.pick(picks="grad")
     kwargs = dict(reg=0.05, pick_ori=None, weight_norm=weight_norm)
     filters_cov = make_lcmv(
         epochs.info, forward, data_cov, noise_cov=noise_cov, **kwargs
@@ -816,7 +829,7 @@ def test_localization_bias_fixed(
     """Test localization bias for fixed-orientation LCMV."""
     evoked, fwd, noise_cov, data_cov, want = bias_params_fixed
     if not use_cov:
-        evoked.pick_types(meg="grad")
+        evoked.pick(picks="grad")
         noise_cov = None
     assert data_cov["data"].shape[0] == len(data_cov["names"])
     loc = apply_lcmv(
@@ -839,7 +852,7 @@ def test_localization_bias_fixed(
 
 # Changes here should be synced with test_dics.py
 @pytest.mark.parametrize(
-    "reg, pick_ori, weight_norm, use_cov, depth, lower, upper, " "lower_ori, upper_ori",
+    "reg, pick_ori, weight_norm, use_cov, depth, lower, upper, lower_ori, upper_ori",
     [
         (
             0.05,
@@ -930,7 +943,7 @@ def test_localization_bias_free(
     """Test localization bias for free-orientation LCMV."""
     evoked, fwd, noise_cov, data_cov, want = bias_params_free
     if not use_cov:
-        evoked.pick_types(meg="grad")
+        evoked.pick(picks="grad")
         noise_cov = None
     with _record_warnings():  # rank deficiency of data_cov
         filters = make_lcmv(
@@ -992,7 +1005,7 @@ def test_orientation_max_power(
     evoked, _, noise_cov, data_cov, want = bias_params_fixed
     fwd = bias_params_free[1]
     if not use_cov:
-        evoked.pick_types(meg="grad")
+        evoked.pick(picks="grad")
         noise_cov = None
     filters = make_lcmv(
         evoked.info,
@@ -1080,7 +1093,7 @@ def mf_data():
     raw_sss = mne.preprocessing.maxwell_filter(raw)
     events = mne.find_events(raw_sss)
     del raw
-    raw_sss.pick_types(meg="mag")
+    raw_sss.pick(picks="mag")
     assert len(raw_sss.ch_names) == 102
     epochs = mne.Epochs(raw_sss, events)
     data_cov = mne.compute_covariance(epochs, tmin=0)
@@ -1132,7 +1145,7 @@ def test_unit_noise_gain_formula(pick_ori, weight_norm, reg, inversion):
     """Test unit-noise-gain filter against formula."""
     raw = mne.io.read_raw_fif(fname_raw, preload=True)
     events = mne.find_events(raw)
-    raw.pick_types(meg="mag")
+    raw.pick(picks="mag")
     assert len(raw.ch_names) == 102
     epochs = mne.Epochs(raw, events, None, preload=True)
     data_cov = mne.compute_covariance(epochs, tmin=0.04, tmax=0.15)

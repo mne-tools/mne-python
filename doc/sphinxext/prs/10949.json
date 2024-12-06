@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "82be959161b4911faba40aca7604236c4ee0f3ec",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "environment.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "requirements.txt": {
+      "a": 1,
+      "d": 1
+    },
+    "server_environment.yml": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

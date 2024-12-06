@@ -1,14 +1,13 @@
-# Authors: Samu Taulu <staulu@uw.edu>
-#          Eric Larson <larson.eric.d@gmail.com>
-
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from functools import partial
 
 import numpy as np
 
+from .._fiff.pick import _picks_to_idx
 from .._ola import _COLA, _Storer
-from ..io.pick import _picks_to_idx
 from ..surface import _normalize_vectors
 from ..utils import logger, verbose
 
@@ -87,9 +86,8 @@ def oversampled_temporal_projection(raw, duration=10.0, picks=None, verbose=None
     n_samples = int(round(float(duration) * raw.info["sfreq"]))
     if n_samples < len(picks_good) - 1:
         raise ValueError(
-            "duration (%s) yielded %s samples, which is fewer "
-            "than the number of channels -1 (%s)"
-            % (n_samples / raw.info["sfreq"], n_samples, len(picks_good) - 1)
+            f"duration ({n_samples / raw.info['sfreq']}) yielded {n_samples} samples, "
+            f"which is fewer than the number of channels -1 ({len(picks_good) - 1})"
         )
     n_overlap = n_samples // 2
     raw_otp = raw.copy().load_data(verbose=False)
@@ -104,7 +102,8 @@ def oversampled_temporal_projection(raw, duration=10.0, picks=None, verbose=None
     read_lims = list(range(0, len(raw.times), n_samples)) + [len(raw.times)]
     for start, stop in zip(read_lims[:-1], read_lims[1:]):
         logger.info(
-            "    Denoising % 8.2f – % 8.2f s" % tuple(raw.times[[start, stop - 1]])
+            f"    Denoising {raw.times[[start, stop - 1]][0]: 8.2f} – "
+            f"{raw.times[[start, stop - 1]][1]: 8.2f} s"
         )
         otp.feed(raw[picks, start:stop][0])
     return raw_otp
@@ -113,7 +112,7 @@ def oversampled_temporal_projection(raw, duration=10.0, picks=None, verbose=None
 def _otp(data, picks_good, picks_bad, *, start=0, stop=None):
     """Perform OTP on one segment of data."""
     if not np.isfinite(data).all():
-        raise RuntimeError("non-finite data (inf or nan) found in raw " "instance")
+        raise RuntimeError("non-finite data (inf or nan) found in raw instance")
     # demean our data
     data_means = np.mean(data, axis=-1, keepdims=True)
     data -= data_means
@@ -129,7 +128,7 @@ def _otp(data, picks_good, picks_bad, *, start=0, stop=None):
     for mi, pick in enumerate(picks_good):
         # operate on original data
         idx = list(range(mi)) + list(range(mi + 1, len(data_good)))
-        # Equivalent: linalg.svd(data[idx], full_matrices=False)[2]
+        # Equivalent: svd(data[idx], full_matrices=False)[2]
         t_basis = _svd_cov(cov[np.ix_(idx, idx)], data_good[idx])[2]
         x = np.dot(np.dot(data_good[mi], t_basis.T), t_basis)
         x *= norms[mi]

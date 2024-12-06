@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "f39331cc51b7043ae1726561218d85a638ec1a7f",
+  "authors": [
+    {
+      "n": "Jona Sassenhagen",
+      "e": "jona.sassenhagen@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/stats/parametric.py": {
+      "a": 1,
+      "d": 7
+    },
+    "mne/viz/evoked.py": {
+      "a": 6,
+      "d": 4
+    },
+    "mne/viz/ica.py": {
+      "a": 16,
+      "d": 4
+    },
+    "mne/viz/tests/test_evoked.py": {
+      "a": 4,
+      "d": 1
+    }
+  }
+}

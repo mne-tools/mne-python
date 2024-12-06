@@ -1,17 +1,17 @@
-# Authors: Robert Luke <mail@robertluke.net>
-#          Eric Larson <larson.eric.d@gmail.com>
-#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import os.path as op
 
 import numpy as np
+from scipy.interpolate import interp1d
+from scipy.io import loadmat
 
+from ..._fiff.constants import FIFF
 from ...io import BaseRaw
-from ...io.constants import FIFF
-from ...utils import _validate_type, warn
-from ..nirs import source_detector_distances, _validate_nirs_info
+from ...utils import _validate_type, pinv, warn
+from ..nirs import _validate_nirs_info, source_detector_distances
 
 
 def beer_lambert_law(raw, ppf=6.0):
@@ -21,20 +21,28 @@ def beer_lambert_law(raw, ppf=6.0):
     ----------
     raw : instance of Raw
         The optical density data.
-    ppf : float
-        The partial pathlength factor.
+    ppf : tuple | float
+        The partial pathlength factors for each wavelength.
+
+        .. versionchanged:: 1.7
+           Support for different factors for the two wavelengths.
 
     Returns
     -------
     raw : instance of Raw
         The modified raw instance.
     """
-    from scipy import linalg
-
     raw = raw.copy().load_data()
     _validate_type(raw, BaseRaw, "raw")
-    _validate_type(ppf, "numeric", "ppf")
-    ppf = float(ppf)
+    _validate_type(ppf, ("numeric", "array-like"), "ppf")
+    ppf = np.array(ppf, float)
+    if ppf.ndim == 0:  # upcast single float to shape (2,)
+        ppf = np.array([ppf, ppf])
+    if ppf.shape != (2,):
+        raise ValueError(
+            f"ppf must be float or array-like of shape (2,), got shape {ppf.shape}"
+        )
+    ppf = ppf[:, np.newaxis]  # shape (2, 1)
     picks = _validate_nirs_info(raw.info, fnirs="od", which="Beer-lambert")
     # This is the one place we *really* need the actual/accurate frequencies
     freqs = np.array([raw.info["chs"][pick]["loc"][9] for pick in picks], float)
@@ -59,7 +67,7 @@ def beer_lambert_law(raw, ppf=6.0):
     rename = dict()
     for ii, jj in zip(picks[::2], picks[1::2]):
         EL = abs_coef * distances[ii] * ppf
-        iEL = linalg.pinv(EL)
+        iEL = pinv(EL)
 
         raw._data[[ii, jj]] = iEL @ raw._data[[ii, jj]] * 1e-3
 
@@ -88,9 +96,6 @@ def _load_absorption(freqs):
     #
     # Returns data as [[HbO2(freq1), Hb(freq1)],
     #                  [HbO2(freq2), Hb(freq2)]]
-    from scipy.io import loadmat
-    from scipy.interpolate import interp1d
-
     extinction_fname = op.join(
         op.dirname(__file__), "..", "..", "data", "extinction_coef.mat"
     )

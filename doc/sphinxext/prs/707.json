@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "f8ddaeca19ae20a4d73038de41408f9e7e13ec2d",
+  "authors": [
+    {
+      "n": "Martin Luessi",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/__init__.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/parallel.py": {
+      "a": 49,
+      "d": 7
+    },
+    "mne/stats/cluster_level.py": {
+      "a": 97,
+      "d": 24
+    },
+    "mne/stats/tests/test_cluster_level.py": {
+      "a": 28,
+      "d": 12
+    },
+    "mne/utils.py": {
+      "a": 42,
+      "d": 0
+    }
+  }
+}

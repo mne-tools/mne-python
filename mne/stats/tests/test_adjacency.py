@@ -1,16 +1,16 @@
-# Authors: Eric Larson <larson.eric.d@gmail.com>
-#
-# License: Simplified BSD
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
-import pytest
 import numpy as np
+import pytest
 from numpy.testing import assert_array_equal
 
 from mne.stats import combine_adjacency
-from mne.utils import requires_sklearn
+
+pytest.importorskip("sklearn")
 
 
-@requires_sklearn
 @pytest.mark.parametrize(
     "shape",
     [
@@ -41,6 +41,6 @@ def test_adjacency_equiv(shape):
     # eventually we might want to keep these as 1's but it's easy enough
     # with a .astype(bool) (also matches sklearn output) so let's leave it
     # for now
-    assert np.in1d(conn, [0, 1, 2, 3]).all()
+    assert np.isin(conn, [0, 1, 2, 3]).all()
     assert conn.shape == conn_sk.shape
     assert_array_equal(conn, conn_sk)

@@ -1,20 +1,12 @@
 :orphan:
 
-.. include:: ../changes/names.inc
-
 .. _governance-people:
 
-Current steering council and institutional partners
-===================================================
+Current Project Leadership and Institutional Partners
+=====================================================
 
-Benevolent Dictator for Life
-----------------------------
-
-Alexandre Gramfort is the Benevolent Dictator for Life (BDFL)
-
-
-Steering Council
-----------------
+Maintainer Team
+---------------
 
 * `Adam Li`_
 * `Alex Gramfort`_
@@ -24,8 +16,6 @@ Steering Council
 * `Daniel McCloy`_
 * `Denis Engemann`_
 * `Eric Larson`_
-* `Guillaume Favelier`_
-* `Luke Bloy`_
 * `Mainak Jas`_
 * `Marijn van Vliet`_
 * `Mathieu Scheltienne`_
@@ -34,13 +24,26 @@ Steering Council
 * `Robert Luke`_
 * `Stefan Appelhoff`_
 
+Steering Council
+----------------
+
+* `Britta Westner`_
+* `Daniel McCloy`_ (chair)
+* `Eric Larson`_
+
+Advisory Board
+--------------
+
+The advisory board is currently unfilled.
+
 
 .. _governance-cpgrl:
 
 Community Participation Guidelines Response Leads
 -------------------------------------------------
 
-See our `Community Participation Guidelines <https://github.com/mne-tools/.github/blob/main/CODE_OF_CONDUCT.md>`__ for explanation. Current Response Leads are:
+See our `Community Participation Guidelines <https://github.com/mne-tools/.github/blob/main/CODE_OF_CONDUCT.md>`__
+for explanation. Current Response Leads are:
 
 * `Daniel McCloy`_
 * `Eric Larson`_

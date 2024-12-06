@@ -5,18 +5,23 @@
 Overview of MEG/EEG analysis with MNE-Python
 ============================================
 
-This tutorial covers the basic EEG/MEG pipeline for event-related analysis:
-loading data, epoching, averaging, plotting, and estimating cortical activity
-from sensor data. It introduces the core MNE-Python data structures
-`~mne.io.Raw`, `~mne.Epochs`, `~mne.Evoked`, and `~mne.SourceEstimate`, and
-covers a lot of ground fairly quickly (at the expense of depth). Subsequent
-tutorials address each of these topics in greater detail.
+This tutorial covers the basic EEG/MEG pipeline for event-related analysis: loading
+data, epoching, averaging, plotting, and estimating cortical activity from sensor data.
+It introduces the core MNE-Python data structures `~mne.io.Raw`, `~mne.Epochs`,
+`~mne.Evoked`, and `~mne.SourceEstimate`, and covers a lot of ground fairly quickly (at
+the expense of depth). Subsequent tutorials address each of these topics in greater
+detail.
 
 We begin by importing the necessary Python modules:
 """
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
+
 # %%
 
 import numpy as np
+
 import mne
 
 # %%
@@ -70,13 +75,13 @@ print(raw.info)
 # %%
 # `~mne.io.Raw` objects also have several built-in plotting methods; here we
 # show the power spectral density (PSD) for each sensor type with
-# `~mne.io.Raw.plot_psd`, as well as a plot of the raw sensor traces with
+# `~mne.io.Raw.compute_psd`, as well as a plot of the raw sensor traces with
 # `~mne.io.Raw.plot`. In the PSD plot, we'll only plot frequencies below 50 Hz
 # (since our data are low-pass filtered at 40 Hz). In interactive Python
 # sessions, `~mne.io.Raw.plot` is interactive and allows scrolling, scaling,
 # bad channel marking, annotations, projector toggling, etc.
 
-raw.compute_psd(fmax=50).plot(picks="data", exclude="bads")
+raw.compute_psd(fmax=50).plot(picks="data", exclude="bads", amplitude=False)
 raw.plot(duration=5, n_channels=30)
 
 # %%
@@ -203,7 +208,7 @@ event_dict = {
 # example of this is shown in the next section. There is also a convenient
 # `~mne.viz.plot_events` function for visualizing the distribution of events
 # across the duration of the recording (to make sure event detection worked as
-# expected). Here we'll also make use of the `~mne.Info` attribute to get the
+# expected). Here we will also make use of the `~mne.Info` attribute to get the
 # sampling frequency of the recording (so our x-axis will be in seconds instead
 # of in samples).
 
@@ -306,8 +311,8 @@ aud_epochs.plot_image(picks=["MEG 1332", "EEG 021"])
 # frequency content.
 
 frequencies = np.arange(7, 30, 3)
-power = mne.time_frequency.tfr_morlet(
-    aud_epochs, n_cycles=2, return_itc=False, freqs=frequencies, decim=3
+power = aud_epochs.compute_tfr(
+    "morlet", n_cycles=2, return_itc=False, freqs=frequencies, decim=3, average=True
 )
 power.plot(["MEG 1332"])
 
@@ -349,7 +354,7 @@ aud_evoked.plot_topomap(times=[0.0, 0.08, 0.1, 0.12, 0.2], ch_type="eeg")
 # at each sensor using `~mne.Evoked.plot_topo`:
 
 evoked_diff = mne.combine_evoked([aud_evoked, vis_evoked], weights=[1, -1])
-evoked_diff.pick_types(meg="mag").plot_topo(color="r", legend=False)
+evoked_diff.pick(picks="mag").plot_topo(color="r", legend=False)
 
 ##############################################################################
 # Inverse modeling

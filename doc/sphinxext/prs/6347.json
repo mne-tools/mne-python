@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "10f52395c8b9ae8f121d9401d0219c0eadb4d77a",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/event.py": {
+      "a": 10,
+      "d": 1
+    },
+    "mne/tests/test_event.py": {
+      "a": 13,
+      "d": 1
+    }
+  }
+}

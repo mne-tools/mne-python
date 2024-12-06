@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "350f76bff4b590e3662830cf0308492638c27703",
+  "authors": [
+    {
+      "n": "Martin G. Schulz",
+      "e": "dev@mgschulz.de"
+    },
+    {
+      "n": "Mainak Jas",
+      "e": "jasmainak@users.noreply.github.com"
+    },
+    {
+      "n": "Mainak Jas",
+      "e": "jasmainak@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/reference.py": {
+      "a": 80,
+      "d": 43
+    },
+    "mne/io/tests/test_reference.py": {
+      "a": 6,
+      "d": 8
+    }
+  }
+}

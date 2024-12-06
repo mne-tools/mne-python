@@ -1,0 +1,159 @@
+{
+  "merge_commit_sha": "f384253d77d46893d91c4ae678ff50f7287cc384",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".circleci/config.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/_static/style.css": {
+      "a": 33,
+      "d": 17
+    },
+    "doc/conf.py": {
+      "a": 3,
+      "d": 0
+    },
+    "doc/python_reference.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/bem.py": {
+      "a": 1,
+      "d": 10
+    },
+    "mne/channels/tests/test_montage.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/dipole.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/evoked.py": {
+      "a": 3,
+      "d": 4
+    },
+    "mne/io/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/bti/constants.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/bti/tests/test_bti.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/io/constants.py": {
+      "a": 3,
+      "d": 18
+    },
+    "mne/io/ctf/constants.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/ctf/tests/test_ctf.py": {
+      "a": 39,
+      "d": 39
+    },
+    "mne/io/eeglab/eeglab.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/fiff/tests/test_raw_fiff.py": {
+      "a": 221,
+      "d": 223
+    },
+    "mne/io/kit/constants.py": {
+      "a": 4,
+      "d": 3
+    },
+    "mne/io/kit/tests/test_kit.py": {
+      "a": 3,
+      "d": 4
+    },
+    "mne/io/meas_info.py": {
+      "a": 65,
+      "d": 13
+    },
+    "mne/io/tests/test_meas_info.py": {
+      "a": 11,
+      "d": 1
+    },
+    "mne/io/tests/test_raw.py": {
+      "a": 5,
+      "d": 5
+    },
+    "mne/morph.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/preprocessing/maxwell.py": {
+      "a": 42,
+      "d": 44
+    },
+    "mne/preprocessing/tests/test_maxwell.py": {
+      "a": 9,
+      "d": 10
+    },
+    "mne/source_space.py": {
+      "a": 4,
+      "d": 1
+    },
+    "mne/tests/__init__.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/tests/common.py": {
+      "a": 0,
+      "d": 106
+    },
+    "mne/tests/test_chpi.py": {
+      "a": 5,
+      "d": 8
+    },
+    "mne/tests/test_cov.py": {
+      "a": 10,
+      "d": 12
+    },
+    "mne/tests/test_dipole.py": {
+      "a": 32,
+      "d": 34
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 7,
+      "d": 7
+    },
+    "mne/utils/__init__.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/utils/_bunch.py": {
+      "a": 93,
+      "d": 0
+    },
+    "mne/utils/_testing.py": {
+      "a": 101,
+      "d": 1
+    },
+    "mne/viz/topo.py": {
+      "a": 1,
+      "d": 2
+    }
+  }
+}

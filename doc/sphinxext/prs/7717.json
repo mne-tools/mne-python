@@ -1,0 +1,115 @@
+{
+  "merge_commit_sha": "832f48c28f212a9bb0312d2555e1f0f4754e9f36",
+  "authors": [
+    {
+      "n": "Kyle Mathewson",
+      "e": "kylemath@gmail.com"
+    },
+    {
+      "n": "Kyle Mathewson",
+      "e": "kylemath@gmail.com"
+    },
+    {
+      "n": "Robert Luke",
+      "e": "748691+rob-luke@users.noreply.github.com"
+    },
+    {
+      "n": "Robert Luke",
+      "e": "748691+rob-luke@users.noreply.github.com"
+    },
+    {
+      "n": "Jonathan Kuziek",
+      "e": "kuziek@ualberta.ca"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Robert Luke",
+      "e": "748691+rob-luke@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    "doc/_includes/data_formats.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/latest.inc": {
+      "a": 4,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/conf.py": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/python_reference.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/channels/channels.py": {
+      "a": 8,
+      "d": 2
+    },
+    "mne/channels/layout.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/cov.py": {
+      "a": 13,
+      "d": 4
+    },
+    "mne/defaults.py": {
+      "a": 8,
+      "d": 2
+    },
+    "mne/evoked.py": {
+      "a": 8,
+      "d": 8
+    },
+    "mne/io/__init__.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/boxy/__init__.py": {
+      "a": 7,
+      "d": 0
+    },
+    "mne/io/boxy/boxy.py": {
+      "a": 262,
+      "d": 0
+    },
+    "mne/io/boxy/tests/__init__.py": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/io/boxy/tests/test_boxy.py": {
+      "a": 190,
+      "d": 0
+    },
+    "mne/io/pick.py": {
+      "a": 37,
+      "d": 20
+    },
+    "mne/io/utils.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/tests/test_defaults.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/viz/utils.py": {
+      "a": 2,
+      "d": 2
+    },
+    "tutorials/io/plot_30_reading_fnirs_data.py": {
+      "a": 29,
+      "d": 0
+    }
+  }
+}

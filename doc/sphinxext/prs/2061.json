@@ -1,0 +1,51 @@
+{
+  "merge_commit_sha": "bd981b94673e632bacb6624b121a8e15554de798",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/source/python_reference.rst": {
+      "a": 8,
+      "d": 0
+    },
+    "examples/inverse/plot_gamma_map_inverse.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/inverse/plot_lcmv_beamformer.py": {
+      "a": 4,
+      "d": 5
+    },
+    "examples/inverse/plot_lcmv_beamformer_volume.py": {
+      "a": 4,
+      "d": 5
+    },
+    "examples/inverse/plot_make_inverse_operator.py": {
+      "a": 1,
+      "d": 5
+    },
+    "examples/inverse/plot_mixed_norm_inverse.py": {
+      "a": 1,
+      "d": 3
+    },
+    "examples/inverse/plot_tf_lcmv.py": {
+      "a": 2,
+      "d": 6
+    },
+    "examples/inverse/plot_time_frequency_mixed_norm_inverse.py": {
+      "a": 1,
+      "d": 3
+    },
+    "mne/cov.py": {
+      "a": 7,
+      "d": 5
+    },
+    "mne/viz/epochs.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

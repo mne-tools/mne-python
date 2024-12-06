@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "57bcaa877b896a4b7ccaca3207de81bf73e8b51b",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    ".circleci/config.yml": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

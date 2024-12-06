@@ -5,22 +5,25 @@
 Preprocessing functional near-infrared spectroscopy (fNIRS) data
 ================================================================
 
-This tutorial covers how to convert functional near-infrared spectroscopy
-(fNIRS) data from raw measurements to relative oxyhaemoglobin (HbO) and
-deoxyhaemoglobin (HbR) concentration, view the average waveform, and
-topographic representation of the response.
+This tutorial covers how to convert functional near-infrared spectroscopy (fNIRS) data
+from raw measurements to relative oxyhaemoglobin (HbO) and deoxyhaemoglobin (HbR)
+concentration, view the average waveform, and topographic representation of the
+response.
 
 Here we will work with the :ref:`fNIRS motor data <fnirs-motor-dataset>`.
 """
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 
-import numpy as np
-import matplotlib.pyplot as plt
 from itertools import compress
 
-import mne
+import matplotlib.pyplot as plt
+import numpy as np
 
+import mne
 
 fnirs_data_folder = mne.datasets.fnirs_motor.data_path()
 fnirs_cw_amplitude_dir = fnirs_data_folder / "Participant-1"
@@ -111,7 +114,7 @@ raw_od.plot(n_channels=len(raw_od.ch_names), duration=500, show_scrollbars=False
 # coupling index.
 
 sci = mne.preprocessing.nirs.scalp_coupling_index(raw_od)
-fig, ax = plt.subplots()
+fig, ax = plt.subplots(layout="constrained")
 ax.hist(sci)
 ax.set(xlabel="Scalp Coupling Index", ylabel="Count", xlim=[0, 1])
 
@@ -156,9 +159,10 @@ raw_haemo.plot(n_channels=len(raw_haemo.ch_names), duration=500, show_scrollbars
 raw_haemo_unfiltered = raw_haemo.copy()
 raw_haemo.filter(0.05, 0.7, h_trans_bandwidth=0.2, l_trans_bandwidth=0.02)
 for when, _raw in dict(Before=raw_haemo_unfiltered, After=raw_haemo).items():
-    fig = _raw.compute_psd().plot(average=True, picks="data", exclude="bads")
+    fig = _raw.compute_psd().plot(
+        average=True, amplitude=False, picks="data", exclude="bads"
+    )
     fig.suptitle(f"{when} filtering", weight="bold", size="x-large")
-    fig.subplots_adjust(top=0.88)
 
 # %%
 # Extract epochs
@@ -168,17 +172,16 @@ for when, _raw in dict(Before=raw_haemo_unfiltered, After=raw_haemo).items():
 # and the unwanted heart rate component has been removed, we can extract epochs
 # related to each of the experimental conditions.
 #
-# First we extract the events of interest and visualise them to ensure they are
+# First we extract the events of interest and visualize them to ensure they are
 # correct.
 
 events, event_dict = mne.events_from_annotations(raw_haemo)
 fig = mne.viz.plot_events(events, event_id=event_dict, sfreq=raw_haemo.info["sfreq"])
-fig.subplots_adjust(right=0.7)  # make room for the legend
 
 
 # %%
 # Next we define the range of our epochs, the rejection criteria,
-# baseline correction, and extract the epochs. We visualise the log of which
+# baseline correction, and extract the epochs. We visualize the log of which
 # epochs were dropped.
 
 reject_criteria = dict(hbo=80e-6)
@@ -206,7 +209,7 @@ epochs.plot_drop_log()
 # -------------------------------------------
 #
 # Now we can view the haemodynamic response for our tapping condition.
-# We visualise the response for both the oxy- and deoxyhaemoglobin, and
+# We visualize the response for both the oxy- and deoxyhaemoglobin, and
 # observe the expected peak in HbO at around 6 seconds consistently across
 # trials, and the consistent dip in HbR that is slightly delayed relative to
 # the HbO peak.
@@ -239,13 +242,13 @@ epochs["Control"].plot_image(
 # pairs that we selected. All the channels in this data are located over the
 # motor cortex, and all channels show a similar pattern in the data.
 
-fig, axes = plt.subplots(nrows=2, ncols=2, figsize=(15, 6))
+fig, axes = plt.subplots(nrows=2, ncols=2, figsize=(15, 6), layout="constrained")
 clims = dict(hbo=[-20, 20], hbr=[-20, 20])
 epochs["Control"].average().plot_image(axes=axes[:, 0], clim=clims)
 epochs["Tapping"].average().plot_image(axes=axes[:, 1], clim=clims)
 for column, condition in enumerate(["Control", "Tapping"]):
     for ax in axes[:, column]:
-        ax.set_title("{}: {}".format(condition, ax.get_title()))
+        ax.set_title(f"{condition}: {ax.get_title()}")
 
 
 # %%
@@ -293,7 +296,7 @@ epochs["Tapping"].average(picks="hbo").plot_joint(
 # ---------------------------------------
 #
 # Finally we generate topo maps for the left and right conditions to view
-# the location of activity. First we visualise the HbO activity.
+# the location of activity. First we visualize the HbO activity.
 
 times = np.arange(4.0, 11.0, 1.0)
 epochs["Tapping/Left"].average(picks="hbo").plot_topomap(times=times, **topomap_args)
@@ -309,7 +312,11 @@ epochs["Tapping/Right"].average(picks="hbr").plot_topomap(times=times, **topomap
 # And we can plot the comparison at a single time point for two conditions.
 
 fig, axes = plt.subplots(
-    nrows=2, ncols=4, figsize=(9, 5), gridspec_kw=dict(width_ratios=[1, 1, 1, 0.1])
+    nrows=2,
+    ncols=4,
+    figsize=(9, 5),
+    gridspec_kw=dict(width_ratios=[1, 1, 1, 0.1]),
+    layout="constrained",
 )
 vlim = (-8, 8)
 ts = 9.0
@@ -341,14 +348,13 @@ evoked_diff.plot_topomap(
 
 for column, condition in enumerate(["Tapping Left", "Tapping Right", "Left-Right"]):
     for row, chroma in enumerate(["HbO", "HbR"]):
-        axes[row, column].set_title("{}: {}".format(chroma, condition))
-fig.tight_layout()
+        axes[row, column].set_title(f"{chroma}: {condition}")
 
 # %%
 # Lastly, we can also look at the individual waveforms to see what is
 # driving the topographic plot above.
 
-fig, axes = plt.subplots(nrows=1, ncols=1, figsize=(6, 4))
+fig, axes = plt.subplots(nrows=1, ncols=1, figsize=(6, 4), layout="constrained")
 mne.viz.plot_evoked_topo(
     epochs["Left"].average(picks="hbo"), color="b", axes=axes, legend=False
 )

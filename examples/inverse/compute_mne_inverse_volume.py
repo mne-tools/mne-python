@@ -11,14 +11,15 @@ space and stores the solution in a nifti file for visualisation.
 # Author: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 
-from nilearn.plotting import plot_stat_map
 from nilearn.image import index_img
+from nilearn.plotting import plot_stat_map
 
-from mne.datasets import sample
 from mne import read_evokeds
+from mne.datasets import sample
 from mne.minimum_norm import apply_inverse, read_inverse_operator
 
 print(__doc__)
@@ -45,7 +46,7 @@ stc.crop(0.0, 0.2)
 img = stc.as_volume(src, mri_resolution=False)  # set True for full MRI resolution
 
 # Save it as a nifti file
-# nib.save(img, 'mne_%s_inverse.nii.gz' % method)
+# nib.save(img, f"mne_{method}_inverse.nii.gz")
 
 t1_fname = data_path / "subjects" / "sample" / "mri" / "T1.mgz"
 
@@ -55,5 +56,5 @@ plot_stat_map(
     index_img(img, 61),
     str(t1_fname),
     threshold=8.0,
-    title="%s (t=%.1f s.)" % (method, stc.times[61]),
+    title=f"{method} (t={stc.times[61]:.1f} s.)",
 )

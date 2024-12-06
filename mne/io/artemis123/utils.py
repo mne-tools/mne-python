@@ -1,8 +1,14 @@
-import numpy as np
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
+
 import os.path as op
-from .._digitization import _artemis123_read_pos
-from ...utils import logger
+
+import numpy as np
+
+from ..._fiff._digitization import _artemis123_read_pos
 from ...transforms import rotation3d_align_z_axis
+from ...utils import logger
 
 
 def _load_mne_locs(fname=None):
@@ -13,11 +19,11 @@ def _load_mne_locs(fname=None):
         fname = op.join(resource_dir, "Artemis123_mneLoc.csv")
 
     if not op.exists(fname):
-        raise OSError('MNE locs file "%s" does not exist' % (fname))
+        raise OSError(f'MNE locs file "{fname}" does not exist')
 
-    logger.info("Loading mne loc file {}".format(fname))
+    logger.info(f"Loading mne loc file {fname}")
     locs = dict()
-    with open(fname, "r") as fid:
+    with open(fname) as fid:
         for line in fid:
             vals = line.strip().split(",")
             locs[vals[0]] = np.array(vals[1::], np.float64)
@@ -38,7 +44,7 @@ def _generate_mne_locs_file(output_fname):
     # write it out to output_fname
     with open(output_fname, "w") as fid:
         for n in sorted(locs.keys()):
-            fid.write("%s," % n)
+            fid.write(f"{n},")
             fid.write(",".join(locs[n].astype(str)))
             fid.write("\n")
 
@@ -46,7 +52,7 @@ def _generate_mne_locs_file(output_fname):
 def _load_tristan_coil_locs(coil_loc_path):
     """Load the Coil locations from Tristan CAD drawings."""
     channel_info = dict()
-    with open(coil_loc_path, "r") as fid:
+    with open(coil_loc_path) as fid:
         # skip 2 Header lines
         fid.readline()
         fid.readline()
@@ -68,7 +74,7 @@ def _compute_mne_loc(coil_loc):
 
     Note input coil locations are in inches.
     """
-    loc = np.zeros((12))
+    loc = np.zeros(12)
     if (np.linalg.norm(coil_loc["inner_coil"]) == 0) and (
         np.linalg.norm(coil_loc["outer_coil"]) == 0
     ):
@@ -87,7 +93,7 @@ def _compute_mne_loc(coil_loc):
 def _read_pos(fname):
     """Read the .pos file and return positions as dig points."""
     nas, lpa, rpa, hpi, extra = None, None, None, None, None
-    with open(fname, "r") as fid:
+    with open(fname) as fid:
         for line in fid:
             line = line.strip()
             if len(line) > 0:

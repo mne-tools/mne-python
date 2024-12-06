@@ -1,0 +1,1 @@
+Use custom code in :func:`mne.sys_info` to get the amount of physical memory and a more informative CPU name instead of using the ``psutil`` package, by `Clemens Brunner`_.

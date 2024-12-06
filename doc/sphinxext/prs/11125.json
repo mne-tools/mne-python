@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "6b378e92f11a709e0cee12ac07d76d4bf8c55c5b",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "tutorials/clinical/30_ecog.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

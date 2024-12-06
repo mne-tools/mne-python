@@ -10,6 +10,7 @@ Show sensor layouts of different MEG systems.
 # Author: Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 

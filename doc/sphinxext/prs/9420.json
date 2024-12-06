@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "208968d83181ef55af6f31da82ae02d67b1e321c",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/io/egi/egimff.py": {
+      "a": 6,
+      "d": 2
+    }
+  }
+}

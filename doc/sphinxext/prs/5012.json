@@ -1,0 +1,55 @@
+{
+  "merge_commit_sha": "7915893dc27aea13c5ca1b550da043bc6867468b",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".circleci/config.yml": {
+      "a": 14,
+      "d": 7
+    },
+    ".travis.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/advanced_setup.rst": {
+      "a": 7,
+      "d": 19
+    },
+    "doc/documentation.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/install_mne_python.rst": {
+      "a": 57,
+      "d": 59
+    },
+    "doc/manual/datasets_index.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/whats_new.rst": {
+      "a": 4,
+      "d": 4
+    },
+    "environment.yml": {
+      "a": 10,
+      "d": 7
+    },
+    "mne/io/eximia/eximia.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/utils.py": {
+      "a": 11,
+      "d": 0
+    },
+    "tutorials/plot_compute_covariance.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

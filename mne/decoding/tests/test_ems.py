@@ -1,29 +1,29 @@
-# Author: Denis A. Engemann <d.engemann@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from pathlib import Path
 
 import numpy as np
-from numpy.testing import assert_array_almost_equal, assert_equal
 import pytest
+from numpy.testing import assert_array_almost_equal, assert_equal
 
-from mne import io, Epochs, read_events, pick_types
-from mne.utils import requires_sklearn
-from mne.decoding import compute_ems, EMS
+pytest.importorskip("sklearn")
 
-data_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
+from sklearn.model_selection import StratifiedKFold
+
+from mne import Epochs, io, pick_types, read_events
+from mne.decoding import EMS, compute_ems
+
+data_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
 raw_fname = data_dir / "test_raw.fif"
 event_name = data_dir / "test-eve.fif"
 tmin, tmax = -0.2, 0.5
 event_id = dict(aud_l=1, vis_l=3)
 
 
-@requires_sklearn
 def test_ems():
     """Test event-matched spatial filters."""
-    from sklearn.model_selection import StratifiedKFold
-
     raw = io.read_raw_fif(raw_fname, preload=False)
 
     # create unequal number of events
@@ -76,7 +76,7 @@ def test_ems():
     raw.close()
 
     # EMS transformer, check that identical to compute_ems
-    X = epochs.get_data()
+    X = epochs.get_data(copy=False)
     y = epochs.events[:, 2]
     X = X / np.std(X)  # X scaled outside cv in compute_ems
     Xt, coefs = list(), list()

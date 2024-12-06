@@ -1,0 +1,99 @@
+{
+  "merge_commit_sha": "38caebe4dfd9b96a9fa0619675b8df9b7bb46808",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/_static/mne_installer_console.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/mne_installer_macOS.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/conf.py": {
+      "a": 4,
+      "d": 1
+    },
+    "doc/index.rst": {
+      "a": 5,
+      "d": 5
+    },
+    "doc/install/advanced.rst": {
+      "a": 48,
+      "d": 19
+    },
+    "doc/install/check_installation.rst": {
+      "a": 77,
+      "d": 0
+    },
+    "doc/install/index.rst": {
+      "a": 10,
+      "d": 53
+    },
+    "doc/install/install_type_selector.html": {
+      "a": 40,
+      "d": 0
+    },
+    "doc/install/installers.rst": {
+      "a": 62,
+      "d": 0
+    },
+    "doc/install/installers_platform_selector.html": {
+      "a": 79,
+      "d": 0
+    },
+    "doc/install/manual_install.rst": {
+      "a": 115,
+      "d": 0
+    },
+    "doc/install/manual_install_python.rst": {
+      "a": 3,
+      "d": 1
+    },
+    "doc/install/mne_python.rst": {
+      "a": 0,
+      "d": 257
+    },
+    "doc/install/mne_tools_suite.rst": {
+      "a": 2,
+      "d": 1
+    },
+    "doc/install/updating.rst": {
+      "a": 8,
+      "d": 0
+    },
+    "doc/links.inc": {
+      "a": 5,
+      "d": 2
+    },
+    "doc/overview/faq.rst": {
+      "a": 1,
+      "d": 2
+    },
+    "doc/overview/get_help.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/overview/index.rst": {
+      "a": 3,
+      "d": 4
+    },
+    "tutorials/clinical/10_ieeg_localize.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/clinical/20_seeg.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/clinical/30_ecog.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

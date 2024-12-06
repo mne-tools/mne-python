@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "ae52496f77ddee08dcaea8daaf4ccbfa11e791b1",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    ".github/ISSUE_TEMPLATE/config.yml": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

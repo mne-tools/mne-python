@@ -10,7 +10,7 @@ applied the gel conducting signal from the scalp to the electrode for one
 electrode connects with the gel conducting signal from another electrode
 "bridging" the two signals. This is undesirable because the signals from the
 two (or more) electrodes are not as independent as they would otherwise be;
-they are very similar to each other introducting additional
+they are very similar to each other introducing additional
 spatial smearing. An algorithm has been developed to detect electrode
 bridging :footcite:`TenkeKayser2001`, which has been implemented in EEGLAB
 :footcite:`DelormeMakeig2004`. Unfortunately, there is not a lot to be
@@ -22,21 +22,21 @@ the extent of the bridging so as not to introduce bias into the data from this
 effect and exclude subjects with bridging that might effect the outcome of a
 study. Preventing electrode bridging is ideal but awareness of the problem at
 least will mitigate its potential as a confound to a study. This tutorial
-follows
-https://psychophysiology.cpmc.columbia.edu/software/eBridge/tutorial.html.
+follows the eBridge tutorial from https://psychophysiology.cpmc.columbia.edu.
 
 .. _electrodes.tsv: https://bids-specification.readthedocs.io/en/stable/04-modality-specific-files/03-electroencephalography.html#electrodes-description-_electrodestsv
 """  # noqa: E501
 # Authors: Alex Rockhill <aprockhill@mailbox.org>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 
 # sphinx_gallery_thumbnail_number = 2
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 from matplotlib.colors import LinearSegmentedColormap
 
 import mne
@@ -65,7 +65,7 @@ ed_data = dict()  # electrical distance/bridging data
 raw_data = dict()  # store infos for electrode positions
 for sub in range(1, 11):
     print(f"Computing electrode bridges for subject {sub}")
-    raw_fname = mne.datasets.eegbci.load_data(subject=sub, runs=(1,))[0]
+    raw_fname = mne.datasets.eegbci.load_data(subjects=sub, runs=(1,))[0]
     raw = mne.io.read_raw(raw_fname, preload=True, verbose=False)
     mne.datasets.eegbci.standardize(raw)  # set channel names
     raw.set_montage(montage, verbose=False)
@@ -88,7 +88,7 @@ for sub in range(1, 11):
 
 bridged_idx, ed_matrix = ed_data[6]
 
-fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(8, 4))
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(8, 4), layout="constrained")
 fig.suptitle("Subject 6 Electrical Distance Matrix")
 
 # take median across epochs, only use upper triangular, lower is NaNs
@@ -109,8 +109,6 @@ cax2.set_label(r"Electrical Distance ($\mu$$V^2$)")
 for ax in (ax1, ax2):
     ax.set_xlabel("Channel Index")
     ax.set_ylabel("Channel Index")
-
-fig.tight_layout()
 
 # %%
 # Examine the Distribution of Electrical Distances
@@ -164,7 +162,7 @@ mne.viz.plot_bridged_electrodes(
 # pairs, meaning that it is unlikely that all four of these electrodes are
 # bridged.
 
-raw = raw_data[6].copy().pick_channels(["FC2", "FC4", "F2", "F4"])
+raw = raw_data[6].copy().pick(["FC2", "FC4", "F2", "F4"])
 raw.add_channels(
     [
         mne.io.RawArray(
@@ -177,7 +175,7 @@ raw.add_channels(
 )
 raw.plot(duration=20, scalings=dict(eeg=2e-4))
 
-raw = raw_data[1].copy().pick_channels(["FC2", "FC4", "F2", "F4"])
+raw = raw_data[1].copy().pick(["FC2", "FC4", "F2", "F4"])
 raw.add_channels(
     [
         mne.io.RawArray(
@@ -208,7 +206,7 @@ raw.plot(duration=20, scalings=dict(eeg=2e-4))
 # reflect neural or at least anatomical differences as well (i.e. the
 # distance from the sensors to the brain).
 
-fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(8, 4))
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(8, 4), layout="constrained")
 fig.suptitle("Electrical Distance Distribution for EEGBCI Subjects")
 for ax in (ax1, ax2):
     ax.set_ylabel("Count")
@@ -229,7 +227,6 @@ for sub, (bridged_idx, ed_matrix) in ed_data.items():
 
 ax1.axvspan(0, 30, color="r", alpha=0.5)
 ax2.legend(loc=(1.04, 0))
-fig.subplots_adjust(right=0.725, bottom=0.15, wspace=0.4)
 
 # %%
 # For the group of subjects, let's look at their electrical distances
@@ -322,16 +319,13 @@ data_comp = raw_comp.get_data(picks=(idx0, idx1))
 # compute variance of residuals
 print(
     "Variance of residual (interpolated data - original data)\n\n"
-    "With adding virtual channel:                         {}\n"
-    "Compared to interpolation only using other channels: {}"
-    "".format(
-        np.mean(np.var(data_virtual - data_orig, axis=1)),
-        np.mean(np.var(data_comp - data_orig, axis=1)),
-    )
+    f"With adding virtual channel:                         {np.mean(np.var(data_virtual - data_orig, axis=1))}\n"
+    f"Compared to interpolation only using other channels: {np.mean(np.var(data_comp - data_orig, axis=1))}"
+    ""
 )
 
 # plot results
-raw = raw.pick_channels([ch0, ch1])
+raw = raw.pick([ch0, ch1])
 raw = raw.add_channels(
     [
         mne.io.RawArray(
@@ -386,16 +380,7 @@ rng = np.random.default_rng(11)  # seed for reproducibility
 raw = raw_data[1]
 # typically impedances < 25 kOhm are acceptable for active systems and
 # impedances < 5 kOhm are desirable for a passive system
-impedances = (
-    rng.random(
-        (
-            len(
-                raw.ch_names,
-            )
-        )
-    )
-    * 30
-)
+impedances = rng.random(len(raw.ch_names)) * 30
 impedances[10] = 80  # set a few bad impendances
 impedances[25] = 99
 cmap = LinearSegmentedColormap.from_list(

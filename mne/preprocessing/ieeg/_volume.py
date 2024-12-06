@@ -1,13 +1,13 @@
-# Authors: Alex Rockhill <aprockhill@mailbox.org>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import numpy as np
 
 from ...channels import DigMontage, make_dig_montage
 from ...surface import _voxel_neighbors
-from ...transforms import apply_trans, _frame_to_str, Transform
-from ...utils import verbose, warn, _pl, _validate_type, _require_version, _check_option
+from ...transforms import Transform, _frame_to_str, apply_trans
+from ...utils import _check_option, _pl, _require_version, _validate_type, verbose, warn
 
 
 @verbose
@@ -35,9 +35,9 @@ def warp_montage(montage, moving, static, reg_affine, sdr_morph, verbose=None):
     _require_version("nibabel", "warp montage", "2.1.0")
     _require_version("dipy", "warping points using SDR", "1.6.0")
 
+    from dipy.align.imwarp import DiffeomorphicMap
     from nibabel import MGHImage
     from nibabel.spatialimages import SpatialImage
-    from dipy.align.imwarp import DiffeomorphicMap
 
     _validate_type(moving, SpatialImage, "moving")
     _validate_type(static, SpatialImage, "static")
@@ -61,7 +61,7 @@ def warp_montage(montage, moving, static, reg_affine, sdr_morph, verbose=None):
             ]
         )
         raise RuntimeError(
-            "Coordinate frame not supported, expected " f'"mri", got {bad_coord_frames}'
+            f'Coordinate frame not supported, expected "mri", got {bad_coord_frames}'
         )
     ch_names = list(ch_dict["ch_pos"].keys())
     ch_coords = np.array([ch_dict["ch_pos"][name] for name in ch_names])
@@ -83,7 +83,9 @@ def warp_montage(montage, moving, static, reg_affine, sdr_morph, verbose=None):
     # now, apply SDR morph
     if sdr_morph is not None:
         ch_coords = sdr_morph.transform_points(
-            ch_coords, sdr_morph.domain_grid2world, sdr_morph.domain_world2grid
+            ch_coords,
+            coord2world=sdr_morph.domain_grid2world,
+            world2coord=sdr_morph.domain_world2grid,
         )
 
     # back to voxels but now for the static image
@@ -191,7 +193,7 @@ def make_montage_volume(
             ]
         )
         raise RuntimeError(
-            "Coordinate frame not supported, expected " f'"mri", got {bad_coord_frames}'
+            f'Coordinate frame not supported, expected "mri", got {bad_coord_frames}'
         )
 
     ch_names = list(ch_dict["ch_pos"].keys())

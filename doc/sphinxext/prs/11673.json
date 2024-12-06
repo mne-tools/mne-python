@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "24dff77255706e5498d8cc80ebe35b757725c4e9",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "README.rst": {
+      "a": 10,
+      "d": 11
+    },
+    "setup.py": {
+      "a": 5,
+      "d": 2
+    }
+  }
+}

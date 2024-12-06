@@ -1,0 +1,51 @@
+{
+  "merge_commit_sha": "34d7e901710337a2bed38393f397a06fc9b4cefe",
+  "authors": [
+    {
+      "n": "Mainak Jas",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/advanced_setup.rst": {
+      "a": 34,
+      "d": 5
+    },
+    "doc/getting_started.rst": {
+      "a": 3,
+      "d": 3
+    },
+    "doc/manual/datasets_index.rst": {
+      "a": 125,
+      "d": 0
+    },
+    "doc/manual/index.rst": {
+      "a": 5,
+      "d": 17
+    },
+    "doc/manual/io.rst": {
+      "a": 16,
+      "d": 2
+    },
+    "doc/manual/memory.rst": {
+      "a": 44,
+      "d": 0
+    },
+    "doc/manual/preprocessing/overview.rst": {
+      "a": 5,
+      "d": 3
+    },
+    "doc/manual/sample_dataset.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/tutorials/mne-report.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/tutorials/report.rst": {
+      "a": 5,
+      "d": 0
+    }
+  }
+}

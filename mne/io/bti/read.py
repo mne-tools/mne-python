@@ -1,9 +1,10 @@
-# Authors: Denis A. Engemann  <denis.engemann@gmail.com>
-#          simplified BSD-3 license
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import numpy as np
 
-from ..utils import read_str
+from ..._fiff.utils import read_str
 
 
 def _unpack_matrix(fid, rows, cols, dtype, out_dtype):
@@ -28,32 +29,17 @@ def _unpack_simple(fid, dtype, out_dtype):
 
 def read_char(fid, count=1):
     """Read character from bti file."""
-    return _unpack_simple(fid, ">S%s" % count, "S")
-
-
-def read_bool(fid):
-    """Read bool value from bti file."""
-    return _unpack_simple(fid, ">?", bool)
-
-
-def read_uint8(fid):
-    """Read unsigned 8bit integer from bti file."""
-    return _unpack_simple(fid, ">u1", np.uint8)
-
-
-def read_int8(fid):
-    """Read 8bit integer from bti file."""
-    return _unpack_simple(fid, ">i1", np.int8)
+    return _unpack_simple(fid, f">S{count}", "S")
 
 
 def read_uint16(fid):
     """Read unsigned 16bit integer from bti file."""
-    return _unpack_simple(fid, ">u2", np.uint16)
+    return _unpack_simple(fid, ">u2", np.uint32)
 
 
 def read_int16(fid):
     """Read 16bit integer from bti file."""
-    return _unpack_simple(fid, ">i2", np.int16)
+    return _unpack_simple(fid, ">i2", np.int32)
 
 
 def read_uint32(fid):
@@ -64,11 +50,6 @@ def read_uint32(fid):
 def read_int32(fid):
     """Read 32bit integer from bti file."""
     return _unpack_simple(fid, ">i4", np.int32)
-
-
-def read_uint64(fid):
-    """Read unsigned 64bit integer from bti file."""
-    return _unpack_simple(fid, ">u8", np.uint64)
 
 
 def read_int64(fid):
@@ -88,7 +69,13 @@ def read_double(fid):
 
 def read_int16_matrix(fid, rows, cols):
     """Read 16bit integer matrix from bti file."""
-    return _unpack_matrix(fid, rows, cols, dtype=">i2", out_dtype=np.int16)
+    return _unpack_matrix(
+        fid,
+        rows,
+        cols,
+        dtype=">i2",
+        out_dtype=np.int32,
+    )
 
 
 def read_float_matrix(fid, rows, cols):

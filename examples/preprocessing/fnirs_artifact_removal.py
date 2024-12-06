@@ -12,12 +12,13 @@ how artifact correction techniques attempt to correct the data.
 # Authors: Robert Luke <mail@robertluke.net>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 
 import os
-import mne
 
+import mne
 from mne.preprocessing.nirs import (
     optical_density,
     temporal_derivative_distribution_repair,

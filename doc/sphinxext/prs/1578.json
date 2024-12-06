@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "f620c624e6c3e4b0e351455179221cb635429040",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".travis.yml": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/externals/FieldTrip.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/realtime/tests/test_fieldtrip_client.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

@@ -1,32 +1,40 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import numpy as np
 
-from .epochs import Epochs
-from .utils import check_fname, logger, verbose, _check_option, _check_fname
-from .io.constants import FIFF
-from .io.open import fiff_open
-from .io.pick import pick_types, pick_types_forward
-from .io.proj import (
+from ._fiff.constants import FIFF
+from ._fiff.open import fiff_open
+from ._fiff.pick import _picks_to_idx, pick_types, pick_types_forward
+from ._fiff.proj import (
     Projection,
     _has_eeg_average_ref_proj,
     _read_proj,
-    make_projector,
-    make_eeg_average_ref_proj,
     _write_proj,
+    make_eeg_average_ref_proj,
+    make_projector,
 )
-from .io.write import start_and_end_file
-from .event import make_fixed_length_events
-from .parallel import parallel_func
+from ._fiff.write import start_and_end_file
 from .cov import _check_n_samples
-from .forward import is_fixed_orient, _subject_from_forward, convert_forward_solution
+from .epochs import Epochs
+from .event import make_fixed_length_events
+from .fixes import _safe_svd
+from .forward import _subject_from_forward, convert_forward_solution, is_fixed_orient
+from .parallel import parallel_func
 from .source_estimate import _make_stc
+from .utils import (
+    _check_fname,
+    _check_option,
+    _validate_type,
+    check_fname,
+    logger,
+    verbose,
+)
 
 
 @verbose
-def read_proj(fname, verbose=None):
+def read_proj(fname, *, verbose=None):
     """Read projections from a FIF file.
 
     Parameters
@@ -38,7 +46,7 @@ def read_proj(fname, verbose=None):
 
     Returns
     -------
-    projs : list
+    projs : list of Projection
         The list of projection vectors.
 
     See Also
@@ -48,6 +56,7 @@ def read_proj(fname, verbose=None):
     check_fname(
         fname, "projection", ("-proj.fif", "-proj.fif.gz", "_proj.fif", "_proj.fif.gz")
     )
+    fname = _check_fname(fname, overwrite="read", must_exist=True)
 
     ff, tree, _ = fiff_open(fname)
     with ff as fid:
@@ -64,7 +73,7 @@ def write_proj(fname, projs, *, overwrite=False, verbose=None):
     fname : path-like
         The name of file containing the projections vectors. It should end with
         ``-proj.fif`` or ``-proj.fif.gz``.
-    projs : list
+    projs : list of Projection
         The list of projection vectors.
     %(overwrite)s
 
@@ -89,59 +98,51 @@ def write_proj(fname, projs, *, overwrite=False, verbose=None):
 def _compute_proj(
     data, info, n_grad, n_mag, n_eeg, desc_prefix, meg="separate", verbose=None
 ):
-    from scipy import linalg
-
-    grad_ind = pick_types(info, meg="grad", ref_meg=False, exclude="bads")
-    mag_ind = pick_types(info, meg="mag", ref_meg=False, exclude="bads")
-    eeg_ind = pick_types(info, meg=False, eeg=True, ref_meg=False, exclude="bads")
-
-    _check_option("meg", meg, ["separate", "combined"])
+    _validate_type(n_grad, "numeric", "n_grad", "float or int")
+    _validate_type(n_mag, "numeric", "n_grad", "float or int")
+    _validate_type(n_eeg, "numeric", "n_eeg", "float or int")
+    for n_, n_name in ((n_grad, "n_grad"), (n_mag, "n_mag"), (n_eeg, "n_eeg")):
+        if n_ < 0:
+            raise ValueError(
+                f"Argument '{n_name}' must be either a positive integer or a float "
+                f"between 0 and 1. '{n_}' is invalid."
+            )
+    _check_option("meg", meg, ("separate", "combined"))
     if meg == "combined":
         if n_grad != n_mag:
             raise ValueError(
-                "n_grad (%d) must be equal to n_mag (%d) when " 'using meg="combined"'
+                f"n_grad ({n_grad}) must be equal to n_mag ({n_mag}) when using "
+                "meg='combined'."
             )
-        kinds = ["meg", "", "eeg"]
-        n_mag = 0
-        grad_ind = pick_types(info, meg=True, ref_meg=False, exclude="bads")
-        if (n_grad > 0) and len(grad_ind) == 0:
-            logger.info(
-                "No MEG channels found for joint estimation. " "Forcing n_grad=n_mag=0"
-            )
-            n_grad = 0
+        ch_types = ("meg", "eeg")
+        n_vectors = (n_grad, n_eeg)
+        kinds = ("meg", "eeg")
     else:
-        kinds = ["planar", "axial", "eeg"]
-
-    if (n_grad > 0) and len(grad_ind) == 0:
-        logger.info("No gradiometers found. Forcing n_grad to 0")
-        n_grad = 0
-    if (n_mag > 0) and len(mag_ind) == 0:
-        logger.info("No magnetometers found. Forcing n_mag to 0")
-        n_mag = 0
-    if (n_eeg > 0) and len(eeg_ind) == 0:
-        logger.info("No EEG channels found. Forcing n_eeg to 0")
-        n_eeg = 0
-
-    ch_names = info["ch_names"]
-    grad_names, mag_names, eeg_names = (
-        [ch_names[k] for k in ind] for ind in [grad_ind, mag_ind, eeg_ind]
-    )
+        ch_types = ("grad", "mag", "eeg")
+        n_vectors = (n_grad, n_mag, n_eeg)
+        kinds = ("planar", "axial", "eeg")
 
     projs = []
-    for n, ind, names, desc in zip(
-        [n_grad, n_mag, n_eeg],
-        [grad_ind, mag_ind, eeg_ind],
-        [grad_names, mag_names, eeg_names],
-        kinds,
-    ):
-        if n == 0:
+    for ch_type, n_vector, kind in zip(ch_types, n_vectors, kinds):
+        # select channels to use
+        try:
+            idx = _picks_to_idx(info, ch_type, with_ref_meg=False, exclude="bads")
+        except ValueError:
+            logger.info("No channels '%s' found. Skipping.", ch_type)
             continue
-        data_ind = data[ind][:, ind]
-        # data is the covariance matrix: U * S**2 * Ut
-        U, Sexp2, _ = linalg.svd(data_ind, full_matrices=False)
-        U = U[:, :n]
+        names = [info["ch_names"][k] for k in idx]
+
+        data_ = data[idx][:, idx]  # data is the covariance matrix: U * S**2 * Ut
+        U, Sexp2, _ = _safe_svd(data_, full_matrices=False)
         exp_var = Sexp2 / Sexp2.sum()
-        exp_var = exp_var[:n]
+
+        # select vectors to use
+        if 0 < n_vector < 1:
+            n_vector = np.searchsorted(np.cumsum(exp_var), n_vector, "left") + 1
+        U = U[:, :n_vector]
+        exp_var = exp_var[:n_vector]
+
+        # create projectors
         for k, (u, var) in enumerate(zip(U.T, exp_var)):
             proj_data = dict(
                 col_names=names,
@@ -150,17 +151,16 @@ def _compute_proj(
                 nrow=1,
                 ncol=u.size,
             )
-            this_desc = "%s-%s-PCA-%02d" % (desc, desc_prefix, k + 1)
-            logger.info("Adding projection: %s" % this_desc)
+            desc = f"{kind}-{desc_prefix}-PCA-{k + 1:02d}"
+            logger.info(f"Adding projection: {desc} (exp var={100 * float(var):0.1f}%)")
             proj = Projection(
                 active=False,
                 data=proj_data,
-                desc=this_desc,
+                desc=desc,
                 kind=FIFF.FIFFV_PROJ_ITEM_FIELD,
                 explained_var=var,
             )
             projs.append(proj)
-
     return projs
 
 
@@ -183,12 +183,7 @@ def compute_proj_epochs(
     ----------
     epochs : instance of Epochs
         The epochs containing the artifact.
-    n_grad : int
-        Number of vectors for gradiometers.
-    n_mag : int
-        Number of vectors for magnetometers.
-    n_eeg : int
-        Number of vectors for EEG channels.
+    %(n_proj_vectors)s
     %(n_jobs)s
         Number of jobs to use to compute covariance.
     desc_prefix : str | None
@@ -205,7 +200,7 @@ def compute_proj_epochs(
 
     Returns
     -------
-    projs: list
+    projs: list of Projection
         List of projection vectors.
 
     See Also
@@ -222,17 +217,20 @@ def compute_proj_epochs(
     else:
         event_id = "Multiple-events"
     if desc_prefix is None:
-        desc_prefix = "%s-%-.3f-%-.3f" % (event_id, epochs.tmin, epochs.tmax)
+        desc_prefix = f"{event_id}-{epochs.tmin:<.3f}-{epochs.tmax:<.3f}"
     return _compute_proj(data, epochs.info, n_grad, n_mag, n_eeg, desc_prefix, meg=meg)
 
 
-def _compute_cov_epochs(epochs, n_jobs):
+def _compute_cov_epochs(epochs, n_jobs, *, log_drops=False):
     """Compute epochs covariance."""
     parallel, p_fun, n_jobs = parallel_func(np.dot, n_jobs)
+    n_start = len(epochs.events)
     data = parallel(p_fun(e, e.T) for e in epochs)
     n_epochs = len(data)
     if n_epochs == 0:
         raise RuntimeError("No good epochs found")
+    if log_drops:
+        logger.info(f"Dropped {n_start - n_epochs}/{n_start} epochs")
 
     n_chan, n_samples = epochs.info["nchan"], len(epochs.times)
     _check_n_samples(n_samples * n_epochs, n_chan)
@@ -252,21 +250,16 @@ def compute_proj_evoked(
     ----------
     evoked : instance of Evoked
         The Evoked obtained by averaging the artifact.
-    n_grad : int
-        Number of vectors for gradiometers.
-    n_mag : int
-        Number of vectors for magnetometers.
-    n_eeg : int
-        Number of vectors for EEG channels.
+    %(n_proj_vectors)s
     desc_prefix : str | None
         The description prefix to use. If None, one will be created based on
         tmin and tmax.
 
         .. versionadded:: 0.17
     meg : str
-        Can be 'separate' (default) or 'combined' to compute projectors
+        Can be ``'separate'`` (default) or ``'combined'`` to compute projectors
         for magnetometers and gradiometers separately or jointly.
-        If 'combined', ``n_mag == n_grad`` is required and the number of
+        If ``'combined'``, ``n_mag == n_grad`` is required and the number of
         projectors computed for MEG will be ``n_mag``.
 
         .. versionadded:: 0.18
@@ -274,7 +267,7 @@ def compute_proj_evoked(
 
     Returns
     -------
-    projs : list
+    projs : list of Projection
         List of projection vectors.
 
     See Also
@@ -283,7 +276,7 @@ def compute_proj_evoked(
     """
     data = np.dot(evoked.data, evoked.data.T)  # compute data covariance
     if desc_prefix is None:
-        desc_prefix = "%-.3f-%-.3f" % (evoked.times[0], evoked.times[-1])
+        desc_prefix = f"{evoked.times[0]:<.3f}-{evoked.times[-1]:<.3f}"
     return _compute_proj(data, evoked.info, n_grad, n_mag, n_eeg, desc_prefix, meg=meg)
 
 
@@ -311,29 +304,24 @@ def compute_proj_raw(
     raw : instance of Raw
         A raw object to use the data from.
     start : float
-        Time (in s) to start computing SSP.
-    stop : float
-        Time (in s) to stop computing SSP.
-        None will go to the end of the file.
-    duration : float
-        Duration (in s) to chunk data into for SSP
-        If duration is None, data will not be chunked.
-    n_grad : int
-        Number of vectors for gradiometers.
-    n_mag : int
-        Number of vectors for magnetometers.
-    n_eeg : int
-        Number of vectors for EEG channels.
+        Time (in seconds) to start computing SSP.
+    stop : float | None
+        Time (in seconds) to stop computing SSP. None will go to the end of the file.
+    duration : float | None
+        Duration (in seconds) to chunk data into for SSP
+        If duration is ``None``, data will not be chunked.
+    %(n_proj_vectors)s
     reject : dict | None
-        Epoch rejection configuration (see Epochs).
+        Epoch PTP rejection threshold used if ``duration != None``. See `~mne.Epochs`.
     flat : dict | None
-        Epoch flat configuration (see Epochs).
+        Epoch flatness rejection threshold used if ``duration != None``. See
+        `~mne.Epochs`.
     %(n_jobs)s
         Number of jobs to use to compute covariance.
     meg : str
-        Can be 'separate' (default) or 'combined' to compute projectors
+        Can be ``'separate'`` (default) or ``'combined'`` to compute projectors
         for magnetometers and gradiometers separately or jointly.
-        If 'combined', ``n_mag == n_grad`` is required and the number of
+        If ``'combined'``, ``n_mag == n_grad`` is required and the number of
         projectors computed for MEG will be ``n_mag``.
 
         .. versionadded:: 0.18
@@ -341,7 +329,7 @@ def compute_proj_raw(
 
     Returns
     -------
-    projs: list
+    projs: list of Projection
         List of projection vectors.
 
     See Also
@@ -366,7 +354,7 @@ def compute_proj_raw(
             baseline=None,
             proj=False,
         )
-        data = _compute_cov_epochs(epochs, n_jobs)
+        data = _compute_cov_epochs(epochs, n_jobs, log_drops=True)
         info = epochs.info
         if not stop:
             stop = raw.n_times / raw.info["sfreq"]
@@ -383,7 +371,7 @@ def compute_proj_raw(
         start = start / raw.info["sfreq"]
         stop = stop / raw.info["sfreq"]
 
-    desc_prefix = "Raw-%-.3f-%-.3f" % (start, stop)
+    desc_prefix = f"Raw-{start:<.3f}-{stop:<.3f}"
     projs = _compute_proj(data, info, n_grad, n_mag, n_eeg, desc_prefix, meg=meg)
     return projs
 
@@ -426,8 +414,6 @@ def sensitivity_map(
     When mode is ``'fixed'`` or ``'free'``, the sensitivity map is normalized
     by its maximum value.
     """
-    from scipy import linalg
-
     # check strings
     _check_option("ch_type", ch_type, ["eeg", "grad", "mag"])
     _check_option(
@@ -473,11 +459,11 @@ def sensitivity_map(
         elif ncomp == 0:
             raise RuntimeError(
                 "No valid projectors found for channel type "
-                "%s, cannot compute %s" % (ch_type, mode)
+                f"{ch_type}, cannot compute {mode}"
             )
     # can only run the last couple methods if there are projectors
     elif mode in residual_types:
-        raise ValueError("No projectors used, cannot compute %s" % mode)
+        raise ValueError(f"No projectors used, cannot compute {mode}")
 
     _, n_dipoles = gain.shape
     n_locations = n_dipoles // 3
@@ -485,13 +471,13 @@ def sensitivity_map(
     sensitivity_map = np.empty(n_locations)
 
     for k in range(n_locations):
-        gg = gain[:, 3 * k : 3 * (k + 1)]
+        gg = gain[:, 3 * k : 3 * (k + 1)]  # noqa: E203
         if mode != "fixed":
-            s = linalg.svd(gg, full_matrices=False, compute_uv=False)
+            s = _safe_svd(gg, full_matrices=False, compute_uv=False)
         if mode == "free":
             sensitivity_map[k] = s[0]
         else:
-            gz = linalg.norm(gg[:, 2])  # the normal component
+            gz = np.linalg.norm(gg[:, 2])  # the normal component
             if mode == "fixed":
                 sensitivity_map[k] = gz
             elif mode == "ratio":
@@ -500,16 +486,16 @@ def sensitivity_map(
                 sensitivity_map[k] = 1.0 - (gz / s[0])
             else:
                 if mode == "angle":
-                    co = linalg.norm(np.dot(gg[:, 2], U))
+                    co = np.linalg.norm(np.dot(gg[:, 2], U))
                     sensitivity_map[k] = co / gz
                 else:
-                    p = linalg.norm(np.dot(proj, gg[:, 2]))
+                    p = np.linalg.norm(np.dot(proj, gg[:, 2]))
                     if mode == "remaining":
                         sensitivity_map[k] = p / gz
                     elif mode == "dampening":
                         sensitivity_map[k] = 1.0 - p / gz
                     else:
-                        raise ValueError("Unknown mode type (got %s)" % mode)
+                        raise ValueError(f"Unknown mode type (got {mode})")
 
     # only normalize fixed and free methods
     if mode in ["fixed", "free"]:

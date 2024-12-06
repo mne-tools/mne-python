@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "b9020db166f08093bd24215c7b6a83ed030d1402",
+  "authors": [
+    {
+      "n": "Antoine Gauthier",
+      "e": "antoine.gauthier@ensta.fr"
+    }
+  ],
+  "changes": {
+    "mne/commands/mne_browse_raw.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

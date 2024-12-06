@@ -1,40 +1,37 @@
 """Conversion tool from CTF to FIF."""
 
-# Authors: Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
-#          Eric Larson <larson.eric.d@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import os
 
 import numpy as np
 
-from .._digitization import _format_dig_points
+from ..._fiff._digitization import _format_dig_points
+from ..._fiff.utils import _blk_read_lims, _mult_cal_one
 from ...utils import (
-    verbose,
-    logger,
+    _check_fname,
+    _check_option,
     _clean_names,
     fill_doc,
-    _check_option,
-    _check_fname,
+    logger,
+    verbose,
 )
-
 from ..base import BaseRaw
-from ..utils import _mult_cal_one, _blk_read_lims
-
-from .res4 import _read_res4, _make_ctf_name
-from .hc import _read_hc
-from .eeg import _read_eeg, _read_pos
-from .trans import _make_ctf_coord_trans_set
-from .info import _compose_meas_info, _read_bad_chans, _annotate_bad_segments
 from .constants import CTF
+from .eeg import _read_eeg, _read_pos
+from .hc import _read_hc
+from .info import _annotate_bad_segments, _compose_meas_info, _read_bad_chans
 from .markers import _read_annotations_ctf_call
+from .res4 import _make_ctf_name, _read_res4
+from .trans import _make_ctf_coord_trans_set
 
 
 @fill_doc
 def read_raw_ctf(
     directory, system_clock="truncate", preload=False, clean_names=False, verbose=None
-):
+) -> "RawCTF":
     """Raw object from CTF directory.
 
     Parameters
@@ -56,11 +53,6 @@ def read_raw_ctf(
     -------
     raw : instance of RawCTF
         The raw data.
-        See :class:`mne.io.Raw` for documentation of attributes and methods.
-
-    See Also
-    --------
-    mne.io.Raw : Documentation of attributes and methods of RawCTF.
 
     Notes
     -----
@@ -112,17 +104,17 @@ class RawCTF(BaseRaw):
         preload=False,
         verbose=None,
         clean_names=False,
-    ):  # noqa: D102
+    ):
         # adapted from mne_ctf2fiff.c
         directory = str(
             _check_fname(directory, "read", True, "directory", need_dir=True)
         )
         if not directory.endswith(".ds"):
             raise TypeError(
-                'directory must be a directory ending with ".ds", ' f"got {directory}"
+                f'directory must be a directory ending with ".ds", got {directory}'
             )
         _check_option("system_clock", system_clock, ["ignore", "truncate"])
-        logger.info("ds directory : %s" % directory)
+        logger.info(f"ds directory : {directory}")
         res4 = _read_res4(directory)  # Read the magical res4 file
         coils = _read_hc(directory)  # Read the coil locations
         eeg = _read_eeg(directory)  # Read the EEG electrode loc info
@@ -146,7 +138,7 @@ class RawCTF(BaseRaw):
         missing_names = list()
         no_samps = list()
         while True:
-            suffix = "meg4" if len(fnames) == 0 else ("%d_meg4" % len(fnames))
+            suffix = "meg4" if len(fnames) == 0 else f"{len(fnames)}_meg4"
             meg4_name, found = _make_ctf_name(directory, suffix, raise_error=False)
             if not found:
                 missing_names.append(os.path.relpath(meg4_name, directory))
@@ -170,7 +162,7 @@ class RawCTF(BaseRaw):
                 f"file(s): {missing_names}, and the following file(s) had no "
                 f"valid samples: {no_samps}"
             )
-        super(RawCTF, self).__init__(
+        super().__init__(
             info,
             preload,
             first_samps=first_samps,
@@ -193,9 +185,8 @@ class RawCTF(BaseRaw):
         )
         annot = marker_annot if annot is None else annot + marker_annot
         self.set_annotations(annot)
-
         if clean_names:
-            self._clean_names()
+            _clean_names_inst(self)
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data."""
@@ -204,7 +195,7 @@ class RawCTF(BaseRaw):
         trial_start_idx, r_lims, d_lims = _blk_read_lims(
             start, stop, int(si["block_size"])
         )
-        with open(self._filenames[fi], "rb") as fid:
+        with open(self.filenames[fi], "rb") as fid:
             for bi in range(len(r_lims)):
                 samp_offset = (bi + trial_start_idx) * si["res4_nsamp"]
                 n_read = min(si["n_samp_tot"] - samp_offset, si["block_size"])
@@ -222,20 +213,19 @@ class RawCTF(BaseRaw):
                 _mult_cal_one(data_view, this_data, idx, cals, mult)
                 offset += n_read
 
-    def _clean_names(self):
-        """Clean up CTF suffixes from channel names."""
-        mapping = dict(zip(self.ch_names, _clean_names(self.ch_names)))
 
-        self.rename_channels(mapping)
-
-        for comp in self.info["comps"]:
-            for key in ("row_names", "col_names"):
-                comp["data"][key] = _clean_names(comp["data"][key])
+def _clean_names_inst(inst):
+    """Clean up CTF suffixes from channel names."""
+    mapping = dict(zip(inst.ch_names, _clean_names(inst.ch_names)))
+    inst.rename_channels(mapping)
+    for comp in inst.info["comps"]:
+        for key in ("row_names", "col_names"):
+            comp["data"][key] = _clean_names(comp["data"][key])
 
 
 def _get_sample_info(fname, res4, system_clock):
     """Determine the number of valid samples."""
-    logger.info("Finding samples for %s: " % (fname,))
+    logger.info(f"Finding samples for {fname}: ")
     if CTF.SYSTEM_CLOCK_CH in res4["ch_names"]:
         clock_ch = res4["ch_names"].index(CTF.SYSTEM_CLOCK_CH)
     else:
@@ -250,7 +240,7 @@ def _get_sample_info(fname, res4, system_clock):
         fid.seek(0, 0)
         if (st_size - CTF.HEADER_SIZE) % (4 * res4["nsamp"] * res4["nchan"]) != 0:
             raise RuntimeError(
-                "The number of samples is not an even multiple " "of the trial size"
+                "The number of samples is not an even multiple of the trial size"
             )
         n_samp_tot = (st_size - CTF.HEADER_SIZE) // (4 * res4["nchan"])
         n_trial = n_samp_tot // res4["nsamp"]
@@ -277,7 +267,7 @@ def _get_sample_info(fname, res4, system_clock):
                 fid.seek(offset, 0)
                 this_data = np.fromfile(fid, ">i4", res4["nsamp"])
                 if len(this_data) != res4["nsamp"]:
-                    raise RuntimeError("Cannot read data for trial %d" % (t + 1))
+                    raise RuntimeError(f"Cannot read data for trial {t+1}.")
                 end = np.where(this_data == 0)[0]
                 if len(end) > 0:
                     n_samp = samp_offset + end[0]
@@ -285,18 +275,24 @@ def _get_sample_info(fname, res4, system_clock):
     if n_samp < res4["nsamp"]:
         n_trial = 1
         logger.info(
-            "    %d x %d = %d samples from %d chs"
-            % (n_trial, n_samp, n_samp, res4["nchan"])
+            "    %d x %d = %d samples from %d chs",
+            n_trial,
+            n_samp,
+            n_samp,
+            res4["nchan"],
         )
     else:
         n_trial = n_samp // res4["nsamp"]
         n_omit = n_samp_tot - n_samp
         logger.info(
-            "    %d x %d = %d samples from %d chs"
-            % (n_trial, res4["nsamp"], n_samp, res4["nchan"])
+            "    %d x %d = %d samples from %d chs",
+            n_trial,
+            res4["nsamp"],
+            n_samp,
+            res4["nchan"],
         )
         if n_omit != 0:
-            logger.info("    %d samples omitted at the end" % n_omit)
+            logger.info("    %d samples omitted at the end", n_omit)
 
     return dict(
         n_samp=n_samp,

@@ -1,14 +1,15 @@
 """Test linalg utilities."""
-# Authors: Britta Westner <britta.wstnr@gmail.com>
-#
+
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import numpy as np
+import pytest
 from numpy.testing import assert_allclose, assert_array_equal
 from scipy import linalg
-import pytest
 
-from mne.utils import _sym_mat_pow, _reg_pinv, _record_warnings
+from mne.utils import _record_warnings, _reg_pinv, _sym_mat_pow
 
 
 @pytest.mark.parametrize("dtype", (np.float64, np.complex128))  # real, complex

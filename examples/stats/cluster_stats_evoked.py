@@ -13,6 +13,7 @@ with cluster level permutation test.
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 
@@ -20,8 +21,8 @@ import matplotlib.pyplot as plt
 
 import mne
 from mne import io
-from mne.stats import permutation_cluster_test
 from mne.datasets import sample
+from mne.stats import permutation_cluster_test
 
 print(__doc__)
 

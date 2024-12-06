@@ -1,0 +1,67 @@
+{
+  "merge_commit_sha": "65f74fa1c4609d7e5219bca2cc3b840650cf978f",
+  "authors": [
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/morph.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/source_space.py": {
+      "a": 10,
+      "d": 7
+    },
+    "mne/surface.py": {
+      "a": 29,
+      "d": 20
+    },
+    "mne/tests/test_coreg.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/tests/test_source_space.py": {
+      "a": 6,
+      "d": 1
+    },
+    "mne/utils/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/numerics.py": {
+      "a": 12,
+      "d": 0
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 60,
+      "d": 34
+    },
+    "mne/viz/_brain/surface.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/viz/_brain/tests/test_brain.py": {
+      "a": 21,
+      "d": 6
+    },
+    "mne/viz/backends/_abstract.py": {
+      "a": 6,
+      "d": 4
+    },
+    "mne/viz/backends/_pysurfer_mayavi.py": {
+      "a": 5,
+      "d": 4
+    },
+    "mne/viz/backends/_pyvista.py": {
+      "a": 7,
+      "d": 5
+    }
+  }
+}

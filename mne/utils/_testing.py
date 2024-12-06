@@ -1,23 +1,25 @@
 """Testing functions."""
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#
-# License: BSD-3-Clause
 
-from functools import partial, wraps
-import os
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
+
 import inspect
-from io import StringIO
-from shutil import rmtree
+import os
 import sys
 import tempfile
 import traceback
+from functools import wraps
+from shutil import rmtree
 from unittest import SkipTest
 
 import numpy as np
-from numpy.testing import assert_array_equal, assert_allclose
+from numpy.testing import assert_allclose, assert_array_equal
+from scipy import linalg
 
-from ._logging import warn, ClosingStringIO
+from ._logging import ClosingStringIO, warn
 from .check import check_version
+from .misc import run_subprocess
 from .numerics import object_diff
 
 
@@ -47,60 +49,16 @@ class _TempDir(str):
         new = str.__new__(self, tempfile.mkdtemp(prefix="tmp_mne_tempdir_"))
         return new
 
-    def __init__(self):  # noqa: D102
+    def __init__(self):
         self._path = self.__str__()
 
     def __del__(self):  # noqa: D105
         rmtree(self._path, ignore_errors=True)
 
 
-def requires_version(library, min_version="0.0"):
-    """Check for a library version."""
-    import pytest
-
-    reason = f"Requires {library}"
-    if min_version != "0.0":
-        reason += f" version >= {min_version}"
-    return pytest.mark.skipif(not check_version(library, min_version), reason=reason)
-
-
-def requires_module(function, name, call=None):
-    """Skip a test if package is not available (decorator)."""
-    import pytest
-
-    call = ("import %s" % name) if call is None else call
-    reason = "Test %s skipped, requires %s." % (function.__name__, name)
-    try:
-        exec(call) in globals(), locals()
-    except Exception as exc:
-        if len(str(exc)) > 0 and str(exc) != "No module named %s" % name:
-            reason += " Got exception (%s)" % (exc,)
-        skip = True
-    else:
-        skip = False
-    return pytest.mark.skipif(skip, reason=reason)(function)
-
-
-_mne_call = """
-if not has_mne_c():
-    raise ImportError
-"""
-
-_fs_call = """
-if not has_freesurfer():
-    raise ImportError
-"""
-
-_n2ft_call = """
-if 'NEUROMAG2FT_ROOT' not in os.environ:
-    raise ImportError
-"""
-
-requires_pandas = partial(requires_module, name="pandas")
-requires_pylsl = partial(requires_module, name="pylsl")
-requires_sklearn = partial(requires_module, name="sklearn")
-requires_mne = partial(requires_module, name="MNE-C", call=_mne_call)
-requires_mne_qt_browser = partial(requires_module, name="mne_qt_browser")
+def requires_mne(func):
+    """Decorate a function as requiring MNE."""
+    return requires_mne_mark()(func)
 
 
 def requires_mne_mark():
@@ -121,38 +79,35 @@ def requires_openmeeg_mark():
 
 def requires_freesurfer(arg):
     """Require Freesurfer."""
+    import pytest
+
+    reason = "Requires Freesurfer"
     if isinstance(arg, str):
         # Calling as  @requires_freesurfer('progname'): return decorator
         # after checking for progname existence
-        call = """
-from . import run_subprocess
-run_subprocess([%r, '--version'])
-""" % (
-            arg,
-        )
-        return partial(requires_module, name="Freesurfer (%s)" % (arg,), call=call)
+        reason += f" command: {arg}"
+        try:
+            run_subprocess([arg, "--version"])
+        except Exception:
+            skip = True
+        else:
+            skip = False
+        return pytest.mark.skipif(skip, reason=reason)
     else:
         # Calling directly as @requires_freesurfer: return decorated function
         # and just check env var existence
-        return requires_module(arg, name="Freesurfer", call=_fs_call)
+        return pytest.mark.skipif(not has_freesurfer(), reason="Requires Freesurfer")(
+            arg
+        )
 
 
-requires_neuromag2ft = partial(requires_module, name="neuromag2ft", call=_n2ft_call)
+def requires_good_network(func):
+    import pytest
 
-requires_good_network = partial(
-    requires_module,
-    name="good network connection",
-    call='if int(os.environ.get("MNE_SKIP_NETWORK_TESTS", 0)):\n'
-    "    raise ImportError",
-)
-requires_nitime = partial(requires_module, name="nitime")
-# just keep this in case downstream packages need it (no coverage hit here)
-requires_h5py = partial(requires_module, name="h5py")
-
-
-def requires_numpydoc(func):
-    """Decorate tests that need numpydoc."""
-    return requires_version("numpydoc", "1.0")(func)  # validate needs 1.0
+    return pytest.mark.skipif(
+        int(os.environ.get("MNE_SKIP_NETWORK_TESTS", 0)),
+        reason="MNE_SKIP_NETWORK_TESTS is set",
+    )(func)
 
 
 def run_command_if_main():
@@ -165,7 +120,7 @@ def run_command_if_main():
 class ArgvSetter:
     """Temporarily set sys.argv."""
 
-    def __init__(self, args=(), disable_stdout=True, disable_stderr=True):  # noqa: D102
+    def __init__(self, args=(), disable_stdout=True, disable_stderr=True):
         self.argv = list(("python",) + args)
         self.stdout = ClosingStringIO() if disable_stdout else sys.stdout
         self.stderr = ClosingStringIO() if disable_stderr else sys.stderr
@@ -183,23 +138,6 @@ class ArgvSetter:
         sys.argv = self.orig_argv
         sys.stdout = self.orig_stdout
         sys.stderr = self.orig_stderr
-
-
-class SilenceStdout:
-    """Silence stdout."""
-
-    def __init__(self, close=True):
-        self.close = close
-
-    def __enter__(self):  # noqa: D105
-        self.stdout = sys.stdout
-        sys.stdout = StringIO()
-        return sys.stdout
-
-    def __exit__(self, *args):  # noqa: D105
-        if self.close:
-            sys.stdout.close()
-        sys.stdout = self.stdout
 
 
 def has_mne_c():
@@ -231,25 +169,25 @@ def buggy_mkl_svd(function):
 
 def assert_and_remove_boundary_annot(annotations, n=1):
     """Assert that there are boundary annotations and remove them."""
-    from ..io.base import BaseRaw
+    from ..io import BaseRaw
 
     if isinstance(annotations, BaseRaw):  # allow either input
         annotations = annotations.annotations
     for key in ("EDGE", "BAD"):
-        idx = np.where(annotations.description == "%s boundary" % key)[0]
+        idx = np.where(annotations.description == f"{key} boundary")[0]
         assert len(idx) == n
         annotations.delete(idx)
 
 
-def assert_object_equal(a, b):
+def assert_object_equal(a, b, *, err_msg="Object mismatch"):
     """Assert two objects are equal."""
     d = object_diff(a, b)
-    assert d == "", d
+    assert d == "", f"{err_msg}\n{d}"
 
 
 def _raw_annot(meas_date, orig_time):
-    from .. import Annotations, create_info
-    from ..annotations import _handle_meas_date
+    from .._fiff.meas_info import create_info
+    from ..annotations import Annotations, _handle_meas_date
     from ..io import RawArray
 
     info = create_info(ch_names=10, sfreq=10.0)
@@ -286,17 +224,14 @@ def _check_snr(actual, desired, picks, min_tol, med_tol, msg, kind="MEG"):
     # min tol
     snr = snrs.min()
     bad_count = (snrs < min_tol).sum()
-    msg = " (%s)" % msg if msg != "" else msg
-    assert bad_count == 0, "SNR (worst %0.2f) < %0.2f for %s/%s " "channels%s" % (
-        snr,
-        min_tol,
-        bad_count,
-        len(picks),
-        msg,
+    msg = f" ({msg})" if msg != "" else msg
+    assert bad_count == 0, (
+        f"SNR (worst {snr:0.2f}) < {min_tol:0.2f} "
+        f"for {bad_count}/{len(picks)} channels{msg}"
     )
     # median tol
     snr = np.median(snrs)
-    assert snr >= med_tol, "%s SNR median %0.2f < %0.2f%s" % (kind, snr, med_tol, msg)
+    assert snr >= med_tol, f"{kind} SNR median {snr:0.2f} < {med_tol:0.2f}{msg}"
 
 
 def assert_meg_snr(
@@ -307,7 +242,7 @@ def assert_meg_snr(
     Mostly useful for operations like Maxwell filtering that modify
     MEG channels while leaving EEG and others intact.
     """
-    from ..io.pick import pick_types
+    from .._fiff.pick import pick_types
 
     picks = pick_types(desired.info, meg=True, exclude=[])
     picks_desired = pick_types(desired.info, meg=True, exclude=[])
@@ -338,11 +273,9 @@ def assert_meg_snr(
 
 def assert_snr(actual, desired, tol):
     """Assert actual and desired arrays are within some SNR tolerance."""
-    from scipy import linalg
-
     with np.errstate(divide="ignore"):  # allow infinite
         snr = linalg.norm(desired, ord="fro") / linalg.norm(desired - actual, ord="fro")
-    assert snr >= tol, "%f < %f" % (snr, tol)
+    assert snr >= tol, f"{snr} < {tol}"
 
 
 def assert_stcs_equal(stc1, stc2):
@@ -362,9 +295,9 @@ def _dig_sort_key(dig):
 
 def assert_dig_allclose(info_py, info_bin, limit=None):
     """Assert dig allclose."""
+    from .._fiff.constants import FIFF
+    from .._fiff.meas_info import Info
     from ..bem import fit_sphere_to_headshape
-    from ..io.constants import FIFF
-    from ..io.meas_info import Info
     from ..channels.montage import DigMontage
 
     # test dig positions
@@ -390,7 +323,7 @@ def assert_dig_allclose(info_py, info_bin, limit=None):
             d_bin["r"],
             rtol=1e-5,
             atol=1e-5,
-            err_msg="Failure on %s:\n%s\n%s" % (ii, d_py["r"], d_bin["r"]),
+            err_msg=f"Failure on {ii}:\n{d_py['r']}\n{d_bin['r']}",
         )
     if any(d["kind"] == FIFF.FIFFV_POINT_EXTRA for d in dig_py) and info_py is not None:
         r_bin, o_head_bin, o_dev_bin = fit_sphere_to_headshape(
@@ -414,3 +347,13 @@ def _click_ch_name(fig, ch_index=0, button=1):
     x = bbox.intervalx.mean()
     y = bbox.intervaly.mean()
     _fake_click(fig, fig.mne.ax_main, (x, y), xform="pix", button=button)
+
+
+def _get_suptitle(fig):
+    """Get fig suptitle (shim for matplotlib < 3.8.0)."""
+    # TODO: obsolete when minimum MPL version is 3.8
+    if check_version("matplotlib", "3.8"):
+        return fig.get_suptitle()
+    else:
+        # unreliable hack; should work in most tests as we rarely use `sup_{x,y}label`
+        return fig.texts[0].get_text()

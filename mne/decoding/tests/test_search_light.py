@@ -1,16 +1,32 @@
-# Author: Jean-Remi King, <jeanremi.king@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
+import platform
 from inspect import signature
 
 import numpy as np
-from numpy.testing import assert_array_equal, assert_equal
 import pytest
+from numpy.testing import assert_array_equal, assert_equal
 
-from mne.utils import requires_sklearn, _record_warnings, use_log_level
-from mne.decoding.search_light import SlidingEstimator, GeneralizingEstimator
+sklearn = pytest.importorskip("sklearn")
+
+from sklearn.base import BaseEstimator, clone, is_classifier
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+from sklearn.ensemble import BaggingClassifier
+from sklearn.linear_model import LinearRegression, LogisticRegression, Ridge
+from sklearn.metrics import make_scorer, roc_auc_score
+from sklearn.model_selection import cross_val_predict
+from sklearn.multiclass import OneVsRestClassifier
+from sklearn.pipeline import make_pipeline
+from sklearn.svm import SVC
+from sklearn.utils.estimator_checks import parametrize_with_checks
+
+from mne.decoding.search_light import GeneralizingEstimator, SlidingEstimator
 from mne.decoding.transformer import Vectorizer
+from mne.utils import check_version, use_log_level
+
+NEW_MULTICLASS_SAMPLE_WEIGHT = check_version("sklearn", "1.4")
 
 
 def make_data():
@@ -25,18 +41,13 @@ def make_data():
     return X, y
 
 
-@requires_sklearn
 def test_search_light():
     """Test SlidingEstimator."""
-    from sklearn.linear_model import Ridge, LogisticRegression
-    from sklearn.pipeline import make_pipeline
-    from sklearn.metrics import roc_auc_score, make_scorer
+    # https://github.com/scikit-learn/scikit-learn/issues/27711
+    if platform.system() == "Windows" and check_version("numpy", "2.0.0.dev0"):
+        pytest.skip("sklearn int_t / long long mismatch")
 
-    with _record_warnings():  # NumPy module import
-        from sklearn.ensemble import BaggingClassifier
-    from sklearn.base import is_classifier
-
-    logreg = LogisticRegression(solver="liblinear", multi_class="ovr", random_state=0)
+    logreg = OneVsRestClassifier(LogisticRegression(solver="liblinear", random_state=0))
 
     X, y = make_data()
     n_epochs, _, n_time = X.shape
@@ -45,6 +56,7 @@ def test_search_light():
     sl = SlidingEstimator(Ridge())
     assert not is_classifier(sl)
     sl = SlidingEstimator(LogisticRegression(solver="liblinear"))
+    assert is_classifier(sl.base_estimator)
     assert is_classifier(sl)
     # fit
     assert_equal(sl.__repr__()[:18], "<SlidingEstimator(")
@@ -56,18 +68,20 @@ def test_search_light():
 
     # transforms
     pytest.raises(ValueError, sl.predict, X[:, :, :2])
+    y_trans = sl.transform(X)
+    assert X.dtype == y_trans.dtype == np.dtype(float)
     y_pred = sl.predict(X)
-    assert y_pred.dtype == int
+    assert y_pred.dtype == np.dtype(int)
     assert_array_equal(y_pred.shape, [n_epochs, n_time])
     y_proba = sl.predict_proba(X)
-    assert y_proba.dtype == float
+    assert y_proba.dtype == np.dtype(float)
     assert_array_equal(y_proba.shape, [n_epochs, n_time, 2])
 
     # score
     score = sl.score(X, y)
     assert_array_equal(score.shape, [n_time])
     assert np.sum(np.abs(score)) != 0
-    assert score.dtype == float
+    assert score.dtype == np.dtype(float)
 
     sl = SlidingEstimator(logreg)
     assert_equal(sl.scoring, None)
@@ -86,8 +100,13 @@ def test_search_light():
     with pytest.raises(ValueError, match="for two-class"):
         sl.score(X, y)
     # But check that valid ones should work with new enough sklearn
+    kwargs = dict()
+    if check_version("sklearn", "1.4"):
+        kwargs["response_method"] = "predict_proba"
+    else:
+        kwargs["needs_proba"] = True
     if "multi_class" in signature(roc_auc_score).parameters:
-        scoring = make_scorer(roc_auc_score, needs_proba=True, multi_class="ovo")
+        scoring = make_scorer(roc_auc_score, multi_class="ovo", **kwargs)
         sl = SlidingEstimator(logreg, scoring=scoring)
         sl.fit(X, y)
         sl.score(X, y)  # smoke test
@@ -114,10 +133,15 @@ def test_search_light():
     X = rng.randn(*X.shape)  # randomize X to avoid AUCs in [0, 1]
     score_sl = sl1.score(X, y)
     assert_array_equal(score_sl.shape, [n_time])
-    assert score_sl.dtype == float
+    assert score_sl.dtype == np.dtype(float)
 
     # Check that scoring was applied adequately
-    scoring = make_scorer(roc_auc_score, needs_threshold=True)
+    kwargs = dict()
+    if check_version("sklearn", "1.4"):
+        kwargs["response_method"] = ("decision_function", "predict_proba")
+    else:
+        kwargs["needs_threshold"] = True
+    scoring = make_scorer(roc_auc_score, **kwargs)
     score_manual = [
         scoring(est, x, y) for est, x in zip(sl1.estimators_, X.transpose(2, 0, 1))
     ]
@@ -138,11 +162,9 @@ def test_search_light():
     # pipeline
     class _LogRegTransformer(LogisticRegression):
         def transform(self, X):
-            return super(_LogRegTransformer, self).predict_proba(X)[..., 1]
+            return super().predict_proba(X)[..., 1]
 
-    logreg_transformer = _LogRegTransformer(
-        random_state=0, multi_class="ovr", solver="liblinear"
-    )
+    logreg_transformer = OneVsRestClassifier(_LogRegTransformer(random_state=0))
     pipe = make_pipeline(SlidingEstimator(logreg_transformer), logreg)
     pipe.fit(X, y)
     pipe.predict(X)
@@ -167,14 +189,28 @@ def test_search_light():
         assert isinstance(pipe.estimators_[0], BaggingClassifier)
 
 
-@requires_sklearn
-def test_generalization_light():
-    """Test GeneralizingEstimator."""
-    from sklearn.pipeline import make_pipeline
-    from sklearn.linear_model import LogisticRegression
-    from sklearn.metrics import roc_auc_score
+@pytest.fixture()
+def metadata_routing():
+    """Temporarily enable metadata routing for new sklearn."""
+    if NEW_MULTICLASS_SAMPLE_WEIGHT:
+        sklearn.set_config(enable_metadata_routing=True)
+    yield
+    if NEW_MULTICLASS_SAMPLE_WEIGHT:
+        sklearn.set_config(enable_metadata_routing=False)
 
-    logreg = LogisticRegression(solver="liblinear", multi_class="ovr", random_state=0)
+
+def test_generalization_light(metadata_routing):
+    """Test GeneralizingEstimator."""
+    if NEW_MULTICLASS_SAMPLE_WEIGHT:
+        clf = LogisticRegression(random_state=0)
+        clf.set_fit_request(sample_weight=True)
+        logreg = OneVsRestClassifier(clf)
+    else:
+        logreg = LogisticRegression(
+            solver="liblinear",
+            random_state=0,
+            multi_class="ovr",
+        )
 
     X, y = make_data()
     n_epochs, _, n_time = X.shape
@@ -188,9 +224,9 @@ def test_generalization_light():
     # transforms
     y_pred = gl.predict(X)
     assert_array_equal(y_pred.shape, [n_epochs, n_time, n_time])
-    assert y_pred.dtype == int
+    assert y_pred.dtype == np.dtype(int)
     y_proba = gl.predict_proba(X)
-    assert y_proba.dtype == float
+    assert y_proba.dtype == np.dtype(float)
     assert_array_equal(y_proba.shape, [n_epochs, n_time, n_time, 2])
 
     # transform to different datasize
@@ -201,7 +237,7 @@ def test_generalization_light():
     score = gl.score(X[:, :, :3], y)
     assert_array_equal(score.shape, [n_time, 3])
     assert np.sum(np.abs(score)) != 0
-    assert score.dtype == float
+    assert score.dtype == np.dtype(float)
 
     gl = GeneralizingEstimator(logreg, scoring="roc_auc")
     gl.fit(X, y)
@@ -254,14 +290,11 @@ def test_generalization_light():
     assert_array_equal(y_preds[0], y_preds[1])
 
 
-@requires_sklearn
 @pytest.mark.parametrize(
     "n_jobs, verbose", [(1, False), (2, False), (1, True), (2, "info")]
 )
 def test_verbose_arg(capsys, n_jobs, verbose):
     """Test controlling output with the ``verbose`` argument."""
-    from sklearn.svm import SVC
-
     X, y = make_data()
     clf = SVC()
 
@@ -280,14 +313,8 @@ def test_verbose_arg(capsys, n_jobs, verbose):
                 assert any(len(channel) > 0 for channel in (stdout, stderr))
 
 
-@requires_sklearn
 def test_cross_val_predict():
     """Test cross_val_predict with predict_proba."""
-    from sklearn.linear_model import LinearRegression
-    from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
-    from sklearn.base import BaseEstimator, clone
-    from sklearn.model_selection import cross_val_predict
-
     rng = np.random.RandomState(42)
     X = rng.randn(10, 1, 3)
     y = rng.randint(0, 2, 10)
@@ -314,3 +341,26 @@ def test_cross_val_predict():
 
     estimator = SlidingEstimator(LinearDiscriminantAnalysis())
     cross_val_predict(estimator, X, y, method="predict_proba", cv=2)
+
+
+@pytest.mark.slowtest
+@parametrize_with_checks([SlidingEstimator(LogisticRegression(), allow_2d=True)])
+def test_sklearn_compliance(estimator, check):
+    """Test LinearModel compliance with sklearn."""
+    ignores = (
+        "check_estimator_sparse_data",  # we densify
+        "check_classifiers_one_label_sample_weights",  # don't handle singleton
+        "check_classifiers_classes",  # dim mismatch
+        "check_classifiers_train",
+        "check_decision_proba_consistency",
+        "check_parameters_default_constructible",
+        # Should probably fix these?
+        "check_estimators_unfitted",
+        "check_transformer_data_not_an_array",
+        "check_n_features_in",
+        "check_fit2d_predict1d",
+        "check_do_not_raise_errors_in_init_or_set_params",
+    )
+    if any(ignore in str(check) for ignore in ignores):
+        return
+    check(estimator)

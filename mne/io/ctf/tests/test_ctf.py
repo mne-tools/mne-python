@@ -1,37 +1,38 @@
-# Authors: Eric Larson <larson.eric.d@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import copy
-from datetime import datetime, timezone
 import os
-from os import path as op
 import shutil
+from datetime import datetime, timezone
+from os import path as op
 
 import numpy as np
+import pytest
 from numpy import array_equal
 from numpy.testing import assert_allclose, assert_array_equal
-import pytest
 
 import mne
 import mne.io.ctf.info
 from mne import (
-    pick_types,
-    read_annotations,
     create_info,
     events_from_annotations,
     make_forward_solution,
+    pick_types,
+    read_annotations,
 )
-from mne.transforms import apply_trans
-from mne.io import read_raw_fif, read_raw_ctf, RawArray
-from mne.io.compensator import get_current_comp
+from mne._fiff.compensator import get_current_comp
+from mne._fiff.constants import FIFF
+from mne._fiff.pick import _picks_to_idx
+from mne.datasets import brainstorm, spm_face, testing
+from mne.io import RawArray, read_raw_ctf, read_raw_fif
 from mne.io.ctf.constants import CTF
 from mne.io.ctf.info import _convert_time
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.tests.test_annotations import _assert_annotations_equal
-from mne.utils import _clean_names, catch_logging, _stamp_to_dt, _record_warnings
-from mne.datasets import testing, spm_face, brainstorm
-from mne.io.constants import FIFF
+from mne.transforms import apply_trans
+from mne.utils import _clean_names, _record_warnings, _stamp_to_dt, catch_logging
 
 ctf_dir = testing.data_path(download=False) / "CTF"
 ctf_fname_continuous = "testdata_ctf.ds"
@@ -90,9 +91,7 @@ def test_read_ctf(tmp_path):
             args = (
                 str(ch_num + 1),
                 raw.ch_names[ch_num],
-            ) + tuple(
-                "%0.5f" % x for x in 100 * pos[ii]
-            )  # convert to cm
+            ) + tuple(f"{x:0.5f}" for x in 100 * pos[ii])  # convert to cm
             fid.write(("\t".join(args) + "\n").encode("ascii"))
     pos_read_old = np.array([raw.info["chs"][p]["loc"][:3] for p in picks])
     with pytest.warns(RuntimeWarning, match="RMSP .* changed to a MISC ch"):
@@ -113,7 +112,7 @@ def test_read_ctf(tmp_path):
     shutil.copytree(ctf_eeg_fname, ctf_no_hc_fname)
     remove_base = op.join(ctf_no_hc_fname, op.basename(ctf_fname_catch[:-3]))
     os.remove(remove_base + ".hc")
-    with pytest.warns(RuntimeWarning, match="MISC channel"):
+    with _record_warnings(), pytest.warns(RuntimeWarning, match="MISC channel"):
         pytest.raises(RuntimeError, read_raw_ctf, ctf_no_hc_fname)
     os.remove(remove_base + ".eeg")
     shutil.copy(
@@ -210,7 +209,7 @@ def test_read_ctf(tmp_path):
                     c2[key],
                     atol=1e-6,
                     rtol=1e-4,
-                    err_msg='raw.info["chs"][%d][%s]' % (ii, key),
+                    err_msg=f'raw.info["chs"][{ii}][{key}]',
                 )
             # XXX 2016/02/24: fixed bug with normal computation that used
             # to exist, once mne-C tools are updated we should update our FIF
@@ -228,7 +227,7 @@ def test_read_ctf(tmp_path):
                     check,
                     atol=1e-6,
                     rtol=1e-4,
-                    err_msg='raw.info["chs"][%d][%s]' % (ii, key),
+                    err_msg=f'raw.info["chs"][{ii}][{key}]',
                 )
                 if (c2[key][3:] == 0.0).all():
                     check = [np.nan] * 3
@@ -239,7 +238,7 @@ def test_read_ctf(tmp_path):
                     check,
                     atol=1e-6,
                     rtol=1e-4,
-                    err_msg='raw.info["chs"][%d][%s]' % (ii, key),
+                    err_msg=f'raw.info["chs"][{ii}][{key}]',
                 )
 
         # Make sure all digitization points are in the MNE head coord frame
@@ -366,11 +365,11 @@ def test_saving_picked(tmp_path, comp_grade):
     raw.crop(0, 1).load_data()
     assert raw.compensation_grade == get_current_comp(raw.info) == 0
     assert len(raw.info["comps"]) == 5
-    pick_kwargs = dict(meg=True, ref_meg=False, verbose=True)
+    picks = _picks_to_idx(raw.info, "meg", with_ref_meg=False)
 
     raw.apply_gradient_compensation(comp_grade)
     with catch_logging() as log:
-        raw_pick = raw.copy().pick_types(**pick_kwargs)
+        raw_pick = raw.copy().pick(picks, verbose=True)
     assert len(raw.info["comps"]) == 5
     assert len(raw_pick.info["comps"]) == 0
     log = log.getvalue()

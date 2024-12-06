@@ -1,0 +1,175 @@
+{
+  "merge_commit_sha": "71faac906f00baa14b546da50d0f97aceedc004a",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/12380.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/conf.py": {
+      "a": 5,
+      "d": 0
+    },
+    "environment.yml": {
+      "a": 1,
+      "d": 0
+    },
+    "examples/time_frequency/time_frequency_erds.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/_fiff/open.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/_fiff/pick.py": {
+      "a": 5,
+      "d": 5
+    },
+    "mne/channels/tests/test_channels.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/commands/mne_setup_source_space.py": {
+      "a": 7,
+      "d": 5
+    },
+    "mne/cov.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/datasets/sleep_physionet/tests/test_physionet.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/decoding/tests/test_ssd.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/epochs.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/event.py": {
+      "a": 7,
+      "d": 1
+    },
+    "mne/evoked.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/export/_export.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/gui/_coreg.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/inverse_sparse/mxne_optim.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/bti/bti.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/curry/curry.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/io/edf/edf.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/io/fieldtrip/tests/helpers.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/fieldtrip/tests/test_fieldtrip.py": {
+      "a": 6,
+      "d": 6
+    },
+    "mne/preprocessing/nirs/_tddr.py": {
+      "a": 1,
+      "d": 3
+    },
+    "mne/preprocessing/ssp.py": {
+      "a": 9,
+      "d": 5
+    },
+    "mne/preprocessing/tests/test_ssp.py": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/report/report.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/source_estimate.py": {
+      "a": 8,
+      "d": 2
+    },
+    "mne/source_space/_source_space.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/time_frequency/csd.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 5,
+      "d": 3
+    },
+    "mne/utils/tests/test_docs.py": {
+      "a": 6,
+      "d": 6
+    },
+    "mne/utils/tests/test_logging.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/backends/_abstract.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/backends/_notebook.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/backends/_qt.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/viz/backends/renderer.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/circle.py": {
+      "a": 7,
+      "d": 1
+    },
+    "mne/viz/evoked.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/viz/topomap.py": {
+      "a": 10,
+      "d": 10
+    },
+    "mne/viz/utils.py": {
+      "a": 2,
+      "d": 2
+    },
+    "pyproject.toml": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

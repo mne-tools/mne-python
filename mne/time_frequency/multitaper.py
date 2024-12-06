@@ -1,12 +1,17 @@
-# Author : Martin Luessi mluessi@nmr.mgh.harvard.edu (2012)
-# License : BSD-3-Clause
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # Parts of this code were copied from NiTime http://nipy.sourceforge.net/nitime
 
 import numpy as np
+from scipy.fft import rfft, rfftfreq
+from scipy.integrate import trapezoid
+from scipy.signal import get_window
+from scipy.signal.windows import dpss as sp_dpss
 
 from ..parallel import parallel_func
-from ..utils import warn, verbose, logger, _check_option
+from ..utils import _check_option, logger, verbose, warn
 
 
 def dpss_windows(N, half_nbw, Kmax, *, sym=True, norm=None, low_bias=True):
@@ -58,8 +63,6 @@ def dpss_windows(N, half_nbw, Kmax, *, sym=True, norm=None, low_bias=True):
     ----------
     .. footbibliography::
     """
-    from scipy.signal.windows import dpss as sp_dpss
-
     dpss, eigvals = sp_dpss(N, half_nbw, Kmax, sym=sym, norm=norm, return_ratios=True)
     if low_bias:
         idx = eigvals > 0.9
@@ -114,7 +117,7 @@ def _psd_from_mt_adaptive(x_mt, eigvals, freq_mask, max_iter=250, return_weights
 
     # estimate the variance from an estimate with fixed weights
     psd_est = _psd_from_mt(x_mt, rt_eig[np.newaxis, :, np.newaxis])
-    x_var = np.trapz(psd_est, dx=np.pi / n_freqs) / (2 * np.pi)
+    x_var = trapezoid(psd_est, dx=np.pi / n_freqs) / (2 * np.pi)
     del psd_est
 
     # allocate space for output
@@ -230,7 +233,7 @@ def _csd_from_mt(x_mt, y_mt, weights_x, weights_y):
     return csd
 
 
-def _mt_spectra(x, dpss, sfreq, n_fft=None):
+def _mt_spectra(x, dpss, sfreq, n_fft=None, remove_dc=True):
     """Compute tapered spectra.
 
     Parameters
@@ -244,6 +247,7 @@ def _mt_spectra(x, dpss, sfreq, n_fft=None):
     n_fft : int | None
         Length of the FFT. If None, the number of samples in the input signal
         will be used.
+    %(remove_dc)s
 
     Returns
     -------
@@ -252,13 +256,12 @@ def _mt_spectra(x, dpss, sfreq, n_fft=None):
     freqs : array, shape=(n_freqs,)
         The frequency points in Hz of the spectra
     """
-    from scipy.fft import rfft, rfftfreq
-
     if n_fft is None:
         n_fft = x.shape[-1]
 
     # remove mean (do not use in-place subtraction as it may modify input x)
-    x = x - np.mean(x, axis=-1, keepdims=True)
+    if remove_dc:
+        x = x - np.mean(x, axis=-1, keepdims=True)
 
     # only keep positive frequencies
     freqs = rfftfreq(n_fft, 1.0 / sfreq)
@@ -280,12 +283,8 @@ def _mt_spectra(x, dpss, sfreq, n_fft=None):
 def _compute_mt_params(n_times, sfreq, bandwidth, low_bias, adaptive, verbose=None):
     """Triage windowing and multitaper parameters."""
     # Compute standardized half-bandwidth
-    from scipy.signal import get_window
-
     if isinstance(bandwidth, str):
-        logger.info(
-            '    Using standard spectrum estimation with "%s" window' % (bandwidth,)
-        )
+        logger.info(f'    Using standard spectrum estimation with "{bandwidth}" window')
         window_fun = get_window(bandwidth, n_times)[np.newaxis]
         return window_fun, np.ones(1), False
 
@@ -295,9 +294,8 @@ def _compute_mt_params(n_times, sfreq, bandwidth, low_bias, adaptive, verbose=No
         half_nbw = 4.0
     if half_nbw < 0.5:
         raise ValueError(
-            "bandwidth value %s yields a normalized half-bandwidth of "
-            "%s < 0.5, use a value of at least %s"
-            % (bandwidth, half_nbw, sfreq / n_times)
+            f"bandwidth value {bandwidth} yields a normalized half-bandwidth of "
+            f"{half_nbw} < 0.5, use a value of at least {sfreq / n_times}"
         )
 
     # Compute DPSS windows
@@ -306,14 +304,13 @@ def _compute_mt_params(n_times, sfreq, bandwidth, low_bias, adaptive, verbose=No
         n_times, half_nbw, n_tapers_max, sym=False, low_bias=low_bias
     )
     logger.info(
-        "    Using multitaper spectrum estimation with %d DPSS "
-        "windows" % len(eigvals)
+        f"    Using multitaper spectrum estimation with {len(eigvals)} DPSS windows"
     )
 
     if adaptive and len(eigvals) < 3:
         warn(
             "Not adaptively combining the spectral estimators due to a "
-            "low number of tapers (%s < 3)." % (len(eigvals),)
+            f"low number of tapers ({len(eigvals)} < 3)."
         )
         adaptive = False
 
@@ -330,16 +327,17 @@ def psd_array_multitaper(
     adaptive=False,
     low_bias=True,
     normalization="length",
+    remove_dc=True,
     output="power",
     n_jobs=None,
     *,
     max_iter=150,
-    verbose=None
+    verbose=None,
 ):
     r"""Compute power spectral density (PSD) using a multi-taper method.
 
     The power spectral density is computed with DPSS
-    tapers\ :footcite:p:`Slepian1978`.
+    tapers :footcite:p:`Slepian1978`.
 
     Parameters
     ----------
@@ -360,6 +358,7 @@ def psd_array_multitaper(
         Only use tapers with more than 90%% spectral concentration within
         bandwidth.
     %(normalization)s
+    %(remove_dc)s
     output : str
         The format of the returned ``psds`` array, ``'complex'`` or
         ``'power'``:
@@ -397,8 +396,6 @@ def psd_array_multitaper(
     ----------
     .. footbibliography::
     """
-    from scipy.fft import rfftfreq
-
     _check_option("normalization", normalization, ["length", "full"])
 
     # Reshape data so its 2-D for parallelization
@@ -429,7 +426,7 @@ def psd_array_multitaper(
     n_chunk = max(50000000 // (len(freq_mask) * len(eigvals) * 16), 1)
     offsets = np.concatenate((np.arange(0, x.shape[0], n_chunk), [x.shape[0]]))
     for start, stop in zip(offsets[:-1], offsets[1:]):
-        x_mt = _mt_spectra(x[start:stop], dpss, sfreq)[0]
+        x_mt = _mt_spectra(x[start:stop], dpss, sfreq, remove_dc=remove_dc)[0]
         if output == "power":
             if not adaptive:
                 psd[start:stop] = _psd_from_mt(x_mt[:, :, freq_mask], weights)
@@ -463,7 +460,7 @@ def psd_array_multitaper(
 
 @verbose
 def tfr_array_multitaper(
-    epoch_data,
+    data,
     sfreq,
     freqs,
     n_cycles=7.0,
@@ -474,7 +471,7 @@ def tfr_array_multitaper(
     output="complex",
     n_jobs=None,
     *,
-    verbose=None
+    verbose=None,
 ):
     """Compute Time-Frequency Representation (TFR) using DPSS tapers.
 
@@ -484,11 +481,11 @@ def tfr_array_multitaper(
 
     Parameters
     ----------
-    epoch_data : array of shape (n_epochs, n_channels, n_times)
+    data : array of shape (n_epochs, n_channels, n_times)
         The epochs.
     sfreq : float
         Sampling frequency of the data in Hz.
-    %(freqs_tfr)s
+    %(freqs_tfr_array)s
     %(n_cycles_tfr)s
     zero_mean : bool
         If True, make sure the wavelets have a mean of zero. Defaults to True.
@@ -506,12 +503,13 @@ def tfr_array_multitaper(
         * ``'avg_power_itc'`` : average of single trial power and inter-trial
           coherence across trials.
     %(n_jobs)s
+        The parallelization is implemented across channels.
     %(verbose)s
 
     Returns
     -------
     out : array
-        Time frequency transform of ``epoch_data``.
+        Time frequency transform of ``data``.
 
         - if ``output in ('complex',' 'phase')``, array of shape
           ``(n_epochs, n_chans, n_tapers, n_freqs, n_times)``
@@ -533,7 +531,8 @@ def tfr_array_multitaper(
 
     Notes
     -----
-    %(temporal-window_tfr_notes)s
+    %(temporal_window_tfr_intro)s
+    %(temporal_window_tfr_multitaper_notes)s
     %(time_bandwidth_tfr_notes)s
 
     .. versionadded:: 0.14.0
@@ -541,7 +540,7 @@ def tfr_array_multitaper(
     from .tfr import _compute_tfr
 
     return _compute_tfr(
-        epoch_data,
+        data,
         freqs,
         sfreq=sfreq,
         method="multitaper",

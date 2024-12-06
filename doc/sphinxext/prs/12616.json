@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "4c9a176de185efd2ca3da466c81bca6094873beb",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/12616.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/channels/channels.py": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/time_frequency/tests/test_tfr.py": {
+      "a": 17,
+      "d": 0
+    }
+  }
+}

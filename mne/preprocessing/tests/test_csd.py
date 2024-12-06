@@ -2,34 +2,33 @@
 
 For each supported file format, implement a test.
 """
-# Authors: Alex Rockhill <aprockhill@mailbox.org>
-#
+
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from pathlib import Path
 
 import numpy as np
-
 import pytest
 from numpy.testing import assert_allclose
-from scipy.io import loadmat
 from scipy import linalg
+from scipy.io import loadmat
 
+from mne import Epochs, EvokedArray, create_info, find_events, pick_types, read_epochs
+from mne._fiff.constants import FIFF
 from mne.channels import make_dig_montage
-from mne import create_info, EvokedArray, pick_types, Epochs, find_events, read_epochs
-from mne.io import read_raw_fif, RawArray
-from mne.io.constants import FIFF
-from mne.utils import object_diff
 from mne.datasets import testing
-
-from mne.preprocessing import compute_current_source_density, compute_bridged_electrodes
+from mne.io import RawArray, read_raw_fif
+from mne.preprocessing import compute_bridged_electrodes, compute_current_source_density
+from mne.utils import object_diff
 
 data_path = testing.data_path(download=False) / "preprocessing"
 eeg_fname = data_path / "test_eeg.mat"
 coords_fname = data_path / "test_eeg_pos.mat"
 csd_fname = data_path / "test_eeg_csd.mat"
 
-io_path = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
+io_path = Path(__file__).parents[2] / "io" / "tests" / "data"
 raw_fname = io_path / "test_raw.fif"
 
 
@@ -74,7 +73,7 @@ def test_csd_matlab(evoked_csd_sphere):
     assert_allclose(evoked_csd_data, csd, atol=2e-7)
 
     with pytest.raises(
-        ValueError, match=("CSD already applied, " "should not be reapplied")
+        ValueError, match=("CSD already applied, should not be reapplied")
     ):
         compute_current_source_density(evoked_csd, sphere=sphere)
 
@@ -125,15 +124,13 @@ def test_csd_degenerate(evoked_csd_sphere):
     with pytest.raises(TypeError, match="n_legendre_terms must be"):
         compute_current_source_density(evoked, n_legendre_terms=0.1, sphere=sphere)
 
-    with pytest.raises(
-        ValueError, match=("n_legendre_terms must be " "greater than 0")
-    ):
+    with pytest.raises(ValueError, match=("n_legendre_terms must be greater than 0")):
         compute_current_source_density(evoked, n_legendre_terms=0, sphere=sphere)
 
     with pytest.raises(ValueError, match="sphere must be"):
         compute_current_source_density(evoked, sphere=-0.1)
 
-    with pytest.raises(ValueError, match=("sphere radius must be " "greater than 0")):
+    with pytest.raises(ValueError, match=("sphere radius must be greater than 0")):
         compute_current_source_density(evoked, sphere=(-0.1, 0.0, 0.0, -1.0))
 
     with pytest.raises(TypeError):
@@ -152,7 +149,7 @@ def test_csd_degenerate(evoked_csd_sphere):
     )
     epochs.drop_bad()
     assert len(epochs) == 1
-    assert_allclose(epochs.get_data()[0], evoked.data)
+    assert_allclose(epochs.get_data(item=[0])[0], evoked.data)
     with pytest.raises(RuntimeError, match="Computing CSD requires.*preload"):
         compute_current_source_density(epochs)
     epochs.load_data()
@@ -161,7 +158,7 @@ def test_csd_degenerate(evoked_csd_sphere):
     evoked = compute_current_source_density(evoked)
     assert_allclose(raw.get_data(), evoked.data)
     epochs = compute_current_source_density(epochs)
-    assert_allclose(epochs.get_data()[0], evoked.data)
+    assert_allclose(epochs.get_data(item=[0])[0], evoked.data)
 
 
 def test_csd_fif():
@@ -193,7 +190,7 @@ def test_csd_fif():
 def test_csd_epochs(tmp_path):
     """Test making epochs, saving to disk and loading."""
     raw = read_raw_fif(raw_fname)
-    raw.pick_types(eeg=True, stim=True).load_data()
+    raw.pick(picks=["eeg", "stim"]).load_data()
     events = find_events(raw)
     epochs = Epochs(raw, events, reject=dict(eeg=1e-4), preload=True)
     epochs = compute_current_source_density(epochs)
@@ -207,7 +204,7 @@ def test_compute_bridged_electrodes():
     """Test computing bridged electrodes."""
     # test I/O
     raw = read_raw_fif(raw_fname).load_data()
-    raw.pick_types(meg=True)
+    raw.pick(picks="meg")
     with pytest.raises(RuntimeError, match="No EEG channels found"):
         bridged_idx, ed_matrix = compute_bridged_electrodes(raw)
 

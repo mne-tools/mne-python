@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "e8ea87f866b2cce26366e0964b5db416f70840a8",
+  "authors": [
+    {
+      "n": "Joan Massich",
+      "e": "mailsik@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/manual/datasets_index.rst": {
+      "a": 9,
+      "d": 1
+    },
+    "examples/datasets/plot_brainstorm_data.py": {
+      "a": 3,
+      "d": 3
+    },
+    "examples/datasets/plot_opm_rest_data.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/bem.py": {
+      "a": 37,
+      "d": 20
+    },
+    "mne/commands/mne_flash_bem.py": {
+      "a": 5,
+      "d": 1
+    },
+    "mne/commands/mne_make_scalp_surfaces.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/commands/mne_watershed_bem.py": {
+      "a": 6,
+      "d": 1
+    },
+    "mne/commands/tests/test_commands.py": {
+      "a": 46,
+      "d": 52
+    }
+  }
+}

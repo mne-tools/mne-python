@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "c6e62d6c11c557cd69ce0b4e88bb17b5ca8c47dd",
+  "authors": [
+    {
+      "n": "Joan Massich",
+      "e": "mailsik@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/io/base.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 6,
+      "d": 7
+    },
+    "mne/transforms.py": {
+      "a": 1,
+      "d": 2
+    }
+  }
+}

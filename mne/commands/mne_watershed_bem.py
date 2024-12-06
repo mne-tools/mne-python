@@ -1,5 +1,7 @@
-#!/usr/bin/env python
-# Authors: Lorenzo De Santis
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
+
 """Create BEM surfaces using the watershed algorithm included with FreeSurfer.
 
 Examples
@@ -19,7 +21,7 @@ from mne.utils import _check_option
 
 def run():
     """Run command."""
-    from mne.commands.utils import get_optparser, _add_verbose_flag
+    from mne.commands.utils import _add_verbose_flag, get_optparser
 
     parser = get_optparser(__file__)
 
@@ -55,7 +57,7 @@ def run():
         "-g",
         "--gcaatlas",
         dest="gcaatlas",
-        help="Specify the --brain_atlas option for " "mri_watershed",
+        help="Specify the --brain_atlas option for mri_watershed",
         default=False,
         action="store_true",
     )

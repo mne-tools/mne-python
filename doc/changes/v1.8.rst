@@ -1,0 +1,173 @@
+.. _changes_1_8_0:
+
+Version 1.8.0 (2024-08-18)
+==========================
+
+Dependencies
+------------
+
+- Minimum versions for dependencies were bumped to those ~2 years old at the time of release (by `Eric Larson`_), including:
+
+  - NumPy ≥ 1.23
+  - SciPy ≥ 1.9
+  - Matplotlib ≥ 3.6
+  - scikit-learn ≥ 1.1 (`#12554 <https://github.com/mne-tools/mne-python/pull/12554>`__)
+- Official support for PySide2 has been dropped in this release (though it might continue
+  to work), by `Eric Larson`_. (`#12742 <https://github.com/mne-tools/mne-python/pull/12742>`__)
+
+
+Bugfixes
+--------
+
+- Fix bug where an event that occurred only once was excluded in :func:`mne.io.read_raw_egi`, by :newcontrib:`Ping-Keng Jao`. (`#12300 <https://github.com/mne-tools/mne-python/pull/12300>`__)
+- Fix bug where :func:`mne.stats.permutation_cluster_test` (and related functions) uses excessive amount of memory for large 2D data when TFCE method is selected, by :newcontrib:`Nicolas Fourcaud-Trocmé`. (`#12609 <https://github.com/mne-tools/mne-python/pull/12609>`__)
+- Assure that blink times are handled correctly :func:`mne.preprocessing.eyetracking.interpolate_blinks`, even when the raw object is cropped by `Scott Huberty`_ and :newcontrib:`Sammi Chekroud`. (`#12759 <https://github.com/mne-tools/mne-python/pull/12759>`__)
+- Fix check for dropping all channels in :meth:`mne.io.Raw.drop_channels` and related methods, by :newcontrib:`Farzin Negahbani`. (`#12763 <https://github.com/mne-tools/mne-python/pull/12763>`__)
+- Fix scrolling behavior in :class:`~mne.Report` when clicking on a TOC entry multiple times, by `Richard Höchenberger`_. (`#12561 <https://github.com/mne-tools/mne-python/pull/12561>`__)
+- Fix bug where :func:`mne.decoding.get_coef` did not work properly with :class:`mne.decoding.CSP`, by `Eric Larson`_. (`#12562 <https://github.com/mne-tools/mne-python/pull/12562>`__)
+- The color scaling of Evoked topomaps added to reports via :meth:`mne.Report.add_evokeds`
+  was sometimes sub-optimal if bad channels were present in the data. This has now been fixed
+  and should be more consistent with the topomaps shown in the joint plots, by `Richard Höchenberger`_. (`#12578 <https://github.com/mne-tools/mne-python/pull/12578>`__)
+- Fix error causing :meth:`mne.Epochs.interpolate_bads` not to work for ``seeg`` channels and fix a single contact on neighboring shafts sometimes being included in interpolation, by `Alex Rockhill`_ (`#12593 <https://github.com/mne-tools/mne-python/pull/12593>`__)
+- Fix bug where :func:`mne.io.read_raw_fil` could not assign bad channels on import, by `George O'Neill`_. (`#12597 <https://github.com/mne-tools/mne-python/pull/12597>`__)
+- Fixed a bug where :meth:`mne.Evoked.animate_topomap` did not work with :func:`mne.preprocessing.compute_current_source_density` - modified data, by `Michal Žák`_. (`#12605 <https://github.com/mne-tools/mne-python/pull/12605>`__)
+- Fix overflow when plotting source estimates where data is all zero (or close to zero), and fix the range of allowed values for the colorbar sliders, by `Marijn van Vliet`_. (`#12612 <https://github.com/mne-tools/mne-python/pull/12612>`__)
+- Fix adding channels to :class:`~mne.time_frequency.EpochsTFR` objects, by `Clemens Brunner`_. (`#12616 <https://github.com/mne-tools/mne-python/pull/12616>`__)
+- Fix for new sklearn metadata routing protocol in decoding search_light, by `Alex Gramfort`_ (`#12620 <https://github.com/mne-tools/mne-python/pull/12620>`__)
+- Fix bug where :func:`mne.time_frequency.csd_multitaper`, :func:`mne.time_frequency.csd_fourier`, :func:`mne.time_frequency.csd_array_multitaper`, and :func:`mne.time_frequency.csd_array_fourier` would return cross-spectral densities with the ``fmin`` and ``fmax`` frequencies missing, by `Thomas Binns`_ (`#12633 <https://github.com/mne-tools/mne-python/pull/12633>`__)
+- Output types of sparse arrays were changed from ``matrix`` to ``array`` in
+  :func:`~mne.channels.read_ch_adjacency`, :func:`~mne.channels.find_ch_adjacency`,
+  :func:`~mne.stats.combine_adjacency`, :func:`~mne.spatio_temporal_src_adjacency`,
+  and related functions to comply with the pending deprecation of ``np.matrix``.
+  The returned objects now behave like standard :class:`~numpy.ndarray` objects, and
+  in particular ``*`` now operates element-wise instead of performing matrix
+  multiplication. You can use ``@`` as a backward compatible matrix multiplication
+  for both ``np.matrix`` and ``np.ndarray`` objects, and if a matrix is desired
+  the outputs can be cast directly, for example as ``scipy.sparse.csr_matrix(out)``.
+  Changed by `Eric Larson`_. (`#12646 <https://github.com/mne-tools/mne-python/pull/12646>`__)
+- Fix incorrect RuntimeWarning (different channel filter settings) in EDF/BDF import, by `Clemens Brunner`_. (`#12661 <https://github.com/mne-tools/mne-python/pull/12661>`__)
+- In :func:`mne.export.export_raw` (``fmt='edf'``), when padding data to create equal-length data blocks,
+  edge-padding is favored over zero-padding in order to avoid accidentally enlarging physical range, by `Qian Chu`_. (`#12676 <https://github.com/mne-tools/mne-python/pull/12676>`__)
+- In :func:`mne.io.read_raw_eyelink`, gracefully handle missing datetime in file by `Scott Huberty`_. (`#12687 <https://github.com/mne-tools/mne-python/pull/12687>`__)
+- Fix regression with :class:`mne.decoding.CSP` where using ``rank="full"`` errantly
+  raised an error, by `Eric Larson`_. (`#12694 <https://github.com/mne-tools/mne-python/pull/12694>`__)
+- Fix in-memory anonymization of data read with :func:`mne.io.read_raw_edf` by `Eric Larson`_. (`#12720 <https://github.com/mne-tools/mne-python/pull/12720>`__)
+- Fix bug with overplotting of butterfly labels in :func:`mne.viz.plot_raw` and related
+  functions and methods, by `Eric Larson`_. (`#12721 <https://github.com/mne-tools/mne-python/pull/12721>`__)
+- Fix a bug where the ``ylim`` parameter would sometimes apply to the wrong channel types in :func:`mne.viz.plot_evoked_topo`, by `Marijn van Vliet`_. (`#12724 <https://github.com/mne-tools/mne-python/pull/12724>`__)
+- Fix bug where ad-hoc regularization of a covariance with
+  :func:`mne.cov.regularize` did not properly account for bad channels
+  in rank calculations, by `Eric Larson`_. (`#12727 <https://github.com/mne-tools/mne-python/pull/12727>`__)
+- Fix bug when reading NIRX files saved in a non-western encoding, by `Daniel McCloy`_. (`#12730 <https://github.com/mne-tools/mne-python/pull/12730>`__)
+- :func:`~mne.set_log_file` and :func:`~mne.set_log_level` can now be correctly detected by
+  static analysis tools like Pylance, by `Richard Höchenberger`_. (`#12735 <https://github.com/mne-tools/mne-python/pull/12735>`__)
+- Safeguard loading of ``meas_date`` in :func:`mne.io.read_raw_edf`, by `Mathieu Scheltienne`_. (`#12754 <https://github.com/mne-tools/mne-python/pull/12754>`__)
+- Fix bug in :func:`~mne.preprocessing.maxwell_filter_prepare_emptyroom` where a difference in sampling frequencies between data and emptyroom files was ignored, by `Daniel McCloy`_. (`#12760 <https://github.com/mne-tools/mne-python/pull/12760>`__)
+
+
+API changes by deprecation
+--------------------------
+
+- A new argument ``events_as_annotations`` has been added to :func:`mne.io.read_raw_egi`
+  with a default value of ``False`` that will change to ``True`` in version 1.9, by
+  `Scott Huberty`_ and `Eric Larson`_. (`#12300 <https://github.com/mne-tools/mne-python/pull/12300>`__)
+- ``mne.Info.ch_names`` will now return an empty list instead of raising a ``KeyError`` if no channels
+  are present, by `Richard Höchenberger`_. (`#12583 <https://github.com/mne-tools/mne-python/pull/12583>`__)
+- Documented that :func:`~mne.match_channel_orders` can also work on Epochs, and Evoked objects. Reflecting this, deprecated the ``raws`` parameter in favor of an ``insts`` parameter, by `Stefan Appelhoff`_. (`#12699 <https://github.com/mne-tools/mne-python/pull/12699>`__)
+- The ``block`` argument to :class:`mne.viz.Brain` is deprecated and will be removed in
+  1.9, use :func:`matplotlib.pyplot.show` with ``block=True`` instead, by `Eric Larson`_. (`#12719 <https://github.com/mne-tools/mne-python/pull/12719>`__)
+- :func:`mne.datasets.fetch_fsaverage` now returns a :class:`python:pathlib.Path` object
+  rather than a string. Support for string concatenation with plus (``+``) is thus
+  deprecated and will be removed in 1.9, use the forward-slash ``/`` operator instead,
+  by `Eric Larson`_. (`#12771 <https://github.com/mne-tools/mne-python/pull/12771>`__)
+
+
+New features
+------------
+
+- Added internals to allow modifying single-channel annotations in the Qt
+  raw browser, by :newcontrib:`Noah Markowitz`. (`#12669 <https://github.com/mne-tools/mne-python/pull/12669>`__)
+- Adding :meth:`mne.channels.Layout.copy` and :meth:`mne.channels.Layout.pick` to copy and select channels from a :class:`mne.channels.Layout` object. Plotting 2D topographies of evoked responses with :func:`mne.viz.plot_evoked_topo` with both arguments ``layout`` and ``exclude`` now ignores excluded channels from the :class:`mne.channels.Layout`. By `Mathieu Scheltienne`_. (`#12338 <https://github.com/mne-tools/mne-python/pull/12338>`__)
+- In :class:`~mne.Report` you can now easily navigate through images and figures connected to a slider with the left and right arrow keys. Clicking on the slider or respective image will focus the slider, enabling keyboard navigation, by `Richard Höchenberger`_ (`#12556 <https://github.com/mne-tools/mne-python/pull/12556>`__)
+- When plotting EOG and ECG artifact scores for ICA in :meth:`mne.Report.add_ica`,
+  the channel names used for artifact detection are now displayed in the titles of
+  each respective subplot, by `Richard Höchenberger`_. (`#12573 <https://github.com/mne-tools/mne-python/pull/12573>`__)
+- Use ``aseg='auto'`` for :meth:`mne.viz.Brain.add_volume_labels` and :func:`mne.get_montage_volume_labels` to use ``aparc+aseg`` by default or if not present use ``wmparc`` because freesurfer uses ``wmparc`` in the latest version, by `Alex Rockhill`_. (`#12576 <https://github.com/mne-tools/mne-python/pull/12576>`__)
+- The HTML representations of :class:`~mne.io.Raw`, :class:`~mne.Epochs`,
+  and :class:`~mne.Evoked` (which you will see e.g. when working with Jupyter Notebooks or
+  :class:`~mne.Report`) have been updated to be more consistent and contain
+  slightly more information,  by `Richard Höchenberger`_. (:gh:`12624`) (`#12583 <https://github.com/mne-tools/mne-python/pull/12583>`__)
+- When adding :class:`~mne.Evoked` data to a :class:`~mne.Report` via
+  :meth:`~mne.Report.add_evokeds`, we now also include an "Info" section
+  with some basic summary info, as has already been the case for raw and
+  epochs data, by `Richard Höchenberger`_. (`#12584 <https://github.com/mne-tools/mne-python/pull/12584>`__)
+- We added new installation variants for a full installation with the PySide6 Qt binding
+  (``"mne[full-pyside6]"``), with the PyQt6 binding (``"mne[full-pyqt6]"``, equivalent to
+  ``"mne[full]"``), and without any Qt binding (``"mne[full-no-qt]"``), which may be useful
+  in certain situations by `Richard Höchenberger`_. (`#12628 <https://github.com/mne-tools/mne-python/pull/12628>`__)
+- Adding argument ``'random'`` to :func:`~mne.epochs.equalize_epoch_counts` and to :meth:`~mne.Epochs.equalize_event_counts` to randomly select epochs or events. By `Mathieu Scheltienne`_. (`#12649 <https://github.com/mne-tools/mne-python/pull/12649>`__)
+- Add new parameter ``ignore_marker_types`` to :func:`~mne.io.read_raw_brainvision` to ignore marker types (and only use marker descriptions) when reading BrainVision files, by `Clemens Brunner`_. (`#12652 <https://github.com/mne-tools/mne-python/pull/12652>`__)
+- Added support for passing ``axes`` to :func:`mne.viz.plot_head_positions` when
+  ``mode='field'``, by `Eric Larson`_. (`#12655 <https://github.com/mne-tools/mne-python/pull/12655>`__)
+- The HTML representation of :class:`~mne.Epochs` (visible e.g. in Jupyter or in :class:`~mne.Report`) now
+  indicates whether metadata is attached to the epochs, by `Richard Höchenberger`_. (`#12686 <https://github.com/mne-tools/mne-python/pull/12686>`__)
+- Montage plots created with :meth:`~mne.channels.DigMontage.plot` now scale both the channel dots *and* channel names with the new ``scale`` parameter. The default is ``scale=1`` (factors less than 1 will scale down, whereas factors greater than 1 will scale up). The previous ``scale_factor`` parameter only affected marker size, and this parameter is now deprecated. By `Clemens Brunner`_. (`#12703 <https://github.com/mne-tools/mne-python/pull/12703>`__)
+- Add :func:`~mne.stats.erp.compute_sme` to compute the analytical standardized measurement error (SME) as a data quality measure for ERP studies, by `Clemens Brunner`_. (`#12707 <https://github.com/mne-tools/mne-python/pull/12707>`__)
+- Use :class:`python:datetime.date` for ``info["subject_info"]["birthday"]`` rather than
+  a tuple of ``(year, month, day)`` by `Eric Larson`_. (`#12720 <https://github.com/mne-tools/mne-python/pull/12720>`__)
+- Add default ``spatial_colors="auto"`` to :func:`mne.viz.plot_evoked_white` and
+  :meth:`mne.Evoked.plot_white` to enable spatial colors by default, by `Eric Larson`_. (`#12725 <https://github.com/mne-tools/mne-python/pull/12725>`__)
+- :func:`mne.minimum_norm.make_inverse_operator` and related functions now more robustly
+  warn if the whitener computed from the noise covariance has an incorrect rank,
+  by `Eric Larson`_. (`#12727 <https://github.com/mne-tools/mne-python/pull/12727>`__)
+- When indexing :class:`~mne.Epochs` (e.g. by doing ``epochs[0]``), static code analysis tools like Pylance
+  should now be able to infer that the returned object is an epoch, too, and provide editor support
+  like automated code completions, by `Richard Höchenberger`_. (`#12733 <https://github.com/mne-tools/mne-python/pull/12733>`__)
+- When using the ``data_path()`` in any dataset included in :py:mod:`mne.datasets`,
+  static analysis tools like Pylance will now correctly infer that a `pathlib.Path` will
+  be returned and provide editor support like automated code completions, by `Richard Höchenberger`_. (`#12734 <https://github.com/mne-tools/mne-python/pull/12734>`__)
+- Add support for storing Fourier coefficients in :class:`mne.time_frequency.Spectrum`,
+  :class:`mne.time_frequency.EpochsSpectrum`, :class:`mne.time_frequency.SpectrumArray`,
+  and :class:`mne.time_frequency.EpochsSpectrumArray` objects, by `Thomas Binns`_. (`#12747 <https://github.com/mne-tools/mne-python/pull/12747>`__)
+
+
+Other changes
+-------------
+
+- Fixed issue template links by :newcontrib:`Michal Žák` (`#12600 <https://github.com/mne-tools/mne-python/pull/12600>`__)
+- Enhance documentation on decimation filtering to prevent aliasing, by :newcontrib:`Xabier de Zuazo`. (`#12650 <https://github.com/mne-tools/mne-python/pull/12650>`__)
+- Added `vulture <https://github.com/jendrikseipp/vulture>`__ as a pre-commit hook and removed related dead code, by `Eric Larson`_. (`#12569 <https://github.com/mne-tools/mne-python/pull/12569>`__)
+- Add link to BEst-Python in the list of related software. by `Ilian Azz`_. (`#12659 <https://github.com/mne-tools/mne-python/pull/12659>`__)
+- Improved clarity of parameter documentation for `mne.decoding.SSD.fit`, by `Thomas Binns`_. (`#12664 <https://github.com/mne-tools/mne-python/pull/12664>`__)
+- Disable the "Back to top" button in the documentation, by `Richard Höchenberger`_. (`#12688 <https://github.com/mne-tools/mne-python/pull/12688>`__)
+- Improve argument ``ylim`` documentation through :class:`~mne.Evoked` plotting function and validate type to :class:`dict` or ``None`` to prevent misuage, by `Mathieu Scheltienne`_. (`#12697 <https://github.com/mne-tools/mne-python/pull/12697>`__)
+- Code contributions are now measured using PRs and reported on the :ref:`contributors`
+  page, by `Eric Larson`_. (`#12774 <https://github.com/mne-tools/mne-python/pull/12774>`__)
+- Authorship headers in MNE-Python code have been standardized, by `Eric Larson`_. (`#12781 <https://github.com/mne-tools/mne-python/pull/12781>`__)
+
+Authors
+-------
+
+* Alex Rockhill
+* Alexandre Gramfort
+* Clemens Brunner
+* Daniel McCloy
+* Dimitri Papadopoulos Orfanos
+* Eric Larson
+* Farzin Negahbani+
+* George O'Neill
+* Ilian AZZ
+* Marijn van Vliet
+* Mathieu Scheltienne
+* Michal Žák+
+* Nabil Alibou
+* Nicolas Fourcaud-Trocmé+
+* Noah Markowitz+
+* Ping-Keng Jao+
+* Qian Chu
+* Richard Höchenberger
+* Sammi Chekroud+
+* Scott Huberty
+* Stefan Appelhoff
+* Thomas S. Binns
+* Xabier de Zuazo+

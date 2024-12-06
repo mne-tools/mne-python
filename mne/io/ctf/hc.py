@@ -1,16 +1,15 @@
 """Read .hc files."""
 
-# Author: Eric Larson <larson.eric.d<gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import numpy as np
 
+from ..._fiff.constants import FIFF
 from ...utils import logger
-from .res4 import _make_ctf_name
 from .constants import CTF
-from ..constants import FIFF
-
+from .res4 import _make_ctf_name
 
 _kind_dict = {
     "nasion": CTF.CTFV_COIL_NAS,
@@ -62,7 +61,7 @@ def _read_one_coil_point(fid):
             continue
         sp = sp.split(" ")
         if len(sp) != 3 or sp[0] != coord or sp[1] != "=":
-            raise RuntimeError("Bad line: %s" % one)
+            raise RuntimeError(f"Bad line: {one}")
         # We do not deal with centimeters
         p["r"][ii] = float(sp[2]) / 100.0
     return p

@@ -27,15 +27,16 @@ surrounding "BAD" annotation.
 # Authors: Adonay Nunes <adonay.s.nunes@gmail.com>
 #          Luke Bloy <luke.bloy@gmail.com>
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 
 import matplotlib.pyplot as plt
 import numpy as np
+
 from mne.datasets.brainstorm import bst_auditory
 from mne.io import read_raw_ctf
 from mne.preprocessing import annotate_muscle_zscore
-
 
 # Load data
 data_path = bst_auditory.data_path()

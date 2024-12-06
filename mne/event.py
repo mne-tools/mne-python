@@ -1,37 +1,35 @@
 """IO with fif files containing events."""
 
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
-#          Teon Brooks <teon.brooks@gmail.com>
-#          Clement Moutard <clement.moutard@polytechnique.org>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from collections.abc import Sequence
 from pathlib import Path
 
 import numpy as np
 
+from ._fiff.constants import FIFF
+from ._fiff.open import fiff_open
+from ._fiff.pick import pick_channels
+from ._fiff.tag import read_tag
+from ._fiff.tree import dir_tree_find
+from ._fiff.write import end_block, start_and_end_file, start_block, write_int
 from .utils import (
+    _check_fname,
+    _check_integer_or_list,
+    _check_on_missing,
+    _check_option,
+    _get_stim_channel,
+    _on_missing,
+    _pl,
+    _validate_type,
     check_fname,
+    fill_doc,
     logger,
     verbose,
-    _get_stim_channel,
     warn,
-    _validate_type,
-    _check_option,
-    fill_doc,
-    _check_fname,
-    _on_missing,
-    _check_on_missing,
-    _check_integer_or_list,
 )
-from .io.constants import FIFF
-from .io.tree import dir_tree_find
-from .io.tag import read_tag
-from .io.open import fiff_open
-from .io.write import write_int, start_block, start_and_end_file, end_block
-from .io.pick import pick_channels
 
 
 @fill_doc
@@ -179,10 +177,11 @@ def _read_events_fif(fid, tree):
         if kind == FIFF.FIFF_MNE_EVENT_LIST:
             tag = read_tag(fid, pos)
             event_list = tag.data
-            event_list.shape = (-1, 3)
             break
     if event_list is None:
         raise ValueError("Could not find any events")
+    else:
+        event_list.shape = (-1, 3)
     for d in events["directory"]:
         kind = d.kind
         pos = d.pos
@@ -318,9 +317,7 @@ def read_events(
         event_list = _mask_trigs(event_list, mask, mask_type)
         masked_len = event_list.shape[0]
         if masked_len < unmasked_len:
-            warn(
-                "{} of {} events masked".format(unmasked_len - masked_len, unmasked_len)
-            )
+            warn(f"{unmasked_len - masked_len} of {unmasked_len} events masked")
     out = event_list
     if return_event_id:
         if event_id is None:
@@ -375,7 +372,7 @@ def write_events(filename, events, *, overwrite=False, verbose=None):
     else:
         with open(filename, "w") as f:
             for e in events:
-                f.write("%6d %6d %3d\n" % tuple(e))
+                f.write(f"{e[0]:6d} {e[1]:6d} {e[2]:3d}\n")
 
 
 def _find_stim_steps(data, first_samp, pad_start=None, pad_stop=None, merge=0):
@@ -481,6 +478,7 @@ def find_stim_steps(raw, pad_start=None, pad_stop=None, merge=0, stim_channel=No
 def _find_events(
     data,
     first_samp,
+    *,
     verbose=None,
     output="onset",
     consecutive="increasing",
@@ -489,6 +487,7 @@ def _find_events(
     uint_cast=False,
     mask_type="and",
     initial_event=False,
+    ch_name=None,
 ):
     """Help find events."""
     assert data.shape[0] == 1  # data should be only a row vector
@@ -519,9 +518,9 @@ def _find_events(
             events = np.insert(events, 0, [first_samp, 0, initial_value], axis=0)
         else:
             logger.info(
-                "Trigger channel has a non-zero initial value of {} "
-                "(consider using initial_event=True to detect this "
-                "event)".format(initial_value)
+                f"Trigger channel {ch_name} has a non-zero initial value of "
+                f"{initial_value} (consider using initial_event=True to detect this "
+                "event)"
             )
 
     events = _mask_trigs(events, mask, mask_type)
@@ -554,22 +553,22 @@ def _find_events(
         logger.info("Removing orphaned onset at the end of the file.")
         onset_idx = np.delete(onset_idx, -1)
 
+    _check_option("output", output, ("onset", "step", "offset"))
     if output == "onset":
         events = events[onset_idx]
     elif output == "step":
         idx = np.union1d(onset_idx, offset_idx)
         events = events[idx]
-    elif output == "offset":
+    else:
+        assert output == "offset"
         event_id = events[onset_idx, 2]
         events = events[offset_idx]
         events[:, 1] = events[:, 2]
         events[:, 2] = event_id
         events[:, 0] -= 1
-    else:
-        raise ValueError("Invalid output parameter %r" % output)
 
-    logger.info("%s events found" % len(events))
-    logger.info("Event IDs: %s" % np.unique(events[:, 2]))
+    logger.info(f"{len(events)} event{_pl(events)} found on stim channel {ch_name}")
+    logger.info(f"Event IDs: {np.unique(events[:, 2])}")
 
     return events
 
@@ -583,8 +582,8 @@ def _find_unique_events(events):
     n_dupes = len(events) - len(idx)
     if n_dupes > 0:
         warn(
-            "Some events are duplicated in your different stim channels."
-            " %d events were ignored during deduplication." % n_dupes
+            "Some events are duplicated in your different stim channels. "
+            f"{n_dupes} events were ignored during deduplication."
         )
     return events[idx]
 
@@ -771,7 +770,7 @@ def find_events(
     data, _ = raw[picks, :]
 
     events_list = []
-    for d in data:
+    for d, ch_name in zip(data, stim_channel):
         events = _find_events(
             d[np.newaxis, :],
             raw.first_samp,
@@ -783,18 +782,17 @@ def find_events(
             uint_cast=uint_cast,
             mask_type=mask_type,
             initial_event=initial_event,
+            ch_name=ch_name,
         )
         # add safety check for spurious events (for ex. from neuromag syst.) by
         # checking the number of low sample events
         n_short_events = np.sum(np.diff(events[:, 0]) < shortest_event)
         if n_short_events > 0:
             raise ValueError(
-                "You have %i events shorter than the "
-                "shortest_event. These are very unusual and you "
-                "may want to set min_duration to a larger value "
-                "e.g. x / raw.info['sfreq']. Where x = 1 sample "
-                "shorter than the shortest event "
-                "length." % (n_short_events)
+                f"You have {n_short_events} events shorter than the shortest_event. "
+                "These are very unusual and you may want to set min_duration to a "
+                "larger value e.g. x / raw.info['sfreq']. Where x = 1 sample shorter "
+                "than the shortest event length."
             )
 
         events_list.append(events)
@@ -820,7 +818,7 @@ def _mask_trigs(events, mask, mask_type):
         elif mask_type != "and":
             raise ValueError(
                 "'mask_type' should be either 'and'"
-                " or 'not_and', instead of '%s'" % mask_type
+                f" or 'not_and', instead of '{mask_type}'"
             )
         events[:, 1:] = np.bitwise_and(events[:, 1:], mask)
     events = events[events[:, 1] != events[:, 2]]
@@ -913,7 +911,7 @@ def shift_time_events(events, ids, tshift, sfreq):
     if ids is None:
         mask = slice(None)
     else:
-        mask = np.in1d(events[:, 2], ids)
+        mask = np.isin(events[:, 2], ids)
     events[mask, 0] += int(tshift * sfreq)
 
     return events
@@ -921,7 +919,13 @@ def shift_time_events(events, ids, tshift, sfreq):
 
 @fill_doc
 def make_fixed_length_events(
-    raw, id=1, start=0, stop=None, duration=1.0, first_samp=True, overlap=0.0
+    raw,
+    id=1,  # noqa: A002
+    start=0,
+    stop=None,
+    duration=1.0,
+    first_samp=True,
+    overlap=0.0,
 ):
     """Make a set of :term:`events` separated by a fixed duration.
 
@@ -954,7 +958,7 @@ def make_fixed_length_events(
     -------
     %(events)s
     """
-    from .io.base import BaseRaw
+    from .io import BaseRaw
 
     _validate_type(raw, BaseRaw, "raw")
     _validate_type(id, "int", "id")
@@ -963,7 +967,7 @@ def make_fixed_length_events(
     duration, overlap = float(duration), float(overlap)
     if not 0 <= overlap < duration:
         raise ValueError(
-            "overlap must be >=0 but < duration (%s), got %s" % (duration, overlap)
+            f"overlap must be >=0 but < duration ({duration}), got {overlap}"
         )
 
     start = raw.time_as_index(start, use_rounding=True)[0]
@@ -985,7 +989,7 @@ def make_fixed_length_events(
     n_events = len(ts)
     if n_events == 0:
         raise ValueError(
-            "No events produced, check the values of start, " "stop, and duration"
+            "No events produced, check the values of start, stop, and duration"
         )
     events = np.c_[ts, np.zeros(n_events, dtype=int), id * np.ones(n_events, dtype=int)]
     return events
@@ -1020,7 +1024,7 @@ def concatenate_events(events, first_samps, last_samps):
     _validate_type(events, list, "events")
     if not (len(events) == len(last_samps) and len(events) == len(first_samps)):
         raise ValueError(
-            "events, first_samps, and last_samps must all have " "the same lengths"
+            "events, first_samps, and last_samps must all have the same lengths"
         )
     first_samps = np.array(first_samps)
     last_samps = np.array(last_samps)
@@ -1138,7 +1142,7 @@ class AcqParserFIF:
         "OldMask",
     )
 
-    def __init__(self, info):  # noqa: D102
+    def __init__(self, info):
         acq_pars = info["acq_pars"]
         if not acq_pars:
             raise ValueError("No acquisition parameters")
@@ -1185,16 +1189,16 @@ class AcqParserFIF:
 
     def __repr__(self):  # noqa: D105
         s = "<AcqParserFIF | "
-        s += "categories: %d " % self.ncateg
+        s += f"categories: {self.ncateg} "
         cats_in_use = len(self._categories_in_use)
-        s += "(%d in use), " % cats_in_use
-        s += "events: %d " % self.nevent
+        s += f"({cats_in_use} in use), "
+        s += f"events: {self.nevent} "
         evs_in_use = len(self._events_in_use)
-        s += "(%d in use)" % evs_in_use
+        s += f"({evs_in_use} in use)"
         if self.categories:
             s += "\nAveraging categories:"
             for cat in self.categories:
-                s += '\n%d: "%s"' % (cat["index"], cat["comment"])
+                s += f'\n{cat["index"]}: "{cat["comment"]}"'
         s += ">"
         return s
 
@@ -1623,7 +1627,7 @@ def match_event_names(event_names, keys, *, on_missing="raise"):
         event_names = list(event_names)
 
     # ensure we have a list of `keys`
-    if isinstance(keys, (Sequence, np.ndarray)) and not isinstance(keys, str):
+    if isinstance(keys, Sequence | np.ndarray) and not isinstance(keys, str):
         keys = list(keys)
     else:
         keys = [keys]
@@ -1681,7 +1685,7 @@ def count_events(events, ids=None):
         {1: 2, 11: 0}
     """
     counts = np.bincount(events[:, 2])
-    counts = {i: count for i, count in enumerate(counts) if count > 0}
+    counts = {i: int(count) for i, count in enumerate(counts) if count > 0}
     if ids is not None:
-        return {id: counts.get(id, 0) for id in ids}
+        counts = {id_: counts.get(id_, 0) for id_ in ids}
     return counts

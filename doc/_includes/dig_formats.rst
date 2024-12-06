@@ -1,4 +1,5 @@
 :orphan:
+
 .. _dig-formats:
 
 Supported formats for digitized 3D locations

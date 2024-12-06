@@ -1,28 +1,30 @@
 """Some utility functions for rank estimation."""
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#
+
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import numpy as np
+from scipy import linalg
 
+from ._fiff.meas_info import Info, _simplify_info
+from ._fiff.pick import _picks_by_type, _picks_to_idx, pick_channels_cov, pick_info
+from ._fiff.proj import make_projector
 from .defaults import _handle_default
-from .io.meas_info import _simplify_info
-from .io.pick import _picks_by_type, pick_info, pick_channels_cov, _picks_to_idx
-from .io.proj import make_projector
 from .utils import (
-    logger,
-    _compute_row_norms,
-    _pl,
-    _validate_type,
     _apply_scaling_cov,
-    _undo_scaling_cov,
-    _scaled_array,
-    warn,
-    _check_rank,
-    _on_missing,
-    verbose,
     _check_on_missing,
+    _check_rank,
+    _compute_row_norms,
+    _on_missing,
+    _pl,
+    _scaled_array,
+    _undo_scaling_cov,
+    _validate_type,
     fill_doc,
+    logger,
+    verbose,
+    warn,
 )
 
 
@@ -62,8 +64,6 @@ def estimate_rank(
         If return_singular is True, the singular values that were
         thresholded to determine the rank are also returned.
     """
-    from scipy import linalg
-
     if norm:
         data = data.copy()  # operate on a copy
         norms = _compute_row_norms(data)
@@ -100,7 +100,7 @@ def _estimate_rank_from_s(s, tol="auto", tol_kind="absolute"):
     max_s = np.amax(s, axis=-1)
     if isinstance(tol, str):
         if tol not in ("auto", "float32"):
-            raise ValueError('tol must be "auto" or float, got %r' % (tol,))
+            raise ValueError(f'tol must be "auto" or float, got {repr(tol)}')
         # XXX this should be float32 probably due to how we save and
         # load data, but it breaks test_make_inverse_operator (!)
         # The factor of 2 gets test_compute_covariance_auto_reg[None]
@@ -114,7 +114,11 @@ def _estimate_rank_from_s(s, tol="auto", tol_kind="absolute"):
         if s.ndim == 1:  # typical
             logger.info(
                 "    Using tolerance %0.2g (%0.2g eps * %d dim * %0.2g"
-                "  max singular value)" % (tol, eps, len(s), max_s)
+                "  max singular value)",
+                tol,
+                eps,
+                len(s),
+                max_s,
             )
     elif not (isinstance(tol, np.ndarray) and tol.dtype.kind == "f"):
         tol = float(tol)
@@ -139,7 +143,13 @@ def _estimate_rank_raw(
 
 @fill_doc
 def _estimate_rank_meeg_signals(
-    data, info, scalings, tol="auto", return_singular=False, tol_kind="absolute"
+    data,
+    info,
+    scalings,
+    tol="auto",
+    return_singular=False,
+    tol_kind="absolute",
+    log_ch_type=None,
 ):
     """Estimate rank for M/EEG data.
 
@@ -187,14 +197,24 @@ def _estimate_rank_meeg_signals(
             tol_kind=tol_kind,
         )
     rank = out[0] if isinstance(out, tuple) else out
-    ch_type = " + ".join(list(zip(*picks_list))[0])
-    logger.info("    Estimated rank (%s): %d" % (ch_type, rank))
+    if log_ch_type is None:
+        ch_type = " + ".join(list(zip(*picks_list))[0])
+    else:
+        ch_type = log_ch_type
+    logger.info("    Estimated rank (%s): %d", ch_type, rank)
     return out
 
 
 @verbose
 def _estimate_rank_meeg_cov(
-    data, info, scalings, tol="auto", return_singular=False, verbose=None
+    data,
+    info,
+    scalings,
+    tol="auto",
+    return_singular=False,
+    *,
+    log_ch_type=None,
+    verbose=None,
 ):
     """Estimate rank of M/EEG covariance data, given the covariance.
 
@@ -235,8 +255,11 @@ def _estimate_rank_meeg_cov(
         )
     out = estimate_rank(data, tol=tol, norm=False, return_singular=return_singular)
     rank = out[0] if isinstance(out, tuple) else out
-    ch_type = " + ".join(list(zip(*picks_list))[0])
-    logger.info("    Estimated rank (%s): %d" % (ch_type, rank))
+    if log_ch_type is None:
+        ch_type_ = " + ".join(list(zip(*picks_list))[0])
+    else:
+        ch_type_ = log_ch_type
+    logger.info(f"    Estimated rank ({ch_type_}): {rank}")
     _undo_scaling_cov(data, picks_list, scalings)
     return out
 
@@ -263,8 +286,6 @@ def _get_rank_sss(
     """
     # XXX this is too basic for movement compensated data
     # https://github.com/mne-tools/mne-python/issues/4676
-    from .io.meas_info import Info
-
     info = inst if isinstance(inst, Info) else inst.info
     del inst
 
@@ -277,7 +298,7 @@ def _get_rank_sss(
         or "in_order" not in proc_info[0]["max_info"]["sss_info"]
     ):
         raise ValueError(
-            "Could not find Maxfilter information in " 'info["proc_history"]. %s' % msg
+            f'Could not find Maxfilter information in info["proc_history"]. {msg}'
         )
     proc_info = proc_info[0]
     max_info = proc_info["max_info"]
@@ -323,7 +344,7 @@ def compute_rank(
 
     This function will normalize the rows of the data (typically
     channels or vertices) such that non-zero singular values
-    should be close to one.
+    should be close to one. It operates on :term:`data channels` only.
 
     Parameters
     ----------
@@ -354,9 +375,35 @@ def compute_rank(
     -----
     .. versionadded:: 0.18
     """
-    from .io.base import BaseRaw
+    return _compute_rank(
+        inst=inst,
+        rank=rank,
+        scalings=scalings,
+        info=info,
+        tol=tol,
+        proj=proj,
+        tol_kind=tol_kind,
+        on_rank_mismatch=on_rank_mismatch,
+    )
+
+
+@verbose
+def _compute_rank(
+    inst,
+    rank=None,
+    scalings=None,
+    info=None,
+    *,
+    tol="auto",
+    proj=True,
+    tol_kind="absolute",
+    on_rank_mismatch="ignore",
+    log_ch_type=None,
+    verbose=None,
+):
+    from .cov import Covariance
     from .epochs import BaseEpochs
-    from . import Covariance
+    from .io import BaseRaw
 
     rank = _check_rank(rank)
     scalings = _handle_default("scalings_cov_rank", scalings)
@@ -370,7 +417,10 @@ def compute_rank(
         info = info.copy()
         info["bads"] = []
         inst = pick_channels_cov(
-            inst, set(inst["names"]) & set(info["ch_names"]), exclude=[], ordered=False
+            inst,
+            set(inst["names"]) & set(info["ch_names"]),
+            exclude=info["bads"] + inst["bads"],
+            ordered=False,
         )
         if info["ch_names"] != inst["names"]:
             info = pick_info(
@@ -379,7 +429,7 @@ def compute_rank(
     else:
         info = inst.info
         inst_type = "data"
-    logger.info("Computing rank from %s with rank=%r" % (inst_type, rank))
+    logger.info(f"Computing rank from {inst_type} with rank={repr(rank)}")
 
     _validate_type(rank, (str, dict, None), "rank")
     if isinstance(rank, str):  # string, either 'info' or 'full'
@@ -419,38 +469,40 @@ def compute_rank(
             proj_op, n_proj, _ = make_projector(info["projs"], ch_names)
         else:
             proj_op, n_proj = None, 0
+        if log_ch_type is None:
+            ch_type_ = ch_type.upper()
+        else:
+            ch_type_ = log_ch_type
         if rank_type == "info":
             # use info
             this_rank = _info_rank(info, ch_type, picks, info_type)
             if info_type != "full":
                 this_rank -= n_proj
                 logger.info(
-                    "    %s: rank %d after %d projector%s applied to "
-                    "%d channel%s"
-                    % (
-                        ch_type.upper(),
-                        this_rank,
-                        n_proj,
-                        _pl(n_proj),
-                        n_chan,
-                        _pl(n_chan),
-                    )
+                    f"    {ch_type_}: rank {this_rank} after "
+                    f"{n_proj} projector{_pl(n_proj)} applied to "
+                    f"{n_chan} channel{_pl(n_chan)}"
                 )
             else:
-                logger.info("    %s: rank %d from info" % (ch_type.upper(), this_rank))
+                logger.info(f"    {ch_type_}: rank {this_rank} from info")
         else:
             # Use empirical estimation
             assert rank_type == "estimated"
-            if isinstance(inst, (BaseRaw, BaseEpochs)):
+            if isinstance(inst, BaseRaw | BaseEpochs):
                 if isinstance(inst, BaseRaw):
                     data = inst.get_data(picks, reject_by_annotation="omit")
                 else:  # isinstance(inst, BaseEpochs):
-                    data = inst.get_data()[:, picks, :]
-                    data = np.concatenate(data, axis=1)
+                    data = np.concatenate(inst.get_data(picks), axis=1)
                 if proj:
                     data = np.dot(proj_op, data)
                 this_rank = _estimate_rank_meeg_signals(
-                    data, pick_info(simple_info, picks), scalings, tol, False, tol_kind
+                    data,
+                    pick_info(simple_info, picks),
+                    scalings,
+                    tol,
+                    False,
+                    tol_kind,
+                    log_ch_type=log_ch_type,
                 )
             else:
                 assert isinstance(inst, Covariance)
@@ -467,6 +519,7 @@ def compute_rank(
                         scalings,
                         tol,
                         return_singular=True,
+                        log_ch_type=log_ch_type,
                         verbose=est_verbose,
                     )
                     if ch_type in rank:
@@ -486,18 +539,18 @@ def compute_rank(
                         continue
             this_info_rank = _info_rank(info, ch_type, picks, "info")
             logger.info(
-                "    %s: rank %d computed from %d data channel%s "
-                "with %d projector%s"
-                % (ch_type.upper(), this_rank, n_chan, _pl(n_chan), n_proj, _pl(n_proj))
+                f"    {ch_type_}: rank {this_rank} computed from "
+                f"{n_chan} data channel{_pl(n_chan)} with "
+                f"{n_proj} projector{_pl(n_proj)}"
             )
             if this_rank > this_info_rank:
                 warn(
-                    "Something went wrong in the data-driven estimation of "
-                    "the data rank as it exceeds the theoretical rank from "
-                    'the info (%d > %d). Consider setting rank to "auto" or '
-                    "setting it explicitly as an integer." % (this_rank, this_info_rank)
+                    "Something went wrong in the data-driven estimation of the data "
+                    "rank as it exceeds the theoretical rank from the info "
+                    f"({this_rank} > {this_info_rank}). Consider setting rank "
+                    'to "auto" or setting it explicitly as an integer.'
                 )
         if ch_type not in rank:
-            rank[ch_type] = this_rank
+            rank[ch_type] = int(this_rank)
 
     return rank

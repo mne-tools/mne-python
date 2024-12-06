@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "7efe0b14d82be746799a99de4bb7b64c7ba1b644",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/install/installers.rst": {
+      "a": 4,
+      "d": 4
+    }
+  }
+}

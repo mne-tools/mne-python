@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "22bec9c303824cc20da87d2da42f02e0b691d564",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "mne/fiff/__init__.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/fiff/proj.py": {
+      "a": 0,
+      "d": 25
+    },
+    "mne/fiff/raw.py": {
+      "a": 6,
+      "d": 106
+    }
+  }
+}

@@ -1,17 +1,18 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
-from numpy.testing import assert_array_equal, assert_allclose
 import numpy as np
-from scipy import stats, sparse
 import pytest
+from numpy.testing import assert_allclose, assert_array_equal
+from scipy import stats
 
+from mne.fixes import _eye_array
 from mne.stats import permutation_cluster_1samp_test
 from mne.stats.permutations import (
-    permutation_t_test,
     _ci,
     bootstrap_confidence_interval,
+    permutation_t_test,
 )
 
 
@@ -47,7 +48,7 @@ def test_permutation_t_test():
     assert_array_equal(is_significant, [True, True, False, False, False])
 
     # check equivalence with spatio_temporal_cluster_test
-    for adjacency in (sparse.eye(n_tests), False):
+    for adjacency in (_eye_array(n_tests), False):
         t_obs_clust, _, p_values_clust, _ = permutation_cluster_1samp_test(
             X, n_permutations=999, seed=0, adjacency=adjacency, out_type="mask"
         )

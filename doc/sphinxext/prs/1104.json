@@ -1,0 +1,59 @@
+{
+  "merge_commit_sha": "a3dbd6751c4455c436ced5bd6d96019285b0cfb3",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/source/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/externals/__init__.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/externals/jdcal.py": {
+      "a": 116,
+      "d": 0
+    },
+    "mne/fiff/brainvision/brainvision.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/fiff/constants.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/fiff/edf/edf.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/fiff/meas_info.py": {
+      "a": 67,
+      "d": 3
+    },
+    "mne/fiff/open.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/fiff/raw.py": {
+      "a": 6,
+      "d": 0
+    },
+    "mne/fiff/tag.py": {
+      "a": 4,
+      "d": 1
+    },
+    "mne/fiff/tests/test_raw.py": {
+      "a": 28,
+      "d": 2
+    },
+    "mne/fiff/write.py": {
+      "a": 10,
+      "d": 1
+    }
+  }
+}

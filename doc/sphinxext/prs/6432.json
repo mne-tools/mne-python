@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "2fedaac463db67ac7a3435e419d6161e11a5edfb",
+  "authors": [
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    }
+  ],
+  "changes": {
+    "doc/documentation.rst": {
+      "a": 20,
+      "d": 17
+    },
+    "doc/glossary.rst": {
+      "a": 2,
+      "d": 2
+    },
+    "tutorials/source-modeling/plot_background_freesurfer.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

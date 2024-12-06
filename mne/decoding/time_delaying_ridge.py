@@ -1,16 +1,19 @@
 """TimeDelayingRidge class."""
-# Authors: Eric Larson <larson.eric.d@gmail.com>
-#          Ross Maddox <ross.maddox@rochester.edu>
-#
+
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import numpy as np
+from scipy import linalg
+from scipy.signal import fftconvolve
+from scipy.sparse.csgraph import laplacian
+from sklearn.base import BaseEstimator, RegressorMixin
 
-from .base import BaseEstimator
 from ..cuda import _setup_cuda_fft_multiply_repeated
 from ..filter import next_fast_len
 from ..fixes import jit
-from ..utils import warn, ProgressBar, logger
+from ..utils import ProgressBar, _check_option, _validate_type, logger, warn
 
 
 def _compute_corrs(
@@ -36,8 +39,9 @@ def _compute_corrs(
     assert X.shape[:2] == y.shape[:2]
     len_trf = smax - smin
     len_x, n_epochs, n_ch_x = X.shape
-    len_y, n_epcohs, n_ch_y = y.shape
+    len_y, n_epochs_y, n_ch_y = y.shape
     assert len_x == len_y
+    assert n_epochs == n_epochs_y
 
     n_fft = next_fast_len(2 * X.shape[0] - 1)
 
@@ -56,7 +60,7 @@ def _compute_corrs(
     x_xt = np.zeros([n_ch_x * len_trf] * 2)
     x_y = np.zeros((len_trf, n_ch_x, n_ch_y), order="F")
     n = n_epochs * (n_ch_x * (n_ch_x + 1) // 2 + n_ch_x)
-    logger.info("Fitting %d epochs, %d channels" % (n_epochs, n_ch_x))
+    logger.info(f"Fitting {n_epochs} epochs, {n_ch_x} channels")
     pb = ProgressBar(n, mesg="Sample")
     count = 0
     pb.update(count)
@@ -149,19 +153,14 @@ def _toeplitz_dot(a, b):
 
 def _compute_reg_neighbors(n_ch_x, n_delays, reg_type, method="direct", normed=False):
     """Compute regularization parameter from neighbors."""
-    from scipy import linalg
-    from scipy.sparse.csgraph import laplacian
-
     known_types = ("ridge", "laplacian")
     if isinstance(reg_type, str):
         reg_type = (reg_type,) * 2
     if len(reg_type) != 2:
-        raise ValueError("reg_type must have two elements, got %s" % (len(reg_type),))
+        raise ValueError(f"reg_type must have two elements, got {len(reg_type)}")
     for r in reg_type:
         if r not in known_types:
-            raise ValueError(
-                "reg_type entries must be one of %s, got %s" % (known_types, r)
-            )
+            raise ValueError(f"reg_type entries must be one of {known_types}, got {r}")
     reg_time = reg_type[0] == "laplacian" and n_delays > 1
     reg_chs = reg_type[1] == "laplacian" and n_ch_x > 1
     if not reg_time and not reg_chs:
@@ -206,8 +205,6 @@ def _compute_reg_neighbors(n_ch_x, n_delays, reg_type, method="direct", normed=F
 def _fit_corrs(x_xt, x_y, n_ch_x, reg_type, alpha, n_ch_in):
     """Fit the model using correlation matrices."""
     # do the regularized solving
-    from scipy import linalg
-
     n_ch_out = x_y.shape[1]
     assert x_y.shape[0] % n_ch_x == 0
     n_delays = x_y.shape[0] // n_ch_x
@@ -229,7 +226,7 @@ def _fit_corrs(x_xt, x_y, n_ch_x, reg_type, alpha, n_ch_in):
     return w
 
 
-class TimeDelayingRidge(BaseEstimator):
+class TimeDelayingRidge(RegressorMixin, BaseEstimator):
     """Ridge regression of data with time delays.
 
     Parameters
@@ -290,12 +287,10 @@ class TimeDelayingRidge(BaseEstimator):
         n_jobs=None,
         edge_correction=True,
     ):
-        if tmin > tmax:
-            raise ValueError("tmin must be <= tmax, got %s and %s" % (tmin, tmax))
-        self.tmin = float(tmin)
-        self.tmax = float(tmax)
-        self.sfreq = float(sfreq)
-        self.alpha = float(alpha)
+        self.tmin = tmin
+        self.tmax = tmax
+        self.sfreq = sfreq
+        self.alpha = alpha
         self.reg_type = reg_type
         self.fit_intercept = fit_intercept
         self.edge_correction = edge_correction
@@ -303,11 +298,11 @@ class TimeDelayingRidge(BaseEstimator):
 
     @property
     def _smin(self):
-        return int(round(self.tmin * self.sfreq))
+        return int(round(self.tmin_ * self.sfreq_))
 
     @property
     def _smax(self):
-        return int(round(self.tmax * self.sfreq)) + 1
+        return int(round(self.tmax_ * self.sfreq_)) + 1
 
     def fit(self, X, y):
         """Estimate the coefficients of the linear model.
@@ -324,12 +319,27 @@ class TimeDelayingRidge(BaseEstimator):
         self : instance of TimeDelayingRidge
             Returns the modified instance.
         """
+        _validate_type(X, "array-like", "X")
+        _validate_type(y, "array-like", "y")
+        self.tmin_ = float(self.tmin)
+        self.tmax_ = float(self.tmax)
+        self.sfreq_ = float(self.sfreq)
+        self.alpha_ = float(self.alpha)
+        if self.tmin_ > self.tmax_:
+            raise ValueError(f"tmin must be <= tmax, got {self.tmin_} and {self.tmax_}")
+        X = np.asarray(X, dtype=float)
+        y = np.asarray(y, dtype=float)
         if X.ndim == 3:
             assert y.ndim == 3
             assert X.shape[:2] == y.shape[:2]
         else:
-            assert X.ndim == 2 and y.ndim == 2
-            assert X.shape[0] == y.shape[0]
+            if X.ndim == 1:
+                X = X[:, np.newaxis]
+            if y.ndim == 1:
+                y = y[:, np.newaxis]
+            assert X.ndim == 2
+            assert y.ndim == 2
+        _check_option("y.shape[0]", y.shape[0], (X.shape[0],))
         # These are split into two functions because it's possible that we
         # might want to allow people to do them separately (e.g., to test
         # different regularization parameters).
@@ -343,7 +353,7 @@ class TimeDelayingRidge(BaseEstimator):
             self.edge_correction,
         )
         self.coef_ = _fit_corrs(
-            self.cov_, x_y_, n_ch_x, self.reg_type, self.alpha, n_ch_x
+            self.cov_, x_y_, n_ch_x, self.reg_type, self.alpha_, n_ch_x
         )
         # This is the sklearn formula from LinearModel (will be 0. for no fit)
         if self.fit_intercept:
@@ -365,8 +375,6 @@ class TimeDelayingRidge(BaseEstimator):
         X : ndarray
             The predicted response.
         """
-        from scipy.signal import fftconvolve
-
         if X.ndim == 2:
             X = X[:, np.newaxis, :]
             singleton = True

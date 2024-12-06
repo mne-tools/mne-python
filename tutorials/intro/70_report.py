@@ -6,28 +6,33 @@ Getting started with mne.Report
 ===============================
 
 :class:`mne.Report` is a way to create interactive HTML summaries of your data.
-These reports can show many different visualizations for one or multiple
-participants. A common use case is creating diagnostic summaries to check data
+These reports can show many different visualizations for one or multiple participants.
+A common use case is creating diagnostic summaries to check data
 quality at different stages in the processing pipeline. The report can show
 things like plots of data before and after each preprocessing step, epoch
 rejection statistics, MRI slices with overlaid BEM shells, all the way up to
 plots of estimated cortical activity.
 
-Compared to a Jupyter notebook, :class:`mne.Report` is easier to deploy (the
+Compared to a Jupyter notebook, :class:`mne.Report` is easier to deploy, as the
 HTML pages it generates are self-contained and do not require a running Python
-environment) but less flexible (you can't change code and re-run something
-directly within the browser). This tutorial covers the basics of building a
-:class:`~mne.Report`. As usual, we'll start by importing the modules and data
-we need:
+environment. However, it is less flexible as you can't change code and re-run
+something directly within the browser. This tutorial covers the basics of
+building a report. As usual, we will start by importing the modules and data we need:
 """
+
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 
-from pathlib import Path
 import tempfile
+from pathlib import Path
+
+import matplotlib.pyplot as plt
 import numpy as np
 import scipy.ndimage
-import matplotlib.pyplot as plt
+
 import mne
 
 data_path = Path(mne.datasets.sample.data_path(verbose=False))
@@ -35,32 +40,6 @@ sample_dir = data_path / "MEG" / "sample"
 subjects_dir = data_path / "subjects"
 
 # %%
-# Before getting started with :class:`mne.Report`, make sure the files you want
-# to render follow the filename conventions defined by MNE:
-#
-# .. cssclass:: table-bordered
-# .. rst-class:: midvalign
-#
-# =================================== =========================================
-# Data object                         Filename convention (ends with)
-# =================================== =========================================
-# `~mne.io.Raw`                       ``-raw.fif(.gz)``, ``-raw_sss.fif(.gz)``,
-#                                     ``-raw_tsss.fif(.gz)``,
-#                                     ``_meg.fif(.gz)``, ``_eeg.fif(.gz)``,
-#                                     ``_ieeg.fif(.gz)``
-# events                              ``-eve.fif(.gz)``
-# `~mne.Epochs`                       ``-epo.fif(.gz)``
-# `~mne.Evoked`                       ``-ave.fif(.gz)``
-# `~mne.Covariance`                   ``-cov.fif(.gz)``
-# `~mne.Projection`                   ``-proj.fif(.gz)``
-# `~mne.transforms.Transform`         ``-trans.fif(.gz)``
-# `~mne.Forward`                      ``-fwd.fif(.gz)``
-# `~mne.minimum_norm.InverseOperator` ``-inv.fif(.gz)``
-# =================================== =========================================
-#
-# Alternatively, the dash ``-`` in the filename may be replaced with an
-# underscore ``_``.
-#
 # The basic process for creating an HTML report is to instantiate the
 # :class:`~mne.Report` class and then use one or more of its many methods to
 # add content, one element at a time.
@@ -88,7 +67,7 @@ subjects_dir = data_path / "subjects"
 
 raw_path = sample_dir / "sample_audvis_filt-0-40_raw.fif"
 raw = mne.io.read_raw(raw_path)
-raw.pick_types(eeg=True, eog=True, stim=True).crop(tmax=60).load_data()
+raw.pick(picks=["eeg", "eog", "stim"]).crop(tmax=60).load_data()
 
 report = mne.Report(title="Raw example")
 # This method also accepts a path, e.g., raw=raw_path
@@ -119,7 +98,7 @@ report.save("report_events.html", overwrite=True)
 # Epochs can be added via :meth:`mne.Report.add_epochs`. Note that although
 # this method accepts a path to an epochs file too, in the following example
 # we only add epochs that we create on the fly from raw data. To demonstrate
-# the representation of epochs metadata, we'll add some of that too.
+# the representation of epochs metadata, we'll add some of that, too.
 
 event_id = {
     "auditory/left": 1,
@@ -153,7 +132,7 @@ report.save("report_epochs.html", overwrite=True)
 # noise covariance, we can add plots evokeds that were "whitened" using this
 # covariance matrix.
 #
-# By default, this method will produce snapshots at 21 equally-spaced time
+# By default, this method will produce topographic plots at 21 equally-spaced time
 # points (or fewer, if the data contains fewer time points). We can adjust this
 # via the ``n_time_points`` parameter.
 
@@ -203,13 +182,28 @@ report.save("report_cov.html", overwrite=True)
 # ignored; instead, only the explicitly passed projectors will be plotted.
 
 ecg_proj_path = sample_dir / "sample_audvis_ecg-proj.fif"
-eog_proj_path = sample_dir / "sample_audvis_eog-proj.fif"
-
 report = mne.Report(title="Projectors example")
 report.add_projs(info=raw_path, title="Projs from info")
-report.add_projs(info=raw_path, projs=ecg_proj_path, title="ECG projs from path")
-report.add_projs(info=raw_path, projs=eog_proj_path, title="EOG projs from path")
+
+# Now a joint plot
+events = mne.read_events(sample_dir / "sample_audvis_ecg-eve.fif")
+raw_full = mne.io.read_raw(sample_dir / "sample_audvis_raw.fif").crop(0, 60).load_data()
+ecg_evoked = mne.Epochs(
+    raw=raw_full,
+    events=events,
+    tmin=-0.5,
+    tmax=0.5,
+    baseline=(None, None),
+).average()
+report.img_max_width = None  # do not constrain image width
+report.add_projs(
+    info=ecg_evoked,
+    projs=ecg_proj_path,
+    title="ECG projs from path",
+    joint=True,  # use joint version of the plot
+)
 report.save("report_projs.html", overwrite=True)
+del raw_full, events, ecg_evoked
 
 # %%
 # Adding `~mne.preprocessing.ICA`
@@ -268,7 +262,7 @@ report = mne.Report(title="ICA example")
 report.add_ica(
     ica=ica,
     title="ICA cleaning",
-    picks=[0, 1],  # only plot the first two components
+    picks=ica.exclude,  # plot the excluded EOG components
     inst=raw,
     eog_evoked=eog_epochs.average(),
     eog_scores=eog_scores,
@@ -289,7 +283,11 @@ report.save("report_ica.html", overwrite=True)
 
 report = mne.Report(title="BEM example")
 report.add_bem(
-    subject="sample", subjects_dir=subjects_dir, title="MRI & BEM", decim=20, width=256
+    subject="sample",
+    subjects_dir=subjects_dir,
+    title="MRI & BEM",
+    decim=40,
+    width=256,
 )
 report.save("report_mri_and_bem.html", overwrite=True)
 
@@ -452,7 +450,7 @@ plt.close(fig_2)
 
 mne_logo_path = Path(mne.__file__).parent / "icons" / "mne_icon-cropped.png"
 fig_array = plt.imread(mne_logo_path)
-rotation_angles = np.linspace(start=0, stop=360, num=17)
+rotation_angles = np.linspace(start=0, stop=360, num=8, endpoint=False)
 
 figs = []
 captions = []
@@ -462,7 +460,7 @@ for angle in rotation_angles:
     fig_array_rotated = fig_array_rotated.clip(min=0, max=1)
 
     # Create the figure
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=(3, 3), layout="constrained")
     ax.imshow(fig_array_rotated)
     ax.set_axis_off()
 
@@ -470,16 +468,11 @@ for angle in rotation_angles:
     figs.append(fig)
     captions.append(f"Rotation angle: {round(angle, 1)}°")
 
-# can also be a MNEQtBrowser instance
-figs.append(raw.plot())
-captions.append("... plus a raw data plot")
-
 report = mne.Report(title="Multiple figures example")
 report.add_figure(fig=figs, title="Fun with figures! 🥳", caption=captions)
 report.save("report_custom_figures.html", overwrite=True)
-for fig in figs[:-1]:
+for fig in figs:
     plt.close(fig)
-figs[-1].close()
 del figs
 
 # %%
@@ -516,7 +509,9 @@ report.save("report_custom_image.html", overwrite=True)
 
 report = mne.Report(title="Tags example")
 report.add_image(
-    image=mne_logo_path, title="MNE Logo", tags=("image", "mne", "logo", "open-source")
+    image=mne_logo_path,
+    title="MNE Logo",
+    tags=("image", "mne", "logo", "open-source"),
 )
 report.save("report_tags.html", overwrite=True)
 
@@ -561,6 +556,33 @@ with mne.open_report("report_partial.hdf5") as report:
 # once, without having to invoke the individual ``add_*`` methods outlined
 # above for each file. This approach, while convenient, provides less
 # flexibility with respect to content ordering, tags, titles, etc.
+#
+# Before getting started with :class:`mne.Report`, make sure the files you want
+# to render follow the filename conventions defined by MNE:
+#
+# .. cssclass:: table-bordered
+# .. rst-class:: midvalign
+#
+# =================================== =========================================
+# Data object                         Filename convention (ends with)
+# =================================== =========================================
+# `~mne.io.Raw`                       ``-raw.fif(.gz)``, ``-raw_sss.fif(.gz)``,
+#                                     ``-raw_tsss.fif(.gz)``,
+#                                     ``_meg.fif(.gz)``, ``_eeg.fif(.gz)``,
+#                                     ``_ieeg.fif(.gz)``
+# events                              ``-eve.fif(.gz)``
+# `~mne.Epochs`                       ``-epo.fif(.gz)``
+# `~mne.Evoked`                       ``-ave.fif(.gz)``
+# `~mne.Covariance`                   ``-cov.fif(.gz)``
+# `~mne.Projection`                   ``-proj.fif(.gz)``
+# `~mne.transforms.Transform`         ``-trans.fif(.gz)``
+# `~mne.Forward`                      ``-fwd.fif(.gz)``
+# `~mne.minimum_norm.InverseOperator` ``-inv.fif(.gz)``
+# `~mne.SourceEstimate`               ``-lh.stc``, ``-rh.stc``
+# =================================== =========================================
+#
+# Alternatively, the dash ``-`` in the filename may be replaced with an
+# underscore ``_`` (except for the ``.stc`` files).
 #
 # For our first example, we'll generate a barebones report for all the
 # :file:`.fif` files containing raw data in the sample dataset, by passing the
@@ -610,7 +632,7 @@ report.save("report_parse_folder_raw_psd_projs.html", overwrite=True)
 report = mne.Report(
     title="parse_folder example 3", subject="sample", subjects_dir=subjects_dir
 )
-report.parse_folder(data_path=data_path, pattern="", mri_decim=25)
+report.parse_folder(data_path=data_path, pattern="", mri_decim=40)
 report.save("report_parse_folder_mri_bem.html", overwrite=True)
 
 # %%
@@ -637,8 +659,8 @@ report.save("report_parse_folder_mri_bem.html", overwrite=True)
 
 baseline = (None, 0)
 cov_fname = sample_dir / "sample_audvis-cov.fif"
-pattern = "sample_audvis-no-filter-ave.fif"
-evoked = mne.read_evokeds(sample_dir / pattern)[0]
+pattern = "sample_audvis-ave.fif"
+evoked = mne.read_evokeds(sample_dir / pattern)[0].pick("eeg").decimate(4)
 report = mne.Report(
     title="parse_folder example 4", baseline=baseline, cov_fname=cov_fname
 )
@@ -648,22 +670,6 @@ with tempfile.TemporaryDirectory() as path:
         path, pattern=pattern, render_bem=False, n_time_points_evokeds=5
     )
 report.save("report_parse_folder_evoked.html", overwrite=True)
-
-# %%
-# If you want to actually *view* the noise covariance in the report, make sure
-# it is captured by the pattern passed to :meth:`~mne.Report.parse_folder`, and
-# also include a source for an :class:`~mne.Info` object (any of the
-# :class:`~mne.io.Raw`, :class:`~mne.Epochs` or :class:`~mne.Evoked`
-# :file:`.fif` files that contain subject data also contain the measurement
-# information and should work):
-
-pattern = "sample_audvis-cov.fif"
-info_fname = sample_dir / "sample_audvis-ave.fif"
-report = mne.Report(title="parse_folder example 5", info_fname=info_fname)
-report.parse_folder(
-    data_path, pattern=pattern, render_bem=False, n_time_points_evokeds=5
-)
-report.save("report_parse_folder_cov.html", overwrite=True)
 
 # %%
 #

@@ -1,46 +1,50 @@
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
+
 import os
 from functools import reduce
 from glob import glob
 from shutil import copyfile
 
-import pytest
 import numpy as np
+import pytest
 from numpy.testing import (
-    assert_array_almost_equal,
     assert_allclose,
+    assert_array_almost_equal,
     assert_array_equal,
     assert_array_less,
 )
 
 import mne
+from mne._fiff.constants import FIFF
+from mne.channels import DigMontage
+from mne.coreg import (
+    Coregistration,
+    _is_mri_subject,
+    coregister_fiducials,
+    create_default_subject,
+    fit_matched_points,
+    get_mni_fiducials,
+    scale_labels,
+    scale_mri,
+    scale_source_space,
+)
 from mne.datasets import testing
+from mne.io import read_fiducials, read_info
+from mne.source_space import write_source_spaces
 from mne.transforms import (
     Transform,
-    apply_trans,
-    rotation,
-    translation,
-    scaling,
-    read_trans,
     _angle_between_quats,
-    rot_to_quat,
+    apply_trans,
     invert_transform,
+    read_trans,
+    rot_to_quat,
+    rotation,
+    scaling,
+    translation,
 )
-from mne.coreg import (
-    fit_matched_points,
-    create_default_subject,
-    scale_mri,
-    _is_mri_subject,
-    scale_labels,
-    scale_source_space,
-    coregister_fiducials,
-    get_mni_fiducials,
-    Coregistration,
-)
-from mne.io import read_fiducials, read_info
-from mne.io.constants import FIFF
 from mne.utils import catch_logging
-from mne.source_space import write_source_spaces
-from mne.channels import DigMontage
 
 data_path = testing.data_path(download=False)
 subjects_dir = data_path / "subjects"
@@ -216,7 +220,7 @@ def test_scale_mri_xfm(tmp_path, few_surfaces, subjects_dir_tmp_few):
             subjects_dir_tmp_few
             / subject_from
             / "bem"
-            / ("%s-%s-src.fif" % (subject_from, spacing))
+            / (f"{subject_from}-{spacing}-src.fif")
         )
         src_from = mne.setup_source_space(
             subject_from,
@@ -271,7 +275,7 @@ def test_scale_mri_xfm(tmp_path, few_surfaces, subjects_dir_tmp_few):
             subjects_dir_tmp_few
             / subject_to
             / "bem"
-            / ("%s-%s-src.fif" % (subject_to, spacing))
+            / (f"{subject_to}-{spacing}-src.fif")
         )
         assert src_to_fname.exists(), "Source space was not scaled"
         # Check MRI scaling
@@ -344,9 +348,7 @@ def test_fit_matched_points():
     src_pts = apply_trans(trans, tgt_pts)
     trans_est = fit_matched_points(src_pts, tgt_pts, translate=False, out="trans")
     est_pts = apply_trans(trans_est, src_pts)
-    assert_array_almost_equal(
-        tgt_pts, est_pts, 2, "fit_matched_points with " "rotation"
-    )
+    assert_array_almost_equal(tgt_pts, est_pts, 2, "fit_matched_points with rotation")
 
     # rotation & translation
     trans = np.dot(translation(2, -6, 3), rotation(2, 6, 3))
@@ -354,7 +356,7 @@ def test_fit_matched_points():
     trans_est = fit_matched_points(src_pts, tgt_pts, out="trans")
     est_pts = apply_trans(trans_est, src_pts)
     assert_array_almost_equal(
-        tgt_pts, est_pts, 2, "fit_matched_points with " "rotation and translation."
+        tgt_pts, est_pts, 2, "fit_matched_points with rotation and translation."
     )
 
     # rotation & translation & scaling
@@ -368,7 +370,7 @@ def test_fit_matched_points():
         tgt_pts,
         est_pts,
         2,
-        "fit_matched_points with " "rotation, translation and scaling.",
+        "fit_matched_points with rotation, translation and scaling.",
     )
 
     # test exceeding tolerance

@@ -1,24 +1,23 @@
-# Author: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#         Daniel Strohmeier <daniel.strohmeier@gmail.com>
-#         Mathurin Massias <mathurin.massias@gmail.com>
-# License: Simplified BSD
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import functools
 from math import sqrt
 
 import numpy as np
 
-from .mxne_debiasing import compute_bias
+from ..time_frequency._stft import istft, stft, stft_norm1, stft_norm2
 from ..utils import (
-    logger,
-    verbose,
-    sum_squared,
-    warn,
+    _check_option,
     _get_blas_funcs,
     _validate_type,
-    _check_option,
+    logger,
+    sum_squared,
+    verbose,
+    warn,
 )
-from ..time_frequency._stft import stft_norm1, stft_norm2, stft, istft
+from .mxne_debiasing import compute_bias
 
 
 @functools.lru_cache(None)
@@ -134,7 +133,6 @@ def dgap_l21(M, G, X, active_set, alpha, n_orient):
     return gap, p_obj, d_obj, R
 
 
-@verbose
 def _mixed_norm_solver_cd(
     M,
     G,
@@ -142,7 +140,6 @@ def _mixed_norm_solver_cd(
     lipschitz_constant,
     maxit=10000,
     tol=1e-8,
-    verbose=None,
     init=None,
     n_orient=1,
     dgap_freq=10,
@@ -172,7 +169,6 @@ def _mixed_norm_solver_cd(
     return X, active_set, p_obj
 
 
-@verbose
 def _mixed_norm_solver_bcd(
     M,
     G,
@@ -180,7 +176,6 @@ def _mixed_norm_solver_bcd(
     lipschitz_constant,
     maxit=200,
     tol=1e-8,
-    verbose=None,
     init=None,
     n_orient=1,
     dgap_freq=10,
@@ -237,12 +232,15 @@ def _mixed_norm_solver_bcd(
             gap = p_obj - highest_d_obj
             E.append(p_obj)
             logger.debug(
-                "Iteration %d :: p_obj %f :: dgap %f :: n_active %d"
-                % (i + 1, p_obj, gap, np.sum(active_set) / n_orient)
+                "Iteration %d :: p_obj %f :: dgap %f :: n_active %d",
+                i + 1,
+                p_obj,
+                gap,
+                np.sum(active_set) / n_orient,
             )
 
             if gap < tol:
-                logger.debug("Convergence reached ! (gap: %s < %s)" % (gap, tol))
+                logger.debug(f"Convergence reached ! (gap: {gap} < {tol})")
                 break
 
         # using Anderson acceleration of the primal variable for faster
@@ -260,7 +258,7 @@ def _mixed_norm_solver_bcd(
                 # z = np.linalg.solve(C, np.ones(K))
                 u, s, _ = np.linalg.svd(C, hermitian=True)
                 if s[-1] <= 1e-6 * s[0] or not np.isfinite(s).all():
-                    logger.debug("Iteration %d: LinAlg Error" % (i + 1))
+                    logger.debug("Iteration %d: LinAlg Error", i + 1)
                     continue
                 z = ((u * 1 / s) @ u.T).sum(0)
                 c = z / z.sum()
@@ -418,7 +416,7 @@ def mixed_norm_solver(
     n_positions = n_dipoles // n_orient
     _, n_times = M.shape
     alpha_max = norm_l2inf(np.dot(G.T, M), n_orient, copy=False)
-    logger.info("-- ALPHA MAX : %s" % alpha_max)
+    logger.info(f"-- ALPHA MAX : {alpha_max}")
     alpha = float(alpha)
     X = np.zeros((n_dipoles, n_times), dtype=G.dtype)
 
@@ -513,18 +511,16 @@ def mixed_norm_solver(
             gap = p_obj - highest_d_obj
             E.append(p_obj)
             logger.info(
-                "Iteration %d :: p_obj %f :: dgap %f :: "
-                "n_active_start %d :: n_active_end %d"
-                % (
-                    k + 1,
-                    p_obj,
-                    gap,
-                    as_size // n_orient,
-                    np.sum(active_set) // n_orient,
-                )
+                "Iteration %d :: p_obj %f :: dgap %f :: n_active_start %d :: n_active_"
+                "end %d",
+                k + 1,
+                p_obj,
+                gap,
+                as_size // n_orient,
+                np.sum(active_set) // n_orient,
             )
             if gap < tol:
-                logger.info("Convergence reached ! (gap: %s < %s)" % (gap, tol))
+                logger.info(f"Convergence reached ! (gap: {gap} < {tol})")
                 break
 
             # add sources if not last iteration
@@ -544,7 +540,7 @@ def mixed_norm_solver(
                 idx = np.searchsorted(idx_active_set, idx_old_active_set)
                 X_init[idx] = X
         else:
-            warn("Did NOT converge ! (gap: %s > %s)" % (gap, tol))
+            warn(f"Did NOT converge ! (gap: {gap} > {tol})")
     else:
         X, active_set, E = l21_solver(
             M, G, alpha, lc, maxit=maxit, tol=tol, n_orient=n_orient, init=None
@@ -639,8 +635,8 @@ def iterative_mixed_norm_solver(
 
     if weight_init is not None and weight_init.shape != (G.shape[1],):
         raise ValueError(
-            "Wrong dimension for weight initialization. Got %s. "
-            "Expected %s." % (weight_init.shape, (G.shape[1],))
+            f"Wrong dimension for weight initialization. Got {weight_init.shape}. "
+            f"Expected {(G.shape[1],)}."
         )
 
     weights = weight_init if weight_init is not None else np.ones(G.shape[1])
@@ -666,7 +662,6 @@ def iterative_mixed_norm_solver(
                     active_set_size=active_set_size,
                     dgap_freq=dgap_freq,
                     solver=solver,
-                    verbose=verbose,
                 )
             else:
                 X, _active_set, _ = mixed_norm_solver(
@@ -680,7 +675,6 @@ def iterative_mixed_norm_solver(
                     active_set_size=None,
                     dgap_freq=dgap_freq,
                     solver=solver,
-                    verbose=verbose,
                 )
         else:
             X, _active_set, _ = mixed_norm_solver(
@@ -694,10 +688,9 @@ def iterative_mixed_norm_solver(
                 active_set_size=None,
                 dgap_freq=dgap_freq,
                 solver=solver,
-                verbose=verbose,
             )
 
-        logger.info("active set size %d" % (_active_set.sum() / n_orient))
+        logger.info("active set size %d", _active_set.sum() / n_orient)
 
         if _active_set.sum() > 0:
             active_set[active_set] = _active_set
@@ -715,7 +708,7 @@ def iterative_mixed_norm_solver(
                 and np.all(active_set == active_set_0)
                 and np.all(np.abs(X - X0) < tol)
             ):
-                print("Convergence reached after %d reweightings!" % k)
+                logger.info("Convergence reached after %d reweightings!", k)
                 break
         else:
             active_set = np.zeros_like(active_set)
@@ -734,50 +727,10 @@ def iterative_mixed_norm_solver(
 # TF-MxNE
 
 
-@verbose
-def tf_lipschitz_constant(M, G, phi, phiT, tol=1e-3, verbose=None):
-    """Compute lipschitz constant for FISTA.
-
-    It uses a power iteration method.
-    """
-    n_times = M.shape[1]
-    n_points = G.shape[1]
-    iv = np.ones((n_points, n_times), dtype=np.float64)
-    v = phi(iv)
-    L = 1e100
-    for it in range(100):
-        L_old = L
-        logger.info("Lipschitz estimation: iteration = %d" % it)
-        iv = np.real(phiT(v))
-        Gv = np.dot(G, iv)
-        GtGv = np.dot(G.T, Gv)
-        w = phi(GtGv)
-        L = np.max(np.abs(w))  # l_inf norm
-        v = w / L
-        if abs((L - L_old) / L_old) < tol:
-            break
-    return L
-
-
-def safe_max_abs(A, ia):
-    """Compute np.max(np.abs(A[ia])) possible with empty A."""
-    if np.sum(ia):  # ia is not empty
-        return np.max(np.abs(A[ia]))
-    else:
-        return 0.0
-
-
-def safe_max_abs_diff(A, ia, B, ib):
-    """Compute np.max(np.abs(A)) possible with empty A."""
-    A = A[ia] if np.sum(ia) else 0.0
-    B = B[ib] if np.sum(ia) else 0.0
-    return np.max(np.abs(A - B))
-
-
 class _Phi:
     """Have phi stft as callable w/o using a lambda that does not pickle."""
 
-    def __init__(self, wsize, tstep, n_coefs, n_times):  # noqa: D102
+    def __init__(self, wsize, tstep, n_coefs, n_times):
         self.wsize = np.atleast_1d(wsize)
         self.tstep = np.atleast_1d(tstep)
         self.n_coefs = np.atleast_1d(n_coefs)
@@ -798,12 +751,10 @@ class _Phi:
         else:
             return np.hstack([x @ op for op in self.ops]) / np.sqrt(self.n_dicts)
 
-    def norm(self, z, ord=2):
+    def norm(self, z, ord=2):  # noqa: A002
         """Squared L2 norm if ord == 2 and L1 norm if order == 1."""
         if ord not in (1, 2):
-            raise ValueError(
-                "Only supported norm order are 1 and 2. " "Got ord = %s" % ord
-            )
+            raise ValueError(f"Only supported norm order are 1 and 2. Got ord = {ord}")
         stft_norm = stft_norm1 if ord == 1 else stft_norm2
         norm = 0.0
         if len(self.n_coefs) > 1:
@@ -818,7 +769,7 @@ class _Phi:
 class _PhiT:
     """Have phi.T istft as callable w/o using a lambda that does not pickle."""
 
-    def __init__(self, tstep, n_freqs, n_steps, n_times):  # noqa: D102
+    def __init__(self, tstep, n_freqs, n_steps, n_times):
         self.tstep = tstep
         self.n_freqs = n_freqs
         self.n_steps = n_steps
@@ -976,9 +927,9 @@ def norm_epsilon(Y, l1_ratio, phi, w_space=1.0, w_time=None):
         p_sum_w2 = np.cumsum(w_time**2)
         p_sum_Yw = np.cumsum(Y * w_time)
         upper = p_sum_Y2 / (Y / w_time) ** 2 - 2.0 * p_sum_Yw / (Y / w_time) + p_sum_w2
-    upper_greater = np.where(
-        upper > w_space**2 * (1.0 - l1_ratio) ** 2 / l1_ratio**2
-    )[0]
+    upper_greater = np.where(upper > w_space**2 * (1.0 - l1_ratio) ** 2 / l1_ratio**2)[
+        0
+    ]
 
     i0 = upper_greater[0] - 1 if upper_greater.size else K - 1
 
@@ -1145,6 +1096,7 @@ def _tf_mixed_norm_solver_bcd_(
     lipschitz_constant,
     phi,
     phiT,
+    *,
     w_space=None,
     w_time=None,
     n_orient=1,
@@ -1152,8 +1104,6 @@ def _tf_mixed_norm_solver_bcd_(
     tol=1e-8,
     dgap_freq=10,
     perc=None,
-    timeit=True,
-    verbose=None,
 ):
     n_sources = G.shape[1]
     n_positions = n_sources // n_orient
@@ -1266,10 +1216,11 @@ def _tf_mixed_norm_solver_bcd_(
             converged = gap < tol
             E.append(p_obj)
             logger.info(
-                "\n    Iteration %d :: n_active %d"
-                % (i + 1, np.sum(active_set) / n_orient)
+                "\n    Iteration %d :: n_active %d",
+                i + 1,
+                np.sum(active_set) / n_orient,
             )
-            logger.info("    dgap %.2e :: p_obj %f :: d_obj %f" % (gap, p_obj, d_obj))
+            logger.info(f"    dgap {gap:.2e} :: p_obj {p_obj} :: d_obj {d_obj}")
 
         if converged:
             break
@@ -1281,7 +1232,6 @@ def _tf_mixed_norm_solver_bcd_(
     return Z, active_set, E, converged
 
 
-@verbose
 def _tf_mixed_norm_solver_bcd_active_set(
     M,
     G,
@@ -1290,6 +1240,7 @@ def _tf_mixed_norm_solver_bcd_active_set(
     lipschitz_constant,
     phi,
     phiT,
+    *,
     Z_init=None,
     w_space=None,
     w_time=None,
@@ -1297,7 +1248,6 @@ def _tf_mixed_norm_solver_bcd_active_set(
     maxit=200,
     tol=1e-8,
     dgap_freq=10,
-    verbose=None,
 ):
     n_sensors, n_times = M.shape
     n_sources = G.shape[1]
@@ -1309,7 +1259,7 @@ def _tf_mixed_norm_solver_bcd_active_set(
     if Z_init is not None:
         if Z_init.shape != (n_sources, phi.n_coefs.sum()):
             raise Exception(
-                "Z_init must be None or an array with shape " "(n_sources, n_coefs)."
+                "Z_init must be None or an array with shape (n_sources, n_coefs)."
             )
         for ii in range(n_positions):
             if np.any(Z_init[ii * n_orient : (ii + 1) * n_orient]):
@@ -1343,7 +1293,6 @@ def _tf_mixed_norm_solver_bcd_active_set(
             maxit=1,
             tol=tol,
             perc=None,
-            verbose=verbose,
         )
 
         E += E_tmp
@@ -1379,7 +1328,6 @@ def _tf_mixed_norm_solver_bcd_active_set(
             tol=tol,
             dgap_freq=dgap_freq,
             perc=0.5,
-            verbose=verbose,
         )
         active = np.where(active_set[::n_orient])[0]
         active_set[active_set] = as_.copy()
@@ -1403,8 +1351,11 @@ def _tf_mixed_norm_solver_bcd_active_set(
                 w_time,
             )
             logger.info(
-                "\ndgap %.2e :: p_obj %f :: d_obj %f :: n_active %d"
-                % (gap, p_obj, d_obj, np.sum(active_set) / n_orient)
+                "\ndgap %.2e :: p_obj %f :: d_obj %f :: n_active %d",
+                gap,
+                p_obj,
+                d_obj,
+                np.sum(active_set) / n_orient,
             )
             if gap < tol:
                 logger.info("\nConvergence reached!\n")
@@ -1503,7 +1454,7 @@ def tf_mixed_norm_solver(
     if len(tstep) != len(wsize):
         raise ValueError(
             "The same number of window sizes and steps must be "
-            "passed. Got tstep = %s and wsize = %s" % (tstep, wsize)
+            f"passed. Got tstep = {tstep} and wsize = {wsize}"
         )
 
     n_steps = np.ceil(M.shape[1] / tstep.astype(float)).astype(int)
@@ -1534,7 +1485,6 @@ def tf_mixed_norm_solver(
         maxit=maxit,
         tol=tol,
         dgap_freq=dgap_freq,
-        verbose=None,
     )
 
     if np.any(active_set) and debias:
@@ -1547,7 +1497,6 @@ def tf_mixed_norm_solver(
         return X, active_set, E
 
 
-@verbose
 def iterative_tf_mixed_norm_solver(
     M,
     G,
@@ -1623,7 +1572,7 @@ def iterative_tf_mixed_norm_solver(
     if len(tstep) != len(wsize):
         raise ValueError(
             "The same number of window sizes and steps must be "
-            "passed. Got tstep = %s and wsize = %s" % (tstep, wsize)
+            f"passed. Got tstep = {tstep} and wsize = {wsize}"
         )
 
     n_steps = np.ceil(n_times / tstep.astype(float)).astype(int)
@@ -1676,7 +1625,7 @@ def iterative_tf_mixed_norm_solver(
             w_time = 1.0 / w_time
             w_time[w_time < 0.0] = 0.0
 
-        X, Z, active_set_, E_, _ = _tf_mixed_norm_solver_bcd_active_set(
+        X, Z, active_set_, _, _ = _tf_mixed_norm_solver_bcd_active_set(
             M,
             G[:, active_set],
             alpha_space,
@@ -1691,7 +1640,6 @@ def iterative_tf_mixed_norm_solver(
             maxit=maxit,
             tol=tol,
             dgap_freq=dgap_freq,
-            verbose=None,
         )
 
         active_set[active_set] = active_set_
@@ -1708,22 +1656,26 @@ def iterative_tf_mixed_norm_solver(
             E.append(p_obj)
 
             logger.info(
-                "Iteration %d: active set size=%d, E=%f"
-                % (k + 1, active_set.sum() / n_orient, p_obj)
+                "Iteration %d: active set size=%d, E=%f",
+                k + 1,
+                active_set.sum() / n_orient,
+                p_obj,
             )
 
             # Check convergence
             if np.array_equal(active_set, active_set_0):
                 max_diff = np.amax(np.abs(Z - Z0))
                 if max_diff < tol:
-                    print("Convergence reached after %d reweightings!" % k)
+                    logger.info("Convergence reached after %d reweightings!", k)
                     break
         else:
             p_obj = 0.5 * np.linalg.norm(M) ** 2.0
             E.append(p_obj)
             logger.info(
-                "Iteration %d: as_size=%d, E=%f"
-                % (k + 1, active_set.sum() / n_orient, p_obj)
+                "Iteration %d: as_size=%d, E=%f",
+                k + 1,
+                active_set.sum() / n_orient,
+                p_obj,
             )
             break
 

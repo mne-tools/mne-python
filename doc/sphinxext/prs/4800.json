@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "cb3f93d45d9e4391ab2ef3e060fa69ce8a3755fa",
+  "authors": [
+    {
+      "n": "Jean-Rémi KING",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/decoding/base.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/decoding/tests/test_base.py": {
+      "a": 3,
+      "d": 0
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "77d7aea5eb35a6911abe4eea85f567656d7ae273",
+  "authors": [
+    {
+      "n": "Romain Trachel",
+      "e": "trachelr@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/stats/cluster_level.py": {
+      "a": 12,
+      "d": 6
+    },
+    "mne/stats/tests/test_cluster_level.py": {
+      "a": 33,
+      "d": 0
+    }
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "efc5096d141a785d9f525208fee0e2105a690aea",
+  "authors": [
+    {
+      "n": "alexandre barachant",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/epochs.py": {
+      "a": 11,
+      "d": 2
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 8,
+      "d": 0
+    }
+  }
+}

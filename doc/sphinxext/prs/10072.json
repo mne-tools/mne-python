@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "963eea23740f0e697ac03dc1fd671ee91e15c162",
+  "authors": [
+    {
+      "n": "Mathieu Scheltienne",
+      "e": "mathieu.scheltienne@fcbg.ch"
+    },
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    },
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/utils/docs.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

@@ -26,6 +26,7 @@ Preprocessing
 #          Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 
@@ -57,16 +58,16 @@ raws = dict()
 raw_erms = dict()
 new_sfreq = 60.0  # Nyquist frequency (30 Hz) < line noise freq (50 Hz)
 raws["vv"] = mne.io.read_raw_fif(vv_fname, verbose="error")  # ignore naming
-raws["vv"].load_data().resample(new_sfreq)
+raws["vv"].load_data().resample(new_sfreq, method="polyphase")
 raws["vv"].info["bads"] = ["MEG2233", "MEG1842"]
 raw_erms["vv"] = mne.io.read_raw_fif(vv_erm_fname, verbose="error")
-raw_erms["vv"].load_data().resample(new_sfreq)
+raw_erms["vv"].load_data().resample(new_sfreq, method="polyphase")
 raw_erms["vv"].info["bads"] = ["MEG2233", "MEG1842"]
 
 raws["opm"] = mne.io.read_raw_fif(opm_fname)
-raws["opm"].load_data().resample(new_sfreq)
+raws["opm"].load_data().resample(new_sfreq, method="polyphase")
 raw_erms["opm"] = mne.io.read_raw_fif(opm_erm_fname)
-raw_erms["opm"].load_data().resample(new_sfreq)
+raw_erms["opm"].load_data().resample(new_sfreq, method="polyphase")
 # Make sure our assumptions later hold
 assert raws["opm"].info["sfreq"] == raws["vv"].info["sfreq"]
 
@@ -76,15 +77,14 @@ assert raws["opm"].info["sfreq"] == raws["vv"].info["sfreq"]
 titles = dict(vv="VectorView", opm="OPM")
 kinds = ("vv", "opm")
 n_fft = next_fast_len(int(round(4 * new_sfreq)))
-print("Using n_fft=%d (%0.1f s)" % (n_fft, n_fft / raws["vv"].info["sfreq"]))
+print(f"Using n_fft={n_fft} ({n_fft / raws['vv'].info['sfreq']:0.1f} s)")
 for kind in kinds:
     fig = (
         raws[kind]
         .compute_psd(n_fft=n_fft, proj=True)
-        .plot(picks="data", exclude="bads")
+        .plot(picks="data", exclude="bads", amplitude=True)
     )
     fig.suptitle(titles[kind])
-    fig.subplots_adjust(0.1, 0.1, 0.95, 0.85)
 
 ##############################################################################
 # Alignment and forward
@@ -184,13 +184,8 @@ del fwd, raws, raw_erms
 
 def plot_band(kind, band):
     """Plot activity within a frequency band on the subject's brain."""
-    title = "%s %s\n(%d-%d Hz)" % (
-        (
-            titles[kind],
-            band,
-        )
-        + freq_bands[band]
-    )
+    lf, hf = freq_bands[band]
+    title = f"{titles[kind]} {band}\n({lf:d}-{hf:d} Hz)"
     topos[kind][band].plot_topomap(
         times=0.0,
         scalings=1.0,

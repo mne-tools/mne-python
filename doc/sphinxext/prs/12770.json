@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "0b95d2869bad2fa20568b4f8e8483f14a5d74735",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/inverse/morph_volume_stc.py": {
+      "a": 3,
+      "d": 3
+    },
+    "tools/circleci_dependencies.sh": {
+      "a": 7,
+      "d": 2
+    },
+    "tools/install_pre_requirements.sh": {
+      "a": 5,
+      "d": 3
+    }
+  }
+}

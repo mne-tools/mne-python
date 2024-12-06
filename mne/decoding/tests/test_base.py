@@ -1,30 +1,54 @@
-# Author: Jean-Remi King, <jeanremi.king@gmail.com>
-#         Marijn van Vliet, <w.m.vanvliet@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
+
+import platform
+from contextlib import nullcontext
 
 import numpy as np
-from numpy.testing import (
-    assert_array_equal,
-    assert_array_almost_equal,
-    assert_equal,
-    assert_allclose,
-    assert_array_less,
-)
 import pytest
+from numpy.testing import (
+    assert_allclose,
+    assert_array_almost_equal,
+    assert_array_equal,
+    assert_array_less,
+    assert_equal,
+)
 
-from mne import create_info, EpochsArray
-from mne.fixes import is_regressor, is_classifier
-from mne.utils import requires_sklearn
+pytest.importorskip("sklearn")
+
+from sklearn import svm
+from sklearn.base import (
+    BaseEstimator as sklearn_BaseEstimator,
+)
+from sklearn.base import (
+    TransformerMixin as sklearn_TransformerMixin,
+)
+from sklearn.base import (
+    is_classifier,
+    is_regressor,
+)
+from sklearn.linear_model import LinearRegression, LogisticRegression, Ridge
+from sklearn.model_selection import (
+    GridSearchCV,
+    KFold,
+    StratifiedKFold,
+    cross_val_score,
+)
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
+from sklearn.utils.estimator_checks import parametrize_with_checks
+
+from mne import EpochsArray, create_info
+from mne.decoding import GeneralizingEstimator, Scaler, TransformerMixin, Vectorizer
 from mne.decoding.base import (
-    _get_inverse_funcs,
-    LinearModel,
-    get_coef,
-    cross_val_multiscore,
     BaseEstimator,
+    LinearModel,
+    _get_inverse_funcs,
+    cross_val_multiscore,
+    get_coef,
 )
 from mne.decoding.search_light import SlidingEstimator
-from mne.decoding import Scaler, TransformerMixin, Vectorizer, GeneralizingEstimator
 
 
 def _make_data(n_samples=1000, n_features=5, n_targets=3):
@@ -66,21 +90,22 @@ def _make_data(n_samples=1000, n_features=5, n_targets=3):
     return X, Y, A
 
 
-@requires_sklearn
+@pytest.mark.filterwarnings("ignore:invalid value encountered in cast.*:RuntimeWarning")
 def test_get_coef():
     """Test getting linear coefficients (filters/patterns) from estimators."""
-    from sklearn.base import TransformerMixin, BaseEstimator
-    from sklearn.pipeline import make_pipeline
-    from sklearn.preprocessing import StandardScaler
-    from sklearn import svm
-    from sklearn.linear_model import Ridge
-    from sklearn.model_selection import GridSearchCV
-
     lm_classification = LinearModel()
+    assert hasattr(lm_classification, "__sklearn_tags__")
+    print(lm_classification.__sklearn_tags__)
+    assert is_classifier(lm_classification.model)
     assert is_classifier(lm_classification)
+    assert not is_regressor(lm_classification.model)
+    assert not is_regressor(lm_classification)
 
     lm_regression = LinearModel(Ridge())
+    assert is_regressor(lm_regression.model)
     assert is_regressor(lm_regression)
+    assert not is_classifier(lm_regression.model)
+    assert not is_classifier(lm_regression)
 
     parameters = {"kernel": ["linear"], "C": [1, 10]}
     lm_gs_classification = LinearModel(
@@ -94,6 +119,8 @@ def test_get_coef():
     assert is_regressor(lm_gs_regression)
 
     # Define a classifier, an invertible transformer and an non-invertible one.
+    assert BaseEstimator is sklearn_BaseEstimator
+    assert TransformerMixin is sklearn_TransformerMixin
 
     class Clf(BaseEstimator):
         def fit(self, X, y):
@@ -127,16 +154,23 @@ def test_get_coef():
         assert expected_n == len(_get_inverse_funcs(est))
 
     bad_estimators = [
-        Clf(),  # no preprocessing
-        Inv(),  # final estimator isn't classifier
-        make_pipeline(NoInv(), Clf()),  # first step isn't invertible
+        Clf(),  # 0: no preprocessing
+        Inv(),  # 1: final estimator isn't classifier
+        make_pipeline(NoInv(), Clf()),  # 2: first step isn't invertible
         make_pipeline(
             Inv(), make_pipeline(Inv(), NoInv()), Clf()
-        ),  # nested step isn't invertible
+        ),  # 3: nested step isn't invertible
     ]
-    for est in bad_estimators:
+    # It's the NoInv that triggers the warning, but too hard to context manage just
+    # the correct part of the bad_estimators loop
+    for ei, est in enumerate(bad_estimators):
         est.fit(X, y)
-        invs = _get_inverse_funcs(est)
+        if ei in (2, 3):  # the NoInv indices
+            ctx = pytest.warns(RuntimeWarning, match="Cannot inverse transform")
+        else:
+            ctx = nullcontext()
+        with ctx:
+            invs = _get_inverse_funcs(est)
         assert_equal(invs, list())
 
     # II. Test get coef for classification/regression estimators and pipelines
@@ -200,7 +234,6 @@ class _Noop(BaseEstimator, TransformerMixin):
     inverse_transform = transform
 
 
-@requires_sklearn
 @pytest.mark.parametrize("inverse", (True, False))
 @pytest.mark.parametrize(
     "Scale, kwargs",
@@ -211,9 +244,6 @@ class _Noop(BaseEstimator, TransformerMixin):
 )
 def test_get_coef_inverse_transform(inverse, Scale, kwargs):
     """Test get_coef with and without inverse_transform."""
-    from sklearn.linear_model import Ridge
-    from sklearn.pipeline import make_pipeline
-
     lm_regression = LinearModel(Ridge())
     X, y, A = _make_data(n_samples=1000, n_features=3, n_targets=1)
     # Check with search_light and combination of preprocessing ending with sl:
@@ -237,15 +267,11 @@ def test_get_coef_inverse_transform(inverse, Scale, kwargs):
             assert_array_equal(filters_t, filters[:, t])
 
 
-@requires_sklearn
 @pytest.mark.parametrize("n_features", [1, 5])
 @pytest.mark.parametrize("n_targets", [1, 3])
 def test_get_coef_multiclass(n_features, n_targets):
     """Test get_coef on multiclass problems."""
     # Check patterns with more than 1 regressor
-    from sklearn.linear_model import LinearRegression, Ridge
-    from sklearn.pipeline import make_pipeline
-
     X, Y, A = _make_data(n_samples=30000, n_features=n_features, n_targets=n_targets)
     lm = LinearModel(LinearRegression()).fit(X, Y)
     assert_array_equal(lm.filters_.shape, lm.patterns_.shape)
@@ -284,7 +310,6 @@ def test_get_coef_multiclass(n_features, n_targets):
     lm.fit(X, Y, sample_weight=np.ones(len(Y)))
 
 
-@requires_sklearn
 @pytest.mark.parametrize(
     "n_classes, n_channels, n_times",
     [
@@ -294,12 +319,11 @@ def test_get_coef_multiclass(n_features, n_targets):
         (3, 1, 2),
     ],
 )
+# TODO: Need to fix this properly in LinearModel
+@pytest.mark.filterwarnings("ignore:'multi_class' was deprecated in.*:FutureWarning")
+@pytest.mark.filterwarnings("ignore:lbfgs failed to converge.*:")
 def test_get_coef_multiclass_full(n_classes, n_channels, n_times):
     """Test a full example with pattern extraction."""
-    from sklearn.pipeline import make_pipeline
-    from sklearn.linear_model import LogisticRegression
-    from sklearn.model_selection import StratifiedKFold
-
     data = np.zeros((10 * n_classes, n_channels, n_times))
     # Make only the first channel informative
     for ii in range(n_classes):
@@ -316,7 +340,7 @@ def test_get_coef_multiclass_full(n_classes, n_channels, n_times):
     )
     scorer = "roc_auc_ovr_weighted"
     time_gen = GeneralizingEstimator(clf, scorer, verbose=True)
-    X = epochs.get_data()
+    X = epochs.get_data(copy=False)
     y = epochs.events[:, 2]
     n_splits = 3
     cv = StratifiedKFold(n_splits=n_splits)
@@ -325,19 +349,18 @@ def test_get_coef_multiclass_full(n_classes, n_channels, n_times):
     if n_times > 1:
         want += (n_times, n_times)
     assert scores.shape == want
-    assert_array_less(0.8, scores)
+    # On Windows LBFGS can fail to converge, so we need to be a bit more tol here
+    limit = 0.7 if platform.system() == "Windows" else 0.8
+    assert_array_less(limit, scores)
     clf.fit(X, y)
     patterns = get_coef(clf, "patterns_", inverse_transform=True)
     assert patterns.shape == (n_classes, n_channels, n_times)
     assert_allclose(patterns[:, 1:], 0.0, atol=1e-7)  # no other channels useful
 
 
-@requires_sklearn
 def test_linearmodel():
     """Test LinearModel class for computing filters and patterns."""
     # check categorical target fit in standard linear model
-    from sklearn.linear_model import LinearRegression
-
     rng = np.random.RandomState(0)
     clf = LinearModel()
     n, n_features = 20, 3
@@ -351,9 +374,6 @@ def test_linearmodel():
         clf.fit(wrong_X, y)
 
     # check categorical target fit in standard linear model with GridSearchCV
-    from sklearn import svm
-    from sklearn.model_selection import GridSearchCV
-
     parameters = {"kernel": ["linear"], "C": [1, 10]}
     clf = LinearModel(
         GridSearchCV(svm.SVC(), parameters, cv=2, refit=True, n_jobs=None)
@@ -390,12 +410,8 @@ def test_linearmodel():
         clf.fit(X, wrong_y)
 
 
-@requires_sklearn
 def test_cross_val_multiscore():
     """Test cross_val_multiscore for computing scores on decoding over time."""
-    from sklearn.model_selection import KFold, StratifiedKFold, cross_val_score
-    from sklearn.linear_model import LogisticRegression, LinearRegression
-
     logreg = LogisticRegression(solver="liblinear", random_state=0)
 
     # compare to cross-val-score
@@ -425,7 +441,8 @@ def test_cross_val_multiscore():
     # raise an error if scoring is defined at cross-val-score level and
     # search light, because search light does not return a 1-dimensional
     # prediction.
-    pytest.raises(ValueError, cross_val_multiscore, clf, X, y, cv=cv, scoring="roc_auc")
+    with pytest.raises(ValueError, match="multi_class must be"):
+        cross_val_multiscore(clf, X, y, cv=cv, scoring="roc_auc", n_jobs=1)
     clf = SlidingEstimator(logreg, scoring="roc_auc")
     scores_auc = cross_val_multiscore(clf, X, y, cv=cv, n_jobs=None)
     scores_auc_manual = list()
@@ -450,3 +467,17 @@ def test_cross_val_multiscore():
         manual = cross_val(reg, X, y, cv=KFold(2))
         auto = cross_val(reg, X, y, cv=2)
         assert_array_equal(manual, auto)
+
+
+@parametrize_with_checks([LinearModel(LogisticRegression())])
+def test_sklearn_compliance(estimator, check):
+    """Test LinearModel compliance with sklearn."""
+    ignores = (
+        "check_n_features_in",  # maybe we should add this someday?
+        "check_estimator_sparse_data",  # we densify
+        "check_estimators_overwrite_params",  # self.model changes!
+        "check_parameters_default_constructible",
+    )
+    if any(ignore in str(check) for ignore in ignores):
+        return
+    check(estimator)

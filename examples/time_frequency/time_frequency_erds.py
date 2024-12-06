@@ -30,42 +30,44 @@ perform cluster-based permutation tests to estimate significant ERDS values
 #          Felix Klotzsche <klotzsche@cbs.mpg.de>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 # As usual, we import everything we need.
 
-import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.colors import TwoSlopeNorm
+import numpy as np
 import pandas as pd
 import seaborn as sns
+from matplotlib.colors import TwoSlopeNorm
+
 import mne
 from mne.datasets import eegbci
 from mne.io import concatenate_raws, read_raw_edf
-from mne.time_frequency import tfr_multitaper
 from mne.stats import permutation_cluster_1samp_test as pcluster_test
 
 # %%
 # First, we load and preprocess the data. We use runs 6, 10, and 14 from
 # subject 1 (these runs contains hand and feet motor imagery).
-fnames = eegbci.load_data(subject=1, runs=(6, 10, 14))
+
+fnames = eegbci.load_data(subjects=1, runs=(6, 10, 14))
 raw = concatenate_raws([read_raw_edf(f, preload=True) for f in fnames])
 
 raw.rename_channels(lambda x: x.strip("."))  # remove dots from channel names
-
-events, _ = mne.events_from_annotations(raw, event_id=dict(T1=2, T2=3))
+# rename descriptions to be more easily interpretable
+raw.annotations.rename(dict(T1="hands", T2="feet"))
 
 # %%
 # Now we can create 5-second epochs around events of interest.
+
 tmin, tmax = -1, 4
 event_ids = dict(hands=2, feet=3)  # map event IDs to tasks
 
 epochs = mne.Epochs(
     raw,
-    events,
-    event_ids,
-    tmin - 0.5,
-    tmax + 0.5,
+    event_id=["hands", "feet"],
+    tmin=tmin - 0.5,
+    tmax=tmax + 0.5,
     picks=("C3", "Cz", "C4"),
     baseline=None,
     preload=True,
@@ -93,8 +95,8 @@ kwargs = dict(
 
 # %%
 # Finally, we perform time/frequency decomposition over all epochs.
-tfr = tfr_multitaper(
-    epochs,
+tfr = epochs.compute_tfr(
+    method="multitaper",
     freqs=freqs,
     n_cycles=freqs,
     use_fft=True,
@@ -181,7 +183,7 @@ axline_kw = dict(color="black", linestyle="dashed", linewidth=0.5, alpha=0.5)
 g.map(plt.axhline, y=0, **axline_kw)
 g.map(plt.axvline, x=0, **axline_kw)
 g.set(ylim=(None, 1.5))
-g.set_axis_labels("Time (s)", "ERDS (%)")
+g.set_axis_labels("Time (s)", "ERDS")
 g.set_titles(col_template="{col_name}", row_template="{row_name}")
 g.add_legend(ncol=2, loc="lower center")
 g.fig.subplots_adjust(left=0.1, right=0.9, top=0.9, bottom=0.08)
@@ -194,7 +196,7 @@ g.fig.subplots_adjust(left=0.1, right=0.9, top=0.9, bottom=0.08)
 
 df_mean = (
     df.query("time > 1")
-    .groupby(["condition", "epoch", "band", "channel"])[["value"]]
+    .groupby(["condition", "epoch", "band", "channel"], observed=False)[["value"]]
     .mean()
     .reset_index()
 )
@@ -207,7 +209,7 @@ g = g.map(
     "channel",
     "value",
     "band",
-    n_boot=10,
+    cut=0,
     palette="deep",
     order=["C3", "Cz", "C4"],
     hue_order=freq_bands_of_interest,
@@ -215,7 +217,7 @@ g = g.map(
 ).add_legend(ncol=4, loc="lower center")
 
 g.map(plt.axhline, **axline_kw)
-g.set_axis_labels("", "ERDS (%)")
+g.set_axis_labels("", "ERDS")
 g.set_titles(col_template="{col_name}", row_template="{row_name}")
 g.fig.subplots_adjust(left=0.1, right=0.9, top=0.9, bottom=0.3)
 

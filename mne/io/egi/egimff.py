@@ -1,38 +1,45 @@
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
+
 """EGI NetStation Load Function."""
 
-from collections import OrderedDict
 import datetime
 import math
 import os.path as op
 import re
-from xml.dom.minidom import parse
+from collections import OrderedDict
 from pathlib import Path
 
 import numpy as np
 
-from .events import _read_events, _combine_triggers
+from ..._fiff.constants import FIFF
+from ..._fiff.meas_info import _empty_info, _ensure_meas_date_none_or_dt, create_info
+from ..._fiff.proj import setup_proj
+from ..._fiff.utils import _create_chs, _mult_cal_one
+from ...annotations import Annotations
+from ...channels.montage import make_dig_montage
+from ...evoked import EvokedArray
+from ...utils import _check_fname, _check_option, _soft_import, logger, verbose, warn
+from ..base import BaseRaw
+from .events import _combine_triggers, _read_events, _triage_include_exclude
 from .general import (
-    _get_signalfname,
-    _get_ep_info,
+    _block_r,
     _extract,
     _get_blocks,
+    _get_ep_info,
     _get_gains,
-    _block_r,
+    _get_signalfname,
 )
-from ..base import BaseRaw
-from ..constants import FIFF
-from ..meas_info import _empty_info, create_info, _ensure_meas_date_none_or_dt
-from ..proj import setup_proj
-from ..utils import _create_chs, _mult_cal_one
-from ...annotations import Annotations
-from ...utils import verbose, logger, warn, _check_option, _check_fname
-from ...evoked import EvokedArray
 
 REFERENCE_NAMES = ("VREF", "Vertex Reference")
 
 
 def _read_mff_header(filepath):
     """Read mff header."""
+    _soft_import("defusedxml", "reading EGI MFF data")
+    from defusedxml.minidom import parse
+
     all_files = _get_signalfname(filepath)
     eeg_file = all_files["EEG"]["signal"]
     eeg_info_file = all_files["EEG"]["info"]
@@ -59,7 +66,7 @@ def _read_mff_header(filepath):
         record_time,
     )
     if g is None:
-        raise RuntimeError("Could not parse recordTime %r" % (record_time,))
+        raise RuntimeError(f"Could not parse recordTime {repr(record_time)}")
     frac = g.groups()[0]
     assert len(frac) in (6, 9) and all(f.isnumeric() for f in frac)  # regex
     div = 1000 if len(frac) == 6 else 1000000
@@ -67,7 +74,7 @@ def _read_mff_header(filepath):
         # convert from times in µS to samples
         for ei, e in enumerate(epochs[key]):
             if e % div != 0:
-                raise RuntimeError("Could not parse epoch time %s" % (e,))
+                raise RuntimeError(f"Could not parse epoch time {e}")
             epochs[key][ei] = e // div
         epochs[key] = np.array(epochs[key], np.uint64)
         # I guess they refer to times in milliseconds?
@@ -78,7 +85,7 @@ def _read_mff_header(filepath):
         # by what we need to (e.g., a sample rate of 500 means we can multiply
         # by 1 and divide by 2 rather than multiplying by 500 and dividing by
         # 1000)
-        numerator = signal_blocks["sfreq"]
+        numerator = int(signal_blocks["sfreq"])
         denominator = 1000
         this_gcd = math.gcd(numerator, denominator)
         numerator = numerator // this_gcd
@@ -99,7 +106,7 @@ def _read_mff_header(filepath):
     if bad:
         raise RuntimeError(
             "EGI epoch first/last samps could not be parsed:\n"
-            "%s\n%s" % (list(epochs["first_samps"]), list(epochs["last_samps"]))
+            f'{list(epochs["first_samps"])}\n{list(epochs["last_samps"])}'
         )
     summaryinfo.update(epochs)
     # index which samples in raw are actually readable from disk (i.e., not
@@ -134,8 +141,8 @@ def _read_mff_header(filepath):
             n_chans = n_chans + 1
     if n_chans != summaryinfo["n_channels"]:
         raise RuntimeError(
-            "Number of defined channels (%d) did not match the "
-            "expected channels (%d)" % (n_chans, summaryinfo["n_channels"])
+            f"Number of defined channels ({n_chans}) did not match the "
+            f"expected channels ({summaryinfo['n_channels']})."
         )
 
     # Check presence of PNS data
@@ -151,7 +158,7 @@ def _read_mff_header(filepath):
         if not same_blocks:
             raise RuntimeError(
                 "PNS and signals samples did not match:\n"
-                "%s\nvs\n%s" % (list(pns_samples), list(signal_samples))
+                f"{list(pns_samples)}\nvs\n{list(signal_samples)}"
             )
 
         pns_file = op.join(filepath, "pnsSet.xml")
@@ -194,25 +201,6 @@ def _read_mff_header(filepath):
     )
 
     return summaryinfo
-
-
-class _FixedOffset(datetime.tzinfo):
-    """Fixed offset in minutes east from UTC.
-
-    Adapted from the official Python documentation.
-    """
-
-    def __init__(self, offset):
-        self._offset = datetime.timedelta(minutes=offset)
-
-    def utcoffset(self, dt):
-        return self._offset
-
-    def tzname(self, dt):
-        return "MFF"
-
-    def dst(self, dt):
-        return datetime.timedelta(0)
 
 
 def _read_header(input_fname):
@@ -286,7 +274,8 @@ def _get_eeg_calibration_info(filepath, egi_info):
 
 def _read_locs(filepath, egi_info, channel_naming):
     """Read channel locations."""
-    from ...channels.montage import make_dig_montage
+    _soft_import("defusedxml", "reading EGI MFF data")
+    from defusedxml.minidom import parse
 
     fname = op.join(filepath, "coordinates.xml")
     if not op.exists(fname):
@@ -364,73 +353,28 @@ def _read_raw_egi_mff(
     exclude=None,
     preload=False,
     channel_naming="E%d",
+    *,
+    events_as_annotations=True,
     verbose=None,
 ):
-    """Read EGI mff binary as raw object.
-
-    .. note:: This function attempts to create a synthetic trigger channel.
-              See notes below.
-
-    Parameters
-    ----------
-    input_fname : path-like
-        Path to the raw file.
-    eog : list or tuple
-        Names of channels or list of indices that should be designated
-        EOG channels. Default is None.
-    misc : list or tuple
-        Names of channels or list of indices that should be designated
-        MISC channels. Default is None.
-    include : None | list
-       The event channels to be ignored when creating the synthetic
-       trigger. Defaults to None.
-       Note. Overrides `exclude` parameter.
-    exclude : None | list
-       The event channels to be ignored when creating the synthetic
-       trigger. Defaults to None. If None, channels that have more than
-       one event and the ``sync`` and ``TREV`` channels will be
-       ignored.
-    %(preload)s
-    channel_naming : str
-        Channel naming convention for the data channels. Defaults to 'E%%d'
-        (resulting in channel names 'E1', 'E2', 'E3'...). The effective default
-        prior to 0.14.0 was 'EEG %%03d'.
-    %(verbose)s
-
-    Returns
-    -------
-    raw : instance of RawMff
-        A Raw object containing EGI mff data.
-        See :class:`mne.io.Raw` for documentation of attributes and methods.
-
-    Notes
-    -----
-    The trigger channel names are based on the arbitrary user dependent event
-    codes used. However this function will attempt to generate a synthetic
-    trigger channel named ``STI 014`` in accordance with the general
-    Neuromag / MNE naming pattern.
-
-    The event_id assignment equals ``np.arange(n_events) + 1``. The resulting
-    ``event_id`` mapping is stored as attribute to the resulting raw object but
-    will be ignored when saving to a fiff. Note. The trigger channel is
-    artificially constructed based on timestamps received by the Netstation.
-    As a consequence, triggers have only short durations.
-
-    This step will fail if events are not mutually exclusive.
-
-    See Also
-    --------
-    mne.io.Raw : Documentation of attributes and methods of RawMff.
-
-    .. versionadded:: 0.15.0
-    """
+    """Read EGI mff binary as raw object."""
     return RawMff(
-        input_fname, eog, misc, include, exclude, preload, channel_naming, verbose
+        input_fname,
+        eog,
+        misc,
+        include,
+        exclude,
+        preload,
+        channel_naming,
+        events_as_annotations=events_as_annotations,
+        verbose=verbose,
     )
 
 
 class RawMff(BaseRaw):
     """RawMff class."""
+
+    _extra_attributes = ("event_id",)
 
     @verbose
     def __init__(
@@ -442,6 +386,8 @@ class RawMff(BaseRaw):
         exclude=None,
         preload=False,
         channel_naming="E%d",
+        *,
+        events_as_annotations=True,
         verbose=None,
     ):
         """Init the RawMff class."""
@@ -454,7 +400,7 @@ class RawMff(BaseRaw):
                 need_dir=True,
             )
         )
-        logger.info("Reading EGI MFF Header from %s..." % input_fname)
+        logger.info(f"Reading EGI MFF Header from {input_fname}...")
         egi_info = _read_header(input_fname)
         if eog is None:
             eog = []
@@ -462,65 +408,36 @@ class RawMff(BaseRaw):
             misc = np.where(np.array(egi_info["chan_type"]) != "eeg")[0].tolist()
 
         logger.info("    Reading events ...")
-        egi_events, egi_info = _read_events(input_fname, egi_info)
+        egi_events, egi_info, mff_events = _read_events(input_fname, egi_info)
         cals = _get_eeg_calibration_info(input_fname, egi_info)
         logger.info("    Assembling measurement info ...")
-        if egi_info["n_events"] > 0:
-            event_codes = list(egi_info["event_codes"])
-            if include is None:
-                exclude_list = ["sync", "TREV"] if exclude is None else exclude
-                exclude_inds = [
-                    i for i, k in enumerate(event_codes) if k in exclude_list
-                ]
-                more_excludes = []
-                if exclude is None:
-                    for ii, event in enumerate(egi_events):
-                        if event.sum() <= 1 and event_codes[ii]:
-                            more_excludes.append(ii)
-                if len(exclude_inds) + len(more_excludes) == len(event_codes):
-                    warn(
-                        "Did not find any event code with more than one " "event.",
-                        RuntimeWarning,
-                    )
-                else:
-                    exclude_inds.extend(more_excludes)
-
-                exclude_inds.sort()
-                include_ = [
-                    i for i in np.arange(egi_info["n_events"]) if i not in exclude_inds
-                ]
-                include_names = [k for i, k in enumerate(event_codes) if i in include_]
-            else:
-                include_ = [i for i, k in enumerate(event_codes) if k in include]
-                include_names = include
-
-            for kk, v in [("include", include_names), ("exclude", exclude)]:
-                if isinstance(v, list):
-                    for k in v:
-                        if k not in event_codes:
-                            raise ValueError(f"Could not find event named {repr(k)}")
-                elif v is not None:
-                    raise ValueError("`%s` must be None or of type list" % kk)
+        event_codes = egi_info["event_codes"]
+        include = _triage_include_exclude(include, exclude, egi_events, egi_info)
+        if egi_info["n_events"] > 0 and not events_as_annotations:
             logger.info('    Synthesizing trigger channel "STI 014" ...')
-            logger.info(
-                "    Excluding events {%s} ..."
-                % ", ".join([k for i, k in enumerate(event_codes) if i not in include_])
-            )
-            events_ids = np.arange(len(include_)) + 1
+            if all(ch.startswith("D") for ch in include):
+                # support the DIN format DIN1, DIN2, ..., DIN9, DI10, DI11, ... DI99,
+                # D100, D101, ..., D255 that we get when sending 0-255 triggers on a
+                # parallel port.
+                events_ids = list()
+                for ch in include:
+                    while not ch[0].isnumeric():
+                        ch = ch[1:]
+                    events_ids.append(int(ch))
+            else:
+                events_ids = np.arange(len(include)) + 1
             egi_info["new_trigger"] = _combine_triggers(
-                egi_events[include_], remapping=events_ids
+                egi_events[[c in include for c in event_codes]], remapping=events_ids
             )
             self.event_id = dict(
-                zip([e for e in event_codes if e in include_names], events_ids)
+                zip([e for e in event_codes if e in include], events_ids)
             )
             if egi_info["new_trigger"] is not None:
                 egi_events = np.vstack([egi_events, egi_info["new_trigger"]])
-            assert egi_events.shape[1] == egi_info["last_samps"][-1]
         else:
-            # No events
             self.event_id = None
             egi_info["new_trigger"] = None
-            event_codes = []
+        assert egi_events.shape[1] == egi_info["last_samps"][-1]
 
         meas_dt_utc = egi_info["meas_dt_local"].astimezone(datetime.timezone.utc)
         info = _empty_info(egi_info["sfreq"])
@@ -532,15 +449,16 @@ class RawMff(BaseRaw):
         ch_names, mon = _read_locs(input_fname, egi_info, channel_naming)
         # Second: Stim
         ch_names.extend(list(egi_info["event_codes"]))
+        n_extra = len(event_codes) + len(misc) + len(eog) + len(egi_info["pns_names"])
         if egi_info["new_trigger"] is not None:
             ch_names.append("STI 014")  # channel for combined events
-        cals = np.concatenate(
-            [cals, np.repeat(1, len(event_codes) + 1 + len(misc) + len(eog))]
-        )
+            n_extra += 1
 
         # Third: PNS
         ch_names.extend(egi_info["pns_names"])
-        cals = np.concatenate([cals, np.repeat(1, len(egi_info["pns_names"]))])
+
+        cals = np.concatenate([cals, np.ones(n_extra)])
+        assert len(cals) == len(ch_names), (len(cals), len(ch_names))
 
         # Actually create channels as EEG, then update stim and PNS
         ch_coil = FIFF.FIFFV_COIL_EEG
@@ -570,19 +488,14 @@ class RawMff(BaseRaw):
         if mon is not None:
             info.set_montage(mon, on_missing="ignore")
 
-        ref_idx = np.flatnonzero(np.in1d(mon.ch_names, REFERENCE_NAMES))
+        ref_idx = np.flatnonzero(np.isin(mon.ch_names, REFERENCE_NAMES))
         if len(ref_idx):
             ref_idx = ref_idx.item()
             ref_coords = info["chs"][int(ref_idx)]["loc"][:3]
             for chan in info["chs"]:
-                is_eeg = chan["kind"] == FIFF.FIFFV_EEG_CH
-                is_not_ref = chan["ch_name"] not in REFERENCE_NAMES
-                if is_eeg and is_not_ref:
+                if chan["kind"] == FIFF.FIFFV_EEG_CH:
                     chan["loc"][3:6] = ref_coords
 
-            # Cz ref was applied during acquisition, so mark as already set.
-            with info._unlock():
-                info["custom_ref_applied"] = FIFF.FIFFV_MNE_CUSTOM_REF_ON
         file_bin = op.join(input_fname, egi_info["eeg_fname"])
         egi_info["egi_events"] = egi_events
 
@@ -602,7 +515,7 @@ class RawMff(BaseRaw):
             np.concatenate([idx[key] for key in keys]), np.arange(len(chs))
         ):
             raise ValueError(
-                "Currently interlacing EEG and PNS channels" "is not supported"
+                "Currently interlacing EEG and PNS channels is not supported"
             )
         egi_info["kind_bounds"] = [0]
         for key in keys:
@@ -614,6 +527,7 @@ class RawMff(BaseRaw):
         last_samps = [egi_info["last_samps"][-1] - 1]
 
         annot = dict(onset=list(), duration=list(), description=list())
+
         if len(idx["pns"]):
             # PNS Data is present and should be read:
             egi_info["pns_filepath"] = op.join(input_fname, egi_info["pns_fname"])
@@ -627,14 +541,11 @@ class RawMff(BaseRaw):
                 annot["description"].append("BAD_EGI_PSG")
             elif pns_samples != eeg_samples:
                 raise RuntimeError(
-                    "PNS samples (%d) did not match EEG samples (%d)"
-                    % (pns_samples, eeg_samples)
+                    f"PNS samples ({pns_samples}) did not match EEG samples "
+                    f"({eeg_samples})."
                 )
 
-        self._filenames = [file_bin]
-        self._raw_extras = [egi_info]
-
-        super(RawMff, self).__init__(
+        super().__init__(
             info,
             preload=preload,
             orig_format="single",
@@ -656,8 +567,17 @@ class RawMff(BaseRaw):
                 annot["duration"].append(gap / egi_info["sfreq"])
                 annot["description"].append("BAD_ACQ_SKIP")
 
+        # create events from annotations
+        if events_as_annotations:
+            for code, samples in mff_events.items():
+                if code not in include:
+                    continue
+                annot["onset"].extend(np.array(samples) / egi_info["sfreq"])
+                annot["duration"].extend([0.0] * len(samples))
+                annot["description"].extend([code] * len(samples))
+
         if len(annot["onset"]):
-            self.set_annotations(Annotations(**annot, orig_time=None))
+            self.set_annotations(Annotations(**annot))
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of data."""
@@ -713,7 +633,7 @@ class RawMff(BaseRaw):
         # TODO: Refactor this reading with the PNS reading in a single function
         # (DRY)
         samples_to_read = stop - start
-        with open(self._filenames[fi], "rb", buffering=0) as fid:
+        with open(self.filenames[fi], "rb", buffering=0) as fid:
             # Go to starting block
             current_block = 0
             current_block_info = None
@@ -1013,9 +933,6 @@ def _read_evoked_mff(fname, condition, channel_naming="E%d", verbose=None):
     info["bads"] = bads
 
     # Add EEG reference to info
-    # Initialize 'custom_ref_applied' to False
-    with info._unlock():
-        info["custom_ref_applied"] = False
     try:
         fp = mff.directory.filepointer("history")
     except (ValueError, FileNotFoundError):  # old (<=0.6.3) vs new mffpy
@@ -1027,10 +944,7 @@ def _read_evoked_mff(fname, condition, channel_naming="E%d", verbose=None):
             if entry["method"] == "Montage Operations Tool":
                 if "Average Reference" in entry["settings"]:
                     # Average reference has been applied
-                    projector, info = setup_proj(info)
-                else:
-                    # Custom reference has been applied that is not an average
-                    info["custom_ref_applied"] = True
+                    _, info = setup_proj(info)
 
     # Get nave from categories.xml
     try:

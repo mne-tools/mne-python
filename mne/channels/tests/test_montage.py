@@ -1,77 +1,80 @@
-# Author: Teon Brooks <teon.brooks@gmail.com>
-#         Stefan Appelhoff <stefan.appelhoff@mailbox.org>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
+import shutil
 from contextlib import nullcontext
+from functools import partial
 from itertools import chain
 from pathlib import Path
-import shutil
-
-import pytest
-
-import numpy as np
-from functools import partial
 from string import ascii_lowercase
 
+import matplotlib.pyplot as plt
+import numpy as np
+import pytest
 from numpy.testing import (
+    assert_allclose,
     assert_array_equal,
     assert_array_less,
-    assert_allclose,
     assert_equal,
 )
-import matplotlib.pyplot as plt
 
-from mne import __file__ as _mne_file, create_info, read_evokeds, pick_types
-from mne.source_space import get_mni_fiducials
-from mne.utils._testing import assert_object_equal
+import mne.channels.montage
+from mne import (
+    __file__ as _mne_file,
+)
+from mne import (
+    create_info,
+    pick_types,
+    read_evokeds,
+)
+from mne._fiff._digitization import (
+    _count_points_by_type,
+    _format_dig_points,
+    _get_dig_eeg,
+    _get_fid_coords,
+)
+from mne._fiff.constants import FIFF
+from mne.bem import _fit_sphere
 from mne.channels import (
-    get_builtin_montages,
     DigMontage,
-    read_dig_dat,
-    read_dig_egi,
-    read_dig_captrak,
-    read_dig_fif,
+    compute_dev_head_t,
+    compute_native_head_t,
+    get_builtin_montages,
+    make_dig_montage,
     make_standard_montage,
     read_custom_montage,
-    compute_dev_head_t,
-    make_dig_montage,
-    read_dig_polhemus_isotrak,
-    compute_native_head_t,
-    read_polhemus_fastscan,
-    read_dig_localite,
+    read_dig_captrak,
+    read_dig_dat,
+    read_dig_egi,
+    read_dig_fif,
     read_dig_hpts,
+    read_dig_localite,
+    read_dig_polhemus_isotrak,
+    read_polhemus_fastscan,
 )
 from mne.channels.montage import (
-    transform_to_head,
-    _check_get_coord_frame,
     _BUILTIN_STANDARD_MONTAGES,
+    _check_get_coord_frame,
+    transform_to_head,
+    write_dig,
 )
-from mne.preprocessing import compute_current_source_density
-from mne.utils import assert_dig_allclose, _record_warnings
-from mne.bem import _fit_sphere
-from mne.io.constants import FIFF
-from mne.io._digitization import (
-    _format_dig_points,
-    _get_fid_coords,
-    _get_dig_eeg,
-    _count_points_by_type,
-)
-from mne.transforms import _ensure_trans, apply_trans, invert_transform, _get_trans
-from mne.viz._3d import _fiducial_coords
-
-from mne.io.kit import read_mrk
+from mne.coreg import get_mni_fiducials
+from mne.datasets import testing
 from mne.io import (
+    RawArray,
+    read_fiducials,
     read_raw_brainvision,
     read_raw_egi,
     read_raw_fif,
-    read_fiducials,
     read_raw_nirx,
 )
-
-from mne.io import RawArray
-from mne.datasets import testing
-
+from mne.io.kit import read_mrk
+from mne.preprocessing import compute_current_source_density
+from mne.transforms import _ensure_trans, _get_trans, apply_trans, invert_transform
+from mne.utils import _record_warnings, assert_dig_allclose
+from mne.utils._testing import assert_object_equal
+from mne.viz._3d import _fiducial_coords
 
 data_path = testing.data_path(download=False)
 fif_dig_montage_fname = data_path / "montage" / "eeganes07.fif"
@@ -84,15 +87,11 @@ bv_fif_fname = data_path / "montage" / "bv_dig_raw.fif"
 locs_montage_fname = data_path / "EEGLAB" / "test_chans.locs"
 evoked_fname = data_path / "montage" / "level2_raw-ave.fif"
 eeglab_fname = data_path / "EEGLAB" / "test_raw.set"
-bdf_fname1 = data_path / "BDF" / "test_generator_2.bdf"
-bdf_fname2 = data_path / "BDF" / "test_bdf_stim_channel.bdf"
-egi_fname1 = data_path / "EGI" / "test_egi.mff"
-cnt_fname = data_path / "CNT" / "scan41_short.cnt"
 fnirs_dname = data_path / "NIRx" / "nirscout" / "nirx_15_2_recording_w_short"
 mgh70_fname = data_path / "SSS" / "mgh70_raw.fif"
 subjects_dir = data_path / "subjects"
 
-io_dir = Path(__file__).parent.parent.parent / "io"
+io_dir = Path(__file__).parents[2] / "io"
 kit_dir = io_dir / "kit" / "tests" / "data"
 elp = kit_dir / "test_elp.txt"
 hsp = kit_dir / "test_hsp.txt"
@@ -101,10 +100,8 @@ bv_fname = io_dir / "brainvision" / "tests" / "data" / "test.vhdr"
 fif_fname = io_dir / "tests" / "data" / "test_raw.fif"
 edf_path = io_dir / "edf" / "tests" / "data" / "test.edf"
 bdf_path = io_dir / "edf" / "tests" / "data" / "test_bdf_eeglab.mat"
-egi_fname2 = io_dir / "egi" / "tests" / "data" / "test_egi.raw"
 vhdr_path = io_dir / "brainvision" / "tests" / "data" / "test.vhdr"
 ctf_fif_fname = io_dir / "tests" / "data" / "test_ctf_comp_raw.fif"
-nicolet_fname = io_dir / "nicolet" / "tests" / "data" / "test_nicolet_raw.data"
 
 
 def _make_toy_raw(n_channels):
@@ -143,7 +140,8 @@ def test_dig_montage_trans(tmp_path):
     _ensure_trans(trans)
     # ensure that we can save and load it, too
     fname = tmp_path / "temp-mon.fif"
-    _check_roundtrip(montage, fname, "mri")
+    with pytest.warns(RuntimeWarning, match="MNE naming conventions"):
+        _check_roundtrip(montage, fname, "mri")
     # test applying a trans
     position1 = montage.get_positions()
     montage.apply_trans(trans)
@@ -305,7 +303,66 @@ def test_documented():
             ),
             "elc",
             None,
-            id="ASA electrode",
+            id="old ASA electrode (elc)",
+        ),
+        pytest.param(
+            partial(read_custom_montage, head_size=None),
+            (
+                "NumberPositions= 96\n"
+                "UnitPosition mm\n"
+                "Positions\n"
+                "E01	:	5.288	-3.658	119.693\n"
+                "E02	:	59.518	-4.031	101.404\n"
+                "E03	:	29.949	-50.988	98.145\n"
+                "Labels\n"
+                "E01	E02	E03\n"
+            ),
+            make_dig_montage(
+                ch_pos={
+                    "E01": [0.005288, -0.003658, 0.119693],
+                    "E02": [0.059518, -0.004031, 0.101404],
+                    "E03": [0.029949, -0.050988, 0.098145],
+                },
+            ),
+            "elc",
+            None,
+            id="new ASA electrode (elc)",
+        ),
+        pytest.param(
+            partial(read_custom_montage, head_size=None),
+            (
+                "ReferenceLabel\n"
+                "avg\n"
+                "UnitPosition	mm\n"
+                "NumberPositions=	6\n"
+                "Positions\n"
+                "-69.2574 10.5895 -25.0009\n"
+                "3.3791 94.6594 32.2592\n"
+                "77.2856 12.0537 -30.2488\n"
+                "4.6147 121.8858 8.6370\n"
+                "-31.3669 54.0269 94.9191\n"
+                "-8.7495 56.5653 99.6655\n"
+                "Labels\n"
+                "LPA\n"
+                "Nz\n"
+                "RPA\n"
+                "EEG 000\n"
+                "EEG 001\n"
+                "EEG 002\n"
+            ),
+            make_dig_montage(
+                ch_pos={
+                    "EEG 000": [0.004615, 0.121886, 0.008637],
+                    "EEG 001": [-0.031367, 0.054027, 0.094919],
+                    "EEG 002": [-0.00875, 0.056565, 0.099665],
+                },
+                nasion=[0.003379, 0.094659, 0.032259],
+                lpa=[-0.069257, 0.010589, -0.025001],
+                rpa=[0.077286, 0.012054, -0.030249],
+            ),
+            "elc",
+            None,
+            id="another old ASA electrode (elc)",
         ),
         pytest.param(
             partial(read_custom_montage, head_size=1),
@@ -510,6 +567,8 @@ def test_documented():
 )
 def test_montage_readers(reader, file_content, expected_dig, ext, warning, tmp_path):
     """Test that we have an equivalent of read_montage for all file formats."""
+    if file_content.startswith("<?xml"):
+        pytest.importorskip("defusedxml")
     fname = tmp_path / f"test.{ext}"
     with open(fname, "w") as fid:
         fid.write(file_content)
@@ -525,8 +584,26 @@ def test_montage_readers(reader, file_content, expected_dig, ext, warning, tmp_p
     actual_ch_pos = dig_montage._get_ch_pos()
     expected_ch_pos = expected_dig._get_ch_pos()
     for kk in actual_ch_pos:
-        assert_allclose(actual_ch_pos[kk], expected_ch_pos[kk], atol=1e-5)
+        assert_allclose(actual_ch_pos[kk], expected_ch_pos[kk], atol=1e-5, err_msg=kk)
     assert len(dig_montage.dig) == len(expected_dig.dig)
+    for key in ("nasion", "lpa", "rpa"):
+        expected = [
+            d
+            for d in expected_dig.dig
+            if d["kind"] == FIFF.FIFFV_POINT_CARDINAL
+            and d["ident"] == getattr(FIFF, f"FIFFV_POINT_{key.upper()}")
+        ]
+        got = [
+            d
+            for d in dig_montage.dig
+            if d["kind"] == FIFF.FIFFV_POINT_CARDINAL
+            and d["ident"] == getattr(FIFF, f"FIFFV_POINT_{key.upper()}")
+        ]
+        assert len(expected) in (0, 1), key
+        assert len(got) in (0, 1), key
+        assert len(expected) == len(got)
+        if len(expected):
+            assert_allclose(got[0]["r"], expected[0]["r"], atol=1e-5, err_msg=key)
     for d1, d2 in zip(dig_montage.dig, expected_dig.dig):
         assert d1["coord_frame"] == d2["coord_frame"]
         for key in ("coord_frame", "ident", "kind"):
@@ -574,7 +651,7 @@ def test_read_dig_dat(tmp_path):
         for row in rows:
             name = row[0].rjust(10)
             data = "\t".join(map(str, row[1:]))
-            fid.write("%s\t%s\n" % (name, data))
+            fid.write(f"{name}\t{data}\n")
     # construct expected value
     idents = {
         78: FIFF.FIFFV_POINT_NASION,
@@ -629,7 +706,7 @@ def test_read_dig_montage_using_polhemus_fastscan():
     )
 
     assert repr(montage) == (
-        "<DigMontage | " "500 extras (headshape), 5 HPIs, 3 fiducials, 10 channels>"
+        "<DigMontage | 500 extras (headshape), 5 HPIs, 3 fiducials, 10 channels>"
     )
 
     assert set([d["coord_frame"] for d in montage.dig]) == {FIFF.FIFFV_COORD_UNKNOWN}
@@ -674,7 +751,7 @@ def test_read_dig_polhemus_isotrak_hsp():
     }
     montage = read_dig_polhemus_isotrak(fname=kit_dir / "test.hsp", ch_names=None)
     assert repr(montage) == (
-        "<DigMontage | " "500 extras (headshape), 0 HPIs, 3 fiducials, 0 channels>"
+        "<DigMontage | 500 extras (headshape), 0 HPIs, 3 fiducials, 0 channels>"
     )
 
     fiducials, fid_coordframe = _get_fid_coords(montage.dig)
@@ -693,7 +770,7 @@ def test_read_dig_polhemus_isotrak_elp():
     }
     montage = read_dig_polhemus_isotrak(fname=kit_dir / "test.elp", ch_names=None)
     assert repr(montage) == (
-        "<DigMontage | " "0 extras (headshape), 5 HPIs, 3 fiducials, 0 channels>"
+        "<DigMontage | 0 extras (headshape), 5 HPIs, 3 fiducials, 0 channels>"
     )
     fiducials, fid_coordframe = _get_fid_coords(montage.dig)
 
@@ -712,29 +789,25 @@ def isotrak_eeg(tmp_path_factory):
     fname = tmp_path_factory.mktemp("data") / "test.eeg"
     with open(str(fname), "w") as fid:
         fid.write(
-            (
-                "3	200\n"
-                "//Shape file\n"
-                "//Minor revision number\n"
-                "2\n"
-                "//Subject Name\n"
-                "%N	Name    \n"
-                "////Shape code, number of digitized points\n"
-            )
+            "3	200\n"
+            "//Shape file\n"
+            "//Minor revision number\n"
+            "2\n"
+            "//Subject Name\n"
+            "%N	Name    \n"
+            "////Shape code, number of digitized points\n"
         )
-        fid.write("0 {rows:d}\n".format(rows=N_ROWS))
+        fid.write(f"0 {N_ROWS:d}\n")
         fid.write(
-            (
-                "//Position of fiducials X+, Y+, Y- on the subject\n"
-                "%F	0.11056	-5.421e-19	0	\n"
-                "%F	-0.00021075	0.080793	-7.5894e-19	\n"
-                "%F	0.00021075	-0.080793	-2.8731e-18	\n"
-                "//No of rows, no of columns; position of digitized points\n"
-            )
+            "//Position of fiducials X+, Y+, Y- on the subject\n"
+            "%F	0.11056	-5.421e-19	0	\n"
+            "%F	-0.00021075	0.080793	-7.5894e-19	\n"
+            "%F	0.00021075	-0.080793	-2.8731e-18	\n"
+            "//No of rows, no of columns; position of digitized points\n"
         )
-        fid.write("{rows:d} {cols:d}\n".format(rows=N_ROWS, cols=N_COLS))
+        fid.write(f"{N_ROWS} {N_COLS}\n")
         for row in content:
-            fid.write("\t".join("%0.18e" % cell for cell in row) + "\n")
+            fid.write("\t".join(f"{cell:0.18e}" for cell in row) + "\n")
 
     return str(fname)
 
@@ -748,14 +821,14 @@ def test_read_dig_polhemus_isotrak_eeg(isotrak_eeg):
         "lpa": np.array([-2.1075e-04, 8.0793e-02, -7.5894e-19]),
         "rpa": np.array([2.1075e-04, -8.0793e-02, -2.8731e-18]),
     }
-    ch_names = ["eeg {:01d}".format(ii) for ii in range(N_CHANNELS)]
+    ch_names = [f"eeg {ii:01d}" for ii in range(N_CHANNELS)]
     EXPECTED_CH_POS = dict(
         zip(ch_names, np.random.RandomState(_SEED).randn(N_CHANNELS, 3))
     )
 
     montage = read_dig_polhemus_isotrak(fname=isotrak_eeg, ch_names=ch_names)
     assert repr(montage) == (
-        "<DigMontage | " "0 extras (headshape), 0 HPIs, 3 fiducials, 5 channels>"
+        "<DigMontage | 0 extras (headshape), 0 HPIs, 3 fiducials, 5 channels>"
     )
 
     fiducials, fid_coordframe = _get_fid_coords(montage.dig)
@@ -781,7 +854,7 @@ def test_read_dig_polhemus_isotrak_error_handling(isotrak_eeg, tmp_path):
     with pytest.raises(ValueError, match=EXPECTED_ERR_MSG):
         _ = read_dig_polhemus_isotrak(
             fname=isotrak_eeg,
-            ch_names=["eeg {:01d}".format(ii) for ii in range(N_CHANNELS + 42)],
+            ch_names=[f"eeg {ii:01d}" for ii in range(N_CHANNELS + 42)],
         )
 
     # Check fname extensions
@@ -834,7 +907,7 @@ def test_combining_digmontage_objects():
         + ch_pos3
     )
     assert repr(montage) == (
-        "<DigMontage | " "6 extras (headshape), 6 HPIs, 3 fiducials, 9 channels>"
+        "<DigMontage | 6 extras (headshape), 6 HPIs, 3 fiducials, 9 channels>"
     )
 
     EXPECTED_MONTAGE = make_dig_montage(
@@ -1004,23 +1077,23 @@ def test_set_dig_montage_with_nan_positions():
 
 
 @testing.requires_testing_data
-def test_fif_dig_montage(tmp_path):
+def test_fif_dig_montage(tmp_path, monkeypatch):
     """Test FIF dig montage support."""
-    dig_montage = read_dig_fif(fif_dig_montage_fname)
+    dig_montage = read_dig_fif(fif_dig_montage_fname, verbose="error")
 
     # test round-trip IO
-    fname_temp = tmp_path / "test.fif"
+    fname_temp = tmp_path / "test-dig.fif"
     _check_roundtrip(dig_montage, fname_temp)
 
     # Make a BrainVision file like the one the user would have had
     raw_bv = read_raw_brainvision(bv_fname, preload=True)
     raw_bv_2 = raw_bv.copy()
     mapping = dict()
-    for ii, ch_name in enumerate(raw_bv.ch_names):
-        mapping[ch_name] = "EEG%03d" % (ii + 1,)
+    for ii, ch_name in enumerate(raw_bv.ch_names, 1):
+        mapping[ch_name] = f"EEG{ii:03d}"
     raw_bv.rename_channels(mapping)
-    for ii, ch_name in enumerate(raw_bv_2.ch_names):
-        mapping[ch_name] = "EEG%03d" % (ii + 33,)
+    for ii, ch_name in enumerate(raw_bv_2.ch_names, 33):
+        mapping[ch_name] = f"EEG{ii:03d}"
     raw_bv_2.rename_channels(mapping)
     raw_bv.add_channels([raw_bv_2])
     for ch in raw_bv.info["chs"]:
@@ -1049,21 +1122,38 @@ def test_fif_dig_montage(tmp_path):
     # Roundtrip of non-FIF start
     montage = make_dig_montage(hsp=read_polhemus_fastscan(hsp), hpi=read_mrk(hpi))
     elp_points = read_polhemus_fastscan(elp)
-    ch_pos = {"EEG%03d" % (k + 1): pos for k, pos in enumerate(elp_points[8:])}
-    montage += make_dig_montage(
+    ch_pos = {f"ECoG{k:03d}": pos for k, pos in enumerate(elp_points[3:], 1)}
+    assert len(elp_points) == 8  # there are only 8 but pretend the last are ECoG
+    other = make_dig_montage(
         nasion=elp_points[0], lpa=elp_points[1], rpa=elp_points[2], ch_pos=ch_pos
     )
+    assert other.ch_names[0].startswith("ECoG")
+    montage += other
+    assert montage.ch_names[0].startswith("ECoG")
     _check_roundtrip(montage, fname_temp, "unknown")
     montage = transform_to_head(montage)
     _check_roundtrip(montage, fname_temp)
     montage.dig[0]["coord_frame"] = FIFF.FIFFV_COORD_UNKNOWN
     with pytest.raises(RuntimeError, match="Only a single coordinate"):
-        montage.save(fname_temp)
+        montage.save(fname_temp, overwrite=True)
+    montage.dig[0]["coord_frame"] = FIFF.FIFFV_COORD_HEAD
+
+    # Check that old-style files can be read, too, using EEG001 etc.
+    def write_dig_no_ch_names(*args, **kwargs):
+        kwargs["ch_names"] = None
+        return write_dig(*args, **kwargs)
+
+    monkeypatch.setattr(mne.channels.montage, "write_dig", write_dig_no_ch_names)
+    montage.save(fname_temp, overwrite=True)
+    montage_read = read_dig_fif(fname_temp)
+    default_ch_names = [f"EEG{ii:03d}" for ii in range(1, 6)]
+    assert montage_read.ch_names == default_ch_names
 
 
 @testing.requires_testing_data
 def test_egi_dig_montage(tmp_path):
     """Test EGI MFF XML dig montage support."""
+    pytest.importorskip("defusedxml")
     dig_montage = read_dig_egi(egi_dig_montage_fname)
     fid, coord = _get_fid_coords(dig_montage.dig)
 
@@ -1078,7 +1168,11 @@ def test_egi_dig_montage(tmp_path):
     )
 
     # Test accuracy and embedding within raw object
-    raw_egi = read_raw_egi(egi_raw_fname, channel_naming="EEG %03d")
+    raw_egi = read_raw_egi(
+        egi_raw_fname,
+        channel_naming="EEG %03d",
+        events_as_annotations=True,
+    )
 
     raw_egi.set_montage(dig_montage)
     test_raw_egi = read_raw_fif(egi_fif_fname)
@@ -1100,26 +1194,16 @@ def test_egi_dig_montage(tmp_path):
         atol=1e-4,
     )
 
-    # test round-trip IO
-    fname_temp = tmp_path / "egi_test.fif"
+    # test round-trip IO (with GZ)
+    fname_temp = tmp_path / "egi_test-dig.fif.gz"
     _check_roundtrip(dig_montage, fname_temp, "unknown")
     _check_roundtrip(dig_montage_in_head, fname_temp)
-
-
-def _pop_montage(dig_montage, ch_name):
-    # remove reference that was not used in old API
-    name_idx = dig_montage.ch_names.index(ch_name)
-    dig_idx = dig_montage._get_dig_names().index(ch_name)
-
-    del dig_montage.dig[dig_idx]
-    del dig_montage.ch_names[name_idx]
-    for k in range(dig_idx, len(dig_montage.dig)):
-        dig_montage.dig[k]["ident"] -= 1
 
 
 @testing.requires_testing_data
 def test_read_dig_captrak(tmp_path):
     """Test reading a captrak montage file."""
+    pytest.importorskip("defusedxml")
     EXPECTED_CH_NAMES_OLD = [
         "AF3",
         "AF4",
@@ -1261,11 +1345,11 @@ def test_read_dig_captrak(tmp_path):
 
     assert montage.ch_names == EXPECTED_CH_NAMES
     assert repr(montage) == (
-        "<DigMontage | " "0 extras (headshape), 0 HPIs, 3 fiducials, 66 channels>"
+        "<DigMontage | 0 extras (headshape), 0 HPIs, 3 fiducials, 66 channels>"
     )
 
     montage = transform_to_head(montage)  # transform_to_head has to be tested
-    _check_roundtrip(montage=montage, fname=str(tmp_path / "bvct_test.fif"))
+    _check_roundtrip(montage=montage, fname=tmp_path / "bvct_test-dig.fif")
 
     fid, _ = _get_fid_coords(montage.dig)
     assert_allclose(
@@ -1333,7 +1417,7 @@ def test_set_montage_mgh(rename):
 
         def renamer(x):
             try:
-                return "EEG %03d" % (_MGH60.index(x) + 1,)
+                return f"EEG {_MGH60.index(x) + 1:03d}"
             except ValueError:
                 return x
 
@@ -1382,12 +1466,12 @@ def test_set_montage_mgh(rename):
 def test_montage_positions_similar(fname, montage, n_eeg, n_good, bads):
     """Test that montages give spatially similar positions."""
     # 1. Prepare data: load, set bads (if missing), and filter
-    raw = read_raw_fif(fname).pick_types(eeg=True, exclude=())
+    raw = read_raw_fif(fname).pick(picks="eeg")
     if bads is not None:
         assert raw.info["bads"] == []
         raw.info["bads"] = bads
     assert len(raw.ch_names) == n_eeg
-    raw.pick_types(eeg=True, exclude="bads").load_data()
+    raw.pick(picks="eeg", exclude="bads").load_data()
     raw.apply_function(lambda x: x - x.mean())  # remove DC
     raw.filter(None, 40)  # remove line noise
     assert len(raw.ch_names) == n_good
@@ -1430,33 +1514,15 @@ def test_montage_positions_similar(fname, montage, n_eeg, n_good, bads):
     assert_array_less(0, ang)  # but not equal
 
 
-# XXX: this does not check ch_names + it cannot work because of write_dig
 def _check_roundtrip(montage, fname, coord_frame="head"):
     """Check roundtrip writing."""
     montage.save(fname, overwrite=True)
     montage_read = read_dig_fif(fname=fname)
 
-    assert_equal(repr(montage), repr(montage_read))
-    assert_equal(_check_get_coord_frame(montage_read.dig), coord_frame)
+    assert repr(montage) == repr(montage_read)
+    assert _check_get_coord_frame(montage_read.dig) == coord_frame
     assert_dig_allclose(montage, montage_read)
-
-
-def _fake_montage(ch_names):
-    pos = np.random.RandomState(42).randn(len(ch_names), 3)
-    return make_dig_montage(ch_pos=dict(zip(ch_names, pos)), coord_frame="head")
-
-
-cnt_ignore_warns = [
-    pytest.mark.filterwarnings(
-        "ignore:.*Could not parse meas date from the header. Setting to None."
-    ),
-    pytest.mark.filterwarnings(
-        (
-            "ignore:.*Could not define the number of bytes automatically."
-            " Defaulting to 2."
-        )
-    ),
-]
+    assert montage.ch_names == montage_read.ch_names
 
 
 def test_digmontage_constructor_errors():
@@ -1783,7 +1849,7 @@ def test_set_montage_with_missing_coordinates():
         rpa=[-1, 0, 0],
     )
 
-    with pytest.raises(ValueError, match="DigMontage is " "only a subset of info"):
+    with pytest.raises(ValueError, match="DigMontage is only a subset of info"):
         raw.set_montage(montage_in_mri)
 
     with pytest.raises(ValueError, match="Invalid value"):
@@ -1792,7 +1858,7 @@ def test_set_montage_with_missing_coordinates():
     with pytest.raises(TypeError, match="must be an instance"):
         raw.set_montage(montage_in_mri, on_missing=True)
 
-    with pytest.warns(RuntimeWarning, match="DigMontage is " "only a subset of info"):
+    with pytest.warns(RuntimeWarning, match="DigMontage is only a subset of info"):
         raw.set_montage(montage_in_mri, on_missing="warn")
 
     raw.set_montage(montage_in_mri, on_missing="ignore")
@@ -1863,7 +1929,7 @@ def test_get_montage():
 
     # 4. read in BV test dataset and make sure montage
     # fulfills roundtrip on non-standard montage
-    dig_montage = read_dig_fif(fif_dig_montage_fname)
+    dig_montage = read_dig_fif(fif_dig_montage_fname, verbose="error")
 
     # Make a BrainVision file like the one the user would have had
     # with testing dataset 'test.vhdr'
@@ -1873,11 +1939,11 @@ def test_get_montage():
     # rename channels to make it have the full set
     # of channels
     mapping = dict()
-    for ii, ch_name in enumerate(raw_bv.ch_names):
-        mapping[ch_name] = "EEG%03d" % (ii + 1,)
+    for ii, ch_name in enumerate(raw_bv.ch_names, 1):
+        mapping[ch_name] = f"EEG{ii:03d}"
     raw_bv.rename_channels(mapping)
-    for ii, ch_name in enumerate(raw_bv_2.ch_names):
-        mapping[ch_name] = "EEG%03d" % (ii + 33,)
+    for ii, ch_name in enumerate(raw_bv_2.ch_names, 33):
+        mapping[ch_name] = f"EEG{ii:03d}"
     raw_bv_2.rename_channels(mapping)
     raw_bv.add_channels([raw_bv_2])
     for ch in raw_bv.info["chs"]:
@@ -1909,7 +1975,7 @@ def test_read_dig_hpts():
     fname = io_dir / "brainvision" / "tests" / "data" / "test.hpts"
     montage = read_dig_hpts(fname)
     assert repr(montage) == (
-        "<DigMontage | " "0 extras (headshape), 5 HPIs, 3 fiducials, 34 channels>"
+        "<DigMontage | 0 extras (headshape), 5 HPIs, 3 fiducials, 34 channels>"
     )
 
 
@@ -1930,13 +1996,12 @@ def test_get_builtin_montages():
 def test_plot_montage():
     """Test plotting montage."""
     # gh-8025
+    pytest.importorskip("defusedxml")
     montage = read_dig_captrak(bvct_dig_montage_fname)
     montage.plot()
-    plt.close("all")
 
     f, ax = plt.subplots(1, 1)
     montage.plot(axes=ax)
-    plt.close("all")
 
     with pytest.raises(TypeError, match="must be an instance of Axes"):
         montage.plot(axes=101)
@@ -1967,7 +2032,7 @@ def test_montage_add_fiducials():
     subjects_dir = data_path / "subjects"
     subject = "sample"
     fid_fname = subjects_dir / subject / "bem" / "sample-fiducials.fif"
-    test_fids, test_coord_frame = read_fiducials(fid_fname)
+    test_fids, _ = read_fiducials(fid_fname)
     test_fids = np.array([f["r"] for f in test_fids])
 
     # create test montage and add estimated fiducials
@@ -1977,7 +2042,7 @@ def test_montage_add_fiducials():
 
     # check that adding MNI fiducials fails because we're in MRI
     with pytest.raises(
-        RuntimeError, match="Montage should be in the " '"mni_tal" coordinate frame'
+        RuntimeError, match='Montage should be in the "mni_tal" coordinate frame'
     ):
         montage.add_mni_fiducials(subjects_dir=subjects_dir)
 
@@ -1992,7 +2057,7 @@ def test_montage_add_fiducials():
     # which is the FreeSurfer RAS
     montage = make_dig_montage(ch_pos=test_ch_pos, coord_frame="mni_tal")
     with pytest.raises(
-        RuntimeError, match="Montage should be in the " '"mri" coordinate frame'
+        RuntimeError, match='Montage should be in the "mri" coordinate frame'
     ):
         montage.add_estimated_fiducials(subject=subject, subjects_dir=subjects_dir)
 

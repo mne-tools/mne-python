@@ -1,3 +1,7 @@
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
+
 from pathlib import Path
 
 import numpy as np
@@ -6,20 +10,20 @@ from numpy.testing import assert_allclose, assert_array_equal
 
 import mne
 from mne import (
-    vertex_to_mni,
-    head_to_mni,
-    read_talxfm,
-    read_freesurfer_lut,
     get_volume_labels_from_aseg,
+    head_to_mni,
+    read_freesurfer_lut,
+    read_talxfm,
+    vertex_to_mni,
+)
+from mne._freesurfer import (
+    _check_subject_dir,
+    _estimate_talxfm_rigid,
+    _get_mgz_header,
+    read_lta,
 )
 from mne.datasets import testing
-from mne._freesurfer import (
-    _get_mgz_header,
-    _check_subject_dir,
-    read_lta,
-    _estimate_talxfm_rigid,
-)
-from mne.transforms import apply_trans, _get_trans, rot_to_quat, _angle_between_quats
+from mne.transforms import _angle_between_quats, _get_trans, apply_trans, rot_to_quat
 
 data_path = testing.data_path(download=False)
 subjects_dir = data_path / "subjects"
@@ -252,8 +256,8 @@ def test_read_freesurfer_lut(fname, tmp_path):
     colors = [(id_,) * 4 for id_ in ids]
     with open(fname, "w") as fid:
         for name, id_, color in zip(names, ids, colors):
-            out_color = " ".join("%3d" % x for x in color)
-            line = "%d    %s %s\n" % (id_, name, out_color)
+            out_color = " ".join(f"{x:03}" for x in color)
+            line = f"{id_}    {name} {out_color}\n"
             fid.write(line)
     lut, got_colors = read_freesurfer_lut(fname)
     assert len(lut) == len(got_colors) == len(names) == len(ids)
@@ -264,8 +268,8 @@ def test_read_freesurfer_lut(fname, tmp_path):
         assert lut[name] == id_
     with open(fname, "w") as fid:
         for name, id_, color in zip(names, ids, colors):
-            out_color = " ".join("%3d" % x for x in color[:3])  # wrong length!
-            line = "%d    %s %s\n" % (id_, name, out_color)
+            out_color = " ".join(f"{x:03}" for x in color[:3])  # wrong length!
+            line = f"{id_}    {name} {out_color}\n"
             fid.write(line)
     with pytest.raises(RuntimeError, match="formatted"):
         read_freesurfer_lut(fname)

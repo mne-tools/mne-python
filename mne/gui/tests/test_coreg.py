@@ -1,30 +1,27 @@
-# Author: Christian Brodbeck <christianbrodbeck@nyu.edu>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import os
 from contextlib import nullcontext
 from pathlib import Path
 
+import numpy as np
 import pytest
 from numpy.testing import assert_allclose
-import numpy as np
 
 import mne
-from mne.datasets import testing
-from mne.io import read_info
-from mne.io.kit.tests import data_dir as kit_data_dir
-from mne.io.constants import FIFF
-from mne.utils import get_config, catch_logging, requires_version
+from mne._fiff.constants import FIFF
 from mne.channels import DigMontage
 from mne.coreg import Coregistration
+from mne.datasets import testing
+from mne.io import read_info
+from mne.utils import catch_logging, get_config
 from mne.viz import _3d
-
 
 data_path = testing.data_path(download=False)
 raw_path = data_path / "MEG" / "sample" / "sample_audvis_trunc_raw.fif"
 fname_trans = data_path / "MEG" / "sample" / "sample_audvis_trunc-trans.fif"
-kit_raw_path = kit_data_dir / "test_bin_raw.fif"
 subjects_dir = data_path / "subjects"
 fid_fname = subjects_dir / "sample" / "bem" / "sample-fiducials.fif"
 ctf_raw_path = data_path / "CTF" / "catch-alp-good-f.ds"
@@ -242,6 +239,9 @@ def test_coreg_gui_pyvista_basic(tmp_path, monkeypatch, renderer_interactive_pyv
     assert not coreg._helmet
     assert coreg._actors["helmet"] is None
     coreg._set_helmet(True)
+    assert coreg._eeg_channels
+    coreg._set_eeg_channels(False)
+    assert not coreg._eeg_channels
     assert coreg._helmet
     with catch_logging() as log:
         coreg._redraw(verbose="debug")
@@ -253,6 +253,18 @@ def test_coreg_gui_pyvista_basic(tmp_path, monkeypatch, renderer_interactive_pyv
         coreg._redraw(verbose="debug")
     log = log.getvalue()
     assert "Drawing helmet" in log
+    assert not coreg._meg_channels
+    assert coreg._actors["helmet"] is not None
+    # TODO: Someday test our file dialogs like:
+    # coreg._widgets["save_trans"].widget.click()
+    assert len(coreg._actors["sensors"]) == 0
+    coreg._set_meg_channels(True)
+    assert coreg._meg_channels
+    with catch_logging() as log:
+        coreg._redraw(verbose="debug")
+    assert "Drawing meg sensors" in log.getvalue()
+    assert coreg._actors["helmet"] is not None
+    assert len(coreg._actors["sensors"]) == 306
     assert coreg._orient_glyphs
     assert coreg._scale_by_distance
     assert coreg._mark_inside
@@ -260,7 +272,6 @@ def test_coreg_gui_pyvista_basic(tmp_path, monkeypatch, renderer_interactive_pyv
         coreg._head_opacity, float(config.get("MNE_COREG_HEAD_OPACITY", "0.8"))
     )
     assert coreg._hpi_coils
-    assert coreg._eeg_channels
     assert coreg._head_shape_points
     assert coreg._scale_mode == "None"
     assert coreg._icp_fid_match == "matched"
@@ -308,10 +319,10 @@ def test_fullscreen(renderer_interactive_pyvistaqt):
 
 
 @pytest.mark.slowtest
-@requires_version("sphinx_gallery")
 @testing.requires_testing_data
 def test_coreg_gui_scraper(tmp_path, renderer_interactive_pyvistaqt):
     """Test the scrapper for the coregistration GUI."""
+    pytest.importorskip("sphinx_gallery")
     from mne.gui import coregistration
 
     coreg = coregistration(
@@ -335,6 +346,7 @@ def test_coreg_gui_scraper(tmp_path, renderer_interactive_pyvistaqt):
 def test_coreg_gui_notebook(renderer_notebook, nbexec):
     """Test the coregistration UI in a notebook."""
     import pytest
+
     import mne
     from mne.datasets import testing
     from mne.gui import coregistration

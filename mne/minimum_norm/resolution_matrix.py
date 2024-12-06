@@ -1,21 +1,24 @@
 """Compute resolution matrix for linear estimators."""
-# Authors: olaf.hauk@mrc-cbu.cam.ac.uk
-#
+
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
+
 from copy import deepcopy
 
 import numpy as np
 
 from mne.minimum_norm.inverse import InverseOperator
 
-from .. import pick_channels_forward, EvokedArray
-from ..io.constants import FIFF
-from ..utils import logger, verbose, _validate_type
-from ..forward.forward import convert_forward_solution, Forward
-from ..minimum_norm import apply_inverse
-from ..source_estimate import _prepare_label_extraction, _make_stc, _get_src_type
-from ..source_space import SourceSpaces, _get_vertno
+from .._fiff.constants import FIFF
+from .._fiff.pick import pick_channels_forward
+from ..evoked import EvokedArray
+from ..forward.forward import Forward, convert_forward_solution
 from ..label import Label
+from ..source_estimate import _get_src_type, _make_stc, _prepare_label_extraction
+from ..source_space._source_space import SourceSpaces, _get_vertno
+from ..utils import _validate_type, logger, verbose
+from .inverse import apply_inverse
 
 
 @verbose
@@ -61,7 +64,9 @@ def make_inverse_resolution_matrix(
     leadfield = fwd["sol"]["data"]
     invmat = _get_matrix_from_inverse_operator(inv, fwd, method=method, lambda2=lambda2)
     resmat = invmat.dot(leadfield)
-    logger.info("Dimensions of resolution matrix: %d by %d." % resmat.shape)
+    logger.info(
+        f"Dimensions of resolution matrix: {resmat.shape[0]} by {resmat.shape[1]}."
+    )
     return resmat
 
 
@@ -77,7 +82,7 @@ def _get_psf_ctf(
     norm,
     return_pca_vars,
     vector=False,
-    verbose=None
+    verbose=None,
 ):
     """Get point-spread (PSFs) or cross-talk (CTFs) functions."""
     # check for consistencies in input parameters
@@ -113,8 +118,8 @@ def _get_psf_ctf(
         (n_verts != n_c) and (n_c / 3 != n_verts)
     ):
         msg = (
-            "Number of vertices (%d) and corresponding dimension of"
-            "resolution matrix (%d, %d) do not match" % (n_verts, n_r, n_c)
+            f"Number of vertices ({n_verts}) and corresponding dimension of"
+            f"resolution matrix ({n_r}, {n_c}) do not match"
         )
         raise ValueError(msg)
 
@@ -139,7 +144,7 @@ def _get_psf_ctf(
 
     for verts in verts_all:
         # get relevant PSFs or CTFs for specified vertices
-        if type(verts) is int:
+        if isinstance(verts, int):
             verts = [verts]  # to keep array dimensions
         funcs = resmat[:, verts]
 
@@ -189,10 +194,10 @@ def _get_psf_ctf(
 def _check_get_psf_ctf_params(mode, n_comp, return_pca_vars):
     """Check input parameters of _get_psf_ctf() for consistency."""
     if mode in [None, "sum", "mean"] and n_comp > 1:
-        msg = "n_comp must be 1 for mode=%s." % mode
+        msg = f"n_comp must be 1 for mode={mode}."
         raise ValueError(msg)
     if mode != "pca" and return_pca_vars:
-        msg = "SVD variances can only be returned if mode=" "pca" "."
+        msg = "SVD variances can only be returned if mode=pca."
         raise ValueError(msg)
 
 
@@ -217,7 +222,7 @@ def _vertices_for_get_psf_ctf(idx, src):
 
         for v in verts_labs:
             # if two hemispheres present
-            if type(v) is list:
+            if isinstance(v, list):
                 # indices for both hemispheres in one list
                 this_verts = np.concatenate((v[0], v[1]))
             else:
@@ -301,7 +306,7 @@ def get_point_spread(
     norm=False,
     return_pca_vars=False,
     vector=False,
-    verbose=None
+    verbose=None,
 ):
     """Get point-spread (PSFs) functions for vertices.
 
@@ -350,7 +355,7 @@ def get_cross_talk(
     norm=False,
     return_pca_vars=False,
     vector=False,
-    verbose=None
+    verbose=None,
 ):
     """Get cross-talk (CTFs) function for vertices.
 
@@ -510,7 +515,7 @@ def _get_matrix_from_inverse_operator(
         assert np.array_equal(v0o1, invmat[1])
         assert np.array_equal(v3o2, invmat[11])
 
-    logger.info("Dimension of Inverse Matrix: %s" % str(invmat.shape))
+    logger.info(f"Dimension of Inverse Matrix: {invmat.shape}")
 
     return invmat
 

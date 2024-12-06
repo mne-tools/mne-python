@@ -12,6 +12,7 @@ Discrete Prolate Spheroidal Sequence (DPSS) windows.
 # Author: Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 
@@ -19,7 +20,7 @@ import matplotlib.pyplot as plt
 
 import mne
 from mne.datasets import sample
-from mne.minimum_norm import read_inverse_operator, compute_source_psd_epochs
+from mne.minimum_norm import compute_source_psd_epochs, read_inverse_operator
 
 print(__doc__)
 

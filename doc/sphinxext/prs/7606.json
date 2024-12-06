@@ -1,0 +1,83 @@
+{
+  "merge_commit_sha": "90c5c8efddfcd55210317e64852c46c2def7bd64",
+  "authors": [
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    },
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "MANIFEST.in": {
+      "a": 1,
+      "d": 2
+    },
+    "mne.qrc": {
+      "a": 0,
+      "d": 14
+    },
+    "mne/icons/README.rst": {
+      "a": 18,
+      "d": 0
+    },
+    "mne/icons/clear-black-18dp.svg": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/icons/help-black-18dp.svg": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/icons/mne.qrc": {
+      "a": 14,
+      "d": 0
+    },
+    "mne/icons/movie-black-18dp.svg": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/icons/pause-black-18dp.svg": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/icons/play-black-18dp.svg": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/icons/resources.py": {
+      "a": 13,
+      "d": 23
+    },
+    "mne/icons/restore-black-18dp.svg": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/icons/scale-black-18dp.svg": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/icons/screenshot-black-18dp.svg": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/icons/visibility_off-black-18dp.svg": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/icons/visibility_on-black-18dp.svg": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/viz/_brain/_timeviewer.py": {
+      "a": 14,
+      "d": 6
+    },
+    "setup.cfg": {
+      "a": 3,
+      "d": 3
+    }
+  }
+}

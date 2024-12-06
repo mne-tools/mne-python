@@ -1,0 +1,1 @@
+Deprecate ``average`` parameter in ``plot_filters`` and ``plot_patterns`` methods of the :class:`mne.decoding.CSP` and :class:`mne.decoding.SPoC` classes, by `Thomas Binns`_.

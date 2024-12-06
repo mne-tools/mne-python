@@ -1,0 +1,83 @@
+{
+  "merge_commit_sha": "b12a220d2b6d5b5c89b05e5536be28bb21cfc361",
+  "authors": [
+    {
+      "n": "Marijn van Vliet",
+      "e": "w.m.vanvliet@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 14,
+      "d": 0
+    },
+    "mne/channels/channels.py": {
+      "a": 71,
+      "d": 26
+    },
+    "mne/channels/tests/test_channels.py": {
+      "a": 49,
+      "d": 3
+    },
+    "mne/cov.py": {
+      "a": 25,
+      "d": 0
+    },
+    "mne/forward/forward.py": {
+      "a": 39,
+      "d": 1
+    },
+    "mne/forward/tests/test_forward.py": {
+      "a": 12,
+      "d": 0
+    },
+    "mne/io/fiff/tests/test_raw_fiff.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/meas_info.py": {
+      "a": 31,
+      "d": 1
+    },
+    "mne/io/pick.py": {
+      "a": 30,
+      "d": 8
+    },
+    "mne/io/tests/test_meas_info.py": {
+      "a": 11,
+      "d": 1
+    },
+    "mne/io/tests/test_pick.py": {
+      "a": 30,
+      "d": 2
+    },
+    "mne/tests/test_cov.py": {
+      "a": 13,
+      "d": 1
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/tests/test_evoked.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/time_frequency/csd.py": {
+      "a": 69,
+      "d": 35
+    },
+    "mne/time_frequency/tests/test_csd.py": {
+      "a": 11,
+      "d": 0
+    },
+    "mne/time_frequency/tests/test_tfr.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/numerics.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

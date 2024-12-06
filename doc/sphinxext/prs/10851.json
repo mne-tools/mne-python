@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "7e71888056a2f922fdc4e9e42454294197b0cffc",
+  "authors": [
+    {
+      "n": "Mathieu Scheltienne",
+      "e": "mathieu.scheltienne@fcbg.ch"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/artemis123/artemis123.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/base.py": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/io/brainvision/brainvision.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/io/brainvision/tests/test_brainvision.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/egi/egi.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/io/egi/egimff.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/egi/tests/test_egi.py": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

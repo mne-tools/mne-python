@@ -1,4 +1,7 @@
-#!/usr/bin/env python
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
+
 """Create a BEM model for a subject.
 
 Examples
@@ -9,15 +12,16 @@ Examples
 
 """
 
-import sys
 import os
+import sys
+
 import mne
 from mne.utils import get_subjects_dir, warn
 
 
 def run():
     """Run command."""
-    from mne.commands.utils import get_optparser, _add_verbose_flag
+    from mne.commands.utils import _add_verbose_flag, get_optparser
 
     parser = get_optparser(__file__)
 

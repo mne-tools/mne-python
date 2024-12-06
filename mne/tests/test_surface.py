@@ -1,41 +1,41 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from pathlib import Path
 
-import pytest
 import numpy as np
-from numpy.testing import assert_array_equal, assert_allclose, assert_equal
+import pytest
+from numpy.testing import assert_allclose, assert_array_equal, assert_equal
 
 from mne import (
-    read_surface,
-    write_surface,
     decimate_surface,
-    pick_types,
     dig_mri_distances,
     get_montage_volume_labels,
+    pick_types,
+    read_surface,
+    write_surface,
 )
+from mne._fiff.constants import FIFF
 from mne.channels import make_dig_montage
 from mne.datasets import testing
 from mne.io import read_info
-from mne.io.constants import FIFF
 from mne.surface import (
     _compute_nearest,
+    _get_ico_surface,
+    _marching_cubes,
+    _normal_orth,
+    _project_onto_surface,
+    _read_patch,
     _tessellate_sphere,
+    _voxel_neighbors,
     fast_cross_3d,
     get_head_surf,
-    read_curvature,
     get_meg_helmet_surf,
-    _normal_orth,
-    _read_patch,
-    _marching_cubes,
-    _voxel_neighbors,
-    _project_onto_surface,
-    _get_ico_surface,
+    read_curvature,
 )
 from mne.transforms import _get_trans
-from mne.utils import catch_logging, object_diff, requires_freesurfer, _record_warnings
+from mne.utils import _record_warnings, catch_logging, object_diff, requires_freesurfer
 
 data_path = testing.data_path(download=False)
 subjects_dir = data_path / "subjects"
@@ -48,7 +48,7 @@ rng = np.random.RandomState(0)
 
 def test_helmet():
     """Test loading helmet surfaces."""
-    base_dir = Path(__file__).parent.parent / "io"
+    base_dir = Path(__file__).parents[1] / "io"
     fname_raw = base_dir / "tests" / "data" / "test_raw.fif"
     fname_kit_raw = base_dir / "kit" / "tests" / "data" / "test_bin_raw.fif"
     fname_bti_raw = base_dir / "bti" / "tests" / "data" / "exported4D_linux_raw.fif"
@@ -105,7 +105,7 @@ def test_compute_nearest():
     y = x[nn_true]
 
     nn1 = _compute_nearest(x, y, method="BallTree")
-    nn2 = _compute_nearest(x, y, method="cKDTree")
+    nn2 = _compute_nearest(x, y, method="KDTree")
     nn3 = _compute_nearest(x, y, method="cdist")
     assert_array_equal(nn_true, nn1)
     assert_array_equal(nn_true, nn2)
@@ -113,7 +113,7 @@ def test_compute_nearest():
 
     # test distance support
     nnn1 = _compute_nearest(x, y, method="BallTree", return_dists=True)
-    nnn2 = _compute_nearest(x, y, method="cKDTree", return_dists=True)
+    nnn2 = _compute_nearest(x, y, method="KDTree", return_dists=True)
     nnn3 = _compute_nearest(x, y, method="cdist", return_dists=True)
     assert_array_equal(nnn1[0], nn_true)
     assert_array_equal(nnn1[1], np.zeros_like(nn1))  # all dists should be 0
@@ -196,6 +196,7 @@ def test_decimate_surface_vtk(n_tri):
 @requires_freesurfer("mris_sphere")
 def test_decimate_surface_sphere():
     """Test sphere mode of decimation."""
+    pytest.importorskip("nibabel")
     rr, tris = _tessellate_sphere(3)
     assert len(rr) == 66
     assert len(tris) == 128
@@ -310,8 +311,6 @@ def test_get_montage_volume_labels():
     np.testing.assert_almost_equal(colors["Unknown"], (0.0, 0.0, 0.0, 1.0))
 
     # test inputs
-    with pytest.raises(RuntimeError, match='`aseg` file path must end with "aseg"'):
-        get_montage_volume_labels(montage, "sample", subjects_dir, aseg="foo")
     fail_montage = make_dig_montage(ch_pos, coord_frame="head")
     with pytest.raises(RuntimeError, match="Coordinate frame not supported"):
         get_montage_volume_labels(fail_montage, "sample", subjects_dir, aseg="aseg")

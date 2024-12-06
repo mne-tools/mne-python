@@ -1,27 +1,30 @@
-# Authors: Chris Holdgraf <choldgraf@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from pathlib import Path
 
-import pytest
 import numpy as np
+import pytest
 from numpy import einsum
-from numpy.fft import rfft, irfft
-from numpy.testing import assert_array_equal, assert_allclose, assert_equal
+from numpy.fft import irfft, rfft
+from numpy.testing import assert_allclose, assert_array_equal, assert_equal
 
-from mne.utils import requires_sklearn
+pytest.importorskip("sklearn")
+
+from sklearn.linear_model import Ridge
+from sklearn.utils.estimator_checks import parametrize_with_checks
+
 from mne.decoding import ReceptiveField, TimeDelayingRidge
 from mne.decoding.receptive_field import (
-    _delay_time_series,
     _SCORERS,
-    _times_to_delays,
+    _delay_time_series,
     _delays_to_slice,
+    _times_to_delays,
 )
-from mne.decoding.time_delaying_ridge import _compute_reg_neighbors, _compute_corrs
+from mne.decoding.time_delaying_ridge import _compute_corrs, _compute_reg_neighbors
 
-
-data_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
+data_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
 raw_fname = data_dir / "test_raw.fif"
 event_name = data_dir / "test-eve.fif"
 
@@ -74,16 +77,13 @@ def test_compute_reg_neighbors():
                     reg_direct,
                     reg_csgraph,
                     atol=1e-7,
-                    err_msg="%s: %s" % (reg_type, (n_ch_x, n_delays)),
+                    err_msg=f"{reg_type}: {(n_ch_x, n_delays)}",
                 )
 
 
-@requires_sklearn
 def test_rank_deficiency():
     """Test signals that are rank deficient."""
     # See GH#4253
-    from sklearn.linear_model import Ridge
-
     N = 256
     fs = 1.0
     tmin, tmax = -50, 100
@@ -156,7 +156,7 @@ def test_time_delay():
         del_zero = int(round(-tmin * isfreq))
         for ii in range(-2, 3):
             idx = del_zero + ii
-            err_msg = "[%s,%s] (%s): %s %s" % (tmin, tmax, isfreq, ii, idx)
+            err_msg = f"[{tmin},{tmax}] ({isfreq}): {ii} {idx}"
             if 0 <= idx < X_delayed.shape[-1]:
                 if ii == 0:
                     assert_array_equal(X_delayed[:, :, idx], X, err_msg=err_msg)
@@ -174,11 +174,9 @@ def test_time_delay():
 
 @pytest.mark.slowtest  # slow on Azure
 @pytest.mark.parametrize("n_jobs", n_jobs_test)
-@requires_sklearn
+@pytest.mark.filterwarnings("ignore:Estimator .* has no __sklearn_tags__.*")
 def test_receptive_field_basic(n_jobs):
     """Test model prep and fitting."""
-    from sklearn.linear_model import Ridge
-
     # Make sure estimator pulling works
     mod = Ridge()
     rng = np.random.RandomState(1337)
@@ -198,9 +196,10 @@ def test_receptive_field_basic(n_jobs):
     y = np.dot(X_del, w)
 
     # Fit the model and test values
-    feature_names = ["feature_%i" % ii for ii in [0, 1, 2]]
+    feature_names = [f"feature_{ii}" for ii in [0, 1, 2]]
     rf = ReceptiveField(tmin, tmax, 1, feature_names, estimator=mod, patterns=True)
     rf.fit(X, y)
+    assert rf.coef_.shape == (3, 11)
     assert_array_equal(rf.delays_, np.arange(tmin, tmax + 1))
 
     y_pred = rf.predict(X)
@@ -222,7 +221,7 @@ def test_receptive_field_basic(n_jobs):
     with pytest.raises(ValueError, match="n_features in X does not match"):
         rf.fit(X[:, :1], y)
     # auto-naming features
-    feature_names = ["feature_%s" % ii for ii in [0, 1, 2]]
+    feature_names = [f"feature_{ii}" for ii in [0, 1, 2]]
     rf = ReceptiveField(tmin, tmax, 1, estimator=mod, feature_names=feature_names)
     assert_equal(rf.feature_names, feature_names)
     rf = ReceptiveField(tmin, tmax, 1, estimator=mod)
@@ -372,11 +371,8 @@ def test_time_delaying_fast_calc(n_jobs):
 
 
 @pytest.mark.parametrize("n_jobs", n_jobs_test)
-@requires_sklearn
 def test_receptive_field_1d(n_jobs):
     """Test that the fast solving works like Ridge."""
-    from sklearn.linear_model import Ridge
-
     rng = np.random.RandomState(0)
     x = rng.randn(500, 1)
     for delay in range(-2, 3):
@@ -433,11 +429,8 @@ def test_receptive_field_1d(n_jobs):
 
 
 @pytest.mark.parametrize("n_jobs", n_jobs_test)
-@requires_sklearn
 def test_receptive_field_nd(n_jobs):
     """Test multidimensional support."""
-    from sklearn.linear_model import Ridge
-
     # multidimensional
     rng = np.random.RandomState(3)
     x = rng.randn(1000, 3)
@@ -552,11 +545,8 @@ def _make_data(n_feats, n_targets, n_samples, tmin, tmax):
     return X, y
 
 
-@requires_sklearn
 def test_inverse_coef():
     """Test inverse coefficients computation."""
-    from sklearn.linear_model import Ridge
-
     tmin, tmax = 0.0, 10.0
     n_feats, n_targets, n_samples = 3, 2, 1000
     n_delays = int((tmax - tmin) + 1)
@@ -583,11 +573,8 @@ def test_inverse_coef():
         assert_allclose(np.dot(c0, c1.T), np.eye(c0.shape[0]), atol=0.2)
 
 
-@requires_sklearn
 def test_linalg_warning():
     """Test that warnings are issued when no regularization is applied."""
-    from sklearn.linear_model import Ridge
-
     n_feats, n_targets, n_samples = 5, 60, 50
     X, y = _make_data(n_feats, n_targets, n_samples, tmin, tmax)
     for estimator in (0.0, Ridge(alpha=0.0)):
@@ -596,3 +583,49 @@ def test_linalg_warning():
             (RuntimeWarning, UserWarning), match="[Singular|scipy.linalg.solve]"
         ):
             rf.fit(y, X)
+
+
+@parametrize_with_checks([TimeDelayingRidge(0, 10, 1.0, 0.1, "laplacian", n_jobs=1)])
+def test_tdr_sklearn_compliance(estimator, check):
+    """Test sklearn estimator compliance."""
+    # We don't actually comply with a bunch of the regressor specs :(
+    ignores = (
+        "check_supervised_y_no_nan",
+        "check_regressor",
+        "check_parameters_default_constructible",
+        "check_estimators_unfitted",
+        "_invariance",
+        "check_complex_data",
+        "check_estimators_empty_data_messages",
+        "check_estimators_nan_inf",
+        "check_supervised_y_2d",
+        "check_n_features_in",
+        "check_fit2d_1sample",
+        "check_fit1d",
+        "check_fit2d_predict1d",
+        "check_requires_y_none",
+    )
+    if any(ignore in str(check) for ignore in ignores):
+        return
+    check(estimator)
+
+
+@pytest.mark.filterwarnings("ignore:.*invalid value encountered in subtract.*:")
+@parametrize_with_checks([ReceptiveField(-1, 2, 1.0, estimator=Ridge(), patterns=True)])
+def test_rf_sklearn_compliance(estimator, check):
+    """Test sklearn RF compliance."""
+    ignores = (
+        "check_parameters_default_constructible",
+        "_invariance",
+        "check_fit2d_1sample",
+        # Should probably fix these?
+        "check_complex_data",
+        "check_dtype_object",
+        "check_estimators_empty_data_messages",
+        "check_n_features_in",
+        "check_fit2d_predict1d",
+        "check_estimators_unfitted",
+    )
+    if any(ignore in str(check) for ignore in ignores):
+        return
+    check(estimator)

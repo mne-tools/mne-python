@@ -1,48 +1,46 @@
 #
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Eric Larson <larson.eric.d@gmail.com>
-#          Joan Massich <mailsik@gmail.com>
-#          Guillaume Favelier <guillaume.favelier@gmail.com>
-#          Oleh Kozynets <ok7mailbox@gmail.com>
-#
-# License: Simplified BSD
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import os
-import sys
+import platform
+from contextlib import nullcontext
 from pathlib import Path
 from shutil import copyfile
 
-import pytest
 import numpy as np
+import pytest
+from matplotlib import image
+from matplotlib.lines import Line2D
 from numpy.testing import assert_allclose, assert_array_equal
 
 from mne import (
-    read_source_estimate,
-    read_evokeds,
-    read_cov,
-    read_forward_solution,
-    pick_types_forward,
-    SourceEstimate,
-    MixedSourceEstimate,
-    write_surface,
-    VolSourceEstimate,
-    vertex_to_mni,
     Dipole,
+    MixedSourceEstimate,
+    SourceEstimate,
+    VolSourceEstimate,
     create_info,
+    pick_types_forward,
+    read_cov,
+    read_evokeds,
+    read_forward_solution,
+    read_source_estimate,
+    vertex_to_mni,
+    write_surface,
 )
 from mne.channels import make_dig_montage
-from mne.minimum_norm import apply_inverse, make_inverse_operator
-from mne.source_space import read_source_spaces, setup_volume_source_space
 from mne.datasets import testing
 from mne.io import read_info
-from mne.utils import check_version, requires_version
 from mne.label import read_label
-from mne.viz._brain import Brain, _LinkViewer, _BrainScraper, _LayeredMesh
+from mne.minimum_norm import apply_inverse, make_inverse_operator
+from mne.source_estimate import _BaseSourceEstimate
+from mne.source_space import read_source_spaces, setup_volume_source_space
+from mne.utils import check_version
+from mne.viz import ui_events
+from mne.viz._brain import Brain, _BrainScraper, _LayeredMesh, _LinkViewer
 from mne.viz._brain.colormap import calculate_lut
 from mne.viz.utils import _get_cmap
-
-from matplotlib import image
-from matplotlib.lines import Line2D
 
 data_path = testing.data_path(download=False)
 subject = "sample"
@@ -174,6 +172,13 @@ def test_brain_gc(renderer_pyvistaqt, brain_gc):
 
 
 @testing.requires_testing_data
+def test_brain_data_gc(renderer_interactive_pyvistaqt, brain_gc):
+    """Test that a version of Brain with added data gets GC'ed."""
+    brain = _create_testing_brain(hemi="both", show_traces="vertex")
+    brain.close()
+
+
+@testing.requires_testing_data
 def test_brain_routines(renderer, brain_gc):
     """Test backend agnostic Brain routines."""
     brain_klass = renderer.get_brain_class()
@@ -185,7 +190,6 @@ def test_brain_routines(renderer, brain_gc):
 @testing.requires_testing_data
 def test_brain_init(renderer_pyvistaqt, tmp_path, pixel_ratio, brain_gc):
     """Test initialization of the Brain instance."""
-    from mne.source_estimate import _BaseSourceEstimate
 
     class FakeSTC(_BaseSourceEstimate):
         def __init__(self):
@@ -365,6 +369,7 @@ def test_brain_init(renderer_pyvistaqt, tmp_path, pixel_ratio, brain_gc):
     assert len(brain._actors["data"]) == 4
     brain.remove_data()
     assert "data" not in brain._actors
+    assert "time_change" not in ui_events._get_event_channel(brain)
 
     # add label
     label = read_label(fname_label)
@@ -524,10 +529,9 @@ def test_brain_init(renderer_pyvistaqt, tmp_path, pixel_ratio, brain_gc):
         surf="inflated",
         subjects_dir=subjects_dir,
     )
-    with pytest.raises(RuntimeError, match="both hemispheres"):
-        brain.add_annotation(str(annots[-1]))
     with pytest.raises(ValueError, match="does not exist"):
         brain.add_annotation("foo")
+    brain.add_annotation(annots[1])
     brain.close()
     brain = Brain(
         subject="fsaverage",
@@ -538,28 +542,183 @@ def test_brain_init(renderer_pyvistaqt, tmp_path, pixel_ratio, brain_gc):
     )
     for a, b, p, color in zip(annots, borders, alphas, colors):
         brain.add_annotation(str(a), b, p, color=color)
+    brain.close()
 
-    view_args = dict(roll=1, distance=500, focalpoint=(1e-5, 1e-5, 1e-5))
+
+# TODO: Figure out why brain_gc is problematic here on PyQt5
+@pytest.mark.allow_unclosed
+@testing.requires_testing_data
+@pytest.mark.parametrize(
+    "sensor_colors, sensor_scales, expectation",
+    [
+        (
+            {"seeg": ["k"] * 5},
+            {"seeg": [2] * 6},
+            pytest.raises(
+                ValueError,
+                match=r"Invalid value for the 'len\(sensor_colors\['seeg'\]\)' "
+                r"parameter. Allowed values are \d+ and \d+, but got \d+ instead",
+            ),
+        ),
+        (
+            {"seeg": ["k"] * 6},
+            {"seeg": [2] * 5},
+            pytest.raises(
+                ValueError,
+                match=r"Invalid value for the 'len\(sensor_scales\['seeg'\]\)' "
+                r"parameter. Allowed values are \d+ and \d+, but got \d+ instead",
+            ),
+        ),
+        (
+            "NotAColor",
+            2,
+            pytest.raises(
+                ValueError,
+                match=r".* is not a valid color value",
+            ),
+        ),
+        (
+            "k",
+            "k",
+            pytest.raises(
+                AssertionError,
+                match=r"scales for .* must contain only numerical values, got .* "
+                r"instead.",
+            ),
+        ),
+        (
+            "k",
+            2,
+            nullcontext(),
+        ),
+        (
+            ["k"] * 6,
+            [2] * 6,
+            nullcontext(),
+        ),
+        (
+            {"seeg": ["k"] * 6},
+            {"seeg": [2] * 6},
+            nullcontext(),
+        ),
+    ],
+)
+def test_add_sensors_scales(
+    renderer_interactive_pyvistaqt,
+    sensor_colors,
+    sensor_scales,
+    expectation,
+):
+    """Test sensor_scales parameter."""
+    kwargs = dict(subject=subject, subjects_dir=subjects_dir)
+    hemi = "lh"
+    surf = "white"
+    cortex = "low_contrast"
+    title = "test"
+    size = (300, 300)
+
+    brain = Brain(
+        hemi=hemi,
+        surf=surf,
+        size=size,
+        title=title,
+        cortex=cortex,
+        units="m",
+        silhouette=dict(decimate=0.95),
+        **kwargs,
+    )
+
+    proj_info = create_info([f"Ch{i}" for i in range(1, 7)], 1000, "seeg")
+    pos = (
+        np.array(
+            [
+                [25.85, 9.04, -5.38],
+                [33.56, 9.04, -5.63],
+                [40.44, 9.04, -5.06],
+                [46.75, 9.04, -6.78],
+                [-30.08, 9.04, 28.23],
+                [-32.95, 9.04, 37.99],
+            ]
+        )
+        / 1000
+    )
+    proj_info.set_montage(
+        make_dig_montage(ch_pos=dict(zip(proj_info.ch_names, pos)), coord_frame="head")
+    )
+    with expectation:
+        brain.add_sensors(
+            proj_info,
+            trans=fname_trans,
+            sensor_colors=sensor_colors,
+            sensor_scales=sensor_scales,
+        )
+    brain.close()
+
+
+def _assert_view_allclose(
+    brain,
+    roll,
+    distance,
+    azimuth,
+    elevation,
+    focalpoint,
+    align=True,
+):
+    __tracebackhide__ = True
+    r_, d_, a_, e_, f_ = brain.get_view(align=align)
+    assert_allclose(r_, roll, err_msg="Roll")
+    assert_allclose(d_, distance, rtol=1e-5, err_msg="Distance")
+    assert_allclose(a_, azimuth, rtol=1e-5, atol=1e-6, err_msg="Azimuth")
+    assert_allclose(e_, elevation, rtol=1e-5, atol=1e-6, err_msg="Elevation")
+    assert_allclose(f_, focalpoint, err_msg="Focal point")
     cam = brain._renderer.figure.plotter.camera
-    previous_roll = cam.GetRoll()
+    assert_allclose(cam.GetFocalPoint(), focalpoint, err_msg="Camera focal point")
+    assert_allclose(cam.GetDistance(), distance, rtol=1e-5, err_msg="Camera distance")
+    assert_allclose(cam.GetRoll(), roll, atol=1e-5, err_msg="Camera roll")
+
+
+@pytest.mark.parametrize("align", (True, False))
+def test_view_round_trip(renderer_interactive_pyvistaqt, tmp_path, brain_gc, align):
+    """Test get_view / set_view round-trip."""
+    brain = _create_testing_brain(hemi="lh")
+    img = brain.screenshot()
+    roll, distance, azimuth, elevation, focalpoint = brain.get_view(align=align)
+    brain.show_view(
+        azimuth=azimuth,
+        elevation=elevation,
+        focalpoint=focalpoint,
+        roll=roll,
+        distance=distance,
+        align=align,
+    )
+    img_1 = brain.screenshot()
+    assert_allclose(img, img_1)
+    _assert_view_allclose(brain, roll, distance, azimuth, elevation, focalpoint, align)
+
+    # Now with custom values
+    roll, distance, focalpoint = 1, 500, (1e-5, 1e-5, 1e-5)
+    view_args = dict(roll=roll, distance=distance, focalpoint=focalpoint, align=align)
     brain.show_view(**view_args)
-    assert_allclose(cam.GetFocalPoint(), view_args["focalpoint"])
-    assert_allclose(cam.GetDistance(), view_args["distance"])
-    assert_allclose(cam.GetRoll(), previous_roll + view_args["roll"])
+    _assert_view_allclose(brain, roll, distance, azimuth, elevation, focalpoint, align)
 
     # test get_view
     azimuth, elevation = 180.0, 90.0
     view_args.update(azimuth=azimuth, elevation=elevation)
     brain.show_view(**view_args)
-    roll, distance, azimuth, elevation, focalpoint = brain.get_view()
-    assert_allclose(cam.GetRoll(), roll)
-    assert_allclose(cam.GetDistance(), distance)
-    assert_allclose(view_args["azimuth"] % 360, azimuth % 360)
-    assert_allclose(view_args["elevation"] % 180, elevation % 180)
-    assert_allclose(view_args["focalpoint"], focalpoint)
-    del view_args
+    _assert_view_allclose(brain, roll, distance, azimuth, elevation, focalpoint, align)
+    brain.close()
 
-    # image and screenshot
+
+def test_image_screenshot(
+    renderer_interactive_pyvistaqt,
+    tmp_path,
+    pixel_ratio,
+    brain_gc,
+):
+    """Test screenshot and image saving."""
+    size = (300, 300)
+    brain = _create_testing_brain(hemi="rh", show_traces=False, size=size)
+    azimuth, elevation = 180.0, 90.0
     fname = tmp_path / "test.png"
     assert not fname.is_file()
     brain.save_image(fname)
@@ -568,13 +727,13 @@ def test_brain_init(renderer_pyvistaqt, tmp_path, pixel_ratio, brain_gc):
     fp = (fp[1::2] + fp[::2]) * 0.5
     for view_args in (
         dict(azimuth=azimuth, elevation=elevation, focalpoint="auto"),
-        dict(view="lateral", hemi="lh"),
+        dict(view="lateral", hemi="rh"),
     ):
         brain.show_view(**view_args)
-        assert_allclose(brain._renderer.figure._azimuth % 360, azimuth % 360)
-        assert_allclose(brain._renderer.figure._elevation % 180, elevation % 180)
-        assert_allclose(cam.GetFocalPoint(), fp)
-    del view_args
+        _, _, a_, e_, f_ = brain.get_view()
+        assert_allclose(a_, azimuth, atol=1e-6)
+        assert_allclose(e_, elevation)
+        assert_allclose(f_, fp, atol=1e-6)
     img = brain.screenshot(mode="rgba")
     want_size = np.array([size[0] * pixel_ratio, size[1] * pixel_ratio, 4])
     # on macOS sometimes matplotlib is HiDPI and VTK is not...
@@ -610,15 +769,20 @@ def test_single_hemi(hemi, renderer_interactive_pyvistaqt, brain_gc):
 
 @testing.requires_testing_data
 @pytest.mark.slowtest
-def test_brain_save_movie(tmp_path, renderer, brain_gc):
+@pytest.mark.parametrize("interactive_state", (False, True))
+def test_brain_save_movie(tmp_path, renderer, brain_gc, interactive_state):
     """Test saving a movie of a Brain instance."""
-    from imageio_ffmpeg import count_frames_and_secs
+    imageio_ffmpeg = pytest.importorskip("imageio_ffmpeg")
+    # TODO: Figure out why this fails -- some imageio_ffmpeg error
+    if os.getenv("MNE_CI_KIND", "") == "conda" and platform.system() == "Linux":
+        pytest.skip("Test broken for unknown reason on conda linux")
 
     brain = _create_testing_brain(
         hemi="lh", time_viewer=False, cortex=["r", "b"]
     )  # custom binarized
     filename = tmp_path / "brain_test.mov"
-    for interactive_state in (False, True):
+
+    try:
         # for coverage, we set interactivity
         if interactive_state:
             brain._renderer.plotter.enable()
@@ -636,11 +800,12 @@ def test_brain_save_movie(tmp_path, renderer, brain_gc):
             filename, time_dilation=1.0, tmin=tmin, tmax=tmax, interpolation="nearest"
         )
         assert filename.is_file()
-        _, nsecs = count_frames_and_secs(filename)
+        _, nsecs = imageio_ffmpeg.count_frames_and_secs(filename)
         assert_allclose(duration, nsecs, atol=0.2)
 
         os.remove(filename)
-    brain.close()
+    finally:
+        brain.close()
 
 
 _TINY_SIZE = (350, 300)
@@ -685,11 +850,14 @@ def tiny(tmp_path):
 def test_brain_screenshot(renderer_interactive_pyvistaqt, tmp_path, brain_gc):
     """Test time viewer screenshot."""
     # This is broken on Conda + GHA for some reason
+    from qtpy import API_NAME
+
     if (
         os.getenv("CONDA_PREFIX", "") != ""
         and os.getenv("GITHUB_ACTIONS", "") == "true"
+        or API_NAME.lower() == "pyside6"
     ):
-        pytest.skip("Test is unreliable on GitHub Actions conda runs")
+        pytest.skip("Test is unreliable on GitHub Actions conda runs and pyside6")
     tiny_brain, ratio = tiny(tmp_path)
     img_nv = tiny_brain.screenshot(time_viewer=False)
     want = (_TINY_SIZE[1] * ratio, _TINY_SIZE[0] * ratio, 3)
@@ -732,40 +900,51 @@ def test_brain_time_viewer(renderer_interactive_pyvistaqt, pixel_ratio, brain_gc
     brain._configure_vertex_time_course()
     brain._configure_label_time_course()
     brain.setup_time_viewer()  # for coverage
-    brain.callbacks["time"](value=0)
-    assert "renderer" not in brain.callbacks
-    brain.callbacks["orientation"](value="lat", update_widget=True)
-    brain.callbacks["orientation"](value="medial", update_widget=True)
-    brain.callbacks["time"](
-        value=0.0,
-        time_as_index=False,
-    )
-    # Need to process events for old Qt
-    brain.callbacks["smoothing"](value=1)
+    brain.set_time(1)
+    brain.set_time_point(0)
+    brain.show_view("lat")
+    brain.show_view("medial")
+    brain.set_data_smoothing(1)
     _assert_brain_range(brain, [0.1, 0.3])
     from mne.utils import use_log_level
 
-    print("\nCallback fmin\n")
     with use_log_level("debug"):
-        brain.callbacks["fmin"](value=12.0)
+        brain.update_lut(fmin=12.0)
     assert brain._data["fmin"] == 12.0
-    brain.callbacks["fmax"](value=4.0)
+    brain.update_lut(fmax=4.0)
     _assert_brain_range(brain, [4.0, 4.0])
-    brain.callbacks["fmid"](value=6.0)
+    brain.update_lut(fmid=6.0)
     _assert_brain_range(brain, [4.0, 6.0])
-    brain.callbacks["fmid"](value=4.0)
-    brain.callbacks["fplus"]()
-    brain.callbacks["fminus"]()
-    brain.callbacks["fmin"](value=12.0)
-    brain.callbacks["fmid"](value=4.0)
+    brain.update_lut(fmid=4.0)
+    brain._update_fscale(1.2**0.25)
+    brain._update_fscale(1.2**-0.25)
+    brain.update_lut(fmin=12.0, fmid=4.0)
     _assert_brain_range(brain, [4.0, 12.0])
-    brain._shift_time(op=lambda x, y: x + y)
-    brain._shift_time(op=lambda x, y: x - y)
-    brain._rotate_azimuth(15)
-    brain._rotate_elevation(15)
+    # one at a time no-op
+    r_, d_, a_, e_, f_ = brain.get_view()
+    _assert_view_allclose(brain, r_, d_, a_, e_, f_)
+    brain.show_view(verbose="debug")  # should be a no-op
+    _assert_view_allclose(brain, r_, d_, a_, e_, f_)
+    brain._set_camera(verbose="debug")  # also no-op
+    _assert_view_allclose(brain, r_, d_, a_, e_, f_)
+    want_view = np.array([r_, d_, a_, e_], float)  # ignore focalpoint
+    for k, v in (("roll", r_), ("distance", d_), ("azimuth", a_), ("elevation", e_)):
+        brain.show_view(**{k: v})
+        _assert_view_allclose(brain, r_, d_, a_, e_, f_)
+    got_view = np.array(brain.get_view()[:4], float)
+    assert_allclose(got_view, want_view, rtol=1e-5, atol=1e-6)
+    brain._rotate_camera("azimuth", 15)
+    want_view[2] += 15
+    got_view = np.array(brain.get_view()[:4], float)
+    # roll changes when you adjust these because of the affine
+    assert_allclose(got_view[1:], want_view[1:], rtol=1e-5, atol=1e-6)
+    brain._rotate_camera("elevation", 15)
+    want_view[3] += 15
+    got_view = np.array(brain.get_view()[:4], float)
+    assert_allclose(got_view[1:], want_view[1:], rtol=1e-5, atol=1e-6)
     brain.toggle_interface()
     brain.toggle_interface(value=False)
-    brain.callbacks["playback_speed"](value=0.1)
+    brain.set_playback_speed(0.1)
     brain.toggle_playback()
     brain.toggle_playback(value=False)
     brain.apply_auto_scaling()
@@ -969,8 +1148,8 @@ def test_brain_traces(renderer_interactive_pyvistaqt, hemi, src, tmp_path, brain
             subject=brain._subject,
             subjects_dir=brain._subjects_dir,
         )
-        label = "{}:{} MNI: {}".format(
-            hemi_prefix, str(vertex_id).ljust(6), ", ".join("%5.1f" % m for m in mni)
+        label = f"{hemi_prefix}:{str(vertex_id).ljust(6)} MNI: " + ", ".join(
+            f"{m:5.1f}" for m in mni
         )
 
         assert line.get_label() == label
@@ -1007,7 +1186,7 @@ something
         src_dir=str(tmp_path),
         compress_images=[],
         image_srcset=[],
-        matplotlib_animations=False,
+        matplotlib_animations=(False, None),
     )
     scraper = _BrainScraper()
     rst = scraper(block, block_vars, gallery_conf)
@@ -1027,13 +1206,14 @@ something
 # TODO: don't skip on Windows, see
 # https://github.com/mne-tools/mne-python/pull/10935
 # for some reason there is a dependency issue with ipympl even using pyvista
-@pytest.mark.skipif(sys.platform == "win32", reason="ipympl issue on Windows")
-@requires_version("sphinx_gallery")
+@pytest.mark.skipif(platform.system() == "Windows", reason="ipympl issue on Windows")
 @testing.requires_testing_data
 def test_brain_scraper(renderer_interactive_pyvistaqt, brain_gc, tmp_path):
     """Test a simple scraping example."""
+    pytest.importorskip("sphinx_gallery")
+
     stc = read_source_estimate(fname_stc, subject="sample")
-    size = (600, 300)
+    size = (600, 400)
     brain = stc.plot(
         subjects_dir=subjects_dir,
         time_viewer=True,
@@ -1051,7 +1231,7 @@ def test_brain_scraper(renderer_interactive_pyvistaqt, brain_gc, tmp_path):
         src_dir=str(tmp_path),
         compress_images=[],
         image_srcset=[],
-        matplotlib_animations=False,
+        matplotlib_animations=(False, None),
     )
     scraper = _BrainScraper()
     rst = scraper(block, block_vars, gallery_conf)
@@ -1064,8 +1244,7 @@ def test_brain_scraper(renderer_interactive_pyvistaqt, brain_gc, tmp_path):
     img = image.imread(fname)
     w = img.shape[1]
     w0 = size[0]
-    # With matplotlib 3.6 on Linux+conda we get a width of 624,
-    # similar tweak in test_brain_init above
+    # On Linux+conda we get a width of 624, similar tweak in test_brain_init above
     assert np.isclose(w, w0, atol=30) or np.isclose(
         w, w0 * 2, atol=30
     ), f"w ∉ {{{w0}, {2 * w0}}}"  # HiDPI
@@ -1079,7 +1258,7 @@ def test_brain_linkviewer(renderer_interactive_pyvistaqt, brain_gc):
     brain2 = _create_testing_brain(hemi="lh", show_traces="separate")
     brain1._times = brain1._times * 2
     with pytest.warns(RuntimeWarning, match="linking time"):
-        link_viewer = _LinkViewer(
+        _LinkViewer(
             [brain1, brain2],
             time=True,
             camera=False,
@@ -1096,13 +1275,12 @@ def test_brain_linkviewer(renderer_interactive_pyvistaqt, brain_gc):
         colorbar=True,
         picking=True,
     )
+    link_viewer.leader.set_time(1)
     link_viewer.leader.set_time_point(0)
-    link_viewer.leader.mpl_canvas.time_func(0)
-    link_viewer.leader.callbacks["fmin"](0)
-    link_viewer.leader.callbacks["fmid"](0.5)
-    link_viewer.leader.callbacks["fmax"](1)
+    link_viewer.leader.update_lut(fmin=0, fmid=0.5, fmax=1)
     link_viewer.leader.set_playback_speed(0.1)
     link_viewer.leader.toggle_playback()
+    ui_events.publish(link_viewer.leader, ui_events.TimeChange(time=0))
     brain2.close()
     brain_data.close()
 
@@ -1209,6 +1387,37 @@ def test_calculate_lut():
         calculate_lut(colormap, alpha, 1, 0, 2)
 
 
+def test_brain_ui_events(renderer_interactive_pyvistaqt, brain_gc):
+    """Test responding to Brain related UI events."""
+    brain = _create_testing_brain(hemi="lh", show_traces="vertex")
+
+    ui_events.publish(brain, ui_events.TimeChange(time=1))
+    assert brain._current_time == 1
+
+    ui_events.publish(brain, ui_events.VertexSelect(hemi="lh", vertex_id=1))
+    assert 1 in brain.picked_points["lh"]
+
+    ui_events.publish(
+        brain,
+        ui_events.ColormapRange(
+            kind="distributed_source_power", fmin=1, fmid=2, fmax=3, alpha=True
+        ),
+    )
+    assert_array_equal(brain._data["ctable"][:3, 3], [0, 2, 4])
+
+    # This event should be ignored.
+    ui_events.publish(
+        brain,
+        ui_events.ColormapRange(
+            kind="unknown_kind", fmin=10, fmid=11, fmax=12, alpha=True
+        ),
+    )
+    # Should remain unchanged.
+    assert_array_equal(brain._data["ctable"][:3, 3], [0, 2, 4])
+
+    brain.close()
+
+
 def _create_testing_brain(
     hemi, surf="inflated", src="surface", size=300, n_time=5, diverging=False, **kwargs
 ):
@@ -1255,7 +1464,7 @@ def _create_testing_brain(
     rng = np.random.RandomState(0)
     vertices = [s["vertno"] for s in sample_src]
     n_verts = sum(len(v) for v in vertices)
-    stc_data = np.zeros((n_verts * n_time))
+    stc_data = np.zeros(n_verts * n_time)
     stc_size = stc_data.size
     stc_data[(rng.rand(stc_size // 20) * stc_size).astype(int)] = rng.rand(
         stc_data.size // 20

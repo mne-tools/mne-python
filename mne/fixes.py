@@ -1,4 +1,4 @@
-"""Compatibility fixes for older versions of libraries
+"""Compatibility fixes for older versions of libraries.
 
 If you add content to this file, please give the version of the package
 at which the fix is no longer needed.
@@ -6,29 +6,28 @@ at which the fix is no longer needed.
 # originally copied from scikit-learn
 
 """
-# Authors: Emmanuelle Gouillart <emmanuelle.gouillart@normalesup.org>
-#          Gael Varoquaux <gael.varoquaux@normalesup.org>
-#          Fabian Pedregosa <fpedregosa@acm.org>
-#          Lars Buitinck <L.J.Buitinck@uva.nl>
-# License: BSD
 
-from contextlib import contextmanager
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
+
+# NOTE:
+# Imports for SciPy submodules need to stay nested in this module
+# because this module is imported many places (but not always used)!
+
 import inspect
-from math import log
-from pprint import pprint
-from io import StringIO
+import operator as operator_module
 import os
 import warnings
+from math import log
 
 import numpy as np
-
 
 ###############################################################################
 # distutils
 
-# distutils has been deprecated since Python 3.10 and is scheduled for removal
-# from the standard library with the release of Python 3.12. For version
-# comparisons, we use setuptools's `parse_version` if available.
+# distutils has been deprecated since Python 3.10 and was removed
+# from the standard library with the release of Python 3.12.
 
 
 def _compare_version(version_a, operator, version_b):
@@ -51,9 +50,12 @@ def _compare_version(version_a, operator, version_b):
     """
     from packaging.version import parse
 
+    mapping = {"<": "lt", "<=": "le", "==": "eq", "!=": "ne", ">=": "ge", ">": "gt"}
     with warnings.catch_warnings(record=True):
         warnings.simplefilter("ignore")
-        return eval(f'parse("{version_a}") {operator} parse("{version_b}")')
+        ver_a = parse(version_a)
+        ver_b = parse(version_b)
+        return getattr(operator_module, mapping[operator])(ver_a, ver_b)
 
 
 ###############################################################################
@@ -77,7 +79,7 @@ def _median_complex(data, axis):
 
 
 def _safe_svd(A, **kwargs):
-    """Wrapper to get around the SVD did not converge error of death"""
+    """Get around the SVD did not converge error of death."""
     # Intel has a bug with their GESVD driver:
     #     https://software.intel.com/en-us/forums/intel-distribution-for-python/topic/628049  # noqa: E501
     # For SciPy 0.18 and up, we can work around it by using
@@ -91,14 +93,21 @@ def _safe_svd(A, **kwargs):
     except np.linalg.LinAlgError as exp:
         from .utils import warn
 
-        warn("SVD error (%s), attempting to use GESVD instead of GESDD" % (exp,))
+        warn(f"SVD error ({exp}), attempting to use GESVD instead of GESDD")
         return linalg.svd(A, lapack_driver="gesvd", **kwargs)
 
 
-def _csc_matrix_cast(x):
-    from scipy.sparse import csc_matrix
+def _csc_array_cast(x):
+    from scipy.sparse import csc_array
 
-    return csc_matrix(x)
+    return csc_array(x)
+
+
+# Can be replaced with sparse.eye_array once we depend on SciPy >= 1.12
+def _eye_array(n, *, format="csr"):  # noqa: A002
+    from scipy import sparse
+
+    return sparse.dia_array((np.ones(n), 0), shape=(n, n)).asformat(format)
 
 
 ###############################################################################
@@ -106,22 +115,9 @@ def _csc_matrix_cast(x):
 
 
 def rng_uniform(rng):
-    """Get the unform/randint from the rng."""
+    """Get the uniform/randint from the rng."""
     # prefer Generator.integers, fall back to RandomState.randint
     return getattr(rng, "integers", getattr(rng, "randint", None))
-
-
-def _validate_sos(sos):
-    """Helper to validate a SOS input"""
-    sos = np.atleast_2d(sos)
-    if sos.ndim != 2:
-        raise ValueError("sos array must be 2D")
-    n_sections, m = sos.shape
-    if m != 6:
-        raise ValueError("sos array must be shape (n_sections, 6)")
-    if not (sos[:, 3] == 1).all():
-        raise ValueError("sos[:, 3] should be all ones")
-    return sos, n_sections
 
 
 ###############################################################################
@@ -136,305 +132,12 @@ def _get_img_fdata(img):
     return data.astype(dtype)
 
 
-def _read_volume_info(fobj):
-    """An implementation of nibabel.freesurfer.io._read_volume_info, since old
-    versions of nibabel (<=2.1.0) don't have it.
-    """
-    volume_info = dict()
-    head = np.fromfile(fobj, ">i4", 1)
-    if not np.array_equal(head, [20]):  # Read two bytes more
-        head = np.concatenate([head, np.fromfile(fobj, ">i4", 2)])
-        if not np.array_equal(head, [2, 0, 20]):
-            warnings.warn("Unknown extension code.")
-            return volume_info
-
-    volume_info["head"] = head
-    for key in [
-        "valid",
-        "filename",
-        "volume",
-        "voxelsize",
-        "xras",
-        "yras",
-        "zras",
-        "cras",
-    ]:
-        pair = fobj.readline().decode("utf-8").split("=")
-        if pair[0].strip() != key or len(pair) != 2:
-            raise OSError("Error parsing volume info.")
-        if key in ("valid", "filename"):
-            volume_info[key] = pair[1].strip()
-        elif key == "volume":
-            volume_info[key] = np.array(pair[1].split()).astype(int)
-        else:
-            volume_info[key] = np.array(pair[1].split()).astype(float)
-    # Ignore the rest
-    return volume_info
-
-
-##############################################################################
-# adapted from scikit-learn
-
-
-def is_classifier(estimator):
-    """Returns True if the given estimator is (probably) a classifier.
-
-    Parameters
-    ----------
-    estimator : object
-        Estimator object to test.
-
-    Returns
-    -------
-    out : bool
-        True if estimator is a classifier and False otherwise.
-    """
-    return getattr(estimator, "_estimator_type", None) == "classifier"
-
-
-def is_regressor(estimator):
-    """Returns True if the given estimator is (probably) a regressor.
-
-    Parameters
-    ----------
-    estimator : object
-        Estimator object to test.
-
-    Returns
-    -------
-    out : bool
-        True if estimator is a regressor and False otherwise.
-    """
-    return getattr(estimator, "_estimator_type", None) == "regressor"
-
-
-_DEFAULT_TAGS = {
-    "non_deterministic": False,
-    "requires_positive_X": False,
-    "requires_positive_y": False,
-    "X_types": ["2darray"],
-    "poor_score": False,
-    "no_validation": False,
-    "multioutput": False,
-    "allow_nan": False,
-    "stateless": False,
-    "multilabel": False,
-    "_skip_test": False,
-    "_xfail_checks": False,
-    "multioutput_only": False,
-    "binary_only": False,
-    "requires_fit": True,
-    "preserves_dtype": [np.float64],
-    "requires_y": False,
-    "pairwise": False,
-}
-
-
-class BaseEstimator:
-    """Base class for all estimators in scikit-learn.
-
-    Notes
-    -----
-    All estimators should specify all the parameters that can be set
-    at the class level in their ``__init__`` as explicit keyword
-    arguments (no ``*args`` or ``**kwargs``).
-    """
-
-    @classmethod
-    def _get_param_names(cls):
-        """Get parameter names for the estimator"""
-        # fetch the constructor or the original constructor before
-        # deprecation wrapping if any
-        init = getattr(cls.__init__, "deprecated_original", cls.__init__)
-        if init is object.__init__:
-            # No explicit constructor to introspect
-            return []
-
-        # introspect the constructor arguments to find the model parameters
-        # to represent
-        init_signature = inspect.signature(init)
-        # Consider the constructor parameters excluding 'self'
-        parameters = [
-            p
-            for p in init_signature.parameters.values()
-            if p.name != "self" and p.kind != p.VAR_KEYWORD
-        ]
-        for p in parameters:
-            if p.kind == p.VAR_POSITIONAL:
-                raise RuntimeError(
-                    "scikit-learn estimators should always "
-                    "specify their parameters in the signature"
-                    " of their __init__ (no varargs)."
-                    " %s with constructor %s doesn't "
-                    " follow this convention." % (cls, init_signature)
-                )
-        # Extract and sort argument names excluding 'self'
-        return sorted([p.name for p in parameters])
-
-    def get_params(self, deep=True):
-        """Get parameters for this estimator.
-
-        Parameters
-        ----------
-        deep : bool, optional
-            If True, will return the parameters for this estimator and
-            contained subobjects that are estimators.
-
-        Returns
-        -------
-        params : dict
-            Parameter names mapped to their values.
-        """
-        out = dict()
-        for key in self._get_param_names():
-            # We need deprecation warnings to always be on in order to
-            # catch deprecated param values.
-            # This is set in utils/__init__.py but it gets overwritten
-            # when running under python3 somehow.
-            warnings.simplefilter("always", DeprecationWarning)
-            try:
-                with warnings.catch_warnings(record=True) as w:
-                    value = getattr(self, key, None)
-                if len(w) and w[0].category == DeprecationWarning:
-                    # if the parameter is deprecated, don't show it
-                    continue
-            finally:
-                warnings.filters.pop(0)
-
-            # XXX: should we rather test if instance of estimator?
-            if deep and hasattr(value, "get_params"):
-                deep_items = value.get_params().items()
-                out.update((key + "__" + k, val) for k, val in deep_items)
-            out[key] = value
-        return out
-
-    def set_params(self, **params):
-        """Set the parameters of this estimator.
-
-        The method works on simple estimators as well as on nested objects
-        (such as pipelines). The latter have parameters of the form
-        ``<component>__<parameter>`` so that it's possible to update each
-        component of a nested object.
-
-        Parameters
-        ----------
-        **params : dict
-            Parameters.
-
-        Returns
-        -------
-        inst : instance
-            The object.
-        """
-        if not params:
-            # Simple optimisation to gain speed (inspect is slow)
-            return self
-        valid_params = self.get_params(deep=True)
-        for key, value in params.items():
-            split = key.split("__", 1)
-            if len(split) > 1:
-                # nested objects case
-                name, sub_name = split
-                if name not in valid_params:
-                    raise ValueError(
-                        "Invalid parameter %s for estimator %s. "
-                        "Check the list of available parameters "
-                        "with `estimator.get_params().keys()`." % (name, self)
-                    )
-                sub_object = valid_params[name]
-                sub_object.set_params(**{sub_name: value})
-            else:
-                # simple objects case
-                if key not in valid_params:
-                    raise ValueError(
-                        "Invalid parameter %s for estimator %s. "
-                        "Check the list of available parameters "
-                        "with `estimator.get_params().keys()`."
-                        % (key, self.__class__.__name__)
-                    )
-                setattr(self, key, value)
-        return self
-
-    def __repr__(self):
-        params = StringIO()
-        pprint(self.get_params(deep=False), params)
-        params.seek(0)
-        class_name = self.__class__.__name__
-        return "%s(%s)" % (class_name, params.read().strip())
-
-    # __getstate__ and __setstate__ are omitted because they only contain
-    # conditionals that are not satisfied by our objects (e.g.,
-    # ``if type(self).__module__.startswith('sklearn.')``.
-
-    def _more_tags(self):
-        return _DEFAULT_TAGS
-
-    def _get_tags(self):
-        collected_tags = {}
-        for base_class in reversed(inspect.getmro(self.__class__)):
-            if hasattr(base_class, "_more_tags"):
-                # need the if because mixins might not have _more_tags
-                # but might do redundant work in estimators
-                # (i.e. calling more tags on BaseEstimator multiple times)
-                more_tags = base_class._more_tags(self)
-                collected_tags.update(more_tags)
-        return collected_tags
-
-
-# newer sklearn deprecates importing from sklearn.metrics.scoring,
-# but older sklearn does not expose check_scoring in sklearn.metrics.
-def _get_check_scoring():
-    try:
-        from sklearn.metrics import check_scoring  # noqa
-    except ImportError:
-        from sklearn.metrics.scorer import check_scoring  # noqa
-    return check_scoring
-
-
-def _check_fit_params(X, fit_params, indices=None):
-    """Check and validate the parameters passed during `fit`.
-
-    Parameters
-    ----------
-    X : array-like of shape (n_samples, n_features)
-        Data array.
-
-    fit_params : dict
-        Dictionary containing the parameters passed at fit.
-
-    indices : array-like of shape (n_samples,), default=None
-        Indices to be selected if the parameter has the same size as
-        `X`.
-
-    Returns
-    -------
-    fit_params_validated : dict
-        Validated parameters. We ensure that the values support
-        indexing.
-    """
-    try:
-        from sklearn.utils.validation import (
-            _check_fit_params as _sklearn_check_fit_params,
-        )
-
-        return _sklearn_check_fit_params(X, fit_params, indices)
-    except ImportError:
-        from sklearn.model_selection import _validation
-
-        fit_params_validated = {
-            k: _validation._index_param_value(X, v, indices)
-            for k, v in fit_params.items()
-        }
-        return fit_params_validated
-
-
 ###############################################################################
 # Copied from sklearn to simplify code paths
 
 
 def empirical_covariance(X, assume_centered=False):
-    """Computes the Maximum likelihood covariance estimator
-
+    """Compute the Maximum likelihood covariance estimator.
 
     Parameters
     ----------
@@ -451,7 +154,6 @@ def empirical_covariance(X, assume_centered=False):
     -------
     covariance : 2D ndarray, shape (n_features, n_features)
         Empirical covariance (Maximum Likelihood Estimator).
-
     """
     X = np.asarray(X)
     if X.ndim == 1:
@@ -459,7 +161,7 @@ def empirical_covariance(X, assume_centered=False):
 
     if X.shape[0] == 1:
         warnings.warn(
-            "Only one sample available. " "You may want to reshape your data array"
+            "Only one sample available. You may want to reshape your data array"
         )
 
     if assume_centered:
@@ -472,8 +174,67 @@ def empirical_covariance(X, assume_centered=False):
     return covariance
 
 
-class EmpiricalCovariance(BaseEstimator):
-    """Maximum likelihood covariance estimator
+class _EstimatorMixin:
+    def __sklearn_tags__(self):
+        # If we get here, we should have sklearn installed
+        from sklearn.utils import Tags, TargetTags
+
+        return Tags(
+            estimator_type=None,
+            target_tags=TargetTags(required=False),
+            transformer_tags=None,
+            regressor_tags=None,
+            classifier_tags=None,
+        )
+
+    def _param_names(self):
+        return inspect.getfullargspec(self.__init__).args[1:]
+
+    def get_params(self, deep=True):
+        """Get parameters for this estimator.
+
+        Parameters
+        ----------
+        deep : bool, default=True
+            If True, will return the parameters for this estimator and
+            contained subobjects that are estimators.
+
+        Returns
+        -------
+        params : dict
+            Parameter names mapped to their values.
+        """
+        out = dict()
+        for key in self._param_names():
+            out[key] = getattr(self, key)
+        return out
+
+    def set_params(self, **params):
+        """Set the parameters of this estimator.
+
+        The method works on simple estimators as well as on nested objects
+        (such as pipelines). The latter have parameters of the form
+        ``<component>__<parameter>`` so that it's possible to update each
+        component of a nested object.
+
+        Parameters
+        ----------
+        **params : dict
+            Estimator parameters.
+
+        Returns
+        -------
+        self : object
+            Estimator instance.
+        """
+        param_names = self._param_names()
+        for key in params:
+            if key in param_names:
+                setattr(self, key, params[key])
+
+
+class EmpiricalCovariance(_EstimatorMixin):
+    """Maximum likelihood covariance estimator.
 
     Read more in the :ref:`User Guide <covariance>`.
 
@@ -496,7 +257,6 @@ class EmpiricalCovariance(BaseEstimator):
     precision_ : 2D ndarray, shape (n_features, n_features)
         Estimated pseudo-inverse matrix.
         (stored only if store_precision is True)
-
     """
 
     def __init__(self, store_precision=True, assume_centered=False):
@@ -504,7 +264,7 @@ class EmpiricalCovariance(BaseEstimator):
         self.assume_centered = assume_centered
 
     def _set_covariance(self, covariance):
-        """Saves the covariance and precision estimates
+        """Save the covariance and precision estimates.
 
         Storage is done accordingly to `self.store_precision`.
         Precision stored only if invertible.
@@ -514,7 +274,6 @@ class EmpiricalCovariance(BaseEstimator):
         covariance : 2D ndarray, shape (n_features, n_features)
             Estimated covariance matrix to be stored, and from which precision
             is computed.
-
         """
         from scipy import linalg
 
@@ -599,7 +358,7 @@ class EmpiricalCovariance(BaseEstimator):
         return res
 
     def error_norm(self, comp_cov, norm="frobenius", scaling=True, squared=True):
-        """Computes the Mean Squared Error between two covariance estimators.
+        """Compute the Mean Squared Error between two covariance estimators.
 
         Parameters
         ----------
@@ -648,7 +407,7 @@ class EmpiricalCovariance(BaseEstimator):
         return result
 
     def mahalanobis(self, observations):
-        """Computes the squared Mahalanobis distances of given observations.
+        """Compute the squared Mahalanobis distances of given observations.
 
         Parameters
         ----------
@@ -661,7 +420,6 @@ class EmpiricalCovariance(BaseEstimator):
         -------
         mahalanobis_distance : array, shape = [n_observations,]
             Squared Mahalanobis distances of the observations.
-
         """
         precision = self.get_precision()
         # compute mahalanobis distances
@@ -672,7 +430,7 @@ class EmpiricalCovariance(BaseEstimator):
 
 
 def log_likelihood(emp_cov, precision):
-    """Computes the sample mean of the log_likelihood under a covariance model
+    """Compute the sample mean of the log_likelihood under a covariance model.
 
     computes the empirical expected log-likelihood (accounting for the
     normalization terms and scaling), allowing for universal comparison (beyond
@@ -712,7 +470,8 @@ def _logdet(A):
 
 
 def _infer_dimension_(spectrum, n_samples, n_features):
-    """Infers the dimension of a dataset of shape (n_samples, n_features)
+    """Infer the dimension of a dataset of shape (n_samples, n_features).
+
     The dataset is described by its spectrum `spectrum`.
     """
     n_spectrum = len(spectrum)
@@ -726,7 +485,7 @@ def _assess_dimension_(spectrum, rank, n_samples, n_features):
     from scipy.special import gammaln
 
     if rank > len(spectrum):
-        raise ValueError("The tested rank cannot exceed the rank of the" " dataset")
+        raise ValueError("The tested rank cannot exceed the rank of the dataset")
 
     pu = -rank * log(2.0)
     for i in range(rank):
@@ -759,7 +518,7 @@ def _assess_dimension_(spectrum, rank, n_samples, n_features):
     return ll
 
 
-def svd_flip(u, v, u_based_decision=True):
+def svd_flip(u, v, u_based_decision=True):  # noqa: D103
     if u_based_decision:
         # columns of u, rows of v
         max_abs_cols = np.argmax(np.abs(u), axis=0)
@@ -776,7 +535,7 @@ def svd_flip(u, v, u_based_decision=True):
 
 
 def stable_cumsum(arr, axis=None, rtol=1e-05, atol=1e-08):
-    """Use high precision for cumsum and check that final value matches sum
+    """Use high precision for cumsum and check that final value matches sum.
 
     Parameters
     ----------
@@ -810,12 +569,10 @@ def stable_cumsum(arr, axis=None, rtol=1e-05, atol=1e-08):
 
 
 def _crop_colorbar(cbar, cbar_vmin, cbar_vmax):
-    """
-    crop a colorbar to show from cbar_vmin to cbar_vmax
+    """Crop a colorbar to show from cbar_vmin to cbar_vmax.
+
     Used when symmetric_cbar=False is used.
     """
-    import matplotlib
-
     if (cbar_vmin is None) and (cbar_vmax is None):
         return
     cbar_tick_locs = cbar.locator.locs
@@ -851,7 +608,7 @@ def _crop_colorbar(cbar, cbar_vmin, cbar_vmax):
 try:
     import numba
 
-    if _compare_version(numba.__version__, "<", "0.53.1"):
+    if _compare_version(numba.__version__, "<", "0.56.4"):
         raise ImportError
     prange = numba.prange
 
@@ -876,7 +633,6 @@ if not has_numba:
 
     prange = range
     bincount = np.bincount
-    mean = np.mean
 
 else:
 
@@ -887,25 +643,6 @@ else:
             out[idx] += w
         return out
 
-    # fix because Numba does not support axis kwarg for mean
-    @jit()
-    def _np_apply_along_axis(func1d, axis, arr):
-        assert arr.ndim == 2
-        assert axis in [0, 1]
-        if axis == 0:
-            result = np.empty(arr.shape[1])
-            for i in range(len(result)):
-                result[i] = func1d(arr[:, i])
-        else:
-            result = np.empty(arr.shape[0])
-            for i in range(len(result)):
-                result[i] = func1d(arr[i, :])
-        return result
-
-    @jit()
-    def mean(array, axis):
-        return _np_apply_along_axis(np.mean, axis, array)
-
 
 ###############################################################################
 # Matplotlib
@@ -913,11 +650,11 @@ else:
 
 # workaround: plt.close() doesn't spawn close_event on Agg backend
 # https://github.com/matplotlib/matplotlib/issues/18609
-# scheduled to be fixed by MPL 3.6
 def _close_event(fig):
     """Force calling of the MPL figure close event."""
-    from .utils import logger
     from matplotlib import backend_bases
+
+    from .utils import logger
 
     try:
         fig.canvas.callbacks.process(
@@ -930,60 +667,60 @@ def _close_event(fig):
         pass  # pragma: no cover
 
 
-def _is_last_row(ax):
-    try:
-        return ax.get_subplotspec().is_last_row()  # 3.4+
-    except AttributeError:
-        return ax.is_last_row()
-    return ax.get_subplotspec().is_last_row()
-
-
-def _sharex(ax1, ax2):
-    if hasattr(ax1.axes, "sharex"):
-        ax1.axes.sharex(ax2)
-    else:
-        ax1.get_shared_x_axes().join(ax1, ax2)
-
-
 ###############################################################################
-# SciPy deprecation of pinv + pinvh rcond (never worked properly anyway) in 1.7
+# SciPy 1.14+ minimum_phase half=True option
 
 
-def pinvh(a, rtol=None):
-    """Compute a pseudo-inverse of a Hermitian matrix."""
-    s, u = np.linalg.eigh(a)
-    del a
-    if rtol is None:
-        rtol = s.size * np.finfo(s.dtype).eps
-    maxS = np.max(np.abs(s))
-    above_cutoff = abs(s) > maxS * rtol
-    psigma_diag = 1.0 / s[above_cutoff]
-    u = u[:, above_cutoff]
-    return (u * psigma_diag) @ u.conj().T
+def minimum_phase(h, method="homomorphic", n_fft=None, *, half=True):
+    """Wrap scipy.signal.minimum_phase with half option."""
+    # Can be removed once
+    from scipy.fft import fft, ifft
+    from scipy.signal import minimum_phase as sp_minimum_phase
 
+    assert isinstance(method, str) and method == "homomorphic"
 
-def pinv(a, rtol=None):
-    """Compute a pseudo-inverse of a matrix."""
-    u, s, vh = np.linalg.svd(a, full_matrices=False)
-    del a
-    maxS = np.max(s)
-    if rtol is None:
-        rtol = max(vh.shape + u.shape) * np.finfo(u.dtype).eps
-    rank = np.sum(s > maxS * rtol)
-    u = u[:, :rank]
-    u /= s[:rank]
-    return (u @ vh[:rank]).conj().T
-
-
-###############################################################################
-# h5py uses np.product which is deprecated in NumPy 1.25
-
-
-@contextmanager
-def _numpy_h5py_dep():
-    # h5io uses np.product
-    with warnings.catch_warnings(record=True):
-        warnings.filterwarnings(
-            "ignore", "`product` is deprecated.*", DeprecationWarning
+    if "half" in inspect.getfullargspec(sp_minimum_phase).kwonlyargs:
+        return sp_minimum_phase(h, method=method, n_fft=n_fft, half=half)
+    h = np.asarray(h)
+    if np.iscomplexobj(h):
+        raise ValueError("Complex filters not supported")
+    if h.ndim != 1 or h.size <= 2:
+        raise ValueError("h must be 1-D and at least 2 samples long")
+    n_half = len(h) // 2
+    if not np.allclose(h[-n_half:][::-1], h[:n_half]):
+        warnings.warn(
+            "h does not appear to by symmetric, conversion may fail",
+            RuntimeWarning,
+            stacklevel=2,
         )
-        yield
+    if n_fft is None:
+        n_fft = 2 ** int(np.ceil(np.log2(2 * (len(h) - 1) / 0.01)))
+    n_fft = int(n_fft)
+    if n_fft < len(h):
+        raise ValueError(f"n_fft must be at least len(h)=={len(h)}")
+
+    # zero-pad; calculate the DFT
+    h_temp = np.abs(fft(h, n_fft))
+    # take 0.25*log(|H|**2) = 0.5*log(|H|)
+    h_temp += 1e-7 * h_temp[h_temp > 0].min()  # don't let log blow up
+    np.log(h_temp, out=h_temp)
+    if half:  # halving of magnitude spectrum optional
+        h_temp *= 0.5
+    # IDFT
+    h_temp = ifft(h_temp).real
+    # multiply pointwise by the homomorphic filter
+    # lmin[n] = 2u[n] - d[n]
+    # i.e., double the positive frequencies and zero out the negative ones;
+    # Oppenheim+Shafer 3rd ed p991 eq13.42b and p1004 fig13.7
+    win = np.zeros(n_fft)
+    win[0] = 1
+    stop = n_fft // 2
+    win[1:stop] = 2
+    if n_fft % 2:
+        win[stop] = 1
+    h_temp *= win
+    h_temp = ifft(np.exp(fft(h_temp)))
+    h_minimum = h_temp.real
+
+    n_out = (n_half + len(h) % 2) if half else len(h)
+    return h_minimum[:n_out]

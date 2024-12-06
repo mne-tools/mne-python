@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "4f74ee2a96c618b506afeda3c09e0bf578cc607a",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/names.inc": {
+      "a": 1,
+      "d": 1
+    },
+    "environment.yml": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/conftest.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/report/report.py": {
+      "a": 14,
+      "d": 19
+    },
+    "mne/viz/topomap.py": {
+      "a": 2,
+      "d": 3
+    },
+    "requirements.txt": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}
