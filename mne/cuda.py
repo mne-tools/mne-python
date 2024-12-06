@@ -47,7 +47,7 @@ def _share_cuda_mem(x):
     if _cuda_capable and has_numba:
         from numba import cuda
 
-        out = cuda.mapped_array(x.shape) 
+        out = cuda.mapped_array(x.shape)
         out[:] = x.get()
     else:
         out = x
@@ -316,7 +316,7 @@ def _setup_cuda_fft_resample(n_jobs, W, new_len):
                 # do the IFFT normalization now so we don't have to later
                 W = cupy.asarray(W)
                 logger.info("Using CUDA for FFT resampling")
-            except Exception as e:
+            except Exception:
                 logger.info(
                     "CUDA not used, could not instantiate memory "
                     "(arrays may be too large), falling back to "
