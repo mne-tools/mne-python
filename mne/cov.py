@@ -70,6 +70,7 @@ from .utils import (
     copy_function_doc_to_method_doc,
     eigh,
     fill_doc,
+    legacy,
     logger,
     verbose,
     warn,
@@ -445,6 +446,7 @@ class Covariance(dict):
             time_format="",
         )
 
+    @legacy
     @verbose
     def pick_channels(self, ch_names, ordered=True, *, verbose=None):
         """Pick channels from this covariance matrix.
@@ -470,6 +472,15 @@ class Covariance(dict):
         return pick_channels_cov(
             self, ch_names, exclude=[], ordered=ordered, copy=False
         )
+
+    def pick(self, picks, exclude):
+        """Pick channels from the covariance matrix.
+
+        Replaces:
+        - Covariance.pick_channels
+        - pick_channels_cov
+        """
+        pass
 
 
 ###############################################################################
