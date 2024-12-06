@@ -186,6 +186,9 @@ class RawNicolet(BaseRaw):
         input_fname = path.abspath(input_fname)
         info, header_info = _get_nicolet_info(input_fname, ch_type, eog, ecg, emg, misc)
         last_samps = [header_info["num_samples"] - 1]
+
+        __import__("inspect").currentframe().f_locals.update(locals())
+
         super().__init__(
             info,
             preload,
