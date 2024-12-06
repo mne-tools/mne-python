@@ -80,6 +80,13 @@ repos:
         files: pyproject.toml
         additional_dependencies: ["mne"]
 
+  # zizmor
+  # If you need rust, follow
+  # https://doc.rust-lang.org/beta/book/ch01-01-installation.html
+  - repo: https://github.com/woodruffw/zizmor
+    rev: v0.7.0
+    hooks:
+      - id: zizmor
 
 # these should *not* be run on CIs:
 ci:
