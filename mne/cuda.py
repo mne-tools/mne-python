@@ -47,8 +47,8 @@ def _share_cuda_mem(x):
     if _cuda_capable and has_numba:
         from numba import cuda
 
-        out = cuda.mapped_array(x.shape, ...)
-        out[:] = x
+        out = cuda.mapped_array(x.shape) 
+        out[:] = x.get()
     else:
         out = x
     return out
@@ -217,6 +217,7 @@ def _setup_cuda_fft_multiply_repeated(n_jobs, h, n_fft, kind="FFT FIR filtering"
                 logger.info(
                     "CUDA not used, could not instantiate memory (arrays may be too "
                     f'large: "{exp}"), falling back to n_jobs=None'
+                    f", {_explain_exception()}"
                 )
             cuda_dict.update(h_fft=h_fft, rfft=_cuda_upload_rfft, irfft=_cuda_irfft_get)
         else:
@@ -315,11 +316,11 @@ def _setup_cuda_fft_resample(n_jobs, W, new_len):
                 # do the IFFT normalization now so we don't have to later
                 W = cupy.asarray(W)
                 logger.info("Using CUDA for FFT resampling")
-            except Exception:
+            except Exception as e:
                 logger.info(
                     "CUDA not used, could not instantiate memory "
                     "(arrays may be too large), falling back to "
-                    "n_jobs=None"
+                    f"n_jobs=None, {_explain_exception()}"
                 )
             else:
                 cuda_dict.update(
@@ -346,8 +347,6 @@ def _cuda_upload_rfft(x, n, axis=-1):
 def _cuda_irfft_get(x, n, axis=-1):
     """Compute irfft and get."""
     import cupy
-
-    x = _share_cuda_mem(x)
 
     return cupy.fft.irfft(x, n=n, axis=axis).get()
 
