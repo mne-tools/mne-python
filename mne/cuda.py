@@ -48,7 +48,7 @@ def _share_cuda_mem(x):
         from numba import cuda
 
         out = cuda.mapped_array(x.shape)
-        out[:] = x.get()
+        out[:] = x
     else:
         out = x
     return out
