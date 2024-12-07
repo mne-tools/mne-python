@@ -220,17 +220,18 @@ def test_3d_warning(renderer_pyvistaqt, monkeypatch):
     from mne.viz.backends._pyvista import _is_osmesa
 
     plotter = fig.plotter
-    good = "OpenGL renderer string: OpenGL 3.3 (Core Profile) Mesa 20.0.8 via llvmpipe (LLVM 10.0.0, 256 bits)\n"  # noqa
-    bad = "OpenGL renderer string: OpenGL 3.3 (Core Profile) Mesa 18.3.4 via llvmpipe (LLVM 7.0, 256 bits)\n"  # noqa
+    pre = "OpenGL renderer string: "
+    good = f"{pre}OpenGL 3.3 (Core Profile) Mesa 20.0.8 via llvmpipe (LLVM 10.0.0, 256 bits)\n"  # noqa
+    bad = f"{pre}OpenGL 3.3 (Core Profile) Mesa 18.3.4 via llvmpipe (LLVM 7.0, 256 bits)\n"  # noqa
     monkeypatch.setattr(platform, "system", lambda: "Linux")  # avoid short-circuit
     monkeypatch.setattr(plotter.ren_win, "ReportCapabilities", lambda: good)
     assert _is_osmesa(plotter)
     monkeypatch.setattr(plotter.ren_win, "ReportCapabilities", lambda: bad)
     with pytest.warns(RuntimeWarning, match=r"18\.3\.4 is too old"):
         assert _is_osmesa(plotter)
-    non = "OpenGL 4.1 Metal - 76.3 via Apple M1 Pro\n"
+    non = f"{pre}OpenGL 4.1 Metal - 76.3 via Apple M1 Pro\n"
     monkeypatch.setattr(plotter.ren_win, "ReportCapabilities", lambda: non)
     assert not _is_osmesa(plotter)
-    non = "OpenGL renderer string: llvmpipe\n"
+    non = f"{pre}OpenGL 4.5 (Core Profile) Mesa 24.2.3-1ubuntu1 via NVE6\n"
     monkeypatch.setattr(plotter.ren_win, "ReportCapabilities", lambda: non)
     assert not _is_osmesa(plotter)
