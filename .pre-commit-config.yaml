@@ -80,6 +80,11 @@ repos:
         files: pyproject.toml
         additional_dependencies: ["mne"]
 
+  # zizmor
+  - repo: https://github.com/woodruffw/zizmor-pre-commit
+    rev: v0.8.0
+    hooks:
+      - id: zizmor
 
 # these should *not* be run on CIs:
 ci:
