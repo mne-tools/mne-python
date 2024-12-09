@@ -1538,7 +1538,8 @@ def test_epochs_compute_tfr_stockwell(epochs, freqs, return_itc):
 def test_epochs_compute_tfr_multitaper_complex_phase(epochs, output):
     """Test Epochs.compute_tfr(output="complex"/"phase")."""
     tfr = epochs.compute_tfr("multitaper", freqs_linspace, output=output)
-    assert len(tfr.shape) == 5
+    assert len(tfr.shape) == 5  # epoch x channel x taper x freq x time
+    assert tfr.weights.shape == tfr.shape[2:4]  # check weights and coeffs shapes match
 
 
 @pytest.mark.parametrize("copy", (False, True))
