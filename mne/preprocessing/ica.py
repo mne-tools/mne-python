@@ -714,8 +714,9 @@ class ICA(ContainsMixin):
             self._reset()
 
         logger.info(
-            "Fitting ICA to data using %i channels "
-            "(please be patient, this may take a while)" % len(picks)
+            "Fitting ICA to data using %i channels (please be patient, this may take "
+            "a while)",
+            len(picks),
         )
 
         # n_components could be float 0 < x < 1, but that's okay here
@@ -1011,7 +1012,7 @@ class ICA(ContainsMixin):
 
     def _update_ica_names(self):
         """Update ICA names when n_components_ is set."""
-        self._ica_names = ["ICA%03d" % ii for ii in range(self.n_components_)]
+        self._ica_names = [f"ICA{ii:03d}" for ii in range(self.n_components_)]
 
     def _transform(self, data):
         """Compute sources from data (operates inplace)."""
@@ -1069,10 +1070,9 @@ class ICA(ContainsMixin):
             else:
                 raise ValueError("Data input must be of Raw, Epochs or Evoked type")
             raise RuntimeError(
-                "%s %s match fitted data: %i channels "
-                "fitted but %i channels supplied. \nPlease "
-                "provide %s compatible with ica.ch_names"
-                % (kind, do, len(self.ch_names), len(picks), kind)
+                f"{kind} {do} match fitted data: {len(self.ch_names)} channels "
+                f"fitted but {len(picks)} channels supplied. \nPlease "
+                f"provide {kind} compatible with 'ica.ch_names'."
             )
         return picks
 
@@ -1297,7 +1297,7 @@ class ICA(ContainsMixin):
         out._data = data_
         out._first_samps = [out.first_samp]
         out._last_samps = [out.last_samp]
-        out._filenames = [None]
+        out.filenames = [None]
         out.preload = True
         out._projector = None
         self._export_info(out.info, raw, add_channels)
@@ -1553,7 +1553,7 @@ class ICA(ContainsMixin):
             else:
                 raise ValueError(f"Unknown measure {measure}")
             idx += [this_idx]
-            self.labels_["%s/%i/" % (prefix, ii) + ch] = list(this_idx)
+            self.labels_[f"{prefix}/{ii}/{ch}"] = list(this_idx)
 
         # remove duplicates but keep order by score, even across multiple
         # ref channels
@@ -2306,10 +2306,9 @@ class ICA(ContainsMixin):
         # special case where epochs come picked but fit was 'unpicked'.
         if len(picks) != len(self.ch_names):
             raise RuntimeError(
-                "Epochs don't match fitted data: %i channels "
-                "fitted but %i channels supplied. \nPlease "
-                "provide Epochs compatible with "
-                "ica.ch_names" % (len(self.ch_names), len(picks))
+                f"Epochs don't match fitted data: {len(self.ch_names)} channels "
+                f"fitted but {len(picks)} channels supplied. \nPlease "
+                "provide Epochs compatible with 'ica.ch_names'."
             )
 
         data = np.hstack(epochs.get_data(picks))
@@ -2330,10 +2329,9 @@ class ICA(ContainsMixin):
         # special case where evoked come picked but fit was 'unpicked'.
         if len(picks) != len(self.ch_names):
             raise RuntimeError(
-                "Evoked does not match fitted data: %i channels"
-                " fitted but %i channels supplied. \nPlease "
-                "provide an Evoked object that's compatible "
-                "with ica.ch_names" % (len(self.ch_names), len(picks))
+                f"Evoked does not match fitted data: {len(self.ch_names)} channels "
+                f"fitted but {len(picks)} channels supplied. \nPlease "
+                "provide an Evoked object that's compatible with ica.ch_names."
             )
 
         data = evoked.data[picks]

@@ -56,6 +56,7 @@ def test_search_light():
     sl = SlidingEstimator(Ridge())
     assert not is_classifier(sl)
     sl = SlidingEstimator(LogisticRegression(solver="liblinear"))
+    assert is_classifier(sl.base_estimator)
     assert is_classifier(sl)
     # fit
     assert_equal(sl.__repr__()[:18], "<SlidingEstimator(")

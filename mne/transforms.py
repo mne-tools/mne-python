@@ -1078,9 +1078,11 @@ class _SphericalSurfaceWarp:
         if not hasattr(self, "_warp"):
             rep += "no fitting done >"
         else:
-            rep += "fit %d->%d pts using match=%s (%d pts), order=%s, reg=%s>" % tuple(
-                self._fit_params[key]
-                for key in ["n_src", "n_dest", "match", "n_match", "order", "reg"]
+            rep += (
+                f"fit {self._fit_params['n_src']}->{self._fit_params['n_dest']} pts "
+                f"using match={self._fit_params['match']} "
+                f"({self._fit_params['n_match']} pts), "
+                f"order={self._fit_params['order']}, reg={self._fit_params['reg']}>"
             )
         return rep
 

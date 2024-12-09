@@ -19,6 +19,7 @@ from numpy.testing import (
     assert_equal,
 )
 
+import mne.channels.montage
 from mne import (
     __file__ as _mne_file,
 )
@@ -56,6 +57,7 @@ from mne.channels.montage import (
     _BUILTIN_STANDARD_MONTAGES,
     _check_get_coord_frame,
     transform_to_head,
+    write_dig,
 )
 from mne.coreg import get_mni_fiducials
 from mne.datasets import testing
@@ -138,7 +140,8 @@ def test_dig_montage_trans(tmp_path):
     _ensure_trans(trans)
     # ensure that we can save and load it, too
     fname = tmp_path / "temp-mon.fif"
-    _check_roundtrip(montage, fname, "mri")
+    with pytest.warns(RuntimeWarning, match="MNE naming conventions"):
+        _check_roundtrip(montage, fname, "mri")
     # test applying a trans
     position1 = montage.get_positions()
     montage.apply_trans(trans)
@@ -1074,23 +1077,23 @@ def test_set_dig_montage_with_nan_positions():
 
 
 @testing.requires_testing_data
-def test_fif_dig_montage(tmp_path):
+def test_fif_dig_montage(tmp_path, monkeypatch):
     """Test FIF dig montage support."""
-    dig_montage = read_dig_fif(fif_dig_montage_fname)
+    dig_montage = read_dig_fif(fif_dig_montage_fname, verbose="error")
 
     # test round-trip IO
-    fname_temp = tmp_path / "test.fif"
+    fname_temp = tmp_path / "test-dig.fif"
     _check_roundtrip(dig_montage, fname_temp)
 
     # Make a BrainVision file like the one the user would have had
     raw_bv = read_raw_brainvision(bv_fname, preload=True)
     raw_bv_2 = raw_bv.copy()
     mapping = dict()
-    for ii, ch_name in enumerate(raw_bv.ch_names):
-        mapping[ch_name] = "EEG%03d" % (ii + 1,)
+    for ii, ch_name in enumerate(raw_bv.ch_names, 1):
+        mapping[ch_name] = f"EEG{ii:03d}"
     raw_bv.rename_channels(mapping)
-    for ii, ch_name in enumerate(raw_bv_2.ch_names):
-        mapping[ch_name] = "EEG%03d" % (ii + 33,)
+    for ii, ch_name in enumerate(raw_bv_2.ch_names, 33):
+        mapping[ch_name] = f"EEG{ii:03d}"
     raw_bv_2.rename_channels(mapping)
     raw_bv.add_channels([raw_bv_2])
     for ch in raw_bv.info["chs"]:
@@ -1119,16 +1122,32 @@ def test_fif_dig_montage(tmp_path):
     # Roundtrip of non-FIF start
     montage = make_dig_montage(hsp=read_polhemus_fastscan(hsp), hpi=read_mrk(hpi))
     elp_points = read_polhemus_fastscan(elp)
-    ch_pos = {"EEG%03d" % (k + 1): pos for k, pos in enumerate(elp_points[8:])}
-    montage += make_dig_montage(
+    ch_pos = {f"ECoG{k:03d}": pos for k, pos in enumerate(elp_points[3:], 1)}
+    assert len(elp_points) == 8  # there are only 8 but pretend the last are ECoG
+    other = make_dig_montage(
         nasion=elp_points[0], lpa=elp_points[1], rpa=elp_points[2], ch_pos=ch_pos
     )
+    assert other.ch_names[0].startswith("ECoG")
+    montage += other
+    assert montage.ch_names[0].startswith("ECoG")
     _check_roundtrip(montage, fname_temp, "unknown")
     montage = transform_to_head(montage)
     _check_roundtrip(montage, fname_temp)
     montage.dig[0]["coord_frame"] = FIFF.FIFFV_COORD_UNKNOWN
     with pytest.raises(RuntimeError, match="Only a single coordinate"):
-        montage.save(fname_temp)
+        montage.save(fname_temp, overwrite=True)
+    montage.dig[0]["coord_frame"] = FIFF.FIFFV_COORD_HEAD
+
+    # Check that old-style files can be read, too, using EEG001 etc.
+    def write_dig_no_ch_names(*args, **kwargs):
+        kwargs["ch_names"] = None
+        return write_dig(*args, **kwargs)
+
+    monkeypatch.setattr(mne.channels.montage, "write_dig", write_dig_no_ch_names)
+    montage.save(fname_temp, overwrite=True)
+    montage_read = read_dig_fif(fname_temp)
+    default_ch_names = [f"EEG{ii:03d}" for ii in range(1, 6)]
+    assert montage_read.ch_names == default_ch_names
 
 
 @testing.requires_testing_data
@@ -1175,8 +1194,8 @@ def test_egi_dig_montage(tmp_path):
         atol=1e-4,
     )
 
-    # test round-trip IO
-    fname_temp = tmp_path / "egi_test.fif"
+    # test round-trip IO (with GZ)
+    fname_temp = tmp_path / "egi_test-dig.fif.gz"
     _check_roundtrip(dig_montage, fname_temp, "unknown")
     _check_roundtrip(dig_montage_in_head, fname_temp)
 
@@ -1330,7 +1349,7 @@ def test_read_dig_captrak(tmp_path):
     )
 
     montage = transform_to_head(montage)  # transform_to_head has to be tested
-    _check_roundtrip(montage=montage, fname=str(tmp_path / "bvct_test.fif"))
+    _check_roundtrip(montage=montage, fname=tmp_path / "bvct_test-dig.fif")
 
     fid, _ = _get_fid_coords(montage.dig)
     assert_allclose(
@@ -1398,7 +1417,7 @@ def test_set_montage_mgh(rename):
 
         def renamer(x):
             try:
-                return "EEG %03d" % (_MGH60.index(x) + 1,)
+                return f"EEG {_MGH60.index(x) + 1:03d}"
             except ValueError:
                 return x
 
@@ -1495,15 +1514,15 @@ def test_montage_positions_similar(fname, montage, n_eeg, n_good, bads):
     assert_array_less(0, ang)  # but not equal
 
 
-# XXX: this does not check ch_names + it cannot work because of write_dig
 def _check_roundtrip(montage, fname, coord_frame="head"):
     """Check roundtrip writing."""
     montage.save(fname, overwrite=True)
     montage_read = read_dig_fif(fname=fname)
 
-    assert_equal(repr(montage), repr(montage_read))
-    assert_equal(_check_get_coord_frame(montage_read.dig), coord_frame)
+    assert repr(montage) == repr(montage_read)
+    assert _check_get_coord_frame(montage_read.dig) == coord_frame
     assert_dig_allclose(montage, montage_read)
+    assert montage.ch_names == montage_read.ch_names
 
 
 def test_digmontage_constructor_errors():
@@ -1910,7 +1929,7 @@ def test_get_montage():
 
     # 4. read in BV test dataset and make sure montage
     # fulfills roundtrip on non-standard montage
-    dig_montage = read_dig_fif(fif_dig_montage_fname)
+    dig_montage = read_dig_fif(fif_dig_montage_fname, verbose="error")
 
     # Make a BrainVision file like the one the user would have had
     # with testing dataset 'test.vhdr'
@@ -1920,11 +1939,11 @@ def test_get_montage():
     # rename channels to make it have the full set
     # of channels
     mapping = dict()
-    for ii, ch_name in enumerate(raw_bv.ch_names):
-        mapping[ch_name] = "EEG%03d" % (ii + 1,)
+    for ii, ch_name in enumerate(raw_bv.ch_names, 1):
+        mapping[ch_name] = f"EEG{ii:03d}"
     raw_bv.rename_channels(mapping)
-    for ii, ch_name in enumerate(raw_bv_2.ch_names):
-        mapping[ch_name] = "EEG%03d" % (ii + 33,)
+    for ii, ch_name in enumerate(raw_bv_2.ch_names, 33):
+        mapping[ch_name] = f"EEG{ii:03d}"
     raw_bv_2.rename_channels(mapping)
     raw_bv.add_channels([raw_bv_2])
     for ch in raw_bv.info["chs"]:

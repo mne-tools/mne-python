@@ -1,0 +1,1 @@
+Gracefully handle invalid patient info when reading EDF files by `Scott Huberty`_.

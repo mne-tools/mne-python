@@ -70,7 +70,7 @@ doc = [
   "pyxdf",
   "pyzmq != 24.0.0",
   "seaborn != 0.11.2",
-  "selenium",
+  "selenium >= 4.27.1",
   "sphinx >= 6",
   "sphinx-design",
   "sphinx-gallery >= 0.16",
@@ -338,6 +338,9 @@ select = ["A", "B006", "D", "E", "F", "I", "UP", "UP031", "W"]
 ]
 "examples/preprocessing/eeg_bridging.py" = [
   "E501",  # line too long
+]
+"mne/__init__.pyi" = [
+  "A004",  # Import *** is shadowing a Python builtin
 ]
 "mne/datasets/*/*.py" = [
   "D103",  # Missing docstring in public function

@@ -1561,8 +1561,10 @@ class BaseEpochs(
         self._getitem(keep, reason, copy=False, drop_event_id=False)
         count = len(try_idx)
         logger.info(
-            "Dropped %d epoch%s: %s"
-            % (count, _pl(count), ", ".join(map(str, np.sort(try_idx))))
+            "Dropped %d epoch%s: %s",
+            count,
+            _pl(count),
+            ", ".join(map(str, np.sort(try_idx))),
         )
 
         return self
@@ -3232,7 +3234,7 @@ def make_metadata(
 
     # keep_first and keep_last names
     start_idx = stop_idx
-    metadata[columns[start_idx:]] = ""
+    metadata[columns[start_idx:]] = None
 
     # We're all set, let's iterate over all events and fill in in the
     # respective cells in the metadata. We will subset this to include only
@@ -4154,8 +4156,8 @@ def _read_one_epoch_file(f, tree, preload):
 
         if not size_actual == size_expected:
             raise ValueError(
-                "Incorrect number of samples (%d instead of %d)"
-                % (size_actual, size_expected)
+                f"Incorrect number of samples ({size_actual} instead of "
+                f"{size_expected})."
             )
 
         # Calibration factors

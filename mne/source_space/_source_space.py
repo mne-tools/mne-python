@@ -298,7 +298,7 @@ class SourceSpaces(list):
     def kind(self):
         types = list()
         for si, s in enumerate(self):
-            _validate_type(s, dict, "source_spaces[%d]" % (si,))
+            _validate_type(s, dict, f"source_spaces[{si}]")
             types.append(s.get("type", None))
             _check_option(
                 f'source_spaces[{si}]["type"]',
@@ -448,8 +448,8 @@ class SourceSpaces(list):
                 else:
                     r += f", shape={ss['shape']}"
             elif ss_type == "surf":
-                r += " (%s), n_vertices=%i" % (_get_hemi(ss)[0], ss["np"])
-            r += ", n_used=%i" % (ss["nuse"],)
+                r += f" ({_get_hemi(ss)[0]}), n_vertices={ss['np']}"
+            r += f", n_used={ss['nuse']}"
             if si == 0:
                 extra += [_coord_frame_name(int(ss["coord_frame"])) + " coords"]
             ss_repr.append(f"<{r}>")
@@ -853,7 +853,7 @@ def _read_source_spaces_from_tree(fid, tree, patch_stats=False, verbose=None):
 
         src.append(this)
 
-    logger.info("    %d source spaces read" % len(spaces))
+    logger.info("    %d source spaces read", len(spaces))
     return SourceSpaces(src)
 
 
@@ -942,7 +942,7 @@ def _read_one_source_space(fid, this):
         elif src_type == FIFF.FIFFV_MNE_SPACE_DISCRETE:
             res["type"] = "discrete"
         else:
-            raise ValueError("Unknown source space type (%d)" % src_type)
+            raise ValueError(f"Unknown source space type ({src_type})")
 
     if res["type"] == "vol":
         tag = find_tag(fid, this, FIFF.FIFF_MNE_SOURCE_SPACE_VOXEL_DIMS)
@@ -1262,7 +1262,7 @@ def _write_source_spaces_to_fid(fid, src, verbose=None):
         _write_one_source_space(fid, s, verbose)
         end_block(fid, FIFF.FIFFB_MNE_SOURCE_SPACE)
         logger.info("    [done]")
-    logger.info("    %d source spaces written" % len(src))
+    logger.info("    %d source spaces written", len(src))
 
 
 @verbose
@@ -1450,7 +1450,7 @@ def _check_spacing(spacing, verbose=None):
         stype = "spacing"
         sval = _ensure_int(spacing, "spacing", types)
         if sval < 2:
-            raise ValueError("spacing must be >= 2, got %d" % (sval,))
+            raise ValueError(f"spacing must be >= 2, got {sval}.")
     if stype == "all":
         logger.info("Include all vertices")
         ico_surf = None
@@ -1552,11 +1552,14 @@ def setup_source_space(
         logger.info(f"Loading {surf}...")
         # Setup the surface spacing in the MRI coord frame
         if stype != "all":
-            logger.info("Mapping %s %s -> %s (%d) ..." % (hemi, subject, stype, sval))
+            logger.info("Mapping %s %s -> %s (%d) ...", hemi, subject, stype, sval)
         s = _create_surf_spacing(surf, hemi, subject, stype, ico_surf, subjects_dir)
         logger.info(
-            "loaded %s %d/%d selected to source space (%s)"
-            % (op.split(surf)[1], s["nuse"], s["np"], src_type_str)
+            "loaded %s %d/%d selected to source space (%s)",
+            op.split(surf)[1],
+            s["nuse"],
+            s["np"],
+            src_type_str,
         )
         src.append(s)
         logger.info("")  # newline after both subject types are run
@@ -1867,7 +1870,7 @@ def setup_volume_source_space(
             surf = read_bem_surfaces(
                 bem, s_id=FIFF.FIFFV_BEM_SURF_ID_BRAIN, verbose=False
             )
-            logger.info("Loaded inner skull from %s (%d nodes)" % (bem, surf["np"]))
+            logger.info("Loaded inner skull from %s (%d nodes)", bem, surf["np"])
         elif bem is not None and bem.get("is_sphere") is False:
             # read bem surface in the MRI coordinate frame
             which = np.where(
@@ -1890,7 +1893,7 @@ def setup_volume_source_space(
             else:
                 surf = surface
             logger.info(
-                "Loaded bounding surface from %s (%d nodes)" % (surface, surf["np"])
+                "Loaded bounding surface from %s (%d nodes)", surface, surf["np"]
             )
             surf = deepcopy(surf)
             surf["rr"] *= 1e-3  # must be converted to meters
@@ -2012,9 +2015,9 @@ def _make_discrete_source_space(pos, coord_frame="mri"):
     _normalize_vectors(nn)
     nz = np.sum(np.sum(nn * nn, axis=1) == 0)
     if nz != 0:
-        raise RuntimeError("%d sources have zero length normal" % nz)
+        raise RuntimeError("%d sources have zero length normal", nz)
     logger.info("Positions (in meters) and orientations")
-    logger.info("%d sources" % npts)
+    logger.info("%d sources", npts)
 
     # Ready to make the source space
     sp = dict(
@@ -2140,7 +2143,9 @@ def _make_volume_source_space(
     del surf
     logger.info(
         "%d sources remaining after excluding the sources outside "
-        "the surface and less than %6.1f mm inside." % (sp["nuse"], mindist)
+        "the surface and less than %6.1f mm inside.",
+        sp["nuse"],
+        mindist,
     )
 
     # Restrict sources to volume of interest
@@ -2166,7 +2171,7 @@ def _make_volume_source_space(
             good = _get_atlas_values(vol_info, sp["rr"][sp["vertno"]]) == id_
             n_good = good.sum()
             logger.info(
-                "    Selected %d voxel%s from %s" % (n_good, _pl(n_good), volume_label)
+                "    Selected %d voxel%s from %s", n_good, _pl(n_good), volume_label
             )
             if n_good == 0:
                 warn(
@@ -2383,8 +2388,10 @@ def _add_interpolator(sp):
             this_interp = csr_array((data, indices, indptr), shape=interp.shape)
         s["interpolator"] = this_interp
         logger.info(
-            "    %d/%d nonzero values for %s"
-            % (len(s["interpolator"].data), nvox, s["seg_name"])
+            "    %d/%d nonzero values for %s",
+            len(s["interpolator"].data),
+            nvox,
+            s["seg_name"],
         )
     logger.info("[done]")
 
@@ -2586,7 +2593,8 @@ def _filter_source_spaces(surf, limit, mri_head_t, src, n_jobs=None, verbose=Non
             extras += ["s", "they are"] if omit_outside > 1 else ["", "it is"]
             logger.info(
                 "    %d source space point%s omitted because %s "
-                "outside the inner skull surface." % tuple(extras)
+                "outside the inner skull surface.",
+                *tuple(extras),
             )
         if omit_limit > 0:
             extras = [omit_limit]
@@ -2594,7 +2602,8 @@ def _filter_source_spaces(surf, limit, mri_head_t, src, n_jobs=None, verbose=Non
             extras += [limit]
             logger.info(
                 "    %d source space point%s omitted because of the "
-                "%6.1f-mm distance limit." % tuple(extras)
+                "%6.1f-mm distance limit.",
+                *tuple(extras),
             )
         # Adjust the patch inds as well if necessary
         if omit_limit + omit_outside > 0:
@@ -2713,8 +2722,8 @@ def add_source_space_distances(src, dist_limit=np.inf, n_jobs=None, *, verbose=N
     max_n = max(s["nuse"] for s in src)
     if not patch_only and max_n > _DIST_WARN_LIMIT:
         warn(
-            "Computing distances for %d source space points (in one "
-            "hemisphere) will be very slow, consider using add_dist=False" % (max_n,)
+            f"Computing distances for {max_n} source space points (in one "
+            "hemisphere) will be very slow, consider using add_dist=False"
         )
     for s in src:
         adjacency = mesh_dist(s["tris"], s["rr"])
@@ -2904,11 +2913,13 @@ def _get_vertex_map_nn(
             was = one
             one = neigh[np.where(~morph_inuse[neigh])[0]]
             if len(one) == 0:
-                raise RuntimeError("vertex %d would be used multiple times." % one)
+                raise RuntimeError(f"vertex {one} would be used multiple times.")
             one = one[0]
             logger.info(
                 "Source space vertex moved from %d to %d because of "
-                "double occupation." % (was, one)
+                "double occupation.",
+                was,
+                one,
             )
         best[v] = one
         morph_inuse[one] = True

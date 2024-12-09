@@ -139,6 +139,7 @@ def pytest_configure(config):
     ignore:Passing a schema to Validator\.iter_errors is deprecated.*:
     ignore:Unclosed context <zmq.asyncio.Context.*:ResourceWarning
     ignore:Jupyter is migrating its paths.*:DeprecationWarning
+    ignore:datetime\.datetime\.utcnow\(\) is deprecated.*:DeprecationWarning
     ignore:Widget\..* is deprecated\.:DeprecationWarning
     ignore:.*is deprecated in pyzmq.*:DeprecationWarning
     ignore:The `ipykernel.comm.Comm` class has been deprecated.*:DeprecationWarning

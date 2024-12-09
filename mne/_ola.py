@@ -318,15 +318,9 @@ class _COLA:
         sfreq = float(sfreq)
         pl = "s" if len(self.starts) != 1 else ""
         logger.info(
-            "    Processing %4d data chunk%s of (at least) %0.1f s "
-            "with %0.1f s overlap and %s windowing"
-            % (
-                len(self.starts),
-                pl,
-                self._n_samples / sfreq,
-                self._n_overlap / sfreq,
-                window_name,
-            )
+            f"    Processing {len(self.starts):4d} data chunk{pl} of (at least) "
+            f"{self._n_samples / sfreq:0.1f} s with "
+            f"{self._n_overlap / sfreq:0.1f} s overlap and {window_name} windowing"
         )
         del window, window_name
         if delta > 0:

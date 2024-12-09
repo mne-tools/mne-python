@@ -319,7 +319,8 @@ class MontageMixin:
 
         Returns
         -------
-        %(montage)s
+        montage : None | DigMontage
+            A copy of the channel positions, if available, otherwise ``None``.
         """
         from ..channels.montage import make_dig_montage
         from ..transforms import _frame_to_str
@@ -1059,7 +1060,9 @@ class HeliumInfo(ValidatedDict):
             _check_types, name='helium_info["orig_file_guid"]', types=str
         ),
         "meas_date": partial(
-            _check_types, name='helium_info["meas_date"]', types=datetime.datetime
+            _check_types,
+            name='helium_info["meas_date"]',
+            types=(datetime.datetime, None),
         ),
     }
 
@@ -3525,9 +3528,7 @@ def anonymize_info(info, daysback=None, keep_his=False, verbose=None):
         if none_meas_date and hi.get("meas_date") is not None:
             hi["meas_date"] = _ensure_meas_date_none_or_dt(DATE_NONE)
         elif hi.get("meas_date") is not None:
-            hi["meas_date"] = _ensure_meas_date_none_or_dt(
-                _add_timedelta_to_stamp(hi["meas_date"], -delta_t)
-            )
+            hi["meas_date"] = hi["meas_date"] - delta_t
 
     di = info.get("device_info")
     if di is not None:

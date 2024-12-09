@@ -263,8 +263,8 @@ stages:
             displayName: 'Get Python'
           - bash: |
               set -eo pipefail
-              git clone --depth 1 https://github.com/pyvista/gl-ci-helpers.git
-              powershell gl-ci-helpers/appveyor/install_opengl.ps1
+              git clone --depth 1 https://github.com/pyvista/setup-headless-display-action.git
+              MESA3D_VERSION=24.3.0 bash setup-headless-display-action/windows/install_opengl.sh
             displayName: Install OpenGL
           - bash: ./tools/azure_dependencies.sh
             displayName: Install dependencies with pip
