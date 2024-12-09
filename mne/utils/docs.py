@@ -5008,12 +5008,12 @@ weight_norm : str | None
            solution.
 """
 
-docdict["weight_tfr_array"] = """
+docdict["weights_tfr_array"] = """
 weights : array of shape (n_tapers, n_freqs) | None
     The weights for each taper. Must be provided if ``data`` has a taper dimension, such
     as for complex or phase multitaper data.
 """
-docdict["weight_tfr_attr"] = """
+docdict["weights_tfr_attr"] = """
 weights : array of shape (n_tapers, n_freqs) | None
     The weights for each taper, if present in the data.
 """

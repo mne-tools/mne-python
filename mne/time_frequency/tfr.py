@@ -2786,7 +2786,6 @@ class AverageTFR(BaseTFR):
     %(nave_tfr_attr)s
     %(sfreq_tfr_attr)s
     %(shape_tfr_attr)s
-    %(weights_tfr_attr)s
 
     See Also
     --------
