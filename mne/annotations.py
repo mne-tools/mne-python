@@ -1037,10 +1037,15 @@ def _sync_onset(raw, onset, inverse=False):
     return annot_start
 
 
-def _annotations_starts_stops(raw, kinds, name="skip_by_annotation", invert=False):
-    """Get starts and stops from given kinds.
+def _annotations_starts_stops(
+    raw, kinds, name="skip_by_annotation", invert=False, include_last=False
+):
+    """Get starts and stops (i.e., onsets and ends) from given kinds.
 
-    onsets and ends are inclusive.
+    If `include_last` is False (default), ends will indicate the last sample of
+    the annotations. If `include_last` is True, ends will indicate the last samples +1.
+    This is useful when for example ``_annotations_starts_stops`` is used to index
+    entire bad segments in order to reject these.
     """
     _validate_type(kinds, (str, list, tuple), name)
     if isinstance(kinds, str):
@@ -1063,6 +1068,8 @@ def _annotations_starts_stops(raw, kinds, name="skip_by_annotation", invert=Fals
         ends = onsets + raw.annotations.duration[idxs]
         onsets = raw.time_as_index(onsets, use_rounding=True)
         ends = raw.time_as_index(ends, use_rounding=True)
+        if include_last:
+            ends += 1
     assert (onsets <= ends).all()  # all durations >= 0
     if invert:
         # We need to eliminate overlaps here, otherwise wacky things happen,
