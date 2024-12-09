@@ -104,6 +104,16 @@ def get_channel_type_constants(include_defaults=False):
             unit=FIFF.FIFF_UNIT_RAD,
             coil_type=FIFF.FIFFV_COIL_FNIRS_FD_PHASE,
         ),
+        fnirs_td_gated_amplitude=dict(
+            kind=FIFF.FIFFV_FNIRS_CH,
+            unit=FIFF.FIFF_UNIT_V,
+            coil_type=FIFF.FIFFV_COIL_FNIRS_TD_GATED_AMPLITUDE,
+        ),
+        fnirs_td_moments_amplitude=dict(
+            kind=FIFF.FIFFV_FNIRS_CH,
+            unit=FIFF.FIFF_UNIT_V,
+            coil_type=FIFF.FIFFV_COIL_FNIRS_TD_MOMENTS_AMPLITUDE,
+        ),
         fnirs_od=dict(kind=FIFF.FIFFV_FNIRS_CH, coil_type=FIFF.FIFFV_COIL_FNIRS_OD),
         hbo=dict(
             kind=FIFF.FIFFV_FNIRS_CH,
@@ -197,6 +207,8 @@ _second_rules = {
             FIFF.FIFFV_COIL_FNIRS_FD_AC_AMPLITUDE: "fnirs_fd_ac_amplitude",
             FIFF.FIFFV_COIL_FNIRS_FD_PHASE: "fnirs_fd_phase",
             FIFF.FIFFV_COIL_FNIRS_OD: "fnirs_od",
+            FIFF.FIFFV_COIL_FNIRS_TD_GATED_AMPLITUDE: "fnirs_td_gated_amplitude",
+            FIFF.FIFFV_COIL_FNIRS_TD_MOMENTS_AMPLITUDE: "fnirs_td_moments_amplitude",
         },
     ),
     "eeg": (
@@ -385,6 +397,16 @@ def _triage_fnirs_pick(ch, fnirs, warned):
         return True
     elif ch["coil_type"] == FIFF.FIFFV_COIL_FNIRS_OD and "fnirs_od" in fnirs:
         return True
+    elif (
+        ch["coil_type"] == FIFF.FIFFV_COIL_FNIRS_TD_MOMENTS_AMPLITUDE
+        and "fnirs_td_moments_amplitude" in fnirs
+    ):
+        return True
+    elif (
+        ch["coil_type"] == FIFF.FIFFV_COIL_FNIRS_TD_GATED_AMPLITUDE
+        and "fnirs_td_gated_amplitude" in fnirs
+    ):
+        return True
     return False
 
 
@@ -569,7 +591,7 @@ def pick_types(
                 pick[k] = _triage_meg_pick(info["chs"][k], ref_meg)
             elif ch_type in ("eyegaze", "pupil"):
                 pick[k] = _triage_eyetrack_pick(info["chs"][k], eyetrack)
-            else:  # ch_type in ('hbo', 'hbr')
+            else:  # ch_type in ('hbo', 'hbr', ...)
                 pick[k] = _triage_fnirs_pick(info["chs"][k], fnirs, warned)
 
     # restrict channels to selection if provided
@@ -862,6 +884,8 @@ def channel_indices_by_type(info, picks=None):
         fnirs_fd_ac_amplitude=list(),
         fnirs_fd_phase=list(),
         fnirs_od=list(),
+        fnirs_td_gated_amplitude=list(),
+        fnirs_td_moments_amplitude=list(),
         eyegaze=list(),
         pupil=list(),
     )
@@ -1099,6 +1123,8 @@ _FNIRS_CH_TYPES_SPLIT = (
     "fnirs_fd_ac_amplitude",
     "fnirs_fd_phase",
     "fnirs_od",
+    "fnirs_td_moments_amplitude",
+    "fnirs_td_gated_amplitude",
 )
 _EYETRACK_CH_TYPES_SPLIT = ("eyegaze", "pupil")
 _DATA_CH_TYPES_ORDER_DEFAULT = (
