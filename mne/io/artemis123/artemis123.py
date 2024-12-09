@@ -358,6 +358,8 @@ class RawArtemis123(BaseRaw):
 
         last_samps = [header_info.get("num_samples", 1) - 1]
 
+        __import__("inspect").currentframe().f_locals.update(locals())
+
         super().__init__(
             info,
             preload,

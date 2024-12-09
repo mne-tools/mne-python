@@ -90,6 +90,9 @@ class RawEximia(BaseRaw):
             )
         for ch, cal in zip(info["chs"], cals):
             ch["cal"] = cal
+
+        __import__("inspect").currentframe().f_locals.update(locals())
+
         super().__init__(
             info,
             preload=preload,
