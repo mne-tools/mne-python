@@ -432,16 +432,20 @@ def test_tfr_morlet():
 def test_dpsswavelet():
     """Test DPSS tapers."""
     freqs = np.arange(5, 25, 3)
-    Ws = _make_dpss(
-        1000, freqs=freqs, n_cycles=freqs / 2.0, time_bandwidth=4.0, zero_mean=True
+    Ws, weights = _make_dpss(
+        1000,
+        freqs=freqs,
+        n_cycles=freqs / 2.0,
+        time_bandwidth=4.0,
+        zero_mean=True,
+        return_weights=True,
     )
 
-    assert len(Ws) == 3  # 3 tapers expected
+    assert np.shape(Ws)[:2] == (3, len(freqs))  # 3 tapers expected
+    assert np.shape(Ws)[:2] == np.shape(weights)  # weights of shape (tapers, freqs)
 
     # Check that zero mean is true
     assert np.abs(np.mean(np.real(Ws[0][0]))) < 1e-5
-
-    assert len(Ws[0]) == len(freqs)  # As many wavelets as asked for
 
 
 @pytest.mark.slowtest
@@ -1534,7 +1538,8 @@ def test_epochs_compute_tfr_stockwell(epochs, freqs, return_itc):
 def test_epochs_compute_tfr_multitaper_complex_phase(epochs, output):
     """Test Epochs.compute_tfr(output="complex"/"phase")."""
     tfr = epochs.compute_tfr("multitaper", freqs_linspace, output=output)
-    assert len(tfr.shape) == 5
+    assert len(tfr.shape) == 5  # epoch x channel x taper x freq x time
+    assert tfr.weights.shape == tfr.shape[2:4]  # check weights and coeffs shapes match
 
 
 @pytest.mark.parametrize("copy", (False, True))
