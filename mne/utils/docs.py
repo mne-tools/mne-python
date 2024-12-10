@@ -5009,13 +5009,13 @@ weight_norm : str | None
 """
 
 docdict["weights_tfr_array"] = """
-weights : array of shape (n_tapers, n_freqs) | None
+weights : array, shape (n_tapers, n_freqs) | None
     The weights for each taper. Must be provided if ``data`` has a taper dimension, such
     as for complex or phase multitaper data.
 """
 docdict["weights_tfr_attr"] = """
-weights : array of shape (n_tapers, n_freqs) | None
-    The weights for each taper, if present in the data.
+weights : array, shape (n_tapers, n_freqs) | None
+    The weights used for each taper in the time-frequency estimates.
 """
 
 docdict["window_psd"] = """\
