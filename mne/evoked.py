@@ -615,7 +615,8 @@ class Evoked(
         exclude="bads",
         show=True,
     ):
-        """
+        """.
+
         Notes
         -----
         .. versionadded:: 0.10.0

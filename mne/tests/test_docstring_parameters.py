@@ -76,6 +76,7 @@ tab_ignores = [
 error_ignores = {
     # These we do not live by:
     "GL01",  # Docstring should start in the line immediately after the quotes
+    "GL02",  # Closing quotes on own line (doesn't work on Python 3.13 anyway)
     "EX01",
     "EX02",  # examples failed (we test them separately)
     "ES01",  # no extended summary
