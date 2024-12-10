@@ -1,0 +1,1 @@
+Add ``fig.mne`` container for :class:`Colorbar <matplotlib.colorbar.Colorbar>` in :func:`plot_connectivity_circle <mne_connectivity.viz.plot_connectivity_circle>` to allow users to access it directly, by `Santeri Ruuskanen`_.
