@@ -16,7 +16,8 @@ def test_plot_channel_labels_circle():
     """Test plotting channel labels in a circle."""
     fig, axes = plot_channel_labels_circle(
         dict(brain=["big", "great", "smart"]),
-        colors=dict(big="r", great="y", smart="b"), colorbar=True
+        colors=dict(big="r", great="y", smart="b"),
+        colorbar=True
     )
     # check that colorbar handle is returned
     assert isinstance(fig.mne.colorbar, matplotlib.colorbar.Colorbar)
