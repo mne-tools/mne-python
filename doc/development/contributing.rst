@@ -860,7 +860,7 @@ data with a meaningful middle (zero-point) and ``Reds`` otherwise. This applies
 to both visualization functions and tutorials/examples.
 
 
-.. _run_tests:
+.. _run-tests:
 
 Running the test suite
 ~~~~~~~~~~~~~~~~~~~~~~
