@@ -1507,10 +1507,10 @@ class BaseRaw(
         Parameters
         ----------
         scale : int | float | dict
-            The scaling factor to apply. If a float, the same scaling factor is applied
-            to all channels (this works only if all channels are of the same type). If a
-            dict, the keys must be valid channel types and the values the scaling
-            factors to apply to the corresponding channels.
+            The scaling factor by which to multiply the data. If a float, the same
+            scaling factor is applied to all channels (this works only if all channels
+            are of the same type). If a dict, the keys must be valid channel types and
+            the values the scaling factors to apply to the corresponding channels.
         %(verbose)s
 
         Returns
