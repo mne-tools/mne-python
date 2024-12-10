@@ -3941,8 +3941,16 @@ def combine_tfr(all_tfr, weights="nave"):
 
     Notes
     -----
+    Aggregating multitaper TFR datasets with a taper dimension such as for complex or
+    phase data is not supported.
+
     .. versionadded:: 0.11.0
     """
+    if any("taper" in tfr._dims for tfr in all_tfr):
+        raise NotImplementedError(
+            "Aggregating multitaper tapers across TFR datasets is not supported."
+        )
+
     tfr = all_tfr[0].copy()
     if isinstance(weights, str):
         if weights not in ("nave", "equal"):
