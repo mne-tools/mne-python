@@ -57,6 +57,9 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
+            python: '3.13'
+            kind: pip
+          - os: ubuntu-latest
             python: '3.12'
             kind: pip-pre
           - os: ubuntu-latest
@@ -92,13 +95,6 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
         if: startswith(matrix.kind, 'pip')
-      # Python (if conda)
-      - name: Remove numba and dipy
-        run: |  # TODO: Remove when numba 0.59 and dipy 1.8 land on conda-forge
-          sed -i '/numba/d' environment.yml
-          sed -i '/dipy/d' environment.yml
-          sed -i 's/- mne$/- mne-base/' environment.yml
-        if: matrix.os == 'ubuntu-latest' && startswith(matrix.kind, 'conda') && matrix.python == '3.12'
       - uses: mamba-org/setup-micromamba@v2
         with:
           environment-file: ${{ env.CONDA_ENV }}
