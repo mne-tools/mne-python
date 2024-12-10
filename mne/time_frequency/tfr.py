@@ -1501,26 +1501,25 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
         msg = "{} axis of data ({}) doesn't match {} attribute ({})"
         n_chan_info = len(self.info["chs"])
         n_chan = self._data.shape[self._dims.index("channel")]
+        n_freq = self._data.shape[self._dims.index("freq")]
+        n_time = self._data.shape[self._dims.index("time")]
         n_taper = (
             self._data.shape[self._dims.index("taper")]
             if "taper" in self._dims
             else None
         )
-        n_freq = self._data.shape[self._dims.index("freq")]
-        n_time = self._data.shape[self._dims.index("time")]
+        if n_taper is not None and self._weights is None:
+            raise ValueError("Taper dimension in data, but no weights found.")
         if n_chan_info != n_chan:
             msg = msg.format("Channel", n_chan, "info", n_chan_info)
-        elif n_taper is not None:
-            if self._weights is None:
-                raise RuntimeError("Taper dimension in data, but no weights found.")
-            if n_taper != self._weights.shape[0]:
-                msg = msg.format("Taper", n_taper, "weights", self._weights.shape[0])
-            elif n_freq != self._weights.shape[1]:
-                msg = msg.format("Frequency", n_freq, "weights", self._weights.shape[1])
         elif n_freq != len(self.freqs):
             msg = msg.format("Frequency", n_freq, "freqs", self.freqs.size)
         elif n_time != len(self.times):
             msg = msg.format("Time", n_time, "times", self.times.size)
+        elif n_taper is not None and n_taper != self._weights.shape[0]:
+            msg = msg.format("Taper", n_taper, "weights", self._weights.shape[0])
+        elif n_taper is not None and n_freq != self._weights.shape[1]:
+            msg = msg.format("Frequency", n_freq, "weights", self._weights.shape[1])
         else:
             return
         raise ValueError(msg)
