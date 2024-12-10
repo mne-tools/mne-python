@@ -432,16 +432,20 @@ def test_tfr_morlet():
 def test_dpsswavelet():
     """Test DPSS tapers."""
     freqs = np.arange(5, 25, 3)
-    Ws = _make_dpss(
-        1000, freqs=freqs, n_cycles=freqs / 2.0, time_bandwidth=4.0, zero_mean=True
+    Ws, weights = _make_dpss(
+        1000,
+        freqs=freqs,
+        n_cycles=freqs / 2.0,
+        time_bandwidth=4.0,
+        zero_mean=True,
+        return_weights=True,
     )
 
-    assert len(Ws) == 3  # 3 tapers expected
+    assert np.shape(Ws)[:2] == (3, len(freqs))  # 3 tapers expected
+    assert np.shape(Ws)[:2] == np.shape(weights)  # weights of shape (tapers, freqs)
 
     # Check that zero mean is true
     assert np.abs(np.mean(np.real(Ws[0][0]))) < 1e-5
-
-    assert len(Ws[0]) == len(freqs)  # As many wavelets as asked for
 
 
 @pytest.mark.slowtest
@@ -664,6 +668,17 @@ def test_tfr_io(inst, average_tfr, request, tmp_path):
     with tfr.info._unlock():
         tfr.info["meas_date"] = want
     assert tfr_loaded == tfr
+    # test with taper dimension and weights
+    n_tapers = 3  # anything >= 1 should do
+    weights = np.ones((n_tapers, tfr.shape[2]))  # tapers x freqs
+    state = tfr.__getstate__()
+    state["data"] = np.repeat(np.expand_dims(tfr.data, 2), n_tapers, axis=2)  # add dim
+    state["weights"] = weights  # add weights
+    state["dims"] = ("epoch", "channel", "taper", "freq", "time")  # update dims
+    tfr = EpochsTFR(inst=state)
+    tfr.save(fname, overwrite=True)
+    tfr_loaded = read_tfrs(fname)
+    assert tfr_loaded == tfr
     # test overwrite
     with pytest.raises(OSError, match="Destination file exists."):
         tfr.save(fname, overwrite=False)
@@ -722,17 +737,31 @@ def test_average_tfr_init(full_evoked):
         AverageTFR(inst=full_evoked, method="stockwell", freqs=freqs_linspace)
 
 
-def test_epochstfr_init_errors(epochs_tfr):
-    """Test __init__ for EpochsTFR."""
-    state = epochs_tfr.__getstate__()
-    with pytest.raises(ValueError, match="EpochsTFR data should be 4D, got 3"):
-        EpochsTFR(inst=state | dict(data=epochs_tfr.data[..., 0]))
+@pytest.mark.parametrize("inst", ("raw_tfr", "epochs_tfr", "average_tfr"))
+def test_tfr_init_errors(inst, request, average_tfr):
+    """Test __init__ for {Raw,Epochs,Average}TFR."""
+    # Load data
+    inst = _get_inst(inst, request, average_tfr=average_tfr)
+    state = inst.__getstate__()
+    # Prepare for TFRArray object instantiation
+    inst_name = inst.__class__.__name__
+    class_mapping = dict(RawTFR=RawTFR, EpochsTFR=EpochsTFR, AverageTFR=AverageTFR)
+    ndims_mapping = dict(
+        RawTFR=("3D or 4D"), EpochsTFR=("4D or 5D"), AverageTFR=("3D or 4D")
+    )
+    TFR = class_mapping[inst_name]
+    allowed_ndims = ndims_mapping[inst_name]
+    # Check errors caught
+    with pytest.raises(ValueError, match=f".*TFR data should be {allowed_ndims}"):
+        TFR(inst=state | dict(data=inst.data[..., 0]))
+    with pytest.raises(ValueError, match=f".*TFR data should be {allowed_ndims}"):
+        TFR(inst=state | dict(data=np.expand_dims(inst.data, axis=(0, 1))))
     with pytest.raises(ValueError, match="Channel axis of data .* doesn't match info"):
-        EpochsTFR(inst=state | dict(data=epochs_tfr.data[:, :-1]))
+        TFR(inst=state | dict(data=inst.data[..., :-1, :, :]))
     with pytest.raises(ValueError, match="Time axis of data.*doesn't match times attr"):
-        EpochsTFR(inst=state | dict(times=epochs_tfr.times[:-1]))
+        TFR(inst=state | dict(times=inst.times[:-1]))
     with pytest.raises(ValueError, match="Frequency axis of.*doesn't match freqs attr"):
-        EpochsTFR(inst=state | dict(freqs=epochs_tfr.freqs[:-1]))
+        TFR(inst=state | dict(freqs=inst.freqs[:-1]))
 
 
 @pytest.mark.parametrize(
@@ -1154,6 +1183,15 @@ def test_averaging_epochsTFR():
     ):
         power.average(method=np.mean)
 
+    # Check it doesn't run for taper spectra
+    tapered = epochs.compute_tfr(
+        method="multitaper", freqs=freqs, n_cycles=n_cycles, output="complex"
+    )
+    with pytest.raises(
+        NotImplementedError, match=r"Averaging multitaper tapers .* is not supported."
+    ):
+        tapered.average()
+
 
 def test_averaging_freqsandtimes_epochsTFR():
     """Test that EpochsTFR averaging freqs methods work."""
@@ -1534,7 +1572,8 @@ def test_epochs_compute_tfr_stockwell(epochs, freqs, return_itc):
 def test_epochs_compute_tfr_multitaper_complex_phase(epochs, output):
     """Test Epochs.compute_tfr(output="complex"/"phase")."""
     tfr = epochs.compute_tfr("multitaper", freqs_linspace, output=output)
-    assert len(tfr.shape) == 5
+    assert len(tfr.shape) == 5  # epoch x channel x taper x freq x time
+    assert tfr.weights.shape == tfr.shape[2:4]  # check weights and coeffs shapes match
 
 
 @pytest.mark.parametrize("copy", (False, True))
@@ -1544,6 +1583,42 @@ def test_epochstfr_iter_evoked(epochs_tfr, copy):
     assert len(avgs) == len(epochs_tfr)
     assert all(avg.nave == 1 for avg in avgs)
     assert avgs[0].comment == str(epochs_tfr.events[0, -1])
+
+
+@pytest.mark.parametrize("inst", ("raw", "epochs", "evoked"))
+def test_tfrarray_tapered_spectra(inst, evoked, request):
+    """Test {Raw,Epochs,Average}TFRArray instantiation with tapered spectra."""
+    # Load data object
+    inst = _get_inst(inst, request, evoked=evoked)
+    inst.pick("mag")
+    # Compute TFR with taper dimension (can be complex or phase output)
+    tfr = inst.compute_tfr(
+        method="multitaper", freqs=freqs_linspace, n_cycles=4, output="complex"
+    )
+    tfr_array, weights = tfr.get_data(), tfr.weights
+    # Prepare for TFRArray object instantiation
+    defaults = dict(
+        info=inst.info, data=tfr_array, times=inst.times, freqs=freqs_linspace
+    )
+    class_mapping = dict(Raw=RawTFRArray, Epochs=EpochsTFRArray, Evoked=AverageTFRArray)
+    TFRArray = class_mapping[inst.__class__.__name__]
+    # Check TFRArray instantiation runs with good data
+    TFRArray(**defaults, weights=weights)
+    # Check taper dimension but no weights caught
+    with pytest.raises(
+        ValueError, match="Taper dimension in data, but no weights found."
+    ):
+        TFRArray(**defaults)
+    # Check mismatching n_taper in weights caught
+    with pytest.raises(
+        ValueError, match=r"Taper axis .* doesn't match weights attribute"
+    ):
+        TFRArray(**defaults, weights=weights[:-1])
+    # Check mismatching n_freq in weights caught
+    with pytest.raises(
+        ValueError, match=r"Frequency axis .* doesn't match weights attribute"
+    ):
+        TFRArray(**defaults, weights=weights[:, :-1])
 
 
 def test_tfr_proj(epochs):
@@ -1727,3 +1802,39 @@ def test_tfr_plot_topomap(inst, ch_type, full_average_tfr, request):
     assert re.match(
         rf"Average over \d{{1,3}} {ch_type} channels\.", popup_fig.axes[0].get_title()
     )
+
+
+def test_combine_tfr_error_catch(request, average_tfr):
+    """Test combine_tfr() catches errors."""
+    # check unrecognised weights string caught
+    with pytest.raises(ValueError, match='Weights must be .* "nave" or "equal"'):
+        combine_tfr([average_tfr, average_tfr], weights="foo")
+    # check bad weights size caught
+    with pytest.raises(ValueError, match="Weights must be the same size as all_tfr"):
+        combine_tfr([average_tfr, average_tfr], weights=[1, 1, 1])
+    # check different channel names caught
+    state = average_tfr.__getstate__()
+    new_info = average_tfr.info.copy()
+    average_tfr_bad = AverageTFR(
+        inst=state | dict(info=new_info.rename_channels({new_info.ch_names[0]: "foo"}))
+    )
+    with pytest.raises(AssertionError, match=".* do not contain the same channels"):
+        combine_tfr([average_tfr, average_tfr_bad])
+    # check different times caught
+    average_tfr_bad = AverageTFR(inst=state | dict(times=average_tfr.times + 1))
+    with pytest.raises(
+        AssertionError, match=".* do not contain the same time instants"
+    ):
+        combine_tfr([average_tfr, average_tfr_bad])
+    # check taper dim caught
+    n_tapers = 3  # anything >= 1 should do
+    weights = np.ones((n_tapers, average_tfr.shape[1]))  # tapers x freqs
+    state["data"] = np.repeat(np.expand_dims(average_tfr.data, 1), n_tapers, axis=1)
+    state["weights"] = weights
+    state["dims"] = ("channel", "taper", "freq", "time")
+    average_tfr_taper = AverageTFR(inst=state)
+    with pytest.raises(
+        NotImplementedError,
+        match="Aggregating multitaper tapers across TFR datasets is not supported.",
+    ):
+        combine_tfr([average_tfr_taper, average_tfr_taper])

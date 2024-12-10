@@ -264,8 +264,11 @@ def _make_dpss(
     -------
     Ws : list of array
         The wavelets time series.
+    Cs : list of array
+        The concentration weights. Only returned if return_weights=True.
     """
     Ws = list()
+    Cs = list()
 
     freqs = np.array(freqs)
     if np.any(freqs <= 0):
@@ -281,6 +284,7 @@ def _make_dpss(
 
     for m in range(n_taps):
         Wm = list()
+        Cm = list()
         for k, f in enumerate(freqs):
             if len(n_cycles) != 1:
                 this_n_cycles = n_cycles[k]
@@ -302,12 +306,15 @@ def _make_dpss(
                 real_offset = Wk.mean()
                 Wk -= real_offset
             Wk /= np.sqrt(0.5) * np.linalg.norm(Wk.ravel())
+            Ck = np.sqrt(conc[m])
 
             Wm.append(Wk)
+            Cm.append(Ck)
 
         Ws.append(Wm)
+        Cs.append(Cm)
     if return_weights:
-        return Ws, conc
+        return Ws, Cs
     return Ws
 
 
@@ -428,6 +435,7 @@ def _compute_tfr(
     use_fft=True,
     decim=1,
     output="complex",
+    return_weights=False,
     n_jobs=None,
     *,
     verbose=None,
@@ -479,6 +487,9 @@ def _compute_tfr(
         * 'avg_power_itc' : average of single trial power and inter-trial
           coherence across trials.
 
+    return_weights : bool, default False
+        Whether to return the taper weights. Only applies if method='multitaper' and
+        output='complex' or 'phase'.
     %(n_jobs)s
         The number of epochs to process at the same time. The parallelization
         is implemented across channels.
@@ -495,6 +506,9 @@ def _compute_tfr(
         n_tapers, n_freqs, n_times)``. If output is ``'avg_power_itc'``, the
         real values in the ``output`` contain average power' and the imaginary
         values contain the ITC: ``out = avg_power + i * itc``.
+    weights : array of shape (n_tapers, n_freqs)
+        The taper weights. Only returned if method='multitaper', output='complex' or
+        'phase', and return_weights=True.
     """
     # Check data
     epoch_data = np.asarray(epoch_data)
@@ -516,6 +530,9 @@ def _compute_tfr(
         decim,
         output,
     )
+    return_weights = (
+        return_weights and method == "multitaper" and output in ["complex", "phase"]
+    )
 
     decim = _ensure_slice(decim)
     if (freqs > sfreq / 2.0).any():
@@ -531,13 +548,18 @@ def _compute_tfr(
         Ws = [W]  # to have same dimensionality as the 'multitaper' case
 
     elif method == "multitaper":
-        Ws = _make_dpss(
+        out = _make_dpss(
             sfreq,
             freqs,
             n_cycles=n_cycles,
             time_bandwidth=time_bandwidth,
             zero_mean=zero_mean,
+            return_weights=return_weights,
         )
+        if return_weights:
+            Ws, weights = out
+        else:
+            Ws = out
 
     # Check wavelets
     if len(Ws[0][0]) > epoch_data.shape[2]:
@@ -561,6 +583,8 @@ def _compute_tfr(
         out = np.empty((n_chans, n_freqs, n_times), dtype)
     elif output in ["complex", "phase"] and method == "multitaper":
         out = np.empty((n_chans, n_tapers, n_epochs, n_freqs, n_times), dtype)
+        if return_weights:
+            weights = np.array(weights)
     else:
         out = np.empty((n_chans, n_epochs, n_freqs, n_times), dtype)
 
@@ -585,6 +609,9 @@ def _compute_tfr(
             out = out.transpose(2, 0, 1, 3, 4)
         else:
             out = out.transpose(1, 0, 2, 3)
+
+    if return_weights:
+        return out, weights
     return out
 
 
@@ -1187,9 +1214,6 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
                 f'{classname} got unsupported parameter value{_pl(problem)} '
                 f'{" and ".join(problem)}.'
             )
-        # shim for tfr_array_morlet deprecation warning (TODO: remove after 1.7 release)
-        if method == "morlet":
-            method_kw.setdefault("zero_mean", True)
         # check method
         valid_methods = ["morlet", "multitaper"]
         if isinstance(inst, BaseEpochs):
@@ -1203,6 +1227,9 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
             method_kw.setdefault("output", "power")
         self._freqs = np.asarray(freqs, dtype=np.float64)
         del freqs
+        # always store weights for per-taper outputs
+        if method == "multitaper" and method_kw.get("output") in ["complex", "phase"]:
+            method_kw["return_weights"] = True
         # check validity of kwargs manually to save compute time if any are invalid
         tfr_funcs = dict(
             morlet=tfr_array_morlet,
@@ -1224,6 +1251,7 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
         self._method = method
         self._inst_type = type(inst)
         self._baseline = None
+        self._weights = None
         self.preload = True  # needed for __getitem__, never False for TFRs
         # self._dims may also get updated by child classes
         self._dims = ["channel", "freq", "time"]
@@ -1382,6 +1410,7 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
             info=self.info,
             baseline=self._baseline,
             decim=self._decim,
+            weights=self._weights,
         )
 
     def __setstate__(self, state):
@@ -1392,7 +1421,6 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
 
         defaults = dict(
             method="unknown",
-            dims=("epoch", "channel", "freq", "time")[-state["data"].ndim :],
             baseline=None,
             decim=1,
             data_type="TFR",
@@ -1410,12 +1438,13 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
         self._decim = defaults["decim"]
         self.preload = True
         self._set_times(self._raw_times)
+        self._weights = state.get("weights")  # objs saved before #12910 won't have
         # Handle instance type. Prior to gh-11282, Raw was not a possibility so if
         # `inst_type_str` is missing it must be Epochs or Evoked
         unknown_class = Epochs if "epoch" in self._dims else Evoked
         inst_types = dict(Raw=Raw, Epochs=Epochs, Evoked=Evoked, Unknown=unknown_class)
         self._inst_type = inst_types[defaults["inst_type_str"]]
-        # sanity check data/freqs/times/info agreement
+        # sanity check data/freqs/times/info/weights agreement
         self._check_state()
 
     def __repr__(self):
@@ -1468,18 +1497,29 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
         raise RuntimeError(msg.format(problem, extra))
 
     def _check_state(self):
-        """Check data/freqs/times/info agreement during __setstate__."""
+        """Check data/freqs/times/info/weights agreement during __setstate__."""
         msg = "{} axis of data ({}) doesn't match {} attribute ({})"
         n_chan_info = len(self.info["chs"])
         n_chan = self._data.shape[self._dims.index("channel")]
         n_freq = self._data.shape[self._dims.index("freq")]
         n_time = self._data.shape[self._dims.index("time")]
+        n_taper = (
+            self._data.shape[self._dims.index("taper")]
+            if "taper" in self._dims
+            else None
+        )
+        if n_taper is not None and self._weights is None:
+            raise ValueError("Taper dimension in data, but no weights found.")
         if n_chan_info != n_chan:
             msg = msg.format("Channel", n_chan, "info", n_chan_info)
         elif n_freq != len(self.freqs):
             msg = msg.format("Frequency", n_freq, "freqs", self.freqs.size)
         elif n_time != len(self.times):
             msg = msg.format("Time", n_time, "times", self.times.size)
+        elif n_taper is not None and n_taper != self._weights.shape[0]:
+            msg = msg.format("Taper", n_taper, "weights", self._weights.shape[0])
+        elif n_taper is not None and n_freq != self._weights.shape[1]:
+            msg = msg.format("Frequency", n_freq, "weights", self._weights.shape[1])
         else:
             return
         raise ValueError(msg)
@@ -1516,6 +1556,10 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
         if self.method == "stockwell":
             self._data, self._itc, freqs = result
             assert np.array_equal(self._freqs, freqs)
+        elif self.method == "multitaper" and self._tfr_func.keywords.get(
+            "output", ""
+        ) in ["complex", "phase"]:
+            self._data, self._weights = result
         elif self._tfr_func.keywords.get("output", "").endswith("_itc"):
             self._data, self._itc = result.real, result.imag
         else:
@@ -1693,6 +1737,11 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
     def times(self):
         """The time points present in the data (in seconds)."""
         return self._times_readonly
+
+    @property
+    def weights(self):
+        """The weights used for each taper in the time-frequency estimates."""
+        return self._weights
 
     @fill_doc
     def crop(self, tmin=None, tmax=None, fmin=None, fmax=None, include_tmax=True):
@@ -2736,6 +2785,7 @@ class AverageTFR(BaseTFR):
     %(nave_tfr_attr)s
     %(sfreq_tfr_attr)s
     %(shape_tfr_attr)s
+    %(weights_tfr_attr)s
 
     See Also
     --------
@@ -2852,6 +2902,15 @@ class AverageTFR(BaseTFR):
 
     def __setstate__(self, state):
         """Unpack AverageTFR from serialized format."""
+        if state["data"].ndim not in [3, 4]:
+            raise ValueError(
+                f"RawTFR data should be 3D or 4D, got {state['data'].ndim}."
+            )
+        # Set dims now since optional tapers makes it difficult to disentangle later
+        state["dims"] = ("channel",)
+        if state["data"].ndim == 4:
+            state["dims"] += ("taper",)
+        state["dims"] += ("freq", "time")
         super().__setstate__(state)
         self._comment = state.get("comment", "")
         self._nave = state.get("nave", 1)
@@ -2895,6 +2954,7 @@ class AverageTFRArray(AverageTFR):
         The number of averaged TFRs.
     %(comment_averagetfr_attr)s
     %(method_tfr_array)s
+    %(weights_tfr_array)s
 
     Attributes
     ----------
@@ -2907,6 +2967,7 @@ class AverageTFRArray(AverageTFR):
     %(nave_tfr_attr)s
     %(sfreq_tfr_attr)s
     %(shape_tfr_attr)s
+    %(weights_tfr_attr)s
 
     See Also
     --------
@@ -2917,12 +2978,22 @@ class AverageTFRArray(AverageTFR):
     """
 
     def __init__(
-        self, info, data, times, freqs, *, nave=None, comment=None, method=None
+        self,
+        info,
+        data,
+        times,
+        freqs,
+        *,
+        nave=None,
+        comment=None,
+        method=None,
+        weights=None,
     ):
         state = dict(info=info, data=data, times=times, freqs=freqs)
-        for name, optional in dict(nave=nave, comment=comment, method=method).items():
-            if optional is not None:
-                state[name] = optional
+        optional = dict(nave=nave, comment=comment, method=method, weights=weights)
+        for name, value in optional.items():
+            if value is not None:
+                state[name] = value
         self.__setstate__(state)
 
 
@@ -3007,6 +3078,7 @@ class EpochsTFR(BaseTFR, GetEpochsMixin):
     %(selection_attr)s
     %(sfreq_tfr_attr)s
     %(shape_tfr_attr)s
+    %(weights_tfr_attr)s
 
     See Also
     --------
@@ -3091,8 +3163,15 @@ class EpochsTFR(BaseTFR, GetEpochsMixin):
 
     def __setstate__(self, state):
         """Unpack EpochsTFR from serialized format."""
-        if state["data"].ndim != 4:
-            raise ValueError(f"EpochsTFR data should be 4D, got {state['data'].ndim}.")
+        if state["data"].ndim not in [4, 5]:
+            raise ValueError(
+                f"EpochsTFR data should be 4D or 5D, got {state['data'].ndim}."
+            )
+        # Set dims now since optional tapers makes it difficult to disentangle later
+        state["dims"] = ("epoch", "channel")
+        if state["data"].ndim == 5:
+            state["dims"] += ("taper",)
+        state["dims"] += ("freq", "time")
         super().__setstate__(state)
         self._metadata = state.get("metadata", None)
         n_epochs = self.shape[0]
@@ -3196,7 +3275,16 @@ class EpochsTFR(BaseTFR, GetEpochsMixin):
         See discussion here:
 
         https://github.com/scipy/scipy/pull/12676#issuecomment-783370228
+
+        Averaging is not supported for data containing a taper dimension.
         """
+        if "taper" in self._dims:
+            raise NotImplementedError(
+                "Averaging multitaper tapers across epochs, frequencies, or times is "
+                "not supported. If averaging across epochs, consider averaging the "
+                "epochs before computing the complex/phase spectrum."
+            )
+
         _check_option("dim", dim, ("epochs", "freqs", "times"))
         axis = self._dims.index(dim[:-1])  # self._dims entries aren't plural
 
@@ -3568,6 +3656,7 @@ class EpochsTFRArray(EpochsTFR):
     %(selection)s
     %(drop_log)s
     %(metadata_epochstfr)s
+    %(weights_tfr_array)s
 
     Attributes
     ----------
@@ -3584,6 +3673,7 @@ class EpochsTFRArray(EpochsTFR):
     %(selection_attr)s
     %(sfreq_tfr_attr)s
     %(shape_tfr_attr)s
+    %(weights_tfr_attr)s
 
     See Also
     --------
@@ -3606,6 +3696,7 @@ class EpochsTFRArray(EpochsTFR):
         selection=None,
         drop_log=None,
         metadata=None,
+        weights=None,
     ):
         state = dict(info=info, data=data, times=times, freqs=freqs)
         optional = dict(
@@ -3616,6 +3707,7 @@ class EpochsTFRArray(EpochsTFR):
             selection=selection,
             drop_log=drop_log,
             metadata=metadata,
+            weights=weights,
         )
         for name, value in optional.items():
             if value is not None:
@@ -3658,6 +3750,7 @@ class RawTFR(BaseTFR):
     method : str
         The method used to compute the spectra (``'morlet'``, ``'multitaper'``
         or ``'stockwell'``).
+    %(weights_tfr_attr)s
 
     See Also
     --------
@@ -3706,6 +3799,19 @@ class RawTFR(BaseTFR):
             verbose=verbose,
             **method_kw,
         )
+
+    def __setstate__(self, state):
+        """Unpack RawTFR from serialized format."""
+        if state["data"].ndim not in [3, 4]:
+            raise ValueError(
+                f"RawTFR data should be 3D or 4D, got {state['data'].ndim}."
+            )
+        # Set dims now since optional tapers makes it difficult to disentangle later
+        state["dims"] = ("channel",)
+        if state["data"].ndim == 4:
+            state["dims"] += ("taper",)
+        state["dims"] += ("freq", "time")
+        super().__setstate__(state)
 
     def __getitem__(self, item):
         """Get RawTFR data.
@@ -3772,6 +3878,7 @@ class RawTFRArray(RawTFR):
     %(times)s
     %(freqs_tfr_array)s
     %(method_tfr_array)s
+    %(weights_tfr_array)s
 
     Attributes
     ----------
@@ -3782,6 +3889,7 @@ class RawTFRArray(RawTFR):
     %(method_tfr_attr)s
     %(sfreq_tfr_attr)s
     %(shape_tfr_attr)s
+    %(weights_tfr_attr)s
 
     See Also
     --------
@@ -3799,10 +3907,13 @@ class RawTFRArray(RawTFR):
         freqs,
         *,
         method=None,
+        weights=None,
     ):
         state = dict(info=info, data=data, times=times, freqs=freqs)
-        if method is not None:
-            state["method"] = method
+        optional = dict(method=method, weights=weights)
+        for name, value in optional.items():
+            if value is not None:
+                state[name] = value
         self.__setstate__(state)
 
 
@@ -3830,8 +3941,16 @@ def combine_tfr(all_tfr, weights="nave"):
 
     Notes
     -----
+    Aggregating multitaper TFR datasets with a taper dimension such as for complex or
+    phase data is not supported.
+
     .. versionadded:: 0.11.0
     """
+    if any("taper" in tfr._dims for tfr in all_tfr):
+        raise NotImplementedError(
+            "Aggregating multitaper tapers across TFR datasets is not supported."
+        )
+
     tfr = all_tfr[0].copy()
     if isinstance(weights, str):
         if weights not in ("nave", "equal"):
