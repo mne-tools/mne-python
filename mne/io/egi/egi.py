@@ -288,6 +288,9 @@ class RawEGI(BaseRaw):
         orig_format = (
             egi_info["orig_format"] if egi_info["orig_format"] != "float" else "single"
         )
+
+        __import__("inspect").currentframe().f_locals.update(locals())
+
         super().__init__(
             info,
             preload,
