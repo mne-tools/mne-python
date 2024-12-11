@@ -1501,6 +1501,67 @@ class BaseRaw(
             return self, events
 
     @verbose
+    def rescale(self, scale, *, verbose=None):
+        """Rescale channels.
+
+        .. warning::
+            MNE-Python assumes data are stored in SI base units. This function should
+            typically only be used to fix an incorrect scaling factor in the data to get
+            it to be in SI base units, otherwise unintended problems (e.g., incorrect
+            source imaging results) and analysis errors can occur.
+
+        Parameters
+        ----------
+        scale : int | float | dict
+            The scaling factor by which to multiply the data. If a float, the same
+            scaling factor is applied to all channels (this works only if all channels
+            are of the same type). If a dict, the keys must be valid channel types and
+            the values the scaling factors to apply to the corresponding channels.
+        %(verbose)s
+
+        Returns
+        -------
+        raw : Raw
+            The raw object with rescaled data.
+
+        Examples
+        --------
+        A common use case for EEG data is to convert from µV to V, since many EE
+        systems store data in µV, but MNE-Python expects the data to be in V. Therefore,
+        the data needs to be rescaled by a factor of 1e-6. To rescale all channels from
+        µV to V, you can do::
+
+            >>> raw.rescale(1e-6)  # doctest: +SKIP
+
+        Note that the previous example only works if all channels are of the same type.
+        If there are multiple channel types, you can pass a dict with the individual
+        scaling factors. For example, to rescale only EEG channels, you can do::
+
+            >>> raw.rescale({"eeg": 1e-6})  # doctest: +SKIP
+        """
+        _validate_type(scale, (int, float, dict), "scale")
+        _check_preload(self, "raw.rescale")
+
+        if isinstance(scale, int | float):
+            if len(self.get_channel_types(unique=True)) == 1:
+                self.apply_function(lambda x: x * scale, channel_wise=False)
+            else:
+                raise ValueError(
+                    "If scale is a scalar, all channels must be of the same type. "
+                    "Consider passing a dict instead."
+                )
+        else:
+            for ch_type, ch_scale in scale.items():
+                if ch_type not in self.get_channel_types():
+                    raise ValueError(f"Invalid channel type: {ch_type}")
+                else:
+                    self.apply_function(
+                        lambda x: x * ch_scale, picks=ch_type, channel_wise=False
+                    )
+
+        return self
+
+    @verbose
     def crop(self, tmin=0.0, tmax=None, include_tmax=True, *, verbose=None):
         """Crop raw data file.
 
