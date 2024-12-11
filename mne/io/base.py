@@ -1522,7 +1522,7 @@ class BaseRaw(
         Returns
         -------
         raw : Raw
-            The raw object with rescaled data.
+            The raw object with rescaled data (modified in-place).
 
         Examples
         --------
