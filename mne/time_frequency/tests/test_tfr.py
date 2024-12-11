@@ -1292,12 +1292,15 @@ def test_to_data_frame():
     ch_names = ["EEG 001", "EEG 002", "EEG 003", "EEG 004"]
     n_picks = len(ch_names)
     ch_types = ["eeg"] * n_picks
+    n_tapers = 2
     n_freqs = 5
     n_times = 6
-    data = np.random.rand(n_epos, n_picks, n_freqs, n_times)
-    times = np.arange(6)
+    data = np.random.rand(n_epos, n_picks, n_tapers, n_freqs, n_times)
+    times = np.arange(n_times)
     srate = 1000.0
-    freqs = np.arange(5)
+    freqs = np.arange(n_freqs)
+    tapers = np.arange(n_tapers)
+    weights = np.ones((n_tapers, n_freqs))
     events = np.zeros((n_epos, 3), dtype=int)
     events[:, 0] = np.arange(n_epos)
     events[:, 2] = np.arange(5, 5 + n_epos)
@@ -1310,6 +1313,7 @@ def test_to_data_frame():
         freqs=freqs,
         events=events,
         event_id=event_id,
+        weights=weights,
     )
     # test index checking
     with pytest.raises(ValueError, match="options. Valid index options are"):
@@ -1321,10 +1325,21 @@ def test_to_data_frame():
     # test wide format
     df_wide = tfr.to_data_frame()
     assert all(np.isin(tfr.ch_names, df_wide.columns))
-    assert all(np.isin(["time", "condition", "freq", "epoch"], df_wide.columns))
+    assert all(
+        np.isin(["time", "condition", "freq", "epoch", "taper"], df_wide.columns)
+    )
     # test long format
     df_long = tfr.to_data_frame(long_format=True)
-    expected = ("condition", "epoch", "freq", "time", "channel", "ch_type", "value")
+    expected = (
+        "condition",
+        "epoch",
+        "freq",
+        "time",
+        "channel",
+        "ch_type",
+        "value",
+        "taper",
+    )
     assert set(expected) == set(df_long.columns)
     assert set(tfr.ch_names) == set(df_long["channel"])
     assert len(df_long) == tfr.data.size
@@ -1332,21 +1347,29 @@ def test_to_data_frame():
     df_long = tfr.to_data_frame(long_format=True, index=["freq"])
     del df_wide, df_long
     # test whether data is in correct shape
-    df = tfr.to_data_frame(index=["condition", "epoch", "freq", "time"])
+    df = tfr.to_data_frame(index=["condition", "epoch", "taper", "freq", "time"])
     data = tfr.data
     assert_array_equal(df.values[:, 0], data[:, 0, :, :].reshape(1, -1).squeeze())
     # compare arbitrary observation:
     assert (
-        df.loc[("he", slice(None), freqs[1], times[2]), ch_names[3]].iat[0]
-        == data[1, 3, 1, 2]
+        df.loc[("he", slice(None), tapers[1], freqs[1], times[2]), ch_names[3]].iat[0]
+        == data[1, 3, 1, 1, 2]
     )
 
     # Check also for AverageTFR:
+    # (remove taper dimension before averaging)
+    state = tfr.__getstate__()
+    state["data"] = state["data"][:, :, 0]
+    state["dims"] = ("epoch", "channel", "freq", "time")
+    state["weights"] = None
+    tfr = EpochsTFR(inst=state)
     tfr = tfr.average()
     with pytest.raises(ValueError, match="options. Valid index options are"):
         tfr.to_data_frame(index=["epoch", "condition"])
     with pytest.raises(ValueError, match='"epoch" is not a valid option'):
         tfr.to_data_frame(index="epoch")
+    with pytest.raises(ValueError, match='"taper" is not a valid option'):
+        tfr.to_data_frame(index="taper")
     with pytest.raises(TypeError, match="index must be `None` or a string "):
         tfr.to_data_frame(index=np.arange(400))
     # test wide format
@@ -1382,11 +1405,13 @@ def test_to_data_frame_index(index):
     ch_names = ["EEG 001", "EEG 002", "EEG 003", "EEG 004"]
     n_picks = len(ch_names)
     ch_types = ["eeg"] * n_picks
+    n_tapers = 2
     n_freqs = 5
     n_times = 6
-    data = np.random.rand(n_epos, n_picks, n_freqs, n_times)
-    times = np.arange(6)
-    freqs = np.arange(5)
+    data = np.random.rand(n_epos, n_picks, n_tapers, n_freqs, n_times)
+    times = np.arange(n_times)
+    freqs = np.arange(n_freqs)
+    weights = np.ones((n_tapers, n_freqs))
     events = np.zeros((n_epos, 3), dtype=int)
     events[:, 0] = np.arange(n_epos)
     events[:, 2] = np.arange(5, 8)
@@ -1399,6 +1424,7 @@ def test_to_data_frame_index(index):
         freqs=freqs,
         events=events,
         event_id=event_id,
+        weights=weights,
     )
     df = tfr.to_data_frame(picks=[0, 2, 3], index=index)
     # test index order/hierarchy preservation
@@ -1406,7 +1432,7 @@ def test_to_data_frame_index(index):
         index = [index]
     assert list(df.index.names) == index
     # test that non-indexed data were present as columns
-    non_index = list(set(["condition", "time", "freq", "epoch"]) - set(index))
+    non_index = list(set(["condition", "time", "freq", "taper", "epoch"]) - set(index))
     if len(non_index):
         assert all(np.isin(non_index, df.columns))
 

@@ -1837,6 +1837,7 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
         tmax=None,
         return_times=False,
         return_freqs=False,
+        return_tapers=False,
     ):
         """Get time-frequency data in NumPy array format.
 
@@ -1852,6 +1853,10 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
         return_freqs : bool
             Whether to return the frequency bin values for the requested
             frequency range. Default is ``False``.
+        return_tapers : bool
+            Whether to return the taper numbers. Default is ``False``.
+
+            .. versionadded:: 1.X.0
 
         Returns
         -------
@@ -1863,6 +1868,9 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
         freqs : array
             The frequency values for the requested data range. Only returned if
             ``return_freqs`` is ``True``.
+        tapers : array | None
+            The taper numbers. Only returned if ``return_tapers`` is ``True``. Will be
+            ``None`` if a taper dimension is not present in the data.
 
         Notes
         -----
@@ -1900,7 +1908,13 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
         if return_freqs:
             freqs = self._freqs[fmin_idx:fmax_idx]
             out.append(freqs)
-        if not return_times and not return_freqs:
+        if return_tapers:
+            if "taper" in self._dims:
+                tapers = np.arange(self.shape[self._dims.index("taper")])
+            else:
+                tapers = None
+            out.append(tapers)
+        if not return_times and not return_freqs and not return_tapers:
             return out[0]
         return tuple(out)
 
@@ -2676,21 +2690,21 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
     ):
         """Export data in tabular structure as a pandas DataFrame.
 
-        Channels are converted to columns in the DataFrame. By default,
-        additional columns ``'time'``, ``'freq'``, ``'epoch'``, and
-        ``'condition'`` (epoch event description) are added, unless ``index``
-        is not ``None`` (in which case the columns specified in ``index`` will
-        be used to form the DataFrame's index instead). ``'epoch'``, and
-        ``'condition'`` are not supported for ``AverageTFR``.
+        Channels are converted to columns in the DataFrame. By default, additional
+        columns ``'time'``, ``'freq'``, ``'taper'``, ``'epoch'``, and ``'condition'``
+        (epoch event description) are added, unless ``index`` is not ``None`` (in which
+        case the columns specified in ``index`` will be used to form the DataFrame's
+        index instead). ``'epoch'``, and ``'condition'`` are not supported for
+        ``AverageTFR``. ``'taper'`` is only supported when a taper dimensions is
+        present, such as for complex or phase multitaper data.
 
         Parameters
         ----------
         %(picks_all)s
         %(index_df_epo)s
-            Valid string values are ``'time'``, ``'freq'``, ``'epoch'``, and
-            ``'condition'`` for ``EpochsTFR`` and ``'time'`` and ``'freq'``
-            for ``AverageTFR``.
-            Defaults to ``None``.
+            Valid string values are ``'time'``, ``'freq'``, ``'taper'``, ``'epoch'``,
+            and ``'condition'`` for ``EpochsTFR`` and ``'time'``, ``'freq'``, and
+            ``'taper'`` for ``AverageTFR``. Defaults to ``None``.
         %(long_format_df_epo)s
         %(time_format_df)s
 
@@ -2710,12 +2724,16 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
         valid_index_args = ["time", "freq"]
         if from_epo:
             valid_index_args.extend(["epoch", "condition"])
+        if unagg_mt:
+            valid_index_args.append("taper")
         valid_time_formats = ["ms", "timedelta"]
         index = _check_pandas_index_arguments(index, valid_index_args)
         time_format = _check_time_format(time_format, valid_time_formats)
         # get data
         picks = _picks_to_idx(self.info, picks, "all", exclude=())
-        data, times, freqs = self.get_data(picks, return_times=True, return_freqs=True)
+        data, times, freqs, tapers = self.get_data(
+            picks, return_times=True, return_freqs=True, return_tapers=True
+        )
         ch_axis = self._dims.index("channel")
         if not from_epo:
             data = data[np.newaxis]  # add singleton "epochs" axis
@@ -2731,7 +2749,7 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
         default_index = list()
         times = _convert_times(times, time_format, self.info["meas_date"])
         times = np.tile(times, n_epochs * n_freqs * n_tapers)
-        freqs = np.tile(np.repeat(freqs, n_times * n_tapers), n_epochs)
+        freqs = np.tile(np.repeat(freqs, n_times), n_epochs * n_tapers)
         mindex.append(("time", times))
         mindex.append(("freq", freqs))
         if from_epo:
@@ -2744,12 +2762,11 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
                 ("condition", np.repeat(conditions, n_times * n_freqs * n_tapers))
             )
             default_index.extend(["condition", "epoch"])
-        default_index.extend(["freq", "time"])
         if unagg_mt:
-            name = "taper"
-            taper_nums = np.tile(np.arange(n_tapers), n_epochs * n_freqs * n_times)
-            mindex.append((name, taper_nums))
-            default_index.append(name)
+            tapers = np.repeat(np.tile(tapers, n_epochs), n_freqs * n_times)
+            mindex.append(("taper", tapers))
+            default_index.append("taper")
+        default_index.extend(["freq", "time"])
         assert all(len(mdx) == len(mindex[0]) for mdx in mindex[1:])
         # build DataFrame
         df = _build_data_frame(
