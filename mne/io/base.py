@@ -1526,7 +1526,7 @@ class BaseRaw(
 
         Examples
         --------
-        A common use case for EEG data is to convert from µV to V, since many EE
+        A common use case for EEG data is to convert from µV to V, since many EEG
         systems store data in µV, but MNE-Python expects the data to be in V. Therefore,
         the data needs to be rescaled by a factor of 1e-6. To rescale all channels from
         µV to V, you can do::
