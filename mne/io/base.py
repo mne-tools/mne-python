@@ -1504,6 +1504,12 @@ class BaseRaw(
     def rescale(self, scale, *, verbose=None):
         """Rescale channels.
 
+        .. warning::
+            MNE-Python assumes data are stored in SI base units. This function should
+            typically only be used to fix an incorrect scaling factor in the data to get
+            it to be in SI base units, otherwise unintended problems (e.g., incorrect
+            source imaging results) and analysis errors can occur.
+
         Parameters
         ----------
         scale : int | float | dict
@@ -1520,11 +1526,16 @@ class BaseRaw(
 
         Examples
         --------
-        To rescale all channels from µV to V, you can do::
+        A common use case for EEG data is to convert from µV to V, since many EE
+        systems store data in µV, but MNE-Python expects the data to be in V. Therefore,
+        the data needs to be rescaled by a factor of 1e-6. To rescale all channels from
+        µV to V, you can do::
 
             >>> raw.rescale(1e-6)  # doctest: +SKIP
 
-        To rescale only EEG channels from µV to V, you can do::
+        Note that the previous example only works if all channels are of the same type.
+        If there are multiple channel types, you can pass a dict with the individual
+        scaling factors. For example, to rescale only EEG channels, you can do::
 
             >>> raw.rescale({"eeg": 1e-6})  # doctest: +SKIP
         """
