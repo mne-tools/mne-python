@@ -1553,7 +1553,9 @@ class BaseRaw(
         else:
             for ch_type, ch_scale in scale.items():
                 if ch_type not in self.get_channel_types():
-                    raise ValueError(f"Invalid channel type: {ch_type}")
+                    raise ValueError(
+                        f'Channel type "{ch_type}" is not present in the Raw file.'
+                    )
                 else:
                     self.apply_function(
                         lambda x: x * ch_scale, picks=ch_type, channel_wise=False
