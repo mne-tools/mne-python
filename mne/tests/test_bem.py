@@ -529,6 +529,7 @@ def test_make_scalp_surfaces_topology(tmp_path, monkeypatch):
 
     # tests on 'sample'
     subject = 'sample'
+    subjects_dir = testing.data_path(download=False)
     with pytest.raises(OSError, match="use --overwrite to overwrite it"):
         make_scalp_surfaces(
             subject, subjects_dir, force=False, verbose=True, overwrite=False
