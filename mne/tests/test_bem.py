@@ -533,7 +533,7 @@ def test_make_scalp_surfaces_topology(tmp_path, monkeypatch):
     pytest.importorskip("nibabel")
 
     # tests on 'sample'
-    subject = 'sample'
+    subject = "sample"
     subjects_dir = testing.data_path(download=False)
     with pytest.raises(OSError, match="use --overwrite to overwrite it"):
         make_scalp_surfaces(
