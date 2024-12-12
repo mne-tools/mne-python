@@ -2397,8 +2397,12 @@ def make_scalp_surfaces(
 
     # Check for existing files
     _check_file(subj_path / "mri" / "seghead.mgz", overwrite)
-    _check_file(subj_path / "surf" / "lh.seghead", overwrite)
-    _check_file(subj_path / "surf" / "lh.smseghead", overwrite)
+
+    seghead_path = subj_path / "surf" / "lh.seghead"
+    _check_file(seghead_path, overwrite)
+
+    smseghead_path = subj_path / "surf" / "lh.smseghead" 
+    _check_file(smseghead_path, overwrite)
 
     bem_dir = subjects_dir / subject / "bem"
     fname_template = bem_dir / (f"{subject}-head-{{}}.fif")
@@ -2447,10 +2451,17 @@ def make_scalp_surfaces(
         ],
         env=this_env,
     )
+    if os.path.exists(seghead_path):
+        surf = seghead_path
+    elif os.path.exists(smseghead_path):
+        surf = smseghead_path
+    else:
+        raise ValueError("mkheadsurf did not produce the standard output file.")
 
+
+    logger.info(f"2. Creating {dense_fname} ...")
     if not bem_dir.is_dir():
         os.mkdir(bem_dir)
-    logger.info(f"2. Creating {dense_fname} ...")
 
     # Helpful message if we get a topology error
     msg = (
