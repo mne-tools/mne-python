@@ -2401,7 +2401,7 @@ def make_scalp_surfaces(
     seghead_path = subj_path / "surf" / "lh.seghead"
     _check_file(seghead_path, overwrite)
 
-    smseghead_path = subj_path / "surf" / "lh.smseghead" 
+    smseghead_path = subj_path / "surf" / "lh.smseghead"
     _check_file(smseghead_path, overwrite)
 
     bem_dir = subjects_dir / subject / "bem"
@@ -2457,7 +2457,6 @@ def make_scalp_surfaces(
         surf = smseghead_path
     else:
         raise ValueError("mkheadsurf did not produce the standard output file.")
-
 
     logger.info(f"2. Creating {dense_fname} ...")
     if not bem_dir.is_dir():
