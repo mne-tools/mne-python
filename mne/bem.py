@@ -2412,14 +2412,14 @@ def make_scalp_surfaces(
         else:
             if no_decimate:
                 if os.path.exists(dec_fname):
-                    raise OSError(f"Trying to generate new scalp surfaces"
-                                  f"but {dec_fname} already exists."
-                                  f"To avoid mixing different scalp surface solutions,"
-                                  f"delete this file or use overwrite to automaticaly delete it.")
+                    raise OSError(
+                        f"Trying to generate new scalp surfaces"
+                        f"but {dec_fname} already exists."
+                        f"To avoid mixing different scalp surface solutions,"
+                        f"delete this file or use overwrite to automaticaly delete it."
+                    )
             else:
                 _check_file(dec_fname, overwrite)
-                    
-            
 
     logger.info("1. Creating a dense scalp tessellation with mkheadsurf...")
 
