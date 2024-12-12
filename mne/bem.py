@@ -2420,7 +2420,7 @@ def make_scalp_surfaces(
                         f"Trying to generate new scalp surfaces"
                         f"but {dec_fname} already exists."
                         f"To avoid mixing different scalp surface solutions,"
-                        f"delete this file or use overwrite to automaticaly delete it."
+                        f"delete this file or use overwrite to automatically delete it."
                     )
             else:
                 _check_file(dec_fname, overwrite)
