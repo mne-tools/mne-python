@@ -2394,19 +2394,20 @@ def make_scalp_surfaces(
         mri = mri if (subj_path / "mri" / mri).exists() else "T1"
 
     logger.info("1. Creating a dense scalp tessellation with mkheadsurf...")
+    threshold = _ensure_int(threshold, "threshold")
 
-    def check_seghead(surf_path=subj_path / "surf"):
+    def check_seghead(surf_path=subj_path / "surf", overwrite=overwrite):
         surf = None
         for k in ["lh.seghead", "lh.smseghead"]:
             this_surf = surf_path / k
             if this_surf.exists():
                 surf = this_surf
+                _check_file(surf, overwrite)
                 break
         return surf
 
-    my_seghead = check_seghead()
-    threshold = _ensure_int(threshold, "threshold")
-    if my_seghead is None:
+    my_seghead = check_seghead(overwrite=overwrite)
+    if (my_seghead is None) or overwrite:
         this_env = deepcopy(os.environ)
         this_env["SUBJECTS_DIR"] = str(subjects_dir)
         this_env["SUBJECT"] = subject
@@ -2432,7 +2433,7 @@ def make_scalp_surfaces(
             env=this_env,
         )
 
-    surf = check_seghead()
+    surf = check_seghead(overwrite=False)
     if surf is None:
         raise RuntimeError("mkheadsurf did not produce the standard output file.")
 
