@@ -2396,54 +2396,50 @@ def make_scalp_surfaces(
     logger.info("1. Creating a dense scalp tessellation with mkheadsurf...")
     threshold = _ensure_int(threshold, "threshold")
 
-    def check_seghead(surf_path=subj_path / "surf", overwrite=overwrite):
-        surf = None
-        for k in ["lh.seghead", "lh.smseghead"]:
-            this_surf = surf_path / k
-            if this_surf.exists():
-                surf = this_surf
-                _check_file(surf, overwrite)
-                break
-        return surf
-
-    my_seghead = check_seghead(overwrite=overwrite)
-    if (my_seghead is None) or overwrite:
-        this_env = deepcopy(os.environ)
-        this_env["SUBJECTS_DIR"] = str(subjects_dir)
-        this_env["SUBJECT"] = subject
-        this_env["subjdir"] = str(subj_path)
-        if "FREESURFER_HOME" not in this_env:
-            raise RuntimeError(
-                "The FreeSurfer environment needs to be set up to use "
-                "make_scalp_surfaces to create the outer skin surface "
-                "lh.seghead"
-            )
-        run_subprocess(
-            [
-                "mkheadsurf",
-                "-subjid",
-                subject,
-                "-srcvol",
-                mri,
-                "-thresh1",
-                str(threshold),
-                "-thresh2",
-                str(threshold),
-            ],
-            env=this_env,
-        )
-
-    surf = check_seghead(overwrite=False)
-    if surf is None:
-        raise RuntimeError("mkheadsurf did not produce the standard output file.")
+    # Check for existing files
+    _check_file(subj_path / "mri" / "seghead.mgz", overwrite)
+    _check_file(subj_path / "surf" / "lh.seghead", overwrite)
+    _check_file(subj_path / "surf" / "lh.smseghead", overwrite)
 
     bem_dir = subjects_dir / subject / "bem"
-    if not bem_dir.is_dir():
-        os.mkdir(bem_dir)
     fname_template = bem_dir / (f"{subject}-head-{{}}.fif")
     dense_fname = str(fname_template).format("dense")
-    logger.info(f"2. Creating {dense_fname} ...")
     _check_file(dense_fname, overwrite)
+
+    if not no_decimate:
+        for level in _tri_levels.items():
+            dec_fname = str(fname_template).format(level)
+            _check_file(dec_fname, overwrite)
+
+    this_env = deepcopy(os.environ)
+    this_env["SUBJECTS_DIR"] = str(subjects_dir)
+    this_env["SUBJECT"] = subject
+    this_env["subjdir"] = str(subj_path)
+    if "FREESURFER_HOME" not in this_env:
+        raise RuntimeError(
+            "The FreeSurfer environment needs to be set up to use "
+            "make_scalp_surfaces to create the outer skin surface "
+            "lh.seghead"
+        )
+    run_subprocess(
+        [
+            "mkheadsurf",
+            "-subjid",
+            subject,
+            "-srcvol",
+            mri,
+            "-thresh1",
+            str(threshold),
+            "-thresh2",
+            str(threshold),
+        ],
+        env=this_env,
+    )
+
+    if not bem_dir.is_dir():
+        os.mkdir(bem_dir)
+    logger.info(f"2. Creating {dense_fname} ...")
+
     # Helpful message if we get a topology error
     msg = (
         "\n\nConsider using pymeshfix directly to fix the mesh, or --force "
@@ -2453,6 +2449,7 @@ def make_scalp_surfaces(
         [surf], [FIFF.FIFFV_BEM_SURF_ID_HEAD], [1], incomplete=incomplete, extra=msg
     )[0]
     write_bem_surfaces(dense_fname, surf, overwrite=overwrite)
+
     if os.getenv("_MNE_TESTING_SCALP", "false") == "true":
         tris = [len(surf["tris"])]  # don't actually decimate
     for ii, (level, n_tri) in enumerate(_tri_levels.items(), 3):
@@ -2468,7 +2465,6 @@ def make_scalp_surfaces(
         )
         dec_fname = str(fname_template).format(level)
         logger.info(f"{ii}.2 Creating {dec_fname}")
-        _check_file(dec_fname, overwrite)
         dec_surf = _surfaces_to_bem(
             [dict(rr=points, tris=tris)],
             [FIFF.FIFFV_BEM_SURF_ID_HEAD],
