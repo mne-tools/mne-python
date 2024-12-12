@@ -43,7 +43,12 @@ from mne.datasets import testing
 from mne.io import read_info
 from mne.surface import _get_ico_surface, read_surface
 from mne.transforms import translation
-from mne.utils import _record_warnings, catch_logging, check_version, requires_freesurfer
+from mne.utils import (
+    _record_warnings,
+    catch_logging,
+    check_version,
+    requires_freesurfer,
+)
 
 fname_raw = Path(__file__).parents[1] / "io" / "tests" / "data" / "test_raw.fif"
 subjects_dir = testing.data_path(download=False) / "subjects"
@@ -528,12 +533,12 @@ def test_make_scalp_surfaces_topology(tmp_path, monkeypatch):
     pytest.importorskip("nibabel")
 
     # tests on 'sample'
-    subject = 'sample'
+    subject = "sample"
     with pytest.raises(OSError, match="use --overwrite to overwrite it"):
         make_scalp_surfaces(
             subject, subjects_dir, force=False, verbose=True, overwrite=False
         )
-    
+
     make_scalp_surfaces(
         subject, subjects_dir, force=False, verbose=True, overwrite=True
     )
@@ -585,8 +590,6 @@ def test_make_scalp_surfaces_topology(tmp_path, monkeypatch):
         make_scalp_surfaces(subject, subjects_dir, force=True, overwrite=True)
     (surf,) = read_bem_surfaces(sparse_path, on_defects="ignore")
     assert len(surf["tris"]) == 319
-
-    
 
 
 @pytest.mark.parametrize("bem_type", ["bem", "sphere"])
