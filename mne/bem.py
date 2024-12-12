@@ -2393,7 +2393,6 @@ def make_scalp_surfaces(
     if mri == "T1.mgz":
         mri = mri if (subj_path / "mri" / mri).exists() else "T1"
 
-    logger.info("1. Creating a dense scalp tessellation with mkheadsurf...")
     threshold = _ensure_int(threshold, "threshold")
 
     # Check for existing files
@@ -2406,10 +2405,23 @@ def make_scalp_surfaces(
     dense_fname = str(fname_template).format("dense")
     _check_file(dense_fname, overwrite)
 
-    if not no_decimate:
-        for level in _tri_levels.items():
-            dec_fname = str(fname_template).format(level)
-            _check_file(dec_fname, overwrite)
+    for level in _tri_levels.items():
+        dec_fname = str(fname_template).format(level)
+        if overwrite:
+            os.remove(dec_fname)
+        else:
+            if no_decimate:
+                if os.path.exists(dec_fname):
+                    raise OSError(f"Trying to generate new scalp surfaces"
+                                  f"but {dec_fname} already exists."
+                                  f"To avoid mixing different scalp surface solutions,"
+                                  f"delete this file or use overwrite to automaticaly delete it.")
+            else:
+                _check_file(dec_fname, overwrite)
+                    
+            
+
+    logger.info("1. Creating a dense scalp tessellation with mkheadsurf...")
 
     this_env = deepcopy(os.environ)
     this_env["SUBJECTS_DIR"] = str(subjects_dir)
