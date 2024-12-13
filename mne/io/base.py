@@ -1542,8 +1542,10 @@ class BaseRaw(
         _validate_type(scale, (int, float, dict), "scale")
         _check_preload(self, "raw.rescale")
 
+        channel_types = self.get_channel_types(unique=True)
+
         if isinstance(scale, int | float):
-            if len(self.get_channel_types(unique=True)) == 1:
+            if len(channel_types) == 1:
                 self.apply_function(lambda x: x * scale, channel_wise=False)
             else:
                 raise ValueError(
@@ -1551,15 +1553,15 @@ class BaseRaw(
                     "Consider passing a dict instead."
                 )
         else:
-            for ch_type, ch_scale in scale.items():
-                if ch_type not in self.get_channel_types():
+            for ch_type in scale.keys():
+                if ch_type not in channel_types:
                     raise ValueError(
                         f'Channel type "{ch_type}" is not present in the Raw file.'
                     )
-                else:
-                    self.apply_function(
-                        lambda x: x * ch_scale, picks=ch_type, channel_wise=False
-                    )
+            for ch_type, ch_scale in scale.items():
+                self.apply_function(
+                    lambda x: x * ch_scale, picks=ch_type, channel_wise=False
+                )
 
         return self
 
