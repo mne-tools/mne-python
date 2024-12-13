@@ -39,9 +39,121 @@ REFERENCE_NAMES = ("VREF", "Vertex Reference")
 # TODO: Running list
 # - [ ] Add support for reading in the PNS data
 # - [ ] Add tutorial for reading calibration data
-# - [ ] Annotate acquisition skips
 # - [ ] Add support for reading in the channel status (bad channels)
 # - [ ] Replace _read_header with mffpy functions?
+
+
+def _read_mff(input_fname):
+    """Read EGI MFF file."""
+    mff_reader = _get_mff_reader(input_fname)
+    eeg = _get_eeg_data(mff_reader)
+    info = _get_info(mff_reader)
+    annotations = _get_annotations(mff_reader, info)
+    return eeg, info, annotations
+
+
+def _get_mff_reader(input_fname):
+    mffpy = _import_mffpy()
+    mff_reader = mffpy.Reader(input_fname)
+    mff_reader.set_unit("EEG", "V")  # XXX: set PNS unit
+    return mff_reader
+
+
+def _get_montage(mff_reader):
+    mffpy = _import_mffpy()
+    xml_files = mff_reader.directory.files_by_type[".xml"]
+    sensor_fname = fnmatch.filter(xml_files, "sensorLayout")
+    assert len(sensor_fname) == 1  # XXX: remove
+    sensor_fname = sensor_fname[0]
+    with mff_reader.directory.filepointer(sensor_fname) as fp:
+        sensor_layout = mffpy.XML.from_file(fp).get_content()["sensors"]
+    ch_pos = dict()
+    for ch in sensor_layout.values():
+        if ch["type"] not in [0, 1]:  # XXX: find out what type 2 is. Its not EEG
+            continue
+        name = f"E{ch['number']}" if ch["name"] == "None" else ch["name"]
+        loc = np.array([ch["x"], ch["y"], ch["z"]]) / 1000  # XXX: check units
+        ch_pos[name] = loc
+    montage = make_dig_montage(ch_pos=ch_pos, coord_frame="head")
+    return montage
+
+
+def _get_info(mff_reader):
+    montage = _get_montage(mff_reader)
+    ch_names = montage.ch_names
+    ch_types = ["eeg"] * len(ch_names)  # XXX: refactor this when adding PNS support
+    meas_date = mff_reader.startdatetime.astimezone(datetime.timezone.utc)
+    sfreq = mff_reader.sampling_rates["EEG"]  # XXX: check PNS sfreq?
+    info = create_info(ch_names=ch_names, sfreq=sfreq, ch_types=ch_types)
+    info.set_montage(montage)
+    info.set_meas_date(meas_date)
+    return info
+
+
+def _get_eeg_data(mff_reader):
+    sfreq = mff_reader.sampling_rates["EEG"]  # XXX: check PNS sfreq
+    n_channels = np.sum(list(mff_reader.num_channels.values()))
+    epochs = mff_reader.epochs
+
+    data_blocks, start_secs, end_secs = [], [], []
+    for epoch in epochs:
+        data_chunk, _ = mff_reader.get_physical_samples_from_epoch(epoch)["EEG"]  # XXX
+        data_blocks.append(data_chunk)
+        start_secs.append(epoch.t0)
+        end_secs.append(epoch.t1)
+
+    first_samp = int(start_secs[0] * sfreq)
+    last_samp = int(end_secs[-1] * sfreq)
+    interval = (1 / sfreq) * 1000
+    all_samps = np.arange(first_samp, last_samp + 1, interval)
+    eeg = np.zeros((n_channels, len(all_samps)), dtype=np.float64)
+    for this_chunk, start, end in zip(data_blocks, start_secs, end_secs):
+        start = int(start * sfreq)
+        end = int(end * sfreq)
+        eeg[:, start:end] = this_chunk
+    return eeg
+
+
+def _get_gap_annotations(mff_reader):
+    epochs = mff_reader.epochs
+    start_secs = [epoch.t0 for epoch in epochs]
+    end_secs = [epoch.t1 for epoch in epochs]
+    gap_durations = np.array(start_secs[1:]) - np.array(end_secs[:-1])
+    descriptions = "BAD_ACQ_SKIP" * len(gap_durations)
+    gap_onsets = np.array(end_secs[:-1])
+    gap_annots = Annotations(gap_onsets, gap_durations, descriptions)
+    return gap_annots
+
+
+def _get_event_annotations(mff_reader, mne_info):
+    mffpy = _import_mffpy()
+    xml_files = mff_reader.directory.files_by_type[".xml"]
+    events_xmls = fnmatch.filter(xml_files, "Events*")
+    if not events_xmls:
+        raise RuntimeError("No events found in MFF file.")
+    mff_events = {}
+    for event_file in events_xmls:
+        with mff_reader.directory.filepointer(event_file) as fp:
+            categories = mffpy.XML.from_file(fp)
+        mff_events[event_file] = categories.get_content()["event"]
+    onsets = []
+    descriptions = []
+    mff_events = list(itertools.chain.from_iterable(mff_events.values()))
+    for event in mff_events:
+        onset_dt = event["beginTime"].astimezone(datetime.timezone.utc)
+        ts = (onset_dt - mne_info["meas_date"]).total_seconds()
+        onsets.append(ts)
+        # XXX: we could use event["duration"] but it always seems to be 1000ms?
+        descriptions.append(event["code"])
+        durations = [0] * len(onsets)
+        event_annots = Annotations(onsets, durations, descriptions)
+    return event_annots
+
+
+def _get_annotations(mff_reader, mne_info):
+    event_annots = _get_event_annotations(mff_reader, mne_info)
+    gap_annots = _get_gap_annotations(mff_reader)
+    return event_annots + gap_annots
 
 
 def _read_mff_header(filepath):
@@ -400,8 +512,6 @@ class RawMff(BaseRaw):
         verbose=None,
     ):
         """Init the RawMff class."""
-        mffpy = _import_mffpy()
-
         input_fname = str(
             _check_fname(
                 input_fname,
@@ -412,52 +522,7 @@ class RawMff(BaseRaw):
             )
         )
         logger.info(f"Reading EGI MFF Header from {input_fname}...")
-        ################################### MFF Info ###################################
-        mff_reader = mffpy.Reader(input_fname)
-        mff_reader.set_unit("EEG", "V")
-        # mff_reader.set_unit("PNS", "V") XXX: need to test this
-
-        meas_date = mff_reader.startdatetime.astimezone(datetime.timezone.utc)
-        sfreq = mff_reader.sampling_rates["EEG"]
-        # XXX: Can we have different sampling rates for EEG and PNS?
-
-        xml_files = mff_reader.directory.files_by_type[".xml"]
-        info_files = fnmatch.filter(xml_files, "info?")
-        # XXX: usually info1.xml is EEG and info2.xml is PNS
-        if len(info_files) > 1:
-            raise NotImplementedError("TODO: Support for PNS data")
-
-        ################################## Channels ###################################
-        with mff_reader.directory.filepointer(info_files[0]) as fp:
-            mff_info = mffpy.XML.from_file(fp)
-        _ = mff_info.generalInformation["montageName"]  # XXX: Do we need this?
-        sensor_fname = fnmatch.filter(xml_files, "sensorLayout")
-        assert len(sensor_fname) == 1  # XXX: remove
-        sensor_fname = sensor_fname[0]
-        with mff_reader.directory.filepointer(sensor_fname) as fp:
-            sensor_layout = mffpy.XML.from_file(fp).get_content()["sensors"]
-        ch_pos = dict()
-        for ch in sensor_layout.values():
-            if ch["type"] not in [0, 1]:  # XXX: find out what type 2 is. Its not EEG
-                continue
-            name = f"E{ch['number']}" if ch["name"] == "None" else ch["name"]
-            loc = np.array([ch["x"], ch["y"], ch["z"]]) / 1000  # XXX: check units
-            ch_pos[name] = loc
-        montage = make_dig_montage(ch_pos=ch_pos, coord_frame="head")
-
-        ################################## Samples ####################################
-        # XXX: This probably won't work as intended when there are acquisition skips
-        # XXX: I think that is why mffpy prefers get_physical_samples_from_epoch
-        eeg, _ = mff_reader.get_physical_samples()["EEG"]
-        # change dtype to float64
-        eeg = eeg.astype(np.float64)  # MNE expects float64
-
-        ############################### Info Object ###################################
-        ch_names = montage.ch_names
-        ch_types = ["eeg"] * len(ch_names)  # XXX: refactor this when adding PNS support
-        info = create_info(ch_names=ch_names, sfreq=sfreq, ch_types=ch_types)
-        info.set_montage(montage)
-        info.set_meas_date(meas_date)
+        eeg, info, annots = _read_mff(input_fname)
 
         super().__init__(
             info,
@@ -469,31 +534,7 @@ class RawMff(BaseRaw):
             raw_extras=(None,),  # XXX: do we still need this?
             verbose=verbose,
         )
-
-        ################################## Annotations #################################
-        # TODO: Annotate acquisition skips
-        #
-        # Create Annotations from events
-        events_xmls = fnmatch.filter(xml_files, "Events*")
-        if not events_xmls:
-            raise RuntimeError("No events found in MFF file.")
-        mff_events = {}
-        for event_file in events_xmls:
-            with mff_reader.directory.filepointer(event_file) as fp:
-                categories = mffpy.XML.from_file(fp)
-            mff_events[event_file] = categories.get_content()["event"]
-
-        onsets = []
-        durations = []
-        descriptions = []
-        mff_events = list(itertools.chain.from_iterable(mff_events.values()))
-        for event in mff_events:
-            onset_dt = event["beginTime"].astimezone(datetime.timezone.utc)
-            ts = (onset_dt - self.info["meas_date"]).total_seconds()
-            onsets.append(ts)
-            durations.append(event["duration"] / 1000)
-            descriptions.append(event["code"])
-        self.set_annotations(Annotations(onsets, durations, descriptions))
+        self.set_annotations(annots)
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of data."""
