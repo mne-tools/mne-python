@@ -581,8 +581,8 @@ def _check_ch_names(inv, info):
     n_missing = len(missing_ch_names)
     if n_missing > 0:
         raise ValueError(
-            "%d channels in inverse operator " % n_missing
-            + f"are not present in the data ({missing_ch_names})"
+            f"{n_missing} channels in inverse operator "
+            f"are not present in the data ({missing_ch_names})"
         )
     _check_compensation_grade(inv["info"], info, "inverse")
 
@@ -673,8 +673,9 @@ def prepare_inverse_operator(
         inv["eigen_leads"]["data"] = sqrt(scale) * inv["eigen_leads"]["data"]
 
     logger.info(
-        "    Scaled noise and source covariance from nave = %d to"
-        " nave = %d" % (inv["nave"], nave)
+        "    Scaled noise and source covariance from nave = %d to" " nave = %d",
+        inv["nave"],
+        nave,
     )
     inv["nave"] = nave
     #
@@ -687,7 +688,7 @@ def prepare_inverse_operator(
     #
     inv["proj"], ncomp, _ = make_projector(inv["projs"], inv["noise_cov"]["names"])
     if ncomp > 0:
-        logger.info("    Created an SSP operator (subspace dimension = %d)" % ncomp)
+        logger.info("    Created an SSP operator (subspace dimension = %d)", ncomp)
     else:
         logger.info("    The projection vectors do not apply to these channels.")
 
@@ -1077,7 +1078,7 @@ def _apply_inverse(
     #
     sel = _pick_channels_inverse_operator(evoked.ch_names, inv)
     logger.info(f'Applying inverse operator to "{evoked.comment}"...')
-    logger.info("    Picked %d channels from the data" % len(sel))
+    logger.info("    Picked %d channels from the data", len(sel))
     logger.info("    Computing inverse...")
     K, noise_norm, vertno, source_nn = _assemble_kernel(
         inv, label, method, pick_ori, use_cps=use_cps
@@ -1220,7 +1221,7 @@ def apply_inverse_raw(
     #
     sel = _pick_channels_inverse_operator(raw.ch_names, inv)
     logger.info("Applying inverse to raw...")
-    logger.info("    Picked %d channels from the data" % len(sel))
+    logger.info("    Picked %d channels from the data", len(sel))
     logger.info("    Computing inverse...")
 
     data, times = raw[sel, start:stop]
@@ -1242,7 +1243,8 @@ def apply_inverse_raw(
         n_seg = int(np.ceil(data.shape[1] / float(buffer_size)))
         logger.info(
             "    computing inverse and combining the current "
-            "components (using %d segments)..." % (n_seg)
+            "components (using %d segments)...",
+            n_seg,
         )
 
         # Allocate space for inverse solution
@@ -1257,9 +1259,7 @@ def apply_inverse_raw(
                 sol_chunk = combine_xyz(sol_chunk)
             sol[:, pos : pos + buffer_size] = sol_chunk
 
-            logger.info(
-                "        segment %d / %d done.." % (pos / buffer_size + 1, n_seg)
-            )
+            logger.info("        segment %d / %d done..", pos / buffer_size + 1, n_seg)
     else:
         sol = np.dot(K, data)
         if is_free_ori and pick_ori != "vector":
@@ -1320,7 +1320,7 @@ def _apply_inverse_epochs_gen(
     #   Pick the correct channels from the data
     #
     sel = _pick_channels_inverse_operator(epochs.ch_names, inv)
-    logger.info("Picked %d channels from the data" % len(sel))
+    logger.info("Picked %d channels from the data", len(sel))
     logger.info("Computing inverse...")
     K, noise_norm, vertno, source_nn = _assemble_kernel(
         inv, label, method, pick_ori, use_cps
@@ -1340,11 +1340,11 @@ def _apply_inverse_epochs_gen(
 
     subject = _subject_from_inverse(inverse_operator)
     try:
-        total = " / %d" % (len(epochs),)  # len not always defined
+        total = f" / {len(epochs)}"  # len not always defined
     except RuntimeError:
-        total = " / %d (at most)" % (len(epochs.events),)
+        total = f" / {len(epochs.events)} (at most)"
     for k, e in enumerate(epochs):
-        logger.info("Processing epoch : %d%s" % (k + 1, total))
+        logger.info("Processing epoch : %d%s", k + 1, total)
         if is_free_ori:
             # Compute solution and combine current components (non-linear)
             sol = np.dot(K, e[sel])  # apply imaging kernel
@@ -1796,14 +1796,7 @@ def _prepare_forward(
             )
 
     forward, info_picked = _select_orient_forward(forward, info, noise_cov, copy=False)
-    logger.info(
-        "Selected %d channels"
-        % (
-            len(
-                info_picked["ch_names"],
-            )
-        )
-    )
+    logger.info("Selected %d channels", len(info_picked["ch_names"]))
 
     if exp is None:
         depth_prior = None
@@ -2211,7 +2204,7 @@ def estimate_snr(evoked, inv, verbose=None):
     _check_ch_names(inv, evoked.info)
     inv = prepare_inverse_operator(inv, evoked.nave, 1.0 / 9.0, "MNE", copy="non-src")
     sel = _pick_channels_inverse_operator(evoked.ch_names, inv)
-    logger.info("Picked %d channels from the data" % len(sel))
+    logger.info("Picked %d channels from the data", len(sel))
     data_white = np.dot(inv["whitener"], np.dot(inv["proj"], evoked.data[sel]))
     data_white_ef = np.dot(inv["eigen_fields"]["data"], data_white)
     n_ch, n_times = data_white.shape
@@ -2219,7 +2212,7 @@ def estimate_snr(evoked, inv, verbose=None):
     # Adapted from mne_analyze/regularization.c, compute_regularization
     n_ch_eff = compute_rank_inverse(inv)
     n_zero = n_ch - n_ch_eff
-    logger.info("Effective nchan = %d - %d = %d" % (n_ch, n_zero, n_ch_eff))
+    logger.info("Effective nchan = %d - %d = %d", n_ch, n_zero, n_ch_eff)
     del n_ch
     signal = np.sum(data_white**2, axis=0)  # sum of squares across channels
     snr = signal / n_ch_eff

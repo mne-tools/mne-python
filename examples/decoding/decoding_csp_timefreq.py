@@ -12,7 +12,7 @@ filtered signals. A linear discriminant classifier is then applied to these
 signals.
 """
 # Authors: Laura Gwilliams <laura.gwilliams@nyu.edu>
-#          Jean-Remi King <jeanremi.king@gmail.com>
+#          Jean-Rémi King <jeanremi.king@gmail.com>
 #          Alex Barachant <alexandre.barachant@gmail.com>
 #          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #

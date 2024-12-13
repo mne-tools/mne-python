@@ -1118,14 +1118,20 @@ depth : None | float | dict
 """
 
 docdict["destination_maxwell_dest"] = """
-destination : path-like | array-like, shape (3,) | None
-    The destination location for the head. Can be ``None``, which
-    will not change the head position, or a path to a FIF file
-    containing a MEG device<->head transformation, or a 3-element array
-    giving the coordinates to translate to (with no rotations).
-    For example, ``destination=(0, 0, 0.04)`` would translate the bases
-    as ``--trans default`` would in MaxFilter™ (i.e., to the default
-    head location).
+destination : path-like | array-like, shape (3,) | instance of Transform | None
+    The destination location for the head. Can be:
+
+    ``None``
+      Will not change the head position.
+    :class:`~mne.transforms.Transform`
+      A MEG device<->head transformation, e.g. ``info["dev_head_t"]``.
+    :class:`numpy.ndarray`
+      A 3-element array giving the coordinates to translate to (with no rotations).
+      For example, ``destination=(0, 0, 0.04)`` would translate the bases
+      as ``--trans default`` would in MaxFilter™ (i.e., to the default
+      head location).
+    ``path-like``
+      A path to a FIF file containing the destination MEG device<->head transformation.
 """
 
 docdict["detrend_epochs"] = """
@@ -3702,13 +3708,20 @@ ref_channels : str | list of str
 """
 
 docdict["ref_channels_set_eeg_reference"] = """
-ref_channels : list of str | str
+ref_channels : list of str | str | dict
     Can be:
 
-    - The name(s) of the channel(s) used to construct the reference.
+    - The name(s) of the channel(s) used to construct the reference for
+      every channel of ``ch_type``.
     - ``'average'`` to apply an average reference (default)
     - ``'REST'`` to use the Reference Electrode Standardization Technique
       infinity reference :footcite:`Yao2001`.
+    - A dictionary mapping names of data channels to (lists of) names of
+      reference channels. For example, {'A1': 'A3'} would replace the
+      data in channel 'A1' with the difference between 'A1' and 'A3'. To take
+      the average of multiple channels as reference, supply a list of channel
+      names as the dictionary value, e.g. {'A1': ['A2', 'A3']} would replace
+      channel A1 with ``A1 - mean(A2, A3)``.
     - An empty list, in which case MNE will not attempt any re-referencing of
       the data
 """
@@ -4049,6 +4062,15 @@ Some common referencing schemes and the corresponding value for the
     The given EEG electrodes are referenced to a point at infinity using the
     lead fields in ``forward``, which helps standardize the signals.
 
+- Different references for different channels
+    Set ``ref_channels`` to a dictionary mapping source channel names (str)
+    to the reference channel names (str or list of str). Unlike the other
+    approaches where the same reference is applied globally, you can set
+    different references for different channels with this method. For example,
+    to re-reference channel 'A1' to 'A2' and 'B1' to the average of 'B2' and
+    'B3', set ``ref_channels={'A1': 'A2', 'B1': ['B2', 'B3']}``. Warnings are
+    issued when a mapping involves bad channels or channels of different types.
+
 1. If a reference is requested that is not the average reference, this
    function removes any pre-existing average reference projections.
 
@@ -4196,9 +4218,12 @@ splash : bool
 docdict["split_naming"] = """
 split_naming : 'neuromag' | 'bids'
     When splitting files, append a filename partition with the appropriate
-    naming schema: for ``'neuromag'``, a split file ``fname.fif`` will be named
-    ``fname.fif``, ``fname-1.fif``, ``fname-2.fif`` etc.; while for ``'bids'``,
-    it will be named ``fname_split-01.fif``, ``fname_split-02.fif``, etc.
+    naming schema. For ``'neuromag'``, a split file ``fname.fif`` will be named
+    ``fname.fif``, ``fname-1.fif``, ``fname-2.fif``, and so on. For ``'bids'``,
+    a filename is expected to consist of parts separated by underscores, like
+    ``<part-1>_<part-N>_<suffix>.fif``, and the according split naming will
+    return filenames like ``<part-1>_<part-N>_split-01_<suffix>.fif``,
+    ``<part-1>_<part-N>_split-02_<suffix>.fif``, and so on.
 """
 
 docdict["src_eltc"] = """
@@ -4638,8 +4663,9 @@ title : str | 'auto' | None
     plot. If ``None``, no title is shown. Default is ``None``.
 """
 docdict["tmax_raw"] = """
-tmax : float
+tmax : float | None
     End time of the raw data to use in seconds (cannot exceed data duration).
+    If ``None`` (default), the current end of the data is used.
 """
 
 docdict["tmin"] = """

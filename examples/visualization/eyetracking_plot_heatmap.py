@@ -69,6 +69,10 @@ cmap = plt.get_cmap("viridis")
 plot_gaze(epochs["natural"], calibration=calibration, cmap=cmap, sigma=50)
 
 # %%
+# .. note:: The (0, 0) pixel coordinates are at the top-left of the
+#               trackable area of the screen for many eye trackers.
+
+# %%
 # Overlaying plots with images
 # ----------------------------
 #

@@ -1078,9 +1078,11 @@ class _SphericalSurfaceWarp:
         if not hasattr(self, "_warp"):
             rep += "no fitting done >"
         else:
-            rep += "fit %d->%d pts using match=%s (%d pts), order=%s, reg=%s>" % tuple(
-                self._fit_params[key]
-                for key in ["n_src", "n_dest", "match", "n_match", "order", "reg"]
+            rep += (
+                f"fit {self._fit_params['n_src']}->{self._fit_params['n_dest']} pts "
+                f"using match={self._fit_params['match']} "
+                f"({self._fit_params['n_match']} pts), "
+                f"order={self._fit_params['order']}, reg={self._fit_params['reg']}>"
             )
         return rep
 
@@ -1818,10 +1820,10 @@ def _compute_volume_registration(
             sigma_diff_vox = sigma_diff_mm / current_zoom
             affine_map = AffineMap(
                 reg_affine,  # apply registration here
-                static_zoomed.shape,
-                static_affine,
-                moving_zoomed.shape,
-                moving_affine,
+                domain_grid_shape=static_zoomed.shape,
+                domain_grid2world=static_affine,
+                codomain_grid_shape=moving_zoomed.shape,
+                codomain_grid2world=moving_affine,
             )
             moving_zoomed = affine_map.transform(moving_zoomed)
             metric = metrics.CCMetric(
@@ -1829,10 +1831,16 @@ def _compute_volume_registration(
                 sigma_diff=sigma_diff_vox,
                 radius=max(int(np.ceil(2 * sigma_diff_vox)), 1),
             )
-            sdr = imwarp.SymmetricDiffeomorphicRegistration(metric, niter[step])
+            sdr = imwarp.SymmetricDiffeomorphicRegistration(
+                metric,
+                level_iters=niter[step],
+            )
             with wrapped_stdout(indent="    ", cull_newlines=True):
                 sdr_morph = sdr.optimize(
-                    static_zoomed, moving_zoomed, static_affine, static_affine
+                    static_zoomed,
+                    moving_zoomed,
+                    static_grid2world=static_affine,
+                    moving_grid2world=static_affine,
                 )
             moved_zoomed = sdr_morph.transform(moving_zoomed)
         else:
@@ -1841,8 +1849,8 @@ def _compute_volume_registration(
                 moved_zoomed, reg_affine = affine_registration(
                     moving_zoomed,
                     static_zoomed,
-                    moving_affine,
-                    static_affine,
+                    moving_affine=moving_affine,
+                    static_affine=static_affine,
                     nbins=32,
                     metric="MI",
                     pipeline=pipeline_options[step],
@@ -1936,7 +1944,11 @@ def apply_volume_registration(
     moving -= cval
     static, static_affine = np.asarray(static.dataobj), static.affine
     affine_map = AffineMap(
-        reg_affine, static.shape, static_affine, moving.shape, moving_affine
+        reg_affine,
+        domain_grid_shape=static.shape,
+        domain_grid2world=static_affine,
+        codomain_grid_shape=moving.shape,
+        codomain_grid2world=moving_affine,
     )
     reg_data = affine_map.transform(moving, interpolation=interpolation)
     if sdr_morph is not None:
@@ -2029,7 +2041,9 @@ def apply_volume_registration_points(
     if sdr_morph is not None:
         _require_version("dipy", "SDR morph", "1.6.0")
         locs = sdr_morph.transform_points(
-            locs, sdr_morph.domain_grid2world, sdr_morph.domain_world2grid
+            locs,
+            coord2world=sdr_morph.domain_grid2world,
+            world2coord=sdr_morph.domain_world2grid,
         )
     locs = apply_trans(
         Transform(  # to static voxels

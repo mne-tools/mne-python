@@ -3,6 +3,7 @@
 # Copyright the MNE-Python contributors.
 
 import numpy as np
+from sklearn.base import BaseEstimator, TransformerMixin
 
 from .._fiff.pick import (
     _pick_data_channels,
@@ -15,8 +16,6 @@ from ..cov import _check_scalings_user
 from ..filter import filter_data
 from ..time_frequency import psd_array_multitaper
 from ..utils import _check_option, _validate_type, fill_doc, verbose
-from .base import BaseEstimator
-from .mixin import TransformerMixin
 
 
 class _ConstantScaler:
@@ -252,8 +251,10 @@ class Vectorizer(TransformerMixin):
 
     Examples
     --------
-    clf = make_pipeline(SpatialFilter(), _XdawnTransformer(), Vectorizer(),
-                        LogisticRegression())
+    >>> from sklearn.linear_model import LogisticRegression
+    >>> from sklearn.pipeline import make_pipeline
+    >>> from sklearn.preprocessing import StandardScaler
+    >>> clf = make_pipeline(Vectorizer(), StandardScaler(), LogisticRegression())
     """
 
     def fit(self, X, y=None):

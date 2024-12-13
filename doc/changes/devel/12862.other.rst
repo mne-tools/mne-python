@@ -1,0 +1,1 @@
+:meth:`mne.preprocessing.ICA.find_bads_muscle` can now be run when passing an ``inst`` without sensor positions. However, it will just use the first of three criteria (slope) to find muscle-related ICA components, by `Stefan Appelhoff`_.

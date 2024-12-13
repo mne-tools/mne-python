@@ -13,6 +13,20 @@
 
 
 html[data-theme="light"] {
+    /* pydata-sphinx-theme overrides */
+    /* ↓↓↓ use default "info" colors for "primary" */
+    --pst-color-primary: #276be9;
+    --pst-color-primary-bg: #dce7fc;
+    /* ↓↓↓ use default "primary" colors for "info" */
+    --pst-color-info: var(--pst-teal-500);
+    --pst-color-info-bg: var(--pst-teal-200);
+    /* ↓↓↓ use "warning" colors for "secondary" */
+    --pst-color-secondary: var(--pst-color-warning);
+    --pst-color-secondary-bg: var(--pst-color-warning-bg);
+    /* ↓↓↓ make sure new primary (link) color propogates to links on code */
+    --pst-color-inline-code-links: var(--pst-color-link);
+    /* ↓↓↓ make sure new secondary (hover) color propogates to hovering on table rows */
+    --pst-color-table-row-hover-bg: var(--pst-color-secondary-bg);
     /* topbar logo links */
     --mne-color-github: #000;
     --mne-color-discourse: #d0232b;
@@ -21,8 +35,6 @@ html[data-theme="light"] {
     --copybtn-opacity: 0.75;
     /* card header bg color */
     --mne-color-card-header: rgba(0, 0, 0, 0.05);
-    /* section headings */
-    --mne-color-heading: #003e80;
     /* sphinx-gallery overrides */
     --sg-download-a-background-color: var(--pst-color-primary);
     --sg-download-a-background-image: unset;
@@ -33,6 +45,20 @@ html[data-theme="light"] {
     --sg-download-a-hover-box-shadow-2: none;
 }
 html[data-theme="dark"] {
+    /* pydata-sphinx-theme overrides */
+    /* ↓↓↓ use default "info" colors for "primary" */
+    --pst-color-primary: #79a3f2;
+    --pst-color-primary-bg: #06245d;
+    /* ↓↓↓ use default "primary" colors for "info" */
+    --pst-color-info: var(--pst-teal-400);
+    --pst-color-info-bg: var(--pst-teal-800);
+    /* ↓↓↓ use "warning" colors for "secondary" */
+    --pst-color-secondary: var(--pst-color-warning);
+    --pst-color-secondary-bg: var(--pst-color-warning-bg);
+    /* ↓↓↓ make sure new primary (link) color propogates to links on code */
+    --pst-color-inline-code-links: var(--pst-color-link);
+    /* ↓↓↓ make sure new secondary (hover) color propogates to hovering on table rows */
+    --pst-color-table-row-hover-bg: var(--pst-color-secondary-bg);
     /* topbar logo links */
     --mne-color-github: rgb(240, 246, 252);  /* from their logo SVG */
     --mne-color-discourse: #FFF9AE;  /* from their logo SVG */
@@ -41,8 +67,6 @@ html[data-theme="dark"] {
     --copybtn-opacity: 0.25;
     /* card header bg color */
     --mne-color-card-header: rgba(255, 255, 255, 0.2);
-    /* section headings */
-    --mne-color-heading: #b8cbe0;
     /* sphinx-gallery overrides */
     --sg-download-a-background-color: var(--pst-color-primary);
     --sg-download-a-background-image: unset;
@@ -51,9 +75,6 @@ html[data-theme="dark"] {
     --sg-download-a-hover-background-color: var(--pst-color-primary-highlight);
     --sg-download-a-hover-box-shadow-1: none;
     --sg-download-a-hover-box-shadow-2: none;
-}
-h1, h2, h3, h4, h5, h6 {
-    color: var(--mne-color-heading);
 }
 
 /* ************************************************************ Sphinx fixes */
@@ -161,20 +182,45 @@ iframe.sg_report {
     top: 0;
 }
 
-/* TODO: Either pydata-sphinx-theme (for using Bootstrap) or sphinx-gallery (for adding table formatting) should fix this */
-.table-striped-columns>:not(caption)>tr>:nth-child(2n),.table-striped>tbody>tr:nth-of-type(odd)>* {
-    --bs-table-accent-bg: var(--bs-table-striped-bg);
-    color: var(--pst-color-text-base);
-}
-.table-hover>tbody>tr:hover>* {
-    --bs-table-accent-bg: var(--bs-table-hover-bg);
-    color: var(--pst-color-text-base);
-}
-.rendered_html table {
-    color: var(--pst-color-text-base);
-}
+/* ******************************************************** HTML repr tables */
 
-
+/* make table responsive to pydata-sphinx-theme's light/dark mode */
+.table > :not(caption) > * > * {
+    color: var(--pst-color-text-base);
+}
+.mne-repr-table tbody tr:hover {
+    background-color: var(--pst-color-table-row-hover-bg);
+}
+.mne-repr-section-toggle > button > svg > path {
+    fill: var(--pst-color-text-base);
+}
+/* make the expand/collapse button look nicer */
+.mne-repr-section-toggle > button {
+    padding: 20%;
+}
+/* make section header rows more distinct (and harmonize with pydata-sphinx-theme table
+style in the process). Color copied from pydata-sphinx-theme; 2px copied from bootstrap.
+*/
+.mne-repr-table th {
+    border-bottom: 2px solid var(--pst-color-primary);
+}
+/* harmonize the channel names buttons with the rest of the table */
+.mne-ch-names-btn {
+    font-size: inherit;
+    padding: 0.25rem;
+    min-width: 1.5rem;
+    font-weight: bold;
+}
+/*
+.mne-ch-names-btn:hover {
+    background-color: var(--pst-color-);
+    text-decoration: underline;
+}
+.mne-ch-names-btn:focus-visible {
+    outline: 0.1875rem solid var(--pst-color-accent);
+    outline-offset: 0.1875rem;
+}
+*/
 /* ***************************************************** sphinx-design fixes */
 p.btn a {
     color: unset;

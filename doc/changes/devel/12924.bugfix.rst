@@ -1,0 +1,1 @@
+Fix typos in the Spatio-Spectral Decomposition example, by :newcontrib:`Simon M. Hofmann`.

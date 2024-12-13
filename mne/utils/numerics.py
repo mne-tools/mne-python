@@ -809,8 +809,9 @@ def object_diff(a, b, pre="", *, allclose=False):
         if a.getvalue() != b.getvalue():
             out += pre + " StringIO mismatch\n"
     elif isinstance(a, datetime | date):
-        if (a - b).total_seconds() != 0:
-            out += pre + f" {a.__class__.__name__} mismatch\n"
+        ts = (a - b).total_seconds()
+        if ts != 0:
+            out += pre + f" {a.__class__.__name__} mismatch ({a} vs {b} by {ts} sec)\n"
     elif sparse.issparse(a):
         # sparsity and sparse type of b vs a already checked above by type()
         if b.shape != a.shape:

@@ -185,8 +185,8 @@ def find_ecg_events(
     %(filter_length_ecg)s
     return_ecg : bool
         Return the ECG data. This is especially useful if no ECG channel
-        is present in the input data, so one will be synthesized. Defaults to
-        ``False``.
+        is present in the input data, so one will be synthesized (only works if MEG
+        channels are present in the data). Defaults to ``False``.
     %(reject_by_annotation_all)s
 
         .. versionadded:: 0.18
@@ -325,8 +325,6 @@ def _get_ecg_channel_index(ch_name, inst):
 
     if len(ecg_idx) == 0:
         return None
-        # raise RuntimeError('No ECG channel found. Please specify ch_name '
-        #                    'parameter e.g. MEG 1531')
 
     if len(ecg_idx) > 1:
         warn(
@@ -487,7 +485,7 @@ def _make_ecg(inst, start, stop, reject_by_annotation=False, verbose=None):
     """Create ECG signal from cross channel average."""
     if not any(c in inst for c in ["mag", "grad"]):
         raise ValueError(
-            "Generating an artificial ECG channel can only be done for MEG data"
+            "Generating an artificial ECG channel can only be done for MEG data."
         )
     for ch in ["mag", "grad"]:
         if ch in inst:

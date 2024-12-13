@@ -79,7 +79,7 @@ def _least_square_evoked(epochs_data, events, tmin, sfreq):
         sel = events[:, 2] == this_class
 
         # build toeplitz matrix
-        trig = np.zeros((n_samples, 1))
+        trig = np.zeros((n_samples,))
         ix_trig = (events[sel, 0]) + n_min
         trig[ix_trig] = 1
         toeplitz.append(linalg.toeplitz(trig[0:window], trig))
@@ -307,8 +307,8 @@ class _XdawnTransformer(BaseEstimator, TransformerMixin):
         # Check size
         if self.filters_.shape[1] != X.shape[1]:
             raise ValueError(
-                "X must have %i channels, got %i instead."
-                % (self.filters_.shape[1], X.shape[1])
+                f"X must have {self.filters_.shape[1]} channels, got {X.shape[1]} "
+                "instead."
             )
 
         # Transform
@@ -339,8 +339,8 @@ class _XdawnTransformer(BaseEstimator, TransformerMixin):
         n_epochs, n_comp, n_times = X.shape
         if n_comp != (self.n_components * len(self.classes_)):
             raise ValueError(
-                "X must have %i components, got %i instead"
-                % (self.n_components * len(self.classes_), n_comp)
+                f"X must have {self.n_components * len(self.classes_)} components, "
+                f"got {n_comp} instead."
             )
 
         # Transform

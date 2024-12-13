@@ -1,0 +1,4 @@
+When creating a :class:`~mne.time_frequency.SpectrumArray`, the array shape check now
+compares against the total of both 'good' and 'bad' channels in the provided
+:class:`~mne.Info` (previously only good channels were checked), by
+`Mathieu Scheltienne`_.

@@ -208,7 +208,7 @@ event_dict = {
 # example of this is shown in the next section. There is also a convenient
 # `~mne.viz.plot_events` function for visualizing the distribution of events
 # across the duration of the recording (to make sure event detection worked as
-# expected). Here we'll also make use of the `~mne.Info` attribute to get the
+# expected). Here we will also make use of the `~mne.Info` attribute to get the
 # sampling frequency of the recording (so our x-axis will be in seconds instead
 # of in samples).
 

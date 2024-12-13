@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "e06873d4d6e0a84bbd7d6b4a01ae4af340c7bedd",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".github/workflows/tests.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "azure-pipelines.yml": {
+      "a": 2,
+      "d": 2
+    },
+    "tools/azure_dependencies.sh": {
+      "a": 1,
+      "d": 2
+    },
+    "tools/install_pre_requirements.sh": {
+      "a": 6,
+      "d": 18
+    }
+  }
+}

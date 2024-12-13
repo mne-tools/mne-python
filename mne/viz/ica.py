@@ -50,6 +50,7 @@ def plot_ica_sources(
     precompute=None,
     use_opengl=None,
     *,
+    psd_args=None,
     theme=None,
     overview_mode=None,
     splash=True,
@@ -91,6 +92,12 @@ def plot_ica_sources(
     %(time_format)s
     %(precompute)s
     %(use_opengl)s
+    psd_args : dict | None
+        Dictionary of arguments to pass to :meth:`~mne.Epochs.compute_psd` in
+        interactive  mode. Ignored if ``inst`` is not supplied. If ``None``,
+        nothing is passed. Defaults to ``None``.
+
+        .. versionadded:: 1.9
     %(theme_pg)s
 
         .. versionadded:: 1.0
@@ -133,6 +140,7 @@ def plot_ica_sources(
             show=show,
             title=title,
             block=block,
+            psd_args=psd_args,
             show_first_samp=show_first_samp,
             show_scrollbars=show_scrollbars,
             time_format=time_format,
@@ -1284,6 +1292,7 @@ def _plot_sources(
     precompute,
     use_opengl,
     *,
+    psd_args,
     theme=None,
     overview_mode=None,
     splash=True,
@@ -1431,6 +1440,7 @@ def _plot_sources(
         use_opengl=use_opengl,
         theme=theme,
         overview_mode=overview_mode,
+        psd_args=psd_args,
         splash=splash,
     )
     if is_epo:

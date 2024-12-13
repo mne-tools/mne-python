@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "46089954167343ff2e0d089b9a313674ef7475b6",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    },
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    },
+    {
+      "n": "autofix-ci[bot]",
+      "e": "114827586+autofix-ci[bot]@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/12931.bugfix.rst": {
+      "a": 3,
+      "d": 0
+    },
+    "doc/changes/devel/12931.other.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/epochs.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/epochs/40_autogenerate_metadata.py": {
+      "a": 68,
+      "d": 36
+    }
+  }
+}

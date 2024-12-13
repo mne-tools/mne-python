@@ -1,0 +1,1 @@
+Improve automatic figure scaling of :func:`mne.viz.plot_events`, and event_id and count overview legend when a high amount of unique events is supplied, by `Stefan Appelhoff`_.

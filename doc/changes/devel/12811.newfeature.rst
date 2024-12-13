@@ -1,0 +1,1 @@
+:meth:`~mne.io.Raw` and :meth:`~mne.Epochs.save` now return the path to the saved file(s), by `Victor Ferat`_.

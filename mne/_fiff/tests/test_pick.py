@@ -477,7 +477,7 @@ def test_picks_by_channels():
     rng = np.random.RandomState(909)
 
     test_data = rng.random_sample((4, 2000))
-    ch_names = ["MEG %03d" % i for i in [1, 2, 3, 4]]
+    ch_names = [f"MEG {i:03d}" for i in [1, 2, 3, 4]]
     ch_types = ["grad", "mag", "mag", "eeg"]
     sfreq = 250.0
     info = create_info(ch_names=ch_names, sfreq=sfreq, ch_types=ch_types)
@@ -496,7 +496,7 @@ def test_picks_by_channels():
     assert pick_list2[0][0] == "meg"
 
     test_data = rng.random_sample((4, 2000))
-    ch_names = ["MEG %03d" % i for i in [1, 2, 3, 4]]
+    ch_names = [f"MEG {i:03d}" for i in [1, 2, 3, 4]]
     ch_types = ["mag", "mag", "mag", "mag"]
     sfreq = 250.0
     info = create_info(ch_names=ch_names, sfreq=sfreq, ch_types=ch_types)

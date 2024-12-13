@@ -1,0 +1,1 @@
+Correct :func:`mne.io.read_raw_cnt` to read responses and fix exceptions by `Jacob Woessner`_. 

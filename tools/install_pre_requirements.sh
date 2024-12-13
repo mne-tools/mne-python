@@ -14,38 +14,31 @@ QT_BINDING="PyQt6"
 echo "PyQt6 and scientific-python-nightly-wheels dependencies"
 python -m pip install $STD_ARGS pip setuptools packaging \
 	threadpoolctl cycler fonttools kiwisolver pyparsing pillow python-dateutil \
-	patsy pytz tzdata nibabel tqdm trx-python joblib numexpr "$QT_BINDING"
+	patsy pytz tzdata nibabel tqdm trx-python joblib numexpr "$QT_BINDING" \
+	py-cpuinfo blosc2
 echo "NumPy/SciPy/pandas etc."
 python -m pip uninstall -yq numpy
-# No pyarrow yet https://github.com/apache/arrow/issues/40216
-# No h5py (and thus dipy) yet until they improve/refactor thier wheel building infrastructure for Windows
-OTHERS=""
-if [[ "${PLATFORM}" == "Linux" ]]; then
-	OTHERS="h5py dipy"
-fi
 python -m pip install $STD_ARGS --only-binary ":all:" --default-timeout=60 \
 	--index-url "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" \
 	"numpy>=2.1.0.dev0" "scikit-learn>=1.6.dev0" "scipy>=1.15.0.dev0" \
 	"statsmodels>=0.15.0.dev0" "pandas>=3.0.0.dev0" "matplotlib>=3.10.0.dev0" \
-	$OTHERS
+	"h5py>=3.12.1" "dipy>=1.10.0.dev0" "pyarrow>=19.0.0.dev0" "tables>=3.10.2.dev0"
 
 # No Numba because it forces an old NumPy version
 
-if [[ "${PLATFORM}" == "Linux" ]]; then
-	echo "pymatreader"
-	pip install https://gitlab.com/obob/pymatreader/-/archive/master/pymatreader-master.zip
-fi
+echo "pymatreader"
+pip install https://gitlab.com/obob/pymatreader/-/archive/master/pymatreader-master.zip
 
 echo "OpenMEEG"
 python -m pip install $STD_ARGS --only-binary ":all:" --extra-index-url "https://test.pypi.org/simple" "openmeeg>=2.6.0.dev4"
 
 echo "nilearn"
-python -m pip install $STD_ARGS git+https://github.com/nilearn/nilearn
+# TODO: Revert once settled:
+# https://github.com/scikit-learn/scikit-learn/pull/30268#issuecomment-2479701651
+python -m pip install $STD_ARGS "git+https://github.com/larsoner/nilearn@sklearn"
 
 echo "VTK"
-# No pre until PyVista fixes a bug
-# python -m pip install $STD_ARGS --only-binary ":all:" --extra-index-url "https://wheels.vtk.org" vtk
-python -m pip install $STD_ARGS vtk
+python -m pip install $STD_ARGS --only-binary ":all:" --extra-index-url "https://wheels.vtk.org" vtk
 python -c "import vtk"
 
 echo "PyVista"

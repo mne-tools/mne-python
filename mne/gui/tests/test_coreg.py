@@ -239,6 +239,9 @@ def test_coreg_gui_pyvista_basic(tmp_path, monkeypatch, renderer_interactive_pyv
     assert not coreg._helmet
     assert coreg._actors["helmet"] is None
     coreg._set_helmet(True)
+    assert coreg._eeg_channels
+    coreg._set_eeg_channels(False)
+    assert not coreg._eeg_channels
     assert coreg._helmet
     with catch_logging() as log:
         coreg._redraw(verbose="debug")
@@ -251,11 +254,17 @@ def test_coreg_gui_pyvista_basic(tmp_path, monkeypatch, renderer_interactive_pyv
     log = log.getvalue()
     assert "Drawing helmet" in log
     assert not coreg._meg_channels
+    assert coreg._actors["helmet"] is not None
+    # TODO: Someday test our file dialogs like:
+    # coreg._widgets["save_trans"].widget.click()
+    assert len(coreg._actors["sensors"]) == 0
     coreg._set_meg_channels(True)
     assert coreg._meg_channels
     with catch_logging() as log:
         coreg._redraw(verbose="debug")
     assert "Drawing meg sensors" in log.getvalue()
+    assert coreg._actors["helmet"] is not None
+    assert len(coreg._actors["sensors"]) == 306
     assert coreg._orient_glyphs
     assert coreg._scale_by_distance
     assert coreg._mark_inside
@@ -263,7 +272,6 @@ def test_coreg_gui_pyvista_basic(tmp_path, monkeypatch, renderer_interactive_pyv
         coreg._head_opacity, float(config.get("MNE_COREG_HEAD_OPACITY", "0.8"))
     )
     assert coreg._hpi_coils
-    assert coreg._eeg_channels
     assert coreg._head_shape_points
     assert coreg._scale_mode == "None"
     assert coreg._icp_fid_match == "matched"

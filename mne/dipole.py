@@ -1673,7 +1673,7 @@ def fit_dipole(
         scales=guess_fwd_scales,
     )
     del guess_fwd, guess_fwd_svd, guess_fwd_orig, guess_fwd_scales  # destroyed
-    logger.info("[done %d source%s]" % (guess_src["nuse"], _pl(guess_src["nuse"])))
+    logger.info("[done %d source%s]", guess_src["nuse"], _pl(guess_src["nuse"]))
 
     # Do actual fits
     data = data[picks]
@@ -1757,7 +1757,7 @@ def fit_dipole(
         )
     residual = evoked.copy().apply_proj()  # set the projs active
     residual.data[picks] = np.dot(proj_op, out[-1])
-    logger.info("%d time points fitted" % len(dipoles.times))
+    logger.info("%d time points fitted", len(dipoles.times))
     return dipoles, residual
 
 

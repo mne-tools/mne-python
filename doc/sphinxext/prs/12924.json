@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "f00deb44e2996a3b707c3f0399cfa0d8b842c566",
+  "authors": [
+    {
+      "n": "Simon M. Hofmann",
+      "e": null
+    },
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/12924.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "examples/decoding/ssd_spatial_filters.py": {
+      "a": 9,
+      "d": 9
+    }
+  }
+}

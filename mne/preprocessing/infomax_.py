@@ -266,8 +266,11 @@ def infomax(
 
             if verbose:
                 logger.info(
-                    "step %d - lrate %5f, wchange %8.8f, angledelta %4.1f deg"
-                    % (step, l_rate, change, angledelta)
+                    "step %d - lrate %5f, wchange %8.8f, angledelta %4.1f deg",
+                    step,
+                    l_rate,
+                    change,
+                    angledelta,
                 )
 
             # anneal learning rate

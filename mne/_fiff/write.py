@@ -72,7 +72,9 @@ def write_int(fid, kind, data):
     data_size = 4
     data = np.asarray(data)
     if data.dtype.kind not in "uib" and data.size > 0:
-        raise TypeError(f"Cannot safely write data with dtype {data.dtype} as int")
+        raise TypeError(
+            f"Cannot safely write data kind {kind} with dtype {data.dtype} as int",
+        )
     max_val = data.max() if data.size > 0 else 0
     if max_val > INT32_MAX:
         raise TypeError(
@@ -387,7 +389,7 @@ def write_ch_info(fid, ch):
     fid.write(b"\0" * (16 - len(ch_name)))
 
 
-def write_dig_points(fid, dig, block=False, coord_frame=None):
+def write_dig_points(fid, dig, block=False, coord_frame=None, *, ch_names=None):
     """Write a set of digitizer data points into a fif file."""
     if dig is not None:
         data_size = 5 * 4
@@ -404,6 +406,10 @@ def write_dig_points(fid, dig, block=False, coord_frame=None):
             fid.write(np.array(d["kind"], ">i4").tobytes())
             fid.write(np.array(d["ident"], ">i4").tobytes())
             fid.write(np.array(d["r"][:3], ">f4").tobytes())
+        if ch_names is not None:
+            write_name_list_sanitized(
+                fid, FIFF.FIFF_MNE_CH_NAME_LIST, ch_names, "ch_names"
+            )
         if block:
             end_block(fid, FIFF.FIFFB_ISOTRAK)
 

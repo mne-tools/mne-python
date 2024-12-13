@@ -1,0 +1,55 @@
+{
+  "merge_commit_sha": "e15292fc0bc8d5e32dd6d6099a839bf810963f3a",
+  "authors": [
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/12918.apichange.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/documentation/datasets.rst": {
+      "a": 12,
+      "d": 6
+    },
+    "examples/decoding/decoding_csp_eeg.py": {
+      "a": 6,
+      "d": 5
+    },
+    "examples/preprocessing/eeg_bridging.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/preprocessing/muscle_ica.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/time_frequency/time_frequency_erds.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/datasets/eegbci/eegbci.py": {
+      "a": 55,
+      "d": 25
+    },
+    "mne/datasets/eegbci/tests/test_eegbci.py": {
+      "a": 16,
+      "d": 2
+    },
+    "mne/datasets/utils.py": {
+      "a": 2,
+      "d": 3
+    },
+    "tutorials/forward/35_eeg_no_mri.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/preprocessing/40_artifact_correction_ica.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

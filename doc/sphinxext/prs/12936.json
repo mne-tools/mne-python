@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "333d97189e9315ebbc274bbf5d5d439938b7f840",
+  "authors": [
+    {
+      "n": "Genuster",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/12936.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/viz/evoked.py": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

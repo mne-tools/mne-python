@@ -568,6 +568,24 @@ def test_plot_topomap_basic():
     assert_array_equal(evoked_grad.info["bads"], orig_bads)
 
 
+def test_plot_psds_topomap_colorbar():
+    """Test plot_psds_topomap colorbar option."""
+    raw = read_raw_fif(raw_fname)
+    picks = pick_types(raw.info, meg="grad")
+    info = pick_info(raw.info, picks)
+    freqs = np.arange(3.0, 9.5)
+    rng = np.random.default_rng(42)
+    psd = np.abs(rng.standard_normal((len(picks), len(freqs))))
+    bands = {"theta": [4, 8]}
+
+    plt.close("all")
+    fig_cbar = plot_psds_topomap(psd, freqs, info, colorbar=True, bands=bands)
+    assert len(fig_cbar.axes) == 2
+
+    fig_nocbar = plot_psds_topomap(psd, freqs, info, colorbar=False, bands=bands)
+    assert len(fig_nocbar.axes) == 1
+
+
 def test_plot_tfr_topomap():
     """Test plotting of TFR data."""
     raw = read_raw_fif(raw_fname)

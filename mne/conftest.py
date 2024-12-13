@@ -139,6 +139,7 @@ def pytest_configure(config):
     ignore:Passing a schema to Validator\.iter_errors is deprecated.*:
     ignore:Unclosed context <zmq.asyncio.Context.*:ResourceWarning
     ignore:Jupyter is migrating its paths.*:DeprecationWarning
+    ignore:datetime\.datetime\.utcnow\(\) is deprecated.*:DeprecationWarning
     ignore:Widget\..* is deprecated\.:DeprecationWarning
     ignore:.*is deprecated in pyzmq.*:DeprecationWarning
     ignore:The `ipykernel.comm.Comm` class has been deprecated.*:DeprecationWarning
@@ -175,6 +176,8 @@ def pytest_configure(config):
     ignore:__array_wrap__ must accept context and return_scalar arguments.*:DeprecationWarning
     # nibabel <-> NumPy 2.0
     ignore:__array__ implementation doesn't accept a copy.*:DeprecationWarning
+    # quantities via neo
+    ignore:The 'copy' argument in Quantity is deprecated.*:
     """  # noqa: E501
     for warning_line in warning_lines.split("\n"):
         warning_line = warning_line.strip()

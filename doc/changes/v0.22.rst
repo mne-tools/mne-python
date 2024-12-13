@@ -72,7 +72,7 @@ Enhancements
 
 - Add progress bar support to :func:`mne.time_frequency.csd_morlet` (:gh:`8608` by `Eric Larson`_)
 
-- Further improved documentation building instructions and execution on Windows (:gh:`8502` by `kalenkovich`_ and `Eric Larson`_)
+- Further improved documentation building instructions and execution on Windows (:gh:`8502` by `Evgenii Kalenkovich`_ and `Eric Larson`_)
 
 - Add option to disable TQDM entirely with ``MNE_TQDM='off'`` (:gh:`8515` by `Eric Larson`_)
 
@@ -242,7 +242,7 @@ People who contributed to this release in alphabetical order
 * Fede Raimondo
 * Guillaume Favelier
 * Hongjiang Ye +
-* Jean-Remi King
+* Jean-Rémi King
 * Jeff Stout +
 * Jonathan Kuziek +
 * Jussi Nurminen

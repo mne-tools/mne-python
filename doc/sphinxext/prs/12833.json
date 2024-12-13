@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "2f299276fecedcb8b3626ea40fc4f1aecff51bce",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".github/PULL_REQUEST_TEMPLATE.md": {
+      "a": 11,
+      "d": 4
+    },
+    "tools/github_actions_test.sh": {
+      "a": 3,
+      "d": 0
+    }
+  }
+}

@@ -1,0 +1,1 @@
+Prevent the ``colorbar`` parameter being ignored in topomap plots such as :meth:`mne.time_frequency.Spectrum.plot_topomap`, by `Thomas Binns`_.

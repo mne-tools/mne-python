@@ -1238,12 +1238,12 @@ def _check_data_shape(data, info, freqs, dim_names, weights, is_epoched):
             f"'channel' must be the {'second' if is_epoched else 'first'} dimension of "
             "the data."
         )
-    want_n_chan = _pick_data_channels(info).size
+    want_n_chan = _pick_data_channels(info, exclude=()).size
     got_n_chan = data.shape[list(dim_names).index("channel")]
     if got_n_chan != want_n_chan:
         raise ValueError(
             f"The number of channels in `data` ({got_n_chan}) must match the number of "
-            f"good data channels in `info` ({want_n_chan})."
+            f"good + bad data channels in `info` ({want_n_chan})."
         )
 
     # given we limit max array size and ensure channel & freq dims present, only one of

@@ -331,8 +331,11 @@ def _rectify_resolution_matrix(resmat):
         resmat = np.array(resmatl)
 
         logger.info(
-            "Rectified resolution matrix from (%d, %d) to (%d, %d)."
-            % (shape[0], shape[1], resmat.shape[0], resmat.shape[1])
+            "Rectified resolution matrix from (%d, %d) to (%d, %d).",
+            shape[0],
+            shape[1],
+            resmat.shape[0],
+            resmat.shape[1],
         )
 
     return resmat

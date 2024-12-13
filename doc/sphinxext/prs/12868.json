@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "d248a5763e1ced3c9c65a12101e46d85e806df54",
+  "authors": [
+    {
+      "n": "Mathieu Scheltienne",
+      "e": "mathieu.scheltienne@fcbg.ch"
+    },
+    {
+      "n": "autofix-ci[bot]",
+      "e": "114827586+autofix-ci[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "examples/io/read_impedances.py": {
+      "a": 77,
+      "d": 0
+    },
+    "mne/decoding/tests/test_receptive_field.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/ant/ant.py": {
+      "a": 1,
+      "d": 13
+    },
+    "mne/io/ant/tests/test_ant.py": {
+      "a": 1,
+      "d": 6
+    },
+    "pyproject.toml": {
+      "a": 4,
+      "d": 0
+    }
+  }
+}

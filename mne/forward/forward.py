@@ -180,21 +180,21 @@ class Forward(dict):
         src_types = np.array([src["type"] for src in self["src"]])
 
         if (src_types == "surf").all():
-            src_type = "Surface with %d vertices" % self["nsource"]
+            src_type = "Surface with {self['nsource']} vertices"
         elif (src_types == "vol").all():
-            src_type = "Volume with %d grid points" % self["nsource"]
+            src_type = "Volume with {self['nsource']} grid points"
         elif (src_types == "discrete").all():
-            src_type = "Discrete with %d dipoles" % self["nsource"]
+            src_type = "Discrete with {self['nsource']} dipoles"
         else:
             count_string = ""
             if (src_types == "surf").any():
-                count_string += "%d surface, " % (src_types == "surf").sum()
+                count_string += f"{(src_types == 'surf').sum()} surface, "
             if (src_types == "vol").any():
-                count_string += "%d volume, " % (src_types == "vol").sum()
+                count_string += f"{(src_types == 'vol').sum()} volume, "
             if (src_types == "discrete").any():
-                count_string += "%d discrete, " % (src_types == "discrete").sum()
+                count_string += f"{(src_types == 'discrete').sum()} discrete, "
             count_string = count_string.rstrip(", ")
-            src_type = "Mixed (%s) with %d vertices" % (count_string, self["nsource"])
+            src_type = f"Mixed ({count_string}) with {self['nsource']} vertices"
 
         if self["source_ori"] == FIFF.FIFFV_MNE_UNKNOWN_ORI:
             src_ori = "Unknown"
@@ -210,9 +210,9 @@ class Forward(dict):
         entr = "<Forward"
 
         nchan = len(pick_types(self["info"], meg=True, eeg=False, exclude=[]))
-        entr += " | " + "MEG channels: %d" % nchan
+        entr += " | " + f"MEG channels: {nchan}"
         nchan = len(pick_types(self["info"], meg=False, eeg=True, exclude=[]))
-        entr += " | " + "EEG channels: %d" % nchan
+        entr += " | " + f"EEG channels: {nchan}"
 
         src_type, src_ori = self._get_src_type_and_ori_for_repr()
         entr += f" | Source space: {src_type}"
@@ -609,8 +609,10 @@ def read_forward_solution(fname, include=(), exclude=(), *, ordered=True, verbos
                 ori = "free"
             logger.info(
                 "    Read MEG forward solution (%d sources, "
-                "%d channels, %s orientations)"
-                % (megfwd["nsource"], megfwd["nchan"], ori)
+                "%d channels, %s orientations)",
+                megfwd["nsource"],
+                megfwd["nchan"],
+                ori,
             )
         del megfwd
 
@@ -623,8 +625,10 @@ def read_forward_solution(fname, include=(), exclude=(), *, ordered=True, verbos
                 ori = "free"
             logger.info(
                 "    Read EEG forward solution (%d sources, "
-                "%d channels, %s orientations)"
-                % (eegfwd["nsource"], eegfwd["nchan"], ori)
+                "%d channels, %s orientations)",
+                eegfwd["nsource"],
+                eegfwd["nchan"],
+                ori,
             )
         del eegfwd
 
@@ -1167,7 +1171,7 @@ def _select_orient_forward(forward, info, noise_cov=None, copy=True):
     _check_compensation_grade(forward["info"], info, "forward")
 
     n_chan = len(ch_names)
-    logger.info("Computing inverse operator with %d channels." % n_chan)
+    logger.info("Computing inverse operator with %d channels.", n_chan)
     forward = pick_channels_forward(forward, ch_names, ordered=True, copy=copy)
     info_idx = [info["ch_names"].index(name) for name in ch_names]
     info_picked = pick_info(info, info_idx)
@@ -1291,8 +1295,8 @@ def _restrict_gain_matrix(G, info):
     # Figure out which ones have been used
     if len(info["chs"]) != G.shape[0]:
         raise ValueError(
-            'G.shape[0] (%d) and length of info["chs"] (%d) '
-            "do not match" % (G.shape[0], len(info["chs"]))
+            f'G.shape[0] ({G.shape[0]}) and length of info["chs"] ({len(info["chs"])}) '
+            "do not match."
         )
     for meg, eeg, kind in (
         ("grad", False, "planar"),
@@ -1301,7 +1305,7 @@ def _restrict_gain_matrix(G, info):
     ):
         sel = pick_types(info, meg=meg, eeg=eeg, ref_meg=False, exclude=[])
         if len(sel) > 0:
-            logger.info("    %d %s channels" % (len(sel), kind))
+            logger.info("    %d %s channels", len(sel), kind)
             break
     else:
         warn("Could not find MEG or EEG channels to limit depth channels")
@@ -1480,7 +1484,7 @@ def compute_depth_prior(
                 n_limit = ind
 
         logger.info(
-            "    limit = %d/%d = %f" % (n_limit + 1, len(d), np.sqrt(limit / ws[0]))
+            "    limit = %d/%d = %f", n_limit + 1, len(d), np.sqrt(limit / ws[0])
         )
         scale = 1.0 / limit
         logger.info(f"    scale = {scale:g} exp = {exp:g}")
@@ -1525,11 +1529,9 @@ def _stc_src_sel(
     n_stc = sum(len(v) for v in vertices)
     n_joint = len(src_sel)
     if n_joint != n_stc:
-        msg = "Only %i of %i SourceEstimate %s found in source space%s" % (
-            n_joint,
-            n_stc,
-            "vertex" if n_stc == 1 else "vertices",
-            extra,
+        msg = (
+            f"Only {n_joint} of {n_stc} SourceEstimate "
+            f"{'vertex' if n_stc == 1 else 'vertices'} found in source space{extra}"
         )
         _on_missing(on_missing, msg)
     return src_sel, stc_sel, out_vertices

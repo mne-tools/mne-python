@@ -593,7 +593,8 @@ def test_validate_input():
 
 def test_open_report(tmp_path):
     """Test the open_report function."""
-    pytest.importorskip("h5io")
+    h5py = pytest.importorskip("h5py")
+    h5io = pytest.importorskip("h5io")
     hdf5 = str(tmp_path / "report.h5")
 
     # Test creating a new report through the open_report function
@@ -604,6 +605,11 @@ def test_open_report(tmp_path):
         report.add_figure(fig=fig1, title="evoked response")
     # Exiting the context block should have triggered saving to HDF5
     assert Path(hdf5).exists()
+
+    # Let's add some companion data to the HDF5 file
+    with h5py.File(hdf5, "r+") as f:
+        h5io.write_hdf5(f, "test", title="companion")
+    assert h5io.read_hdf5(hdf5, title="companion") == "test"
 
     # Load the HDF5 version of the report and check equivalence
     report2 = open_report(hdf5)
@@ -621,7 +627,11 @@ def test_open_report(tmp_path):
     # Check that the context manager doesn't swallow exceptions
     with pytest.raises(ZeroDivisionError):
         with open_report(hdf5, subjects_dir=str(tmp_path)) as report:
+            assert h5io.read_hdf5(hdf5, title="companion") == "test"
             1 / 0
+
+    # Check that our companion data survived
+    assert h5io.read_hdf5(hdf5, title="companion") == "test"
 
 
 def test_remove():
@@ -1066,6 +1076,73 @@ def test_manual_report_2d(tmp_path, invisible_fig):
 
     fname = tmp_path / "report.html"
     r.save(fname=fname, open_browser=False)
+
+
+def test_report_tweaks(tmp_path, monkeypatch):
+    """Test tweaking of report params."""
+    r = Report(image_format="png")
+    assert r.collapse == ()
+    assert r.img_max_width == 850
+    assert r.img_max_res == 100
+
+    events = np.array([[0, 0, 1], [1, 0, 2], [2, 0, 3]])
+    kwargs = dict(events=events, sfreq=1000.0, title="my events", section="my section")
+    with plt.rc_context(rc={"figure.dpi": 200, "figure.figsize": (10, 10)}):
+        r.add_events(**kwargs)
+
+    fname = tmp_path / "report.html"
+    r.save(fname, open_browser=False)
+
+    html = fname.read_text(encoding="utf-8")
+    assert html.count("collapse show") == 2, fname  # section and element
+
+    r.collapse = ["section"]
+    r.save(fname, open_browser=False, overwrite=True)
+    html = fname.read_text(encoding="utf-8")
+    assert html.count("collapse show") == 1, fname  # section collapsed
+
+    # Bad input handling
+    with pytest.raises(ValueError):
+        r.collapse = "foo"
+    with pytest.raises(TypeError):
+        r.collapse = 1
+    with pytest.raises(TypeError):
+        r.img_max_width = "foo"
+    with pytest.raises(ValueError):
+        r.img_max_width = -1
+    with pytest.raises(TypeError):
+        r.img_max_res = "foo"
+    with pytest.raises(ValueError):
+        r.img_max_res = -1
+
+    # Figure out the size of our rendered image (max width 850)
+    img_re = re.compile(r'src="data:image/png;base64([^"]+)"')
+    imgs = img_re.findall(html)
+    assert len(imgs) == 2  # the first is our logo
+    img = plt.imread(BytesIO(base64.b64decode(imgs[1].encode("ascii"))))
+    assert img.shape == (850, 850, 3)
+
+    # Now let's limit it by max resolution (100 dpi)
+    r = Report(image_format="png")
+    r.img_max_width = None
+    with plt.rc_context(rc={"figure.dpi": 200, "figure.figsize": (10, 10)}):
+        r.add_events(**kwargs)
+    r.save(fname, open_browser=False, overwrite=True)
+    imgs = img_re.findall(fname.read_text(encoding="utf-8"))
+    assert len(imgs) == 2
+    img = plt.imread(BytesIO(base64.b64decode(imgs[1].encode("ascii"))))
+    assert img.shape == (1000, 1000, 3)  # figure.figsize * Report.img_max_res
+
+    # Now let's do unconstrained
+    r = Report(image_format="png")
+    r.img_max_width = r.img_max_res = None
+    with plt.rc_context(rc={"figure.dpi": 200, "figure.figsize": (10, 10)}):
+        r.add_events(**kwargs)
+    r.save(fname, open_browser=False, overwrite=True)
+    imgs = img_re.findall(fname.read_text(encoding="utf-8"))
+    assert len(imgs) == 2
+    img = plt.imread(BytesIO(base64.b64decode(imgs[1].encode("ascii"))))
+    assert img.shape == (2000, 2000, 3)  # figure.figsize * figure.dpi
 
 
 @pytest.mark.slowtest  # 30 s on Azure

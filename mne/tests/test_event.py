@@ -38,6 +38,7 @@ from mne.event import (
     shift_time_events,
 )
 from mne.io import RawArray, read_raw_fif
+from mne.utils import catch_logging
 
 base_dir = Path(__file__).parents[1] / "io" / "tests" / "data"
 fname = base_dir / "test-eve.fif"
@@ -393,7 +394,10 @@ def test_find_events():
     raw = RawArray(data, info, first_samp=7)
     data[0, :10] = 100
     data[0, 30:40] = 200
-    assert_array_equal(find_events(raw, "MYSTI"), [[37, 0, 200]])
+    with catch_logging(True) as log:
+        assert_array_equal(find_events(raw, "MYSTI"), [[37, 0, 200]])
+    log = log.getvalue()
+    assert "value of 100 (consider" in log
     assert_array_equal(
         find_events(raw, "MYSTI", initial_event=True), [[7, 0, 100], [37, 0, 200]]
     )

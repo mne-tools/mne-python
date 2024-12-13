@@ -29,7 +29,7 @@ Enhancements
 
 - Add function :func:`mne.channels.combine_channels` to combine channels from Raw, Epochs, or Evoked according to ROIs (combinations including mean, median, or standard deviation; can also use a callable) **by new contributor** |Johann Benerradi|_
 
-- Improved documentation building instructions and execution on Windows **by new contributor** |Martin Schulz|_, `kalenkovich`_, and `Eric Larson`_
+- Improved documentation building instructions and execution on Windows **by new contributor** |Martin Schulz|_, `Evgenii Kalenkovich`_, and `Eric Larson`_
 
 - Speed up reading of annotations in EDF+ files **by new contributor** |Jeroen Van Der Donckt|_
 

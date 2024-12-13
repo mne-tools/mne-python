@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "6f9646ff979294683bb385e63f3587aa3c7a6dd5",
+  "authors": [
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    },
+    {
+      "n": "Clemens Brunner",
+      "e": "clemens.brunner@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/decoding/tests/test_base.py": {
+      "a": 5,
+      "d": 1
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 8,
+      "d": 7
+    },
+    "mne/utils/progressbar.py": {
+      "a": 5,
+      "d": 1
+    }
+  }
+}

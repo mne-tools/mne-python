@@ -62,7 +62,7 @@ Changelog
 
 - Labels support subtraction (``label_1 - label_2``) by `Christian Brodbeck`_
 
-- Add GeneralizationAcrossTime object with support for cross-condition generalization by `Jean-Remi King`_ and `Denis Engemann`_
+- Add GeneralizationAcrossTime object with support for cross-condition generalization by `Jean-Rémi King`_ and `Denis Engemann`_
 
 - Add support for single dipole fitting by `Eric Larson`_
 
@@ -208,7 +208,7 @@ The committer list for this release is the following (preceded by number of comm
 * 304  Alexandre Gramfort
 * 300  Teon Brooks
 * 142  Mainak Jas
-* 119  Jean-Remi King
+* 119  Jean-Rémi King
 *  77  Alan Leggitt
 *  75  Marijn van Vliet
 *  63  Chris Holdgraf

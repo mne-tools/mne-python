@@ -8,6 +8,10 @@ import numpy as np
 import pytest
 from numpy.testing import assert_array_almost_equal, assert_array_equal
 
+pytest.importorskip("sklearn")
+
+from sklearn.pipeline import Pipeline
+
 from mne import create_info, io
 from mne.decoding import CSP
 from mne.decoding.ssd import SSD
@@ -150,8 +154,9 @@ def test_ssd():
     ch_types = np.reshape([["mag"] * 10, ["eeg"] * 10], n_channels)
     info_2 = create_info(ch_names=n_channels, sfreq=sf, ch_types=ch_types)
 
+    ssd = SSD(info_2, filt_params_signal, filt_params_noise)
     with pytest.raises(ValueError, match="At this point SSD"):
-        ssd = SSD(info_2, filt_params_signal, filt_params_noise)
+        ssd.fit(X)
 
     # Number of channels
     info_3 = create_info(ch_names=n_channels + 1, sfreq=sf, ch_types="eeg")
@@ -298,9 +303,6 @@ def test_ssd_epoched_data():
 
 def test_ssd_pipeline():
     """Test if SSD works in a pipeline."""
-    pytest.importorskip("sklearn")
-    from sklearn.pipeline import Pipeline
-
     sf = 250
     X, A, S = simulate_data(n_trials=100, n_channels=20, n_samples=500)
     X_e = np.reshape(X, (100, 20, 500))

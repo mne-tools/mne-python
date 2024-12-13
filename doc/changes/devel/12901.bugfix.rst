@@ -1,0 +1,1 @@
+:class:`mne.Report` HDF5 files are now written in ``mode='a'`` (append) to allow users to store other data in the HDF5 files, by `Eric Larson`_.

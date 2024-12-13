@@ -16,6 +16,7 @@ References
 ----------
 .. footbibliography::
 """
+
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Denis A. Engemann <denis.engemann@gmail.com>
 #

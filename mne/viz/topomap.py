@@ -2835,7 +2835,7 @@ def plot_psds_topomap(
     for ax, _mask, _data, (title, (fmin, fmax)) in zip(
         axes, freq_masks, band_data, bands.items()
     ):
-        colorbar = (not joint_vlim) or ax == axes[-1]
+        plot_colorbar = False if not colorbar else (not joint_vlim) or ax == axes[-1]
         _plot_topomap_multi_cbar(
             _data,
             pos,
@@ -2844,7 +2844,7 @@ def plot_psds_topomap(
             vlim=vlim,
             cmap=cmap,
             outlines=outlines,
-            colorbar=colorbar,
+            colorbar=plot_colorbar,
             unit=unit,
             cbar_fmt=cbar_fmt,
             sphere=sphere,

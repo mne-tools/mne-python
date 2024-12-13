@@ -1530,6 +1530,13 @@ def test_epochs_compute_tfr_stockwell(epochs, freqs, return_itc):
     assert tfr.comment == "1"
 
 
+@pytest.mark.parametrize("output", ("complex", "phase"))
+def test_epochs_compute_tfr_multitaper_complex_phase(epochs, output):
+    """Test Epochs.compute_tfr(output="complex"/"phase")."""
+    tfr = epochs.compute_tfr("multitaper", freqs_linspace, output=output)
+    assert len(tfr.shape) == 5
+
+
 @pytest.mark.parametrize("copy", (False, True))
 def test_epochstfr_iter_evoked(epochs_tfr, copy):
     """Test EpochsTFR.iter_evoked()."""

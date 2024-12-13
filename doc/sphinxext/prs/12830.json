@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "3ecdd6b2102b00f97d7ad98ca2483a0f79e90b30",
+  "authors": [
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    },
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/12830.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/channels/_standard_montage_utils.py": {
+      "a": 19,
+      "d": 4
+    },
+    "mne/channels/tests/test_montage.py": {
+      "a": 24,
+      "d": 1
+    }
+  }
+}

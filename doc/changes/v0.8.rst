@@ -72,7 +72,7 @@ Changelog
 
 - Add ``raw.add_events`` to allow adding events to a raw file by `Eric Larson`_
 
-- Add ``plot_image`` method to Evoked object to display data as images by `Jean-Remi King`_ and `Alex Gramfort`_ and `Denis Engemann`_
+- Add ``plot_image`` method to Evoked object to display data as images by `Jean-Rémi King`_ and `Alex Gramfort`_ and `Denis Engemann`_
 
 - Add BCI demo with CSP on motor imagery by `Martin Billinger`_
 
@@ -190,5 +190,5 @@ The committer list for this release is the following (preceded by number of comm
 * 2  Daniel Strohmeier
 * 2  Federico Raimondo
 * 2  Alan Leggitt
-* 1  Jean-Remi King
+* 1  Jean-Rémi King
 * 1  Matti Hämäläinen

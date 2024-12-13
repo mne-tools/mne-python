@@ -42,7 +42,6 @@ os.environ["MNE_BROWSER_THEME"] = "light"
 os.environ["MNE_3D_OPTION_THEME"] = "light"
 # https://numba.readthedocs.io/en/latest/reference/deprecation.html#deprecation-of-old-style-numba-captured-errors  # noqa: E501
 os.environ["NUMBA_CAPTURED_ERRORS"] = "new_style"
-sphinx_logger = sphinx.util.logging.getLogger("mne")
 mne.html_templates._templates._COLLAPSED = True  # collapse info _repr_html_
 
 # -- Path setup --------------------------------------------------------------
@@ -53,8 +52,8 @@ mne.html_templates._templates._COLLAPSED = True  # collapse info _repr_html_
 curpath = Path(__file__).parent.resolve(strict=True)
 sys.path.append(str(curpath / "sphinxext"))
 
-from mne_doc_utils import report_scraper, reset_warnings  # noqa: E402
-from update_credit_rst import generate_credit_rst  # noqa: E402
+from credit_tools import generate_credit_rst  # noqa: E402
+from mne_doc_utils import report_scraper, reset_warnings, sphinx_logger  # noqa: E402
 
 # -- Project information -----------------------------------------------------
 
@@ -167,7 +166,7 @@ intersphinx_mapping = {
     "mne-gui-addons": ("https://mne.tools/mne-gui-addons", None),
     "picard": ("https://pierreablin.github.io/picard/", None),
     "eeglabio": ("https://eeglabio.readthedocs.io/en/latest", None),
-    "pybv": ("https://pybv.readthedocs.io/en/latest/", None),
+    "pybv": ("https://pybv.readthedocs.io/en/latest", None),
 }
 intersphinx_mapping.update(
     get_intersphinx_mapping(
@@ -210,6 +209,8 @@ numpydoc_xref_aliases = {
     "ColorbarBase": "matplotlib.colorbar.ColorbarBase",
     # sklearn
     "LeaveOneOut": "sklearn.model_selection.LeaveOneOut",
+    "MetadataRequest": "sklearn.utils.metadata_routing.MetadataRequest",
+    "estimator": "sklearn.base.BaseEstimator",
     # joblib
     "joblib.Parallel": "joblib.Parallel",
     # nibabel
@@ -398,6 +399,9 @@ numpydoc_xref_ignore = {
     "mapping",
     "to",
     "any",
+    "pandas",
+    "polars",
+    "default",
     # unlinkable
     "CoregistrationUI",
     "mne_qt_browser.figure.MNEQtBrowser",
@@ -601,6 +605,28 @@ def append_attr_meth_examples(app, what, name, obj, options, lines):
 """.format(name.split(".")[-1], name).split("\n")
 
 
+def fix_sklearn_inherited_docstrings(app, what, name, obj, options, lines):
+    """Fix sklearn docstrings because they use autolink and we do not."""
+    if (
+        name.startswith("mne.decoding.") or name.startswith("mne.preprocessing.Xdawn")
+    ) and name.endswith(
+        (
+            ".get_metadata_routing",
+            ".fit",
+            ".fit_transform",
+            ".set_output",
+            ".transform",
+        )
+    ):
+        if ":Parameters:" in lines:
+            loc = lines.index(":Parameters:")
+        else:
+            loc = lines.index(":Returns:")
+        lines.insert(loc, "")
+        lines.insert(loc, ".. default-role:: autolink")
+        lines.insert(loc, "")
+
+
 # -- Other extension configuration -------------------------------------------
 
 # Consider using http://magjac.com/graphviz-visual-editor for this
@@ -622,6 +648,7 @@ linkcheck_ignore = [  # will be compiled to regex
     "https://doi.org/10.1093/",  # academic.oup.com/sleep/
     "https://doi.org/10.1098/",  # royalsocietypublishing.org
     "https://doi.org/10.1101/",  # www.biorxiv.org
+    "https://doi.org/10.1103",  # journals.aps.org/rmp
     "https://doi.org/10.1111/",  # onlinelibrary.wiley.com/doi/10.1111/psyp
     "https://doi.org/10.1126/",  # www.science.org
     "https://doi.org/10.1137/",  # epubs.siam.org
@@ -655,6 +682,9 @@ linkcheck_ignore = [  # will be compiled to regex
     # Too slow
     "https://speakerdeck.com/dengemann/",
     "https://www.dtu.dk/english/service/phonebook/person",
+    "https://www.gnu.org/software/make/",
+    "https://www.macports.org/",
+    "https://hastie.su.domains/CASI",
     # SSL problems sometimes
     "http://ilabs.washington.edu",
     "https://psychophysiology.cpmc.columbia.edu",
@@ -702,10 +732,12 @@ nitpick_ignore_regex = [
     ("py:.*", r"mne\.io\..*\.Raw.*"),  # RawEDF etc.
     ("py:.*", r"mne\.epochs\.EpochsFIF.*"),
     ("py:.*", r"mne\.io\..*\.Epochs.*"),  # EpochsKIT etc.
-    (
+    (  # BaseRaw attributes are documented in Raw
         "py:obj",
-        "(filename|metadata|proj|times|tmax|tmin|annotations|ch_names|compensation_grade|filenames|first_samp|first_time|last_samp|n_times|proj|times|tmax|tmin)",
-    ),  # noqa: E501
+        "(filename|metadata|proj|times|tmax|tmin|annotations|ch_names"
+        "|compensation_grade|duration|filenames|first_samp|first_time"
+        "|last_samp|n_times|proj|times|tmax|tmin)",
+    ),
 ]
 suppress_warnings = [
     "image.nonlocal_uri",  # we intentionally link outside
@@ -1660,6 +1692,7 @@ def make_version(app, exception):
 def setup(app):
     """Set up the Sphinx app."""
     app.connect("autodoc-process-docstring", append_attr_meth_examples)
+    app.connect("autodoc-process-docstring", fix_sklearn_inherited_docstrings)
     # High prio, will happen before SG
     app.connect("builder-inited", generate_credit_rst, priority=10)
     app.connect("builder-inited", report_scraper.set_dirs, priority=20)

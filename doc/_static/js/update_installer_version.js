@@ -54,7 +54,7 @@ async function warnVersion() {
         title.innerText = "Warning";
         inner.innerText = warn;
         outer.append(title, inner);
-        document.querySelectorAll('.platform-selector-tabset')[0].before(outer);
+        document.querySelectorAll('.install-selector-tabset')[0].before(outer);
     }
 }
 

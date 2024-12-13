@@ -436,8 +436,7 @@ class SourceSimulator:
         if len(waveform) != len(events):
             raise ValueError(
                 "Number of waveforms and events should match or "
-                "there should be a single waveform (%d != %d)."
-                % (len(waveform), len(events))
+                f"there should be a single waveform ({len(waveform)} != {len(events)})."
             )
         events = _ensure_events(events).astype(np.int64)
         # Update the last sample possible based on events + waveforms

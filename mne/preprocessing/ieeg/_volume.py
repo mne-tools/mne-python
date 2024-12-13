@@ -83,7 +83,9 @@ def warp_montage(montage, moving, static, reg_affine, sdr_morph, verbose=None):
     # now, apply SDR morph
     if sdr_morph is not None:
         ch_coords = sdr_morph.transform_points(
-            ch_coords, sdr_morph.domain_grid2world, sdr_morph.domain_world2grid
+            ch_coords,
+            coord2world=sdr_morph.domain_grid2world,
+            world2coord=sdr_morph.domain_world2grid,
         )
 
     # back to voxels but now for the static image

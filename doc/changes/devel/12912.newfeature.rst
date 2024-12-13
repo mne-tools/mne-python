@@ -1,0 +1,1 @@
+Added the ``psd_args`` argument to :func:`mne.viz.plot_ica_sources` and :meth:`mne.preprocessing.ICA.plot_sources`, by `Richard Scholz`_.

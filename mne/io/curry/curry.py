@@ -621,7 +621,7 @@ class RawCurry(BaseRaw):
             if isinstance(idx, slice):
                 idx = np.arange(idx.start, idx.stop)
             block = np.loadtxt(
-                self._filenames[0], skiprows=start, max_rows=stop - start, ndmin=2
+                self.filenames[0], skiprows=start, max_rows=stop - start, ndmin=2
             ).T
             _mult_cal_one(data, block, idx, cals, mult)
 

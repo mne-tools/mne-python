@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "b1203ada6f1a3ecaac4e8b67df45b9124a34dcd7",
+  "authors": [
+    {
+      "n": "Mathieu Scheltienne",
+      "e": "mathieu.scheltienne@fcbg.ch"
+    }
+  ],
+  "changes": {
+    "mne/io/ant/tests/test_ant.py": {
+      "a": 5,
+      "d": 0
+    }
+  }
+}

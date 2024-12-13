@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "899b7bf510966619a44acadf82023748e39d6529",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "mne/viz/_scraper.py": {
+      "a": 4,
+      "d": 6
+    },
+    "tutorials/epochs/40_autogenerate_metadata.py": {
+      "a": 0,
+      "d": 1
+    }
+  }
+}

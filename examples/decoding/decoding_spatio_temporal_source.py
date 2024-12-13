@@ -14,7 +14,7 @@ classifier then is trained to selected features of epochs in source space.
 
 # Author: Denis A. Engemann <denis.engemann@gmail.com>
 #         Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#         Jean-Remi King <jeanremi.king@gmail.com>
+#         Jean-Rémi King <jeanremi.king@gmail.com>
 #         Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD-3-Clause

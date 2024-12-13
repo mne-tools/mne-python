@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "922a7801a0ca6af225c7b861fe6bd97b1518af3a",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    },
+    {
+      "n": "autofix-ci[bot]",
+      "e": "114827586+autofix-ci[bot]@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    ".pre-commit-config.yaml": {
+      "a": 15,
+      "d": 0
+    },
+    "README.rst": {
+      "a": 7,
+      "d": 32
+    },
+    "pyproject.toml": {
+      "a": 1,
+      "d": 1
+    },
+    "tools/hooks/sync_dependencies.py": {
+      "a": 95,
+      "d": 0
+    }
+  }
+}

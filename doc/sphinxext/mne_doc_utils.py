@@ -11,6 +11,7 @@ import warnings
 
 import numpy as np
 import pyvista
+import sphinx.util.logging
 
 import mne
 from mne.utils import (
@@ -19,6 +20,7 @@ from mne.utils import (
 )
 from mne.viz import Brain
 
+sphinx_logger = sphinx.util.logging.getLogger("mne")
 _np_print_defaults = np.get_printoptions()
 
 
@@ -158,6 +160,11 @@ def reset_warnings(gallery_conf, fname):
         "ignore",
         "A worker stopped while some jobs were given to the executor.*",
         category=UserWarning,
+    )
+    # neo
+    warnings.filterwarnings(
+        "ignore",
+        "The 'copy' argument in Quantity is deprecated.*",
     )
 
     # In case we use np.set_printoptions in any tutorials, we only

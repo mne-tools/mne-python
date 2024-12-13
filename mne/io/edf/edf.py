@@ -7,6 +7,7 @@
 import os
 import re
 from datetime import date, datetime, timedelta, timezone
+from pathlib import Path
 
 import numpy as np
 from scipy.interpolate import interp1d
@@ -224,7 +225,7 @@ class RawEDF(BaseRaw):
             start,
             stop,
             self._raw_extras[fi],
-            self._filenames[fi],
+            self.filenames[fi],
             cals,
             mult,
         )
@@ -326,7 +327,7 @@ class RawGDF(BaseRaw):
             start,
             stop,
             self._raw_extras[fi],
-            self._filenames[fi],
+            self.filenames[fi],
             cals,
             mult,
         )
@@ -823,10 +824,19 @@ def _read_edf_header(
                     for info in id_info[4:]:
                         if "=" in info:
                             key, value = info.split("=")
+                            err = f"patient {key} info cannot be {value}, skipping."
                             if key in ["weight", "height"]:
-                                patient[key] = float(value)
+                                try:
+                                    patient[key] = float(value)
+                                except ValueError:
+                                    logger.debug(err)
+                                    continue
                             elif key in ["hand"]:
-                                patient[key] = int(value)
+                                try:
+                                    patient[key] = int(value)
+                                except ValueError:
+                                    logger.debug(err)
+                                    continue
                             else:
                                 warn(f"Invalid patient information {key}")
 
@@ -1442,7 +1452,7 @@ def _read_gdf_header(fname, exclude, include=None):
                     ne = np.fromfile(fid, UINT8, 3)
                     n_events = ne[0]
                     for i in range(1, len(ne)):
-                        n_events = n_events + ne[i] * 2 ** (i * 8)
+                        n_events = n_events + int(ne[i]) * 2 ** (i * 8)
                     event_sr = np.fromfile(fid, FLOAT32, 1)[0]
 
                 pos = np.fromfile(fid, UINT32, n_events) - 1  # 1-based inds
@@ -1928,7 +1938,7 @@ def _read_annotations_edf(annotations, ch_names=None, encoding="utf8"):
         The annotations.
     """
     pat = "([+-]\\d+\\.?\\d*)(\x15(\\d+\\.?\\d*))?(\x14.*?)\x14\x00"
-    if isinstance(annotations, str):
+    if isinstance(annotations, str | Path):
         with open(annotations, "rb") as annot_file:
             triggers = re.findall(pat.encode(), annot_file.read())
             triggers = [tuple(map(lambda x: x.decode(encoding), t)) for t in triggers]

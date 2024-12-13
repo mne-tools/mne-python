@@ -114,7 +114,11 @@ def _estimate_rank_from_s(s, tol="auto", tol_kind="absolute"):
         if s.ndim == 1:  # typical
             logger.info(
                 "    Using tolerance %0.2g (%0.2g eps * %d dim * %0.2g"
-                "  max singular value)" % (tol, eps, len(s), max_s)
+                "  max singular value)",
+                tol,
+                eps,
+                len(s),
+                max_s,
             )
     elif not (isinstance(tol, np.ndarray) and tol.dtype.kind == "f"):
         tol = float(tol)
@@ -197,7 +201,7 @@ def _estimate_rank_meeg_signals(
         ch_type = " + ".join(list(zip(*picks_list))[0])
     else:
         ch_type = log_ch_type
-    logger.info("    Estimated rank (%s): %d" % (ch_type, rank))
+    logger.info("    Estimated rank (%s): %d", ch_type, rank)
     return out
 
 
@@ -541,10 +545,10 @@ def _compute_rank(
             )
             if this_rank > this_info_rank:
                 warn(
-                    "Something went wrong in the data-driven estimation of "
-                    "the data rank as it exceeds the theoretical rank from "
-                    'the info (%d > %d). Consider setting rank to "auto" or '
-                    "setting it explicitly as an integer." % (this_rank, this_info_rank)
+                    "Something went wrong in the data-driven estimation of the data "
+                    "rank as it exceeds the theoretical rank from the info "
+                    f"({this_rank} > {this_info_rank}). Consider setting rank "
+                    'to "auto" or setting it explicitly as an integer.'
                 )
         if ch_type not in rank:
             rank[ch_type] = int(this_rank)

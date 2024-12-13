@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "c993ae5d65b3c161876da407e293e6784c6e8ad9",
+  "authors": [
+    {
+      "n": "Thomas S. Binns",
+      "e": "t.s.binns@outlook.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/12829.apichange.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/decoding/csp.py": {
+      "a": 7,
+      "d": 0
+    }
+  }
+}

@@ -1,0 +1,3 @@
+Fix a bug in :func:`mne.epochs.make_metadata`, where missing values in the columns
+generated for ``keep_first`` and ``keep_last`` events were represented by empty strings,
+while it should have been ``NA`` values, by `Richard Höchenberger`_.

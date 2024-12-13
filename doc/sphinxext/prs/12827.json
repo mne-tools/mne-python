@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "f3a3ca4430e1d4b9c539e7949c946f4f83bdb43f",
+  "authors": [
+    {
+      "n": "Thomas S. Binns",
+      "e": "t.s.binns@outlook.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/12827.other.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/decoding/csp.py": {
+      "a": 52,
+      "d": 3
+    },
+    "mne/decoding/ssd.py": {
+      "a": 25,
+      "d": 0
+    }
+  }
+}

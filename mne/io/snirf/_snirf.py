@@ -492,7 +492,7 @@ class RawSNIRF(BaseRaw):
         """Read a segment of data from a file."""
         import h5py
 
-        with h5py.File(self._filenames[0], "r") as dat:
+        with h5py.File(self.filenames[0], "r") as dat:
             one = dat["/nirs/data1/dataTimeSeries"][start:stop].T
 
         _mult_cal_one(data, one, idx, cals, mult)

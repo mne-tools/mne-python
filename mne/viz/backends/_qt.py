@@ -965,7 +965,7 @@ class _QtDialog(_AbstractDialog):
                         callback(button_name)
                     finally:
                         widget.unsetCursor()
-                        break
+                    break
 
         widget.buttonClicked.connect(func)
         return _QtDialogWidget(widget, modal)
@@ -1190,7 +1190,7 @@ class _QtDock(_AbstractDock, _QtLayout):
 
     def _dock_add_text(self, name, value, placeholder, *, callback=None, layout=None):
         layout = self._dock_layout if layout is None else layout
-        widget = QLineEdit(value)
+        widget = QLineEdit(str(value))
         widget.setPlaceholderText(placeholder)
         self._layout_add_widget(layout, widget)
         if callback is not None:
@@ -1213,6 +1213,8 @@ class _QtDock(_AbstractDock, _QtLayout):
     ):
         layout = self._dock_layout if layout is None else layout
         weakself = weakref.ref(self)
+        if initial_directory is not None:
+            initial_directory = str(initial_directory)
 
         def callback():
             self = weakself()

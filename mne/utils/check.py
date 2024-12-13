@@ -8,7 +8,7 @@ import numbers
 import operator
 import os
 import re
-from builtins import input  # noqa: UP029
+from builtins import input  # noqa: A004, UP029
 from difflib import get_close_matches
 from importlib import import_module
 from inspect import signature
@@ -52,10 +52,10 @@ def check_fname(fname, filetype, endings, endings_err=()):
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         Name of the file.
     filetype : str
-        Type of file. e.g., ICA, Epochs etc.
+        Type of file. e.g., ICA, Epochs, etc.
     endings : tuple
         Acceptable endings for the filename.
     endings_err : tuple
@@ -255,7 +255,7 @@ def _check_fname(
     *,
     check_bids_split=False,
     verbose=None,
-):
+) -> Path:
     """Check for file existence, and return its absolute path."""
     _validate_type(fname, "path-like", name)
     # special case for MNE-BIDS, check split

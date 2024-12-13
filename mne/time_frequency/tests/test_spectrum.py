@@ -2,6 +2,7 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+import re
 from functools import partial
 
 import numpy as np
@@ -503,7 +504,9 @@ def test_spectrum_array_errors():
     with pytest.raises(ValueError, match="'channel' must be the second dimension"):
         EpochsSpectrumArray(data, info, freqs, dim_names=("epoch", "freq", "channel"))
     # test mismatching number of channels
-    with pytest.raises(ValueError, match=r"number of channels.*good data channels"):
+    with pytest.raises(
+        ValueError, match=re.escape("number of good + bad data channels")
+    ):
         EpochsSpectrumArray(data[:, :-1, :], info, freqs, dim_names=dim_names)
     # test incorrect taper position
     with pytest.raises(ValueError, match="'taper' must be the second to last dim"):
@@ -609,3 +612,18 @@ def test_plot_spectrum(method, output, average, request):
         assert n_bad == 1
     spectrum.plot_topo()
     spectrum.plot_topomap()
+
+
+def test_plot_spectrum_array_with_bads():
+    """Test plotting a spectrum array with bads."""
+    raw = RawArray(np.random.randn(3, 1000), create_info(3, 1000, "eeg"))
+    raw.info["bads"] = [raw.ch_names[1]]
+    spectrum = raw.compute_psd()
+    with pytest.raises(
+        ValueError, match=re.escape("number of good + bad data channels")
+    ):
+        SpectrumArray(spectrum.get_data(), spectrum.info, spectrum.freqs)
+    spectrum2 = SpectrumArray(
+        spectrum.get_data(exclude=()), spectrum.info, spectrum.freqs
+    )
+    spectrum2.plot(spatial_colors=False)

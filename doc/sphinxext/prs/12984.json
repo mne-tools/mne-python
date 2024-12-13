@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "57076c91ff9e8d49e8119648c9ac38fa5f8b38d7",
+  "authors": [
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    }
+  ],
+  "changes": {
+    "mne/_fiff/reference.py": {
+      "a": 8,
+      "d": 11
+    },
+    "mne/_fiff/tests/test_reference.py": {
+      "a": 3,
+      "d": 3
+    }
+  }
+}

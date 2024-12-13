@@ -121,7 +121,7 @@ def _prepare_source_params(
     #   Pick the correct channels from the data
     #
     sel = _pick_channels_inverse_operator(inst.ch_names, inv)
-    logger.info("Picked %d channels from the data" % len(sel))
+    logger.info("Picked %d channels from the data", len(sel))
     logger.info("Computing inverse...")
     #
     #   Simple matrix multiplication followed by combination of the
@@ -156,7 +156,7 @@ def _prepare_source_params(
         rank = np.sum(s > 1e-8 * s[0])
         K = s[:rank] * U[:, :rank]
         Vh = Vh[:rank]
-        logger.info("Reducing data rank %d -> %d" % (len(s), rank))
+        logger.info("Reducing data rank %d -> %d", len(s), rank)
     else:
         Vh = None
     is_free_ori = inverse_operator["source_ori"] == FIFF.FIFFV_MNE_FREE_ORI
@@ -979,9 +979,9 @@ def _compute_source_psd_epochs(
         n_epochs = len(epochs)
     except RuntimeError:
         n_epochs = len(epochs.events)
-        extra = "on at most %d epochs" % (n_epochs,)
+        extra = f"on at most {n_epochs} epochs"
     else:
-        extra = "on %d epochs" % (n_epochs,)
+        extra = f"on {n_epochs} epochs"
     if isinstance(bandwidth, str):
         bandwidth = f"{bandwidth} windowing"
     else:
@@ -1075,7 +1075,7 @@ def _compute_source_psd_epochs(
         )
 
         if return_sensor:
-            comment = "Epoch %d PSD" % (k,)
+            comment = f"Epoch {k} PSD"
             out = (
                 out,
                 EvokedArray(sensor_psd, evoked_info.copy(), freqs[0], comment, nave),

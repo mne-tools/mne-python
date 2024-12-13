@@ -1,0 +1,1 @@
+Add support for `dict` type argument ``ref_channels`` to :func:`mne.set_eeg_reference`, to allow flexible re-referencing (e.g. ``raw.set_eeg_reference(ref_channels={'A1': ['A2', 'A3']})`` will set the new A1 data to be ``A1 - mean(A2, A3)``), by `Alex Lepauvre`_ and `Qian Chu`_ and `Daniel McCloy`_.

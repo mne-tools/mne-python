@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "528e04658c5ea7a5e55bcb5889ebb4c6d6847284",
+  "authors": [
+    {
+      "n": "Mathieu Scheltienne",
+      "e": "mathieu.scheltienne@fcbg.ch"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/12792.newfeature.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/datasets/config.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/ant/ant.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/ant/tests/test_ant.py": {
+      "a": 218,
+      "d": 33
+    },
+    "pyproject.toml": {
+      "a": 1,
+      "d": 1
+    },
+    "tools/vulture_allowlist.py": {
+      "a": 1,
+      "d": 0
+    },
+    "tutorials/io/20_reading_eeg_data.py": {
+      "a": 28,
+      "d": 1
+    }
+  }
+}

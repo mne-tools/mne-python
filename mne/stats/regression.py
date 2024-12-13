@@ -297,9 +297,10 @@ def linear_regression_raw(
     coefs = solver(X, data.T)
     if coefs.shape[0] != data.shape[0]:
         raise ValueError(
-            "solver output has unexcepted shape. Supply a "
+            f"solver output has unexcepted shape {coefs.shape}. Supply a "
             "function that returns coefficients in the form "
-            "(n_targets, n_features), where targets == channels."
+            "(n_targets, n_features), where "
+            f"n_targets == n_channels == {data.shape[0]}."
         )
 
     # construct Evoked objects to be returned from output

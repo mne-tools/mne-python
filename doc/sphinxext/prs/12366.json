@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "d917be12de5739654f3c690fe176382948e261d2",
+  "authors": [
+    {
+      "n": "Qian Chu",
+      "e": null
+    },
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Alex Lepauvre",
+      "e": "alexander.lepauvre@ad.aesthetics.mpg.de"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/12366.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/_fiff/reference.py": {
+      "a": 103,
+      "d": 14
+    },
+    "mne/_fiff/tests/test_reference.py": {
+      "a": 154,
+      "d": 0
+    },
+    "mne/utils/docs.py": {
+      "a": 18,
+      "d": 2
+    }
+  }
+}

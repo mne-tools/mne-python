@@ -1,9 +1,9 @@
 """
 .. _ex-ssd-spatial-filters:
 
-===========================================================
-Compute Spectro-Spatial Decomposition (SSD) spatial filters
-===========================================================
+================================================================
+Compute spatial filters with Spatio-Spectral Decomposition (SSD)
+================================================================
 
 In this example, we will compute spatial filters for retaining
 oscillatory brain activity and down-weighting 1/f background signals
@@ -33,7 +33,7 @@ fname = data_path() / "SubjectCMC.ds"
 
 # Prepare data
 raw = mne.io.read_raw_ctf(fname)
-raw.crop(50.0, 110.0).load_data()  # crop for memory purposes
+raw.crop(tmin=50.0, tmax=110.0).load_data()  # crop for memory purposes
 raw.resample(sfreq=250)
 
 raw.pick_types(meg=True, ref_meg=False)
@@ -63,9 +63,9 @@ ssd.fit(X=raw.get_data())
 
 
 # %%
-# Let's investigate spatial filter with max power ratio.
+# Let's investigate spatial filter with the max power ratio.
 # We will first inspect the topographies.
-# According to Nikulin et al. 2011 this is done by either inverting the filters
+# According to Nikulin et al. (2011), this is done by either inverting the filters
 # (W^{-1}) or by multiplying the noise cov with the filters Eq. (22) (C_n W)^t.
 # We rely on the inversion approach here.
 
@@ -86,7 +86,7 @@ psd, freqs = mne.time_frequency.psd_array_welch(
 # Note that this is not necessary if sort_by_spectral_ratio=True (default).
 spec_ratio, sorter = ssd.get_spectral_ratio(ssd_sources)
 
-# Plot spectral ratio (see Eq. 24 in Nikulin 2011).
+# Plot spectral ratio (see Eq. 24 in Nikulin et al., 2011).
 fig, ax = plt.subplots(1)
 ax.plot(spec_ratio, color="black")
 ax.plot(spec_ratio[sorter], color="orange", label="sorted eigenvalues")
@@ -100,7 +100,7 @@ ax.axhline(1, linestyle="--")
 # the sorting might make a difference.
 
 # %%
-# Let's also look at the power spectrum of that source and compare it to
+# Let's also look at the power spectrum of that source and compare it
 # to the power spectrum of the source with lowest SNR.
 
 below50 = freqs < 50
@@ -121,7 +121,7 @@ ax.legend()
 # %%
 # Epoched data
 # ------------
-# Although we suggest to use this method before epoching, there might be some
+# Although we suggest using this method before epoching, there might be some
 # situations in which data can only be treated by chunks.
 
 # Build epochs as sliding windows over the continuous raw file.

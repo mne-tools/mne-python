@@ -93,7 +93,7 @@ class PyVistaFigure(Figure3D):
         self,
         plotter=None,
         show=False,
-        title="PyVista Scene",
+        title="MNE-Python 3D Figure",
         size=(600, 600),
         shape=(1, 1),
         background_color="black",
@@ -200,7 +200,8 @@ class _PyVistaRenderer(_AbstractRenderer):
         fig=None,
         size=(600, 600),
         bgcolor="black",
-        name="PyVista Scene",
+        *,
+        name=None,
         show=False,
         shape=(1, 1),
         notebook=None,
@@ -1187,10 +1188,17 @@ def _set_3d_view(
         _process_events(figure.plotter)
 
 
-def _set_3d_title(figure, title, size=16):
-    figure.plotter.add_text(title, font_size=size, color="white", name="title")
+def _set_3d_title(figure, title, size=16, *, color="white", position="upper_left"):
+    handle = figure.plotter.add_text(
+        title,
+        font_size=size,
+        color=color,
+        position=position,
+        name="title",
+    )
     figure.plotter.update()
     _process_events(figure.plotter)
+    return handle
 
 
 def _check_3d_figure(figure):

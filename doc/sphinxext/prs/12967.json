@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "d810cc5977f95f76c3eb82db6b7003af68bd6176",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/_fiff/meas_info.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/_fiff/proc_history.py": {
+      "a": 34,
+      "d": 20
+    },
+    "mne/_fiff/tests/test_meas_info.py": {
+      "a": 143,
+      "d": 56
+    },
+    "mne/_fiff/write.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/io/fiff/tests/test_raw_fiff.py": {
+      "a": 16,
+      "d": 0
+    },
+    "mne/io/tests/test_raw.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/utils/_testing.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/utils/numerics.py": {
+      "a": 3,
+      "d": 2
+    }
+  }
+}

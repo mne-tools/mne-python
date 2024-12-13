@@ -1,0 +1,1 @@
+Deprecate ``subject`` parameter in favor of ``subjects`` in :func:`mne.datasets.eegbci.load_data`, by `Stefan Appelhoff`_.

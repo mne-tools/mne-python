@@ -502,7 +502,7 @@ class RawNihon(BaseRaw):
                 rel_start = start - ends[start_block - 1]
             start_offset = datastart + rel_start * n_channels * 2
 
-            with open(self._filenames[fi], "rb") as fid:
+            with open(self.filenames[fi], "rb") as fid:
                 to_read = (stop - start) * n_channels
                 fid.seek(start_offset)
                 block_data = np.fromfile(fid, "<u2", to_read) + 0x8000
