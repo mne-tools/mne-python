@@ -1501,7 +1501,7 @@ class BaseRaw(
             return self, events
 
     @verbose
-    def rescale(self, scale, *, verbose=None):
+    def rescale(self, scalings, *, verbose=None):
         """Rescale channels.
 
         .. warning::
@@ -1512,8 +1512,8 @@ class BaseRaw(
 
         Parameters
         ----------
-        scale : int | float | dict
-            The scaling factor by which to multiply the data. If a float, the same
+        scalings : int | float | dict
+            The scaling factor(s) by which to multiply the data. If a float, the same
             scaling factor is applied to all channels (this works only if all channels
             are of the same type). If a dict, the keys must be valid channel types and
             the values the scaling factors to apply to the corresponding channels.
@@ -1539,26 +1539,26 @@ class BaseRaw(
 
             >>> raw.rescale({"eeg": 1e-6})  # doctest: +SKIP
         """
-        _validate_type(scale, (int, float, dict), "scale")
+        _validate_type(scalings, (int, float, dict), "scalings")
         _check_preload(self, "raw.rescale")
 
         channel_types = self.get_channel_types(unique=True)
 
-        if isinstance(scale, int | float):
+        if isinstance(scalings, int | float):
             if len(channel_types) == 1:
-                self.apply_function(lambda x: x * scale, channel_wise=False)
+                self.apply_function(lambda x: x * scalings, channel_wise=False)
             else:
                 raise ValueError(
-                    "If scale is a scalar, all channels must be of the same type. "
+                    "If scalings is a scalar, all channels must be of the same type. "
                     "Consider passing a dict instead."
                 )
         else:
-            for ch_type in scale.keys():
+            for ch_type in scalings.keys():
                 if ch_type not in channel_types:
                     raise ValueError(
                         f'Channel type "{ch_type}" is not present in the Raw file.'
                     )
-            for ch_type, ch_scale in scale.items():
+            for ch_type, ch_scale in scalings.items():
                 self.apply_function(
                     lambda x: x * ch_scale, picks=ch_type, channel_wise=False
                 )

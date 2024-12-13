@@ -1069,7 +1069,7 @@ def test_rescale():
     """Test rescaling channels."""
     raw = read_raw_fif(raw_fname, preload=True)  # multiple channel types
 
-    with pytest.raises(ValueError, match="If scale is a scalar, all channels"):
+    with pytest.raises(ValueError, match="If scalings is a scalar, all channels"):
         raw.rescale(2)  # need to use dict
 
     orig = raw.get_data(picks="eeg")
