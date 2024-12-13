@@ -147,9 +147,11 @@ def test_export_raw_eeglab_annotations(tmp_path, tmin):
     # read in the file
     with pytest.warns(RuntimeWarning, match="is above the 99th percentile"):
         raw_read = read_raw_eeglab(temp_fname, preload=True, montage_units="m")
-    assert raw_read.first_time == 0 # exportation resets first_time
-    valid_annot = raw.annotations.onset >= tmin # only annotations in the cropped range gets exported
-    
+    assert raw_read.first_time == 0  # exportation resets first_time
+    valid_annot = (
+        raw.annotations.onset >= tmin
+    )  # only annotations in the cropped range gets exported
+
     # compare annotations before and after export
     assert_array_almost_equal(
         raw.annotations.onset[valid_annot] - raw.first_time,
@@ -331,16 +333,17 @@ def test_export_edf_annotations(tmp_path, tmin):
 
     # read in the file
     raw_read = read_raw_edf(temp_fname, preload=True)
-    assert raw_read.first_time == 0 # exportation resets first_time
+    assert raw_read.first_time == 0  # exportation resets first_time
     bad_annot = raw_read.annotations.description == "BAD_ACQ_SKIP"
     if bad_annot.any():
         raw_read.annotations.delete(bad_annot)
-    valid_annot = raw.annotations.onset >= tmin # only annotations in the cropped range gets exported
-    
+    valid_annot = (
+        raw.annotations.onset >= tmin
+    )  # only annotations in the cropped range gets exported
+
     # compare annotations before and after export
     assert_array_almost_equal(
-        raw.annotations.onset[valid_annot] - raw.first_time,
-        raw_read.annotations.onset
+        raw.annotations.onset[valid_annot] - raw.first_time, raw_read.annotations.onset
     )
     assert_array_equal(
         raw.annotations.duration[valid_annot], raw_read.annotations.duration
