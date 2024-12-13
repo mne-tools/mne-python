@@ -147,12 +147,13 @@ def test_export_raw_eeglab_annotations(tmp_path, tmin):
     # read in the file
     with pytest.warns(RuntimeWarning, match="is above the 99th percentile"):
         raw_read = read_raw_eeglab(temp_fname, preload=True, montage_units="m")
-    assert raw_read.first_time == 0
-
-    valid_annot = raw.annotations.onset >= tmin
+    assert raw_read.first_time == 0 # exportation resets first_time
+    valid_annot = raw.annotations.onset >= tmin # only annotations in the cropped range gets exported
+    
+    # compare annotations before and after export
     assert_array_almost_equal(
         raw.annotations.onset[valid_annot] - raw.first_time,
-        raw_read.annotations.onset - raw_read.first_time,
+        raw_read.annotations.onset,
     )
     assert_array_equal(
         raw.annotations.duration[valid_annot], raw_read.annotations.duration
@@ -194,6 +195,7 @@ def test_double_export_edf(tmp_path):
     """Test exporting an EDF file multiple times."""
     raw = _create_raw_for_edf_tests(stim_channel_index=2)
     raw.info.set_meas_date("2023-09-04 14:53:09.000")
+    raw.set_annotations(Annotations(onset=[1], duration=[0], description=["test"]))
 
     # include subject info and measurement date
     raw.info["subject_info"] = dict(
@@ -315,7 +317,7 @@ def test_export_edf_annotations(tmp_path, tmin):
     raw.crop(tmin)
     assert raw.first_time == tmin
 
-    if tmin % 1 == 0:
+    if raw.n_times % raw.info["sfreq"] == 0:
         expectation = nullcontext()
     else:
         expectation = pytest.warns(
@@ -325,16 +327,20 @@ def test_export_edf_annotations(tmp_path, tmin):
     # export
     temp_fname = tmp_path / "test.edf"
     with expectation:
-        raw.export(temp_fname, physical_range=(0, 10))
+        raw.export(temp_fname)
 
     # read in the file
     raw_read = read_raw_edf(temp_fname, preload=True)
-    assert raw_read.first_time == 0
-
-    valid_annot = raw.annotations.onset >= tmin
+    assert raw_read.first_time == 0 # exportation resets first_time
+    bad_annot = raw_read.annotations.description == "BAD_ACQ_SKIP"
+    if bad_annot.any():
+        raw_read.annotations.delete(bad_annot)
+    valid_annot = raw.annotations.onset >= tmin # only annotations in the cropped range gets exported
+    
+    # compare annotations before and after export
     assert_array_almost_equal(
         raw.annotations.onset[valid_annot] - raw.first_time,
-        raw_read.annotations.onset - raw_read.first_time,
+        raw_read.annotations.onset
     )
     assert_array_equal(
         raw.annotations.duration[valid_annot], raw_read.annotations.duration
