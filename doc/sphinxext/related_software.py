@@ -80,6 +80,7 @@ MANUAL_PACKAGES = {
         "Home-page": "https://github.com/cbrnr/mnelab",
         "Summary": "A graphical user interface for MNE",
     },
+    # TODO: these do not set a valid homepage or documentation page on PyPI
     "mne-features": {
         "Home-page": "https://mne.tools/mne-features",
         "Summary": "MNE-Features software for extracting features from multivariate time series",  # noqa: E501
