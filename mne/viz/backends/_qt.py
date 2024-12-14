@@ -102,7 +102,6 @@ from ._pyvista import (
     _check_3d_figure,  # noqa: F401
     _close_3d_figure,  # noqa: F401
     _close_all,  # noqa: F401
-    _is_mesa,  # noqa: F401
     _PyVistaRenderer,
     _set_3d_title,  # noqa: F401
     _set_3d_view,  # noqa: F401
