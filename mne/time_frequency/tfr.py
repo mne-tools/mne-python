@@ -3105,8 +3105,14 @@ class EpochsTFR(BaseTFR, GetEpochsMixin):
         ).squeeze(axis=0)
         self.events = state.get("events", _ensure_events(fake_events))
         self.event_id = state.get("event_id", _check_event_id(None, self.events))
-        self.drop_log = state.get("drop_log", tuple())
         self.selection = state.get("selection", np.arange(n_epochs))
+        self.drop_log = state.get(
+            "drop_log",
+            tuple(
+                () if k in self.selection else ("IGNORED",)
+                for k in range(max(len(self.events), max(self.selection) + 1))
+            ),
+        )
         self._bad_dropped = True  # always true, need for `equalize_event_counts()`
 
     def __next__(self, return_event_id=False):
