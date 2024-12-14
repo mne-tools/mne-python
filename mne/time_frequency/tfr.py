@@ -1660,6 +1660,7 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
                 fmax=fmax,
                 baseline=baseline,
                 mode=mode,
+                taper_weights=self.weights,
                 verbose=verbose,
             )
             # average over times and freqs
@@ -2026,6 +2027,7 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
             baseline=baseline,
             mode=mode,
             dB=dB,
+            taper_weights=self.weights,
             verbose=verbose,
         )
         # shape
@@ -2036,6 +2038,9 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
         want_shape[ch_axis] = len(idx_picks) if combine is None else 1
         want_shape[freq_axis] = len(freqs)  # in case there was fmin/fmax cropping
         want_shape[time_axis] = len(times)  # in case there was tmin/tmax cropping
+        want_shape = [
+            n for i, n in enumerate(want_shape) if self._dims[i] != "taper"
+        ]  # tapers must be aggregated over by now
         want_shape = tuple(want_shape)
         # combine
         combine_was_none = combine is None
@@ -2379,6 +2384,7 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
                 fmax=_fmax,
                 baseline=baseline,
                 mode=mode,
+                taper_weights=self.weights,
                 verbose=verbose,
             )
             _data = _data.mean(axis=(-1, -2))  # avg over times and freqs
@@ -2527,23 +2533,23 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
         info, data = _prepare_picks(info, data, picks, axis=0)
         del picks
 
-        # TODO this is the only remaining call to _preproc_tfr; should be refactored
-        #      (to use _prep_data_for_plot?)
-        data, times, freqs, vmin, vmax = _preproc_tfr(
+        # baseline, crop, convert complex to power, aggregate tapers, and dB scaling
+        data, times, freqs = _prep_data_for_plot(
             data,
             times,
             freqs,
-            tmin,
-            tmax,
-            fmin,
-            fmax,
-            mode,
-            baseline,
-            vmin,
-            vmax,
-            dB,
-            info["sfreq"],
+            tmin=tmin,
+            tmax=tmax,
+            fmin=fmin,
+            fmax=fmax,
+            baseline=baseline,
+            mode=mode,
+            dB=dB,
+            taper_weights=self.weights,
+            verbose=verbose,
         )
+        # get vlims
+        vmin, vmax = _setup_vmin_vmax(data, vmin, vmax)
 
         if layout is None:
             from mne import find_layout
@@ -4054,62 +4060,6 @@ def _centered(arr, newsize):
     return arr[tuple(myslice)]
 
 
-def _preproc_tfr(
-    data,
-    times,
-    freqs,
-    tmin,
-    tmax,
-    fmin,
-    fmax,
-    mode,
-    baseline,
-    vmin,
-    vmax,
-    dB,
-    sfreq,
-    copy=None,
-):
-    """Aux Function to prepare tfr computation."""
-    if copy is None:
-        copy = baseline is not None
-    data = rescale(data, times, baseline, mode, copy=copy)
-
-    if np.iscomplexobj(data):
-        # complex amplitude → real power (for plotting); if data are
-        # real-valued they should already be power
-        data = (data * data.conj()).real
-
-    # crop time
-    itmin, itmax = None, None
-    idx = np.where(_time_mask(times, tmin, tmax, sfreq=sfreq))[0]
-    if tmin is not None:
-        itmin = idx[0]
-    if tmax is not None:
-        itmax = idx[-1] + 1
-
-    times = times[itmin:itmax]
-
-    # crop freqs
-    ifmin, ifmax = None, None
-    idx = np.where(_time_mask(freqs, fmin, fmax, sfreq=sfreq))[0]
-    if fmin is not None:
-        ifmin = idx[0]
-    if fmax is not None:
-        ifmax = idx[-1] + 1
-
-    freqs = freqs[ifmin:ifmax]
-
-    # crop data
-    data = data[:, ifmin:ifmax, itmin:itmax]
-
-    if dB:
-        data = 10 * np.log10(data)
-
-    vmin, vmax = _setup_vmin_vmax(data, vmin, vmax)
-    return data, times, freqs, vmin, vmax
-
-
 def _ensure_slice(decim):
     """Aux function checking the decim parameter."""
     _validate_type(decim, ("int-like", slice), "decim")
@@ -4344,6 +4294,7 @@ def _prep_data_for_plot(
     baseline=None,
     mode=None,
     dB=False,
+    taper_weights=None,
     verbose=None,
 ):
     # baseline
@@ -4357,9 +4308,39 @@ def _prep_data_for_plot(
     freqs = freqs[freq_mask]
     # crop data
     data = data[..., freq_mask, :][..., time_mask]
-    # complex amplitude → real power; real-valued data is already power (or ITC)
+    # handle unaggregated multitaper (complex or phase multitaper data)
+    if taper_weights is not None:  # assumes a taper dimension
+        logger.info("Aggregating multitaper estimates before plotting...")
+        if np.iscomplexobj(data):  # complex coefficients → power
+            data = _tfr_from_mt(data, taper_weights)
+        else:  # tapered phase data → weighted phase data
+            data = (data * taper_weights[np.newaxis, :, :, np.newaxis]).mean(axis=1)
+    # handle remaining complex amplitude → real power
     if np.iscomplexobj(data):
         data = (data * data.conj()).real
     if dB:
         data = 10 * np.log10(data)
     return data, times, freqs
+
+
+def _tfr_from_mt(x_mt, weights):
+    """Aggregate complex multitaper coefficients over tapers and convert to power.
+
+    Parameters
+    ----------
+    x_mt : array, shape (n_channels, n_tapers, n_freqs, n_times)
+        The complex-valued multitaper coefficients.
+    weights : array, shape (n_tapers, n_freqs)
+        The weights to use to combine the tapered estimates.
+
+    Returns
+    -------
+    tfr : array, shape (n_channels, n_freqs, n_times)
+        The time-frequency power estimates.
+    """
+    weights = weights[np.newaxis, :, :, np.newaxis]  # add singleton channel & time dims
+    tfr = weights * x_mt
+    tfr *= tfr.conj()
+    tfr = tfr.real.sum(axis=1)
+    tfr *= 2 / (weights * weights.conj()).real.sum(axis=1)
+    return tfr

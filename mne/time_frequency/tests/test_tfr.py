@@ -859,6 +859,25 @@ def test_plot():
     plt.close("all")
 
 
+@pytest.mark.parametrize("output", ("complex", "phase"))
+def test_plot_multitaper_complex_phase(output):
+    """Test TFR plotting of data with a taper dimension."""
+    # Create example data with a taper dimension
+    n_chans, n_tapers, n_freqs, n_times = (3, 4, 2, 3)
+    data = np.random.rand(n_chans, n_tapers, n_freqs, n_times)
+    if output == "complex":
+        data = data + np.random.rand(*data.shape) * 1j  # add imaginary data
+    times = np.arange(n_times)
+    freqs = np.arange(n_freqs)
+    weights = np.random.rand(n_tapers, n_freqs)
+    info = mne.create_info(n_chans, 1000.0, "eeg")
+    tfr = AverageTFRArray(
+        info=info, data=data, times=times, freqs=freqs, weights=weights
+    )
+    # Check that plotting works
+    tfr.plot()
+
+
 @pytest.mark.parametrize(
     "timefreqs,title,combine",
     (
@@ -1611,23 +1630,23 @@ def test_epochstfr_iter_evoked(epochs_tfr, copy):
     assert avgs[0].comment == str(epochs_tfr.events[0, -1])
 
 
-@pytest.mark.parametrize("inst", ("raw", "epochs", "evoked"))
-def test_tfrarray_tapered_spectra(inst, evoked, request):
+@pytest.mark.parametrize("obj_type", ("raw", "epochs", "evoked"))
+def test_tfrarray_tapered_spectra(obj_type):
     """Test {Raw,Epochs,Average}TFRArray instantiation with tapered spectra."""
-    # Load data object
-    inst = _get_inst(inst, request, evoked=evoked)
-    inst.pick("mag")
-    # Compute TFR with taper dimension (can be complex or phase output)
-    tfr = inst.compute_tfr(
-        method="multitaper", freqs=freqs_linspace, n_cycles=4, output="complex"
-    )
-    tfr_array, weights = tfr.get_data(), tfr.weights
+    # Create example data with a taper dimension
+    n_epochs, n_chans, n_tapers, n_freqs, n_times = (5, 3, 4, 2, 6)
+    data_shape = (n_chans, n_tapers, n_freqs, n_times)
+    if obj_type == "epochs":
+        data_shape = (n_epochs,) + data_shape
+    data = np.random.rand(*data_shape)
+    times = np.arange(n_times)
+    freqs = np.arange(n_freqs)
+    weights = np.random.rand(n_tapers, n_freqs)
+    info = mne.create_info(n_chans, 1000.0, "eeg")
     # Prepare for TFRArray object instantiation
-    defaults = dict(
-        info=inst.info, data=tfr_array, times=inst.times, freqs=freqs_linspace
-    )
-    class_mapping = dict(Raw=RawTFRArray, Epochs=EpochsTFRArray, Evoked=AverageTFRArray)
-    TFRArray = class_mapping[inst.__class__.__name__]
+    defaults = dict(info=info, data=data, times=times, freqs=freqs)
+    class_mapping = dict(raw=RawTFRArray, epochs=EpochsTFRArray, evoked=AverageTFRArray)
+    TFRArray = class_mapping[obj_type]
     # Check TFRArray instantiation runs with good data
     TFRArray(**defaults, weights=weights)
     # Check taper dimension but no weights caught
@@ -1830,7 +1849,20 @@ def test_tfr_plot_topomap(inst, ch_type, full_average_tfr, request):
     )
 
 
-def test_combine_tfr_error_catch(request, average_tfr):
+@pytest.mark.parametrize("output", ("complex", "phase"))
+def test_tfr_topo_plotting_multitaper_complex_phase(output, evoked):
+    """Test plot_joint/topo/topomap() for data with a taper dimension."""
+    # Compute TFR with taper dimension
+    tfr = evoked.compute_tfr(
+        method="multitaper", freqs=freqs_linspace, n_cycles=4, output=output
+    )
+    # Check that plotting works
+    tfr.plot_joint(topomap_args=dict(res=8, contours=0, sensors=False))  # for speed
+    tfr.plot_topo()
+    tfr.plot_topomap()
+
+
+def test_combine_tfr_error_catch(average_tfr):
     """Test combine_tfr() catches errors."""
     # check unrecognised weights string caught
     with pytest.raises(ValueError, match='Weights must be .* "nave" or "equal"'):
