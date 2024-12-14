@@ -1,0 +1,1 @@
+Add new :meth:`Raw.rescale <mne.io.Raw.rescale>` method to rescale the data in place, by `Clemens Brunner`_.
