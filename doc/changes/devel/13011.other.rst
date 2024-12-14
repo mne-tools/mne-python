@@ -1,0 +1,1 @@
+Repository CI security is now audited using `zizmor <https://woodruffw.github.io/zizmor>`__, by `Eric Larson`_.
