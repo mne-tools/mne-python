@@ -6,7 +6,6 @@
 
 from functools import partial
 from itertools import cycle
-from types import SimpleNamespace
 
 import numpy as np
 
@@ -372,7 +371,6 @@ def _plot_connectivity_circle(
         cb_yticks = plt.getp(cb.ax.axes, "yticklabels")
         cb.ax.tick_params(labelsize=fontsize_colorbar)
         plt.setp(cb_yticks, color=textcolor)
-        fig.mne = SimpleNamespace(colorbar=cb)
 
     # Add callback for interaction
     if interactive:
