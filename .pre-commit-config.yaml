@@ -1,7 +1,7 @@
 repos:
   # Ruff mne
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.8.1
+    rev: v0.8.2
     hooks:
       - id: ruff
         name: ruff lint mne
@@ -80,6 +80,11 @@ repos:
         files: pyproject.toml
         additional_dependencies: ["mne"]
 
+  # zizmor
+  - repo: https://github.com/woodruffw/zizmor-pre-commit
+    rev: v0.8.0
+    hooks:
+      - id: zizmor
 
 # these should *not* be run on CIs:
 ci:
