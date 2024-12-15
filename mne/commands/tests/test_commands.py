@@ -12,7 +12,6 @@ import numpy as np
 import pytest
 from numpy.testing import assert_allclose, assert_equal
 
-import mne
 from mne import (
     concatenate_raws,
     read_bem_solution,
@@ -186,8 +185,8 @@ def test_make_scalp_surfaces(tmp_path, monkeypatch):
     medium_fname = op.join(tempdir, "sample", "bem", "sample-head-medium.fif")
     sparse_fname = op.join(tempdir, "sample", "bem", "sample-head-sparse.fif")
 
-    os.makedirs(op.join(tempdir, "sample", "mri"), exist_ok=True) 
-    os.makedirs(op.join(tempdir, "sample", "surf"), exist_ok=True) 
+    os.makedirs(op.join(tempdir, "sample", "mri"), exist_ok=True)
+    os.makedirs(op.join(tempdir, "sample", "surf"), exist_ok=True)
 
     shutil.copy(t1_path, t1_path_new)
     cmd = ("-s", "sample", "--subjects-dir", tempdir, "--no-decimate")
@@ -227,7 +226,7 @@ def test_make_scalp_surfaces(tmp_path, monkeypatch):
         assert op.isfile(dense_fname)
         assert not op.isfile(medium_fname)
         assert not op.isfile(sparse_fname)
-    
+
     os.remove(headseg_path)
     os.remove(surf_path)
     os.remove(dense_fname)
@@ -235,7 +234,8 @@ def test_make_scalp_surfaces(tmp_path, monkeypatch):
     with ArgvSetter(cmd, disable_stdout=False, disable_stderr=False):
         with pytest.raises(RuntimeError, match="Trying to generate new scalp surfaces"):
             mne_make_scalp_surfaces.run()
-    
+
+
 @pytest.mark.slowtest
 @testing.requires_testing_data
 def test_report(tmp_path):
