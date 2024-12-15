@@ -189,7 +189,7 @@ def test_make_scalp_surfaces(tmp_path, monkeypatch):
     os.makedirs(op.join(tempdir, "sample", "mri"), exist_ok=True) 
     os.makedirs(op.join(tempdir, "sample", "surf"), exist_ok=True) 
 
-    shutil.copy(op.join(t1_path, t1_path_new))
+    shutil.copy(t1_path, t1_path_new)
     cmd = ("-s", "sample", "--subjects-dir", tempdir, "--no-decimate")
     with ArgvSetter(cmd, disable_stdout=False, disable_stderr=False):
         monkeypatch.delenv("FREESURFER_HOME", raising=False)
