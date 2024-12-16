@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "5e2a6d8eb0edefe3c46a5b3250a3a546224d1ce2",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/nihon/nihon.py": {
+      "a": 12,
+      "d": 2
+    }
+  }
+}

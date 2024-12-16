@@ -1,0 +1,60 @@
+<table class="table mne-repr-table">
+    <tr>
+        <th>Data type</th>
+        <td>{{ tfr._data_type }}</td>
+    </tr>
+    {%- for unit in units %}
+    <tr>
+        {%- if loop.index == 1 %}
+        <th rowspan={{ units | length }}>Units</th>
+        {%- endif %}
+        <td class="justify">{{ unit }}</td>
+    </tr>
+    {%- endfor %}
+    <tr>
+        <th>Data source</th>
+        <td>{{ inst_type }}</td>
+    </tr>
+    {%- if inst_type == "Epochs" %}
+    <tr>
+        <th>Number of epochs</th>
+        <td>{{ tfr.shape[0] }}</td>
+    </tr>
+    {% endif -%}
+    {%- if inst_type == "Evoked" %}
+    <tr>
+        <th>Number of averaged trials</th>
+        <td>{{ nave }}</td>
+    </tr>
+    {% endif -%}
+    <tr>
+        <th>Dims</th>
+        <td>{{ tfr._dims | join(", ") }}</td>
+    </tr>
+    <tr>
+        <th>Estimation method</th>
+        <td>{{ tfr.method }}</td>
+    </tr>
+    {% if "taper" in tfr._dims %}
+    <tr>
+        <th>Number of tapers</th>
+        <td>{{ tfr._mt_weights.size }}</td>
+    </tr>
+    {% endif %}
+    <tr>
+        <th>Number of channels</th>
+        <td>{{ tfr.ch_names|length }}</td>
+    </tr>
+    <tr>
+        <th>Number of timepoints</th>
+        <td>{{ tfr.times|length }}</td>
+    </tr>
+    <tr>
+        <th>Number of frequency bins</th>
+        <td>{{ tfr.freqs|length }}</td>
+    </tr>
+    <tr>
+        <th>Frequency range</th>
+        <td>{{ '%.2f'|format(tfr.freqs[0]) }} – {{ '%.2f'|format(tfr.freqs[-1]) }} Hz</td>
+    </tr>
+</table>

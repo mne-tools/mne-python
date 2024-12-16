@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "d23e624ced15b9314b11199a42b39a33863aa03e",
+  "authors": [
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/contributing.rst": {
+      "a": 29,
+      "d": 0
+    }
+  }
+}

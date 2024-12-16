@@ -1,47 +1,85 @@
-# -*- coding: utf-8 -*-
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
-#          Teon Brooks <teon.brooks@gmail.com>
-#
-# License: BSD (3-clause)
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from copy import deepcopy
 from math import sqrt
+
 import numpy as np
 from scipy import linalg
+from scipy.stats import chi2
 
-from ._eloreta import _compute_eloreta
+from .._fiff.constants import FIFF
+from .._fiff.matrix import (
+    _read_named_matrix,
+    _transpose_named_matrix,
+    write_named_matrix,
+)
+from .._fiff.open import fiff_open
+from .._fiff.pick import channel_type, pick_channels, pick_info, pick_types
+from .._fiff.proj import (
+    _electrode_types,
+    _needs_eeg_average_ref_proj,
+    _read_proj,
+    _write_proj,
+    make_projector,
+)
+from .._fiff.tag import find_tag
+from .._fiff.tree import dir_tree_find
+from .._fiff.write import (
+    end_block,
+    start_and_end_file,
+    start_block,
+    write_coord_trans,
+    write_float,
+    write_float_matrix,
+    write_int,
+    write_string,
+)
+from ..cov import Covariance, _read_cov, _write_cov, compute_whitener, prepare_noise_cov
+from ..epochs import BaseEpochs, EpochsArray
+from ..evoked import Evoked, EvokedArray
 from ..fixes import _safe_svd
-from ..io.constants import FIFF
-from ..io.open import fiff_open
-from ..io.tag import find_tag
-from ..io.matrix import (_read_named_matrix, _transpose_named_matrix,
-                         write_named_matrix)
-from ..io.proj import (_read_proj, make_projector, _write_proj,
-                       _needs_eeg_average_ref_proj)
-from ..io.tree import dir_tree_find
-from ..io.write import (write_int, write_float_matrix, start_file,
-                        start_block, end_block, end_file, write_float,
-                        write_coord_trans, write_string)
-
-from ..io.pick import channel_type, pick_info, pick_types
-from ..cov import (compute_whitener, _read_cov, _write_cov, Covariance,
-                   prepare_noise_cov)
-from ..forward import (compute_depth_prior, _read_forward_meas_info,
-                       is_fixed_orient, compute_orient_prior,
-                       convert_forward_solution, _select_orient_forward)
-from ..forward.forward import write_forward_meas_info
-from ..source_space import (_read_source_spaces_from_tree,
-                            find_source_space_hemi, _get_vertno,
-                            _write_source_spaces_to_fid, label_src_vertno_sel)
+from ..forward import (
+    _read_forward_meas_info,
+    _select_orient_forward,
+    compute_depth_prior,
+    compute_orient_prior,
+    convert_forward_solution,
+    is_fixed_orient,
+)
+from ..forward.forward import _triage_loose, write_forward_meas_info
+from ..html_templates import _get_html_template
+from ..io import BaseRaw
+from ..source_estimate import _get_src_type, _make_stc
+from ..source_space._source_space import (
+    _get_src_nn,
+    _get_vertno,
+    _read_source_spaces_from_tree,
+    _write_source_spaces_to_fid,
+    find_source_space_hemi,
+    label_src_vertno_sel,
+)
+from ..surface import _normal_orth
+from ..time_frequency.tfr import _check_tfr_complex
 from ..transforms import _ensure_trans, transform_surface_to
-from ..source_estimate import _make_stc, _get_src_type
-from ..utils import (check_fname, logger, verbose, warn,
-                     _check_compensation_grade, _check_option,
-                     _check_depth, _check_src_normal)
+from ..utils import (
+    _check_compensation_grade,
+    _check_depth,
+    _check_fname,
+    _check_option,
+    _check_src_normal,
+    _validate_type,
+    _verbose_safe_false,
+    check_fname,
+    logger,
+    repr_html,
+    verbose,
+    warn,
+)
+from ._eloreta import _compute_eloreta
 
-
-INVERSE_METHODS = ['MNE', 'dSPM', 'sLORETA', 'eLORETA']
+INVERSE_METHODS = ("MNE", "dSPM", "sLORETA", "eLORETA")
 
 
 class InverseOperator(dict):
@@ -51,24 +89,67 @@ class InverseOperator(dict):
         """Return a copy of the InverseOperator."""
         return InverseOperator(deepcopy(self))
 
+    @property
+    def _is_surf_ori(self):
+        surf_ori = False
+        prior = self["orient_prior"]
+        if prior is not None:
+            prior = prior["data"]
+            if not np.allclose(prior, 1.0):
+                surf_ori = True
+        return surf_ori
+
+    def _get_chs_and_src_info_for_repr(self):
+        n_chs_meg = len(pick_types(self["info"], meg=True, eeg=False))
+        n_chs_eeg = len(pick_types(self["info"], meg=False, eeg=True))
+
+        src_space_descr = f"{self['src'].kind} with {self['nsource']} sources"
+
+        src_ori_fiff_to_name_map = {
+            FIFF.FIFFV_MNE_UNKNOWN_ORI: "Unknown",
+            FIFF.FIFFV_MNE_FIXED_ORI: "Fixed",
+            FIFF.FIFFV_MNE_FREE_ORI: "Free",
+        }
+        src_ori = src_ori_fiff_to_name_map[self["source_ori"]]
+        if src_ori == "Free" and self._is_surf_ori:
+            src_ori = f"Loose ({np.min(self['orient_prior']['data'])})"
+        return n_chs_meg, n_chs_eeg, src_space_descr, src_ori
+
     def __repr__(self):  # noqa: D105
         """Summarize inverse info instead of printing all."""
-        entr = '<InverseOperator'
+        repr_info = self._get_chs_and_src_info_for_repr()
+        n_chs_meg, n_chs_eeg, src_space_descr, src_ori = repr_info
 
-        nchan = len(pick_types(self['info'], meg=True, eeg=False))
-        entr += ' | ' + 'MEG channels: %d' % nchan
-        nchan = len(pick_types(self['info'], meg=False, eeg=True))
-        entr += ' | ' + 'EEG channels: %d' % nchan
-
-        entr += (' | Source space: %s with %d sources'
-                 % (self['src'].kind, self['nsource']))
-        source_ori = {FIFF.FIFFV_MNE_UNKNOWN_ORI: 'Unknown',
-                      FIFF.FIFFV_MNE_FIXED_ORI: 'Fixed',
-                      FIFF.FIFFV_MNE_FREE_ORI: 'Free'}
-        entr += ' | Source orientation: %s' % source_ori[self['source_ori']]
-        entr += '>'
-
+        entr = "<InverseOperator"
+        entr += f" | MEG channels: {n_chs_meg}"
+        entr += f" | EEG channels: {n_chs_eeg}"
+        entr += f" | Source space: {src_space_descr}"
+        entr += f" | Source orientation: {src_ori}"
+        entr += ">"
         return entr
+
+    @repr_html
+    def _repr_html_(self):
+        repr_info = self._get_chs_and_src_info_for_repr()
+        n_chs_meg, n_chs_eeg, src_space_descr, src_ori = repr_info
+
+        t = _get_html_template("repr", "inverse_operator.html.jinja")
+        html = t.render(
+            channels=f"{n_chs_meg} MEG, {n_chs_eeg} EEG",
+            source_space_descr=src_space_descr,
+            source_orientation=src_ori,
+        )
+        return html
+
+    @property
+    def ch_names(self):
+        """Name of channels attached to the inverse operator."""
+        return self["info"].ch_names
+
+    @property
+    def info(self):
+        """:class:`~mne.Info` attached to the inverse operator."""
+        return self["info"]
 
 
 def _pick_channels_inverse_operator(ch_names, inv):
@@ -77,26 +158,29 @@ def _pick_channels_inverse_operator(ch_names, inv):
     Unlike ``pick_channels``, this respects the order of ch_names.
     """
     sel = list()
-    for name in inv['noise_cov'].ch_names:
+    for name in inv["noise_cov"].ch_names:
         try:
             sel.append(ch_names.index(name))
         except ValueError:
-            raise ValueError('The inverse operator was computed with '
-                             'channel %s which is not present in '
-                             'the data. You should compute a new inverse '
-                             'operator restricted to the good data '
-                             'channels.' % name)
+            raise ValueError(
+                "The inverse operator was computed with "
+                f"channel {name} which is not present in "
+                "the data. You should compute a new inverse "
+                "operator restricted to the good data "
+                "channels."
+            )
     return sel
 
 
 @verbose
-def read_inverse_operator(fname, verbose=None):
+def read_inverse_operator(fname, *, verbose=None):
     """Read the inverse operator decomposition from a FIF file.
 
     Parameters
     ----------
-    fname : string
-        The name of the FIF file, which ends with -inv.fif or -inv.fif.gz.
+    fname : path-like
+        The name of the FIF file, which ends with ``-inv.fif`` or
+        ``-inv.fif.gz``.
     %(verbose)s
 
     Returns
@@ -108,22 +192,24 @@ def read_inverse_operator(fname, verbose=None):
     --------
     write_inverse_operator, make_inverse_operator
     """
-    check_fname(fname, 'inverse operator', ('-inv.fif', '-inv.fif.gz',
-                                            '_inv.fif', '_inv.fif.gz'))
-
+    check_fname(
+        fname,
+        "inverse operator",
+        ("-inv.fif", "-inv.fif.gz", "_inv.fif", "_inv.fif.gz"),
+    )
+    fname = _check_fname(fname=fname, must_exist=True, overwrite="read")
     #
     #   Open the file, create directory
     #
-    logger.info('Reading inverse operator decomposition from %s...'
-                % fname)
-    f, tree, _ = fiff_open(fname, preload=True)
+    logger.info(f"Reading inverse operator decomposition from {fname}...")
+    f, tree, _ = fiff_open(fname)
     with f as fid:
         #
         #   Find all inverse operators
         #
         invs = dir_tree_find(tree, FIFF.FIFFB_MNE_INVERSE_SOLUTION)
         if invs is None or len(invs) < 1:
-            raise Exception('No inverse solutions in %s' % fname)
+            raise Exception(f"No inverse solutions in {fname}")
 
         invs = invs[0]
         #
@@ -131,178 +217,184 @@ def read_inverse_operator(fname, verbose=None):
         #
         parent_mri = dir_tree_find(tree, FIFF.FIFFB_MNE_PARENT_MRI_FILE)
         if len(parent_mri) == 0:
-            raise Exception('No parent MRI information in %s' % fname)
+            raise Exception(f"No parent MRI information in {fname}")
         parent_mri = parent_mri[0]  # take only first one
 
-        logger.info('    Reading inverse operator info...')
+        logger.info("    Reading inverse operator info...")
         #
         #   Methods and source orientations
         #
         tag = find_tag(fid, invs, FIFF.FIFF_MNE_INCLUDED_METHODS)
         if tag is None:
-            raise Exception('Modalities not found')
+            raise Exception("Modalities not found")
 
         inv = dict()
-        inv['methods'] = int(tag.data)
+        inv["methods"] = int(tag.data.item())
 
         tag = find_tag(fid, invs, FIFF.FIFF_MNE_SOURCE_ORIENTATION)
         if tag is None:
-            raise Exception('Source orientation constraints not found')
+            raise Exception("Source orientation constraints not found")
 
-        inv['source_ori'] = int(tag.data)
+        inv["source_ori"] = int(tag.data.item())
 
         tag = find_tag(fid, invs, FIFF.FIFF_MNE_SOURCE_SPACE_NPOINTS)
         if tag is None:
-            raise Exception('Number of sources not found')
+            raise Exception("Number of sources not found")
 
-        inv['nsource'] = int(tag.data)
-        inv['nchan'] = 0
+        inv["nsource"] = int(tag.data.item())
+        inv["nchan"] = 0
         #
         #   Coordinate frame
         #
         tag = find_tag(fid, invs, FIFF.FIFF_MNE_COORD_FRAME)
         if tag is None:
-            raise Exception('Coordinate frame tag not found')
+            raise Exception("Coordinate frame tag not found")
 
-        inv['coord_frame'] = tag.data
+        inv["coord_frame"] = tag.data
 
         #
         #   Units
         #
         tag = find_tag(fid, invs, FIFF.FIFF_MNE_INVERSE_SOURCE_UNIT)
-        unit_dict = {FIFF.FIFF_UNIT_AM: 'Am',
-                     FIFF.FIFF_UNIT_AM_M2: 'Am/m^2',
-                     FIFF.FIFF_UNIT_AM_M3: 'Am/m^3'}
-        inv['units'] = unit_dict.get(int(getattr(tag, 'data', -1)), None)
+        unit_dict = {
+            FIFF.FIFF_UNIT_AM: "Am",
+            FIFF.FIFF_UNIT_AM_M2: "Am/m^2",
+            FIFF.FIFF_UNIT_AM_M3: "Am/m^3",
+        }
+        inv["units"] = unit_dict.get(
+            int(getattr(tag, "data", np.array([-1])).item()), None
+        )
 
         #
         #   The actual source orientation vectors
         #
         tag = find_tag(fid, invs, FIFF.FIFF_MNE_INVERSE_SOURCE_ORIENTATIONS)
         if tag is None:
-            raise Exception('Source orientation information not found')
+            raise Exception("Source orientation information not found")
 
-        inv['source_nn'] = tag.data
-        logger.info('    [done]')
+        inv["source_nn"] = tag.data
+        logger.info("    [done]")
         #
         #   The SVD decomposition...
         #
-        logger.info('    Reading inverse operator decomposition...')
+        logger.info("    Reading inverse operator decomposition...")
         tag = find_tag(fid, invs, FIFF.FIFF_MNE_INVERSE_SING)
         if tag is None:
-            raise Exception('Singular values not found')
+            raise Exception("Singular values not found")
 
-        inv['sing'] = tag.data
-        inv['nchan'] = len(inv['sing'])
+        inv["sing"] = tag.data
+        inv["nchan"] = len(inv["sing"])
         #
         #   The eigenleads and eigenfields
         #
-        inv['eigen_leads_weighted'] = False
-        inv['eigen_leads'] = _read_named_matrix(
-            fid, invs, FIFF.FIFF_MNE_INVERSE_LEADS, transpose=True)
-        if inv['eigen_leads'] is None:
-            inv['eigen_leads_weighted'] = True
-            inv['eigen_leads'] = _read_named_matrix(
-                fid, invs, FIFF.FIFF_MNE_INVERSE_LEADS_WEIGHTED,
-                transpose=True)
-        if inv['eigen_leads'] is None:
-            raise ValueError('Eigen leads not found in inverse operator.')
+        inv["eigen_leads_weighted"] = False
+        inv["eigen_leads"] = _read_named_matrix(
+            fid, invs, FIFF.FIFF_MNE_INVERSE_LEADS, transpose=True
+        )
+        if inv["eigen_leads"] is None:
+            inv["eigen_leads_weighted"] = True
+            inv["eigen_leads"] = _read_named_matrix(
+                fid, invs, FIFF.FIFF_MNE_INVERSE_LEADS_WEIGHTED, transpose=True
+            )
+        if inv["eigen_leads"] is None:
+            raise ValueError("Eigen leads not found in inverse operator.")
         #
         #   Having the eigenleads as cols is better for the inverse calcs
         #
-        inv['eigen_fields'] = _read_named_matrix(fid, invs,
-                                                 FIFF.FIFF_MNE_INVERSE_FIELDS)
-        logger.info('    [done]')
+        inv["eigen_fields"] = _read_named_matrix(
+            fid, invs, FIFF.FIFF_MNE_INVERSE_FIELDS
+        )
+        logger.info("    [done]")
         #
         #   Read the covariance matrices
         #
-        inv['noise_cov'] = Covariance(
-            **_read_cov(fid, invs, FIFF.FIFFV_MNE_NOISE_COV, limited=True))
-        logger.info('    Noise covariance matrix read.')
+        inv["noise_cov"] = Covariance(
+            **_read_cov(fid, invs, FIFF.FIFFV_MNE_NOISE_COV, limited=True)
+        )
+        logger.info("    Noise covariance matrix read.")
 
-        inv['source_cov'] = _read_cov(fid, invs, FIFF.FIFFV_MNE_SOURCE_COV)
-        logger.info('    Source covariance matrix read.')
+        inv["source_cov"] = _read_cov(fid, invs, FIFF.FIFFV_MNE_SOURCE_COV)
+        logger.info("    Source covariance matrix read.")
         #
         #   Read the various priors
         #
-        inv['orient_prior'] = _read_cov(fid, invs,
-                                        FIFF.FIFFV_MNE_ORIENT_PRIOR_COV)
-        if inv['orient_prior'] is not None:
-            logger.info('    Orientation priors read.')
+        inv["orient_prior"] = _read_cov(fid, invs, FIFF.FIFFV_MNE_ORIENT_PRIOR_COV)
+        if inv["orient_prior"] is not None:
+            logger.info("    Orientation priors read.")
 
-        inv['depth_prior'] = _read_cov(fid, invs,
-                                       FIFF.FIFFV_MNE_DEPTH_PRIOR_COV)
-        if inv['depth_prior'] is not None:
-            logger.info('    Depth priors read.')
+        inv["depth_prior"] = _read_cov(fid, invs, FIFF.FIFFV_MNE_DEPTH_PRIOR_COV)
+        if inv["depth_prior"] is not None:
+            logger.info("    Depth priors read.")
 
-        inv['fmri_prior'] = _read_cov(fid, invs, FIFF.FIFFV_MNE_FMRI_PRIOR_COV)
-        if inv['fmri_prior'] is not None:
-            logger.info('    fMRI priors read.')
+        inv["fmri_prior"] = _read_cov(fid, invs, FIFF.FIFFV_MNE_FMRI_PRIOR_COV)
+        if inv["fmri_prior"] is not None:
+            logger.info("    fMRI priors read.")
 
         #
         #   Read the source spaces
         #
-        inv['src'] = _read_source_spaces_from_tree(fid, tree,
-                                                   patch_stats=False)
+        inv["src"] = _read_source_spaces_from_tree(fid, tree, patch_stats=False)
 
-        for s in inv['src']:
-            s['id'] = find_source_space_hemi(s)
+        for s in inv["src"]:
+            s["id"] = find_source_space_hemi(s)
 
         #
         #   Get the MRI <-> head coordinate transformation
         #
         tag = find_tag(fid, parent_mri, FIFF.FIFF_COORD_TRANS)
         if tag is None:
-            raise Exception('MRI/head coordinate transformation not found')
-        mri_head_t = _ensure_trans(tag.data, 'mri', 'head')
+            raise Exception("MRI/head coordinate transformation not found")
+        mri_head_t = _ensure_trans(tag.data, "mri", "head")
 
-        inv['mri_head_t'] = mri_head_t
+        inv["mri_head_t"] = mri_head_t
 
         #
         # get parent MEG info
         #
-        inv['info'] = _read_forward_meas_info(tree, fid)
+        inv["info"] = _read_forward_meas_info(tree, fid)
 
         #
         #   Transform the source spaces to the correct coordinate frame
         #   if necessary
         #
-        if inv['coord_frame'] not in (FIFF.FIFFV_COORD_MRI,
-                                      FIFF.FIFFV_COORD_HEAD):
-            raise Exception('Only inverse solutions computed in MRI or '
-                            'head coordinates are acceptable')
+        if inv["coord_frame"] not in (FIFF.FIFFV_COORD_MRI, FIFF.FIFFV_COORD_HEAD):
+            raise Exception(
+                "Only inverse solutions computed in MRI or "
+                "head coordinates are acceptable"
+            )
 
         #
         #  Number of averages is initially one
         #
-        inv['nave'] = 1
+        inv["nave"] = 1
         #
         #  We also need the SSP operator
         #
-        inv['projs'] = _read_proj(fid, tree)
+        inv["projs"] = _read_proj(fid, tree)
 
         #
         #  Some empty fields to be filled in later
         #
-        inv['proj'] = []       # This is the projector to apply to the data
-        inv['whitener'] = []   # This whitens the data
+        inv["proj"] = []  # This is the projector to apply to the data
+        inv["whitener"] = []  # This whitens the data
         # This the diagonal matrix implementing regularization and the inverse
-        inv['reginv'] = []
-        inv['noisenorm'] = []  # These are the noise-normalization factors
+        inv["reginv"] = []
+        inv["noisenorm"] = []  # These are the noise-normalization factors
         #
         nuse = 0
-        for k in range(len(inv['src'])):
+        for k in range(len(inv["src"])):
             try:
-                inv['src'][k] = transform_surface_to(inv['src'][k],
-                                                     inv['coord_frame'],
-                                                     mri_head_t)
+                inv["src"][k] = transform_surface_to(
+                    inv["src"][k], inv["coord_frame"], mri_head_t
+                )
             except Exception as inst:
-                raise Exception('Could not transform source space (%s)' % inst)
+                raise Exception(f"Could not transform source space ({inst})")
 
-            nuse += inv['src'][k]['nuse']
+            nuse += inv["src"][k]["nuse"]
 
-        logger.info('    Source spaces transformed to the inverse solution '
-                    'coordinate frame')
+        logger.info(
+            "    Source spaces transformed to the inverse solution coordinate frame"
+        )
         #
         #   Done!
         #
@@ -311,123 +403,136 @@ def read_inverse_operator(fname, verbose=None):
 
 
 @verbose
-def write_inverse_operator(fname, inv, verbose=None):
+def write_inverse_operator(fname, inv, *, overwrite=False, verbose=None):
     """Write an inverse operator to a FIF file.
 
     Parameters
     ----------
-    fname : string
-        The name of the FIF file, which ends with -inv.fif or -inv.fif.gz.
+    fname : path-like
+        The name of the FIF file, which ends with ``-inv.fif`` or
+        ``-inv.fif.gz``.
     inv : dict
         The inverse operator.
+    %(overwrite)s
+
+        .. versionadded:: 1.0
     %(verbose)s
 
     See Also
     --------
     read_inverse_operator
     """
-    check_fname(fname, 'inverse operator', ('-inv.fif', '-inv.fif.gz',
-                                            '_inv.fif', '_inv.fif.gz'))
+    check_fname(
+        fname,
+        "inverse operator",
+        ("-inv.fif", "-inv.fif.gz", "_inv.fif", "_inv.fif.gz"),
+    )
+    fname = _check_fname(fname=fname, overwrite=overwrite)
+
+    _validate_type(inv, InverseOperator, "inv")
 
     #
     #   Open the file, create directory
     #
-    logger.info('Write inverse operator decomposition in %s...' % fname)
+    logger.info(f"Write inverse operator decomposition in {fname}...")
 
     # Create the file and save the essentials
-    fid = start_file(fname)
+    with start_and_end_file(fname) as fid:
+        _write_inverse_operator(fid, inv)
+
+
+def _write_inverse_operator(fid, inv):
     start_block(fid, FIFF.FIFFB_MNE)
 
     #
     #   Parent MEG measurement info
     #
-    write_forward_meas_info(fid, inv['info'])
+    write_forward_meas_info(fid, inv["info"])
 
     #
     #   Parent MRI data
     #
     start_block(fid, FIFF.FIFFB_MNE_PARENT_MRI_FILE)
-    write_string(fid, FIFF.FIFF_MNE_FILE_NAME, inv['info']['mri_file'])
-    write_coord_trans(fid, inv['mri_head_t'])
+    write_string(fid, FIFF.FIFF_MNE_FILE_NAME, inv["info"]["mri_file"])
+    write_coord_trans(fid, inv["mri_head_t"])
     end_block(fid, FIFF.FIFFB_MNE_PARENT_MRI_FILE)
 
     #
     #   Write SSP operator
     #
-    _write_proj(fid, inv['projs'])
+    _write_proj(fid, inv["projs"])
 
     #
     #   Write the source spaces
     #
-    if 'src' in inv:
-        _write_source_spaces_to_fid(fid, inv['src'])
+    if "src" in inv:
+        _write_source_spaces_to_fid(fid, inv["src"])
 
     start_block(fid, FIFF.FIFFB_MNE_INVERSE_SOLUTION)
 
-    logger.info('    Writing inverse operator info...')
+    logger.info("    Writing inverse operator info...")
 
-    write_int(fid, FIFF.FIFF_MNE_INCLUDED_METHODS, inv['methods'])
-    write_int(fid, FIFF.FIFF_MNE_COORD_FRAME, inv['coord_frame'])
+    write_int(fid, FIFF.FIFF_MNE_INCLUDED_METHODS, inv["methods"])
+    write_int(fid, FIFF.FIFF_MNE_COORD_FRAME, inv["coord_frame"])
 
-    udict = {'Am': FIFF.FIFF_UNIT_AM,
-             'Am/m^2': FIFF.FIFF_UNIT_AM_M2,
-             'Am/m^3': FIFF.FIFF_UNIT_AM_M3}
-    if 'units' in inv and inv['units'] is not None:
-        write_int(fid, FIFF.FIFF_MNE_INVERSE_SOURCE_UNIT, udict[inv['units']])
+    udict = {
+        "Am": FIFF.FIFF_UNIT_AM,
+        "Am/m^2": FIFF.FIFF_UNIT_AM_M2,
+        "Am/m^3": FIFF.FIFF_UNIT_AM_M3,
+    }
+    if "units" in inv and inv["units"] is not None:
+        write_int(fid, FIFF.FIFF_MNE_INVERSE_SOURCE_UNIT, udict[inv["units"]])
 
-    write_int(fid, FIFF.FIFF_MNE_SOURCE_ORIENTATION, inv['source_ori'])
-    write_int(fid, FIFF.FIFF_MNE_SOURCE_SPACE_NPOINTS, inv['nsource'])
-    if 'nchan' in inv:
-        write_int(fid, FIFF.FIFF_NCHAN, inv['nchan'])
-    elif 'nchan' in inv['info']:
-        write_int(fid, FIFF.FIFF_NCHAN, inv['info']['nchan'])
-    write_float_matrix(fid, FIFF.FIFF_MNE_INVERSE_SOURCE_ORIENTATIONS,
-                       inv['source_nn'])
-    write_float(fid, FIFF.FIFF_MNE_INVERSE_SING, inv['sing'])
+    write_int(fid, FIFF.FIFF_MNE_SOURCE_ORIENTATION, inv["source_ori"])
+    write_int(fid, FIFF.FIFF_MNE_SOURCE_SPACE_NPOINTS, inv["nsource"])
+    if "nchan" in inv:
+        write_int(fid, FIFF.FIFF_NCHAN, inv["nchan"])
+    elif "nchan" in inv["info"]:
+        write_int(fid, FIFF.FIFF_NCHAN, inv["info"]["nchan"])
+    write_float_matrix(fid, FIFF.FIFF_MNE_INVERSE_SOURCE_ORIENTATIONS, inv["source_nn"])
+    write_float(fid, FIFF.FIFF_MNE_INVERSE_SING, inv["sing"])
 
     #
     #   write the covariance matrices
     #
-    logger.info('    Writing noise covariance matrix.')
-    _write_cov(fid, inv['noise_cov'])
+    logger.info("    Writing noise covariance matrix.")
+    _write_cov(fid, inv["noise_cov"])
 
-    logger.info('    Writing source covariance matrix.')
-    _write_cov(fid, inv['source_cov'])
+    logger.info("    Writing source covariance matrix.")
+    _write_cov(fid, inv["source_cov"])
 
     #
     #   write the various priors
     #
-    logger.info('    Writing orientation priors.')
-    if inv['depth_prior'] is not None:
-        _write_cov(fid, inv['depth_prior'])
-    if inv['orient_prior'] is not None:
-        _write_cov(fid, inv['orient_prior'])
-    if inv['fmri_prior'] is not None:
-        _write_cov(fid, inv['fmri_prior'])
+    logger.info("    Writing orientation priors.")
+    if inv["depth_prior"] is not None:
+        _write_cov(fid, inv["depth_prior"])
+    if inv["orient_prior"] is not None:
+        _write_cov(fid, inv["orient_prior"])
+    if inv["fmri_prior"] is not None:
+        _write_cov(fid, inv["fmri_prior"])
 
-    write_named_matrix(fid, FIFF.FIFF_MNE_INVERSE_FIELDS, inv['eigen_fields'])
+    write_named_matrix(fid, FIFF.FIFF_MNE_INVERSE_FIELDS, inv["eigen_fields"])
 
     #
     #   The eigenleads and eigenfields
     #
-    if inv['eigen_leads_weighted']:
+    if inv["eigen_leads_weighted"]:
         kind = FIFF.FIFF_MNE_INVERSE_LEADS_WEIGHTED
     else:
         kind = FIFF.FIFF_MNE_INVERSE_LEADS
-    _transpose_named_matrix(inv['eigen_leads'])
-    write_named_matrix(fid, kind, inv['eigen_leads'])
-    _transpose_named_matrix(inv['eigen_leads'])
+    _transpose_named_matrix(inv["eigen_leads"])
+    write_named_matrix(fid, kind, inv["eigen_leads"])
+    _transpose_named_matrix(inv["eigen_leads"])
 
     #
     #   Done!
     #
-    logger.info('    [done]')
+    logger.info("    [done]")
 
     end_block(fid, FIFF.FIFFB_MNE_INVERSE_SOLUTION)
     end_block(fid, FIFF.FIFFB_MNE)
-    end_file(fid)
 
-    fid.close()
 
 ###############################################################################
 # Compute inverse solution
@@ -448,9 +553,9 @@ def combine_xyz(vec, square=False):
         Output vector [sqrt(x1^2+y1^2+z1^2), ..., sqrt(x_n^2+y_n^2+z_n^2)]
     """
     if vec.ndim != 2:
-        raise ValueError('Input must be 2D')
+        raise ValueError("Input must be 2D")
     if (vec.shape[0] % 3) != 0:
-        raise ValueError('Input must have 3N rows')
+        raise ValueError("Input must have 3N rows")
     if np.iscomplexobj(vec):
         vec = np.abs(vec)
     comb = vec[0::3] ** 2
@@ -463,36 +568,44 @@ def combine_xyz(vec, square=False):
 
 def _check_ch_names(inv, info):
     """Check that channels in inverse operator are measurements."""
-    inv_ch_names = inv['eigen_fields']['col_names']
+    inv_ch_names = inv["eigen_fields"]["col_names"]
 
-    if inv['noise_cov'].ch_names != inv_ch_names:
-        raise ValueError('Channels in inverse operator eigen fields do not '
-                         'match noise covariance channels.')
-    data_ch_names = info['ch_names']
+    if inv["noise_cov"].ch_names != inv_ch_names:
+        raise ValueError(
+            "Channels in inverse operator eigen fields do not "
+            "match noise covariance channels."
+        )
+    data_ch_names = info["ch_names"]
 
     missing_ch_names = sorted(set(inv_ch_names) - set(data_ch_names))
     n_missing = len(missing_ch_names)
     if n_missing > 0:
-        raise ValueError('%d channels in inverse operator ' % n_missing +
-                         'are not present in the data (%s)' % missing_ch_names)
-    _check_compensation_grade(inv['info'], info, 'inverse')
+        raise ValueError(
+            f"{n_missing} channels in inverse operator "
+            f"are not present in the data ({missing_ch_names})"
+        )
+    _check_compensation_grade(inv["info"], info, "inverse")
 
 
-def _check_or_prepare(inv, nave, lambda2, method, method_params, prepared):
+def _check_or_prepare(inv, nave, lambda2, method, method_params, prepared, copy=True):
     """Check if inverse was prepared, or prepare it."""
     if not prepared:
         inv = prepare_inverse_operator(
-            inv, nave, lambda2, method, method_params)
-    elif 'colorer' not in inv:
-        raise ValueError('inverse operator has not been prepared, but got '
-                         'argument prepared=True. Either pass prepared=False '
-                         'or use prepare_inverse_operator.')
+            inv, nave, lambda2, method, method_params, copy=copy
+        )
+    elif "colorer" not in inv:
+        raise ValueError(
+            "inverse operator has not been prepared, but got "
+            "argument prepared=True. Either pass prepared=False "
+            "or use prepare_inverse_operator."
+        )
     return inv
 
 
 @verbose
-def prepare_inverse_operator(orig, nave, lambda2, method='dSPM',
-                             method_params=None, verbose=None):
+def prepare_inverse_operator(
+    orig, nave, lambda2, method="dSPM", method_params=None, copy=True, verbose=None
+):
     """Prepare an inverse operator for actually computing the inverse.
 
     Parameters
@@ -509,6 +622,12 @@ def prepare_inverse_operator(orig, nave, lambda2, method='dSPM',
         Additional options for eLORETA. See Notes of :func:`apply_inverse`.
 
         .. versionadded:: 0.16
+    copy : bool | str
+        If True (default), copy the inverse. False will not copy.
+        Can be "non-src" to avoid copying the source space, which typically
+        is not modified and can be large in memory.
+
+        .. versionadded:: 0.21
     %(verbose)s
 
     Returns
@@ -517,66 +636,78 @@ def prepare_inverse_operator(orig, nave, lambda2, method='dSPM',
         Prepared inverse operator.
     """
     if nave <= 0:
-        raise ValueError('The number of averages should be positive')
+        raise ValueError("The number of averages should be positive")
 
-    logger.info('Preparing the inverse operator for use...')
-    inv = orig.copy()
+    _validate_type(copy, (bool, str), "copy")
+    if isinstance(copy, str):
+        _check_option("copy", copy, ("non-src",), extra="when a string")
+    logger.info("Preparing the inverse operator for use...")
+    inv = orig
+    if copy:
+        src = orig["src"]
+        if copy == "non-src":
+            orig["src"] = None
+        try:
+            inv = orig.copy()
+        finally:
+            orig["src"] = src
+        if copy == "non-src":
+            inv["src"] = src
+    del orig
+
     #
     #   Scale some of the stuff
     #
-    scale = float(inv['nave']) / nave
-    inv['noise_cov']['data'] = scale * inv['noise_cov']['data']
+    scale = float(inv["nave"]) / nave
+    inv["noise_cov"]["data"] = scale * inv["noise_cov"]["data"]
     # deal with diagonal case
-    if inv['noise_cov']['data'].ndim == 1:
-        logger.info('    Diagonal noise covariance found')
-        inv['noise_cov']['eig'] = inv['noise_cov']['data']
-        inv['noise_cov']['eigvec'] = np.eye(len(inv['noise_cov']['data']))
+    if inv["noise_cov"]["data"].ndim == 1:
+        logger.info("    Diagonal noise covariance found")
+        inv["noise_cov"]["eig"] = inv["noise_cov"]["data"]
+        inv["noise_cov"]["eigvec"] = np.eye(len(inv["noise_cov"]["data"]))
 
-    inv['noise_cov']['eig'] = scale * inv['noise_cov']['eig']
-    inv['source_cov']['data'] = scale * inv['source_cov']['data']
+    inv["noise_cov"]["eig"] = scale * inv["noise_cov"]["eig"]
+    inv["source_cov"]["data"] = scale * inv["source_cov"]["data"]
     #
-    if inv['eigen_leads_weighted']:
-        inv['eigen_leads']['data'] = sqrt(scale) * inv['eigen_leads']['data']
+    if inv["eigen_leads_weighted"]:
+        inv["eigen_leads"]["data"] = sqrt(scale) * inv["eigen_leads"]["data"]
 
-    logger.info('    Scaled noise and source covariance from nave = %d to'
-                ' nave = %d' % (inv['nave'], nave))
-    inv['nave'] = nave
+    logger.info(
+        "    Scaled noise and source covariance from nave = %d to" " nave = %d",
+        inv["nave"],
+        nave,
+    )
+    inv["nave"] = nave
     #
     #   Create the diagonal matrix for computing the regularized inverse
     #
-    sing = np.array(inv['sing'], dtype=np.float64)
-    with np.errstate(invalid='ignore'):  # if lambda2==0
-        inv['reginv'] = np.where(sing > 0, sing / (sing ** 2 + lambda2), 0)
-    logger.info('    Created the regularized inverter')
+    inv["reginv"] = _compute_reginv(inv, lambda2)
+    logger.info("    Created the regularized inverter")
     #
     #   Create the projection operator
     #
-    inv['proj'], ncomp, _ = make_projector(inv['projs'],
-                                           inv['noise_cov']['names'])
+    inv["proj"], ncomp, _ = make_projector(inv["projs"], inv["noise_cov"]["names"])
     if ncomp > 0:
-        logger.info('    Created an SSP operator (subspace dimension = %d)'
-                    % ncomp)
+        logger.info("    Created an SSP operator (subspace dimension = %d)", ncomp)
     else:
-        logger.info('    The projection vectors do not apply to these '
-                    'channels.')
+        logger.info("    The projection vectors do not apply to these channels.")
 
     #
     #   Create the whitener
     #
 
-    inv['whitener'], _, inv['colorer'] = compute_whitener(
-        inv['noise_cov'], pca='white', return_colorer=True)
+    inv["whitener"], _, inv["colorer"] = compute_whitener(
+        inv["noise_cov"], pca="white", return_colorer=True
+    )
 
     #
     #   Finally, compute the noise-normalization factors
     #
-    inv['noisenorm'] = []
-    if method != 'MNE':
-        logger.info('    Computing noise-normalization factors (%s)...'
-                    % method)
-    if method == 'eLORETA':
+    inv["noisenorm"] = []
+    if method == "eLORETA":
         _compute_eloreta(inv, lambda2, method_params)
-    elif method != 'MNE':
+    elif method != "MNE":
+        logger.info(f"    Computing noise-normalization factors ({method})...")
         # Here we have::
         #
         #     inv['reginv'] = sing / (sing ** 2 + lambda2)
@@ -584,32 +715,35 @@ def prepare_inverse_operator(orig, nave, lambda2, method='dSPM',
         # where ``sing`` are the singular values of the whitened gain matrix.
         if method == "dSPM":
             # dSPM normalization
-            noise_weight = inv['reginv']
-        elif method == 'sLORETA':
+            noise_weight = inv["reginv"]
+        elif method == "sLORETA":
             # sLORETA normalization is given by the square root of the
             # diagonal entries of the resolution matrix R, which is
             # the product of the inverse and forward operators as:
             #
             #     w = diag(diag(R)) ** 0.5
             #
-            noise_weight = (inv['reginv'] *
-                            np.sqrt((1. + inv['sing'] ** 2 / lambda2)))
-        noise_norm = np.zeros(inv['eigen_leads']['nrow'])
-        nrm2, = linalg.get_blas_funcs(('nrm2',), (noise_norm,))
-        if inv['eigen_leads_weighted']:
-            for k in range(inv['eigen_leads']['nrow']):
-                one = inv['eigen_leads']['data'][k, :] * noise_weight
+            noise_weight = inv["reginv"] * np.sqrt(1.0 + inv["sing"] ** 2 / lambda2)
+
+        noise_norm = np.zeros(inv["eigen_leads"]["nrow"])
+        (nrm2,) = linalg.get_blas_funcs(("nrm2",), (noise_norm,))
+        if inv["eigen_leads_weighted"]:
+            for k in range(inv["eigen_leads"]["nrow"]):
+                one = inv["eigen_leads"]["data"][k, :] * noise_weight
                 noise_norm[k] = nrm2(one)
         else:
-            for k in range(inv['eigen_leads']['nrow']):
-                one = (sqrt(inv['source_cov']['data'][k]) *
-                       inv['eigen_leads']['data'][k, :] * noise_weight)
+            for k in range(inv["eigen_leads"]["nrow"]):
+                one = (
+                    sqrt(inv["source_cov"]["data"][k])
+                    * inv["eigen_leads"]["data"][k, :]
+                    * noise_weight
+                )
                 noise_norm[k] = nrm2(one)
 
         #
         #   Compute the final result
         #
-        if inv['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI:
+        if inv["source_ori"] == FIFF.FIFFV_MNE_FREE_ORI:
             #
             #   The three-component case is a little bit more involved
             #   The variances at three consecutive entries must be squared and
@@ -619,16 +753,16 @@ def prepare_inverse_operator(orig, nave, lambda2, method='dSPM',
             #   per source location
             #
             noise_norm = combine_xyz(noise_norm[:, None]).ravel()
-        inv['noisenorm'] = 1.0 / np.abs(noise_norm)
-        logger.info('[done]')
+        inv["noisenorm"] = 1.0 / np.abs(noise_norm)
+        logger.info("[done]")
     else:
-        inv['noisenorm'] = []
+        inv["noisenorm"] = []
 
     return InverseOperator(inv)
 
 
 @verbose
-def _assemble_kernel(inv, label, method, pick_ori, verbose=None):
+def _assemble_kernel(inv, label, method, pick_ori, use_cps=True, verbose=None):
     """Assemble the kernel.
 
     Simple matrix multiplication followed by combination of the current
@@ -647,6 +781,7 @@ def _assemble_kernel(inv, label, method, pick_ori, verbose=None):
         Use minimum norm, dSPM, sLORETA, or eLORETA.
     pick_ori : None | "normal" | "vector"
         Which orientation to pick (only matters in the case of 'normal').
+    %(use_cps_restricted)s
 
     Returns
     -------
@@ -662,27 +797,27 @@ def _assemble_kernel(inv, label, method, pick_ori, verbose=None):
         set, these correspond to the vertices in the label. Otherwise, all
         vertex numbers are returned.
     source_nn : array, shape (3 * n_vertices, 3)
-        The direction in carthesian coordicates of the direction of the source
+        The direction in cartesian coordicates of the direction of the source
         dipoles.
     """  # noqa: E501
-    eigen_leads = inv['eigen_leads']['data']
-    source_cov = inv['source_cov']['data'][:, None]
-    if method in ('dSPM', 'sLORETA'):
-        noise_norm = inv['noisenorm'][:, None]
+    eigen_leads = inv["eigen_leads"]["data"]
+    source_cov = inv["source_cov"]["data"]
+    if method in ("dSPM", "sLORETA"):
+        noise_norm = inv["noisenorm"][:, np.newaxis]
     else:
         noise_norm = None
 
-    src = inv['src']
+    src = inv["src"]
     vertno = _get_vertno(src)
-    source_nn = inv['source_nn']
+    source_nn = inv["source_nn"]
 
     if label is not None:
-        vertno, src_sel = label_src_vertno_sel(label, inv['src'])
+        vertno, src_sel = label_src_vertno_sel(label, src)
 
-        if method != "MNE":
+        if method not in ["MNE", "eLORETA"]:
             noise_norm = noise_norm[src_sel]
 
-        if inv['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI:
+        if inv["source_ori"] == FIFF.FIFFV_MNE_FREE_ORI:
             src_sel = 3 * src_sel
             src_sel = np.c_[src_sel, src_sel + 1, src_sel + 2]
             src_sel = src_sel.ravel()
@@ -691,50 +826,70 @@ def _assemble_kernel(inv, label, method, pick_ori, verbose=None):
         source_cov = source_cov[src_sel]
         source_nn = source_nn[src_sel]
 
+    # vector or normal, might need to rotate
+    if (
+        pick_ori == "normal"
+        and all(s["type"] == "surf" for s in src)
+        and np.allclose(
+            inv["source_nn"].reshape(inv["nsource"], 3, 3), np.eye(3), atol=1e-6
+        )
+    ):
+        offset = 0
+        eigen_leads = np.reshape(eigen_leads, (-1, 3, eigen_leads.shape[1])).copy()
+        source_nn = np.reshape(source_nn, (-1, 3, 3)).copy()
+        for s, v in zip(src, vertno):
+            sl = slice(offset, offset + len(v))
+            source_nn[sl] = _normal_orth(_get_src_nn(s, use_cps, v))
+            eigen_leads[sl] = np.matmul(source_nn[sl], eigen_leads[sl])
+            # No need to rotate source_cov because it should be uniform
+            # (loose=1., and depth weighting is uniform across columns)
+            offset = sl.stop
+        eigen_leads.shape = (-1, eigen_leads.shape[2])
+        source_nn.shape = (-1, 3)
+
     if pick_ori == "normal":
-        if not inv['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI:
-            raise ValueError('Picking normal orientation can only be done '
-                             'with a free orientation inverse operator.')
+        if not inv["source_ori"] == FIFF.FIFFV_MNE_FREE_ORI:
+            raise ValueError(
+                "Picking normal orientation can only be done "
+                "with a free orientation inverse operator."
+            )
 
-        is_loose = 0 < inv['orient_prior']['data'][0] <= 1
+        is_loose = 0 < inv["orient_prior"]["data"][0] <= 1
         if not is_loose:
-            raise ValueError('Picking normal orientation can only be done '
-                             'when working with loose orientations.')
+            raise ValueError(
+                "Picking normal orientation can only be done "
+                "when working with loose orientations."
+            )
 
-        # keep only the normal components
-        eigen_leads = eigen_leads[2::3]
-        source_cov = source_cov[2::3]
-
-    trans = np.dot(inv['eigen_fields']['data'],
-                   np.dot(inv['whitener'], inv['proj']))
-    trans *= inv['reginv'][:, None]
+    trans = np.dot(inv["eigen_fields"]["data"], np.dot(inv["whitener"], inv["proj"]))
+    trans *= inv["reginv"][:, None]
 
     #
     #   Transformation into current distributions by weighting the eigenleads
     #   with the weights computed above
     #
-    if inv['eigen_leads_weighted']:
+    K = np.dot(eigen_leads, trans)
+    if inv["eigen_leads_weighted"]:
         #
         #     R^0.5 has been already factored in
         #
-        logger.info('    Eigenleads already weighted ... ')
-        K = np.dot(eigen_leads, trans)
+        logger.info("    Eigenleads already weighted ... ")
     else:
         #
         #     R^0.5 has to be factored in
         #
-        logger.info('    Eigenleads need to be weighted ...')
-        K = np.sqrt(source_cov) * np.dot(eigen_leads, trans)
+        logger.info("    Eigenleads need to be weighted ...")
+        K *= np.sqrt(source_cov)[:, np.newaxis]
+
+    if pick_ori == "normal":
+        K = K[2::3]
 
     return K, noise_norm, vertno, source_nn
 
 
 def _check_ori(pick_ori, source_ori, src):
     """Check pick_ori."""
-    _check_option('pick_ori', pick_ori, [None, 'normal', 'vector'])
-    if pick_ori == 'vector' and source_ori != FIFF.FIFFV_MNE_FREE_ORI:
-        raise RuntimeError('pick_ori="vector" cannot be combined with an '
-                           'inverse operator with fixed orientations.')
+    _check_option("pick_ori", pick_ori, [None, "normal", "vector"])
     _check_src_normal(pick_ori, src)
 
 
@@ -742,49 +897,54 @@ def _check_reference(inst, ch_names=None):
     """Check for EEG ref."""
     info = inst.info
     if ch_names is not None:
-        picks = [ci for ci, ch_name in enumerate(info['ch_names'])
-                 if ch_name in ch_names]
+        picks = [
+            ci for ci, ch_name in enumerate(info["ch_names"]) if ch_name in ch_names
+        ]
         info = pick_info(info, sel=picks)
     if _needs_eeg_average_ref_proj(info):
-        raise ValueError('EEG average reference is mandatory for inverse '
-                         'modeling, use set_eeg_reference method.')
-    if info['custom_ref_applied']:
-        raise ValueError('Custom EEG reference is not allowed for inverse '
-                         'modeling.')
+        raise ValueError(
+            "EEG average reference (using a projector) is mandatory for "
+            "modeling, use the method set_eeg_reference(projection=True)"
+        )
+    if _electrode_types(info) and info.get("custom_ref_applied", False):
+        raise ValueError("Custom EEG reference is not allowed for inverse modeling.")
 
 
 def _subject_from_inverse(inverse_operator):
     """Get subject id from inverse operator."""
-    return inverse_operator['src']._subject
+    return inverse_operator["src"]._subject
 
 
 @verbose
-def apply_inverse(evoked, inverse_operator, lambda2=1. / 9., method="dSPM",
-                  pick_ori=None, prepared=False, label=None,
-                  method_params=None, return_residual=False, verbose=None):
+def apply_inverse(
+    evoked,
+    inverse_operator,
+    lambda2=1.0 / 9.0,
+    method="dSPM",
+    pick_ori=None,
+    prepared=False,
+    label=None,
+    method_params=None,
+    return_residual=False,
+    use_cps=True,
+    verbose=None,
+):
     """Apply inverse operator to evoked data.
 
     Parameters
     ----------
     evoked : Evoked object
         Evoked data.
-    inverse_operator: instance of InverseOperator
+    inverse_operator : instance of InverseOperator
         Inverse operator.
     lambda2 : float
         The regularization parameter.
     method : "MNE" | "dSPM" | "sLORETA" | "eLORETA"
-        Use minimum norm [1]_, dSPM (default) [2]_, sLORETA [3]_, or
-        eLORETA [4]_.
-    pick_ori : None | "normal" | "vector"
-        By default (None) pooling is performed by taking the norm of loose/free
-        orientations. In case of a fixed source space no norm is computed
-        leading to signed source activity.
-        If "normal" only the radial component is kept. This is only implemented
-        when working with loose orientations.
-        If "vector", no pooling of the orientations is done and the vector
-        result will be returned in the form of a
-        :class:`mne.VectorSourceEstimate` object. This is only implemented when
-        working with loose orientations.
+        Use minimum norm :footcite:`HamalainenIlmoniemi1994`,
+        dSPM (default) :footcite:`DaleEtAl2000`,
+        sLORETA :footcite:`Pascual-Marqui2002`, or
+        eLORETA :footcite:`Pascual-Marqui2011`.
+    %(pick_ori)s
     prepared : bool
         If True, do not call :func:`prepare_inverse_operator`.
     label : Label | None
@@ -799,6 +959,9 @@ def apply_inverse(evoked, inverse_operator, lambda2=1. / 9., method="dSPM",
         Cannot be used with ``method=='eLORETA'``.
 
         .. versionadded:: 0.17
+    %(use_cps_restricted)s
+
+        .. versionadded:: 0.20
     %(verbose)s
 
     Returns
@@ -810,8 +973,10 @@ def apply_inverse(evoked, inverse_operator, lambda2=1. / 9., method="dSPM",
 
     See Also
     --------
-    apply_inverse_raw : Apply inverse operator to raw object
-    apply_inverse_epochs : Apply inverse operator to epochs object
+    apply_inverse_raw : Apply inverse operator to raw object.
+    apply_inverse_epochs : Apply inverse operator to epochs object.
+    apply_inverse_tfr_epochs : Apply inverse operator to epochs tfr object.
+    apply_inverse_cov : Apply inverse operator to covariance object.
 
     Notes
     -----
@@ -832,7 +997,8 @@ def apply_inverse(evoked, inverse_operator, lambda2=1. / 9., method="dSPM",
             loose-orientation inverses and ``False`` for free- and
             fixed-orientation inverses. See below.
 
-    The eLORETA paper [4]_ defines how to compute inverses for fixed- and
+    The eLORETA paper :footcite:`Pascual-Marqui2011` defines how to compute
+    inverses for fixed- and
     free-orientation inverses. In the free orientation case, the X/Y/Z
     orientation triplet for each location is effectively multiplied by a
     3x3 weight matrix. This is the behavior obtained with
@@ -853,25 +1019,48 @@ def apply_inverse(evoked, inverse_operator, lambda2=1. / 9., method="dSPM",
 
     References
     ----------
-    .. [1] Hämäläinen M S and Ilmoniemi R. Interpreting magnetic fields of
-           the brain: minimum norm estimates. Medical & Biological Engineering
-           & Computing, 32(1):35-42, 1994.
-    .. [2] Dale A, Liu A, Fischl B, Buckner R. (2000) Dynamic statistical
-           parametric mapping: combining fMRI and MEG for high-resolution
-           imaging of cortical activity. Neuron, 26:55-67.
-    .. [3] Pascual-Marqui RD (2002), Standardized low resolution brain
-           electromagnetic tomography (sLORETA): technical details. Methods
-           Find. Exp. Clin. Pharmacology, 24(D):5-12.
-    .. [4] Pascual-Marqui RD (2007). Discrete, 3D distributed, linear imaging
-           methods of electric neuronal activity. Part 1: exact, zero error
-           localization. arXiv:0710.3341
+    .. footbibliography::
     """
-    _check_reference(evoked, inverse_operator['info']['ch_names'])
-    _check_option('method', method, INVERSE_METHODS)
-    if method == 'eLORETA' and return_residual:
-        raise ValueError('eLORETA does not currently support return_residual')
-    _check_ori(pick_ori, inverse_operator['source_ori'],
-               inverse_operator['src'])
+    out = _apply_inverse(
+        evoked,
+        inverse_operator,
+        lambda2,
+        method,
+        pick_ori,
+        prepared,
+        label,
+        method_params,
+        return_residual,
+        use_cps,
+    )
+    logger.info("[done]")
+    return out
+
+
+def _log_exp_var(data, est, prefix="    "):
+    res = data - est
+    var_exp = 1 - ((res * res.conj()).sum().real / (data * data.conj()).sum().real)
+    var_exp *= 100
+    logger.info(f"{prefix}Explained {var_exp:5.1f}% variance")
+    return var_exp
+
+
+def _apply_inverse(
+    evoked,
+    inverse_operator,
+    lambda2,
+    method,
+    pick_ori,
+    prepared,
+    label,
+    method_params,
+    return_residual,
+    use_cps,
+):
+    _validate_type(evoked, Evoked, "evoked")
+    _check_reference(evoked, inverse_operator["info"]["ch_names"])
+    _check_option("method", method, INVERSE_METHODS)
+    _check_ori(pick_ori, inverse_operator["source_ori"], inverse_operator["src"])
     #
     #   Set up the inverse according to the parameters
     #
@@ -879,66 +1068,85 @@ def apply_inverse(evoked, inverse_operator, lambda2=1. / 9., method="dSPM",
 
     _check_ch_names(inverse_operator, evoked.info)
 
-    inv = _check_or_prepare(inverse_operator, nave, lambda2, method,
-                            method_params, prepared)
+    inv = _check_or_prepare(
+        inverse_operator, nave, lambda2, method, method_params, prepared, copy="non-src"
+    )
+    del inverse_operator
 
     #
     #   Pick the correct channels from the data
     #
     sel = _pick_channels_inverse_operator(evoked.ch_names, inv)
-    logger.info('Applying inverse operator to "%s"...' % (evoked.comment,))
-    logger.info('    Picked %d channels from the data' % len(sel))
-    logger.info('    Computing inverse...')
-    K, noise_norm, vertno, source_nn = _assemble_kernel(inv, label, method,
-                                                        pick_ori)
+    logger.info(f'Applying inverse operator to "{evoked.comment}"...')
+    logger.info("    Picked %d channels from the data", len(sel))
+    logger.info("    Computing inverse...")
+    K, noise_norm, vertno, source_nn = _assemble_kernel(
+        inv, label, method, pick_ori, use_cps=use_cps
+    )
     sol = np.dot(K, evoked.data[sel])  # apply imaging kernel
-    logger.info('    Computing residual...')
+    logger.info("    Computing residual...")
     # x̂(t) = G ĵ(t) = C ** 1/2 U Π w(t)
     # where the diagonal matrix Π has elements πk = λk γk
-    Pi = inv['sing'] * inv['reginv']
-    data_w = np.dot(inv['whitener'],  # C ** -0.5
-                    np.dot(inv['proj'], evoked.data[sel]))
-    w_t = np.dot(inv['eigen_fields']['data'], data_w)  # U.T @ data
-    data_est = np.dot(inv['colorer'],  # C ** 0.5
-                      np.dot(inv['eigen_fields']['data'].T,  # U
-                             Pi[:, np.newaxis] * w_t))
-    data_est_w = np.dot(inv['whitener'], np.dot(inv['proj'], data_est))
-    var_exp = 1 - ((data_est_w - data_w) ** 2).sum() / (data_w ** 2).sum()
-    logger.info('    Explained %5.1f%% variance' % (100 * var_exp,))
+    Pi = inv["sing"] * inv["reginv"]
+    data_w = np.dot(inv["whitener"], np.dot(inv["proj"], evoked.data[sel]))  # C ** -0.5
+    w_t = np.dot(inv["eigen_fields"]["data"], data_w)  # U.T @ data
+    data_est = np.dot(
+        inv["colorer"],  # C ** 0.5
+        np.dot(inv["eigen_fields"]["data"].T, Pi[:, np.newaxis] * w_t),  # U
+    )
+    data_est_w = np.dot(inv["whitener"], np.dot(inv["proj"], data_est))
+    _log_exp_var(data_w, data_est_w)
     if return_residual:
         residual = evoked.copy()
         residual.data[sel] -= data_est
-    is_free_ori = (inverse_operator['source_ori'] ==
-                   FIFF.FIFFV_MNE_FREE_ORI and pick_ori != 'normal')
+    is_free_ori = inv["source_ori"] == FIFF.FIFFV_MNE_FREE_ORI and pick_ori != "normal"
 
-    if is_free_ori and pick_ori != 'vector':
-        logger.info('    Combining the current components...')
+    if is_free_ori and pick_ori != "vector":
+        logger.info("    Combining the current components...")
         sol = combine_xyz(sol)
 
     if noise_norm is not None:
-        logger.info('    %s...' % (method,))
-        if is_free_ori and pick_ori == 'vector':
+        logger.info(f"    {method}...")
+        if is_free_ori and pick_ori == "vector":
             noise_norm = noise_norm.repeat(3, axis=0)
         sol *= noise_norm
 
-    tstep = 1.0 / evoked.info['sfreq']
+    tstep = 1.0 / evoked.info["sfreq"]
     tmin = float(evoked.times[0])
-    subject = _subject_from_inverse(inverse_operator)
-
-    src_type = _get_src_type(inverse_operator['src'], vertno)
-    stc = _make_stc(sol, vertno, tmin=tmin, tstep=tstep, subject=subject,
-                    vector=(pick_ori == 'vector'), source_nn=source_nn,
-                    src_type=src_type)
-    logger.info('[done]')
+    subject = _subject_from_inverse(inv)
+    src_type = _get_src_type(inv["src"], vertno)
+    stc = _make_stc(
+        sol,
+        vertno,
+        tmin=tmin,
+        tstep=tstep,
+        subject=subject,
+        vector=(pick_ori == "vector"),
+        source_nn=source_nn,
+        src_type=src_type,
+    )
 
     return (stc, residual) if return_residual else stc
 
 
 @verbose
-def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
-                      label=None, start=None, stop=None, nave=1,
-                      time_func=None, pick_ori=None, buffer_size=None,
-                      prepared=False, method_params=None, verbose=None):
+def apply_inverse_raw(
+    raw,
+    inverse_operator,
+    lambda2,
+    method="dSPM",
+    label=None,
+    start=None,
+    stop=None,
+    nave=1,
+    time_func=None,
+    pick_ori=None,
+    buffer_size=None,
+    prepared=False,
+    method_params=None,
+    use_cps=True,
+    verbose=None,
+):
     """Apply inverse operator to Raw data.
 
     Parameters
@@ -963,14 +1171,7 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
         Set to 1 on raw data.
     time_func : callable
         Linear function applied to sensor space time series.
-    pick_ori : None | "normal" | "vector"
-        If "normal", rather than pooling the orientations by taking the norm,
-        only the radial component is kept. This is only implemented
-        when working with loose orientations.
-        If "vector", no pooling of the orientations is done and the vector
-        result will be returned in the form of a
-        :class:`mne.VectorSourceEstimate` object. This does not work when using
-        an inverse operator with fixed orientations.
+    %(pick_ori)s
     buffer_size : int (or None)
         If not None, the computation of the inverse and the combination of the
         current components is performed in segments of length buffer_size
@@ -985,6 +1186,9 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
         Additional options for eLORETA. See Notes of :func:`apply_inverse`.
 
         .. versionadded:: 0.16
+    %(use_cps_restricted)s
+
+        .. versionadded:: 0.20
     %(verbose)s
 
     Returns
@@ -994,115 +1198,140 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
 
     See Also
     --------
-    apply_inverse_epochs : Apply inverse operator to epochs object
-    apply_inverse : Apply inverse operator to evoked object
+    apply_inverse : Apply inverse operator to evoked object.
+    apply_inverse_epochs : Apply inverse operator to epochs object.
+    apply_inverse_tfr_epochs : Apply inverse operator to epochs tfr object.
+    apply_inverse_cov : Apply inverse operator to covariance object.
     """
-    _check_reference(raw, inverse_operator['info']['ch_names'])
-    _check_option('method', method, INVERSE_METHODS)
-    _check_ori(pick_ori, inverse_operator['source_ori'],
-               inverse_operator['src'])
+    _validate_type(raw, BaseRaw, "raw")
+    _check_reference(raw, inverse_operator["info"]["ch_names"])
+    _check_option("method", method, INVERSE_METHODS)
+    _check_ori(pick_ori, inverse_operator["source_ori"], inverse_operator["src"])
     _check_ch_names(inverse_operator, raw.info)
 
     #
     #   Set up the inverse according to the parameters
     #
-    inv = _check_or_prepare(inverse_operator, nave, lambda2, method,
-                            method_params, prepared)
+    inv = _check_or_prepare(
+        inverse_operator, nave, lambda2, method, method_params, prepared
+    )
 
     #
     #   Pick the correct channels from the data
     #
     sel = _pick_channels_inverse_operator(raw.ch_names, inv)
-    logger.info('Applying inverse to raw...')
-    logger.info('    Picked %d channels from the data' % len(sel))
-    logger.info('    Computing inverse...')
+    logger.info("Applying inverse to raw...")
+    logger.info("    Picked %d channels from the data", len(sel))
+    logger.info("    Computing inverse...")
 
     data, times = raw[sel, start:stop]
 
     if time_func is not None:
         data = time_func(data)
 
-    K, noise_norm, vertno, source_nn = _assemble_kernel(inv, label, method,
-                                                        pick_ori)
+    K, noise_norm, vertno, source_nn = _assemble_kernel(
+        inv, label, method, pick_ori, use_cps
+    )
 
-    is_free_ori = (inverse_operator['source_ori'] ==
-                   FIFF.FIFFV_MNE_FREE_ORI and pick_ori != 'normal')
+    is_free_ori = (
+        inverse_operator["source_ori"] == FIFF.FIFFV_MNE_FREE_ORI
+        and pick_ori != "normal"
+    )
 
     if buffer_size is not None and is_free_ori:
         # Process the data in segments to conserve memory
         n_seg = int(np.ceil(data.shape[1] / float(buffer_size)))
-        logger.info('    computing inverse and combining the current '
-                    'components (using %d segments)...' % (n_seg))
+        logger.info(
+            "    computing inverse and combining the current "
+            "components (using %d segments)...",
+            n_seg,
+        )
 
         # Allocate space for inverse solution
         n_times = data.shape[1]
 
-        n_dipoles = K.shape[0] if pick_ori == 'vector' else K.shape[0] // 3
+        n_dipoles = K.shape[0] if pick_ori == "vector" else K.shape[0] // 3
         sol = np.empty((n_dipoles, n_times), dtype=np.result_type(K, data))
 
         for pos in range(0, n_times, buffer_size):
-            sol_chunk = np.dot(K, data[:, pos:pos + buffer_size])
-            if pick_ori != 'vector':
+            sol_chunk = np.dot(K, data[:, pos : pos + buffer_size])
+            if pick_ori != "vector":
                 sol_chunk = combine_xyz(sol_chunk)
-            sol[:, pos:pos + buffer_size] = sol_chunk
+            sol[:, pos : pos + buffer_size] = sol_chunk
 
-            logger.info('        segment %d / %d done..'
-                        % (pos / buffer_size + 1, n_seg))
+            logger.info("        segment %d / %d done..", pos / buffer_size + 1, n_seg)
     else:
         sol = np.dot(K, data)
-        if is_free_ori and pick_ori != 'vector':
-            logger.info('    combining the current components...')
+        if is_free_ori and pick_ori != "vector":
+            logger.info("    combining the current components...")
             sol = combine_xyz(sol)
-
     if noise_norm is not None:
-        if pick_ori == 'vector' and is_free_ori:
+        if pick_ori == "vector" and is_free_ori:
             noise_norm = noise_norm.repeat(3, axis=0)
         sol *= noise_norm
 
     tmin = float(times[0])
-    tstep = 1.0 / raw.info['sfreq']
+    tstep = 1.0 / raw.info["sfreq"]
     subject = _subject_from_inverse(inverse_operator)
-    src_type = _get_src_type(inverse_operator['src'], vertno)
-    stc = _make_stc(sol, vertno, tmin=tmin, tstep=tstep, subject=subject,
-                    vector=(pick_ori == 'vector'), source_nn=source_nn,
-                    src_type=src_type)
-    logger.info('[done]')
+    src_type = _get_src_type(inverse_operator["src"], vertno)
+    stc = _make_stc(
+        sol,
+        vertno,
+        tmin=tmin,
+        tstep=tstep,
+        subject=subject,
+        vector=(pick_ori == "vector"),
+        source_nn=source_nn,
+        src_type=src_type,
+    )
+    logger.info("[done]")
 
     return stc
 
 
-def _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2, method='dSPM',
-                              label=None, nave=1, pick_ori=None,
-                              prepared=False, method_params=None,
-                              verbose=None):
+def _apply_inverse_epochs_gen(
+    epochs,
+    inverse_operator,
+    lambda2,
+    method="dSPM",
+    label=None,
+    nave=1,
+    pick_ori=None,
+    prepared=False,
+    method_params=None,
+    use_cps=True,
+    verbose=None,
+):
     """Generate inverse solutions for epochs. Used in apply_inverse_epochs."""
-    _check_option('method', method, INVERSE_METHODS)
-    _check_ori(pick_ori, inverse_operator['source_ori'],
-               inverse_operator['src'])
+    _validate_type(epochs, BaseEpochs, "epochs")
+    _check_reference(epochs, inverse_operator["info"]["ch_names"])
+    _check_option("method", method, INVERSE_METHODS)
+    _check_ori(pick_ori, inverse_operator["source_ori"], inverse_operator["src"])
     _check_ch_names(inverse_operator, epochs.info)
 
     #
     #   Set up the inverse according to the parameters
     #
-    inv = _check_or_prepare(inverse_operator, nave, lambda2, method,
-                            method_params, prepared)
+    inv = _check_or_prepare(
+        inverse_operator, nave, lambda2, method, method_params, prepared
+    )
 
     #
     #   Pick the correct channels from the data
     #
     sel = _pick_channels_inverse_operator(epochs.ch_names, inv)
-    logger.info('Picked %d channels from the data' % len(sel))
-    logger.info('Computing inverse...')
-    K, noise_norm, vertno, source_nn = _assemble_kernel(inv, label, method,
-                                                        pick_ori)
+    logger.info("Picked %d channels from the data", len(sel))
+    logger.info("Computing inverse...")
+    K, noise_norm, vertno, source_nn = _assemble_kernel(
+        inv, label, method, pick_ori, use_cps
+    )
 
-    tstep = 1.0 / epochs.info['sfreq']
+    tstep = 1.0 / epochs.info["sfreq"]
     tmin = epochs.times[0]
 
-    is_free_ori = not (is_fixed_orient(inverse_operator) or
-                       pick_ori == 'normal')
+    is_free_ori = not (is_fixed_orient(inverse_operator) or pick_ori == "normal")
 
-    if pick_ori == 'vector' and noise_norm is not None:
+    if pick_ori == "vector" and noise_norm is not None:
         noise_norm = noise_norm.repeat(3, axis=0)
 
     if not is_free_ori and noise_norm is not None:
@@ -1111,17 +1340,17 @@ def _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2, method='dSPM',
 
     subject = _subject_from_inverse(inverse_operator)
     try:
-        total = ' / %d' % (len(epochs),)  # len not always defined
+        total = f" / {len(epochs)}"  # len not always defined
     except RuntimeError:
-        total = ' / %d (at most)' % (len(epochs.events),)
+        total = f" / {len(epochs.events)} (at most)"
     for k, e in enumerate(epochs):
-        logger.info('Processing epoch : %d%s' % (k + 1, total))
+        logger.info("Processing epoch : %d%s", k + 1, total)
         if is_free_ori:
             # Compute solution and combine current components (non-linear)
             sol = np.dot(K, e[sel])  # apply imaging kernel
 
-            if pick_ori != 'vector':
-                logger.info('combining the current components...')
+            if pick_ori != "vector":
+                logger.info("combining the current components...")
                 sol = combine_xyz(sol)
 
             if noise_norm is not None:
@@ -1133,21 +1362,38 @@ def _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2, method='dSPM',
             else:
                 sol = np.dot(K, e[sel])
 
-        src_type = _get_src_type(inverse_operator['src'], vertno)
-        stc = _make_stc(sol, vertno, tmin=tmin, tstep=tstep, subject=subject,
-                        vector=(pick_ori == 'vector'), source_nn=source_nn,
-                        src_type=src_type)
+        src_type = _get_src_type(inverse_operator["src"], vertno)
+        stc = _make_stc(
+            sol,
+            vertno,
+            tmin=tmin,
+            tstep=tstep,
+            subject=subject,
+            vector=(pick_ori == "vector"),
+            source_nn=source_nn,
+            src_type=src_type,
+        )
 
         yield stc
 
-    logger.info('[done]')
+    logger.info("[done]")
 
 
 @verbose
-def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
-                         label=None, nave=1, pick_ori=None,
-                         return_generator=False, prepared=False,
-                         method_params=None, verbose=None):
+def apply_inverse_epochs(
+    epochs,
+    inverse_operator,
+    lambda2,
+    method="dSPM",
+    label=None,
+    nave=1,
+    pick_ori=None,
+    return_generator=False,
+    prepared=False,
+    method_params=None,
+    use_cps=True,
+    verbose=None,
+):
     """Apply inverse operator to Epochs.
 
     Parameters
@@ -1166,14 +1412,7 @@ def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
     nave : int
         Number of averages used to regularize the solution.
         Set to 1 on single Epoch by default.
-    pick_ori : None | "normal" | "vector"
-        If "normal", rather than pooling the orientations by taking the norm,
-        only the radial component is kept. This is only implemented
-        when working with loose orientations.
-        If "vector", no pooling of the orientations is done and the vector
-        result will be returned in the form of a
-        :class:`mne.VectorSourceEstimate` object. This does not work when using
-        an inverse operator with fixed orientations.
+    %(pick_ori)s
     return_generator : bool
         Return a generator object instead of a list. This allows iterating
         over the stcs without having to keep them all in memory.
@@ -1183,22 +1422,36 @@ def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
         Additional options for eLORETA. See Notes of :func:`apply_inverse`.
 
         .. versionadded:: 0.16
+    %(use_cps_restricted)s
+
+        .. versionadded:: 0.20
     %(verbose)s
 
     Returns
     -------
-    stc : list of (SourceEstimate | VectorSourceEstimate | VolSourceEstimate)
+    stcs : list of (SourceEstimate | VectorSourceEstimate | VolSourceEstimate)
         The source estimates for all epochs.
 
     See Also
     --------
-    apply_inverse_raw : Apply inverse operator to raw object
-    apply_inverse : Apply inverse operator to evoked object
+    apply_inverse_raw : Apply inverse operator to raw object.
+    apply_inverse : Apply inverse operator to evoked object.
+    apply_inverse_tfr_epochs : Apply inverse operator to epochs tfr object.
+    apply_inverse_cov : Apply inverse operator to a covariance object.
     """
     stcs = _apply_inverse_epochs_gen(
-        epochs, inverse_operator, lambda2, method=method, label=label,
-        nave=nave, pick_ori=pick_ori, verbose=verbose, prepared=prepared,
-        method_params=method_params)
+        epochs,
+        inverse_operator,
+        lambda2,
+        method=method,
+        label=label,
+        nave=nave,
+        pick_ori=pick_ori,
+        verbose=verbose,
+        prepared=prepared,
+        method_params=method_params,
+        use_cps=use_cps,
+    )
 
     if not return_generator:
         # return a list
@@ -1207,59 +1460,258 @@ def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
     return stcs
 
 
-# XXX what is this???
-'''
-def _xyz2lf(Lf_xyz, normals):
-    """Reorient leadfield to one component matching the normal to the cortex
+def _apply_inverse_tfr_epochs_gen(
+    epochs_tfr,
+    inverse_operator,
+    lambda2,
+    method,
+    label,
+    nave,
+    pick_ori,
+    prepared,
+    method_params,
+    use_cps,
+):
+    for freq_idx in range(epochs_tfr.freqs.size):
+        epochs = EpochsArray(
+            epochs_tfr.data[:, :, freq_idx, :],
+            epochs_tfr.info,
+            events=epochs_tfr.events,
+            tmin=epochs_tfr.tmin,
+        )
+        this_inverse_operator = (
+            inverse_operator[freq_idx]
+            if isinstance(inverse_operator, list | tuple)
+            else inverse_operator
+        )
+        stcs = _apply_inverse_epochs_gen(
+            epochs,
+            this_inverse_operator,
+            lambda2,
+            method=method,
+            label=label,
+            nave=nave,
+            pick_ori=pick_ori,
+            prepared=prepared,
+            method_params=method_params,
+            use_cps=use_cps,
+        )
+        yield stcs
 
-    This program takes a leadfield matrix computed for dipole components
-    pointing in the x, y, and z directions, and outputs a new lead field
-    matrix for dipole components pointing in the normal direction of the
-    cortical surfaces and in the two tangential directions to the cortex
-    (that is on the tangent cortical space). These two tangential dipole
-    components are uniquely determined by the SVD (reduction of variance).
+
+@verbose
+def apply_inverse_tfr_epochs(
+    epochs_tfr,
+    inverse_operator,
+    lambda2,
+    method="dSPM",
+    label=None,
+    nave=1,
+    pick_ori=None,
+    return_generator=False,
+    prepared=False,
+    method_params=None,
+    use_cps=True,
+    verbose=None,
+):
+    """Apply inverse operator to EpochsTFR.
 
     Parameters
     ----------
-    Lf_xyz: array of shape [n_sensors, n_positions x 3]
-        Leadfield
-    normals : array of shape [n_positions, 3]
-        Normals to the cortex
+    epochs_tfr : EpochsTFR object
+        Single trial, phase-amplitude (complex-valued), time-frequency epochs.
+    inverse_operator : list of dict | dict
+        The inverse operator for each frequency or a single inverse operator
+        to use for all frequencies.
+    lambda2 : float
+        The regularization parameter.
+    method : "MNE" | "dSPM" | "sLORETA" | "eLORETA"
+        Use minimum norm, dSPM (default), sLORETA, or eLORETA.
+    label : Label | None
+        Restricts the source estimates to a given label. If None,
+        source estimates will be computed for the entire source space.
+    nave : int
+        Number of averages used to regularize the solution.
+        Set to 1 on single Epoch by default.
+    %(pick_ori)s
+    return_generator : bool
+        Return a generator object instead of a list. This allows iterating
+        over the stcs without having to keep them all in memory.
+    prepared : bool
+        If True, do not call :func:`prepare_inverse_operator`.
+    method_params : dict | None
+        Additional options for eLORETA. See Notes of :func:`apply_inverse`.
+    %(use_cps_restricted)s
+    %(verbose)s
 
     Returns
     -------
-    Lf_cortex : array of shape [n_sensors, n_positions x 3]
-        Lf_cortex is a leadfield matrix for dipoles in rotated orientations, so
-        that the first column is the gain vector for the cortical normal dipole
-        and the following two column vectors are the gain vectors for the
-        tangential orientations (tangent space of cortical surface).
+    stcs : list of list of (SourceEstimate | VectorSourceEstimate | VolSourceEstimate)
+        The source estimates for all frequencies (outside list) and for
+        all epochs (inside list).
+
+    See Also
+    --------
+    apply_inverse_raw : Apply inverse operator to raw object.
+    apply_inverse : Apply inverse operator to evoked object.
+    apply_inverse_epochs : Apply inverse operator to epochs object.
+    apply_inverse_cov : Apply inverse operator to a covariance object.
+    """  # noqa E501
+    _check_tfr_complex(epochs_tfr)
+    if (
+        isinstance(inverse_operator, list | tuple)
+        and len(inverse_operator) != epochs_tfr.freqs.size
+    ):
+        raise ValueError(
+            f"Expected {epochs_tfr.freqs.size} inverse "
+            f"operators, got {len(inverse_operator)}"
+        )
+    stcs = _apply_inverse_tfr_epochs_gen(
+        epochs_tfr,
+        inverse_operator,
+        lambda2,
+        method,
+        label,
+        nave,
+        pick_ori,
+        prepared,
+        method_params,
+        use_cps,
+    )
+    if not return_generator:
+        stcs = [[stc for stc in tfr_stcs] for tfr_stcs in stcs]
+    return stcs
+
+
+@verbose
+def apply_inverse_cov(
+    cov,
+    info,
+    inverse_operator,
+    nave=1,
+    lambda2=1 / 9,
+    method="dSPM",
+    pick_ori=None,
+    prepared=False,
+    label=None,
+    method_params=None,
+    use_cps=True,
+    verbose=None,
+):
+    """Apply inverse operator to covariance data.
+
+    Parameters
+    ----------
+    cov : instance of Covariance
+        Covariance data, computed on the time segment for which to compute
+        source power.
+    %(info_not_none)s Used specify the channels to include.
+    inverse_operator : instance of InverseOperator
+        Inverse operator.
+    nave : int
+        Number of averages used to regularize the solution.
+    lambda2 : float
+        The regularization parameter.
+    method : "MNE" | "dSPM" | "sLORETA" | "eLORETA"
+        Use minimum norm, dSPM (default), sLORETA, or eLORETA.
+    %(pick_ori_novec)s
+    prepared : bool
+        If True, do not call :func:`prepare_inverse_operator`.
+    label : Label | None
+        Restricts the source estimates to a given label. If None,
+        source estimates will be computed for the entire source space.
+    method_params : dict | None
+        Additional options for eLORETA. See Notes for details.
+    %(use_cps)s
+    %(verbose)s
+
+    Returns
+    -------
+    stc : SourceEstimate | VectorSourceEstimate | VolSourceEstimate
+        The source estimates.
+
+    See Also
+    --------
+    apply_inverse : Apply inverse operator to evoked object.
+    apply_inverse_raw : Apply inverse operator to raw object.
+    apply_inverse_epochs : Apply inverse operator to epochs object.
+    apply_inverse_tfr_epochs : Apply inverse operator to epochs tfr object.
+
+    Notes
+    -----
+    .. versionadded:: 0.20
+
+    This code is based on the original research code from
+    :footcite:`Sabbagh2020` and has been useful to correct for individual field
+    spread using source localization in the context of predictive modeling.
+
+    References
+    ----------
+    .. footbibliography::
     """
-    n_sensors, n_dipoles = Lf_xyz.shape
-    n_positions = n_dipoles // 3
-    Lf_xyz = Lf_xyz.reshape(n_sensors, n_positions, 3)
-    n_sensors, n_positions, _ = Lf_xyz.shape
-    Lf_cortex = np.zeros_like(Lf_xyz)
-
-    for k in range(n_positions):
-        lf_normal = np.dot(Lf_xyz[:, k, :], normals[k])
-        lf_normal_n = lf_normal[:, None] / linalg.norm(lf_normal)
-        P = np.eye(n_sensors, n_sensors) - np.dot(lf_normal_n, lf_normal_n.T)
-        lf_p = np.dot(P, Lf_xyz[:, k, :])
-        U, s, Vh = linalg.svd(lf_p)
-        Lf_cortex[:, k, 0] = lf_normal
-        Lf_cortex[:, k, 1:] = np.c_[U[:, 0] * s[0], U[:, 1] * s[1]]
-
-    Lf_cortex = Lf_cortex.reshape(n_sensors, n_dipoles)
-    return Lf_cortex
-'''
+    _validate_type(cov, Covariance, cov)
+    _validate_type(inverse_operator, InverseOperator, "inverse_operator")
+    sel = _pick_channels_inverse_operator(cov["names"], inverse_operator)
+    use_names = [cov["names"][idx] for idx in sel]
+    info = pick_info(info, pick_channels(info["ch_names"], use_names, ordered=True))
+    evoked = EvokedArray(np.eye(len(info["ch_names"])), info, nave=nave, comment="cov")
+    is_free_ori = inverse_operator["source_ori"] == FIFF.FIFFV_MNE_FREE_ORI
+    _check_option("pick_ori", pick_ori, (None, "normal"))
+    if is_free_ori and pick_ori is None:
+        use_ori = "vector"
+        combine = True
+    else:
+        use_ori = pick_ori
+        combine = False
+    stc = _apply_inverse(
+        evoked,
+        inverse_operator,
+        lambda2,
+        method,
+        use_ori,
+        prepared,
+        label,
+        method_params,
+        return_residual=False,
+        use_cps=use_cps,
+    )
+    # apply (potentially rotated in the vector case) operator twice
+    K = np.reshape(stc.data, (-1, stc.data.shape[-1]))
+    # diagonal entries of A @ B are given by (A * B.T).sum(axis=1), so this is
+    # equivalent to np.diag(K @ cov.data[sel][:, sel] @ K.T)[:, np.newaxis]:
+    sol = cov.data[sel][:, sel] @ K.T
+    sol = np.sum(K * sol.T, axis=1, keepdims=True)
+    # Reshape back to (n_src, ..., 1)
+    sol.shape = stc.data.shape[:-1] + (1,)
+    stc = stc.__class__(sol, stc.vertices, stc.tmin, stc.tstep, stc.subject)
+    if combine:  # combine the three directions
+        logger.info("    Combining the current components...")
+        np.sqrt(stc.data, out=stc.data)
+        stc = stc.magnitude()
+        stc.data *= stc.data
+    logger.info("[done]")
+    return stc
 
 
 ###############################################################################
 # Assemble the inverse operator
 
-def _prepare_forward(forward, info, noise_cov, fixed, loose, rank, pca,
-                     use_cps, exp, limit_depth_chs, combine_xyz,
-                     allow_fixed_depth, limit):
+
+def _prepare_forward(
+    forward,
+    info,
+    noise_cov,
+    fixed,
+    loose,
+    rank,
+    pca,
+    use_cps,
+    exp,
+    limit_depth_chs,
+    combine_xyz,
+    allow_fixed_depth,
+    limit,
+):
     """Prepare a gain matrix and noise covariance for localization."""
     # Steps (according to MNE-C, we change the order of various steps
     # because our I/O is already done, and we create the objects
@@ -1282,107 +1734,120 @@ def _prepare_forward(forward, info, noise_cov, fixed, loose, rank, pca,
     forward = forward.copy()
 
     # Deal with "fixed" and "loose"
-    src_kind = forward['src'].kind
-    if fixed == 'auto':
-        if loose == 'auto':
-            fixed = False
-            loose = 0.2 if src_kind == 'surface' else 1.
-        else:
-            fixed = True if float(loose) == 0 else False
-    if fixed:
-        if loose not in ['auto', 0.]:
-            raise ValueError('When using fixed=True, loose must be 0. or '
-                             '"auto", got %s' % (loose,))
-        loose = 0.
-    elif loose == 'auto':
-        loose = 0.2 if src_kind == 'surface' else 1.
-    elif loose == 0.:
-        raise ValueError('If loose==0., then fixed must be True or "auto",'
-                         'got %s' % (fixed,))
+    loose = _triage_loose(forward["src"], loose, fixed)
     del fixed
 
-    loose = float(loose)
-    if not 0 <= loose <= 1:
-        raise ValueError('loose must be between 0 and 1, got %s' % loose)
-    if src_kind != 'surface':
-        if loose != 1:
-            raise ValueError('loose parameter has to be 1 or "auto" for '
-                             'non-surface source space (Got loose=%s for %s '
-                             'source space).' % (loose, src_kind))
-    del src_kind
+    # Figure out what kind of inverse is requested
+    fixed_inverse = all(v == 0.0 for v in loose.values())
+    constrained_inverse = any(v < 1.0 for v in loose.values())
+
+    # We only support fixed orientations for surface and discrete source
+    # spaces, not volume.
+    if fixed_inverse and "volume" in loose:
+        raise ValueError(
+            "Computing inverse solutions for volume source "
+            "spaces with fixed orientations is not "
+            "supported."
+        )
+    if loose.get("volume", 1) < 1:
+        raise ValueError(
+            "Computing inverse solutions with restricted "
+            "orientations (loose < 1) is not supported for "
+            "volume source spaces."
+        )
 
     # Deal with "depth"
     if exp is not None:
         exp = float(exp)
-        if not (0 <= exp <= 1):
-            raise ValueError('depth exponent should be a scalar between '
-                             '0 and 1, got %s' % (exp,))
+        if exp < 0:
+            raise ValueError(
+                f"depth exponent should be greater than or equal to 0, got {exp}"
+            )
         exp = exp or None  # alias 0. -> None
 
-    # put the forward solution in correct orientation
+    # Put the forward solution in correct orientation.
     # (delaying for the case of fixed ori with depth weighting if
     # allow_fixed_depth is True)
-    if loose == 0.:
+    if fixed_inverse:
         if not is_fixed_orient(forward):
             if allow_fixed_depth:
                 # can convert now
-                logger.info('Converting forward solution to fixed orietnation')
+                logger.info("Converting forward solution to fixed orientation")
                 convert_forward_solution(
-                    forward, force_fixed=True, use_cps=True, copy=False)
+                    forward, force_fixed=True, use_cps=True, copy=False
+                )
         elif exp is not None and not allow_fixed_depth:
             raise ValueError(
-                'For a fixed orientation inverse solution with depth '
-                'weighting, the forward solution must be free-orientation and '
-                'in surface orientation')
+                "For a fixed orientation inverse solution with depth "
+                "weighting, the forward solution must be free-orientation and "
+                "in surface orientation"
+            )
     else:  # loose or free ori
         if is_fixed_orient(forward):
             raise ValueError(
-                'Forward operator has fixed orientation and can only '
-                'be used to make a fixed-orientation inverse '
-                'operator.')
-        if loose < 1. and not forward['surf_ori']:  # loose ori
-            logger.info('Converting forward solution to surface orientation')
+                "Forward operator has fixed orientation and can only "
+                "be used to make a fixed-orientation inverse "
+                "operator."
+            )
+        if constrained_inverse and not forward["surf_ori"]:
+            logger.info("Converting forward solution to surface orientation")
             convert_forward_solution(
-                forward, surf_ori=True, use_cps=True, copy=False)
+                forward, surf_ori=True, use_cps=use_cps, copy=False
+            )
 
-    forward, info_picked = _select_orient_forward(forward, info, noise_cov,
-                                                  copy=False)
-    logger.info("Selected %d channels" % (len(info_picked['ch_names'],)))
+    forward, info_picked = _select_orient_forward(forward, info, noise_cov, copy=False)
+    logger.info("Selected %d channels", len(info_picked["ch_names"]))
 
     if exp is None:
         depth_prior = None
     else:
         depth_prior = compute_depth_prior(
-            forward, info_picked, exp=exp, limit_depth_chs=limit_depth_chs,
-            combine_xyz=combine_xyz, limit=limit, noise_cov=noise_cov)
+            forward,
+            info_picked,
+            exp=exp,
+            limit_depth_chs=limit_depth_chs,
+            combine_xyz=combine_xyz,
+            limit=limit,
+            noise_cov=noise_cov,
+            rank=rank,
+        )
 
     # Deal with fixed orientation forward / inverse
-    if loose == 0.:
+    if fixed_inverse:
         orient_prior = None
         if not is_fixed_orient(forward):
             if depth_prior is not None:
                 # Convert the depth prior into a fixed-orientation one
-                logger.info('    Picked elements from a free-orientation '
-                            'depth-weighting prior into the fixed-orientation '
-                            'one')
+                logger.info(
+                    "    Picked elements from a free-orientation "
+                    "depth-weighting prior into the fixed-orientation "
+                    "one"
+                )
                 depth_prior = depth_prior[2::3]
             convert_forward_solution(
-                forward, surf_ori=True, force_fixed=True,
-                use_cps=use_cps, copy=False)
-    else:
+                forward, surf_ori=True, force_fixed=True, use_cps=use_cps, copy=False
+            )
+    else:  # Free or loose orientation
+        if constrained_inverse:
+            assert forward["surf_ori"]
         # In theory we could have orient_prior=None for loose=1., but
         # the MNE-C code does not do this
         orient_prior = compute_orient_prior(forward, loose=loose)
 
-    logger.info('Whitening the forward solution.')
-    noise_cov = prepare_noise_cov(
-        noise_cov, info, info_picked['ch_names'], rank)
+    logger.info("Whitening the forward solution.")
+    noise_cov = prepare_noise_cov(noise_cov, info, info_picked["ch_names"], rank)
     whitener, _ = compute_whitener(
-        noise_cov, info, info_picked['ch_names'], pca=pca, verbose=False)
-    gain = np.dot(whitener, forward['sol']['data'])
+        noise_cov,
+        info,
+        info_picked["ch_names"],
+        pca=pca,
+        rank=rank,
+        verbose=_verbose_safe_false(),
+    )
+    gain = np.dot(whitener, forward["sol"]["data"])
 
-    logger.info('Creating the source covariance matrix')
-    source_std = np.ones(gain.shape[1])
+    logger.info("Creating the source covariance matrix")
+    source_std = np.ones(gain.shape[1], dtype=gain.dtype)
     if depth_prior is not None:
         source_std *= depth_prior
     if orient_prior is not None:
@@ -1391,50 +1856,59 @@ def _prepare_forward(forward, info, noise_cov, fixed, loose, rank, pca,
     gain *= source_std
     # Adjusting Source Covariance matrix to make trace of G*R*G' equal
     # to number of sensors.
-    logger.info('Adjusting source covariance matrix.')
-    trace_GRGT = linalg.norm(gain, ord='fro') ** 2
-    n_nzero = (noise_cov['eig'] > 0).sum()
+    logger.info("Adjusting source covariance matrix.")
+    trace_GRGT = np.linalg.norm(gain, ord="fro") ** 2
+    n_nzero = (noise_cov["eig"] > 0).sum()
     scale = np.sqrt(n_nzero / trace_GRGT)
     source_std *= scale
     gain *= scale
 
-    return (forward, info_picked, gain, depth_prior, orient_prior, source_std,
-            trace_GRGT, noise_cov, whitener)
+    return (
+        forward,
+        info_picked,
+        gain,
+        depth_prior,
+        orient_prior,
+        source_std,
+        trace_GRGT,
+        noise_cov,
+        whitener,
+    )
 
 
 @verbose
-def make_inverse_operator(info, forward, noise_cov, loose='auto', depth=0.8,
-                          fixed='auto', rank=None, use_cps=True, verbose=None):
+def make_inverse_operator(
+    info,
+    forward,
+    noise_cov,
+    loose="auto",
+    depth=0.8,
+    fixed="auto",
+    rank=None,
+    use_cps=True,
+    verbose=None,
+):
     """Assemble inverse operator.
 
     Parameters
     ----------
-    info : dict
-        The measurement info to specify the channels to include.
-        Bad channels in info['bads'] are not used.
-    forward : dict
-        Forward operator.
+    %(info_not_none)s
+        Specifies the channels to include. Bad channels (in ``info['bads']``)
+        are not used.
+    forward : instance of Forward
+        Forward operator. See :func:`~mne.make_forward_solution` to create the operator.
     noise_cov : instance of Covariance
-        The noise covariance matrix.
-    loose : float in [0, 1] | 'auto'
-        Value that weights the source variances of the dipole components
-        that are parallel (tangential) to the cortical surface. If loose
-        is 0 then the solution is computed with fixed orientation,
-        and fixed must be True or "auto".
-        If loose is 1, it corresponds to free orientations.
-        The default value ('auto') is set to 0.2 for surface-oriented source
-        space and set to 1.0 for volumetric, discrete, or mixed source spaces,
-        unless ``fixed is True`` in which case the value 0. is used.
+        The noise covariance matrix. See :func:`~mne.compute_raw_covariance` and
+        :func:`~mne.compute_covariance` to compute the noise covariance matrix on
+        :class:`~mne.io.Raw` and :class:`~mne.Epochs` respectively.
+    %(loose)s
     %(depth)s
     fixed : bool | 'auto'
         Use fixed source orientations normal to the cortical mantle. If True,
-        the loose parameter must be "auto" or 0. If 'auto', the loose value
+        the loose parameter must be ``"auto"`` or ``0``. If ``'auto'``, the loose value
         is used.
-    %(rank_None)s
-    use_cps : None | bool (default True)
-        Whether to use cortical patch statistics to define normal
-        orientations. Only used when converting to surface orientation
-        (i.e., for surface source spaces and ``loose < 1``).
+    %(rank_none)s
+    %(use_cps)s
     %(verbose)s
 
     Returns
@@ -1476,38 +1950,92 @@ def make_inverse_operator(info, forward, noise_cov, loose='auto', depth=0.8,
     has patch statistics computed, these are used to improve the depth
     weighting. Thus slightly different results are to be expected with
     and without this information.
+
+    For depth weighting, 0.8 is generally good for MEG, and between 2 and 5
+    is good for EEG, see :footcite:t:`LinEtAl2006a`.
+
+    References
+    ----------
+    .. footbibliography::
     """  # noqa: E501
     # For now we always have pca='white'. It does not seem to affect
     # calculations and is also backward-compatible with MNE-C
-    depth = _check_depth(depth, 'depth_mne')
-    forward, gain_info, gain, depth_prior, orient_prior, source_std, \
-        trace_GRGT, noise_cov, _ = _prepare_forward(
-            forward, info, noise_cov, fixed, loose, rank, pca='white',
-            use_cps=use_cps, **depth)
-    del fixed, loose, depth, use_cps
+    depth = _check_depth(depth, "depth_mne")
+    (
+        forward,
+        gain_info,
+        gain,
+        depth_prior,
+        orient_prior,
+        source_std,
+        trace_GRGT,
+        noise_cov,
+        _,
+    ) = _prepare_forward(
+        forward,
+        info,
+        noise_cov,
+        fixed,
+        loose,
+        rank,
+        pca="white",
+        use_cps=use_cps,
+        **depth,
+    )
+    # no need to copy any attributes of forward here because there is
+    # a deepcopy in _prepare_forward
+    inv = dict(
+        projs=deepcopy(gain_info["projs"]),
+        eigen_leads_weighted=False,
+        source_ori=forward["source_ori"],
+        mri_head_t=forward["mri_head_t"],
+        nsource=forward["nsource"],
+        units="Am",
+        coord_frame=forward["coord_frame"],
+        source_nn=forward["source_nn"],
+        src=forward["src"],
+        fmri_prior=None,
+        info=deepcopy(forward["info"]),
+    )
+    inv["info"]["bads"] = [
+        bad for bad in info["bads"] if bad in forward["info"]["ch_names"]
+    ]
+    inv["info"]._check_consistency()
+    del fixed, loose, depth, use_cps, forward
 
     # Decompose the combined matrix
-    logger.info('Computing SVD of whitened and weighted lead field '
-                'matrix.')
+    logger.info("Computing SVD of whitened and weighted lead field matrix.")
     eigen_fields, sing, eigen_leads = _safe_svd(gain, full_matrices=False)
     del gain
-    logger.info('    largest singular value = %g' % np.max(sing))
-    logger.info('    scaling factor to adjust the trace = %g' % trace_GRGT)
+    logger.info(f"    largest singular value = {np.max(sing):g}")
+    logger.info(
+        f"    scaling factor to adjust the trace = {trace_GRGT:g} "
+        f"(nchan = {eigen_fields.shape[0]} "
+        f'nzero = {(noise_cov["eig"] <= 0).sum()})'
+    )
 
     # MNE-ify everything for output
-    eigen_fields = dict(data=eigen_fields.T, col_names=gain_info['ch_names'],
-                        row_names=[], nrow=eigen_fields.shape[1],
-                        ncol=eigen_fields.shape[0])
-    eigen_leads = dict(data=eigen_leads.T, nrow=eigen_leads.shape[1],
-                       ncol=eigen_leads.shape[0], row_names=[],
-                       col_names=[])
+    eigen_fields = dict(
+        data=eigen_fields.T,
+        col_names=gain_info["ch_names"],
+        row_names=[],
+        nrow=eigen_fields.shape[1],
+        ncol=eigen_fields.shape[0],
+    )
+    eigen_leads = dict(
+        data=eigen_leads.T,
+        nrow=eigen_leads.shape[1],
+        ncol=eigen_leads.shape[0],
+        row_names=[],
+        col_names=[],
+    )
     has_meg = False
     has_eeg = False
-    for idx in range(gain_info['nchan']):
+    for idx in range(gain_info["nchan"]):
         ch_type = channel_type(gain_info, idx)
-        if ch_type == 'eeg':
+        if ch_type == "eeg":
             has_eeg = True
-        if (ch_type == 'mag') or (ch_type == 'grad'):
+        if (ch_type == "mag") or (ch_type == "grad"):
             has_meg = True
     if has_eeg and has_meg:
         methods = FIFF.FIFFV_MNE_MEG_EEG
@@ -1517,43 +2045,66 @@ def make_inverse_operator(info, forward, noise_cov, loose='auto', depth=0.8,
         methods = FIFF.FIFFV_MNE_EEG
 
     if orient_prior is not None:
-        orient_prior = dict(data=orient_prior,
-                            kind=FIFF.FIFFV_MNE_ORIENT_PRIOR_COV,
-                            bads=[], diag=True, names=[], eig=None,
-                            eigvec=None, dim=orient_prior.size, nfree=1,
-                            projs=[])
+        orient_prior = dict(
+            data=orient_prior,
+            kind=FIFF.FIFFV_MNE_ORIENT_PRIOR_COV,
+            bads=[],
+            diag=True,
+            names=[],
+            eig=None,
+            eigvec=None,
+            dim=orient_prior.size,
+            nfree=1,
+            projs=[],
+        )
     if depth_prior is not None:
-        depth_prior = dict(data=depth_prior,
-                           kind=FIFF.FIFFV_MNE_DEPTH_PRIOR_COV,
-                           bads=[], diag=True, names=[], eig=None,
-                           eigvec=None, dim=depth_prior.size, nfree=1,
-                           projs=[])
-    source_cov = dict(data=source_std * source_std, dim=source_std.size,
-                      kind=FIFF.FIFFV_MNE_SOURCE_COV, diag=True,
-                      names=[], projs=[], eig=None, eigvec=None,
-                      nfree=1, bads=[])
-    # no need to copy any attributes of forward here because there is
-    # a deepcopy in _prepare_forward
-    inv_op = dict(eigen_fields=eigen_fields, eigen_leads=eigen_leads,
-                  sing=sing, nave=1., depth_prior=depth_prior,
-                  source_cov=source_cov, noise_cov=noise_cov,
-                  orient_prior=orient_prior,
-                  projs=deepcopy(gain_info['projs']),
-                  eigen_leads_weighted=False, source_ori=forward['source_ori'],
-                  mri_head_t=forward['mri_head_t'],
-                  methods=methods, nsource=forward['nsource'],
-                  coord_frame=forward['coord_frame'],
-                  source_nn=forward['source_nn'],
-                  src=forward['src'],
-                  fmri_prior=None)
-    inv_info = deepcopy(forward['info'])
-    inv_info['bads'] = [bad for bad in info['bads']
-                        if bad in forward['info']['ch_names']]
-    inv_info._check_consistency()
-    inv_op['units'] = 'Am'
-    inv_op['info'] = inv_info
+        depth_prior = dict(
+            data=depth_prior,
+            kind=FIFF.FIFFV_MNE_DEPTH_PRIOR_COV,
+            bads=[],
+            diag=True,
+            names=[],
+            eig=None,
+            eigvec=None,
+            dim=depth_prior.size,
+            nfree=1,
+            projs=[],
+        )
+    source_cov = dict(
+        data=source_std * source_std,
+        dim=source_std.size,
+        kind=FIFF.FIFFV_MNE_SOURCE_COV,
+        diag=True,
+        names=[],
+        projs=[],
+        eig=None,
+        eigvec=None,
+        nfree=1,
+        bads=[],
+    )
+    inv.update(
+        eigen_fields=eigen_fields,
+        eigen_leads=eigen_leads,
+        sing=sing,
+        nave=1.0,
+        depth_prior=depth_prior,
+        source_cov=source_cov,
+        noise_cov=noise_cov,
+        orient_prior=orient_prior,
+        methods=methods,
+    )
+    return InverseOperator(inv)
 
-    return InverseOperator(inv_op)
+
+def _compute_reginv(inv, lambda2):
+    """Safely compute reginv from sing."""
+    sing = np.array(inv["sing"], dtype=np.float64)
+    reginv = np.zeros_like(sing)
+    n_nzero = compute_rank_inverse(inv)
+    sing = sing[:n_nzero]
+    with np.errstate(invalid="ignore"):  # if lambda2==0
+        reginv[:n_nzero] = np.where(sing > 0, sing / (sing**2 + lambda2), 0)
+    return reginv
 
 
 def compute_rank_inverse(inv):
@@ -1570,17 +2121,18 @@ def compute_rank_inverse(inv):
         The rank of the inverse operator.
     """
     # this code shortened from prepare_inverse_operator
-    eig = inv['noise_cov']['eig']
-    if not inv['noise_cov']['diag']:
+    eig = inv["noise_cov"]["eig"]
+    if not inv["noise_cov"]["diag"]:
         rank = np.sum(eig > 0)
     else:
-        ncomp = make_projector(inv['projs'], inv['noise_cov']['names'])[1]
-        rank = inv['noise_cov']['dim'] - ncomp
+        ncomp = make_projector(inv["projs"], inv["noise_cov"]["names"])[1]
+        rank = inv["noise_cov"]["dim"] - ncomp
     return rank
 
 
 # #############################################################################
 # SNR Estimation
+
 
 @verbose
 def estimate_snr(evoked, inv, verbose=None):
@@ -1597,7 +2149,7 @@ def estimate_snr(evoked, inv, verbose=None):
     Returns
     -------
     snr : ndarray, shape (n_times,)
-        The SNR estimated from the whitened data.
+        The SNR estimated from the whitened data (i.e., GFP of whitened data).
     snr_est : ndarray, shape (n_times,)
         The SNR estimated using the mismatch between the unregularized
         solution and the regularized solution.
@@ -1615,7 +2167,7 @@ def estimate_snr(evoked, inv, verbose=None):
         \tilde{M} = R^\frac{1}{2}V\Gamma U^T
 
     The values in the diagonal matrix :math:`\Gamma` are expressed in terms
-    of the chosen regularization :math:`\lambda\approx\frac{1}{\rm{SNR}^2}`
+    of the chosen regularization :math:`\lambda^2 \sim 1/\rm{SNR}^2`
     and singular values :math:`\lambda_k` as:
 
     .. math::
@@ -1648,44 +2200,42 @@ def estimate_snr(evoked, inv, verbose=None):
 
     .. versionadded:: 0.9.0
     """  # noqa: E501
-    from scipy.stats import chi2
-    _check_reference(evoked, inv['info']['ch_names'])
+    _check_reference(evoked, inv["info"]["ch_names"])
     _check_ch_names(inv, evoked.info)
-    inv = prepare_inverse_operator(inv, evoked.nave, 1. / 9., 'MNE')
+    inv = prepare_inverse_operator(inv, evoked.nave, 1.0 / 9.0, "MNE", copy="non-src")
     sel = _pick_channels_inverse_operator(evoked.ch_names, inv)
-    logger.info('Picked %d channels from the data' % len(sel))
-    data_white = np.dot(inv['whitener'], np.dot(inv['proj'], evoked.data[sel]))
-    data_white_ef = np.dot(inv['eigen_fields']['data'], data_white)
+    logger.info("Picked %d channels from the data", len(sel))
+    data_white = np.dot(inv["whitener"], np.dot(inv["proj"], evoked.data[sel]))
+    data_white_ef = np.dot(inv["eigen_fields"]["data"], data_white)
     n_ch, n_times = data_white.shape
 
     # Adapted from mne_analyze/regularization.c, compute_regularization
-    n_zero = (inv['noise_cov']['eig'] <= 0).sum()
-    n_ch_eff = n_ch - n_zero
-    logger.info('Effective nchan = %d - %d = %d'
-                % (n_ch, n_zero, n_ch_eff))
+    n_ch_eff = compute_rank_inverse(inv)
+    n_zero = n_ch - n_ch_eff
+    logger.info("Effective nchan = %d - %d = %d", n_ch, n_zero, n_ch_eff)
     del n_ch
-    signal = np.sum(data_white ** 2, axis=0)  # sum of squares across channels
+    signal = np.sum(data_white**2, axis=0)  # sum of squares across channels
     snr = signal / n_ch_eff
 
     # Adapted from noise_regularization
     lambda2_est = np.empty(n_times)
-    lambda2_est.fill(10.)
+    lambda2_est.fill(10.0)
     remaining = np.ones(n_times, bool)
 
     # deal with low SNRs
-    bad = (snr <= 1)
+    bad = snr <= 1
     lambda2_est[bad] = np.inf
     remaining[bad] = False
 
     # parameters
     lambda_mult = 0.99
-    sing2 = (inv['sing'] * inv['sing'])[:, np.newaxis]
+    sing2 = (inv["sing"] * inv["sing"])[:, np.newaxis]
     val = chi2.isf(1e-3, n_ch_eff)
     for n_iter in range(1000):
         # get_mne_weights (ew=error_weights)
         # (split newaxis creation here for old numpy)
         f = sing2 / (sing2 + lambda2_est[np.newaxis][:, remaining])
-        f[inv['sing'] == 0] = 0
+        f[inv["sing"] == 0] = 0
         ew = data_white_ef[:, remaining] * (1.0 - f)
         # check condition
         err = np.sum(ew * ew, axis=0)
@@ -1694,7 +2244,7 @@ def estimate_snr(evoked, inv, verbose=None):
             break
         lambda2_est[remaining] *= lambda_mult
     else:
-        warn('SNR estimation did not converge')
+        warn("SNR estimation did not converge")
     snr_est = 1.0 / np.sqrt(lambda2_est)
     snr = np.sqrt(snr)
     return snr, snr_est

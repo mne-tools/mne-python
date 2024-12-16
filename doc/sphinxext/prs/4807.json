@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "12e509c5384c7d5b73c056500ddc04788fb36506",
+  "authors": [
+    {
+      "n": "Mikolaj Magnuski",
+      "e": "mmagnuski@swps.edu.pl"
+    }
+  ],
+  "changes": {
+    ".travis.yml": {
+      "a": 5,
+      "d": 0
+    }
+  }
+}

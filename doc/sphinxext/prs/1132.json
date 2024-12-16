@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "b5d50fe1b81486d03f022e0451c71f495f828403",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "mne/fiff/edf/edf.py": {
+      "a": 4,
+      "d": 4
+    }
+  }
+}

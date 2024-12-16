@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "b72f02a5eab8ab931839e4f9bad6d8e8faa68861",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/12556.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/html_templates/report/slider.html.jinja": {
+      "a": 6,
+      "d": 11
+    },
+    "mne/report/js_and_css/report.js": {
+      "a": 11,
+      "d": 0
+    }
+  }
+}

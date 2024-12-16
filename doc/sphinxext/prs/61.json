@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "7fa79864d502199866a5348b67865827aa0f9010",
+  "authors": [
+    {
+      "n": "Martin Luessi",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/datasets/sample/__init__.py": {
+      "a": 44,
+      "d": 11
+    }
+  }
+}

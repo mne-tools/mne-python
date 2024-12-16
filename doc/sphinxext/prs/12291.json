@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "7ce9aa1789f9ebe928aaa315d993182ad416464e",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".gitignore": {
+      "a": 7,
+      "d": 2
+    },
+    "pyproject.toml": {
+      "a": 0,
+      "d": 6
+    }
+  }
+}

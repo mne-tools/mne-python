@@ -1,0 +1,87 @@
+{
+  "merge_commit_sha": "f43584635b386a845c13953cc113305cc4e70721",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larsoner@monolith.local"
+    }
+  ],
+  "changes": {
+    "mne/channels/interpolation.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/conftest.py": {
+      "a": 24,
+      "d": 1
+    },
+    "mne/fixes.py": {
+      "a": 8,
+      "d": 5
+    },
+    "mne/io/nirx/nirx.py": {
+      "a": 0,
+      "d": 20
+    },
+    "mne/io/nirx/tests/test_nirx.py": {
+      "a": 6,
+      "d": 21
+    },
+    "mne/io/snirf/_snirf.py": {
+      "a": 1,
+      "d": 5
+    },
+    "mne/io/snirf/tests/test_snirf.py": {
+      "a": 22,
+      "d": 24
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 5,
+      "d": 1
+    },
+    "mne/preprocessing/nirs/__init__.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/preprocessing/nirs/_beer_lambert_law.py": {
+      "a": 10,
+      "d": 10
+    },
+    "mne/preprocessing/nirs/_optical_density.py": {
+      "a": 5,
+      "d": 9
+    },
+    "mne/preprocessing/nirs/_scalp_coupling_index.py": {
+      "a": 4,
+      "d": 8
+    },
+    "mne/preprocessing/nirs/_tddr.py": {
+      "a": 3,
+      "d": 5
+    },
+    "mne/preprocessing/nirs/nirs.py": {
+      "a": 141,
+      "d": 90
+    },
+    "mne/preprocessing/nirs/tests/test_beer_lambert_law.py": {
+      "a": 8,
+      "d": 7
+    },
+    "mne/preprocessing/nirs/tests/test_nirs.py": {
+      "a": 91,
+      "d": 25
+    },
+    "mne/preprocessing/nirs/tests/test_optical_density.py": {
+      "a": 2,
+      "d": 0
+    },
+    "tutorials/io/30_reading_fnirs_data.py": {
+      "a": 0,
+      "d": 20
+    }
+  }
+}

@@ -1,18 +1,16 @@
-# Authors : Denis A. Engemann <denis.engemann@gmail.com>
-#           Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#
-# License : BSD 3-clause
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from copy import deepcopy
-import math
-import numpy as np
-from scipy import fftpack
-# XXX explore cuda optimization at some point.
 
-from ..io.pick import _pick_data_channels, pick_info
-from ..utils import verbose, warn, fill_doc
-from ..parallel import parallel_func, check_n_jobs
-from .tfr import AverageTFR, _get_data
+import numpy as np
+from scipy.fft import fft, fftfreq, ifft
+
+from .._fiff.pick import _pick_data_channels, pick_info
+from ..parallel import parallel_func
+from ..utils import _validate_type, legacy, logger, verbose
+from .tfr import AverageTFRArray, _ensure_slice, _get_data
 
 
 def _check_input_st(x_in, n_fft):
@@ -21,17 +19,20 @@ def _check_input_st(x_in, n_fft):
     n_times = x_in.shape[-1]
 
     def _is_power_of_two(n):
-        return not (n > 0 and ((n & (n - 1))))
+        return not (n > 0 and (n & (n - 1)))
 
     if n_fft is None or (not _is_power_of_two(n_fft) and n_times > n_fft):
         # Compute next power of 2
-        n_fft = 2 ** int(math.ceil(math.log(n_times, 2)))
+        n_fft = 2 ** int(np.ceil(np.log2(n_times)))
     elif n_fft < n_times:
-        raise ValueError("n_fft cannot be smaller than signal size. "
-                         "Got %s < %s." % (n_fft, n_times))
+        raise ValueError(
+            f"n_fft cannot be smaller than signal size. Got {n_fft} < {n_times}."
+        )
     if n_times < n_fft:
-        warn('The input signal is shorter ({}) than "n_fft" ({}). '
-             'Applying zero padding.'.format(x_in.shape[-1], n_fft))
+        logger.info(
+            f'The input signal is shorter ({x_in.shape[-1]}) than "n_fft" ({n_fft}). '
+            "Applying zero padding."
+        )
         zero_pad = n_fft - n_times
         pad_array = np.zeros(x_in.shape[:-1] + (zero_pad,), x_in.dtype)
         x_in = np.concatenate((x_in, pad_array), axis=-1)
@@ -42,54 +43,55 @@ def _check_input_st(x_in, n_fft):
 
 def _precompute_st_windows(n_samp, start_f, stop_f, sfreq, width):
     """Precompute stockwell Gaussian windows (in the freq domain)."""
-    tw = fftpack.fftfreq(n_samp, 1. / sfreq) / n_samp
+    tw = fftfreq(n_samp, 1.0 / sfreq) / n_samp
     tw = np.r_[tw[:1], tw[1:][::-1]]
 
     k = width  # 1 for classical stowckwell transform
     f_range = np.arange(start_f, stop_f, 1)
-    windows = np.empty((len(f_range), len(tw)), dtype=np.complex)
+    windows = np.empty((len(f_range), len(tw)), dtype=np.complex128)
     for i_f, f in enumerate(f_range):
-        if f == 0.:
+        if f == 0.0:
             window = np.ones(len(tw))
         else:
-            window = ((f / (np.sqrt(2. * np.pi) * k)) *
-                      np.exp(-0.5 * (1. / k ** 2.) * (f ** 2.) * tw ** 2.))
+            window = (f / (np.sqrt(2.0 * np.pi) * k)) * np.exp(
+                -0.5 * (1.0 / k**2.0) * (f**2.0) * tw**2.0
+            )
         window /= window.sum()  # normalisation
-        windows[i_f] = fftpack.fft(window)
+        windows[i_f] = fft(window)
     return windows
 
 
 def _st(x, start_f, windows):
     """Compute ST based on Ali Moukadem MATLAB code (used in tests)."""
+    from scipy.fft import fft, ifft
+
     n_samp = x.shape[-1]
-    ST = np.empty(x.shape[:-1] + (len(windows), n_samp), dtype=np.complex)
+    ST = np.empty(x.shape[:-1] + (len(windows), n_samp), dtype=np.complex128)
     # do the work
-    Fx = fftpack.fft(x)
+    Fx = fft(x)
     XF = np.concatenate([Fx, Fx], axis=-1)
     for i_f, window in enumerate(windows):
         f = start_f + i_f
-        ST[..., i_f, :] = fftpack.ifft(XF[..., f:f + n_samp] * window)
+        ST[..., i_f, :] = ifft(XF[..., f : f + n_samp] * window)
     return ST
 
 
 def _st_power_itc(x, start_f, compute_itc, zero_pad, decim, W):
     """Aux function."""
+    decim = _ensure_slice(decim)
     n_samp = x.shape[-1]
-    n_out = (n_samp - zero_pad)
-    n_out = n_out // decim + bool(n_out % decim)
+    decim_indices = decim.indices(n_samp - zero_pad)
+    n_out = len(range(*decim_indices))
     psd = np.empty((len(W), n_out))
     itc = np.empty_like(psd) if compute_itc else None
-    X = fftpack.fft(x)
+    X = fft(x)
     XX = np.concatenate([X, X], axis=-1)
     for i_f, window in enumerate(W):
         f = start_f + i_f
-        ST = fftpack.ifft(XX[:, f:f + n_samp] * window)
-        if zero_pad > 0:
-            TFR = ST[:, :-zero_pad:decim]
-        else:
-            TFR = ST[:, ::decim]
+        ST = ifft(XX[:, f : f + n_samp] * window)
+        TFR = ST[:, slice(*decim_indices)]
         TFR_abs = np.abs(TFR)
-        TFR_abs[TFR_abs == 0] = 1.
+        TFR_abs[TFR_abs == 0] = 1.0
         if compute_itc:
             TFR /= TFR_abs
             itc[i_f] = np.abs(np.mean(TFR, axis=0))
@@ -98,18 +100,47 @@ def _st_power_itc(x, start_f, compute_itc, zero_pad, decim, W):
     return psd, itc
 
 
-@fill_doc
-def tfr_array_stockwell(data, sfreq, fmin=None, fmax=None, n_fft=None,
-                        width=1.0, decim=1, return_itc=False, n_jobs=1):
+def _compute_freqs_st(fmin, fmax, n_fft, sfreq):
+    from scipy.fft import fftfreq
+
+    freqs = fftfreq(n_fft, 1.0 / sfreq)
+    if fmin is None:
+        fmin = freqs[freqs > 0][0]
+    if fmax is None:
+        fmax = freqs.max()
+
+    start_f = np.abs(freqs - fmin).argmin()
+    stop_f = np.abs(freqs - fmax).argmin()
+    freqs = freqs[start_f:stop_f]
+    return start_f, stop_f, freqs
+
+
+@verbose
+def tfr_array_stockwell(
+    data,
+    sfreq,
+    fmin=None,
+    fmax=None,
+    n_fft=None,
+    width=1.0,
+    decim=1,
+    return_itc=False,
+    n_jobs=None,
+    *,
+    verbose=None,
+):
     """Compute power and intertrial coherence using Stockwell (S) transform.
 
-    See [1]_, [2]_, [3]_, [4]_ for more information.
+    Same computation as `~mne.time_frequency.tfr_stockwell`, but operates on
+    :class:`NumPy arrays <numpy.ndarray>` instead of `~mne.Epochs` objects.
+
+    See :footcite:`Stockwell2007,MoukademEtAl2014,WheatEtAl2010,JonesEtAl2006`
+    for more information.
 
     Parameters
     ----------
-    data : ndarray
-        The signal to transform. Any dimensionality supported as long
-        as the last dimension is time.
+    data : ndarray, shape (n_epochs, n_channels, n_times)
+        The signal to transform.
     sfreq : float
         The sampling frequency.
     fmin : None, float
@@ -124,11 +155,11 @@ def tfr_array_stockwell(data, sfreq, fmin=None, fmax=None, n_fft=None,
         The width of the Gaussian window. If < 1, increased temporal
         resolution, if > 1, increased frequency resolution. Defaults to 1.
         (classical S-Transform).
-    decim : int
-        The decimation factor on the time axis. To reduce memory usage.
+    %(decim_tfr)s
     return_itc : bool
         Return intertrial coherence (ITC) as well as averaged power.
     %(n_jobs)s
+    %(verbose)s
 
     Returns
     -------
@@ -140,26 +171,6 @@ def tfr_array_stockwell(data, sfreq, fmin=None, fmax=None, n_fft=None,
     freqs : ndarray
         The frequencies.
 
-    References
-    ----------
-    .. [1] Stockwell, R. G. "Why use the S-transform." AMS Pseudo-differential
-       operators: Partial differential equations and time-frequency
-       analysis 52 (2007): 279-309.
-    .. [2] Moukadem, A., Bouguila, Z., Abdeslam, D. O, and Dieterlen, A.
-       Stockwell transform optimization applied on the detection of split in
-       heart sounds (2014). Signal Processing Conference (EUSIPCO), 2013
-       Proceedings of the 22nd European, pages 2015--2019.
-    .. [3] Wheat, K., Cornelissen, P. L., Frost, S.J, and Peter C. Hansen
-       (2010). During Visual Word Recognition, Phonology Is Accessed
-       within 100 ms and May Be Mediated by a Speech Production
-       Code: Evidence from Magnetoencephalography. The Journal of
-       Neuroscience, 30 (15), 5229-5233.
-    .. [4] K. A. Jones and B. Porjesz and D. Chorlian and M. Rangaswamy and C.
-       Kamarajan and A. Padmanabhapillai and A. Stimus and H. Begleiter
-       (2006). S-transform time-frequency analysis of P300 reveals deficits in
-       individuals diagnosed with alcoholism.
-       Clinical Neurophysiology 117 2128--2143
-
     See Also
     --------
     mne.time_frequency.tfr_stockwell
@@ -167,30 +178,32 @@ def tfr_array_stockwell(data, sfreq, fmin=None, fmax=None, n_fft=None,
     mne.time_frequency.tfr_array_multitaper
     mne.time_frequency.tfr_morlet
     mne.time_frequency.tfr_array_morlet
+
+    References
+    ----------
+    .. footbibliography::
     """
-    n_epochs, n_channels = data.shape[:2]
-    n_out = data.shape[2] // decim + bool(data.shape[2] % decim)
+    _validate_type(data, np.ndarray, "data")
+    if data.ndim != 3:
+        raise ValueError(
+            "data must be 3D with shape (n_epochs, n_channels, n_times), "
+            f"got {data.shape}"
+        )
+    decim = _ensure_slice(decim)
+    _, n_channels, n_out = data[..., decim].shape
     data, n_fft_, zero_pad = _check_input_st(data, n_fft)
-
-    freqs = fftpack.fftfreq(n_fft_, 1. / sfreq)
-    if fmin is None:
-        fmin = freqs[freqs > 0][0]
-    if fmax is None:
-        fmax = freqs.max()
-
-    start_f = np.abs(freqs - fmin).argmin()
-    stop_f = np.abs(freqs - fmax).argmin()
-    freqs = freqs[start_f:stop_f]
+    start_f, stop_f, freqs = _compute_freqs_st(fmin, fmax, n_fft_, sfreq)
 
     W = _precompute_st_windows(data.shape[-1], start_f, stop_f, sfreq, width)
     n_freq = stop_f - start_f
     psd = np.empty((n_channels, n_freq, n_out))
     itc = np.empty((n_channels, n_freq, n_out)) if return_itc else None
 
-    parallel, my_st, _ = parallel_func(_st_power_itc, n_jobs)
-    tfrs = parallel(my_st(data[:, c, :], start_f, return_itc, zero_pad,
-                          decim, W)
-                    for c in range(n_channels))
+    parallel, my_st, n_jobs = parallel_func(_st_power_itc, n_jobs, verbose=verbose)
+    tfrs = parallel(
+        my_st(data[:, c, :], start_f, return_itc, zero_pad, decim, W)
+        for c in range(n_channels)
+    )
     for c, (this_psd, this_itc) in enumerate(iter(tfrs)):
         psd[c] = this_psd
         if this_itc is not None:
@@ -199,11 +212,26 @@ def tfr_array_stockwell(data, sfreq, fmin=None, fmax=None, n_fft=None,
     return psd, itc, freqs
 
 
+@legacy(alt='.compute_tfr(method="stockwell", freqs="auto")')
 @verbose
-def tfr_stockwell(inst, fmin=None, fmax=None, n_fft=None,
-                  width=1.0, decim=1, return_itc=False, n_jobs=1,
-                  verbose=None):
-    """Time-Frequency Representation (TFR) using Stockwell Transform.
+def tfr_stockwell(
+    inst,
+    fmin=None,
+    fmax=None,
+    n_fft=None,
+    width=1.0,
+    decim=1,
+    return_itc=False,
+    n_jobs=None,
+    verbose=None,
+):
+    """Compute Time-Frequency Representation (TFR) using Stockwell Transform.
+
+    Same computation as `~mne.time_frequency.tfr_array_stockwell`, but operates
+    on `~mne.Epochs` objects instead of :class:`NumPy arrays <numpy.ndarray>`.
+
+    See :footcite:`Stockwell2007,MoukademEtAl2014,WheatEtAl2010,JonesEtAl2006`
+    for more information.
 
     Parameters
     ----------
@@ -247,22 +275,48 @@ def tfr_stockwell(inst, fmin=None, fmax=None, n_fft=None,
     Notes
     -----
     .. versionadded:: 0.9.0
+
+    References
+    ----------
+    .. footbibliography::
     """
     # verbose dec is used b/c subfunctions are verbose
     data = _get_data(inst, return_itc)
     picks = _pick_data_channels(inst.info)
     info = pick_info(inst.info, picks)
     data = data[:, picks, :]
-    n_jobs = check_n_jobs(n_jobs)
-    power, itc, freqs = tfr_array_stockwell(data, sfreq=info['sfreq'],
-                                            fmin=fmin, fmax=fmax, n_fft=n_fft,
-                                            width=width, decim=decim,
-                                            return_itc=return_itc,
-                                            n_jobs=n_jobs)
-    times = inst.times[::decim].copy()
+    decim = _ensure_slice(decim)
+    power, itc, freqs = tfr_array_stockwell(
+        data,
+        sfreq=info["sfreq"],
+        fmin=fmin,
+        fmax=fmax,
+        n_fft=n_fft,
+        width=width,
+        decim=decim,
+        return_itc=return_itc,
+        n_jobs=n_jobs,
+    )
+    times = inst.times[decim].copy()
     nave = len(data)
-    out = AverageTFR(info, power, times, freqs, nave, method='stockwell-power')
+    out = AverageTFRArray(
+        info=info,
+        data=power,
+        times=times,
+        freqs=freqs,
+        nave=nave,
+        method="stockwell-power",
+    )
     if return_itc:
-        out = (out, AverageTFR(deepcopy(info), itc, times.copy(),
-                               freqs.copy(), nave, method='stockwell-itc'))
+        out = (
+            out,
+            AverageTFRArray(
+                info=deepcopy(info),
+                data=itc,
+                times=times.copy(),
+                freqs=freqs.copy(),
+                nave=nave,
+                method="stockwell-itc",
+            ),
+        )
     return out

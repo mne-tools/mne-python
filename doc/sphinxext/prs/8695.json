@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "c4215cb7bcf0e9709549fec09d3ed751b3678fba",
+  "authors": [
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    }
+  ],
+  "changes": {
+    ".github/workflows/compat_minimal.yml": {
+      "a": 8,
+      "d": 0
+    },
+    ".github/workflows/compat_old.yml": {
+      "a": 8,
+      "d": 0
+    },
+    ".github/workflows/linux_conda.yml": {
+      "a": 8,
+      "d": 0
+    },
+    ".github/workflows/linux_pip.yml": {
+      "a": 8,
+      "d": 0
+    },
+    ".github/workflows/macos_conda.yml": {
+      "a": 8,
+      "d": 0
+    },
+    "azure-pipelines.yml": {
+      "a": 23,
+      "d": 0
+    },
+    "tools/get_testing_version.sh": {
+      "a": 10,
+      "d": 0
+    }
+  }
+}

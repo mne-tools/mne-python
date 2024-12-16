@@ -1,0 +1,17 @@
+name: Bot auto-merge
+on: pull_request  # yamllint disable-line rule:truthy
+
+jobs:
+  autobot:
+    permissions:
+      contents: write
+      pull-requests: write
+    runs-on: ubuntu-latest
+    # Names can be found with gh api /repos/mne-tools/mne-python/pulls/12998 -q .user.login for example
+    if: (github.event.pull_request.user.login == 'dependabot[bot]' || github.event.pull_request.user.login == 'pre-commit-ci[bot]' || github.event.pull_request.user.login == 'github-actions[bot]') && github.repository == 'mne-tools/mne-python'
+    steps:
+      - name: Enable auto-merge for bot PRs
+        run: gh pr merge --auto --squash "$PR_URL"
+        env:
+          PR_URL: ${{github.event.pull_request.html_url}}
+          GH_TOKEN: ${{secrets.GITHUB_TOKEN}}

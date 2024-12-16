@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "e64802326c9ef0b048b785adcee4f4bd26ef268d",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/channels/channels.py": {
+      "a": 8,
+      "d": 2
+    },
+    "mne/channels/interpolation.py": {
+      "a": 7,
+      "d": 2
+    },
+    "mne/channels/tests/test_interpolation.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/forward/_field_interpolation.py": {
+      "a": 10,
+      "d": 9
+    }
+  }
+}

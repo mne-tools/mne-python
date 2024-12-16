@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "b10e14592689f70e5f6cab48a1e0d439b92733c3",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".circleci/config.yml": {
+      "a": 6,
+      "d": 3
+    },
+    ".travis.yml": {
+      "a": 4,
+      "d": 4
+    },
+    "azure-pipelines.yml": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/install/mne_python.rst": {
+      "a": 21,
+      "d": 19
+    },
+    "environment.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/config.py": {
+      "a": 29,
+      "d": 26
+    },
+    "requirements.txt": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

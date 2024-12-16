@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "1e882d05cab139530b2859bf4940c681f5b4b5e2",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/forward/plot_source_space_morphing.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/utils/check.py": {
+      "a": 8,
+      "d": 1
+    },
+    "mne/utils/docs.py": {
+      "a": 18,
+      "d": 0
+    },
+    "mne/viz/_3d.py": {
+      "a": 47,
+      "d": 53
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 15,
+      "d": 25
+    },
+    "mne/viz/_brain/_timeviewer.py": {
+      "a": 73,
+      "d": 25
+    }
+  }
+}

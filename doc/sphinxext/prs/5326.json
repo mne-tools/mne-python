@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "16feb1ae3ce490d6accbc078c83c0f737fe9ca9e",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/known_projects.inc": {
+      "a": 3,
+      "d": 0
+    },
+    "doc/whats_new.rst": {
+      "a": 6,
+      "d": 0
+    },
+    "mne/annotations.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/externals/pymatreader/pymatreader.py": {
+      "a": 18,
+      "d": 7
+    },
+    "mne/io/eeglab/eeglab.py": {
+      "a": 73,
+      "d": 55
+    },
+    "mne/io/eeglab/tests/test_eeglab.py": {
+      "a": 99,
+      "d": 60
+    }
+  }
+}

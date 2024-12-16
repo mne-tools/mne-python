@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "8e9ca7cc106d34282392c726816030a482848400",
+  "authors": [
+    {
+      "n": "Jaakko Leppakangas",
+      "e": "jaeilepp@student.jyu.fi"
+    }
+  ],
+  "changes": {
+    "doc/source/whats_new.rst": {
+      "a": 4,
+      "d": 2
+    },
+    "examples/plot_from_raw_to_epochs_to_evoked.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/defaults.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/epochs.py": {
+      "a": 10,
+      "d": 8
+    },
+    "mne/viz/epochs.py": {
+      "a": 294,
+      "d": 61
+    },
+    "mne/viz/tests/test_epochs.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/viz/utils.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

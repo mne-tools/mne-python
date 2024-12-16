@@ -1,0 +1,12 @@
+<div class="container-fluid" id="container">
+  <div class="row">
+    <div class="col-2 px-1 position-fixed vh-100 overflow-auto" id="toc">
+      <h5 class="px-1">Table of contents</h5>
+      <nav class="nav nav-pills flex-column lh-sm" id="toc-navbar">
+        {% for title, dom_id, tags_ in titles|zip(dom_ids, tags) %}
+        <a class="nav-link list-group-item list-group-item-action text-break" href="#{{ dom_id }}"
+          data-mne-tags="{% for tag in tags_ %} {{ tag }} {% endfor %}">{{ title }}</a>
+        {% endfor %}
+      </nav>
+    </div>
+    <div id="content" class="accordion col-10 offset-2">

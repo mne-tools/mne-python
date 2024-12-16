@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "8aa412c21d6d445d5585f349511c5bb293174d63",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/plot_from_raw_to_epochs_to_evoked.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/evoked.py": {
+      "a": 5,
+      "d": 2
+    },
+    "mne/viz/evoked.py": {
+      "a": 33,
+      "d": 7
+    },
+    "mne/viz/tests/test_evoked.py": {
+      "a": 6,
+      "d": 0
+    }
+  }
+}

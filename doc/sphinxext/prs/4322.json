@@ -1,0 +1,127 @@
+{
+  "merge_commit_sha": "b5363306d24ec645ea0d2b77a1ce652cfc4d1927",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".travis.yml": {
+      "a": 2,
+      "d": 2
+    },
+    "appveyor.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/beamformer/tests/test_lcmv.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/beamformer/tests/test_rap_music.py": {
+      "a": 35,
+      "d": 43
+    },
+    "mne/cov.py": {
+      "a": 24,
+      "d": 16
+    },
+    "mne/decoding/tests/test_time_gen.py": {
+      "a": 40,
+      "d": 23
+    },
+    "mne/decoding/tests/test_transformer.py": {
+      "a": 4,
+      "d": 3
+    },
+    "mne/event.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/forward/_make_forward.py": {
+      "a": 59,
+      "d": 47
+    },
+    "mne/io/ctf/tests/test_ctf.py": {
+      "a": 0,
+      "d": 2
+    },
+    "mne/io/fiff/tests/test_raw_fiff.py": {
+      "a": 3,
+      "d": 14
+    },
+    "mne/io/meas_info.py": {
+      "a": 10,
+      "d": 0
+    },
+    "mne/io/pick.py": {
+      "a": 10,
+      "d": 13
+    },
+    "mne/io/proj.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/io/tag.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/minimum_norm/tests/test_inverse.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/preprocessing/maxwell.py": {
+      "a": 6,
+      "d": 5
+    },
+    "mne/preprocessing/tests/test_ica.py": {
+      "a": 20,
+      "d": 11
+    },
+    "mne/preprocessing/tests/test_maxwell.py": {
+      "a": 48,
+      "d": 56
+    },
+    "mne/simulation/tests/test_raw.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/surface.py": {
+      "a": 19,
+      "d": 21
+    },
+    "mne/tests/test_chpi.py": {
+      "a": 11,
+      "d": 5
+    },
+    "mne/tests/test_cov.py": {
+      "a": 35,
+      "d": 39
+    },
+    "mne/tests/test_source_space.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/time_frequency/_stockwell.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/transforms.py": {
+      "a": 2,
+      "d": 5
+    },
+    "mne/utils.py": {
+      "a": 19,
+      "d": 14
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 17,
+      "d": 34
+    },
+    "mne/viz/tests/test_raw.py": {
+      "a": 16,
+      "d": 1
+    }
+  }
+}

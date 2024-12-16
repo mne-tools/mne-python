@@ -1,12 +1,12 @@
-# Author: Jean-Remi King <jeanremi.king@gmail.com>
-#
-# License: BSD (3-clause)
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import numpy as np
-from .mixin import TransformerMixin
-from .base import BaseEstimator
-from ..time_frequency.tfr import _compute_tfr, _check_tfr_param
-from ..utils import fill_doc, _check_option
+from sklearn.base import BaseEstimator, TransformerMixin
+
+from ..time_frequency.tfr import _compute_tfr
+from ..utils import _check_option, fill_doc, verbose
 
 
 @fill_doc
@@ -59,13 +59,24 @@ class TimeFrequency(TransformerMixin, BaseEstimator):
     mne.time_frequency.tfr_multitaper
     """
 
-    def __init__(self, freqs, sfreq=1.0, method='morlet', n_cycles=7.0,
-                 time_bandwidth=None, use_fft=True, decim=1, output='complex',
-                 n_jobs=1, verbose=None):  # noqa: D102
+    @verbose
+    def __init__(
+        self,
+        freqs,
+        sfreq=1.0,
+        method="morlet",
+        n_cycles=7.0,
+        time_bandwidth=None,
+        use_fft=True,
+        decim=1,
+        output="complex",
+        n_jobs=1,
+        verbose=None,
+    ):
         """Init TimeFrequency transformer."""
-        freqs, sfreq, _, n_cycles, time_bandwidth, decim = \
-            _check_tfr_param(freqs, sfreq, method, True, n_cycles,
-                             time_bandwidth, use_fft, decim, output)
+        # Check non-average output
+        output = _check_option("output", output, ["complex", "power", "phase"])
+
         self.freqs = freqs
         self.sfreq = sfreq
         self.method = method
@@ -74,7 +85,6 @@ class TimeFrequency(TransformerMixin, BaseEstimator):
         self.use_fft = use_fft
         self.decim = decim
         # Check that output is not an average metric (e.g. ITC)
-        _check_option('output', output, ['complex', 'power', 'phase'])
         self.output = output
         self.n_jobs = n_jobs
         self.verbose = verbose
@@ -129,7 +139,6 @@ class TimeFrequency(TransformerMixin, BaseEstimator):
         Xt : array, shape (n_samples, n_channels, n_freqs, n_times)
             The time-frequency transform of the data, where n_channels can be
             zero- or 1-dimensional.
-
         """
         # Ensure 3-dimensional X
         shape = X.shape[1:-1]
@@ -137,10 +146,20 @@ class TimeFrequency(TransformerMixin, BaseEstimator):
             X = X[:, np.newaxis, :]
 
         # Compute time-frequency
-        Xt = _compute_tfr(X, self.freqs, self.sfreq, self.method,
-                          self.n_cycles, True, self.time_bandwidth,
-                          self.use_fft, self.decim, self.output, self.n_jobs,
-                          self.verbose)
+        Xt = _compute_tfr(
+            X,
+            freqs=self.freqs,
+            sfreq=self.sfreq,
+            method=self.method,
+            n_cycles=self.n_cycles,
+            zero_mean=True,
+            time_bandwidth=self.time_bandwidth,
+            use_fft=self.use_fft,
+            decim=self.decim,
+            output=self.output,
+            n_jobs=self.n_jobs,
+            verbose=self.verbose,
+        )
 
         # Back to original shape
         if not shape:

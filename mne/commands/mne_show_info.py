@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """Show measurement info from .fif file.
 
 Examples
@@ -9,16 +8,18 @@ Examples
 
 """
 
-# Authors : Alexandre Gramfort, Ph.D.
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import sys
+
 import mne
 
 
 def run():
     """Run command."""
-    parser = mne.commands.utils.get_optparser(
-        __file__, usage='mne show_info <file>')
+    parser = mne.commands.utils.get_optparser(__file__, usage="mne show_info <file>")
     options, args = parser.parse_args()
     if len(args) != 1:
         parser.print_help()
@@ -26,11 +27,11 @@ def run():
 
     fname = args[0]
 
-    if not fname.endswith('.fif'):
-        raise ValueError('%s does not seem to be a .fif file.' % fname)
+    if not fname.endswith(".fif"):
+        raise ValueError(f"{fname} does not seem to be a .fif file.")
 
     info = mne.io.read_info(fname)
-    print("File : %s" % fname)
+    print(f"File : {fname}")
     print(info)
 
 

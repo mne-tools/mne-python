@@ -1,29 +1,32 @@
 """Compute a Recursively Applied and Projected MUltiple Signal Classification (RAP-MUSIC)."""  # noqa
 
-# Authors: Yousra Bekhti <yousra.bekhti@gmail.com>
-#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#
-# License: BSD (3-clause)
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import numpy as np
 from scipy import linalg
 
-from ..io.pick import pick_channels_evoked, pick_info, pick_channels_forward
-from ..utils import logger, verbose, _check_info_inv
-from ..dipole import Dipole
+from .._fiff.pick import pick_channels_forward, pick_info
+from ..fixes import _safe_svd
+from ..forward import convert_forward_solution, is_fixed_orient
+from ..inverse_sparse.mxne_inverse import _make_dipoles_sparse
+from ..minimum_norm.inverse import _log_exp_var
+from ..utils import _check_info_inv, fill_doc, logger, verbose
 from ._compute_beamformer import _prepare_beamformer_input
 
 
-def _apply_rap_music(data, info, times, forward, noise_cov, n_dipoles=2,
-                     picks=None):
-    """RAP-MUSIC for evoked data.
+@fill_doc
+def _apply_rap_music(
+    data, info, times, forward, noise_cov, n_dipoles=2, picks=None, use_trap=False
+):
+    """RAP-MUSIC or TRAP-MUSIC for evoked data.
 
     Parameters
     ----------
     data : array, shape (n_channels, n_times)
         Evoked data.
-    info : dict
-        Measurement info.
+    %(info_not_none)s
     times : array
         Times.
     forward : instance of Forward
@@ -34,6 +37,8 @@ def _apply_rap_music(data, info, times, forward, noise_cov, n_dipoles=2,
         The number of dipoles to estimate. The default value is 2.
     picks : list of int
         Caller ensures this is a list of int.
+    use_trap : bool
+        Use the TRAP-MUSIC variant if True (default False).
 
     Returns
     -------
@@ -42,24 +47,30 @@ def _apply_rap_music(data, info, times, forward, noise_cov, n_dipoles=2,
     explained_data : array | None
         Data explained by the dipoles using a least square fitting with the
         selected active dipoles and their estimated orientation.
-        Computed only if return_explained_data is True.
     """
     info = pick_info(info, picks)
     del picks
+    # things are much simpler if we avoid surface orientation
+    align = forward["source_nn"].copy()
+    if forward["surf_ori"] and not is_fixed_orient(forward):
+        forward = convert_forward_solution(forward, surf_ori=False)
     is_free_ori, info, _, _, G, whitener, _, _ = _prepare_beamformer_input(
-        info, forward, noise_cov=noise_cov, rank=None)
-    forward = pick_channels_forward(forward, info['ch_names'], ordered=True)
+        info, forward, noise_cov=noise_cov, rank=None
+    )
+    forward = pick_channels_forward(forward, info["ch_names"], ordered=True)
     del info
 
-    gain = forward['sol']['data'].copy()
-
     # whiten the data (leadfield already whitened)
-    data = np.dot(whitener, data)
+    M = np.dot(whitener, data)
+    del data
 
-    eig_values, eig_vectors = linalg.eigh(np.dot(data, data.T))
+    _, eig_vectors = linalg.eigh(np.dot(M, M.T))
     phi_sig = eig_vectors[:, -n_dipoles:]
 
     n_orient = 3 if is_free_ori else 1
+    G.shape = (G.shape[0], -1, n_orient)
+    gain = forward["sol"]["data"].copy()
+    gain.shape = G.shape
     n_channels = G.shape[0]
     A = np.empty((n_channels, n_dipoles))
     gain_dip = np.empty((n_channels, n_dipoles))
@@ -69,97 +80,81 @@ def _apply_rap_music(data, info, times, forward, noise_cov, n_dipoles=2,
     G_proj = G.copy()
     phi_sig_proj = phi_sig.copy()
 
+    idxs = list()
     for k in range(n_dipoles):
-        subcorr_max = -1.
-        for i_source in range(G.shape[1] // n_orient):
-            idx_k = slice(n_orient * i_source, n_orient * (i_source + 1))
-            Gk = G_proj[:, idx_k]
-            if n_orient == 3:
-                Gk = np.dot(Gk, forward['source_nn'][idx_k])
-
+        subcorr_max = -1.0
+        source_idx, source_ori, source_pos = 0, [0, 0, 0], [0, 0, 0]
+        for i_source in range(G.shape[1]):
+            Gk = G_proj[:, i_source]
             subcorr, ori = _compute_subcorr(Gk, phi_sig_proj)
             if subcorr > subcorr_max:
                 subcorr_max = subcorr
                 source_idx = i_source
                 source_ori = ori
-                if n_orient == 3 and source_ori[-1] < 0:
-                    # make sure ori is relative to surface ori
-                    source_ori *= -1  # XXX
-
-                source_pos = forward['source_rr'][i_source]
+                source_pos = forward["source_rr"][i_source]
+                if n_orient == 3 and align is not None:
+                    surf_normal = forward["source_nn"][3 * i_source + 2]
+                    # make sure ori is aligned to the surface orientation
+                    source_ori *= np.sign(source_ori @ surf_normal) or 1.0
                 if n_orient == 1:
-                    source_ori = forward['source_nn'][i_source]
+                    source_ori = forward["source_nn"][i_source]
 
-        idx_k = slice(n_orient * source_idx, n_orient * (source_idx + 1))
-        Ak = G[:, idx_k]
+        idxs.append(source_idx)
         if n_orient == 3:
-            Ak = np.dot(Ak, np.dot(forward['source_nn'][idx_k], source_ori))
-
-        A[:, k] = Ak.ravel()
-
-        gain_k = gain[:, idx_k]
-        if n_orient == 3:
-            gain_k = np.dot(gain_k,
-                            np.dot(forward['source_nn'][idx_k],
-                                   source_ori))
-        gain_dip[:, k] = gain_k.ravel()
-
+            Ak = np.dot(G[:, source_idx], source_ori)
+        else:
+            Ak = G[:, source_idx, 0]
+        A[:, k] = Ak
         oris[k] = source_ori
         poss[k] = source_pos
 
-        logger.info("source %s found: p = %s" % (k + 1, source_idx))
+        logger.info(f"source {k + 1} found: p = {source_idx}")
         if n_orient == 3:
-            logger.info("ori = %s %s %s" % tuple(oris[k]))
+            logger.info("ori = {} {} {}".format(*tuple(oris[k])))
 
-        projection = _compute_proj(A[:, :k + 1])
-        G_proj = np.dot(projection, G)
+        projection = _compute_proj(A[:, : k + 1])
+        G_proj = np.einsum("ab,bso->aso", projection, G)
         phi_sig_proj = np.dot(projection, phi_sig)
+        if use_trap:
+            phi_sig_proj = phi_sig_proj[:, -(n_dipoles - k) :]
+    del G, G_proj
 
-    sol = linalg.lstsq(A, data)[0]
+    sol = linalg.lstsq(A, M)[0]
+    if n_orient == 3:
+        X = sol[:, np.newaxis] * oris[:, :, np.newaxis]
+        X.shape = (-1, len(times))
+    else:
+        X = sol
 
-    explained_data = np.dot(gain_dip, sol)
-    residual = data - np.dot(whitener, explained_data)
-    gof = 1. - np.sum(residual ** 2, axis=0) / np.sum(data ** 2, axis=0)
-    return _make_dipoles(times, poss,
-                         oris, sol, gof), explained_data
+    gain_active = gain[:, idxs]
+    if n_orient == 3:
+        gain_dip = (oris * gain_active).sum(-1)
+        idxs = np.array(idxs)
+        active_set = np.array([[3 * idxs, 3 * idxs + 1, 3 * idxs + 2]]).T.ravel()
+    else:
+        gain_dip = gain_active[:, :, 0]
+        active_set = idxs
+    gain_active = whitener @ gain_active.reshape(gain.shape[0], -1)
+    assert gain_active.shape == (n_channels, X.shape[0])
 
-
-def _make_dipoles(times, poss, oris, sol, gof):
-    """Instantiate a list of Dipoles.
-
-    Parameters
-    ----------
-    times : array, shape (n_times,)
-        The time instants.
-    poss : array, shape (n_dipoles, 3)
-        The dipoles' positions.
-    oris : array, shape (n_dipoles, 3)
-        The dipoles' orientations.
-    sol : array, shape (n_times,)
-        The dipoles' amplitudes over time.
-    gof : array, shape (n_times,)
-        The goodness of fit of the dipoles.
-        Shared between all dipoles.
-
-    Returns
-    -------
-    dipoles : list
-        The list of Dipole instances.
-    """
-    oris = np.array(oris)
-
-    dipoles = []
-    for i_dip in range(poss.shape[0]):
-        i_pos = poss[i_dip][np.newaxis, :].repeat(len(times), axis=0)
-        i_ori = oris[i_dip][np.newaxis, :].repeat(len(times), axis=0)
-        dipoles.append(Dipole(times, i_pos, sol[i_dip], i_ori, gof))
-
-    return dipoles
+    explained_data = gain_dip @ sol
+    M_estimate = whitener @ explained_data
+    _log_exp_var(M, M_estimate)
+    tstep = np.median(np.diff(times)) if len(times) > 1 else 1.0
+    dipoles = _make_dipoles_sparse(
+        X, active_set, forward, times[0], tstep, M, gain_active, active_is_idx=True
+    )
+    for dipole, ori in zip(dipoles, oris):
+        signs = np.sign((dipole.ori * ori).sum(-1, keepdims=True))
+        dipole.ori *= signs
+        dipole.amplitude *= signs[:, 0]
+    logger.info("[done]")
+    return dipoles, explained_data
 
 
 def _compute_subcorr(G, phi_sig):
     """Compute the subspace correlation."""
-    Ug, Sg, Vg = linalg.svd(G, full_matrices=False)
+    Ug, Sg, Vg = _safe_svd(G, full_matrices=False)
     # Now we look at the actual rank of the forward fields
     # in G and handle the fact that it might be rank defficient
     # eg. when using MEG and a sphere model for which the
@@ -170,24 +165,58 @@ def _compute_subcorr(G, phi_sig):
     rank = max(rank, 2)  # rank cannot be 1
     Ug, Sg, Vg = Ug[:, :rank], Sg[:rank], Vg[:rank]
     tmp = np.dot(Ug.T.conjugate(), phi_sig)
-    Uc, Sc, _ = linalg.svd(tmp, full_matrices=False)
+    Uc, Sc, _ = _safe_svd(tmp, full_matrices=False)
     X = np.dot(Vg.T / Sg[None, :], Uc[:, 0])  # subcorr
-    return Sc[0], X / linalg.norm(X)
+    return Sc[0], X / np.linalg.norm(X)
 
 
 def _compute_proj(A):
     """Compute the orthogonal projection operation for a manifold vector A."""
-    U, _, _ = linalg.svd(A, full_matrices=False)
+    U, _, _ = _safe_svd(A, full_matrices=False)
     return np.identity(A.shape[0]) - np.dot(U, U.T.conjugate())
 
 
+def _rap_music(evoked, forward, noise_cov, n_dipoles, return_residual, use_trap):
+    """RAP-/TRAP-MUSIC implementation."""
+    info = evoked.info
+    data = evoked.data
+    times = evoked.times
+
+    picks = _check_info_inv(info, forward, data_cov=None, noise_cov=noise_cov)
+
+    data = data[picks]
+
+    dipoles, explained_data = _apply_rap_music(
+        data, info, times, forward, noise_cov, n_dipoles, picks, use_trap
+    )
+
+    if return_residual:
+        residual = evoked.copy().pick([info["ch_names"][p] for p in picks])
+        residual.data -= explained_data
+        active_projs = [p for p in residual.info["projs"] if p["active"]]
+        for p in active_projs:
+            p["active"] = False
+        residual.add_proj(active_projs, remove_existing=True)
+        residual.apply_proj()
+        return dipoles, residual
+    else:
+        return dipoles
+
+
 @verbose
-def rap_music(evoked, forward, noise_cov, n_dipoles=5, return_residual=False,
-              verbose=None):
+def rap_music(
+    evoked,
+    forward,
+    noise_cov,
+    n_dipoles=5,
+    return_residual=False,
+    *,
+    verbose=None,
+):
     """RAP-MUSIC source localization method.
 
     Compute Recursively Applied and Projected MUltiple SIgnal Classification
-    (RAP-MUSIC) on evoked data.
+    (RAP-MUSIC) :footcite:`MosherLeahy1999,MosherLeahy1996` on evoked data.
 
     .. note:: The goodness of fit (GOF) of all the returned dipoles is the
               same and corresponds to the GOF of the full set of dipoles.
@@ -217,47 +246,70 @@ def rap_music(evoked, forward, noise_cov, n_dipoles=5, return_residual=False,
     See Also
     --------
     mne.fit_dipole
+    mne.beamformer.trap_music
 
     Notes
     -----
-    The references are:
-
-        J.C. Mosher and R.M. Leahy. 1999. Source localization using recursively
-        applied and projected (RAP) MUSIC. Signal Processing, IEEE Trans. 47, 2
-        (February 1999), 332-340.
-        DOI=10.1109/78.740118 https://doi.org/10.1109/78.740118
-
-        Mosher, J.C.; Leahy, R.M., EEG and MEG source localization using
-        recursively applied (RAP) MUSIC, Signals, Systems and Computers, 1996.
-        pp.1201,1207 vol.2, 3-6 Nov. 1996
-        doi: 10.1109/ACSSC.1996.599135
-
     .. versionadded:: 0.9.0
+
+    References
+    ----------
+    .. footbibliography::
     """
-    info = evoked.info
-    data = evoked.data
-    times = evoked.times
+    return _rap_music(evoked, forward, noise_cov, n_dipoles, return_residual, False)
 
-    picks = _check_info_inv(info, forward, data_cov=None, noise_cov=noise_cov)
 
-    data = data[picks]
+@verbose
+def trap_music(
+    evoked,
+    forward,
+    noise_cov,
+    n_dipoles=5,
+    return_residual=False,
+    *,
+    verbose=None,
+):
+    """TRAP-MUSIC source localization method.
 
-    dipoles, explained_data = _apply_rap_music(data, info, times, forward,
-                                               noise_cov, n_dipoles,
-                                               picks)
+    Compute Truncated Recursively Applied and Projected MUltiple SIgnal Classification
+    (TRAP-MUSIC) :footcite:`Makela2018` on evoked data.
 
-    if return_residual:
-        residual = evoked.copy()
-        selection = [info['ch_names'][p] for p in picks]
+    .. note:: The goodness of fit (GOF) of all the returned dipoles is the
+              same and corresponds to the GOF of the full set of dipoles.
 
-        residual = pick_channels_evoked(residual,
-                                        include=selection)
-        residual.data -= explained_data
-        active_projs = [p for p in residual.info['projs'] if p['active']]
-        for p in active_projs:
-            p['active'] = False
-        residual.add_proj(active_projs, remove_existing=True)
-        residual.apply_proj()
-        return dipoles, residual
-    else:
-        return dipoles
+    Parameters
+    ----------
+    evoked : instance of Evoked
+        Evoked data to localize.
+    forward : instance of Forward
+        Forward operator.
+    noise_cov : instance of Covariance
+        The noise covariance.
+    n_dipoles : int
+        The number of dipoles to look for. The default value is 5.
+    return_residual : bool
+        If True, the residual is returned as an Evoked instance.
+    %(verbose)s
+
+    Returns
+    -------
+    dipoles : list of instance of Dipole
+        The dipole fits.
+    residual : instance of Evoked
+        The residual a.k.a. data not explained by the dipoles.
+        Only returned if return_residual is True.
+
+    See Also
+    --------
+    mne.fit_dipole
+    mne.beamformer.rap_music
+
+    Notes
+    -----
+    .. versionadded:: 1.4
+
+    References
+    ----------
+    .. footbibliography::
+    """
+    return _rap_music(evoked, forward, noise_cov, n_dipoles, return_residual, True)

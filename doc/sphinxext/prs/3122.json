@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "38db591159f0f73b642594864a5770b78de36f0a",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 3,
+      "d": 6
+    },
+    "mne/dipole.py": {
+      "a": 286,
+      "d": 102
+    },
+    "mne/tests/test_dipole.py": {
+      "a": 54,
+      "d": 8
+    },
+    "tutorials/plot_dipole_fit.py": {
+      "a": 10,
+      "d": 1
+    }
+  }
+}

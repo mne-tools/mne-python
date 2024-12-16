@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "bc49d19a824d431aad3b1e8c6eacd93411fb9a11",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "environment.yml": {
+      "a": 2,
+      "d": 0
+    }
+  }
+}

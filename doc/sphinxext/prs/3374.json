@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "420028b89d7cb9c17bc970b7b795a0f1bff10f18",
+  "authors": [
+    {
+      "n": "jaeilepp",
+      "e": "jaeilepp@student.jyu.fi"
+    }
+  ],
+  "changes": {
+    "mne/bem.py": {
+      "a": 13,
+      "d": 0
+    }
+  }
+}

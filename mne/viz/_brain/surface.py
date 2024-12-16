@@ -1,17 +1,16 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Eric Larson <larson.eric.d@gmail.com>
-#          Oleh Kozynets <ok7mailbox@gmail.com>
-#          Guillaume Favelier <guillaume.favelier@gmail.com>
-#          jona-sassenhagen <jona.sassenhagen@gmail.com>
-#
-# License: Simplified BSD
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from os import path as path
 
 import numpy as np
 
+from ...surface import _read_patch, complete_surface_info, read_curvature, read_surface
+from ...utils import _check_fname, _check_option, _validate_type, get_subjects_dir
 
-class Surface(object):
+
+class _Surface:
     """Container for a brain surface.
 
     It is used for storing vertices, faces and morphometric data
@@ -19,7 +18,7 @@ class Surface(object):
 
     Parameters
     ----------
-    subject_id : string
+    subject : string
         Name of subject
     hemi : {'lh', 'rh'}
         Which hemisphere to load
@@ -34,6 +33,8 @@ class Surface(object):
         be applied. If != 0.0, an additional offset will be used.
     units : str
         Can be 'm' or 'mm' (default).
+    x_dir : ndarray | None
+        The x direction to use for offset alignment.
 
     Attributes
     ----------
@@ -56,7 +57,7 @@ class Surface(object):
     offset : float | None
         If float, align inside edge of each hemisphere to center + offset.
         If None, do not change coordinates (default).
-    subject_id : string
+    subject : string
         Name of subject.
     surf : string
         Name of the surface to load (eg. inflated, orig ...).
@@ -64,36 +65,42 @@ class Surface(object):
         Can be 'm' or 'mm' (default).
     """
 
-    def __init__(self, subject_id, hemi, surf, subjects_dir=None, offset=None,
-                 units='mm'):
-        from surfer.utils import _check_units, _get_subjects_dir
+    def __init__(
+        self,
+        subject,
+        hemi,
+        surf,
+        subjects_dir=None,
+        offset=None,
+        units="mm",
+        x_dir=None,
+    ):
+        x_dir = np.array([1.0, 0, 0]) if x_dir is None else x_dir
+        assert isinstance(x_dir, np.ndarray)
+        assert np.isclose(np.linalg.norm(x_dir), 1.0, atol=1e-6)
+        assert hemi in ("lh", "rh")
+        _validate_type(offset, (None, "numeric"), "offset")
 
-        hemis = ('lh', 'rh')
-
-        if hemi not in hemis:
-            raise ValueError('hemi should be either "lh" or "rh",' +
-                             'given value {0}'.format(hemi))
-
-        if offset is not None and ((not isinstance(offset, float)) and
-                                   (not isinstance(offset, int))):
-            raise ValueError('offset should either float or int, given ' +
-                             'type {0}'.format(type(offset).__name__))
-
-        self.subject_id = subject_id
+        self.units = _check_option("units", units, ("mm", "m"))
+        self.subject = subject
         self.hemi = hemi
         self.surf = surf
         self.offset = offset
-        self.units = _check_units(units)
         self.bin_curv = None
         self.coords = None
         self.curv = None
         self.faces = None
-        self.grey_curv = None
         self.nn = None
         self.labels = dict()
+        self.x_dir = x_dir
 
-        subjects_dir = _get_subjects_dir(subjects_dir)
-        self.data_path = path.join(subjects_dir, subject_id)
+        subjects_dir = str(get_subjects_dir(subjects_dir, raise_error=True))
+        self.data_path = path.join(subjects_dir, subject)
+        if surf == "seghead":
+            raise ValueError(
+                "`surf` cannot be seghead, use "
+                "`mne.viz.Brain.add_head` to plot the seghead"
+            )
 
     def load_geometry(self):
         """Load geometry of the surface.
@@ -106,29 +113,42 @@ class Surface(object):
         -------
         None
         """
-        from nibabel import freesurfer
-        from surfer.utils import _compute_normals
-
-        surf_path = path.join(self.data_path, 'surf',
-                              '%s.%s' % (self.hemi, self.surf))
-        coords, faces = freesurfer.read_geometry(surf_path)
-        if self.units == 'm':
-            coords /= 1000.
-        if self.offset is not None:
-            if self.hemi == 'lh':
-                coords[:, 0] -= (np.max(coords[:, 0]) + self.offset)
-            else:
-                coords[:, 0] -= (np.min(coords[:, 0]) + self.offset)
-        nn = _compute_normals(coords, faces)
-
-        if self.coords is None:
-            self.coords = coords
-            self.faces = faces
-            self.nn = nn
+        if self.surf == "flat":  # special case
+            fname = path.join(self.data_path, "surf", f"{self.hemi}.cortex.patch.flat")
+            _check_fname(
+                fname, overwrite="read", must_exist=True, name="flatmap surface file"
+            )
+            coords, faces, orig_faces = _read_patch(fname)
+            # rotate 90 degrees to get to a more standard orientation
+            # where X determines the distance between the hemis
+            coords = coords[:, [1, 0, 2]]
+            coords[:, 1] *= -1
         else:
-            self.coords[:] = coords
-            self.faces[:] = faces
-            self.nn[:] = nn
+            # allow ?h.pial.T1 if ?h.pial doesn't exist for instance
+            # end with '' for better file not found error
+            for img in ("", ".T1", ".T2", ""):
+                surf_fname = path.join(
+                    self.data_path, "surf", f"{self.hemi}.{self.surf}{img}"
+                )
+                if path.isfile(surf_fname):
+                    break
+            coords, faces = read_surface(surf_fname)
+            orig_faces = faces
+        if self.units == "m":
+            coords /= 1000.0
+        if self.offset is not None:
+            x_ = coords @ self.x_dir
+            if self.hemi == "lh":
+                coords -= (np.max(x_) + self.offset) * self.x_dir
+            else:
+                coords -= (np.min(x_) + self.offset) * self.x_dir
+        surf = dict(rr=coords, tris=faces)
+        complete_surface_info(surf, copy=False, verbose=False, do_neighbor_tri=False)
+        nn = surf["nn"]
+        self.coords = coords
+        self.faces = faces
+        self.orig_faces = orig_faces
+        self.nn = nn
 
     def __len__(self):
         """Return number of vertices."""
@@ -148,37 +168,10 @@ class Surface(object):
 
     def load_curvature(self):
         """Load in curvature values from the ?h.curv file."""
-        from nibabel import freesurfer
-        curv_path = path.join(self.data_path, 'surf', '%s.curv' % self.hemi)
-        self.curv = freesurfer.read_morph_data(curv_path)
-        self.bin_curv = np.array(self.curv > 0, np.int)
-        # morphometry (curvature) normalization in order to get gray cortex
-        # TODO: delete self.grey_curv after cortex parameter
-        # will be fully supported
-        color = (self.curv > 0).astype(float)
-        color = 0.5 - (color - 0.5) / 3
-        color = color[:, np.newaxis] * [1, 1, 1]
-        self.grey_curv = color
-
-    def load_label(self, name):
-        """Load in a Freesurfer .label file.
-
-        Label files are just text files indicating the vertices included
-        in the label. Each Surface instance has a dictionary of labels, keyed
-        by the name (which is taken from the file name if not given as an
-        argument.
-
-        """
-        from nibabel import freesurfer
-        label = freesurfer.read_label(path.join(self.data_path,
-                                                'label',
-                                                '%s.%s.label' %
-                                                (self.hemi, name)))
-        label_array = np.zeros_like(self.x).astype(np.int)
-        label_array[label] = 1
-        self.labels[name] = label_array
-
-    def apply_xfm(self, mtx):
-        """Apply an affine transformation matrix to the x,y,z vectors."""
-        self.coords = np.dot(np.c_[self.coords, np.ones(len(self.coords))],
-                             mtx.T)[:, :3]
+        curv_path = path.join(self.data_path, "surf", f"{self.hemi}.curv")
+        if path.isfile(curv_path):
+            self.curv = read_curvature(curv_path, binary=False)
+            self.bin_curv = np.array(self.curv > 0, np.int64)
+        else:
+            self.curv = None
+            self.bin_curv = None

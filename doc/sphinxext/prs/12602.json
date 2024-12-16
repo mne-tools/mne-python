@@ -1,0 +1,299 @@
+{
+  "merge_commit_sha": "5b1c49e18a3a937c884cac529eebcc35a3e9ef04",
+  "authors": [
+    {
+      "n": "Dimitri Papadopoulos Orfanos",
+      "e": null
+    }
+  ],
+  "changes": {
+    ".github/actions/rename_towncrier/rename_towncrier.py": {
+      "a": 9,
+      "d": 11
+    },
+    "examples/inverse/mixed_norm_inverse.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/_fiff/meas_info.py": {
+      "a": 2,
+      "d": 4
+    },
+    "mne/_fiff/proj.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/_fiff/tests/test_constants.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/_fiff/write.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/bem.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/channels/channels.py": {
+      "a": 4,
+      "d": 6
+    },
+    "mne/channels/tests/test_montage.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/commands/mne_coreg.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/conftest.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/coreg.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/decoding/csp.py": {
+      "a": 2,
+      "d": 4
+    },
+    "mne/decoding/transformer.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/epochs.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/evoked.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/export/_egimff.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/filter.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/forward/_field_interpolation.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/forward/_make_forward.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/gui/_coreg.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/inverse_sparse/mxne_inverse.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/inverse_sparse/mxne_optim.py": {
+      "a": 1,
+      "d": 3
+    },
+    "mne/io/base.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/besa/besa.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/brainvision/brainvision.py": {
+      "a": 1,
+      "d": 3
+    },
+    "mne/io/ctf/ctf.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/edf/edf.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/fieldtrip/utils.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/hitachi/hitachi.py": {
+      "a": 1,
+      "d": 3
+    },
+    "mne/io/kit/kit.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/persyst/persyst.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/label.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/minimum_norm/inverse.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/minimum_norm/resolution_matrix.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/morph_map.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/_csd.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/ieeg/_volume.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/preprocessing/maxwell.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/nirs/nirs.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/realign.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/stim.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/report/report.py": {
+      "a": 8,
+      "d": 14
+    },
+    "mne/report/tests/test_report.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/simulation/metrics/metrics.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/source_estimate.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/source_space/_source_space.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/stats/cluster_level.py": {
+      "a": 3,
+      "d": 5
+    },
+    "mne/surface.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/tests/test_annotations.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/tests/test_dipole.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/tests/test_docstring_parameters.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 1,
+      "d": 3
+    },
+    "mne/tests/test_filter.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/transforms.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/utils/check.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/utils/config.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/utils/mixin.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/numerics.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/tests/test_logging.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/_3d.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/viz/_figure.py": {
+      "a": 2,
+      "d": 4
+    },
+    "mne/viz/circle.py": {
+      "a": 2,
+      "d": 4
+    },
+    "mne/viz/epochs.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/evoked.py": {
+      "a": 2,
+      "d": 4
+    },
+    "mne/viz/topomap.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/utils.py": {
+      "a": 1,
+      "d": 3
+    },
+    "tutorials/intro/40_sensor_locations.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/preprocessing/40_artifact_correction_ica.py": {
+      "a": 1,
+      "d": 3
+    }
+  }
+}

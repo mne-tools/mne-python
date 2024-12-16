@@ -1,0 +1,19 @@
+<div class="accordion-item {{ div_klass }}" id="{{ id }}" data-mne-tags="{% for tag in tags %} {{ tag }} {% endfor %}">
+  <div class="accordion-header" id="accordion-header-{{id}}">
+    <button class="accordion-button pt-1 pb-1" type="button" data-bs-toggle="collapse" data-bs-target="#accordion-collapse-{{ id }}" aria-expanded="true" aria-controls="accordion-collapse-{{id}}">
+      <div class="w-100">
+        <span class="me-auto"><a href="#{{ id }}" class="text-decoration-none">{{ title }}</a></span>
+        {% for tag in tags %}
+        <span class="badge bg-primary rounded-pill float-end me-1" data-mne-tag="{{ tag }}">
+          {{ tag }}
+        </span>
+        {% endfor %}
+      </div>
+    </button>
+  </div>
+  <div id="accordion-collapse-{{ id }}" class="accordion-collapse collapse {{ show }}" aria-labelledby="accordion-header-{{ id }}">
+    <div class="accordion-body">
+      {{ html | safe }}
+    </div>
+  </div>
+</div>

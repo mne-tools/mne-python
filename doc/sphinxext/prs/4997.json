@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "4887a6c05204b0a03d7f92357f004a429bd712d6",
+  "authors": [
+    {
+      "n": "Christian Brodbeck",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/gui/_file_traits.py": {
+      "a": 7,
+      "d": 7
+    }
+  }
+}

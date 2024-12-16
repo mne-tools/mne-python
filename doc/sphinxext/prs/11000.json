@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "f27df270539bda9994ec791232d87a82b262d721",
+  "authors": [
+    {
+      "n": "Jack Zhang",
+      "e": "me@jackzhang.me"
+    }
+  ],
+  "changes": {
+    "mne/export/_eeglab.py": {
+      "a": 7,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "cf005b93f60cd1f2aa1701e5069c892c9290c14c",
+  "authors": [
+    {
+      "n": "Stefan Repplinger",
+      "e": "stefan.repplinger@posteo.net"
+    }
+  ],
+  "changes": {
+    "mne/channels/montage.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/channels/tests/test_montage.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

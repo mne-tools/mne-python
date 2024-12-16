@@ -1,0 +1,55 @@
+{
+  "merge_commit_sha": "5859fb1292dfd95dc1b60171c8fa99d0ac5a0fd9",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 16,
+      "d": 0
+    },
+    "mne/channels/layout.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/epochs.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/tests/test_docstring_parameters.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/utils/docs.py": {
+      "a": 8,
+      "d": 0
+    },
+    "mne/viz/epochs.py": {
+      "a": 408,
+      "d": 413
+    },
+    "mne/viz/evoked.py": {
+      "a": 709,
+      "d": 760
+    },
+    "mne/viz/tests/test_epochs.py": {
+      "a": 91,
+      "d": 35
+    },
+    "mne/viz/tests/test_evoked.py": {
+      "a": 111,
+      "d": 121
+    },
+    "mne/viz/topo.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/viz/utils.py": {
+      "a": 92,
+      "d": 76
+    }
+  }
+}

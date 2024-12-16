@@ -1,0 +1,55 @@
+{
+  "merge_commit_sha": "1e3f0b7f193fe370dd4c69d37c4779c5e0c5e877",
+  "authors": [
+    {
+      "n": "Martin",
+      "e": "mperezguevara@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/channels/channels.py": {
+      "a": 11,
+      "d": 3
+    },
+    "mne/channels/layout.py": {
+      "a": 19,
+      "d": 6
+    },
+    "mne/io/array/tests/test_array.py": {
+      "a": 17,
+      "d": 1
+    },
+    "mne/transforms.py": {
+      "a": 9,
+      "d": 3
+    },
+    "mne/viz/evoked.py": {
+      "a": 35,
+      "d": 34
+    },
+    "mne/viz/raw.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/tests/test_raw.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/topo.py": {
+      "a": 6,
+      "d": 0
+    },
+    "mne/viz/topomap.py": {
+      "a": 18,
+      "d": 7
+    },
+    "mne/viz/utils.py": {
+      "a": 22,
+      "d": 8
+    }
+  }
+}

@@ -1,0 +1,1 @@
+Cast ``fwd["info"]`` to :class:`~mne.Info` and ``fwd["src"]`` to :class:`~mne.SourceSpaces` when loading a forward solution from an HDF5 file, by `Mathieu Scheltienne`_.

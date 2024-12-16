@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "65e510049d81ae3517f63c27244eacbc5cc8d320",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/datasets/utils.py": {
+      "a": 5,
+      "d": 6
+    },
+    "mne/utils/config.py": {
+      "a": 24,
+      "d": 15
+    },
+    "mne/utils/tests/test_fetching.py": {
+      "a": 17,
+      "d": 18
+    }
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "3d08007b755931bcd0955b6aacc6d3fb424ff7e6",
+  "authors": [
+    {
+      "n": "Henrich Kolkhorst",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/brainvision/brainvision.py": {
+      "a": 72,
+      "d": 17
+    },
+    "mne/io/brainvision/tests/data/test.vmrk": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/brainvision/tests/test_brainvision.py": {
+      "a": 57,
+      "d": 18
+    }
+  }
+}

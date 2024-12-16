@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "34d338bcff0f21fae35114e14c692ccbe7213e10",
+  "authors": [
+    {
+      "n": "Johann Benerradi",
+      "e": null
+    }
+  ],
+  "changes": {
+    ".gitignore": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

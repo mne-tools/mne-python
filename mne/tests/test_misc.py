@@ -1,9 +1,12 @@
-import os.path as op
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
+
+from pathlib import Path
 
 from mne.misc import parse_config
 
-ave_fname = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data',
-                    'test.ave')
+ave_fname = Path(__file__).parents[1] / "io" / "tests" / "data" / "test.ave"
 
 
 def test_parse_ave():

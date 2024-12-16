@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "4fa4c5c383a80e48b5871815f1dfdf88810d1815",
+  "authors": [
+    {
+      "n": "jaeilepp",
+      "e": "jaeilepp@student.jyu.fi"
+    }
+  ],
+  "changes": {
+    "mne/datasets/utils.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

@@ -1,44 +1,35 @@
-# -*- coding: utf-8 -*-
 """Testing functions."""
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#
-# License: BSD (3-clause)
 
-from contextlib import contextmanager
-from distutils.version import LooseVersion
-from functools import partial, wraps
-import os
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
+
 import inspect
-from io import StringIO
-from shutil import rmtree
+import os
 import sys
 import tempfile
 import traceback
+from functools import wraps
+from shutil import rmtree
 from unittest import SkipTest
-import warnings
 
 import numpy as np
-from numpy.testing import assert_array_equal, assert_allclose
+from numpy.testing import assert_allclose, assert_array_equal
 from scipy import linalg
 
-from ._logging import warn
+from ._logging import ClosingStringIO, warn
+from .check import check_version
+from .misc import run_subprocess
 from .numerics import object_diff
 
 
-def nottest(f):
-    """Mark a function as not a test (decorator)."""
-    f.__test__ = False
-    return f
-
-
-def _explain_exception(start=-1, stop=None, prefix='> '):
+def _explain_exception(start=-1, stop=None, prefix="> "):
     """Explain an exception."""
     # start=-1 means "only the most recent caller"
     etype, value, tb = sys.exc_info()
     string = traceback.format_list(traceback.extract_tb(tb)[start:stop])
-    string = (''.join(string).split('\n') +
-              traceback.format_exception_only(etype, value))
-    string = ':\n' + prefix + ('\n' + prefix).join(string)
+    string = "".join(string).split("\n") + traceback.format_exception_only(etype, value)
+    string = ":\n" + prefix + ("\n" + prefix).join(string)
     return string
 
 
@@ -55,218 +46,84 @@ class _TempDir(str):
     """
 
     def __new__(self):  # noqa: D105
-        new = str.__new__(self, tempfile.mkdtemp(prefix='tmp_mne_tempdir_'))
+        new = str.__new__(self, tempfile.mkdtemp(prefix="tmp_mne_tempdir_"))
         return new
 
-    def __init__(self):  # noqa: D102
+    def __init__(self):
         self._path = self.__str__()
 
     def __del__(self):  # noqa: D105
         rmtree(self._path, ignore_errors=True)
 
 
-def requires_nibabel():
-    """Wrap to requires_module with a function call (fewer lines to change)."""
-    return partial(requires_module, name='nibabel')
+def requires_mne(func):
+    """Decorate a function as requiring MNE."""
+    return requires_mne_mark()(func)
 
 
-def requires_dipy():
-    """Check for dipy."""
+def requires_mne_mark():
+    """Mark pytest tests that require MNE-C."""
     import pytest
-    # for some strange reason on CIs we cane get:
-    #
-    #     can get weird ImportError: dlopen: cannot load any more object
-    #     with static TLS
-    #
-    # so let's import everything in the decorator.
-    try:
-        from dipy.align import imaffine, imwarp, metrics, transforms  # noqa, analysis:ignore
-        from dipy.align.reslice import reslice  # noqa, analysis:ignore
-        from dipy.align.imaffine import AffineMap  # noqa, analysis:ignore
-        from dipy.align.imwarp import DiffeomorphicMap  # noqa, analysis:ignore
-    except Exception:
-        have = False
+
+    return pytest.mark.skipif(not has_mne_c(), reason="Requires MNE-C")
+
+
+def requires_openmeeg_mark():
+    """Mark pytest tests that require OpenMEEG."""
+    import pytest
+
+    return pytest.mark.skipif(
+        not check_version("openmeeg", "2.5.6"), reason="Requires OpenMEEG >= 2.5.6"
+    )
+
+
+def requires_freesurfer(arg):
+    """Require Freesurfer."""
+    import pytest
+
+    reason = "Requires Freesurfer"
+    if isinstance(arg, str):
+        # Calling as  @requires_freesurfer('progname'): return decorator
+        # after checking for progname existence
+        reason += f" command: {arg}"
+        try:
+            run_subprocess([arg, "--version"])
+        except Exception:
+            skip = True
+        else:
+            skip = False
+        return pytest.mark.skipif(skip, reason=reason)
     else:
-        have = True
-    return pytest.mark.skipif(not have, reason='Requires dipy >= 0.10.1')
+        # Calling directly as @requires_freesurfer: return decorated function
+        # and just check env var existence
+        return pytest.mark.skipif(not has_freesurfer(), reason="Requires Freesurfer")(
+            arg
+        )
 
 
-def requires_version(library, min_version='0.0'):
-    """Check for a library version."""
+def requires_good_network(func):
     import pytest
-    return pytest.mark.skipif(not check_version(library, min_version),
-                              reason=('Requires %s version >= %s'
-                                      % (library, min_version)))
 
-
-def requires_module(function, name, call=None):
-    """Skip a test if package is not available (decorator)."""
-    import pytest
-    call = ('import %s' % name) if call is None else call
-    reason = 'Test %s skipped, requires %s.' % (function.__name__, name)
-    try:
-        exec(call) in globals(), locals()
-    except Exception as exc:
-        if len(str(exc)) > 0 and str(exc) != 'No module named %s' % name:
-            reason += ' Got exception (%s)' % (exc,)
-        skip = True
-    else:
-        skip = False
-    return pytest.mark.skipif(skip, reason=reason)(function)
-
-
-_pandas_call = """
-import pandas
-version = LooseVersion(pandas.__version__)
-if version < '0.8.0':
-    raise ImportError
-"""
-
-_sklearn_call = """
-required_version = '0.14'
-import sklearn
-version = LooseVersion(sklearn.__version__)
-if version < required_version:
-    raise ImportError
-"""
-
-_mayavi_call = """
-with warnings.catch_warnings(record=True):  # traits
-    from mayavi import mlab
-"""
-
-_mne_call = """
-if not has_mne_c():
-    raise ImportError
-"""
-
-_fs_call = """
-if not has_freesurfer():
-    raise ImportError
-"""
-
-_n2ft_call = """
-if 'NEUROMAG2FT_ROOT' not in os.environ:
-    raise ImportError
-"""
-
-requires_pandas = partial(requires_module, name='pandas', call=_pandas_call)
-requires_pylsl = partial(requires_module, name='pylsl')
-requires_sklearn = partial(requires_module, name='sklearn', call=_sklearn_call)
-requires_mayavi = partial(requires_module, name='mayavi', call=_mayavi_call)
-requires_mne = partial(requires_module, name='MNE-C', call=_mne_call)
-requires_freesurfer = partial(requires_module, name='Freesurfer',
-                              call=_fs_call)
-requires_neuromag2ft = partial(requires_module, name='neuromag2ft',
-                               call=_n2ft_call)
-
-requires_tvtk = partial(requires_module, name='TVTK',
-                        call='from tvtk.api import tvtk')
-requires_pysurfer = partial(requires_module, name='PySurfer',
-                            call="""import warnings
-with warnings.catch_warnings(record=True):
-    from surfer import Brain""")
-requires_good_network = partial(
-    requires_module, name='good network connection',
-    call='if int(os.environ.get("MNE_SKIP_NETWORK_TESTS", 0)):\n'
-         '    raise ImportError')
-requires_nitime = partial(requires_module, name='nitime')
-requires_h5py = partial(requires_module, name='h5py')
-requires_numpydoc = partial(requires_module, name='numpydoc')
-
-
-def check_version(library, min_version):
-    r"""Check minimum library version required.
-
-    Parameters
-    ----------
-    library : str
-        The library name to import. Must have a ``__version__`` property.
-    min_version : str
-        The minimum version string. Anything that matches
-        ``'(\d+ | [a-z]+ | \.)'``. Can also be empty to skip version
-        check (just check for library presence).
-
-    Returns
-    -------
-    ok : bool
-        True if the library exists with at least the specified version.
-    """
-    ok = True
-    try:
-        library = __import__(library)
-    except ImportError:
-        ok = False
-    else:
-        if min_version:
-            this_version = LooseVersion(
-                getattr(library, '__version__', '0.0').lstrip('v'))
-            if this_version < min_version:
-                ok = False
-    return ok
-
-
-def _check_mayavi_version(min_version='4.3.0'):
-    """Check mayavi version."""
-    if not check_version('mayavi', min_version):
-        raise RuntimeError("Need mayavi >= %s" % min_version)
-
-
-def _import_mlab():
-    """Quietly import mlab."""
-    with warnings.catch_warnings(record=True):
-        from mayavi import mlab
-    return mlab
-
-
-@contextmanager
-def traits_test_context():
-    """Context to raise errors in trait handlers."""
-    from traits.api import push_exception_handler
-
-    push_exception_handler(reraise_exceptions=True)
-    try:
-        yield
-    finally:
-        push_exception_handler(reraise_exceptions=False)
-
-
-def traits_test(test_func):
-    """Raise errors in trait handlers (decorator)."""
-    @wraps(test_func)
-    def dec(*args, **kwargs):
-        with traits_test_context():
-            return test_func(*args, **kwargs)
-    return dec
-
-
-@nottest
-def run_tests_if_main():
-    """Run tests in a given file if it is run as a script."""
-    local_vars = inspect.currentframe().f_back.f_locals
-    if local_vars.get('__name__', '') != '__main__':
-        return
-    import pytest
-    code = pytest.main([local_vars['__file__'], '-v'])
-    if code:
-        raise AssertionError('pytest finished with errors (%d)' % (code,))
+    return pytest.mark.skipif(
+        int(os.environ.get("MNE_SKIP_NETWORK_TESTS", 0)),
+        reason="MNE_SKIP_NETWORK_TESTS is set",
+    )(func)
 
 
 def run_command_if_main():
     """Run a given command if it's __main__."""
     local_vars = inspect.currentframe().f_back.f_locals
-    if local_vars.get('__name__', '') == '__main__':
-        local_vars['run']()
+    if local_vars.get("__name__", "") == "__main__":
+        local_vars["run"]()
 
 
-class ArgvSetter(object):
+class ArgvSetter:
     """Temporarily set sys.argv."""
 
-    def __init__(self, args=(), disable_stdout=True,
-                 disable_stderr=True):  # noqa: D102
-        self.argv = list(('python',) + args)
-        self.stdout = StringIO() if disable_stdout else sys.stdout
-        self.stderr = StringIO() if disable_stderr else sys.stderr
+    def __init__(self, args=(), disable_stdout=True, disable_stderr=True):
+        self.argv = list(("python",) + args)
+        self.stdout = ClosingStringIO() if disable_stdout else sys.stdout
+        self.stderr = ClosingStringIO() if disable_stderr else sys.stderr
 
     def __enter__(self):  # noqa: D105
         self.orig_argv = sys.argv
@@ -283,83 +140,63 @@ class ArgvSetter(object):
         sys.stderr = self.orig_stderr
 
 
-class SilenceStdout(object):
-    """Silence stdout."""
-
-    def __enter__(self):  # noqa: D105
-        self.stdout = sys.stdout
-        sys.stdout = StringIO()
-        return self
-
-    def __exit__(self, *args):  # noqa: D105
-        sys.stdout = self.stdout
-
-
-def has_nibabel():
-    """Determine if nibabel is installed.
-
-    Returns
-    -------
-    has : bool
-        True if the user has nibabel.
-    """
-    try:
-        import nibabel  # noqa
-    except ImportError:
-        return False
-    else:
-        return True
-
-
 def has_mne_c():
     """Check for MNE-C."""
-    return 'MNE_ROOT' in os.environ
+    return "MNE_ROOT" in os.environ
 
 
 def has_freesurfer():
     """Check for Freesurfer."""
-    return 'FREESURFER_HOME' in os.environ
+    return "FREESURFER_HOME" in os.environ
 
 
 def buggy_mkl_svd(function):
     """Decorate tests that make calls to SVD and intermittently fail."""
+
     @wraps(function)
     def dec(*args, **kwargs):
         try:
             return function(*args, **kwargs)
         except np.linalg.LinAlgError as exp:
-            if 'SVD did not converge' in str(exp):
-                msg = 'Intel MKL SVD convergence error detected, skipping test'
+            if "SVD did not converge" in str(exp):
+                msg = "Intel MKL SVD convergence error detected, skipping test"
                 warn(msg)
                 raise SkipTest(msg)
             raise
+
     return dec
 
 
 def assert_and_remove_boundary_annot(annotations, n=1):
     """Assert that there are boundary annotations and remove them."""
-    from ..io.base import BaseRaw
+    from ..io import BaseRaw
+
     if isinstance(annotations, BaseRaw):  # allow either input
         annotations = annotations.annotations
-    for key in ('EDGE', 'BAD'):
-        idx = np.where(annotations.description == '%s boundary' % key)[0]
+    for key in ("EDGE", "BAD"):
+        idx = np.where(annotations.description == f"{key} boundary")[0]
         assert len(idx) == n
         annotations.delete(idx)
 
 
-def assert_object_equal(a, b):
+def assert_object_equal(a, b, *, err_msg="Object mismatch"):
     """Assert two objects are equal."""
     d = object_diff(a, b)
-    assert d == '', d
+    assert d == "", f"{err_msg}\n{d}"
 
 
 def _raw_annot(meas_date, orig_time):
-    from .. import Annotations, create_info
+    from .._fiff.meas_info import create_info
+    from ..annotations import Annotations, _handle_meas_date
     from ..io import RawArray
-    info = create_info(ch_names=10, sfreq=10.)
+
+    info = create_info(ch_names=10, sfreq=10.0)
     raw = RawArray(data=np.empty((10, 10)), info=info, first_samp=10)
-    raw.info['meas_date'] = meas_date
-    annot = Annotations([.5], [.2], ['dummy'], orig_time)
+    if meas_date is not None:
+        meas_date = _handle_meas_date(meas_date)
+    with raw.info._unlock(check_after=True):
+        raw.info["meas_date"] = meas_date
+    annot = Annotations([0.5], [0.2], ["dummy"], orig_time)
     raw.set_annotations(annotations=annot)
     return raw
 
@@ -368,13 +205,14 @@ def _get_data(x, ch_idx):
     """Get the (n_ch, n_times) data array."""
     from ..evoked import Evoked
     from ..io import BaseRaw
+
     if isinstance(x, BaseRaw):
         return x[ch_idx][0]
     elif isinstance(x, Evoked):
         return x.data[ch_idx]
 
 
-def _check_snr(actual, desired, picks, min_tol, med_tol, msg, kind='MEG'):
+def _check_snr(actual, desired, picks, min_tol, med_tol, msg, kind="MEG"):
     """Check the SNR of a set of channels."""
     actual_data = _get_data(actual, picks)
     desired_data = _get_data(desired, picks)
@@ -386,104 +224,136 @@ def _check_snr(actual, desired, picks, min_tol, med_tol, msg, kind='MEG'):
     # min tol
     snr = snrs.min()
     bad_count = (snrs < min_tol).sum()
-    msg = ' (%s)' % msg if msg != '' else msg
-    assert bad_count == 0, ('SNR (worst %0.2f) < %0.2f for %s/%s '
-                            'channels%s' % (snr, min_tol, bad_count,
-                                            len(picks), msg))
+    msg = f" ({msg})" if msg != "" else msg
+    assert bad_count == 0, (
+        f"SNR (worst {snr:0.2f}) < {min_tol:0.2f} "
+        f"for {bad_count}/{len(picks)} channels{msg}"
+    )
     # median tol
     snr = np.median(snrs)
-    assert snr >= med_tol, ('%s SNR median %0.2f < %0.2f%s'
-                            % (kind, snr, med_tol, msg))
+    assert snr >= med_tol, f"{kind} SNR median {snr:0.2f} < {med_tol:0.2f}{msg}"
 
 
-def assert_meg_snr(actual, desired, min_tol, med_tol=500., chpi_med_tol=500.,
-                   msg=None):
+def assert_meg_snr(
+    actual, desired, min_tol, med_tol=500.0, chpi_med_tol=500.0, msg=None
+):
     """Assert channel SNR of a certain level.
 
     Mostly useful for operations like Maxwell filtering that modify
     MEG channels while leaving EEG and others intact.
     """
-    from ..io.pick import pick_types
+    from .._fiff.pick import pick_types
+
     picks = pick_types(desired.info, meg=True, exclude=[])
     picks_desired = pick_types(desired.info, meg=True, exclude=[])
-    assert_array_equal(picks, picks_desired, err_msg='MEG pick mismatch')
+    assert_array_equal(picks, picks_desired, err_msg="MEG pick mismatch")
     chpis = pick_types(actual.info, meg=False, chpi=True, exclude=[])
     chpis_desired = pick_types(desired.info, meg=False, chpi=True, exclude=[])
     if chpi_med_tol is not None:
-        assert_array_equal(chpis, chpis_desired, err_msg='cHPI pick mismatch')
-    others = np.setdiff1d(np.arange(len(actual.ch_names)),
-                          np.concatenate([picks, chpis]))
-    others_desired = np.setdiff1d(np.arange(len(desired.ch_names)),
-                                  np.concatenate([picks_desired,
-                                                  chpis_desired]))
-    assert_array_equal(others, others_desired, err_msg='Other pick mismatch')
+        assert_array_equal(chpis, chpis_desired, err_msg="cHPI pick mismatch")
+    others = np.setdiff1d(
+        np.arange(len(actual.ch_names)), np.concatenate([picks, chpis])
+    )
+    others_desired = np.setdiff1d(
+        np.arange(len(desired.ch_names)), np.concatenate([picks_desired, chpis_desired])
+    )
+    assert_array_equal(others, others_desired, err_msg="Other pick mismatch")
     if len(others) > 0:  # if non-MEG channels present
-        assert_allclose(_get_data(actual, others),
-                        _get_data(desired, others), atol=1e-11, rtol=1e-5,
-                        err_msg='non-MEG channel mismatch')
-    _check_snr(actual, desired, picks, min_tol, med_tol, msg, kind='MEG')
+        assert_allclose(
+            _get_data(actual, others),
+            _get_data(desired, others),
+            atol=1e-11,
+            rtol=1e-5,
+            err_msg="non-MEG channel mismatch",
+        )
+    _check_snr(actual, desired, picks, min_tol, med_tol, msg, kind="MEG")
     if chpi_med_tol is not None and len(chpis) > 0:
-        _check_snr(actual, desired, chpis, 0., chpi_med_tol, msg, kind='cHPI')
+        _check_snr(actual, desired, chpis, 0.0, chpi_med_tol, msg, kind="cHPI")
 
 
 def assert_snr(actual, desired, tol):
     """Assert actual and desired arrays are within some SNR tolerance."""
-    snr = (linalg.norm(desired, ord='fro') /
-           linalg.norm(desired - actual, ord='fro'))
-    assert snr >= tol, '%f < %f' % (snr, tol)
+    with np.errstate(divide="ignore"):  # allow infinite
+        snr = linalg.norm(desired, ord="fro") / linalg.norm(desired - actual, ord="fro")
+    assert snr >= tol, f"{snr} < {tol}"
+
+
+def assert_stcs_equal(stc1, stc2):
+    """Check that two STC are equal."""
+    assert_allclose(stc1.times, stc2.times)
+    assert_allclose(stc1.data, stc2.data)
+    assert_array_equal(stc1.vertices[0], stc2.vertices[0])
+    assert_array_equal(stc1.vertices[1], stc2.vertices[1])
+    assert_allclose(stc1.tmin, stc2.tmin)
+    assert_allclose(stc1.tstep, stc2.tstep)
 
 
 def _dig_sort_key(dig):
     """Sort dig keys."""
-    return (dig['kind'], dig['ident'])
+    return (dig["kind"], dig["ident"])
 
 
 def assert_dig_allclose(info_py, info_bin, limit=None):
     """Assert dig allclose."""
+    from .._fiff.constants import FIFF
+    from .._fiff.meas_info import Info
     from ..bem import fit_sphere_to_headshape
-    from ..io.constants import FIFF
+    from ..channels.montage import DigMontage
+
     # test dig positions
-    dig_py = sorted(info_py['dig'], key=_dig_sort_key)
-    dig_bin = sorted(info_bin['dig'], key=_dig_sort_key)
+    dig_py, dig_bin = info_py, info_bin
+    if isinstance(dig_py, Info):
+        assert isinstance(dig_bin, Info)
+        dig_py, dig_bin = dig_py["dig"], dig_bin["dig"]
+    else:
+        assert isinstance(dig_bin, DigMontage)
+        assert isinstance(dig_py, DigMontage)
+        dig_py, dig_bin = dig_py.dig, dig_bin.dig
+        info_py = info_bin = None
+    assert isinstance(dig_py, list)
+    assert isinstance(dig_bin, list)
+    dig_py = sorted(dig_py, key=_dig_sort_key)
+    dig_bin = sorted(dig_bin, key=_dig_sort_key)
     assert len(dig_py) == len(dig_bin)
     for ii, (d_py, d_bin) in enumerate(zip(dig_py[:limit], dig_bin[:limit])):
-        for key in ('ident', 'kind', 'coord_frame'):
-            assert d_py[key] == d_bin[key]
-        assert_allclose(d_py['r'], d_bin['r'], rtol=1e-5, atol=1e-5,
-                        err_msg='Failure on %s:\n%s\n%s'
-                        % (ii, d_py['r'], d_bin['r']))
-    if any(d['kind'] == FIFF.FIFFV_POINT_EXTRA for d in dig_py):
+        for key in ("ident", "kind", "coord_frame"):
+            assert d_py[key] == d_bin[key], key
+        assert_allclose(
+            d_py["r"],
+            d_bin["r"],
+            rtol=1e-5,
+            atol=1e-5,
+            err_msg=f"Failure on {ii}:\n{d_py['r']}\n{d_bin['r']}",
+        )
+    if any(d["kind"] == FIFF.FIFFV_POINT_EXTRA for d in dig_py) and info_py is not None:
         r_bin, o_head_bin, o_dev_bin = fit_sphere_to_headshape(
-            info_bin, units='m', verbose='error')
+            info_bin, units="m", verbose="error"
+        )
         r_py, o_head_py, o_dev_py = fit_sphere_to_headshape(
-            info_py, units='m', verbose='error')
+            info_py, units="m", verbose="error"
+        )
         assert_allclose(r_py, r_bin, atol=1e-6)
         assert_allclose(o_dev_py, o_dev_bin, rtol=1e-5, atol=1e-6)
         assert_allclose(o_head_py, o_head_bin, rtol=1e-5, atol=1e-6)
 
 
-@contextmanager
-def modified_env(**d):
-    """Use a modified os.environ with temporarily replaced key/value pairs.
+def _click_ch_name(fig, ch_index=0, button=1):
+    """Click on a channel name in a raw/epochs/ICA browse-style plot."""
+    from ..viz.utils import _fake_click
 
-    Parameters
-    ----------
-    **kwargs : dict
-        The key/value pairs of environment variables to replace.
-    """
-    orig_env = dict()
-    for key, val in d.items():
-        orig_env[key] = os.getenv(key)
-        if val is not None:
-            assert isinstance(val, str)
-            os.environ[key] = val
-        elif key in os.environ:
-            del os.environ[key]
-    try:
-        yield
-    finally:
-        for key, val in orig_env.items():
-            if val is not None:
-                os.environ[key] = val
-            elif key in os.environ:
-                del os.environ[key]
+    fig.canvas.draw()
+    text = fig.mne.ax_main.get_yticklabels()[ch_index]
+    bbox = text.get_window_extent()
+    x = bbox.intervalx.mean()
+    y = bbox.intervaly.mean()
+    _fake_click(fig, fig.mne.ax_main, (x, y), xform="pix", button=button)
+
+
+def _get_suptitle(fig):
+    """Get fig suptitle (shim for matplotlib < 3.8.0)."""
+    # TODO: obsolete when minimum MPL version is 3.8
+    if check_version("matplotlib", "3.8"):
+        return fig.get_suptitle()
+    else:
+        # unreliable hack; should work in most tests as we rarely use `sup_{x,y}label`
+        return fig.texts[0].get_text()

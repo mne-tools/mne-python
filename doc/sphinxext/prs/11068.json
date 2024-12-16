@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "61b90ee2d555d10a6cb52dd5a6454d7d910a9166",
+  "authors": [
+    {
+      "n": "Mats",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/utils/docs.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

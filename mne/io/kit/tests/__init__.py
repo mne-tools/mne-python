@@ -1,3 +1,7 @@
-import os.path as op
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
-data_dir = op.join(op.dirname(__file__), 'data')
+from pathlib import Path
+
+data_dir = Path(__file__).parent / "data"

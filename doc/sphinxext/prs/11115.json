@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "d587b89154cc398cacabc6e0d9b630c0aaf6e37a",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/visualization/topo_customized.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/time_frequency/psd.py": {
+      "a": 8,
+      "d": 7
+    },
+    "tools/azure_dependencies.sh": {
+      "a": 3,
+      "d": 1
+    },
+    "tools/github_actions_dependencies.sh": {
+      "a": 3,
+      "d": 1
+    },
+    "tutorials/time-freq/20_sensors_time_frequency.py": {
+      "a": 13,
+      "d": 12
+    },
+    "tutorials/time-freq/50_ssvep.py": {
+      "a": 9,
+      "d": 6
+    }
+  }
+}

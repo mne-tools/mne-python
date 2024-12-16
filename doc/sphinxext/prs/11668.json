@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "ccdbbdcc501042045c30f44454ed1d704c817550",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/channels/channels.py": {
+      "a": 15,
+      "d": 4
+    },
+    "mne/channels/tests/test_channels.py": {
+      "a": 11,
+      "d": 1
+    },
+    "mne/channels/tests/test_interpolation.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/export/tests/test_export.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/preprocessing/tests/test_ecg.py": {
+      "a": 1,
+      "d": 3
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/viz/tests/test_topo.py": {
+      "a": 2,
+      "d": 4
+    }
+  }
+}

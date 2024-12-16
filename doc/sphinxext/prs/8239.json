@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "b3e28c12f812eb81bd9ef453dc368c40bc504717",
+  "authors": [
+    {
+      "n": null,
+      "e": "olaf.hauk@mrc-cbu.cam.ac.uk"
+    }
+  ],
+  "changes": {
+    "mne/source_estimate.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

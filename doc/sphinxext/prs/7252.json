@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "c2029d684cdc12daa7542bf9a02a1907ecfef179",
+  "authors": [
+    {
+      "n": "Sebastian Major",
+      "e": null
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/brainvision/brainvision.py": {
+      "a": 11,
+      "d": 6
+    },
+    "mne/io/brainvision/tests/data/test_mixed_lowpass.vhdr": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "merge_commit_sha": "cc749f5b41ec282acaa7b09e59b61ed35ed4d59a",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/gui/_kit2fiff_gui.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/artemis123/artemis123.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/kit/coreg.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/misc.py": {
+      "a": 6,
+      "d": 15
+    },
+    "mne/realtime/client.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/realtime/fieldtrip_client.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/realtime/tests/test_fieldtrip_client.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/tests/test_label.py": {
+      "a": 8,
+      "d": 8
+    },
+    "mne/time_frequency/multitaper.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/viz/epochs.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

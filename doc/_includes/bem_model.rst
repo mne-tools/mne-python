@@ -3,10 +3,6 @@
 Creating the BEM meshes
 =======================
 
-.. contents:: Page contents
-   :local:
-   :depth: 2
-
 .. NOTE: part of this file is included in doc/overview/implementation.rst.
    Changes here are reflected there. If you want to link to this content, link
    to :ref:`bem-model` to link to that section of the implementation.rst page.
@@ -21,9 +17,9 @@ Using the watershed algorithm
 
 The watershed algorithm [Segonne *et al.*,
 2004] is part of the FreeSurfer software.
-The name of the program is mri_watershed .
+The name of the program is ``mri_watershed``.
 Its use in the MNE environment is facilitated by the script
-:ref:`gen_mne_watershed_bem`.
+:ref:`mne watershed_bem`.
 
 After ``mne watershed_bem`` has completed, the following files appear in the
 subject's :file:`bem/watershed` directory:
@@ -39,10 +35,11 @@ subject's :file:`bem/watershed` directory:
 - :file:`{<subject>}_outer_skin_surface` contains the scalp triangulation.
 
 All of these surfaces are in the FreeSurfer format. In addition, there will be
-a directory called :file:`bem/watershed/ws` which contains the brain MRI
+a file called :file:`bem/watershed/ws.mgz` which contains the brain MRI
 volume. Furthermore, ``mne watershed_bem`` script converts the scalp surface to
 fif format and saves the result to :file:`bem/{<subject>}-head.fif`.
 
+.. _bem_flash_algorithm:
 
 Using FLASH images
 ~~~~~~~~~~~~~~~~~~
@@ -54,14 +51,13 @@ reconstructions but it is strongly recommended that they are collected at the
 same time with the MPRAGEs or at least with the same scanner. For easy
 co-registration, the images should have FOV, matrix, slice thickness, gap, and
 slice orientation as the MPRAGE data. For information on suitable pulse
-sequences, see reference [B. Fischl *et al.* and J. Jovicich *et al.*, 2006] in
-:ref:`CEGEGDEI`.
+sequences, see :footcite:t:`FischlEtAl2004`.
 
 Creation of the BEM meshes using this method involves the following steps:
 
 - Creating a synthetic 5-degree flip angle FLASH volume, register
   it with the MPRAGE data, and run the segmentation and meshing program.
-  This step is accomplished by running the script :ref:`gen_mne_flash_bem`.
+  This step is accomplished by running the script :ref:`mne flash_bem`.
 
 - Inspecting the meshes with tkmedit, see :ref:`inspecting-meshes`.
 
@@ -88,10 +84,10 @@ Creating the surface tessellations
 ----------------------------------
 
 The BEM surface segmentation and tessellation is automated with the script
-:ref:`gen_mne_flash_bem`. It assumes that a FreeSurfer reconstruction for this
+:ref:`mne flash_bem`. It assumes that a FreeSurfer reconstruction for this
 subject is already in place.
 
-Before running :ref:`gen_mne_flash_bem` do the following:
+Before running :ref:`mne flash_bem` do the following:
 
 - Create symbolic links from the directories containing the 5-degree and
   30-degree flip angle FLASH series to ``flash05`` and ``flash30``,
@@ -161,6 +157,6 @@ Inspecting the meshes
 It is advisable to check the validity of the BEM meshes before
 using them. This can be done with:
 
-- the ``--view`` option of :ref:`gen_mne_flash_bem`
+- the ``--view`` option of :ref:`mne flash_bem`
 - calling :func:`mne.viz.plot_bem` directly
 - Using FreeSurfer tools ``tkmedit`` or ``freeview``

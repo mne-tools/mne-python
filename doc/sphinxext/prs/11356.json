@@ -1,0 +1,59 @@
+{
+  "merge_commit_sha": "306b311a0a3b4ea9c353589d7647523ea0882253",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".github/workflows/linux_conda.yml": {
+      "a": 6,
+      "d": 2
+    },
+    "doc/install/advanced.rst": {
+      "a": 7,
+      "d": 8
+    },
+    "doc/install/check_installation.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "environment.yml": {
+      "a": 5,
+      "d": 1
+    },
+    "mne/conftest.py": {
+      "a": 5,
+      "d": 2
+    },
+    "mne/gui/tests/test_gui_api.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/utils/check.py": {
+      "a": 8,
+      "d": 0
+    },
+    "mne/viz/backends/_notebook.py": {
+      "a": 7,
+      "d": 0
+    },
+    "mne/viz/backends/_utils.py": {
+      "a": 54,
+      "d": 0
+    },
+    "mne/viz/backends/tests/test_abstract.py": {
+      "a": 33,
+      "d": 3
+    },
+    "mne/viz/backends/tests/test_abstract_notebook.py": {
+      "a": 0,
+      "d": 31
+    },
+    "server_environment.yml": {
+      "a": 0,
+      "d": 28
+    }
+  }
+}

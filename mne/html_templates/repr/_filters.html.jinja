@@ -1,0 +1,38 @@
+{% set section = "Filters" %}
+{% set section_class_name = section | lower | append_uuid %}
+
+{# Collapse content during documentation build. #}
+{% if collapsed %}
+{% set collapsed_row_class = "mne-repr-collapsed" %}
+{% else %}
+{% set collapsed_row_class = "" %}
+{% endif %}
+
+{%include 'static/_section_header_row.html.jinja' %}
+
+{% if info["highpass"] is defined and info["highpass"] is not none %}
+<tr class="repr-element {{ section_class_name }} {{ collapsed_row_class }}">
+    <td class="mne-repr-section-toggle"></td>
+    <td>Highpass</td>
+    <td>{{ "%0.2f" | format(info["highpass"]) }} Hz</td>
+</tr>
+{% endif %}
+{% if info["lowpass"] is defined and info["lowpass"] is not none %}
+<tr class="repr-element {{ section_class_name }} {{ collapsed_row_class }}">
+    <td class="mne-repr-section-toggle"></td>
+    <td>Lowpass</td>
+    <td>{{ "%0.2f" | format(info["lowpass"]) }} Hz</td>
+</tr>
+{% endif %}
+{% if info.projs is defined and info.projs %}
+<tr class="repr-element {{ section_class_name }} {{ collapsed_row_class }}">
+    <td class="mne-repr-section-toggle"></td>
+    <td>Projections</td>
+    <td>
+        {% for p in (info | format_projs) %}
+        {{ p }}
+        {% if not loop.last %}<br />{% endif %}
+        {% endfor %}
+    </td>
+</tr>
+{% endif %}

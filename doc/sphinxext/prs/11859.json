@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "193e41093e8f9c888c1d56abbc86267200c15e53",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".circleci/config.yml": {
+      "a": 65,
+      "d": 9
+    },
+    ".cirrus.yml": {
+      "a": 0,
+      "d": 44
+    },
+    "azure-pipelines.yml": {
+      "a": 11,
+      "d": 10
+    },
+    "requirements.txt": {
+      "a": 1,
+      "d": 1
+    },
+    "tools/cirrus_dependencies.sh": {
+      "a": 0,
+      "d": 5
+    },
+    "tools/cirrus_install_python.sh": {
+      "a": 0,
+      "d": 6
+    },
+    "tools/get_testing_version.sh": {
+      "a": 2,
+      "d": 0
+    }
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "25d565466a31e9d834b0bb6b8962022adcc2c983",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/visualization/plot_parcellation.py": {
+      "a": 7,
+      "d": 0
+    },
+    "mne/datasets/tests/test_datasets.py": {
+      "a": 3,
+      "d": 6
+    },
+    "mne/datasets/utils.py": {
+      "a": 119,
+      "d": 17
+    },
+    "mne/label.py": {
+      "a": 6,
+      "d": 9
+    }
+  }
+}

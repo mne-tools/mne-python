@@ -1,9 +1,8 @@
 """CTF constants."""
 
-# Authors: Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
-#          Eric Larson <larsoner@uw.edu>
-#
-# License: BSD (3-clause)
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from ...utils import BunchConst
 
@@ -36,4 +35,4 @@ CTF.FUNNY_POS = 1844
 # read_write_data.c
 CTF.HEADER_SIZE = 8
 CTF.BLOCK_SIZE = 2000
-CTF.SYSTEM_CLOCK_CH = 'SCLK01-177'
+CTF.SYSTEM_CLOCK_CH = "SCLK01-177"

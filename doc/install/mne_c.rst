@@ -1,13 +1,9 @@
-.. include:: ../links.inc
+:orphan:
 
 .. _install_mne_c:
 
 Installing MNE-C
 ================
-
-.. contents::
-   :local:
-   :depth: 1
 
 System requirements
 ^^^^^^^^^^^^^^^^^^^
@@ -163,12 +159,13 @@ effect or you need a faster graphics adapter.
 Troubleshooting MNE-C installation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-If MNE-C can't find ``libxp.so.6``, download libxp6 from ubuntu_ or debian_ and
-install with ``dpkg`` or similar:
+If MNE-C can't find ``libxp.so.6``, you will need to get the package from the original
+author (https://launchpad.net/%7Ezeehio/+archive/ubuntu/libxp) to install it:
 
 .. code-block:: console
 
-    $ sudo dpkg -i libxp6_1.0.2-1ubuntu1_amd64.deb
+    $ sudo add-apt-repository ppa:zeehio/libxp
+    $ sudo apt install libxp6
 
 If MNE-C can't find ``libgfortran.so.1``, you can probably safely link that
 filename to the current version of libfortran that came with your system. On
@@ -179,8 +176,8 @@ a typical 64-bit Ubuntu-like system this would be accomplished by:
     $ cd /usr/lib/x86_64-linux-gnu
     $ sudo ln -s libgfortran.so.1 $(find . -maxdepth 1 -type f -name libgfortran.so*)
 
-If you encounter other errors installing MNE-C, please send a message to the
-`MNE mailing list`_.
+If you encounter other errors installing MNE-C, please post a message to the
+`MNE Forum`_.
 
 .. links
 
@@ -189,7 +186,6 @@ If you encounter other errors installing MNE-C, please send a message to the
 .. _netpbm: http://netpbm.sourceforge.net/
 .. _MacPorts: https://www.macports.org/
 .. _Homebrew: https://brew.sh/
-.. _XCode developer tools: http://appstore.com/mac/apple/xcode
+.. _XCode developer tools: https://developer.apple.com/xcode/
 .. _xquartz: https://www.xquartz.org/
-.. _ubuntu: https://packages.ubuntu.com/search?keywords=libxp6
-.. _debian: https://packages.debian.org/search?keywords=libxp6
+.. _debian: https://packages.debian.org/jessie/amd64/libxp6/download

@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "36eaa1c9aca28efce74df449140e932177cf37f4",
+  "authors": [
+    {
+      "n": "Stefan Repplinger",
+      "e": "stefan.repplinger@posteo.net"
+    }
+  ],
+  "changes": {
+    ".gitignore": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/latest.inc": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/time_frequency/tests/test_tfr.py": {
+      "a": 8,
+      "d": 0
+    },
+    "mne/viz/utils.py": {
+      "a": 17,
+      "d": 0
+    }
+  }
+}

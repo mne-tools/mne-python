@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "37aeb75b61fd3f67257edfa2be0058a4bf9370ee",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/fiff/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/fiff/constants.py": {
+      "a": 170,
+      "d": 7
+    },
+    "mne/fiff/matrix.py": {
+      "a": 17,
+      "d": 8
+    },
+    "mne/fiff/open.py": {
+      "a": 94,
+      "d": 2
+    },
+    "mne/tests/test_utils.py": {
+      "a": 18,
+      "d": 7
+    }
+  }
+}

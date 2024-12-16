@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "9d5a4a5f87ffa7ed0e1a659ae89f76b724ff51ee",
+  "authors": [
+    {
+      "n": "Joan Massich",
+      "e": "mailsik@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/io/brainvision/brainvision.py": {
+      "a": 16,
+      "d": 21
+    }
+  }
+}

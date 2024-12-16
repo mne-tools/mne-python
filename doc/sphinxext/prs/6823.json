@@ -1,0 +1,119 @@
+{
+  "merge_commit_sha": "8a4cef803db165e2f8a00ad0f304ab60a79bc6f3",
+  "authors": [
+    {
+      "n": "Joan Massich",
+      "e": "mailsik@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/0.13.inc": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/changes/0.14.inc": {
+      "a": 6,
+      "d": 6
+    },
+    "doc/changes/0.15.inc": {
+      "a": 6,
+      "d": 6
+    },
+    "doc/changes/0.17.inc": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/changes/0.19.inc": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/conf.py": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/python_reference.rst": {
+      "a": 0,
+      "d": 3
+    },
+    "mne/channels/__init__.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/channels/_dig_montage_utils.py": {
+      "a": 4,
+      "d": 102
+    },
+    "mne/channels/channels.py": {
+      "a": 3,
+      "d": 13
+    },
+    "mne/channels/montage.py": {
+      "a": 76,
+      "d": 975
+    },
+    "mne/channels/tests/test_montage.py": {
+      "a": 52,
+      "d": 650
+    },
+    "mne/channels/tests/test_standard_montage.py": {
+      "a": 3,
+      "d": 9
+    },
+    "mne/io/brainvision/brainvision.py": {
+      "a": 11,
+      "d": 17
+    },
+    "mne/io/cnt/cnt.py": {
+      "a": 13,
+      "d": 23
+    },
+    "mne/io/edf/edf.py": {
+      "a": 10,
+      "d": 22
+    },
+    "mne/io/eeglab/eeglab.py": {
+      "a": 11,
+      "d": 34
+    },
+    "mne/io/eeglab/tests/test_eeglab.py": {
+      "a": 5,
+      "d": 8
+    },
+    "mne/io/egi/egi.py": {
+      "a": 5,
+      "d": 8
+    },
+    "mne/io/egi/egimff.py": {
+      "a": 4,
+      "d": 7
+    },
+    "mne/io/meas_info.py": {
+      "a": 6,
+      "d": 18
+    },
+    "mne/io/nicolet/nicolet.py": {
+      "a": 3,
+      "d": 11
+    },
+    "mne/io/tests/test_meas_info.py": {
+      "a": 0,
+      "d": 5
+    },
+    "mne/utils/docs.py": {
+      "a": 7,
+      "d": 0
+    },
+    "mne/viz/montage.py": {
+      "a": 12,
+      "d": 31
+    },
+    "mne/viz/tests/test_montage.py": {
+      "a": 10,
+      "d": 6
+    },
+    "tutorials/intro/plot_40_sensor_locations.py": {
+      "a": 3,
+      "d": 3
+    }
+  }
+}

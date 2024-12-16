@@ -1,0 +1,64 @@
+digraph gitstructure {
+    /* LAYOUT CONTROL */
+    rankdir=UD
+    newrank=true
+    ranksep=0.75
+    clusterrank=local
+    labelloc=t
+    pad=0.1
+
+    /* GLOBAL TITLE */
+    label="Schematic of recommended setup"
+
+    /* GLOBAL STYLES */
+    splines=true
+    fontsize=20
+    fontname="Source Sans Pro"
+
+    node [shape=box
+          style=filled
+          fontsize=12
+          fontname="Source Sans Pro"
+          fillcolor="#bbbbbb"
+          margin="0.35,0.1"]
+
+    edge [arrowsize=1.2
+          penwidth=2.5
+          fontsize=16
+          fontname="Source Code Pro"]
+
+    /* REMOTES */
+    subgraph cluster_0 {
+        label=<<B>REMOTES<BR/> </B>>
+        color="#33bbee"
+        fontcolor="#33bbee"
+        fontsize=18
+        style=dashed
+        penwidth=1.5
+
+        upstream [label=<<FONT POINT-SIZE="16">Official version (“upstream”)</FONT><BR ALIGN="LEFT"/>https://github.com/mne-tools/mne-python>]
+
+        yourfork [label=<<FONT POINT-SIZE="16">Your fork (“origin”)</FONT><BR ALIGN="LEFT"/>https://github.com/your_github_username/mne-python>]
+
+    }
+
+    /* LOCAL */
+    yourclone [label=<<FONT POINT-SIZE="16">Your local clone</FONT><BR ALIGN="LEFT"/>/somewhere/on/your/computer/mne-python/>]
+
+    /* edges */
+    upstream -> yourfork [label="1. “fork” button on \l upstream's GitHub page"
+                          color="#ee7733"
+                          fontcolor="#ee7733"
+                          fontname="Source Sans Pro"]
+
+    yourfork -> yourclone [label="2. git clone ... \l"
+                           color="#00998855"
+                           fontcolor="#009988"]
+
+    yourclone -> upstream [label="3. git remote add ... \r"
+                           color="#ee337755"
+                           fontcolor="#ee3377"]
+
+    /* align "remote" boxes */
+    { rank="same" upstream yourfork }
+}

@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "490e39b726a6bdc0a1ebb44b425229b049a1f342",
+  "authors": [
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/epochs.py": {
+      "a": 120,
+      "d": 4
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 61,
+      "d": 1
+    }
+  }
+}

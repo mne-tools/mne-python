@@ -1,0 +1,59 @@
+{
+  "merge_commit_sha": "d4a1ce5d8a7f5db605543f09d29ccdd1ec92676f",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "monkeyman192",
+      "e": "monkey_man_192@yahoo.com.au"
+    },
+    {
+      "n": "monkeyman192",
+      "e": "monkey_man_192@yahoo.com.au"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 4,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 5,
+      "d": 1
+    },
+    "doc/python_reference.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/chpi.py": {
+      "a": 89,
+      "d": 5
+    },
+    "mne/datasets/utils.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/kit/constants.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/kit/coreg.py": {
+      "a": 18,
+      "d": 9
+    },
+    "mne/io/kit/kit.py": {
+      "a": 13,
+      "d": 7
+    },
+    "mne/tests/test_chpi.py": {
+      "a": 40,
+      "d": 15
+    },
+    "mne/viz/_3d.py": {
+      "a": 0,
+      "d": 1
+    }
+  }
+}

@@ -1,22 +1,35 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
-# License: Simplified BSD
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import numpy as np
-from scipy import linalg
 
+from ..fixes import _safe_svd
 from ..forward import is_fixed_orient
-
-from ..minimum_norm.inverse import _check_reference
+from ..minimum_norm.inverse import _check_reference, _log_exp_var
 from ..utils import logger, verbose, warn
-from .mxne_inverse import (_make_sparse_stc, _prepare_gain,
-                           _reapply_source_weighting, _compute_residual,
-                           _make_dipoles_sparse)
+from .mxne_inverse import (
+    _check_ori,
+    _compute_residual,
+    _make_dipoles_sparse,
+    _make_sparse_stc,
+    _prepare_gain,
+    _reapply_source_weighting,
+)
 
 
 @verbose
-def _gamma_map_opt(M, G, alpha, maxit=10000, tol=1e-6, update_mode=1,
-                   group_size=1, gammas=None, verbose=None):
+def _gamma_map_opt(
+    M,
+    G,
+    alpha,
+    maxit=10000,
+    tol=1e-6,
+    update_mode=1,
+    group_size=1,
+    gammas=None,
+    verbose=None,
+):
     """Hierarchical Bayes (Gamma-MAP).
 
     Parameters
@@ -51,7 +64,7 @@ def _gamma_map_opt(M, G, alpha, maxit=10000, tol=1e-6, update_mode=1,
     M = M.copy()
 
     if gammas is None:
-        gammas = np.ones(G.shape[1], dtype=np.float)
+        gammas = np.ones(G.shape[1], dtype=np.float64)
 
     eps = np.finfo(float).eps
 
@@ -59,15 +72,16 @@ def _gamma_map_opt(M, G, alpha, maxit=10000, tol=1e-6, update_mode=1,
     n_sensors, n_times = M.shape
 
     # apply normalization so the numerical values are sane
-    M_normalize_constant = linalg.norm(np.dot(M, M.T), ord='fro')
+    M_normalize_constant = np.linalg.norm(np.dot(M, M.T), ord="fro")
     M /= np.sqrt(M_normalize_constant)
     alpha /= M_normalize_constant
-    G_normalize_constant = linalg.norm(G, ord=np.inf)
+    G_normalize_constant = np.linalg.norm(G, ord=np.inf)
     G /= G_normalize_constant
 
     if n_sources % group_size != 0:
-        raise ValueError('Number of sources has to be evenly dividable by the '
-                         'group size')
+        raise ValueError(
+            "Number of sources has to be evenly dividable by the group size"
+        )
 
     n_active = n_sources
     active_set = np.arange(n_sources)
@@ -85,7 +99,7 @@ def _gamma_map_opt(M, G, alpha, maxit=10000, tol=1e-6, update_mode=1,
     for itno in range(maxit):
         gammas[np.isnan(gammas)] = 0.0
 
-        gidx = (np.abs(gammas) > eps)
+        gidx = np.abs(gammas) > eps
         active_set = active_set[gidx]
         gammas = gammas[gidx]
 
@@ -95,9 +109,9 @@ def _gamma_map_opt(M, G, alpha, maxit=10000, tol=1e-6, update_mode=1,
             G = G[:, gidx]
 
         CM = np.dot(G * gammas[np.newaxis, :], G.T)
-        CM.flat[::n_sensors + 1] += alpha
+        CM.flat[:: n_sensors + 1] += alpha
         # Invert CM keeping symmetry
-        U, S, V = linalg.svd(CM, full_matrices=False)
+        U, S, _ = _safe_svd(CM, full_matrices=False)
         S = S[np.newaxis, :]
         del CM
         CMinv = np.dot(U / (S + eps), U.T)
@@ -106,21 +120,20 @@ def _gamma_map_opt(M, G, alpha, maxit=10000, tol=1e-6, update_mode=1,
 
         if update_mode == 1:
             # MacKay fixed point update (10) in [1]
-            numer = gammas ** 2 * np.mean((A * A.conj()).real, axis=1)
+            numer = gammas**2 * np.mean((A * A.conj()).real, axis=1)
             denom = gammas * np.sum(G * CMinvG, axis=0)
         elif update_mode == 2:
             # modified MacKay fixed point update (11) in [1]
             numer = gammas * np.sqrt(np.mean((A * A.conj()).real, axis=1))
             denom = np.sum(G * CMinvG, axis=0)  # sqrt is applied below
         else:
-            raise ValueError('Invalid value for update_mode')
+            raise ValueError("Invalid value for update_mode")
 
         if group_size == 1:
             if denom is None:
                 gammas = numer
             else:
-                gammas = numer / np.maximum(denom_fun(denom),
-                                            np.finfo('float').eps)
+                gammas = numer / np.maximum(denom_fun(denom), np.finfo("float").eps)
         else:
             numer_comb = np.sum(numer.reshape(-1, group_size), axis=1)
             if denom is None:
@@ -132,27 +145,30 @@ def _gamma_map_opt(M, G, alpha, maxit=10000, tol=1e-6, update_mode=1,
             gammas = np.repeat(gammas_comb / group_size, group_size)
 
         # compute convergence criterion
-        gammas_full = np.zeros(n_sources, dtype=np.float)
+        gammas_full = np.zeros(n_sources, dtype=np.float64)
         gammas_full[active_set] = gammas
 
-        err = (np.sum(np.abs(gammas_full - gammas_full_old)) /
-               np.sum(np.abs(gammas_full_old)))
+        err = np.sum(np.abs(gammas_full - gammas_full_old)) / np.sum(
+            np.abs(gammas_full_old)
+        )
 
         gammas_full_old = gammas_full
 
-        breaking = (err < tol or n_active == 0)
+        breaking = err < tol or n_active == 0
         if len(gammas) != last_size or breaking:
-            logger.info('Iteration: %d\t active set size: %d\t convergence: '
-                        '%0.3e' % (itno, len(gammas), err))
+            logger.info(
+                f"Iteration: {itno}\t active set size: {len(gammas)}\t convergence: "
+                f"{err:.3e}"
+            )
             last_size = len(gammas)
 
         if breaking:
             break
 
     if itno < maxit - 1:
-        logger.info('\nConvergence reached !\n')
+        logger.info("\nConvergence reached !\n")
     else:
-        warn('\nConvergence NOT reached !\n')
+        warn("\nConvergence NOT reached !\n")
 
     # undo normalization and compute final posterior mean
     n_const = np.sqrt(M_normalize_constant) / G_normalize_constant
@@ -162,16 +178,31 @@ def _gamma_map_opt(M, G, alpha, maxit=10000, tol=1e-6, update_mode=1,
 
 
 @verbose
-def gamma_map(evoked, forward, noise_cov, alpha, loose="auto", depth=0.8,
-              xyz_same_gamma=True, maxit=10000, tol=1e-6, update_mode=1,
-              gammas=None, pca=True, return_residual=False,
-              return_as_dipoles=False, rank=None, verbose=None):
+def gamma_map(
+    evoked,
+    forward,
+    noise_cov,
+    alpha,
+    loose="auto",
+    depth=0.8,
+    xyz_same_gamma=True,
+    maxit=10000,
+    tol=1e-6,
+    update_mode=1,
+    gammas=None,
+    pca=True,
+    return_residual=False,
+    return_as_dipoles=False,
+    rank=None,
+    pick_ori=None,
+    verbose=None,
+):
     """Hierarchical Bayes (Gamma-MAP) sparse source localization method.
 
     Models each source time course using a zero-mean Gaussian prior with an
     unknown variance (gamma) parameter. During estimation, most gammas are
     driven to zero, resulting in a sparse source estimate, as in
-    [1]_ and [2]_.
+    :footcite:`WipfEtAl2007` and :footcite:`WipfNagarajan2009`.
 
     For fixed-orientation forward operators, a separate gamma is used for each
     source time course, while for free-orientation forward operators, the same
@@ -188,13 +219,7 @@ def gamma_map(evoked, forward, noise_cov, alpha, loose="auto", depth=0.8,
         Noise covariance to compute whitener.
     alpha : float
         Regularization parameter (noise variance).
-    loose : float in [0, 1] | 'auto'
-        Value that weights the source variances of the dipole components
-        that are parallel (tangential) to the cortical surface. If loose
-        is 0 then the solution is computed with fixed orientation.
-        If loose is 1, it corresponds to free orientations.
-        The default value ('auto') is set to 0.2 for surface-oriented source
-        space and set to 1.0 for volumic or discrete source space.
+    %(loose)s
     %(depth)s
     xyz_same_gamma : bool
         Use same gamma for xyz current components at each source space point.
@@ -214,9 +239,10 @@ def gamma_map(evoked, forward, noise_cov, alpha, loose="auto", depth=0.8,
         If True, the residual is returned as an Evoked instance.
     return_as_dipoles : bool
         If True, the sources are returned as a list of Dipole instances.
-    %(rank_None)s
+    %(rank_none)s
 
         .. versionadded:: 0.18
+    %(pick_ori)s
     %(verbose)s
 
     Returns
@@ -229,74 +255,85 @@ def gamma_map(evoked, forward, noise_cov, alpha, loose="auto", depth=0.8,
 
     References
     ----------
-    .. [1] Wipf et al. Analysis of Empirical Bayesian Methods for
-           Neuroelectromagnetic Source Localization, Advances in Neural
-           Information Process. Systems (2007)
-
-    .. [2] D. Wipf, S. Nagarajan
-           "A unified Bayesian framework for MEG/EEG source imaging",
-           Neuroimage, Volume 44, Number 3, pp. 947-966, Feb. 2009.
-           DOI: 10.1016/j.neuroimage.2008.02.059
+    .. footbibliography::
     """
     _check_reference(evoked)
 
     forward, gain, gain_info, whitener, source_weighting, mask = _prepare_gain(
-        forward, evoked.info, noise_cov, pca, depth, loose, rank)
+        forward, evoked.info, noise_cov, pca, depth, loose, rank
+    )
+    _check_ori(pick_ori, forward)
 
     group_size = 1 if (is_fixed_orient(forward) or not xyz_same_gamma) else 3
 
     # get the data
-    sel = [evoked.ch_names.index(name) for name in gain_info['ch_names']]
+    sel = [evoked.ch_names.index(name) for name in gain_info["ch_names"]]
     M = evoked.data[sel]
 
     # whiten the data
-    logger.info('Whitening data matrix.')
+    logger.info("Whitening data matrix.")
     M = np.dot(whitener, M)
 
     # run the optimization
-    X, active_set = _gamma_map_opt(M, gain, alpha, maxit=maxit, tol=tol,
-                                   update_mode=update_mode, gammas=gammas,
-                                   group_size=group_size, verbose=verbose)
+    X, active_set = _gamma_map_opt(
+        M,
+        gain,
+        alpha,
+        maxit=maxit,
+        tol=tol,
+        update_mode=update_mode,
+        gammas=gammas,
+        group_size=group_size,
+        verbose=verbose,
+    )
 
     if len(active_set) == 0:
         raise Exception("No active dipoles found. alpha is too big.")
 
-    # Compute estimated whitened sensor data
-    M_estimated = np.dot(gain[:, active_set], X)
+    M_estimate = gain[:, active_set] @ X
 
     # Reapply weights to have correct unit
     X = _reapply_source_weighting(X, source_weighting, active_set)
 
     if return_residual:
-        residual = _compute_residual(forward, evoked, X, active_set,
-                                     gain_info)
+        residual = _compute_residual(forward, evoked, X, active_set, gain_info)
 
     if group_size == 1 and not is_fixed_orient(forward):
         # make sure each source has 3 components
-        active_src = np.unique(active_set // 3)
-        in_pos = 0
+        idx, offset = divmod(active_set, 3)
+        active_src = np.unique(idx)
         if len(X) < 3 * len(active_src):
-            X_xyz = np.zeros((3 * len(active_src), X.shape[1]), dtype=X.dtype)
-            for ii in range(len(active_src)):
-                for jj in range(3):
-                    if in_pos >= len(active_set):
-                        break
-                    if (active_set[in_pos] + jj) % 3 == 0:
-                        X_xyz[3 * ii + jj] = X[in_pos]
-                        in_pos += 1
+            X_xyz = np.zeros((len(active_src), 3, X.shape[1]), dtype=X.dtype)
+            idx = np.searchsorted(active_src, idx)
+            X_xyz[idx, offset, :] = X
+            X_xyz.shape = (len(active_src) * 3, X.shape[1])
             X = X_xyz
+        active_set = (active_src[:, np.newaxis] * 3 + np.arange(3)).ravel()
+    source_weighting[source_weighting == 0] = 1  # zeros
+    gain_active = gain[:, active_set] / source_weighting[active_set]
+    del source_weighting
 
     tmin = evoked.times[0]
-    tstep = 1.0 / evoked.info['sfreq']
+    tstep = 1.0 / evoked.info["sfreq"]
 
     if return_as_dipoles:
-        out = _make_dipoles_sparse(X, active_set, forward, tmin, tstep, M,
-                                   M_estimated, active_is_idx=True)
+        out = _make_dipoles_sparse(
+            X, active_set, forward, tmin, tstep, M, gain_active, active_is_idx=True
+        )
     else:
-        out = _make_sparse_stc(X, active_set, forward, tmin, tstep,
-                               active_is_idx=True, verbose=verbose)
+        out = _make_sparse_stc(
+            X,
+            active_set,
+            forward,
+            tmin,
+            tstep,
+            active_is_idx=True,
+            pick_ori=pick_ori,
+            verbose=verbose,
+        )
 
-    logger.info('[done]')
+    _log_exp_var(M, M_estimate, prefix="")
+    logger.info("[done]")
 
     if return_residual:
         out = out, residual

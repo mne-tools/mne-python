@@ -1,0 +1,115 @@
+{
+  "merge_commit_sha": "5f17b357bbd549626d92c73f82daede8751bb711",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "MANIFEST.in": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/overview/datasets_index.rst": {
+      "a": 6,
+      "d": 0
+    },
+    "doc/python_reference.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/references.bib": {
+      "a": 33,
+      "d": 1
+    },
+    "mne/datasets/__init__.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/datasets/_fsaverage/base.py": {
+      "a": 13,
+      "d": 24
+    },
+    "mne/datasets/_infant/ANTS1-0Months3T.txt": {
+      "a": 117,
+      "d": 0
+    },
+    "mne/datasets/_infant/ANTS10-5Months3T.txt": {
+      "a": 115,
+      "d": 0
+    },
+    "mne/datasets/_infant/ANTS12-0Months3T.txt": {
+      "a": 121,
+      "d": 0
+    },
+    "mne/datasets/_infant/ANTS15-0Months3T.txt": {
+      "a": 121,
+      "d": 0
+    },
+    "mne/datasets/_infant/ANTS18-0Months3T.txt": {
+      "a": 121,
+      "d": 0
+    },
+    "mne/datasets/_infant/ANTS2-0Weeks3T.txt": {
+      "a": 117,
+      "d": 0
+    },
+    "mne/datasets/_infant/ANTS2-0Years3T.txt": {
+      "a": 121,
+      "d": 0
+    },
+    "mne/datasets/_infant/ANTS3-0Months3T.txt": {
+      "a": 121,
+      "d": 0
+    },
+    "mne/datasets/_infant/ANTS4-5Months3T.txt": {
+      "a": 121,
+      "d": 0
+    },
+    "mne/datasets/_infant/ANTS6-0Months3T.txt": {
+      "a": 121,
+      "d": 0
+    },
+    "mne/datasets/_infant/ANTS7-5Months3T.txt": {
+      "a": 121,
+      "d": 0
+    },
+    "mne/datasets/_infant/ANTS9-0Months3T.txt": {
+      "a": 121,
+      "d": 0
+    },
+    "mne/datasets/_infant/base.py": {
+      "a": 94,
+      "d": 0
+    },
+    "mne/datasets/tests/test_datasets.py": {
+      "a": 18,
+      "d": 1
+    },
+    "mne/datasets/utils.py": {
+      "a": 4,
+      "d": 2
+    },
+    "setup.py": {
+      "a": 2,
+      "d": 0
+    },
+    "tutorials/source-modeling/plot_eeg_no_mri.py": {
+      "a": 65,
+      "d": 2
+    }
+  }
+}

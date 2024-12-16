@@ -1,11 +1,12 @@
-# Authors: Denis Engemann <denis.engemann@gmail.com>
-# License: BSD (3-clause)
-
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import numpy as np
+from scipy.stats import zscore
 
 
-def find_outliers(X, threshold=3.0, max_iter=2):
+def _find_outliers(X, threshold=3.0, max_iter=2, tail=0):
     """Find outliers based on iterated Z-scoring.
 
     This procedure compares the absolute z-score against the threshold.
@@ -20,17 +21,26 @@ def find_outliers(X, threshold=3.0, max_iter=2):
         The value above which a feature is classified as outlier.
     max_iter : int
         The maximum number of iterations.
+    tail : {0, 1, -1}
+        Whether to search for outliers on both extremes of the z-scores (0),
+        or on just the positive (1) or negative (-1) side.
 
     Returns
     -------
     bad_idx : np.ndarray of int, shape (n_features)
         The outlier indices.
     """
-    from scipy.stats import zscore
-    my_mask = np.zeros(len(X), dtype=np.bool)
+    my_mask = np.zeros(len(X), dtype=bool)
     for _ in range(max_iter):
         X = np.ma.masked_array(X, my_mask)
-        this_z = np.abs(zscore(X))
+        if tail == 0:
+            this_z = np.abs(zscore(X))
+        elif tail == 1:
+            this_z = zscore(X)
+        elif tail == -1:
+            this_z = -zscore(X)
+        else:
+            raise ValueError(f"Tail parameter {tail} not recognised.")
         local_bad = this_z > threshold
         my_mask = np.max([my_mask, local_bad], 0)
         if not np.any(local_bad):

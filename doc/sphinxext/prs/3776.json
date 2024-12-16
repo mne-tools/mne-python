@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "bc3627ed4e60f7b19bfda0d6736e7ccb0515e905",
+  "authors": [
+    {
+      "n": "Chris Holdgraf",
+      "e": null
+    }
+  ],
+  "changes": {
+    "examples/visualization/plot_channel_epochs_image.py": {
+      "a": 5,
+      "d": 1
+    },
+    "mne/viz/epochs.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

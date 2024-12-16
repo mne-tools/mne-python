@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "aa6ad2f6e6d946425ad53ca4b3bb3f8e14080a1d",
+  "authors": [
+    {
+      "n": "Alex Rockhill",
+      "e": "aprockhill@mailbox.org"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "paper.md": {
+      "a": 7,
+      "d": 5
+    }
+  }
+}

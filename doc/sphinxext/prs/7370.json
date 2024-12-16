@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "914f1ee2fb38e8e76fa0c8c7ce88b53fe68dca54",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/bem.py": {
+      "a": 3,
+      "d": 4
+    },
+    "mne/commands/tests/test_commands.py": {
+      "a": 11,
+      "d": 10
+    },
+    "mne/conftest.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/tests/test_scalp_coupling_index.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/utils/check.py": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/utils/tests/test_check.py": {
+      "a": 20,
+      "d": 3
+    }
+  }
+}

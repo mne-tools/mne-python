@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "e3fc2b11cfa517304113443a427879db1f53746b",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/viz/epochs.py": {
+      "a": 16,
+      "d": 16
+    },
+    "mne/viz/evoked.py": {
+      "a": 10,
+      "d": 10
+    },
+    "mne/viz/ica.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/viz/raw.py": {
+      "a": 5,
+      "d": 4
+    }
+  }
+}

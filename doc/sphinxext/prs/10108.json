@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "f0abc4c332b265355f39ec230539e037d23cd752",
+  "authors": [
+    {
+      "n": "Mathieu Scheltienne",
+      "e": "mathieu.scheltienne@fcbg.ch"
+    }
+  ],
+  "changes": {
+    "server_environment.yml": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

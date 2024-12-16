@@ -1,0 +1,63 @@
+{
+  "merge_commit_sha": "debc275b795ea4cf4da72a74ee586c82b2e154fc",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/epochs.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/io/bti/read.py": {
+      "a": 9,
+      "d": 3
+    },
+    "mne/io/ctf/res4.py": {
+      "a": 16,
+      "d": 1
+    },
+    "mne/io/edf/edf.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/io/egi/egi.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/io/egi/egimff.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/nihon/nihon.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/io/nsx/nsx.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/realign.py": {
+      "a": 7,
+      "d": 6
+    },
+    "mne/report/tests/test_report.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/surface.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tools/azure_dependencies.sh": {
+      "a": 2,
+      "d": 1
+    },
+    "tools/github_actions_dependencies.sh": {
+      "a": 9,
+      "d": 2
+    }
+  }
+}

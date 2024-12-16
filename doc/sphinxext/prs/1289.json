@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "af31e0beb5b9108306c0f366c928607603e2c071",
+  "authors": [
+    {
+      "n": "marmaduke woodman",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/io/array/array.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/array/tests/test_array.py": {
+      "a": 5,
+      "d": 0
+    }
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "7e197c79a1314cf6293f6429aa932bbb7ef7378c",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/12846.bugfix.rst": {
+      "a": 2,
+      "d": 1
+    },
+    "doc/changes/names.inc": {
+      "a": 3,
+      "d": 3
+    },
+    "doc/conf.py": {
+      "a": 4,
+      "d": 0
+    },
+    "doc/references.bib": {
+      "a": 1,
+      "d": 1
+    },
+    "tools/circleci_dependencies.sh": {
+      "a": 3,
+      "d": 2
+    },
+    "tutorials/clinical/30_ecog.py": {
+      "a": 2,
+      "d": 3
+    }
+  }
+}

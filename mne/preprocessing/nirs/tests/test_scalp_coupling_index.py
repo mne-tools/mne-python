@@ -1,0 +1,78 @@
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
+
+import numpy as np
+import pytest
+from numpy.testing import assert_allclose, assert_array_less
+
+from mne.datasets import testing
+from mne.datasets.testing import data_path
+from mne.io import read_raw_nirx
+from mne.preprocessing.nirs import (
+    beer_lambert_law,
+    optical_density,
+    scalp_coupling_index,
+)
+
+fname_nirx_15_0 = (
+    data_path(download=False) / "NIRx" / "nirscout" / "nirx_15_0_recording"
+)
+fname_nirx_15_2 = (
+    data_path(download=False) / "NIRx" / "nirscout" / "nirx_15_2_recording"
+)
+fname_nirx_15_2_short = (
+    data_path(download=False) / "NIRx" / "nirscout" / "nirx_15_2_recording_w_short"
+)
+
+
+@testing.requires_testing_data
+@pytest.mark.parametrize(
+    "fname", ([fname_nirx_15_2_short, fname_nirx_15_2, fname_nirx_15_0])
+)
+@pytest.mark.parametrize("fmt", ("nirx", "fif"))
+def test_scalp_coupling_index(fname, fmt, tmp_path):
+    """Test converting NIRX files."""
+    assert fmt in ("nirx", "fif")
+    raw = read_raw_nirx(fname)
+    with pytest.raises(RuntimeError, match="Scalp"):
+        scalp_coupling_index(raw)
+
+    raw = optical_density(raw)
+    sci = scalp_coupling_index(raw)
+
+    # All values should be between -1 and +1
+    assert_array_less(sci, 1.0)
+    assert_array_less(sci * -1.0, 1.0)
+
+    # Fill in some data with known correlation values
+    rng = np.random.RandomState(0)
+    new_data = rng.rand(raw._data[0].shape[0])
+    # Set first two channels to perfect correlation
+    raw._data[0] = new_data
+    raw._data[1] = new_data
+    # Set next two channels to perfect correlation
+    raw._data[2] = new_data
+    raw._data[3] = new_data * 0.3  # check scale invariance
+    # Set next two channels to anti correlation
+    raw._data[4] = new_data
+    raw._data[5] = new_data * -1.0
+    # Set next two channels to be uncorrelated
+    raw._data[6] = new_data
+    raw._data[7] = rng.rand(raw._data[0].shape[0])
+    # Set next channel to have zero std
+    raw._data[8] = 0.0
+    raw._data[9] = 1.0
+    raw._data[10] = 2.0
+    raw._data[11] = 3.0
+    # Check values
+    sci = scalp_coupling_index(raw)
+    assert_allclose(sci[0:6], [1, 1, 1, 1, -1, -1], atol=0.01)
+    assert np.abs(sci[6]) < 0.5
+    assert np.abs(sci[7]) < 0.5
+    assert_allclose(sci[8:12], 0, atol=1e-10)
+
+    # Ensure function errors if wrong type is passed in
+    raw = beer_lambert_law(raw, ppf=6)
+    with pytest.raises(RuntimeError, match="Scalp"):
+        scalp_coupling_index(raw)

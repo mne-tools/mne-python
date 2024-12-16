@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "52a3ca01a66fd78c750f5bc62b756bbb06a62538",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "circle.yml": {
+      "a": 36,
+      "d": 11
+    },
+    "mne/surface.py": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/tests/test_bem.py": {
+      "a": 1,
+      "d": 2
+    },
+    "tutorials/plot_background_filtering.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/plot_visualize_raw.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

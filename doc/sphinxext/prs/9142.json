@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "f09dfb38010e1d0bfbb251409ae53730b5787014",
+  "authors": [
+    {
+      "n": "Ana Radanovic",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/stats/parametric.py": {
+      "a": 3,
+      "d": 5
+    }
+  }
+}

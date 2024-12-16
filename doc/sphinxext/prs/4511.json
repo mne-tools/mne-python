@@ -1,0 +1,231 @@
+{
+  "merge_commit_sha": "e5498454977ec9208011c48146dfac6fc9d84ca9",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/visualization/plot_channel_epochs_image.py": {
+      "a": 2,
+      "d": 4
+    },
+    "examples/visualization/plot_evoked_whitening.py": {
+      "a": 1,
+      "d": 2
+    },
+    "examples/visualization/plot_topo_compare_conditions.py": {
+      "a": 1,
+      "d": 9
+    },
+    "mne/beamformer/_rap_music.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/channels/channels.py": {
+      "a": 33,
+      "d": 21
+    },
+    "mne/channels/layout.py": {
+      "a": 16,
+      "d": 18
+    },
+    "mne/cov.py": {
+      "a": 7,
+      "d": 15
+    },
+    "mne/decoding/ems.py": {
+      "a": 4,
+      "d": 6
+    },
+    "mne/decoding/transformer.py": {
+      "a": 5,
+      "d": 6
+    },
+    "mne/epochs.py": {
+      "a": 14,
+      "d": 26
+    },
+    "mne/evoked.py": {
+      "a": 5,
+      "d": 5
+    },
+    "mne/filter.py": {
+      "a": 17,
+      "d": 34
+    },
+    "mne/io/base.py": {
+      "a": 22,
+      "d": 72
+    },
+    "mne/io/fiff/tests/test_raw_fiff.py": {
+      "a": 6,
+      "d": 7
+    },
+    "mne/io/meas_info.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/io/pick.py": {
+      "a": 161,
+      "d": 18
+    },
+    "mne/io/tests/test_meas_info.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/tests/test_pick.py": {
+      "a": 66,
+      "d": 1
+    },
+    "mne/preprocessing/ecg.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/preprocessing/eog.py": {
+      "a": 1,
+      "d": 3
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 32,
+      "d": 51
+    },
+    "mne/preprocessing/otp.py": {
+      "a": 3,
+      "d": 6
+    },
+    "mne/preprocessing/tests/test_ica.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/realtime/epochs.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/realtime/fieldtrip_client.py": {
+      "a": 6,
+      "d": 12
+    },
+    "mne/realtime/mockclient.py": {
+      "a": 9,
+      "d": 6
+    },
+    "mne/stats/regression.py": {
+      "a": 5,
+      "d": 7
+    },
+    "mne/time_frequency/ar.py": {
+      "a": 3,
+      "d": 5
+    },
+    "mne/time_frequency/csd.py": {
+      "a": 7,
+      "d": 16
+    },
+    "mne/time_frequency/psd.py": {
+      "a": 4,
+      "d": 9
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 33,
+      "d": 40
+    },
+    "mne/utils/__init__.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/utils/check.py": {
+      "a": 0,
+      "d": 17
+    },
+    "mne/utils/docs.py": {
+      "a": 23,
+      "d": 0
+    },
+    "mne/utils/tests/test_check.py": {
+      "a": 1,
+      "d": 17
+    },
+    "mne/viz/epochs.py": {
+      "a": 14,
+      "d": 18
+    },
+    "mne/viz/evoked.py": {
+      "a": 27,
+      "d": 28
+    },
+    "mne/viz/ica.py": {
+      "a": 20,
+      "d": 29
+    },
+    "mne/viz/raw.py": {
+      "a": 6,
+      "d": 5
+    },
+    "mne/viz/tests/test_epochs.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/tests/test_evoked.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/viz/tests/test_ica.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/topomap.py": {
+      "a": 17,
+      "d": 20
+    },
+    "tutorials/plot_artifacts_correction_filtering.py": {
+      "a": 3,
+      "d": 6
+    },
+    "tutorials/plot_artifacts_correction_ica.py": {
+      "a": 2,
+      "d": 5
+    },
+    "tutorials/plot_artifacts_correction_maxwell_filtering.py": {
+      "a": 2,
+      "d": 3
+    },
+    "tutorials/plot_artifacts_correction_rejection.py": {
+      "a": 1,
+      "d": 3
+    },
+    "tutorials/plot_brainstorm_auditory.py": {
+      "a": 5,
+      "d": 10
+    },
+    "tutorials/plot_compute_covariance.py": {
+      "a": 5,
+      "d": 7
+    },
+    "tutorials/plot_epoching_and_averaging.py": {
+      "a": 2,
+      "d": 3
+    },
+    "tutorials/plot_introduction.py": {
+      "a": 6,
+      "d": 6
+    },
+    "tutorials/plot_mne_dspm_source_localization.py": {
+      "a": 3,
+      "d": 5
+    },
+    "tutorials/plot_sensors_decoding.py": {
+      "a": 1,
+      "d": 3
+    },
+    "tutorials/plot_visualize_evoked.py": {
+      "a": 6,
+      "d": 5
+    }
+  }
+}

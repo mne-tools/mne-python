@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "a96f0e0a62219b63868904e3330f1202e20cf67b",
+  "authors": [
+    {
+      "n": "Jeyhte Key",
+      "e": "jeythekey@tutanota.com"
+    }
+  ],
+  "changes": {
+    "mne/time_frequency/psd.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

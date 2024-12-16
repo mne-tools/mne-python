@@ -1,0 +1,50 @@
+<table class="table mne-repr-table">
+    <tr>
+        <th>Data type</th>
+        <td>{{ spectrum._data_type }}</td>
+    </tr>
+    {%- for unit in units %}
+    <tr>
+        {%- if loop.index == 1 %}
+        <th rowspan={{ units | length }}>Units</th>
+        {%- endif %}
+        <td class="justify">{{ unit }}</td>
+    </tr>
+    {%- endfor %}
+    <tr>
+        <th>Data source</th>
+        <td>{{ inst_type }}</td>
+    </tr>
+    {%- if inst_type == "Epochs" %}
+    <tr>
+        <th>Number of epochs</th>
+        <td>{{ spectrum.shape[0] }}</td>
+    </tr>
+    {% endif -%}
+    <tr>
+        <th>Dims</th>
+        <td>{{ spectrum._dims | join(", ") }}</td>
+    </tr>
+    <tr>
+        <th>Estimation method</th>
+        <td>{{ spectrum.method }}</td>
+    </tr>
+    {% if "taper" in spectrum._dims %}
+    <tr>
+        <th>Number of tapers</th>
+        <td>{{ spectrum._mt_weights.size }}</td>
+    </tr>
+    {% endif %}
+    <tr>
+        <th>Number of channels</th>
+        <td>{{ spectrum.ch_names|length }}</td>
+    </tr>
+    <tr>
+        <th>Number of frequency bins</th>
+        <td>{{ spectrum.freqs|length }}</td>
+    </tr>
+    <tr>
+        <th>Frequency range</th>
+        <td>{{ '%.2f'|format(spectrum.freqs[0]) }} – {{ '%.2f'|format(spectrum.freqs[-1]) }} Hz</td>
+    </tr>
+</table>

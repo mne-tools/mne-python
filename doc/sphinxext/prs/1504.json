@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "77881eceb89b343be62167f848aefc13b63663a8",
+  "authors": [
+    {
+      "n": "Christian Brodbeck",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/label.py": {
+      "a": 66,
+      "d": 54
+    },
+    "mne/tests/test_label.py": {
+      "a": 48,
+      "d": 2
+    }
+  }
+}

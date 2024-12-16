@@ -1,4 +1,7 @@
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
+
 """MNE sample dataset."""
 
-from .sample import (data_path, has_sample_data, get_version,
-                     requires_sample_data)
+from .sample import data_path, get_version

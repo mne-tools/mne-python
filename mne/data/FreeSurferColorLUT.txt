@@ -173,7 +173,7 @@
 169 Left-Basal-Ganglia                      236 13  127 0
 176 Right-Basal-Ganglia                     236 13  126 0
 
-# Label names and colors for Brainstem consituents
+# Label names and colors for Brainstem constituents
 # No.  Label Name:                          R   G   B   A
 170 brainstem                               119 159 176 0
 171 DCG                                     119 0   176 0
@@ -416,14 +416,14 @@
 # created by mri_aparc2aseg in which the aseg cortex label is replaced
 # by the labels in the aparc. It also supports wm labels that will
 # eventually be created by mri_aparc2aseg. Otherwise, the aseg labels
-# do not change from above. The cortical lables are the same as in
+# do not change from above. The cortical labels are the same as in
 # colortable_desikan_killiany.txt, except that left hemisphere has
 # 1000 added to the index and the right has 2000 added.  The label
 # names are also prepended with ctx-lh or ctx-rh. The white matter
 # labels are the same as in colortable_desikan_killiany.txt, except
 # that left hemisphere has 3000 added to the index and the right has
 # 4000 added. The label names are also prepended with wm-lh or wm-rh.
-# Centrum semiovale is also labled with 5001 (left) and 5002 (right).
+# Centrum semiovale is also labeled with 5001 (left) and 5002 (right).
 # Even further below are the color tables for aparc.a2005s and aparc.a2009s.
 
 #No.    Label Name:                         R   G   B   A

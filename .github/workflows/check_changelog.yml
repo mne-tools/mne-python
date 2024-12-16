@@ -1,0 +1,16 @@
+name: Changelog
+
+on:  # yamllint disable-line rule:truthy
+  pull_request:
+    types: [opened, synchronize, labeled, unlabeled]
+    branches: ["main"]
+
+jobs:
+  changelog_checker:
+    name: Check towncrier entry in doc/changes/devel/
+    runs-on: ubuntu-latest
+    steps:
+      - uses: scientific-python/action-towncrier-changelog@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BOT_USERNAME: changelog-bot

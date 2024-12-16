@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "cffc01240a9cebbf8122904799d07d502ef1bded",
+  "authors": [
+    {
+      "n": "Christian Brodbeck",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/fiff/tests/test_evoked.py": {
+      "a": 10,
+      "d": 0
+    },
+    "mne/fiff/tests/test_raw.py": {
+      "a": 10,
+      "d": 1
+    },
+    "mne/minimum_norm/tests/test_inverse.py": {
+      "a": 19,
+      "d": 9
+    },
+    "mne/source_space.py": {
+      "a": 7,
+      "d": 0
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 10,
+      "d": 0
+    },
+    "mne/time_frequency/tests/test_multitaper.py": {
+      "a": 10,
+      "d": 1
+    }
+  }
+}

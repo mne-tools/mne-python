@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "ff48beee8f9da3493fc99c41c81e9baeb053f516",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "requirements.txt": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/evoked/20_visualize_evoked.py": {
+      "a": 0,
+      "d": 1
+    }
+  }
+}

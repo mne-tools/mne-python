@@ -1,4 +1,5 @@
 :orphan:
+
 .. _dig-formats:
 
 Supported formats for digitized 3D locations
@@ -32,7 +33,7 @@ EGI                .xml              :func:`mne.channels.read_dig_egi`
 
 MNE-C              .hpts             :func:`mne.channels.read_dig_hpts`
 
-Brain Products     .bvct             :func:`mne.channels.read_dig_captrack`
+Brain Products     .bvct             :func:`mne.channels.read_dig_captrak`
 
 Compumedics        .dat              :func:`mne.channels.read_dig_dat`
 =================  ================  ==============================================

@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "ec28281c54a9b4c7ce74c0a58a09ced1a5e580f8",
+  "authors": [
+    {
+      "n": "enzo",
+      "e": null
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/proj.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/tests/test_proj.py": {
+      "a": 0,
+      "d": 24
+    },
+    "mne/tests/test_proj.py": {
+      "a": 27,
+      "d": 1
+    }
+  }
+}

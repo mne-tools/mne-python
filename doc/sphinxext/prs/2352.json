@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "0b60da7036b68f5467a45646df1366d16edcde0d",
+  "authors": [
+    {
+      "n": "Romain Trachel",
+      "e": "trachelr@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/decoding/plot_decoding_csp_space.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/cov.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/decoding/csp.py": {
+      "a": 7,
+      "d": 2
+    },
+    "mne/decoding/tests/test_csp.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/tests/test_xdawn.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/xdawn.py": {
+      "a": 7,
+      "d": 2
+    }
+  }
+}

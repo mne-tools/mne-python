@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "80e4910831d7eec822786314daccd43bdd558b87",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/viz/tests/test_topomap.py": {
+      "a": 4,
+      "d": 3
+    },
+    "mne/viz/topomap.py": {
+      "a": 7,
+      "d": 5
+    },
+    "mne/viz/utils.py": {
+      "a": 6,
+      "d": 6
+    }
+  }
+}

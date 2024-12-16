@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "5a1feece8cccc5bb36c2ab91675d19377d0cfdf9",
+  "authors": [
+    {
+      "n": "Denis A. Engemann",
+      "e": null
+    }
+  ],
+  "changes": {
+    ".travis.yml": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/source/python_reference.rst": {
+      "a": 10,
+      "d": 1
+    },
+    "doc/source/whats_new.rst": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/fiff/egi/__init__.py": {
+      "a": 5,
+      "d": 0
+    },
+    "mne/fiff/egi/egi.py": {
+      "a": 273,
+      "d": 0
+    },
+    "mne/fiff/egi/tests/__init__.py": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/fiff/egi/tests/data/test_egi.raw": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/fiff/egi/tests/test_egi.py": {
+      "a": 60,
+      "d": 0
+    },
+    "setup.py": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

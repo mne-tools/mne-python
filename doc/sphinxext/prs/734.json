@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "df97a0c35a9959c3641c7f0bfcb5e7ea7854c8be",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "bin/mne_make_scalp_surfaces.py": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/source/whats_new.rst": {
+      "a": 3,
+      "d": 6
+    },
+    "examples/plot_decimate_head_surface.py": {
+      "a": 9,
+      "d": 10
+    },
+    "mne/surface.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/tests/test_surface.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

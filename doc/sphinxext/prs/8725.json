@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "8808612e787773118fcc3a0e5b8b321da0e35c8a",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/report.py": {
+      "a": 79,
+      "d": 61
+    },
+    "mne/viz/_brain/mplcanvas.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/backends/_pysurfer_mayavi.py": {
+      "a": 2,
+      "d": 6
+    },
+    "mne/viz/misc.py": {
+      "a": 13,
+      "d": 8
+    },
+    "mne/viz/tests/test_topomap.py": {
+      "a": 2,
+      "d": 5
+    },
+    "mne/viz/utils.py": {
+      "a": 17,
+      "d": 0
+    },
+    "tutorials/misc/plot_report.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

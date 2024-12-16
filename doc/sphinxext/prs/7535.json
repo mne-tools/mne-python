@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "fdd0752de4c4ebbd34c520d5b6ace2806c27fbf0",
+  "authors": [
+    {
+      "n": "Rob Luke",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/nirs/_scalp_coupling_index.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

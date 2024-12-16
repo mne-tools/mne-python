@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "56c917bc2d234e147d3548295450dcd6f42708cb",
+  "authors": [
+    {
+      "n": "Martin Luessi",
+      "e": null
+    }
+  ],
+  "changes": {
+    "examples/connectivity/plot_mne_inverse_psi_visual.py": {
+      "a": 115,
+      "d": 0
+    },
+    "mne/connectivity/__init__.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/connectivity/effective.py": {
+      "a": 164,
+      "d": 0
+    },
+    "mne/connectivity/spectral.py": {
+      "a": 131,
+      "d": 54
+    },
+    "mne/connectivity/tests/test_effective.py": {
+      "a": 42,
+      "d": 0
+    },
+    "mne/connectivity/tests/test_spectral.py": {
+      "a": 12,
+      "d": 4
+    },
+    "mne/source_estimate.py": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

@@ -1,31 +1,29 @@
-# Author: Denis Engemann <denis.engemann@gmail.com>
-#         Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#         Jean-Remi King <jeanremi.king@gmail.com>
-#
-# License: BSD (3-clause)
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from collections import Counter
 
 import numpy as np
+from sklearn.base import BaseEstimator, TransformerMixin
 
-from .mixin import TransformerMixin, EstimatorMixin
-from .base import _set_cv
-from ..io.pick import _picks_to_idx
+from .._fiff.pick import _picks_to_idx, pick_info, pick_types
 from ..parallel import parallel_func
 from ..utils import logger, verbose
-from .. import pick_types, pick_info
+from .base import _set_cv
 
 
-class EMS(TransformerMixin, EstimatorMixin):
+class EMS(TransformerMixin, BaseEstimator):
     """Transformer to compute event-matched spatial filters.
 
-    This version of EMS [1]_ operates on the entire time course. No time
+    This version of EMS :footcite:`SchurgerEtAl2013` operates on the entire
+    time course. No time
     window needs to be specified. The result is a spatial filter at each
     time point and a corresponding time course. Intuitively, the result
     gives the similarity between the filter at each time point and the
     data vector (sensors) at that time point.
 
-    .. note : EMS only works for binary classification.
+    .. note:: EMS only works for binary classification.
 
     Attributes
     ----------
@@ -36,17 +34,17 @@ class EMS(TransformerMixin, EstimatorMixin):
 
     References
     ----------
-    .. [1] Aaron Schurger, Sebastien Marti, and Stanislas Dehaene, "Reducing
-           multi-sensor data to a single time course that reveals experimental
-           effects", BMC Neuroscience 2013, 14:122
+    .. footbibliography::
     """
 
     def __repr__(self):  # noqa: D105
-        if hasattr(self, 'filters_'):
-            return '<EMS: fitted with %i filters on %i classes.>' % (
-                len(self.filters_), len(self.classes_))
+        if hasattr(self, "filters_"):
+            return (
+                f"<EMS: fitted with {len(self.filters_)} filters "
+                f"on {len(self.classes_)} classes.>"
+            )
         else:
-            return '<EMS: not fitted.>'
+            return "<EMS: not fitted.>"
 
     def fit(self, X, y):
         """Fit the spatial filters.
@@ -68,7 +66,7 @@ class EMS(TransformerMixin, EstimatorMixin):
         """
         classes = np.unique(y)
         if len(classes) != 2:
-            raise ValueError('EMS only works for binary classification.')
+            raise ValueError("EMS only works for binary classification.")
         self.classes_ = classes
         filters = X[y == classes[0]].mean(0) - X[y == classes[1]].mean(0)
         filters /= np.linalg.norm(filters, axis=0)[None, :]
@@ -93,11 +91,13 @@ class EMS(TransformerMixin, EstimatorMixin):
 
 
 @verbose
-def compute_ems(epochs, conditions=None, picks=None, n_jobs=1, cv=None,
-                verbose=None):
+def compute_ems(
+    epochs, conditions=None, picks=None, n_jobs=None, cv=None, verbose=None
+):
     """Compute event-matched spatial filter on epochs.
 
-    This version of EMS [1]_ operates on the entire time course. No time
+    This version of EMS :footcite:`SchurgerEtAl2013` operates on the entire
+    time course. No time
     window needs to be specified. The result is a spatial filter at each
     time point and a corresponding time course. Intuitively, the result
     gives the similarity between the filter at each time point and the
@@ -139,20 +139,20 @@ def compute_ems(epochs, conditions=None, picks=None, n_jobs=1, cv=None,
 
     References
     ----------
-    .. [1] Aaron Schurger, Sebastien Marti, and Stanislas Dehaene, "Reducing
-           multi-sensor data to a single time course that reveals experimental
-           effects", BMC Neuroscience 2013, 14:122
+    .. footbibliography::
     """
-    logger.info('...computing surrogate time series. This can take some time')
+    logger.info("...computing surrogate time series. This can take some time")
 
     # Default to leave-one-out cv
-    cv = 'LeaveOneOut' if cv is None else cv
+    cv = "LeaveOneOut" if cv is None else cv
     picks = _picks_to_idx(epochs.info, picks)
 
     if not len(set(Counter(epochs.events[:, 2]).values())) == 1:
-        raise ValueError('The same number of epochs is required by '
-                         'this function. Please consider '
-                         '`epochs.equalize_event_counts`')
+        raise ValueError(
+            "The same number of epochs is required by "
+            "this function. Please consider "
+            "`epochs.equalize_event_counts`"
+        )
 
     if conditions is None:
         conditions = epochs.event_id.keys()
@@ -163,9 +163,10 @@ def compute_ems(epochs, conditions=None, picks=None, n_jobs=1, cv=None,
     epochs.drop_bad()
 
     if len(conditions) != 2:
-        raise ValueError('Currently this function expects exactly 2 '
-                         'conditions but you gave me %i' %
-                         len(conditions))
+        raise ValueError(
+            "Currently this function expects exactly 2 "
+            f"conditions but you gave me {len(conditions)}"
+        )
 
     ev = epochs.events[:, 2]
     # Special care to avoid path dependent mappings and orders
@@ -177,10 +178,10 @@ def compute_ems(epochs, conditions=None, picks=None, n_jobs=1, cv=None,
 
     # Scale (z-score) the data by channel type
     # XXX the z-scoring is applied outside the CV, which is not standard.
-    for ch_type in ['mag', 'grad', 'eeg']:
+    for ch_type in ["mag", "grad", "eeg"]:
         if ch_type in epochs:
             # FIXME should be applied to all sort of data channels
-            if ch_type == 'eeg':
+            if ch_type == "eeg":
                 this_picks = pick_types(info, meg=False, eeg=True)
             else:
                 this_picks = pick_types(info, meg=ch_type, eeg=False)
@@ -189,15 +190,16 @@ def compute_ems(epochs, conditions=None, picks=None, n_jobs=1, cv=None,
     # Setup cross-validation. Need to use _set_cv to deal with sklearn
     # deprecation of cv objects.
     y = epochs.events[:, 2]
-    _, cv_splits = _set_cv(cv, 'classifier', X=y, y=y)
+    _, cv_splits = _set_cv(cv, "classifier", X=y, y=y)
 
-    parallel, p_func, _ = parallel_func(_run_ems, n_jobs=n_jobs)
+    parallel, p_func, n_jobs = parallel_func(_run_ems, n_jobs=n_jobs)
     # FIXME this parallelization should be removed.
     #   1) it's numpy computation so it's already efficient,
     #   2) it duplicates the data in RAM,
     #   3) the computation is already super fast.
-    out = parallel(p_func(_ems_diff, data, cond_idx, train, test)
-                   for train, test in cv_splits)
+    out = parallel(
+        p_func(_ems_diff, data, cond_idx, train, test) for train, test in cv_splits
+    )
 
     surrogate_trials, spatial_filter = zip(*out)
     surrogate_trials = np.array(surrogate_trials)
@@ -214,6 +216,6 @@ def _ems_diff(data0, data1):
 def _run_ems(objective_function, data, cond_idx, train, test):
     """Run EMS."""
     d = objective_function(*(data[np.intersect1d(c, train)] for c in cond_idx))
-    d /= np.sqrt(np.sum(d ** 2, axis=0))[None, :]
+    d /= np.sqrt(np.sum(d**2, axis=0))[None, :]
     # compute surrogates
     return np.sum(data[test[0]] * d, axis=0), d

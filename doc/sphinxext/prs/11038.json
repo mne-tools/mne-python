@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "7d80664de0ebefcee5532864565bb49cfae27cc2",
+  "authors": [
+    {
+      "n": "Alex Rockhill",
+      "e": "aprockhill@mailbox.org"
+    }
+  ],
+  "changes": {
+    "mne/time_frequency/csd.py": {
+      "a": 26,
+      "d": 6
+    },
+    "mne/time_frequency/tests/test_csd.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

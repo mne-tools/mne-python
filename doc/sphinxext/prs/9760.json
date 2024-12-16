@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "05382cf02d49a5f8fbaf6030979e9ebb9d126608",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/export/_edf.py": {
+      "a": 142,
+      "d": 134
+    },
+    "tools/azure_dependencies.sh": {
+      "a": 0,
+      "d": 1
+    },
+    "tools/github_actions_dependencies.sh": {
+      "a": 0,
+      "d": 2
+    }
+  }
+}

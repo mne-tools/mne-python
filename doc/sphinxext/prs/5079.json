@@ -1,0 +1,83 @@
+{
+  "merge_commit_sha": "dba99f19e24ed3e59f72bb8eaff6174c104568ca",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/manual/cookbook.rst": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/whats_new.rst": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/filter.py": {
+      "a": 8,
+      "d": 4
+    },
+    "mne/io/base.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/viz/epochs.py": {
+      "a": 3,
+      "d": 5
+    },
+    "mne/viz/evoked.py": {
+      "a": 7,
+      "d": 15
+    },
+    "mne/viz/ica.py": {
+      "a": 12,
+      "d": 21
+    },
+    "mne/viz/misc.py": {
+      "a": 20,
+      "d": 23
+    },
+    "mne/viz/raw.py": {
+      "a": 2,
+      "d": 5
+    },
+    "mne/viz/topo.py": {
+      "a": 2,
+      "d": 3
+    },
+    "tutorials/plot_artifacts_correction_filtering.py": {
+      "a": 2,
+      "d": 3
+    },
+    "tutorials/plot_artifacts_correction_ica.py": {
+      "a": 2,
+      "d": 5
+    },
+    "tutorials/plot_artifacts_correction_rejection.py": {
+      "a": 2,
+      "d": 3
+    },
+    "tutorials/plot_artifacts_correction_ssp.py": {
+      "a": 0,
+      "d": 3
+    },
+    "tutorials/plot_artifacts_detection.py": {
+      "a": 11,
+      "d": 10
+    },
+    "tutorials/plot_background_filtering.py": {
+      "a": 5,
+      "d": 4
+    },
+    "tutorials/plot_visualize_raw.py": {
+      "a": 0,
+      "d": 2
+    },
+    "tutorials/plot_whitened.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

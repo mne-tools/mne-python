@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "8fa5aa57947274a4bda7de3381ae898037aac504",
+  "authors": [
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/viz/_brain/tests/test.ipynb": {
+      "a": 27,
+      "d": 5
+    },
+    "mne/viz/backends/_notebook.py": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

@@ -1,0 +1,91 @@
+{
+  "merge_commit_sha": "daa29715cf3e4447eb3267db5a6be28aebfeb890",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/channels/tests/test_interpolation.py": {
+      "a": 10,
+      "d": 11
+    },
+    "mne/cov.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/epochs.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/forward/_compute_forward.py": {
+      "a": 27,
+      "d": 20
+    },
+    "mne/forward/tests/test_make_forward.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/io/array/tests/test_array.py": {
+      "a": 13,
+      "d": 10
+    },
+    "mne/io/meas_info.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/open.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/io/pick.py": {
+      "a": 5,
+      "d": 0
+    },
+    "mne/io/tag.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/tests/test_pick.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/surface.py": {
+      "a": 27,
+      "d": 33
+    },
+    "mne/tests/test_coreg.py": {
+      "a": 12,
+      "d": 4
+    },
+    "mne/tests/test_source_estimate.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/tests/test_surface.py": {
+      "a": 4,
+      "d": 1
+    },
+    "mne/viz/_3d.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/evoked.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/tests/test_evoked.py": {
+      "a": 67,
+      "d": 64
+    },
+    "mne/viz/tests/test_topo.py": {
+      "a": 8,
+      "d": 0
+    },
+    "requirements.txt": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

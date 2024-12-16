@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "f1e2927d7d894935860676927d3993bce488fa8f",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/beamformer/_compute_beamformer.py": {
+      "a": 63,
+      "d": 71
+    }
+  }
+}

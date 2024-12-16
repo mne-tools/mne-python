@@ -1,0 +1,95 @@
+{
+  "merge_commit_sha": "2a98e818567ddf0caf7b3e32d1c946f2c61a2727",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".travis.yml": {
+      "a": 14,
+      "d": 20
+    },
+    "doc/_static/copybutton.js": {
+      "a": 66,
+      "d": 0
+    },
+    "doc/_templates/layout.html": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/advanced_setup.rst": {
+      "a": 50,
+      "d": 7
+    },
+    "doc/conf.py": {
+      "a": 0,
+      "d": 8
+    },
+    "doc/configure_git.rst": {
+      "a": 24,
+      "d": 24
+    },
+    "doc/contributing.rst": {
+      "a": 5,
+      "d": 5
+    },
+    "doc/faq.rst": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/install_mne_c.rst": {
+      "a": 8,
+      "d": 8
+    },
+    "doc/install_mne_python.rst": {
+      "a": 49,
+      "d": 95
+    },
+    "doc/martinos.rst": {
+      "a": 3,
+      "d": 3
+    },
+    "doc/tutorials/report.rst": {
+      "a": 6,
+      "d": 6
+    },
+    "environment.yml": {
+      "a": 12,
+      "d": 4
+    },
+    "environment2.yml": {
+      "a": 38,
+      "d": 0
+    },
+    "mne/channels/channels.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/gui/_viewer.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/gui/tests/test_coreg_gui.py": {
+      "a": 12,
+      "d": 0
+    },
+    "mne/gui/tests/test_kit2fiff_gui.py": {
+      "a": 10,
+      "d": 5
+    },
+    "mne/gui/tests/test_marker_gui.py": {
+      "a": 9,
+      "d": 0
+    },
+    "mne/tests/test_line_endings.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/viz/_3d.py": {
+      "a": 2,
+      "d": 0
+    }
+  }
+}

@@ -1,0 +1,63 @@
+{
+  "merge_commit_sha": "be56457160097ba8826e2a0c8e66c5b4073bea05",
+  "authors": [
+    {
+      "n": "Alex Rockhill",
+      "e": "aprockhill@mailbox.org"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 3,
+      "d": 1
+    },
+    "examples/preprocessing/eeg_bridging.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/visualization/evoked_topomap.py": {
+      "a": 29,
+      "d": 0
+    },
+    "mne/cov.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/decoding/csp.py": {
+      "a": 5,
+      "d": 8
+    },
+    "mne/defaults.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/evoked.py": {
+      "a": 12,
+      "d": 8
+    },
+    "mne/io/proj.py": {
+      "a": 11,
+      "d": 7
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 5,
+      "d": 4
+    },
+    "mne/utils/docs.py": {
+      "a": 5,
+      "d": 5
+    },
+    "mne/viz/tests/test_ica.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/viz/tests/test_topomap.py": {
+      "a": 7,
+      "d": 3
+    },
+    "mne/viz/topomap.py": {
+      "a": 64,
+      "d": 41
+    }
+  }
+}

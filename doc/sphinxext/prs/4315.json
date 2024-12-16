@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "a22466f326cdc0724b5dbd4ae5e85005193eef14",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/decoding/plot_receptive_field.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/decoding/receptive_field.py": {
+      "a": 158,
+      "d": 81
+    },
+    "mne/decoding/tests/test_receptive_field.py": {
+      "a": 70,
+      "d": 31
+    },
+    "tutorials/plot_receptive_field.py": {
+      "a": 6,
+      "d": 4
+    }
+  }
+}

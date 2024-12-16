@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "ef42e43c1583b1e50fbafaba65bcb1b9918abaf2",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/preprocessing/stim.py": {
+      "a": 8,
+      "d": 4
+    },
+    "mne/preprocessing/tests/test_stim.py": {
+      "a": 10,
+      "d": 5
+    }
+  }
+}

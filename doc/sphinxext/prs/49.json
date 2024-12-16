@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "a26c197ea96739d8fe4345bc700623d447b83e4b",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "doc/source/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/plot_estimate_covariance_matrix_baseline.py": {
+      "a": 55,
+      "d": 0
+    },
+    "examples/plot_estimate_covariance_matrix_raw.py": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/cov.py": {
+      "a": 14,
+      "d": 2
+    },
+    "mne/tests/test_cov.py": {
+      "a": 18,
+      "d": 12
+    }
+  }
+}

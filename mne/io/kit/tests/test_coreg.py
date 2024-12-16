@@ -1,45 +1,35 @@
-# Authors: Christian Brodbeck <christianbrodbeck@nyu.edu>
-#
-# License: BSD (3-clause)
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
-import inspect
-import os
-import pickle
+from pathlib import Path
 
+import numpy as np
 import pytest
 from numpy.testing import assert_array_equal
 
 from mne.io.kit import read_mrk
-from mne.io._digitization import _write_dig_points
-from mne.utils import _TempDir
+
+mrk_fname = Path(__file__).parent / "data" / "test_mrk.sqd"
 
 
-FILE = inspect.getfile(inspect.currentframe())
-parent_dir = os.path.dirname(os.path.abspath(FILE))
-data_dir = os.path.join(parent_dir, 'data')
-mrk_fname = os.path.join(data_dir, 'test_mrk.sqd')
-
-
-def test_io_mrk():
+def test_io_mrk(tmp_path):
     """Test IO for mrk files."""
-    tempdir = _TempDir()
     pts = read_mrk(mrk_fname)
 
     # txt
-    path = os.path.join(tempdir, 'mrk.txt')
-    _write_dig_points(path, pts)
+    path = tmp_path / "mrk.txt"
+    with open(path, "wb") as fid:
+        fid.write(b"%% %d 3D points, x y z per line\n" % len(pts))
+        np.savetxt(fid, pts, delimiter="\t", newline="\n")
+
     pts_2 = read_mrk(path)
     assert_array_equal(pts, pts_2, "read/write mrk to text")
 
-    # pickle
-    fname = os.path.join(tempdir, 'mrk.pickled')
-    with open(fname, 'wb') as fid:
-        pickle.dump(dict(mrk=pts), fid)
-    pts_2 = read_mrk(fname)
-    assert_array_equal(pts_2, pts, "pickle mrk")
-    with open(fname, 'wb') as fid:
-        pickle.dump(dict(), fid)
-    pytest.raises(ValueError, read_mrk, fname)
-
     # unsupported extension
-    pytest.raises(ValueError, read_mrk, "file.ext")
+    fname = tmp_path / "file.ext"
+    with pytest.raises(FileNotFoundError, match="does not exist"):
+        read_mrk(fname)
+    fname.write_text("")
+    with pytest.raises(ValueError, match="file extension"):
+        read_mrk(fname)

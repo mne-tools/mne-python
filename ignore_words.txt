@@ -1,9 +1,7 @@
-backed
 ons
 fro
 ang
 als
-buss
 dur
 sinc
 wan
@@ -12,14 +10,12 @@ iff
 numer
 uint
 # for tempita
-delimeters
-delimeter
 nd
 cas
 thes
 ba
+bu
 ist
-theses
 od
 fo
 files'
@@ -29,3 +25,19 @@ coo
 hist
 datas
 dof
+nwe
+sherif
+master
+nin
+trough
+recuse
+ro
+nam
+shs
+pres
+aas
+vor
+connec
+sme
+tim
+whitelists

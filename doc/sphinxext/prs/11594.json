@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "3d9af0fe6ecc0444932338ab083f06b194a5d9f3",
+  "authors": [
+    {
+      "n": "Dimitri Papadopoulos Orfanos",
+      "e": null
+    }
+  ],
+  "changes": {
+    ".github/config.yml": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

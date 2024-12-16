@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "3295ba7543d69abf4c740d4b1d3669649e894c2e",
+  "authors": [
+    {
+      "n": "Alexander Rudiuk",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/preprocessing/ecg.py": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/preprocessing/tests/test_ecg.py": {
+      "a": 7,
+      "d": 2
+    }
+  }
+}

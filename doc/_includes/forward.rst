@@ -7,10 +7,6 @@ This page covers the definitions of different coordinate systems employed in
 MNE software and FreeSurfer, the details of the computation of the forward
 solutions, and the associated low-level utilities.
 
-.. contents:: Page contents
-   :local:
-   :depth: 2
-
 .. NOTE: part of this file is included in doc/overview/implementation.rst.
    Changes here are reflected there. If you want to link to this content, link
    to :ref:`ch_forward` to link to that section of the implementation.rst page.
@@ -24,13 +20,14 @@ solutions, and the associated low-level utilities.
 MEG/EEG and MRI coordinate systems
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. sidebar:: Coordinate systems in MNE-Python
+.. note:: Coordinate systems in MNE-Python
+    :class: sidebar
 
-   In some MNE-Python objects (e.g., :class:`~mne.Forward`,
-   :class:`~mne.SourceSpaces`, etc), information about the coordinate frame is
-   encoded as a constant integer value. The meaning of those integers is
-   determined `in the source code
-   <https://github.com/mne-tools/mne-python/blob/master/mne/io/constants.py#L186-L197>`__.
+    In some MNE-Python objects (e.g., :class:`~mne.Forward`,
+    :class:`~mne.SourceSpaces`, etc), information about the coordinate frame is
+    encoded as a constant integer value. The meaning of those integers is
+    determined `in the source code
+    <https://github.com/mne-tools/mne-python/blob/079c868240a898204bf82b2f1bf0e04cdee75da1/mne/_fiff/constants.py#L263-L275>`__.
 
 The coordinate systems used in MNE software (and FreeSurfer) and their
 relationships are depicted in :ref:`coordinate_system_figure`. Except for the
@@ -40,7 +37,7 @@ to the right, the :math:`y` axis to the front, and the :math:`z` axis up.
 
 .. _coordinate_system_figure:
 
-.. figure:: ../_images/CoordinateSystems.png
+.. figure:: ../_static/CoordinateSystems.png
     :alt: MEG/EEG and MRI coordinate systems
 
     MEG/EEG and MRI coordinate systems
@@ -107,7 +104,7 @@ The coordinate systems related to MRI data are:
 **MNI Talairach coordinates**
 
     The definition of this coordinate system is discussed, e.g., in
-    http://imaging.mrc-cbu.cam.ac.uk/imaging/MniTalairach. This transformation
+    https://imaging.mrc-cbu.cam.ac.uk/imaging/MniTalairach. This transformation
     is determined during the FreeSurfer reconstruction process. These
     coordinates are in MNI305 space.
 
@@ -122,10 +119,10 @@ The coordinate systems related to MRI data are:
     Talairach brain. The differences are larger as you get further from the
     middle of the brain, towards the outside. The FreeSurfer Talairach
     coordinates mitigate this problem by additing a an additional
-    transformation, defined separately for negatice and positive MNI Talairach
+    transformation, defined separately for negative and positive MNI Talairach
     :math:`z` coordinates. These two transformations, denoted by :math:`T_-`
     and :math:`T_+` in :ref:`coordinate_system_figure`, are fixed as discussed in
-    http://imaging.mrc-cbu.cam.ac.uk/imaging/MniTalairach (*Approach 2*).
+    https://imaging.mrc-cbu.cam.ac.uk/imaging/MniTalairach (*Approach 2*).
 
 The different coordinate systems are related by coordinate transformations
 depicted in :ref:`coordinate_system_figure`. The arrows and coordinate
@@ -133,26 +130,26 @@ transformation symbols (:math:`T_x`) indicate the transformations actually
 present in the FreeSurfer files. Generally,
 
 .. math::    \begin{bmatrix}
-		x_2 \\
-		y_2 \\
-		z_2 \\
-		1
-	        \end{bmatrix} = T_{12} \begin{bmatrix}
-		x_1 \\
-		y_1 \\
-		z_1 \\
-		1
-	        \end{bmatrix} = \begin{bmatrix}
-		R_{11} & R_{12} & R_{13} & x_0 \\
-		R_{21} & R_{22} & R_{23} & y_0 \\
-		R_{31} & R_{32} & R_{33} & z_0 \\
-		0 & 0 & 0 & 1
-	        \end{bmatrix} \begin{bmatrix}
-		x_1 \\
-		y_1 \\
-		z_1 \\
-		1
-	        \end{bmatrix}\ ,
+        x_2 \\
+        y_2 \\
+        z_2 \\
+        1
+            \end{bmatrix} = T_{12} \begin{bmatrix}
+        x_1 \\
+        y_1 \\
+        z_1 \\
+        1
+            \end{bmatrix} = \begin{bmatrix}
+        R_{11} & R_{12} & R_{13} & x_0 \\
+        R_{21} & R_{22} & R_{23} & y_0 \\
+        R_{31} & R_{32} & R_{33} & z_0 \\
+        0 & 0 & 0 & 1
+            \end{bmatrix} \begin{bmatrix}
+        x_1 \\
+        y_1 \\
+        z_1 \\
+        1
+            \end{bmatrix}\ ,
 
 where :math:`x_k`, :math:`y_k`,and :math:`z_k` are the location coordinates in
 two coordinate systems, :math:`T_{12}` is the coordinate transformation from
@@ -164,20 +161,20 @@ files produced by FreeSurfer and MNE.
 The fixed transformations :math:`T_-` and :math:`T_+` are:
 
 .. math::    T_{-} = \begin{bmatrix}
-		0.99 & 0 & 0 & 0 \\
-		0 & 0.9688 & 0.042 & 0 \\
-		0 & -0.0485 & 0.839 & 0 \\
-		0 & 0 & 0 & 1
-	        \end{bmatrix}
+        0.99 & 0 & 0 & 0 \\
+        0 & 0.9688 & 0.042 & 0 \\
+        0 & -0.0485 & 0.839 & 0 \\
+        0 & 0 & 0 & 1
+            \end{bmatrix}
 
 and
 
 .. math::    T_{+} = \begin{bmatrix}
-		0.99 & 0 & 0 & 0 \\
-		0 & 0.9688 & 0.046 & 0 \\
-		0 & -0.0485 & 0.9189 & 0 \\
-		0 & 0 & 0 & 1
-	        \end{bmatrix}
+        0.99 & 0 & 0 & 0 \\
+        0 & 0.9688 & 0.046 & 0 \\
+        0 & -0.0485 & 0.9189 & 0 \\
+        0 & 0 & 0 & 1
+            \end{bmatrix}
 
 .. note::
    This section does not discuss the transformation between the MRI voxel
@@ -195,19 +192,19 @@ and
     | Transformation               | FreeSurfer                    | MNE                                             |
     +------------------------------+-------------------------------+-------------------------------------------------+
     | :math:`T_1`                  | Not present                   | | Measurement data files                        |
-    |                              |                               | | Forward solution files (`*fwd.fif`)           |
-    |                              |                               | | Inverse operator files (`*inv.fif`)           |
+    |                              |                               | | Forward solution files (``*fwd.fif``)         |
+    |                              |                               | | Inverse operator files (``*inv.fif``)         |
     +------------------------------+-------------------------------+-------------------------------------------------+
     | :math:`T_{s_1}\dots T_{s_n}` | Not present                   | Channel information in files                    |
     |                              |                               | containing :math:`T_1`.                         |
     +------------------------------+-------------------------------+-------------------------------------------------+
     | :math:`T_2`                  | Not present                   | | MRI description filesSeparate                 |
     |                              |                               | | Separate ``-trans.fif`` files                 |
-    |                              |                               | | from :ref:`gen_mne_coreg`                     |
+    |                              |                               | | from :ref:`mne coreg`                         |
     |                              |                               | | Forward solution files                        |
     |                              |                               | | Inverse operator files                        |
     +------------------------------+-------------------------------+-------------------------------------------------+
-    | :math:`T_3`                  | `mri/*mgz` files              | :class:`nibabel.freesurfer.mghformat.MGHImage`  |
+    | :math:`T_3`                  | ``mri/*mgz`` files            | :class:`nibabel.freesurfer.mghformat.MGHImage`  |
     +------------------------------+-------------------------------+-------------------------------------------------+
     | :math:`T_4`                  | mri/transforms/talairach.xfm  | Internal reading                                |
     +------------------------------+-------------------------------+-------------------------------------------------+
@@ -221,7 +218,7 @@ and
 The head and device coordinate systems
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. figure:: ../_images/HeadCS.png
+.. figure:: ../_static/HeadCS.png
     :alt: Head coordinate system
 
     The head coordinate system
@@ -355,11 +352,11 @@ coordinates (:math:`r_D`) by
 where
 
 .. math::    T = \begin{bmatrix}
-		e_x & 0 \\
-		e_y & 0 \\
-		e_z & 0 \\
-		r_{0D} & 1
-	        \end{bmatrix}\ .
+        e_x & 0 \\
+        e_y & 0 \\
+        e_z & 0 \\
+        r_{0D} & 1
+            \end{bmatrix}\ .
 
 Calculation of the magnetic field
 ---------------------------------
@@ -657,7 +654,7 @@ are rather far away from the brain sources, :func:`mne.make_forward_solution`
 takes them into account in the computations. If the data file has software
 gradient compensation activated, it computes the field of at the reference
 sensors in addition to the main MEG sensor array and computes a compensated
-forward solution`.
+forward solution.
 
 The EEG sphere model definition file
 ------------------------------------
@@ -687,18 +684,20 @@ as :func:`mne.fit_dipole`, :func:`mne.viz.plot_alignment` or
 EEG forward solution in the sphere model
 ----------------------------------------
 
-.. sidebar:: Sphere-model examples in MNE-Python
+.. note:: Sphere-model examples in MNE-Python
+    :class: sidebar
 
-   For examples of using the sphere model when computing the forward model
-   (using :func:`mne.make_forward_solution`), see :ref:`Brainstorm CTF phantom
-   dataset tutorial <plt_brainstorm_phantom_ctf_eeg_sphere_geometry>`,
-   :ref:`Brainstorm Elekta phantom dataset tutorial
-   <plt_brainstorm_phantom_elekta_eeg_sphere_geometry>`, and
-   :ref:`plot_source_alignment_without_mri`.
+    For examples of using the sphere model when computing the forward model
+    (using :func:`mne.make_forward_solution`), see :ref:`Brainstorm CTF phantom
+    dataset tutorial <plt_brainstorm_phantom_ctf_eeg_sphere_geometry>`,
+    :ref:`Brainstorm Elekta phantom dataset tutorial
+    <plt_brainstorm_phantom_elekta_eeg_sphere_geometry>`, and
+    :ref:`tut-source-alignment-without-mri`.
 
 When the sphere model is employed, the computation of the EEG solution can be
-substantially accelerated by using approximation methods described by Mosher,
-Zhang, and Berg, see :ref:`CEGEGDEI` (Mosher *et al.* and references therein).
+substantially accelerated by using approximation methods described by Mosher
+:footcite:`MosherEtAl1999`, Zhang :footcite:`Zhang1995`, and Berg
+:footcite:`BergScherg1994`.
 :func:`mne.make_forward_solution` approximates the solution with three dipoles
 in a homogeneous sphere whose locations and amplitudes are determined by
 minimizing the cost function:
@@ -723,3 +722,5 @@ this purpose, :func:`mne.average_forward_solutions` computes a weighted average
 of several forward solutions. The function averages both MEG and EEG forward
 solutions. Usually the EEG forward solution is identical across runs because
 the electrode locations do not change.
+
+.. target for :end-before: forward-end-content

@@ -1,0 +1,29 @@
+{%include '_js_and_css.html.jinja' %}
+
+{% set section = "Forward" %}
+{% set section_class_name = section | lower | append_uuid %}
+
+{# Collapse content during documentation build. #}
+{% if collapsed %}
+{% set collapsed_row_class = "mne-repr-collapsed" %}
+{% else %}
+{% set collapsed_row_class = "" %}
+{% endif %}
+
+<table class="table mne-repr-table">
+    {%include 'static/_section_header_row.html.jinja' %}
+    {% for channel_type, channels in (info | format_channels).items() %}
+        {% include 'static/_channels.html.jinja' %}
+    {% endfor %}
+
+    <tr class="repr-element {{ section_class_name }} {{ collapsed_row_class }}">
+        <td class="mne-repr-section-toggle"></td>
+        <td>Source space</td>
+        <td>{{ source_space_descr }}</td>
+    </tr>
+    <tr class="repr-element {{ section_class_name }} {{ collapsed_row_class }}">
+        <td class="mne-repr-section-toggle"></td>
+        <td>Source orientation</td>
+        <td>{{ source_orientation }}</td>
+    </tr>
+</table>

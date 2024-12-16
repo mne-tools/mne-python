@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "3426356b3ec34787c2ac478dff1302cabfe7df99",
+  "authors": [
+    {
+      "n": "ashdrew",
+      "e": "ashdrew@uw.edu"
+    }
+  ],
+  "changes": {
+    "examples/datasets/opm_data.py": {
+      "a": 6,
+      "d": 8
+    }
+  }
+}

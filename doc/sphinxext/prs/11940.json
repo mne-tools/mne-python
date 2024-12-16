@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "99acd07823dc7018a09ccc8f1fa58a9e7ab884c2",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/conf.py": {
+      "a": 10,
+      "d": 5
+    },
+    "tutorials/epochs/40_autogenerate_metadata.py": {
+      "a": 4,
+      "d": 1
+    },
+    "tutorials/epochs/50_epochs_to_data_frame.py": {
+      "a": 0,
+      "d": 1
+    }
+  }
+}

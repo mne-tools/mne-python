@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "bda07a6a73d3dd24a93bb5ddcc43b578b5f274b8",
+  "authors": [
+    {
+      "n": "Jona Sassenhagen",
+      "e": "jona.sassenhagen@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/viz/tests/test_ica.py": {
+      "a": 8,
+      "d": 5
+    },
+    "mne/viz/tests/test_topo.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/tests/test_topomap.py": {
+      "a": 47,
+      "d": 44
+    },
+    "mne/viz/topomap.py": {
+      "a": 6,
+      "d": 3
+    }
+  }
+}

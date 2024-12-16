@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "f83392c5420ddd13f0dc19d843525e89b1f7043d",
+  "authors": [
+    {
+      "n": "Matteo Visconti di Oleggio Castello",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/viz/decoding.py": {
+      "a": 3,
+      "d": 3
+    }
+  }
+}

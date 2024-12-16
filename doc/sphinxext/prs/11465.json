@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "3e69d028d242fa4f5504c9b6c2750dc8e37120bb",
+  "authors": [
+    {
+      "n": "HY Shin",
+      "e": null
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/viz/tests/test_raw.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/viz/utils.py": {
+      "a": 10,
+      "d": 7
+    }
+  }
+}

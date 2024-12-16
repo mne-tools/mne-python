@@ -1,9 +1,6 @@
-# Authors: Josef Pktd and example from H Raja and rewrite from Vincent Davis
-#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#
-# Code borrowed from statsmodels
-#
-# License: BSD (3-clause)
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import numpy as np
 
@@ -14,10 +11,10 @@ def _ecdf(x):
     return np.arange(1, nobs + 1) / float(nobs)
 
 
-def fdr_correction(pvals, alpha=0.05, method='indep'):
+def fdr_correction(pvals, alpha=0.05, method="indep"):
     """P-value correction with False Discovery Rate (FDR).
 
-    Correction for multiple comparison using FDR.
+    Correction for multiple comparison using FDR :footcite:`GenoveseEtAl2002`.
 
     This covers Benjamini/Hochberg for independent or positively correlated and
     Benjamini/Yekutieli for general or negatively correlated tests.
@@ -25,9 +22,9 @@ def fdr_correction(pvals, alpha=0.05, method='indep'):
     Parameters
     ----------
     pvals : array_like
-        set of p-values of the individual tests.
+        Set of p-values of the individual tests.
     alpha : float
-        error rate
+        Error rate.
     method : 'indep' | 'negcorr'
         If 'indep' it implements Benjamini/Hochberg for independent or if
         'negcorr' it corresponds to Benjamini/Yekutieli.
@@ -35,16 +32,13 @@ def fdr_correction(pvals, alpha=0.05, method='indep'):
     Returns
     -------
     reject : array, bool
-        True if a hypothesis is rejected, False if not
+        True if a hypothesis is rejected, False if not.
     pval_corrected : array
-        pvalues adjusted for multiple hypothesis testing to limit FDR
+        P-values adjusted for multiple hypothesis testing to limit FDR.
 
-    Notes
-    -----
-    Reference:
-    Genovese CR, Lazar NA, Nichols T.
-    Thresholding of statistical maps in functional neuroimaging using the false
-    discovery rate. Neuroimage. 2002 Apr;15(4):870-8.
+    References
+    ----------
+    .. footbibliography::
     """
     pvals = np.asarray(pvals)
     shape_init = pvals.shape
@@ -54,10 +48,10 @@ def fdr_correction(pvals, alpha=0.05, method='indep'):
     pvals_sorted = pvals[pvals_sortind]
     sortrevind = pvals_sortind.argsort()
 
-    if method in ['i', 'indep', 'p', 'poscorr']:
+    if method in ["i", "indep", "p", "poscorr"]:
         ecdffactor = _ecdf(pvals_sorted)
-    elif method in ['n', 'negcorr']:
-        cm = np.sum(1. / np.arange(1, len(pvals_sorted) + 1))
+    elif method in ["n", "negcorr"]:
+        cm = np.sum(1.0 / np.arange(1, len(pvals_sorted) + 1))
         ecdffactor = _ecdf(pvals_sorted) / cm
     else:
         raise ValueError("Method should be 'indep' and 'negcorr'")
@@ -83,19 +77,20 @@ def bonferroni_correction(pval, alpha=0.05):
     Parameters
     ----------
     pval : array_like
-        set of p-values of the individual tests.
+        Set of p-values of the individual tests.
     alpha : float
-        error rate
+        Error rate.
 
     Returns
     -------
     reject : array, bool
-        True if a hypothesis is rejected, False if not
+        True if a hypothesis is rejected, False if not.
     pval_corrected : array
-        pvalues adjusted for multiple hypothesis testing to limit FDR
-
+        P-values adjusted for multiple hypothesis testing to limit FDR.
     """
     pval = np.asarray(pval)
     pval_corrected = pval * float(pval.size)
+    # p-values must not be larger than 1.
+    pval_corrected = pval_corrected.clip(max=1.0)
     reject = pval_corrected < alpha
     return reject, pval_corrected
