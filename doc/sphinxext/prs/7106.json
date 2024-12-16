@@ -1,0 +1,67 @@
+{
+  "merge_commit_sha": "fedd892e3cfd2e4243061187e164bf10aafe9ffc",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/glossary.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/overview/matlab.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "ignore_words.txt": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/chpi.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/commands/mne_bti2fiff.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/inverse_sparse/mxne_inverse.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/inverse_sparse/mxne_optim.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/bti/bti.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/eeglab/tests/test_eeglab.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/source_space.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/stats/permutations.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/misc.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/utils.py": {
+      "a": 3,
+      "d": 3
+    },
+    "tutorials/raw/plot_40_visualize_raw.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "6f8947d5a611297cd32298af9f55d974ba2cdee0",
+  "authors": [
+    {
+      "n": "Mathieu Scheltienne",
+      "e": "mathieu.scheltienne@fcbg.ch"
+    }
+  ],
+  "changes": {
+    "tutorials/preprocessing/15_handling_bad_channels.py": {
+      "a": 5,
+      "d": 5
+    }
+  }
+}

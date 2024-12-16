@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "4e0635e0e3e718d4aa723f0ffc28c22020caf51c",
+  "authors": [
+    {
+      "n": "Cristóbal Moënne-Loccoz",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/io/edf/edf.py": {
+      "a": 21,
+      "d": 6
+    }
+  }
+}

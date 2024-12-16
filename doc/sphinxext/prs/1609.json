@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "9afd14672072a02261a0d428d31d6425cd850f9a",
+  "authors": [
+    {
+      "n": "Marijn van Vliet",
+      "e": "w.m.vanvliet@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/io/edf/edf.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

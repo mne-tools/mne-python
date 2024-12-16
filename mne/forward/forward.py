@@ -1,7 +1,4 @@
-# Authors: Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
-#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -56,6 +53,7 @@ from ..io import BaseRaw, RawArray
 from ..label import Label
 from ..source_estimate import _BaseSourceEstimate, _BaseVectorSourceEstimate
 from ..source_space._source_space import (
+    SourceSpaces,
     _get_src_nn,
     _read_source_spaces_from_tree,
     _set_source_space_vertices,
@@ -182,21 +180,21 @@ class Forward(dict):
         src_types = np.array([src["type"] for src in self["src"]])
 
         if (src_types == "surf").all():
-            src_type = "Surface with %d vertices" % self["nsource"]
+            src_type = "Surface with {self['nsource']} vertices"
         elif (src_types == "vol").all():
-            src_type = "Volume with %d grid points" % self["nsource"]
+            src_type = "Volume with {self['nsource']} grid points"
         elif (src_types == "discrete").all():
-            src_type = "Discrete with %d dipoles" % self["nsource"]
+            src_type = "Discrete with {self['nsource']} dipoles"
         else:
             count_string = ""
             if (src_types == "surf").any():
-                count_string += "%d surface, " % (src_types == "surf").sum()
+                count_string += f"{(src_types == 'surf').sum()} surface, "
             if (src_types == "vol").any():
-                count_string += "%d volume, " % (src_types == "vol").sum()
+                count_string += f"{(src_types == 'vol').sum()} volume, "
             if (src_types == "discrete").any():
-                count_string += "%d discrete, " % (src_types == "discrete").sum()
+                count_string += f"{(src_types == 'discrete').sum()} discrete, "
             count_string = count_string.rstrip(", ")
-            src_type = "Mixed (%s) with %d vertices" % (count_string, self["nsource"])
+            src_type = f"Mixed ({count_string}) with {self['nsource']} vertices"
 
         if self["source_ori"] == FIFF.FIFFV_MNE_UNKNOWN_ORI:
             src_ori = "Unknown"
@@ -212,9 +210,9 @@ class Forward(dict):
         entr = "<Forward"
 
         nchan = len(pick_types(self["info"], meg=True, eeg=False, exclude=[]))
-        entr += " | " + "MEG channels: %d" % nchan
+        entr += " | " + f"MEG channels: {nchan}"
         nchan = len(pick_types(self["info"], meg=False, eeg=True, exclude=[]))
-        entr += " | " + "EEG channels: %d" % nchan
+        entr += " | " + f"EEG channels: {nchan}"
 
         src_type, src_ori = self._get_src_type_and_ori_for_repr()
         entr += f" | Source space: {src_type}"
@@ -225,17 +223,11 @@ class Forward(dict):
 
     @repr_html
     def _repr_html_(self):
-        (
-            good_chs,
-            bad_chs,
-            _,
-            _,
-        ) = self["info"]._get_chs_for_repr()
         src_descr, src_ori = self._get_src_type_and_ori_for_repr()
+
         t = _get_html_template("repr", "forward.html.jinja")
         html = t.render(
-            good_channels=good_chs,
-            bad_channels=bad_chs,
+            info=self["info"],
             source_space_descr=src_descr,
             source_orientation=src_ori,
         )
@@ -298,7 +290,7 @@ def _block_diag(A, n):
 
     Returns
     -------
-    bd : scipy.sparse.spmatrix
+    bd : scipy.sparse.csc_array
         The block diagonal matrix
     """
     if sparse.issparse(A):  # then make block sparse
@@ -317,7 +309,7 @@ def _block_diag(A, n):
     jj = jj * np.ones(ma, dtype=np.int64)[:, None]
     jj = jj.T.ravel()  # column indices foreach sparse bd
 
-    bd = sparse.coo_matrix((A.T.ravel(), np.c_[ii, jj].T)).tocsc()
+    bd = sparse.coo_array((A.T.ravel(), np.c_[ii, jj].T)).tocsc()
 
     return bd
 
@@ -375,7 +367,7 @@ def _read_one(fid, node):
             one["sol_grad"]["data"].shape[1] != 3 * one["nsource"]
             and one["sol_grad"]["data"].shape[1] != 3 * 3 * one["nsource"]
         ):
-            raise ValueError("Forward solution gradient matrix has " "wrong dimensions")
+            raise ValueError("Forward solution gradient matrix has wrong dimensions")
 
     return one
 
@@ -525,7 +517,7 @@ def _merge_fwds(fwds, *, verbose=None):
 
 
 @verbose
-def read_forward_solution(fname, include=(), exclude=(), *, ordered=None, verbose=None):
+def read_forward_solution(fname, include=(), exclude=(), *, ordered=True, verbose=None):
     """Read a forward solution a.k.a. lead field.
 
     Parameters
@@ -572,7 +564,7 @@ def read_forward_solution(fname, include=(), exclude=(), *, ordered=None, verbos
     )
     fname = _check_fname(fname=fname, must_exist=True, overwrite="read")
     #   Open the file, create directory
-    logger.info("Reading forward solution from %s..." % fname)
+    logger.info(f"Reading forward solution from {fname}...")
     if fname.suffix == ".h5":
         return _read_forward_hdf5(fname)
     f, tree, _ = fiff_open(fname)
@@ -580,12 +572,12 @@ def read_forward_solution(fname, include=(), exclude=(), *, ordered=None, verbos
         #   Find all forward solutions
         fwds = dir_tree_find(tree, FIFF.FIFFB_MNE_FORWARD_SOLUTION)
         if len(fwds) == 0:
-            raise ValueError("No forward solutions in %s" % fname)
+            raise ValueError(f"No forward solutions in {fname}")
 
         #   Parent MRI data
         parent_mri = dir_tree_find(tree, FIFF.FIFFB_MNE_PARENT_MRI_FILE)
         if len(parent_mri) == 0:
-            raise ValueError("No parent MRI information in %s" % fname)
+            raise ValueError(f"No parent MRI information in {fname}")
         parent_mri = parent_mri[0]
 
         src = _read_source_spaces_from_tree(fid, tree, patch_stats=False)
@@ -600,9 +592,7 @@ def read_forward_solution(fname, include=(), exclude=(), *, ordered=None, verbos
         for k in range(len(fwds)):
             tag = find_tag(fid, fwds[k], FIFF.FIFF_MNE_INCLUDED_METHODS)
             if tag is None:
-                raise ValueError(
-                    "Methods not listed for one of the forward " "solutions"
-                )
+                raise ValueError("Methods not listed for one of the forward solutions")
 
             if tag.data == FIFF.FIFFV_MNE_MEG:
                 megnode = fwds[k]
@@ -619,8 +609,10 @@ def read_forward_solution(fname, include=(), exclude=(), *, ordered=None, verbos
                 ori = "free"
             logger.info(
                 "    Read MEG forward solution (%d sources, "
-                "%d channels, %s orientations)"
-                % (megfwd["nsource"], megfwd["nchan"], ori)
+                "%d channels, %s orientations)",
+                megfwd["nsource"],
+                megfwd["nchan"],
+                ori,
             )
         del megfwd
 
@@ -633,8 +625,10 @@ def read_forward_solution(fname, include=(), exclude=(), *, ordered=None, verbos
                 ori = "free"
             logger.info(
                 "    Read EEG forward solution (%d sources, "
-                "%d channels, %s orientations)"
-                % (eegfwd["nsource"], eegfwd["nchan"], ori)
+                "%d channels, %s orientations)",
+                eegfwd["nsource"],
+                eegfwd["nchan"],
+                ori,
             )
         del eegfwd
 
@@ -656,7 +650,7 @@ def read_forward_solution(fname, include=(), exclude=(), *, ordered=None, verbos
                 or mri_head_t["to"] != FIFF.FIFFV_COORD_HEAD
             ):
                 fid.close()
-                raise ValueError("MRI/head coordinate transformation not " "found")
+                raise ValueError("MRI/head coordinate transformation not found")
         fwd["mri_head_t"] = mri_head_t
 
         #
@@ -696,7 +690,7 @@ def read_forward_solution(fname, include=(), exclude=(), *, ordered=None, verbos
         try:
             s = transform_surface_to(s, fwd["coord_frame"], mri_head_t)
         except Exception as inst:
-            raise ValueError("Could not transform source space (%s)" % inst)
+            raise ValueError(f"Could not transform source space ({inst})")
 
         nuse += s["nuse"]
 
@@ -705,7 +699,7 @@ def read_forward_solution(fname, include=(), exclude=(), *, ordered=None, verbos
         raise ValueError("Source spaces do not match the forward solution.")
 
     logger.info(
-        "    Source spaces transformed to the forward solution " "coordinate frame"
+        "    Source spaces transformed to the forward solution coordinate frame"
     )
     fwd["src"] = src
 
@@ -805,11 +799,11 @@ def convert_forward_solution(
             fix_rot = _block_diag(fwd["source_nn"].T, 1)
             # newer versions of numpy require explicit casting here, so *= no
             # longer works
-            fwd["sol"]["data"] = (fwd["_orig_sol"] * fix_rot).astype("float32")
+            fwd["sol"]["data"] = (fwd["_orig_sol"] @ fix_rot).astype("float32")
             fwd["sol"]["ncol"] = fwd["nsource"]
             if fwd["sol_grad"] is not None:
                 x = sparse.block_diag([fix_rot] * 3)
-                fwd["sol_grad"]["data"] = fwd["_orig_sol_grad"] * x  # dot prod
+                fwd["sol_grad"]["data"] = fwd["_orig_sol_grad"] @ x
                 fwd["sol_grad"]["ncol"] = 3 * fwd["nsource"]
         fwd["source_ori"] = FIFF.FIFFV_MNE_FIXED_ORI
         fwd["surf_ori"] = True
@@ -836,21 +830,21 @@ def convert_forward_solution(
             fix_rot = _block_diag(fwd["source_nn"].T, 1)
             # newer versions of numpy require explicit casting here, so *= no
             # longer works
-            fwd["sol"]["data"] = (fwd["_orig_sol"] * fix_rot).astype("float32")
+            fwd["sol"]["data"] = (fwd["_orig_sol"] @ fix_rot).astype("float32")
             fwd["sol"]["ncol"] = fwd["nsource"]
             if fwd["sol_grad"] is not None:
                 x = sparse.block_diag([fix_rot] * 3)
-                fwd["sol_grad"]["data"] = fwd["_orig_sol_grad"] * x  # dot prod
+                fwd["sol_grad"]["data"] = fwd["_orig_sol_grad"] @ x
                 fwd["sol_grad"]["ncol"] = 3 * fwd["nsource"]
             fwd["source_ori"] = FIFF.FIFFV_MNE_FIXED_ORI
             fwd["surf_ori"] = True
         else:
             surf_rot = _block_diag(fwd["source_nn"].T, 3)
-            fwd["sol"]["data"] = fwd["_orig_sol"] * surf_rot
+            fwd["sol"]["data"] = fwd["_orig_sol"] @ surf_rot
             fwd["sol"]["ncol"] = 3 * fwd["nsource"]
             if fwd["sol_grad"] is not None:
                 x = sparse.block_diag([surf_rot] * 3)
-                fwd["sol_grad"]["data"] = fwd["_orig_sol_grad"] * x  # dot prod
+                fwd["sol_grad"]["data"] = fwd["_orig_sol_grad"] @ x
                 fwd["sol_grad"]["ncol"] = 9 * fwd["nsource"]
             fwd["source_ori"] = FIFF.FIFFV_MNE_FREE_ORI
             fwd["surf_ori"] = True
@@ -924,7 +918,10 @@ def _write_forward_hdf5(fname, fwd):
 
 def _read_forward_hdf5(fname):
     read_hdf5, _ = _import_h5io_funcs()
-    return Forward(read_hdf5(fname)["fwd"])
+    fwd = Forward(read_hdf5(fname)["fwd"])
+    fwd["info"] = Info(fwd["info"])
+    fwd["src"] = SourceSpaces(fwd["src"])
+    return fwd
 
 
 def _write_forward_solution(fid, fwd):
@@ -966,7 +963,7 @@ def _write_forward_solution(fid, fwd):
             # usually MRI
             s = transform_surface_to(s, fwd["mri_head_t"]["from"], fwd["mri_head_t"])
         except Exception as inst:
-            raise ValueError("Could not transform source space (%s)" % inst)
+            raise ValueError(f"Could not transform source space ({inst})")
         src.append(s)
 
     #
@@ -1174,7 +1171,7 @@ def _select_orient_forward(forward, info, noise_cov=None, copy=True):
     _check_compensation_grade(forward["info"], info, "forward")
 
     n_chan = len(ch_names)
-    logger.info("Computing inverse operator with %d channels." % n_chan)
+    logger.info("Computing inverse operator with %d channels.", n_chan)
     forward = pick_channels_forward(forward, ch_names, ordered=True, copy=copy)
     info_idx = [info["ch_names"].index(name) for name in ch_names]
     info_picked = pick_info(info, info_idx)
@@ -1298,8 +1295,8 @@ def _restrict_gain_matrix(G, info):
     # Figure out which ones have been used
     if len(info["chs"]) != G.shape[0]:
         raise ValueError(
-            'G.shape[0] (%d) and length of info["chs"] (%d) '
-            "do not match" % (G.shape[0], len(info["chs"]))
+            f'G.shape[0] ({G.shape[0]}) and length of info["chs"] ({len(info["chs"])}) '
+            "do not match."
         )
     for meg, eeg, kind in (
         ("grad", False, "planar"),
@@ -1308,7 +1305,7 @@ def _restrict_gain_matrix(G, info):
     ):
         sel = pick_types(info, meg=meg, eeg=eeg, ref_meg=False, exclude=[])
         if len(sel) > 0:
-            logger.info("    %d %s channels" % (len(sel), kind))
+            logger.info("    %d %s channels", len(sel), kind)
             break
     else:
         warn("Could not find MEG or EEG channels to limit depth channels")
@@ -1466,7 +1463,7 @@ def compute_depth_prior(
         if not is_fixed_ori and combine_xyz is False:
             patch_areas = np.repeat(patch_areas, 3)
         d /= patch_areas**2
-        logger.info("    Patch areas taken into account in the depth " "weighting")
+        logger.info("    Patch areas taken into account in the depth weighting")
 
     w = 1.0 / d
     if limit is not None:
@@ -1487,7 +1484,7 @@ def compute_depth_prior(
                 n_limit = ind
 
         logger.info(
-            "    limit = %d/%d = %f" % (n_limit + 1, len(d), np.sqrt(limit / ws[0]))
+            "    limit = %d/%d = %f", n_limit + 1, len(d), np.sqrt(limit / ws[0])
         )
         scale = 1.0 / limit
         logger.info(f"    scale = {scale:g} exp = {exp:g}")
@@ -1532,11 +1529,9 @@ def _stc_src_sel(
     n_stc = sum(len(v) for v in vertices)
     n_joint = len(src_sel)
     if n_joint != n_stc:
-        msg = "Only %i of %i SourceEstimate %s found in " "source space%s" % (
-            n_joint,
-            n_stc,
-            "vertex" if n_stc == 1 else "vertices",
-            extra,
+        msg = (
+            f"Only {n_joint} of {n_stc} SourceEstimate "
+            f"{'vertex' if n_stc == 1 else 'vertices'} found in source space{extra}"
         )
         _on_missing(on_missing, msg)
     return src_sel, stc_sel, out_vertices
@@ -1671,8 +1666,8 @@ def apply_forward(
     for ch_name in fwd["sol"]["row_names"]:
         if ch_name not in info["ch_names"]:
             raise ValueError(
-                "Channel %s of forward operator not present in "
-                "evoked_template." % ch_name
+                f"Channel {ch_name} of forward operator not present in "
+                "evoked_template."
             )
 
     # project the source estimate to the sensor space
@@ -1747,7 +1742,7 @@ def apply_forward_raw(
     for ch_name in fwd["sol"]["row_names"]:
         if ch_name not in info["ch_names"]:
             raise ValueError(
-                "Channel %s of forward operator not present in " "info." % ch_name
+                f"Channel {ch_name} of forward operator not present in info."
             )
 
     # project the source estimate to the sensor space
@@ -1978,7 +1973,7 @@ def _do_forward_solution(
 
     # check for meas to exist as string, or try to make evoked
     _validate_type(meas, ("path-like", BaseRaw, BaseEpochs, Evoked), "meas")
-    if isinstance(meas, (BaseRaw, BaseEpochs, Evoked)):
+    if isinstance(meas, BaseRaw | BaseEpochs | Evoked):
         meas_file = op.join(temp_dir, "info.fif")
         write_info(meas_file, meas.info)
         meas = meas_file
@@ -2004,7 +1999,7 @@ def _do_forward_solution(
                     "trans was a dict, but could not be "
                     "written to disk as a transform file"
                 )
-        elif isinstance(trans, (str, Path, PathLike)):
+        elif isinstance(trans, str | Path | PathLike):
             _check_fname(trans, "read", must_exist=True, name="trans")
             trans = Path(trans)
         else:
@@ -2020,7 +2015,7 @@ def _do_forward_solution(
                     "mri was a dict, but could not be "
                     "written to disk as a transform file"
                 )
-        elif isinstance(mri, (str, Path, PathLike)):
+        elif isinstance(mri, str | Path | PathLike):
             _check_fname(mri, "read", must_exist=True, name="mri")
             mri = Path(mri)
         else:
@@ -2042,7 +2037,7 @@ def _do_forward_solution(
                 raise ValueError('mindist, if string, must be "all"')
             mindist = ["--all"]
         else:
-            mindist = ["--mindist", "%g" % mindist]
+            mindist = ["--mindist", f"{mindist:g}"]
 
     # src, spacing, bem
     for element, name, kind in zip(
@@ -2051,7 +2046,7 @@ def _do_forward_solution(
         ("path-like", "str", "path-like"),
     ):
         if element is not None:
-            _validate_type(element, kind, name, "%s or None" % kind)
+            _validate_type(element, kind, name, f"{kind} or None")
 
     # put together the actual call
     cmd = [
@@ -2074,7 +2069,7 @@ def _do_forward_solution(
             # allow both "ico4" and "ico-4" style values
             match = re.match(r"(oct|ico)-?(\d+)$", spacing)
             if match is None:
-                raise ValueError("Invalid spacing parameter: %r" % spacing)
+                raise ValueError(f"Invalid spacing parameter: {spacing!r}")
             spacing = "-".join(match.groups())
         cmd += ["--spacing", spacing]
     if mindist is not None:
@@ -2082,9 +2077,9 @@ def _do_forward_solution(
     if bem is not None:
         cmd += ["--bem", bem]
     if mri is not None:
-        cmd += ["--mri", "%s" % str(mri.absolute())]
+        cmd += ["--mri", f"{mri.absolute()}"]
     if trans is not None:
-        cmd += ["--trans", "%s" % str(trans.absolute())]
+        cmd += ["--trans", f"{trans.absolute()}"]
     if not meg:
         cmd.append("--eegonly")
     if not eeg:
@@ -2105,7 +2100,7 @@ def _do_forward_solution(
     try:
         logger.info(
             "Running forward solution generation command with "
-            "subjects_dir %s" % subjects_dir
+            f"subjects_dir {subjects_dir}"
         )
         run_subprocess(cmd, env=env)
     except Exception:

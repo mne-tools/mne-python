@@ -1,0 +1,811 @@
+{
+  "merge_commit_sha": "5a97c2f0aa8afb53e63df1441fcda3508612364e",
+  "authors": [
+    {
+      "n": "Mathieu Scheltienne",
+      "e": "mathieu.scheltienne@fcbg.ch"
+    }
+  ],
+  "changes": {
+    "mne/_freesurfer.py": {
+      "a": 50,
+      "d": 38
+    },
+    "mne/annotations.py": {
+      "a": 22,
+      "d": 16
+    },
+    "mne/beamformer/tests/test_dics.py": {
+      "a": 10,
+      "d": 11
+    },
+    "mne/beamformer/tests/test_external.py": {
+      "a": 18,
+      "d": 18
+    },
+    "mne/beamformer/tests/test_lcmv.py": {
+      "a": 12,
+      "d": 12
+    },
+    "mne/beamformer/tests/test_rap_music.py": {
+      "a": 5,
+      "d": 6
+    },
+    "mne/beamformer/tests/test_resolution_matrix.py": {
+      "a": 13,
+      "d": 10
+    },
+    "mne/bem.py": {
+      "a": 36,
+      "d": 41
+    },
+    "mne/channels/channels.py": {
+      "a": 15,
+      "d": 11
+    },
+    "mne/channels/layout.py": {
+      "a": 34,
+      "d": 32
+    },
+    "mne/channels/montage.py": {
+      "a": 21,
+      "d": 20
+    },
+    "mne/channels/tests/test_channels.py": {
+      "a": 14,
+      "d": 18
+    },
+    "mne/channels/tests/test_interpolation.py": {
+      "a": 9,
+      "d": 10
+    },
+    "mne/channels/tests/test_layout.py": {
+      "a": 22,
+      "d": 24
+    },
+    "mne/channels/tests/test_montage.py": {
+      "a": 49,
+      "d": 61
+    },
+    "mne/chpi.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/commands/mne_freeview_bem_surfaces.py": {
+      "a": 7,
+      "d": 5
+    },
+    "mne/commands/mne_setup_forward_model.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/coreg.py": {
+      "a": 40,
+      "d": 39
+    },
+    "mne/cov.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/datasets/_fsaverage/base.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/datasets/_infant/base.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/datasets/_phantom/base.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/datasets/sleep_physionet/tests/test_physionet.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/datasets/tests/test_datasets.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/datasets/utils.py": {
+      "a": 11,
+      "d": 12
+    },
+    "mne/decoding/tests/test_csp.py": {
+      "a": 4,
+      "d": 5
+    },
+    "mne/decoding/tests/test_ems.py": {
+      "a": 5,
+      "d": 7
+    },
+    "mne/decoding/tests/test_receptive_field.py": {
+      "a": 5,
+      "d": 5
+    },
+    "mne/decoding/tests/test_transformer.py": {
+      "a": 5,
+      "d": 5
+    },
+    "mne/dipole.py": {
+      "a": 9,
+      "d": 9
+    },
+    "mne/epochs.py": {
+      "a": 5,
+      "d": 4
+    },
+    "mne/event.py": {
+      "a": 15,
+      "d": 17
+    },
+    "mne/evoked.py": {
+      "a": 7,
+      "d": 5
+    },
+    "mne/export/_egimff.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/export/_export.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/export/tests/test_export.py": {
+      "a": 8,
+      "d": 9
+    },
+    "mne/forward/_field_interpolation.py": {
+      "a": 17,
+      "d": 7
+    },
+    "mne/forward/_make_forward.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/forward/forward.py": {
+      "a": 53,
+      "d": 43
+    },
+    "mne/forward/tests/test_forward.py": {
+      "a": 23,
+      "d": 14
+    },
+    "mne/forward/tests/test_make_forward.py": {
+      "a": 32,
+      "d": 29
+    },
+    "mne/gui/_core.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/gui/_coreg.py": {
+      "a": 20,
+      "d": 8
+    },
+    "mne/gui/tests/test_core.py": {
+      "a": 2,
+      "d": 3
+    },
+    "mne/gui/tests/test_coreg.py": {
+      "a": 46,
+      "d": 30
+    },
+    "mne/gui/tests/test_ieeg_locate.py": {
+      "a": 14,
+      "d": 15
+    },
+    "mne/inverse_sparse/tests/test_gamma_map.py": {
+      "a": 6,
+      "d": 7
+    },
+    "mne/inverse_sparse/tests/test_mxne_inverse.py": {
+      "a": 20,
+      "d": 13
+    },
+    "mne/io/array/tests/test_array.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/io/artemis123/artemis123.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/io/artemis123/tests/test_artemis123.py": {
+      "a": 11,
+      "d": 14
+    },
+    "mne/io/base.py": {
+      "a": 6,
+      "d": 5
+    },
+    "mne/io/boxy/boxy.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/boxy/tests/test_boxy.py": {
+      "a": 32,
+      "d": 17
+    },
+    "mne/io/brainvision/tests/test_brainvision.py": {
+      "a": 43,
+      "d": 42
+    },
+    "mne/io/bti/tests/test_bti.py": {
+      "a": 14,
+      "d": 15
+    },
+    "mne/io/cnt/tests/test_cnt.py": {
+      "a": 1,
+      "d": 3
+    },
+    "mne/io/ctf/ctf.py": {
+      "a": 6,
+      "d": 5
+    },
+    "mne/io/curry/tests/test_curry.py": {
+      "a": 58,
+      "d": 57
+    },
+    "mne/io/edf/tests/test_edf.py": {
+      "a": 35,
+      "d": 37
+    },
+    "mne/io/edf/tests/test_gdf.py": {
+      "a": 37,
+      "d": 17
+    },
+    "mne/io/eeglab/eeglab.py": {
+      "a": 20,
+      "d": 15
+    },
+    "mne/io/eeglab/tests/test_eeglab.py": {
+      "a": 42,
+      "d": 43
+    },
+    "mne/io/egi/egi.py": {
+      "a": 8,
+      "d": 6
+    },
+    "mne/io/egi/egimff.py": {
+      "a": 15,
+      "d": 5
+    },
+    "mne/io/egi/tests/test_egi.py": {
+      "a": 18,
+      "d": 19
+    },
+    "mne/io/eximia/eximia.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/eximia/tests/test_eximia.py": {
+      "a": 2,
+      "d": 3
+    },
+    "mne/io/fieldtrip/fieldtrip.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/io/fieldtrip/tests/helpers.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/fieldtrip/tests/test_fieldtrip.py": {
+      "a": 19,
+      "d": 24
+    },
+    "mne/io/fiff/raw.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/fiff/tests/test_raw_fiff.py": {
+      "a": 43,
+      "d": 40
+    },
+    "mne/io/fil/tests/test_fil.py": {
+      "a": 4,
+      "d": 7
+    },
+    "mne/io/hitachi/hitachi.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/io/kit/coreg.py": {
+      "a": 31,
+      "d": 23
+    },
+    "mne/io/kit/kit.py": {
+      "a": 63,
+      "d": 136
+    },
+    "mne/io/kit/tests/__init__.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/kit/tests/test_coreg.py": {
+      "a": 4,
+      "d": 10
+    },
+    "mne/io/kit/tests/test_kit.py": {
+      "a": 36,
+      "d": 36
+    },
+    "mne/io/nedf/nedf.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/nedf/tests/test_nedf.py": {
+      "a": 1,
+      "d": 3
+    },
+    "mne/io/nicolet/tests/test_nicolet.py": {
+      "a": 4,
+      "d": 6
+    },
+    "mne/io/nihon/nihon.py": {
+      "a": 3,
+      "d": 4
+    },
+    "mne/io/nirx/nirx.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/nirx/tests/test_nirx.py": {
+      "a": 32,
+      "d": 27
+    },
+    "mne/io/persyst/persyst.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/persyst/tests/test_persyst.py": {
+      "a": 21,
+      "d": 23
+    },
+    "mne/io/snirf/_snirf.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/snirf/tests/test_snirf.py": {
+      "a": 55,
+      "d": 25
+    },
+    "mne/io/tests/test_compensator.py": {
+      "a": 8,
+      "d": 7
+    },
+    "mne/io/tests/test_constants.py": {
+      "a": 8,
+      "d": 11
+    },
+    "mne/io/tests/test_meas_info.py": {
+      "a": 23,
+      "d": 21
+    },
+    "mne/io/tests/test_pick.py": {
+      "a": 26,
+      "d": 27
+    },
+    "mne/io/tests/test_proc_history.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/io/tests/test_reference.py": {
+      "a": 8,
+      "d": 9
+    },
+    "mne/io/tests/test_show_fiff.py": {
+      "a": 5,
+      "d": 5
+    },
+    "mne/io/tests/test_what.py": {
+      "a": 7,
+      "d": 7
+    },
+    "mne/io/write.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/label.py": {
+      "a": 31,
+      "d": 28
+    },
+    "mne/minimum_norm/inverse.py": {
+      "a": 6,
+      "d": 4
+    },
+    "mne/minimum_norm/tests/test_inverse.py": {
+      "a": 47,
+      "d": 53
+    },
+    "mne/minimum_norm/tests/test_resolution_matrix.py": {
+      "a": 7,
+      "d": 8
+    },
+    "mne/minimum_norm/tests/test_resolution_metrics.py": {
+      "a": 12,
+      "d": 9
+    },
+    "mne/minimum_norm/tests/test_time_frequency.py": {
+      "a": 8,
+      "d": 7
+    },
+    "mne/morph.py": {
+      "a": 14,
+      "d": 10
+    },
+    "mne/morph_map.py": {
+      "a": 11,
+      "d": 12
+    },
+    "mne/preprocessing/_fine_cal.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/preprocessing/_regress.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/preprocessing/ieeg/_projection.py": {
+      "a": 5,
+      "d": 7
+    },
+    "mne/preprocessing/ieeg/tests/test_projection.py": {
+      "a": 51,
+      "d": 35
+    },
+    "mne/preprocessing/maxwell.py": {
+      "a": 5,
+      "d": 4
+    },
+    "mne/preprocessing/nirs/tests/test_beer_lambert_law.py": {
+      "a": 12,
+      "d": 12
+    },
+    "mne/preprocessing/nirs/tests/test_nirs.py": {
+      "a": 12,
+      "d": 9
+    },
+    "mne/preprocessing/nirs/tests/test_optical_density.py": {
+      "a": 6,
+      "d": 4
+    },
+    "mne/preprocessing/nirs/tests/test_scalp_coupling_index.py": {
+      "a": 12,
+      "d": 9
+    },
+    "mne/preprocessing/nirs/tests/test_temporal_derivative_distribution_repair.py": {
+      "a": 3,
+      "d": 5
+    },
+    "mne/preprocessing/tests/test_annotate_nan.py": {
+      "a": 8,
+      "d": 3
+    },
+    "mne/preprocessing/tests/test_artifact_detection.py": {
+      "a": 3,
+      "d": 5
+    },
+    "mne/preprocessing/tests/test_csd.py": {
+      "a": 7,
+      "d": 7
+    },
+    "mne/preprocessing/tests/test_ecg.py": {
+      "a": 6,
+      "d": 5
+    },
+    "mne/preprocessing/tests/test_eeglab_infomax.py": {
+      "a": 4,
+      "d": 5
+    },
+    "mne/preprocessing/tests/test_eog.py": {
+      "a": 5,
+      "d": 5
+    },
+    "mne/preprocessing/tests/test_fine_cal.py": {
+      "a": 6,
+      "d": 9
+    },
+    "mne/preprocessing/tests/test_ica.py": {
+      "a": 28,
+      "d": 29
+    },
+    "mne/preprocessing/tests/test_interpolate.py": {
+      "a": 5,
+      "d": 6
+    },
+    "mne/preprocessing/tests/test_maxwell.py": {
+      "a": 112,
+      "d": 98
+    },
+    "mne/preprocessing/tests/test_otp.py": {
+      "a": 3,
+      "d": 5
+    },
+    "mne/preprocessing/tests/test_regress.py": {
+      "a": 1,
+      "d": 4
+    },
+    "mne/preprocessing/tests/test_ssp.py": {
+      "a": 4,
+      "d": 6
+    },
+    "mne/preprocessing/tests/test_stim.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/preprocessing/tests/test_xdawn.py": {
+      "a": 5,
+      "d": 4
+    },
+    "mne/proj.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/report/report.py": {
+      "a": 15,
+      "d": 8
+    },
+    "mne/report/tests/test_report.py": {
+      "a": 172,
+      "d": 146
+    },
+    "mne/simulation/raw.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/simulation/tests/test_evoked.py": {
+      "a": 25,
+      "d": 9
+    },
+    "mne/simulation/tests/test_metrics.py": {
+      "a": 1,
+      "d": 5
+    },
+    "mne/simulation/tests/test_raw.py": {
+      "a": 30,
+      "d": 21
+    },
+    "mne/simulation/tests/test_source.py": {
+      "a": 9,
+      "d": 9
+    },
+    "mne/source_estimate.py": {
+      "a": 47,
+      "d": 44
+    },
+    "mne/source_space.py": {
+      "a": 31,
+      "d": 15
+    },
+    "mne/stats/tests/test_regression.py": {
+      "a": 3,
+      "d": 6
+    },
+    "mne/surface.py": {
+      "a": 10,
+      "d": 11
+    },
+    "mne/tests/test_annotations.py": {
+      "a": 14,
+      "d": 17
+    },
+    "mne/tests/test_bem.py": {
+      "a": 21,
+      "d": 21
+    },
+    "mne/tests/test_chpi.py": {
+      "a": 35,
+      "d": 30
+    },
+    "mne/tests/test_coreg.py": {
+      "a": 130,
+      "d": 74
+    },
+    "mne/tests/test_cov.py": {
+      "a": 10,
+      "d": 13
+    },
+    "mne/tests/test_dipole.py": {
+      "a": 31,
+      "d": 30
+    },
+    "mne/tests/test_docstring_parameters.py": {
+      "a": 5,
+      "d": 7
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 65,
+      "d": 70
+    },
+    "mne/tests/test_event.py": {
+      "a": 15,
+      "d": 15
+    },
+    "mne/tests/test_evoked.py": {
+      "a": 12,
+      "d": 16
+    },
+    "mne/tests/test_filter.py": {
+      "a": 2,
+      "d": 5
+    },
+    "mne/tests/test_freesurfer.py": {
+      "a": 14,
+      "d": 13
+    },
+    "mne/tests/test_label.py": {
+      "a": 75,
+      "d": 80
+    },
+    "mne/tests/test_misc.py": {
+      "a": 2,
+      "d": 3
+    },
+    "mne/tests/test_morph.py": {
+      "a": 35,
+      "d": 33
+    },
+    "mne/tests/test_morph_map.py": {
+      "a": 9,
+      "d": 10
+    },
+    "mne/tests/test_proj.py": {
+      "a": 32,
+      "d": 31
+    },
+    "mne/tests/test_rank.py": {
+      "a": 13,
+      "d": 13
+    },
+    "mne/tests/test_read_vectorview_selection.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/tests/test_source_estimate.py": {
+      "a": 92,
+      "d": 74
+    },
+    "mne/tests/test_source_space.py": {
+      "a": 40,
+      "d": 31
+    },
+    "mne/tests/test_surface.py": {
+      "a": 33,
+      "d": 41
+    },
+    "mne/tests/test_transforms.py": {
+      "a": 30,
+      "d": 27
+    },
+    "mne/time_frequency/csd.py": {
+      "a": 6,
+      "d": 6
+    },
+    "mne/time_frequency/tests/test_ar.py": {
+      "a": 8,
+      "d": 3
+    },
+    "mne/time_frequency/tests/test_stockwell.py": {
+      "a": 5,
+      "d": 5
+    },
+    "mne/time_frequency/tests/test_tfr.py": {
+      "a": 10,
+      "d": 10
+    },
+    "mne/transforms.py": {
+      "a": 26,
+      "d": 16
+    },
+    "mne/utils/check.py": {
+      "a": 29,
+      "d": 22
+    },
+    "mne/utils/config.py": {
+      "a": 16,
+      "d": 15
+    },
+    "mne/utils/docs.py": {
+      "a": 57,
+      "d": 7
+    },
+    "mne/utils/tests/test_check.py": {
+      "a": 9,
+      "d": 9
+    },
+    "mne/utils/tests/test_config.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/utils/tests/test_logging.py": {
+      "a": 8,
+      "d": 9
+    },
+    "mne/utils/tests/test_numerics.py": {
+      "a": 8,
+      "d": 9
+    },
+    "mne/utils/tests/test_progressbar.py": {
+      "a": 5,
+      "d": 5
+    },
+    "mne/utils/tests/test_testing.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/viz/_3d.py": {
+      "a": 46,
+      "d": 35
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 14,
+      "d": 3
+    },
+    "mne/viz/_brain/surface.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/_brain/tests/test_brain.py": {
+      "a": 46,
+      "d": 39
+    },
+    "mne/viz/_brain/tests/test_notebook.py": {
+      "a": 13,
+      "d": 11
+    },
+    "mne/viz/_dipole.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/viz/ica.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/misc.py": {
+      "a": 24,
+      "d": 18
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 40,
+      "d": 36
+    },
+    "mne/viz/tests/test_3d_mpl.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/viz/tests/test_evoked.py": {
+      "a": 8,
+      "d": 9
+    },
+    "mne/viz/tests/test_ica.py": {
+      "a": 7,
+      "d": 7
+    },
+    "mne/viz/tests/test_misc.py": {
+      "a": 19,
+      "d": 14
+    },
+    "mne/viz/tests/test_montage.py": {
+      "a": 10,
+      "d": 8
+    },
+    "mne/viz/tests/test_topo.py": {
+      "a": 7,
+      "d": 7
+    },
+    "mne/viz/tests/test_topomap.py": {
+      "a": 12,
+      "d": 12
+    },
+    "mne/viz/tests/test_utils.py": {
+      "a": 5,
+      "d": 5
+    }
+  }
+}

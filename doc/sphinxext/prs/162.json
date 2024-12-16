@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "5874483ed5d79d1fbfdf26b195dd7629cd58064f",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/artifacts/tests/test_ica.py": {
+      "a": 9,
+      "d": 8
+    },
+    "mne/fiff/tests/test_raw.py": {
+      "a": 17,
+      "d": 13
+    },
+    "mne/tests/test_cov.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 7,
+      "d": 4
+    },
+    "mne/tests/test_filter.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/tests/test_viz.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/time_frequency/tests/test_ar.py": {
+      "a": 3,
+      "d": 1
+    }
+  }
+}

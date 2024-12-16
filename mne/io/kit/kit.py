@@ -3,10 +3,7 @@
 RawKIT class is adapted from Denis Engemann et al.'s mne_bti2fiff.py.
 """
 
-# Authors: Teon Brooks <teon.brooks@gmail.com>
-#          Joan Massich <mailsik@gmail.com>
-#          Christian Brodbeck <christianbrodbeck@nyu.edu>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -43,7 +40,7 @@ UINT32 = "<u4"
 INT32 = "<i4"
 
 
-def _call_digitization(info, mrk, elp, hsp, kit_info):
+def _call_digitization(info, mrk, elp, hsp, kit_info, *, bad_coils=()):
     # Use values from kit_info only if all others are None
     if mrk is None and elp is None and hsp is None:
         mrk = kit_info.get("mrk", None)
@@ -53,7 +50,7 @@ def _call_digitization(info, mrk, elp, hsp, kit_info):
     # prepare mrk
     if isinstance(mrk, list):
         mrk = [
-            read_mrk(marker) if isinstance(marker, (str, Path, PathLike)) else marker
+            read_mrk(marker) if isinstance(marker, str | Path | PathLike) else marker
             for marker in mrk
         ]
         mrk = np.mean(mrk, axis=0)
@@ -62,11 +59,15 @@ def _call_digitization(info, mrk, elp, hsp, kit_info):
     if mrk is not None and elp is not None and hsp is not None:
         with info._unlock():
             info["dig"], info["dev_head_t"], info["hpi_results"] = _set_dig_kit(
-                mrk, elp, hsp, kit_info["eeg_dig"]
+                mrk,
+                elp,
+                hsp,
+                kit_info["eeg_dig"],
+                bad_coils=bad_coils,
             )
     elif mrk is not None or elp is not None or hsp is not None:
         raise ValueError(
-            "mrk, elp and hsp need to be provided as a group " "(all or none)"
+            "mrk, elp and hsp need to be provided as a group (all or none)"
         )
 
     return info
@@ -100,6 +101,7 @@ class RawKIT(BaseRaw):
         Force reading old data that is not officially supported. Alternatively,
         read and re-save the data with the KIT MEG Laboratory application.
     %(standardize_names)s
+    %(kit_badcoils)s
     %(verbose)s
 
     Notes
@@ -133,9 +135,11 @@ class RawKIT(BaseRaw):
         stim_code="binary",
         allow_unknown_format=False,
         standardize_names=None,
+        *,
+        bad_coils=(),
         verbose=None,
     ):
-        logger.info("Extracting SQD Parameters from %s..." % input_fname)
+        logger.info(f"Extracting SQD Parameters from {input_fname}...")
         input_fname = op.abspath(input_fname)
         self.preload = False
         logger.info("Creating Raw.info structure...")
@@ -145,7 +149,7 @@ class RawKIT(BaseRaw):
         kit_info["slope"] = slope
         kit_info["stimthresh"] = stimthresh
         if kit_info["acq_type"] != KIT.CONTINUOUS:
-            raise TypeError("SQD file contains epochs, not raw data. Wrong " "reader.")
+            raise TypeError("SQD file contains epochs, not raw data. Wrong reader.")
         logger.info("Creating Info structure...")
 
         last_samps = [kit_info["n_samples"] - 1]
@@ -160,7 +164,12 @@ class RawKIT(BaseRaw):
             verbose=verbose,
         )
         self.info = _call_digitization(
-            info=self.info, mrk=mrk, elp=elp, hsp=hsp, kit_info=kit_info
+            info=self.info,
+            mrk=mrk,
+            elp=elp,
+            hsp=hsp,
+            kit_info=kit_info,
+            bad_coils=bad_coils,
         )
         logger.info("Ready.")
 
@@ -201,7 +210,7 @@ class RawKIT(BaseRaw):
         assert n_bytes in (2, 4)
         # Read up to 100 MB of data at a time.
         blk_size = min(data_left, (100000000 // n_bytes // nchan) * nchan)
-        with open(self._filenames[fi], "rb", buffering=0) as fid:
+        with open(self.filenames[fi], "rb", buffering=0) as fid:
             # extract data
             pointer = start * nchan * n_bytes
             fid.seek(sqd["dirs"][KIT.DIR_INDEX_RAW_DATA]["offset"] + pointer)
@@ -264,14 +273,14 @@ def _set_stimchannels(inst, info, stim, stim_code):
                 stim = picks
             else:
                 raise ValueError(
-                    "stim needs to be list of int, '>' or " "'<', not %r" % str(stim)
+                    f"stim needs to be list of int, '>' or '<', not {str(stim)!r}"
                 )
         else:
             stim = np.asarray(stim, int)
             if stim.max() >= inst._raw_extras[0]["nchan"]:
                 raise ValueError(
-                    "Got stim=%s, but sqd file only has %i channels"
-                    % (stim, inst._raw_extras[0]["nchan"])
+                    f"Got stim={stim}, but sqd file only has "
+                    f"{inst._raw_extras[0]['nchan']} channels."
                 )
 
         # modify info
@@ -315,7 +324,7 @@ def _make_stim_channel(trigger_chs, slope, threshold, stim_code, trigger_values)
         trigger_values = 2 ** np.arange(len(trigger_chs))
     elif stim_code != "channel":
         raise ValueError(
-            "stim_code must be 'binary' or 'channel', got %s" % repr(stim_code)
+            f"stim_code must be 'binary' or 'channel', got {repr(stim_code)}"
         )
     trig_chs = trig_chs_bin * trigger_values[:, np.newaxis]
     return np.array(trig_chs.sum(axis=0), ndmin=2)
@@ -383,19 +392,19 @@ class EpochsKIT(BaseEpochs):
         standardize_names=None,
         verbose=None,
     ):
-        if isinstance(events, (str, PathLike, Path)):
+        if isinstance(events, str | PathLike | Path):
             events = read_events(events)
 
         input_fname = str(
             _check_fname(fname=input_fname, must_exist=True, overwrite="read")
         )
-        logger.info("Extracting KIT Parameters from %s..." % input_fname)
+        logger.info(f"Extracting KIT Parameters from {input_fname}...")
         self.info, kit_info = get_kit_info(
             input_fname, allow_unknown_format, standardize_names
         )
         kit_info.update(input_fname=input_fname)
         self._raw_extras = [kit_info]
-        self._filenames = []
+        self.filenames = []
         if len(events) != self._raw_extras[0]["n_epochs"]:
             raise ValueError("Event list does not match number of epochs.")
 
@@ -403,7 +412,7 @@ class EpochsKIT(BaseEpochs):
             self._raw_extras[0]["data_length"] = KIT.INT
         else:
             raise TypeError(
-                "SQD file contains raw data, not epochs or " "average. Wrong reader."
+                "SQD file contains raw data, not epochs or average. Wrong reader."
             )
 
         if event_id is None:  # convert to int to make typing-checks happy
@@ -411,9 +420,7 @@ class EpochsKIT(BaseEpochs):
 
         for key, val in event_id.items():
             if val not in events[:, 2]:
-                raise ValueError(
-                    "No matching events found for %s " "(event id %i)" % (key, val)
-                )
+                raise ValueError(f"No matching events found for {key} (event id {val})")
 
         data = self._read_kit_data()
         assert data.shape == (
@@ -528,10 +535,10 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None, verbose=
         # check file format version
         version, revision = np.fromfile(fid, INT32, 2)
         if version < 2 or (version == 2 and revision < 3):
-            version_string = "V%iR%03i" % (version, revision)
+            version_string = f"V{version}R{revision:03d}"
             if allow_unknown_format:
                 unsupported_format = True
-                warn("Force loading KIT format %s" % version_string)
+                warn(f"Force loading KIT format {version_string}")
             else:
                 raise UnsupportedKITFormat(
                     version_string,
@@ -548,6 +555,7 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None, verbose=
         sqd["nchan"] = channel_count = int(np.fromfile(fid, INT32, 1)[0])
         comment = _read_name(fid, n=256)
         create_time, last_modified_time = np.fromfile(fid, INT32, 2)
+        del last_modified_time
         fid.seek(KIT.INT * 3, SEEK_CUR)  # reserved
         dewar_style = np.fromfile(fid, INT32, 1)[0]
         fid.seek(KIT.INT * 3, SEEK_CUR)  # spare
@@ -563,6 +571,7 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None, verbose=
         else:
             adc_range = np.fromfile(fid, FLOAT64, 1)[0]
         adc_polarity, adc_allocated, adc_stored = np.fromfile(fid, INT32, 3)
+        del adc_polarity
         system_name = system_name.replace("\x00", "")
         system_name = system_name.strip().replace("\n", "/")
         model_name = model_name.replace("\x00", "")
@@ -594,10 +603,9 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None, verbose=
             use_fll_type = fll_types[np.searchsorted(fll_types, fll_type) - 1]
             warn(
                 "Unknown site filter settings (FLL) for system "
-                '"%s" model "%s" (ID %s), will assume FLL %d->%d, check '
-                "your data for correctness, including channel scales and "
-                "filter settings!"
-                % (system_name, model_name, sysid, fll_type, use_fll_type)
+                f'"{system_name}" model "{model_name}" (ID {sysid}), will assume FLL '
+                f"{fll_type}->{use_fll_type}, check your data for correctness, "
+                "including channel scales and filter settings!"
             )
             fll_type = use_fll_type
 
@@ -619,8 +627,8 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None, verbose=
             if channel_type in KIT.CHANNELS_MEG:
                 if channel_type not in KIT.CH_TO_FIFF_COIL:
                     raise NotImplementedError(
-                        "KIT channel type %i can not be read. Please contact "
-                        "the mne-python developers." % channel_type
+                        "KIT channel type {channel_type} can not be read. Please "
+                        "contact the mne-python developers."
                     )
                 channels.append(
                     {
@@ -651,7 +659,7 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None, verbose=
             elif channel_type == KIT.CHANNEL_NULL:
                 channels.append({"type": channel_type})
             else:
-                raise OSError("Unknown KIT channel type: %i" % channel_type)
+                raise OSError("Unknown KIT channel type: {channel_type}")
         exg_gains = np.array(exg_gains)
 
         #
@@ -718,8 +726,8 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None, verbose=
                 sqd["n_samples"] = sqd["frame_length"] * sqd["n_epochs"]
         else:
             raise OSError(
-                "Invalid acquisition type: %i. Your file is neither "
-                "continuous nor epoched data." % (acq_type,)
+                f"Invalid acquisition type: {acq_type}. Your file is neither "
+                "continuous nor epoched data."
             )
 
         #
@@ -781,6 +789,7 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None, verbose=
                     mri_type, meg_type, mri_done, this_meg_done = np.fromfile(
                         fid, INT32, 4
                     )
+                    del mri_type, meg_type, mri_done
                     meg_done[mi] = bool(this_meg_done)
                     fid.seek(3 * KIT.DOUBLE, SEEK_CUR)  # mri_pos
                     mrk[mi] = np.fromfile(fid, FLOAT64, 3)
@@ -797,7 +806,7 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None, verbose=
     # precompute conversion factor for reading data
     if unsupported_format:
         if sysid not in LEGACY_AMP_PARAMS:
-            raise OSError("Legacy parameters for system ID %i unavailable" % (sysid,))
+            raise OSError(f"Legacy parameters for system ID {sysid} unavailable.")
         adc_range, adc_stored = LEGACY_AMP_PARAMS[sysid]
     is_meg = np.array([ch["type"] in KIT.CHANNELS_MEG for ch in channels])
     ad_to_volt = adc_range / (2.0**adc_stored)
@@ -833,7 +842,7 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None, verbose=
         if ch["type"] in KIT.CHANNELS_MEG:
             ch_name = ch.get("name", "")
             if ch_name == "" or standardize_names:
-                ch_name = "MEG %03d" % idx
+                ch_name = f"MEG {idx:03d}"
             # create three orthogonal vector
             # ch_angles[0]: theta, ch_angles[1]: phi
             theta, phi = np.radians(ch["loc"][3:])
@@ -868,7 +877,7 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None, verbose=
             eeg_name = ch_name.lower()
             # some files have all EEG labeled as EEG
             if ch_name in ("", "EEG") or standardize_names:
-                ch_name = "%s %03i" % (ch_type_label, ch_type_index)
+                ch_name = f"{ch_type_label} {ch_type_index:03d}"
             unit = FIFF.FIFF_UNIT_V
             loc = np.zeros(12)
             if eeg_name and eeg_name in dig:
@@ -911,6 +920,8 @@ def read_raw_kit(
     stim_code="binary",
     allow_unknown_format=False,
     standardize_names=False,
+    *,
+    bad_coils=(),
     verbose=None,
 ) -> RawKIT:
     r"""Reader function for Ricoh/KIT conversion to FIF.
@@ -931,6 +942,7 @@ def read_raw_kit(
         Force reading old data that is not officially supported. Alternatively,
         read and re-save the data with the KIT MEG Laboratory application.
     %(standardize_names)s
+    %(kit_badcoils)s
     %(verbose)s
 
     Returns
@@ -965,6 +977,7 @@ def read_raw_kit(
         stim_code=stim_code,
         allow_unknown_format=allow_unknown_format,
         standardize_names=standardize_names,
+        bad_coils=bad_coils,
         verbose=verbose,
     )
 
@@ -1006,8 +1019,12 @@ def read_epochs_kit(
 
     Returns
     -------
-    epochs : instance of Epochs
+    EpochsKIT : instance of BaseEpochs
         The epochs.
+
+    See Also
+    --------
+    mne.Epochs : Documentation of attributes and methods.
 
     Notes
     -----

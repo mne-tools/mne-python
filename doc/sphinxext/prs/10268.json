@@ -1,0 +1,159 @@
+{
+  "merge_commit_sha": "93a3be5d21028331a88c42ef9dfa10566bcd6d1f",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/conf.py": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/logging.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/__init__.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/_ola.py": {
+      "a": 4,
+      "d": 5
+    },
+    "mne/annotations.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/beamformer/resolution_matrix.py": {
+      "a": 0,
+      "d": 13
+    },
+    "mne/channels/channels.py": {
+      "a": 9,
+      "d": 11
+    },
+    "mne/cov.py": {
+      "a": 5,
+      "d": 5
+    },
+    "mne/decoding/receptive_field.py": {
+      "a": 2,
+      "d": 4
+    },
+    "mne/decoding/search_light.py": {
+      "a": 4,
+      "d": 8
+    },
+    "mne/decoding/time_frequency.py": {
+      "a": 5,
+      "d": 7
+    },
+    "mne/decoding/transformer.py": {
+      "a": 10,
+      "d": 10
+    },
+    "mne/dipole.py": {
+      "a": 9,
+      "d": 10
+    },
+    "mne/epochs.py": {
+      "a": 17,
+      "d": 26
+    },
+    "mne/evoked.py": {
+      "a": 10,
+      "d": 13
+    },
+    "mne/filter.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/io/base.py": {
+      "a": 13,
+      "d": 13
+    },
+    "mne/io/curry/tests/test_curry.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/io/fiff/raw.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/io/meas_info.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/proj.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/label.py": {
+      "a": 12,
+      "d": 17
+    },
+    "mne/minimum_norm/inverse.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/morph.py": {
+      "a": 8,
+      "d": 8
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 9,
+      "d": 10
+    },
+    "mne/report/report.py": {
+      "a": 10,
+      "d": 9
+    },
+    "mne/simulation/raw.py": {
+      "a": 1,
+      "d": 3
+    },
+    "mne/source_estimate.py": {
+      "a": 16,
+      "d": 18
+    },
+    "mne/source_space.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/tests/test_morph.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/utils/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/_logging.py": {
+      "a": 61,
+      "d": 37
+    },
+    "mne/utils/docs.py": {
+      "a": 6,
+      "d": 1
+    },
+    "mne/utils/tests/test_logging.py": {
+      "a": 9,
+      "d": 18
+    },
+    "tutorials/intro/50_configure_mne.py": {
+      "a": 5,
+      "d": 2
+    }
+  }
+}

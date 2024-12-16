@@ -1,0 +1,63 @@
+{
+  "merge_commit_sha": "a9b63658006855ad67512eb6dfde8bbaf095acd8",
+  "authors": [
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/annotations.py": {
+      "a": 8,
+      "d": 0
+    },
+    "mne/io/base.py": {
+      "a": 4,
+      "d": 1
+    },
+    "mne/io/nirx/tests/test_nirx.py": {
+      "a": 6,
+      "d": 1
+    },
+    "mne/preprocessing/annotate_nan.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/preprocessing/artifact_detection.py": {
+      "a": 16,
+      "d": 17
+    },
+    "mne/preprocessing/flat.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/preprocessing/tests/test_annotate_nan.py": {
+      "a": 53,
+      "d": 0
+    },
+    "mne/preprocessing/tests/test_artifact_detection.py": {
+      "a": 54,
+      "d": 4
+    },
+    "mne/preprocessing/tests/test_flat.py": {
+      "a": 6,
+      "d": 3
+    },
+    "mne/preprocessing/tests/test_maxwell.py": {
+      "a": 15,
+      "d": 7
+    }
+  }
+}

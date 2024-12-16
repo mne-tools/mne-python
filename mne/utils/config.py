@@ -1,6 +1,6 @@
 """The config functions."""
-# Authors: Eric Larson <larson.eric.d@gmail.com>
-#
+
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -30,6 +30,10 @@ from .misc import _pl
 _temp_home_dir = None
 
 
+class UnknownPlatformError(Exception):
+    """Exception raised for unknown platforms."""
+
+
 def set_cache_dir(cache_dir):
     """Set the directory to be used for temporary file storage.
 
@@ -44,7 +48,7 @@ def set_cache_dir(cache_dir):
         temporary file storage.
     """
     if cache_dir is not None and not op.exists(cache_dir):
-        raise OSError("Directory %s does not exist" % cache_dir)
+        raise OSError(f"Directory {cache_dir} does not exist")
 
     set_config("MNE_CACHE_DIR", cache_dir, set_env=False)
 
@@ -212,6 +216,7 @@ _known_config_wildcards = (
     "MNE_NIRS",  # mne-nirs
     "MNE_KIT2FIFF",  # mne-kit-gui
     "MNE_ICALABEL",  # mne-icalabel
+    "MNE_LSL",  # mne-lsl
 )
 
 
@@ -223,8 +228,8 @@ def _load_config(config_path, raise_error=False):
         except ValueError:
             # No JSON object could be decoded --> corrupt file?
             msg = (
-                "The MNE-Python config file (%s) is not a valid JSON "
-                "file and might be corrupted" % config_path
+                f"The MNE-Python config file ({config_path}) is not a valid JSON "
+                "file and might be corrupted"
             )
             if raise_error:
                 raise RuntimeError(msg)
@@ -314,18 +319,17 @@ def get_config(key=None, default=None, raise_error=False, home_dir=None, use_env
     elif raise_error is True and key not in config:
         loc_env = "the environment or in the " if use_env else ""
         meth_env = (
-            ('either os.environ["%s"] = VALUE for a temporary ' "solution, or " % key)
+            (f'either os.environ["{key}"] = VALUE for a temporary solution, or ')
             if use_env
             else ""
         )
         extra_env = (
-            " You can also set the environment variable before " "running python."
+            " You can also set the environment variable before running python."
             if use_env
             else ""
         )
         meth_file = (
-            'mne.utils.set_config("%s", VALUE, set_env=True) '
-            "for a permanent one" % key
+            f'mne.utils.set_config("{key}", VALUE, set_env=True) for a permanent one'
         )
         raise KeyError(
             f'Key "{key}" not found in {loc_env}'
@@ -367,7 +371,7 @@ def set_config(key, value, home_dir=None, set_env=True):
     if key not in _known_config_types and not any(
         key.startswith(k) for k in _known_config_wildcards
     ):
-        warn('Setting non-standard config type: "%s"' % key)
+        warn(f'Setting non-standard config type: "{key}"')
 
     # Read all previous values
     config_path = get_config_path(home_dir=home_dir)
@@ -376,8 +380,7 @@ def set_config(key, value, home_dir=None, set_env=True):
     else:
         config = dict()
         logger.info(
-            "Attempting to create new mne-python configuration "
-            "file:\n%s" % config_path
+            f"Attempting to create new mne-python configuration file:\n{config_path}"
         )
     if value is None:
         config.pop(key, None)
@@ -468,16 +471,36 @@ def get_subjects_dir(subjects_dir=None, raise_error=False):
     value : Path | None
         The SUBJECTS_DIR value.
     """
+    from_config = False
     if subjects_dir is None:
         subjects_dir = get_config("SUBJECTS_DIR", raise_error=raise_error)
+        from_config = True
+        if subjects_dir is not None:
+            subjects_dir = Path(subjects_dir)
     if subjects_dir is not None:
-        subjects_dir = _check_fname(
-            fname=subjects_dir,
-            overwrite="read",
-            must_exist=True,
-            need_dir=True,
-            name="subjects_dir",
-        )
+        # Emit a nice error or warning if their config is bad
+        try:
+            subjects_dir = _check_fname(
+                fname=subjects_dir,
+                overwrite="read",
+                must_exist=True,
+                need_dir=True,
+                name="subjects_dir",
+            )
+        except FileNotFoundError:
+            if from_config:
+                msg = (
+                    "SUBJECTS_DIR in your MNE-Python configuration or environment "
+                    "does not exist, consider using mne.set_config to fix it: "
+                    f"{subjects_dir}"
+                )
+                if raise_error:
+                    raise FileNotFoundError(msg) from None
+                else:
+                    warn(msg)
+            elif raise_error:
+                raise
+
     return subjects_dir
 
 
@@ -516,7 +539,7 @@ def _get_stim_channel(stim_channel, info, raise_error=True):
     while ch is not None and ch in info["ch_names"]:
         stim_channel.append(ch)
         ch_count += 1
-        ch = get_config("MNE_STIM_CHANNEL_%d" % ch_count)
+        ch = get_config(f"MNE_STIM_CHANNEL_{ch_count}")
     if ch_count > 0:
         return stim_channel
 
@@ -587,12 +610,53 @@ def _get_gpu_info():
     return out
 
 
+def _get_total_memory():
+    """Return the total memory of the system in bytes."""
+    if platform.system() == "Windows":
+        o = subprocess.check_output(
+            [
+                "powershell.exe",
+                "(Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory",
+            ]
+        ).decode()
+        total_memory = int(o)
+    elif platform.system() == "Linux":
+        o = subprocess.check_output(["free", "-b"]).decode()
+        total_memory = int(o.splitlines()[1].split()[1])
+    elif platform.system() == "Darwin":
+        o = subprocess.check_output(["sysctl", "hw.memsize"]).decode()
+        total_memory = int(o.split(":")[1].strip())
+    else:
+        raise UnknownPlatformError("Could not determine total memory")
+
+    return total_memory
+
+
+def _get_cpu_brand():
+    """Return the CPU brand string."""
+    if platform.system() == "Windows":
+        o = subprocess.check_output(
+            ["powershell.exe", "(Get-CimInstance Win32_Processor).Name"]
+        ).decode()
+        cpu_brand = o.strip().splitlines()[-1]
+    elif platform.system() == "Linux":
+        o = subprocess.check_output(["grep", "model name", "/proc/cpuinfo"]).decode()
+        cpu_brand = o.splitlines()[0].split(": ")[1]
+    elif platform.system() == "Darwin":
+        o = subprocess.check_output(["sysctl", "machdep.cpu"]).decode()
+        cpu_brand = o.split("brand_string: ")[1].strip()
+    else:
+        cpu_brand = "?"
+
+    return cpu_brand
+
+
 def sys_info(
     fid=None,
     show_paths=False,
     *,
     dependencies="user",
-    unicode=True,
+    unicode="auto",
     check_version=True,
 ):
     """Print system information.
@@ -609,8 +673,9 @@ def sys_info(
     dependencies : 'user' | 'developer'
         Show dependencies relevant for users (default) or for developers
         (i.e., output includes additional dependencies).
-    unicode : bool
-        Include Unicode symbols in output.
+    unicode : bool | "auto"
+        Include Unicode symbols in output. If "auto", corresponds to True on Linux and
+        macOS, and False on Windows.
 
         .. versionadded:: 0.24
     check_version : bool | float
@@ -623,6 +688,13 @@ def sys_info(
     _validate_type(dependencies, str)
     _check_option("dependencies", dependencies, ("user", "developer"))
     _validate_type(check_version, (bool, "numeric"), "check_version")
+    _validate_type(unicode, (bool, str), "unicode")
+    _check_option("unicode", unicode, ("auto", True, False))
+    if unicode == "auto":
+        if platform.system() in ("Darwin", "Linux"):
+            unicode = True
+        else:  # Windows
+            unicode = False
     ljust = 24 if dependencies == "developer" else 21
     platform_str = platform.platform()
 
@@ -630,15 +702,20 @@ def sys_info(
     out("Platform".ljust(ljust) + platform_str + "\n")
     out("Python".ljust(ljust) + str(sys.version).replace("\n", " ") + "\n")
     out("Executable".ljust(ljust) + sys.executable + "\n")
-    out("CPU".ljust(ljust) + f"{platform.processor()} ")
+    try:
+        cpu_brand = _get_cpu_brand()
+    except Exception:
+        cpu_brand = "?"
+    out("CPU".ljust(ljust) + f"{cpu_brand} ")
     out(f"({multiprocessing.cpu_count()} cores)\n")
     out("Memory".ljust(ljust))
     try:
-        import psutil
-    except ImportError:
-        out('Unavailable (requires "psutil" package)')
+        total_memory = _get_total_memory()
+    except UnknownPlatformError:
+        total_memory = "?"
     else:
-        out(f"{psutil.virtual_memory().total / float(2 ** 30):0.1f} GB\n")
+        total_memory = f"{total_memory / 1024**3:.1f}"  # convert to GiB
+    out(f"{total_memory} GiB\n")
     out("\n")
     ljust -= 3  # account for +/- symbols
     libs = _get_numpy_libs()
@@ -659,6 +736,8 @@ def sys_info(
         "openmeeg",
         "cupy",
         "pandas",
+        "h5io",
+        "h5py",
         "",
         "# Visualization (optional)",
         "pyvista",
@@ -683,16 +762,27 @@ def sys_info(
         "mne-icalabel",
         "mne-bids-pipeline",
         "neo",
+        "eeglabio",
+        "edfio",
+        "mffpy",
+        "pybv",
         "",
     )
     if dependencies == "developer":
         use_mod_names += (
             "# Testing",
             "pytest",
-            "nbclient",
+            "statsmodels",
             "numpydoc",
             "flake8",
+            "jupyter_client",
+            "nbclient",
+            "nbformat",
             "pydocstyle",
+            "nitime",
+            "imageio",
+            "imageio-ffmpeg",
+            "snirf",
             "",
             "# Documentation",
             "sphinx",
@@ -808,7 +898,7 @@ def _get_latest_version(timeout):
         elif "timed out" in str(err):
             return f"timeout after {timeout} sec"
         else:
-            return f"unknown error: {str(err)}"
+            return f"unknown error: {err}"
     else:
         return response["tag_name"].lstrip("v") or "version unknown"
 

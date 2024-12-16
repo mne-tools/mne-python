@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "b495090403202aebb8bbf6dd02a81a439cbcfcb5",
+  "authors": [
+    {
+      "n": null,
+      "e": "timon.merk@charite.de"
+    }
+  ],
+  "changes": {
+    "examples/simulation/plot_simulated_raw_data_using_subject_anatomy.py": {
+      "a": 3,
+      "d": 4
+    }
+  }
+}

@@ -1,6 +1,4 @@
-# Authors: Eric Larson <larson.eric.d@gmail.com>
-#          Federico Raimondo <federaimondo@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -56,7 +54,7 @@ class RawEximia(BaseRaw):
     def __init__(self, fname, preload=False, verbose=None):
         fname = str(_check_fname(fname, "read", True, "fname"))
         data_name = op.basename(fname)
-        logger.info("Loading %s" % data_name)
+        logger.info(f"Loading {data_name}")
         # Create vhdr and vmrk files so that we can use mne_brain_vision2fiff
         n_chan = 64
         sfreq = 1450.0

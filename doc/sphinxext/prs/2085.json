@@ -1,0 +1,83 @@
+{
+  "merge_commit_sha": "315764d7f93f7065c8313869760c4516bcd1fb17",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/connectivity/plot_mne_inverse_coherence_epochs.py": {
+      "a": 2,
+      "d": 2
+    },
+    "examples/connectivity/plot_mne_inverse_psi_visual.py": {
+      "a": 2,
+      "d": 4
+    },
+    "examples/datasets/plot_spm_faces_dataset.py": {
+      "a": 2,
+      "d": 5
+    },
+    "examples/decoding/plot_decoding_spatio_temporal_source.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/inverse/plot_compute_mne_inverse.py": {
+      "a": 1,
+      "d": 2
+    },
+    "examples/inverse/plot_covariance_whitening_dspm.py": {
+      "a": 2,
+      "d": 3
+    },
+    "examples/inverse/plot_dics_beamformer.py": {
+      "a": 2,
+      "d": 3
+    },
+    "examples/inverse/plot_dics_source_power.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/inverse/plot_label_from_stc.py": {
+      "a": 2,
+      "d": 4
+    },
+    "examples/stats/plot_cluster_stats_spatio_temporal.py": {
+      "a": 3,
+      "d": 5
+    },
+    "examples/stats/plot_cluster_stats_spatio_temporal_2samp.py": {
+      "a": 2,
+      "d": 3
+    },
+    "examples/stats/plot_cluster_stats_spatio_temporal_repeated_measures_anova.py": {
+      "a": 2,
+      "d": 3
+    },
+    "mne/coreg.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/label.py": {
+      "a": 4,
+      "d": 3
+    },
+    "mne/source_estimate.py": {
+      "a": 13,
+      "d": 12
+    },
+    "mne/source_space.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/_3d.py": {
+      "a": 45,
+      "d": 46
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 34,
+      "d": 23
+    }
+  }
+}

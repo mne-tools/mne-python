@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "9244365010531de07ac37252f8d5a80cab6d0f56",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "mne/artifacts/stim.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/fiff/meas_info.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/forward.py": {
+      "a": 3,
+      "d": 3
+    }
+  }
+}

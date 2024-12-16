@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "137664c00475d6714ae655eee4fd09ff87bd74c4",
+  "authors": [
+    {
+      "n": "Marijn van Vliet",
+      "e": "w.m.vanvliet@gmail.com"
+    }
+  ],
+  "changes": {
+    ".pre-commit-config.yaml": {
+      "a": 2,
+      "d": 0
+    }
+  }
+}

@@ -1,21 +1,21 @@
-"""Functions for fitting head positions with (c)HPI coils."""
+"""Functions for fitting head positions with (c)HPI coils.
 
-# Next, ``compute_head_pos`` can be used to:
-#
-# 1. Drop coils whose GOF are below ``gof_limit``. If fewer than 3 coils
-#    remain, abandon fitting for the chunk.
-# 2. Fit dev_head_t quaternion (using ``_fit_chpi_quat_subset``),
-#    iteratively dropping coils (as long as 3 remain) to find the best GOF
-#    (using ``_fit_chpi_quat``).
-# 3. If fewer than 3 coils meet the ``dist_limit`` criteria following
-#    projection of the fitted device coil locations into the head frame,
-#    abandon fitting for the chunk.
-#
-# The function ``filter_chpi`` uses the same linear model to filter cHPI
-# and (optionally) line frequencies from the data.
+``compute_head_pos`` can be used to:
 
-# Authors: Eric Larson <larson.eric.d@gmail.com>
-#
+1. Drop coils whose GOF are below ``gof_limit``. If fewer than 3 coils
+   remain, abandon fitting for the chunk.
+2. Fit dev_head_t quaternion (using ``_fit_chpi_quat_subset``),
+   iteratively dropping coils (as long as 3 remain) to find the best GOF
+   (using ``_fit_chpi_quat``).
+3. If fewer than 3 coils meet the ``dist_limit`` criteria following
+   projection of the fitted device coil locations into the head frame,
+   abandon fitting for the chunk.
+
+The function ``filter_chpi`` uses the same linear model to filter cHPI
+and (optionally) line frequencies from the data.
+"""
+
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -115,7 +115,7 @@ def read_head_pos(fname):
     data = np.loadtxt(fname, skiprows=1)  # first line is header, skip it
     data.shape = (-1, 10)  # ensure it's the right size even if empty
     if np.isnan(data).any():  # make sure we didn't do something dumb
-        raise RuntimeError("positions could not be read properly from %s" % fname)
+        raise RuntimeError(f"positions could not be read properly from {fname}")
     return data
 
 
@@ -306,7 +306,7 @@ def extract_chpi_locs_kit(raw, stim_channel="MISC 064", *, verbose=None):
     dtype = np.dtype([("good", "<u4"), ("data", "<f8", (4,))])
     assert dtype.itemsize == header["size"], (dtype.itemsize, header["size"])
     all_data = list()
-    for fname in raw._filenames:
+    for fname in raw.filenames:
         with open(fname) as fid:
             fid.seek(header["offset"])
             all_data.append(
@@ -468,9 +468,9 @@ def _get_hpi_initial_fit(info, adjust=False, verbose=None):
     assert hpi_result["coord_trans"]["to"] == FIFF.FIFFV_COORD_HEAD
     hpi_rrs_fit = apply_trans(hpi_result["coord_trans"]["trans"], hpi_rrs_fit)
     if "moments" in hpi_result:
-        logger.debug("Hpi coil moments (%d %d):" % hpi_result["moments"].shape[::-1])
+        logger.debug(f"Hpi coil moments {hpi_result['moments'].shape[::-1]}:")
         for moment in hpi_result["moments"]:
-            logger.debug("{:g} {:g} {:g}".format(*tuple(moment)))
+            logger.debug(f"{moment[0]:g} {moment[1]:g} {moment[2]:g}")
     errors = np.linalg.norm(hpi_rrs - hpi_rrs_fit, axis=1)
     logger.debug(f"HPIFIT errors:  {', '.join(f'{1000 * e:0.1f}' for e in errors)} mm.")
     if errors.sum() < len(errors) * dist_limit:
@@ -638,11 +638,8 @@ def _setup_hpi_amplitude_fitting(
         )
     else:
         line_freqs = np.zeros([0])
-    logger.info(
-        "Line interference frequencies: {} Hz".format(
-            " ".join([f"{lf}" for lf in line_freqs])
-        )
-    )
+    lfs = " ".join(f"{lf}" for lf in line_freqs)
+    logger.info(f"Line interference frequencies: {lfs} Hz")
     # worry about resampled/filtered data.
     # What to do e.g. if Raw has been resampled and some of our
     # HPI freqs would now be aliased
@@ -757,7 +754,7 @@ def _setup_ext_proj(info, ext_order):
 
 def _time_prefix(fit_time):
     """Format log messages."""
-    return ("    t=%0.3f:" % fit_time).ljust(17)
+    return (f"    t={fit_time:0.3f}:").ljust(17)
 
 
 def _fit_chpi_amplitudes(raw, time_sl, hpi, snr=False):
@@ -995,16 +992,12 @@ def compute_head_pos(
         errs = np.linalg.norm(hpi_dig_head_rrs - est_coil_head_rrs, axis=1)
         n_good = ((g_coils >= gof_limit) & (errs < dist_limit)).sum()
         if n_good < 3:
+            warn_str = ", ".join(
+                f"{1000 * e:0.1f}::{g:0.2f}" for e, g in zip(errs, g_coils)
+            )
             warn(
-                _time_prefix(fit_time)
-                + "{}/{} good HPI fits, cannot "
-                "determine the transformation ({} mm/GOF)!".format(
-                    n_good,
-                    n_coils,
-                    ", ".join(
-                        f"{1000 * e:0.1f}::{g:0.2f}" for e, g in zip(errs, g_coils)
-                    ),
-                )
+                f"{_time_prefix(fit_time)}{n_good}/{n_coils} good HPI fits, cannot "
+                f"determine the transformation ({warn_str} mm/GOF)!"
             )
             continue
 
@@ -1064,11 +1057,8 @@ def compute_head_pos(
             f"    #t = {fit_time:0.3f}, #e = {100 * errs.mean():0.2f} cm, #g = {g:0.3f}"
             f", #v = {100 * v:0.2f} cm/s, #r = {r:0.2f} rad/s, #d = {d:0.2f} cm"
         )
-        logger.debug(
-            "    #t = {:0.3f}, #q = {} ".format(
-                fit_time, " ".join(map("{:8.5f}".format, this_quat))
-            )
-        )
+        q_rep = " ".join(f"{qq:8.5f}" for qq in this_quat)
+        logger.debug(f"    #t = {fit_time:0.3f}, #q = {q_rep}")
 
         quats.append(
             np.concatenate(([fit_time], this_quat, [g], [errs[use_idx].mean()], [v]))
@@ -1093,12 +1083,6 @@ def _fit_chpi_quat_subset(coil_dev_rrs, coil_head_rrs, use_idx):
             if this_g > g:
                 quat, g, out_idx = this_quat, this_g, this_use_idx
     return quat, g, np.array(out_idx, int)
-
-
-@jit()
-def _unit_quat_constraint(x):
-    """Constrain our 3 quaternion rot params (ignoring w) to have norm <= 1."""
-    return 1 - (x * x).sum()
 
 
 @verbose
@@ -1219,8 +1203,8 @@ def _compute_chpi_amp_or_snr(
         np.arange(tmin + need_win, tmax, t_step_min), use_rounding=True
     )
     logger.info(
-        "Fitting %d HPI coil locations at up to %s time points "
-        "(%0.1f s duration)" % (len(hpi["freqs"]), len(fit_idxs), tmax - tmin)
+        f"Fitting {len(hpi['freqs'])} HPI coil locations at up to "
+        f"{len(fit_idxs)} time points ({tmax - tmin:.1f} s duration)"
     )
     del tmin, tmax
     sin_fits = dict()
@@ -1354,8 +1338,8 @@ def compute_chpi_locs(
         dict(R=R, r0=np.zeros(3)), 0.01, 0.0, 0.005, verbose=safe_false
     )[0]["rr"]
     logger.info(
-        "Computing %d HPI location guesses (1 cm grid in a %0.1f cm "
-        "sphere)" % (len(guesses), R * 100)
+        f"Computing {len(guesses)} HPI location guesses "
+        f"(1 cm grid in a {R * 100:.1f} cm sphere)"
     )
     fwd = _magnetic_dipole_field_vec(guesses, meg_coils, too_close)
     fwd = np.dot(fwd, whitener.T)
@@ -1519,11 +1503,11 @@ def filter_chpi(
     meg_picks = pick_types(raw.info, meg=True, exclude=())  # filter all chs
     n_times = len(raw.times)
 
-    msg = "Removing %s cHPI" % n_freqs
+    msg = f"Removing {n_freqs} cHPI"
     if include_line:
         n_remove += 2 * len(hpi["line_freqs"])
-        msg += " and %s line harmonic" % len(hpi["line_freqs"])
-    msg += " frequencies from %s MEG channels" % len(meg_picks)
+        msg += f" and {len(hpi['line_freqs'])} line harmonic"
+    msg += f" frequencies from {len(meg_picks)} MEG channels"
 
     recon = np.dot(hpi["model"][:, :n_remove], hpi["inv_model"][:n_remove]).T
     logger.info(msg)

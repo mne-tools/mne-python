@@ -1,1 +1,0 @@
-- Fix the default color of :meth:`mne.viz.Brain.add_text` to properly contrast with the figure background color, by `Marijn van Vliet`_.

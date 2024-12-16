@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "79b5da63d441a2008a1aae756bc9a7b776d0bc1e",
+  "authors": [
+    {
+      "n": "Christian Brodbeck",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/bem.py": {
+      "a": 4,
+      "d": 6
+    }
+  }
+}

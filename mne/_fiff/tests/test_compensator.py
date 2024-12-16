@@ -1,5 +1,4 @@
-# Author: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -88,7 +87,7 @@ def test_compensation_mne(tmp_path):
 
     def compensate_mne(fname, comp):
         """Compensate using MNE-C."""
-        tmp_fname = "%s-%d-ave.fif" % (fname.stem, comp)
+        tmp_fname = f"{fname.stem}-{comp}-ave.fif"
         cmd = [
             "mne_compensate_data",
             "--in",

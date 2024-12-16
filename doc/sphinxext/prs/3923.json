@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "ef6b1063b642af19c08221923dc7679e5a865650",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "doc/manual/datasets_index.rst": {
+      "a": 20,
+      "d": 1
+    },
+    "doc/python_reference.rst": {
+      "a": 14,
+      "d": 0
+    },
+    "doc/whats_new.rst": {
+      "a": 5,
+      "d": 1
+    },
+    "examples/decoding/decoding_rsa.py": {
+      "a": 180,
+      "d": 0
+    },
+    "examples/decoding/plot_decoding_csp_eeg.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/epochs.py": {
+      "a": 7,
+      "d": 3
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

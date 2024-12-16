@@ -1,0 +1,63 @@
+{
+  "merge_commit_sha": "8fc3d07c8ab32101cba41723f3f8d825a08166df",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".circleci/config.yml": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/datasets/_fetch.py": {
+      "a": 12,
+      "d": 9
+    },
+    "mne/datasets/config.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/datasets/eegbci/eegbci.py": {
+      "a": 20,
+      "d": 7
+    },
+    "mne/datasets/limo/limo.py": {
+      "a": 21,
+      "d": 8
+    },
+    "mne/datasets/sleep_physionet/_utils.py": {
+      "a": 22,
+      "d": 15
+    },
+    "mne/datasets/sleep_physionet/age.py": {
+      "a": 20,
+      "d": 7
+    },
+    "mne/datasets/sleep_physionet/temazepam.py": {
+      "a": 20,
+      "d": 7
+    },
+    "mne/datasets/sleep_physionet/tests/test_physionet.py": {
+      "a": 21,
+      "d": 27
+    },
+    "mne/datasets/tests/test_datasets.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/datasets/utils.py": {
+      "a": 71,
+      "d": 35
+    },
+    "mne/utils/config.py": {
+      "a": 1,
+      "d": 0
+    },
+    "tools/circleci_download.sh": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

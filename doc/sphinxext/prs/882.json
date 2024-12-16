@@ -1,0 +1,67 @@
+{
+  "merge_commit_sha": "d9c062402b7a5efb89d606e132b1f70b91325eb8",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/fiff/__init__.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/fiff/bti/raw.py": {
+      "a": 18,
+      "d": 16
+    },
+    "mne/fiff/bti/tests/test_bti.py": {
+      "a": 4,
+      "d": 3
+    },
+    "mne/fiff/kit/kit.py": {
+      "a": 8,
+      "d": 6
+    },
+    "mne/fiff/kit/tests/data/trans-sample.fif": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/fiff/kit/tests/test_kit.py": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/fiff/pick.py": {
+      "a": 12,
+      "d": 0
+    },
+    "mne/fiff/raw.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/fiff/tag.py": {
+      "a": 11,
+      "d": 6
+    },
+    "mne/fiff/write.py": {
+      "a": 11,
+      "d": 7
+    },
+    "mne/forward/_make_forward.py": {
+      "a": 30,
+      "d": 12
+    },
+    "mne/forward/tests/test_make_forward.py": {
+      "a": 76,
+      "d": 25
+    },
+    "mne/source_space.py": {
+      "a": 12,
+      "d": 0
+    },
+    "mne/tests/test_source_space.py": {
+      "a": 4,
+      "d": 4
+    }
+  }
+}

@@ -1,5 +1,7 @@
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 import copy
 import re
 from pathlib import Path
@@ -85,7 +87,6 @@ fname_trans = s_path / "sample_audvis_trunc-trans.fif"
 subjects_dir = test_path / "subjects"
 s_path_bem = subjects_dir / "sample" / "bem"
 fname_bem = s_path_bem / "sample-320-320-320-bem-sol.fif"
-fname_bem_homog = s_path_bem / "sample-320-bem-sol.fif"
 src_fname = s_path_bem / "sample-oct-4-src.fif"
 
 snr = 3.0
@@ -146,7 +147,7 @@ def _compare(a, b):
             assert len(a) == len(b)
             for i, j in zip(a, b):
                 _compare(i, j)
-        elif isinstance(a, sparse.csr_matrix):
+        elif isinstance(a, sparse.csr_array):
             assert_array_almost_equal(a.data, b.data)
             assert_equal(a.indices, b.indices)
             assert_equal(a.indptr, b.indptr)
@@ -304,7 +305,7 @@ def test_make_inverse_operator_loose(evoked, tmp_path):
         )
     log = log.getvalue()
     assert "MEG: rank 302 computed" in log
-    assert "limit = 1/%d" % fwd_op["nsource"] in log
+    assert f"limit = 1/{fwd_op['nsource']}" in log
     assert "Loose (0.2)" in repr(my_inv_op)
     _compare_io(my_inv_op, tmp_path=tmp_path)
     assert_equal(inverse_operator["units"], "Am")
@@ -345,7 +346,7 @@ def test_inverse_operator_channel_ordering(evoked, noise_cov):
             evoked.info, fwd_orig, noise_cov, loose=0.2, depth=depth, verbose=True
         )
     log = log.getvalue()
-    assert "limit = 1/%s" % fwd_orig["nsource"] in log
+    assert f"limit = 1/{fwd_orig['nsource']}" in log
     stc_1 = apply_inverse(evoked, inv_orig, lambda2, "dSPM")
 
     # Assume that a raw reordering applies to both evoked and noise_cov,
@@ -965,6 +966,11 @@ def test_inverse_operator_noise_cov_rank(evoked, noise_cov):
     assert compute_rank_inverse(inv) == 64
     inv = make_inverse_operator(evoked.info, fwd_op, noise_cov, rank=dict(meg=64))
     assert compute_rank_inverse(inv) == 64
+
+    bad_cov = noise_cov.copy()
+    bad_cov["data"][0, 0] *= 1e12
+    with pytest.warns(RuntimeWarning, match="orders of magnitude"):
+        make_inverse_operator(evoked.info, fwd_op, bad_cov, rank=dict(meg=64))
 
     fwd_op = read_forward_solution_eeg(fname_fwd, surf_ori=True)
     inv = make_inverse_operator(evoked.info, fwd_op, noise_cov, rank=dict(eeg=20))

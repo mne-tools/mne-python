@@ -5,11 +5,9 @@ on:  # yamllint disable-line rule:truthy
   release:
     types: [published]
   push:
-    branches:
-      - main
+    branches: ["main", "maint/*"]
   pull_request:
-    branches:
-      - main
+    branches: ["main", "maint/*"]
 
 permissions:
   contents: read
@@ -19,6 +17,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-python@v5
         with:
           python-version: '3.10'

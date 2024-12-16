@@ -1,13 +1,6 @@
 """Functions to plot M/EEG data e.g. topographies."""
 
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Denis Engemann <denis.engemann@gmail.com>
-#          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
-#          Eric Larson <larson.eric.d@gmail.com>
-#          Robert Luke <mail@robertluke.net>
-#          Mikołaj Magnuski <mmagnuski@swps.edu.pl>
-#          Marijn van Vliet <w.m.vanvliet@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -23,7 +16,7 @@ from scipy.interpolate import (
     LinearNDInterpolator,
     NearestNDInterpolator,
 )
-from scipy.sparse import csr_matrix
+from scipy.sparse import csr_array
 from scipy.spatial import Delaunay, Voronoi
 from scipy.spatial.distance import pdist, squareform
 
@@ -164,7 +157,7 @@ def _prepare_topomap_plot(inst, ch_type, sphere=None):
             picks = pick_types(info, meg=ch_type, ref_meg=False, exclude="bads")
 
         if len(picks) == 0:
-            raise ValueError("No channels of type %r" % ch_type)
+            raise ValueError(f"No channels of type {ch_type!r}")
 
         pos = _find_topomap_coords(info, picks, sphere=sphere)
 
@@ -664,7 +657,7 @@ def _make_head_outlines(sphere, pos, outlines, clip_origin):
 
     elif isinstance(outlines, dict):
         if "mask_pos" not in outlines:
-            raise ValueError("You must specify the coordinates of the image " "mask.")
+            raise ValueError("You must specify the coordinates of the image mask.")
     else:
         raise ValueError("Invalid value for `outlines`.")
 
@@ -1212,9 +1205,7 @@ def _plot_topomap(
 
         # check if there is only 1 channel type, and n_chans matches the data
         ch_type = pos.get_channel_types(picks=None, unique=True)
-        info_help = (
-            "Pick Info with e.g. mne.pick_info and " "mne.channel_indices_by_type."
-        )
+        info_help = "Pick Info with e.g. mne.pick_info and mne.channel_indices_by_type."
         if len(ch_type) > 1:
             raise ValueError("Multiple channel types in Info structure. " + info_help)
         elif len(pos["chs"]) != data.shape[0]:
@@ -1238,8 +1229,7 @@ def _plot_topomap(
     extrapolate = _check_extrapolate(extrapolate, ch_type)
     if data.ndim > 1:
         raise ValueError(
-            "Data needs to be array of shape (n_sensors,); got "
-            "shape %s." % str(data.shape)
+            f"Data needs to be array of shape (n_sensors,); got shape {data.shape}."
         )
 
     # Give a helpful error message for common mistakes regarding the position
@@ -1329,7 +1319,7 @@ def _plot_topomap(
     # because mpl has probably fixed it
     linewidth = mask_params["markeredgewidth"]
     cont = True
-    if isinstance(contours, (np.ndarray, list)):
+    if isinstance(contours, np.ndarray | list):
         pass
     elif contours == 0 or ((Zi == Zi[0, 0]) | np.isnan(Zi)).all():
         cont = None  # can't make contours for constant-valued functions
@@ -1420,7 +1410,7 @@ def _plot_ica_topomap(
     if not isinstance(axes, Axes):
         raise ValueError(
             "axis has to be an instance of matplotlib Axes, "
-            "got %s instead." % type(axes)
+            f"got {type(axes)} instead."
         )
     ch_type = _get_plot_ch_type(ica, ch_type, allow_ref_meg=ica.allow_ref_meg)
     if ch_type == "ref_meg":
@@ -1744,7 +1734,7 @@ def plot_ica_components(
         fig.canvas.mpl_connect("button_press_event", onclick_title)
 
         # add plot_properties interactivity only if inst was passed
-        if isinstance(inst, (BaseRaw, BaseEpochs)):
+        if isinstance(inst, BaseRaw | BaseEpochs):
             topomap_args = dict(
                 sensors=sensors,
                 contours=contours,
@@ -1932,7 +1922,7 @@ def plot_tfr_topomap(
     _hide_frame(axes)
 
     locator = None
-    if not isinstance(contours, (list, np.ndarray)):
+    if not isinstance(contours, list | np.ndarray):
         locator, contours = _set_contour_locator(*vlim, contours)
 
     fig_wrapper = list()
@@ -1949,7 +1939,7 @@ def plot_tfr_topomap(
         fig=fig_wrapper,
     )
 
-    if not isinstance(contours, (list, np.ndarray)):
+    if not isinstance(contours, list | np.ndarray):
         _, contours = _set_contour_locator(*vlim, contours)
 
     names = _prepare_sensor_names(names, show_names)
@@ -2156,7 +2146,7 @@ def plot_evoked_topomap(
     axes_given = axes is not None
     interactive = isinstance(times, str) and times == "interactive"
     if interactive and axes_given:
-        raise ValueError("User-provided axes not allowed when " "times='interactive'.")
+        raise ValueError("User-provided axes not allowed when times='interactive'.")
     # units, scalings
     key = "grad" if ch_type.startswith("planar") else ch_type
     default_scaling = _handle_default("scalings", None)[key]
@@ -2300,7 +2290,7 @@ def plot_evoked_topomap(
     _vlim = (np.min(_vlim), np.max(_vlim))
     cmap = _setup_cmap(cmap, n_axes=n_times, norm=_vlim[0] >= 0)
     # set up contours
-    if not isinstance(contours, (list, np.ndarray)):
+    if not isinstance(contours, list | np.ndarray):
         _, contours = _set_contour_locator(*_vlim, contours)
     # prepare for main loop over times
     kwargs = dict(
@@ -2845,7 +2835,7 @@ def plot_psds_topomap(
     for ax, _mask, _data, (title, (fmin, fmax)) in zip(
         axes, freq_masks, band_data, bands.items()
     ):
-        colorbar = (not joint_vlim) or ax == axes[-1]
+        plot_colorbar = False if not colorbar else (not joint_vlim) or ax == axes[-1]
         _plot_topomap_multi_cbar(
             _data,
             pos,
@@ -2854,7 +2844,7 @@ def plot_psds_topomap(
             vlim=vlim,
             cmap=cmap,
             outlines=outlines,
-            colorbar=colorbar,
+            colorbar=plot_colorbar,
             unit=unit,
             cbar_fmt=cbar_fmt,
             sphere=sphere,
@@ -2886,7 +2876,7 @@ def plot_layout(layout, picks=None, show_axes=False, show=True):
     ----------
     layout : None | Layout
         Layout instance specifying sensor positions.
-    %(picks_nostr)s
+    %(picks_layout)s
     show_axes : bool
             Show layout axes if True. Defaults to False.
     show : bool
@@ -2910,10 +2900,8 @@ def plot_layout(layout, picks=None, show_axes=False, show=True):
     ax.set(xticks=[], yticks=[], aspect="equal")
     outlines = dict(border=([0, 1, 1, 0, 0], [0, 0, 1, 1, 0]))
     _draw_outlines(ax, outlines)
-    picks = _picks_to_idx(len(layout.names), picks)
-    pos = layout.pos[picks]
-    names = np.array(layout.names)[picks]
-    for ii, (p, ch_id) in enumerate(zip(pos, names)):
+    layout = layout.copy().pick(picks)
+    for ii, (p, ch_id) in enumerate(zip(layout.pos, layout.names)):
         center_pos = np.array((p[0] + p[2] / 2.0, p[1] + p[3] / 2.0))
         ax.annotate(
             ch_id,
@@ -3005,7 +2993,7 @@ def _onselect(
         tfr.freqs[ifmax],
     )
 
-    title = "Average over %d %s channels." % (len(chs), ch_type)
+    title = f"Average over {len(chs)} {ch_type} channels."
     ax.set_title(title)
     ax.set_xlabel("Time (ms)")
     ax.set_ylabel("Frequency (Hz)")
@@ -3027,7 +3015,7 @@ def _prepare_topomap(pos, ax, check_nonzero=True):
     _hide_frame(ax)
     if check_nonzero and not pos.any():
         raise RuntimeError(
-            "No position information found, cannot compute " "geometries for topomap."
+            "No position information found, cannot compute geometries for topomap."
         )
 
 
@@ -3252,28 +3240,15 @@ def _topomap_animation(
     from matplotlib import pyplot as plt
 
     if ch_type is None:
-        ch_type = _picks_by_type(evoked.info)[0][0]
-    if ch_type not in (
-        "mag",
-        "grad",
-        "eeg",
-        "hbo",
-        "hbr",
-        "fnirs_od",
-        "fnirs_cw_amplitude",
-    ):
-        raise ValueError(
-            "Channel type not supported. Supported channel "
-            "types include 'mag', 'grad', 'eeg'. 'hbo', 'hbr', "
-            "'fnirs_cw_amplitude', and 'fnirs_od'."
-        )
+        ch_type = _get_plot_ch_type(evoked, ch_type)
+
     time_unit, _ = _check_time_unit(time_unit, evoked.times)
     if times is None:
         times = np.linspace(evoked.times[0], evoked.times[-1], 10)
     times = np.array(times)
 
     if times.ndim != 1:
-        raise ValueError("times must be 1D, got %d dimensions" % times.ndim)
+        raise ValueError(f"times must be 1D, got {times.ndim} dimensions")
     if max(times) > evoked.times[-1] or min(times) < evoked.times[0]:
         raise ValueError("All times must be inside the evoked time series.")
     frames = [np.abs(evoked.times - time).argmin() for time in times]
@@ -3600,8 +3575,8 @@ def plot_arrowmap(
 
     if ch_type not in ("mag", "grad"):
         raise ValueError(
-            "Channel type '%s' not supported. Supported channel "
-            "types are 'mag' and 'grad'." % ch_type
+            f"Channel type '{ch_type}' not supported. Supported channel "
+            "types are 'mag' and 'grad'."
         )
 
     if info_to is None and ch_type == "mag":
@@ -3614,9 +3589,7 @@ def plot_arrowmap(
             ch_type = ch_type[0][0]
 
         if ch_type != "mag":
-            raise ValueError(
-                "only 'mag' channel type is supported. " "Got %s" % ch_type
-            )
+            raise ValueError(f"only 'mag' channel type is supported. Got {ch_type}")
 
     if info_to is not info_from:
         info_to = pick_info(info_to, pick_types(info_to, meg=True))
@@ -3789,8 +3762,8 @@ def plot_ch_adjacency(info, adjacency, ch_names, kind="2d", edit=False):
     import matplotlib.pyplot as plt
 
     _validate_type(info, Info, "info")
-    _validate_type(adjacency, (np.ndarray, csr_matrix), "adjacency")
-    has_sparse = isinstance(adjacency, csr_matrix)
+    _validate_type(adjacency, (np.ndarray, csr_array), "adjacency")
+    has_sparse = isinstance(adjacency, csr_array)
 
     if edit and kind == "3d":
         raise ValueError("Editing a 3d adjacency plot is not supported.")
@@ -3829,7 +3802,7 @@ def plot_ch_adjacency(info, adjacency, ch_names, kind="2d", edit=False):
         path_collection[0].set_zorder(10)
 
         # scale node size with number of connections
-        n_connections = [np.sum(adjacency[i]) - 1 for i in range(adjacency.shape[0])]
+        n_connections = [np.sum(adjacency[[i]]) - 1 for i in range(adjacency.shape[0])]
         node_size = [max(x, 3) ** 2.5 for x in n_connections]
         path_collection[0].set_sizes(node_size)
     else:
@@ -3845,7 +3818,7 @@ def plot_ch_adjacency(info, adjacency, ch_names, kind="2d", edit=False):
     n_channels = adjacency.shape[0]
     for ch_idx in range(n_channels):
         # make sure we don't repeat channels
-        row = adjacency[ch_idx, ch_idx + 1 :]
+        row = adjacency[[ch_idx], ch_idx + 1 :]
         if has_sparse:
             ch_neighbours = row.nonzero()[1]
         else:
@@ -3941,7 +3914,7 @@ def _onpick_ch_adjacency(
 
             # update node sizes
             n_connections = [
-                np.sum(adjacency[idx]) - 1 + n_conn_change for idx in both_nodes
+                np.sum(adjacency[[idx]]) - 1 + n_conn_change for idx in both_nodes
             ]
             for idx, n_conn in zip(both_nodes, n_connections):
                 node_size[idx] = max(n_conn, 3) ** 2.5

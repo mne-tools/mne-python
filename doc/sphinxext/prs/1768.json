@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "087b568d88ae85c8478c7c4f8b9ccd974f98a43c",
+  "authors": [
+    {
+      "n": "Denis A. Engemann",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/preprocessing/bads.py": {
+      "a": 9,
+      "d": 5
+    }
+  }
+}

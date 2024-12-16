@@ -1,0 +1,71 @@
+{
+  "merge_commit_sha": "1439ff81d5fe6da13ab59bb1152bbf261123452b",
+  "authors": [
+    {
+      "n": "Rob Luke",
+      "e": null
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Robert Luke",
+      "e": "mail@robertluke.net"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/conf.py": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/python_reference.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/datasets/utils.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/__init__.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/snirf/__init__.py": {
+      "a": 7,
+      "d": 0
+    },
+    "mne/io/snirf/_snirf.py": {
+      "a": 203,
+      "d": 0
+    },
+    "mne/io/snirf/tests/__init__.py": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/io/snirf/tests/test_snirf.py": {
+      "a": 100,
+      "d": 0
+    },
+    "mne/utils/check.py": {
+      "a": 7,
+      "d": 0
+    },
+    "tutorials/io/plot_30_reading_fnirs_data.py": {
+      "a": 17,
+      "d": 3
+    }
+  }
+}

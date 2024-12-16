@@ -38,8 +38,10 @@ data. The :ref:`MNE-Sample <sample-dataset>` dataset has some clear, large
 blink artifacts, especially during the presentation of visual stimuli.
 """
 
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 # %%
 import numpy as np
 
@@ -147,7 +149,7 @@ fig = model_sub.plot(vlim=(None, 0.4))
 fig.set_size_inches(3, 2)
 
 # apply the regression coefficients to the original epochs
-epochs_clean_sub = model_plain.apply(epochs).apply_baseline()
+epochs_clean_sub = model_sub.apply(epochs).apply_baseline()
 fig = epochs_clean_sub.average("all").plot(**plot_kwargs)
 fig.set_size_inches(6, 6)
 

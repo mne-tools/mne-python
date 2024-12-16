@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "aa7ea77b7f4be41e99665c45ae571cb7ea9e8a66",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "examples/visualization/plot_evoked_arrowmap.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/topomap.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

@@ -1,9 +1,9 @@
-# Authors: MNE Developers
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
 import datetime as dt
+from collections.abc import Callable
 
 import numpy as np
 
@@ -11,7 +11,21 @@ from ..utils import _check_edfio_installed, warn
 
 _check_edfio_installed()
 from edfio import Edf, EdfAnnotation, EdfSignal, Patient, Recording  # noqa: E402
-from edfio._utils import round_float_to_8_characters  # noqa: E402
+
+
+# copied from edfio (Apache license)
+def _round_float_to_8_characters(
+    value: float,
+    round_func: Callable[[float], int],
+) -> float:
+    if isinstance(value, int) or value.is_integer():
+        return value
+    length = 8
+    integer_part_length = str(value).find(".")
+    if integer_part_length == length:
+        return round_func(value)
+    factor = 10 ** (length - 1 - integer_part_length)
+    return round_func(value * factor) / factor
 
 
 def _export_raw(fname, raw, physical_range, add_ch_type):
@@ -26,6 +40,7 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
     )
 
     digital_min, digital_max = -32767, 32767
+    annotations = []
 
     # load data first
     raw.load_data()
@@ -47,12 +62,17 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
         if (pad_width := int(np.ceil(n_times / sfreq) * sfreq - n_times)) > 0:
             warn(
                 "EDF format requires equal-length data blocks, so "
-                f"{pad_width / sfreq:.3g} seconds of zeros were appended to all "
+                f"{pad_width / sfreq:.3g} seconds of edge values were appended to all "
                 "channels when writing the final block."
             )
-            data = np.pad(data, (0, int(pad_width)))
+            data = np.pad(data, (0, int(pad_width)), "edge")
+            annotations.append(
+                EdfAnnotation(
+                    raw.times[-1] + 1 / sfreq, pad_width / sfreq, "BAD_ACQ_SKIP"
+                )
+            )
     else:
-        data_record_duration = round_float_to_8_characters(
+        data_record_duration = _round_float_to_8_characters(
             np.floor(sfreq) / sfreq, round
         )
         out_sfreq = np.floor(sfreq) / data_record_duration
@@ -79,6 +99,8 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
             _data = raw.get_data(units=units, picks=_picks)
             ch_types_phys_max[_type] = _data.max()
             ch_types_phys_min[_type] = _data.min()
+    elif physical_range == "channelwise":
+        prange = None
     else:
         # get the physical min and max of the data in uV
         # Physical ranges of the data in uV are usually set by the manufacturer and
@@ -101,6 +123,7 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
                 f" passed in {pmin}."
             )
         data = np.clip(data, pmin, pmax)
+        prange = pmin, pmax
     signals = []
     for idx, ch in enumerate(raw.ch_names):
         ch_type = ch_types[idx]
@@ -112,10 +135,12 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
                 "before exporting to EDF."
             )
 
-        if physical_range == "auto":
-            # take the channel type minimum and maximum
+        if physical_range == "auto":  # per channel type
             pmin = ch_types_phys_min[ch_type]
             pmax = ch_types_phys_max[ch_type]
+            if pmax == pmin:
+                pmax = pmin + 1
+            prange = pmin, pmax
 
         signals.append(
             EdfSignal(
@@ -124,7 +149,7 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
                 label=signal_label,
                 transducer_type="",
                 physical_dimension="" if ch_type == "stim" else "uV",
-                physical_range=(pmin, pmax),
+                physical_range=prange,
                 digital_range=(digital_min, digital_max),
                 prefiltering=filter_str_info,
             )
@@ -140,8 +165,6 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
         name = "_".join(filter(None, [first_name, middle_name, last_name]))
 
         birthday = subj_info.get("birthday")
-        if birthday is not None:
-            birthday = dt.date(*birthday)
         hand = subj_info.get("hand")
         weight = subj_info.get("weight")
         height = subj_info.get("height")
@@ -179,7 +202,6 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
     else:
         recording = Recording(startdate=startdate)
 
-    annotations = []
     for desc, onset, duration, ch_names in zip(
         raw.annotations.description,
         raw.annotations.onset,

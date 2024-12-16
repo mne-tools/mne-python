@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "fdcfac7cf2b2620a8b16af595a31ada1bc0b0592",
+  "authors": [
+    {
+      "n": "ashdrew",
+      "e": "ashdrew@uw.edu"
+    }
+  ],
+  "changes": {
+    "tutorials/intro/10_overview.py": {
+      "a": 5,
+      "d": 6
+    },
+    "tutorials/intro/15_inplace.py": {
+      "a": 2,
+      "d": 3
+    },
+    "tutorials/intro/20_events_from_raw.py": {
+      "a": 3,
+      "d": 4
+    },
+    "tutorials/intro/30_info.py": {
+      "a": 2,
+      "d": 3
+    }
+  }
+}

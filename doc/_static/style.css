@@ -7,14 +7,26 @@
     --pst-font-family-monospace: 'Source Code Pro', var(--pst-font-family-monospace-system);
     /* colors that aren't responsive to light/dark mode */
     --mne-color-discord: #5865F2;
-    --mne-color-primary: #007bff;
-    --mne-color-primary-highlight: #0063cc;
     /* font weight */
     --mne-font-weight-semibold: 600;
 }
 
 
 html[data-theme="light"] {
+    /* pydata-sphinx-theme overrides */
+    /* ↓↓↓ use default "info" colors for "primary" */
+    --pst-color-primary: #276be9;
+    --pst-color-primary-bg: #dce7fc;
+    /* ↓↓↓ use default "primary" colors for "info" */
+    --pst-color-info: var(--pst-teal-500);
+    --pst-color-info-bg: var(--pst-teal-200);
+    /* ↓↓↓ use "warning" colors for "secondary" */
+    --pst-color-secondary: var(--pst-color-warning);
+    --pst-color-secondary-bg: var(--pst-color-warning-bg);
+    /* ↓↓↓ make sure new primary (link) color propogates to links on code */
+    --pst-color-inline-code-links: var(--pst-color-link);
+    /* ↓↓↓ make sure new secondary (hover) color propogates to hovering on table rows */
+    --pst-color-table-row-hover-bg: var(--pst-color-secondary-bg);
     /* topbar logo links */
     --mne-color-github: #000;
     --mne-color-discourse: #d0232b;
@@ -23,25 +35,30 @@ html[data-theme="light"] {
     --copybtn-opacity: 0.75;
     /* card header bg color */
     --mne-color-card-header: rgba(0, 0, 0, 0.05);
-    /* section headings */
-    --mne-color-heading: #003e80;
-    /* pydata-sphinx-theme overrides */
-    --pst-color-primary: var(--mne-color-primary);
-    --pst-color-primary-highlight: var(--mne-color-primary-highlight);
-    --pst-color-info: var(--pst-color-primary);
-    --pst-color-border: #ccc;
-    --pst-color-background: #fff;
-    --pst-color-link: var(--pst-color-primary-highlight);
     /* sphinx-gallery overrides */
     --sg-download-a-background-color: var(--pst-color-primary);
     --sg-download-a-background-image: unset;
     --sg-download-a-border-color: var(--pst-color-border);
-    --sg-download-a-color: #fff;
+    --sg-download-a-color: var(--sd-color-primary-text);
     --sg-download-a-hover-background-color: var(--pst-color-primary-highlight);
     --sg-download-a-hover-box-shadow-1: none;
     --sg-download-a-hover-box-shadow-2: none;
 }
 html[data-theme="dark"] {
+    /* pydata-sphinx-theme overrides */
+    /* ↓↓↓ use default "info" colors for "primary" */
+    --pst-color-primary: #79a3f2;
+    --pst-color-primary-bg: #06245d;
+    /* ↓↓↓ use default "primary" colors for "info" */
+    --pst-color-info: var(--pst-teal-400);
+    --pst-color-info-bg: var(--pst-teal-800);
+    /* ↓↓↓ use "warning" colors for "secondary" */
+    --pst-color-secondary: var(--pst-color-warning);
+    --pst-color-secondary-bg: var(--pst-color-warning-bg);
+    /* ↓↓↓ make sure new primary (link) color propogates to links on code */
+    --pst-color-inline-code-links: var(--pst-color-link);
+    /* ↓↓↓ make sure new secondary (hover) color propogates to hovering on table rows */
+    --pst-color-table-row-hover-bg: var(--pst-color-secondary-bg);
     /* topbar logo links */
     --mne-color-github: rgb(240, 246, 252);  /* from their logo SVG */
     --mne-color-discourse: #FFF9AE;  /* from their logo SVG */
@@ -50,27 +67,14 @@ html[data-theme="dark"] {
     --copybtn-opacity: 0.25;
     /* card header bg color */
     --mne-color-card-header: rgba(255, 255, 255, 0.2);
-    /* section headings */
-    --mne-color-heading: #b8cbe0;
-    /* pydata-sphinx-theme overrides */
-    --pst-color-primary: var(--mne-color-primary);
-    --pst-color-primary-highlight: var(--mne-color-primary-highlight);
-    --pst-color-info: var(--pst-color-primary);
-    --pst-color-border: #333;
-    --pst-color-background: #000;
-    --pst-color-link: #66b0ff;
-    --pst-color-on-background: #1e1e1e;
     /* sphinx-gallery overrides */
     --sg-download-a-background-color: var(--pst-color-primary);
     --sg-download-a-background-image: unset;
     --sg-download-a-border-color: var(--pst-color-border);
-    --sg-download-a-color: #000;
+    --sg-download-a-color: var(--sd-color-primary-text);
     --sg-download-a-hover-background-color: var(--pst-color-primary-highlight);
     --sg-download-a-hover-box-shadow-1: none;
     --sg-download-a-hover-box-shadow-2: none;
-}
-h1, h2, h3, h4, h5, h6 {
-    color: var(--mne-color-heading);
 }
 
 /* ************************************************************ Sphinx fixes */
@@ -99,11 +103,6 @@ html[data-theme="dark"] img {
     filter: none;
 }
 
-/* prev/next links */
-.prev-next-area a p.prev-next-title {
-    color: var(--pst-color-link);
-}
-
 /* make versionadded smaller and inline with param name */
 /* don't do for deprecated / versionchanged; they have extra info (too long to fit) */
 div.versionadded > p {
@@ -128,11 +127,11 @@ a.sphx-glr-backref-instance:hover {
 }
 /* backreference links: make non-MNE func/meth calls resemble regular code */
 a[class^="sphx-glr-backref-module"] {
-    color: rgb(var(--pst-color-text-base));
+    color: var(--pst-color-text-base);
 }
 /* backreference links: make MNE calls bold and colorful */
 a[class^="sphx-glr-backref-module-mne"] {
-    color: rgb(var(--pst-color-link));
+    color: var(--pst-color-link);
     font-weight: var(--mne-font-weight-semibold);
 }
 /* suppress redundant note at top of every tutorial and signature at the end */
@@ -148,7 +147,14 @@ p.sphx-glr-signature {
     border-radius: 0.5rem;
     /* ↓↓↓↓↓↓↓ these two rules copied from sphinx-design */
     box-shadow: 0 .125rem .25rem var(--sd-color-shadow) !important;
+    text-decoration: none;
     transition: color .15s ease-in-out,background-color .15s ease-in-out,border-color .15s ease-in-out,box-shadow .15s ease-in-out;
+}
+.sphx-glr-download a.download code {
+    color: var(--sg-download-a-color);
+}
+.sphx-glr-download a.download::before {
+    color: var(--sg-download-a-color);
 }
 /* Report embedding */
 iframe.sg_report {
@@ -176,20 +182,45 @@ iframe.sg_report {
     top: 0;
 }
 
-/* TODO: Either pydata-sphinx-theme (for using Bootstrap) or sphinx-gallery (for adding table formatting) should fix this */
-.table-striped-columns>:not(caption)>tr>:nth-child(2n),.table-striped>tbody>tr:nth-of-type(odd)>* {
-    --bs-table-accent-bg: var(--bs-table-striped-bg);
-    color: var(--pst-color-text-base);
-}
-.table-hover>tbody>tr:hover>* {
-    --bs-table-accent-bg: var(--bs-table-hover-bg);
-    color: var(--pst-color-text-base);
-}
-.rendered_html table {
-    color: var(--pst-color-text-base);
-}
+/* ******************************************************** HTML repr tables */
 
-
+/* make table responsive to pydata-sphinx-theme's light/dark mode */
+.table > :not(caption) > * > * {
+    color: var(--pst-color-text-base);
+}
+.mne-repr-table tbody tr:hover {
+    background-color: var(--pst-color-table-row-hover-bg);
+}
+.mne-repr-section-toggle > button > svg > path {
+    fill: var(--pst-color-text-base);
+}
+/* make the expand/collapse button look nicer */
+.mne-repr-section-toggle > button {
+    padding: 20%;
+}
+/* make section header rows more distinct (and harmonize with pydata-sphinx-theme table
+style in the process). Color copied from pydata-sphinx-theme; 2px copied from bootstrap.
+*/
+.mne-repr-table th {
+    border-bottom: 2px solid var(--pst-color-primary);
+}
+/* harmonize the channel names buttons with the rest of the table */
+.mne-ch-names-btn {
+    font-size: inherit;
+    padding: 0.25rem;
+    min-width: 1.5rem;
+    font-weight: bold;
+}
+/*
+.mne-ch-names-btn:hover {
+    background-color: var(--pst-color-);
+    text-decoration: underline;
+}
+.mne-ch-names-btn:focus-visible {
+    outline: 0.1875rem solid var(--pst-color-accent);
+    outline-offset: 0.1875rem;
+}
+*/
 /* ***************************************************** sphinx-design fixes */
 p.btn a {
     color: unset;
@@ -222,16 +253,16 @@ aside.footnote:last-child {
 }
 
 /* ******************************************************* navbar icon links */
-.navbar-icon-links i.fa-square-github::before {
+.navbar-icon-links svg.fa-square-github {
     color: var(--mne-color-github);
 }
-.navbar-icon-links i.fa-discourse::before {
+.navbar-icon-links svg.fa-discourse {
     color: var(--mne-color-discourse);
 }
-.navbar-icon-links i.fa-discord::before {
+.navbar-icon-links svg.fa-discord {
     color: var(--mne-color-discord);
 }
-.navbar-icon-links i.fa-mastodon::before {
+.navbar-icon-links svg.fa-mastodon {
     color: var(--mne-color-mastodon);
 }
 
@@ -242,24 +273,11 @@ aside.footnote:last-child {
 }
 /* topbar nav active */
 .bd-header.navbar-light#navbar-main .navbar-nav > li.active > .nav-link {
-    color: var(--pst-color-link);
     font-weight: var(--mne-font-weight-semibold);
 }
 /* topbar nav hover */
 .bd-header.navbar-light#navbar-main .navbar-nav li a.nav-link:focus,
 .bd-header.navbar-light#navbar-main .navbar-nav li a.nav-link:hover {
-    color: var(--pst-color-secondary);
-}
-/* sidebar nav */
-nav.bd-links .active > a,
-nav.bd-links .active:hover > a,
-.toc-entry a.nav-link.active,
-.toc-entry a.nav-link.active:hover {
-    color: var(--pst-color-link);
-}
-/* sidebar nav hover */
-nav.bd-links li > a:hover,
-.toc-entry a.nav-link:hover {
     color: var(--pst-color-secondary);
 }
 
@@ -273,10 +291,13 @@ img.logo {
 ul.quicklinks a {
     font-weight: var(--mne-font-weight-semibold);
     color: var(--pst-color-text-base);
+    text-decoration: none;
+}
+ul.quicklinks a svg {
+    color: var(--pst-color-text-muted);
 }
 ul.quicklinks a:hover {
     text-decoration: none;
-    color: var(--pst-color-secondary);
 }
 h5.card-header {
     margin-top: 0px;
@@ -287,7 +308,6 @@ h5.card-header::before {
     height: 0px;
     margin-top: 0px;
 }
-
 /* ******************************************************* homepage carousel */
 div.frontpage-gallery {
     overflow: hidden;
@@ -296,7 +316,7 @@ div.frontpage-gallery {
 }
 div.frontpage-gallery a {
     text-decoration: none;
-    color: rgb(var(--pst-color-text-base));
+    color: var(--pst-color-text-base);
 }
 div.frontpage-gallery img.card-img {
     transform: scale(1.8);
@@ -321,7 +341,7 @@ div.frontpage-gallery:hover .fadeout {
    needed for dark mode. */
 div.card {
     border: 1px solid var(--pst-color-border);
-    background-color: rgb(var(--pst-color-background));
+    background-color: var(--pst-color-background);
 }
 .card-header {
     border-bottom-color: var(--pst-color-border);
@@ -340,9 +360,8 @@ div#contributor-avatars div.card img {
     border-radius: unset;
 }
 div#contributor-avatars div.card img {
-    width: 3em;
+    width: 2.5em;
 }
-
 .contributor-avatar {
     clip-path: circle(closest-side);
 }
@@ -385,4 +404,12 @@ td.justify {
 div.sphx-glr-animation video {
     max-width: 100%;
     height: auto;
+}
+
+/* fix sidebar scrollbars */
+.sidebar-primary-items__end {
+    margin-bottom: 0 !important;
+    margin-top: 0 !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
 }

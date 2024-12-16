@@ -1,5 +1,4 @@
-# Authors: Alex Rockhill <aprockhill@mailbox.org>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -62,7 +61,7 @@ def warp_montage(montage, moving, static, reg_affine, sdr_morph, verbose=None):
             ]
         )
         raise RuntimeError(
-            "Coordinate frame not supported, expected " f'"mri", got {bad_coord_frames}'
+            f'Coordinate frame not supported, expected "mri", got {bad_coord_frames}'
         )
     ch_names = list(ch_dict["ch_pos"].keys())
     ch_coords = np.array([ch_dict["ch_pos"][name] for name in ch_names])
@@ -84,7 +83,9 @@ def warp_montage(montage, moving, static, reg_affine, sdr_morph, verbose=None):
     # now, apply SDR morph
     if sdr_morph is not None:
         ch_coords = sdr_morph.transform_points(
-            ch_coords, sdr_morph.domain_grid2world, sdr_morph.domain_world2grid
+            ch_coords,
+            coord2world=sdr_morph.domain_grid2world,
+            world2coord=sdr_morph.domain_world2grid,
         )
 
     # back to voxels but now for the static image
@@ -192,7 +193,7 @@ def make_montage_volume(
             ]
         )
         raise RuntimeError(
-            "Coordinate frame not supported, expected " f'"mri", got {bad_coord_frames}'
+            f'Coordinate frame not supported, expected "mri", got {bad_coord_frames}'
         )
 
     ch_names = list(ch_dict["ch_pos"].keys())

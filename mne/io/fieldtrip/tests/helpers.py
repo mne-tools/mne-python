@@ -1,9 +1,7 @@
-# -*- coding: UTF-8 -*-
-# Authors: Thomas Hartmann <thomas.hartmann@th-ht.de>
-#          Dirk Gütlin <dirk.guetlin@stud.sbg.ac.at>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 import os
 from functools import partial
 
@@ -205,7 +203,7 @@ def get_evoked(system):
     return epochs.average(picks=np.arange(len(epochs.ch_names)))
 
 
-def check_info_fields(expected, actual, has_raw_info, ignore_long=True):
+def check_info_fields(expected, actual, has_raw_info):
     """
     Check if info fields are equal.
 

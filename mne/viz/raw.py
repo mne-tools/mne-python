@@ -1,9 +1,6 @@
 """Functions to plot raw M/EEG data."""
 
-# Authors: Eric Larson <larson.eric.d@gmail.com>
-#          Jaakko Leppakangas <jaeilepp@student.jyu.fi>
-#          Daniel McCloy <dan.mccloy@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -11,7 +8,7 @@ from collections import OrderedDict
 
 import numpy as np
 
-from .._fiff.pick import pick_channels, pick_types
+from .._fiff.pick import _picks_to_idx, pick_channels, pick_types
 from ..defaults import _handle_default
 from ..filter import create_filter
 from ..utils import _check_option, _get_stim_channel, _validate_type, legacy, verbose
@@ -63,6 +60,7 @@ def plot_raw(
     time_format="float",
     precompute=None,
     use_opengl=None,
+    picks=None,
     *,
     theme=None,
     overview_mode=None,
@@ -192,6 +190,7 @@ def plot_raw(
     %(time_format)s
     %(precompute)s
     %(use_opengl)s
+    %(picks_all)s
     %(theme_pg)s
 
         .. versionadded:: 1.0
@@ -310,7 +309,9 @@ def plot_raw(
     # determine trace order
     ch_names = np.array(raw.ch_names)
     ch_types = np.array(raw.get_channel_types())
-    order = _get_channel_plotting_order(order, ch_types)
+
+    picks = _picks_to_idx(info, picks, none="all", exclude=())
+    order = _get_channel_plotting_order(order, ch_types, picks=picks)
     n_channels = min(info["nchan"], n_channels, len(order))
     # adjust order based on channel selection, if needed
     selections = None
@@ -335,7 +336,7 @@ def plot_raw(
     # generate window title; allow instances without a filename (e.g., ICA)
     if title is None:
         title = "<unknown>"
-        fnames = raw._filenames.copy()
+        fnames = list(tuple(raw.filenames))  # get a list of a copy of the filenames
         if len(fnames):
             title = fnames.pop(0)
             extra = f" ... (+ {len(fnames)} more)" if len(fnames) else ""
@@ -426,7 +427,7 @@ def plot_raw_psd(
     area_mode="std",
     area_alpha=0.33,
     dB=True,
-    estimate="auto",
+    estimate="power",
     show=True,
     n_jobs=None,
     average=False,

@@ -1,11 +1,8 @@
-# Authors: Mainak Jas <mainak@neuro.hut.fi>
-#          Teon Brooks <teon.brooks@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
 import base64
-import copy
 import glob
 import os
 import pickle
@@ -36,7 +33,6 @@ from mne.report import report as report_mod
 from mne.report.report import (
     _ALLOWED_IMAGE_FORMATS,
     CONTENT_ORDER,
-    _webp_supported,
 )
 from mne.utils import Bunch, _record_warnings
 from mne.utils._testing import assert_object_equal
@@ -287,7 +283,7 @@ def test_add_custom_js(tmp_path):
 
     report = Report()
     report.add_figure(fig=fig, title="Test section")
-    custom_js = "function hello() {\n" '  alert("Hello, report!");\n' "}"
+    custom_js = 'function hello() {\n  alert("Hello, report!");\n}'
     report.add_custom_js(js=custom_js)
 
     assert custom_js in report.include
@@ -355,7 +351,7 @@ def test_report_raw_psd_and_date(tmp_path):
     assert isinstance(report.html, list)
     assert "PSD" in "".join(report.html)
     assert "Unknown" not in "".join(report.html)
-    assert "GMT" in "".join(report.html)
+    assert "UTC" in "".join(report.html)
 
     # test kwargs passed through to underlying array func
     Report(raw_psd=dict(window="boxcar"))
@@ -597,7 +593,8 @@ def test_validate_input():
 
 def test_open_report(tmp_path):
     """Test the open_report function."""
-    pytest.importorskip("h5io")
+    h5py = pytest.importorskip("h5py")
+    h5io = pytest.importorskip("h5io")
     hdf5 = str(tmp_path / "report.h5")
 
     # Test creating a new report through the open_report function
@@ -608,6 +605,11 @@ def test_open_report(tmp_path):
         report.add_figure(fig=fig1, title="evoked response")
     # Exiting the context block should have triggered saving to HDF5
     assert Path(hdf5).exists()
+
+    # Let's add some companion data to the HDF5 file
+    with h5py.File(hdf5, "r+") as f:
+        h5io.write_hdf5(f, "test", title="companion")
+    assert h5io.read_hdf5(hdf5, title="companion") == "test"
 
     # Load the HDF5 version of the report and check equivalence
     report2 = open_report(hdf5)
@@ -625,7 +627,11 @@ def test_open_report(tmp_path):
     # Check that the context manager doesn't swallow exceptions
     with pytest.raises(ZeroDivisionError):
         with open_report(hdf5, subjects_dir=str(tmp_path)) as report:
+            assert h5io.read_hdf5(hdf5, title="companion") == "test"
             1 / 0
+
+    # Check that our companion data survived
+    assert h5io.read_hdf5(hdf5, title="companion") == "test"
 
 
 def test_remove():
@@ -638,7 +644,7 @@ def test_remove():
     r.add_figure(fig=fig2, title="figure2", tags=("slider",))
 
     # Test removal by title
-    r2 = copy.deepcopy(r)
+    r2 = r.copy()
     removed_index = r2.remove(title="figure1")
     assert removed_index == 2
     assert len(r2.html) == 3
@@ -647,7 +653,7 @@ def test_remove():
     assert r2.html[2] == r.html[3]
 
     # Test restricting to section
-    r2 = copy.deepcopy(r)
+    r2 = r.copy()
     removed_index = r2.remove(title="figure1", tags=("othertag",))
     assert removed_index == 1
     assert len(r2.html) == 3
@@ -692,7 +698,7 @@ def test_add_or_replace(tags):
     assert len(r.html) == 4
     assert len(r._content) == 4
 
-    old_r = copy.deepcopy(r)
+    old_r = r.copy()
 
     # Replace our last occurrence of title='duplicate'
     r.add_figure(
@@ -765,7 +771,7 @@ def test_add_or_replace_section():
     assert len(r.html) == 3
     assert len(r._content) == 3
 
-    old_r = copy.deepcopy(r)
+    old_r = r.copy()
     assert r.html[0] == old_r.html[0]
     assert r.html[1] == old_r.html[1]
     assert r.html[2] == old_r.html[2]
@@ -794,14 +800,18 @@ def test_scraper(tmp_path):
     r.add_figure(fig=fig1, title="a")
     r.add_figure(fig=fig2, title="b")
     # Mock a Sphinx + sphinx_gallery config
-    app = Bunch(builder=Bunch(srcdir=tmp_path, outdir=tmp_path / "_build" / "html"))
+    srcdir = tmp_path
+    outdir = tmp_path / "_build" / "html"
     scraper = _ReportScraper()
-    scraper.app = app
-    gallery_conf = dict(src_dir=app.builder.srcdir, builder_name="html")
-    img_fname = app.builder.srcdir / "auto_examples" / "images" / "sg_img.png"
-    target_file = app.builder.srcdir / "auto_examples" / "sg.py"
+    gallery_conf = dict(builder_name="html", src_dir=srcdir)
+    app = Bunch(
+        builder=Bunch(outdir=outdir),
+        config=Bunch(sphinx_gallery_conf=gallery_conf),
+    )
+    scraper.set_dirs(app)
+    img_fname = srcdir / "auto_examples" / "images" / "sg_img.png"
+    target_file = srcdir / "auto_examples" / "sg.py"
     os.makedirs(img_fname.parent)
-    os.makedirs(app.builder.outdir)
     block_vars = dict(
         image_path_iterator=(img for img in [str(img_fname)]),
         example_globals=dict(a=1),
@@ -816,14 +826,13 @@ def test_scraper(tmp_path):
     rst = scraper(block, block_vars, gallery_conf)
     # Once it's saved, add it
     assert rst == ""
-    fname = tmp_path / "my_html.html"
+    fname = srcdir / "my_html.html"
     r.save(fname, open_browser=False)
-    rst = scraper(block, block_vars, gallery_conf)
-    out_html = app.builder.outdir / "auto_examples" / "my_html.html"
+    out_html = outdir / "auto_examples" / "my_html.html"
     assert not out_html.is_file()
-    scraper.copyfiles()
+    rst = scraper(block, block_vars, gallery_conf)
     assert out_html.is_file()
-    assert rst.count('"') == 6
+    assert rst.count('"') == 8
     assert "<iframe" in rst
     assert img_fname.with_suffix(".svg").is_file()
 
@@ -927,6 +936,13 @@ def test_manual_report_2d(tmp_path, invisible_fig):
     ica_ecg_scores = ica_eog_scores = np.array([3, 0, 0])
     ica_ecg_evoked = ica_eog_evoked = epochs_without_metadata.average()
 
+    # Normally, ICA.find_bads_*() assembles the labels_ dict; since we didn't run any
+    # of these methods, fill in some fake values manually.
+    ica.labels_ = {
+        "ecg/0/fake ECG channel": [0],
+        "eog/0/fake EOG channel": [1],
+    }
+
     r.add_raw(raw=raw, title="my raw data", tags=("raw",), psd=True, projs=False)
     r.add_raw(raw=raw, title="my raw data 2", psd=False, projs=False, butterfly=1)
     r.add_events(events=events_fname, title="my events", sfreq=raw.info["sfreq"])
@@ -946,7 +962,8 @@ def test_manual_report_2d(tmp_path, invisible_fig):
     r.add_epochs(
         epochs=epochs_without_metadata, title="my epochs 2", psd=True, projs=False
     )
-    assert "Metadata" not in r.html[-1]
+    assert "Metadata" in r.html[-1]
+    assert "No metadata set" in r.html[-1]
 
     # Try with metadata
     r.add_epochs(
@@ -956,6 +973,7 @@ def test_manual_report_2d(tmp_path, invisible_fig):
         projs=False,
     )
     assert "Metadata" in r.html[-1]
+    assert "25 rows × 7 columns" in r.html[-1]
 
     with pytest.raises(ValueError, match="requested to calculate PSD on a duration"):
         r.add_epochs(
@@ -1060,6 +1078,73 @@ def test_manual_report_2d(tmp_path, invisible_fig):
     r.save(fname=fname, open_browser=False)
 
 
+def test_report_tweaks(tmp_path, monkeypatch):
+    """Test tweaking of report params."""
+    r = Report(image_format="png")
+    assert r.collapse == ()
+    assert r.img_max_width == 850
+    assert r.img_max_res == 100
+
+    events = np.array([[0, 0, 1], [1, 0, 2], [2, 0, 3]])
+    kwargs = dict(events=events, sfreq=1000.0, title="my events", section="my section")
+    with plt.rc_context(rc={"figure.dpi": 200, "figure.figsize": (10, 10)}):
+        r.add_events(**kwargs)
+
+    fname = tmp_path / "report.html"
+    r.save(fname, open_browser=False)
+
+    html = fname.read_text(encoding="utf-8")
+    assert html.count("collapse show") == 2, fname  # section and element
+
+    r.collapse = ["section"]
+    r.save(fname, open_browser=False, overwrite=True)
+    html = fname.read_text(encoding="utf-8")
+    assert html.count("collapse show") == 1, fname  # section collapsed
+
+    # Bad input handling
+    with pytest.raises(ValueError):
+        r.collapse = "foo"
+    with pytest.raises(TypeError):
+        r.collapse = 1
+    with pytest.raises(TypeError):
+        r.img_max_width = "foo"
+    with pytest.raises(ValueError):
+        r.img_max_width = -1
+    with pytest.raises(TypeError):
+        r.img_max_res = "foo"
+    with pytest.raises(ValueError):
+        r.img_max_res = -1
+
+    # Figure out the size of our rendered image (max width 850)
+    img_re = re.compile(r'src="data:image/png;base64([^"]+)"')
+    imgs = img_re.findall(html)
+    assert len(imgs) == 2  # the first is our logo
+    img = plt.imread(BytesIO(base64.b64decode(imgs[1].encode("ascii"))))
+    assert img.shape == (850, 850, 3)
+
+    # Now let's limit it by max resolution (100 dpi)
+    r = Report(image_format="png")
+    r.img_max_width = None
+    with plt.rc_context(rc={"figure.dpi": 200, "figure.figsize": (10, 10)}):
+        r.add_events(**kwargs)
+    r.save(fname, open_browser=False, overwrite=True)
+    imgs = img_re.findall(fname.read_text(encoding="utf-8"))
+    assert len(imgs) == 2
+    img = plt.imread(BytesIO(base64.b64decode(imgs[1].encode("ascii"))))
+    assert img.shape == (1000, 1000, 3)  # figure.figsize * Report.img_max_res
+
+    # Now let's do unconstrained
+    r = Report(image_format="png")
+    r.img_max_width = r.img_max_res = None
+    with plt.rc_context(rc={"figure.dpi": 200, "figure.figsize": (10, 10)}):
+        r.add_events(**kwargs)
+    r.save(fname, open_browser=False, overwrite=True)
+    imgs = img_re.findall(fname.read_text(encoding="utf-8"))
+    assert len(imgs) == 2
+    img = plt.imread(BytesIO(base64.b64decode(imgs[1].encode("ascii"))))
+    assert img.shape == (2000, 2000, 3)  # figure.figsize * figure.dpi
+
+
 @pytest.mark.slowtest  # 30 s on Azure
 @testing.requires_testing_data
 def test_manual_report_3d(tmp_path, renderer):
@@ -1108,24 +1193,53 @@ def test_sorting(tmp_path):
     """Test that automated ordering based on tags works."""
     r = Report()
 
-    r.add_code(code="E = m * c**2", title="intelligence >9000", tags=("bem",))
-    r.add_code(code="a**2 + b**2 = c**2", title="Pythagoras", tags=("evoked",))
-    r.add_code(code="🧠", title="source of truth", tags=("source-estimate",))
-    r.add_code(code="🥦", title="veggies", tags=("raw",))
+    titles = ["intelligence >9000", "Pythagoras", "source of truth", "veggies"]
+    r.add_code(code="E = m * c**2", title=titles[0], tags=("bem",))
+    r.add_code(code="a**2 + b**2 = c**2", title=titles[1], tags=("evoked",))
+    r.add_code(code="🧠", title=titles[2], tags=("source-estimate",))
+    r.add_code(code="🥦", title=titles[3], tags=("raw",))
 
     # Check that repeated calls of add_* actually continuously appended to
     # the report
     orig_order = ["bem", "evoked", "source-estimate", "raw"]
     assert [c.tags[0] for c in r._content] == orig_order
 
+    # tags property behavior and get_contents
+    assert list(r.tags) == sorted(orig_order)
+    titles, tags, htmls = r.get_contents()
+    assert set(sum(tags, ())) == set(r.tags)
+    assert len(titles) == len(tags) == len(htmls) == len(r._content)
+    for title, tag, html in zip(titles, tags, htmls):
+        title = title.replace(">", "&gt;")
+        assert title in html
+        for t in tag:
+            assert t in html
+
     # Now check the actual sorting
-    content_sorted = r._sort(content=r._content, order=CONTENT_ORDER)
+    r_sorted = r.copy()
+    r_sorted._sort(order=CONTENT_ORDER)
     expected_order = ["raw", "evoked", "bem", "source-estimate"]
 
-    assert content_sorted != r._content
-    assert [c.tags[0] for c in content_sorted] == expected_order
+    assert r_sorted._content != r._content
+    assert [c.tags[0] for c in r_sorted._content] == expected_order
+    assert [c.tags[0] for c in r._content] == orig_order
 
-    r.save(fname=tmp_path / "report.html", sort_content=True, open_browser=False)
+    r.copy().save(fname=tmp_path / "report.html", sort_content=True, open_browser=False)
+
+    # Manual sorting should be the same
+    r_sorted = r.copy()
+    order = np.argsort([CONTENT_ORDER.index(t) for t in orig_order])
+    r_sorted.reorder(order)
+
+    assert r_sorted._content != r._content
+    got_order = [c.tags[0] for c in r_sorted._content]
+    assert [c.tags[0] for c in r._content] == orig_order  # original unmodified
+    assert got_order == expected_order
+
+    with pytest.raises(ValueError, match="order must be a permutation"):
+        r.reorder(np.arange(len(r._content) + 1))
+    with pytest.raises(ValueError, match="array of integers"):
+        r.reorder([1.0])
 
 
 @pytest.mark.parametrize(
@@ -1167,11 +1281,6 @@ def test_tags(tags, str_or_array, wrong_dtype, invalid_chars):
 @pytest.mark.parametrize("image_format", _ALLOWED_IMAGE_FORMATS)
 def test_image_format(image_format):
     """Test image format support."""
-    if image_format == "webp":
-        if not _webp_supported():
-            with pytest.raises(ValueError, match="matplotlib"):
-                Report(image_format="webp")
-            return
     r = Report(image_format=image_format)
     fig1, _ = _get_example_figures()
     r.add_figure(fig1, "fig1")

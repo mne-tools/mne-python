@@ -1,5 +1,7 @@
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 from math import ceil
 
 import numpy as np
@@ -62,14 +64,12 @@ def stft(x, wsize, tstep=None, verbose=None):
         )
 
     if tstep > wsize / 2:
-        raise ValueError(
-            "The step size must be smaller than half the " "window length."
-        )
+        raise ValueError("The step size must be smaller than half the window length.")
 
     n_step = int(ceil(T / float(tstep)))
     n_freq = wsize // 2 + 1
-    logger.info("Number of frequencies: %d" % n_freq)
-    logger.info("Number of time steps: %d" % n_step)
+    logger.info(f"Number of frequencies: {n_freq}")
+    logger.info(f"Number of time steps: {n_step}")
 
     X = np.zeros((n_signals, n_freq, n_step), dtype=np.complex128)
 

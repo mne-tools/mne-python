@@ -1,0 +1,75 @@
+{
+  "merge_commit_sha": "29e99c85da5e192a402528ffc5500b17d0281334",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".github/workflows/compat_old.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "README.rst": {
+      "a": 19,
+      "d": 11
+    },
+    "doc/conf.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/decoding/tests/test_base.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/fixes.py": {
+      "a": 13,
+      "d": 153
+    },
+    "mne/surface.py": {
+      "a": 13,
+      "d": 33
+    },
+    "mne/tests/test_annotations.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/tests/test_surface.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/utils/check.py": {
+      "a": 0,
+      "d": 6
+    },
+    "mne/utils/numerics.py": {
+      "a": 2,
+      "d": 3
+    },
+    "mne/utils/tests/test_linalg.py": {
+      "a": 2,
+      "d": 8
+    },
+    "mne/utils/tests/test_numerics.py": {
+      "a": 1,
+      "d": 3
+    },
+    "mne/viz/_brain/_scraper.py": {
+      "a": 1,
+      "d": 6
+    },
+    "mne/viz/_mpl_figure.py": {
+      "a": 1,
+      "d": 4
+    },
+    "mne/viz/tests/test_topomap.py": {
+      "a": 3,
+      "d": 2
+    },
+    "requirements_doc.txt": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

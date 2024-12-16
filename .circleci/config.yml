@@ -27,8 +27,8 @@ jobs:
       scheduled:
         type: string
         default: "false"
-    docker:
-      - image: cimg/base:current-22.04
+    machine:
+      image: ubuntu-2404:current
     # large 4 vCPUs 15GB mem
     # https://discuss.circleci.com/t/changes-to-remote-docker-reporting-pricing/47759
     resource_class: large
@@ -111,7 +111,7 @@ jobs:
       # Load pip cache
       - restore_cache:
           keys:
-            - pip-cache
+            - pip-cache-0
       - restore_cache:
           keys:
             - user-install-bin-cache-310
@@ -123,7 +123,7 @@ jobs:
             ./tools/circleci_dependencies.sh
 
       - save_cache:
-          key: pip-cache
+          key: pip-cache-0
           paths:
             - ~/.cache/pip
       - save_cache:
@@ -148,6 +148,7 @@ jobs:
               which python
               QT_DEBUG_PLUGINS=1 mne sys_info -pd
               python -c "import numpy; numpy.show_config()"
+              python -c "import dipy.align.metrics"
               LIBGL_DEBUG=verbose python -c "import pyvistaqt; pyvistaqt.BackgroundPlotter(show=True)"
               python -c "import mne; mne.set_config('MNE_USE_CUDA', 'false')"  # this is needed for the config tutorial
               python -c "import mne; mne.set_config('MNE_LOGGING_LEVEL', 'info')"
@@ -400,8 +401,9 @@ jobs:
       scheduled:
         type: string
         default: "false"
-    docker:
-      - image: cimg/base:current-22.04
+    machine:
+      image: ubuntu-2404:current
+    resource_class: large
     steps:
       - restore_cache:
           keys:
@@ -420,7 +422,7 @@ jobs:
           command: ./tools/circleci_bash_env.sh
       - restore_cache:
           keys:
-            - pip-cache
+            - pip-cache-0
       - run:
           name: Get Python running
           command: |
@@ -431,21 +433,17 @@ jobs:
             mne sys_info -pd
       - run:
           name: make linkcheck
+          no_output_timeout: 40m
           command: |
             make -C doc linkcheck
-      - run:
-          name: make linkcheck-grep
-          when: always
-          command: |
-            make -C doc linkcheck-grep
       - store_artifacts:
           path: doc/_build/linkcheck
           destination: linkcheck
 
 
   deploy:
-    docker:
-      - image: cimg/base:current-22.04
+    machine:
+      image: ubuntu-2404:current
     steps:
       - attach_workspace:
           at: /tmp/build

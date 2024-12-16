@@ -1,0 +1,651 @@
+{
+  "merge_commit_sha": "b1d4124b29bde8c5c0ea97fc0ac34d38eb05fb58",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    },
+    {
+      "n": "Joris Van den Bossche",
+      "e": "jorisvandenbossche@gmail.com"
+    }
+  ],
+  "changes": {
+    ".mailmap": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/_includes/bem_model.rst": {
+      "a": 1,
+      "d": 6
+    },
+    "doc/_includes/channel_interpolation.rst": {
+      "a": 0,
+      "d": 6
+    },
+    "doc/_includes/forward.rst": {
+      "a": 0,
+      "d": 9
+    },
+    "doc/_includes/inverse.rst": {
+      "a": 0,
+      "d": 9
+    },
+    "doc/_includes/morph.rst": {
+      "a": 0,
+      "d": 5
+    },
+    "doc/_includes/ssp.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/_static/flag-icon.css": {
+      "a": 0,
+      "d": 23
+    },
+    "doc/_static/font-awesome.css": {
+      "a": 0,
+      "d": 2337
+    },
+    "doc/_static/fonts/fontawesome/fontawesome-webfont.eot": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/fonts/fontawesome/fontawesome-webfont.ttf": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/fonts/fontawesome/fontawesome-webfont.woff": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/fonts/fontawesome/fontawesome-webfont.woff2": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/fonts/source_sans_pro/OTF/SourceSansPro-Light.otf": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/fonts/source_sans_pro/OTF/SourceSansPro-LightIt.otf": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/fonts/source_sans_pro/TTF/SourceSansPro-Light.ttf": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/fonts/source_sans_pro/TTF/SourceSansPro-LightIt.ttf": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/fonts/source_sans_pro/WOFF/SourceSansPro-Light.otf.woff": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/fonts/source_sans_pro/WOFF/SourceSansPro-LightIt.otf.woff": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/fonts/source_sans_pro/WOFF2/SourceSansPro-Light.ttf.woff2": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/fonts/source_sans_pro/WOFF2/SourceSansPro-LightIt.ttf.woff2": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/fr.svg": {
+      "a": 0,
+      "d": 7
+    },
+    "doc/_static/mne_logo_small.svg": {
+      "a": 78,
+      "d": 66
+    },
+    "doc/_static/scrollfix.js": {
+      "a": 31,
+      "d": 0
+    },
+    "doc/_static/style.css": {
+      "a": 144,
+      "d": 550
+    },
+    "doc/_static/us.svg": {
+      "a": 0,
+      "d": 18
+    },
+    "doc/_templates/docs-navbar.html": {
+      "a": 68,
+      "d": 0
+    },
+    "doc/_templates/docs-toc.html": {
+      "a": 17,
+      "d": 0
+    },
+    "doc/_templates/layout.html": {
+      "a": 60,
+      "d": 74
+    },
+    "doc/_templates/navbar.html": {
+      "a": 0,
+      "d": 35
+    },
+    "doc/_templates/sidebar-funders.html": {
+      "a": 17,
+      "d": 0
+    },
+    "doc/_templates/sidebar-quicklinks.html": {
+      "a": 12,
+      "d": 0
+    },
+    "doc/bibliography.rst": {
+      "a": 4,
+      "d": 0
+    },
+    "doc/carousel.inc": {
+      "a": 0,
+      "d": 81
+    },
+    "doc/cited.rst": {
+      "a": 5,
+      "d": 7
+    },
+    "doc/conf.py": {
+      "a": 537,
+      "d": 486
+    },
+    "doc/connectivity.rst": {
+      "a": 20,
+      "d": 0
+    },
+    "doc/covariance.rst": {
+      "a": 19,
+      "d": 0
+    },
+    "doc/creating_from_arrays.rst": {
+      "a": 13,
+      "d": 0
+    },
+    "doc/datasets.rst": {
+      "a": 40,
+      "d": 0
+    },
+    "doc/decoding.rst": {
+      "a": 40,
+      "d": 0
+    },
+    "doc/events.rst": {
+      "a": 55,
+      "d": 0
+    },
+    "doc/file_io.rst": {
+      "a": 63,
+      "d": 0
+    },
+    "doc/forward.rst": {
+      "a": 60,
+      "d": 0
+    },
+    "doc/glossary.rst": {
+      "a": 85,
+      "d": 60
+    },
+    "doc/index.rst": {
+      "a": 21,
+      "d": 81
+    },
+    "doc/install/advanced.rst": {
+      "a": 29,
+      "d": 33
+    },
+    "doc/install/contributing.rst": {
+      "a": 7,
+      "d": 32
+    },
+    "doc/install/freesurfer.rst": {
+      "a": 0,
+      "d": 2
+    },
+    "doc/install/index.rst": {
+      "a": 33,
+      "d": 17
+    },
+    "doc/install/mne_c.rst": {
+      "a": 2,
+      "d": 4
+    },
+    "doc/install/mne_python.rst": {
+      "a": 15,
+      "d": 21
+    },
+    "doc/install/pre_install.rst": {
+      "a": 17,
+      "d": 19
+    },
+    "doc/inverse.rst": {
+      "a": 98,
+      "d": 0
+    },
+    "doc/logging.rst": {
+      "a": 47,
+      "d": 0
+    },
+    "doc/most_used_classes.rst": {
+      "a": 12,
+      "d": 0
+    },
+    "doc/mri.rst": {
+      "a": 24,
+      "d": 0
+    },
+    "doc/overview/cite.rst": {
+      "a": 35,
+      "d": 17
+    },
+    "doc/overview/cookbook.rst": {
+      "a": 11,
+      "d": 11
+    },
+    "doc/overview/datasets_index.rst": {
+      "a": 13,
+      "d": 18
+    },
+    "doc/overview/design_philosophy.rst": {
+      "a": 3,
+      "d": 3
+    },
+    "doc/overview/development.rst": {
+      "a": 28,
+      "d": 0
+    },
+    "doc/overview/faq.rst": {
+      "a": 2,
+      "d": 5
+    },
+    "doc/overview/get_help.rst": {
+      "a": 12,
+      "d": 7
+    },
+    "doc/overview/implementation.rst": {
+      "a": 0,
+      "d": 5
+    },
+    "doc/overview/index.rst": {
+      "a": 19,
+      "d": 21
+    },
+    "doc/overview/learn_python.rst": {
+      "a": 0,
+      "d": 2
+    },
+    "doc/overview/matlab.rst": {
+      "a": 0,
+      "d": 4
+    },
+    "doc/overview/roadmap.rst": {
+      "a": 0,
+      "d": 7
+    },
+    "doc/preprocessing.rst": {
+      "a": 181,
+      "d": 0
+    },
+    "doc/python_reference.rst": {
+      "a": 33,
+      "d": 1099
+    },
+    "doc/reading_raw_data.rst": {
+      "a": 58,
+      "d": 0
+    },
+    "doc/realtime.rst": {
+      "a": 5,
+      "d": 0
+    },
+    "doc/references.bib": {
+      "a": 23,
+      "d": 1
+    },
+    "doc/references.rst": {
+      "a": 0,
+      "d": 70
+    },
+    "doc/report.rst": {
+      "a": 13,
+      "d": 0
+    },
+    "doc/sensor_space.rst": {
+      "a": 37,
+      "d": 0
+    },
+    "doc/simulation.rst": {
+      "a": 25,
+      "d": 0
+    },
+    "doc/source_space.rst": {
+      "a": 44,
+      "d": 0
+    },
+    "doc/sphinxext/gen_commands.py": {
+      "a": 0,
+      "d": 4
+    },
+    "doc/sphinxext/sphinx_bootstrap_divs/__init__.py": {
+      "a": 7,
+      "d": 7
+    },
+    "doc/sphinxext/sphinx_bootstrap_divs/bootstrap_divs.css": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/sphinxext/sphinx_bootstrap_divs/bootstrap_divs.js": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/statistics.rst": {
+      "a": 66,
+      "d": 0
+    },
+    "doc/time_frequency.rst": {
+      "a": 71,
+      "d": 0
+    },
+    "doc/upload_html.sh": {
+      "a": 0,
+      "d": 5
+    },
+    "doc/visualization.rst": {
+      "a": 78,
+      "d": 0
+    },
+    "examples/inverse/plot_time_frequency_mixed_norm_inverse.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/time_frequency/plot_source_power_spectrum_opm.py": {
+      "a": 0,
+      "d": 4
+    },
+    "examples/time_frequency/plot_time_frequency_global_field_power.py": {
+      "a": 3,
+      "d": 3
+    },
+    "examples/visualization/plot_eeglab_head_sphere.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/visualization/plot_meg_sensors.py": {
+      "a": 0,
+      "d": 4
+    },
+    "examples/visualization/plot_publication_figure.py": {
+      "a": 0,
+      "d": 4
+    },
+    "examples/visualization/plot_roi_erpimage_by_rt.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/inverse_sparse/mxne_inverse.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/tests/test_docstring_parameters.py": {
+      "a": 17,
+      "d": 10
+    },
+    "requirements_doc.txt": {
+      "a": 2,
+      "d": 3
+    },
+    "tools/generate_codemeta.py": {
+      "a": 1,
+      "d": 0
+    },
+    "tutorials/discussions/README.txt": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/discussions/plot_background_filtering.py": {
+      "a": 0,
+      "d": 3
+    },
+    "tutorials/discussions/plot_background_ica.py": {
+      "a": 0,
+      "d": 4
+    },
+    "tutorials/discussions/plot_background_statistics.py": {
+      "a": 0,
+      "d": 5
+    },
+    "tutorials/epochs/README.txt": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/epochs/plot_10_epochs_overview.py": {
+      "a": 0,
+      "d": 4
+    },
+    "tutorials/epochs/plot_20_visualize_epochs.py": {
+      "a": 0,
+      "d": 4
+    },
+    "tutorials/epochs/plot_30_epochs_metadata.py": {
+      "a": 0,
+      "d": 4
+    },
+    "tutorials/epochs/plot_40_epochs_to_data_frame.py": {
+      "a": 0,
+      "d": 4
+    },
+    "tutorials/evoked/README.txt": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/evoked/plot_10_evoked_overview.py": {
+      "a": 1,
+      "d": 5
+    },
+    "tutorials/evoked/plot_20_visualize_evoked.py": {
+      "a": 1,
+      "d": 5
+    },
+    "tutorials/evoked/plot_eeg_erp.py": {
+      "a": 0,
+      "d": 4
+    },
+    "tutorials/intro/README.txt": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/intro/plot_10_overview.py": {
+      "a": 0,
+      "d": 4
+    },
+    "tutorials/intro/plot_20_events_from_raw.py": {
+      "a": 0,
+      "d": 4
+    },
+    "tutorials/intro/plot_30_info.py": {
+      "a": 0,
+      "d": 4
+    },
+    "tutorials/intro/plot_40_sensor_locations.py": {
+      "a": 1,
+      "d": 5
+    },
+    "tutorials/intro/plot_50_configure_mne.py": {
+      "a": 0,
+      "d": 4
+    },
+    "tutorials/io/README.txt": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/io/plot_10_reading_meg_data.py": {
+      "a": 0,
+      "d": 5
+    },
+    "tutorials/io/plot_20_reading_eeg_data.py": {
+      "a": 0,
+      "d": 5
+    },
+    "tutorials/io/plot_30_reading_fnirs_data.py": {
+      "a": 0,
+      "d": 5
+    },
+    "tutorials/machine-learning/README.txt": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/machine-learning/plot_sensors_decoding.py": {
+      "a": 0,
+      "d": 4
+    },
+    "tutorials/misc/README.txt": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/misc/plot_report.py": {
+      "a": 0,
+      "d": 4
+    },
+    "tutorials/preprocessing/README.txt": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/preprocessing/plot_10_preprocessing_overview.py": {
+      "a": 0,
+      "d": 4
+    },
+    "tutorials/preprocessing/plot_15_handling_bad_channels.py": {
+      "a": 1,
+      "d": 5
+    },
+    "tutorials/preprocessing/plot_20_rejecting_bad_data.py": {
+      "a": 0,
+      "d": 4
+    },
+    "tutorials/preprocessing/plot_30_filtering_resampling.py": {
+      "a": 0,
+      "d": 4
+    },
+    "tutorials/preprocessing/plot_35_artifact_correction_regression.py": {
+      "a": 0,
+      "d": 4
+    },
+    "tutorials/preprocessing/plot_40_artifact_correction_ica.py": {
+      "a": 0,
+      "d": 4
+    },
+    "tutorials/preprocessing/plot_45_projectors_background.py": {
+      "a": 1,
+      "d": 5
+    },
+    "tutorials/preprocessing/plot_50_artifact_correction_ssp.py": {
+      "a": 0,
+      "d": 4
+    },
+    "tutorials/preprocessing/plot_55_setting_eeg_reference.py": {
+      "a": 0,
+      "d": 4
+    },
+    "tutorials/preprocessing/plot_60_maxwell_filtering_sss.py": {
+      "a": 1,
+      "d": 5
+    },
+    "tutorials/preprocessing/plot_70_fnirs_processing.py": {
+      "a": 0,
+      "d": 4
+    },
+    "tutorials/raw/README.txt": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/raw/plot_10_raw_overview.py": {
+      "a": 0,
+      "d": 4
+    },
+    "tutorials/raw/plot_20_event_arrays.py": {
+      "a": 0,
+      "d": 4
+    },
+    "tutorials/raw/plot_30_annotate_raw.py": {
+      "a": 0,
+      "d": 4
+    },
+    "tutorials/raw/plot_40_visualize_raw.py": {
+      "a": 0,
+      "d": 4
+    },
+    "tutorials/sample-datasets/README.txt": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/sample-datasets/plot_sleep.py": {
+      "a": 0,
+      "d": 4
+    },
+    "tutorials/simulation/README.txt": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/simulation/plot_creating_data_structures.py": {
+      "a": 0,
+      "d": 4
+    },
+    "tutorials/source-modeling/README.txt": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/source-modeling/plot_background_freesurfer.py": {
+      "a": 0,
+      "d": 3
+    },
+    "tutorials/source-modeling/plot_background_freesurfer_mne.py": {
+      "a": 0,
+      "d": 3
+    },
+    "tutorials/source-modeling/plot_beamformer_lcmv.py": {
+      "a": 0,
+      "d": 5
+    },
+    "tutorials/source-modeling/plot_compute_covariance.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/source-modeling/plot_eeg_mri_coords.py": {
+      "a": 0,
+      "d": 5
+    },
+    "tutorials/source-modeling/plot_eeg_no_mri.py": {
+      "a": 6,
+      "d": 9
+    },
+    "tutorials/source-modeling/plot_object_source_estimate.py": {
+      "a": 0,
+      "d": 3
+    },
+    "tutorials/source-modeling/plot_source_alignment.py": {
+      "a": 0,
+      "d": 4
+    },
+    "tutorials/source-modeling/plot_visualize_stc.py": {
+      "a": 1,
+      "d": 4
+    },
+    "tutorials/stats-sensor-space/README.txt": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/stats-source-space/README.txt": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/time-freq/README.txt": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

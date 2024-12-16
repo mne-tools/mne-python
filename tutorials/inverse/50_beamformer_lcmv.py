@@ -14,8 +14,6 @@ reconstruct source activity using an LCMV beamformer.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-# %%
-
 import matplotlib.pyplot as plt
 
 import mne
@@ -30,11 +28,13 @@ from mne.datasets import fetch_fsaverage, sample
 # at each of those source points independently. A set of weights is
 # constructed for each defined source location which defines the contribution
 # of each sensor to this source.
+#
 # Beamformers are often used for their focal reconstructions and their ability
 # to reconstruct deeper sources. They can also suppress external noise sources.
 # The beamforming method applied in this tutorial is the linearly constrained
 # minimum variance (LCMV) beamformer :footcite:`VanVeenEtAl1997` operates on
 # time series.
+#
 # Frequency-resolved data can be reconstructed with the dynamic imaging of
 # coherent sources (DICS) beamforming method :footcite:`GrossEtAl2001`.
 # As we will see in the following, the spatial filter is computed from two
@@ -290,7 +290,7 @@ peak_vox, _ = stc_vec.get_peak(tmin=0.08, tmax=0.1, vert_as_index=True)
 ori_labels = ["x", "y", "z"]
 fig, ax = plt.subplots(1)
 for ori, label in zip(stc_vec.data[peak_vox, :, :], ori_labels):
-    ax.plot(stc_vec.times, ori, label="%s component" % label)
+    ax.plot(stc_vec.times, ori, label=f"{label} component")
 ax.legend(loc="lower right")
 ax.set(
     title="Activity per orientation in the peak voxel",

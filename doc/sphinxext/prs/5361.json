@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "7e0e988b6e8f3461855a1dd36aec7e5d17b6c379",
+  "authors": [
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/brainvision/brainvision.py": {
+      "a": 31,
+      "d": 5
+    },
+    "mne/io/brainvision/tests/data/test_old_layout_latin1_software_filter.vmrk": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/brainvision/tests/data/testv2.vmrk": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/brainvision/tests/test_brainvision.py": {
+      "a": 20,
+      "d": 0
+    },
+    "mne/io/meas_info.py": {
+      "a": 8,
+      "d": 4
+    }
+  }
+}

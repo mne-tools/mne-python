@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "fb074dd23f3a3364349415c4612d6401e1affece",
+  "authors": [
+    {
+      "n": "Alex Rockhill",
+      "e": "aprockhill@mailbox.org"
+    }
+  ],
+  "changes": {
+    "examples/connectivity/mne_inverse_coherence_epochs.py": {
+      "a": 7,
+      "d": 5
+    },
+    "examples/inverse/covariance_whitening_dspm.py": {
+      "a": 10,
+      "d": 6
+    },
+    "examples/time_frequency/source_power_spectrum_opm.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 2,
+      "d": 1
+    },
+    "tutorials/clinical/20_seeg.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/inverse/60_visualize_stc.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/simulation/80_dics.py": {
+      "a": 2,
+      "d": 4
+    }
+  }
+}

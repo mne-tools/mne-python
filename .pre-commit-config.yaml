@@ -1,16 +1,17 @@
 repos:
   # Ruff mne
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.3.3
+    rev: v0.8.2
     hooks:
       - id: ruff
         name: ruff lint mne
         args: ["--fix"]
-        files: ^mne/
+        files: ^mne/|^tools/
+        exclude: vulture_allowlist.py
       - id: ruff
         name: ruff lint mne preview
         args: ["--fix", "--preview", "--select=NPY201"]
-        files: ^mne/
+        files: ^mne/|^tools/
       - id: ruff
         name: ruff lint doc, tutorials, and examples
         # D103: missing docstring in public function
@@ -18,16 +19,16 @@ repos:
         args: ["--ignore=D103,D400", "--fix"]
         files: ^doc/|^tutorials/|^examples/
       - id: ruff-format
-        files: ^mne/|^doc/|^tutorials/|^examples/
+        files: ^mne/|^doc/|^tutorials/|^examples/|^tools/
 
   # Codespell
   - repo: https://github.com/codespell-project/codespell
-    rev: v2.2.6
+    rev: v2.3.0
     hooks:
       - id: codespell
         additional_dependencies:
           - tomli
-        files: ^mne/|^doc/|^examples/|^tutorials/
+        files: ^mne/|^doc/|^examples/|^tutorials/|^tools/
         types_or: [python, bib, rst, inc]
 
   # yamllint
@@ -39,18 +40,64 @@ repos:
 
   # rstcheck
   - repo: https://github.com/rstcheck/rstcheck.git
-    rev: v6.2.0
+    rev: v6.2.4
     hooks:
       - id: rstcheck
         additional_dependencies:
           - tomli
         files: ^doc/.*\.(rst|inc)$
+        # Credit is problematic because we generate an include on the fly
+        exclude: ^doc/credit.rst$
 
-  # mypy
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.9.0
+  # sorting
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
     hooks:
-      - id: mypy
-        # Avoid the conflict between mne/__init__.py and mne/__init__.pyi by ignoring the former
-        exclude: ^mne/(beamformer|channels|commands|datasets|decoding|export|forward|gui|html_templates|inverse_sparse|io|minimum_norm|preprocessing|report|simulation|source_space|stats|time_frequency|utils|viz)?/?__init__\.py$
-        additional_dependencies: ["numpy==1.26.2"]
+      - id: file-contents-sorter
+        files: ^doc/changes/names.inc|^.mailmap
+        args: ["--ignore-case"]
+
+  - repo: https://github.com/pappasam/toml-sort
+    rev: v0.24.2
+    hooks:
+      - id: toml-sort-fix
+        files: pyproject.toml
+
+  # dependencies
+  - repo: local
+    hooks:
+      - id: update-env-file
+        name: Copy dependency changes from pyproject.toml to environment.yml
+        language: python
+        entry: ./tools/hooks/update_environment_file.py
+        files: pyproject.toml
+  - repo: local
+    hooks:
+      - id: dependency-sync
+        name: Copy core dependencies from pyproject.toml to README.rst
+        language: python
+        entry: ./tools/hooks/sync_dependencies.py
+        files: pyproject.toml
+        additional_dependencies: ["mne"]
+
+  # zizmor
+  - repo: https://github.com/woodruffw/zizmor-pre-commit
+    rev: v0.8.0
+    hooks:
+      - id: zizmor
+
+# these should *not* be run on CIs:
+ci:
+  skip: [dependency-sync]  # needs MNE to work, which exceeds the free tier space alloc.
+
+# The following are too slow to run on local commits, so let's only run on CIs:
+#
+#   - repo: https://github.com/pre-commit/mirrors-mypy
+#     rev: v1.9.0
+#     hooks:
+#       - id: mypy
+#
+#   - repo: https://github.com/jendrikseipp/vulture
+#     rev: 'v2.11'  # or any later Vulture version
+#     hooks:
+#       - id: vulture

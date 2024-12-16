@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "c65515c51f3dffea9cb53b42ae6522805c365cb9",
+  "authors": [
+    {
+      "n": "Denis A. Engemann",
+      "e": null
+    }
+  ],
+  "changes": {
+    "examples/plot_delayed_ssp_projector.py": {
+      "a": 11,
+      "d": 7
+    },
+    "mne/epochs.py": {
+      "a": 62,
+      "d": 36
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 19,
+      "d": 6
+    },
+    "mne/tests/test_viz.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/viz.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

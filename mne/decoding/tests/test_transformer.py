@@ -1,6 +1,4 @@
-# Author: Mainak Jas <mainak@neuro.hut.fi>
-#         Romain Trachel <trachelr@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -15,6 +13,11 @@ from numpy.testing import (
     assert_equal,
 )
 
+pytest.importorskip("sklearn")
+
+from sklearn.decomposition import PCA
+from sklearn.kernel_ridge import KernelRidge
+
 from mne import Epochs, io, pick_types, read_events
 from mne.decoding import (
     FilterEstimator,
@@ -25,7 +28,7 @@ from mne.decoding import (
     Vectorizer,
 )
 from mne.defaults import DEFAULTS
-from mne.utils import check_version, use_log_level
+from mne.utils import use_log_level
 
 tmin, tmax = -0.2, 0.5
 event_id = dict(aud_l=1, vis_l=3)
@@ -60,11 +63,6 @@ def test_scaler(info, method):
     y = epochs.events[:, -1]
 
     epochs_data_t = epochs_data.transpose([1, 0, 2])
-    if method in ("mean", "median"):
-        if not check_version("sklearn"):
-            with pytest.raises((ImportError, RuntimeError), match=" module "):
-                Scaler(info, method)
-            return
 
     if info:
         info = epochs.info
@@ -219,10 +217,6 @@ def test_vectorizer():
 
 def test_unsupervised_spatial_filter():
     """Test unsupervised spatial filter."""
-    pytest.importorskip("sklearn")
-    from sklearn.decomposition import PCA
-    from sklearn.kernel_ridge import KernelRidge
-
     raw = io.read_raw_fif(raw_fname)
     events = read_events(event_name)
     picks = pick_types(

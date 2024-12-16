@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "fef6f063d0d81c54400f2868d91bf9c01b3ea2b3",
+  "authors": [
+    {
+      "n": "Kambiz Tavabi",
+      "e": "ktavabi@gmail.com"
+    }
+  ],
+  "changes": {
+    "bin/mne": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/commands/mne_flash_bem.py": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

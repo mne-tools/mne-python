@@ -1,7 +1,4 @@
-# Authors: Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
-#          Eric Larson <larson.eric.d@gmail.com>
-#          Mainak Jas <mainak.jas@telecom-paristech.fr>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -79,14 +76,14 @@ def _get_legen_table(
         extra_str = ""
         lut_shape = (n_interp + 1, n_coeff)
     if not op.isfile(fname) or force_calc:
-        logger.info("Generating Legendre%s table..." % extra_str)
+        logger.info(f"Generating Legendre{extra_str} table...")
         x_interp = np.linspace(-1, 1, n_interp + 1)
         lut = leg_fun(x_interp, n_coeff).astype(np.float32)
         if not force_calc:
             with open(fname, "wb") as fid:
                 fid.write(lut.tobytes())
     else:
-        logger.info("Reading Legendre%s table..." % extra_str)
+        logger.info(f"Reading Legendre{extra_str} table...")
         with open(fname, "rb", buffering=0) as fid:
             lut = np.fromfile(fid, np.float32)
     lut.shape = lut_shape

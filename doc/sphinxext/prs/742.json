@@ -1,0 +1,63 @@
+{
+  "merge_commit_sha": "f3c07007862f82e4cbe171d0f3f3601f33d17cb9",
+  "authors": [
+    {
+      "n": "Romek Goj",
+      "e": "roman.goj@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/source/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/inverse/plot_tf_dics.py": {
+      "a": 112,
+      "d": 0
+    },
+    "examples/inverse/plot_tf_lcmv.py": {
+      "a": 123,
+      "d": 0
+    },
+    "mne/beamformer/__init__.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/beamformer/_dics.py": {
+      "a": 185,
+      "d": 8
+    },
+    "mne/beamformer/_lcmv.py": {
+      "a": 278,
+      "d": 5
+    },
+    "mne/beamformer/tests/test_dics.py": {
+      "a": 102,
+      "d": 18
+    },
+    "mne/beamformer/tests/test_lcmv.py": {
+      "a": 202,
+      "d": 54
+    },
+    "mne/epochs.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/time_frequency/csd.py": {
+      "a": 28,
+      "d": 14
+    },
+    "mne/time_frequency/multitaper.py": {
+      "a": 9,
+      "d": 3
+    },
+    "mne/time_frequency/tests/test_csd.py": {
+      "a": 29,
+      "d": 19
+    },
+    "mne/viz.py": {
+      "a": 87,
+      "d": 1
+    }
+  }
+}

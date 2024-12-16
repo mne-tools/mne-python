@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "176795b73e34e53a19f14d46a11bff8cd63646fe",
+  "authors": [
+    {
+      "n": "Jean-Baptiste SCHIRATTI",
+      "e": "jean.baptiste.schiratti@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/channels/montage.py": {
+      "a": 12,
+      "d": 3
+    },
+    "mne/channels/tests/test_montage.py": {
+      "a": 36,
+      "d": 0
+    }
+  }
+}

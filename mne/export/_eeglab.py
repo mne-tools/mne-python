@@ -1,5 +1,4 @@
-# Authors: MNE Developers
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -19,7 +18,7 @@ def _export_raw(fname, raw):
     # remove extra epoc and STI channels
     drop_chs = ["epoc"]
     # filenames attribute of RawArray is filled with None
-    if raw.filenames[0] and not (raw.filenames[0].endswith(".fif")):
+    if raw.filenames[0] and raw.filenames[0].suffix != ".fif":
         drop_chs.append("STI 014")
 
     ch_names = [ch for ch in raw.ch_names if ch not in drop_chs]

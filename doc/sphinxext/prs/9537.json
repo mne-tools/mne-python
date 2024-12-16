@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "720a95c7599d933526b5db7fae823e4349176a01",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "mne/viz/raw.py": {
+      "a": 6,
+      "d": 0
+    }
+  }
+}

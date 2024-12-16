@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "027f82d79b8055bad5c997829d409035de348fe8",
+  "authors": [
+    {
+      "n": "Katarina Slama",
+      "e": "slamakatarina@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/epochs.py": {
+      "a": 22,
+      "d": 2
+    },
+    "mne/realtime/tests/test_mockclient.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 71,
+      "d": 24
+    },
+    "mne/tests/test_report.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

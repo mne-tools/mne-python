@@ -1,7 +1,4 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Denis A. Engemann <denis.engemann@gmail.com>
-#          Eric Larson <larson.eric.d@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -67,8 +64,8 @@ DEFAULTS = dict(
         whitened="Z",
         gsr="S",
         temperature="C",
-        eyegaze="AU",
-        pupil="AU",
+        eyegaze="rad",
+        pupil="m",
     ),
     units=dict(
         mag="fT",
@@ -95,8 +92,8 @@ DEFAULTS = dict(
         whitened="Z",
         gsr="S",
         temperature="C",
-        eyegaze="AU",
-        pupil="AU",
+        eyegaze="rad",
+        pupil="µm",
     ),
     # scalings for the units
     scalings=dict(
@@ -125,7 +122,7 @@ DEFAULTS = dict(
         gsr=1.0,
         temperature=1.0,
         eyegaze=1.0,
-        pupil=1.0,
+        pupil=1e6,
     ),
     # rough guess for a good plot
     scalings_plot_raw=dict(
@@ -159,8 +156,8 @@ DEFAULTS = dict(
         gof=1e2,
         gsr=1.0,
         temperature=0.1,
-        eyegaze=3e-1,
-        pupil=1e3,
+        eyegaze=2e-1,
+        pupil=1e-2,
     ),
     scalings_cov_rank=dict(
         mag=1e12,
@@ -186,8 +183,8 @@ DEFAULTS = dict(
         hbo=(0, 20),
         hbr=(0, 20),
         csd=(-50.0, 50.0),
-        eyegaze=(0.0, 5000.0),
-        pupil=(0.0, 5000.0),
+        eyegaze=(-1, 1),
+        pupil=(-1.0, 1.0),
     ),
     titles=dict(
         mag="Magnetometers",
@@ -216,6 +213,12 @@ DEFAULTS = dict(
         temperature="Temperature",
         eyegaze="Eye-tracking (Gaze position)",
         pupil="Eye-tracking (Pupil size)",
+        resp="Respiration monitoring channel",
+        chpi="Continuous head position indicator (HPI) coil channels",
+        exci="Flux excitation channel",
+        ias="Internal Active Shielding data (Triux systems)",
+        syst="System status channel information (Triux systems)",
+        whitened="Whitened data",
     ),
     mask_params=dict(
         marker="o",

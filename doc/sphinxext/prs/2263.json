@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "24918d788f982d4798bcf3fefea45ae3f1757662",
+  "authors": [
+    {
+      "n": "unknown",
+      "e": "rkmaddox@uw.edu"
+    }
+  ],
+  "changes": {
+    "mne/filter.py": {
+      "a": 4,
+      "d": 1
+    }
+  }
+}

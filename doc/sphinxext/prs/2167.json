@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "114759c61ec12634a5b0259a69ac42b73ed63e0a",
+  "authors": [
+    {
+      "n": "Mark Wronkiewicz",
+      "e": "wronk.mark@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/forward/_compute_forward.py": {
+      "a": 406,
+      "d": 121
+    }
+  }
+}

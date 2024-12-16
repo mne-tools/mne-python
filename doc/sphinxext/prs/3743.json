@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "09b6ada84a24c5574c749ec62ce96e383ae81a7b",
+  "authors": [
+    {
+      "n": "Denis A. Engemann",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/base.py": {
+      "a": 25,
+      "d": 12
+    },
+    "mne/io/tests/test_apply_function.py": {
+      "a": 8,
+      "d": 11
+    },
+    "tutorials/plot_modifying_data_inplace.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

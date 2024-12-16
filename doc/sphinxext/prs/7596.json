@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "8aa26ac5612e014fb839abe544a5748b85073231",
+  "authors": [
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    }
+  ],
+  "changes": {
+    "tutorials/intro/plot_20_events_from_raw.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/preprocessing/plot_60_maxwell_filtering_sss.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/raw/plot_20_event_arrays.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

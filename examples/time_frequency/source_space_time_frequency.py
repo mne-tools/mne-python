@@ -72,7 +72,7 @@ stcs = source_band_induced_power(
 )
 
 for b, stc in stcs.items():
-    stc.save("induced_power_%s" % b, overwrite=True)
+    stc.save(f"induced_power_{b}", overwrite=True)
 
 # %%
 # plot mean power

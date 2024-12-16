@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "e6db45db994313be3bc9d686d7bc830b33a186d1",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    }
+  ],
+  "changes": {
+    "setup.cfg": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

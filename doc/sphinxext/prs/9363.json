@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "674b8bd7f832d765266e048762074bc25cd100da",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "tutorials/evoked/30_eeg_erp.py": {
+      "a": 8,
+      "d": 4
+    }
+  }
+}

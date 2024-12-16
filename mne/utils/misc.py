@@ -1,6 +1,6 @@
 """Some miscellaneous utility functions."""
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#
+
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -43,7 +43,7 @@ def _empty_hash(kind="md5"):
 
 def _pl(x, non_pl="", pl="s"):
     """Determine if plural should be used."""
-    len_x = x if isinstance(x, (int, np.generic)) else len(x)
+    len_x = x if isinstance(x, int | np.generic) else len(x)
     return non_pl if len_x == 1 else pl
 
 
@@ -246,7 +246,7 @@ def running_subprocess(command, after="wait", verbose=None, *args, **kwargs):
     else:
         command = [str(s) for s in command]
         command_str = " ".join(s for s in command)
-    logger.info("Running subprocess: %s" % command_str)
+    logger.info(f"Running subprocess: {command_str}")
     try:
         p = subprocess.Popen(command, *args, **kwargs)
     except Exception:
@@ -254,7 +254,7 @@ def running_subprocess(command, after="wait", verbose=None, *args, **kwargs):
             command_name = command.split()[0]
         else:
             command_name = command[0]
-        logger.error("Command not found: %s" % command_name)
+        logger.error(f"Command not found: {command_name}")
         raise
     try:
         with ExitStack() as stack:
@@ -333,14 +333,14 @@ def sizeof_fmt(num):
     size : str
         The size in human-readable format.
     """
-    units = ["bytes", "kB", "MB", "GB", "TB", "PB"]
+    units = ["bytes", "KiB", "MiB", "GiB", "TiB", "PiB"]
     decimals = [0, 0, 1, 2, 2, 2]
     if num > 1:
         exponent = min(int(log(num, 1024)), len(units) - 1)
         quotient = float(num) / 1024**exponent
         unit = units[exponent]
         num_decimals = decimals[exponent]
-        format_string = "{0:.%sf} {1}" % (num_decimals)
+        format_string = f"{{0:.{num_decimals}f}} {{1}}"
         return format_string.format(quotient, unit)
     if num == 0:
         return "0 bytes"
@@ -389,7 +389,7 @@ def _assert_no_instances(cls, when=""):
                     and r is not locals()
                     and not inspect.isframe(r)
                 ):
-                    if isinstance(r, (list, dict, tuple)):
+                    if isinstance(r, list | dict | tuple):
                         rep = f"len={len(r)}"
                         r_ = gc.get_referrers(r)
                         types = (_fullname(x) for x in r_)

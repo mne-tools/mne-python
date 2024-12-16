@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "8c7daf49667d317b1759264eaaff01cc769ee656",
+  "authors": [
+    {
+      "n": null,
+      "e": "erkkahe@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/install/mne_tools_suite.rst": {
+      "a": 2,
+      "d": 0
+    }
+  }
+}

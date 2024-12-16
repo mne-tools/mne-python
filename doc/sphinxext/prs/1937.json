@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "4cdd5d227b8e7dbe5284e2fb4bd26d0d03ef1a34",
+  "authors": [
+    {
+      "n": "Teon L Brooks",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/viz/topo.py": {
+      "a": 4,
+      "d": 2
+    }
+  }
+}

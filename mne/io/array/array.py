@@ -1,7 +1,6 @@
 """Tools for creating Raw objects from numpy arrays."""
 
-# Authors: Eric Larson <larson.eric.d@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -88,12 +87,10 @@ class RawArray(BaseRaw):
             info, data, first_samps=(int(first_samp),), dtype=dtype, verbose=verbose
         )
         logger.info(
-            "    Range : %d ... %d =  %9.3f ... %9.3f secs"
-            % (
-                self.first_samp,
-                self.last_samp,
-                float(self.first_samp) / info["sfreq"],
-                float(self.last_samp) / info["sfreq"],
-            )
+            "    Range : %d ... %d =  %9.3f ... %9.3f secs",
+            self.first_samp,
+            self.last_samp,
+            float(self.first_samp) / info["sfreq"],
+            float(self.last_samp) / info["sfreq"],
         )
         logger.info("Ready.")

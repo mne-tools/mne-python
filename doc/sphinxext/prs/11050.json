@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "9acfa0642c0681a5d208a8ce551b2985338ace0a",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/docs.py": {
+      "a": 20,
+      "d": 12
+    },
+    "mne/viz/topomap.py": {
+      "a": 19,
+      "d": 11
+    },
+    "tutorials/time-freq/20_sensors_time_frequency.py": {
+      "a": 4,
+      "d": 6
+    }
+  }
+}

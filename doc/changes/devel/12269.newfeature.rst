@@ -1,1 +1,0 @@
-The package build backend was switched from ``setuptools`` to ``hatchling``. This will only affect users who build and install MNE-Python from source. By `Richard Höchenberger`_. (:gh:`12281`)

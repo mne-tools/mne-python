@@ -1,0 +1,51 @@
+{
+  "merge_commit_sha": "a6c07cb5cdf916ee345409ccc33c56db0043dfaf",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/dipole.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/epochs.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/evoked.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/time_frequency/tests/test_tfr.py": {
+      "a": 18,
+      "d": 2
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/utils/__init__.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/utils/mixin.py": {
+      "a": 85,
+      "d": 73
+    },
+    "mne/utils/tests/test_mixin.py": {
+      "a": 42,
+      "d": 0
+    }
+  }
+}

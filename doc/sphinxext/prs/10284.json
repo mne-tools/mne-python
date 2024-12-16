@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "5920d6930da19ed393949acf3c9bb7d7859c3b9d",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/gui/__init__.py": {
+      "a": 11,
+      "d": 2
+    },
+    "mne/gui/_coreg.py": {
+      "a": 13,
+      "d": 4
+    },
+    "mne/gui/tests/test_coreg_gui.py": {
+      "a": 5,
+      "d": 0
+    },
+    "mne/utils/config.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/utils/docs.py": {
+      "a": 6,
+      "d": 0
+    },
+    "mne/viz/backends/_abstract.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/viz/backends/_notebook.py": {
+      "a": 5,
+      "d": 2
+    },
+    "mne/viz/backends/_qt.py": {
+      "a": 9,
+      "d": 2
+    }
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "2c2488c172f6fbcc653cb38317a9bca5e1ddb867",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/channels/montage.py": {
+      "a": 5,
+      "d": 4
+    },
+    "mne/io/brainvision/tests/data/test.hpts": {
+      "a": 3,
+      "d": 7
+    }
+  }
+}

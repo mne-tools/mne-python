@@ -1,9 +1,6 @@
 """Functions shared between different beamformer types."""
 
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Roman Goj <roman.goj@gmail.com>
-#          Britta Westner <britta.wstnr@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -265,9 +262,7 @@ def _compute_beamformer(
     n_sources = G.shape[1] // n_orient
     assert nn.shape == (n_sources, 3)
 
-    logger.info(
-        "Computing beamformer filters for %d source%s" % (n_sources, _pl(n_sources))
-    )
+    logger.info(f"Computing beamformer filters for {n_sources} source{_pl(n_sources)}")
     n_channels = G.shape[0]
     assert n_orient in (3, 1)
     Gk = np.reshape(G.T, (n_sources, n_orient, n_channels)).transpose(0, 2, 1)

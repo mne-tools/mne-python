@@ -1,18 +1,19 @@
-# Authors: Eric Larson <larson.eric.d@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
 import itertools
 import os
 from copy import deepcopy
+from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 from matplotlib import backend_bases
-from numpy.testing import assert_allclose
+from numpy.testing import assert_allclose, assert_array_equal
 
+import mne
 from mne import Annotations, create_info, pick_types
 from mne._fiff.pick import _DATA_CH_TYPES_ORDER_DEFAULT, _PICK_TYPES_DATA_DICT
 from mne.annotations import _sync_onset
@@ -28,6 +29,9 @@ from mne.utils import (
 )
 from mne.viz import plot_raw, plot_sensors
 from mne.viz.utils import _fake_click, _fake_keypress
+
+base_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
+raw_fname = base_dir / "test_raw.fif"
 
 
 def _get_button_xy(buttons, idx):
@@ -541,6 +545,7 @@ def test_plot_raw_traces(raw, events, browser_backend):
     ismpl = browser_backend.name == "matplotlib"
     with raw.info._unlock():
         raw.info["lowpass"] = 10.0  # allow heavy decim during plotting
+    assert raw.info["bads"] == []
     fig = raw.plot(
         events=events, order=[1, 7, 5, 2, 3], n_channels=3, group_by="original"
     )
@@ -622,6 +627,30 @@ def test_plot_raw_traces(raw, events, browser_backend):
     with pytest.raises(TypeError, match="event_color key must be an int, got"):
         raw.plot(event_color={"foo": "r"})
     plot_raw(raw, events=events, event_color={-1: "r", 998: "b"})
+
+    # gh-12547
+    raw.info["bads"] = raw.ch_names[1:2]
+    picks = [1, 7, 5, 2, 3]
+    fig = raw.plot(events=events, order=picks, group_by="original")
+    assert_array_equal(fig.mne.picks, picks)
+
+
+def test_plot_raw_picks(raw, browser_backend):
+    """Test functionality of picks and order arguments."""
+    with raw.info._unlock():
+        raw.info["lowpass"] = 10.0  # allow heavy decim during plotting
+
+    fig = raw.plot(picks=["MEG 0112"])
+    assert len(fig.mne.traces) == 1
+
+    fig = raw.plot(picks=["meg"])
+    assert len(fig.mne.traces) == len(raw.get_channel_types(picks="meg"))
+
+    fig = raw.plot(order=[4, 3])
+    assert_array_equal(fig.mne.ch_order, np.array([4, 3]))
+
+    fig = raw.plot(picks=[4, 3])
+    assert_array_equal(fig.mne.ch_order, np.array([3, 4]))
 
 
 @pytest.mark.parametrize("group_by", ("position", "selection"))
@@ -745,6 +774,11 @@ def test_plot_annotations(raw, browser_backend):
         fig.mne.visible_annotations["test"] = True
         fig._update_regions_visible()
         assert fig.mne.regions[0].isVisible()
+
+    # Check if single annotation toggle works
+    ch_pick = fig.mne.inst.ch_names[0]
+    fig._toggle_single_channel_annotation(ch_pick, 0)
+    assert fig.mne.inst.annotations.ch_names[0] == (ch_pick,)
 
 
 @pytest.mark.parametrize("active_annot_idx", (0, 1, 2))
@@ -1184,3 +1218,35 @@ def test_plotting_memory_garbage_collection(raw, pg_backend):
 
     assert len(mne_qt_browser._browser_instances) == 0
     _assert_no_instances(MNEQtBrowser, "after closing")
+
+
+def test_plotting_scalebars(browser_backend, qtbot):
+    """Test that raw scalebars are not overplotted."""
+    ismpl = browser_backend.name == "matplotlib"
+    raw = mne.io.read_raw_fif(raw_fname).crop(0, 1).load_data()
+    fig = raw.plot(butterfly=True)
+    if ismpl:
+        ch_types = [text.get_text() for text in fig.mne.ax_main.get_yticklabels()]
+        assert ch_types == ["mag", "grad", "eeg", "eog", "stim"]
+        delta = 0.25
+        offset = 0
+    else:
+        qtbot.wait_exposed(fig)
+        for _ in range(10):
+            ch_types = list(fig.mne.channel_axis.ch_texts)  # keys
+            if len(ch_types) > 0:
+                break
+            qtbot.wait(100)  # pragma: no cover
+        # the grad/mag difference here is intentional in _pg_figure.py
+        assert ch_types == ["grad", "mag", "eeg", "eog", "stim"]
+        delta = 0.5  # TODO: Probably should also be 0.25?
+        offset = 1
+    assert ch_types.pop(-1) == "stim"
+    for ci, ch_type in enumerate(ch_types, offset):
+        err_msg = f"{ch_type=} should be centered around y={ci}"
+        this_bar = fig.mne.scalebars[ch_type]
+        if ismpl:
+            yvals = this_bar.get_data()[1]
+        else:
+            yvals = this_bar.get_ydata()
+        assert_allclose(yvals, [ci - delta, ci + delta], err_msg=err_msg)

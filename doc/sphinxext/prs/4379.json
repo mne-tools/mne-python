@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "67d9cec9f99016221415790c220caa203d386916",
+  "authors": [
+    {
+      "n": "jaeilepp",
+      "e": "jaeilepp@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/dipole.py": {
+      "a": 5,
+      "d": 25
+    },
+    "mne/viz/_3d.py": {
+      "a": 1,
+      "d": 19
+    }
+  }
+}

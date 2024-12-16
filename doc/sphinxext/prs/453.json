@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "c4a0a60c939416e8bb10925faf992ba0f7719f69",
+  "authors": [
+    {
+      "n": "Christian Brodbeck",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/proj.py": {
+      "a": 7,
+      "d": 5
+    },
+    "mne/tests/test_proj.py": {
+      "a": 5,
+      "d": 0
+    }
+  }
+}

@@ -1,0 +1,211 @@
+{
+  "merge_commit_sha": "e18950e9c8635997139c3cc4d940512a64dc5723",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".mailmap": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/changes/0.8.inc": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/references.rst": {
+      "a": 2,
+      "d": 2
+    },
+    "examples/inverse/plot_mixed_norm_inverse.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/inverse/plot_time_frequency_mixed_norm_inverse.py": {
+      "a": 2,
+      "d": 2
+    },
+    "examples/io/plot_read_epochs.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/bem.py": {
+      "a": 5,
+      "d": 2
+    },
+    "mne/channels/channels.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/commands/mne_bti2fiff.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/commands/mne_make_scalp_surfaces.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/cov.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/data/coil_def.dat": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/epochs.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/event.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/evoked.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/forward/_compute_forward.py": {
+      "a": 9,
+      "d": 6
+    },
+    "mne/forward/_field_interpolation.py": {
+      "a": 6,
+      "d": 0
+    },
+    "mne/forward/_lead_dots.py": {
+      "a": 5,
+      "d": 2
+    },
+    "mne/forward/_make_forward.py": {
+      "a": 5,
+      "d": 2
+    },
+    "mne/forward/forward.py": {
+      "a": 5,
+      "d": 2
+    },
+    "mne/inverse_sparse/mxne_inverse.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/inverse_sparse/mxne_optim.py": {
+      "a": 6,
+      "d": 6
+    },
+    "mne/io/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/_digitization.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/base.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/bti/bti.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/constants.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/ctf/constants.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/io/ctf/ctf.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/io/ctf/res4.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/io/ctf_comp.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/fiff/raw.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/matrix.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/meas_info.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/open.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/pick.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/proj.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/tag.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/tree.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/utils.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/write.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/minimum_norm/inverse.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/minimum_norm/tests/test_snr.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/maxfilter.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/ssp.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/selection.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/source_estimate.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/source_space.py": {
+      "a": 5,
+      "d": 2
+    },
+    "mne/surface.py": {
+      "a": 6,
+      "d": 2
+    }
+  }
+}

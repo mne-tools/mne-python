@@ -1,4 +1,4 @@
-# Authors: Scott Huberty <seh33@uw.edu>
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -6,6 +6,7 @@ import numpy as np
 import pytest
 
 from mne import create_info
+from mne.annotations import _annotations_starts_stops
 from mne.datasets.testing import data_path, requires_testing_data
 from mne.io import RawArray, read_raw_eyelink
 from mne.preprocessing.eyetracking import interpolate_blinks
@@ -16,17 +17,20 @@ pytest.importorskip("pandas")
 
 @requires_testing_data
 @pytest.mark.parametrize(
-    "buffer, match, cause_error, interpolate_gaze",
+    "buffer, match, cause_error, interpolate_gaze, crop",
     [
-        (0.025, "BAD_blink", False, False),
-        (0.025, "BAD_blink", False, True),
-        ((0.025, 0.025), ["random_annot"], False, False),
-        (0.025, "BAD_blink", True, False),
+        (0.025, "BAD_blink", False, False, False),
+        (0.025, "BAD_blink", False, True, True),
+        ((0.025, 0.025), ["random_annot"], False, False, False),
+        (0.025, "BAD_blink", True, False, False),
     ],
 )
-def test_interpolate_blinks(buffer, match, cause_error, interpolate_gaze):
+def test_interpolate_blinks(buffer, match, cause_error, interpolate_gaze, crop):
     """Test interpolating pupil data during blinks."""
     raw = read_raw_eyelink(fname, create_annotations=["blinks"], find_overlaps=True)
+    if crop:
+        raw.crop(tmin=2)
+        assert raw.first_time == 2.0
     # Create a dummy stim channel
     # this will hit a certain line in the interpolate_blinks function
     info = create_info(["STI"], raw.info["sfreq"], ["stim"])
@@ -35,8 +39,11 @@ def test_interpolate_blinks(buffer, match, cause_error, interpolate_gaze):
     raw.add_channels([stim_raw], force_update_info=True)
 
     # Get the indices of the first blink
-    first_blink_start = raw.annotations[0]["onset"]
-    first_blink_end = raw.annotations[0]["onset"] + raw.annotations[0]["duration"]
+    blink_starts, blink_ends = _annotations_starts_stops(raw, "BAD_blink")
+    blink_starts = np.divide(blink_starts, raw.info["sfreq"])
+    blink_ends = np.divide(blink_ends, raw.info["sfreq"])
+    first_blink_start = blink_starts[0]
+    first_blink_end = blink_ends[0]
     if match == ["random_annot"]:
         msg = "No annotations matching"
         with pytest.warns(RuntimeWarning, match=msg):

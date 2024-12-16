@@ -16,8 +16,10 @@ from simulated data in a :class:`NumPy array <numpy.ndarray>`, see
 As usual we'll start by importing the modules we need:
 """
 
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 # %%
 import os
 
@@ -291,9 +293,12 @@ print(raw.ch_names[-3:])
 # inaccurate, you can change the type of any channel with the
 # :meth:`~mne.io.Raw.set_channel_types` method. The method takes a
 # :class:`dictionary <dict>` mapping channel names to types; allowed types are
-# ``ecg, eeg, emg, eog, exci, ias, misc, resp, seeg, dbs, stim, syst, ecog,
-# hbo, hbr``. A common use case for changing channel type is when using frontal
-# EEG electrodes as makeshift EOG channels:
+# ``bio, chpi, csd, dbs, dipole, ecg, ecog, eeg, emg, eog, exci, eyegaze,
+# fnirs_cw_amplitude, fnirs_fd_ac_amplitude, fnirs_fd_phase, fnirs_od, gof,
+# gsr, hbo, hbr, ias, misc, pupil, ref_meg, resp, seeg, stim, syst,
+# temperature`` (see :term:`sensor types` for more information about them).
+# A common use case for changing channel type is when using frontal EEG
+# electrodes as makeshift EOG channels:
 
 raw.set_channel_types({"EEG_001": "eog"})
 print(raw.copy().pick(picks="eog").ch_names)

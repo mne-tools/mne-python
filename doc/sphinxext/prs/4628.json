@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "7ae3c15886f17f70f988e5c5a49454a7162e0e5b",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "mne/beamformer/_lcmv.py": {
+      "a": 87,
+      "d": 10
+    },
+    "mne/beamformer/tests/test_lcmv.py": {
+      "a": 62,
+      "d": 7
+    }
+  }
+}

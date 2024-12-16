@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "837d63ba9f9a43ee229306c508cad4f2eb2320cc",
+  "authors": [
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/viz/_3d.py": {
+      "a": 5,
+      "d": 2
+    }
+  }
+}

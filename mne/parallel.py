@@ -1,7 +1,6 @@
 """Parallel util function."""
 
-# Author: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -144,7 +143,7 @@ def _check_n_jobs(n_jobs):
     n_jobs = _ensure_int(n_jobs, "n_jobs", must_be="an int or None")
     if os.getenv("MNE_FORCE_SERIAL", "").lower() in ("true", "1") and n_jobs != 1:
         n_jobs = 1
-        logger.info("... MNE_FORCE_SERIAL set. Processing in forced " "serial mode.")
+        logger.info("... MNE_FORCE_SERIAL set. Processing in forced serial mode.")
     elif n_jobs <= 0:
         n_cores = multiprocessing.cpu_count()
         n_jobs_orig = n_jobs

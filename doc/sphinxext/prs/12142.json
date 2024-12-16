@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "cdad29dac30041ee79d4e719cb53ad63ffdf21a9",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/time_frequency/tests/test_spectrum.py": {
+      "a": 11,
+      "d": 3
+    },
+    "mne/viz/evoked.py": {
+      "a": 5,
+      "d": 3
+    },
+    "mne/viz/tests/test_evoked.py": {
+      "a": 7,
+      "d": 0
+    },
+    "mne/viz/utils.py": {
+      "a": 2,
+      "d": 1
+    },
+    "tutorials/intro/70_report.py": {
+      "a": 1,
+      "d": 2
+    }
+  }
+}

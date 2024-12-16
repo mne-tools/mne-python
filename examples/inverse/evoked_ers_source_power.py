@@ -95,7 +95,6 @@ common_cov = baseline_cov + active_cov
 baseline_cov.plot(epochs.info)
 
 # %%
-
 # Compute some source estimates
 # -----------------------------
 # Here we will use DICS, LCMV beamformer, and dSPM.
@@ -161,6 +160,7 @@ stc_dspm = _gen_mne(active_cov, baseline_cov, common_cov, fwd, epochs.info)
 # ---------------------
 # DICS:
 
+# sphinx_gallery_thumbnail_number = 3
 brain_dics = stc_dics.plot(
     hemi="rh",
     subjects_dir=subjects_dir,

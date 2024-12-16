@@ -1,7 +1,6 @@
 """Test generic read_raw function."""
 
-# Authors: Clemens Brunner <clemens.brunner@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -12,7 +11,7 @@ import pytest
 
 from mne.datasets import testing
 from mne.io import read_raw
-from mne.io._read_raw import _get_readers, split_name_ext
+from mne.io._read_raw import _get_readers, _get_supported, split_name_ext
 
 base = Path(__file__).parents[1]
 test_base = Path(testing.data_path(download=False))
@@ -50,7 +49,13 @@ _testing_mark = testing._pytest_mark()
         base / "tests/data/test_raw.fif",
         base / "tests/data/test_raw.fif.gz",
         base / "edf/tests/data/test.edf",
-        base / "edf/tests/data/test.bdf",
+        pytest.param(
+            base / "edf/tests/data/test.bdf",
+            marks=(
+                _testing_mark,
+                pytest.mark.filterwarnings("ignore:Channels contain different"),
+            ),
+        ),
         base / "brainvision/tests/data/test.vhdr",
         base / "kit/tests/data/test.sqd",
         pytest.param(test_base / "KIT" / "data_berlin.con", marks=_testing_mark),
@@ -94,3 +99,60 @@ def test_read_raw_multiple_dots(tmp_path):
     dst = tmp_path / "test.this.file.edf"
     copyfile(src, dst)
     read_raw(dst)
+
+
+reader_excluded_from_read_raw = {
+    "read_raw_bti",
+    "read_raw_hitachi",
+    "read_raw_neuralynx",
+}
+
+
+def test_all_reader_documented():
+    """Test that all the readers in the documentation are accepted by read_raw."""
+    readers = _get_supported()
+    # flatten the dictionaries and retrieve the function names
+    functions = [foo.__name__ for value in readers.values() for foo in value.values()]
+    # read documentation .rst source file
+    doc_folder = Path(__file__).parents[3] / "doc"
+    if not doc_folder.exists():
+        pytest.skip("Documentation folder not found.")
+    doc_file = doc_folder / "api" / "reading_raw_data.rst"
+    doc = doc_file.read_text("utf-8")
+    reader_lines = [
+        line.strip() for line in doc.split("\n") if line.strip().startswith("read_raw_")
+    ]
+    reader_lines = [
+        elt for elt in reader_lines if elt not in reader_excluded_from_read_raw
+    ]
+    missing_from_read_raw = set(reader_lines) - set(functions)
+    missing_from_doc = set(functions) - set(reader_lines)
+    if len(missing_from_doc) != 0 or len(missing_from_read_raw) != 0:
+        raise AssertionError(
+            "Functions missing from documentation:\n\t"
+            + "\n\t".join(missing_from_doc)
+            + "\n\nFunctions missing from read_raw:\n\t"
+            + "\n\t".join(missing_from_read_raw)
+        )
+    if sorted(reader_lines) != list(reader_lines):
+        raise AssertionError(
+            "Functions in documentation are not sorted. Expected order:\n\t"
+            + "\n\t".join(sorted(reader_lines))
+        )
+
+
+def test_all_reader_documented_in_docstring():
+    """Test that all the readers are documented in read_raw docstring."""
+    readers = _get_supported()
+    # flatten the dictionaries and retrieve the function names
+    functions = [foo.__name__ for value in readers.values() for foo in value.values()]
+    doc = read_raw.__doc__.split("Parameters")[0]
+    documented = [elt.strip().split("`")[0] for elt in doc.split("mne.io.")[1:]]
+    missing_from_docstring = set(functions) - set(documented)
+    if len(missing_from_docstring) != 0:
+        raise AssertionError(
+            "Functions missing from docstring:\n\t"
+            + "\n\t".join(missing_from_docstring)
+        )
+    if sorted(documented) != documented:
+        raise AssertionError("Functions in docstring are not sorted.")

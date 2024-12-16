@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "176680a238a7c4f132fdd9198fc7bbe7797d764f",
+  "authors": [
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/viz/_brain/_brain.py": {
+      "a": 63,
+      "d": 83
+    },
+    "mne/viz/_brain/tests/test_notebook.py": {
+      "a": 8,
+      "d": 0
+    },
+    "mne/viz/backends/_abstract.py": {
+      "a": 26,
+      "d": 2
+    },
+    "mne/viz/backends/_notebook.py": {
+      "a": 61,
+      "d": 38
+    },
+    "mne/viz/backends/_pyvista.py": {
+      "a": 0,
+      "d": 6
+    },
+    "mne/viz/backends/_qt.py": {
+      "a": 59,
+      "d": 39
+    },
+    "mne/viz/utils.py": {
+      "a": 7,
+      "d": 0
+    }
+  }
+}

@@ -1,9 +1,7 @@
-# -*- coding: UTF-8 -*-
-# Authors: Thomas Hartmann <thomas.hartmann@th-ht.de>
-#          Dirk Gütlin <dirk.guetlin@stud.sbg.ac.at>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 import numpy as np
 
 from ..._fiff._digitization import DigPoint, _ensure_fiducials_head
@@ -54,7 +52,7 @@ def _create_info(ft_struct, raw_info):
         if missing_channels:
             warn(
                 "The following channels are present in the FieldTrip data "
-                f"but cannot be found in the provided info: {str(missing_channels)}.\n"
+                f"but cannot be found in the provided info: {missing_channels}.\n"
                 "These channels will be removed from the resulting data!"
             )
 
@@ -98,7 +96,7 @@ def _remove_missing_channels_from_trial(trial, missing_chan_idx):
             trial = np.delete(trial, missing_chan_idx, axis=0)
     else:
         raise ValueError(
-            '"trial" field of the FieldTrip structure ' "has an unknown format."
+            '"trial" field of the FieldTrip structure has an unknown format.'
         )
 
     return trial
@@ -216,7 +214,7 @@ def _set_tmin(ft_struct):
         tmin = times[0][0]
     else:
         raise RuntimeError(
-            "Loading data with non-uniform " "times per epoch is not supported"
+            "Loading data with non-uniform times per epoch is not supported"
         )
     return tmin
 
@@ -238,7 +236,7 @@ def _create_events(ft_struct, trialinfo_column):
 
     if trialinfo_column > (available_ti_cols - 1):
         raise ValueError(
-            "trialinfo_column is higher than the amount of" "columns in trialinfo."
+            "trialinfo_column is higher than the amount of columns in trialinfo."
         )
 
     event_trans_val = np.zeros(len(event_type))

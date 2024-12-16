@@ -1,5 +1,4 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -35,7 +34,7 @@ from .utils import (
 
 
 @verbose
-def read_proj(fname, verbose=None):
+def read_proj(fname, *, verbose=None):
     """Read projections from a FIF file.
 
     Parameters
@@ -57,6 +56,7 @@ def read_proj(fname, verbose=None):
     check_fname(
         fname, "projection", ("-proj.fif", "-proj.fif.gz", "_proj.fif", "_proj.fif.gz")
     )
+    fname = _check_fname(fname, overwrite="read", must_exist=True)
 
     ff, tree, _ = fiff_open(fname)
     with ff as fid:
@@ -152,7 +152,7 @@ def _compute_proj(
                 ncol=u.size,
             )
             desc = f"{kind}-{desc_prefix}-PCA-{k + 1:02d}"
-            logger.info("Adding projection: %s", desc)
+            logger.info(f"Adding projection: {desc} (exp var={100 * float(var):0.1f}%)")
             proj = Projection(
                 active=False,
                 data=proj_data,
@@ -221,13 +221,16 @@ def compute_proj_epochs(
     return _compute_proj(data, epochs.info, n_grad, n_mag, n_eeg, desc_prefix, meg=meg)
 
 
-def _compute_cov_epochs(epochs, n_jobs):
+def _compute_cov_epochs(epochs, n_jobs, *, log_drops=False):
     """Compute epochs covariance."""
     parallel, p_fun, n_jobs = parallel_func(np.dot, n_jobs)
+    n_start = len(epochs.events)
     data = parallel(p_fun(e, e.T) for e in epochs)
     n_epochs = len(data)
     if n_epochs == 0:
         raise RuntimeError("No good epochs found")
+    if log_drops:
+        logger.info(f"Dropped {n_start - n_epochs}/{n_start} epochs")
 
     n_chan, n_samples = epochs.info["nchan"], len(epochs.times)
     _check_n_samples(n_samples * n_epochs, n_chan)
@@ -351,7 +354,7 @@ def compute_proj_raw(
             baseline=None,
             proj=False,
         )
-        data = _compute_cov_epochs(epochs, n_jobs)
+        data = _compute_cov_epochs(epochs, n_jobs, log_drops=True)
         info = epochs.info
         if not stop:
             stop = raw.n_times / raw.info["sfreq"]
@@ -460,7 +463,7 @@ def sensitivity_map(
             )
     # can only run the last couple methods if there are projectors
     elif mode in residual_types:
-        raise ValueError("No projectors used, cannot compute %s" % mode)
+        raise ValueError(f"No projectors used, cannot compute {mode}")
 
     _, n_dipoles = gain.shape
     n_locations = n_dipoles // 3
@@ -492,7 +495,7 @@ def sensitivity_map(
                     elif mode == "dampening":
                         sensitivity_map[k] = 1.0 - p / gz
                     else:
-                        raise ValueError("Unknown mode type (got %s)" % mode)
+                        raise ValueError(f"Unknown mode type (got {mode})")
 
     # only normalize fixed and free methods
     if mode in ["fixed", "free"]:

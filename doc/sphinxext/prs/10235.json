@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "a1cd8003bf7a359ebd76e4044afb7e8c0a1bfba9",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/hitachi/hitachi.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/hitachi/tests/test_hitachi.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

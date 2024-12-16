@@ -1,5 +1,4 @@
-# Author: Jean-Remi King, <jeanremi.king@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -8,14 +7,15 @@ import numpy as np
 import pytest
 from numpy.testing import assert_array_equal
 
+pytest.importorskip("sklearn")
+
+from sklearn.base import clone
+
 from mne.decoding.time_frequency import TimeFrequency
 
 
 def test_timefrequency():
     """Test TimeFrequency."""
-    pytest.importorskip("sklearn")
-    from sklearn.base import clone
-
     # Init
     n_freqs = 3
     freqs = [20, 21, 22]

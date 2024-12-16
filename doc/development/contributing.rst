@@ -93,8 +93,8 @@ Setting up your local development environment
 Configuring git
 ~~~~~~~~~~~~~~~
 
-.. note:: Git GUI alternative
-    :class: sidebar
+.. admonition:: Git GUI alternative
+    :class: sidebar note
 
     `GitHub desktop`_ is a GUI alternative to command line git that some users
     appreciate; it is available for |windows| Windows and |apple| MacOS.
@@ -230,8 +230,8 @@ of how that structure is set up is given here:
 Creating the virtual environment
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. note:: Supported Python environments
-    :class: sidebar
+.. admonition:: Supported Python environments
+    :class: sidebar note
 
     We strongly recommend the `Anaconda`_ or `Miniconda`_ environment managers
     for Python. Other setups are possible but are not officially supported by
@@ -242,8 +242,8 @@ Creating the virtual environment
 
 These instructions will set up a Python environment that is separated from your
 system-level Python and any other managed Python environments on your computer.
-This lets you switch between different versions of Python (MNE-Python requires
-version 3.9 or higher) and also switch between the stable and development
+This lets you switch between different versions of Python and also switch between
+the stable and development
 versions of MNE-Python (so you can, for example, use the same computer to
 analyze your data with the stable release, and also work with the latest
 development version to fix bugs or add new features). Even if you've already
@@ -375,7 +375,7 @@ feature, you should first synchronize your local ``main`` branch with the
     $ git merge upstream/main      # synchronize local main branch with remote upstream main branch
     $ git checkout -b new-feature-x  # create local branch "new-feature-x" and check it out
 
-.. note:: Alternative
+.. tip::
     :class: sidebar
 
     You can save some typing by using ``git pull upstream/main`` to replace
@@ -592,7 +592,7 @@ Describe your changes in the changelog
 
 Include in your changeset a brief description of the change in the
 :ref:`changelog <whats_new>` using towncrier_ format, which aggregates small,
-properly-named ``.rst`` files to create a change log. This can be
+properly-named ``.rst`` files to create a changelog. This can be
 skipped for very minor changes like correcting typos in the documentation.
 
 There are six separate sections for changes, based on change type.
@@ -860,13 +860,13 @@ data with a meaningful middle (zero-point) and ``Reds`` otherwise. This applies
 to both visualization functions and tutorials/examples.
 
 
-.. _run_tests:
+.. _run-tests:
 
 Running the test suite
 ~~~~~~~~~~~~~~~~~~~~~~
 
-.. note:: pytest flags
-    :class: sidebar
+.. admonition:: pytest flags
+    :class: sidebar tip
 
     The ``-x`` flag exits the pytest run when any test fails; this can speed
     up debugging when running all tests in a file or module.

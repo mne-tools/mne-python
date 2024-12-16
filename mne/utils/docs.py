@@ -1,6 +1,6 @@
 """The documentation functions."""
-# Authors: Eric Larson <larson.eric.d@gmail.com>
-#
+
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -271,11 +271,12 @@ Operates in place.
 # raw/epochs/evoked apply_function method
 # apply_function method summary
 applyfun_summary = """\
-The function ``fun`` is applied to the channels or vertices defined in ``picks``.
-The {} object's data is modified in-place. If the function returns a different
+The function ``fun`` is applied to the {applies_to} defined in ``picks``.
+The {data_type} object's data is modified in-place. If the function returns a different
 data type (e.g. :py:obj:`numpy.complex128`) it must be specified
 using the ``dtype`` parameter, which causes the data type of **all** the data
-to change (even if the function is only applied to channels/vertices in ``picks``).{}
+to change (even if the function is only applied to {applies_to} in
+``picks``).{preload}
 
 .. note:: If ``n_jobs`` > 1, more memory is required as
           ``len(picks) * n_times`` additional time points need to
@@ -288,10 +289,18 @@ applyfun_preload = (
     " The object has to have the data loaded e.g. with "
     "``preload=True`` or ``self.load_data()``."
 )
-docdict["applyfun_summary_epochs"] = applyfun_summary.format("epochs", applyfun_preload)
-docdict["applyfun_summary_evoked"] = applyfun_summary.format("evoked", "")
-docdict["applyfun_summary_raw"] = applyfun_summary.format("raw", applyfun_preload)
-docdict["applyfun_summary_stc"] = applyfun_summary.format("source estimate", "")
+docdict["applyfun_summary_epochs"] = applyfun_summary.format(
+    applies_to="channels", data_type="epochs", preload=applyfun_preload
+)
+docdict["applyfun_summary_evoked"] = applyfun_summary.format(
+    applies_to="channels", data_type="evoked", preload=""
+)
+docdict["applyfun_summary_raw"] = applyfun_summary.format(
+    applies_to="channels", data_type="raw", preload=applyfun_preload
+)
+docdict["applyfun_summary_stc"] = applyfun_summary.format(
+    applies_to="vertices", data_type="source estimate", preload=""
+)
 
 docdict["area_alpha_plot_psd"] = """\
 area_alpha : float
@@ -308,9 +317,13 @@ area_mode : str | None
 
 docdict["aseg"] = """
 aseg : str
-    The anatomical segmentation file. Default ``aparc+aseg``. This may
-    be any anatomical segmentation file in the mri subdirectory of the
-    Freesurfer subject directory.
+    The anatomical segmentation file. Default ``auto`` uses ``aparc+aseg``
+    if available and ``wmparc`` if not. This may be any anatomical
+    segmentation file in the mri subdirectory of the Freesurfer subject
+    directory.
+
+    .. versionchanged:: 1.8
+       Added support for the new default ``'auto'``.
 """
 
 docdict["average_plot_evoked_topomap"] = """
@@ -1054,6 +1067,7 @@ decim : int
                  ``decim``), i.e., it compresses the signal (see Notes).
                  If the data are not properly filtered, aliasing artifacts
                  may occur.
+                 See :ref:`resampling-and-decimating` for more information.
 """
 
 docdict["decim_notes"] = """
@@ -1104,14 +1118,20 @@ depth : None | float | dict
 """
 
 docdict["destination_maxwell_dest"] = """
-destination : path-like | array-like, shape (3,) | None
-    The destination location for the head. Can be ``None``, which
-    will not change the head position, or a path to a FIF file
-    containing a MEG device<->head transformation, or a 3-element array
-    giving the coordinates to translate to (with no rotations).
-    For example, ``destination=(0, 0, 0.04)`` would translate the bases
-    as ``--trans default`` would in MaxFilter™ (i.e., to the default
-    head location).
+destination : path-like | array-like, shape (3,) | instance of Transform | None
+    The destination location for the head. Can be:
+
+    ``None``
+      Will not change the head position.
+    :class:`~mne.transforms.Transform`
+      A MEG device<->head transformation, e.g. ``info["dev_head_t"]``.
+    :class:`numpy.ndarray`
+      A 3-element array giving the coordinates to translate to (with no rotations).
+      For example, ``destination=(0, 0, 0.04)`` would translate the bases
+      as ``--trans default`` would in MaxFilter™ (i.e., to the default
+      head location).
+    ``path-like``
+      A path to a FIF file containing the destination MEG device<->head transformation.
 """
 
 docdict["detrend_epochs"] = """
@@ -1261,6 +1281,11 @@ encoding : str
     encoding according to the EDF+ standard).
 """
 
+docdict["encoding_nirx"] = """
+encoding : str
+    Text encoding of the NIRX header file. See :ref:`standard-encodings`.
+"""
+
 docdict["epochs_preload"] = """
     Load all epochs from disk when creating the object
     or wait before accessing each epoch (more memory
@@ -1285,6 +1310,17 @@ tmin, tmax : float
     time are included. Defaults to ``-0.2`` and ``0.5``, respectively.
 """
 
+docdict["equalize_events_method"] = """
+method : ``'truncate'`` | ``'mintime'`` | ``'random'``
+    If ``'truncate'``, events will be truncated from the end of each event
+    list. If ``'mintime'``, timing differences between each event list will be
+    minimized. If ``'random'``, events will be randomly selected from each event
+    list.
+
+    .. versionadded:: 1.8
+"""
+
+<<<<<<< HEAD
 docdict["erp_evoked_tmin_tmax"] = """
 tmin, tmax : float
     Start and end time of the ERP computation window in seconds. Defaults to
@@ -1298,11 +1334,22 @@ strict : bool
 """
 
 
+=======
+docdict["equalize_events_method"] = """
+method : ``'truncate'`` | ``'mintime'`` | ``'random'``
+    If ``'truncate'``, events will be truncated from the end of each event
+    list. If ``'mintime'``, timing differences between each event list will be
+    minimized. If ``'random'``, events will be randomly selected from each event
+    list.
+
+    .. versionadded:: 1.8
+"""
+
+>>>>>>> upstream/main
 docdict["estimate_plot_psd"] = """\
-estimate : str, {'auto', 'power', 'amplitude'}
-    Can be "power" for power spectral density (PSD), "amplitude" for
-    amplitude spectrum density (ASD), or "auto" (default), which uses
-    "power" when dB is True and "amplitude" otherwise.
+estimate : str, {'power', 'amplitude'}
+    Can be "power" for power spectral density (PSD; default), "amplitude" for
+    amplitude spectrum density (ASD).
 """
 
 docdict["event_color"] = """
@@ -1383,6 +1430,23 @@ evoked : instance of Evoked | list of Evoked
     dictionary.
 """
 
+docdict["evoked_ylim_plot"] = """
+ylim : dict | None
+    Y-axis limits for plots (after scaling has been applied). :class:`dict`
+    keys should match channel types; valid keys are for instance ``eeg``, ``mag``,
+    ``grad``, ``misc``, ``csd``, .. (example: ``ylim=dict(eeg=[-20, 20])``). If
+    ``None``, the y-axis limits will be set automatically by matplotlib. Defaults to
+    ``None``."""
+
+docdict["exclude_after_unique"] = """
+exclude_after_unique : bool
+    If True, exclude channels are searched for after they have been made
+    unique. This is useful to choose channels that have been made unique
+    by adding a suffix.  If False, the original names are checked.
+
+    .. versionchanged:: 1.7
+"""
+
 docdict["exclude_clust"] = """
 exclude : bool array or None
     Mask to apply to the data to exclude certain points from clustering
@@ -1414,15 +1478,19 @@ Although this function supports storing channel types in the signal label (e.g.
 ``EEG Fz`` or ``MISC E``), other software may not support this (optional) feature of the
 EDF standard.
 
-If ``add_ch_type`` is True, then channel types are written based on what
-they are currently set in MNE-Python. One should double check that all
-their channels are set correctly. You can call
-:attr:`raw.set_channel_types <mne.io.Raw.set_channel_types>` to set
-channel types.
+If ``add_ch_type`` is True, then channel types are written based on what they are
+currently set in MNE-Python. One should double check that all their channels are set
+correctly. You can call :meth:`mne.io.Raw.set_channel_types` to set channel types.
 
-In addition, EDF does not support storing a montage. You will need
-to store the montage separately and call :attr:`raw.set_montage()
-<mne.io.Raw.set_montage>`.
+In addition, EDF does not support storing a montage. You will need to store the montage
+separately and call :meth:`mne.io.Raw.set_montage`.
+
+The physical range of the signals is determined by signal type by default
+(``physical_range="auto"``). However, if individual channel ranges vary significantly
+due to the presence of e.g. drifts/offsets/biases, setting
+``physical_range="channelwise"`` might be more appropriate. This will ensure a maximum
+resolution for each individual channel, but some tools might not be able to handle this
+appropriately (even though channel-wise ranges are covered by the EDF standard).
 """
 
 docdict["export_eeglab_note"] = """
@@ -1701,7 +1769,8 @@ flat : dict | str | None
 
 _fmin_fmax = """\
 fmin, fmax : float
-    The lower- and upper-bound on frequencies of interest. Default is {}"""
+    The lower- and upper-bound on frequencies of interest. Default is
+    {}"""
 
 docdict["fmin_fmax_psd"] = _fmin_fmax.format(
     "``fmin=0, fmax=np.inf`` (spans all frequencies present in the data)."
@@ -2215,6 +2284,12 @@ keep_his : bool
                  anonymized. Use with caution.
 """
 
+docdict["kit_badcoils"] = """
+bad_coils : array-like of int | None
+    Indices of (up to two) bad marker coils to be removed.
+    These marker coils must be present in the elp and mrk files.
+"""
+
 docdict["kit_elp"] = """
 elp : path-like | array of shape (8, 3) | None
     Digitizer points representing the location of the fiducials and the
@@ -2569,10 +2644,13 @@ docdict["method_kw_psd"] = """\
 **method_kw
     Additional keyword arguments passed to the spectral estimation
     function (e.g., ``n_fft, n_overlap, n_per_seg, average, window``
-    for Welch method, or
-    ``bandwidth, adaptive, low_bias, normalization`` for multitaper
-    method). See :func:`~mne.time_frequency.psd_array_welch` and
-    :func:`~mne.time_frequency.psd_array_multitaper` for details.
+    for Welch method, or ``bandwidth, adaptive, low_bias, normalization``
+    for multitaper method). See :func:`~mne.time_frequency.psd_array_welch`
+    and :func:`~mne.time_frequency.psd_array_multitaper` for details. Note
+    that for Welch method if ``n_fft`` is unspecified its default will be
+    the smaller of ``2048`` or the number of available time samples (taking into
+    account ``tmin`` and ``tmax``), not ``256`` as in
+    :func:`~mne.time_frequency.psd_array_welch`.
 """
 
 docdict["method_kw_tfr"] = _method_kw_tfr_template.format(
@@ -2876,11 +2954,15 @@ docdict["notes_plot_*_psd_func"] = _notes_plot_psd.format("function")
 docdict["notes_plot_psd_meth"] = _notes_plot_psd.format("method")
 
 docdict["notes_spectrum_array"] = """
-It is assumed that the data passed in represent spectral *power* (not amplitude,
-phase, model coefficients, etc) and downstream methods (such as
+If the data passed in is real-valued, it is assumed to represent spectral *power* (not
+amplitude, phase, etc), and downstream methods (such as
 :meth:`~mne.time_frequency.SpectrumArray.plot`) assume power data. If you pass in
-something other than power, at the very least axis labels will be inaccurate (and
-other things may also not work or be incorrect).
+real-valued data that is not power, axis labels will be incorrect.
+
+If the data passed in is complex-valued, it is assumed to represent Fourier
+coefficients. Downstream plotting methods will treat the data as such, attempting to
+convert this to power before visualisation. If you pass in complex-valued data that is
+not Fourier coefficients, axis labels will be incorrect.
 """
 
 docdict["notes_timefreqs_tfr_plot_joint"] = """
@@ -3064,12 +3146,12 @@ on_split_missing : str
 
 docdict["ordered"] = """
 ordered : bool
-    If True (default False), ensure that the order of the channels in
+    If True (default), ensure that the order of the channels in
     the modified instance matches the order of ``ch_names``.
 
     .. versionadded:: 0.20.0
-    .. versionchanged:: 1.5
-        The default changed from False in 1.4 to True in 1.5.
+    .. versionchanged:: 1.7
+        The default changed from False in 1.6 to True in 1.7.
 """
 
 docdict["origin_maxwell"] = """
@@ -3214,11 +3296,10 @@ phase : str
 
 docdict["physical_range_export_params"] = """
 physical_range : str | tuple
-    The physical range of the data. If 'auto' (default), then
-    it will infer the physical min and max from the data itself,
-    taking the minimum and maximum values per channel type.
-    If it is a 2-tuple of minimum and maximum limit, then those
-    physical ranges will be used. Only used for exporting EDF files.
+    The physical range of the data. If 'auto' (default), the physical range is inferred
+    from the data, taking the minimum and maximum values per channel type. If
+    'channelwise', the range will be defined per channel. If a tuple of minimum and
+    maximum, this manual physical range will be used. Only used for exporting EDF files.
 """
 
 _pick_ori_novec = """
@@ -3341,13 +3422,13 @@ selection : list of str
 _picks_types = "str | array-like | slice | None"
 _picks_header = f"picks : {_picks_types}"
 _picks_desc = "Channels to include."
-_picks_int = "Slices and lists of integers will be interpreted as channel " "indices."
+_picks_int = "Slices and lists of integers will be interpreted as channel indices."
 _picks_str_types = """channel *type* strings (e.g., ``['meg', 'eeg']``) will
     pick channels of those types,"""
 _picks_str_names = """channel *name* strings (e.g., ``['MEG0111', 'MEG2623']``
     will pick the given channels."""
-_picks_str_values = """Can also be the string values "all" to pick
-    all channels, or "data" to pick :term:`data channels`."""
+_picks_str_values = """Can also be the string values ``'all'`` to pick
+    all channels, or ``'data'`` to pick :term:`data channels`."""
 _picks_str = f"""In lists, {_picks_str_types} {_picks_str_names}
     {_picks_str_values}
     None (default) will pick"""
@@ -3388,8 +3469,13 @@ picks : int | list of int | slice | None
     If an integer, represents the index of the IC to pick.
     Multiple ICs can be selected using a list of int or a slice.
     The indices are 0-indexed, so ``picks=1`` will pick the second
-    IC: ``ICA001``. ``None`` will pick all independent components in the order
-    fitted.
+    IC: ``ICA001``. ``None`` will pick all independent components in the order fitted.
+"""
+docdict["picks_layout"] = """
+picks : array-like of str or int | slice | ``'all'`` | None
+    Channels to include in the layout. Slices and lists of integers will be interpreted
+    as channel indices. Can also be the string value ``'all'`` to pick all channels.
+    None (default) will pick all channels.
 """
 docdict["picks_nostr"] = f"""picks : list | slice | None
     {_picks_desc} {_picks_int}
@@ -3478,7 +3564,7 @@ precompute : bool | str
 
     .. versionadded:: 0.24
     .. versionchanged:: 1.0
-       Support for the MNE_BROWSER_PRECOMPUTE config variable.
+       Support for the ``MNE_BROWSER_PRECOMPUTE`` config variable.
 """
 
 docdict["preload"] = """
@@ -3516,9 +3602,9 @@ proj : bool | 'delayed'
 
 docdict["proj_plot"] = """
 proj : bool | 'interactive' | 'reconstruct'
-    If true SSP projections are applied before display. If 'interactive',
+    If true SSP projections are applied before display. If ``'interactive'``,
     a check box for reversible selection of SSP projection vectors will
-    be shown. If 'reconstruct', projection vectors will be applied and then
+    be shown. If ``'reconstruct'``, projection vectors will be applied and then
     M/EEG data will be reconstructed via field mapping to reduce the signal
     bias caused by projection.
 
@@ -3648,13 +3734,20 @@ ref_channels : str | list of str
 """
 
 docdict["ref_channels_set_eeg_reference"] = """
-ref_channels : list of str | str
+ref_channels : list of str | str | dict
     Can be:
 
-    - The name(s) of the channel(s) used to construct the reference.
+    - The name(s) of the channel(s) used to construct the reference for
+      every channel of ``ch_type``.
     - ``'average'`` to apply an average reference (default)
     - ``'REST'`` to use the Reference Electrode Standardization Technique
       infinity reference :footcite:`Yao2001`.
+    - A dictionary mapping names of data channels to (lists of) names of
+      reference channels. For example, {'A1': 'A3'} would replace the
+      data in channel 'A1' with the difference between 'A1' and 'A3'. To take
+      the average of multiple channels as reference, supply a list of channel
+      names as the dictionary value, e.g. {'A1': ['A2', 'A3']} would replace
+      channel A1 with ``A1 - mean(A2, A3)``.
     - An empty list, in which case MNE will not attempt any re-referencing of
       the data
 """
@@ -3811,9 +3904,8 @@ res : int
 docdict["return_pca_vars_pctf"] = """
 return_pca_vars : bool
     Whether or not to return the explained variances across the specified
-    vertices for individual SVD components. This is only valid if
-    mode='svd'.
-    Default return_pca_vars=False.
+    vertices for individual SVD components. This is only valid if ``mode='svd'``.
+    Default to False.
 """
 
 docdict["roll"] = """
@@ -3944,6 +4036,19 @@ sensor_colors : array-like of color | dict | None
     shape ``(n_eeg, 3)`` or ``(n_eeg, 4)``.
 """
 
+docdict["sensor_scales"] = """
+sensor_scales : int | float | array-like | dict | None
+    Scale to use for the sensor glyphs. Can be None (default) to use default scale.
+    A dict should provide the Scale (values) for each channel type (keys), e.g.::
+
+        dict(eeg=eeg_scales)
+
+    Where the value (``eeg_scales`` above) can be broadcast to an array of values with
+    length that matches the number of channels of that type. A few examples of this
+    for the case above are the value ``10e-3``, a list of ``n_eeg`` values, or an NumPy
+    ndarray of shape ``(n_eeg,)``.
+"""
+
 docdict["sensors_topomap"] = """
 sensors : bool | str
     Whether to add markers for sensor locations. If :class:`str`, should be a
@@ -3982,6 +4087,15 @@ Some common referencing schemes and the corresponding value for the
 - REST
     The given EEG electrodes are referenced to a point at infinity using the
     lead fields in ``forward``, which helps standardize the signals.
+
+- Different references for different channels
+    Set ``ref_channels`` to a dictionary mapping source channel names (str)
+    to the reference channel names (str or list of str). Unlike the other
+    approaches where the same reference is applied globally, you can set
+    different references for different channels with this method. For example,
+    to re-reference channel 'A1' to 'A2' and 'B1' to the average of 'B2' and
+    'B3', set ``ref_channels={'A1': 'A2', 'B1': ['B2', 'B3']}``. Warnings are
+    issued when a mapping involves bad channels or channels of different types.
 
 1. If a reference is requested that is not the average reference, this
    function removes any pre-existing average reference projections.
@@ -4087,6 +4201,17 @@ smooth : float in [0, 1)
     The smoothing factor to be applied. Default 0 is no smoothing.
 """
 
+docdict["spatial_colors"] = """\
+spatial_colors : bool | 'auto'
+    If True, the lines are color coded by mapping physical sensor
+    coordinates into color values. Spatially similar channels will have
+    similar colors. Bad channels will be dotted. If False, the good
+    channels are plotted black and bad channels red. If ``'auto'``, uses
+    True if channel locations are present, and False if channel locations
+    are missing or if the data contains only a single channel. Defaults to
+    ``'auto'``.
+"""
+
 docdict["spatial_colors_psd"] = """\
 spatial_colors : bool
     Whether to color spectrum lines by channel location. Ignored if
@@ -4119,9 +4244,12 @@ splash : bool
 docdict["split_naming"] = """
 split_naming : 'neuromag' | 'bids'
     When splitting files, append a filename partition with the appropriate
-    naming schema: for ``'neuromag'``, a split file ``fname.fif`` will be named
-    ``fname.fif``, ``fname-1.fif``, ``fname-2.fif`` etc.; while for ``'bids'``,
-    it will be named ``fname_split-01.fif``, ``fname_split-02.fif``, etc.
+    naming schema. For ``'neuromag'``, a split file ``fname.fif`` will be named
+    ``fname.fif``, ``fname-1.fif``, ``fname-2.fif``, and so on. For ``'bids'``,
+    a filename is expected to consist of parts separated by underscores, like
+    ``<part-1>_<part-N>_<suffix>.fif``, and the according split naming will
+    return filenames like ``<part-1>_<part-N>_split-01_<suffix>.fif``,
+    ``<part-1>_<part-N>_split-02_<suffix>.fif``, and so on.
 """
 
 docdict["src_eltc"] = """
@@ -4561,8 +4689,9 @@ title : str | 'auto' | None
     plot. If ``None``, no title is shown. Default is ``None``.
 """
 docdict["tmax_raw"] = """
-tmax : float
+tmax : float | None
     End time of the raw data to use in seconds (cannot exceed data duration).
+    If ``None`` (default), the current end of the data is used.
 """
 
 docdict["tmin"] = """
@@ -4857,14 +4986,6 @@ vmin, vmax : float | {allowed}None
     ``min(data)`` or ``max(data)``, respectively.{extra}
 """
 
-docdict["vmin_vmax_tfr_plot"] = """
-vmin, vmax : float | None
-    Lower and upper bounds of the colormap. See ``vlim``.
-
-    .. deprecated:: 1.7
-        ``vmin`` and ``vmax`` will be removed in version 1.8.
-        Use ``vlim`` parameter instead.
-"""
 # ↓↓↓ this one still used, needs helper func refactor before we can migrate to `vlim`
 docdict["vmin_vmax_tfr_plot_topo"] = _vmin_vmax_template.format(
     allowed="", bounds=_bounds_symmetric, extra=""
@@ -4997,7 +5118,7 @@ def fill_doc(f):
     except (TypeError, ValueError, KeyError) as exp:
         funcname = f.__name__
         funcname = docstring.split("\n")[0] if funcname is None else funcname
-        raise RuntimeError(f"Error documenting {funcname}:\n{str(exp)}")
+        raise RuntimeError(f"Error documenting {funcname}:\n{exp}")
     return f
 
 
@@ -5013,6 +5134,8 @@ def copy_doc(source):
 
     This is useful when inheriting from a class and overloading a method. This
     decorator can be used to copy the docstring of the original method.
+
+    Docstrings are processed by :func:`python:inspect.cleandoc` before being used.
 
     Parameters
     ----------
@@ -5036,7 +5159,8 @@ def copy_doc(source):
     ...         ''' this gets appended'''
     ...         pass
     >>> print(B.m1.__doc__)
-    Docstring for m1 this gets appended
+    Docstring for m1
+    this gets appended
     """
 
     def wrapper(func):
@@ -5044,7 +5168,7 @@ def copy_doc(source):
             raise ValueError("Cannot copy docstring: docstring was empty.")
         doc = source.__doc__
         if func.__doc__ is not None:
-            doc += func.__doc__
+            doc += f"\n{inspect.cleandoc(func.__doc__)}"
         func.__doc__ = doc
         return func
 
@@ -5062,6 +5186,10 @@ def copy_function_doc_to_method_doc(source):
     This decorator is useful when implementing a method that just calls a
     function.  This pattern is prevalent in for example the plotting functions
     of MNE.
+
+    Docstrings are parsed by :func:`python:inspect.cleandoc` before being used.
+    If indentation and newlines are important, make the first line ``.``, and the dot
+    will be removed and all following lines dedented jointly.
 
     Parameters
     ----------
@@ -5098,7 +5226,8 @@ def copy_function_doc_to_method_doc(source):
     >>> class A:
     ...     @copy_function_doc_to_method_doc(plot_function)
     ...     def plot(self, a, b):
-    ...         '''
+    ...         '''.
+    ...
     ...         Notes
     ...         -----
     ...         .. versionadded:: 0.13.0
@@ -5107,26 +5236,31 @@ def copy_function_doc_to_method_doc(source):
     >>> print(A.plot.__doc__)
     Docstring for plotting function.
     <BLANKLINE>
-        Parameters
-        ----------
-        a : int
-            Some parameter
-        b : int
-            Some parameter
+    Parameters
+    ----------
+    a : int
+        Some parameter
+    b : int
+        Some parameter
     <BLANKLINE>
-            Notes
-            -----
-            .. versionadded:: 0.13.0
-    <BLANKLINE>
+    Notes
+    -----
+    .. versionadded:: 0.13.0
     """  # noqa: D410, D411, D214, D215
 
     def wrapper(func):
-        doc = source.__doc__.split("\n")
+        # Work with cleandoc'ed sources (py3.13-compat)
+        doc = inspect.cleandoc(source.__doc__).split("\n")
+        if func.__doc__ is not None:
+            func_doc = inspect.cleandoc(func.__doc__)
+            if func_doc[:2] == ".\n":
+                func_doc = func_doc[2:]
+            func_doc = f"\n{func_doc}"
+        else:
+            func_doc = ""
+
         if len(doc) == 1:
-            doc = doc[0]
-            if func.__doc__ is not None:
-                doc += func.__doc__
-            func.__doc__ = doc
+            func.__doc__ = f"{doc[0]}{func_doc}"
             return func
 
         # Find parameter block
@@ -5174,7 +5308,7 @@ def copy_function_doc_to_method_doc(source):
                 break
         else:
             # End of docstring reached
-            first_parameter_end = line
+            first_parameter_end = line + 1
             first_parameter = parameter_block
 
         # Copy the docstring, but remove the first parameter
@@ -5183,49 +5317,10 @@ def copy_function_doc_to_method_doc(source):
             + "\n"
             + "\n".join(doc[first_parameter_end:])
         )
-        if func.__doc__ is not None:
-            doc += func.__doc__
-        func.__doc__ = doc
+        func.__doc__ = f"{doc}{func_doc}"
         return func
 
     return wrapper
-
-
-def copy_base_doc_to_subclass_doc(subclass):
-    """Use the docstring from a parent class methods in derived class.
-
-    The docstring of a parent class method is prepended to the
-    docstring of the method of the class wrapped by this decorator.
-
-    Parameters
-    ----------
-    subclass : wrapped class
-        Class to copy the docstring to.
-
-    Returns
-    -------
-    subclass : Derived class
-        The decorated class with copied docstrings.
-    """
-    ancestors = subclass.mro()[1:-1]
-
-    for source in ancestors:
-        methodList = [
-            method for method in dir(source) if callable(getattr(source, method))
-        ]
-        for method_name in methodList:
-            # discard private methods
-            if method_name[0] == "_":
-                continue
-            base_method = getattr(source, method_name)
-            sub_method = getattr(subclass, method_name)
-            if base_method is not None and sub_method is not None:
-                doc = base_method.__doc__
-                if sub_method.__doc__ is not None:
-                    doc += "\n" + sub_method.__doc__
-                sub_method.__doc__ = doc
-
-    return subclass
 
 
 def linkcode_resolve(domain, info):
@@ -5291,14 +5386,14 @@ def linkcode_resolve(domain, info):
         lineno = None
 
     if lineno:
-        linespec = "#L%d-L%d" % (lineno, lineno + len(source) - 1)
+        linespec = f"#L{lineno}-L{lineno + len(source) - 1}"
     else:
         linespec = ""
 
     if "dev" in mne.__version__:
         kind = "main"
     else:
-        kind = "maint/%s" % (".".join(mne.__version__.split(".")[:2]))
+        kind = "maint/" + ".".join(mne.__version__.split(".")[:2])
     return f"http://github.com/mne-tools/mne-python/blob/{kind}/mne/{fn}{linespec}"
 
 
@@ -5525,7 +5620,7 @@ def _docformat(docstring, docdict=None, funcname=None):
     try:
         return docstring % indented
     except (TypeError, ValueError, KeyError) as exp:
-        raise RuntimeError(f"Error documenting {funcname}:\n{str(exp)}")
+        raise RuntimeError(f"Error documenting {funcname}:\n{exp}")
 
 
 def _indentcount_lines(lines):

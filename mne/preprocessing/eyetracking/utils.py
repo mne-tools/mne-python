@@ -1,3 +1,7 @@
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
+
 import numpy as np
 
 from ...utils import _validate_type

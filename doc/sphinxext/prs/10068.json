@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "00f27916b1eb865d33c6dcb757ef5412c7a6bcbb",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "mne/preprocessing/ica.py": {
+      "a": 2,
+      "d": 5
+    },
+    "mne/preprocessing/tests/test_ica.py": {
+      "a": 0,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,55 @@
+{
+  "merge_commit_sha": "dabcabf551b5de684fc77d387b865824860f670c",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/bem.py": {
+      "a": 9,
+      "d": 9
+    },
+    "mne/gui/tests/test_gui_api.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/inverse_sparse/mxne_optim.py": {
+      "a": 25,
+      "d": 26
+    },
+    "mne/io/eeglab/tests/test_eeglab.py": {
+      "a": 9,
+      "d": 3
+    },
+    "mne/preprocessing/tests/test_maxwell.py": {
+      "a": 4,
+      "d": 3
+    },
+    "mne/source_estimate.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/tests/test_source_estimate.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 6,
+      "d": 4
+    },
+    "mne/viz/backends/_qt.py": {
+      "a": 13,
+      "d": 2
+    },
+    "mne/viz/backends/renderer.py": {
+      "a": 0,
+      "d": 6
+    },
+    "mne/viz/backends/tests/test_utils.py": {
+      "a": 10,
+      "d": 7
+    }
+  }
+}

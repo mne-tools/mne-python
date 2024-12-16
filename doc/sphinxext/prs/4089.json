@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "b245cad2942873f6d0e1f78936cbf29a78d2e751",
+  "authors": [
+    {
+      "n": "jaeilepp",
+      "e": "jaeilepp@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/channels/channels.py": {
+      "a": 7,
+      "d": 0
+    },
+    "mne/io/reference.py": {
+      "a": 7,
+      "d": 0
+    }
+  }
+}

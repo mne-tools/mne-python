@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "d318be39e562e85c83ed071b443f9c1f3ef982df",
+  "authors": [
+    {
+      "n": "Denis A. Engemann",
+      "e": null
+    }
+  ],
+  "changes": {
+    "examples/inverse/plot_dics_source_power.py": {
+      "a": 8,
+      "d": 8
+    }
+  }
+}

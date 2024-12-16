@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "195a2cc8009160fd125e355b0280e903a941c874",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    ".circleci/config.yml": {
+      "a": 0,
+      "d": 66
+    },
+    ".github/workflows/tests.yml": {
+      "a": 8,
+      "d": 1
+    }
+  }
+}

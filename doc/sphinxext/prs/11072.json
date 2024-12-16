@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "ec85fe81b0f679f6ffad0611935e5fbfb98ad378",
+  "authors": [
+    {
+      "n": "Chetan Gohil",
+      "e": "chetan.gohil@psych.ox.ac.uk"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/time_frequency/csd.py": {
+      "a": 6,
+      "d": 0
+    },
+    "mne/time_frequency/tests/test_csd.py": {
+      "a": 16,
+      "d": 6
+    }
+  }
+}

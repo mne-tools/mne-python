@@ -1,16 +1,9 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
-#          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
-#          Denis Engemann <denis.engemann@gmail.com>
-#          Andrew Dykstra <andrew.r.dykstra@gmail.com>
-#          Teon Brooks <teon.brooks@gmail.com>
-#          Daniel McCloy <dan.mccloy@gmail.com>
-#          Ana Radanovic <radanovica@protonmail.com>
-#          Erica Peterson <nordme@uw.edu>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+
+from __future__ import annotations  # only needed for Python ≤ 3.9
 
 import os.path as op
 import string
@@ -20,11 +13,10 @@ from copy import deepcopy
 from dataclasses import dataclass
 from functools import partial
 from pathlib import Path
-from typing import Union
 
 import numpy as np
 from scipy.io import loadmat
-from scipy.sparse import csr_matrix, lil_matrix
+from scipy.sparse import csr_array, lil_array
 from scipy.spatial import Delaunay
 from scipy.stats import zscore
 
@@ -168,7 +160,7 @@ def equalize_channels(instances, copy=True, verbose=None):
         Info,
     )
     allowed_types_str = (
-        "Raw, Epochs, Evoked, TFR, Forward, Covariance, " "CrossSpectralDensity or Info"
+        "Raw, Epochs, Evoked, TFR, Forward, Covariance, CrossSpectralDensity or Info"
     )
     for inst in instances:
         _validate_type(
@@ -207,7 +199,7 @@ def equalize_channels(instances, copy=True, verbose=None):
         equalized_instances.append(inst)
 
     if dropped:
-        logger.info("Dropped the following channels:\n%s" % dropped)
+        logger.info(f"Dropped the following channels:\n{dropped}")
     elif reordered:
         logger.info("Channels have been re-ordered.")
 
@@ -260,7 +252,7 @@ def unify_bad_channels(insts):
     valid_types = (BaseRaw, Epochs, Evoked, BaseSpectrum)
     for inst in insts:
         _validate_type(inst, valid_types, "each object in insts")
-        if type(inst) != inst_type:
+        if type(inst) is not inst_type:
             raise ValueError("All insts must be the same type")
 
     # ensure all insts have the same channels and channel order
@@ -447,7 +439,7 @@ class UpdateChannelsMixin:
 
     @verbose
     @legacy(alt="inst.pick(...)")
-    def pick_channels(self, ch_names, ordered=None, *, verbose=None):
+    def pick_channels(self, ch_names, ordered=True, *, verbose=None):
         """Pick some channels.
 
         Parameters
@@ -472,9 +464,11 @@ class UpdateChannelsMixin:
 
         Notes
         -----
-        The channel names given are assumed to be a set, i.e. the order
-        does not matter. The original order of the channels is preserved.
-        You can use ``reorder_channels`` to set channel order if necessary.
+        If ``ordered`` is ``False``, the channel names given via ``ch_names`` are
+        assumed to be a set, that is, their order does not matter. In that case, the
+        original order of the channels in the data is preserved. Apart from using
+        ``ordered=True``, you may also use ``reorder_channels`` to set channel order,
+        if necessary.
 
         .. versionadded:: 0.9.0
         """
@@ -601,6 +595,8 @@ class UpdateChannelsMixin:
 
         bad_idx = [self.ch_names.index(ch) for ch in ch_names if ch in self.ch_names]
         idx = np.setdiff1d(np.arange(len(self.ch_names)), bad_idx)
+        if len(idx) == 0:
+            raise ValueError("All channels would be dropped.")
         return self._pick_drop_channels(idx)
 
     @verbose
@@ -696,6 +692,7 @@ class UpdateChannelsMixin:
         # avoid circular imports
         from ..epochs import BaseEpochs
         from ..io import BaseRaw
+        from ..time_frequency import EpochsTFR
 
         _validate_type(add_list, (list, tuple), "Input")
 
@@ -708,6 +705,9 @@ class UpdateChannelsMixin:
         elif isinstance(self, BaseEpochs):
             con_axis = 1
             comp_class = BaseEpochs
+        elif isinstance(self, EpochsTFR):
+            con_axis = 1
+            comp_class = EpochsTFR
         else:
             con_axis = 0
             comp_class = type(self)
@@ -1028,7 +1028,7 @@ class _BuiltinChannelAdjacency:
     name: str
     description: str
     fname: str
-    source_url: Union[str, None]
+    source_url: str | None
 
 
 _ft_neighbor_url_t = string.Template(
@@ -1332,7 +1332,7 @@ def read_ch_adjacency(fname, picks=None):
 
     Returns
     -------
-    ch_adjacency : scipy.sparse.csr_matrix, shape (n_channels, n_channels)
+    ch_adjacency : scipy.sparse.csr_array, shape (n_channels, n_channels)
         The adjacency matrix.
     ch_names : list
         The list of channel names present in adjacency matrix.
@@ -1418,12 +1418,12 @@ def _ch_neighbor_adjacency(ch_names, neighbors):
         The adjacency matrix.
     """
     if len(ch_names) != len(neighbors):
-        raise ValueError("`ch_names` and `neighbors` must " "have the same length")
+        raise ValueError("`ch_names` and `neighbors` must have the same length")
     set_neighbors = {c for d in neighbors for c in d}
     rest = set_neighbors - set(ch_names)
     if len(rest) > 0:
         raise ValueError(
-            "Some of your neighbors are not present in the " "list of channel names"
+            "Some of your neighbors are not present in the list of channel names"
         )
 
     for neigh in neighbors:
@@ -1433,7 +1433,7 @@ def _ch_neighbor_adjacency(ch_names, neighbors):
     ch_adjacency = np.eye(len(ch_names), dtype=bool)
     for ii, neigbs in enumerate(neighbors):
         ch_adjacency[ii, [ch_names.index(i) for i in neigbs]] = True
-    ch_adjacency = csr_matrix(ch_adjacency)
+    ch_adjacency = csr_array(ch_adjacency)
     return ch_adjacency
 
 
@@ -1455,7 +1455,7 @@ def find_ch_adjacency(info, ch_type):
 
     Returns
     -------
-    ch_adjacency : scipy.sparse.csr_matrix, shape (n_channels, n_channels)
+    ch_adjacency : scipy.sparse.csr_array, shape (n_channels, n_channels)
         The adjacency matrix.
     ch_names : list
         The list of channel names present in adjacency matrix.
@@ -1494,7 +1494,7 @@ def find_ch_adjacency(info, ch_type):
         picks = channel_indices_by_type(info)
         if sum([len(p) != 0 for p in picks.values()]) != 1:
             raise ValueError(
-                "info must contain only one channel type if " "ch_type is None."
+                "info must contain only one channel type if ch_type is None."
             )
         ch_type = channel_type(info, 0)
     else:
@@ -1568,7 +1568,7 @@ def _compute_ch_adjacency(info, ch_type):
 
     Returns
     -------
-    ch_adjacency : scipy.sparse.csr_matrix, shape (n_channels, n_channels)
+    ch_adjacency : scipy.sparse.csr_array, shape (n_channels, n_channels)
         The adjacency matrix.
     ch_names : list
         The list of channel names present in adjacency matrix.
@@ -1607,9 +1607,9 @@ def _compute_ch_adjacency(info, ch_type):
                 for jj in range(2):
                     ch_adjacency[idx * 2 + ii, neigbs * 2 + jj] = True
                     ch_adjacency[idx * 2 + ii, idx * 2 + jj] = True  # pair
-        ch_adjacency = csr_matrix(ch_adjacency)
+        ch_adjacency = csr_array(ch_adjacency)
     else:
-        ch_adjacency = lil_matrix(neighbors)
+        ch_adjacency = lil_array(neighbors)
         ch_adjacency.setdiag(np.repeat(1, ch_adjacency.shape[0]))
         ch_adjacency = ch_adjacency.tocsr()
 
@@ -1648,13 +1648,10 @@ def fix_mag_coil_types(info, use_cal=False):
               Therefore the use of ``fix_mag_coil_types`` is not mandatory.
     """
     old_mag_inds = _get_T1T2_mag_inds(info, use_cal)
-
+    n_mag = len(pick_types(info, meg="mag", exclude=[]))
     for ii in old_mag_inds:
         info["chs"][ii]["coil_type"] = FIFF.FIFFV_COIL_VV_MAG_T3
-    logger.info(
-        "%d of %d magnetometer types replaced with T3."
-        % (len(old_mag_inds), len(pick_types(info, meg="mag", exclude=[])))
-    )
+    logger.info(f"{len(old_mag_inds)} of {n_mag} magnetometer types replaced with T3.")
     info._check_consistency()
 
 
@@ -1902,7 +1899,7 @@ def combine_channels(
     # Instantiate channel info and data
     new_ch_names, new_ch_types, new_data = [], [], []
     if not isinstance(keep_stim, bool):
-        raise TypeError('"keep_stim" must be of type bool, not ' f"{type(keep_stim)}.")
+        raise TypeError(f'"keep_stim" must be of type bool, not {type(keep_stim)}.')
     if keep_stim:
         stim_ch_idx = list(pick_types(inst.info, meg=False, stim=True))
         if stim_ch_idx:
@@ -1915,7 +1912,7 @@ def combine_channels(
     # Get indices of bad channels
     ch_idx_bad = []
     if not isinstance(drop_bad, bool):
-        raise TypeError('"drop_bad" must be of type bool, not ' f"{type(drop_bad)}.")
+        raise TypeError(f'"drop_bad" must be of type bool, not {type(drop_bad)}.')
     if drop_bad and inst.info["bads"]:
         ch_idx_bad = pick_channels(ch_names, inst.info["bads"])
 
@@ -1937,7 +1934,7 @@ def combine_channels(
         this_picks = [idx for idx in this_picks if idx not in ch_idx_bad]
         if these_bads:
             logger.info(
-                "Dropped the following channels in group " f"{this_group}: {these_bads}"
+                f"Dropped the following channels in group {this_group}: {these_bads}"
             )
         #  Check if combining less than 2 channel
         if len(set(this_picks)) < 2:
@@ -2099,7 +2096,7 @@ def read_vectorview_selection(name, fname=None, info=None, verbose=None):
         List with channel names in the selection.
     """
     # convert name to list of string
-    if not isinstance(name, (list, tuple)):
+    if not isinstance(name, list | tuple):
         name = [name]
     if isinstance(info, Info):
         picks = pick_types(info, meg=True, exclude=())
@@ -2130,9 +2127,7 @@ def read_vectorview_selection(name, fname=None, info=None, verbose=None):
             # get the name of the selection in the file
             pos = line.find(":")
             if pos < 0:
-                logger.info(
-                    '":" delimiter not found in selections file, ' "skipping line"
-                )
+                logger.info('":" delimiter not found in selections file, skipping line')
                 continue
             sel_name_file = line[:pos]
             # search for substring match with name provided
@@ -2145,7 +2140,7 @@ def read_vectorview_selection(name, fname=None, info=None, verbose=None):
     # make sure we found at least one match for each name
     for n, found in name_found.items():
         if not found:
-            raise ValueError('No match for selection name "%s" found' % n)
+            raise ValueError(f'No match for selection name "{n}" found')
 
     # make the selection a sorted list with unique elements
     sel = list(set(sel))

@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "614867cae51422ff93e9efce946973ed97a94510",
+  "authors": [
+    {
+      "n": "Teon L Brooks",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/viz/topomap.py": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

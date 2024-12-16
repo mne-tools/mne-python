@@ -1,0 +1,59 @@
+{
+  "merge_commit_sha": "feb0bec3acf334ee391711109c9a541697813a30",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/_templates/autosummary/class.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_templates/autosummary/function.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/conf.py": {
+      "a": 2,
+      "d": 1
+    },
+    "doc/glossary.rst": {
+      "a": 11,
+      "d": 11
+    },
+    "doc/python_reference.rst": {
+      "a": 21,
+      "d": 144
+    },
+    "doc/whats_new.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/epochs.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/io/base.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/report.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/stats/regression.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/evoked.py": {
+      "a": 2,
+      "d": 2
+    },
+    "tutorials/plot_artifacts_correction_ica.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

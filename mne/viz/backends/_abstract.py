@@ -1,9 +1,6 @@
 """ABCs."""
 
-# Authors: Guillaume Favelier <guillaume.favelier@gmail.com
-#          Eric Larson <larson.eric.d@gmail.com>
-#          Alex Rockhill <aprockhill@mailbox.org>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -37,7 +34,8 @@ class Figure3D(ABC):
         fig=None,
         size=(600, 600),
         bgcolor=(0.0, 0.0, 0.0),
-        name=None,
+        *,
+        title="MNE 3D Figure",
         show=False,
         shape=(1, 1),
         splash=False,
@@ -63,7 +61,8 @@ class _AbstractRenderer(ABC):
         fig=None,
         size=(600, 600),
         bgcolor=(0.0, 0.0, 0.0),
-        name=None,
+        *,
+        name="MNE-Python 3D Figure",
         show=False,
         shape=(1, 1),
         splash=False,

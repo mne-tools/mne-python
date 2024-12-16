@@ -1,0 +1,59 @@
+{
+  "merge_commit_sha": "0324f0009d408a8c7d6b2c50cd035369112904d3",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "circle.yml": {
+      "a": 11,
+      "d": 5
+    },
+    "examples/inverse/plot_dics_beamformer.py": {
+      "a": 2,
+      "d": 2
+    },
+    "examples/inverse/plot_lcmv_beamformer.py": {
+      "a": 2,
+      "d": 2
+    },
+    "examples/inverse/plot_time_frequency_mixed_norm_inverse.py": {
+      "a": 3,
+      "d": 4
+    },
+    "mne/datasets/utils.py": {
+      "a": 7,
+      "d": 10
+    },
+    "mne/viz/_3d.py": {
+      "a": 3,
+      "d": 5
+    },
+    "tutorials/plot_brainstorm_auditory.py": {
+      "a": 15,
+      "d": 15
+    },
+    "tutorials/plot_mne_dspm_source_localization.py": {
+      "a": 11,
+      "d": 10
+    },
+    "tutorials/plot_stats_cluster_spatio_temporal.py": {
+      "a": 3,
+      "d": 3
+    },
+    "tutorials/plot_stats_cluster_spatio_temporal_2samp.py": {
+      "a": 2,
+      "d": 3
+    },
+    "tutorials/plot_stats_cluster_spatio_temporal_repeated_measures_anova.py": {
+      "a": 1,
+      "d": 3
+    },
+    "tutorials/plot_visualize_evoked.py": {
+      "a": 3,
+      "d": 3
+    }
+  }
+}

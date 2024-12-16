@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "d5a8aa2ac687d0c423a8e222dab750ba51147ec9",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/channels/channels.py": {
+      "a": 12,
+      "d": 8
+    },
+    "mne/io/reference.py": {
+      "a": 11,
+      "d": 8
+    }
+  }
+}

@@ -1,7 +1,4 @@
-# Authors: Teon Brooks <teon.brooks@gmail.com>
-#          Denis A. Engemann <denis.engemann@gmail.com>
-#          Jona Sassenhagen <jona.sassenhagen@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -142,7 +139,9 @@ def test_continuous_regression_with_overlap():
     from sklearn.linear_model import ridge_regression
 
     def solver(X, y):
-        return ridge_regression(X, y, alpha=0.0, solver="cholesky")
+        # Newer scikit-learn returns 1D array for ridge_regression, so ensure
+        # 2D output
+        return np.atleast_2d(ridge_regression(X, y, alpha=0.0, solver="cholesky"))
 
     assert_allclose(
         effect,

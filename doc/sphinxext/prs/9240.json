@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "5f676980648e755f3fb84415eb44a504a27e3a8b",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/viz/_brain/_brain.py": {
+      "a": 5,
+      "d": 1
+    },
+    "mne/viz/backends/_pysurfer_mayavi.py": {
+      "a": 1,
+      "d": 0
+    },
+    "tutorials/source-modeling/plot_mne_dspm_source_localization.py": {
+      "a": 0,
+      "d": 1
+    }
+  }
+}

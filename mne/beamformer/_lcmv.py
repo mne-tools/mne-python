@@ -1,11 +1,9 @@
 """Compute Linearly constrained minimum variance (LCMV) beamformer."""
 
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Roman Goj <roman.goj@gmail.com>
-#          Britta Westner <britta.wstnr@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 import numpy as np
 
 from .._fiff.meas_info import _simplify_info
@@ -286,7 +284,7 @@ def _apply_lcmv(data, filters, info, tmin):
             raise ValueError("data and picks must have the same length")
 
         if not return_single:
-            logger.info("Processing epoch : %d" % (i + 1))
+            logger.info(f"Processing epoch : {i + 1}")
 
         M = _proj_whiten_data(M, info["projs"], filters)
 

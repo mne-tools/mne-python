@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "cf1f8c663a2341319c4e36fcee049b0b64419900",
+  "authors": [
+    {
+      "n": "Adonay Nunes",
+      "e": "adonay.s.nunes@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/preprocessing/plot_movement_detection.py": {
+      "a": 0,
+      "d": 0
+    }
+  }
+}

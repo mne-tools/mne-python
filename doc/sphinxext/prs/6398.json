@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "bd2e5e9b6ab33fca2e91e91bc13cb254961d85e1",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "LICENSE.txt": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

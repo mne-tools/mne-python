@@ -5,6 +5,7 @@ __all__ = [
     "bonferroni_correction",
     "bootstrap_confidence_interval",
     "combine_adjacency",
+    "erp",
     "f_mway_rm",
     "f_oneway",
     "f_threshold_mway_rm",

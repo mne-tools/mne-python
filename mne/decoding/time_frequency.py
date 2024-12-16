@@ -1,14 +1,12 @@
-# Author: Jean-Remi King <jeanremi.king@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
 import numpy as np
+from sklearn.base import BaseEstimator, TransformerMixin
 
 from ..time_frequency.tfr import _compute_tfr
 from ..utils import _check_option, fill_doc, verbose
-from .base import BaseEstimator
-from .mixin import TransformerMixin
 
 
 @fill_doc

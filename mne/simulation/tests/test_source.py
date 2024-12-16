@@ -1,6 +1,4 @@
-# Author: Kostiantyn Maksymenko <kostiantyn.maksymenko@gmail.com>
-#         Samuel Deslauriers-Gauthier <sam.deslauriers@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -444,11 +442,9 @@ def test_source_simulator(_get_fwd_labels):
     ss = SourceSimulator(src)
     with pytest.raises(ValueError, match="No simulation parameters"):
         ss.get_stc()
-    with pytest.raises(ValueError, match="label must be a Label"):
+    with pytest.raises(TypeError, match="must be an instance of Label"):
         ss.add_data(1, wfs, events)
-    with pytest.raises(
-        ValueError, match="Number of waveforms and events " "should match"
-    ):
+    with pytest.raises(ValueError, match="Number of waveforms and events should match"):
         ss.add_data(mylabels[0], wfs[:2], events)
     with pytest.raises(ValueError, match="duration must be None or"):
         ss = SourceSimulator(src, tstep, tstep / 2)

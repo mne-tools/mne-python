@@ -29,7 +29,7 @@ Development of MNE-Python has been supported by:
   `14-NEUC-0002-01 <https://anr.fr/Project-ANR-14-NEUC-0002>`_,
   **IDEX** Paris-Saclay
   `11-IDEX-0003-02 <https://anr.fr/ProjetIA-11-IDEX-0003>`_
-- |cds| **Paris-Saclay Center for Data Science:**
+- |cds| |cdsdk| **Paris-Saclay Center for Data Science:**
   `PARIS-SACLAY <http://www.datascience-paris-saclay.fr>`_
 - |goo| **Google:**
   Summer of code (×7 years)
@@ -61,7 +61,10 @@ institutions include:
     :class: only-dark
 .. |doe| image:: _static/funding/doe.svg
 .. |anr| image:: _static/funding/anr.svg
-.. |cds| image:: _static/funding/cds.png
+.. |cds| image:: _static/funding/cds.svg
+    :class: only-light
+.. |cdsdk| image:: _static/funding/cds-dark.svg
+    :class: only-dark
 .. |goo| image:: _static/funding/google.svg
 .. |ama| image:: _static/funding/amazon.svg
 .. |czi| image:: _static/funding/czi.svg

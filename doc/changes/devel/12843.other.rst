@@ -1,0 +1,1 @@
+Improve handling of filenames in ``raw.filenames`` by using :class:`~pathlib.Path` instead of :class:`str`, by `Mathieu Scheltienne`_.

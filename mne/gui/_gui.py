@@ -1,5 +1,4 @@
-# Authors: Christian Brodbeck <christianbrodbeck@nyu.edu>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -41,35 +40,35 @@ def coregistration(
     width : int | None
         Specify the width for window (in logical pixels).
         Default is None, which uses ``MNE_COREG_WINDOW_WIDTH`` config value
-        (which defaults to 800).
+        (which defaults to ``800``).
     height : int | None
         Specify a height for window (in logical pixels).
         Default is None, which uses ``MNE_COREG_WINDOW_WIDTH`` config value
-        (which defaults to 400).
-    inst : None | str
+        (which defaults to ``400``).
+    inst : None | path-like
         Path to an instance file containing the digitizer data. Compatible for
         Raw, Epochs, and Evoked files.
     subject : None | str
         Name of the mri subject.
     %(subjects_dir)s
     head_opacity : float | None
-        The opacity of the head surface in the range [0., 1.].
+        The opacity of the head surface in the range ``[0., 1.]``.
         Default is None, which uses ``MNE_COREG_HEAD_OPACITY`` config value
-        (which defaults to 1.).
+        (which defaults to ``1.``).
     head_high_res : bool | None
         Use a high resolution head surface.
         Default is None, which uses ``MNE_COREG_HEAD_HIGH_RES`` config value
         (which defaults to True).
-    trans : path-like | None
-        The transform file to use.
+    trans : path-like | Transform | None
+        The Head<->MRI transform or the path to its FIF file (``"-trans.fif"``).
     orient_to_surface : bool | None
-        If True (default), orient EEG electrode and head shape points
-        to the head surface.
+        If True (default), orient EEG electrode and head shape points to the head
+        surface.
 
         .. versionadded:: 0.16
     scale_by_distance : bool | None
-        If True (default), scale the digitization points by their
-        distance from the scalp surface.
+        If True (default), scale the digitization points by their distance from the
+        scalp surface.
 
         .. versionadded:: 0.16
     mark_inside : bool | None
@@ -85,8 +84,8 @@ def coregistration(
            Default interaction mode if ``None`` and no config setting found
            changed from ``'trackball'`` to ``'terrain'``.
     %(fullscreen)s
-        Default is None, which uses ``MNE_COREG_FULLSCREEN`` config value
-        (which defaults to False).
+        Default is ``None``, which uses ``MNE_COREG_FULLSCREEN`` config value
+        (which defaults to ``False``).
 
         .. versionadded:: 1.1
     show : bool
@@ -177,9 +176,7 @@ class _GUIScraper:
 
         gui_classes = (CoregistrationUI,)
         try:
-            from mne_gui_addons._ieeg_locate import (
-                IntracranialElectrodeLocator,
-            )
+            from mne_gui_addons._ieeg_locate import IntracranialElectrodeLocator
         except Exception:
             pass
         else:

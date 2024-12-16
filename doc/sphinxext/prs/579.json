@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "025bc08e7bcf283f780b794c69d1033a15926016",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/fiff/raw.py": {
+      "a": 28,
+      "d": 31
+    },
+    "mne/fiff/tests/test_raw.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/filter.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/stim.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/source_estimate.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/tests/test_utils.py": {
+      "a": 5,
+      "d": 1
+    },
+    "mne/viz.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

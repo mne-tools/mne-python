@@ -9,8 +9,10 @@ This tutorial describes how to read and plot sensor locations, and how
 MNE-Python handles physical locations of sensors.
 As usual we'll start by importing the modules we need:
 """
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 # %%
 
 from pathlib import Path
@@ -257,7 +259,7 @@ mne.viz.set_3d_view(fig, azimuth=50, elevation=90, distance=0.5)
 
 layout_dir = Path(mne.__file__).parent / "channels" / "data" / "layouts"
 layouts = sorted(path.name for path in layout_dir.iterdir())
-print("\n" "BUILT-IN LAYOUTS\n" "================")
+print("\nBUILT-IN LAYOUTS\n================")
 print("\n".join(layouts))
 
 # %%

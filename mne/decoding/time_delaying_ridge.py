@@ -1,7 +1,6 @@
 """TimeDelayingRidge class."""
-# Authors: Eric Larson <larson.eric.d@gmail.com>
-#          Ross Maddox <ross.maddox@rochester.edu>
-#
+
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -9,12 +8,12 @@ import numpy as np
 from scipy import linalg
 from scipy.signal import fftconvolve
 from scipy.sparse.csgraph import laplacian
+from sklearn.base import BaseEstimator, RegressorMixin
 
 from ..cuda import _setup_cuda_fft_multiply_repeated
 from ..filter import next_fast_len
 from ..fixes import jit
 from ..utils import ProgressBar, _check_option, _validate_type, logger, warn
-from .base import BaseEstimator
 
 
 def _compute_corrs(
@@ -40,8 +39,9 @@ def _compute_corrs(
     assert X.shape[:2] == y.shape[:2]
     len_trf = smax - smin
     len_x, n_epochs, n_ch_x = X.shape
-    len_y, n_epcohs, n_ch_y = y.shape
+    len_y, n_epochs_y, n_ch_y = y.shape
     assert len_x == len_y
+    assert n_epochs == n_epochs_y
 
     n_fft = next_fast_len(2 * X.shape[0] - 1)
 
@@ -60,7 +60,7 @@ def _compute_corrs(
     x_xt = np.zeros([n_ch_x * len_trf] * 2)
     x_y = np.zeros((len_trf, n_ch_x, n_ch_y), order="F")
     n = n_epochs * (n_ch_x * (n_ch_x + 1) // 2 + n_ch_x)
-    logger.info("Fitting %d epochs, %d channels" % (n_epochs, n_ch_x))
+    logger.info(f"Fitting {n_epochs} epochs, {n_ch_x} channels")
     pb = ProgressBar(n, mesg="Sample")
     count = 0
     pb.update(count)
@@ -226,7 +226,7 @@ def _fit_corrs(x_xt, x_y, n_ch_x, reg_type, alpha, n_ch_in):
     return w
 
 
-class TimeDelayingRidge(BaseEstimator):
+class TimeDelayingRidge(RegressorMixin, BaseEstimator):
     """Ridge regression of data with time delays.
 
     Parameters
@@ -287,27 +287,22 @@ class TimeDelayingRidge(BaseEstimator):
         n_jobs=None,
         edge_correction=True,
     ):
-        if tmin > tmax:
-            raise ValueError(f"tmin must be <= tmax, got {tmin} and {tmax}")
-        self.tmin = float(tmin)
-        self.tmax = float(tmax)
-        self.sfreq = float(sfreq)
-        self.alpha = float(alpha)
+        self.tmin = tmin
+        self.tmax = tmax
+        self.sfreq = sfreq
+        self.alpha = alpha
         self.reg_type = reg_type
         self.fit_intercept = fit_intercept
         self.edge_correction = edge_correction
         self.n_jobs = n_jobs
 
-    def _more_tags(self):
-        return {"no_validation": True}
-
     @property
     def _smin(self):
-        return int(round(self.tmin * self.sfreq))
+        return int(round(self.tmin_ * self.sfreq_))
 
     @property
     def _smax(self):
-        return int(round(self.tmax * self.sfreq)) + 1
+        return int(round(self.tmax_ * self.sfreq_)) + 1
 
     def fit(self, X, y):
         """Estimate the coefficients of the linear model.
@@ -326,6 +321,12 @@ class TimeDelayingRidge(BaseEstimator):
         """
         _validate_type(X, "array-like", "X")
         _validate_type(y, "array-like", "y")
+        self.tmin_ = float(self.tmin)
+        self.tmax_ = float(self.tmax)
+        self.sfreq_ = float(self.sfreq)
+        self.alpha_ = float(self.alpha)
+        if self.tmin_ > self.tmax_:
+            raise ValueError(f"tmin must be <= tmax, got {self.tmin_} and {self.tmax_}")
         X = np.asarray(X, dtype=float)
         y = np.asarray(y, dtype=float)
         if X.ndim == 3:
@@ -352,7 +353,7 @@ class TimeDelayingRidge(BaseEstimator):
             self.edge_correction,
         )
         self.coef_ = _fit_corrs(
-            self.cov_, x_y_, n_ch_x, self.reg_type, self.alpha, n_ch_x
+            self.cov_, x_y_, n_ch_x, self.reg_type, self.alpha_, n_ch_x
         )
         # This is the sklearn formula from LinearModel (will be 0. for no fit)
         if self.fit_intercept:

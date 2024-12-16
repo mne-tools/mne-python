@@ -1,6 +1,6 @@
 """The check functions."""
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#
+
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -8,7 +8,7 @@ import numbers
 import operator
 import os
 import re
-from builtins import input  # noqa: UP029
+from builtins import input  # noqa: A004, UP029
 from difflib import get_close_matches
 from importlib import import_module
 from inspect import signature
@@ -52,10 +52,10 @@ def check_fname(fname, filetype, endings, endings_err=()):
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         Name of the file.
     filetype : str
-        Type of file. e.g., ICA, Epochs etc.
+        Type of file. e.g., ICA, Epochs, etc.
     endings : tuple
         Acceptable endings for the filename.
     endings_err : tuple
@@ -155,7 +155,7 @@ def _require_version(lib, what, version="0.0"):
     if not ok:
         extra = f" (version >= {version})" if version != "0.0" else ""
         why = "package was not found" if got is None else f"got {repr(got)}"
-        raise ImportError(f"The {lib} package{extra} is required to {what}, " f"{why}")
+        raise ImportError(f"The {lib} package{extra} is required to {what}, {why}")
 
 
 def _import_h5py():
@@ -167,7 +167,35 @@ def _import_h5py():
 
 def _import_h5io_funcs():
     h5io = _soft_import("h5io", "HDF5-based I/O")
-    return h5io.read_hdf5, h5io.write_hdf5
+
+    # Saving to HDF5 does not support pathlib.Path objects, which are more and more used
+    # in MNE-Python.
+    # Related issue in h5io: https://github.com/h5io/h5io/issues/113
+    def cast_path_to_str(data: dict) -> dict:
+        """Cast all paths value to string in data."""
+        keys2cast = []
+        for key, value in data.items():
+            if isinstance(value, dict):
+                cast_path_to_str(value)
+            if isinstance(value, Path):
+                data[key] = value.as_posix()
+            if isinstance(key, Path):
+                keys2cast.append(key)
+        for key in keys2cast:
+            data[key.as_posix()] = data.pop(key)
+        return data
+
+    def write_hdf5(fname, data, *args, **kwargs):
+        """Write h5 and cast all paths to string in data."""
+        if isinstance(data, dict):
+            data = cast_path_to_str(data)
+        elif isinstance(data, list):
+            for k, elt in enumerate(data):
+                if isinstance(elt, dict):
+                    data[k] = cast_path_to_str(elt)
+        h5io.write_hdf5(fname, data, *args, **kwargs)
+
+    return h5io.read_hdf5, write_hdf5
 
 
 def _import_pymatreader_funcs(purpose):
@@ -186,18 +214,14 @@ def check_random_state(seed):
     """
     if seed is None or seed is np.random:
         return np.random.mtrand._rand
-    if isinstance(seed, (int, np.integer)):
+    if isinstance(seed, int | np.integer):
         return np.random.mtrand.RandomState(seed)
     if isinstance(seed, np.random.mtrand.RandomState):
         return seed
-    try:
-        # Generator is only available in numpy >= 1.17
-        if isinstance(seed, np.random.Generator):
-            return seed
-    except AttributeError:
-        pass
+    if isinstance(seed, np.random.Generator):
+        return seed
     raise ValueError(
-        "%r cannot be used to seed a " "numpy.random.mtrand.RandomState instance" % seed
+        f"{seed!r} cannot be used to seed a numpy.random.mtrand.RandomState instance"
     )
 
 
@@ -210,12 +234,10 @@ def _check_event_id(event_id, events):
         for key in event_id.keys():
             _validate_type(key, str, "Event names")
         event_id = {
-            key: _ensure_int(val, "event_id[%s]" % key) for key, val in event_id.items()
+            key: _ensure_int(val, f"event_id[{key}]") for key, val in event_id.items()
         }
     elif isinstance(event_id, list):
-        event_id = [
-            _ensure_int(v, "event_id[%s]" % vi) for vi, v in enumerate(event_id)
-        ]
+        event_id = [_ensure_int(v, f"event_id[{vi}]") for vi, v in enumerate(event_id)]
         event_id = dict(zip((str(i) for i in event_id), event_id))
     else:
         event_id = _ensure_int(event_id, "event_id")
@@ -233,7 +255,7 @@ def _check_fname(
     *,
     check_bids_split=False,
     verbose=None,
-):
+) -> Path:
     """Check for file existence, and return its absolute path."""
     _validate_type(fname, "path-like", name)
     # special case for MNE-BIDS, check split
@@ -267,12 +289,12 @@ def _check_fname(
             if need_dir:
                 if not fname.is_dir():
                     raise OSError(
-                        f"Need a directory for {name} but found a file " f"at {fname}"
+                        f"Need a directory for {name} but found a file at {fname}"
                     )
             else:
                 if not fname.is_file():
                     raise OSError(
-                        f"Need a file for {name} but found a directory " f"at {fname}"
+                        f"Need a file for {name} but found a directory at {fname}"
                     )
             if not os.access(fname, os.R_OK):
                 raise PermissionError(f"{name} does not have read permissions: {fname}")
@@ -303,9 +325,7 @@ def _check_subject(
         _validate_type(first, "str", f"Either {second_kind} subject or {first_kind}")
         return first
     elif raise_error is True:
-        raise ValueError(
-            f"Neither {second_kind} subject nor {first_kind} " "was a string"
-        )
+        raise ValueError(f"Neither {second_kind} subject nor {first_kind} was a string")
     return None
 
 
@@ -317,7 +337,7 @@ def _check_preload(inst, msg):
     from ..time_frequency import BaseTFR
     from ..time_frequency.spectrum import BaseSpectrum
 
-    if isinstance(inst, (BaseTFR, Evoked, BaseSpectrum, _BaseSourceEstimate)):
+    if isinstance(inst, BaseTFR | Evoked | BaseSpectrum | _BaseSourceEstimate):
         pass
     else:
         name = "epochs" if isinstance(inst, BaseEpochs) else "raw"
@@ -541,6 +561,14 @@ class _Callable:
         return callable(other)
 
 
+class _Sparse:
+    @classmethod
+    def __instancecheck__(cls, other):
+        from scipy import sparse
+
+        return sparse.issparse(other)
+
+
 _multi = {
     "str": (str,),
     "numeric": (np.floating, float, int_like),
@@ -548,6 +576,7 @@ _multi = {
     "int-like": (int_like,),
     "callable": (_Callable(),),
     "array-like": (list, tuple, set, np.ndarray),
+    "sparse": (_Sparse(),),
 }
 
 
@@ -577,7 +606,7 @@ def _validate_type(item, types=None, item_name=None, type_name=None, *, extra=""
     elif types == "info":
         from .._fiff.meas_info import Info as types
 
-    if not isinstance(types, (list, tuple)):
+    if not isinstance(types, list | tuple):
         types = [types]
 
     check_types = sum(
@@ -750,10 +779,10 @@ def _check_channels_spatial_filter(ch_names, filters):
     for ch_name in filters["ch_names"]:
         if ch_name not in ch_names:
             raise ValueError(
-                "The spatial filter was computed with channel %s "
+                f"The spatial filter was computed with channel {ch_name} "
                 "which is not present in the data. You should "
                 "compute a new spatial filter restricted to the "
-                "good data channels." % ch_name
+                "good data channels."
             )
     # then compare list of channels and get selection based on data:
     sel = [ii for ii, ch_name in enumerate(ch_names) if ch_name in filters["ch_names"]]
@@ -958,10 +987,10 @@ def _check_stc_units(stc, threshold=1e-7):  # 100 nAm threshold for warning
     max_cur = np.max(np.abs(stc.data))
     if max_cur > threshold:
         warn(
-            "The maximum current magnitude is %0.1f nAm, which is very large."
-            " Are you trying to apply the forward model to noise-normalized "
+            f"The maximum current magnitude is {1e9 * max_cur:.1f} nAm, which is very "
+            "large. Are you trying to apply the forward model to noise-normalized "
             "(dSPM, sLORETA, or eLORETA) values? The result will only be "
-            "correct if currents (in units of Am) are used." % (1e9 * max_cur)
+            "correct if currents (in units of Am) are used."
         )
 
 
@@ -1058,7 +1087,7 @@ def _check_sphere(sphere, info=None, sphere_units="m"):
                         f"{ch_name}"
                     )
                     if ch_name == "Fpz":
-                        msg += ", and was unable to approximate its location " "from Oz"
+                        msg += ", and was unable to approximate its location from Oz"
                     raise ValueError(msg)
 
             # Calculate the radius from: T7<->T8, Fpz<->Oz
@@ -1260,5 +1289,5 @@ def _check_method_kwargs(func, kwargs, msg=None):
         if msg is None:
             msg = f'function "{func}"'
         raise TypeError(
-            f'Got unexpected keyword argument{s} {", ".join(invalid_kw)} ' f"for {msg}."
+            f'Got unexpected keyword argument{s} {", ".join(invalid_kw)} for {msg}.'
         )

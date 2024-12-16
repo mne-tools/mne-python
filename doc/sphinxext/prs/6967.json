@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "7e2befdb95131658dadce64d3d512b39499950cc",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "tutorials/io/plot_20_reading_eeg_data.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

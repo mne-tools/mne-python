@@ -6,8 +6,8 @@ Getting started with mne.Report
 ===============================
 
 :class:`mne.Report` is a way to create interactive HTML summaries of your data.
-These reports can show many different visualizations for one or multiple
-participants. A common use case is creating diagnostic summaries to check data
+These reports can show many different visualizations for one or multiple participants.
+A common use case is creating diagnostic summaries to check data
 quality at different stages in the processing pipeline. The report can show
 things like plots of data before and after each preprocessing step, epoch
 rejection statistics, MRI slices with overlaid BEM shells, all the way up to
@@ -20,8 +20,10 @@ something directly within the browser. This tutorial covers the basics of
 building a report. As usual, we will start by importing the modules and data we need:
 """
 
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 # %%
 
 import tempfile
@@ -38,32 +40,6 @@ sample_dir = data_path / "MEG" / "sample"
 subjects_dir = data_path / "subjects"
 
 # %%
-# Before getting started with :class:`mne.Report`, make sure the files you want
-# to render follow the filename conventions defined by MNE:
-#
-# .. cssclass:: table-bordered
-# .. rst-class:: midvalign
-#
-# =================================== =========================================
-# Data object                         Filename convention (ends with)
-# =================================== =========================================
-# `~mne.io.Raw`                       ``-raw.fif(.gz)``, ``-raw_sss.fif(.gz)``,
-#                                     ``-raw_tsss.fif(.gz)``,
-#                                     ``_meg.fif(.gz)``, ``_eeg.fif(.gz)``,
-#                                     ``_ieeg.fif(.gz)``
-# events                              ``-eve.fif(.gz)``
-# `~mne.Epochs`                       ``-epo.fif(.gz)``
-# `~mne.Evoked`                       ``-ave.fif(.gz)``
-# `~mne.Covariance`                   ``-cov.fif(.gz)``
-# `~mne.Projection`                   ``-proj.fif(.gz)``
-# `~mne.transforms.Transform`         ``-trans.fif(.gz)``
-# `~mne.Forward`                      ``-fwd.fif(.gz)``
-# `~mne.minimum_norm.InverseOperator` ``-inv.fif(.gz)``
-# =================================== =========================================
-#
-# Alternatively, the dash ``-`` in the filename may be replaced with an
-# underscore ``_``.
-#
 # The basic process for creating an HTML report is to instantiate the
 # :class:`~mne.Report` class and then use one or more of its many methods to
 # add content, one element at a time.
@@ -122,7 +98,7 @@ report.save("report_events.html", overwrite=True)
 # Epochs can be added via :meth:`mne.Report.add_epochs`. Note that although
 # this method accepts a path to an epochs file too, in the following example
 # we only add epochs that we create on the fly from raw data. To demonstrate
-# the representation of epochs metadata, we'll add some of that too.
+# the representation of epochs metadata, we'll add some of that, too.
 
 event_id = {
     "auditory/left": 1,
@@ -156,7 +132,7 @@ report.save("report_epochs.html", overwrite=True)
 # noise covariance, we can add plots evokeds that were "whitened" using this
 # covariance matrix.
 #
-# By default, this method will produce snapshots at 21 equally-spaced time
+# By default, this method will produce topographic plots at 21 equally-spaced time
 # points (or fewer, if the data contains fewer time points). We can adjust this
 # via the ``n_time_points`` parameter.
 
@@ -208,8 +184,26 @@ report.save("report_cov.html", overwrite=True)
 ecg_proj_path = sample_dir / "sample_audvis_ecg-proj.fif"
 report = mne.Report(title="Projectors example")
 report.add_projs(info=raw_path, title="Projs from info")
-report.add_projs(info=raw_path, projs=ecg_proj_path, title="ECG projs from path")
+
+# Now a joint plot
+events = mne.read_events(sample_dir / "sample_audvis_ecg-eve.fif")
+raw_full = mne.io.read_raw(sample_dir / "sample_audvis_raw.fif").crop(0, 60).load_data()
+ecg_evoked = mne.Epochs(
+    raw=raw_full,
+    events=events,
+    tmin=-0.5,
+    tmax=0.5,
+    baseline=(None, None),
+).average()
+report.img_max_width = None  # do not constrain image width
+report.add_projs(
+    info=ecg_evoked,
+    projs=ecg_proj_path,
+    title="ECG projs from path",
+    joint=True,  # use joint version of the plot
+)
 report.save("report_projs.html", overwrite=True)
+del raw_full, events, ecg_evoked
 
 # %%
 # Adding `~mne.preprocessing.ICA`
@@ -562,6 +556,33 @@ with mne.open_report("report_partial.hdf5") as report:
 # once, without having to invoke the individual ``add_*`` methods outlined
 # above for each file. This approach, while convenient, provides less
 # flexibility with respect to content ordering, tags, titles, etc.
+#
+# Before getting started with :class:`mne.Report`, make sure the files you want
+# to render follow the filename conventions defined by MNE:
+#
+# .. cssclass:: table-bordered
+# .. rst-class:: midvalign
+#
+# =================================== =========================================
+# Data object                         Filename convention (ends with)
+# =================================== =========================================
+# `~mne.io.Raw`                       ``-raw.fif(.gz)``, ``-raw_sss.fif(.gz)``,
+#                                     ``-raw_tsss.fif(.gz)``,
+#                                     ``_meg.fif(.gz)``, ``_eeg.fif(.gz)``,
+#                                     ``_ieeg.fif(.gz)``
+# events                              ``-eve.fif(.gz)``
+# `~mne.Epochs`                       ``-epo.fif(.gz)``
+# `~mne.Evoked`                       ``-ave.fif(.gz)``
+# `~mne.Covariance`                   ``-cov.fif(.gz)``
+# `~mne.Projection`                   ``-proj.fif(.gz)``
+# `~mne.transforms.Transform`         ``-trans.fif(.gz)``
+# `~mne.Forward`                      ``-fwd.fif(.gz)``
+# `~mne.minimum_norm.InverseOperator` ``-inv.fif(.gz)``
+# `~mne.SourceEstimate`               ``-lh.stc``, ``-rh.stc``
+# =================================== =========================================
+#
+# Alternatively, the dash ``-`` in the filename may be replaced with an
+# underscore ``_`` (except for the ``.stc`` files).
 #
 # For our first example, we'll generate a barebones report for all the
 # :file:`.fif` files containing raw data in the sample dataset, by passing the

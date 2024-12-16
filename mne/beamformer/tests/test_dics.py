@@ -1,6 +1,4 @@
-# Authors: Marijn van Vliet <w.m.vanvliet@gmail.com>
-#          Britta Westner <britta.wstnr@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -600,14 +598,12 @@ def test_real(_load_forward, idx):
 
     # check whether a filters object without src_type throws expected warning
     del filters_vol["src_type"]  # emulate 0.16 behaviour to cause warning
-    with pytest.warns(
-        RuntimeWarning, match="spatial filter does not contain " "src_type"
-    ):
+    with pytest.warns(RuntimeWarning, match="spatial filter does not contain src_type"):
         apply_dics_csd(csd, filters_vol)
 
 
 @pytest.mark.filterwarnings(
-    "ignore:The use of several sensor types with the" ":RuntimeWarning"
+    "ignore:The use of several sensor types with the:RuntimeWarning"
 )
 @idx_param
 def test_apply_dics_timeseries(_load_forward, idx):
@@ -678,7 +674,7 @@ def test_apply_dics_timeseries(_load_forward, idx):
     proj_matrix = make_projector(p, evoked_proj.ch_names)[0]
     evoked_proj.add_proj(p)
     filters_proj = make_dics(evoked_proj.info, fwd_surf, csd20, label=label)
-    assert_array_equal(filters_proj["proj"], proj_matrix)
+    assert_allclose(filters_proj["proj"], proj_matrix, rtol=1e-7)
     stc_proj = apply_dics(evoked_proj, filters_proj)
     assert np.any(np.not_equal(stc_noproj.data, stc_proj.data))
 

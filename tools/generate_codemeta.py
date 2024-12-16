@@ -1,10 +1,13 @@
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 import subprocess
-import tomllib
 from argparse import ArgumentParser
 from datetime import date
 from pathlib import Path
+
+import tomllib
 
 parser = ArgumentParser(description="Generate codemeta.json and CITATION.cff")
 parser.add_argument("release_version", type=str)
@@ -44,6 +47,7 @@ compound_surnames = (
     "De Santis",
     "Dupré la Tour",
     "de la Torre",
+    "de Jong",
     "de Montalivet",
     "van den Bosch",
     "Van den Bossche",

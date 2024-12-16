@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "88ad4ce209b4ab3ea249315fc18bfc0f1879ec7d",
+  "authors": [
+    {
+      "n": "Mainak Jas",
+      "e": "mainakjas@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/tests/test_viz.py": {
+      "a": 9,
+      "d": 4
+    },
+    "mne/viz.py": {
+      "a": 13,
+      "d": 5
+    }
+  }
+}

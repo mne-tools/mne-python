@@ -1,6 +1,4 @@
-# Authors: Denis Engemann <denis.engemann@gmail.com>
-#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -371,6 +369,9 @@ def test_plot_ica_sources(raw_orig, browser_backend, monkeypatch):
     _fake_click(fig, ax, [ax.get_xlim()[0], ax.get_ylim()[1]], "data")
     leg = ax.get_legend()
     assert len(leg.get_texts()) == len(ica.exclude) == 1
+
+    # test passing psd_args argument
+    ica.plot_sources(epochs, psd_args=dict(fmax=50))
 
     # plot with bad channels excluded
     ica.exclude = [0]

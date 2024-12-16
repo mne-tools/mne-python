@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "b02f5bd8a51274d6f683cd079d28af04e28bce63",
+  "authors": [
+    {
+      "n": "Christian Brodbeck",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/gui/_kit2fiff_gui.py": {
+      "a": 180,
+      "d": 66
+    },
+    "mne/gui/tests/test_kit2fiff_gui.py": {
+      "a": 10,
+      "d": 0
+    },
+    "mne/io/kit/kit.py": {
+      "a": 35,
+      "d": 21
+    }
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "e28b2b319847dc797957faf6ec8c8968ecd2efa8",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/inverse_sparse/_gamma_map.py": {
+      "a": 7,
+      "d": 6
+    },
+    "mne/io/base.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/raw.py": {
+      "a": 2,
+      "d": 2
+    },
+    "tutorials/plot_epoching_and_averaging.py": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

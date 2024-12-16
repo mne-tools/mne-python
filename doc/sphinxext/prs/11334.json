@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "e56581776c5b5442ae2f4fa7de5ab43a0600322d",
+  "authors": [
+    {
+      "n": "Mathieu Scheltienne",
+      "e": "mathieu.scheltienne@fcbg.ch"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "mne/time_frequency/psd.py": {
+      "a": 5,
+      "d": 1
+    },
+    "mne/viz/tests/test_raw.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

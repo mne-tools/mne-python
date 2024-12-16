@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "a42677ff2f7342f2de93e6ec84f74d29c1983b4b",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/visualization/plot_evoked_topomap.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 1,
+      "d": 3
+    },
+    "mne/viz/circle.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/viz/tests/test_misc.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/topo.py": {
+      "a": 4,
+      "d": 3
+    },
+    "mne/viz/topomap.py": {
+      "a": 79,
+      "d": 71
+    },
+    "mne/viz/utils.py": {
+      "a": 8,
+      "d": 0
+    },
+    "tutorials/plot_sensors_time_frequency.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/plot_visualize_evoked.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

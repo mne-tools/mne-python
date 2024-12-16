@@ -1,0 +1,1 @@
+Added support for ``sensor_scales`` to :meth:`mne.viz.Brain.add_sensors` and :func:`mne.viz.plot_alignment`, by :newcontrib:`Alex Lepauvre`.

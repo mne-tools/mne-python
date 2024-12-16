@@ -1,8 +1,6 @@
 """Helpers for various transformations."""
 
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Christian Brodbeck <christianbrodbeck@nyu.edu>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -444,8 +442,8 @@ def _ensure_trans(trans, fro="mri", to="head"):
         to_str = _frame_to_str[to]
         to_const = to
     del to
-    err_str = "trans must be a Transform between " f"{from_str}<->{to_str}, got"
-    if not isinstance(trans, (list, tuple)):
+    err_str = f"trans must be a Transform between {from_str}<->{to_str}, got"
+    if not isinstance(trans, list | tuple):
         trans = [trans]
     # Ensure that we have exactly one match
     idx = list()
@@ -704,7 +702,7 @@ def get_ras_to_neuromag_trans(nasion, lpa, rpa):
     for pt in (nasion, lpa, rpa):
         if pt.ndim != 1 or len(pt) != 3:
             raise ValueError(
-                "Points have to be provided as one dimensional " "arrays of length 3."
+                "Points have to be provided as one dimensional arrays of length 3."
             )
 
     right = rpa - lpa
@@ -1080,9 +1078,11 @@ class _SphericalSurfaceWarp:
         if not hasattr(self, "_warp"):
             rep += "no fitting done >"
         else:
-            rep += "fit %d->%d pts using match=%s (%d pts), order=%s, reg=%s>" % tuple(
-                self._fit_params[key]
-                for key in ["n_src", "n_dest", "match", "n_match", "order", "reg"]
+            rep += (
+                f"fit {self._fit_params['n_src']}->{self._fit_params['n_dest']} pts "
+                f"using match={self._fit_params['match']} "
+                f"({self._fit_params['n_match']} pts), "
+                f"order={self._fit_params['order']}, reg={self._fit_params['reg']}>"
             )
         return rep
 
@@ -1159,7 +1159,7 @@ class _SphericalSurfaceWarp:
         del match_rr
         # 2. Compute spherical harmonic coefficients for all points
         logger.info(
-            "    Computing spherical harmonic approximation with " "order %s" % order
+            f"    Computing spherical harmonic approximation with order {order}"
         )
         src_sph = _compute_sph_harm(order, *src_rad_az_pol[1:])
         dest_sph = _compute_sph_harm(order, *dest_rad_az_pol[1:])
@@ -1170,7 +1170,7 @@ class _SphericalSurfaceWarp:
         # 4. Smooth both surfaces using these coefficients, and evaluate at
         #     the "shape" points
         logger.info(
-            "    Matching %d points (%s) on smoothed surfaces" % (len(match_sph), match)
+            f"    Matching {len(match_sph)} points ({match}) on smoothed surfaces"
         )
         src_rad_az_pol = match_rad_az_pol.copy()
         src_rad_az_pol[0] = np.abs(np.dot(match_sph, src_coeffs))
@@ -1183,7 +1183,6 @@ class _SphericalSurfaceWarp:
         destination += dest_center
         # 6. Compute TPS warp of matched points from smoothed surfaces
         self._warp = _TPSWarp().fit(source, destination, reg)
-        self._matched = np.array([source, destination])
         logger.info("[done]")
         return self
 
@@ -1569,7 +1568,7 @@ def _read_fs_xfm(fname):
     """Read a Freesurfer transform from a .xfm file."""
     assert fname.endswith(".xfm")
     with open(fname) as fid:
-        logger.debug("Reading FreeSurfer talairach.xfm file:\n%s" % fname)
+        logger.debug(f"Reading FreeSurfer talairach.xfm file:\n{fname}")
 
         # read lines until we get the string 'Linear_Transform', which precedes
         # the data transformation matrix
@@ -1583,7 +1582,7 @@ def _read_fs_xfm(fname):
                 break
         else:
             raise ValueError(
-                'Failed to find "Linear_Transform" string in ' "xfm file:\n%s" % fname
+                f'Failed to find "Linear_Transform" string in xfm file:\n{fname}'
             )
 
         xfm = list()
@@ -1606,7 +1605,7 @@ def _write_fs_xfm(fname, xfm, kind):
         fid.write((kind + "\n\nTtransform_Type = Linear;\n").encode("ascii"))
         fid.write("Linear_Transform =\n".encode("ascii"))
         for li, line in enumerate(xfm[:-1]):
-            line = " ".join(["%0.6f" % part for part in line])
+            line = " ".join([f"{part:0.6f}" for part in line])
             line += "\n" if li < 2 else ";\n"
             fid.write(line.encode("ascii"))
 
@@ -1821,10 +1820,10 @@ def _compute_volume_registration(
             sigma_diff_vox = sigma_diff_mm / current_zoom
             affine_map = AffineMap(
                 reg_affine,  # apply registration here
-                static_zoomed.shape,
-                static_affine,
-                moving_zoomed.shape,
-                moving_affine,
+                domain_grid_shape=static_zoomed.shape,
+                domain_grid2world=static_affine,
+                codomain_grid_shape=moving_zoomed.shape,
+                codomain_grid2world=moving_affine,
             )
             moving_zoomed = affine_map.transform(moving_zoomed)
             metric = metrics.CCMetric(
@@ -1832,10 +1831,16 @@ def _compute_volume_registration(
                 sigma_diff=sigma_diff_vox,
                 radius=max(int(np.ceil(2 * sigma_diff_vox)), 1),
             )
-            sdr = imwarp.SymmetricDiffeomorphicRegistration(metric, niter[step])
+            sdr = imwarp.SymmetricDiffeomorphicRegistration(
+                metric,
+                level_iters=niter[step],
+            )
             with wrapped_stdout(indent="    ", cull_newlines=True):
                 sdr_morph = sdr.optimize(
-                    static_zoomed, moving_zoomed, static_affine, static_affine
+                    static_zoomed,
+                    moving_zoomed,
+                    static_grid2world=static_affine,
+                    moving_grid2world=static_affine,
                 )
             moved_zoomed = sdr_morph.transform(moving_zoomed)
         else:
@@ -1844,8 +1849,8 @@ def _compute_volume_registration(
                 moved_zoomed, reg_affine = affine_registration(
                     moving_zoomed,
                     static_zoomed,
-                    moving_affine,
-                    static_affine,
+                    moving_affine=moving_affine,
+                    static_affine=static_affine,
                     nbins=32,
                     metric="MI",
                     pipeline=pipeline_options[step],
@@ -1939,7 +1944,11 @@ def apply_volume_registration(
     moving -= cval
     static, static_affine = np.asarray(static.dataobj), static.affine
     affine_map = AffineMap(
-        reg_affine, static.shape, static_affine, moving.shape, moving_affine
+        reg_affine,
+        domain_grid_shape=static.shape,
+        domain_grid2world=static_affine,
+        codomain_grid_shape=moving.shape,
+        codomain_grid2world=moving_affine,
     )
     reg_data = affine_map.transform(moving, interpolation=interpolation)
     if sdr_morph is not None:
@@ -2032,7 +2041,9 @@ def apply_volume_registration_points(
     if sdr_morph is not None:
         _require_version("dipy", "SDR morph", "1.6.0")
         locs = sdr_morph.transform_points(
-            locs, sdr_morph.domain_grid2world, sdr_morph.domain_world2grid
+            locs,
+            coord2world=sdr_morph.domain_grid2world,
+            world2coord=sdr_morph.domain_world2grid,
         )
     locs = apply_trans(
         Transform(  # to static voxels

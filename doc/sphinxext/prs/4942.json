@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "318f433510afb0b0995f95614568da6e03b922df",
+  "authors": [
+    {
+      "n": "Nathalie",
+      "e": "nat.gayraud@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 5,
+      "d": 0
+    },
+    "mne/viz/misc.py": {
+      "a": 16,
+      "d": 4
+    }
+  }
+}

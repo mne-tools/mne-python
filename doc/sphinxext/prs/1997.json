@@ -1,0 +1,59 @@
+{
+  "merge_commit_sha": "8b0300df14b4115c70c91a53291afae408b2594b",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".travis.yml": {
+      "a": 4,
+      "d": 1
+    },
+    "mne/bem.py": {
+      "a": 13,
+      "d": 6
+    },
+    "mne/channels/channels.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/channels/tests/test_channels.py": {
+      "a": 11,
+      "d": 5
+    },
+    "mne/inverse_sparse/mxne_optim.py": {
+      "a": 7,
+      "d": 4
+    },
+    "mne/io/tests/test_pick.py": {
+      "a": 8,
+      "d": 1
+    },
+    "mne/label.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/stim.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/preprocessing/tests/test_stim.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/source_estimate.py": {
+      "a": 10,
+      "d": 4
+    },
+    "mne/tests/test_label.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/topomap.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

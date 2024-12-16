@@ -1,5 +1,4 @@
-# Authors: Robert Luke <mail@robertluke.net>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -91,7 +90,7 @@ class RawSNIRF(BaseRaw):
         h5py = _import_h5py()
 
         fname = str(_check_fname(fname, "read", True, "fname"))
-        logger.info("Loading %s" % fname)
+        logger.info(f"Loading {fname}")
 
         with h5py.File(fname, "r") as dat:
             if "data2" in dat["nirs"]:
@@ -285,7 +284,8 @@ class RawSNIRF(BaseRaw):
 
             subject_info = {}
             names = np.array(dat.get("nirs/metaDataTags/SubjectID"))
-            subject_info["first_name"] = _correct_shape(names)[0].decode("UTF-8")
+            names = _correct_shape(names)[0].decode("UTF-8")
+            subject_info["his_id"] = names
             # Read non standard (but allowed) custom metadata tags
             if "lastName" in dat.get("nirs/metaDataTags/"):
                 ln = dat.get("/nirs/metaDataTags/lastName")[0].decode("UTF-8")
@@ -293,6 +293,12 @@ class RawSNIRF(BaseRaw):
             if "middleName" in dat.get("nirs/metaDataTags/"):
                 m = dat.get("/nirs/metaDataTags/middleName")[0].decode("UTF-8")
                 subject_info["middle_name"] = m
+            if "firstName" in dat.get("nirs/metaDataTags/"):
+                fn = dat.get("/nirs/metaDataTags/firstName")[0].decode("UTF-8")
+                subject_info["first_name"] = fn
+            else:
+                # MNE < 1.7 used to not write the firstName tag, so pull it from names
+                subject_info["first_name"] = names.split("_")[0]
             if "sex" in dat.get("nirs/metaDataTags/"):
                 s = dat.get("/nirs/metaDataTags/sex")[0].decode("UTF-8")
                 if s in {"M", "Male", "1", "m"}:
@@ -449,7 +455,7 @@ class RawSNIRF(BaseRaw):
                 )
                 birth_matched = re.fullmatch(r"(\d+)-(\d+)-(\d+)", str_birth)
                 if birth_matched is not None:
-                    birthday = (
+                    birthday = datetime.date(
                         int(birth_matched.groups()[0]),
                         int(birth_matched.groups()[1]),
                         int(birth_matched.groups()[2]),
@@ -486,7 +492,7 @@ class RawSNIRF(BaseRaw):
         """Read a segment of data from a file."""
         import h5py
 
-        with h5py.File(self._filenames[0], "r") as dat:
+        with h5py.File(self.filenames[0], "r") as dat:
             one = dat["/nirs/data1/dataTimeSeries"][start:stop].T
 
         _mult_cal_one(data, one, idx, cals, mult)

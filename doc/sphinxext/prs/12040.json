@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "110947f35abc93fd88f4e6b72f9e573dc25b355f",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/inverse/dics_epochs.py": {
+      "a": 2,
+      "d": 7
+    },
+    "tutorials/intro/70_report.py": {
+      "a": 14,
+      "d": 33
+    },
+    "tutorials/stats-sensor-space/75_cluster_ftest_spatiotemporal.py": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

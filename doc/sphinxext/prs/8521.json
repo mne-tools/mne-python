@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "aacafb171a13ad7325fb854d5603efd6bb951e00",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "mne/source_space.py": {
+      "a": 103,
+      "d": 71
+    },
+    "mne/tests/test_morph.py": {
+      "a": 98,
+      "d": 6
+    }
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "a2095faa49b115b9668dd4c94b94590088a18ac5",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "README.rst": {
+      "a": 8,
+      "d": 3
+    },
+    "codecov.yml": {
+      "a": 18,
+      "d": 11
+    }
+  }
+}

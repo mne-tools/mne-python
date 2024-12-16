@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "0facbb48f719122acf215d27e7c703954a1c4ba9",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/inverse/plot_dics_source_power.py": {
+      "a": 12,
+      "d": 6
+    },
+    "examples/inverse/plot_source_space_snr.py": {
+      "a": 5,
+      "d": 18
+    },
+    "mne/fixes.py": {
+      "a": 19,
+      "d": 7
+    },
+    "mne/minimum_norm/_eloreta.py": {
+      "a": 33,
+      "d": 22
+    },
+    "mne/minimum_norm/inverse.py": {
+      "a": 17,
+      "d": 23
+    },
+    "tutorials/source-modeling/plot_beamformer_lcmv.py": {
+      "a": 28,
+      "d": 27
+    },
+    "tutorials/source-modeling/plot_mne_dspm_source_localization.py": {
+      "a": 1,
+      "d": 0
+    },
+    "tutorials/source-modeling/plot_mne_solutions.py": {
+      "a": 5,
+      "d": 2
+    }
+  }
+}

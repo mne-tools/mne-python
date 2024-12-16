@@ -238,7 +238,7 @@ ax.annotate(
     (ix_best_alpha, scores[ix_best_alpha] - 0.1),
     arrowprops={"arrowstyle": "->"},
 )
-plt.xticks(np.arange(len(alphas)), ["%.0e" % ii for ii in alphas])
+plt.xticks(np.arange(len(alphas)), [f"{ii:.0e}" for ii in alphas])
 ax.set(
     xlabel="Ridge regularization value",
     ylabel="Score ($R^2$)",
@@ -321,7 +321,7 @@ ax.annotate(
     (ix_best_alpha, scores[ix_best_alpha] - 0.1),
     arrowprops={"arrowstyle": "->"},
 )
-plt.xticks(np.arange(len(alphas)), ["%.0e" % ii for ii in alphas])
+plt.xticks(np.arange(len(alphas)), [f"{ii:.0e}" for ii in alphas])
 ax.set(
     xlabel="Laplacian regularization value",
     ylabel="Score ($R^2$)",

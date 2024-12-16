@@ -1,9 +1,8 @@
-# Authors : Alexandre Gramfort, alexandre.gramfort@inria.fr (2011)
-#           Denis A. Engemann <denis.engemann@gmail.com>
-# License : BSD-3-Clause
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+import warnings
 from functools import partial
 
 import numpy as np
@@ -11,6 +10,7 @@ from scipy.signal import spectrogram
 
 from ..parallel import parallel_func
 from ..utils import _check_option, _ensure_int, logger, verbose
+from ..utils.numerics import _mask_to_onsets_offsets
 
 
 # adapted from SciPy
@@ -78,24 +78,17 @@ def _check_nfft(n, n_fft, n_per_seg, n_overlap):
     """Ensure n_fft, n_per_seg and n_overlap make sense."""
     if n_per_seg is None and n_fft > n:
         raise ValueError(
-            (
-                "If n_per_seg is None n_fft is not allowed to be > "
-                "n_times. If you want zero-padding, you have to set "
-                "n_per_seg to relevant length. Got n_fft of %d while"
-                " signal length is %d."
-            )
-            % (n_fft, n)
+            "If n_per_seg is None n_fft is not allowed to be > "
+            "n_times. If you want zero-padding, you have to set "
+            f"n_per_seg to relevant length. Got n_fft of {n_fft} while"
+            f" signal length is {n}."
         )
     n_per_seg = n_fft if n_per_seg is None or n_per_seg > n_fft else n_per_seg
     n_per_seg = n if n_per_seg > n else n_per_seg
     if n_overlap >= n_per_seg:
         raise ValueError(
-            (
-                "n_overlap cannot be greater than n_per_seg (or "
-                "n_fft). Got n_overlap of %d while n_per_seg is "
-                "%d."
-            )
-            % (n_overlap, n_per_seg)
+            "n_overlap cannot be greater than n_per_seg (or n_fft). Got n_overlap "
+            f"of {n_overlap} while n_per_seg is {n_per_seg}."
         )
     return n_fft, n_per_seg, n_overlap
 
@@ -198,7 +191,7 @@ def psd_array_welch(
     # Prep the PSD
     n_fft, n_per_seg, n_overlap = _check_nfft(n_times, n_fft, n_per_seg, n_overlap)
     win_size = n_fft / float(sfreq)
-    logger.info("Effective window size : %0.3f (s)" % win_size)
+    logger.info(f"Effective window size : {win_size:0.3f} (s)")
     freqs = np.arange(n_fft // 2 + 1, dtype=float) * (sfreq / n_fft)
     freq_mask = (freqs >= fmin) & (freqs <= fmax)
     if not freq_mask.any():
@@ -214,7 +207,7 @@ def psd_array_welch(
     )
 
     parallel, my_spect_func, n_jobs = parallel_func(_spect_func, n_jobs=n_jobs)
-    func = partial(
+    _func = partial(
         spectrogram,
         detrend=detrend,
         noverlap=n_overlap,
@@ -224,12 +217,54 @@ def psd_array_welch(
         window=window,
         mode=mode,
     )
-    x_splits = [arr for arr in np.array_split(x, n_jobs) if arr.size != 0]
+    if np.any(np.isnan(x)):
+        good_mask = ~np.isnan(x)
+        # NaNs originate from annot, so must match for all channels. Note that we CANNOT
+        # use np.testing.assert_allclose() here; it is strict about shapes/broadcasting
+        assert np.allclose(good_mask, good_mask[[0]], equal_nan=True)
+        t_onsets, t_offsets = _mask_to_onsets_offsets(good_mask[0])
+        x_splits = [x[..., t_ons:t_off] for t_ons, t_off in zip(t_onsets, t_offsets)]
+        # weights reflect the number of samples used from each span. For spans longer
+        # than `n_per_seg`, trailing samples may be discarded. For spans shorter than
+        # `n_per_seg`, the wrapped function (`scipy.signal.spectrogram`) automatically
+        # reduces `n_per_seg` to match the span length (with a warning).
+        step = n_per_seg - n_overlap
+        span_lengths = [span.shape[-1] for span in x_splits]
+        weights = [
+            w if w < n_per_seg else w - ((w - n_overlap) % step) for w in span_lengths
+        ]
+        agg_func = partial(np.average, weights=weights)
+        if n_jobs > 1:
+            logger.info(
+                f"Data split into {len(x_splits)} (probably unequal) chunks due to "
+                '"bad_*" annotations. Parallelization may be sub-optimal.'
+            )
+        if (np.array(span_lengths) < n_per_seg).any():
+            logger.info(
+                "At least one good data span is shorter than n_per_seg, and will be "
+                "analyzed with a shorter window than the rest of the file."
+            )
+
+        def func(*args, **kwargs):
+            # swallow SciPy warnings caused by short good data spans
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
+                    action="ignore",
+                    module="scipy",
+                    category=UserWarning,
+                    message=r"nperseg = \d+ is greater than input length",
+                )
+                return _func(*args, **kwargs)
+
+    else:
+        x_splits = [arr for arr in np.array_split(x, n_jobs) if arr.size != 0]
+        agg_func = np.concatenate
+        func = _func
     f_spect = parallel(
         my_spect_func(d, func=func, freq_sl=freq_sl, average=average, output=output)
         for d in x_splits
     )
-    psds = np.concatenate(f_spect, axis=0)
+    psds = agg_func(f_spect, axis=0)
     shape = dshape + (len(freqs),)
     if average is None:
         shape = shape + (-1,)

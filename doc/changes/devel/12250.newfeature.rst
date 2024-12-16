@@ -1,1 +1,0 @@
-We added type hints for the return values of :func:`mne.read_evokeds` and :func:`mne.io.read_raw`. Development environments like VS Code or PyCharm will now provide more help when using these functions in your code. By `Richard Höchenberger`_ and `Eric Larson`_. (:gh:`12297`)

@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "76e386ca0d588c30a58519b125448162f735a8e9",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/epochs.py": {
+      "a": 4,
+      "d": 18
+    },
+    "mne/preprocessing/ecg.py": {
+      "a": 28,
+      "d": 66
+    },
+    "mne/preprocessing/eog.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/preprocessing/ssp.py": {
+      "a": 8,
+      "d": 4
+    },
+    "mne/proj.py": {
+      "a": 9,
+      "d": 3
+    },
+    "mne/utils/docs.py": {
+      "a": 86,
+      "d": 0
+    },
+    "mne/viz/misc.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/preprocessing/plot_50_artifact_correction_ssp.py": {
+      "a": 3,
+      "d": 2
+    }
+  }
+}
