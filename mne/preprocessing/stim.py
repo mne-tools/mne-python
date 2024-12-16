@@ -11,7 +11,7 @@ from ..epochs import BaseEpochs
 from ..event import find_events
 from ..evoked import Evoked
 from ..io import BaseRaw
-from ..utils import _check_option, _check_preload, fill_doc
+from ..utils import _check_option, _check_preload, _validate_type, fill_doc
 
 
 def _get_window(start, end):
@@ -71,13 +71,23 @@ def fix_stim_artifact(
         Start time of the interpolation window in seconds.
     tmax : float
         End time of the interpolation window in seconds.
-    baseline: None or tuple of length 2
-        When mode = 'constant', baseline is required
+    baseline: None | tuple, shape (2,)
+        The baseline to use when ``mode='constant'``, in which case it
+        must be non-None.
+
+        .. versionadded:: 1.8
     mode : 'linear' | 'window' | 'constant'
         Way to fill the artifacted time interval.
-        'linear' does linear interpolation
-        'window' applies a (1 - hanning) window.
-        'constant' uses baseline average. baseline parameter must be provided.
+
+        ``"linear"``
+            Does linear interpolation.
+        ``"window"``
+            Applies a ``(1 - hanning)`` window.
+        ``"constant"``
+            Uses baseline average. baseline parameter must be provided.
+
+        .. versionchanged:: 1.8
+           Added the ``"constant"`` mode.
     stim_channel : str | None
         Stim channel to use.
     %(picks_all_data)s
@@ -90,13 +100,17 @@ def fix_stim_artifact(
     _check_option("mode", mode, ["linear", "window", "constant"])
     s_start = int(np.ceil(inst.info["sfreq"] * tmin))
     s_end = int(np.ceil(inst.info["sfreq"] * tmax))
-    if mode == "constant" and baseline is None:
-        raise ValueError('Please provide the baseline for mode="constant"')
     if mode == "constant":
-        b_start = baseline[0] if baseline[0] is not None else tmin
-        b_end = baseline[1] if baseline[1] is not None else tmax
-        b_start = int(np.ceil(inst.info["sfreq"] * b_start))
-        b_end = int(np.ceil(inst.info["sfreq"] * b_end))
+        _validate_type(
+            baseline, (tuple, list), "baseline", extra="when mode='constant'"
+        )
+        _check_option("len(baseline)", len(baseline), [2])
+        for bi, b in enumerate(baseline):
+            _validate_type(
+                b, "numeric", f"baseline[{bi}]", extra="when mode='constant'"
+            )
+        b_start = int(np.ceil(inst.info["sfreq"] * baseline[0]))
+        b_end = int(np.ceil(inst.info["sfreq"] * baseline[1]))
     else:
         b_start = b_end = np.nan
     if (mode == "window") and (s_end - s_start) < 4:
