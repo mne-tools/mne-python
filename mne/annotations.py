@@ -1536,7 +1536,6 @@ def _read_wfdb_annotations(fname, suffix=None, sfreq="auto"):
     return Annotations(onset, duration, description)
 
 
-
 @verbose
 def events_from_annotations(
     raw,
