@@ -38,8 +38,9 @@ jobs:
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git config --global user.name "github-actions[bot]"
           git checkout -b credit
-          git commit -am "MAINT: Update code credit [ci skip]"
+          git commit -am "MAINT: Update code credit"
           git push origin credit
-          PR_NUM=$(gh pr create --base main --head credit --title "MAINT: Update code credit" --body "Created by credit GitHub action." --label "no-changelog-entry-needed")
+          workflowId=$(gh api -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" /repos/${{ github.repository }}/actions/runs/ --jq .workflow_id)
+          PR_NUM=$(gh pr create --base main --head credit --title "MAINT: Update code credit" --body "Created by credit [GitHub action](https://github.com/mne-tools/mne-python/actions/runs/${{ github.run_id }}/${workflowId})." --label "no-changelog-entry-needed")
           echo "Opened https://github.com/mne-tools/mne-python/pull/${PR_NUM}" >> $GITHUB_STEP_SUMMARY
         if: steps.status.outputs.dirty == 'true'
