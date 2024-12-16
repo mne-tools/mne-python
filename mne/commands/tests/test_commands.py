@@ -196,7 +196,6 @@ def test_make_scalp_surfaces(tmp_path, monkeypatch):
             mne_make_scalp_surfaces.run()
         
         monkeypatch.setenv("FREESURFER_HOME", tempdir)
-        shutil.copy(op.join(t1_path, t1_path_new))
         mne_make_scalp_surfaces.run()
 
         assert op.isfile(headseg_path)
