@@ -24,13 +24,11 @@ python -m pip install $STD_ARGS --only-binary ":all:" --default-timeout=60 \
 	"pandas>=3.0.0.dev0" "matplotlib>=3.10.0.dev0" \
 	"h5py>=3.12.1" "dipy>=1.10.0.dev0" "pyarrow>=19.0.0.dev0" "tables>=3.10.2.dev0"
 
-# As of 2024/12/16 statsmodels requires formulaic@main, which seems to be a problem on Windows
-if [[ "${PLATFORM}" == "Linux" ]]; then
-	echo "statsmodels"
-	python -m pip install $STD_ARGS --only-binary ":all:" \
-		--index-url "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" \
-		"statsmodels>=0.15.0.dev0"
-fi
+# statsmodels requires formulaic@main so we need to use --extra-index-url
+echo "statsmodels"
+python -m pip install $STD_ARGS --only-binary ":all:" \
+	--extra-index-url "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" \
+	"statsmodels>=0.15.0.dev0"
 
 # No Numba because it forces an old NumPy version
 
