@@ -71,7 +71,7 @@ def fix_stim_artifact(
         Start time of the interpolation window in seconds.
     tmax : float
         End time of the interpolation window in seconds.
-    baseline: None | tuple, shape (2,)
+    baseline : None | tuple, shape (2,)
         The baseline to use when ``mode='constant'``, in which case it
         must be non-None.
 
