@@ -194,10 +194,8 @@ def test_make_scalp_surfaces(tmp_path, monkeypatch):
         monkeypatch.delenv("FREESURFER_HOME", raising=False)
         with pytest.raises(RuntimeError, match="The FreeSurfer environ"):
             mne_make_scalp_surfaces.run()
-
-        shutil.copy(op.join(t1_path, t1_path_new))
+            
         mne_make_scalp_surfaces.run()
-
         assert op.isfile(headseg_path)
         assert op.isfile(surf_path)
         assert op.isfile(dense_fname)
