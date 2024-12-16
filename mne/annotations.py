@@ -1141,7 +1141,13 @@ def _write_annotations_txt(fname, annot):
 
 @fill_doc
 def read_annotations(
-    fname, sfreq="auto", uint16_codec=None, encoding="utf8", ignore_marker_types=False, fmt="auto", suffix=None
+    fname,
+    sfreq="auto",
+    uint16_codec=None,
+    encoding="utf8",
+    ignore_marker_types=False,
+    fmt="auto",
+    suffix=None,
 ) -> Annotations:
     r"""Read annotations from a file.
 
@@ -1516,14 +1522,13 @@ def _check_event_description(event_desc, events):
 
     return event_desc
 
+
 def _read_wfdb_annotations(fname, suffix=None):
     """Read annotations from wfdb format."""
     wfdb = _check_wfdb_installed(strict=True)
     anno = wfdb.io.rdann(fname.stem, extension=suffix)
     print(anno)
     print(anno.__dict__)
-
-
 
 
 @verbose

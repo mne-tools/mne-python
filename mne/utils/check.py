@@ -452,6 +452,7 @@ def _check_edfio_installed(strict=True):
     """Aux function."""
     return _soft_import("edfio", "exporting to EDF", strict=strict)
 
+
 def _check_wfdb_installed(strict=True):
     """Aux function."""
     return _soft_import("wfdb", "MIT WFDB IO", strict=strict)
