@@ -1,0 +1,1 @@
+Compatibility improved for Python 3.13, by `Eric Larson`_.

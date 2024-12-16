@@ -281,6 +281,20 @@ of VTK and/or QT are incompatible. This series of commands should fix it:
 If you installed VTK using ``pip`` rather than ``conda``, substitute the first
 line for ``pip uninstall -y vtk``.
 
+3D plotting trouble on Linux
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+If you are having trouble with 3D plotting on Linux, one possibility is that you
+are using Wayland for graphics. To check, you can do:
+
+.. code-block:: console
+
+    $ echo $XDG_SESSION_TYPE
+    wayland
+
+If so, you will need to tell Qt to use X11 instead of Wayland. You can do this
+by setting ``export QT_QPA_PLATFORM=xcb`` in your terminal session. To make it
+permanent for your logins, you can set it for example in ``~/.profile``.
 
 .. LINKS
 

@@ -129,7 +129,7 @@ def test_sys_info_complete():
     pyproject = tomllib.loads(pyproject.read_text("utf-8"))
     deps = pyproject["project"]["optional-dependencies"]["test_extra"]
     for dep in deps:
-        dep = dep.split("[")[0].split(">")[0]
+        dep = dep.split("[")[0].split(">")[0].strip()
         assert f" {dep}" in out, f"Missing in dev config: {dep}"
 
 
