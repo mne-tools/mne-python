@@ -1524,12 +1524,17 @@ def _check_event_description(event_desc, events):
     return event_desc
 
 
-def _read_wfdb_annotations(fname, suffix=None):
+def _read_wfdb_annotations(fname, suffix=None, sfreq="auto"):
     """Read annotations from wfdb format."""
     wfdb = _check_wfdb_installed(strict=True)
     anno = wfdb.io.rdann(fname.stem, extension=suffix)
-    print(anno)
-    print(anno.__dict__)
+    anno_dict = anno.__dict__
+    sfreq = anno_dict["fs"] if sfreq == "auto" else sfreq
+    onset = anno_dict["sample"] / sfreq
+    duration = np.zeros_like(onset)
+    description = anno_dict["symbol"]
+    return Annotations(onset, duration, description)
+
 
 
 @verbose
