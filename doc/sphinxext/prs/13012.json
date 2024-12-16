@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "9b7b5596ff7c089939bca179b98f1ce0094cb668",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "autofix-ci[bot]",
+      "e": "114827586+autofix-ci[bot]@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/13012.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/install/advanced.rst": {
+      "a": 14,
+      "d": 0
+    },
+    "mne/viz/backends/_pyvista.py": {
+      "a": 8,
+      "d": 5
+    },
+    "mne/viz/backends/_qt.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/viz/backends/tests/test_renderer.py": {
+      "a": 12,
+      "d": 7
+    }
+  }
+}

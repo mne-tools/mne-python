@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "53792b12a2d60229ada3c946987a184f3915c535",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "azure-pipelines.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/sphinxext/mne_doc_utils.py": {
+      "a": 0,
+      "d": 2
+    },
+    "pyproject.toml": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "730358c1e2e17baf0491c04e0c8269382a29c613",
+  "authors": [
+    {
+      "n": "Santeri Ruuskanen",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/development/contributing.rst": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

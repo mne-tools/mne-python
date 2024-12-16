@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "a1a05ae11234929f0608d5a6b4fc30206af89031",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    },
+    {
+      "n": "Britta Westner",
+      "e": "britta.wstnr@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/12896.other.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/development/governance.rst": {
+      "a": 251,
+      "d": 187
+    },
+    "doc/overview/people.rst": {
+      "a": 18,
+      "d": 11
+    }
+  }
+}

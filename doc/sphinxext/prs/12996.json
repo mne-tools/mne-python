@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "ec77e7c36ce4a2d7897122513395b0e2418ea151",
+  "authors": [
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    }
+  ],
+  "changes": {
+    "mne/io/ant/ant.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/kit/kit.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/snirf/_snirf.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/tests/test_raw.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/tests/test_ica.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/raw.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

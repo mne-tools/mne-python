@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "4967ecd3f44968408046948b738977aa41521ea2",
+  "authors": [
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    }
+  ],
+  "changes": {
+    "doc/api/preprocessing.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/channels/__init__.pyi": {
+      "a": 2,
+      "d": 0
+    }
+  }
+}
