@@ -36,6 +36,7 @@ from .utils import (
     _check_option,
     _check_pandas_installed,
     _check_time_format,
+    _check_wfdb_installed,
     _convert_times,
     _DefaultEventParser,
     _dt_to_stamp,
@@ -1140,7 +1141,7 @@ def _write_annotations_txt(fname, annot):
 
 @fill_doc
 def read_annotations(
-    fname, sfreq="auto", uint16_codec=None, encoding="utf8", ignore_marker_types=False
+    fname, sfreq="auto", uint16_codec=None, encoding="utf8", ignore_marker_types=False, fmt="auto", suffix=None
 ) -> Annotations:
     r"""Read annotations from a file.
 
@@ -1222,6 +1223,7 @@ def read_annotations(
         ".bdf": {"encoding": encoding},
         ".gdf": {"encoding": encoding},
     }
+    print(fname.suffix)
     if fname.suffix in readers:
         annotations = readers[fname.suffix](fname, **kwargs.get(fname.suffix, {}))
     elif fname.name.endswith(("fif", "fif.gz")):
@@ -1231,6 +1233,8 @@ def read_annotations(
             annotations = _read_annotations_fif(fid, tree)
     elif fname.name.startswith("events_") and fname.suffix == ".mat":
         annotations = _read_brainstorm_annotations(fname)
+    elif fmt == "wfdb":
+        annotations = _read_wfdb_annotations(fname, suffix=suffix)
     else:
         raise OSError(f'Unknown annotation file format "{fname}"')
 
@@ -1511,6 +1515,15 @@ def _check_event_description(event_desc, events):
         )
 
     return event_desc
+
+def _read_wfdb_annotations(fname, suffix=None):
+    """Read annotations from wfdb format."""
+    wfdb = _check_wfdb_installed(strict=True)
+    anno = wfdb.io.rdann(fname.stem, extension=suffix)
+    print(anno)
+    print(anno.__dict__)
+
+
 
 
 @verbose
