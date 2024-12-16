@@ -1143,6 +1143,7 @@ def _write_annotations_txt(fname, annot):
 def read_annotations(
     fname,
     sfreq="auto",
+    *,
     uint16_codec=None,
     encoding="utf8",
     ignore_marker_types=False,
