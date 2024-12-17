@@ -327,6 +327,10 @@ def read_raw_ant(
     raw : instance of RawANT
         A Raw object containing ANT data.
         See :class:`mne.io.Raw` for documentation of attributes and methods.
+
+    Notes
+    -----
+    .. versionadded:: 1.9
     """
     return RawANT(
         fname,
