@@ -415,15 +415,23 @@ def _soft_import(name, purpose, strict=True, *, min_version=None):
         pyvista="pyvistaqt",
     ).get(name, name)
 
+    got_version = None
     try:
         mod = import_module(name)
     except (ImportError, ModuleNotFoundError):
         mod = False
     else:
-        if not check_version("antio", min_version=min_version):
+        have, got_version = check_version(
+            name,
+            min_version=min_version,
+            return_version=True,
+        )
+        if not have:
             mod = False
     if mod is False and strict:
         extra = "" if min_version is None else f">={min_version}"
+        if got_version is not None:
+            extra += f" (found version {got_version})"
         raise RuntimeError(
             f"For {purpose} to work, the module {name}{extra} is needed, "
             + "but it could not be imported.\n"
