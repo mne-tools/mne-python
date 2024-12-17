@@ -10,10 +10,10 @@ from mne import Epochs, read_events
 from mne.io import read_raw_fif
 from mne.stats.erp import (
     compute_sme,
-    get_peak,
     get_area,
-    get_frac_peak_latency,
     get_frac_area_latency,
+    get_frac_peak_latency,
+    get_peak,
 )
 
 base_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
@@ -77,13 +77,15 @@ def test_get_frac_peak_latency():
     with pytest.raises(ValueError, match="No negative values encountered"):
         evoked_pos = evoked.copy()
         evoked_pos.data = abs(evoked_pos.data)
-        get_frac_peak_latency(evoked, frac=0.5, tmin=0,
-                              tmax=0.1, mode="neg", strict=True)
+        get_frac_peak_latency(
+            evoked, frac=0.5, tmin=0, tmax=0.1, mode="neg", strict=True
+        )
     with pytest.raises(ValueError, match="No positive values encountered"):
         evoked_neg = evoked.copy()
         evoked_neg.data = -abs(evoked_neg.data)
-        get_frac_peak_latency(evoked, frac=0.5, tmin=0,
-                              tmax=0.1, mode="pos", strict=True)
+        get_frac_peak_latency(
+            evoked, frac=0.5, tmin=0, tmax=0.1, mode="pos", strict=True
+        )
 
 
 def test_get_frac_area_latency():

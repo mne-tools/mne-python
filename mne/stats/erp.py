@@ -4,17 +4,15 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+import numpy as np
+import pandas as pd
 from scipy import integrate
+
 from mne.utils import (
     _check_option,
     _time_mask,
+    _validate_type,
 )
-from mne.channels.layout import _merge_ch_data, _pair_grad_sensors
-from mne._fiff.pick import _pick_data_channels, _picks_to_idx, pick_info
-import pandas as pd
-import numpy as np
-
-from mne.utils import _validate_type
 
 
 def compute_sme(epochs, start=None, stop=None):
@@ -98,7 +96,6 @@ def _get_peak(
     evoked, tmin=None, tmax=None, picks="all", mode="abs", average=False, strict=True
 ):
     """Helper function to get the peak amplitude and latency of an evoked response."""
-
     data = evoked.get_data(picks=picks)
     times = evoked.times
     mask = _time_mask(times, tmin, tmax, evoked.info["sfreq"])
@@ -122,8 +119,7 @@ def _get_peak(
             )
 
     max_indices = np.argmax(data_masked, axis=1)
-    peak_amplitudes = data[np.arange(
-        data.shape[0]), max_indices + np.where(mask)[0][0]]
+    peak_amplitudes = data[np.arange(data.shape[0]), max_indices + np.where(mask)[0][0]]
     peak_latencies = times[max_indices + np.where(mask)[0][0]]
 
     return peak_latencies, peak_amplitudes, data_masked, mask, times
@@ -167,7 +163,6 @@ def get_peak(
         containing the peak amplitude and latency for each channel.
         (Will only contain one row 'with 'latency' and 'amplitude' if average=True)
     """
-
     _check_option("mode", mode, ["abs", "neg", "pos", "intg"])
     peak_latencies, peak_amplitudes, data_masked, mask, times = _get_peak(
         evoked, tmin, tmax, picks, mode, average, strict
@@ -307,8 +302,7 @@ def get_frac_peak_latency(
     peak_idx = np.argmax(data_masked, axis=1)
     frac_peak_offset = np.array(
         [
-            peak_idx[i] + np.argmin(data_masked[i,
-                                    peak_idx[i]:] <= frac_amplitudes[i])
+            peak_idx[i] + np.argmin(data_masked[i, peak_idx[i] :] <= frac_amplitudes[i])
             for i in range(data_masked.shape[0])
         ]
     )
