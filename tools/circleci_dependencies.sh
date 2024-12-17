@@ -8,6 +8,7 @@ python -m pip install --upgrade --progress-bar off \
     "git+https://github.com/sphinx-gallery/sphinx-gallery.git" \
     "git+https://github.com/mne-tools/mne-bids.git" \
     \
+    "openmeeg<2.5.13" \  # problems with mne sys_info
     alphaCSC autoreject bycycle conpy emd fooof meggie \
     mne-ari mne-bids-pipeline mne-faster mne-features \
     mne-icalabel mne-lsl mne-microstates mne-nirs mne-rsa \
