@@ -81,7 +81,7 @@ class RawANT(BaseRaw):
             If the measurement marks a discontinuity, the duration should be modified to
             cover the discontinuity in its entirety.
     encoding : str
-        Encoding to use for :class:`str` in the CNT file. Defaults to ``'latin1'``.
+        Encoding to use for :class:`str` in the CNT file. Defaults to ``'latin-1'``.
     %(preload)s
     %(verbose)s
     """
@@ -95,7 +95,7 @@ class RawANT(BaseRaw):
         bipolars: list[str] | tuple[str, ...] | None,
         impedance_annotation: str,
         *,
-        encoding: str = "latin1",
+        encoding: str = "latin-1",
         preload: bool | NDArray,
         verbose=None,
     ) -> None:
@@ -317,6 +317,7 @@ def read_raw_ant(
     bipolars=None,
     impedance_annotation="impedance",
     *,
+    encoding: str = "latin-1",
     preload=False,
     verbose=None,
 ) -> RawANT:
@@ -333,6 +334,7 @@ def read_raw_ant(
         misc=misc,
         bipolars=bipolars,
         impedance_annotation=impedance_annotation,
+        encoding=encoding,
         preload=preload,
         verbose=verbose,
     )
