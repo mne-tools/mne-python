@@ -4,7 +4,6 @@
 
 from __future__ import annotations
 
-import importlib
 import re
 from collections import defaultdict
 from typing import TYPE_CHECKING
@@ -16,8 +15,8 @@ from ..._fiff.meas_info import create_info
 from ...annotations import Annotations
 from ...utils import (
     _check_fname,
+    _soft_import,
     _validate_type,
-    check_version,
     copy_doc,
     fill_doc,
     logger,
@@ -100,12 +99,7 @@ class RawANT(BaseRaw):
         verbose=None,
     ) -> None:
         logger.info("Reading ANT file %s", fname)
-        if importlib.util.find_spec("antio") is None:
-            raise ImportError(
-                "Missing optional dependency 'antio'. Use pip or conda to install "
-                "'antio'."
-            )
-        check_version("antio", "0.5.0")
+        _soft_import("antio", "reading ANT files", min_version="0.5.0")
 
         from antio import read_cnt
         from antio.parser import (

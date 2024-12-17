@@ -385,7 +385,7 @@ def _check_compensation_grade(info1, info2, name1, name2="data", ch_names=None):
         )
 
 
-def _soft_import(name, purpose, strict=True):
+def _soft_import(name, purpose, strict=True, *, min_version=None):
     """Import soft dependencies, providing informative errors on failure.
 
     Parameters
@@ -415,27 +415,31 @@ def _soft_import(name, purpose, strict=True):
         pyvista="pyvistaqt",
     ).get(name, name)
 
+    extra = ""
     try:
         mod = import_module(name)
-        return mod
     except (ImportError, ModuleNotFoundError):
-        if strict:
-            raise RuntimeError(
-                f"For {purpose} to work, the {name} module is needed, "
-                + "but it could not be imported.\n"
-                + "\n".join(
-                    (
-                        indent(
-                            "use the following installation method "
-                            "appropriate for your environment:"
-                        ),
-                        indent(f"'pip install {pip_name}'"),
-                        indent(f"'conda install -c conda-forge {pip_name}'"),
-                    )
+        mod = False
+    else:
+        if not check_version("antio", min_version=min_version):
+            mod = False
+            extra = f">={min_version}"
+    if mod is False and strict:
+        raise RuntimeError(
+            f"For {purpose} to work, the module {name}{extra} is needed, "
+            + "but it could not be imported.\n"
+            + "\n".join(
+                (
+                    indent(
+                        "use the following installation method "
+                        "appropriate for your environment:"
+                    ),
+                    indent(f"'pip install {pip_name}'"),
+                    indent(f"'conda install -c conda-forge {pip_name}'"),
                 )
             )
-        else:
-            return False
+        )
+    return mod
 
 
 def _check_pandas_installed(strict=True):
