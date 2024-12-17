@@ -398,11 +398,6 @@ def _soft_import(name, purpose, strict=True, *, min_version=None):
     strict : bool
         Whether to raise an error if module import fails.
     """
-
-    # so that error msg lines are aligned
-    def indent(x):
-        return x.rjust(len(x) + 14)
-
     # Mapping import namespaces to their pypi package name
     pip_name = dict(
         sklearn="scikit-learn",
@@ -434,17 +429,10 @@ def _soft_import(name, purpose, strict=True, *, min_version=None):
             extra += f" (found version {got_version})"
         raise RuntimeError(
             f"For {purpose} to work, the module {name}{extra} is needed, "
-            + "but it could not be imported.\n"
-            + "\n".join(
-                (
-                    indent(
-                        "use the following installation method "
-                        "appropriate for your environment:"
-                    ),
-                    indent(f"'pip install {pip_name}'"),
-                    indent(f"'conda install -c conda-forge {pip_name}'"),
-                )
-            )
+            "but it could not be imported. Use the following installation method "
+            "appropriate for your environment:\n\n"
+            f"    pip install {pip_name}\n"
+            f"    conda install -c conda-forge {pip_name}"
         )
     return mod
 
