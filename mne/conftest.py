@@ -180,6 +180,8 @@ def pytest_configure(config):
     ignore:The 'copy' argument in Quantity is deprecated.*:
     # debugpy uses deprecated matplotlib API
     ignore:The (non_)?interactive_bk attribute was deprecated.*:
+    # SWIG (via OpenMEEG)
+    ignore:.*builtin type swigvarlink has no.*:DeprecationWarning
     """  # noqa: E501
     for warning_line in warning_lines.split("\n"):
         warning_line = warning_line.strip()
