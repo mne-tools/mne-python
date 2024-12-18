@@ -29,6 +29,7 @@ from mne import (
     read_annotations,
 )
 from mne.annotations import (
+    _annotations_starts_stops,
     _handle_meas_date,
     _read_annotations_txt_parse_header,
     _sync_onset,
@@ -432,7 +433,7 @@ def test_raw_reject(first_samp):
         return_times=True,  # 1-112 s
     )
     bad_times = np.concatenate(
-        [np.arange(200, 400), np.arange(10000, 10800), np.arange(10500, 11000)]
+        [np.arange(200, 401), np.arange(10000, 10801), np.arange(10500, 11001)]
     )
     expected_times = np.setdiff1d(np.arange(100, 11200), bad_times) / sfreq
     assert_allclose(times, expected_times)
@@ -450,7 +451,7 @@ def test_raw_reject(first_samp):
     t_stop = 18.0
     assert raw.times[-1] > t_stop
     n_stop = int(round(t_stop * raw.info["sfreq"]))
-    n_drop = int(round(4 * raw.info["sfreq"]))
+    n_drop = int(round(4 * raw.info["sfreq"]) + 2)
     assert len(raw.times) >= n_stop
     data, times = raw.get_data(range(10), 0, n_stop, "omit", True)
     assert data.shape == (10, n_stop - n_drop)
@@ -558,8 +559,8 @@ def test_annotation_filtering(first_samp):
     raw = raws[0].copy()
     raw.set_annotations(Annotations([0.0], [0.5], ["BAD_ACQ_SKIP"]))
     my_data, times = raw.get_data(reject_by_annotation="omit", return_times=True)
-    assert_allclose(times, raw.times[500:])
-    assert my_data.shape == (1, 500)
+    assert_allclose(times, raw.times[501:])
+    assert my_data.shape == (1, 499)
     raw_filt = raw.copy().filter(skip_by_annotation="bad_acq_skip", **kwargs_stop)
     expected = data.copy()
     expected[:, 500:] = 0
@@ -586,7 +587,7 @@ def test_annotation_omit(first_samp):
     expected = raw[0][0]
     assert_allclose(raw.get_data(reject_by_annotation=None), expected)
     # nan
-    expected[0, 500:1500] = np.nan
+    expected[0, 500:1501] = np.nan
     assert_allclose(raw.get_data(reject_by_annotation="nan"), expected)
     got = np.concatenate(
         [
@@ -1826,3 +1827,51 @@ def test_append_splits_boundary(tmp_path, split_size):
     assert len(raw.annotations) == 2
     assert raw.annotations.description[0] == "BAD boundary"
     assert_allclose(raw.annotations.onset, [onset] * 2)
+
+
+def test_annotations_starts_stops():
+    """Test _annotations_starts_stops function."""
+    sfreq = 10
+    info = mne.create_info(1, sfreq, "eeg")
+    raw = mne.io.RawArray(np.random.RandomState(0).randn(1, 30 * sfreq), info)
+    annotations = Annotations(
+        [0, 10, 20], [5, 5, 5], ["BAD", "BAD", "GOOD"], raw.info["meas_date"]
+    )
+    raw.set_annotations(annotations)
+
+    # Test with single kind
+    onsets, ends = _annotations_starts_stops(raw, "BAD")
+    assert_array_equal(onsets, raw.time_as_index([0, 10]))
+    assert_array_equal(ends, raw.time_as_index([5, 15]))
+
+    # Test with multiple kinds
+    onsets, ends = _annotations_starts_stops(raw, ["BAD", "GOOD"])
+    assert_array_equal(onsets, raw.time_as_index([0, 10, 20]))
+    assert_array_equal(ends, raw.time_as_index([5, 15, 25]))
+
+    # Test with invert=True
+    onsets, ends = _annotations_starts_stops(raw, "BAD", invert=True)
+    assert_array_equal(onsets, raw.time_as_index([5, 15]))
+    assert_array_equal(ends, raw.time_as_index([10, 30]))
+
+    # Test with include_last=True
+    onsets, ends = _annotations_starts_stops(raw, ["BAD", "GOOD"], include_last=True)
+    assert_array_equal(onsets, raw.time_as_index([0, 10, 20]))
+    assert_array_equal(ends, raw.time_as_index([5.1, 15.1, 25.1]))
+
+    # Test with include_last=True and invert=True
+    onsets, ends = _annotations_starts_stops(raw, "BAD", invert=True, include_last=True)
+    assert_array_equal(onsets, raw.time_as_index([5.1, 15.1]))
+    assert_array_equal(ends, raw.time_as_index([10, 30]))
+
+    # Test with no annotations
+    raw.set_annotations(Annotations([], [], [], raw.info["meas_date"]))
+    onsets, ends = _annotations_starts_stops(raw, "BAD")
+    assert_array_equal(onsets, np.array([], int))
+    assert_array_equal(ends, np.array([], int))
+
+    # Test with no matching kinds
+    raw.set_annotations(Annotations([0], [5], ["GOOD"], raw.info["meas_date"]))
+    onsets, ends = _annotations_starts_stops(raw, "BAD")
+    assert_array_equal(onsets, np.array([], int))
+    assert_array_equal(ends, np.array([], int))
