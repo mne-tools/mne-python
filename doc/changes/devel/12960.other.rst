@@ -1,1 +1,0 @@
-Mention some gotchas that arise from the fact that by default, we pool across dipole orientations when performing source estimation, by `Marijn van Vliet`_
