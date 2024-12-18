@@ -593,6 +593,8 @@ class RawCurry(BaseRaw):
         last_samps = [n_samples - 1]
         raw_extras = dict(is_ascii=is_ascii)
 
+        __import__("inspect").currentframe().f_locals.update(locals())
+
         super().__init__(
             info,
             preload,

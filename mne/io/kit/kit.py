@@ -155,6 +155,9 @@ class RawKIT(BaseRaw):
         last_samps = [kit_info["n_samples"] - 1]
         self._raw_extras = [kit_info]
         _set_stimchannels(self, info, stim, stim_code)
+
+        __import__("inspect").currentframe().f_locals.update(locals())
+
         super().__init__(
             info,
             preload,

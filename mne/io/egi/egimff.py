@@ -545,6 +545,8 @@ class RawMff(BaseRaw):
                     f"({eeg_samples})."
                 )
 
+        __import__("inspect").currentframe().f_locals.update(locals())
+
         super().__init__(
             info,
             preload=preload,
