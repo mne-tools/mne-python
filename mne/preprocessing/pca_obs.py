@@ -13,6 +13,7 @@ from scipy.signal import detrend
 from sklearn.decomposition import PCA
 
 from mne.io.fiff.raw import Raw
+from mne.utils import logger
 
 
 def fit_ecg_template(
@@ -113,7 +114,7 @@ def fit_ecg_template(
 def apply_pca_obs(
     raw: Raw,
     picks: list[str],
-    qrs: np.ndarray,
+    qrs_indices: np.ndarray,
     n_components: int = 4,
     n_jobs: int | None = None,
 ) -> None:
@@ -128,18 +129,25 @@ def apply_pca_obs(
         The raw data to process
     picks: list[str]
         Channels in the Raw object to remove the heart artefact from
-    qrs: ndarray, shape (n_peaks, 1)
-        Array of times in (sample indices), of detected R-peaks in ECG channel.
+    qrs_indices: ndarray, shape (n_peaks, 1)
+        Array of indices in the Raw data of detected R-peaks in ECG channel.
     n_components: int, default 4
         Number of PCA components to use to form the OBS
     n_jobs: int, default None
-        Number of jobs to perform the PCA-OBS processing in parallel
+        Number of jobs to perform the PCA-OBS processing in parallel.
+            Passed on to Raw.apply_function
     """
     # sanity checks
-    if len(qrs.shape) > 1:
-        raise ValueError("qrs must be a 1d array")
-    if not isinstance(n_jobs, int) or n_jobs < 1:
-        raise ValueError("n_jobs must be an integer greater than 0")
+    if not isinstance(qrs_indices, np.ndarray):
+        raise ValueError("qrs_indices must be an array")
+    if len(qrs_indices.shape) > 1:
+        raise ValueError("qrs_indices must be a 1d array")
+    if qrs_indices.dtype != int:
+        raise ValueError("qrs_indices must be an array of integers")
+    if np.any(qrs_indices < 0):
+        raise ValueError("qrs_indices must be strictly positive integers")
+    if np.any(qrs_indices >= raw.n_times):
+        logger.warning("out of bound qrs_indices will be ignored..")
     if not picks:
         raise ValueError("picks must be a list of channel names")
 
@@ -148,7 +156,7 @@ def apply_pca_obs(
         picks=picks,
         n_jobs=n_jobs,
         # args sent to PCA_OBS
-        qrs=qrs,
+        qrs=qrs_indices,
         n_components=n_components,
     )
 
