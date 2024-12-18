@@ -171,8 +171,7 @@ stages:
               python -m pip install --progress-bar off --upgrade pip
               python -m pip install --progress-bar off --upgrade --pre --only-binary=\"numpy,scipy,matplotlib,vtk\" numpy scipy matplotlib vtk
               python -c "import vtk"
-              # Bug on 2.5.13 https://github.com/openmeeg/openmeeg/issues/700
-              python -m pip install --progress-bar off --upgrade -ve .[full,test_extra] "openmeeg==2.5.12"
+              python -m pip install --progress-bar off --upgrade -ve .[full,test_extra]
             displayName: 'Install dependencies with pip'
           - bash: |
               set -e
