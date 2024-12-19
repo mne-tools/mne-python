@@ -90,6 +90,6 @@ def test_pca_obs_bad_input(
 ):
     """Test if bad input data raises the proper errors in the function sanity checks."""
     pytest.importorskip("pandas")
-    
+
     with pytest.raises(ValueError, match=error):
         apply_pca_obs(raw=short_raw_data, picks=picks, qrs_indices=qrs)
