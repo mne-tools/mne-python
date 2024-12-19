@@ -24,6 +24,8 @@ def short_raw_data():
 
 def test_heart_artifact_removal(short_raw_data: Raw):
     """Test PCA-OBS analysis and heart artifact removal of ECG datasets."""
+    pytest.importorskip("pandas")
+
     # fake some random qrs events in the window of the raw data
     # remove first and last samples and cast to integer for indexing
     ecg_event_indices = np.linspace(0, short_raw_data.n_times, 20, dtype=int)[1:-1]
@@ -87,5 +89,7 @@ def test_pca_obs_bad_input(
     short_raw_data: Raw, picks: list[str], qrs: np.ndarray, error: str
 ):
     """Test if bad input data raises the proper errors in the function sanity checks."""
+    pytest.importorskip("pandas")
+    
     with pytest.raises(ValueError, match=error):
         apply_pca_obs(raw=short_raw_data, picks=picks, qrs_indices=qrs)
