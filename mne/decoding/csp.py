@@ -468,7 +468,6 @@ class CSP(TransformerMixin, BaseEstimator):
             :func:`mne.create_info`.
         components : float | array of float | None
            The patterns to plot. If ``None``, all components will be shown.
-        %(average_plot_evoked_topomap)s
         %(ch_type_topomap)s
         scalings : dict | float | None
             The scalings of the channel types to be applied for plotting.
