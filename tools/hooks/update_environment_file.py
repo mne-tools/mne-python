@@ -91,5 +91,5 @@ env_file = repo_root / "environment.yml"
 old_env = env_file.read_text("utf-8")
 if old_env != env:
     diff = "\n".join(difflib.unified_diff(old_env.splitlines(), env.splitlines()))
+    print(f"Updating {env_file} with diff:\n{diff}")
     env_file.write_text(env, encoding="utf-8")
-    print(f"Updated {env_file} with diff:\n{diff}")
