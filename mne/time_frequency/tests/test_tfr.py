@@ -1218,8 +1218,8 @@ def test_averaging_freqsandtimes_epochsTFR():
         avgpower = power.average(method=lambda x: np.mean(x, axis=2), **kwargs)
 
 
-@pytest.mark.parametrize("n_drop, as_array", ((0, False), (0, True), (2, False)))
-def test_epochstfr_getitem(epochs_full, n_drop, as_array):
+@pytest.mark.parametrize("n_drop, as_tfr_array", ((0, False), (0, True), (2, False)))
+def test_epochstfr_getitem(epochs_full, n_drop, as_tfr_array):
     """Test EpochsTFR.__getitem__()."""
     pd = pytest.importorskip("pandas")
     from pandas.testing import assert_frame_equal
@@ -1227,7 +1227,7 @@ def test_epochstfr_getitem(epochs_full, n_drop, as_array):
     epochs_full.metadata = pd.DataFrame(dict(foo=list("aaaabbb"), bar=np.arange(7)))
     epochs_full.drop(np.arange(n_drop))
     tfr = epochs_full.compute_tfr(method="morlet", freqs=freqs_linspace)
-    if not as_array:  # check that various attributes are preserved
+    if not as_tfr_array:  # check that various attributes are preserved
         assert_frame_equal(tfr.metadata, epochs_full.metadata)
         assert epochs_full.drop_log == tfr.drop_log
         for attr in ("events", "selection", "times"):
