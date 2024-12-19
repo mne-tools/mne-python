@@ -4,6 +4,7 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+import difflib
 import re
 from pathlib import Path
 
@@ -86,4 +87,9 @@ dependencies:
 {newline.join(sorted(conda_deps, key=str.casefold))}
 {pip_section}"""  # noqa: E501
 
-(repo_root / "environment.yml").write_text(env)
+env_file = repo_root / "environment.yml"
+old_env = env_file.read_text("utf-8")
+if old_env != env:
+    diff = "\n".join(difflib.unified_diff(old_env.splitlines(), env.splitlines()))
+    env_file.write_text(env, encoding="utf-8")
+    print(f"Updated {env_file} with diff:\n{diff}")
