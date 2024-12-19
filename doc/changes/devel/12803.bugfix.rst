@@ -1,1 +1,0 @@
-Fix handling of MRI file-path in :class:`mne.SourceSpaces` and safeguard saving of :class:`pathlib.Path` with ``h5io`` by casting to :class:`str`, by `Mathieu Scheltienne`_.

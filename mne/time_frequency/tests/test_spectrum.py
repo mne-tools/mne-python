@@ -627,3 +627,29 @@ def test_plot_spectrum_array_with_bads():
         spectrum.get_data(exclude=()), spectrum.info, spectrum.freqs
     )
     spectrum2.plot(spatial_colors=False)
+
+
+@pytest.mark.parametrize("dB", (False, True))
+@pytest.mark.parametrize("amplitude", (False, True))
+def test_plot_spectrum_dB(raw_spectrum, dB, amplitude):
+    """Test that we properly handle amplitude/power and dB."""
+    idx = 7
+    power = 3
+    freqs = np.linspace(1, 100, 100)
+    data = np.full((1, freqs.size), np.finfo(float).tiny)
+    data[0, idx] = power
+    info = create_info(ch_names=["delta"], sfreq=1000, ch_types="eeg")
+    psd = SpectrumArray(data=data, info=info, freqs=freqs)
+    with pytest.warns(RuntimeWarning, match="Channel locations not available"):
+        fig = psd.plot(dB=dB, amplitude=amplitude)
+    trace = list(
+        filter(lambda x: len(x.get_data()[0]) == len(freqs), fig.axes[0].lines)
+    )[0]
+    got = trace.get_data()[1][idx]
+    want = power * 1e12  # scaling for EEG (V → μV), squared
+    if amplitude:
+        want = np.sqrt(want)
+    if dB:
+        want = (20 if amplitude else 10) * np.log10(want)
+
+    assert want == got, f"expected {want}, got {got}"

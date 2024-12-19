@@ -119,7 +119,7 @@ def pytest_configure(config):
     #   we should remove them from here.
     # - This list should also be considered alongside reset_warnings in
     #   doc/conf.py.
-    if os.getenv("MNE_IGNORE_WARNINGS_IN_TESTS", "") != "true":
+    if os.getenv("MNE_IGNORE_WARNINGS_IN_TESTS", "") not in ("true", "1"):
         first_kind = "error"
     else:
         first_kind = "always"
@@ -180,6 +180,8 @@ def pytest_configure(config):
     ignore:The 'copy' argument in Quantity is deprecated.*:
     # debugpy uses deprecated matplotlib API
     ignore:The (non_)?interactive_bk attribute was deprecated.*:
+    # SWIG (via OpenMEEG)
+    ignore:.*builtin type swigvarlink has no.*:DeprecationWarning
     """  # noqa: E501
     for warning_line in warning_lines.split("\n"):
         warning_line = warning_line.strip()

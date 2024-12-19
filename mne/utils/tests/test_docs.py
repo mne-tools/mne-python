@@ -122,7 +122,7 @@ def test_copy_doc():
 
 
 def test_copy_function_doc_to_method_doc():
-    """Test decorator for re-using function docstring as method docstrings."""
+    """Test decorator for reusing function docstring as method docstrings."""
 
     def f1(obj, a, b, c):
         """Docstring for f1.

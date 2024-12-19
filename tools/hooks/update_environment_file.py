@@ -56,9 +56,6 @@ for dep in deps:
     # `environment.yaml` breaks the solver
     if package_name == "PySide6":
         version_spec = version_spec.replace("!=6.7.0,", "")
-    # openmeeg 2.5.12=*_2 is broken, so pin to 2.5.12=*_1
-    if package_name == "openmeeg":
-        version_spec = "=2.5.12=*_1"
     # rstrip output line in case `version_spec` == ""
     line = f"  - {package_name} {version_spec}".rstrip()
     # use pip for packages needing e.g. `platform_system` or `python_version` triaging

@@ -488,7 +488,7 @@ for data, title in zip([mags, mags_ecg], ["Without", "With"]):
 # for this recommendation:
 #
 # 1. It is computationally cheaper to apply projectors to data *after* the
-#    data have been reducted to just the segments of interest (the epochs)
+#    data have been reduced to just the segments of interest (the epochs)
 #
 # 2. If you are applying amplitude-based rejection criteria to epochs, it is
 #    preferable to reject based on the signal *after* projectors have been

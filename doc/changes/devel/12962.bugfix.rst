@@ -1,1 +1,0 @@
-Fix displayed units in representations of classes such as :class:`mne.io.Raw` to correctly use KiB, MiB, GiB, and so on, by `Clemens Brunner`_.

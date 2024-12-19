@@ -1,1 +1,0 @@
-Fix duration calculation for the textual (``__repr__``) and html (``_repr_html_``, used by e.g. Jupyter) display of :class:`mne.io.Raw` instances. For example a duration of 1h is now displayed as ``00:01:00`` rather than ``00:59:60``.  By :newcontrib:`Leonardo Rochael Almeida`.

@@ -1,1 +1,0 @@
-Fix IndexError when loading CNT file does not have annotations, by :newcontrib:`Ziyi ZENG`.

@@ -17,7 +17,7 @@ from mne.datasets import testing
 from mne.io import BaseRaw, read_raw, read_raw_ant, read_raw_brainvision
 from mne.io.ant.ant import RawANT
 
-pytest.importorskip("antio", minversion="0.4.0")
+pytest.importorskip("antio", minversion="0.5.0")
 data_path = testing.data_path(download=False) / "antio"
 
 

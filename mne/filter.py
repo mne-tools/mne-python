@@ -434,7 +434,7 @@ def _firwin_design(N, freq, gain, window, sfreq):
     for this_freq, this_gain in zip(freq[::-1][1:], gain[::-1][1:]):
         assert this_gain in (0, 1)
         if this_gain != prev_gain:
-            # Get the correct N to satistify the requested transition bandwidth
+            # Get the correct N to satisfy the requested transition bandwidth
             transition = (prev_freq - this_freq) / 2.0
             this_N = int(round(_length_factors[window] / transition))
             this_N += 1 - this_N % 2  # make it odd

@@ -4,7 +4,7 @@ channels:
   - conda-forge
 dependencies:
   - python >=3.10
-  - antio >=0.4.0
+  - antio >=0.5.0
   - darkdetect
   - decorator
   - defusedxml
@@ -30,7 +30,7 @@ dependencies:
   - nilearn
   - numba
   - numpy >=1.23,<3
-  - openmeeg =2.5.12=*_1
+  - openmeeg >=2.5.5
   - packaging
   - pandas
   - pillow

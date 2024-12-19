@@ -20,7 +20,9 @@ auth = Auth.Token(os.environ["GITHUB_TOKEN"])
 g = Github(auth=auth, per_page=100)
 out_path = Path(__file__).parents[2] / "doc" / "sphinxext" / "prs"
 out_path.mkdir(exist_ok=True)
-oldest_pr = 6915  # can update this when the oldest open PR changes to speed things up
+# manually update this when the oldest open PR changes to speed things up
+# (don't need to look any farther back than this)
+oldest_pr = 9176
 
 # JSON formatting
 json_kwargs = dict(indent=2, ensure_ascii=False, sort_keys=False)
