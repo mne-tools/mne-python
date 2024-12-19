@@ -5,7 +5,6 @@
 from pathlib import Path
 
 from mne.viz.backends.renderer import _get_backend
-from mne.viz.backends.tests._utils import skips_if_not_pyvistaqt
 
 
 def _do_widget_tests(backend):
@@ -106,7 +105,6 @@ def _do_widget_tests(backend):
     window._close()
 
 
-@skips_if_not_pyvistaqt
 def test_widget_abstraction_pyvistaqt(renderer_pyvistaqt):
     """Test the GUI widgets abstraction."""
     backend = _get_backend()

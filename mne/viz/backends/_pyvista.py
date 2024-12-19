@@ -1096,9 +1096,7 @@ def _3d_to_2d(plotter, xyz):
 
 
 def _close_all():
-    with warnings.catch_warnings():
-        warnings.filterwarnings("ignore", category=DeprecationWarning)
-        close_all()
+    close_all()
     _FIGURES.clear()
 
 

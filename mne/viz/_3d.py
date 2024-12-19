@@ -2917,11 +2917,9 @@ def _plot_and_correct(*, params, cut_coords):
     params["axes"].clear()
     if params.get("fig_anat") is not None and plot_kwargs["colorbar"]:
         params["fig_anat"]._cbar.ax.clear()
-    with warnings.catch_warnings(record=True):  # nilearn bug; ax recreated
-        warnings.simplefilter("ignore", DeprecationWarning)
-        params["fig_anat"] = nil_func(
-            params["img_idx"], cut_coords=cut_coords, **plot_kwargs
-        )
+    params["fig_anat"] = nil_func(
+        params["img_idx"], cut_coords=cut_coords, **plot_kwargs
+    )
     params["fig_anat"]._cbar.outline.set_visible(False)
     for key in "xyz":
         params.update({"ax_" + key: params["fig_anat"].axes[key].ax})
