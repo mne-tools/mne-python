@@ -637,15 +637,13 @@ def _use_backend(backend_name, interactive):
 
 def _check_skip_backend(name):
     from mne.viz.backends._utils import _notebook_vtk_works
-    from mne.viz.backends.tests._utils import has_imageio_ffmpeg
 
     pytest.importorskip("pyvista")
-    if not has_imageio_ffmpeg():
-        pytest.skip("Test skipped, requires imageio-ffmpeg")
+    pytest.importorskip("imageio_ffmpeg")
     if name == "pyvistaqt":
+        pytest.importorskip("pyvistaqt")
         if not _check_qt_version():
             pytest.skip("Test skipped, requires Qt.")
-        pytest.importorskip("pyvistaqt")
     else:
         assert name == "notebook", name
         if not _notebook_vtk_works():

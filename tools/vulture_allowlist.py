@@ -33,7 +33,6 @@ invisible_fig
 captions_new
 comments_new
 items_new
-has_imageio_ffmpeg
 f4
 set_channel_types_eyetrack
 _use_test_3d_backend
