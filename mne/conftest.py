@@ -34,6 +34,7 @@ from mne.utils import (
     _pl,
     _record_warnings,
     _TempDir,
+    check_version,
     numerics,
 )
 
@@ -636,21 +637,15 @@ def _use_backend(backend_name, interactive):
 
 def _check_skip_backend(name):
     from mne.viz.backends._utils import _notebook_vtk_works
-    from mne.viz.backends.tests._utils import (
-        has_imageio_ffmpeg,
-        has_pyvista,
-        has_pyvistaqt,
-    )
+    from mne.viz.backends.tests._utils import has_imageio_ffmpeg
 
-    if not has_pyvista():
-        pytest.skip("Test skipped, requires pyvista.")
+    pytest.importorskip("pyvista")
     if not has_imageio_ffmpeg():
         pytest.skip("Test skipped, requires imageio-ffmpeg")
     if name == "pyvistaqt":
         if not _check_qt_version():
             pytest.skip("Test skipped, requires Qt.")
-        if not has_pyvistaqt():
-            pytest.skip("Test skipped, requires pyvistaqt")
+        pytest.importorskip("pyvistaqt")
     else:
         assert name == "notebook", name
         if not _notebook_vtk_works():
@@ -660,10 +655,8 @@ def _check_skip_backend(name):
 @pytest.fixture(scope="session")
 def pixel_ratio():
     """Get the pixel ratio."""
-    from mne.viz.backends.tests._utils import has_pyvista
-
     # _check_qt_version will init an app for us, so no need for us to do it
-    if not has_pyvista() or not _check_qt_version():
+    if not check_version("pyvista", "0.32") or not _check_qt_version():
         return 1.0
     from qtpy.QtCore import Qt
     from qtpy.QtWidgets import QMainWindow
