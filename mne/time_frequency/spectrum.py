@@ -419,7 +419,9 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         inst_type_str = _get_instance_type_string(self)
         units = [f"{ch_type}: {unit}" for ch_type, unit in self.units().items()]
         t = _get_html_template("repr", "spectrum.html.jinja")
-        t = t.render(spectrum=self, inst_type=inst_type_str, units=units)
+        t = t.render(
+            inst=self, computed_from=inst_type_str, units=units, filenames=None
+        )
         return t
 
     def _check_values(self):
