@@ -1,1 +1,0 @@
-:func:`mne.channels.read_custom_montage` may now read a newer version of the ``.elc`` ASA Electrode file format, by `Stefan Appelhoff`_.
