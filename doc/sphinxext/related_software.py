@@ -81,6 +81,10 @@ MANUAL_PACKAGES = {
         "Summary": "A graphical user interface for MNE",
     },
     # TODO: these do not set a valid homepage or documentation page on PyPI
+    "eeg_positions": {
+        "Home-page": "https://eeg-positions.readthedocs.io",
+        "Summary": "Compute and plot standard EEG electrode positions.",
+    },
     "mne-features": {
         "Home-page": "https://mne.tools/mne-features",
         "Summary": "MNE-Features software for extracting features from multivariate time series",  # noqa: E501

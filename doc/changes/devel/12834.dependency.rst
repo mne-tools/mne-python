@@ -1,2 +1,0 @@
-Importing from ``mne.decoding`` now explicitly requires ``scikit-learn`` to be installed,
-by `Eric Larson`_.

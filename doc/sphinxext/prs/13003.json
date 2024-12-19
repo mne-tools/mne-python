@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "7071a0e24e121b28c851565f2e64a0128941e83a",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "autofix-ci[bot]",
+      "e": "114827586+autofix-ci[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/13003.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/_fiff/_digitization.py": {
+      "a": 24,
+      "d": 5
+    },
+    "mne/_fiff/write.py": {
+      "a": 5,
+      "d": 1
+    },
+    "mne/channels/montage.py": {
+      "a": 36,
+      "d": 12
+    },
+    "mne/channels/tests/test_montage.py": {
+      "a": 33,
+      "d": 14
+    },
+    "mne/viz/tests/test_montage.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/forward/35_eeg_no_mri.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}
