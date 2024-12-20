@@ -306,8 +306,6 @@ def test_unaggregated_spectrum_to_data_frame(raw, long_format, method, output):
     pytest.importorskip("pandas")
     from pandas.testing import assert_frame_equal
 
-    from mne.utils.dataframe import _inplace
-
     # aggregated spectrum → dataframe
     orig_df = raw.compute_psd(method=method).to_data_frame(long_format=long_format)
     # unaggregated welch or complex multitaper →
@@ -329,7 +327,7 @@ def test_unaggregated_spectrum_to_data_frame(raw, long_format, method, output):
     orig_df = orig_df.loc[subset(orig_df["freq"])]
     # sort orig_df, because at present we can't actually prevent pandas from
     # sorting at the agg step *sigh*
-    _inplace(orig_df, "sort_values", by=grouping_cols, ignore_index=True)
+    orig_df.sort_values(by=grouping_cols, ignore_index=True)
     # aggregate
     df = df.drop(columns=drop_cols)
     gb = df.groupby(grouping_cols, as_index=False, observed=False)

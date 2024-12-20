@@ -8,7 +8,6 @@ import numpy as np
 
 from ..defaults import _handle_default
 from ._logging import logger, verbose
-from .check import check_version
 
 
 @verbose
@@ -48,17 +47,6 @@ def _convert_times(times, time_format, meas_date=None, first_time=0):
     return times
 
 
-def _inplace(df, method, **kwargs):
-    _meth = getattr(df, method)  # used for set_index() and rename()
-
-    # TODO: deprecation in Pandas 3.0, can remove once we require 3+
-    if check_version("pandas", "3.0"):
-        return _meth(**kwargs)
-    else:
-        # "copy" in signature(_meth).parameters
-        return _meth(**kwargs, copy=False)
-
-
 @verbose
 def _build_data_frame(
     inst,
@@ -86,16 +74,16 @@ def _build_data_frame(
         df.insert(i, k, v)
     # build Index
     if long_format:
-        df = _inplace(df, "set_index", keys=default_index)
+        df.set_index(keys=default_index)
         df.columns.name = col_kind
     elif index is not None:
-        df = _inplace(df, "set_index", keys=index)
+        df.set_index(keys=index)
         if set(index) == set(default_index):
             df.columns.name = col_kind
     # long format
     if long_format:
         df = df.stack().reset_index()
-        df = _inplace(df, "rename", columns={0: "value"})
+        df.rename(columns={0: "value"})
         # add column for channel types (as appropriate)
         ch_map = (
             None
@@ -113,7 +101,7 @@ def _build_data_frame(
             df.insert(col_index, "ch_type", ch_type)
         # restore index
         if index is not None:
-            df = _inplace(df, "set_index", keys=index)
+            df.set_index(keys=index)
         # convert channel/vertex/ch_type columns to factors
         to_factor = [
             c for c in df.columns.tolist() if c not in ("freq", "time", "value")
