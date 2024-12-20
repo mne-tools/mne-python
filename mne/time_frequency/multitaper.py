@@ -510,7 +510,7 @@ def tfr_array_multitaper(
         If True, return the taper weights. Only applies if ``output='complex'`` or
         ``'phase'``.
 
-        .. versionadded:: 1.X.0
+        .. versionadded:: 1.10.0
     %(verbose)s
 
     Returns

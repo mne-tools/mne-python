@@ -5013,7 +5013,7 @@ weights : array, shape (n_tapers, n_freqs) | None
     The weights for each taper. Must be provided if ``data`` has a taper dimension, such
     as for complex or phase multitaper data.
 
-    .. versionadded:: 1.X.0
+    .. versionadded:: 1.10.0
 """
 docdict["weights_tfr_attr"] = """
 weights : array, shape (n_tapers, n_freqs) | None

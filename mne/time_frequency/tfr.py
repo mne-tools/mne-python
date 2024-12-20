@@ -1857,7 +1857,7 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
         return_tapers : bool
             Whether to return the taper numbers. Default is ``False``.
 
-            .. versionadded:: 1.X.0
+            .. versionadded:: 1.10.0
 
         Returns
         -------
