@@ -320,7 +320,7 @@ def test_get_coef_multiclass(n_features, n_targets):
     ],
 )
 # TODO: Need to fix this properly in LinearModel
-@pytest.mark.filterwarnings("ignore:'multi_class' was deprecated in.*:FutureWarning")
+@pytest.mark.filterwarnings("ignore:'multi_class' was depr.*:FutureWarning")
 @pytest.mark.filterwarnings("ignore:lbfgs failed to converge.*:")
 def test_get_coef_multiclass_full(n_classes, n_channels, n_times):
     """Test a full example with pattern extraction."""

@@ -96,17 +96,6 @@ def run():
         ),
     )
     parser.add_option(
-        "-n",
-        "--noconvert",
-        dest="noconvert",
-        action="store_true",
-        default=False,
-        help=(
-            "[DEPRECATED] Assume that the Flash MRI images "
-            "have already been converted to mgz files"
-        ),
-    )
-    parser.add_option(
         "-u",
         "--unwarp",
         dest="unwarp",
@@ -138,15 +127,6 @@ def run():
         dest="copy",
         help="Use copies instead of symlinks for surfaces",
         action="store_true",
-    )
-    parser.add_option(
-        "-p",
-        "--flash-path",
-        dest="flash_path",
-        default=None,
-        help="[DEPRECATED] The directory containing flash5.mgz "
-        "files (defaults to "
-        "$SUBJECTS_DIR/$SUBJECT/mri/flash/parameter_maps",
     )
 
     options, _ = parser.parse_args()

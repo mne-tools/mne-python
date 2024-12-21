@@ -22,12 +22,10 @@ import warnings
 from math import log
 
 import numpy as np
+from packaging.version import parse
 
 ###############################################################################
-# distutils
-
-# distutils has been deprecated since Python 3.10 and was removed
-# from the standard library with the release of Python 3.12.
+# distutils LooseVersion removed in Python 3.12
 
 
 def _compare_version(version_a, operator, version_b):
@@ -48,8 +46,6 @@ def _compare_version(version_a, operator, version_b):
     bool
         The result of the version comparison.
     """
-    from packaging.version import parse
-
     mapping = {"<": "lt", "<=": "le", "==": "eq", "!=": "ne", ">=": "ge", ">": "gt"}
     with warnings.catch_warnings(record=True):
         warnings.simplefilter("ignore")
