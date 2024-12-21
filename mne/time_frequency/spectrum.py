@@ -944,7 +944,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         check_fname(fname, "spectrum", (".h5", ".hdf5"))
         fname = _check_fname(fname, overwrite=overwrite, verbose=verbose)
         out = self.__getstate__()
-        write_hdf5(fname, out, overwrite=overwrite, title="mnepython")
+        write_hdf5(fname, out, overwrite=overwrite, title="mnepython", slash="replace")
 
     @verbose
     def to_data_frame(
@@ -1663,7 +1663,7 @@ def read_spectrum(fname):
     _validate_type(fname, "path-like", "fname")
     fname = _check_fname(fname=fname, overwrite="read", must_exist=False)
     # read it in
-    hdf5_dict = read_hdf5(fname, title="mnepython")
+    hdf5_dict = read_hdf5(fname, title="mnepython", slash="replace")
     defaults = dict(
         method=None,
         fmin=None,
