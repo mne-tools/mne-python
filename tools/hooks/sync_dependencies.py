@@ -6,6 +6,10 @@
 
 import difflib
 import re
+
+# NB here we use metadata from the latest stable release because this goes in our
+# README, which should apply to the latest release (rather than dev).
+# For oldest supported dev dependencies, see update_environment_file.py.
 from importlib.metadata import metadata
 from pathlib import Path
 

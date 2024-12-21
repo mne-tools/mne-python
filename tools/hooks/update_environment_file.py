@@ -11,8 +11,7 @@ from pathlib import Path
 import tomllib
 
 repo_root = Path(__file__).resolve().parents[2]
-with open(repo_root / "pyproject.toml", "rb") as fid:
-    pyproj = tomllib.load(fid)
+pyproj = tomllib.loads((repo_root / "pyproject.toml").read_text("utf-8"))
 
 # Get our "full" dependences from `pyproject.toml`, but actually ignore the
 # "full" section as it's just "full-noqt" plus PyQt6, and for conda we need PySide
