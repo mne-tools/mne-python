@@ -44,6 +44,7 @@ __all__ = [
     "realign_raw",
     "regress_artifact",
     "write_fine_calibration",
+    "apply_pca_obs",
 ]
 from . import eyetracking, ieeg, nirs
 from ._annotate_amplitude import annotate_amplitude
@@ -85,6 +86,7 @@ from .maxwell import (
     maxwell_filter_prepare_emptyroom,
 )
 from .otp import oversampled_temporal_projection
+from .pca_obs import apply_pca_obs
 from .realign import realign_raw
 from .ssp import compute_proj_ecg, compute_proj_eog
 from .stim import fix_stim_artifact
