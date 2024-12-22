@@ -3415,6 +3415,7 @@ class Report:
             init_kwargs.setdefault("fmax", fmax)
             plot_kwargs.setdefault("show", False)
             with warnings.catch_warnings():
+                # SciPy warning about too short a data segment given the window size
                 warnings.simplefilter(action="ignore", category=FutureWarning)
                 fig = raw.compute_psd(**init_kwargs).plot(**plot_kwargs)
             self._add_figure(
