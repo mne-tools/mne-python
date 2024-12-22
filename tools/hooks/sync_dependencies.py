@@ -82,7 +82,6 @@ core_deps_bullets = [
     f"- `{key} <{url}>`__{core_deps_pins[key.lower()]}"
     for key, url in CORE_DEPS_URLS.items()
 ]
-core_deps_rst = "\n" + "\n".join(core_deps_bullets) + "\n"
 
 # rewrite the README file
 lines = README_PATH.read_text("utf-8").splitlines()
@@ -92,7 +91,7 @@ for line in lines:
     if line.strip() == BEGIN:
         skip = True
         out_lines.append(line)
-        out_lines.append(core_deps_rst)
+        out_lines.extend(["", *core_deps_bullets, ""])
     if line.strip() == END:
         skip = False
     if not skip:
