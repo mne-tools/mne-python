@@ -57,9 +57,6 @@ egi_eprime_pause_skips = [(1344000.0, 1804000.0)]
 egi_pause_w1337_events = None
 egi_pause_w1337_skips = [(21956000.0, 40444000.0), (60936000.0, 89332000.0)]
 
-# TODO: Remove once complete deprecation / FutureWarning about events_as_annonations
-pytestmark = pytest.mark.filterwarnings("ignore:.*events_as_annotation.*:FutureWarning")
-
 
 @requires_testing_data
 @pytest.mark.parametrize(

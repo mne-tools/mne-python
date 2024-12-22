@@ -1218,8 +1218,8 @@ def test_averaging_freqsandtimes_epochsTFR():
         avgpower = power.average(method=lambda x: np.mean(x, axis=2), **kwargs)
 
 
-@pytest.mark.parametrize("n_drop", (0, 2))
-def test_epochstfr_getitem(epochs_full, n_drop):
+@pytest.mark.parametrize("n_drop, as_tfr_array", ((0, False), (0, True), (2, False)))
+def test_epochstfr_getitem(epochs_full, n_drop, as_tfr_array):
     """Test EpochsTFR.__getitem__()."""
     pd = pytest.importorskip("pandas")
     from pandas.testing import assert_frame_equal
@@ -1227,16 +1227,20 @@ def test_epochstfr_getitem(epochs_full, n_drop):
     epochs_full.metadata = pd.DataFrame(dict(foo=list("aaaabbb"), bar=np.arange(7)))
     epochs_full.drop(np.arange(n_drop))
     tfr = epochs_full.compute_tfr(method="morlet", freqs=freqs_linspace)
-    # check that various attributes are preserved
-    assert_frame_equal(tfr.metadata, epochs_full.metadata)
-    assert epochs_full.drop_log == tfr.drop_log
-    for attr in ("events", "selection", "times"):
-        assert_array_equal(getattr(epochs_full, attr), getattr(tfr, attr))
-    # test pandas query
-    foo_a = tfr["foo == 'a'"]
-    bar_3 = tfr["bar <= 3"]
-    assert foo_a == bar_3
-    assert foo_a.shape[0] == 4 - n_drop
+    if not as_tfr_array:  # check that various attributes are preserved
+        assert_frame_equal(tfr.metadata, epochs_full.metadata)
+        assert epochs_full.drop_log == tfr.drop_log
+        for attr in ("events", "selection", "times"):
+            assert_array_equal(getattr(epochs_full, attr), getattr(tfr, attr))
+        # test pandas query
+        foo_a = tfr["foo == 'a'"]
+        bar_3 = tfr["bar <= 3"]
+        assert foo_a == bar_3
+        assert foo_a.shape[0] == 4 - n_drop
+    else:  # repackage to check __getitem__ also works with unspecified events, etc...
+        tfr = EpochsTFRArray(
+            info=tfr.info, data=tfr.data, times=tfr.times, freqs=tfr.freqs
+        )
     # test integer and slice
     subset_ints = tfr[[0, 1, 2]]
     subset_slice = tfr[:3]
