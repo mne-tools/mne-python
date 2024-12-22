@@ -4,7 +4,12 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+import difflib
 import re
+
+# NB here we use metadata from the latest stable release because this goes in our
+# README, which should apply to the latest release (rather than dev).
+# For oldest supported dev dependencies, see update_environment_file.py.
 from importlib.metadata import metadata
 from pathlib import Path
 
@@ -92,4 +97,9 @@ for line in lines:
         skip = False
     if not skip:
         out_lines.append(line)
-README_PATH.write_text("\n".join(out_lines) + "\n", encoding="utf-8")
+new = "\n".join(out_lines) + "\n"
+old = README_PATH.read_text("utf-8")
+if new != old:
+    diff = "\n".join(difflib.unified_diff(old.splitlines(), new.splitlines()))
+    print(f"Updating {README_PATH} with diff:\n{diff}")
+    README_PATH.write_text(new, encoding="utf-8")

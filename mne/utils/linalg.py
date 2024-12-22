@@ -190,7 +190,7 @@ def _sym_mat_pow(A, power, rcond=1e-7, reduce_rank=False, return_s=False):
     return out
 
 
-# SciPy deprecation of pinv + pinvh rcond (never worked properly anyway)
+# SciPy pinv + pinvh rcond never worked properly anyway so we roll our own
 def pinvh(a, rtol=None):
     """Compute a pseudo-inverse of a Hermitian matrix.
 
