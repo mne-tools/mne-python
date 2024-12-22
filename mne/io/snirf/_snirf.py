@@ -463,6 +463,8 @@ class RawSNIRF(BaseRaw):
                     with info._unlock():
                         info["subject_info"]["birthday"] = birthday
 
+            __import__("inspect").currentframe().f_locals.update(locals())
+
             super().__init__(
                 info,
                 preload,

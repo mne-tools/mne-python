@@ -194,6 +194,9 @@ class RawNSX(BaseRaw):
         ) = _get_hdr_info(input_fname, stim_channel=stim_channel, eog=eog, misc=misc)
         raw_extras["orig_format"] = orig_format
         first_samps = (raw_extras["timestamp"][0],)
+
+        __import__("inspect").currentframe().f_locals.update(locals())
+
         super().__init__(
             info,
             first_samps=first_samps,

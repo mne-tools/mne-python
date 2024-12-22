@@ -463,6 +463,8 @@ class RawEEGLAB(BaseRaw):
             data_fname = _check_eeglab_fname(input_fname, eeg.data)
             logger.info(f"Reading {data_fname}")
 
+            __import__("inspect").currentframe().f_locals.update(locals())
+
             super().__init__(
                 info,
                 preload,
@@ -487,6 +489,7 @@ class RawEEGLAB(BaseRaw):
             data = np.empty((n_chan, n_times), dtype=float)
             data[:n_chan] = eeg.data
             data *= CAL
+            __import__("inspect").currentframe().f_locals.update(locals())
             super().__init__(
                 info,
                 data,

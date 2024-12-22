@@ -157,6 +157,9 @@ class RawANT(BaseRaw):
             "first_samples": np.array(first_samps),
             "last_samples": np.array(last_samps),
         }
+
+        __import__("inspect").currentframe().f_locals.update(locals())
+
         super().__init__(
             info,
             preload=preload,
