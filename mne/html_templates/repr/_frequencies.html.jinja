@@ -1,0 +1,62 @@
+{% set section = "Frequencies" %}
+{% set section_class_name = section | lower | append_uuid %}
+
+{# Collapse content during documentation build. #}
+{% if collapsed %}
+{% set collapsed_row_class = "mne-repr-collapsed" %}
+{% else %}
+{% set collapsed_row_class = "" %}
+{% endif %}
+
+{%include 'static/_section_header_row.html.jinja' %}
+
+<tr class="repr-element {{ section_class_name }} {{ collapsed_row_class }}">
+    <td class="mne-repr-section-toggle"></td>
+    <td>Data type</td>
+    <td>{{ inst._data_type }}</td>
+</tr>
+<tr class="repr-element {{ section_class_name }} {{ collapsed_row_class }}">
+    <td class="mne-repr-section-toggle"></td>
+    <td>Computed from</td>
+    <td>{{ computed_from }}</td>
+</tr>
+<tr class="repr-element {{ section_class_name }} {{ collapsed_row_class }}">
+    <td class="mne-repr-section-toggle"></td>
+    <td>Estimation method</td>
+    <td>{{ inst.method }}</td>
+</tr>
+<!--
+<tr class="repr-element {{ section_class_name }} {{ collapsed_row_class }}">
+    <td class="mne-repr-section-toggle"></td>
+    <td>Dims</td>
+    <td>{{ inst._dims | join(", ") }}</td>
+</tr>
+-->
+{% if "taper" in inst._dims %}
+<tr class="repr-element {{ section_class_name }} {{ collapsed_row_class }}">
+    <td class="mne-repr-section-toggle"></td>
+    <td>Number of tapers</td>
+    <td>{{ inst._mt_weights.size }}</td>
+</tr>
+{% endif %}
+{% if inst.freqs is defined %}
+<tr class="repr-element {{ section_class_name }} {{ collapsed_row_class }}">
+    <td class="mne-repr-section-toggle"></td>
+    <td>Frequency range</td>
+    <td>{{ '%.2f'|format(inst.freqs[0]) }} – {{ '%.2f'|format(inst.freqs[-1]) }} Hz</td>
+</tr>
+<tr class="repr-element {{ section_class_name }} {{ collapsed_row_class }}">
+    <td class="mne-repr-section-toggle"></td>
+    <td>Number of frequency bins</td>
+    <td>{{ inst.freqs|length }}</td>
+</tr>
+{%- for unit in units %}
+<tr class="repr-element {{ section_class_name }} {{ collapsed_row_class }}">
+    <td class="mne-repr-section-toggle"></td>
+    {%- if loop.index == 1 %}
+    <td rowspan={{ units | length }}>Units</td>
+    {%- endif %}
+    <td class="justify">{{ unit }}</td>
+</tr>
+{%- endfor %}
+{% endif %}

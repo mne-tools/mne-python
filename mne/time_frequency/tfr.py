@@ -1187,9 +1187,6 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
                 f'{classname} got unsupported parameter value{_pl(problem)} '
                 f'{" and ".join(problem)}.'
             )
-        # shim for tfr_array_morlet deprecation warning (TODO: remove after 1.7 release)
-        if method == "morlet":
-            method_kw.setdefault("zero_mean", True)
         # check method
         valid_methods = ["morlet", "multitaper"]
         if isinstance(inst, BaseEpochs):
@@ -2946,48 +2943,6 @@ class EpochsTFR(BaseTFR, GetEpochsMixin):
     %(picks_good_data_noref)s
     %(proj_psd)s
     %(decim_tfr)s
-    %(events_epochstfr)s
-
-        .. deprecated:: 1.7
-            Pass an instance of :class:`~mne.Epochs` as ``inst`` instead, or use
-            :class:`~mne.time_frequency.EpochsTFRArray` which retains the old API.
-    %(event_id_epochstfr)s
-
-        .. deprecated:: 1.7
-            Pass an instance of :class:`~mne.Epochs` as ``inst`` instead, or use
-            :class:`~mne.time_frequency.EpochsTFRArray` which retains the old API.
-    selection : array
-        List of indices of selected events (not dropped or ignored etc.). For
-        example, if the original event array had 4 events and the second event
-        has been dropped, this attribute would be np.array([0, 2, 3]).
-
-        .. deprecated:: 1.7
-            Pass an instance of :class:`~mne.Epochs` as ``inst`` instead, or use
-            :class:`~mne.time_frequency.EpochsTFRArray` which retains the old API.
-    drop_log : tuple of tuple
-        A tuple of the same length as the event array used to initialize the
-        ``EpochsTFR`` object. If the i-th original event is still part of the
-        selection, drop_log[i] will be an empty tuple; otherwise it will be
-        a tuple of the reasons the event is not longer in the selection, e.g.:
-
-        - ``'IGNORED'``
-            If it isn't part of the current subset defined by the user
-        - ``'NO_DATA'`` or ``'TOO_SHORT'``
-            If epoch didn't contain enough data names of channels that
-            exceeded the amplitude threshold
-        - ``'EQUALIZED_COUNTS'``
-            See :meth:`~mne.Epochs.equalize_event_counts`
-        - ``'USER'``
-            For user-defined reasons (see :meth:`~mne.Epochs.drop`).
-
-        .. deprecated:: 1.7
-            Pass an instance of :class:`~mne.Epochs` as ``inst`` instead, or use
-            :class:`~mne.time_frequency.EpochsTFRArray` which retains the old API.
-    %(metadata_epochstfr)s
-
-        .. deprecated:: 1.7
-            Pass an instance of :class:`~mne.Epochs` as ``inst`` instead, or use
-            :class:`~mne.time_frequency.EpochsTFRArray` which retains the old API.
     %(n_jobs)s
     %(verbose)s
     %(method_kw_tfr)s
@@ -3031,11 +2986,6 @@ class EpochsTFR(BaseTFR, GetEpochsMixin):
         picks=None,
         proj=False,
         decim=1,
-        events=None,
-        event_id=None,
-        selection=None,
-        drop_log=None,
-        metadata=None,
         n_jobs=None,
         verbose=None,
         **method_kw,
@@ -3105,8 +3055,14 @@ class EpochsTFR(BaseTFR, GetEpochsMixin):
         ).squeeze(axis=0)
         self.events = state.get("events", _ensure_events(fake_events))
         self.event_id = state.get("event_id", _check_event_id(None, self.events))
-        self.drop_log = state.get("drop_log", tuple())
         self.selection = state.get("selection", np.arange(n_epochs))
+        self.drop_log = state.get(
+            "drop_log",
+            tuple(
+                () if k in self.selection else ("IGNORED",)
+                for k in range(max(len(self.events), max(self.selection) + 1))
+            ),
+        )
         self._bad_dropped = True  # always true, need for `equalize_event_counts()`
 
     def __next__(self, return_event_id=False):

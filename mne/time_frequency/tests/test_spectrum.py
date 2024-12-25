@@ -10,7 +10,7 @@ import pytest
 from matplotlib.colors import same_color
 from numpy.testing import assert_allclose, assert_array_equal
 
-from mne import Annotations, create_info, make_fixed_length_epochs
+from mne import Annotations, BaseEpochs, create_info, make_fixed_length_epochs
 from mne.io import RawArray
 from mne.time_frequency import read_spectrum
 from mne.time_frequency.multitaper import _psd_from_mt
@@ -163,13 +163,19 @@ def _get_inst(inst, request, *, evoked=None, average_tfr=None):
     return request.getfixturevalue(inst)
 
 
-@pytest.mark.parametrize("inst", ("raw", "epochs", "evoked"))
+@pytest.mark.parametrize("inst", ("raw", "epochs_full", "evoked"))
 def test_spectrum_io(inst, tmp_path, request, evoked):
     """Test save/load of spectrum objects."""
     pytest.importorskip("h5io")
     fname = tmp_path / f"{inst}-spectrum.h5"
     inst = _get_inst(inst, request, evoked=evoked)
+    if isinstance(inst, BaseEpochs):
+        # fake HED-like tags (https://mne.discourse.group/t/10634)
+        inst.events[-2:, -1] = 2
+        inst.event_id = {"foo/bar": 1, "foo/qux": 2}
     orig = inst.compute_psd()
+    if isinstance(inst, BaseEpochs):
+        orig = orig["foo"]
     orig.save(fname)
     loaded = read_spectrum(fname)
     assert orig == loaded
