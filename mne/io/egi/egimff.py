@@ -67,14 +67,22 @@ def _get_montage(mff_reader):
     sensor_fname = sensor_fname[0]
     with mff_reader.directory.filepointer(sensor_fname) as fp:
         sensor_layout = mffpy.XML.from_file(fp).get_content()["sensors"]
+    n_eeg_channels = mff_reader.num_channels["EEG"]  # XXX: PNS?
     ch_pos = dict()
+    hsp = list()
     for ch in sensor_layout.values():
-        if ch["type"] not in [0, 1]:  # XXX: find out what type 2 is. Its not EEG
-            continue
-        name = f"E{ch['number']}" if ch["name"] == "None" else ch["name"]
-        loc = np.array([ch["x"], ch["y"], ch["z"]]) / 1000  # XXX: check units
-        ch_pos[name] = loc
-    montage = make_dig_montage(ch_pos=ch_pos, coord_frame="head")
+        # XXX: the y coordinate seems to be inverted? Need to investigate
+        loc = np.array([ch["x"], -(ch["y"]), ch["z"]]) / 1000
+        if ch["number"] <= n_eeg_channels:
+            assert ch["type"] in [0, 1]  # XXX: remove
+            name = f"E{ch['number']}" if ch["name"] == "None" else ch["name"]
+            ch_pos[name] = loc
+        elif ch["type"] == 2:  # type 2 seems to be headshape points or COM..
+            if ch["name"] == "COM":
+                continue
+            hsp.append(loc)
+    # XXX: this is still wonky. MNE will complain that the head radius is unusually big
+    montage = make_dig_montage(ch_pos=ch_pos, coord_frame="head", hsp=hsp)
     return montage
 
 
