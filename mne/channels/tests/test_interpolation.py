@@ -12,7 +12,7 @@ from numpy.testing import assert_allclose, assert_array_equal
 from mne import Epochs, pick_channels, pick_types, read_events
 from mne._fiff.constants import FIFF
 from mne._fiff.proj import _has_eeg_average_ref_proj
-from mne.channels import make_dig_montage
+from mne.channels import make_dig_montage, make_standard_montage
 from mne.channels.interpolation import _make_interpolation_matrix
 from mne.datasets import testing
 from mne.io import RawArray, read_raw_ctf, read_raw_fif, read_raw_nirx
@@ -439,3 +439,38 @@ def test_method_str():
         raw.interpolate_bads(method="spline")
     raw.pick("eeg", exclude=())
     raw.interpolate_bads(method="spline")
+
+
+@pytest.mark.parametrize("montage_name", ["biosemi16", "standard_1020"])
+def test_interpolate_to_eeg(montage_name):
+    """Test the interpolate_to method for EEG."""
+    # Load EEG data
+    raw, _ = _load_data("eeg")
+
+    # Select only EEG channels
+    raw.pick("eeg")
+
+    # Load data
+    raw.load_data()
+
+    # Create a target montage
+    montage = make_standard_montage(montage_name)
+
+    # Copy the raw object and apply interpolation
+    raw_interpolated = raw.copy().interpolate_to(montage)
+
+    # Check if channel names match the target montage
+    assert set(raw_interpolated.info["ch_names"]) == set(montage.ch_names)
+
+    # Check if the data was interpolated correctly
+    assert raw_interpolated.get_data().shape[0] == len(montage.ch_names)
+
+    # Ensure original data is not altered
+    assert raw.info["ch_names"] != raw_interpolated.info["ch_names"]
+
+    # Validate that bad channels are carried over
+    raw.info["bads"] = [raw.info["ch_names"][0]]
+    raw_interpolated = raw.copy().interpolate_to(montage)
+    assert raw_interpolated.info["bads"] == [
+        ch for ch in raw.info["bads"] if ch in montage.ch_names
+    ]
