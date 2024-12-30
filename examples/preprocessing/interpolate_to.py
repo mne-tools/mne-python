@@ -57,7 +57,6 @@ evoked.plot(exclude=[], picks="eeg", axes=axs[0], show=False)
 axs[0].set_title("Original EEG Layout")
 evoked_interpolated.plot(exclude=[], picks="eeg", axes=axs[1], show=False)
 axs[1].set_title("Interpolated to Standard 1020 Montage")
-plt.tight_layout()
 
 # %%
 # References
