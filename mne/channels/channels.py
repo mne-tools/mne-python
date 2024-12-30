@@ -969,11 +969,7 @@ class InterpolationMixin:
 
         .. versionadded:: 1.10.0
         """
-        import numpy as np
-
-        import mne
-        from mne import pick_types
-        from mne.forward._field_interpolation import _map_meg_or_eeg_channels
+        from ..forward._field_interpolation import _map_meg_or_eeg_channels
 
         # Ensure data is loaded
         _check_preload(self, "interpolation")
@@ -1000,7 +996,7 @@ class InterpolationMixin:
         # Create a new info structure using MNE public API
         sfreq = self.info["sfreq"]
         ch_types = ["eeg"] * len(target_ch_names)
-        new_info = mne.create_info(
+        new_info = create_info(
             ch_names=target_ch_names, sfreq=sfreq, ch_types=ch_types
         )
         new_info.set_montage(montage)
@@ -1009,7 +1005,7 @@ class InterpolationMixin:
         sfreq = self.info["sfreq"]
         ch_names = self.info["ch_names"]
         ch_types = ["eeg"] * len(ch_names)
-        old_info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types=ch_types)
+        old_info = create_info(ch_names=ch_names, sfreq=sfreq, ch_types=ch_types)
         old_info.set_montage(self.info.get_montage())
 
         # Compute mapping from current montage to target montage
