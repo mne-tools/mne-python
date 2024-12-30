@@ -967,6 +967,10 @@ class InterpolationMixin:
         inst : instance of Raw, Epochs, or Evoked
             The instance with updated channel locations and data.
 
+        Notes
+        -----
+        This method is useful for standardizing EEG layouts across datasets.
+
         .. versionadded:: 1.10.0
         """
         from ..forward._field_interpolation import _map_meg_or_eeg_channels
