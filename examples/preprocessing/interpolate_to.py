@@ -12,16 +12,18 @@ EEG channel layouts across different datasets.
 - Using the MNE method for interpolation.
 - The target montage will be the standard "standard_1020" montage.
 
-In this example, the data from the original EEG channels will be interpolated onto the positions defined by the "standard_1020" montage.
+In this example, the data from the original EEG channels will be
+interpolated onto the positions defined by the "standard_1020" montage.
 """
 
 # Authors: Antoine Collas <contact@antoinecollas.fr>
 # License: BSD-3-Clause
 
-import mne
-from mne.datasets import sample
-from mne.channels import make_standard_montage
 import matplotlib.pyplot as plt
+
+import mne
+from mne.channels import make_standard_montage
+from mne.datasets import sample
 
 print(__doc__)
 
@@ -39,7 +41,7 @@ evoked.plot(exclude=[], picks="eeg")
 
 # %%
 # Define the target montage
-standard_montage = make_standard_montage('standard_1020')
+standard_montage = make_standard_montage("standard_1020")
 
 # %%
 # Use interpolate_to to project EEG data to the standard montage
