@@ -996,9 +996,7 @@ class InterpolationMixin:
         # Create a new info structure using MNE public API
         sfreq = self.info["sfreq"]
         ch_types = ["eeg"] * len(target_ch_names)
-        new_info = create_info(
-            ch_names=target_ch_names, sfreq=sfreq, ch_types=ch_types
-        )
+        new_info = create_info(ch_names=target_ch_names, sfreq=sfreq, ch_types=ch_types)
         new_info.set_montage(montage)
 
         # Create a simple old_info
