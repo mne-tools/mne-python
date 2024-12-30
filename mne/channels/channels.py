@@ -993,7 +993,7 @@ class InterpolationMixin:
                 "The provided montage does not contain any channel positions."
             )
 
-        # Create a new info structure using MNE public API
+        # Create a new info structure
         sfreq = self.info["sfreq"]
         ch_types = ["eeg"] * len(target_ch_names)
         new_info = create_info(ch_names=target_ch_names, sfreq=sfreq, ch_types=ch_types)
