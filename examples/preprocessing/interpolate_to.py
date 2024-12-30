@@ -5,8 +5,8 @@
 Interpolate EEG data to any montage
 ======================================================
 
-This example demonstrates how to interpolate EEG channels to match a given
-montage using the :func:`interpolate_to` method. This can be useful for standardizing
+This example demonstrates how to interpolate EEG channels to match a given montage.
+This can be useful for standardizing
 EEG channel layouts across different datasets (see :footcite:`MellotEtAl2024`).
 
 - Using the field interpolation for EEG data.
