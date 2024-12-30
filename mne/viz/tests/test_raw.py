@@ -970,7 +970,7 @@ def test_plot_raw_psd(raw, raw_orig):
     """Test plotting of raw psds."""
     raw_unchanged = raw.copy()
     spectrum = raw.compute_psd()
-    # deprecation change handler
+    # change handler
     old_defaults = dict(picks="data", exclude="bads")
     fig = spectrum.plot(average=False, amplitude=False)
     # normal mode

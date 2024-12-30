@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "5b06ca4bb8f9138bf4af85ea3171d95df07462c5",
+  "authors": [
+    {
+      "n": "github-actions[bot]",
+      "e": "41898282+github-actions[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".github/workflows/credit.yml": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/documentation/cited.rst": {
+      "a": 3,
+      "d": 3
+    },
+    "doc/sphinxext/prs/13029.json": {
+      "a": 91,
+      "d": 0
+    },
+    "doc/sphinxext/prs/6915.json": {
+      "a": 43,
+      "d": 0
+    },
+    "tools/dev/update_credit_json.py": {
+      "a": 3,
+      "d": 1
+    }
+  }
+}

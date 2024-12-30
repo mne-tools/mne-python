@@ -25,7 +25,7 @@ from qtpy.QtCore import (
     QObject,
     Qt,
     QTimer,
-    # non-object-based-abstraction-only, deprecate
+    # non-object-based-abstraction-only, remove
     Signal,
 )
 from qtpy.QtGui import QCursor, QIcon, QKeyEvent
@@ -33,7 +33,7 @@ from qtpy.QtWidgets import (
     QButtonGroup,
     QCheckBox,
     QComboBox,
-    # non-object-based-abstraction-only, deprecate
+    # non-object-based-abstraction-only, remove
     QDockWidget,
     QDoubleSpinBox,
     QFileDialog,
@@ -842,7 +842,7 @@ class _3DRenderer(_PyVistaRenderer):
 # ------------------------------------
 # Non-object-based Widget Abstractions
 # ------------------------------------
-# These are planned to be deprecated in favor of the simpler, object-
+# These are planned to be removed in favor of the simpler, object-
 # oriented abstractions above when time allows.
 
 
