@@ -966,6 +966,8 @@ class InterpolationMixin:
         -------
         inst : instance of Raw, Epochs, or Evoked
             The instance with updated channel locations and data.
+
+        .. versionadded:: 1.10.0
         """
         import numpy as np
 

@@ -2,18 +2,18 @@
 .. _ex-interpolate-to-any-montage:
 
 ======================================================
-Interpolate EEG data to a any montage
+Interpolate EEG data to any montage
 ======================================================
 
 This example demonstrates how to interpolate EEG channels to match a given
 montage using the :func:`interpolate_to` method. This can be useful for standardizing
-EEG channel layouts across different datasets.
+EEG channel layouts across different datasets (see :footcite:`MellotEtAl2024`).
 
-- Using the MNE method for interpolation.
-- The target montage will be the standard "standard_1020" montage.
+- Using the field interpolation for EEG data.
+- Using the target montage "biosemi16".
 
 In this example, the data from the original EEG channels will be
-interpolated onto the positions defined by the "standard_1020" montage.
+interpolated onto the positions defined by the "biosemi16" montage.
 """
 
 # Authors: Antoine Collas <contact@antoinecollas.fr>
@@ -41,7 +41,7 @@ evoked.plot(exclude=[], picks="eeg")
 
 # %%
 # Define the target montage
-standard_montage = make_standard_montage("standard_1020")
+standard_montage = make_standard_montage("biosemi16")
 
 # %%
 # Use interpolate_to to project EEG data to the standard montage
