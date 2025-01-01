@@ -44,7 +44,7 @@ from mne.preprocessing import (
     compute_bridged_electrodes,
     compute_current_source_density,
 )
-from mne.time_frequency.tfr import AverageTFRArray
+from mne.time_frequency.tfr import AverageTFR, AverageTFRArray
 from mne.viz import plot_evoked_topomap, plot_projs_topomap, topomap
 from mne.viz.tests.test_raw import _proj_status
 from mne.viz.topomap import (
@@ -609,6 +609,29 @@ def test_plot_tfr_topomap():
     tfr.plot_topomap(
         ch_type="mag", tmin=0.05, tmax=0.150, fmin=0, fmax=10, res=res, contours=0
     )
+
+    # test data with taper dimension (real)
+    data = np.expand_dims(data, axis=1)
+    weights = np.random.rand(1, n_freqs)
+    tfr = AverageTFRArray(
+        info=info,
+        data=data,
+        times=times,
+        freqs=np.arange(n_freqs),
+        nave=nave,
+        weights=weights,
+    )
+    tfr.plot_topomap(
+        ch_type="mag", tmin=0.05, tmax=0.150, fmin=0, fmax=10, res=res, contours=0
+    )
+    # test data with taper dimension (complex)
+    state = tfr.__getstate__()
+    tfr = AverageTFR(inst=state | dict(data=data * (1 + 1j)))
+    tfr.plot_topomap(
+        ch_type="mag", tmin=0.05, tmax=0.150, fmin=0, fmax=10, res=res, contours=0
+    )
+    # remove taper dim before proceeding
+    data = data[:, 0]
 
     # test real numbers
     tfr = AverageTFRArray(
