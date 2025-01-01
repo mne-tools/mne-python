@@ -1,0 +1,63 @@
+{
+  "merge_commit_sha": "14938b9657b255a38aa96482a4aaf410e8865859",
+  "authors": [
+    {
+      "n": "github-actions[bot]",
+      "e": "41898282+github-actions[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    "azure-pipelines.yml": {
+      "a": 1,
+      "d": 2
+    },
+    "doc/sphinxext/prs/13031.json": {
+      "a": 35,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13032.json": {
+      "a": 15,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13035.json": {
+      "a": 51,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13036.json": {
+      "a": 27,
+      "d": 0
+    },
+    "environment.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/conftest.py": {
+      "a": 3,
+      "d": 1
+    },
+    "tools/azure_dependencies.sh": {
+      "a": 1,
+      "d": 1
+    },
+    "tools/circleci_dependencies.sh": {
+      "a": 0,
+      "d": 1
+    },
+    "tools/hooks/update_environment_file.py": {
+      "a": 0,
+      "d": 3
+    },
+    "tutorials/time-freq/50_ssvep.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}
