@@ -18,6 +18,7 @@ interpolated onto the positions defined by the "biosemi16" montage.
 
 # Authors: Antoine Collas <contact@antoinecollas.fr>
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import matplotlib.pyplot as plt
 
