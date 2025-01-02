@@ -1154,7 +1154,7 @@ def read_annotations(
 
     This function reads a ``.fif``, ``.fif.gz``, ``.vmrk``, ``.amrk``,
     ``.edf``, ``.bdf``, ``.gdf``, ``.txt``, ``.csv``, ``.cnt``, ``.cef``,
-    ``.set``, or ``.seizures`` file and makes an :class:`mne.Annotations` 
+    ``.set``, or ``.seizures`` file and makes an :class:`mne.Annotations`
     object.
 
     Parameters
@@ -1185,7 +1185,7 @@ def read_annotations(
         descriptions). Defaults to ``False``.
     fmt : str | None
         Used to manually specify the format of the annotations file. If
-        ``None`` (default), the format is inferred from the file extension. 
+        ``None`` (default), the format is inferred from the file extension.
         Currently only supports ``'wfdb'``.
     suffix : str | None
         Used to manually specify the suffix of the annotations file for WFDB
