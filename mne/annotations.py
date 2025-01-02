@@ -1220,6 +1220,7 @@ def read_annotations(
         ".vmrk": _read_annotations_brainvision,
         ".amrk": _read_annotations_brainvision,
         ".txt": _read_annotations_txt,
+        ".seizures": _read_wfdb_annotations,
     }
     kwargs = {
         ".vmrk": {"sfreq": sfreq, "ignore_marker_types": ignore_marker_types},
@@ -1230,7 +1231,6 @@ def read_annotations(
         ".bdf": {"encoding": encoding},
         ".gdf": {"encoding": encoding},
     }
-    print(fname.suffix)
     if fname.suffix in readers:
         annotations = readers[fname.suffix](fname, **kwargs.get(fname.suffix, {}))
     elif fname.name.endswith(("fif", "fif.gz")):
@@ -1526,6 +1526,8 @@ def _check_event_description(event_desc, events):
 
 def _read_wfdb_annotations(fname, suffix=None, sfreq="auto"):
     """Read annotations from wfdb format."""
+    if suffix is None:
+        suffix = fname.suffix[1:]
     wfdb = _check_wfdb_installed(strict=True)
     anno = wfdb.io.rdann(fname.stem, extension=suffix)
     anno_dict = anno.__dict__
