@@ -1153,8 +1153,9 @@ def read_annotations(
     r"""Read annotations from a file.
 
     This function reads a ``.fif``, ``.fif.gz``, ``.vmrk``, ``.amrk``,
-    ``.edf``, ``.bdf``, ``.gdf``, ``.txt``, ``.csv``, ``.cnt``, ``.cef``, or
-    ``.set`` file and makes an :class:`mne.Annotations` object.
+    ``.edf``, ``.bdf``, ``.gdf``, ``.txt``, ``.csv``, ``.cnt``, ``.cef``,
+    ``.set``, or ``.seizures`` file and makes an :class:`mne.Annotations` 
+    object.
 
     Parameters
     ----------
@@ -1182,6 +1183,14 @@ def read_annotations(
     ignore_marker_types : bool
         If ``True``, ignore marker types in BrainVision files (and only use their
         descriptions). Defaults to ``False``.
+    fmt : str | None
+        Used to manually specify the format of the annotations file. If
+        ``None`` (default), the format is inferred from the file extension. 
+        Currently only supports ``'wfdb'``.
+    suffix : str | None
+        Used to manually specify the suffix of the annotations file for WFDB
+        files.
+        If ``None`` (default), the suffix is inferred from the file extension.
 
     Returns
     -------
