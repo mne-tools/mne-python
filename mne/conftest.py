@@ -34,6 +34,7 @@ from mne.utils import (
     _pl,
     _record_warnings,
     _TempDir,
+    check_version,
     numerics,
 )
 
@@ -119,7 +120,7 @@ def pytest_configure(config):
     #   we should remove them from here.
     # - This list should also be considered alongside reset_warnings in
     #   doc/conf.py.
-    if os.getenv("MNE_IGNORE_WARNINGS_IN_TESTS", "") != "true":
+    if os.getenv("MNE_IGNORE_WARNINGS_IN_TESTS", "") not in ("true", "1"):
         first_kind = "error"
     else:
         first_kind = "always"
@@ -180,6 +181,8 @@ def pytest_configure(config):
     ignore:The 'copy' argument in Quantity is deprecated.*:
     # debugpy uses deprecated matplotlib API
     ignore:The (non_)?interactive_bk attribute was deprecated.*:
+    # SWIG (via OpenMEEG)
+    ignore:.*builtin type swigvarlink has no.*:DeprecationWarning
     """  # noqa: E501
     for warning_line in warning_lines.split("\n"):
         warning_line = warning_line.strip()
@@ -634,21 +637,13 @@ def _use_backend(backend_name, interactive):
 
 def _check_skip_backend(name):
     from mne.viz.backends._utils import _notebook_vtk_works
-    from mne.viz.backends.tests._utils import (
-        has_imageio_ffmpeg,
-        has_pyvista,
-        has_pyvistaqt,
-    )
 
-    if not has_pyvista():
-        pytest.skip("Test skipped, requires pyvista.")
-    if not has_imageio_ffmpeg():
-        pytest.skip("Test skipped, requires imageio-ffmpeg")
+    pytest.importorskip("pyvista")
+    pytest.importorskip("imageio_ffmpeg")
     if name == "pyvistaqt":
+        pytest.importorskip("pyvistaqt")
         if not _check_qt_version():
             pytest.skip("Test skipped, requires Qt.")
-        if not has_pyvistaqt():
-            pytest.skip("Test skipped, requires pyvistaqt")
     else:
         assert name == "notebook", name
         if not _notebook_vtk_works():
@@ -658,10 +653,8 @@ def _check_skip_backend(name):
 @pytest.fixture(scope="session")
 def pixel_ratio():
     """Get the pixel ratio."""
-    from mne.viz.backends.tests._utils import has_pyvista
-
     # _check_qt_version will init an app for us, so no need for us to do it
-    if not has_pyvista() or not _check_qt_version():
+    if not check_version("pyvista", "0.32") or not _check_qt_version():
         return 1.0
     from qtpy.QtCore import Qt
     from qtpy.QtWidgets import QMainWindow

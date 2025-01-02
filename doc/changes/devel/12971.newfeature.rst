@@ -1,1 +1,0 @@
-Add support for ``uint16_codec`` argument in :func:`mne.io.read_raw_eeglab` when ``pymatreader`` (which already supported this argument previously) is not installed, by `Clemens Brunner`_.

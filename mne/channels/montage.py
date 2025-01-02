@@ -361,8 +361,7 @@ class DigMontage:
     def plot(
         self,
         *,
-        scale=None,
-        scale_factor=None,
+        scale=1.0,
         show_names=True,
         kind="topomap",
         show=True,
@@ -373,7 +372,6 @@ class DigMontage:
         return plot_montage(
             self,
             scale=scale,
-            scale_factor=scale_factor,
             show_names=show_names,
             kind=kind,
             show=show,
