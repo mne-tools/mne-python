@@ -1,12 +1,12 @@
 .. _changes_1_9_0:
 
-1.9.0 (2024-12-18)
-==================
+Version 1.9.0 (2024-12-18)
+==========================
 
 Dependencies
 ------------
 
-- - Minimum supported dependencies were updated in accordance with SPEC0_, most notably Python 3.10+ is now required. (`#12798 <https://github.com/mne-tools/mne-python/pull/12798>`__)
+- Minimum supported dependencies were updated in accordance with SPEC0_, most notably Python 3.10+ is now required. (`#12798 <https://github.com/mne-tools/mne-python/pull/12798>`__)
 - Importing from ``mne.decoding`` now explicitly requires ``scikit-learn`` to be installed,
   by `Eric Larson`_. (`#12834 <https://github.com/mne-tools/mne-python/pull/12834>`__)
 - Compatibility improved for Python 3.13, by `Eric Larson`_. (`#13021 <https://github.com/mne-tools/mne-python/pull/13021>`__)
@@ -63,7 +63,7 @@ New features
 - Add option to :func:`mne.preprocessing.fix_stim_artifact` to use baseline average to flatten TMS pulse artifact by `Fahimeh Mamashli`_ and `Padma Sundaram`_ and `Mohammad Daneshzand`_. (`#6915 <https://github.com/mne-tools/mne-python/pull/6915>`__)
 - Add support for `dict` type argument ``ref_channels`` to :func:`mne.set_eeg_reference`, to allow flexible re-referencing (e.g. ``raw.set_eeg_reference(ref_channels={'A1': ['A2', 'A3']})`` will set the new A1 data to be ``A1 - mean(A2, A3)``), by `Alex Lepauvre`_ and `Qian Chu`_ and `Daniel McCloy`_. (`#12366 <https://github.com/mne-tools/mne-python/pull/12366>`__)
 - Add reader for ANT Neuro files in the ``*.cnt`` format with :func:`~mne.io.read_raw_ant`, by `Mathieu Scheltienne`_, `Eric Larson`_ and `Proloy Das`_. (`#12792 <https://github.com/mne-tools/mne-python/pull/12792>`__)
-- - Add support for a :class:`mne.transforms.Transform` in the argument ``trans`` of the coregistration GUI called with :func:`mne.gui.coregistration`, by `Mathieu Scheltienne`_. (`#12801 <https://github.com/mne-tools/mne-python/pull/12801>`__)
+- Add support for a :class:`mne.transforms.Transform` in the argument ``trans`` of the coregistration GUI called with :func:`mne.gui.coregistration`, by `Mathieu Scheltienne`_. (`#12801 <https://github.com/mne-tools/mne-python/pull/12801>`__)
 - :meth:`~mne.io.Raw` and :meth:`~mne.Epochs.save` now return the path to the saved file(s), by `Victor Ferat`_. (`#12811 <https://github.com/mne-tools/mne-python/pull/12811>`__)
 - :func:`mne.channels.read_custom_montage` may now read a newer version of the ``.elc`` ASA Electrode file format, by `Stefan Appelhoff`_. (`#12830 <https://github.com/mne-tools/mne-python/pull/12830>`__)
 - Added the ``title`` argument to :func:`mne.viz.create_3d_figure`, and
