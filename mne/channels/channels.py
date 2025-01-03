@@ -1016,8 +1016,7 @@ class InterpolationMixin:
         data_interp = mapping.dot(data_orig)
 
         # Update bad channels
-        new_bads = [ch for ch in self.info["bads"] if ch in target_ch_names]
-        new_info["bads"] = new_bads
+        new_info["bads"] = [ch for ch in self.info["bads"] if ch in target_ch_names]
 
         # Update the instance's info and data
         self.info = new_info
