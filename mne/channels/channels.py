@@ -983,11 +983,8 @@ class InterpolationMixin:
         if len(picks_from) == 0:
             raise ValueError("No EEG channels available for interpolation.")
 
-        if hasattr(self, "_data"):
-            data_orig = self._data[picks_from]
-        else:
-            # If epochs-like data, for simplicity take the mean across epochs
-            data_orig = self.get_data()[:, picks_from, :].mean(axis=0)
+        # Get original data
+        data_orig = self.get_data(picks=picks_from)
 
         # Get target positions from the montage
         ch_pos = montage.get_positions()["ch_pos"]
