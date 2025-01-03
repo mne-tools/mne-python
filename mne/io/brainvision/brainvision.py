@@ -126,6 +126,9 @@ class RawBrainVision(BaseRaw):
 
         orig_format = "single" if isinstance(fmt, dict) else fmt
         raw_extras = dict(offsets=offsets, fmt=fmt, order=order, n_samples=n_samples)
+
+        __import__("inspect").currentframe().f_locals.update(locals())
+
         super().__init__(
             info,
             last_samps=[n_samples - 1],

@@ -101,6 +101,9 @@ class RawHitachi(BaseRaw):
         raw_extras = [dict(probes=probes)]
         # One representative filename is good enough here
         # (additional filenames indicate temporal concat, not ch concat)
+
+        __import__("inspect").currentframe().f_locals.update(locals())
+
         super().__init__(
             info,
             preload,
