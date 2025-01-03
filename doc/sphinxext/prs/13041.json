@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "90d9c91fe5d46e0390cb22c943fd6e0dbb578838",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "Makefile": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/html_templates/repr/_acquisition.html.jinja": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/html_templates/repr/_frequencies.html.jinja": {
+      "a": 62,
+      "d": 0
+    },
+    "mne/html_templates/repr/spectrum.html.jinja": {
+      "a": 9,
+      "d": 48
+    },
+    "mne/time_frequency/spectrum.py": {
+      "a": 3,
+      "d": 1
+    },
+    "tools/hooks/sync_dependencies.py": {
+      "a": 1,
+      "d": 2
+    },
+    "tutorials/time-freq/10_spectrum_class.py": {
+      "a": 4,
+      "d": 5
+    }
+  }
+}

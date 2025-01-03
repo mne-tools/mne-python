@@ -1,0 +1,171 @@
+{
+  "merge_commit_sha": "637c231f40d8e6e022ab3ae04fa30911cbe0f78f",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".pre-commit-config.yaml": {
+      "a": 1,
+      "d": 1
+    },
+    "README.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "environment.yml": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/channels/montage.py": {
+      "a": 1,
+      "d": 3
+    },
+    "mne/commands/mne_flash_bem.py": {
+      "a": 0,
+      "d": 20
+    },
+    "mne/commands/tests/test_commands.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/conftest.py": {
+      "a": 5,
+      "d": 14
+    },
+    "mne/datasets/eegbci/eegbci.py": {
+      "a": 3,
+      "d": 23
+    },
+    "mne/datasets/eegbci/tests/test_eegbci.py": {
+      "a": 0,
+      "d": 12
+    },
+    "mne/decoding/csp.py": {
+      "a": 0,
+      "d": 13
+    },
+    "mne/decoding/ems.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/decoding/tests/test_base.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/fixes.py": {
+      "a": 2,
+      "d": 6
+    },
+    "mne/io/base.py": {
+      "a": 1,
+      "d": 18
+    },
+    "mne/io/egi/tests/test_egi.py": {
+      "a": 0,
+      "d": 3
+    },
+    "mne/io/fiff/tests/test_raw_fiff.py": {
+      "a": 0,
+      "d": 8
+    },
+    "mne/io/neuralynx/neuralynx.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/report/report.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/source_estimate.py": {
+      "a": 0,
+      "d": 16
+    },
+    "mne/tests/test_source_estimate.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 0,
+      "d": 50
+    },
+    "mne/utils/linalg.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/_3d.py": {
+      "a": 3,
+      "d": 5
+    },
+    "mne/viz/backends/_abstract.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/backends/_notebook.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/backends/_pyvista.py": {
+      "a": 1,
+      "d": 3
+    },
+    "mne/viz/backends/_qt.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/viz/backends/tests/_utils.py": {
+      "a": 0,
+      "d": 44
+    },
+    "mne/viz/backends/tests/test_abstract.py": {
+      "a": 0,
+      "d": 2
+    },
+    "mne/viz/backends/tests/test_renderer.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/viz/evoked.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/montage.py": {
+      "a": 4,
+      "d": 20
+    },
+    "mne/viz/tests/test_raw.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/topomap.py": {
+      "a": 3,
+      "d": 5
+    },
+    "pyproject.toml": {
+      "a": 4,
+      "d": 4
+    },
+    "tools/dev/Makefile": {
+      "a": 3,
+      "d": 0
+    },
+    "tools/environment_old.yml": {
+      "a": 10,
+      "d": 9
+    },
+    "tools/hooks/sync_dependencies.py": {
+      "a": 11,
+      "d": 1
+    },
+    "tools/hooks/update_environment_file.py": {
+      "a": 37,
+      "d": 7
+    },
+    "tools/vulture_allowlist.py": {
+      "a": 0,
+      "d": 2
+    }
+  }
+}
