@@ -1013,7 +1013,7 @@ class InterpolationMixin:
         )
 
         # Apply the interpolation mapping
-        D_new = mapping.dot(data_orig)
+        data_interp = mapping.dot(data_orig)
 
         # Update bad channels
         new_bads = [ch for ch in self.info["bads"] if ch in target_ch_names]
@@ -1021,26 +1021,7 @@ class InterpolationMixin:
 
         # Update the instance's info and data
         self.info = new_info
-        if hasattr(self, "_data"):
-            if self._data.ndim == 2:
-                # Raw-like: directly assign the new data
-                self._data = D_new
-            else:
-                # Epochs-like
-                n_epochs, _, n_times = self._data.shape
-                new_data = np.zeros(
-                    (n_epochs, len(target_ch_names), n_times), dtype=self._data.dtype
-                )
-                for e in range(n_epochs):
-                    epoch_data_orig = self._data[e, picks_from, :]
-                    new_data[e, :, :] = mapping.dot(epoch_data_orig)
-                self._data = new_data
-        else:
-            # Evoked-like data
-            if hasattr(self, "data"):
-                self.data = D_new
-            else:
-                raise NotImplementedError("This method requires preloaded data.")
+        self._data = data_interp
 
         return self
 
