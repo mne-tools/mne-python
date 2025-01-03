@@ -950,6 +950,80 @@ class InterpolationMixin:
 
         return self
 
+    def interpolate_to(self, montage, method="MNE", reg=0.0):
+        """Interpolate data onto a new montage.
+
+        Parameters
+        ----------
+        montage : DigMontage
+            The target montage containing channel positions to interpolate onto.
+        method : str
+            The interpolation method to use. 'MNE' by default.
+        reg : float
+            The regularization parameter for the interpolation method (if applicable).
+
+        Returns
+        -------
+        inst : instance of Raw, Epochs, or Evoked
+            The instance with updated channel locations and data.
+
+        Notes
+        -----
+        This method is useful for standardizing EEG layouts across datasets.
+
+        .. versionadded:: 1.10.0
+        """
+        from ..forward._field_interpolation import _map_meg_or_eeg_channels
+
+        # Ensure data is loaded
+        _check_preload(self, "interpolation")
+
+        # Extract positions and data for EEG channels
+        picks_from = pick_types(self.info, meg=False, eeg=True, exclude=[])
+        if len(picks_from) == 0:
+            raise ValueError("No EEG channels available for interpolation.")
+
+        # Get original data
+        data_orig = self.get_data(picks=picks_from)
+
+        # Get target positions from the montage
+        ch_pos = montage.get_positions()["ch_pos"]
+        target_ch_names = list(ch_pos.keys())
+        if len(target_ch_names) == 0:
+            raise ValueError(
+                "The provided montage does not contain any channel positions."
+            )
+
+        # Create a new info structure
+        sfreq = self.info["sfreq"]
+        ch_types = ["eeg"] * len(target_ch_names)
+        new_info = create_info(ch_names=target_ch_names, sfreq=sfreq, ch_types=ch_types)
+        new_info.set_montage(montage)
+
+        # Create a simple old_info
+        sfreq = self.info["sfreq"]
+        ch_names = self.info["ch_names"]
+        ch_types = ["eeg"] * len(ch_names)
+        old_info = create_info(ch_names=ch_names, sfreq=sfreq, ch_types=ch_types)
+        old_info.set_montage(self.info.get_montage())
+
+        # Compute mapping from current montage to target montage
+        mapping = _map_meg_or_eeg_channels(
+            old_info, new_info, mode="accurate", origin="auto"
+        )
+
+        # Apply the interpolation mapping
+        data_interp = mapping.dot(data_orig)
+
+        # Update bad channels
+        new_info["bads"] = [ch for ch in self.info["bads"] if ch in target_ch_names]
+
+        # Update the instance's info and data
+        self.info = new_info
+        self._data = data_interp
+
+        return self
+
 
 @verbose
 def rename_channels(info, mapping, allow_duplicates=False, *, verbose=None):
