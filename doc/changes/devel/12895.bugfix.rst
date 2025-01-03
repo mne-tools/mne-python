@@ -1,0 +1,1 @@
+Fix bug in :func:`mne.io.BaseRaw.get_data`, where the ``reject_by_annotation`` parameter would not result in rejection of the last sample of the annotation, by `Richard Koehler`_.
