@@ -463,10 +463,11 @@ def test_interpolate_to_eeg(montage_name):
     assert set(raw_interpolated.info["ch_names"]) == set(montage.ch_names)
 
     # Check if the data was interpolated correctly
-    assert raw_interpolated.get_data().shape[0] == len(montage.ch_names)
+    assert raw_interpolated.get_data().shape == (len(montage.ch_names), raw.n_times)
 
     # Ensure original data is not altered
     assert raw.info["ch_names"] != raw_interpolated.info["ch_names"]
+    assert raw.get_data().shape == (len(raw.info["ch_names"]), raw.n_times)
 
     # Validate that bad channels are carried over
     raw.info["bads"] = [raw.info["ch_names"][0]]
