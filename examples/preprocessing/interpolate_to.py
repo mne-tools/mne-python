@@ -53,7 +53,7 @@ evoked_interpolated.plot(exclude=[], picks="eeg")
 
 # %%
 # Comparing before and after interpolation
-fig, axs = plt.subplots(2, 1, figsize=(8, 8))
+fig, axs = plt.subplots(2, 1, figsize=(8, 6), constrained_layout=True)
 evoked.plot(exclude=[], picks="eeg", axes=axs[0], show=False)
 axs[0].set_title("Original EEG Layout")
 evoked_interpolated.plot(exclude=[], picks="eeg", axes=axs[1], show=False)
