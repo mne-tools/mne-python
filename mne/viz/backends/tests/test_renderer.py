@@ -13,18 +13,19 @@ from mne.utils import run_subprocess
 from mne.viz import Figure3D, get_3d_backend, set_3d_backend
 from mne.viz.backends._utils import ALLOWED_QUIVER_MODES
 from mne.viz.backends.renderer import _get_renderer
-from mne.viz.backends.tests._utils import skips_if_not_pyvistaqt
 
 
 @pytest.mark.parametrize(
     "backend",
     [
-        pytest.param("pyvistaqt", marks=skips_if_not_pyvistaqt),
+        pytest.param("pyvistaqt"),
         pytest.param("foo", marks=pytest.mark.xfail(raises=ValueError)),
     ],
 )
 def test_backend_environment_setup(backend, monkeypatch):
     """Test set up 3d backend based on env."""
+    if backend == "pyvistaqt":
+        pytest.importorskip("pyvistaqt")
     monkeypatch.setenv("MNE_3D_BACKEND", backend)
     monkeypatch.setattr("mne.viz.backends.renderer.MNE_3D_BACKEND", None)
     assert os.environ["MNE_3D_BACKEND"] == backend  # just double-check

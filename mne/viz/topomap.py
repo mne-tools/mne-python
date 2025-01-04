@@ -3468,11 +3468,9 @@ def _trigradient(x, y, z):
     """Take gradients of z on a mesh."""
     from matplotlib.tri import CubicTriInterpolator, Triangulation
 
-    with warnings.catch_warnings():  # catch matplotlib warnings
-        warnings.filterwarnings("ignore", category=DeprecationWarning)
-        tri = Triangulation(x, y)
-        tci = CubicTriInterpolator(tri, z)
-        dx, dy = tci.gradient(tri.x, tri.y)
+    tri = Triangulation(x, y)
+    tci = CubicTriInterpolator(tri, z)
+    dx, dy = tci.gradient(tri.x, tri.y)
     return dx, dy
 
 
