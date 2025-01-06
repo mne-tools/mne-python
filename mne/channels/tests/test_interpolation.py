@@ -446,10 +446,9 @@ def test_method_str():
 def test_interpolate_to_eeg(montage_name, method):
     """Test the interpolate_to method for EEG."""
     # Load EEG data
-    raw, _ = _load_data("eeg")
-
-    # Select only EEG channels
-    raw.pick("eeg")
+    raw, epochs_eeg = _load_data("eeg")
+    epochs_eeg = epochs_eeg.copy()
+    assert not _has_eeg_average_ref_proj(epochs_eeg.info)
 
     # Load data
     raw.load_data()
