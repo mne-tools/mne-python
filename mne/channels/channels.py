@@ -1007,13 +1007,6 @@ class InterpolationMixin:
         new_info = create_info(ch_names=target_ch_names, sfreq=sfreq, ch_types=ch_types)
         new_info.set_montage(montage)
 
-        # Create a simple old_info
-        sfreq = self.info["sfreq"]
-        ch_names = self.info["ch_names"]
-        ch_types = ["eeg"] * len(ch_names)
-        old_info = create_info(ch_names=ch_names, sfreq=sfreq, ch_types=ch_types)
-        old_info.set_montage(self.info.get_montage())
-
         # Compute mapping from current montage to target montage
         if method == "spline":
             pos_from = np.array(
@@ -1023,7 +1016,7 @@ class InterpolationMixin:
             mapping = _make_interpolation_matrix(pos_from, pos_to, alpha=reg)
         elif method == "MNE":
             mapping = _map_meg_or_eeg_channels(
-                old_info, new_info, mode="accurate", origin="auto"
+                self.info, new_info, mode="accurate", origin="auto"
             )
 
         # Apply the interpolation mapping
