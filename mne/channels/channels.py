@@ -950,13 +950,17 @@ class InterpolationMixin:
 
         return self
 
-    def interpolate_to(self, montage, method="spline", reg=0.0):
+    def interpolate_to(self, montage, origin="auto", method="spline", reg=0.0):
         """Interpolate EEG data onto a new montage.
 
         Parameters
         ----------
         montage : DigMontage
             The target montage containing channel positions to interpolate onto.
+        origin : array-like, shape (3,) | str
+            Origin of the sphere in the head coordinate frame and in meters.
+            Can be ``'auto'`` (default), which means a head-digitization-based
+            origin fit.
         method : str
             Method to use for EEG channels.
             Supported methods are 'spline' (default) and 'MNE'.
@@ -1009,11 +1013,29 @@ class InterpolationMixin:
 
         # Compute mapping from current montage to target montage
         if method == "spline":
-            pos_from = np.array(
-                [self.info["chs"][idx]["loc"][:3] for idx in picks_from]
-            )
+            # pos_from = np.array(
+            #     [self.info["chs"][idx]["loc"][:3] for idx in picks_from]
+            # )
+
+            origin = _check_origin(origin, self.info)
+            pos_from = self.info._get_channel_positions(picks_from)
+            pos_from = pos_from - origin
             pos_to = np.stack(list(ch_pos.values()), axis=0)
+
+            def _check_pos_sphere(pos):
+                distance = np.linalg.norm(pos, axis=-1)
+                distance = np.mean(distance / np.mean(distance))
+                if np.abs(1.0 - distance) > 0.1:
+                    warn(
+                        "Your spherical fit is poor, interpolation results are "
+                        "likely to be inaccurate."
+                    )
+
+            _check_pos_sphere(pos_from)
+            _check_pos_sphere(pos_to)
+
             mapping = _make_interpolation_matrix(pos_from, pos_to, alpha=reg)
+
         elif method == "MNE":
             info_eeg = pick_info(self.info, picks_from)
             mapping = _map_meg_or_eeg_channels(
