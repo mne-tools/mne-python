@@ -1015,8 +1015,9 @@ class InterpolationMixin:
             pos_to = np.stack(list(ch_pos.values()), axis=0)
             mapping = _make_interpolation_matrix(pos_from, pos_to, alpha=reg)
         elif method == "MNE":
+            info_eeg = pick_info(self.info, picks_from)
             mapping = _map_meg_or_eeg_channels(
-                self.info, new_info, mode="accurate", origin="auto"
+                info_eeg, new_info, mode="accurate", origin="auto"
             )
 
         # Apply the interpolation mapping
