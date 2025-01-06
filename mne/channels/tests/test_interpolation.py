@@ -442,7 +442,8 @@ def test_method_str():
 
 
 @pytest.mark.parametrize("montage_name", ["biosemi16", "standard_1020"])
-def test_interpolate_to_eeg(montage_name):
+@pytest.mark.parametrize("method", ["spline", "MNE"])
+def test_interpolate_to_eeg(montage_name, method):
     """Test the interpolate_to method for EEG."""
     # Load EEG data
     raw, _ = _load_data("eeg")
@@ -457,7 +458,7 @@ def test_interpolate_to_eeg(montage_name):
     montage = make_standard_montage(montage_name)
 
     # Copy the raw object and apply interpolation
-    raw_interpolated = raw.copy().interpolate_to(montage)
+    raw_interpolated = raw.copy().interpolate_to(montage, method=method)
 
     # Check if channel names match the target montage
     assert set(raw_interpolated.info["ch_names"]) == set(montage.ch_names)
@@ -471,7 +472,7 @@ def test_interpolate_to_eeg(montage_name):
 
     # Validate that bad channels are carried over
     raw.info["bads"] = [raw.info["ch_names"][0]]
-    raw_interpolated = raw.copy().interpolate_to(montage)
+    raw_interpolated = raw.copy().interpolate_to(montage, method=method)
     assert raw_interpolated.info["bads"] == [
         ch for ch in raw.info["bads"] if ch in montage.ch_names
     ]
