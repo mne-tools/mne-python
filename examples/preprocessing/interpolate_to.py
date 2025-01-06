@@ -46,18 +46,29 @@ standard_montage = make_standard_montage("biosemi16")
 
 # %%
 # Use interpolate_to to project EEG data to the standard montage
-evoked_interpolated = evoked.copy().interpolate_to(standard_montage)
+evoked_interpolated_spline = evoked.copy().interpolate_to(
+    standard_montage, method="spline"
+)
 
 # Plot the interpolated EEG layout
-evoked_interpolated.plot(exclude=[], picks="eeg")
+evoked_interpolated_spline.plot(exclude=[], picks="eeg")
+
+# %%
+# Use interpolate_to to project EEG data to the standard montage
+evoked_interpolated_mne = evoked.copy().interpolate_to(standard_montage, method="MNE")
+
+# Plot the interpolated EEG layout
+evoked_interpolated_mne.plot(exclude=[], picks="eeg")
 
 # %%
 # Comparing before and after interpolation
-fig, axs = plt.subplots(2, 1, figsize=(8, 6), constrained_layout=True)
+fig, axs = plt.subplots(3, 1, figsize=(8, 6), constrained_layout=True)
 evoked.plot(exclude=[], picks="eeg", axes=axs[0], show=False)
 axs[0].set_title("Original EEG Layout")
-evoked_interpolated.plot(exclude=[], picks="eeg", axes=axs[1], show=False)
-axs[1].set_title("Interpolated to Standard 1020 Montage")
+evoked_interpolated_spline.plot(exclude=[], picks="eeg", axes=axs[1], show=False)
+axs[1].set_title("Interpolated to Standard 1020 Montage using spline interpolation")
+evoked_interpolated_mne.plot(exclude=[], picks="eeg", axes=axs[2], show=False)
+axs[2].set_title("Interpolated to Standard 1020 Montage using MNE interpolation")
 
 # %%
 # References
