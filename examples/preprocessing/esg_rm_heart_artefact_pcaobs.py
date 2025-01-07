@@ -33,29 +33,28 @@ import numpy as np
 # This will download simultaneous EEG and ESG data from a single participant after
 # median nerve stimulation of the left wrist
 # Set the target directory to your desired location
-import openneuro as on
+import openneuro
 from matplotlib import pyplot as plt
 
 import mne
-from mne import Epochs, concatenate_raws, events_from_annotations
+from mne import Epochs, events_from_annotations
 from mne.io import read_raw_eeglab
 from mne.preprocessing import find_ecg_events, fix_stim_artifact
 
 # add the path where you want the OpenNeuro data downloaded. Files total around 8 GB
 # target_dir = "/home/steinnhm/personal/mne-data"
-target_dir = "/data/pt_02569/test_data"
-
-file_list = glob.glob(target_dir + "/sub-001/eeg/*median*.set")
-if file_list:
-    print("Data is already downloaded")
-else:
-    on.download(
-        dataset="ds004388", target_dir=target_dir, include="sub-001/*median*_eeg*"
-    )
+ds = "ds004388"
+target_dir = mne.datasets.default_path() / ds
+run_name = "sub-001/eeg/*median_run-03_eeg*.set"
+if not glob.glob(str(target_dir / run_name)):
+    target_dir.mkdir(exist_ok=True)
+    openneuro.download(dataset=ds, target_dir=target_dir, include=run_name[:-4])
+block_files = glob.glob(str(target_dir / run_name))
+assert len(block_files) == 1
 
 ###############################################################################
 # Define the esg channels (arranged in two patches over the neck and lower back)
-# Also include the ECG channel for artefact correction
+
 esg_chans = [
     "S35",
     "S24",
@@ -96,69 +95,54 @@ esg_chans = [
     "S23",
 ]
 
-# Sampling rate
-fs = 1000
-
 # Interpolation window for ESG data to remove stimulation artefact
-tstart_esg = -0.007
-tmax_esg = 0.007
+tstart_esg = -7e-3
+tmax_esg = 7e-3
 
 # Define timing of heartbeat epochs
-iv_baseline = [-400 / 1000, -300 / 1000]
-iv_epoch = [-400 / 1000, 600 / 1000]
+iv_baseline = [-400e-3, -300e-3]
+iv_epoch = [-400e-3, 600e-3]
 
 ###############################################################################
 # Read in each of the four blocks and concatenate the raw structures after performing
 # some minimal preprocessing including removing the stimulation artefact, downsampling
 # and filtering
-block_files = glob.glob(target_dir + "/sub-001/eeg/*median*.set")
-block_files = sorted(block_files)
 
-for count, block_file in enumerate(block_files):
-    raw = read_raw_eeglab(
-        block_file, eog=(), preload=True, uint16_codec=None, verbose=None
-    )
+raw = read_raw_eeglab(block_files[0], verbose="error")
+raw.set_channel_types(dict(ECG="ecg"))
+# Isolate the ESG channels (including ECG for R-peak detection)
+raw.pick(esg_chans + ["ECG"])
+# Trim duration and downsample (from 10kHz) to improve example speed
+raw.crop(0, 60).load_data().resample(2000)
 
-    # Isolate the ESG channels (including ECG for R-peak detection)
-    raw.pick(esg_chans + ["ECG"])
+# Find trigger timings to remove the stimulation artefact
+events, event_dict = events_from_annotations(raw)
+trigger_name = "Median - Stimulation"
 
-    # Find trigger timings to remove the stimulation artefact
-    events, event_dict = events_from_annotations(raw)
-    trigger_name = "Median - Stimulation"
-
-    fix_stim_artifact(
-        raw,
-        events=events,
-        event_id=event_dict[trigger_name],
-        tmin=tstart_esg,
-        tmax=tmax_esg,
-        mode="linear",
-        stim_channel=None,
-    )
-
-    # Downsample the data
-    raw.resample(fs)
-
-    # Append blocks of the same condition
-    if count == 0:
-        raw_concat = raw
-    else:
-        concatenate_raws([raw_concat, raw])
+fix_stim_artifact(
+    raw,
+    events=events,
+    event_id=event_dict[trigger_name],
+    tmin=tstart_esg,
+    tmax=tmax_esg,
+    mode="linear",
+    stim_channel=None,
+)
 
 ###############################################################################
 # Find ECG events and add to the raw structure as event annotations
-ecg_events, ch_ecg, average_pulse = find_ecg_events(raw_concat, ch_name="ECG")
+ecg_events, ch_ecg, average_pulse = find_ecg_events(raw, ch_name="ECG")
 ecg_event_samples = np.asarray(
     [[ecg_event[0] for ecg_event in ecg_events]]
 )  # Samples only
 
 qrs_event_time = [
-    x / fs for x in ecg_event_samples.reshape(-1)
+    x / raw.info["sfreq"] for x in ecg_event_samples.reshape(-1)
 ]  # Divide by sampling rate to make times
 duration = np.repeat(0.0, len(ecg_event_samples))
 description = ["qrs"] * len(ecg_event_samples)
 
-raw_concat.annotations.append(
+raw.annotations.append(
     qrs_event_time, duration, description, ch_names=[esg_chans] * len(qrs_event_time)
 )
 
@@ -166,10 +150,11 @@ raw_concat.annotations.append(
 # Create evoked response about the detected R-peaks before cardiac artefact correction
 # Apply PCA-OBS to remove the cardiac artefact
 # Create evoked response about the detected R-peaks after cardiac artefact correction
-events, event_ids = events_from_annotations(raw_concat)
+
+events, event_ids = events_from_annotations(raw)
 event_id_dict = {key: value for key, value in event_ids.items() if key == "qrs"}
 epochs = Epochs(
-    raw_concat,
+    raw,
     events,
     event_id=event_id_dict,
     tmin=iv_epoch[0],
@@ -181,11 +166,11 @@ evoked_before = epochs.average()
 # Apply function - modifies the data in place. Optionally high-pass filter
 # the data before applying PCA-OBS to remove low frequency drifts
 mne.preprocessing.apply_pca_obs(
-    raw_concat, picks=esg_chans, n_jobs=5, qrs_indices=ecg_event_samples.reshape(-1)
+    raw, picks=esg_chans, n_jobs=5, qrs_indices=ecg_event_samples.reshape(-1)
 )
 
 epochs = Epochs(
-    raw_concat,
+    raw,
     events,
     event_id=event_id_dict,
     tmin=iv_epoch[0],
@@ -196,7 +181,8 @@ evoked_after = epochs.average()
 
 ###############################################################################
 # Comparison image
-fig, axes = plt.subplots(1, 1)
+
+fig, axes = plt.subplots(1, 1, layout="constrained")
 axes.plot(evoked_before.times, evoked_before.get_data().T, color="black")
 axes.plot(evoked_after.times, evoked_after.get_data().T, color="green")
 axes.set_ylim([-0.0005, 0.001])

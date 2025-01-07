@@ -218,6 +218,9 @@ jobs:
       - restore_cache:
           keys:
             - data-cache-phantom-kit
+      - restore_cache:
+          keys:
+            - data-cache-ds004388
       - run:
           name: Get data
           # This limit could be increased, but this is helpful for finding slow ones
@@ -393,6 +396,10 @@ jobs:
           key: data-cache-phantom-kit
           paths:
             - ~/mne_data/MNE-phantom-KIT-data  # (1 G)
+      - save_cache:
+          key: data-cache-ds004388
+          paths:
+            - ~/mne_data/ds004388  # (1.8 G)
 
 
   linkcheck:
