@@ -115,7 +115,7 @@ jobs:
             nomkl
         if: ${{ !startswith(matrix.kind, 'pip') }}
       # unknown error on macOS conda
-      - run: conda remove -y openmeeg
+      - run: mamba remove -y openmeeg
         if: startswith(matrix.os, 'macos') && matrix.kind == 'mamba'
       - run: ./tools/github_actions_dependencies.sh
       # Minimal commands on Linux (macOS stalls)
