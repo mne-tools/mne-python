@@ -27,6 +27,7 @@ from mne.viz.utils import (
     centers_to_edges,
     compare_fiff,
     concatenate_images,
+    SelectFromCollection,
 )
 
 base_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
