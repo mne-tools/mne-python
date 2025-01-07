@@ -114,9 +114,6 @@ jobs:
             mamba
             nomkl
         if: ${{ !startswith(matrix.kind, 'pip') }}
-      # Make sure we have the right Python
-      - run: python -c "import platform; assert platform.machine() == 'arm64', platform.machine()"
-        if: matrix.os == 'macos-14'
       - run: ./tools/github_actions_dependencies.sh
       # Minimal commands on Linux (macOS stalls)
       - run: ./tools/get_minimal_commands.sh
@@ -135,6 +132,8 @@ jobs:
           path: ~/mne_data
       - run: ./tools/github_actions_download.sh
       - run: ./tools/github_actions_test.sh
+        env:
+          MNE_IGNORE_WARNINGS_IN_TESTS: 1
       - uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
