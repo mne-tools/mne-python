@@ -30,17 +30,16 @@ def apply_pca_obs(
 
     Parameters
     ----------
-    raw: Raw
-        The raw data to process
-    picks: list[str]
-        Channels in the Raw object to remove the heart artefact from
-    qrs_indices: ndarray, shape (n_peaks, 1)
+    raw : instance of Raw
+        The raw data to process.
+    picks : list of str
+        Channels in the Raw object to remove the heart artefact from.
+    qrs_indices : ndarray, shape (n_peaks, 1)
         Array of indices in the Raw data of detected R-peaks in ECG channel.
-    n_components: int, default 4
-        Number of PCA components to use to form the OBS
-    n_jobs: int, default None
+    n_components : int
+        Number of PCA components to use to form the OBS (default 4).
+    n_jobs : int | None
         Number of jobs to perform the PCA-OBS processing in parallel.
-            Passed on to Raw.apply_function
     """
     # sanity checks
     if not isinstance(qrs_indices, np.ndarray):
