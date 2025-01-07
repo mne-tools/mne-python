@@ -10,7 +10,7 @@ from pathlib import Path
 
 import numpy as np
 from scipy import linalg
-from scipy.special import lpmv, sph_harm_y
+from scipy.special import lpmv
 
 from .. import __version__
 from .._fiff.compensator import make_compensator
@@ -24,7 +24,7 @@ from .._fiff.write import DATE_NONE, _generate_meas_id
 from ..annotations import _annotations_starts_stops
 from ..bem import _check_origin
 from ..channels.channels import _get_T1T2_mag_inds, fix_mag_coil_types
-from ..fixes import _safe_svd, bincount
+from ..fixes import _safe_svd, bincount, sph_harm_y
 from ..forward import _concatenate_coils, _create_meg_coils, _prep_meg_channels
 from ..io import BaseRaw, RawArray
 from ..surface import _normalize_vectors
