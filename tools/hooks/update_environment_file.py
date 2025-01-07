@@ -60,7 +60,9 @@ for dep in deps:
     # PySide6==6.7.0 only exists on PyPI, not conda-forge, so excluding it in
     # `environment.yaml` breaks the solver
     if package_name == "PySide6":
-        version_spec = version_spec.replace("!=6.7.0,", "")
+        version_spec = version_spec.replace("!=6.7.0,", "!=6.8.1,")
+    elif package_name == "scipy":
+        version_spec = f"{version_spec},<1.15.0"
     # rstrip output line in case `version_spec` == ""
     line = f"  - {package_name} {version_spec}".rstrip()
     # use pip for packages needing e.g. `platform_system` or `python_version` triaging
