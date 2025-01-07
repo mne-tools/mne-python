@@ -1487,7 +1487,7 @@ def _sss_basis_basic(exp, coils, mag_scale=100.0, method="standard"):
             S_in_out = list()
             grads_in_out = list()
             # Same spherical harmonic is used for both internal and external
-            sph = sph_harm_y(order, degree, az, pol)
+            sph = sph_harm_y(degree, order, pol, az)
             sph_norm = _sph_harm_norm(order, degree)
             # Compute complex gradient for all integration points
             # in spherical coordinates (Eq. 6). The gradient for rad, az, pol
