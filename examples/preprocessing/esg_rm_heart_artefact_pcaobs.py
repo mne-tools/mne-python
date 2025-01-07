@@ -131,6 +131,7 @@ fix_stim_artifact(
 
 ###############################################################################
 # Find ECG events and add to the raw structure as event annotations
+
 ecg_events, ch_ecg, average_pulse = find_ecg_events(raw, ch_name="ECG")
 ecg_event_samples = np.asarray(
     [[ecg_event[0] for ecg_event in ecg_events]]
@@ -147,9 +148,8 @@ raw.annotations.append(
 )
 
 ###############################################################################
-# Create evoked response about the detected R-peaks before cardiac artefact correction
-# Apply PCA-OBS to remove the cardiac artefact
-# Create evoked response about the detected R-peaks after cardiac artefact correction
+# Create evoked response about the detected R-peaks before and after cardiac artefact
+# correction
 
 events, event_ids = events_from_annotations(raw)
 event_id_dict = {key: value for key, value in event_ids.items() if key == "qrs"}
