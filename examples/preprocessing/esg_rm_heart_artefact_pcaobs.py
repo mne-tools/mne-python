@@ -183,14 +183,14 @@ evoked_after = epochs.average()
 # Comparison image
 
 fig, axes = plt.subplots(1, 1, layout="constrained")
-axes.plot(evoked_before.times, evoked_before.get_data().T, color="black")
-axes.plot(evoked_after.times, evoked_after.get_data().T, color="green")
-axes.set_ylim([-0.0005, 0.001])
-axes.set_ylabel("Amplitude (V)")
-axes.set_xlabel("Time (s)")
-axes.set_title("Before (black) vs. After (green)")
-plt.tight_layout()
-plt.show()
+data_before = evoked_before.get_data(units=dict(eeg="uV")).T
+data_after = evoked_after.get_data(units=dict(eeg="uV")).T
+hs = list()
+hs.append(axes.plot(epochs.times, data_before, color="k")[0])
+hs.append(axes.plot(epochs.times, data_after, color="green", label="after")[0])
+axes.set(ylim=[-500, 1000], ylabel="Amplitude (µV)", xlabel="Time (s)")
+axes.set(title="ECG artefact removal using PCA-OBS")
+axes.legend(hs, ["before", "after"])
 
 # %%
 # References
