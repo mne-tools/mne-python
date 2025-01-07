@@ -1501,6 +1501,71 @@ class BaseRaw(
             return self, events
 
     @verbose
+    def rescale(self, scalings, *, verbose=None):
+        """Rescale channels.
+
+        .. warning::
+            MNE-Python assumes data are stored in SI base units. This function should
+            typically only be used to fix an incorrect scaling factor in the data to get
+            it to be in SI base units, otherwise unintended problems (e.g., incorrect
+            source imaging results) and analysis errors can occur.
+
+        Parameters
+        ----------
+        scalings : int | float | dict
+            The scaling factor(s) by which to multiply the data. If a float, the same
+            scaling factor is applied to all channels (this works only if all channels
+            are of the same type). If a dict, the keys must be valid channel types and
+            the values the scaling factors to apply to the corresponding channels.
+        %(verbose)s
+
+        Returns
+        -------
+        raw : Raw
+            The raw object with rescaled data (modified in-place).
+
+        Examples
+        --------
+        A common use case for EEG data is to convert from µV to V, since many EEG
+        systems store data in µV, but MNE-Python expects the data to be in V. Therefore,
+        the data needs to be rescaled by a factor of 1e-6. To rescale all channels from
+        µV to V, you can do::
+
+            >>> raw.rescale(1e-6)  # doctest: +SKIP
+
+        Note that the previous example only works if all channels are of the same type.
+        If there are multiple channel types, you can pass a dict with the individual
+        scaling factors. For example, to rescale only EEG channels, you can do::
+
+            >>> raw.rescale({"eeg": 1e-6})  # doctest: +SKIP
+        """
+        _validate_type(scalings, (int, float, dict), "scalings")
+        _check_preload(self, "raw.rescale")
+
+        channel_types = self.get_channel_types(unique=True)
+
+        if isinstance(scalings, int | float):
+            if len(channel_types) == 1:
+                self.apply_function(lambda x: x * scalings, channel_wise=False)
+            else:
+                raise ValueError(
+                    "If scalings is a scalar, all channels must be of the same type. "
+                    "Consider passing a dict instead."
+                )
+        else:
+            for ch_type in scalings.keys():
+                if ch_type not in channel_types:
+                    raise ValueError(
+                        f'Channel type "{ch_type}" is not present in the Raw file.'
+                    )
+            for ch_type, ch_scale in scalings.items():
+                self.apply_function(
+                    lambda x: x * ch_scale, picks=ch_type, channel_wise=False
+                )
+
+        return self
+
+    @verbose
     def crop(self, tmin=0.0, tmax=None, include_tmax=True, *, verbose=None):
         """Crop raw data file.
 
@@ -3122,7 +3187,7 @@ def concatenate_raws(
 
 
 @fill_doc
-def match_channel_orders(insts=None, copy=True, *, raws=None):
+def match_channel_orders(insts, copy=True):
     """Ensure consistent channel order across instances (Raw, Epochs, or Evoked).
 
     Parameters
@@ -3131,9 +3196,6 @@ def match_channel_orders(insts=None, copy=True, *, raws=None):
         List of :class:`~mne.io.Raw`, :class:`~mne.Epochs`,
         or :class:`~mne.Evoked` instances to order.
     %(copy_df)s
-    raws : list
-        This parameter is deprecated and will be removed in mne version 1.9.
-        Please use ``insts`` instead.
 
     Returns
     -------
@@ -3141,20 +3203,6 @@ def match_channel_orders(insts=None, copy=True, *, raws=None):
         List of instances (Raw, Epochs, or Evoked) with channel orders matched
         according to the order they had in the first item in the ``insts`` list.
     """
-    # XXX: remove "raws" parameter and logic below with MNE version 1.9
-    #      and remove default parameter value of insts
-    if raws is not None:
-        warn(
-            "The ``raws`` parameter is deprecated and will be removed in version "
-            "1.9. Use the ``insts`` parameter to suppress this warning.",
-            DeprecationWarning,
-        )
-        insts = raws
-    elif insts is None:
-        # both insts and raws is None
-        raise ValueError(
-            "You need to pass a list of Raw, Epochs, or Evoked to ``insts``."
-        )
     insts = deepcopy(insts) if copy else insts
     ch_order = insts[0].ch_names
     for inst in insts[1:]:

@@ -59,6 +59,9 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
+            python: '3.13'
+            kind: pip
+          - os: ubuntu-latest
             python: '3.12'
             kind: pip-pre
           - os: ubuntu-latest
@@ -117,11 +120,11 @@ jobs:
       - run: ./tools/github_actions_dependencies.sh
       # Minimal commands on Linux (macOS stalls)
       - run: ./tools/get_minimal_commands.sh
-        if: ${{ startswith(matrix.os, 'ubuntu') }}
+        if: startswith(matrix.os, 'ubuntu') && matrix.kind != 'minimal' && matrix.kind != 'old'
       - run: ./tools/github_actions_infos.sh
       # Check Qt
       - run: ./tools/check_qt_import.sh $MNE_QT_BACKEND
-        if: ${{ env.MNE_QT_BACKEND != '' }}
+        if: env.MNE_QT_BACKEND != ''
       - name: Run tests with no testing data
         run: MNE_SKIP_TESTING_DATASET_TESTS=true pytest -m "not (ultraslowtest or pgtest)" --tb=short --cov=mne --cov-report xml -vv -rfE mne/
         if: matrix.kind == 'minimal'

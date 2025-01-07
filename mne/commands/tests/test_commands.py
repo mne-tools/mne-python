@@ -354,7 +354,7 @@ def test_flash_bem(tmp_path):
 
     # First test without flash30
     with ArgvSetter(
-        ("-d", tempdir, "-s", "sample", "-n", "-r", "-3"),
+        ("-d", tempdir, "-s", "sample", "-r", "-3"),
         disable_stdout=False,
         disable_stderr=False,
     ):
@@ -381,7 +381,6 @@ def test_flash_bem(tmp_path):
             tempdir,
             "-s",
             "sample",
-            "-n",
             "-3",
             str(mridata_path / "flash" / "mef30.mgz"),
             "-5",

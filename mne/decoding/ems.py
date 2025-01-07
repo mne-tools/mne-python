@@ -188,7 +188,7 @@ def compute_ems(
             data[:, this_picks] /= np.std(data[:, this_picks])
 
     # Setup cross-validation. Need to use _set_cv to deal with sklearn
-    # deprecation of cv objects.
+    # changes in cv object handling.
     y = epochs.events[:, 2]
     _, cv_splits = _set_cv(cv, "classifier", X=y, y=y)
 

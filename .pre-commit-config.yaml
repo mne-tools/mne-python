@@ -1,7 +1,7 @@
 repos:
   # Ruff mne
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.8.2
+    rev: v0.8.4
     hooks:
       - id: ruff
         name: ruff lint mne
@@ -78,11 +78,11 @@ repos:
         language: python
         entry: ./tools/hooks/sync_dependencies.py
         files: pyproject.toml
-        additional_dependencies: ["mne"]
+        additional_dependencies: ["mne==1.9.0"]
 
   # zizmor
   - repo: https://github.com/woodruffw/zizmor-pre-commit
-    rev: v0.8.0
+    rev: v0.10.0
     hooks:
       - id: zizmor
 
