@@ -30,9 +30,8 @@ import numpy as np
 
 ###############################################################################
 # Download sample subject data from OpenNeuro if you haven't already
-# This will download simultaneous EEG and ESG data from a single participant after
+# This will download simultaneous EEG and ESG data from a single run of a single participant after
 # median nerve stimulation of the left wrist
-# Set the target directory to your desired location
 import openneuro
 from matplotlib import pyplot as plt
 
@@ -41,8 +40,7 @@ from mne import Epochs, events_from_annotations
 from mne.io import read_raw_eeglab
 from mne.preprocessing import find_ecg_events, fix_stim_artifact
 
-# add the path where you want the OpenNeuro data downloaded. Files total around 8 GB
-# target_dir = "/home/steinnhm/personal/mne-data"
+# add the path where you want the OpenNeuro data downloaded. Each run is ~2GB of data to download.
 ds = "ds004388"
 target_dir = mne.datasets.default_path() / ds
 run_name = "sub-001/eeg/*median_run-03_eeg*.set"
@@ -95,22 +93,21 @@ esg_chans = [
     "S23",
 ]
 
-# Interpolation window for ESG data to remove stimulation artefact
+# Interpolation window in seconds for ESG data to remove stimulation artefact
 tstart_esg = -7e-3
 tmax_esg = 7e-3
 
-# Define timing of heartbeat epochs
+# Define timing of heartbeat epochs in seconds relative to R-peaks
 iv_baseline = [-400e-3, -300e-3]
 iv_epoch = [-400e-3, 600e-3]
 
 ###############################################################################
-# Read in each of the four blocks and concatenate the raw structures after performing
-# some minimal preprocessing including removing the stimulation artefact, downsampling
+# Perform minimal preprocessing including removing the stimulation artefact, downsampling
 # and filtering
 
 raw = read_raw_eeglab(block_files[0], verbose="error")
 raw.set_channel_types(dict(ECG="ecg"))
-# Isolate the ESG channels (including ECG for R-peak detection)
+# Isolate the ESG channels (include the ECG channel for R-peak detection)
 raw.pick(esg_chans + ["ECG"])
 # Trim duration and downsample (from 10kHz) to improve example speed
 raw.crop(0, 60).load_data().resample(2000)
@@ -191,6 +188,7 @@ hs.append(axes.plot(epochs.times, data_after, color="green", label="after")[0])
 axes.set(ylim=[-500, 1000], ylabel="Amplitude (µV)", xlabel="Time (s)")
 axes.set(title="ECG artefact removal using PCA-OBS")
 axes.legend(hs, ["before", "after"])
+plt.show()
 
 # %%
 # References
