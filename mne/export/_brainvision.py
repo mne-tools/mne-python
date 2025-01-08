@@ -110,7 +110,9 @@ def _mne_annots2pybv_events(raw):
     # check that raw.annotations.orig_time is the same as raw.info["meas_date"]
     # so that onsets are relative to the first sample (after further correction for first_time)
     if raw.annotations and raw.info["meas_date"] != raw.annotations.orig_time:
-        raise ValueError("When exporting, annotations must have the same orig_time as raw.info['meas_date']")
+        raise ValueError(
+            "When exporting, annotations must have the same orig_time as raw.info['meas_date']"
+        )
     events = []
     for annot in raw.annotations:
         # handle onset and duration: seconds to sample, relative to
