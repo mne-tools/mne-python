@@ -1206,7 +1206,10 @@ _error_skip_re = re.compile(os.getenv("MNE_TEST_ALLOW_SKIP", ".*"))
 def _modify_report_skips(report: pytest.TestReport | pytest.CollectReport):
     if not report.skipped:
         return
-    file, lineno, reason = report.longrepr
+    if isinstance(report.longrepr, tuple):
+        file, lineno, reason = report.longrepr
+    else:
+        file, lineno, reason = "<unknown>", 1, str(report.longrepr)
     if _error_skip_re.match(reason):
         return
     assert isinstance(report, pytest.TestReport | pytest.CollectReport)
