@@ -15,14 +15,20 @@ echo "PyQt6 and scientific-python-nightly-wheels dependencies"
 python -m pip install $STD_ARGS pip setuptools packaging \
 	threadpoolctl cycler fonttools kiwisolver pyparsing pillow python-dateutil \
 	patsy pytz tzdata nibabel tqdm trx-python joblib numexpr "$QT_BINDING" \
-	py-cpuinfo blosc2
+	py-cpuinfo blosc2 hatchling
 echo "NumPy/SciPy/pandas etc."
 python -m pip uninstall -yq numpy
 python -m pip install $STD_ARGS --only-binary ":all:" --default-timeout=60 \
 	--index-url "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" \
 	"numpy>=2.1.0.dev0" "scikit-learn>=1.6.dev0" "scipy>=1.15.0.dev0" \
-	"statsmodels>=0.15.0.dev0" "pandas>=3.0.0.dev0" "matplotlib>=3.10.0.dev0" \
+	"pandas>=3.0.0.dev0" "matplotlib>=3.10.0.dev0" \
 	"h5py>=3.12.1" "dipy>=1.10.0.dev0" "pyarrow>=19.0.0.dev0" "tables>=3.10.2.dev0"
+
+# statsmodels requires formulaic@main so we need to use --extra-index-url
+echo "statsmodels"
+python -m pip install $STD_ARGS --only-binary ":all:" \
+	--extra-index-url "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" \
+	"statsmodels>=0.15.0.dev0"
 
 # No Numba because it forces an old NumPy version
 

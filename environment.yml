@@ -4,7 +4,7 @@ channels:
   - conda-forge
 dependencies:
   - python >=3.10
-  - antio >=0.4.0
+  - antio >=0.5.0
   - darkdetect
   - decorator
   - defusedxml
@@ -23,16 +23,16 @@ dependencies:
   - joblib
   - jupyter
   - lazy_loader >=0.3
-  - matplotlib >=3.6
+  - matplotlib >=3.7
   - mffpy >=0.5.7
   - mne-qt-browser
   - nibabel
   - nilearn
   - numba
-  - numpy >=1.23,<3
-  - openmeeg =2.5.12=*_1
+  - numpy >=1.25,<3
+  - openmeeg >=2.5.5
   - packaging
-  - pandas
+  - pandas >=2.0
   - pillow
   - pip
   - pooch >=1.5
@@ -47,7 +47,7 @@ dependencies:
   - qdarkstyle !=3.2.2
   - qtpy
   - scikit-learn
-  - scipy >=1.9
+  - scipy >=1.11
   - sip
   - snirf
   - statsmodels
