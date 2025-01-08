@@ -25,13 +25,16 @@ def _export_raw(fname, raw):
     ch_names = [ch for ch in raw.ch_names if ch not in drop_chs]
     cart_coords = _get_als_coords_from_chs(raw.info["chs"], drop_chs)
 
-    annotations = [
-        raw.annotations.description,
-        # subtract raw.first_time because EEGLAB marks events starting from the first
-        # available data point and ignores raw.first_time
-        _sync_onset(raw, raw.annotations.onset, inverse=False),
-        raw.annotations.duration,
-    ]
+    if raw.annotations:
+        annotations = [
+            raw.annotations.description,
+            # subtract raw.first_time because EEGLAB marks events starting from the first
+            # available data point and ignores raw.first_time
+            _sync_onset(raw, raw.annotations.onset, inverse=False),
+            raw.annotations.duration,
+        ]
+    else:
+        annotations = None
     eeglabio.raw.export_set(
         fname,
         data=raw.get_data(picks=ch_names),
