@@ -28,8 +28,8 @@ def _export_raw(fname, raw):
     if raw.annotations:
         annotations = [
             raw.annotations.description,
-            # subtract raw.first_time because EEGLAB marks events starting from the first
-            # available data point and ignores raw.first_time
+            # subtract raw.first_time because EEGLAB marks events starting from
+            # the first available data point and ignores raw.first_time
             _sync_onset(raw, raw.annotations.onset, inverse=False),
             raw.annotations.duration,
         ]
