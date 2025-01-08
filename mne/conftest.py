@@ -6,6 +6,7 @@ import gc
 import inspect
 import os
 import os.path as op
+import re
 import shutil
 import sys
 import warnings
@@ -79,7 +80,7 @@ vv_layout = read_layout("Vectorview-all")
 collect_ignore = ["export/_brainvision.py", "export/_eeglab.py", "export/_edf.py"]
 
 
-def pytest_configure(config):
+def pytest_configure(config: pytest.Config):
     """Configure pytest options."""
     # Markers
     for marker in (
@@ -1178,10 +1179,44 @@ _phase_report_key = StashKey()
 
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
 def pytest_runtest_makereport(item, call):
-    """Stash the status of each item."""
+    """Stash the status of each item and turn unexpected skips into errors."""
     outcome = yield
-    rep = outcome.get_result()
+    rep: pytest.TestReport = outcome.get_result()
     item.stash.setdefault(_phase_report_key, {})[rep.when] = rep
+    _modify_report_skips(rep)
+    return rep
+
+
+@pytest.hookimpl(tryfirst=True, hookwrapper=True)
+def pytest_make_collect_report(collector: pytest.Collector):
+    """Turn unexpected skips during collection (e.g., module-level) into errors."""
+    outcome = yield
+    rep: pytest.CollectReport = outcome.get_result()
+    _modify_report_skips(rep)
+    return rep
+
+
+# Default means "allow all skips". Can use something like "$." to mean
+# "never match", i.e., "treat all skips as errors"
+_error_skip_re = re.compile(os.getenv("MNE_TEST_ALLOW_SKIP", ".*"))
+
+
+# To turn unexpected skips into errors, we need to look both at the collection phase
+# and the call phase (code adapted from pytest-error-for-skips)
+def _modify_report_skips(report: pytest.TestReport | pytest.CollectReport):
+    if not report.skipped:
+        return
+    file, lineno, reason = report.longrepr
+    if _error_skip_re.match(reason):
+        return
+    assert isinstance(report, pytest.TestReport | pytest.CollectReport)
+    if file.endswith("doctest.py"):  # _python/doctest.py
+        return
+    if reason.startswith("Skipped: "):
+        reason = reason[9:]
+    report.longrepr = f"{file}:{lineno}: UNEXPECTED SKIP: {reason}"
+    # Make it show up as an error in the report
+    report.outcome = "error" if isinstance(report, pytest.TestReport) else "failed"
 
 
 @pytest.fixture(scope="function")

@@ -14,18 +14,20 @@ else
 fi
 JUNIT_PATH="junit-results.xml"
 if [[ ! -z "$CONDA_ENV" ]] && [[ "${RUNNER_OS}" != "Windows" ]]; then
-  JUNIT_PATH="$(pwd)/${JUNIT_PATH}"
+  PROJ_PATH="$(pwd)"
+  JUNIT_PATH="$PROJ_PATH/${JUNIT_PATH}"
   # Use the installed version after adding all (excluded) test files
   cd ..
   INSTALL_PATH=$(python -c "import mne, pathlib; print(str(pathlib.Path(mne.__file__).parents[1]))")
   echo "Copying tests from $(pwd)/mne-python/mne/ to ${INSTALL_PATH}/mne/"
   echo "::group::rsync"
   rsync -a --partial --progress --prune-empty-dirs --exclude="*.pyc" --include="**/" --include="**/tests/*" --include="**/tests/data/**" --exclude="**" ./mne-python/mne/ ${INSTALL_PATH}/mne/
-  echo "::endgroup::"
   cd $INSTALL_PATH
+  cp -av $PROJ_PATH/pyproject.toml .
+  echo "::endgroup::"
   echo "Executing from $(pwd)"
 fi
 
 set -x
-pytest -m "${CONDITION}" --tb=short --cov=mne --cov-report xml --color=yes --junit-xml=$JUNIT_PATH -vv ${USE_DIRS}
+pytest -m "${CONDITION}" --cov=mne --cov-report xml --color=yes --continue-on-collection-errors --junit-xml=$JUNIT_PATH -vv ${USE_DIRS}
 set +x
