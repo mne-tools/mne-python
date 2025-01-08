@@ -10,7 +10,7 @@ from pathlib import Path
 
 import numpy as np
 from scipy import linalg
-from scipy.special import lpmv, sph_harm
+from scipy.special import lpmv
 
 from .. import __version__
 from .._fiff.compensator import make_compensator
@@ -24,7 +24,7 @@ from .._fiff.write import DATE_NONE, _generate_meas_id
 from ..annotations import _annotations_starts_stops
 from ..bem import _check_origin
 from ..channels.channels import _get_T1T2_mag_inds, fix_mag_coil_types
-from ..fixes import _safe_svd, bincount
+from ..fixes import _safe_svd, bincount, sph_harm_y
 from ..forward import _concatenate_coils, _create_meg_coils, _prep_meg_channels
 from ..io import BaseRaw, RawArray
 from ..surface import _normalize_vectors
@@ -436,7 +436,7 @@ def _prep_maxwell_filter(
     # we purposefully stay away from shorthand notation in both and use
     # explicit terms (like 'azimuth' and 'polar') to avoid confusion.
     # See mathworld.wolfram.com/SphericalHarmonic.html for more discussion.
-    # Our code follows the same standard that ``scipy`` uses for ``sph_harm``.
+    # Our code follows the same standard that ``scipy`` uses for ``sph_harm_y``.
 
     # triage inputs ASAP to avoid late-thrown errors
     _validate_type(raw, BaseRaw, "raw")
@@ -1487,7 +1487,7 @@ def _sss_basis_basic(exp, coils, mag_scale=100.0, method="standard"):
             S_in_out = list()
             grads_in_out = list()
             # Same spherical harmonic is used for both internal and external
-            sph = sph_harm(order, degree, az, pol)
+            sph = sph_harm_y(degree, order, pol, az)
             sph_norm = _sph_harm_norm(order, degree)
             # Compute complex gradient for all integration points
             # in spherical coordinates (Eq. 6). The gradient for rad, az, pol
