@@ -1114,6 +1114,6 @@ it can serve as a useful example of what to expect from the PR review process.
 .. optipng
 
 .. _optipng: http://optipng.sourceforge.net/
-.. _optipng for Windows: http://prdownloads.sourceforge.net/optipng/optipng-0.7.7-win32.zip?download
+.. _optipng for Windows: http://prdownloads.sourceforge.net/optipng/optipng-0.7.8-win64.zip?download
 
 .. include:: ../links.inc
