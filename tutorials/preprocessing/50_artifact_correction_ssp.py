@@ -390,6 +390,14 @@ for title, proj in [("Without", empty_room_projs), ("With", ecg_projs)]:
 #
 # See the documentation of each function for further details.
 #
+# %%
+# .. note::
+#     In situations only limited electrodes are available for analysis, removing the cardiac
+#     artefact using techniques which rely on the availability of spatial information
+#     (such as SSP) may not be possible. In these instances, it may be of use to consider
+#     algorithms which require information only regarding heartbeat instances in the time domain,
+#     such as `mne.preprocessing.pca_obs`.
+#
 #
 # Repairing EOG artifacts with SSP
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -534,6 +542,7 @@ for pi, proj in enumerate((False, True, "reconstruct")):
 # the reconstruction. This suggests that the application of SSP has slightly
 # reduced the amplitude of our signals in sensor space, but that it should not
 # bias the amplitudes in source space.
+#
 #
 # References
 # ^^^^^^^^^^
