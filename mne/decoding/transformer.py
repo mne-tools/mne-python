@@ -238,7 +238,7 @@ class Scaler(TransformerMixin, BaseEstimator):
         return out
 
 
-class Vectorizer(TransformerMixin):
+class Vectorizer(TransformerMixin, BaseEstimator):
     """Transform n-dimensional array into 2D array of n_samples by n_features.
 
     This class reshapes an n-dimensional array into an n_samples * n_features
@@ -343,7 +343,7 @@ class Vectorizer(TransformerMixin):
 
 
 @fill_doc
-class PSDEstimator(TransformerMixin):
+class PSDEstimator(TransformerMixin, BaseEstimator):
     """Compute power spectral density (PSD) using a multi-taper method.
 
     Parameters
@@ -452,7 +452,7 @@ class PSDEstimator(TransformerMixin):
 
 
 @fill_doc
-class FilterEstimator(TransformerMixin):
+class FilterEstimator(TransformerMixin, BaseEstimator):
     """Estimator to filter RtEpochs.
 
     Applies a zero-phase low-pass, high-pass, band-pass, or band-stop
@@ -743,7 +743,7 @@ class UnsupervisedSpatialFilter(TransformerMixin, BaseEstimator):
 
 
 @fill_doc
-class TemporalFilter(TransformerMixin):
+class TemporalFilter(TransformerMixin, BaseEstimator):
     """Estimator to filter data array along the last dimension.
 
     Applies a zero-phase low-pass, high-pass, band-pass, or band-stop

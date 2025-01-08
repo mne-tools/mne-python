@@ -23,7 +23,7 @@ if [ ! -z "$CONDA_ENV" ]; then
 elif [[ "${MNE_CI_KIND}" == "pip" ]]; then
 	# Only used for 3.13 at the moment, just get test deps plus a few extras
 	# that we know are available
-	INSTALL_ARGS="nibabel scikit-learn numpydoc PySide6 mne-qt-browser"
+	INSTALL_ARGS="nibabel scikit-learn numpydoc PySide6 mne-qt-browser pandas h5io mffpy defusedxml"
 	INSTALL_KIND="test"
 else
 	test "${MNE_CI_KIND}" == "pip-pre"

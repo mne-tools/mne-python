@@ -11,7 +11,6 @@ import numpy as np
 import pytest
 from numpy.testing import assert_allclose, assert_array_equal
 from scipy import sparse
-from scipy.special import sph_harm
 
 import mne
 from mne import compute_raw_covariance, concatenate_raws, pick_info, pick_types
@@ -19,6 +18,7 @@ from mne._fiff.constants import FIFF
 from mne.annotations import _annotations_starts_stops
 from mne.chpi import filter_chpi, read_head_pos
 from mne.datasets import testing
+from mne.fixes import sph_harm_y
 from mne.forward import _prep_meg_channels, use_coil_def
 from mne.io import (
     BaseRaw,
@@ -431,9 +431,9 @@ def test_spherical_conversions():
     az, pol = np.meshgrid(np.linspace(0, 2 * np.pi, 30), np.linspace(0, np.pi, 20))
     for degree in range(1, int_order):
         for order in range(0, degree + 1):
-            sph = sph_harm(order, degree, az, pol)
+            sph = sph_harm_y(degree, order, pol, az)
             # ensure that we satisfy the conjugation property
-            assert_allclose(_sh_negate(sph, order), sph_harm(-order, degree, az, pol))
+            assert_allclose(_sh_negate(sph, order), sph_harm_y(degree, -order, pol, az))
             # ensure our conversion functions work
             sph_real_pos = _sh_complex_to_real(sph, order)
             sph_real_neg = _sh_complex_to_real(sph, -order)

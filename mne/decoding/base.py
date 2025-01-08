@@ -85,7 +85,11 @@ class LinearModel(MetaEstimatorMixin, BaseEstimator):
         """Get sklearn tags."""
         from sklearn.utils import get_tags  # added in 1.6
 
-        return get_tags(self.model)
+        # fit method below does not allow sparse data via check_data, we could
+        # eventually make it smarter if we had to
+        tags = get_tags(self.model)
+        tags.input_tags.sparse = False
+        return tags
 
     def __getattr__(self, attr):
         """Wrap to model for some attributes."""

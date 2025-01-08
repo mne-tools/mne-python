@@ -86,7 +86,7 @@ Platform-specific installers
 
     .. We have to use a button-link here because button-ref doesn't properly nested parse the inline code
 
-    .. button-link:: ./ides.html
+    .. button-link:: ides.html
         :ref-type: ref
         :color: success
         :shadow:

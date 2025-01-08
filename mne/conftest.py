@@ -183,6 +183,10 @@ def pytest_configure(config):
     ignore:The (non_)?interactive_bk attribute was deprecated.*:
     # SWIG (via OpenMEEG)
     ignore:.*builtin type swigvarlink has no.*:DeprecationWarning
+    # eeglabio
+    ignore:numpy\.core\.records is deprecated.*:DeprecationWarning
+    # joblib
+    ignore:process .* is multi-threaded, use of fork/exec.*:DeprecationWarning
     """  # noqa: E501
     for warning_line in warning_lines.split("\n"):
         warning_line = warning_line.strip()

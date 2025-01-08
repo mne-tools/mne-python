@@ -720,3 +720,16 @@ def minimum_phase(h, method="homomorphic", n_fft=None, *, half=True):
 
     n_out = (n_half + len(h) % 2) if half else len(h)
     return h_minimum[:n_out]
+
+
+# SciPy 1.15 deprecates sph_harm for sph_harm_y and using it will trigger a
+# DeprecationWarning. This is a backport of the new function for older SciPy versions.
+def sph_harm_y(n, m, theta, phi, *, diff_n=0):
+    """Wrap scipy.special.sph_harm for sph_harm_y."""
+    # Can be removed once we no longer support scipy < 1.15.0
+    from scipy import special
+
+    if "sph_harm_y" in special.__dict__:
+        return special.sph_harm_y(n, m, theta, phi, diff_n=diff_n)
+    else:
+        return special.sph_harm(m, n, phi, theta)
