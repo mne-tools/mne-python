@@ -49,7 +49,7 @@ python -m pip install $STD_ARGS --only-binary ":all:" --extra-index-url "https:/
 python -c "import vtk"
 
 echo "PyVista"
-python -m pip install $STD_ARGS "git+https://github.com/pyvista/pyvista"
+python -m pip install $STD_ARGS "git+https://github.com/pyvista/pyvista" trame trame-vtk trame-vuetify
 
 echo "picard"
 python -m pip install $STD_ARGS git+https://github.com/pierreablin/picard
@@ -58,7 +58,7 @@ echo "pyvistaqt"
 pip install $STD_ARGS git+https://github.com/pyvista/pyvistaqt
 
 echo "imageio-ffmpeg, xlrd, mffpy"
-pip install $STD_ARGS imageio-ffmpeg xlrd mffpy traitlets pybv eeglabio
+pip install $STD_ARGS imageio-ffmpeg xlrd mffpy traitlets pybv eeglabio defusedxml
 
 echo "mne-qt-browser"
 pip install $STD_ARGS git+https://github.com/mne-tools/mne-qt-browser
