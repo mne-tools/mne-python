@@ -1,0 +1,1 @@
+``mne.combine_tfr`` now raises an error when passed data with a tapers dimension, by `Thomas Binns`_.
