@@ -17,6 +17,7 @@ if [[ ! -z "$CONDA_ENV" ]] && [[ "${RUNNER_OS}" != "Windows" ]] && [[ "${MNE_CI_
   PROJ_PATH="$(pwd)"
   JUNIT_PATH="$PROJ_PATH/${JUNIT_PATH}"
   # Use the installed version after adding all (excluded) test files
+  cd ~  # so that "import mne" doesn't just import the checked-out data
   INSTALL_PATH=$(python -c "import mne, pathlib; print(str(pathlib.Path(mne.__file__).parents[1]))")
   echo "Copying tests from ${PROJ_PATH}/mne-python/mne/ to ${INSTALL_PATH}/mne/"
   echo "::group::rsync mne"
@@ -25,6 +26,7 @@ if [[ ! -z "$CONDA_ENV" ]] && [[ "${RUNNER_OS}" != "Windows" ]] && [[ "${MNE_CI_
   echo "::group::rsync doc"
   mkdir -p ${INSTALL_PATH}/doc/
   rsync -a --partial --progress --prune-empty-dirs --include="**/" --include="**/api/*" --exclude="**" ${PROJ_PATH}/doc/ ${INSTALL_PATH}/doc/
+  test -f ${INSTALL_PATH}/doc/api/reading_raw_data.rst
   cd $INSTALL_PATH
   cp -av $PROJ_PATH/pyproject.toml .
   echo "::endgroup::"
