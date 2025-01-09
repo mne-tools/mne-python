@@ -1212,8 +1212,11 @@ def _modify_report_skips(report: pytest.TestReport | pytest.CollectReport):
         file, lineno, reason = "<unknown>", 1, str(report.longrepr)
     if _error_skip_re.match(reason):
         return
-    assert isinstance(report, pytest.TestReport | pytest.CollectReport)
+    assert isinstance(report, pytest.TestReport | pytest.CollectReport), type(report)
     if file.endswith("doctest.py"):  # _python/doctest.py
+        return
+    # xfail tests show up as skipped in reports
+    if getattr(report, "keywords", {}).get("xfail", False):
         return
     if reason.startswith("Skipped: "):
         reason = reason[9:]

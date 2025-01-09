@@ -49,7 +49,7 @@ python -m pip install $STD_ARGS --only-binary ":all:" --extra-index-url "https:/
 python -c "import vtk"
 
 echo "PyVista"
-python -m pip install $STD_ARGS "git+https://github.com/pyvista/pyvista" trame trame-vtk trame-vuetify ipywidgets
+python -m pip install $STD_ARGS "git+https://github.com/pyvista/pyvista" trame trame-vtk trame-vuetify ipywidgets ipyevents
 
 echo "picard"
 python -m pip install $STD_ARGS git+https://github.com/pierreablin/picard
