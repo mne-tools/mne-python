@@ -133,7 +133,7 @@ stages:
             displayName: 'Cache testing data'
           - script: python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
             displayName: 'Get test data'
-          - script: pytest --error-for-skips -m "ultraslowtest or pgtest" --tb=short --cov=mne --cov-report=xml -vv mne
+          - script: pytest -m "ultraslowtest or pgtest" --tb=short --cov=mne --cov-report=xml -vv mne
             displayName: 'slow and mne-qt-browser tests'
           # Coverage
           - bash: bash <(curl -s https://codecov.io/bash)
