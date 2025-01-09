@@ -651,9 +651,7 @@ def _check_skip_backend(name):
             pytest.skip("Test skipped, requires Qt.")
     else:
         assert name == "notebook", name
-        pytest.importorskip("IPython")
-        pytest.importorskip("ipyevents")
-        pytest.importorskip("ipywidgets")
+        pytest.importorskip("jupyter")
         pytest.importorskip("ipympl")
         pytest.importorskip("trame")
         pytest.importorskip("trame_vtk")

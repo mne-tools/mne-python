@@ -24,7 +24,7 @@ if [[ ! -z "$CONDA_ENV" ]] && [[ "${RUNNER_OS}" != "Windows" ]]; then
   rsync -a --partial --progress --prune-empty-dirs --exclude="*.pyc" --include="**/" --include="**/tests/*" --include="**/tests/data/**" --exclude="**" ./mne-python/mne/ ${INSTALL_PATH}/mne/
   echo "::endgroup::"
   echo "::group::rsync doc"
-  rsync -a --partial --progress --prune-empty-dirs ./mne-python/doc/ ${INSTALL_PATH}/doc/
+  rsync -a --partial --progress --prune-empty-dirs --include="**/" --include="**/doc/api/*" --exclude="**" ./mne-python/doc/ ${INSTALL_PATH}/doc/
   cd $INSTALL_PATH
   cp -av $PROJ_PATH/pyproject.toml .
   echo "::endgroup::"
@@ -33,4 +33,4 @@ fi
 
 set -x
 pytest -m "${CONDITION}" --cov=mne --cov-report xml --color=yes --continue-on-collection-errors --junit-xml=$JUNIT_PATH -vv ${USE_DIRS}
-set +x
+echo "Exited with code $?"

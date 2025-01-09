@@ -93,6 +93,7 @@ jobs:
         with:
           qt: true
           pyvista: false
+          wm: false
       # Python (if pip)
       - uses: actions/setup-python@v5
         with:
