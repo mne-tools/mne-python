@@ -1208,7 +1208,8 @@ _error_skip_re = re.compile(os.getenv("MNE_TEST_ALLOW_SKIP", ".*"))
 
 
 # To turn unexpected skips into errors, we need to look both at the collection phase
-# and the call phase (code adapted from pytest-error-for-skips)
+# (for decorated tests) and the call phase (for things like `importorskip`
+# within the test body). code adapted from pytest-error-for-skips
 def _modify_report_skips(report: pytest.TestReport | pytest.CollectReport):
     if not report.skipped:
         return
@@ -1221,7 +1222,7 @@ def _modify_report_skips(report: pytest.TestReport | pytest.CollectReport):
     assert isinstance(report, pytest.TestReport | pytest.CollectReport), type(report)
     if file.endswith("doctest.py"):  # _python/doctest.py
         return
-    # xfail tests show up as skipped in reports
+    # xfail tests aren't true "skips" but show up as skipped in reports
     if getattr(report, "keywords", {}).get("xfail", False):
         return
     if reason.startswith("Skipped: "):
