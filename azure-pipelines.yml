@@ -88,7 +88,7 @@ stages:
         variables:
           DISPLAY: ':99'
           OPENBLAS_NUM_THREADS: '1'
-          MNE_TEST_ALLOW_SKIP: '$.'  # no skips allowed
+          MNE_TEST_ALLOW_SKIP: '^.*(PySide6 causes segfaults).*$'
         steps:
           - bash: |
               set -e
@@ -156,7 +156,7 @@ stages:
           DISPLAY: ':99'
           OPENBLAS_NUM_THREADS: '1'
           TEST_OPTIONS: "--tb=short --cov=mne --cov-report=xml --cov-append -vv mne/viz/_brain mne/viz/backends mne/viz/tests/test_evoked.py mne/gui mne/report"
-          MNE_TEST_ALLOW_SKIP: '$.'  # no skips allowed
+          MNE_TEST_ALLOW_SKIP: '^.*(PySide6 causes segfaults).*$'
         steps:
           - bash: ./tools/setup_xvfb.sh
             displayName: 'Install Ubuntu dependencies'

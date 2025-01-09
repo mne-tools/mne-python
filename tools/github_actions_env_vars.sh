@@ -9,7 +9,7 @@ if [[ "$MNE_CI_KIND" == "pip"* ]]; then
         # We should test an eager import somewhere, might as well be here
         echo "EAGER_IMPORT=true" | tee -a $GITHUB_ENV
         # Make sure nothing unexpected is skipped
-        echo "MNE_TEST_ALLOW_SKIP=.*(Requires (spm|brainstorm) dataset|CUDA not|Numba not).*" | tee -a $GITHUB_ENV
+        echo "MNE_TEST_ALLOW_SKIP=.*(Requires (spm|brainstorm) dataset|CUDA not|Numba not|PySide6 causes segfaults).*" | tee -a $GITHUB_ENV
     else
         echo "MNE_QT_BACKEND=PySide6" | tee -a $GITHUB_ENV
     fi
@@ -28,7 +28,7 @@ else  # conda-like
         echo "MNE_LOGGING_LEVEL=warning" | tee -a $GITHUB_ENV
         echo "MNE_QT_BACKEND=PySide6" | tee -a $GITHUB_ENV
         # TODO: Also need "|unreliable on GitHub Actions conda" on macOS, but omit for now to make sure the failure actually shows up
-        echo "MNE_TEST_ALLOW_SKIP=.*(Requires (spm|brainstorm) dataset|CUDA not).*" | tee -a $GITHUB_ENV
+        echo "MNE_TEST_ALLOW_SKIP=.*(Requires (spm|brainstorm) dataset|CUDA not|PySide6 causes segfaults).*" | tee -a $GITHUB_ENV
     fi
 fi
 set +x
