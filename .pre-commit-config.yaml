@@ -77,7 +77,7 @@ repos:
         name: Copy core dependencies from pyproject.toml to README.rst
         language: python
         entry: ./tools/hooks/sync_dependencies.py
-        files: '(pyproject.toml|tools/hooks/sync_dependencies.py)'
+        files: '^(pyproject.toml|tools/hooks/sync_dependencies.py)$'
         additional_dependencies: ["mne==1.9.0"]
 
   # zizmor

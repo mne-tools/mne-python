@@ -341,7 +341,7 @@ def test_plot_evoked_image():
     picks = [evoked.ch_names.index(ch) for ch in ch_names]
     fig = evoked.plot_image(show_names="all", time_unit="s", picks=picks)
     fig.canvas.draw_idle()
-    yticklabels = plt.gca().get_yticklabels()
+    yticklabels = fig.axes[0].get_yticklabels()
     assert len(yticklabels) == len(ch_names)
     for tick_target, tick_observed in zip(ch_names, yticklabels):
         assert tick_target in str(tick_observed)

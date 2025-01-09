@@ -1224,6 +1224,10 @@ def _modify_report_skips(report: pytest.TestReport | pytest.CollectReport):
     # xfail tests aren't true "skips" but show up as skipped in reports
     if getattr(report, "keywords", {}).get("xfail", False):
         return
+    # the above only catches marks, so we need to actually parse the report to catch
+    # an xfail based on the traceback
+    if " pytest.xfail( " in reason:
+        return
     if reason.startswith("Skipped: "):
         reason = reason[9:]
     report.longrepr = f"{file}:{lineno}: UNEXPECTED SKIP: {reason}"
