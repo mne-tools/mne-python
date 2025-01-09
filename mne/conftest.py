@@ -654,6 +654,7 @@ def _check_skip_backend(name):
         pytest.importorskip("IPython")
         pytest.importorskip("ipyevents")
         pytest.importorskip("ipywidgets")
+        pytest.importorskip("ipympl")
         pytest.importorskip("trame")
         pytest.importorskip("trame_vtk")
         pytest.importorskip("trame_vuetify")
@@ -1204,7 +1205,7 @@ def pytest_make_collect_report(collector: pytest.Collector):
 
 # Default means "allow all skips". Can use something like "$." to mean
 # "never match", i.e., "treat all skips as errors"
-_error_skip_re = re.compile(os.getenv("MNE_TEST_ALLOW_SKIP", ".*"))
+_valid_skips_re = re.compile(os.getenv("MNE_TEST_ALLOW_SKIP", ".*"))
 
 
 # To turn unexpected skips into errors, we need to look both at the collection phase
@@ -1217,7 +1218,7 @@ def _modify_report_skips(report: pytest.TestReport | pytest.CollectReport):
         file, lineno, reason = report.longrepr
     else:
         file, lineno, reason = "<unknown>", 1, str(report.longrepr)
-    if _error_skip_re.match(reason):
+    if _valid_skips_re.match(reason):
         return
     assert isinstance(report, pytest.TestReport | pytest.CollectReport), type(report)
     if file.endswith("doctest.py"):  # _python/doctest.py
