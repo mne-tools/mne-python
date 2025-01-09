@@ -110,7 +110,7 @@ def test_sys_info_basic():
     assert "numpy" in out
     # replace all in-line whitespace with single space
     out = "\n".join(" ".join(o.split()) for o in out.splitlines())
-
+    assert "? GiB" not in out
     if platform.system() == "Darwin":
         assert "Platform macOS-" in out
     elif platform.system() == "Linux":
@@ -129,7 +129,7 @@ def test_sys_info_complete():
     pyproject = tomllib.loads(pyproject.read_text("utf-8"))
     deps = pyproject["project"]["optional-dependencies"]["test_extra"]
     for dep in deps:
-        dep = dep.split("[")[0].split(">")[0]
+        dep = dep.split("[")[0].split(">")[0].strip()
         assert f" {dep}" in out, f"Missing in dev config: {dep}"
 
 

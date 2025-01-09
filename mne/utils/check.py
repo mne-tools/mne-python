@@ -8,7 +8,7 @@ import numbers
 import operator
 import os
 import re
-from builtins import input  # noqa: UP029
+from builtins import input  # noqa: A004, UP029
 from difflib import get_close_matches
 from importlib import import_module
 from inspect import signature
@@ -52,10 +52,10 @@ def check_fname(fname, filetype, endings, endings_err=()):
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         Name of the file.
     filetype : str
-        Type of file. e.g., ICA, Epochs etc.
+        Type of file. e.g., ICA, Epochs, etc.
     endings : tuple
         Acceptable endings for the filename.
     endings_err : tuple
@@ -255,7 +255,7 @@ def _check_fname(
     *,
     check_bids_split=False,
     verbose=None,
-):
+) -> Path:
     """Check for file existence, and return its absolute path."""
     _validate_type(fname, "path-like", name)
     # special case for MNE-BIDS, check split
@@ -385,7 +385,7 @@ def _check_compensation_grade(info1, info2, name1, name2="data", ch_names=None):
         )
 
 
-def _soft_import(name, purpose, strict=True):
+def _soft_import(name, purpose, strict=True, *, min_version=None):
     """Import soft dependencies, providing informative errors on failure.
 
     Parameters
@@ -398,11 +398,6 @@ def _soft_import(name, purpose, strict=True):
     strict : bool
         Whether to raise an error if module import fails.
     """
-
-    # so that error msg lines are aligned
-    def indent(x):
-        return x.rjust(len(x) + 14)
-
     # Mapping import namespaces to their pypi package name
     pip_name = dict(
         sklearn="scikit-learn",
@@ -415,27 +410,31 @@ def _soft_import(name, purpose, strict=True):
         pyvista="pyvistaqt",
     ).get(name, name)
 
+    got_version = None
     try:
         mod = import_module(name)
-        return mod
     except (ImportError, ModuleNotFoundError):
-        if strict:
-            raise RuntimeError(
-                f"For {purpose} to work, the {name} module is needed, "
-                + "but it could not be imported.\n"
-                + "\n".join(
-                    (
-                        indent(
-                            "use the following installation method "
-                            "appropriate for your environment:"
-                        ),
-                        indent(f"'pip install {pip_name}'"),
-                        indent(f"'conda install -c conda-forge {pip_name}'"),
-                    )
-                )
-            )
-        else:
-            return False
+        mod = False
+    else:
+        have, got_version = check_version(
+            name,
+            min_version=min_version,
+            return_version=True,
+        )
+        if not have:
+            mod = False
+    if mod is False and strict:
+        extra = "" if min_version is None else f">={min_version}"
+        if got_version is not None:
+            extra += f" (found version {got_version})"
+        raise RuntimeError(
+            f"For {purpose} to work, the module {name}{extra} is needed, "
+            "but it could not be imported. Use the following installation method "
+            "appropriate for your environment:\n\n"
+            f"    pip install {pip_name}\n"
+            f"    conda install -c conda-forge {pip_name}"
+        )
+    return mod
 
 
 def _check_pandas_installed(strict=True):

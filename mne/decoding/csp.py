@@ -6,6 +6,7 @@ import copy as cp
 
 import numpy as np
 from scipy.linalg import eigh
+from sklearn.base import BaseEstimator, TransformerMixin
 
 from .._fiff.meas_info import create_info
 from ..cov import _compute_rank_raw_array, _regularized_covariance, _smart_eigh
@@ -17,10 +18,7 @@ from ..utils import (
     _verbose_safe_false,
     fill_doc,
     pinv,
-    warn,
 )
-from .base import BaseEstimator
-from .mixin import TransformerMixin
 
 
 @fill_doc
@@ -305,7 +303,6 @@ class CSP(TransformerMixin, BaseEstimator):
         info,
         components=None,
         *,
-        average=None,
         ch_type=None,
         scalings=None,
         sensors=True,
@@ -343,7 +340,6 @@ class CSP(TransformerMixin, BaseEstimator):
             :func:`mne.create_info`.
         components : float | array of float | None
            The patterns to plot. If ``None``, all components will be shown.
-        %(average_plot_evoked_topomap)s
         %(ch_type_topomap)s
         scalings : dict | float | None
             The scalings of the channel types to be applied for plotting.
@@ -392,9 +388,6 @@ class CSP(TransformerMixin, BaseEstimator):
         if components is None:
             components = np.arange(self.n_components)
 
-        if average is not None:
-            warn("`average` is deprecated and will be removed in 1.10.", FutureWarning)
-
         # set sampling frequency to have 1 component per time point
         info = cp.deepcopy(info)
         with info._unlock():
@@ -404,7 +397,6 @@ class CSP(TransformerMixin, BaseEstimator):
         # the call plot_topomap
         fig = patterns.plot_topomap(
             times=components,
-            average=average,
             ch_type=ch_type,
             scalings=scalings,
             sensors=sensors,
@@ -439,7 +431,6 @@ class CSP(TransformerMixin, BaseEstimator):
         info,
         components=None,
         *,
-        average=None,
         ch_type=None,
         scalings=None,
         sensors=True,
@@ -477,7 +468,6 @@ class CSP(TransformerMixin, BaseEstimator):
             :func:`mne.create_info`.
         components : float | array of float | None
            The patterns to plot. If ``None``, all components will be shown.
-        %(average_plot_evoked_topomap)s
         %(ch_type_topomap)s
         scalings : dict | float | None
             The scalings of the channel types to be applied for plotting.
@@ -526,9 +516,6 @@ class CSP(TransformerMixin, BaseEstimator):
         if components is None:
             components = np.arange(self.n_components)
 
-        if average is not None:
-            warn("`average` is deprecated and will be removed in 1.10.", FutureWarning)
-
         # set sampling frequency to have 1 component per time point
         info = cp.deepcopy(info)
         with info._unlock():
@@ -538,7 +525,6 @@ class CSP(TransformerMixin, BaseEstimator):
         # the call plot_topomap
         fig = filters.plot_topomap(
             times=components,
-            average=average,
             ch_type=ch_type,
             scalings=scalings,
             sensors=sensors,

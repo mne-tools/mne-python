@@ -81,6 +81,10 @@ MANUAL_PACKAGES = {
         "Summary": "A graphical user interface for MNE",
     },
     # TODO: these do not set a valid homepage or documentation page on PyPI
+    "eeg_positions": {
+        "Home-page": "https://eeg-positions.readthedocs.io",
+        "Summary": "Compute and plot standard EEG electrode positions.",
+    },
     "mne-features": {
         "Home-page": "https://mne.tools/mne-features",
         "Summary": "MNE-Features software for extracting features from multivariate time series",  # noqa: E501
@@ -97,10 +101,10 @@ MANUAL_PACKAGES = {
         "Home-page": "https://emd.readthedocs.io/en/stable",
         "Summary": "Empirical Mode Decomposition in Python.",
     },
-    # Needs https://github.com/vferat/pycrostates/pull/188 and a release
-    "pycrostates": {
-        "Home-page": "https://pycrostates.readthedocs.io",
-        "Summary": "A simple open source Python package for EEG microstate segmentation.",  # noqa: E501
+    # Needs a release with homepage set properly
+    "meegkit": {
+        "Home-page": "https://nbara.github.io/python-meegkit",
+        "Summary": "Denoising tools for M/EEG processing.",
     },
     # not on PyPI
     "conpy": {

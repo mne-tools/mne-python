@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "ebab915ea723155ee0fed788bcc92c2ff16a4f7f",
+  "authors": [
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/channels/_standard_montage_utils.py": {
+      "a": 9,
+      "d": 1
+    },
+    "mne/channels/montage.py": {
+      "a": 5,
+      "d": 1
+    },
+    "mne/channels/tests/test_montage.py": {
+      "a": 55,
+      "d": 1
+    },
+    "tutorials/inverse/70_eeg_mri_coords.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

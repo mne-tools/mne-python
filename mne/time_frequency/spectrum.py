@@ -419,7 +419,9 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         inst_type_str = _get_instance_type_string(self)
         units = [f"{ch_type}: {unit}" for ch_type, unit in self.units().items()]
         t = _get_html_template("repr", "spectrum.html.jinja")
-        t = t.render(spectrum=self, inst_type=inst_type_str, units=units)
+        t = t.render(
+            inst=self, computed_from=inst_type_str, units=units, filenames=None
+        )
         return t
 
     def _check_values(self):
@@ -944,7 +946,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         check_fname(fname, "spectrum", (".h5", ".hdf5"))
         fname = _check_fname(fname, overwrite=overwrite, verbose=verbose)
         out = self.__getstate__()
-        write_hdf5(fname, out, overwrite=overwrite, title="mnepython")
+        write_hdf5(fname, out, overwrite=overwrite, title="mnepython", slash="replace")
 
     @verbose
     def to_data_frame(
@@ -1238,12 +1240,12 @@ def _check_data_shape(data, info, freqs, dim_names, weights, is_epoched):
             f"'channel' must be the {'second' if is_epoched else 'first'} dimension of "
             "the data."
         )
-    want_n_chan = _pick_data_channels(info).size
+    want_n_chan = _pick_data_channels(info, exclude=()).size
     got_n_chan = data.shape[list(dim_names).index("channel")]
     if got_n_chan != want_n_chan:
         raise ValueError(
             f"The number of channels in `data` ({got_n_chan}) must match the number of "
-            f"good data channels in `info` ({want_n_chan})."
+            f"good + bad data channels in `info` ({want_n_chan})."
         )
 
     # given we limit max array size and ensure channel & freq dims present, only one of
@@ -1663,7 +1665,7 @@ def read_spectrum(fname):
     _validate_type(fname, "path-like", "fname")
     fname = _check_fname(fname=fname, overwrite="read", must_exist=False)
     # read it in
-    hdf5_dict = read_hdf5(fname, title="mnepython")
+    hdf5_dict = read_hdf5(fname, title="mnepython", slash="replace")
     defaults = dict(
         method=None,
         fmin=None,

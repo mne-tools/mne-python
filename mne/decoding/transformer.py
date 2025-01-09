@@ -3,6 +3,7 @@
 # Copyright the MNE-Python contributors.
 
 import numpy as np
+from sklearn.base import BaseEstimator, TransformerMixin
 
 from .._fiff.pick import (
     _pick_data_channels,
@@ -15,8 +16,6 @@ from ..cov import _check_scalings_user
 from ..filter import filter_data
 from ..time_frequency import psd_array_multitaper
 from ..utils import _check_option, _validate_type, fill_doc, verbose
-from .base import BaseEstimator
-from .mixin import TransformerMixin
 
 
 class _ConstantScaler:
@@ -239,7 +238,7 @@ class Scaler(TransformerMixin, BaseEstimator):
         return out
 
 
-class Vectorizer(TransformerMixin):
+class Vectorizer(TransformerMixin, BaseEstimator):
     """Transform n-dimensional array into 2D array of n_samples by n_features.
 
     This class reshapes an n-dimensional array into an n_samples * n_features
@@ -252,8 +251,10 @@ class Vectorizer(TransformerMixin):
 
     Examples
     --------
-    clf = make_pipeline(SpatialFilter(), _XdawnTransformer(), Vectorizer(),
-                        LogisticRegression())
+    >>> from sklearn.linear_model import LogisticRegression
+    >>> from sklearn.pipeline import make_pipeline
+    >>> from sklearn.preprocessing import StandardScaler
+    >>> clf = make_pipeline(Vectorizer(), StandardScaler(), LogisticRegression())
     """
 
     def fit(self, X, y=None):
@@ -342,7 +343,7 @@ class Vectorizer(TransformerMixin):
 
 
 @fill_doc
-class PSDEstimator(TransformerMixin):
+class PSDEstimator(TransformerMixin, BaseEstimator):
     """Compute power spectral density (PSD) using a multi-taper method.
 
     Parameters
@@ -451,7 +452,7 @@ class PSDEstimator(TransformerMixin):
 
 
 @fill_doc
-class FilterEstimator(TransformerMixin):
+class FilterEstimator(TransformerMixin, BaseEstimator):
     """Estimator to filter RtEpochs.
 
     Applies a zero-phase low-pass, high-pass, band-pass, or band-stop
@@ -742,7 +743,7 @@ class UnsupervisedSpatialFilter(TransformerMixin, BaseEstimator):
 
 
 @fill_doc
-class TemporalFilter(TransformerMixin):
+class TemporalFilter(TransformerMixin, BaseEstimator):
     """Estimator to filter data array along the last dimension.
 
     Applies a zero-phase low-pass, high-pass, band-pass, or band-stop

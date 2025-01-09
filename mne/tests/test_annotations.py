@@ -1804,3 +1804,25 @@ def test_count_annotations():
     annotations = Annotations([0, 1, 2], [1, 2, 1], ["T0", "T1", "T0"])
     assert annotations.count() == {"T0": 2, "T1": 1}
     assert count_annotations(annotations) == {"T0": 2, "T1": 1}
+
+
+@pytest.mark.parametrize("split_size", ["1GB", "5MB"])
+def test_append_splits_boundary(tmp_path, split_size):
+    """Test that split files don't break bad boundary annotations."""
+    fname = tmp_path / "test_append_raw.fif"
+    raw_orig = RawArray(
+        np.random.default_rng(0).normal(size=(100, 100000)),
+        create_info(100, 1000.0, "eeg"),
+    )
+    onset = len(raw_orig.times) / raw_orig.info["sfreq"] + raw_orig.first_time
+    raw_orig.save(fname, split_size=split_size)
+    raw = read_raw_fif(fname).load_data()
+    if split_size == "1GB":
+        assert len(raw.filenames) == 1
+    else:
+        assert len(raw.filenames) == 10
+    assert_allclose(raw.get_data(), raw_orig.get_data(), rtol=1e-5)
+    raw.append(raw.copy())
+    assert len(raw.annotations) == 2
+    assert raw.annotations.description[0] == "BAD boundary"
+    assert_allclose(raw.annotations.onset, [onset] * 2)

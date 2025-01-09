@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "013d6c9f630342e5af7633641162c7b85417782a",
+  "authors": [
+    {
+      "n": "Mathieu Scheltienne",
+      "e": "mathieu.scheltienne@fcbg.ch"
+    }
+  ],
+  "changes": {
+    "mne/preprocessing/hfc.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

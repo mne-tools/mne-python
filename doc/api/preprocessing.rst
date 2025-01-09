@@ -48,6 +48,7 @@ Projections:
    read_dig_localite
    make_standard_montage
    read_custom_montage
+   transform_to_head
    compute_dev_head_t
    read_layout
    find_layout

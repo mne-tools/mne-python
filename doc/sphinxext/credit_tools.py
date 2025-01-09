@@ -39,8 +39,11 @@ data_dir = doc_root / "sphinxext"
 
 # Allowed singletons
 single_names = "btkcodedev buildqa sviter Akshay".split()
-# Allowed abbrevitaions in first/last name
-abbreviations = ["T. Wang"]
+# Exceptions, e.g., abbrevitaions in first/last name or all-caps
+exceptions = [
+    "T. Wang",
+    "Ziyi ZENG",
+]
 # Manual renames
 manual_renames = {
     "alexandra": "Alexandra Corneyllie",  # 7600
@@ -53,6 +56,7 @@ manual_renames = {
     "enzo": "Enzo Altamiranda",  # 11351
     "Frostime": "Yiping Zuo",  # 11773
     "Gennadiy": "Gennadiy Belonosov",  # 11720
+    "Genuster": "Gennadiy Belonosov",  # 12936
     "Hamid": "Hamid Maymandi",  # 10849
     "jwelzel": "Julius Welzel",  # 11118
     "Martin": "Martin Billinger",  # 8099, TODO: Check
@@ -77,9 +81,9 @@ def _good_name(name):
         return False
     if " " not in name and name not in single_names:  # at least two parts
         return False
-    if name not in abbreviations and "." in name.split()[0] or "." in name.split()[-1]:
+    if name not in exceptions and "." in name.split()[0] or "." in name.split()[-1]:
         return False
-    if " " in name and name not in abbreviations:
+    if " " in name and name not in exceptions:
         first = name.split()[0]
         last = name.split()[-1]
         if first == first.upper() or last == last.upper():  # e.g., KING instead of King
@@ -234,7 +238,7 @@ def generate_credit_rst(app=None, *, verbose=False):
             name_where = expected_bad_names.get(name, name)
             if last == name and name not in single_names:
                 bad_names.add(f"Singleton:    {name_where}")
-            if "." in last or "." in first and name not in abbreviations:
+            if "." in last or "." in first and name not in exceptions:
                 bad_names.add(f"Abbreviation: {name_where}")
     bad_names = sorted(bad_names)
     for last, names in last_map.items():

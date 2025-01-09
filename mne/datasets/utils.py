@@ -347,9 +347,8 @@ def _download_all_example_data(verbose=True):
         sleep_physionet,
     )
 
-    eegbci.load_data(1, [6, 10, 14], update_path=True)
-    for subj in range(4):
-        eegbci.load_data(subj + 1, runs=[3], update_path=True)
+    eegbci.load_data(subjects=1, runs=[6, 10, 14], update_path=True)
+    eegbci.load_data(subjects=range(1, 5), runs=[3], update_path=True)
     logger.info("[done eegbci]")
 
     sleep_physionet.age.fetch_data(subjects=[0, 1], recording=[1])
@@ -357,8 +356,12 @@ def _download_all_example_data(verbose=True):
 
     # If the user has SUBJECTS_DIR, respect it, if not, set it to the EEG one
     # (probably on CircleCI, or otherwise advanced user)
-    fetch_fsaverage(None)
+    fetch_fsaverage(subjects_dir=None)
     logger.info("[done fsaverage]")
+
+    # Now also update the sample dataset path, if not already SUBJECTS_DIR
+    # (some tutorials make use of these files)
+    fetch_fsaverage(subjects_dir=paths["sample"] / "subjects")
 
     fetch_infant_template("6mo")
     logger.info("[done infant_template]")
@@ -766,8 +769,11 @@ def _manifest_check_download(manifest_path, destination, url, hash_):
         if not (destination / name).is_file():
             need.append(name)
     logger.info(
-        "%d file%s missing from %s in %s"
-        % (len(need), _pl(need), manifest_path.name, destination)
+        "%d file%s missing from %s in %s",
+        len(need),
+        _pl(need),
+        manifest_path.name,
+        destination,
     )
     if len(need) > 0:
         downloader = pooch.HTTPDownloader(**_downloader_params())

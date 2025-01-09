@@ -520,8 +520,8 @@ class _BaseSourceEstimate(TimeMixin, FilterMixin):
         if self._src_count is not None:
             if len(vertices) != self._src_count:
                 raise ValueError(
-                    "vertices must be a list with %d entries, "
-                    "got %s" % (self._src_count, len(vertices))
+                    f"vertices must be a list with {self._src_count} entries, "
+                    f"got {len(vertices)}."
                 )
         vertices = [np.array(v, np.int64) for v in vertices]  # makes copy
         if any(np.any(np.diff(v) <= 0) for v in vertices):
@@ -562,7 +562,7 @@ class _BaseSourceEstimate(TimeMixin, FilterMixin):
         self.subject = _check_subject(None, subject, raise_error=False)
 
     def __repr__(self):  # noqa: D105
-        s = "%d vertices" % (sum(len(v) for v in self.vertices),)
+        s = f"{sum(len(v) for v in self.vertices)} vertices"
         if self.subject is not None:
             s += f", subject : {self.subject}"
         s += ", tmin : %s (ms)" % (1e3 * self.tmin)
@@ -950,12 +950,12 @@ class _BaseSourceEstimate(TimeMixin, FilterMixin):
     def data(self, value):
         value = np.asarray(value)
         if self._data is not None and value.ndim != self._data.ndim:
-            raise ValueError("Data array should have %d dimensions." % self._data.ndim)
+            raise ValueError(f"Data array should have {self._data.ndim} dimensions.")
         n_verts = sum(len(v) for v in self.vertices)
         if value.shape[0] != n_verts:
             raise ValueError(
-                "The first dimension of the data array must "
-                "match the number of vertices (%d != %d)" % (value.shape[0], n_verts)
+                "The first dimension of the data array must match the number of "
+                f"vertices ({value.shape[0]} != {n_verts})."
             )
         self._data = value
         self._update_times()
@@ -3344,7 +3344,7 @@ def spatial_inter_hemi_adjacency(src, dist, verbose=None):
 def _get_adjacency_from_edges(edges, n_times, verbose=None):
     """Given edges sparse matrix, create adjacency matrix."""
     n_vertices = edges.shape[0]
-    logger.info("-- number of adjacent vertices : %d" % n_vertices)
+    logger.info("-- number of adjacent vertices : %d", n_vertices)
     nnz = edges.col.size
     aux = n_vertices * np.tile(np.arange(n_times)[:, None], (1, nnz))
     col = (edges.col[None, :] + aux).ravel()
@@ -3419,9 +3419,8 @@ def _check_stc_src(stc, src):
             n_missing = (~np.isin(v, s["vertno"])).sum()
             if n_missing:
                 raise ValueError(
-                    "%d/%d %s hemisphere stc vertices "
-                    "missing from the source space, likely "
-                    "mismatch" % (n_missing, len(v), hemi)
+                    f"{n_missing}/{len(v)} {hemi} hemisphere stc vertices "
+                    "missing from the source space, likely mismatch"
                 )
 
 
@@ -3478,7 +3477,7 @@ def _prepare_label_extraction(stc, labels, src, mode, allow_empty, use_sparse):
             label_flip.append(None)
             continue
         # standard case
-        _validate_type(label, (Label, BiHemiLabel), "labels[%d]" % (li,))
+        _validate_type(label, (Label, BiHemiLabel), f"labels[{li}]")
 
         if label.hemi == "both":
             # handle BiHemiLabel
@@ -3518,10 +3517,9 @@ def _prepare_label_extraction(stc, labels, src, mode, allow_empty, use_sparse):
         label_flip.append(this_flip)
 
     if len(bad_labels):
-        msg = "source space does not contain any vertices for %d label%s:\n%s" % (
-            len(bad_labels),
-            _pl(bad_labels),
-            bad_labels,
+        msg = (
+            f"source space does not contain any vertices for {len(bad_labels)} "
+            f"label{_pl(bad_labels)}:\n{bad_labels}"
         )
         if not allow_empty:
             raise ValueError(msg)
@@ -3635,8 +3633,9 @@ def _volume_labels(src, labels, mri_resolution):
         ]
         nnz = sum(len(v) != 0 for v in vertices)
     logger.info(
-        "%d/%d atlas regions had at least one vertex "
-        "in the source space" % (nnz, len(out_labels))
+        "%d/%d atlas regions had at least one vertex " "in the source space",
+        nnz,
+        len(out_labels),
     )
     return out_labels
 
@@ -3682,7 +3681,7 @@ def _gen_extract_label_time_course(
     n_labels = n_mode + n_mean
     vertno = func = None
     for si, stc in enumerate(stcs):
-        _validate_type(stc, _BaseSourceEstimate, "stcs[%d]" % (si,), "source estimate")
+        _validate_type(stc, _BaseSourceEstimate, f"stcs[{si}]", "source estimate")
         _check_option(
             "mode",
             mode,
@@ -3715,9 +3714,7 @@ def _gen_extract_label_time_course(
             if not np.array_equal(svn, vn):
                 raise ValueError("stc not compatible with source space")
 
-        logger.info(
-            "Extracting time courses for %d labels (mode: %s)" % (n_labels, mode)
-        )
+        logger.info("Extracting time courses for %d labels (mode: %s)", n_labels, mode)
 
         # do the extraction
         if mode is None:
@@ -3928,22 +3925,6 @@ def stc_near_sensors(
     _validate_type(src, (None, SourceSpaces), "src")
     _check_option("mode", mode, ("sum", "single", "nearest", "weighted"))
     if surface == "auto":
-        if src is not None:
-            pial_fname = op.join(subjects_dir, subject, "surf", "lh.pial")
-            pial_rr = read_surface(pial_fname)[0]
-            src_surf_is_pial = (
-                op.isfile(pial_fname)
-                and src[0]["rr"].shape == pial_rr.shape
-                and np.allclose(src[0]["rr"], pial_rr)
-            )
-            if not src_surf_is_pial:
-                warn(
-                    "In version 1.8, ``surface='auto'`` will be the default "
-                    "which will use the surface in ``src`` instead of the "
-                    "pial surface when ``src != None``. Pass ``surface='pial'`` "
-                    "or ``surface=None`` to suppress this warning",
-                    DeprecationWarning,
-                )
         surface = "pial" if src is None or src.kind == "surface" else None
 
     # create a copy of Evoked using ecog, seeg and dbs

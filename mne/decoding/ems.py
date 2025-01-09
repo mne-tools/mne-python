@@ -5,15 +5,15 @@
 from collections import Counter
 
 import numpy as np
+from sklearn.base import BaseEstimator, TransformerMixin
 
 from .._fiff.pick import _picks_to_idx, pick_info, pick_types
 from ..parallel import parallel_func
 from ..utils import logger, verbose
 from .base import _set_cv
-from .mixin import EstimatorMixin, TransformerMixin
 
 
-class EMS(TransformerMixin, EstimatorMixin):
+class EMS(TransformerMixin, BaseEstimator):
     """Transformer to compute event-matched spatial filters.
 
     This version of EMS :footcite:`SchurgerEtAl2013` operates on the entire
@@ -188,7 +188,7 @@ def compute_ems(
             data[:, this_picks] /= np.std(data[:, this_picks])
 
     # Setup cross-validation. Need to use _set_cv to deal with sklearn
-    # deprecation of cv objects.
+    # changes in cv object handling.
     y = epochs.events[:, 2]
     _, cv_splits = _set_cv(cv, "classifier", X=y, y=y)
 
