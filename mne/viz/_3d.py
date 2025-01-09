@@ -2590,10 +2590,7 @@ def _plot_stc(
         smoothing_steps = 1  # Disable smoothing to save time.
 
     sub_info = subject if len(hemis) > 1 else f"{subject} - {hemis[0]}"
-    if not title:
-        title = sub_info
-    else:
-        title = f"{title}, {sub_info}"
+    title = title if title is not None else sub_info
 
     kwargs = {
         "subject": subject,
