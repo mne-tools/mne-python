@@ -14,12 +14,13 @@ from sklearn.decomposition import PCA
 
 from mne.io.fiff.raw import Raw
 from mne.utils import logger
+from mne.utils.check import _validate_type
 
 
 def apply_pca_obs(
     raw: Raw,
     picks: list[str],
-    qrs_indices: np.ndarray,
+    qrs_times: np.ndarray,
     n_components: int = 4,
     n_jobs: int | None = None,
 ) -> None:
@@ -34,24 +35,23 @@ def apply_pca_obs(
         The raw data to process.
     picks : list of str
         Channels in the Raw object to remove the heart artefact from.
-    qrs_indices : ndarray, shape (n_peaks, 1)
-        Array of indices in the Raw data of detected R-peaks in ECG channel.
+    qrs_times : ndarray, shape (n_peaks,)
+        Array of times in the Raw data of detected R-peaks in ECG channel.
     n_components : int
         Number of PCA components to use to form the OBS (default 4).
     n_jobs : int | None
         Number of jobs to perform the PCA-OBS processing in parallel.
     """
     # sanity checks
-    if not isinstance(qrs_indices, np.ndarray):
-        raise ValueError("qrs_indices must be an array")
-    if len(qrs_indices.shape) > 1:
-        raise ValueError("qrs_indices must be a 1d array")
-    if qrs_indices.dtype != int:
-        raise ValueError("qrs_indices must be an array of integers")
-    if np.any(qrs_indices < 0):
-        raise ValueError("qrs_indices must be strictly positive integers")
-    if np.any(qrs_indices >= raw.n_times):
-        logger.warning("out of bound qrs_indices will be ignored..")
+    _validate_type(qrs_times, np.ndarray, "qrs_times")
+    if len(qrs_times.shape) > 1:
+        raise ValueError("qrs_times must be a 1d array")
+    if qrs_times.dtype not in [int, float]:
+        raise ValueError("qrs_times must be an array of either integers or floats")
+    if np.any(qrs_times < 0):
+        raise ValueError("qrs_times must be strictly positive")
+    if np.any(qrs_times >= raw.times[-1]):
+        logger.warning("some out of bound qrs_times will be ignored..")
     if not picks:
         raise ValueError("picks must be a list of channel names")
 
@@ -59,8 +59,8 @@ def apply_pca_obs(
         _pca_obs,
         picks=picks,
         n_jobs=n_jobs,
-        # args sent to PCA_OBS
-        qrs=qrs_indices,
+        # args sent to PCA_OBS, convert times to indices
+        qrs=raw.time_as_index(qrs_times),
         n_components=n_components,
     )
 
@@ -133,7 +133,7 @@ def _pca_obs(
     ################
     window_start_idx = []
     window_end_idx = []
-    post_idx_nextPeak = None
+    post_idx_next_peak = None
 
     for p in range(peak_count):
         # if the current peak doesn't have enough data in the
@@ -148,7 +148,7 @@ def _pca_obs(
             if post_range > peak_range:
                 post_range = peak_range
 
-            fitted_art, post_idx_nextPeak = fit_ecg_template(
+            fitted_art, post_idx_next_peak = _fit_ecg_template(
                 data=data,
                 pca_template=pca_template,
                 a_peak_idx=peak_idx[p],
@@ -157,7 +157,7 @@ def _pca_obs(
                 post_range=post_range,
                 mid_p=mid_p,
                 fitted_art=fitted_art,
-                post_idx_previous_peak=post_idx_nextPeak,
+                post_idx_previous_peak=post_idx_next_peak,
                 n_samples_fit=n_samples_fit,
             )
             # Appending to list instead of using counter
@@ -170,7 +170,7 @@ def _pca_obs(
             post_range = peak_range
             if pre_range > peak_range:
                 pre_range = peak_range
-            fitted_art, _ = fit_ecg_template(
+            fitted_art, _ = _fit_ecg_template(
                 data=data,
                 pca_template=pca_template,
                 a_peak_idx=peak_idx[p],
@@ -179,7 +179,7 @@ def _pca_obs(
                 post_range=post_range,
                 mid_p=mid_p,
                 fitted_art=fitted_art,
-                post_idx_previous_peak=post_idx_nextPeak,
+                post_idx_previous_peak=post_idx_next_peak,
                 n_samples_fit=n_samples_fit,
             )
             window_start_idx.append(peak_idx[p] - peak_range)
@@ -199,7 +199,7 @@ def _pca_obs(
             a_template = pca_template[
                 mid_p - peak_range - 1 : mid_p + peak_range + 1, :
             ]
-            fitted_art, post_idx_nextPeak = fit_ecg_template(
+            fitted_art, post_idx_next_peak = _fit_ecg_template(
                 data=data,
                 pca_template=a_template,
                 a_peak_idx=peak_idx[p],
@@ -208,7 +208,7 @@ def _pca_obs(
                 post_range=post_range,
                 mid_p=mid_p,
                 fitted_art=fitted_art,
-                post_idx_previous_peak=post_idx_nextPeak,
+                post_idx_previous_peak=post_idx_next_peak,
                 n_samples_fit=n_samples_fit,
             )
             window_start_idx.append(peak_idx[p] - peak_range)
@@ -257,8 +257,8 @@ def _fit_ecg_template(
     -------
         tuple[np.ndarray, int]: the fitted artifact and the next peak index
     """
-    # post_idx_nextpeak is passed in in PCA_OBS, used here as post_idx_previous_peak
-    # Then nextpeak is returned at the end and the process repeats
+    # post_idx_next_peak is passed in in PCA_OBS, used here as post_idx_previous_peak
+    # Then next_peak is returned at the end and the process repeats
     # select window of template
     template = pca_template[mid_p - peak_range - 1 : mid_p + peak_range + 1, :]
 
