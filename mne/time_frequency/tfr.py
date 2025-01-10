@@ -2038,7 +2038,7 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
         want_shape[freq_axis] = len(freqs)  # in case there was fmin/fmax cropping
         want_shape[time_axis] = len(times)  # in case there was tmin/tmax cropping
         want_shape = [
-            n for dim, n in zip(self._dims, want_shape) dim != "taper"
+            n for dim, n in zip(self._dims, want_shape) if dim != "taper"
         ]  # tapers must be aggregated over by now
         want_shape = tuple(want_shape)
         # combine
