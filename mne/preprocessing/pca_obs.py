@@ -219,7 +219,7 @@ def _pca_obs(
     return data
 
 
-def fit_ecg_template(
+def _fit_ecg_template(
     data: np.ndarray,
     pca_template: np.ndarray,
     a_peak_idx: int,
