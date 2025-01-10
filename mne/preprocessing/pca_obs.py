@@ -27,7 +27,7 @@ def apply_pca_obs(
     n_components: int = 4,
     n_jobs: int | None = None,
     copy: bool = True,
-    verbose : bool | str | int | None = None
+    verbose: bool | str | int | None = None,
 ) -> Raw | None:
     """
     Apply the PCA-OBS algorithm to picks of a Raw object.
@@ -45,7 +45,7 @@ def apply_pca_obs(
     n_components : int
         Number of PCA components to use to form the OBS (default 4).
     copy : bool
-        If False, modify the Raw instance in-place. 
+        If False, modify the Raw instance in-place.
         If True, return a copied, modified Raw instance. Defaults to True.
     %(n_jobs)s
     %(verbose)s
@@ -79,6 +79,7 @@ def apply_pca_obs(
 
     if copy:
         return raw
+
 
 def _pca_obs(
     data: np.ndarray,
