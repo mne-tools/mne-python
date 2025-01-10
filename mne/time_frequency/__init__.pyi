@@ -11,6 +11,7 @@ __all__ = [
     "RawTFRArray",
     "Spectrum",
     "SpectrumArray",
+    "combine_spectrum",
     "csd_array_fourier",
     "csd_array_morlet",
     "csd_array_multitaper",
@@ -61,6 +62,7 @@ from .spectrum import (
     EpochsSpectrumArray,
     Spectrum,
     SpectrumArray,
+    combine_spectrum,
     read_spectrum,
 )
 from .tfr import (
