@@ -390,7 +390,6 @@ for title, proj in [("Without", empty_room_projs), ("With", ecg_projs)]:
 #
 # See the documentation of each function for further details.
 #
-# %%
 # .. note::
 #     In situations only limited electrodes are available for analysis, removing the cardiac
 #     artefact using techniques which rely on the availability of spatial information
