@@ -156,11 +156,12 @@ def compute_fine_calibration(
     # 1. Rotate surface normals using magnetometer information (if present)
     #
     cals = np.ones(len(info["ch_names"]))
-    time_idxs = raw.time_as_index(np.arange(0.0, raw.times[-1], t_window))
-    if len(time_idxs) <= 1:
-        time_idxs = np.array([0, len(raw.times)], int)
-    else:
-        time_idxs[-1] = len(raw.times)
+    end = len(raw.times) + 1
+    time_idxs = np.arange(0, end, int(round(t_window * raw.info["sfreq"])))
+    if len(time_idxs) == 1:
+        time_idxs = np.concatenate([time_idxs, [end]])
+    if time_idxs[-1] != end:
+        time_idxs[-1] = end
     count = 0
     locs = np.array([ch["loc"] for ch in info["chs"]])
     zs = locs[mag_picks, -3:].copy()
