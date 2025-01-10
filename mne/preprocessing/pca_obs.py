@@ -14,16 +14,21 @@ from sklearn.decomposition import PCA
 
 from mne.io.fiff.raw import Raw
 from mne.utils import logger
+from mne.utils._logging import verbose
 from mne.utils.check import _validate_type
 
 
+@verbose
 def apply_pca_obs(
     raw: Raw,
     picks: list[str],
+    *,
     qrs_times: np.ndarray,
     n_components: int = 4,
     n_jobs: int | None = None,
-) -> None:
+    copy: bool = True,
+    verbose : bool | str | int | None = None
+) -> Raw | None:
     """
     Apply the PCA-OBS algorithm to picks of a Raw object.
 
@@ -39,8 +44,15 @@ def apply_pca_obs(
         Array of times in the Raw data of detected R-peaks in ECG channel.
     n_components : int
         Number of PCA components to use to form the OBS (default 4).
-    n_jobs : int | None
-        Number of jobs to perform the PCA-OBS processing in parallel.
+    copy : bool
+        If False, modify the Raw instance in-place. 
+        If True, return a copied, modified Raw instance. Defaults to True.
+    %(n_jobs)s
+    %(verbose)s
+
+    References
+    ----------
+    .. footbibliography::
     """
     # sanity checks
     _validate_type(qrs_times, np.ndarray, "qrs_times")
@@ -52,8 +64,9 @@ def apply_pca_obs(
         raise ValueError("qrs_times must be strictly positive")
     if np.any(qrs_times >= raw.times[-1]):
         logger.warning("some out of bound qrs_times will be ignored..")
-    if not picks:
-        raise ValueError("picks must be a list of channel names")
+
+    if copy:
+        raw = raw.copy()
 
     raw.apply_function(
         _pca_obs,
@@ -64,6 +77,8 @@ def apply_pca_obs(
         n_components=n_components,
     )
 
+    if copy:
+        return raw
 
 def _pca_obs(
     data: np.ndarray,
