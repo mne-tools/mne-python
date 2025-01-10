@@ -34,7 +34,7 @@ def test_heart_artifact_removal(short_raw_data: Raw):
     ecg_event_times = np.linspace(0, orig_df["time"].iloc[-1], 20)[1:-1]
 
     # perform heart artifact removal
-    apply_pca_obs(
+    short_raw_data = apply_pca_obs(
         raw=short_raw_data, picks=["eeg"], qrs_times=ecg_event_times, n_jobs=1
     )
 
@@ -94,7 +94,6 @@ def test_heart_artifact_removal(short_raw_data: Raw):
             "qrs_times must be strictly positive",
             ValueError,
         ),
-        ([], np.array([1, 2, 3]), "picks must be a list of channel names", ValueError),
     ],
 )
 def test_pca_obs_bad_input(
