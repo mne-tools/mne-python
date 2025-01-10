@@ -2799,7 +2799,8 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
     if info.get("device_info") is not None:
         start_block(fid, FIFF.FIFFB_DEVICE)
         di = info["device_info"]
-        write_string(fid, FIFF.FIFF_DEVICE_TYPE, di["type"])
+        if di.get("type") is not None:
+            write_string(fid, FIFF.FIFF_DEVICE_TYPE, di["type"])
         for key in ("model", "serial", "site"):
             if di.get(key) is not None:
                 write_string(fid, getattr(FIFF, "FIFF_DEVICE_" + key.upper()), di[key])
