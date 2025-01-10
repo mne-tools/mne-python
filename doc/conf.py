@@ -667,6 +667,10 @@ linkcheck_ignore = [  # will be compiled to regex
     r"https://scholar.google.com/scholar\?cites=12188330066413208874&as_ylo=2014",
     r"https://scholar.google.com/scholar\?cites=1521584321377182930&as_ylo=2013",
     "https://www.research.chop.edu/imaging",
+    "http://prdownloads.sourceforge.net/optipng/optipng-0.7.8-win64.zip?download",
+    "https://sourceforge.net/projects/aespa/files/",
+    "https://sourceforge.net/projects/ezwinports/files/",
+    "https://www.mathworks.com/products/compiler/matlab-runtime.html",
     # 500 server error
     "https://openwetware.org/wiki/Beauchamp:FreeSurfer",
     # 503 Server error
@@ -689,6 +693,7 @@ linkcheck_ignore = [  # will be compiled to regex
     # SSL problems sometimes
     "http://ilabs.washington.edu",
     "https://psychophysiology.cpmc.columbia.edu",
+    "https://erc.easme-web.eu",
 ]
 linkcheck_anchors = False  # saves a bit of time
 linkcheck_timeout = 15  # some can be quite slow
