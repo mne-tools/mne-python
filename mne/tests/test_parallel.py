@@ -26,7 +26,7 @@ def test_parallel_func(n_jobs):
     """Test Parallel wrapping."""
     joblib = pytest.importorskip("joblib")
     if os.getenv("MNE_FORCE_SERIAL", "").lower() in ("true", "1"):
-        pytest.skip("MNE_FORCE_SERIAL cannot be set")
+        pytest.skip("MNE_FORCE_SERIAL is set")
 
     def fun(x):
         return x * 2
