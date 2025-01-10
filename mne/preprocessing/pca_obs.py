@@ -26,7 +26,7 @@ def apply_pca_obs(
     """
     Apply the PCA-OBS algorithm to picks of a Raw object.
 
-    Update the Raw object in-place. Make sanity checks for all inputs.
+    Uses the optimal basis set (OBS) algorithm from :footcite:`NiazyEtAl2005`.
 
     Parameters
     ----------
