@@ -26,16 +26,16 @@ def test_heart_artifact_removal(short_raw_data: Raw):
     """Test PCA-OBS analysis and heart artifact removal of ECG datasets."""
     pytest.importorskip("pandas")
 
-    # fake some random qrs events in the window of the raw data
-    # remove first and last samples and cast to integer for indexing
-    ecg_event_indices = np.linspace(0, short_raw_data.n_times, 20, dtype=int)[1:-1]
-
     # copy the original raw. heart artifact is removed in-place
     orig_df: pd.DataFrame = short_raw_data.to_data_frame().copy(deep=True)
 
+    # fake some random qrs events in the window of the raw data
+    # remove first and last samples and cast to integer for indexing
+    ecg_event_times = np.linspace(0, orig_df["time"].iloc[-1], 20)[1:-1]
+
     # perform heart artifact removal
     apply_pca_obs(
-        raw=short_raw_data, picks=["eeg"], qrs_indices=ecg_event_indices, n_jobs=1
+        raw=short_raw_data, picks=["eeg"], qrs_times=ecg_event_times, n_jobs=1
     )
 
     # compare processed df to original df
@@ -68,28 +68,30 @@ def test_heart_artifact_removal(short_raw_data: Raw):
 
 # test that various nonsensical inputs raise the proper errors
 @pytest.mark.parametrize(
-    ("picks", "qrs", "error"),
+    ("picks", "qrs_times", "error", "exception"),
     [
-        (["eeg"], np.array([[0, 1], [2, 3]]), "qrs_indices must be a 1d array"),
-        (["eeg"], [2, 3, 4], "qrs_indices must be an array"),
+        (["eeg"], np.array([[0, 1], [2, 3]]), "qrs_times must be a 1d array", ValueError),
+        (["eeg"], [2, 3, 4], "qrs_times must be an instance of ndarray, got <class 'list'> instead.", TypeError),
         (
             ["eeg"],
             np.array([None, "foo", 2]),
-            "qrs_indices must be an array of integers",
+            "qrs_times must be an array of either integers or floats",
+            ValueError,
         ),
         (
             ["eeg"],
             np.array([-1, 0, 3]),
-            "qrs_indices must be strictly positive integers",
+            "qrs_times must be strictly positive",
+            ValueError,
         ),
-        ([], np.array([1, 2, 3]), "picks must be a list of channel names"),
+        ([], np.array([1, 2, 3]), "picks must be a list of channel names", ValueError),
     ],
 )
 def test_pca_obs_bad_input(
-    short_raw_data: Raw, picks: list[str], qrs: np.ndarray, error: str
+    short_raw_data: Raw, picks: list[str], qrs_times: np.ndarray, error: str, exception: type[Exception]
 ):
     """Test if bad input data raises the proper errors in the function sanity checks."""
     pytest.importorskip("pandas")
 
-    with pytest.raises(ValueError, match=error):
-        apply_pca_obs(raw=short_raw_data, picks=picks, qrs_indices=qrs)
+    with pytest.raises(exception, match=error):
+        apply_pca_obs(raw=short_raw_data, picks=picks, qrs_times=qrs_times)
