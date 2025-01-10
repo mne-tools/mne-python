@@ -503,7 +503,6 @@ def tfr_array_multitaper(
         * ``'itc'`` : inter-trial coherence.
         * ``'avg_power_itc'`` : average of single trial power and inter-trial
           coherence across trials.
-
     %(n_jobs)s
         The parallelization is implemented across channels.
     return_weights : bool, default False
