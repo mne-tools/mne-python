@@ -70,8 +70,18 @@ def test_heart_artifact_removal(short_raw_data: Raw):
 @pytest.mark.parametrize(
     ("picks", "qrs_times", "error", "exception"),
     [
-        (["eeg"], np.array([[0, 1], [2, 3]]), "qrs_times must be a 1d array", ValueError),
-        (["eeg"], [2, 3, 4], "qrs_times must be an instance of ndarray, got <class 'list'> instead.", TypeError),
+        (
+            ["eeg"],
+            np.array([[0, 1], [2, 3]]),
+            "qrs_times must be a 1d array",
+            ValueError,
+        ),
+        (
+            ["eeg"],
+            [2, 3, 4],
+            "qrs_times must be an instance of ndarray, got <class 'list'> instead.",
+            TypeError,
+        ),
         (
             ["eeg"],
             np.array([None, "foo", 2]),
@@ -88,7 +98,11 @@ def test_heart_artifact_removal(short_raw_data: Raw):
     ],
 )
 def test_pca_obs_bad_input(
-    short_raw_data: Raw, picks: list[str], qrs_times: np.ndarray, error: str, exception: type[Exception]
+    short_raw_data: Raw,
+    picks: list[str],
+    qrs_times: np.ndarray,
+    error: str,
+    exception: type[Exception],
 ):
     """Test if bad input data raises the proper errors in the function sanity checks."""
     pytest.importorskip("pandas")
