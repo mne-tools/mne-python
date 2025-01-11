@@ -88,6 +88,7 @@ stages:
         variables:
           DISPLAY: ':99'
           OPENBLAS_NUM_THREADS: '1'
+          MNE_TEST_ALLOW_SKIP: '^.*(PySide6 causes segfaults).*$'
         steps:
           - bash: |
               set -e
@@ -111,7 +112,7 @@ stages:
           - bash: |
               set -e
               python -m pip install --progress-bar off --upgrade pip
-              python -m pip install --progress-bar off "mne-qt-browser[opengl] @ git+https://github.com/mne-tools/mne-qt-browser.git@main" pyvista scikit-learn pytest-error-for-skips python-picard qtpy nibabel sphinx-gallery "PySide6!=6.8.0,!=6.8.0.1"
+              python -m pip install --progress-bar off "mne-qt-browser[opengl] @ git+https://github.com/mne-tools/mne-qt-browser.git@main" pyvista scikit-learn python-picard qtpy nibabel sphinx-gallery "PySide6!=6.8.0,!=6.8.0.1" pandas neo pymatreader antio defusedxml
               python -m pip uninstall -yq mne
               python -m pip install --progress-bar off --upgrade -e .[test]
             displayName: 'Install dependencies with pip'
@@ -132,7 +133,7 @@ stages:
             displayName: 'Cache testing data'
           - script: python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
             displayName: 'Get test data'
-          - script: pytest --error-for-skips -m "ultraslowtest or pgtest" --tb=short --cov=mne --cov-report=xml --cov-report=html -vv mne
+          - script: pytest -m "ultraslowtest or pgtest" --tb=short --cov=mne --cov-report=xml -vv mne
             displayName: 'slow and mne-qt-browser tests'
           # Coverage
           - bash: bash <(curl -s https://codecov.io/bash)
@@ -144,11 +145,9 @@ stages:
               testRunTitle: 'Publish test results for $(Agent.JobName)'
               failTaskOnFailedTests: true
             condition: succeededOrFailed()
-          - task: PublishCodeCoverageResults@1
+          - task: PublishCodeCoverageResults@2
             inputs:
-              codeCoverageTool: Cobertura
               summaryFileLocation: '$(System.DefaultWorkingDirectory)/**/coverage.xml'
-              reportDirectory: '$(System.DefaultWorkingDirectory)/**/htmlcov'
 
       - job: Qt
         pool:
@@ -156,7 +155,8 @@ stages:
         variables:
           DISPLAY: ':99'
           OPENBLAS_NUM_THREADS: '1'
-          TEST_OPTIONS: "--tb=short --cov=mne --cov-report=xml --cov-report=html --cov-append -vv mne/viz/_brain mne/viz/backends mne/viz/tests/test_evoked.py mne/gui mne/report"
+          TEST_OPTIONS: "--tb=short --cov=mne --cov-report=xml --cov-append -vv mne/viz/_brain mne/viz/backends mne/viz/tests/test_evoked.py mne/gui mne/report"
+          MNE_TEST_ALLOW_SKIP: '^.*(PySide6 causes segfaults).*$'
         steps:
           - bash: ./tools/setup_xvfb.sh
             displayName: 'Install Ubuntu dependencies'
@@ -192,6 +192,7 @@ stages:
               set -eo pipefail
               python -m pip install PyQt6
               LD_DEBUG=libs python -c "from PyQt6.QtWidgets import QApplication, QWidget; app = QApplication([]); import matplotlib; matplotlib.use('QtAgg'); import matplotlib.pyplot as plt; plt.figure()"
+            displayName: 'Check Qt import'
           - bash: |
               set -eo pipefail
               mne sys_info -pd
@@ -226,11 +227,9 @@ stages:
               testRunTitle: 'Publish test results for $(Agent.JobName)'
               failTaskOnFailedTests: true
             condition: succeededOrFailed()
-          - task: PublishCodeCoverageResults@1
+          - task: PublishCodeCoverageResults@2
             inputs:
-              codeCoverageTool: Cobertura
               summaryFileLocation: '$(System.DefaultWorkingDirectory)/**/coverage.xml'
-              reportDirectory: '$(System.DefaultWorkingDirectory)/**/htmlcov'
 
       - job: Windows
         pool:
@@ -285,7 +284,7 @@ stages:
             displayName: 'Cache testing data'
           - script: python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
             displayName: 'Get test data'
-          - script: pytest -m "not (slowtest or pgtest)" --tb=short --cov=mne --cov-report=xml --cov-report=html -vv mne
+          - script: pytest -m "not (slowtest or pgtest)" --tb=short --cov=mne --cov-report=xml -vv mne
             displayName: 'Run tests'
           - bash: bash <(curl -s https://codecov.io/bash)
             displayName: 'Codecov'
@@ -296,8 +295,6 @@ stages:
               testRunTitle: 'Publish test results for $(Agent.JobName) $(TEST_MODE) $(PYTHON_VERSION)'
               failTaskOnFailedTests: true
             condition: succeededOrFailed()
-          - task: PublishCodeCoverageResults@1
+          - task: PublishCodeCoverageResults@2
             inputs:
-              codeCoverageTool: Cobertura
               summaryFileLocation: '$(System.DefaultWorkingDirectory)/**/coverage.xml'
-              reportDirectory: '$(System.DefaultWorkingDirectory)/**/htmlcov'

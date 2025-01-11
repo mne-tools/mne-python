@@ -49,7 +49,7 @@ python -m pip install $STD_ARGS --only-binary ":all:" --extra-index-url "https:/
 python -c "import vtk"
 
 echo "PyVista"
-python -m pip install $STD_ARGS "git+https://github.com/pyvista/pyvista" trame trame-vtk trame-vuetify
+python -m pip install $STD_ARGS "git+https://github.com/pyvista/pyvista" trame trame-vtk trame-vuetify jupyter ipyevents ipympl
 
 echo "picard"
 python -m pip install $STD_ARGS git+https://github.com/pierreablin/picard
@@ -58,7 +58,7 @@ echo "pyvistaqt"
 pip install $STD_ARGS git+https://github.com/pyvista/pyvistaqt
 
 echo "imageio-ffmpeg, xlrd, mffpy"
-pip install $STD_ARGS imageio-ffmpeg xlrd mffpy traitlets pybv eeglabio defusedxml
+pip install $STD_ARGS imageio-ffmpeg xlrd mffpy traitlets pybv eeglabio defusedxml antio
 
 echo "mne-qt-browser"
 pip install $STD_ARGS git+https://github.com/mne-tools/mne-qt-browser
@@ -77,13 +77,11 @@ echo "edfio"
 # https://github.com/mne-tools/mne-python/pull/12609#issuecomment-2115639369
 GIT_CLONE_PROTECTION_ACTIVE=false pip install $STD_ARGS git+https://github.com/the-siesta-group/edfio
 
-if [[ "${PLATFORM}" == "Linux" ]]; then
-	echo "h5io"
-	pip install $STD_ARGS git+https://github.com/h5io/h5io
+echo "h5io"
+pip install $STD_ARGS git+https://github.com/h5io/h5io
 
-	echo "pysnirf2"
-	pip install $STD_ARGS git+https://github.com/BUNPC/pysnirf2
-fi
+echo "pysnirf2"
+pip install $STD_ARGS git+https://github.com/BUNPC/pysnirf2
 
 # Make sure we're on a NumPy 2.0 variant
 echo "Checking NumPy version"
