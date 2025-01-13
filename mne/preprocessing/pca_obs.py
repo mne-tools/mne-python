@@ -28,7 +28,7 @@ def apply_pca_obs(
     n_jobs: int | None = None,
     copy: bool = True,
     verbose: bool | str | int | None = None,
-) -> Raw | None:
+) -> Raw:
     """
     Apply the PCA-OBS algorithm to picks of a Raw object.
 
@@ -77,8 +77,7 @@ def apply_pca_obs(
         n_components=n_components,
     )
 
-    if copy:
-        return raw
+    return raw
 
 
 def _pca_obs(
