@@ -586,7 +586,7 @@ def grand_average(all_inst, interpolate_bads=True, drop_bads=True):
             ]
         from ..evoked import combine_evoked as combine
     elif isinstance(all_inst[0], Spectrum):
-        from ..time_frequency.tfr import combine_tfr as combine
+        from ..time_frequency.spectrum import combine_spectrum as combine
     else:  # isinstance(all_inst[0], AverageTFR):
         from ..time_frequency.tfr import combine_tfr as combine
 
