@@ -757,7 +757,9 @@ class Annotations:
         self.description = np.array([str(mapping.get(d, d)) for d in self.description])
         return self
 
+
 # TODO: Add support for HED annotations for use in epoching.
+
 
 class EpochAnnotationsMixin:
     """Mixin class for Annotations in Epochs."""
