@@ -555,6 +555,9 @@ def grand_average(all_inst, interpolate_bads=True, drop_bads=True):
 
     Notes
     -----
+    Aggregating multitaper TFR datasets with a taper dimension such as for complex or
+    phase data is not supported.
+
     .. versionadded:: 0.11.0
     """
     # check if all elements in the given list are evoked data

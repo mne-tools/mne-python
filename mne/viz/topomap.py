@@ -1882,7 +1882,7 @@ def plot_tfr_topomap(
         tfr, ch_type, sphere=sphere
     )
     outlines = _make_head_outlines(sphere, pos, outlines, clip_origin)
-    data = tfr.data[picks, :, :]
+    data = tfr.data[picks]
 
     # merging grads before rescaling makes ERDs visible
     if merge_channels:
@@ -1890,6 +1890,18 @@ def plot_tfr_topomap(
 
     data = rescale(data, tfr.times, baseline, mode, copy=True)
 
+    # handle unaggregated multitaper (complex or phase multitaper data)
+    if tfr.weights is not None:  # assumes a taper dimension
+        logger.info("Aggregating multitaper estimates before plotting...")
+        weights = tfr.weights[np.newaxis, :, :, np.newaxis]  # add channel & time dims
+        data = weights * data
+        if np.iscomplexobj(data):  # complex coefficients → power
+            data *= data.conj()
+            data = data.real.sum(axis=1)
+            data *= 2 / (weights * weights.conj()).real.sum(axis=1)
+        else:  # tapered phase data → weighted phase data
+            data = data.mean(axis=1)
+    # handle remaining complex amplitude → real power
     if np.iscomplexobj(data):
         data = np.sqrt((data * data.conj()).real)
 
