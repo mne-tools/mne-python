@@ -515,37 +515,42 @@ def _freq_mask(freqs, sfreq, fmin=None, fmax=None, raise_error=True):
 
 
 def grand_average(all_inst, interpolate_bads=True, drop_bads=True):
-    """Make grand average of a list of Evoked or AverageTFR data.
+    """Make grand average of a list of Evoked, AverageTFR, or Spectrum data.
 
-    For :class:`mne.Evoked` data, the function interpolates bad channels based
-    on the ``interpolate_bads`` parameter. If ``interpolate_bads`` is True,
-    the grand average file will contain good channels and the bad channels
-    interpolated from the good MEG/EEG channels.
-    For :class:`mne.time_frequency.AverageTFR` data, the function takes the
-    subset of channels not marked as bad in any of the instances.
+    For :class:`mne.Evoked` data, the function interpolates bad channels based on the
+    ``interpolate_bads`` parameter. If ``interpolate_bads`` is True, the grand average
+    file will contain good channels and the bad channels interpolated from the good
+    MEG/EEG channels.
+    For :class:`mne.time_frequency.AverageTFR` and :class:`mne.time_frequency.Spectrum`
+    data, the function takes the subset of channels not marked as bad in any of the
+    instances.
 
-    The ``grand_average.nave`` attribute will be equal to the number
-    of evoked datasets used to calculate the grand average.
+    The ``grand_average.nave`` attribute will be equal to the number of datasets used to
+    calculate the grand average.
 
-    .. note:: A grand average evoked should not be used for source
-              localization.
+    .. note:: A grand average evoked should not be used for source localization.
 
     Parameters
     ----------
-    all_inst : list of Evoked or AverageTFR
-        The evoked datasets.
+    all_inst : list of Evoked, AverageTFR or Spectrum
+        The datasets.
+
+        .. versionchanged:: 1.10.0
+            Added support for :class:`~mne.time_frequency.Spectrum` objects.
+
     interpolate_bads : bool
         If True, bad MEG and EEG channels are interpolated. Ignored for
-        AverageTFR.
+        :class:`~mne.time_frequency.AverageTFR` and
+        :class:`~mne.time_frequency.Spectrum` data.
     drop_bads : bool
-        If True, drop all bad channels marked as bad in any data set.
-        If neither interpolate_bads nor drop_bads is True, in the output file,
-        every channel marked as bad in at least one of the input files will be
-        marked as bad, but no interpolation or dropping will be performed.
+        If True, drop all bad channels marked as bad in any data set. If neither
+        ``interpolate_bads`` nor ``drop_bads`` is `True`, in the output file, every
+        channel marked as bad in at least one of the input files will be marked as bad,
+        but no interpolation or dropping will be performed.
 
     Returns
     -------
-    grand_average : Evoked | AverageTFR
+    grand_average : Evoked | AverageTFR | Spectrum
         The grand average data. Same type as input.
 
     Notes
@@ -558,15 +563,17 @@ def grand_average(all_inst, interpolate_bads=True, drop_bads=True):
     # check if all elements in the given list are evoked data
     from ..channels.channels import equalize_channels
     from ..evoked import Evoked
-    from ..time_frequency import AverageTFR
+    from ..time_frequency import AverageTFR, Spectrum
 
     if not all_inst:
-        raise ValueError("Please pass a list of Evoked or AverageTFR objects.")
+        raise ValueError(
+            "Please pass a list of Evoked, AverageTFR, or Spectrum objects."
+        )
     elif len(all_inst) == 1:
         warn("Only a single dataset was passed to mne.grand_average().")
 
     inst_type = type(all_inst[0])
-    _validate_type(all_inst[0], (Evoked, AverageTFR), "All elements")
+    _validate_type(all_inst[0], (Evoked, AverageTFR, Spectrum), "All elements")
     for inst in all_inst:
         _validate_type(inst, inst_type, "All elements", "of the same type")
 
@@ -581,6 +588,8 @@ def grand_average(all_inst, interpolate_bads=True, drop_bads=True):
                 for inst in all_inst
             ]
         from ..evoked import combine_evoked as combine
+    elif isinstance(all_inst[0], Spectrum):
+        from ..time_frequency.spectrum import combine_spectrum as combine
     else:  # isinstance(all_inst[0], AverageTFR):
         from ..time_frequency.tfr import combine_tfr as combine
 
@@ -591,9 +600,9 @@ def grand_average(all_inst, interpolate_bads=True, drop_bads=True):
                 inst.drop_channels(bads)
 
     equalize_channels(all_inst, copy=False)
-    # make grand_average object using combine_[evoked/tfr]
+    # make grand_average object using combine_[evoked/tfr/spectrum]
     grand_average = combine(all_inst, weights="equal")
-    # change the grand_average.nave to the number of Evokeds
+    # change the grand_average.nave to the number of datasets
     grand_average.nave = len(all_inst)
     # change comment field
     grand_average.comment = f"Grand average (n = {grand_average.nave})"
