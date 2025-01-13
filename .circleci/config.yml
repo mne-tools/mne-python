@@ -516,25 +516,26 @@ workflows:
           filters:
             branches:
               only:
+                - main
                 - /maint\/.*/
 
   main:
     jobs:
       - build_docs:
           scheduled: "true"
-          name: build_docs_stable
+          name: build_docs_main
       - deploy:
-          name: deploy_stable
+          name: deploy_main
           requires:
-            - build_docs_stable
+            - build_docs_main
     triggers:
       - schedule:
-          # "At 4:00 AM GMT every day"
-          cron: "0 4 * * *"
+          # "At 6:00 AM GMT every day"
+          cron: "0 6 * * *"
           filters:
             branches:
               only:
-                - /maint\/.*/
+                - main
 
   monthly:
     jobs:
