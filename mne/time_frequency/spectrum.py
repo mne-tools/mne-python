@@ -1649,7 +1649,7 @@ def combine_spectrum(all_spectrum, weights="nave"):
     Create a new :class:`mne.time_frequency.Spectrum` instance, using a combination of
     the supplied instances as its data. By default, the mean (weighted by trials) is
     used. Subtraction can be performed by passing negative weights (e.g., ``[1, -1]``).
-    Data must have the same channels and the same time instants.
+    Data must have the same channels and the same frequencies.
 
     Parameters
     ----------
@@ -1708,6 +1708,8 @@ def combine_spectrum(all_spectrum, weights="nave"):
         spectrum._nave = max(
             int(1.0 / sum(w**2 / s_.nave for w, s_ in zip(weights, all_spectrum))), 1
         )
+    else:
+        spectrum._nave = len(all_spectrum)
     return spectrum
 
 
