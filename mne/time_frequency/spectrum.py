@@ -1708,8 +1708,6 @@ def combine_spectrum(all_spectrum, weights="nave"):
         spectrum._nave = max(
             int(1.0 / sum(w**2 / s_.nave for w, s_ in zip(weights, all_spectrum))), 1
         )
-    else:
-        spectrum._nave = len(all_spectrum)
     return spectrum
 
 
