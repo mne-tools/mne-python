@@ -106,7 +106,7 @@ def _read_mff_header(filepath):
     if bad:
         raise RuntimeError(
             "EGI epoch first/last samps could not be parsed:\n"
-            f'{list(epochs["first_samps"])}\n{list(epochs["last_samps"])}'
+            f"{list(epochs['first_samps'])}\n{list(epochs['last_samps'])}"
         )
     summaryinfo.update(epochs)
     # index which samples in raw are actually readable from disk (i.e., not

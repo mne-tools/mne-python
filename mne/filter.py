@@ -411,8 +411,7 @@ def _prep_for_filtering(x, copy, picks=None):
         picks = np.tile(picks, n_epochs) + offset
     elif len(orig_shape) > 3:
         raise ValueError(
-            "picks argument is not supported for data with more"
-            " than three dimensions"
+            "picks argument is not supported for data with more than three dimensions"
         )
     assert all(0 <= pick < x.shape[0] for pick in picks)  # guaranteed by above
 
@@ -2873,7 +2872,7 @@ def design_mne_c_filter(
     h_width = (int(((n_freqs - 1) * h_trans_bandwidth) / (0.5 * sfreq)) + 1) // 2
     h_start = int(((n_freqs - 1) * h_freq) / (0.5 * sfreq))
     logger.info(
-        "filter : %7.3f ... %6.1f Hz   bins : %d ... %d of %d " "hpw : %d lpw : %d",
+        "filter : %7.3f ... %6.1f Hz   bins : %d ... %d of %d hpw : %d lpw : %d",
         l_freq,
         h_freq,
         l_start,

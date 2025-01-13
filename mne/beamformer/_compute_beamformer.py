@@ -507,13 +507,13 @@ class Beamformer(dict):
             n_channels,
         )
         if self["pick_ori"] is not None:
-            out += f', {self["pick_ori"]} ori'
+            out += f", {self['pick_ori']} ori"
         if self["weight_norm"] is not None:
-            out += f', {self["weight_norm"]} norm'
+            out += f", {self['weight_norm']} norm"
         if self.get("inversion") is not None:
-            out += f', {self["inversion"]} inversion'
+            out += f", {self['inversion']} inversion"
         if "rank" in self:
-            out += f', rank {self["rank"]}'
+            out += f", rank {self['rank']}"
         out += ">"
         return out
 
@@ -531,7 +531,7 @@ class Beamformer(dict):
         """
         _, write_hdf5 = _import_h5io_funcs()
 
-        ending = f'-{self["kind"].lower()}.h5'
+        ending = f"-{self['kind'].lower()}.h5"
         check_fname(fname, self["kind"], (ending,))
         csd_orig = None
         try:

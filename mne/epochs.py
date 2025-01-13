@@ -1671,8 +1671,7 @@ class BaseEpochs(
             # we start out with an empty array, allocate only if necessary
             data = np.empty((0, len(self.info["ch_names"]), len(self.times)))
             msg = (
-                f"for {n_events} events and {len(self._raw_times)} "
-                "original time points"
+                f"for {n_events} events and {len(self._raw_times)} original time points"
             )
             if self._decim > 1:
                 msg += " (prior to decimation)"
@@ -2301,8 +2300,7 @@ class BaseEpochs(
             logger.info(f"Splitting into {n_parts} parts")
             if n_parts > 100:  # This must be an error
                 raise ValueError(
-                    f"Split size {split_size} would result in writing "
-                    f"{n_parts} files"
+                    f"Split size {split_size} would result in writing {n_parts} files"
                 )
 
         if len(self.drop_log) > 100000:
@@ -3143,7 +3141,7 @@ def make_metadata(
         raise ValueError(
             f"The event names in keep_first and keep_last must "
             f"be mutually exclusive. Specified in both: "
-            f'{", ".join(sorted(keep_first_and_last))}'
+            f"{', '.join(sorted(keep_first_and_last))}"
         )
     del keep_first_and_last
 
@@ -3163,7 +3161,7 @@ def make_metadata(
         if event_name_diff:
             raise ValueError(
                 f"Present in {input_name}, but missing from event_id: "
-                f'{", ".join(event_name_diff)}'
+                f"{', '.join(event_name_diff)}"
             )
 
     _diff_input_strings_vs_event_id(
@@ -3556,8 +3554,7 @@ class Epochs(BaseEpochs):
 
         if not isinstance(raw, BaseRaw):
             raise ValueError(
-                "The first argument to `Epochs` must be an "
-                "instance of mne.io.BaseRaw"
+                "The first argument to `Epochs` must be an instance of mne.io.BaseRaw"
             )
         info = deepcopy(raw.info)
         annotations = raw.annotations.copy()
@@ -4441,8 +4438,7 @@ class EpochsFIF(BaseEpochs):
         else:
             # read the correct subset of the data
             raise RuntimeError(
-                "Correct epoch could not be found, please "
-                "contact mne-python developers"
+                "Correct epoch could not be found, please contact mne-python developers"
             )
         # the following is equivalent to this, but faster:
         #

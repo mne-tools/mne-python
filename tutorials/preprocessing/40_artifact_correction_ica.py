@@ -291,8 +291,7 @@ explained_var_ratio = ica.get_explained_variance_ratio(
 # This time, print as percentage.
 ratio_percent = round(100 * explained_var_ratio["eeg"])
 print(
-    f"Fraction of variance in EEG signal explained by first component: "
-    f"{ratio_percent}%"
+    f"Fraction of variance in EEG signal explained by first component: {ratio_percent}%"
 )
 
 # %%

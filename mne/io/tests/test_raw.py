@@ -533,7 +533,7 @@ def _test_raw_crop(reader, t_prop, kwargs):
     n_samp = 50  # crop to this number of samples (per instance)
     crop_t = n_samp / raw_1.info["sfreq"]
     t_start = t_prop * crop_t  # also crop to some fraction into the first inst
-    extra = f' t_start={t_start}, preload={kwargs.get("preload", False)}'
+    extra = f" t_start={t_start}, preload={kwargs.get('preload', False)}"
     stop = (n_samp - 1) / raw_1.info["sfreq"]
     raw_1.crop(0, stop)
     assert len(raw_1.times) == 50

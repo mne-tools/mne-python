@@ -136,7 +136,7 @@ def _channel_type_old(info, idx):
         else:
             return t
 
-    raise ValueError(f'Unknown channel type for {ch["ch_name"]}')
+    raise ValueError(f"Unknown channel type for {ch['ch_name']}")
 
 
 def _assert_channel_types(info):

@@ -214,7 +214,7 @@ def get_meg_helmet_surf(info, trans=None, *, verbose=None):
             ]
         )
         logger.info(
-            "Getting helmet for system %s (derived from %d MEG " "channel locations)",
+            "Getting helmet for system %s (derived from %d MEG channel locations)",
             system,
             len(rr),
         )
@@ -733,7 +733,7 @@ class _CheckInside:
         else:
             self._init_old()
         logger.debug(
-            f'Setting up {mode} interior check for {len(self.surf["rr"])} '
+            f"Setting up {mode} interior check for {len(self.surf['rr'])} "
             f"points took {(time.time() - t0) * 1000:0.1f} ms"
         )
 
@@ -761,8 +761,7 @@ class _CheckInside:
     def __call__(self, rr, n_jobs=None, verbose=None):
         n_orig = len(rr)
         logger.info(
-            f"Checking surface interior status for "
-            f'{n_orig} point{_pl(n_orig, " ")}...'
+            f"Checking surface interior status for {n_orig} point{_pl(n_orig, ' ')}..."
         )
         t0 = time.time()
         if self.mode == "pyvista":
@@ -770,7 +769,7 @@ class _CheckInside:
         else:
             inside = self._call_old(rr, n_jobs)
         n = inside.sum()
-        logger.info(f'    Total {n}/{n_orig} point{_pl(n, " ")} inside the surface')
+        logger.info(f"    Total {n}/{n_orig} point{_pl(n, ' ')} inside the surface")
         logger.info(f"Interior check completed in {(time.time() - t0) * 1000:0.1f} ms")
         return inside
 
@@ -792,7 +791,7 @@ class _CheckInside:
             n = (in_mask).sum()
             n_pad = str(n).rjust(prec)
             logger.info(
-                f'    Found {n_pad}/{n_orig} point{_pl(n, " ")} '
+                f"    Found {n_pad}/{n_orig} point{_pl(n, ' ')} "
                 f"inside  an interior sphere of radius "
                 f"{1000 * self.inner_r:6.1f} mm"
             )
@@ -801,7 +800,7 @@ class _CheckInside:
             n = (out_mask).sum()
             n_pad = str(n).rjust(prec)
             logger.info(
-                f'    Found {n_pad}/{n_orig} point{_pl(n, " ")} '
+                f"    Found {n_pad}/{n_orig} point{_pl(n, ' ')} "
                 f"outside an exterior sphere of radius "
                 f"{1000 * self.outer_r:6.1f} mm"
             )
@@ -818,7 +817,7 @@ class _CheckInside:
         n_pad = str(n).rjust(prec)
         check_pad = str(len(del_outside)).rjust(prec)
         logger.info(
-            f'    Found {n_pad}/{check_pad} point{_pl(n, " ")} outside using '
+            f"    Found {n_pad}/{check_pad} point{_pl(n, ' ')} outside using "
             "surface Qhull"
         )
 
@@ -828,7 +827,7 @@ class _CheckInside:
         n_pad = str(n).rjust(prec)
         check_pad = str(len(solid_outside)).rjust(prec)
         logger.info(
-            f'    Found {n_pad}/{check_pad} point{_pl(n, " ")} outside using '
+            f"    Found {n_pad}/{check_pad} point{_pl(n, ' ')} outside using "
             "solid angles"
         )
         inside[idx[solid_outside]] = False

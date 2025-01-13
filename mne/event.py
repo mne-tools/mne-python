@@ -1649,7 +1649,7 @@ def match_event_names(event_names, keys, *, on_missing="raise"):
         _on_missing(
             on_missing=on_missing,
             msg=f'Event name "{key}" could not be found. The following events '
-            f'are present in the data: {", ".join(event_names)}',
+            f"are present in the data: {', '.join(event_names)}",
             error_klass=KeyError,
         )
 

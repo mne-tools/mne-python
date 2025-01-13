@@ -962,7 +962,7 @@ class Evoked(
 
         if out.comment is not None and " + " in out.comment:
             out.comment = f"({out.comment})"  # multiple conditions in evoked
-        out.comment = f'- {out.comment or "unknown"}'
+        out.comment = f"- {out.comment or 'unknown'}"
         return out
 
     def get_peak(
@@ -1053,8 +1053,7 @@ class Evoked(
                 raise ValueError('Channel type must be "grad" for merge_grads')
             elif mode == "neg":
                 raise ValueError(
-                    "Negative mode (mode=neg) does not make "
-                    "sense with merge_grads=True"
+                    "Negative mode (mode=neg) does not make sense with merge_grads=True"
                 )
 
         meg = eeg = misc = seeg = dbs = ecog = fnirs = False
@@ -1650,12 +1649,12 @@ def combine_evoked(all_evoked, weights):
         if e.comment is not None and " + " in e.comment:  # multiple conditions
             this_comment = f"({e.comment})"
         else:
-            this_comment = f'{e.comment or "unknown"}'
+            this_comment = f"{e.comment or 'unknown'}"
         # assemble everything
         if idx == 0:
             comment += f"{sign}{weight}{multiplier}{this_comment}"
         else:
-            comment += f' {sign or "+"} {weight}{multiplier}{this_comment}'
+            comment += f" {sign or '+'} {weight}{multiplier}{this_comment}"
     # special-case: combine_evoked([e1, -e2], [1, -1])
     evoked.comment = comment.replace(" - - ", " + ")
     return evoked
@@ -1872,8 +1871,7 @@ def _read_evoked(fname, condition=None, kind="average", allow_maxshield=False):
 
             if len(chs) != nchan:
                 raise ValueError(
-                    "Number of channels and number of "
-                    "channel definitions are different"
+                    "Number of channels and number of channel definitions are different"
                 )
 
             ch_names_mapping = _read_extended_ch_info(chs, my_evoked, fid)

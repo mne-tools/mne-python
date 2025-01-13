@@ -255,7 +255,7 @@ print(fwd)
 #    or ``inv['src']`` so that this removal is adequately accounted for.
 
 print(f"Before: {src}")
-print(f'After:  {fwd["src"]}')
+print(f"After:  {fwd['src']}")
 
 # %%
 # We can explore the content of ``fwd`` to access the numpy array that contains
