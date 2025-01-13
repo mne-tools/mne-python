@@ -1654,7 +1654,7 @@ def combine_spectrum(all_spectrum, weights="nave"):
     Parameters
     ----------
     all_spectrum : list of Spectrum
-        The tfr datasets.
+        The Spectrum objects.
     weights : list of float | str
         The weights to apply to the data of each :class:`~mne.time_frequency.Spectrum`
         instance, or a string describing the weighting strategy to apply: 'nave'
