@@ -77,7 +77,7 @@ def read_raw_neuralynx(
     )
 
 
-# Helper for neo deprecation of exclude_filename -> exclude_filenames in 0.13.2
+# Helper for neo change of exclude_filename -> exclude_filenames in 0.13.2
 def _exclude_kwarg(exclude_fnames):
     from neo.io import NeuralynxIO
 

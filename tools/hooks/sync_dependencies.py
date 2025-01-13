@@ -4,7 +4,12 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+import difflib
 import re
+
+# NB here we use metadata from the latest stable release because this goes in our
+# README, which should apply to the latest release (rather than dev).
+# For oldest supported dev dependencies, see update_environment_file.py.
 from importlib.metadata import metadata
 from pathlib import Path
 
@@ -77,7 +82,6 @@ core_deps_bullets = [
     f"- `{key} <{url}>`__{core_deps_pins[key.lower()]}"
     for key, url in CORE_DEPS_URLS.items()
 ]
-core_deps_rst = "\n" + "\n".join(core_deps_bullets) + "\n"
 
 # rewrite the README file
 lines = README_PATH.read_text("utf-8").splitlines()
@@ -87,9 +91,14 @@ for line in lines:
     if line.strip() == BEGIN:
         skip = True
         out_lines.append(line)
-        out_lines.append(core_deps_rst)
+        out_lines.extend(["", *core_deps_bullets, ""])
     if line.strip() == END:
         skip = False
     if not skip:
         out_lines.append(line)
-README_PATH.write_text("\n".join(out_lines) + "\n", encoding="utf-8")
+new = "\n".join(out_lines) + "\n"
+old = README_PATH.read_text("utf-8")
+if new != old:
+    diff = "\n".join(difflib.unified_diff(old.splitlines(), new.splitlines()))
+    print(f"Updating {README_PATH} with diff:\n{diff}")
+    README_PATH.write_text(new, encoding="utf-8")

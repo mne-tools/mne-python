@@ -23,11 +23,11 @@ dependencies = [
   "decorator",
   "jinja2",
   "lazy_loader >= 0.3",
-  "matplotlib >= 3.6",
-  "numpy >= 1.23,<3",
+  "matplotlib >= 3.7",  # 2023/02/13
+  "numpy >= 1.25,<3",  # 2023/06/17
   "packaging",
   "pooch >= 1.5",
-  "scipy >= 1.9",
+  "scipy >= 1.11",  # 2023/06/25
   "tqdm",
 ]
 description = "MNE-Python project for MEG and EEG data analysis."
@@ -111,7 +111,7 @@ full-no-qt = [
   "nilearn",
   "numba",
   "openmeeg >= 2.5.5",
-  "pandas",
+  "pandas >= 2.0",  # 2023/04/03
   "pillow",  # for `Brain.save_image` and `mne.Report`
   "pyarrow",  # only needed to avoid a deprecation warning in pandas
   "pybv",
@@ -269,7 +269,6 @@ addopts = """--durations=20 --doctest-modules -rfEXs --cov-report= --tb=short \
     --ignore=mne/gui/_*.py --ignore=mne/icons --ignore=tools \
     --ignore=mne/report/js_and_css \
     --color=yes --capture=sys"""
-junit_family = "xunit2"
 
 [tool.rstcheck]
 ignore_directives = [
