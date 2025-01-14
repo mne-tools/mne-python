@@ -3340,6 +3340,7 @@ def _set_contour_locator(vmin, vmax, contours):
         # correct number of bins is equal to contours + 1.
         locator = ticker.MaxNLocator(nbins=contours + 1)
         contours = locator.tick_values(vmin, vmax)
+        contours = contours[1:-1]
     return locator, contours
 
 
