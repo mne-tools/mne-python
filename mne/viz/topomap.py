@@ -2287,11 +2287,17 @@ def plot_evoked_topomap(
     _vlim = [
         _setup_vmin_vmax(data[:, i], *vlim, norm=merge_channels) for i in range(n_times)
     ]
-    _vlim = (np.min(_vlim), np.max(_vlim))
+    _vlim = [np.min(_vlim), np.max(_vlim)]
     cmap = _setup_cmap(cmap, n_axes=n_times, norm=_vlim[0] >= 0)
     # set up contours
     if not isinstance(contours, list | np.ndarray):
         _, contours = _set_contour_locator(*_vlim, contours)
+    else:
+        if vlim[0] is None and np.any((contours < _vlim[0])):
+            _vlim[0] = contours[0]
+        if vlim[1] is None and np.any((contours > _vlim[1])):
+            _vlim[1] = contours[-1]
+
     # prepare for main loop over times
     kwargs = dict(
         sensors=sensors,
