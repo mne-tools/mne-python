@@ -2293,9 +2293,9 @@ def plot_evoked_topomap(
     if not isinstance(contours, list | np.ndarray):
         _, contours = _set_contour_locator(*_vlim, contours)
     else:
-        if vlim[0] is None and np.any((contours < _vlim[0])):
+        if vlim[0] is None and np.any(contours < _vlim[0]):
             _vlim[0] = contours[0]
-        if vlim[1] is None and np.any((contours > _vlim[1])):
+        if vlim[1] is None and np.any(contours > _vlim[1]):
             _vlim[1] = contours[-1]
 
     # prepare for main loop over times
