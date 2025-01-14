@@ -3914,10 +3914,10 @@ class RawTFRArray(RawTFR):
 def combine_tfr(all_tfr, weights="nave"):
     """Merge AverageTFR data by weighted addition.
 
-    Create a new AverageTFR instance, using a combination of the supplied
-    instances as its data. By default, the mean (weighted by trials) is used.
-    Subtraction can be performed by passing negative weights (e.g., [1, -1]).
-    Data must have the same channels and the same time instants.
+    Create a new :class:`mne.time_frequency.AverageTFR` instance, using a combination of
+    the supplied instances as its data. By default, the mean (weighted by trials) is
+    used. Subtraction can be performed by passing negative weights (e.g., [1, -1]). Data
+    must have the same channels and the same time instants.
 
     Parameters
     ----------
