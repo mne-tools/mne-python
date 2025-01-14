@@ -443,7 +443,7 @@ def _plot_mri_contours(
         if src[0]["coord_frame"] != FIFF.FIFFV_COORD_MRI:
             raise ValueError(
                 "Source space must be in MRI coordinates, got "
-                f'{_frame_to_str[src[0]["coord_frame"]]}'
+                f"{_frame_to_str[src[0]['coord_frame']]}"
             )
         for src_ in src:
             points = src_["rr"][src_["inuse"].astype(bool)]
@@ -708,8 +708,7 @@ def plot_bem(
         src = read_source_spaces(src)
     elif src is not None and not isinstance(src, SourceSpaces):
         raise TypeError(
-            "src needs to be None, path-like or SourceSpaces instance, "
-            f"not {repr(src)}"
+            f"src needs to be None, path-like or SourceSpaces instance, not {repr(src)}"
         )
 
     if len(surfaces) == 0:

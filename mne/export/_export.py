@@ -216,7 +216,6 @@ def _infer_check_export_fmt(fmt, fname, supported_formats):
 
         supported_str = ", ".join(supported)
         raise ValueError(
-            f"Format '{fmt}' is not supported. "
-            f"Supported formats are {supported_str}."
+            f"Format '{fmt}' is not supported. Supported formats are {supported_str}."
         )
     return fmt

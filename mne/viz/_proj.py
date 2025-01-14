@@ -90,8 +90,7 @@ def plot_projs_joint(
     missing = (~used.astype(bool)).sum()
     if missing:
         warn(
-            f"{missing} projector{_pl(missing)} had no channel names "
-            "present in epochs"
+            f"{missing} projector{_pl(missing)} had no channel names present in epochs"
         )
     del projs
     ch_types = list(proj_by_type)  # reduce to number we actually need

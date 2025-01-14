@@ -115,11 +115,11 @@ fig = mne.viz.plot_alignment(
 mne.viz.set_3d_view(fig, 45, 90, distance=0.6, focalpoint=(0.0, 0.0, 0.0))
 print(
     "Distance from head origin to MEG origin: "
-    f"{1000 * np.linalg.norm(raw.info["dev_head_t"]["trans"][:3, 3]):.1f} mm"
+    f"{1000 * np.linalg.norm(raw.info['dev_head_t']['trans'][:3, 3]):.1f} mm"
 )
 print(
     "Distance from head origin to MRI origin: "
-    f"{1000 * np.linalg.norm(trans["trans"][:3, 3]):.1f} mm"
+    f"{1000 * np.linalg.norm(trans['trans'][:3, 3]):.1f} mm"
 )
 dists = mne.dig_mri_distances(raw.info, trans, "sample", subjects_dir=subjects_dir)
 print(

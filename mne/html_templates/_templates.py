@@ -66,7 +66,7 @@ def _format_time_range(inst) -> str:
 
 def _format_projs(info) -> list[str]:
     """Format projectors."""
-    projs = [f'{p["desc"]} ({"on" if p["active"] else "off"})' for p in info["projs"]]
+    projs = [f"{p['desc']} ({'on' if p['active'] else 'off'})" for p in info["projs"]]
     return projs
 
 

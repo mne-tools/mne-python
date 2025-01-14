@@ -1293,7 +1293,7 @@ def _compute_covariance_auto(
             data_ = data.copy()
             name = method_.__name__ if callable(method_) else method_
             logger.info(
-                f'Estimating {cov_kind + (" " if cov_kind else "")}'
+                f"Estimating {cov_kind + (' ' if cov_kind else '')}"
                 f"covariance using {name.upper()}"
             )
             mp = method_params[method_]
@@ -1712,7 +1712,7 @@ def _get_ch_whitener(A, pca, ch_type, rank):
 
     logger.info(
         f"    Setting small {ch_type} eigenvalues to zero "
-        f'({"using" if pca else "without"} PCA)'
+        f"({'using' if pca else 'without'} PCA)"
     )
     if pca:  # No PCA case.
         # This line will reduce the actual number of variables in data
@@ -2400,7 +2400,7 @@ def _read_cov(fid, node, cov_kind, limited=False, verbose=None):
                     data = tag.data
                     diag = True
                     logger.info(
-                        "    %d x %d diagonal covariance (kind = " "%d) found.",
+                        "    %d x %d diagonal covariance (kind = %d) found.",
                         dim,
                         dim,
                         cov_kind,
@@ -2416,7 +2416,7 @@ def _read_cov(fid, node, cov_kind, limited=False, verbose=None):
                     data.flat[:: dim + 1] /= 2.0
                     diag = False
                     logger.info(
-                        "    %d x %d full covariance (kind = %d) " "found.",
+                        "    %d x %d full covariance (kind = %d) found.",
                         dim,
                         dim,
                         cov_kind,
@@ -2425,7 +2425,7 @@ def _read_cov(fid, node, cov_kind, limited=False, verbose=None):
                     diag = False
                     data = tag.data
                     logger.info(
-                        "    %d x %d sparse covariance (kind = %d)" " found.",
+                        "    %d x %d sparse covariance (kind = %d) found.",
                         dim,
                         dim,
                         cov_kind,

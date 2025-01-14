@@ -455,7 +455,7 @@ def _check_set(ch, projs, ch_type):
         for proj in projs:
             if ch["ch_name"] in proj["data"]["col_names"]:
                 raise RuntimeError(
-                    f'Cannot change channel type for channel {ch["ch_name"]} in '
+                    f"Cannot change channel type for channel {ch['ch_name']} in "
                     f'projector "{proj["desc"]}"'
                 )
     ch["kind"] = new_kind
@@ -1867,7 +1867,7 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
             ):
                 raise RuntimeError(
                     f'{prepend_error}info["meas_date"] must be a datetime object in UTC'
-                    f' or None, got {repr(self["meas_date"])!r}'
+                    f" or None, got {repr(self['meas_date'])!r}"
                 )
 
         chs = [ch["ch_name"] for ch in self["chs"]]
@@ -3680,8 +3680,7 @@ def _write_ch_infos(fid, chs, reset_range, ch_names_mapping):
     # only write new-style channel information if necessary
     if len(ch_names_mapping):
         logger.info(
-            "    Writing channel names to FIF truncated to 15 characters "
-            "with remapping"
+            "    Writing channel names to FIF truncated to 15 characters with remapping"
         )
         for ch in chs:
             start_block(fid, FIFF.FIFFB_CH_INFO)
