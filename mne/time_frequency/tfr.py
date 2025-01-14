@@ -3913,10 +3913,10 @@ class RawTFRArray(RawTFR):
 def combine_tfr(all_tfr, weights="nave"):
     """Merge AverageTFR data by weighted addition.
 
-    Create a new AverageTFR instance, using a combination of the supplied
-    instances as its data. By default, the mean (weighted by trials) is used.
-    Subtraction can be performed by passing negative weights (e.g., [1, -1]).
-    Data must have the same channels and the same time instants.
+    Create a new :class:`mne.time_frequency.AverageTFR` instance, using a combination of
+    the supplied instances as its data. By default, the mean (weighted by trials) is
+    used. Subtraction can be performed by passing negative weights (e.g., [1, -1]). Data
+    must have the same channels and the same time instants.
 
     Parameters
     ----------
@@ -3959,12 +3959,12 @@ def combine_tfr(all_tfr, weights="nave"):
 
     ch_names = tfr.ch_names
     for t_ in all_tfr[1:]:
-        assert t_.ch_names == ch_names, ValueError(
-            f"{tfr} and {t_} do not contain the same channels"
-        )
-        assert np.max(np.abs(t_.times - tfr.times)) < 1e-7, ValueError(
-            f"{tfr} and {t_} do not contain the same time instants"
-        )
+        assert (
+            t_.ch_names == ch_names
+        ), f"{tfr} and {t_} do not contain the same channels"
+        assert (
+            np.max(np.abs(t_.times - tfr.times)) < 1e-7
+        ), f"{tfr} and {t_} do not contain the same time instants"
 
     # use union of bad channels
     bads = list(set(tfr.info["bads"]).union(*(t_.info["bads"] for t_ in all_tfr[1:])))
