@@ -296,6 +296,13 @@ def test_plot_topo_image_epochs():
     assert qm_cmap[0] is cmap
 
 
+def test_plot_topo_select():
+    """Test selecting sensors in an ERP topography plot."""
+    # Show topography
+    evoked = _get_epochs().average()
+    plot_evoked_topo(evoked, select=True)
+
+
 def test_plot_tfr_topo():
     """Test plotting of TFR data."""
     epochs = _get_epochs()
