@@ -1689,12 +1689,12 @@ def combine_spectrum(all_spectrum, weights="nave"):
 
     ch_names = spectrum.ch_names
     for s_ in all_spectrum[1:]:
-        assert (
-            s_.ch_names == ch_names
-        ), f"{spectrum} and {s_} do not contain the same channels"
-        assert (
-            np.max(np.abs(s_.freqs - spectrum.freqs)) < 1e-7
-        ), f"{spectrum} and {s_} do not contain the same frequencies"
+        assert s_.ch_names == ch_names, (
+            f"{spectrum} and {s_} do not contain the same channels"
+        )
+        assert np.max(np.abs(s_.freqs - spectrum.freqs)) < 1e-7, (
+            f"{spectrum} and {s_} do not contain the same frequencies"
+        )
 
     # use union of bad channels
     bads = list(
