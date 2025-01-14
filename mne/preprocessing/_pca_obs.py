@@ -9,12 +9,9 @@ import math
 import numpy as np
 from scipy.interpolate import PchipInterpolator as pchip
 from scipy.signal import detrend
-from sklearn.decomposition import PCA
 
-from mne.io.fiff.raw import Raw
-from mne.utils import logger
-from mne.utils._logging import verbose
-from mne.utils.check import _validate_type
+from ..io.fiff.raw import Raw
+from ..utils import _PCA, _validate_type, logger, verbose
 
 
 @verbose
@@ -138,7 +135,7 @@ def _pca_obs(
     # Perform PCA with sklearn #
     ############################
     # run PCA, perform singular value decomposition (SVD)
-    pca = PCA(svd_solver="full")
+    pca = _PCA()
     pca.fit(dpcamat)
     factor_loadings = pca.components_.T * np.sqrt(pca.explained_variance_)
 
