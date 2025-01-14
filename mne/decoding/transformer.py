@@ -3,14 +3,13 @@
 # Copyright the MNE-Python contributors.
 
 import numpy as np
-from sklearn.base import BaseEstimator, TransformerMixin
+from sklearn.base import BaseEstimator, TransformerMixin, check_array
 
 from .._fiff.pick import (
     _pick_data_channels,
     _picks_by_type,
     _picks_to_idx,
     pick_info,
-    pick_types,
 )
 from ..cov import _check_scalings_user
 from ..filter import filter_data
@@ -397,6 +396,7 @@ class PSDEstimator(TransformerMixin, BaseEstimator):
         self.low_bias = low_bias
         self.n_jobs = n_jobs
         self.normalization = normalization
+        self.verbose = verbose
 
     def fit(self, epochs_data, y):
         """Compute power spectral density (PSD) using a multi-taper method.
@@ -520,7 +520,7 @@ class FilterEstimator(TransformerMixin, BaseEstimator):
         self.info = info
         self.l_freq = l_freq
         self.h_freq = h_freq
-        self.picks = _picks_to_idx(info, picks)
+        self.picks = picks
         self.filter_length = filter_length
         self.l_trans_bandwidth = l_trans_bandwidth
         self.h_trans_bandwidth = h_trans_bandwidth
@@ -528,6 +528,14 @@ class FilterEstimator(TransformerMixin, BaseEstimator):
         self.method = method
         self.iir_params = iir_params
         self.fir_design = fir_design
+        self.verbose = verbose
+
+    def _check_data(self, epochs_data):
+        epochs_data = check_array(
+            epochs_data, dtype=np.float64, ensure_2d=False, order="C"
+        )
+        epochs_data = np.atleast_3d(epochs_data)
+        return epochs_data
 
     def fit(self, epochs_data, y):
         """Filter data.
@@ -544,24 +552,11 @@ class FilterEstimator(TransformerMixin, BaseEstimator):
         self : instance of FilterEstimator
             The modified instance.
         """
-        if not isinstance(epochs_data, np.ndarray):
-            raise ValueError(
-                f"epochs_data should be of type ndarray (got {type(epochs_data)})."
-            )
-
-        if self.picks is None:
-            self.picks = pick_types(
-                self.info, meg=True, eeg=True, ref_meg=False, exclude=[]
-            )
+        self.picks_ = _picks_to_idx(self.info, self.picks)
+        self._check_data(epochs_data)
 
         if self.l_freq == 0:
             self.l_freq = None
-        if self.h_freq is not None and self.h_freq > (self.info["sfreq"] / 2.0):
-            self.h_freq = None
-        if self.l_freq is not None and not isinstance(self.l_freq, float):
-            self.l_freq = float(self.l_freq)
-        if self.h_freq is not None and not isinstance(self.h_freq, float):
-            self.h_freq = float(self.h_freq)
 
         if self.info["lowpass"] is None or (
             self.h_freq is not None
@@ -594,17 +589,12 @@ class FilterEstimator(TransformerMixin, BaseEstimator):
         X : array, shape (n_epochs, n_channels, n_times)
             The data after filtering.
         """
-        if not isinstance(epochs_data, np.ndarray):
-            raise ValueError(
-                f"epochs_data should be of type ndarray (got {type(epochs_data)})."
-            )
-        epochs_data = np.atleast_3d(epochs_data)
         return filter_data(
-            epochs_data,
+            self._check_data(epochs_data),
             self.info["sfreq"],
             self.l_freq,
             self.h_freq,
-            self.picks,
+            self.picks_,
             self.filter_length,
             self.l_trans_bandwidth,
             self.h_trans_bandwidth,
@@ -854,6 +844,7 @@ class TemporalFilter(TransformerMixin, BaseEstimator):
         self.iir_params = iir_params
         self.fir_window = fir_window
         self.fir_design = fir_design
+        self.verbose = verbose
 
         if not isinstance(self.n_jobs, int) and self.n_jobs == "cuda":
             raise ValueError(
