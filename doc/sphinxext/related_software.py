@@ -163,9 +163,9 @@ def _get_packages() -> dict[str, str]:
     assert not dups, f"Duplicates in MANUAL_PACKAGES and PYPI_PACKAGES: {sorted(dups)}"
     # And the installer and PyPI-only should be disjoint:
     dups = set(PYPI_PACKAGES) & set(packages)
-    assert (
-        not dups
-    ), f"Duplicates in PYPI_PACKAGES and installer packages: {sorted(dups)}"
+    assert not dups, (
+        f"Duplicates in PYPI_PACKAGES and installer packages: {sorted(dups)}"
+    )
     for name in PYPI_PACKAGES | set(MANUAL_PACKAGES):
         if name not in packages:
             packages.append(name)

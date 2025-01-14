@@ -76,7 +76,7 @@ class Projection(dict):
         s += f", active : {self['active']}"
         s += f", n_channels : {len(self['data']['col_names'])}"
         if self["explained_var"] is not None:
-            s += f', exp. var : {self["explained_var"] * 100:0.2f}%'
+            s += f", exp. var : {self['explained_var'] * 100:0.2f}%"
         return f"<Projection | {s}>"
 
     # speed up info copy by taking advantage of mutability
@@ -324,8 +324,7 @@ class ProjMixin:
 
         if all(p["active"] for p in self.info["projs"]):
             logger.info(
-                "Projections have already been applied. "
-                "Setting proj attribute to True."
+                "Projections have already been applied. Setting proj attribute to True."
             )
             return self
 
@@ -663,9 +662,9 @@ def _read_proj(fid, node, *, ch_names_mapping=None, verbose=None):
         for proj in projs:
             misc = "active" if proj["active"] else " idle"
             logger.info(
-                f'        {proj["desc"]} '
-                f'({proj["data"]["nrow"]} x '
-                f'{len(proj["data"]["col_names"])}) {misc}'
+                f"        {proj['desc']} "
+                f"({proj['data']['nrow']} x "
+                f"{len(proj['data']['col_names'])}) {misc}"
             )
 
     return projs
@@ -795,8 +794,7 @@ def _make_projector(projs, ch_names, bads=(), include_active=True, inplace=False
         if not p["active"] or include_active:
             if len(p["data"]["col_names"]) != len(np.unique(p["data"]["col_names"])):
                 raise ValueError(
-                    f"Channel name list in projection item {k}"
-                    " contains duplicate items"
+                    f"Channel name list in projection item {k} contains duplicate items"
                 )
 
             # Get the two selection vectors to pick correct elements from
@@ -832,7 +830,7 @@ def _make_projector(projs, ch_names, bads=(), include_active=True, inplace=False
                         )
                     ):
                         warn(
-                            f'Projection vector {repr(p["desc"])} has been '
+                            f"Projection vector {repr(p['desc'])} has been "
                             f"reduced to {100 * psize:0.2f}% of its "
                             "original magnitude by subselecting "
                             f"{len(vecsel)}/{orig_n} of the original "

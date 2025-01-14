@@ -1382,7 +1382,7 @@ def read_ch_adjacency(fname, picks=None):
             raise ValueError(
                 f"No built-in channel adjacency matrix found with name: "
                 f"{ch_adj_name}. Valid names are: "
-                f'{", ".join(get_builtin_ch_adjacencies())}'
+                f"{', '.join(get_builtin_ch_adjacencies())}"
             )
 
         ch_adj = [a for a in _BUILTIN_CHANNEL_ADJACENCIES if a.name == ch_adj_name][0]

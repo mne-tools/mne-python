@@ -90,9 +90,9 @@ def test_estimate_ringing():
             (0.0001, (30000, 60000)),
         ):  # 37993
             n_ring = estimate_ringing_samples(butter(3, thresh, output=kind))
-            assert (
-                lims[0] <= n_ring <= lims[1]
-            ), f"{kind} {thresh}: {lims[0]} <= {n_ring} <= {lims[1]}"
+            assert lims[0] <= n_ring <= lims[1], (
+                f"{kind} {thresh}: {lims[0]} <= {n_ring} <= {lims[1]}"
+            )
     with pytest.warns(RuntimeWarning, match="properly estimate"):
         assert estimate_ringing_samples(butter(4, 0.00001)) == 100000
 

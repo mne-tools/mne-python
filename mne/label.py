@@ -264,8 +264,7 @@ class Label:
 
         if not (len(vertices) == len(values) == len(pos)):
             raise ValueError(
-                "vertices, values and pos need to have same "
-                "length (number of vertices)"
+                "vertices, values and pos need to have same length (number of vertices)"
             )
 
         # name
@@ -416,7 +415,7 @@ class Label:
         else:
             keep = np.arange(len(self.vertices))
 
-        name = f'{self.name or "unnamed"} - {other.name or "unnamed"}'
+        name = f"{self.name or 'unnamed'} - {other.name or 'unnamed'}"
         return Label(
             self.vertices[keep],
             self.pos[keep],
@@ -976,8 +975,7 @@ def _get_label_src(label, src):
     src = _ensure_src(src)
     if src.kind != "surface":
         raise RuntimeError(
-            "Cannot operate on SourceSpaces that are not "
-            f"surface type, got {src.kind}"
+            f"Cannot operate on SourceSpaces that are not surface type, got {src.kind}"
         )
     if label.hemi == "lh":
         hemi_src = src[0]
@@ -1585,8 +1583,7 @@ def stc_to_label(
             vertno = np.where(src[hemi_idx]["inuse"])[0]
             if not len(np.setdiff1d(this_vertno, vertno)) == 0:
                 raise RuntimeError(
-                    "stc contains vertices not present "
-                    "in source space, did you morph?"
+                    "stc contains vertices not present in source space, did you morph?"
                 )
             tmp = np.zeros((len(vertno), this_data.shape[1]))
             this_vertno_idx = np.searchsorted(vertno, this_vertno)
@@ -2151,8 +2148,7 @@ def _read_annot(fname):
         cands = _read_annot_cands(dir_name)
         if len(cands) == 0:
             raise OSError(
-                f"No such file {fname}, no candidate parcellations "
-                "found in directory"
+                f"No such file {fname}, no candidate parcellations found in directory"
             )
         else:
             raise OSError(

@@ -893,7 +893,7 @@ def test_plot_alignment_fnirs(renderer, tmp_path):
     with catch_logging() as log:
         fig = plot_alignment(info, **kwargs)
     log = log.getvalue()
-    assert f'fnirs_cw_amplitude: {info["nchan"]}' in log
+    assert f"fnirs_cw_amplitude: {info['nchan']}" in log
     _assert_n_actors(fig, renderer, info["nchan"])
 
     fig = plot_alignment(info, fnirs=["channels", "sources", "detectors"], **kwargs)
