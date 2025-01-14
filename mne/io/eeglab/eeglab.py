@@ -39,9 +39,9 @@ CAL = 1e-6
 def _check_eeglab_fname(fname, dataname):
     """Check whether the filename is valid.
 
-    Check if the file extension is ``.fdt`` (older ``.dat`` being invalid) or
-    whether the ``EEG.data`` filename exists. If ``EEG.data`` file is absent
-    the set file name with .set changed to .fdt is checked.
+    Check if the file extension is ``.fdt`` (older ``.dat`` being invalid) 
+    or ``.set`` (new EEGLAB format) or whether the ``EEG.data`` filename exists. 
+    If ``EEG.data`` file is absent the set file name with .set changed to .fdt is checked.
     """
     fmt = str(op.splitext(dataname)[-1])
     if fmt == ".dat":
@@ -49,7 +49,10 @@ def _check_eeglab_fname(fname, dataname):
             "Old data format .dat detected. Please update your EEGLAB "
             "version and resave the data in .fdt format"
         )
-
+    if fmt != ".set" and fmt != ".fdt":
+        raise ValueError(
+            "The file extension must be .set or .fdt, not {}".format(fmt)
+        )
     basedir = op.dirname(fname)
     data_fname = op.join(basedir, dataname)
     if not op.exists(data_fname):
@@ -68,10 +71,10 @@ def _check_eeglab_fname(fname, dataname):
     return data_fname
 
 
-def _check_load_mat(fname, uint16_codec):
+def _check_load_mat(fname, uint16_codec, preload=False):
     """Check if the mat struct contains 'EEG'."""
     fname = _check_fname(fname, "read", True)
-    eeg = _readmat(fname, uint16_codec=uint16_codec)
+    eeg = _readmat(fname, uint16_codec=uint16_codec, preload=preload)
     if "ALLEEG" in eeg:
         raise NotImplementedError(
             "Loading an ALLEEG array is not supported. Please contact"
@@ -302,8 +305,6 @@ def read_raw_eeglab(
         If 'auto', the channel names containing ``EOG`` or ``EYE`` are used.
         Defaults to empty tuple.
     %(preload)s
-        Note that ``preload=False`` will be effective only if the data is
-        stored in a separate binary file.
     %(uint16_codec)s
     %(montage_units)s
 
@@ -420,8 +421,6 @@ class RawEEGLAB(BaseRaw):
         If 'auto', the channel names containing ``EOG`` or ``EYE`` are used.
         Defaults to empty tuple.
     %(preload)s
-        Note that preload=False will be effective only if the data is stored
-        in a separate binary file.
     %(uint16_codec)s
     %(montage_units)s
     %(verbose)s
@@ -447,7 +446,7 @@ class RawEEGLAB(BaseRaw):
         verbose=None,
     ):
         input_fname = str(_check_fname(input_fname, "read", True, "input_fname"))
-        eeg = _check_load_mat(input_fname, uint16_codec)
+        eeg = _check_load_mat(input_fname, uint16_codec, preload)
         if eeg.trials != 1:
             raise TypeError(
                 f"The number of trials is {eeg.trials:d}. It must be 1 for raw"
@@ -472,14 +471,6 @@ class RawEEGLAB(BaseRaw):
                 verbose=verbose,
             )
         else:
-            if preload is False or isinstance(preload, str):
-                warn(
-                    "Data will be preloaded. preload=False or a string "
-                    "preload is not supported when the data is stored in "
-                    "the .set file"
-                )
-            # can't be done in standard way with preload=True because of
-            # different reading path (.set file)
             if eeg.nbchan == 1 and len(eeg.data.shape) == 1:
                 n_chan, n_times = [1, eeg.data.shape[0]]
             else:
