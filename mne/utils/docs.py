@@ -5014,6 +5014,18 @@ weight_norm : str | None
            solution.
 """
 
+docdict["weights_tfr_array"] = """
+weights : array, shape (n_tapers, n_freqs) | None
+    The weights for each taper. Must be provided if ``data`` has a taper dimension, such
+    as for complex or phase multitaper data.
+
+    .. versionadded:: 1.10.0
+"""
+docdict["weights_tfr_attr"] = """
+weights : array, shape (n_tapers, n_freqs) | None
+    The weights used for each taper in the time-frequency estimates.
+"""
+
 docdict["window_psd"] = """\
 window : str | float | tuple
     Windowing function to use. See :func:`scipy.signal.get_window`.
