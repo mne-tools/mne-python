@@ -17,8 +17,9 @@ pytest.importorskip("sklearn")
 
 from sklearn.decomposition import PCA
 from sklearn.kernel_ridge import KernelRidge
+from sklearn.utils.estimator_checks import parametrize_with_checks
 
-from mne import Epochs, io, pick_types, read_events
+from mne import Epochs, create_info, io, pick_types, read_events
 from mne.decoding import (
     FilterEstimator,
     PSDEstimator,
@@ -36,6 +37,7 @@ start, stop = 0, 8
 data_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
 raw_fname = data_dir / "test_raw.fif"
 event_name = data_dir / "test-eve.fif"
+info = create_info(3, 1000.0, "eeg")
 
 
 @pytest.mark.parametrize(
@@ -299,3 +301,34 @@ def test_bad_triage():
     # Used to fail with "ValueError: Effective band-stop frequency (135.0) is
     # too high (maximum based on Nyquist is 80.0)"
     filt.fit_transform(np.zeros((1, 1, 481)))
+
+
+@pytest.mark.filterwarnings("ignore:.*filter_length.*")
+@parametrize_with_checks(
+    [
+        FilterEstimator(info, l_freq=1, h_freq=10),
+        # PSDEstimator(),
+        # Scaler(info=info),
+        # TemporalFilter(),
+        # UnsupervisedSpatialFilter(PCA()),
+        # Vectorizer(),
+    ]
+)
+def test_sklearn_compliance(estimator, check):
+    """Test LinearModel compliance with sklearn."""
+    ignores = (
+        # TODO: Should probably add these
+        "check_transformer_general",
+        "check_estimators_overwrite_params",
+        "check_fit_idempotent",
+        "check_fit1d",
+        "check_fit2d_predict1d",
+        "check_n_features_in",  # maybe we should add this someday?
+        "check_estimator_sparse_data",  # we densify
+        "check_estimators_overwrite_params",  # self.model changes!
+        "check_parameters_default_constructible",
+        "check_methods_sample_order_invariance",
+    )
+    if any(ignore in str(check) for ignore in ignores):
+        return
+    check(estimator)

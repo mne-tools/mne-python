@@ -1,0 +1,1 @@
+Improved sklearn class compatibility and compliance, which resulted in some parameters of classes like :class:`mne.decoding.FilterEstimator` having an underscore appended to their name (e.g., ``picks`` passed to the initializer is set as ``est.picks_`` during the ``fit`` phase so the original can be preserved in ``est.picks``) by `Eric Larson`_.
