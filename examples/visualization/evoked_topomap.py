@@ -193,4 +193,3 @@ evoked.plot_topomap(times, ch_type="eeg", image_interp="nearest", contours=0)
 # sphinx_gallery_thumbnail_number = 9
 times = np.arange(0.05, 0.151, 0.01)
 fig, anim = evoked.animate_topomap(times=times, ch_type="mag", frame_rate=2, blit=False)
-
