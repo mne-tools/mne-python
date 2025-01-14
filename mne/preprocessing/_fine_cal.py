@@ -389,9 +389,11 @@ def _adjust_mag_normals(info, data, origin, ext_order, *, angle_limit, err_limit
     each_err = _data_err(data, S_tot, cals, axis=-1)[picks_mag]
     n_bad = (each_err > err_limit).sum()
     if n_bad:
+        bad_max = np.argmax(each_err)
         reason.append(
             f"{n_bad} residual{_pl(n_bad)} > {err_limit:0.1f}% "
-            f"(max: {each_err.max():0.2f}%)"
+            f"(max: {each_err[bad_max]:0.2f}% @ "
+            f"{info['ch_names'][picks_mag[bad_max]]})"
         )
     reason = ", ".join(reason)
     if reason:
