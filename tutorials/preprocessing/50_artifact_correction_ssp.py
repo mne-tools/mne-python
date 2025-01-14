@@ -395,7 +395,7 @@ for title, proj in [("Without", empty_room_projs), ("With", ecg_projs)]:
 #     cardiac artefact using techniques which rely on the availability of spatial
 #     information (such as SSP) may not be possible. In these instances, it may be of
 #     use to consider algorithms which require information only regarding heartbeat
-#     instances in the time domain, such as `mne.preprocessing.pca_obs`.
+#     instances in the time domain, such as :func:`mne.preprocessing.apply_pca_obs`.
 #
 #
 # Repairing EOG artifacts with SSP

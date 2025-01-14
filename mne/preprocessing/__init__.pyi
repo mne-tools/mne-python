@@ -57,6 +57,7 @@ from ._fine_cal import (
     write_fine_calibration,
 )
 from ._lof import find_bad_channels_lof
+from ._pca_obs import apply_pca_obs
 from ._peak_finder import peak_finder
 from ._regress import EOGRegression, read_eog_regression, regress_artifact
 from .artifact_detection import (
@@ -86,7 +87,6 @@ from .maxwell import (
     maxwell_filter_prepare_emptyroom,
 )
 from .otp import oversampled_temporal_projection
-from .pca_obs import apply_pca_obs
 from .realign import realign_raw
 from .ssp import compute_proj_ecg, compute_proj_eog
 from .stim import fix_stim_artifact

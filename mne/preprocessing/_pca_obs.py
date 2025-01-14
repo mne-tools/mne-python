@@ -38,17 +38,25 @@ def apply_pca_obs(
     ----------
     raw : instance of Raw
         The raw data to process.
-    picks : list of str
-        Channels in the Raw object to remove the heart artefact from.
+    %(picks_all_data_noref)s
     qrs_times : ndarray, shape (n_peaks,)
         Array of times in the Raw data of detected R-peaks in ECG channel.
     n_components : int
         Number of PCA components to use to form the OBS (default 4).
+    %(n_jobs)s
     copy : bool
         If False, modify the Raw instance in-place.
-        If True, return a copied, modified Raw instance. Defaults to True.
-    %(n_jobs)s
+        If True (default), copy the raw instance before processing.
     %(verbose)s
+
+    Returns
+    -------
+    raw : instance of Raw
+        The modified raw instance.
+
+    Notes
+    -----
+    .. versionadded:: 1.10
 
     References
     ----------
