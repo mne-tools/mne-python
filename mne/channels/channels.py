@@ -693,9 +693,10 @@ class UpdateChannelsMixin:
         If ``self`` is a Raw instance that has been preloaded into a
         :obj:`numpy.memmap` instance, the memmap will be resized.
 
-        This function expects an MNE object to be appended (e.g. :class:`~mne.Raw`,
-        :class:`~mne.Epochs`, :class:`~mne.Evoked`). If you simply want to add a channel based on
-        values of an array, you need to create a :class:`~mne.io.RawArray`.
+        This function expects an MNE object to be appended (e.g. :class:`~mne.io.Raw`,
+        :class:`~mne.Epochs`, :class:`~mne.Evoked`). If you simply want to add a 
+		channel based on values of an np.ndarray, you need to create a 
+		:class:`~mne.io.RawArray`.
         See <https://mne.tools/mne-project-template/auto_examples/plot_mne_objects_from_arrays.html>`_
         """
         # avoid circular imports
