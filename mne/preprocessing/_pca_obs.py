@@ -1,7 +1,6 @@
 """Principle Component Analysis Optimal Basis Sets (PCA-OBS)."""
 
-# Authors: Emma Bailey <bailey@cbs.mpg.de>,
-#          Steinn Hauser Magnusson <hausersteinn@gmail.com>
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
