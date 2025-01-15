@@ -2132,7 +2132,6 @@ def plot_evoked_topomap(
     * When both a list of ``contours`` and ``vlim`` are passed, MNE uses them
     as-is.
 
-
     When ``time=="interactive"``, the figure will publish and subscribe to the
     following UI events:
 
