@@ -2114,6 +2114,22 @@ def plot_evoked_topomap(
     :ref:`gridspec <matplotlib:arranging_axes>` interface to adjust the colorbar
     size yourself.
 
+    The defaults for ``contours`` and ``vlim`` are handled as follows:
+
+    * When neither ``vlim`` nor a list of ``contours`` is passed, MNE sets
+      ``vlim`` at ± the maximum absolute value of the data and then chooses
+      contours within those bounds.
+
+    * When ``vlim`` but not a list of ``contours`` is passed, MNE chooses
+      contours to be within the ``vlim``.
+
+    * When a list of ``contours`` but not ``vlim`` is passed, MNE chooses
+      ``vlim`` to encompass the ``contours`` and the maximum absolute value of the
+      data.
+
+    * When both a list of ``contours`` and ``vlim`` are passed, MNE uses them
+      as-is.
+
     When ``time=="interactive"``, the figure will publish and subscribe to the
     following UI events:
 
@@ -2296,11 +2312,17 @@ def plot_evoked_topomap(
     _vlim = [
         _setup_vmin_vmax(data[:, i], *vlim, norm=merge_channels) for i in range(n_times)
     ]
-    _vlim = (np.min(_vlim), np.max(_vlim))
+    _vlim = [np.min(_vlim), np.max(_vlim)]
     cmap = _setup_cmap(cmap, n_axes=n_times, norm=_vlim[0] >= 0)
     # set up contours
     if not isinstance(contours, list | np.ndarray):
         _, contours = _set_contour_locator(*_vlim, contours)
+    else:
+        if vlim[0] is None and np.any(contours < _vlim[0]):
+            _vlim[0] = contours[0]
+        if vlim[1] is None and np.any(contours > _vlim[1]):
+            _vlim[1] = contours[-1]
+
     # prepare for main loop over times
     kwargs = dict(
         sensors=sensors,
@@ -3348,6 +3370,7 @@ def _set_contour_locator(vmin, vmax, contours):
         # correct number of bins is equal to contours + 1.
         locator = ticker.MaxNLocator(nbins=contours + 1)
         contours = locator.tick_values(vmin, vmax)
+        contours = contours[1:-1]
     return locator, contours
 
 
