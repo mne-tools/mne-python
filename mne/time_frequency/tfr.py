@@ -624,8 +624,7 @@ def _check_tfr_param(
     freqs = np.asarray(freqs, dtype=float)
     if freqs.ndim != 1:
         raise ValueError(
-            f"freqs must be of shape (n_freqs,), got {np.array(freqs.shape)} "
-            "instead."
+            f"freqs must be of shape (n_freqs,), got {np.array(freqs.shape)} instead."
         )
 
     # Check sfreq
@@ -1210,8 +1209,8 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
                 classname = "EpochsTFR"
             # end TODO
             raise ValueError(
-                f'{classname} got unsupported parameter value{_pl(problem)} '
-                f'{" and ".join(problem)}.'
+                f"{classname} got unsupported parameter value{_pl(problem)} "
+                f"{' and '.join(problem)}."
             )
         # check method
         valid_methods = ["morlet", "multitaper"]
@@ -1538,7 +1537,7 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
             s = _pl(negative_values.sum())
             warn(
                 f"Negative value in time-frequency decomposition for channel{s} "
-                f'{", ".join(chs)}',
+                f"{', '.join(chs)}",
                 UserWarning,
             )
 
@@ -3960,12 +3959,12 @@ def combine_tfr(all_tfr, weights="nave"):
 
     ch_names = tfr.ch_names
     for t_ in all_tfr[1:]:
-        assert (
-            t_.ch_names == ch_names
-        ), f"{tfr} and {t_} do not contain the same channels"
-        assert (
-            np.max(np.abs(t_.times - tfr.times)) < 1e-7
-        ), f"{tfr} and {t_} do not contain the same time instants"
+        assert t_.ch_names == ch_names, (
+            f"{tfr} and {t_} do not contain the same channels"
+        )
+        assert np.max(np.abs(t_.times - tfr.times)) < 1e-7, (
+            f"{tfr} and {t_} do not contain the same time instants"
+        )
 
     # use union of bad channels
     bads = list(set(tfr.info["bads"]).union(*(t_.info["bads"] for t_ in all_tfr[1:])))
@@ -4162,7 +4161,7 @@ def _read_multiple_tfrs(tfr_data, condition=None, *, verbose=None):
     if len(out) == 0:
         raise ValueError(
             f'Cannot find condition "{condition}" in this file. '
-            f'The file contains conditions {", ".join(keys)}'
+            f"The file contains conditions {', '.join(keys)}"
         )
     if len(out) == 1:
         out = out[0]

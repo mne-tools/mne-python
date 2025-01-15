@@ -628,7 +628,7 @@ def _get_info(
     if len(chs_without_types):
         msg = (
             "Could not determine channel type of the following channels, "
-            f'they will be set as EEG:\n{", ".join(chs_without_types)}'
+            f"they will be set as EEG:\n{', '.join(chs_without_types)}"
         )
         logger.info(msg)
 
@@ -712,8 +712,8 @@ def _get_info(
 
     if info["highpass"] > info["lowpass"]:
         warn(
-            f'Highpass cutoff frequency {info["highpass"]} is greater '
-            f'than lowpass cutoff frequency {info["lowpass"]}, '
+            f"Highpass cutoff frequency {info['highpass']} is greater "
+            f"than lowpass cutoff frequency {info['lowpass']}, "
             "setting values to 0 and Nyquist."
         )
         info["highpass"] = 0.0

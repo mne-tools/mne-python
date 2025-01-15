@@ -169,7 +169,7 @@ def generate_credit_rst(app=None, *, verbose=False):
                 if author["e"] is not None:
                     if author["e"] not in name_map:
                         unknown_emails.add(
-                            f'{author["e"].ljust(29)} '
+                            f"{author['e'].ljust(29)} "
                             "https://github.com/mne-tools/mne-python/pull/"
                             f"{commit}/files"
                         )
@@ -178,9 +178,9 @@ def generate_credit_rst(app=None, *, verbose=False):
                 else:
                     name = author["n"]
                     if name in manual_renames:
-                        assert _good_name(
-                            manual_renames[name]
-                        ), f"Bad manual rename: {name}"
+                        assert _good_name(manual_renames[name]), (
+                            f"Bad manual rename: {name}"
+                        )
                         name = manual_renames[name]
                     if " " in name:
                         first, last = name.rsplit(" ", maxsplit=1)
