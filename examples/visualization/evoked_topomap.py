@@ -5,7 +5,7 @@
 Plotting topographic maps of evoked data
 ========================================
 
-Load evoked data and plot topomaps for selected time points using 
+Load evoked data and plot topomaps for selected time points using
 multiple additional options.
 """
 # Authors: Christian Brodbeck <christianbrodbeck@nyu.edu>
