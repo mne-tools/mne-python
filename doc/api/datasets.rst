@@ -18,6 +18,7 @@ Datasets
    brainstorm.bst_auditory.data_path
    brainstorm.bst_resting.data_path
    brainstorm.bst_raw.data_path
+   default_path
    eegbci.load_data
    eegbci.standardize
    fetch_aparc_sub_parcellation

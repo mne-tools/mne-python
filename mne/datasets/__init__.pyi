@@ -6,6 +6,7 @@ __all__ = [
     "epilepsy_ecog",
     "erp_core",
     "eyelink",
+    "default_path",
     "fetch_aparc_sub_parcellation",
     "fetch_dataset",
     "fetch_fsaverage",
@@ -70,6 +71,7 @@ from ._infant import fetch_infant_template
 from ._phantom.base import fetch_phantom
 from .utils import (
     _download_all_example_data,
+    default_path,
     fetch_aparc_sub_parcellation,
     fetch_hcp_mmp_parcellation,
     has_dataset,
