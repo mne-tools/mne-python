@@ -22,8 +22,14 @@ def export_raw(
     """Export Raw to external formats.
 
     %(export_fmt_support_raw)s
-
     %(export_warning)s
+
+    .. warning::
+        When exporting ``Raw`` with annotations, ``raw.info["meas_date"]`` must be the
+        same as ``raw.annotations.orig_time``. This guarantees that the annotations are
+        in the same reference frame as the samples.
+        When `Raw.first_time` is not zero (e.g., after cropping), the onsets are
+        automatically corrected so that onsets are always relative to the first sample.
 
     Parameters
     ----------
