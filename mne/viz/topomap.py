@@ -2119,18 +2119,18 @@ def plot_evoked_topomap(
     The defaults for ``contours`` and ``vlim`` are handled as follows:
 
     * When neither ``vlim`` nor a list of ``contours`` is passed, MNE sets
-    ``vlim`` at ± the maximum absolute value of the data and then chooses
-    contours within those bounds.
+      ``vlim`` at ± the maximum absolute value of the data and then chooses
+      contours within those bounds.
 
     * When ``vlim`` but not a list of ``contours`` is passed, MNE chooses
-    contours to be within the ``vlim``.
+      contours to be within the ``vlim``.
 
     * When a list of ``contours`` but not ``vlim`` is passed, MNE chooses
-    ``vlim`` to encompass the ``contours`` and the maximum absolute value of the
-    data.
+      ``vlim`` to encompass the ``contours`` and the maximum absolute value of the
+      data.
 
     * When both a list of ``contours`` and ``vlim`` are passed, MNE uses them
-    as-is.
+      as-is.
 
     When ``time=="interactive"``, the figure will publish and subscribe to the
     following UI events:
