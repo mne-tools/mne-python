@@ -5,7 +5,6 @@
 from pathlib import Path
 
 import numpy as np
-import pandas as pd
 import pytest
 
 from mne.io import read_raw_fif
@@ -24,7 +23,7 @@ def short_raw_data():
 
 def test_heart_artifact_removal(short_raw_data: Raw):
     """Test PCA-OBS analysis and heart artifact removal of ECG datasets."""
-    pytest.importorskip("pandas")
+    pd = pytest.importorskip("pandas")
 
     # copy the original raw. heart artifact is removed in-place
     orig_df: pd.DataFrame = short_raw_data.to_data_frame().copy(deep=True)
@@ -104,7 +103,5 @@ def test_pca_obs_bad_input(
     exception: type[Exception],
 ):
     """Test if bad input data raises the proper errors in the function sanity checks."""
-    pytest.importorskip("pandas")
-
     with pytest.raises(exception, match=error):
         apply_pca_obs(raw=short_raw_data, picks=picks, qrs_times=qrs_times)
