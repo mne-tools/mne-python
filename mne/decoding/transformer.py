@@ -15,6 +15,7 @@ from .._fiff.pick import (
     pick_info,
 )
 from ..cov import _check_scalings_user
+from ..epochs import BaseEpochs
 from ..filter import filter_data
 from ..time_frequency import psd_array_multitaper
 from ..utils import _check_option, _validate_type, fill_doc
@@ -34,6 +35,12 @@ class MNETransformerMixin(TransformerMixin):
         multi_output=False,
         check_n_features=True,
     ):
+        # Sklearn calls asarray under the hood which works, but elsewhere they check for
+        # __len__ then look at the size of obj[0]... which is an epoch of shape (1, ...)
+        # rather than what they expect (shape (...)). So we explicitly get the NumPy
+        # array to make everyone happy.
+        if isinstance(epochs_data, BaseEpochs):
+            epochs_data = epochs_data.get_data(copy=False)
         kwargs = dict(dtype=np.float64, allow_nd=True, order="C", force_writeable=True)
         if hasattr(self, "n_features_in_") and check_n_features:
             if y is None:

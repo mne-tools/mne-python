@@ -17,11 +17,14 @@ pytest.importorskip("sklearn")
 
 from sklearn.decomposition import PCA
 from sklearn.kernel_ridge import KernelRidge
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
 from sklearn.utils.estimator_checks import parametrize_with_checks
 
-from mne import Epochs, create_info, io, pick_types, read_events
+from mne import Epochs, EpochsArray, create_info, io, pick_types, read_events
 from mne.decoding import (
     FilterEstimator,
+    LinearModel,
     PSDEstimator,
     Scaler,
     TemporalFilter,
@@ -218,9 +221,16 @@ def test_vectorizer():
     assert_equal(vect.fit_transform(data[1:]).shape, (149, 108))
 
     # check if raised errors are working correctly
-    vect.fit(np.random.rand(105, 12, 3))
-    pytest.raises(ValueError, vect.transform, np.random.rand(105, 12, 3, 1))
-    pytest.raises(ValueError, vect.inverse_transform, np.random.rand(102, 12, 12))
+    X = np.random.default_rng(0).standard_normal((105, 12, 3))
+    y = np.arange(X.shape[0]) % 2
+    pytest.raises(ValueError, vect.transform, X[..., np.newaxis])
+    pytest.raises(ValueError, vect.inverse_transform, X[:, :-1])
+
+    # And that pipelines work properly
+    X_arr = EpochsArray(X, create_info(12, 1000.0, "eeg"))
+    vect.fit(X_arr)
+    clf = make_pipeline(Vectorizer(), StandardScaler(), LinearModel())
+    clf.fit(X_arr, y)
 
 
 def test_unsupervised_spatial_filter():
