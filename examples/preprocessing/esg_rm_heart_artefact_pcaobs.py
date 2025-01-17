@@ -10,7 +10,7 @@ This script shows an example of how to use an adaptation of PCA-OBS
 the ballistocardiographic artefact in simultaneous EEG-fMRI. Here, it
 has been adapted to remove the delay between the detected R-peak and the
 ballistocardiographic artefact such that the algorithm can be applied to
-remove the cardiac artefact in EEG (electroencephalogrpahy) and ESG
+remove the cardiac artefact in EEG (electroencephalography) and ESG
 (electrospinography) data. We will illustrate how it works by applying the
 algorithm to ESG data, where the effect of removal is most pronounced.
 
