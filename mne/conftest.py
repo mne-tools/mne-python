@@ -186,6 +186,7 @@ def pytest_configure(config: pytest.Config):
     ignore:.*builtin type swigvarlink has no.*:DeprecationWarning
     # eeglabio
     ignore:numpy\.core\.records is deprecated.*:DeprecationWarning
+    ignore:Starting field name with a underscore.*:
     # joblib
     ignore:process .* is multi-threaded, use of fork/exec.*:DeprecationWarning
     """  # noqa: E501
