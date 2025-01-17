@@ -564,7 +564,8 @@ def _compute_tfr(
     if len(Ws[0][0]) > epoch_data.shape[2]:
         raise ValueError(
             "At least one of the wavelets is longer than the "
-            "signal. Use a longer signal or shorter wavelets."
+            f"signal ({len(Ws[0][0])} > {epoch_data.shape[2]} samples). "
+            "Use a longer signal or shorter wavelets."
         )
 
     # Initialize output

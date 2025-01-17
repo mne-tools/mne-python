@@ -11,6 +11,7 @@ from numpy.testing import assert_array_almost_equal, assert_array_equal
 pytest.importorskip("sklearn")
 
 from sklearn.pipeline import Pipeline
+from sklearn.utils.estimator_checks import parametrize_with_checks
 
 from mne import create_info, io
 from mne.decoding import CSP
@@ -101,8 +102,9 @@ def test_ssd():
         l_trans_bandwidth=1,
         h_trans_bandwidth=1,
     )
+    ssd = SSD(info, filt_params_signal, filt_params_noise)
     with pytest.raises(TypeError, match="must be an instance "):
-        ssd = SSD(info, filt_params_signal, filt_params_noise)
+        ssd.fit(X)
 
     # Wrongly specified noise band
     freq = 2
@@ -115,14 +117,16 @@ def test_ssd():
         l_trans_bandwidth=1,
         h_trans_bandwidth=1,
     )
+    ssd = SSD(info, filt_params_signal, filt_params_noise)
     with pytest.raises(ValueError, match="Wrongly specified "):
-        ssd = SSD(info, filt_params_signal, filt_params_noise)
+        ssd.fit(X)
 
     # filt param no dict
     filt_params_signal = freqs_sig
     filt_params_noise = freqs_noise
+    ssd = SSD(info, filt_params_signal, filt_params_noise)
     with pytest.raises(ValueError, match="must be defined"):
-        ssd = SSD(info, filt_params_signal, filt_params_noise)
+        ssd.fit(X)
 
     # Data type
     filt_params_signal = dict(
@@ -140,15 +144,18 @@ def test_ssd():
     ssd = SSD(info, filt_params_signal, filt_params_noise)
     raw = io.RawArray(X, info)
 
-    pytest.raises(TypeError, ssd.fit, raw)
+    with pytest.raises(ValueError):
+        ssd.fit(raw)
 
     # check non-boolean return_filtered
-    with pytest.raises(ValueError, match="return_filtered"):
-        ssd = SSD(info, filt_params_signal, filt_params_noise, return_filtered=0)
+    ssd = SSD(info, filt_params_signal, filt_params_noise, return_filtered=0)
+    with pytest.raises(TypeError, match="return_filtered"):
+        ssd.fit(X)
 
     # check non-boolean sort_by_spectral_ratio
-    with pytest.raises(ValueError, match="sort_by_spectral_ratio"):
-        ssd = SSD(info, filt_params_signal, filt_params_noise, sort_by_spectral_ratio=0)
+    ssd = SSD(info, filt_params_signal, filt_params_noise, sort_by_spectral_ratio=0)
+    with pytest.raises(TypeError, match="sort_by_spectral_ratio"):
+        ssd.fit(X)
 
     # More than 1 channel type
     ch_types = np.reshape([["mag"] * 10, ["eeg"] * 10], n_channels)
@@ -161,7 +168,8 @@ def test_ssd():
     # Number of channels
     info_3 = create_info(ch_names=n_channels + 1, sfreq=sf, ch_types="eeg")
     ssd = SSD(info_3, filt_params_signal, filt_params_noise)
-    pytest.raises(ValueError, ssd.fit, X)
+    with pytest.raises(ValueError, match="channels but expected"):
+        ssd.fit(X)
 
     # Fit
     n_components = 10
@@ -381,7 +389,7 @@ def test_sorting():
     ssd.fit(Xtr)
 
     # check sorters
-    sorter_in = ssd.sorter_spec
+    sorter_in = ssd.sorter_spec_
     ssd = SSD(
         info,
         filt_params_signal,
@@ -476,3 +484,28 @@ def test_non_full_rank_data():
     if sys.platform == "darwin":
         pytest.xfail("Unknown linalg bug (Accelerate?)")
     ssd.fit(X)
+
+
+@pytest.mark.filterwarnings("ignore:.*is longer than.*")
+@parametrize_with_checks(
+    [
+        SSD(
+            100.0,
+            dict(l_freq=0.0, h_freq=30.0),
+            dict(l_freq=0.0, h_freq=40.0),
+        )
+    ]
+)
+def test_sklearn_compliance(estimator, check):
+    """Test LinearModel compliance with sklearn."""
+    ignores = (
+        "check_methods_sample_order_invariance",
+        # Shape stuff
+        "check_fit_idempotent",
+        "check_methods_subset_invariance",
+        "check_transformer_general",
+        "check_transformer_data_not_an_array",
+    )
+    if any(ignore in str(check) for ignore in ignores):
+        return
+    check(estimator)

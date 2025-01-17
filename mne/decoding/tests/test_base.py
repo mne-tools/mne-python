@@ -86,6 +86,8 @@ def _make_data(n_samples=1000, n_features=5, n_targets=3):
     X = Y.dot(A.T)
     X += np.random.randn(n_samples, n_features)  # add noise
     X += np.random.rand(n_features)  # Put an offset
+    if n_targets == 1:
+        Y = Y[:, 0]
 
     return X, Y, A
 
@@ -95,7 +97,7 @@ def test_get_coef():
     """Test getting linear coefficients (filters/patterns) from estimators."""
     lm_classification = LinearModel()
     assert hasattr(lm_classification, "__sklearn_tags__")
-    print(lm_classification.__sklearn_tags__)
+    print(lm_classification.__sklearn_tags__())
     assert is_classifier(lm_classification.model)
     assert is_classifier(lm_classification)
     assert not is_regressor(lm_classification.model)
@@ -473,9 +475,8 @@ def test_cross_val_multiscore():
 def test_sklearn_compliance(estimator, check):
     """Test LinearModel compliance with sklearn."""
     ignores = (
-        "check_n_features_in",  # maybe we should add this someday?
-        "check_estimator_sparse_data",  # we densify
         "check_estimators_overwrite_params",  # self.model changes!
+        "check_dont_overwrite_parameters",
         "check_parameters_default_constructible",
     )
     if any(ignore in str(check) for ignore in ignores):

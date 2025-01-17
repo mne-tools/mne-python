@@ -3,14 +3,16 @@
 # Copyright the MNE-Python contributors.
 
 import numpy as np
-from sklearn.base import BaseEstimator, TransformerMixin
+from sklearn.base import BaseEstimator
+from sklearn.utils.validation import check_is_fitted
 
 from ..time_frequency.tfr import _compute_tfr
-from ..utils import _check_option, fill_doc, verbose
+from ..utils import _check_option, fill_doc
+from .transformer import MNETransformerMixin
 
 
 @fill_doc
-class TimeFrequency(TransformerMixin, BaseEstimator):
+class TimeFrequency(MNETransformerMixin, BaseEstimator):
     """Time frequency transformer.
 
     Time-frequency transform of times series along the last axis.
@@ -59,7 +61,7 @@ class TimeFrequency(TransformerMixin, BaseEstimator):
     mne.time_frequency.tfr_multitaper
     """
 
-    @verbose
+    @fill_doc  # sklearn compliance
     def __init__(
         self,
         freqs,
@@ -74,9 +76,6 @@ class TimeFrequency(TransformerMixin, BaseEstimator):
         verbose=None,
     ):
         """Init TimeFrequency transformer."""
-        # Check non-average output
-        output = _check_option("output", output, ["complex", "power", "phase"])
-
         self.freqs = freqs
         self.sfreq = sfreq
         self.method = method
@@ -88,6 +87,16 @@ class TimeFrequency(TransformerMixin, BaseEstimator):
         self.output = output
         self.n_jobs = n_jobs
         self.verbose = verbose
+
+    def __sklearn_tags__(self):
+        """Return sklearn tags."""
+        out = super().__sklearn_tags__()
+        from sklearn.utils import TransformerTags
+
+        if out.transformer_tags is None:
+            out.transformer_tags = TransformerTags()
+        out.transformer_tags.preserves_dtype = []  # real->complex
+        return out
 
     def fit_transform(self, X, y=None):
         """Time-frequency transform of times series along the last axis.
@@ -123,6 +132,10 @@ class TimeFrequency(TransformerMixin, BaseEstimator):
         self : object
             Return self.
         """
+        # Check non-average output
+        _check_option("output", self.output, ["complex", "power", "phase"])
+        self._check_data(X, y=y, fit=True)
+        self.fitted_ = True
         return self
 
     def transform(self, X):
@@ -130,16 +143,18 @@ class TimeFrequency(TransformerMixin, BaseEstimator):
 
         Parameters
         ----------
-        X : array, shape (n_samples, n_channels, n_times)
+        X : array, shape (n_samples, [n_channels, ]n_times)
             The training data samples. The channel dimension can be zero- or
             1-dimensional.
 
         Returns
         -------
-        Xt : array, shape (n_samples, n_channels, n_freqs, n_times)
+        Xt : array, shape (n_samples, [n_channels, ]n_freqs, n_times)
             The time-frequency transform of the data, where n_channels can be
             zero- or 1-dimensional.
         """
+        X = self._check_data(X, atleast_3d=False)
+        check_is_fitted(self, "fitted_")
         # Ensure 3-dimensional X
         shape = X.shape[1:-1]
         if not shape:

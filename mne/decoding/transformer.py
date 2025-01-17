@@ -4,6 +4,9 @@
 
 import numpy as np
 from sklearn.base import BaseEstimator, TransformerMixin, check_array
+from sklearn.preprocessing import RobustScaler, StandardScaler
+from sklearn.utils import check_X_y
+from sklearn.utils.validation import check_is_fitted, validate_data
 
 from .._fiff.pick import (
     _pick_data_channels,
@@ -14,7 +17,51 @@ from .._fiff.pick import (
 from ..cov import _check_scalings_user
 from ..filter import filter_data
 from ..time_frequency import psd_array_multitaper
-from ..utils import _check_option, _validate_type, fill_doc, verbose
+from ..utils import _check_option, _validate_type, fill_doc
+
+
+class MNETransformerMixin(TransformerMixin):
+    """TransformerMixin plus some helpers."""
+
+    def _check_data(
+        self,
+        epochs_data,
+        *,
+        y=None,
+        atleast_3d=True,
+        fit=False,
+        return_y=False,
+        multi_output=False,
+        check_n_features=True,
+    ):
+        kwargs = dict(dtype=np.float64, allow_nd=True, order="C", force_writeable=True)
+        if hasattr(self, "n_features_in_") and check_n_features:
+            if y is None:
+                epochs_data = validate_data(
+                    self,
+                    epochs_data,
+                    **kwargs,
+                    reset=fit,
+                )
+            else:
+                epochs_data, y = validate_data(
+                    self,
+                    epochs_data,
+                    y,
+                    **kwargs,
+                    reset=fit,
+                )
+        elif y is None:
+            epochs_data = check_array(epochs_data, **kwargs)
+        else:
+            epochs_data, y = check_X_y(
+                X=epochs_data, y=y, multi_output=multi_output, **kwargs
+            )
+        if fit:
+            self.n_features_in_ = epochs_data.shape[1]
+        if atleast_3d:
+            epochs_data = np.atleast_3d(epochs_data)
+        return (epochs_data, y) if return_y else epochs_data
 
 
 class _ConstantScaler:
@@ -54,8 +101,9 @@ class _ConstantScaler:
 
 def _sklearn_reshape_apply(func, return_result, X, *args, **kwargs):
     """Reshape epochs and apply function."""
-    if not isinstance(X, np.ndarray):
-        raise ValueError(f"data should be an np.ndarray, got {type(X)}.")
+    _validate_type(X, np.ndarray, "X")
+    if X.size == 0:
+        return X.copy() if return_result else None
     orig_shape = X.shape
     X = np.reshape(X.transpose(0, 2, 1), (-1, orig_shape[1]))
     X = func(X, *args, **kwargs)
@@ -66,7 +114,7 @@ def _sklearn_reshape_apply(func, return_result, X, *args, **kwargs):
 
 
 @fill_doc
-class Scaler(TransformerMixin, BaseEstimator):
+class Scaler(MNETransformerMixin, BaseEstimator):
     """Standardize channel data.
 
     This class scales data for each channel. It differs from scikit-learn
@@ -108,31 +156,6 @@ class Scaler(TransformerMixin, BaseEstimator):
         self.with_std = with_std
         self.scalings = scalings
 
-        if not (scalings is None or isinstance(scalings, dict | str)):
-            raise ValueError(
-                f"scalings type should be dict, str, or None, got {type(scalings)}"
-            )
-        if isinstance(scalings, str):
-            _check_option("scalings", scalings, ["mean", "median"])
-        if scalings is None or isinstance(scalings, dict):
-            if info is None:
-                raise ValueError(
-                    f'Need to specify "info" if scalings is {type(scalings)}'
-                )
-            self._scaler = _ConstantScaler(info, scalings, self.with_std)
-        elif scalings == "mean":
-            from sklearn.preprocessing import StandardScaler
-
-            self._scaler = StandardScaler(
-                with_mean=self.with_mean, with_std=self.with_std
-            )
-        else:  # scalings == 'median':
-            from sklearn.preprocessing import RobustScaler
-
-            self._scaler = RobustScaler(
-                with_centering=self.with_mean, with_scaling=self.with_std
-            )
-
     def fit(self, epochs_data, y=None):
         """Standardize data across channels.
 
@@ -148,11 +171,30 @@ class Scaler(TransformerMixin, BaseEstimator):
         self : instance of Scaler
             The modified instance.
         """
-        _validate_type(epochs_data, np.ndarray, "epochs_data")
-        if epochs_data.ndim == 2:
-            epochs_data = epochs_data[..., np.newaxis]
+        epochs_data = self._check_data(epochs_data, y=y, fit=True, multi_output=True)
         assert epochs_data.ndim == 3, epochs_data.shape
-        _sklearn_reshape_apply(self._scaler.fit, False, epochs_data, y=y)
+
+        _validate_type(self.scalings, (dict, str, type(None)), "scalings")
+        if isinstance(self.scalings, str):
+            _check_option(
+                "scalings", self.scalings, ["mean", "median"], extra="when str"
+            )
+        if self.scalings is None or isinstance(self.scalings, dict):
+            if self.info is None:
+                raise ValueError(
+                    f'Need to specify "info" if scalings is {type(self.scalings)}'
+                )
+            self.scaler_ = _ConstantScaler(self.info, self.scalings, self.with_std)
+        elif self.scalings == "mean":
+            self.scaler_ = StandardScaler(
+                with_mean=self.with_mean, with_std=self.with_std
+            )
+        else:  # scalings == 'median':
+            self.scaler_ = RobustScaler(
+                with_centering=self.with_mean, with_scaling=self.with_std
+            )
+
+        _sklearn_reshape_apply(self.scaler_.fit, False, epochs_data, y=y)
         return self
 
     def transform(self, epochs_data):
@@ -173,13 +215,14 @@ class Scaler(TransformerMixin, BaseEstimator):
         This function makes a copy of the data before the operations and the
         memory usage may be large with big data.
         """
-        _validate_type(epochs_data, np.ndarray, "epochs_data")
+        check_is_fitted(self, "scaler_")
+        epochs_data = self._check_data(epochs_data, atleast_3d=False)
         if epochs_data.ndim == 2:  # can happen with SlidingEstimator
             if self.info is not None:
                 assert len(self.info["ch_names"]) == epochs_data.shape[1]
             epochs_data = epochs_data[..., np.newaxis]
         assert epochs_data.ndim == 3, epochs_data.shape
-        return _sklearn_reshape_apply(self._scaler.transform, True, epochs_data)
+        return _sklearn_reshape_apply(self.scaler_.transform, True, epochs_data)
 
     def fit_transform(self, epochs_data, y=None):
         """Fit to data, then transform it.
@@ -225,19 +268,20 @@ class Scaler(TransformerMixin, BaseEstimator):
         This function makes a copy of the data before the operations and the
         memory usage may be large with big data.
         """
+        epochs_data = self._check_data(epochs_data, atleast_3d=False)
         squeeze = False
         # Can happen with CSP
         if epochs_data.ndim == 2:
             squeeze = True
             epochs_data = epochs_data[..., np.newaxis]
         assert epochs_data.ndim == 3, epochs_data.shape
-        out = _sklearn_reshape_apply(self._scaler.inverse_transform, True, epochs_data)
+        out = _sklearn_reshape_apply(self.scaler_.inverse_transform, True, epochs_data)
         if squeeze:
             out = out[..., 0]
         return out
 
 
-class Vectorizer(TransformerMixin, BaseEstimator):
+class Vectorizer(MNETransformerMixin, BaseEstimator):
     """Transform n-dimensional array into 2D array of n_samples by n_features.
 
     This class reshapes an n-dimensional array into an n_samples * n_features
@@ -274,7 +318,7 @@ class Vectorizer(TransformerMixin, BaseEstimator):
         self : instance of Vectorizer
             Return the modified instance.
         """
-        X = np.asarray(X)
+        X = self._check_data(X, y=y, atleast_3d=False, fit=True, check_n_features=False)
         self.features_shape_ = X.shape[1:]
         return self
 
@@ -294,7 +338,7 @@ class Vectorizer(TransformerMixin, BaseEstimator):
         X : array, shape (n_samples, n_features)
             The transformed data.
         """
-        X = np.asarray(X)
+        X = self._check_data(X, atleast_3d=False)
         if X.shape[1:] != self.features_shape_:
             raise ValueError("Shape of X used in fit and transform must be same")
         return X.reshape(len(X), -1)
@@ -333,7 +377,7 @@ class Vectorizer(TransformerMixin, BaseEstimator):
             The data transformed into shape as used in fit. The first
             dimension is of length n_samples.
         """
-        X = np.asarray(X)
+        X = self._check_data(X, atleast_3d=False, check_n_features=False)
         if X.ndim not in (2, 3):
             raise ValueError(
                 f"X should be of 2 or 3 dimensions but has shape {X.shape}"
@@ -342,7 +386,7 @@ class Vectorizer(TransformerMixin, BaseEstimator):
 
 
 @fill_doc
-class PSDEstimator(TransformerMixin, BaseEstimator):
+class PSDEstimator(MNETransformerMixin, BaseEstimator):
     """Compute power spectral density (PSD) using a multi-taper method.
 
     Parameters
@@ -374,7 +418,7 @@ class PSDEstimator(TransformerMixin, BaseEstimator):
     mne.Evoked.compute_psd
     """
 
-    @verbose
+    @fill_doc  # NB intentionally don't use verbose here so it doesn't modify the val
     def __init__(
         self,
         sfreq=2 * np.pi,
@@ -398,7 +442,7 @@ class PSDEstimator(TransformerMixin, BaseEstimator):
         self.normalization = normalization
         self.verbose = verbose
 
-    def fit(self, epochs_data, y):
+    def fit(self, epochs_data, y=None):
         """Compute power spectral density (PSD) using a multi-taper method.
 
         Parameters
@@ -413,14 +457,11 @@ class PSDEstimator(TransformerMixin, BaseEstimator):
         self : instance of PSDEstimator
             The modified instance.
         """
-        if not isinstance(epochs_data, np.ndarray):
-            raise ValueError(
-                f"epochs_data should be of type ndarray (got {type(epochs_data)})."
-            )
-
+        self._check_data(epochs_data, y=y, fit=True)
+        self.fitted_ = True  # sklearn compliance
         return self
 
-    def transform(self, epochs_data):
+    def transform(self, epochs_data, y=None):
         """Compute power spectral density (PSD) using a multi-taper method.
 
         Parameters
@@ -433,10 +474,7 @@ class PSDEstimator(TransformerMixin, BaseEstimator):
         psd : array, shape (n_signals, n_freqs) or (n_freqs,)
             The computed PSD.
         """
-        if not isinstance(epochs_data, np.ndarray):
-            raise ValueError(
-                f"epochs_data should be of type ndarray (got {type(epochs_data)})."
-            )
+        epochs_data = self._check_data(epochs_data)
         psd, _ = psd_array_multitaper(
             epochs_data,
             sfreq=self.sfreq,
@@ -452,7 +490,7 @@ class PSDEstimator(TransformerMixin, BaseEstimator):
 
 
 @fill_doc
-class FilterEstimator(TransformerMixin, BaseEstimator):
+class FilterEstimator(MNETransformerMixin, BaseEstimator):
     """Estimator to filter RtEpochs.
 
     Applies a zero-phase low-pass, high-pass, band-pass, or band-stop
@@ -530,13 +568,6 @@ class FilterEstimator(TransformerMixin, BaseEstimator):
         self.fir_design = fir_design
         self.verbose = verbose
 
-    def _check_data(self, epochs_data):
-        epochs_data = check_array(
-            epochs_data, dtype=np.float64, ensure_2d=False, order="C"
-        )
-        epochs_data = np.atleast_3d(epochs_data)
-        return epochs_data
-
     def fit(self, epochs_data, y):
         """Filter data.
 
@@ -553,7 +584,7 @@ class FilterEstimator(TransformerMixin, BaseEstimator):
             The modified instance.
         """
         self.picks_ = _picks_to_idx(self.info, self.picks)
-        self._check_data(epochs_data)
+        self._check_data(epochs_data, y=y, fit=True)
 
         if self.l_freq == 0:
             self.l_freq = None
@@ -607,7 +638,7 @@ class FilterEstimator(TransformerMixin, BaseEstimator):
         )
 
 
-class UnsupervisedSpatialFilter(TransformerMixin, BaseEstimator):
+class UnsupervisedSpatialFilter(MNETransformerMixin, BaseEstimator):
     """Use unsupervised spatial filtering across time and samples.
 
     Parameters
@@ -620,19 +651,6 @@ class UnsupervisedSpatialFilter(TransformerMixin, BaseEstimator):
     """
 
     def __init__(self, estimator, average=False):
-        # XXX: Use _check_estimator #3381
-        for attr in ("fit", "transform", "fit_transform"):
-            if not hasattr(estimator, attr):
-                raise ValueError(
-                    "estimator must be a scikit-learn "
-                    f"transformer, missing {attr} method"
-                )
-
-        if not isinstance(average, bool):
-            raise ValueError(
-                f"average parameter must be of bool type, got {type(bool)} instead"
-            )
-
         self.estimator = estimator
         self.average = average
 
@@ -651,13 +669,28 @@ class UnsupervisedSpatialFilter(TransformerMixin, BaseEstimator):
         self : instance of UnsupervisedSpatialFilter
             Return the modified instance.
         """
+        # sklearn.utils.estimator_checks.check_estimator(self.estimator) is probably
+        # too strict for us, given that we don't fully adhere yet, so just check attrs
+        for attr in ("fit", "transform", "fit_transform"):
+            if not hasattr(self.estimator, attr):
+                raise ValueError(
+                    "estimator must be a scikit-learn "
+                    f"transformer, missing {attr} method"
+                )
+        _validate_type(self.average, bool, "average")
+        X = self._check_data(X, y=y, fit=True)
         if self.average:
             X = np.mean(X, axis=0).T
         else:
             n_epochs, n_channels, n_times = X.shape
             # trial as time samples
             X = np.transpose(X, (1, 0, 2)).reshape((n_channels, n_epochs * n_times)).T
+
+        # Really shouldn't modify self.estimator, but it's a bad backward compat problem
+        # to change it (will break people's pipelines) so leave it for now and just
+        # wrap to self.estimator_ as well
         self.estimator.fit(X)
+        self.estimator_ = self.estimator
         return self
 
     def fit_transform(self, X, y=None):
@@ -690,6 +723,8 @@ class UnsupervisedSpatialFilter(TransformerMixin, BaseEstimator):
         X : array, shape (n_epochs, n_channels, n_times)
             The transformed data.
         """
+        check_is_fitted(self.estimator_)
+        X = self._check_data(X)
         return self._apply_method(X, "transform")
 
     def inverse_transform(self, X):
@@ -725,7 +760,7 @@ class UnsupervisedSpatialFilter(TransformerMixin, BaseEstimator):
         X = np.transpose(X, [1, 0, 2])
         X = np.reshape(X, [n_channels, n_epochs * n_times]).T
         # apply method
-        method = getattr(self.estimator, method)
+        method = getattr(self.estimator_, method)
         X = method(X)
         # put it back to n_epochs, n_dimensions
         X = np.reshape(X.T, [-1, n_epochs, n_times]).transpose([1, 0, 2])
@@ -733,7 +768,7 @@ class UnsupervisedSpatialFilter(TransformerMixin, BaseEstimator):
 
 
 @fill_doc
-class TemporalFilter(TransformerMixin, BaseEstimator):
+class TemporalFilter(MNETransformerMixin, BaseEstimator):
     """Estimator to filter data array along the last dimension.
 
     Applies a zero-phase low-pass, high-pass, band-pass, or band-stop
@@ -816,7 +851,7 @@ class TemporalFilter(TransformerMixin, BaseEstimator):
     mne.filter.filter_data
     """
 
-    @verbose
+    @fill_doc  # sklearn compliance
     def __init__(
         self,
         l_freq=None,
@@ -846,17 +881,12 @@ class TemporalFilter(TransformerMixin, BaseEstimator):
         self.fir_design = fir_design
         self.verbose = verbose
 
-        if not isinstance(self.n_jobs, int) and self.n_jobs == "cuda":
-            raise ValueError(
-                f'n_jobs must be int or "cuda", got {type(self.n_jobs)} instead.'
-            )
-
     def fit(self, X, y=None):
         """Do nothing (for scikit-learn compatibility purposes).
 
         Parameters
         ----------
-        X : array, shape (n_epochs, n_channels, n_times) or or shape (n_channels, n_times)
+        X : array, shape ([n_epochs, ]n_channels, n_times)
             The data to be filtered over the last dimension. The channels
             dimension can be zero when passing a 2D array.
         y : None
@@ -866,7 +896,9 @@ class TemporalFilter(TransformerMixin, BaseEstimator):
         -------
         self : instance of TemporalFilter
             The modified instance.
-        """  # noqa: E501
+        """
+        self.fitted_ = True  # sklearn compliance
+        self._check_data(X, y=y, atleast_3d=False, fit=True)
         return self
 
     def transform(self, X):
@@ -874,7 +906,7 @@ class TemporalFilter(TransformerMixin, BaseEstimator):
 
         Parameters
         ----------
-        X : array, shape (n_epochs, n_channels, n_times) or shape (n_channels, n_times)
+        X : array, shape ([n_epochs, ]n_channels, n_times)
             The data to be filtered over the last dimension. The channels
             dimension can be zero when passing a 2D array.
 
@@ -883,6 +915,7 @@ class TemporalFilter(TransformerMixin, BaseEstimator):
         X : array
             The data after filtering.
         """  # noqa: E501
+        X = self._check_data(X, atleast_3d=False)
         X = np.atleast_2d(X)
 
         if X.ndim > 3:
