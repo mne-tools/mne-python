@@ -1,2 +1,1 @@
-return events if provided when current = desired sfreq
-in :func:`mne.io.base.resample` by :newcontrib:`Roy Eric Wieske`.
+Return events when requested even when current matches the desired sfreq in :meth:`mne.io.Raw.resample` by :newcontrib:`Roy Eric Wieske`.
