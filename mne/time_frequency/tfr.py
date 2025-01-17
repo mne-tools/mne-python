@@ -579,7 +579,7 @@ def _compute_tfr(
     if ("avg_" in output) or ("itc" in output):
         out = np.empty((n_chans, n_freqs, n_times), dtype)
     elif output in ["complex", "phase"] and method == "multitaper":
-        out = np.empty((n_chans, n_tapers, n_epochs, n_freqs, n_times), dtype)
+        out = np.empty((n_chans, n_epochs, n_tapers, n_freqs, n_times), dtype)
     else:
         out = np.empty((n_chans, n_epochs, n_freqs, n_times), dtype)
 
@@ -600,10 +600,7 @@ def _compute_tfr(
 
     if ("avg_" not in output) and ("itc" not in output):
         # This is to enforce that the first dimension is for epochs
-        if output in ["complex", "phase"] and method == "multitaper":
-            out = out.transpose(2, 0, 1, 3, 4)
-        else:
-            out = out.transpose(1, 0, 2, 3)
+        out = np.moveaxis(out, 1, 0)
 
     if return_weights:
         return out, weights
@@ -722,7 +719,7 @@ def _time_frequency_loop(X, Ws, output, use_fft, mode, decim, weights=None):
     if ("avg_" in output) or ("itc" in output):
         tfrs = np.zeros((n_freqs, n_times), dtype=dtype)
     elif output in ["complex", "phase"] and weights is not None:
-        tfrs = np.zeros((n_tapers, n_epochs, n_freqs, n_times), dtype=dtype)
+        tfrs = np.zeros((n_epochs, n_tapers, n_freqs, n_times), dtype=dtype)
     else:
         tfrs = np.zeros((n_epochs, n_freqs, n_times), dtype=dtype)
     if weights is not None:
@@ -759,7 +756,7 @@ def _time_frequency_loop(X, Ws, output, use_fft, mode, decim, weights=None):
             if ("avg_" in output) or ("itc" in output):
                 tfrs += tfr
             elif output in ["complex", "phase"] and weights is not None:
-                tfrs[taper_idx, epoch_idx] += tfr
+                tfrs[epoch_idx, taper_idx] += tfr
             else:
                 tfrs[epoch_idx] += tfr
 
