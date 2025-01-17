@@ -1319,7 +1319,7 @@ def test_crop():
 
 
 @testing.requires_testing_data
-def test_resample():
+def test_resample_with_events():
     """Test resampling raws with events."""
     raw = read_raw_fif(fif_fname)
     raw.resample(250)  # pretend raw is recorded at 250 Hz
