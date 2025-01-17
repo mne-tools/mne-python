@@ -436,7 +436,7 @@ def _read_segment_file(data, idx, fi, start, stop, raw_extras, filenames, cals, 
                 ones[orig_idx, smp_read : smp_read + len(one_i)] = one_i
                 n_smp_read[orig_idx] += len(one_i)
 
-        # resample channels with lower sample requency
+        # resample channels with lower sample frequency
         # skip if no data was requested, ie. only annotations were read
         if any(n_smp_read) > 0:
             # expected number of samples, equals maximum sfreq

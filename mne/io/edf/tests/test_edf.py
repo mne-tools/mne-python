@@ -262,7 +262,7 @@ def test_edf_different_sfreqs(stim_channel):
 @testing.requires_testing_data
 @pytest.mark.parametrize("stim_channel", (None, False, "auto"))
 def test_edf_different_sfreqs_nopreload(stim_channel):
-    """Test loading smaller sfreq channels without preloading"""
+    """Test loading smaller sfreq channels without preloading."""
     # load without preloading, then load a channel that has smaller sfreq
     # as other channels, produced an error, see mne-python/issues/12897
 
