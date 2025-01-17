@@ -1,0 +1,2 @@
+return events if provided when current = desired sfreq
+in :func:`mne.io.base.resample` by :newcontrib:`Roy Eric Wieske`.
