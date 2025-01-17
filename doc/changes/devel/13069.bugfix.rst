@@ -1,0 +1,1 @@
+Fix bug cause by unnecessary assertion when loading mixed frequency EDFs without preloading :func:`mne.io.read_raw_edf` by `Simon Kern`_.
