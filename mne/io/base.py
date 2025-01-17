@@ -1386,8 +1386,8 @@ class BaseRaw(
         sfreq = float(sfreq)
         o_sfreq = float(self.info["sfreq"])
         if _check_resamp_noop(sfreq, o_sfreq):
-            if events:
-                return self, events
+            if events is not None:
+                return self, events.copy()
             else:
                 return self
 
