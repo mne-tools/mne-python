@@ -275,7 +275,12 @@ def test_get_coef_multiclass(n_features, n_targets):
     """Test get_coef on multiclass problems."""
     # Check patterns with more than 1 regressor
     X, Y, A = _make_data(n_samples=30000, n_features=n_features, n_targets=n_targets)
-    lm = LinearModel(LinearRegression()).fit(X, Y)
+    lm = LinearModel(LinearRegression())
+    assert not hasattr(lm, "model_")
+    lm.fit(X, Y)
+    # TODO: modifying non-underscored `model` is a sklearn no-no, maybe should be a
+    # metaestimator?
+    assert lm.model is lm.model_
     assert_array_equal(lm.filters_.shape, lm.patterns_.shape)
     if n_targets == 1:
         want_shape = (n_features,)

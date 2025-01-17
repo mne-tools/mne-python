@@ -461,7 +461,7 @@ class PSDEstimator(MNETransformerMixin, BaseEstimator):
         self.fitted_ = True  # sklearn compliance
         return self
 
-    def transform(self, epochs_data, y=None):
+    def transform(self, epochs_data):
         """Compute power spectral density (PSD) using a multi-taper method.
 
         Parameters

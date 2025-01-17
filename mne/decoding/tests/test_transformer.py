@@ -186,7 +186,9 @@ def test_psdestimator():
     epochs_data = epochs.get_data(copy=False)
     psd = PSDEstimator(2 * np.pi, 0, np.inf)
     y = epochs.events[:, -1]
+    assert not hasattr(psd, "fitted_")
     X = psd.fit_transform(epochs_data, y)
+    assert psd.fitted_
 
     assert X.shape[0] == epochs_data.shape[0]
     assert_array_equal(psd.fit(epochs_data, y).transform(epochs_data), X)
@@ -308,7 +310,9 @@ def test_bad_triage():
     filt = TemporalFilter(l_freq=8, h_freq=60, sfreq=160.0)
     # Used to fail with "ValueError: Effective band-stop frequency (135.0) is
     # too high (maximum based on Nyquist is 80.0)"
+    assert not hasattr(filt, "fitted_")
     filt.fit_transform(np.zeros((1, 1, 481)))
+    assert filt.fitted_
 
 
 @pytest.mark.filterwarnings("ignore:.*filter_length.*")

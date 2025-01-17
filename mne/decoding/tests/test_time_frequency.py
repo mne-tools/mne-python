@@ -35,7 +35,9 @@ def test_timefrequency_basic():
     clone(tf)
 
     # Fit
+    assert not hasattr(tf, "fitted_")
     tf.fit(X, None)
+    assert tf.fitted_
 
     # Transform
     tf = TimeFrequency(freqs, sfreq=100)
