@@ -28,10 +28,10 @@ import glob
 
 import numpy as np
 
-###############################################################################
+# %%
 # Download sample subject data from OpenNeuro if you haven't already.
 # This will download simultaneous EEG and ESG data from a single run of a
-# single participant after median nerve stimulation of the left wrist
+# single participant after median nerve stimulation of the left wrist.
 import openneuro
 from matplotlib import pyplot as plt
 
@@ -50,8 +50,8 @@ if not glob.glob(str(target_dir / run_name)):
 block_files = glob.glob(str(target_dir / run_name))
 assert len(block_files) == 1
 
-###############################################################################
-# Define the esg channels (arranged in two patches over the neck and lower back)
+# %%
+# Define the esg channels (arranged in two patches over the neck and lower back).
 
 esg_chans = [
     "S35",
@@ -101,9 +101,9 @@ tmax_esg = 7e-3
 iv_baseline = [-400e-3, -300e-3]
 iv_epoch = [-400e-3, 600e-3]
 
-######################################################
-# Perform minimal preprocessing including removing the
-# stimulation artefact, downsampling and filtering
+# %%
+# Next, we perform minimal preprocessing including removing the
+# stimulation artefact, downsampling and filtering.
 
 raw = read_raw_eeglab(block_files[0], verbose="error")
 raw.set_channel_types(dict(ECG="ecg"))
@@ -126,8 +126,8 @@ fix_stim_artifact(
     stim_channel=None,
 )
 
-###################################################################
-# Find ECG events and add to the raw structure as event annotations
+# %%
+# Find ECG events and add to the raw structure as event annotations.
 
 ecg_events, ch_ecg, average_pulse = find_ecg_events(raw, ch_name="ECG")
 ecg_event_samples = np.asarray(
@@ -144,9 +144,9 @@ raw.annotations.append(
     qrs_event_time, duration, description, ch_names=[esg_chans] * len(qrs_event_time)
 )
 
-###################################################
-# Create evoked response about the detected R-peaks
-# before and after cardiac artefact correction
+# %%
+# Create evoked response around the detected R-peaks
+# before and after cardiac artefact correction.
 
 events, event_ids = events_from_annotations(raw)
 event_id_dict = {key: value for key, value in event_ids.items() if key == "qrs"}
@@ -176,8 +176,8 @@ epochs = Epochs(
 )
 evoked_after = epochs.average()
 
-##################
-# Comparison image
+# %%
+# Compare evoked responses to assess completeness of artefact removal.
 
 fig, axes = plt.subplots(1, 1, layout="constrained")
 data_before = evoked_before.get_data(units=dict(eeg="uV")).T

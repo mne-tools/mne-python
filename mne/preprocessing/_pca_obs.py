@@ -111,7 +111,7 @@ def _pca_obs(
         peak_range / 8
     )  # sample fit for interpolation between fitted artifact windows
 
-    # make sure array is long enough for PArange (if not cut off  last ECG peak)
+    # make sure array is long enough for PArange (if not cut off last ECG peak)
     # NOTE: Here we previously checked for the last part of the window to be big enough.
     while peak_idx[peak_count - 1] + peak_range > len(data):
         peak_count = peak_count - 1  # reduce number of QRS complexes detected
