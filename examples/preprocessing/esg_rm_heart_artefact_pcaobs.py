@@ -29,7 +29,7 @@ import glob
 import numpy as np
 
 ###############################################################################
-# Download sample subject data from OpenNeuro if you haven't already
+# Download sample subject data from OpenNeuro if you haven't already.
 # This will download simultaneous EEG and ESG data from a single run of a
 # single participant after median nerve stimulation of the left wrist
 import openneuro
