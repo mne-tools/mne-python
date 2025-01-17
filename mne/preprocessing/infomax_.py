@@ -320,8 +320,7 @@ def infomax(
             if l_rate > min_l_rate:
                 if verbose:
                     logger.info(
-                        f"... lowering learning rate to {l_rate:g}"
-                        "\n... re-starting..."
+                        f"... lowering learning rate to {l_rate:g}\n... re-starting..."
                     )
             else:
                 raise ValueError(

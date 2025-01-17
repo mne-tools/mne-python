@@ -520,7 +520,7 @@ for pi, proj in enumerate((False, True, "reconstruct")):
     evoked_eeg.plot(proj=proj, axes=ax, spatial_colors=True)
     parts = ax.get_title().split("(")
     ylabel = (
-        f'{parts[0]} ({ax.get_ylabel()})\n{parts[1].replace(")", "")}'
+        f"{parts[0]} ({ax.get_ylabel()})\n{parts[1].replace(')', '')}"
         if pi == 0
         else ""
     )

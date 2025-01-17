@@ -96,7 +96,7 @@ def _pinv_trunc(x, miss):
     varexp /= varexp[-1]
     n = np.where(varexp >= (1.0 - miss))[0][0] + 1
     logger.info(
-        "    Truncating at %d/%d components to omit less than %g " "(%0.2g)",
+        "    Truncating at %d/%d components to omit less than %g (%0.2g)",
         n,
         len(s),
         miss,
@@ -111,8 +111,7 @@ def _pinv_tikhonov(x, reg):
     # _reg_pinv requires square Hermitian, which we have here
     inv, _, n = _reg_pinv(x, reg=reg, rank=None)
     logger.info(
-        f"    Truncating at {n}/{len(x)} components and regularizing "
-        f"with α={reg:0.1e}"
+        f"    Truncating at {n}/{len(x)} components and regularizing with α={reg:0.1e}"
     )
     return inv, n
 

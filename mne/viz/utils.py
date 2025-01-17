@@ -2356,7 +2356,7 @@ def _make_combine_callable(
         except KeyError:
             raise ValueError(
                 f'"combine" must be None, a callable, or one of "{", ".join(valid)}"; '
-                f'got {combine}'
+                f"got {combine}"
             )
     return combine
 

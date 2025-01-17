@@ -401,7 +401,7 @@ def _adjust_mag_normals(info, data, origin, ext_order, *, angle_limit, err_limit
     good = not bool(reason)
     assert np.allclose(np.linalg.norm(zs, axis=1), 1.0)
     logger.info(f"        Fit mismatch {first_err:0.2f}→{last_err:0.2f}%")
-    logger.info(f'        Data segment {"" if good else "un"}usable{reason}')
+    logger.info(f"        Data segment {'' if good else 'un'}usable{reason}")
     # Reformat zs and cals to be the n_mags (including bads)
     assert zs.shape == (len(data), 3)
     assert cals.shape == (len(data), 1)

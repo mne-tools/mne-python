@@ -507,7 +507,7 @@ def _prep_maxwell_filter(
             extended_proj_.append(proj["data"]["data"][:, idx])
         extended_proj = np.concatenate(extended_proj_)
         logger.info(
-            "    Extending external SSS basis using %d projection " "vectors",
+            "    Extending external SSS basis using %d projection vectors",
             len(extended_proj),
         )
 
@@ -566,8 +566,8 @@ def _prep_maxwell_filter(
         dist = np.sqrt(np.sum(_sq(diff)))
         if dist > 25.0:
             warn(
-                f'Head position change is over 25 mm '
-                f'({", ".join(f"{x:0.1f}" for x in diff)}) = {dist:0.1f} mm'
+                f"Head position change is over 25 mm "
+                f"({', '.join(f'{x:0.1f}' for x in diff)}) = {dist:0.1f} mm"
             )
 
     # Reconstruct raw file object with spatiotemporal processed data
@@ -2579,7 +2579,7 @@ def find_bad_channels_maxwell(
             freq_loc = "below" if raw.info["lowpass"] < h_freq else "equal to"
             msg = (
                 f"The input data has already been low-pass filtered with a "
-                f'{raw.info["lowpass"]} Hz cutoff frequency, which is '
+                f"{raw.info['lowpass']} Hz cutoff frequency, which is "
                 f"{freq_loc} the requested cutoff of {h_freq} Hz. Not "
                 f"applying low-pass filter."
             )

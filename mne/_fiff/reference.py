@@ -102,7 +102,7 @@ def _check_before_dict_reference(inst, ref_dict):
             raise TypeError(
                 f"{elem_name.capitalize()}s in the ref_channels dict must be strings. "
                 f"Your dict has {elem_name}s of type "
-                f'{", ".join(map(lambda x: x.__name__, bad_elem))}.'
+                f"{', '.join(map(lambda x: x.__name__, bad_elem))}."
             )
 
     # Check that keys are valid channels and values are lists-of-valid-channels
@@ -113,8 +113,8 @@ def _check_before_dict_reference(inst, ref_dict):
     for elem_name, elem in dict(key=keys, value=values).items():
         if bad_elem := elem - ch_set:
             raise ValueError(
-                f'ref_channels dict contains invalid {elem_name}(s) '
-                f'({", ".join(bad_elem)}) '
+                f"ref_channels dict contains invalid {elem_name}(s) "
+                f"({', '.join(bad_elem)}) "
                 "that are not names of channels in the instance."
             )
         # Check that values are not bad channels

@@ -910,8 +910,7 @@ def _get_pos_outlines(info, picks, sphere, to_sphere=True):
     orig_sphere = sphere
     sphere, clip_origin = _adjust_meg_sphere(sphere, info, ch_type)
     logger.debug(
-        "Generating pos outlines with sphere "
-        f"{sphere} from {orig_sphere} for {ch_type}"
+        f"Generating pos outlines with sphere {sphere} from {orig_sphere} for {ch_type}"
     )
     pos = _find_topomap_coords(
         info, picks, ignore_overlap=True, to_sphere=to_sphere, sphere=sphere
@@ -1262,7 +1261,7 @@ def _plot_topomap(
     if len(data) != len(pos):
         raise ValueError(
             "Data and pos need to be of same length. Got data of "
-            f"length {len(data)}, pos of length { len(pos)}"
+            f"length {len(data)}, pos of length {len(pos)}"
         )
 
     norm = min(data) >= 0
@@ -1409,8 +1408,7 @@ def _plot_ica_topomap(
     sphere = _check_sphere(sphere, ica.info)
     if not isinstance(axes, Axes):
         raise ValueError(
-            "axis has to be an instance of matplotlib Axes, "
-            f"got {type(axes)} instead."
+            f"axis has to be an instance of matplotlib Axes, got {type(axes)} instead."
         )
     ch_type = _get_plot_ch_type(ica, ch_type, allow_ref_meg=ica.allow_ref_meg)
     if ch_type == "ref_meg":
@@ -2116,6 +2114,22 @@ def plot_evoked_topomap(
     :ref:`gridspec <matplotlib:arranging_axes>` interface to adjust the colorbar
     size yourself.
 
+    The defaults for ``contours`` and ``vlim`` are handled as follows:
+
+    * When neither ``vlim`` nor a list of ``contours`` is passed, MNE sets
+      ``vlim`` at ± the maximum absolute value of the data and then chooses
+      contours within those bounds.
+
+    * When ``vlim`` but not a list of ``contours`` is passed, MNE chooses
+      contours to be within the ``vlim``.
+
+    * When a list of ``contours`` but not ``vlim`` is passed, MNE chooses
+      ``vlim`` to encompass the ``contours`` and the maximum absolute value of the
+      data.
+
+    * When both a list of ``contours`` and ``vlim`` are passed, MNE uses them
+      as-is.
+
     When ``time=="interactive"``, the figure will publish and subscribe to the
     following UI events:
 
@@ -2191,8 +2205,7 @@ def plot_evoked_topomap(
     space = 1 / (2.0 * evoked.info["sfreq"])
     if max(times) > max(evoked.times) + space or min(times) < min(evoked.times) - space:
         raise ValueError(
-            f"Times should be between {evoked.times[0]:0.3} and "
-            f"{evoked.times[-1]:0.3}."
+            f"Times should be between {evoked.times[0]:0.3} and {evoked.times[-1]:0.3}."
         )
     # create axes
     want_axes = n_times + int(colorbar)
@@ -2299,11 +2312,17 @@ def plot_evoked_topomap(
     _vlim = [
         _setup_vmin_vmax(data[:, i], *vlim, norm=merge_channels) for i in range(n_times)
     ]
-    _vlim = (np.min(_vlim), np.max(_vlim))
+    _vlim = [np.min(_vlim), np.max(_vlim)]
     cmap = _setup_cmap(cmap, n_axes=n_times, norm=_vlim[0] >= 0)
     # set up contours
     if not isinstance(contours, list | np.ndarray):
         _, contours = _set_contour_locator(*_vlim, contours)
+    else:
+        if vlim[0] is None and np.any(contours < _vlim[0]):
+            _vlim[0] = contours[0]
+        if vlim[1] is None and np.any(contours > _vlim[1]):
+            _vlim[1] = contours[-1]
+
     # prepare for main loop over times
     kwargs = dict(
         sensors=sensors,
@@ -2791,8 +2810,7 @@ def plot_psds_topomap(
         # convert legacy list-of-tuple input to a dict
         bands = {band[-1]: band[:-1] for band in bands}
         logger.info(
-            "converting legacy list-of-tuples input to a dict for the "
-            "`bands` parameter"
+            "converting legacy list-of-tuples input to a dict for the `bands` parameter"
         )
     # upconvert single freqs to band upper/lower edges as needed
     bin_spacing = np.diff(freqs)[0]
@@ -3352,6 +3370,7 @@ def _set_contour_locator(vmin, vmax, contours):
         # correct number of bins is equal to contours + 1.
         locator = ticker.MaxNLocator(nbins=contours + 1)
         contours = locator.tick_values(vmin, vmax)
+        contours = contours[1:-1]
     return locator, contours
 
 

@@ -867,9 +867,9 @@ def _assert_brain_range(brain, rng):
         for key, mesh in layerer._overlays.items():
             if key == "curv":
                 continue
-            assert (
-                mesh._rng == rng
-            ), f"_layered_meshes[{repr(hemi)}][{repr(key)}]._rng != {rng}"
+            assert mesh._rng == rng, (
+                f"_layered_meshes[{repr(hemi)}][{repr(key)}]._rng != {rng}"
+            )
 
 
 @testing.requires_testing_data
@@ -1237,9 +1237,9 @@ def test_brain_scraper(renderer_interactive_pyvistaqt, brain_gc, tmp_path):
     w = img.shape[1]
     w0 = size[0]
     # On Linux+conda we get a width of 624, similar tweak in test_brain_init above
-    assert np.isclose(w, w0, atol=30) or np.isclose(
-        w, w0 * 2, atol=30
-    ), f"w ∉ {{{w0}, {2 * w0}}}"  # HiDPI
+    assert np.isclose(w, w0, atol=30) or np.isclose(w, w0 * 2, atol=30), (
+        f"w ∉ {{{w0}, {2 * w0}}}"
+    )  # HiDPI
 
 
 @testing.requires_testing_data

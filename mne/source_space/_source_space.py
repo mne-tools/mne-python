@@ -743,7 +743,7 @@ class SourceSpaces(list):
             # generate use warnings for clipping
             if n_diff > 0:
                 warn(
-                    f'{n_diff} {src["type"]} vertices lay outside of volume '
+                    f"{n_diff} {src['type']} vertices lay outside of volume "
                     f"space. Consider using a larger volume space."
                 )
             # get surface id or use default value
@@ -1546,7 +1546,7 @@ def setup_source_space(
     # pre-load ico/oct surf (once) for speed, if necessary
     if stype not in ("spacing", "all"):
         logger.info(
-            f'Doing the {dict(ico="icosa", oct="octa")[stype]}hedral vertex picking...'
+            f"Doing the {dict(ico='icosa', oct='octa')[stype]}hedral vertex picking..."
         )
     for hemi, surf in zip(["lh", "rh"], surfs):
         logger.info(f"Loading {surf}...")
@@ -2916,8 +2916,7 @@ def _get_vertex_map_nn(
                 raise RuntimeError(f"vertex {one} would be used multiple times.")
             one = one[0]
             logger.info(
-                "Source space vertex moved from %d to %d because of "
-                "double occupation.",
+                "Source space vertex moved from %d to %d because of double occupation.",
                 was,
                 one,
             )
@@ -3167,8 +3166,7 @@ def _compare_source_spaces(src0, src1, mode="exact", nearest=True, dist_tol=1.5e
                 assert_array_equal(
                     s["vertno"],
                     np.where(s["inuse"])[0],
-                    f'src{ii}[{si}]["vertno"] != '
-                    f'np.where(src{ii}[{si}]["inuse"])[0]',
+                    f'src{ii}[{si}]["vertno"] != np.where(src{ii}[{si}]["inuse"])[0]',
                 )
             assert_equal(len(s0["vertno"]), len(s1["vertno"]))
             agreement = np.mean(s0["inuse"] == s1["inuse"])
