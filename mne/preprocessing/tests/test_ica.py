@@ -25,12 +25,12 @@ from mne import (
     EpochsArray,
     EvokedArray,
     Info,
+    concatenate_raws,
     create_info,
     make_ad_hoc_cov,
     pick_channels_regexp,
     pick_types,
     read_events,
-    concatenate_raws,
 )
 from mne._fiff.pick import _DATA_CH_TYPES_SPLIT, get_channel_type_constants
 from mne.cov import read_cov
@@ -1726,9 +1726,11 @@ def test_ica_ch_types(ch_type):
 def test_ica_get_sources_concatenated():
     """Test ICA get_sources method with concatenated raws."""
     # load data
-    raw = read_raw_fif(raw_fname).crop(0, 3).load_data() # raw has 3 seconds of data
+    raw = read_raw_fif(raw_fname).crop(0, 3).load_data()  # raw has 3 seconds of data
     # create concatenated raw instances
-    raw_concat = concatenate_raws([raw.copy(), raw.copy()])  # raw_concat has 6 seconds of data
+    raw_concat = concatenate_raws(
+        [raw.copy(), raw.copy()]
+    )  # raw_concat has 6 seconds of data
     # do ICA
     ica = ICA(n_components=2, max_iter=2)
     with _record_warnings(), pytest.warns(UserWarning, match="did not converge"):
