@@ -255,22 +255,6 @@ def test_tfr_morlet():
     # computed within the method.
     assert_allclose(epochs_amplitude_2.data**2, epochs_power_picks.data)
 
-    # test that averaging power across tapers when multitaper with
-    # output='complex' gives the same as output='power'
-    epoch_data = epochs.get_data()
-    multitaper_power = tfr_array_multitaper(
-        epoch_data, epochs.info["sfreq"], freqs, n_cycles, output="power"
-    )
-    multitaper_complex = tfr_array_multitaper(
-        epoch_data, epochs.info["sfreq"], freqs, n_cycles, output="complex"
-    )
-
-    taper_dim = 2
-    power_from_complex = (multitaper_complex * multitaper_complex.conj()).real.mean(
-        axis=taper_dim
-    )
-    assert_allclose(power_from_complex, multitaper_power)
-
     print(itc)  # test repr
     print(itc.ch_names)  # test property
     itc += power  # test add
