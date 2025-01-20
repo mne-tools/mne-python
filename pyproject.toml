@@ -63,6 +63,7 @@ doc = [
   "mne-gui-addons",
   "neo",
   "numpydoc",
+  "openneuro-py",
   "psutil",
   "pydata_sphinx_theme >= 0.15.2",
   "pygments >= 2.13",

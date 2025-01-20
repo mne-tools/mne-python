@@ -73,6 +73,7 @@
 .. _Eberhard Eich: https://github.com/ebeich
 .. _Eduard Ort: https://github.com/eort
 .. _Emily Stephen: https://github.com/emilyps14
+.. _Emma Bailey: https://www.cbs.mpg.de/employees/bailey
 .. _Enrico Varano: https://github.com/enricovara/
 .. _Enzo Altamiranda: https://www.linkedin.com/in/enzoalt
 .. _Eric Larson: https://larsoner.com
@@ -285,6 +286,7 @@
 .. _Stanislas Chambon: https://github.com/Slasnista
 .. _Stefan Appelhoff: https://stefanappelhoff.com
 .. _Stefan Repplinger: https://github.com/stfnrpplngr
+.. _Steinn Hauser Magnusson: https://github.com/steinnhauser
 .. _Steven Bethard: https://github.com/bethard
 .. _Steven Bierer: https://github.com/neurolaunch
 .. _Steven Gutstein: https://github.com/smgutstein
