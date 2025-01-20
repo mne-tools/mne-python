@@ -102,7 +102,7 @@ def _check_before_dict_reference(inst, ref_dict):
             raise TypeError(
                 f"{elem_name.capitalize()}s in the ref_channels dict must be strings. "
                 f"Your dict has {elem_name}s of type "
-                f'{", ".join(map(lambda x: x.__name__, bad_elem))}.'
+                f"{', '.join(map(lambda x: x.__name__, bad_elem))}."
             )
 
     # Check that keys are valid channels and values are lists-of-valid-channels
@@ -113,8 +113,8 @@ def _check_before_dict_reference(inst, ref_dict):
     for elem_name, elem in dict(key=keys, value=values).items():
         if bad_elem := elem - ch_set:
             raise ValueError(
-                f'ref_channels dict contains invalid {elem_name}(s) '
-                f'({", ".join(bad_elem)}) '
+                f"ref_channels dict contains invalid {elem_name}(s) "
+                f"({', '.join(bad_elem)}) "
                 "that are not names of channels in the instance."
             )
         # Check that values are not bad channels
@@ -277,8 +277,8 @@ def add_reference_channels(inst, ref_channels, copy=True):
         )
     nchan = len(inst.info["ch_names"])
 
-    # only do this if we actually have digitisation points
     if inst.info.get("dig", None) is not None:
+        # A montage has been set. Try to infer location of reference channels.
         # "zeroth" EEG electrode dig points is reference
         ref_dig_loc = [
             dl
@@ -287,7 +287,12 @@ def add_reference_channels(inst, ref_channels, copy=True):
         ]
         if len(ref_channels) > 1 or len(ref_dig_loc) != len(ref_channels):
             ref_dig_array = np.full(12, np.nan)
-            warn("The locations of multiple reference channels are ignored.")
+            warn(
+                "Location for this channel is unknown or ambiguous; consider calling "
+                "set_montage() after adding new reference channels if needed. "
+                "Applying a montage will only set locations of channels that "
+                "exist at the time it is applied."
+            )
         else:  # n_ref_channels == 1 and a single ref digitization exists
             ref_dig_array = np.concatenate(
                 (ref_dig_loc[0]["r"], ref_dig_loc[0]["r"], np.zeros(6))
@@ -296,16 +301,8 @@ def add_reference_channels(inst, ref_channels, copy=True):
             for idx in pick_types(inst.info, meg=False, eeg=True, exclude=[]):
                 inst.info["chs"][idx]["loc"][3:6] = ref_dig_loc[0]["r"]
     else:
-        # Ideally we'd fall back on getting the location from a montage, but
-        # locations for non-present channels aren't stored, so location is
-        # unknown. Users can call set_montage() again if needed.
+        # If no montage has ever been set, we cannot even try to infer a location.
         ref_dig_array = np.full(12, np.nan)
-        logger.info(
-            "Location for this channel is unknown; consider calling "
-            "set_montage() after adding new reference channels if needed. "
-            "Applying a montage will only set locations of channels that "
-            "exist at the time it is applied."
-        )
 
     for ch in ref_channels:
         chan_info = {

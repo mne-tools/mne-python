@@ -560,7 +560,7 @@ class ICA(ContainsMixin):
         """ICA fit information."""
         infos = self._get_infos_for_repr()
 
-        s = f'{infos.fit_on or "no"} decomposition, method: {infos.fit_method}'
+        s = f"{infos.fit_on or 'no'} decomposition, method: {infos.fit_method}"
 
         if infos.fit_on is not None:
             s += (
@@ -568,8 +568,8 @@ class ICA(ContainsMixin):
                 f"{infos.fit_n_samples} samples), "
                 f"{infos.fit_n_components} ICA components "
                 f"({infos.fit_n_pca_components} PCA components available), "
-                f'channel types: {", ".join(infos.ch_types)}, '
-                f'{len(infos.excludes) or "no"} sources marked for exclusion'
+                f"channel types: {', '.join(infos.ch_types)}, "
+                f"{len(infos.excludes) or 'no'} sources marked for exclusion"
             )
 
         return f"<ICA | {s}>"
@@ -698,7 +698,7 @@ class ICA(ContainsMixin):
                 warn(
                     f"The following parameters passed to ICA.fit() will be "
                     f"ignored, as they only affect raw data (and it appears "
-                    f'you passed epochs): {", ".join(ignored_params)}'
+                    f"you passed epochs): {', '.join(ignored_params)}"
                 )
 
         picks = _picks_to_idx(
@@ -714,8 +714,9 @@ class ICA(ContainsMixin):
             self._reset()
 
         logger.info(
-            "Fitting ICA to data using %i channels "
-            "(please be patient, this may take a while)" % len(picks)
+            "Fitting ICA to data using %i channels (please be patient, this may take "
+            "a while)",
+            len(picks),
         )
 
         # n_components could be float 0 < x < 1, but that's okay here
@@ -874,7 +875,7 @@ class ICA(ContainsMixin):
                 logger.info(
                     f"    Applying projection operator with {nproj} "
                     f"vector{_pl(nproj)}"
-                    f'{" " if log_suffix else ""}{log_suffix}'
+                    f"{' ' if log_suffix else ''}{log_suffix}"
                 )
                 if self.noise_cov is None:  # otherwise it's in pre_whitener_
                     data = proj @ data
@@ -1011,7 +1012,7 @@ class ICA(ContainsMixin):
 
     def _update_ica_names(self):
         """Update ICA names when n_components_ is set."""
-        self._ica_names = ["ICA%03d" % ii for ii in range(self.n_components_)]
+        self._ica_names = [f"ICA{ii:03d}" for ii in range(self.n_components_)]
 
     def _transform(self, data):
         """Compute sources from data (operates inplace)."""
@@ -1069,10 +1070,9 @@ class ICA(ContainsMixin):
             else:
                 raise ValueError("Data input must be of Raw, Epochs or Evoked type")
             raise RuntimeError(
-                "%s %s match fitted data: %i channels "
-                "fitted but %i channels supplied. \nPlease "
-                "provide %s compatible with ica.ch_names"
-                % (kind, do, len(self.ch_names), len(picks), kind)
+                f"{kind} {do} match fitted data: {len(self.ch_names)} channels "
+                f"fitted but {len(picks)} channels supplied. \nPlease "
+                f"provide {kind} compatible with 'ica.ch_names'."
             )
         return picks
 
@@ -1162,7 +1162,7 @@ class ICA(ContainsMixin):
                 raise ValueError(
                     f"You requested operation on the channel type "
                     f'"{ch_type}", but only the following channel types are '
-                    f'supported: {", ".join(allowed_ch_types)}'
+                    f"supported: {', '.join(allowed_ch_types)}"
                 )
         del ch_type
 
@@ -1297,7 +1297,7 @@ class ICA(ContainsMixin):
         out._data = data_
         out._first_samps = [out.first_samp]
         out._last_samps = [out.last_samp]
-        out._filenames = [None]
+        out.filenames = [None]
         out.preload = True
         out._projector = None
         self._export_info(out.info, raw, add_channels)
@@ -1553,7 +1553,7 @@ class ICA(ContainsMixin):
             else:
                 raise ValueError(f"Unknown measure {measure}")
             idx += [this_idx]
-            self.labels_["%s/%i/" % (prefix, ii) + ch] = list(this_idx)
+            self.labels_[f"{prefix}/{ii}/{ch}"] = list(this_idx)
 
         # remove duplicates but keep order by score, even across multiple
         # ref channels
@@ -2306,10 +2306,9 @@ class ICA(ContainsMixin):
         # special case where epochs come picked but fit was 'unpicked'.
         if len(picks) != len(self.ch_names):
             raise RuntimeError(
-                "Epochs don't match fitted data: %i channels "
-                "fitted but %i channels supplied. \nPlease "
-                "provide Epochs compatible with "
-                "ica.ch_names" % (len(self.ch_names), len(picks))
+                f"Epochs don't match fitted data: {len(self.ch_names)} channels "
+                f"fitted but {len(picks)} channels supplied. \nPlease "
+                "provide Epochs compatible with 'ica.ch_names'."
             )
 
         data = np.hstack(epochs.get_data(picks))
@@ -2330,10 +2329,9 @@ class ICA(ContainsMixin):
         # special case where evoked come picked but fit was 'unpicked'.
         if len(picks) != len(self.ch_names):
             raise RuntimeError(
-                "Evoked does not match fitted data: %i channels"
-                " fitted but %i channels supplied. \nPlease "
-                "provide an Evoked object that's compatible "
-                "with ica.ch_names" % (len(self.ch_names), len(picks))
+                f"Evoked does not match fitted data: {len(self.ch_names)} channels "
+                f"fitted but {len(picks)} channels supplied. \nPlease "
+                "provide an Evoked object that's compatible with ica.ch_names."
             )
 
         data = evoked.data[picks]
@@ -2395,8 +2393,7 @@ class ICA(ContainsMixin):
         unmixing = np.dot(unmixing, pca_components)
 
         logger.info(
-            f"    Projecting back using {_n_pca_comp} "
-            f"PCA component{_pl(_n_pca_comp)}"
+            f"    Projecting back using {_n_pca_comp} PCA component{_pl(_n_pca_comp)}"
         )
         mixing = np.eye(_n_pca_comp)
         mixing[: self.n_components_, : self.n_components_] = self.mixing_matrix_
@@ -3370,8 +3367,7 @@ def corrmap(
         is_subject = False
     else:
         raise ValueError(
-            "`template` must be a length-2 tuple or an array the "
-            "size of the ICA maps."
+            "`template` must be a length-2 tuple or an array the size of the ICA maps."
         )
 
     template_fig, labelled_ics = None, None

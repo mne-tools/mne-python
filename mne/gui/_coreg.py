@@ -1611,8 +1611,7 @@ class CoregistrationUI(HasTraits):
             func=self._set_subjects_dir,
             is_directory=True,
             icon=True,
-            tooltip="Load the path to the directory containing the "
-            "FreeSurfer subjects",
+            tooltip="Load the path to the directory containing the FreeSurfer subjects",
             layout=subjects_dir_layout,
         )
         self._renderer._layout_add_widget(
@@ -1741,8 +1740,7 @@ class CoregistrationUI(HasTraits):
         self._widgets["omit"] = self._renderer._dock_add_button(
             name="Omit",
             callback=self._omit_hsp,
-            tooltip="Exclude the head shape points that are far away from "
-            "the MRI head",
+            tooltip="Exclude the head shape points that are far away from the MRI head",
             layout=omit_hsp_layout_2,
         )
         self._widgets["reset_omit"] = self._renderer._dock_add_button(

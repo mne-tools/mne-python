@@ -268,7 +268,7 @@ def test_multiple_files(tmp_path):
     # going in reverse order so the last fname is the first file (need later)
     raws = [None] * len(tmins)
     for ri in range(len(tmins) - 1, -1, -1):
-        fname = tmp_path / ("test_raw_split-%d_raw.fif" % ri)
+        fname = tmp_path / (f"test_raw_split-{ri}_raw.fif")
         raw.save(fname, tmin=tmins[ri], tmax=tmaxs[ri])
         raws[ri] = read_raw_fif(fname)
         assert (
@@ -478,14 +478,6 @@ def test_concatenate_raws_order():
         # still fails, because raws is copied and not changed in place
         match_channel_orders(insts=raws, copy=True)
         raw_concat = concatenate_raws(raws)
-
-    # XXX: remove in version 1.9
-    with pytest.warns(DeprecationWarning, match="``raws`` parameter is deprecated"):
-        match_channel_orders(raws=raws)
-
-    # XXX: remove in version 1.9
-    with pytest.raises(ValueError, match="need to pass a list"):
-        match_channel_orders()
 
     # Now passes because all raws have the same order
     match_channel_orders(insts=raws, copy=False)

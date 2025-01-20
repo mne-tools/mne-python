@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "a99aa9f798d878ba144b3f6f3127311841d5d2b5",
+  "authors": [
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/sphinxext/related_software.py": {
+      "a": 4,
+      "d": 4
+    },
+    "tools/circleci_dependencies.sh": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

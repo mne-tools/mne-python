@@ -80,6 +80,8 @@ def iter_topography(
         channels. The selected channels will be available in
         ``fig.lasso.selection``.
 
+        .. versionadded:: 1.10.0
+
     Returns
     -------
     gen : generator
@@ -273,8 +275,10 @@ def _iter_topography(
                     publish(fig, ChannelsSelect(ch_names=fig.lasso.selection))
 
                 def on_channels_select(event):
-                    ch_inds = {name: i for i, name in enumerate(ch_names)}
-                    selection_inds = [ch_inds[name] for name in event.ch_names]
+                    ch_inds = {name: i for i, name in enumerate(shown_ch_names)}
+                    selection_inds = [
+                        ch_inds[name] for name in event.ch_names if name in ch_inds
+                    ]
                     fig.lasso.select_many(selection_inds)
 
                 fig.lasso.callbacks.append(on_select)
@@ -1258,6 +1262,8 @@ def plot_topo_image_epochs(
         Whether to enable the lasso-selection tool to enable the user to select
         channels. The selected channels will be available in
         ``fig.lasso.selection``.
+
+        .. versionadded:: 1.10.0
     show : bool
         Whether to show the figure. Defaults to ``True``.
 

@@ -22,12 +22,10 @@ import warnings
 from math import log
 
 import numpy as np
+from packaging.version import parse
 
 ###############################################################################
-# distutils
-
-# distutils has been deprecated since Python 3.10 and was removed
-# from the standard library with the release of Python 3.12.
+# distutils LooseVersion removed in Python 3.12
 
 
 def _compare_version(version_a, operator, version_b):
@@ -48,8 +46,6 @@ def _compare_version(version_a, operator, version_b):
     bool
         The result of the version comparison.
     """
-    from packaging.version import parse
-
     mapping = {"<": "lt", "<=": "le", "==": "eq", "!=": "ne", ">=": "ge", ">": "gt"}
     with warnings.catch_warnings(record=True):
         warnings.simplefilter("ignore")
@@ -724,3 +720,16 @@ def minimum_phase(h, method="homomorphic", n_fft=None, *, half=True):
 
     n_out = (n_half + len(h) % 2) if half else len(h)
     return h_minimum[:n_out]
+
+
+# SciPy 1.15 deprecates sph_harm for sph_harm_y and using it will trigger a
+# DeprecationWarning. This is a backport of the new function for older SciPy versions.
+def sph_harm_y(n, m, theta, phi, *, diff_n=0):
+    """Wrap scipy.special.sph_harm for sph_harm_y."""
+    # Can be removed once we no longer support scipy < 1.15.0
+    from scipy import special
+
+    if "sph_harm_y" in special.__dict__:
+        return special.sph_harm_y(n, m, theta, phi, diff_n=diff_n)
+    else:
+        return special.sph_harm(m, n, phi, theta)

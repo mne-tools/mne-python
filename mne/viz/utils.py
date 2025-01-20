@@ -807,12 +807,12 @@ def _fake_click(fig, ax, point, xform="ax", button=1, kind="press", key=None):
     )
 
 
-def _fake_keypress(fig, key):
+def _fake_keypress(fig, key, kind="press"):
     from matplotlib import backend_bases
 
     fig.canvas.callbacks.process(
-        "key_press_event",
-        backend_bases.KeyEvent(name="key_press_event", canvas=fig.canvas, key=key),
+        f"key_{kind}_event",
+        backend_bases.KeyEvent(name=f"key_{kind}_event", canvas=fig.canvas, key=key),
     )
 
 
@@ -1279,7 +1279,9 @@ def _plot_sensors_2d(
 
             def on_channels_select(event):
                 ch_inds = {name: i for i, name in enumerate(ch_names)}
-                selection_inds = [ch_inds[name] for name in event.ch_names]
+                selection_inds = [
+                    ch_inds[name] for name in event.ch_names if name in ch_inds
+                ]
                 fig.lasso.select_many(selection_inds)
 
             fig.lasso.callbacks.append(on_select)
@@ -1715,9 +1717,9 @@ class SelectFromCollection:
         path = Path(verts)
         inds = np.nonzero([path.intersects_path(p) for p in self.paths])[0]
         if self.canvas._key == "shift":  # Appending selection.
-            self.selection_inds = np.union1d(self.selection_inds, inds)
+            self.selection_inds = np.union1d(self.selection_inds, inds).astype("int")
         elif self.canvas._key == "alt":  # Removing selection.
-            self.selection_inds = np.setdiff1d(self.selection_inds, inds)
+            self.selection_inds = np.setdiff1d(self.selection_inds, inds).astype("int")
         else:
             self.selection_inds = inds
         self.selection = [self.names[i] for i in self.selection_inds]
@@ -1738,7 +1740,7 @@ class SelectFromCollection:
 
     def select_many(self, inds):
         """Select many sensors using indices (for predefined selections)."""
-        self.selected_inds = inds
+        self.selection_inds = inds
         self.selection = [self.names[i] for i in self.selection_inds]
         self.style_objects()
 
@@ -2395,7 +2397,7 @@ def _make_combine_callable(
         except KeyError:
             raise ValueError(
                 f'"combine" must be None, a callable, or one of "{", ".join(valid)}"; '
-                f'got {combine}'
+                f"got {combine}"
             )
     return combine
 
@@ -2429,14 +2431,16 @@ def _convert_psds(
         np.sqrt(psds, out=psds)
         psds *= scaling
         ylabel = rf"$\mathrm{{{unit}/\sqrt{{Hz}}}}$"
+        coef = 20
     else:
         psds *= scaling * scaling
         if "/" in unit:
             unit = f"({unit})"
         ylabel = rf"$\mathrm{{{unit}²/Hz}}$"
+        coef = 10
     if dB:
         np.log10(np.maximum(psds, np.finfo(float).tiny), out=psds)
-        psds *= 10
+        psds *= coef
         ylabel = r"$\mathrm{dB}\ $" + ylabel
     ylabel = "Power (" + ylabel if estimate == "power" else "Amplitude (" + ylabel
     ylabel += ")"

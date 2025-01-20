@@ -198,8 +198,7 @@ def _fit_xdawn(
             evals, evecs = linalg.eigh(evo_cov, signal_cov)
         except np.linalg.LinAlgError as exp:
             raise ValueError(
-                "Could not compute eigenvalues, ensure "
-                f"proper regularization ({exp})"
+                f"Could not compute eigenvalues, ensure proper regularization ({exp})"
             )
         evecs = evecs[:, np.argsort(evals)[::-1]]  # sort eigenvectors
         evecs /= np.apply_along_axis(np.linalg.norm, 0, evecs)
@@ -307,8 +306,8 @@ class _XdawnTransformer(BaseEstimator, TransformerMixin):
         # Check size
         if self.filters_.shape[1] != X.shape[1]:
             raise ValueError(
-                "X must have %i channels, got %i instead."
-                % (self.filters_.shape[1], X.shape[1])
+                f"X must have {self.filters_.shape[1]} channels, got {X.shape[1]} "
+                "instead."
             )
 
         # Transform
@@ -339,8 +338,8 @@ class _XdawnTransformer(BaseEstimator, TransformerMixin):
         n_epochs, n_comp, n_times = X.shape
         if n_comp != (self.n_components * len(self.classes_)):
             raise ValueError(
-                "X must have %i components, got %i instead"
-                % (self.n_components * len(self.classes_), n_comp)
+                f"X must have {self.n_components * len(self.classes_)} components, "
+                f"got {n_comp} instead."
             )
 
         # Transform

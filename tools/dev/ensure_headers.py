@@ -156,15 +156,15 @@ def _ensure_copyright(lines, path):
         lines[insert] = COPYRIGHT_LINE
     else:
         lines.insert(insert, COPYRIGHT_LINE)
-    assert (
-        lines.count(COPYRIGHT_LINE) == 1
-    ), f"{lines.count(COPYRIGHT_LINE)=} for {path=}"
+    assert lines.count(COPYRIGHT_LINE) == 1, (
+        f"{lines.count(COPYRIGHT_LINE)=} for {path=}"
+    )
 
 
 def _ensure_blank(lines, path):
-    assert (
-        lines.count(COPYRIGHT_LINE) == 1
-    ), f"{lines.count(COPYRIGHT_LINE)=} for {path=}"
+    assert lines.count(COPYRIGHT_LINE) == 1, (
+        f"{lines.count(COPYRIGHT_LINE)=} for {path=}"
+    )
     insert = lines.index(COPYRIGHT_LINE) + 1
     if lines[insert].strip():  # actually has content
         lines.insert(insert, "")

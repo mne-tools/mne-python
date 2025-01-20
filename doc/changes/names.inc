@@ -73,6 +73,7 @@
 .. _Eberhard Eich: https://github.com/ebeich
 .. _Eduard Ort: https://github.com/eort
 .. _Emily Stephen: https://github.com/emilyps14
+.. _Emma Bailey: https://www.cbs.mpg.de/employees/bailey
 .. _Enrico Varano: https://github.com/enricovara/
 .. _Enzo Altamiranda: https://www.linkedin.com/in/enzoalt
 .. _Eric Larson: https://larsoner.com
@@ -119,6 +120,7 @@
 .. _Ivo de Jong: https://github.com/ivopascal
 .. _Jaakko Leppakangas: https://github.com/jaeilepp
 .. _Jack Zhang: https://github.com/jackz314
+.. _Jacob Phelan: https://github.com/JacPhe
 .. _Jacob Woessner: https://github.com/withmywoessner
 .. _Jair Montoya Martinez: https://github.com/jmontoyam
 .. _Jan Ebert: https://www.jan-ebert.com/
@@ -272,6 +274,7 @@
 .. _Senwen Deng: https://snwn.de
 .. _Seyed Yahya Shirazi: https://neuromechanist.github.io
 .. _Sheraz Khan: https://github.com/SherazKhan
+.. _Shristi Baral: https://github.com/shristibaral
 .. _Silvia Cotroneo: https://github.com/sfc-neuro
 .. _Simeon Wong: https://github.com/dtxe
 .. _Simon Kern: https://skjerns.de
@@ -282,6 +285,7 @@
 .. _Stanislas Chambon: https://github.com/Slasnista
 .. _Stefan Appelhoff: https://stefanappelhoff.com
 .. _Stefan Repplinger: https://github.com/stfnrpplngr
+.. _Steinn Hauser Magnusson: https://github.com/steinnhauser
 .. _Steven Bethard: https://github.com/bethard
 .. _Steven Bierer: https://github.com/neurolaunch
 .. _Steven Gutstein: https://github.com/smgutstein
@@ -317,4 +321,5 @@
 .. _Yousra Bekhti: https://www.linkedin.com/pub/yousra-bekhti/56/886/421
 .. _Yu-Han Luo: https://github.com/yh-luo
 .. _Zhi Zhang: https://github.com/tczhangzhi/
+.. _Ziyi ZENG: https://github.com/ZiyiTsang
 .. _Zvi Baratz: https://github.com/ZviBaratz

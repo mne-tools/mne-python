@@ -363,13 +363,11 @@ class Raw(BaseRaw):
         raw._cals = cals
         raw._raw_extras = raw_extras
         logger.info(
-            "    Range : %d ... %d =  %9.3f ... %9.3f secs"
-            % (
-                raw.first_samp,
-                raw.last_samp,
-                float(raw.first_samp) / info["sfreq"],
-                float(raw.last_samp) / info["sfreq"],
-            )
+            "    Range : %d ... %d =  %9.3f ... %9.3f secs",
+            raw.first_samp,
+            raw.last_samp,
+            float(raw.first_samp) / info["sfreq"],
+            float(raw.last_samp) / info["sfreq"],
         )
 
         raw.info = info

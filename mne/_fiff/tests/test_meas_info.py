@@ -306,7 +306,9 @@ def test_read_write_info(tmp_path):
     gantry_angle = info["gantry_angle"]
 
     meas_id = info["meas_id"]
-    write_info(temp_file, info)
+    with pytest.raises(FileExistsError, match="Destination file exists"):
+        write_info(temp_file, info)
+    write_info(temp_file, info, overwrite=True)
     info = read_info(temp_file)
     assert info["proc_history"][0]["creator"] == creator
     assert info["hpi_meas"][0]["creator"] == creator
@@ -348,7 +350,7 @@ def test_read_write_info(tmp_path):
         info["meas_date"] = datetime(1800, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
     fname = tmp_path / "test.fif"
     with pytest.raises(RuntimeError, match="must be between "):
-        write_info(fname, info)
+        write_info(fname, info, overwrite=True)
 
 
 @testing.requires_testing_data
@@ -377,7 +379,7 @@ def test_io_coord_frame(tmp_path):
     for ch_type in ("eeg", "seeg", "ecog", "dbs", "hbo", "hbr"):
         info = create_info(ch_names=["Test Ch"], sfreq=1000.0, ch_types=[ch_type])
         info["chs"][0]["loc"][:3] = [0.05, 0.01, -0.03]
-        write_info(fname, info)
+        write_info(fname, info, overwrite=True)
         info2 = read_info(fname)
         assert info2["chs"][0]["coord_frame"] == FIFF.FIFFV_COORD_HEAD
 
@@ -585,7 +587,7 @@ def test_check_consistency():
         info2["subject_info"] = {"height": "bad"}
 
 
-def _test_anonymize_info(base_info):
+def _test_anonymize_info(base_info, tmp_path):
     """Test that sensitive information can be anonymized."""
     pytest.raises(TypeError, anonymize_info, "foo")
     assert isinstance(base_info, Info)
@@ -692,14 +694,25 @@ def _test_anonymize_info(base_info):
     # exp 4 tests is a supplied daysback
     delta_t_3 = timedelta(days=223 + 364 * 500)
 
+    def _check_equiv(got, want, err_msg):
+        __tracebackhide__ = True
+        fname_temp = tmp_path / "test.fif"
+        assert_object_equal(got, want, err_msg=err_msg)
+        write_info(fname_temp, got, reset_range=False, overwrite=True)
+        got = read_info(fname_temp)
+        # this gets changed on write but that's expected
+        with got._unlock():
+            got["file_id"] = want["file_id"]
+        assert_object_equal(got, want, err_msg=f"{err_msg} (on I/O round trip)")
+
     new_info = anonymize_info(base_info.copy())
-    assert_object_equal(new_info, exp_info, err_msg="anon mismatch")
+    _check_equiv(new_info, exp_info, err_msg="anon mismatch")
 
     new_info = anonymize_info(base_info.copy(), keep_his=True)
-    assert_object_equal(new_info, exp_info_2, err_msg="anon keep_his mismatch")
+    _check_equiv(new_info, exp_info_2, err_msg="anon keep_his mismatch")
 
     new_info = anonymize_info(base_info.copy(), daysback=delta_t_2.days)
-    assert_object_equal(new_info, exp_info_3, err_msg="anon daysback mismatch")
+    _check_equiv(new_info, exp_info_3, err_msg="anon daysback mismatch")
 
     with pytest.raises(RuntimeError, match="anonymize_info generated"):
         anonymize_info(base_info.copy(), daysback=delta_t_3.days)
@@ -726,7 +739,7 @@ def _test_anonymize_info(base_info):
             new_info = anonymize_info(base_info.copy(), daysback=delta_t_2.days)
     else:
         new_info = anonymize_info(base_info.copy(), daysback=delta_t_2.days)
-    assert_object_equal(
+    _check_equiv(
         new_info,
         exp_info_3,
         err_msg="meas_date=None daysback mismatch",
@@ -734,7 +747,7 @@ def _test_anonymize_info(base_info):
 
     with _record_warnings():  # meas_date is None
         new_info = anonymize_info(base_info.copy())
-    assert_object_equal(new_info, exp_info_3, err_msg="meas_date=None mismatch")
+    _check_equiv(new_info, exp_info_3, err_msg="meas_date=None mismatch")
 
 
 @pytest.mark.parametrize(
@@ -777,8 +790,8 @@ def _complete_info(info):
         height=2.0,
     )
     info["helium_info"] = dict(
-        he_level_raw=12.34,
-        helium_level=45.67,
+        he_level_raw=np.float32(12.34),
+        helium_level=np.float32(45.67),
         meas_date=datetime(2024, 11, 14, 14, 8, 2, tzinfo=timezone.utc),
         orig_file_guid="e",
     )
@@ -796,14 +809,13 @@ def _complete_info(info):
                     machid=np.ones(2, int),
                     secs=d[0],
                     usecs=d[1],
-                    date=d,
                 ),
                 experimenter="j",
                 max_info=dict(
-                    max_st=[],
-                    sss_ctc=[],
-                    sss_cal=[],
-                    sss_info=dict(head_pos=None, in_order=8),
+                    max_st=dict(),
+                    sss_ctc=dict(),
+                    sss_cal=dict(),
+                    sss_info=dict(in_order=8),
                 ),
                 date=d,
             ),
@@ -830,8 +842,8 @@ def test_anonymize(tmp_path):
     # test mne.anonymize_info()
     events = read_events(event_name)
     epochs = Epochs(raw, events[:1], 2, 0.0, 0.1, baseline=None)
-    _test_anonymize_info(raw.info)
-    _test_anonymize_info(epochs.info)
+    _test_anonymize_info(raw.info, tmp_path)
+    _test_anonymize_info(epochs.info, tmp_path)
 
     # test instance methods & I/O roundtrip
     for inst, keep_his in zip((raw, epochs), (True, False)):
@@ -1106,7 +1118,7 @@ def test_channel_name_limit(tmp_path, monkeypatch, fname):
         meas_info, "_read_extended_ch_info", _read_extended_ch_info
     )
     short_proj_names = [
-        f"{name[:13 - bool(len(ref_names))]}-{ni}"
+        f"{name[: 13 - bool(len(ref_names))]}-{ni}"
         for ni, name in enumerate(long_proj_names)
     ]
     assert raw_read.info["projs"][0]["data"]["col_names"] == short_proj_names

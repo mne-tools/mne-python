@@ -28,7 +28,7 @@ from mne.utils import (
     set_config,
 )
 from mne.viz import plot_raw, plot_sensors
-from mne.viz.utils import _fake_click, _fake_keypress
+from mne.viz.utils import _fake_click
 
 base_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
 raw_fname = base_dir / "test_raw.fif"
@@ -862,16 +862,14 @@ def test_remove_annotations(raw, hide_which, browser_backend):
     assert len(raw.annotations) == len(hide_which)
 
 
-def test_merge_annotations(raw, browser_backend):
+def test_merge_annotations(raw, pg_backend):
     """Test merging of annotations in the Qt backend.
 
     Let's not bother in figuring out on which sample the _fake_click actually
     dropped the annotation, especially with the 600.614 Hz weird sampling rate.
     -> atol = 10 / raw.info["sfreq"]
     """
-    if browser_backend.name == "matplotlib":
-        pytest.skip("The MPL backend does not support draggable annotations.")
-    elif not check_version("mne_qt_browser", "0.5.3"):
+    if not check_version("mne_qt_browser", "0.5.3"):
         pytest.xfail("mne_qt_browser < 0.5.3 does not merge annotations properly")
     annot = Annotations(
         onset=[1, 3, 4, 5, 7, 8],
@@ -970,7 +968,7 @@ def test_plot_raw_psd(raw, raw_orig):
     """Test plotting of raw psds."""
     raw_unchanged = raw.copy()
     spectrum = raw.compute_psd()
-    # deprecation change handler
+    # change handler
     old_defaults = dict(picks="data", exclude="bads")
     fig = spectrum.plot(average=False, amplitude=False)
     # normal mode
@@ -1090,35 +1088,17 @@ def test_plot_sensors(raw):
     pytest.raises(TypeError, plot_sensors, raw)  # needs to be info
     pytest.raises(ValueError, plot_sensors, raw.info, kind="sasaasd")
     plt.close("all")
+
+    # Test lasso selection.
     fig, sels = raw.plot_sensors("select", show_names=True)
     ax = fig.axes[0]
-
-    # Click with no sensors
-    _fake_click(fig, ax, (0.0, 0.0), xform="data")
-    _fake_click(fig, ax, (0, 0.0), xform="data", kind="release")
-    assert fig.lasso.selection == []
-
-    # Lasso with 1 sensor (upper left)
-    _fake_click(fig, ax, (0, 1), xform="ax")
-    fig.canvas.draw()
-    assert fig.lasso.selection == []
-    _fake_click(fig, ax, (-0.11, 0.14), xform="data", kind="motion")
-    _fake_click(fig, ax, (-0.11, 0.065), xform="data", kind="motion")
-    _fake_keypress(fig, "shift")
-    _fake_click(fig, ax, (-0.15, 0.065), xform="data", kind="release", key="shift")
-    assert fig.lasso.selection == ["MEG 0121"]
-
-    # check that point appearance changes
-    fc = fig.lasso.collection.get_facecolors()
-    ec = fig.lasso.collection.get_edgecolors()
-    assert (fc[:, -1] == [0.5, 1.0, 0.5]).all()
-    assert (ec[:, -1] == [0.25, 1.0, 0.25]).all()
-
-    _fake_click(fig, ax, (-0.11, 0.065), xform="data", kind="motion", key="shift")
-    xy = ax.collections[0].get_offsets()
-    _fake_click(fig, ax, xy[2], xform="data", key="shift")  # single sel
-    assert fig.lasso.selection == ["MEG 0121", "MEG 0131"]
-    _fake_click(fig, ax, xy[2], xform="data", key="alt")  # deselect
+    # Lasso a single sensor.
+    _fake_click(fig, ax, (-0.13, 0.13), xform="data")
+    _fake_click(fig, ax, (-0.11, 0.13), xform="data", kind="motion")
+    _fake_click(fig, ax, (-0.11, 0.06), xform="data", kind="motion")
+    _fake_click(fig, ax, (-0.13, 0.06), xform="data", kind="motion")
+    _fake_click(fig, ax, (-0.13, 0.13), xform="data", kind="motion")
+    _fake_click(fig, ax, (-0.13, 0.13), xform="data", kind="release")
     assert fig.lasso.selection == ["MEG 0121"]
     plt.close("all")
 

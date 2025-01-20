@@ -533,7 +533,7 @@ def _test_raw_crop(reader, t_prop, kwargs):
     n_samp = 50  # crop to this number of samples (per instance)
     crop_t = n_samp / raw_1.info["sfreq"]
     t_start = t_prop * crop_t  # also crop to some fraction into the first inst
-    extra = f' t_start={t_start}, preload={kwargs.get("preload", False)}'
+    extra = f" t_start={t_start}, preload={kwargs.get('preload', False)}"
     stop = (n_samp - 1) / raw_1.info["sfreq"]
     raw_1.crop(0, stop)
     assert len(raw_1.times) == 50
@@ -543,12 +543,12 @@ def _test_raw_crop(reader, t_prop, kwargs):
     raw_2, raw_3 = raw_1.copy(), raw_1.copy()
     t_tot = raw_1.times[-1] * 3 + 2.0 / raw_1.info["sfreq"]
     raw_concat = concatenate_raws([raw_1, raw_2, raw_3])
-    assert len(raw_concat._filenames) == 3
+    assert len(raw_concat.filenames) == 3
     assert_allclose(raw_concat.times[-1], t_tot)
     assert_allclose(raw_concat.first_time, first_time)
     # keep all instances, but crop to t_start at the beginning
     raw_concat.crop(t_start, None)
-    assert len(raw_concat._filenames) == 3
+    assert len(raw_concat.filenames) == 3
     assert_allclose(raw_concat.times[-1], t_tot - t_start, atol=atol)
     assert_allclose(
         raw_concat.first_time,
@@ -558,7 +558,7 @@ def _test_raw_crop(reader, t_prop, kwargs):
     )
     # drop the first instance
     raw_concat.crop(crop_t, None)
-    assert len(raw_concat._filenames) == 2
+    assert len(raw_concat.filenames) == 2
     assert_allclose(raw_concat.times[-1], t_tot - t_start - crop_t, atol=atol)
     assert_allclose(
         raw_concat.first_time,
@@ -568,7 +568,7 @@ def _test_raw_crop(reader, t_prop, kwargs):
     )
     # drop the second instance, leaving just one
     raw_concat.crop(crop_t, None)
-    assert len(raw_concat._filenames) == 1
+    assert len(raw_concat.filenames) == 1
     assert_allclose(raw_concat.times[-1], t_tot - t_start - 2 * crop_t, atol=atol)
     assert_allclose(
         raw_concat.first_time,
@@ -1063,3 +1063,20 @@ def test_last_samp():
     raw = read_raw_fif(raw_fname).crop(0, 0.1).load_data()
     last_data = raw._data[:, [-1]]
     assert_array_equal(raw[:, -1][0], last_data)
+
+
+def test_rescale():
+    """Test rescaling channels."""
+    raw = read_raw_fif(raw_fname, preload=True)  # multiple channel types
+
+    with pytest.raises(ValueError, match="If scalings is a scalar, all channels"):
+        raw.rescale(2)  # need to use dict
+
+    orig = raw.get_data(picks="eeg")
+    raw.rescale({"eeg": 2})  # need to use dict
+    assert_allclose(raw.get_data(picks="eeg"), orig * 2)
+
+    raw.pick("mag")  # only a single channel type "mag"
+    orig = raw.get_data()
+    raw.rescale(4)  # a scalar works
+    assert_allclose(raw.get_data(), orig * 4)

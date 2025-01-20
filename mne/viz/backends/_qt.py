@@ -25,7 +25,7 @@ from qtpy.QtCore import (
     QObject,
     Qt,
     QTimer,
-    # non-object-based-abstraction-only, deprecate
+    # non-object-based-abstraction-only, remove
     Signal,
 )
 from qtpy.QtGui import QCursor, QIcon, QKeyEvent
@@ -33,7 +33,7 @@ from qtpy.QtWidgets import (
     QButtonGroup,
     QCheckBox,
     QComboBox,
-    # non-object-based-abstraction-only, deprecate
+    # non-object-based-abstraction-only, remove
     QDockWidget,
     QDoubleSpinBox,
     QFileDialog,
@@ -102,7 +102,6 @@ from ._pyvista import (
     _check_3d_figure,  # noqa: F401
     _close_3d_figure,  # noqa: F401
     _close_all,  # noqa: F401
-    _is_mesa,  # noqa: F401
     _PyVistaRenderer,
     _set_3d_title,  # noqa: F401
     _set_3d_view,  # noqa: F401
@@ -843,7 +842,7 @@ class _3DRenderer(_PyVistaRenderer):
 # ------------------------------------
 # Non-object-based Widget Abstractions
 # ------------------------------------
-# These are planned to be deprecated in favor of the simpler, object-
+# These are planned to be removed in favor of the simpler, object-
 # oriented abstractions above when time allows.
 
 

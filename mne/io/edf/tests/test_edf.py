@@ -259,6 +259,24 @@ def test_edf_different_sfreqs(stim_channel):
     assert_allclose(times1, times2)
 
 
+@testing.requires_testing_data
+@pytest.mark.parametrize("stim_channel", (None, False, "auto"))
+def test_edf_different_sfreqs_nopreload(stim_channel):
+    """Test loading smaller sfreq channels without preloading."""
+    # load without preloading, then load a channel that has smaller sfreq
+    # as other channels, produced an error, see mne-python/issues/12897
+
+    for i in range(1, 13):
+        raw = read_raw_edf(input_fname=edf_reduced, verbose="error", preload=False)
+
+        # this should work for channels of all sfreq, even if larger sfreqs
+        # are present in the file
+        x1 = raw.get_data(picks=[f"A{i}"], return_times=False)
+        # load next ch, this is sometimes with a higher sometimes a lower sfreq
+        x2 = raw.get_data([f"A{i + 1}"], return_times=False)
+        assert x1.shape == x2.shape
+
+
 def test_edf_data_broken(tmp_path):
     """Test edf files."""
     raw = _test_raw_reader(

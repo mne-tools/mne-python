@@ -145,7 +145,7 @@ def _create_raw_for_edf_tests(stim_channel_index=None):
 
 
 edfio_mark = pytest.mark.skipif(
-    not _check_edfio_installed(strict=False), reason="unsafe use of private module"
+    not _check_edfio_installed(strict=False), reason="requires edfio"
 )
 
 
@@ -235,7 +235,7 @@ def test_edf_padding(tmp_path, pad_width):
         RuntimeWarning,
         match=(
             "EDF format requires equal-length data blocks.*"
-            f"{pad_width/1000:.3g} seconds of edge values were appended.*"
+            f"{pad_width / 1000:.3g} seconds of edge values were appended.*"
         ),
     ):
         raw.export(temp_fname)
@@ -476,7 +476,7 @@ def test_export_epochs_eeglab(tmp_path, preload):
     with ctx():
         epochs.export(temp_fname)
     epochs.drop_channels([ch for ch in ["epoc", "STI 014"] if ch in epochs.ch_names])
-    epochs_read = read_epochs_eeglab(temp_fname)
+    epochs_read = read_epochs_eeglab(temp_fname, verbose="error")  # head radius
     assert epochs.ch_names == epochs_read.ch_names
     cart_coords = np.array([d["loc"][:3] for d in epochs.info["chs"]])  # just xyz
     cart_coords_read = np.array([d["loc"][:3] for d in epochs_read.info["chs"]])
@@ -580,7 +580,7 @@ def test_export_to_mff_incompatible_sfreq():
     """Test non-whole number sampling frequency throws ValueError."""
     pytest.importorskip("mffpy", "0.5.7")
     evoked = read_evokeds(fname_evoked)
-    with pytest.raises(ValueError, match=f'sfreq: {evoked[0].info["sfreq"]}'):
+    with pytest.raises(ValueError, match=f"sfreq: {evoked[0].info['sfreq']}"):
         export_evokeds("output.mff", evoked)
 
 

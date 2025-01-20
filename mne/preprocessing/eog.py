@@ -213,12 +213,12 @@ def _get_eog_channel_index(ch_name, inst):
         if not_found:
             raise ValueError(
                 f"The specified EOG channel{_pl(not_found)} "
-                f'cannot be found: {", ".join(not_found)}'
+                f"cannot be found: {', '.join(not_found)}"
             )
 
         eog_inds = pick_channels(inst.ch_names, include=ch_names)
 
-    logger.info(f'Using EOG channel{_pl(ch_names)}: {", ".join(ch_names)}')
+    logger.info(f"Using EOG channel{_pl(ch_names)}: {', '.join(ch_names)}")
     return eog_inds
 
 

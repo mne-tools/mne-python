@@ -2349,6 +2349,7 @@ def plot_source_estimates(
     transparent=True,
     alpha=1.0,
     time_viewer="auto",
+    *,
     subjects_dir=None,
     figure=None,
     views="auto",
@@ -2458,8 +2459,7 @@ def plot_source_estimates(
         Defaults  to 'oct6'.
 
         .. versionadded:: 0.15.0
-    title : str | None
-        Title for the figure. If None, the subject name will be used.
+    %(title_stc)s
 
         .. versionadded:: 0.17.0
     %(show_traces)s
@@ -2538,6 +2538,7 @@ def plot_source_estimates(
                 view_layout=view_layout,
                 add_data_kwargs=add_data_kwargs,
                 brain_kwargs=brain_kwargs,
+                title=title,
                 **kwargs,
             )
 
@@ -2573,6 +2574,7 @@ def _plot_stc(
     view_layout,
     add_data_kwargs,
     brain_kwargs,
+    title,
 ):
     from ..source_estimate import _BaseVolSourceEstimate
     from .backends.renderer import _get_3d_backend, get_brain_class
@@ -2615,7 +2617,9 @@ def _plot_stc(
     if overlay_alpha == 0:
         smoothing_steps = 1  # Disable smoothing to save time.
 
-    title = subject if len(hemis) > 1 else f"{subject} - {hemis[0]}"
+    sub_info = subject if len(hemis) > 1 else f"{subject} - {hemis[0]}"
+    title = title if title is not None else sub_info
+
     kwargs = {
         "subject": subject,
         "hemi": hemi,
@@ -2912,11 +2916,9 @@ def _plot_and_correct(*, params, cut_coords):
     params["axes"].clear()
     if params.get("fig_anat") is not None and plot_kwargs["colorbar"]:
         params["fig_anat"]._cbar.ax.clear()
-    with warnings.catch_warnings(record=True):  # nilearn bug; ax recreated
-        warnings.simplefilter("ignore", DeprecationWarning)
-        params["fig_anat"] = nil_func(
-            params["img_idx"], cut_coords=cut_coords, **plot_kwargs
-        )
+    params["fig_anat"] = nil_func(
+        params["img_idx"], cut_coords=cut_coords, **plot_kwargs
+    )
     params["fig_anat"]._cbar.outline.set_visible(False)
     for key in "xyz":
         params.update({"ax_" + key: params["fig_anat"].axes[key].ax})
@@ -3248,6 +3250,7 @@ def plot_vector_source_estimates(
     vector_alpha=1.0,
     scale_factor=None,
     time_viewer="auto",
+    *,
     subjects_dir=None,
     figure=None,
     views="lateral",
@@ -3259,6 +3262,7 @@ def plot_vector_source_estimates(
     foreground=None,
     initial_time=None,
     time_unit="s",
+    title=None,
     show_traces="auto",
     src=None,
     volume_options=1.0,
@@ -3336,6 +3340,9 @@ def plot_vector_source_estimates(
     time_unit : 's' | 'ms'
         Whether time is represented in seconds ("s", default) or
         milliseconds ("ms").
+    %(title_stc)s
+
+        .. versionadded:: 1.9
     %(show_traces)s
     %(src_volume_options)s
     %(view_layout)s
@@ -3382,6 +3389,7 @@ def plot_vector_source_estimates(
         cortex=cortex,
         foreground=foreground,
         size=size,
+        title=title,
         scale_factor=scale_factor,
         show_traces=show_traces,
         src=src,
