@@ -1224,7 +1224,7 @@ def plot_evoked_topo(
         channels. The selected channels will be available in
         ``fig.lasso.selection``.
 
-        .. versionadded:: 1.9.0
+        .. versionadded:: 1.10.0
     exclude : list of str | ``'bads'``
         Channels names to exclude from the plot. If ``'bads'``, the
         bad channels are excluded. By default, exclude is set to ``'bads'``.
