@@ -4218,9 +4218,12 @@ splash : bool
 docdict["split_naming"] = """
 split_naming : 'neuromag' | 'bids'
     When splitting files, append a filename partition with the appropriate
-    naming schema: for ``'neuromag'``, a split file ``fname.fif`` will be named
-    ``fname.fif``, ``fname-1.fif``, ``fname-2.fif`` etc.; while for ``'bids'``,
-    it will be named ``fname_split-01.fif``, ``fname_split-02.fif``, etc.
+    naming schema. For ``'neuromag'``, a split file ``fname.fif`` will be named
+    ``fname.fif``, ``fname-1.fif``, ``fname-2.fif``, and so on. For ``'bids'``,
+    a filename is expected to consist of parts separated by underscores, like
+    ``<part-1>_<part-N>_<suffix>.fif``, and the according split naming will
+    return filenames like ``<part-1>_<part-N>_split-01_<suffix>.fif``,
+    ``<part-1>_<part-N>_split-02_<suffix>.fif``, and so on.
 """
 
 docdict["src_eltc"] = """
@@ -4653,6 +4656,12 @@ title : str | None
     The title of the generated figure. If ``None`` (default), no title is
     displayed.
 """
+
+docdict["title_stc"] = """
+title : str | None
+    Title for the figure window. If ``None``, the subject name will be used.
+"""
+
 docdict["title_tfr_plot"] = """
 title : str | 'auto' | None
     Title for the plot. If ``"auto"``, will use the channel name (if ``combine`` is
@@ -4660,8 +4669,9 @@ title : str | 'auto' | None
     plot. If ``None``, no title is shown. Default is ``None``.
 """
 docdict["tmax_raw"] = """
-tmax : float
+tmax : float | None
     End time of the raw data to use in seconds (cannot exceed data duration).
+    If ``None`` (default), the current end of the data is used.
 """
 
 docdict["tmin"] = """
@@ -5004,6 +5014,18 @@ weight_norm : str | None
            solution.
 """
 
+docdict["weights_tfr_array"] = """
+weights : array, shape (n_tapers, n_freqs) | None
+    The weights for each taper. Must be provided if ``data`` has a taper dimension, such
+    as for complex or phase multitaper data.
+
+    .. versionadded:: 1.10.0
+"""
+docdict["weights_tfr_attr"] = """
+weights : array, shape (n_tapers, n_freqs) | None
+    The weights used for each taper in the time-frequency estimates.
+"""
+
 docdict["window_psd"] = """\
 window : str | float | tuple
     Windowing function to use. See :func:`scipy.signal.get_window`.
@@ -5105,6 +5127,8 @@ def copy_doc(source):
     This is useful when inheriting from a class and overloading a method. This
     decorator can be used to copy the docstring of the original method.
 
+    Docstrings are processed by :func:`python:inspect.cleandoc` before being used.
+
     Parameters
     ----------
     source : function
@@ -5127,7 +5151,8 @@ def copy_doc(source):
     ...         ''' this gets appended'''
     ...         pass
     >>> print(B.m1.__doc__)
-    Docstring for m1 this gets appended
+    Docstring for m1
+    this gets appended
     """
 
     def wrapper(func):
@@ -5135,7 +5160,7 @@ def copy_doc(source):
             raise ValueError("Cannot copy docstring: docstring was empty.")
         doc = source.__doc__
         if func.__doc__ is not None:
-            doc += func.__doc__
+            doc += f"\n{inspect.cleandoc(func.__doc__)}"
         func.__doc__ = doc
         return func
 
@@ -5153,6 +5178,10 @@ def copy_function_doc_to_method_doc(source):
     This decorator is useful when implementing a method that just calls a
     function.  This pattern is prevalent in for example the plotting functions
     of MNE.
+
+    Docstrings are parsed by :func:`python:inspect.cleandoc` before being used.
+    If indentation and newlines are important, make the first line ``.``, and the dot
+    will be removed and all following lines dedented jointly.
 
     Parameters
     ----------
@@ -5189,7 +5218,8 @@ def copy_function_doc_to_method_doc(source):
     >>> class A:
     ...     @copy_function_doc_to_method_doc(plot_function)
     ...     def plot(self, a, b):
-    ...         '''
+    ...         '''.
+    ...
     ...         Notes
     ...         -----
     ...         .. versionadded:: 0.13.0
@@ -5198,26 +5228,31 @@ def copy_function_doc_to_method_doc(source):
     >>> print(A.plot.__doc__)
     Docstring for plotting function.
     <BLANKLINE>
-        Parameters
-        ----------
-        a : int
-            Some parameter
-        b : int
-            Some parameter
+    Parameters
+    ----------
+    a : int
+        Some parameter
+    b : int
+        Some parameter
     <BLANKLINE>
-            Notes
-            -----
-            .. versionadded:: 0.13.0
-    <BLANKLINE>
+    Notes
+    -----
+    .. versionadded:: 0.13.0
     """  # noqa: D410, D411, D214, D215
 
     def wrapper(func):
-        doc = source.__doc__.split("\n")
+        # Work with cleandoc'ed sources (py3.13-compat)
+        doc = inspect.cleandoc(source.__doc__).split("\n")
+        if func.__doc__ is not None:
+            func_doc = inspect.cleandoc(func.__doc__)
+            if func_doc[:2] == ".\n":
+                func_doc = func_doc[2:]
+            func_doc = f"\n{func_doc}"
+        else:
+            func_doc = ""
+
         if len(doc) == 1:
-            doc = doc[0]
-            if func.__doc__ is not None:
-                doc += func.__doc__
-            func.__doc__ = doc
+            func.__doc__ = f"{doc[0]}{func_doc}"
             return func
 
         # Find parameter block
@@ -5265,7 +5300,7 @@ def copy_function_doc_to_method_doc(source):
                 break
         else:
             # End of docstring reached
-            first_parameter_end = line
+            first_parameter_end = line + 1
             first_parameter = parameter_block
 
         # Copy the docstring, but remove the first parameter
@@ -5274,9 +5309,7 @@ def copy_function_doc_to_method_doc(source):
             + "\n"
             + "\n".join(doc[first_parameter_end:])
         )
-        if func.__doc__ is not None:
-            doc += func.__doc__
-        func.__doc__ = doc
+        func.__doc__ = f"{doc}{func_doc}"
         return func
 
     return wrapper

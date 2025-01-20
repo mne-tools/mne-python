@@ -336,7 +336,7 @@ def plot_raw(
     # generate window title; allow instances without a filename (e.g., ICA)
     if title is None:
         title = "<unknown>"
-        fnames = raw._filenames.copy()  # use the private attribute to get a list
+        fnames = list(tuple(raw.filenames))  # get a list of a copy of the filenames
         if len(fnames):
             title = fnames.pop(0)
             extra = f" ... (+ {len(fnames)} more)" if len(fnames) else ""

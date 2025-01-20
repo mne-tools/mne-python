@@ -792,7 +792,7 @@ def test_add_reference():
         preload=True,
         proj="delayed",
     )
-    with pytest.warns(RuntimeWarning, match="reference channels are ignored"):
+    with pytest.warns(RuntimeWarning, match="for this channel is unknown or ambiguous"):
         epochs_ref = add_reference_channels(epochs, ["M1", "M2"], copy=True)
     assert_equal(epochs_ref._data.shape[1], epochs._data.shape[1] + 2)
     _check_channel_names(epochs_ref, ["M1", "M2"])
@@ -846,7 +846,7 @@ def test_add_reference():
         proj="delayed",
     )
     evoked = epochs.average()
-    with pytest.warns(RuntimeWarning, match="reference channels are ignored"):
+    with pytest.warns(RuntimeWarning, match="for this channel is unknown or ambiguous"):
         evoked_ref = add_reference_channels(evoked, ["M1", "M2"], copy=True)
     assert_equal(evoked_ref.data.shape[0], evoked.data.shape[0] + 2)
     _check_channel_names(evoked_ref, ["M1", "M2"])
@@ -896,7 +896,7 @@ def test_add_reorder(n_ref):
         ctx = nullcontext()
     else:
         assert n_ref == 2
-        ctx = pytest.warns(RuntimeWarning, match="locations of multiple")
+        ctx = pytest.warns(RuntimeWarning, match="this channel is unknown or ambiguous")
     with ctx:
         add_reference_channels(raw, chs, copy=False)
     data = raw.get_data()

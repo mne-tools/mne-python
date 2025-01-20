@@ -130,25 +130,25 @@ def _rename_channels(names, ecg_ch="E31", eog_ch=("E63", "E64")):
     ref_mag, ref_grad, eog, eeg, ext = (count(1) for _ in range(5))
     for i, name in enumerate(names, 1):
         if name.startswith("A"):
-            name = "MEG %3.3d" % i
+            name = f"MEG {i:03d}"
         elif name == "RESPONSE":
             name = "STI 013"
         elif name == "TRIGGER":
             name = "STI 014"
         elif any(name == k for k in eog_ch):
-            name = "EOG %3.3d" % next(eog)
+            name = f"EOG {next(eog):03d}"
         elif name == ecg_ch:
             name = "ECG 001"
         elif name.startswith("E"):
-            name = "EEG %3.3d" % next(eeg)
+            name = f"EEG {next(eeg):03d}"
         elif name == "UACurrent":
             name = "UTL 001"
         elif name.startswith("M"):
-            name = "RFM %3.3d" % next(ref_mag)
+            name = f"RFM {next(ref_mag):03d}"
         elif name.startswith("G"):
-            name = "RFG %3.3d" % next(ref_grad)
+            name = f"RFG {next(ref_grad):03d}"
         elif name.startswith("X"):
-            name = "EXT %3.3d" % next(ext)
+            name = f"EXT {next(ext):03d}"
 
         new += [name]
 
@@ -515,9 +515,8 @@ def _read_config(fname):
             n_read = fid.tell() - start_bytes
             if n_read != ub["hdr"]["user_space_size"]:
                 raise RuntimeError(
-                    "Internal MNE reading error, read size %d "
-                    "!= %d expected size for kind %s"
-                    % (n_read, ub["hdr"]["user_space_size"], kind)
+                    f"Internal MNE reading error, read size {n_read} "
+                    f"!= {ub['hdr']['user_space_size']} expected size for kind {kind}."
                 )
             ub.update(dta)  # finally update the userblock data
             _correct_offset(fid)  # after reading.

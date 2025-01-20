@@ -73,9 +73,12 @@ class Raw(BaseRaw):
         Time vector in seconds. Starts from 0, independently of `first_samp`
         value. Time interval between consecutive time samples is equal to the
         inverse of the sampling frequency.
+    duration : float
+        The duration of the raw file in seconds.
+
+        .. versionadded:: 1.9
     preload : bool
         Indicates whether raw data are in memory.
-    %(verbose)s
     """
 
     _extra_attributes = (
@@ -360,13 +363,11 @@ class Raw(BaseRaw):
         raw._cals = cals
         raw._raw_extras = raw_extras
         logger.info(
-            "    Range : %d ... %d =  %9.3f ... %9.3f secs"
-            % (
-                raw.first_samp,
-                raw.last_samp,
-                float(raw.first_samp) / info["sfreq"],
-                float(raw.last_samp) / info["sfreq"],
-            )
+            "    Range : %d ... %d =  %9.3f ... %9.3f secs",
+            raw.first_samp,
+            raw.last_samp,
+            float(raw.first_samp) / info["sfreq"],
+            float(raw.last_samp) / info["sfreq"],
         )
 
         raw.info = info

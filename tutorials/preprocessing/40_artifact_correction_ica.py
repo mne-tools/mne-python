@@ -291,8 +291,7 @@ explained_var_ratio = ica.get_explained_variance_ratio(
 # This time, print as percentage.
 ratio_percent = round(100 * explained_var_ratio["eeg"])
 print(
-    f"Fraction of variance in EEG signal explained by first component: "
-    f"{ratio_percent}%"
+    f"Fraction of variance in EEG signal explained by first component: {ratio_percent}%"
 )
 
 # %%
@@ -532,9 +531,9 @@ del raw, ica, new_ica
 raws = list()
 icas = list()
 
-for subj in range(4):
+for subj in range(1, 5):
     # EEGBCI subjects are 1-indexed; run 3 is a left/right hand movement task
-    fname = mne.datasets.eegbci.load_data(subj + 1, runs=[3])[0]
+    fname = mne.datasets.eegbci.load_data(subj, runs=[3])[0]
     raw = mne.io.read_raw_edf(fname).load_data().resample(50)
     # remove trailing `.` from channel names so we can set montage
     mne.datasets.eegbci.standardize(raw)

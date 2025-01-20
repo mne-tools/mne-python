@@ -324,7 +324,7 @@ def _check_tags(tags) -> tuple[str]:
         raise TypeError(
             f"All tags must be strings without spaces or special characters, "
             f"but got the following instead: "
-            f'{", ".join([str(tag) for tag in bad_tags])}'
+            f"{', '.join([str(tag) for tag in bad_tags])}"
         )
 
     # Check for invalid characters
@@ -338,7 +338,7 @@ def _check_tags(tags) -> tuple[str]:
     if bad_tags:
         raise ValueError(
             f"The following tags contained invalid characters: "
-            f'{", ".join(repr(tag) for tag in bad_tags)}'
+            f"{', '.join(repr(tag) for tag in bad_tags)}"
         )
 
     return tags
@@ -429,8 +429,7 @@ def _fig_to_img(
     output = BytesIO()
     dpi = fig.get_dpi()
     logger.debug(
-        f"Saving figure with dimension {fig.get_size_inches()} inches with "
-        f"{dpi} dpi"
+        f"Saving figure with dimension {fig.get_size_inches()} inches with {dpi} dpi"
     )
 
     # https://pillow.readthedocs.io/en/stable/handbook/image-file-formats.html
@@ -913,7 +912,7 @@ class Report:
         if len(titles) > 0:
             titles = [f" {t}" for t in titles]  # indent
             tr = max(len(s), 50)  # trim to larger of opening str and 50
-            titles = [f"{t[:tr - 2]} …" if len(t) > tr else t for t in titles]
+            titles = [f"{t[: tr - 2]} …" if len(t) > tr else t for t in titles]
             # then trim to the max length of all of these
             tr = max(len(title) for title in titles)
             tr = max(tr, len(s))
@@ -2761,9 +2760,7 @@ class Report:
 
             if inc_fname.endswith(".js"):
                 include.append(
-                    f'<script type="text/javascript">\n'
-                    f"{file_content}\n"
-                    f"</script>"
+                    f'<script type="text/javascript">\n{file_content}\n</script>'
                 )
             elif inc_fname.endswith(".css"):
                 include.append(f'<style type="text/css">\n{file_content}\n</style>')
@@ -3415,6 +3412,7 @@ class Report:
             init_kwargs.setdefault("fmax", fmax)
             plot_kwargs.setdefault("show", False)
             with warnings.catch_warnings():
+                # SciPy warning about too short a data segment given the window size
                 warnings.simplefilter(action="ignore", category=FutureWarning)
                 fig = raw.compute_psd(**init_kwargs).plot(**plot_kwargs)
             self._add_figure(
@@ -3648,7 +3646,7 @@ class Report:
                     )
                 )
 
-            title = f'Time course ({_handle_default("titles")[ch_type]})'
+            title = f"Time course ({_handle_default('titles')[ch_type]})"
             self._add_figure(
                 fig=fig,
                 title=title,
@@ -4120,7 +4118,7 @@ class Report:
                 assert "eeg" in ch_type
                 title_start = "ERP image"
 
-            title = f'{title_start} ({_handle_default("titles")[ch_type]})'
+            title = f"{title_start} ({_handle_default('titles')[ch_type]})"
 
             self._add_figure(
                 fig=fig,

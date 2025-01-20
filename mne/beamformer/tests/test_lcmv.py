@@ -380,7 +380,7 @@ def test_make_lcmv_bem(tmp_path, reg, proj, kind):
     rank = 17 if proj else 20
     assert "LCMV" in repr(filters)
     assert "unknown subject" not in repr(filters)
-    assert f'{fwd["nsource"]} vert' in repr(filters)
+    assert f"{fwd['nsource']} vert" in repr(filters)
     assert "20 ch" in repr(filters)
     assert f"rank {rank}" in repr(filters)
 

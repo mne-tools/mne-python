@@ -48,7 +48,7 @@ def test_plot_montage():
     assert "0 channels" in repr(montage)
     with pytest.raises(RuntimeError, match="No valid channel positions"):
         montage.plot()
-    d = read_dig_fif(fname=fif_fname)
+    d = read_dig_fif(fname=fif_fname, verbose="error")
     assert "61 channels" in repr(d)
     # XXX this is broken; dm.point_names is used. Sometimes we say this should
     # Just contain the HPI coils, other times that it's all channels (e.g.,

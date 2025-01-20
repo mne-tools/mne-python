@@ -862,16 +862,14 @@ def test_remove_annotations(raw, hide_which, browser_backend):
     assert len(raw.annotations) == len(hide_which)
 
 
-def test_merge_annotations(raw, browser_backend):
+def test_merge_annotations(raw, pg_backend):
     """Test merging of annotations in the Qt backend.
 
     Let's not bother in figuring out on which sample the _fake_click actually
     dropped the annotation, especially with the 600.614 Hz weird sampling rate.
     -> atol = 10 / raw.info["sfreq"]
     """
-    if browser_backend.name == "matplotlib":
-        pytest.skip("The MPL backend does not support draggable annotations.")
-    elif not check_version("mne_qt_browser", "0.5.3"):
+    if not check_version("mne_qt_browser", "0.5.3"):
         pytest.xfail("mne_qt_browser < 0.5.3 does not merge annotations properly")
     annot = Annotations(
         onset=[1, 3, 4, 5, 7, 8],
@@ -970,7 +968,7 @@ def test_plot_raw_psd(raw, raw_orig):
     """Test plotting of raw psds."""
     raw_unchanged = raw.copy()
     spectrum = raw.compute_psd()
-    # deprecation change handler
+    # change handler
     old_defaults = dict(picks="data", exclude="bads")
     fig = spectrum.plot(average=False, amplitude=False)
     # normal mode

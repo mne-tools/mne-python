@@ -417,8 +417,12 @@ def _find_clusters(
             else:
                 logger.info(
                     "Using %d thresholds from %0.2f to %0.2f for TFCE "
-                    "computation (h_power=%0.2f, e_power=%0.2f)"
-                    % (len(thresholds), thresholds[0], thresholds[-1], h_power, e_power)
+                    "computation (h_power=%0.2f, e_power=%0.2f)",
+                    len(thresholds),
+                    thresholds[0],
+                    thresholds[-1],
+                    h_power,
+                    e_power,
                 )
         scores = np.zeros(x.size)
     else:
@@ -619,12 +623,11 @@ def _setup_adjacency(adjacency, n_tests, n_times):
         got_times, mod = divmod(n_tests, adjacency.shape[0])
         if got_times != n_times or mod != 0:
             raise ValueError(
-                "adjacency (len %d) must be of the correct size, i.e. be "
-                "equal to or evenly divide the number of tests (%d).\n\n"
+                f"adjacency (len {adjacency.shape[0]}) must be of the correct size, "
+                "i.e. be equal to or evenly divide the number of tests ({n_tests}).\n\n"
                 "If adjacency was computed for a source space, try using "
                 'the fwd["src"] or inv["src"] as some original source space '
                 "vertices can be excluded during forward computation"
-                % (adjacency.shape[0], n_tests)
             )
         # we claim to only use upper triangular part... not true here
         adjacency = (adjacency + adjacency.transpose()).tocsr()
@@ -1116,8 +1119,11 @@ def _permutation_cluster_test(
             a_text = "additional " if n_step_downs > 1 else ""
             logger.info(
                 "Step-down-in-jumps iteration #%i found %i %s"
-                "cluster%s to exclude from subsequent iterations"
-                % (n_step_downs, n_removed, a_text, _pl(n_removed))
+                "cluster%s to exclude from subsequent iterations",
+                n_step_downs,
+                n_removed,
+                a_text,
+                _pl(n_removed),
             )
 
     # The clusters should have the same shape as the samples
