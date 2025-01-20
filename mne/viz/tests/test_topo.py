@@ -231,6 +231,16 @@ def test_plot_topo():
         break
     plt.close("all")
 
+    # Test plot_topo with selection of channels enabled.
+    fig = evoked.plot_topo(select=True)
+    ax = fig.axes[0]
+    _fake_click(fig, ax, (0.05, 0.62), xform="data")
+    _fake_click(fig, ax, (0.2, 0.62), xform="data", kind="motion")
+    _fake_click(fig, ax, (0.2, 0.7), xform="data", kind="motion")
+    _fake_click(fig, ax, (0.05, 0.7), xform="data", kind="motion")
+    _fake_click(fig, ax, (0.05, 0.7), xform="data", kind="release")
+    assert fig.lasso.selection == ["MEG 0113", "MEG 0112", "MEG 0111"]
+
 
 def test_plot_topo_nirs(fnirs_evoked):
     """Test plotting of ERP topography for nirs data."""

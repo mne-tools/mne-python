@@ -16,6 +16,7 @@ from mne.io import read_raw_fif
 from mne.viz import ClickableImage, add_background_image, mne_analyze_colormap
 from mne.viz.ui_events import ColormapRange, link, subscribe
 from mne.viz.utils import (
+    SelectFromCollection,
     _compute_scalings,
     _fake_click,
     _fake_keypress,
@@ -274,3 +275,55 @@ def test_draggable_colorbar():
     cmap_new1 = fig.axes[0].CB.mappable.get_cmap().name
     cmap_new2 = fig2.axes[0].CB.mappable.get_cmap().name
     assert cmap_new1 == cmap_new2 == cmap_want != cmap_old
+
+
+def test_select_from_collection():
+    """Test the lasso selector for matplotlib figures."""
+    fig, ax = plt.subplots()
+    collection = ax.scatter([1, 2, 2, 1], [1, 1, 0, 0], color="black", edgecolor="red")
+    ax.set_xlim(-1, 4)
+    ax.set_ylim(-1, 2)
+    lasso = SelectFromCollection(ax, collection, names=["A", "B", "C", "D"])
+    assert lasso.selection == []
+
+    # Make a selection with no patches inside of it.
+    _fake_click(fig, ax, (0, 0), xform="data")
+    _fake_click(fig, ax, (0.5, 0), xform="data", kind="motion")
+    _fake_click(fig, ax, (0.5, 1), xform="data", kind="motion")
+    _fake_click(fig, ax, (0.5, 1), xform="data", kind="release")
+    assert lasso.selection == []
+
+    # Make a selection with two patches in it.
+    _fake_click(fig, ax, (0, 0.5), xform="data")
+    _fake_click(fig, ax, (3, 0.5), xform="data", kind="motion")
+    _fake_click(fig, ax, (3, 1.5), xform="data", kind="motion")
+    _fake_click(fig, ax, (0, 1.5), xform="data", kind="motion")
+    _fake_click(fig, ax, (0, 0.5), xform="data", kind="motion")
+    _fake_click(fig, ax, (0, 0.5), xform="data", kind="release")
+    assert lasso.selection == ["A", "B"]
+
+    # Use SHIFT key to lasso an additional patch.
+    _fake_keypress(fig, "shift")
+    _fake_click(fig, ax, (0.5, -0.5), xform="data")
+    _fake_click(fig, ax, (1.5, -0.5), xform="data", kind="motion")
+    _fake_click(fig, ax, (1.5, 0.5), xform="data", kind="motion")
+    _fake_click(fig, ax, (0.5, 0.5), xform="data", kind="motion")
+    _fake_click(fig, ax, (0.5, 0.5), xform="data", kind="release")
+    _fake_keypress(fig, "shift", kind="release")
+    assert lasso.selection == ["A", "B", "D"]
+
+    # Use ALT key to remove a patch.
+    _fake_keypress(fig, "alt")
+    _fake_click(fig, ax, (0.5, 0.5), xform="data")
+    _fake_click(fig, ax, (1.5, 0.5), xform="data", kind="motion")
+    _fake_click(fig, ax, (1.5, 1.5), xform="data", kind="motion")
+    _fake_click(fig, ax, (0.5, 1.5), xform="data", kind="motion")
+    _fake_click(fig, ax, (0.5, 1.5), xform="data", kind="release")
+    _fake_keypress(fig, "alt", kind="release")
+    assert lasso.selection == ["B", "D"]
+
+    # Check that the two selected patches have a different appearance.
+    fc = lasso.collection.get_facecolors()
+    ec = lasso.collection.get_edgecolors()
+    assert (fc[:, -1] == [0.5, 1.0, 0.5, 1.0]).all()
+    assert (ec[:, -1] == [0.25, 1.0, 0.25, 1.0]).all()
