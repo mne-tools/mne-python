@@ -80,6 +80,8 @@ def iter_topography(
         channels. The selected channels will be available in
         ``fig.lasso.selection``.
 
+        .. versionadded:: 1.10.0
+
     Returns
     -------
     gen : generator
@@ -1260,6 +1262,8 @@ def plot_topo_image_epochs(
         Whether to enable the lasso-selection tool to enable the user to select
         channels. The selected channels will be available in
         ``fig.lasso.selection``.
+
+        .. versionadded:: 1.10.0
     show : bool
         Whether to show the figure. Defaults to ``True``.
 
