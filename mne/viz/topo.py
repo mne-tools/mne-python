@@ -273,8 +273,10 @@ def _iter_topography(
                     publish(fig, ChannelsSelect(ch_names=fig.lasso.selection))
 
                 def on_channels_select(event):
-                    ch_inds = {name: i for i, name in enumerate(ch_names)}
-                    selection_inds = [ch_inds[name] for name in event.ch_names]
+                    ch_inds = {name: i for i, name in enumerate(shown_ch_names)}
+                    selection_inds = [
+                        ch_inds[name] for name in event.ch_names if name in ch_inds
+                    ]
                     fig.lasso.select_many(selection_inds)
 
                 fig.lasso.callbacks.append(on_select)
