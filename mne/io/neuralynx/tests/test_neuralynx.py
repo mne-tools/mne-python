@@ -143,9 +143,9 @@ def test_neuralynx():
     assert raw.info["meas_date"] == meas_date_utc, "meas_date not set correctly"
 
     # test that channel selection worked
-    assert (
-        raw.ch_names == expected_chan_names
-    ), "labels in raw.ch_names don't match expected channel names"
+    assert raw.ch_names == expected_chan_names, (
+        "labels in raw.ch_names don't match expected channel names"
+    )
 
     mne_y = raw.get_data()  # in V
 
@@ -216,9 +216,9 @@ def test_neuralynx_gaps():
     n_expected_gaps = 3
     n_expected_missing_samples = 130
     assert len(raw.annotations) == n_expected_gaps, "Wrong number of gaps detected"
-    assert (
-        (mne_y[0, :] == 0).sum() == n_expected_missing_samples
-    ), "Number of true and inferred missing samples differ"
+    assert (mne_y[0, :] == 0).sum() == n_expected_missing_samples, (
+        "Number of true and inferred missing samples differ"
+    )
 
     # read in .mat files containing original gaps
     matchans = ["LAHC1_3_gaps.mat", "LAHC2_3_gaps.mat"]

@@ -50,8 +50,7 @@ def _pick_isotrak_and_hpi_coils(res4, coils, t):
             if p["coord_frame"] == FIFF.FIFFV_MNE_COORD_CTF_DEVICE:
                 if t is None or t["t_ctf_dev_dev"] is None:
                     raise RuntimeError(
-                        "No coordinate transformation "
-                        "available for HPI coil locations"
+                        "No coordinate transformation available for HPI coil locations"
                     )
                 d = dict(
                     kind=kind,

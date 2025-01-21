@@ -474,5 +474,5 @@ def test_non_full_rank_data():
 
     ssd = SSD(info, filt_params_signal, filt_params_noise)
     if sys.platform == "darwin":
-        pytest.skip("Unknown linalg bug (Accelerate?)")
+        pytest.xfail("Unknown linalg bug (Accelerate?)")
     ssd.fit(X)

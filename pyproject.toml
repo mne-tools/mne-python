@@ -63,6 +63,7 @@ doc = [
   "mne-gui-addons",
   "neo",
   "numpydoc",
+  "openneuro-py",
   "psutil",
   "pydata_sphinx_theme >= 0.15.2",
   "pygments >= 2.13",
@@ -270,7 +271,6 @@ addopts = """--durations=20 --doctest-modules -rfEXs --cov-report= --tb=short \
     --ignore=mne/gui/_*.py --ignore=mne/icons --ignore=tools \
     --ignore=mne/report/js_and_css \
     --color=yes --capture=sys"""
-junit_family = "xunit2"
 
 [tool.rstcheck]
 ignore_directives = [
