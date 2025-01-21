@@ -169,7 +169,6 @@ class DipoleFitUI:
 
         # Initialize all the private attributes.
         self._actors = dict()
-        self._arrows = list()
         self._bem = bem
         self._ch_type = ch_type
         self._cov = cov
@@ -179,7 +178,6 @@ class DipoleFitUI:
         self._field_map = field_map
         self._fig_sensors = None
         self._multi_dipole_method = "Multi dipole (MNE)"
-        self._n_jobs = n_jobs
         self._show_density = show_density
         self._subjects_dir = subjects_dir
         self._subject = subject
