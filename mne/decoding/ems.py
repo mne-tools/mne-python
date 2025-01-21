@@ -105,7 +105,7 @@ class EMS(MNETransformerMixin, BaseEstimator):
 
 @verbose
 def compute_ems(
-    epochs, conditions=None, picks=None, n_jobs=None, cv=None, verbose=None
+    epochs, conditions=None, picks=None, n_jobs=None, cv=None, *, verbose=None
 ):
     """Compute event-matched spatial filter on epochs.
 

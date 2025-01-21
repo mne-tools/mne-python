@@ -61,7 +61,6 @@ class TimeFrequency(MNETransformerMixin, BaseEstimator):
     mne.time_frequency.tfr_multitaper
     """
 
-    @fill_doc  # sklearn compliance
     def __init__(
         self,
         freqs,

@@ -63,7 +63,9 @@ def dpss_windows(N, half_nbw, Kmax, *, sym=True, norm=None, low_bias=True):
     ----------
     .. footbibliography::
     """
-    if N <= 1:  # workaround for https://github.com/scipy/scipy/pull/22344
+    # TODO VERSION can be removed with SciPy 1.16 is min,
+    # workaround for https://github.com/scipy/scipy/pull/22344
+    if N <= 1:
         dpss, eigvals = np.ones((1, 1)), np.ones(1)
     else:
         dpss, eigvals = sp_dpss(

@@ -345,10 +345,6 @@ def test_sklearn_compliance(estimator, check):
             "check_estimators_overwrite_params",  # we modify self.info
             "check_methods_sample_order_invariance",
         ]
-    if estimator.__class__.__name__ == "UnsupervisedSpatialFilter":
-        ignores += [
-            "check_estimators_overwrite_params",  # we modify self.estimator
-        ]
     if estimator.__class__.__name__.startswith(("PSD", "Temporal")):
         ignores += [
             "check_transformers_unfitted",  # allow unfitted transform

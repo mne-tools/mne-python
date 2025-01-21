@@ -11,7 +11,13 @@ from sklearn.preprocessing import LabelEncoder
 from sklearn.utils.validation import check_is_fitted
 
 from ..parallel import parallel_func
-from ..utils import ProgressBar, _parse_verbose, array_split_idx, fill_doc
+from ..utils import (
+    ProgressBar,
+    _parse_verbose,
+    _verbose_safe_false,
+    array_split_idx,
+    fill_doc,
+)
 from .base import _check_estimator
 from .transformer import MNETransformerMixin
 
@@ -39,7 +45,6 @@ class SlidingEstimator(MetaEstimatorMixin, MNETransformerMixin, BaseEstimator):
         List of fitted scikit-learn estimators (one per task).
     """
 
-    @fill_doc  # sklearn compliance
     def __init__(
         self,
         base_estimator,
@@ -105,7 +110,10 @@ class SlidingEstimator(MetaEstimatorMixin, MNETransformerMixin, BaseEstimator):
         _check_estimator(self.base_estimator)
         X, _ = self._check_Xy(X, y, fit=True)
         parallel, p_func, n_jobs = parallel_func(
-            _sl_fit, self.n_jobs, max_jobs=X.shape[-1], verbose=False
+            _sl_fit,
+            self.n_jobs,
+            max_jobs=X.shape[-1],
+            verbose=_verbose_safe_false(),
         )
         self.estimators_ = list()
         self.fit_params_ = fit_params
@@ -163,7 +171,10 @@ class SlidingEstimator(MetaEstimatorMixin, MNETransformerMixin, BaseEstimator):
         # For predictions/transforms the parallelization is across the data and
         # not across the estimators to avoid memory load.
         parallel, p_func, n_jobs = parallel_func(
-            _sl_transform, self.n_jobs, max_jobs=X.shape[-1], verbose=False
+            _sl_transform,
+            self.n_jobs,
+            max_jobs=X.shape[-1],
+            verbose=_verbose_safe_false(),
         )
 
         X_splits = np.array_split(X, n_jobs, axis=-1)
@@ -321,7 +332,10 @@ class SlidingEstimator(MetaEstimatorMixin, MNETransformerMixin, BaseEstimator):
         # For predictions/transforms the parallelization is across the data and
         # not across the estimators to avoid memory load.
         parallel, p_func, n_jobs = parallel_func(
-            _sl_score, self.n_jobs, max_jobs=X.shape[-1], verbose=False
+            _sl_score,
+            self.n_jobs,
+            max_jobs=X.shape[-1],
+            verbose=_verbose_safe_false(),
         )
         X_splits = np.array_split(X, n_jobs, axis=-1)
         est_splits = np.array_split(self.estimators_, n_jobs)
@@ -493,7 +507,10 @@ class GeneralizingEstimator(SlidingEstimator):
         method = _check_method(self.base_estimator, method)
 
         parallel, p_func, n_jobs = parallel_func(
-            _gl_transform, self.n_jobs, max_jobs=X.shape[-1], verbose=False
+            _gl_transform,
+            self.n_jobs,
+            max_jobs=X.shape[-1],
+            verbose=_verbose_safe_false(),
         )
 
         context = _create_progressbar_context(self, X, "Transforming")
@@ -618,7 +635,10 @@ class GeneralizingEstimator(SlidingEstimator):
         # For predictions/transforms the parallelization is across the data and
         # not across the estimators to avoid memory load.
         parallel, p_func, n_jobs = parallel_func(
-            _gl_score, self.n_jobs, max_jobs=X.shape[-1], verbose=False
+            _gl_score,
+            self.n_jobs,
+            max_jobs=X.shape[-1],
+            verbose=_verbose_safe_false(),
         )
         scoring = check_scoring(self.base_estimator, self.scoring)
         y = _fix_auc(scoring, y)

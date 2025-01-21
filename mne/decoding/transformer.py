@@ -3,7 +3,7 @@
 # Copyright the MNE-Python contributors.
 
 import numpy as np
-from sklearn.base import BaseEstimator, TransformerMixin, check_array
+from sklearn.base import BaseEstimator, TransformerMixin, check_array, clone
 from sklearn.preprocessing import RobustScaler, StandardScaler
 from sklearn.utils import check_X_y
 from sklearn.utils.validation import check_is_fitted, validate_data
@@ -415,7 +415,6 @@ class PSDEstimator(MNETransformerMixin, BaseEstimator):
     n_jobs : int
         Number of parallel jobs to use (only used if adaptive=True).
     %(normalization)s
-    %(verbose)s
 
     See Also
     --------
@@ -425,7 +424,6 @@ class PSDEstimator(MNETransformerMixin, BaseEstimator):
     mne.Evoked.compute_psd
     """
 
-    @fill_doc  # NB intentionally don't use verbose here so it doesn't modify the val
     def __init__(
         self,
         sfreq=2 * np.pi,
@@ -436,8 +434,6 @@ class PSDEstimator(MNETransformerMixin, BaseEstimator):
         low_bias=True,
         n_jobs=None,
         normalization="length",
-        *,
-        verbose=None,
     ):
         self.sfreq = sfreq
         self.fmin = fmin
@@ -447,7 +443,6 @@ class PSDEstimator(MNETransformerMixin, BaseEstimator):
         self.low_bias = low_bias
         self.n_jobs = n_jobs
         self.normalization = normalization
-        self.verbose = verbose
 
     def fit(self, epochs_data, y=None):
         """Compute power spectral density (PSD) using a multi-taper method.
@@ -533,7 +528,6 @@ class FilterEstimator(MNETransformerMixin, BaseEstimator):
         See mne.filter.construct_iir_filter for details. If iir_params
         is None and method="iir", 4th order Butterworth will be used.
     %(fir_design)s
-    %(verbose)s
 
     See Also
     --------
@@ -559,8 +553,6 @@ class FilterEstimator(MNETransformerMixin, BaseEstimator):
         method="fir",
         iir_params=None,
         fir_design="firwin",
-        *,
-        verbose=None,
     ):
         self.info = info
         self.l_freq = l_freq
@@ -573,7 +565,6 @@ class FilterEstimator(MNETransformerMixin, BaseEstimator):
         self.method = method
         self.iir_params = iir_params
         self.fir_design = fir_design
-        self.verbose = verbose
 
     def fit(self, epochs_data, y):
         """Filter data.
@@ -696,8 +687,8 @@ class UnsupervisedSpatialFilter(MNETransformerMixin, BaseEstimator):
         # Really shouldn't modify self.estimator, but it's a bad backward compat problem
         # to change it (will break people's pipelines) so leave it for now and just
         # wrap to self.estimator_ as well
-        self.estimator.fit(X)
-        self.estimator_ = self.estimator
+        self.estimator_ = clone(self.estimator)
+        self.estimator_.fit(X)
         return self
 
     def fit_transform(self, X, y=None):
@@ -849,7 +840,6 @@ class TemporalFilter(MNETransformerMixin, BaseEstimator):
         attenuation using fewer samples than "firwin2".
 
         .. versionadded:: 0.15
-    %(verbose)s
 
     See Also
     --------
@@ -858,7 +848,6 @@ class TemporalFilter(MNETransformerMixin, BaseEstimator):
     mne.filter.filter_data
     """
 
-    @fill_doc  # sklearn compliance
     def __init__(
         self,
         l_freq=None,
@@ -872,8 +861,6 @@ class TemporalFilter(MNETransformerMixin, BaseEstimator):
         iir_params=None,
         fir_window="hamming",
         fir_design="firwin",
-        *,
-        verbose=None,
     ):
         self.l_freq = l_freq
         self.h_freq = h_freq
@@ -886,7 +873,6 @@ class TemporalFilter(MNETransformerMixin, BaseEstimator):
         self.iir_params = iir_params
         self.fir_window = fir_window
         self.fir_design = fir_design
-        self.verbose = verbose
 
     def fit(self, X, y=None):
         """Do nothing (for scikit-learn compatibility purposes).
