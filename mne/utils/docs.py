@@ -1494,12 +1494,14 @@ fmt : 'auto' | 'brainvision' | 'edf' | 'eeglab'
 
 docdict["export_fmt_support_epochs"] = """\
 Supported formats:
-    - EEGLAB (``.set``, uses :mod:`eeglabio`)
+
+- EEGLAB (``.set``, uses :mod:`eeglabio`)
 """
 
 docdict["export_fmt_support_evoked"] = """\
 Supported formats:
-    - MFF (``.mff``, uses :func:`mne.export.export_evokeds_mff`)
+
+- MFF (``.mff``, uses :func:`mne.export.export_evokeds_mff`)
 """
 
 docdict["export_fmt_support_raw"] = """\
