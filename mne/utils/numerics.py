@@ -872,6 +872,9 @@ class _PCA:
 
         return U
 
+    def fit(self, X):
+        self._fit(X)
+
     def _fit(self, X):
         if self.n_components is None:
             n_components = min(X.shape)

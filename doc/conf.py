@@ -355,6 +355,7 @@ numpydoc_xref_ignore = {
     "n_frequencies",
     "n_tests",
     "n_samples",
+    "n_peaks",
     "n_permutations",
     "nchan",
     "n_points",
