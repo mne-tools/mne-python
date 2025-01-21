@@ -266,6 +266,7 @@ def _make_dpss(
         The wavelets time series.
     """
     Ws = list()
+    Cs = list()
 
     freqs = np.array(freqs)
     if np.any(freqs <= 0):
@@ -281,6 +282,7 @@ def _make_dpss(
 
     for m in range(n_taps):
         Wm = list()
+        Cm = list()
         for k, f in enumerate(freqs):
             if len(n_cycles) != 1:
                 this_n_cycles = n_cycles[k]
@@ -302,12 +304,15 @@ def _make_dpss(
                 real_offset = Wk.mean()
                 Wk -= real_offset
             Wk /= np.sqrt(0.5) * np.linalg.norm(Wk.ravel())
+            Ck = np.sqrt(conc[m])
 
             Wm.append(Wk)
+            Cm.append(Ck)
 
         Ws.append(Wm)
+        Cs.append(Cm)
     if return_weights:
-        return Ws, conc
+        return Ws, Cs
     return Ws
 
 
@@ -529,15 +534,18 @@ def _compute_tfr(
     if method == "morlet":
         W = morlet(sfreq, freqs, n_cycles=n_cycles, zero_mean=zero_mean)
         Ws = [W]  # to have same dimensionality as the 'multitaper' case
+        weights = None  # no tapers for Morlet estimates
 
     elif method == "multitaper":
-        Ws = _make_dpss(
+        Ws, weights = _make_dpss(
             sfreq,
             freqs,
             n_cycles=n_cycles,
             time_bandwidth=time_bandwidth,
             zero_mean=zero_mean,
+            return_weights=True,  # required for converting complex → power
         )
+        weights = np.asarray(weights)
 
     # Check wavelets
     if len(Ws[0][0]) > epoch_data.shape[2]:
@@ -560,7 +568,7 @@ def _compute_tfr(
     if ("avg_" in output) or ("itc" in output):
         out = np.empty((n_chans, n_freqs, n_times), dtype)
     elif output in ["complex", "phase"] and method == "multitaper":
-        out = np.empty((n_chans, n_tapers, n_epochs, n_freqs, n_times), dtype)
+        out = np.empty((n_chans, n_epochs, n_tapers, n_freqs, n_times), dtype)
     else:
         out = np.empty((n_chans, n_epochs, n_freqs, n_times), dtype)
 
@@ -571,7 +579,7 @@ def _compute_tfr(
 
     # Parallelization is applied across channels.
     tfrs = parallel(
-        my_cwt(channel, Ws, output, use_fft, "same", decim, method)
+        my_cwt(channel, Ws, output, use_fft, "same", decim, weights)
         for channel in epoch_data.transpose(1, 0, 2)
     )
 
@@ -581,10 +589,8 @@ def _compute_tfr(
 
     if ("avg_" not in output) and ("itc" not in output):
         # This is to enforce that the first dimension is for epochs
-        if output in ["complex", "phase"] and method == "multitaper":
-            out = out.transpose(2, 0, 1, 3, 4)
-        else:
-            out = out.transpose(1, 0, 2, 3)
+        out = np.moveaxis(out, 1, 0)
+
     return out
 
 
@@ -658,7 +664,7 @@ def _check_tfr_param(
     return freqs, sfreq, zero_mean, n_cycles, time_bandwidth, decim
 
 
-def _time_frequency_loop(X, Ws, output, use_fft, mode, decim, method=None):
+def _time_frequency_loop(X, Ws, output, use_fft, mode, decim, weights=None):
     """Aux. function to _compute_tfr.
 
     Loops time-frequency transform across wavelets and epochs.
@@ -685,9 +691,8 @@ def _time_frequency_loop(X, Ws, output, use_fft, mode, decim, method=None):
         See numpy.convolve.
     decim : slice
         The decimation slice: e.g. power[:, decim]
-    method : str | None
-        Used only for multitapering to create tapers dimension in the output
-        if ``output in ['complex', 'phase']``.
+    weights : array, shape (n_tapers, n_wavelets) | None
+        Concentration weights for each taper in the wavelets, if present.
     """
     # Set output type
     dtype = np.float64
@@ -701,10 +706,12 @@ def _time_frequency_loop(X, Ws, output, use_fft, mode, decim, method=None):
     n_freqs = len(Ws[0])
     if ("avg_" in output) or ("itc" in output):
         tfrs = np.zeros((n_freqs, n_times), dtype=dtype)
-    elif output in ["complex", "phase"] and method == "multitaper":
-        tfrs = np.zeros((n_tapers, n_epochs, n_freqs, n_times), dtype=dtype)
+    elif output in ["complex", "phase"] and weights is not None:
+        tfrs = np.zeros((n_epochs, n_tapers, n_freqs, n_times), dtype=dtype)
     else:
         tfrs = np.zeros((n_epochs, n_freqs, n_times), dtype=dtype)
+    if weights is not None:
+        weights = np.expand_dims(weights, axis=-1)  # add singleton time dimension
 
     # Loops across tapers.
     for taper_idx, W in enumerate(Ws):
@@ -719,6 +726,8 @@ def _time_frequency_loop(X, Ws, output, use_fft, mode, decim, method=None):
         # Loop across epochs
         for epoch_idx, tfr in enumerate(coefs):
             # Transform complex values
+            if output not in ["complex", "phase"] and weights is not None:
+                tfr = weights[taper_idx] * tfr  # weight each taper estimate
             if output in ["power", "avg_power"]:
                 tfr = (tfr * tfr.conj()).real  # power
             elif output == "phase":
@@ -734,8 +743,8 @@ def _time_frequency_loop(X, Ws, output, use_fft, mode, decim, method=None):
             # Stack or add
             if ("avg_" in output) or ("itc" in output):
                 tfrs += tfr
-            elif output in ["complex", "phase"] and method == "multitaper":
-                tfrs[taper_idx, epoch_idx] += tfr
+            elif output in ["complex", "phase"] and weights is not None:
+                tfrs[epoch_idx, taper_idx] += tfr
             else:
                 tfrs[epoch_idx] += tfr
 
@@ -749,9 +758,14 @@ def _time_frequency_loop(X, Ws, output, use_fft, mode, decim, method=None):
     if ("avg_" in output) or ("itc" in output):
         tfrs /= n_epochs
 
-    # Normalization by number of taper
-    if n_tapers > 1 and output not in ["complex", "phase"]:
-        tfrs /= n_tapers
+    # Normalization by taper weights
+    if n_tapers > 1 and output not in ["complex", "phase", "itc"]:
+        if "avg_" not in output:  # add singleton epochs dimension to weights
+            weights = np.expand_dims(weights, axis=0)
+        tfrs.real *= 2 / (weights * weights.conj()).real.sum(axis=-3)
+        if output == "avg_power_itc":  # weight itc by the number of tapers
+            tfrs.imag = tfrs.imag / n_tapers
+
     return tfrs
 
 
