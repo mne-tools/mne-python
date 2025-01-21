@@ -351,7 +351,7 @@ def test_regularized_csp(ch_type, rank, reg):
     # test init exception
     pytest.raises(ValueError, csp.fit, epochs_data, np.zeros_like(epochs.events))
     pytest.raises(ValueError, csp.fit, "foo", y)
-    pytest.raises(ValueError, csp.transform, epochs)
+    pytest.raises(ValueError, csp.transform, "foo")
 
     csp.n_components = n_components
     sources = csp.transform(epochs_data)
