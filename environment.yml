@@ -58,4 +58,5 @@ dependencies:
   - trame-vtk
   - trame-vuetify
   - vtk >=9.2
+  - wfdb
   - xlrd
