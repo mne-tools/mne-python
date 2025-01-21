@@ -12,14 +12,13 @@ from pathlib import Path
 import numpy as np
 from scipy import linalg
 from scipy.spatial.distance import cdist
-from scipy.special import sph_harm
 
 from ._fiff.constants import FIFF
 from ._fiff.open import fiff_open
 from ._fiff.tag import read_tag
 from ._fiff.write import start_and_end_file, write_coord_trans
 from .defaults import _handle_default
-from .fixes import _get_img_fdata, jit
+from .fixes import _get_img_fdata, jit, sph_harm_y
 from .utils import (
     _check_fname,
     _check_option,
@@ -926,7 +925,7 @@ def _compute_sph_harm(order, az, pol):
     # _deg_ord_idx(0, 0) = -1 so we're actually okay to use it here
     for degree in range(order + 1):
         for order_ in range(degree + 1):
-            sph = sph_harm(order_, degree, az, pol)
+            sph = sph_harm_y(degree, order_, pol, az)
             out[:, _deg_ord_idx(degree, order_)] = _sh_complex_to_real(sph, order_)
             if order_ > 0:
                 out[:, _deg_ord_idx(degree, -order_)] = _sh_complex_to_real(

@@ -560,7 +560,7 @@ class ICA(ContainsMixin):
         """ICA fit information."""
         infos = self._get_infos_for_repr()
 
-        s = f'{infos.fit_on or "no"} decomposition, method: {infos.fit_method}'
+        s = f"{infos.fit_on or 'no'} decomposition, method: {infos.fit_method}"
 
         if infos.fit_on is not None:
             s += (
@@ -568,8 +568,8 @@ class ICA(ContainsMixin):
                 f"{infos.fit_n_samples} samples), "
                 f"{infos.fit_n_components} ICA components "
                 f"({infos.fit_n_pca_components} PCA components available), "
-                f'channel types: {", ".join(infos.ch_types)}, '
-                f'{len(infos.excludes) or "no"} sources marked for exclusion'
+                f"channel types: {', '.join(infos.ch_types)}, "
+                f"{len(infos.excludes) or 'no'} sources marked for exclusion"
             )
 
         return f"<ICA | {s}>"
@@ -698,7 +698,7 @@ class ICA(ContainsMixin):
                 warn(
                     f"The following parameters passed to ICA.fit() will be "
                     f"ignored, as they only affect raw data (and it appears "
-                    f'you passed epochs): {", ".join(ignored_params)}'
+                    f"you passed epochs): {', '.join(ignored_params)}"
                 )
 
         picks = _picks_to_idx(
@@ -875,7 +875,7 @@ class ICA(ContainsMixin):
                 logger.info(
                     f"    Applying projection operator with {nproj} "
                     f"vector{_pl(nproj)}"
-                    f'{" " if log_suffix else ""}{log_suffix}'
+                    f"{' ' if log_suffix else ''}{log_suffix}"
                 )
                 if self.noise_cov is None:  # otherwise it's in pre_whitener_
                     data = proj @ data
@@ -1162,7 +1162,7 @@ class ICA(ContainsMixin):
                 raise ValueError(
                     f"You requested operation on the channel type "
                     f'"{ch_type}", but only the following channel types are '
-                    f'supported: {", ".join(allowed_ch_types)}'
+                    f"supported: {', '.join(allowed_ch_types)}"
                 )
         del ch_type
 
@@ -2393,8 +2393,7 @@ class ICA(ContainsMixin):
         unmixing = np.dot(unmixing, pca_components)
 
         logger.info(
-            f"    Projecting back using {_n_pca_comp} "
-            f"PCA component{_pl(_n_pca_comp)}"
+            f"    Projecting back using {_n_pca_comp} PCA component{_pl(_n_pca_comp)}"
         )
         mixing = np.eye(_n_pca_comp)
         mixing[: self.n_components_, : self.n_components_] = self.mixing_matrix_
@@ -3368,8 +3367,7 @@ def corrmap(
         is_subject = False
     else:
         raise ValueError(
-            "`template` must be a length-2 tuple or an array the "
-            "size of the ICA maps."
+            "`template` must be a length-2 tuple or an array the size of the ICA maps."
         )
 
     template_fig, labelled_ics = None, None

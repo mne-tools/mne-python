@@ -673,7 +673,7 @@ def prepare_inverse_operator(
         inv["eigen_leads"]["data"] = sqrt(scale) * inv["eigen_leads"]["data"]
 
     logger.info(
-        "    Scaled noise and source covariance from nave = %d to" " nave = %d",
+        "    Scaled noise and source covariance from nave = %d to nave = %d",
         inv["nave"],
         nave,
     )
@@ -2011,7 +2011,7 @@ def make_inverse_operator(
     logger.info(
         f"    scaling factor to adjust the trace = {trace_GRGT:g} "
         f"(nchan = {eigen_fields.shape[0]} "
-        f'nzero = {(noise_cov["eig"] <= 0).sum()})'
+        f"nzero = {(noise_cov['eig'] <= 0).sum()})"
     )
 
     # MNE-ify everything for output

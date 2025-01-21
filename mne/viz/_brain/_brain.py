@@ -4072,28 +4072,28 @@ def _update_monotonic(lims, fmin, fmid, fmax):
     if fmin is not None:
         lims["fmin"] = fmin
         if lims["fmax"] < fmin:
-            logger.debug(f'    Bumping fmax = {lims["fmax"]} to {fmin}')
+            logger.debug(f"    Bumping fmax = {lims['fmax']} to {fmin}")
             lims["fmax"] = fmin
         if lims["fmid"] < fmin:
-            logger.debug(f'    Bumping fmid = {lims["fmid"]} to {fmin}')
+            logger.debug(f"    Bumping fmid = {lims['fmid']} to {fmin}")
             lims["fmid"] = fmin
     assert lims["fmin"] <= lims["fmid"] <= lims["fmax"]
     if fmid is not None:
         lims["fmid"] = fmid
         if lims["fmin"] > fmid:
-            logger.debug(f'    Bumping fmin = {lims["fmin"]} to {fmid}')
+            logger.debug(f"    Bumping fmin = {lims['fmin']} to {fmid}")
             lims["fmin"] = fmid
         if lims["fmax"] < fmid:
-            logger.debug(f'    Bumping fmax = {lims["fmax"]} to {fmid}')
+            logger.debug(f"    Bumping fmax = {lims['fmax']} to {fmid}")
             lims["fmax"] = fmid
     assert lims["fmin"] <= lims["fmid"] <= lims["fmax"]
     if fmax is not None:
         lims["fmax"] = fmax
         if lims["fmin"] > fmax:
-            logger.debug(f'    Bumping fmin = {lims["fmin"]} to {fmax}')
+            logger.debug(f"    Bumping fmin = {lims['fmin']} to {fmax}")
             lims["fmin"] = fmax
         if lims["fmid"] > fmax:
-            logger.debug(f'    Bumping fmid = {lims["fmid"]} to {fmax}')
+            logger.debug(f"    Bumping fmid = {lims['fmid']} to {fmax}")
             lims["fmid"] = fmax
     assert lims["fmin"] <= lims["fmid"] <= lims["fmax"]
 

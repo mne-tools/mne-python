@@ -222,8 +222,7 @@ def test_tabs():
                 continue
             source = inspect.getsource(mod)
             assert "\t" not in source, (
-                f'"{modname}" has tabs, please remove them '
-                "or add it to the ignore list"
+                f'"{modname}" has tabs, please remove them or add it to the ignore list'
             )
 
 

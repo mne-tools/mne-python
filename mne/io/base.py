@@ -1013,8 +1013,7 @@ class BaseRaw(
         if n_rejected > 0:
             if reject_by_annotation == "omit":
                 msg = (
-                    "Omitting {} of {} ({:.2%}) samples, retaining {}"
-                    " ({:.2%}) samples."
+                    "Omitting {} of {} ({:.2%}) samples, retaining {} ({:.2%}) samples."
                 )
                 logger.info(
                     msg.format(
@@ -2157,7 +2156,7 @@ class BaseRaw(
         for edge_samp in edge_samps:
             onset = _sync_onset(self, edge_samp / self.info["sfreq"], True)
             logger.debug(
-                f"Marking edge at {edge_samp} samples " f"(maps to {onset:0.3f} sec)"
+                f"Marking edge at {edge_samp} samples (maps to {onset:0.3f} sec)"
             )
             self.annotations.append(onset, 0.0, "BAD boundary")
             self.annotations.append(onset, 0.0, "EDGE boundary")

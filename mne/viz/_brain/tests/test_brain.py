@@ -850,14 +850,6 @@ def tiny(tmp_path):
 def test_brain_screenshot(renderer_interactive_pyvistaqt, tmp_path, brain_gc):
     """Test time viewer screenshot."""
     # This is broken on Conda + GHA for some reason
-    from qtpy import API_NAME
-
-    if (
-        os.getenv("CONDA_PREFIX", "") != ""
-        and os.getenv("GITHUB_ACTIONS", "") == "true"
-        or API_NAME.lower() == "pyside6"
-    ):
-        pytest.skip("Test is unreliable on GitHub Actions conda runs and pyside6")
     tiny_brain, ratio = tiny(tmp_path)
     img_nv = tiny_brain.screenshot(time_viewer=False)
     want = (_TINY_SIZE[1] * ratio, _TINY_SIZE[0] * ratio, 3)
@@ -875,9 +867,9 @@ def _assert_brain_range(brain, rng):
         for key, mesh in layerer._overlays.items():
             if key == "curv":
                 continue
-            assert (
-                mesh._rng == rng
-            ), f"_layered_meshes[{repr(hemi)}][{repr(key)}]._rng != {rng}"
+            assert mesh._rng == rng, (
+                f"_layered_meshes[{repr(hemi)}][{repr(key)}]._rng != {rng}"
+            )
 
 
 @testing.requires_testing_data
@@ -1245,9 +1237,9 @@ def test_brain_scraper(renderer_interactive_pyvistaqt, brain_gc, tmp_path):
     w = img.shape[1]
     w0 = size[0]
     # On Linux+conda we get a width of 624, similar tweak in test_brain_init above
-    assert np.isclose(w, w0, atol=30) or np.isclose(
-        w, w0 * 2, atol=30
-    ), f"w ∉ {{{w0}, {2 * w0}}}"  # HiDPI
+    assert np.isclose(w, w0, atol=30) or np.isclose(w, w0 * 2, atol=30), (
+        f"w ∉ {{{w0}, {2 * w0}}}"
+    )  # HiDPI
 
 
 @testing.requires_testing_data

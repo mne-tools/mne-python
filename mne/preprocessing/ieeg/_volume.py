@@ -109,7 +109,7 @@ def _warn_missing_chs(info, dig_image, after_warp=False):
     if missing_ch:
         warn(
             f"Channel{_pl(missing_ch)} "
-            f'{", ".join(repr(ch) for ch in missing_ch)} not assigned '
+            f"{', '.join(repr(ch) for ch in missing_ch)} not assigned "
             "voxels " + (f" after applying {after_warp}" if after_warp else "")
         )
 

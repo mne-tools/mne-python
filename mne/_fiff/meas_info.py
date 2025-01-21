@@ -455,7 +455,7 @@ def _check_set(ch, projs, ch_type):
         for proj in projs:
             if ch["ch_name"] in proj["data"]["col_names"]:
                 raise RuntimeError(
-                    f'Cannot change channel type for channel {ch["ch_name"]} in '
+                    f"Cannot change channel type for channel {ch['ch_name']} in "
                     f'projector "{proj["desc"]}"'
                 )
     ch["kind"] = new_kind
@@ -1867,7 +1867,7 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
             ):
                 raise RuntimeError(
                     f'{prepend_error}info["meas_date"] must be a datetime object in UTC'
-                    f' or None, got {repr(self["meas_date"])!r}'
+                    f" or None, got {repr(self['meas_date'])!r}"
                 )
 
         chs = [ch["ch_name"] for ch in self["chs"]]
@@ -2493,6 +2493,8 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
                 hi["meas_date"] = _ensure_meas_date_none_or_dt(
                     tuple(int(t) for t in tag.data),
                 )
+        if "meas_date" not in hi:
+            hi["meas_date"] = None
     info["helium_info"] = hi
     del hi
 
@@ -2879,7 +2881,8 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
             write_float(fid, FIFF.FIFF_HELIUM_LEVEL, hi["helium_level"])
         if hi.get("orig_file_guid") is not None:
             write_string(fid, FIFF.FIFF_ORIG_FILE_GUID, hi["orig_file_guid"])
-        write_int(fid, FIFF.FIFF_MEAS_DATE, _dt_to_stamp(hi["meas_date"]))
+        if hi["meas_date"] is not None:
+            write_int(fid, FIFF.FIFF_MEAS_DATE, _dt_to_stamp(hi["meas_date"]))
         end_block(fid, FIFF.FIFFB_HELIUM)
         del hi
 
@@ -2916,8 +2919,10 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
     _write_proc_history(fid, info)
 
 
-@fill_doc
-def write_info(fname, info, data_type=None, reset_range=True):
+@verbose
+def write_info(
+    fname, info, *, data_type=None, reset_range=True, overwrite=False, verbose=None
+):
     """Write measurement info in fif file.
 
     Parameters
@@ -2931,8 +2936,10 @@ def write_info(fname, info, data_type=None, reset_range=True):
         raw data.
     reset_range : bool
         If True, info['chs'][k]['range'] will be set to unity.
+    %(overwrite)s
+    %(verbose)s
     """
-    with start_and_end_file(fname) as fid:
+    with start_and_end_file(fname, overwrite=overwrite) as fid:
         start_block(fid, FIFF.FIFFB_MEAS)
         write_meas_info(fid, info, data_type, reset_range)
         end_block(fid, FIFF.FIFFB_MEAS)
@@ -3673,8 +3680,7 @@ def _write_ch_infos(fid, chs, reset_range, ch_names_mapping):
     # only write new-style channel information if necessary
     if len(ch_names_mapping):
         logger.info(
-            "    Writing channel names to FIF truncated to 15 characters "
-            "with remapping"
+            "    Writing channel names to FIF truncated to 15 characters with remapping"
         )
         for ch in chs:
             start_block(fid, FIFF.FIFFB_CH_INFO)
