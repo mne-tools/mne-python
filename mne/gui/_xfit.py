@@ -416,7 +416,7 @@ class DipoleFitUI:
             verbose=False,
         )[0]
 
-        self._add_dipole(dip)
+        self.add_dipole(dip)
 
     def add_dipole(self, dipole):
         """Add a dipole (or multiple dipoles) to the GUI.
@@ -590,11 +590,12 @@ class DipoleFitUI:
 
             for i, dip in enumerate(active_dips):
                 if dip["fix_ori"]:
-                    timecourses[i] = fixed_timecourses[i]
-                    orientations[i] = dip["dip"].ori.repeat(len(stc.times), axis=0)
+                    dip["timecourse"] = fixed_timecourses[i]
+                    dip["orientation"] = dip["dip"].ori.repeat(len(stc.times), axis=0)
+                else:
+                    dip["timecourse"] = timecourses[i]
+                    dip["orientation"] = orientations[i]
         elif self._multi_dipole_method == "Single dipole":
-            timecourses = list()
-            orientations = list()
             for dip in active_dips:
                 dip_with_timecourse, _ = fit_dipole(
                     self._evoked,
@@ -607,31 +608,13 @@ class DipoleFitUI:
                     verbose=False,
                 )
                 if dip["fix_ori"]:
-                    timecourses.append(dip_with_timecourse.data[0])
-                    orientations.append(
-                        dip["dip"].ori.repeat(len(dip_with_timecourse.times), axis=0)
+                    dip["timecourse"] = dip_with_timecourse.data[0]
+                    dip["orientation"] = dip["dip"].ori.repeat(
+                        len(dip_with_timecourse.times), axis=0
                     )
                 else:
-                    timecourses.append(dip_with_timecourse.amplitude)
-                    orientations.append(dip_with_timecourse.ori)
-
-        # Store the timecourse and orientation in the Dipole object
-        for dip, timecourse, orientation in zip(active_dips, timecourses, orientations):
-            dip["timecourse"] = timecourse
-            dip["orientation"] = orientation
-            dip["times"] = self._evoked.times
-            # dip = d["dip"]
-            # dip.amplitude = timecourse
-            # dip.ori = orientation
-            # dip._set_times(self._evoked.times)
-
-            # # Pad out all the other values to be defined for each timepoint.
-            # for attr in ["pos", "gof", "khi2", "nfree"]:
-            #     setattr(
-            #         dip, attr, getattr(dip, attr)[[0]].repeat(len(dip.times), axis=0)
-            #     )
-            # for key in dip.conf.keys():
-            #     dip.conf[key] = dip.conf[key][[0]].repeat(len(dip.times), axis=0)
+                    dip["timecourse"] = dip_with_timecourse.amplitude[0]
+                    dip["orientation"] = dip_with_timecourse.ori[0]
 
         # Update matplotlib canvas at the bottom of the window
         canvas = self._setup_mplcanvas()
