@@ -27,9 +27,10 @@ def export_raw(
     .. warning::
         When exporting ``Raw`` with annotations, ``raw.info["meas_date"]`` must be the
         same as ``raw.annotations.orig_time``. This guarantees that the annotations are
-        in the same reference frame as the samples.
-        When `Raw.first_time` is not zero (e.g., after cropping), the onsets are
-        automatically corrected so that onsets are always relative to the first sample.
+        in the same reference frame as the samples. When
+        :property:`Raw.first_time <mne.io.Raw.first_time>` is not zero (e.g., after
+        cropping), the onsets are automatically corrected so that onsets are always
+        relative to the first sample.
 
     Parameters
     ----------
