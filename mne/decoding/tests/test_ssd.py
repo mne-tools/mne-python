@@ -486,6 +486,7 @@ def test_non_full_rank_data():
     ssd.fit(X)
 
 
+@pytest.mark.filterwarnings("ignore:.*invalid value encountered in divide.*")
 @pytest.mark.filterwarnings("ignore:.*is longer than.*")
 @parametrize_with_checks(
     [
