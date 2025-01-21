@@ -23,6 +23,7 @@ from mne import (
     concatenate_events,
     create_info,
     equalize_channels,
+    events_from_annotations,
     find_events,
     make_fixed_length_epochs,
     pick_channels,
