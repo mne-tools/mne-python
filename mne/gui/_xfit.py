@@ -15,7 +15,7 @@ from ..bem import (
     make_sphere_model,
 )
 from ..cov import make_ad_hoc_cov
-from ..dipole import fit_dipole
+from ..dipole import Dipole, fit_dipole
 from ..forward import convert_forward_solution, make_field_map, make_forward_dipole
 from ..minimum_norm import apply_inverse, make_inverse_operator
 from ..surface import _normal_orth
@@ -271,7 +271,7 @@ class DipoleFitUI:
             info=self._evoked.info,
             to_cf_t=self._to_cf_t,
             picks=picks,
-            meg=show_meg,
+            meg=["sensors"] if show_meg else False,
             eeg=["original"] if show_eeg else False,
             fnirs=False,
             warn_meg=False,
@@ -416,92 +416,111 @@ class DipoleFitUI:
             verbose=False,
         )[0]
 
-        # Coordinates needed to draw the big arrow on the helmet.
-        helmet_coords, helmet_pos = self._get_helmet_coords(dip)
+        self._add_dipole(dip)
 
-        # Collect all relevant information on the dipole in a dict.
-        colors = _get_color_list()
-        if len(self._dipoles) == 0:
-            dip_num = 0
-        else:
-            dip_num = max(self._dipoles.keys()) + 1
-        dip.name = f"dip{dip_num}"
-        dip_color = colors[dip_num % len(colors)]
-        if helmet_coords is not None:
-            arrow_mesh = pyvista.PolyData(*_arrow_mesh())
-        else:
-            arrow_mesh = None
-        dipole_dict = dict(
-            active=True,
-            brain_arrow_actor=None,
-            helmet_arrow_actor=None,
-            arrow_mesh=arrow_mesh,
-            color=dip_color,
-            dip=dip,
-            fix_ori=True,
-            fix_position=True,
-            helmet_coords=helmet_coords,
-            helmet_pos=helmet_pos,
-            num=dip_num,
-            fit_time=self._current_time,
-        )
-        self._dipoles[dip_num] = dipole_dict
+    def add_dipole(self, dipole):
+        """Add a dipole (or multiple dipoles) to the GUI.
 
-        # Add a row to the dipole list
-        r = self._renderer
-        hlayout = r._dock_add_layout(vertical=False)
-        widgets = []
-        widgets.append(
-            r._dock_add_check_box(
-                name="",
-                value=True,
-                callback=partial(self._on_dipole_toggle, dip_num=dip_num),
-                layout=hlayout,
-            )
-        )
-        widgets.append(
-            r._dock_add_text(
-                name=dip.name,
-                value=dip.name,
-                placeholder="name",
-                callback=partial(self._on_dipole_set_name, dip_num=dip_num),
-                layout=hlayout,
-            )
-        )
-        widgets.append(
-            r._dock_add_check_box(
-                name="Fix ori",
-                value=True,
-                callback=partial(
-                    self._on_dipole_toggle_fix_orientation, dip_num=dip_num
-                ),
-                layout=hlayout,
-            )
-        )
-        widgets.append(
-            r._dock_add_button(
-                name="",
-                icon="clear",
-                callback=partial(self._on_dipole_delete, dip_num=dip_num),
-                layout=hlayout,
-            )
-        )
-        dipole_dict["widgets"] = widgets
-        r._layout_add_widget(self._dipole_box, hlayout)
+        Parameters
+        ----------
+        dipole : Dipole
+            The dipole to add. If the ``Dipole`` object defines multiple dipoles, they
+            will all be added.
+        """
+        new_dipoles = list()
+        for dip_i in range(len(dipole)):
+            dip = dipole[dip_i]
 
-        # Compute dipole timecourse, update arrow size.
-        self._fit_timecourses()
+            # Coordinates needed to draw the big arrow on the helmet.
+            helmet_coords, helmet_pos = self._get_helmet_coords(dip)
 
-        # Show the dipole and arrow in the 3D view.
-        dipole_dict["brain_arrow_actor"] = self._renderer.plotter.add_arrows(
-            dip.pos[0], dip.ori[0], color=dip_color, mag=0.05
-        )
-        if arrow_mesh is not None:
-            dipole_dict["helmet_arrow_actor"] = self._renderer.plotter.add_mesh(
-                arrow_mesh,
+            # Collect all relevant information on the dipole in a dict.
+            colors = _get_color_list()
+            if len(self._dipoles) == 0:
+                dip_num = 0
+            else:
+                dip_num = max(self._dipoles.keys()) + 1
+            if dip.name is None:
+                dip.name = f"dip{dip_num}"
+            dip_color = colors[dip_num % len(colors)]
+            if helmet_coords is not None:
+                arrow_mesh = pyvista.PolyData(*_arrow_mesh())
+            else:
+                arrow_mesh = None
+            dipole_dict = dict(
+                active=True,
+                brain_arrow_actor=None,
+                helmet_arrow_actor=None,
+                arrow_mesh=arrow_mesh,
                 color=dip_color,
-                culling="front",
+                dip=dip,
+                fix_ori=True,
+                fix_position=True,
+                helmet_coords=helmet_coords,
+                helmet_pos=helmet_pos,
+                num=dip_num,
+                fit_time=self._current_time,
             )
+            self._dipoles[dip_num] = dipole_dict
+
+            # Add a row to the dipole list
+            r = self._renderer
+            hlayout = r._dock_add_layout(vertical=False)
+            widgets = []
+            widgets.append(
+                r._dock_add_check_box(
+                    name="",
+                    value=True,
+                    callback=partial(self._on_dipole_toggle, dip_num=dip_num),
+                    layout=hlayout,
+                )
+            )
+            widgets.append(
+                r._dock_add_text(
+                    name=dip.name,
+                    value=dip.name,
+                    placeholder="name",
+                    callback=partial(self._on_dipole_set_name, dip_num=dip_num),
+                    layout=hlayout,
+                )
+            )
+            widgets.append(
+                r._dock_add_check_box(
+                    name="Fix ori",
+                    value=True,
+                    callback=partial(
+                        self._on_dipole_toggle_fix_orientation, dip_num=dip_num
+                    ),
+                    layout=hlayout,
+                )
+            )
+            widgets.append(
+                r._dock_add_button(
+                    name="",
+                    icon="clear",
+                    callback=partial(self._on_dipole_delete, dip_num=dip_num),
+                    layout=hlayout,
+                )
+            )
+            dipole_dict["widgets"] = widgets
+            r._layout_add_widget(self._dipole_box, hlayout)
+            new_dipoles.append(dipole_dict)
+
+        # Show the dipoles and arrows in the 3D view. Only do this after
+        # `_fit_timecourses` so that they have the correct size straight away.
+        self._fit_timecourses()
+        for dipole_dict in new_dipoles:
+            dip = dipole_dict["dip"]
+            dipole_dict["brain_arrow_actor"] = self._renderer.plotter.add_arrows(
+                dip.pos[0], dip.ori[0], color=dipole_dict["color"], mag=0.05
+            )
+            if arrow_mesh is not None:
+                dipole_dict["helmet_arrow_actor"] = self._renderer.plotter.add_mesh(
+                    arrow_mesh,
+                    color=dipole_dict["color"],
+                    culling="front",
+                )
+        self._update_arrows()
 
     def _get_helmet_coords(self, dip):
         """Compute the coordinate system used for drawing the big arrows on the helmet.
@@ -597,58 +616,84 @@ class DipoleFitUI:
                     orientations.append(dip_with_timecourse.ori)
 
         # Store the timecourse and orientation in the Dipole object
-        for d, timecourse, orientation in zip(active_dips, timecourses, orientations):
-            dip = d["dip"]
-            dip.amplitude = timecourse
-            dip.ori = orientation
-            dip._set_times(self._evoked.times)
+        for dip, timecourse, orientation in zip(active_dips, timecourses, orientations):
+            dip["timecourse"] = timecourse
+            dip["orientation"] = orientation
+            dip["times"] = self._evoked.times
+            # dip = d["dip"]
+            # dip.amplitude = timecourse
+            # dip.ori = orientation
+            # dip._set_times(self._evoked.times)
 
-            # Pad out all the other values to be defined for each timepoint.
-            for attr in ["pos", "gof", "khi2", "nfree"]:
-                setattr(
-                    dip, attr, getattr(dip, attr)[[0]].repeat(len(dip.times), axis=0)
-                )
-            for key in dip.conf.keys():
-                dip.conf[key] = dip.conf[key][[0]].repeat(len(dip.times), axis=0)
+            # # Pad out all the other values to be defined for each timepoint.
+            # for attr in ["pos", "gof", "khi2", "nfree"]:
+            #     setattr(
+            #         dip, attr, getattr(dip, attr)[[0]].repeat(len(dip.times), axis=0)
+            #     )
+            # for key in dip.conf.keys():
+            #     dip.conf[key] = dip.conf[key][[0]].repeat(len(dip.times), axis=0)
 
         # Update matplotlib canvas at the bottom of the window
         canvas = self._setup_mplcanvas()
         ymin, ymax = 0, 0
-        for d in active_dips:
-            dip = d["dip"]
-            if "line_artist" in d:
-                d["line_artist"].set_ydata(dip.amplitude)
+        for dip in active_dips:
+            if "line_artist" in dip:
+                dip["line_artist"].set_ydata(dip["timecourse"])
             else:
-                d["line_artist"] = canvas.plot(
+                dip["line_artist"] = canvas.plot(
                     self._evoked.times,
-                    d["dip"].amplitude,
-                    label=d["dip"].name,
-                    color=d["color"],
+                    dip["timecourse"],
+                    label=dip["dip"].name,
+                    color=dip["color"],
                 )
-            ymin = min(ymin, 1.1 * dip.amplitude.min())
-            ymax = max(ymax, 1.1 * dip.amplitude.max())
+            ymin = min(ymin, 1.1 * dip["timecourse"].min())
+            ymax = max(ymax, 1.1 * dip["timecourse"].max())
         canvas.axes.set_ylim(ymin, ymax)
         canvas.update_plot()
         self._update_arrows()
 
-    def save(self, fname):
+    @verbose
+    @fill_doc
+    def save(self, fname, verbose=None):
+        """Save the fitted dipoles to a file.
+
+        Parameters
+        ----------
+        fname : path-like
+            The name of the file. Should end in ``'.dip'`` to save in plain text format,
+            or in ``'.bdip'`` to save in binary format.
+        %(verbose)s
+        """
         logger.info("Saving dipoles as:")
         fname = Path(fname)
-        for dip in self.dipoles:
-            dip_fname = fname.parent / f"{fname.stem}-{dip.name}{fname.suffix}"
-            logger.info(f"    {dip_fname}")
-            dip.save(dip_fname)
+
+        # Pack the dipoles into a single mne.Dipole object.
+        dip = Dipole(
+            times=np.array([d.times[0] for d in self.dipoles]),
+            pos=np.array([d.pos[0] for d in self.dipoles]),
+            amplitude=np.array([d.amplitude[0] for d in self.dipoles]),
+            ori=np.array([d.ori[0] for d in self.dipoles]),
+            gof=np.array([d.gof[0] for d in self.dipoles]),
+            khi2=np.array([d.khi2[0] for d in self.dipoles]),
+            nfree=np.array([d.nfree[0] for d in self.dipoles]),
+            conf={
+                key: np.array([d.conf[key][0] for d in self.dipoles])
+                for key in self.dipoles[0].conf.keys()
+            },
+            name=",".join(d.name for d in self.dipoles),
+        )
+        dip.save(fname, overwrite=True, verbose=verbose)
 
     def _update_arrows(self):
         """Update the arrows to have the correct size and orientation."""
         active_dips = [d for d in self._dipoles.values() if d["active"]]
         if len(active_dips) == 0:
             return
-        orientations = [d["dip"].ori for d in active_dips]
-        timecourses = [d["dip"].amplitude for d in active_dips]
+        orientations = [dip["orientation"] for dip in active_dips]
+        timecourses = [dip["timecourse"] for dip in active_dips]
         arrow_scaling = 0.05 / np.max(np.abs(timecourses))
-        for d, ori, timecourse in zip(active_dips, orientations, timecourses):
-            helmet_coords = d["helmet_coords"]
+        for dip, ori, timecourse in zip(active_dips, orientations, timecourses):
+            helmet_coords = dip["helmet_coords"]
             if helmet_coords is None:
                 continue
             dip_ori = [
@@ -656,7 +701,7 @@ class DipoleFitUI:
             ]
             dip_moment = np.interp(self._current_time, self._evoked.times, timecourse)
             arrow_size = dip_moment * arrow_scaling
-            arrow_mesh = d["arrow_mesh"]
+            arrow_mesh = dip["arrow_mesh"]
 
             # Project the orientation of the dipole tangential to the helmet
             dip_ori_tan = helmet_coords[:2] @ dip_ori @ helmet_coords[:2]
@@ -671,7 +716,7 @@ class DipoleFitUI:
 
             # Update the arrow mesh to point in the right directions
             arrow_mesh.points = (_arrow_mesh()[0] * arrow_size) @ arrow_coords
-            arrow_mesh.points += d["helmet_pos"]
+            arrow_mesh.points += dip["helmet_pos"]
         self._renderer._update()
 
     def _on_select_method(self, method):
@@ -685,6 +730,8 @@ class DipoleFitUI:
         active = bool(active)
         dipole["active"] = active
         dipole["line_artist"].set_visible(active)
+        # Labels starting with "_" are hidden from the legend.
+        dipole["line_artist"].set_label(("" if active else "_") + dipole["dip"].name)
         dipole["brain_arrow_actor"].visibility = active
         dipole["helmet_arrow_actor"].visibility = active
         self._fit_timecourses()
