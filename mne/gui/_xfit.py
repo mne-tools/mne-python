@@ -611,8 +611,8 @@ class DipoleFitUI:
                         len(dip_with_timecourse.times), axis=0
                     )
                 else:
-                    dip["timecourse"] = dip_with_timecourse.amplitude[0]
-                    dip["orientation"] = dip_with_timecourse.ori[0]
+                    dip["timecourse"] = dip_with_timecourse.amplitude
+                    dip["orientation"] = dip_with_timecourse.ori
 
         # Update matplotlib canvas at the bottom of the window
         canvas = self._setup_mplcanvas()
