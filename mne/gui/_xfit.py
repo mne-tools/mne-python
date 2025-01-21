@@ -6,8 +6,6 @@ import numpy as np
 import pyvista
 
 from .. import pick_types
-
-# from ..beamformer import apply_lcmv, make_lcmv
 from ..bem import (
     ConductorModel,
     _ensure_bem_surfaces,
