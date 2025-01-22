@@ -1494,19 +1494,22 @@ fmt : 'auto' | 'brainvision' | 'edf' | 'eeglab'
 
 docdict["export_fmt_support_epochs"] = """\
 Supported formats:
-    - EEGLAB (``.set``, uses :mod:`eeglabio`)
+
+- EEGLAB (``.set``, uses :mod:`eeglabio`)
 """
 
 docdict["export_fmt_support_evoked"] = """\
 Supported formats:
-    - MFF (``.mff``, uses :func:`mne.export.export_evokeds_mff`)
+
+- MFF (``.mff``, uses :func:`mne.export.export_evokeds_mff`)
 """
 
 docdict["export_fmt_support_raw"] = """\
 Supported formats:
-    - BrainVision (``.vhdr``, ``.vmrk``, ``.eeg``, uses `pybv <https://github.com/bids-standard/pybv>`_)
-    - EEGLAB (``.set``, uses :mod:`eeglabio`)
-    - EDF (``.edf``, uses `edfio <https://github.com/the-siesta-group/edfio>`_)
+
+- BrainVision (``.vhdr``, ``.vmrk``, ``.eeg``, uses `pybv <https://github.com/bids-standard/pybv>`_)
+- EEGLAB (``.set``, uses :mod:`eeglabio`)
+- EDF (``.edf``, uses `edfio <https://github.com/the-siesta-group/edfio>`_)
 """  # noqa: E501
 
 docdict["export_warning"] = """\
