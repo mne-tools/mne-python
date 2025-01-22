@@ -684,9 +684,6 @@ class UnsupervisedSpatialFilter(MNETransformerMixin, BaseEstimator):
             # trial as time samples
             X = np.transpose(X, (1, 0, 2)).reshape((n_channels, n_epochs * n_times)).T
 
-        # Really shouldn't modify self.estimator, but it's a bad backward compat problem
-        # to change it (will break people's pipelines) so leave it for now and just
-        # wrap to self.estimator_ as well
         self.estimator_ = clone(self.estimator)
         self.estimator_.fit(X)
         return self
