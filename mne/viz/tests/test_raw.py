@@ -28,7 +28,7 @@ from mne.utils import (
     set_config,
 )
 from mne.viz import plot_raw, plot_sensors
-from mne.viz.utils import _fake_click
+from mne.viz.utils import _fake_click, _fake_keypress
 
 base_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
 raw_fname = base_dir / "test_raw.fif"
@@ -1089,6 +1089,8 @@ def test_plot_sensors(raw):
     pytest.raises(ValueError, plot_sensors, raw.info, kind="sasaasd")
     plt.close("all")
 
+    print(raw.ch_names)
+
     # Test lasso selection.
     fig, sels = raw.plot_sensors("select", show_names=True)
     ax = fig.axes[0]
@@ -1100,6 +1102,13 @@ def test_plot_sensors(raw):
     _fake_click(fig, ax, (-0.13, 0.13), xform="data", kind="motion")
     _fake_click(fig, ax, (-0.13, 0.13), xform="data", kind="release")
     assert fig.lasso.selection == ["MEG 0121"]
+
+    # Add another sensor with a single click.
+    _fake_keypress(fig, "control")
+    _fake_click(fig, ax, (-0.1278, 0.0318), xform="data")
+    _fake_click(fig, ax, (-0.1278, 0.0318), xform="data", kind="release")
+    _fake_keypress(fig, "control", kind="release")
+    assert fig.lasso.selection == ["MEG 0121", "MEG 0131"]
     plt.close("all")
 
     raw.info["dev_head_t"] = None  # like empty room

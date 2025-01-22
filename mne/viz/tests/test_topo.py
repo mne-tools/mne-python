@@ -23,7 +23,7 @@ from mne.viz import (
 )
 from mne.viz.evoked import _line_plot_onselect
 from mne.viz.topo import _imshow_tfr, _plot_update_evoked_topo_proj, iter_topography
-from mne.viz.utils import _fake_click
+from mne.viz.utils import _fake_click, _fake_keypress
 
 base_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
 evoked_fname = base_dir / "test-ave.fif"
@@ -310,7 +310,24 @@ def test_plot_topo_select():
     """Test selecting sensors in an ERP topography plot."""
     # Show topography
     evoked = _get_epochs().average()
-    plot_evoked_topo(evoked, select=True)
+    fig = plot_evoked_topo(evoked, select=True)
+    ax = fig.axes[0]
+
+    # Lasso select 3 out of the 6 sensors.
+    _fake_click(fig, ax, (0.05, 0.5), xform="data")
+    _fake_click(fig, ax, (0.2, 0.5), xform="data", kind="motion")
+    _fake_click(fig, ax, (0.2, 0.6), xform="data", kind="motion")
+    _fake_click(fig, ax, (0.05, 0.6), xform="data", kind="motion")
+    _fake_click(fig, ax, (0.05, 0.5), xform="data", kind="motion")
+    _fake_click(fig, ax, (0.05, 0.5), xform="data", kind="release")
+    assert fig.lasso.selection == ["MEG 0132", "MEG 0133", "MEG 0131"]
+
+    # Add another sensor with a single click.
+    _fake_keypress(fig, "control")
+    _fake_click(fig, ax, (0.11, 0.65), xform="data")
+    _fake_click(fig, ax, (0.21, 0.65), xform="data", kind="release")
+    _fake_keypress(fig, "control", kind="release")
+    assert fig.lasso.selection == ["MEG 0111", "MEG 0132", "MEG 0133", "MEG 0131"]
 
 
 def test_plot_tfr_topo():

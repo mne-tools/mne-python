@@ -275,10 +275,9 @@ def _iter_topography(
                     publish(fig, ChannelsSelect(ch_names=fig.lasso.selection))
 
                 def on_channels_select(event):
-                    ch_inds = {name: i for i, name in enumerate(shown_ch_names)}
-                    selection_inds = [
-                        ch_inds[name] for name in event.ch_names if name in ch_inds
-                    ]
+                    selection_inds = np.flatnonzero(
+                        np.isin(shown_ch_names, event.ch_names)
+                    )
                     fig.lasso.select_many(selection_inds)
 
                 fig.lasso.callbacks.append(on_select)
@@ -381,9 +380,15 @@ def _plot_topo(
 
 def _plot_topo_onpick(event, show_func):
     """Onpick callback that shows a single channel in a new figure."""
-    # make sure that the swipe gesture in OS-X doesn't open many figures
     orig_ax = event.inaxes
-    if orig_ax.figure.canvas._key in ["shift", "alt"]:
+    fig = orig_ax.figure
+
+    # If we are doing lasso select, allow it to handle the click instead.
+    if fig.lasso is not None and event.key in ["control", "ctrl+shift"]:
+        return
+
+    # make sure that the swipe gesture in OS-X doesn't open many figures
+    if fig.canvas._key in ["shift", "alt"]:
         return
 
     import matplotlib.pyplot as plt
