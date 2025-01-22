@@ -1331,7 +1331,6 @@ def _is_osmesa(plotter):
     )
     gpu_info = " ".join(gpu_info).lower()
     is_osmesa = "mesa" in gpu_info.split()
-    print(is_osmesa)
     if is_osmesa:
         # Try to warn if it's ancient
         version = re.findall("mesa ([0-9.]+)[ -].*", gpu_info) or re.findall(
