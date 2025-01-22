@@ -1647,6 +1647,7 @@ class SelectFromCollection:
         alpha_nonselected=0.5,
         linewidth_selected=1,
         linewidth_nonselected=0.5,
+        verbose=None,
     ):
         from matplotlib.widgets import LassoSelector
 
@@ -1704,6 +1705,7 @@ class SelectFromCollection:
 
     def notify(self):
         """Notify listeners that a selection has been made."""
+        logger.info(f"Selected channels: {self.selection}")
         for callback in self.callbacks:
             callback()
 
@@ -1713,7 +1715,6 @@ class SelectFromCollection:
 
         # Don't respond to single clicks without extra keys being hold down.
         # Figures like plot_evoked_topo want to do something else with them.
-        print(verts, self.canvas._key)
         if len(verts) <= 3 and self.canvas._key not in ["control", "ctrl+shift"]:
             return
 
