@@ -231,7 +231,7 @@ def test_fine_cal_systems(system, tmp_path):
         err_limit = 6000
         n_ref = 28
         corrs = (0.19, 0.41, 0.49)
-        sfs = [0.5, 0.7, 0.9, 1.5]
+        sfs = [0.5, 0.7, 0.9, 1.55]
         corr_tol = 0.55
     elif system == "fil":
         raw = read_raw_fil(fil_fname, verbose="error")
