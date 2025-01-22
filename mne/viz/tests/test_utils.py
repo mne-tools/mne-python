@@ -293,6 +293,10 @@ def test_select_from_collection():
     _fake_click(fig, ax, (0.5, 1), xform="data", kind="release")
     assert lasso.selection == []
 
+    # Doing a single click on a patch should not select it.
+    _fake_click(fig, ax, (1, 1), xform="data")
+    assert lasso.selection == []
+
     # Make a selection with two patches in it.
     _fake_click(fig, ax, (0, 0.5), xform="data")
     _fake_click(fig, ax, (3, 0.5), xform="data", kind="motion")
@@ -302,24 +306,24 @@ def test_select_from_collection():
     _fake_click(fig, ax, (0, 0.5), xform="data", kind="release")
     assert lasso.selection == ["A", "B"]
 
-    # Use SHIFT key to lasso an additional patch.
-    _fake_keypress(fig, "shift")
+    # Use Control key to lasso an additional patch.
+    _fake_keypress(fig, "control")
     _fake_click(fig, ax, (0.5, -0.5), xform="data")
     _fake_click(fig, ax, (1.5, -0.5), xform="data", kind="motion")
     _fake_click(fig, ax, (1.5, 0.5), xform="data", kind="motion")
     _fake_click(fig, ax, (0.5, 0.5), xform="data", kind="motion")
     _fake_click(fig, ax, (0.5, 0.5), xform="data", kind="release")
-    _fake_keypress(fig, "shift", kind="release")
+    _fake_keypress(fig, "control", kind="release")
     assert lasso.selection == ["A", "B", "D"]
 
-    # Use ALT key to remove a patch.
-    _fake_keypress(fig, "alt")
+    # Use CTRL+SHIFT to remove a patch.
+    _fake_keypress(fig, "ctrl+shift")
     _fake_click(fig, ax, (0.5, 0.5), xform="data")
     _fake_click(fig, ax, (1.5, 0.5), xform="data", kind="motion")
     _fake_click(fig, ax, (1.5, 1.5), xform="data", kind="motion")
     _fake_click(fig, ax, (0.5, 1.5), xform="data", kind="motion")
     _fake_click(fig, ax, (0.5, 1.5), xform="data", kind="release")
-    _fake_keypress(fig, "alt", kind="release")
+    _fake_keypress(fig, "ctrl+shift", kind="release")
     assert lasso.selection == ["B", "D"]
 
     # Check that the two selected patches have a different appearance.
@@ -327,3 +331,15 @@ def test_select_from_collection():
     ec = lasso.collection.get_edgecolors()
     assert (fc[:, -1] == [0.5, 1.0, 0.5, 1.0]).all()
     assert (ec[:, -1] == [0.25, 1.0, 0.25, 1.0]).all()
+
+    # Test adding and removing single channels.
+    lasso.select_one(2)  # should not do anything without modifier keys
+    assert lasso.selection == ["B", "D"]
+    _fake_keypress(fig, "control")
+    lasso.select_one(2)  # add to selection
+    _fake_keypress(fig, "control", kind="release")
+    assert lasso.selection == ["B", "C", "D"]
+    _fake_keypress(fig, "ctrl+shift")
+    lasso.select_one(1)  #  remove from selection
+    assert lasso.selection == ["C", "D"]
+    _fake_keypress(fig, "ctrl+shift", kind="release")

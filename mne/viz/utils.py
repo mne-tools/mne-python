@@ -952,7 +952,7 @@ def plot_sensors(
         Whether to plot the sensors as 3d, topomap or as an interactive
         sensor selection dialog. Available options ``'topomap'``, ``'3d'``,
         ``'select'``. If ``'select'``, a set of channels can be selected
-        interactively by using lasso selector or clicking while holding the shift
+        interactively by using lasso selector or clicking while holding the control
         key. The selected channels are returned along with the figure instance.
         Defaults to ``'topomap'``.
     ch_type : None | str
@@ -1163,10 +1163,10 @@ def _onpick_sensor(event, fig, ax, pos, ch_names, show_names):
     if event.mouseevent.inaxes != ax:
         return
 
-    if event.mouseevent.key in ["shift", "alt"] and fig.lasso is not None:
+    if fig.lasso is not None and event.mouseevent.key in ["control", "ctrl+shift"]:
+        # Add the sensor to the selection instead of showing its name.
         for ind in event.ind:
             fig.lasso.select_one(ind)
-
         return
     if show_names:
         return  # channel names already visible
@@ -1278,10 +1278,7 @@ def _plot_sensors_2d(
                 publish(fig, ChannelsSelect(ch_names=fig.lasso.selection))
 
             def on_channels_select(event):
-                ch_inds = {name: i for i, name in enumerate(ch_names)}
-                selection_inds = [
-                    ch_inds[name] for name in event.ch_names if name in ch_inds
-                ]
+                selection_inds = np.flatnonzero(np.isin(ch_names, event.ch_names))
                 fig.lasso.select_many(selection_inds)
 
             fig.lasso.callbacks.append(on_select)
@@ -1614,6 +1611,9 @@ class SelectFromCollection:
     This tool highlights selected objects by fading other objects out (i.e.,
     reducing their alpha values).
 
+    Holding down the Control key will add to the current selection, and holding down
+    Control+Shift will remove from the current selection.
+
     Parameters
     ----------
     ax : instance of Axes
@@ -1647,6 +1647,7 @@ class SelectFromCollection:
         alpha_nonselected=0.5,
         linewidth_selected=1,
         linewidth_nonselected=0.5,
+        verbose=None,
     ):
         from matplotlib.widgets import LassoSelector
 
@@ -1704,6 +1705,7 @@ class SelectFromCollection:
 
     def notify(self):
         """Notify listeners that a selection has been made."""
+        logger.info(f"Selected channels: {self.selection}")
         for callback in self.callbacks:
             callback()
 
@@ -1711,14 +1713,16 @@ class SelectFromCollection:
         """Select a subset from the collection."""
         from matplotlib.path import Path
 
-        if len(verts) <= 3:  # Seems to be a good way to exclude single clicks.
+        # Don't respond to single clicks without extra keys being hold down.
+        # Figures like plot_evoked_topo want to do something else with them.
+        if len(verts) <= 3 and self.canvas._key not in ["control", "ctrl+shift"]:
             return
 
         path = Path(verts)
         inds = np.nonzero([path.intersects_path(p) for p in self.paths])[0]
-        if self.canvas._key == "shift":  # Appending selection.
+        if self.canvas._key == "control":  # Appending selection.
             self.selection_inds = np.union1d(self.selection_inds, inds).astype("int")
-        elif self.canvas._key == "alt":  # Removing selection.
+        elif self.canvas._key == "ctrl+shift":
             self.selection_inds = np.setdiff1d(self.selection_inds, inds).astype("int")
         else:
             self.selection_inds = inds
@@ -1728,9 +1732,9 @@ class SelectFromCollection:
 
     def select_one(self, ind):
         """Select or deselect one sensor."""
-        if self.canvas._key == "shift":
+        if self.canvas._key == "control":
             self.selection_inds = np.union1d(self.selection_inds, [ind])
-        elif self.canvas._key == "alt":
+        elif self.canvas._key == "ctrl+shift":
             self.selection_inds = np.setdiff1d(self.selection_inds, [ind])
         else:
             return  # don't notify()
