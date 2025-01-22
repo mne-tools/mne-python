@@ -1,3 +1,7 @@
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
+
 from copy import deepcopy
 from functools import partial
 from pathlib import Path
@@ -165,7 +169,6 @@ class DipoleFitUI:
 
         # Initialize all the private attributes.
         self._actors = dict()
-        self._arrows = list()
         self._bem = bem
         self._ch_type = ch_type
         self._cov = cov
@@ -175,7 +178,6 @@ class DipoleFitUI:
         self._field_map = field_map
         self._fig_sensors = None
         self._multi_dipole_method = "Multi dipole (MNE)"
-        self._n_jobs = n_jobs
         self._show_density = show_density
         self._subjects_dir = subjects_dir
         self._subject = subject
@@ -611,8 +613,8 @@ class DipoleFitUI:
                         len(dip_with_timecourse.times), axis=0
                     )
                 else:
-                    dip["timecourse"] = dip_with_timecourse.amplitude[0]
-                    dip["orientation"] = dip_with_timecourse.ori[0]
+                    dip["timecourse"] = dip_with_timecourse.amplitude
+                    dip["orientation"] = dip_with_timecourse.ori
 
         # Update matplotlib canvas at the bottom of the window
         canvas = self._setup_mplcanvas()
