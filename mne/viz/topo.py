@@ -384,7 +384,7 @@ def _plot_topo_onpick(event, show_func):
     fig = orig_ax.figure
 
     # If we are doing lasso select, allow it to handle the click instead.
-    if fig.lasso is not None and event.key in ["control", "ctrl+shift"]:
+    if hasattr("lasso") and event.key in ["control", "ctrl+shift"]:
         return
 
     # make sure that the swipe gesture in OS-X doesn't open many figures
