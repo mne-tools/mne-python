@@ -1089,8 +1089,6 @@ def test_plot_sensors(raw):
     pytest.raises(ValueError, plot_sensors, raw.info, kind="sasaasd")
     plt.close("all")
 
-    print(raw.ch_names)
-
     # Test lasso selection.
     fig, sels = raw.plot_sensors("select", show_names=True)
     ax = fig.axes[0]
