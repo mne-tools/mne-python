@@ -5,6 +5,9 @@ on:  # yamllint disable-line rule:truthy
     types: [opened, synchronize, labeled, unlabeled]
     branches: ["main"]
 
+permissions:
+  contents: read
+
 jobs:
   changelog_checker:
     name: Check towncrier entry in doc/changes/devel/
