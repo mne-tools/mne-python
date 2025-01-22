@@ -41,6 +41,8 @@ metadata_routing
 
 # Decoding
 _._more_tags
+_.multi_class
+_.preserves_dtype
 deep
 
 # Backward compat or rarely used

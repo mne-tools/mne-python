@@ -1226,7 +1226,7 @@ def _compute_rank_raw_array(
     from .io import RawArray
 
     return _compute_rank(
-        RawArray(data, info, copy=None, verbose=_verbose_safe_false()),
+        RawArray(data, info, copy="auto", verbose=_verbose_safe_false()),
         rank,
         scalings,
         info,
@@ -1405,7 +1405,7 @@ def _compute_covariance_auto(
             # project back
             cov = np.dot(eigvec.T, np.dot(cov, eigvec))
             # undo bias
-            cov *= data.shape[0] / (data.shape[0] - 1)
+            cov *= data.shape[0] / max(data.shape[0] - 1, 1)
             # undo scaling
             _undo_scaling_cov(cov, picks_list, scalings)
             method_ = method[ei]
