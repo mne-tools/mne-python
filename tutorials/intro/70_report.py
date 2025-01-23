@@ -12,11 +12,11 @@ stages in the processing pipeline. The report can show things like plots of data
 and after each preprocessing step, epoch rejection statistics, MRI slices with overlaid
 BEM shells, all the way up to plots of estimated cortical activity.
 
-Compared to a Jupyter notebook, :class:`mne.Report` is easier to deploy, as the
-HTML pages it generates are self-contained and do not require a running Python
-environment. However, it is less flexible as you can't change code and re-run
-something directly within the browser. This tutorial covers the basics of
-building a report. As usual, we will start by importing the modules and data we need:
+Compared to a Jupyter notebook, :class:`mne.Report` is easier to deploy, as the HTML
+pages it generates are self-contained and do not require a running Python environment.
+However, it is less flexible as you can't change code and re-run something directly
+within the browser. This tutorial covers the basics of building a report. As usual,
+we will start by importing the modules and data we need:
 """
 
 # Authors: The MNE-Python contributors.

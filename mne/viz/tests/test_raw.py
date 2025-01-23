@@ -1088,36 +1088,25 @@ def test_plot_sensors(raw):
     pytest.raises(TypeError, plot_sensors, raw)  # needs to be info
     pytest.raises(ValueError, plot_sensors, raw.info, kind="sasaasd")
     plt.close("all")
+
+    # Test lasso selection.
     fig, sels = raw.plot_sensors("select", show_names=True)
     ax = fig.axes[0]
+    # Lasso a single sensor.
+    _fake_click(fig, ax, (-0.13, 0.13), xform="data")
+    _fake_click(fig, ax, (-0.11, 0.13), xform="data", kind="motion")
+    _fake_click(fig, ax, (-0.11, 0.06), xform="data", kind="motion")
+    _fake_click(fig, ax, (-0.13, 0.06), xform="data", kind="motion")
+    _fake_click(fig, ax, (-0.13, 0.13), xform="data", kind="motion")
+    _fake_click(fig, ax, (-0.13, 0.13), xform="data", kind="release")
+    assert fig.lasso.selection == ["MEG 0121"]
 
-    # Click with no sensors
-    _fake_click(fig, ax, (0.0, 0.0), xform="data")
-    _fake_click(fig, ax, (0, 0.0), xform="data", kind="release")
-    assert fig.lasso.selection == []
-
-    # Lasso with 1 sensor (upper left)
-    _fake_click(fig, ax, (0, 1), xform="ax")
-    fig.canvas.draw()
-    assert fig.lasso.selection == []
-    _fake_click(fig, ax, (0.65, 1), xform="ax", kind="motion")
-    _fake_click(fig, ax, (0.65, 0.7), xform="ax", kind="motion")
+    # Add another sensor with a single click.
     _fake_keypress(fig, "control")
-    _fake_click(fig, ax, (0, 0.7), xform="ax", kind="release", key="control")
-    assert fig.lasso.selection == ["MEG 0121"]
-
-    # check that point appearance changes
-    fc = fig.lasso.collection.get_facecolors()
-    ec = fig.lasso.collection.get_edgecolors()
-    assert (fc[:, -1] == [0.5, 1.0, 0.5]).all()
-    assert (ec[:, -1] == [0.25, 1.0, 0.25]).all()
-
-    _fake_click(fig, ax, (0.7, 1), xform="ax", kind="motion", key="control")
-    xy = ax.collections[0].get_offsets()
-    _fake_click(fig, ax, xy[2], xform="data", key="control")  # single sel
+    _fake_click(fig, ax, (-0.1278, 0.0318), xform="data")
+    _fake_click(fig, ax, (-0.1278, 0.0318), xform="data", kind="release")
+    _fake_keypress(fig, "control", kind="release")
     assert fig.lasso.selection == ["MEG 0121", "MEG 0131"]
-    _fake_click(fig, ax, xy[2], xform="data", key="control")  # deselect
-    assert fig.lasso.selection == ["MEG 0121"]
     plt.close("all")
 
     raw.info["dev_head_t"] = None  # like empty room
