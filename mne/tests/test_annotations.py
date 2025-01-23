@@ -416,6 +416,7 @@ def test_read_edf_annotations(fname, n_annot):
     annot = read_annotations(fname)
     assert len(annot) == n_annot
 
+
 @testing.requires_testing_data
 def test_read_wfdb_annotations():
     """Test reading WFDB annotations."""
@@ -424,6 +425,7 @@ def test_read_wfdb_annotations():
     # Verify that [ and ] are in description
     assert "[" in annot.description
     assert "]" in annot.description
+
 
 @first_samps
 def test_raw_reject(first_samp):
