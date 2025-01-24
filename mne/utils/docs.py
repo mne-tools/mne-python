@@ -239,10 +239,10 @@ allow_empty : bool | str
 docdict["maxwell_mc_interp"] = """
 mc_interp : str
     Interpolation to use between adjacent time points in movement
-    compensation. Can be "zero" (default in 0.21; used by MaxFilter),
-    "linear", or "hann" (default in 0.22).
+    compensation. Can be "zero" (default in 1.10; used by MaxFilter),
+    "linear", or "hann" (default in 1.11).
 
-    .. versionadded:: 0.21
+    .. versionadded:: 1.10
 """
 
 docdict["alpha"] = """

@@ -275,11 +275,11 @@ def maxwell_filter(
         .. versionadded:: 0.17
     %(extended_proj_maxwell)s
     st_overlap : bool
-        If True (default in 0.22), tSSS processing will use a constant
-        overlap-add method. If False (default in 0.21), then
+        If True (default in 1.11), tSSS processing will use a constant
+        overlap-add method. If False (default in 1.10), then
         non-overlapping windows will be used.
 
-        .. versionadded:: 0.21
+        .. versionadded:: 1.10
     %(maxwell_mc_interp)s
     %(verbose)s
 
@@ -486,8 +486,8 @@ def _prep_maxwell_filter(
     if st_overlap is None:
         if st_duration is not None:
             warn(
-                "st_overlap defaults to False in 0.17 but will change to "
-                "True in 0.18. Set it explicitly to avoid this warning.",
+                "st_overlap defaults to False in 1.10 but will change to "
+                "True in 1.11. Set it explicitly to avoid this warning.",
                 DeprecationWarning,
             )
         st_overlap = False
@@ -495,8 +495,8 @@ def _prep_maxwell_filter(
     if mc_interp is None:
         if head_pos is not None:
             warn(
-                'mc_interp defaults to "zero" in 0.17 but will change '
-                'to "hann" in 0.18, set it explicitly to avoid this '
+                'mc_interp defaults to "zero" in 1.10 but will change '
+                'to "hann" in 1.11, set it explicitly to avoid this '
                 "message.",
                 DeprecationWarning,
             )
