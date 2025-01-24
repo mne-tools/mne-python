@@ -361,8 +361,7 @@ class DigMontage:
     def plot(
         self,
         *,
-        scale=None,
-        scale_factor=None,
+        scale=1.0,
         show_names=True,
         kind="topomap",
         show=True,
@@ -373,7 +372,6 @@ class DigMontage:
         return plot_montage(
             self,
             scale=scale,
-            scale_factor=scale_factor,
             show_names=show_names,
             kind=kind,
             show=show,
@@ -407,7 +405,7 @@ class DigMontage:
         Parameters
         ----------
         fname : path-like
-            The filename to use. Should end in .fif or .fif.gz.
+            The filename to use. Should end in ``-dig.fif`` or ``-dig.fif.gz``.
         %(overwrite)s
         %(verbose)s
 
@@ -1289,7 +1287,7 @@ def _set_montage(info, montage, match_case=True, match_alias=False, on_missing="
             f"Not setting position{_pl(extra)} of {len(extra)} {types} "
             f"channel{_pl(extra)} found in montage:\n{names}\n"
             "Consider setting the channel types to be of "
-            f'{docdict["montage_types"]} '
+            f"{docdict['montage_types']} "
             "using inst.set_channel_types before calling inst.set_montage, "
             "or omit these channels when creating your montage."
         )

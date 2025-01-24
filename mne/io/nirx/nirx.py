@@ -210,7 +210,7 @@ class RawNIRX(BaseRaw):
             ):
                 warn(
                     "Only import of data from NIRScout devices have been "
-                    f'thoroughly tested. You are using a {hdr["GeneralInfo"]["Device"]}'
+                    f"thoroughly tested. You are using a {hdr['GeneralInfo']['Device']}"
                     " device."
                 )
 

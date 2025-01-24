@@ -1,7 +1,7 @@
 repos:
   # Ruff mne
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.8.0
+    rev: v0.9.2
     hooks:
       - id: ruff
         name: ruff lint mne
@@ -70,16 +70,21 @@ repos:
         name: Copy dependency changes from pyproject.toml to environment.yml
         language: python
         entry: ./tools/hooks/update_environment_file.py
-        files: pyproject.toml
+        files: '^(pyproject.toml|tools/hooks/update_environment_file.py)$'
   - repo: local
     hooks:
       - id: dependency-sync
         name: Copy core dependencies from pyproject.toml to README.rst
         language: python
         entry: ./tools/hooks/sync_dependencies.py
-        files: pyproject.toml
-        additional_dependencies: ["mne"]
+        files: '^(pyproject.toml|tools/hooks/sync_dependencies.py)$'
+        additional_dependencies: ["mne==1.9.0"]
 
+  # zizmor
+  - repo: https://github.com/woodruffw/zizmor-pre-commit
+    rev: v1.2.2
+    hooks:
+      - id: zizmor
 
 # these should *not* be run on CIs:
 ci:

@@ -479,12 +479,12 @@ def test_average_movements():
 def _assert_drop_log_types(drop_log):
     __tracebackhide__ = True
     assert isinstance(drop_log, tuple), "drop_log should be tuple"
-    assert all(
-        isinstance(log, tuple) for log in drop_log
-    ), "drop_log[ii] should be tuple"
-    assert all(
-        isinstance(s, str) for log in drop_log for s in log
-    ), "drop_log[ii][jj] should be str"
+    assert all(isinstance(log, tuple) for log in drop_log), (
+        "drop_log[ii] should be tuple"
+    )
+    assert all(isinstance(s, str) for log in drop_log for s in log), (
+        "drop_log[ii][jj] should be str"
+    )
 
 
 def test_reject():

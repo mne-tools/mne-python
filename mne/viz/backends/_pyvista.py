@@ -837,7 +837,7 @@ class _PyVistaRenderer(_AbstractRenderer):
         """Enable it everywhere except on systems with problematic OpenGL."""
         # MESA can't seem to handle MSAA and depth peeling simultaneously, see
         # https://github.com/pyvista/pyvista/issues/4867
-        bad_system = _is_mesa(self.plotter)
+        bad_system = _is_osmesa(self.plotter)
         for plotter in self._all_plotters:
             if bad_system or not self.antialias:
                 plotter.disable_anti_aliasing()
@@ -1096,9 +1096,7 @@ def _3d_to_2d(plotter, xyz):
 
 
 def _close_all():
-    with warnings.catch_warnings():
-        warnings.filterwarnings("ignore", category=DeprecationWarning)
-        close_all()
+    close_all()
     _FIGURES.clear()
 
 
@@ -1319,10 +1317,11 @@ def _disabled_depth_peeling():
         depth_peeling["enabled"] = depth_peeling_enabled
 
 
-def _is_mesa(plotter):
+def _is_osmesa(plotter):
     # MESA (could use GPUInfo / _get_gpu_info here, but it takes
     # > 700 ms to make a new window + report capabilities!)
     # CircleCI's is: "Mesa 20.0.8 via llvmpipe (LLVM 10.0.0, 256 bits)"
+    # and a working Nouveau is: "Mesa 24.2.3-1ubuntu1 via NVE6"
     if platform.system() == "Darwin":  # segfaults on macOS sometimes
         return False
     gpu_info_full = plotter.ren_win.ReportCapabilities()
@@ -1331,8 +1330,8 @@ def _is_mesa(plotter):
         gpu_info_full,
     )
     gpu_info = " ".join(gpu_info).lower()
-    is_mesa = "mesa" in gpu_info.split()
-    if is_mesa:
+    is_osmesa = "mesa" in gpu_info.split()
+    if is_osmesa:
         # Try to warn if it's ancient
         version = re.findall("mesa ([0-9.]+)[ -].*", gpu_info) or re.findall(
             "OpenGL version string: .* Mesa ([0-9.]+)\n", gpu_info_full
@@ -1345,7 +1344,8 @@ def _is_mesa(plotter):
                     "surface rendering, consider upgrading to 18.3.6 or "
                     "later."
                 )
-    return is_mesa
+        is_osmesa = "via llvmpipe" in gpu_info
+    return is_osmesa
 
 
 class _SafeBackgroundPlotter(BackgroundPlotter):

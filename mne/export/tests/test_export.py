@@ -122,6 +122,49 @@ def test_export_raw_eeglab(tmp_path):
         raw.export(temp_fname, overwrite=True)
 
 
+@pytest.mark.parametrize("tmin", (0, 1, 5, 10))
+def test_export_raw_eeglab_annotations(tmp_path, tmin):
+    """Test annotations in the exported EEGLAB file.
+
+    All annotations should be preserved and onset corrected.
+    """
+    pytest.importorskip("eeglabio")
+    raw = read_raw_fif(fname_raw, preload=True)
+    raw.apply_proj()
+    annotations = Annotations(
+        onset=[0.01, 0.05, 0.90, 1.05],
+        duration=[0, 1, 0, 0],
+        description=["test1", "test2", "test3", "test4"],
+        ch_names=[["MEG 0113"], ["MEG 0113", "MEG 0132"], [], ["MEG 0143"]],
+    )
+    raw.set_annotations(annotations)
+    raw.crop(tmin)
+
+    # export
+    temp_fname = tmp_path / "test.set"
+    raw.export(temp_fname)
+
+    # read in the file
+    with pytest.warns(RuntimeWarning, match="is above the 99th percentile"):
+        raw_read = read_raw_eeglab(temp_fname, preload=True, montage_units="m")
+    assert raw_read.first_time == 0  # exportation resets first_time
+    valid_annot = (
+        raw.annotations.onset >= tmin
+    )  # only annotations in the cropped range gets exported
+
+    # compare annotations before and after export
+    assert_array_almost_equal(
+        raw.annotations.onset[valid_annot] - raw.first_time,
+        raw_read.annotations.onset,
+    )
+    assert_array_equal(
+        raw.annotations.duration[valid_annot], raw_read.annotations.duration
+    )
+    assert_array_equal(
+        raw.annotations.description[valid_annot], raw_read.annotations.description
+    )
+
+
 def _create_raw_for_edf_tests(stim_channel_index=None):
     rng = np.random.RandomState(12345)
     ch_types = [
@@ -145,7 +188,7 @@ def _create_raw_for_edf_tests(stim_channel_index=None):
 
 
 edfio_mark = pytest.mark.skipif(
-    not _check_edfio_installed(strict=False), reason="unsafe use of private module"
+    not _check_edfio_installed(strict=False), reason="requires edfio"
 )
 
 
@@ -154,6 +197,7 @@ def test_double_export_edf(tmp_path):
     """Test exporting an EDF file multiple times."""
     raw = _create_raw_for_edf_tests(stim_channel_index=2)
     raw.info.set_meas_date("2023-09-04 14:53:09.000")
+    raw.set_annotations(Annotations(onset=[1], duration=[0], description=["test"]))
 
     # include subject info and measurement date
     raw.info["subject_info"] = dict(
@@ -235,7 +279,7 @@ def test_edf_padding(tmp_path, pad_width):
         RuntimeWarning,
         match=(
             "EDF format requires equal-length data blocks.*"
-            f"{pad_width/1000:.3g} seconds of edge values were appended.*"
+            f"{pad_width / 1000:.3g} seconds of edge values were appended.*"
         ),
     ):
         raw.export(temp_fname)
@@ -258,8 +302,12 @@ def test_edf_padding(tmp_path, pad_width):
 
 
 @edfio_mark()
-def test_export_edf_annotations(tmp_path):
-    """Test that exporting EDF preserves annotations."""
+@pytest.mark.parametrize("tmin", (0, 0.005, 0.03, 1))
+def test_export_edf_annotations(tmp_path, tmin):
+    """Test annotations in the exported EDF file.
+
+    All annotations should be preserved and onset corrected.
+    """
     raw = _create_raw_for_edf_tests()
     annotations = Annotations(
         onset=[0.01, 0.05, 0.90, 1.05],
@@ -268,17 +316,44 @@ def test_export_edf_annotations(tmp_path):
         ch_names=[["0"], ["0", "1"], [], ["1"]],
     )
     raw.set_annotations(annotations)
+    raw.crop(tmin)
+    assert raw.first_time == tmin
+
+    if raw.n_times % raw.info["sfreq"] == 0:
+        expectation = nullcontext()
+    else:
+        expectation = pytest.warns(
+            RuntimeWarning, match="EDF format requires equal-length data blocks"
+        )
 
     # export
     temp_fname = tmp_path / "test.edf"
-    raw.export(temp_fname)
+    with expectation:
+        raw.export(temp_fname)
 
     # read in the file
     raw_read = read_raw_edf(temp_fname, preload=True)
-    assert_array_equal(raw.annotations.onset, raw_read.annotations.onset)
-    assert_array_equal(raw.annotations.duration, raw_read.annotations.duration)
-    assert_array_equal(raw.annotations.description, raw_read.annotations.description)
-    assert_array_equal(raw.annotations.ch_names, raw_read.annotations.ch_names)
+    assert raw_read.first_time == 0  # exportation resets first_time
+    bad_annot = raw_read.annotations.description == "BAD_ACQ_SKIP"
+    if bad_annot.any():
+        raw_read.annotations.delete(bad_annot)
+    valid_annot = (
+        raw.annotations.onset >= tmin
+    )  # only annotations in the cropped range gets exported
+
+    # compare annotations before and after export
+    assert_array_almost_equal(
+        raw.annotations.onset[valid_annot] - raw.first_time, raw_read.annotations.onset
+    )
+    assert_array_equal(
+        raw.annotations.duration[valid_annot], raw_read.annotations.duration
+    )
+    assert_array_equal(
+        raw.annotations.description[valid_annot], raw_read.annotations.description
+    )
+    assert_array_equal(
+        raw.annotations.ch_names[valid_annot], raw_read.annotations.ch_names
+    )
 
 
 @edfio_mark()
@@ -476,7 +551,7 @@ def test_export_epochs_eeglab(tmp_path, preload):
     with ctx():
         epochs.export(temp_fname)
     epochs.drop_channels([ch for ch in ["epoc", "STI 014"] if ch in epochs.ch_names])
-    epochs_read = read_epochs_eeglab(temp_fname)
+    epochs_read = read_epochs_eeglab(temp_fname, verbose="error")  # head radius
     assert epochs.ch_names == epochs_read.ch_names
     cart_coords = np.array([d["loc"][:3] for d in epochs.info["chs"]])  # just xyz
     cart_coords_read = np.array([d["loc"][:3] for d in epochs_read.info["chs"]])
@@ -580,7 +655,7 @@ def test_export_to_mff_incompatible_sfreq():
     """Test non-whole number sampling frequency throws ValueError."""
     pytest.importorskip("mffpy", "0.5.7")
     evoked = read_evokeds(fname_evoked)
-    with pytest.raises(ValueError, match=f'sfreq: {evoked[0].info["sfreq"]}'):
+    with pytest.raises(ValueError, match=f"sfreq: {evoked[0].info['sfreq']}"):
         export_evokeds("output.mff", evoked)
 
 

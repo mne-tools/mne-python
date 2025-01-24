@@ -420,12 +420,7 @@ def test_documented():
         ),
         pytest.param(
             partial(read_dig_hpts, unit="m"),
-            (
-                "eeg Fp1 -95.0 -3. -3.\n"
-                "eeg AF7 -1 -1 -3\n"
-                "eeg A3 -2 -2 2\n"
-                "eeg A 0 0 0"
-            ),
+            ("eeg Fp1 -95.0 -3. -3.\neeg AF7 -1 -1 -3\neeg A3 -2 -2 2\neeg A 0 0 0"),
             make_dig_montage(
                 ch_pos={
                     "A": [0.0, 0.0, 0.0],

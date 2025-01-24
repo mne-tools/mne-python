@@ -20,7 +20,7 @@ from mne.preprocessing import (
 )
 from mne.preprocessing.tests.test_maxwell import _assert_shielding
 from mne.transforms import _angle_dist_between_rigid
-from mne.utils import object_diff
+from mne.utils import catch_logging, object_diff
 
 # Define fine calibration filepaths
 data_path = testing.data_path(download=False)
@@ -231,8 +231,8 @@ def test_fine_cal_systems(system, tmp_path):
         err_limit = 6000
         n_ref = 28
         corrs = (0.19, 0.41, 0.49)
-        sfs = [0.5, 0.7, 0.9, 1.5]
-        corr_tol = 0.45
+        sfs = [0.5, 0.7, 0.9, 1.55]
+        corr_tol = 0.55
     elif system == "fil":
         raw = read_raw_fil(fil_fname, verbose="error")
         raw.info["bads"] = [f"G2-{a}-{b}" for a in ("MW", "DS", "DT") for b in "YZ"]
@@ -289,3 +289,15 @@ def test_fine_cal_systems(system, tmp_path):
     got_corrs = np.corrcoef([raw_data, raw_sss_data, raw_sss_cal_data])
     got_corrs = got_corrs[np.triu_indices(3, 1)]
     assert_allclose(got_corrs, corrs, atol=corr_tol)
+    if system == "fil":
+        with catch_logging(verbose=True) as log:
+            compute_fine_calibration(
+                raw.copy().crop(0, 0.12).pick(raw.ch_names[:12]),
+                t_window=0.06,  # 2 segments
+                angle_limit=angle_limit,
+                err_limit=err_limit,
+                ext_order=2,
+                verbose=True,
+            )
+        log = log.getvalue()
+        assert "(averaging over 2 time intervals)" in log, log

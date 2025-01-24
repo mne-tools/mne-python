@@ -764,6 +764,7 @@ class _BaseSourceEstimate(TimeMixin, FilterMixin):
         transparent=True,
         alpha=1.0,
         time_viewer="auto",
+        *,
         subjects_dir=None,
         figure=None,
         views="auto",
@@ -1387,8 +1388,7 @@ class _BaseSourceEstimate(TimeMixin, FilterMixin):
                 ]
             else:
                 raise ValueError(
-                    "copy must be True if transformed data has "
-                    "more than 2 dimensions"
+                    "copy must be True if transformed data has more than 2 dimensions"
                 )
         else:
             # return new or overwritten stc
@@ -2256,6 +2256,7 @@ class _BaseVectorSourceEstimate(_BaseSourceEstimate):
         vector_alpha=1.0,
         scale_factor=None,
         time_viewer="auto",
+        *,
         subjects_dir=None,
         figure=None,
         views="lateral",
@@ -2267,6 +2268,7 @@ class _BaseVectorSourceEstimate(_BaseSourceEstimate):
         foreground=None,
         initial_time=None,
         time_unit="s",
+        title=None,
         show_traces="auto",
         src=None,
         volume_options=1.0,
@@ -2299,6 +2301,7 @@ class _BaseVectorSourceEstimate(_BaseSourceEstimate):
             foreground=foreground,
             initial_time=initial_time,
             time_unit=time_unit,
+            title=title,
             show_traces=show_traces,
             src=src,
             volume_options=volume_options,
@@ -2767,6 +2770,7 @@ class VolVectorSourceEstimate(_BaseVolSourceEstimate, _BaseVectorSourceEstimate)
         vector_alpha=1.0,
         scale_factor=None,
         time_viewer="auto",
+        *,
         subjects_dir=None,
         figure=None,
         views="axial",
@@ -2778,6 +2782,7 @@ class VolVectorSourceEstimate(_BaseVolSourceEstimate, _BaseVectorSourceEstimate)
         foreground=None,
         initial_time=None,
         time_unit="s",
+        title=None,
         show_traces="auto",
         src=None,
         volume_options=1.0,
@@ -2810,6 +2815,7 @@ class VolVectorSourceEstimate(_BaseVolSourceEstimate, _BaseVectorSourceEstimate)
             foreground=foreground,
             initial_time=initial_time,
             time_unit=time_unit,
+            title=title,
             show_traces=show_traces,
             src=src,
             volume_options=volume_options,
@@ -3626,7 +3632,7 @@ def _volume_labels(src, labels, mri_resolution):
         ]
         nnz = sum(len(v) != 0 for v in vertices)
     logger.info(
-        "%d/%d atlas regions had at least one vertex " "in the source space",
+        "%d/%d atlas regions had at least one vertex in the source space",
         nnz,
         len(out_labels),
     )
@@ -3918,22 +3924,6 @@ def stc_near_sensors(
     _validate_type(src, (None, SourceSpaces), "src")
     _check_option("mode", mode, ("sum", "single", "nearest", "weighted"))
     if surface == "auto":
-        if src is not None:
-            pial_fname = op.join(subjects_dir, subject, "surf", "lh.pial")
-            pial_rr = read_surface(pial_fname)[0]
-            src_surf_is_pial = (
-                op.isfile(pial_fname)
-                and src[0]["rr"].shape == pial_rr.shape
-                and np.allclose(src[0]["rr"], pial_rr)
-            )
-            if not src_surf_is_pial:
-                warn(
-                    "In version 1.8, ``surface='auto'`` will be the default "
-                    "which will use the surface in ``src`` instead of the "
-                    "pial surface when ``src != None``. Pass ``surface='pial'`` "
-                    "or ``surface=None`` to suppress this warning",
-                    DeprecationWarning,
-                )
         surface = "pial" if src is None or src.kind == "surface" else None
 
     # create a copy of Evoked using ecog, seeg and dbs
@@ -4015,7 +4005,7 @@ def stc_near_sensors(
 
     min_dist = pdist(pos).min() * 1000
     logger.info(
-        f'    Minimum {"projected " if project else ""}intra-sensor distance: '
+        f"    Minimum {'projected ' if project else ''}intra-sensor distance: "
         f"{min_dist:0.1f} mm"
     )
 
@@ -4043,7 +4033,7 @@ def stc_near_sensors(
     if len(missing):
         warn(
             f"Channel{_pl(missing)} missing in STC: "
-            f'{", ".join(evoked.ch_names[mi] for mi in missing)}'
+            f"{', '.join(evoked.ch_names[mi] for mi in missing)}"
         )
 
     nz_data = w @ evoked.data

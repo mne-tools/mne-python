@@ -512,7 +512,7 @@ def _merge_fwds(fwds, *, verbose=None):
             a[k]["row_names"] = a[k]["row_names"] + b[k]["row_names"]
         a["nchan"] = a["nchan"] + b["nchan"]
     if len(fwds) > 1:
-        logger.info(f'    Forward solutions combined: {", ".join(combined)}')
+        logger.info(f"    Forward solutions combined: {', '.join(combined)}")
     return fwd
 
 
@@ -677,8 +677,7 @@ def read_forward_solution(fname, include=(), exclude=(), *, ordered=True, verbos
     # Make sure forward solution is in either the MRI or HEAD coordinate frame
     if fwd["coord_frame"] not in (FIFF.FIFFV_COORD_MRI, FIFF.FIFFV_COORD_HEAD):
         raise ValueError(
-            "Only forward solutions computed in MRI or head "
-            "coordinates are acceptable"
+            "Only forward solutions computed in MRI or head coordinates are acceptable"
         )
 
     # Transform each source space to the HEAD or MRI coordinate frame,
@@ -1205,8 +1204,7 @@ def _triage_loose(src, loose, fixed="auto"):
     if fixed is True:
         if not all(v == 0.0 for v in loose.values()):
             raise ValueError(
-                'When using fixed=True, loose must be 0. or "auto", '
-                f"got {orig_loose}"
+                f'When using fixed=True, loose must be 0. or "auto", got {orig_loose}'
             )
     elif fixed is False:
         if any(v == 0.0 for v in loose.values()):
@@ -1666,8 +1664,7 @@ def apply_forward(
     for ch_name in fwd["sol"]["row_names"]:
         if ch_name not in info["ch_names"]:
             raise ValueError(
-                f"Channel {ch_name} of forward operator not present in "
-                "evoked_template."
+                f"Channel {ch_name} of forward operator not present in evoked_template."
             )
 
     # project the source estimate to the sensor space

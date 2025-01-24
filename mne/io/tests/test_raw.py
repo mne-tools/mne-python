@@ -533,7 +533,7 @@ def _test_raw_crop(reader, t_prop, kwargs):
     n_samp = 50  # crop to this number of samples (per instance)
     crop_t = n_samp / raw_1.info["sfreq"]
     t_start = t_prop * crop_t  # also crop to some fraction into the first inst
-    extra = f' t_start={t_start}, preload={kwargs.get("preload", False)}'
+    extra = f" t_start={t_start}, preload={kwargs.get('preload', False)}"
     stop = (n_samp - 1) / raw_1.info["sfreq"]
     raw_1.crop(0, stop)
     assert len(raw_1.times) == 50
@@ -1063,3 +1063,20 @@ def test_last_samp():
     raw = read_raw_fif(raw_fname).crop(0, 0.1).load_data()
     last_data = raw._data[:, [-1]]
     assert_array_equal(raw[:, -1][0], last_data)
+
+
+def test_rescale():
+    """Test rescaling channels."""
+    raw = read_raw_fif(raw_fname, preload=True)  # multiple channel types
+
+    with pytest.raises(ValueError, match="If scalings is a scalar, all channels"):
+        raw.rescale(2)  # need to use dict
+
+    orig = raw.get_data(picks="eeg")
+    raw.rescale({"eeg": 2})  # need to use dict
+    assert_allclose(raw.get_data(picks="eeg"), orig * 2)
+
+    raw.pick("mag")  # only a single channel type "mag"
+    orig = raw.get_data()
+    raw.rescale(4)  # a scalar works
+    assert_allclose(raw.get_data(), orig * 4)

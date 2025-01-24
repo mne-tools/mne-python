@@ -1502,19 +1502,22 @@ fmt : 'auto' | 'brainvision' | 'edf' | 'eeglab'
 
 docdict["export_fmt_support_epochs"] = """\
 Supported formats:
-    - EEGLAB (``.set``, uses :mod:`eeglabio`)
+
+- EEGLAB (``.set``, uses :mod:`eeglabio`)
 """
 
 docdict["export_fmt_support_evoked"] = """\
 Supported formats:
-    - MFF (``.mff``, uses :func:`mne.export.export_evokeds_mff`)
+
+- MFF (``.mff``, uses :func:`mne.export.export_evokeds_mff`)
 """
 
 docdict["export_fmt_support_raw"] = """\
 Supported formats:
-    - BrainVision (``.vhdr``, ``.vmrk``, ``.eeg``, uses `pybv <https://github.com/bids-standard/pybv>`_)
-    - EEGLAB (``.set``, uses :mod:`eeglabio`)
-    - EDF (``.edf``, uses `edfio <https://github.com/the-siesta-group/edfio>`_)
+
+- BrainVision (``.vhdr``, ``.vmrk``, ``.eeg``, uses `pybv <https://github.com/bids-standard/pybv>`_)
+- EEGLAB (``.set``, uses :mod:`eeglabio`)
+- EDF (``.edf``, uses `edfio <https://github.com/the-siesta-group/edfio>`_)
 """  # noqa: E501
 
 docdict["export_warning"] = """\
@@ -4664,6 +4667,12 @@ title : str | None
     The title of the generated figure. If ``None`` (default), no title is
     displayed.
 """
+
+docdict["title_stc"] = """
+title : str | None
+    Title for the figure window. If ``None``, the subject name will be used.
+"""
+
 docdict["title_tfr_plot"] = """
 title : str | 'auto' | None
     Title for the plot. If ``"auto"``, will use the channel name (if ``combine`` is
@@ -5016,6 +5025,18 @@ weight_norm : str | None
            solution.
 """
 
+docdict["weights_tfr_array"] = """
+weights : array, shape (n_tapers, n_freqs) | None
+    The weights for each taper. Must be provided if ``data`` has a taper dimension, such
+    as for complex or phase multitaper data.
+
+    .. versionadded:: 1.10.0
+"""
+docdict["weights_tfr_attr"] = """
+weights : array, shape (n_tapers, n_freqs) | None
+    The weights used for each taper in the time-frequency estimates.
+"""
+
 docdict["window_psd"] = """\
 window : str | float | tuple
     Windowing function to use. See :func:`scipy.signal.get_window`.
@@ -5117,6 +5138,8 @@ def copy_doc(source):
     This is useful when inheriting from a class and overloading a method. This
     decorator can be used to copy the docstring of the original method.
 
+    Docstrings are processed by :func:`python:inspect.cleandoc` before being used.
+
     Parameters
     ----------
     source : function
@@ -5139,7 +5162,8 @@ def copy_doc(source):
     ...         ''' this gets appended'''
     ...         pass
     >>> print(B.m1.__doc__)
-    Docstring for m1 this gets appended
+    Docstring for m1
+    this gets appended
     """
 
     def wrapper(func):
@@ -5147,7 +5171,7 @@ def copy_doc(source):
             raise ValueError("Cannot copy docstring: docstring was empty.")
         doc = source.__doc__
         if func.__doc__ is not None:
-            doc += func.__doc__
+            doc += f"\n{inspect.cleandoc(func.__doc__)}"
         func.__doc__ = doc
         return func
 
@@ -5165,6 +5189,10 @@ def copy_function_doc_to_method_doc(source):
     This decorator is useful when implementing a method that just calls a
     function.  This pattern is prevalent in for example the plotting functions
     of MNE.
+
+    Docstrings are parsed by :func:`python:inspect.cleandoc` before being used.
+    If indentation and newlines are important, make the first line ``.``, and the dot
+    will be removed and all following lines dedented jointly.
 
     Parameters
     ----------
@@ -5201,7 +5229,8 @@ def copy_function_doc_to_method_doc(source):
     >>> class A:
     ...     @copy_function_doc_to_method_doc(plot_function)
     ...     def plot(self, a, b):
-    ...         '''
+    ...         '''.
+    ...
     ...         Notes
     ...         -----
     ...         .. versionadded:: 0.13.0
@@ -5210,26 +5239,31 @@ def copy_function_doc_to_method_doc(source):
     >>> print(A.plot.__doc__)
     Docstring for plotting function.
     <BLANKLINE>
-        Parameters
-        ----------
-        a : int
-            Some parameter
-        b : int
-            Some parameter
+    Parameters
+    ----------
+    a : int
+        Some parameter
+    b : int
+        Some parameter
     <BLANKLINE>
-            Notes
-            -----
-            .. versionadded:: 0.13.0
-    <BLANKLINE>
+    Notes
+    -----
+    .. versionadded:: 0.13.0
     """  # noqa: D410, D411, D214, D215
 
     def wrapper(func):
-        doc = source.__doc__.split("\n")
+        # Work with cleandoc'ed sources (py3.13-compat)
+        doc = inspect.cleandoc(source.__doc__).split("\n")
+        if func.__doc__ is not None:
+            func_doc = inspect.cleandoc(func.__doc__)
+            if func_doc[:2] == ".\n":
+                func_doc = func_doc[2:]
+            func_doc = f"\n{func_doc}"
+        else:
+            func_doc = ""
+
         if len(doc) == 1:
-            doc = doc[0]
-            if func.__doc__ is not None:
-                doc += func.__doc__
-            func.__doc__ = doc
+            func.__doc__ = f"{doc[0]}{func_doc}"
             return func
 
         # Find parameter block
@@ -5277,7 +5311,7 @@ def copy_function_doc_to_method_doc(source):
                 break
         else:
             # End of docstring reached
-            first_parameter_end = line
+            first_parameter_end = line + 1
             first_parameter = parameter_block
 
         # Copy the docstring, but remove the first parameter
@@ -5286,9 +5320,7 @@ def copy_function_doc_to_method_doc(source):
             + "\n"
             + "\n".join(doc[first_parameter_end:])
         )
-        if func.__doc__ is not None:
-            doc += func.__doc__
-        func.__doc__ = doc
+        func.__doc__ = f"{doc}{func_doc}"
         return func
 
     return wrapper

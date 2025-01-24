@@ -63,7 +63,14 @@ def dpss_windows(N, half_nbw, Kmax, *, sym=True, norm=None, low_bias=True):
     ----------
     .. footbibliography::
     """
-    dpss, eigvals = sp_dpss(N, half_nbw, Kmax, sym=sym, norm=norm, return_ratios=True)
+    # TODO VERSION can be removed with SciPy 1.16 is min,
+    # workaround for https://github.com/scipy/scipy/pull/22344
+    if N <= 1:
+        dpss, eigvals = np.ones((1, 1)), np.ones(1)
+    else:
+        dpss, eigvals = sp_dpss(
+            N, half_nbw, Kmax, sym=sym, norm=norm, return_ratios=True
+        )
     if low_bias:
         idx = eigvals > 0.9
         if not idx.any():
@@ -471,6 +478,7 @@ def tfr_array_multitaper(
     output="complex",
     n_jobs=None,
     *,
+    return_weights=False,
     verbose=None,
 ):
     """Compute Time-Frequency Representation (TFR) using DPSS tapers.
@@ -504,6 +512,11 @@ def tfr_array_multitaper(
           coherence across trials.
     %(n_jobs)s
         The parallelization is implemented across channels.
+    return_weights : bool, default False
+        If True, return the taper weights. Only applies if ``output='complex'`` or
+        ``'phase'``.
+
+        .. versionadded:: 1.10.0
     %(verbose)s
 
     Returns
@@ -520,6 +533,9 @@ def tfr_array_multitaper(
         If ``output`` is ``'avg_power_itc'``, the real values in ``out``
         contain the average power and the imaginary values contain the
         inter-trial coherence: :math:`out = power_{avg} + i * ITC`.
+    weights : array of shape (n_tapers, n_freqs)
+        The taper weights. Only returned if ``output='complex'`` or ``'phase'`` and
+        ``return_weights=True``.
 
     See Also
     --------
@@ -550,6 +566,7 @@ def tfr_array_multitaper(
         use_fft=use_fft,
         decim=decim,
         output=output,
+        return_weights=return_weights,
         n_jobs=n_jobs,
         verbose=verbose,
     )
