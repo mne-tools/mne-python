@@ -236,14 +236,6 @@ allow_empty : bool | str
     .. versionchanged:: 0.21.0
        Support for "ignore".
 """
-docdict["maxwell_mc_interp"] = """
-mc_interp : str
-    Interpolation to use between adjacent time points in movement
-    compensation. Can be "zero" (default in 1.10; used by MaxFilter),
-    "linear", or "hann" (default in 1.11).
-
-    .. versionadded:: 1.10
-"""
 
 docdict["alpha"] = """
 alpha : float in [0, 1]
@@ -2557,6 +2549,15 @@ max_step : int
     :func:`mne.channels.find_ch_adjacency`), and not via sensors **and**
     further dimensions such as time points (e.g., via an additional call of
     :func:`mne.stats.combine_adjacency`).
+"""
+
+docdict["maxwell_mc_interp"] = """
+mc_interp : str
+    Interpolation to use between adjacent time points in movement
+    compensation. Can be "zero" (default in 1.10; used by MaxFilter),
+    "linear", or "hann" (default in 1.11).
+
+    .. versionadded:: 1.10
 """
 
 docdict["measure"] = """

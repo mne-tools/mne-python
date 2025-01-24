@@ -5,7 +5,7 @@
 import numpy as np
 from scipy.signal import get_window
 
-from .utils import _ensure_int, logger, verbose
+from .utils import _ensure_int, _validate_type, logger, verbose
 
 ###############################################################################
 # Class for interpolation between adjacent points
@@ -214,14 +214,13 @@ class _Interp2:
 
 
 def _check_store(store):
+    _validate_type(store, (np.ndarray, list, tuple, _Storer), "store")
     if isinstance(store, np.ndarray):
         store = [store]
-    if isinstance(store, list | tuple) and all(
-        isinstance(s, np.ndarray) for s in store
-    ):
+    if not isinstance(store, _Storer):
+        if not all(isinstance(s, np.ndarray) for s in store):
+            raise TypeError("All instances must be ndarrays")
         store = _Storer(*store)
-    if not callable(store):
-        raise TypeError(f"store must be callable, got type {type(store)}")
     return store
 
 
@@ -233,10 +232,8 @@ class _COLA:
     process : callable
         A function that takes a chunk of input data with shape
         ``(n_channels, n_samples)`` and processes it.
-    store : callable | ndarray
-        A function that takes a completed chunk of output data.
-        Can also be an ``ndarray``, in which case it is treated as the
-        output data in which to store the results.
+    store : ndarray | list of ndarray | _Storer
+        The output data in which to store the results.
     n_total : int
         The total number of samples.
     n_samples : int
