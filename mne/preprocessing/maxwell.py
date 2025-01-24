@@ -53,6 +53,7 @@ from ..utils import (
     _pl,
     _time_mask,
     _validate_type,
+    _verbose_safe_false,
     logger,
     use_log_level,
     verbose,
@@ -720,7 +721,6 @@ def _run_maxwell_filter(
     st_fixed,
     st_overlap,
     mc,
-    count_msg=True,
 ):
     # Eventually find_bad_channels_maxwell could be sped up by moving this
     # outside the loop (e.g., in the prep function) but regularization depends
@@ -1097,61 +1097,6 @@ def _prep_mf_coils(info, ignore_ref=True, *, accuracy="accurate", verbose=None):
     return rmags, cosmags, bins, n_coils, mag_mask, slice_map
 
 
-def _trans_starts_stops_quats(pos, start, stop, this_pos_data):
-    """Get all trans and limits we need."""
-    pos_idx = np.arange(*np.searchsorted(pos[1], [start, stop]))
-    used = np.zeros(stop - start, bool)
-    trans = list()
-    rel_starts = list()
-    rel_stops = list()
-    quats = list()
-    weights = list()
-    for ti in range(-1, len(pos_idx)):
-        # first iteration for this block of data
-        if ti < 0:
-            rel_start = 0
-            rel_stop = pos[1][pos_idx[0]] if len(pos_idx) > 0 else stop
-            rel_stop = rel_stop - start
-            if rel_start == rel_stop:
-                continue  # our first pos occurs on first time sample
-            # Don't calculate S_decomp here, use the last one
-            trans.append(None)  # meaning: use previous
-            quats.append(this_pos_data)
-        else:
-            rel_start = pos[1][pos_idx[ti]] - start
-            if ti == len(pos_idx) - 1:
-                rel_stop = stop - start
-            else:
-                rel_stop = pos[1][pos_idx[ti + 1]] - start
-            trans.append(pos[0][pos_idx[ti]])
-            quats.append(pos[2][pos_idx[ti]])
-        assert 0 <= rel_start
-        assert rel_start < rel_stop
-        assert rel_stop <= stop - start
-        assert not used[rel_start:rel_stop].any()
-        used[rel_start:rel_stop] = True
-        rel_starts.append(rel_start)
-        rel_stops.append(rel_stop)
-        weights.append(rel_stop - rel_start)
-    assert used.all()
-    # Use weighted average for average trans over the window
-    if this_pos_data is None:
-        avg_trans = None
-    else:
-        weights = np.array(weights)
-        quats = np.array(quats)
-        weights = weights / weights.sum().astype(float)  # int -> float
-        avg_quat = _average_quats(quats[:, :3], weights)
-        avg_t = np.dot(weights, quats[:, 3:6])
-        avg_trans = np.vstack(
-            [
-                np.hstack([quat_to_rot(avg_quat), avg_t[:, np.newaxis]]),
-                [[0.0, 0.0, 0.0, 1.0]],
-            ]
-        )
-    return trans, rel_starts, rel_stops, quats, avg_trans
-
-
 def _do_tSSS_on_avg_trans(
     clean_data,
     orig_data,
@@ -1238,7 +1183,7 @@ def _copy_preload_add_channels(raw, add_channels, copy, info):
             raw._data = out_data
         else:
             logger.info(msg + "loading raw data from disk")
-            with use_log_level(False):
+            with use_log_level(_verbose_safe_false()):
                 raw._preload_data(out_data[: len(raw.ch_names)])
             raw._data = out_data
         assert raw.preload is True
@@ -2887,8 +2832,8 @@ def find_bad_channels_maxwell(
             ]
             chunk_raw._data[:] = orig_data
             delta = chunk_raw.get_data(these_picks)
-            with use_log_level(False):
-                _run_maxwell_filter(chunk_raw, count_msg=False, copy=False, **params)
+            with use_log_level(_verbose_safe_false()):
+                _run_maxwell_filter(chunk_raw, copy=False, **params)
 
             if n_iter == 1 and len(chunk_flats):
                 logger.info(
