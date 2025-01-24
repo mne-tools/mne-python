@@ -773,9 +773,6 @@ def test_single_hemi(hemi, renderer_interactive_pyvistaqt, brain_gc):
 def test_brain_save_movie(tmp_path, renderer, brain_gc, interactive_state):
     """Test saving a movie of a Brain instance."""
     imageio_ffmpeg = pytest.importorskip("imageio_ffmpeg")
-    # TODO: Figure out why this fails -- some imageio_ffmpeg error
-    if os.getenv("MNE_CI_KIND", "") == "conda" and platform.system() == "Linux":
-        pytest.skip("Test broken for unknown reason on conda linux")
 
     brain = _create_testing_brain(
         hemi="lh", time_viewer=False, cortex=["r", "b"]
