@@ -1346,7 +1346,7 @@ def _is_osmesa(plotter):
                     "surface rendering, consider upgrading to 18.3.6 or "
                     "later."
                 )
-        is_osmesa = "via llvmpipe" in gpu_info
+        is_osmesa = "llvmpipe" in gpu_info
     return is_osmesa
 
 
