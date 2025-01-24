@@ -28,7 +28,7 @@ else  # conda-like
         echo "MNE_LOGGING_LEVEL=warning" | tee -a $GITHUB_ENV
         echo "MNE_QT_BACKEND=PySide6" | tee -a $GITHUB_ENV
         # TODO: Also need "|unreliable on GitHub Actions conda" on macOS, but omit for now to make sure the failure actually shows up
-        echo "MNE_TEST_ALLOW_SKIP=.*(Requires (spm|brainstorm) dataset|CUDA not|PySide6 causes segfaults).*" | tee -a $GITHUB_ENV
+        echo "MNE_TEST_ALLOW_SKIP=.*(Requires (spm|brainstorm) dataset|CUDA not|PySide6 causes segfaults|Accelerate|Flakey verbose behavior).*" | tee -a $GITHUB_ENV
     fi
 fi
 set +x

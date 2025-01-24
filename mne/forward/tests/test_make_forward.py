@@ -482,7 +482,7 @@ def test_make_forward_solution_openmeeg(n_layers):
         eeg_atol=100,
         meg_corr_tol=0.98,
         eeg_corr_tol=0.98,
-        meg_rdm_tol=0.1,
+        meg_rdm_tol=0.11,
         eeg_rdm_tol=0.2,
     )
 

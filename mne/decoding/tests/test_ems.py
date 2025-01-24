@@ -11,6 +11,7 @@ from numpy.testing import assert_array_almost_equal, assert_equal
 pytest.importorskip("sklearn")
 
 from sklearn.model_selection import StratifiedKFold
+from sklearn.utils.estimator_checks import parametrize_with_checks
 
 from mne import Epochs, io, pick_types, read_events
 from mne.decoding import EMS, compute_ems
@@ -91,3 +92,9 @@ def test_ems():
     assert_equal(ems.__repr__(), "<EMS: fitted with 4 filters on 2 classes.>")
     assert_array_almost_equal(filters, np.mean(coefs, axis=0))
     assert_array_almost_equal(surrogates, np.vstack(Xt))
+
+
+@parametrize_with_checks([EMS()])
+def test_sklearn_compliance(estimator, check):
+    """Test compliance with sklearn."""
+    check(estimator)
