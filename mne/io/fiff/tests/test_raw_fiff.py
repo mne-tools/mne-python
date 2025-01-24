@@ -23,6 +23,7 @@ from mne import (
     concatenate_events,
     create_info,
     equalize_channels,
+    events_from_annotations,
     find_events,
     make_fixed_length_epochs,
     pick_channels,
@@ -1324,6 +1325,15 @@ def test_crop():
     assert raw.n_times == raw2.n_times
     raw3 = raw.copy().crop(tmax=1 - 1 / raw.info["sfreq"], include_tmax=False)
     assert raw.n_times - 1 == raw3.n_times
+
+
+@testing.requires_testing_data
+def test_resample_with_events():
+    """Test resampling raws with events."""
+    raw = read_raw_fif(fif_fname)
+    raw.resample(250)  # pretend raw is recorded at 250 Hz
+    events, _ = events_from_annotations(raw)
+    raw, events = raw.resample(250, events=events)
 
 
 @testing.requires_testing_data
