@@ -1386,7 +1386,10 @@ class BaseRaw(
         sfreq = float(sfreq)
         o_sfreq = float(self.info["sfreq"])
         if _check_resamp_noop(sfreq, o_sfreq):
-            return self
+            if events is not None:
+                return self, events.copy()
+            else:
+                return self
 
         # When no event object is supplied, some basic detection of dropped
         # events is performed to generate a warning. Finding events can fail
