@@ -130,8 +130,7 @@ def _compare(a, b):
             for k, v in a.items():
                 if k not in b and k not in skip_types:
                     raise ValueError(
-                        "First one had one second one didn't:\n"
-                        f"{k} not in {b.keys()}"
+                        f"First one had one second one didn't:\n{k} not in {b.keys()}"
                     )
                 if k not in skip_types:
                     last_keys.pop()
@@ -305,7 +304,7 @@ def test_make_inverse_operator_loose(evoked, tmp_path):
         )
     log = log.getvalue()
     assert "MEG: rank 302 computed" in log
-    assert "limit = 1/%d" % fwd_op["nsource"] in log
+    assert f"limit = 1/{fwd_op['nsource']}" in log
     assert "Loose (0.2)" in repr(my_inv_op)
     _compare_io(my_inv_op, tmp_path=tmp_path)
     assert_equal(inverse_operator["units"], "Am")

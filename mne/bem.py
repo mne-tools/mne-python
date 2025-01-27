@@ -91,7 +91,7 @@ class ConductorModel(dict):
 
     def __repr__(self):  # noqa: D105
         if self["is_sphere"]:
-            center = ", ".join(f"{x * 1000.:.1f}" for x in self["r0"])
+            center = ", ".join(f"{x * 1000.0:.1f}" for x in self["r0"])
             rad = self.radius
             if rad is None:  # no radius / MEG only
                 extra = f"Sphere (no layers): r0=[{center}] mm"
@@ -538,7 +538,7 @@ def _assert_complete_surface(surf, incomplete="raise"):
     prop = tot_angle / (2 * np.pi)
     if np.abs(prop - 1.0) > 1e-5:
         msg = (
-            f'Surface {_bem_surf_name[surf["id"]]} is not complete (sum of '
+            f"Surface {_bem_surf_name[surf['id']]} is not complete (sum of "
             f"solid angles yielded {prop}, should be 1.)"
         )
         _on_missing(incomplete, msg, name="incomplete", error_klass=RuntimeError)
@@ -571,7 +571,7 @@ def _check_surface_size(surf):
     sizes = surf["rr"].max(axis=0) - surf["rr"].min(axis=0)
     if (sizes < 0.05).any():
         raise RuntimeError(
-            f'Dimensions of the surface {_bem_surf_name[surf["id"]]} seem too '
+            f"Dimensions of the surface {_bem_surf_name[surf['id']]} seem too "
             f"small ({1000 * sizes.min():9.5f}). Maybe the unit of measure"
             " is meters instead of mm"
         )
@@ -599,8 +599,7 @@ def _surfaces_to_bem(
     # surfs can be strings (filenames) or surface dicts
     if len(surfs) not in (1, 3) or not (len(surfs) == len(ids) == len(sigmas)):
         raise ValueError(
-            "surfs, ids, and sigmas must all have the same "
-            "number of elements (1 or 3)"
+            "surfs, ids, and sigmas must all have the same number of elements (1 or 3)"
         )
     for si, surf in enumerate(surfs):
         if isinstance(surf, str | Path | os.PathLike):
@@ -1260,8 +1259,7 @@ def make_watershed_bem(
     if op.isdir(ws_dir):
         if not overwrite:
             raise RuntimeError(
-                f"{ws_dir} already exists. Use the --overwrite option"
-                " to recreate it."
+                f"{ws_dir} already exists. Use the --overwrite option to recreate it."
             )
         else:
             shutil.rmtree(ws_dir)
@@ -2460,7 +2458,7 @@ def make_scalp_surfaces(
         logger.info(f"{ii}. Creating {level} tessellation...")
         logger.info(
             f"{ii}.1 Decimating the dense tessellation "
-            f'({len(surf["tris"])} -> {n_tri} triangles)...'
+            f"({len(surf['tris'])} -> {n_tri} triangles)..."
         )
         points, tris = decimate_surface(
             points=surf["rr"], triangles=surf["tris"], n_triangles=n_tri

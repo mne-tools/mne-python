@@ -76,7 +76,7 @@ def beer_lambert_law(raw, ppf=6.0):
         for ki, kind in zip((ii, jj), ("hbo", "hbr")):
             ch = raw.info["chs"][ki]
             ch.update(coil_type=coil_dict[kind], unit=FIFF.FIFF_UNIT_MOL)
-            new_name = f'{ch["ch_name"].split(" ")[0]} {kind}'
+            new_name = f"{ch['ch_name'].split(' ')[0]} {kind}"
             rename[ch["ch_name"]] = new_name
     raw.rename_channels(rename)
 

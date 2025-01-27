@@ -8,17 +8,21 @@ import gc
 import os
 import time
 import warnings
+from pathlib import Path
 
 import numpy as np
 import pyvista
+import sphinx.util.logging
 
 import mne
 from mne.utils import (
     _assert_no_instances,
+    _get_extra_data_path,
     sizeof_fmt,
 )
 from mne.viz import Brain
 
+sphinx_logger = sphinx.util.logging.getLogger("mne")
 _np_print_defaults = np.get_printoptions()
 
 
@@ -93,6 +97,8 @@ def reset_warnings(gallery_conf, fname):
         r"numpy\.core is deprecated and has been renamed to numpy\._core",
         # matplotlib
         "__array_wrap__ must accept context and return_scalar.*",
+        # nibabel
+        "__array__ implementation doesn't accept.*",
     ):
         warnings.filterwarnings(  # deal with other modules having bad imports
             "ignore", message=f".*{key}.*", category=DeprecationWarning
@@ -159,6 +165,11 @@ def reset_warnings(gallery_conf, fname):
         "A worker stopped while some jobs were given to the executor.*",
         category=UserWarning,
     )
+    # neo
+    warnings.filterwarnings(
+        "ignore",
+        "The 'copy' argument in Quantity is deprecated.*",
+    )
 
     # In case we use np.set_printoptions in any tutorials, we only
     # want it to affect those:
@@ -218,6 +229,7 @@ def reset_modules(gallery_conf, fname, when):
         mne.viz.ui_events._event_channels
     )
 
+    orig_when = when
     when = f"mne/conf.py:Resetter.__call__:{when}:{fname}"
     # Support stuff like
     # MNE_SKIP_INSTANCE_ASSERTIONS="Brain,Plotter,BackgroundPlotter,vtkPolyData,_Renderer" make html-memory  # noqa: E501
@@ -254,6 +266,25 @@ def reset_modules(gallery_conf, fname, when):
         process = psutil.Process(os.getpid())
         mem = sizeof_fmt(process.memory_info().rss)
         print(f"{prefix}{time.time() - t0:6.1f} s : {mem}".ljust(22))
+
+    if fname == "50_configure_mne.py":
+        # This messes with the config, so let's do so in a temp dir
+        if orig_when == "before":
+            fake_home = Path(_get_extra_data_path()) / "temp"
+            fake_home.mkdir(exist_ok=True, parents=True)
+            os.environ["_MNE_FAKE_HOME_DIR"] = str(fake_home)
+        else:
+            assert orig_when == "after"
+            to_del = Path(os.environ["_MNE_FAKE_HOME_DIR"])
+            try:
+                (to_del / "mne-python.json").unlink()
+            except Exception:
+                pass
+            try:
+                to_del.rmdir()
+            except Exception:
+                pass
+            del os.environ["_MNE_FAKE_HOME_DIR"]
 
 
 report_scraper = mne.report._ReportScraper()

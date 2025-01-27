@@ -4,4 +4,4 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-from .array import RawArray
+from ._array import RawArray

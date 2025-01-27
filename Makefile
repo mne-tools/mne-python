@@ -44,7 +44,7 @@ test-doc: sample_data testing_data
 	$(PYTESTS) --doctest-modules --doctest-ignore-import-errors --doctest-glob='*.rst' ./doc/ --ignore=./doc/auto_examples --ignore=./doc/auto_tutorials --ignore=./doc/_build --ignore=./doc/conf.py --ignore=doc/sphinxext --fulltrace
 
 pre-commit:
-	@pre-commit run -a
+	@pre-commit run -a --show-diff-on-failure
 
 # Aliases for stuff we used to support or users might think of
 ruff: pre-commit

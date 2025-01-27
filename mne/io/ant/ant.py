@@ -4,7 +4,6 @@
 
 from __future__ import annotations
 
-import importlib
 import re
 from collections import defaultdict
 from typing import TYPE_CHECKING
@@ -16,8 +15,8 @@ from ..._fiff.meas_info import create_info
 from ...annotations import Annotations
 from ...utils import (
     _check_fname,
+    _soft_import,
     _validate_type,
-    check_version,
     copy_doc,
     fill_doc,
     logger,
@@ -31,7 +30,7 @@ if TYPE_CHECKING:
 
     from numpy.typing import NDArray
 
-units = {"uv": 1e-6}
+_UNITS: dict[str, float] = {"uv": 1e-6, "µv": 1e-6}
 
 
 @fill_doc
@@ -80,10 +79,11 @@ class RawANT(BaseRaw):
             Note that the impedance annotation will likely have a duration of ``0``.
             If the measurement marks a discontinuity, the duration should be modified to
             cover the discontinuity in its entirety.
+    encoding : str
+        Encoding to use for :class:`str` in the CNT file. Defaults to ``'latin-1'``.
+    %(preload)s
     %(verbose)s
     """
-
-    _extra_attributes = ("impedances",)
 
     @verbose
     def __init__(
@@ -94,18 +94,21 @@ class RawANT(BaseRaw):
         bipolars: list[str] | tuple[str, ...] | None,
         impedance_annotation: str,
         *,
+        encoding: str = "latin-1",
+        preload: bool | NDArray,
         verbose=None,
     ) -> None:
         logger.info("Reading ANT file %s", fname)
-        if importlib.util.find_spec("antio") is None:
-            raise ImportError(
-                "Missing optional dependency 'antio'. Use pip or conda to install "
-                "'antio'."
-            )
-        check_version("antio", "0.2.0")
+        _soft_import("antio", "reading ANT files", min_version="0.5.0")
 
         from antio import read_cnt
-        from antio.parser import read_data, read_info, read_triggers
+        from antio.parser import (
+            read_device_info,
+            read_info,
+            read_meas_date,
+            read_subject_info,
+            read_triggers,
+        )
 
         fname = _check_fname(fname, overwrite="read", must_exist=True, name="fname")
         _validate_type(eog, (str, None), "eog")
@@ -114,10 +117,9 @@ class RawANT(BaseRaw):
         _validate_type(impedance_annotation, (str,), "impedance_annotation")
         if len(impedance_annotation) == 0:
             raise ValueError("The impedance annotation cannot be an empty string.")
-        cnt = read_cnt(str(fname))
+        cnt = read_cnt(fname)
         # parse channels, sampling frequency, and create info
-        ch_info = read_info(cnt)  # load in 2 lines for compat with antio 0.2 and 0.3
-        ch_names, ch_units, ch_refs = ch_info[0], ch_info[1], ch_info[2]
+        ch_names, ch_units, ch_refs, _, _ = read_info(cnt, encoding=encoding)
         ch_types = _parse_ch_types(ch_names, eog, misc, ch_refs)
         if bipolars is not None:  # handle bipolar channels
             bipolars_idx = _handle_bipolar_channels(ch_names, ch_refs, bipolars)
@@ -132,16 +134,40 @@ class RawANT(BaseRaw):
         info = create_info(
             ch_names, sfreq=cnt.get_sample_frequency(), ch_types=ch_types
         )
+        info.set_meas_date(read_meas_date(cnt))
+        make, model, serial, site = read_device_info(cnt, encoding=encoding)
+        info["device_info"] = dict(type=make, model=model, serial=serial, site=site)
+        his_id, name, sex, birthday = read_subject_info(cnt, encoding=encoding)
+        info["subject_info"] = dict(
+            his_id=his_id,
+            first_name=name,
+            sex=sex,
+        )
+        if birthday is not None:
+            info["subject_info"]["birthday"] = birthday
         if bipolars is not None:
             with info._unlock():
                 for idx in bipolars_idx:
                     info["chs"][idx]["coil_type"] = FIFF.FIFFV_COIL_EEG_BIPOLAR
-        # read and scale data array
-        data = read_data(cnt)
-        _scale_data(data, ch_units)
-        super().__init__(info, preload=data, filenames=[fname], verbose=verbose)
+        first_samps = np.array((0,))
+        last_samps = (cnt.get_sample_count() - 1,)
+        raw_extras = {
+            "orig_nchan": cnt.get_channel_count(),
+            "orig_ch_units": ch_units,
+            "first_samples": np.array(first_samps),
+            "last_samples": np.array(last_samps),
+        }
+        super().__init__(
+            info,
+            preload=preload,
+            first_samps=first_samps,
+            last_samps=last_samps,
+            filenames=[fname],
+            verbose=verbose,
+            raw_extras=[raw_extras],
+        )
         # look for annotations (called trigger by ant)
-        onsets, durations, descriptions, impedances, disconnect = read_triggers(cnt)
+        onsets, durations, descriptions, _, disconnect = read_triggers(cnt)
         onsets, durations, descriptions = _prepare_annotations(
             onsets, durations, descriptions, disconnect, impedance_annotation
         )
@@ -149,15 +175,27 @@ class RawANT(BaseRaw):
         durations = np.array(durations) / self.info["sfreq"]
         annotations = Annotations(onsets, duration=durations, description=descriptions)
         self.set_annotations(annotations)
-        # set impedance similarly as for brainvision files
-        self._impedances = [
-            {ch: imp[k] for k, ch in enumerate(ch_names)} for imp in impedances
-        ]
 
-    @property
-    def impedances(self) -> list[dict[str, float]]:
-        """List of impedance measurements."""
-        return self._impedances
+    def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
+        from antio import read_cnt
+        from antio.parser import read_data
+
+        ch_units = self._raw_extras[0]["orig_ch_units"]
+        first_samples = self._raw_extras[0]["first_samples"]
+        n_times = self._raw_extras[0]["last_samples"] + 1
+        for first_samp, this_n_times in zip(first_samples, n_times):
+            i_start = max(start, first_samp)
+            i_stop = min(stop, this_n_times + first_samp)
+            # read and scale data array
+            cnt = read_cnt(self.filenames[fi])
+            one = read_data(cnt, i_start, i_stop)
+            _scale_data(one, ch_units)
+            data_view = data[:, i_start - start : i_stop - start]
+            if isinstance(idx, slice):
+                data_view[:] = one[idx]
+            else:
+                # faster than doing one = one[idx]
+                np.take(one, idx, axis=0, out=data_view)
 
 
 def _handle_bipolar_channels(
@@ -256,8 +294,8 @@ def _scale_data(data: NDArray[np.float64], ch_units: list[str]) -> None:
     for idx, unit in enumerate(ch_units):
         units_index[unit].append(idx)
     for unit, value in units_index.items():
-        if unit in units:
-            data[np.array(value, dtype=np.int16), :] *= units[unit]
+        if unit in _UNITS:
+            data[np.array(value, dtype=np.int16), :] *= _UNITS[unit]
         else:
             warn(
                 f"Unit {unit} not recognized, not scaling. Please report the unit on "
@@ -273,6 +311,8 @@ def read_raw_ant(
     bipolars=None,
     impedance_annotation="impedance",
     *,
+    encoding: str = "latin-1",
+    preload=False,
     verbose=None,
 ) -> RawANT:
     """
@@ -281,7 +321,10 @@ def read_raw_ant(
     raw : instance of RawANT
         A Raw object containing ANT data.
         See :class:`mne.io.Raw` for documentation of attributes and methods.
-        The impedance measurements are stored in the extra attribute ``raw.impedances``.
+
+    Notes
+    -----
+    .. versionadded:: 1.9
     """
     return RawANT(
         fname,
@@ -289,5 +332,7 @@ def read_raw_ant(
         misc=misc,
         bipolars=bipolars,
         impedance_annotation=impedance_annotation,
+        encoding=encoding,
+        preload=preload,
         verbose=verbose,
     )

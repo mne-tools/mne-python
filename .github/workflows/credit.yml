@@ -6,12 +6,11 @@ on:  # yamllint disable-line rule:truthy
     - cron: '0 0 1 * *'  # At 00:00 on day-of-month 1
   workflow_dispatch:
 
-permissions:
-  contents: write
-  pull-requests: write
-
 jobs:
   update_credit:
+    permissions:
+      contents: write
+      pull-requests: write
     name: Update
     runs-on: ubuntu-latest
     env:
@@ -19,6 +18,8 @@ jobs:
       GITHUB_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -37,8 +38,8 @@ jobs:
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git config --global user.name "github-actions[bot]"
           git checkout -b credit
-          git commit -am "MAINT: Update code credit [ci skip]"
+          git commit -am "MAINT: Update code credit"
           git push origin credit
-          PR_NUM=$(gh pr create --base main --head credit --title "MAINT: Update code credit" --body "Created by \"${{ github.workflow }}\" GitHub action." --label "no-changelog-entry-needed")
-          echo "Opened https://github.com/mne-tools/mne-python/pulls/${PR_NUM}" >> $GITHUB_STEP_SUMMARY
+          PR_NUM=$(gh pr create --base main --head credit --title "MAINT: Update code credit" --body "Created by credit [GitHub action](https://github.com/mne-tools/mne-python/actions/runs/${{ github.run_id }})." --label "no-changelog-entry-needed")
+          echo "Opened https://github.com/mne-tools/mne-python/pull/${PR_NUM}" >> $GITHUB_STEP_SUMMARY
         if: steps.status.outputs.dirty == 'true'

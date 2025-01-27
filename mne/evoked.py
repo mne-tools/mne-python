@@ -176,7 +176,7 @@ class Evoked(
     ):
         _validate_type(proj, bool, "'proj'")
         # Read the requested data
-        fname = str(_check_fname(fname=fname, must_exist=True, overwrite="read"))
+        fname = _check_fname(fname=fname, must_exist=True, overwrite="read")
         (
             self.info,
             self.nave,
@@ -196,6 +196,18 @@ class Evoked(
         if proj:
             self.apply_proj()
         self.filename = fname
+
+    @property
+    def filename(self) -> Path | None:
+        """The filename of the evoked object, if it exists.
+
+        :type: :class:`~pathlib.Path` | None
+        """
+        return self._filename
+
+    @filename.setter
+    def filename(self, value):
+        self._filename = Path(value) if value is not None else value
 
     @property
     def kind(self):
@@ -601,9 +613,11 @@ class Evoked(
         background_color="w",
         noise_cov=None,
         exclude="bads",
+        select=False,
         show=True,
     ):
-        """
+        """.
+
         Notes
         -----
         .. versionadded:: 0.10.0
@@ -626,6 +640,7 @@ class Evoked(
             background_color=background_color,
             noise_cov=noise_cov,
             exclude=exclude,
+            select=select,
             show=show,
         )
 
@@ -949,7 +964,7 @@ class Evoked(
 
         if out.comment is not None and " + " in out.comment:
             out.comment = f"({out.comment})"  # multiple conditions in evoked
-        out.comment = f'- {out.comment or "unknown"}'
+        out.comment = f"- {out.comment or 'unknown'}"
         return out
 
     def get_peak(
@@ -1040,8 +1055,7 @@ class Evoked(
                 raise ValueError('Channel type must be "grad" for merge_grads')
             elif mode == "neg":
                 raise ValueError(
-                    "Negative mode (mode=neg) does not make "
-                    "sense with merge_grads=True"
+                    "Negative mode (mode=neg) does not make sense with merge_grads=True"
                 )
 
         meg = eeg = misc = seeg = dbs = ecog = fnirs = False
@@ -1481,6 +1495,7 @@ class EvokedArray(Evoked):
         self.baseline = baseline
         if self.baseline is not None:  # omit log msg if not baselining
             self.apply_baseline(self.baseline)
+        self._filename = None
 
 
 def _get_entries(fid, evoked_node, allow_maxshield=False):
@@ -1562,7 +1577,7 @@ def combine_evoked(all_evoked, weights):
 
     .. Warning::
         Other than cases like simple subtraction mentioned above (where all
-        weights are -1 or 1), if you provide numeric weights instead of using
+        weights are ``-1`` or ``1``), if you provide numeric weights instead of using
         ``'equal'`` or ``'nave'``, the resulting `~mne.Evoked` object's
         ``.nave`` attribute (which is used to scale noise covariance when
         applying the inverse operator) may not be suitable for inverse imaging.
@@ -1571,7 +1586,7 @@ def combine_evoked(all_evoked, weights):
     ----------
     all_evoked : list of Evoked
         The evoked datasets.
-    weights : list of float | 'equal' | 'nave'
+    weights : list of float | ``'equal'`` | ``'nave'``
         The weights to apply to the data of each evoked instance, or a string
         describing the weighting strategy to apply: ``'nave'`` computes
         sum-to-one weights proportional to each object's ``nave`` attribute;
@@ -1636,12 +1651,12 @@ def combine_evoked(all_evoked, weights):
         if e.comment is not None and " + " in e.comment:  # multiple conditions
             this_comment = f"({e.comment})"
         else:
-            this_comment = f'{e.comment or "unknown"}'
+            this_comment = f"{e.comment or 'unknown'}"
         # assemble everything
         if idx == 0:
             comment += f"{sign}{weight}{multiplier}{this_comment}"
         else:
-            comment += f' {sign or "+"} {weight}{multiplier}{this_comment}'
+            comment += f" {sign or '+'} {weight}{multiplier}{this_comment}"
     # special-case: combine_evoked([e1, -e2], [1, -1])
     evoked.comment = comment.replace(" - - ", " + ")
     return evoked
@@ -1681,7 +1696,7 @@ def read_evokeds(
                   baseline correction, but merely omit the optional, additional
                   baseline correction.
     kind : str
-        Either 'average' or 'standard_error', the type of data to read.
+        Either ``'average'`` or ``'standard_error'``, the type of data to read.
     proj : bool
         If False, available projectors won't be applied to the data.
     allow_maxshield : bool | str (default False)
@@ -1689,7 +1704,7 @@ def read_evokeds(
         active compensation (MaxShield). Data recorded with MaxShield should
         generally not be loaded directly, but should first be processed using
         SSS/tSSS to remove the compensation signals that may also affect brain
-        activity. Can also be "yes" to load without eliciting a warning.
+        activity. Can also be ``"yes"`` to load without eliciting a warning.
     %(verbose)s
 
     Returns
@@ -1710,7 +1725,7 @@ def read_evokeds(
         saving, this will be reflected in their ``baseline`` attribute after
         reading.
     """
-    fname = str(_check_fname(fname, overwrite="read", must_exist=True))
+    fname = _check_fname(fname, overwrite="read", must_exist=True)
     check_fname(fname, "evoked", ("-ave.fif", "-ave.fif.gz", "_ave.fif", "_ave.fif.gz"))
     logger.info(f"Reading {fname} ...")
     return_list = True
@@ -1858,8 +1873,7 @@ def _read_evoked(fname, condition=None, kind="average", allow_maxshield=False):
 
             if len(chs) != nchan:
                 raise ValueError(
-                    "Number of channels and number of "
-                    "channel definitions are different"
+                    "Number of channels and number of channel definitions are different"
                 )
 
             ch_names_mapping = _read_extended_ch_info(chs, my_evoked, fid)

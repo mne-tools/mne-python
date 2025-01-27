@@ -59,8 +59,7 @@ def stft(x, wsize, tstep=None, verbose=None):
 
     if (wsize % tstep) or (tstep % 2):
         raise ValueError(
-            "The step size must be a multiple of 2 and a "
-            "divider of the window length."
+            "The step size must be a multiple of 2 and a divider of the window length."
         )
 
     if tstep > wsize / 2:

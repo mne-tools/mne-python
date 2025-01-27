@@ -19,8 +19,7 @@ from .utils import plot_sensors
 def plot_montage(
     montage,
     *,
-    scale=None,
-    scale_factor=None,
+    scale=1.0,
     show_names=True,
     kind="topomap",
     show=True,
@@ -36,9 +35,7 @@ def plot_montage(
         The montage to visualize.
     scale : float
         Determines the scale of the channel points and labels; values < 1 will scale
-        down, whereas values > 1 will scale up. Default to None, which implies 1.
-    scale_factor : float
-        Determines the size of the points. Deprecated, use scale instead.
+        down, whereas values > 1 will scale up.
     show_names : bool | list
         Whether to display all channel names. If a list, only the channel
         names in the list are shown. Defaults to True.
@@ -61,16 +58,7 @@ def plot_montage(
 
     from ..channels import DigMontage, make_dig_montage
 
-    if scale_factor is not None:
-        msg = "scale_factor has been deprecated and will be removed. Use scale instead."
-        if scale is not None:
-            raise ValueError(
-                " ".join(["scale and scale_factor cannot be used together.", msg])
-            )
-        logger.info(msg)
-    if scale is None:
-        scale = 1
-
+    _validate_type(scale, "numeric", "scale")
     _check_option("kind", kind, ["topomap", "3d"])
     _validate_type(montage, DigMontage, item_name="montage")
     ch_names = montage.ch_names
@@ -112,11 +100,7 @@ def plot_montage(
         axes=axes,
     )
 
-    if scale_factor is not None:
-        # scale points
-        collection = fig.axes[0].collections[0]
-        collection.set_sizes([scale_factor])
-    elif scale is not None:
+    if scale != 1.0:
         # scale points
         collection = fig.axes[0].collections[0]
         collection.set_sizes([scale * 10])

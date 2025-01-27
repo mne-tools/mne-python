@@ -2,6 +2,7 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+import inspect
 import os
 import os.path as op
 
@@ -114,12 +115,16 @@ def _update_sleep_temazepam_records(fname=TEMAZEPAM_SLEEP_RECORDS):
     data = data.set_index(("Subject - age - sex", "Nr"))
     data.index.name = "subject"
     data.columns.names = [None, None]
+    kwargs = dict()
+    # TODO VERSION can be removed once we require Pandas 2.1
+    if "future_stack" in inspect.getfullargspec(pd.DataFrame.stack).args:
+        kwargs["future_stack"] = True
     data = (
         data.set_index(
             [("Subject - age - sex", "Age"), ("Subject - age - sex", "M1/F2")],
             append=True,
         )
-        .stack(level=0)
+        .stack(level=0, **kwargs)
         .reset_index()
     )
 

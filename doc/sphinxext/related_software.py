@@ -15,11 +15,13 @@ import functools
 import importlib.metadata
 import os
 import pathlib
+import urllib.error
 import urllib.request
 
 import joblib
 from docutils import nodes
 from docutils.parsers.rst import Directive
+from mne_doc_utils import sphinx_logger
 from sphinx.errors import ExtensionError
 from sphinx.util.display import status_iterator
 
@@ -79,6 +81,10 @@ MANUAL_PACKAGES = {
         "Summary": "A graphical user interface for MNE",
     },
     # TODO: these do not set a valid homepage or documentation page on PyPI
+    "eeg_positions": {
+        "Home-page": "https://eeg-positions.readthedocs.io",
+        "Summary": "Compute and plot standard EEG electrode positions.",
+    },
     "mne-features": {
         "Home-page": "https://mne.tools/mne-features",
         "Summary": "MNE-Features software for extracting features from multivariate time series",  # noqa: E501
@@ -95,10 +101,10 @@ MANUAL_PACKAGES = {
         "Home-page": "https://emd.readthedocs.io/en/stable",
         "Summary": "Empirical Mode Decomposition in Python.",
     },
-    # Needs https://github.com/vferat/pycrostates/pull/188 and a release
-    "pycrostates": {
-        "Home-page": "https://pycrostates.readthedocs.io",
-        "Summary": "A simple open source Python package for EEG microstate segmentation.",  # noqa: E501
+    # Needs a release with homepage set properly
+    "meegkit": {
+        "Home-page": "https://nbara.github.io/python-meegkit",
+        "Summary": "Denoising tools for M/EEG processing.",
     },
     # not on PyPI
     "conpy": {
@@ -142,8 +148,14 @@ def _get_installer_packages():
 
 
 @functools.lru_cache
-def _get_packages():
-    packages = _get_installer_packages()
+def _get_packages() -> dict[str, str]:
+    try:
+        packages = _get_installer_packages()
+    except urllib.error.URLError as exc:  # e.g., bad internet connection
+        if not REQUIRE_METADATA:
+            sphinx_logger.warning(f"Could not fetch package list, got: {exc}")
+            return dict()
+        raise
     # There can be duplicates in manual and installer packages because some of the
     # PyPI entries for installer packages are incorrect or unusable (see above), so
     # we don't enforce that. But PyPI and manual should be disjoint:
@@ -151,9 +163,9 @@ def _get_packages():
     assert not dups, f"Duplicates in MANUAL_PACKAGES and PYPI_PACKAGES: {sorted(dups)}"
     # And the installer and PyPI-only should be disjoint:
     dups = set(PYPI_PACKAGES) & set(packages)
-    assert (
-        not dups
-    ), f"Duplicates in PYPI_PACKAGES and installer packages: {sorted(dups)}"
+    assert not dups, (
+        f"Duplicates in PYPI_PACKAGES and installer packages: {sorted(dups)}"
+    )
     for name in PYPI_PACKAGES | set(MANUAL_PACKAGES):
         if name not in packages:
             packages.append(name)
@@ -161,6 +173,7 @@ def _get_packages():
     packages = sorted(packages, key=lambda x: x.lower())
     packages = [RENAMES.get(package, package) for package in packages]
     out = dict()
+    reasons = []
     for package in status_iterator(
         packages, f"Adding {len(packages)} related software packages: "
     ):
@@ -171,12 +184,17 @@ def _get_packages():
             else:
                 md = importlib.metadata.metadata(package)
         except importlib.metadata.PackageNotFoundError:
-            pass  # raise a complete error later
+            reasons.append(f"{package}: not found, needs to be installed")
+            continue  # raise a complete error later
         else:
             # Every project should really have this
+            do_continue = False
             for key in ("Summary",):
                 if key not in md:
-                    raise ExtensionError(f"Missing {repr(key)} for {package}")
+                    reasons.extend(f"{package}: missing {repr(key)}")
+                    do_continue = True
+            if do_continue:
+                continue
             # It is annoying to find the home page
             url = None
             if "Home-page" in md:
@@ -192,15 +210,17 @@ def _get_packages():
                     if url is not None:
                         break
                 else:
-                    raise RuntimeError(
-                        f"Could not find Home-page for {package} in:\n"
-                        f"{sorted(set(md))}\nwith Summary:\n{md['Summary']}"
+                    reasons.append(
+                        f"{package}: could not find Home-page in {sorted(md)}"
                     )
+                    continue
             out[package]["url"] = url
             out[package]["description"] = md["Summary"].replace("\n", "")
-    bad = [package for package in packages if not out[package]]
-    if bad and REQUIRE_METADATA:
-        raise ExtensionError(f"Could not find metadata for:\n{' '.join(bad)}")
+    reason_str = "\n".join(reasons)
+    if reason_str and REQUIRE_METADATA:
+        raise ExtensionError(
+            f"Could not find suitable metadata for related software:\n{reason_str}"
+        )
 
     return out
 

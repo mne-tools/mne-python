@@ -18,7 +18,7 @@ from ipywidgets import (
     Button,
     Checkbox,
     Dropdown,
-    # non-object-based-abstraction-only widgets, deprecate
+    # non-object-based-abstraction-only widgets, remove
     FloatSlider,
     GridBox,
     HBox,
@@ -806,7 +806,7 @@ class _3DRenderer(_PyVistaRenderer):
 # ------------------------------------
 # Non-object-based Widget Abstractions
 # ------------------------------------
-# These are planned to be deprecated in favor of the simpler, object-
+# These are planned to be removed in favor of the simpler, object-
 # oriented abstractions above when time allows.
 
 
@@ -1188,7 +1188,7 @@ class _IpyDock(_AbstractDock, _IpyLayout):
 
     def _dock_add_text(self, name, value, placeholder, *, callback=None, layout=None):
         layout = self._dock_layout if layout is None else layout
-        widget = Text(value=value, placeholder=placeholder)
+        widget = Text(value=str(value), placeholder=placeholder)
         if callback is not None:
             widget.observe(_generate_callback(callback), names="value")
         self._layout_add_widget(layout, widget)
