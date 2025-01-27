@@ -11,7 +11,7 @@ events; instead, the continuous data will be "chunked" into consecutive epochs
 We will also briefly demonstrate how to use these epochs in connectivity
 analysis.
 
-First, we import necessary modules and read in a sample raw data set.
+First, we import the necessary modules and read in a sample raw data set.
 This data set contains brain activity that is event-related, i.e.,
 synchronized to the onset of auditory stimuli. However, rather than creating
 epochs by segmenting the data around the onset of each stimulus, we will

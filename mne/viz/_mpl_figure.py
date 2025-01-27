@@ -186,7 +186,7 @@ class MNEFigure(Figure):
 class MNEAnnotationFigure(MNEFigure):
     """Interactive dialog figure for annotations."""
 
-    def _close(self, event):
+    def _close(self, event=None):
         """Handle close events (via keypress or window [x])."""
         parent = self.mne.parent_fig
         # disable span selector
@@ -275,7 +275,7 @@ class MNEAnnotationFigure(MNEFigure):
 class MNESelectionFigure(MNEFigure):
     """Interactive dialog figure for channel selections."""
 
-    def _close(self, event):
+    def _close(self, event=None):
         """Handle close events."""
         self.mne.parent_fig.mne.child_figs.remove(self)
         self.mne.fig_selection = None
