@@ -424,7 +424,7 @@ class BrowserBase(ABC):
         if annotations and not self.mne.is_epochs:
             self._draw_annotations()
 
-    def _close(self, event):
+    def _close(self, event=None):
         """Handle close events (via keypress or window [x])."""
         from matplotlib.pyplot import close
 
