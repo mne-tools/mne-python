@@ -1517,6 +1517,7 @@ class _RegCovariance(_EstimatorMixin):
         grad=0.1,
         mag=0.1,
         eeg=0.1,
+        *,
         seeg=0.1,
         ecog=0.1,
         hbo=0.1,
@@ -1525,6 +1526,8 @@ class _RegCovariance(_EstimatorMixin):
         fnirs_fd_ac_amplitude=0.1,
         fnirs_fd_phase=0.1,
         fnirs_od=0.1,
+        fnirs_td_gated_amplitude=0.1,
+        fnirs_td_moments_amplitude=0.1,
         csd=0.1,
         dbs=0.1,
         store_precision=False,
@@ -1904,6 +1907,7 @@ def regularize(
     eeg=0.1,
     exclude="bads",
     proj=True,
+    *,
     seeg=0.1,
     ecog=0.1,
     hbo=0.1,
@@ -1912,6 +1916,8 @@ def regularize(
     fnirs_fd_ac_amplitude=0.1,
     fnirs_fd_phase=0.1,
     fnirs_od=0.1,
+    fnirs_td_gated_amplitude=0.1,
+    fnirs_td_moments_amplitude=0.1,
     csd=0.1,
     dbs=0.1,
     rank=None,
@@ -1963,6 +1969,10 @@ def regularize(
         Regularization factor for fNIRS raw phase signals.
     fnirs_od : float (default 0.1)
         Regularization factor for fNIRS optical density signals.
+    fnirs_td_gated_amplitude : float (default 0.1)
+        Regularization factor for fNIRS time domain gated amplitude signals.
+    fnirs_td_moments_amplitude : float (default 0.1)
+        Regularization factor for fNIRS time domain moments amplitude signals.
     csd : float (default 0.1)
         Regularization factor for EEG-CSD signals.
     dbs : float (default 0.1)
@@ -2003,6 +2013,8 @@ def regularize(
         fnirs_fd_ac_amplitude=fnirs_fd_ac_amplitude,
         fnirs_fd_phase=fnirs_fd_phase,
         fnirs_od=fnirs_od,
+        fnirs_td_gated_amplitude=fnirs_td_gated_amplitude,
+        fnirs_td_moments_amplitude=fnirs_td_moments_amplitude,
         csd=csd,
     )
 
