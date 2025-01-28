@@ -497,4 +497,8 @@ def _cleanup_agg():
                 for cb in key.canvas.callbacks.callbacks["close_event"].values():
                     cb = cb()  # get the true ref
                     if cb is not None:
-                        cb()
+                        try:
+                            cb()
+                        except Exception:
+                            print(cb)
+                            raise
