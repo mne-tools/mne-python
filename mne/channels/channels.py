@@ -960,6 +960,111 @@ class InterpolationMixin:
 
         return self
 
+    def interpolate_to(self, montage, origin="auto", method="spline", reg=0.0):
+        """Interpolate EEG data onto a new montage.
+
+        Parameters
+        ----------
+        montage : DigMontage
+            The target montage containing channel positions to interpolate onto.
+        origin : array-like, shape (3,) | str
+            Origin of the sphere in the head coordinate frame and in meters.
+            Can be ``'auto'`` (default), which means a head-digitization-based
+            origin fit.
+        method : str
+            Method to use for EEG channels.
+            Supported methods are 'spline' (default) and 'MNE'.
+
+            .. warning::
+                Be careful, only EEG channels are interpolated. Other channel types are
+                not interpolated.
+
+        reg : float
+            The regularization parameter for the interpolation method (if applicable).
+
+        Returns
+        -------
+        inst : instance of Raw, Epochs, or Evoked
+            The instance with updated channel locations and data.
+
+        Notes
+        -----
+        This method is useful for standardizing EEG layouts across datasets.
+
+        .. versionadded:: 1.10.0
+        """
+        from ..forward._field_interpolation import _map_meg_or_eeg_channels
+        from .interpolation import _make_interpolation_matrix
+
+        # Get target positions from the montage
+        ch_pos = montage.get_positions()["ch_pos"]
+        target_ch_names = list(ch_pos.keys())
+        if len(target_ch_names) == 0:
+            raise ValueError(
+                "The provided montage does not contain any channel positions."
+            )
+
+        # Check the method is valid
+        _check_option("method", method, ["spline", "MNE"])
+
+        # Ensure data is loaded
+        _check_preload(self, "interpolation")
+
+        # Extract positions and data for EEG channels
+        picks_from = pick_types(self.info, meg=False, eeg=True, exclude=[])
+        if len(picks_from) == 0:
+            raise ValueError("No EEG channels available for interpolation.")
+
+        # Create a new info structure
+        sfreq = self.info["sfreq"]
+        ch_types = ["eeg"] * len(target_ch_names)
+        new_info = create_info(ch_names=target_ch_names, sfreq=sfreq, ch_types=ch_types)
+        new_info.set_montage(montage)
+
+        # Compute mapping from current montage to target montage
+        if method == "spline":
+            # pos_from = np.array(
+            #     [self.info["chs"][idx]["loc"][:3] for idx in picks_from]
+            # )
+
+            origin = _check_origin(origin, self.info)
+            pos_from = self.info._get_channel_positions(picks_from)
+            pos_from = pos_from - origin
+            pos_to = np.stack(list(ch_pos.values()), axis=0)
+
+            def _check_pos_sphere(pos):
+                distance = np.linalg.norm(pos, axis=-1)
+                distance = np.mean(distance / np.mean(distance))
+                if np.abs(1.0 - distance) > 0.1:
+                    warn(
+                        "Your spherical fit is poor, interpolation results are "
+                        "likely to be inaccurate."
+                    )
+
+            _check_pos_sphere(pos_from)
+            _check_pos_sphere(pos_to)
+
+            mapping = _make_interpolation_matrix(pos_from, pos_to, alpha=reg)
+
+        elif method == "MNE":
+            info_eeg = pick_info(self.info, picks_from)
+            mapping = _map_meg_or_eeg_channels(
+                info_eeg, new_info, mode="accurate", origin="auto"
+            )
+
+        # Apply the interpolation mapping
+        data_orig = self.get_data(picks=picks_from)
+        data_interp = mapping.dot(data_orig)
+
+        # Update bad channels
+        new_info["bads"] = [ch for ch in self.info["bads"] if ch in target_ch_names]
+
+        # Update the instance's info and data
+        self.info = new_info
+        self._data = data_interp
+
+        return self
+
 
 @verbose
 def rename_channels(info, mapping, allow_duplicates=False, *, verbose=None):
