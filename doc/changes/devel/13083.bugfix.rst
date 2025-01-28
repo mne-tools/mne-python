@@ -1,0 +1,1 @@
+Fix bug with reading digitization points from digitization strings with newer MEGIN systems, by `Eric Larson`_.
