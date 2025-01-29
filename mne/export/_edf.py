@@ -11,7 +11,6 @@ from ..annotations import _sync_onset
 from ..utils import _check_edfio_installed, warn
 
 _check_edfio_installed()
-from edfio import Edf, EdfAnnotation, EdfSignal, Patient, Recording  # noqa: E402
 
 
 # copied from edfio (Apache license)
@@ -29,12 +28,17 @@ def _round_float_to_8_characters(
     return round_func(value * factor) / factor
 
 
-def _export_raw(fname, raw, physical_range, add_ch_type):
+def _export_raw(fname, raw, physical_range, add_ch_type, *, fmt="edf"):
     """Export Raw objects to EDF files.
 
     TODO: if in future the Info object supports transducer or technician information,
     allow writing those here.
     """
+    assert fmt in ("edf", "bdf"), fmt
+    _check_edfio_installed(min_version="0.4.6" if fmt == "bdf" else None)
+
+    from edfio import Edf, EdfAnnotation, EdfSignal, Patient, Recording  # noqa: E402
+
     # get voltage-based data in uV
     units = dict(
         eeg="uV", ecog="uV", seeg="uV", eog="uV", ecg="uV", emg="uV", bio="uV", dbs="uV"

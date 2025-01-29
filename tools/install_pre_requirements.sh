@@ -75,7 +75,7 @@ pip install $STD_ARGS git+https://github.com/joblib/joblib
 echo "edfio"
 # Disable protection for Azure, see
 # https://github.com/mne-tools/mne-python/pull/12609#issuecomment-2115639369
-GIT_CLONE_PROTECTION_ACTIVE=false pip install $STD_ARGS git+https://github.com/the-siesta-group/edfio
+GIT_CLONE_PROTECTION_ACTIVE=false pip install $STD_ARGS "git+https://github.com/larsoner/edfio@bdf"
 
 echo "h5io"
 pip install $STD_ARGS git+https://github.com/h5io/h5io

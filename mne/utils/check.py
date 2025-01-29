@@ -446,9 +446,11 @@ def _check_eeglabio_installed(strict=True):
     return _soft_import("eeglabio", "exporting to EEGLab", strict=strict)
 
 
-def _check_edfio_installed(strict=True):
+def _check_edfio_installed(strict=True, *, min_version=None):
     """Aux function."""
-    return _soft_import("edfio", "exporting to EDF", strict=strict)
+    return _soft_import(
+        "edfio", "exporting to EDF", min_version=min_version, strict=strict
+    )
 
 
 def _check_pybv_installed(strict=True):
