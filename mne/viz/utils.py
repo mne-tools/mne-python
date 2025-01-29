@@ -1185,7 +1185,7 @@ def _onpick_sensor(event, fig, ax, pos, ch_names, show_names):
     fig.canvas.draw()
 
 
-def _close_event(event, fig):
+def _close_event(event=None, fig=None):
     """Listen for sensor plotter close event."""
     if getattr(fig, "lasso", None) is not None:
         fig.lasso.disconnect()
