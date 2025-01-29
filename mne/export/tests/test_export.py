@@ -234,7 +234,7 @@ def test_double_export_edf(tmp_path, fmt):
     raw_read = read_raw(temp_fname, infer_types=True, preload=True)
 
     assert raw.ch_names == raw_read.ch_names
-    assert_array_almost_equal(raw.get_data(), raw_read.get_data(), decimal=10)
+    assert_array_almost_equal(raw_read.get_data(), raw.get_data(), decimal=10)
     assert_array_equal(raw.times, raw_read.times)
 
     # check info

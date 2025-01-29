@@ -17,7 +17,7 @@ from ..._fiff.meas_info import _empty_info, _unique_channel_names
 from ..._fiff.utils import _blk_read_lims, _mult_cal_one
 from ...annotations import Annotations
 from ...filter import resample
-from ...utils import _validate_type, fill_doc, logger, verbose, warn
+from ...utils import _read_24bit, _validate_type, fill_doc, logger, verbose, warn
 from ..base import BaseRaw, _get_scaling
 
 # common channel type names mapped to internal ch types
@@ -333,16 +333,11 @@ class RawGDF(BaseRaw):
         )
 
 
-def _read_ch(fid, subtype, samp, dtype_byte, dtype=None):
+def _read_ch(fid, subtype, samp, *, dtype=None):
     """Read a number of samples for a single channel."""
     # BDF
     if subtype == "bdf":
-        ch_data = np.fromfile(fid, dtype=dtype, count=samp * dtype_byte)
-        ch_data = ch_data.reshape(-1, 3).astype(INT32)
-        ch_data = (ch_data[:, 0]) + (ch_data[:, 1] << 8) + (ch_data[:, 2] << 16)
-        # 24th bit determines the sign
-        ch_data[ch_data >= (1 << 23)] -= 1 << 24
-
+        ch_data = _read_24bit(fid, samp)
     # GDF data and EDF data
     else:
         ch_data = np.fromfile(fid, dtype=dtype, count=samp)
@@ -397,7 +392,7 @@ def _read_segment_file(data, idx, fi, start, stop, raw_extras, filenames, cals, 
             fid.seek(start_offset + block_offset, 0)
             # Read and reshape to (n_chunks_read, ch0_ch1_ch2_ch3...)
             many_chunk = _read_ch(
-                fid, subtype, ch_offsets[-1] * n_read, dtype_byte, dtype
+                fid, subtype, ch_offsets[-1] * n_read, dtype=dtype
             ).reshape(n_read, -1)
             r_sidx = r_lims[ai][0]
             r_eidx = buf_len * (n_read - 1) + r_lims[ai + n_read - 1][1]

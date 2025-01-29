@@ -8,7 +8,7 @@ from collections.abc import Callable
 import numpy as np
 
 from ..annotations import _sync_onset
-from ..utils import _check_edfio_installed, warn
+from ..utils import _check_edfio_installed, check_version, warn
 
 _check_edfio_installed()
 
@@ -44,7 +44,13 @@ def _export_raw(fname, raw, physical_range, add_ch_type, *, fmt="edf"):
         eeg="uV", ecog="uV", seeg="uV", eog="uV", ecg="uV", emg="uV", bio="uV", dbs="uV"
     )
 
-    digital_min, digital_max = -32767, 32767
+    if fmt == "edf":
+        digital_min, digital_max = -32768, 32767  # 2 ** 15 - 1
+    else:
+        digital_min, digital_max = -8388608, 8388607  # 2 ** 23 - 1
+    fmt_kwargs = dict()
+    if check_version("edfio", "0.4.6"):
+        fmt_kwargs["fmt"] = fmt
     annotations = []
 
     # load data first
@@ -157,6 +163,7 @@ def _export_raw(fname, raw, physical_range, add_ch_type, *, fmt="edf"):
                 physical_range=prange,
                 digital_range=(digital_min, digital_max),
                 prefiltering=filter_str_info,
+                **fmt_kwargs,
             )
         )
 
@@ -230,4 +237,5 @@ def _export_raw(fname, raw, physical_range, add_ch_type, *, fmt="edf"):
         starttime=starttime,
         data_record_duration=data_record_duration,
         annotations=annotations,
+        **fmt_kwargs,
     ).write(fname)

@@ -352,7 +352,6 @@ def test_parse_annotation(tmp_path):
             subtype="EDF",
             dtype="<i2",
             samp=(len(annot) - 1) // 2,
-            dtype_byte="This_parameter_is_not_used",
         )
 
     want_onset, want_duration, want_description = zip(
@@ -526,7 +525,6 @@ def test_read_annotations_edf(tmp_path):
             subtype="EDF",
             dtype="<i2",
             samp=-1,
-            dtype_byte=None,
         )
 
     # Read annotations without input channel names: annotations are left untouched and
@@ -616,7 +614,6 @@ def test_read_latin1_annotations(tmp_path):
             subtype="EDF",
             dtype="<i2",
             samp=-1,
-            dtype_byte=None,
         )
     annotations = _read_annotations_edf(tal_channel, encoding="latin1")
     assert_allclose(annotations.onset, [1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9])

@@ -622,3 +622,18 @@ def test_replace_md5(tmp_path):
     _replace_md5(str(new))
     assert old.read_text() == "abcde"
     assert not new.is_file()
+
+
+def test_24bit(tmp_path):
+    """Test 24-bit reading and writing (for BDF)."""
+    rng = np.random.default_rng(0)
+    data = rng.integers(-(2**23), 2**23, size=100, dtype=np.int32)
+    assert (data < 0).any()
+    assert (data > 0).any()
+    assert (np.abs(data) >= 2**16).any()  # some that require 24-bit depth
+    fname = tmp_path / "test.24"
+    with fname.open("wb") as fid:
+        numerics._write_24bit(fid, data)
+    with fname.open("rb") as fid:
+        data_read = numerics._read_24bit(fid, len(data))
+    assert_array_equal(data, data_read)
