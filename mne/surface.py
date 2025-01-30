@@ -214,8 +214,9 @@ def get_meg_helmet_surf(info, trans=None, *, verbose=None):
             ]
         )
         logger.info(
-            "Getting helmet for system %s (derived from %d MEG "
-            "channel locations)" % (system, len(rr))
+            "Getting helmet for system %s (derived from %d MEG channel locations)",
+            system,
+            len(rr),
         )
         hull = ConvexHull(rr)
         rr = rr[np.unique(hull.simplices)]
@@ -557,11 +558,14 @@ def _get_surf_neighbors(surf, k):
     nneighbors = len(verts)
     nneigh_max = len(surf["neighbor_tri"][k])
     if nneighbors > nneigh_max:
-        raise RuntimeError("Too many neighbors for vertex %d" % k)
+        raise RuntimeError(f"Too many neighbors for vertex {k}.")
     elif nneighbors != nneigh_max:
         logger.info(
             "    Incorrect number of distinct neighbors for vertex"
-            " %d (%d instead of %d) [fixed]." % (k, nneighbors, nneigh_max)
+            " %d (%d instead of %d) [fixed].",
+            k,
+            nneighbors,
+            nneigh_max,
         )
     return verts
 
@@ -729,7 +733,7 @@ class _CheckInside:
         else:
             self._init_old()
         logger.debug(
-            f'Setting up {mode} interior check for {len(self.surf["rr"])} '
+            f"Setting up {mode} interior check for {len(self.surf['rr'])} "
             f"points took {(time.time() - t0) * 1000:0.1f} ms"
         )
 
@@ -757,8 +761,7 @@ class _CheckInside:
     def __call__(self, rr, n_jobs=None, verbose=None):
         n_orig = len(rr)
         logger.info(
-            f"Checking surface interior status for "
-            f'{n_orig} point{_pl(n_orig, " ")}...'
+            f"Checking surface interior status for {n_orig} point{_pl(n_orig, ' ')}..."
         )
         t0 = time.time()
         if self.mode == "pyvista":
@@ -766,7 +769,7 @@ class _CheckInside:
         else:
             inside = self._call_old(rr, n_jobs)
         n = inside.sum()
-        logger.info(f'    Total {n}/{n_orig} point{_pl(n, " ")} inside the surface')
+        logger.info(f"    Total {n}/{n_orig} point{_pl(n, ' ')} inside the surface")
         logger.info(f"Interior check completed in {(time.time() - t0) * 1000:0.1f} ms")
         return inside
 
@@ -788,7 +791,7 @@ class _CheckInside:
             n = (in_mask).sum()
             n_pad = str(n).rjust(prec)
             logger.info(
-                f'    Found {n_pad}/{n_orig} point{_pl(n, " ")} '
+                f"    Found {n_pad}/{n_orig} point{_pl(n, ' ')} "
                 f"inside  an interior sphere of radius "
                 f"{1000 * self.inner_r:6.1f} mm"
             )
@@ -797,7 +800,7 @@ class _CheckInside:
             n = (out_mask).sum()
             n_pad = str(n).rjust(prec)
             logger.info(
-                f'    Found {n_pad}/{n_orig} point{_pl(n, " ")} '
+                f"    Found {n_pad}/{n_orig} point{_pl(n, ' ')} "
                 f"outside an exterior sphere of radius "
                 f"{1000 * self.outer_r:6.1f} mm"
             )
@@ -814,7 +817,7 @@ class _CheckInside:
         n_pad = str(n).rjust(prec)
         check_pad = str(len(del_outside)).rjust(prec)
         logger.info(
-            f'    Found {n_pad}/{check_pad} point{_pl(n, " ")} outside using '
+            f"    Found {n_pad}/{check_pad} point{_pl(n, ' ')} outside using "
             "surface Qhull"
         )
 
@@ -824,7 +827,7 @@ class _CheckInside:
         n_pad = str(n).rjust(prec)
         check_pad = str(len(solid_outside)).rjust(prec)
         logger.info(
-            f'    Found {n_pad}/{check_pad} point{_pl(n, " ")} outside using '
+            f"    Found {n_pad}/{check_pad} point{_pl(n, ' ')} outside using "
             "solid angles"
         )
         inside[idx[solid_outside]] = False
@@ -1229,7 +1232,7 @@ def _create_surf_spacing(surf, hemi, subject, stype, ico_surf, subjects_dir):
                 inds = np.where(np.logical_not(surf["inuse"][neigh]))[0]
                 if len(inds) == 0:
                     raise RuntimeError(
-                        "Could not find neighbor for vertex %d / %d" % (k, nmap)
+                        f"Could not find neighbor for vertex {k} / {nmap}."
                     )
                 else:
                     mmap[k] = neigh[inds[-1]]
@@ -1241,10 +1244,9 @@ def _create_surf_spacing(surf, hemi, subject, stype, ico_surf, subjects_dir):
                 )
             elif mmap[k] < 0 or mmap[k] > surf["np"]:
                 raise RuntimeError(
-                    "Map number out of range (%d), this is "
-                    "probably due to inconsistent surfaces. "
-                    "Parts of the FreeSurfer reconstruction "
-                    "need to be redone." % mmap[k]
+                    f"Map number out of range ({mmap[k]}), this is probably due to "
+                    "inconsistent surfaces. Parts of the FreeSurfer reconstruction "
+                    "need to be redone."
                 )
             surf["inuse"][mmap[k]] = True
 
@@ -1461,8 +1463,8 @@ def _decimate_surface_sphere(rr, tris, n_triangles):
     n_dup = len(idx) - len(np.unique(idx))
     if n_dup:
         raise RuntimeError(
-            "Could not reduce to %d triangles using ico, "
-            "%d/%d vertices were duplicates" % (n_triangles, n_dup, len(idx))
+            f"Could not reduce to {n_triangles} triangles using ico, "
+            f"{n_dup}/{len(idx)} vertices were duplicates."
         )
     logger.info("[done]")
     return rr[idx], ico_surf["tris"]

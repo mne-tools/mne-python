@@ -404,8 +404,7 @@ def test_adjacency_matches_ft(tmp_path):
 
         if hash_mne.hexdigest() != hash_ft.hexdigest():
             raise ValueError(
-                f"Hash mismatch between built-in and FieldTrip neighbors "
-                f"for {fname}"
+                f"Hash mismatch between built-in and FieldTrip neighbors for {fname}"
             )
 
 

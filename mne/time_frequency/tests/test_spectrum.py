@@ -10,11 +10,15 @@ import pytest
 from matplotlib.colors import same_color
 from numpy.testing import assert_allclose, assert_array_equal
 
-from mne import Annotations, create_info, make_fixed_length_epochs
+from mne import Annotations, BaseEpochs, create_info, make_fixed_length_epochs
 from mne.io import RawArray
 from mne.time_frequency import read_spectrum
 from mne.time_frequency.multitaper import _psd_from_mt
-from mne.time_frequency.spectrum import EpochsSpectrumArray, SpectrumArray
+from mne.time_frequency.spectrum import (
+    EpochsSpectrumArray,
+    SpectrumArray,
+    combine_spectrum,
+)
 from mne.utils import _record_warnings
 
 
@@ -163,13 +167,19 @@ def _get_inst(inst, request, *, evoked=None, average_tfr=None):
     return request.getfixturevalue(inst)
 
 
-@pytest.mark.parametrize("inst", ("raw", "epochs", "evoked"))
+@pytest.mark.parametrize("inst", ("raw", "epochs_full", "evoked"))
 def test_spectrum_io(inst, tmp_path, request, evoked):
     """Test save/load of spectrum objects."""
     pytest.importorskip("h5io")
     fname = tmp_path / f"{inst}-spectrum.h5"
     inst = _get_inst(inst, request, evoked=evoked)
+    if isinstance(inst, BaseEpochs):
+        # fake HED-like tags (https://mne.discourse.group/t/10634)
+        inst.events[-2:, -1] = 2
+        inst.event_id = {"foo/bar": 1, "foo/qux": 2}
     orig = inst.compute_psd()
+    if isinstance(inst, BaseEpochs):
+        orig = orig["foo"]
     orig.save(fname)
     loaded = read_spectrum(fname)
     assert orig == loaded
@@ -182,6 +192,55 @@ def test_spectrum_copy(raw_spectrum):
     assert id(raw_spectrum) != id(spect_copy)
     spect_copy._freqs = None
     assert raw_spectrum.freqs is not None
+
+
+@pytest.mark.parametrize("weights", ["nave", "equal", [1, -1]])
+def test_combine_spectrum(raw_spectrum, weights):
+    """Test `combine_spectrum()` works."""
+    spectrum1 = raw_spectrum.copy()
+    spectrum2 = raw_spectrum.copy()
+    if weights == "nave":
+        spectrum1._nave = 1
+        spectrum2._nave = 2
+        spectrum2._data *= 2
+        new_spectrum = combine_spectrum([spectrum1, spectrum2], weights=weights)
+        assert_allclose(new_spectrum.data, spectrum1.data * (5 / 3))
+    elif weights == "equal":
+        spectrum2._data *= 2
+        new_spectrum = combine_spectrum([spectrum1, spectrum2], weights=weights)
+        assert_allclose(new_spectrum.data, spectrum1.data * 1.5)
+    else:
+        new_spectrum = combine_spectrum([spectrum1, spectrum2], weights=weights)
+        assert_allclose(new_spectrum.data, 0)
+
+
+def test_combine_spectrum_error_catch(raw_spectrum):
+    """Test `combine_spectrum()` catches errors."""
+    # Test bad weights
+    with pytest.raises(
+        ValueError, match='Weights must be a list of float, or "nave" or "equal"'
+    ):
+        combine_spectrum([raw_spectrum, raw_spectrum], weights="foo")
+    with pytest.raises(
+        ValueError, match="Weights must be the same size as all_spectrum"
+    ):
+        combine_spectrum([raw_spectrum, raw_spectrum], weights=[1, 1, 1])
+
+    # Test bad nave
+    with pytest.raises(ValueError, match="The 'nave' attribute is not specified"):
+        combine_spectrum([raw_spectrum, raw_spectrum], weights="nave")
+
+    # Test inconsistent channels
+    raw_spectrum2 = raw_spectrum.copy()
+    raw_spectrum2.drop_channels(raw_spectrum2.ch_names[0])
+    with pytest.raises(AssertionError, match=".* do not contain the same channels"):
+        combine_spectrum([raw_spectrum, raw_spectrum2], weights="equal")
+
+    # Test inconsistent frequencies
+    raw_spectrum2 = raw_spectrum.copy()
+    raw_spectrum2._freqs = raw_spectrum2._freqs + 1
+    with pytest.raises(AssertionError, match=".* do not contain the same frequencies"):
+        combine_spectrum([raw_spectrum, raw_spectrum2], weights="equal")
 
 
 def test_spectrum_reject_by_annot(raw):
@@ -627,3 +686,29 @@ def test_plot_spectrum_array_with_bads():
         spectrum.get_data(exclude=()), spectrum.info, spectrum.freqs
     )
     spectrum2.plot(spatial_colors=False)
+
+
+@pytest.mark.parametrize("dB", (False, True))
+@pytest.mark.parametrize("amplitude", (False, True))
+def test_plot_spectrum_dB(raw_spectrum, dB, amplitude):
+    """Test that we properly handle amplitude/power and dB."""
+    idx = 7
+    power = 3
+    freqs = np.linspace(1, 100, 100)
+    data = np.full((1, freqs.size), np.finfo(float).tiny)
+    data[0, idx] = power
+    info = create_info(ch_names=["delta"], sfreq=1000, ch_types="eeg")
+    psd = SpectrumArray(data=data, info=info, freqs=freqs)
+    with pytest.warns(RuntimeWarning, match="Channel locations not available"):
+        fig = psd.plot(dB=dB, amplitude=amplitude)
+    trace = list(
+        filter(lambda x: len(x.get_data()[0]) == len(freqs), fig.axes[0].lines)
+    )[0]
+    got = trace.get_data()[1][idx]
+    want = power * 1e12  # scaling for EEG (V → μV), squared
+    if amplitude:
+        want = np.sqrt(want)
+    if dB:
+        want = (20 if amplitude else 10) * np.log10(want)
+
+    assert want == got, f"expected {want}, got {got}"

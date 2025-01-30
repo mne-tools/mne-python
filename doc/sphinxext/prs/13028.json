@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "d8149546e7010ee7d2b5a95335aeed0e9b202aaa",
+  "authors": [
+    {
+      "n": "Thomas S. Binns",
+      "e": "t.s.binns@outlook.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/13028.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/time_frequency/tests/test_tfr.py": {
+      "a": 16,
+      "d": 12
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 7,
+      "d": 1
+    }
+  }
+}

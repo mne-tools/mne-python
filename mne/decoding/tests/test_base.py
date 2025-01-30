@@ -86,6 +86,8 @@ def _make_data(n_samples=1000, n_features=5, n_targets=3):
     X = Y.dot(A.T)
     X += np.random.randn(n_samples, n_features)  # add noise
     X += np.random.rand(n_features)  # Put an offset
+    if n_targets == 1:
+        Y = Y[:, 0]
 
     return X, Y, A
 
@@ -94,10 +96,18 @@ def _make_data(n_samples=1000, n_features=5, n_targets=3):
 def test_get_coef():
     """Test getting linear coefficients (filters/patterns) from estimators."""
     lm_classification = LinearModel()
+    assert hasattr(lm_classification, "__sklearn_tags__")
+    print(lm_classification.__sklearn_tags__())
+    assert is_classifier(lm_classification.model)
     assert is_classifier(lm_classification)
+    assert not is_regressor(lm_classification.model)
+    assert not is_regressor(lm_classification)
 
     lm_regression = LinearModel(Ridge())
+    assert is_regressor(lm_regression.model)
     assert is_regressor(lm_regression)
+    assert not is_classifier(lm_regression.model)
+    assert not is_classifier(lm_regression)
 
     parameters = {"kernel": ["linear"], "C": [1, 10]}
     lm_gs_classification = LinearModel(
@@ -265,7 +275,12 @@ def test_get_coef_multiclass(n_features, n_targets):
     """Test get_coef on multiclass problems."""
     # Check patterns with more than 1 regressor
     X, Y, A = _make_data(n_samples=30000, n_features=n_features, n_targets=n_targets)
-    lm = LinearModel(LinearRegression()).fit(X, Y)
+    lm = LinearModel(LinearRegression())
+    assert not hasattr(lm, "model_")
+    lm.fit(X, Y)
+    # TODO: modifying non-underscored `model` is a sklearn no-no, maybe should be a
+    # metaestimator?
+    assert lm.model is lm.model_
     assert_array_equal(lm.filters_.shape, lm.patterns_.shape)
     if n_targets == 1:
         want_shape = (n_features,)
@@ -312,7 +327,7 @@ def test_get_coef_multiclass(n_features, n_targets):
     ],
 )
 # TODO: Need to fix this properly in LinearModel
-@pytest.mark.filterwarnings("ignore:'multi_class' was deprecated in.*:FutureWarning")
+@pytest.mark.filterwarnings("ignore:'multi_class' was depr.*:FutureWarning")
 @pytest.mark.filterwarnings("ignore:lbfgs failed to converge.*:")
 def test_get_coef_multiclass_full(n_classes, n_channels, n_times):
     """Test a full example with pattern extraction."""
@@ -433,7 +448,8 @@ def test_cross_val_multiscore():
     # raise an error if scoring is defined at cross-val-score level and
     # search light, because search light does not return a 1-dimensional
     # prediction.
-    pytest.raises(ValueError, cross_val_multiscore, clf, X, y, cv=cv, scoring="roc_auc")
+    with pytest.raises(ValueError, match="multi_class must be"):
+        cross_val_multiscore(clf, X, y, cv=cv, scoring="roc_auc", n_jobs=1)
     clf = SlidingEstimator(logreg, scoring="roc_auc")
     scores_auc = cross_val_multiscore(clf, X, y, cv=cv, n_jobs=None)
     scores_auc_manual = list()
@@ -464,9 +480,8 @@ def test_cross_val_multiscore():
 def test_sklearn_compliance(estimator, check):
     """Test LinearModel compliance with sklearn."""
     ignores = (
-        "check_n_features_in",  # maybe we should add this someday?
-        "check_estimator_sparse_data",  # we densify
         "check_estimators_overwrite_params",  # self.model changes!
+        "check_dont_overwrite_parameters",
         "check_parameters_default_constructible",
     )
     if any(ignore in str(check) for ignore in ignores):

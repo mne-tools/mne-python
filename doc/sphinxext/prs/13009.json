@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "391fd88dca91bca78aeacc996fa284712c3ea33b",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/sphinxext/mne_doc_utils.py": {
+      "a": 22,
+      "d": 0
+    },
+    "examples/preprocessing/otp.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/datasets/utils.py": {
+      "a": 5,
+      "d": 1
+    }
+  }
+}

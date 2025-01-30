@@ -11,6 +11,7 @@ import numpy as np
 from sklearn import model_selection as models
 from sklearn.base import (  # noqa: F401
     BaseEstimator,
+    MetaEstimatorMixin,
     TransformerMixin,
     clone,
     is_classifier,
@@ -18,13 +19,13 @@ from sklearn.base import (  # noqa: F401
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import check_scoring
 from sklearn.model_selection import KFold, StratifiedKFold, check_cv
-from sklearn.utils import check_array, indexable
+from sklearn.utils import check_array, check_X_y, indexable
 
 from ..parallel import parallel_func
 from ..utils import _pl, logger, verbose, warn
 
 
-class LinearModel(BaseEstimator):
+class LinearModel(MetaEstimatorMixin, BaseEstimator):
     """Compute and store patterns from linear models.
 
     The linear model coefficients (filters) are used to extract discriminant
@@ -61,21 +62,34 @@ class LinearModel(BaseEstimator):
     .. footbibliography::
     """
 
+    # TODO: Properly refactor this using
+    # https://github.com/scikit-learn/scikit-learn/issues/30237#issuecomment-2465572885
     _model_attr_wrap = (
         "transform",
         "predict",
         "predict_proba",
         "_estimator_type",
+        "__tags__",
         "decision_function",
         "score",
         "classes_",
     )
 
     def __init__(self, model=None):
+        # TODO: We need to set this to get our tag checking to work properly
         if model is None:
             model = LogisticRegression(solver="liblinear")
-
         self.model = model
+
+    def __sklearn_tags__(self):
+        """Get sklearn tags."""
+        from sklearn.utils import get_tags  # added in 1.6
+
+        # fit method below does not allow sparse data via check_data, we could
+        # eventually make it smarter if we had to
+        tags = get_tags(self.model)
+        tags.input_tags.sparse = False
+        return tags
 
     def __getattr__(self, attr):
         """Wrap to model for some attributes."""
@@ -108,7 +122,11 @@ class LinearModel(BaseEstimator):
         self : instance of LinearModel
             Returns the modified instance.
         """
-        X = check_array(X, input_name="X")
+        if y is not None:
+            X = check_array(X)
+        else:
+            X, y = check_X_y(X, y)
+        self.n_features_in_ = X.shape[1]
         if y is not None:
             y = check_array(y, dtype=None, ensure_2d=False, input_name="y")
             if y.ndim > 2:
@@ -119,6 +137,7 @@ class LinearModel(BaseEstimator):
 
         # fit the Model
         self.model.fit(X, y, **fit_params)
+        self.model_ = self.model  # for better sklearn compat
 
         # Computes patterns using Haufe's trick: A = Cov_X . W . Precision_Y
 

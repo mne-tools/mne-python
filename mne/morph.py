@@ -200,8 +200,7 @@ def compute_source_morph(
 
     if kind not in "surface" and xhemi:
         raise ValueError(
-            "Inter-hemispheric morphing can only be used "
-            "with surface source estimates."
+            "Inter-hemispheric morphing can only be used with surface source estimates."
         )
     if sparse and kind != "surface":
         raise ValueError("Only surface source estimates can compute a sparse morph.")
@@ -1301,8 +1300,7 @@ def grade_to_vertices(subject, grade, subjects_dir=None, n_jobs=None, verbose=No
         if isinstance(grade, list):
             if not len(grade) == 2:
                 raise ValueError(
-                    "grade as a list must have two elements "
-                    "(arrays of output vertices)"
+                    "grade as a list must have two elements (arrays of output vertices)"
                 )
             vertices = grade
         else:
@@ -1385,8 +1383,7 @@ def _surf_upsampling_mat(idx_from, e, smooth):
         smooth = _ensure_int(smooth, "smoothing steps")
         if smooth <= 0:  # == 0 is handled in a shortcut above
             raise ValueError(
-                "The number of smoothing operations has to be at least 0, got "
-                f"{smooth}"
+                f"The number of smoothing operations has to be at least 0, got {smooth}"
             )
         smooth = smooth - 1
     # idx will gradually expand from idx_from -> np.arange(n_tot)

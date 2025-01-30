@@ -1,0 +1,1 @@
+Fix input boxes for the max value not showing when plotting fieldlines with :func:`~mne.viz.plot_evoked_field` when ``show_density=False``, by `Marijn van Vliet`_.

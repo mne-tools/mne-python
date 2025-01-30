@@ -380,45 +380,36 @@ class EvokedField:
         # Fieldline configuration
         layout = r._dock_add_group_box("Fieldlines")
 
-        if self._show_density:
-            r._dock_add_label(value="max value", align=True, layout=layout)
+        r._dock_add_label(value="max value", align=True, layout=layout)
 
-            @_auto_weakref
-            def _callback(vmax, kind, scaling):
-                self.set_vmax(vmax / scaling, kind=kind)
+        @_auto_weakref
+        def _callback(vmax, kind, scaling):
+            self.set_vmax(vmax / scaling, kind=kind)
 
-            for surf_map in self._surf_maps:
-                if surf_map["map_kind"] == "meg":
-                    scaling = DEFAULTS["scalings"]["grad"]
-                else:
-                    scaling = DEFAULTS["scalings"]["eeg"]
-                rng = [0, np.max(np.abs(surf_map["data"])) * scaling]
-                hlayout = r._dock_add_layout(vertical=False)
+        for surf_map in self._surf_maps:
+            if surf_map["map_kind"] == "meg":
+                scaling = DEFAULTS["scalings"]["grad"]
+            else:
+                scaling = DEFAULTS["scalings"]["eeg"]
+            rng = [0, np.max(np.abs(surf_map["data"])) * scaling]
+            hlayout = r._dock_add_layout(vertical=False)
 
-                self._widgets[f"vmax_slider_{surf_map['map_kind']}"] = (
-                    r._dock_add_slider(
-                        name=surf_map["map_kind"].upper(),
-                        value=surf_map["map_vmax"] * scaling,
-                        rng=rng,
-                        callback=partial(
-                            _callback, kind=surf_map["map_kind"], scaling=scaling
-                        ),
-                        double=True,
-                        layout=hlayout,
-                    )
-                )
-                self._widgets[f"vmax_spin_{surf_map['map_kind']}"] = (
-                    r._dock_add_spin_box(
-                        name="",
-                        value=surf_map["map_vmax"] * scaling,
-                        rng=rng,
-                        callback=partial(
-                            _callback, kind=surf_map["map_kind"], scaling=scaling
-                        ),
-                        layout=hlayout,
-                    )
-                )
-                r._layout_add_widget(layout, hlayout)
+            self._widgets[f"vmax_slider_{surf_map['map_kind']}"] = r._dock_add_slider(
+                name=surf_map["map_kind"].upper(),
+                value=surf_map["map_vmax"] * scaling,
+                rng=rng,
+                callback=partial(_callback, kind=surf_map["map_kind"], scaling=scaling),
+                double=True,
+                layout=hlayout,
+            )
+            self._widgets[f"vmax_spin_{surf_map['map_kind']}"] = r._dock_add_spin_box(
+                name="",
+                value=surf_map["map_vmax"] * scaling,
+                rng=rng,
+                callback=partial(_callback, kind=surf_map["map_kind"], scaling=scaling),
+                layout=hlayout,
+            )
+            r._layout_add_widget(layout, hlayout)
 
         hlayout = r._dock_add_layout(vertical=False)
         r._dock_add_label(
