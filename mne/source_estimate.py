@@ -3370,12 +3370,19 @@ def _get_ico_tris(grade, verbose=None, return_surf=False):
 
 
 def _pca_flip(flip, data):
-    U, s, V = _safe_svd(data, full_matrices=False)
-    # determine sign-flip
-    sign = np.sign(np.dot(U[:, 0], flip))
-    # use average power in label for scaling
-    scale = np.linalg.norm(s) / np.sqrt(len(data))
-    return sign * scale * V[0]
+    result = None
+    if flip is None:
+        result = 0
+    elif data.shape[0] < 2:
+        result = data.mean(axis=0)  # Trivial accumulator
+    else:
+        U, s, V = _safe_svd(data, full_matrices=False)
+        # determine sign-flip
+        sign = np.sign(np.dot(U[:, 0], flip))
+        # use average power in label for scaling
+        scale = np.linalg.norm(s) / np.sqrt(len(data))
+        result = sign * scale * V[0]
+    return result
 
 
 _label_funcs = {
@@ -3428,6 +3435,10 @@ def _prepare_label_extraction(stc, labels, src, mode, allow_empty, use_sparse):
     # only computes vertex indices and label_flip will be list of None.
     from .label import BiHemiLabel, Label, label_sign_flip
 
+    # logger.info("Selected mode: " + mode)
+    # print("Entering _prepare_label_extraction")
+    # print("Selected mode: " + mode)
+
     # if source estimate provided in stc, get vertices from source space and
     # check that they are the same as in the stcs
     _check_stc_src(stc, src)
@@ -3440,6 +3451,7 @@ def _prepare_label_extraction(stc, labels, src, mode, allow_empty, use_sparse):
 
     bad_labels = list()
     for li, label in enumerate(labels):
+        # print("Mode: " + mode + " li: " + str(li) + " label: " + str(label))
         subject = label["subject"] if use_sparse else label.subject
         # stc and src can each be None
         _check_subject(
@@ -3505,6 +3517,9 @@ def _prepare_label_extraction(stc, labels, src, mode, allow_empty, use_sparse):
             # So if we override vertno with the stc vertices, it will pick
             # the correct normals.
             with _temporary_vertices(src, stc.vertices):
+                # print(f"src: {src[:2]}")
+                # print(f"len(src): {len(src[:2])}")
+
                 this_flip = label_sign_flip(label, src[:2])[:, None]
 
         label_vertidx.append(this_vertidx)
@@ -3639,8 +3654,10 @@ def _get_default_label_modes():
 
 
 def _get_allowed_label_modes(stc):
-    if isinstance(stc, _BaseVolSourceEstimate | _BaseVectorSourceEstimate):
-        return ("mean", "pca_flip" "max", "auto")
+    if isinstance(stc, _BaseVectorSourceEstimate):
+        return ("mean", "max", "auto")
+    elif isinstance(stc, _BaseVolSourceEstimate):
+        return ("mean", "pca_flip", "max", "auto")
     else:
         return _get_default_label_modes()
 
@@ -3729,6 +3746,10 @@ def _gen_extract_label_time_course(
                     this_data.shape = (this_data.shape[0],) + stc.data.shape[1:]
                 else:
                     this_data = stc.data[vertidx]
+                # if flip is None: # Happens if fewer than 2 vertices in the label
+                # if this_data.shape[]
+                #    label_tc[i] = 0
+                # else:
                 label_tc[i] = func(flip, this_data)
 
         if mode is not None:
