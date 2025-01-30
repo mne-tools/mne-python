@@ -45,9 +45,9 @@ def _export_raw(fname, raw, physical_range, add_ch_type, *, fmt="edf"):
     )
 
     if fmt == "edf":
-        digital_min, digital_max = -32768, 32767  # 2 ** 15 - 1
+        digital_min, digital_max = -32767, 32767  # 2 ** 15 - 1, symmetric (true zero)
     else:
-        digital_min, digital_max = -8388608, 8388607  # 2 ** 23 - 1
+        digital_min, digital_max = -8388607, 8388607  # 2 ** 23 - 1
     fmt_kwargs = dict()
     if check_version("edfio", "0.4.6"):
         fmt_kwargs["fmt"] = fmt
