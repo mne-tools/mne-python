@@ -424,7 +424,7 @@ class BrowserBase(ABC):
         if annotations and not self.mne.is_epochs:
             self._draw_annotations()
 
-    def _close(self, event):
+    def _close(self, event=None):
         """Handle close events (via keypress or window [x])."""
         from matplotlib.pyplot import close
 
@@ -500,11 +500,11 @@ class BrowserBase(ABC):
             show=False,
         )
         # highlight desired channel & disable interactivity
-        inds = np.isin(fig.lasso.ch_names, [ch_name])
+        fig.lasso.selection_inds = np.isin(fig.lasso.names, [ch_name])
         fig.lasso.disconnect()
-        fig.lasso.alpha_other = 0.3
+        fig.lasso.alpha_nonselected = 0.3
         fig.lasso.linewidth_selected = 3
-        fig.lasso.style_sensors(inds)
+        fig.lasso.style_objects()
 
         return fig
 
@@ -534,6 +534,7 @@ class BrowserBase(ABC):
             self.mne.ica_inst,
             picks=pick,
             axes=axes,
+            psd_args=self.mne.psd_args,
             precomputed_data=self.mne.data_ica_properties,
             show=False,
         )

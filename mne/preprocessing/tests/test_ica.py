@@ -525,7 +525,7 @@ def test_ica_core(method, n_components, noise_cov, n_pca_components, browser_bac
 
     raw_sources = ica.get_sources(raw)
     # test for #3804
-    assert_equal(raw_sources._filenames, [None])
+    assert_equal(raw_sources.filenames, (None,))
     print(raw_sources)
 
     # test for gh-6271 (scaling of ICA traces)
@@ -973,7 +973,7 @@ def test_ica_additional(method, tmp_path, short_raw_epochs):
     assert ica_raw.n_times == 100
     assert ica_raw.last_samp - ica_raw.first_samp + 1 == 100
     assert ica_raw._data.shape[1] == 100
-    assert_equal(len(ica_raw._filenames), 1)  # API consistency
+    assert_equal(len(ica_raw.filenames), 1)  # API consistency
     ica_chans = [ch for ch in ica_raw.ch_names if "ICA" in ch]
     assert ica.n_components_ == len(ica_chans)
     test_ica_fname = Path.cwd() / "test-ica_raw.fif"

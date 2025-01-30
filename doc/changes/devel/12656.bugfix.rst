@@ -1,0 +1,1 @@
+Fix bug where :func:`mne.export.export_raw` does not correct for recording start time (:attr:`raw.first_time <mne.io.Raw.first_time>`) when exporting Raw instances to EDF or EEGLAB formats, by `Qian Chu`_.

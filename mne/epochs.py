@@ -1353,6 +1353,7 @@ class BaseEpochs(
         fig_facecolor="k",
         fig_background=None,
         font_color="w",
+        select=False,
         show=True,
     ):
         return plot_topo_image_epochs(
@@ -1371,6 +1372,7 @@ class BaseEpochs(
             fig_facecolor=fig_facecolor,
             fig_background=fig_background,
             font_color=font_color,
+            select=select,
             show=show,
         )
 
@@ -1561,8 +1563,10 @@ class BaseEpochs(
         self._getitem(keep, reason, copy=False, drop_event_id=False)
         count = len(try_idx)
         logger.info(
-            "Dropped %d epoch%s: %s"
-            % (count, _pl(count), ", ".join(map(str, np.sort(try_idx))))
+            "Dropped %d epoch%s: %s",
+            count,
+            _pl(count),
+            ", ".join(map(str, np.sort(try_idx))),
         )
 
         return self
@@ -1669,8 +1673,7 @@ class BaseEpochs(
             # we start out with an empty array, allocate only if necessary
             data = np.empty((0, len(self.info["ch_names"]), len(self.times)))
             msg = (
-                f"for {n_events} events and {len(self._raw_times)} "
-                "original time points"
+                f"for {n_events} events and {len(self._raw_times)} original time points"
             )
             if self._decim > 1:
                 msg += " (prior to decimation)"
@@ -2299,8 +2302,7 @@ class BaseEpochs(
             logger.info(f"Splitting into {n_parts} parts")
             if n_parts > 100:  # This must be an error
                 raise ValueError(
-                    f"Split size {split_size} would result in writing "
-                    f"{n_parts} files"
+                    f"Split size {split_size} would result in writing {n_parts} files"
                 )
 
         if len(self.drop_log) > 100000:
@@ -3141,7 +3143,7 @@ def make_metadata(
         raise ValueError(
             f"The event names in keep_first and keep_last must "
             f"be mutually exclusive. Specified in both: "
-            f'{", ".join(sorted(keep_first_and_last))}'
+            f"{', '.join(sorted(keep_first_and_last))}"
         )
     del keep_first_and_last
 
@@ -3161,7 +3163,7 @@ def make_metadata(
         if event_name_diff:
             raise ValueError(
                 f"Present in {input_name}, but missing from event_id: "
-                f'{", ".join(event_name_diff)}'
+                f"{', '.join(event_name_diff)}"
             )
 
     _diff_input_strings_vs_event_id(
@@ -3232,7 +3234,7 @@ def make_metadata(
 
     # keep_first and keep_last names
     start_idx = stop_idx
-    metadata[columns[start_idx:]] = ""
+    metadata[columns[start_idx:]] = None
 
     # We're all set, let's iterate over all events and fill in in the
     # respective cells in the metadata. We will subset this to include only
@@ -3554,8 +3556,7 @@ class Epochs(BaseEpochs):
 
         if not isinstance(raw, BaseRaw):
             raise ValueError(
-                "The first argument to `Epochs` must be an "
-                "instance of mne.io.BaseRaw"
+                "The first argument to `Epochs` must be an instance of mne.io.BaseRaw"
             )
         info = deepcopy(raw.info)
         annotations = raw.annotations.copy()
@@ -4154,8 +4155,8 @@ def _read_one_epoch_file(f, tree, preload):
 
         if not size_actual == size_expected:
             raise ValueError(
-                "Incorrect number of samples (%d instead of %d)"
-                % (size_actual, size_expected)
+                f"Incorrect number of samples ({size_actual} instead of "
+                f"{size_expected})."
             )
 
         # Calibration factors
@@ -4439,8 +4440,7 @@ class EpochsFIF(BaseEpochs):
         else:
             # read the correct subset of the data
             raise RuntimeError(
-                "Correct epoch could not be found, please "
-                "contact mne-python developers"
+                "Correct epoch could not be found, please contact mne-python developers"
             )
         # the following is equivalent to this, but faster:
         #

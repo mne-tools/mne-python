@@ -87,6 +87,7 @@ fig_template = plot_anat(
 # %%
 # Calculate and visualise magnetic field predicted by dipole with maximum GOF
 # and compare to the measured data, highlighting the ipsilateral (right) source
+
 fwd, stc = make_forward_dipole(dip, fname_bem, evoked.info, fname_trans)
 pred_evoked = simulate_evoked(fwd, stc, evoked.info, cov=None, nave=np.inf)
 

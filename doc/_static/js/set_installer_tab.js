@@ -42,4 +42,14 @@ function setTabs() {
     uninstall_input.checked = true;
 }
 
+function setAlert() {
+    for (let button of document.querySelectorAll('.install-download-button')) {
+        button.addEventListener('click', function() {
+            alert = document.querySelectorAll('.install-download-alert')[0];
+            alert.style.display = 'block';
+        });
+    }
+}
+
 documentReady(setTabs);
+documentReady(setAlert);

@@ -99,9 +99,11 @@ def test_plot_head_positions():
     pos = np.random.RandomState(0).randn(4, 10)
     pos[:, 0] = np.arange(len(pos))
     destination = (0.0, 0.0, 0.04)
-    plot_head_positions(pos)
+    fig = plot_head_positions(pos)
+    assert len(fig.axes) == 6
     plot_head_positions(pos, mode="field", info=info, destination=destination)
-    plot_head_positions([pos, pos])  # list support
+    fig = plot_head_positions([pos, pos], totals=True)  # list and totals support
+    assert len(fig.axes) == 8
     fig, ax = plt.subplots()
     with pytest.raises(TypeError, match="instance of Axes3D"):
         plot_head_positions(pos, mode="field", info=info, axes=ax)
@@ -891,7 +893,7 @@ def test_plot_alignment_fnirs(renderer, tmp_path):
     with catch_logging() as log:
         fig = plot_alignment(info, **kwargs)
     log = log.getvalue()
-    assert f'fnirs_cw_amplitude: {info["nchan"]}' in log
+    assert f"fnirs_cw_amplitude: {info['nchan']}" in log
     _assert_n_actors(fig, renderer, info["nchan"])
 
     fig = plot_alignment(info, fnirs=["channels", "sources", "detectors"], **kwargs)

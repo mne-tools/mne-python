@@ -236,7 +236,7 @@ def test_volume_stc(tmp_path):
     assert isinstance(stc, VolSourceEstimate)
 
     assert "sample" in repr(stc)
-    assert " kB" in repr(stc)
+    assert " KiB" in repr(stc)
 
     stc_new = stc
     fname_temp = tmp_path / ("temp-vl.stc")
@@ -1859,8 +1859,7 @@ def test_stc_near_sensors(tmp_path):
     for s in src:
         transform_surface_to(s, "head", trans, copy=False)
     assert src[0]["coord_frame"] == FIFF.FIFFV_COORD_HEAD
-    with pytest.warns(DeprecationWarning, match="instead of the pial"):
-        stc_src = stc_near_sensors(evoked, src=src, **kwargs)
+    stc_src = stc_near_sensors(evoked, src=src, **kwargs)
     assert len(stc_src.data) == 7928
     with pytest.warns(RuntimeWarning, match="not included"):  # some removed
         stc_src_full = compute_source_morph(

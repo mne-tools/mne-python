@@ -6,17 +6,22 @@ import numbers
 
 import numpy as np
 from scipy.stats import pearsonr
-from sklearn.base import clone, is_regressor
+from sklearn.base import (
+    BaseEstimator,
+    MetaEstimatorMixin,
+    clone,
+    is_regressor,
+)
 from sklearn.exceptions import NotFittedError
 from sklearn.metrics import r2_score
 
 from ..utils import _validate_type, fill_doc, pinv
-from .base import BaseEstimator, _check_estimator, get_coef
+from .base import _check_estimator, get_coef
 from .time_delaying_ridge import TimeDelayingRidge
 
 
 @fill_doc
-class ReceptiveField(BaseEstimator):
+class ReceptiveField(MetaEstimatorMixin, BaseEstimator):
     """Fit a receptive field model.
 
     This allows you to fit an encoding model (stimulus to brain) or a decoding
@@ -392,7 +397,7 @@ class ReceptiveField(BaseEstimator):
                     f"X and y do not have the same n_epochs\n{X.shape[1]} != "
                     f"{y.shape[1]}"
                 )
-            if predict and y.shape[-1] != len(self.estimator_.coef_):
+            if predict and y.shape[-1] not in (len(self.estimator_.coef_), 1):
                 raise ValueError(
                     "Number of outputs does not match estimator coefficients dimensions"
                 )
