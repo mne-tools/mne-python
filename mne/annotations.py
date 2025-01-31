@@ -815,7 +815,6 @@ class HEDAnnotations(Annotations):
         ch_names=None,
     ):
         hed = _soft_import("hed", "validation of HED tags in annotations")  # noqa
-        # TODO is some sort of initialization of the HED cache directory necessary?
         super().__init__(
             onset=onset,
             duration=duration,
@@ -823,7 +822,6 @@ class HEDAnnotations(Annotations):
             orig_time=orig_time,
             ch_names=ch_names,
         )
-        # TODO validate the HED version the user claims to be using.
         self.hed_version = hed_version
         self._update_hed_strings(hed_strings=hed_strings)
 
