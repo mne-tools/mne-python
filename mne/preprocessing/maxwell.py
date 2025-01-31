@@ -486,6 +486,7 @@ def _prep_maxwell_filter(
         raise ValueError("st_duration must not be None if st_only is True")
     if st_overlap is None:
         if st_duration is not None:
+            # TODO VERSION 1.10/1.11 deprecation
             warn(
                 "st_overlap defaults to False in 1.10 but will change to "
                 "True in 1.11. Set it explicitly to avoid this warning.",
@@ -495,6 +496,7 @@ def _prep_maxwell_filter(
     add_channels = head_pos is not None and not st_only
     if mc_interp is None:
         if head_pos is not None:
+            # TODO VERSION 1.10/1.11 deprecation
             warn(
                 'mc_interp defaults to "zero" in 1.10 but will change '
                 'to "hann" in 1.11, set it explicitly to avoid this '
