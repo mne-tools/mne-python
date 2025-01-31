@@ -174,6 +174,7 @@ def pytest_configure(config: pytest.Config):
     # pandas
     ignore:\n*Pyarrow will become a required dependency of pandas.*:DeprecationWarning
     ignore:np\.find_common_type is deprecated.*:DeprecationWarning
+    ignore:Python binding for RankQuantileOptions.*:
     # pyvista <-> NumPy 2.0
     ignore:__array_wrap__ must accept context and return_scalar arguments.*:DeprecationWarning
     # nibabel <-> NumPy 2.0
@@ -186,6 +187,7 @@ def pytest_configure(config: pytest.Config):
     ignore:.*builtin type swigvarlink has no.*:DeprecationWarning
     # eeglabio
     ignore:numpy\.core\.records is deprecated.*:DeprecationWarning
+    ignore:Starting field name with a underscore.*:
     # joblib
     ignore:process .* is multi-threaded, use of fork/exec.*:DeprecationWarning
     """  # noqa: E501

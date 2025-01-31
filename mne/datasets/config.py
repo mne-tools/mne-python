@@ -92,8 +92,8 @@ RELEASES = dict(
     phantom_kit="0.2",
     ucl_opm_auditory="0.2",
 )
-TESTING_VERSIONED = f'mne-testing-data-{RELEASES["testing"]}'
-MISC_VERSIONED = f'mne-misc-data-{RELEASES["misc"]}'
+TESTING_VERSIONED = f"mne-testing-data-{RELEASES['testing']}"
+MISC_VERSIONED = f"mne-misc-data-{RELEASES['misc']}"
 
 # To update any other dataset besides `testing` or `misc`, upload the new
 # version of the data archive itself (e.g., to https://osf.io or wherever) and
@@ -118,7 +118,7 @@ MNE_DATASETS["testing"] = dict(
     hash="md5:d94fe9f3abe949a507eaeb865fb84a3f",
     url=(
         "https://codeload.github.com/mne-tools/mne-testing-data/"
-        f'tar.gz/{RELEASES["testing"]}'
+        f"tar.gz/{RELEASES['testing']}"
     ),
     # In case we ever have to resort to osf.io again...
     # archive_name='mne-testing-data.tar.gz',
@@ -131,8 +131,7 @@ MNE_DATASETS["misc"] = dict(
     archive_name=f"{MISC_VERSIONED}.tar.gz",  # 'mne-misc-data',
     hash="md5:e343d3a00cb49f8a2f719d14f4758afe",
     url=(
-        "https://codeload.github.com/mne-tools/mne-misc-data/tar.gz/"
-        f'{RELEASES["misc"]}'
+        f"https://codeload.github.com/mne-tools/mne-misc-data/tar.gz/{RELEASES['misc']}"
     ),
     folder_name="MNE-misc-data",
     config_key="MNE_DATASETS_MISC_PATH",

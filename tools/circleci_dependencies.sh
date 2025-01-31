@@ -11,6 +11,6 @@ python -m pip install --upgrade --progress-bar off \
     alphaCSC autoreject bycycle conpy emd fooof meggie \
     mne-ari mne-bids-pipeline mne-faster mne-features \
     mne-icalabel mne-lsl mne-microstates mne-nirs mne-rsa \
-    neurodsp neurokit2 niseq nitime openneuro-py pactools \
+    neurodsp neurokit2 niseq nitime pactools \
     plotly pycrostates pyprep pyriemann python-picard sesameeg \
-    sleepecg tensorpac yasa meegkit eeg_positions
+    sleepecg tensorpac yasa meegkit eeg_positions wfdb

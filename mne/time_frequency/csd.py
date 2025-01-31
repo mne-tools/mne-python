@@ -224,8 +224,7 @@ class CrossSpectralDensity:
         """
         if self._is_sum:
             raise RuntimeError(
-                "This CSD matrix already represents a mean or "
-                "sum across frequencies."
+                "This CSD matrix already represents a mean or sum across frequencies."
             )
 
         # Deal with the various ways in which fmin and fmax can be specified
@@ -1372,7 +1371,7 @@ def _execute_csd_function(
     logger.info("[done]")
 
     if ch_names is None:
-        ch_names = [f"SERIES{i+1:03}" for i in range(n_channels)]
+        ch_names = [f"SERIES{i + 1:03}" for i in range(n_channels)]
 
     return CrossSpectralDensity(
         csds_mean,

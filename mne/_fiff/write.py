@@ -13,7 +13,7 @@ from gzip import GzipFile
 import numpy as np
 from scipy.sparse import csc_array, csr_array
 
-from ..utils import _file_like, _validate_type, logger
+from ..utils import _check_fname, _file_like, _validate_type, logger
 from ..utils.numerics import _date_to_julian
 from .constants import FIFF
 
@@ -277,7 +277,7 @@ def end_block(fid, kind):
     write_int(fid, FIFF.FIFF_BLOCK_END, kind)
 
 
-def start_file(fname, id_=None):
+def start_file(fname, id_=None, *, overwrite=True):
     """Open a fif file for writing and writes the compulsory header tags.
 
     Parameters
@@ -294,6 +294,7 @@ def start_file(fname, id_=None):
         fid = fname
         fid.seek(0)
     else:
+        fname = _check_fname(fname, overwrite=overwrite)
         fname = str(fname)
         if op.splitext(fname)[1].lower() == ".gz":
             logger.debug("Writing using gzip")
@@ -311,9 +312,9 @@ def start_file(fname, id_=None):
 
 
 @contextmanager
-def start_and_end_file(fname, id_=None):
+def start_and_end_file(fname, id_=None, *, overwrite=True):
     """Start and (if successfully written) close the file."""
-    with start_file(fname, id_=id_) as fid:
+    with start_file(fname, id_=id_, overwrite=overwrite) as fid:
         yield fid
         end_file(fid)  # we only hit this line if the yield does not err
 

@@ -27,6 +27,7 @@ from ..utils import (
     _clean_names,
     _is_numeric,
     _pl,
+    _time_mask,
     _to_rgb,
     _validate_type,
     fill_doc,
@@ -1152,6 +1153,7 @@ def plot_evoked_topo(
     background_color="w",
     noise_cov=None,
     exclude="bads",
+    select=False,
     show=True,
 ):
     """Plot 2D topography of evoked responses.
@@ -1217,6 +1219,15 @@ def plot_evoked_topo(
     exclude : list of str | ``'bads'``
         Channels names to exclude from the plot. If ``'bads'``, the
         bad channels are excluded. By default, exclude is set to ``'bads'``.
+    select : bool
+        Whether to enable the lasso-selection tool to enable the user to select
+        channels. The selected channels will be available in
+        ``fig.lasso.selection``.
+
+        .. versionadded:: 1.10.0
+    exclude : list of str | ``'bads'``
+        Channels names to exclude from the plot. If ``'bads'``, the
+        bad channels are excluded. By default, exclude is set to ``'bads'``.
     show : bool
         Show figure if True.
 
@@ -1273,10 +1284,11 @@ def plot_evoked_topo(
         font_color=font_color,
         merge_channels=merge_grads,
         legend=legend,
+        noise_cov=noise_cov,
         axes=axes,
         exclude=exclude,
+        select=select,
         show=show,
-        noise_cov=noise_cov,
     )
 
 
@@ -1988,10 +2000,18 @@ def plot_evoked_joint(
     contours = topomap_args.get("contours", 6)
     ch_type = ch_types.pop()  # set should only contain one element
     # Since the data has all the ch_types, we get the limits from the plot.
-    vmin, vmax = ts_ax.get_ylim()
+    vmin, vmax = (None, None)
     norm = ch_type == "grad"
     vmin = 0 if norm else vmin
-    vmin, vmax = _setup_vmin_vmax(evoked.data, vmin, vmax, norm)
+    time_idx = [
+        np.where(
+            _time_mask(evoked.times, tmin=t, tmax=None, sfreq=evoked.info["sfreq"])
+        )[0][0]
+        for t in times_sec
+    ]
+    scalings = topomap_args["scalings"] if "scalings" in topomap_args else None
+    scaling = _handle_default("scalings", scalings)[ch_type]
+    vmin, vmax = _setup_vmin_vmax(evoked.data[:, time_idx] * scaling, vmin, vmax, norm)
     if not isinstance(contours, list | np.ndarray):
         locator, contours = _set_contour_locator(vmin, vmax, contours)
     else:

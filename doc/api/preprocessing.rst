@@ -116,6 +116,7 @@ Projections:
    read_ica_eeglab
    read_fine_calibration
    write_fine_calibration
+   apply_pca_obs
 
 :py:mod:`mne.preprocessing.nirs`:
 

@@ -122,10 +122,7 @@ def fetch_data(
         )
         _on_missing(on_missing, msg)
     if 13 in subjects and 2 in recording:
-        msg = (
-            "Requested recording 2 for subject 13, but it is not available "
-            "in corpus."
-        )
+        msg = "Requested recording 2 for subject 13, but it is not available in corpus."
         _on_missing(on_missing, msg)
 
     fnames = []

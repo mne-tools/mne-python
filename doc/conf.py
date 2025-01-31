@@ -355,6 +355,7 @@ numpydoc_xref_ignore = {
     "n_frequencies",
     "n_tests",
     "n_samples",
+    "n_peaks",
     "n_permutations",
     "nchan",
     "n_points",
@@ -1289,7 +1290,7 @@ for icon, classes in icon_class.items():
     rst_prolog += f"""
 .. |{icon}| raw:: html
 
-    <i class="{' '.join(classes + (f'fa-{icon}',))}"></i>
+    <i class="{" ".join(classes + (f"fa-{icon}",))}"></i>
 """
 
 rst_prolog += """
