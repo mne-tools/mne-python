@@ -845,7 +845,7 @@ class HEDAnnotations(Annotations):
         ]
         if any(map(len, error_strs)):
             raise ValueError(
-                "Some HED strings in your annotations failed to validate:\n"
+                "Some HED strings in your annotations failed to validate:\n  - "
                 + "\n  - ".join(error_strs)
             )
         self.hed_strings = hed_strings
