@@ -810,11 +810,12 @@ class HEDAnnotations(Annotations):
         duration,
         description,
         hed_strings,
-        hed_version="latest",  # TODO @VisLab what is a sensible default here?
+        hed_version="8.3.0",  # TODO @VisLab what is a sensible default here?
         orig_time=None,
         ch_names=None,
     ):
-        hed = _soft_import("hed", "validation of HED tags in annotations")  # noqa
+        self.hed = _soft_import("hed", "validation of HED tags in annotations")
+
         super().__init__(
             onset=onset,
             duration=duration,
@@ -826,13 +827,36 @@ class HEDAnnotations(Annotations):
         self._update_hed_strings(hed_strings=hed_strings)
 
     def _update_hed_strings(self, hed_strings):
+        # NB: must import; calling self.hed.validator.HedValidator doesn't work
+        from hed.validator import HedValidator
+
         if len(hed_strings) != len(self):
             raise ValueError(
                 f"Number of HED strings ({len(hed_strings)}) must match the number of "
                 f"annotations ({len(self)})."
             )
-        # TODO insert validation of HED strings here
+        # validation of HED strings
+        schema = self.hed.load_schema_version(self.hed_version)
+        validator = HedValidator(schema)
+        error_handler = self.hed.errors.ErrorHandler(check_for_warnings=False)
+        error_strs = [
+            self._validate_one_hed_string(hs, schema, validator, error_handler)
+            for hs in hed_strings
+        ]
+        if any(map(len, error_strs)):
+            raise ValueError(
+                "Some HED strings in your annotations failed to validate:\n"
+                + "\n  - ".join(error_strs)
+            )
         self.hed_strings = hed_strings
+
+    def _validate_one_hed_string(self, hed_string, schema, validator, error_handler):
+        """Validate a user-provided HED string."""
+        foo = self.hed.HedString(hed_string, schema)
+        issues = validator.validate(
+            foo, allow_placeholders=False, error_handler=error_handler
+        )
+        return self.hed.get_printable_issue_string(issues)
 
     def __eq__(self, other):
         """Compare to another HEDAnnotations instance."""
