@@ -3,10 +3,6 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 import os
-
-os.environ["MNE_DATASETS_TESTING_PATH"] = "/home/guibertf/mne_data/MNE-testing-data"
-
-import os
 import re
 from contextlib import nullcontext
 from copy import deepcopy
