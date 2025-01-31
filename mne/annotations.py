@@ -852,9 +852,9 @@ class HEDAnnotations(Annotations):
 
     def _validate_one_hed_string(self, hed_string, schema, validator, error_handler):
         """Validate a user-provided HED string."""
-        foo = self.hed.HedString(hed_string, schema)
+        hs = self.hed.HedString(hed_string, schema)
         issues = validator.validate(
-            foo, allow_placeholders=False, error_handler=error_handler
+            hs, allow_placeholders=False, error_handler=error_handler
         )
         return self.hed.get_printable_issue_string(issues)
 
