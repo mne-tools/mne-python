@@ -569,8 +569,8 @@ class Annotations:
         self.duration = self.duration[order]
         self.description = self.description[order]
         self.ch_names = self.ch_names[order]
-        if hasattr(self, "hed_tags"):
-            self.hed_tags = self.hed_tags[order]
+        if hasattr(self, "hed_strings"):
+            self.hed_strings = self.hed_strings[order]
 
     @verbose
     def crop(
@@ -776,11 +776,12 @@ class HEDAnnotations(Annotations):
         Array of strings containing description for each annotation. If a
         string, all the annotations are given the same description. To reject
         epochs, use description starting with keyword 'bad'. See example above.
-    hed_tags : array of str, shape (n_annotations,) | str
-        Array of strings containing a HED tag for each annotation. If a single string
-        is provided, all annotations are given the same HED tag.
+    hed_strings : array of str, shape (n_annotations,) | str
+        Sequence of strings containing a HED tag (or comma-separated list of HED tags)
+        for each annotation. If a single string is provided, all annotations are
+        assigned the same HED string.
     hed_version : str
-        The HED schema version against which to validate the HED tags.
+        The HED schema version against which to validate the HED strings.
     orig_time : float | str | datetime | tuple of int | None
         A POSIX Timestamp, datetime or a tuple containing the timestamp as the
         first element and microseconds as the second element. Determines the
@@ -808,7 +809,7 @@ class HEDAnnotations(Annotations):
         onset,
         duration,
         description,
-        hed_tags,
+        hed_strings,
         hed_version="latest",  # TODO @VisLab what is a sensible default here?
         orig_time=None,
         ch_names=None,
@@ -824,28 +825,28 @@ class HEDAnnotations(Annotations):
         )
         # TODO validate the HED version the user claims to be using.
         self.hed_version = hed_version
-        self._update_hed_tags(hed_tags=hed_tags)
+        self._update_hed_strings(hed_strings=hed_strings)
 
-    def _update_hed_tags(self, hed_tags):
-        if len(hed_tags) != len(self):
+    def _update_hed_strings(self, hed_strings):
+        if len(hed_strings) != len(self):
             raise ValueError(
-                f"Number of HED tags ({len(hed_tags)}) must match the number of "
+                f"Number of HED strings ({len(hed_strings)}) must match the number of "
                 f"annotations ({len(self)})."
             )
-        # TODO insert validation of HED tags here
-        self.hed_tags = hed_tags
+        # TODO insert validation of HED strings here
+        self.hed_strings = hed_strings
 
     def __eq__(self, other):
         """Compare to another HEDAnnotations instance."""
         return (
             super().__eq__(self, other)
-            and np.array_equal(self.hed_tags, other.hed_tags)
+            and np.array_equal(self.hed_strings, other.hed_strings)
             and self.hed_version == other.hed_version
         )
 
     def __repr__(self):
         """Show a textual summary of the object."""
-        counter = Counter(self.hed_tags)
+        counter = Counter(self.hed_strings)
         kinds = ", ".join(["{} ({})".format(*k) for k in sorted(counter.items())])
         kinds = (": " if len(kinds) > 0 else "") + kinds
         ch_specific = ", channel-specific" if self._any_ch_names() else ""
@@ -859,15 +860,15 @@ class HEDAnnotations(Annotations):
         """Propagate indexing and slicing to the underlying numpy structure."""
         result = super().__getitem__(self, key, with_ch_names=with_ch_names)
         if isinstance(result, OrderedDict):
-            result["hed_tags"] = self.hed_tags[key]
+            result["hed_strings"] = self.hed_strings[key]
         else:
             key = list(key) if isinstance(key, tuple) else key
-            hed_tags = self.hed_tags[key]
+            hed_strings = self.hed_strings[key]
             return HEDAnnotations(
                 result.onset,
                 result.duration,
                 result.description,
-                hed_tags,
+                hed_strings,
                 hed_version=self.hed_version,
                 orig_time=self.orig_time,
                 ch_names=result.ch_names,
