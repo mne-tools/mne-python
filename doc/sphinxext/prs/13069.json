@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "bd8c318537ffcabf4c5fadd4347ec5068bb91b67",
+  "authors": [
+    {
+      "n": "Simon Kern",
+      "e": null
+    },
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/13069.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/conftest.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/edf/edf.py": {
+      "a": 6,
+      "d": 3
+    },
+    "mne/io/edf/tests/test_edf.py": {
+      "a": 18,
+      "d": 0
+    }
+  }
+}

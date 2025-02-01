@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "c0da91db9098b92ec3c20d8c0e237d0e02683865",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "autofix-ci[bot]",
+      "e": "114827586+autofix-ci[bot]@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    "azure-pipelines.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/changes/devel/13062.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/preprocessing/_fine_cal.py": {
+      "a": 9,
+      "d": 6
+    },
+    "mne/preprocessing/tests/test_fine_cal.py": {
+      "a": 13,
+      "d": 1
+    }
+  }
+}

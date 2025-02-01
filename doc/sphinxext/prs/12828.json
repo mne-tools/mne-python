@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "176f64ff061136cf5628d76535a8d7e2e164d399",
+  "authors": [
+    {
+      "n": "Shristi Baral",
+      "e": null
+    },
+    {
+      "n": "shristi",
+      "e": "shristi.baral@aalto.fi"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/12828.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/source_estimate.py": {
+      "a": 7,
+      "d": 0
+    },
+    "mne/utils/docs.py": {
+      "a": 6,
+      "d": 0
+    },
+    "mne/viz/_3d.py": {
+      "a": 13,
+      "d": 3
+    }
+  }
+}

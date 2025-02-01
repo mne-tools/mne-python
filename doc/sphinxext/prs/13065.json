@@ -1,0 +1,103 @@
+{
+  "merge_commit_sha": "5f2b7f1a33d42c5a110f67e098f9efcf92be7fff",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "autofix-ci[bot]",
+      "e": "114827586+autofix-ci[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/13065.bugfix.rst": {
+      "a": 7,
+      "d": 0
+    },
+    "examples/decoding/linear_model_patterns.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/cov.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/decoding/base.py": {
+      "a": 8,
+      "d": 3
+    },
+    "mne/decoding/csp.py": {
+      "a": 43,
+      "d": 56
+    },
+    "mne/decoding/ems.py": {
+      "a": 19,
+      "d": 6
+    },
+    "mne/decoding/search_light.py": {
+      "a": 56,
+      "d": 25
+    },
+    "mne/decoding/ssd.py": {
+      "a": 75,
+      "d": 63
+    },
+    "mne/decoding/tests/test_base.py": {
+      "a": 10,
+      "d": 4
+    },
+    "mne/decoding/tests/test_csp.py": {
+      "a": 31,
+      "d": 15
+    },
+    "mne/decoding/tests/test_ems.py": {
+      "a": 7,
+      "d": 0
+    },
+    "mne/decoding/tests/test_search_light.py": {
+      "a": 15,
+      "d": 15
+    },
+    "mne/decoding/tests/test_ssd.py": {
+      "a": 44,
+      "d": 10
+    },
+    "mne/decoding/tests/test_time_frequency.py": {
+      "a": 17,
+      "d": 6
+    },
+    "mne/decoding/tests/test_transformer.py": {
+      "a": 71,
+      "d": 17
+    },
+    "mne/decoding/time_frequency.py": {
+      "a": 23,
+      "d": 9
+    },
+    "mne/decoding/transformer.py": {
+      "a": 127,
+      "d": 113
+    },
+    "mne/time_frequency/multitaper.py": {
+      "a": 8,
+      "d": 1
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/utils/numerics.py": {
+      "a": 3,
+      "d": 2
+    },
+    "tools/vulture_allowlist.py": {
+      "a": 2,
+      "d": 0
+    }
+  }
+}
