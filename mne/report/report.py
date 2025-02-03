@@ -2420,6 +2420,7 @@ class Report:
         subjects_dir=None,
         decim=2,
         width=512,
+        src=None,
         n_jobs=None,
         tags=("bem",),
         replace=False,
