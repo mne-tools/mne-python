@@ -696,6 +696,8 @@ linkcheck_ignore = [  # will be compiled to regex
     "http://ilabs.washington.edu",
     "https://psychophysiology.cpmc.columbia.edu",
     "https://erc.easme-web.eu",
+    # Not rendered by linkcheck builder
+    r"ides\.html",
 ]
 linkcheck_anchors = False  # saves a bit of time
 linkcheck_timeout = 15  # some can be quite slow
