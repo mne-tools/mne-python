@@ -644,6 +644,7 @@ user_agent = "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit
 linkcheck_ignore = [  # will be compiled to regex
     # 403 Client Error: Forbidden
     "https://doi.org/10.1002/",  # onlinelibrary.wiley.com/doi/10.1002/hbm
+    "https://doi.org/10.1016/",  # neuroimage
     "https://doi.org/10.1021/",  # pubs.acs.org/doi/abs
     "https://doi.org/10.1073/",  # pnas.org
     "https://doi.org/10.1093/",  # academic.oup.com/sleep/
@@ -667,7 +668,7 @@ linkcheck_ignore = [  # will be compiled to regex
     r"https://scholar.google.com/scholar\?cites=12188330066413208874&as_ylo=2014",
     r"https://scholar.google.com/scholar\?cites=1521584321377182930&as_ylo=2013",
     "https://www.research.chop.edu/imaging",
-    "http://prdownloads.sourceforge.net/optipng/optipng-0.7.8-win64.zip?download",
+    "http://prdownloads.sourceforge.net/optipng",
     "https://sourceforge.net/projects/aespa/files/",
     "https://sourceforge.net/projects/ezwinports/files/",
     "https://www.mathworks.com/products/compiler/matlab-runtime.html",
