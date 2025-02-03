@@ -258,6 +258,7 @@
 .. _Roman Goj: https://romanmne.blogspot.co.uk
 .. _Ross Maddox: https://www.urmc.rochester.edu/labs/maddox-lab.aspx
 .. _Rotem Falach: https://github.com/Falach
+.. _Roy Eric Wieske: https://github.com/Randomidous
 .. _Sammi Chekroud: https://github.com/schekroud
 .. _Samu Taulu: https://phys.washington.edu/people/samu-taulu
 .. _Samuel Deslauriers-Gauthier: https://github.com/sdeslauriers
