@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "f82d3993617d2a34744eb955385448c67672d6ec",
+  "authors": [
+    {
+      "n": "Thomas S. Binns",
+      "e": "t.s.binns@outlook.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "doc/api/time_frequency.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/devel/13058.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/time_frequency/__init__.pyi": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/time_frequency/spectrum.py": {
+      "a": 68,
+      "d": 0
+    },
+    "mne/time_frequency/tests/test_spectrum.py": {
+      "a": 54,
+      "d": 1
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 6,
+      "d": 6
+    },
+    "mne/utils/numerics.py": {
+      "a": 33,
+      "d": 24
+    }
+  }
+}
