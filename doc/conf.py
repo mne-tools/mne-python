@@ -672,6 +672,7 @@ linkcheck_ignore = [  # will be compiled to regex
     "https://sourceforge.net/projects/aespa/files/",
     "https://sourceforge.net/projects/ezwinports/files/",
     "https://www.mathworks.com/products/compiler/matlab-runtime.html",
+    "https://medicine.umich.edu/dept/khri/ross-maddox-phd",
     # 500 server error
     "https://openwetware.org/wiki/Beauchamp:FreeSurfer",
     # 503 Server error
