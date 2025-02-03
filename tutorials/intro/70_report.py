@@ -6,18 +6,17 @@ Getting started with mne.Report
 ===============================
 
 :class:`mne.Report` is a way to create interactive HTML summaries of your data.
-These reports can show many different visualizations for one or multiple
-participants. A common use case is creating diagnostic summaries to check data
-quality at different stages in the processing pipeline. The report can show
-things like plots of data before and after each preprocessing step, epoch
-rejection statistics, MRI slices with overlaid BEM shells, all the way up to
-plots of estimated cortical activity.
+These reports can show many different visualizations for one or multiple participants.
+A common use case is creating diagnostic summaries to check data quality at different
+stages in the processing pipeline. The report can show things like plots of data before
+and after each preprocessing step, epoch rejection statistics, MRI slices with overlaid
+BEM shells, all the way up to plots of estimated cortical activity.
 
-Compared to a Jupyter notebook, :class:`mne.Report` is easier to deploy, as the
-HTML pages it generates are self-contained and do not require a running Python
-environment. However, it is less flexible as you can't change code and re-run
-something directly within the browser. This tutorial covers the basics of
-building a report. As usual, we will start by importing the modules and data we need:
+Compared to a Jupyter notebook, :class:`mne.Report` is easier to deploy, as the HTML
+pages it generates are self-contained and do not require a running Python environment.
+However, it is less flexible as you can't change code and re-run something directly
+within the browser. This tutorial covers the basics of building a report. As usual,
+we will start by importing the modules and data we need:
 """
 
 # Authors: The MNE-Python contributors.
@@ -184,8 +183,26 @@ report.save("report_cov.html", overwrite=True)
 ecg_proj_path = sample_dir / "sample_audvis_ecg-proj.fif"
 report = mne.Report(title="Projectors example")
 report.add_projs(info=raw_path, title="Projs from info")
-report.add_projs(info=raw_path, projs=ecg_proj_path, title="ECG projs from path")
+
+# Now a joint plot
+events = mne.read_events(sample_dir / "sample_audvis_ecg-eve.fif")
+raw_full = mne.io.read_raw(sample_dir / "sample_audvis_raw.fif").crop(0, 60).load_data()
+ecg_evoked = mne.Epochs(
+    raw=raw_full,
+    events=events,
+    tmin=-0.5,
+    tmax=0.5,
+    baseline=(None, None),
+).average()
+report.img_max_width = None  # do not constrain image width
+report.add_projs(
+    info=ecg_evoked,
+    projs=ecg_proj_path,
+    title="ECG projs from path",
+    joint=True,  # use joint version of the plot
+)
 report.save("report_projs.html", overwrite=True)
+del raw_full, events, ecg_evoked
 
 # %%
 # Adding `~mne.preprocessing.ICA`

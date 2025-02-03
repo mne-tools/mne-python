@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "e6f9c5df856418d331684dd3477e8c1d1c0f37e1",
+  "authors": [
+    {
+      "n": "Thomas S. Binns",
+      "e": "t.s.binns@outlook.com"
+    }
+  ],
+  "changes": {
+    "environment.yml": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

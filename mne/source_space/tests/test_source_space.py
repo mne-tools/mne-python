@@ -306,7 +306,7 @@ def test_discrete_source_space(tmp_path):
     with pytest.raises(ValueError, match="Cannot create interpolation"):
         setup_volume_source_space("sample", pos=pos_dict, mri=fname_mri)
     assert repr(src_new).split("~")[0] == repr(src_c).split("~")[0]
-    assert " kB" in repr(src_new)
+    assert " KiB" in repr(src_new)
     assert src_new.kind == "discrete"
     assert _get_src_type(src_new, None) == "discrete"
 
@@ -359,7 +359,7 @@ def test_volume_source_space(tmp_path):
         )
     del bem
     assert repr(src) == repr(src_new)
-    assert " MB" in repr(src)
+    assert " MiB" in repr(src)
     assert src.kind == "volume"
     # Spheres
     sphere = make_sphere_model(

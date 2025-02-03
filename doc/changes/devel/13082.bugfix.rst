@@ -1,0 +1,1 @@
+Fix bug with automated Mesa 3D detection for proper 3D option setting on systems with software rendering, by `Eric Larson`_.

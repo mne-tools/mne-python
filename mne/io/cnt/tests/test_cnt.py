@@ -57,7 +57,8 @@ def test_auto_data():
     third = pytest.warns(RuntimeWarning, match="Omitted 6 annot")
     with first, second, third:
         raw = read_raw_cnt(input_fname=fname_bad_spans)
-
+    # Test that responses are read properly
+    assert "KeyPad Response 1" in raw.annotations.description
     assert raw.info["bads"] == ["F8"]
 
     with _no_parse, pytest.warns(RuntimeWarning, match="number of bytes"):

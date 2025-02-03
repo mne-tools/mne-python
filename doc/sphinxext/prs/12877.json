@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "7af60e6329b79810061ccf99df4fa08b5232d1ac",
+  "authors": [
+    {
+      "n": "Mathieu Scheltienne",
+      "e": "mathieu.scheltienne@fcbg.ch"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/12877.bugfix.rst": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/time_frequency/spectrum.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/time_frequency/tests/test_spectrum.py": {
+      "a": 19,
+      "d": 1
+    }
+  }
+}

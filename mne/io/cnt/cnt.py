@@ -14,7 +14,7 @@ from ..._fiff.meas_info import _empty_info
 from ..._fiff.utils import _create_chs, _find_channels, _mult_cal_one, read_str
 from ...annotations import Annotations
 from ...channels.layout import _topo_to_sphere
-from ...utils import _check_option, _validate_type, fill_doc, warn
+from ...utils import _check_option, _explain_exception, _validate_type, fill_doc, warn
 from ..base import BaseRaw
 from ._utils import (
     CNTEventType3,
@@ -150,7 +150,22 @@ def _read_annotations_cnt(fname, data_format="int16"):
             np.array([e.KeyPad_Accept for e in my_events])
         )
 
-        description = np.array([str(e.StimType) for e in my_events])
+        # Check to see if there are any button presses
+        description = []
+        for event in my_events:
+            # Extract the 4-bit fields
+            # Upper nibble (4 bits) currently not used
+            # accept = (event.KeyPad_Accept[0] & 0xF0) >> 4
+            # Lower nibble (4 bits) keypad button press
+            keypad = event.KeyPad_Accept[0] & 0x0F
+            if str(keypad) != "0":
+                description.append(f"KeyPad Response {keypad}")
+            elif event.KeyBoard != 0:
+                description.append(f"Keyboard Response {event.KeyBoard}")
+            else:
+                description.append(str(event.StimType))
+
+        description = np.array(description)
 
         onset, duration, description = _update_bad_span_onset(
             accept_reject, onset / sfreq, duration, description
@@ -337,7 +352,8 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format, he
                 n_samples = data_size // (n_bytes * n_channels)
                 # See: PR #12393
                 annotations = _read_annotations_cnt(input_fname, data_format="int16")
-                if annotations.onset[-1] * sfreq > n_samples:
+                # See: PR #12986
+                if len(annotations) and annotations.onset[-1] * sfreq > n_samples:
                     n_bytes = 4
                     n_samples = n_samples_header
                     warn(
@@ -405,6 +421,7 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format, he
         "first_name": first_name,
         "last_name": last_name,
     }
+    subject_info = {key: val for key, val in subject_info.items() if val is not None}
 
     if eog == "auto":
         eog = _find_channels(ch_names, "EOG")
@@ -530,7 +547,8 @@ class RawCNT(BaseRaw):
             )
         except Exception:
             raise RuntimeError(
-                "Could not read header from *.cnt file. mne.io.read_raw_cnt "
+                f"{_explain_exception()}\n"
+                "WARNING: mne.io.read_raw_cnt "
                 "supports Neuroscan CNT files only. If this file is an ANT Neuro CNT, "
                 "please use mne.io.read_raw_ant instead."
             )
@@ -575,7 +593,7 @@ class RawCNT(BaseRaw):
         block_size = ((int(100e6) // n_bytes) // chunk_size) * chunk_size
         block_size = min(data_left, block_size)
         s_offset = start % channel_offset
-        with open(self._filenames[fi], "rb", buffering=0) as fid:
+        with open(self.filenames[fi], "rb", buffering=0) as fid:
             fid.seek(900 + f_channels * (75 + (start - s_offset) * n_bytes))
             for sample_start in np.arange(0, data_left, block_size) // f_channels:
                 # Earlier comment says n_samples is unreliable, but I think it

@@ -166,7 +166,7 @@ intersphinx_mapping = {
     "mne-gui-addons": ("https://mne.tools/mne-gui-addons", None),
     "picard": ("https://pierreablin.github.io/picard/", None),
     "eeglabio": ("https://eeglabio.readthedocs.io/en/latest", None),
-    "pybv": ("https://pybv.readthedocs.io/en/latest/", None),
+    "pybv": ("https://pybv.readthedocs.io/en/latest", None),
 }
 intersphinx_mapping.update(
     get_intersphinx_mapping(
@@ -355,6 +355,7 @@ numpydoc_xref_ignore = {
     "n_frequencies",
     "n_tests",
     "n_samples",
+    "n_peaks",
     "n_permutations",
     "nchan",
     "n_points",
@@ -648,6 +649,7 @@ linkcheck_ignore = [  # will be compiled to regex
     "https://doi.org/10.1093/",  # academic.oup.com/sleep/
     "https://doi.org/10.1098/",  # royalsocietypublishing.org
     "https://doi.org/10.1101/",  # www.biorxiv.org
+    "https://doi.org/10.1103",  # journals.aps.org/rmp
     "https://doi.org/10.1111/",  # onlinelibrary.wiley.com/doi/10.1111/psyp
     "https://doi.org/10.1126/",  # www.science.org
     "https://doi.org/10.1137/",  # epubs.siam.org
@@ -665,6 +667,10 @@ linkcheck_ignore = [  # will be compiled to regex
     r"https://scholar.google.com/scholar\?cites=12188330066413208874&as_ylo=2014",
     r"https://scholar.google.com/scholar\?cites=1521584321377182930&as_ylo=2013",
     "https://www.research.chop.edu/imaging",
+    "http://prdownloads.sourceforge.net/optipng/optipng-0.7.8-win64.zip?download",
+    "https://sourceforge.net/projects/aespa/files/",
+    "https://sourceforge.net/projects/ezwinports/files/",
+    "https://www.mathworks.com/products/compiler/matlab-runtime.html",
     # 500 server error
     "https://openwetware.org/wiki/Beauchamp:FreeSurfer",
     # 503 Server error
@@ -681,9 +687,13 @@ linkcheck_ignore = [  # will be compiled to regex
     # Too slow
     "https://speakerdeck.com/dengemann/",
     "https://www.dtu.dk/english/service/phonebook/person",
+    "https://www.gnu.org/software/make/",
+    "https://www.macports.org/",
+    "https://hastie.su.domains/CASI",
     # SSL problems sometimes
     "http://ilabs.washington.edu",
     "https://psychophysiology.cpmc.columbia.edu",
+    "https://erc.easme-web.eu",
 ]
 linkcheck_anchors = False  # saves a bit of time
 linkcheck_timeout = 15  # some can be quite slow
@@ -728,10 +738,12 @@ nitpick_ignore_regex = [
     ("py:.*", r"mne\.io\..*\.Raw.*"),  # RawEDF etc.
     ("py:.*", r"mne\.epochs\.EpochsFIF.*"),
     ("py:.*", r"mne\.io\..*\.Epochs.*"),  # EpochsKIT etc.
-    (
+    (  # BaseRaw attributes are documented in Raw
         "py:obj",
-        "(filename|metadata|proj|times|tmax|tmin|annotations|ch_names|compensation_grade|filenames|first_samp|first_time|last_samp|n_times|proj|times|tmax|tmin)",
-    ),  # noqa: E501
+        "(filename|metadata|proj|times|tmax|tmin|annotations|ch_names"
+        "|compensation_grade|duration|filenames|first_samp|first_time"
+        "|last_samp|n_times|proj|times|tmax|tmin)",
+    ),
 ]
 suppress_warnings = [
     "image.nonlocal_uri",  # we intentionally link outside
@@ -1278,7 +1290,7 @@ for icon, classes in icon_class.items():
     rst_prolog += f"""
 .. |{icon}| raw:: html
 
-    <i class="{' '.join(classes + (f'fa-{icon}',))}"></i>
+    <i class="{" ".join(classes + (f"fa-{icon}",))}"></i>
 """
 
 rst_prolog += """

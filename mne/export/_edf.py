@@ -7,6 +7,7 @@ from collections.abc import Callable
 
 import numpy as np
 
+from ..annotations import _sync_onset
 from ..utils import _check_edfio_installed, warn
 
 _check_edfio_installed()
@@ -138,6 +139,8 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
         if physical_range == "auto":  # per channel type
             pmin = ch_types_phys_min[ch_type]
             pmax = ch_types_phys_max[ch_type]
+            if pmax == pmin:
+                pmax = pmin + 1
             prange = pmin, pmax
 
         signals.append(
@@ -202,7 +205,9 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
 
     for desc, onset, duration, ch_names in zip(
         raw.annotations.description,
-        raw.annotations.onset,
+        # subtract raw.first_time because EDF marks events starting from the first
+        # available data point and ignores raw.first_time
+        _sync_onset(raw, raw.annotations.onset, inverse=False),
         raw.annotations.duration,
         raw.annotations.ch_names,
     ):

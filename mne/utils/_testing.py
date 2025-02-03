@@ -179,10 +179,10 @@ def assert_and_remove_boundary_annot(annotations, n=1):
         annotations.delete(idx)
 
 
-def assert_object_equal(a, b):
+def assert_object_equal(a, b, *, err_msg="Object mismatch", allclose=False):
     """Assert two objects are equal."""
-    d = object_diff(a, b)
-    assert d == "", d
+    d = object_diff(a, b, allclose=allclose)
+    assert d == "", f"{err_msg}\n{d}"
 
 
 def _raw_annot(meas_date, orig_time):

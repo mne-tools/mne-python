@@ -41,7 +41,7 @@ def make_data():
     return X, y
 
 
-def test_search_light():
+def test_search_light_basic():
     """Test SlidingEstimator."""
     # https://github.com/scikit-learn/scikit-learn/issues/27711
     if platform.system() == "Windows" and check_version("numpy", "2.0.0.dev0"):
@@ -52,10 +52,13 @@ def test_search_light():
     X, y = make_data()
     n_epochs, _, n_time = X.shape
     # init
-    pytest.raises(ValueError, SlidingEstimator, "foo")
+    sl = SlidingEstimator("foo")
+    with pytest.raises(ValueError, match="must be"):
+        sl.fit(X, y)
     sl = SlidingEstimator(Ridge())
     assert not is_classifier(sl)
     sl = SlidingEstimator(LogisticRegression(solver="liblinear"))
+    assert is_classifier(sl.base_estimator)
     assert is_classifier(sl)
     # fit
     assert_equal(sl.__repr__()[:18], "<SlidingEstimator(")
@@ -68,7 +71,8 @@ def test_search_light():
     # transforms
     pytest.raises(ValueError, sl.predict, X[:, :, :2])
     y_trans = sl.transform(X)
-    assert X.dtype == y_trans.dtype == np.dtype(float)
+    assert X.dtype == float
+    assert y_trans.dtype == float
     y_pred = sl.predict(X)
     assert y_pred.dtype == np.dtype(int)
     assert_array_equal(y_pred.shape, [n_epochs, n_time])
@@ -343,21 +347,19 @@ def test_cross_val_predict():
 
 
 @pytest.mark.slowtest
-@parametrize_with_checks([SlidingEstimator(LogisticRegression(), allow_2d=True)])
+@parametrize_with_checks(
+    [
+        SlidingEstimator(LogisticRegression(), allow_2d=True),
+        GeneralizingEstimator(LogisticRegression(), allow_2d=True),
+    ]
+)
 def test_sklearn_compliance(estimator, check):
     """Test LinearModel compliance with sklearn."""
     ignores = (
-        "check_estimator_sparse_data",  # we densify
-        "check_classifiers_one_label_sample_weights",  # don't handle singleton
-        "check_classifiers_classes",  # dim mismatch
+        # TODO: we don't handle singleton right (probably)
+        "check_classifiers_one_label_sample_weights",
+        "check_classifiers_classes",
         "check_classifiers_train",
-        "check_decision_proba_consistency",
-        "check_parameters_default_constructible",
-        # Should probably fix these?
-        "check_estimators_unfitted",
-        "check_transformer_data_not_an_array",
-        "check_n_features_in",
-        "check_fit2d_predict1d",
     )
     if any(ignore in str(check) for ignore in ignores):
         return

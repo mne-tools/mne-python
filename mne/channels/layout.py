@@ -103,13 +103,9 @@ class Layout:
             raise ValueError("Unknown layout type. Should be of type .lout or .lay.")
 
         for ii in range(x.shape[0]):
-            out_str += "%03d %8.2f %8.2f %8.2f %8.2f %s\n" % (
-                self.ids[ii],
-                x[ii],
-                y[ii],
-                width[ii],
-                height[ii],
-                self.names[ii],
+            out_str += (
+                f"{self.ids[ii]:03d} {x[ii]:8.2f} {y[ii]:8.2f} "
+                f"{width[ii]:8.2f} {height[ii]:8.2f} {self.names[ii]}\n"
             )
 
         f = open(fname, "w")
@@ -945,14 +941,13 @@ def _auto_topomap_coords(info, picks, ignore_overlap, to_sphere, sphere):
         if len(locs3d) == 0:
             raise RuntimeError(
                 "Did not find any digitization points of "
-                "kind FIFFV_POINT_EEG (%d) in the info." % FIFF.FIFFV_POINT_EEG
+                f"kind {FIFF.FIFFV_POINT_EEG} in the info."
             )
 
         if len(locs3d) != len(eeg_ch_names):
             raise ValueError(
-                "Number of EEG digitization points (%d) "
-                "doesn't match the number of EEG channels "
-                "(%d)" % (len(locs3d), len(eeg_ch_names))
+                f"Number of EEG digitization points ({len(locs3d)}) doesn't match the "
+                f"number of EEG channels ({len(eeg_ch_names)})"
             )
 
         # We no longer center digitization points on head origin, as we work

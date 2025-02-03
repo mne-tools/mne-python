@@ -70,8 +70,7 @@ def _frombuffer_rows(fid, tag_size, dtype=None, shape=None, rlims=None):
         have_shape = tag_size // item_size
         if want_shape != have_shape:
             raise ValueError(
-                f"Wrong shape specified, requested {want_shape} but got "
-                f"{have_shape}"
+                f"Wrong shape specified, requested {want_shape} but got {have_shape}"
             )
         if not len(rlims) == 2:
             raise ValueError("rlims must have two elements")

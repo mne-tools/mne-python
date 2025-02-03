@@ -464,9 +464,11 @@ class UpdateChannelsMixin:
 
         Notes
         -----
-        The channel names given are assumed to be a set, i.e. the order
-        does not matter. The original order of the channels is preserved.
-        You can use ``reorder_channels`` to set channel order if necessary.
+        If ``ordered`` is ``False``, the channel names given via ``ch_names`` are
+        assumed to be a set, that is, their order does not matter. In that case, the
+        original order of the channels in the data is preserved. Apart from using
+        ``ordered=True``, you may also use ``reorder_channels`` to set channel order,
+        if necessary.
 
         .. versionadded:: 0.9.0
         """
@@ -659,17 +661,21 @@ class UpdateChannelsMixin:
         return self
 
     def add_channels(self, add_list, force_update_info=False):
-        """Append new channels to the instance.
+        """Append new channels from other MNE objects to the instance.
 
         Parameters
         ----------
         add_list : list
-            A list of objects to append to self. Must contain all the same
-            type as the current object.
+            A list of MNE objects to append to the current instance.
+            The channels contained in the other instances are appended to the
+            channels of the current instance. Therefore, all other instances
+            must be of the same type as the current object.
+            See notes on how to add data coming from an array.
         force_update_info : bool
             If True, force the info for objects to be appended to match the
-            values in ``self``. This should generally only be used when adding
-            stim channels for which important metadata won't be overwritten.
+            values of the current instance. This should generally only be
+            used when adding stim channels for which important metadata won't
+            be overwritten.
 
             .. versionadded:: 0.12
 
@@ -686,6 +692,12 @@ class UpdateChannelsMixin:
         -----
         If ``self`` is a Raw instance that has been preloaded into a
         :obj:`numpy.memmap` instance, the memmap will be resized.
+
+        This function expects an MNE object to be appended (e.g. :class:`~mne.io.Raw`,
+        :class:`~mne.Epochs`, :class:`~mne.Evoked`). If you simply want to add a
+        channel based on values of an np.ndarray, you need to create a
+        :class:`~mne.io.RawArray`.
+        See <https://mne.tools/mne-project-template/auto_examples/plot_mne_objects_from_arrays.html>`_
         """
         # avoid circular imports
         from ..epochs import BaseEpochs
@@ -1370,7 +1382,7 @@ def read_ch_adjacency(fname, picks=None):
             raise ValueError(
                 f"No built-in channel adjacency matrix found with name: "
                 f"{ch_adj_name}. Valid names are: "
-                f'{", ".join(get_builtin_ch_adjacencies())}'
+                f"{', '.join(get_builtin_ch_adjacencies())}"
             )
 
         ch_adj = [a for a in _BUILTIN_CHANNEL_ADJACENCIES if a.name == ch_adj_name][0]
@@ -1646,13 +1658,10 @@ def fix_mag_coil_types(info, use_cal=False):
               Therefore the use of ``fix_mag_coil_types`` is not mandatory.
     """
     old_mag_inds = _get_T1T2_mag_inds(info, use_cal)
-
+    n_mag = len(pick_types(info, meg="mag", exclude=[]))
     for ii in old_mag_inds:
         info["chs"][ii]["coil_type"] = FIFF.FIFFV_COIL_VV_MAG_T3
-    logger.info(
-        "%d of %d magnetometer types replaced with T3."
-        % (len(old_mag_inds), len(pick_types(info, meg="mag", exclude=[])))
-    )
+    logger.info(f"{len(old_mag_inds)} of {n_mag} magnetometer types replaced with T3.")
     info._check_consistency()
 
 
