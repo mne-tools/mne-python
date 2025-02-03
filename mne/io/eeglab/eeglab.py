@@ -39,8 +39,8 @@ CAL = 1e-6
 def _check_eeglab_fname(fname, dataname):
     """Check whether the filename is valid.
 
-    Check if the file extension is ``.fdt`` (older ``.dat`` being invalid) 
-    or ``.set`` (new EEGLAB format) or whether the ``EEG.data`` filename exists. 
+    Check if the file extension is ``.fdt`` (older ``.dat`` being invalid)
+    or ``.set`` (new EEGLAB format) or whether the ``EEG.data`` filename exists.
     If ``EEG.data`` file is absent the set file name with .set changed to .fdt is checked.
     """
     fmt = str(op.splitext(dataname)[-1])
@@ -50,9 +50,7 @@ def _check_eeglab_fname(fname, dataname):
             "version and resave the data in .fdt format"
         )
     if fmt != ".set" and fmt != ".fdt":
-        raise ValueError(
-            "The file extension must be .set or .fdt, not {}".format(fmt)
-        )
+        raise ValueError(f"The file extension must be .set or .fdt, not {fmt}")
     basedir = op.dirname(fname)
     data_fname = op.join(basedir, dataname)
     if not op.exists(data_fname):
