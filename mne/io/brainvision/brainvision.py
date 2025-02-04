@@ -32,18 +32,18 @@ class RawBrainVision(BaseRaw):
     ----------
     vhdr_fname : path-like
         Path to the EEG header file.
-    eog : list or tuple
-        Names of channels or list of indices that should be designated
-        EOG channels. Values should correspond to the header file.
-        Default is ``('HEOGL', 'HEOGR', 'VEOGb')``.
+    eog : list or tuple of str
+        Names of channels or list of indices that should be designated EOG channels.
+        Values should correspond to the header file. Default is ``('HEOGL', 'HEOGR',
+        'VEOGb')``.
     misc : list or tuple of str | ``'auto'``
-        Names of channels or list of indices that should be designated
-        MISC channels. Values should correspond to the electrodes
-        in the header file. If ``'auto'``, units in header file are used for
-        inferring misc channels. Default is ``'auto'``.
+        Names of channels or list of indices that should be designated MISC channels.
+        Values should correspond to the electrodes in the header file. If ``'auto'``,
+        units in header file are used for inferring misc channels. Default is
+        ``'auto'``.
     scale : float
-        The scaling factor for EEG data. Unless specified otherwise by
-        header file, units are in microvolts. Default scale factor is 1.
+        The scaling factor for EEG data. Unless specified otherwise by header file,
+        units are in microvolts. Default scale factor is 1.
     ignore_marker_types : bool
         If ``True``, ignore marker types and only use marker descriptions. Default is
         ``False``.
@@ -64,10 +64,9 @@ class RawBrainVision(BaseRaw):
     Notes
     -----
     If the BrainVision header file contains impedance measurements, these may be
-    accessed using ``raw.impedances`` after reading using this function. However,
-    this attribute will NOT be available after a save and re-load of the data.
-    That is, it is only available when reading data directly from the BrainVision
-    header file.
+    accessed using ``raw.impedances`` after reading using this function. However, this
+    attribute will NOT be available after a save and re-load of the data. That is, it is
+    only available when reading data directly from the BrainVision header file.
 
     BrainVision markers consist of a type and a description (in addition to other fields
     like onset and duration). In contrast, annotations in MNE only have a description.
@@ -110,7 +109,7 @@ class RawBrainVision(BaseRaw):
             if isinstance(fmt, dict):  # ASCII, this will be slow :(
                 if order == "F":  # multiplexed, channels in columns
                     n_skip = 0
-                    for ii in range(int(fmt["skiplines"])):
+                    for _ in range(int(fmt["skiplines"])):
                         n_skip += len(f.readline())
                     offsets = np.cumsum([n_skip] + [len(line) for line in f])
                     n_samples = len(offsets) - 1
@@ -183,9 +182,8 @@ class RawBrainVision(BaseRaw):
                     line = fid.readline().decode("ASCII")
                     line = line.strip()
 
-                    # Not sure why we special-handle the "," character here,
-                    # but let's just keep this for historical and backward-
-                    # compat reasons
+                    # Not sure why we special-handle the "," character here, but let's
+                    # just keep this for historical and backward- compat reasons
                     if (
                         isinstance(fmt, dict)
                         and "decimalsymbol" in fmt
@@ -243,44 +241,40 @@ def _read_mrk(fname, ignore_marker_types=False):
     description : array, shape (n_annots,)
         The description of each annotation.
     date_str : str
-        The recording time as a string. Defaults to empty string if no
-        recording time is found.
+        The recording time as a string. Defaults to empty string if no recording time is
+        found.
     """
     # read marker file
     with open(fname, "rb") as fid:
         txt = fid.read()
 
-    # we don't actually need to know the coding for the header line.
-    # the characters in it all belong to ASCII and are thus the
-    # same in Latin-1 and UTF-8
+    # we don't actually need to know the coding for the header line. the characters in
+    # it all belong to ASCII and are thus the same in Latin-1 and UTF-8
     header = txt.decode("ascii", "ignore").split("\n")[0].strip()
     _check_bv_version(header, "marker")
 
-    # although the markers themselves are guaranteed to be ASCII (they
-    # consist of numbers and a few reserved words), we should still
-    # decode the file properly here because other (currently unused)
-    # blocks, such as that the filename are specifying are not
-    # guaranteed to be ASCII.
+    # although the markers themselves are guaranteed to be ASCII (they consist of
+    # numbers and a few reserved words), we should still decode the file properly here
+    # because other (currently unused) blocks, such as that the filename are specifying
+    # are not guaranteed to be ASCII.
 
     try:
-        # if there is an explicit codepage set, use it
-        # we pretend like it's ascii when searching for the codepage
+        # if there is an explicit codepage set, use it we pretend like it's ASCII when
+        # searching for the codepage
         cp_setting = re.search(
             "Codepage=(.+)", txt.decode("ascii", "ignore"), re.IGNORECASE & re.MULTILINE
         )
         codepage = "utf-8"
         if cp_setting:
             codepage = cp_setting.group(1).strip()
-        # BrainAmp Recorder also uses ANSI codepage
-        # an ANSI codepage raises a LookupError exception
-        # python recognize ANSI decoding as cp1252
+        # BrainAmp Recorder also uses ANSI codepage; an ANSI codepage raises a
+        # LookupError exception; Python recognize ANSI decoding as cp1252
         if codepage == "ANSI":
             codepage = "cp1252"
         txt = txt.decode(codepage)
     except UnicodeDecodeError:
-        # if UTF-8 (new standard) or explicit codepage setting fails,
-        # fallback to Latin-1, which is Windows default and implicit
-        # standard in older recordings
+        # if UTF-8 (new standard) or explicit codepage setting fails, fallback to
+        # Latin-1, which is Windows default and implicit standard in older recordings
         txt = txt.decode("latin-1")
 
     # extract Marker Infos block
@@ -304,9 +298,9 @@ def _read_mrk(fname, ignore_marker_types=False):
         mtype = mtype.replace(r"\1", ",")
         mdesc = mdesc.replace(r"\1", ",")
         if date_str == "" and len(info_data) == 5 and mtype == "New Segment":
-            # to handle the origin of time and handle the presence of multiple
-            # New Segment annotations. We only keep the first one that is
-            # different from an empty string for date_str.
+            # to handle the origin of time and handle the presence of multiple New
+            # Segment annotations. We only keep the first one that is different from an
+            # empty string for date_str.
             date_str = info_data[-1]
 
         this_duration = int(this_duration) if this_duration.isdigit() else 0
@@ -372,8 +366,8 @@ def _check_bv_version(header, kind):
         "MNE-Python currently only supports %s versions 1.0 and 2.0, got unparsable "
         "%r. Contact MNE-Python developers for support."
     )
-    # optional space, optional Core or V-Amp, optional Exchange,
-    # Version/Header, optional comma, 1/2
+    # optional space, optional Core or V-Amp, optional Exchange, Version/Header,
+    # optional comma, 1/2
     _data_re = r"Brain ?Vision( Core| V-Amp)? Data( Exchange)? %s File,? Version %s\.0"
 
     assert kind in ("header", "marker")
@@ -416,8 +410,8 @@ def _str_to_meas_date(date_str):
     if date_str in ["", "0", "00000000000000000000"]:
         return None
 
-    # these calculations are in naive time but should be okay since
-    # they are relative (subtraction below)
+    # these calculations are in naive time but should be okay since they are relative
+    # (subtraction below)
     try:
         meas_date = datetime.strptime(date_str, "%Y%m%d%H%M%S%f")
     except ValueError as e:
@@ -436,16 +430,15 @@ def _aux_hdr_info(hdr_fname):
         # extract the first section to resemble a cfg
         header = f.readline()
         codepage = "utf-8"
-        # we don't actually need to know the coding for the header line.
-        # the characters in it all belong to ASCII and are thus the
-        # same in Latin-1 and UTF-8
+        # we don't actually need to know the coding for the header line; the characters
+        # in it all belong to ASCII and are thus the same in Latin-1 and UTF-8
         header = header.decode("ascii", "ignore").strip()
         _check_bv_version(header, "header")
 
         settings = f.read()
         try:
             # if there is an explicit codepage set, use it
-            # we pretend like it's ascii when searching for the codepage
+            # we pretend like it's ASCII when searching for the codepage
             cp_setting = re.search(
                 "Codepage=(.+)",
                 settings.decode("ascii", "ignore"),
@@ -453,16 +446,15 @@ def _aux_hdr_info(hdr_fname):
             )
             if cp_setting:
                 codepage = cp_setting.group(1).strip()
-            # BrainAmp Recorder also uses ANSI codepage
-            # an ANSI codepage raises a LookupError exception
-            # python recognize ANSI decoding as cp1252
+            # BrainAmp Recorder also uses ANSI codepage; an ANSI codepage raises a
+            # LookupError exception; Python recognize ANSI decoding as cp1252
             if codepage == "ANSI":
                 codepage = "cp1252"
             settings = settings.decode(codepage)
         except UnicodeDecodeError:
-            # if UTF-8 (new standard) or explicit codepage setting fails,
-            # fallback to Latin-1, which is Windows default and implicit
-            # standard in older recordings
+            # if UTF-8 (new standard) or explicit codepage setting fails, fallback to
+            # Latin-1, which is Windows default and implicit standard in older
+            # recordings
             settings = settings.decode("latin-1")
 
     if settings.find("[Comment]") != -1:
@@ -499,13 +491,12 @@ def _get_hdr_info(hdr_fname, eog, misc, scale):
         Names of channels that should be designated EOG channels. Names should
         correspond to the header file.
     misc : list or tuple of str | 'auto'
-        Names of channels or list of indices that should be designated
-        MISC channels. Values should correspond to the electrodes in the
-        header file. If 'auto', units in header file are used for inferring
-        misc channels. Default is ``'auto'``.
+        Names of channels or list of indices that should be designated MISC channels.
+        Values should correspond to the electrodes in the header file. If 'auto', units
+        in header file are used for inferring misc channels. Default is ``'auto'``.
     scale : float
-        The scaling factor for EEG data. Unless specified otherwise by
-        header file, units are in microvolts. Default scale factor is 1.
+        The scaling factor for EEG data. Unless specified otherwise by header file,
+        units are in microvolts. Default scale factor is 1.
 
     Returns
     -------
@@ -523,16 +514,16 @@ def _get_hdr_info(hdr_fname, eog, misc, scale):
     montage : DigMontage
         Coordinates of the channels, if present in the header file.
     orig_units : dict
-        Dictionary mapping channel names to their units as specified in
-        the header file. Example: {'FC1': 'nV'}
+        Dictionary mapping channel names to their units as specified in the header file.
+        Example: {'FC1': 'nV'}
     """
     scale = float(scale)
     ext = op.splitext(hdr_fname)[-1]
     ahdr_format = ext == ".ahdr"
     if ext not in (".vhdr", ".ahdr"):
         raise OSError(
-            "The header file must be given to read the data, "
-            f"not a file with extension '{ext}'."
+            "The header file must be given to read the data, not a file with extension "
+            f"'{ext}'."
         )
 
     settings, cfg, cinfostr, info = _aux_hdr_info(hdr_fname)
@@ -552,9 +543,8 @@ def _get_hdr_info(hdr_fname, eog, misc, scale):
     else:
         if order == "C":  # channels in rows
             raise NotImplementedError(
-                "BrainVision files with ASCII data in "
-                "vectorized order (i.e. channels in rows"
-                ") are not supported yet."
+                "BrainVision files with ASCII data in vectorized order (i.e. channels "
+                "in rows) are not supported yet."
             )
         fmt = {key: cfg.get("ASCII Infos", key) for key in cfg.options("ASCII Infos")}
 
@@ -590,8 +580,8 @@ def _get_hdr_info(hdr_fname, eog, misc, scale):
             n_samples = cfg.getint(cinfostr, "DataPoints")
         except configparser.NoOptionError:
             warn(
-                "No info on DataPoints found. Inferring number of "
-                "samples from the data file size."
+                "No info on DataPoints found. Inferring number of  samples from the "
+                "data file size."
             )
             with open(data_fname, "rb") as fid:
                 fid.seek(0, 2)
@@ -644,12 +634,11 @@ def _get_hdr_info(hdr_fname, eog, misc, scale):
 
     misc = list(misc_chs.keys()) if misc == "auto" else misc
 
-    # create montage: 'Coordinates' section in VHDR/AHDR file corresponds to
-    # "BVEF" BrainVision Electrode File. The data are based on BrainVision
-    # Analyzer coordinate system: Defined between standard electrode positions:
-    # X-axis from T7 to T8, Y-axis from Oz to Fpz, Z-axis orthogonal from
-    # XY-plane through Cz, fit to a sphere if idealized (when radius=1),
-    # specified in mm
+    # create montage: 'Coordinates' section in VHDR/AHDR file corresponds to "BVEF"
+    # BrainVision Electrode File. The data are based on BrainVision Analyzer coordinate
+    # system: Defined between standard electrode positions: X-axis from T7 to T8, Y-axis
+    # from Oz to Fpz, Z-axis orthogonal from XY-plane through Cz, fit to a sphere if
+    # idealized (when radius=1), specified in mm
     montage = None
     if cfg.has_section("Coordinates"):
         montage_pos = list()
@@ -671,8 +660,8 @@ def _get_hdr_info(hdr_fname, eog, misc, scale):
             if (pos == 0).all() and ch_name not in list(eog) + misc:
                 to_misc.append(ch_name)
             montage_pos.append(pos)
-        # Make a montage, normalizing from BrainVision units "mm" to "m", the
-        # unit used for montages in MNE
+        # Make a montage, normalizing from BrainVision units "mm" to "m", the unit used
+        # for montages in MNE
         montage_pos = np.array(montage_pos) / 1e3
         montage = make_dig_montage(
             ch_pos=dict(zip(montage_names, montage_pos)), coord_frame="head"
@@ -688,8 +677,8 @@ def _get_hdr_info(hdr_fname, eog, misc, scale):
     if np.isnan(cals).any():
         raise RuntimeError("Missing channel units")
 
-    # Attempts to extract filtering info from header. If not found, both are
-    # set to zero.
+    # Attempts to extract filtering info from header. If not found, both are set to
+    # zero.
     settings = settings.splitlines()
     idx = None
 
@@ -703,9 +692,9 @@ def _get_hdr_info(hdr_fname, eog, misc, scale):
             else:
                 idx = None
 
-    # If software filters are active, then they override the hardware setup
-    # But we still want to be able to double check the channel names
-    # for alignment purposes, we keep track of the hardware setting idx
+    # If software filters are active, then they override the hardware setup; we still
+    # want to be able to double check the channel names for alignment purposes, we keep
+    # track of the hardware setting idx
     idx_amp = idx
     filter_list_has_ch_name = True
 
@@ -716,8 +705,8 @@ def _get_hdr_info(hdr_fname, eog, misc, scale):
                 hp_col, lp_col = 1, 2
                 filter_list_has_ch_name = False
                 warn(
-                    "Online software filter detected. Using software "
-                    "filter settings and ignoring hardware values"
+                    "Online software filter detected. Using software filter settings "
+                    "and ignoring hardware values"
                 )
                 break
             else:
@@ -727,19 +716,18 @@ def _get_hdr_info(hdr_fname, eog, misc, scale):
         lowpass = []
         highpass = []
 
-        # for newer BV files, the unit is specified for every channel
-        # separated by a single space, while for older files, the unit is
-        # specified in the column headers
+        # for newer BV files, the unit is specified for every channel separated by a
+        # single space, while for older files, the unit is specified in the column
+        # headers
         divider = r"\s+"
         if "Resolution / Unit" in settings[idx]:
             shift = 1  # shift for unit
         else:
             shift = 0
 
-        # Extract filter units and convert from seconds to Hz if necessary.
-        # this cannot be done as post-processing as the inverse t-f
-        # relationship means that the min/max comparisons don't make sense
-        # unless we know the units.
+        # Extract filter units and convert from seconds to Hz if necessary. this cannot
+        # be done as post-processing as the inverse t-f relationship means that the
+        # min/max comparisons don't make sense unless we know the units.
         #
         # For reasoning about the s to Hz conversion, see this reference:
         # `Ebersole, J. S., & Pedley, T. A. (Eds.). (2003).
@@ -787,20 +775,20 @@ def _get_hdr_info(hdr_fname, eog, misc, scale):
         else:
             heterogeneous_hp_filter = True
             if hp_s:
-                # We convert channels with disabled filters to having
-                # highpass relaxed / no filters
+                # We convert channels with disabled filters to having highpass relaxed /
+                # no filters
                 highpass = [
                     float(filt) if filt not in ("NaN", "Off", "DC") else np.inf
                     for filt in highpass
                 ]
                 info["highpass"] = np.max(np.array(highpass, dtype=np.float64))
-                # Conveniently enough 1 / np.inf = 0.0, so this works for
-                # DC / no highpass filter
+                # Conveniently enough 1 / np.inf = 0.0, so this works for DC / no
+                # highpass filter
                 # filter time constant t [secs] to Hz conversion: 1/2*pi*t
                 info["highpass"] = 1.0 / (2 * np.pi * info["highpass"])
 
-                # not exactly the cleanest use of FP, but this makes us
-                # more conservative in *not* warning.
+                # not exactly the cleanest use of FP, but this makes us more
+                # conservative in *not* warning.
                 if info["highpass"] == 0.0 and len(set(highpass)) == 1:
                     # not actually heterogeneous in effect
                     # ... just heterogeneously disabled
@@ -818,9 +806,8 @@ def _get_hdr_info(hdr_fname, eog, misc, scale):
 
             if heterogeneous_hp_filter:
                 warn(
-                    "Channels contain different highpass filters. "
-                    f"Lowest (weakest) filter setting ({info['highpass']:0.2f} Hz) "
-                    "will be stored."
+                    "Channels contain different highpass filters. Lowest (weakest) "
+                    f"filter setting ({info['highpass']:0.2f} Hz) will be stored."
                 )
 
         if len(lowpass) == 0:
@@ -837,8 +824,8 @@ def _get_hdr_info(hdr_fname, eog, misc, scale):
         else:
             heterogeneous_lp_filter = True
             if lp_s:
-                # We convert channels with disabled filters to having
-                # infinitely relaxed / no filters
+                # We convert channels with disabled filters to having infinitely relaxed
+                # / no filters
                 lowpass = [
                     float(filt) if filt not in ("NaN", "Off", "0") else 0.0
                     for filt in lowpass
@@ -850,19 +837,19 @@ def _get_hdr_info(hdr_fname, eog, misc, scale):
 
                 except ZeroDivisionError:
                     if len(set(lowpass)) == 1:
-                        # No lowpass actually set for the weakest setting
-                        # so we set lowpass to the Nyquist frequency
+                        # No lowpass actually set for the weakest setting so we set
+                        # lowpass to the Nyquist frequency
                         info["lowpass"] = info["sfreq"] / 2.0
                         # not actually heterogeneous in effect
                         # ... just heterogeneously disabled
                         heterogeneous_lp_filter = False
                     else:
-                        # no lowpass filter is the weakest filter,
-                        # but it wasn't the only filter
+                        # no lowpass filter is the weakest filter, but it wasn't the
+                        # only filter
                         pass
             else:
-                # We convert channels with disabled filters to having
-                # infinitely relaxed / no filters
+                # We convert channels with disabled filters to having infinitely relaxed
+                # / no filters
                 lowpass = [
                     float(filt) if filt not in ("NaN", "Off", "0") else np.inf
                     for filt in lowpass
@@ -870,8 +857,8 @@ def _get_hdr_info(hdr_fname, eog, misc, scale):
                 info["lowpass"] = np.max(np.array(lowpass, dtype=np.float64))
 
                 if np.isinf(info["lowpass"]):
-                    # No lowpass actually set for the weakest setting
-                    # so we set lowpass to the Nyquist frequency
+                    # No lowpass actually set for the weakest setting so we set lowpass
+                    # to the Nyquist frequency
                     info["lowpass"] = info["sfreq"] / 2.0
                     if len(set(lowpass)) == 1:
                         # not actually heterogeneous in effect
@@ -879,10 +866,10 @@ def _get_hdr_info(hdr_fname, eog, misc, scale):
                         heterogeneous_lp_filter = False
 
             if heterogeneous_lp_filter:
-                # this isn't clean FP, but then again, we only want to provide
-                # the Nyquist hint when the lowpass filter was actually
-                # calculated from dividing the sampling frequency by 2, so the
-                # exact/direct comparison (instead of tolerance) makes sense
+                # this isn't clean FP, but then again, we only want to provide the
+                # Nyquist hint when the lowpass filter was actually calculated from
+                # dividing the sampling frequency by 2, so the exact/direct comparison
+                # (instead of tolerance) makes sense
                 if info["lowpass"] == info["sfreq"] / 2.0:
                     nyquist = ", Nyquist limit"
                 else:
@@ -954,28 +941,30 @@ def read_raw_brainvision(
     vhdr_fname : path-like
         Path to the EEG header file.
     eog : list or tuple of str
-        Names of channels or list of indices that should be designated
-        EOG channels. Values should correspond to the header file
-        Default is ``('HEOGL', 'HEOGR', 'VEOGb')``.
+        Names of channels or list of indices that should be designated EOG channels.
+        Values should correspond to the header file Default is ``('HEOGL', 'HEOGR',
+        'VEOGb')``.
     misc : list or tuple of str | ``'auto'``
-        Names of channels or list of indices that should be designated
-        MISC channels. Values should correspond to the electrodes in the
-        header file. If ``'auto'``, units in header file are used for inferring
-        misc channels. Default is ``'auto'``.
+        Names of channels or list of indices that should be designated MISC channels.
+        Values should correspond to the electrodes in the header file. If ``'auto'``,
+        units in header file are used for inferring misc channels. Default is
+        ``'auto'``.
     scale : float
-        The scaling factor for EEG data. Unless specified otherwise by
-        header file, units are in microvolts. Default scale factor is 1.
+        The scaling factor for EEG data. Unless specified otherwise by header file,
+        units are in microvolts. Default scale factor is 1.
     ignore_marker_types : bool
         If ``True``, ignore marker types and only use marker descriptions. Default is
         ``False``.
+
+        .. versionadded:: 1.8
     %(preload)s
     %(verbose)s
 
     Returns
     -------
     raw : instance of RawBrainVision
-        A Raw object containing BrainVision data.
-        See :class:`mne.io.Raw` for documentation of attributes and methods.
+        A Raw object containing BrainVision data. See :class:`mne.io.Raw` for
+        documentation of attributes and methods.
 
     See Also
     --------
@@ -984,10 +973,9 @@ def read_raw_brainvision(
     Notes
     -----
     If the BrainVision header file contains impedance measurements, these may be
-    accessed using ``raw.impedances`` after reading using this function. However,
-    this attribute will NOT be available after a save and re-load of the data.
-    That is, it is only available when reading data directly from the BrainVision
-    header file.
+    accessed using ``raw.impedances`` after reading using this function. However, this
+    attribute will NOT be available after a save and re-load of the data. That is, it is
+    only available when reading data directly from the BrainVision header file.
 
     BrainVision markers consist of a type and a description (in addition to other fields
     like onset and duration). In contrast, annotations in MNE only have a description.
@@ -1070,8 +1058,8 @@ def _parse_impedance(settings, recording_date=None):
         impedance_unit = impedance_setting[1].lstrip("[").rstrip("]")
         impedance_time = None
 
-        # If we have a recording date, we can update it with the time of
-        # impedance measurement
+        # If we have a recording date, we can update it with the time of impedance
+        # measurement
         if recording_date is not None:
             meas_time = [int(i) for i in impedance_setting[3].split(":")]
             impedance_time = recording_date.replace(
@@ -1081,8 +1069,8 @@ def _parse_impedance(settings, recording_date=None):
                 microsecond=0,
             )
         for setting in settings[idx + 1 :]:
-            # Parse channel impedances until we find a line that doesn't start
-            # with a channel name and optional +/- polarity for passive elecs
+            # Parse channel impedances until we find a line that doesn't start with a
+            # channel name and optional +/- polarity for passive elecs
             match = re.match(r"[ a-zA-Z0-9_+-]+:", setting)
             if match:
                 channel_name = match.group().rstrip(":")
