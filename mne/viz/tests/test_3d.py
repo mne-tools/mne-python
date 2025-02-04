@@ -204,6 +204,7 @@ def test_plot_evoked_field(renderer):
         assert (
             fig._surf_maps[0]["surf"]["rr"][0, 0] == scale * maps[0]["surf"]["rr"][0, 0]
         )
+        brain.close()
 
     # Test some methods
     fig = evoked.plot_field(maps, time_viewer=True)
