@@ -6,6 +6,7 @@ import gc
 import inspect
 import os
 import os.path as op
+import platform
 import re
 import shutil
 import sys
@@ -287,9 +288,10 @@ def matplotlib_config():
 @pytest.fixture(scope="session")
 def azure_windows():
     """Determine if running on Azure Windows."""
-    return os.getenv(
-        "AZURE_CI_WINDOWS", "false"
-    ).lower() == "true" and sys.platform.startswith("win")
+    return (
+        os.getenv("AZURE_CI_WINDOWS", "false").lower() == "true"
+        and platform.system() == "Windows"
+    )
 
 
 @pytest.fixture(scope="function")
@@ -612,6 +614,11 @@ def renderer_pyvistaqt(request, options_3d, garbage_collect):
 @pytest.fixture(params=[pytest.param("notebook", marks=pytest.mark.pvtest)])
 def renderer_notebook(request, options_3d):
     """Yield the 3D notebook renderer."""
+    if (
+        os.getenv("MNE_CI_KIND", "") in ("conda", "mamba")
+        and platform.system() == "Linux"
+    ):
+        pytest.skip("Skipping notebook tests on conda Linux CI")
     with _use_backend(request.param, interactive=False) as renderer:
         yield renderer
 

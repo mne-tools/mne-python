@@ -2,8 +2,6 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-import os
-import platform
 from contextlib import nullcontext
 from pathlib import Path
 
@@ -227,14 +225,8 @@ def test_plot_evoked_field(renderer):
     assert isinstance(fig, Figure3D)
 
 
-bad_ci = (
-    os.getenv("MNE_CI_KIND", "") in ("conda", "mamba") and platform.system() == "Linux"
-)
-
-
 @testing.requires_testing_data
 @pytest.mark.slowtest
-@pytest.mark.skipif(bad_ci, reason="Segfaults on Linux conda CI")
 def test_plot_evoked_field_notebook(renderer_notebook, nbexec):
     """Test plotting the evoked field inside a notebook."""
     import pytest
