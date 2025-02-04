@@ -74,6 +74,10 @@ class RawBrainVision(BaseRaw):
     converted to an annotation "Stimulus/S  1" by default. If you want to ignore the
     type and instead only use the description, set ``ignore_marker_types=True``, which
     will convert the same marker to an annotation "S  1".
+
+    The first marker in a BrainVision file is usually a "New Segment" marker, which
+    contains the recording time. This time is stored in the ``info['meas_date']``
+    attribute of the returned object and is not converted to an annotation.
     """
 
     _extra_attributes = ("impedances",)
@@ -222,15 +226,13 @@ def _read_segments_c(raw, data, idx, fi, start, stop, cals, mult):
     _mult_cal_one(data, block, idx, cals, mult)
 
 
-def _read_mrk(fname, ignore_marker_types=False):
+def _read_mrk(fname):
     """Read annotations from a vmrk/amrk file.
 
     Parameters
     ----------
     fname : str
         vmrk/amrk file to be read.
-    ignore_marker_types : bool
-        If True, ignore marker types and only use marker descriptions. Default is False.
 
     Returns
     -------
@@ -306,10 +308,7 @@ def _read_mrk(fname, ignore_marker_types=False):
         this_duration = int(this_duration) if this_duration.isdigit() else 0
         duration.append(this_duration)
         onset.append(int(this_onset) - 1)  # BV is 1-indexed, not 0-indexed
-        if not ignore_marker_types:
-            description.append(mtype + "/" + mdesc)
-        else:
-            description.append(mdesc)
+        description.append(mtype + "/" + mdesc)
 
     return np.array(onset), np.array(duration), np.array(description), date_str
 
@@ -338,9 +337,7 @@ def _read_annotations_brainvision(fname, sfreq="auto", ignore_marker_types=False
     annotations : instance of Annotations
         The annotations present in the file.
     """
-    onset, duration, description, date_str = _read_mrk(
-        fname, ignore_marker_types=ignore_marker_types
-    )
+    onset, duration, description, date_str = _read_mrk(fname)
     orig_time = _str_to_meas_date(date_str)
 
     if sfreq == "auto":
@@ -352,8 +349,16 @@ def _read_annotations_brainvision(fname, sfreq="auto", ignore_marker_types=False
         _, _, _, info = _aux_hdr_info(hdr_fname)
         sfreq = info["sfreq"]
 
+    # skip the first "New Segment" marker (as it only contains the recording time)
+    if len(description) > 0 and description[0] == "New Segment/":
+        onset = onset[1:]
+        duration = duration[1:]
+        description = description[1:]
+
     onset = np.array(onset, dtype=float) / sfreq
     duration = np.array(duration, dtype=float) / sfreq
+    if ignore_marker_types:
+        description = [d.split("/")[-1] for d in description]
     annotations = Annotations(
         onset=onset, duration=duration, description=description, orig_time=orig_time
     )
@@ -983,6 +988,10 @@ def read_raw_brainvision(
     converted to an annotation "Stimulus/S  1" by default. If you want to ignore the
     type and instead only use the description, set ``ignore_marker_types=True``, which
     will convert the same marker to an annotation "S  1".
+
+    The first marker in a BrainVision file is usually a "New Segment" marker, which
+    contains the recording time. This time is stored in the ``info['meas_date']``
+    attribute of the returned object and is not converted to an annotation.
     """
     return RawBrainVision(
         vhdr_fname=vhdr_fname,
