@@ -256,7 +256,7 @@
 .. _Romain Derollepot: https://github.com/rderollepot
 .. _Romain Trachel: https://fr.linkedin.com/in/trachelr
 .. _Roman Goj: https://romanmne.blogspot.co.uk
-.. _Ross Maddox: https://www.urmc.rochester.edu/labs/maddox-lab.aspx
+.. _Ross Maddox: https://medicine.umich.edu/dept/khri/ross-maddox-phd
 .. _Rotem Falach: https://github.com/Falach
 .. _Roy Eric Wieske: https://github.com/Randomidous
 .. _Sammi Chekroud: https://github.com/schekroud

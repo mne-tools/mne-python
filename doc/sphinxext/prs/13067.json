@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "8b9fc973e0bdaca9a5ba0c9333637722ed323633",
+  "authors": [
+    {
+      "n": "Thomas S. Binns",
+      "e": "t.s.binns@outlook.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/13067.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/time_frequency/tests/test_tfr.py": {
+      "a": 12,
+      "d": 7
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 26,
+      "d": 25
+    }
+  }
+}

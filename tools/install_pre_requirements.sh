@@ -27,9 +27,15 @@ python -m pip install $STD_ARGS --only-binary ":all:" --default-timeout=60 \
 
 # statsmodels requires formulaic@main so we need to use --extra-index-url
 echo "statsmodels"
+# https://github.com/statsmodels/statsmodels/issues/9501
+if [ "$PLATFORM" == "Windows" ]; then
+	STATS_VER=0.14.4
+else
+	STATS_VER=0.15.0.dev0
+fi
 python -m pip install $STD_ARGS --only-binary ":all:" \
 	--extra-index-url "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" \
-	"statsmodels>=0.15.0.dev0"
+	"statsmodels>=$STATS_VER"
 
 # No Numba because it forces an old NumPy version
 
