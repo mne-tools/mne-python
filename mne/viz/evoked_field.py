@@ -279,8 +279,8 @@ class EvokedField:
         current_data = data_interp(self._current_time)
 
         # Make a solid surface
-        surf = deepcopy(surf_map["surf"])
         if self._units == "mm":
+            surf = deepcopy(surf_map["surf"])
             surf["rr"] *= 1000
         map_vmax = self._vmax.get(surf_map["kind"])
         if map_vmax is None:
