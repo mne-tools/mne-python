@@ -1,0 +1,1 @@
+Take units (m or mm) into account when drawing :func:`~mne.viz.plot_evoked_field` on top of :class:`~mne.viz.Brain`, by `Marijn van Vliet`_.
