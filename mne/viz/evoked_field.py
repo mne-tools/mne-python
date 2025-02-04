@@ -7,6 +7,7 @@ author: Marijn van Vliet <w.m.vanvliet@gmail.com>
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+from copy import deepcopy
 from functools import partial
 
 import numpy as np
@@ -185,6 +186,7 @@ class EvokedField:
         if isinstance(fig, Brain):
             self._renderer = fig._renderer
             self._in_brain_figure = True
+            self._units = fig._units
             if _get_3d_backend() == "notebook":
                 raise NotImplementedError(
                     "Plotting on top of an existing Brain figure "
@@ -195,6 +197,7 @@ class EvokedField:
                 fig, bgcolor=(0.0, 0.0, 0.0), size=(600, 600)
             )
             self._in_brain_figure = False
+            self._units = "m"
 
         self.plotter = self._renderer.plotter
         self.interaction = interaction
@@ -276,8 +279,8 @@ class EvokedField:
         current_data = data_interp(self._current_time)
 
         # Make a solid surface
-        surf = surf_map["surf"]
-        if self._in_brain_figure:
+        surf = deepcopy(surf_map["surf"])
+        if self._units == "mm":
             surf["rr"] *= 1000
         map_vmax = self._vmax.get(surf_map["kind"])
         if map_vmax is None:
