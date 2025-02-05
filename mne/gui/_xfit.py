@@ -96,8 +96,10 @@ class DipoleFitUI:
     ----------
     evoked : instance of Evoked
         Evoked data to show fieldmap of and fit dipoles to.
-    cov : instance of Covariance | None
-        Noise covariance matrix. If ``None``, an ad-hoc covariance matrix is used.
+    cov : instance of Covariance | "baseline" | None
+        Noise covariance matrix. If ``None``, an ad-hoc covariance matrix is used with
+        default values for the diagonal elements (see Notes). If ``"baseline"``, the
+        diagonal elements is estimated from the baseline period of the evoked data.
     bem : instance of ConductorModel | None
         Boundary element model to use in forward calculations. If ``None``, a spherical
         model is used.
@@ -106,17 +108,26 @@ class DipoleFitUI:
         strength is used.
     trans : instance of Transform | None
         The transformation from head coordinates to MRI coordinates. If ``None``,
-        the identity matrix is used.
+        the identity matrix is used and everything will be done in head coordinates.
     stc : instance of SourceEstimate | None
-        An optional distributed source estimate to show alongside the fieldmap.
-    %(rank)s
-    show_density : bool
-        Whether to show the density of the fieldmap.
+        An optional distributed source estimate to show alongside the fieldmap. The time
+        samples need to match those of the evoked data.
     subject : str | None
         The subject name. If ``None``, no MRI data is shown.
     %(subjects_dir)s
+    %(rank)s
+    show_density : bool
+        Whether to show the density of the fieldmap.
+    ch_type : "meg" | "eeg" | None
+        Type of channels to use for the dipole fitting. By default (``None``) both MEG
+        and EEG channels will be used.
     %(n_jobs)s
     %(verbose)s
+
+    Notes
+    -----
+    When using ``cov=None`` the default noise values are 5 fT/cm, 20 fT, and 0.2 µV for
+    gradiometers, magnetometers, and EEG channels respectively.
     """
 
     def __init__(
@@ -127,16 +138,22 @@ class DipoleFitUI:
         initial_time=None,
         trans=None,
         stc=None,
-        rank="info",
-        show_density=True,
         subject=None,
         subjects_dir=None,
+        rank="info",
+        show_density=True,
         ch_type=None,
         n_jobs=None,
         verbose=None,
     ):
         if cov is None:
             cov = make_ad_hoc_cov(evoked.info)
+        elif cov == "baseline":
+            std = dict()
+            for typ in set(evoked.get_channel_types(only_data_chs=True)):
+                baseline = evoked.copy().pick(typ).crop(*evoked.baseline)
+                std[typ] = baseline.data.std(axis=1).mean()
+            cov = make_ad_hoc_cov(evoked.info, std)
         if bem is None:
             bem = make_sphere_model("auto", "auto", evoked.info)
         bem = _ensure_bem_surfaces(bem, extra_allow=(ConductorModel, None))
@@ -155,6 +172,18 @@ class DipoleFitUI:
             # Set initial time to moment of maximum field power.
             data = evoked.copy().pick(field_map[0]["ch_names"]).data
             initial_time = evoked.times[np.argmax(np.mean(data**2, axis=0))]
+
+        if stc is not None:
+            if not np.allclose(stc.times, evoked.times):
+                raise ValueError(
+                    "The time samples of the source estimate do not match those of the "
+                    "evoked data."
+                )
+            if trans is None:
+                raise ValueError(
+                    "`trans` cannot be `None` when showing the fieldlines in "
+                    "combination with a source estimate."
+                )
 
         # Get transforms to convert all the various meshes to MRI space.
         head_mri_t = _get_trans(trans, "head", "mri")[0]
@@ -412,7 +441,7 @@ class DipoleFitUI:
     def _on_fit_dipole(self):
         """Fit a single dipole."""
         evoked_picked = self._evoked.copy()
-        cov_picked = self._cov.copy()
+        cov_picked = self._cov.copy().as_diag()  # FIXME: as_diag necessary?
         if self._fig_sensors is not None:
             picks = self._fig_sensors.lasso.selection
             if len(picks) > 0:
@@ -420,9 +449,6 @@ class DipoleFitUI:
                 evoked_picked.info.normalize_proj()
                 cov_picked = cov_picked.pick_channels(picks, ordered=False)
                 cov_picked["projs"] = evoked_picked.info["projs"]
-                # Do we need to set the rank?
-                # for k, v in self._rank.items():
-                #     self._rank[k] = min(v, len(cov_picked.ch_names))
         evoked_picked.crop(self._current_time, self._current_time)
 
         dip = fit_dipole(
