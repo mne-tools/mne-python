@@ -191,6 +191,7 @@ def test_plot_evoked_field(renderer):
                 ch_type=t,
             )
         evoked.plot_field(maps, time=0.1, n_contours=n_contours)
+    renderer.backend._close_all()
 
     # Test plotting inside an existing Brain figure. Check that units are taken into
     # account.
@@ -204,6 +205,7 @@ def test_plot_evoked_field(renderer):
         assert (
             fig._surf_maps[0]["surf"]["rr"][0, 0] == scale * maps[0]["surf"]["rr"][0, 0]
         )
+        renderer.backend._close_all()
 
     # Test some methods
     fig = evoked.plot_field(maps, time_viewer=True)
@@ -223,6 +225,7 @@ def test_plot_evoked_field(renderer):
 
     fig = evoked.plot_field(maps, time_viewer=False)
     assert isinstance(fig, Figure3D)
+    renderer.backend._close_all()
 
 
 @testing.requires_testing_data
