@@ -19,7 +19,7 @@ from sklearn.base import (  # noqa: F401
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import check_scoring
 from sklearn.model_selection import KFold, StratifiedKFold, check_cv
-from sklearn.utils import check_array, indexable
+from sklearn.utils import check_array, check_X_y, indexable
 
 from ..parallel import parallel_func
 from ..utils import _pl, logger, verbose, warn
@@ -76,16 +76,20 @@ class LinearModel(MetaEstimatorMixin, BaseEstimator):
     )
 
     def __init__(self, model=None):
+        # TODO: We need to set this to get our tag checking to work properly
         if model is None:
             model = LogisticRegression(solver="liblinear")
-
         self.model = model
 
     def __sklearn_tags__(self):
         """Get sklearn tags."""
         from sklearn.utils import get_tags  # added in 1.6
 
-        return get_tags(self.model)
+        # fit method below does not allow sparse data via check_data, we could
+        # eventually make it smarter if we had to
+        tags = get_tags(self.model)
+        tags.input_tags.sparse = False
+        return tags
 
     def __getattr__(self, attr):
         """Wrap to model for some attributes."""
@@ -118,7 +122,11 @@ class LinearModel(MetaEstimatorMixin, BaseEstimator):
         self : instance of LinearModel
             Returns the modified instance.
         """
-        X = check_array(X, input_name="X")
+        if y is not None:
+            X = check_array(X)
+        else:
+            X, y = check_X_y(X, y)
+        self.n_features_in_ = X.shape[1]
         if y is not None:
             y = check_array(y, dtype=None, ensure_2d=False, input_name="y")
             if y.ndim > 2:
@@ -129,6 +137,7 @@ class LinearModel(MetaEstimatorMixin, BaseEstimator):
 
         # fit the Model
         self.model.fit(X, y, **fit_params)
+        self.model_ = self.model  # for better sklearn compat
 
         # Computes patterns using Haufe's trick: A = Cov_X . W . Precision_Y
 

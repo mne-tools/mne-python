@@ -2,6 +2,7 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+import glob
 import importlib
 import inspect
 import logging
@@ -92,6 +93,22 @@ def _dataset_version(path, name):
     return version
 
 
+@verbose
+def default_path(*, verbose=None):
+    """Get the default MNE_DATA path.
+
+    Parameters
+    ----------
+    %(verbose)s
+
+    Returns
+    -------
+    data_path : instance of Path
+        Path to the default MNE_DATA directory.
+    """
+    return _get_path(None, None, None)
+
+
 def _get_path(path, key, name):
     """Get a dataset path."""
     # 1. Input
@@ -113,7 +130,8 @@ def _get_path(path, key, name):
         return path
     # 4. ~/mne_data (but use a fake home during testing so we don't
     #    unnecessarily create ~/mne_data)
-    logger.info(f"Using default location ~/mne_data for {name}...")
+    extra = f" for {name}" if name else ""
+    logger.info(f"Using default location ~/mne_data{extra}...")
     path = Path(os.getenv("_MNE_FAKE_HOME_DIR", "~")).expanduser() / "mne_data"
     if not path.is_dir():
         logger.info(f"Creating {path}")
@@ -319,6 +337,8 @@ def _download_all_example_data(verbose=True):
     #
     # verbose=True by default so we get nice status messages.
     # Consider adding datasets from here to CircleCI for PR-auto-build
+    import openneuro
+
     paths = dict()
     for kind in (
         "sample testing misc spm_face somato hf_sef multimodal "
@@ -374,6 +394,14 @@ def _download_all_example_data(verbose=True):
 
     limo.load_data(subject=1, update_path=True)
     logger.info("[done limo]")
+
+    # for ESG
+    ds = "ds004388"
+    target_dir = default_path() / ds
+    run_name = "sub-001/eeg/*median_run-03_eeg*.set"
+    if not glob.glob(str(target_dir / run_name)):
+        target_dir.mkdir(exist_ok=True)
+        openneuro.download(dataset=ds, target_dir=target_dir, include=run_name[:-4])
 
 
 @verbose

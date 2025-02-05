@@ -23,11 +23,13 @@ dependencies:
   - joblib
   - jupyter
   - lazy_loader >=0.3
+  - mamba
   - matplotlib >=3.7
   - mffpy >=0.5.7
   - mne-qt-browser
   - nibabel
   - nilearn
+  - nomkl
   - numba
   - numpy >=1.25,<3
   - openmeeg >=2.5.5
@@ -57,5 +59,5 @@ dependencies:
   - trame
   - trame-vtk
   - trame-vuetify
-  - vtk >=9.2
+  - vtk =9.3.1=qt_*
   - xlrd

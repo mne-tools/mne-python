@@ -1331,7 +1331,6 @@ def _is_osmesa(plotter):
     )
     gpu_info = " ".join(gpu_info).lower()
     is_osmesa = "mesa" in gpu_info.split()
-    print(is_osmesa)
     if is_osmesa:
         # Try to warn if it's ancient
         version = re.findall("mesa ([0-9.]+)[ -].*", gpu_info) or re.findall(
@@ -1345,7 +1344,7 @@ def _is_osmesa(plotter):
                     "surface rendering, consider upgrading to 18.3.6 or "
                     "later."
                 )
-        is_osmesa = "via llvmpipe" in gpu_info
+        is_osmesa = "llvmpipe" in gpu_info
     return is_osmesa
 
 

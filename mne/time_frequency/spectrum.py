@@ -311,7 +311,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         if np.isfinite(fmax) and (fmax > self.sfreq / 2):
             raise ValueError(
                 f"Requested fmax ({fmax} Hz) must not exceed ½ the sampling "
-                f'frequency of the data ({0.5 * inst.info["sfreq"]} Hz).'
+                f"frequency of the data ({0.5 * inst.info['sfreq']} Hz)."
             )
         # method
         self._inst_type = type(inst)
@@ -442,7 +442,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         if bad_value.any():
             chs = np.array(self.ch_names)[bad_value].tolist()
             s = _pl(bad_value.sum())
-            warn(f'Zero value in spectrum for channel{s} {", ".join(chs)}', UserWarning)
+            warn(f"Zero value in spectrum for channel{s} {', '.join(chs)}", UserWarning)
 
     def _returns_complex_tapers(self, **method_kw):
         return self.method == "multitaper" and method_kw.get("output") == "complex"
@@ -1536,7 +1536,7 @@ class EpochsSpectrum(BaseSpectrum, GetEpochsMixin):
         state["nave"] = state["data"].shape[0]
         state["data"] = method(state["data"])
         state["dims"] = state["dims"][1:]
-        state["data_type"] = f'Averaged {state["data_type"]}'
+        state["data_type"] = f"Averaged {state['data_type']}"
         defaults = dict(
             method=None,
             fmin=None,
@@ -1641,6 +1641,74 @@ class EpochsSpectrumArray(EpochsSpectrum):
                 weights=weights,
             )
         )
+
+
+def combine_spectrum(all_spectrum, weights="nave"):
+    """Merge spectral data by weighted addition.
+
+    Create a new :class:`mne.time_frequency.Spectrum` instance, using a combination of
+    the supplied instances as its data. By default, the mean (weighted by trials) is
+    used. Subtraction can be performed by passing negative weights (e.g., ``[1, -1]``).
+    Data must have the same channels and the same frequencies.
+
+    Parameters
+    ----------
+    all_spectrum : list of Spectrum
+        The Spectrum objects.
+    weights : list of float | str
+        The weights to apply to the data of each :class:`~mne.time_frequency.Spectrum`
+        instance, or a string describing the weighting strategy to apply: 'nave'
+        computes sum-to-one weights proportional to each object’s nave attribute;
+        'equal' weights each :class:`~mne.time_frequency.Spectrum` by
+        ``1 / len(all_spectrum)``.
+
+    Returns
+    -------
+    spectrum : Spectrum
+        The new spectral data.
+
+    Notes
+    -----
+    .. versionadded:: 1.10.0
+    """
+    spectrum = all_spectrum[0].copy()
+    if isinstance(weights, str):
+        if weights not in ("nave", "equal"):
+            raise ValueError('Weights must be a list of float, or "nave" or "equal"')
+        if weights == "nave":
+            for s_ in all_spectrum:
+                if s_.nave is None:
+                    raise ValueError(f"The 'nave' attribute is not specified for {s_}")
+            weights = np.array([e.nave for e in all_spectrum], float)
+            weights /= weights.sum()
+        else:  # == 'equal'
+            weights = [1.0 / len(all_spectrum)] * len(all_spectrum)
+    weights = np.array(weights, float)
+    if weights.ndim != 1 or weights.size != len(all_spectrum):
+        raise ValueError("Weights must be the same size as all_spectrum")
+
+    ch_names = spectrum.ch_names
+    for s_ in all_spectrum[1:]:
+        assert s_.ch_names == ch_names, (
+            f"{spectrum} and {s_} do not contain the same channels"
+        )
+        assert np.max(np.abs(s_.freqs - spectrum.freqs)) < 1e-7, (
+            f"{spectrum} and {s_} do not contain the same frequencies"
+        )
+
+    # use union of bad channels
+    bads = list(
+        set(spectrum.info["bads"]).union(*(s_.info["bads"] for s_ in all_spectrum[1:]))
+    )
+    spectrum.info["bads"] = bads
+
+    # combine spectral data
+    spectrum._data = sum(w * s_.data for w, s_ in zip(weights, all_spectrum))
+    if spectrum.nave is not None:
+        spectrum._nave = max(
+            int(1.0 / sum(w**2 / s_.nave for w, s_ in zip(weights, all_spectrum))), 1
+        )
+    return spectrum
 
 
 def read_spectrum(fname):

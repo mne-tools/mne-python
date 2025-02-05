@@ -130,8 +130,7 @@ def _compare(a, b):
             for k, v in a.items():
                 if k not in b and k not in skip_types:
                     raise ValueError(
-                        "First one had one second one didn't:\n"
-                        f"{k} not in {b.keys()}"
+                        f"First one had one second one didn't:\n{k} not in {b.keys()}"
                     )
                 if k not in skip_types:
                     last_keys.pop()

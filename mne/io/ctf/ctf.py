@@ -267,7 +267,7 @@ def _get_sample_info(fname, res4, system_clock):
                 fid.seek(offset, 0)
                 this_data = np.fromfile(fid, ">i4", res4["nsamp"])
                 if len(this_data) != res4["nsamp"]:
-                    raise RuntimeError(f"Cannot read data for trial {t+1}.")
+                    raise RuntimeError(f"Cannot read data for trial {t + 1}.")
                 end = np.where(this_data == 0)[0]
                 if len(end) > 0:
                     n_samp = samp_offset + end[0]

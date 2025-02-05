@@ -1013,8 +1013,7 @@ class BaseRaw(
         if n_rejected > 0:
             if reject_by_annotation == "omit":
                 msg = (
-                    "Omitting {} of {} ({:.2%}) samples, retaining {}"
-                    " ({:.2%}) samples."
+                    "Omitting {} of {} ({:.2%}) samples, retaining {} ({:.2%}) samples."
                 )
                 logger.info(
                     msg.format(
@@ -1387,7 +1386,10 @@ class BaseRaw(
         sfreq = float(sfreq)
         o_sfreq = float(self.info["sfreq"])
         if _check_resamp_noop(sfreq, o_sfreq):
-            return self
+            if events is not None:
+                return self, events.copy()
+            else:
+                return self
 
         # When no event object is supplied, some basic detection of dropped
         # events is performed to generate a warning. Finding events can fail
@@ -2157,7 +2159,7 @@ class BaseRaw(
         for edge_samp in edge_samps:
             onset = _sync_onset(self, edge_samp / self.info["sfreq"], True)
             logger.debug(
-                f"Marking edge at {edge_samp} samples " f"(maps to {onset:0.3f} sec)"
+                f"Marking edge at {edge_samp} samples (maps to {onset:0.3f} sec)"
             )
             self.annotations.append(onset, 0.0, "BAD boundary")
             self.annotations.append(onset, 0.0, "EDGE boundary")
