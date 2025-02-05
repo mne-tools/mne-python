@@ -102,10 +102,7 @@ jobs:
       # Python (if conda)
       - name: Fixes for conda
         run: |
-          # For some reason on Linux we get crashes
-          if [[ "$RUNNER_OS" == "Linux" ]]; then
-            sed -i "/numba/d" environment.yml
-          elif [[ "$RUNNER_OS" == "macOS" ]]; then
+          if [[ "$RUNNER_OS" == "macOS" ]]; then
             sed -i "" "s/  - PySide6 .*/  - PySide6 <6.8/g" environment.yml
           fi
         if: matrix.kind == 'conda' || matrix.kind == 'mamba'

@@ -614,11 +614,6 @@ def renderer_pyvistaqt(request, options_3d, garbage_collect):
 @pytest.fixture(params=[pytest.param("notebook", marks=pytest.mark.pvtest)])
 def renderer_notebook(request, options_3d):
     """Yield the 3D notebook renderer."""
-    if (
-        os.getenv("MNE_CI_KIND", "") in ("conda", "mamba")
-        and platform.system() == "Linux"
-    ):
-        pytest.skip("Skipping notebook tests on conda Linux CI")
     with _use_backend(request.param, interactive=False) as renderer:
         yield renderer
 
