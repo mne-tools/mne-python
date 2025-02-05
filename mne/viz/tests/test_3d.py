@@ -192,9 +192,18 @@ def test_plot_evoked_field(renderer):
             )
         evoked.plot_field(maps, time=0.1, n_contours=n_contours)
 
-    # Test plotting inside an existing Brain figure.
-    brain = Brain("fsaverage", "lh", "inflated", subjects_dir=subjects_dir)
-    fig = evoked.plot_field(maps, time=0.1, fig=brain)
+    # Test plotting inside an existing Brain figure. Check that units are taken into
+    # account.
+    for units in ["mm", "m"]:
+        brain = Brain(
+            "fsaverage", "lh", "inflated", units=units, subjects_dir=subjects_dir
+        )
+        fig = evoked.plot_field(maps, time=0.1, fig=brain)
+        assert brain._units == fig._units
+        scale = 1000 if units == "mm" else 1
+        assert (
+            fig._surf_maps[0]["surf"]["rr"][0, 0] == scale * maps[0]["surf"]["rr"][0, 0]
+        )
 
     # Test some methods
     fig = evoked.plot_field(maps, time_viewer=True)
