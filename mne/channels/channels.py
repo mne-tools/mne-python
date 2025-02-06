@@ -960,12 +960,16 @@ class InterpolationMixin:
 
         return self
 
-    def interpolate_to(self, montage, origin="auto", method="spline", reg=0.0):
+    def interpolate_to(self, sensors, origin="auto", method="spline", reg=0.0):
         """Interpolate EEG data onto a new montage.
+
+        .. warning::
+            Be careful, only EEG channels are interpolated. Other channel types are
+            not interpolated.
 
         Parameters
         ----------
-        montage : DigMontage
+        sensors : DigMontage
             The target montage containing channel positions to interpolate onto.
         origin : array-like, shape (3,) | str
             Origin of the sphere in the head coordinate frame and in meters.
@@ -974,10 +978,6 @@ class InterpolationMixin:
         method : str
             Method to use for EEG channels.
             Supported methods are 'spline' (default) and 'MNE'.
-
-            .. warning::
-                Be careful, only EEG channels are interpolated. Other channel types are
-                not interpolated.
 
         reg : float
             The regularization parameter for the interpolation method (if applicable).
@@ -993,77 +993,125 @@ class InterpolationMixin:
 
         .. versionadded:: 1.10.0
         """
+        from .._fiff.proj import _has_eeg_average_ref_proj
+        from ..epochs import EpochsArray
+        from ..evoked import EvokedArray
         from ..forward._field_interpolation import _map_meg_or_eeg_channels
+        from ..io import RawArray
         from .interpolation import _make_interpolation_matrix
 
+        # Check that the method option is valid.
+        _check_option("method", method, ["spline", "MNE"])
+        if sensors is None:
+            raise ValueError("A sensors configuration must be provided.")
+
         # Get target positions from the montage
-        ch_pos = montage.get_positions()["ch_pos"]
+        ch_pos = sensors.get_positions().get("ch_pos", {})
         target_ch_names = list(ch_pos.keys())
-        if len(target_ch_names) == 0:
+        if not target_ch_names:
             raise ValueError(
-                "The provided montage does not contain any channel positions."
+                "The provided sensors configuration has no channel positions."
             )
 
-        # Check the method is valid
-        _check_option("method", method, ["spline", "MNE"])
+        # Get original channel order
+        orig_names = self.info["ch_names"]
 
-        # Ensure data is loaded
-        _check_preload(self, "interpolation")
+        # Identify EEG channel
+        picks_good_eeg = pick_types(self.info, meg=False, eeg=True, exclude="bads")
+        if len(picks_good_eeg) == 0:
+            raise ValueError("No good EEG channels available for interpolation.")
+        # Also get the full list of EEG channel indices (including bad channels)
+        picks_remove_eeg = pick_types(self.info, meg=False, eeg=True, exclude=[])
+        eeg_names_orig = [orig_names[i] for i in picks_remove_eeg]
 
-        # Extract positions and data for EEG channels
-        picks_from = pick_types(self.info, meg=False, eeg=True, exclude=[])
-        if len(picks_from) == 0:
-            raise ValueError("No EEG channels available for interpolation.")
+        # Identify non-EEG channels in original order
+        non_eeg_names_ordered = [ch for ch in orig_names if ch not in eeg_names_orig]
 
-        # Create a new info structure
+        # Create destination info for new EEG channels
         sfreq = self.info["sfreq"]
-        ch_types = ["eeg"] * len(target_ch_names)
-        new_info = create_info(ch_names=target_ch_names, sfreq=sfreq, ch_types=ch_types)
-        new_info.set_montage(montage)
+        info_interp = create_info(
+            ch_names=target_ch_names,
+            sfreq=sfreq,
+            ch_types=["eeg"] * len(target_ch_names),
+        )
+        info_interp.set_montage(sensors)
+        info_interp["bads"] = [ch for ch in self.info["bads"] if ch in target_ch_names]
+        # Do not assign "projs" directly.
 
-        # Compute mapping from current montage to target montage
+        # Compute the interpolation mapping
         if method == "spline":
-            # pos_from = np.array(
-            #     [self.info["chs"][idx]["loc"][:3] for idx in picks_from]
-            # )
-
-            origin = _check_origin(origin, self.info)
-            pos_from = self.info._get_channel_positions(picks_from)
-            pos_from = pos_from - origin
+            origin_val = _check_origin(origin, self.info)
+            pos_from = self.info._get_channel_positions(picks_good_eeg) - origin_val
             pos_to = np.stack(list(ch_pos.values()), axis=0)
 
             def _check_pos_sphere(pos):
-                distance = np.linalg.norm(pos, axis=-1)
-                distance = np.mean(distance / np.mean(distance))
-                if np.abs(1.0 - distance) > 0.1:
-                    warn(
-                        "Your spherical fit is poor, interpolation results are "
-                        "likely to be inaccurate."
-                    )
+                d = np.linalg.norm(pos, axis=-1)
+                d_norm = np.mean(d / np.mean(d))
+                if np.abs(1.0 - d_norm) > 0.1:
+                    warn("Your spherical fit is poor; interpolation may be inaccurate.")
 
             _check_pos_sphere(pos_from)
             _check_pos_sphere(pos_to)
-
             mapping = _make_interpolation_matrix(pos_from, pos_to, alpha=reg)
 
         elif method == "MNE":
-            info_eeg = pick_info(self.info, picks_from)
+            info_eeg = pick_info(self.info, picks_good_eeg)
+            # If the original info has an average EEG reference projector but
+            # the destination info does not,
+            # update info_interp via a temporary RawArray.
+            if _has_eeg_average_ref_proj(self.info) and not _has_eeg_average_ref_proj(
+                info_interp
+            ):
+                # Create dummy data: shape (n_channels, 1)
+                temp_data = np.zeros((len(info_interp["ch_names"]), 1))
+                temp_raw = RawArray(temp_data, info_interp, first_samp=0)
+                # Using the public API, add an average reference projector.
+                temp_raw.set_eeg_reference(
+                    ref_channels="average", projection=True, verbose=False
+                )
+                # Extract the updated info.
+                info_interp = temp_raw.info
             mapping = _map_meg_or_eeg_channels(
-                info_eeg, new_info, mode="accurate", origin="auto"
+                info_eeg, info_interp, mode="accurate", origin=origin
             )
+        else:
+            raise ValueError("Unsupported interpolation method.")
 
-        # Apply the interpolation mapping
-        data_orig = self.get_data(picks=picks_from)
-        data_interp = mapping.dot(data_orig)
+        # Interpolate EEG data
+        data_good = self.get_data(picks=picks_good_eeg)
+        data_interp = mapping.dot(data_good)
 
-        # Update bad channels
-        new_info["bads"] = [ch for ch in self.info["bads"] if ch in target_ch_names]
+        # Create a new instance for the interpolated EEG channels
+        if hasattr(self, "first_samp"):  # assume Raw if first_samp exists.
+            inst_interp = RawArray(data_interp, info_interp, first_samp=self.first_samp)
+        elif hasattr(
+            self, "drop_bad_epochs"
+        ):  # assume Epochs if drop_bad_epochs exists.
+            inst_interp = EpochsArray(data_interp, info_interp)
+        else:
+            inst_interp = EvokedArray(data_interp, info_interp)
 
-        # Update the instance's info and data
-        self.info = new_info
-        self._data = data_interp
+        # Merge only if non-EEG channels exist
+        if not non_eeg_names_ordered:
+            return inst_interp
 
-        return self
+        inst_non_eeg = self.copy().pick(non_eeg_names_ordered).load_data()
+        inst_out = inst_non_eeg.add_channels([inst_interp], force_update_info=True)
+
+        # Reorder channels
+        # Insert the entire new EEG block at the position of the first EEG channel.
+        new_order = []
+        inserted = False
+        for ch in orig_names:
+            if ch in eeg_names_orig:
+                if not inserted:
+                    new_order.extend(info_interp["ch_names"])
+                    inserted = True
+                # Skip original EEG channels.
+            else:
+                new_order.append(ch)
+        inst_out.reorder_channels(new_order)
+        return inst_out
 
 
 @verbose

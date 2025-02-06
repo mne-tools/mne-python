@@ -453,6 +453,9 @@ def test_interpolate_to_eeg(montage_name, method):
     # Load data
     raw.load_data()
 
+    # Get EEG channels
+    original_eeg_chan = [raw.ch_names[i] for i in pick_types(raw.info, eeg=True)]
+
     # Create a target montage
     montage = make_standard_montage(montage_name)
 
@@ -460,18 +463,18 @@ def test_interpolate_to_eeg(montage_name, method):
     raw_interpolated = raw.copy().interpolate_to(montage, method=method)
 
     # Check if channel names match the target montage
-    assert set(raw_interpolated.info["ch_names"]) == set(montage.ch_names)
+    assert set(montage.ch_names).issubset(set(raw_interpolated.info["ch_names"]))
 
     # Check if the data was interpolated correctly
-    assert raw_interpolated.get_data().shape == (len(montage.ch_names), raw.n_times)
+    n_ch = len(raw.info["ch_names"]) - len(original_eeg_chan) + len(montage.ch_names)
+    assert raw_interpolated.get_data().shape == (n_ch, raw.n_times)
 
     # Ensure original data is not altered
     assert raw.info["ch_names"] != raw_interpolated.info["ch_names"]
     assert raw.get_data().shape == (len(raw.info["ch_names"]), raw.n_times)
 
     # Validate that bad channels are carried over
-    raw.info["bads"] = [raw.info["ch_names"][0]]
+    bads = [raw.info["ch_names"][0]]
+    raw.info["bads"] = bads
     raw_interpolated = raw.copy().interpolate_to(montage, method=method)
-    assert raw_interpolated.info["bads"] == [
-        ch for ch in raw.info["bads"] if ch in montage.ch_names
-    ]
+    assert raw_interpolated.info["bads"] == bads
