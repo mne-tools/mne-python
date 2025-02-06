@@ -32,11 +32,11 @@ class RawBrainVision(BaseRaw):
     ----------
     vhdr_fname : path-like
         Path to the EEG header file.
-    eog : list or tuple of str
+    eog : list of (int | str) | tuple of (int | str)
         Names of channels or list of indices that should be designated EOG channels.
         Values should correspond to the header file. Default is ``('HEOGL', 'HEOGR',
         'VEOGb')``.
-    misc : list or tuple of str | ``'auto'``
+    misc : list of (int | str) | tuple of (int | str) | ``'auto'``
         Names of channels or list of indices that should be designated MISC channels.
         Values should correspond to the electrodes in the header file. If ``'auto'``,
         units in header file are used for inferring misc channels. Default is
@@ -945,11 +945,11 @@ def read_raw_brainvision(
     ----------
     vhdr_fname : path-like
         Path to the EEG header file.
-    eog : list or tuple of str
+    eog : list of (int | str) | tuple of (int | str)
         Names of channels or list of indices that should be designated EOG channels.
         Values should correspond to the header file Default is ``('HEOGL', 'HEOGR',
         'VEOGb')``.
-    misc : list or tuple of str | ``'auto'``
+    misc : list of (int | str) | tuple of (int | str) | ``'auto'``
         Names of channels or list of indices that should be designated MISC channels.
         Values should correspond to the electrodes in the header file. If ``'auto'``,
         units in header file are used for inferring misc channels. Default is
