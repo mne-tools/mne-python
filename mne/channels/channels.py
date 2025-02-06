@@ -994,10 +994,11 @@ class InterpolationMixin:
         .. versionadded:: 1.10.0
         """
         from .._fiff.proj import _has_eeg_average_ref_proj
-        from ..epochs import EpochsArray
-        from ..evoked import EvokedArray
+        from ..epochs import BaseEpochs, EpochsArray
+        from ..evoked import Evoked, EvokedArray
         from ..forward._field_interpolation import _map_meg_or_eeg_channels
         from ..io import RawArray
+        from ..io.base import BaseRaw
         from .interpolation import _make_interpolation_matrix
 
         # Check that the method option is valid.
@@ -1082,13 +1083,11 @@ class InterpolationMixin:
         data_interp = mapping.dot(data_good)
 
         # Create a new instance for the interpolated EEG channels
-        if hasattr(self, "first_samp"):  # assume Raw if first_samp exists.
+        if isinstance(self, BaseRaw):
             inst_interp = RawArray(data_interp, info_interp, first_samp=self.first_samp)
-        elif hasattr(
-            self, "drop_bad_epochs"
-        ):  # assume Epochs if drop_bad_epochs exists.
+        elif isinstance(self, BaseEpochs):
             inst_interp = EpochsArray(data_interp, info_interp)
-        else:
+        elif isinstance(self, Evoked):
             inst_interp = EvokedArray(data_interp, info_interp)
 
         # Merge only if non-EEG channels exist

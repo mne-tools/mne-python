@@ -443,38 +443,51 @@ def test_method_str():
 
 @pytest.mark.parametrize("montage_name", ["biosemi16", "standard_1020"])
 @pytest.mark.parametrize("method", ["spline", "MNE"])
-def test_interpolate_to_eeg(montage_name, method):
-    """Test the interpolate_to method for EEG."""
+@pytest.mark.parametrize("data_type", ["raw", "epochs", "evoked"])
+def test_interpolate_to_eeg(montage_name, method, data_type):
+    """Test the interpolate_to method for EEG for raw, epochs, and evoked."""
     # Load EEG data
     raw, epochs_eeg = _load_data("eeg")
     epochs_eeg = epochs_eeg.copy()
     assert not _has_eeg_average_ref_proj(epochs_eeg.info)
 
-    # Load data
+    # Load data for raw
     raw.load_data()
 
-    # Get EEG channels
+    # Get the original EEG channel names from raw (used later for shape checking)
     original_eeg_chan = [raw.ch_names[i] for i in pick_types(raw.info, eeg=True)]
 
     # Create a target montage
     montage = make_standard_montage(montage_name)
 
-    # Copy the raw object and apply interpolation
-    raw_interpolated = raw.copy().interpolate_to(montage, method=method)
+    # Prepare data to interpolate to
+    if data_type == "raw":
+        inst = raw.copy()
+    elif data_type == "epochs":
+        inst = epochs_eeg.copy()
+    elif data_type == "evoked":
+        inst = epochs_eeg.average()
+    shape = list(inst._data.shape)
 
-    # Check if channel names match the target montage
-    assert set(montage.ch_names).issubset(set(raw_interpolated.info["ch_names"]))
+    # Interpolate
+    inst_interp = inst.copy().interpolate_to(montage, method=method)
 
-    # Check if the data was interpolated correctly
-    n_ch = len(raw.info["ch_names"]) - len(original_eeg_chan) + len(montage.ch_names)
-    assert raw_interpolated.get_data().shape == (n_ch, raw.n_times)
+    # Check that the new channel names include the montage channels.
+    assert set(montage.ch_names).issubset(set(inst_interp.info["ch_names"]))
 
-    # Ensure original data is not altered
-    assert raw.info["ch_names"] != raw_interpolated.info["ch_names"]
-    assert raw.get_data().shape == (len(raw.info["ch_names"]), raw.n_times)
+    # Check that the original container's channel ordering is changed.
+    assert inst.info["ch_names"] != inst_interp.info["ch_names"]
 
-    # Validate that bad channels are carried over
-    bads = [raw.info["ch_names"][0]]
-    raw.info["bads"] = bads
-    raw_interpolated = raw.copy().interpolate_to(montage, method=method)
-    assert raw_interpolated.info["bads"] == bads
+    # Check that the data shape is as expected.
+    orig_total = len(inst.info["ch_names"])
+    n_eeg_orig = len(original_eeg_chan)
+    new_nchan_expected = orig_total - n_eeg_orig + len(montage.ch_names)
+    expected_shape = tuple([new_nchan_expected] + shape[1:])
+    assert inst_interp._data.shape == expected_shape
+
+    # Validate that bad channels are carried over.
+    # Mark the first channel as bad.
+    bads = [inst.info["ch_names"][0]]
+    inst.info["bads"] = bads
+    inst_interp = inst.copy().interpolate_to(montage, method=method)
+    assert inst_interp.info["bads"] == bads
