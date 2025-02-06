@@ -70,7 +70,6 @@ evoked_interpolated_spline.plot(
     exclude=[], picks="eeg", axes=axs[1], show=False, ylim=dict(eeg=ylim)
 )
 axs[1].set_title("Interpolated to Standard 1020 Montage using spline interpolation")
-evoked_interpolated_mne.plot(exclude=[], picks="eeg", axes=axs[2], show=False)
 evoked_interpolated_mne.plot(
     exclude=[], picks="eeg", axes=axs[2], show=False, ylim=dict(eeg=ylim)
 )
