@@ -978,9 +978,9 @@ class InterpolationMixin:
         method : str
             Method to use for EEG channels.
             Supported methods are 'spline' (default) and 'MNE'.
-
         reg : float
-            The regularization parameter for the interpolation method (if applicable).
+            The regularization parameter for the interpolation method
+            (only used when the method is 'spline').
 
         Returns
         -------
