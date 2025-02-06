@@ -261,7 +261,7 @@ def _read_mrk(fname):
     # are not guaranteed to be ASCII.
 
     try:
-        # if there is an explicit codepage set, use it we pretend like it's ASCII when
+        # if there is an explicit codepage set, use it; we pretend like it's ASCII when
         # searching for the codepage
         cp_setting = re.search(
             "Codepage=(.+)", txt.decode("ascii", "ignore"), re.IGNORECASE & re.MULTILINE
