@@ -1086,6 +1086,7 @@ class InterpolationMixin:
         if isinstance(self, BaseRaw):
             inst_interp = RawArray(data_interp, info_interp, first_samp=self.first_samp)
         elif isinstance(self, BaseEpochs):
+            data_interp = np.transpose(data_interp, (1, 0, 2))
             inst_interp = EpochsArray(data_interp, info_interp)
         elif isinstance(self, Evoked):
             inst_interp = EvokedArray(data_interp, info_interp)

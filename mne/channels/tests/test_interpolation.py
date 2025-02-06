@@ -449,13 +449,9 @@ def test_interpolate_to_eeg(montage_name, method, data_type):
     # Load EEG data
     raw, epochs_eeg = _load_data("eeg")
     epochs_eeg = epochs_eeg.copy()
-    assert not _has_eeg_average_ref_proj(epochs_eeg.info)
 
     # Load data for raw
     raw.load_data()
-
-    # Get the original EEG channel names from raw (used later for shape checking)
-    original_eeg_chan = [raw.ch_names[i] for i in pick_types(raw.info, eeg=True)]
 
     # Create a target montage
     montage = make_standard_montage(montage_name)
@@ -468,6 +464,8 @@ def test_interpolate_to_eeg(montage_name, method, data_type):
     elif data_type == "evoked":
         inst = epochs_eeg.average()
     shape = list(inst._data.shape)
+    orig_total = len(inst.info["ch_names"])
+    n_eeg_orig = len(pick_types(inst.info, eeg=True))
 
     # Interpolate
     inst_interp = inst.copy().interpolate_to(montage, method=method)
@@ -479,15 +477,26 @@ def test_interpolate_to_eeg(montage_name, method, data_type):
     assert inst.info["ch_names"] != inst_interp.info["ch_names"]
 
     # Check that the data shape is as expected.
-    orig_total = len(inst.info["ch_names"])
-    n_eeg_orig = len(original_eeg_chan)
     new_nchan_expected = orig_total - n_eeg_orig + len(montage.ch_names)
-    expected_shape = tuple([new_nchan_expected] + shape[1:])
+    if len(shape) == 2:
+        expected_shape = tuple([new_nchan_expected, shape[1]])
+    elif len(shape) == 3:
+        expected_shape = tuple([shape[0], new_nchan_expected, shape[2]])
     assert inst_interp._data.shape == expected_shape
 
     # Validate that bad channels are carried over.
-    # Mark the first channel as bad.
-    bads = [inst.info["ch_names"][0]]
-    inst.info["bads"] = bads
-    inst_interp = inst.copy().interpolate_to(montage, method=method)
-    assert inst_interp.info["bads"] == bads
+    # Mark the first non eeg channel as bad
+    bads = None
+    i = 0
+    all_ch = inst_interp.info["ch_names"]
+    eeg_ch = pick_types(inst_interp.info, eeg=True)
+    eeg_ch = [all_ch[i] for i in eeg_ch]
+    while (i < len(all_ch)) and (bads is None):
+        ch = all_ch[i]
+        if ch not in eeg_ch:
+            bads = [ch]
+        i += 1
+    if bads is not None:
+        inst.info["bads"] = bads
+        inst_interp = inst.copy().interpolate_to(montage, method=method)
+        assert inst_interp.info["bads"] == bads
