@@ -27,6 +27,7 @@ from mne.channels import make_standard_montage
 from mne.datasets import sample
 
 print(__doc__)
+ylim = (-10, 10)
 
 # %%
 # Load EEG data
@@ -38,7 +39,7 @@ evoked = mne.read_evokeds(eeg_file_path, condition="Left Auditory", baseline=(No
 evoked.pick("eeg")
 
 # Plot the original EEG layout
-evoked.plot(exclude=[], picks="eeg")
+evoked.plot(exclude=[], picks="eeg", ylim=dict(eeg=ylim))
 
 # %%
 # Define the target montage
@@ -51,23 +52,28 @@ evoked_interpolated_spline = evoked.copy().interpolate_to(
 )
 
 # Plot the interpolated EEG layout
-evoked_interpolated_spline.plot(exclude=[], picks="eeg")
+evoked_interpolated_spline.plot(exclude=[], picks="eeg", ylim=dict(eeg=ylim))
 
 # %%
 # Use interpolate_to to project EEG data to the standard montage
 evoked_interpolated_mne = evoked.copy().interpolate_to(standard_montage, method="MNE")
 
 # Plot the interpolated EEG layout
-evoked_interpolated_mne.plot(exclude=[], picks="eeg")
+evoked_interpolated_mne.plot(exclude=[], picks="eeg", ylim=dict(eeg=ylim))
 
 # %%
 # Comparing before and after interpolation
 fig, axs = plt.subplots(3, 1, figsize=(8, 6), constrained_layout=True)
-evoked.plot(exclude=[], picks="eeg", axes=axs[0], show=False)
+evoked.plot(exclude=[], picks="eeg", axes=axs[0], show=False, ylim=dict(eeg=ylim))
 axs[0].set_title("Original EEG Layout")
-evoked_interpolated_spline.plot(exclude=[], picks="eeg", axes=axs[1], show=False)
+evoked_interpolated_spline.plot(
+    exclude=[], picks="eeg", axes=axs[1], show=False, ylim=dict(eeg=ylim)
+)
 axs[1].set_title("Interpolated to Standard 1020 Montage using spline interpolation")
 evoked_interpolated_mne.plot(exclude=[], picks="eeg", axes=axs[2], show=False)
+evoked_interpolated_mne.plot(
+    exclude=[], picks="eeg", axes=axs[2], show=False, ylim=dict(eeg=ylim)
+)
 axs[2].set_title("Interpolated to Standard 1020 Montage using MNE interpolation")
 
 # %%
