@@ -236,29 +236,29 @@ def _read_mrk(fname):
 
     Returns
     -------
-    onset : array, shape (n_annots,)
+    onset : list of float
         The onsets in seconds.
-    duration : array, shape (n_annots,)
+    duration : list of float
         The onsets in seconds.
-    description : array, shape (n_annots,)
-        The description of each annotation.
+    type_ : list of str
+        The marker types.
+    description : list of str
+        The marker descriptions.
     date_str : str
-        The recording time as a string. Defaults to empty string if no recording time is
-        found.
+        The recording time. Defaults to empty string if no recording time is found.
     """
     # read marker file
     with open(fname, "rb") as fid:
         txt = fid.read()
 
-    # we don't actually need to know the coding for the header line. the characters in
+    # we don't actually need to know the encoding for the header line. the characters in
     # it all belong to ASCII and are thus the same in Latin-1 and UTF-8
     header = txt.decode("ascii", "ignore").split("\n")[0].strip()
     _check_bv_version(header, "marker")
 
     # although the markers themselves are guaranteed to be ASCII (they consist of
     # numbers and a few reserved words), we should still decode the file properly here
-    # because other (currently unused) blocks, such as that the filename are specifying
-    # are not guaranteed to be ASCII.
+    # because other (currently unused) blocks are not guaranteed to be ASCII
 
     try:
         # if there is an explicit codepage set, use it; we pretend like it's ASCII when
@@ -280,9 +280,12 @@ def _read_mrk(fname):
         txt = txt.decode("latin-1")
 
     # extract Marker Infos block
+    onset, duration, type_, description = [], [], [], []
+    date_str = ""
+
     m = re.search(r"\[Marker Infos\]", txt, re.IGNORECASE)
     if not m:
-        return np.array(list()), np.array(list()), np.array(list()), ""
+        return onset, duration, type_, description, date_str
 
     mk_txt = txt[m.end() :]
     m = re.search(r"^\[.*\]$", mk_txt)
@@ -291,26 +294,25 @@ def _read_mrk(fname):
 
     # extract event information
     items = re.findall(r"^Mk\d+=(.*)", mk_txt, re.MULTILINE)
-    onset, duration, description = list(), list(), list()
-    date_str = ""
     for info in items:
         info_data = info.split(",")
         mtype, mdesc, this_onset, this_duration = info_data[:4]
-        # commas in mtype and mdesc are handled as "\1". convert back to comma
+        # commas in mtype and mdesc are handled as "\1", convert back to comma
         mtype = mtype.replace(r"\1", ",")
         mdesc = mdesc.replace(r"\1", ",")
         if date_str == "" and len(info_data) == 5 and mtype == "New Segment":
             # to handle the origin of time and handle the presence of multiple New
-            # Segment annotations. We only keep the first one that is different from an
-            # empty string for date_str.
+            # Segment annotations, we only keep the first one that is different from an
+            # empty string for date_str
             date_str = info_data[-1]
 
         this_duration = int(this_duration) if this_duration.isdigit() else 0
         duration.append(this_duration)
         onset.append(int(this_onset) - 1)  # BV is 1-indexed, not 0-indexed
-        description.append(mtype + "/" + mdesc)
+        type_.append(mtype)
+        description.append(mdesc)
 
-    return np.array(onset), np.array(duration), np.array(description), date_str
+    return onset, duration, type_, description, date_str
 
 
 def _read_annotations_brainvision(fname, sfreq="auto", ignore_marker_types=False):
@@ -337,7 +339,7 @@ def _read_annotations_brainvision(fname, sfreq="auto", ignore_marker_types=False
     annotations : instance of Annotations
         The annotations present in the file.
     """
-    onset, duration, description, date_str = _read_mrk(fname)
+    onset, duration, type_, description, date_str = _read_mrk(fname)
     orig_time = _str_to_meas_date(date_str)
 
     if sfreq == "auto":
@@ -350,15 +352,16 @@ def _read_annotations_brainvision(fname, sfreq="auto", ignore_marker_types=False
         sfreq = info["sfreq"]
 
     # skip the first "New Segment" marker (as it only contains the recording time)
-    if len(description) > 0 and description[0] == "New Segment/":
+    if len(type_) > 0 and type_[0] == "New Segment":
         onset = onset[1:]
         duration = duration[1:]
+        type_ = type_[1:]
         description = description[1:]
 
     onset = np.array(onset, dtype=float) / sfreq
     duration = np.array(duration, dtype=float) / sfreq
-    if ignore_marker_types:
-        description = [d.split("/")[-1] for d in description]
+    if not ignore_marker_types:
+        description = [f"{t}/{d}" for t, d in zip(type_, description)]
     annotations = Annotations(
         onset=onset, duration=duration, description=description, orig_time=orig_time
     )
