@@ -467,22 +467,68 @@ def test_interpolate_to_eeg(montage_name, method, data_type):
     orig_total = len(inst.info["ch_names"])
     n_eeg_orig = len(pick_types(inst.info, eeg=True))
 
-    # Interpolate
+    # Assert first and last channels are not EEG
+    if data_type == "raw":
+        ch_types = inst.get_channel_types()
+        assert ch_types[0] != "eeg"
+        assert ch_types[-1] != "eeg"
+
+    # Record the names and data of the first and last channels.
+    if data_type == "raw":
+        first_name = inst.info["ch_names"][0]
+        last_name = inst.info["ch_names"][-1]
+        if inst._data.ndim == 2:
+            data_first = inst._data[0].copy()
+            data_last = inst._data[-1].copy()
+        elif inst._data.ndim == 3:
+            data_first = inst._data[:, 0, :].copy()
+            data_last = inst._data[:, -1, :].copy()
+
+    # Interpolate the EEG channels.
     inst_interp = inst.copy().interpolate_to(montage, method=method)
 
     # Check that the new channel names include the montage channels.
     assert set(montage.ch_names).issubset(set(inst_interp.info["ch_names"]))
-
-    # Check that the original container's channel ordering is changed.
+    # Check that the overall channel order is changed.
     assert inst.info["ch_names"] != inst_interp.info["ch_names"]
 
     # Check that the data shape is as expected.
     new_nchan_expected = orig_total - n_eeg_orig + len(montage.ch_names)
     if len(shape) == 2:
-        expected_shape = tuple([new_nchan_expected, shape[1]])
+        expected_shape = (new_nchan_expected, shape[1])
     elif len(shape) == 3:
-        expected_shape = tuple([shape[0], new_nchan_expected, shape[2]])
+        expected_shape = (shape[0], new_nchan_expected, shape[2])
     assert inst_interp._data.shape == expected_shape
+
+    # Verify that the first and last channels retain their positions.
+    if data_type == "raw":
+        assert inst_interp.info["ch_names"][0] == first_name
+        assert inst_interp.info["ch_names"][-1] == last_name
+
+    # Verify that the data for the first and last channels is unchanged.
+    if data_type == "raw":
+        if inst_interp._data.ndim == 2:
+            np.testing.assert_allclose(
+                inst_interp._data[0],
+                data_first,
+                err_msg="Data for the first non-EEG channel has changed.",
+            )
+            np.testing.assert_allclose(
+                inst_interp._data[-1],
+                data_last,
+                err_msg="Data for the last non-EEG channel has changed.",
+            )
+        elif inst_interp._data.ndim == 3:
+            np.testing.assert_allclose(
+                inst_interp._data[:, 0, :],
+                data_first,
+                err_msg="Data for the first non-EEG channel has changed.",
+            )
+            np.testing.assert_allclose(
+                inst_interp._data[:, -1, :],
+                data_last,
+                err_msg="Data for the last non-EEG channel has changed.",
+            )
 
     # Validate that bad channels are carried over.
     # Mark the first non eeg channel as bad
