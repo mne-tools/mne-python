@@ -999,12 +999,12 @@ class InterpolationMixin:
         from ..forward._field_interpolation import _map_meg_or_eeg_channels
         from ..io import RawArray
         from ..io.base import BaseRaw
+        from . import DigMontage
         from .interpolation import _make_interpolation_matrix
 
         # Check that the method option is valid.
         _check_option("method", method, ["spline", "MNE"])
-        if sensors is None:
-            raise ValueError("A sensors configuration must be provided.")
+        _validate_type(sensors, DigMontage, "sensors")
 
         # Get target positions from the montage
         ch_pos = sensors.get_positions().get("ch_pos", {})
@@ -1055,7 +1055,8 @@ class InterpolationMixin:
             _check_pos_sphere(pos_to)
             mapping = _make_interpolation_matrix(pos_from, pos_to, alpha=reg)
 
-        elif method == "MNE":
+        else:
+            assert method == "MNE"
             info_eeg = pick_info(self.info, picks_good_eeg)
             # If the original info has an average EEG reference projector but
             # the destination info does not,
@@ -1075,20 +1076,18 @@ class InterpolationMixin:
             mapping = _map_meg_or_eeg_channels(
                 info_eeg, info_interp, mode="accurate", origin=origin
             )
-        else:
-            raise ValueError("Unsupported interpolation method.")
 
         # Interpolate EEG data
         data_good = self.get_data(picks=picks_good_eeg)
-        data_interp = mapping.dot(data_good)
+        data_interp = mapping @ data_good
 
         # Create a new instance for the interpolated EEG channels
         if isinstance(self, BaseRaw):
             inst_interp = RawArray(data_interp, info_interp, first_samp=self.first_samp)
         elif isinstance(self, BaseEpochs):
-            data_interp = np.transpose(data_interp, (1, 0, 2))
             inst_interp = EpochsArray(data_interp, info_interp)
-        elif isinstance(self, Evoked):
+        else:
+            assert isinstance(self, Evoked)
             inst_interp = EvokedArray(data_interp, info_interp)
 
         # Merge only if non-EEG channels exist
