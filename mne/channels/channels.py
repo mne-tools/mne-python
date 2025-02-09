@@ -1099,16 +1099,17 @@ class InterpolationMixin:
 
         # Reorder channels
         # Insert the entire new EEG block at the position of the first EEG channel.
-        new_order = []
-        inserted = False
-        for ch in orig_names:
-            if ch in eeg_names_orig:
-                if not inserted:
-                    new_order.extend(info_interp["ch_names"])
-                    inserted = True
-                # Skip original EEG channels.
-            else:
-                new_order.append(ch)
+        orig_names_arr = np.array(orig_names)
+        mask_eeg = np.isin(orig_names_arr, eeg_names_orig)
+        if mask_eeg.any():
+            first_eeg_index = np.where(mask_eeg)[0][0]
+            pre = orig_names_arr[:first_eeg_index]
+            new_eeg = np.array(info_interp["ch_names"])
+            post = orig_names_arr[first_eeg_index:]
+            post = post[~np.isin(orig_names_arr[first_eeg_index:], eeg_names_orig)]
+            new_order = np.concatenate((pre, new_eeg, post)).tolist()
+        else:
+            new_order = orig_names
         inst_out.reorder_channels(new_order)
         return inst_out
 
