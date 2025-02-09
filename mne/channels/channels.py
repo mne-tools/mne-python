@@ -990,6 +990,7 @@ class InterpolationMixin:
         Notes
         -----
         This method is useful for standardizing EEG layouts across datasets.
+        However, some attributes may be lost after interpolation.
 
         .. versionadded:: 1.10.0
         """
@@ -1082,6 +1083,9 @@ class InterpolationMixin:
         data_interp = mapping @ data_good
 
         # Create a new instance for the interpolated EEG channels
+        # TODO: Creating a new instance leads to a loss of information.
+        #       We should consider updating the existing instance in the future
+        #       by 1) drop channels, 2) add channels, 3) re-order channels.
         if isinstance(self, BaseRaw):
             inst_interp = RawArray(data_interp, info_interp, first_samp=self.first_samp)
         elif isinstance(self, BaseEpochs):
