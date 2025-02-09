@@ -85,6 +85,10 @@ MANUAL_PACKAGES = {
         "Home-page": "https://eeg-positions.readthedocs.io",
         "Summary": "Compute and plot standard EEG electrode positions.",
     },
+    "mne-faster": {
+        "Home-page": "https://github.com/wmvanvliet/mne-faster",
+        "Summary": "MNE-FASTER: automatic bad channel/epoch/component detection.",  # noqa: E501
+    },
     "mne-features": {
         "Home-page": "https://mne.tools/mne-features",
         "Summary": "MNE-Features software for extracting features from multivariate time series",  # noqa: E501
