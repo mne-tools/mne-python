@@ -4498,7 +4498,6 @@ class Report:
         title,
         section,
         tags,
-        section,
         replace,
     ):
         """Render mri+bem (only PNG)."""
