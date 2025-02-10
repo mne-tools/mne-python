@@ -278,12 +278,19 @@ class Annotations:
     def __init__(self, onset, duration, description, orig_time=None, ch_names=None):
         self._orig_time = _handle_meas_date(orig_time)
         if isinstance(orig_time, str) and self._orig_time is None:
-            warnings.warn(
-                "The format of the `orig_time` string is not recognised. It must "
-                "conform to the ISO8601 format with at most microsecond precision and "
-                "where the delimiter between date and time is ' '.",
-                RuntimeWarning,
-            )
+            try:  # only warn if `orig_time` is not the default '1970-01-01 00:00:00'
+                if _handle_meas_date(0) == datetime.strptime(
+                    orig_time, "%Y-%m-%d %H:%M:%S"
+                ).replace(tzinfo=timezone.utc):
+                    pass
+            except ValueError:  # error if incorrect datetime format AND not the default
+                warn(
+                    "The format of the `orig_time` string is not recognised. It "
+                    "must conform to the ISO8601 format with at most microsecond "
+                    "precision and where the delimiter between date and time is "
+                    "' '.",
+                    RuntimeWarning,
+                )
         self.onset, self.duration, self.description, self.ch_names = _check_o_d_s_c(
             onset, duration, description, ch_names
         )

@@ -76,6 +76,9 @@ def windows_like_datetime(monkeypatch):
 
 def test_basics():
     """Test annotation class."""
+    pytest.importorskip("pandas")
+    import pandas as pd
+
     raw = read_raw_fif(fif_fname)
     assert raw.annotations is not None
     assert len(raw.annotations.onset) == 0
@@ -94,6 +97,17 @@ def test_basics():
         else:
             assert isinstance(annot.orig_time, datetime)
             assert annot.orig_time.tzinfo is timezone.utc
+
+    # Test bad format `orig_time` str -> `None` raises warning
+    with pytest.warns(
+        RuntimeWarning, match="The format of the `orig_time` string is not recognised."
+    ):
+        bad_orig_time = (
+            pd.Timestamp(_ORIG_TIME)
+            .astimezone(None)
+            .isoformat(sep=" ", timespec="nanoseconds")
+        )
+        Annotations(onset, duration, description, bad_orig_time)
 
     pytest.raises(ValueError, Annotations, onset, duration, description[:9])
     pytest.raises(ValueError, Annotations, [onset, 1], duration, description)
