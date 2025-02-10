@@ -1935,15 +1935,24 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
         info_template = _get_html_template("repr", "info.html.jinja")
         return info_template.render(info=self)
 
-    def save(self, fname):
+    @verbose
+    def save(self, fname, *, overwrite=False, verbose=None):
         """Write measurement info in fif file.
 
         Parameters
         ----------
         fname : path-like
             The name of the file. Should end by ``'-info.fif'``.
+        %(overwrite)s
+
+            .. versionadded:: 1.10
+        %(verbose)s
+
+        See Also
+        --------
+        mne.io.write_info
         """
-        write_info(fname, self)
+        write_info(fname, self, overwrite=overwrite)
 
 
 def _simplify_info(info, *, keep=()):
