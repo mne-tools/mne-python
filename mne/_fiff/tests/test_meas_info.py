@@ -975,7 +975,7 @@ def test_field_round_trip(tmp_path):
             meas_date=_stamp_to_dt((1, 2)),
         )
     fname = tmp_path / "temp-info.fif"
-    write_info(fname, info)
+    info.save(fname)
     info_read = read_info(fname)
     assert_object_equal(info, info_read)
     with pytest.raises(TypeError, match="datetime"):
