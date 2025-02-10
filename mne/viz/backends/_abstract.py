@@ -34,7 +34,8 @@ class Figure3D(ABC):
         fig=None,
         size=(600, 600),
         bgcolor=(0.0, 0.0, 0.0),
-        name=None,
+        *,
+        title="MNE 3D Figure",
         show=False,
         shape=(1, 1),
         splash=False,
@@ -60,7 +61,8 @@ class _AbstractRenderer(ABC):
         fig=None,
         size=(600, 600),
         bgcolor=(0.0, 0.0, 0.0),
-        name=None,
+        *,
+        name="MNE-Python 3D Figure",
         show=False,
         shape=(1, 1),
         splash=False,
@@ -989,7 +991,7 @@ class _AbstractCanvas(ABC):
 # ------------------------------------
 # Non-object-based Widget Abstractions
 # ------------------------------------
-# These are planned to be deprecated in favor of the simpler, object-
+# These are planned to be removed in favor of the simpler, object-
 # oriented abstractions above when time allows.
 
 

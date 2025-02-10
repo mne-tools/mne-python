@@ -333,7 +333,7 @@ def sizeof_fmt(num):
     size : str
         The size in human-readable format.
     """
-    units = ["bytes", "kB", "MB", "GB", "TB", "PB"]
+    units = ["bytes", "KiB", "MiB", "GiB", "TiB", "PiB"]
     decimals = [0, 0, 1, 2, 2, 2]
     if num > 1:
         exponent = min(int(log(num, 1024)), len(units) - 1)
@@ -379,7 +379,7 @@ def _assert_no_instances(cls, when=""):
             check = False
         if check:
             if cls.__name__ == "Brain":
-                ref.append(f'Brain._cleaned = {getattr(obj, "_cleaned", None)}')
+                ref.append(f"Brain._cleaned = {getattr(obj, '_cleaned', None)}")
             rr = gc.get_referrers(obj)
             count = 0
             for r in rr:

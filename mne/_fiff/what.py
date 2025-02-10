@@ -39,7 +39,7 @@ def what(fname):
     from ..transforms import read_trans
     from .meas_info import read_fiducials
 
-    _check_fname(fname, overwrite="read", must_exist=True)
+    fname = _check_fname(fname, overwrite="read", must_exist=True)
     checks = OrderedDict()
     checks["raw"] = read_raw_fif
     checks["ica"] = read_ica

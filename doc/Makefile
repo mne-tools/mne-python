@@ -76,3 +76,6 @@ view:
 	@python -c "import webbrowser; webbrowser.open_new_tab('file://$(PWD)/_build/html/sg_execution_times.html')"
 
 show: view
+
+serve:
+	python -m http.server -d _build/html

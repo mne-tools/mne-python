@@ -186,7 +186,7 @@ class MNEFigure(Figure):
 class MNEAnnotationFigure(MNEFigure):
     """Interactive dialog figure for annotations."""
 
-    def _close(self, event):
+    def _close(self, event=None):
         """Handle close events (via keypress or window [x])."""
         parent = self.mne.parent_fig
         # disable span selector
@@ -275,7 +275,7 @@ class MNEAnnotationFigure(MNEFigure):
 class MNESelectionFigure(MNEFigure):
     """Interactive dialog figure for channel selections."""
 
-    def _close(self, event):
+    def _close(self, event=None):
         """Handle close events."""
         self.mne.parent_fig.mne.child_figs.remove(self)
         self.mne.fig_selection = None
@@ -1536,7 +1536,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
     def _update_highlighted_sensors(self):
         """Update the sensor plot to show what is selected."""
         inds = np.isin(
-            self.mne.fig_selection.lasso.ch_names, self.mne.ch_names[self.mne.picks]
+            self.mne.fig_selection.lasso.names, self.mne.ch_names[self.mne.picks]
         ).nonzero()[0]
         self.mne.fig_selection.lasso.select_many(inds)
 

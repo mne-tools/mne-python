@@ -60,9 +60,9 @@ print(
 # Another group of methods where data is modified in-place are the
 # channel-picking methods. For example:
 
-print(f'original data had {original_raw.info["nchan"]} channels.')
+print(f"original data had {original_raw.info['nchan']} channels.")
 original_raw.pick("eeg")  # selects only the EEG channels
-print(f'after picking, it has {original_raw.info["nchan"]} channels.')
+print(f"after picking, it has {original_raw.info['nchan']} channels.")
 
 
 # %%

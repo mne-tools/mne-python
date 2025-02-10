@@ -33,8 +33,6 @@ invisible_fig
 captions_new
 comments_new
 items_new
-has_imageio_ffmpeg
-has_pyvista
 f4
 set_channel_types_eyetrack
 _use_test_3d_backend
@@ -43,6 +41,8 @@ metadata_routing
 
 # Decoding
 _._more_tags
+_.multi_class
+_.preserves_dtype
 deep
 
 # Backward compat or rarely used

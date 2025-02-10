@@ -31,6 +31,8 @@ Functions that operate on mne-python objects:
 .. autosummary::
    :toctree: ../generated/
 
+   combine_spectrum
+   combine_tfr
    csd_tfr
    csd_fourier
    csd_multitaper

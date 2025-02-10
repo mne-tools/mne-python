@@ -62,8 +62,7 @@ def run():
     parser.add_option(
         "--ico",
         dest="ico",
-        help="use the recursively subdivided icosahedron "
-        "to create the source space.",
+        help="use the recursively subdivided icosahedron to create the source space.",
         default=None,
         type="int",
     )

@@ -194,7 +194,7 @@ def test_make_scalp_surfaces(tmp_path, monkeypatch):
     dense_fname = op.join(subj_dir, "sample-head-dense.fif")
     medium_fname = op.join(subj_dir, "sample-head-medium.fif")
     with ArgvSetter(cmd, disable_stdout=False, disable_stderr=False):
-        monkeypatch.delenv("FREESURFER_HOME")
+        monkeypatch.delenv("FREESURFER_HOME", raising=False)
         with pytest.raises(RuntimeError, match="The FreeSurfer environ"):
             mne_make_scalp_surfaces.run()
         shutil.copy(op.join(surf_path, "lh.seghead"), surf_path_new)
@@ -334,7 +334,7 @@ def test_flash_bem(tmp_path):
 
     # First test without flash30
     with ArgvSetter(
-        ("-d", tempdir, "-s", "sample", "-n", "-r", "-3"),
+        ("-d", tempdir, "-s", "sample", "-r", "-3"),
         disable_stdout=False,
         disable_stderr=False,
     ):
@@ -361,7 +361,6 @@ def test_flash_bem(tmp_path):
             tempdir,
             "-s",
             "sample",
-            "-n",
             "-3",
             str(mridata_path / "flash" / "mef30.mgz"),
             "-5",

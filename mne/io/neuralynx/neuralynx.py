@@ -77,7 +77,7 @@ def read_raw_neuralynx(
     )
 
 
-# Helper for neo deprecation of exclude_filename -> exclude_filenames in 0.13.2
+# Helper for neo change of exclude_filename -> exclude_filenames in 0.13.2
 def _exclude_kwarg(exclude_fnames):
     from neo.io import NeuralynxIO
 
@@ -314,7 +314,7 @@ class RawNeuralynx(BaseRaw):
         from quantities import Hz
 
         nlx_reader = NeuralynxIO(
-            dirname=self._filenames[fi],
+            dirname=self.filenames[fi],
             **_exclude_kwarg(self._raw_extras[0]["exclude_fnames"]),
         )
         neo_block = nlx_reader.read(lazy=True)

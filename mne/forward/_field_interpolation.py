@@ -96,8 +96,11 @@ def _pinv_trunc(x, miss):
     varexp /= varexp[-1]
     n = np.where(varexp >= (1.0 - miss))[0][0] + 1
     logger.info(
-        "    Truncating at %d/%d components to omit less than %g "
-        "(%0.2g)" % (n, len(s), miss, 1.0 - varexp[n - 1])
+        "    Truncating at %d/%d components to omit less than %g (%0.2g)",
+        n,
+        len(s),
+        miss,
+        1.0 - varexp[n - 1],
     )
     s = 1.0 / s[:n]
     inv = ((u[:, :n] * s) @ v[:n]).T
@@ -108,8 +111,7 @@ def _pinv_tikhonov(x, reg):
     # _reg_pinv requires square Hermitian, which we have here
     inv, _, n = _reg_pinv(x, reg=reg, rank=None)
     logger.info(
-        f"    Truncating at {n}/{len(x)} components and regularizing "
-        f"with α={reg:0.1e}"
+        f"    Truncating at {n}/{len(x)} components and regularizing with α={reg:0.1e}"
     )
     return inv, n
 
@@ -393,12 +395,12 @@ def _make_surface_mapping(
     # Step 2. Calculate the dot products
     #
     int_rad, noise, lut_fun, n_fact = _setup_dots(mode, info, coils, ch_type)
-    logger.info("Computing dot products for %i %s..." % (len(coils), type_str))
+    logger.info("Computing dot products for %i %s...", len(coils), type_str)
     self_dots = _do_self_dots(
         int_rad, False, coils, origin, ch_type, lut_fun, n_fact, n_jobs
     )
     sel = np.arange(len(surf["rr"]))  # eventually we should do sub-selection
-    logger.info("Computing dot products for %i surface locations..." % len(sel))
+    logger.info("Computing dot products for %i surface locations...", len(sel))
     surface_dots = _do_surface_dots(
         int_rad, False, coils, surf, sel, origin, ch_type, lut_fun, n_fact, n_jobs
     )
