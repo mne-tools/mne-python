@@ -490,7 +490,7 @@ def test_interpolate_to_eeg(montage_name, method, data_type):
 
     # Check that the data shape is as expected.
     new_nchan_expected = orig_total - n_eeg_orig + len(montage.ch_names)
-    expected_shape = (new_nchan_expected, shape[1])
+    expected_shape = (new_nchan_expected, shape[-1])
     if len(shape) == 3:
         expected_shape = (shape[0],) + expected_shape
     assert inst_interp._data.shape == expected_shape
