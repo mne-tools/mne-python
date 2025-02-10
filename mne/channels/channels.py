@@ -41,7 +41,7 @@ from .._fiff.pick import (
     pick_info,
     pick_types,
 )
-from .._fiff.proj import setup_proj
+from .._fiff.proj import _has_eeg_average_ref_proj, setup_proj
 from .._fiff.reference import add_reference_channels, set_eeg_reference
 from .._fiff.tag import _rename_list
 from ..bem import _check_origin
@@ -994,14 +994,13 @@ class InterpolationMixin:
 
         .. versionadded:: 1.10.0
         """
-        from .._fiff.proj import _has_eeg_average_ref_proj
         from ..epochs import BaseEpochs, EpochsArray
         from ..evoked import Evoked, EvokedArray
         from ..forward._field_interpolation import _map_meg_or_eeg_channels
         from ..io import RawArray
         from ..io.base import BaseRaw
-        from . import DigMontage
         from .interpolation import _make_interpolation_matrix
+        from .montage import DigMontage
 
         # Check that the method option is valid.
         _check_option("method", method, ["spline", "MNE"])
