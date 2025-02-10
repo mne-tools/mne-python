@@ -24,6 +24,7 @@
 .. _Anna Padee: https://github.com/apadee/
 .. _Annalisa Pascarella: https://www.iac.cnr.it/personale/annalisa-pascarella
 .. _Anne-Sophie Dubarry: https://github.com/annesodub
+.. _Antoine Collas: https://www.antoinecollas.fr
 .. _Antoine Gauthier: https://github.com/Okamille
 .. _Antti Rantala: https://github.com/Odingod
 .. _Apoorva Karekal: https://github.com/apoorva6262
