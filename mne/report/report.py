@@ -452,7 +452,7 @@ def _fig_to_img(fig, *, image_format="png", own_figure=True):
 
 
 def _get_bem_contour_figs_as_arrays(
-    *, sl, n_jobs, mri_fname, surfaces, orientation, src, show, show_orientation, width
+    *, sl, n_jobs, mri_fname, surfaces, orientation, src, trans, show, show_orientation, width
 ):
     """Render BEM surface contours on MRI slices.
 
@@ -471,6 +471,7 @@ def _get_bem_contour_figs_as_arrays(
             surfaces=surfaces,
             orientation=orientation,
             src=src,
+            trans=trans,
             show=show,
             show_orientation=show_orientation,
             width=width,
@@ -2470,6 +2471,7 @@ class Report:
             subject=subject,
             subjects_dir=subjects_dir,
             src=None,
+            trans=None,
             decim=decim,
             n_jobs=n_jobs,
             width=width,
@@ -3060,6 +3062,7 @@ class Report:
         image_format,
         orientation,
         src=None,
+        trans=None,
         decim=2,
         n_jobs=None,
         width=512,
@@ -3081,6 +3084,7 @@ class Report:
             surfaces=surfaces,
             orientation=orientation,
             src=src,
+            trans=trans,
             show=False,
             show_orientation="always",
             width=width,
@@ -3424,6 +3428,22 @@ class Report:
                 tags=tags,
                 replace=replace
             )
+
+            self._add_bem(
+                    subject=subject,
+                    subjects_dir=subjects_dir,
+                    src=src,
+                    trans=trans,
+                    decim=1,
+                    n_jobs=1,
+                    width=512,
+                    image_format=image_format,
+                    title="source space",
+                    section=section,
+                    tags=tags,
+                    replace=replace,
+                )
+
 
 
     def _add_inverse_operator(
@@ -4275,6 +4295,7 @@ class Report:
         subject,
         subjects_dir,
         src,
+        trans,
         decim,
         n_jobs,
         width=512,
@@ -4308,6 +4329,7 @@ class Report:
                 surfaces=surfaces,
                 orientation=orientation,
                 src=src,
+                trans=trans,
                 decim=decim,
                 n_jobs=n_jobs,
                 width=width,
