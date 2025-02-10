@@ -46,7 +46,9 @@ def _convert_times(times, time_format, meas_date=None, first_time=0):
     elif time_format == "timedelta":
         times = to_timedelta(times, unit="s")
     elif time_format == "datetime":
-        times = to_timedelta(times + first_time, unit="s") + meas_date
+        times = (to_timedelta(times + first_time, unit="s") + meas_date).astype(
+            "datetime64[us]"
+        )  # make ISO8601 (microsecond) compatible
     return times
 
 
