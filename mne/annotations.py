@@ -142,7 +142,8 @@ class Annotations:
         the annotations with raw data if their acquisition is started at the
         same time. If it is a string, it should conform to the ISO8601 format.
         More precisely to this '%%Y-%%m-%%d %%H:%%M:%%S.%%f' particular case of
-        the ISO8601 format where the delimiter between date and time is ' '.
+        the ISO8601 format where the delimiter between date and time is ' ' and at most
+        microsecond precision (nanoseconds are not supported).
     %(ch_names_annot)s
 
         .. versionadded:: 0.23
@@ -276,6 +277,12 @@ class Annotations:
 
     def __init__(self, onset, duration, description, orig_time=None, ch_names=None):
         self._orig_time = _handle_meas_date(orig_time)
+        if isinstance(orig_time, str) and self._orig_time is None:
+            warnings.warn(
+                "The format of the `orig_time` string is not recognised. It must "
+                "conform to the ISO8601 format with at most microsecond precision and "
+                "where the delimiter between date and time is ' '."
+            )
         self.onset, self.duration, self.description, self.ch_names = _check_o_d_s_c(
             onset, duration, description, ch_names
         )
