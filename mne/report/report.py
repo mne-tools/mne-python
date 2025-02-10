@@ -475,7 +475,17 @@ def _fig_to_img(
 
 
 def _get_bem_contour_figs_as_arrays(
-    *, sl, n_jobs, mri_fname, surfaces, orientation, src, trans, show, show_orientation, width
+    *,
+    sl,
+    n_jobs,
+    mri_fname,
+    surfaces,
+    orientation,
+    src,
+    trans,
+    show,
+    show_orientation,
+    width,
 ):
     """Render BEM surface contours on MRI slices.
 
@@ -3626,21 +3636,19 @@ class Report:
             )
 
             self._add_bem(
-                    subject=subject,
-                    subjects_dir=subjects_dir,
-                    src=src,
-                    trans=trans,
-                    decim=1,
-                    n_jobs=1,
-                    width=512,
-                    image_format=image_format,
-                    title="source space",
-                    section=section,
-                    tags=tags,
-                    replace=replace,
-                )
-
-
+                subject=subject,
+                subjects_dir=subjects_dir,
+                src=src,
+                trans=trans,
+                decim=1,
+                n_jobs=1,
+                width=512,
+                image_format=image_format,
+                title="source space",
+                section=section,
+                tags=tags,
+                replace=replace,
+            )
 
     def _add_inverse_operator(
         self,
