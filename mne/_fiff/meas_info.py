@@ -1936,7 +1936,7 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
         return info_template.render(info=self)
 
     @verbose
-    def save(self, fname, overwrite=False, verbose=None):
+    def save(self, fname, *, overwrite=False, verbose=None):
         """Write measurement info in fif file.
 
         Parameters
@@ -1952,7 +1952,7 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
         --------
         mne.io.write_info
         """
-        write_info(fname, self, overwrite=overwrite, verbose=verbose)
+        write_info(fname, self, overwrite=overwrite)
 
 
 def _simplify_info(info, *, keep=()):
