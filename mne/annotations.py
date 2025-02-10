@@ -281,7 +281,8 @@ class Annotations:
             warnings.warn(
                 "The format of the `orig_time` string is not recognised. It must "
                 "conform to the ISO8601 format with at most microsecond precision and "
-                "where the delimiter between date and time is ' '."
+                "where the delimiter between date and time is ' '.",
+                RuntimeWarning,
             )
         self.onset, self.duration, self.description, self.ch_names = _check_o_d_s_c(
             onset, duration, description, ch_names
