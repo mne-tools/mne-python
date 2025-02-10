@@ -32,7 +32,7 @@ from ..filter import estimate_ringing_samples
 from ..fixes import _safe_svd
 from ..rank import compute_rank
 from ..surface import read_surface
-from ..transforms import _frame_to_str, apply_trans
+from ..transforms import apply_trans
 from ..utils import (
     _check_option,
     _mask_to_onsets_offsets,
@@ -445,11 +445,11 @@ def _plot_mri_contours(
             if src_["coord_frame"] != FIFF.FIFFV_COORD_MRI:
                 if trans is None:
                     raise ValueError(
-                        "Source space must be in MRI coordinates, or "
-                        "provide a trans.")
+                        "Source space must be in MRI coordinates, or provide a trans."
+                    )
                 else:
-                    points = apply_trans(np.linalg.inv(trans['trans']), points)
-            sources.append(apply_trans(mri_rasvox_t, points* 1e3))
+                    points = apply_trans(np.linalg.inv(trans["trans"]), points)
+            sources.append(apply_trans(mri_rasvox_t, points * 1e3))
         sources = np.concatenate(sources, axis=0)
 
     # get the figure dimensions right
