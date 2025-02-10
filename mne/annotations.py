@@ -1264,7 +1264,13 @@ def _read_annotations_csv(fname):
             "onsets in seconds."
         )
     except ValueError:
-        pass
+        # remove nanoseconds for ISO8601 (microsecond) compliance
+        timestamp = pd.Timestamp(orig_time)
+        timespec = "microseconds"
+        if timestamp == pd.Timestamp(_handle_meas_date(0)).astimezone(None):
+            timespec = "auto"  # use default timespec for `orig_time=None`
+        orig_time = timestamp.isoformat(sep=" ", timespec=timespec)
+
     onset_dt = pd.to_datetime(df["onset"])
     onset = (onset_dt - onset_dt[0]).dt.total_seconds()
     duration = df["duration"].values.astype(float)
