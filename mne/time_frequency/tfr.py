@@ -4302,7 +4302,7 @@ def _tfr_from_mt(x_mt, weights):
         The time-frequency power estimates.
     """
     # add singleton dim for time and any dims preceding the tapers
-    weights = np.expand_dims(weights, axis=(*range(x_mt.ndim - 3), -1))
+    weights = weights[..., np.newaxis]
     tfr = weights * x_mt
     tfr *= tfr.conj()
     tfr = tfr.real.sum(axis=-3)
