@@ -1041,6 +1041,24 @@ def test_broken_csv(tmp_path):
         read_annotations(fname)
 
 
+def test_nanosecond_csv(tmp_path):
+    """Test .csv with nanosecond timestamps for onsets read correctly."""
+    pytest.importorskip("pandas")
+    import pandas as pd
+
+    onset = (
+        pd.Timestamp(_ORIG_TIME)
+        .astimezone(None)
+        .isoformat(sep=" ", timespec="nanoseconds")
+    )
+    content = f"onset,duration,description\n{onset},1.0,AA"
+    fname = tmp_path / "annotations_broken.csv"
+    with open(fname, "w") as f:
+        f.write(content)
+    annot = read_annotations(fname)
+    assert annot.orig_time == _ORIG_TIME
+
+
 # Test for IO with .txt files
 
 
@@ -1462,6 +1480,8 @@ def test_repr():
 def test_annotation_to_data_frame(time_format):
     """Test annotation class to data frame conversion."""
     pytest.importorskip("pandas")
+    import pandas as pd
+
     onset = np.arange(1, 10)
     durations = np.full_like(onset, [4, 5, 6, 4, 5, 6, 4, 5, 6])
     description = ["yy"] * onset.shape[0]
@@ -1480,6 +1500,12 @@ def test_annotation_to_data_frame(time_format):
         got = got.seconds
     assert want == got
     assert df.groupby("description").count().onset["yy"] == 9
+
+    # Check nanoseconds omitted from onset times
+    if time_format == "datetime":
+        a.onset += 1e-7  # >6 decimals to trigger nanosecond component
+        df = a.to_data_frame(time_format=time_format)
+        assert pd.Timestamp(df.onset[0]).nanosecond == 0
 
 
 def test_annotation_ch_names():
