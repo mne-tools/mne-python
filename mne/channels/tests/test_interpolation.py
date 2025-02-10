@@ -515,12 +515,8 @@ def test_interpolate_to_eeg(montage_name, method, data_type):
 
     # Validate that bad channels are carried over.
     # Mark the first non eeg channel as bad
-    bads = None
-    i = 0
     all_ch = inst_interp.info["ch_names"]
-    eeg_ch = pick_types(inst_interp.info, eeg=True)
-    eeg_ch = [all_ch[i] for i in eeg_ch]
-    # just the first non-EEG channel (if available)
+    eeg_ch = [all_ch[i] for i in pick_types(inst_interp.info, eeg=True)]
     bads = [ch for ch in all_ch if ch not in eeg_ch][:1]
     inst.info["bads"] = bads
     inst_interp = inst.copy().interpolate_to(montage, method=method)
