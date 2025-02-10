@@ -665,7 +665,6 @@ def test_ignore_marker_types():
     # default behavior (do not ignore marker types)
     raw = read_raw_brainvision(vhdr_path)
     expected_descriptions = [
-        "New Segment/",
         "Stimulus/S253",
         "Stimulus/S255",
         "Event/254",
@@ -685,7 +684,6 @@ def test_ignore_marker_types():
     # ignore marker types
     raw = read_raw_brainvision(vhdr_path, ignore_marker_types=True)
     expected_descriptions = [
-        "",
         "S253",
         "S255",
         "254",
@@ -720,7 +718,6 @@ def test_read_vhdr_annotations_and_events(tmp_path):
     expected_orig_time = _stamp_to_dt((1384359243, 794232))
     expected_onset_latency = np.array(
         [
-            0,
             486.0,
             496.0,
             1769.0,
@@ -738,7 +735,6 @@ def test_read_vhdr_annotations_and_events(tmp_path):
         ]
     )
     expected_annot_description = [
-        "New Segment/",
         "Stimulus/S253",
         "Stimulus/S255",
         "Event/254",
@@ -760,7 +756,6 @@ def test_read_vhdr_annotations_and_events(tmp_path):
                 expected_onset_latency,
                 np.zeros_like(expected_onset_latency),
                 [
-                    99999,
                     253,
                     255,
                     254,
@@ -782,7 +777,6 @@ def test_read_vhdr_annotations_and_events(tmp_path):
         .T
     )
     expected_event_id = {
-        "New Segment/": 99999,
         "Stimulus/S253": 253,
         "Stimulus/S255": 255,
         "Event/254": 254,

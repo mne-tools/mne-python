@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "4dc9fe44df5c0367ef9d250b18214832c90196fb",
+  "authors": [
+    {
+      "n": "Lumberbot (aka Jack)",
+      "e": null
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/sphinxext/mne_doc_utils.py": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/sphinxext/related_software.py": {
+      "a": 16,
+      "d": 8
+    },
+    "tools/circleci_dependencies.sh": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/intro/70_report.py": {
+      "a": 5,
+      "d": 5
+    },
+    "tutorials/inverse/20_dipole_fit.py": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}
