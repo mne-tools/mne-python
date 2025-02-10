@@ -1947,6 +1947,10 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
 
             .. versionadded:: 1.10
         %(verbose)s
+
+        See Also
+        --------
+        mne.io.write_info
         """
         write_info(fname, self, overwrite=overwrite, verbose=verbose)
 
