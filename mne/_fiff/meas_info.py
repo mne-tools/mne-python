@@ -3315,7 +3315,7 @@ RAW_INFO_FIELDS = (
 )
 
 
-def _empty_info(sfreq):
+def _empty_info(sfreq, *, dev_head_t=True):
     """Create an empty info dictionary."""
     from ..transforms import Transform
 
@@ -3364,7 +3364,11 @@ def _empty_info(sfreq):
     info["highpass"] = 0.0
     info["sfreq"] = float(sfreq)
     info["lowpass"] = info["sfreq"] / 2.0
-    info["dev_head_t"] = Transform("meg", "head")
+    if dev_head_t is True:
+        dev_head_t = Transform("meg", "head")
+    elif dev_head_t is False:
+        dev_head_t = None
+    info["dev_head_t"] = dev_head_t
     info._update_redundant()
     info._check_consistency()
     return info

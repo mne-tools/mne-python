@@ -83,6 +83,7 @@ def test_egi_mff_pause(fname, skip_times, event_times):
                 events_as_annotations=False,
             )
     assert raw.info["sfreq"] == 250.0  # true for all of these files
+    assert raw.info["dev_head_t"] is None  # no MEG data
     assert len(raw.annotations) == len(skip_times)
 
     # assert event onsets match expected times
