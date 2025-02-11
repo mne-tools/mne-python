@@ -391,6 +391,7 @@ _call_dict = {
     FIFF.FIFFT_OLD_PACK: _read_old_pack,
     FIFF.FIFFT_DIR_ENTRY_STRUCT: _read_dir_entry_struct,
     FIFF.FIFFT_JULIAN: _read_julian,
+    FIFF.FIFFT_VOID: lambda fid, tag, shape, rlims: None,
 }
 _call_dict_names = {
     FIFF.FIFFT_STRING: "str",
@@ -398,6 +399,7 @@ _call_dict_names = {
     FIFF.FIFFT_COMPLEX_DOUBLE: "c16",
     FIFF.FIFFT_ID_STRUCT: "ids",
     FIFF.FIFFT_DIG_POINT_STRUCT: "dps",
+    FIFF.FIFFT_DIG_STRING_STRUCT: "dss",
     FIFF.FIFFT_COORD_TRANS_STRUCT: "cts",
     FIFF.FIFFT_CH_INFO_STRUCT: "cis",
     FIFF.FIFFT_OLD_PACK: "op_",
