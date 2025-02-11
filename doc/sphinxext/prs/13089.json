@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "715540a823ae5dec335bee0b2499f1f7183c19c4",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/viz/utils.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/epochs/60_make_fixed_length_epochs.py": {
+      "a": 4,
+      "d": 5
+    },
+    "tutorials/evoked/10_evoked_overview.py": {
+      "a": 5,
+      "d": 6
+    }
+  }
+}
