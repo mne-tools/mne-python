@@ -36,6 +36,11 @@ MNE-Python Homepage
 
    Install <install/index>
    Documentation <documentation/index>
-   API Reference <api/python_reference>
-   Get help <help/index>
+   API <api/python_reference>
+   Help <help/index>
    Development <development/index>
+   Tutorials <auto_tutorials/index>
+   Examples <auto_examples/index>
+   Changelog <development/whats_new>
+   Cite <documentation/cite>
+   Contribute <development/contributing>
