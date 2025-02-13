@@ -1,0 +1,1 @@
+Add smooth processing of tSSS windows (using overlap-add) and movement compensation (using smooth interpolation of head positions) in :func:`mne.preprocessing.maxwell_filter` via ``st_overlap`` and ```mc_interp`` options, respectively, by `Eric Larson`_.

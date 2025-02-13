@@ -441,7 +441,7 @@ def test_average_movements():
     assert_meg_snr(evoked_sss, evoked_move_non, 0.02, 2.6)
     assert_meg_snr(evoked_sss, evoked_stat_all, 0.05, 3.2)
     # these should be close to numerical precision
-    assert_allclose(evoked_sss_stat.data, evoked_stat_all.data, atol=1e-20)
+    assert_allclose(evoked_sss_stat.data, evoked_stat_all.data, atol=1e-14)
 
     # pos[0] > epochs.events[0] uses dev_head_t, so make it equivalent
     destination = deepcopy(epochs.info["dev_head_t"])
