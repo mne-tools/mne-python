@@ -257,6 +257,7 @@
 .. _Romain Derollepot: https://github.com/rderollepot
 .. _Romain Trachel: https://fr.linkedin.com/in/trachelr
 .. _Roman Goj: https://romanmne.blogspot.co.uk
+.. _Rongfei Jin: https://github.com/greasycat
 .. _Ross Maddox: https://medicine.umich.edu/dept/khri/ross-maddox-phd
 .. _Rotem Falach: https://github.com/Falach
 .. _Roy Eric Wieske: https://github.com/Randomidous
