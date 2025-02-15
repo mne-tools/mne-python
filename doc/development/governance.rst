@@ -46,7 +46,9 @@ Governance Model
 Leadership Roles
 ^^^^^^^^^^^^^^^^
 
-The MNE-Python leadership structure shall consist of:
+The MNE-Python leadership structure shall consist of the following groups.
+A list of the current members of the respective groups is maintained at the
+page :ref:`governance-people`.
 
 Maintainer Team
 ---------------
