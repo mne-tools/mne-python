@@ -821,7 +821,7 @@ class InterpolationMixin:
         exclude=(),
         verbose=None,
     ):
-        """Interpolate bad MEG and EEG channels.
+        """Interpolate bad MEG, EEG and fNIRS channels.
 
         Operates in place.
 
@@ -864,6 +864,7 @@ class InterpolationMixin:
         exclude : list | tuple
             The channels to exclude from interpolation. If excluded a bad
             channel will stay in bads.
+
         %(verbose)s
 
         Returns
