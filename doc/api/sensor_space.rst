@@ -12,12 +12,6 @@ Sensor Space Data
    equalize_channels
    grand_average
    match_channel_orders
-   pick_channels
-   pick_channels_cov
-   pick_channels_forward
-   pick_channels_regexp
-   pick_types
-   pick_types_forward
    pick_info
    read_epochs
    read_reject_parameters
