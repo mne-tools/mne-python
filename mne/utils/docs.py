@@ -2551,6 +2551,15 @@ max_step : int
     :func:`mne.stats.combine_adjacency`).
 """
 
+docdict["maxwell_mc_interp"] = """
+mc_interp : str
+    Interpolation to use between adjacent time points in movement
+    compensation. Can be "zero" (default in 1.10; used by MaxFilter),
+    "linear", or "hann" (default in 1.11).
+
+    .. versionadded:: 1.10
+"""
+
 docdict["measure"] = """
 measure : 'zscore' | 'correlation'
     Which method to use for finding outliers among the components:
