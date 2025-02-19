@@ -546,14 +546,11 @@ def _extract_sampling_rate(dat):
     else:
         # specified as time points
         periods = np.diff(time_data)
-        uniq_periods = np.unique(periods.round(decimals=4))
-        if uniq_periods.size == 1:
-            # Uniformly sampled data
-            sampling_rate = 1.0 / uniq_periods.item()
-        else:
+        mean_period = np.mean(periods)
+        sampling_rate = 1.0 / mean_period
+        if not np.allclose(periods, mean_period, rtol=1e-6):
             # Hopefully uniformly sampled data with some precision issues.
             # This is a workaround to provide support for Artinis data.
-            mean_period = np.mean(periods)
             sampling_rate = 1.0 / mean_period
             ideal_times = np.linspace(time_data[0], time_data[-1], time_data.size)
             max_jitter = np.max(np.abs(time_data - ideal_times))
