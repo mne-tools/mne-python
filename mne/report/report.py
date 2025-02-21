@@ -2627,7 +2627,6 @@ class Report:
         subjects_dir=None,
         decim=2,
         width=512,
-        src=None,
         n_jobs=None,
         tags=("bem",),
         section=None,
@@ -2674,7 +2673,7 @@ class Report:
             image_format=self.image_format,
             title=title,
             tags=tags,
-            section=None,  # No nesting
+            section=section,
             replace=replace,
         )
 
@@ -3622,18 +3621,6 @@ class Report:
                 trans=trans,
                 subjects_dir=subjects_dir,
             )
-            img, caption = _iterate_alignment_views(
-                function=src.plot, alpha=0.5, **kwargs
-            )
-            self._add_image(
-                img=img,
-                title="Source space",
-                section=section,
-                caption=caption,
-                image_format="png",
-                tags=tags,
-                replace=replace,
-            )
 
             self._add_bem(
                 subject=subject,
@@ -3644,8 +3631,21 @@ class Report:
                 n_jobs=1,
                 width=512,
                 image_format=image_format,
-                title="source space",
+                title="Source space(s) (BEM view)",
                 section=section,
+                tags=tags,
+                replace=replace,
+            )
+
+            img, caption = _iterate_alignment_views(
+                function=src.plot, alpha=0.5, **kwargs
+            )
+            self._add_image(
+                img=img,
+                title="Source space(s) (3D view)",
+                section=section,
+                caption=None,
+                image_format="png",
                 tags=tags,
                 replace=replace,
             )
