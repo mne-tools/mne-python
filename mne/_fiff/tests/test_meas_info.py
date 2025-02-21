@@ -29,7 +29,7 @@ from mne import (
     write_cov,
     write_forward_solution,
 )
-from mne._fiff import meas_info
+from mne._fiff import meas_info, tag
 from mne._fiff._digitization import DigPoint, _make_dig_points
 from mne._fiff.constants import FIFF
 from mne._fiff.meas_info import (
@@ -975,7 +975,7 @@ def test_field_round_trip(tmp_path):
             meas_date=_stamp_to_dt((1, 2)),
         )
     fname = tmp_path / "temp-info.fif"
-    write_info(fname, info)
+    info.save(fname)
     info_read = read_info(fname)
     assert_object_equal(info, info_read)
     with pytest.raises(TypeError, match="datetime"):
@@ -1268,3 +1268,12 @@ def test_get_montage():
     assert len(raw.info.get_montage().ch_names) == len(ch_names)
     raw.info["bads"] = [ch_names[0]]
     assert len(raw.info.get_montage().ch_names) == len(ch_names)
+
+
+def test_tag_consistency():
+    """Test that structures for tag reading are consistent."""
+    call_set = set(tag._call_dict)
+    call_names = set(tag._call_dict_names)
+    assert call_set == call_names, "Mismatch between _call_dict and _call_dict_names"
+    # TODO: This was inspired by FIFF_DIG_STRING gh-13083, we should ideally add a test
+    # that those dig points can actually be read in correctly at some point.
