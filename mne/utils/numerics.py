@@ -638,6 +638,8 @@ def object_hash(x, h=None):
     digest : int
         The digest resulting from the hash.
     """
+    from scipy import sparse
+
     if h is None:
         h = _empty_hash()
     if hasattr(x, "keys"):
@@ -693,6 +695,8 @@ def object_size(x, memo=None):
     size : int
         The estimated size in bytes of the object.
     """
+    from scipy import sparse
+
     # Note: this will not process object arrays properly (since those only)
     # hold references
     if memo is None:
@@ -775,6 +779,8 @@ def object_diff(a, b, pre="", *, allclose=False):
     diffs : str
         A string representation of the differences.
     """
+    from scipy import sparse
+
     pd = _check_pandas_installed(strict=False)
     out = ""
     if type(a) is not type(b):

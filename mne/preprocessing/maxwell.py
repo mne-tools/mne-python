@@ -1184,6 +1184,8 @@ def _get_decomp(
     mult,
 ):
     """Get a decomposition matrix and pseudoinverse matrices."""
+    from scipy import linalg
+
     #
     # Fine calibration processing (point-like magnetometers and calib. coeffs)
     #
@@ -1449,6 +1451,8 @@ def _get_mag_mask(coils):
 
 def _sss_basis_basic(exp, coils, mag_scale=100.0, method="standard"):
     """Compute SSS basis using non-optimized (but more readable) algorithms."""
+    from scipy.special import sph_harm
+
     int_order, ext_order = exp["int_order"], exp["ext_order"]
     origin = exp["origin"]
     assert "extended_proj" not in exp  # advanced option not supported
@@ -1839,6 +1843,8 @@ def _alegendre_deriv(order, degree, val):
     dPlm : float
         Associated Legendre function derivative
     """
+    from scipy.special import lpmv
+
     assert order >= 0
     return (
         order * val * lpmv(order, degree, val)
@@ -2040,6 +2046,8 @@ def _overlap_projector(data_int, data_res, corr):
     # computation
 
     # we use np.linalg.norm instead of sp.linalg.norm here: ~2x faster!
+    from scipy import linalg
+
     n = np.linalg.norm(data_int)
     n = 1.0 if n == 0 else n  # all-zero data should gracefully continue
     data_int = _orth_overwrite((data_int / n).T)

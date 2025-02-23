@@ -921,6 +921,8 @@ def _sh_real_to_complex(shs, order):
 
 def _compute_sph_harm(order, az, pol):
     """Compute complex spherical harmonics of spherical coordinates."""
+    from scipy.special import sph_harm
+
     out = np.empty((len(az), _get_n_moments(order) + 1))
     # _deg_ord_idx(0, 0) = -1 so we're actually okay to use it here
     for degree in range(order + 1):
@@ -984,6 +986,9 @@ class _TPSWarp:
     """
 
     def fit(self, source, destination, reg=1e-3):
+        from scipy import linalg
+        from scipy.spatial.distance import cdist
+
         assert source.shape[1] == destination.shape[1] == 3
         assert source.shape[0] == destination.shape[0]
         # Forward warping, different from image warping, use |dist|**2
@@ -1122,6 +1127,7 @@ class _SphericalSurfaceWarp:
         inst : instance of SphericalSurfaceWarp
             The warping object (for chaining).
         """
+        from scipy import linalg
         from .bem import _fit_sphere
         from .source_space._source_space import _check_spacing
 
@@ -1497,6 +1503,8 @@ def _fit_matched_points(p, x, weights=None, scale=False):
 
 def _average_quats(quats, weights=None):
     """Average unit quaternions properly."""
+    from scipy import linalg
+
     assert quats.ndim == 2 and quats.shape[1] in (3, 4)
     if weights is None:
         weights = np.ones(quats.shape[0])

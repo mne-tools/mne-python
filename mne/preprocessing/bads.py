@@ -2,8 +2,8 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+
 import numpy as np
-from scipy.stats import zscore
 
 
 def _find_outliers(X, threshold=3.0, max_iter=2, tail=0):
@@ -30,6 +30,8 @@ def _find_outliers(X, threshold=3.0, max_iter=2, tail=0):
     bad_idx : np.ndarray of int, shape (n_features)
         The outlier indices.
     """
+    from scipy.stats import zscore
+
     my_mask = np.zeros(len(X), dtype=bool)
     for _ in range(max_iter):
         X = np.ma.masked_array(X, my_mask)

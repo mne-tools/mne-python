@@ -6,7 +6,6 @@ import warnings
 from functools import partial
 
 import numpy as np
-from scipy.signal import spectrogram
 
 from ..parallel import parallel_func
 from ..utils import _check_option, _ensure_int, logger, verbose
@@ -205,6 +204,8 @@ def psd_array_welch(
         f"Spectogram using {n_fft}-point FFT on {n_per_seg} samples with "
         f"{n_overlap} overlap and {window} window"
     )
+
+    from scipy.signal import spectrogram
 
     parallel, my_spect_func, n_jobs = parallel_func(_spect_func, n_jobs=n_jobs)
     _func = partial(

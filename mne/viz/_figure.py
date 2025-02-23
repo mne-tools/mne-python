@@ -26,6 +26,7 @@ from ..utils import (
     set_config,
     verbose,
 )
+from ..annotations import _sync_onset
 from .backends._utils import VALID_BROWSE_BACKENDS
 from .utils import _get_color_list, _setup_plot_projector, _show_browser
 
@@ -185,8 +186,6 @@ class BrowserBase(ABC):
 
     def _update_annotation_segments(self):
         """Update the array of annotation start/end times."""
-        from ..annotations import _sync_onset
-
         self.mne.annotation_segments = np.array([])
         if len(self.mne.inst.annotations):
             annot_start = _sync_onset(self.mne.inst, self.mne.inst.annotations.onset)

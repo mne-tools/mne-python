@@ -1,16 +1,2 @@
-# Authors: The MNE-Python contributors.
-# License: BSD-3-Clause
-# Copyright the MNE-Python contributors.
-
-"""Functions for exporting data to non-FIF formats."""
-
-import lazy_loader as lazy
-
-__getattr__, __dir__, __all__ = lazy.attach(
-    __name__,
-    submodules=[],
-    submod_attrs={
-        "_export": ["export_raw", "export_epochs", "export_evokeds"],
-        "_egimff": ["export_evokeds_mff"],
-    },
-)
+from ._export import export_raw, export_epochs, export_evokeds
+from ._egimff import export_evokeds_mff

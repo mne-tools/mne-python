@@ -10,7 +10,6 @@ from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 import numpy as np
-from scipy.interpolate import interp1d
 
 from ..._fiff.constants import FIFF
 from ..._fiff.meas_info import _empty_info, _unique_channel_names
@@ -19,6 +18,7 @@ from ...annotations import Annotations
 from ...filter import resample
 from ...utils import _validate_type, fill_doc, logger, verbose, warn
 from ..base import BaseRaw, _get_scaling
+
 
 # common channel type names mapped to internal ch types
 CH_TYPE_MAPPING = {
@@ -352,6 +352,8 @@ def _read_ch(fid, subtype, samp, dtype_byte, dtype=None):
 
 def _read_segment_file(data, idx, fi, start, stop, raw_extras, filenames, cals, mult):
     """Read a chunk of raw data."""
+    from scipy.interpolate import interp1d
+
     n_samps = raw_extras["n_samps"]
     buf_len = int(raw_extras["max_samp"])
     dtype = raw_extras["dtype_np"]

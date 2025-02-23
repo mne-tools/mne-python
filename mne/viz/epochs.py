@@ -8,7 +8,6 @@ from collections import Counter
 from copy import deepcopy
 
 import numpy as np
-from scipy.ndimage import gaussian_filter1d
 
 from .._fiff.meas_info import create_info
 from .._fiff.pick import (
@@ -201,6 +200,7 @@ def plot_epochs_image(
     |          | list of ch_names           | callable   |                   |
     +----------+----------------------------+------------+-------------------+
     """
+    from scipy.ndimage import gaussian_filter1d
     from ..epochs import EpochsArray
 
     _validate_type(group_by, (dict, None), "group_by")

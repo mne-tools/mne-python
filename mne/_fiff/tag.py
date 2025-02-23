@@ -24,6 +24,7 @@ from .constants import (
     _dig_kind_named,
 )
 
+
 ##############################################################################
 # HELPERS
 
@@ -146,6 +147,8 @@ def _read_tag_header(fid, pos):
 
 def _read_matrix(fid, tag, shape, rlims):
     """Read a matrix (dense or sparse) tag."""
+    from scipy import sparse
+
     # This should be easy to implement (see _frombuffer_rows)
     # if we need it, but for now, it's not...
     if shape is not None or rlims is not None:

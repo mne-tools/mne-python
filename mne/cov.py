@@ -7,7 +7,6 @@ from copy import deepcopy
 from math import log
 
 import numpy as np
-from scipy.sparse import issparse
 
 from . import viz
 from ._fiff.constants import FIFF
@@ -299,7 +298,7 @@ class Covariance(dict):
         return self
 
     @verbose
-    @copy_function_doc_to_method_doc(viz.plot_cov)
+    @copy_function_doc_to_method_doc(viz.misc.plot_cov)
     def plot(
         self,
         info,
@@ -310,7 +309,7 @@ class Covariance(dict):
         show=True,
         verbose=None,
     ):
-        return viz.plot_cov(
+        return viz.misc.plot_cov(
             self, info, exclude, colorbar, proj, show_svd, show, verbose
         )
 
@@ -2343,6 +2342,7 @@ def whiten_evoked(
 def _read_cov(fid, node, cov_kind, limited=False, verbose=None):
     """Read a noise covariance matrix."""
     #   Find all covariance matrices
+    from scipy import sparse
     from ._fiff.write import _safe_name_list
 
     covs = dir_tree_find(node, FIFF.FIFFB_MNE_COV)
@@ -2407,7 +2407,7 @@ def _read_cov(fid, node, cov_kind, limited=False, verbose=None):
                     )
 
             else:
-                if not issparse(tag.data):
+                if not sparse.issparse(tag.data):
                     #   Lower diagonal is stored
                     vals = tag.data
                     data = np.zeros((dim, dim))

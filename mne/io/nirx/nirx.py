@@ -10,7 +10,6 @@ import re as re
 from configparser import ConfigParser, RawConfigParser
 
 import numpy as np
-from scipy.io import loadmat
 
 from ..._fiff.constants import FIFF
 from ..._fiff.meas_info import _format_dig_points, create_info

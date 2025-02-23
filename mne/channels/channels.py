@@ -1520,6 +1520,8 @@ def read_ch_adjacency(fname, picks=None):
     :func:`mne.stats.combine_adjacency` to prepare a final "adjacency"
     to pass to the eventual function.
     """
+    from scipy.io import loadmat
+
     if op.isabs(fname):
         fname = str(
             _check_fname(
@@ -1583,6 +1585,8 @@ def _ch_neighbor_adjacency(ch_names, neighbors):
     ch_adjacency : scipy.sparse.spmatrix
         The adjacency matrix.
     """
+    from scipy import sparse
+
     if len(ch_names) != len(neighbors):
         raise ValueError("`ch_names` and `neighbors` must have the same length")
     set_neighbors = {c for d in neighbors for c in d}
@@ -2161,6 +2165,8 @@ _EEG_SELECTIONS = ["EEG 1-32", "EEG 33-64", "EEG 65-96", "EEG 97-128"]
 
 def _divide_to_regions(info, add_stim=True):
     """Divide channels to regions by positions."""
+    from scipy.stats import zscore
+
     picks = _pick_data_channels(info, exclude=[])
     chs_in_lobe = len(picks) // 4
     pos = np.array([ch["loc"][:3] for ch in info["chs"]])

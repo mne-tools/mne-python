@@ -21,6 +21,13 @@ from scipy.spatial import Delaunay, Voronoi
 from scipy.spatial.distance import pdist, squareform
 
 from .._fiff.meas_info import Info, _simplify_info
+from ..channels.channels import _get_ch_type
+from ..channels.layout import (
+    _find_topomap_coords,
+    find_layout,
+    _pair_grad_sensors,
+    _merge_ch_data,
+)
 from .._fiff.pick import (
     _MEG_CH_TYPES_SPLIT,
     _pick_data_channels,
@@ -186,7 +193,7 @@ def _prepare_topomap_plot(inst, ch_type, sphere=None):
 
 
 def _average_fnirs_overlaps(info, ch_type, sphere):
-    from ..channels.layout import _find_topomap_coords
+    from scipy.spatial.distance import pdist, squareform
 
     picks = pick_types(info, meg=False, ref_meg=False, fnirs=ch_type, exclude="bads")
     chs = [info["chs"][i] for i in picks]
@@ -241,8 +248,6 @@ def _average_fnirs_overlaps(info, ch_type, sphere):
 
 def _plot_update_evoked_topomap(params, bools):
     """Update topomaps."""
-    from ..channels.layout import _merge_ch_data
-
     projs = [
         proj for ii, proj in enumerate(params["projs"]) if ii in np.where(bools)[0]
     ]
@@ -684,6 +689,8 @@ def _draw_outlines(ax, outlines):
 
 def _get_extra_points(pos, extrapolate, origin, radii):
     """Get coordinates of additional interpolation points."""
+    from scipy.spatial import Delaunay
+
     radii = np.array(radii, float)
     assert radii.shape == (2,)
     x, y = origin
@@ -820,6 +827,12 @@ class _GridData:
     """
 
     def __init__(self, pos, image_interp, extrapolate, origin, radii, border):
+        from scipy.interpolate import (
+            CloughTocher2DInterpolator,
+            NearestNDInterpolator,
+            LinearNDInterpolator,
+        )
+
         # in principle this works in N dimensions, not just 2
         assert pos.ndim == 2 and pos.shape[1] == 2, pos.shape
         _validate_type(border, ("numeric", str), "border")
@@ -1089,6 +1102,8 @@ _VORONOI_CIRCLE_RES = 100
 
 def _voronoi_topomap(data, pos, outlines, ax, cmap, norm, extent, res):
     """Make a Voronoi diagram on a topomap."""
+    from scipy.spatial import Voronoi
+
     # we need an image axis object so first empty image to plot over
     im = ax.imshow(
         np.zeros((res, res)) * np.nan,
@@ -3395,8 +3410,6 @@ def _plot_corrmap(
     show_names=False,
 ):
     """Customize ica.plot_components for corrmap."""
-    from ..channels.layout import _merge_ch_data
-
     if not template:
         title = "Detected components"
         if label is not None:
@@ -3787,6 +3800,7 @@ def plot_ch_adjacency(info, adjacency, ch_names, kind="2d", edit=False):
     -----
     .. versionadded:: 1.1
     """
+    from scipy import sparse
     import matplotlib as mpl
     import matplotlib.pyplot as plt
 

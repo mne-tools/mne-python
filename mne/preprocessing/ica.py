@@ -142,6 +142,9 @@ def get_score_funcs():
     score_funcs : dict
         The score functions.
     """
+    from scipy import stats
+    from scipy.spatial import distance
+
     score_funcs = Bunch()
     xy_arg_dist_funcs = [
         (n, f)
@@ -576,8 +579,10 @@ class ICA(ContainsMixin):
 
     @repr_html
     def _repr_html_(self):
+        from ..html_templates import repr_templates_env
+
         infos = self._get_infos_for_repr()
-        t = _get_html_template("repr", "ica.html.jinja")
+        t = repr_templates_env.get_template("ica.html.jinja")
         html = t.render(
             fit_on=infos.fit_on,
             method=infos.fit_method,
@@ -1993,6 +1998,9 @@ class ICA(ContainsMixin):
         -----
         .. versionadded:: 1.1
         """
+        from scipy.spatial.distance import pdist, squareform
+        from scipy.special import expit
+
         _validate_type(threshold, "numeric", "threshold")
 
         slope_score, focus_score, smoothness_score = None, None, None
@@ -2048,10 +2056,10 @@ class ICA(ContainsMixin):
 
         # compute metric #3: smoothness
         smoothnesses = np.zeros((components.shape[1],))
-        dists = distance.squareform(distance.pdist(pos))
+        dists = squareform(pdist(pos))
         dists = 1 - (dists / dists.max())  # invert
         for idx, comp in enumerate(components.T):
-            comp_dists = distance.squareform(distance.pdist(comp[:, np.newaxis]))
+            comp_dists = squareform(pdist(comp[:, np.newaxis]))
             comp_dists /= comp_dists.max()
             smoothnesses[idx] = np.multiply(dists, comp_dists).sum()
 
@@ -3498,6 +3506,8 @@ def read_ica_eeglab(fname, *, montage_units="auto", verbose=None):
     ica : instance of ICA
         An ICA object based on the information contained in the input file.
     """
+    from scipy import linalg
+
     eeg = _check_load_mat(fname, None)
     info, eeg_montage, _ = _get_info(eeg, eog=(), montage_units=montage_units)
     info.set_montage(eeg_montage)

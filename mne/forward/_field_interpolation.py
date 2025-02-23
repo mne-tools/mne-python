@@ -9,7 +9,6 @@ import inspect
 from copy import deepcopy
 
 import numpy as np
-from scipy.interpolate import interp1d
 
 from .._fiff.constants import FIFF
 from .._fiff.meas_info import _simplify_info
@@ -34,6 +33,8 @@ from ._make_forward import _create_eeg_els, _create_meg_coils, _read_coil_defs
 
 def _setup_dots(mode, info, coils, ch_type):
     """Set up dot products."""
+    from scipy.interpolate import interp1d
+
     int_rad = 0.06
     noise = make_ad_hoc_cov(info, dict(mag=20e-15, grad=5e-13, eeg=1e-6))
     n_coeff, interp = (50, "nearest") if mode == "fast" else (100, "linear")

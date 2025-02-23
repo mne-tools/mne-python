@@ -17,6 +17,9 @@ from pathlib import Path
 import numpy as np
 from traitlets import Bool, Float, HasTraits, Instance, Unicode, observe
 
+from ..io import read_raw
+from ..io._read_raw import supported as raw_supported_types
+from ..defaults import DEFAULTS
 from .._fiff.constants import FIFF
 from .._fiff.meas_info import _empty_info, read_fiducials, read_info, write_fiducials
 from .._fiff.open import dir_tree_find, fiff_open
@@ -449,13 +452,12 @@ class CoregistrationUI(HasTraits):
             return
 
         # info file can be anything supported by read_raw
-        supported = _get_supported()
         try:
             check_fname(
                 fname,
                 "info",
-                tuple(supported),
-                endings_err=tuple(supported),
+                tuple(raw_supported_types.keys()),
+                endings_err=tuple(raw_supported_types.keys()),
             )
             fname = Path(fname)
             # ctf ds `files` are actually directories

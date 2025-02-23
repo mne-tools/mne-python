@@ -5,7 +5,6 @@
 from copy import deepcopy
 
 import numpy as np
-from scipy.fft import fft, fftfreq, ifft
 
 from .._fiff.pick import _pick_data_channels, pick_info
 from ..parallel import parallel_func
@@ -43,6 +42,8 @@ def _check_input_st(x_in, n_fft):
 
 def _precompute_st_windows(n_samp, start_f, stop_f, sfreq, width):
     """Precompute stockwell Gaussian windows (in the freq domain)."""
+    from scipy.fft import fft, fftfreq
+
     tw = fftfreq(n_samp, 1.0 / sfreq) / n_samp
     tw = np.r_[tw[:1], tw[1:][::-1]]
 
@@ -78,6 +79,8 @@ def _st(x, start_f, windows):
 
 def _st_power_itc(x, start_f, compute_itc, zero_pad, decim, W):
     """Aux function."""
+    from scipy.fft import fft, ifft
+
     decim = _ensure_slice(decim)
     n_samp = x.shape[-1]
     decim_indices = decim.indices(n_samp - zero_pad)
@@ -183,6 +186,8 @@ def tfr_array_stockwell(
     ----------
     .. footbibliography::
     """
+    from scipy.fft import fftfreq
+
     _validate_type(data, np.ndarray, "data")
     if data.ndim != 3:
         raise ValueError(

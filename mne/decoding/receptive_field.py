@@ -184,6 +184,8 @@ class ReceptiveField(MetaEstimatorMixin, BaseEstimator):
         self : instance
             The instance so you can chain operations.
         """
+        from scipy import linalg
+
         if self.scoring not in _SCORERS.keys():
             raise ValueError(
                 f"scoring must be one of {sorted(_SCORERS.keys())}, got {self.scoring} "
@@ -270,7 +272,7 @@ class ReceptiveField(MetaEstimatorMixin, BaseEstimator):
             # Inverse output covariance
             if y.ndim == 2 and y.shape[1] != 1:
                 y = y - y.mean(0, keepdims=True)
-                inv_Y = pinv(np.cov(y.T))
+                inv_Y = linalg.pinv(np.cov(y.T))
             else:
                 inv_Y = 1.0 / float(n_times * n_epochs - 1)
             del y
@@ -505,6 +507,8 @@ def _reshape_for_est(X_del):
 
 # Create a correlation scikit-learn-style scorer
 def _corr_score(y_true, y, multioutput=None):
+    from scipy.stats import pearsonr
+
     assert multioutput == "raw_values"
     for this_y in (y_true, y):
         if this_y.ndim != 2:

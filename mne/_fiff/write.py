@@ -422,6 +422,8 @@ def write_float_sparse_rcs(fid, kind, mat):
 
 def write_float_sparse(fid, kind, mat, fmt="auto"):
     """Write a single-precision floating-point sparse matrix tag."""
+    from scipy import sparse
+
     if fmt == "auto":
         fmt = "csr" if isinstance(mat, csr_array) else "csc"
     need = csr_array if fmt == "csr" else csc_array

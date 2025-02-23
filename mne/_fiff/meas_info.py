@@ -16,8 +16,62 @@ from textwrap import shorten
 
 import numpy as np
 
-from ..defaults import _handle_default
-from ..html_templates import _get_html_template
+from mne.defaults import _handle_default
+from mne.html_templates import _get_html_template
+from .pick import (
+    channel_type,
+    _get_channel_types,
+    get_channel_type_constants,
+    pick_types,
+    _picks_to_idx,
+    _contains_ch_type,
+)
+from .constants import FIFF, _coord_frame_named, _ch_unit_mul_named
+from .open import fiff_open
+from .tree import dir_tree_find
+from .tag import (
+    read_tag,
+    find_tag,
+    _ch_coord_dict,
+    _update_ch_info_named,
+    _rename_list,
+    _int_item,
+    _float_item,
+)
+from .proj import (
+    _read_proj,
+    _write_proj,
+    _uniquify_projs,
+    _normalize_proj,
+    _proj_equal,
+    Projection,
+)
+from .ctf_comp import _read_ctf_comp, write_ctf_comp
+from .write import (
+    start_and_end_file,
+    start_block,
+    end_block,
+    write_string,
+    write_dig_points,
+    write_float,
+    write_int,
+    write_coord_trans,
+    write_ch_info,
+    write_julian,
+    write_float_matrix,
+    write_id,
+    DATE_NONE,
+    _safe_name_list,
+    write_name_list_sanitized,
+)
+from .proc_history import _read_proc_history, _write_proc_history
+from ..transforms import (
+    invert_transform,
+    Transform,
+    _coord_frame_name,
+    _ensure_trans,
+    _frame_to_str,
+)
 from ..utils import (
     _check_fname,
     _check_on_missing,

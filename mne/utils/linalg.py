@@ -25,8 +25,7 @@ inputs will be memcopied.
 import functools
 
 import numpy as np
-from scipy import linalg
-from scipy._lib._util import _asarray_validated
+
 
 from ..fixes import _safe_svd
 
@@ -36,11 +35,15 @@ from ..fixes import _safe_svd
 
 @functools.lru_cache(None)
 def _get_blas_funcs(dtype, names):
+    from scipy import linalg
+
     return linalg.get_blas_funcs(names, (np.empty(0, dtype),))
 
 
 @functools.lru_cache(None)
 def _get_lapack_funcs(dtype, names):
+    from scipy import linalg
+
     assert dtype in (np.float64, np.complex128)
     x = np.empty(0, dtype)
     return linalg.get_lapack_funcs(names, (x,))
@@ -52,6 +55,8 @@ def _get_lapack_funcs(dtype, names):
 
 def _svd_lwork(shape, dtype=np.float64):
     """Set up SVD calculations on identical-shape float64/complex128 arrays."""
+    from scipy import linalg
+
     try:
         ds = linalg._decomp_svd
     except AttributeError:  # < 1.8.0
@@ -95,6 +100,8 @@ def _repeated_svd(x, lwork, overwrite_a=False):
 
 @functools.lru_cache(None)
 def _get_evd(dtype):
+    from scipy import linalg
+
     x = np.empty(0, dtype)
     if dtype == np.float64:
         driver = "syevd"
@@ -126,6 +133,9 @@ def eigh(a, overwrite_a=False, check_finite=True):
         The normalized eigenvector corresponding to the eigenvalue ``w[i]``
         is the column ``v[:, i]``.
     """
+    from scipy.linalg import LinAlgError
+    from scipy._lib._util import _asarray_validated
+
     # We use SYEVD, see https://github.com/scipy/scipy/issues/9212
     if check_finite:
         a = _asarray_validated(a, check_finite=check_finite)
@@ -136,7 +146,7 @@ def eigh(a, overwrite_a=False, check_finite=True):
     if info < 0:
         raise ValueError(f"illegal value in argument {-info} of internal {driver}")
     else:
-        raise linalg.LinAlgError(
+        raise LinAlgError(
             "internal fortran routine failed to converge: "
             f"{info} off-diagonal elements of an "
             "intermediate tridiagonal form did not converge"

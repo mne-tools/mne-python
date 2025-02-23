@@ -14,6 +14,7 @@ from pathlib import Path
 
 import numpy as np
 
+from mne.html_templates import _get_html_template
 from .._fiff.compensator import make_compensator, set_current_comp
 from .._fiff.constants import FIFF
 from .._fiff.meas_info import (
@@ -47,6 +48,7 @@ from .._fiff.write import (
     write_int,
     write_string,
 )
+
 from ..annotations import (
     Annotations,
     _annotations_starts_stops,
@@ -67,7 +69,6 @@ from ..filter import (
     notch_filter,
     resample,
 )
-from ..html_templates import _get_html_template
 from ..parallel import parallel_func
 from ..time_frequency.spectrum import Spectrum, SpectrumMixin, _validate_method
 from ..time_frequency.tfr import RawTFR
@@ -2496,6 +2497,8 @@ class BaseRaw(
             If data_frame=False, returns None. If data_frame=True, returns
             results in a pandas.DataFrame (requires pandas).
         """
+        from scipy.stats import scoreatpercentile as q
+
         nchan = self.info["nchan"]
 
         # describe each channel
@@ -2507,9 +2510,9 @@ class BaseRaw(
             cols["type"].append(channel_type(self.info, i))
             cols["unit"].append(_unit2human[ch["unit"]])
             cols["min"].append(np.min(data))
-            cols["Q1"].append(np.percentile(data, 25))
+            cols["Q1"].append(q(data, 25))
             cols["median"].append(np.median(data))
-            cols["Q3"].append(np.percentile(data, 75))
+            cols["Q3"].append(q(data, 75))
             cols["max"].append(np.max(data))
 
         if data_frame:  # return data frame

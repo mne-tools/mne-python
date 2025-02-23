@@ -263,6 +263,8 @@ def _mt_spectra(x, dpss, sfreq, n_fft=None, remove_dc=True):
     freqs : array, shape=(n_freqs,)
         The frequency points in Hz of the spectra
     """
+    from scipy.fft import rfft, rfftfreq
+
     if n_fft is None:
         n_fft = x.shape[-1]
 
@@ -290,6 +292,8 @@ def _mt_spectra(x, dpss, sfreq, n_fft=None, remove_dc=True):
 def _compute_mt_params(n_times, sfreq, bandwidth, low_bias, adaptive, verbose=None):
     """Triage windowing and multitaper parameters."""
     # Compute standardized half-bandwidth
+    from scipy.signal import get_window
+
     if isinstance(bandwidth, str):
         logger.info(f'    Using standard spectrum estimation with "{bandwidth}" window')
         window_fun = get_window(bandwidth, n_times)[np.newaxis]
@@ -403,6 +407,8 @@ def psd_array_multitaper(
     ----------
     .. footbibliography::
     """
+    from scipy.fft import rfftfreq
+
     _check_option("normalization", normalization, ["length", "full"])
 
     # Reshape data so its 2-D for parallelization

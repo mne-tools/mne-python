@@ -8,9 +8,9 @@ from copy import deepcopy
 from functools import partial
 
 import numpy as np
-from scipy import ndimage
 
 from .._fiff.pick import _picks_to_idx, channel_type, pick_types
+from ..channels.layout import _merge_ch_data, _pair_grad_sensors, find_layout
 from ..defaults import _handle_default
 from ..utils import Bunch, _check_option, _clean_names, _is_numeric, _to_rgb, fill_doc
 from .ui_events import ChannelsSelect, publish, subscribe
@@ -775,6 +775,7 @@ def _erfimage_imshow(
     vlim_array=None,
 ):
     """Plot erfimage on sensor topography."""
+    from scipy import ndimage
     import matplotlib.pyplot as plt
 
     this_data = data[:, ch_idx, :]
@@ -832,6 +833,8 @@ def _erfimage_imshow_unified(
     vlim_array=None,
 ):
     """Plot erfimage topography using a single axis."""
+    from scipy import ndimage
+
     _compute_ax_scalings(bn, (tmin, tmax), (0, len(epochs.events)))
     ax = bn.ax
     data_lines = bn.data_lines
@@ -1284,8 +1287,6 @@ def plot_topo_image_epochs(
     will always have a colorbar even when the topo plot does not (because it
     shows multiple sensor types).
     """
-    from ..channels.layout import find_layout
-
     scalings = _handle_default("scalings", scalings)
 
     # make a copy because we discard non-data channels and scale the data

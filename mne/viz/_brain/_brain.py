@@ -1067,6 +1067,8 @@ class Brain:
 
     def _configure_picking(self):
         # get data for each hemi
+        from scipy import sparse
+
         for idx, hemi in enumerate(["vol", "lh", "rh"]):
             hemi_data = self._data.get(hemi)
             if hemi_data is not None:
@@ -2639,6 +2641,8 @@ class Brain:
 
         # Possibly map the foci coords through a surface
         if map_surface is not None:
+            from scipy.spatial.distance import cdist
+
             foci_surf = _Surface(
                 self._subject,
                 hemi,
@@ -4036,6 +4040,8 @@ class Brain:
 
 def _safe_interp1d(x, y, kind="linear", axis=-1, assume_sorted=False):
     """Work around interp1d not liking singleton dimensions."""
+    from scipy.interpolate import interp1d
+
     if y.shape[axis] == 1:
 
         def func(x):

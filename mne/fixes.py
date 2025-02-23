@@ -1,4 +1,4 @@
-"""Compatibility fixes for older versions of libraries.
+"""Compatibility fixes for older versions of libraries
 
 If you add content to this file, please give the version of the package
 at which the fix is no longer needed.
@@ -23,6 +23,7 @@ from math import log
 
 import numpy as np
 from packaging.version import parse
+
 
 ###############################################################################
 # distutils LooseVersion removed in Python 3.12
@@ -49,9 +50,7 @@ def _compare_version(version_a, operator, version_b):
     mapping = {"<": "lt", "<=": "le", "==": "eq", "!=": "ne", ">=": "ge", ">": "gt"}
     with warnings.catch_warnings(record=True):
         warnings.simplefilter("ignore")
-        ver_a = parse(version_a)
-        ver_b = parse(version_b)
-        return getattr(operator_module, mapping[operator])(ver_a, ver_b)
+        return eval(f'parse("{version_a}") {operator} parse("{version_b}")')
 
 
 ###############################################################################
@@ -75,7 +74,7 @@ def _median_complex(data, axis):
 
 
 def _safe_svd(A, **kwargs):
-    """Get around the SVD did not converge error of death."""
+    """Wrapper to get around the SVD did not converge error of death"""
     # Intel has a bug with their GESVD driver:
     #     https://software.intel.com/en-us/forums/intel-distribution-for-python/topic/628049  # noqa: E501
     # For SciPy 0.18 and up, we can work around it by using
@@ -116,6 +115,19 @@ def rng_uniform(rng):
     return getattr(rng, "integers", getattr(rng, "randint", None))
 
 
+def _validate_sos(sos):
+    """Helper to validate a SOS input"""
+    sos = np.atleast_2d(sos)
+    if sos.ndim != 2:
+        raise ValueError("sos array must be 2D")
+    n_sections, m = sos.shape
+    if m != 6:
+        raise ValueError("sos array must be shape (n_sections, 6)")
+    if not (sos[:, 3] == 1).all():
+        raise ValueError("sos[:, 3] should be all ones")
+    return sos, n_sections
+
+
 ###############################################################################
 # Misc utilities
 
@@ -133,7 +145,8 @@ def _get_img_fdata(img):
 
 
 def empirical_covariance(X, assume_centered=False):
-    """Compute the Maximum likelihood covariance estimator.
+    """Computes the Maximum likelihood covariance estimator
+
 
     Parameters
     ----------
@@ -150,6 +163,7 @@ def empirical_covariance(X, assume_centered=False):
     -------
     covariance : 2D ndarray, shape (n_features, n_features)
         Empirical covariance (Maximum Likelihood Estimator).
+
     """
     X = np.asarray(X)
     if X.ndim == 1:
@@ -253,6 +267,7 @@ class EmpiricalCovariance(_EstimatorMixin):
     precision_ : 2D ndarray, shape (n_features, n_features)
         Estimated pseudo-inverse matrix.
         (stored only if store_precision is True)
+
     """
 
     def __init__(self, store_precision=True, assume_centered=False):
@@ -260,7 +275,7 @@ class EmpiricalCovariance(_EstimatorMixin):
         self.assume_centered = assume_centered
 
     def _set_covariance(self, covariance):
-        """Save the covariance and precision estimates.
+        """Saves the covariance and precision estimates
 
         Storage is done accordingly to `self.store_precision`.
         Precision stored only if invertible.
@@ -270,6 +285,7 @@ class EmpiricalCovariance(_EstimatorMixin):
         covariance : 2D ndarray, shape (n_features, n_features)
             Estimated covariance matrix to be stored, and from which precision
             is computed.
+
         """
         from scipy import linalg
 
@@ -354,7 +370,7 @@ class EmpiricalCovariance(_EstimatorMixin):
         return res
 
     def error_norm(self, comp_cov, norm="frobenius", scaling=True, squared=True):
-        """Compute the Mean Squared Error between two covariance estimators.
+        """Computes the Mean Squared Error between two covariance estimators.
 
         Parameters
         ----------
@@ -403,7 +419,7 @@ class EmpiricalCovariance(_EstimatorMixin):
         return result
 
     def mahalanobis(self, observations):
-        """Compute the squared Mahalanobis distances of given observations.
+        """Computes the squared Mahalanobis distances of given observations.
 
         Parameters
         ----------
@@ -416,6 +432,7 @@ class EmpiricalCovariance(_EstimatorMixin):
         -------
         mahalanobis_distance : array, shape = [n_observations,]
             Squared Mahalanobis distances of the observations.
+
         """
         precision = self.get_precision()
         # compute mahalanobis distances
@@ -426,7 +443,7 @@ class EmpiricalCovariance(_EstimatorMixin):
 
 
 def log_likelihood(emp_cov, precision):
-    """Compute the sample mean of the log_likelihood under a covariance model.
+    """Computes the sample mean of the log_likelihood under a covariance model
 
     computes the empirical expected log-likelihood (accounting for the
     normalization terms and scaling), allowing for universal comparison (beyond
@@ -466,8 +483,7 @@ def _logdet(A):
 
 
 def _infer_dimension_(spectrum, n_samples, n_features):
-    """Infer the dimension of a dataset of shape (n_samples, n_features).
-
+    """Infers the dimension of a dataset of shape (n_samples, n_features)
     The dataset is described by its spectrum `spectrum`.
     """
     n_spectrum = len(spectrum)
@@ -514,7 +530,7 @@ def _assess_dimension_(spectrum, rank, n_samples, n_features):
     return ll
 
 
-def svd_flip(u, v, u_based_decision=True):  # noqa: D103
+def svd_flip(u, v, u_based_decision=True):
     if u_based_decision:
         # columns of u, rows of v
         max_abs_cols = np.argmax(np.abs(u), axis=0)
@@ -531,7 +547,7 @@ def svd_flip(u, v, u_based_decision=True):  # noqa: D103
 
 
 def stable_cumsum(arr, axis=None, rtol=1e-05, atol=1e-08):
-    """Use high precision for cumsum and check that final value matches sum.
+    """Use high precision for cumsum and check that final value matches sum
 
     Parameters
     ----------
@@ -565,10 +581,12 @@ def stable_cumsum(arr, axis=None, rtol=1e-05, atol=1e-08):
 
 
 def _crop_colorbar(cbar, cbar_vmin, cbar_vmax):
-    """Crop a colorbar to show from cbar_vmin to cbar_vmax.
-
+    """
+    crop a colorbar to show from cbar_vmin to cbar_vmax
     Used when symmetric_cbar=False is used.
     """
+    import matplotlib
+
     if (cbar_vmin is None) and (cbar_vmax is None):
         return
     cbar_tick_locs = cbar.locator.locs

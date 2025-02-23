@@ -1132,6 +1132,7 @@ def plot_filter(
     -----
     .. versionadded:: 0.14
     """
+    from scipy.signal import freqz, group_delay, lfilter, filtfilt, sosfilt, sosfiltfilt
     import matplotlib.pyplot as plt
 
     sfreq = float(sfreq)

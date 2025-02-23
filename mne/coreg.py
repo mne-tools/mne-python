@@ -16,8 +16,6 @@ from functools import reduce
 from glob import glob, iglob
 
 import numpy as np
-from scipy.optimize import leastsq
-from scipy.spatial.distance import cdist
 
 from ._fiff._digitization import _get_data_as_dict_from_dig
 from ._fiff.constants import FIFF
@@ -285,6 +283,8 @@ def _decimate_points(pts, res=10):
     pts : array, shape = (n_points, 3)
         The decimated points.
     """
+    from scipy.spatial.distance import cdist
+
     pts = np.asarray(pts)
 
     # find the bin edges for the voxel space
@@ -472,6 +472,8 @@ def fit_matched_points(
 
 
 def _generic_fit(src_pts, tgt_pts, param_info, weights, x0):
+    from scipy.optimize import leastsq
+
     if param_info[1]:  # translate
         src_pts = np.hstack((src_pts, np.ones((len(src_pts), 1))))
 

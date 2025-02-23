@@ -32,6 +32,8 @@ def beer_lambert_law(raw, ppf=6.0):
     raw : instance of Raw
         The modified raw instance.
     """
+    from scipy import linalg
+
     raw = raw.copy().load_data()
     _validate_type(raw, BaseRaw, "raw")
     _validate_type(ppf, ("numeric", "array-like"), "ppf")
@@ -96,6 +98,9 @@ def _load_absorption(freqs):
     #
     # Returns data as [[HbO2(freq1), Hb(freq1)],
     #                  [HbO2(freq2), Hb(freq2)]]
+    from scipy.io import loadmat
+    from scipy.interpolate import interp1d
+
     extinction_fname = op.join(
         op.dirname(__file__), "..", "..", "data", "extinction_coef.mat"
     )

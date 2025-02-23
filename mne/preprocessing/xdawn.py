@@ -3,7 +3,6 @@
 # Copyright the MNE-Python contributors.
 
 import numpy as np
-from scipy import linalg
 
 from .._fiff.pick import _pick_data_channels, pick_info
 from ..cov import Covariance, _regularized_covariance
@@ -57,6 +56,8 @@ def _least_square_evoked(epochs_data, events, tmin, sfreq):
     toeplitz : array, shape (n_class * n_components, n_channels)
         An concatenated array of toeplitz matrix for each event type.
     """
+    from scipy import linalg
+
     n_epochs, n_channels, n_times = epochs_data.shape
     tmax = tmin + n_times / float(sfreq)
 
@@ -151,6 +152,8 @@ def _fit_xdawn(
     evokeds : array, shape (n_class, n_components, n_times)
         The independent evoked responses per condition.
     """
+    from scipy import linalg
+
     if not isinstance(epochs_data, np.ndarray) or epochs_data.ndim != 3:
         raise ValueError("epochs_data must be 3D ndarray")
 

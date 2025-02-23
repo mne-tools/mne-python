@@ -44,6 +44,8 @@ from .topomap import (
     _prepare_topomap,
     _prepare_topomap_plot,
     _set_contour_locator,
+    _check_sphere,
+    _make_head_outlines,
     plot_topomap,
 )
 from .utils import (
@@ -70,6 +72,7 @@ from .utils import (
     _validate_if_list_of_axes,
     plt_show,
 )
+from ..channels.layout import _pair_grad_sensors, find_layout
 
 
 def _butterfly_onpick(event, params):

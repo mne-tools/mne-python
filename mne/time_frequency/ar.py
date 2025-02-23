@@ -3,7 +3,6 @@
 # Copyright the MNE-Python contributors.
 
 import numpy as np
-from scipy import linalg
 
 from .._fiff.pick import _picks_by_type, _picks_to_idx, pick_info
 from ..defaults import _handle_default
@@ -15,6 +14,8 @@ def _yule_walker(X, order=1):
 
     Operates in-place.
     """
+    from scipy import linalg
+
     assert X.ndim == 2
     denom = X.shape[-1] - np.arange(order + 1)
     r = np.zeros(order + 1, np.float64)

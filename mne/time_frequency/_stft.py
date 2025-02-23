@@ -3,9 +3,7 @@
 # Copyright the MNE-Python contributors.
 
 from math import ceil
-
 import numpy as np
-from scipy.fft import irfft, rfft, rfftfreq
 
 from ..utils import logger, verbose
 
@@ -39,6 +37,8 @@ def stft(x, wsize, tstep=None, verbose=None):
     istft
     stftfreq
     """
+    from scipy.fft import rfft
+
     if not np.isrealobj(x):
         raise ValueError("x is not a real valued array")
 
@@ -122,6 +122,8 @@ def istft(X, tstep=None, Tx=None):
     stft
     """
     # Errors and warnings
+    from scipy.fft import irfft
+
     X = np.asarray(X)
     if X.ndim < 2:
         raise ValueError(f"X must have ndim >= 2, got {X.ndim}")
@@ -203,6 +205,8 @@ def stftfreq(wsize, sfreq=None):  # noqa: D401
     stft
     istft
     """
+    from scipy.fft import rfftfreq
+
     freqs = rfftfreq(wsize)
     if sfreq is not None:
         freqs *= float(sfreq)

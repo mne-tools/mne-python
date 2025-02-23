@@ -295,6 +295,8 @@ def _show_tree(
     show_bytes=False,
 ):
     """Show FIFF tree."""
+    from scipy import sparse
+
     this_idt = indent * level
     next_idt = indent * (level + 1)
     # print block-level information

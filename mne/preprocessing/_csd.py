@@ -261,6 +261,9 @@ def compute_bridged_electrodes(
     ----------
     .. footbibliography::
     """
+    from scipy.stats import gaussian_kde
+    from scipy.optimize import minimize_scalar
+
     _check_preload(inst, "Computing bridged electrodes")
     inst = inst.copy()  # don't modify original
     picks = pick_types(inst.info, eeg=True)

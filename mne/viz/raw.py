@@ -11,6 +11,7 @@ import numpy as np
 from .._fiff.pick import _picks_to_idx, pick_channels, pick_types
 from ..defaults import _handle_default
 from ..filter import create_filter
+from ..time_frequency import Spectrum
 from ..utils import _check_option, _get_stim_channel, _validate_type, legacy, verbose
 from ..utils.spectrum import _split_psd_kwargs
 from .utils import (
@@ -488,8 +489,6 @@ def plot_raw_psd(
     -----
     %(notes_plot_*_psd_func)s
     """
-    from ..time_frequency import Spectrum
-
     init_kw, plot_kw = _split_psd_kwargs(plot_fun=Spectrum.plot)
     return raw.compute_psd(**init_kw).plot(**plot_kw)
 
@@ -557,8 +556,6 @@ def plot_raw_psd_topo(
     fig : instance of matplotlib.figure.Figure
         Figure distributing one image per channel across sensor topography.
     """
-    from ..time_frequency import Spectrum
-
     init_kw, plot_kw = _split_psd_kwargs(plot_fun=Spectrum.plot_topo)
     return raw.compute_psd(**init_kw).plot_topo(**plot_kw)
 

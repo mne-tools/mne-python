@@ -90,6 +90,7 @@ from .utils import (
     figure_nobar,
     plt_show,
 )
+from ..bem import ConductorModel, _bem_find_surface, _ensure_bem_surfaces
 
 verbose_dec = verbose
 FIDUCIAL_ORDER = (FIFF.FIFFV_POINT_LPA, FIFF.FIFFV_POINT_NASION, FIFF.FIFFV_POINT_RPA)
@@ -280,6 +281,8 @@ def plot_head_positions(
                 # knowing it will generally be spherical, we can approximate
                 # how far away we are along the axis line by taking the
                 # point to the left and right with the smallest distance
+                from scipy.spatial.distance import cdist
+
                 dists = cdist(rrs[:, oidx], use_trans[:, oidx])
                 left = rrs[:, [ii]] < use_trans[:, ii]
                 left_dists_all = dists.copy()
@@ -1739,6 +1742,8 @@ def _make_tris_fan(n_vert):
 
 def _sensor_shape(coil):
     """Get the sensor shape vertices."""
+    from scipy.spatial import ConvexHull, Delaunay
+
     try:
         from scipy.spatial import QhullError
     except ImportError:  # scipy < 1.8

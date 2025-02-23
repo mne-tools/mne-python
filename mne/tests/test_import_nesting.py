@@ -255,15 +255,10 @@ for x in sys.modules.keys():
 if len(out) > 0:
     print('\\nFound un-nested import(s) for %s' % (sorted(out),), end='')
 exit(len(out))
-
-# but this should still work
-mne.io.read_raw_fif
-assert "scipy.signal" in sys.modules, "scipy.signal not in sys.modules"
 """
 
 
-@pytest.mark.skipif(bool(eager_import), reason=f"EAGER_IMPORT={eager_import}")
-def test_lazy_loading():
+def test_module_nesting():
     """Test that module imports are properly nested."""
     stdout, stderr, code = run_subprocess(
         [sys.executable, "-c", run_script], return_code=True

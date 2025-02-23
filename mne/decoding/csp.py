@@ -621,6 +621,8 @@ class CSP(MNETransformerMixin, BaseEstimator):
         return cov, weight
 
     def _decompose_covs(self, covs, sample_weights):
+        from scipy import linalg
+
         n_classes = len(covs)
         n_channels = covs[0].shape[0]
         assert self._rank is not None  # should happen in _compute_covariance_matrices
@@ -637,7 +639,7 @@ class CSP(MNETransformerMixin, BaseEstimator):
         covs = np.array([sub_vec @ cov @ sub_vec.T for cov in covs], float)
         assert covs[0].shape == (mask.sum(),) * 2
         if n_classes == 2:
-            eigen_values, eigen_vectors = eigh(covs[0], covs.sum(0))
+            eigen_values, eigen_vectors = linalg.eigh(covs[0], covs.sum(0))
         else:
             # The multiclass case is adapted from
             # http://github.com/alexandrebarachant/pyRiemann

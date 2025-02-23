@@ -5,9 +5,7 @@
 # Copyright the MNE-Python contributors.
 
 import os.path as op
-
 import numpy as np
-from scipy.spatial import ConvexHull
 
 from .._freesurfer import _estimate_talxfm_rigid, _get_head_surface
 from ..surface import read_surface
@@ -44,6 +42,7 @@ def _plot_dipole_mri_outlines(
     import matplotlib.pyplot as plt
     from matplotlib.collections import LineCollection, PatchCollection
     from matplotlib.patches import Circle
+    from scipy.spatial import ConvexHull
 
     extra = 'when mode is "outlines"'
     trans = _get_trans(trans, fro="head", to="mri")[0]

@@ -371,6 +371,8 @@ class SSD(MNETransformerMixin, BaseEstimator):
 
 def _dimensionality_reduction(cov_signal, cov_noise, info, rank):
     """Perform dimensionality reduction on the covariance matrices."""
+    from scipy import linalg
+
     n_channels = cov_signal.shape[0]
 
     # find ranks of covariance matrices
@@ -407,7 +409,7 @@ def _dimensionality_reduction(cov_signal, cov_noise, info, rank):
     rank = np.min([rank_signal, rank_noise])  # should be identical
 
     if rank < n_channels:
-        eigvals, eigvects = eigh(cov_signal)
+        eigvals, eigvects = linalg.eigh(cov_signal)
         # sort in descending order
         ix = np.argsort(eigvals)[::-1]
         eigvals = eigvals[ix]
