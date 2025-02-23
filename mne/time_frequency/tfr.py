@@ -19,7 +19,6 @@ from .._fiff.meas_info import ContainsMixin, Info
 from .._fiff.pick import _picks_to_idx, pick_info
 from ..baseline import _check_baseline, rescale
 from ..channels.channels import UpdateChannelsMixin
-from ..channels.layout import _find_topomap_coords, _merge_ch_data, _pair_grad_sensors
 from ..defaults import _BORDER_DEFAULT, _EXTRAPOLATE_DEFAULT, _INTERPOLATION_DEFAULT
 from ..filter import next_fast_len
 from ..parallel import parallel_func
@@ -1596,6 +1595,8 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
         verbose=None,
     ):
         """Respond to rectangle selector in TFR image plots with a topomap plot."""
+        from ..channels.layout import _pair_grad_sensors
+
         if abs(eclick.x - erelease.x) < 0.1 or abs(eclick.y - erelease.y) < 0.1:
             return
         t_range = (min(eclick.xdata, erelease.xdata), max(eclick.xdata, erelease.xdata))
@@ -4231,6 +4232,11 @@ def _check_tfr_complex(tfr, reason="source space estimation"):
 
 
 def _merge_if_grads(data, info, ch_type, sphere, combine=None):
+    from ..channels.layout import (
+        _find_topomap_coords,
+        _merge_ch_data,
+        _pair_grad_sensors,
+    )
     if ch_type == "grad":
         grad_picks = _pair_grad_sensors(info, topomap_coords=False)
         pos = _find_topomap_coords(info, picks=grad_picks[::2], sphere=sphere)

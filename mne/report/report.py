@@ -66,7 +66,6 @@ from ..utils import (
 from ..utils.spectrum import _split_psd_kwargs
 from ..viz import (
     Figure3D,
-    _get_plot_ch_type,
     create_3d_figure,
     get_3d_backend,
     plot_alignment,

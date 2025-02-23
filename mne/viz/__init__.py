@@ -19,7 +19,6 @@ from .topomap import (
 )
 from .topo import plot_topo_image_epochs, iter_topography
 from .utils import (
-    tight_layout,
     mne_analyze_colormap,
     compare_fiff,
     ClickableImage,

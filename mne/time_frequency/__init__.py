@@ -9,7 +9,6 @@ from .tfr import (
     tfr_morlet,
     AverageTFR,
     tfr_multitaper,
-    _BaseTFR,
     read_tfrs,
     write_tfrs,
     EpochsTFR,

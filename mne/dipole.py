@@ -46,7 +46,6 @@ from .utils import (
     copy_function_doc_to_method_doc,
     fill_doc,
     logger,
-    pinvh,
     verbose,
     warn,
 )

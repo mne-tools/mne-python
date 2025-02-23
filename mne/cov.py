@@ -53,7 +53,6 @@ from .fixes import (
 )
 from .rank import _compute_rank
 from .utils import (
-    _array_repr,
     _check_fname,
     _check_on_missing,
     _check_option,

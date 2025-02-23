@@ -57,7 +57,7 @@ from .check import (
     _ensure_events,
     _check_eeglabio_installed,
     _check_pybv_installed,
-    _check_edflib_installed,
+    _check_edfio_installed,
     _to_rgb,
     _soft_import,
     _check_dict_keys,
@@ -67,6 +67,7 @@ from .check import (
     _import_nibabel,
     _import_pymatreader_funcs,
     _check_head_radius,
+    _check_method_kwargs,
 )
 from .config import (
     set_config,
@@ -90,7 +91,6 @@ from .docs import (
     fill_doc,
     deprecated_alias,
     legacy,
-    copy_base_doc_to_subclass_doc,
     docdict as _docdict,
 )
 from .fetching import _url_to_local_path
@@ -111,6 +111,7 @@ from ._logging import (
     _parse_verbose,
 )
 from .misc import (
+    _auto_weakref,
     run_subprocess,
     _pl,
     _clean_names,
@@ -131,7 +132,6 @@ from ._testing import (
     requires_mne,
     requires_good_network,
     ArgvSetter,
-    SilenceStdout,
     has_freesurfer,
     has_mne_c,
     _TempDir,
@@ -176,10 +176,6 @@ from .numerics import (
     _PCA,
     _mask_to_onsets_offsets,
     _array_equal_nan,
-    _julian_to_cal,
-    _cal_to_julian,
-    _dt_to_julian,
-    _julian_to_dt,
     _dt_to_stamp,
     _stamp_to_dt,
     _check_dt,
@@ -195,7 +191,7 @@ from .mixin import (
     ExtendedTimeMixin,
     _prepare_read_metadata,
     _prepare_write_metadata,
-    _FakeNoPandas,
+    _check_decim,
 )
 from .linalg import (
     _svd_lwork,
@@ -204,6 +200,7 @@ from .linalg import (
     sqrtm_sym,
     eigh,
     _get_blas_funcs,
+    pinv,
 )
 from .dataframe import (
     _set_pandas_dtype,

@@ -153,16 +153,6 @@ from .morph import (
     grade_to_vertices,
     compute_source_morph,
 )
-from .source_space import (
-    read_source_spaces,
-    write_source_spaces,
-    setup_source_space,
-    setup_volume_source_space,
-    SourceSpaces,
-    add_source_space_distances,
-    morph_source_spaces,
-    get_volume_labels_from_src,
-)
 from .annotations import (
     Annotations,
     read_annotations,
@@ -249,7 +239,6 @@ from . import stats
 from . import surface
 from . import time_frequency
 from . import viz
-from . import decoding
 from . import export
 
 # initialize logging

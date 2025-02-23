@@ -20,7 +20,6 @@ from .._fiff.pick import (
     channel_type,
     pick_info,
 )
-from ..channels.layout import _pair_grad_sensors
 from ..defaults import _handle_default
 from ..utils import (
     _check_ch_locs,
@@ -127,6 +126,8 @@ def _line_plot_onselect(
 ):
     """Draw topomaps from the selected area."""
     import matplotlib.pyplot as plt
+
+    from mne.channels.layout import _pair_grad_sensors
 
 
     ch_types = [type_ for type_ in ch_types if type_ in ("eeg", "grad", "mag")]
