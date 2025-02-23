@@ -44,7 +44,6 @@ def _compare_version(version_a, operator, version_b):
     bool
         The result of the version comparison.
     """
-    mapping = {"<": "lt", "<=": "le", "==": "eq", "!=": "ne", ">=": "ge", ">": "gt"}
     with warnings.catch_warnings(record=True):
         warnings.simplefilter("ignore")
         return eval(f'parse("{version_a}") {operator} parse("{version_b}")')
@@ -113,7 +112,7 @@ def rng_uniform(rng):
 
 
 def _validate_sos(sos):
-    """Helper to validate a SOS input"""
+    """Helper to validate a SOS input."""
     sos = np.atleast_2d(sos)
     if sos.ndim != 2:
         raise ValueError("sos array must be 2D")
@@ -142,7 +141,7 @@ def _get_img_fdata(img):
 
 
 def empirical_covariance(X, assume_centered=False):
-    """Computes the Maximum likelihood covariance estimator
+    """Compute the Maximum likelihood covariance estimator.
 
     Parameters
     ----------
@@ -271,7 +270,7 @@ class EmpiricalCovariance(_EstimatorMixin):
         self.assume_centered = assume_centered
 
     def _set_covariance(self, covariance):
-        """Saves the covariance and precision estimates
+        """Save the covariance and precision estimates.
 
         Storage is done accordingly to `self.store_precision`.
         Precision stored only if invertible.
@@ -366,7 +365,7 @@ class EmpiricalCovariance(_EstimatorMixin):
         return res
 
     def error_norm(self, comp_cov, norm="frobenius", scaling=True, squared=True):
-        """Computes the Mean Squared Error between two covariance estimators.
+        """Compute the Mean Squared Error between two covariance estimators.
 
         Parameters
         ----------
@@ -415,7 +414,7 @@ class EmpiricalCovariance(_EstimatorMixin):
         return result
 
     def mahalanobis(self, observations):
-        """Computes the squared Mahalanobis distances of given observations.
+        """Compute the squared Mahalanobis distances of given observations.
 
         Parameters
         ----------
@@ -439,7 +438,7 @@ class EmpiricalCovariance(_EstimatorMixin):
 
 
 def log_likelihood(emp_cov, precision):
-    """Computes the sample mean of the log_likelihood under a covariance model
+    """Compute the sample mean of the log_likelihood under a covariance model.
 
     computes the empirical expected log-likelihood (accounting for the
     normalization terms and scaling), allowing for universal comparison (beyond
@@ -479,7 +478,8 @@ def _logdet(A):
 
 
 def _infer_dimension_(spectrum, n_samples, n_features):
-    """Infers the dimension of a dataset of shape (n_samples, n_features)
+    """Infers the dimension of a dataset of shape (n_samples, n_features).
+
     The dataset is described by its spectrum `spectrum`.
     """
     n_spectrum = len(spectrum)
@@ -543,7 +543,7 @@ def svd_flip(u, v, u_based_decision=True):
 
 
 def stable_cumsum(arr, axis=None, rtol=1e-05, atol=1e-08):
-    """Use high precision for cumsum and check that final value matches sum
+    """Use high precision for cumsum and check that final value matches sum.
 
     Parameters
     ----------
@@ -577,8 +577,8 @@ def stable_cumsum(arr, axis=None, rtol=1e-05, atol=1e-08):
 
 
 def _crop_colorbar(cbar, cbar_vmin, cbar_vmax):
-    """
-    Crop a colorbar to show from cbar_vmin to cbar_vmax
+    """Crop a colorbar to show from cbar_vmin to cbar_vmax.
+
     Used when symmetric_cbar=False is used.
     """
     if (cbar_vmin is None) and (cbar_vmax is None):

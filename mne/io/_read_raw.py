@@ -31,6 +31,7 @@ from . import (
     read_raw_nirx,
     read_raw_snirf,
 )
+from .base import BaseRaw
 
 
 def _read_unsupported(fname, **kwargs):
@@ -80,7 +81,6 @@ supported = {
     # NEDF
     ".nedf": dict(NEDF=read_raw_nedf),
 }
-from .base import BaseRaw
 
 
 def _read_unsupported(fname, **kwargs):

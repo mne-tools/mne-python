@@ -35,7 +35,6 @@ from ..coreg import (
 )
 from ..defaults import DEFAULTS
 from ..io import read_raw
-from ..io._read_raw import read_raw
 from ..io._read_raw import supported as raw_supported_types
 from ..surface import _CheckInside, _DistanceQuery
 from ..transforms import (

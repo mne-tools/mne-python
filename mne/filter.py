@@ -1870,10 +1870,10 @@ def resample(
     # check explicitly for backwards compatibility
     if not isinstance(axis, int):
         err = (
-            "The axis parameter needs to be an integer (got %s). "
+            f"The axis parameter needs to be an integer (got {repr(axis)}). "
             "The axis parameter was missing from this function for a "
             "period of time, you might be intending to specify the "
-            "subsequent window parameter." % repr(axis)
+            "subsequent window parameter."
         )
         raise TypeError(err)
 
@@ -1976,11 +1976,11 @@ def _resample_fft(x_flat, *, ratio, final_len, pad, window, npad, n_jobs):
 
     # figure out windowing function
     if callable(window):
-        W = window(fft.fftfreq(orig_len))
+        W = window(signal.fft.fftfreq(orig_len))
     elif isinstance(window, np.ndarray) and window.shape == (orig_len,):
         W = window
     else:
-        W = fft.ifftshift(signal.get_window(window, orig_len))
+        W = signal.fft.ifftshift(signal.get_window(window, orig_len))
     W *= float(new_len) / float(orig_len)
 
     # figure out if we should use CUDA

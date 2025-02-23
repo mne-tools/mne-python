@@ -93,6 +93,8 @@ class RawNIRX(BaseRaw):
 
     @verbose
     def __init__(self, fname, saturated, *, preload=False, encoding=None, verbose=None):
+        from scipy.io import loadmat
+
         logger.info(f"Loading {fname}")
         _validate_type(fname, "path-like", "fname")
         _validate_type(saturated, str, "saturated")
