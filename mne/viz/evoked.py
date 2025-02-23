@@ -20,6 +20,7 @@ from .._fiff.pick import (
     channel_type,
     pick_info,
 )
+from ..channels.layout import _pair_grad_sensors
 from ..defaults import _handle_default
 from ..utils import (
     _check_ch_locs,
@@ -44,8 +45,6 @@ from .topomap import (
     _prepare_topomap,
     _prepare_topomap_plot,
     _set_contour_locator,
-    _check_sphere,
-    _make_head_outlines,
     plot_topomap,
 )
 from .utils import (
@@ -72,7 +71,6 @@ from .utils import (
     _validate_if_list_of_axes,
     plt_show,
 )
-from ..channels.layout import _pair_grad_sensors, find_layout
 
 
 def _butterfly_onpick(event, params):
@@ -130,7 +128,6 @@ def _line_plot_onselect(
     """Draw topomaps from the selected area."""
     import matplotlib.pyplot as plt
 
-    from ..channels.layout import _pair_grad_sensors
 
     ch_types = [type_ for type_ in ch_types if type_ in ("eeg", "grad", "mag")]
     if len(ch_types) == 0:

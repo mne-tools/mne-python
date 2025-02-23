@@ -21,7 +21,6 @@ from .cuda import (
     _setup_cuda_fft_resample,
     _smart_pad,
 )
-from .fixes import minimum_phase
 from .parallel import parallel_func
 from .utils import (
     _check_option,
@@ -549,7 +548,7 @@ def _check_coefficients(system):
 def _iir_filter(x, iir_params, picks, n_jobs, copy, phase="zero"):
     """Call filtfilt or lfilter."""
     # set up array for filtering, reshape to 2D, operate on last axis
-    from scipy.signal import filtfilt, sosfiltfilt, lfilter, sosfilt
+    from scipy.signal import filtfilt, lfilter, sosfilt, sosfiltfilt
 
     x, orig_shape, picks = _prep_for_filtering(x, copy, picks)
     if phase in ("zero", "zero-double"):
@@ -778,7 +777,7 @@ def construct_iir_filter(
     For more information, see the tutorials
     :ref:`disc-filtering` and :ref:`tut-filter-resample`.
     """  # noqa: E501
-    from scipy.signal import iirfilter, iirdesign, freqz, sosfreqz
+    from scipy.signal import freqz, iirdesign, iirfilter, sosfreqz
 
     known_filters = (
         "bessel",
@@ -1592,6 +1591,7 @@ def notch_filter(
 
 def _get_window_thresh(n_times, sfreq, mt_bandwidth, p_value):
     from scipy import stats
+
     from .time_frequency.multitaper import _compute_mt_params
 
     # figure out what tapers to use
@@ -1863,9 +1863,6 @@ def resample(
     important consequences, and the default choices should work well
     for most natural signals.
     """
-    from scipy.signal import get_window
-    from scipy.fft import ifftshift, fftfreq
-
     _validate_type(method, str, "method")
     _validate_type(pad, str, "pad")
     _check_option("method", method, ("fft", "polyphase"))

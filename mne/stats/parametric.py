@@ -2,7 +2,6 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-import numpy as np
 from functools import reduce
 from string import ascii_uppercase
 
@@ -240,8 +239,6 @@ def _get_contrast_indices(effect_idx, n_factors):  # noqa: D401
 
 def _iter_contrasts(n_subjects, factor_levels, effect_picks):
     """Set up contrasts."""
-    from scipy.signal import detrend
-
     sc = []
     n_factors = len(factor_levels)
     # prepare computation of Kronecker products
@@ -426,7 +423,6 @@ def _parametric_ci(arr, ci=0.95):
     if len(arr) < 2:  # can't compute standard error
         sigma = np.full_like(mean, np.nan)
         return mean, sigma
-    from scipy import stats
 
     sigma = stats.sem(arr, 0)
     return stats.t.interval(ci, loc=mean, scale=sigma, df=arr.shape[0])

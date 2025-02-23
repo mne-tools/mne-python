@@ -42,10 +42,10 @@ from .channels.layout import _merge_ch_data, _pair_grad_sensors
 from .defaults import _BORDER_DEFAULT, _EXTRAPOLATE_DEFAULT, _INTERPOLATION_DEFAULT
 from .filter import FilterMixin, _check_fun, detrend
 from .html_templates import _get_html_template
+from .io.base import _check_maxshield, _get_ch_factors
 from .parallel import parallel_func
 from .time_frequency.spectrum import Spectrum, SpectrumMixin, _validate_method
 from .time_frequency.tfr import AverageTFR
-from .io.base import _check_maxshield, _get_ch_factors
 from .utils import (
     ExtendedTimeMixin,
     SizeMixin,

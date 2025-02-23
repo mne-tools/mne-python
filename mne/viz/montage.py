@@ -5,6 +5,7 @@
 """Functions to plot EEG sensor montages or digitizer montages."""
 
 from copy import deepcopy
+
 import numpy as np
 from scipy.spatial.distance import cdist
 

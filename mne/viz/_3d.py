@@ -18,7 +18,6 @@ from pathlib import Path
 
 import numpy as np
 from scipy.spatial import ConvexHull, Delaunay
-from scipy.spatial.distance import cdist
 from scipy.stats import rankdata
 
 from .._fiff.constants import FIFF
@@ -38,6 +37,7 @@ from .._freesurfer import (
     _read_mri_info,
     read_freesurfer_lut,
 )
+from ..bem import ConductorModel, _bem_find_surface, _ensure_bem_surfaces
 from ..defaults import DEFAULTS
 from ..fixes import _crop_colorbar, _get_img_fdata
 from ..surface import (
@@ -90,7 +90,6 @@ from .utils import (
     figure_nobar,
     plt_show,
 )
-from ..bem import ConductorModel, _bem_find_surface, _ensure_bem_surfaces
 
 verbose_dec = verbose
 FIDUCIAL_ORDER = (FIFF.FIFFV_POINT_LPA, FIFF.FIFFV_POINT_NASION, FIFF.FIFFV_POINT_RPA)
@@ -675,7 +674,6 @@ def plot_alignment(
     .. versionadded:: 0.15
     """
     # Update the backend
-    from ..bem import ConductorModel, _bem_find_surface, _ensure_bem_surfaces
     from ..source_space._source_space import _ensure_src
     from .backends.renderer import _get_renderer
 
@@ -1742,8 +1740,6 @@ def _make_tris_fan(n_vert):
 
 def _sensor_shape(coil):
     """Get the sensor shape vertices."""
-    from scipy.spatial import ConvexHull, Delaunay
-
     try:
         from scipy.spatial import QhullError
     except ImportError:  # scipy < 1.8

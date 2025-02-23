@@ -201,6 +201,7 @@ def plot_epochs_image(
     +----------+----------------------------+------------+-------------------+
     """
     from scipy.ndimage import gaussian_filter1d
+
     from ..epochs import EpochsArray
 
     _validate_type(group_by, (dict, None), "group_by")

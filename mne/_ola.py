@@ -6,7 +6,6 @@ import numpy as np
 
 from .utils import _ensure_int, logger, verbose
 
-
 ###############################################################################
 # Class for interpolation between adjacent points
 

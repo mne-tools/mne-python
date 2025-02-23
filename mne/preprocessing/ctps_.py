@@ -3,6 +3,7 @@
 # Copyright the MNE-Python contributors.
 
 import math
+
 import numpy as np
 
 

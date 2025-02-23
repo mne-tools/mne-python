@@ -19,7 +19,6 @@ from ...filter import resample
 from ...utils import _validate_type, fill_doc, logger, verbose, warn
 from ..base import BaseRaw, _get_scaling
 
-
 # common channel type names mapped to internal ch types
 CH_TYPE_MAPPING = {
     "EEG": FIFF.FIFFV_EEG_CH,

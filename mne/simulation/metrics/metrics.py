@@ -193,8 +193,6 @@ def _abs_col_sum(x):
 
 def _dle(p, q, src, stc):
     """Aux function to compute dipole localization error."""
-    from scipy.spatial.distance import cdist
-
     p = _abs_col_sum(p)
     q = _abs_col_sum(q)
     idx1 = np.nonzero(p)[0]

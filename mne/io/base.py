@@ -15,6 +15,7 @@ from pathlib import Path
 import numpy as np
 
 from mne.html_templates import _get_html_template
+
 from .._fiff.compensator import make_compensator, set_current_comp
 from .._fiff.constants import FIFF
 from .._fiff.meas_info import (
@@ -48,7 +49,6 @@ from .._fiff.write import (
     write_int,
     write_string,
 )
-
 from ..annotations import (
     Annotations,
     _annotations_starts_stops,

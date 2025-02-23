@@ -3183,8 +3183,6 @@ def spatio_temporal_tris_adjacency(tris, n_times, remap_vertices=False, verbose=
         vertices are time 1, the nodes from 2 to 2N are the vertices
         during time 2, etc.
     """
-    from scipy import sparse
-
     if remap_vertices:
         logger.info("Reassigning vertex indices.")
         tris = np.searchsorted(np.unique(tris), tris)
@@ -3334,7 +3332,6 @@ def spatial_inter_hemi_adjacency(src, dist, verbose=None):
         using geodesic distances.
     """
     from scipy import sparse
-    from scipy.spatial.distance import cdist
 
     src = _ensure_src(src, kind="surface")
     adj = cdist(src[0]["rr"][src[0]["vertno"]], src[1]["rr"][src[1]["vertno"]])
@@ -3349,8 +3346,6 @@ def spatial_inter_hemi_adjacency(src, dist, verbose=None):
 @verbose
 def _get_adjacency_from_edges(edges, n_times, verbose=None):
     """Given edges sparse matrix, create adjacency matrix."""
-    from scipy.sparse import coo_matrix
-
     n_vertices = edges.shape[0]
     logger.info("-- number of adjacent vertices : %d", n_vertices)
     nnz = edges.col.size
@@ -3928,7 +3923,6 @@ def stc_near_sensors(
 
     .. versionadded:: 0.22
     """
-    from scipy.spatial.distance import cdist, pdist
     from .evoked import Evoked
 
     _validate_type(evoked, Evoked, "evoked")

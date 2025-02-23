@@ -16,14 +16,11 @@ at which the fix is no longer needed.
 # because this module is imported many places (but not always used)!
 
 import inspect
-import operator as operator_module
 import os
 import warnings
 from math import log
 
 import numpy as np
-from packaging.version import parse
-
 
 ###############################################################################
 # distutils LooseVersion removed in Python 3.12
@@ -146,7 +143,6 @@ def _get_img_fdata(img):
 
 def empirical_covariance(X, assume_centered=False):
     """Computes the Maximum likelihood covariance estimator
-
 
     Parameters
     ----------
@@ -582,11 +578,9 @@ def stable_cumsum(arr, axis=None, rtol=1e-05, atol=1e-08):
 
 def _crop_colorbar(cbar, cbar_vmin, cbar_vmax):
     """
-    crop a colorbar to show from cbar_vmin to cbar_vmax
+    Crop a colorbar to show from cbar_vmin to cbar_vmax
     Used when symmetric_cbar=False is used.
     """
-    import matplotlib
-
     if (cbar_vmin is None) and (cbar_vmax is None):
         return
     cbar_tick_locs = cbar.locator.locs

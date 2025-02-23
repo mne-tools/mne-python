@@ -284,8 +284,6 @@ def _vector_angle(x, y):
 
 def _adjust_mag_normals(info, data, origin, ext_order, *, angle_limit, err_limit):
     """Adjust coil normals using magnetometers and empty-room data."""
-    from scipy.optimize import fmin_cobyla
-
     # in principle we could allow using just mag or mag+grad, but MF uses
     # just mag so let's follow suit
     mag_scale = 100.0

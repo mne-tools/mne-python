@@ -5,7 +5,6 @@
 import numpy as np
 from numpy.polynomial.legendre import legval
 from scipy.interpolate import RectBivariateSpline
-from scipy.linalg import pinv
 from scipy.spatial.distance import pdist, squareform
 
 from .._fiff.meas_info import _simplify_info

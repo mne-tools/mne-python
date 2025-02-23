@@ -392,7 +392,6 @@ def _triangle_neighbors(tris, npts):
     # for ti, tri in enumerate(tris):
     #     for t in tri:
     #         neighbor_tri[t].append(ti)
-    from scipy.sparse import coo_matrix
 
     rows = tris.ravel()
     cols = np.repeat(np.arange(len(tris)), 3)
@@ -587,7 +586,6 @@ class _CDist:
         self._xhs = xhs
 
     def query(self, rr):
-        from scipy.spatial.distance import cdist
 
         nearest = list()
         dists = list()
@@ -1720,7 +1718,6 @@ def mesh_edges(tris):
 
 @lru_cache(maxsize=10)
 def _mesh_edges(tris=None):
-    from scipy.sparse import coo_matrix
 
     if np.max(tris) > len(np.unique(tris)):
         raise ValueError("Cannot compute adjacency on a selection of triangles.")
@@ -1755,8 +1752,6 @@ def mesh_dist(tris, vert):
     dist_matrix : scipy.sparse.csr_array
         Sparse matrix with distances between adjacent vertices.
     """
-    from scipy.sparse import csr_matrix
-
     edges = mesh_edges(tris).tocoo()
 
     # Euclidean distances between neighboring vertices
@@ -2100,7 +2095,6 @@ def get_montage_volume_labels(montage, subject, subjects_dir=None, aseg="auto", 
     """
     from ._freesurfer import _get_aseg, read_freesurfer_lut
     from .channels import DigMontage
-    from ._freesurfer import read_freesurfer_lut, _get_aseg
 
     _validate_type(montage, DigMontage, "montage")
     _validate_type(dist, (int, float), "dist")

@@ -18,59 +18,13 @@ import numpy as np
 
 from mne.defaults import _handle_default
 from mne.html_templates import _get_html_template
-from .pick import (
-    channel_type,
-    _get_channel_types,
-    get_channel_type_constants,
-    pick_types,
-    _picks_to_idx,
-    _contains_ch_type,
-)
-from .constants import FIFF, _coord_frame_named, _ch_unit_mul_named
-from .open import fiff_open
-from .tree import dir_tree_find
-from .tag import (
-    read_tag,
-    find_tag,
-    _ch_coord_dict,
-    _update_ch_info_named,
-    _rename_list,
-    _int_item,
-    _float_item,
-)
-from .proj import (
-    _read_proj,
-    _write_proj,
-    _uniquify_projs,
-    _normalize_proj,
-    _proj_equal,
-    Projection,
-)
-from .ctf_comp import _read_ctf_comp, write_ctf_comp
-from .write import (
-    start_and_end_file,
-    start_block,
-    end_block,
-    write_string,
-    write_dig_points,
-    write_float,
-    write_int,
-    write_coord_trans,
-    write_ch_info,
-    write_julian,
-    write_float_matrix,
-    write_id,
-    DATE_NONE,
-    _safe_name_list,
-    write_name_list_sanitized,
-)
-from .proc_history import _read_proc_history, _write_proc_history
+
 from ..transforms import (
-    invert_transform,
     Transform,
     _coord_frame_name,
     _ensure_trans,
     _frame_to_str,
+    invert_transform,
 )
 from ..utils import (
     _check_fname,
@@ -377,7 +331,6 @@ class MontageMixin:
             A copy of the channel positions, if available, otherwise ``None``.
         """
         from ..channels.montage import make_dig_montage
-        from ..transforms import _frame_to_str
 
         info = self if isinstance(self, Info) else self.info
         if info["dig"] is None:
@@ -1131,7 +1084,6 @@ class HeliumInfo(ValidatedDict):
 
 
 def _format_trans(obj, key):
-    from ..transforms import Transform
 
     try:
         t = obj[key]
@@ -1202,7 +1154,6 @@ def _check_bads(bads, *, info):
 
 
 def _check_dev_head_t(dev_head_t, *, info):
-    from ..transforms import Transform, _ensure_trans
 
     _validate_type(dev_head_t, (Transform, None), "info['dev_head_t']")
     if dev_head_t is not None:
@@ -1782,7 +1733,6 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
     def __repr__(self):
         """Summarize info instead of printing all."""
         from ..io.kit.constants import KIT_SYSNAMES
-        from ..transforms import Transform, _coord_frame_name
 
         MAX_WIDTH = 68
         strs = ["<Info | %s non-empty values"]
@@ -2161,8 +2111,6 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
     meas : dict
         Node in tree that contains the info.
     """
-    from ..transforms import Transform, invert_transform
-
     #   Find the desired blocks
     meas = dir_tree_find(tree, FIFF.FIFFB_MEAS)
     if len(meas) == 0:
@@ -3353,8 +3301,6 @@ RAW_INFO_FIELDS = (
 
 def _empty_info(sfreq):
     """Create an empty info dictionary."""
-    from ..transforms import Transform
-
     _none_keys = (
         "acq_pars",
         "acq_stim",

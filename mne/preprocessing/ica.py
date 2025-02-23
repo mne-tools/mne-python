@@ -55,7 +55,6 @@ from ..epochs import BaseEpochs
 from ..evoked import Evoked
 from ..filter import filter_data
 from ..fixes import _safe_svd
-from ..html_templates import _get_html_template
 from ..io import BaseRaw
 from ..io.eeglab.eeglab import _check_load_mat, _get_info
 from ..utils import (
@@ -142,9 +141,6 @@ def get_score_funcs():
     score_funcs : dict
         The score functions.
     """
-    from scipy import stats
-    from scipy.spatial import distance
-
     score_funcs = Bunch()
     xy_arg_dist_funcs = [
         (n, f)
@@ -1999,7 +1995,6 @@ class ICA(ContainsMixin):
         .. versionadded:: 1.1
         """
         from scipy.spatial.distance import pdist, squareform
-        from scipy.special import expit
 
         _validate_type(threshold, "numeric", "threshold")
 
@@ -3506,8 +3501,6 @@ def read_ica_eeglab(fname, *, montage_units="auto", verbose=None):
     ica : instance of ICA
         An ICA object based on the information contained in the input file.
     """
-    from scipy import linalg
-
     eeg = _check_load_mat(fname, None)
     info, eeg_montage, _ = _get_info(eeg, eog=(), montage_units=montage_units)
     info.set_montage(eeg_montage)

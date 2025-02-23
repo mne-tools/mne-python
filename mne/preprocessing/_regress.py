@@ -21,7 +21,6 @@ from ..utils import (
     verbose,
 )
 from ..viz import plot_regression_weights
-from ..evoked import Evoked
 
 
 @verbose

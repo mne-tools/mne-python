@@ -602,8 +602,8 @@ class SourceMorph:
         return self
 
     def _morph_vols(self, vols, mesg, subselect=True):
-        from scipy import sparse
         from dipy.align.reslice import reslice
+        from scipy import sparse
 
         interp = self.src_data["interpolator"].tocsc()[
             :, np.concatenate(self._vol_vertices_from)
@@ -1340,7 +1340,6 @@ def grade_to_vertices(subject, grade, subjects_dir=None, n_jobs=None, verbose=No
 @_custom_lru_cache(20)
 def _surf_nearest(vertices, adj_mat):
     from scipy import sparse
-    from scipy.sparse.csgraph import dijkstra
 
     # Vertices can be out of order, so sort them to start ...
     order = np.argsort(vertices)
@@ -1380,6 +1379,7 @@ def _csr_row_norm(data, row_norm):
 def _surf_upsampling_mat(idx_from, e, smooth):
     """Upsample data on a subject's surface given mesh edges."""
     from scipy import sparse
+
     # we're in CSR format and it's to==from
     assert isinstance(e, sparse.csr_array)
     n_tot = e.shape[0]

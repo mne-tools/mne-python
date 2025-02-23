@@ -5,6 +5,7 @@
 # Copyright the MNE-Python contributors.
 
 import os.path as op
+
 import numpy as np
 
 from .._freesurfer import _estimate_talxfm_rigid, _get_head_surface

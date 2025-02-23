@@ -9,8 +9,6 @@ import sys
 from pathlib import Path
 from types import ModuleType
 
-import pytest
-
 import mne
 from mne.utils import _pl, logger, run_subprocess
 

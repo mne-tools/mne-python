@@ -186,8 +186,6 @@ def tfr_array_stockwell(
     ----------
     .. footbibliography::
     """
-    from scipy.fft import fftfreq
-
     _validate_type(data, np.ndarray, "data")
     if data.ndim != 3:
         raise ValueError(

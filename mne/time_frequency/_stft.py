@@ -3,6 +3,7 @@
 # Copyright the MNE-Python contributors.
 
 from math import ceil
+
 import numpy as np
 
 from ..utils import logger, verbose

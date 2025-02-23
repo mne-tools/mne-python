@@ -695,8 +695,6 @@ def object_size(x, memo=None):
     size : int
         The estimated size in bytes of the object.
     """
-    from scipy import sparse
-
     # Note: this will not process object arrays properly (since those only)
     # hold references
     if memo is None:

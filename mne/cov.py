@@ -2343,6 +2343,7 @@ def _read_cov(fid, node, cov_kind, limited=False, verbose=None):
     """Read a noise covariance matrix."""
     #   Find all covariance matrices
     from scipy import sparse
+
     from ._fiff.write import _safe_name_list
 
     covs = dir_tree_find(node, FIFF.FIFFB_MNE_COV)

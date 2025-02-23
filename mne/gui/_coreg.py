@@ -17,9 +17,6 @@ from pathlib import Path
 import numpy as np
 from traitlets import Bool, Float, HasTraits, Instance, Unicode, observe
 
-from ..io import read_raw
-from ..io._read_raw import supported as raw_supported_types
-from ..defaults import DEFAULTS
 from .._fiff.constants import FIFF
 from .._fiff.meas_info import _empty_info, read_fiducials, read_info, write_fiducials
 from .._fiff.open import dir_tree_find, fiff_open
@@ -37,7 +34,9 @@ from ..coreg import (
     scale_mri,
 )
 from ..defaults import DEFAULTS
-from ..io._read_raw import _get_supported, read_raw
+from ..io import read_raw
+from ..io._read_raw import read_raw
+from ..io._read_raw import supported as raw_supported_types
 from ..surface import _CheckInside, _DistanceQuery
 from ..transforms import (
     Transform,

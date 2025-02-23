@@ -70,7 +70,6 @@ from .utils import (
 )
 from .viz.misc import plot_bem
 
-
 # ############################################################################
 # Compute BEM solution
 

@@ -15,7 +15,7 @@ from sklearn.base import (
 from sklearn.exceptions import NotFittedError
 from sklearn.metrics import r2_score
 
-from ..utils import _validate_type, fill_doc, pinv
+from ..utils import _validate_type, fill_doc
 from .base import _check_estimator, get_coef
 from .time_delaying_ridge import TimeDelayingRidge
 
@@ -507,7 +507,6 @@ def _reshape_for_est(X_del):
 
 # Create a correlation scikit-learn-style scorer
 def _corr_score(y_true, y, multioutput=None):
-    from scipy.stats import pearsonr
 
     assert multioutput == "raw_values"
     for this_y in (y_true, y):

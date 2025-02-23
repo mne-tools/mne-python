@@ -14,7 +14,6 @@ from functools import partial
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.fft import fft, ifft
-from scipy.signal import argrelmax
 
 from .._fiff.meas_info import ContainsMixin, Info
 from .._fiff.pick import _picks_to_idx, pick_info
@@ -369,8 +368,6 @@ def _cwt_gen(X, Ws, *, fsize=0, mode="same", decim=1, use_fft=True):
     out : array, shape (n_signals, n_freqs, n_time_decim)
         The time-frequency transform of the signals.
     """
-    from scipy.fft import fft, ifft
-
     _check_option("mode", mode, ["same", "valid", "full"])
     decim = _ensure_slice(decim)
     X = np.asarray(X)

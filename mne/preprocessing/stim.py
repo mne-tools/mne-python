@@ -16,8 +16,6 @@ from ..utils import _check_option, _check_preload, _validate_type, fill_doc
 
 def _get_window(start, end):
     """Return window which has length as much as parameter start - end."""
-    from scipy.signal.windows import hann
-
     window = 1 - np.r_[hann(4)[:2], np.ones(np.abs(end - start) - 4), hann(4)[-2:]].T
     return window
 
@@ -26,8 +24,6 @@ def _fix_artifact(
     data, window, picks, first_samp, last_samp, base_tmin, base_tmax, mode
 ):
     """Modify original data by using parameter data."""
-    from scipy.interpolate import interp1d
-
     if mode == "linear":
         x = np.array([first_samp, last_samp])
         f = interp1d(x, data[:, (first_samp, last_samp)][picks])

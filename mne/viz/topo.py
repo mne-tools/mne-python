@@ -775,8 +775,8 @@ def _erfimage_imshow(
     vlim_array=None,
 ):
     """Plot erfimage on sensor topography."""
-    from scipy import ndimage
     import matplotlib.pyplot as plt
+    from scipy import ndimage
 
     this_data = data[:, ch_idx, :]
     if vlim_array is not None:
@@ -981,7 +981,7 @@ def _plot_evoked_topo(
     """
     import matplotlib.pyplot as plt
 
-    from ..channels.layout import _merge_ch_data, _pair_grad_sensors, find_layout
+    from ..channels.layout import find_layout
     from ..cov import whiten_evoked
 
     if type(evoked) not in (tuple, list):

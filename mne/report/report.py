@@ -34,9 +34,7 @@ from ..epochs import BaseEpochs, read_epochs
 from ..event import read_events
 from ..evoked import Evoked, read_evokeds
 from ..forward import Forward, read_forward_solution
-from ..html_templates import _get_html_template
 from ..io import BaseRaw, read_raw
-from ..io._read_raw import _get_supported as _get_extension_reader_map
 from ..io._read_raw import supported as extension_reader_map
 from ..minimum_norm import InverseOperator, read_inverse_operator
 from ..parallel import parallel_func

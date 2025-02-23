@@ -47,7 +47,6 @@ from ..forward import (
     is_fixed_orient,
 )
 from ..forward.forward import _triage_loose, write_forward_meas_info
-from ..html_templates import _get_html_template
 from ..io import BaseRaw
 from ..source_estimate import _get_src_type, _make_stc
 from ..source_space._source_space import (

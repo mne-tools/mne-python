@@ -14,6 +14,7 @@ from itertools import cycle
 import numpy as np
 
 from .._fiff.pick import _DATA_CH_TYPES_SPLIT
+from ..annotations import _sync_onset
 from ..defaults import _handle_default
 from ..filter import _iir_filter, _overlap_add_filter
 from ..fixes import _compare_version
@@ -26,7 +27,6 @@ from ..utils import (
     set_config,
     verbose,
 )
-from ..annotations import _sync_onset
 from .backends._utils import VALID_BROWSE_BACKENDS
 from .utils import _get_color_list, _setup_plot_projector, _show_browser
 

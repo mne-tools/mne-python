@@ -15,7 +15,6 @@ from .utils import (
     warn,
 )
 
-
 _cuda_capable = False
 
 
@@ -166,7 +165,7 @@ def _setup_cuda_fft_multiply_repeated(n_jobs, h, n_fft, kind="FFT FIR filtering"
     -----
     This function is designed to be used with fft_multiply_repeated().
     """
-    from scipy.fft import rfft, irfft
+    from scipy.fft import irfft, rfft
 
     cuda_dict = dict(n_fft=n_fft, rfft=rfft, irfft=irfft, h_fft=rfft(h, n=n_fft))
     if isinstance(n_jobs, str):
@@ -263,7 +262,7 @@ def _setup_cuda_fft_resample(n_jobs, W, new_len):
     -----
     This function is designed to be used with fft_resample().
     """
-    from scipy.fft import rfft, irfft
+    from scipy.fft import irfft, rfft
 
     cuda_dict = dict(use_cuda=False, rfft=rfft, irfft=irfft)
     rfft_len_x = len(W) // 2 + 1

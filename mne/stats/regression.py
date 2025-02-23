@@ -102,7 +102,7 @@ def linear_regression(inst, design_matrix, names=None):
 
 def _fit_lm(data, design_matrix, names):
     """Aux function."""
-    from scipy import stats, linalg
+    from scipy import linalg, stats
 
     n_samples = len(data)
     n_features = np.prod(data.shape[1:])

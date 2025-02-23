@@ -6,9 +6,7 @@
 
 import numpy as np
 from scipy import ndimage, sparse
-from scipy.sparse.csgraph import connected_components
 from scipy.stats import f as fstat
-from scipy.stats import t as tstat
 
 from ..fixes import has_numba, jit
 from ..parallel import parallel_func
@@ -288,8 +286,6 @@ def _get_clusters_st(x_in, neighbors, max_step=1):
 
 def _get_components(x_in, adjacency, return_list=True):
     """Get connected components from a mask and a adjacency matrix."""
-    from scipy import sparse
-
     if adjacency is False:
         components = np.arange(len(x_in))
     else:
@@ -380,8 +376,6 @@ def _find_clusters(
     sums : array
         Sum of x values in clusters.
     """
-    from scipy import ndimage
-
     _check_option("tail", tail, [-1, 0, 1])
 
     x = np.asanyarray(x)
@@ -518,8 +512,6 @@ def _find_clusters_1dir_parts(
 
 def _find_clusters_1dir(x, x_in, adjacency, max_step, t_power, ndimage):
     """Actually call the clustering algorithm."""
-    from scipy import sparse
-
     if adjacency is None:
         labels, n_labels = ndimage.label(x_in)
 
@@ -621,7 +613,6 @@ def _pval_from_histogram(T, H0, tail):
 
 
 def _setup_adjacency(adjacency, n_tests, n_times):
-    from scipy import sparse
 
     if not sparse.issparse(adjacency):
         raise ValueError(
@@ -1619,8 +1610,6 @@ def _st_mask_from_s_inds(n_times, n_vertices, vertices, set_as=True):
 @verbose
 def _get_partitions_from_adjacency(adjacency, n_times, verbose=None):
     """Specify disjoint subsets (e.g., hemispheres) based on adjacency."""
-    from scipy import sparse
-
     if isinstance(adjacency, list):
         test = np.ones(len(adjacency))
         test_adj = np.zeros((len(adjacency), len(adjacency)), dtype="bool")

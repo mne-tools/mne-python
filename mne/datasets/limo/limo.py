@@ -14,7 +14,6 @@ from ...epochs import EpochsArray
 from ...utils import _check_pandas_installed, logger, verbose
 from ..utils import _do_path_update, _downloader_params, _get_path, _log_time_size
 
-
 # root url for LIMO files
 root_url = "https://files.de-1.osf.io/v1/resources/52rea/providers/osfstorage/"
 

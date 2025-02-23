@@ -24,7 +24,6 @@ import itertools
 from functools import partial
 
 import numpy as np
-import itertools
 
 from ._fiff.constants import FIFF
 from ._fiff.meas_info import Info, _simplify_info

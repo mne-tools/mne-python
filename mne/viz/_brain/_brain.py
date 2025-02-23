@@ -14,7 +14,6 @@ from io import BytesIO
 import numpy as np
 from scipy.interpolate import interp1d
 from scipy.sparse import csr_array
-from scipy.spatial.distance import cdist
 
 from ..._fiff.meas_info import Info
 from ..._fiff.pick import pick_types
@@ -1067,7 +1066,6 @@ class Brain:
 
     def _configure_picking(self):
         # get data for each hemi
-        from scipy import sparse
 
         for idx, hemi in enumerate(["vol", "lh", "rh"]):
             hemi_data = self._data.get(hemi)
@@ -4040,8 +4038,6 @@ class Brain:
 
 def _safe_interp1d(x, y, kind="linear", axis=-1, assume_sorted=False):
     """Work around interp1d not liking singleton dimensions."""
-    from scipy.interpolate import interp1d
-
     if y.shape[axis] == 1:
 
         def func(x):

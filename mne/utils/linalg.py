@@ -26,7 +26,6 @@ import functools
 
 import numpy as np
 
-
 from ..fixes import _safe_svd
 
 # For efficiency, names should be str or tuple of str, dtype a builtin
@@ -133,8 +132,8 @@ def eigh(a, overwrite_a=False, check_finite=True):
         The normalized eigenvector corresponding to the eigenvalue ``w[i]``
         is the column ``v[:, i]``.
     """
-    from scipy.linalg import LinAlgError
     from scipy._lib._util import _asarray_validated
+    from scipy.linalg import LinAlgError
 
     # We use SYEVD, see https://github.com/scipy/scipy/issues/9212
     if check_finite:
