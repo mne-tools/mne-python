@@ -276,8 +276,8 @@ def _fit_ecg_template(
     -------
         tuple[np.ndarray, int]: the fitted artifact and the next peak index
     """
-    from scipy.signal import detrend
     from scipy.interpolate import pchip
+    from scipy.signal import detrend
 
     # post_idx_next_peak is passed in in PCA_OBS, used here as post_idx_previous_peak
     # Then next_peak is returned at the end and the process repeats
