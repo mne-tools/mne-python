@@ -4,7 +4,6 @@
 
 import ast
 import glob
-import os
 import sys
 from pathlib import Path
 from types import ModuleType
