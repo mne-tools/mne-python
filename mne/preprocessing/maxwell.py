@@ -2040,7 +2040,6 @@ def _overlap_projector(data_int, data_res, corr):
     # computation
 
     # we use np.linalg.norm instead of sp.linalg.norm here: ~2x faster!
-
     n = np.linalg.norm(data_int)
     n = 1.0 if n == 0 else n  # all-zero data should gracefully continue
     data_int = _orth_overwrite((data_int / n).T)

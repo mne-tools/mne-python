@@ -2336,7 +2336,6 @@ def _src_vol_dims(s):
 def _add_interpolator(sp):
     """Compute a sparse matrix to interpolate the data into an MRI volume."""
     # extract transformation information from mri
-
     mri_width, mri_height, mri_depth, nvox = _src_vol_dims(sp[0])
 
     #

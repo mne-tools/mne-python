@@ -34,8 +34,9 @@ from ..epochs import BaseEpochs, read_epochs
 from ..event import read_events
 from ..evoked import Evoked, read_evokeds
 from ..forward import Forward, read_forward_solution
+from ..html_templates import _get_html_template
 from ..io import BaseRaw, read_raw
-from ..io._read_raw import supported as extension_reader_map
+from ..io._read_raw import _get_supported as _get_extension_reader_map
 from ..minimum_norm import InverseOperator, read_inverse_operator
 from ..parallel import parallel_func
 from ..preprocessing.ica import read_ica
@@ -80,14 +81,14 @@ from ..viz import (
 from ..viz._brain.view import views_dicts
 from ..viz._scraper import _mne_qt_browser_screenshot
 from ..viz.misc import _get_bem_plotting_surfaces, _plot_mri_contours
-from ..viz.utils import _get_plot_ch_type, _ndarray_to_fig
+from ..viz.utils import _ndarray_to_fig
 
 _BEM_VIEWS = ("axial", "sagittal", "coronal")
 
 
 # For raw files, we want to support different suffixes + extensions for all
 # supported file formats
-SUPPORTED_READ_RAW_EXTENSIONS = tuple(extension_reader_map.keys())
+SUPPORTED_READ_RAW_EXTENSIONS = tuple(_get_extension_reader_map())
 RAW_EXTENSIONS = []
 for ext in SUPPORTED_READ_RAW_EXTENSIONS:
     RAW_EXTENSIONS.append(f"raw{ext}")
@@ -159,9 +160,7 @@ def _id_sanitize(title):
 
 
 def _renderer(kind):
-    from ..html_templates import report_templates_env
-
-    return report_templates_env.get_template(kind).render
+    return _get_html_template("report", kind).render
 
 
 ###############################################################################
@@ -405,7 +404,6 @@ def _fig_to_img(
         # check instead
         if fig.__class__.__name__ in ("MNEQtBrowser", "PyQtGraphBrowser"):
             img = _mne_qt_browser_screenshot(fig, return_type="ndarray")
-            print(img.shape, img.max(), img.min(), img.mean())
         elif isinstance(fig, Figure3D):
             from ..viz.backends.renderer import MNE_3D_BACKEND_TESTING, backend
 

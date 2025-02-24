@@ -96,7 +96,6 @@ def _load_absorption(freqs):
     #
     # Returns data as [[HbO2(freq1), Hb(freq1)],
     #                  [HbO2(freq2), Hb(freq2)]]
-
     extinction_fname = op.join(
         op.dirname(__file__), "..", "..", "data", "extinction_coef.mat"
     )

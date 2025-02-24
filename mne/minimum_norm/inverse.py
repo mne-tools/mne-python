@@ -47,6 +47,7 @@ from ..forward import (
     is_fixed_orient,
 )
 from ..forward.forward import _triage_loose, write_forward_meas_info
+from ..html_templates import _get_html_template
 from ..io import BaseRaw
 from ..source_estimate import _get_src_type, _make_stc
 from ..source_space._source_space import (
@@ -127,12 +128,10 @@ class InverseOperator(dict):
 
     @repr_html
     def _repr_html_(self):
-        from ..html_templates import repr_templates_env
-
         repr_info = self._get_chs_and_src_info_for_repr()
         n_chs_meg, n_chs_eeg, src_space_descr, src_ori = repr_info
 
-        t = repr_templates_env.get_template("inverse_operator.html.jinja")
+        t = _get_html_template("repr", "inverse_operator.html.jinja")
         html = t.render(
             channels=f"{n_chs_meg} MEG, {n_chs_eeg} EEG",
             source_space_descr=src_space_descr,

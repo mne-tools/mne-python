@@ -392,7 +392,6 @@ def _triangle_neighbors(tris, npts):
     # for ti, tri in enumerate(tris):
     #     for t in tri:
     #         neighbor_tri[t].append(ti)
-
     rows = tris.ravel()
     cols = np.repeat(np.arange(len(tris)), 3)
     data = np.ones(len(cols))

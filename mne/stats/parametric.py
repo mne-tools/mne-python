@@ -423,6 +423,5 @@ def _parametric_ci(arr, ci=0.95):
     if len(arr) < 2:  # can't compute standard error
         sigma = np.full_like(mean, np.nan)
         return mean, sigma
-
     sigma = stats.sem(arr, 0)
     return stats.t.interval(ci, loc=mean, scale=sigma, df=arr.shape[0])

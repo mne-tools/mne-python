@@ -55,6 +55,7 @@ from ..epochs import BaseEpochs
 from ..evoked import Evoked
 from ..filter import filter_data
 from ..fixes import _safe_svd
+from ..html_templates import _get_html_template
 from ..io import BaseRaw
 from ..io.eeglab.eeglab import _check_load_mat, _get_info
 from ..utils import (
@@ -575,10 +576,8 @@ class ICA(ContainsMixin):
 
     @repr_html
     def _repr_html_(self):
-        from ..html_templates import repr_templates_env
-
         infos = self._get_infos_for_repr()
-        t = repr_templates_env.get_template("ica.html.jinja")
+        t = _get_html_template("repr", "ica.html.jinja")
         html = t.render(
             fit_on=infos.fit_on,
             method=infos.fit_method,

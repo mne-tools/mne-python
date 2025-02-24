@@ -6,7 +6,9 @@
 
 import numpy as np
 from scipy import ndimage, sparse
+from scipy.sparse.csgraph import connected_components
 from scipy.stats import f as fstat
+from scipy.stats import t as tstat
 
 from ..fixes import has_numba, jit
 from ..parallel import parallel_func
@@ -289,8 +291,6 @@ def _get_components(x_in, adjacency, return_list=True):
     if adjacency is False:
         components = np.arange(len(x_in))
     else:
-        from scipy.sparse.csgraph import connected_components
-
         mask = np.logical_and(x_in[adjacency.row], x_in[adjacency.col])
         data = adjacency.data[mask]
         row = adjacency.row[mask]
@@ -1133,10 +1133,7 @@ def _permutation_cluster_test(
 
 def _check_fun(X, stat_fun, threshold, tail=0, kind="within"):
     """Check the stat_fun and threshold values."""
-    from scipy import stats
-
     if kind == "within":
-        ppf = stats.t.ppf
         if threshold is None:
             if stat_fun is not None and stat_fun is not ttest_1samp_no_p:
                 warn(
@@ -1145,14 +1142,13 @@ def _check_fun(X, stat_fun, threshold, tail=0, kind="within"):
                 )
             p_thresh = 0.05 / (1 + (tail == 0))
             n_samples = len(X)
-            threshold = -ppf(p_thresh, n_samples - 1)
+            threshold = -tstat.ppf(p_thresh, n_samples - 1)
             if np.sign(tail) < 0:
                 threshold = -threshold
             logger.info(f"Using a threshold of {threshold:.6f}")
         stat_fun = ttest_1samp_no_p if stat_fun is None else stat_fun
     else:
         assert kind == "between"
-        ppf = stats.f.ppf
         if threshold is None:
             if stat_fun is not None and stat_fun is not f_oneway:
                 warn(
