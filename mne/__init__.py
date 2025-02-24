@@ -18,7 +18,6 @@
 #   X.Y     # Final release
 #
 # Dev branch marker is: 'X.Y.devN' where N is an integer.
-#
 
 try:
     from importlib.metadata import version
