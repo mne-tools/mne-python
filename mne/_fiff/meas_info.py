@@ -16,16 +16,8 @@ from textwrap import shorten
 
 import numpy as np
 
-from mne.defaults import _handle_default
-from mne.html_templates import _get_html_template
-
-from ..transforms import (
-    Transform,
-    _coord_frame_name,
-    _ensure_trans,
-    _frame_to_str,
-    invert_transform,
-)
+from ..defaults import _handle_default
+from ..html_templates import _get_html_template
 from ..utils import (
     _check_fname,
     _check_on_missing,
@@ -331,6 +323,7 @@ class MontageMixin:
             A copy of the channel positions, if available, otherwise ``None``.
         """
         from ..channels.montage import make_dig_montage
+        from ..transforms import _frame_to_str
 
         info = self if isinstance(self, Info) else self.info
         if info["dig"] is None:
@@ -1084,6 +1077,8 @@ class HeliumInfo(ValidatedDict):
 
 
 def _format_trans(obj, key):
+    from ..transforms import Transform
+
     try:
         t = obj[key]
     except KeyError:
@@ -1153,6 +1148,8 @@ def _check_bads(bads, *, info):
 
 
 def _check_dev_head_t(dev_head_t, *, info):
+    from ..transforms import Transform, _ensure_trans
+
     _validate_type(dev_head_t, (Transform, None), "info['dev_head_t']")
     if dev_head_t is not None:
         dev_head_t = _ensure_trans(dev_head_t, "meg", "head")
@@ -1731,6 +1728,7 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
     def __repr__(self):
         """Summarize info instead of printing all."""
         from ..io.kit.constants import KIT_SYSNAMES
+        from ..transforms import Transform, _coord_frame_name
 
         MAX_WIDTH = 68
         strs = ["<Info | %s non-empty values"]
@@ -2109,6 +2107,8 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
     meas : dict
         Node in tree that contains the info.
     """
+    from ..transforms import Transform, invert_transform
+
     #   Find the desired blocks
     meas = dir_tree_find(tree, FIFF.FIFFB_MEAS)
     if len(meas) == 0:
@@ -3299,6 +3299,8 @@ RAW_INFO_FIELDS = (
 
 def _empty_info(sfreq):
     """Create an empty info dictionary."""
+    from ..transforms import Transform
+
     _none_keys = (
         "acq_pars",
         "acq_stim",

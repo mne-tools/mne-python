@@ -42,7 +42,6 @@ from .channels.layout import _merge_ch_data, _pair_grad_sensors
 from .defaults import _BORDER_DEFAULT, _EXTRAPOLATE_DEFAULT, _INTERPOLATION_DEFAULT
 from .filter import FilterMixin, _check_fun, detrend
 from .html_templates import _get_html_template
-from .io.base import _check_maxshield, _get_ch_factors
 from .parallel import parallel_func
 from .time_frequency.spectrum import Spectrum, SpectrumMixin, _validate_method
 from .time_frequency.tfr import AverageTFR
@@ -252,6 +251,8 @@ class Evoked(
         -----
         .. versionadded:: 0.24
         """
+        from .io.base import _get_ch_factors
+
         picks = _picks_to_idx(self.info, picks, "all", exclude=())
 
         start, stop = self._handle_tmin_tmax(tmin, tmax)
@@ -1527,6 +1528,8 @@ def _get_entries(fid, evoked_node, allow_maxshield=False):
 
 def _get_aspect(evoked, allow_maxshield):
     """Get Evoked data aspect."""
+    from .io.base import _check_maxshield
+
     is_maxshield = False
     aspect = dir_tree_find(evoked, FIFF.FIFFB_ASPECT)
     if len(aspect) == 0:

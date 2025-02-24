@@ -721,7 +721,7 @@ def _reorder_inv_model(inv_model, n_freqs):
 
 
 def _setup_ext_proj(info, ext_order):
-    from scipy import linalg
+    from scipy.linalg import orth
 
     meg_picks = pick_types(info, meg=True, eeg=False, exclude="bads")
     info = pick_info(_simplify_info(info), meg_picks)  # makes a copy
@@ -734,7 +734,7 @@ def _setup_ext_proj(info, ext_order):
     ).T
     out_removes = _regularize_out(0, 1, mag_or_fine, [])
     ext = ext[~np.isin(np.arange(len(ext)), out_removes)]
-    ext = linalg.orth(ext.T).T
+    ext = orth(ext.T).T
     assert ext.shape[1] == len(meg_picks)
     proj = Projection(
         kind=FIFF.FIFFV_PROJ_ITEM_HOMOG_FIELD,

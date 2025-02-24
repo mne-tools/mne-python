@@ -205,7 +205,6 @@ def _compute_reg_neighbors(n_ch_x, n_delays, reg_type, method="direct", normed=F
 def _fit_corrs(x_xt, x_y, n_ch_x, reg_type, alpha, n_ch_in):
     """Fit the model using correlation matrices."""
     # do the regularized solving
-
     n_ch_out = x_y.shape[1]
     assert x_y.shape[0] % n_ch_x == 0
     n_delays = x_y.shape[0] // n_ch_x

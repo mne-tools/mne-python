@@ -16,11 +16,13 @@ at which the fix is no longer needed.
 # because this module is imported many places (but not always used)!
 
 import inspect
+import operator as operator_module
 import os
 import warnings
 from math import log
 
 import numpy as np
+from packaging.version import parse
 
 ###############################################################################
 # distutils LooseVersion removed in Python 3.12
@@ -44,9 +46,12 @@ def _compare_version(version_a, operator, version_b):
     bool
         The result of the version comparison.
     """
+    mapping = {"<": "lt", "<=": "le", "==": "eq", "!=": "ne", ">=": "ge", ">": "gt"}
     with warnings.catch_warnings(record=True):
         warnings.simplefilter("ignore")
-        return eval(f'parse("{version_a}") {operator} parse("{version_b}")')
+        ver_a = parse(version_a)
+        ver_b = parse(version_b)
+        return getattr(operator_module, mapping[operator])(ver_a, ver_b)
 
 
 ###############################################################################
@@ -111,19 +116,6 @@ def rng_uniform(rng):
     return getattr(rng, "integers", getattr(rng, "randint", None))
 
 
-def _validate_sos(sos):
-    """Help validate an SOS input."""
-    sos = np.atleast_2d(sos)
-    if sos.ndim != 2:
-        raise ValueError("sos array must be 2D")
-    n_sections, m = sos.shape
-    if m != 6:
-        raise ValueError("sos array must be shape (n_sections, 6)")
-    if not (sos[:, 3] == 1).all():
-        raise ValueError("sos[:, 3] should be all ones")
-    return sos, n_sections
-
-
 ###############################################################################
 # Misc utilities
 
@@ -158,7 +150,6 @@ def empirical_covariance(X, assume_centered=False):
     -------
     covariance : 2D ndarray, shape (n_features, n_features)
         Empirical covariance (Maximum Likelihood Estimator).
-
     """
     X = np.asarray(X)
     if X.ndim == 1:
@@ -280,7 +271,6 @@ class EmpiricalCovariance(_EstimatorMixin):
         covariance : 2D ndarray, shape (n_features, n_features)
             Estimated covariance matrix to be stored, and from which precision
             is computed.
-
         """
         from scipy import linalg
 
@@ -300,7 +290,6 @@ class EmpiricalCovariance(_EstimatorMixin):
         -------
         precision_ : array-like,
             The precision matrix associated to the current covariance object.
-
         """
         from scipy import linalg
 
@@ -427,7 +416,6 @@ class EmpiricalCovariance(_EstimatorMixin):
         -------
         mahalanobis_distance : array, shape = [n_observations,]
             Squared Mahalanobis distances of the observations.
-
         """
         precision = self.get_precision()
         # compute mahalanobis distances
@@ -478,7 +466,7 @@ def _logdet(A):
 
 
 def _infer_dimension_(spectrum, n_samples, n_features):
-    """Infers the dimension of a dataset of shape (n_samples, n_features).
+    """Infer the dimension of a dataset of shape (n_samples, n_features).
 
     The dataset is described by its spectrum `spectrum`.
     """

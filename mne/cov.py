@@ -298,7 +298,7 @@ class Covariance(dict):
         return self
 
     @verbose
-    @copy_function_doc_to_method_doc(viz.misc.plot_cov)
+    @copy_function_doc_to_method_doc(viz.plot_cov)
     def plot(
         self,
         info,
@@ -309,7 +309,7 @@ class Covariance(dict):
         show=True,
         verbose=None,
     ):
-        return viz.misc.plot_cov(
+        return viz.plot_cov(
             self, info, exclude, colorbar, proj, show_svd, show, verbose
         )
 
@@ -2342,7 +2342,7 @@ def whiten_evoked(
 def _read_cov(fid, node, cov_kind, limited=False, verbose=None):
     """Read a noise covariance matrix."""
     #   Find all covariance matrices
-    from scipy import sparse
+    from scipy.sparse import issparse
 
     from ._fiff.write import _safe_name_list
 
@@ -2408,7 +2408,7 @@ def _read_cov(fid, node, cov_kind, limited=False, verbose=None):
                     )
 
             else:
-                if not sparse.issparse(tag.data):
+                if not issparse(tag.data):
                     #   Lower diagonal is stored
                     vals = tag.data
                     data = np.zeros((dim, dim))

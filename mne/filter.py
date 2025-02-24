@@ -10,7 +10,6 @@ from functools import partial
 from math import gcd
 
 import numpy as np
-from scipy import signal
 
 from ._fiff.pick import _picks_to_idx
 from ._ola import _COLA
@@ -1867,16 +1866,6 @@ def resample(
     _validate_type(pad, str, "pad")
     _check_option("method", method, ("fft", "polyphase"))
 
-    # check explicitly for backwards compatibility
-    if not isinstance(axis, int):
-        err = (
-            f"The axis parameter needs to be an integer (got {repr(axis)}). "
-            "The axis parameter was missing from this function for a "
-            "period of time, you might be intending to specify the "
-            "subsequent window parameter."
-        )
-        raise TypeError(err)
-
     # make sure our arithmetic will work
     x = _check_filterable(x, "resampled", "resample")
     ratio, final_len = _resamp_ratio_len(up, down, x.shape[axis])
@@ -1916,6 +1905,8 @@ def resample(
 
 
 def _prep_polyphase(ratio, x_len, final_len, window):
+    from scipy.signal import firwin
+
     if isinstance(window, str) and window == "auto":
         window = ("kaiser", 5.0)  # SciPy default
     up = final_len
@@ -1929,26 +1920,29 @@ def _prep_polyphase(ratio, x_len, final_len, window):
         max_rate = max(up, down)
         f_c = 1.0 / max_rate  # cutoff of FIR filter (rel. to Nyquist)
         half_len = 10 * max_rate  # reasonable cutoff for sinc-like function
-        window = signal.firwin(2 * half_len + 1, f_c, window=window)
+        window = firwin(2 * half_len + 1, f_c, window=window)
     return up, down, window
 
 
 def _resample_polyphase(x, *, up, down, pad, window, n_jobs):
+    from scipy.signal import resample_poly
     if pad == "auto":
         pad = "reflect"
     kwargs = dict(padtype=pad, window=window, up=up, down=down)
     _validate_type(
         n_jobs, (None, "int-like"), "n_jobs", extra="when method='polyphase'"
     )
-    parallel, p_fun, n_jobs = parallel_func(signal.resample_poly, n_jobs)
+    parallel, p_fun, n_jobs = parallel_func(resample_poly, n_jobs)
     if n_jobs == 1:
-        y = signal.resample_poly(x, axis=-1, **kwargs)
+        y = resample_poly(x, axis=-1, **kwargs)
     else:
         y = np.array(parallel(p_fun(x_, **kwargs) for x_ in x))
     return y
 
 
 def _resample_fft(x_flat, *, ratio, final_len, pad, window, npad, n_jobs):
+    from scipy.signal import fft, get_window
+
     x_len = x_flat.shape[-1]
     pad = "reflect_limited" if pad == "auto" else pad
     if (isinstance(window, str) and window == "auto") or window is None:
@@ -1976,11 +1970,11 @@ def _resample_fft(x_flat, *, ratio, final_len, pad, window, npad, n_jobs):
 
     # figure out windowing function
     if callable(window):
-        W = window(signal.fft.fftfreq(orig_len))
+        W = window(fft.fftfreq(orig_len))
     elif isinstance(window, np.ndarray) and window.shape == (orig_len,):
         W = window
     else:
-        W = signal.fft.ifftshift(signal.get_window(window, orig_len))
+        W = fft.ifftshift(get_window(window, orig_len))
     W *= float(new_len) / float(orig_len)
 
     # figure out if we should use CUDA
@@ -2442,6 +2436,8 @@ class FilterMixin:
         >>> evoked.savgol_filter(10.)  # low-pass at around 10 Hz # doctest:+SKIP
         >>> evoked.plot()  # doctest:+SKIP
         """  # noqa: E501
+        from scipy.signal import savgol_filter
+
         from .source_estimate import _BaseSourceEstimate
 
         _check_preload(self, "inst.savgol_filter")
@@ -2456,7 +2452,7 @@ class FilterMixin:
         # savitzky-golay filtering
         window_length = (int(np.round(s_freq / h_freq)) // 2) * 2 + 1
         logger.info("Using savgol length %d", window_length)
-        self._data[:] = signal.savgol_filter(
+        self._data[:] = savgol_filter(
             self._data, axis=-1, polyorder=5, window_length=window_length
         )
         return self

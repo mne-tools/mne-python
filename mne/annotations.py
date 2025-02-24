@@ -1298,12 +1298,12 @@ def _read_brainstorm_annotations(fname, orig_time=None):
     annot : instance of Annotations | None
         The annotations.
     """
-    from scipy import io
+    from scipy.io import loadmat
 
     def get_duration_from_times(t):
         return t[1] - t[0] if t.shape[0] == 2 else np.zeros(len(t[0]))
 
-    annot_data = io.loadmat(fname)
+    annot_data = loadmat(fname)
     onsets, durations, descriptions = (list(), list(), list())
     for label, _, _, _, times, _, _ in annot_data["events"][0]:
         onsets.append(times[0])

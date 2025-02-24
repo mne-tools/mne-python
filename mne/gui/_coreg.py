@@ -34,8 +34,7 @@ from ..coreg import (
     scale_mri,
 )
 from ..defaults import DEFAULTS
-from ..io import read_raw
-from ..io._read_raw import supported as raw_supported_types
+from ..io._read_raw import _get_supported, read_raw
 from ..surface import _CheckInside, _DistanceQuery
 from ..transforms import (
     Transform,
@@ -450,12 +449,13 @@ class CoregistrationUI(HasTraits):
             return
 
         # info file can be anything supported by read_raw
+        supported = _get_supported()
         try:
             check_fname(
                 fname,
                 "info",
-                tuple(raw_supported_types.keys()),
-                endings_err=tuple(raw_supported_types.keys()),
+                tuple(supported),
+                endings_err=tuple(supported),
             )
             fname = Path(fname)
             # ctf ds `files` are actually directories
