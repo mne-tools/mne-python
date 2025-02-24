@@ -28,7 +28,6 @@ CORE_DEPS_URLS = {
     "tqdm": "https://tqdm.github.io",
     "Jinja2": "https://palletsprojects.com/p/jinja/",
     "decorator": "https://github.com/micheles/decorator",
-    "lazy-loader": "https://pypi.org/project/lazy_loader",
     "packaging": "https://packaging.pypa.io/en/stable/",
 }
 

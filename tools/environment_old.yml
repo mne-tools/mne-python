@@ -15,4 +15,3 @@ dependencies:
   - decorator
   - packaging
   - jinja2
-  - lazy_loader =0.3
