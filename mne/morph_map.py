@@ -21,7 +21,6 @@ from ._fiff.write import (
     write_int,
     write_string,
 )
-from .fixes import _eye_array
 from .surface import (
     _compute_nearest,
     _find_nearest_tri_pts,
