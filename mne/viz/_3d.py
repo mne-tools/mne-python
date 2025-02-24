@@ -37,7 +37,6 @@ from .._freesurfer import (
     _read_mri_info,
     read_freesurfer_lut,
 )
-from ..bem import ConductorModel, _bem_find_surface, _ensure_bem_surfaces
 from ..defaults import DEFAULTS
 from ..fixes import _crop_colorbar, _get_img_fdata
 from ..surface import (
@@ -674,6 +673,7 @@ def plot_alignment(
     .. versionadded:: 0.15
     """
     # Update the backend
+    from ..bem import ConductorModel, _bem_find_surface, _ensure_bem_surfaces
     from ..source_space._source_space import _ensure_src
     from .backends.renderer import _get_renderer
 

@@ -127,7 +127,7 @@ def _line_plot_onselect(
     """Draw topomaps from the selected area."""
     import matplotlib.pyplot as plt
 
-    from mne.channels.layout import _pair_grad_sensors
+    from ..channels.layout import _pair_grad_sensors
 
     ch_types = [type_ for type_ in ch_types if type_ in ("eeg", "grad", "mag")]
     if len(ch_types) == 0:

@@ -10,7 +10,6 @@ from functools import partial
 import numpy as np
 
 from .._fiff.pick import _picks_to_idx, channel_type, pick_types
-from ..channels import find_layout
 from ..defaults import _handle_default
 from ..utils import Bunch, _check_option, _clean_names, _is_numeric, _to_rgb, fill_doc
 from .ui_events import ChannelsSelect, publish, subscribe
@@ -1287,6 +1286,8 @@ def plot_topo_image_epochs(
     will always have a colorbar even when the topo plot does not (because it
     shows multiple sensor types).
     """
+    from ..channels.layout import find_layout
+
     scalings = _handle_default("scalings", scalings)
 
     # make a copy because we discard non-data channels and scale the data

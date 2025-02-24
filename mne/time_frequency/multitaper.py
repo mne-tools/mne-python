@@ -290,7 +290,6 @@ def _mt_spectra(x, dpss, sfreq, n_fft=None, remove_dc=True):
 def _compute_mt_params(n_times, sfreq, bandwidth, low_bias, adaptive, verbose=None):
     """Triage windowing and multitaper parameters."""
     # Compute standardized half-bandwidth
-
     if isinstance(bandwidth, str):
         logger.info(f'    Using standard spectrum estimation with "{bandwidth}" window')
         window_fun = get_window(bandwidth, n_times)[np.newaxis]

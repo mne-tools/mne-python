@@ -3219,7 +3219,7 @@ def spatio_temporal_dist_adjacency(src, n_times, dist, verbose=None):
         vertices are time 1, the nodes from 2 to 2N are the vertices
         during time 2, etc.
     """
-    from scipy.sparse import block_diag as sparse_block_diag
+    from scipy import sparse
 
     if src[0]["dist"] is None:
         raise RuntimeError(
@@ -3233,7 +3233,7 @@ def spatio_temporal_dist_adjacency(src, n_times, dist, verbose=None):
             block[block == 0] = -np.inf
         else:
             block.data[block.data == 0] == -1
-    edges = sparse_block_diag(blocks)
+    edges = sparse.block_diag(blocks)
     edges.data[:] = np.less_equal(edges.data, dist)
     # clean it up and put it in coo format
     edges = edges.tocsr()

@@ -1066,7 +1066,6 @@ class Brain:
 
     def _configure_picking(self):
         # get data for each hemi
-
         for idx, hemi in enumerate(["vol", "lh", "rh"]):
             hemi_data = self._data.get(hemi)
             if hemi_data is not None:

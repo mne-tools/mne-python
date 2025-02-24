@@ -13,6 +13,7 @@ import numpy as np
 from .._fiff.meas_info import ContainsMixin, Info
 from .._fiff.pick import _pick_data_channels, _picks_to_idx, pick_info
 from ..channels.channels import UpdateChannelsMixin
+from ..channels.layout import _merge_ch_data, find_layout
 from ..defaults import (
     _BORDER_DEFAULT,
     _EXTRAPOLATE_DEFAULT,
@@ -734,8 +735,6 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         fig : instance of matplotlib.figure.Figure
             Figure distributing one image per channel across sensor topography.
         """
-        from ..channels.layout import find_layout
-
         if layout is None:
             layout = find_layout(self.info)
 
@@ -834,8 +833,6 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         fig : instance of Figure
             Figure showing one scalp topography per frequency band.
         """
-        from ..channels.layout import _merge_ch_data
-
         ch_type = _get_plot_ch_type(self, ch_type)
         if units is None:
             units = _handle_default("units", None)

@@ -26,6 +26,7 @@ from .utils import (
     plot_sensors,
     centers_to_edges,
     concatenate_images,
+    _get_plot_ch_type,
 )
 from ._3d import (
     plot_sparse_source_estimates,

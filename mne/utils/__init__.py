@@ -1,3 +1,7 @@
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
+
 # # # WARNING # # #
 # This list must also be updated in doc/_templates/autosummary/class.rst if it
 # is changed here!

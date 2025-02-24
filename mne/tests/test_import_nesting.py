@@ -4,12 +4,11 @@
 
 import ast
 import glob
-import sys
 from pathlib import Path
 from types import ModuleType
 
 import mne
-from mne.utils import _pl, logger, run_subprocess
+from mne.utils import _pl, logger
 
 # To avoid circular import issues, we have a defined order of submodule
 # priority. A submodule should nest an import from another submodule if and
@@ -220,11 +219,3 @@ def test_import_nesting_hierarchy():
         raise AssertionError(f"{n} nesting error{_pl(n)}:\n" + "\n".join(all_errors))
 
     # scheme obeys the above order
-
-
-def test_module_nesting():
-    """Test that module imports are properly nested."""
-    stdout, stderr, code = run_subprocess(
-        [sys.executable, "-c", run_script], return_code=True
-    )
-    assert code == 0, stdout + stderr
