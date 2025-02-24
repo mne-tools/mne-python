@@ -27,6 +27,7 @@ from . import eeglab
 from . import nihon
 from . import nsx
 
+from .ant import read_raw_ant
 from .array import RawArray
 from .besa import read_evoked_besa
 from .brainvision import read_raw_brainvision

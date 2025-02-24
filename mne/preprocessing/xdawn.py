@@ -3,10 +3,11 @@
 # Copyright the MNE-Python contributors.
 
 import numpy as np
+from sklearn.base import TransformerMixin
 
 from .._fiff.pick import _pick_data_channels, pick_info
 from ..cov import Covariance, _regularized_covariance
-from ..decoding import BaseEstimator, TransformerMixin
+from ..decoding import BaseEstimator
 from ..epochs import BaseEpochs
 from ..evoked import Evoked, EvokedArray
 from ..io import BaseRaw
