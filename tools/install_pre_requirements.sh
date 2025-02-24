@@ -23,19 +23,16 @@ python -m pip install $STD_ARGS --only-binary ":all:" --default-timeout=60 \
 	--index-url "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" \
 	"numpy>=2.1.0.dev0" "scikit-learn>=1.6.dev0" "scipy>=1.15.0.dev0" \
 	"pandas>=3.0.0.dev0" \
-	"h5py>=3.12.1" "dipy>=1.10.0.dev0" "pyarrow>=19.0.0.dev0" "tables>=3.10.2.dev0"
+	"h5py>=3.12.1" "dipy>=1.10.0.dev0"
+# TODO: should have above: "pyarrow>=20.0.0.dev0" "tables>=3.10.2.dev0"
+# https://github.com/apache/arrow/issues/40216#issuecomment-2678899168
+# https://github.com/PyTables/PyTables/issues/1115
 
 # statsmodels requires formulaic@main so we need to use --extra-index-url
 echo "statsmodels"
-# https://github.com/statsmodels/statsmodels/issues/9501
-if [ "$PLATFORM" == "Windows" ]; then
-	STATS_VER=0.14.4
-else
-	STATS_VER=0.15.0.dev0
-fi
 python -m pip install $STD_ARGS --only-binary ":all:" \
 	--extra-index-url "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" \
-	"statsmodels>=$STATS_VER"
+	"statsmodels>=0.15.0.dev0"
 
 # No Numba because it forces an old NumPy version
 
