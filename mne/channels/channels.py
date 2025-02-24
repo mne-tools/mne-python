@@ -15,10 +15,6 @@ from functools import partial
 from pathlib import Path
 
 import numpy as np
-from scipy.io import loadmat
-from scipy.sparse import csr_array, lil_array
-from scipy.spatial import Delaunay
-from scipy.stats import zscore
 
 from .._fiff.constants import FIFF
 from .._fiff.meas_info import (  # noqa F401
@@ -1520,6 +1516,8 @@ def read_ch_adjacency(fname, picks=None):
     :func:`mne.stats.combine_adjacency` to prepare a final "adjacency"
     to pass to the eventual function.
     """
+    from scipy.io import loadmat
+
     if op.isabs(fname):
         fname = str(
             _check_fname(
@@ -1583,6 +1581,8 @@ def _ch_neighbor_adjacency(ch_names, neighbors):
     ch_adjacency : scipy.sparse.spmatrix
         The adjacency matrix.
     """
+    from scipy.sparse import csr_array
+
     if len(ch_names) != len(neighbors):
         raise ValueError("`ch_names` and `neighbors` must have the same length")
     set_neighbors = {c for d in neighbors for c in d}
@@ -1739,6 +1739,9 @@ def _compute_ch_adjacency(info, ch_type):
     ch_names : list
         The list of channel names present in adjacency matrix.
     """
+    from scipy.sparse import csr_array, lil_array
+    from scipy.spatial import Delaunay
+
     from ..channels.layout import _find_topomap_coords, _pair_grad_sensors
     from ..source_estimate import spatial_tris_adjacency
 
@@ -2161,6 +2164,8 @@ _EEG_SELECTIONS = ["EEG 1-32", "EEG 33-64", "EEG 65-96", "EEG 97-128"]
 
 def _divide_to_regions(info, add_stim=True):
     """Divide channels to regions by positions."""
+    from scipy.stats import zscore
+
     picks = _pick_data_channels(info, exclude=[])
     chs_in_lobe = len(picks) // 4
     pos = np.array([ch["loc"][:3] for ch in info["chs"]])

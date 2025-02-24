@@ -6,7 +6,6 @@ from collections import defaultdict
 from functools import partial
 
 import numpy as np
-from scipy.optimize import minimize
 
 from .._fiff.pick import pick_info, pick_types
 from .._fiff.tag import _coil_trans_to_loc, _loc_to_coil_trans
@@ -284,6 +283,8 @@ def _vector_angle(x, y):
 
 def _adjust_mag_normals(info, data, origin, ext_order, *, angle_limit, err_limit):
     """Adjust coil normals using magnetometers and empty-room data."""
+    from scipy.optimize import minimize
+
     # in principle we could allow using just mag or mag+grad, but MF uses
     # just mag so let's follow suit
     mag_scale = 100.0

@@ -15,7 +15,6 @@ from unittest import SkipTest
 
 import numpy as np
 from numpy.testing import assert_allclose, assert_array_equal
-from scipy import linalg
 
 from ._logging import ClosingStringIO, warn
 from .check import check_version
@@ -273,6 +272,8 @@ def assert_meg_snr(
 
 def assert_snr(actual, desired, tol):
     """Assert actual and desired arrays are within some SNR tolerance."""
+    from scipy import linalg
+
     with np.errstate(divide="ignore"):  # allow infinite
         snr = linalg.norm(desired, ord="fro") / linalg.norm(desired - actual, ord="fro")
     assert snr >= tol, f"{snr} < {tol}"

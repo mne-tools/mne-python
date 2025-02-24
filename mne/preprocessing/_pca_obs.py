@@ -7,8 +7,6 @@
 import math
 
 import numpy as np
-from scipy.interpolate import PchipInterpolator as pchip
-from scipy.signal import detrend
 
 from ..io.fiff.raw import Raw
 from ..utils import _PCA, _validate_type, logger, verbose
@@ -90,6 +88,8 @@ def _pca_obs(
     n_components: int,
 ) -> np.ndarray:
     """Algorithm to remove heart artefact from EEG data (array of length n_times)."""
+    from scipy.signal import detrend
+
     # set to baseline
     data = data - np.mean(data)
 
@@ -276,6 +276,9 @@ def _fit_ecg_template(
     -------
         tuple[np.ndarray, int]: the fitted artifact and the next peak index
     """
+    from scipy.signal import detrend
+    from scipy.interpolate import pchip
+
     # post_idx_next_peak is passed in in PCA_OBS, used here as post_idx_previous_peak
     # Then next_peak is returned at the end and the process repeats
     # select window of template

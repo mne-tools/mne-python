@@ -9,8 +9,6 @@ from os import path as op
 from pathlib import Path
 
 import numpy as np
-from scipy import linalg
-from scipy.special import lpmv
 
 from .. import __version__
 from .._fiff.compensator import make_compensator
@@ -1184,6 +1182,8 @@ def _get_decomp(
     mult,
 ):
     """Get a decomposition matrix and pseudoinverse matrices."""
+    from scipy import linalg
+
     #
     # Fine calibration processing (point-like magnetometers and calib. coeffs)
     #
@@ -1839,6 +1839,8 @@ def _alegendre_deriv(order, degree, val):
     dPlm : float
         Associated Legendre function derivative
     """
+    from scipy.special import lpmv
+
     assert order >= 0
     return (
         order * val * lpmv(order, degree, val)
@@ -2025,6 +2027,8 @@ def _orth_overwrite(A):
 
 def _overlap_projector(data_int, data_res, corr):
     """Calculate projector for removal of subspace intersection in tSSS."""
+    from scipy import linalg
+
     # corr necessary to deal with noise when finding identical signal
     # directions in the subspace. See the end of the Results section in
     # :footcite:`TauluSimola2006`

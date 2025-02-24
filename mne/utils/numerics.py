@@ -17,7 +17,6 @@ from math import ceil, sqrt
 from pathlib import Path
 
 import numpy as np
-from scipy import sparse
 
 from ..fixes import (
     _infer_dimension_,
@@ -732,6 +731,8 @@ def object_size(x, memo=None):
 
 
 def _is_sparse_cs(x):
+    from scipy import sparse
+
     return isinstance(
         x, sparse.csr_matrix | sparse.csc_matrix | sparse.csr_array | sparse.csc_array
     )

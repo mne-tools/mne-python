@@ -11,9 +11,6 @@ from copy import deepcopy
 from functools import partial
 
 import numpy as np
-from scipy.sparse import csr_array, triu
-from scipy.sparse.csgraph import dijkstra
-from scipy.spatial.distance import cdist
 
 from .._fiff.constants import FIFF
 from .._fiff.meas_info import Info, create_info
@@ -1317,6 +1314,8 @@ def _write_source_spaces(fid, src):
 
 def _write_one_source_space(fid, this, verbose=None):
     """Write one source space."""
+    from scipy.sparse import csr_array, triu
+
     if this["type"] == "surf":
         src_type = FIFF.FIFFV_MNE_SPACE_SURFACE
     elif this["type"] == "vol":
@@ -2335,6 +2334,8 @@ def _src_vol_dims(s):
 
 def _add_interpolator(sp):
     """Compute a sparse matrix to interpolate the data into an MRI volume."""
+    from scipy.sparse import csr_array
+
     # extract transformation information from mri
     mri_width, mri_height, mri_depth, nvox = _src_vol_dims(sp[0])
 
@@ -2398,6 +2399,8 @@ def _add_interpolator(sp):
 
 def _grid_interp(from_shape, to_shape, trans, order=1, inuse=None):
     """Compute a grid-to-grid linear or nearest interpolation given."""
+    from scipy.sparse import csr_array
+
     from_shape = np.array(from_shape, int)
     to_shape = np.array(to_shape, int)
     trans = np.array(trans, np.float64)  # to -> from
@@ -2706,6 +2709,9 @@ def add_source_space_distances(src, dist_limit=np.inf, n_jobs=None, *, verbose=N
     the source space to disk, as the computed distances will automatically be
     stored along with the source space data for future use.
     """
+    from scipy.sparse import csr_array
+    from scipy.sparse.csgraph import dijkstra
+
     src = _ensure_src(src)
     dist_limit = float(dist_limit)
     if dist_limit < 0:
@@ -2775,6 +2781,8 @@ def add_source_space_distances(src, dist_limit=np.inf, n_jobs=None, *, verbose=N
 
 def _do_src_distances(con, vertno, run_inds, limit):
     """Compute source space distances in chunks."""
+    from scipy.sparse.csgraph import dijkstra
+
     func = partial(dijkstra, limit=limit)
     chunk_size = 20  # save memory by chunking (only a little slower)
     lims = np.r_[np.arange(0, len(run_inds), chunk_size), len(run_inds)]
@@ -3250,6 +3258,8 @@ def compute_distance_to_sensors(src, info, picks=None, trans=None, verbose=None)
         The Euclidean distances of source space vertices with respect to
         sensors.
     """
+    from scipy.spatial.distance import cdist
+
     assert isinstance(src, SourceSpaces)
     _validate_type(info, (Info,), "info")
 

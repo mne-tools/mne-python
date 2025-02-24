@@ -8,8 +8,6 @@ import os.path as op
 from types import GeneratorType
 
 import numpy as np
-from scipy import sparse
-from scipy.spatial.distance import cdist, pdist
 
 from ._fiff.constants import FIFF
 from ._fiff.meas_info import Info
@@ -3332,6 +3330,7 @@ def spatial_inter_hemi_adjacency(src, dist, verbose=None):
         using geodesic distances.
     """
     from scipy import sparse
+    from scipy.spatial.distance import cdist
 
     src = _ensure_src(src, kind="surface")
     adj = cdist(src[0]["rr"][src[0]["vertno"]], src[1]["rr"][src[1]["vertno"]])
@@ -3346,6 +3345,8 @@ def spatial_inter_hemi_adjacency(src, dist, verbose=None):
 @verbose
 def _get_adjacency_from_edges(edges, n_times, verbose=None):
     """Given edges sparse matrix, create adjacency matrix."""
+    from scipy import sparse
+
     n_vertices = edges.shape[0]
     logger.info("-- number of adjacent vertices : %d", n_vertices)
     nnz = edges.col.size
@@ -3435,6 +3436,8 @@ def _prepare_label_extraction(stc, labels, src, mode, allow_empty, use_sparse):
     # of vol src space.
     # If stc=None (i.e. no activation time courses provided) and mode='mean',
     # only computes vertex indices and label_flip will be list of None.
+    from scipy import sparse
+
     from .label import BiHemiLabel, Label, label_sign_flip
 
     # if source estimate provided in stc, get vertices from source space and
@@ -3923,6 +3926,8 @@ def stc_near_sensors(
 
     .. versionadded:: 0.22
     """
+    from scipy.spatial.distance import cdist, pdist
+
     from .evoked import Evoked
 
     _validate_type(evoked, Evoked, "evoked")

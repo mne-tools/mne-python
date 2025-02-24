@@ -10,7 +10,6 @@ from functools import partial
 from typing import Any
 
 import numpy as np
-from scipy.sparse import csc_array, csr_array
 
 from ..utils import _check_option, warn
 from ..utils.numerics import _julian_to_date
@@ -146,6 +145,8 @@ def _read_tag_header(fid, pos):
 
 def _read_matrix(fid, tag, shape, rlims):
     """Read a matrix (dense or sparse) tag."""
+    from scipy.sparse import csc_array, csr_array
+
     # This should be easy to implement (see _frombuffer_rows)
     # if we need it, but for now, it's not...
     if shape is not None or rlims is not None:

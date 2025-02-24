@@ -7,7 +7,6 @@ import datetime
 import os.path as op
 
 import numpy as np
-from scipy.spatial.distance import cdist
 
 from ..._fiff._digitization import DigPoint, _make_dig_points
 from ..._fiff.constants import FIFF
@@ -336,6 +335,8 @@ class RawArtemis123(BaseRaw):
         pos_fname=None,
         add_head_trans=True,
     ):
+        from scipy.spatial.distance import cdist
+
         from ...chpi import (
             _fit_coil_order_dev_head_trans,
             compute_chpi_amplitudes,

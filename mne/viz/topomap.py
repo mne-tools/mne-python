@@ -11,14 +11,6 @@ from functools import partial
 from numbers import Integral
 
 import numpy as np
-from scipy.interpolate import (
-    CloughTocher2DInterpolator,
-    LinearNDInterpolator,
-    NearestNDInterpolator,
-)
-from scipy.sparse import csr_array
-from scipy.spatial import Delaunay, Voronoi
-from scipy.spatial.distance import pdist, squareform
 
 from .._fiff.meas_info import Info, _simplify_info
 from .._fiff.pick import (
@@ -186,6 +178,8 @@ def _prepare_topomap_plot(inst, ch_type, sphere=None):
 
 
 def _average_fnirs_overlaps(info, ch_type, sphere):
+    from scipy.spatial.distance import pdist, squareform
+
     from ..channels.layout import _find_topomap_coords
 
     picks = pick_types(info, meg=False, ref_meg=False, fnirs=ch_type, exclude="bads")
@@ -684,6 +678,8 @@ def _draw_outlines(ax, outlines):
 
 def _get_extra_points(pos, extrapolate, origin, radii):
     """Get coordinates of additional interpolation points."""
+    from scipy.spatial import Delaunay
+
     radii = np.array(radii, float)
     assert radii.shape == (2,)
     x, y = origin
@@ -820,6 +816,12 @@ class _GridData:
     """
 
     def __init__(self, pos, image_interp, extrapolate, origin, radii, border):
+        from scipy.interpolate import (
+            CloughTocher2DInterpolator,
+            LinearNDInterpolator,
+            NearestNDInterpolator,
+        )
+
         # in principle this works in N dimensions, not just 2
         assert pos.ndim == 2 and pos.shape[1] == 2, pos.shape
         _validate_type(border, ("numeric", str), "border")
@@ -1089,6 +1091,8 @@ _VORONOI_CIRCLE_RES = 100
 
 def _voronoi_topomap(data, pos, outlines, ax, cmap, norm, extent, res):
     """Make a Voronoi diagram on a topomap."""
+    from scipy.spatial import Voronoi
+
     # we need an image axis object so first empty image to plot over
     im = ax.imshow(
         np.zeros((res, res)) * np.nan,
@@ -3789,6 +3793,7 @@ def plot_ch_adjacency(info, adjacency, ch_names, kind="2d", edit=False):
     """
     import matplotlib as mpl
     import matplotlib.pyplot as plt
+    from scipy.sparse import csr_array
 
     _validate_type(info, Info, "info")
     _validate_type(adjacency, (np.ndarray, csr_array), "adjacency")

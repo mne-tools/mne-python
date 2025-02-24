@@ -5,7 +5,6 @@
 import copy as cp
 
 import numpy as np
-from scipy.linalg import eigh
 from sklearn.base import BaseEstimator
 from sklearn.utils.validation import check_is_fitted
 
@@ -880,6 +879,8 @@ class SPoC(CSP):
         self : instance of SPoC
             Returns the modified instance.
         """
+        from scipy.linalg import eigh
+
         X, y = self._check_data(X, y=y, fit=True, return_y=True)
         self._validate_params(y=y)
 
