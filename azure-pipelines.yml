@@ -244,7 +244,7 @@ stages:
           PYTHONIOENCODING: 'utf-8'
           AZURE_CI_WINDOWS: 'true'
           PYTHON_ARCH: 'x64'
-        timeoutInMinutes: 80
+        timeoutInMinutes: 90
         strategy:
           maxParallel: 4
           matrix:
