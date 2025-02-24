@@ -45,7 +45,7 @@ def coregistration(
         Specify a height for window (in logical pixels).
         Default is None, which uses ``MNE_COREG_WINDOW_WIDTH`` config value
         (which defaults to ``400``).
-    inst : None | str
+    inst : None | path-like
         Path to an instance file containing the digitizer data. Compatible for
         Raw, Epochs, and Evoked files.
     subject : None | str
@@ -125,13 +125,16 @@ def coregistration(
             subjects_dir = config["MNE_COREG_SUBJECTS_DIR"]
     false_like = ("false", "0")
     if orient_to_surface is None:
-        orient_to_surface = config.get("MNE_COREG_ORIENT_TO_SURFACE", "") == "true"
+        orient_to_surface = config.get("MNE_COREG_ORIENT_TO_SURFACE", "true").lower()
+        orient_to_surface = orient_to_surface not in false_like
     if scale_by_distance is None:
-        scale_by_distance = config.get("MNE_COREG_SCALE_BY_DISTANCE", "") == "true"
+        scale_by_distance = config.get("MNE_COREG_SCALE_BY_DISTANCE", "true").lower()
+        scale_by_distance = scale_by_distance not in false_like
     if interaction is None:
         interaction = config.get("MNE_COREG_INTERACTION", "terrain")
     if mark_inside is None:
-        mark_inside = config.get("MNE_COREG_MARK_INSIDE", "") == "true"
+        mark_inside = config.get("MNE_COREG_MARK_INSIDE", "true").lower()
+        mark_inside = mark_inside not in false_like
     if fullscreen is None:
         fullscreen = config.get("MNE_COREG_FULLSCREEN", "") == "true"
     head_opacity = float(head_opacity)
