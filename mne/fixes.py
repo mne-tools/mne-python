@@ -1,4 +1,4 @@
-"""Compatibility fixes for older versions of libraries
+"""Compatibility fixes for older versions of libraries.
 
 If you add content to this file, please give the version of the package
 at which the fix is no longer needed.
@@ -70,7 +70,7 @@ def _median_complex(data, axis):
 
 
 def _safe_svd(A, **kwargs):
-    """Wrapper to get around the SVD did not converge error of death"""
+    """Workaround the SVD did not converge error of death."""
     # Intel has a bug with their GESVD driver:
     #     https://software.intel.com/en-us/forums/intel-distribution-for-python/topic/628049  # noqa: E501
     # For SciPy 0.18 and up, we can work around it by using
@@ -112,7 +112,7 @@ def rng_uniform(rng):
 
 
 def _validate_sos(sos):
-    """Helper to validate a SOS input."""
+    """Help validate an SOS input."""
     sos = np.atleast_2d(sos)
     if sos.ndim != 2:
         raise ValueError("sos array must be 2D")
@@ -527,6 +527,7 @@ def _assess_dimension_(spectrum, rank, n_samples, n_features):
 
 
 def svd_flip(u, v, u_based_decision=True):
+    """Sign correction to ensure deterministic output from SVD."""
     if u_based_decision:
         # columns of u, rows of v
         max_abs_cols = np.argmax(np.abs(u), axis=0)

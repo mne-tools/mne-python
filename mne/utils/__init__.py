@@ -183,6 +183,7 @@ from .numerics import (
     _arange_div,
     _hashable_ndarray,
     _custom_lru_cache,
+    _array_repr,
 )
 from .mixin import (
     SizeMixin,
@@ -201,6 +202,7 @@ from .linalg import (
     eigh,
     _get_blas_funcs,
     pinv,
+    pinvh,
 )
 from .dataframe import (
     _set_pandas_dtype,

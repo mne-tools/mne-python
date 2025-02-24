@@ -80,7 +80,7 @@ from ..viz import (
 from ..viz._brain.view import views_dicts
 from ..viz._scraper import _mne_qt_browser_screenshot
 from ..viz.misc import _get_bem_plotting_surfaces, _plot_mri_contours
-from ..viz.utils import _ndarray_to_fig
+from ..viz.utils import _get_plot_ch_type, _ndarray_to_fig
 
 _BEM_VIEWS = ("axial", "sagittal", "coronal")
 
