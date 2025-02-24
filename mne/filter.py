@@ -1926,6 +1926,7 @@ def _prep_polyphase(ratio, x_len, final_len, window):
 
 def _resample_polyphase(x, *, up, down, pad, window, n_jobs):
     from scipy.signal import resample_poly
+
     if pad == "auto":
         pad = "reflect"
     kwargs = dict(padtype=pad, window=window, up=up, down=down)
