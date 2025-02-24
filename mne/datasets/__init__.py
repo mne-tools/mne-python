@@ -3,6 +3,10 @@
 See :ref:`datasets` for more information.
 """
 
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
+
 from . import fieldtrip_cmc
 from . import brainstorm
 from . import visual_92_categories
