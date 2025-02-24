@@ -613,7 +613,6 @@ def _pval_from_histogram(T, H0, tail):
 
 
 def _setup_adjacency(adjacency, n_tests, n_times):
-
     if not sparse.issparse(adjacency):
         raise ValueError(
             "If adjacency matrix is given, it must be a SciPy sparse matrix."

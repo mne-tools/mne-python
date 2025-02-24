@@ -735,6 +735,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
             Figure distributing one image per channel across sensor topography.
         """
         from ..channels.layout import find_layout
+
         if layout is None:
             layout = find_layout(self.info)
 

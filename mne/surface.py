@@ -586,7 +586,6 @@ class _CDist:
         self._xhs = xhs
 
     def query(self, rr):
-
         nearest = list()
         dists = list()
         for r in rr:
@@ -1718,7 +1717,6 @@ def mesh_edges(tris):
 
 @lru_cache(maxsize=10)
 def _mesh_edges(tris=None):
-
     if np.max(tris) > len(np.unique(tris)):
         raise ValueError("Cannot compute adjacency on a selection of triangles.")
 

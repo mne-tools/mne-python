@@ -507,7 +507,6 @@ def _reshape_for_est(X_del):
 
 # Create a correlation scikit-learn-style scorer
 def _corr_score(y_true, y, multioutput=None):
-
     assert multioutput == "raw_values"
     for this_y in (y_true, y):
         if this_y.ndim != 2:

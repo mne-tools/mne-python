@@ -187,6 +187,7 @@ def _prepare_topomap_plot(inst, ch_type, sphere=None):
 
 def _average_fnirs_overlaps(info, ch_type, sphere):
     from mne.channels.layout import _find_topomap_coords
+
     picks = pick_types(info, meg=False, ref_meg=False, fnirs=ch_type, exclude="bads")
     chs = [info["chs"][i] for i in picks]
     locs3d = np.array([ch["loc"][:3] for ch in chs])
@@ -819,7 +820,6 @@ class _GridData:
     """
 
     def __init__(self, pos, image_interp, extrapolate, origin, radii, border):
-
         # in principle this works in N dimensions, not just 2
         assert pos.ndim == 2 and pos.shape[1] == 2, pos.shape
         _validate_type(border, ("numeric", str), "border")
@@ -3396,6 +3396,7 @@ def _plot_corrmap(
 ):
     """Customize ica.plot_components for corrmap."""
     from mne.channels.layout import _merge_ch_data
+
     if not template:
         title = "Detected components"
         if label is not None:

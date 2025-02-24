@@ -1084,7 +1084,6 @@ class HeliumInfo(ValidatedDict):
 
 
 def _format_trans(obj, key):
-
     try:
         t = obj[key]
     except KeyError:
@@ -1154,7 +1153,6 @@ def _check_bads(bads, *, info):
 
 
 def _check_dev_head_t(dev_head_t, *, info):
-
     _validate_type(dev_head_t, (Transform, None), "info['dev_head_t']")
     if dev_head_t is not None:
         dev_head_t = _ensure_trans(dev_head_t, "meg", "head")

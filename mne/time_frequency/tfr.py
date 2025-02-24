@@ -4237,6 +4237,7 @@ def _merge_if_grads(data, info, ch_type, sphere, combine=None):
         _merge_ch_data,
         _pair_grad_sensors,
     )
+
     if ch_type == "grad":
         grad_picks = _pair_grad_sensors(info, topomap_coords=False)
         pos = _find_topomap_coords(info, picks=grad_picks[::2], sphere=sphere)
