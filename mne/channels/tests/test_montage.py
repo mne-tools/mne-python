@@ -169,11 +169,16 @@ def test_fiducials(tmp_path, fname):
     assert_allclose(points[1, 0], 0.0, atol=1e-6)
     assert points[1, 1] > 0
     fname_out = tmp_path / "test-dig.fif"
-    mne.channels.make_dig_montage(
-        lpa=points[0], nasion=points[1], rpa=points[2], coord_frame="mri_voxel"
+    make_dig_montage(
+        lpa=fids[0]["r"], nasion=fids[1]["r"], rpa=fids[2]["r"], coord_frame="mri_voxel"
     ).save(fname_out, overwrite=True)
     fids_2, coord_frame_2 = read_fiducials(fname_out)
-    assert coord_frame != coord_frame_2
+    assert coord_frame_2 == FIFF.FIFFV_MNE_COORD_MRI_VOXEL
+    assert_allclose(
+        [fid["r"] for fid in fids[:3]],
+        [fid["r"] for fid in fids_2],
+        rtol=1e-6,
+    )
     assert coord_frame_2 is not None
 
 
