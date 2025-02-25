@@ -28,7 +28,7 @@ from .maxwell import (
     maxwell_filter_prepare_emptyroom,
 )
 from .realign import realign_raw
-from .xdawn import Xdawn
+# from .xdawn import Xdawn
 from ._csd import compute_current_source_density, compute_bridged_electrodes
 from . import nirs
 from .artifact_detection import (
