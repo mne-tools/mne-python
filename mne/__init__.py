@@ -217,6 +217,13 @@ from .io import (
 )
 from .rank import compute_rank
 
+from .source_space import (
+    SourceSpaces,
+    add_source_space_distances,
+    read_source_spaces,
+    setup_volume_source_space,
+)
+
 from . import beamformer
 from . import channels
 from . import chpi
