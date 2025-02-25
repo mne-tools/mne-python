@@ -4824,7 +4824,7 @@ def average_movements(
     del head_pos
     _check_usable(epochs, ignore_ref)
     origin = _check_origin(origin, epochs.info, "head")
-    recon_trans = _check_destination(destination, epochs.info, True)
+    recon_trans = _check_destination(destination, epochs.info, "head")
 
     logger.info(f"Aligning and averaging up to {len(epochs.events)} epochs")
     if not np.array_equal(epochs.events[:, 0], np.unique(epochs.events[:, 0])):
