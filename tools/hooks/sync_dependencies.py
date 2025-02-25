@@ -51,7 +51,10 @@ def _prettify_pin(pin):
 # get the dependency info
 py_pin = metadata("mne").get("Requires-Python")
 all_deps = metadata("mne").get_all("Requires-Dist")
-core_deps = [f"python{py_pin}", *[dep for dep in all_deps if "extra ==" not in dep]]
+core_deps = [
+    f"python{py_pin}",
+    *[dep for dep in all_deps if "extra ==" not in dep and dep != "lazy-loader>=0.3"],
+]
 pattern = re.compile(r"(?P<name>[A-Za-z_\-\d]+)(?P<pin>[<>=]+.*)?")
 core_deps_pins = {
     dep["name"]: _prettify_pin(dep["pin"]) for dep in map(pattern.match, core_deps)
