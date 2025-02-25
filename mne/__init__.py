@@ -234,6 +234,7 @@ from . import inverse_sparse
 from . import minimum_norm
 from . import preprocessing
 from . import simulation
+from . import source_space
 from . import stats
 from . import surface
 from . import time_frequency
