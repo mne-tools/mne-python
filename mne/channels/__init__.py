@@ -42,6 +42,7 @@ from .channels import (
     make_1020_channel_selections,
     combine_channels,
     read_vectorview_selection,
+    unify_bad_channels,
     _SELECTIONS,
     _EEG_SELECTIONS,
     _divide_to_regions,

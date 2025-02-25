@@ -48,5 +48,6 @@ from .interpolate import equalize_bads, interpolate_bridged_electrodes
 from . import ieeg
 from ._css import cortical_signal_suppression
 from .hfc import compute_proj_hfc
-
+from ._lof import find_bad_channels_lof
+from ._pca_obs import apply_pca_obs
 from . import eyetracking

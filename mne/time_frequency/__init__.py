@@ -8,10 +8,12 @@ from .tfr import (
     morlet,
     tfr_morlet,
     AverageTFR,
+    AverageTFRArray,
     tfr_multitaper,
     read_tfrs,
     write_tfrs,
     EpochsTFR,
+    EpochsTFRArray,
     tfr_array_morlet,
     fwhm,
 )
