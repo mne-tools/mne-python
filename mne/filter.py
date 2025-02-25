@@ -1942,7 +1942,8 @@ def _resample_polyphase(x, *, up, down, pad, window, n_jobs):
 
 
 def _resample_fft(x_flat, *, ratio, final_len, pad, window, npad, n_jobs):
-    from scipy.signal import fft, get_window
+    from scipy import fft
+    from scipy.signal import get_window
 
     x_len = x_flat.shape[-1]
     pad = "reflect_limited" if pad == "auto" else pad
