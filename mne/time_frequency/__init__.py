@@ -9,6 +9,8 @@ from .tfr import (
     tfr_morlet,
     AverageTFR,
     AverageTFRArray,
+    RawTFR,
+    RawTFRArray,
     tfr_multitaper,
     read_tfrs,
     write_tfrs,

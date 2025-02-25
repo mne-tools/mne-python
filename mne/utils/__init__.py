@@ -190,6 +190,7 @@ from .numerics import (
     _custom_lru_cache,
     _array_repr,
     _date_to_julian,
+    _julian_to_date,
 )
 from .mixin import (
     SizeMixin,
