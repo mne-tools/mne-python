@@ -186,7 +186,8 @@ def _read_dig_fif(fid, meas_info, *, return_ch_names=False):
                 dig.extend(tag.data)
             elif kind == FIFF.FIFF_MNE_COORD_FRAME:
                 tag = read_tag(fid, pos)
-                coord_frame = _coord_frame_named.get(int(tag.data.item()))
+                coord_frame = int(tag.data.item())
+                coord_frame = _coord_frame_named.get(coord_frame, coord_frame)
             elif kind == FIFF.FIFF_MNE_CH_NAME_LIST:
                 tag = read_tag(fid, pos)
                 ch_names = _safe_name_list(tag.data, "read", "ch_names")
