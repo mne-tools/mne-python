@@ -1249,7 +1249,7 @@ def _check_pos(pos, coord_frame, raw, st_fixed):
                 f"first sample offset, but found {t[0]:0.4f} < {raw._first_time:0.4f}"
             )
     t = t - raw._first_time
-    if len(t) == 0 or t[0] > 0:
+    if len(t) == 0 or t[0] >= 0.5 / raw.info["sfreq"]:
         # Prepend the existing dev_head_t to make movecomp easier
         t = np.concatenate([[0.0], t])
         trans = raw.info["dev_head_t"]
@@ -1258,6 +1258,8 @@ def _check_pos(pos, coord_frame, raw, st_fixed):
             [t[[0]], rot_to_quat(trans[:3, :3]), trans[:3, 3], [0, 0, 0]]
         )
         pos = np.concatenate([dev_head_pos[np.newaxis], pos])
+    # now that we've either prepended dev_head_t or know it's zero-like, make it zero
+    t[0] = 0
     max_dist = np.sqrt(np.sum(pos[:, 4:7] ** 2, axis=1)).max()
     if max_dist > 1.0:
         warn(
