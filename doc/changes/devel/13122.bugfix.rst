@@ -1,0 +1,1 @@
+Fixed CTF cHPI coil location detection in :func:`mne.chpi.extract_chpi_locs_ctf` by :newcontrib:`Shresth Keshari`.

@@ -278,6 +278,7 @@
 .. _Seyed Yahya Shirazi: https://neuromechanist.github.io
 .. _Sheraz Khan: https://github.com/SherazKhan
 .. _Shristi Baral: https://github.com/shristibaral
+.. _Shresth Keshari: https://github.com/shresth-keshari
 .. _Silvia Cotroneo: https://github.com/sfc-neuro
 .. _Simeon Wong: https://github.com/dtxe
 .. _Simon Kern: https://skjerns.de
