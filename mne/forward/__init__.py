@@ -49,4 +49,3 @@ from ._field_interpolation import (
     _as_meg_type_inst,
     _map_meg_or_eeg_channels,
 )
-from . import _lead_dots  # for testing purposes

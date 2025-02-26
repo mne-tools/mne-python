@@ -14,7 +14,6 @@ from itertools import cycle
 import numpy as np
 
 from .._fiff.pick import _DATA_CH_TYPES_SPLIT
-from ..annotations import _sync_onset
 from ..defaults import _handle_default
 from ..filter import _iir_filter, _overlap_add_filter
 from ..fixes import _compare_version
@@ -186,6 +185,8 @@ class BrowserBase(ABC):
 
     def _update_annotation_segments(self):
         """Update the array of annotation start/end times."""
+        from ..annotations import _sync_onset
+
         self.mne.annotation_segments = np.array([])
         if len(self.mne.inst.annotations):
             annot_start = _sync_onset(self.mne.inst, self.mne.inst.annotations.onset)

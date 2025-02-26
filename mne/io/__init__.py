@@ -7,26 +7,7 @@
 import sys as _sys
 
 from .base import BaseRaw, concatenate_raws, match_channel_orders
-
-from . import array
-from . import base
-from . import brainvision
-from . import bti
-from . import cnt
-from . import ctf
-from . import edf
-from . import egi
-from . import fiff
-from . import fil
-from . import kit
-from . import nicolet
-from . import nirx
-from . import boxy
-from . import persyst
-from . import eeglab
-from . import neuralynx
-from . import nihon
-from . import nsx
+from ..utils import warn
 
 from .ant import read_raw_ant
 from .array import RawArray
@@ -68,17 +49,13 @@ from .._fiff.meas_info import (
     _empty_info,
     Info as _info,
 )
+from .._fiff.meas_info import Info
 from .._fiff.open import show_fiff
 from .._fiff.pick import get_channel_type_constants  # moved up a level
-
-from . import constants
-from . import pick
 
 
 def __getattr__(name):
     """Try getting attribute from fiff submodule."""
-    from ..utils import warn
-
     if name in ("meas_info", "proj", "reference"):
         warn(f"mne.io.{name} {_dep_msg}", FutureWarning)
         return importlib.import_module(f"mne.io.{name}")
@@ -100,8 +77,6 @@ def __getattr__(name):
         )
         return Raw
     elif name == "Info":
-        from .._fiff.meas_info import Info
-
         warn(
             "mne.io.Info is deprecated and will be removed in 1.6, "
             "use mne.Info instead",

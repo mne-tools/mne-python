@@ -30,7 +30,7 @@ from .maxwell import (
 from .realign import realign_raw
 # from .xdawn import Xdawn
 from ._csd import compute_current_source_density, compute_bridged_electrodes
-from . import nirs
+
 from .artifact_detection import (
     annotate_movement,
     compute_average_dev_head_t,
@@ -45,9 +45,8 @@ from ._fine_cal import (
 )
 from ._annotate_nan import annotate_nan
 from .interpolate import equalize_bads, interpolate_bridged_electrodes
-from . import ieeg
+
 from ._css import cortical_signal_suppression
 from .hfc import compute_proj_hfc
 from ._lof import find_bad_channels_lof
 from ._pca_obs import apply_pca_obs
-from . import eyetracking
