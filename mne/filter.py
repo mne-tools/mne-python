@@ -1673,24 +1673,16 @@ def _mt_spectrum_remove_win(
     n_overlap = (n_samples + 1) // 2
     x_out = np.zeros_like(x)
     rm_freqs = list()
-    idx = [0]
 
     # Define how to process a chunk of data
-    def process(x_):
+    def process(x_, *, start, stop):
         out = _mt_spectrum_remove(
             x_, sfreq, line_freqs, notch_widths, window_fun, threshold, get_thresh
         )
         rm_freqs.append(out[1])
         return (out[0],)  # must return a tuple
 
-    # Define how to store a chunk of fully processed data (it's trivial)
-    def store(x_):
-        stop = idx[0] + x_.shape[-1]
-        x_out[..., idx[0] : stop] += x_
-        idx[0] = stop
-
-    _COLA(process, store, n_times, n_samples, n_overlap, sfreq, verbose=False).feed(x)
-    assert idx[0] == n_times
+    _COLA(process, x_out, n_times, n_samples, n_overlap, sfreq, verbose=False).feed(x)
     return x_out, rm_freqs
 
 

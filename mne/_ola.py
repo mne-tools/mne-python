@@ -4,7 +4,7 @@
 
 import numpy as np
 
-from .utils import _ensure_int, logger, verbose
+from .utils import _ensure_int, _validate_type, logger, verbose
 
 ###############################################################################
 # Class for interpolation between adjacent points
@@ -41,7 +41,7 @@ class _Interp2:
 
     """
 
-    def __init__(self, control_points, values, interp="hann"):
+    def __init__(self, control_points, values, interp="hann", *, name="Interp2"):
         # set up interpolation
         self.control_points = np.array(control_points, int).ravel()
         if not np.array_equal(np.unique(self.control_points), self.control_points):
@@ -78,6 +78,7 @@ class _Interp2:
         self._position = 0  # start at zero
         self._left_idx = 0
         self._left = self._right = self._use_interp = None
+        self.name = name
         known_types = ("cos2", "linear", "zero", "hann")
         if interp not in known_types:
             raise ValueError(f'interp must be one of {known_types}, got "{interp}"')
@@ -89,10 +90,10 @@ class _Interp2:
         n_pts = _ensure_int(n_pts, "n_pts")
         original_position = self._position
         stop = self._position + n_pts
-        logger.debug(f"Feed {n_pts} ({self._position}-{stop})")
+        logger.debug(f"    ~ {self.name} Feed {n_pts} ({self._position}-{stop})")
         used = np.zeros(n_pts, bool)
         if self._left is None:  # first one
-            logger.debug(f"  Eval @ 0 ({self.control_points[0]})")
+            logger.debug(f"    ~   {self.name} Eval @ 0 ({self.control_points[0]})")
             self._left = self.values(self.control_points[0])
             if len(self.control_points) == 1:
                 self._right = self._left
@@ -101,7 +102,7 @@ class _Interp2:
         # Left zero-order hold condition
         if self._position < self.control_points[self._left_idx]:
             n_use = min(self.control_points[self._left_idx] - self._position, n_pts)
-            logger.debug(f"  Left ZOH {n_use}")
+            logger.debug(f"    ~   {self.name} Left ZOH {n_use}")
             this_sl = slice(None, n_use)
             assert used[this_sl].size == n_use
             assert not used[this_sl].any()
@@ -126,7 +127,9 @@ class _Interp2:
                     self._left_idx += 1
                     self._use_interp = None  # need to recreate it
                 eval_pt = self.control_points[self._left_idx + 1]
-                logger.debug(f"  Eval @ {self._left_idx + 1} ({eval_pt})")
+                logger.debug(
+                    f"    ~   {self.name} Eval @ {self._left_idx + 1} ({eval_pt})"
+                )
                 self._right = self.values(eval_pt)
             assert self._right is not None
             left_point = self.control_points[self._left_idx]
@@ -147,7 +150,8 @@ class _Interp2:
             n_use = min(stop, right_point) - self._position
             if n_use > 0:
                 logger.debug(
-                    f"  Interp {self._interp} {n_use} ({left_point}-{right_point})"
+                    f"    ~   {self.name} Interp {self._interp} {n_use} "
+                    f"({left_point}-{right_point})"
                 )
                 interp_start = self._position - left_point
                 assert interp_start >= 0
@@ -168,7 +172,7 @@ class _Interp2:
         if self.control_points[self._left_idx] <= self._position:
             n_use = stop - self._position
             if n_use > 0:
-                logger.debug(f"  Right ZOH {n_use}")
+                logger.debug(f"    ~   {self.name} Right ZOH %s" % n_use)
                 this_sl = slice(n_pts - n_use, None)
                 assert not used[this_sl].any()
                 used[this_sl] = True
@@ -209,14 +213,13 @@ class _Interp2:
 
 
 def _check_store(store):
+    _validate_type(store, (np.ndarray, list, tuple, _Storer), "store")
     if isinstance(store, np.ndarray):
         store = [store]
-    if isinstance(store, list | tuple) and all(
-        isinstance(s, np.ndarray) for s in store
-    ):
+    if not isinstance(store, _Storer):
+        if not all(isinstance(s, np.ndarray) for s in store):
+            raise TypeError("All instances must be ndarrays")
         store = _Storer(*store)
-    if not callable(store):
-        raise TypeError(f"store must be callable, got type {type(store)}")
     return store
 
 
@@ -228,10 +231,8 @@ class _COLA:
     process : callable
         A function that takes a chunk of input data with shape
         ``(n_channels, n_samples)`` and processes it.
-    store : callable | ndarray
-        A function that takes a completed chunk of output data.
-        Can also be an ``ndarray``, in which case it is treated as the
-        output data in which to store the results.
+    store : ndarray | list of ndarray | _Storer
+        The output data in which to store the results.
     n_total : int
         The total number of samples.
     n_samples : int
@@ -275,6 +276,7 @@ class _COLA:
         window="hann",
         tol=1e-10,
         *,
+        name="COLA",
         verbose=None,
     ):
         from scipy.signal import get_window
@@ -303,6 +305,7 @@ class _COLA:
         self._store = _check_store(store)
         self._idx = 0
         self._in_buffers = self._out_buffers = None
+        self.name = name
 
         # Create our window boundaries
         window_name = window if isinstance(window, str) else "custom"
@@ -344,6 +347,7 @@ class _COLA:
             raise ValueError(
                 f"Got {len(datas)} array(s), needed {len(self._in_buffers)}"
             )
+        current_offset = 0  # should be updated below
         for di, data in enumerate(datas):
             if not isinstance(data, np.ndarray) or data.ndim < 1:
                 raise TypeError(
@@ -364,9 +368,12 @@ class _COLA:
                     f"shape[:-1]=={self._in_buffers[di].shape[:-1]}, got dtype "
                     f"{data.dtype} shape[:-1]={data.shape[:-1]}"
                 )
+            # This gets updated on first iteration, so store it before it updates
+            if di == 0:
+                current_offset = self._in_offset
             logger.debug(
-                f"    + Appending {self._in_offset:d}->"
-                f"{self._in_offset + data.shape[-1]:d}"
+                f"    + {self.name}[{di}] Appending  "
+                f"{current_offset}:{current_offset + data.shape[-1]}"
             )
             self._in_buffers[di] = np.concatenate([self._in_buffers[di], data], -1)
             if self._in_offset > self.stops[-1]:
@@ -389,13 +396,18 @@ class _COLA:
             if self._idx == 0:
                 for offset in range(self._n_samples - self._step, 0, -self._step):
                     this_window[:offset] += self._window[-offset:]
-            logger.debug(f"    * Processing {start}->{stop}")
             this_proc = [in_[..., :this_len].copy() for in_ in self._in_buffers]
+            logger.debug(
+                f"    * {self.name}[:] Processing {start}:{stop} "
+                f"(e.g., {this_proc[0].flat[[0, -1]]})"
+            )
             if not all(
                 proc.shape[-1] == this_len == this_window.size for proc in this_proc
             ):
                 raise RuntimeError("internal indexing error")
-            outs = self._process(*this_proc, **kwargs)
+            start = self._store.idx
+            stop = self._store.idx + this_len
+            outs = self._process(*this_proc, start=start, stop=stop, **kwargs)
             if self._out_buffers is None:
                 max_len = np.max(self.stops - self.starts)
                 self._out_buffers = [
@@ -410,9 +422,12 @@ class _COLA:
             else:
                 next_start = self.stops[-1]
             delta = next_start - self.starts[self._idx - 1]
+            logger.debug(
+                f"    + {self.name}[:] Shifting input and output buffers by "
+                f"{delta} samples (storing {start}:{stop})"
+            )
             for di in range(len(self._in_buffers)):
                 self._in_buffers[di] = self._in_buffers[di][..., delta:]
-            logger.debug(f"    - Shifting input/output buffers by {delta:d} samples")
             self._store(*[o[..., :delta] for o in self._out_buffers])
             for ob in self._out_buffers:
                 ob[..., :-delta] = ob[..., delta:]
@@ -431,8 +446,8 @@ def _check_cola(win, nperseg, step, window_name, tol=1e-10):
     deviation = np.max(np.abs(binsums - const))
     if deviation > tol:
         raise ValueError(
-            f"segment length {nperseg:d} with step {step:d} for {window_name} window "
-            "type does not provide a constant output "
+            f"segment length {nperseg} with step {step} for {window_name} "
+            "window type does not provide a constant output "
             f"({100 * deviation / const:g}% deviation)"
         )
     return const
