@@ -16,6 +16,7 @@ else:
         TemporalFilter,
         Scaler,
         FilterEstimator,
+        TransformerMixin,
     )
     from .base import BaseEstimator, LinearModel, get_coef, cross_val_multiscore
     from .csp import CSP, SPoC
