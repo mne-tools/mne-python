@@ -20,6 +20,7 @@ from .cuda import (
     _setup_cuda_fft_resample,
     _smart_pad,
 )
+from .fixes import minimum_phase
 from .parallel import parallel_func
 from .utils import (
     _check_option,
@@ -480,7 +481,6 @@ def _construct_fir_filter(
     else:
         assert fir_design == "firwin"
         fir_design = partial(_firwin_design, sfreq=sfreq)
-    from scipy.signal import minimum_phase
 
     # issue a warning if attenuation is less than this
     min_att_db = 12 if phase == "minimum-half" else 20
