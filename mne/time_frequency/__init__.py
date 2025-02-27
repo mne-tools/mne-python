@@ -5,20 +5,21 @@
 """Time frequency analysis tools."""
 
 from .tfr import (
-    morlet,
-    tfr_morlet,
     AverageTFR,
     AverageTFRArray,
     BaseTFR,
+    EpochsTFR,
+    EpochsTFRArray,
     RawTFR,
     RawTFRArray,
+    combine_tfr,
+    fwhm,
+    morlet,
+    tfr_array_morlet,
+    tfr_morlet,
     tfr_multitaper,
     read_tfrs,
     write_tfrs,
-    EpochsTFR,
-    EpochsTFRArray,
-    tfr_array_morlet,
-    fwhm,
 )
 from .psd import psd_array_welch
 from .csd import (
@@ -35,6 +36,13 @@ from .csd import (
 )
 from .ar import fit_iir_model_raw
 from .multitaper import dpss_windows, psd_array_multitaper, tfr_array_multitaper
-from .spectrum import EpochsSpectrum, Spectrum, read_spectrum
+from .spectrum import (
+    EpochsSpectrum,
+    EpochsSpectrumArray,
+    Spectrum,
+    SpectrumArray,
+    combine_spectrum,
+    read_spectrum,
+)
 from ._stft import stft, istft, stftfreq
 from ._stockwell import tfr_stockwell, tfr_array_stockwell

@@ -28,7 +28,6 @@ from .maxwell import (
     maxwell_filter_prepare_emptyroom,
 )
 from .realign import realign_raw
-# from .xdawn import Xdawn
 from ._csd import compute_current_source_density, compute_bridged_electrodes
 
 from .artifact_detection import (
@@ -50,3 +49,8 @@ from ._css import cortical_signal_suppression
 from .hfc import compute_proj_hfc
 from ._lof import find_bad_channels_lof
 from ._pca_obs import apply_pca_obs
+
+try:
+    from .xdawn import Xdawn
+except ImportError:
+    pass
