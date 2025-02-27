@@ -198,7 +198,7 @@ maxwell_filter = partial(_maxwell_filter_ola, st_overlap=False, mc_interp="zero"
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
-def test_movement_compensation(tmp_path):
+def test_movement_compensation_basic(tmp_path):
     """Test movement compensation."""
     lims = (0, 4)
     raw = read_crop(raw_fname, lims).load_data()
@@ -302,6 +302,11 @@ def test_movement_compensation(tmp_path):
     )
     assert_meg_snr(
         raw_sss_tweak, raw_sss.copy().crop(0, 0.05), 1.4, 8.0, chpi_med_tol=5
+    )
+    # smoke test a zero-like t[0]
+    head_pos_bad[0, 0] = raw._first_time + 0.1 / raw.info["sfreq"]
+    maxwell_filter(
+        raw.copy().crop(0, 0.05), head_pos=head_pos_bad, origin=mf_head_origin
     )
 
 

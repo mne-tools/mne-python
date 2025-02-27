@@ -231,7 +231,7 @@ def extract_chpi_locs_ctf(raw, verbose=None):
 
     # find indices where chpi locations change
     indices = [0]
-    indices.extend(np.where(np.all(np.diff(chpi_data, axis=1), axis=0))[0] + 1)
+    indices.extend(np.where(np.any(np.diff(chpi_data, axis=1), axis=0))[0] + 1)
     # data in channels are in ctf device coordinates (cm)
     rrs = chpi_data[:, indices].T.reshape(len(indices), 3, 3)  # m
     # map to mne device coords
