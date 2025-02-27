@@ -1460,22 +1460,47 @@ def label_sign_flip(label, src):
     flip : array
         Sign flip vector (contains 1 or -1).
     """
-    if len(src) != 2:
-        raise ValueError("Only source spaces with 2 hemisphers are accepted")
+    if len(src) > 2 or len(src) == 0:
+        raise ValueError(
+            "Only source spaces with between one and two "
+            + "hemispheres are accepted, was {len(src)}"
+        )
 
-    lh_vertno = src[0]["vertno"]
-    rh_vertno = src[1]["vertno"]
+    if len(src) == 1 and label.hemi == "both":
+        raise ValueError(
+            'Cannot use hemisphere label "both" when source'
+            + "space contains a single hemisphere."
+        )
+
+    isbi_hemi = len(src) == 2
+    lh_vertno = None
+    rh_vertno = None
+
+    lh_id = -1
+    rh_id = -1
+    if isbi_hemi:
+        lh_id = 0
+        rh_id = 1
+        lh_vertno = src[0]["vertno"]
+        rh_vertno = src[1]["vertno"]
+    elif label.hemi == "lh":
+        lh_vertno = src[0]["vertno"]
+    elif label.hemi == "rh":
+        rh_id = 0
+        rh_vertno = src[0]["vertno"]
+    else:
+        raise Exception(f'Unknown hemisphere type "{label.hemi}"')
 
     # get source orientations
     ori = list()
     if label.hemi in ("lh", "both"):
         vertices = label.vertices if label.hemi == "lh" else label.lh.vertices
         vertno_sel = np.intersect1d(lh_vertno, vertices)
-        ori.append(src[0]["nn"][vertno_sel])
+        ori.append(src[lh_id]["nn"][vertno_sel])
     if label.hemi in ("rh", "both"):
         vertices = label.vertices if label.hemi == "rh" else label.rh.vertices
         vertno_sel = np.intersect1d(rh_vertno, vertices)
-        ori.append(src[1]["nn"][vertno_sel])
+        ori.append(src[rh_id]["nn"][vertno_sel])
     if len(ori) == 0:
         raise Exception(f'Unknown hemisphere type "{label.hemi}"')
     ori = np.concatenate(ori, axis=0)
