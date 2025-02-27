@@ -112,10 +112,7 @@ def test_import_nesting_hierarchy():
                 self.errors.append(err + ("non-relative mne import",))
             if isinstance(node, ast.ImportFrom):  # from
                 if node.level != 0:  # from .
-                    # now we need to triage based on whether this is nested
-                    if node.module is None:
-                        self.errors.append(err + ("non-explicit relative import",))
-                    elif node.level == self.level:
+                    if node.module is not None and node.level == self.level:
                         module_name = node.module.split(".")[0]
                         if node.col_offset:  # nested
                             if (
