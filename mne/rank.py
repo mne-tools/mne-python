@@ -5,7 +5,6 @@
 # Copyright the MNE-Python contributors.
 
 import numpy as np
-from scipy import linalg
 
 from ._fiff.meas_info import Info, _simplify_info
 from ._fiff.pick import _picks_by_type, _picks_to_idx, pick_channels_cov, pick_info
@@ -64,6 +63,8 @@ def estimate_rank(
         If return_singular is True, the singular values that were
         thresholded to determine the rank are also returned.
     """
+    from scipy import linalg
+
     if norm:
         data = data.copy()  # operate on a copy
         norms = _compute_row_norms(data)

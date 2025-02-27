@@ -11,8 +11,6 @@
 # code.
 
 import numpy as np
-from scipy.optimize import minimize_scalar
-from scipy.stats import gaussian_kde
 
 from .._fiff.constants import FIFF
 from .._fiff.pick import pick_types
@@ -261,6 +259,9 @@ def compute_bridged_electrodes(
     ----------
     .. footbibliography::
     """
+    from scipy.optimize import minimize_scalar
+    from scipy.stats import gaussian_kde
+
     _check_preload(inst, "Computing bridged electrodes")
     inst = inst.copy()  # don't modify original
     picks = pick_types(inst.info, eeg=True)

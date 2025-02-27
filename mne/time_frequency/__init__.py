@@ -3,6 +3,46 @@
 # Copyright the MNE-Python contributors.
 
 """Time frequency analysis tools."""
-import lazy_loader as lazy
 
-(__getattr__, __dir__, __all__) = lazy.attach_stub(__name__, __file__)
+from .tfr import (
+    AverageTFR,
+    AverageTFRArray,
+    BaseTFR,
+    EpochsTFR,
+    EpochsTFRArray,
+    RawTFR,
+    RawTFRArray,
+    combine_tfr,
+    fwhm,
+    morlet,
+    tfr_array_morlet,
+    tfr_morlet,
+    tfr_multitaper,
+    read_tfrs,
+    write_tfrs,
+)
+from .psd import psd_array_welch
+from .csd import (
+    CrossSpectralDensity,
+    csd_fourier,
+    csd_multitaper,
+    csd_morlet,
+    csd_array_fourier,
+    csd_array_multitaper,
+    csd_array_morlet,
+    read_csd,
+    pick_channels_csd,
+    csd_tfr,
+)
+from .ar import fit_iir_model_raw
+from .multitaper import dpss_windows, psd_array_multitaper, tfr_array_multitaper
+from .spectrum import (
+    EpochsSpectrum,
+    EpochsSpectrumArray,
+    Spectrum,
+    SpectrumArray,
+    combine_spectrum,
+    read_spectrum,
+)
+from ._stft import stft, istft, stftfreq
+from ._stockwell import tfr_stockwell, tfr_array_stockwell

@@ -4,9 +4,6 @@
 
 import numpy as np
 from numpy.polynomial.legendre import legval
-from scipy.interpolate import RectBivariateSpline
-from scipy.linalg import pinv
-from scipy.spatial.distance import pdist, squareform
 
 from .._fiff.meas_info import _simplify_info
 from .._fiff.pick import pick_channels, pick_info, pick_types
@@ -85,6 +82,8 @@ def _make_interpolation_matrix(pos_from, pos_to, alpha=1e-5):
         Spherical splines for scalp potential and current density mapping.
         Electroencephalography Clinical Neurophysiology, Feb; 72(2):184-7.
     """
+    from scipy.linalg import pinv
+
     pos_from = pos_from.copy()
     pos_to = pos_to.copy()
     n_from = pos_from.shape[0]
@@ -253,6 +252,8 @@ def _interpolate_bads_meeg(
 
 @verbose
 def _interpolate_bads_nirs(inst, exclude=(), verbose=None):
+    from scipy.spatial.distance import pdist, squareform
+
     from mne.preprocessing.nirs import _validate_nirs_info
 
     if len(pick_types(inst.info, fnirs=True, exclude=())) == 0:
@@ -291,6 +292,7 @@ def _interpolate_bads_nirs(inst, exclude=(), verbose=None):
 
 
 def _find_seeg_electrode_shaft(pos, tol_shaft=0.002, tol_spacing=1):
+    from scipy.spatial.distance import pdist, squareform
     # 1) find nearest neighbor to define the electrode shaft line
     # 2) find all contacts on the same line
     # 3) remove contacts with large distances
@@ -361,6 +363,8 @@ def _find_seeg_electrode_shaft(pos, tol_shaft=0.002, tol_spacing=1):
 def _interpolate_bads_seeg(
     inst, exclude=None, tol_shaft=0.002, tol_spacing=1, verbose=None
 ):
+    from scipy.interpolate import RectBivariateSpline
+
     if exclude is None:
         exclude = list()
     picks = pick_types(inst.info, meg=False, seeg=True, exclude=exclude)
