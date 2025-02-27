@@ -36,8 +36,9 @@ from . import ucl_opm_auditory
 from ._fetch import fetch_dataset
 from .utils import (
     _download_all_example_data,
-    fetch_hcp_mmp_parcellation,
+    default_path,
     fetch_aparc_sub_parcellation,
+    fetch_hcp_mmp_parcellation,
     has_dataset,
 )
 from ._fsaverage.base import fetch_fsaverage
@@ -48,6 +49,7 @@ __all__ = [
     "_download_all_example_data",
     "_fake",
     "brainstorm",
+    "default_path",
     "eegbci",
     "fetch_aparc_sub_parcellation",
     "fetch_fsaverage",
@@ -77,4 +79,5 @@ __all__ = [
     "refmeg_noise",
     "fnirs_motor",
     "eyelink",
+    "ucl_opm_auditory",
 ]

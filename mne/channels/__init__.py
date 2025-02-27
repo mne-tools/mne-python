@@ -31,6 +31,7 @@ from .montage import (
     read_custom_montage,
     read_dig_hpts,
     read_dig_localite,
+    transform_to_head,
     compute_native_head_t,
 )
 from .channels import (
@@ -53,6 +54,8 @@ __all__ = [
     # Data Structures
     "DigMontage",
     "Layout",
+    "_SELECTIONS",
+    "_EEG_SELECTIONS",
     # Factory Methods
     "make_dig_montage",
     "make_eeg_layout",
@@ -82,6 +85,11 @@ __all__ = [
     "get_builtin_montages",
     "combine_channels",
     "read_vectorview_selection",
+    "transform_to_head",
+    "unify_bad_channels",
+    "_divide_to_regions",
+    # Adjacency
+    "get_builtin_ch_adjacencies",
     # Other
     "compute_dev_head_t",
     "compute_native_head_t",
