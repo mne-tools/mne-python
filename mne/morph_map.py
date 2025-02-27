@@ -204,7 +204,7 @@ def _make_morph_map(subject_from, subject_to, subjects_dir, xhemi):
 
 def _make_morph_map_hemi(subject_from, subject_to, subjects_dir, reg_from, reg_to):
     """Construct morph map for one hemisphere."""
-    from scipy.sparse import csr_matrix
+    from scipy.sparse import csr_array
     from scipy.sparse import eye as speye
 
     # add speedy short-circuit for self-maps
@@ -242,7 +242,7 @@ def _make_morph_map_hemi(subject_from, subject_to, subjects_dir, reg_from, reg_t
     weights = np.array(weights)
 
     row_ind = np.repeat(np.arange(len(to_rr)), 3)
-    this_map = csr_matrix(
+    this_map = csr_array(
         (weights.ravel(), (row_ind, nn_idx.ravel())), shape=(len(to_rr), len(from_rr))
     )
     return this_map
