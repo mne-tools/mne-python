@@ -11,7 +11,6 @@ from copy import deepcopy
 from functools import partial
 
 import numpy as np
-from scipy.interpolate import interp1d
 
 from .._fiff.pick import pick_types
 from ..defaults import DEFAULTS
@@ -252,6 +251,8 @@ class EvokedField:
 
     def _prepare_surf_map(self, surf_map, color, alpha):
         """Compute all the data required to render a fieldlines map."""
+        from scipy.interpolate import interp1d
+
         if surf_map["kind"] == "eeg":
             pick = pick_types(self._evoked.info, meg=False, eeg=True)
         else:

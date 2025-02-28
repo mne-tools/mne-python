@@ -18,9 +18,6 @@ from time import time
 from typing import Literal
 
 import numpy as np
-from scipy import stats
-from scipy.spatial import distance
-from scipy.special import expit
 
 from .._fiff.constants import FIFF
 from .._fiff.meas_info import ContainsMixin, read_meas_info, write_meas_info
@@ -142,6 +139,9 @@ def get_score_funcs():
     score_funcs : dict
         The score functions.
     """
+    from scipy import stats
+    from scipy.spatial import distance
+
     score_funcs = Bunch()
     xy_arg_dist_funcs = [
         (n, f)
@@ -1993,6 +1993,9 @@ class ICA(ContainsMixin):
         -----
         .. versionadded:: 1.1
         """
+        from scipy.spatial.distance import pdist, squareform
+        from scipy.special import expit
+
         _validate_type(threshold, "numeric", "threshold")
 
         slope_score, focus_score, smoothness_score = None, None, None
@@ -2048,10 +2051,10 @@ class ICA(ContainsMixin):
 
         # compute metric #3: smoothness
         smoothnesses = np.zeros((components.shape[1],))
-        dists = distance.squareform(distance.pdist(pos))
+        dists = squareform(pdist(pos))
         dists = 1 - (dists / dists.max())  # invert
         for idx, comp in enumerate(components.T):
-            comp_dists = distance.squareform(distance.pdist(comp[:, np.newaxis]))
+            comp_dists = squareform(pdist(comp[:, np.newaxis]))
             comp_dists /= comp_dists.max()
             smoothnesses[idx] = np.multiply(dists, comp_dists).sum()
 

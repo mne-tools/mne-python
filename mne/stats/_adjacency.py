@@ -3,7 +3,6 @@
 # Copyright the MNE-Python contributors.
 
 import numpy as np
-from scipy import sparse
 
 from ..utils import _check_option, _validate_type
 from ..utils.check import int_like
@@ -57,6 +56,8 @@ def combine_adjacency(*structure):
     <5600x5600 sparse array of type '<class 'numpy.float64'>'
             with 27076 stored elements in COOrdinate format>
     """
+    from scipy import sparse
+
     structure = list(structure)
     for di, dim in enumerate(structure):
         name = f"structure[{di}]"

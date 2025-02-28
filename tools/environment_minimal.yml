@@ -12,4 +12,3 @@ dependencies:
   - decorator
   - packaging
   - jinja2
-  - lazy_loader
