@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "c0f166596edfc66e9ad15f7891048d27de08b803",
+  "authors": [
+    {
+      "n": "Shresth Keshari",
+      "e": "kesharishresth5@gmail.com"
+    },
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/13123.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/chpi.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

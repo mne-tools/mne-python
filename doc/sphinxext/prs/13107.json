@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "64ed25561841e6d91413564222e498c44244ad94",
+  "authors": [
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/13107.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/_fiff/meas_info.py": {
+      "a": 11,
+      "d": 2
+    },
+    "mne/_fiff/tests/test_meas_info.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}
