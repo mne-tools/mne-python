@@ -64,7 +64,7 @@ def reset_warnings(gallery_conf, fname):
         "__array__ implementation doesn't accept.*",
         # pybtex (from sphinxcontrib-bibtex)
         "pkg_resources is deprecated as an API.*",
-        "Implementing implicit namespace packages.*",
+        "\nImplementing implicit namespace packages",
     ):
         warnings.filterwarnings(  # deal with other modules having bad imports
             "ignore", message=f".*{key}.*", category=DeprecationWarning
