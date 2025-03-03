@@ -10,9 +10,9 @@ a pupillary light reflex task. We will combine the eye-tracking and EEG data, an
 the ERP and pupil response to the light flashes (i.e. the pupillary light reflex).
 
 """  # noqa: E501
+
 # Authors: Scott Huberty <seh33@uw.edu>
 #          Dominik Welke <dominik.welke@web.de>
-#
 #
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
