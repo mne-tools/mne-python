@@ -65,6 +65,8 @@ def reset_warnings(gallery_conf, fname):
         # pybtex (from sphinxcontrib-bibtex)
         "pkg_resources is deprecated as an API.*",
         "\nImplementing implicit namespace packages",
+        # latexcodec
+        r"open_text is deprecated\. Use files",
     ):
         warnings.filterwarnings(  # deal with other modules having bad imports
             "ignore", message=f".*{key}.*", category=DeprecationWarning
