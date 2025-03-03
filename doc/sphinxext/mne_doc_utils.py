@@ -62,6 +62,8 @@ def reset_warnings(gallery_conf, fname):
     for key in (
         # nibabel
         "__array__ implementation doesn't accept.*",
+        # pybtex (from sphinxcontrib-bibtex)
+        "pkg_resources is deprecated as an API.*",
     ):
         warnings.filterwarnings(  # deal with other modules having bad imports
             "ignore", message=f".*{key}.*", category=DeprecationWarning
