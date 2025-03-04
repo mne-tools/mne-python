@@ -440,7 +440,7 @@ class RawMff(BaseRaw):
         assert egi_events.shape[1] == egi_info["last_samps"][-1]
 
         meas_dt_utc = egi_info["meas_dt_local"].astimezone(datetime.timezone.utc)
-        info = _empty_info(egi_info["sfreq"])
+        info = _empty_info(egi_info["sfreq"], dev_head_t=False)
         info["meas_date"] = _ensure_meas_date_none_or_dt(meas_dt_utc)
         info["utc_offset"] = egi_info["utc_offset"]
         info["device_info"] = dict(type=egi_info["device"])
