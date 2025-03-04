@@ -5,7 +5,6 @@
 import math
 
 import numpy as np
-from scipy.signal import lfilter
 
 from .._fiff.pick import pick_info
 from ..cov import Covariance, compute_whitener
@@ -172,6 +171,8 @@ def _generate_noise(
     info, cov, iir_filter, random_state, n_samples, zi=None, picks=None
 ):
     """Create spatially colored and temporally IIR-filtered noise."""
+    from scipy.signal import lfilter
+
     rng = check_random_state(random_state)
     _, _, colorer = compute_whitener(
         cov, info, pca=True, return_colorer=True, picks=picks, verbose=False

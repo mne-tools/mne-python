@@ -75,7 +75,7 @@ def _median_complex(data, axis):
 
 
 def _safe_svd(A, **kwargs):
-    """Get around the SVD did not converge error of death."""
+    """Workaround the SVD did not converge error of death."""
     # Intel has a bug with their GESVD driver:
     #     https://software.intel.com/en-us/forums/intel-distribution-for-python/topic/628049  # noqa: E501
     # For SciPy 0.18 and up, we can work around it by using
@@ -253,6 +253,7 @@ class EmpiricalCovariance(_EstimatorMixin):
     precision_ : 2D ndarray, shape (n_features, n_features)
         Estimated pseudo-inverse matrix.
         (stored only if store_precision is True)
+
     """
 
     def __init__(self, store_precision=True, assume_centered=False):
@@ -289,7 +290,6 @@ class EmpiricalCovariance(_EstimatorMixin):
         -------
         precision_ : array-like,
             The precision matrix associated to the current covariance object.
-
         """
         from scipy import linalg
 
@@ -514,7 +514,8 @@ def _assess_dimension_(spectrum, rank, n_samples, n_features):
     return ll
 
 
-def svd_flip(u, v, u_based_decision=True):  # noqa: D103
+def svd_flip(u, v, u_based_decision=True):
+    """Sign correction to ensure deterministic output from SVD."""
     if u_based_decision:
         # columns of u, rows of v
         max_abs_cols = np.argmax(np.abs(u), axis=0)

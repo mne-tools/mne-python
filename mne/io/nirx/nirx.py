@@ -10,7 +10,6 @@ import re as re
 from configparser import ConfigParser, RawConfigParser
 
 import numpy as np
-from scipy.io import loadmat
 
 from ..._fiff.constants import FIFF
 from ..._fiff.meas_info import _format_dig_points, create_info
@@ -94,6 +93,8 @@ class RawNIRX(BaseRaw):
 
     @verbose
     def __init__(self, fname, saturated, *, preload=False, encoding=None, verbose=None):
+        from scipy.io import loadmat
+
         logger.info(f"Loading {fname}")
         _validate_type(fname, "path-like", "fname")
         _validate_type(saturated, str, "saturated")

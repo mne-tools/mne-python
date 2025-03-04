@@ -5,7 +5,6 @@
 import copy as cp
 
 import numpy as np
-from scipy.linalg import eigh
 from sklearn.base import BaseEstimator
 from sklearn.utils.validation import check_is_fitted
 
@@ -621,6 +620,8 @@ class CSP(MNETransformerMixin, BaseEstimator):
         return cov, weight
 
     def _decompose_covs(self, covs, sample_weights):
+        from scipy.linalg import eigh
+
         n_classes = len(covs)
         n_channels = covs[0].shape[0]
         assert self._rank is not None  # should happen in _compute_covariance_matrices
@@ -878,6 +879,8 @@ class SPoC(CSP):
         self : instance of SPoC
             Returns the modified instance.
         """
+        from scipy.linalg import eigh
+
         X, y = self._check_data(X, y=y, fit=True, return_y=True)
         self._validate_params(y=y)
 
