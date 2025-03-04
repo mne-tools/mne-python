@@ -125,7 +125,12 @@ def _prepare_topomap_plot(inst, ch_type, sphere=None):
     info["bads"] = _clean_names(info["bads"])
     info._check_consistency()
 
-    is_OPM = any(ch['coil_type'] in _opm_coils for ch in inst.info['chs'])
+    if any(ch['coil_type'] in _opm_coils for ch in inst.info['chs']):
+        modality = 'opm'
+    elif ch_type in _fnirs_types:
+        modality = 'fnirs'
+    else:
+        modality = 'other'
     
     # special case for merging grad channels
     layout = find_layout(info)
@@ -140,14 +145,9 @@ def _prepare_topomap_plot(inst, ch_type, sphere=None):
         picks, _ = _pair_grad_sensors(info, layout)
         pos = _find_topomap_coords(info, picks[::2], sphere=sphere)
         merge_channels = True
-    elif ch_type in _fnirs_types:
-        # fNIRS data commonly has overlapping channels, so deal with separately
+    elif modality != 'other':
         picks, pos, merge_channels, overlapping_channels = _find_overlaps(
-            info, ch_type, sphere, modality="fnirs"
-        )
-    elif is_OPM:
-        picks, pos, merge_channels, overlapping_channels = _opm_overlaps(
-            info, ch_type, sphere, modality="opm"
+            info, ch_type, sphere, modality=modality
         )
     else:
         merge_channels = False
@@ -170,7 +170,7 @@ def _prepare_topomap_plot(inst, ch_type, sphere=None):
         pos = _find_topomap_coords(info, picks, sphere=sphere)
 
     ch_names = [info["ch_names"][k] for k in picks]
-    if ch_type in _fnirs_types:
+    if modality == 'fnirs':
         # Remove the chroma label type for cleaner labeling.
         ch_names = [k[:-4] for k in ch_names]
 
@@ -179,15 +179,22 @@ def _prepare_topomap_plot(inst, ch_type, sphere=None):
             # change names so that vectorview combined grads appear as MEG014x
             # instead of MEG0142 or MEG0143 which are the 2 planar grads.
             ch_names = [ch_names[k][:-1] + "x" for k in range(0, len(ch_names), 2)]
-        else:
-            assert ch_type in _fnirs_types
-            # Modify the nirs channel names to indicate they are to be merged
+        elif modality == 'fnirs':
+            # Modify the channel names to indicate they are to be merged
             # New names will have the form  S1_D1xS2_D2
             # More than two channels can overlap and be merged
             for set_ in overlapping_channels:
                 idx = ch_names.index(set_[0][:-4])
                 new_name = "x".join(s[:-4] for s in set_)
                 ch_names[idx] = new_name
+        elif modality == 'opm':
+            # Modify the channel names to indicate they are to be merged
+            # New names will have the form  S1xS2
+            for set_ in overlapping_channels:
+                idx = ch_names.index(set_[0])
+                new_name = ".".join(s[:2] for s in set_)
+                ch_names[idx] = new_name
+                print('new_name: ', new_name)
 
     pos = np.array(pos)[:, :2]  # 2D plot, otherwise interpolation bugs
     return picks, pos, merge_channels, ch_names, ch_type, sphere, clip_origin
@@ -277,7 +284,7 @@ def _find_radial_channel(info, overlapping_set):
     elif len(overlapping_set) < 1:
         raise ValueError("No overlapping channels found.")
 
-    radials = np.zeros(len(overlapping_set))
+    radial_score = np.zeros(len(overlapping_set))
     for s, sens in enumerate(overlapping_set):
 
         ch_idx = pick_channels(info['ch_names'], sens)  
@@ -288,9 +295,11 @@ def _find_radial_channel(info, overlapping_set):
         orientation_vector = info['chs'][ch_idx]['loc'][9:12]
         if info['dev_head_t'] is not None:
             orientation_vector = apply_trans(info['dev_head_t'], orientation_vector)
-        radials[s] = np.abs(np.dot(radial_direction, orientation_vector))
+        radial_score[s] = np.abs(np.dot(radial_direction, orientation_vector))
 
-    return overlapping_set[np.argmax(radials)]
+    radial_sensor = overlapping_set[np.argmax(radial_score)]
+
+    return radial_sensor
 
 
 
@@ -2355,8 +2364,17 @@ def plot_evoked_topomap(
     # apply scalings and merge channels
     data *= scaling
     if merge_channels:
-        data, ch_names = _merge_ch_data(data, ch_type, ch_names)
-        if ch_type in _fnirs_types:
+        # check modality
+        if any(ch['coil_type'] in _opm_coils for ch in evoked.info['chs']):
+            modality = 'opm'
+        elif ch_type in _fnirs_types:
+            modality = 'fnirs'
+        else:
+            modality = 'other'
+        # merge data
+        data, ch_names = _merge_ch_data(data, ch_type, ch_names, modality=modality)
+        # if ch_type in _fnirs_types:
+        if modality != 'other':
             merge_channels = False
     # apply mask if requested
     if mask is not None:

@@ -1089,7 +1089,7 @@ def _pair_grad_sensors(
         return picks
 
 
-def _merge_ch_data(data, ch_type, names, method="rms"):
+def _merge_ch_data(data, ch_type, names, method="rms", modality='opm'):
     """Merge data from channel pairs.
 
     Parameters
@@ -1102,6 +1102,8 @@ def _merge_ch_data(data, ch_type, names, method="rms"):
         List of channel names.
     method : str
         Can be 'rms' or 'mean'.
+    modality : str
+        The modality of the data, either 'fnirs', 'opm', or 'other'
 
     Returns
     -------
@@ -1112,9 +1114,13 @@ def _merge_ch_data(data, ch_type, names, method="rms"):
     """
     if ch_type == "grad":
         data = _merge_grad_data(data, method)
-    else:
-        assert ch_type in _FNIRS_CH_TYPES_SPLIT
+    elif ch_type in _FNIRS_CH_TYPES_SPLIT:
         data, names = _merge_nirs_data(data, names)
+    elif modality == 'opm' and ch_type == 'mag':
+        data, names = _merge_opm_data(data, names)
+    else:
+        raise ValueError(f"Unknown modality {modality} for channel type {ch_type}")
+        
     return data, names
 
 
@@ -1172,6 +1178,42 @@ def _merge_nirs_data(data, merged_names):
             for sub_ch in channels[1:]:
                 indices = np.append(indices, merged_names.index(sub_ch))
             data[idx] = np.mean(data[np.append(idx, indices)], axis=0)
+            to_remove = np.append(to_remove, indices)
+    to_remove = np.unique(to_remove)
+    for rem in sorted(to_remove, reverse=True):
+        del merged_names[rem]
+        data = np.delete(data, rem, 0)
+    return data, merged_names
+
+
+def _merge_opm_data(data, merged_names):
+    """Merge data from multiple opm channel using the mean.
+
+    Channel names that have an x in them will be merged. The first channel in
+    the name is replaced with the mean of all listed channels. The other
+    channels are removed.
+
+    Parameters
+    ----------
+    data : array, shape = (n_channels, ..., n_times)
+        Data for channels.
+    merged_names : list
+        List of strings containing the channel names. Channels that are to be
+        merged contain an x between them.
+
+    Returns
+    -------
+    data : array
+        Data for channels with requested channels merged. Channels used in the
+        merge are removed from the array.
+    """
+    to_remove = np.empty(0, dtype=np.int32)
+    for idx, ch in enumerate(merged_names):
+        if "." in ch:
+            indices = np.empty(0, dtype=np.int32)
+            channels = ch.split(".")
+            for sub_ch in channels[1:]:
+                indices = np.append(indices, merged_names.index(sub_ch))
             to_remove = np.append(to_remove, indices)
     to_remove = np.unique(to_remove)
     for rem in sorted(to_remove, reverse=True):
