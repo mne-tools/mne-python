@@ -186,7 +186,7 @@ and
    The symbols :math:`T_x` are defined in :ref:`coordinate_system_figure`.
 
 .. tabularcolumns:: |p{0.2\linewidth}|p{0.3\linewidth}|p{0.5\linewidth}|
-.. table:: Coordinate transformations in FreeSurfer and MNE software packages.
+.. table:: Coordinate transformations in FreeSurfer and MNE software packages
 
     +------------------------------+-------------------------------+-------------------------------------------------+
     | Transformation               | FreeSurfer                    | MNE                                             |
@@ -444,7 +444,7 @@ data:
           automatically created by the MNE-C utility ``mne_list_coil_def``.
 
 .. tabularcolumns:: |p{0.1\linewidth}|p{0.3\linewidth}|p{0.1\linewidth}|p{0.25\linewidth}|p{0.2\linewidth}|
-.. table:: Normal coil descriptions.
+.. table:: Normal coil descriptions
     :name: normal_coil_descriptions
 
     +------+-------------------------+----+----------------------------------+----------------------+
@@ -602,7 +602,7 @@ description line containing the following fields:
 
 
 .. tabularcolumns:: |p{0.1\linewidth}|p{0.5\linewidth}|
-.. table:: Coil representation accuracies.
+.. table:: Coil representation accuracies
     :name: coil_accuracies
 
     =======  ====================================================================================
