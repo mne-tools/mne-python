@@ -842,7 +842,7 @@ def _write_dipole_bdip(fname, dip):
             fid.write(np.array(has_errors, ">i4").tobytes())  # has_errors
             fid.write(np.zeros(1, ">f4").tobytes())  # noise level
             for key in _BDIP_ERROR_KEYS:
-                val = dip.conf[key][ti] if key in dip.conf else 0.0
+                val = dip.conf[key][ti] if key in dip.conf else np.array(0.0)
                 assert val.shape == ()
                 fid.write(np.array(val, ">f4").tobytes())
             fid.write(np.zeros(25, ">f4").tobytes())
@@ -1503,7 +1503,7 @@ def fit_dipole(
     if not bem["is_sphere"]:
         # Find the best-fitting sphere
         inner_skull = _bem_find_surface(bem, "inner_skull")
-        inner_skull = inner_skull.copy()
+        inner_skull = deepcopy(inner_skull)
         R, r0 = _fit_sphere(inner_skull["rr"], disp=False)
         # r0 back to head frame for logging
         r0 = apply_trans(mri_head_t["trans"], r0[np.newaxis, :])[0]
