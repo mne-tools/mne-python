@@ -238,10 +238,10 @@ def _find_overlaps(info, ch_type, sphere, modality="fnirs"):
                         overlapping_set, 0, (chs[chan_idx]["ch_name"])
                     )
                 elif modality == "opm":
-                    rad_channel = _find_radial_channel(info, overlapping_set)
                     overlapping_set = np.insert(
                         overlapping_set, 0, (chs[chan_idx]["ch_name"])
                     )
+                    rad_channel = _find_radial_channel(info, overlapping_set)
                     # Make sure the radial channel is first in the overlapping set
                     overlapping_set = np.array(
                         [ch for ch in overlapping_set if ch != rad_channel]
@@ -290,12 +290,17 @@ def _find_radial_channel(info, overlapping_set):
 
     radial_score = np.zeros(len(overlapping_set))
     for s, sens in enumerate(overlapping_set):
-        ch_idx = pick_channels(info["ch_names"], sens)
-
-        radial_direction = info["chs"][ch_idx]["loc"][0:3]
+        ch_idx = pick_channels(info["ch_names"], [sens])[0]
+        radial_direction = copy.copy(info["chs"][ch_idx]["loc"][0:3])
         radial_direction /= np.linalg.norm(radial_direction)
 
-        orientation_vector = info["chs"][ch_idx]["loc"][9:12]
+        # use different orientation vector for dual-axis and triaxial sensors
+        # risky, will have to accommodate new OPM sensors in the future
+        if any(key in sens for key in ["RAD", "TAN"]):
+            orientation_vector = info["chs"][ch_idx]["loc"][3:6]
+        else:
+            orientation_vector = info["chs"][ch_idx]["loc"][9:12]
+
         if info["dev_head_t"] is not None:
             orientation_vector = apply_trans(info["dev_head_t"], orientation_vector)
         radial_score[s] = np.abs(np.dot(radial_direction, orientation_vector))
