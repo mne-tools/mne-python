@@ -1089,7 +1089,7 @@ def _pair_grad_sensors(
         return picks
 
 
-def _merge_ch_data(data, ch_type, names, method="rms", modality='opm'):
+def _merge_ch_data(data, ch_type, names, method="rms", modality="opm"):
     """Merge data from channel pairs.
 
     Parameters
@@ -1116,11 +1116,11 @@ def _merge_ch_data(data, ch_type, names, method="rms", modality='opm'):
         data = _merge_grad_data(data, method)
     elif ch_type in _FNIRS_CH_TYPES_SPLIT:
         data, names = _merge_nirs_data(data, names)
-    elif modality == 'opm' and ch_type == 'mag':
+    elif modality == "opm" and ch_type == "mag":
         data, names = _merge_opm_data(data, names)
     else:
         raise ValueError(f"Unknown modality {modality} for channel type {ch_type}")
-        
+
     return data, names
 
 
