@@ -127,5 +127,5 @@ def test_widget_abstraction_notebook(renderer_notebook, nbexec):
     assert Path(backend.__file__).stem == "_notebook"
 
     ipython = get_ipython()
-    ipython.run_line_magic("matplotlib widget")
+    ipython.run_line_magic(magic_name="matplotlib", line="widget")
     _do_widget_tests(backend)
