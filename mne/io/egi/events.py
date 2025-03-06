@@ -50,7 +50,7 @@ def _read_mff_events(filename, sfreq):
         xml_type = splitext(basename(xml_file))[0]
         et = _parse_xml(xml_file)
         if et is not None:
-            orig[xml_type] = _parse_xml(xml_file)
+            orig[xml_type] = et
     xml_files = orig.keys()
     xml_events = [x for x in xml_files if x[:7] == "Events_"]
     for item in orig["info"]:
