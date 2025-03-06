@@ -1,1 +1,0 @@
-Improved handling of problematic MFF files in `mne.io.read_raw_egi` by `Scott Huberty`_.
