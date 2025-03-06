@@ -294,13 +294,7 @@ def _find_radial_channel(info, overlapping_set):
         radial_direction = copy.copy(info["chs"][ch_idx]["loc"][0:3])
         radial_direction /= np.linalg.norm(radial_direction)
 
-        # use different orientation vector for dual-axis and triaxial sensors
-        # risky, will have to accommodate new OPM sensors in the future
-        if any(key in sens for key in ["RAD", "TAN"]):
-            orientation_vector = info["chs"][ch_idx]["loc"][3:6]
-        else:
-            orientation_vector = info["chs"][ch_idx]["loc"][9:12]
-
+        orientation_vector = info["chs"][ch_idx]["loc"][9:12]
         if info["dev_head_t"] is not None:
             orientation_vector = apply_trans(info["dev_head_t"], orientation_vector)
         radial_score[s] = np.abs(np.dot(radial_direction, orientation_vector))
