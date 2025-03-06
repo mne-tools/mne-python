@@ -87,8 +87,8 @@ def _parse_xml(xml_file: str) -> list[dict[str, str]] | None:
     defusedxml = _soft_import("defusedxml", "reading EGI MFF data")
     try:
         xml = defusedxml.ElementTree.parse(xml_file)
-    except defusedxml.ElementTree.ParseError:
-        warn(f"Could not parse the XML file {xml_file}.")
+    except defusedxml.ElementTree.ParseError as e:
+        warn(f"Could not parse the XML file {xml_file}: {e}")
         return
     root = xml.getroot()
     return _xml2list(root)
