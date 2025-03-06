@@ -76,10 +76,8 @@ doc = [
   "sphinx-gallery >= 0.16",
   "sphinx_copybutton",
   "sphinxcontrib-bibtex >= 2.5",
-  "sphinxcontrib-towncrier",
+  "sphinxcontrib-towncrier >=0.5.0a0",
   "sphinxcontrib-youtube",
-  # https://github.com/sphinx-contrib/sphinxcontrib-towncrier/issues/92
-  "towncrier < 24.7",
 ]
 full = ["mne[full-no-qt]", "PyQt6 != 6.6.0", "PyQt6-Qt6 != 6.6.0, != 6.7.0"]
 # Dependencies for full MNE-Python functionality (other than raw/epochs export)
