@@ -440,7 +440,10 @@ def _set_missing_values(df, columns):
     missing_vals = (".", "MISSING_DATA")
     for col in columns:
         # we explicitly use numpy instead of pd.replace because it is faster
-        df[col] = np.where(df[col].isin(missing_vals), np.nan, df[col])
+        # if a stim channel (DIN) we should use zero so it can cast to int properly
+        # in find_events
+        replacement = 0 if col == "DIN" else np.nan
+        df[col] = np.where(df[col].isin(missing_vals), replacement, df[col])
 
 
 def _sort_by_time(df, col="time"):
@@ -517,9 +520,13 @@ def _adjust_times(
     new_times = pd.DataFrame(
         np.arange(first, last + step / 2, step), columns=[time_col]
     )
-    return pd.merge_asof(
+    df = pd.merge_asof(
         new_times, df, on=time_col, direction="nearest", tolerance=step / 2
     )
+    # fix DIN NaN values
+    if "DIN" in df.columns:
+        df["DIN"] = df["DIN"].fillna(0)
+    return df
 
 
 def _find_overlaps(df, max_time=0.05):
