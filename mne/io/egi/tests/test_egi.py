@@ -586,3 +586,16 @@ def test_set_standard_montage_mff(fname, standard_montage):
     # Check that the reference remained
     for pick in picks:
         assert_allclose(raw.info["chs"][pick]["loc"][3:6], ref_loc)
+
+
+@requires_testing_data
+def test_egi_mff_bad_xml(tmp_path):
+    """Test that corrupt XML files are gracefully handled."""
+    pytest.importorskip("defusedxml")
+    mff_fname = shutil.copytree(egi_mff_fname, tmp_path / "test_egi_bad_xml.mff")
+    bad_xml = mff_fname / "bad.xml"
+    bad_xml.write_text("<foo>", encoding="utf-8")
+    with pytest.warns(RuntimeWarning, match="Could not parse the XML"):
+        raw = read_raw_egi(mff_fname)
+    # little check that the bad XML doesn't affect the parsing of other xml files
+    assert "DIN1" in raw.annotations.description

@@ -48,7 +48,9 @@ def _read_mff_events(filename, sfreq):
     orig = {}
     for xml_file in glob(join(filename, "*.xml")):
         xml_type = splitext(basename(xml_file))[0]
-        orig[xml_type] = _parse_xml(xml_file)
+        et = _parse_xml(xml_file)
+        if et is not None:
+            orig[xml_type] = et
     xml_files = orig.keys()
     xml_events = [x for x in xml_files if x[:7] == "Events_"]
     for item in orig["info"]:
@@ -80,10 +82,14 @@ def _read_mff_events(filename, sfreq):
     return events_tims, code
 
 
-def _parse_xml(xml_file):
+def _parse_xml(xml_file: str) -> list[dict[str, str]] | None:
     """Parse XML file."""
     defusedxml = _soft_import("defusedxml", "reading EGI MFF data")
-    xml = defusedxml.ElementTree.parse(xml_file)
+    try:
+        xml = defusedxml.ElementTree.parse(xml_file)
+    except defusedxml.ElementTree.ParseError as e:
+        warn(f"Could not parse the XML file {xml_file}: {e}")
+        return
     root = xml.getroot()
     return _xml2list(root)
 
