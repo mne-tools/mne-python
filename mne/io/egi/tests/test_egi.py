@@ -594,8 +594,7 @@ def test_egi_mff_bad_xml(tmp_path):
     pytest.importorskip("defusedxml")
     mff_fname = shutil.copytree(egi_mff_fname, tmp_path / "test_egi_bad_xml.mff")
     bad_xml = mff_fname / "bad.xml"
-    with bad_xml.open("w") as fid:
-        fid.write("<foo>")
+    bad_xml.write_text("<foo>", encoding="utf-8")
     with pytest.warns(RuntimeWarning, match="Could not parse the XML"):
         raw = read_raw_egi(mff_fname)
     # little check that the bad XML doesn't affect the parsing of other xml files
