@@ -15,7 +15,6 @@ from itertools import cycle
 from pathlib import Path
 
 import numpy as np
-from scipy.signal import filtfilt, freqz, group_delay, lfilter, sosfilt, sosfiltfilt
 
 from .._fiff.constants import FIFF
 from .._fiff.pick import (
@@ -1133,6 +1132,7 @@ def plot_filter(
     .. versionadded:: 0.14
     """
     import matplotlib.pyplot as plt
+    from scipy.signal import filtfilt, freqz, group_delay, lfilter, sosfilt, sosfiltfilt
 
     sfreq = float(sfreq)
     _check_option("fscale", fscale, ["log", "linear"])
