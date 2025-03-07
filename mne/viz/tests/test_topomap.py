@@ -20,6 +20,7 @@ from mne import (
     compute_proj_evoked,
     compute_proj_raw,
     create_info,
+    find_events,
     find_layout,
     make_fixed_length_events,
     pick_types,
@@ -38,7 +39,7 @@ from mne.channels import (
     read_layout,
 )
 from mne.datasets import testing
-from mne.io import RawArray, read_info, read_raw_fif
+from mne.io import RawArray, read_info, read_raw_fif, read_raw_fil
 from mne.preprocessing import (
     ICA,
     compute_bridged_electrodes,
@@ -63,6 +64,7 @@ subjects_dir = data_dir / "subjects"
 ecg_fname = data_dir / "MEG" / "sample" / "sample_audvis_ecg-proj.fif"
 triux_fname = data_dir / "SSS" / "TRIUX" / "triux_bmlhus_erm_raw.fif"
 
+
 base_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
 evoked_fname = base_dir / "test-ave.fif"
 raw_fname = base_dir / "test_raw.fif"
@@ -70,6 +72,7 @@ event_name = base_dir / "test-eve.fif"
 ctf_fname = base_dir / "test_ctf_comp_raw.fif"
 layout = read_layout("Vectorview-all")
 cov_fname = base_dir / "test-cov.fif"
+opm_fname = base_dir / "sub-002_ses-001_task-aef_run-001_meg.bin"
 
 fast_test = dict(res=8, contours=0, sensors=False)
 
@@ -774,6 +777,31 @@ def test_plot_topomap_bads_grad():
     info = pick_info(info, picks)
     assert len(info["chs"]) == 203
     plot_topomap(data, info, res=8)
+
+
+def test_plot_topomap_opm():
+    """Test plotting topomap with OPM data."""
+    # load data
+
+    raw = read_raw_fil(opm_fname, verbose="error")
+    raw.crop(120, 210).load_data()  # crop for speed
+    picks = pick_types(raw.info, meg=True)
+
+    # events and epochs
+    events = find_events(raw, min_duration=0.1)
+    epochs = Epochs(raw, events, tmin=-0.1, tmax=0.4, verbose="error")
+    evoked = epochs.average()
+    t_peak = evoked.times[np.argmax(np.std(evoked.copy().pick("meg").data, axis=0))]
+
+    # plot evoked topomap
+    fig_evoked = evoked.plot_topomap(times=t_peak, ch_type="mag", show=False)
+    assert len(fig_evoked.axes) == 2
+
+    # plot ICA
+    ica = ICA(n_components=2, max_iter=10)
+    ica.fit(epochs, picks=picks, decim=100)
+    fig_ica = ica.plot_components(show=False)
+    assert len(fig_ica.axes) == 2
 
 
 def test_plot_topomap_nirs_overlap(fnirs_epochs):
