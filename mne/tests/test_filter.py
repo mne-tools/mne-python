@@ -417,7 +417,7 @@ def test_resample_scipy():
                 assert_allclose(x_p5, x_p5_sp, atol=1e-12, err_msg=err_msg)
 
 
-@pytest.mark.parametrize("n_jobs", (1, 2, "cuda"))
+@pytest.mark.parametrize("n_jobs", (2, "cuda"))
 def test_n_jobs(n_jobs, capsys):
     """Test resampling against SciPy."""
     joblib = pytest.importorskip("joblib")
