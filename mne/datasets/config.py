@@ -87,7 +87,7 @@ I agree to the following:
 # update the checksum in the MNE_DATASETS dict below, and change version
 # here: ↓↓↓↓↓↓↓↓
 RELEASES = dict(
-    testing="0.156",
+    testing="0.160",
     misc="0.27",
     phantom_kit="0.2",
     ucl_opm_auditory="0.2",
