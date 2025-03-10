@@ -20,7 +20,6 @@ from mne import (
     compute_proj_evoked,
     compute_proj_raw,
     create_info,
-    find_events,
     find_layout,
     make_fixed_length_events,
     pick_types,
@@ -39,7 +38,7 @@ from mne.channels import (
     read_layout,
 )
 from mne.datasets import testing
-from mne.io import RawArray, read_info, read_raw_fif, read_raw_fil
+from mne.io import RawArray, read_info, read_raw_fif
 from mne.preprocessing import (
     ICA,
     compute_bridged_electrodes,
@@ -781,7 +780,6 @@ def test_plot_topomap_bads_grad():
 
 def test_plot_topomap_opm():
     """Test plotting topomap with OPM data."""
-    
     # load data
     evoked = read_evokeds(opm_fname, kind="average")
 
