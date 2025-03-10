@@ -162,14 +162,14 @@ class Dipole(TimeMixin):
             .. versionadded:: 0.20
         %(verbose)s
 
+        See Also
+        --------
+        read_dipole
+
         Notes
         -----
         .. versionchanged:: 0.20
            Support for writing bdip (Xfit binary) files.
-
-        See Also
-        --------
-        read_dipole
         """
         # obligatory fields
         fname = _check_fname(fname, overwrite=overwrite)
