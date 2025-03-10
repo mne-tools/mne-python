@@ -1324,6 +1324,7 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
     See Also
     --------
     mne.create_info
+    mne.pick_info
 
     Notes
     -----
