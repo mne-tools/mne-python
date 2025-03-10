@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "11df2fabe0a5f53e450a73aefd307e8418c55d9b",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/_fiff/_digitization.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/_fiff/constants.py": {
+      "a": 16,
+      "d": 4
+    },
+    "mne/_fiff/tests/test_constants.py": {
+      "a": 35,
+      "d": 1
+    },
+    "mne/channels/tests/test_montage.py": {
+      "a": 26,
+      "d": 13
+    },
+    "mne/transforms.py": {
+      "a": 8,
+      "d": 5
+    }
+  }
+}

@@ -348,7 +348,7 @@ def _show_tree(
                         postpend += " ... list len=" + str(len(tag.data))
                     elif issparse(tag.data):
                         postpend += (
-                            f" ... sparse ({tag.data.getformat()}) shape="
+                            f" ... sparse ({tag.data.__class__.__name__}) shape="
                             f"{tag.data.shape}"
                         )
                     else:
