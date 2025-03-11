@@ -149,6 +149,46 @@ class Dipole(TimeMixin):
         s += f", tmax : {np.max(self.times):0.3f}"
         return f"<Dipole | {s}>"
 
+    @property
+    def pos(self):
+        """The dipoles positions (m) in head coordinates."""
+        return self.pos
+
+    @property
+    def amplitude(self):
+        """The amplitude of the dipoles (Am)."""
+        return self.amplitude
+
+    @property
+    def ori(self):
+        """The dipole orientations (normalized to unit length)."""
+        return self.ori
+
+    @property
+    def gof(self):
+        """The goodness of fit."""
+        return self.gof
+
+    @property
+    def name(self):
+        """Name of the dipole."""
+        return self.name
+
+    @property
+    def conf(self):
+        """Confidence limits in dipole orientation."""
+        return self.conf
+
+    @property
+    def khi2(self):
+        """The χ^2 values for the fits."""
+        return self.khi2
+
+    @property
+    def nfree(self):
+        """The number of free parameters for each fit."""
+        return self.nfree
+
     @verbose
     def save(self, fname, overwrite=False, *, verbose=None):
         """Save dipole in a ``.dip`` or ``.bdip`` file.
