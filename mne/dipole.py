@@ -598,7 +598,7 @@ def read_dipole(fname, verbose=None):
     Parameters
     ----------
     fname : path-like
-        The name of the ``.[b]dip`` (Neuromag/xfit) or ``.fif[.gz]`` (MNE) file.
+        The name of the ``.[b]dip`` or ``.fif[.gz]`` file.
     %(verbose)s
 
     Returns
