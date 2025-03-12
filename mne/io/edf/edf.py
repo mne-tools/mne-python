@@ -7,6 +7,7 @@
 import os
 import re
 from datetime import date, datetime, timedelta, timezone
+from enum import Enum
 from pathlib import Path
 
 import numpy as np
@@ -19,7 +20,7 @@ from ..._fiff.meas_info import _empty_info, _unique_channel_names
 from ..._fiff.utils import _blk_read_lims, _mult_cal_one
 from ...annotations import Annotations
 from ...filter import resample
-from ...utils import _validate_type, fill_doc, logger, verbose, warn, _file_like
+from ...utils import _file_like, _validate_type, fill_doc, logger, verbose, warn
 from ..base import BaseRaw, _get_scaling
 from enum import Enum
 
@@ -28,6 +29,7 @@ class FileType(Enum):
     GDF = 1
     EDF = 2
     BDF = 3
+
 
 # common channel type names mapped to internal ch types
 CH_TYPE_MAPPING = {
@@ -54,7 +56,7 @@ class RawEDF(BaseRaw):
     Parameters
     ----------
     input_fname : path-like | file-like
-        Path to the EDF, EDF+ or BDF file. If a file-like object is provided, 
+        Path to the EDF, EDF+ or BDF file. If a file-like object is provided,
         preloading must be used.
     eog : list or tuple
         Names of channels or list of indices that should be designated EOG
@@ -257,6 +259,7 @@ def _path_from_fname(fname) -> Path | None:
                 fname = None
     return fname
 
+
 @fill_doc
 class RawGDF(BaseRaw):
     """Raw object from GDF file.
@@ -264,7 +267,7 @@ class RawGDF(BaseRaw):
     Parameters
     ----------
     input_fname : path-like | file-like
-        Path to the GDF file. If a file-like object is provided, 
+        Path to the GDF file. If a file-like object is provided,
         preloading must be used.
     eog : list or tuple
         Names of channels or list of indices that should be designated EOG
@@ -322,7 +325,15 @@ class RawGDF(BaseRaw):
             input_fname = os.path.abspath(input_fname)
 
         info, edf_info, orig_units = _get_info(
-            input_fname, stim_channel, eog, misc, exclude, True, preload, FileType.GDF, include
+            input_fname,
+            stim_channel,
+            eog,
+            misc,
+            exclude,
+            True,
+            preload,
+            FileType.GDF,
+            include,
         )
         logger.info("Creating raw.info structure...")
 
@@ -511,7 +522,15 @@ def _read_segment_file(data, idx, fi, start, stop, raw_extras, filenames, cals, 
 
 
 @fill_doc
-def _read_header(fname, exclude, infer_types, file_type, preload, include=None, exclude_after_unique=False):
+def _read_header(
+    fname,
+    exclude,
+    infer_types,
+    file_type,
+    preload,
+    include=None,
+    exclude_after_unique=False,
+):
     """Unify EDF, BDF and GDF _read_header call.
 
     Parameters
@@ -541,14 +560,18 @@ def _read_header(fname, exclude, infer_types, file_type, preload, include=None, 
     """
     if file_type in (FileType.BDF, FileType.EDF):
         return _read_edf_header(
-            fname, exclude, infer_types, file_type, preload, include, exclude_after_unique
+            fname,
+            exclude,
+            infer_types,
+            file_type,
+            preload,
+            include,
+            exclude_after_unique,
         )
     elif file_type == FileType.GDF:
         return _read_gdf_header(fname, exclude, preload, include), None
     else:
-        raise NotImplementedError(
-            f"Only GDF, EDF, and BDF files are supported."
-        )
+        raise NotImplementedError("Only GDF, EDF, and BDF files are supported.")
 
 
 def _get_info(
@@ -830,7 +853,13 @@ def _edf_str_num(x):
 
 
 def _read_edf_header(
-    fname, exclude, infer_types, file_type, preload, include=None, exclude_after_unique=False
+    fname,
+    exclude,
+    infer_types,
+    file_type,
+    preload,
+    include=None,
+    exclude_after_unique=False,
 ):
     """Read header information from EDF+ or BDF file."""
     edf_info = {"events": []}
@@ -911,7 +940,9 @@ def _read_edf_header(
         try:
             header_nbytes = int(_edf_str(fid.read(8)))
         except ValueError:
-            raise Exception(f"Bad {"EDF" if file_type is FileType.EDF else "BDF"} file provided.")
+            raise Exception(
+                f"Bad {'EDF' if file_type is FileType.EDF else 'BDF'} file provided."
+            )
 
         # The following 44 bytes sometimes identify the file type, but this is
         # not guaranteed. Therefore, we skip this field and use the file_type
@@ -1041,7 +1072,9 @@ def _read_edf_header(
         fid.seek(0, 2)
         n_bytes = fid.tell()
         n_data_bytes = n_bytes - header_nbytes
-        total_samps = n_data_bytes // 3 if subtype == FileType.BDF else n_data_bytes // 2
+        total_samps = (
+            n_data_bytes // 3 if subtype == FileType.BDF else n_data_bytes // 2
+        )
         read_records = total_samps // np.sum(n_samps)
         if n_records != read_records:
             warn(
@@ -1119,7 +1152,7 @@ def _read_gdf_header(fname, exclude, preload, include=None):
             edf_info["number"] = float(version[4:])
         except ValueError:
             raise Exception("Bad GDF file provided.")
-    
+
         meas_date = None
 
         # GDF 1.x
@@ -1744,7 +1777,7 @@ def read_raw_edf(
     else:
         if not preload:
             raise ValueError("preload must be used with file-like objects")
-    
+
     return RawEDF(
         input_fname=input_fname,
         eog=eog,
@@ -1885,7 +1918,7 @@ def read_raw_bdf(
     else:
         if not preload:
             raise ValueError("preload must be used with file-like objects")
-        
+
     return RawEDF(
         input_fname=input_fname,
         eog=eog,
@@ -1970,7 +2003,7 @@ def read_raw_gdf(
     else:
         if not preload:
             raise ValueError("preload must be used with file-like objects")
-        
+
     return RawGDF(
         input_fname=input_fname,
         eog=eog,
