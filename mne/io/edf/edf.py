@@ -12,13 +12,20 @@ from pathlib import Path
 import numpy as np
 from scipy.interpolate import interp1d
 
+from mne._fiff.open import _NoCloseRead, edf_open
+
 from ..._fiff.constants import FIFF
 from ..._fiff.meas_info import _empty_info, _unique_channel_names
 from ..._fiff.utils import _blk_read_lims, _mult_cal_one
 from ...annotations import Annotations
 from ...filter import resample
-from ...utils import _validate_type, fill_doc, logger, verbose, warn
+from ...utils import _validate_type, fill_doc, logger, verbose, warn, _file_like
 from ..base import BaseRaw, _get_scaling
+from enum import Enum
+class FileType(Enum):
+    GDF = 1
+    EDF = 2
+    BDF = 3
 
 # common channel type names mapped to internal ch types
 CH_TYPE_MAPPING = {
@@ -144,11 +151,14 @@ class RawEDF(BaseRaw):
         units=None,
         encoding="utf8",
         exclude_after_unique=False,
+        file_type=FileType.EDF,
         *,
         verbose=None,
     ):
         logger.info(f"Extracting EDF parameters from {input_fname}...")
-        input_fname = os.path.abspath(input_fname)
+        if not _file_like(input_fname):
+            input_fname = os.path.abspath(input_fname)
+
         info, edf_info, orig_units = _get_info(
             input_fname,
             stim_channel,
@@ -157,6 +167,7 @@ class RawEDF(BaseRaw):
             exclude,
             infer_types,
             preload,
+            file_type,
             include,
             exclude_after_unique,
         )
@@ -188,7 +199,7 @@ class RawEDF(BaseRaw):
         super().__init__(
             info,
             preload,
-            filenames=[input_fname],
+            filenames=[_path_from_fname(input_fname)],
             raw_extras=[edf_info],
             last_samps=last_samps,
             orig_format="int",
@@ -230,6 +241,18 @@ class RawEDF(BaseRaw):
             mult,
         )
 
+
+def _path_from_fname(fname) -> Path | None:
+    if not isinstance(fname, Path):
+        if isinstance(fname, str):
+            fname = Path(fname)
+        else:
+            # Try to get a filename from the file-like object
+            try:
+                fname = Path(fname.name)
+            except Exception:
+                fname = None
+    return fname
 
 @fill_doc
 class RawGDF(BaseRaw):
@@ -481,7 +504,7 @@ def _read_segment_file(data, idx, fi, start, stop, raw_extras, filenames, cals, 
 
 
 @fill_doc
-def _read_header(fname, exclude, infer_types, include=None, exclude_after_unique=False):
+def _read_header(fname, exclude, infer_types, file_type, preload, include=None, exclude_after_unique=False):
     """Unify EDF, BDF and GDF _read_header call.
 
     Parameters
@@ -509,17 +532,15 @@ def _read_header(fname, exclude, infer_types, include=None, exclude_after_unique
     -------
     (edf_info, orig_units) : tuple
     """
-    ext = os.path.splitext(fname)[1][1:].lower()
-    logger.info(f"{ext.upper()} file detected")
-    if ext in ("bdf", "edf"):
+    if file_type in (FileType.BDF, FileType.EDF):
         return _read_edf_header(
-            fname, exclude, infer_types, include, exclude_after_unique
+            fname, exclude, infer_types, file_type, preload, include, exclude_after_unique
         )
-    elif ext == "gdf":
+    elif file_type == FileType.GDF:
         return _read_gdf_header(fname, exclude, include), None
     else:
         raise NotImplementedError(
-            f"Only GDF, EDF, and BDF files are supported, got {ext}."
+            f"Only GDF, EDF, and BDF files are supported."
         )
 
 
@@ -531,6 +552,7 @@ def _get_info(
     exclude,
     infer_types,
     preload,
+    file_type,
     include=None,
     exclude_after_unique=False,
 ):
@@ -539,7 +561,7 @@ def _get_info(
     misc = misc if misc is not None else []
 
     edf_info, orig_units = _read_header(
-        fname, exclude, infer_types, include, exclude_after_unique
+        fname, exclude, infer_types, file_type, preload, include, exclude_after_unique
     )
 
     # XXX: `tal_ch_names` to pass to `_check_stim_channel` should be computed
@@ -801,12 +823,14 @@ def _edf_str_num(x):
 
 
 def _read_edf_header(
-    fname, exclude, infer_types, include=None, exclude_after_unique=False
+    fname, exclude, infer_types, file_type, preload, include=None, exclude_after_unique=False
 ):
     """Read header information from EDF+ or BDF file."""
     edf_info = {"events": []}
 
-    with open(fname, "rb") as fid:
+    file = edf_open(fname, preload)
+
+    with file as fid:
         fid.read(8)  # version (unused here)
 
         # patient ID
@@ -877,14 +901,18 @@ def _read_edf_header(
             fid.read(8)  # skip the file's measurement time
             warn("Invalid measurement date encountered in the header.")
 
-        header_nbytes = int(_edf_str(fid.read(8)))
+        try:
+            header_nbytes = int(_edf_str(fid.read(8)))
+        except ValueError:
+            raise Exception(f"Bad {"EDF" if file_type is FileType.EDF else "BDF"} file provided.")
+
         # The following 44 bytes sometimes identify the file type, but this is
-        # not guaranteed. Therefore, we skip this field and use the file
-        # extension to determine the subtype (EDF or BDF, which differ in the
+        # not guaranteed. Therefore, we skip this field and use the file_type
+        # to determine the subtype (EDF or BDF, which differ in the
         # number of bytes they use for the data records; EDF uses 2 bytes
         # whereas BDF uses 3 bytes).
         fid.read(44)
-        subtype = os.path.splitext(fname)[1][1:].lower()
+        subtype = file_type
 
         n_records = int(_edf_str(fid.read(8)))
         record_length = float(_edf_str(fid.read(8)))
@@ -996,7 +1024,7 @@ def _read_edf_header(
             physical_max=physical_max,
             physical_min=physical_min,
             record_length=record_length,
-            subtype=subtype,
+            subtype="bdf" if subtype == FileType.BDF else "edf",
             tal_idx=tal_idx,
         )
 
@@ -1006,7 +1034,7 @@ def _read_edf_header(
         fid.seek(0, 2)
         n_bytes = fid.tell()
         n_data_bytes = n_bytes - header_nbytes
-        total_samps = n_data_bytes // 3 if subtype == "bdf" else n_data_bytes // 2
+        total_samps = n_data_bytes // 3 if subtype == FileType.BDF else n_data_bytes // 2
         read_records = total_samps // np.sum(n_samps)
         if n_records != read_records:
             warn(
@@ -1017,7 +1045,7 @@ def _read_edf_header(
             edf_info["n_records"] = read_records
         del n_records
 
-        if subtype == "bdf":
+        if subtype == FileType.BDF:
             edf_info["dtype_byte"] = 3  # 24-bit (3 byte) integers
             edf_info["dtype_np"] = UINT8
         else:
@@ -1693,10 +1721,16 @@ def read_raw_edf(
     The EDF specification allows storage of subseconds in measurement date.
     However, this reader currently sets subseconds to 0 by default.
     """
-    input_fname = os.path.abspath(input_fname)
-    ext = os.path.splitext(input_fname)[1][1:].lower()
-    if ext != "edf":
-        raise NotImplementedError(f"Only EDF files are supported, got {ext}.")
+    if not _file_like(input_fname):
+        input_fname = os.path.abspath(input_fname)
+        ext = os.path.splitext(input_fname)[1][1:].lower()
+
+        if ext != "edf":
+            raise NotImplementedError(f"Only EDF files are supported, got {ext}.")
+    else:
+        if not preload:
+            raise ValueError("preload must be used with file-like objects")
+    
     return RawEDF(
         input_fname=input_fname,
         eog=eog,
@@ -1709,6 +1743,7 @@ def read_raw_edf(
         units=units,
         encoding=encoding,
         exclude_after_unique=exclude_after_unique,
+        file_type=FileType.EDF,
         verbose=verbose,
     )
 
@@ -1827,10 +1862,16 @@ def read_raw_bdf(
     STIM channels by default. Use func:`mne.find_events` to parse events
     encoded in such analog stim channels.
     """
-    input_fname = os.path.abspath(input_fname)
-    ext = os.path.splitext(input_fname)[1][1:].lower()
-    if ext != "bdf":
-        raise NotImplementedError(f"Only BDF files are supported, got {ext}.")
+    if not _file_like(input_fname):
+        input_fname = os.path.abspath(input_fname)
+        ext = os.path.splitext(input_fname)[1][1:].lower()
+
+        if ext != "bdf":
+            raise NotImplementedError(f"Only BDF files are supported, got {ext}.")
+    else:
+        if not preload:
+            raise ValueError("preload must be used with file-like objects")
+        
     return RawEDF(
         input_fname=input_fname,
         eog=eog,
@@ -1843,6 +1884,7 @@ def read_raw_bdf(
         units=units,
         encoding=encoding,
         exclude_after_unique=exclude_after_unique,
+        file_type=FileType.BDF,
         verbose=verbose,
     )
 
@@ -1905,10 +1947,16 @@ def read_raw_gdf(
     STIM channels by default. Use func:`mne.find_events` to parse events
     encoded in such analog stim channels.
     """
-    input_fname = os.path.abspath(input_fname)
-    ext = os.path.splitext(input_fname)[1][1:].lower()
-    if ext != "gdf":
-        raise NotImplementedError(f"Only GDF files are supported, got {ext}.")
+    if not _file_like(input_fname):
+        input_fname = os.path.abspath(input_fname)
+        ext = os.path.splitext(input_fname)[1][1:].lower()
+
+        if ext != "gdf":
+            raise NotImplementedError(f"Only GDF files are supported, got {ext}.")
+    else:
+        if not preload:
+            raise ValueError("preload must be used with file-like objects")
+        
     return RawGDF(
         input_fname=input_fname,
         eog=eog,

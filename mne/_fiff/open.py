@@ -53,6 +53,17 @@ def _fiff_get_fid(fname):
             fid = open(fname, "rb")  # Open in binary mode
     return fid
 
+def _edf_get_fid(fname):
+    """Open a EDF file with no additional parsing."""
+    if _file_like(fname):
+        logger.debug("Using file-like I/O")
+        fid = _NoCloseRead(fname)
+        fid.seek(0)
+    else:
+        _validate_type(fname, [Path, str], "fname", extra="or file-like")
+        logger.debug("Using normal I/O")
+        fid = open(fname, "rb")  # Open in binary mode
+    return fid
 
 def _get_next_fname(fid, fname, tree):
     """Get the next filename in split files."""
@@ -135,7 +146,6 @@ def fiff_open(fname, preload=False, verbose=None):
         fid.close()
         raise
 
-
 def _fiff_open(fname, fid, preload):
     # do preloading of entire file
     if preload:
@@ -199,7 +209,6 @@ def _fiff_open(fname, fid, preload):
     fid.seek(0)
 
     return fid, tree, directory
-
 
 @verbose
 def show_fiff(
@@ -384,3 +393,41 @@ def _show_tree(
             show_bytes=show_bytes,
         )
     return out
+
+def _edf_open(fid, preload):
+    # do preloading of entire file
+    if preload:
+        # note that StringIO objects instantiated this way are read-only,
+        # but that's okay here since we are using mode "rb" anyway
+        with fid as fid_old:
+            fid = BytesIO(fid_old.read())
+        
+        #TO-DO: Find a way to validate edf headers
+
+    fid.seek(0)
+    return fid
+
+def edf_open(fname, preload=False, verbose=None):
+    """Open an EDF file.
+
+    Parameters
+    ----------
+    fname : path-like | fid
+        Name of the fif file, or an opened file (will seek back to 0).
+    preload : bool
+        If True, all data from the file is read into a memory buffer. This
+        requires more memory, but can be faster for I/O operations that require
+        frequent seeks.
+    %(verbose)s
+
+    Returns
+    -------
+    fid : file
+        The file descriptor of the open file.
+    """
+    fid = _edf_get_fid(fname)
+    try:
+        return _edf_open(fid, preload)
+    except Exception:
+        fid.close()
+        raise
