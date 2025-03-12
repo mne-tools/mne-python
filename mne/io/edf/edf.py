@@ -51,8 +51,9 @@ class RawEDF(BaseRaw):
 
     Parameters
     ----------
-    input_fname : path-like
-        Path to the EDF, EDF+ or BDF file.
+    input_fname : path-like | file-like
+        Path to the EDF, EDF+ or BDF file. If a file-like object is provided, 
+        preloading must be used.
     eog : list or tuple
         Names of channels or list of indices that should be designated EOG
         channels. Values should correspond to the electrodes in the file.
@@ -260,8 +261,9 @@ class RawGDF(BaseRaw):
 
     Parameters
     ----------
-    input_fname : path-like
-        Path to the GDF file.
+    input_fname : path-like | file-like
+        Path to the GDF file. If a file-like object is provided, 
+        preloading must be used.
     eog : list or tuple
         Names of channels or list of indices that should be designated EOG
         channels. Values should correspond to the electrodes in the file.
