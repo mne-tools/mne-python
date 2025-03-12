@@ -162,6 +162,10 @@ class Dipole(TimeMixin):
             .. versionadded:: 0.20
         %(verbose)s
 
+        See Also
+        --------
+        read_dipole
+
         Notes
         -----
         .. versionchanged:: 0.20
@@ -518,15 +522,19 @@ class DipoleFixed(ExtendedTimeMixin):
 
     @verbose
     def save(self, fname, verbose=None):
-        """Save dipole in a .fif file.
+        """Save dipole in FIF format.
 
         Parameters
         ----------
         fname : path-like
-            The name of the .fif file. Must end with ``'.fif'`` or
-            ``'.fif.gz'`` to make it explicit that the file contains
+            The name of the FIF file. Must end with ``'-dip.fif'`` or
+            ``'-dip.fif.gz'`` to make it explicit that the file contains
             dipole information in FIF format.
         %(verbose)s
+
+        See Also
+        --------
+        read_dipole
         """
         check_fname(
             fname,
@@ -585,12 +593,12 @@ class DipoleFixed(ExtendedTimeMixin):
 # IO
 @verbose
 def read_dipole(fname, verbose=None):
-    """Read ``.dip`` file from Neuromag/xfit or MNE.
+    """Read a dipole object from a file.
 
     Parameters
     ----------
     fname : path-like
-        The name of the ``.dip`` or ``.fif`` file.
+        The name of the ``.[b]dip`` or ``.fif[.gz]`` file.
     %(verbose)s
 
     Returns
