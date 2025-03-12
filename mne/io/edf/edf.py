@@ -25,7 +25,7 @@ from ..base import BaseRaw, _get_scaling
 
 
 class FileType(Enum):
-    """Enumeration to differentiate files when the extension is not known"""
+    """Enumeration to differentiate files when the extension is not known."""
 
     GDF = 1
     EDF = 2
