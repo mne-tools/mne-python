@@ -192,8 +192,8 @@ def test_gdf_include():
 @pytest.mark.filterwarnings("ignore:Ignoring preload for GFS file.")
 @testing.requires_testing_data
 def test_gdf_read_from_file_like():
-    """ Test that RawGDF is able to read from file-like objects for GDF files."""
-    with open(gdf1_path.with_name(gdf1_path.name + ".gdf"), 'rb') as blob:
+    """Test that RawGDF is able to read from file-like objects for GDF files."""
+    with open(gdf1_path.with_name(gdf1_path.name + ".gdf"), "rb") as blob:
         raw = read_raw_gdf(blob, preload=True)
         channels = [
             "FP1",
@@ -220,7 +220,7 @@ def test_gdf_read_from_file_like():
 @pytest.mark.filterwarnings("ignore:Ignoring preload for GFS file.")
 @testing.requires_testing_data
 def test_gdf_read_from_bad_file_like():
-    """ Test that RawGDF is NOT able to read from file-like objects for non GDF files."""
+    """Test that RawGDF is NOT able to read from file-like objects for non GDF files."""
     with pytest.raises(Exception, match="Bad GDF file provided."):
         with open(empty_gdf, "rb") as blob:
             read_raw_gdf(blob, preload=True)

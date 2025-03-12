@@ -22,10 +22,11 @@ from ...annotations import Annotations
 from ...filter import resample
 from ...utils import _file_like, _validate_type, fill_doc, logger, verbose, warn
 from ..base import BaseRaw, _get_scaling
-from enum import Enum
+
 
 class FileType(Enum):
     """Enumeration to differentiate files when the extension is not known"""
+
     GDF = 1
     EDF = 2
     BDF = 3

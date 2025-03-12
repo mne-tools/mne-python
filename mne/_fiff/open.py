@@ -439,7 +439,7 @@ def edf_open(fname, preload=False, verbose=None):
 
 def _gdf_open(fid, preload):
     if preload:
-        # Ignore preloading, since we need to parse the file sequentially 
+        # Ignore preloading, since we need to parse the file sequentially
         # in _read_gdf_header
         warn("Ignoring preload for GFS file.")
 
