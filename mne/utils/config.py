@@ -790,7 +790,6 @@ def sys_info(
             "# Infrastructure",
             "decorator",
             "jinja2",
-            # "lazy-loader",
             "packaging",
             "pooch",
             "tqdm",

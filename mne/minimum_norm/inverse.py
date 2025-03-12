@@ -6,8 +6,6 @@ from copy import deepcopy
 from math import sqrt
 
 import numpy as np
-from scipy import linalg
-from scipy.stats import chi2
 
 from .._fiff.constants import FIFF
 from .._fiff.matrix import (
@@ -635,6 +633,8 @@ def prepare_inverse_operator(
     inv : instance of InverseOperator
         Prepared inverse operator.
     """
+    from scipy import linalg
+
     if nave <= 0:
         raise ValueError("The number of averages should be positive")
 
@@ -2200,6 +2200,8 @@ def estimate_snr(evoked, inv, verbose=None):
 
     .. versionadded:: 0.9.0
     """  # noqa: E501
+    from scipy.stats import chi2
+
     _check_reference(evoked, inv["info"]["ch_names"])
     _check_ch_names(inv, evoked.info)
     inv = prepare_inverse_operator(inv, evoked.nave, 1.0 / 9.0, "MNE", copy="non-src")

@@ -3,7 +3,6 @@
 # Copyright the MNE-Python contributors.
 
 import numpy as np
-from scipy.signal import get_window
 
 from .utils import _ensure_int, _validate_type, logger, verbose
 
@@ -280,6 +279,8 @@ class _COLA:
         name="COLA",
         verbose=None,
     ):
+        from scipy.signal import get_window
+
         n_samples = _ensure_int(n_samples, "n_samples")
         n_overlap = _ensure_int(n_overlap, "n_overlap")
         n_total = _ensure_int(n_total, "n_total")

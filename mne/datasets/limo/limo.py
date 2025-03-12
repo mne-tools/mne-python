@@ -7,7 +7,6 @@ import time
 from pathlib import Path
 
 import numpy as np
-from scipy.io import loadmat
 
 from ..._fiff.meas_info import create_info
 from ...channels import make_standard_montage
@@ -290,6 +289,8 @@ def load_data(subject, path=None, force_update=False, update_path=None, verbose=
         The epochs.
     """  # noqa: E501
     pd = _check_pandas_installed()
+    from scipy.io import loadmat
+
     # subject in question
     if isinstance(subject, int) and 1 <= subject <= 18:
         subj = f"S{subject}"

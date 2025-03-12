@@ -4,7 +4,6 @@
 
 import numpy as np
 from numpy.polynomial.polynomial import Polynomial
-from scipy.stats import pearsonr
 
 from ..io import BaseRaw
 from ..utils import _validate_type, logger, verbose, warn
@@ -53,6 +52,8 @@ def realign_raw(raw, other, t_raw, t_other, *, verbose=None):
 
     .. versionadded:: 0.22
     """
+    from scipy import stats
+
     _validate_type(raw, BaseRaw, "raw")
     _validate_type(other, BaseRaw, "other")
     t_raw = np.array(t_raw, float)
@@ -72,7 +73,7 @@ def realign_raw(raw, other, t_raw, t_other, *, verbose=None):
     logger.info(
         f"Zero order coefficient: {zero_ord} \nFirst order coefficient: {first_ord}"
     )
-    r, p = pearsonr(t_other, t_raw)
+    r, p = stats.pearsonr(t_other, t_raw)
     msg = f"Linear correlation computed as R={r:0.3f} and p={p:0.2e}"
     if p > 0.05 or r <= 0:
         raise ValueError(msg + ", cannot resample safely")

@@ -12,9 +12,6 @@ from functools import partial
 from io import BytesIO
 
 import numpy as np
-from scipy.interpolate import interp1d
-from scipy.sparse import csr_array
-from scipy.spatial.distance import cdist
 
 from ..._fiff.meas_info import Info
 from ..._fiff.pick import pick_types
@@ -1066,6 +1063,8 @@ class Brain:
             publish(self, VertexSelect(hemi=hemi, vertex_id=vertex_id))
 
     def _configure_picking(self):
+        from scipy.sparse import csr_array
+
         # get data for each hemi
         for idx, hemi in enumerate(["vol", "lh", "rh"]):
             hemi_data = self._data.get(hemi)
@@ -2639,6 +2638,8 @@ class Brain:
 
         # Possibly map the foci coords through a surface
         if map_surface is not None:
+            from scipy.spatial.distance import cdist
+
             foci_surf = _Surface(
                 self._subject,
                 hemi,
@@ -4036,6 +4037,8 @@ class Brain:
 
 def _safe_interp1d(x, y, kind="linear", axis=-1, assume_sorted=False):
     """Work around interp1d not liking singleton dimensions."""
+    from scipy.interpolate import interp1d
+
     if y.shape[axis] == 1:
 
         def func(x):
