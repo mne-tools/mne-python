@@ -1212,7 +1212,7 @@ def test_anonymization():
     assert raw.info["subject_info"]["birthday"] != bday
 
 def test_bdf_read_from_file_like():
-    """ Test that RawEDF is able to read from file-like objects for BDF files"""
+    """ Test that RawEDF is able to read from file-like objects for BDF files."""
     with open(bdf_path, 'rb') as blob:
         raw = read_raw_edf(blob, preload=True)
         channels = [
@@ -1246,13 +1246,13 @@ def test_bdf_read_from_file_like():
 
 @pytest.mark.filterwarnings("ignore:Invalid measurement date encountered in the header.") 
 def test_edf_read_from_bad_file_like():
-    """ Test that RawEDF is NOT able to read from file-like objects for non EDF files"""
+    """ Test that RawEDF is NOT able to read from file-like objects for non EDF files."""
     with pytest.raises(Exception, match="Bad EDF file provided."):
         with open(edf_txt_stim_channel_path, 'rb') as blob:
             read_raw_edf(blob, preload=True)
     
 def test_edf_read_from_file_like():
-    """ Test that RawEDF is able to read from file-like objects for EDF files"""
+    """ Test that RawEDF is able to read from file-like objects for EDF files."""
     with open(edf_path, 'rb') as blob:
         raw = read_raw_edf(blob, preload=True)
         channels = [
@@ -1308,7 +1308,7 @@ def test_edf_read_from_file_like():
 
 @pytest.mark.filterwarnings("ignore:Invalid measurement date encountered in the header.") 
 def test_bdf_read_from_bad_file_like():
-    """ Test that RawEDF is NOT able to read from file-like objects for non BDF files"""
+    """ Test that RawEDF is NOT able to read from file-like objects for non BDF files."""
     with pytest.raises(Exception, match="Bad BDF file provided."):
         with open(edf_txt_stim_channel_path, 'rb') as blob:
             read_raw_bdf(blob, preload=True)
