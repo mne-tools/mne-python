@@ -12,7 +12,7 @@ from pathlib import Path
 import numpy as np
 from scipy.interpolate import interp1d
 
-from mne._fiff.open import _NoCloseRead, edf_open
+from mne._fiff.open import edf_open, gdf_open
 
 from ..._fiff.constants import FIFF
 from ..._fiff.meas_info import _empty_info, _unique_channel_names
@@ -313,9 +313,12 @@ class RawGDF(BaseRaw):
         verbose=None,
     ):
         logger.info(f"Extracting EDF parameters from {input_fname}...")
-        input_fname = os.path.abspath(input_fname)
+
+        if not _file_like(input_fname):
+            input_fname = os.path.abspath(input_fname)
+
         info, edf_info, orig_units = _get_info(
-            input_fname, stim_channel, eog, misc, exclude, True, preload, include
+            input_fname, stim_channel, eog, misc, exclude, True, preload, FileType.GDF, include
         )
         logger.info("Creating raw.info structure...")
 
@@ -324,7 +327,7 @@ class RawGDF(BaseRaw):
         super().__init__(
             info,
             preload,
-            filenames=[input_fname],
+            filenames=[_path_from_fname(input_fname)],
             raw_extras=[edf_info],
             last_samps=last_samps,
             orig_format="int",
@@ -537,7 +540,7 @@ def _read_header(fname, exclude, infer_types, file_type, preload, include=None, 
             fname, exclude, infer_types, file_type, preload, include, exclude_after_unique
         )
     elif file_type == FileType.GDF:
-        return _read_gdf_header(fname, exclude, include), None
+        return _read_gdf_header(fname, exclude, preload, include), None
     else:
         raise NotImplementedError(
             f"Only GDF, EDF, and BDF files are supported."
@@ -1098,14 +1101,21 @@ def _check_dtype_byte(types):
     return dtype_np[0], dtype_byte[0]
 
 
-def _read_gdf_header(fname, exclude, include=None):
+def _read_gdf_header(fname, exclude, preload, include=None):
     """Read GDF 1.x and GDF 2.x header info."""
     edf_info = dict()
     events = None
-    with open(fname, "rb") as fid:
-        version = fid.read(8).decode()
-        edf_info["type"] = edf_info["subtype"] = version[:3]
-        edf_info["number"] = float(version[4:])
+
+    file = gdf_open(fname, preload)
+
+    with file as fid:
+        try:
+            version = fid.read(8).decode()
+            edf_info["type"] = edf_info["subtype"] = version[:3]
+            edf_info["number"] = float(version[4:])
+        except ValueError:
+            raise Exception("Bad GDF file provided.")
+    
         meas_date = None
 
         # GDF 1.x
