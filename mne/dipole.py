@@ -252,7 +252,7 @@ class Dipole(TimeMixin):
             self.times, tmin, tmax, sfreq=sfreq, include_tmax=include_tmax
         )
         self._set_times(self.times[mask])
-        for attr in ("pos", "gof", "amplitude", "ori", "khi2", "nfree"):
+        for attr in ("_pos", "_gof", "_amplitude", "_ori", "_khi2", "_nfree"):
             if getattr(self, attr) is not None:
                 setattr(self, attr, getattr(self, attr)[mask])
         for key in self.conf.keys():
