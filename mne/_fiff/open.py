@@ -53,6 +53,7 @@ def _fiff_get_fid(fname):
             fid = open(fname, "rb")  # Open in binary mode
     return fid
 
+
 def __gdf_edf_get_fid(fname):
     """Open a EDF/BDF/GDF file with no additional parsing."""
     if _file_like(fname):
@@ -64,6 +65,7 @@ def __gdf_edf_get_fid(fname):
         logger.debug("Using normal I/O")
         fid = open(fname, "rb")  # Open in binary mode
     return fid
+
 
 def _get_next_fname(fid, fname, tree):
     """Get the next filename in split files."""
@@ -146,6 +148,7 @@ def fiff_open(fname, preload=False, verbose=None):
         fid.close()
         raise
 
+
 def _fiff_open(fname, fid, preload):
     # do preloading of entire file
     if preload:
@@ -209,6 +212,7 @@ def _fiff_open(fname, fid, preload):
     fid.seek(0)
 
     return fid, tree, directory
+
 
 @verbose
 def show_fiff(
@@ -394,6 +398,7 @@ def _show_tree(
         )
     return out
 
+
 def _edf_open(fid, preload):
     # do preloading of entire file
     if preload:
@@ -404,6 +409,7 @@ def _edf_open(fid, preload):
 
     fid.seek(0)
     return fid
+
 
 def edf_open(fname, preload=False, verbose=None):
     """Open an EDF/BDF file.
@@ -430,6 +436,7 @@ def edf_open(fname, preload=False, verbose=None):
         fid.close()
         raise
 
+
 def _gdf_open(fid, preload):
     if preload:
         # Ignore preloading, since we need to parse the file sequentially in _read_gdf_header
@@ -437,6 +444,7 @@ def _gdf_open(fid, preload):
 
     fid.seek(0)
     return fid
+
 
 def gdf_open(fname, preload=False, verbose=None):
     """Open an GDF file.
