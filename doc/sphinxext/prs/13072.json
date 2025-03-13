@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "96d22f87acb631c7cf04f5fcf0462f0956ba6f88",
+  "authors": [
+    {
+      "n": "Thomas S. Binns",
+      "e": "t.s.binns@outlook.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/13067.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/export/_export.py": {
+      "a": 9,
+      "d": 2
+    },
+    "mne/time_frequency/tests/test_tfr.py": {
+      "a": 0,
+      "d": 16
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 33,
+      "d": 19
+    },
+    "mne/utils/docs.py": {
+      "a": 8,
+      "d": 5
+    }
+  }
+}

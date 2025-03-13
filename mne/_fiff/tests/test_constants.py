@@ -23,6 +23,7 @@ from mne._fiff.constants import (
     _dig_kind_named,
 )
 from mne.forward._make_forward import _read_coil_defs
+from mne.transforms import _frame_to_str, _verbose_frames
 from mne.utils import requires_good_network
 
 # https://github.com/mne-tools/fiff-constants/commits/master
@@ -405,7 +406,14 @@ def test_constants(tmp_path):
             "^FIFFV_.*_CH$",
             (FIFF.FIFFV_DIPOLE_WAVE, FIFF.FIFFV_GOODNESS_FIT),
         ),
-        (_coord_frame_named, "FIFFV_COORD_", ()),
+        pytest.param(
+            _coord_frame_named,
+            "FIFFV_(MNE_)?COORD_",
+            (),
+            marks=pytest.mark.xfail(
+                reason="Intentional mismatch tested by test_coord_frame_consistency",
+            ),
+        ),
         (_ch_unit_named, "FIFF_UNIT_", ()),
         (_ch_unit_mul_named, "FIFF_UNITM_", ()),
         (_ch_coil_type_named, "FIFFV_COIL_", ()),
@@ -419,3 +427,29 @@ def test_dict_completion(dict_, match, extras):
         got.add(e)
     want = set(dict_)
     assert got == want, match
+
+
+def test_coord_frame_consistency():
+    """Test consistency between coord frame mappings."""
+    all_frames = set(
+        key for key in dir(FIFF) if key.startswith(("FIFFV_COORD_", "FIFFV_MNE_COORD"))
+    )
+    # ... but there are some frames that we never work in so let's cull those for now
+    ignore_frames = set(
+        f"FIFFV_COORD_{name}"
+        for name in """
+        MRI_SLICE MRI_DISPLAY DICOM_DEVICE IMAGING_DEVICE
+        """.strip().split()
+    )
+    ignore_frames |= set(
+        f"FIFFV_MNE_COORD_{name}"
+        for name in """
+        DIGITIZER TUFTS_EEG FS_TAL_GTZ FS_TAL_LTZ
+        """.strip().split()
+    )
+    assert ignore_frames.issubset(all_frames)
+    all_frames -= ignore_frames
+    all_ints = set(FIFF[key] for key in all_frames)
+    assert set(_frame_to_str) == all_ints
+    assert set(_verbose_frames) == all_ints
+    assert set(_coord_frame_named) == all_ints

@@ -24,6 +24,7 @@
 .. _Anna Padee: https://github.com/apadee/
 .. _Annalisa Pascarella: https://www.iac.cnr.it/personale/annalisa-pascarella
 .. _Anne-Sophie Dubarry: https://github.com/annesodub
+.. _Antoine Collas: https://www.antoinecollas.fr
 .. _Antoine Gauthier: https://github.com/Okamille
 .. _Antti Rantala: https://github.com/Odingod
 .. _Apoorva Karekal: https://github.com/apoorva6262
@@ -257,7 +258,8 @@
 .. _Romain Derollepot: https://github.com/rderollepot
 .. _Romain Trachel: https://fr.linkedin.com/in/trachelr
 .. _Roman Goj: https://romanmne.blogspot.co.uk
-.. _Ross Maddox: https://www.urmc.rochester.edu/labs/maddox-lab.aspx
+.. _Rongfei Jin: https://github.com/greasycat
+.. _Ross Maddox: https://medicine.umich.edu/dept/khri/ross-maddox-phd
 .. _Rotem Falach: https://github.com/Falach
 .. _Roy Eric Wieske: https://github.com/Randomidous
 .. _Sammi Chekroud: https://github.com/schekroud
@@ -276,6 +278,7 @@
 .. _Senwen Deng: https://snwn.de
 .. _Seyed Yahya Shirazi: https://neuromechanist.github.io
 .. _Sheraz Khan: https://github.com/SherazKhan
+.. _Shresth Keshari: https://github.com/shresth-keshari
 .. _Shristi Baral: https://github.com/shristibaral
 .. _Silvia Cotroneo: https://github.com/sfc-neuro
 .. _Simeon Wong: https://github.com/dtxe

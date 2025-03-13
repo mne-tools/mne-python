@@ -767,6 +767,7 @@ def find_events(
     picks = pick_channels(raw.info["ch_names"], include=stim_channel)
     if len(picks) == 0:
         raise ValueError("No stim channel found to extract event triggers.")
+    logger.info(f"Finding events on: {', '.join(raw.ch_names[pick] for pick in picks)}")
     data, _ = raw[picks, :]
 
     events_list = []

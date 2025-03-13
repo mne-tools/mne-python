@@ -186,7 +186,7 @@ and
    The symbols :math:`T_x` are defined in :ref:`coordinate_system_figure`.
 
 .. tabularcolumns:: |p{0.2\linewidth}|p{0.3\linewidth}|p{0.5\linewidth}|
-.. table:: Coordinate transformations in FreeSurfer and MNE software packages.
+.. table:: Coordinate transformations in FreeSurfer and MNE software packages
 
     +------------------------------+-------------------------------+-------------------------------------------------+
     | Transformation               | FreeSurfer                    | MNE                                             |
@@ -444,8 +444,8 @@ data:
           automatically created by the MNE-C utility ``mne_list_coil_def``.
 
 .. tabularcolumns:: |p{0.1\linewidth}|p{0.3\linewidth}|p{0.1\linewidth}|p{0.25\linewidth}|p{0.2\linewidth}|
-.. _normal_coil_descriptions:
-.. table:: Normal coil descriptions.
+.. table:: Normal coil descriptions
+    :name: normal_coil_descriptions
 
     +------+-------------------------+----+----------------------------------+----------------------+
     | Id   | Description             | n  | r/mm                             | w                    |
@@ -506,8 +506,8 @@ data:
           combinations have to be included.
 
 .. tabularcolumns:: |p{0.1\linewidth}|p{0.3\linewidth}|p{0.05\linewidth}|p{0.25\linewidth}|p{0.15\linewidth}|
-.. _accurate_coil_descriptions:
 .. table:: Accurate coil descriptions
+    :name: accurate_coil_descriptions
 
     +------+-------------------------+----+----------------------------------+----------------------+
     | Id   | Description             | n  | r/mm                             | w                    |
@@ -602,8 +602,8 @@ description line containing the following fields:
 
 
 .. tabularcolumns:: |p{0.1\linewidth}|p{0.5\linewidth}|
-.. _coil_accuracies:
-.. table:: Coil representation accuracies.
+.. table:: Coil representation accuracies
+    :name: coil_accuracies
 
     =======  ====================================================================================
     Value    Meaning
