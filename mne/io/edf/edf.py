@@ -14,7 +14,6 @@ import numpy as np
 from scipy.interpolate import interp1d
 
 from ..._edf.open import edf_open, gdf_open
-
 from ..._fiff.constants import FIFF
 from ..._fiff.meas_info import _empty_info, _unique_channel_names
 from ..._fiff.utils import _blk_read_lims, _mult_cal_one
@@ -48,6 +47,8 @@ CH_TYPE_MAPPING = {
     "SAO2": FIFF.FIFFV_BIO_CH,
     "STIM": FIFF.FIFFV_STIM_CH,
 }
+
+
 @fill_doc
 class RawEDF(BaseRaw):
     """Raw object from EDF, EDF+ file.
@@ -157,7 +158,6 @@ class RawEDF(BaseRaw):
         *,
         verbose=None,
     ):
-        
         if not _file_like(input_fname):
             logger.info(f"Extracting EDF parameters from {input_fname}...")
             input_fname = os.path.abspath(input_fname)
@@ -256,6 +256,7 @@ def _path_from_fname(fname) -> Path | None:
             except Exception:
                 fname = None
     return fname
+
 
 @fill_doc
 class RawBDF(BaseRaw):
@@ -366,7 +367,6 @@ class RawBDF(BaseRaw):
         *,
         verbose=None,
     ):
-        
         if not _file_like(input_fname):
             logger.info(f"Extracting BDF parameters from {input_fname}...")
             input_fname = os.path.abspath(input_fname)
@@ -465,6 +465,7 @@ def _path_from_fname(fname) -> Path | None:
             except Exception:
                 fname = None
     return fname
+
 
 @fill_doc
 class RawGDF(BaseRaw):

@@ -1,8 +1,11 @@
 # Maybe we can move this one to utils or ssomething like that.
-from mne._fiff.open import _NoCloseRead 
-from ..utils import _file_like, _validate_type, logger, warn
 from io import BytesIO
 from pathlib import Path
+
+from mne._fiff.open import _NoCloseRead
+
+from ..utils import _file_like, _validate_type, logger, warn
+
 
 def __gdf_edf_get_fid(fname):
     """Open a EDF/BDF/GDF file with no additional parsing."""
