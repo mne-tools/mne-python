@@ -13,7 +13,7 @@ from pathlib import Path
 import numpy as np
 from scipy.interpolate import interp1d
 
-from mne._fiff.open import edf_open, gdf_open
+from ..._edf.open import edf_open, gdf_open
 
 from ..._fiff.constants import FIFF
 from ..._fiff.meas_info import _empty_info, _unique_channel_names
