@@ -6,6 +6,7 @@ import gc
 import inspect
 import os
 import os.path as op
+import platform
 import re
 import shutil
 import sys
@@ -190,6 +191,8 @@ def pytest_configure(config: pytest.Config):
     ignore:Starting field name with a underscore.*:
     # joblib
     ignore:process .* is multi-threaded, use of fork/exec.*:DeprecationWarning
+    # sklearn
+    ignore:Python binding for RankQuantileOptions.*:RuntimeWarning
     """  # noqa: E501
     for warning_line in warning_lines.split("\n"):
         warning_line = warning_line.strip()
@@ -285,9 +288,10 @@ def matplotlib_config():
 @pytest.fixture(scope="session")
 def azure_windows():
     """Determine if running on Azure Windows."""
-    return os.getenv(
-        "AZURE_CI_WINDOWS", "false"
-    ).lower() == "true" and sys.platform.startswith("win")
+    return (
+        os.getenv("AZURE_CI_WINDOWS", "false").lower() == "true"
+        and platform.system() == "Windows"
+    )
 
 
 @pytest.fixture(scope="function")

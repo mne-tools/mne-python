@@ -1453,9 +1453,7 @@ def _read_gdf_header(fname, exclude, include=None):
                     n_events = np.fromfile(fid, UINT32, 1)[0]
                 else:
                     ne = np.fromfile(fid, UINT8, 3)
-                    n_events = ne[0]
-                    for i in range(1, len(ne)):
-                        n_events = n_events + int(ne[i]) * 2 ** (i * 8)
+                    n_events = sum(int(ne[i]) << (i * 8) for i in range(len(ne)))
                     event_sr = np.fromfile(fid, FLOAT32, 1)[0]
 
                 pos = np.fromfile(fid, UINT32, n_events) - 1  # 1-based inds
