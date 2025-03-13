@@ -63,6 +63,12 @@ repos:
       - id: toml-sort-fix
         files: pyproject.toml
 
+  # module interdependencies
+  - repo: https://github.com/gauge-sh/tach-pre-commit
+    rev: v0.28.0
+    hooks:
+      - id: tach
+
   # dependencies
   - repo: local
     hooks:

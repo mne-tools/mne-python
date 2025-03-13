@@ -1,0 +1,131 @@
+interfaces = []
+exclude = [
+    "**/*__pycache__",
+    "**/*egg-info",
+    "**/tests",
+    "**/venv",
+    "mne/conftest.py"
+]
+
+source_roots = [ "mne",
+]
+
+[[modules ]]
+path = "preprocessing"
+depends_on = ["epochs", "forward", "surface", "decoding", "io", "channels", "utils", "cov", "bem", "filter", "viz", "transforms", "event", "minimum_norm"]
+
+[[modules ]]
+path = "datasets"
+depends_on = ["channels", "epochs", "utils", "label"]
+
+[[modules ]]
+path = "minimum_norm"
+depends_on = ["baseline", "time_frequency", "transforms", "io", "cov", "source_space", "surface", "epochs", "label", "event", "forward", "utils"]
+
+[[modules ]]
+path = "io"
+depends_on = ["utils", "time_frequency", "viz", "filter", "epochs", "transforms", "chpi", "preprocessing", "surface", "channels", "export", "event", "coreg"]
+
+[[modules ]]
+path = "source_space"
+depends_on = ["label", "transforms", "surface", "utils", "bem", "viz"]
+
+[[modules ]]
+path = "simulation"
+depends_on = ["source_space", "io", "label", "epochs", "utils", "chpi", "bem", "forward", "cov", "event", "surface", "transforms"]
+
+[[modules ]]
+path = "bem"
+depends_on = ["utils", "surface", "transforms", "viz"]
+
+[[modules ]]
+path = "epochs"
+depends_on = ["export", "channels", "utils", "chpi", "baseline", "io", "viz", "time_frequency", "preprocessing", "filter", "bem", "event", "forward"]
+
+[[modules ]]
+path = "coreg"
+depends_on = ["bem", "surface", "source_space", "label", "utils", "viz", "channels", "transforms"]
+
+[[modules ]]
+path = "gui"
+depends_on = ["channels", "io", "surface", "viz", "coreg", "bem", "transforms", "utils"]
+
+[[modules ]]
+path = "label"
+depends_on = ["surface", "stats", "viz", "utils", "source_space"]
+
+[[modules ]]
+path = "decoding"
+depends_on = ["epochs", "cuda", "cov", "filter", "time_frequency", "utils"]
+
+[[modules ]]
+path = "chpi"
+depends_on = ["preprocessing", "utils", "cov", "dipole", "io", "event", "channels", "transforms", "forward"]
+
+[[modules ]]
+path = "cuda"
+depends_on = ["utils"]
+
+[[modules ]]
+path = "time_frequency"
+depends_on = ["viz", "baseline", "channels", "io", "epochs", "cov", "utils", "filter"]
+
+[[modules ]]
+path = "transforms"
+depends_on = ["utils", "bem", "channels", "source_space"]
+
+[[modules ]]
+path = "baseline"
+depends_on = ["utils"]
+
+[[modules ]]
+path = "export"
+depends_on = ["io", "utils"]
+
+[[modules ]]
+path = "stats"
+depends_on = ["epochs", "source_space", "utils"]
+
+[[modules ]]
+path = "event"
+depends_on = ["io", "utils"]
+
+[[modules ]]
+path = "utils"
+depends_on = ["event", "source_space", "cov", "dipole", "channels", "io", "time_frequency", "viz", "bem", "epochs"]
+
+[[modules ]]
+path = "forward"
+depends_on = ["dipole", "label", "epochs", "source_space", "cov", "utils", "surface", "bem", "io", "transforms"]
+
+[[modules ]]
+path = "dipole"
+depends_on = ["forward", "transforms", "utils", "source_space", "cov", "bem", "surface", "viz"]
+
+[[modules ]]
+path = "inverse_sparse"
+depends_on = ["dipole", "minimum_norm", "time_frequency", "forward", "utils"]
+
+[[modules ]]
+path = "surface"
+depends_on = ["bem", "utils", "transforms", "channels"]
+
+[[modules ]]
+path = "viz"
+depends_on = ["preprocessing", "utils", "io", "baseline", "time_frequency", "stats", "source_space", "bem", "coreg", "forward", "transforms", "surface", "dipole", "channels", "label", "minimum_norm", "chpi", "cov", "epochs", "filter"]
+
+[[modules ]]
+path = "channels"
+depends_on = ["preprocessing", "utils", "bem", "viz", "forward", "io", "transforms", "surface", "cov", "time_frequency", "epochs"]
+
+[[modules ]]
+path = "filter"
+depends_on = ["utils", "epochs", "io", "cuda", "time_frequency"]
+
+[[modules ]]
+path = "beamformer"
+depends_on = ["channels", "minimum_norm", "time_frequency", "utils", "cov", "source_space", "inverse_sparse", "forward"]
+
+[[modules ]]
+path = "cov"
+depends_on = ["viz", "utils", "epochs", "io", "event"]

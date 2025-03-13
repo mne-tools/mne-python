@@ -148,6 +148,7 @@ test = [
   "pytest-qt",
   "pytest-timeout",
   "ruff",
+  "tach",
   "toml-sort",
   "tomli; python_version<'3.11'",
   "twine",
