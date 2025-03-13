@@ -1613,7 +1613,7 @@ def test_source_estime_project(real):
     assert_allclose(directions, want_nn, atol=2e-6)
 
 
-# @testing.requires_testing_data
+@testing.requires_testing_data
 def test_source_estime_project_label():
     """Test projecting a source estimate onto direction of max power."""
     fwd = read_forward_solution(fname_fwd)

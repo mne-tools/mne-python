@@ -3440,9 +3440,7 @@ def _prepare_label_extraction(stc, labels, src, mode, allow_empty, use_sparse):
     # only computes vertex indices and label_flip will be list of None.
     from .label import BiHemiLabel, Label, label_sign_flip
 
-    # logger.info("Selected mode: " + mode)
-    # print("Entering _prepare_label_extraction")
-    # print("Selected mode: " + mode)
+    logger.debug(f"Selected mode: {mode}")
 
     # if source estimate provided in stc, get vertices from source space and
     # check that they are the same as in the stcs
@@ -3456,7 +3454,6 @@ def _prepare_label_extraction(stc, labels, src, mode, allow_empty, use_sparse):
 
     bad_labels = list()
     for li, label in enumerate(labels):
-        # print("Mode: " + mode + " li: " + str(li) + " label: " + str(label))
         subject = label["subject"] if use_sparse else label.subject
         # stc and src can each be None
         _check_subject(
@@ -3522,9 +3519,6 @@ def _prepare_label_extraction(stc, labels, src, mode, allow_empty, use_sparse):
             # So if we override vertno with the stc vertices, it will pick
             # the correct normals.
             with _temporary_vertices(src, stc.vertices):
-                # print(f"src: {src[:2]}")
-                # print(f"len(src): {len(src[:2])}")
-
                 this_flip = label_sign_flip(label, src[:2])[:, None]
 
         label_vertidx.append(this_vertidx)
@@ -3749,12 +3743,7 @@ def _gen_extract_label_time_course(
                     this_data.shape = (this_data.shape[0],) + stc.data.shape[1:]
                 else:
                     this_data = stc.data[vertidx]
-                # if flip is None: # Happens if fewer than 2 vertices in the label
-                # if this_data.shape[]
-                #    label_tc[i] = 0
-                # else:
                 label_tc[i] = func(flip, this_data)
-
         if mode is not None:
             offset = nvert[:-n_mean].sum()  # effectively :2 or :0
             for i, nv in enumerate(nvert[2:]):
