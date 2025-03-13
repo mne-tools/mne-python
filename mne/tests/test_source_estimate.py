@@ -1087,8 +1087,7 @@ def test_extract_label_time_course_volume(
     if cf == "head" and not mri_res:  # some missing
         with pytest.warns(RuntimeWarning, match="any vertices"):
             eltc(labels, src, allow_empty=True, mri_resolution=mri_res)
-    modes = ("mean", "max") if vector else ("mean", "max")
-    for mode in modes:
+    for mode in ("mean", "max"):
         with catch_logging() as log:
             label_tc = eltc(
                 labels,
