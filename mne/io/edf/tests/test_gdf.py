@@ -6,6 +6,7 @@ import shutil
 from datetime import date, datetime, timedelta, timezone
 
 import numpy as np
+import pytest
 import scipy.io as sio
 from numpy.testing import assert_array_almost_equal, assert_array_equal, assert_equal
 
@@ -18,8 +19,10 @@ data_path = testing.data_path(download=False)
 gdf1_path = data_path / "GDF" / "test_gdf_1.25"
 gdf2_path = data_path / "GDF" / "test_gdf_2.20"
 gdf_1ch_path = data_path / "GDF" / "test_1ch.gdf"
+empty_gdf = data_path / "GDF" / "test_empty_gdf.gdf"
 
 
+@pytest.mark.filterwarnings("ignore:Ignoring preload for GFS file.")
 @testing.requires_testing_data
 def test_gdf_data():
     """Test reading raw GDF 1.x files."""
@@ -77,6 +80,7 @@ def test_gdf_data():
     assert raw.info["meas_date"] is None
 
 
+@pytest.mark.filterwarnings("ignore:Ignoring preload for GFS file.")
 @testing.requires_testing_data
 def test_gdf2_birthday(tmp_path):
     """Test reading raw GDF 2.x files."""
@@ -107,6 +111,7 @@ def test_gdf2_birthday(tmp_path):
     )
 
 
+@pytest.mark.filterwarnings("ignore:Ignoring preload for GFS file.")
 @testing.requires_testing_data
 def test_gdf2_data():
     """Test reading raw GDF 2.x files."""
@@ -146,6 +151,7 @@ def test_gdf2_data():
     )
 
 
+@pytest.mark.filterwarnings("ignore:Ignoring preload for GFS file.")
 @testing.requires_testing_data
 def test_one_channel_gdf():
     """Test a one-channel GDF file."""
@@ -181,3 +187,40 @@ def test_gdf_include():
         gdf1_path.with_name(gdf1_path.name + ".gdf"), include=("FP1", "O1")
     )
     assert sorted(raw.ch_names) == ["FP1", "O1"]
+
+
+@pytest.mark.filterwarnings("ignore:Ignoring preload for GFS file.")
+@testing.requires_testing_data
+def test_gdf_read_from_file_like():
+    """Test that RawGDF is able to read from file-like objects for GDF files."""
+    with open(gdf1_path.with_name(gdf1_path.name + ".gdf"), "rb") as blob:
+        raw = read_raw_gdf(blob, preload=True)
+        channels = [
+            "FP1",
+            "FP2",
+            "F5",
+            "AFz",
+            "F6",
+            "T7",
+            "Cz",
+            "T8",
+            "P7",
+            "P3",
+            "Pz",
+            "P4",
+            "P8",
+            "O1",
+            "Oz",
+            "O2",
+        ]
+
+        assert raw.ch_names == channels
+
+
+@pytest.mark.filterwarnings("ignore:Ignoring preload for GFS file.")
+@testing.requires_testing_data
+def test_gdf_read_from_bad_file_like():
+    """Test that RawGDF is NOT able to read from file-like objects for non GDF files."""
+    with pytest.raises(Exception, match="Bad GDF file provided."):
+        with open(empty_gdf, "rb") as blob:
+            read_raw_gdf(blob, preload=True)
