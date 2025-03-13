@@ -12,7 +12,7 @@ source_roots = [ "mne",
 
 [[modules ]]
 path = "preprocessing"
-depends_on = ["epochs", "forward", "surface", "decoding", "io", "channels", "utils", "cov", "bem", "filter", "viz", "transforms", "event", "minimum_norm"]
+depends_on = ["epochs", "forward", "surface", "decoding", "io", "channels", "utils", "cov", "bem", "filter", "viz", "transforms", "event"]
 
 [[modules ]]
 path = "datasets"
