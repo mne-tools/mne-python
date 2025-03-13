@@ -338,10 +338,6 @@ def _test_raw_reader(
 
     # test resetting raw
     if test_kwargs:
-        try:
-            del raw._init_kwargs["file_type"]
-        except KeyError:
-            pass
         raw2 = reader(**raw._init_kwargs)
         assert set(raw.info.keys()) == set(raw2.info.keys())
         assert_array_equal(raw.times, raw2.times)

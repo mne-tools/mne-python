@@ -48,16 +48,14 @@ CH_TYPE_MAPPING = {
     "SAO2": FIFF.FIFFV_BIO_CH,
     "STIM": FIFF.FIFFV_STIM_CH,
 }
-
-
 @fill_doc
 class RawEDF(BaseRaw):
-    """Raw object from EDF, EDF+ or BDF file.
+    """Raw object from EDF, EDF+ file.
 
     Parameters
     ----------
     input_fname : path-like | file-like
-        Path to the EDF, EDF+ or BDF file. If a file-like object is provided,
+        Path to the EDF, EDF+ file. If a file-like object is provided,
         preloading must be used.
     eog : list or tuple
         Names of channels or list of indices that should be designated EOG
@@ -101,7 +99,6 @@ class RawEDF(BaseRaw):
     --------
     mne.io.Raw : Documentation of attributes and methods.
     mne.io.read_raw_edf : Recommended way to read EDF/EDF+ files.
-    mne.io.read_raw_bdf : Recommended way to read BDF files.
 
     Notes
     -----
@@ -133,7 +130,7 @@ class RawEDF(BaseRaw):
 
         >>> events[:, 2] >>= 8  # doctest:+SKIP
 
-    TAL channels called 'EDF Annotations' or 'BDF Annotations' are parsed and
+    TAL channels called 'EDF Annotations' are parsed and
     extracted annotations are stored in raw.annotations. Use
     :func:`mne.events_from_annotations` to obtain events from these
     annotations.
@@ -157,12 +154,12 @@ class RawEDF(BaseRaw):
         units=None,
         encoding="utf8",
         exclude_after_unique=False,
-        file_type=FileType.EDF,
         *,
         verbose=None,
     ):
-        logger.info(f"Extracting EDF parameters from {input_fname}...")
+        
         if not _file_like(input_fname):
+            logger.info(f"Extracting EDF parameters from {input_fname}...")
             input_fname = os.path.abspath(input_fname)
 
         info, edf_info, orig_units = _get_info(
@@ -173,7 +170,7 @@ class RawEDF(BaseRaw):
             exclude,
             infer_types,
             preload,
-            file_type,
+            FileType.EDF,
             include,
             exclude_after_unique,
         )
@@ -260,6 +257,214 @@ def _path_from_fname(fname) -> Path | None:
                 fname = None
     return fname
 
+@fill_doc
+class RawBDF(BaseRaw):
+    """Raw object from BDF file.
+
+    Parameters
+    ----------
+    input_fname : path-like | file-like
+        Path to the BDF file. If a file-like object is provided,
+        preloading must be used.
+    eog : list or tuple
+        Names of channels or list of indices that should be designated EOG
+        channels. Values should correspond to the electrodes in the file.
+        Default is None.
+    misc : list or tuple
+        Names of channels or list of indices that should be designated MISC
+        channels. Values should correspond to the electrodes in the file.
+        Default is None.
+    stim_channel : ``'auto'`` | str | list of str | int | list of int
+        Defaults to ``'auto'``, which means that channels named ``'status'`` or
+        ``'trigger'`` (case insensitive) are set to STIM. If str (or list of
+        str), all channels matching the name(s) are set to STIM. If int (or
+        list of ints), the channels corresponding to the indices are set to
+        STIM.
+    exclude : list of str
+        Channel names to exclude. This can help when reading data with
+        different sampling rates to avoid unnecessary resampling.
+    infer_types : bool
+        If True, try to infer channel types from channel labels. If a channel
+        label starts with a known type (such as 'EEG') followed by a space and
+        a name (such as 'Fp1'), the channel type will be set accordingly, and
+        the channel will be renamed to the original label without the prefix.
+        For unknown prefixes, the type will be 'EEG' and the name will not be
+        modified. If False, do not infer types and assume all channels are of
+        type 'EEG'.
+
+        .. versionadded:: 0.24.1
+    include : list of str | str
+        Channel names to be included. A str is interpreted as a regular
+        expression. 'exclude' must be empty if include is assigned.
+
+        .. versionadded:: 1.1
+    %(preload)s
+    %(units_edf_bdf_io)s
+    %(encoding_edf)s
+    %(exclude_after_unique)s
+    %(verbose)s
+
+    See Also
+    --------
+    mne.io.Raw : Documentation of attributes and methods.
+    mne.io.read_raw_bdf : Recommended way to read BDF files.
+
+    Notes
+    -----
+    %(edf_resamp_note)s
+
+    Biosemi devices trigger codes are encoded in 16-bit format, whereas system
+    codes (CMS in/out-of range, battery low, etc.) are coded in bits 16-23 of
+    the status channel (see http://www.biosemi.com/faq/trigger_signals.htm).
+    To retrieve correct event values (bits 1-16), one could do:
+
+        >>> events = mne.find_events(...)  # doctest:+SKIP
+        >>> events[:, 2] &= (2**16 - 1)  # doctest:+SKIP
+
+    The above operation can be carried out directly in :func:`mne.find_events`
+    using the ``mask`` and ``mask_type`` parameters (see
+    :func:`mne.find_events` for more details).
+
+    It is also possible to retrieve system codes, but no particular effort has
+    been made to decode these in MNE. In case it is necessary, for instance to
+    check the CMS bit, the following operation can be carried out:
+
+        >>> cms_bit = 20  # doctest:+SKIP
+        >>> cms_high = (events[:, 2] & (1 << cms_bit)) != 0  # doctest:+SKIP
+
+    It is worth noting that in some special cases, it may be necessary to shift
+    event values in order to retrieve correct event triggers. This depends on
+    the triggering device used to perform the synchronization. For instance, in
+    some files events need to be shifted by 8 bits:
+
+        >>> events[:, 2] >>= 8  # doctest:+SKIP
+
+    TAL channels called 'BDF Annotations' are parsed and
+    extracted annotations are stored in raw.annotations. Use
+    :func:`mne.events_from_annotations` to obtain events from these
+    annotations.
+
+    If channels named 'status' or 'trigger' are present, they are considered as
+    STIM channels by default. Use func:`mne.find_events` to parse events
+    encoded in such analog stim channels.
+    """
+
+    @verbose
+    def __init__(
+        self,
+        input_fname,
+        eog=None,
+        misc=None,
+        stim_channel="auto",
+        exclude=(),
+        infer_types=False,
+        preload=False,
+        include=None,
+        units=None,
+        encoding="utf8",
+        exclude_after_unique=False,
+        *,
+        verbose=None,
+    ):
+        
+        if not _file_like(input_fname):
+            logger.info(f"Extracting BDF parameters from {input_fname}...")
+            input_fname = os.path.abspath(input_fname)
+
+        info, edf_info, orig_units = _get_info(
+            input_fname,
+            stim_channel,
+            eog,
+            misc,
+            exclude,
+            infer_types,
+            preload,
+            FileType.BDF,
+            include,
+            exclude_after_unique,
+        )
+        logger.info("Creating raw.info structure...")
+
+        _validate_type(units, (str, None, dict), "units")
+        if units is None:
+            units = dict()
+        elif isinstance(units, str):
+            units = {ch_name: units for ch_name in info["ch_names"]}
+
+        for k, (this_ch, this_unit) in enumerate(orig_units.items()):
+            if this_ch not in units:
+                continue
+            if this_unit not in ("", units[this_ch]):
+                raise ValueError(
+                    f"Unit for channel {this_ch} is present in the file as "
+                    f"{repr(this_unit)}, cannot overwrite it with the units "
+                    f"argument {repr(units[this_ch])}."
+                )
+            if this_unit == "":
+                orig_units[this_ch] = units[this_ch]
+                ch_type = edf_info["ch_types"][k]
+                scaling = _get_scaling(ch_type.lower(), orig_units[this_ch])
+                edf_info["units"][k] /= scaling
+
+        # Raw attributes
+        last_samps = [edf_info["nsamples"] - 1]
+        super().__init__(
+            info,
+            preload,
+            filenames=[_path_from_fname(input_fname)],
+            raw_extras=[edf_info],
+            last_samps=last_samps,
+            orig_format="int",
+            orig_units=orig_units,
+            verbose=verbose,
+        )
+
+        # Read annotations from file and set it
+        if len(edf_info["tal_idx"]) > 0:
+            # Read TAL data exploiting the header info (no regexp)
+            idx = np.empty(0, int)
+            tal_data = self._read_segment_file(
+                np.empty((0, self.n_times)),
+                idx,
+                0,
+                0,
+                int(self.n_times),
+                np.ones((len(idx), 1)),
+                None,
+            )
+            annotations = _read_annotations_edf(
+                tal_data[0],
+                ch_names=info["ch_names"],
+                encoding=encoding,
+            )
+            self.set_annotations(annotations, on_missing="warn")
+
+    def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
+        """Read a chunk of raw data."""
+        return _read_segment_file(
+            data,
+            idx,
+            fi,
+            start,
+            stop,
+            self._raw_extras[fi],
+            self.filenames[fi],
+            cals,
+            mult,
+        )
+
+
+def _path_from_fname(fname) -> Path | None:
+    if not isinstance(fname, Path):
+        if isinstance(fname, str):
+            fname = Path(fname)
+        else:
+            # Try to get a filename from the file-like object
+            try:
+                fname = Path(fname.name)
+            except Exception:
+                fname = None
+    return fname
 
 @fill_doc
 class RawGDF(BaseRaw):
@@ -1791,7 +1996,6 @@ def read_raw_edf(
         units=units,
         encoding=encoding,
         exclude_after_unique=exclude_after_unique,
-        file_type=FileType.EDF,
         verbose=verbose,
     )
 
@@ -1920,7 +2124,7 @@ def read_raw_bdf(
         if not preload:
             raise ValueError("preload must be used with file-like objects")
 
-    return RawEDF(
+    return RawBDF(
         input_fname=input_fname,
         eog=eog,
         misc=misc,
@@ -1932,7 +2136,6 @@ def read_raw_bdf(
         units=units,
         encoding=encoding,
         exclude_after_unique=exclude_after_unique,
-        file_type=FileType.BDF,
         verbose=verbose,
     )
 

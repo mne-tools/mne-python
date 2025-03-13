@@ -174,7 +174,7 @@ def test_bdf_data():
         test_scaling=test_scaling,
     )
     assert len(raw_py.ch_names) == 71
-    assert "RawEDF" in repr(raw_py)
+    assert "RawBDF" in repr(raw_py)
     picks = pick_types(raw_py.info, meg=False, eeg=True, exclude="bads")
     data_py, _ = raw_py[picks]
 
