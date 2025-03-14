@@ -1479,7 +1479,10 @@ def label_sign_flip(label, src):
         hemis["lh"] = {"id": 0, "vertno": src[0]["vertno"]}
         hemis["rh"] = {"id": 1, "vertno": src[1]["vertno"]}
     elif label.hemi in ("lh", "rh"):
-        hemis[label.hemi] = {"id": 0, "vertno": src[0]["vertno"]}
+        # If two sources available, the hemisphere's ID must be looked up.
+        # If only a single source, the ID is zero.
+        index_ = ("lh", "rh").index(label.hemi) if len(src) == 2 else 0
+        hemis[label.hemi] = {"id": index_, "vertno": src[index_]["vertno"]}
     else:
         raise Exception(f'Unknown hemisphere type "{label.hemi}"')
 
@@ -1494,7 +1497,7 @@ def label_sign_flip(label, src):
         else:
             vertices = getattr(label, hemi).vertices
         vertno_sel = np.intersect1d(hemi_infos["vertno"], vertices)
-        ori.append(src[hemi_infos["id"]["nn"][vertno_sel]])
+        ori.append(src[hemi_infos["id"]]["nn"][vertno_sel])
     if len(ori) == 0:
         raise Exception(f'Unknown hemisphere type "{label.hemi}"')
     ori = np.concatenate(ori, axis=0)
