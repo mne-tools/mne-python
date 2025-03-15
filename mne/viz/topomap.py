@@ -124,7 +124,7 @@ def _prepare_topomap_plot(inst, ch_type, sphere=None):
     info["bads"] = _clean_names(info["bads"])
     info._check_consistency()
 
-    if any(ch["coil_type"] in _opm_coils for ch in inst.info["chs"]):
+    if any(ch["coil_type"] in _opm_coils for ch in info["chs"]):
         modality = "opm"
     elif ch_type in _fnirs_types:
         modality = "fnirs"
