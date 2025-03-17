@@ -681,6 +681,7 @@ linkcheck_ignore = [  # will be compiled to regex
     "http://www.cs.ucl.ac.uk/staff/d.barber/brml",
     "https://www.cea.fr",
     "http://www.humanconnectome.org/data",
+    "https://www.mail-archive.com/freesurfer@nmr.mgh.harvard.edu",
     # Max retries exceeded
     "https://doi.org/10.7488/ds/1556",
     "https://datashare.is.ed.ac.uk/handle/10283",

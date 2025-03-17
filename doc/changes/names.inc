@@ -277,6 +277,7 @@
 .. _Senwen Deng: https://snwn.de
 .. _Seyed Yahya Shirazi: https://neuromechanist.github.io
 .. _Sheraz Khan: https://github.com/SherazKhan
+.. _Shresth Keshari: https://github.com/shresth-keshari
 .. _Shristi Baral: https://github.com/shristibaral
 .. _Silvia Cotroneo: https://github.com/sfc-neuro
 .. _Simeon Wong: https://github.com/dtxe
