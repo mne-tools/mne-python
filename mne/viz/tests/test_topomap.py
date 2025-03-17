@@ -777,6 +777,7 @@ def test_plot_topomap_bads_grad():
     assert len(info["chs"]) == 203
     plot_topomap(data, info, res=8)
 
+
 @testing.requires_testing_data
 def test_plot_topomap_opm():
     """Test plotting topomap with OPM data."""
@@ -784,7 +785,9 @@ def test_plot_topomap_opm():
     evoked = read_evokeds(opm_fname, kind="average")[0]
 
     # plot evoked topomap
-    fig_evoked = evoked.plot_topomap(times=[-.1, 0, .1, .2], ch_type="mag", show=False)
+    fig_evoked = evoked.plot_topomap(
+        times=[-0.1, 0, 0.1, 0.2], ch_type="mag", show=False
+    )
     assert len(fig_evoked.axes) == 5
 
 
