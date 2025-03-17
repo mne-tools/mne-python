@@ -777,15 +777,15 @@ def test_plot_topomap_bads_grad():
     assert len(info["chs"]) == 203
     plot_topomap(data, info, res=8)
 
-
+@testing.requires_testing_data
 def test_plot_topomap_opm():
     """Test plotting topomap with OPM data."""
     # load data
-    evoked = read_evokeds(opm_fname, kind="average")
+    evoked = read_evokeds(opm_fname, kind="average")[0]
 
     # plot evoked topomap
-    fig_evoked = evoked.plot_topomap(ch_type="mag", show=False)
-    assert len(fig_evoked.axes) == 2
+    fig_evoked = evoked.plot_topomap(times=[-.1, 0, .1, .2], ch_type="mag", show=False)
+    assert len(fig_evoked.axes) == 5
 
 
 def test_plot_topomap_nirs_overlap(fnirs_epochs):
