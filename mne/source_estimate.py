@@ -1884,7 +1884,7 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
     """
 
     @verbose
-    def save(self, fname, ftype="stc", *, overwrite=False, verbose=None):
+    def save(self, fname, ftype="auto", *, overwrite=False, verbose=None):
         """Save the source estimates to a file.
 
         Parameters
@@ -1895,7 +1895,7 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
             ``"-lh.w"`` and ``"-rh.w"``) to the stem provided, for the left and
             the right hemisphere, respectively.
         ftype : str
-            File format to use. Allowed values are ``"stc"`` (default),
+            File format to use. Allowed values are ``"stc"`` (default is set to auto),
             ``"w"``, and ``"h5"``. The ``"w"`` format only supports a single
             time point.
         %(overwrite)s
