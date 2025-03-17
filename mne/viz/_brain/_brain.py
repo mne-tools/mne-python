@@ -2338,7 +2338,9 @@ class Brain:
         self._remove("forward", render=True)
 
     @fill_doc
-    def add_dipole(self, dipole, trans, colors="red", alpha=1, scales=None):
+    def add_dipole(
+        self, dipole, trans, colors="red", alpha=1, scales=None, *, mode="arrow"
+    ):
         """Add a quiver to render positions of dipoles.
 
         Parameters
@@ -2354,6 +2356,10 @@ class Brain:
         scales : list | float | None
             The size of the arrow representing the dipole in
             :class:`mne.viz.Brain` units. Default 5mm.
+        mode : str
+            The drawing mode for the dipole to render. May be one of
+            ``("2darrow", "arrow", "cone", "cylinder", "sphere", "oct")``.
+            Defaults to ``"arrow"``.
 
         Notes
         -----
@@ -2392,7 +2398,7 @@ class Brain:
                     *this_ori,
                     color=color,
                     opacity=alpha,
-                    mode="arrow",
+                    mode=mode,
                     scale=scale,
                 )
                 self._add_actor("dipole", actor)
