@@ -3605,13 +3605,17 @@ class Report:
                 coord_frame="mri",
             )
             img, caption = _iterate_trans_views(
-                function=plot_alignment, alpha=0.5, **kwargs
+                function=plot_alignment,
+                alpha=0.5,
+                max_width=self.img_max_width,
+                max_res=self.img_max_res,
+                **kwargs
             )
             self._add_image(
                 img=img,
                 title="Alignment",
                 section=section,
-                caption=caption,
+                caption=None,
                 image_format="png",
                 tags=tags,
                 replace=replace,
@@ -3637,8 +3641,26 @@ class Report:
                 replace=replace,
             )
 
+            if src.kind == "surface" or src.kind == "mixed":
+                surfaces=dict(head=0.1, white=0.5)
+            else:
+                surfaces=dict(head=0.1)
+
+            kwargs = dict(
+                trans=trans,
+                src=src,
+                subject=subject,
+                subjects_dir=subjects_dir,
+                show_axes=False,
+                coord_frame="mri",
+                surfaces=surfaces,
+            )
             img, caption = _iterate_alignment_views(
-                function=src.plot, alpha=0.5, **kwargs
+                function=plot_alignment,
+                alpha=0.5,
+                max_width=self.img_max_width,
+                max_res=self.img_max_res,
+                **kwargs
             )
             self._add_image(
                 img=img,
