@@ -1884,7 +1884,7 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
     """
 
     @verbose
-    def save(self, fname, ftype="auto", *, overwrite=False, verbose=None):
+    def save(self, fname, ftype=None, overwrite=False, verbose=None):
         """Save the source estimates to a file.
 
         Parameters
@@ -1894,18 +1894,26 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
             spaces are obtained by adding ``"-lh.stc"`` and ``"-rh.stc"`` (or
             ``"-lh.w"`` and ``"-rh.w"``) to the stem provided, for the left and
             the right hemisphere, respectively.
-        ftype : str
-            File format to use. Allowed values are ``"stc"`` (default is set to auto),
-            ``"w"``, and ``"h5"``. The ``"w"`` format only supports a single
-            time point.
+        ftype : str | None
+            File format to use. If None, the file format is inferred from the
+            file extension. Allowed values are ``"stc"``, ``"w"``, and ``"h5"``.
+            The ``"w"`` format only supports a single time point.
         %(overwrite)s
 
             .. versionadded:: 1.0
         %(verbose)s
         """
         fname = str(_check_fname(fname=fname, overwrite=True))  # checked below
+        if ftype is None:
+            if fname.endswith((".stc", "-lh.stc", "-rh.stc")):
+                ftype = "stc"
+            elif fname.endswith((".w", "-lh.w", "-rh.w")):
+                ftype = "w"
+            elif fname.endswith(".h5"):
+                ftype = "h5"
+            else:
+                raise ValueError("Cannot infer file type, please specify ftype.")
         _check_option("ftype", ftype, ["stc", "w", "h5"])
-
         lh_data = self.data[: len(self.lh_vertno)]
         rh_data = self.data[-len(self.rh_vertno) :]
 
@@ -1918,6 +1926,8 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
                     "real numbers before saving."
                 )
             logger.info("Writing STC to disk...")
+            if fname.endswith(".stc"):
+                fname = fname[:-4]
             fname_l = str(_check_fname(fname + "-lh.stc", overwrite=overwrite))
             fname_r = str(_check_fname(fname + "-rh.stc", overwrite=overwrite))
             _write_stc(
