@@ -2356,9 +2356,8 @@ class Brain:
         scales : list | float | None
             The size of the arrow representing the dipole in
             :class:`mne.viz.Brain` units. Default 5mm.
-        mode : str
-            The drawing mode for the dipole to render. May be one of
-            ``("2darrow", "arrow", "cone", "cylinder", "sphere", "oct")``.
+        mode : "2darrow" | "arrow" | "cone" | "cylinder" | "sphere" | "oct"
+            The drawing mode for the dipole to render.
             Defaults to ``"arrow"``.
 
         Notes
