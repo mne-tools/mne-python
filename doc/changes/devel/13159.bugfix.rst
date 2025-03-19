@@ -1,0 +1,1 @@
+Changed `exclude=None` to `exclude="bads"` in :func:`~mne.viz.evoked.plot_evoked_joint`, because `None` was not a valid argument for this parameter. By `Scott Huberty`_.
