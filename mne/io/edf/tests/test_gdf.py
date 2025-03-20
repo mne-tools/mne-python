@@ -2,9 +2,9 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-from io import SEEK_SET, BytesIO
 import shutil
 from datetime import date, datetime, timedelta, timezone
+from io import BytesIO
 
 import numpy as np
 import pytest
@@ -188,7 +188,8 @@ def test_gdf_include():
         gdf1_path.with_name(gdf1_path.name + ".gdf"), include=("FP1", "O1")
     )
     assert sorted(raw.ch_names) == ["FP1", "O1"]
-    
+
+
 @pytest.mark.filterwarnings("ignore:Ignoring preload for GFS file.")
 @testing.requires_testing_data
 def test_gdf_read_from_file_like():

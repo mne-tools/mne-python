@@ -966,9 +966,9 @@ def test_degenerate():
         with pytest.raises(
             NotImplementedError, match="Only GDF, EDF, and BDF files are supported."
         ):
-            partial(
-                _read_header, exclude=(), infer_types=False, file_type=4
-            )(edf_txt_stim_channel_path)
+            partial(_read_header, exclude=(), infer_types=False, file_type=4)(
+                edf_txt_stim_channel_path
+            )
 
 
 def test_exclude():
@@ -1225,6 +1225,7 @@ def test_bdf_read_from_bad_file_like():
     with pytest.raises(Exception, match="Bad BDF file provided."):
         with open(edf_txt_stim_channel_path, "rb") as blob:
             read_raw_bdf(BytesIO(blob.read()), preload=True)
+
 
 def test_bdf_read_from_file_like():
     """Test that RawEDF is able to read from file-like objects for BDF files."""

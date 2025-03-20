@@ -1,11 +1,15 @@
 import io
 import os
 import typing
+
 import numpy
 
 AnyFile = typing.Union[str, bytes, os.PathLike, io.IOBase]
 
-def numpy_fromfile(file: AnyFile, dtype: numpy.typing.DTypeLike = float, count: int = -1):
+
+def numpy_fromfile(
+    file: AnyFile, dtype: numpy.typing.DTypeLike = float, count: int = -1
+):
     """numpy.fromfile() wrapper, handling io.BytesIO file-like streams.
 
     Numpy requires open files to be actual files on disk, i.e., must support
@@ -20,7 +24,7 @@ def numpy_fromfile(file: AnyFile, dtype: numpy.typing.DTypeLike = float, count: 
     try:
         return numpy.fromfile(file, dtype=dtype, count=count)
     except io.UnsupportedOperation as e:
-        if not (e.args and e.args[0] == 'fileno' and isinstance(file, io.IOBase)):
+        if not (e.args and e.args[0] == "fileno" and isinstance(file, io.IOBase)):
             raise  # Nothing I can do about it
         dtype = numpy.dtype(dtype)
         buffer = file.read(dtype.itemsize * count)
