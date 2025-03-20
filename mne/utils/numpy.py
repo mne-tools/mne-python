@@ -1,9 +1,8 @@
 import io
 import os
-import typing
 import numpy
 
-AnyFile = typing.Union[str, bytes, os.PathLike, io.IOBase]
+AnyFile = str | bytes | os.PathLike | io.IOBase
 
 def numpy_fromfile(file: AnyFile, dtype: numpy.typing.DTypeLike = float, count: int = -1):
     """numpy.fromfile() wrapper, handling io.BytesIO file-like streams.
