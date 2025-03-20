@@ -382,5 +382,5 @@ from .numerics import (
     split_list,
     sum_squared,
 )
-from .progressbar import ProgressBar
 from .numpy import numpy_fromfile
+from .progressbar import ProgressBar

@@ -19,7 +19,15 @@ from ..._fiff.meas_info import _empty_info, _unique_channel_names
 from ..._fiff.utils import _blk_read_lims, _mult_cal_one
 from ...annotations import Annotations
 from ...filter import resample
-from ...utils import _file_like, _validate_type, fill_doc, logger, verbose, warn, numpy_fromfile
+from ...utils import (
+    _file_like,
+    _validate_type,
+    fill_doc,
+    logger,
+    numpy_fromfile,
+    verbose,
+    warn,
+)
 from ..base import BaseRaw, _get_scaling
 
 
@@ -175,7 +183,7 @@ class RawEDF(BaseRaw):
         )
         logger.info("Creating raw.info structure...")
         edf_info["blob"] = input_fname if _file_like(input_fname) else None
-        
+
         _validate_type(units, (str, None, dict), "units")
         if units is None:
             units = dict()
@@ -207,7 +215,7 @@ class RawEDF(BaseRaw):
             last_samps=last_samps,
             orig_format="int",
             orig_units=orig_units,
-            verbose=verbose
+            verbose=verbose,
         )
 
         # Read annotations from file and set it
@@ -221,7 +229,7 @@ class RawEDF(BaseRaw):
                 0,
                 int(self.n_times),
                 np.ones((len(idx), 1)),
-                None
+                None,
             )
             annotations = _read_annotations_edf(
                 tal_data[0],
@@ -239,7 +247,9 @@ class RawEDF(BaseRaw):
             start,
             stop,
             self._raw_extras[fi],
-            self.filenames[fi] if self._raw_extras[fi]["blob"] is None else self._raw_extras[fi]["blob"],
+            self.filenames[fi]
+            if self._raw_extras[fi]["blob"] is None
+            else self._raw_extras[fi]["blob"],
             cals,
             mult,
         )
@@ -448,7 +458,9 @@ class RawBDF(BaseRaw):
             start,
             stop,
             self._raw_extras[fi],
-            self.filenames[fi] if self._raw_extras[fi]["blob"] is None else self._raw_extras[fi]["blob"],
+            self.filenames[fi]
+            if self._raw_extras[fi]["blob"] is None
+            else self._raw_extras[fi]["blob"],
             cals,
             mult,
         )
@@ -526,7 +538,6 @@ class RawGDF(BaseRaw):
         include=None,
         verbose=None,
     ):
-
         if not _file_like(input_fname):
             logger.info(f"Extracting EDF parameters from {input_fname}...")
             input_fname = os.path.abspath(input_fname)
@@ -575,7 +586,9 @@ class RawGDF(BaseRaw):
             start,
             stop,
             self._raw_extras[fi],
-            self.filenames[fi] if self._raw_extras[fi]["blob"] is None else self._raw_extras[fi]["blob"],
+            self.filenames[fi]
+            if self._raw_extras[fi]["blob"] is None
+            else self._raw_extras[fi]["blob"],
             cals,
             mult,
         )
@@ -1872,7 +1885,7 @@ def read_raw_edf(
     Parameters
     ----------
     input_fname : path-like
-        Path to the EDF or EDF+ file or EDF/EDF+ file itself. If a file-like 
+        Path to the EDF or EDF+ file or EDF/EDF+ file itself. If a file-like
         object is provided, preload must be used.
     eog : list or tuple
         Names of channels or list of indices that should be designated EOG
