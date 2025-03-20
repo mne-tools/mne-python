@@ -2,6 +2,7 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+from io import SEEK_SET, BytesIO
 import shutil
 from datetime import date, datetime, timedelta, timezone
 
@@ -187,14 +188,13 @@ def test_gdf_include():
         gdf1_path.with_name(gdf1_path.name + ".gdf"), include=("FP1", "O1")
     )
     assert sorted(raw.ch_names) == ["FP1", "O1"]
-
-
+    
 @pytest.mark.filterwarnings("ignore:Ignoring preload for GFS file.")
 @testing.requires_testing_data
 def test_gdf_read_from_file_like():
     """Test that RawGDF is able to read from file-like objects for GDF files."""
     with open(gdf1_path.with_name(gdf1_path.name + ".gdf"), "rb") as blob:
-        raw = read_raw_gdf(blob, preload=True)
+        raw = read_raw_gdf(BytesIO(blob.read()), preload=True)
         channels = [
             "FP1",
             "FP2",
@@ -223,4 +223,4 @@ def test_gdf_read_from_bad_file_like():
     """Test that RawGDF is NOT able to read from file-like objects for non GDF files."""
     with pytest.raises(Exception, match="Bad GDF file provided."):
         with open(empty_gdf, "rb") as blob:
-            read_raw_gdf(blob, preload=True)
+            read_raw_gdf(BytesIO(blob.read()), preload=True)
