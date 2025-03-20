@@ -743,7 +743,7 @@ def _read_header(
     Parameters
     ----------
     fname : str
-        Path to the EDF+, BDF, or GDF file.
+        Path to the EDF+, BDF, or GDF file or file-like object.
     exclude : list of str | str
         Channel names to exclude. This can help when reading data with
         different sampling rates to avoid unnecessary resampling. A str is
@@ -1879,7 +1879,8 @@ def read_raw_edf(
     Parameters
     ----------
     input_fname : path-like
-        Path to the EDF or EDF+ file.
+        Path to the EDF or EDF+ file or EDF/EDF+ file itself. If a file-like 
+        object is provided, preload must be used.
     eog : list or tuple
         Names of channels or list of indices that should be designated EOG
         channels. Values should correspond to the electrodes in the file.
@@ -2021,8 +2022,9 @@ def read_raw_bdf(
 
     Parameters
     ----------
-    input_fname : path-like
-        Path to the BDF file.
+    input_fname : path-like | file-like
+        Path to the BDF file of BDF file itself. If a file-like object is
+        provided, preload must be used.
     eog : list or tuple
         Names of channels or list of indices that should be designated EOG
         channels. Values should correspond to the electrodes in the file.
@@ -2156,8 +2158,9 @@ def read_raw_gdf(
 
     Parameters
     ----------
-    input_fname : path-like
-        Path to the GDF file.
+    input_fname : path-like | file-like
+        Path to the GDF file or GDF file itself. If a file-like object is
+        provided, preload must be used.
     eog : list or tuple
         Names of channels or list of indices that should be designated EOG
         channels. Values should correspond to the electrodes in the file.
