@@ -1,5 +1,6 @@
 import io
 import os
+
 import numpy
 
 AnyFile = str | bytes | os.PathLike | io.IOBase
