@@ -526,9 +526,9 @@ class RawGDF(BaseRaw):
         include=None,
         verbose=None,
     ):
-        logger.info(f"Extracting EDF parameters from {input_fname}...")
 
         if not _file_like(input_fname):
+            logger.info(f"Extracting EDF parameters from {input_fname}...")
             input_fname = os.path.abspath(input_fname)
 
         info, edf_info, orig_units = _get_info(
