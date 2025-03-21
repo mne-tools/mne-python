@@ -1912,7 +1912,10 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
             elif fname.endswith(".h5"):
                 ftype = "h5"
             else:
-                raise ValueError("Cannot infer file type, please specify ftype.")
+                logger.info(
+                    "Cannot infer file type from `fname`; falling back to `.stc` format"
+                )
+                ftype = "stc"
         _check_option("ftype", ftype, ["stc", "w", "h5"])
         lh_data = self.data[: len(self.lh_vertno)]
         rh_data = self.data[-len(self.rh_vertno) :]
