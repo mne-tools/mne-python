@@ -1895,9 +1895,9 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
             ``"-lh.w"`` and ``"-rh.w"``) to the stem provided, for the left and
             the right hemisphere, respectively.
         ftype : str | None
-            File format to use. If "auto", the file format is inferred from the
-            file extension. Allowed values are ``"stc"``, ``"w"``, and ``"h5"``.
-            The ``"w"`` format only supports a single time point.
+            File format to use. If "auto", the file format will be inferred from the
+            file extension if possible. Other allowed values are ``"stc"``, ``"w"``, and
+            ``"h5"``. The ``"w"`` format only supports a single time point.
         %(overwrite)s
 
             .. versionadded:: 1.0
