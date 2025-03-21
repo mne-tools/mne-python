@@ -190,7 +190,6 @@ def test_gdf_include():
     assert sorted(raw.ch_names) == ["FP1", "O1"]
 
 
-@pytest.mark.filterwarnings("ignore:Ignoring preload for GFS file.")
 @testing.requires_testing_data
 def test_gdf_read_from_file_like():
     """Test that RawGDF is able to read from file-like objects for GDF files."""
@@ -218,7 +217,6 @@ def test_gdf_read_from_file_like():
         assert raw.ch_names == channels
 
 
-@pytest.mark.filterwarnings("ignore:Ignoring preload for GFS file.")
 @testing.requires_testing_data
 def test_gdf_read_from_bad_file_like():
     """Test that RawGDF is NOT able to read from file-like objects for non GDF files."""
