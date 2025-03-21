@@ -1894,7 +1894,7 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
             spaces are obtained by adding ``"-lh.stc"`` and ``"-rh.stc"`` (or
             ``"-lh.w"`` and ``"-rh.w"``) to the stem provided, for the left and
             the right hemisphere, respectively.
-        ftype : str | None
+        ftype : "auto" | "stc" | "w" | "h5"
             File format to use. If "auto", the file format will be inferred from the
             file extension if possible. Other allowed values are ``"stc"``, ``"w"``, and
             ``"h5"``. The ``"w"`` format only supports a single time point.
