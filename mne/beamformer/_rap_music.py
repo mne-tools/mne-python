@@ -5,7 +5,6 @@
 # Copyright the MNE-Python contributors.
 
 import numpy as np
-from scipy import linalg
 
 from .._fiff.pick import pick_channels_forward, pick_info
 from ..fixes import _safe_svd
@@ -48,6 +47,8 @@ def _apply_rap_music(
         Data explained by the dipoles using a least square fitting with the
         selected active dipoles and their estimated orientation.
     """
+    from scipy import linalg
+
     info = pick_info(info, picks)
     del picks
     # things are much simpler if we avoid surface orientation

@@ -10,8 +10,6 @@ from functools import partial
 from math import gcd
 
 import numpy as np
-from scipy import fft, signal
-from scipy.stats import f as fstat
 
 from ._fiff.pick import _picks_to_idx
 from ._ola import _COLA
@@ -387,7 +385,9 @@ def _1d_overlap_filter(x, n_h, n_edge, phase, cuda_dict, pad, n_fft):
 
 def _filter_attenuation(h, freq, gain):
     """Compute minimum attenuation at stop frequency."""
-    _, filt_resp = signal.freqz(h.ravel(), worN=np.pi * freq)
+    from scipy.signal import freqz
+
+    _, filt_resp = freqz(h.ravel(), worN=np.pi * freq)
     filt_resp = np.abs(filt_resp)  # use amplitude response
     filt_resp[np.where(gain == 1)] = 0
     idx = np.argmax(filt_resp)
@@ -420,6 +420,8 @@ def _prep_for_filtering(x, copy, picks=None):
 
 def _firwin_design(N, freq, gain, window, sfreq):
     """Construct a FIR filter using firwin."""
+    from scipy.signal import firwin
+
     assert freq[0] == 0
     assert len(freq) > 1
     assert len(freq) == len(gain)
@@ -444,7 +446,7 @@ def _firwin_design(N, freq, gain, window, sfreq):
                     f"requires {this_N} samples"
                 )
             # Construct a lowpass
-            this_h = signal.firwin(
+            this_h = firwin(
                 this_N,
                 (prev_freq + this_freq) / 2.0,
                 window=window,
@@ -475,10 +477,11 @@ def _construct_fir_filter(
     """
     assert freq[0] == 0
     if fir_design == "firwin2":
-        fir_design = signal.firwin2
+        from scipy.signal import firwin2 as fir_design
     else:
         assert fir_design == "firwin"
         fir_design = partial(_firwin_design, sfreq=sfreq)
+
     # issue a warning if attenuation is less than this
     min_att_db = 12 if phase == "minimum-half" else 20
 
@@ -526,9 +529,13 @@ def _check_zero_phase_length(N, phase, gain_nyq=0):
 def _check_coefficients(system):
     """Check for filter stability."""
     if isinstance(system, tuple):
-        z, p, k = signal.tf2zpk(*system)
+        from scipy.signal import tf2zpk
+
+        z, p, k = tf2zpk(*system)
     else:  # sos
-        z, p, k = signal.sos2zpk(system)
+        from scipy.signal import sos2zpk
+
+        z, p, k = sos2zpk(system)
     if np.any(np.abs(p) > 1.0):
         raise RuntimeError(
             "Filter poles outside unit circle, filter will be "
@@ -540,29 +547,25 @@ def _check_coefficients(system):
 def _iir_filter(x, iir_params, picks, n_jobs, copy, phase="zero"):
     """Call filtfilt or lfilter."""
     # set up array for filtering, reshape to 2D, operate on last axis
+    from scipy.signal import filtfilt, lfilter, sosfilt, sosfiltfilt
+
     x, orig_shape, picks = _prep_for_filtering(x, copy, picks)
     if phase in ("zero", "zero-double"):
         padlen = min(iir_params["padlen"], x.shape[-1] - 1)
         if "sos" in iir_params:
-            fun = partial(
-                signal.sosfiltfilt, sos=iir_params["sos"], padlen=padlen, axis=-1
-            )
+            fun = partial(sosfiltfilt, sos=iir_params["sos"], padlen=padlen, axis=-1)
             _check_coefficients(iir_params["sos"])
         else:
             fun = partial(
-                signal.filtfilt,
-                b=iir_params["b"],
-                a=iir_params["a"],
-                padlen=padlen,
-                axis=-1,
+                filtfilt, b=iir_params["b"], a=iir_params["a"], padlen=padlen, axis=-1
             )
             _check_coefficients((iir_params["b"], iir_params["a"]))
     else:
         if "sos" in iir_params:
-            fun = partial(signal.sosfilt, sos=iir_params["sos"], axis=-1)
+            fun = partial(sosfilt, sos=iir_params["sos"], axis=-1)
             _check_coefficients(iir_params["sos"])
         else:
-            fun = partial(signal.lfilter, b=iir_params["b"], a=iir_params["a"], axis=-1)
+            fun = partial(lfilter, b=iir_params["b"], a=iir_params["a"], axis=-1)
             _check_coefficients((iir_params["b"], iir_params["a"]))
     parallel, p_fun, n_jobs = parallel_func(fun, n_jobs)
     if n_jobs == 1:
@@ -592,6 +595,8 @@ def estimate_ringing_samples(system, max_try=100000):
     n : int
         The approximate ringing.
     """
+    from scipy import signal
+
     if isinstance(system, tuple):  # TF
         kind = "ba"
         b, a = system
@@ -771,6 +776,8 @@ def construct_iir_filter(
     For more information, see the tutorials
     :ref:`disc-filtering` and :ref:`tut-filter-resample`.
     """  # noqa: E501
+    from scipy.signal import freqz, iirdesign, iirfilter, sosfreqz
+
     known_filters = (
         "bessel",
         "butter",
@@ -842,7 +849,7 @@ def construct_iir_filter(
             for key in ("rp", "rs"):
                 if key in iir_params:
                     kwargs[key] = iir_params[key]
-            system = signal.iirfilter(**kwargs)
+            system = iirfilter(**kwargs)
             if phase in ("zero", "zero-double"):
                 ptype, pmul = "(effective, after forward-backward)", 2
             else:
@@ -857,7 +864,7 @@ def construct_iir_filter(
                 raise ValueError(
                     "iir_params must have at least 'gstop' and 'gpass' (or N) entries."
                 )
-            system = signal.iirdesign(
+            system = iirdesign(
                 Wp,
                 Ws,
                 iir_params["gpass"],
@@ -874,9 +881,9 @@ def construct_iir_filter(
     # get the gains at the cutoff frequencies
     if Wp is not None:
         if output == "sos":
-            cutoffs = signal.sosfreqz(system, worN=Wp * np.pi)[1]
+            cutoffs = sosfreqz(system, worN=Wp * np.pi)[1]
         else:
-            cutoffs = signal.freqz(system[0], system[1], worN=Wp * np.pi)[1]
+            cutoffs = freqz(system[0], system[1], worN=Wp * np.pi)[1]
         cutoffs = 20 * np.log10(np.abs(cutoffs))
         # 2 * 20 here because we do forward-backward filtering
         if phase in ("zero", "zero-double"):
@@ -1582,6 +1589,8 @@ def notch_filter(
 
 
 def _get_window_thresh(n_times, sfreq, mt_bandwidth, p_value):
+    from scipy import stats
+
     from .time_frequency.multitaper import _compute_mt_params
 
     # figure out what tapers to use
@@ -1590,7 +1599,7 @@ def _get_window_thresh(n_times, sfreq, mt_bandwidth, p_value):
     )
 
     # F-stat of 1-p point
-    threshold = fstat.ppf(1 - p_value / n_times, 2, 2 * len(window_fun) - 2)
+    threshold = stats.f.ppf(1 - p_value / n_times, 2, 2 * len(window_fun) - 2)
     return window_fun, threshold
 
 
@@ -1888,6 +1897,8 @@ def resample(
 
 
 def _prep_polyphase(ratio, x_len, final_len, window):
+    from scipy.signal import firwin
+
     if isinstance(window, str) and window == "auto":
         window = ("kaiser", 5.0)  # SciPy default
     up = final_len
@@ -1901,26 +1912,31 @@ def _prep_polyphase(ratio, x_len, final_len, window):
         max_rate = max(up, down)
         f_c = 1.0 / max_rate  # cutoff of FIR filter (rel. to Nyquist)
         half_len = 10 * max_rate  # reasonable cutoff for sinc-like function
-        window = signal.firwin(2 * half_len + 1, f_c, window=window)
+        window = firwin(2 * half_len + 1, f_c, window=window)
     return up, down, window
 
 
 def _resample_polyphase(x, *, up, down, pad, window, n_jobs):
+    from scipy.signal import resample_poly
+
     if pad == "auto":
         pad = "reflect"
     kwargs = dict(padtype=pad, window=window, up=up, down=down)
     _validate_type(
         n_jobs, (None, "int-like"), "n_jobs", extra="when method='polyphase'"
     )
-    parallel, p_fun, n_jobs = parallel_func(signal.resample_poly, n_jobs)
+    parallel, p_fun, n_jobs = parallel_func(resample_poly, n_jobs)
     if n_jobs == 1:
-        y = signal.resample_poly(x, axis=-1, **kwargs)
+        y = resample_poly(x, axis=-1, **kwargs)
     else:
         y = np.array(parallel(p_fun(x_, **kwargs) for x_ in x))
     return y
 
 
 def _resample_fft(x_flat, *, ratio, final_len, pad, window, npad, n_jobs):
+    from scipy import fft
+    from scipy.signal import get_window
+
     x_len = x_flat.shape[-1]
     pad = "reflect_limited" if pad == "auto" else pad
     if (isinstance(window, str) and window == "auto") or window is None:
@@ -1952,7 +1968,7 @@ def _resample_fft(x_flat, *, ratio, final_len, pad, window, npad, n_jobs):
     elif isinstance(window, np.ndarray) and window.shape == (orig_len,):
         W = window
     else:
-        W = fft.ifftshift(signal.get_window(window, orig_len))
+        W = fft.ifftshift(get_window(window, orig_len))
     W *= float(new_len) / float(orig_len)
 
     # figure out if we should use CUDA
@@ -2055,6 +2071,8 @@ def detrend(x, order=1, axis=-1):
         >>> bool((detrend(x) - noise).max() < 0.01)
         True
     """
+    from scipy.signal import detrend
+
     if axis > len(x.shape):
         raise ValueError(f"x does not have {axis} axes")
     if order == 0:
@@ -2064,7 +2082,7 @@ def detrend(x, order=1, axis=-1):
     else:
         raise ValueError("order must be 0 or 1")
 
-    y = signal.detrend(x, axis=axis, type=fit)
+    y = detrend(x, axis=axis, type=fit)
 
     return y
 
@@ -2412,6 +2430,8 @@ class FilterMixin:
         >>> evoked.savgol_filter(10.)  # low-pass at around 10 Hz # doctest:+SKIP
         >>> evoked.plot()  # doctest:+SKIP
         """  # noqa: E501
+        from scipy.signal import savgol_filter
+
         from .source_estimate import _BaseSourceEstimate
 
         _check_preload(self, "inst.savgol_filter")
@@ -2426,7 +2446,7 @@ class FilterMixin:
         # savitzky-golay filtering
         window_length = (int(np.round(s_freq / h_freq)) // 2) * 2 + 1
         logger.info("Using savgol length %d", window_length)
-        self._data[:] = signal.savgol_filter(
+        self._data[:] = savgol_filter(
             self._data, axis=-1, polyorder=5, window_length=window_length
         )
         return self
@@ -2804,8 +2824,10 @@ def _my_hilbert(x, n_fft=None, envelope=False):
     out : array, shape (n_times)
         The hilbert transform of the signal, or the envelope.
     """
+    from scipy.signal import hilbert
+
     n_x = x.shape[-1]
-    out = signal.hilbert(x, N=n_fft, axis=-1)[..., :n_x]
+    out = hilbert(x, N=n_fft, axis=-1)[..., :n_x]
     if envelope:
         out = np.abs(out)
     return out
@@ -2852,6 +2874,8 @@ def design_mne_c_filter(
     4197 frequencies are directly constructed, with zeroes in the stop-band
     and ones in the passband, with squared cosine ramps in between.
     """
+    from scipy.fft import irfft
+
     n_freqs = (4096 + 2 * 2048) // 2 + 1
     freq_resp = np.ones(n_freqs)
     l_freq = 0 if l_freq is None else float(l_freq)
@@ -2891,7 +2915,7 @@ def design_mne_c_filter(
         freq_resp[start:stop] *= np.cos(np.pi / 4.0 * k) ** 2
         freq_resp[stop:] = 0.0
     # Get the time-domain version of this signal
-    h = fft.irfft(freq_resp, n=2 * len(freq_resp) - 1)
+    h = irfft(freq_resp, n=2 * len(freq_resp) - 1)
     h = np.roll(h, n_freqs - 1)  # center the impulse like a linear-phase filt
     return h
 

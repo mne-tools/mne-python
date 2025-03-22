@@ -40,7 +40,6 @@
         "python>= 3.10",
         "decorator",
         "jinja2",
-        "lazy_loader >= 0.3",
         "matplotlib >= 3.6",
         "numpy >= 1.23,<3",
         "packaging",

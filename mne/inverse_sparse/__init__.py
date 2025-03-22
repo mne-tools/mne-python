@@ -4,6 +4,5 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-import lazy_loader as lazy
-
-(__getattr__, __dir__, __all__) = lazy.attach_stub(__name__, __file__)
+from .mxne_inverse import mixed_norm, tf_mixed_norm, make_stc_from_dipoles
+from ._gamma_map import gamma_map

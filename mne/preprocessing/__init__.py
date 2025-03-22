@@ -4,6 +4,53 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-import lazy_loader as lazy
+from ._annotate_amplitude import annotate_amplitude
+from .ssp import compute_proj_ecg, compute_proj_eog
+from .eog import find_eog_events, create_eog_epochs
+from .ecg import find_ecg_events, create_ecg_epochs
+from .ica import (
+    ICA,
+    ica_find_eog_events,
+    ica_find_ecg_events,
+    get_score_funcs,
+    read_ica,
+    corrmap,
+    read_ica_eeglab,
+)
+from .otp import oversampled_temporal_projection
+from ._peak_finder import peak_finder
+from .infomax_ import infomax
+from .stim import fix_stim_artifact
+from .maxwell import (
+    maxwell_filter,
+    find_bad_channels_maxwell,
+    compute_maxwell_basis,
+    maxwell_filter_prepare_emptyroom,
+)
+from .realign import realign_raw
+from ._csd import compute_current_source_density, compute_bridged_electrodes
 
-(__getattr__, __dir__, __all__) = lazy.attach_stub(__name__, __file__)
+from .artifact_detection import (
+    annotate_movement,
+    compute_average_dev_head_t,
+    annotate_muscle_zscore,
+    annotate_break,
+)
+from ._regress import regress_artifact, EOGRegression, read_eog_regression
+from ._fine_cal import (
+    compute_fine_calibration,
+    read_fine_calibration,
+    write_fine_calibration,
+)
+from ._annotate_nan import annotate_nan
+from .interpolate import equalize_bads, interpolate_bridged_electrodes
+
+from ._css import cortical_signal_suppression
+from .hfc import compute_proj_hfc
+from ._lof import find_bad_channels_lof
+from ._pca_obs import apply_pca_obs
+
+try:
+    from .xdawn import Xdawn
+except ImportError:
+    pass

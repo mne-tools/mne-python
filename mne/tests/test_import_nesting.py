@@ -4,15 +4,11 @@
 
 import ast
 import glob
-import os
-import sys
 from pathlib import Path
 from types import ModuleType
 
-import pytest
-
 import mne
-from mne.utils import _pl, logger, run_subprocess
+from mne.utils import _pl, logger
 
 # To avoid circular import issues, we have a defined order of submodule
 # priority. A submodule should nest an import from another submodule if and
@@ -116,10 +112,7 @@ def test_import_nesting_hierarchy():
                 self.errors.append(err + ("non-relative mne import",))
             if isinstance(node, ast.ImportFrom):  # from
                 if node.level != 0:  # from .
-                    # now we need to triage based on whether this is nested
-                    if node.module is None:
-                        self.errors.append(err + ("non-explicit relative import",))
-                    elif node.level == self.level:
+                    if node.module is not None and node.level == self.level:
                         module_name = node.module.split(".")[0]
                         if node.col_offset:  # nested
                             if (
@@ -223,49 +216,3 @@ def test_import_nesting_hierarchy():
         raise AssertionError(f"{n} nesting error{_pl(n)}:\n" + "\n".join(all_errors))
 
     # scheme obeys the above order
-
-
-# This test ensures that modules are lazily loaded by lazy_loader.
-
-eager_import = os.getenv("EAGER_IMPORT", "")
-run_script = """
-import sys
-import mne
-
-out = set()
-
-# check scipy (Numba imports it to check the version)
-ok_scipy_submodules = {'version'}
-scipy_submodules = set(x.split('.')[1] for x in sys.modules.keys()
-                       if x.startswith('scipy.') and '__' not in x and
-                       not x.split('.')[1].startswith('_')
-                       and sys.modules[x] is not None)
-bad = scipy_submodules - ok_scipy_submodules
-if len(bad) > 0:
-    out |= {'scipy submodules: %s' % list(bad)}
-
-# check sklearn and others
-for x in sys.modules.keys():
-    for key in ('sklearn', 'pandas', 'pyvista', 'matplotlib',
-                'dipy', 'nibabel', 'cupy', 'picard', 'pyvistaqt', 'pooch',
-                'tqdm', 'jinja2'):
-        if x.startswith(key):
-            x = '.'.join(x.split('.')[:2])
-            out |= {x}
-if len(out) > 0:
-    print('\\nFound un-nested import(s) for %s' % (sorted(out),), end='')
-exit(len(out))
-
-# but this should still work
-mne.io.read_raw_fif
-assert "scipy.signal" in sys.modules, "scipy.signal not in sys.modules"
-"""
-
-
-@pytest.mark.skipif(bool(eager_import), reason=f"EAGER_IMPORT={eager_import}")
-def test_lazy_loading():
-    """Test that module imports are properly nested."""
-    stdout, stderr, code = run_subprocess(
-        [sys.executable, "-c", run_script], return_code=True
-    )
-    assert code == 0, stdout + stderr

@@ -17,7 +17,6 @@ from math import ceil, sqrt
 from pathlib import Path
 
 import numpy as np
-from scipy import sparse
 
 from ..fixes import (
     _infer_dimension_,
@@ -638,6 +637,8 @@ def object_hash(x, h=None):
     digest : int
         The digest resulting from the hash.
     """
+    from scipy import sparse
+
     if h is None:
         h = _empty_hash()
     if hasattr(x, "keys"):
@@ -730,6 +731,8 @@ def object_size(x, memo=None):
 
 
 def _is_sparse_cs(x):
+    from scipy import sparse
+
     return isinstance(
         x, sparse.csr_matrix | sparse.csc_matrix | sparse.csr_array | sparse.csc_array
     )
@@ -775,6 +778,8 @@ def object_diff(a, b, pre="", *, allclose=False):
     diffs : str
         A string representation of the differences.
     """
+    from scipy import sparse
+
     pd = _check_pandas_installed(strict=False)
     out = ""
     if type(a) is not type(b):

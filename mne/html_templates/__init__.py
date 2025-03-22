@@ -3,6 +3,5 @@
 # Copyright the MNE-Python contributors.
 
 """Jinja2 HTML templates."""
-import lazy_loader as lazy
 
-(__getattr__, __dir__, __all__) = lazy.attach_stub(__name__, __file__)
+from ._templates import _get_html_template, _get_html_templates_env

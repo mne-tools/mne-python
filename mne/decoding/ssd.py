@@ -3,7 +3,6 @@
 # Copyright the MNE-Python contributors.
 
 import numpy as np
-from scipy.linalg import eigh
 from sklearn.base import BaseEstimator
 from sklearn.utils.validation import check_is_fitted
 
@@ -195,6 +194,8 @@ class SSD(MNETransformerMixin, BaseEstimator):
         self : instance of SSD
             Returns the modified instance.
         """
+        from scipy.linalg import eigh
+
         X = self._check_X(X, y=y, fit=True)
         self._validate_params(X)
         if isinstance(self.info, Info):
@@ -371,6 +372,8 @@ class SSD(MNETransformerMixin, BaseEstimator):
 
 def _dimensionality_reduction(cov_signal, cov_noise, info, rank):
     """Perform dimensionality reduction on the covariance matrices."""
+    from scipy.linalg import eigh
+
     n_channels = cov_signal.shape[0]
 
     # find ranks of covariance matrices

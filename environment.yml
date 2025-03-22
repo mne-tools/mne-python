@@ -22,7 +22,6 @@ dependencies:
   - jinja2
   - joblib
   - jupyter
-  - lazy_loader >=0.3
   - mamba
   - matplotlib >=3.7
   - mffpy >=0.5.7
