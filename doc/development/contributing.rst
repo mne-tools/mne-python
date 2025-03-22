@@ -291,7 +291,7 @@ Now we'll remove the *stable* version of MNE-Python and replace it with the
 the correct environment first (``conda activate mnedev``), and then do::
 
     $ cd $INSTALL_LOCATION/mne-python    # make sure we're in the right folder
-    $ conda remove --force mne  # the --force avoids dependency checking
+    $ conda remove --force mne-base  # the --force avoids dependency checking
     $ pip install -e .
 
 The command ``pip install -e .`` installs a python module into the current
