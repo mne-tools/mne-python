@@ -20,7 +20,6 @@ data_path = testing.data_path(download=False)
 gdf1_path = data_path / "GDF" / "test_gdf_1.25"
 gdf2_path = data_path / "GDF" / "test_gdf_2.20"
 gdf_1ch_path = data_path / "GDF" / "test_1ch.gdf"
-empty_gdf = data_path / "GDF" / "test_empty_gdf.gdf"
 
 
 @pytest.mark.filterwarnings("ignore:Ignoring preload for GFS file.")
@@ -217,9 +216,7 @@ def test_gdf_read_from_file_like():
         assert raw.ch_names == channels
 
 
-@testing.requires_testing_data
 def test_gdf_read_from_bad_file_like():
     """Test that RawGDF is NOT able to read from file-like objects for non GDF files."""
     with pytest.raises(Exception, match="Bad GDF file provided."):
-        with open(empty_gdf, "rb") as blob:
-            read_raw_gdf(BytesIO(blob.read()), preload=True)
+        read_raw_gdf(BytesIO(), preload=True)
