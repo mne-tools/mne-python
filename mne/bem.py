@@ -1274,8 +1274,26 @@ def make_watershed_bem(
     if T1:
         cmd += ["-T1"]
     if gcaatlas:
+        #check if FS>8 didn't generate talairach_with_skull.lta
         fname = op.join(env["FREESURFER_HOME"], "average", "RB_all_withskull_*.gca")
         fname = sorted(glob.glob(fname))[::-1][0]
+
+        talairach_with_skull_path = os.path.join(subject_dir,
+            "mri/transforms/talairach_with_skull.lta"
+        )
+        if not os.path.exists(talairach_with_skull_path):
+            logger.info(
+                f"{talairach_with_skull_path} does not exist. Running mri_em_register."
+            )
+            em_reg_cmd = [
+                "mri_em_register",
+                "-skull",
+                subject_dir + "/mri/nu.mgz",
+                fname,
+                subject_dir + "/mri/transforms/talairach_with_skull.lta"]
+
+            run_subprocess_env(em_reg_cmd)
+
         logger.info(f"Using GCA atlas: {fname}")
         cmd += [
             "-atlas",
