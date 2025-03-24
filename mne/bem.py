@@ -1274,10 +1274,10 @@ def make_watershed_bem(
     if T1:
         cmd += ["-T1"]
     if gcaatlas:
-        #check if FS>8 didn't generate talairach_with_skull.lta
         fname = op.join(env["FREESURFER_HOME"], "average", "RB_all_withskull_*.gca")
         fname = sorted(glob.glob(fname))[::-1][0]
 
+        #check if FS>8 didn't generate talairach_with_skull.lta
         talairach_with_skull_path = os.path.join(subject_dir,
             "mri/transforms/talairach_with_skull.lta"
         )
