@@ -1613,7 +1613,7 @@ class Report:
         title : str
             The title to add.
         subject : str | None
-            The name of the FreeSurfer subject the ``trans`` belong to. The
+            The name of the FreeSurfer subject the ``trans`` belongs to. The
             name is not stored with the ``trans`` and therefore needs to be
             specified. If ``None``, will use the value of ``subject`` passed on
             report creation.
