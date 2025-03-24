@@ -1277,9 +1277,9 @@ def make_watershed_bem(
         fname = op.join(env["FREESURFER_HOME"], "average", "RB_all_withskull_*.gca")
         fname = sorted(glob.glob(fname))[::-1][0]
 
-        #check if FS>8 didn't generate talairach_with_skull.lta
-        talairach_with_skull_path = os.path.join(subject_dir,
-            "mri/transforms/talairach_with_skull.lta"
+        # check if FS>8 didn't generate talairach_with_skull.lta
+        talairach_with_skull_path = os.path.join(
+            subject_dir, "mri/transforms/talairach_with_skull.lta"
         )
         if not os.path.exists(talairach_with_skull_path):
             logger.info(
@@ -1290,7 +1290,8 @@ def make_watershed_bem(
                 "-skull",
                 subject_dir + "/mri/nu.mgz",
                 fname,
-                subject_dir + "/mri/transforms/talairach_with_skull.lta"]
+                subject_dir + "/mri/transforms/talairach_with_skull.lta",
+            ]
 
             run_subprocess_env(em_reg_cmd)
 
