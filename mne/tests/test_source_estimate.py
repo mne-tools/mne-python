@@ -73,7 +73,14 @@ from mne.minimum_norm import (
     read_inverse_operator,
 )
 from mne.morph_map import _make_morph_map_hemi
-from mne.source_estimate import _get_vol_mask, _make_stc, grade_to_tris
+from mne.source_estimate import (
+    _get_vol_mask,
+    _make_stc,
+    _pca_flip,
+    _prepare_label_extraction,
+    _volume_labels,
+    grade_to_tris,
+)
 from mne.source_space._source_space import _get_src_nn
 from mne.transforms import apply_trans, invert_transform, transform_surface_to
 from mne.utils import (
@@ -748,10 +755,7 @@ def test_extract_label_time_course_volume_pca_flip(
         n_tot += 1
     n_want -= len(missing)
 
-    # _volume_labels(src, labels, mri_resolution)
     # actually do the testing
-    from mne.source_estimate import _pca_flip, _prepare_label_extraction, _volume_labels
-
     labels_expanded = _volume_labels(src, labels, mri_res)
     _, src_flip = _prepare_label_extraction(
         stcs[0], labels_expanded, src, "pca_flip", "ignore", bool(mri_res)
