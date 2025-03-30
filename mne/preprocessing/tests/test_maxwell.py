@@ -366,8 +366,11 @@ def test_other_systems():
     elp_path = kit_dir / "test_elp.txt"
     hsp_path = kit_dir / "test_hsp.txt"
     raw_kit = read_raw_kit(sqd_path, str(mrk_path), str(elp_path), str(hsp_path))
-    with pytest.warns(RuntimeWarning, match="fit"):
-        pytest.raises(RuntimeError, maxwell_filter, raw_kit)
+    with (
+        pytest.warns(RuntimeWarning, match="more than 20 mm from head frame origin"),
+        pytest.raises(NotImplementedError, match="Cannot create forward solution with"),
+    ):
+        maxwell_filter(raw_kit)
     with catch_logging() as log:
         raw_sss = maxwell_filter(
             raw_kit, origin=(0.0, 0.0, 0.04), ignore_ref=True, verbose=True
