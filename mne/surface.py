@@ -44,6 +44,7 @@ from .utils import (
     _hashable_ndarray,
     _import_nibabel,
     _pl,
+    _soft_import,
     _TempDir,
     _validate_type,
     fill_doc,
@@ -173,7 +174,7 @@ def _get_head_surface(subject, source, subjects_dir, on_defects, raise_error=Tru
 
 
 @verbose
-def get_meg_helmet_surf(info, trans=None, *, verbose=None):
+def get_meg_helmet_surf(info, trans=None, *, upsampling=1, verbose=None):
     """Load the MEG helmet associated with the MEG sensors.
 
     Parameters
@@ -183,6 +184,7 @@ def get_meg_helmet_surf(info, trans=None, *, verbose=None):
         The head<->MRI transformation, usually obtained using
         read_trans(). Can be None, in which case the surface will
         be in head coordinates instead of MRI coordinates.
+    %(helmet_upsampling)s
     %(verbose)s
 
     Returns
@@ -198,7 +200,10 @@ def get_meg_helmet_surf(info, trans=None, *, verbose=None):
     from .bem import _fit_sphere, read_bem_surfaces
     from .channels.channels import _get_meg_system
 
+    _validate_type(upsampling, "int", "upsampling")
+
     system, have_helmet = _get_meg_system(info)
+    incomplete = False
     if have_helmet:
         logger.info(f"Getting helmet for system {system}")
         fname = _helmet_path / f"{system}.fif.gz"
@@ -231,8 +236,25 @@ def get_meg_helmet_surf(info, trans=None, *, verbose=None):
         # remove the frontal point we added from the simplices
         tris = tris[(tris != len(sph) - 1).all(-1)]
         tris = _reorder_ccw(rr, tris)
-
         surf = dict(rr=rr, tris=tris)
+        incomplete = True
+    if upsampling > 1:
+        # Use VTK (could also use Butterfly but Loop is smoother)
+        pv = _soft_import("pyvista", "upsample a mesh")
+        factor = 4 ** (upsampling - 1)
+        rr, tris = surf["rr"], surf["tris"]
+        logger.info(
+            f"Upsampling from {len(rr)} to {len(rr) * factor} vertices "
+            f"(upsampling={upsampling})"
+        )
+        tris = np.c_[np.full(len(tris), 3), tris]
+        mesh = pv.PolyData(rr, tris)
+        mesh = mesh.subdivide(upsampling - 1, subfilter="linear")
+        rr, tris = mesh.points, mesh.faces.reshape(-1, 4)[:, 1:]
+        tris = _reorder_ccw(rr, tris)
+        surf = dict(rr=rr, tris=tris)
+        incomplete = True
+    if incomplete:
         complete_surface_info(surf, copy=False, verbose=False)
 
     # Ignore what the file says, it's in device coords and we want MRI coords
