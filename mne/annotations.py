@@ -150,6 +150,7 @@ class Annotations:
         Durations of the annotations in seconds.
     description : ndarray
         Description labels for each annotation.
+
     See Also
     --------
     mne.annotations_from_events
