@@ -1,3 +1,7 @@
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
+
 # Maybe we can move this one to utils or something like that.
 from pathlib import Path
 
