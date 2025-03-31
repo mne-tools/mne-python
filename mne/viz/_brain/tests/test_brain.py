@@ -483,7 +483,9 @@ def test_brain_init(renderer_pyvistaqt, tmp_path, pixel_ratio, brain_gc):
         ori=[[0, 1, 0]],
         gof=50,
     )
-    brain.add_dipole(dip, fname_trans, colors="blue", scales=5, alpha=0.5)
+    brain.add_dipole(
+        dip, fname_trans, colors="blue", scales=5, alpha=0.5, mode="sphere"
+    )
     brain.remove_dipole()
 
     with pytest.raises(ValueError, match="The number of colors"):
