@@ -1108,7 +1108,7 @@ def _fit_sphere_to_headshape(info, dig_kinds, *, verbose=None):
 def _fit_sphere(points):
     """Fit a sphere to an arbitrary set of points."""
     # linear least-squares sphere fit, see for example
-    # https://stackoverflow.com/questions/10344119/linear-least-squares-fit-of-sphere-to-points
+    # https://stackoverflow.com/a/78909044
     # TODO: At some point we should maybe reject outliers first...
     A = np.c_[2 * points, np.ones((len(points), 1))]
     b = (points**2).sum(axis=1)

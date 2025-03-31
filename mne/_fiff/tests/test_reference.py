@@ -312,6 +312,7 @@ def test_set_eeg_reference_rest():
     same = [raw.ch_names.index(raw.info["bads"][0])]
     picks = np.setdiff1d(np.arange(len(raw.ch_names)), same)
     trans = None
+    # Use fixed values from old sphere fit to reduce lines changed with fixed algorithm
     sphere = make_sphere_model(
         [-0.00413508, 0.01598787, 0.05175598],
         0.09100286249131773,
