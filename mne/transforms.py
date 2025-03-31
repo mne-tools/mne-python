@@ -10,8 +10,6 @@ from copy import deepcopy
 from pathlib import Path
 
 import numpy as np
-from scipy import linalg
-from scipy.spatial.distance import cdist
 
 from ._fiff.constants import FIFF
 from ._fiff.open import fiff_open
@@ -987,6 +985,9 @@ class _TPSWarp:
     """
 
     def fit(self, source, destination, reg=1e-3):
+        from scipy import linalg
+        from scipy.spatial.distance import cdist
+
         assert source.shape[1] == destination.shape[1] == 3
         assert source.shape[0] == destination.shape[0]
         # Forward warping, different from image warping, use |dist|**2
@@ -1017,6 +1018,8 @@ class _TPSWarp:
         dest : shape (n_transform, 3)
             The transformed points.
         """
+        from scipy.spatial.distance import cdist
+
         logger.info(f"Transforming {len(pts)} points")
         assert pts.shape[1] == 3
         # for memory reasons, we should do this in ~100 MB chunks
@@ -1125,6 +1128,8 @@ class _SphericalSurfaceWarp:
         inst : instance of SphericalSurfaceWarp
             The warping object (for chaining).
         """
+        from scipy import linalg
+
         from .bem import _fit_sphere
         from .source_space._source_space import _check_spacing
 
@@ -1500,6 +1505,8 @@ def _fit_matched_points(p, x, weights=None, scale=False):
 
 def _average_quats(quats, weights=None):
     """Average unit quaternions properly."""
+    from scipy import linalg
+
     assert quats.ndim == 2 and quats.shape[1] in (3, 4)
     if weights is None:
         weights = np.ones(quats.shape[0])

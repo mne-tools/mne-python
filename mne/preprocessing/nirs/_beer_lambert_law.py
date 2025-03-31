@@ -5,8 +5,6 @@
 import os.path as op
 
 import numpy as np
-from scipy.interpolate import interp1d
-from scipy.io import loadmat
 
 from ..._fiff.constants import FIFF
 from ...io import BaseRaw
@@ -87,6 +85,9 @@ def beer_lambert_law(raw, ppf=6.0):
 
 def _load_absorption(freqs):
     """Load molar extinction coefficients."""
+    from scipy.interpolate import interp1d
+    from scipy.io import loadmat
+
     # Data from https://omlc.org/spectra/hemoglobin/summary.html
     # The text was copied to a text file. The text before and
     # after the table was deleted. The the following was run in

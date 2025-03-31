@@ -6,7 +6,6 @@ import copy as cp
 import numbers
 
 import numpy as np
-from scipy.fft import rfftfreq
 
 from .._fiff.pick import _picks_to_idx, pick_channels
 from ..parallel import parallel_func
@@ -792,6 +791,8 @@ def csd_array_fourier(
     csd_morlet
     csd_multitaper
     """
+    from scipy.fft import rfftfreq
+
     X, times, tmin, tmax, fmin, fmax = _prepare_csd_array(
         X, sfreq, t0, tmin, tmax, fmin, fmax
     )
@@ -991,6 +992,8 @@ def csd_array_multitaper(
     csd_morlet
     csd_multitaper
     """
+    from scipy.fft import rfftfreq
+
     X, times, tmin, tmax, fmin, fmax = _prepare_csd_array(
         X, sfreq, t0, tmin, tmax, fmin, fmax
     )
