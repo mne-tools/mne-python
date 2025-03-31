@@ -132,21 +132,24 @@ class Annotations:
     description : array of str, shape (n_annotations,) | str
         Array of strings containing description for each annotation. If a
         string, all the annotations are given the same description. To reject
-        epochs, use description starting with keyword 'bad'. See example above.
+        epochs, use description starting with keyword 'bad'.
     orig_time : float | str | datetime | tuple of int | None
-        A POSIX Timestamp, datetime or a tuple containing the timestamp as the
+        A POSIX Timestamp, datetime, or tuple containing the timestamp as the
         first element and microseconds as the second element. Determines the
-        starting time of annotation acquisition. If None (default),
-        starting time is determined from beginning of raw data acquisition.
-        In general, ``raw.info['meas_date']`` (or None) can be used for syncing
-        the annotations with raw data if their acquisition is started at the
-        same time. If it is a string, it should conform to the ISO8601 format.
-        More precisely to this '%%Y-%%m-%%d %%H:%%M:%%S.%%f' particular case of
-        the ISO8601 format where the delimiter between date and time is ' '.
+        starting time of annotation acquisition.
+
     %(ch_names_annot)s
 
         .. versionadded:: 0.23
 
+    Attributes
+    ----------
+    onset : ndarray
+        The starting times of annotations in seconds relative to `orig_time`.
+    duration : ndarray
+        Durations of the annotations in seconds.
+    description : ndarray
+        Description labels for each annotation.
     See Also
     --------
     mne.annotations_from_events
