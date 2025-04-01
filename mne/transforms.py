@@ -1134,10 +1134,10 @@ class _SphericalSurfaceWarp:
         if center:
             logger.info("    Centering data")
             hsp = np.array([p for p in source if not (p[2] < -1e-6 and p[1] > 1e-6)])
-            src_center = _fit_sphere(hsp, disp=False)[1]
+            src_center = _fit_sphere(hsp)[1]
             source = source - src_center
             hsp = np.array([p for p in destination if not (p[2] < 0 and p[1] > 0)])
-            dest_center = _fit_sphere(hsp, disp=False)[1]
+            dest_center = _fit_sphere(hsp)[1]
             destination = destination - dest_center
             logger.info(
                 "    Using centers {np.array_str(src_center, None, 3)} -> "

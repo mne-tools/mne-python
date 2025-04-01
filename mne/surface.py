@@ -225,7 +225,7 @@ def get_meg_helmet_surf(info, trans=None, *, upsampling=1, verbose=None):
         )
         hull = ConvexHull(rr)
         rr = rr[np.unique(hull.simplices)]
-        R, center = _fit_sphere(rr, disp=False)
+        R, center = _fit_sphere(rr)
         sph = _cart_to_sph(rr - center)[:, 1:]
         # add a point at the front of the helmet (where the face should be):
         # 90 deg az and maximal el (down from Z/up axis)
