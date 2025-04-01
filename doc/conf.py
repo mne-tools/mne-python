@@ -646,7 +646,10 @@ linkcheck_ignore = [  # will be compiled to regex
     "https://doi.org/10.1002/",  # onlinelibrary.wiley.com/doi/10.1002/hbm
     "https://doi.org/10.1016/",  # neuroimage
     "https://doi.org/10.1021/",  # pubs.acs.org/doi/abs
+    "https://doi.org/10.1063/",  # pubs.aip.org/aip/jap
     "https://doi.org/10.1073/",  # pnas.org
+    "https://doi.org/10.1080/",  # www.tandfonline.com
+    "https://doi.org/10.1088/",  # www.tandfonline.com
     "https://doi.org/10.1093/",  # academic.oup.com/sleep/
     "https://doi.org/10.1098/",  # royalsocietypublishing.org
     "https://doi.org/10.1101/",  # www.biorxiv.org
@@ -654,15 +657,14 @@ linkcheck_ignore = [  # will be compiled to regex
     "https://doi.org/10.1111/",  # onlinelibrary.wiley.com/doi/10.1111/psyp
     "https://doi.org/10.1126/",  # www.science.org
     "https://doi.org/10.1137/",  # epubs.siam.org
+    "https://doi.org/10.1145/",  # dl.acm.org
     "https://doi.org/10.1155/",  # www.hindawi.com/journals/cin
     "https://doi.org/10.1161/",  # www.ahajournals.org
     "https://doi.org/10.1162/",  # direct.mit.edu/neco/article/
     "https://doi.org/10.1167/",  # jov.arvojournals.org
     "https://doi.org/10.1177/",  # journals.sagepub.com
-    "https://doi.org/10.1063/",  # pubs.aip.org/aip/jap
-    "https://doi.org/10.1080/",  # www.tandfonline.com
-    "https://doi.org/10.1088/",  # www.tandfonline.com
     "https://doi.org/10.3109/",  # www.tandfonline.com
+    "https://www.biorxiv.org/content/10.1101/",  # biorxiv.org
     "https://www.researchgate.net/profile/",
     "https://www.intel.com/content/www/us/en/developer/tools/oneapi/onemkl.html",
     r"https://scholar.google.com/scholar\?cites=12188330066413208874&as_ylo=2014",
@@ -682,6 +684,7 @@ linkcheck_ignore = [  # will be compiled to regex
     "https://www.cea.fr",
     "http://www.humanconnectome.org/data",
     "https://www.mail-archive.com/freesurfer@nmr.mgh.harvard.edu",
+    "https://launchpad.net",
     # Max retries exceeded
     "https://doi.org/10.7488/ds/1556",
     "https://datashare.is.ed.ac.uk/handle/10283",

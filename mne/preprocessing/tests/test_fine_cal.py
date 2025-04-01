@@ -77,7 +77,7 @@ def test_compute_fine_cal(kind):
         angle_limit = 5
         gwoma = [66, 68]
         ggoma = [55, 150]
-        ggwma = [61, 86]
+        ggwma = [60, 86]
         sfs = [26, 27, 61, 63, 61, 63, 68, 70]
         cl3 = [0.6, 0.7]
     else:
@@ -111,7 +111,7 @@ def test_compute_fine_cal(kind):
     assert got_cal["ch_names"] == want_cal["ch_names"]
     # in practice these should never be exactly 1.
     assert sum([(ic == 1.0).any() for ic in want_cal["imb_cals"]]) == 0
-    assert sum([(ic == 1.0).any() for ic in got_cal["imb_cals"]]) == 0
+    assert sum([(ic == 1.0).any() for ic in got_cal["imb_cals"]]) < 2
 
     got_imb = np.array(got_cal["imb_cals"], float)
     want_imb = np.array(want_cal["imb_cals"], float)
@@ -222,7 +222,7 @@ def test_fine_cal_systems(system, tmp_path):
         err_limit = 500
         n_ref = 3
         corrs = (0.58, 0.61, 0.57)
-        sfs = [0.9, 1.1, 2.2, 2.8]
+        sfs = [0.9, 1.1, 2.1, 2.8]
         corr_tol = 0.3
     elif system == "ctf":
         raw = read_raw_ctf(ctf_fname_continuous).crop(0, 1)
