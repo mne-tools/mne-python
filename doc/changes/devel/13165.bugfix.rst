@@ -1,0 +1,4 @@
+Fixes behavior of stc.save() as mentioned in issue #13158 :meth:`stc.save` and in `test_source_estimate.py` by `Shresth Keshari`.
+- Changed filetype to "auto"
+- saving a `.stc` file automatically saves two files with suffix `-lh.stc` and `-rh.stc`, which is intuitive and removes any confusion.
+- there were problems with pytest later on, which were tackled by minor tweaks.
