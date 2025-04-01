@@ -66,7 +66,18 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
                 f"{pad_width / sfreq:.3g} seconds of edge values were appended to all "
                 "channels when writing the final block."
             )
-            data = np.pad(data, (0, int(pad_width)), "edge")
+            orig_shape = data.shape
+            data = np.pad(
+                data,
+                (
+                    (0, 0),
+                    (0, int(pad_width)),
+                ),
+                "edge",
+            )
+            assert data.shape[0] == orig_shape[0]
+            assert data.shape[1] > orig_shape[1]
+
             annotations.append(
                 EdfAnnotation(
                     raw.times[-1] + 1 / sfreq, pad_width / sfreq, "BAD_ACQ_SKIP"

@@ -1573,7 +1573,7 @@ def fit_dipole(
         # Find the best-fitting sphere
         inner_skull = _bem_find_surface(bem, "inner_skull")
         inner_skull = inner_skull.copy()
-        R, r0 = _fit_sphere(inner_skull["rr"], disp=False)
+        R, r0 = _fit_sphere(inner_skull["rr"])
         # r0 back to head frame for logging
         r0 = apply_trans(mri_head_t["trans"], r0[np.newaxis, :])[0]
         inner_skull["r0"] = r0
