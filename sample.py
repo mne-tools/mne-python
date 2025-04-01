@@ -28,7 +28,7 @@ import os
 os.makedirs(output_dir, exist_ok=True)
 
 stc.save("test.h5",overwrite=True)
-stc.save("test-lh.stc",overwrite=True)
+stc.save("test.stc",overwrite=True)
 # # Save as .stc file
 # stc.save(f"{output_dir}/dummy", ftype="stc", overwrite=True)
 
