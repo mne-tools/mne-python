@@ -1107,3 +1107,30 @@ def test_filter_minimum_phase_bug():
     dB_min_half = 20 * np.log10(np.abs(H_min_half[mask]))
     assert_array_less(dB_min_half, -20)
     assert not (dB_min_half < -30).all()
+
+
+@pytest.mark.parametrize("dc", (0, 100))
+@pytest.mark.parametrize("sfreq", (1000.0, 999.0))
+def test_smart_pad(dc, sfreq):
+    """Test that smart pad does what it should."""
+    f = 1.0
+    t = (np.arange(0, int(round(sfreq)) + 1)) / sfreq
+    x = np.sin(2 * np.pi * f * t) + dc
+    x_want = np.r_[x, x, x]
+    padlen = (len(x), len(x))
+    x_pad = np.pad(x, padlen, mode="reflect", reflect_type="odd")
+    assert_allclose(x_pad, x_want, err_msg="np.pad", atol=0.1)  # slight DC shift
+    for kind in ("reflect", "reflect_limited"):
+        this_x_pad = _smart_pad(x, padlen, kind)
+        # slight DC shift from out "x_want" (odd reflection)
+        assert_allclose(
+            this_x_pad, x_want, atol=0.1, err_msg=f"_smart_pad {kind} x_want"
+        )
+        # ... but should match the NumPy call to numerical precision
+        assert_allclose(
+            this_x_pad, x_pad, atol=1e-6, err_msg=f"_smart_pad {kind} vs np.pad"
+        )
+    # with even more padding
+    x_want = np.r_[np.full(len(x), dc), x_want, np.full(len(x), dc)]
+    x_pad = _smart_pad(x, (len(x) * 2,) * 2, "reflect_limited")
+    assert_allclose(x_pad, x_want, atol=0.1, err_msg="reflect_limited with zeros")

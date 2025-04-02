@@ -320,12 +320,10 @@ class BrowserBase(ABC):
     def _load_data(self, start=None, stop=None):
         """Retrieve the bit of data we need for plotting."""
         if "raw" in (self.mne.instance_type, self.mne.ica_type):
-            # Add additional sample to cover the case sfreq!=1000
-            # when the shown time-range wouldn't correspond to duration anymore
             if stop is None:
                 return self.mne.inst[:, start:]
             else:
-                return self.mne.inst[:, start : stop + 2]
+                return self.mne.inst[:, start:stop]
         else:
             # subtract one sample from tstart before searchsorted, to make sure
             # we land on the left side of the boundary time (avoid precision
@@ -362,29 +360,21 @@ class BrowserBase(ABC):
                 )
             data[_picks, _start:_stop] = this_data
 
-    def _process_data(self, data, start, stop, picks, thread=None):
+    def _process_data(self, data, start, stop, picks, *, time_slice):
         """Update self.mne.data after user interaction."""
         # apply projectors
         if self.mne.projector is not None:
-            # thread is the loading-thread only available in Qt-backend
-            if thread:
-                thread.processText.emit("Applying Projectors...")
             data = self.mne.projector @ data
         # get only the channels we're displaying
         data = data[picks]
         # remove DC
         if self.mne.remove_dc:
-            if thread:
-                thread.processText.emit("Removing DC...")
-            data -= np.nanmean(data, axis=1, keepdims=True)
+            data -= np.nanmean(data[..., time_slice], axis=1, keepdims=True)
         # apply filter
         if self.mne.filter_coefs is not None:
-            if thread:
-                thread.processText.emit("Apply Filter...")
             self._apply_filter(data, start, stop, picks)
+        data = data[..., time_slice]
         # scale the data for display in a 1-vertical-axis-unit slot
-        if thread:
-            thread.processText.emit("Scale Data...")
         this_names = self.mne.ch_names[picks]
         this_types = self.mne.ch_types[picks]
         stims = this_types == "stim"
@@ -402,10 +392,23 @@ class BrowserBase(ABC):
 
     def _update_data(self):
         start, stop = self._get_start_stop()
-        # get the data
-        data, times = self._load_data(start, stop)
+        # get the data, with padding if necessary
+        if isinstance(self.mne.filter_coefs, dict):  # most common IIR case
+            use_start = max(0, start - self.mne.filter_coefs["padlen"])
+            use_stop = min(self.mne.n_times, stop + self.mne.filter_coefs["padlen"])
+            time_slice = slice(start - use_start, start - use_start + (stop - start))
+        else:
+            use_start, use_stop = start, stop
+            time_slice = slice(None)
+
+        data, times = self._load_data(use_start, use_stop)
+        assert data.ndim >= 2 and data.shape[-1] == (use_stop - use_start)
         # process the data
-        data = self._process_data(data, start, stop, self.mne.picks)
+        data = self._process_data(
+            data, use_start, use_stop, picks=self.mne.picks, time_slice=time_slice
+        )
+        times = times[time_slice]
+        assert data.ndim >= 2 and data.shape[-1] == (stop - start)
         # set the data as attributes
         self.mne.data = data
         self.mne.times = times

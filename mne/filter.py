@@ -545,21 +545,21 @@ def _iir_filter(x, iir_params, picks, n_jobs, copy, phase="zero"):
         padlen = min(iir_params["padlen"], x.shape[-1] - 1)
         if "sos" in iir_params:
             fun = partial(
-                signal.sosfiltfilt,
+                _iir_pad_apply_unpad,
+                func=signal.sosfiltfilt,
                 sos=iir_params["sos"],
                 padlen=padlen,
-                axis=-1,
-                padtype="constant",
+                padtype="reflect_limited",
             )
             _check_coefficients(iir_params["sos"])
         else:
             fun = partial(
-                signal.filtfilt,
+                _iir_pad_apply_unpad,
+                func=signal.filtfilt,
                 b=iir_params["b"],
                 a=iir_params["a"],
                 padlen=padlen,
-                axis=-1,
-                padtype="constant",
+                padtype="reflect_limited",
             )
             _check_coefficients((iir_params["b"], iir_params["a"]))
     else:
@@ -890,7 +890,7 @@ def construct_iir_filter(
         logger.info(f"- Cutoff{_pl(f_pass)} at {edge_freqs} Hz: {cutoffs} dB")
     # now deal with padding
     if "padlen" not in iir_params:
-        padlen = estimate_ringing_samples(system)
+        padlen = 5 * estimate_ringing_samples(system)
     else:
         padlen = iir_params["padlen"]
 
@@ -2942,3 +2942,13 @@ def _filt_update_info(info, update_info, l_freq, h_freq):
         ):
             with info._unlock():
                 info["highpass"] = float(l_freq)
+
+
+def _iir_pad_apply_unpad(x, *, func, padlen, padtype, **kwargs):
+    x_out = np.reshape(x, (-1, x.shape[-1]), copy=True)
+    for this_x in x_out:
+        x_ext = _smart_pad(this_x, (padlen, padlen), padtype)
+        x_ext = func(x=x_ext, axis=-1, padlen=0, **kwargs)
+        this_x[:] = x_ext[padlen : len(x_ext) - padlen]
+    x_out.shape = x.shape
+    return x_out
