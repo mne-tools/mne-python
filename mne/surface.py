@@ -245,7 +245,7 @@ def get_meg_helmet_surf(info, trans=None, *, upsampling=1, verbose=None):
         rr, tris = surf["rr"], surf["tris"]
         logger.info(
             f"Upsampling from {len(rr)} to {len(rr) * factor} vertices "
-            f"(upsampling={upsampling})"
+            f"({upsampling=})"
         )
         tris = np.c_[np.full(len(tris), 3), tris]
         mesh = pv.PolyData(rr, tris)
