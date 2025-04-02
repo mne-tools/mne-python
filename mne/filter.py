@@ -545,7 +545,11 @@ def _iir_filter(x, iir_params, picks, n_jobs, copy, phase="zero"):
         padlen = min(iir_params["padlen"], x.shape[-1] - 1)
         if "sos" in iir_params:
             fun = partial(
-                signal.sosfiltfilt, sos=iir_params["sos"], padlen=padlen, axis=-1
+                signal.sosfiltfilt,
+                sos=iir_params["sos"],
+                padlen=padlen,
+                axis=-1,
+                padtype="constant",
             )
             _check_coefficients(iir_params["sos"])
         else:
@@ -555,6 +559,7 @@ def _iir_filter(x, iir_params, picks, n_jobs, copy, phase="zero"):
                 a=iir_params["a"],
                 padlen=padlen,
                 axis=-1,
+                padtype="constant",
             )
             _check_coefficients((iir_params["b"], iir_params["a"]))
     else:
