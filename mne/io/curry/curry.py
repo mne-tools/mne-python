@@ -6,6 +6,7 @@
 import re
 from pathlib import Path
 
+import curryreader
 import numpy as np
 
 from ..._fiff.meas_info import create_info
@@ -13,9 +14,6 @@ from ...annotations import annotations_from_events
 from ...channels import make_dig_montage
 from ...utils import verbose
 from ..base import BaseRaw
-from .curryreader import read
-
-_RE_COMBINE_WHITESPACE = re.compile(r"\s+")
 
 
 @verbose
@@ -61,12 +59,12 @@ class RawCurry(BaseRaw):
     """
 
     @verbose
-    def __init__(self, fname, preload=False, verbose=None):
+    def __init__(self, fname, preload=True, verbose=None):
         fname = Path(fname)
 
         # use curry-python-reader
         try:
-            currydata = read(str(fname), plotdata=0, verbosity=1)
+            currydata = curryreader.read(str(fname), plotdata=0, verbosity=1)
         except Exception as e:
             raise ValueError(f"file could not be read - {e}")
 
@@ -80,11 +78,8 @@ class RawCurry(BaseRaw):
         landmarkslabels = currydata["landmarkslabels"]
 
         # extract data
-        orig_format = (
-            "single"
-            if isinstance(currydata["data"].dtype, type(np.dtype("float32")))
-            else None
-        )
+        orig_format = "single"  # curryreader.py always reads float32. is this correct?
+
         preload = currydata["data"].T.astype(
             "float64"
         )  # curryreader returns float32, but mne seems to need float64
@@ -92,12 +87,12 @@ class RawCurry(BaseRaw):
         # annotations = currydata[
         #    "annotations"
         # ]  # dont always seem to correspond to events?!
+        # impedances = currydata["impedances"]  # see read_impedances_curry
         # epochinfo = currydata["epochinfo"]  # TODO
         # epochlabels = currydata["epochlabels"]  # TODO
-        # impedances = currydata["impedances"]  # TODO
         # hpimatrix = currydata["hpimatrix"]  # TODO
 
-        # extract some more essential info not provided by reader
+        # extract other essential info not provided by curryreader
         fname_hdr = None
         for hdr_suff in [".cdt.dpa", ".cdt.dpo", ".dap"]:
             if fname.with_suffix(hdr_suff).exists():
@@ -105,19 +100,17 @@ class RawCurry(BaseRaw):
 
         ch_types, units = [], []
         if fname_hdr:
-            changroups = fname_hdr.read_text().split("DEVICE_PARAMETERS")[1::2]
-            for changroup_info in changroups:
-                changroup_info = _RE_COMBINE_WHITESPACE.sub(" ", changroup_info).strip()
-                groupid = changroup_info.split()[0]
-                unit = changroup_info.split("DataUnit = ")[1].split()[0]
-                n_ch_group = int(
-                    changroup_info.split("NumChanThisGroup = ")[1].split()[0]
-                )
+            ch_groups = fname_hdr.read_text().split("DEVICE_PARAMETERS")[1::2]
+            for ch_group in ch_groups:
+                ch_group = re.compile(r"\s+").sub(" ", ch_group).strip()
+                groupid = ch_group.split()[0]
+                unit = ch_group.split("DataUnit = ")[1].split()[0]
+                n_ch_group = int(ch_group.split("NumChanThisGroup = ")[1].split()[0])
                 ch_type = (
                     "mag"
                     if ("MAG" in groupid)
                     else "misc"
-                    if ("OTHER") in groupid
+                    if ("OTHER" in groupid)
                     else "eeg"
                 )
                 # combine info
@@ -127,11 +120,10 @@ class RawCurry(BaseRaw):
             assert len(ch_types) == len(units) == len(ch_names) == n_ch
 
         else:
-            # not implemented
             raise NotImplementedError
 
         # finetune channel types (e.g. stim, eog etc might be identified by name)
-        # TODO
+        # TODO?
 
         # scale data to SI units
         orig_units = dict(zip(ch_names, units))
@@ -172,6 +164,9 @@ class RawCurry(BaseRaw):
         mont = _make_curry_montage(ch_names, ch_pos, landmarks, landmarkslabels)
         self.set_montage(mont, on_missing="ignore")
 
+        # add HPI data (if present)
+        # TODO
+
 
 def _make_curry_montage(ch_names, ch_pos, landmarks, landmarkslabels):
     ch_pos_dict = dict(zip(ch_names, ch_pos))
@@ -180,10 +175,17 @@ def _make_curry_montage(ch_names, ch_pos, landmarks, landmarkslabels):
         if k not in landmark_dict.keys():
             landmark_dict[k] = None
     if len(landmarkslabels) > 0:
-        hpi_pos = landmarks[[i for i, n in enumerate(landmarkslabels) if "HPI" in n], :]
+        hpi_pos = landmarks[
+            [i for i, n in enumerate(landmarkslabels) if re.match("HPI[1-99]", n)], :
+        ]
     else:
         hpi_pos = None
-    # TODO headshape (H1,2,3..)
+    if len(landmarkslabels) > 0:
+        hsp_pos = landmarks[
+            [i for i, n in enumerate(landmarkslabels) if re.match("H[1-99]", n)], :
+        ]
+    else:
+        hsp_pos = None
 
     mont = None
     if ch_pos.shape[1] == 3:  # eeg xyz space
@@ -192,7 +194,7 @@ def _make_curry_montage(ch_names, ch_pos, landmarks, landmarkslabels):
             nasion=landmark_dict["Nas"],
             lpa=landmark_dict["LPA"],
             rpa=landmark_dict["RPA"],
-            hsp=None,
+            hsp=hsp_pos,
             hpi=hpi_pos,
             coord_frame="unknown",
         )
@@ -203,3 +205,47 @@ def _make_curry_montage(ch_names, ch_pos, landmarks, landmarkslabels):
         pass
 
     return mont
+
+
+def read_impedances_curry(fname):
+    """Read impedance measurements from Curry files.
+
+    Parameters
+    ----------
+    fname : path-like
+        Path to a curry file with extensions ``.dat``, ``.dap``, ``.rs3``,
+        ``.cdt``, ``.cdt.dpa``, ``.cdt.cef`` or ``.cef``.
+
+    Returns
+    -------
+    ch_names : list
+        A list object containing channel names
+    impedances : np.ndarray
+        An array containing up to 10 impedance measurements for all recorded channels.
+
+    """
+    # use curry-python-reader to load data
+    try:
+        currydata = curryreader.read(str(fname), plotdata=0, verbosity=1)
+    except Exception as e:
+        raise ValueError(f"file could not be read - {e}")
+
+    impedances = currydata["impedances"]
+    ch_names = currydata["labels"]
+
+    # try get measurement times
+    # TODO possible?
+    annotations = currydata[
+        "annotations"
+    ]  # dont really seem to correspond to events!?!
+    for anno in set(annotations):
+        if "impedance" in anno.lower():
+            print("FOUND IMPEDANCE ANNOTATION!")
+            print(f"'{anno}' - N={len([a for a in annotations if a == anno])}")
+
+    # print impedances
+    print("impedance measurements:")
+    for iimp in range(impedances.shape[0]):
+        print({ch: float(imp) for ch, imp in zip(ch_names, impedances[iimp])})
+
+    return ch_names, impedances
