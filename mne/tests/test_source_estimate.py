@@ -480,7 +480,7 @@ def test_stc_attributes():
 def test_io_stc(tmp_path):
     """Test IO for STC files."""
     stc = _fake_stc()
-    stc.save(tmp_path / "tmp.stc", overwrite=True)
+    stc.save(tmp_path / "tmp.stc")
     stc2 = read_source_estimate(tmp_path / "tmp")
     assert_array_almost_equal(stc.data, stc2.data)
     assert_array_almost_equal(stc.tmin, stc2.tmin)

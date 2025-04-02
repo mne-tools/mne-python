@@ -1884,7 +1884,7 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
     """
 
     @verbose
-    def save(self, fname, ftype="auto", overwrite=False, verbose=None):
+    def save(self, fname, ftype="auto", *, overwrite=False, verbose=None):
         """Save the source estimates to a file.
 
         Parameters
@@ -1905,9 +1905,9 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
         """
         fname = str(_check_fname(fname=fname, overwrite=True))  # checked below
         if ftype == "auto":
-            if fname.endswith((".stc", "-lh.stc", "-rh.stc")):
+            if fname.endswith(".stc"):
                 ftype = "stc"
-            elif fname.endswith((".w", "-lh.w", "-rh.w")):
+            elif fname.endswith(".w"):
                 ftype = "w"
             elif fname.endswith(".h5"):
                 ftype = "h5"
