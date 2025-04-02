@@ -1,1 +1,1 @@
-Fixes behavior of stc.save() filetypes and suffixes while saving through :meth:`mne.SourceEstimate.save` and in `test_source_estimate.py` by `Shresth Keshari`.
+Fixes behavior of stc.save() filetypes and suffixes while saving through :meth:`SourceEstimate.save` method in `source_estimate.py` and in `test_source_estimate.py` by `Shresth Keshari`.
