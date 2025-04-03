@@ -890,7 +890,7 @@ def construct_iir_filter(
         logger.info(f"- Cutoff{_pl(f_pass)} at {edge_freqs} Hz: {cutoffs} dB")
     # now deal with padding
     if "padlen" not in iir_params:
-        padlen = 5 * estimate_ringing_samples(system)
+        padlen = estimate_ringing_samples(system)
     else:
         padlen = iir_params["padlen"]
 
@@ -2947,7 +2947,9 @@ def _filt_update_info(info, update_info, l_freq, h_freq):
 def _iir_pad_apply_unpad(x, *, func, padlen, padtype, **kwargs):
     x_out = np.reshape(x, (-1, x.shape[-1])).copy()
     for this_x in x_out:
-        x_ext = _smart_pad(this_x, (padlen, padlen), padtype)
+        x_ext = this_x
+        if padlen:
+            x_ext = _smart_pad(x_ext, (padlen, padlen), padtype)
         x_ext = func(x=x_ext, axis=-1, padlen=0, **kwargs)
         this_x[:] = x_ext[padlen : len(x_ext) - padlen]
     x_out.shape = x.shape
