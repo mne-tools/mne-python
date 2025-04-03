@@ -2009,6 +2009,13 @@ head_source : str | list of str
     :func:`mne.get_head_surf` for more information.
 """
 
+docdict["helmet_upsampling"] = """
+upsampling : int
+    The upsampling factor to use for the helmet mesh. The default (1) does no
+    upsampling. Larger integers lead to more densely sampled helmet surfaces, and
+    the number of vertices increases as a factor of ``4**(upsampling-1)``.
+"""
+
 docdict["hitachi_fname"] = """
 fname : list | str
     Path(s) to the Hitachi CSV file(s). This should only be a list for

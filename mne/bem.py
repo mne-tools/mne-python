@@ -1073,10 +1073,10 @@ def get_fitting_dig(info, dig_kinds="auto", exclude_frontal=True, verbose=None):
 
 
 @verbose
-def _fit_sphere_to_headshape(info, dig_kinds, verbose=None):
+def _fit_sphere_to_headshape(info, dig_kinds, *, verbose=None):
     """Fit a sphere to the given head shape."""
     hsp = get_fitting_dig(info, dig_kinds)
-    radius, origin_head = _fit_sphere(np.array(hsp), disp=False)
+    radius, origin_head = _fit_sphere(np.array(hsp))
     # compute origin in device coordinates
     dev_head_t = info["dev_head_t"]
     if dev_head_t is None:
@@ -1105,36 +1105,16 @@ def _fit_sphere_to_headshape(info, dig_kinds, verbose=None):
     return radius, origin_head, origin_device
 
 
-def _fit_sphere(points, disp="auto"):
+def _fit_sphere(points):
     """Fit a sphere to an arbitrary set of points."""
-    if isinstance(disp, str) and disp == "auto":
-        disp = True if logger.level <= 20 else False
-    # initial guess for center and radius
-    radii = (np.max(points, axis=1) - np.min(points, axis=1)) / 2.0
-    radius_init = radii.mean()
-    center_init = np.median(points, axis=0)
-
-    # optimization
-    x0 = np.concatenate([center_init, [radius_init]])
-
-    def cost_fun(center_rad):
-        d = np.linalg.norm(points - center_rad[:3], axis=1) - center_rad[3]
-        d *= d
-        return d.sum()
-
-    def constraint(center_rad):
-        return center_rad[3]  # radius must be >= 0
-
-    x_opt = fmin_cobyla(
-        cost_fun,
-        x0,
-        constraint,
-        rhobeg=radius_init,
-        rhoend=radius_init * 1e-6,
-        disp=disp,
-    )
-
-    origin, radius = x_opt[:3], x_opt[3]
+    # linear least-squares sphere fit, see for example
+    # https://stackoverflow.com/a/78909044
+    # TODO: At some point we should maybe reject outliers first...
+    A = np.c_[2 * points, np.ones((len(points), 1))]
+    b = (points**2).sum(axis=1)
+    x, _, _, _ = np.linalg.lstsq(A, b, rcond=1e-6)
+    origin = x[:3]
+    radius = np.sqrt(x[0] ** 2 + x[1] ** 2 + x[2] ** 2 + x[3])
     return radius, origin
 
 

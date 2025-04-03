@@ -173,6 +173,7 @@ bads = [
 
 def _assert_n_free(raw_sss, lower, upper=None):
     """Check the DOF."""
+    __tracebackhide__ = True
     upper = lower if upper is None else upper
     n_free = raw_sss.info["proc_history"][0]["max_info"]["sss_info"]["nfree"]
     assert lower <= n_free <= upper, f"nfree fail: {lower} <= {n_free} <= {upper}"
@@ -366,8 +367,10 @@ def test_other_systems():
     elp_path = kit_dir / "test_elp.txt"
     hsp_path = kit_dir / "test_hsp.txt"
     raw_kit = read_raw_kit(sqd_path, str(mrk_path), str(elp_path), str(hsp_path))
-    with pytest.warns(RuntimeWarning, match="fit"):
-        pytest.raises(RuntimeError, maxwell_filter, raw_kit)
+    with (
+        pytest.raises(NotImplementedError, match="Cannot create forward solution with"),
+    ):
+        maxwell_filter(raw_kit, verbose=True)
     with catch_logging() as log:
         raw_sss = maxwell_filter(
             raw_kit, origin=(0.0, 0.0, 0.04), ignore_ref=True, verbose=True
@@ -378,24 +381,21 @@ def test_other_systems():
         raw_kit, origin=(0.0, 0.0, 0.04), ignore_ref=True, mag_scale="auto"
     )
     assert_allclose(raw_sss._data, raw_sss_auto._data)
-    # The KIT origin fit is terrible
-    with pytest.warns(RuntimeWarning, match="more than 20 mm"):
-        with catch_logging() as log:
-            pytest.raises(
-                RuntimeError, maxwell_filter, raw_kit, ignore_ref=True, regularize=None
-            )  # bad condition
-            raw_sss = maxwell_filter(
-                raw_kit,
-                origin="auto",
-                ignore_ref=True,
-                bad_condition="info",
-                verbose=True,
-            )
+    with catch_logging() as log:
+        pytest.raises(
+            RuntimeError, maxwell_filter, raw_kit, ignore_ref=True, regularize=None
+        )  # bad condition
+        raw_sss = maxwell_filter(
+            raw_kit,
+            origin="auto",
+            ignore_ref=True,
+            bad_condition="info",
+            verbose=True,
+        )
     log = log.getvalue()
-    assert "badly conditioned" in log
-    assert "more than 20 mm from" in log
-    # fits can differ slightly based on scipy version, so be lenient here
-    _assert_n_free(raw_sss, 28, 34)  # bad origin == brutal reg
+    assert "badly conditioned" not in log
+    assert "more than 20 mm from" not in log
+    _assert_n_free(raw_sss, 67, 67)
     # Let's set the origin
     with catch_logging() as log:
         raw_sss = maxwell_filter(
