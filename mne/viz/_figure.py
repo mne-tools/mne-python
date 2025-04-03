@@ -5,6 +5,7 @@
 # Copyright the MNE-Python contributors.
 
 import importlib
+import inspect
 from abc import ABC, abstractmethod
 from collections import OrderedDict
 from contextlib import contextmanager
@@ -404,7 +405,10 @@ class BrowserBase(ABC):
     def _update_data(self):
         start, stop = self._get_start_stop()
         # get the data, with padding if necessary
-        if isinstance(self.mne.filter_coefs, dict):  # most common IIR case
+        # check that mne-qt-browser is new enough to support time_slice
+        specs = inspect.getfullargspec(self._process_data)
+        has_time_slice = "time_slice" in specs.kwonlyargs or specs.varkw
+        if isinstance(self.mne.filter_coefs, dict) and has_time_slice:  # IIR
             use_start = max(0, start - self.mne.filter_coefs["padlen"])
             use_stop = min(self.mne.n_times, stop + self.mne.filter_coefs["padlen"])
             time_slice = slice(start - use_start, start - use_start + (stop - start))

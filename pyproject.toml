@@ -103,7 +103,7 @@ full-no-qt = [
   "joblib",
   "jupyter",
   "mffpy >= 0.5.7",
-  "mne-qt-browser @ git+https://github.com/larsoner/mne-qt-browser@args",
+  "mne-qt-browser",
   "mne[hdf5]",
   "neo",
   "nibabel",
@@ -216,10 +216,6 @@ exclude = [
   "/tools",
   "/tutorials",
 ]  # tracked by git, but we don't want to ship those files
-
-# TODO: Remove!
-[tool.hatch.metadata]
-allow-direct-references = true
 
 [tool.hatch.version]
 raw-options = {version_scheme = "release-branch-semver"}
