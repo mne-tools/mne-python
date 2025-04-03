@@ -1,0 +1,1 @@
+Fix bug in :func:`mne.bem.make_watershed_bem` where function would fail if ``talairach_with_skull.lta`` did not exist due to changes in Freesurfer by `Peter Molfese`_.

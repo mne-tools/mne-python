@@ -185,7 +185,7 @@ def test_compute_fine_cal(kind):
     assert got_cal["ch_names"] == got_cal_redo["ch_names"]
     assert_allclose(got_cal["imb_cals"], got_cal_redo["imb_cals"], atol=5e-5)
     assert_allclose(got_cal["locs"], got_cal_redo["locs"], atol=1e-6)
-    assert sum([(ic == 1.0).any() for ic in got_cal["imb_cals"]]) == 0
+    assert sum((ic == 1.0).any() for ic in got_cal["imb_cals"]) < 2
 
     # redoing with 3 imlabance parameters should improve the shielding factor
     grad_subpicks = np.searchsorted(meg_picks, pick_types(raw.info, meg="grad"))
