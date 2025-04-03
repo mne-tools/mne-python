@@ -546,10 +546,10 @@ def _extract_sampling_rate(dat):
     else:
         # specified as time points
         periods = np.diff(time_data)
-        uniq_periods = np.unique(periods.round(decimals=4))
+        uniq_periods = np.unique(periods.round(decimals=4))  # round to nearest 0.1 ms
         if uniq_periods.size == 1:
             # Uniformly sampled data
-            sampling_rate = 1.0 / uniq_periods.item()
+            sampling_rate = 1.0 / periods.mean()
         else:
             # Hopefully uniformly sampled data with some precision issues.
             # This is a workaround to provide support for Artinis data.
