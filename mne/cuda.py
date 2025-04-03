@@ -373,13 +373,26 @@ def _smart_pad(x, n_pad, pad="reflect_limited"):
         return x
     elif (n_pad < 0).any():
         raise RuntimeError("n_pad must be non-negative")
-    if pad.startswith("reflect"):
-        out = np.pad(x, (tuple(n_pad),), "reflect", reflect_type="odd")
-        if pad == "reflect_limited":
-            if n_pad[0] > len(x):
-                out[: n_pad[0] - len(x)] = out[n_pad[0] - len(x)]
-            if n_pad[1] > len(x):
-                out[-n_pad[1] + len(x) :] = out[-n_pad[1] + len(x)]
+    if pad == "reflect_limited":
+        l_z_pad = np.zeros(max(n_pad[0] - len(x) + 1, 0), dtype=x.dtype)
+        r_z_pad = np.zeros(max(n_pad[1] - len(x) + 1, 0), dtype=x.dtype)
+        out = np.concatenate(
+            [
+                l_z_pad,
+                2 * x[0] - x[n_pad[0] : 0 : -1],
+                x,
+                2 * x[-1] - x[-2 : -n_pad[1] - 2 : -1],
+                r_z_pad,
+            ]
+        )
+        # out = np.pad(x, (tuple(n_pad),), "reflect", reflect_type="odd")
+        # if n_pad[0] > len(x):
+        #     out[: n_pad[0] - len(x)] = 0  # out[n_pad[0] - len(x)]
+        # if n_pad[1] > len(x):
+        #     out[-n_pad[1] + len(x) :] = 0  # out[-n_pad[1] + len(x)]
     else:
-        out = np.pad(x, (tuple(n_pad),), pad)
+        kwargs = dict()
+        if pad == "reflect":
+            kwargs["reflect_type"] = "odd"
+        out = np.pad(x, (tuple(n_pad),), pad, **kwargs)
     return out

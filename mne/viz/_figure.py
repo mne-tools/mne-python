@@ -360,21 +360,32 @@ class BrowserBase(ABC):
                 )
             data[_picks, _start:_stop] = this_data
 
-    def _process_data(self, data, start, stop, picks, *, time_slice):
+    def _process_data(self, data, start, stop, picks, thread=None, *, time_slice=None):
         """Update self.mne.data after user interaction."""
         # apply projectors
+        if time_slice is None:
+            time_slice = slice(None)
         if self.mne.projector is not None:
+            # thread is the loading-thread only available in Qt-backend
+            if thread:
+                thread.processText.emit("Applying Projectors...")
             data = self.mne.projector @ data
         # get only the channels we're displaying
         data = data[picks]
         # remove DC
         if self.mne.remove_dc:
+            if thread:
+                thread.processText.emit("Removing DC...")
             data -= np.nanmean(data[..., time_slice], axis=1, keepdims=True)
         # apply filter
         if self.mne.filter_coefs is not None:
+            if thread:
+                thread.processText.emit("Apply Filter...")
             self._apply_filter(data, start, stop, picks)
         data = data[..., time_slice]
         # scale the data for display in a 1-vertical-axis-unit slot
+        if thread:
+            thread.processText.emit("Scale Data...")
         this_names = self.mne.ch_names[picks]
         this_types = self.mne.ch_types[picks]
         stims = this_types == "stim"

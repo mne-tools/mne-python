@@ -110,7 +110,7 @@ def test_1d_filter(n_signal, n_filter, filter_type):
     else:  # filter_type == 'identity'
         h = np.concatenate([[1.0], np.zeros(n_filter - 1)])
     # ensure we pad the signal the same way for both filters
-    n_pad = n_filter - 1
+    n_pad = n_filter
     x_pad = _smart_pad(x, (n_pad, n_pad))
     for phase in ("zero", "linear", "zero-double"):
         # compute our expected result the slow way
@@ -1115,20 +1115,22 @@ def test_smart_pad(dc, sfreq):
     t = (np.arange(0, int(round(sfreq)) + 1)) / sfreq
     x = np.sin(2 * np.pi * f * t) + dc
     x_want = np.r_[x, x, x]
-    padlen = (len(x), len(x))
+    padlen = (len(x),) * 2
     x_pad = np.pad(x, padlen, mode="reflect", reflect_type="odd")
     assert_allclose(x_pad, x_want, err_msg="np.pad", atol=0.1)  # slight DC shift
-    for kind in ("reflect", "reflect_limited"):
-        this_x_pad = _smart_pad(x, padlen, kind)
-        # slight DC shift from out "x_want" (odd reflection)
-        assert_allclose(
-            this_x_pad, x_want, atol=0.1, err_msg=f"_smart_pad {kind} x_want"
-        )
-        # ... but should match the NumPy call to numerical precision
-        assert_allclose(
-            this_x_pad, x_pad, atol=1e-6, err_msg=f"_smart_pad {kind} vs np.pad"
-        )
+    this_x_pad = _smart_pad(x, padlen, "reflect")
+    # slight DC shift from out "x_want" (doubled sample at each end)
+    assert_allclose(this_x_pad, x_want, atol=0.1, err_msg="_smart_pad reflect x_want")
+    assert_allclose(
+        this_x_pad, x_pad, atol=1e-6, err_msg="_smart_pad reflect vs np.pad"
+    )
+    this_x_pad = _smart_pad(x, padlen, "reflect_limited")
+    x_want = np.r_[0, x[:-1], x, x[1:], 0]
+    assert_allclose(
+        this_x_pad, x_want, atol=1e-7, err_msg="_smart_pad reflect_limited x_want"
+    )
+    # reflect_limited uses one fewer sample so ends up a little bit different
     # with even more padding
-    x_want = np.r_[np.full(len(x), dc), x_want, np.full(len(x), dc)]
+    x_want = np.r_[np.full(len(x), 0), x_want, np.full(len(x), 0)]
     x_pad = _smart_pad(x, (len(x) * 2,) * 2, "reflect_limited")
     assert_allclose(x_pad, x_want, atol=0.1, err_msg="reflect_limited with zeros")
