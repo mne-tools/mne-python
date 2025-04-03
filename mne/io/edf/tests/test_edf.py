@@ -1227,6 +1227,7 @@ def test_bdf_read_from_bad_file_like():
         with open(edf_txt_stim_channel_path, "rb") as blob:
             read_raw_bdf(BytesIO(blob.read()), preload=True)
 
+
 @testing.requires_testing_data
 def test_bdf_read_from_file_like():
     """Test that RawEDF is able to read from file-like objects for BDF files."""
@@ -1244,6 +1245,7 @@ def test_edf_read_from_bad_file_like():
     with pytest.raises(Exception, match="Bad EDF file provided."):
         with open(edf_txt_stim_channel_path, "rb") as blob:
             read_raw_edf(BytesIO(blob.read()), preload=True)
+
 
 @testing.requires_testing_data
 def test_edf_read_from_file_like():
