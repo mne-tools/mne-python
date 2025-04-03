@@ -1,0 +1,63 @@
+{
+  "merge_commit_sha": "704b3930e03c1428dc73481d8232c6838b4b1047",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "autofix-ci[bot]",
+      "e": "114827586+autofix-ci[bot]@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/13178.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/_fiff/tests/test_reference.py": {
+      "a": 5,
+      "d": 1
+    },
+    "mne/bem.py": {
+      "a": 11,
+      "d": 31
+    },
+    "mne/channels/tests/test_montage.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/dipole.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/curry/tests/test_curry.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/tests/test_fine_cal.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/tests/test_maxwell.py": {
+      "a": 16,
+      "d": 19
+    },
+    "mne/simulation/tests/test_raw.py": {
+      "a": 7,
+      "d": 3
+    },
+    "mne/surface.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/tests/test_bem.py": {
+      "a": 7,
+      "d": 8
+    },
+    "mne/transforms.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}
