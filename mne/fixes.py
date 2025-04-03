@@ -23,6 +23,7 @@ import warnings
 from math import log
 
 import numpy as np
+import numpy.typing
 from packaging.version import parse
 
 ###############################################################################
@@ -742,7 +743,7 @@ def sph_harm_y(n, m, theta, phi, *, diff_n=0):
 # from the file-like object.
 def read_from_file_or_buffer(
     file: str | bytes | os.PathLike | io.IOBase,
-    dtype: np.typing.DTypeLike = float,
+    dtype: numpy.typing.DTypeLike = float,
     count: int = -1,
 ):
     """numpy.fromfile() wrapper, handling io.BytesIO file-like streams.
