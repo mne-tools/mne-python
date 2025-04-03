@@ -97,82 +97,80 @@ def test_estimate_ringing():
         assert estimate_ringing_samples(butter(4, 0.00001)) == 100000
 
 
-def test_1d_filter():
+@pytest.mark.parametrize("n_signal", (1, 2, 3, 5, 10, 20, 40))
+@pytest.mark.parametrize("n_filter", (1, 2, 3, 5, 10, 11, 20, 21, 40, 41, 100, 101))
+@pytest.mark.parametrize("filter_type", ("identity", "random"))
+def test_1d_filter(n_signal, n_filter, filter_type):
     """Test our private overlap-add filtering function."""
     # make some random signals and filters
     rng = np.random.RandomState(0)
-    for n_signal in (1, 2, 3, 5, 10, 20, 40):
-        x = rng.randn(n_signal)
-        for n_filter in (1, 2, 3, 5, 10, 11, 20, 21, 40, 41, 100, 101):
-            for filter_type in ("identity", "random"):
-                if filter_type == "random":
-                    h = rng.randn(n_filter)
-                else:  # filter_type == 'identity'
-                    h = np.concatenate([[1.0], np.zeros(n_filter - 1)])
-                # ensure we pad the signal the same way for both filters
-                n_pad = n_filter - 1
-                x_pad = _smart_pad(x, (n_pad, n_pad))
-                for phase in ("zero", "linear", "zero-double"):
-                    # compute our expected result the slow way
-                    if phase == "zero":
-                        # only allow zero-phase for odd-length filters
-                        if n_filter % 2 == 0:
-                            pytest.raises(
-                                RuntimeError,
-                                _overlap_add_filter,
-                                x[np.newaxis],
-                                h,
-                                phase=phase,
-                            )
-                            continue
-                        shift = (len(h) - 1) // 2
-                        x_expected = np.convolve(x_pad, h)
-                        x_expected = x_expected[shift : len(x_expected) - shift]
-                    elif phase == "zero-double":
-                        shift = len(h) - 1
-                        x_expected = np.convolve(x_pad, h)
-                        x_expected = np.convolve(x_expected[::-1], h)[::-1]
-                        x_expected = x_expected[shift : len(x_expected) - shift]
-                        shift = 0
-                    else:
-                        shift = 0
-                        x_expected = np.convolve(x_pad, h)
-                        x_expected = x_expected[: len(x_expected) - len(h) + 1]
-                    # remove padding
-                    if n_pad > 0:
-                        x_expected = x_expected[n_pad : len(x_expected) - n_pad]
-                    assert len(x_expected) == len(x)
-                    # make sure we actually set things up reasonably
-                    if filter_type == "identity":
-                        out = x_pad.copy()
-                        out = out[shift + n_pad :]
-                        out = out[: len(x)]
-                        out = np.concatenate((out, np.zeros(max(len(x) - len(out), 0))))
-                        assert len(out) == len(x)
-                        assert_allclose(out, x_expected)
-                    assert len(x_expected) == len(x)
+    x = rng.randn(n_signal)
+    if filter_type == "random":
+        h = rng.randn(n_filter)
+    else:  # filter_type == 'identity'
+        h = np.concatenate([[1.0], np.zeros(n_filter - 1)])
+    # ensure we pad the signal the same way for both filters
+    n_pad = n_filter - 1
+    x_pad = _smart_pad(x, (n_pad, n_pad))
+    for phase in ("zero", "linear", "zero-double"):
+        # compute our expected result the slow way
+        if phase == "zero":
+            # only allow zero-phase for odd-length filters
+            if n_filter % 2 == 0:
+                pytest.raises(
+                    RuntimeError,
+                    _overlap_add_filter,
+                    x[np.newaxis],
+                    h,
+                    phase=phase,
+                )
+                continue
+            shift = (len(h) - 1) // 2
+            x_expected = np.convolve(x_pad, h)
+            x_expected = x_expected[shift : len(x_expected) - shift]
+        elif phase == "zero-double":
+            shift = len(h) - 1
+            x_expected = np.convolve(x_pad, h)
+            x_expected = np.convolve(x_expected[::-1], h)[::-1]
+            x_expected = x_expected[shift : len(x_expected) - shift]
+            shift = 0
+        else:
+            shift = 0
+            x_expected = np.convolve(x_pad, h)
+            x_expected = x_expected[: len(x_expected) - len(h) + 1]
+        # remove padding
+        if n_pad > 0:
+            x_expected = x_expected[n_pad : len(x_expected) - n_pad]
+        assert len(x_expected) == len(x)
+        # make sure we actually set things up reasonably
+        if filter_type == "identity":
+            out = x_pad.copy()
+            out = out[shift + n_pad :]
+            out = out[: len(x)]
+            out = np.concatenate((out, np.zeros(max(len(x) - len(out), 0))))
+            assert len(out) == len(x)
+            assert_allclose(out, x_expected)
+        assert len(x_expected) == len(x)
 
-                    # compute our version
-                    for n_fft in (None, 32, 128, 129, 1023, 1024, 1025, 2048):
-                        # need to use .copy() b/c signal gets modified inplace
-                        x_copy = x[np.newaxis, :].copy()
-                        min_fft = 2 * n_filter - 1
-                        if phase == "zero-double":
-                            min_fft = 2 * min_fft - 1
-                        if n_fft is not None and n_fft < min_fft:
-                            pytest.raises(
-                                ValueError,
-                                _overlap_add_filter,
-                                x_copy,
-                                h,
-                                n_fft,
-                                phase=phase,
-                            )
-                        else:
-                            x_filtered = _overlap_add_filter(
-                                x_copy, h, n_fft, phase=phase
-                            )[0]
-                            assert_allclose(x_filtered, x_expected, atol=1e-13)
+        # compute our version
+        for n_fft in (None, 32, 128, 129, 1023, 1024, 1025, 2048):
+            # need to use .copy() b/c signal gets modified inplace
+            x_copy = x[np.newaxis, :].copy()
+            min_fft = 2 * n_filter - 1
+            if phase == "zero-double":
+                min_fft = 2 * min_fft - 1
+            if n_fft is not None and n_fft < min_fft:
+                pytest.raises(
+                    ValueError,
+                    _overlap_add_filter,
+                    x_copy,
+                    h,
+                    n_fft,
+                    phase=phase,
+                )
+            else:
+                x_filtered = _overlap_add_filter(x_copy, h, n_fft, phase=phase)[0]
+                assert_allclose(x_filtered, x_expected, atol=1e-13)
 
 
 def test_iir_stability():

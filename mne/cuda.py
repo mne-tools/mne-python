@@ -373,12 +373,13 @@ def _smart_pad(x, n_pad, pad="reflect_limited"):
         return x
     elif (n_pad < 0).any():
         raise RuntimeError("n_pad must be non-negative")
-    if pad == "reflect_limited":
+    if pad.startswith("reflect"):
         out = np.pad(x, (tuple(n_pad),), "reflect", reflect_type="odd")
-        if n_pad[0] > len(x):
-            out[: n_pad[0] - len(x)] = out[n_pad[0] - len(x)]
-        if n_pad[1] > len(x):
-            out[-n_pad[1] + len(x) :] = out[-n_pad[1] + len(x)]
-        return out
+        if pad == "reflect_limited":
+            if n_pad[0] > len(x):
+                out[: n_pad[0] - len(x)] = out[n_pad[0] - len(x)]
+            if n_pad[1] > len(x):
+                out[-n_pad[1] + len(x) :] = out[-n_pad[1] + len(x)]
     else:
-        return np.pad(x, (tuple(n_pad),), pad, reflect_type="odd")
+        out = np.pad(x, (tuple(n_pad),), pad)
+    return out
