@@ -149,7 +149,6 @@ __all__ = [
     "legacy",
     "linkcode_resolve",
     "logger",
-    "numpy_fromfile",
     "object_diff",
     "object_hash",
     "object_size",
@@ -382,5 +381,4 @@ from .numerics import (
     split_list,
     sum_squared,
 )
-from .numpy import numpy_fromfile
 from .progressbar import ProgressBar
