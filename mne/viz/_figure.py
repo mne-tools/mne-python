@@ -412,12 +412,9 @@ class BrowserBase(ABC):
         start, stop = self._get_start_stop()
         # get the data, with padding if necessary
         kwargs = dict()
-        padlen = None
         if isinstance(self.mne.filter_coefs, dict) and self._has_time_slice:  # IIR
-            padlen = self.mne.filter_coefs["padlen"]
-            use_start = max(0, start - padlen)
-            use_stop = min(self.mne.n_times, stop + padlen)
-            self.mne.filter_coefs["padlen"] = 0
+            use_start = max(0, start - self.mne.filter_coefs["padlen"])
+            use_stop = min(self.mne.n_times, stop + self.mne.filter_coefs["padlen"])
             time_slice = slice(start - use_start, start - use_start + (stop - start))
             kwargs["time_slice"] = time_slice
         else:
@@ -430,8 +427,6 @@ class BrowserBase(ABC):
         data = self._process_data(
             data, use_start, use_stop, picks=self.mne.picks, **kwargs
         )
-        if padlen is not None:
-            self.mne.filter_coefs["padlen"] = padlen
         times = times[time_slice]
         assert data.ndim >= 2 and data.shape[-1] == (stop - start)
         # set the data as attributes
