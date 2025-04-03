@@ -217,6 +217,10 @@ exclude = [
   "/tutorials",
 ]  # tracked by git, but we don't want to ship those files
 
+# TODO: Remove!
+[tool.hatch.metadata]
+allow-direct-references = true
+
 [tool.hatch.version]
 raw-options = {version_scheme = "release-branch-semver"}
 source = "vcs"
