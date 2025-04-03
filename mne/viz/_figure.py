@@ -308,12 +308,18 @@ class BrowserBase(ABC):
     def _get_start_stop(self):
         # update time
         start_sec = self.mne.t_start - self.mne.first_time
-        stop_sec = start_sec + self.mne.duration
         if self.mne.is_epochs:
             start, stop = np.round(
-                np.array([start_sec, stop_sec]) * self.mne.info["sfreq"]
+                np.array([start_sec, start_sec + self.mne.duration])
+                * self.mne.info["sfreq"]
             ).astype(int)
         else:
+            # ensure our end time includes the last sample
+            disp_duration = (
+                np.ceil(self.mne.duration * self.mne.info["sfreq"])
+                / self.mne.info["sfreq"]
+            )
+            stop_sec = start_sec + disp_duration
             start, stop = self.mne.inst.time_as_index((start_sec, stop_sec))
 
         return start, stop
