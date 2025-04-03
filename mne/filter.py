@@ -2945,7 +2945,7 @@ def _filt_update_info(info, update_info, l_freq, h_freq):
 
 
 def _iir_pad_apply_unpad(x, *, func, padlen, padtype, **kwargs):
-    x_out = np.reshape(x, (-1, x.shape[-1]), copy=True)
+    x_out = np.reshape(x, (-1, x.shape[-1])).copy()
     for this_x in x_out:
         x_ext = _smart_pad(this_x, (padlen, padlen), padtype)
         x_ext = func(x=x_ext, axis=-1, padlen=0, **kwargs)
