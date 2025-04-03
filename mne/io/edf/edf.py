@@ -1492,7 +1492,9 @@ def _read_gdf_header(fname, exclude, include=None):
                 for i in range(1, len(sr)):
                     event_sr = event_sr + sr[i] * 2 ** (i * 8)
                 n_events = read_from_file_or_buffer(fid, UINT32, 1)[0]
-                pos = read_from_file_or_buffer(fid, UINT32, n_events) - 1  # 1-based inds
+                pos = (
+                    read_from_file_or_buffer(fid, UINT32, n_events) - 1
+                )  # 1-based inds
                 typ = read_from_file_or_buffer(fid, UINT16, n_events)
 
                 if etmode == 3:
@@ -1554,8 +1556,12 @@ def _read_gdf_header(fname, exclude, include=None):
                 loc["horzpre"] = 29
                 loc["size"] = 29
             loc["version"] = 0
-            loc["latitude"] = float(read_from_file_or_buffer(fid, UINT32, 1)[0]) / 3600000
-            loc["longitude"] = float(read_from_file_or_buffer(fid, UINT32, 1)[0]) / 3600000
+            loc["latitude"] = (
+                float(read_from_file_or_buffer(fid, UINT32, 1)[0]) / 3600000
+            )
+            loc["longitude"] = (
+                float(read_from_file_or_buffer(fid, UINT32, 1)[0]) / 3600000
+            )
             loc["altitude"] = float(read_from_file_or_buffer(fid, INT32, 1)[0]) / 100
             meas_id["loc"] = loc
 
@@ -1668,10 +1674,14 @@ def _read_gdf_header(fname, exclude, include=None):
             dtype = read_from_file_or_buffer(fid, INT32, len(channels))
 
             channel = {}
-            channel["xyz"] = [read_from_file_or_buffer(fid, FLOAT32, 3)[0] for ch in channels]
+            channel["xyz"] = [
+                read_from_file_or_buffer(fid, FLOAT32, 3)[0] for ch in channels
+            ]
 
             if edf_info["number"] < 2.19:
-                impedance = read_from_file_or_buffer(fid, UINT8, len(channels)).astype(float)
+                impedance = read_from_file_or_buffer(fid, UINT8, len(channels)).astype(
+                    float
+                )
                 impedance[impedance == 255] = np.nan
                 channel["impedance"] = pow(2, impedance / 8)
                 fid.seek(19 * len(channels), 1)  # reserved
@@ -1744,7 +1754,9 @@ def _read_gdf_header(fname, exclude, include=None):
                     n_events = sum(int(ne[i]) << (i * 8) for i in range(len(ne)))
                     event_sr = read_from_file_or_buffer(fid, FLOAT32, 1)[0]
 
-                pos = read_from_file_or_buffer(fid, UINT32, n_events) - 1  # 1-based inds
+                pos = (
+                    read_from_file_or_buffer(fid, UINT32, n_events) - 1
+                )  # 1-based inds
                 typ = read_from_file_or_buffer(fid, UINT16, n_events)
 
                 if etmode == 3:
