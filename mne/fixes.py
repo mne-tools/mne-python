@@ -16,6 +16,7 @@ at which the fix is no longer needed.
 # because this module is imported many places (but not always used)!
 
 import inspect
+import io
 import operator as operator_module
 import os
 import warnings
@@ -23,7 +24,6 @@ from math import log
 
 import numpy as np
 from packaging.version import parse
-import io
 
 ###############################################################################
 # distutils LooseVersion removed in Python 3.12
@@ -735,12 +735,15 @@ def sph_harm_y(n, m, theta, phi, *, diff_n=0):
     else:
         return special.sph_harm(m, n, phi, theta)
 
+
 ###############################################################################
 # workaround: Numpy won't allow to read from file-like objects with numpy.fromfile,
-# we try to use numpy.fromfile, if a blob is used we use numpy.frombuffer to read 
+# we try to use numpy.fromfile, if a blob is used we use numpy.frombuffer to read
 # from the file-like object.
 def read_from_file_or_buffer(
-    file: str | bytes | os.PathLike | io.IOBase, dtype: np.typing.DTypeLike = float, count: int = -1
+    file: str | bytes | os.PathLike | io.IOBase,
+    dtype: np.typing.DTypeLike = float,
+    count: int = -1,
 ):
     """numpy.fromfile() wrapper, handling io.BytesIO file-like streams.
 
