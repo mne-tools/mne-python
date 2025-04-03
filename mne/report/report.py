@@ -1,4 +1,4 @@
-"Generate self-contained HTML reports from MNE objects."""
+"Generate self-contained HTML reports from MNE objects."
 
 # Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
@@ -830,7 +830,6 @@ class Report:
         img_max_res=MAX_IMG_RES,
         collapse=(),
         verbose=None,
-        
     ):
         self.projs = projs  # Initialize self.projs
         self.info_fname = str(info_fname) if info_fname is not None else None
@@ -844,7 +843,7 @@ class Report:
         self.subject = subject
         self.title = title
         self.image_format = _check_image_format(None, image_format)
-        
+
         # dom_id is mostly for backward compat and testing nowadays
         self._dom_id = 0
         self._dup_limit = 10000  # should be enough duplicates
@@ -1251,13 +1250,14 @@ class Report:
         .. versionadded:: 0.24
         """
         tags = _check_tags(tags)
+
     add_projs = self.projs if projs is None else projs
 
     if epochs._bad_dropped:
         reject_info = f"<p><strong>Rejection Thresholds:</strong> {epochs.reject}</p>"
         flat_info = f"<p><strong>Flat Thresholds:</strong> {epochs.flat}</p>"
         self.add_html(reject_info + flat_info)
-        
+
     self._add_epochs(
         epochs=epochs,
         psd=psd,
@@ -1270,7 +1270,6 @@ class Report:
         image_format=self.image_format,
         replace=replace,
     )
-
 
     @fill_doc
     def add_evokeds(
@@ -1313,7 +1312,6 @@ class Report:
         %(n_jobs)s
 
         Notes
-        
         -----
         .. versionadded:: 0.24.0
         """

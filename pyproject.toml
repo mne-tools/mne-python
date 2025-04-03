@@ -270,7 +270,6 @@ addopts = """--durations=20 --doctest-modules -rfEXs --tb=short \
     --ignore=mne/report/js_and_css \
     --color=yes --capture=sys"""
 
-
 [tool.rstcheck]
 ignore_directives = [
   "autoclass",
