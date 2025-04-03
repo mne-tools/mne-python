@@ -5,6 +5,7 @@
 # Copyright the MNE-Python contributors.
 
 import importlib
+import inspect
 from abc import ABC, abstractmethod
 from collections import OrderedDict
 from contextlib import contextmanager
@@ -307,12 +308,18 @@ class BrowserBase(ABC):
     def _get_start_stop(self):
         # update time
         start_sec = self.mne.t_start - self.mne.first_time
-        stop_sec = start_sec + self.mne.duration
         if self.mne.is_epochs:
             start, stop = np.round(
-                np.array([start_sec, stop_sec]) * self.mne.info["sfreq"]
+                np.array([start_sec, start_sec + self.mne.duration])
+                * self.mne.info["sfreq"]
             ).astype(int)
         else:
+            # ensure our end time includes the last sample
+            disp_duration = (
+                np.ceil(self.mne.duration * self.mne.info["sfreq"])
+                / self.mne.info["sfreq"]
+            )
+            stop_sec = start_sec + disp_duration
             start, stop = self.mne.inst.time_as_index((start_sec, stop_sec))
 
         return start, stop
@@ -320,12 +327,10 @@ class BrowserBase(ABC):
     def _load_data(self, start=None, stop=None):
         """Retrieve the bit of data we need for plotting."""
         if "raw" in (self.mne.instance_type, self.mne.ica_type):
-            # Add additional sample to cover the case sfreq!=1000
-            # when the shown time-range wouldn't correspond to duration anymore
             if stop is None:
                 return self.mne.inst[:, start:]
             else:
-                return self.mne.inst[:, start : stop + 2]
+                return self.mne.inst[:, start:stop]
         else:
             # subtract one sample from tstart before searchsorted, to make sure
             # we land on the left side of the boundary time (avoid precision
@@ -362,9 +367,11 @@ class BrowserBase(ABC):
                 )
             data[_picks, _start:_stop] = this_data
 
-    def _process_data(self, data, start, stop, picks, thread=None):
+    def _process_data(self, data, start, stop, picks, thread=None, *, time_slice=None):
         """Update self.mne.data after user interaction."""
         # apply projectors
+        if time_slice is None:
+            time_slice = slice(None)
         if self.mne.projector is not None:
             # thread is the loading-thread only available in Qt-backend
             if thread:
@@ -376,12 +383,13 @@ class BrowserBase(ABC):
         if self.mne.remove_dc:
             if thread:
                 thread.processText.emit("Removing DC...")
-            data -= np.nanmean(data, axis=1, keepdims=True)
+            data -= np.nanmean(data[..., time_slice], axis=1, keepdims=True)
         # apply filter
         if self.mne.filter_coefs is not None:
             if thread:
                 thread.processText.emit("Apply Filter...")
             self._apply_filter(data, start, stop, picks)
+        data = data[..., time_slice]
         # scale the data for display in a 1-vertical-axis-unit slot
         if thread:
             thread.processText.emit("Scale Data...")
@@ -400,12 +408,41 @@ class BrowserBase(ABC):
 
         return data
 
+    @property
+    def _has_time_slice(self):
+        # check that mne-qt-browser is new enough to support time_slice
+        specs = inspect.getfullargspec(self._process_data)
+        return "time_slice" in specs.kwonlyargs or specs.varkw
+
     def _update_data(self):
         start, stop = self._get_start_stop()
-        # get the data
-        data, times = self._load_data(start, stop)
+        # get the data, with padding if necessary
+        kwargs = dict()
+        padlen = None
+        if isinstance(self.mne.filter_coefs, dict) and self._has_time_slice:  # IIR
+            padlen = self.mne.filter_coefs["padlen"]
+            use_start = max(0, start - padlen)
+            use_stop = min(self.mne.n_times, stop + padlen)
+            # now during filt step, only pad as much as needed
+            self.mne.filter_coefs["padlen"] = max(
+                padlen - (use_stop - stop), padlen - (start - use_start)
+            )
+            time_slice = slice(start - use_start, start - use_start + (stop - start))
+            kwargs["time_slice"] = time_slice
+        else:
+            use_start, use_stop = start, stop
+            time_slice = slice(None)
+
+        data, times = self._load_data(use_start, use_stop)
+        assert data.ndim >= 2 and data.shape[-1] == (use_stop - use_start)
         # process the data
-        data = self._process_data(data, start, stop, self.mne.picks)
+        data = self._process_data(
+            data, use_start, use_stop, picks=self.mne.picks, **kwargs
+        )
+        if padlen is not None:
+            self.mne.filter_coefs["padlen"] = padlen
+        times = times[time_slice]
+        assert data.ndim >= 2 and data.shape[-1] == (stop - start)
         # set the data as attributes
         self.mne.data = data
         self.mne.times = times

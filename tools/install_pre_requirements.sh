@@ -65,7 +65,7 @@ echo "imageio-ffmpeg, xlrd, mffpy"
 pip install $STD_ARGS imageio-ffmpeg xlrd mffpy traitlets pybv eeglabio defusedxml antio
 
 echo "mne-qt-browser"
-pip install $STD_ARGS git+https://github.com/mne-tools/mne-qt-browser
+pip install $STD_ARGS git+https://github.com/larsoner/mne-qt-browser@args
 
 echo "mne-bids"
 pip install $STD_ARGS git+https://github.com/mne-tools/mne-bids

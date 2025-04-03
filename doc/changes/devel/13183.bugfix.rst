@@ -1,0 +1,1 @@
+Fixed bug with filter padding type in :func:`mne.io.Raw.plot` and related functions to reduce edge ringing during data display, by `Eric Larson`_.
