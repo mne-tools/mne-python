@@ -402,16 +402,21 @@ class BrowserBase(ABC):
 
         return data
 
+    @property
+    def _has_time_slice(self):
+        # check that mne-qt-browser is new enough to support time_slice
+        specs = inspect.getfullargspec(self._process_data)
+        return "time_slice" in specs.kwonlyargs or specs.varkw
+
     def _update_data(self):
         start, stop = self._get_start_stop()
         # get the data, with padding if necessary
-        # check that mne-qt-browser is new enough to support time_slice
-        specs = inspect.getfullargspec(self._process_data)
-        has_time_slice = "time_slice" in specs.kwonlyargs or specs.varkw
-        if isinstance(self.mne.filter_coefs, dict) and has_time_slice:  # IIR
+        kwargs = dict()
+        if isinstance(self.mne.filter_coefs, dict) and self._has_time_slice:  # IIR
             use_start = max(0, start - self.mne.filter_coefs["padlen"])
             use_stop = min(self.mne.n_times, stop + self.mne.filter_coefs["padlen"])
             time_slice = slice(start - use_start, start - use_start + (stop - start))
+            kwargs["time_slice"] = time_slice
         else:
             use_start, use_stop = start, stop
             time_slice = slice(None)
@@ -420,7 +425,7 @@ class BrowserBase(ABC):
         assert data.ndim >= 2 and data.shape[-1] == (use_stop - use_start)
         # process the data
         data = self._process_data(
-            data, use_start, use_stop, picks=self.mne.picks, time_slice=time_slice
+            data, use_start, use_stop, picks=self.mne.picks, **kwargs
         )
         times = times[time_slice]
         assert data.ndim >= 2 and data.shape[-1] == (stop - start)
