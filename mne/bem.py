@@ -1290,7 +1290,7 @@ def make_watershed_bem(
                 "-skull",
                 subject_dir + "/mri/nu.mgz",
                 fname,
-                subject_dir + "/mri/transforms/talairach_with_skull.lta",
+                talairach_with_skull_path,
             ]
 
             run_subprocess_env(em_reg_cmd)
