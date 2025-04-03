@@ -5,7 +5,7 @@
 Plotting EEG sensors on the scalp
 =================================
 
-In this example, digitized EEG sensor locations are shown on the scalp.
+In this example, digitized EEG sensor locations are shown on the scalp surface.
 """
 # Author: Eric Larson <larson.eric.d@gmail.com>
 #
