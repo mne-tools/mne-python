@@ -385,11 +385,6 @@ def _smart_pad(x, n_pad, pad="reflect_limited"):
                 r_z_pad,
             ]
         )
-        # out = np.pad(x, (tuple(n_pad),), "reflect", reflect_type="odd")
-        # if n_pad[0] > len(x):
-        #     out[: n_pad[0] - len(x)] = 0  # out[n_pad[0] - len(x)]
-        # if n_pad[1] > len(x):
-        #     out[-n_pad[1] + len(x) :] = 0  # out[-n_pad[1] + len(x)]
     else:
         kwargs = dict()
         if pad == "reflect":
