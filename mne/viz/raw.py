@@ -270,6 +270,9 @@ def plot_raw(
     elif clipping is not None:
         clipping = float(clipping)
 
+    # round up to the nearest sample
+    duration = np.ceil(duration * sfreq) / sfreq
+
     # be forgiving if user asks for too much time
     duration = min(raw.times[-1], float(duration))
 
