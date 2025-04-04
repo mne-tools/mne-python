@@ -59,6 +59,13 @@ FNIRS_SNIRF_DATATYPELABELS = {
     "HRF BFi": 14,  # HRF for blood flow index
 }
 
+# In each file, the TD moment order maps to these values
+_TD_MOMENT_ORDER_MAP = {
+    0: "intensity",
+    1: "mean",
+    2: "variance",
+}
+
 
 @fill_doc
 def read_raw_snirf(
@@ -313,12 +320,14 @@ class RawSNIRF(BaseRaw):
                             )[0]
                         )
                         # append moment order
-                        ch_name = (
-                            f"{ch_name} moment{fnirs_moment_orders[moment_idx - 1]}"
+                        order = fnirs_moment_orders[moment_idx - 1]
+                        _check_option(
+                            f"SNIRF channel {chan} moment order",
+                            order,
+                            _TD_MOMENT_ORDER_MAP,
                         )
-                        ch_type = "fnirs_td_moments_intensity"  # TODO: FIX AND TRIAGE!
-                        # raise RuntimeError("FIX THE TYPE")
-                        need_data_scale = True
+                        ch_name = f"{ch_name} moment{order}"
+                        ch_type = f"fnirs_td_moments_{_TD_MOMENT_ORDER_MAP[order]}"
 
                 elif snirf_data_type == SNIRF_PROCESSED:
                     dt_id = _correct_shape(
@@ -358,7 +367,7 @@ class RawSNIRF(BaseRaw):
                     dat.get("nirs/data1/measurementList1/dataUnit", b"M")
                 )
                 snirf_data_unit = snirf_data_unit.item().decode("utf-8")
-                scale = _get_dataunit_scaling(snirf_data_unit)
+                scale = _get_dataunit_scaling(snirf_data_unit)  # " " or "M")
                 if scale is not None:
                     for ch in info["chs"]:
                         ch["cal"] = scale
