@@ -9,6 +9,7 @@ import itertools
 import warnings
 from functools import partial
 from numbers import Integral
+import matplotlib.pyplot as plt
 
 import numpy as np
 from scipy.interpolate import (
@@ -1189,6 +1190,7 @@ def _plot_topomap(
     cnorm=None,
     show=True,
     onselect=None,
+    colorbar=False,
 ):
     from matplotlib.colors import Normalize
     from matplotlib.widgets import RectangleSelector

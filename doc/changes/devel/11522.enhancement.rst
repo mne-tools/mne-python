@@ -1,0 +1,1 @@
+Add a `colorbar` parameter to `mne.viz.plot_topomap()` to toggle the display of a colorbar, improving plot clarity.
