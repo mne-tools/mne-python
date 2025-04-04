@@ -946,7 +946,8 @@ def plot_topomap(
     onselect=None,
     colorbar=False,
 ):
-    """Plot a topographic map as image.
+    """
+    Plot a topographic map as image.
 
     Parameters
     ----------
@@ -957,8 +958,6 @@ def plot_topomap(
         and exactly ``len(data)`` channels; the x/y coordinates will
         be inferred from the montage in the :class:`~mne.Info` object.
     %(ch_type_topomap)s
-
-        .. versionadded:: 0.21
     %(sensors_topomap)s
     %(names_topomap)s
     %(mask_topomap)s
@@ -968,32 +967,16 @@ def plot_topomap(
     %(sphere_topomap_auto)s
     %(image_interp_topomap)s
     %(extrapolate_topomap)s
-
-        .. versionadded:: 0.18
-
-        .. versionchanged:: 0.21
-
-           - The default was changed to ``'local'`` for MEG sensors.
-           - ``'local'`` was changed to use a convex hull mask
-           - ``'head'`` was changed to extrapolate out to the clipping circle.
     %(border_topomap)s
-
-        .. versionadded:: 0.20
     %(res_topomap)s
     %(size_topomap)s
     %(cmap_topomap)s
     %(vlim_plot_topomap)s
-
-        .. versionadded:: 1.2
     %(cnorm)s
-
-        .. versionadded:: 0.24
     %(axes_plot_topomap)s
-
-        .. versionchanged:: 1.2
-           If ``axes=None``, a new :class:`~matplotlib.figure.Figure` is
-           created instead of plotting into the current axes.
     %(show)s
+    colorbar : bool
+        If True, shows the colorbar. Default is False.
     onselect : callable | None
         A function to be called when the user selects a set of channels by
         click-dragging (uses a matplotlib
