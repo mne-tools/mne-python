@@ -943,11 +943,11 @@ def plot_topomap(
     cnorm=None,
     axes=None,
     show=True,
-    onselect=None,
     colorbar=False,
+    onselect=None,
 ):
     """
-    Plot a topographic map as image.
+    Plot a topographic map as an image.
 
     Parameters
     ----------
