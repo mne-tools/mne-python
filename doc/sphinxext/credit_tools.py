@@ -39,8 +39,21 @@ data_dir = doc_root / "sphinxext"
 
 # Allowed singletons
 single_names = "btkcodedev buildqa sviter Akshay".split()
-# Allowed abbrevitaions in first/last name
-abbreviations = ["T. Wang"]
+# Surnames where we have more than one distinct contributor:
+name_counts = dict(
+    Bailey=2,
+    Das=2,
+    Drew=2,
+    Li=2,
+    Peterson=2,
+    Wong=2,
+    Zhang=2,
+)
+# Exceptions, e.g., abbrevitaions in first/last name or all-caps
+exceptions = [
+    "T. Wang",
+    "Ziyi ZENG",
+]
 # Manual renames
 manual_renames = {
     "alexandra": "Alexandra Corneyllie",  # 7600
@@ -53,6 +66,8 @@ manual_renames = {
     "enzo": "Enzo Altamiranda",  # 11351
     "Frostime": "Yiping Zuo",  # 11773
     "Gennadiy": "Gennadiy Belonosov",  # 11720
+    "Genuster": "Gennadiy Belonosov",  # 12936
+    "GreasyCat": "Rongfei Jin",  # 13113
     "Hamid": "Hamid Maymandi",  # 10849
     "jwelzel": "Julius Welzel",  # 11118
     "Martin": "Martin Billinger",  # 8099, TODO: Check
@@ -77,9 +92,9 @@ def _good_name(name):
         return False
     if " " not in name and name not in single_names:  # at least two parts
         return False
-    if name not in abbreviations and "." in name.split()[0] or "." in name.split()[-1]:
+    if name not in exceptions and "." in name.split()[0] or "." in name.split()[-1]:
         return False
-    if " " in name and name not in abbreviations:
+    if " " in name and name not in exceptions:
         first = name.split()[0]
         last = name.split()[-1]
         if first == first.upper() or last == last.upper():  # e.g., KING instead of King
@@ -165,7 +180,7 @@ def generate_credit_rst(app=None, *, verbose=False):
                 if author["e"] is not None:
                     if author["e"] not in name_map:
                         unknown_emails.add(
-                            f'{author["e"].ljust(29)} '
+                            f"{author['e'].ljust(29)} "
                             "https://github.com/mne-tools/mne-python/pull/"
                             f"{commit}/files"
                         )
@@ -174,9 +189,9 @@ def generate_credit_rst(app=None, *, verbose=False):
                 else:
                     name = author["n"]
                     if name in manual_renames:
-                        assert _good_name(
-                            manual_renames[name]
-                        ), f"Bad manual rename: {name}"
+                        assert _good_name(manual_renames[name]), (
+                            f"Bad manual rename: {name}"
+                        )
                         name = manual_renames[name]
                     if " " in name:
                         first, last = name.rsplit(" ", maxsplit=1)
@@ -213,16 +228,6 @@ def generate_credit_rst(app=None, *, verbose=False):
         )
 
     # Check for duplicate names based on last name, and also singleton names.
-    # Below are surnames where we have more than one distinct contributor:
-    name_counts = dict(
-        Das=2,
-        Drew=2,
-        Li=2,
-        Peterson=2,
-        Wong=2,
-        Zhang=2,
-    )
-    # Below are allowed singleton names
     last_map = defaultdict(lambda: set())
     bad_names = set()
     for these_stats in stats.values():
@@ -234,17 +239,18 @@ def generate_credit_rst(app=None, *, verbose=False):
             name_where = expected_bad_names.get(name, name)
             if last == name and name not in single_names:
                 bad_names.add(f"Singleton:    {name_where}")
-            if "." in last or "." in first and name not in abbreviations:
+            if "." in last or "." in first and name not in exceptions:
                 bad_names.add(f"Abbreviation: {name_where}")
     bad_names = sorted(bad_names)
     for last, names in last_map.items():
         if len(names) > name_counts.get(last, 1):
             bad_names.append(f"Duplicates:    {sorted(names)}")
     if bad_names:
-        raise RuntimeError(
-            "Unexpected possible duplicates or bad names found:\n"
-            + "\n".join(bad_names)
+        what = (
+            "Unexpected possible duplicates or bad names found, "
+            f"consider modifying {'/'.join(Path(__file__).parts[-3:])}:\n"
         )
+        raise RuntimeError(what + "\n".join(bad_names))
 
     unknown_emails = set(
         email
@@ -254,9 +260,8 @@ def generate_credit_rst(app=None, *, verbose=False):
         and "dependabot[bot]" not in email
         and "github-actions[bot]" not in email
     )
-    assert len(unknown_emails) == 0, "Unknown emails\n" + "\n".join(
-        sorted(unknown_emails)
-    )
+    what = "Unknown emails, consider adding to .mailmap:\n"
+    assert len(unknown_emails) == 0, what + "\n".join(sorted(unknown_emails))
 
     logger.info("Biggest included commits/PRs:")
     commits = dict(
@@ -390,7 +395,7 @@ def generate_credit_rst(app=None, *, verbose=False):
         raise RuntimeError(
             f"{len(other_files)} misc file(s) found:\n" + "\n".join(other_files)
         )
-    logger.info(f"\nTotal line change count: {list(total_lines)}")
+    logger.info(f"\nTotal line change count: {list(map(int, total_lines))}")
 
     # sphinx-design badges that we use for contributors
     BADGE_KINDS = ["bdg-info-line", "bdg"]

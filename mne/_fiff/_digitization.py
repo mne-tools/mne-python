@@ -11,7 +11,7 @@ from ..utils import Bunch, _check_fname, _validate_type, logger, verbose, warn
 from .constants import FIFF, _coord_frame_named
 from .tag import read_tag
 from .tree import dir_tree_find
-from .write import start_and_end_file, write_dig_points
+from .write import _safe_name_list, start_and_end_file, write_dig_points
 
 _dig_kind_dict = {
     "cardinal": FIFF.FIFFV_POINT_CARDINAL,
@@ -162,10 +162,11 @@ class DigPoint(dict):
             return np.allclose(self["r"], other["r"])
 
 
-def _read_dig_fif(fid, meas_info):
+def _read_dig_fif(fid, meas_info, *, return_ch_names=False):
     """Read digitizer data from a FIFF file."""
     isotrak = dir_tree_find(meas_info, FIFF.FIFFB_ISOTRAK)
     dig = None
+    ch_names = None
     if len(isotrak) == 0:
         logger.info("Isotrak not found")
     elif len(isotrak) > 1:
@@ -180,16 +181,28 @@ def _read_dig_fif(fid, meas_info):
             if kind == FIFF.FIFF_DIG_POINT:
                 tag = read_tag(fid, pos)
                 dig.append(tag.data)
+            elif kind == FIFF.FIFF_DIG_STRING:
+                tag = read_tag(fid, pos)
+                dig.extend(tag.data)
             elif kind == FIFF.FIFF_MNE_COORD_FRAME:
                 tag = read_tag(fid, pos)
-                coord_frame = _coord_frame_named.get(int(tag.data.item()))
+                coord_frame = int(tag.data.item())
+                coord_frame = _coord_frame_named.get(coord_frame, coord_frame)
+            elif kind == FIFF.FIFF_MNE_CH_NAME_LIST:
+                tag = read_tag(fid, pos)
+                ch_names = _safe_name_list(tag.data, "read", "ch_names")
         for d in dig:
             d["coord_frame"] = coord_frame
-    return _format_dig_points(dig)
+    out = _format_dig_points(dig)
+    if return_ch_names:
+        out = (out, ch_names)
+    return out
 
 
 @verbose
-def write_dig(fname, pts, coord_frame=None, *, overwrite=False, verbose=None):
+def write_dig(
+    fname, pts, coord_frame=None, *, ch_names=None, overwrite=False, verbose=None
+):
     """Write digitization data to a FIF file.
 
     Parameters
@@ -203,6 +216,10 @@ def write_dig(fname, pts, coord_frame=None, *, overwrite=False, verbose=None):
         If all the points have the same coordinate frame, specify the type
         here. Can be None (default) if the points could have varying
         coordinate frames.
+    ch_names : list of str | None
+        Channel names associated with the digitization points, if available.
+
+        .. versionadded:: 1.9
     %(overwrite)s
 
         .. versionadded:: 1.0
@@ -222,9 +239,15 @@ def write_dig(fname, pts, coord_frame=None, *, overwrite=False, verbose=None):
                 "Points have coord_frame entries that are incompatible with "
                 f"coord_frame={coord_frame}: {tuple(bad_frames)}."
             )
+    _validate_type(ch_names, (None, list, tuple), "ch_names")
+    if ch_names is not None:
+        for ci, ch_name in enumerate(ch_names):
+            _validate_type(ch_name, str, f"ch_names[{ci}]")
 
     with start_and_end_file(fname) as fid:
-        write_dig_points(fid, pts, block=True, coord_frame=coord_frame)
+        write_dig_points(
+            fid, pts, block=True, coord_frame=coord_frame, ch_names=ch_names
+        )
 
 
 _cardinal_ident_mapping = {
@@ -309,8 +332,7 @@ def _get_data_as_dict_from_dig(dig, exclude_ref_channel=True):
         dig_coord_frames = set([FIFF.FIFFV_COORD_HEAD])
     if len(dig_coord_frames) != 1:
         raise RuntimeError(
-            "Only single coordinate frame in dig is supported, "
-            f"got {dig_coord_frames}"
+            f"Only single coordinate frame in dig is supported, got {dig_coord_frames}"
         )
     dig_ch_pos_location = np.array(dig_ch_pos_location)
     dig_ch_pos_location.shape = (-1, 3)  # empty will be (0, 3)

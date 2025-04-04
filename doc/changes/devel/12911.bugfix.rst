@@ -1,1 +1,0 @@
-Allow exporting edf where a channel contains only constant values, by `Florian Hofer`_.

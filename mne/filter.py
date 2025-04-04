@@ -411,8 +411,7 @@ def _prep_for_filtering(x, copy, picks=None):
         picks = np.tile(picks, n_epochs) + offset
     elif len(orig_shape) > 3:
         raise ValueError(
-            "picks argument is not supported for data with more"
-            " than three dimensions"
+            "picks argument is not supported for data with more than three dimensions"
         )
     assert all(0 <= pick < x.shape[0] for pick in picks)  # guaranteed by above
 
@@ -434,7 +433,7 @@ def _firwin_design(N, freq, gain, window, sfreq):
     for this_freq, this_gain in zip(freq[::-1][1:], gain[::-1][1:]):
         assert this_gain in (0, 1)
         if this_gain != prev_gain:
-            # Get the correct N to satistify the requested transition bandwidth
+            # Get the correct N to satisfy the requested transition bandwidth
             transition = (prev_freq - this_freq) / 2.0
             this_N = int(round(_length_factors[window] / transition))
             this_N += 1 - this_N % 2  # make it odd
@@ -814,7 +813,7 @@ def construct_iir_filter(
         # use order-based design
         f_pass = np.atleast_1d(f_pass)
         if f_pass.ndim > 1:
-            raise ValueError("frequencies must be 1D, got %dD" % f_pass.ndim)
+            raise ValueError(f"frequencies must be 1D, got {f_pass.ndim}D")
         edge_freqs = ", ".join(f"{f:0.2f}" for f in f_pass)
         Wp = f_pass / (float(sfreq) / 2)
         # IT will de designed
@@ -849,7 +848,7 @@ def construct_iir_filter(
             else:
                 ptype, pmul = "(forward)", 1
             logger.info(
-                "- Filter order %d %s" % (pmul * iir_params["order"] * len(Wp), ptype)
+                "- Filter order %d %s", pmul * iir_params["order"] * len(Wp), ptype
             )
         else:
             # use gpass / gstop design
@@ -1665,24 +1664,16 @@ def _mt_spectrum_remove_win(
     n_overlap = (n_samples + 1) // 2
     x_out = np.zeros_like(x)
     rm_freqs = list()
-    idx = [0]
 
     # Define how to process a chunk of data
-    def process(x_):
+    def process(x_, *, start, stop):
         out = _mt_spectrum_remove(
             x_, sfreq, line_freqs, notch_widths, window_fun, threshold, get_thresh
         )
         rm_freqs.append(out[1])
         return (out[0],)  # must return a tuple
 
-    # Define how to store a chunk of fully processed data (it's trivial)
-    def store(x_):
-        stop = idx[0] + x_.shape[-1]
-        x_out[..., idx[0] : stop] += x_
-        idx[0] = stop
-
-    _COLA(process, store, n_times, n_samples, n_overlap, sfreq, verbose=False).feed(x)
-    assert idx[0] == n_times
+    _COLA(process, x_out, n_times, n_samples, n_overlap, sfreq, verbose=False).feed(x)
     return x_out, rm_freqs
 
 
@@ -2065,7 +2056,7 @@ def detrend(x, order=1, axis=-1):
         True
     """
     if axis > len(x.shape):
-        raise ValueError("x does not have %d axes" % axis)
+        raise ValueError(f"x does not have {axis} axes")
     if order == 0:
         fit = "constant"
     elif order == 1:
@@ -2434,7 +2425,7 @@ class FilterMixin:
 
         # savitzky-golay filtering
         window_length = (int(np.round(s_freq / h_freq)) // 2) * 2 + 1
-        logger.info("Using savgol length %d" % window_length)
+        logger.info("Using savgol length %d", window_length)
         self._data[:] = signal.savgol_filter(
             self._data, axis=-1, polyorder=5, window_length=window_length
         )
@@ -2548,8 +2539,9 @@ class FilterMixin:
                 self, skip_by_annotation, invert=True
             )
             logger.info(
-                "Filtering raw data in %d contiguous segment%s"
-                % (len(onsets), _pl(onsets))
+                "Filtering raw data in %d contiguous segment%s",
+                len(onsets),
+                _pl(onsets),
             )
         else:
             onsets, ends = np.array([0]), np.array([self._data.shape[1]])
@@ -2872,9 +2864,14 @@ def design_mne_c_filter(
     h_width = (int(((n_freqs - 1) * h_trans_bandwidth) / (0.5 * sfreq)) + 1) // 2
     h_start = int(((n_freqs - 1) * h_freq) / (0.5 * sfreq))
     logger.info(
-        "filter : %7.3f ... %6.1f Hz   bins : %d ... %d of %d "
-        "hpw : %d lpw : %d"
-        % (l_freq, h_freq, l_start, h_start, n_freqs, l_width, h_width)
+        "filter : %7.3f ... %6.1f Hz   bins : %d ... %d of %d hpw : %d lpw : %d",
+        l_freq,
+        h_freq,
+        l_start,
+        h_start,
+        n_freqs,
+        l_width,
+        h_width,
     )
     if l_freq > 0:
         start = l_start - l_width + 1

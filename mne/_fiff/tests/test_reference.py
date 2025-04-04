@@ -312,7 +312,11 @@ def test_set_eeg_reference_rest():
     same = [raw.ch_names.index(raw.info["bads"][0])]
     picks = np.setdiff1d(np.arange(len(raw.ch_names)), same)
     trans = None
-    sphere = make_sphere_model("auto", "auto", raw.info)
+    # Use fixed values from old sphere fit to reduce lines changed with fixed algorithm
+    sphere = make_sphere_model(
+        [-0.00413508, 0.01598787, 0.05175598],
+        0.09100286249131773,
+    )
     src = setup_volume_source_space(pos=20.0, sphere=sphere, exclude=30.0)
     assert src[0]["nuse"] == 223  # low but fast
     fwd = make_forward_solution(raw.info, trans, src, sphere)
@@ -792,7 +796,7 @@ def test_add_reference():
         preload=True,
         proj="delayed",
     )
-    with pytest.warns(RuntimeWarning, match="reference channels are ignored"):
+    with pytest.warns(RuntimeWarning, match="for this channel is unknown or ambiguous"):
         epochs_ref = add_reference_channels(epochs, ["M1", "M2"], copy=True)
     assert_equal(epochs_ref._data.shape[1], epochs._data.shape[1] + 2)
     _check_channel_names(epochs_ref, ["M1", "M2"])
@@ -846,7 +850,7 @@ def test_add_reference():
         proj="delayed",
     )
     evoked = epochs.average()
-    with pytest.warns(RuntimeWarning, match="reference channels are ignored"):
+    with pytest.warns(RuntimeWarning, match="for this channel is unknown or ambiguous"):
         evoked_ref = add_reference_channels(evoked, ["M1", "M2"], copy=True)
     assert_equal(evoked_ref.data.shape[0], evoked.data.shape[0] + 2)
     _check_channel_names(evoked_ref, ["M1", "M2"])
@@ -896,7 +900,7 @@ def test_add_reorder(n_ref):
         ctx = nullcontext()
     else:
         assert n_ref == 2
-        ctx = pytest.warns(RuntimeWarning, match="locations of multiple")
+        ctx = pytest.warns(RuntimeWarning, match="this channel is unknown or ambiguous")
     with ctx:
         add_reference_channels(raw, chs, copy=False)
     data = raw.get_data()

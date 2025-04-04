@@ -23,11 +23,11 @@ dependencies = [
   "decorator",
   "jinja2",
   "lazy_loader >= 0.3",
-  "matplotlib >= 3.6",
-  "numpy >= 1.23,<3",
+  "matplotlib >= 3.7",  # 2023/02/13
+  "numpy >= 1.25,<3",  # 2023/06/17
   "packaging",
   "pooch >= 1.5",
-  "scipy >= 1.9",
+  "scipy >= 1.11",  # 2023/06/25
   "tqdm",
 ]
 description = "MNE-Python project for MEG and EEG data analysis."
@@ -63,6 +63,7 @@ doc = [
   "mne-gui-addons",
   "neo",
   "numpydoc",
+  "openneuro-py",
   "psutil",
   "pydata_sphinx_theme >= 0.15.2",
   "pygments >= 2.13",
@@ -70,16 +71,14 @@ doc = [
   "pyxdf",
   "pyzmq != 24.0.0",
   "seaborn != 0.11.2",
-  "selenium",
+  "selenium >= 4.27.1",
   "sphinx >= 6",
   "sphinx-design",
   "sphinx-gallery >= 0.16",
   "sphinx_copybutton",
   "sphinxcontrib-bibtex >= 2.5",
-  "sphinxcontrib-towncrier",
+  "sphinxcontrib-towncrier >=0.5.0a0",
   "sphinxcontrib-youtube",
-  # https://github.com/sphinx-contrib/sphinxcontrib-towncrier/issues/92
-  "towncrier < 24.7",
 ]
 full = ["mne[full-no-qt]", "PyQt6 != 6.6.0", "PyQt6-Qt6 != 6.6.0, != 6.7.0"]
 # Dependencies for full MNE-Python functionality (other than raw/epochs export)
@@ -88,7 +87,7 @@ full = ["mne[full-no-qt]", "PyQt6 != 6.6.0", "PyQt6-Qt6 != 6.6.0, != 6.7.0"]
 # We also offter two more variants: mne[full-qt6] (which is equivalent to mne[full]),
 # and mne[full-pyside6], which will install PySide6 instead of PyQt6.
 full-no-qt = [
-  "antio >= 0.4.0",
+  "antio >= 0.5.0",
   "darkdetect",
   "defusedxml",
   "dipy",
@@ -111,7 +110,7 @@ full-no-qt = [
   "nilearn",
   "numba",
   "openmeeg >= 2.5.5",
-  "pandas",
+  "pandas >= 2.0",  # 2023/04/03
   "pillow",  # for `Brain.save_image` and `mne.Report`
   "pyarrow",  # only needed to avoid a deprecation warning in pandas
   "pybv",
@@ -269,7 +268,6 @@ addopts = """--durations=20 --doctest-modules -rfEXs --cov-report= --tb=short \
     --ignore=mne/gui/_*.py --ignore=mne/icons --ignore=tools \
     --ignore=mne/report/js_and_css \
     --color=yes --capture=sys"""
-junit_family = "xunit2"
 
 [tool.rstcheck]
 ignore_directives = [
@@ -338,6 +336,9 @@ select = ["A", "B006", "D", "E", "F", "I", "UP", "UP031", "W"]
 ]
 "examples/preprocessing/eeg_bridging.py" = [
   "E501",  # line too long
+]
+"mne/__init__.pyi" = [
+  "A004",  # Import *** is shadowing a Python builtin
 ]
 "mne/datasets/*/*.py" = [
   "D103",  # Missing docstring in public function

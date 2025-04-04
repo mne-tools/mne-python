@@ -1,0 +1,107 @@
+{
+  "merge_commit_sha": "4f53a3732917dd1dbc91d4725ae79fc1c7ad4661",
+  "authors": [
+    {
+      "n": "Steinn Hauser Magnússon",
+      "e": null
+    },
+    {
+      "n": "Emma Bailey",
+      "e": "bailey@cbs.mpg.de"
+    },
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Steinn Magnusson",
+      "e": "s.magnusson@senec.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "emma-bailey",
+      "e": "93327939+emma-bailey@users.noreply.github.com"
+    },
+    {
+      "n": "autofix-ci[bot]",
+      "e": "114827586+autofix-ci[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    ".circleci/config.yml": {
+      "a": 8,
+      "d": 1
+    },
+    "doc/api/datasets.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/api/preprocessing.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/devel/13037.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/conf.py": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/references.bib": {
+      "a": 10,
+      "d": 0
+    },
+    "examples/preprocessing/esg_rm_heart_artefact_pcaobs.py": {
+      "a": 196,
+      "d": 0
+    },
+    "mne/datasets/__init__.pyi": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/datasets/utils.py": {
+      "a": 29,
+      "d": 1
+    },
+    "mne/preprocessing/__init__.pyi": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/preprocessing/_pca_obs.py": {
+      "a": 333,
+      "d": 0
+    },
+    "mne/preprocessing/tests/test_pca_obs.py": {
+      "a": 107,
+      "d": 0
+    },
+    "mne/utils/numerics.py": {
+      "a": 3,
+      "d": 0
+    },
+    "pyproject.toml": {
+      "a": 1,
+      "d": 0
+    },
+    "tools/circleci_dependencies.sh": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/preprocessing/50_artifact_correction_ssp.py": {
+      "a": 8,
+      "d": 0
+    }
+  }
+}

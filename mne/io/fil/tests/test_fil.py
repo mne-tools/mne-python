@@ -87,9 +87,9 @@ def _fil_megmag(raw_test, raw_mat):
     mat_list = raw_mat["label"]
     mat_inds = _match_str(test_list, mat_list)
 
-    assert len(mat_inds) == len(
-        test_inds
-    ), "Number of magnetometer channels in RAW does not match .mat file!"
+    assert len(mat_inds) == len(test_inds), (
+        "Number of magnetometer channels in RAW does not match .mat file!"
+    )
 
     a = raw_test._data[test_inds, :]
     b = raw_mat["trial"][mat_inds, :] * 1e-15  # fT to T
@@ -106,9 +106,9 @@ def _fil_stim(raw_test, raw_mat):
     mat_list = raw_mat["label"]
     mat_inds = _match_str(test_list, mat_list)
 
-    assert len(mat_inds) == len(
-        test_inds
-    ), "Number of stim channels in RAW does not match .mat file!"
+    assert len(mat_inds) == len(test_inds), (
+        "Number of stim channels in RAW does not match .mat file!"
+    )
 
     a = raw_test._data[test_inds, :]
     b = raw_mat["trial"][mat_inds, :]  # fT to T
@@ -122,9 +122,9 @@ def _fil_sensorpos(raw_test, raw_mat):
     grad_list = raw_mat["coil_label"]
     grad_inds = _match_str(test_list, grad_list)
 
-    assert len(grad_inds) == len(
-        test_inds
-    ), "Number of channels with position data in RAW does not match .mat file!"
+    assert len(grad_inds) == len(test_inds), (
+        "Number of channels with position data in RAW does not match .mat file!"
+    )
 
     mat_pos = raw_mat["coil_pos"][grad_inds, :]
     mat_ori = raw_mat["coil_ori"][grad_inds, :]

@@ -41,7 +41,7 @@ from .._fiff.pick import (
     pick_info,
     pick_types,
 )
-from .._fiff.proj import setup_proj
+from .._fiff.proj import _has_eeg_average_ref_proj, setup_proj
 from .._fiff.reference import add_reference_channels, set_eeg_reference
 from .._fiff.tag import _rename_list
 from ..bem import _check_origin
@@ -464,9 +464,11 @@ class UpdateChannelsMixin:
 
         Notes
         -----
-        The channel names given are assumed to be a set, i.e. the order
-        does not matter. The original order of the channels is preserved.
-        You can use ``reorder_channels`` to set channel order if necessary.
+        If ``ordered`` is ``False``, the channel names given via ``ch_names`` are
+        assumed to be a set, that is, their order does not matter. In that case, the
+        original order of the channels in the data is preserved. Apart from using
+        ``ordered=True``, you may also use ``reorder_channels`` to set channel order,
+        if necessary.
 
         .. versionadded:: 0.9.0
         """
@@ -659,17 +661,21 @@ class UpdateChannelsMixin:
         return self
 
     def add_channels(self, add_list, force_update_info=False):
-        """Append new channels to the instance.
+        """Append new channels from other MNE objects to the instance.
 
         Parameters
         ----------
         add_list : list
-            A list of objects to append to self. Must contain all the same
-            type as the current object.
+            A list of MNE objects to append to the current instance.
+            The channels contained in the other instances are appended to the
+            channels of the current instance. Therefore, all other instances
+            must be of the same type as the current object.
+            See notes on how to add data coming from an array.
         force_update_info : bool
             If True, force the info for objects to be appended to match the
-            values in ``self``. This should generally only be used when adding
-            stim channels for which important metadata won't be overwritten.
+            values of the current instance. This should generally only be
+            used when adding stim channels for which important metadata won't
+            be overwritten.
 
             .. versionadded:: 0.12
 
@@ -686,6 +692,12 @@ class UpdateChannelsMixin:
         -----
         If ``self`` is a Raw instance that has been preloaded into a
         :obj:`numpy.memmap` instance, the memmap will be resized.
+
+        This function expects an MNE object to be appended (e.g. :class:`~mne.io.Raw`,
+        :class:`~mne.Epochs`, :class:`~mne.Evoked`). If you simply want to add a
+        channel based on values of an np.ndarray, you need to create a
+        :class:`~mne.io.RawArray`.
+        See <https://mne.tools/mne-project-template/auto_examples/plot_mne_objects_from_arrays.html>`_
         """
         # avoid circular imports
         from ..epochs import BaseEpochs
@@ -947,6 +959,162 @@ class InterpolationMixin:
             self.info["bads"] = [ch for ch in self.info["bads"] if ch in exclude]
 
         return self
+
+    def interpolate_to(self, sensors, origin="auto", method="spline", reg=0.0):
+        """Interpolate EEG data onto a new montage.
+
+        .. warning::
+            Be careful, only EEG channels are interpolated. Other channel types are
+            not interpolated.
+
+        Parameters
+        ----------
+        sensors : DigMontage
+            The target montage containing channel positions to interpolate onto.
+        origin : array-like, shape (3,) | str
+            Origin of the sphere in the head coordinate frame and in meters.
+            Can be ``'auto'`` (default), which means a head-digitization-based
+            origin fit.
+        method : str
+            Method to use for EEG channels.
+            Supported methods are 'spline' (default) and 'MNE'.
+        reg : float
+            The regularization parameter for the interpolation method
+            (only used when the method is 'spline').
+
+        Returns
+        -------
+        inst : instance of Raw, Epochs, or Evoked
+            The instance with updated channel locations and data.
+
+        Notes
+        -----
+        This method is useful for standardizing EEG layouts across datasets.
+        However, some attributes may be lost after interpolation.
+
+        .. versionadded:: 1.10.0
+        """
+        from ..epochs import BaseEpochs, EpochsArray
+        from ..evoked import Evoked, EvokedArray
+        from ..forward._field_interpolation import _map_meg_or_eeg_channels
+        from ..io import RawArray
+        from ..io.base import BaseRaw
+        from .interpolation import _make_interpolation_matrix
+        from .montage import DigMontage
+
+        # Check that the method option is valid.
+        _check_option("method", method, ["spline", "MNE"])
+        _validate_type(sensors, DigMontage, "sensors")
+
+        # Get target positions from the montage
+        ch_pos = sensors.get_positions().get("ch_pos", {})
+        target_ch_names = list(ch_pos.keys())
+        if not target_ch_names:
+            raise ValueError(
+                "The provided sensors configuration has no channel positions."
+            )
+
+        # Get original channel order
+        orig_names = self.info["ch_names"]
+
+        # Identify EEG channel
+        picks_good_eeg = pick_types(self.info, meg=False, eeg=True, exclude="bads")
+        if len(picks_good_eeg) == 0:
+            raise ValueError("No good EEG channels available for interpolation.")
+        # Also get the full list of EEG channel indices (including bad channels)
+        picks_remove_eeg = pick_types(self.info, meg=False, eeg=True, exclude=[])
+        eeg_names_orig = [orig_names[i] for i in picks_remove_eeg]
+
+        # Identify non-EEG channels in original order
+        non_eeg_names_ordered = [ch for ch in orig_names if ch not in eeg_names_orig]
+
+        # Create destination info for new EEG channels
+        sfreq = self.info["sfreq"]
+        info_interp = create_info(
+            ch_names=target_ch_names,
+            sfreq=sfreq,
+            ch_types=["eeg"] * len(target_ch_names),
+        )
+        info_interp.set_montage(sensors)
+        info_interp["bads"] = [ch for ch in self.info["bads"] if ch in target_ch_names]
+        # Do not assign "projs" directly.
+
+        # Compute the interpolation mapping
+        if method == "spline":
+            origin_val = _check_origin(origin, self.info)
+            pos_from = self.info._get_channel_positions(picks_good_eeg) - origin_val
+            pos_to = np.stack(list(ch_pos.values()), axis=0)
+
+            def _check_pos_sphere(pos):
+                d = np.linalg.norm(pos, axis=-1)
+                d_norm = np.mean(d / np.mean(d))
+                if np.abs(1.0 - d_norm) > 0.1:
+                    warn("Your spherical fit is poor; interpolation may be inaccurate.")
+
+            _check_pos_sphere(pos_from)
+            _check_pos_sphere(pos_to)
+            mapping = _make_interpolation_matrix(pos_from, pos_to, alpha=reg)
+
+        else:
+            assert method == "MNE"
+            info_eeg = pick_info(self.info, picks_good_eeg)
+            # If the original info has an average EEG reference projector but
+            # the destination info does not,
+            # update info_interp via a temporary RawArray.
+            if _has_eeg_average_ref_proj(self.info) and not _has_eeg_average_ref_proj(
+                info_interp
+            ):
+                # Create dummy data: shape (n_channels, 1)
+                temp_data = np.zeros((len(info_interp["ch_names"]), 1))
+                temp_raw = RawArray(temp_data, info_interp, first_samp=0)
+                # Using the public API, add an average reference projector.
+                temp_raw.set_eeg_reference(
+                    ref_channels="average", projection=True, verbose=False
+                )
+                # Extract the updated info.
+                info_interp = temp_raw.info
+            mapping = _map_meg_or_eeg_channels(
+                info_eeg, info_interp, mode="accurate", origin=origin
+            )
+
+        # Interpolate EEG data
+        data_good = self.get_data(picks=picks_good_eeg)
+        data_interp = mapping @ data_good
+
+        # Create a new instance for the interpolated EEG channels
+        # TODO: Creating a new instance leads to a loss of information.
+        #       We should consider updating the existing instance in the future
+        #       by 1) drop channels, 2) add channels, 3) re-order channels.
+        if isinstance(self, BaseRaw):
+            inst_interp = RawArray(data_interp, info_interp, first_samp=self.first_samp)
+        elif isinstance(self, BaseEpochs):
+            inst_interp = EpochsArray(data_interp, info_interp)
+        else:
+            assert isinstance(self, Evoked)
+            inst_interp = EvokedArray(data_interp, info_interp)
+
+        # Merge only if non-EEG channels exist
+        if not non_eeg_names_ordered:
+            return inst_interp
+
+        inst_non_eeg = self.copy().pick(non_eeg_names_ordered).load_data()
+        inst_out = inst_non_eeg.add_channels([inst_interp], force_update_info=True)
+
+        # Reorder channels
+        # Insert the entire new EEG block at the position of the first EEG channel.
+        orig_names_arr = np.array(orig_names)
+        mask_eeg = np.isin(orig_names_arr, eeg_names_orig)
+        if mask_eeg.any():
+            first_eeg_index = np.where(mask_eeg)[0][0]
+            pre = orig_names_arr[:first_eeg_index]
+            new_eeg = np.array(info_interp["ch_names"])
+            post = orig_names_arr[first_eeg_index:]
+            post = post[~np.isin(orig_names_arr[first_eeg_index:], eeg_names_orig)]
+            new_order = np.concatenate((pre, new_eeg, post)).tolist()
+        else:
+            new_order = orig_names
+        inst_out.reorder_channels(new_order)
+        return inst_out
 
 
 @verbose
@@ -1370,7 +1538,7 @@ def read_ch_adjacency(fname, picks=None):
             raise ValueError(
                 f"No built-in channel adjacency matrix found with name: "
                 f"{ch_adj_name}. Valid names are: "
-                f'{", ".join(get_builtin_ch_adjacencies())}'
+                f"{', '.join(get_builtin_ch_adjacencies())}"
             )
 
         ch_adj = [a for a in _BUILTIN_CHANNEL_ADJACENCIES if a.name == ch_adj_name][0]
@@ -1646,13 +1814,10 @@ def fix_mag_coil_types(info, use_cal=False):
               Therefore the use of ``fix_mag_coil_types`` is not mandatory.
     """
     old_mag_inds = _get_T1T2_mag_inds(info, use_cal)
-
+    n_mag = len(pick_types(info, meg="mag", exclude=[]))
     for ii in old_mag_inds:
         info["chs"][ii]["coil_type"] = FIFF.FIFFV_COIL_VV_MAG_T3
-    logger.info(
-        "%d of %d magnetometer types replaced with T3."
-        % (len(old_mag_inds), len(pick_types(info, meg="mag", exclude=[])))
-    )
+    logger.info(f"{len(old_mag_inds)} of {n_mag} magnetometer types replaced with T3.")
     info._check_consistency()
 
 

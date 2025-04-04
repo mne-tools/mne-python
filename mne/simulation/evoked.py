@@ -152,8 +152,10 @@ def _add_noise(inst, cov, iir_filter, random_state, allow_subselection=True):
         use_chs = list(set(info["ch_names"]) & set(cov["names"]))
         picks = np.where(np.isin(info["ch_names"], use_chs))[0]
         logger.info(
-            "Adding noise to %d/%d channels (%d channels in cov)"
-            % (len(picks), len(info["chs"]), len(cov["names"]))
+            "Adding noise to %d/%d channels (%d channels in cov)",
+            len(picks),
+            len(info["chs"]),
+            len(cov["names"]),
         )
         info = pick_info(inst.info, picks)
         info._check_consistency()

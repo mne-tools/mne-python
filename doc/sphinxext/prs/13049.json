@@ -1,0 +1,87 @@
+{
+  "merge_commit_sha": "df350211b9177a26a2c5fe1e76ebc8e9d6cb4d99",
+  "authors": [
+    {
+      "n": "Marijn van Vliet",
+      "e": "w.m.vanvliet@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".circleci/config.yml": {
+      "a": 1,
+      "d": 1
+    },
+    ".github/workflows/tests.yml": {
+      "a": 9,
+      "d": 11
+    },
+    "doc/conf.py": {
+      "a": 5,
+      "d": 0
+    },
+    "doc/development/contributing.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/install/installers.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "environment.yml": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/conftest.py": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/datasets/sleep_physionet/_utils.py": {
+      "a": 6,
+      "d": 1
+    },
+    "mne/decoding/base.py": {
+      "a": 5,
+      "d": 1
+    },
+    "mne/decoding/transformer.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/export/tests/test_export.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/fixes.py": {
+      "a": 13,
+      "d": 0
+    },
+    "mne/preprocessing/maxwell.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/preprocessing/tests/test_maxwell.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/transforms.py": {
+      "a": 2,
+      "d": 3
+    },
+    "tools/github_actions_dependencies.sh": {
+      "a": 1,
+      "d": 1
+    },
+    "tools/hooks/update_environment_file.py": {
+      "a": 8,
+      "d": 38
+    },
+    "tools/install_pre_requirements.sh": {
+      "a": 4,
+      "d": 3
+    }
+  }
+}

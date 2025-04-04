@@ -12,14 +12,13 @@ from pathlib import Path
 import numpy as np
 from scipy import linalg
 from scipy.spatial.distance import cdist
-from scipy.special import sph_harm
 
 from ._fiff.constants import FIFF
 from ._fiff.open import fiff_open
 from ._fiff.tag import read_tag
 from ._fiff.write import start_and_end_file, write_coord_trans
 from .defaults import _handle_default
-from .fixes import _get_img_fdata, jit
+from .fixes import _get_img_fdata, jit, sph_harm_y
 from .utils import (
     _check_fname,
     _check_option,
@@ -42,10 +41,12 @@ als_ras_trans = np.array([[0, -1, 0, 0], [1, 0, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1
 
 
 _str_to_frame = dict(
+    isotrak=FIFF.FIFFV_COORD_ISOTRAK,
     meg=FIFF.FIFFV_COORD_DEVICE,
     mri=FIFF.FIFFV_COORD_MRI,
     mri_voxel=FIFF.FIFFV_MNE_COORD_MRI_VOXEL,
     head=FIFF.FIFFV_COORD_HEAD,
+    hpi=FIFF.FIFFV_COORD_HPI,
     mni_tal=FIFF.FIFFV_MNE_COORD_MNI_TAL,
     ras=FIFF.FIFFV_MNE_COORD_RAS,
     fs_tal=FIFF.FIFFV_MNE_COORD_FS_TAL,
@@ -63,15 +64,16 @@ _verbose_frames = {
     FIFF.FIFFV_COORD_HEAD: "head",
     FIFF.FIFFV_COORD_MRI: "MRI (surface RAS)",
     FIFF.FIFFV_MNE_COORD_MRI_VOXEL: "MRI voxel",
-    FIFF.FIFFV_COORD_MRI_SLICE: "MRI slice",
-    FIFF.FIFFV_COORD_MRI_DISPLAY: "MRI display",
     FIFF.FIFFV_MNE_COORD_CTF_DEVICE: "CTF MEG device",
     FIFF.FIFFV_MNE_COORD_CTF_HEAD: "CTF/4D/KIT head",
     FIFF.FIFFV_MNE_COORD_RAS: "RAS (non-zero origin)",
     FIFF.FIFFV_MNE_COORD_MNI_TAL: "MNI Talairach",
-    FIFF.FIFFV_MNE_COORD_FS_TAL_GTZ: "Talairach (MNI z > 0)",
-    FIFF.FIFFV_MNE_COORD_FS_TAL_LTZ: "Talairach (MNI z < 0)",
-    -1: "unknown",
+    FIFF.FIFFV_MNE_COORD_FS_TAL: "FS Talairach",
+    # We don't use these, but keep them in case we ever want to add them.
+    # FIFF.FIFFV_COORD_MRI_SLICE: "MRI slice",
+    # FIFF.FIFFV_COORD_MRI_DISPLAY: "MRI display",
+    # FIFF.FIFFV_MNE_COORD_FS_TAL_GTZ: "Talairach (MNI z > 0)",
+    # FIFF.FIFFV_MNE_COORD_FS_TAL_LTZ: "Talairach (MNI z < 0)",
 }
 
 
@@ -926,7 +928,7 @@ def _compute_sph_harm(order, az, pol):
     # _deg_ord_idx(0, 0) = -1 so we're actually okay to use it here
     for degree in range(order + 1):
         for order_ in range(degree + 1):
-            sph = sph_harm(order_, degree, az, pol)
+            sph = sph_harm_y(degree, order_, pol, az)
             out[:, _deg_ord_idx(degree, order_)] = _sh_complex_to_real(sph, order_)
             if order_ > 0:
                 out[:, _deg_ord_idx(degree, -order_)] = _sh_complex_to_real(
@@ -1078,9 +1080,11 @@ class _SphericalSurfaceWarp:
         if not hasattr(self, "_warp"):
             rep += "no fitting done >"
         else:
-            rep += "fit %d->%d pts using match=%s (%d pts), order=%s, reg=%s>" % tuple(
-                self._fit_params[key]
-                for key in ["n_src", "n_dest", "match", "n_match", "order", "reg"]
+            rep += (
+                f"fit {self._fit_params['n_src']}->{self._fit_params['n_dest']} pts "
+                f"using match={self._fit_params['match']} "
+                f"({self._fit_params['n_match']} pts), "
+                f"order={self._fit_params['order']}, reg={self._fit_params['reg']}>"
             )
         return rep
 
@@ -1130,10 +1134,10 @@ class _SphericalSurfaceWarp:
         if center:
             logger.info("    Centering data")
             hsp = np.array([p for p in source if not (p[2] < -1e-6 and p[1] > 1e-6)])
-            src_center = _fit_sphere(hsp, disp=False)[1]
+            src_center = _fit_sphere(hsp)[1]
             source = source - src_center
             hsp = np.array([p for p in destination if not (p[2] < 0 and p[1] > 0)])
-            dest_center = _fit_sphere(hsp, disp=False)[1]
+            dest_center = _fit_sphere(hsp)[1]
             destination = destination - dest_center
             logger.info(
                 "    Using centers {np.array_str(src_center, None, 3)} -> "

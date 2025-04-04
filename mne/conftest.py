@@ -6,6 +6,8 @@ import gc
 import inspect
 import os
 import os.path as op
+import platform
+import re
 import shutil
 import sys
 import warnings
@@ -34,6 +36,7 @@ from mne.utils import (
     _pl,
     _record_warnings,
     _TempDir,
+    check_version,
     numerics,
 )
 
@@ -78,7 +81,7 @@ vv_layout = read_layout("Vectorview-all")
 collect_ignore = ["export/_brainvision.py", "export/_eeglab.py", "export/_edf.py"]
 
 
-def pytest_configure(config):
+def pytest_configure(config: pytest.Config):
     """Configure pytest options."""
     # Markers
     for marker in (
@@ -119,7 +122,7 @@ def pytest_configure(config):
     #   we should remove them from here.
     # - This list should also be considered alongside reset_warnings in
     #   doc/conf.py.
-    if os.getenv("MNE_IGNORE_WARNINGS_IN_TESTS", "") != "true":
+    if os.getenv("MNE_IGNORE_WARNINGS_IN_TESTS", "") not in ("true", "1"):
         first_kind = "error"
     else:
         first_kind = "always"
@@ -139,6 +142,7 @@ def pytest_configure(config):
     ignore:Passing a schema to Validator\.iter_errors is deprecated.*:
     ignore:Unclosed context <zmq.asyncio.Context.*:ResourceWarning
     ignore:Jupyter is migrating its paths.*:DeprecationWarning
+    ignore:datetime\.datetime\.utcnow\(\) is deprecated.*:DeprecationWarning
     ignore:Widget\..* is deprecated\.:DeprecationWarning
     ignore:.*is deprecated in pyzmq.*:DeprecationWarning
     ignore:The `ipykernel.comm.Comm` class has been deprecated.*:DeprecationWarning
@@ -171,12 +175,24 @@ def pytest_configure(config):
     # pandas
     ignore:\n*Pyarrow will become a required dependency of pandas.*:DeprecationWarning
     ignore:np\.find_common_type is deprecated.*:DeprecationWarning
+    ignore:Python binding for RankQuantileOptions.*:
     # pyvista <-> NumPy 2.0
     ignore:__array_wrap__ must accept context and return_scalar arguments.*:DeprecationWarning
     # nibabel <-> NumPy 2.0
     ignore:__array__ implementation doesn't accept a copy.*:DeprecationWarning
     # quantities via neo
     ignore:The 'copy' argument in Quantity is deprecated.*:
+    # debugpy uses deprecated matplotlib API
+    ignore:The (non_)?interactive_bk attribute was deprecated.*:
+    # SWIG (via OpenMEEG)
+    ignore:.*builtin type swigvarlink has no.*:DeprecationWarning
+    # eeglabio
+    ignore:numpy\.core\.records is deprecated.*:DeprecationWarning
+    ignore:Starting field name with a underscore.*:
+    # joblib
+    ignore:process .* is multi-threaded, use of fork/exec.*:DeprecationWarning
+    # sklearn
+    ignore:Python binding for RankQuantileOptions.*:RuntimeWarning
     """  # noqa: E501
     for warning_line in warning_lines.split("\n"):
         warning_line = warning_line.strip()
@@ -272,9 +288,10 @@ def matplotlib_config():
 @pytest.fixture(scope="session")
 def azure_windows():
     """Determine if running on Azure Windows."""
-    return os.getenv(
-        "AZURE_CI_WINDOWS", "false"
-    ).lower() == "true" and sys.platform.startswith("win")
+    return (
+        os.getenv("AZURE_CI_WINDOWS", "false").lower() == "true"
+        and platform.system() == "Windows"
+    )
 
 
 @pytest.fixture(scope="function")
@@ -631,23 +648,20 @@ def _use_backend(backend_name, interactive):
 
 def _check_skip_backend(name):
     from mne.viz.backends._utils import _notebook_vtk_works
-    from mne.viz.backends.tests._utils import (
-        has_imageio_ffmpeg,
-        has_pyvista,
-        has_pyvistaqt,
-    )
 
-    if not has_pyvista():
-        pytest.skip("Test skipped, requires pyvista.")
-    if not has_imageio_ffmpeg():
-        pytest.skip("Test skipped, requires imageio-ffmpeg")
+    pytest.importorskip("pyvista")
+    pytest.importorskip("imageio_ffmpeg")
     if name == "pyvistaqt":
+        pytest.importorskip("pyvistaqt")
         if not _check_qt_version():
             pytest.skip("Test skipped, requires Qt.")
-        if not has_pyvistaqt():
-            pytest.skip("Test skipped, requires pyvistaqt")
     else:
         assert name == "notebook", name
+        pytest.importorskip("jupyter")
+        pytest.importorskip("ipympl")
+        pytest.importorskip("trame")
+        pytest.importorskip("trame_vtk")
+        pytest.importorskip("trame_vuetify")
         if not _notebook_vtk_works():
             pytest.skip("Test skipped, requires working notebook vtk")
 
@@ -655,10 +669,8 @@ def _check_skip_backend(name):
 @pytest.fixture(scope="session")
 def pixel_ratio():
     """Get the pixel ratio."""
-    from mne.viz.backends.tests._utils import has_pyvista
-
     # _check_qt_version will init an app for us, so no need for us to do it
-    if not has_pyvista() or not _check_qt_version():
+    if not check_version("pyvista", "0.32") or not _check_qt_version():
         return 1.0
     from qtpy.QtCore import Qt
     from qtpy.QtWidgets import QMainWindow
@@ -1178,10 +1190,55 @@ _phase_report_key = StashKey()
 
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
 def pytest_runtest_makereport(item, call):
-    """Stash the status of each item."""
+    """Stash the status of each item and turn unexpected skips into errors."""
     outcome = yield
-    rep = outcome.get_result()
+    rep: pytest.TestReport = outcome.get_result()
     item.stash.setdefault(_phase_report_key, {})[rep.when] = rep
+    _modify_report_skips(rep)
+    return rep
+
+
+@pytest.hookimpl(tryfirst=True, hookwrapper=True)
+def pytest_make_collect_report(collector: pytest.Collector):
+    """Turn unexpected skips during collection (e.g., module-level) into errors."""
+    outcome = yield
+    rep: pytest.CollectReport = outcome.get_result()
+    _modify_report_skips(rep)
+    return rep
+
+
+# Default means "allow all skips". Can use something like "$." to mean
+# "never match", i.e., "treat all skips as errors"
+_valid_skips_re = re.compile(os.getenv("MNE_TEST_ALLOW_SKIP", ".*"))
+
+
+# To turn unexpected skips into errors, we need to look both at the collection phase
+# (for decorated tests) and the call phase (for things like `importorskip`
+# within the test body). code adapted from pytest-error-for-skips
+def _modify_report_skips(report: pytest.TestReport | pytest.CollectReport):
+    if not report.skipped:
+        return
+    if isinstance(report.longrepr, tuple):
+        file, lineno, reason = report.longrepr
+    else:
+        file, lineno, reason = "<unknown>", 1, str(report.longrepr)
+    if _valid_skips_re.match(reason):
+        return
+    assert isinstance(report, pytest.TestReport | pytest.CollectReport), type(report)
+    if file.endswith("doctest.py"):  # _python/doctest.py
+        return
+    # xfail tests aren't true "skips" but show up as skipped in reports
+    if getattr(report, "keywords", {}).get("xfail", False):
+        return
+    # the above only catches marks, so we need to actually parse the report to catch
+    # an xfail based on the traceback
+    if " pytest.xfail( " in reason:
+        return
+    if reason.startswith("Skipped: "):
+        reason = reason[9:]
+    report.longrepr = f"{file}:{lineno}: UNEXPECTED SKIP: {reason}"
+    # Make it show up as an error in the report
+    report.outcome = "error" if isinstance(report, pytest.TestReport) else "failed"
 
 
 @pytest.fixture(scope="function")

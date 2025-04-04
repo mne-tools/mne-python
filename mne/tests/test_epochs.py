@@ -441,7 +441,7 @@ def test_average_movements():
     assert_meg_snr(evoked_sss, evoked_move_non, 0.02, 2.6)
     assert_meg_snr(evoked_sss, evoked_stat_all, 0.05, 3.2)
     # these should be close to numerical precision
-    assert_allclose(evoked_sss_stat.data, evoked_stat_all.data, atol=1e-20)
+    assert_allclose(evoked_sss_stat.data, evoked_stat_all.data, atol=1e-14)
 
     # pos[0] > epochs.events[0] uses dev_head_t, so make it equivalent
     destination = deepcopy(epochs.info["dev_head_t"])
@@ -479,12 +479,12 @@ def test_average_movements():
 def _assert_drop_log_types(drop_log):
     __tracebackhide__ = True
     assert isinstance(drop_log, tuple), "drop_log should be tuple"
-    assert all(
-        isinstance(log, tuple) for log in drop_log
-    ), "drop_log[ii] should be tuple"
-    assert all(
-        isinstance(s, str) for log in drop_log for s in log
-    ), "drop_log[ii][jj] should be str"
+    assert all(isinstance(log, tuple) for log in drop_log), (
+        "drop_log[ii] should be tuple"
+    )
+    assert all(isinstance(s, str) for log in drop_log for s in log), (
+        "drop_log[ii][jj] should be str"
+    )
 
 
 def test_reject():

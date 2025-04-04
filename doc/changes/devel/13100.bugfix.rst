@@ -1,0 +1,1 @@
+Do not convert the first "New Segment" marker in a BrainVision file to an annotation, as it only contains the recording date (which is already available in ``info["meas_date"]``), by `Clemens Brunner`_.

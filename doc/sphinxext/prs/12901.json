@@ -1,0 +1,71 @@
+{
+  "merge_commit_sha": "56e522ba303fe01a25a2a0d5d7507639a83fe02c",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "autofix-ci[bot]",
+      "e": "114827586+autofix-ci[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/12901.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/devel/12901.newfeature.rst": {
+      "a": 8,
+      "d": 0
+    },
+    "mne/html_templates/report/html.html.jinja": {
+      "a": 2,
+      "d": 6
+    },
+    "mne/html_templates/report/image.html.jinja": {
+      "a": 13,
+      "d": 13
+    },
+    "mne/html_templates/report/section.html.jinja": {
+      "a": 2,
+      "d": 6
+    },
+    "mne/html_templates/report/slider.html.jinja": {
+      "a": 3,
+      "d": 9
+    },
+    "mne/report/report.py": {
+      "a": 322,
+      "d": 122
+    },
+    "mne/report/tests/test_report.py": {
+      "a": 78,
+      "d": 1
+    },
+    "mne/utils/docs.py": {
+      "a": 14,
+      "d": 8
+    },
+    "mne/viz/_3d.py": {
+      "a": 43,
+      "d": 17
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 4,
+      "d": 2
+    },
+    "tutorials/intro/70_report.py": {
+      "a": 19,
+      "d": 1
+    },
+    "tutorials/preprocessing/59_head_positions.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

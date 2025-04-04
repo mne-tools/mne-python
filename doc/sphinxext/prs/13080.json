@@ -1,0 +1,63 @@
+{
+  "merge_commit_sha": "2119b22dbe5dba4ecbec06e1902be08c1b765371",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/13080.apichange.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/devel/13080.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/_ola.py": {
+      "a": 39,
+      "d": 24
+    },
+    "mne/epochs.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/filter.py": {
+      "a": 2,
+      "d": 10
+    },
+    "mne/preprocessing/maxwell.py": {
+      "a": 351,
+      "d": 236
+    },
+    "mne/preprocessing/otp.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/tests/test_maxwell.py": {
+      "a": 185,
+      "d": 5
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/tests/test_ola.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/docs.py": {
+      "a": 9,
+      "d": 0
+    },
+    "mne/viz/_3d.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

@@ -66,10 +66,8 @@ def _assert_line_endings(dir_):
             else:
                 crcount = text.count("\r")
                 if crcount:
-                    report.append(
-                        "In %s found %i/%i CR/LF"
-                        % (relfilename, crcount, text.count("\n"))
-                    )
+                    lfcount = text.count("\n")
+                    report.append(f"In {relfilename} found {crcount}/{lfcount} CR/LF.")
     if len(report) > 0:
         raise AssertionError(
             f"Found {len(report)} files with incorrect endings:\n" + "\n".join(report)

@@ -355,6 +355,7 @@ numpydoc_xref_ignore = {
     "n_frequencies",
     "n_tests",
     "n_samples",
+    "n_peaks",
     "n_permutations",
     "nchan",
     "n_points",
@@ -643,8 +644,12 @@ user_agent = "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit
 linkcheck_ignore = [  # will be compiled to regex
     # 403 Client Error: Forbidden
     "https://doi.org/10.1002/",  # onlinelibrary.wiley.com/doi/10.1002/hbm
+    "https://doi.org/10.1016/",  # neuroimage
     "https://doi.org/10.1021/",  # pubs.acs.org/doi/abs
+    "https://doi.org/10.1063/",  # pubs.aip.org/aip/jap
     "https://doi.org/10.1073/",  # pnas.org
+    "https://doi.org/10.1080/",  # www.tandfonline.com
+    "https://doi.org/10.1088/",  # www.tandfonline.com
     "https://doi.org/10.1093/",  # academic.oup.com/sleep/
     "https://doi.org/10.1098/",  # royalsocietypublishing.org
     "https://doi.org/10.1101/",  # www.biorxiv.org
@@ -652,20 +657,24 @@ linkcheck_ignore = [  # will be compiled to regex
     "https://doi.org/10.1111/",  # onlinelibrary.wiley.com/doi/10.1111/psyp
     "https://doi.org/10.1126/",  # www.science.org
     "https://doi.org/10.1137/",  # epubs.siam.org
+    "https://doi.org/10.1145/",  # dl.acm.org
     "https://doi.org/10.1155/",  # www.hindawi.com/journals/cin
     "https://doi.org/10.1161/",  # www.ahajournals.org
     "https://doi.org/10.1162/",  # direct.mit.edu/neco/article/
     "https://doi.org/10.1167/",  # jov.arvojournals.org
     "https://doi.org/10.1177/",  # journals.sagepub.com
-    "https://doi.org/10.1063/",  # pubs.aip.org/aip/jap
-    "https://doi.org/10.1080/",  # www.tandfonline.com
-    "https://doi.org/10.1088/",  # www.tandfonline.com
     "https://doi.org/10.3109/",  # www.tandfonline.com
+    "https://www.biorxiv.org/content/10.1101/",  # biorxiv.org
     "https://www.researchgate.net/profile/",
     "https://www.intel.com/content/www/us/en/developer/tools/oneapi/onemkl.html",
     r"https://scholar.google.com/scholar\?cites=12188330066413208874&as_ylo=2014",
     r"https://scholar.google.com/scholar\?cites=1521584321377182930&as_ylo=2013",
     "https://www.research.chop.edu/imaging",
+    "http://prdownloads.sourceforge.net/optipng",
+    "https://sourceforge.net/projects/aespa/files/",
+    "https://sourceforge.net/projects/ezwinports/files/",
+    "https://www.mathworks.com/products/compiler/matlab-runtime.html",
+    "https://medicine.umich.edu/dept/khri/ross-maddox-phd",
     # 500 server error
     "https://openwetware.org/wiki/Beauchamp:FreeSurfer",
     # 503 Server error
@@ -674,6 +683,8 @@ linkcheck_ignore = [  # will be compiled to regex
     "http://www.cs.ucl.ac.uk/staff/d.barber/brml",
     "https://www.cea.fr",
     "http://www.humanconnectome.org/data",
+    "https://www.mail-archive.com/freesurfer@nmr.mgh.harvard.edu",
+    "https://launchpad.net",
     # Max retries exceeded
     "https://doi.org/10.7488/ds/1556",
     "https://datashare.is.ed.ac.uk/handle/10283",
@@ -688,6 +699,9 @@ linkcheck_ignore = [  # will be compiled to regex
     # SSL problems sometimes
     "http://ilabs.washington.edu",
     "https://psychophysiology.cpmc.columbia.edu",
+    "https://erc.easme-web.eu",
+    # Not rendered by linkcheck builder
+    r"ides\.html",
 ]
 linkcheck_anchors = False  # saves a bit of time
 linkcheck_timeout = 15  # some can be quite slow
@@ -732,10 +746,12 @@ nitpick_ignore_regex = [
     ("py:.*", r"mne\.io\..*\.Raw.*"),  # RawEDF etc.
     ("py:.*", r"mne\.epochs\.EpochsFIF.*"),
     ("py:.*", r"mne\.io\..*\.Epochs.*"),  # EpochsKIT etc.
-    (
+    (  # BaseRaw attributes are documented in Raw
         "py:obj",
-        "(filename|metadata|proj|times|tmax|tmin|annotations|ch_names|compensation_grade|filenames|first_samp|first_time|last_samp|n_times|proj|times|tmax|tmin)",
-    ),  # noqa: E501
+        "(filename|metadata|proj|times|tmax|tmin|annotations|ch_names"
+        "|compensation_grade|duration|filenames|first_samp|first_time"
+        "|last_samp|n_times|proj|times|tmax|tmin)",
+    ),
 ]
 suppress_warnings = [
     "image.nonlocal_uri",  # we intentionally link outside
@@ -1282,7 +1298,7 @@ for icon, classes in icon_class.items():
     rst_prolog += f"""
 .. |{icon}| raw:: html
 
-    <i class="{' '.join(classes + (f'fa-{icon}',))}"></i>
+    <i class="{" ".join(classes + (f"fa-{icon}",))}"></i>
 """
 
 rst_prolog += """

@@ -17,11 +17,11 @@ Platform-specific installers
         :class-content: text-center
         :name: install-linux
 
-        .. button-link:: https://github.com/mne-tools/mne-installers/releases/download/v1.8.0/MNE-Python-1.8.0_0-Linux.sh
+        .. button-link:: https://github.com/mne-tools/mne-installers/releases/download/v1.9.0/MNE-Python-1.9.0_0-Linux.sh
             :ref-type: ref
             :color: primary
             :shadow:
-            :class: font-weight-bold mt-3
+            :class: font-weight-bold mt-3 install-download-button
 
             |cloud-arrow-down| |ensp| Download for Linux
 
@@ -31,18 +31,18 @@ Platform-specific installers
 
         .. code-block:: console
 
-            $ sh ./MNE-Python-1.8.0_0-Linux.sh
+            $ sh ./MNE-Python-1.9.0_0-Linux.sh
 
 
     .. tab-item:: macOS (Intel)
         :class-content: text-center
         :name: install-macos-intel
 
-        .. button-link:: https://github.com/mne-tools/mne-installers/releases/download/v1.8.0/MNE-Python-1.8.0_0-macOS_Intel.pkg
+        .. button-link:: https://github.com/mne-tools/mne-installers/releases/download/v1.9.0/MNE-Python-1.9.0_0-macOS_Intel.pkg
             :ref-type: ref
             :color: primary
             :shadow:
-            :class: font-weight-bold mt-3
+            :class: font-weight-bold mt-3 install-download-button
 
             |cloud-arrow-down| |ensp| Download for macOS (Intel)
 
@@ -54,11 +54,11 @@ Platform-specific installers
         :class-content: text-center
         :name: install-macos-apple
 
-        .. button-link:: https://github.com/mne-tools/mne-installers/releases/download/v1.8.0/MNE-Python-1.8.0_0-macOS_M1.pkg
+        .. button-link:: https://github.com/mne-tools/mne-installers/releases/download/v1.9.0/MNE-Python-1.9.0_0-macOS_M1.pkg
             :ref-type: ref
             :color: primary
             :shadow:
-            :class: font-weight-bold mt-3
+            :class: font-weight-bold mt-3 install-download-button
 
             |cloud-arrow-down| |ensp| Download for macOS (Apple Silicon)
 
@@ -70,15 +70,32 @@ Platform-specific installers
         :class-content: text-center
         :name: install-windows
 
-        .. button-link:: https://github.com/mne-tools/mne-installers/releases/download/v1.8.0/MNE-Python-1.8.0_0-Windows.exe
+        .. button-link:: https://github.com/mne-tools/mne-installers/releases/download/v1.9.0/MNE-Python-1.9.0_0-Windows.exe
             :ref-type: ref
             :color: primary
             :shadow:
-            :class: font-weight-bold mt-3
+            :class: font-weight-bold mt-3 install-download-button
 
             |cloud-arrow-down| |ensp| Download for Windows
 
         **Supported platforms:** Windows 10 and newer
+
+.. card::
+    :class-body: text-center
+    :class-card: install-download-alert hidden
+
+    .. We have to use a button-link here because button-ref doesn't properly nested parse the inline code
+
+    .. button-link:: ides.html
+        :ref-type: ref
+        :color: success
+        :shadow:
+        :class: font-weight-bold mt-3
+        :click-parent:
+
+        |rocket| Go to IDE Setup
+
+    Once installation completes, **set up your IDE**!
 
 .. raw:: html
 
@@ -139,7 +156,7 @@ To remove the MNE-Python distribution provided by our installers above:
            .. code-block:: bash
 
                $ which python
-               /home/username/mne-python/1.8.0_0/bin/python
+               /home/username/mne-python/1.9.0_0/bin/python
                $ rm -Rf /home/$USER/mne-python
                $ rm /home/$USER/.local/share/applications/mne-python-*.desktop
 
@@ -153,7 +170,7 @@ To remove the MNE-Python distribution provided by our installers above:
            .. code-block:: bash
 
                $ which python
-               /Users/username/Applications/MNE-Python/1.8.0_0/.mne-python/bin/python
+               /Users/username/Applications/MNE-Python/1.9.0_0/.mne-python/bin/python
                $ rm -Rf /Users/$USER/Applications/MNE-Python  # if user-specific
                $ rm -Rf /Applications/MNE-Python              # if system-wide
 

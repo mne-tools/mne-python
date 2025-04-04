@@ -436,21 +436,24 @@ def _read_segment_file(data, idx, fi, start, stop, raw_extras, filenames, cals, 
                 ones[orig_idx, smp_read : smp_read + len(one_i)] = one_i
                 n_smp_read[orig_idx] += len(one_i)
 
+        # resample channels with lower sample frequency
         # skip if no data was requested, ie. only annotations were read
-        if sum(n_smp_read) > 0:
+        if any(n_smp_read) > 0:
             # expected number of samples, equals maximum sfreq
             smp_exp = data.shape[-1]
-            assert max(n_smp_read) == smp_exp
 
             # resample data after loading all chunks to prevent edge artifacts
             resampled = False
+
             for i, smp_read in enumerate(n_smp_read):
                 # nothing read, nothing to resample
                 if smp_read == 0:
                     continue
                 # upsample if n_samples is lower than from highest sfreq
                 if smp_read != smp_exp:
-                    assert (ones[i, smp_read:] == 0).all()  # sanity check
+                    # sanity check that we read exactly how much we expected
+                    assert (ones[i, smp_read:] == 0).all()
+
                     ones[i, :] = resample(
                         ones[i, :smp_read].astype(np.float64),
                         smp_exp,
@@ -628,7 +631,7 @@ def _get_info(
     if len(chs_without_types):
         msg = (
             "Could not determine channel type of the following channels, "
-            f'they will be set as EEG:\n{", ".join(chs_without_types)}'
+            f"they will be set as EEG:\n{', '.join(chs_without_types)}"
         )
         logger.info(msg)
 
@@ -712,8 +715,8 @@ def _get_info(
 
     if info["highpass"] > info["lowpass"]:
         warn(
-            f'Highpass cutoff frequency {info["highpass"]} is greater '
-            f'than lowpass cutoff frequency {info["lowpass"]}, '
+            f"Highpass cutoff frequency {info['highpass']} is greater "
+            f"than lowpass cutoff frequency {info['lowpass']}, "
             "setting values to 0 and Nyquist."
         )
         info["highpass"] = 0.0
@@ -824,10 +827,19 @@ def _read_edf_header(
                     for info in id_info[4:]:
                         if "=" in info:
                             key, value = info.split("=")
+                            err = f"patient {key} info cannot be {value}, skipping."
                             if key in ["weight", "height"]:
-                                patient[key] = float(value)
+                                try:
+                                    patient[key] = float(value)
+                                except ValueError:
+                                    logger.debug(err)
+                                    continue
                             elif key in ["hand"]:
-                                patient[key] = int(value)
+                                try:
+                                    patient[key] = int(value)
+                                except ValueError:
+                                    logger.debug(err)
+                                    continue
                             else:
                                 warn(f"Invalid patient information {key}")
 
@@ -1441,9 +1453,7 @@ def _read_gdf_header(fname, exclude, include=None):
                     n_events = np.fromfile(fid, UINT32, 1)[0]
                 else:
                     ne = np.fromfile(fid, UINT8, 3)
-                    n_events = ne[0]
-                    for i in range(1, len(ne)):
-                        n_events = n_events + int(ne[i]) * 2 ** (i * 8)
+                    n_events = sum(int(ne[i]) << (i * 8) for i in range(len(ne)))
                     event_sr = np.fromfile(fid, FLOAT32, 1)[0]
 
                 pos = np.fromfile(fid, UINT32, n_events) - 1  # 1-based inds

@@ -1,0 +1,1 @@
+Fix bug where :func:`mne.export.export_raw` might allocate huge intermediate arrays unnecessarily, when padding data blocks during export to EDF format, by `Daniel McCloy`_.

@@ -243,9 +243,9 @@ def test_read_ctf(tmp_path):
 
         # Make sure all digitization points are in the MNE head coord frame
         for p in raw.info["dig"]:
-            assert (
-                p["coord_frame"] == FIFF.FIFFV_COORD_HEAD
-            ), "dig points must be in FIFF.FIFFV_COORD_HEAD"
+            assert p["coord_frame"] == FIFF.FIFFV_COORD_HEAD, (
+                "dig points must be in FIFF.FIFFV_COORD_HEAD"
+            )
 
         if fname.endswith("catch-alp-good-f.ds"):  # omit points from .pos file
             with raw.info._unlock():
