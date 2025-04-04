@@ -943,6 +943,7 @@ def plot_topomap(
     axes=None,
     show=True,
     onselect=None,
+    colorbar=False, 
 ):
     """Plot a topographic map as image.
 
@@ -1087,7 +1088,7 @@ def _setup_interp(pos, res, image_interp, extrapolate, outlines, border):
 _VORONOI_CIRCLE_RES = 100
 
 
-def _voronoi_topomap(data, pos, outlines, ax, cmap, norm, extent, res):
+def _voronoi_topomap(data, pos, outlines, ax, cmap, norm, extent, res, colorbar=False):
     """Make a Voronoi diagram on a topomap."""
     # we need an image axis object so first empty image to plot over
     im = ax.imshow(
@@ -1098,6 +1099,9 @@ def _voronoi_topomap(data, pos, outlines, ax, cmap, norm, extent, res):
         extent=extent,
         norm=norm,
     )
+    if colorbar:
+        plt.colorbar(im, ax=ax)
+
     rx, ry = outlines["clip_radius"]
     cx, cy = outlines.get("clip_origin", (0.0, 0.0))
     # add points on the circle to make boundaries, expand out to
@@ -1302,6 +1306,7 @@ def _plot_topomap(
             norm=cnorm,
             extent=extent,
             res=res,
+            colorbar=colorbar,
         )
     else:
         im = axes.imshow(
