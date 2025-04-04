@@ -10,7 +10,7 @@ from mne._fiff.open import _NoCloseRead
 from ..utils import _file_like, _validate_type, logger
 
 
-def __gdf_edf_get_fid(fname, **kwargs):
+def _gdf_edf_get_fid(fname, **kwargs):
     """Open a EDF/BDF/GDF file with no additional parsing."""
     if _file_like(fname):
         logger.debug("Using file-like I/O")
