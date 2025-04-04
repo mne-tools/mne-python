@@ -963,12 +963,12 @@ def test_degenerate():
         with pytest.raises(NotImplementedError, match="Only.*txt.*"):
             func(edf_txt_stim_channel_path)
 
-        with pytest.raises(
-            NotImplementedError, match="Only GDF, EDF, and BDF files are supported."
-        ):
-            partial(_read_header, exclude=(), infer_types=False, file_type=4)(
-                edf_txt_stim_channel_path
-            )
+    with pytest.raises(
+        NotImplementedError, match="Only GDF, EDF, and BDF files are supported."
+    ):
+        partial(_read_header, exclude=(), infer_types=False, file_type=4)(
+            edf_txt_stim_channel_path
+        )
 
 
 def test_exclude():
