@@ -316,7 +316,8 @@ class RawSNIRF(BaseRaw):
                         ch_name = (
                             f"{ch_name} moment{fnirs_moment_orders[moment_idx - 1]}"
                         )
-                        ch_type = "fnirs_td_moments_amplitude"
+                        ch_type = "fnirs_td_moments_intensity"  # TODO: FIX AND TRIAGE!
+                        # raise RuntimeError("FIX THE TYPE")
                         need_data_scale = True
 
                 elif snirf_data_type == SNIRF_PROCESSED:

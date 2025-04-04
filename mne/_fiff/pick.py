@@ -109,10 +109,20 @@ def get_channel_type_constants(include_defaults=False):
             unit=FIFF.FIFF_UNIT_V,
             coil_type=FIFF.FIFFV_COIL_FNIRS_TD_GATED_AMPLITUDE,
         ),
-        fnirs_td_moments_amplitude=dict(
+        fnirs_td_moments_intensity=dict(
             kind=FIFF.FIFFV_FNIRS_CH,
-            unit=FIFF.FIFF_UNIT_V,
-            coil_type=FIFF.FIFFV_COIL_FNIRS_TD_MOMENTS_AMPLITUDE,
+            unit=FIFF.FIFF_UNIT_UNITLESS,
+            coil_type=FIFF.FIFFV_COIL_FNIRS_TD_MOMENTS_INTENSITY,
+        ),
+        fnirs_td_moments_mean=dict(
+            kind=FIFF.FIFFV_FNIRS_CH,
+            unit=FIFF.FIFF_UNIT_S,
+            coil_type=FIFF.FIFFV_COIL_FNIRS_TD_MOMENTS_MEAN,
+        ),
+        fnirs_td_moments_variance=dict(
+            kind=FIFF.FIFFV_FNIRS_CH,
+            unit=FIFF.FIFF_UNIT_NONE,  # TODO: Maybe someday add s^2
+            coil_type=FIFF.FIFFV_COIL_FNIRS_TD_MOMENTS_VARIANCE,
         ),
         fnirs_od=dict(kind=FIFF.FIFFV_FNIRS_CH, coil_type=FIFF.FIFFV_COIL_FNIRS_OD),
         hbo=dict(
@@ -208,7 +218,9 @@ _second_rules = {
             FIFF.FIFFV_COIL_FNIRS_FD_PHASE: "fnirs_fd_phase",
             FIFF.FIFFV_COIL_FNIRS_OD: "fnirs_od",
             FIFF.FIFFV_COIL_FNIRS_TD_GATED_AMPLITUDE: "fnirs_td_gated_amplitude",
-            FIFF.FIFFV_COIL_FNIRS_TD_MOMENTS_AMPLITUDE: "fnirs_td_moments_amplitude",
+            FIFF.FIFFV_COIL_FNIRS_TD_MOMENTS_INTENSITY: "fnirs_td_moments_intensity",
+            FIFF.FIFFV_COIL_FNIRS_TD_MOMENTS_MEAN: "fnirs_td_moments_mean",
+            FIFF.FIFFV_COIL_FNIRS_TD_MOMENTS_VARIANCE: "fnirs_td_moments_variance",
         },
     ),
     "eeg": (
@@ -398,13 +410,23 @@ def _triage_fnirs_pick(ch, fnirs, warned):
     elif ch["coil_type"] == FIFF.FIFFV_COIL_FNIRS_OD and "fnirs_od" in fnirs:
         return True
     elif (
-        ch["coil_type"] == FIFF.FIFFV_COIL_FNIRS_TD_MOMENTS_AMPLITUDE
-        and "fnirs_td_moments_amplitude" in fnirs
+        ch["coil_type"] == FIFF.FIFFV_COIL_FNIRS_TD_GATED_AMPLITUDE
+        and "fnirs_td_gated_amplitude" in fnirs
     ):
         return True
     elif (
-        ch["coil_type"] == FIFF.FIFFV_COIL_FNIRS_TD_GATED_AMPLITUDE
-        and "fnirs_td_gated_amplitude" in fnirs
+        ch["coil_type"] == FIFF.FIFFV_COIL_FNIRS_TD_MOMENTS_INTENSITY
+        and "fnirs_td_moments_intensity" in fnirs
+    ):
+        return True
+    elif (
+        ch["coil_type"] == FIFF.FIFFV_COIL_FNIRS_TD_MOMENTS_MEAN
+        and "fnirs_td_moments_mean" in fnirs
+    ):
+        return True
+    elif (
+        ch["coil_type"] == FIFF.FIFFV_COIL_FNIRS_TD_MOMENTS_VARIANCE
+        and "fnirs_td_moments_variance" in fnirs
     ):
         return True
     return False
@@ -885,7 +907,9 @@ def channel_indices_by_type(info, picks=None):
         fnirs_fd_phase=list(),
         fnirs_od=list(),
         fnirs_td_gated_amplitude=list(),
-        fnirs_td_moments_amplitude=list(),
+        fnirs_td_moments_intensity=list(),
+        fnirs_td_moments_mean=list(),
+        fnirs_td_moments_variance=list(),
         eyegaze=list(),
         pupil=list(),
     )
@@ -1123,8 +1147,10 @@ _FNIRS_CH_TYPES_SPLIT = (
     "fnirs_fd_ac_amplitude",
     "fnirs_fd_phase",
     "fnirs_od",
-    "fnirs_td_moments_amplitude",
     "fnirs_td_gated_amplitude",
+    "fnirs_td_moments_intensity",
+    "fnirs_td_moments_mean",
+    "fnirs_td_moments_variance",
 )
 _EYETRACK_CH_TYPES_SPLIT = ("eyegaze", "pupil")
 _DATA_CH_TYPES_ORDER_DEFAULT = (

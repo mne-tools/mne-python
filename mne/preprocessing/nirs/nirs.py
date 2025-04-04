@@ -105,9 +105,12 @@ def _check_channels_ordered(info, pair_vals, *, throw_errors=True, check_bads=Tr
     picks_chroma = _picks_to_idx(info, ["hbo", "hbr"], exclude=[], allow_empty=True)
 
     # All TD moments
-    picks_moments = _picks_to_idx(
-        info, ["fnirs_td_moments_amplitude"], exclude=[], allow_empty=True
-    )
+    td_moments = [
+        "fnirs_td_moments_intensity",
+        "fnirs_td_moments_mean",
+        "fnirs_td_moments_variance",
+    ]
+    picks_moments = _picks_to_idx(info, td_moments, exclude=[], allow_empty=True)
 
     # All TD gated
     picks_gated = _picks_to_idx(

@@ -101,7 +101,10 @@ def test_basic_reading_and_min_process(fname):
         raw = optical_density(raw)
     if "fnirs_od" in raw:
         raw = beer_lambert_law(raw, ppf=6)
-    if "fnirs_td_moments_amplitude" in raw:
+    if "fnirs_td_moments_intensity" in raw:
+        # TODO: Re-enable once types are triaged
+        # assert "fnirs_td_moments_mean" in raw
+        # assert "fnirs_td_moments_variance" in raw
         pass
     else:
         assert "hbo" in raw
@@ -436,7 +439,8 @@ def test_snirf_kernel(kind):
         n_nan = 20
     else:
         assert raw._data.shape == (1080, 14)
-        data = raw.get_data("fnirs_td_moments_amplitude")
+        data = raw.get_data("fnirs_td_moments_intensity")
+        # TODO: This will need to update once we triage properly
         assert data.shape == raw._data.shape
         norm = np.nanmedian(np.linalg.norm(data, axis=-1))
         assert 1e5 < norm < 1e6  # TODO: 429256, is this reasonable Molars!??

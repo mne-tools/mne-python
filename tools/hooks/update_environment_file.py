@@ -22,7 +22,12 @@ for section, section_deps in pyproj["project"]["optional-dependencies"].items():
         deps |= set(section_deps)
 recursive_deps = set(d for d in deps if d.startswith("mne["))
 deps -= recursive_deps
-deps |= {"pip", "mamba", "nomkl"}
+deps |= {  # ones we add to environment.yml in addition to those from pyproject.toml
+    "pip",
+    "mamba",
+    "nomkl",
+    "libxml2 !=2.14.0",  # https://github.com/conda-forge/libxml2-feedstock/issues/146
+}
 
 
 def remove_spaces(version_spec):
