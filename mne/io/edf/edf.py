@@ -13,7 +13,7 @@ from pathlib import Path
 import numpy as np
 from scipy.interpolate import interp1d
 
-from ..._edf.open import __gdf_edf_get_fid
+from ..._edf.open import _gdf_edf_get_fid
 from ..._fiff.constants import FIFF
 from ..._fiff.meas_info import _empty_info, _unique_channel_names
 from ..._fiff.utils import _blk_read_lims, _mult_cal_one
@@ -256,18 +256,15 @@ class RawEDF(BaseRaw):
 
 
 def _path_from_fname(fname) -> Path | None:
-    if not isinstance(fname, Path):
-        if isinstance(fname, str):
-            fname = Path(fname)
-        else:
-            # Try to get a filename from the file-like object
-            try:
-                fname = Path(fname.name)
-            except Exception:
-                fname = None
-    return fname
-
-
+    if isinstance(fname, (str, Path)):
+        return  Path(fname)
+        
+    # Try to get a filename from the file-like object
+    try:
+        return  Path(fname.name)
+    except Exception:
+        return None
+    
 @fill_doc
 class RawBDF(BaseRaw):
     """Raw object from BDF file.
@@ -465,20 +462,6 @@ class RawBDF(BaseRaw):
             mult,
         )
 
-
-def _path_from_fname(fname) -> Path | None:
-    if not isinstance(fname, Path):
-        if isinstance(fname, str):
-            fname = Path(fname)
-        else:
-            # Try to get a filename from the file-like object
-            try:
-                fname = Path(fname.name)
-            except Exception:
-                fname = None
-    return fname
-
-
 @fill_doc
 class RawGDF(BaseRaw):
     """Raw object from GDF file.
@@ -641,7 +624,7 @@ def _read_segment_file(data, idx, fi, start, stop, raw_extras, filenames, cals, 
     # Let's do ~10 MB chunks:
     n_per = max(10 * 1024 * 1024 // (ch_offsets[-1] * dtype_byte), 1)
 
-    with __gdf_edf_get_fid(filenames, buffering=0) as fid:
+    with _gdf_edf_get_fid(filenames, buffering=0) as fid:
         # Extract data
         start_offset = data_offset + block_start_idx * ch_offsets[-1] * dtype_byte
 
@@ -1081,7 +1064,7 @@ def _read_edf_header(
     """Read header information from EDF+ or BDF file."""
     edf_info = {"events": []}
 
-    with __gdf_edf_get_fid(fname) as fid:
+    with _gdf_edf_get_fid(fname) as fid:
         fid.read(8)  # version (unused here)
 
         # patient ID
@@ -1155,7 +1138,7 @@ def _read_edf_header(
         try:
             header_nbytes = int(_edf_str(fid.read(8)))
         except ValueError:
-            raise Exception(
+            raise ValueError(
                 f"Bad {'EDF' if file_type is FileType.EDF else 'BDF'} file provided."
             )
 
@@ -1358,13 +1341,13 @@ def _read_gdf_header(fname, exclude, include=None):
     edf_info = dict()
     events = None
 
-    with __gdf_edf_get_fid(fname) as fid:
+    with _gdf_edf_get_fid(fname) as fid:
         try:
             version = fid.read(8).decode()
             edf_info["type"] = edf_info["subtype"] = version[:3]
             edf_info["number"] = float(version[4:])
         except ValueError:
-            raise Exception("Bad GDF file provided.")
+            raise ValueError("Bad GDF file provided.")
 
         meas_date = None
 
