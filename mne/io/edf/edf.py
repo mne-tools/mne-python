@@ -256,7 +256,7 @@ class RawEDF(BaseRaw):
 
 
 def _path_from_fname(fname) -> Path | None:
-    if isinstance(fname, (str, Path)):
+    if isinstance(fname, str | Path):
         return  Path(fname)
         
     # Try to get a filename from the file-like object
