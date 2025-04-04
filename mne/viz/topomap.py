@@ -9,8 +9,8 @@ import itertools
 import warnings
 from functools import partial
 from numbers import Integral
-import matplotlib.pyplot as plt
 
+import matplotlib.pyplot as plt
 import numpy as np
 from scipy.interpolate import (
     CloughTocher2DInterpolator,
