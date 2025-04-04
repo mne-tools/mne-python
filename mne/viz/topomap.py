@@ -10,6 +10,7 @@ import warnings
 from functools import partial
 from numbers import Integral
 
+import matplotlib.pyplot as plt
 import numpy as np
 from scipy.interpolate import (
     CloughTocher2DInterpolator,
@@ -942,9 +943,11 @@ def plot_topomap(
     cnorm=None,
     axes=None,
     show=True,
+    colorbar=False,
     onselect=None,
 ):
-    """Plot a topographic map as image.
+    """
+    Plot a topographic map as an image.
 
     Parameters
     ----------
@@ -955,8 +958,6 @@ def plot_topomap(
         and exactly ``len(data)`` channels; the x/y coordinates will
         be inferred from the montage in the :class:`~mne.Info` object.
     %(ch_type_topomap)s
-
-        .. versionadded:: 0.21
     %(sensors_topomap)s
     %(names_topomap)s
     %(mask_topomap)s
@@ -966,32 +967,16 @@ def plot_topomap(
     %(sphere_topomap_auto)s
     %(image_interp_topomap)s
     %(extrapolate_topomap)s
-
-        .. versionadded:: 0.18
-
-        .. versionchanged:: 0.21
-
-           - The default was changed to ``'local'`` for MEG sensors.
-           - ``'local'`` was changed to use a convex hull mask
-           - ``'head'`` was changed to extrapolate out to the clipping circle.
     %(border_topomap)s
-
-        .. versionadded:: 0.20
     %(res_topomap)s
     %(size_topomap)s
     %(cmap_topomap)s
     %(vlim_plot_topomap)s
-
-        .. versionadded:: 1.2
     %(cnorm)s
-
-        .. versionadded:: 0.24
     %(axes_plot_topomap)s
-
-        .. versionchanged:: 1.2
-           If ``axes=None``, a new :class:`~matplotlib.figure.Figure` is
-           created instead of plotting into the current axes.
     %(show)s
+    colorbar : bool
+        If True, shows the colorbar. Default is False.
     onselect : callable | None
         A function to be called when the user selects a set of channels by
         click-dragging (uses a matplotlib
@@ -1087,7 +1072,7 @@ def _setup_interp(pos, res, image_interp, extrapolate, outlines, border):
 _VORONOI_CIRCLE_RES = 100
 
 
-def _voronoi_topomap(data, pos, outlines, ax, cmap, norm, extent, res):
+def _voronoi_topomap(data, pos, outlines, ax, cmap, norm, extent, res, colorbar=False):
     """Make a Voronoi diagram on a topomap."""
     # we need an image axis object so first empty image to plot over
     im = ax.imshow(
@@ -1098,6 +1083,9 @@ def _voronoi_topomap(data, pos, outlines, ax, cmap, norm, extent, res):
         extent=extent,
         norm=norm,
     )
+    if colorbar:
+        plt.colorbar(im, ax=ax)
+
     rx, ry = outlines["clip_radius"]
     cx, cy = outlines.get("clip_origin", (0.0, 0.0))
     # add points on the circle to make boundaries, expand out to
@@ -1185,6 +1173,7 @@ def _plot_topomap(
     cnorm=None,
     show=True,
     onselect=None,
+    colorbar=False,
 ):
     from matplotlib.colors import Normalize
     from matplotlib.widgets import RectangleSelector
@@ -1302,6 +1291,7 @@ def _plot_topomap(
             norm=cnorm,
             extent=extent,
             res=res,
+            colorbar=colorbar,
         )
     else:
         im = axes.imshow(
