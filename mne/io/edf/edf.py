@@ -261,10 +261,11 @@ def _path_from_fname(fname) -> Path | None:
         
     # Try to get a filename from the file-like object
     try:
-        return  Path(fname.name)
+        return Path(fname.name)
     except Exception:
         return None
-    
+
+
 @fill_doc
 class RawBDF(BaseRaw):
     """Raw object from BDF file.
@@ -461,6 +462,7 @@ class RawBDF(BaseRaw):
             cals,
             mult,
         )
+
 
 @fill_doc
 class RawGDF(BaseRaw):

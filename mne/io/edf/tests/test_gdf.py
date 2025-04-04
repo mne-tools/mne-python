@@ -21,6 +21,7 @@ gdf1_path = data_path / "GDF" / "test_gdf_1.25"
 gdf2_path = data_path / "GDF" / "test_gdf_2.20"
 gdf_1ch_path = data_path / "GDF" / "test_1ch.gdf"
 
+
 @testing.requires_testing_data
 def test_gdf_data():
     """Test reading raw GDF 1.x files."""
@@ -77,6 +78,7 @@ def test_gdf_data():
     # gh-5604
     assert raw.info["meas_date"] is None
 
+
 @testing.requires_testing_data
 def test_gdf2_birthday(tmp_path):
     """Test reading raw GDF 2.x files."""
@@ -105,6 +107,7 @@ def test_gdf2_birthday(tmp_path):
         birthdate.month,
         birthdate.day,
     )
+
 
 @testing.requires_testing_data
 def test_gdf2_data():
@@ -143,6 +146,7 @@ def test_gdf2_data():
         misc=None,
         test_scaling=False,  # XXX this should be True
     )
+
 
 @testing.requires_testing_data
 def test_one_channel_gdf():
