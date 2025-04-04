@@ -917,7 +917,7 @@ def _get_pos_outlines(info, picks, sphere, to_sphere=True):
     )
     outlines = _make_head_outlines(sphere, pos, "head", clip_origin)
     return pos, outlines
-    
+
 
 @fill_doc
 def plot_topomap(
@@ -943,7 +943,7 @@ def plot_topomap(
     axes=None,
     show=True,
     onselect=None,
-    colorbar=False, 
+    colorbar=False,
 ):
     """Plot a topographic map as image.
 
