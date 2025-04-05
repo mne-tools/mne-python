@@ -2218,6 +2218,7 @@ class Report:
             ]
 
         return remove_idx
+    
     @fill_doc
     def _add_or_replace(self, *, title, section, tags, html_partial, replace=False):
         """Append HTML content report, or replace it if it already exists.
