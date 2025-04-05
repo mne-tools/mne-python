@@ -1,4 +1,4 @@
-"Generate self-contained HTML reports from MNE objects."""
+"Generate self-contained HTML reports from MNE objects."
 
 # Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
