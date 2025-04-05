@@ -831,7 +831,6 @@ class Report:
         collapse=(),
         verbose=None,
     ):
-    
         self.info_fname = str(info_fname) if info_fname is not None else None
         self.cov_fname = str(cov_fname) if cov_fname is not None else None
         self.baseline = baseline
