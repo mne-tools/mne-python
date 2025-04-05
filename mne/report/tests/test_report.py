@@ -748,10 +748,10 @@ old_html = html
 section = "<div whatever 😀   etc."
 sec_san = "_div_whatever___etc_"
 r.add_figure(
-fig=fig2,
-title="duplicate",
-section=section,
-replace=True,  # should have no effect
+    fig=fig2,
+    title="duplicate",
+    section=section,
+    replace=True,  # should have no effect
 )
 html = r.html
 assert len(html) == 6

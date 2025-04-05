@@ -2218,68 +2218,68 @@ class Report:
             ]
 
         return remove_idx
-    
+
     @fill_doc
     def _add_or_replace(self, *, title, section, tags, html_partial, replace=False):
         """Append HTML content report, or replace it if it already exists.
 
         Parameters
-        ----------	
-        title : str	
-            The title entry.	
-        %(section_report)s	
-        tags : tuple of str	
-            The tags associated with the added element.	
-        html_partial : callable	
-            Callable that renders a HTML string, called as::	
-                html_partial(id_=...)	
-        replace : bool	
-            Whether to replace existing content if the title and section match.	
-            If an object is replaced, its dom_id is preserved.	
-        """	
-        assert callable(html_partial), type(html_partial)	
+        ----------
+        title : str
+            The title entry.
+        %(section_report)s
+        tags : tuple of str
+            The tags associated with the added element.
+        html_partial : callable
+            Callable that renders a HTML string, called as::
+                html_partial(id_=...)
+        replace : bool
+            Whether to replace existing content if the title and section match.
+            If an object is replaced, its dom_id is preserved.
+        """
+        assert callable(html_partial), type(html_partial)
 
-        # Temporarily set HTML and dom_id to dummy values	
-        new_content = _ContentElement(	
-            name=title, section=section, dom_id="", tags=tags, html=""	
-        )	
-
-        append = True	
-        if replace:	
-            matches = [	
-                ii	
-                for ii, element in enumerate(self._content)	
-                if (element.name, element.section) == (title, section)	
-            ]	
-            if matches:	
-                dom_id = self._content[matches[-1]].dom_id	
-                self._content[matches[-1]] = new_content	
-                append = False	
-        if append:	
-            dom_id = self._get_dom_id(section=section, title=title)	
-            self._content.append(new_content)	
-        new_content.dom_id = dom_id	
-        new_content.html = html_partial(id_=dom_id)	
-        assert isinstance(new_content.html, str), type(new_content.html)	
-
-    def _add_code(self, *, code, title, language, section, tags, replace):	
-        if isinstance(code, Path):	
-            code = Path(code).read_text()	
-        html_partial = partial(	
-            _html_code_element,	
-            tags=tags,	
-            title=title,	
-            code=code,	
-            language=language,	
-        )	
-        self._add_or_replace(	
-            title=title,	
-            section=section,	
-            tags=tags,	
-            html_partial=html_partial,	
-            replace=replace,	
+        # Temporarily set HTML and dom_id to dummy values
+        new_content = _ContentElement(
+            name=title, section=section, dom_id="", tags=tags, html=""
         )
-        
+
+        append = True
+        if replace:
+            matches = [
+                ii
+                for ii, element in enumerate(self._content)
+                if (element.name, element.section) == (title, section)
+            ]
+            if matches:
+                dom_id = self._content[matches[-1]].dom_id
+                self._content[matches[-1]] = new_content
+                append = False
+        if append:
+            dom_id = self._get_dom_id(section=section, title=title)
+            self._content.append(new_content)
+        new_content.dom_id = dom_id
+        new_content.html = html_partial(id_=dom_id)
+        assert isinstance(new_content.html, str), type(new_content.html)
+
+    def _add_code(self, *, code, title, language, section, tags, replace):
+        if isinstance(code, Path):
+            code = Path(code).read_text()
+        html_partial = partial(
+            _html_code_element,
+            tags=tags,
+            title=title,
+            code=code,
+            language=language,
+        )
+        self._add_or_replace(
+            title=title,
+            section=section,
+            tags=tags,
+            html_partial=html_partial,
+            replace=replace,
+        )
+
     @fill_doc
     def add_code(
         self,
