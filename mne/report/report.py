@@ -86,7 +86,6 @@ from ..viz.utils import _ndarray_to_fig
 
 _BEM_VIEWS = ("axial", "sagittal", "coronal")
 
-
 # For raw files, we want to support different suffixes + extensions for all
 # supported file formats
 SUPPORTED_READ_RAW_EXTENSIONS = tuple(_get_extension_reader_map())
