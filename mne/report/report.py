@@ -843,8 +843,7 @@ class Report:
         self.subject = subject
         self.title = title
         self.image_format = _check_image_format(None, image_format)
-        self.projs = projs  # Initialize self.projs
-
+        self.projs = projs  
         # dom_id is mostly for backward compat and testing nowadays
         self._dom_id = 0
         self._dup_limit = 10000  # should be enough duplicates
@@ -2220,6 +2219,9 @@ class Report:
             ]
 
         return remove_idx
+    @fill_doc
+    def _add_or_replace(self, *, title, section, tags, html_partial, replace=False):
+        """Append HTML content report, or replace it if it already exists.
 
     @fill_doc
     def add_code(
