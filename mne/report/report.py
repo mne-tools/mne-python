@@ -86,6 +86,7 @@ from ..viz.utils import _ndarray_to_fig
 
 _BEM_VIEWS = ("axial", "sagittal", "coronal")
 
+
 # For raw files, we want to support different suffixes + extensions for all
 # supported file formats
 SUPPORTED_READ_RAW_EXTENSIONS = tuple(_get_extension_reader_map())
@@ -830,7 +831,7 @@ class Report:
         collapse=(),
         verbose=None,
     ):
-        self.projs = projs  # Initialize self.projs
+    
         self.info_fname = str(info_fname) if info_fname is not None else None
         self.cov_fname = str(cov_fname) if cov_fname is not None else None
         self.baseline = baseline
@@ -842,6 +843,7 @@ class Report:
         self.subject = subject
         self.title = title
         self.image_format = _check_image_format(None, image_format)
+        self.projs = projs  # Initialize self.projs
 
         # dom_id is mostly for backward compat and testing nowadays
         self._dom_id = 0
