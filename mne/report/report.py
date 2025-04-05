@@ -842,7 +842,7 @@ class Report:
         self.subject = subject
         self.title = title
         self.image_format = _check_image_format(None, image_format)
-        self.projs = projs  
+        self.projs = projs
         # dom_id is mostly for backward compat and testing nowadays
         self._dom_id = 0
         self._dup_limit = 10000  # should be enough duplicates
