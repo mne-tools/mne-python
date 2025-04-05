@@ -1,0 +1,7 @@
+from warnings import warn  # Make sure this is at the top
+
+# Fix for None or empty channel names
+for i, ch in enumerate(ch_names):
+    if ch is None or not isinstance(ch, str) or ch.strip() == "":
+        warn(f"Channel label at index {i} is missing or invalid. Setting to CH{i:03d}")
+        ch_names[i] = f"CH{i:03d}"
