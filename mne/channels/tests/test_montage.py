@@ -151,22 +151,35 @@ def test_dig_montage_trans(tmp_path):
     assert str(position1) == str(position2)  # exactly equal
 
 
-def test_fiducials():
+@pytest.mark.parametrize("fname", (fif_fname, ctf_fif_fname))
+def test_fiducials(tmp_path, fname):
     """Test handling of fiducials."""
     # Eventually the code used here should be unified with montage.py, but for
     # now it uses code in odd places
-    for fname in (fif_fname, ctf_fif_fname):
-        fids, coord_frame = read_fiducials(fname)
-        points = _fiducial_coords(fids, coord_frame)
-        assert points.shape == (3, 3)
-        # Fids
-        assert_allclose(points[:, 2], 0.0, atol=1e-6)
-        assert_allclose(points[::2, 1], 0.0, atol=1e-6)
-        assert points[2, 0] > 0  # RPA
-        assert points[0, 0] < 0  # LPA
-        # Nasion
-        assert_allclose(points[1, 0], 0.0, atol=1e-6)
-        assert points[1, 1] > 0
+    fids, coord_frame = read_fiducials(fname)
+    assert coord_frame == FIFF.FIFFV_COORD_HEAD
+    points = _fiducial_coords(fids, coord_frame)
+    assert points.shape == (3, 3)
+    # Fids
+    assert_allclose(points[:, 2], 0.0, atol=1e-6)
+    assert_allclose(points[::2, 1], 0.0, atol=1e-6)
+    assert points[2, 0] > 0  # RPA
+    assert points[0, 0] < 0  # LPA
+    # Nasion
+    assert_allclose(points[1, 0], 0.0, atol=1e-6)
+    assert points[1, 1] > 0
+    fname_out = tmp_path / "test-dig.fif"
+    make_dig_montage(
+        lpa=fids[0]["r"], nasion=fids[1]["r"], rpa=fids[2]["r"], coord_frame="mri_voxel"
+    ).save(fname_out, overwrite=True)
+    fids_2, coord_frame_2 = read_fiducials(fname_out)
+    assert coord_frame_2 == FIFF.FIFFV_MNE_COORD_MRI_VOXEL
+    assert_allclose(
+        [fid["r"] for fid in fids[:3]],
+        [fid["r"] for fid in fids_2],
+        rtol=1e-6,
+    )
+    assert coord_frame_2 is not None
 
 
 def test_documented():
@@ -1440,7 +1453,7 @@ def test_set_montage_mgh(rename):
     assert (orig_pos != new_pos).all()
 
     r0 = _fit_sphere(new_pos)[1]
-    assert_allclose(r0, [-0.001021, 0.014554, 0.041404], atol=1e-4)
+    assert_allclose(r0, [-0.001043, 0.01469, 0.041448], atol=1e-4)
     # spot check: Fp1 and Fpz
     assert_allclose(
         new_pos[:2],

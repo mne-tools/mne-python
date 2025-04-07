@@ -131,17 +131,17 @@ class Dipole(TimeMixin):
         verbose=None,
     ):
         self._set_times(np.array(times))
-        self.pos = np.array(pos)
-        self.amplitude = np.array(amplitude)
-        self.ori = np.array(ori)
-        self.gof = np.array(gof)
-        self.name = name
-        self.conf = dict()
+        self._pos = np.array(pos)
+        self._amplitude = np.array(amplitude)
+        self._ori = np.array(ori)
+        self._gof = np.array(gof)
+        self._name = name
+        self._conf = dict()
         if conf is not None:
             for key, value in conf.items():
-                self.conf[key] = np.array(value)
-        self.khi2 = np.array(khi2) if khi2 is not None else None
-        self.nfree = np.array(nfree) if nfree is not None else None
+                self._conf[key] = np.array(value)
+        self._khi2 = np.array(khi2) if khi2 is not None else None
+        self._nfree = np.array(nfree) if nfree is not None else None
 
     def __repr__(self):  # noqa: D105
         s = f"n_times : {len(self.times)}"
@@ -149,9 +149,58 @@ class Dipole(TimeMixin):
         s += f", tmax : {np.max(self.times):0.3f}"
         return f"<Dipole | {s}>"
 
+    @property
+    def pos(self):
+        """The dipoles positions (m) in head coordinates."""
+        return self._pos
+
+    @property
+    def amplitude(self):
+        """The amplitude of the dipoles (Am)."""
+        return self._amplitude
+
+    @property
+    def ori(self):
+        """The dipole orientations (normalized to unit length)."""
+        return self._ori
+
+    @property
+    def gof(self):
+        """The goodness of fit."""
+        return self._gof
+
+    @property
+    def name(self):
+        """Name of the dipole."""
+        return self._name
+
+    @name.setter
+    def name(self, name):
+        _validate_type(name, str, "name")
+        self._name = name
+
+    @property
+    def conf(self):
+        """Confidence limits in dipole orientation."""
+        return self._conf
+
+    @property
+    def khi2(self):
+        """The χ^2 values for the fits."""
+        return self._khi2
+
+    @property
+    def nfree(self):
+        """The number of free parameters for each fit."""
+        return self._nfree
+
     @verbose
     def save(self, fname, overwrite=False, *, verbose=None):
         """Save dipole in a ``.dip`` or ``.bdip`` file.
+
+        The ``.[b]dip`` format is for :class:`mne.Dipole` objects, that is,
+        fixed-position dipole fits. For these fits, the amplitude, orientation,
+        and position vary as a function of time.
 
         Parameters
         ----------
@@ -161,6 +210,10 @@ class Dipole(TimeMixin):
 
             .. versionadded:: 0.20
         %(verbose)s
+
+        See Also
+        --------
+        read_dipole
 
         Notes
         -----
@@ -199,7 +252,7 @@ class Dipole(TimeMixin):
             self.times, tmin, tmax, sfreq=sfreq, include_tmax=include_tmax
         )
         self._set_times(self.times[mask])
-        for attr in ("pos", "gof", "amplitude", "ori", "khi2", "nfree"):
+        for attr in ("_pos", "_gof", "_amplitude", "_ori", "_khi2", "_nfree"):
             if getattr(self, attr) is not None:
                 setattr(self, attr, getattr(self, attr)[mask])
         for key in self.conf.keys():
@@ -517,16 +570,28 @@ class DipoleFixed(ExtendedTimeMixin):
         return self.info["ch_names"]
 
     @verbose
-    def save(self, fname, verbose=None):
-        """Save dipole in a .fif file.
+    def save(self, fname, *, overwrite=False, verbose=None):
+        """Save fixed dipole in FIF format.
+
+        The ``.fif[.gz]`` format is for :class:`mne.DipoleFixed` objects, that is,
+        fixed-position and optionally fixed-orientation dipole fits. For these fits,
+        the amplitude (and optionally orientation) vary as a function of time,
+        but not the position.
 
         Parameters
         ----------
         fname : path-like
-            The name of the .fif file. Must end with ``'.fif'`` or
-            ``'.fif.gz'`` to make it explicit that the file contains
+            The name of the FIF file. Must end with ``'-dip.fif'`` or
+            ``'-dip.fif.gz'`` to make it explicit that the file contains
             dipole information in FIF format.
+        %(overwrite)s
+
+            .. versionadded:: 1.10.0
         %(verbose)s
+
+        See Also
+        --------
+        read_dipole
         """
         check_fname(
             fname,
@@ -539,7 +604,7 @@ class DipoleFixed(ExtendedTimeMixin):
             ),
             (".fif", ".fif.gz"),
         )
-        _write_evokeds(fname, self, check=False)
+        _write_evokeds(fname, self, check=False, overwrite=overwrite)
 
     def plot(self, show=True, time_unit="s"):
         """Plot dipole data.
@@ -585,12 +650,16 @@ class DipoleFixed(ExtendedTimeMixin):
 # IO
 @verbose
 def read_dipole(fname, verbose=None):
-    """Read ``.dip`` file from Neuromag/xfit or MNE.
+    """Read a dipole object from a file.
+
+    Non-fixed-position :class:`mne.Dipole` objects are usually saved in ``.[b]dip``
+    format. Fixed-position :class:`mne.DipoleFixed` objects are usually saved in
+    FIF format.
 
     Parameters
     ----------
     fname : path-like
-        The name of the ``.dip`` or ``.fif`` file.
+        The name of the ``.[b]dip`` or ``.fif[.gz]`` file.
     %(verbose)s
 
     Returns

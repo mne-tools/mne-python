@@ -1,0 +1,1 @@
+Fix bug in :func:`mne.io.read_raw_gdf`, by :newcontrib:`Rongfei Jin`.

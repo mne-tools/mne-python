@@ -5,8 +5,8 @@
 Plot sensor denoising using oversampled temporal projection
 ===========================================================
 
-This demonstrates denoising using the OTP algorithm :footcite:`LarsonTaulu2018`
-on data with with sensor artifacts (flux jumps) and random noise.
+This demonstrates denoising using the OTP algorithm :footcite:`LarsonTaulu2018` on data
+with with sensor artifacts (flux jumps) and random noise.
 """
 # Author: Eric Larson <larson.eric.d@gmail.com>
 #

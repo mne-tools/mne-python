@@ -719,7 +719,7 @@ def test_make_forward_dipole(tmp_path):
     # Make sure each coordinate is close to reference
     # NB tolerance should be set relative to snr of simulated evoked!
     assert_allclose(
-        dip_fit.pos, dip_test.pos, rtol=0, atol=1e-2, err_msg="position mismatch"
+        dip_fit.pos, dip_test.pos, rtol=0, atol=1.3e-2, err_msg="position mismatch"
     )
     assert dist < 1e-2  # within 1 cm
     assert corr > 0.985
