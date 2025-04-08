@@ -173,7 +173,7 @@ test_extra = [
   "snirf",
   "sphinx-gallery",
   "statsmodels",
-    "bycycle",
+  "bycycle",
   "mne-lsl >= 1.7.1",
 ]
 
