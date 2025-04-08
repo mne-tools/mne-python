@@ -158,6 +158,7 @@ test = [
 # Changes here should be reflected in the mne/utils/config.py dev dependencies section
 test_extra = [
   "bycycle",
+  "mne-lsl >= 1.7.1",
   "edfio >= 0.2.1",
   "eeglabio",
   "imageio >= 2.6.1",
@@ -173,8 +174,6 @@ test_extra = [
   "snirf",
   "sphinx-gallery",
   "statsmodels",
-  "bycycle",
-  "mne-lsl >= 1.7.1",
 ]
 
 [project.urls]
