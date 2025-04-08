@@ -173,6 +173,7 @@ test_extra = [
   "sphinx-gallery",
   "statsmodels",
   "bycycle",
+  "mne-lsl >= 1.7.1",
 ]
 
 [project.urls]
