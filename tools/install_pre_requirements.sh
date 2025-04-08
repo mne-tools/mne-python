@@ -44,9 +44,7 @@ echo "OpenMEEG"
 python -m pip install $STD_ARGS --only-binary ":all:" --extra-index-url "https://test.pypi.org/simple" "openmeeg>=2.6.0.dev4"
 
 echo "nilearn"
-# TODO: Revert once settled:
-# https://github.com/scikit-learn/scikit-learn/pull/30268#issuecomment-2479701651
-python -m pip install $STD_ARGS "git+https://github.com/larsoner/nilearn@sklearn"
+python -m pip install $STD_ARGS "git+https://github.com/nilearn/nilearn"
 
 echo "VTK"
 python -m pip install $STD_ARGS --only-binary ":all:" --extra-index-url "https://wheels.vtk.org" vtk
@@ -65,7 +63,7 @@ echo "imageio-ffmpeg, xlrd, mffpy"
 pip install $STD_ARGS imageio-ffmpeg xlrd mffpy traitlets pybv eeglabio defusedxml antio
 
 echo "mne-qt-browser"
-pip install $STD_ARGS git+https://github.com/larsoner/mne-qt-browser@args
+pip install $STD_ARGS git+https://github.com/mne-tools/mne-qt-browser
 
 echo "mne-bids"
 pip install $STD_ARGS git+https://github.com/mne-tools/mne-bids
