@@ -27,6 +27,7 @@ dependencies = [
   "numpy >= 1.25,<3",  # 2023/06/17
   "packaging",
   "mne-lsl >= 1.7.1",
+  "mne-nirs >= 0.5.0",
   "pooch >= 1.5",
   "scipy >= 1.11",  # 2023/06/25
   "tqdm",
