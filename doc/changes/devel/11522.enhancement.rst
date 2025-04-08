@@ -1,1 +1,1 @@
-- Add a ``colorbar`` parameter to :func:`mne.viz.plot_topomap` for easier visualization, by Abdul [AstroTech-666] (:pr:`13187`)
+Added a ``colorbar`` parameter to :func:`mne.viz.plot_topomap` for easier visualization, by `Farzana Abdulzada`_.
