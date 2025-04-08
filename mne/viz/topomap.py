@@ -10,7 +10,6 @@ import warnings
 from functools import partial
 from numbers import Integral
 
-import matplotlib.pyplot as plt
 import numpy as np
 from scipy.interpolate import (
     CloughTocher2DInterpolator,
@@ -941,13 +940,12 @@ def plot_topomap(
     cmap=None,
     vlim=(None, None),
     cnorm=None,
+    colorbar=False,
     axes=None,
     show=True,
-    colorbar=False,
     onselect=None,
 ):
-    """
-    Plot a topographic map as an image.
+    """Plot a topographic map as image.
 
     Parameters
     ----------
@@ -958,6 +956,8 @@ def plot_topomap(
         and exactly ``len(data)`` channels; the x/y coordinates will
         be inferred from the montage in the :class:`~mne.Info` object.
     %(ch_type_topomap)s
+
+        .. versionadded:: 0.21
     %(sensors_topomap)s
     %(names_topomap)s
     %(mask_topomap)s
@@ -967,16 +967,33 @@ def plot_topomap(
     %(sphere_topomap_auto)s
     %(image_interp_topomap)s
     %(extrapolate_topomap)s
+
+        .. versionadded:: 0.18
+
+        .. versionchanged:: 0.21
+        - The default was changed to ``'local'`` for MEG sensors.
+        - ``'local'`` was changed to use a convex hull mask
+        - ``'head'`` was changed to extrapolate out to the clipping circle.
     %(border_topomap)s
+
+        .. versionadded:: 0.20
     %(res_topomap)s
     %(size_topomap)s
     %(cmap_topomap)s
     %(vlim_plot_topomap)s
+
+        .. versionadded:: 1.2
     %(cnorm)s
-    %(axes_plot_topomap)s
-    %(show)s
+
+        .. versionadded:: 0.24
     colorbar : bool
         If True, shows the colorbar. Default is False.
+    %(axes_plot_topomap)s
+
+        .. versionchanged:: 1.2
+        If ``axes=None``, a new :class:`~matplotlib.figure.Figure` is
+        created instead of plotting into the current axes.
+    %(show)s
     onselect : callable | None
         A function to be called when the user selects a set of channels by
         click-dragging (uses a matplotlib
@@ -1002,7 +1019,7 @@ def plot_topomap(
             f"Provided cnorm implicitly defines vmin={cnorm.vmin} and "
             f"vmax={cnorm.vmax}; ignoring additional vlim/vmin/vmax params."
         )
-    return _plot_topomap(
+    im, contours = _plot_topomap(
         data,
         pos,
         vmin=vlim[0],
@@ -1025,6 +1042,12 @@ def plot_topomap(
         ch_type=ch_type,
         cnorm=cnorm,
     )[:2]
+
+    if colorbar:
+        axes.figure.colorbar(im, ax=axes)
+        axes.figure.tight_layout()
+
+    return im, contours
 
 
 def _setup_interp(pos, res, image_interp, extrapolate, outlines, border):
@@ -1083,8 +1106,6 @@ def _voronoi_topomap(data, pos, outlines, ax, cmap, norm, extent, res, colorbar=
         extent=extent,
         norm=norm,
     )
-    if colorbar:
-        plt.colorbar(im, ax=ax)
 
     rx, ry = outlines["clip_radius"]
     cx, cy = outlines.get("clip_origin", (0.0, 0.0))
@@ -1538,14 +1559,15 @@ def plot_ica_components(
     %(cnorm)s
 
         .. versionadded:: 1.3
-    %(colorbar_topomap)s
-    %(cbar_fmt_topomap)s
+    colorbar : bool
+        If True, display a colorbar alongside the topographic plot. Default is False.
     axes : Axes | array of Axes | None
         The subplot(s) to plot to. Either a single Axes or an iterable of Axes
         if more than one subplot is needed. The number of subplots must match
         the number of selected components. If None, new figures will be created
         with the number of subplots per figure controlled by ``nrows`` and
         ``ncols``.
+    %(cbar_fmt_topomap)s
     title : str | None
         The title of the generated figure. If ``None`` (default) and
         ``axes=None``, a default title of "ICA Components" will be used.
@@ -1559,7 +1581,7 @@ def plot_ica_components(
         nothing is passed. Defaults to ``None``.
     psd_args : dict | None
         Dictionary of arguments to pass to :meth:`~mne.Epochs.compute_psd` in
-        interactive  mode. Ignored if ``inst`` is not supplied. If ``None``,
+        interactive mode. Ignored if ``inst`` is not supplied. If ``None``,
         nothing is passed. Defaults to ``None``.
     %(verbose)s
 

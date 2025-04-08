@@ -1,1 +1,1 @@
-Add a `colorbar` parameter to `mne.viz.plot_topomap()` to toggle the display of a colorbar, improving plot clarity.
+Add a ``colorbar`` parameter to :func:`mne.viz.plot_topomap` to toggle the display of a colorbar, improving plot clarity (AstroTech-666, :pr:`13187`).
