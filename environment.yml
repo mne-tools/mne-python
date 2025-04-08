@@ -26,6 +26,7 @@ dependencies:
   - mamba
   - matplotlib >=3.7
   - mffpy >=0.5.7
+  - mne-lsl >=1.7.1
   - mne-qt-browser
   - nibabel
   - nilearn
