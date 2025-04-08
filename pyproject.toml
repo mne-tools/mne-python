@@ -158,13 +158,13 @@ test = [
 # Changes here should be reflected in the mne/utils/config.py dev dependencies section
 test_extra = [
   "bycycle",
-  "mne-lsl >= 1.7.1",
   "edfio >= 0.2.1",
   "eeglabio",
   "imageio >= 2.6.1",
   "imageio-ffmpeg >= 0.4.1",
   "jupyter_client",
   "mne-bids",
+  "mne-lsl >= 1.7.1",
   "mne[test]",
   "nbclient",
   "nbformat",
