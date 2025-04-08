@@ -172,6 +172,7 @@ test_extra = [
   "snirf",
   "sphinx-gallery",
   "statsmodels",
+  "bycycle",
 ]
 
 [project.urls]
