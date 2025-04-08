@@ -1131,6 +1131,6 @@ def test_smart_pad(dc, sfreq):
     )
     # reflect_limited uses one fewer sample so ends up a little bit different
     # with even more padding
-    x_want = np.r_[np.full(len(x), 0), x_want, np.full(len(x), 0)]
+    x_want = np.r_[np.zeros_like(x), x_want, np.zeros_like(x)]
     x_pad = _smart_pad(x, (len(x) * 2,) * 2, "reflect_limited")
     assert_allclose(x_pad, x_want, atol=0.1, err_msg="reflect_limited with zeros")
