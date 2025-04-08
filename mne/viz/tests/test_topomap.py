@@ -972,18 +972,20 @@ def test_plot_ch_adjacency():
     msg = "Editing a 3d adjacency plot is not supported."
     with pytest.raises(ValueError, match=msg):
         plot_ch_adjacency(info, adj, ch_names, kind="3d", edit=True)
-        
-        
+
+
 def test_plot_topomap_colorbar():
     """Test plot_topomap with colorbar enabled."""
-    import numpy as np
     import matplotlib.pyplot as plt
+    import numpy as np
+
     from mne.viz import plot_topomap
+
     # dummy data and positions
     data = np.random.rand(10)
     pos = np.random.rand(10, 2)  # 10 channels, 2d positions
     # create a figure and axis explicitly
     fig, ax = plt.subplots()
     im, _ = plot_topomap(data, pos, axes=ax, colorbar=True, show=False)
-    
+
     assert len(fig.axes) >= 2, "Colorbar not added to plot"
