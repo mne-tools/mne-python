@@ -1014,9 +1014,9 @@ class InterpolationMixin:
         for key in keys_to_delete:
             del method[key]
 
-        # Force MEG to always use MNE method, 
-        # otherwise when method = "spline", the _handle_default function 
-        # forces all channel types to use that method 
+        # Force MEG to always use MNE method,
+        # otherwise when method = "spline", the _handle_default function
+        # forces all channel types to use that method
         # TODO: Check if there is a better way to handle this
         if "meg" in method:
             method["meg"] = "MNE"
