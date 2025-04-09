@@ -32,6 +32,7 @@ ylim = (-10, 10)
 # %%
 # Load the MEG data
 data_path = sample.data_path()
+fif_file_path = data_path / "MEG" / "sample" / "sample_audvis_raw.fif"
 raw_meg = mne.io.read_raw_fif(fif_file_path)
 
 raw_meg.pick("meg")
