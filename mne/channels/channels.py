@@ -1007,19 +1007,16 @@ class InterpolationMixin:
         method = _handle_default("interpolation_method", method)
 
         # Filter method to only include 'eeg' and 'meg'
-        supported_ch_types = ['eeg', 'meg']
+        supported_ch_types = ["eeg", "meg"]
         keys_to_delete = [key for key in method if key not in supported_ch_types]
         for key in keys_to_delete:
             del method[key]
-        # otherwise when method = "spline", the _handle_default function 
-        # forces all channel types to use that method 
+        # otherwise when method = "spline", the _handle_default function
+        # forces all channel types to use that method
         # TODO: Check if there is a better way to handle this
-        if 'meg' in method:
-            method['meg'] = 'MNE'  
-        valids = {
-            "eeg": ("spline", "MNE"),
-            "meg": ("MNE")
-        }
+        if "meg" in method:
+            method["meg"] = "MNE"
+        valids = {"eeg": ("spline", "MNE"), "meg": ("MNE")}
         for key in method:
             _check_option("method[key]", key, tuple(valids))
             _check_option(f"method['{key}']", method[key], valids[key])
