@@ -1004,6 +1004,8 @@ class InterpolationMixin:
 
         # Check that the method option is valid.
         _validate_type(sensors, DigMontage, "sensors")
+        # TODO: Handle the error: sensors must be an instance of DigMontage, got <class 'mne.channels._standard_montage_utils._meg.<locals>.CustomMontage'> instead.
+
         method = _handle_default("interpolation_method", method)
 
         # Filter method to only include 'eeg' and 'meg'
@@ -1025,6 +1027,7 @@ class InterpolationMixin:
         logger.info("Setting channel interpolation method to %s.", method)
 
         # Get target positions from the montage
+        # TODO: handle the error: AttributeError: 'CustomMontage' object has no attribute 'get_positions'
         ch_pos = sensors.get_positions().get("ch_pos", {})
         target_ch_names = list(ch_pos.keys())
         if not target_ch_names:

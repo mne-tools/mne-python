@@ -30,6 +30,23 @@ print(__doc__)
 ylim = (-10, 10)
 
 # %%
+# Load the MEG data
+data_path = sample.data_path()
+raw_meg = mne.io.read_raw_fif(fif_file_path)
+
+raw_meg.pick("meg")
+
+# %%
+# Define the target montage
+standard_montage_meg = make_standard_montage("ctf275")
+
+# %%
+# Use interpolate_to to project MEG data to the standard montage
+raw_meg_interpolated_mne = raw_meg.copy().interpolate_to(
+    standard_montage_meg, method="MNE"
+)
+
+# %%
 # Load EEG data
 data_path = sample.data_path()
 eeg_file_path = data_path / "MEG" / "sample" / "sample_audvis-ave.fif"
