@@ -835,28 +835,27 @@ class HEDAnnotations(Annotations):
                 f"Number of HED strings ({len(hed_strings)}) must match the number of "
                 f"annotations ({len(self)})."
             )
-        # validation of HED strings
+        # create HedString objects
         schema = self.hed.load_schema_version(self.hed_version)
+        self._hed_strings = [self.hed.HedString(hs, schema) for hs in hed_strings]
+        # validation of HED strings
         validator = HedValidator(schema)
         error_handler = self.hed.errors.ErrorHandler(check_for_warnings=False)
-        error_strs = [
-            self._validate_one_hed_string(hs, schema, validator, error_handler)
-            for hs in hed_strings
+        issues = [
+            validator.validate(
+                hs, allow_placeholders=False, error_handler=error_handler
+            )
+            for hs in self._hed_strings
         ]
-        if any(map(len, error_strs)):
+        error_strings = [self.hed.get_printable_issue_string(issue) for issue in issues]
+        if any(map(len, error_strings)):
             raise ValueError(
                 "Some HED strings in your annotations failed to validate:\n  - "
-                + "\n  - ".join(error_strs)
+                + "\n  - ".join(error_strings)
             )
-        self.hed_strings = hed_strings
-
-    def _validate_one_hed_string(self, hed_string, schema, validator, error_handler):
-        """Validate a user-provided HED string."""
-        hs = self.hed.HedString(hed_string, schema)
-        issues = validator.validate(
-            hs, allow_placeholders=False, error_handler=error_handler
+        self.hed_strings = tuple(
+            hs.get_original_hed_string() for hs in self._hed_strings
         )
-        return self.hed.get_printable_issue_string(issues)
 
     def __eq__(self, other):
         """Compare to another HEDAnnotations instance."""
@@ -868,7 +867,7 @@ class HEDAnnotations(Annotations):
 
     def __repr__(self):
         """Show a textual summary of the object."""
-        counter = Counter(self.hed_strings)
+        counter = Counter([hs.get_as_short() for hs in self._hed_strings])
         kinds = ", ".join(["{} ({})".format(*k) for k in sorted(counter.items())])
         kinds = (": " if len(kinds) > 0 else "") + kinds
         ch_specific = ", channel-specific" if self._any_ch_names() else ""
