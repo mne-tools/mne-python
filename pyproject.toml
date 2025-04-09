@@ -24,7 +24,7 @@ dependencies = [
   "jinja2",
   "lazy_loader >= 0.3",
   "matplotlib >= 3.7",  # 2023/02/13
-  "mne-lsl >= 1.7.1",
+  "bycycle",
   "mne-nirs >= 0.5.0",
   "numpy >= 1.25,<3",  # 2023/06/17
   "packaging",
@@ -159,7 +159,6 @@ test = [
 # Dependencies for being able to run additional tests (rare/CIs/advanced devs)
 # Changes here should be reflected in the mne/utils/config.py dev dependencies section
 test_extra = [
-  "bycycle",
   "edfio >= 0.2.1",
   "eeglabio",
   "imageio >= 2.6.1",

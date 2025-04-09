@@ -1567,13 +1567,14 @@ def plot_ica_components(
         .. versionadded:: 1.3
     colorbar : bool
         If True, display a colorbar alongside the topographic plot. Default is False.
+    %(colorbar_topomap)s
+    %(cbar_fmt_topomap)s
     axes : Axes | array of Axes | None
         The subplot(s) to plot to. Either a single Axes or an iterable of Axes
         if more than one subplot is needed. The number of subplots must match
         the number of selected components. If None, new figures will be created
         with the number of subplots per figure controlled by ``nrows`` and
         ``ncols``.
-    %(cbar_fmt_topomap)s
     title : str | None
         The title of the generated figure. If ``None`` (default) and
         ``axes=None``, a default title of "ICA Components" will be used.
