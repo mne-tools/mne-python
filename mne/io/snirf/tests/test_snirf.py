@@ -4,6 +4,7 @@
 
 import datetime
 import shutil
+from contextlib import nullcontext
 
 import numpy as np
 import pytest
@@ -422,7 +423,7 @@ def test_snirf_kernel_hb():
     assert raw.copy().pick("hbo")._data.shape == (180, 14)
     assert raw.copy().pick("hbr")._data.shape == (180, 14)
 
-    assert_allclose(raw.info["sfreq"], 8.257638)
+    assert_allclose(raw.info["sfreq"], 8.256495)
 
     bad_nans = np.isnan(raw.get_data()).any(axis=1)
     assert np.sum(bad_nans) == 20
@@ -432,6 +433,23 @@ def test_snirf_kernel_hb():
     assert raw.annotations.onset[1] == 0.874633
     assert raw.annotations.description[0] == "StartTrial"
     assert raw.annotations.description[1] == "StartIti"
+
+
+@requires_testing_data
+@pytest.mark.parametrize(
+    "sfreq,context",
+    (
+        [8.2, nullcontext()],  # sfreq estimated from file is 8.256495
+        [22, pytest.warns(RuntimeWarning, match="User-supplied sampling frequency")],
+    ),
+)
+def test_user_set_sfreq(sfreq, context):
+    """Test reading Kernel SNIRF files with haemoglobin data."""
+    with context:
+        # both sfreqs are far enough from true rate to yield >1% jitter
+        with pytest.warns(RuntimeWarning, match=r"jitter of \d+\.\d*% in sample times"):
+            raw = read_raw_snirf(kernel_hb, preload=False, sfreq=sfreq)
+    assert raw.info["sfreq"] == sfreq
 
 
 @requires_testing_data
