@@ -120,10 +120,11 @@ def _mgh_or_standard(basename, head_size, coord_frame="unknown"):
 
 def _meg(basename, head_size):
     fname = op.join(MONTAGE_PATH, basename)
+
     # Create a simple class instance instead of a list
     class CustomMontage:
         pass
-        
+
     montage = CustomMontage()
 
     # Read the file
@@ -152,8 +153,8 @@ def _meg(basename, head_size):
     montage.ch_pos = pos
     # # TODO - make_dig_montage():
     #         For custom montages without fiducials, this parameter must be set
-    #         to ``'head'``. -> 
-    #         "kind": FIFF.FIFFV_POINT_EEG, -> 
+    #         to ``'head'``. ->
+    #         "kind": FIFF.FIFFV_POINT_EEG, ->
     #         dig names each chennel as EEG #1 ...
 
     # These aren't standard DigMontage attributes but can be useful
