@@ -20,11 +20,11 @@ classifiers = [
   "Topic :: Software Development",
 ]
 dependencies = [
+  "bycycle",
   "decorator",
   "jinja2",
   "lazy_loader >= 0.3",
   "matplotlib >= 3.7",  # 2023/02/13
-  "bycycle",
   "mne-nirs >= 0.5.0",
   "numpy >= 1.25,<3",  # 2023/06/17
   "packaging",
