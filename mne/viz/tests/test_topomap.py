@@ -984,7 +984,7 @@ def test_plot_topomap_colorbar():
     # dummy data and positions
     data = np.random.rand(10)
     pos = np.random.rand(10, 2)  # 10 channels, 2d positions
-    # create a figure and axis explicitly
+    # create figure and axis explicitly
     fig, ax = plt.subplots()
     im, _ = plot_topomap(data, pos, axes=ax, colorbar=True, show=False)
 
