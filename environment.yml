@@ -5,6 +5,7 @@ channels:
 dependencies:
   - python >=3.10
   - antio >=0.5.0
+  - bycycle
   - darkdetect
   - decorator
   - defusedxml
@@ -26,7 +27,6 @@ dependencies:
   - mamba
   - matplotlib >=3.7
   - mffpy >=0.5.7
-  - bycycle
   - mne-nirs >=0.5.0
   - mne-qt-browser
   - nibabel
