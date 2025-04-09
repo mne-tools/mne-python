@@ -958,7 +958,6 @@ def plot_topomap(
     %(ch_type_topomap)s
 
         .. versionadded:: 0.21
-
     %(sensors_topomap)s
     %(names_topomap)s
     %(mask_topomap)s
@@ -972,33 +971,29 @@ def plot_topomap(
         .. versionadded:: 0.18
 
         .. versionchanged:: 0.21
-            - The default was changed to ``'local'`` for MEG sensors.
-            - ``'local'`` was changed to use a convex hull mask
-            - ``'head'`` was changed to extrapolate out to the clipping circle.
 
+           - The default was changed to ``'local'`` for MEG sensors.
+           - ``'local'`` was changed to use a convex hull mask
+           - ``'head'`` was changed to extrapolate out to the clipping circle.
     %(border_topomap)s
 
         .. versionadded:: 0.20
-
     %(res_topomap)s
     %(size_topomap)s
     %(cmap_topomap)s
     %(vlim_plot_topomap)s
 
         .. versionadded:: 1.2
-
     %(cnorm)s
 
         .. versionadded:: 0.24
-
     colorbar : bool
         If True, shows the colorbar. Default is False.
     %(axes_plot_topomap)s
 
         .. versionchanged:: 1.2
-            If ``axes=None``, a new :class:`~matplotlib.figure.Figure` is
-            created instead of plotting into the current axes.
-
+           If ``axes=None``, a new :class:`~matplotlib.figure.Figure` is
+           created instead of plotting into the current axes.
     %(show)s
     onselect : callable | None
         A function to be called when the user selects a set of channels by
