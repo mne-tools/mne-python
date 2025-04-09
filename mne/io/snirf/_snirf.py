@@ -52,6 +52,8 @@ def read_raw_snirf(
     sfreq : float | None
         The nominal sampling frequency at which the data were acquired. If ``None``,
         will be estimated from the time data in the file.
+
+        .. versionadded:: 1.10
     %(preload)s
     %(verbose)s
 
@@ -88,6 +90,8 @@ class RawSNIRF(BaseRaw):
     sfreq : float | None
         The nominal sampling frequency at which the data were acquired. If ``None``,
         will be estimated from the time data in the file.
+
+        .. versionadded:: 1.10
     %(preload)s
     %(verbose)s
 

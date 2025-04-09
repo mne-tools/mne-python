@@ -444,7 +444,7 @@ def test_snirf_kernel_hb():
     ),
 )
 def test_user_set_sfreq(sfreq, context):
-    """Test reading Kernel SNIRF files with haemoglobin data."""
+    """Test manually setting sfreq."""
     with context:
         # both sfreqs are far enough from true rate to yield >1% jitter
         with pytest.warns(RuntimeWarning, match=r"jitter of \d+\.\d*% in sample times"):
