@@ -118,6 +118,51 @@ def _mgh_or_standard(basename, head_size, coord_frame="unknown"):
     )
 
 
+def _meg(basename, head_size):
+    fname = op.join(MONTAGE_PATH, basename)
+    # Create a simple class instance instead of a list
+    class CustomMontage:
+        pass
+        
+    montage = CustomMontage()
+
+    # Read the file
+    with open(fname) as f:
+        # Skip header line
+        header = f.readline().strip().split()
+
+        ch_names = []
+        ch_types = []
+        pos = []
+        ori = []
+
+        for line in f:
+            parts = line.strip().split()
+            ch_names.append(parts[0])
+            ch_types.append(parts[1])
+            pos.append([float(parts[2]), float(parts[3]), float(parts[4])])
+            ori.append([float(parts[5]), float(parts[6]), float(parts[7])])
+
+    pos = np.array(pos)
+
+    montage.ch_names = ch_names
+
+    # # Create a dictionary mapping channel names to positions
+    # montage.ch_pos = dict(zip(ch_names, pos))
+    montage.ch_pos = pos
+    # # TODO - make_dig_montage():
+    #         For custom montages without fiducials, this parameter must be set
+    #         to ``'head'``. -> 
+    #         "kind": FIFF.FIFFV_POINT_EEG, -> 
+    #         dig names each chennel as EEG #1 ...
+
+    # These aren't standard DigMontage attributes but can be useful
+    montage.ch_types = ch_types
+    montage.ori = ori
+
+    return montage
+
+
 standard_montage_look_up_table = {
     "EGI_256": _egi_256,
     "easycap-M1": partial(_easycap, basename="easycap-M1.txt"),
@@ -165,6 +210,8 @@ standard_montage_look_up_table = {
     "brainproducts-RNP-BA-128": partial(
         _easycap, basename="brainproducts-RNP-BA-128.txt"
     ),
+    "ctf275": partial(_meg, basename="ctf275.txt"),
+    "neuromag306": partial(_meg, basename="neuromag306.txt"),
 }
 
 
