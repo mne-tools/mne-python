@@ -4,10 +4,15 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-import glob
+import glob 
 import os
 from copy import deepcopy
 from pathlib import Path
+
+try:
+    from scipy.special import sph_harm_y as sph_harm_func
+except ImportError:
+    from scipy.special import sph_harm as sph_harm_func
 
 import numpy as np
 from scipy import linalg
@@ -18,7 +23,8 @@ from ._fiff.open import fiff_open
 from ._fiff.tag import read_tag
 from ._fiff.write import start_and_end_file, write_coord_trans
 from .defaults import _handle_default
-from .fixes import _get_img_fdata, jit, sph_harm_y
+from .fixes import _get_img_fdata, jit
+
 from .utils import (
     _check_fname,
     _check_option,
@@ -928,7 +934,7 @@ def _compute_sph_harm(order, az, pol):
     # _deg_ord_idx(0, 0) = -1 so we're actually okay to use it here
     for degree in range(order + 1):
         for order_ in range(degree + 1):
-            sph = sph_harm_y(degree, order_, pol, az)
+            sph = sph_harm_func(order_, degree, az, pol)
             out[:, _deg_ord_idx(degree, order_)] = _sh_complex_to_real(sph, order_)
             if order_ > 0:
                 out[:, _deg_ord_idx(degree, -order_)] = _sh_complex_to_real(

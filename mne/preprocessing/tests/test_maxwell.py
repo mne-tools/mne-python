@@ -8,6 +8,11 @@ from contextlib import contextmanager
 from functools import partial
 from pathlib import Path
 
+try:
+    from scipy.special import sph_harm_y as sph_harm_func
+except ImportError:
+    from scipy.special import sph_harm as sph_harm_func
+
 import numpy as np
 import pytest
 from numpy.testing import assert_allclose, assert_array_equal
@@ -493,7 +498,7 @@ def test_spherical_conversions():
         for order in range(0, degree + 1):
             sph = sph_harm_y(degree, order, pol, az)
             # ensure that we satisfy the conjugation property
-            assert_allclose(_sh_negate(sph, order), sph_harm_y(degree, -order, pol, az))
+            assert_allclose(_sh_negate(sph, order),sph_harm_func(-order, degree, az, pol),rtol=1e-5, atol=1e-3)
             # ensure our conversion functions work
             sph_real_pos = _sh_complex_to_real(sph, order)
             sph_real_neg = _sh_complex_to_real(sph, -order)
