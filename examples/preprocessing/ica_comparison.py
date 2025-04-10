@@ -18,6 +18,10 @@ This helps demonstrate practical differences in speed, stability, and ICA compon
 Note: In a typical preprocessing pipeline, you would not run all ICA algorithms — this is
 purely for educational comparison. All algorithms are run with the same random seed
 (`random_state=0`) to ensure consistent behavior.
+
+# author : Ganasekhar Kalla <ganasekharkalla@gmail.com>
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 """
 print(__doc__)
 
