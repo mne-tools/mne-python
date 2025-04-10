@@ -374,10 +374,9 @@ def _smart_pad(x, n_pad, pad="reflect_limited"):
     elif (n_pad < 0).any():
         raise RuntimeError("n_pad must be non-negative")
     if pad == "reflect_limited":
-        # need to pad with zeros if len(x) <= npad
         l_z_pad = np.zeros(max(n_pad[0] - len(x) + 1, 0), dtype=x.dtype)
         r_z_pad = np.zeros(max(n_pad[1] - len(x) + 1, 0), dtype=x.dtype)
-        return np.concatenate(
+        out = np.concatenate(
             [
                 l_z_pad,
                 2 * x[0] - x[n_pad[0] : 0 : -1],
@@ -387,4 +386,8 @@ def _smart_pad(x, n_pad, pad="reflect_limited"):
             ]
         )
     else:
-        return np.pad(x, (tuple(n_pad),), pad)
+        kwargs = dict()
+        if pad == "reflect":
+            kwargs["reflect_type"] = "odd"
+        out = np.pad(x, (tuple(n_pad),), pad, **kwargs)
+    return out
