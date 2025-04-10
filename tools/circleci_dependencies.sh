@@ -7,6 +7,7 @@ python -m pip install --upgrade --progress-bar off \
     "git+https://github.com/pyvista/pyvista.git" \
     "git+https://github.com/sphinx-gallery/sphinx-gallery.git" \
     "git+https://github.com/mne-tools/mne-bids.git" \
+    "git+https://github.com/mne-tools/mne-qt-browser.git" \
     \
     alphaCSC autoreject bycycle conpy emd fooof meggie \
     mne-ari mne-bids-pipeline mne-faster mne-features \

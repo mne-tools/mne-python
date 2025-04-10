@@ -23,19 +23,22 @@ purely for educational comparison. All algorithms are run with the same random s
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 """
+
 print(__doc__)
 
-import mne
-from mne.preprocessing import ICA
-from mne.datasets import sample
-import numpy as np
-import matplotlib.pyplot as plt
-from time import time
 from pathlib import Path
+from time import time
+
+import matplotlib.pyplot as plt
+import numpy as np
+
+import mne
+from mne.datasets import sample
+from mne.preprocessing import ICA
 
 # Load MNE sample dataset
 data_path = Path(sample.data_path())
-raw_file = data_path / 'MEG' / 'sample' / 'sample_audvis_raw.fif'
+raw_file = data_path / "MEG" / "sample" / "sample_audvis_raw.fif"
 raw = mne.io.read_raw_fif(raw_file, preload=True)
 raw.pick_types(meg=True, eeg=False, eog=True)
 raw.crop(0, 60)  # work on a small subset for speed
@@ -52,6 +55,7 @@ raw_noisy._data += noise
 reject_clean = dict(mag=5e-12, grad=4000e-13)
 reject_noisy = dict(mag=1e-11, grad=8000e-13)
 
+
 # Function to run ICA
 def run_ica(raw_input, method, fit_params=None, reject=None):
     print(f"\nRunning ICA with: {method}")
@@ -66,8 +70,11 @@ def run_ica(raw_input, method, fit_params=None, reject=None):
     ica.fit(raw_input, reject=reject)
     fit_time = time() - t0
     print(f"Fitting ICA took {fit_time:.1f}s.")
-    ica.plot_components(title=f"ICA decomposition using {method} on {'noisy' if raw_input is raw_noisy else 'clean'} data\n(took {fit_time:.1f}s)")
+    ica.plot_components(
+        title=f"ICA decomposition using {method} on {'noisy' if raw_input is raw_noisy else 'clean'} data\n(took {fit_time:.1f}s)"
+    )
     return ica, fit_time
+
 
 # Run multiple ICA methods
 def run_all_ica(raw_input, label, reject):
@@ -97,6 +104,7 @@ def run_all_ica(raw_input, label, reject):
             print(f"{full_label}: No EOG component detected")
 
     return icas, fit_times, eog_components
+
 
 # Run ICA on clean and noisy data
 icas_clean, times_clean, eog_clean = run_all_ica(raw_clean, "clean", reject_clean)
