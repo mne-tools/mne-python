@@ -22,6 +22,7 @@ import mne
 from mne import (
     Annotations,
     Epochs,
+    HEDAnnotations,
     annotations_from_events,
     count_annotations,
     create_info,
@@ -1825,3 +1826,35 @@ def test_append_splits_boundary(tmp_path, split_size):
     assert len(raw.annotations) == 2
     assert raw.annotations.description[0] == "BAD boundary"
     assert_allclose(raw.annotations.onset, [onset] * 2)
+
+
+def test_hed_annotations():
+    """Test hed_strings validation."""
+    ann = HEDAnnotations(
+        onset=[1, 2, 3],
+        duration=[0.1, 0.0, 0.3],
+        description=["a", "b", "c"],
+        hed_strings=[
+            "Sensory-event, Experimental-stimulus, Visual-presentation, (Square, "
+            "DarkBlue, (Center-of, Computer-screen))",
+            "Sensory-event, Experimental-stimulus, Auditory-presentation, (Tone, "
+            "Frequency/550 Hz)",
+            "Agent-action, (Experiment-participant, (Press, Mouse-button))",
+        ],
+    )
+    # test modifying
+    ann.hed_strings[0] = (
+        "Sensory-event, (Word, Label/Word-look), Auditory-presentation, "
+        "Visual-presentation"
+    )
+    # test modifying with bad value
+    with pytest.raises(ValueError, match="A HED string failed to validate"):
+        ann.hed_strings[0] = "foo"
+    # test initting with bad value
+    with pytest.raises(ValueError, match="A HED string failed to validate"):
+        ann = HEDAnnotations(
+            onset=[1],
+            duration=[0.1],
+            description=["a"],
+            hed_strings=["foo"],
+        )

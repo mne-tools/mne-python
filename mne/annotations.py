@@ -762,6 +762,40 @@ class Annotations:
         return self
 
 
+class _HEDStrings(list):
+    """Subclass of ndarray that will validate before setting."""
+
+    def __init__(self, *args, hed_version, **kwargs):
+        self._hed = _soft_import("hed", "validation of HED tags in annotations")
+        self._hed_schema_version = hed_version
+        super().__init__(*args, **kwargs)
+        for item in self:
+            self._validate_hed_string(item)
+
+    def __setitem__(self, key, value):
+        """Validate value first, before assigning."""
+        hs = self._validate_hed_string(value)
+        super().__setitem__(key, hs.get_as_original())
+
+    def _validate_hed_string(self, value):
+        # NB: must import; calling self._hed.validator.HedValidator doesn't work
+        from hed.validator import HedValidator
+
+        # create HedString object and validate it
+        schema = self._hed.load_schema_version(self._hed_schema_version)
+        hs = self._hed.HedString(value, schema)
+        validator = HedValidator(schema)
+        # handle any errors
+        error_handler = self._hed.errors.ErrorHandler(check_for_warnings=False)
+        issues = validator.validate(
+            hs, allow_placeholders=False, error_handler=error_handler
+        )
+        error_string = self._hed.get_printable_issue_string(issues)
+        if len(error_string):
+            raise ValueError(f"A HED string failed to validate:\n  {error_string}")
+        return hs
+
+
 class HEDAnnotations(Annotations):
     """Annotations object for annotating segments of raw data with HED tags.
 
@@ -810,12 +844,10 @@ class HEDAnnotations(Annotations):
         duration,
         description,
         hed_strings,
-        hed_version="8.3.0",  # TODO @VisLab what is a sensible default here?
+        hed_version="8.3.0",
         orig_time=None,
         ch_names=None,
     ):
-        self.hed = _soft_import("hed", "validation of HED tags in annotations")
-
         super().__init__(
             onset=onset,
             duration=duration,
@@ -823,51 +855,20 @@ class HEDAnnotations(Annotations):
             orig_time=orig_time,
             ch_names=ch_names,
         )
-        self.hed_version = hed_version
-        self._update_hed_strings(hed_strings=hed_strings)
-
-    def _update_hed_strings(self, hed_strings):
-        # NB: must import; calling self.hed.validator.HedValidator doesn't work
-        from hed.validator import HedValidator
-
-        if len(hed_strings) != len(self):
-            raise ValueError(
-                f"Number of HED strings ({len(hed_strings)}) must match the number of "
-                f"annotations ({len(self)})."
-            )
-        # create HedString objects
-        schema = self.hed.load_schema_version(self.hed_version)
-        self._hed_strings = [self.hed.HedString(hs, schema) for hs in hed_strings]
-        # validation of HED strings
-        validator = HedValidator(schema)
-        error_handler = self.hed.errors.ErrorHandler(check_for_warnings=False)
-        issues = [
-            validator.validate(
-                hs, allow_placeholders=False, error_handler=error_handler
-            )
-            for hs in self._hed_strings
-        ]
-        error_strings = [self.hed.get_printable_issue_string(issue) for issue in issues]
-        if any(map(len, error_strings)):
-            raise ValueError(
-                "Some HED strings in your annotations failed to validate:\n  - "
-                + "\n  - ".join(error_strings)
-            )
-        self.hed_strings = tuple(
-            hs.get_original_hed_string() for hs in self._hed_strings
-        )
+        self.hed_strings = _HEDStrings(hed_strings, hed_version=hed_version)
 
     def __eq__(self, other):
         """Compare to another HEDAnnotations instance."""
         return (
             super().__eq__(self, other)
+            # TODO don't use array_equal, use HED validation approach?
             and np.array_equal(self.hed_strings, other.hed_strings)
-            and self.hed_version == other.hed_version
+            and self._hed_version == other._hed_version
         )
 
     def __repr__(self):
         """Show a textual summary of the object."""
-        counter = Counter([hs.get_as_short() for hs in self._hed_strings])
+        counter = Counter(self.hed_strings)
         kinds = ", ".join(["{} ({})".format(*k) for k in sorted(counter.items())])
         kinds = (": " if len(kinds) > 0 else "") + kinds
         ch_specific = ", channel-specific" if self._any_ch_names() else ""
@@ -879,18 +880,18 @@ class HEDAnnotations(Annotations):
 
     def __getitem__(self, key, *, with_ch_names=None):
         """Propagate indexing and slicing to the underlying numpy structure."""
-        result = super().__getitem__(self, key, with_ch_names=with_ch_names)
+        result = super().__getitem__(key, with_ch_names=with_ch_names)
         if isinstance(result, OrderedDict):
-            result["hed_strings"] = self.hed_strings[key]
+            result._hed_strings = self.hed_strings[key]
         else:
             key = list(key) if isinstance(key, tuple) else key
-            hed_strings = self.hed_strings[key]
+            hed_strings = [self.hed_strings[key]]
             return HEDAnnotations(
                 result.onset,
                 result.duration,
                 result.description,
-                hed_strings,
-                hed_version=self.hed_version,
+                hed_strings=hed_strings,
+                hed_version=self._hed_version,
                 orig_time=self.orig_time,
                 ch_names=result.ch_names,
             )
