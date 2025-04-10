@@ -1,0 +1,1 @@
+converted the ICA comparison example into a full tutorial demonstrating ICA algorithm performance on `clean` and `noisy EEG data`, by `Ganasekhar Kalla`
