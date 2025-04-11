@@ -1834,7 +1834,7 @@ def test_hed_annotations():
         onset=[1, 2, 3],
         duration=[0.1, 0.0, 0.3],
         description=["a", "b", "c"],
-        hed_strings=[
+        hed_string=[
             "Sensory-event, Experimental-stimulus, Visual-presentation, (Square, "
             "DarkBlue, (Center-of, Computer-screen))",
             "Sensory-event, Experimental-stimulus, Auditory-presentation, (Tone, "
@@ -1843,18 +1843,27 @@ def test_hed_annotations():
         ],
     )
     # test modifying
-    ann.hed_strings[0] = (
+    new_value = (
         "Sensory-event, (Word, Label/Word-look), Auditory-presentation, "
         "Visual-presentation"
     )
+    ann.hed_string[0] = new_value
     # test modifying with bad value
     with pytest.raises(ValueError, match="A HED string failed to validate"):
-        ann.hed_strings[0] = "foo"
+        ann.hed_string[0] = "foo"
     # test initting with bad value
     with pytest.raises(ValueError, match="A HED string failed to validate"):
-        ann = HEDAnnotations(
+        _ = HEDAnnotations(
             onset=[1],
             duration=[0.1],
             description=["a"],
-            hed_strings=["foo"],
+            hed_string=["foo"],
         )
+    # test __getitem__
+    first = ann[0]
+    assert first["hed_string"] == new_value
+    first["hed_string"] = "foo"  # should not try to validate (is a copy)
+    assert ann.hed_string[0] == new_value
+    # test __repr__
+    foo = repr(ann)
+    assert "Auditory-presentation,Experimental-stimulus,Sensory-event ..." in foo

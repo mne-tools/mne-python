@@ -569,8 +569,8 @@ class Annotations:
         self.duration = self.duration[order]
         self.description = self.description[order]
         self.ch_names = self.ch_names[order]
-        if hasattr(self, "hed_strings"):
-            self.hed_strings = self.hed_strings[order]
+        if hasattr(self, "hed_string"):
+            self.hed_string = self.hed_string[order]
 
     @verbose
     def crop(
@@ -769,13 +769,13 @@ class _HEDStrings(list):
         self._hed = _soft_import("hed", "validation of HED tags in annotations")
         self._hed_schema_version = hed_version
         super().__init__(*args, **kwargs)
-        for item in self:
-            self._validate_hed_string(item)
+        self._objs = [self._validate_hed_string(item) for item in self]
 
     def __setitem__(self, key, value):
         """Validate value first, before assigning."""
         hs = self._validate_hed_string(value)
-        super().__setitem__(key, hs.get_as_original())
+        super().__setitem__(key, hs.get_original_hed_string())
+        self._objs[key] = hs
 
     def _validate_hed_string(self, value):
         # NB: must import; calling self._hed.validator.HedValidator doesn't work
@@ -793,6 +793,7 @@ class _HEDStrings(list):
         error_string = self._hed.get_printable_issue_string(issues)
         if len(error_string):
             raise ValueError(f"A HED string failed to validate:\n  {error_string}")
+        hs.sort()
         return hs
 
 
@@ -810,7 +811,7 @@ class HEDAnnotations(Annotations):
         Array of strings containing description for each annotation. If a
         string, all the annotations are given the same description. To reject
         epochs, use description starting with keyword 'bad'. See example above.
-    hed_strings : array of str, shape (n_annotations,) | str
+    hed_string : array of str, shape (n_annotations,) | str
         Sequence of strings containing a HED tag (or comma-separated list of HED tags)
         for each annotation. If a single string is provided, all annotations are
         assigned the same HED string.
@@ -843,7 +844,7 @@ class HEDAnnotations(Annotations):
         onset,
         duration,
         description,
-        hed_strings,
+        hed_string,
         hed_version="8.3.0",
         orig_time=None,
         ch_names=None,
@@ -855,42 +856,60 @@ class HEDAnnotations(Annotations):
             orig_time=orig_time,
             ch_names=ch_names,
         )
-        self.hed_strings = _HEDStrings(hed_strings, hed_version=hed_version)
+        self.hed_string = _HEDStrings(hed_string, hed_version=hed_version)
 
     def __eq__(self, other):
         """Compare to another HEDAnnotations instance."""
         return (
             super().__eq__(self, other)
             # TODO don't use array_equal, use HED validation approach?
-            and np.array_equal(self.hed_strings, other.hed_strings)
+            and np.array_equal(self.hed_string, other.hed_string)
             and self._hed_version == other._hed_version
         )
 
     def __repr__(self):
         """Show a textual summary of the object."""
-        counter = Counter(self.hed_strings)
-        kinds = ", ".join(["{} ({})".format(*k) for k in sorted(counter.items())])
-        kinds = (": " if len(kinds) > 0 else "") + kinds
+        counter = Counter([hs.get_as_short() for hs in self.hed_string._objs])
+
+        def _shorten(text, width=74, placeholder=" ..."):
+            parts = text.split(",")
+            out = parts[0]
+            for part in parts[1:]:
+                # +1 for the comma   ↓↓↓
+                if width < len(out) + 1 + len(part) + len(placeholder):
+                    break
+                out = f"{out},{part}"
+            return out + placeholder
+
+        kinds = [
+            f"{_shorten(k, width=74):<74} ({v})" for k, v in sorted(counter.items())
+        ]
+        if len(kinds) > 5:
+            kinds = [*kinds[:5], f"... and {len(kinds) - 5} more"]
+        kinds = "\n ".join(kinds)
+        if len(kinds):
+            kinds = f":\n {kinds}\n"
         ch_specific = ", channel-specific" if self._any_ch_names() else ""
         s = (
             f"HEDAnnotations | {len(self.onset)} segment"
             f"{_pl(len(self.onset))}{ch_specific}{kinds}"
         )
-        return "<" + shorten(s, width=77, placeholder=" ...") + ">"
+        return f"<{s}>"
 
     def __getitem__(self, key, *, with_ch_names=None):
         """Propagate indexing and slicing to the underlying numpy structure."""
         result = super().__getitem__(key, with_ch_names=with_ch_names)
         if isinstance(result, OrderedDict):
-            result._hed_strings = self.hed_strings[key]
+            result["hed_string"] = self.hed_string[key]
+            return result
         else:
             key = list(key) if isinstance(key, tuple) else key
-            hed_strings = [self.hed_strings[key]]
+            hed_string = [self.hed_string[key]]
             return HEDAnnotations(
                 result.onset,
                 result.duration,
                 result.description,
-                hed_strings=hed_strings,
+                hed_string=hed_string,
                 hed_version=self._hed_version,
                 orig_time=self.orig_time,
                 ch_names=result.ch_names,
