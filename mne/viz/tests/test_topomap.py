@@ -62,6 +62,8 @@ data_dir = testing.data_path(download=False)
 subjects_dir = data_dir / "subjects"
 ecg_fname = data_dir / "MEG" / "sample" / "sample_audvis_ecg-proj.fif"
 triux_fname = data_dir / "SSS" / "TRIUX" / "triux_bmlhus_erm_raw.fif"
+opm_fname = data_dir / "OPM" / "opm-evoked-ave.fif"
+
 
 base_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
 evoked_fname = base_dir / "test-ave.fif"
@@ -774,6 +776,19 @@ def test_plot_topomap_bads_grad():
     info = pick_info(info, picks)
     assert len(info["chs"]) == 203
     plot_topomap(data, info, res=8)
+
+
+@testing.requires_testing_data
+def test_plot_topomap_opm():
+    """Test plotting topomap with OPM data."""
+    # load data
+    evoked = read_evokeds(opm_fname, kind="average")[0]
+
+    # plot evoked topomap
+    fig_evoked = evoked.plot_topomap(
+        times=[-0.1, 0, 0.1, 0.2], ch_type="mag", show=False
+    )
+    assert len(fig_evoked.axes) == 5
 
 
 def test_plot_topomap_nirs_overlap(fnirs_epochs):
