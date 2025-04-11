@@ -29,10 +29,10 @@ from sphinx.util.display import status_iterator
 
 # If it's available on PyPI, add it to this set:
 PYPI_PACKAGES = {
-    "alphaCSC",
     "meggie",
     "niseq",
     "sesameeg",
+    "invertmeeg",
 }
 
 # If it's not available on PyPI, add it to this dict:
@@ -72,13 +72,6 @@ MANUAL_PACKAGES = {
     "dcm2niix": {
         "Home-page": "https://github.com/rordenlab/dcm2niix",
         "Summary": "DICOM to NIfTI converter",
-    },
-    # TODO: mnelab forces PySide6, it can be added to `tools/circleci_dependencies.sh`
-    # when we use PySide6 for doc building. Also its package does not set the Home-page
-    # property.
-    "mnelab": {
-        "Home-page": "https://github.com/cbrnr/mnelab",
-        "Summary": "A graphical user interface for MNE",
     },
     # TODO: these do not set a valid homepage or documentation page on PyPI
     "eeg_positions": {
