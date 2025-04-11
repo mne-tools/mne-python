@@ -60,7 +60,7 @@ echo "pyvistaqt"
 pip install $STD_ARGS git+https://github.com/pyvista/pyvistaqt
 
 echo "imageio-ffmpeg, xlrd, mffpy"
-pip install $STD_ARGS imageio-ffmpeg xlrd mffpy traitlets pybv eeglabio defusedxml antio
+pip install $STD_ARGS imageio-ffmpeg xlrd mffpy traitlets pybv eeglabio defusedxml antio curryreader
 
 echo "mne-qt-browser"
 pip install $STD_ARGS git+https://github.com/mne-tools/mne-qt-browser
