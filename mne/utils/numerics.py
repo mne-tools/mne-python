@@ -1133,3 +1133,21 @@ def _replace_md5(fname):
         os.remove(fname)
     else:
         shutil.move(fname, fname_old)
+
+
+def _read_24bit(fid, n_samples):
+    """Read 24-bit data from a file."""
+    data = np.fromfile(fid, dtype="<u1", count=n_samples * 3).reshape(-1, 3)
+    data = np.concatenate([data, np.zeros((len(data), 1), dtype=data.dtype)], axis=1)
+    negative = data[:, 2] >= 128
+    data = data.view("<i4").ravel()
+    data[negative] -= 1 << 24
+    return data
+
+
+def _write_24bit(fid, data):
+    assert data.dtype == np.int32
+    data = data.astype("<i4")
+    data[data < 0] += 1 << 24
+    data = data.view("<u1").reshape(-1, 4)[:, :3]
+    data.tofile(fid)
