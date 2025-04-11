@@ -191,11 +191,13 @@ class Contours(UIEvent):
     Parameters
     ----------
     kind : str
-        The kind of contours lines being changed. The Notes section of the
         drawing routine publishing this event should mention the possible
         kinds.
     contours : list of float
         The new values at which contour lines need to be drawn.
+    line_width : float | None
+        The line_width with which to draw the contour lines. Can be ``None`` to
+        indicate to keep using the current line_width.
 
     Attributes
     ----------
@@ -206,10 +208,14 @@ class Contours(UIEvent):
         kinds.
     contours : list of float
         The new values at which contour lines need to be drawn.
+    line_width : float | None
+        The line_width with which to draw the contour lines. Can be ``None`` to
+        indicate to keep using the current line_width.
     """
 
     kind: str
     contours: list[str]
+    line_width: float | None
 
 
 @dataclass
