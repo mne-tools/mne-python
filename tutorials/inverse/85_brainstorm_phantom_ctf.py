@@ -71,7 +71,7 @@ raw.plot()
 # Maxwell filtering:
 
 raw.apply_gradient_compensation(0)  # must un-do software compensation first
-mf_kwargs = dict(origin=(0.0, 0.0, 0.0), st_duration=10.0)
+mf_kwargs = dict(origin=(0.0, 0.0, 0.0), st_duration=10.0, st_overlap=True)
 raw = mne.preprocessing.maxwell_filter(raw, **mf_kwargs)
 raw.plot()
 

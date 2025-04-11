@@ -106,8 +106,6 @@ empty_room_raw.del_proj()
 
 # %%
 #
-# _ex-noise-level:
-#
 # Visualizing the empty-room noise
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #

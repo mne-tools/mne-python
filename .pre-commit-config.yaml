@@ -1,7 +1,7 @@
 repos:
   # Ruff mne
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.9.3
+    rev: v0.11.4
     hooks:
       - id: ruff
         name: ruff lint mne
@@ -23,7 +23,7 @@ repos:
 
   # Codespell
   - repo: https://github.com/codespell-project/codespell
-    rev: v2.4.0
+    rev: v2.4.1
     hooks:
       - id: codespell
         additional_dependencies:
@@ -33,7 +33,7 @@ repos:
 
   # yamllint
   - repo: https://github.com/adrienverge/yamllint.git
-    rev: v1.35.1
+    rev: v1.37.0
     hooks:
       - id: yamllint
         args: [--strict, -c, .yamllint.yml]
@@ -82,7 +82,7 @@ repos:
 
   # zizmor
   - repo: https://github.com/woodruffw/zizmor-pre-commit
-    rev: v1.2.2
+    rev: v1.5.2
     hooks:
       - id: zizmor
 

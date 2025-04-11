@@ -545,16 +545,21 @@ def _iir_filter(x, iir_params, picks, n_jobs, copy, phase="zero"):
         padlen = min(iir_params["padlen"], x.shape[-1] - 1)
         if "sos" in iir_params:
             fun = partial(
-                signal.sosfiltfilt, sos=iir_params["sos"], padlen=padlen, axis=-1
+                _iir_pad_apply_unpad,
+                func=signal.sosfiltfilt,
+                sos=iir_params["sos"],
+                padlen=padlen,
+                padtype="reflect_limited",
             )
             _check_coefficients(iir_params["sos"])
         else:
             fun = partial(
-                signal.filtfilt,
+                _iir_pad_apply_unpad,
+                func=signal.filtfilt,
                 b=iir_params["b"],
                 a=iir_params["a"],
                 padlen=padlen,
-                axis=-1,
+                padtype="reflect_limited",
             )
             _check_coefficients((iir_params["b"], iir_params["a"]))
     else:
@@ -1664,24 +1669,16 @@ def _mt_spectrum_remove_win(
     n_overlap = (n_samples + 1) // 2
     x_out = np.zeros_like(x)
     rm_freqs = list()
-    idx = [0]
 
     # Define how to process a chunk of data
-    def process(x_):
+    def process(x_, *, start, stop):
         out = _mt_spectrum_remove(
             x_, sfreq, line_freqs, notch_widths, window_fun, threshold, get_thresh
         )
         rm_freqs.append(out[1])
         return (out[0],)  # must return a tuple
 
-    # Define how to store a chunk of fully processed data (it's trivial)
-    def store(x_):
-        stop = idx[0] + x_.shape[-1]
-        x_out[..., idx[0] : stop] += x_
-        idx[0] = stop
-
-    _COLA(process, store, n_times, n_samples, n_overlap, sfreq, verbose=False).feed(x)
-    assert idx[0] == n_times
+    _COLA(process, x_out, n_times, n_samples, n_overlap, sfreq, verbose=False).feed(x)
     return x_out, rm_freqs
 
 
@@ -2945,3 +2942,15 @@ def _filt_update_info(info, update_info, l_freq, h_freq):
         ):
             with info._unlock():
                 info["highpass"] = float(l_freq)
+
+
+def _iir_pad_apply_unpad(x, *, func, padlen, padtype, **kwargs):
+    x_out = np.reshape(x, (-1, x.shape[-1])).copy()
+    for this_x in x_out:
+        x_ext = this_x
+        if padlen:
+            x_ext = _smart_pad(x_ext, (padlen, padlen), padtype)
+        x_ext = func(x=x_ext, axis=-1, padlen=0, **kwargs)
+        this_x[:] = x_ext[padlen : len(x_ext) - padlen]
+    x_out.shape = x.shape
+    return x_out

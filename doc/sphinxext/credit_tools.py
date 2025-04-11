@@ -39,6 +39,16 @@ data_dir = doc_root / "sphinxext"
 
 # Allowed singletons
 single_names = "btkcodedev buildqa sviter Akshay".split()
+# Surnames where we have more than one distinct contributor:
+name_counts = dict(
+    Bailey=2,
+    Das=2,
+    Drew=2,
+    Li=2,
+    Peterson=2,
+    Wong=2,
+    Zhang=2,
+)
 # Exceptions, e.g., abbrevitaions in first/last name or all-caps
 exceptions = [
     "T. Wang",
@@ -57,6 +67,7 @@ manual_renames = {
     "Frostime": "Yiping Zuo",  # 11773
     "Gennadiy": "Gennadiy Belonosov",  # 11720
     "Genuster": "Gennadiy Belonosov",  # 12936
+    "GreasyCat": "Rongfei Jin",  # 13113
     "Hamid": "Hamid Maymandi",  # 10849
     "jwelzel": "Julius Welzel",  # 11118
     "Martin": "Martin Billinger",  # 8099, TODO: Check
@@ -217,16 +228,6 @@ def generate_credit_rst(app=None, *, verbose=False):
         )
 
     # Check for duplicate names based on last name, and also singleton names.
-    # Below are surnames where we have more than one distinct contributor:
-    name_counts = dict(
-        Das=2,
-        Drew=2,
-        Li=2,
-        Peterson=2,
-        Wong=2,
-        Zhang=2,
-    )
-    # Below are allowed singleton names
     last_map = defaultdict(lambda: set())
     bad_names = set()
     for these_stats in stats.values():
@@ -245,10 +246,11 @@ def generate_credit_rst(app=None, *, verbose=False):
         if len(names) > name_counts.get(last, 1):
             bad_names.append(f"Duplicates:    {sorted(names)}")
     if bad_names:
-        raise RuntimeError(
-            "Unexpected possible duplicates or bad names found:\n"
-            + "\n".join(bad_names)
+        what = (
+            "Unexpected possible duplicates or bad names found, "
+            f"consider modifying {'/'.join(Path(__file__).parts[-3:])}:\n"
         )
+        raise RuntimeError(what + "\n".join(bad_names))
 
     unknown_emails = set(
         email
@@ -258,9 +260,8 @@ def generate_credit_rst(app=None, *, verbose=False):
         and "dependabot[bot]" not in email
         and "github-actions[bot]" not in email
     )
-    assert len(unknown_emails) == 0, "Unknown emails\n" + "\n".join(
-        sorted(unknown_emails)
-    )
+    what = "Unknown emails, consider adding to .mailmap:\n"
+    assert len(unknown_emails) == 0, what + "\n".join(sorted(unknown_emails))
 
     logger.info("Biggest included commits/PRs:")
     commits = dict(
@@ -394,7 +395,7 @@ def generate_credit_rst(app=None, *, verbose=False):
         raise RuntimeError(
             f"{len(other_files)} misc file(s) found:\n" + "\n".join(other_files)
         )
-    logger.info(f"\nTotal line change count: {list(total_lines)}")
+    logger.info(f"\nTotal line change count: {list(map(int, total_lines))}")
 
     # sphinx-design badges that we use for contributors
     BADGE_KINDS = ["bdg-info-line", "bdg"]
