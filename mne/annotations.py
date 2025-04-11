@@ -778,18 +778,12 @@ class _HEDStrings(list):
         self._objs[key] = hs
 
     def _validate_hed_string(self, value):
-        # NB: must import; calling self._hed.validator.HedValidator doesn't work
-        from hed.validator import HedValidator
-
         # create HedString object and validate it
         schema = self._hed.load_schema_version(self._hed_schema_version)
         hs = self._hed.HedString(value, schema)
-        validator = HedValidator(schema)
         # handle any errors
         error_handler = self._hed.errors.ErrorHandler(check_for_warnings=False)
-        issues = validator.validate(
-            hs, allow_placeholders=False, error_handler=error_handler
-        )
+        issues = hs.validate(allow_placeholders=False, error_handler=error_handler)
         error_string = self._hed.get_printable_issue_string(issues)
         if len(error_string):
             raise ValueError(f"A HED string failed to validate:\n  {error_string}")
