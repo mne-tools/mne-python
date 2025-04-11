@@ -10,9 +10,10 @@ import curryreader
 import numpy as np
 
 from ..._fiff.meas_info import create_info
+from ..._fiff.utils import _mult_cal_one, _read_segments_file
 from ...annotations import annotations_from_events
 from ...channels import make_dig_montage
-from ...utils import verbose
+from ...utils import verbose, warn
 from ..base import BaseRaw
 
 
@@ -59,7 +60,7 @@ class RawCurry(BaseRaw):
     """
 
     @verbose
-    def __init__(self, fname, preload=True, verbose=None):
+    def __init__(self, fname, preload=False, verbose=None):
         fname = Path(fname)
 
         # use curry-python-reader
@@ -70,7 +71,15 @@ class RawCurry(BaseRaw):
 
         # extract info
         sfreq = currydata["info"]["samplingfreq"]
-        n_samples = currydata["info"]["samples"]
+        if currydata["info"]["samples"] == currydata["data"].shape[0]:
+            n_samples = currydata["info"]["samples"]
+        else:
+            n_samples = currydata["data"].shape[0]
+            warn(
+                "sample count from header doesn't match actual data! "
+                "file corrupted? will use data shape"
+            )
+
         n_ch = currydata["info"]["channels"]
         ch_names = currydata["labels"]
         ch_pos = currydata["sensorpos"]
@@ -80,17 +89,20 @@ class RawCurry(BaseRaw):
         # extract data
         orig_format = "single"  # curryreader.py always reads float32. is this correct?
 
-        preload = currydata["data"].T.astype(
-            "float64"
-        )  # curryreader returns float32, but mne seems to need float64
+        if isinstance(preload, bool | np.bool_) and preload:
+            preload = currydata["data"].T.astype(
+                "float64"
+            )  # curryreader returns float32, but mne seems to need float64
         events = currydata["events"]
         # annotations = currydata[
         #    "annotations"
         # ]  # dont always seem to correspond to events?!
         # impedances = currydata["impedances"]  # see read_impedances_curry
         # epochinfo = currydata["epochinfo"]  # TODO
-        # epochlabels = currydata["epochlabels"]  # TODO
-        # hpimatrix = currydata["hpimatrix"]  # TODO
+        epochlabels = currydata["epochlabels"]  # TODO
+        if epochlabels != []:
+            warn("epoched recording detected; WIP")
+        hpimatrix = currydata["hpimatrix"]  # TODO
 
         # extract other essential info not provided by curryreader
         fname_hdr = None
@@ -100,6 +112,7 @@ class RawCurry(BaseRaw):
 
         ch_types, units = [], []
         if fname_hdr:
+            # read channel types
             ch_groups = fname_hdr.read_text().split("DEVICE_PARAMETERS")[1::2]
             for ch_group in ch_groups:
                 ch_group = re.compile(r"\s+").sub(" ", ch_group).strip()
@@ -116,8 +129,13 @@ class RawCurry(BaseRaw):
                 # combine info
                 ch_types += [ch_type] * n_ch_group
                 units += [unit] * n_ch_group
-
             assert len(ch_types) == len(units) == len(ch_names) == n_ch
+
+            # read datatype
+            byteorder = (
+                fname_hdr.read_text().split("DataByteOrder")[1].strip().split(" ")[1]
+            )
+            is_ascii = "ASCII" in byteorder
 
         else:
             raise NotImplementedError
@@ -127,17 +145,23 @@ class RawCurry(BaseRaw):
 
         # scale data to SI units
         orig_units = dict(zip(ch_names, units))
-        for i_ch, unit in enumerate(units):
-            if unit == "fT":  # femtoTesla
-                preload[i_ch, :] /= 1e15
-            elif unit == "uV":  # microVolt
-                preload[i_ch, :] /= 1e6
-            else:  # leave as is
-                pass
+        cals = [
+            1.0 / 1e15 if (u == "fT") else 1.0 / 1e6 if (u == "uV") else 1.0
+            for u in units
+        ]
+        if isinstance(preload, np.ndarray):
+            for i_ch, unit in enumerate(units):
+                if unit == "fT":  # femtoTesla
+                    preload[i_ch, :] /= 1e15
+                elif unit == "uV":  # microVolt
+                    preload[i_ch, :] /= 1e6
+                else:  # leave as is
+                    pass
 
         # construct info
         info = create_info(ch_names=ch_names, sfreq=sfreq, ch_types=ch_types)
         last_samps = [n_samples - 1]
+        raw_extras = dict(is_ascii=is_ascii)
 
         # create raw object
         super().__init__(
@@ -146,9 +170,11 @@ class RawCurry(BaseRaw):
             filenames=[fname],
             last_samps=last_samps,
             orig_format=orig_format,
+            raw_extras=[raw_extras],
             orig_units=orig_units,
             verbose=verbose,
         )
+        self._cals = np.array(cals)
 
         # set events / annotations
         # format from curryreader: sample, etype, startsample, endsample
@@ -166,6 +192,33 @@ class RawCurry(BaseRaw):
 
         # add HPI data (if present)
         # TODO
+        if not isinstance(hpimatrix, list):
+            warn("HPI data found, but reader not implemented.")
+
+    def _rescale_curry_data(self):
+        orig_units = self._orig_units
+        for i_ch, unit in enumerate(orig_units):
+            if unit == "fT":  # femtoTesla
+                self._data[i_ch, :] /= 1e15
+            elif unit == "µV":  # microVolt
+                self._data[i_ch, :] /= 1e6
+            else:  # leave as is
+                pass
+
+    def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
+        """Read a chunk of raw data."""
+        if self._raw_extras[fi]["is_ascii"]:
+            if isinstance(idx, slice):
+                idx = np.arange(idx.start, idx.stop)
+            block = np.loadtxt(
+                self.filenames[0], skiprows=start, max_rows=stop - start, ndmin=2
+            ).T
+            _mult_cal_one(data, block, idx, cals, mult)
+
+        else:
+            _read_segments_file(
+                self, data, idx, fi, start, stop, cals, mult, dtype="<f4"
+            )
 
 
 def _make_curry_montage(ch_names, ch_pos, landmarks, landmarkslabels):
