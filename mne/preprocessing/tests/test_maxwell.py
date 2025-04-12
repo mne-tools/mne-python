@@ -1072,9 +1072,9 @@ def _assert_shielding(raw_sss, erm_power, min_factor, max_factor=np.inf, meg="ma
     sss_power = raw_sss[picks][0].ravel()
     sss_power = np.sqrt(np.sum(sss_power * sss_power))
     factor = erm_power / sss_power
-    assert min_factor <= factor < max_factor, (
-        f"Shielding factor not {min_factor:0.3f} <= {factor:0.3f} < {max_factor:0.3f}"
-    )
+    assert (
+        min_factor <= factor < max_factor
+    ), f"Shielding factor not {min_factor:0.3f} <= {factor:0.3f} < {max_factor:0.3f}"
 
 
 @buggy_mkl_svd
@@ -1896,7 +1896,7 @@ def test_prepare_emptyroom_bads(bads):
     assert raw_er_prepared.info["bads"] == ["MEG0113", "MEG2313"]
     assert raw_er_prepared.info["dev_head_t"] == raw.info["dev_head_t"]
 
-    montage_expected = raw.copy().pick(picks="meg").get_montage()
+    montage_expected = raw.pick(picks="meg").get_montage()
     assert raw_er_prepared.get_montage() == montage_expected
 
     # Ensure the originals were not modified
@@ -1904,6 +1904,18 @@ def test_prepare_emptyroom_bads(bads):
     assert raw_er.info["bads"] == raw_er_bads_orig
     assert raw_er.info["dev_head_t"] is None
     assert raw_er.get_montage() is None
+
+
+@testing.requires_testing_data
+def test_prepare_empty_room_with_eeg() -> None:
+    """Test preparation of MEG empty-room which was acquired with EEG enabled."""
+    raw = read_raw_fif(raw_fname, allow_maxshield="yes", verbose=False)
+    raw_er = read_raw_fif(erm_fname, allow_maxshield="yes", verbose=False)
+    with pytest.warns(RuntimeWarning, match="empty-room recording contained EEG-like"):
+        raw_er_prepared = maxwell_filter_prepare_emptyroom(raw_er=raw_er, raw=raw)
+    assert raw_er_prepared.info["dev_head_t"] == raw.info["dev_head_t"]
+    montage_expected = raw.pick(picks="meg").get_montage()
+    assert raw_er_prepared.get_montage() == montage_expected
 
 
 @testing.requires_testing_data

@@ -16,7 +16,7 @@ from .. import __version__
 from .._fiff.compensator import make_compensator
 from .._fiff.constants import FIFF, FWD
 from .._fiff.meas_info import Info, _simplify_info
-from .._fiff.pick import pick_info, pick_types
+from .._fiff.pick import _picks_to_idx, pick_info, pick_types
 from .._fiff.proc_history import _read_ctc
 from .._fiff.proj import Projection
 from .._fiff.tag import _coil_trans_to_loc, _loc_to_coil_trans
@@ -162,9 +162,13 @@ def maxwell_filter_prepare_emptyroom(
     )
 
     raw_er_prepared = raw_er.copy()
-    # just in case of combine MEG/other modality, let's explicitly drop those and
-    # emit a warning.
-    raw_er_prepared.pick("all", exclude=("eeg", "ecog", "seeg", "dbs"))
+    # just in case of combine MEG/other modality, let's explicitly drop other channels
+    # that might have a digitization and emit a warning.
+    picks = [elt for elt in ("eeg", "ecog", "seeg", "dbs") if elt in raw_er_prepared]
+    if len(picks) != 0:
+        picks = _picks_to_idx(raw_er_prepared.info, picks=picks, exclude=())
+        idx = np.setdiff1d(np.arange(raw_er_prepared.info["nchan"]), picks)
+        raw_er_prepared.pick(idx, exclude=())
     if len(raw_er.ch_names) != len(raw_er_prepared.ch_names):
         warn(
             "The empty-room recording contained EEG-like channels. These channels "
@@ -173,6 +177,14 @@ def maxwell_filter_prepare_emptyroom(
             "back after the execution of 'maxwell_filter_prepare_emptyroom' from your "
             "original empty-room recording using 'raw.add_channels'."
         )
+    # apply the same channel selection to raw
+    picks = [elt for elt in ("eeg", "ecog", "seeg", "dbs") if elt in raw]
+    if len(picks) != 0:
+        picks = _picks_to_idx(
+            raw.info, picks=("eeg", "ecog", "seeg", "dbs"), exclude=()
+        )
+        idx = np.setdiff1d(np.arange(raw_er_prepared.info["nchan"]), picks)
+        raw = raw.copy().pick(idx, exclude=())
     del raw_er  # just to be sure
 
     # handle bads; only keep MEG channels
