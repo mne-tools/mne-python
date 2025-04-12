@@ -140,7 +140,7 @@ def maxwell_filter_prepare_emptyroom(
     .. note::
 
         Note that in case of dual MEG/EEG acquisition, EEG channels should not be
-        included in the emoty room recording. If provided, they will be ignored.
+        included in the empty room recording. If provided, they will be ignored.
 
     .. versionadded:: 1.1
     """  # noqa: E501
