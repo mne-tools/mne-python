@@ -139,8 +139,8 @@ def maxwell_filter_prepare_emptyroom(
 
     .. note::
 
-        Note that EEG channels should not be included. If provided, a warning will be
-        emitted and they will be ignored.
+        Note that in case of dual MEG/EEG acquisition, EEG channels should not be
+        included in the emoty room recording. If provided, they will be ignored.
 
     .. versionadded:: 1.1
     """  # noqa: E501
@@ -162,6 +162,17 @@ def maxwell_filter_prepare_emptyroom(
     )
 
     raw_er_prepared = raw_er.copy()
+    # just in case of combine MEG/other modality, let's explicitly drop those and
+    # emit a warning.
+    raw_er_prepared.pick("all", exclude=("eeg", "ecog", "seeg", "dbs"))
+    if len(raw_er.ch_names) != len(raw_er_prepared.ch_names):
+        warn(
+            "The empty-room recording contained EEG-like channels. These channels "
+            "were dropped from the empty-room recording, as they are not "
+            "compatible with Maxwell filtering. If you need to, add those channels "
+            "back after the execution of 'maxwell_filter_prepare_emptyroom' from your "
+            "original empty-room recording using 'raw.add_channels'."
+        )
     del raw_er  # just to be sure
 
     # handle bads; only keep MEG channels
