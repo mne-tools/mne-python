@@ -131,11 +131,16 @@ def maxwell_filter_prepare_emptyroom(
     * Set the following properties of the empty-room recording to match the
       experimental recording:
 
-      * Montage
+      * Montage (required for the fiducials defining the head coordinate frame)
       * ``raw.first_time`` and ``raw.first_samp``
 
     * Adjust annotations according to the ``annotations`` parameter.
     * Adjust the measurement date according to the ``meas_date`` parameter.
+
+    .. note::
+
+        Note that EEG channels should not be included. If provided, a warning will be
+        emitted and they will be ignored.
 
     .. versionadded:: 1.1
     """  # noqa: E501
