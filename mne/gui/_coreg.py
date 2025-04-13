@@ -1197,7 +1197,7 @@ class CoregistrationUI(HasTraits):
                     if actor is None:
                         continue
                     actor.SetVisibility(state)
-                    
+
         self._renderer._update()
 
     def _update_actor(self, actor_name, actor):
