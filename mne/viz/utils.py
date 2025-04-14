@@ -1792,9 +1792,6 @@ def _get_color_list(*, remove=None):
     color_cycle = rcParams.get("axes.prop_cycle")
     colors = color_cycle.by_key()["color"]
 
-    # If we want annotations, red is reserved ... remove if present. This
-    # checks for the reddish color in MPL dark background style, normal style,
-    # and MPL "red", and defaults to the last of those if none are present
     colors_cast = to_rgba_array(colors)[:, :3]
     atol = 1.5 / 255.0
     for rem in to_rgba_array(remove or [])[:, :3]:
