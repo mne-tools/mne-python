@@ -1,1 +1,3 @@
 Add new example :ref:`ex-ica-comp` that compares performance of multiple ICA algorithms (FastICA, Picard, Infomax, Extended Infomax) on clean vs noisy MEG data, showing differences in runtime, component detection, and EOG-related ICs. By `Ganasekhar Kalla`_.
+
+.. _Ganasekhar Kalla: https://github.com/Ganasekhar-gif
