@@ -16,6 +16,9 @@ from ...channels import make_dig_montage
 from ...utils import verbose, warn
 from ..base import BaseRaw
 
+CURRY_SUFFIX_DATA = [".cdt", ".dat"]
+CURRY_SUFFIX_HDR = [".cdt.dpa", ".cdt.dpo", ".dap"]
+
 
 @verbose
 def read_raw_curry(fname, preload=False, verbose=None) -> "RawCurry":
@@ -61,7 +64,17 @@ class RawCurry(BaseRaw):
 
     @verbose
     def __init__(self, fname, preload=False, verbose=None):
-        fname = Path(fname)
+        fname_in = Path(fname)
+        fname = None
+        if fname_in.suffix in CURRY_SUFFIX_DATA:
+            fname = fname_in
+        else:
+            for data_suff in CURRY_SUFFIX_DATA:
+                if fname_in.with_suffix(data_suff).exists():
+                    fname = fname_in.with_suffix(data_suff)
+                    break
+        if not fname:
+            raise FileNotFoundError("no curry data file found (.dat or .cdt)")
 
         # use curry-python-reader
         try:
@@ -106,7 +119,7 @@ class RawCurry(BaseRaw):
 
         # extract other essential info not provided by curryreader
         fname_hdr = None
-        for hdr_suff in [".cdt.dpa", ".cdt.dpo", ".dap"]:
+        for hdr_suff in CURRY_SUFFIX_HDR:
             if fname.with_suffix(hdr_suff).exists():
                 fname_hdr = fname.with_suffix(hdr_suff)
 
