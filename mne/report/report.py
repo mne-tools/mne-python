@@ -556,7 +556,7 @@ def _itv(function, fig, *, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES, **kwarg
 
     function(fig=fig, **kwargs)
 
-    views = ("frontal", "lateral", "medial", "axial", "rostral", "coronal")
+    views = ("lateral_r", "frontlat_r", "frontal", "frontlat_l", "lateral_l", "top", "backlat_r", "back", "backlat_l", "bot")
 
     images = []
     for view in views:
@@ -569,7 +569,7 @@ def _itv(function, fig, *, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES, **kwarg
         images.append(im)
 
     images = np.concatenate(
-        [np.concatenate(images[:3], axis=1), np.concatenate(images[3:], axis=1)], axis=0
+        [np.concatenate(images[:5], axis=1), np.concatenate(images[5:], axis=1)], axis=0
     )
 
     try:

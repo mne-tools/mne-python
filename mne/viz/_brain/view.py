@@ -35,6 +35,21 @@ _rh_views_dict = {
         azimuth=180.0, elevation=0.0, focalpoint=ORIGIN, roll=0, distance=DIST
     ),
 }
+
+_both_views_dict = {
+    "lateral_r": dict(azimuth=180.0, elevation=90.0, focalpoint=ORIGIN, distance=DIST),
+    "frontlat_r": dict(azimuth=120.0, elevation=90.0, focalpoint=ORIGIN, distance=DIST),
+    "frontal": dict(azimuth=90.0, elevation=90.0, focalpoint=ORIGIN, distance=DIST),
+    "frontlat_l": dict(azimuth=60.0, elevation=90.0, focalpoint=ORIGIN, distance=DIST),
+    "lateral_l": dict(azimuth=180.0, elevation=-90.0, focalpoint=ORIGIN, distance=DIST),
+    "backlat_r": dict(azimuth=-120.0, elevation=90.0, focalpoint=ORIGIN, distance=DIST),
+    "back": dict(azimuth=90.0, elevation=-90.0, focalpoint=ORIGIN, distance=DIST),
+    "backlat_l": dict(azimuth=-60.0, elevation=90.0, focalpoint=ORIGIN, distance=DIST),
+    "top": dict(azimuth=180.0, elevation=0.0, focalpoint=ORIGIN, distance=DIST),
+    "bot": dict(azimuth=180, elevation=180, focalpoint=ORIGIN, distance=DIST),
+
+}
+
 # add short-size version entries into the dict
 lh_views_dict = _lh_views_dict.copy()
 for k, v in _lh_views_dict.items():
@@ -49,6 +64,10 @@ for k, v in _rh_views_dict.items():
     rh_views_dict["flat"] = dict(
         azimuth=0, elevation=0, focalpoint=ORIGIN, roll=0, distance=DIST
     )
+
+both_views_dict = _both_views_dict.copy()
+
+
 views_dicts = dict(
-    lh=lh_views_dict, vol=lh_views_dict, both=lh_views_dict, rh=rh_views_dict
+    lh=lh_views_dict, vol=lh_views_dict, both=both_views_dict, rh=rh_views_dict
 )
