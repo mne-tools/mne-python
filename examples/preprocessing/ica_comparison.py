@@ -5,15 +5,16 @@
 Compare the performance of different ICA algorithms in MNE
 ===========================================================
 
-This example compares various ICA algorithms (FastICA, Picard, Infomax, Extended Infomax)
-on the same raw MEG data. For each algorithm:
+This example compares various ICA algorithms (FastICA, Picard, Infomax,
+Extended Infomax) on the same raw MEG data. For each algorithm:
 
 - The ICA fit time (speed) is shown
 - All components (up to 20) are visualized
 - The EOG-related component from each method is detected and compared
 - Comparison on clean vs noisy data is done
 
-Note: In typical preprocessing, only one ICA algorithm is used. This example is for educational purposes.
+Note: In typical preprocessing, only one ICA algorithm is used.
+This example is for educational purposes.
 """
 
 # authors : Ganasekhar Kalla <ganasekharkalla@gmail.com>
@@ -60,6 +61,7 @@ reject_noisy = dict(mag=1e-11, grad=8000e-13)
 
 # %%
 
+
 # Run ICA
 def run_ica(raw_input, method, fit_params=None, reject=None):
     print(f"\nRunning ICA with: {method}")
@@ -74,19 +76,25 @@ def run_ica(raw_input, method, fit_params=None, reject=None):
     ica.fit(raw_input, reject=reject)
     fit_time = time() - t0
     print(f"Fitting ICA took {fit_time:.1f}s.")
-    ica.plot_components(title=f"ICA decomposition using {method} on {'noisy' if raw_input is raw_noisy else 'clean'} data\n(took {fit_time:.1f}s)")
+
+    # Updated code with broken long line
+    title = (
+        f"ICA decomposition using {method} on "
+        f"{'noisy' if raw_input is raw_noisy else 'clean'} data\n"
+        f"(took {fit_time:.1f}s)"
+    )
+    ica.plot_components(title=title)
+
     return ica, fit_time
 
 # %%
+
 
 # Run all ICA methods
 def run_all_ica(raw_input, label, reject):
     icas = {}
     fit_times = {}
     eog_components = {}
-
-    raw_input_filtered = raw_input.copy().filter(1, 10, verbose=True)
-
     for method, params in [
         ("fastica", None),
         ("picard", None),
@@ -99,10 +107,12 @@ def run_all_ica(raw_input, label, reject):
         icas[full_label] = ica
         fit_times[full_label] = t
 
-        eog_inds, _ = ica.find_bads_eog(raw_input, threshold=3.0, verbose='ERROR')
+        eog_inds, _ = ica.find_bads_eog(
+            raw_input, threshold=3.0, verbose='ERROR'
+        )
         if eog_inds:
             eog_components[full_label] = eog_inds[0]
-            print(f"{full_label}: Detected EOG component at index {eog_inds[0]}")
+            print(f"{full_label}:Detected EOG comp at index {eog_inds[0]}")
         else:
             eog_components[full_label] = None
             print(f"{full_label}: No EOG component detected")
@@ -111,9 +121,14 @@ def run_all_ica(raw_input, label, reject):
 
 # %%
 
+
 # Run on both raw versions
-icas_clean, times_clean, eog_clean = run_all_ica(raw_clean, "clean", reject_clean)
-icas_noisy, times_noisy, eog_noisy = run_all_ica(raw_noisy, "noisy", reject_noisy)
+icas_clean, times_clean, eog_clean = run_all_ica(
+    raw_clean, "clean", reject_clean
+)
+icas_noisy, times_noisy, eog_noisy = run_all_ica(
+    raw_noisy, "noisy", reject_noisy
+)
 
 # Combine results
 icas = {**icas_clean, **icas_noisy}
@@ -122,21 +137,26 @@ eog_comps = {**eog_clean, **eog_noisy}
 
 # %%
 
-# Clean EOG components for each algorithm
+# Clean EOG components for each algorithm (Column 1)
 for method in ["fastica", "picard", "infomax", "infomax_extended"]:
     key = f"clean_{method}"
     comp = eog_comps.get(key)
     if comp is not None:
-        icas[key].plot_components(picks=[comp], title=f"{key} - EOG Component", show=True)
+        icas[key].plot_components(
+            picks=[comp],
+            title=f"{key} - EOG Component (Clean Data)",
+            show=True
+        )
 
 # %%
 
-# Noisy EOG components for each algorithm
+# Noisy EOG components for each algorithm (Column 2)
 for method in ["fastica", "picard", "infomax", "infomax_extended"]:
     key = f"noisy_{method}"
     comp = eog_comps.get(key)
     if comp is not None:
-        icas[key].plot_components(picks=[comp], title=f"{key} - EOG Component", show=True)
-
-
-
+        icas[key].plot_components(
+            picks=[comp],
+            title=f"{key} - EOG Component (Noisy Data)",
+            show=True
+        )
