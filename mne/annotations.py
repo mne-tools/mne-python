@@ -58,7 +58,7 @@ from .utils import (
 _datetime = datetime
 
 
-def _check_o_d_s_c(onset, duration, description, ch_names):
+def _check_o_d_s_c_m(onset, duration, description, ch_names, metadata):
     onset = np.atleast_1d(np.array(onset, dtype=float))
     if onset.ndim != 1:
         raise ValueError(
@@ -94,13 +94,36 @@ def _check_o_d_s_c(onset, duration, description, ch_names):
             _validate_type(name, str, f"ch_names[{ai}][{ci}]")
     ch_names = _ndarray_ch_names(ch_names)
 
-    if not (len(onset) == len(duration) == len(description) == len(ch_names)):
+    if metadata is not None:
+        pd = _check_pandas_installed(strict=True)
+        if not (hasattr(metadata, "iloc") and hasattr(metadata, "columns")):
+            raise ValueError(
+                f"Metadata must be a pandas DataFrame or None, got {type(metadata)}."
+            )
+        for column in metadata.columns:
+            if column in ["onset", "duration", "description", "ch_names"]:
+                raise ValueError(
+                    "Metadata cannot contain columns named 'onset', 'duration', "
+                    f"'description', or 'ch_names'. Found columns {metadata.columns}."
+                )
+            if not any(
+                np.issubdtype(metadata[column].dtype, t)
+                for t in [int, str, object, str]
+            ):
+                raise ValueError(
+                    f"Metadata column '{column}' must have type int, float, or str, "
+                    f"but got {metadata[column].dtype}."
+                )
+
+    if not (len(onset) == len(duration) == len(description) == len(ch_names)) or (
+        metadata is not None and len(onset) != len(metadata)
+    ):
         raise ValueError(
-            "Onset, duration, description, and ch_names must be "
+            "Onset, duration, description, ch_names, and metadata must be "
             f"equal in sizes, got {len(onset)}, {len(duration)}, "
             f"{len(description)}, and {len(ch_names)}."
         )
-    return onset, duration, description, ch_names
+    return onset, duration, description, ch_names, metadata
 
 
 def _ndarray_ch_names(ch_names):
@@ -144,6 +167,8 @@ class Annotations:
         More precisely to this '%%Y-%%m-%%d %%H:%%M:%%S.%%f' particular case of
         the ISO8601 format where the delimiter between date and time is ' '.
     %(ch_names_annot)s
+    metadata: instance of pandas.DataFrame | None
+        Optional data frame containing metadata for each annotation.
 
         .. versionadded:: 0.23
 
@@ -274,10 +299,12 @@ class Annotations:
     :meth:`Raw.save() <mne.io.Raw.save>` notes for details.
     """  # noqa: E501
 
-    def __init__(self, onset, duration, description, orig_time=None, ch_names=None):
+    def __init__(
+        self, onset, duration, description, orig_time=None, ch_names=None, metadata=None
+    ):
         self._orig_time = _handle_meas_date(orig_time)
-        self.onset, self.duration, self.description, self.ch_names = _check_o_d_s_c(
-            onset, duration, description, ch_names
+        self.onset, self.duration, self.description, self.ch_names, self.metadata = (
+            _check_o_d_s_c_m(onset, duration, description, ch_names, metadata)
         )
         self._sort()  # ensure we're sorted
 
@@ -339,7 +366,11 @@ class Annotations:
                 f"{self.orig_time} != {other.orig_time})"
             )
         return self.append(
-            other.onset, other.duration, other.description, other.ch_names
+            other.onset,
+            other.duration,
+            other.description,
+            other.ch_names,
+            other.metadata,
         )
 
     def __iter__(self):
@@ -350,7 +381,7 @@ class Annotations:
         for idx in range(len(self.onset)):
             yield self.__getitem__(idx, with_ch_names=with_ch_names)
 
-    def __getitem__(self, key, *, with_ch_names=None):
+    def __getitem__(self, key, *, with_ch_names=None, with_metadata=True):
         """Propagate indexing and slicing to the underlying numpy structure."""
         if isinstance(key, int_like):
             out_keys = ("onset", "duration", "description", "orig_time")
@@ -363,6 +394,9 @@ class Annotations:
             if with_ch_names or (with_ch_names is None and self._any_ch_names()):
                 out_keys += ("ch_names",)
                 out_vals += (self.ch_names[key],)
+            if with_metadata and self.metadata is not None:
+                out_keys += tuple(self.metadata.columns)
+                out_vals += tuple(self.metadata.iloc[key])
             return OrderedDict(zip(out_keys, out_vals))
         else:
             key = list(key) if isinstance(key, tuple) else key
@@ -372,10 +406,11 @@ class Annotations:
                 description=self.description[key],
                 orig_time=self.orig_time,
                 ch_names=self.ch_names[key],
+                metadata=self.metadata.iloc[key] if self.metadata is not None else None,
             )
 
     @fill_doc
-    def append(self, onset, duration, description, ch_names=None):
+    def append(self, onset, duration, description, ch_names=None, metadata=None):
         """Add an annotated segment. Operates inplace.
 
         Parameters
@@ -403,13 +438,20 @@ class Annotations:
         to not only ``list.append``, but also
         `list.extend <https://docs.python.org/3/library/stdtypes.html#mutable-sequence-types>`__.
         """  # noqa: E501
-        onset, duration, description, ch_names = _check_o_d_s_c(
-            onset, duration, description, ch_names
+        onset, duration, description, ch_names, metadata = _check_o_d_s_c_m(
+            onset, duration, description, ch_names, metadata
         )
         self.onset = np.append(self.onset, onset)
         self.duration = np.append(self.duration, duration)
         self.description = np.append(self.description, description)
         self.ch_names = np.append(self.ch_names, ch_names)
+        if (self.metadata is None) != (metadata is None):
+            raise ValueError(
+                "Either both or none of the appended metadata and the annotations metadata should be None"
+            )
+        if metadata is not None:
+            pd = _check_pandas_installed(strict=True)
+            self.metadata = pd.concat([self.metadata, metadata], ignore_index=True)
         self._sort()
         return self
 
@@ -436,6 +478,8 @@ class Annotations:
         self.duration = np.delete(self.duration, idx)
         self.description = np.delete(self.description, idx)
         self.ch_names = np.delete(self.ch_names, idx)
+        if self.metadata is not None:
+            self.metadata = self.metadata.drop(index=self.metadata.iloc[idx].index)
 
     @fill_doc
     def to_data_frame(self, time_format="datetime"):
@@ -466,6 +510,8 @@ class Annotations:
         if self._any_ch_names():
             df.update(ch_names=self.ch_names)
         df = pd.DataFrame(df)
+        if self.metadata is not None:
+            df = pd.concat([df, self.metadata], axis="columns", ignore_index=True)
         return df
 
     def count(self):
@@ -567,6 +613,8 @@ class Annotations:
         self.duration = self.duration[order]
         self.description = self.description[order]
         self.ch_names = self.ch_names[order]
+        if self.metadata is not None:
+            self.metadata = self.metadata.iloc[order]
 
     @verbose
     def crop(
@@ -892,6 +940,20 @@ class EpochAnnotationsMixin:
                 this_annot["onset"] - this_tzero,
                 this_annot["duration"],
                 this_annot["description"],
+                OrderedDict(  # metadata
+                    [
+                        (k, v)
+                        for k, v in this_annot.items()
+                        if k
+                        not in (
+                            "onset",
+                            "duration",
+                            "description",
+                            "orig_time",
+                            "ch_names",
+                        )
+                    ]
+                ),
             )
             # ...then add it to the correct sublist of `epoch_annot_list`
             epoch_annot_list[epo_ix].append(annot)
@@ -941,13 +1003,12 @@ class EpochAnnotationsMixin:
             data = np.empty((len(self.events), 0))
             metadata = pd.DataFrame(data=data)
 
-        if (
-            any(
-                name in metadata.columns
-                for name in ["annot_onset", "annot_duration", "annot_description"]
-            )
-            and not overwrite
-        ):
+        annot_columns = ["annot_onset", "annot_duration", "annot_description"]
+        annot_metadata_cols = []
+        if self.annotations.metadata is not None:
+            annot_metadata_cols = self.annotations.metadata.columns.tolist()
+            annot_columns += annot_metadata_cols
+        if any(name in metadata.columns for name in annot_columns) and not overwrite:
             raise RuntimeError(
                 "Metadata for Epochs already contains columns "
                 '"annot_onset", "annot_duration", or "annot_description".'
@@ -957,6 +1018,7 @@ class EpochAnnotationsMixin:
         # onsets, durations, and descriptions
         epoch_annot_list = self.get_annotations_per_epoch()
         onset, duration, description = [], [], []
+        annot_metadata = {k: [] for k in annot_metadata_cols}
         for epoch_annot in epoch_annot_list:
             for ix, annot_prop in enumerate((onset, duration, description)):
                 entry = [annot[ix] for annot in epoch_annot]
@@ -967,11 +1029,17 @@ class EpochAnnotationsMixin:
 
                 annot_prop.append(entry)
 
+            for col in annot_metadata_cols:
+                entry = [annot[3][col] for annot in epoch_annot]
+                annot_metadata[col].append(entry)
+
         # Create a new Annotations column that is instantiated as an empty
         # list per Epoch.
         metadata["annot_onset"] = pd.Series(onset)
         metadata["annot_duration"] = pd.Series(duration)
         metadata["annot_description"] = pd.Series(description)
+        for col in annot_metadata_cols:
+            metadata[col] = pd.Series(annot_metadata[col])
 
         # reset the metadata
         self.metadata = metadata
@@ -984,6 +1052,20 @@ def _combine_annotations(
     """Combine a tuple of annotations."""
     assert one is not None
     assert two is not None
+    if not (one.metadata is None) == (two.metadata is None):
+        raise ValueError(
+            "Cannot combine annotations with different metadata. "
+            "Either both must have metadata or neither."
+        )
+    if one.metadata is not None:
+        if one.metadata.columns.tolist() != two.metadata.columns.tolist():
+            raise ValueError(
+                "Cannot combine annotations with different metadata columns."
+            )
+        pd = _check_pandas_installed(strict=True)
+        metadata = pd.concat([one.metadata, two.metadata], ignore_index=True)
+    else:
+        metadata = None
     shift = one_n_samples / sfreq  # to the right by the number of samples
     shift += one_first_samp / sfreq  # to the right by the offset
     shift -= two_first_samp / sfreq  # undo its offset
@@ -991,7 +1073,7 @@ def _combine_annotations(
     duration = np.concatenate([one.duration, two.duration])
     description = np.concatenate([one.description, two.description])
     ch_names = np.concatenate([one.ch_names, two.ch_names])
-    return Annotations(onset, duration, description, one.orig_time, ch_names)
+    return Annotations(onset, duration, description, one.orig_time, ch_names, metadata)
 
 
 def _handle_meas_date(meas_date):
@@ -1100,6 +1182,11 @@ def _write_annotations(fid, annotations):
         write_string(
             fid, FIFF.FIFF_MNE_EPOCHS_DROP_LOG, json.dumps(tuple(annotations.ch_names))
         )
+    if annotations.metadata is not None:
+        logger.warning(
+            "Writing annotations metadata to fif is not implemented yet. "
+            "The metadata will not be saved."
+        )
     end_block(fid, FIFF.FIFFB_MNE_ANNOTATIONS)
 
 
@@ -1128,11 +1215,16 @@ def _write_annotations_txt(fname, annot):
                 for ci, ch in enumerate(annot.ch_names)
             ]
         )
+    if annot.metadata is not None:
+        logger.warning(
+            "Writing annotations metadata to txt is not implemented yet. "
+            "The metadata will not be saved."
+        )
     content += "\n"
     data = np.array(data, dtype=str).T
     assert data.ndim == 2
     assert data.shape[0] == len(annot.onset)
-    assert data.shape[1] in (3, 4)
+    assert data.shape[1] >= 3
     with open(fname, "wb") as fid:
         fid.write(content.encode())
         np.savetxt(fid, data, delimiter=",", fmt="%s")
@@ -1275,7 +1367,14 @@ def _read_annotations_csv(fname):
             _safe_name_list(val, "read", "annotation channel name")
             for val in df["ch_names"].values
         ]
-    return Annotations(onset, duration, description, orig_time, ch_names)
+    other_columns = df.columns.difference(
+        ["onset", "duration", "description", "ch_names"]
+    )
+    if len(other_columns) > 0:
+        metadata = df[other_columns]
+    else:
+        metadata = None
+    return Annotations(onset, duration, description, orig_time, ch_names, metadata)
 
 
 def _read_brainstorm_annotations(fname, orig_time=None):

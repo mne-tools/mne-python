@@ -479,12 +479,12 @@ def test_average_movements():
 def _assert_drop_log_types(drop_log):
     __tracebackhide__ = True
     assert isinstance(drop_log, tuple), "drop_log should be tuple"
-    assert all(isinstance(log, tuple) for log in drop_log), (
-        "drop_log[ii] should be tuple"
-    )
-    assert all(isinstance(s, str) for log in drop_log for s in log), (
-        "drop_log[ii][jj] should be str"
-    )
+    assert all(
+        isinstance(log, tuple) for log in drop_log
+    ), "drop_log[ii] should be tuple"
+    assert all(
+        isinstance(s, str) for log in drop_log for s in log
+    ), "drop_log[ii][jj] should be str"
 
 
 def test_reject():
@@ -4917,9 +4917,15 @@ def test_add_channels_picks():
 
 @pytest.mark.parametrize("first_samp", [0, 10])
 @pytest.mark.parametrize(
-    "meas_date, orig_date", [[None, None], [np.pi, None], [np.pi, timedelta(seconds=1)]]
+    "meas_date, orig_date, with_metadata",
+    [
+        [None, None, False],
+        [np.pi, None, False],
+        [np.pi, timedelta(seconds=1), False],
+        [None, None, True],
+    ],
 )
-def test_epoch_annotations(first_samp, meas_date, orig_date, tmp_path):
+def test_epoch_annotations(first_samp, meas_date, orig_date, with_metadata, tmp_path):
     """Test Epoch Annotations from RawArray with dates.
 
     Tests the following cases crossed with each other:
@@ -4927,7 +4933,7 @@ def test_epoch_annotations(first_samp, meas_date, orig_date, tmp_path):
     - with and without meas_date
     - with and without an orig_time set in Annotations
     """
-    pytest.importorskip("pandas")
+    pd = pytest.importorskip("pandas")
     from pandas.testing import assert_frame_equal
 
     data = np.random.randn(2, 400) * 10e-12
@@ -4947,6 +4953,11 @@ def test_epoch_annotations(first_samp, meas_date, orig_date, tmp_path):
         duration=[ant_dur, ant_dur, ant_dur],
         description=["x", "y", "z"],
         orig_time=orig_date,
+        metadata=(
+            pd.DataFrame({"foo": [1, 2, 3], "bar": list("abc")})
+            if with_metadata
+            else None
+        ),
     )
     raw.set_annotations(ants)
     epochs = make_fixed_length_epochs(raw, duration=1, overlap=0.5)
@@ -4957,6 +4968,9 @@ def test_epoch_annotations(first_samp, meas_date, orig_date, tmp_path):
     assert "annot_onset" in metadata.columns
     assert "annot_duration" in metadata.columns
     assert "annot_description" in metadata.columns
+    if with_metadata:
+        assert "foo" in metadata.columns
+        assert "bar" in metadata.columns
 
     # Test that writing and reading back these new metadata works
     temp_fname = tmp_path / "test-epo.fif"
@@ -4969,6 +4983,10 @@ def test_epoch_annotations(first_samp, meas_date, orig_date, tmp_path):
     assert_array_equal(raw.annotations.onset, epochs.annotations.onset)
     assert_array_equal(raw.annotations.duration, epochs.annotations.duration)
     assert_array_equal(raw.annotations.description, epochs.annotations.description)
+    if with_metadata:
+        assert_frame_equal(
+            raw.annotations.metadata, epochs.annotations.metadata
+        )
 
     # compare Epoch annotations with expected values
     epoch_ants = epochs.get_annotations_per_epoch()

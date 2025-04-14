@@ -630,10 +630,29 @@ def test_annotation_epoching():
     assert_equal([0, 2, 4], epochs.selection)
 
 
-def test_annotation_concat():
+@pytest.mark.parametrize("with_metadata", [True, False])
+def test_annotation_concat(with_metadata):
     """Test if two Annotations objects can be concatenated."""
-    a = Annotations([1, 2, 3], [5, 5, 8], ["a", "b", "c"], ch_names=[["1"], ["2"], []])
-    b = Annotations([11, 12, 13], [1, 2, 2], ["x", "y", "z"], ch_names=[[], ["3"], []])
+    if with_metadata:
+        pd = pytest.importorskip("pandas")
+        metadata = pd.DataFrame({"foo": [1, 2, 3], "bar": ["a", "b", "c"]})
+        metadatb = pd.DataFrame({"foo": [4, 5, 6], "bar": ["d", "e", "f"]})
+    else:
+        metadata, metadatb = None, None
+    a = Annotations(
+        [1, 2, 3],
+        [5, 5, 8],
+        ["a", "b", "c"],
+        ch_names=[["1"], ["2"], []],
+        metadata=metadata,
+    )
+    b = Annotations(
+        [11, 12, 13],
+        [1, 2, 2],
+        ["x", "y", "z"],
+        ch_names=[[], ["3"], []],
+        metadata=metadatb,
+    )
 
     # test + operator (does not modify a or b)
     c = a + b
@@ -643,6 +662,10 @@ def test_annotation_concat():
     assert_equal(len(a), 3)
     assert_equal(len(b), 3)
     assert_equal(len(c), 6)
+    if with_metadata:
+        pd.testing.assert_frame_equal(
+            c.metadata, pd.concat([metadata, metadatb], ignore_index=True)
+        )
 
     # c should have updated channel names
     want_names = np.array([("1",), ("2",), (), (), ("3",), ()], dtype="O")
