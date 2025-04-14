@@ -47,7 +47,6 @@ _both_views_dict = {
     "backlat_l": dict(azimuth=-60.0, elevation=90.0, focalpoint=ORIGIN, distance=DIST),
     "top": dict(azimuth=180.0, elevation=0.0, focalpoint=ORIGIN, distance=DIST),
     "bot": dict(azimuth=180, elevation=180, focalpoint=ORIGIN, distance=DIST),
-
 }
 
 # add short-size version entries into the dict
