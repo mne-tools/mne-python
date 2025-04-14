@@ -3609,7 +3609,7 @@ class Report:
                 alpha=0.5,
                 max_width=self.img_max_width,
                 max_res=self.img_max_res,
-                **kwargs
+                **kwargs,
             )
             self._add_image(
                 img=img,
@@ -3642,9 +3642,9 @@ class Report:
             )
 
             if src.kind == "surface" or src.kind == "mixed":
-                surfaces=dict(head=0.1, white=0.5)
+                surfaces = dict(head=0.1, white=0.5)
             else:
-                surfaces=dict(head=0.1)
+                surfaces = dict(head=0.1)
 
             kwargs = dict(
                 trans=trans,
@@ -3660,7 +3660,7 @@ class Report:
                 alpha=0.5,
                 max_width=self.img_max_width,
                 max_res=self.img_max_res,
-                **kwargs
+                **kwargs,
             )
             self._add_image(
                 img=img,
