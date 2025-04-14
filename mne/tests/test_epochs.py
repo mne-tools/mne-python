@@ -4984,9 +4984,7 @@ def test_epoch_annotations(first_samp, meas_date, orig_date, with_metadata, tmp_
     assert_array_equal(raw.annotations.duration, epochs.annotations.duration)
     assert_array_equal(raw.annotations.description, epochs.annotations.description)
     if with_metadata:
-        assert_frame_equal(
-            raw.annotations.metadata, epochs.annotations.metadata
-        )
+        assert_frame_equal(raw.annotations.metadata, epochs.annotations.metadata)
 
     # compare Epoch annotations with expected values
     epoch_ants = epochs.get_annotations_per_epoch()
