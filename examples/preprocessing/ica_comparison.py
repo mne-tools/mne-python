@@ -23,12 +23,14 @@ Note: In typical preprocessing, only one ICA algorithm is used. This example is 
 
 # %%
 
-import mne
-from mne.preprocessing import ICA
-from mne.datasets import sample
-import numpy as np
-from time import time
 from pathlib import Path
+from time import time
+
+import numpy as np
+
+import mne
+from mne.datasets import sample
+from mne.preprocessing import ICA
 
 print(__doc__)
 
@@ -41,7 +43,7 @@ print(__doc__)
 
 # Load sample dataset
 data_path = Path(sample.data_path())
-raw_file = data_path / 'MEG' / 'sample' / 'sample_audvis_raw.fif'
+raw_file = data_path / "MEG" / "sample" / "sample_audvis_raw.fif"
 raw = mne.io.read_raw_fif(raw_file, preload=True)
 raw.pick_types(meg=True, eeg=False, eog=True)
 raw.crop(0, 60)
@@ -60,6 +62,7 @@ reject_noisy = dict(mag=1e-11, grad=8000e-13)
 
 # %%
 
+
 # Run ICA
 def run_ica(raw_input, method, fit_params=None, reject=None):
     print(f"\nRunning ICA with: {method}")
@@ -74,10 +77,14 @@ def run_ica(raw_input, method, fit_params=None, reject=None):
     ica.fit(raw_input, reject=reject)
     fit_time = time() - t0
     print(f"Fitting ICA took {fit_time:.1f}s.")
-    ica.plot_components(title=f"ICA decomposition using {method} on {'noisy' if raw_input is raw_noisy else 'clean'} data\n(took {fit_time:.1f}s)")
+    ica.plot_components(
+        title=f"ICA decomposition using {method} on {'noisy' if raw_input is raw_noisy else 'clean'} data\n(took {fit_time:.1f}s)"
+    )
     return ica, fit_time
 
+
 # %%
+
 
 # Run all ICA methods
 def run_all_ica(raw_input, label, reject):
@@ -99,7 +106,7 @@ def run_all_ica(raw_input, label, reject):
         icas[full_label] = ica
         fit_times[full_label] = t
 
-        eog_inds, _ = ica.find_bads_eog(raw_input, threshold=3.0, verbose='ERROR')
+        eog_inds, _ = ica.find_bads_eog(raw_input, threshold=3.0, verbose="ERROR")
         if eog_inds:
             eog_components[full_label] = eog_inds[0]
             print(f"{full_label}: Detected EOG component at index {eog_inds[0]}")
@@ -108,6 +115,7 @@ def run_all_ica(raw_input, label, reject):
             print(f"{full_label}: No EOG component detected")
 
     return icas, fit_times, eog_components
+
 
 # %%
 
@@ -127,7 +135,9 @@ for method in ["fastica", "picard", "infomax", "infomax_extended"]:
     key = f"clean_{method}"
     comp = eog_comps.get(key)
     if comp is not None:
-        icas[key].plot_components(picks=[comp], title=f"{key} - EOG Component", show=True)
+        icas[key].plot_components(
+            picks=[comp], title=f"{key} - EOG Component", show=True
+        )
 
 # %%
 
@@ -136,7 +146,6 @@ for method in ["fastica", "picard", "infomax", "infomax_extended"]:
     key = f"noisy_{method}"
     comp = eog_comps.get(key)
     if comp is not None:
-        icas[key].plot_components(picks=[comp], title=f"{key} - EOG Component", show=True)
-
-
-
+        icas[key].plot_components(
+            picks=[comp], title=f"{key} - EOG Component", show=True
+        )
