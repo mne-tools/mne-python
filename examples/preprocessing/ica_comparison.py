@@ -24,12 +24,14 @@ This example is for educational purposes.
 
 # %%
 
-import mne
-from mne.preprocessing import ICA
-from mne.datasets import sample
-import numpy as np
-from time import time
 from pathlib import Path
+from time import time
+
+import numpy as np
+
+import mne
+from mne.datasets import sample
+from mne.preprocessing import ICA
 
 print(__doc__)
 
@@ -42,7 +44,7 @@ print(__doc__)
 
 # Load sample dataset
 data_path = Path(sample.data_path())
-raw_file = data_path / 'MEG' / 'sample' / 'sample_audvis_raw.fif'
+raw_file = data_path / "MEG" / "sample" / "sample_audvis_raw.fif"
 raw = mne.io.read_raw_fif(raw_file, preload=True)
 raw.pick_types(meg=True, eeg=False, eog=True)
 raw.crop(0, 60)
@@ -87,6 +89,7 @@ def run_ica(raw_input, method, fit_params=None, reject=None):
 
     return ica, fit_time
 
+
 # %%
 
 
@@ -107,9 +110,7 @@ def run_all_ica(raw_input, label, reject):
         icas[full_label] = ica
         fit_times[full_label] = t
 
-        eog_inds, _ = ica.find_bads_eog(
-            raw_input, threshold=3.0, verbose='ERROR'
-        )
+        eog_inds, _ = ica.find_bads_eog(raw_input, threshold=3.0, verbose="ERROR")
         if eog_inds:
             eog_components[full_label] = eog_inds[0]
             print(f"{full_label}:Detected EOG comp at index {eog_inds[0]}")
@@ -119,16 +120,13 @@ def run_all_ica(raw_input, label, reject):
 
     return icas, fit_times, eog_components
 
+
 # %%
 
 
 # Run on both raw versions
-icas_clean, times_clean, eog_clean = run_all_ica(
-    raw_clean, "clean", reject_clean
-)
-icas_noisy, times_noisy, eog_noisy = run_all_ica(
-    raw_noisy, "noisy", reject_noisy
-)
+icas_clean, times_clean, eog_clean = run_all_ica(raw_clean, "clean", reject_clean)
+icas_noisy, times_noisy, eog_noisy = run_all_ica(raw_noisy, "noisy", reject_noisy)
 
 # Combine results
 icas = {**icas_clean, **icas_noisy}
@@ -143,9 +141,7 @@ for method in ["fastica", "picard", "infomax", "infomax_extended"]:
     comp = eog_comps.get(key)
     if comp is not None:
         icas[key].plot_components(
-            picks=[comp],
-            title=f"{key} - EOG Component (Clean Data)",
-            show=True
+            picks=[comp], title=f"{key} - EOG Component (Clean Data)", show=True
         )
 
 # %%
@@ -156,7 +152,5 @@ for method in ["fastica", "picard", "infomax", "infomax_extended"]:
     comp = eog_comps.get(key)
     if comp is not None:
         icas[key].plot_components(
-            picks=[comp],
-            title=f"{key} - EOG Component (Noisy Data)",
-            show=True
+            picks=[comp], title=f"{key} - EOG Component (Noisy Data)", show=True
         )
