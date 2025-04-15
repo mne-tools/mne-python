@@ -178,7 +178,7 @@ class Annotations:
         Optional data frame containing metadata for each annotation.
 
         .. versionadded:: 1.10.0
-        
+
     See Also
     --------
     mne.annotations_from_events
@@ -1196,13 +1196,10 @@ def _write_annotations(fid, annotations):
         write_string(
             fid, FIFF.FIFF_MNE_EPOCHS_DROP_LOG, json.dumps(tuple(annotations.ch_names))
         )
-    end_block(fid, FIFF.FIFFB_MNE_ANNOTATIONS)
-
     if annotations.metadata is not None:
-        start_block(fid, FIFF.FIFFB_MNE_ANNOTATIONS_METADATA)
         metadata = _prepare_write_metadata(annotations.metadata)
-        write_string(fid, FIFF.FIFF_DESCRIPTION, metadata)
-        end_block(fid, FIFF.FIFFB_MNE_ANNOTATIONS_METADATA)
+        write_string(fid, FIFF.FIFFB_MNE_METADATA, metadata)
+    end_block(fid, FIFF.FIFFB_MNE_ANNOTATIONS)
 
 
 def _write_annotations_csv(fname, annot):
@@ -1519,7 +1516,7 @@ def _read_annotations_fif(fid, tree):
         annotations = None
     else:
         annot_data = annot_data[0]
-        orig_time = ch_names = None
+        orig_time = ch_names = metadata = None
         onset, duration, description = list(), list(), list()
         for ent in annot_data["directory"]:
             kind = ent.kind
@@ -1541,17 +1538,13 @@ def _read_annotations_fif(fid, tree):
                     orig_time = tuple(orig_time)  # new way
             elif kind == FIFF.FIFF_MNE_EPOCHS_DROP_LOG:
                 ch_names = tuple(tuple(x) for x in json.loads(tag.data))
+            elif kind == FIFF.FIFFB_MNE_METADATA:
+                metadata = _prepare_read_metadata(tag.data)
+
         assert len(onset) == len(duration) == len(description)
-        metadata = None
-        metadata_tree = dir_tree_find(tree, FIFF.FIFFB_MNE_ANNOTATIONS_METADATA)
-        if len(metadata_tree) > 0:
-            for dd in metadata_tree[0]["directory"]:
-                kind = dd.kind
-                pos = dd.pos
-                if kind == FIFF.FIFF_DESCRIPTION:
-                    metadata = read_tag(fid, pos).data
-                    metadata = _prepare_read_metadata(metadata)
-                    break
+        if metadata is not None:
+            assert len(metadata) == len(onset)
+
         annotations = Annotations(
             onset, duration, description, orig_time, ch_names, metadata
         )

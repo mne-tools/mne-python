@@ -1204,7 +1204,6 @@ FIFF.FIFFB_MNE_ANNOTATIONS = 3810  # annotations block
 
 # MNE Metadata Dataframes
 FIFF.FIFFB_MNE_METADATA = 3811  # metadata dataframes block
-FIFF.FIFFB_MNE_ANNOTATIONS_METADATA = 3812  # metadata dataframes block
 
 # Table to match unrecognized channel location names to their known aliases
 CHANNEL_LOC_ALIASES = {
