@@ -43,9 +43,11 @@ from .utils import (
     _mask_to_onsets_offsets,
     _on_missing,
     _pl,
+    _prepare_read_metadata,
     _stamp_to_dt,
     _validate_type,
     check_fname,
+    _prepare_write_metadata,
     fill_doc,
     int_like,
     logger,
@@ -94,6 +96,13 @@ def _check_o_d_s_c_m(onset, duration, description, ch_names, metadata):
             _validate_type(name, str, f"ch_names[{ai}][{ci}]")
     ch_names = _ndarray_ch_names(ch_names)
 
+    if not (len(onset) == len(duration) == len(description) == len(ch_names)):
+        raise ValueError(
+            "Onset, duration, description and ch_names must be "
+            f"equal in sizes, got {len(onset)}, {len(duration)}, "
+            f"{len(description)}, and {len(ch_names)}."
+        )
+
     if metadata is not None:
         pd = _check_pandas_installed(strict=True)
         if not (hasattr(metadata, "iloc") and hasattr(metadata, "columns")):
@@ -114,15 +123,12 @@ def _check_o_d_s_c_m(onset, duration, description, ch_names, metadata):
                     f"Metadata column '{column}' must have type int, float, or str, "
                     f"but got {metadata[column].dtype}."
                 )
+        if len(onset) != len(metadata):
+            raise ValueError(
+                "The length of metadata must match the number of annotations. "
+                f"Got {len(onset)} annotations and {len(metadata)} rows."
+            )
 
-    if not (len(onset) == len(duration) == len(description) == len(ch_names)) or (
-        metadata is not None and len(onset) != len(metadata)
-    ):
-        raise ValueError(
-            "Onset, duration, description, ch_names, and metadata must be "
-            f"equal in sizes, got {len(onset)}, {len(duration)}, "
-            f"{len(description)}, and {len(ch_names)}."
-        )
     return onset, duration, description, ch_names, metadata
 
 
@@ -511,7 +517,7 @@ class Annotations:
             df.update(ch_names=self.ch_names)
         df = pd.DataFrame(df)
         if self.metadata is not None:
-            df = pd.concat([df, self.metadata], axis="columns", ignore_index=True)
+            df = pd.concat([df, self.metadata], axis="columns")
         return df
 
     def count(self):
@@ -1182,12 +1188,13 @@ def _write_annotations(fid, annotations):
         write_string(
             fid, FIFF.FIFF_MNE_EPOCHS_DROP_LOG, json.dumps(tuple(annotations.ch_names))
         )
-    if annotations.metadata is not None:
-        logger.warning(
-            "Writing annotations metadata to fif is not implemented yet. "
-            "The metadata will not be saved."
-        )
     end_block(fid, FIFF.FIFFB_MNE_ANNOTATIONS)
+
+    if annotations.metadata is not None:
+        start_block(fid, FIFF.FIFFB_MNE_ANNOTATIONS_METADATA)
+        metadata = _prepare_write_metadata(annotations.metadata)
+        write_string(fid, FIFF.FIFF_DESCRIPTION, metadata)
+        end_block(fid, FIFF.FIFFB_MNE_ANNOTATIONS_METADATA)
 
 
 def _write_annotations_csv(fname, annot):
@@ -1216,10 +1223,10 @@ def _write_annotations_txt(fname, annot):
             ]
         )
     if annot.metadata is not None:
-        logger.warning(
-            "Writing annotations metadata to txt is not implemented yet. "
-            "The metadata will not be saved."
-        )
+        for col in annot.metadata.columns:
+            content += f", {col}"
+            data.append(annot.metadata[col].values)
+
     content += "\n"
     data = np.array(data, dtype=str).T
     assert data.ndim == 2
@@ -1427,28 +1434,49 @@ def _read_annotations_txt_parse_header(fname):
     def is_orig_time(x):
         return x.startswith("# orig_time :")
 
+    def is_columns(x):
+        return x.startswith("# onset, duration, description")
+
     with open(fname) as fid:
         header = list(takewhile(lambda x: x.startswith("#"), fid))
 
     orig_values = [h[13:].strip() for h in header if is_orig_time(h)]
     orig_values = [_handle_meas_date(orig) for orig in orig_values if _is_iso8601(orig)]
 
-    return None if not orig_values else orig_values[0]
+    columns = [[c.strip() for c in h[2:].split(",")] for h in header if is_columns(h)]
+
+    return None if not orig_values else orig_values[0], (
+        None if not columns else columns[0]
+    )
 
 
 def _read_annotations_txt(fname):
     with warnings.catch_warnings(record=True):
         warnings.simplefilter("ignore")
         out = np.loadtxt(fname, delimiter=",", dtype=np.bytes_, unpack=True)
+    orig_time, columns = _read_annotations_txt_parse_header(fname)
     ch_names = None
+    metadata = None
     if len(out) == 0:
         onset, duration, desc = [], [], []
     else:
-        _check_option("text header", len(out), (3, 4))
-        if len(out) == 3:
-            onset, duration, desc = out
+        if columns is None:
+            _check_option("text header", len(out), (3, 4))
+            columns = ["onset", "duration", "description"] + (
+                ["ch_names"] if len(out) == 4 else []
+            )
         else:
-            onset, duration, desc, ch_names = out
+            _check_option(
+                "text header", columns[:3], (["onset", "duration", "description"],)
+            )
+            _check_option("text header len", len(out), (len(columns),))
+        onset, duration, desc = out[:3]
+        i = 3
+        if len(columns) > i and columns[i] == "ch_names":
+            ch_names = out[i]
+            i += 1
+        if len(columns) > i:
+            metadata = {columns[j]: out[j] for j in range(i, len(columns))}
 
     onset = [float(o.decode()) for o in np.atleast_1d(onset)]
     duration = [float(d.decode()) for d in np.atleast_1d(duration)]
@@ -1458,8 +1486,11 @@ def _read_annotations_txt(fname):
             _safe_name_list(ch.decode().strip(), "read", f"ch_names[{ci}]")
             for ci, ch in enumerate(ch_names)
         ]
-
-    orig_time = _read_annotations_txt_parse_header(fname)
+    if metadata is not None:
+        pd = _check_pandas_installed(strict=True)
+        metadata = pd.DataFrame(
+            {k: [d.decode() for d in np.atleast_1d(v)] for k, v in metadata.items()}
+        )
 
     annotations = Annotations(
         onset=onset,
@@ -1467,6 +1498,7 @@ def _read_annotations_txt(fname):
         description=desc,
         orig_time=orig_time,
         ch_names=ch_names,
+        metadata=metadata,
     )
 
     return annotations
@@ -1502,7 +1534,20 @@ def _read_annotations_fif(fid, tree):
             elif kind == FIFF.FIFF_MNE_EPOCHS_DROP_LOG:
                 ch_names = tuple(tuple(x) for x in json.loads(tag.data))
         assert len(onset) == len(duration) == len(description)
-        annotations = Annotations(onset, duration, description, orig_time, ch_names)
+        metadata = None
+        metadata_tree = dir_tree_find(tree, FIFF.FIFFB_MNE_ANNOTATIONS_METADATA)
+        if len(metadata_tree) > 0:
+            for dd in metadata_tree[0]["directory"]:
+                kind = dd.kind
+                pos = dd.pos
+                if kind == FIFF.FIFF_DESCRIPTION:
+                    metadata = read_tag(fid, pos).data
+                    metadata = _prepare_read_metadata(metadata)
+                    break
+        annotations = Annotations(
+            onset, duration, description, orig_time, ch_names, metadata
+        )
+
     return annotations
 
 
