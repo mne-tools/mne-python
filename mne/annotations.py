@@ -104,7 +104,6 @@ def _check_o_d_s_c_m(onset, duration, description, ch_names, metadata):
         )
 
     if metadata is not None:
-        pd = _check_pandas_installed(strict=True)
         if not (hasattr(metadata, "iloc") and hasattr(metadata, "columns")):
             raise ValueError(
                 f"Metadata must be a pandas DataFrame or None, got {type(metadata)}."
@@ -453,7 +452,8 @@ class Annotations:
         self.ch_names = np.append(self.ch_names, ch_names)
         if (self.metadata is None) != (metadata is None):
             raise ValueError(
-                "Either both or none of the appended metadata and the annotations metadata should be None"
+                "Either both or none of the appended metadata "
+                "and the annotations metadata should be None"
             )
         if metadata is not None:
             pd = _check_pandas_installed(strict=True)
