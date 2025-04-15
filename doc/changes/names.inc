@@ -232,6 +232,7 @@
 .. _Phillip Alday: https://palday.bitbucket.io
 .. _Pierre Ablin: https://pierreablin.com
 .. _Pierre-Antoine Bannier: https://github.com/PABannier
+.. _Pierre Guetschel: https://github.com/PierreGtch
 .. _Ping-Keng Jao: https://github.com/nafraw
 .. _Proloy Das: https://github.com/proloyd
 .. _Qian Chu: https://github.com/qian-chu
