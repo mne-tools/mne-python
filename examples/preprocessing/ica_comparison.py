@@ -95,8 +95,6 @@ def run_all_ica(raw_input, label, reject):
     icas = {}
     fit_times = {}
     eog_components = {}
-
-
     for method, params in [
         ("fastica", None),
         ("picard", None),
@@ -122,6 +120,7 @@ def run_all_ica(raw_input, label, reject):
     return icas, fit_times, eog_components
 
 # %%
+
 
 # Run on both raw versions
 icas_clean, times_clean, eog_clean = run_all_ica(
