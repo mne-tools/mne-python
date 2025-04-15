@@ -46,10 +46,9 @@ python -m pip install $STD_ARGS --only-binary ":all:" --extra-index-url "https:/
 echo "nilearn"
 python -m pip install $STD_ARGS "git+https://github.com/nilearn/nilearn"
 
-# Not VTK 9.5+ compat yet
-# echo "VTK"
-# python -m pip install $STD_ARGS --only-binary ":all:" --extra-index-url "https://wheels.vtk.org" vtk
-# python -c "import vtk"
+echo "VTK"
+python -m pip install $STD_ARGS --only-binary ":all:" --extra-index-url "https://wheels.vtk.org" vtk
+python -c "import vtk"
 
 echo "PyVista"
 python -m pip install $STD_ARGS "git+https://github.com/pyvista/pyvista" trame trame-vtk trame-vuetify jupyter ipyevents ipympl
