@@ -1030,7 +1030,6 @@ def dummy_annotation_file(tmp_path_factory, ch_names, fmt, with_metadata):
             content[-1] += ",2,b"
             content = "\n".join(content)
 
-
     fname = tmp_path_factory.mktemp("data") / f"annotations-annot.{fmt}"
     if isinstance(content, str):
         with open(fname, "w") as f:
@@ -1166,7 +1165,7 @@ def test_read_annotation_txt_header(tmp_path):
     fname = tmp_path / "header.txt"
     with open(fname, "w") as f:
         f.write(content)
-    orig_time,_ = _read_annotations_txt_parse_header(fname)
+    orig_time, _ = _read_annotations_txt_parse_header(fname)
     want = datetime.fromtimestamp(1038942071.7201, timezone.utc)
     assert orig_time == want
 
