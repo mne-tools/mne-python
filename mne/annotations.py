@@ -172,11 +172,13 @@ class Annotations:
         More precisely to this '%%Y-%%m-%%d %%H:%%M:%%S.%%f' particular case of
         the ISO8601 format where the delimiter between date and time is ' '.
     %(ch_names_annot)s
-    metadata: instance of pandas.DataFrame | None
-        Optional data frame containing metadata for each annotation.
 
         .. versionadded:: 0.23
+    metadata : pandas.DataFrame | None
+        Optional data frame containing metadata for each annotation.
 
+        .. versionadded:: 1.10.0
+        
     See Also
     --------
     mne.annotations_from_events
@@ -210,6 +212,12 @@ class Annotations:
     instance, the annotation channels also get renamed. If channels are dropped
     from the raw instance, any channel-specific annotation that has no channels
     left in the raw instance will also be removed.
+
+    **metadata**
+
+    Metadata is a pandas DataFrame that can contain any number of columns.
+    The number of rows must match the number of annotations. The metadata
+    columns can be used to store any additional information about the annotations.
 
     **orig_time**
 
