@@ -439,6 +439,11 @@ class Annotations:
         %(ch_names_annot)s
 
             .. versionadded:: 0.23
+        metadata : pandas.DataFrame | None
+            Optional data frame containing metadata for each annotation.
+            The number of rows must match the number of annotations.
+
+            .. versionadded:: 1.10.0
 
         Returns
         -------
