@@ -767,7 +767,7 @@ class _HEDStrings(list):
 
     def __init__(self, *args, hed_version, **kwargs):
         self._hed = _soft_import("hed", "validation of HED tags in annotations")
-        self._hed_schema_version = hed_version
+        self._schema = self._hed.load_schema_version(hed_version)
         super().__init__(*args, **kwargs)
         self._objs = [self._validate_hed_string(item) for item in self]
 
@@ -779,8 +779,7 @@ class _HEDStrings(list):
 
     def _validate_hed_string(self, value):
         # create HedString object and validate it
-        schema = self._hed.load_schema_version(self._hed_schema_version)
-        hs = self._hed.HedString(value, schema)
+        hs = self._hed.HedString(value, self._schema)
         # handle any errors
         error_handler = self._hed.errors.ErrorHandler(check_for_warnings=False)
         issues = hs.validate(allow_placeholders=False, error_handler=error_handler)
