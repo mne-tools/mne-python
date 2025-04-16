@@ -1831,6 +1831,15 @@ def test_append_splits_boundary(tmp_path, split_size):
 def test_hed_annotations():
     """Test hed_strings validation."""
     pytest.importorskip("hed")
+    # test initting with bad value
+    with pytest.raises(ValueError, match="A HED string failed to validate"):
+        _ = HEDAnnotations(
+            onset=[1],
+            duration=[0.1],
+            description=["a"],
+            hed_string=["foo"],
+        )
+    # test initting
     ann = HEDAnnotations(
         onset=[1, 2, 3],
         duration=[0.1, 0.0, 0.3],
@@ -1843,28 +1852,20 @@ def test_hed_annotations():
             "Agent-action, (Experiment-participant, (Press, Mouse-button))",
         ],
     )
+    # test modifying with bad value
+    with pytest.raises(ValueError, match="A HED string failed to validate"):
+        ann.hed_string[0] = "foo"
     # test modifying
     new_value = (
         "Sensory-event, (Word, Label/Word-look), Auditory-presentation, "
         "Visual-presentation"
     )
     ann.hed_string[0] = new_value
-    # test modifying with bad value
-    with pytest.raises(ValueError, match="A HED string failed to validate"):
-        ann.hed_string[0] = "foo"
-    # test initting with bad value
-    with pytest.raises(ValueError, match="A HED string failed to validate"):
-        _ = HEDAnnotations(
-            onset=[1],
-            duration=[0.1],
-            description=["a"],
-            hed_string=["foo"],
-        )
     # test __getitem__
     first = ann[0]
     assert first["hed_string"] == new_value
     first["hed_string"] = "foo"  # should not try to validate (is a copy)
     assert ann.hed_string[0] == new_value
     # test __repr__
-    foo = repr(ann)
-    assert "Auditory-presentation,Experimental-stimulus,Sensory-event ..." in foo
+    _repr = repr(ann)
+    assert "Auditory-presentation,Experimental-stimulus,Sensory-event ..." in _repr
