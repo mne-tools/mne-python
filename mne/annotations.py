@@ -865,6 +865,7 @@ class HEDAnnotations(Annotations):
         """Show a textual summary of the object."""
         counter = Counter([hs.get_as_short() for hs in self.hed_string._objs])
 
+        # textwrap.shorten won't work: we remove all spaces and shouldn't split on `-`
         def _shorten(text, width=74, placeholder=" ..."):
             parts = text.split(",")
             out = parts[0]
