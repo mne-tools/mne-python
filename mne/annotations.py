@@ -763,7 +763,7 @@ class Annotations:
 
 
 class _HEDStrings(list):
-    """Subclass of ndarray that will validate before setting."""
+    """Subclass of list that will validate before __setitem__."""
 
     def __init__(self, *args, hed_version, **kwargs):
         self._hed = _soft_import("hed", "validation of HED tags in annotations")
