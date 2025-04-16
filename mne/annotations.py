@@ -790,6 +790,7 @@ class _HEDStrings(list):
         return hs
 
 
+@fill_doc
 class HEDAnnotations(Annotations):
     """Annotations object for annotating segments of raw data with HED tags.
 
