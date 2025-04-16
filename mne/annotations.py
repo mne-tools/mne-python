@@ -13,6 +13,7 @@ from itertools import takewhile
 from textwrap import shorten
 
 import numpy as np
+from packaging.version import Version
 from scipy.io import loadmat
 
 from ._fiff.constants import FIFF
@@ -769,17 +770,17 @@ class _HEDStrings(list):
         self._hed = _soft_import("hed", "validation of HED tags in annotations")
         self._schema = self._hed.load_schema_version(hed_version)
         super().__init__(*args, **kwargs)
-        self._objs = [self._validate_hed_string(item) for item in self]
+        self._objs = [self._validate_hed_string(item, self._schema) for item in self]
 
     def __setitem__(self, key, value):
         """Validate value first, before assigning."""
-        hs = self._validate_hed_string(value)
+        hs = self._validate_hed_string(value, self._schema)
         super().__setitem__(key, hs.get_original_hed_string())
         self._objs[key] = hs
 
-    def _validate_hed_string(self, value):
+    def _validate_hed_string(self, value, schema):
         # create HedString object and validate it
-        hs = self._hed.HedString(value, self._schema)
+        hs = self._hed.HedString(value, schema)
         # handle any errors
         error_handler = self._hed.errors.ErrorHandler(check_for_warnings=False)
         issues = hs.validate(allow_placeholders=False, error_handler=error_handler)
@@ -850,16 +851,18 @@ class HEDAnnotations(Annotations):
             orig_time=orig_time,
             ch_names=ch_names,
         )
-        self.hed_string = _HEDStrings(hed_string, hed_version=hed_version)
+        self._hed_version = hed_version
+        self.hed_string = _HEDStrings(hed_string, hed_version=self._hed_version)
 
     def __eq__(self, other):
         """Compare to another HEDAnnotations instance."""
-        return (
-            super().__eq__(self, other)
-            # TODO don't use array_equal, use HED validation approach?
-            and np.array_equal(self.hed_string, other.hed_string)
-            and self._hed_version == other._hed_version
-        )
+        _slf = self.hed_string
+        _oth = other.hed_string
+        if Version(self._hed_version) < Version(other._hed_version):
+            _slf = [_slf._validate_hed_string(v, _oth._schema) for v in _slf._objs]
+        elif Version(self._hed_version) > Version(other._hed_version):
+            _oth = [_oth._validate_hed_string(v, _slf._schema) for v in _oth._objs]
+        return super().__eq__(other) and _slf == _oth
 
     def __repr__(self):
         """Show a textual summary of the object."""
@@ -892,7 +895,7 @@ class HEDAnnotations(Annotations):
         return f"<{s}>"
 
     def __getitem__(self, key, *, with_ch_names=None):
-        """Propagate indexing and slicing to the underlying numpy structure."""
+        """Propagate indexing and slicing to the underlying NumPy structure."""
         result = super().__getitem__(key, with_ch_names=with_ch_names)
         if isinstance(result, OrderedDict):
             result["hed_string"] = self.hed_string[key]
@@ -909,6 +912,30 @@ class HEDAnnotations(Annotations):
                 orig_time=self.orig_time,
                 ch_names=result.ch_names,
             )
+
+    def __getstate__(self):
+        """Make serialization work, by removing module reference."""
+        return dict(
+            _orig_time=self._orig_time,
+            onset=self.onset,
+            duration=self.duration,
+            description=self.description,
+            ch_names=self.ch_names,
+            hed_string=list(self.hed_string),
+            _hed_version=self._hed_version,
+        )
+
+    def __setstate__(self, state):
+        """Unpack from serialized format."""
+        self._orig_time = state["_orig_time"]
+        self.onset = state["onset"]
+        self.duration = state["duration"]
+        self.description = state["description"]
+        self.ch_names = state["ch_names"]
+        self._hed_version = state["_hed_version"]
+        self.hed_string = _HEDStrings(
+            state["hed_string"], hed_version=self._hed_version
+        )
 
     def append(self, onset, duration, description, ch_names=None):
         """TODO."""

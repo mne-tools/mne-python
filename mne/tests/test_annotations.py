@@ -1855,12 +1855,17 @@ def test_hed_annotations():
     # test modifying with bad value
     with pytest.raises(ValueError, match="A HED string failed to validate"):
         ann.hed_string[0] = "foo"
-    # test modifying
+    # test modifying and __eq__
+    foo = ann.copy()
+    assert ann == foo
     new_value = (
         "Sensory-event, (Word, Label/Word-look), Auditory-presentation, "
         "Visual-presentation"
     )
+    foo.hed_string[0] = new_value
+    assert ann != foo
     ann.hed_string[0] = new_value
+    assert ann == foo
     # test __getitem__
     first = ann[0]
     assert first["hed_string"] == new_value
