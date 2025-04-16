@@ -1830,6 +1830,7 @@ def test_append_splits_boundary(tmp_path, split_size):
 
 def test_hed_annotations():
     """Test hed_strings validation."""
+    pytest.importorskip("hed")
     ann = HEDAnnotations(
         onset=[1, 2, 3],
         duration=[0.1, 0.0, 0.3],
