@@ -630,10 +630,29 @@ def test_annotation_epoching():
     assert_equal([0, 2, 4], epochs.selection)
 
 
-def test_annotation_concat():
+@pytest.mark.parametrize("with_metadata", [True, False])
+def test_annotation_concat(with_metadata):
     """Test if two Annotations objects can be concatenated."""
-    a = Annotations([1, 2, 3], [5, 5, 8], ["a", "b", "c"], ch_names=[["1"], ["2"], []])
-    b = Annotations([11, 12, 13], [1, 2, 2], ["x", "y", "z"], ch_names=[[], ["3"], []])
+    if with_metadata:
+        pd = pytest.importorskip("pandas")
+        metadata = pd.DataFrame({"foo": [1, 2, 3], "bar": ["a", "b", "c"]})
+        metadatb = pd.DataFrame({"foo": [4, 5, 6], "bar": ["d", "e", "f"]})
+    else:
+        metadata, metadatb = None, None
+    a = Annotations(
+        [1, 2, 3],
+        [5, 5, 8],
+        ["a", "b", "c"],
+        ch_names=[["1"], ["2"], []],
+        metadata=metadata,
+    )
+    b = Annotations(
+        [11, 12, 13],
+        [1, 2, 2],
+        ["x", "y", "z"],
+        ch_names=[[], ["3"], []],
+        metadata=metadatb,
+    )
 
     # test + operator (does not modify a or b)
     c = a + b
@@ -643,6 +662,10 @@ def test_annotation_concat():
     assert_equal(len(a), 3)
     assert_equal(len(b), 3)
     assert_equal(len(c), 6)
+    if with_metadata:
+        pd.testing.assert_frame_equal(
+            c.metadata, pd.concat([metadata, metadatb], ignore_index=True)
+        )
 
     # c should have updated channel names
     want_names = np.array([("1",), ("2",), (), (), ("3",), ()], dtype="O")
@@ -963,8 +986,8 @@ def _assert_annotations_equal(a, b, tol=0):
 _ORIG_TIME = datetime.fromtimestamp(1038942071.7201, timezone.utc)
 
 
-@pytest.fixture(scope="function", params=("ch_names", "fmt"))
-def dummy_annotation_file(tmp_path_factory, ch_names, fmt):
+@pytest.fixture(scope="function", params=("ch_names", "fmt", "with_metadata"))
+def dummy_annotation_file(tmp_path_factory, ch_names, fmt, with_metadata):
     """Create csv file for testing."""
     if fmt == "csv":
         content = (
@@ -982,7 +1005,9 @@ def dummy_annotation_file(tmp_path_factory, ch_names, fmt):
         )
     else:
         assert fmt == "fif"
-        content = Annotations([0, 9], [1, 2.425], ["AA", "BB"], orig_time=_ORIG_TIME)
+        content = Annotations(
+            [0, 9], [1, 2.425], ["AA", "BB"], orig_time=_ORIG_TIME, metadata=None
+        )
 
     if ch_names:
         if isinstance(content, Annotations):
@@ -993,6 +1018,16 @@ def dummy_annotation_file(tmp_path_factory, ch_names, fmt):
             content[-3] += ",ch_names"
             content[-2] += ","
             content[-1] += ",MEG0111:MEG2563"
+            content = "\n".join(content)
+    if with_metadata:
+        if isinstance(content, Annotations):
+            pd = pytest.importorskip("pandas")
+            content.metadata = pd.DataFrame({"foo": [1, 2], "bar": ["a", "b"]})
+        else:
+            content = content.splitlines()
+            content[-3] += ",foo,bar"
+            content[-2] += ",1,a"
+            content[-1] += ",2,b"
             content = "\n".join(content)
 
     fname = tmp_path_factory.mktemp("data") / f"annotations-annot.{fmt}"
@@ -1006,13 +1041,20 @@ def dummy_annotation_file(tmp_path_factory, ch_names, fmt):
 
 @pytest.mark.parametrize("ch_names", (False, True))
 @pytest.mark.parametrize("fmt", [pytest.param("csv", marks=needs_pandas), "txt", "fif"])
-def test_io_annotation(dummy_annotation_file, tmp_path, fmt, ch_names):
+@pytest.mark.parametrize(
+    "with_metadata", [pytest.param(True, marks=needs_pandas), False]
+)
+def test_io_annotation(dummy_annotation_file, tmp_path, fmt, ch_names, with_metadata):
     """Test CSV, TXT, and FIF input/output (which support ch_names)."""
     annot = read_annotations(dummy_annotation_file)
     assert annot.orig_time == _ORIG_TIME
     kwargs = dict(orig_time=_ORIG_TIME)
     if ch_names:
         kwargs["ch_names"] = ((), ("MEG0111", "MEG2563"))
+    if with_metadata:
+        pd = pytest.importorskip("pandas")
+        metadata = pd.DataFrame({"foo": [1, 2], "bar": ["a", "b"]})
+        kwargs["metadata"] = metadata
     _assert_annotations_equal(
         annot, Annotations([0.0, 9.0], [1.0, 2.425], ["AA", "BB"], **kwargs), tol=1e-6
     )
@@ -1123,7 +1165,7 @@ def test_read_annotation_txt_header(tmp_path):
     fname = tmp_path / "header.txt"
     with open(fname, "w") as f:
         f.write(content)
-    orig_time = _read_annotations_txt_parse_header(fname)
+    orig_time, _ = _read_annotations_txt_parse_header(fname)
     want = datetime.fromtimestamp(1038942071.7201, timezone.utc)
     assert orig_time == want
 
