@@ -13,6 +13,7 @@ from itertools import takewhile
 from textwrap import shorten
 
 import numpy as np
+from packaging.version import Version
 from scipy.io import loadmat
 
 from ._fiff.constants import FIFF
@@ -52,6 +53,7 @@ from .utils import (
     verbose,
     warn,
 )
+from .utils.check import _soft_import
 
 # For testing windows_like_datetime, we monkeypatch "datetime" in this module.
 # Keep the true datetime object around for _validate_type use.
@@ -151,6 +153,7 @@ class Annotations:
     --------
     mne.annotations_from_events
     mne.events_from_annotations
+    mne.HEDAnnotations
 
     Notes
     -----
@@ -288,7 +291,7 @@ class Annotations:
 
     def __eq__(self, other):
         """Compare to another Annotations instance."""
-        if not isinstance(other, Annotations):
+        if not isinstance(other, type(self)):
             return False
         return (
             np.array_equal(self.onset, other.onset)
@@ -567,6 +570,8 @@ class Annotations:
         self.duration = self.duration[order]
         self.description = self.description[order]
         self.ch_names = self.ch_names[order]
+        if hasattr(self, "hed_string"):
+            self.hed_string = self.hed_string[order]
 
     @verbose
     def crop(
@@ -756,6 +761,203 @@ class Annotations:
         )
         self.description = np.array([str(mapping.get(d, d)) for d in self.description])
         return self
+
+
+class _HEDStrings(list):
+    """Subclass of list that will validate before __setitem__."""
+
+    def __init__(self, *args, hed_version, **kwargs):
+        self._hed = _soft_import("hed", "validation of HED tags in annotations")
+        self._schema = self._hed.load_schema_version(hed_version)
+        super().__init__(*args, **kwargs)
+        self._objs = [self._validate_hed_string(item, self._schema) for item in self]
+
+    def __setitem__(self, key, value):
+        """Validate value first, before assigning."""
+        hs = self._validate_hed_string(value, self._schema)
+        super().__setitem__(key, hs.get_original_hed_string())
+        self._objs[key] = hs
+
+    def _validate_hed_string(self, value, schema):
+        # create HedString object and validate it
+        hs = self._hed.HedString(value, schema)
+        # handle any errors
+        error_handler = self._hed.errors.ErrorHandler(check_for_warnings=False)
+        issues = hs.validate(allow_placeholders=False, error_handler=error_handler)
+        error_string = self._hed.get_printable_issue_string(issues)
+        if len(error_string):
+            raise ValueError(f"A HED string failed to validate:\n  {error_string}")
+        hs.sort()
+        return hs
+
+
+@fill_doc
+class HEDAnnotations(Annotations):
+    """Annotations object for annotating segments of raw data with HED tags.
+
+    Parameters
+    ----------
+    onset : array of float, shape (n_annotations,)
+        The starting time of annotations in seconds after ``orig_time``.
+    duration : array of float, shape (n_annotations,) | float
+        Durations of the annotations in seconds. If a float, all the
+        annotations are given the same duration.
+    description : array of str, shape (n_annotations,) | str
+        Array of strings containing description for each annotation. If a
+        string, all the annotations are given the same description. To reject
+        epochs, use description starting with keyword 'bad'. See example above.
+    hed_string : array of str, shape (n_annotations,) | str
+        Sequence of strings containing a HED tag (or comma-separated list of HED tags)
+        for each annotation. If a single string is provided, all annotations are
+        assigned the same HED string.
+    hed_version : str
+        The HED schema version against which to validate the HED strings.
+    orig_time : float | str | datetime | tuple of int | None
+        A POSIX Timestamp, datetime or a tuple containing the timestamp as the
+        first element and microseconds as the second element. Determines the
+        starting time of annotation acquisition. If None (default),
+        starting time is determined from beginning of raw data acquisition.
+        In general, ``raw.info['meas_date']`` (or None) can be used for syncing
+        the annotations with raw data if their acquisition is started at the
+        same time. If it is a string, it should conform to the ISO8601 format.
+        More precisely to this '%%Y-%%m-%%d %%H:%%M:%%S.%%f' particular case of
+        the ISO8601 format where the delimiter between date and time is ' '.
+    %(ch_names_annot)s
+
+    See Also
+    --------
+    mne.Annotations
+
+    Notes
+    -----
+
+    .. versionadded:: 1.10
+    """
+
+    def __init__(
+        self,
+        onset,
+        duration,
+        description,
+        hed_string,
+        hed_version="8.3.0",
+        orig_time=None,
+        ch_names=None,
+    ):
+        super().__init__(
+            onset=onset,
+            duration=duration,
+            description=description,
+            orig_time=orig_time,
+            ch_names=ch_names,
+        )
+        self._hed_version = hed_version
+        self.hed_string = _HEDStrings(hed_string, hed_version=self._hed_version)
+
+    def __eq__(self, other):
+        """Compare to another HEDAnnotations instance."""
+        _slf = self.hed_string
+        _oth = other.hed_string
+        if Version(self._hed_version) < Version(other._hed_version):
+            _slf = [_slf._validate_hed_string(v, _oth._schema) for v in _slf._objs]
+        elif Version(self._hed_version) > Version(other._hed_version):
+            _oth = [_oth._validate_hed_string(v, _slf._schema) for v in _oth._objs]
+        return super().__eq__(other) and _slf == _oth
+
+    def __repr__(self):
+        """Show a textual summary of the object."""
+        counter = Counter([hs.get_as_short() for hs in self.hed_string._objs])
+
+        # textwrap.shorten won't work: we remove all spaces and shouldn't split on `-`
+        def _shorten(text, width=74, placeholder=" ..."):
+            parts = text.split(",")
+            out = parts[0]
+            for part in parts[1:]:
+                # +1 for the comma   ↓↓↓
+                if width < len(out) + 1 + len(part) + len(placeholder):
+                    break
+                out = f"{out},{part}"
+            return out + placeholder
+
+        kinds = [
+            f"{_shorten(k, width=74):<74} ({v})" for k, v in sorted(counter.items())
+        ]
+        if len(kinds) > 5:
+            kinds = [*kinds[:5], f"... and {len(kinds) - 5} more"]
+        kinds = "\n ".join(kinds)
+        if len(kinds):
+            kinds = f":\n {kinds}\n"
+        ch_specific = ", channel-specific" if self._any_ch_names() else ""
+        s = (
+            f"HEDAnnotations | {len(self.onset)} segment"
+            f"{_pl(len(self.onset))}{ch_specific}{kinds}"
+        )
+        return f"<{s}>"
+
+    def __getitem__(self, key, *, with_ch_names=None):
+        """Propagate indexing and slicing to the underlying NumPy structure."""
+        result = super().__getitem__(key, with_ch_names=with_ch_names)
+        if isinstance(result, OrderedDict):
+            result["hed_string"] = self.hed_string[key]
+            return result
+        else:
+            key = list(key) if isinstance(key, tuple) else key
+            hed_string = [self.hed_string[key]]
+            return HEDAnnotations(
+                result.onset,
+                result.duration,
+                result.description,
+                hed_string=hed_string,
+                hed_version=self._hed_version,
+                orig_time=self.orig_time,
+                ch_names=result.ch_names,
+            )
+
+    def __getstate__(self):
+        """Make serialization work, by removing module reference."""
+        return dict(
+            _orig_time=self._orig_time,
+            onset=self.onset,
+            duration=self.duration,
+            description=self.description,
+            ch_names=self.ch_names,
+            hed_string=list(self.hed_string),
+            _hed_version=self._hed_version,
+        )
+
+    def __setstate__(self, state):
+        """Unpack from serialized format."""
+        self._orig_time = state["_orig_time"]
+        self.onset = state["onset"]
+        self.duration = state["duration"]
+        self.description = state["description"]
+        self.ch_names = state["ch_names"]
+        self._hed_version = state["_hed_version"]
+        self.hed_string = _HEDStrings(
+            state["hed_string"], hed_version=self._hed_version
+        )
+
+    def append(self, onset, duration, description, ch_names=None):
+        """TODO."""
+        pass
+
+    def count(self):
+        """TODO. Unlike Annotations.count, keys should be HED tags not descriptions."""
+        pass
+
+    def crop(
+        self, tmin=None, tmax=None, emit_warning=False, use_orig_time=True, verbose=None
+    ):
+        """TODO."""
+        pass
+
+    def delete(self, idx):
+        """TODO."""
+        pass
+
+    def to_data_frame(self, time_format="datetime"):
+        """TODO."""
+        pass
 
 
 class EpochAnnotationsMixin:
