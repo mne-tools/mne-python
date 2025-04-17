@@ -318,6 +318,7 @@
 .. _Victor Ferat: https://github.com/vferat
 .. _Victoria Peterson: https://github.com/vpeterson
 .. _Will Turner: https://bootstrapbill.github.io
+.. _Wei Xu: https://github.com/psyxw
 .. _Xabier de Zuazo: https://github.com/zuazo
 .. _Xiaokai Xia: https://github.com/dddd1007
 .. _Yaroslav Halchenko: http://haxbylab.dartmouth.edu/ppl/yarik.html
