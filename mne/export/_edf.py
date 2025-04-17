@@ -5,6 +5,7 @@
 import datetime as dt
 from collections.abc import Callable
 
+import logging
 import numpy as np
 
 from ..annotations import _sync_onset
@@ -28,6 +29,9 @@ def _round_float_to_8_characters(
     factor = 10 ** (length - 1 - integer_part_length)
     return round_func(value * factor) / factor
 
+
+# Initialize logger
+logger = logging.getLogger(__name__)
 
 def _export_raw(fname, raw, physical_range, add_ch_type):
     """Export Raw objects to EDF files.

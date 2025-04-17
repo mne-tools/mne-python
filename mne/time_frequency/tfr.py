@@ -3709,7 +3709,6 @@ class EpochsTFRArray(EpochsTFR):
                 state[name] = value
         self.__setstate__(state)
 
-
 @fill_doc
 class RawTFR(BaseTFR):
     """Data object for spectrotemporal representations of continuous data.
@@ -3775,6 +3774,34 @@ class RawTFR(BaseTFR):
         **method_kw,
     ):
         from ..io import BaseRaw
+
+        from mne import events_from_annotations, pick_types
+
+        if isinstance(data, RawTFR):
+            raw_tfr = data
+            events, event_id = events_from_annotations(raw_tfr)
+            sfreq = raw_tfr.info['sfreq']
+            tmin = -0.2  # default, can be parameterized
+            tmax = 0.5   # default, can be parameterized
+
+            n_samples = int((tmax - tmin) * sfreq)
+            onsets = events[:, 0] + int(tmin * sfreq)
+
+            picks = pick_types(raw_tfr.info)
+            n_channels = len(picks)
+            n_freqs = len(raw_tfr.freqs)
+            n_times = n_samples
+
+            epochs_data = []
+            for onset in onsets:
+                ep = raw_tfr._data[picks, :, onset:onset + n_samples]
+                if ep.shape[-1] == n_samples:
+                    epochs_data.append(ep)
+            data = np.array(epochs_data)  # shape: [n_epochs, n_channels, n_freqs, n_times]
+
+            self.events = events
+            self.event_id = event_id
+            self.tmin = tmin
 
         # dict is allowed for __setstate__ compatibility
         _validate_type(
@@ -4308,3 +4335,42 @@ def _tfr_from_mt(x_mt, weights):
     tfr = tfr.real.sum(axis=-3)
     tfr *= 2 / (weights * weights.conj()).real.sum(axis=-3)
     return tfr
+
+@verbose
+def concatenate_epochs_tfr(epochstfr_list):
+    """Concatenate EpochsTFR objects."""
+    from copy import deepcopy
+    import numpy as np
+    import pandas as pd
+
+    if not all(isinstance(e, EpochsTFR) for e in epochstfr_list):
+        raise ValueError("All inputs must be EpochsTFR instances.")
+
+    # Check compatibility
+    first = epochstfr_list[0]
+    for e in epochstfr_list[1:]:
+        if not np.array_equal(e.freqs, first.freqs):
+            raise ValueError("All EpochsTFR must have the same frequencies.")
+        if not np.array_equal(e.times, first.times):
+            raise ValueError("All EpochsTFR must have the same times.")
+        if e.info['ch_names'] != first.info['ch_names']:
+            raise ValueError("Channel mismatch between EpochsTFR objects.")
+
+    # Concatenate
+    data = np.concatenate([e.data for e in epochstfr_list], axis=0)
+    events = np.concatenate([e.events for e in epochstfr_list], axis=0)
+    metadata = None
+    if all(e.metadata is not None for e in epochstfr_list):
+        metadata = pd.concat([e.metadata for e in epochstfr_list], ignore_index=True)
+
+    new = EpochsTFRArray(
+        data=data,
+        info=deepcopy(first.info),
+        tmin=first.tmin,
+        events=events,
+        event_id=first.event_id,
+        metadata=metadata,
+        freqs=first.freqs,
+        times=first.times
+    )
+    return new

@@ -81,5 +81,6 @@ from .tfr import (
     tfr_array_morlet,
     tfr_morlet,
     tfr_multitaper,
+    concatenate_epochs_tfr,
     write_tfrs,
 )

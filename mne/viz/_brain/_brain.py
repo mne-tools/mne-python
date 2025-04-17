@@ -2261,17 +2261,40 @@ class Brain:
 
         scalars = np.zeros(self.geo[hemi].coords.shape[0])
         scalars[ids] = 1
+
+        from warnings import warn
+        import numpy as np
+
+        is_flat = self._hemi_surfs[hemi]['surface'] == 'flat'
+
         if borders:
-            keep_idx = _mesh_borders(self.geo[hemi].faces, scalars)
-            show = np.zeros(scalars.size, dtype=np.int64)
-            if isinstance(borders, int):
-                for _ in range(borders):
-                    keep_idx = np.isin(self.geo[hemi].faces.ravel(), keep_idx)
-                    keep_idx.shape = self.geo[hemi].faces.shape
-                    keep_idx = self.geo[hemi].faces[np.any(keep_idx, axis=1)]
-                    keep_idx = np.unique(keep_idx)
-            show[keep_idx] = 1
-            scalars *= show
+            if is_flat:
+                warn("Label borders cannot be displayed on flat surfaces. Skipping borders.")
+                borders = False
+            else:
+                keep_idx = _mesh_borders(self.geo[hemi].faces, scalars)
+                show = np.zeros(scalars.size, dtype=np.int64)
+                if isinstance(borders, int):
+                    for _ in range(borders):
+                        keep_idx = np.isin(self.geo[hemi].faces.ravel(), keep_idx)
+                        keep_idx.shape = self.geo[hemi].faces.shape
+                        keep_idx = self.geo[hemi].faces[np.any(keep_idx, axis=1)]
+                        keep_idx = np.unique(keep_idx)
+                show[keep_idx] = 1
+                scalars *= show
+
+        # if borders:
+        #     keep_idx = _mesh_borders(self.geo[hemi].faces, scalars)
+        #     show = np.zeros(scalars.size, dtype=np.int64)
+        #     if isinstance(borders, int):
+        #         for _ in range(borders):
+        #             keep_idx = np.isin(self.geo[hemi].faces.ravel(), keep_idx)
+        #             keep_idx.shape = self.geo[hemi].faces.shape
+        #             keep_idx = self.geo[hemi].faces[np.any(keep_idx, axis=1)]
+        #             keep_idx = np.unique(keep_idx)
+        #     show[keep_idx] = 1
+        #     scalars *= show
+
         for _, _, v in self._iter_views(hemi):
             mesh = self._layered_meshes[hemi]
             mesh.add_overlay(
