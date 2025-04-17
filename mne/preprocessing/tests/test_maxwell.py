@@ -498,7 +498,12 @@ def test_spherical_conversions():
         for order in range(0, degree + 1):
             sph = sph_harm_y(degree, order, pol, az)
             # ensure that we satisfy the conjugation property
-            assert_allclose(_sh_negate(sph, order),sph_harm_func(-order, degree, az, pol),rtol=1e-5, atol=1e-3)
+            assert_allclose(
+                _sh_negate(sph, order),
+                sph_harm_func(-order, degree, az, pol),
+                rtol=1e-5,
+                atol=1e-3,
+            )
             # ensure our conversion functions work
             sph_real_pos = _sh_complex_to_real(sph, order)
             sph_real_neg = _sh_complex_to_real(sph, -order)

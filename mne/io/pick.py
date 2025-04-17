@@ -16,4 +16,3 @@ __all__ = [
     "_DATA_CH_TYPES_ORDER_DEFAULT",
     "_DATA_CH_TYPES_SPLIT",
 ]
-

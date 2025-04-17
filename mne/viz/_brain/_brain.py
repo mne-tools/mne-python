@@ -2263,13 +2263,16 @@ class Brain:
         scalars[ids] = 1
 
         from warnings import warn
+
         import numpy as np
 
-        is_flat = self._hemi_surfs[hemi]['surface'] == 'flat'
+        is_flat = self._hemi_surfs[hemi]["surface"] == "flat"
 
         if borders:
             if is_flat:
-                warn("Label borders cannot be displayed on flat surfaces. Skipping borders.")
+                warn(
+                    "Label borders cannot be displayed on flat surfaces. Skipping borders."
+                )
                 borders = False
             else:
                 keep_idx = _mesh_borders(self.geo[hemi].faces, scalars)

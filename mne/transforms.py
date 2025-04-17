@@ -4,7 +4,7 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-import glob 
+import glob
 import os
 from copy import deepcopy
 from pathlib import Path
@@ -24,7 +24,6 @@ from ._fiff.tag import read_tag
 from ._fiff.write import start_and_end_file, write_coord_trans
 from .defaults import _handle_default
 from .fixes import _get_img_fdata, jit
-
 from .utils import (
     _check_fname,
     _check_option,
