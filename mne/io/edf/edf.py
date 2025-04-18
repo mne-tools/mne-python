@@ -23,6 +23,7 @@ from ...fixes import read_from_file_or_buffer
 from ...utils import (
     _file_like,
     _validate_type,
+    _check_fname,
     fill_doc,
     logger,
     verbose,
@@ -1996,8 +1997,8 @@ def read_raw_edf(
     However, this reader currently sets subseconds to 0 by default.
     """
     if not _file_like(input_fname):
-        input_fname = os.path.abspath(input_fname)
-        ext = os.path.splitext(input_fname)[1][1:].lower()
+        input_fname = _check_fname(fname=input_fname, overwrite="read", must_exist=True)
+        ext = input_fname.suffix[1:].lower()
 
         if ext != "edf":
             raise NotImplementedError(f"Only EDF files are supported, got {ext}.")
@@ -2141,8 +2142,8 @@ def read_raw_bdf(
     encoded in such analog stim channels.
     """
     if not _file_like(input_fname):
-        input_fname = os.path.abspath(input_fname)
-        ext = os.path.splitext(input_fname)[1][1:].lower()
+        input_fname = _check_fname(fname=input_fname, overwrite="read", must_exist=True)
+        ext = input_fname.suffix[1:].lower()
 
         if ext != "bdf":
             raise NotImplementedError(f"Only BDF files are supported, got {ext}.")
@@ -2187,7 +2188,7 @@ def read_raw_gdf(
 
         .. versionchanged:: 1.10
             Added support for file-like objects
-            
+
     eog : list or tuple
         Names of channels or list of indices that should be designated EOG
         channels. Values should correspond to the electrodes in the file.
@@ -2230,8 +2231,8 @@ def read_raw_gdf(
     encoded in such analog stim channels.
     """
     if not _file_like(input_fname):
-        input_fname = os.path.abspath(input_fname)
-        ext = os.path.splitext(input_fname)[1][1:].lower()
+        input_fname = _check_fname(fname=input_fname, overwrite="read", must_exist=True)
+        ext = input_fname.suffix[1:].lower()
 
         if ext != "gdf":
             raise NotImplementedError(f"Only GDF files are supported, got {ext}.")
