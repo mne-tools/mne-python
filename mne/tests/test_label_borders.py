@@ -1,17 +1,32 @@
 import numpy as np
-import pytest
-
 import mne
+import pytest
 
 
 class MockBrain:
+    """
+    Mock class to simulate the Brain object for testing label border functionality.
+    """
+
     def __init__(self, subject, hemi, surf):
+        """
+        Initialize the MockBrain with subject, hemisphere, and surface type.
+        """
         self.subject = subject
         self.hemi = hemi
         self.surf = surf
 
     def add_label(self, label, borders=False):
-        # Simulate adding a label and handling borders logic
+        """
+        Simulate adding a label and handling borders logic.
+        
+        Parameters:
+        - label: The label to be added.
+        - borders: Whether to add borders to the label.
+        
+        Returns:
+        - str: The action taken with respect to borders.
+        """
         if borders:
             is_flat = self.surf == "flat"
             if is_flat:
@@ -26,6 +41,12 @@ class MockBrain:
         """
         Project the 3D vertices of the label onto a 2D plane.
         This is a simplified approach and may need refinement based on the actual brain surface.
+
+        Parameters:
+        - label: The label whose vertices are to be projected.
+
+        Returns:
+        - np.array: The 2D projection of the label's vertices.
         """
         vertices_3d = label.vertices  # Assumed 3D vertices of the label
         projected_vertices_2d = []
@@ -40,6 +61,12 @@ class MockBrain:
         """
         Render the label borders on the flat surface using the 2D projected vertices.
         This function is a placeholder and should be adapted based on the actual rendering system.
+
+        Parameters:
+        - label_2d: The 2D projection of the label's vertices.
+
+        Returns:
+        - list: The borders to be rendered.
         """
         borders = []
         for vertex in label_2d:
@@ -49,19 +76,23 @@ class MockBrain:
 
 @pytest.fixture
 def mock_brain():
+    """
+    Fixture to set up a mock brain object with a flat surface for testing.
+    
+    Returns:
+    - MockBrain: The mock brain object.
+    """
     # Set up mock brain with flat surface
     subject = "fsaverage"
     return MockBrain(subject=subject, hemi="lh", surf="flat")
 
 
 def test_label_borders(mock_brain):
-    """Test the visualization of label borders on the brain surface."""
-    # Get the path to MNE sample data
-    subjects_dir = mne.datasets.sample.data_path()
-
+    """
+    Test the visualization of label borders on the brain surface.
+    This test simulates adding labels with and without borders to the flat brain surface.
+    """
     # Create mock labels as if they were read from the annotation file
-    # Using a few dummy labels for testing purposes,
-    # adding 'hemi' and 'vertices' to simulate label structure
     labels = [
         mne.Label(np.array([0, 1, 2]), name=f"label_{i}", hemi="lh") for i in range(3)
     ]
@@ -71,6 +102,3 @@ def test_label_borders(mock_brain):
 
     # Assert that the message indicates skipping borders on flat surface
     assert "Skipping borders" in result
-
-
-# No need to call the test function directly; pytest handles that
