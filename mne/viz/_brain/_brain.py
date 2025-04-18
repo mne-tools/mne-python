@@ -10,9 +10,9 @@ import traceback
 import warnings
 from functools import partial
 from io import BytesIO
+from warnings import warn
 
 import numpy as np
-from warnings import warn
 from scipy.interpolate import interp1d
 from scipy.sparse import csr_array
 from scipy.spatial.distance import cdist
@@ -52,7 +52,6 @@ from ...utils import (
     logger,
     use_log_level,
     verbose,
-    warn,
 )
 from .._3d import (
     _check_views,
@@ -2267,12 +2266,21 @@ class Brain:
 
         if borders:
             if is_flat:
-                warn(
-                    "Label borders cannot be displayed on flat surfaces. 
-                    "Skipping borders."
-                )
-                borders = False
+                # Instead of warning, calculate and show the borders for flat surfaces
+                keep_idx = _mesh_borders(self.geo[hemi].faces, scalars)
+                show = np.zeros(scalars.size, dtype=np.int64)
+                if isinstance(borders, int):
+                    for _ in range(borders):
+                        # Refine border calculation by checking neighboring borders
+                        keep_idx = np.isin(self.geo[hemi].faces.ravel(), keep_idx)
+                        keep_idx.shape = self.geo[hemi].faces.shape
+                        keep_idx = self.geo[hemi].faces[np.any(keep_idx, axis=1)]
+                        keep_idx = np.unique(keep_idx)
+                show[keep_idx] = 1
+                scalars *= show  # Apply the border filter to the scalars
+
             else:
+                # For non-flat surfaces, proceed with the existing logic
                 keep_idx = _mesh_borders(self.geo[hemi].faces, scalars)
                 show = np.zeros(scalars.size, dtype=np.int64)
                 if isinstance(borders, int):
@@ -2284,6 +2292,7 @@ class Brain:
                 show[keep_idx] = 1
                 scalars *= show
 
+        # Add the overlay to the mesh
         for _, _, v in self._iter_views(hemi):
             mesh = self._layered_meshes[hemi]
             mesh.add_overlay(
@@ -2293,6 +2302,7 @@ class Brain:
                 opacity=alpha,
                 name=label_name,
             )
+
             if self.time_viewer and self.show_traces and self.traces_mode == "label":
                 label._color = orig_color
                 label._line = line
