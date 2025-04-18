@@ -1773,33 +1773,33 @@ class SelectFromCollection:
         self.canvas.draw_idle()
 
 
-def _get_color_list(annotations=False):
+def _get_color_list(*, remove=None):
     """Get the current color list from matplotlib rcParams.
 
     Parameters
     ----------
-    annotations : boolean
-        Has no influence on the function if false. If true, check if color
-        "red" (#ff0000) is in the cycle and remove it.
+    remove : tuple of str | None
+        Has no influence on the function if None. Can be a list of colors to
+        remove from the list if within 1/255 of the color.
 
     Returns
     -------
     colors : list
     """
     from matplotlib import rcParams
+    from matplotlib.colors import to_rgba_array
 
     color_cycle = rcParams.get("axes.prop_cycle")
     colors = color_cycle.by_key()["color"]
 
-    # If we want annotations, red is reserved ... remove if present. This
-    # checks for the reddish color in MPL dark background style, normal style,
-    # and MPL "red", and defaults to the last of those if none are present
-    for red in ("#fa8174", "#d62728", "#ff0000"):
-        if annotations and red in colors:
-            colors.remove(red)
-            break
-
-    return (colors, red) if annotations else colors
+    colors_cast = to_rgba_array(colors)[:, :3]
+    atol = 1.5 / 255.0
+    for rem in to_rgba_array(remove or [])[:, :3]:
+        matches = np.where(np.isclose(colors_cast, rem, atol=atol).all(-1))[0][::-1]
+        for idx in matches:
+            logger.debug(f"Removing from color cycle: {colors[idx]}")
+            colors.pop(idx)
+    return colors
 
 
 def _merge_annotations(start, stop, description, annotations, current=()):

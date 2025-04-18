@@ -190,7 +190,7 @@ def plot_head_positions(
     _check_option("mode", mode, ["traces", "field"])
     _validate_type(totals, bool, "totals")
     dest_info = dict(dev_head_t=None) if info is None else info
-    destination = _check_destination(destination, dest_info, head_frame=True)
+    destination = _check_destination(destination, dest_info, "head")
     if destination is not None:
         destination = _ensure_trans(destination, "head", "meg")  # probably inv
         destination = destination["trans"]
@@ -915,6 +915,7 @@ def plot_alignment(
             surf, coord_frame, [to_cf_t["mri"], to_cf_t["head"]], copy=True
         )
         renderer.surface(
+            name=key,
             surface=surf,
             color=colors[key],
             opacity=alphas[key],
@@ -1021,7 +1022,7 @@ def _handle_sensor_types(meg, eeg, fnirs):
 
     alpha_map = dict(
         meg=dict(sensors="meg", helmet="meg_helmet", ref="ref_meg"),
-        eeg=dict(original="eeg", projected="eeg_projected"),
+        eeg=dict(original="eeg", projected="eegp"),
         fnirs=dict(channels="fnirs", pairs="fnirs_pairs"),
     )
     sensor_alpha = {
@@ -1169,7 +1170,11 @@ def _plot_helmet(
             src_surf, coord_frame, [to_cf_t["mri"], to_cf_t["head"]], copy=True
         )
     actor, dst_surf = renderer.surface(
-        surface=src_surf, color=color, opacity=alpha, backface_culling=False
+        surface=src_surf,
+        color=color,
+        opacity=alpha,
+        backface_culling=False,
+        name="helmet",
     )
     return actor, dst_surf, src_surf
 
@@ -1538,7 +1543,7 @@ def _plot_sensors_3d(
             if not fnirs or "channels" not in fnirs:
                 plot_sensors = False
         elif ch_type == "eeg":
-            if not eeg or "original" not in eeg:
+            if not eeg:
                 plot_sensors = False
         elif ch_type == "meg":
             if not meg or "sensors" not in meg:
@@ -1547,7 +1552,13 @@ def _plot_sensors_3d(
         if isinstance(ch_coord, tuple):  # is meg, plot coil
             ch_coord = dict(rr=ch_coord[0] * unit_scalar, tris=ch_coord[1])
         if plot_sensors:
-            locs[ch_type].append(ch_coord)
+            if ch_type == "eeg":
+                if "original" in eeg:
+                    locs[ch_type].append(ch_coord)
+                if "projected" in eeg:
+                    locs["eegp"].append(ch_coord)
+            else:
+                locs[ch_type].append(ch_coord)
         if ch_name in sources and "sources" in fnirs:
             locs["source"].append(sources[ch_name])
         if ch_name in detectors and "detectors" in fnirs:
@@ -1628,7 +1639,30 @@ def _plot_sensors_3d(
         else:
             sens_loc = np.array(sens_loc, float)
             mask = ~np.isnan(sens_loc).any(axis=1)
-            if len(colors) == 1 and len(scales) == 1:
+            if ch_type == "eegp":  # special case, need to project
+                logger.info("Projecting sensors to the head surface")
+                eegp_loc, eegp_nn = _project_onto_surface(
+                    sens_loc[mask], head_surf, project_rrs=True, return_nn=True
+                )[2:4]
+                eegp_loc *= unit_scalar
+                actor, _ = renderer.quiver3d(
+                    x=eegp_loc[:, 0],
+                    y=eegp_loc[:, 1],
+                    z=eegp_loc[:, 2],
+                    u=eegp_nn[:, 0],
+                    v=eegp_nn[:, 1],
+                    w=eegp_nn[:, 2],
+                    color=colors[0],  # TODO: Maybe eventually support multiple
+                    mode="cylinder",
+                    scale=scales[0] * unit_scalar,  # TODO: Also someday maybe multiple
+                    opacity=sensor_alpha[ch_type],
+                    glyph_height=defaults["eegp_height"],
+                    glyph_center=(0.0, -defaults["eegp_height"] / 2.0, 0),
+                    glyph_resolution=20,
+                    backface_culling=True,
+                )
+                actors["eeg"].append(actor)
+            elif len(colors) == 1 and len(scales) == 1:
                 # Single color mode (one actor)
                 actor, _ = _plot_glyphs(
                     renderer=renderer,
@@ -1701,29 +1735,7 @@ def _plot_sensors_3d(
                         nearest=nearest,
                     )
                     actors[ch_type].append(actor)
-        if ch_type == "eeg" and "projected" in eeg:
-            logger.info("Projecting sensors to the head surface")
-            eegp_loc, eegp_nn = _project_onto_surface(
-                sens_loc[mask], head_surf, project_rrs=True, return_nn=True
-            )[2:4]
-            eegp_loc *= unit_scalar
-            actor, _ = renderer.quiver3d(
-                x=eegp_loc[:, 0],
-                y=eegp_loc[:, 1],
-                z=eegp_loc[:, 2],
-                u=eegp_nn[:, 0],
-                v=eegp_nn[:, 1],
-                w=eegp_nn[:, 2],
-                color=defaults["eegp_color"],
-                mode="cylinder",
-                scale=defaults["eegp_scale"] * unit_scalar,
-                opacity=sensor_alpha["eeg_projected"],
-                glyph_height=defaults["eegp_height"],
-                glyph_center=(0.0, -defaults["eegp_height"] / 2.0, 0),
-                glyph_resolution=20,
-                backface_culling=True,
-            )
-            actors["eeg"].append(actor)
+
     actors = dict(actors)  # get rid of defaultdict
 
     return actors

@@ -2009,6 +2009,13 @@ head_source : str | list of str
     :func:`mne.get_head_surf` for more information.
 """
 
+docdict["helmet_upsampling"] = """
+upsampling : int
+    The upsampling factor to use for the helmet mesh. The default (1) does no
+    upsampling. Larger integers lead to more densely sampled helmet surfaces, and
+    the number of vertices increases as a factor of ``4**(upsampling-1)``.
+"""
+
 docdict["hitachi_fname"] = """
 fname : list | str
     Path(s) to the Hitachi CSV file(s). This should only be a list for
@@ -2549,6 +2556,15 @@ max_step : int
     :func:`mne.channels.find_ch_adjacency`), and not via sensors **and**
     further dimensions such as time points (e.g., via an additional call of
     :func:`mne.stats.combine_adjacency`).
+"""
+
+docdict["maxwell_mc_interp"] = """
+mc_interp : str
+    Interpolation to use between adjacent time points in movement
+    compensation. Can be "zero" (default in 1.10; used by MaxFilter),
+    "linear", or "hann" (default in 1.11).
+
+    .. versionadded:: 1.10
 """
 
 docdict["measure"] = """
