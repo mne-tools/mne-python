@@ -3,7 +3,6 @@
 # Copyright the MNE-Python contributors.
 
 import datetime as dt
-import logging
 from collections.abc import Callable
 
 import numpy as np
@@ -32,7 +31,6 @@ def _round_float_to_8_characters(
 
 # Initialize logger
 logger = logging.getLogger(__name__)
-
 
 def _export_raw(fname, raw, physical_range, add_ch_type):
     """Export Raw objects to EDF files.
