@@ -322,6 +322,7 @@
 .. _Xiaokai Xia: https://github.com/dddd1007
 .. _Yaroslav Halchenko: http://haxbylab.dartmouth.edu/ppl/yarik.html
 .. _Yiping Zuo: https://github.com/frostime
+.. _Yixiao Shen: https://github.com/SYXiao2002
 .. _Yousra Bekhti: https://www.linkedin.com/pub/yousra-bekhti/56/886/421
 .. _Yu-Han Luo: https://github.com/yh-luo
 .. _Zhi Zhang: https://github.com/tczhangzhi/
