@@ -21,9 +21,9 @@ from ...annotations import Annotations
 from ...filter import resample
 from ...fixes import read_from_file_or_buffer
 from ...utils import (
+    _check_fname,
     _file_like,
     _validate_type,
-    _check_fname,
     fill_doc,
     logger,
     verbose,
@@ -70,7 +70,7 @@ class RawEDF(BaseRaw):
 
         .. versionchanged:: 1.10
             Added support for file-like objects
-        
+
     eog : list or tuple
         Names of channels or list of indices that should be designated EOG
         channels. Values should correspond to the electrodes in the file.
@@ -1874,20 +1874,19 @@ def _find_tal_idx(ch_names):
     return tal_channel_idx
 
 
-def _check_args(
-        input_fname,
-        preload,
-        target_ext
-):
+def _check_args(input_fname, preload, target_ext):
     if not _file_like(input_fname):
         input_fname = _check_fname(fname=input_fname, overwrite="read", must_exist=True)
         ext = input_fname.suffix[1:].lower()
 
         if ext != target_ext:
-            raise NotImplementedError(f"Only {target_ext.upper()} files are supported, got {ext}.")
+            raise NotImplementedError(
+                f"Only {target_ext.upper()} files are supported, got {ext}."
+            )
     else:
         if not preload:
             raise ValueError("preload must be used with file-like objects")
+
 
 @fill_doc
 def read_raw_edf(
