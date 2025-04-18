@@ -531,9 +531,8 @@ class Brain:
         self.label_extract_mode = None
         all_keys = ("lh", "rh", "vol")
         self.act_data_smooth = {key: (None, None) for key in all_keys}
-        self.color_list = _get_color_list()
         # remove grey for better contrast on the brain
-        self.color_list.remove("#7f7f7f")
+        self.color_list = _get_color_list(remove=("#7f7f7f",))
         self.color_cycle = _ReuseCycle(self.color_list)
         self.mpl_canvas = None
         self.help_canvas = None
