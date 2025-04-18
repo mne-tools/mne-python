@@ -1874,6 +1874,21 @@ def _find_tal_idx(ch_names):
     return tal_channel_idx
 
 
+def _check_args(
+        input_fname,
+        preload,
+        target_ext
+):
+    if not _file_like(input_fname):
+        input_fname = _check_fname(fname=input_fname, overwrite="read", must_exist=True)
+        ext = input_fname.suffix[1:].lower()
+
+        if ext != target_ext:
+            raise NotImplementedError(f"Only {target_ext.upper()} files are supported, got {ext}.")
+    else:
+        if not preload:
+            raise ValueError("preload must be used with file-like objects")
+
 @fill_doc
 def read_raw_edf(
     input_fname,
@@ -1996,15 +2011,7 @@ def read_raw_edf(
     The EDF specification allows storage of subseconds in measurement date.
     However, this reader currently sets subseconds to 0 by default.
     """
-    if not _file_like(input_fname):
-        input_fname = _check_fname(fname=input_fname, overwrite="read", must_exist=True)
-        ext = input_fname.suffix[1:].lower()
-
-        if ext != "edf":
-            raise NotImplementedError(f"Only EDF files are supported, got {ext}.")
-    else:
-        if not preload:
-            raise ValueError("preload must be used with file-like objects")
+    _check_args(input_fname, preload, "edf")
 
     return RawEDF(
         input_fname=input_fname,
@@ -2141,15 +2148,7 @@ def read_raw_bdf(
     STIM channels by default. Use func:`mne.find_events` to parse events
     encoded in such analog stim channels.
     """
-    if not _file_like(input_fname):
-        input_fname = _check_fname(fname=input_fname, overwrite="read", must_exist=True)
-        ext = input_fname.suffix[1:].lower()
-
-        if ext != "bdf":
-            raise NotImplementedError(f"Only BDF files are supported, got {ext}.")
-    else:
-        if not preload:
-            raise ValueError("preload must be used with file-like objects")
+    _check_args(input_fname, preload, "bdf")
 
     return RawBDF(
         input_fname=input_fname,
@@ -2230,15 +2229,7 @@ def read_raw_gdf(
     STIM channels by default. Use func:`mne.find_events` to parse events
     encoded in such analog stim channels.
     """
-    if not _file_like(input_fname):
-        input_fname = _check_fname(fname=input_fname, overwrite="read", must_exist=True)
-        ext = input_fname.suffix[1:].lower()
-
-        if ext != "gdf":
-            raise NotImplementedError(f"Only GDF files are supported, got {ext}.")
-    else:
-        if not preload:
-            raise ValueError("preload must be used with file-like objects")
+    _check_args(input_fname, preload, "gdf")
 
     return RawGDF(
         input_fname=input_fname,
