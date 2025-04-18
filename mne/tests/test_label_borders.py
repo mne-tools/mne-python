@@ -1,5 +1,7 @@
 import numpy as np
+
 import mne
+
 
 class MockBrain:
     def __init__(self, subject, hemi, surf):
@@ -13,7 +15,9 @@ class MockBrain:
             is_flat = self.surf == "flat"
             if is_flat:
                 # Silently skip the label borders on flat surfaces (without warning)
-                print(f"Label borders cannot be displayed on flat surfaces. Skipping borders for: {label.name}.")
+                print(
+                    f"Label borders cannot be displayed on flat surfaces. Skipping borders for: {label.name}."
+                )
             else:
                 print(f"Adding borders to label: {label.name}")
         else:
@@ -44,6 +48,7 @@ class MockBrain:
         # Add logic here to actually render these borders on the flat brain visualization.
         # For example, using a plotting library (like matplotlib) to visualize these 2D points.
 
+
 def test_label_borders():
     """Test the visualization of label borders on the brain surface."""
     subject = "fsaverage"  # Use a typical subject name from the dataset
@@ -62,6 +67,7 @@ def test_label_borders():
     brain.add_label(labels[0], borders=True)
 
     print("Test passed!")
+
 
 # Run the test
 test_label_borders()
