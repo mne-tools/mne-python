@@ -5,108 +5,84 @@ import mne
 
 
 class MockBrain:
-    """
-    Mock class to simulate the Brain object for testing label border functionality.
-    """
+    """Mock class to simulate the Brain object for testing label borders."""
 
-    def __init__(self, subject, hemi, surf):
-        """
-        Initialize the MockBrain with subject, hemisphere, and surface type.
-        """
+    def __init__(self, subject: str, hemi: str, surf: str):
+        """Initialize MockBrain with subject, hemisphere, and surface type."""
         self.subject = subject
         self.hemi = hemi
         self.surf = surf
 
-    def add_label(self, label, borders=False):
+    def add_label(self, label: mne.Label, borders: bool = False) -> str:
         """
         Simulate adding a label and handling borders logic.
 
         Parameters
         ----------
-        - label: The label to be added.
-        - borders: Whether to add borders to the label.
+        label : instance of Label
+            The label to be added.
+        borders : bool
+            Whether to add borders to the label.
 
         Returns
         -------
-        - str: The action taken with respect to borders.
+        str
+            The action taken with respect to borders.
         """
         if borders:
-            is_flat = self.surf == "flat"
-            if is_flat:
+            if self.surf == "flat":
                 # Skip borders on flat surfaces without warning
                 return f"Skipping borders for label: {label.name} (flat surface)"
-            else:
-                return f"Adding borders to label: {label.name}"
-        else:
-            return f"Adding label without borders: {label.name}"
+            return f"Adding borders to label: {label.name}"
+        return f"Adding label without borders: {label.name}"
 
-    def _project_to_flat_surface(self, label):
+    def _project_to_flat_surface(self, label: mne.Label) -> np.ndarray:
         """
         Project the 3D vertices of the label onto a 2D plane.
-        This is a simplified approach and may need refinement based on the actual brain surface.
 
         Parameters
         ----------
-        - label: The label whose vertices are to be projected.
+        label : instance of Label
+            The label whose vertices are to be projected.
 
         Returns
         -------
-        - np.array: The 2D projection of the label's vertices.
+        np.ndarray
+            The 2D projection of the label's vertices.
         """
-        vertices_3d = label.vertices  # Assumed 3D vertices of the label
-        projected_vertices_2d = []
+        return np.array([vertex[:2] for vertex in label.vertices])
 
-        for vertex in vertices_3d:
-            # A simple way to project 3D to 2D: just ignore the Z-coordinate (flattening)
-            projected_vertices_2d.append(vertex[:2])  # Just keep x, y coordinates
-
-        return np.array(projected_vertices_2d)
-
-    def _render_label_borders(self, label_2d):
+    def _render_label_borders(self, label_2d: np.ndarray) -> list:
         """
-        Render the label borders on the flat surface using the 2D projected vertices.
-        This function is a placeholder and should be adapted based on the actual rendering system.
+        Render the label borders on the flat surface using 2D projected vertices.
 
         Parameters
         ----------
-        - label_2d: The 2D projection of the label's vertices.
+        label_2d : np.ndarray
+            The 2D projection of the label's vertices.
 
         Returns
         -------
-        - list: The borders to be rendered.
+        list
+            The borders to be rendered.
         """
-        borders = []
-        for vertex in label_2d:
-            borders.append(vertex)
-        return borders
+        return list(label_2d)
 
 
-@pytest.fixture
-def mock_brain():
-    """
-    Fixture to set up a mock brain object with a flat surface for testing.
-
-    Returns
-    -------
-    - MockBrain: The mock brain object.
-    """
-    # Set up mock brain with flat surface
-    subject = "fsaverage"
-    return MockBrain(subject=subject, hemi="lh", surf="flat")
-
-
-def test_label_borders(mock_brain):
-    """
-    Test the visualization of label borders on the brain surface.
-    This test simulates adding labels with and without borders to the flat brain surface.
-    """
-    # Create mock labels as if they were read from the annotation file
-    labels = [
-        mne.Label(np.array([0, 1, 2]), name=f"label_{i}", hemi="lh") for i in range(3)
-    ]
-
-    # Test: Add label with borders (this should silently skip borders for flat surfaces)
-    result = mock_brain.add_label(labels[0], borders=True)
-
-    # Assert that the message indicates skipping borders on flat surface
-    assert "Skipping borders" in result
+@pytest.mark.parametrize(
+    "surf, borders, expected",
+    [
+        ("flat", True, "Skipping borders"),
+        ("flat", False, "Adding label without borders"),
+        ("inflated", True, "Adding borders"),
+        ("inflated", False, "Adding label without borders"),
+    ],
+)
+def test_label_borders(surf, borders, expected):
+    """Test adding labels with and without borders on different brain surfaces."""
+    brain = MockBrain(subject="fsaverage", hemi="lh", surf=surf)
+    label = mne.Label(
+        np.array([[0, 0, 0], [1, 1, 1], [2, 2, 2]]), name="test_label", hemi="lh"
+    )
+    result = brain.add_label(label, borders=borders)
+    assert expected in result
