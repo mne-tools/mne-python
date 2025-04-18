@@ -1,7 +1,7 @@
 import numpy as np
-
 import mne
-
+import os
+import pytest
 
 class MockBrain:
     def __init__(self, subject, hemi, surf):
@@ -14,14 +14,12 @@ class MockBrain:
         if borders:
             is_flat = self.surf == "flat"
             if is_flat:
-                # Silently skip the label borders on flat surfaces (without warning)
-                print(
-                    f"Label borders cannot be displayed on flat surfaces. Skipping borders for: {label.name}."
-                )
+                # Skip borders on flat surfaces without warning
+                return f"Skipping borders for label: {label.name} (flat surface)"
             else:
-                print(f"Adding borders to label: {label.name}")
+                return f"Adding borders to label: {label.name}"
         else:
-            print(f"Adding label without borders: {label.name}")
+            return f"Adding label without borders: {label.name}"
 
     def _project_to_flat_surface(self, label):
         """
@@ -42,16 +40,23 @@ class MockBrain:
         Render the label borders on the flat surface using the 2D projected vertices.
         This function is a placeholder and should be adapted based on the actual rendering system.
         """
-        print("Rendering label borders on the flat brain surface:")
+        borders = []
         for vertex in label_2d:
-            print(f"Vertex: {vertex}")
-        # Add logic here to actually render these borders on the flat brain visualization.
-        # For example, using a plotting library (like matplotlib) to visualize these 2D points.
+            borders.append(vertex)
+        return borders
 
 
-def test_label_borders():
+@pytest.fixture
+def mock_brain():
+    # Set up mock brain with flat surface
+    subject = "fsaverage"
+    return MockBrain(subject=subject, hemi="lh", surf="flat")
+
+
+def test_label_borders(mock_brain):
     """Test the visualization of label borders on the brain surface."""
-    subject = "fsaverage"  # Use a typical subject name from the dataset
+    # Get the path to MNE sample data
+    subjects_dir = mne.datasets.sample.data_path()
 
     # Create mock labels as if they were read from the annotation file
     # Using a few dummy labels for testing purposes,
@@ -60,14 +65,11 @@ def test_label_borders():
         mne.Label(np.array([0, 1, 2]), name=f"label_{i}", hemi="lh") for i in range(3)
     ]
 
-    # Create the mock Brain object
-    brain = MockBrain(subject=subject, hemi="lh", surf="flat")
-
     # Test: Add label with borders (this should silently skip borders for flat surfaces)
-    brain.add_label(labels[0], borders=True)
+    result = mock_brain.add_label(labels[0], borders=True)
 
-    print("Test passed!")
+    # Assert that the message indicates skipping borders on flat surface
+    assert "Skipping borders" in result
 
 
-# Run the test
-test_label_borders()
+# No need to call the test function directly; pytest handles that
