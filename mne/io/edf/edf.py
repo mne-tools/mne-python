@@ -66,6 +66,10 @@ class RawEDF(BaseRaw):
     input_fname : path-like | file-like
         Path to the EDF, EDF+ file. If a file-like object is provided,
         preloading must be used.
+
+        .. versionchanged:: 1.10
+            Added support for file-like objects
+        
     eog : list or tuple
         Names of channels or list of indices that should be designated EOG
         channels. Values should correspond to the electrodes in the file.
@@ -275,6 +279,10 @@ class RawBDF(BaseRaw):
     input_fname : path-like | file-like
         Path to the BDF file. If a file-like object is provided,
         preloading must be used.
+
+        .. versionchanged:: 1.10
+            Added support for file-like objects
+
     eog : list or tuple
         Names of channels or list of indices that should be designated EOG
         channels. Values should correspond to the electrodes in the file.
@@ -473,6 +481,10 @@ class RawGDF(BaseRaw):
     input_fname : path-like | file-like
         Path to the GDF file. If a file-like object is provided,
         preloading must be used.
+
+        .. versionchanged:: 1.10
+            Added support for file-like objects
+
     eog : list or tuple
         Names of channels or list of indices that should be designated EOG
         channels. Values should correspond to the electrodes in the file.
@@ -1884,6 +1896,10 @@ def read_raw_edf(
     input_fname : path-like
         Path to the EDF or EDF+ file or EDF/EDF+ file itself. If a file-like
         object is provided, preload must be used.
+
+        .. versionchanged:: 1.10
+            Added support for file-like objects
+
     eog : list or tuple
         Names of channels or list of indices that should be designated EOG
         channels. Values should correspond to the electrodes in the file.
@@ -2028,6 +2044,10 @@ def read_raw_bdf(
     input_fname : path-like | file-like
         Path to the BDF file of BDF file itself. If a file-like object is
         provided, preload must be used.
+
+        .. versionchanged:: 1.10
+            Added support for file-like objects
+
     eog : list or tuple
         Names of channels or list of indices that should be designated EOG
         channels. Values should correspond to the electrodes in the file.
@@ -2164,6 +2184,10 @@ def read_raw_gdf(
     input_fname : path-like | file-like
         Path to the GDF file or GDF file itself. If a file-like object is
         provided, preload must be used.
+
+        .. versionchanged:: 1.10
+            Added support for file-like objects
+            
     eog : list or tuple
         Names of channels or list of indices that should be designated EOG
         channels. Values should correspond to the electrodes in the file.
