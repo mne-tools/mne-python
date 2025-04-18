@@ -3774,37 +3774,7 @@ class RawTFR(BaseTFR):
         verbose=None,
         **method_kw,
     ):
-        from mne import events_from_annotations, pick_types
-
         from ..io import BaseRaw
-
-        if isinstance(data, RawTFR):
-            raw_tfr = data
-            events, event_id = events_from_annotations(raw_tfr)
-            sfreq = raw_tfr.info["sfreq"]
-            tmin = -0.2  # default, can be parameterized
-            tmax = 0.5  # default, can be parameterized
-
-            n_samples = int((tmax - tmin) * sfreq)
-            onsets = events[:, 0] + int(tmin * sfreq)
-
-            picks = pick_types(raw_tfr.info)
-            n_channels = len(picks)
-            n_freqs = len(raw_tfr.freqs)
-            n_times = n_samples
-
-            epochs_data = []
-            for onset in onsets:
-                ep = raw_tfr._data[picks, :, onset : onset + n_samples]
-                if ep.shape[-1] == n_samples:
-                    epochs_data.append(ep)
-            data = np.array(
-                epochs_data
-            )  # shape: [n_epochs, n_channels, n_freqs, n_times]
-
-            self.events = events
-            self.event_id = event_id
-            self.tmin = tmin
 
         # dict is allowed for __setstate__ compatibility
         _validate_type(
