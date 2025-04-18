@@ -8,11 +8,6 @@ from contextlib import contextmanager
 from functools import partial
 from pathlib import Path
 
-try:
-    from scipy.special import sph_harm_y as sph_harm_func
-except ImportError:
-    from scipy.special import sph_harm as sph_harm_func
-
 import numpy as np
 import pytest
 from numpy.testing import assert_allclose, assert_array_equal
