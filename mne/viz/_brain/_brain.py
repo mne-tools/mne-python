@@ -12,6 +12,7 @@ from functools import partial
 from io import BytesIO
 
 import numpy as np
+from warnings import warn
 from scipy.interpolate import interp1d
 from scipy.sparse import csr_array
 from scipy.spatial.distance import cdist
@@ -2261,8 +2262,6 @@ class Brain:
 
         scalars = np.zeros(self.geo[hemi].coords.shape[0])
         scalars[ids] = 1
-
-        from warnings import warn
 
         is_flat = self._hemi_surfs[hemi]["surface"] == "flat"
 
