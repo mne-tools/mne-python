@@ -86,3 +86,9 @@ def test_label_borders(surf, borders, expected):
     )
     result = brain.add_label(label, borders=borders)
     assert expected in result
+
+    # Use internal projection and rendering functions to avoid vulture error
+    projected = brain._project_to_flat_surface(label)
+    borders_rendered = brain._render_label_borders(projected)
+    assert isinstance(borders_rendered, list)
+    assert all(len(vertex) == 2 for vertex in borders_rendered)
