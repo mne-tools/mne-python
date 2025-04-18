@@ -29,10 +29,6 @@ def _round_float_to_8_characters(
     return round_func(value * factor) / factor
 
 
-# Initialize logger
-logger = logging.getLogger(__name__)
-
-
 def _export_raw(fname, raw, physical_range, add_ch_type):
     """Export Raw objects to EDF files.
 
