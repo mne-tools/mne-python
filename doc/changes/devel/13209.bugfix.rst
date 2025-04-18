@@ -1,0 +1,1 @@
+Fix bug where :func:`mne.gui.coregistration` would emit an error for some CTF datasets, by :newcontrib:`Wei Xu`.
