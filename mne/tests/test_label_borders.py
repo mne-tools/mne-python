@@ -1,6 +1,7 @@
 import numpy as np
-import mne
 import pytest
+
+import mne
 
 
 class MockBrain:
@@ -19,12 +20,14 @@ class MockBrain:
     def add_label(self, label, borders=False):
         """
         Simulate adding a label and handling borders logic.
-        
-        Parameters:
+
+        Parameters
+        ----------
         - label: The label to be added.
         - borders: Whether to add borders to the label.
-        
-        Returns:
+
+        Returns
+        -------
         - str: The action taken with respect to borders.
         """
         if borders:
@@ -42,10 +45,12 @@ class MockBrain:
         Project the 3D vertices of the label onto a 2D plane.
         This is a simplified approach and may need refinement based on the actual brain surface.
 
-        Parameters:
+        Parameters
+        ----------
         - label: The label whose vertices are to be projected.
 
-        Returns:
+        Returns
+        -------
         - np.array: The 2D projection of the label's vertices.
         """
         vertices_3d = label.vertices  # Assumed 3D vertices of the label
@@ -62,10 +67,12 @@ class MockBrain:
         Render the label borders on the flat surface using the 2D projected vertices.
         This function is a placeholder and should be adapted based on the actual rendering system.
 
-        Parameters:
+        Parameters
+        ----------
         - label_2d: The 2D projection of the label's vertices.
 
-        Returns:
+        Returns
+        -------
         - list: The borders to be rendered.
         """
         borders = []
@@ -78,8 +85,9 @@ class MockBrain:
 def mock_brain():
     """
     Fixture to set up a mock brain object with a flat surface for testing.
-    
-    Returns:
+
+    Returns
+    -------
     - MockBrain: The mock brain object.
     """
     # Set up mock brain with flat surface
