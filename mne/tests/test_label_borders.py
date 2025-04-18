@@ -2,19 +2,16 @@ import os
 import warnings
 
 import numpy as np
-
 import mne
 
 
 def test_label_borders():
-    # Simulate the subjects_dir manually (use a local path)
-    subjects_dir = os.path.expanduser(
-        "~/mne_data/MNE-sample-data/subjects"
-    )  # Adjust the path as needed
+    """Test the visualization of label borders on the brain surface."""
     subject = "fsaverage"  # Use a typical subject name from the dataset
 
     # Create mock labels as if they were read from the annotation file
-    # Here, we're just using a few dummy labels for testing purposes, adding 'hemi' and 'vertices'
+    # Using a few dummy labels for testing purposes,
+    # adding 'hemi' and 'vertices' to simulate label structure
     labels = [
         mne.Label(np.array([0, 1, 2]), name=f"label_{i}", hemi="lh") for i in range(3)
     ]
@@ -32,7 +29,8 @@ def test_label_borders():
                 is_flat = self.surf == "flat"
                 if is_flat:
                     warnings.warn(
-                        "Label borders cannot be displayed on flat surfaces. Skipping borders."
+                        "Label borders cannot be displayed on flat surfaces. "
+                        "Skipping borders."
                     )
                 else:
                     print(f"Adding borders to label: {label.name}")
