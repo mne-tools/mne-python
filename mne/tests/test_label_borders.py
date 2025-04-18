@@ -1,7 +1,8 @@
 import numpy as np
-import mne
-import os
 import pytest
+
+import mne
+
 
 class MockBrain:
     def __init__(self, subject, hemi, surf):
