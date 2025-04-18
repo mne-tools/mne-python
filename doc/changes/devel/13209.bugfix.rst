@@ -1,1 +1,1 @@
-Fix bug where :func:`mne.gui._coreg.CoregistrationUI._set_sensors_visibility` prompts "has no attribute SetVisibility" for some CTF data when actors list contain `None`, by `Wei Xu`_.
+Fix bug where :func:`mne.gui.coregistration` would emit an error for some CTF datasets, by :newcontrib:`Wei Xu`.
