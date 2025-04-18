@@ -2037,7 +2037,7 @@ def read_raw_bdf(
     exclude_after_unique=False,
     *,
     verbose=None,
-) -> RawEDF:
+) -> RawBDF:
     """Reader function for BDF files.
 
     Parameters
