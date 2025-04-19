@@ -7,10 +7,8 @@ import os
 import os.path as op
 import time
 import traceback
-import warnings
 from functools import partial
 from io import BytesIO
-from warnings import warn
 
 import numpy as np
 from scipy.interpolate import interp1d
@@ -52,6 +50,7 @@ from ...utils import (
     logger,
     use_log_level,
     verbose,
+    warn,
 )
 from .._3d import (
     _check_views,
