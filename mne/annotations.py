@@ -13,7 +13,6 @@ from itertools import takewhile
 from textwrap import shorten
 
 import numpy as np
-from packaging.version import Version
 from scipy.io import loadmat
 
 from ._fiff.constants import FIFF
@@ -30,6 +29,7 @@ from ._fiff.write import (
     write_name_list_sanitized,
     write_string,
 )
+from .fixes import _compare_version
 from .utils import (
     _check_dict_keys,
     _check_dt,
@@ -858,9 +858,10 @@ class HEDAnnotations(Annotations):
         """Compare to another HEDAnnotations instance."""
         _slf = self.hed_string
         _oth = other.hed_string
-        if Version(self._hed_version) < Version(other._hed_version):
+
+        if _compare_version(self._hed_version, "<", other._hed_version):
             _slf = [_slf._validate_hed_string(v, _oth._schema) for v in _slf._objs]
-        elif Version(self._hed_version) > Version(other._hed_version):
+        elif _compare_version(self._hed_version, ">", other._hed_version):
             _oth = [_oth._validate_hed_string(v, _slf._schema) for v in _oth._objs]
         return super().__eq__(other) and _slf == _oth
 
