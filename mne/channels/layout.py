@@ -1089,7 +1089,7 @@ def _pair_grad_sensors(
         return picks
 
 
-def _merge_ch_data(data, ch_type, names, method="rms", modality="opm"):
+def _merge_ch_data(data, ch_type, names, method="rms", *, modality="opm"):
     """Merge data from channel pairs.
 
     Parameters
