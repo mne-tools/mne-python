@@ -1218,7 +1218,7 @@ def _merge_opm_data(data, merged_names):
     to_remove = np.unique(to_remove)
     for rem in sorted(to_remove, reverse=True):
         del merged_names[rem]
-        data = np.delete(data, rem, 0)
+    data = np.delete(data, to_remove, axis=0)
     return data, merged_names
 
 
