@@ -20,6 +20,7 @@ from scipy.sparse import csr_array
 from scipy.spatial import Delaunay, Voronoi
 from scipy.spatial.distance import pdist, squareform
 
+from .._fiff.constants import FIFF
 from .._fiff.meas_info import Info, _simplify_info
 from .._fiff.pick import (
     _MEG_CH_TYPES_SPLIT,
@@ -76,7 +77,7 @@ from .utils import (
 )
 
 _fnirs_types = ("hbo", "hbr", "fnirs_cw_amplitude", "fnirs_od")
-_opm_coils = (8002,)
+_opm_coils = (FIFF.FIFFV_COIL_QUSPIN_ZFOPM_MAG, FIFF.FIFFV_COIL_QUSPIN_ZFOPM_MAG2)
 
 
 # 3.8+ uses a single Collection artist rather than .collections
@@ -187,12 +188,12 @@ def _prepare_topomap_plot(inst, ch_type, sphere=None):
                 new_name = "x".join(s[:-4] for s in set_)
                 ch_names[idx] = new_name
         elif modality == "opm":
-            # Modify the channel names to indicate they are to be merged
-            # New names will have the form  S1xS2
+            # indicate that non-radial changes are to be removed
             for set_ in overlapping_channels:
-                idx = ch_names.index(set_[0])
-                new_name = ".".join(s for s in set_)
-                ch_names[idx] = new_name
+                for set_ch in set_[1:]:
+                    idx = ch_names.index(set_ch)
+                    new_name = set_ch.append("_MERGE-REMOVE")
+                    ch_names[idx] = new_name
 
     pos = np.array(pos)[:, :2]  # 2D plot, otherwise interpolation bugs
     return picks, pos, merge_channels, ch_names, ch_type, sphere, clip_origin

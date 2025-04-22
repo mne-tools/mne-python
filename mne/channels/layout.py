@@ -1103,7 +1103,7 @@ def _merge_ch_data(data, ch_type, names, method="rms", *, modality="opm"):
     method : str
         Can be 'rms' or 'mean'.
     modality : str
-        The modality of the data, either 'fnirs', 'opm', or 'other'
+        The modality of the data, either 'grad', 'fnirs', or 'opm'
 
     Returns
     -------
@@ -1114,7 +1114,7 @@ def _merge_ch_data(data, ch_type, names, method="rms", *, modality="opm"):
     """
     if ch_type == "grad":
         data = _merge_grad_data(data, method)
-    elif ch_type in _FNIRS_CH_TYPES_SPLIT:
+    elif modality == "fnirs" or ch_type in _FNIRS_CH_TYPES_SPLIT:
         data, names = _merge_nirs_data(data, names)
     elif modality == "opm" and ch_type == "mag":
         data, names = _merge_opm_data(data, names)
@@ -1187,11 +1187,10 @@ def _merge_nirs_data(data, merged_names):
 
 
 def _merge_opm_data(data, merged_names):
-    """Merge data from multiple opm channel using the mean.
+    """Merge data from multiple opm channel by just using the radial component.
 
-    Channel names that have an x in them will be merged. The first channel in
-    the name is replaced with the mean of all listed channels. The other
-    channels are removed.
+    Channel names that end in "MERGE_REMOVE" (ie non-radial channels) will be 
+    removed. Only the the radial channel is kept.
 
     Parameters
     ----------
@@ -1199,7 +1198,7 @@ def _merge_opm_data(data, merged_names):
         Data for channels.
     merged_names : list
         List of strings containing the channel names. Channels that are to be
-        merged contain an x between them.
+        removed end in "MERGE_REMOVE".
 
     Returns
     -------
@@ -1209,12 +1208,8 @@ def _merge_opm_data(data, merged_names):
     """
     to_remove = np.empty(0, dtype=np.int32)
     for idx, ch in enumerate(merged_names):
-        if "." in ch:
-            indices = np.empty(0, dtype=np.int32)
-            channels = ch.split(".")
-            for sub_ch in channels[1:]:
-                indices = np.append(indices, merged_names.index(sub_ch))
-            to_remove = np.append(to_remove, indices)
+        if ch.endswith("MERGE_REMOVE"):
+            to_remove = np.append(to_remove, idx)
     to_remove = np.unique(to_remove)
     for rem in sorted(to_remove, reverse=True):
         del merged_names[rem]
