@@ -61,7 +61,7 @@ plot_topomap(
     names=[f"{elt:.1f}" for elt in impedance],
 )
 ax[0].set_title("Impedances at the beginning of the recording")
-impedance = list(impedances[0].values())
+impedance = list(impedances[-1].values())
 plot_topomap(
     impedance,
     raw.info,
