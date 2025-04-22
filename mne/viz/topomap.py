@@ -192,7 +192,7 @@ def _prepare_topomap_plot(inst, ch_type, sphere=None):
             for set_ in overlapping_channels:
                 for set_ch in set_[1:]:
                     idx = ch_names.index(set_ch)
-                    new_name = set_ch.append("_MERGE-REMOVE")
+                    new_name = set_ch + "_MERGE-REMOVE"
                     ch_names[idx] = new_name
 
     pos = np.array(pos)[:, :2]  # 2D plot, otherwise interpolation bugs
