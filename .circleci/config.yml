@@ -242,10 +242,8 @@ jobs:
           command: |
             if [[ $(cat gitlog.txt) == *"[circle front]"* ]] || [[ $(cat build.txt) == "html-memory" ]] ; then
               make test-doc;
-              coverage run -m pytest --junitxml=test-results.xml;
               mkdir -p doc/_build/test-results/test-doc;
               cp junit-results.xml doc/_build/test-results/test-doc/junit.xml;
-              cp test-results.xml doc/_build/test-results/;
             fi;
       # Build docs
       - run:
@@ -294,8 +292,8 @@ jobs:
       - run:
           name: Upload test results to Codecov
           command: |
-            if [[ -f doc/_build/test-results/test-results.xml ]]; then
-              bash <(curl -s https://codecov.io/bash) -f doc/_build/test-results/test-results.xml
+            if [[ -f doc/_build/test-results/test-doc/junit.xml ]]; then
+              bash <(curl -s https://codecov.io/bash) -f doc/_build/test-results/test-doc/junit.xml
             fi
       # Save the SG RST
       - store_artifacts:
