@@ -10,7 +10,7 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 import pytest
-from matplotlib import backend_bases
+from matplotlib import backend_bases, rc_context
 from numpy.testing import assert_allclose, assert_array_equal
 
 import mne
@@ -23,6 +23,7 @@ from mne.utils import (
     _assert_no_instances,
     _dt_to_stamp,
     _record_warnings,
+    catch_logging,
     check_version,
     get_config,
     set_config,
@@ -49,6 +50,8 @@ def _get_button_xy(buttons, idx):
 
 def _annotation_helper(raw, browse_backend, events=False):
     """Test interactive annotations."""
+    from cycler import cycler  # dep of matplotlib, should be okay but nest just in case
+
     ismpl = browse_backend.name == "matplotlib"
     # Some of our checks here require modern mpl to work properly
     n_anns = len(raw.annotations)
@@ -60,7 +63,27 @@ def _annotation_helper(raw, browse_backend, events=False):
     else:
         events = None
         n_events = 0
-    fig = raw.plot(events=events)
+    # matplotlib 2.0 default cycler
+    default_cycler = cycler(
+        "color",
+        [
+            "#1f77b4",
+            "#ff7f0e",
+            "#2ca02c",
+            "#d62728",
+            "#9467bd",
+            "#8c564b",
+            "#e377c2",
+            "#7f7f7f",
+            "#bcbd22",
+            "#17becf",
+        ],
+    )  # noqa: E501
+    with catch_logging("debug") as log, rc_context({"axes.prop_cycle": default_cycler}):
+        fig = raw.plot(events=events)
+    log = log.getvalue()
+    assert "Removing from color cycle: #d62728" in log
+    assert log.count("Removing from color cycle") == 1
     if ismpl:
         assert browse_backend._get_n_figs() == 1
 
