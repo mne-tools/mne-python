@@ -13,6 +13,7 @@ from pathlib import Path
 
 import numpy as np
 import pytest
+from bs4 import BeautifulSoup
 from matplotlib import pyplot as plt
 
 from mne import (
@@ -33,6 +34,7 @@ from mne.report import report as report_mod
 from mne.report.report import (
     _ALLOWED_IMAGE_FORMATS,
     CONTENT_ORDER,
+    concatenate_reports,
 )
 from mne.utils import Bunch, _record_warnings
 from mne.utils._testing import assert_object_equal
@@ -632,6 +634,49 @@ def test_open_report(tmp_path):
 
     # Check that our companion data survived
     assert h5io.read_hdf5(hdf5, title="companion") == "test"
+
+
+def test_concatenate_reports(tmp_path, sample_meg_dir):
+    """Test the concatenate_reports function."""
+    raw_path = sample_meg_dir / "sample_audvis_raw.fif"
+    raw = read_raw_fif(raw_path, preload=True)
+    raw.set_annotations(None)
+    raw.crop(0, 20)
+
+    with tmp_path as tmp_dir:
+        tmp_path = Path(tmp_dir)
+
+        # Report 1 with custom content
+        report1 = Report(title="Report eeg_preprocessing #1")
+        report1.add_html(
+            "<div class='custom-note'>This is report one</div>", title="Note 1"
+        )
+        report1.add_raw(raw, title="Raw data", psd=False)
+        report1.save(tmp_path / "report1.html", overwrite=True, open_browser=False)
+
+        # Report 2 with different custom content
+        report2 = Report(title="Report eeg_preprocessing #2")
+        report2.add_html(
+            "<div class='custom-note'>This is report two</div>", title="Note 2"
+        )
+        report2.add_raw(raw, title="Raw data", psd=False)
+        report2.save(tmp_path / "report2.html", overwrite=True, open_browser=False)
+
+        file1 = tmp_path / "report1.html"
+        file2 = tmp_path / "report2.html"
+        output_file = tmp_path / "combined.html"
+
+        _ = concatenate_reports([file1, file2], output_file)
+
+        assert output_file.exists()
+
+        with open(output_file, encoding="utf-8") as f:
+            out_html = BeautifulSoup(f, "lxml")
+
+        assert out_html.head is not None
+        assert out_html.body is not None
+        assert out_html.find(text=lambda t: "This is report one" in t) is not None
+        assert out_html.find(text=lambda t: "This is report two" in t) is not None
 
 
 def test_remove():
