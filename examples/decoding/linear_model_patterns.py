@@ -79,7 +79,7 @@ model.fit(X, labels)
 
 # Extract and plot spatial filters and spatial patterns
 for name, coef in (("patterns", model.patterns_), ("filters", model.filters_)):
-    # We fitted the linear model onto Z-scored data. To make the filters
+    # We fit the linear model on Z-scored data. To make the filters
     # interpretable, we must reverse this normalization step
     coef = scaler.inverse_transform([coef])[0]
 

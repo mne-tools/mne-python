@@ -317,8 +317,7 @@ def _check_subject(
         _validate_type(second, "str", "subject input")
         if first is not None and first != second:
             raise ValueError(
-                f"{first_kind} ({repr(first)}) did not match "
-                f"{second_kind} ({second})"
+                f"{first_kind} ({repr(first)}) did not match {second_kind} ({second})"
             )
         return second
     elif first is not None:
@@ -1071,8 +1070,7 @@ def _check_sphere(sphere, info=None, sphere_units="m"):
                 del ch_pos["FPz"]
             elif "Fpz" not in ch_pos and "Oz" in ch_pos:
                 logger.info(
-                    "Approximating Fpz location by mirroring Oz along "
-                    "the X and Y axes."
+                    "Approximating Fpz location by mirroring Oz along the X and Y axes."
                 )
                 # This assumes Fpz and Oz have the same Z coordinate
                 ch_pos["Fpz"] = ch_pos["Oz"] * [-1, -1, 1]
@@ -1082,7 +1080,7 @@ def _check_sphere(sphere, info=None, sphere_units="m"):
                     msg = (
                         f'sphere="eeglab" requires digitization points of '
                         f"the following electrode locations in the data: "
-                        f'{", ".join(horizon_ch_names)}, but could not find: '
+                        f"{', '.join(horizon_ch_names)}, but could not find: "
                         f"{ch_name}"
                     )
                     if ch_name == "Fpz":
@@ -1263,8 +1261,7 @@ def _to_rgb(*args, name="color", alpha=False):
     except ValueError:
         args = args[0] if len(args) == 1 else args
         raise ValueError(
-            f'Invalid RGB{"A" if alpha else ""} argument(s) for {name}: '
-            f"{repr(args)}"
+            f"Invalid RGB{'A' if alpha else ''} argument(s) for {name}: {repr(args)}"
         ) from None
 
 
@@ -1288,5 +1285,5 @@ def _check_method_kwargs(func, kwargs, msg=None):
         if msg is None:
             msg = f'function "{func}"'
         raise TypeError(
-            f'Got unexpected keyword argument{s} {", ".join(invalid_kw)} for {msg}.'
+            f"Got unexpected keyword argument{s} {', '.join(invalid_kw)} for {msg}."
         )

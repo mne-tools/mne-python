@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "e7a593add4bbda513cff94f8ba7a1166919dc376",
+  "authors": [
+    {
+      "n": "Scott Huberty",
+      "e": null
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/forward/forward.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/viz/backends/tests/test_abstract.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,1 @@
+Add ``upsampling`` option to :func:`mne.make_field_map` to allow upsampling MEG helmet surfaces for plotting, by `Eric Larson`_.

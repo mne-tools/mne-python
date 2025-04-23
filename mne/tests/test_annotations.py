@@ -1450,8 +1450,7 @@ def test_repr():
     # long annotation repr (> 79 characters, will be shortened)
     r = repr(Annotations(range(14), [0] * 14, list("abcdefghijklmn")))
     assert r == (
-        "<Annotations | 14 segments: a (1), b (1), c (1), d (1), "
-        "e (1), f (1), g ...>"
+        "<Annotations | 14 segments: a (1), b (1), c (1), d (1), e (1), f (1), g ...>"
     )
 
     # empty Annotations

@@ -545,26 +545,25 @@ def _compute_tfr(
     if method == "morlet":
         W = morlet(sfreq, freqs, n_cycles=n_cycles, zero_mean=zero_mean)
         Ws = [W]  # to have same dimensionality as the 'multitaper' case
+        weights = None  # no tapers for Morlet estimates
 
     elif method == "multitaper":
-        out = _make_dpss(
+        Ws, weights = _make_dpss(
             sfreq,
             freqs,
             n_cycles=n_cycles,
             time_bandwidth=time_bandwidth,
             zero_mean=zero_mean,
-            return_weights=return_weights,
+            return_weights=True,  # required for converting complex → power
         )
-        if return_weights:
-            Ws, weights = out
-        else:
-            Ws = out
+        weights = np.asarray(weights)
 
     # Check wavelets
     if len(Ws[0][0]) > epoch_data.shape[2]:
         raise ValueError(
             "At least one of the wavelets is longer than the "
-            "signal. Use a longer signal or shorter wavelets."
+            f"signal ({len(Ws[0][0])} > {epoch_data.shape[2]} samples). "
+            "Use a longer signal or shorter wavelets."
         )
 
     # Initialize output
@@ -581,9 +580,7 @@ def _compute_tfr(
     if ("avg_" in output) or ("itc" in output):
         out = np.empty((n_chans, n_freqs, n_times), dtype)
     elif output in ["complex", "phase"] and method == "multitaper":
-        out = np.empty((n_chans, n_tapers, n_epochs, n_freqs, n_times), dtype)
-        if return_weights:
-            weights = np.array(weights)
+        out = np.empty((n_chans, n_epochs, n_tapers, n_freqs, n_times), dtype)
     else:
         out = np.empty((n_chans, n_epochs, n_freqs, n_times), dtype)
 
@@ -594,7 +591,7 @@ def _compute_tfr(
 
     # Parallelization is applied across channels.
     tfrs = parallel(
-        my_cwt(channel, Ws, output, use_fft, "same", decim, method)
+        my_cwt(channel, Ws, output, use_fft, "same", decim, weights)
         for channel in epoch_data.transpose(1, 0, 2)
     )
 
@@ -604,10 +601,7 @@ def _compute_tfr(
 
     if ("avg_" not in output) and ("itc" not in output):
         # This is to enforce that the first dimension is for epochs
-        if output in ["complex", "phase"] and method == "multitaper":
-            out = out.transpose(2, 0, 1, 3, 4)
-        else:
-            out = out.transpose(1, 0, 2, 3)
+        out = np.moveaxis(out, 1, 0)
 
     if return_weights:
         return out, weights
@@ -624,8 +618,7 @@ def _check_tfr_param(
     freqs = np.asarray(freqs, dtype=float)
     if freqs.ndim != 1:
         raise ValueError(
-            f"freqs must be of shape (n_freqs,), got {np.array(freqs.shape)} "
-            "instead."
+            f"freqs must be of shape (n_freqs,), got {np.array(freqs.shape)} instead."
         )
 
     # Check sfreq
@@ -684,7 +677,7 @@ def _check_tfr_param(
     return freqs, sfreq, zero_mean, n_cycles, time_bandwidth, decim
 
 
-def _time_frequency_loop(X, Ws, output, use_fft, mode, decim, method=None):
+def _time_frequency_loop(X, Ws, output, use_fft, mode, decim, weights=None):
     """Aux. function to _compute_tfr.
 
     Loops time-frequency transform across wavelets and epochs.
@@ -711,9 +704,8 @@ def _time_frequency_loop(X, Ws, output, use_fft, mode, decim, method=None):
         See numpy.convolve.
     decim : slice
         The decimation slice: e.g. power[:, decim]
-    method : str | None
-        Used only for multitapering to create tapers dimension in the output
-        if ``output in ['complex', 'phase']``.
+    weights : array, shape (n_tapers, n_wavelets) | None
+        Concentration weights for each taper in the wavelets, if present.
     """
     # Set output type
     dtype = np.float64
@@ -727,10 +719,12 @@ def _time_frequency_loop(X, Ws, output, use_fft, mode, decim, method=None):
     n_freqs = len(Ws[0])
     if ("avg_" in output) or ("itc" in output):
         tfrs = np.zeros((n_freqs, n_times), dtype=dtype)
-    elif output in ["complex", "phase"] and method == "multitaper":
-        tfrs = np.zeros((n_tapers, n_epochs, n_freqs, n_times), dtype=dtype)
+    elif output in ["complex", "phase"] and weights is not None:
+        tfrs = np.zeros((n_epochs, n_tapers, n_freqs, n_times), dtype=dtype)
     else:
         tfrs = np.zeros((n_epochs, n_freqs, n_times), dtype=dtype)
+    if weights is not None:
+        weights = np.expand_dims(weights, axis=-1)  # add singleton time dimension
 
     # Loops across tapers.
     for taper_idx, W in enumerate(Ws):
@@ -745,6 +739,8 @@ def _time_frequency_loop(X, Ws, output, use_fft, mode, decim, method=None):
         # Loop across epochs
         for epoch_idx, tfr in enumerate(coefs):
             # Transform complex values
+            if output not in ["complex", "phase"] and weights is not None:
+                tfr = weights[taper_idx] * tfr  # weight each taper estimate
             if output in ["power", "avg_power"]:
                 tfr = (tfr * tfr.conj()).real  # power
             elif output == "phase":
@@ -760,8 +756,8 @@ def _time_frequency_loop(X, Ws, output, use_fft, mode, decim, method=None):
             # Stack or add
             if ("avg_" in output) or ("itc" in output):
                 tfrs += tfr
-            elif output in ["complex", "phase"] and method == "multitaper":
-                tfrs[taper_idx, epoch_idx] += tfr
+            elif output in ["complex", "phase"] and weights is not None:
+                tfrs[epoch_idx, taper_idx] += tfr
             else:
                 tfrs[epoch_idx] += tfr
 
@@ -775,9 +771,14 @@ def _time_frequency_loop(X, Ws, output, use_fft, mode, decim, method=None):
     if ("avg_" in output) or ("itc" in output):
         tfrs /= n_epochs
 
-    # Normalization by number of taper
-    if n_tapers > 1 and output not in ["complex", "phase"]:
-        tfrs /= n_tapers
+    # Normalization by taper weights
+    if n_tapers > 1 and output not in ["complex", "phase", "itc"]:
+        if "avg_" not in output:  # add singleton epochs dimension to weights
+            weights = np.expand_dims(weights, axis=0)
+        tfrs.real *= 2 / (weights * weights.conj()).real.sum(axis=-3)
+        if output == "avg_power_itc":  # weight itc by the number of tapers
+            tfrs.imag = tfrs.imag / n_tapers
+
     return tfrs
 
 
@@ -1210,8 +1211,8 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
                 classname = "EpochsTFR"
             # end TODO
             raise ValueError(
-                f'{classname} got unsupported parameter value{_pl(problem)} '
-                f'{" and ".join(problem)}.'
+                f"{classname} got unsupported parameter value{_pl(problem)} "
+                f"{' and '.join(problem)}."
             )
         # check method
         valid_methods = ["morlet", "multitaper"]
@@ -1538,7 +1539,7 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
             s = _pl(negative_values.sum())
             warn(
                 f"Negative value in time-frequency decomposition for channel{s} "
-                f'{", ".join(chs)}',
+                f"{', '.join(chs)}",
                 UserWarning,
             )
 
@@ -3960,12 +3961,12 @@ def combine_tfr(all_tfr, weights="nave"):
 
     ch_names = tfr.ch_names
     for t_ in all_tfr[1:]:
-        assert (
-            t_.ch_names == ch_names
-        ), f"{tfr} and {t_} do not contain the same channels"
-        assert (
-            np.max(np.abs(t_.times - tfr.times)) < 1e-7
-        ), f"{tfr} and {t_} do not contain the same time instants"
+        assert t_.ch_names == ch_names, (
+            f"{tfr} and {t_} do not contain the same channels"
+        )
+        assert np.max(np.abs(t_.times - tfr.times)) < 1e-7, (
+            f"{tfr} and {t_} do not contain the same time instants"
+        )
 
     # use union of bad channels
     bads = list(set(tfr.info["bads"]).union(*(t_.info["bads"] for t_ in all_tfr[1:])))
@@ -4162,7 +4163,7 @@ def _read_multiple_tfrs(tfr_data, condition=None, *, verbose=None):
     if len(out) == 0:
         raise ValueError(
             f'Cannot find condition "{condition}" in this file. '
-            f'The file contains conditions {", ".join(keys)}'
+            f"The file contains conditions {', '.join(keys)}"
         )
     if len(out) == 1:
         out = out[0]
@@ -4290,19 +4291,20 @@ def _tfr_from_mt(x_mt, weights):
 
     Parameters
     ----------
-    x_mt : array, shape (n_channels, n_tapers, n_freqs, n_times)
+    x_mt : array, shape (..., n_tapers, n_freqs, n_times)
         The complex-valued multitaper coefficients.
     weights : array, shape (n_tapers, n_freqs)
         The weights to use to combine the tapered estimates.
 
     Returns
     -------
-    tfr : array, shape (n_channels, n_freqs, n_times)
+    tfr : array, shape (..., n_freqs, n_times)
         The time-frequency power estimates.
     """
-    weights = weights[np.newaxis, :, :, np.newaxis]  # add singleton channel & time dims
+    # add singleton dim for time and any dims preceding the tapers
+    weights = weights[..., np.newaxis]
     tfr = weights * x_mt
     tfr *= tfr.conj()
-    tfr = tfr.real.sum(axis=1)
-    tfr *= 2 / (weights * weights.conj()).real.sum(axis=1)
+    tfr = tfr.real.sum(axis=-3)
+    tfr *= 2 / (weights * weights.conj()).real.sum(axis=-3)
     return tfr

@@ -17,10 +17,14 @@ pytest.importorskip("sklearn")
 
 from sklearn.decomposition import PCA
 from sklearn.kernel_ridge import KernelRidge
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
+from sklearn.utils.estimator_checks import parametrize_with_checks
 
-from mne import Epochs, io, pick_types, read_events
+from mne import Epochs, EpochsArray, create_info, io, pick_types, read_events
 from mne.decoding import (
     FilterEstimator,
+    LinearModel,
     PSDEstimator,
     Scaler,
     TemporalFilter,
@@ -36,6 +40,7 @@ start, stop = 0, 8
 data_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
 raw_fname = data_dir / "test_raw.fif"
 event_name = data_dir / "test-eve.fif"
+info = create_info(2, 1000.0, "eeg")
 
 
 @pytest.mark.parametrize(
@@ -101,9 +106,11 @@ def test_scaler(info, method):
     assert_array_almost_equal(epochs_data, Xi)
 
     # Test init exception
-    pytest.raises(ValueError, Scaler, None, None)
-    pytest.raises(TypeError, scaler.fit, epochs, y)
-    pytest.raises(TypeError, scaler.transform, epochs)
+    x = Scaler(None, None)
+    with pytest.raises(ValueError):
+        x.fit(epochs_data, y)
+    pytest.raises(ValueError, scaler.fit, "foo", y)
+    pytest.raises(ValueError, scaler.transform, "foo")
     epochs_bad = Epochs(
         raw,
         events,
@@ -164,8 +171,8 @@ def test_filterestimator():
     X = filt.fit_transform(epochs_data, y)
 
     # Test init exception
-    pytest.raises(ValueError, filt.fit, epochs, y)
-    pytest.raises(ValueError, filt.transform, epochs)
+    pytest.raises(ValueError, filt.fit, "foo", y)
+    pytest.raises(ValueError, filt.transform, "foo")
 
 
 def test_psdestimator():
@@ -182,14 +189,18 @@ def test_psdestimator():
     epochs_data = epochs.get_data(copy=False)
     psd = PSDEstimator(2 * np.pi, 0, np.inf)
     y = epochs.events[:, -1]
+    assert not hasattr(psd, "fitted_")
     X = psd.fit_transform(epochs_data, y)
+    assert psd.fitted_
 
     assert X.shape[0] == epochs_data.shape[0]
     assert_array_equal(psd.fit(epochs_data, y).transform(epochs_data), X)
 
     # Test init exception
-    pytest.raises(ValueError, psd.fit, epochs, y)
-    pytest.raises(ValueError, psd.transform, epochs)
+    with pytest.raises(ValueError):
+        psd.fit("foo", y)
+    with pytest.raises(ValueError):
+        psd.transform("foo")
 
 
 def test_vectorizer():
@@ -210,9 +221,16 @@ def test_vectorizer():
     assert_equal(vect.fit_transform(data[1:]).shape, (149, 108))
 
     # check if raised errors are working correctly
-    vect.fit(np.random.rand(105, 12, 3))
-    pytest.raises(ValueError, vect.transform, np.random.rand(105, 12, 3, 1))
-    pytest.raises(ValueError, vect.inverse_transform, np.random.rand(102, 12, 12))
+    X = np.random.default_rng(0).standard_normal((105, 12, 3))
+    y = np.arange(X.shape[0]) % 2
+    pytest.raises(ValueError, vect.transform, X[..., np.newaxis])
+    pytest.raises(ValueError, vect.inverse_transform, X[:, :-1])
+
+    # And that pipelines work properly
+    X_arr = EpochsArray(X, create_info(12, 1000.0, "eeg"))
+    vect.fit(X_arr)
+    clf = make_pipeline(Vectorizer(), StandardScaler(), LinearModel())
+    clf.fit(X_arr, y)
 
 
 def test_unsupervised_spatial_filter():
@@ -235,11 +253,13 @@ def test_unsupervised_spatial_filter():
         verbose=False,
     )
 
-    # Test estimator
-    pytest.raises(ValueError, UnsupervisedSpatialFilter, KernelRidge(2))
+    # Test estimator (must be a transformer)
+    X = epochs.get_data(copy=False)
+    usf = UnsupervisedSpatialFilter(KernelRidge(2))
+    with pytest.raises(ValueError, match="transform"):
+        usf.fit(X)
 
     # Test fit
-    X = epochs.get_data(copy=False)
     n_components = 4
     usf = UnsupervisedSpatialFilter(PCA(n_components))
     usf.fit(X)
@@ -255,7 +275,9 @@ def test_unsupervised_spatial_filter():
     # Test with average param
     usf = UnsupervisedSpatialFilter(PCA(4), average=True)
     usf.fit_transform(X)
-    pytest.raises(ValueError, UnsupervisedSpatialFilter, PCA(4), 2)
+    usf = UnsupervisedSpatialFilter(PCA(4), 2)
+    with pytest.raises(TypeError, match="average must be"):
+        usf.fit(X)
 
 
 def test_temporal_filter():
@@ -281,8 +303,8 @@ def test_temporal_filter():
         assert X.shape == Xt.shape
 
     # Test fit and transform numpy type check
-    with pytest.raises(ValueError, match="Data to be filtered must be"):
-        filt.transform([1, 2])
+    with pytest.raises(ValueError):
+        filt.transform("foo")
 
     # Test with 2 dimensional data array
     X = np.random.rand(101, 500)
@@ -298,4 +320,36 @@ def test_bad_triage():
     filt = TemporalFilter(l_freq=8, h_freq=60, sfreq=160.0)
     # Used to fail with "ValueError: Effective band-stop frequency (135.0) is
     # too high (maximum based on Nyquist is 80.0)"
+    assert not hasattr(filt, "fitted_")
     filt.fit_transform(np.zeros((1, 1, 481)))
+    assert filt.fitted_
+
+
+@pytest.mark.filterwarnings("ignore:.*filter_length.*")
+@parametrize_with_checks(
+    [
+        FilterEstimator(info, l_freq=1, h_freq=10),
+        PSDEstimator(),
+        Scaler(scalings="mean"),
+        # Not easy to test Scaler(info) b/c number of channels must match
+        TemporalFilter(),
+        UnsupervisedSpatialFilter(PCA()),
+        Vectorizer(),
+    ]
+)
+def test_sklearn_compliance(estimator, check):
+    """Test LinearModel compliance with sklearn."""
+    ignores = []
+    if estimator.__class__.__name__ == "FilterEstimator":
+        ignores += [
+            "check_estimators_overwrite_params",  # we modify self.info
+            "check_methods_sample_order_invariance",
+        ]
+    if estimator.__class__.__name__.startswith(("PSD", "Temporal")):
+        ignores += [
+            "check_transformers_unfitted",  # allow unfitted transform
+            "check_methods_sample_order_invariance",
+        ]
+    if any(ignore in str(check) for ignore in ignores):
+        return
+    check(estimator)

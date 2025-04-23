@@ -185,8 +185,7 @@ _known_config_types = {
         "triggers automated memory mapping, e.g., 1M or 0.5G"
     ),
     "MNE_REPR_HTML": (
-        "bool, represent some of our objects with rich HTML in a notebook "
-        "environment"
+        "bool, represent some of our objects with rich HTML in a notebook environment"
     ),
     "MNE_SKIP_NETWORK_TESTS": (
         "bool, used in a test decorator (@requires_good_network) to skip "
@@ -203,8 +202,7 @@ _known_config_types = {
     ),
     "MNE_USE_CUDA": "bool, use GPU for filtering/resampling",
     "MNE_USE_NUMBA": (
-        "bool, use Numba just-in-time compiler for some of our intensive "
-        "computations"
+        "bool, use Numba just-in-time compiler for some of our intensive computations"
     ),
     "SUBJECTS_DIR": "path-like, directory of freesurfer MRI files for each subject",
 }
@@ -583,9 +581,9 @@ def _get_numpy_libs():
     for pool in pools:
         if pool["internal_api"] in ("openblas", "mkl"):
             return (
-                f'{rename[pool["internal_api"]]} '
-                f'{pool["version"]} with '
-                f'{pool["num_threads"]} thread{_pl(pool["num_threads"])}'
+                f"{rename[pool['internal_api']]} "
+                f"{pool['version']} with "
+                f"{pool['num_threads']} thread{_pl(pool['num_threads'])}"
             )
     return bad_lib
 
@@ -874,7 +872,7 @@ def sys_info(
                     pre = "│  "
                 else:
                     pre = " | "
-                out(f'\n{pre}{" " * ljust}{op.dirname(mod.__file__)}')
+                out(f"\n{pre}{' ' * ljust}{op.dirname(mod.__file__)}")
             out("\n")
 
     if not mne_version_good:

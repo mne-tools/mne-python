@@ -143,8 +143,7 @@ def fetch_dataset(
     if auth is not None:
         if len(auth) != 2:
             raise RuntimeError(
-                "auth should be a 2-tuple consisting "
-                "of a username and password/token."
+                "auth should be a 2-tuple consisting of a username and password/token."
             )
 
     # processor to uncompress files

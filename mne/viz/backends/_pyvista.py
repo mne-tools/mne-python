@@ -356,6 +356,8 @@ class _PyVistaRenderer(_AbstractRenderer):
         representation="surface",
         line_width=1.0,
         polygon_offset=None,
+        *,
+        name=None,
         **kwargs,
     ):
         from matplotlib.colors import to_rgba_array
@@ -386,6 +388,7 @@ class _PyVistaRenderer(_AbstractRenderer):
         actor = _add_mesh(
             plotter=self.plotter,
             mesh=mesh,
+            name=name,
             color=color,
             scalars=scalars,
             edge_color=color,
@@ -430,6 +433,7 @@ class _PyVistaRenderer(_AbstractRenderer):
         line_width=1.0,
         normals=None,
         polygon_offset=None,
+        name=None,
         **kwargs,
     ):
         vertices = np.c_[x, y, z].astype(float)
@@ -449,6 +453,7 @@ class _PyVistaRenderer(_AbstractRenderer):
             representation=representation,
             line_width=line_width,
             polygon_offset=polygon_offset,
+            name=name,
             **kwargs,
         )
 
@@ -504,6 +509,8 @@ class _PyVistaRenderer(_AbstractRenderer):
         scalars=None,
         backface_culling=False,
         polygon_offset=None,
+        *,
+        name=None,
     ):
         normals = surface.get("nn", None)
         vertices = np.array(surface["rr"])
@@ -524,6 +531,7 @@ class _PyVistaRenderer(_AbstractRenderer):
             vmin=vmin,
             vmax=vmax,
             polygon_offset=polygon_offset,
+            name=name,
         )
 
     def sphere(
@@ -1019,7 +1027,6 @@ class _PyVistaRenderer(_AbstractRenderer):
         silhouette_mapper.SetInputConnection(silhouette_filter.GetOutputPort())
         actor, prop = self.plotter.add_actor(
             silhouette_mapper,
-            name=None,
             culling=False,
             pickable=False,
             reset_camera=False,
@@ -1331,7 +1338,6 @@ def _is_osmesa(plotter):
     )
     gpu_info = " ".join(gpu_info).lower()
     is_osmesa = "mesa" in gpu_info.split()
-    print(is_osmesa)
     if is_osmesa:
         # Try to warn if it's ancient
         version = re.findall("mesa ([0-9.]+)[ -].*", gpu_info) or re.findall(
@@ -1345,7 +1351,7 @@ def _is_osmesa(plotter):
                     "surface rendering, consider upgrading to 18.3.6 or "
                     "later."
                 )
-        is_osmesa = "via llvmpipe" in gpu_info
+        is_osmesa = "llvmpipe" in gpu_info
     return is_osmesa
 
 

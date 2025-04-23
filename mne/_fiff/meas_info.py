@@ -46,7 +46,7 @@ from ._digitization import (
     write_dig,
 )
 from .compensator import get_current_comp
-from .constants import FIFF, _ch_unit_mul_named, _coord_frame_named
+from .constants import FIFF, _ch_unit_mul_named
 from .ctf_comp import _read_ctf_comp, write_ctf_comp
 from .open import fiff_open
 from .pick import (
@@ -455,7 +455,7 @@ def _check_set(ch, projs, ch_type):
         for proj in projs:
             if ch["ch_name"] in proj["data"]["col_names"]:
                 raise RuntimeError(
-                    f'Cannot change channel type for channel {ch["ch_name"]} in '
+                    f"Cannot change channel type for channel {ch['ch_name']} in "
                     f'projector "{proj["desc"]}"'
                 )
     ch["kind"] = new_kind
@@ -1324,6 +1324,7 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
     See Also
     --------
     mne.create_info
+    mne.pick_info
 
     Notes
     -----
@@ -1867,7 +1868,7 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
             ):
                 raise RuntimeError(
                     f'{prepend_error}info["meas_date"] must be a datetime object in UTC'
-                    f' or None, got {repr(self["meas_date"])!r}'
+                    f" or None, got {repr(self['meas_date'])!r}"
                 )
 
         chs = [ch["ch_name"] for ch in self["chs"]]
@@ -1935,15 +1936,24 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
         info_template = _get_html_template("repr", "info.html.jinja")
         return info_template.render(info=self)
 
-    def save(self, fname):
+    @verbose
+    def save(self, fname, *, overwrite=False, verbose=None):
         """Write measurement info in fif file.
 
         Parameters
         ----------
         fname : path-like
             The name of the file. Should end by ``'-info.fif'``.
+        %(overwrite)s
+
+            .. versionadded:: 1.10
+        %(verbose)s
+
+        See Also
+        --------
+        mne.io.write_info
         """
-        write_info(fname, self)
+        write_info(fname, self, overwrite=overwrite)
 
 
 def _simplify_info(info, *, keep=()):
@@ -1961,7 +1971,7 @@ def _simplify_info(info, *, keep=()):
 
 
 @verbose
-def read_fiducials(fname, verbose=None):
+def read_fiducials(fname, *, verbose=None):
     """Read fiducials from a fiff file.
 
     Parameters
@@ -1981,26 +1991,8 @@ def read_fiducials(fname, verbose=None):
     fname = _check_fname(fname=fname, overwrite="read", must_exist=True)
     fid, tree, _ = fiff_open(fname)
     with fid:
-        isotrak = dir_tree_find(tree, FIFF.FIFFB_ISOTRAK)
-        isotrak = isotrak[0]
-        pts = []
-        coord_frame = FIFF.FIFFV_COORD_HEAD
-        for k in range(isotrak["nent"]):
-            kind = isotrak["directory"][k].kind
-            pos = isotrak["directory"][k].pos
-            if kind == FIFF.FIFF_DIG_POINT:
-                tag = read_tag(fid, pos)
-                pts.append(DigPoint(tag.data))
-            elif kind == FIFF.FIFF_MNE_COORD_FRAME:
-                tag = read_tag(fid, pos)
-                coord_frame = tag.data[0]
-                coord_frame = _coord_frame_named.get(coord_frame, coord_frame)
-
-    # coord_frame is not stored in the tag
-    for pt in pts:
-        pt["coord_frame"] = coord_frame
-
-    return pts, coord_frame
+        pts = _read_dig_fif(fid, tree)
+    return pts, pts[0]["coord_frame"]
 
 
 @verbose
@@ -3680,8 +3672,7 @@ def _write_ch_infos(fid, chs, reset_range, ch_names_mapping):
     # only write new-style channel information if necessary
     if len(ch_names_mapping):
         logger.info(
-            "    Writing channel names to FIF truncated to 15 characters "
-            "with remapping"
+            "    Writing channel names to FIF truncated to 15 characters with remapping"
         )
         for ch in chs:
             start_block(fid, FIFF.FIFFB_CH_INFO)

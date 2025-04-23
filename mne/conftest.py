@@ -6,6 +6,7 @@ import gc
 import inspect
 import os
 import os.path as op
+import platform
 import re
 import shutil
 import sys
@@ -174,8 +175,11 @@ def pytest_configure(config: pytest.Config):
     # pandas
     ignore:\n*Pyarrow will become a required dependency of pandas.*:DeprecationWarning
     ignore:np\.find_common_type is deprecated.*:DeprecationWarning
+    ignore:Python binding for RankQuantileOptions.*:
     # pyvista <-> NumPy 2.0
     ignore:__array_wrap__ must accept context and return_scalar arguments.*:DeprecationWarning
+    # pyvista <-> VTK dev
+    ignore:Call to deprecated method GetInputAsDataSet.*:DeprecationWarning
     # nibabel <-> NumPy 2.0
     ignore:__array__ implementation doesn't accept a copy.*:DeprecationWarning
     # quantities via neo
@@ -186,8 +190,11 @@ def pytest_configure(config: pytest.Config):
     ignore:.*builtin type swigvarlink has no.*:DeprecationWarning
     # eeglabio
     ignore:numpy\.core\.records is deprecated.*:DeprecationWarning
+    ignore:Starting field name with a underscore.*:
     # joblib
     ignore:process .* is multi-threaded, use of fork/exec.*:DeprecationWarning
+    # sklearn
+    ignore:Python binding for RankQuantileOptions.*:RuntimeWarning
     """  # noqa: E501
     for warning_line in warning_lines.split("\n"):
         warning_line = warning_line.strip()
@@ -283,9 +290,10 @@ def matplotlib_config():
 @pytest.fixture(scope="session")
 def azure_windows():
     """Determine if running on Azure Windows."""
-    return os.getenv(
-        "AZURE_CI_WINDOWS", "false"
-    ).lower() == "true" and sys.platform.startswith("win")
+    return (
+        os.getenv("AZURE_CI_WINDOWS", "false").lower() == "true"
+        and platform.system() == "Windows"
+    )
 
 
 @pytest.fixture(scope="function")

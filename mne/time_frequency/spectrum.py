@@ -311,7 +311,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         if np.isfinite(fmax) and (fmax > self.sfreq / 2):
             raise ValueError(
                 f"Requested fmax ({fmax} Hz) must not exceed ½ the sampling "
-                f'frequency of the data ({0.5 * inst.info["sfreq"]} Hz).'
+                f"frequency of the data ({0.5 * inst.info['sfreq']} Hz)."
             )
         # method
         self._inst_type = type(inst)
@@ -442,7 +442,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         if bad_value.any():
             chs = np.array(self.ch_names)[bad_value].tolist()
             s = _pl(bad_value.sum())
-            warn(f'Zero value in spectrum for channel{s} {", ".join(chs)}', UserWarning)
+            warn(f"Zero value in spectrum for channel{s} {', '.join(chs)}", UserWarning)
 
     def _returns_complex_tapers(self, **method_kw):
         return self.method == "multitaper" and method_kw.get("output") == "complex"
@@ -1093,7 +1093,7 @@ class Spectrum(BaseSpectrum):
         Frequencies at which the amplitude, power, or fourier coefficients
         have been computed.
     %(info_not_none)s
-    method : ``'welch'``| ``'multitaper'``
+    method : ``'welch'`` | ``'multitaper'``
         The method used to compute the spectrum.
     nave : int | None
         The number of trials averaged together when generating the spectrum. ``None``
@@ -1536,7 +1536,7 @@ class EpochsSpectrum(BaseSpectrum, GetEpochsMixin):
         state["nave"] = state["data"].shape[0]
         state["data"] = method(state["data"])
         state["dims"] = state["dims"][1:]
-        state["data_type"] = f'Averaged {state["data_type"]}'
+        state["data_type"] = f"Averaged {state['data_type']}"
         defaults = dict(
             method=None,
             fmin=None,
@@ -1689,12 +1689,12 @@ def combine_spectrum(all_spectrum, weights="nave"):
 
     ch_names = spectrum.ch_names
     for s_ in all_spectrum[1:]:
-        assert (
-            s_.ch_names == ch_names
-        ), f"{spectrum} and {s_} do not contain the same channels"
-        assert (
-            np.max(np.abs(s_.freqs - spectrum.freqs)) < 1e-7
-        ), f"{spectrum} and {s_} do not contain the same frequencies"
+        assert s_.ch_names == ch_names, (
+            f"{spectrum} and {s_} do not contain the same channels"
+        )
+        assert np.max(np.abs(s_.freqs - spectrum.freqs)) < 1e-7, (
+            f"{spectrum} and {s_} do not contain the same frequencies"
+        )
 
     # use union of bad channels
     bads = list(

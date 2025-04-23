@@ -96,7 +96,7 @@ def _pinv_trunc(x, miss):
     varexp /= varexp[-1]
     n = np.where(varexp >= (1.0 - miss))[0][0] + 1
     logger.info(
-        "    Truncating at %d/%d components to omit less than %g " "(%0.2g)",
+        "    Truncating at %d/%d components to omit less than %g (%0.2g)",
         n,
         len(s),
         miss,
@@ -111,8 +111,7 @@ def _pinv_tikhonov(x, reg):
     # _reg_pinv requires square Hermitian, which we have here
     inv, _, n = _reg_pinv(x, reg=reg, rank=None)
     logger.info(
-        f"    Truncating at {n}/{len(x)} components and regularizing "
-        f"with α={reg:0.1e}"
+        f"    Truncating at {n}/{len(x)} components and regularizing with α={reg:0.1e}"
     )
     return inv, n
 
@@ -447,6 +446,7 @@ def make_field_map(
     origin=(0.0, 0.0, 0.04),
     n_jobs=None,
     *,
+    upsampling=1,
     head_source=("bem", "head"),
     verbose=None,
 ):
@@ -484,6 +484,9 @@ def make_field_map(
 
         .. versionadded:: 0.11
     %(n_jobs)s
+    %(helmet_upsampling)s
+
+        .. versionadded:: 1.10
     %(head_source)s
 
         .. versionadded:: 1.1
@@ -528,7 +531,7 @@ def make_field_map(
     surfs = []
     for this_type in types:
         if this_type == "meg" and meg_surf == "helmet":
-            surf = get_meg_helmet_surf(info, trans)
+            surf = get_meg_helmet_surf(info, trans, upsampling=upsampling)
         else:
             surf = get_head_surf(subject, source=head_source, subjects_dir=subjects_dir)
         surfs.append(surf)

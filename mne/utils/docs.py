@@ -1494,19 +1494,22 @@ fmt : 'auto' | 'brainvision' | 'edf' | 'eeglab'
 
 docdict["export_fmt_support_epochs"] = """\
 Supported formats:
-    - EEGLAB (``.set``, uses :mod:`eeglabio`)
+
+- EEGLAB (``.set``, uses :mod:`eeglabio`)
 """
 
 docdict["export_fmt_support_evoked"] = """\
 Supported formats:
-    - MFF (``.mff``, uses :func:`mne.export.export_evokeds_mff`)
+
+- MFF (``.mff``, uses :func:`mne.export.export_evokeds_mff`)
 """
 
 docdict["export_fmt_support_raw"] = """\
 Supported formats:
-    - BrainVision (``.vhdr``, ``.vmrk``, ``.eeg``, uses `pybv <https://github.com/bids-standard/pybv>`_)
-    - EEGLAB (``.set``, uses :mod:`eeglabio`)
-    - EDF (``.edf``, uses `edfio <https://github.com/the-siesta-group/edfio>`_)
+
+- BrainVision (``.vhdr``, ``.vmrk``, ``.eeg``, uses `pybv <https://github.com/bids-standard/pybv>`_)
+- EEGLAB (``.set``, uses :mod:`eeglabio`)
+- EDF (``.edf``, uses `edfio <https://github.com/the-siesta-group/edfio>`_)
 """  # noqa: E501
 
 docdict["export_warning"] = """\
@@ -2004,6 +2007,13 @@ docdict["head_source"] = """
 head_source : str | list of str
     Head source(s) to use. See the ``source`` option of
     :func:`mne.get_head_surf` for more information.
+"""
+
+docdict["helmet_upsampling"] = """
+upsampling : int
+    The upsampling factor to use for the helmet mesh. The default (1) does no
+    upsampling. Larger integers lead to more densely sampled helmet surfaces, and
+    the number of vertices increases as a factor of ``4**(upsampling-1)``.
 """
 
 docdict["hitachi_fname"] = """
@@ -2546,6 +2556,15 @@ max_step : int
     :func:`mne.channels.find_ch_adjacency`), and not via sensors **and**
     further dimensions such as time points (e.g., via an additional call of
     :func:`mne.stats.combine_adjacency`).
+"""
+
+docdict["maxwell_mc_interp"] = """
+mc_interp : str
+    Interpolation to use between adjacent time points in movement
+    compensation. Can be "zero" (default in 1.10; used by MaxFilter),
+    "linear", or "hann" (default in 1.11).
+
+    .. versionadded:: 1.10
 """
 
 docdict["measure"] = """

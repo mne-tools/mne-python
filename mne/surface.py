@@ -44,6 +44,7 @@ from .utils import (
     _hashable_ndarray,
     _import_nibabel,
     _pl,
+    _soft_import,
     _TempDir,
     _validate_type,
     fill_doc,
@@ -173,7 +174,7 @@ def _get_head_surface(subject, source, subjects_dir, on_defects, raise_error=Tru
 
 
 @verbose
-def get_meg_helmet_surf(info, trans=None, *, verbose=None):
+def get_meg_helmet_surf(info, trans=None, *, upsampling=1, verbose=None):
     """Load the MEG helmet associated with the MEG sensors.
 
     Parameters
@@ -183,6 +184,7 @@ def get_meg_helmet_surf(info, trans=None, *, verbose=None):
         The head<->MRI transformation, usually obtained using
         read_trans(). Can be None, in which case the surface will
         be in head coordinates instead of MRI coordinates.
+    %(helmet_upsampling)s
     %(verbose)s
 
     Returns
@@ -198,7 +200,10 @@ def get_meg_helmet_surf(info, trans=None, *, verbose=None):
     from .bem import _fit_sphere, read_bem_surfaces
     from .channels.channels import _get_meg_system
 
+    _validate_type(upsampling, "int", "upsampling")
+
     system, have_helmet = _get_meg_system(info)
+    incomplete = False
     if have_helmet:
         logger.info(f"Getting helmet for system {system}")
         fname = _helmet_path / f"{system}.fif.gz"
@@ -214,13 +219,13 @@ def get_meg_helmet_surf(info, trans=None, *, verbose=None):
             ]
         )
         logger.info(
-            "Getting helmet for system %s (derived from %d MEG " "channel locations)",
+            "Getting helmet for system %s (derived from %d MEG channel locations)",
             system,
             len(rr),
         )
         hull = ConvexHull(rr)
         rr = rr[np.unique(hull.simplices)]
-        R, center = _fit_sphere(rr, disp=False)
+        R, center = _fit_sphere(rr)
         sph = _cart_to_sph(rr - center)[:, 1:]
         # add a point at the front of the helmet (where the face should be):
         # 90 deg az and maximal el (down from Z/up axis)
@@ -231,8 +236,24 @@ def get_meg_helmet_surf(info, trans=None, *, verbose=None):
         # remove the frontal point we added from the simplices
         tris = tris[(tris != len(sph) - 1).all(-1)]
         tris = _reorder_ccw(rr, tris)
-
         surf = dict(rr=rr, tris=tris)
+        incomplete = True
+    if upsampling > 1:
+        # Use VTK (could also use Butterfly but Loop is smoother)
+        pv = _soft_import("pyvista", "upsample a mesh")
+        factor = 4 ** (upsampling - 1)
+        rr, tris = surf["rr"], surf["tris"]
+        logger.info(
+            f"Upsampling from {len(rr)} to {len(rr) * factor} vertices ({upsampling=})"
+        )
+        tris = np.c_[np.full(len(tris), 3), tris]
+        mesh = pv.PolyData(rr, tris)
+        mesh = mesh.subdivide(upsampling - 1, subfilter="linear")
+        rr, tris = mesh.points, mesh.faces.reshape(-1, 4)[:, 1:]
+        tris = _reorder_ccw(rr, tris)
+        surf = dict(rr=rr, tris=tris)
+        incomplete = True
+    if incomplete:
         complete_surface_info(surf, copy=False, verbose=False)
 
     # Ignore what the file says, it's in device coords and we want MRI coords
@@ -733,7 +754,7 @@ class _CheckInside:
         else:
             self._init_old()
         logger.debug(
-            f'Setting up {mode} interior check for {len(self.surf["rr"])} '
+            f"Setting up {mode} interior check for {len(self.surf['rr'])} "
             f"points took {(time.time() - t0) * 1000:0.1f} ms"
         )
 
@@ -761,8 +782,7 @@ class _CheckInside:
     def __call__(self, rr, n_jobs=None, verbose=None):
         n_orig = len(rr)
         logger.info(
-            f"Checking surface interior status for "
-            f'{n_orig} point{_pl(n_orig, " ")}...'
+            f"Checking surface interior status for {n_orig} point{_pl(n_orig, ' ')}..."
         )
         t0 = time.time()
         if self.mode == "pyvista":
@@ -770,7 +790,7 @@ class _CheckInside:
         else:
             inside = self._call_old(rr, n_jobs)
         n = inside.sum()
-        logger.info(f'    Total {n}/{n_orig} point{_pl(n, " ")} inside the surface')
+        logger.info(f"    Total {n}/{n_orig} point{_pl(n, ' ')} inside the surface")
         logger.info(f"Interior check completed in {(time.time() - t0) * 1000:0.1f} ms")
         return inside
 
@@ -792,7 +812,7 @@ class _CheckInside:
             n = (in_mask).sum()
             n_pad = str(n).rjust(prec)
             logger.info(
-                f'    Found {n_pad}/{n_orig} point{_pl(n, " ")} '
+                f"    Found {n_pad}/{n_orig} point{_pl(n, ' ')} "
                 f"inside  an interior sphere of radius "
                 f"{1000 * self.inner_r:6.1f} mm"
             )
@@ -801,7 +821,7 @@ class _CheckInside:
             n = (out_mask).sum()
             n_pad = str(n).rjust(prec)
             logger.info(
-                f'    Found {n_pad}/{n_orig} point{_pl(n, " ")} '
+                f"    Found {n_pad}/{n_orig} point{_pl(n, ' ')} "
                 f"outside an exterior sphere of radius "
                 f"{1000 * self.outer_r:6.1f} mm"
             )
@@ -818,7 +838,7 @@ class _CheckInside:
         n_pad = str(n).rjust(prec)
         check_pad = str(len(del_outside)).rjust(prec)
         logger.info(
-            f'    Found {n_pad}/{check_pad} point{_pl(n, " ")} outside using '
+            f"    Found {n_pad}/{check_pad} point{_pl(n, ' ')} outside using "
             "surface Qhull"
         )
 
@@ -828,7 +848,7 @@ class _CheckInside:
         n_pad = str(n).rjust(prec)
         check_pad = str(len(solid_outside)).rjust(prec)
         logger.info(
-            f'    Found {n_pad}/{check_pad} point{_pl(n, " ")} outside using '
+            f"    Found {n_pad}/{check_pad} point{_pl(n, ' ')} outside using "
             "solid angles"
         )
         inside[idx[solid_outside]] = False

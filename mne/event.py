@@ -767,6 +767,7 @@ def find_events(
     picks = pick_channels(raw.info["ch_names"], include=stim_channel)
     if len(picks) == 0:
         raise ValueError("No stim channel found to extract event triggers.")
+    logger.info(f"Finding events on: {', '.join(raw.ch_names[pick] for pick in picks)}")
     data, _ = raw[picks, :]
 
     events_list = []
@@ -1649,7 +1650,7 @@ def match_event_names(event_names, keys, *, on_missing="raise"):
         _on_missing(
             on_missing=on_missing,
             msg=f'Event name "{key}" could not be found. The following events '
-            f'are present in the data: {", ".join(event_names)}',
+            f"are present in the data: {', '.join(event_names)}",
             error_klass=KeyError,
         )
 

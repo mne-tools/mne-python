@@ -160,8 +160,7 @@ def _create_meg_coil(coilset, ch, acc, do_es):
             break
     else:
         raise RuntimeError(
-            "Desired coil definition not found "
-            f"(type = {ch['coil_type']} acc = {acc})"
+            f"Desired coil definition not found (type = {ch['coil_type']} acc = {acc})"
         )
 
     # Apply a coordinate transformation if so desired
@@ -295,8 +294,8 @@ def _setup_bem(bem, bem_extra, neeg, mri_head_t, allow_none=False, verbose=None)
     else:
         if bem["surfs"][0]["coord_frame"] != FIFF.FIFFV_COORD_MRI:
             raise RuntimeError(
-                f'BEM is in {_coord_frame_name(bem["surfs"][0]["coord_frame"])} '
-                'coordinates, should be in MRI'
+                f"BEM is in {_coord_frame_name(bem['surfs'][0]['coord_frame'])} "
+                "coordinates, should be in MRI"
             )
         if neeg > 0 and len(bem["surfs"]) == 1:
             raise RuntimeError(
@@ -335,7 +334,7 @@ def _prep_meg_channels(
     del picks
 
     # Get channel info and names for MEG channels
-    logger.info(f'Read {len(info_meg["chs"])} MEG channels from info')
+    logger.info(f"Read {len(info_meg['chs'])} MEG channels from info")
 
     # Get MEG compensation channels
     compensator = post_picks = None
@@ -352,7 +351,7 @@ def _prep_meg_channels(
                     'channels. Consider using "ignore_ref=True" in '
                     "calculation"
                 )
-            logger.info(f'{len(info["comps"])} compensation data sets in info')
+            logger.info(f"{len(info['comps'])} compensation data sets in info")
             # Compose a compensation data set if necessary
             # adapted from mne_make_ctf_comp() from mne_ctf_comp.c
             logger.info("Setting up compensation data...")

@@ -20,7 +20,7 @@ from mne.preprocessing import (
 )
 from mne.preprocessing.tests.test_maxwell import _assert_shielding
 from mne.transforms import _angle_dist_between_rigid
-from mne.utils import object_diff
+from mne.utils import catch_logging, object_diff
 
 # Define fine calibration filepaths
 data_path = testing.data_path(download=False)
@@ -77,7 +77,7 @@ def test_compute_fine_cal(kind):
         angle_limit = 5
         gwoma = [66, 68]
         ggoma = [55, 150]
-        ggwma = [62, 86]
+        ggwma = [60, 86]
         sfs = [26, 27, 61, 63, 61, 63, 68, 70]
         cl3 = [0.6, 0.7]
     else:
@@ -111,7 +111,7 @@ def test_compute_fine_cal(kind):
     assert got_cal["ch_names"] == want_cal["ch_names"]
     # in practice these should never be exactly 1.
     assert sum([(ic == 1.0).any() for ic in want_cal["imb_cals"]]) == 0
-    assert sum([(ic == 1.0).any() for ic in got_cal["imb_cals"]]) == 0
+    assert sum([(ic == 1.0).any() for ic in got_cal["imb_cals"]]) < 2
 
     got_imb = np.array(got_cal["imb_cals"], float)
     want_imb = np.array(want_cal["imb_cals"], float)
@@ -185,7 +185,7 @@ def test_compute_fine_cal(kind):
     assert got_cal["ch_names"] == got_cal_redo["ch_names"]
     assert_allclose(got_cal["imb_cals"], got_cal_redo["imb_cals"], atol=5e-5)
     assert_allclose(got_cal["locs"], got_cal_redo["locs"], atol=1e-6)
-    assert sum([(ic == 1.0).any() for ic in got_cal["imb_cals"]]) == 0
+    assert sum((ic == 1.0).any() for ic in got_cal["imb_cals"]) < 2
 
     # redoing with 3 imlabance parameters should improve the shielding factor
     grad_subpicks = np.searchsorted(meg_picks, pick_types(raw.info, meg="grad"))
@@ -222,16 +222,16 @@ def test_fine_cal_systems(system, tmp_path):
         err_limit = 500
         n_ref = 3
         corrs = (0.58, 0.61, 0.57)
-        sfs = [0.9, 1.1, 2.3, 2.8]
+        sfs = [0.9, 1.1, 2.1, 2.8]
         corr_tol = 0.3
     elif system == "ctf":
         raw = read_raw_ctf(ctf_fname_continuous).crop(0, 1)
         raw.apply_gradient_compensation(0)
         angle_limit = 170
-        err_limit = 6000
+        err_limit = 12600
         n_ref = 28
         corrs = (0.19, 0.41, 0.49)
-        sfs = [0.5, 0.7, 0.9, 1.5]
+        sfs = [0.5, 0.7, 0.9, 1.55]
         corr_tol = 0.55
     elif system == "fil":
         raw = read_raw_fil(fil_fname, verbose="error")
@@ -242,8 +242,8 @@ def test_fine_cal_systems(system, tmp_path):
         err_limit = 15
         int_order = 5
         corrs = (0.13, 0.0, 0.12)
-        sfs = [4, 5, 125, 145]
-        corr_tol = 0.15
+        sfs = [4, 5, 125, 155]
+        corr_tol = 0.34
     else:
         assert system == "triux", f"Unknown system {system}"
         raw = read_raw_fif(tri_fname)
@@ -289,3 +289,15 @@ def test_fine_cal_systems(system, tmp_path):
     got_corrs = np.corrcoef([raw_data, raw_sss_data, raw_sss_cal_data])
     got_corrs = got_corrs[np.triu_indices(3, 1)]
     assert_allclose(got_corrs, corrs, atol=corr_tol)
+    if system == "fil":
+        with catch_logging(verbose=True) as log:
+            compute_fine_calibration(
+                raw.copy().crop(0, 0.12).pick(raw.ch_names[:12]),
+                t_window=0.06,  # 2 segments
+                angle_limit=angle_limit,
+                err_limit=err_limit,
+                ext_order=2,
+                verbose=True,
+            )
+        log = log.getvalue()
+        assert "(averaging over 2 time intervals)" in log, log

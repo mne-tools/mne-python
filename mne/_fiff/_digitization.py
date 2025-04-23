@@ -181,9 +181,13 @@ def _read_dig_fif(fid, meas_info, *, return_ch_names=False):
             if kind == FIFF.FIFF_DIG_POINT:
                 tag = read_tag(fid, pos)
                 dig.append(tag.data)
+            elif kind == FIFF.FIFF_DIG_STRING:
+                tag = read_tag(fid, pos)
+                dig.extend(tag.data)
             elif kind == FIFF.FIFF_MNE_COORD_FRAME:
                 tag = read_tag(fid, pos)
-                coord_frame = _coord_frame_named.get(int(tag.data.item()))
+                coord_frame = int(tag.data.item())
+                coord_frame = _coord_frame_named.get(coord_frame, coord_frame)
             elif kind == FIFF.FIFF_MNE_CH_NAME_LIST:
                 tag = read_tag(fid, pos)
                 ch_names = _safe_name_list(tag.data, "read", "ch_names")
@@ -328,8 +332,7 @@ def _get_data_as_dict_from_dig(dig, exclude_ref_channel=True):
         dig_coord_frames = set([FIFF.FIFFV_COORD_HEAD])
     if len(dig_coord_frames) != 1:
         raise RuntimeError(
-            "Only single coordinate frame in dig is supported, "
-            f"got {dig_coord_frames}"
+            f"Only single coordinate frame in dig is supported, got {dig_coord_frames}"
         )
     dig_ch_pos_location = np.array(dig_ch_pos_location)
     dig_ch_pos_location.shape = (-1, 3)  # empty will be (0, 3)

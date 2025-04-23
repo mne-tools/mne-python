@@ -156,11 +156,12 @@ def compute_fine_calibration(
     # 1. Rotate surface normals using magnetometer information (if present)
     #
     cals = np.ones(len(info["ch_names"]))
-    time_idxs = raw.time_as_index(np.arange(0.0, raw.times[-1], t_window))
-    if len(time_idxs) <= 1:
-        time_idxs = np.array([0, len(raw.times)], int)
-    else:
-        time_idxs[-1] = len(raw.times)
+    end = len(raw.times) + 1
+    time_idxs = np.arange(0, end, int(round(t_window * raw.info["sfreq"])))
+    if len(time_idxs) == 1:
+        time_idxs = np.concatenate([time_idxs, [end]])
+    if time_idxs[-1] != end:
+        time_idxs[-1] = end
     count = 0
     locs = np.array([ch["loc"] for ch in info["chs"]])
     zs = locs[mag_picks, -3:].copy()
@@ -388,9 +389,11 @@ def _adjust_mag_normals(info, data, origin, ext_order, *, angle_limit, err_limit
     each_err = _data_err(data, S_tot, cals, axis=-1)[picks_mag]
     n_bad = (each_err > err_limit).sum()
     if n_bad:
+        bad_max = np.argmax(each_err)
         reason.append(
             f"{n_bad} residual{_pl(n_bad)} > {err_limit:0.1f}% "
-            f"(max: {each_err.max():0.2f}%)"
+            f"(max: {each_err[bad_max]:0.2f}% @ "
+            f"{info['ch_names'][picks_mag[bad_max]]})"
         )
     reason = ", ".join(reason)
     if reason:
@@ -398,7 +401,7 @@ def _adjust_mag_normals(info, data, origin, ext_order, *, angle_limit, err_limit
     good = not bool(reason)
     assert np.allclose(np.linalg.norm(zs, axis=1), 1.0)
     logger.info(f"        Fit mismatch {first_err:0.2f}→{last_err:0.2f}%")
-    logger.info(f'        Data segment {"" if good else "un"}usable{reason}')
+    logger.info(f"        Data segment {'' if good else 'un'}usable{reason}")
     # Reformat zs and cals to be the n_mags (including bads)
     assert zs.shape == (len(data), 3)
     assert cals.shape == (len(data), 1)
