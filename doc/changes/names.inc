@@ -329,3 +329,4 @@
 .. _Zhi Zhang: https://github.com/tczhangzhi/
 .. _Ziyi ZENG: https://github.com/ZiyiTsang
 .. _Zvi Baratz: https://github.com/ZviBaratz
+.. _Katia Al-Amir: https://github.com/katia-sentry
