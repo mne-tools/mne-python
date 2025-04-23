@@ -243,6 +243,7 @@ jobs:
             if [[ $(cat gitlog.txt) == *"[circle front]"* ]] || [[ $(cat build.txt) == "html-memory" ]] ; then
               make test-doc;
               mkdir -p doc/_build/test-results/test-doc;
+              ls -alt junit-results.xml
               cp junit-results.xml doc/_build/test-results/test-doc/junit.xml;
             fi;
       # Build docs
