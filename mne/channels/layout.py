@@ -1208,7 +1208,7 @@ def _merge_opm_data(data, merged_names):
     """
     to_remove = np.empty(0, dtype=np.int32)
     for idx, ch in enumerate(merged_names):
-        if ch.endswith("MERGE_REMOVE"):
+        if ch.endswith("MERGE-REMOVE"):
             to_remove = np.append(to_remove, idx)
     to_remove = np.unique(to_remove)
     for rem in sorted(to_remove, reverse=True):
