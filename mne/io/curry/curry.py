@@ -4,15 +4,19 @@
 # Copyright the MNE-Python contributors.
 
 import re
+from datetime import datetime, timezone
 from pathlib import Path
 
 import curryreader
 import numpy as np
+import pandas as pd
 
+# from ..._fiff._digitization import _make_dig_points
 from ..._fiff.meas_info import create_info
 from ..._fiff.utils import _mult_cal_one, _read_segments_file
 from ...annotations import annotations_from_events
 from ...channels import make_dig_montage
+from ...epochs import Epochs
 from ...utils import verbose, warn
 from ..base import BaseRaw
 
@@ -20,8 +24,280 @@ CURRY_SUFFIX_DATA = [".cdt", ".dat"]
 CURRY_SUFFIX_HDR = [".cdt.dpa", ".cdt.dpo", ".dap"]
 
 
+def _check_curry_filename(fname):
+    fname_in = Path(fname)
+    fname_out = None
+    # try suffixes
+    if fname_in.suffix in CURRY_SUFFIX_DATA:
+        fname_out = fname_in
+    else:
+        for data_suff in CURRY_SUFFIX_DATA:
+            if fname_in.with_suffix(data_suff).exists():
+                fname_out = fname_in.with_suffix(data_suff)
+                break
+    # final check
+    if not fname_out or not fname_out.exists():
+        raise FileNotFoundError("no curry data file found (.dat or .cdt)")
+    return fname_out
+
+
+def _check_curry_header_filename(fname):
+    fname_hdr = None
+    # try suffixes
+    for hdr_suff in CURRY_SUFFIX_HDR:
+        if fname.with_suffix(hdr_suff).exists():
+            fname_hdr = fname.with_suffix(hdr_suff)
+            break
+    # final check
+    if not fname_hdr or not fname.exists():
+        raise FileNotFoundError(
+            f"no corresponding header file found {CURRY_SUFFIX_HDR}"
+        )
+    return fname_hdr
+
+
+def _get_curry_recording_type(fname):
+    epochinfo = curryreader.read(str(fname), plotdata=0, verbosity=1)["epochinfo"]
+    if epochinfo.size == 0:
+        return "raw"
+    else:
+        n_average = epochinfo[:, 0]
+        if (n_average == 1).all():
+            return "epochs"
+        else:
+            return "evoked"
+
+
+def _get_curry_epoch_info(fname):
+    # use curry-python-reader
+    currydata = curryreader.read(str(fname), plotdata=0, verbosity=1)
+
+    # get epoch info
+    sfreq = currydata["info"]["samplingfreq"]
+    n_samples = currydata["info"]["samples"]
+    n_epochs = len(currydata["epochlabels"])
+    epochinfo = currydata["epochinfo"]
+    epochtypes = epochinfo[:, 2].astype(int).tolist()
+    epochlabels = currydata["epochlabels"]
+    epochmetainfo = pd.DataFrame(
+        epochinfo[:, -4:], columns=["accept", "correct", "response", "response time"]
+    )
+    # create mne events
+    events = np.array(
+        [[i * n_samples for i in range(n_epochs)], [0] * n_epochs, epochtypes]
+    ).T
+    event_id = dict(zip(epochlabels, epochtypes))
+    return dict(
+        events=events,
+        event_id=event_id,
+        tmin=0.0,
+        tmax=(n_samples - 1) / sfreq,
+        baseline=(0, 0),
+        metadata=epochmetainfo,
+        reject_by_annotation=False,
+    )
+
+
+def _extract_curry_info(fname, preload):
+    # use curry-python-reader
+    currydata = curryreader.read(str(fname), plotdata=0, verbosity=1)
+
+    # basic info
+    sfreq = currydata["info"]["samplingfreq"]
+    n_samples = currydata["info"]["samples"]
+    if n_samples != currydata["data"].shape[0]:  # normal in epoched data
+        n_samples = currydata["data"].shape[0]
+        if _get_curry_recording_type(fname) == "raw":
+            warn(
+                "sample count from header doesn't match actual data! "
+                "file corrupted? will use data shape"
+            )
+
+    # channel information
+    n_ch = currydata["info"]["channels"]
+    ch_names = currydata["labels"]
+    ch_pos = currydata["sensorpos"]
+    landmarks = currydata["landmarks"]
+    landmarkslabels = currydata["landmarkslabels"]
+    hpimatrix = currydata["hpimatrix"]
+
+    # data
+    orig_format = "single"  # curryreader.py always reads float32. is this correct?
+    if isinstance(preload, bool | np.bool_) and preload:
+        preload = currydata["data"].T.astype(
+            "float64"
+        )  # curryreader returns float32, but mne seems to need float64
+
+    # events
+    events = currydata["events"]
+    # annotations = currydata[
+    #    "annotations"
+    # ]  # TODO these dont really seem to correspond to events! what is it?
+
+    # impedance measurements
+    # moved to standalone def; see read_impedances_curry
+    # impedances = currydata["impedances"]
+
+    # get other essential info not provided by curryreader
+    fname_hdr = _check_curry_header_filename(fname)
+    content_hdr = fname_hdr.read_text()
+
+    # read meas_date
+    meas_date = [
+        int(re.compile(rf"{v}\s*=\s*-?\d+").search(content_hdr).group(0).split()[-1])
+        for v in [
+            "StartYear",
+            "StartMonth",
+            "StartDay",
+            "StartHour",
+            "StartMin",
+            "StartSec",
+            "StartMillisec",
+        ]
+    ]
+    try:
+        meas_date = datetime(
+            *meas_date[:-1],
+            meas_date[-1] * 1000,  # -> microseconds
+            timezone.utc,
+        )
+    except Exception:
+        meas_date = None
+
+    print(f"meas_date: {meas_date}")
+
+    # read datatype
+    byteorder = (
+        re.compile(r"DataByteOrder\s*=\s*[A-Z]+")
+        .search(content_hdr)
+        .group()
+        .split()[-1]
+    )
+    is_ascii = byteorder == "ASCII"
+
+    # amp info
+    # TODO
+    # amp_info = (
+    #    re.compile(r"AmplifierInfo\s*=.*\n").search(content_hdr).group().split("= ")
+    # )
+
+    # channel types and units
+    ch_types, units = [], []
+    ch_groups = fname_hdr.read_text().split("DEVICE_PARAMETERS")[1::2]
+    for ch_group in ch_groups:
+        ch_group = re.compile(r"\s+").sub(" ", ch_group).strip()
+        groupid = ch_group.split()[0]
+        unit = ch_group.split("DataUnit = ")[1].split()[0]
+        n_ch_group = int(ch_group.split("NumChanThisGroup = ")[1].split()[0])
+        ch_type = (
+            "mag" if ("MAG" in groupid) else "misc" if ("OTHER" in groupid) else "eeg"
+        )
+        # combine info
+        ch_types += [ch_type] * n_ch_group
+        units += [unit] * n_ch_group
+    assert len(ch_types) == len(units) == len(ch_names) == n_ch
+
+    # finetune channel types (e.g. stim, eog etc might be identified by name)
+    # TODO?
+
+    # scale data to SI units
+    orig_units = dict(zip(ch_names, units))
+    cals = [
+        1.0 / 1e15 if (u == "fT") else 1.0 / 1e6 if (u == "uV") else 1.0 for u in units
+    ]
+    # if isinstance(preload, np.ndarray):
+    #    for i_ch, unit in enumerate(units):
+    #        if unit == "fT":  # femtoTesla
+    #            preload[i_ch, :] /= 1e15
+    #        elif unit == "uV":  # microVolt
+    #            preload[i_ch, :] /= 1e6
+    #        else:  # leave as is
+    #            pass
+
+    return (
+        sfreq,
+        n_samples,
+        ch_names,
+        ch_types,
+        ch_pos,
+        landmarks,
+        landmarkslabels,
+        hpimatrix,
+        events,
+        orig_format,
+        orig_units,
+        is_ascii,
+        cals,
+        preload,
+        meas_date,
+    )
+
+
+def _make_curry_montage(ch_names, ch_types, ch_pos, landmarks, landmarkslabels):
+    # scale ch_pos to m?!
+    ch_pos /= 1000.0
+    # channel locations
+    # only take inner coil for MEG (ch_pos[i,:3])
+    # TODO what about misc without pos? can they mess things up if unordered?
+    assert len(ch_pos) >= (ch_types.count("mag") + ch_types.count("eeg"))
+    ch_pos_meg = {
+        ch_names[i]: ch_pos[i, :3] for i, t in enumerate(ch_types) if t == "mag"
+    }
+    ch_pos_eeg = {
+        ch_names[i]: ch_pos[i, :3] for i, t in enumerate(ch_types) if t == "eeg"
+    }
+    # landmarks and headshape
+    landmark_dict = dict(zip(landmarkslabels, landmarks))
+    for k in ["Nas", "RPA", "LPA"]:
+        if k not in landmark_dict.keys():
+            landmark_dict[k] = None
+    if len(landmarkslabels) > 0:
+        hpi_pos = landmarks[
+            [i for i, n in enumerate(landmarkslabels) if re.match("HPI[1-99]", n)], :
+        ]
+    else:
+        hpi_pos = None
+    if len(landmarkslabels) > 0:
+        hsp_pos = landmarks[
+            [i for i, n in enumerate(landmarkslabels) if re.match("H[1-99]", n)], :
+        ]
+    else:
+        hsp_pos = None
+    # make dig montage for eeg
+    mont = None
+    if ch_pos.shape[1] in [3, 6]:  # eeg xyz space
+        mont = make_dig_montage(
+            ch_pos=ch_pos_eeg,
+            nasion=landmark_dict["Nas"],
+            lpa=landmark_dict["LPA"],
+            rpa=landmark_dict["RPA"],
+            hsp=hsp_pos,
+            hpi=hpi_pos,
+            coord_frame="unknown",
+        )
+        # dig = _make_dig_points(
+        #    nasion=landmark_dict["Nas"],
+        #    lpa=landmark_dict["LPA"],
+        #    rpa=landmark_dict["RPA"],
+        #    hpi=hpi_pos,
+        #    extra_points=hsp_pos,
+        #    dig_ch_pos=ch_pos_eeg,
+        #    coord_frame="unknown",
+        # )
+    else:  # not recorded?
+        pass
+
+    # collect pos for meg
+    if ch_pos_meg != dict():
+        warn("reading MEG sensor locations not yet implemented!")
+
+    return mont
+
+
 @verbose
-def read_raw_curry(fname, preload=False, verbose=None) -> "RawCurry":
+def read_raw_curry(
+    fname, import_epochs_as_events=False, preload=False, verbose=None
+) -> "RawCurry":
     """Read raw data from Curry files.
 
     Parameters
@@ -29,6 +305,9 @@ def read_raw_curry(fname, preload=False, verbose=None) -> "RawCurry":
     fname : path-like
         Path to a curry file with extensions ``.dat``, ``.dap``, ``.rs3``,
         ``.cdt``, ``.cdt.dpa``, ``.cdt.cef`` or ``.cef``.
+    import_epochs_as_events : bool
+        Set to ``True`` if you want to import epoched recordings as continuous ``raw``
+        object with event annotations. Only do this if you know your data allows this!
     %(preload)s
     %(verbose)s
 
@@ -42,7 +321,26 @@ def read_raw_curry(fname, preload=False, verbose=None) -> "RawCurry":
     --------
     mne.io.Raw : Documentation of attributes and methods of RawCurry.
     """
-    return RawCurry(fname, preload, verbose)
+    fname = _check_curry_filename(fname)
+    rectype = _get_curry_recording_type(fname)
+
+    inst = RawCurry(fname, preload, verbose)
+    if rectype in ["epochs", "evoked"]:
+        curry_epoch_info = _get_curry_epoch_info(fname)
+        if import_epochs_as_events:
+            epoch_annotations = annotations_from_events(
+                events=curry_epoch_info["events"],
+                event_desc={v: k for k, v in curry_epoch_info["event_id"].items()},
+                sfreq=inst.info["sfreq"],
+            )
+            inst.set_annotations(inst.annotations + epoch_annotations)
+        else:
+            inst = Epochs(
+                inst, **curry_epoch_info
+            )  # TODO seems to rejects flat channel
+            if rectype == "evoked":
+                raise NotImplementedError
+    return inst
 
 
 class RawCurry(BaseRaw):
@@ -64,119 +362,32 @@ class RawCurry(BaseRaw):
 
     @verbose
     def __init__(self, fname, preload=False, verbose=None):
-        fname_in = Path(fname)
-        fname = None
-        if fname_in.suffix in CURRY_SUFFIX_DATA:
-            fname = fname_in
-        else:
-            for data_suff in CURRY_SUFFIX_DATA:
-                if fname_in.with_suffix(data_suff).exists():
-                    fname = fname_in.with_suffix(data_suff)
-                    break
-        if not fname:
-            raise FileNotFoundError("no curry data file found (.dat or .cdt)")
+        fname = _check_curry_filename(fname)
 
-        # use curry-python-reader
-        try:
-            currydata = curryreader.read(str(fname), plotdata=0, verbosity=1)
-        except Exception as e:
-            raise ValueError(f"file could not be read - {e}")
-
-        # extract info
-        sfreq = currydata["info"]["samplingfreq"]
-        if currydata["info"]["samples"] == currydata["data"].shape[0]:
-            n_samples = currydata["info"]["samples"]
-        else:
-            n_samples = currydata["data"].shape[0]
-            warn(
-                "sample count from header doesn't match actual data! "
-                "file corrupted? will use data shape"
-            )
-
-        n_ch = currydata["info"]["channels"]
-        ch_names = currydata["labels"]
-        ch_pos = currydata["sensorpos"]
-        landmarks = currydata["landmarks"]
-        landmarkslabels = currydata["landmarkslabels"]
-
-        # extract data
-        orig_format = "single"  # curryreader.py always reads float32. is this correct?
-
-        if isinstance(preload, bool | np.bool_) and preload:
-            preload = currydata["data"].T.astype(
-                "float64"
-            )  # curryreader returns float32, but mne seems to need float64
-        events = currydata["events"]
-        # annotations = currydata[
-        #    "annotations"
-        # ]  # dont always seem to correspond to events?!
-        # impedances = currydata["impedances"]  # see read_impedances_curry
-        # epochinfo = currydata["epochinfo"]  # TODO
-        epochlabels = currydata["epochlabels"]  # TODO
-        if epochlabels != []:
-            warn("epoched recording detected; WIP")
-        hpimatrix = currydata["hpimatrix"]  # TODO
-
-        # extract other essential info not provided by curryreader
-        fname_hdr = None
-        for hdr_suff in CURRY_SUFFIX_HDR:
-            if fname.with_suffix(hdr_suff).exists():
-                fname_hdr = fname.with_suffix(hdr_suff)
-
-        ch_types, units = [], []
-        if fname_hdr:
-            # read channel types
-            ch_groups = fname_hdr.read_text().split("DEVICE_PARAMETERS")[1::2]
-            for ch_group in ch_groups:
-                ch_group = re.compile(r"\s+").sub(" ", ch_group).strip()
-                groupid = ch_group.split()[0]
-                unit = ch_group.split("DataUnit = ")[1].split()[0]
-                n_ch_group = int(ch_group.split("NumChanThisGroup = ")[1].split()[0])
-                ch_type = (
-                    "mag"
-                    if ("MAG" in groupid)
-                    else "misc"
-                    if ("OTHER" in groupid)
-                    else "eeg"
-                )
-                # combine info
-                ch_types += [ch_type] * n_ch_group
-                units += [unit] * n_ch_group
-            assert len(ch_types) == len(units) == len(ch_names) == n_ch
-
-            # read datatype
-            byteorder = (
-                fname_hdr.read_text().split("DataByteOrder")[1].strip().split(" ")[1]
-            )
-            is_ascii = "ASCII" in byteorder
-
-        else:
-            raise NotImplementedError
-
-        # finetune channel types (e.g. stim, eog etc might be identified by name)
-        # TODO?
-
-        # scale data to SI units
-        orig_units = dict(zip(ch_names, units))
-        cals = [
-            1.0 / 1e15 if (u == "fT") else 1.0 / 1e6 if (u == "uV") else 1.0
-            for u in units
-        ]
-        if isinstance(preload, np.ndarray):
-            for i_ch, unit in enumerate(units):
-                if unit == "fT":  # femtoTesla
-                    preload[i_ch, :] /= 1e15
-                elif unit == "uV":  # microVolt
-                    preload[i_ch, :] /= 1e6
-                else:  # leave as is
-                    pass
+        (
+            sfreq,
+            n_samples,
+            ch_names,
+            ch_types,
+            ch_pos,
+            landmarks,
+            landmarkslabels,
+            hpimatrix,
+            events,
+            orig_format,
+            orig_units,
+            is_ascii,
+            cals,
+            preload,
+            meas_date,
+        ) = _extract_curry_info(fname, preload)
 
         # construct info
         info = create_info(ch_names=ch_names, sfreq=sfreq, ch_types=ch_types)
-        last_samps = [n_samples - 1]
-        raw_extras = dict(is_ascii=is_ascii)
 
         # create raw object
+        last_samps = [n_samples - 1]
+        raw_extras = dict(is_ascii=is_ascii)
         super().__init__(
             info,
             preload,
@@ -187,7 +398,14 @@ class RawCurry(BaseRaw):
             orig_units=orig_units,
             verbose=verbose,
         )
+
+        # set meas_date
+        self.set_meas_date(meas_date)
+
+        # scale data to SI units
         self._cals = np.array(cals)
+        if isinstance(preload, np.ndarray):
+            self._rescale_curry_data()
 
         # set events / annotations
         # format from curryreader: sample, etype, startsample, endsample
@@ -200,8 +418,12 @@ class RawCurry(BaseRaw):
             self.set_annotations(annot)
 
         # make montage
-        mont = _make_curry_montage(ch_names, ch_pos, landmarks, landmarkslabels)
+        mont = _make_curry_montage(
+            ch_names, ch_types, ch_pos, landmarks, landmarkslabels
+        )
         self.set_montage(mont, on_missing="ignore")
+        # with self.info._unlock():
+        #    self.info['dig'] = mont.dig
 
         # add HPI data (if present)
         # TODO
@@ -210,7 +432,7 @@ class RawCurry(BaseRaw):
 
     def _rescale_curry_data(self):
         orig_units = self._orig_units
-        for i_ch, unit in enumerate(orig_units):
+        for i_ch, unit in enumerate(orig_units.values()):
             if unit == "fT":  # femtoTesla
                 self._data[i_ch, :] /= 1e15
             elif unit == "µV":  # microVolt
@@ -234,46 +456,8 @@ class RawCurry(BaseRaw):
             )
 
 
-def _make_curry_montage(ch_names, ch_pos, landmarks, landmarkslabels):
-    ch_pos_dict = dict(zip(ch_names, ch_pos))
-    landmark_dict = dict(zip(landmarkslabels, landmarks))
-    for k in ["Nas", "RPA", "LPA"]:
-        if k not in landmark_dict.keys():
-            landmark_dict[k] = None
-    if len(landmarkslabels) > 0:
-        hpi_pos = landmarks[
-            [i for i, n in enumerate(landmarkslabels) if re.match("HPI[1-99]", n)], :
-        ]
-    else:
-        hpi_pos = None
-    if len(landmarkslabels) > 0:
-        hsp_pos = landmarks[
-            [i for i, n in enumerate(landmarkslabels) if re.match("H[1-99]", n)], :
-        ]
-    else:
-        hsp_pos = None
-
-    mont = None
-    if ch_pos.shape[1] == 3:  # eeg xyz space
-        mont = make_dig_montage(
-            ch_pos=ch_pos_dict,
-            nasion=landmark_dict["Nas"],
-            lpa=landmark_dict["LPA"],
-            rpa=landmark_dict["RPA"],
-            hsp=hsp_pos,
-            hpi=hpi_pos,
-            coord_frame="unknown",
-        )
-    elif ch_pos.shape[1] == 6:  # meg?
-        # TODO
-        pass
-    else:  # not recorded?
-        pass
-
-    return mont
-
-
-def read_impedances_curry(fname):
+@verbose
+def read_impedances_curry(fname, verbose=None):
     """Read impedance measurements from Curry files.
 
     Parameters
@@ -281,6 +465,7 @@ def read_impedances_curry(fname):
     fname : path-like
         Path to a curry file with extensions ``.dat``, ``.dap``, ``.rs3``,
         ``.cdt``, ``.cdt.dpa``, ``.cdt.cef`` or ``.cef``.
+    %(verbose)s
 
     Returns
     -------
@@ -291,10 +476,8 @@ def read_impedances_curry(fname):
 
     """
     # use curry-python-reader to load data
-    try:
-        currydata = curryreader.read(str(fname), plotdata=0, verbosity=1)
-    except Exception as e:
-        raise ValueError(f"file could not be read - {e}")
+    fname = _check_curry_filename(fname)
+    currydata = curryreader.read(str(fname), plotdata=0, verbosity=1)
 
     impedances = currydata["impedances"]
     ch_names = currydata["labels"]
