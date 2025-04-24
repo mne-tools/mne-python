@@ -2465,11 +2465,13 @@ class BaseEpochs(
             # 2b. for non-tag ids, just pass them directly
             # 3. do this for every input
             event_ids = [
-                [
-                    k for k in ids if all(tag in k.split("/") for tag in id_)
-                ]  # ids matching all tags
-                if all(id__ not in ids for id__ in id_)
-                else id_  # straight pass for non-tag inputs
+                (
+                    [
+                        k for k in ids if all(tag in k.split("/") for tag in id_)
+                    ]  # ids matching all tags
+                    if all(id__ not in ids for id__ in id_)
+                    else id_
+                )  # straight pass for non-tag inputs
                 for id_ in event_ids
             ]
             for ii, id_ in enumerate(event_ids):
@@ -3574,6 +3576,16 @@ class Epochs(BaseEpochs):
             events, event_id, annotations = _events_from_annotations(
                 raw, events, event_id, annotations, on_missing
             )
+
+            # add the annotations.details to the metadata
+            if not all(d is None for d in annotations.details):
+                if metadata is None:
+                    metadata = annotations.details_data_frame
+                else:
+                    pd = _check_pandas_installed(strict=True)
+                    details_df = annotations.details_data_frame
+                    details_df.set_index(metadata.index, inplace=True)
+                    metadata = pd.concat([metadata, details_df], axis=1, ignore_index=False)
 
         # call BaseEpochs constructor
         super().__init__(
