@@ -551,7 +551,7 @@ class Annotations:
         if self._any_ch_names():
             df.update(ch_names=self.ch_names)
         df = pd.DataFrame(df)
-        df = pd.concat([df, self.details_data_frame], axis=1, ignore_index=True)
+        df = pd.concat([df, self.details_data_frame], axis=1)
         return df
 
     def count(self):
