@@ -630,10 +630,24 @@ def test_annotation_epoching():
     assert_equal([0, 2, 4], epochs.selection)
 
 
-def test_annotation_concat():
+@pytest.mark.parametrize("with_details", [True, False])
+def test_annotation_concat(with_details):
     """Test if two Annotations objects can be concatenated."""
+    details = None
+    if with_details:
+        details = [
+            {"foo1": 1, "foo2": 1.1, "foo3": "a", "foo4": None},
+            None,
+            None,
+        ]
     a = Annotations([1, 2, 3], [5, 5, 8], ["a", "b", "c"], ch_names=[["1"], ["2"], []])
-    b = Annotations([11, 12, 13], [1, 2, 2], ["x", "y", "z"], ch_names=[[], ["3"], []])
+    b = Annotations(
+        [11, 12, 13],
+        [1, 2, 2],
+        ["x", "y", "z"],
+        ch_names=[[], ["3"], []],
+        details=details,
+    )
 
     # test + operator (does not modify a or b)
     c = a + b
@@ -655,6 +669,10 @@ def test_annotation_concat():
     assert_array_equal(a.description, ["a", "b", "c", "x", "y", "z"])
     assert_equal(len(a), 6)
     assert_equal(len(b), 3)
+
+    if with_details:
+        all_details = [None] * 3 + details
+        assert all(c.details[i] == all_details[i] for i in range(len(all_details)))
 
     # test += operator (modifies a in place)
     b._orig_time = _handle_meas_date(1038942070.7201)
@@ -963,9 +981,10 @@ def _assert_annotations_equal(a, b, tol=0):
 _ORIG_TIME = datetime.fromtimestamp(1038942071.7201, timezone.utc)
 
 
-@pytest.fixture(scope="function", params=("ch_names", "fmt"))
-def dummy_annotation_file(tmp_path_factory, ch_names, fmt):
+@pytest.fixture(scope="function", params=("ch_names", "fmt", "with_details"))
+def dummy_annotation_file(tmp_path_factory, ch_names, fmt, with_details):
     """Create csv file for testing."""
+    details_row0 = {"foo1": 1, "foo2": 1.1, "foo3": "a", "foo4": None}
     if fmt == "csv":
         content = (
             "onset,duration,description\n"
@@ -982,7 +1001,10 @@ def dummy_annotation_file(tmp_path_factory, ch_names, fmt):
         )
     else:
         assert fmt == "fif"
-        content = Annotations([0, 9], [1, 2.425], ["AA", "BB"], orig_time=_ORIG_TIME)
+        details = [details_row0, None] if with_details else None
+        content = Annotations(
+            [0, 9], [1, 2.425], ["AA", "BB"], orig_time=_ORIG_TIME, details=details
+        )
 
     if ch_names:
         if isinstance(content, Annotations):
@@ -995,6 +1017,13 @@ def dummy_annotation_file(tmp_path_factory, ch_names, fmt):
             content[-1] += ",MEG0111:MEG2563"
             content = "\n".join(content)
 
+    if with_details and not isinstance(content, Annotations):
+        content = content.splitlines()
+        content[-3] += "," + ",".join(details_row0.keys())
+        content[-2] += "," + ",".join([str(v) for v in details_row0.values()])
+        content[-1] += "," * len(details_row0)
+        content = "\n".join(content)
+
     fname = tmp_path_factory.mktemp("data") / f"annotations-annot.{fmt}"
     if isinstance(content, str):
         with open(fname, "w") as f:
@@ -1006,7 +1035,8 @@ def dummy_annotation_file(tmp_path_factory, ch_names, fmt):
 
 @pytest.mark.parametrize("ch_names", (False, True))
 @pytest.mark.parametrize("fmt", [pytest.param("csv", marks=needs_pandas), "txt", "fif"])
-def test_io_annotation(dummy_annotation_file, tmp_path, fmt, ch_names):
+@pytest.mark.parametrize("with_details", [True, False])
+def test_io_annotation(dummy_annotation_file, tmp_path, fmt, ch_names, with_details):
     """Test CSV, TXT, and FIF input/output (which support ch_names)."""
     annot = read_annotations(dummy_annotation_file)
     assert annot.orig_time == _ORIG_TIME
@@ -1123,7 +1153,7 @@ def test_read_annotation_txt_header(tmp_path):
     fname = tmp_path / "header.txt"
     with open(fname, "w") as f:
         f.write(content)
-    orig_time = _read_annotations_txt_parse_header(fname)
+    orig_time, _ = _read_annotations_txt_parse_header(fname)
     want = datetime.fromtimestamp(1038942071.7201, timezone.utc)
     assert orig_time == want
 
@@ -1178,29 +1208,34 @@ def test_annotations_slices():
     NUM_ANNOT = 5
     EXPECTED_ONSETS = EXPECTED_DURATIONS = [x for x in range(NUM_ANNOT)]
     EXPECTED_DESCS = [x.__repr__() for x in range(NUM_ANNOT)]
+    DETAILS_ROW = {"foo1": 1, "foo2": 1.1, "foo3": "a", "foo4": None}
+    EXPECTED_DETAILS = [DETAILS_ROW] * NUM_ANNOT
 
     annot = Annotations(
         onset=EXPECTED_ONSETS,
         duration=EXPECTED_DURATIONS,
         description=EXPECTED_DESCS,
         orig_time=None,
+        details=EXPECTED_DETAILS,
     )
 
     # Indexing returns a copy. So this has no effect in annot
     annot[0]["onset"] = 42
     annot[0]["duration"] = 3.14
     annot[0]["description"] = "foobar"
+    annot[0]["details"] = DETAILS_ROW
 
     annot[:1].onset[0] = 42
     annot[:1].duration[0] = 3.14
     annot[:1].description[0] = "foobar"
+    annot[:1].details[0] = DETAILS_ROW
 
     # Slicing with single element returns a dictionary
     for ii in EXPECTED_ONSETS:
         assert annot[ii] == dict(
             zip(
-                ["onset", "duration", "description", "orig_time"],
-                [ii, ii, str(ii), None],
+                ["onset", "duration", "description", "orig_time", "details"],
+                [ii, ii, str(ii), None, DETAILS_ROW],
             )
         )
 
