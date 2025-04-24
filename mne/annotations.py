@@ -59,7 +59,13 @@ from .utils import (
 _datetime = datetime
 
 
-class DetailsDict(dict):
+class _DetailsDict(dict):
+    """A dictionary for storing details of annotations.
+
+    The keys of the dictionary are strings, and the values can be
+    strings, integers, floats, or None.
+    """
+
     def __setitem__(self, key: str, value: str | int | float | None) -> None:
         _validate_type(key, str, "key", "string")
         _check_forbidden_values(
@@ -82,13 +88,13 @@ def _validate_details(details, length: int):
             f"Details must be None or a list of length {length}, got {len(details)}."
         )
     for i, d in enumerate(details):
-        _validate_type(d, (dict, DetailsDict, None), f"details[{i}]", "dict or None")
+        _validate_type(d, (dict, _DetailsDict, None), f"details[{i}]", "dict or None")
     out = []
     for d in details:
         if d is None:
             out.append(None)
         else:
-            dd = DetailsDict()
+            dd = _DetailsDict()
             dd.update(d)
             out.append(dd)
     return out
