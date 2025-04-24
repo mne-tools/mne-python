@@ -1,0 +1,1 @@
+Add a ``details`` attribute to :class:`mne.Annotations`, by `Pierre Guetschel`_.
