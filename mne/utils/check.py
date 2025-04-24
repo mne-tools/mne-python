@@ -609,11 +609,11 @@ def _validate_type(item, types=None, item_name=None, type_name=None, *, extra=""
 
     check_types = sum(
         (
-            (type(None),)
-            if type_ is None
-            else (type_,)
-            if not isinstance(type_, str)
-            else _multi[type_]
+            (
+                (type(None),)
+                if type_ is None
+                else (type_,) if not isinstance(type_, str) else _multi[type_]
+            )
             for type_ in types
         ),
         (),
@@ -622,11 +622,11 @@ def _validate_type(item, types=None, item_name=None, type_name=None, *, extra=""
     if not isinstance(item, check_types):
         if type_name is None:
             type_name = [
-                "None"
-                if cls_ is None
-                else cls_.__name__
-                if not isinstance(cls_, str)
-                else cls_
+                (
+                    "None"
+                    if cls_ is None
+                    else cls_.__name__ if not isinstance(cls_, str) else cls_
+                )
                 for cls_ in types
             ]
             if len(type_name) == 1:
@@ -929,6 +929,58 @@ def _check_option(parameter, value, allowed_values, extra=""):
             options += f", and {repr(allowed_values[-1])}"
     raise ValueError(
         msg.format(parameter=parameter, options=options, value=value, extra=extra)
+    )
+
+
+def _check_forbidden_values(parameter, value, invalid_values, extra=""):
+    """Check the value of a parameter against a list of invalid options.
+
+    Return the value if it is valid, otherwise raise a ValueError with a
+    readable error message.
+
+    Parameters
+    ----------
+    parameter : str
+        The name of the parameter to check. This is used in the error message.
+    value : any type
+        The value of the parameter to check.
+    invalid_values : list
+        The list of forbidden values for the parameter.
+    extra : str
+        Extra string to append to the invalid value sentence, e.g.
+        "when using ico mode".
+
+    Raises
+    ------
+    ValueError
+        When the value of the parameter is one of the invalid options.
+
+    Returns
+    -------
+    value : any type
+        The value if it is valid.
+    """
+    if value not in invalid_values:
+        return value
+
+    # Prepare a nice error message for the user
+    extra = f" {extra}" if extra else extra
+    msg = (
+        "Invalid value for the '{parameter}' parameter{extra}. "
+        "{forbidden}, but got {value!r} instead."
+    )
+    invalid_values = list(invalid_values)  # e.g., if a dict was given
+    if len(invalid_values) == 1:
+        forbidden = f"The following value is not allowed: {repr(invalid_values[0])}"
+    else:
+        forbidden = "The following values are not allowed: "
+        if len(invalid_values) == 2:
+            forbidden += " and ".join(repr(v) for v in invalid_values)
+        else:
+            forbidden += ", ".join(repr(v) for v in invalid_values[:-1])
+            forbidden += f", and {repr(invalid_values[-1])}"
+    raise ValueError(
+        msg.format(parameter=parameter, forbidden=forbidden, value=value, extra=extra)
     )
 
 
