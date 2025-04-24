@@ -3585,7 +3585,9 @@ class Epochs(BaseEpochs):
                     pd = _check_pandas_installed(strict=True)
                     details_df = annotations.details_data_frame
                     details_df.set_index(metadata.index, inplace=True)
-                    metadata = pd.concat([metadata, details_df], axis=1, ignore_index=False)
+                    metadata = pd.concat(
+                        [metadata, details_df], axis=1, ignore_index=False
+                    )
 
         # call BaseEpochs constructor
         super().__init__(

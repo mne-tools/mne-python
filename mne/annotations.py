@@ -31,9 +31,9 @@ from ._fiff.write import (
 )
 from .utils import (
     _check_dict_keys,
-    _check_forbidden_values,
     _check_dt,
     _check_fname,
+    _check_forbidden_values,
     _check_option,
     _check_pandas_installed,
     _check_time_format,
@@ -79,8 +79,7 @@ def _validate_details(details, length: int):
         return [None] * length
     if len(details) != length:
         raise ValueError(
-            f"Details must be None or a list of length {length}, got "
-            f"{len(details)}."
+            f"Details must be None or a list of length {length}, got {len(details)}."
         )
     for i, d in enumerate(details):
         _validate_type(d, (dict, DetailsDict, None), f"details[{i}]", "dict or None")

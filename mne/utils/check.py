@@ -612,7 +612,9 @@ def _validate_type(item, types=None, item_name=None, type_name=None, *, extra=""
             (
                 (type(None),)
                 if type_ is None
-                else (type_,) if not isinstance(type_, str) else _multi[type_]
+                else (type_,)
+                if not isinstance(type_, str)
+                else _multi[type_]
             )
             for type_ in types
         ),
@@ -625,7 +627,9 @@ def _validate_type(item, types=None, item_name=None, type_name=None, *, extra=""
                 (
                     "None"
                     if cls_ is None
-                    else cls_.__name__ if not isinstance(cls_, str) else cls_
+                    else cls_.__name__
+                    if not isinstance(cls_, str)
+                    else cls_
                 )
                 for cls_ in types
             ]
