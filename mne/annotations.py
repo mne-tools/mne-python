@@ -521,9 +521,9 @@ class Annotations:
         self.duration = np.delete(self.duration, idx)
         self.description = np.delete(self.description, idx)
         self.ch_names = np.delete(self.ch_names, idx)
-        if isinstance(idx, int):
+        if isinstance(idx, int_like):
             del self.details[idx]
-        else:
+        elif len(idx) > 0:
             for i in np.sort(np.arange(len(self.details))[idx])[::-1]:
                 del self.details[i]
 
