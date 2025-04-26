@@ -188,7 +188,7 @@ class Annotations:
     %(ch_names_annot)s
 
         .. versionadded:: 0.23
-    extras : list[dict | None] | None
+    extras : list[dict[str, int | float | str | None] | None] | None
         Optional list fo dicts containing extra fields for each annotation.
         The number of items must match the number of annotations.
 
@@ -468,7 +468,7 @@ class Annotations:
         %(ch_names_annot)s
 
             .. versionadded:: 0.23
-        extras : list[dict | None] | None
+        extras : list[dict[str, int | float | str | None] | None] | None
             Optional list of dicts containing extras fields for each annotation.
             The number of items must match the number of annotations.
 
