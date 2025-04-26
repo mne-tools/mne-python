@@ -29,10 +29,10 @@ from mne import (
     read_annotations,
 )
 from mne.annotations import (
+    _AnnotationsExtrasDict,
     _handle_meas_date,
     _read_annotations_txt_parse_header,
     _sync_onset,
-    _AnnotationsExtrasDict,
 )
 from mne.datasets import testing
 from mne.io import RawArray, concatenate_raws, read_raw_fif
@@ -980,9 +980,9 @@ def _assert_annotations_equal(a, b, tol=0):
     extras_columns = a.extras_columns.union(b.extras_columns)
     for col in extras_columns:
         for i, extra in enumerate(a.extras):
-            assert extra.get(col, None) == b.extras[i].get(
-                col, None
-            ), f"extras {col} {i}"
+            assert extra.get(col, None) == b.extras[i].get(col, None), (
+                f"extras {col} {i}"
+            )
 
 
 _ORIG_TIME = datetime.fromtimestamp(1038942071.7201, timezone.utc)
