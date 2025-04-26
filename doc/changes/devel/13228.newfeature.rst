@@ -1,1 +1,1 @@
-Add a ``details`` attribute to :class:`mne.Annotations`, by `Pierre Guetschel`_.
+Add an ``extras`` attribute to :class:`mne.Annotations`, by `Pierre Guetschel`_.
