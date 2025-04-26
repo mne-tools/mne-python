@@ -60,7 +60,7 @@ _datetime = datetime
 
 
 class _DetailsDict(dict):
-    """A dictionary for storing details of annotations.
+    """A dictionary for storing extra fields of annotations.
 
     The keys of the dictionary are strings, and the values can be
     strings, integers, floats, or None.
@@ -327,7 +327,7 @@ class Annotations:
         self, onset, duration, description, orig_time=None, ch_names=None, details=None
     ):
         self._orig_time = _handle_meas_date(orig_time)
-        self.onset, self.duration, self.description, self.ch_names, self.details = (
+        self.onset, self.duration, self.description, self.ch_names, self._details = (
             _check_o_d_s_c_d(onset, duration, description, ch_names, details)
         )
         self._sort()  # ensure we're sorted
@@ -471,7 +471,7 @@ class Annotations:
 
             .. versionadded:: 0.23
         details : list[dict | None] | None
-            Optional list fo dicts containing additional details for each annotation.
+            Optional list of dicts containing additional details for each annotation.
             The number of items must match the number of annotations.
 
             .. versionadded:: 1.10.0
@@ -494,7 +494,7 @@ class Annotations:
         self.duration = np.append(self.duration, duration)
         self.description = np.append(self.description, description)
         self.ch_names = np.append(self.ch_names, ch_names)
-        self.details = self.details + details
+        self.details.extend(details)
         self._sort()
         return self
 
