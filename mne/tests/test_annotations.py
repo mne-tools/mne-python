@@ -32,6 +32,7 @@ from mne.annotations import (
     _handle_meas_date,
     _read_annotations_txt_parse_header,
     _sync_onset,
+    _AnnotationsExtrasDict,
 )
 from mne.datasets import testing
 from mne.io import RawArray, concatenate_raws, read_raw_fif
@@ -1860,3 +1861,22 @@ def test_append_splits_boundary(tmp_path, split_size):
     assert len(raw.annotations) == 2
     assert raw.annotations.description[0] == "BAD boundary"
     assert_allclose(raw.annotations.onset, [onset] * 2)
+
+
+@pytest.mark.parametrize(
+    "key, value, expected_error",
+    (
+        ("onset", 1, ValueError),  # Reserved key
+        ("duration", 1, ValueError),  # Reserved key
+        ("description", 1, ValueError),  # Reserved key
+        ("ch_names", 1, ValueError),  # Reserved key
+        ("valid_key", [], TypeError),  # Invalid value type
+        (1, 1, TypeError),  # Invalid key type
+    ),
+)
+def test_extras_dict_raises(key, value, expected_error):
+    extras_dict = _AnnotationsExtrasDict()
+    with pytest.raises(expected_error):
+        extras_dict[key] = value
+    with pytest.raises(expected_error):
+        extras_dict.update({key: value})

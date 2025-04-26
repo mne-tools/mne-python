@@ -5,7 +5,7 @@
 import json
 import re
 import warnings
-from collections import Counter, OrderedDict
+from collections import Counter, OrderedDict, UserDict
 from collections.abc import Iterable
 from copy import deepcopy
 from datetime import datetime, timedelta, timezone
@@ -58,7 +58,7 @@ from .utils import (
 _datetime = datetime
 
 
-class _AnnotationsExtrasDict(dict):
+class _AnnotationsExtrasDict(UserDict):
     """A dictionary for storing extra fields of annotations.
 
     The keys of the dictionary are strings, and the values can be
