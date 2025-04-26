@@ -353,7 +353,7 @@ class Annotations:
     def extras_data_frame(self):
         """The extras of the Annotations as a DataFrame."""
         pd = _check_pandas_installed(strict=True)
-        return pd.DataFrame([d if d is not None else {} for d in self.extras])
+        return pd.DataFrame([d or {} for d in self.extras])
 
     def __eq__(self, other):
         """Compare to another Annotations instance."""
@@ -1203,11 +1203,22 @@ def _write_annotations(fid, annotations):
             fid, FIFF.FIFF_MNE_EPOCHS_DROP_LOG, json.dumps(tuple(annotations.ch_names))
         )
     if any(d is not None for d in annotations.extras):
-        write_string(fid, FIFF.FIFF_FREE_LIST, json.dumps(annotations.extras))
+        write_string(
+            fid,
+            FIFF.FIFF_FREE_LIST,
+            json.dumps(
+                [None if extra is None else extra.data for extra in annotations.extras]
+            ),
+        )
     end_block(fid, FIFF.FIFFB_MNE_ANNOTATIONS)
 
 
 def _write_annotations_csv(fname, annot):
+    if len(annot.extras_columns) > 0:
+        warn(
+            "Reading extra annotation fields from CSV is not supported. "
+            "The extra fields will be written but not loaded when reading."
+        )
     annot = annot.to_data_frame()
     if "ch_names" in annot:
         annot["ch_names"] = [
@@ -1232,6 +1243,19 @@ def _write_annotations_txt(fname, annot):
                 for ci, ch in enumerate(annot.ch_names)
             ]
         )
+    if len(extras_columns := annot.extras_columns) > 0:
+        warn(
+            "Reading extra annotation fields from TXT is not supported. "
+            "The extra fields will be written but not loaded when reading."
+        )
+        for column in extras_columns:
+            content += f", {column}"
+            data.append(
+                [
+                    None if extra is None else extra.get(column, None)
+                    for extra in annot.extras
+                ]
+            )
     content += "\n"
     data = np.array(data, dtype=str).T
     assert data.ndim == 2

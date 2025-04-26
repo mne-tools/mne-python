@@ -977,6 +977,12 @@ def _assert_annotations_equal(a, b, tol=0):
     a_orig_time = a.orig_time
     b_orig_time = b.orig_time
     assert a_orig_time == b_orig_time, "orig_time"
+    extras_columns = a.extras_columns.union(b.extras_columns)
+    for col in extras_columns:
+        for i, extra in enumerate(a.extras):
+            assert (extra or {}).get(col, None) == (b.extras[i] or {}).get(
+                col, None
+            ), f"extras {col} {i}"
 
 
 _ORIG_TIME = datetime.fromtimestamp(1038942071.7201, timezone.utc)
@@ -985,6 +991,8 @@ _ORIG_TIME = datetime.fromtimestamp(1038942071.7201, timezone.utc)
 @pytest.fixture(scope="function", params=("ch_names", "fmt", "with_extras"))
 def dummy_annotation_file(tmp_path_factory, ch_names, fmt, with_extras):
     """Create csv file for testing."""
+    if with_extras and fmt!= "fif":
+        pytest.skip("Extras fields io are only supported in FIF format.")
     extras_row0 = {"foo1": 1, "foo2": 1.1, "foo3": "a", "foo4": None}
     if fmt == "csv":
         content = (
@@ -1018,13 +1026,6 @@ def dummy_annotation_file(tmp_path_factory, ch_names, fmt, with_extras):
             content[-1] += ",MEG0111:MEG2563"
             content = "\n".join(content)
 
-    if with_extras and not isinstance(content, Annotations):
-        content = content.splitlines()
-        content[-3] += "," + ",".join(extras_row0.keys())
-        content[-2] += "," + ",".join([str(v) for v in extras_row0.values()])
-        content[-1] += "," * len(extras_row0)
-        content = "\n".join(content)
-
     fname = tmp_path_factory.mktemp("data") / f"annotations-annot.{fmt}"
     if isinstance(content, str):
         with open(fname, "w") as f:
@@ -1044,6 +1045,11 @@ def test_io_annotation(dummy_annotation_file, tmp_path, fmt, ch_names, with_extr
     kwargs = dict(orig_time=_ORIG_TIME)
     if ch_names:
         kwargs["ch_names"] = ((), ("MEG0111", "MEG2563"))
+    if with_extras:
+        kwargs["extras"] = [
+            {"foo1": 1, "foo2": 1.1, "foo3": "a", "foo4": None},
+            None,
+        ]
     _assert_annotations_equal(
         annot, Annotations([0.0, 9.0], [1.0, 2.425], ["AA", "BB"], **kwargs), tol=1e-6
     )
