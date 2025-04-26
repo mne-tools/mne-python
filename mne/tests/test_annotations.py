@@ -980,7 +980,7 @@ def _assert_annotations_equal(a, b, tol=0):
     extras_columns = a.extras_columns.union(b.extras_columns)
     for col in extras_columns:
         for i, extra in enumerate(a.extras):
-            assert (extra or {}).get(col, None) == (b.extras[i] or {}).get(
+            assert extra.get(col, None) == b.extras[i].get(
                 col, None
             ), f"extras {col} {i}"
 
@@ -991,7 +991,7 @@ _ORIG_TIME = datetime.fromtimestamp(1038942071.7201, timezone.utc)
 @pytest.fixture(scope="function", params=("ch_names", "fmt", "with_extras"))
 def dummy_annotation_file(tmp_path_factory, ch_names, fmt, with_extras):
     """Create csv file for testing."""
-    if with_extras and fmt!= "fif":
+    if with_extras and fmt != "fif":
         pytest.skip("Extras fields io are only supported in FIF format.")
     extras_row0 = {"foo1": 1, "foo2": 1.1, "foo3": "a", "foo4": None}
     if fmt == "csv":

@@ -77,24 +77,18 @@ class _AnnotationsExtrasDict(UserDict):
 
 def _validate_extras(extras, length: int):
     _validate_type(extras, (None, list), "extras")
-    if extras is None:
-        return [None] * length
-    if len(extras) != length:
-        raise ValueError(
-            f"extras must be None or a list of length {length}, got {len(extras)}."
-        )
-    for i, d in enumerate(extras):
-        _validate_type(
-            d, (dict, _AnnotationsExtrasDict, None), f"extras[{i}]", "dict or None"
-        )
-    out = []
-    for d in extras:
-        if d is None:
-            out.append(None)
-        else:
-            dd = _AnnotationsExtrasDict()
-            dd.update(d)
-            out.append(dd)
+    out = [_AnnotationsExtrasDict() for _ in range(length)]
+    if extras is not None:
+        if len(extras) != length:
+            raise ValueError(
+                f"extras must be None or a list of length {length}, got {len(extras)}."
+            )
+        for i, (d, new_d) in enumerate(zip(extras, out)):
+            _validate_type(
+                d, (dict, _AnnotationsExtrasDict, None), f"extras[{i}]", "dict or None"
+            )
+            if d is not None:
+                new_d.update(d)
     return out
 
 
@@ -347,13 +341,13 @@ class Annotations:
     @property
     def extras_columns(self) -> set[str]:
         """The set containing all the keys in all extras dicts."""
-        return {k for d in self.extras if d is not None for k in d.keys()}
+        return {k for d in self.extras for k in d.keys()}
 
     @property
     def extras_data_frame(self):
         """The extras of the Annotations as a DataFrame."""
         pd = _check_pandas_installed(strict=True)
-        return pd.DataFrame([d or {} for d in self.extras])
+        return pd.DataFrame(self.extras)
 
     def __eq__(self, other):
         """Compare to another Annotations instance."""
@@ -1061,10 +1055,7 @@ class EpochAnnotationsMixin:
 
                 annot_prop.append(entry)
             for k in extras.keys():
-                entry = [
-                    None if annot[3] is None else annot[3].get(k, None)
-                    for annot in epoch_annot
-                ]
+                entry = [annot[3].get(k, None) for annot in epoch_annot]
                 extras[k].append(entry)
 
         # Create a new Annotations column that is instantiated as an empty
@@ -1206,9 +1197,7 @@ def _write_annotations(fid, annotations):
         write_string(
             fid,
             FIFF.FIFF_FREE_LIST,
-            json.dumps(
-                [None if extra is None else extra.data for extra in annotations.extras]
-            ),
+            json.dumps([extra.data for extra in annotations.extras]),
         )
     end_block(fid, FIFF.FIFFB_MNE_ANNOTATIONS)
 
@@ -1250,12 +1239,7 @@ def _write_annotations_txt(fname, annot):
         )
         for column in extras_columns:
             content += f", {column}"
-            data.append(
-                [
-                    None if extra is None else extra.get(column, None)
-                    for extra in annot.extras
-                ]
-            )
+            data.append([extra.get(column, None) for extra in annot.extras])
     content += "\n"
     data = np.array(data, dtype=str).T
     assert data.ndim == 2
