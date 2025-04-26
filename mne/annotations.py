@@ -33,7 +33,6 @@ from .utils import (
     _check_dict_keys,
     _check_dt,
     _check_fname,
-    _check_forbidden_values,
     _check_option,
     _check_pandas_installed,
     _check_time_format,
@@ -68,11 +67,8 @@ class _DetailsDict(dict):
 
     def __setitem__(self, key: str, value: str | int | float | None) -> None:
         _validate_type(key, str, "key", "string")
-        _check_forbidden_values(
-            "details key",
-            key,
-            ["onset", "duration", "description", "ch_names"],
-        )
+        if key in ("onset", "duration", "description", "ch_names"):
+            raise ValueError(f"Key '{key}' is reserved and cannot be used in details.")
         _validate_type(
             value, (str, int, float, None), "value", "string, int, float or None"
         )
