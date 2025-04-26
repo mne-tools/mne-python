@@ -987,9 +987,9 @@ def _assert_annotations_equal(a, b, tol=0):
     extras_columns = a.extras_columns.union(b.extras_columns)
     for col in extras_columns:
         for i, extra in enumerate(a.extras):
-            assert extra.get(col, None) == b.extras[i].get(
-                col, None
-            ), f"extras {col} {i}"
+            assert extra.get(col, None) == b.extras[i].get(col, None), (
+                f"extras {col} {i}"
+            )
 
 
 _ORIG_TIME = datetime.fromtimestamp(1038942071.7201, timezone.utc)
