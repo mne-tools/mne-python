@@ -58,7 +58,7 @@ from .utils import (
 _datetime = datetime
 
 
-class _DetailsDict(dict):
+class _AnnotationsExtrasDict(dict):
     """A dictionary for storing extra fields of annotations.
 
     The keys of the dictionary are strings, and the values can be
@@ -68,35 +68,37 @@ class _DetailsDict(dict):
     def __setitem__(self, key: str, value: str | int | float | None) -> None:
         _validate_type(key, str, "key", "string")
         if key in ("onset", "duration", "description", "ch_names"):
-            raise ValueError(f"Key '{key}' is reserved and cannot be used in details.")
+            raise ValueError(f"Key '{key}' is reserved and cannot be used in extras.")
         _validate_type(
             value, (str, int, float, None), "value", "string, int, float or None"
         )
         return super().__setitem__(key, value)
 
 
-def _validate_details(details, length: int):
-    _validate_type(details, (None, list), "details")
-    if details is None:
+def _validate_extras(extras, length: int):
+    _validate_type(extras, (None, list), "extras")
+    if extras is None:
         return [None] * length
-    if len(details) != length:
+    if len(extras) != length:
         raise ValueError(
-            f"Details must be None or a list of length {length}, got {len(details)}."
+            f"extras must be None or a list of length {length}, got {len(extras)}."
         )
-    for i, d in enumerate(details):
-        _validate_type(d, (dict, _DetailsDict, None), f"details[{i}]", "dict or None")
+    for i, d in enumerate(extras):
+        _validate_type(
+            d, (dict, _AnnotationsExtrasDict, None), f"extras[{i}]", "dict or None"
+        )
     out = []
-    for d in details:
+    for d in extras:
         if d is None:
             out.append(None)
         else:
-            dd = _DetailsDict()
+            dd = _AnnotationsExtrasDict()
             dd.update(d)
             out.append(dd)
     return out
 
 
-def _check_o_d_s_c_d(onset, duration, description, ch_names, details):
+def _check_o_d_s_c_e(onset, duration, description, ch_names, extras):
     onset = np.atleast_1d(np.array(onset, dtype=float))
     if onset.ndim != 1:
         raise ValueError(
@@ -139,8 +141,8 @@ def _check_o_d_s_c_d(onset, duration, description, ch_names, details):
             f"{len(description)}, and {len(ch_names)}."
         )
 
-    details = _validate_details(details, len(onset))
-    return onset, duration, description, ch_names, details
+    extras = _validate_extras(extras, len(onset))
+    return onset, duration, description, ch_names, extras
 
 
 def _ndarray_ch_names(ch_names):
@@ -186,8 +188,8 @@ class Annotations:
     %(ch_names_annot)s
 
         .. versionadded:: 0.23
-    details : list[dict | None] | None
-        Optional list fo dicts containing additional details for each annotation.
+    extras : list[dict | None] | None
+        Optional list fo dicts containing extra fields for each annotation.
         The number of items must match the number of annotations.
 
         .. versionadded:: 1.10.0
@@ -320,11 +322,11 @@ class Annotations:
     """  # noqa: E501
 
     def __init__(
-        self, onset, duration, description, orig_time=None, ch_names=None, details=None
+        self, onset, duration, description, orig_time=None, ch_names=None, extras=None
     ):
         self._orig_time = _handle_meas_date(orig_time)
-        self.onset, self.duration, self.description, self.ch_names, self._details = (
-            _check_o_d_s_c_d(onset, duration, description, ch_names, details)
+        self.onset, self.duration, self.description, self.ch_names, self._extras = (
+            _check_o_d_s_c_e(onset, duration, description, ch_names, extras)
         )
         self._sort()  # ensure we're sorted
 
@@ -334,24 +336,24 @@ class Annotations:
         return self._orig_time
 
     @property
-    def details(self):
-        """The details of the Annotations."""
-        return self._details
+    def extras(self):
+        """The extras of the Annotations."""
+        return self._extras
 
-    @details.setter
-    def details(self, details):
-        self._details = _validate_details(details, len(self.onset))
-
-    @property
-    def details_columns(self) -> set[str]:
-        """The set containing all the keys in all details dicts."""
-        return {k for d in self.details if d is not None for k in d.keys()}
+    @extras.setter
+    def extras(self, extras):
+        self._extras = _validate_extras(extras, len(self.onset))
 
     @property
-    def details_data_frame(self):
-        """The details of the Annotations as a DataFrame."""
+    def extras_columns(self) -> set[str]:
+        """The set containing all the keys in all extras dicts."""
+        return {k for d in self.extras if d is not None for k in d.keys()}
+
+    @property
+    def extras_data_frame(self):
+        """The extras of the Annotations as a DataFrame."""
         pd = _check_pandas_installed(strict=True)
-        return pd.DataFrame([d if d is not None else {} for d in self.details])
+        return pd.DataFrame([d if d is not None else {} for d in self.extras])
 
     def __eq__(self, other):
         """Compare to another Annotations instance."""
@@ -410,7 +412,7 @@ class Annotations:
             other.duration,
             other.description,
             other.ch_names,
-            other.details,
+            other.extras,
         )
 
     def __iter__(self):
@@ -421,7 +423,7 @@ class Annotations:
         for idx in range(len(self.onset)):
             yield self.__getitem__(idx, with_ch_names=with_ch_names)
 
-    def __getitem__(self, key, *, with_ch_names=None, with_details=True):
+    def __getitem__(self, key, *, with_ch_names=None, with_extras=True):
         """Propagate indexing and slicing to the underlying numpy structure."""
         if isinstance(key, int_like):
             out_keys = ("onset", "duration", "description", "orig_time")
@@ -434,9 +436,9 @@ class Annotations:
             if with_ch_names or (with_ch_names is None and self._any_ch_names()):
                 out_keys += ("ch_names",)
                 out_vals += (self.ch_names[key],)
-            if with_details:
-                out_keys += ("details",)
-                out_vals += (self.details[key],)
+            if with_extras:
+                out_keys += ("extras",)
+                out_vals += (self.extras[key],)
             return OrderedDict(zip(out_keys, out_vals))
         else:
             key = list(key) if isinstance(key, tuple) else key
@@ -446,11 +448,11 @@ class Annotations:
                 description=self.description[key],
                 orig_time=self.orig_time,
                 ch_names=self.ch_names[key],
-                details=[self.details[i] for i in np.arange(len(self.details))[key]],
+                extras=[self.extras[i] for i in np.arange(len(self.extras))[key]],
             )
 
     @fill_doc
-    def append(self, onset, duration, description, ch_names=None, details=None):
+    def append(self, onset, duration, description, ch_names=None, extras=None):
         """Add an annotated segment. Operates inplace.
 
         Parameters
@@ -466,8 +468,8 @@ class Annotations:
         %(ch_names_annot)s
 
             .. versionadded:: 0.23
-        details : list[dict | None] | None
-            Optional list of dicts containing additional details for each annotation.
+        extras : list[dict | None] | None
+            Optional list of dicts containing extras fields for each annotation.
             The number of items must match the number of annotations.
 
             .. versionadded:: 1.10.0
@@ -483,14 +485,14 @@ class Annotations:
         to not only ``list.append``, but also
         `list.extend <https://docs.python.org/3/library/stdtypes.html#mutable-sequence-types>`__.
         """  # noqa: E501
-        onset, duration, description, ch_names, details = _check_o_d_s_c_d(
-            onset, duration, description, ch_names, details
+        onset, duration, description, ch_names, extras = _check_o_d_s_c_e(
+            onset, duration, description, ch_names, extras
         )
         self.onset = np.append(self.onset, onset)
         self.duration = np.append(self.duration, duration)
         self.description = np.append(self.description, description)
         self.ch_names = np.append(self.ch_names, ch_names)
-        self.details.extend(details)
+        self.extras.extend(extras)
         self._sort()
         return self
 
@@ -518,10 +520,10 @@ class Annotations:
         self.description = np.delete(self.description, idx)
         self.ch_names = np.delete(self.ch_names, idx)
         if isinstance(idx, int_like):
-            del self.details[idx]
+            del self.extras[idx]
         elif len(idx) > 0:
-            for i in np.sort(np.arange(len(self.details))[idx])[::-1]:
-                del self.details[i]
+            for i in np.sort(np.arange(len(self.extras))[idx])[::-1]:
+                del self.extras[i]
 
     @fill_doc
     def to_data_frame(self, time_format="datetime"):
@@ -552,7 +554,7 @@ class Annotations:
         if self._any_ch_names():
             df.update(ch_names=self.ch_names)
         df = pd.DataFrame(df)
-        df = pd.concat([df, self.details_data_frame], axis=1)
+        df = pd.concat([df, self.extras_data_frame], axis=1)
         return df
 
     def count(self):
@@ -654,7 +656,7 @@ class Annotations:
         self.duration = self.duration[order]
         self.description = self.description[order]
         self.ch_names = self.ch_names[order]
-        self.details = [self.details[i] for i in order]
+        self.extras = [self.extras[i] for i in order]
 
     @verbose
     def crop(
@@ -707,12 +709,10 @@ class Annotations:
             )
         logger.debug(f"Cropping annotations {absolute_tmin} - {absolute_tmax}")
 
-        onsets, durations, descriptions, ch_names, details = [], [], [], [], []
+        onsets, durations, descriptions, ch_names, extras = [], [], [], [], []
         out_of_bounds, clip_left_elem, clip_right_elem = [], [], []
-        for idx, (onset, duration, description, ch, detail) in enumerate(
-            zip(
-                self.onset, self.duration, self.description, self.ch_names, self.details
-            )
+        for idx, (onset, duration, description, ch, extra) in enumerate(
+            zip(self.onset, self.duration, self.description, self.ch_names, self.extras)
         ):
             # if duration is NaN behave like a zero
             if np.isnan(duration):
@@ -750,14 +750,14 @@ class Annotations:
                 )
                 descriptions.append(description)
                 ch_names.append(ch)
-                details.append(detail)
+                extras.append(extra)
         logger.debug(f"Cropping complete (kept {len(onsets)})")
         self.onset = np.array(onsets, float)
         self.duration = np.array(durations, float)
         assert (self.duration >= 0).all()
         self.description = np.array(descriptions, dtype=str)
         self.ch_names = _ndarray_ch_names(ch_names)
-        self.details = details
+        self.extras = extras
 
         if emit_warning:
             omitted = np.array(out_of_bounds).sum()
@@ -984,7 +984,7 @@ class EpochAnnotationsMixin:
                 this_annot["onset"] - this_tzero,
                 this_annot["duration"],
                 this_annot["description"],
-                this_annot["details"],
+                this_annot["extras"],
             )
             # ...then add it to the correct sublist of `epoch_annot_list`
             epoch_annot_list[epo_ix].append(annot)
@@ -1050,7 +1050,7 @@ class EpochAnnotationsMixin:
         # onsets, durations, and descriptions
         epoch_annot_list = self.get_annotations_per_epoch()
         onset, duration, description = [], [], []
-        details = {k: [] for k in self.annotations.details_columns}
+        extras = {k: [] for k in self.annotations.extras_columns}
         for epoch_annot in epoch_annot_list:
             for ix, annot_prop in enumerate((onset, duration, description)):
                 entry = [annot[ix] for annot in epoch_annot]
@@ -1060,19 +1060,19 @@ class EpochAnnotationsMixin:
                     entry = np.round(entry, decimals=12).tolist()
 
                 annot_prop.append(entry)
-            for k in details.keys():
+            for k in extras.keys():
                 entry = [
                     None if annot[3] is None else annot[3].get(k, None)
                     for annot in epoch_annot
                 ]
-                details[k].append(entry)
+                extras[k].append(entry)
 
         # Create a new Annotations column that is instantiated as an empty
         # list per Epoch.
         metadata["annot_onset"] = pd.Series(onset)
         metadata["annot_duration"] = pd.Series(duration)
         metadata["annot_description"] = pd.Series(description)
-        for k, v in details.items():
+        for k, v in extras.items():
             metadata[f"annot_{k}"] = pd.Series(v)
 
         # reset the metadata
@@ -1202,8 +1202,8 @@ def _write_annotations(fid, annotations):
         write_string(
             fid, FIFF.FIFF_MNE_EPOCHS_DROP_LOG, json.dumps(tuple(annotations.ch_names))
         )
-    if any(d is not None for d in annotations.details):
-        write_string(fid, FIFF.FIFF_FREE_LIST, json.dumps(annotations.details))
+    if any(d is not None for d in annotations.extras):
+        write_string(fid, FIFF.FIFF_FREE_LIST, json.dumps(annotations.extras))
     end_block(fid, FIFF.FIFFB_MNE_ANNOTATIONS)
 
 
@@ -1453,7 +1453,7 @@ def _read_annotations_txt(fname):
         warnings.simplefilter("ignore")
         out = np.loadtxt(fname, delimiter=",", dtype=np.bytes_, unpack=True)
     orig_time, columns = _read_annotations_txt_parse_header(fname)
-    ch_names = details = None
+    ch_names = extras = None
     if len(out) == 0:
         onset, duration, desc = [], [], []
     else:
@@ -1473,7 +1473,7 @@ def _read_annotations_txt(fname):
             ch_names = out[i_col]
             i_col += 1
         if len(columns) > i_col:
-            details = [
+            extras = [
                 {columns[j_col]: out[j_col][i] for j_col in range(i_col, len(columns))}
                 for i in range(len(onset))
             ]
@@ -1493,7 +1493,7 @@ def _read_annotations_txt(fname):
         description=desc,
         orig_time=orig_time,
         ch_names=ch_names,
-        details=details,
+        extras=extras,
     )
 
     return annotations
@@ -1506,7 +1506,7 @@ def _read_annotations_fif(fid, tree):
         annotations = None
     else:
         annot_data = annot_data[0]
-        orig_time = ch_names = details = None
+        orig_time = ch_names = extras = None
         onset, duration, description = list(), list(), list()
         for ent in annot_data["directory"]:
             kind = ent.kind
@@ -1529,12 +1529,12 @@ def _read_annotations_fif(fid, tree):
             elif kind == FIFF.FIFF_MNE_EPOCHS_DROP_LOG:
                 ch_names = tuple(tuple(x) for x in json.loads(tag.data))
             elif kind == FIFF.FIFF_FREE_LIST:
-                details = json.loads(tag.data)
+                extras = json.loads(tag.data)
         assert len(onset) == len(duration) == len(description)
-        if details is not None:
-            assert len(details) == len(onset)
+        if extras is not None:
+            assert len(extras) == len(onset)
         annotations = Annotations(
-            onset, duration, description, orig_time, ch_names, details
+            onset, duration, description, orig_time, ch_names, extras
         )
     return annotations
 

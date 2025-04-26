@@ -4917,7 +4917,7 @@ def test_add_channels_picks():
 
 @pytest.mark.parametrize("first_samp", [0, 10])
 @pytest.mark.parametrize(
-    "meas_date, orig_date, with_details",
+    "meas_date, orig_date, with_extras",
     [
         [None, None, False],
         [np.pi, None, False],
@@ -4925,7 +4925,7 @@ def test_add_channels_picks():
         [None, None, True],
     ],
 )
-def test_epoch_annotations(first_samp, meas_date, orig_date, with_details, tmp_path):
+def test_epoch_annotations(first_samp, meas_date, orig_date, with_extras, tmp_path):
     """Test Epoch Annotations from RawArray with dates.
 
     Tests the following cases crossed with each other:
@@ -4948,14 +4948,14 @@ def test_epoch_annotations(first_samp, meas_date, orig_date, with_details, tmp_p
     if orig_date is not None:
         orig_date = meas_date + orig_date
     ant_dur = 0.1
-    details_row0 = {"foo1": 1, "foo2": 1.1, "foo3": "a", "foo4": None}
-    details = [details_row0, None, None] if with_details else None
+    extras_row0 = {"foo1": 1, "foo2": 1.1, "foo3": "a", "foo4": None}
+    extras = [extras_row0, None, None] if with_extras else None
     ants = Annotations(
         onset=[1.1, 1.2, 2.1],
         duration=[ant_dur, ant_dur, ant_dur],
         description=["x", "y", "z"],
         orig_time=orig_date,
-        details=details,
+        extras=extras,
     )
     raw.set_annotations(ants)
     epochs = make_fixed_length_epochs(raw, duration=1, overlap=0.5)
@@ -4966,8 +4966,8 @@ def test_epoch_annotations(first_samp, meas_date, orig_date, with_details, tmp_p
     assert "annot_onset" in metadata.columns
     assert "annot_duration" in metadata.columns
     assert "annot_description" in metadata.columns
-    if with_details:
-        assert all(f"annot_{k}" in metadata.columns for k in details_row0.keys())
+    if with_extras:
+        assert all(f"annot_{k}" in metadata.columns for k in extras_row0.keys())
 
     # Test that writing and reading back these new metadata works
     temp_fname = tmp_path / "test-epo.fif"

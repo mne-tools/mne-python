@@ -3577,16 +3577,16 @@ class Epochs(BaseEpochs):
                 raw, events, event_id, annotations, on_missing
             )
 
-            # add the annotations.details to the metadata
-            if not all(d is None for d in annotations.details):
+            # add the annotations.extras to the metadata
+            if not all(d is None for d in annotations.extras):
                 if metadata is None:
-                    metadata = annotations.details_data_frame
+                    metadata = annotations.extras_data_frame
                 else:
                     pd = _check_pandas_installed(strict=True)
-                    details_df = annotations.details_data_frame
-                    details_df.set_index(metadata.index, inplace=True)
+                    extras_df = annotations.extras_data_frame
+                    extras_df.set_index(metadata.index, inplace=True)
                     metadata = pd.concat(
-                        [metadata, details_df], axis=1, ignore_index=False
+                        [metadata, extras_df], axis=1, ignore_index=False
                     )
 
         # call BaseEpochs constructor
