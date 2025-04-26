@@ -3578,7 +3578,7 @@ class Epochs(BaseEpochs):
             )
 
             # add the annotations.extras to the metadata
-            if not all(d is None for d in annotations.extras):
+            if not all(len(d) == 0 for d in annotations.extras):
                 if metadata is None:
                     metadata = annotations.extras_data_frame
                 else:

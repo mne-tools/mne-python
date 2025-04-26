@@ -908,7 +908,7 @@ class EpochAnnotationsMixin:
             self._annotations = new_annotations
         return self
 
-    def get_annotations_per_epoch(self):
+    def get_annotations_per_epoch(self, with_extras=False):
         """Get a list of annotations that occur during each epoch.
 
         Returns
@@ -920,6 +920,9 @@ class EpochAnnotationsMixin:
             duration, description (not as a :class:`~mne.Annotations` object),
             where the onset is now relative to time=0 of the epoch, rather than
             time=0 of the original continuous (raw) data.
+        with_extras : bool
+            Whether to include the annotations extra fields in the output,
+            as an additional last element of the tuple. Default is False.
         """
         # create a list of annotations for each epoch
         epoch_annot_list = [[] for _ in range(len(self.events))]
@@ -978,13 +981,14 @@ class EpochAnnotationsMixin:
                 this_annot["onset"] - this_tzero,
                 this_annot["duration"],
                 this_annot["description"],
-                this_annot["extras"],
             )
+            if with_extras:
+                annot += (this_annot["extras"],)
             # ...then add it to the correct sublist of `epoch_annot_list`
             epoch_annot_list[epo_ix].append(annot)
         return epoch_annot_list
 
-    def add_annotations_to_metadata(self, overwrite=False):
+    def add_annotations_to_metadata(self, overwrite=False, with_extras=True):
         """Add raw annotations into the Epochs metadata data frame.
 
         Adds three columns to the ``metadata`` consisting of a list
@@ -1001,6 +1005,9 @@ class EpochAnnotationsMixin:
         overwrite : bool
             Whether to overwrite existing columns in metadata or not.
             Default is False.
+        with_extras : bool
+            Whether to include the annotations extra fields in the output,
+            as an additional last element of the tuple. Default is True.
 
         Returns
         -------
@@ -1042,7 +1049,7 @@ class EpochAnnotationsMixin:
 
         # get the Epoch annotations, then convert to separate lists for
         # onsets, durations, and descriptions
-        epoch_annot_list = self.get_annotations_per_epoch()
+        epoch_annot_list = self.get_annotations_per_epoch(with_extras=with_extras)
         onset, duration, description = [], [], []
         extras = {k: [] for k in self.annotations.extras_columns}
         for epoch_annot in epoch_annot_list:

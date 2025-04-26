@@ -479,12 +479,12 @@ def test_average_movements():
 def _assert_drop_log_types(drop_log):
     __tracebackhide__ = True
     assert isinstance(drop_log, tuple), "drop_log should be tuple"
-    assert all(isinstance(log, tuple) for log in drop_log), (
-        "drop_log[ii] should be tuple"
-    )
-    assert all(isinstance(s, str) for log in drop_log for s in log), (
-        "drop_log[ii][jj] should be str"
-    )
+    assert all(
+        isinstance(log, tuple) for log in drop_log
+    ), "drop_log[ii] should be tuple"
+    assert all(
+        isinstance(s, str) for log in drop_log for s in log
+    ), "drop_log[ii][jj] should be str"
 
 
 def test_reject():
@@ -4961,7 +4961,7 @@ def test_epoch_annotations(first_samp, meas_date, orig_date, with_extras, tmp_pa
     epochs = make_fixed_length_epochs(raw, duration=1, overlap=0.5)
 
     # add Annotations to Epochs metadata
-    epochs.add_annotations_to_metadata()
+    epochs.add_annotations_to_metadata(with_extras=with_extras)
     metadata = epochs.metadata
     assert "annot_onset" in metadata.columns
     assert "annot_duration" in metadata.columns
