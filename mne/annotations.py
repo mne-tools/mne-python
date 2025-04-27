@@ -186,7 +186,7 @@ class Annotations:
         Optional list fo dicts containing extra fields for each annotation.
         The number of items must match the number of annotations.
 
-        .. versionadded:: 1.10.0
+        .. versionadded:: 1.10
 
     See Also
     --------
@@ -466,7 +466,7 @@ class Annotations:
             Optional list of dicts containing extras fields for each annotation.
             The number of items must match the number of annotations.
 
-            .. versionadded:: 1.10.0
+            .. versionadded:: 1.10
 
         Returns
         -------
@@ -911,6 +911,14 @@ class EpochAnnotationsMixin:
     def get_annotations_per_epoch(self, with_extras=False):
         """Get a list of annotations that occur during each epoch.
 
+        Parameters
+        ----------
+        with_extras : bool
+            Whether to include the annotations extra fields in the output,
+            as an additional last element of the tuple. Default is False.
+
+            .. versionadded:: 1.10
+
         Returns
         -------
         epoch_annots : list
@@ -920,9 +928,6 @@ class EpochAnnotationsMixin:
             duration, description (not as a :class:`~mne.Annotations` object),
             where the onset is now relative to time=0 of the epoch, rather than
             time=0 of the original continuous (raw) data.
-        with_extras : bool
-            Whether to include the annotations extra fields in the output,
-            as an additional last element of the tuple. Default is False.
         """
         # create a list of annotations for each epoch
         epoch_annot_list = [[] for _ in range(len(self.events))]
@@ -1008,6 +1013,8 @@ class EpochAnnotationsMixin:
         with_extras : bool
             Whether to include the annotations extra fields in the output,
             as an additional last element of the tuple. Default is True.
+
+            .. versionadded:: 1.10
 
         Returns
         -------
