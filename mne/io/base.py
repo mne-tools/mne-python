@@ -1794,7 +1794,7 @@ class BaseRaw(
         if not self.preload and fname in self.filenames:
             extra = " and overwrite must be True" if not overwrite else ""
             raise ValueError(
-                "In order to save data to the same file, data need to be preloaded "
+                "In order to save data to the same file, data need to be preloaded"
                 + extra
             )
 
