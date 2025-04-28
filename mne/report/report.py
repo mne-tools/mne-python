@@ -518,9 +518,11 @@ def _iterate_trans_views(function, alpha, **kwargs):
 
     try:
         try:
-            return _itv(function, fig, surfaces={"head-dense": alpha}, **kwargs)
+            return _itv(function, fig, **kwargs)
         except OSError:
-            return _itv(function, fig, surfaces={"head": alpha}, **kwargs)
+            # XXX: warn here? ... why do we need this fallback?
+            kwargs["surfaces"] = {"head": alpha}
+            return _itv(function, fig, **kwargs)
     finally:
         backend._close_3d_figure(fig)
 
@@ -1597,6 +1599,7 @@ class Report:
         subject=None,
         subjects_dir=None,
         alpha=None,
+        plot_kwargs=None,
         tags=("coregistration",),
         section=None,
         coord_frame="mri",
@@ -1626,6 +1629,8 @@ class Report:
             The level of opacity to apply to the head surface. If a float, must
             be between 0 and 1 (inclusive), where 1 means fully opaque. If
             ``None``, will use the MNE-Python default value.
+        plot_kwargs : dict | None
+
         %(tags_report)s
         %(section_report)s
 
@@ -1645,6 +1650,7 @@ class Report:
             subject=subject,
             subjects_dir=subjects_dir,
             alpha=alpha,
+            plot_kwargs=plot_kwargs,
             title=title,
             section=section,
             tags=tags,
@@ -4220,6 +4226,7 @@ class Report:
         subject,
         subjects_dir,
         alpha,
+        plot_kwargs,
         title,
         section,
         tags,
@@ -4232,22 +4239,39 @@ class Report:
         if not isinstance(info, Info):
             info = read_info(info)
 
-        kwargs = dict(
+        plot_kwargs = _handle_default("report_coreg", plot_kwargs)
+
+        plot_kwargs.update(dict(
             info=info,
             trans=trans,
             subject=subject,
             subjects_dir=subjects_dir,
-            dig=True,
-            meg=["helmet", "sensors"],
-            show_axes=True,
-            coord_frame=coord_frame,
-        )
+        ))
+
+        if "coord_frame" not in plot_kwargs:
+            plot_kwargs["coord_frame"] = coord_frame
+        elif plot_kwargs["coord_frame"] != coord_frame:
+            raise ValueError("specification mismatch.")  # XXX
+
+        if alpha is not None:
+            surfaces = plot_kwargs.get("surfaces", "auto")
+            if isinstance(surfaces, dict):
+                raise ValueError("do not specify surfaces and alpha at the same time")  # XXX
+            elif isinstance(surfaces, list):
+                surfaces = {surf: alpha for surf in surfaces}
+            elif isinstance(surfaces, str) and surfaces != "auto":
+                surfaces = {surfaces: alpha}
+            else:
+                assert surfaces == "auto"  # only remaining option?
+        else:
+            pass  # if alpha is None, then we do not need any adjustments
+
         img, caption = _iterate_trans_views(
             function=plot_alignment,
             alpha=alpha,
             max_width=self.img_max_width,
             max_res=self.img_max_res,
-            **kwargs,
+            **plot_kwargs,
         )
         self._add_image(
             img=img,
