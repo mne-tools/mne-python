@@ -227,19 +227,30 @@ def _print_coord_trans(
         )
 
 
-def _find_trans(subject, subjects_dir=None):
-    if subject is None:
-        if "SUBJECT" in os.environ:
-            subject = os.environ["SUBJECT"]
-        else:
-            raise ValueError("SUBJECT environment variable not set")
-
-    trans_fnames = glob.glob(str(subjects_dir / subject / "*-trans.fif"))
-    if len(trans_fnames) < 1:
-        raise RuntimeError(f"Could not find the transformation for {subject}")
-    elif len(trans_fnames) > 1:
-        raise RuntimeError(f"Found multiple transformations for {subject}")
-    return Path(trans_fnames[0])
+def _find_trans(*, trans, subject, subjects_dir=None):
+    if isinstance(trans, str) and trans == "auto":
+        subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+        # let's try to do this in MRI coordinates so they're easy to plot
+        if subject is None:
+            if "SUBJECT" in os.environ:
+                subject = os.environ["SUBJECT"]
+            else:
+                raise ValueError(
+                    "subject is None and SUBJECT environment variable not set, cannot "
+                    "use trans='auto'"
+                )
+        glob_str = str(subjects_dir / subject / "*-trans.fif")
+        trans_fnames = glob.glob(glob_str)
+        if len(trans_fnames) < 1:
+            raise RuntimeError(
+                f"Could not find the transformation for {subject} in: {glob_str}"
+            )
+        elif len(trans_fnames) > 1:
+            raise RuntimeError(
+                f"Found multiple transformations for {subject} in: {glob_str}"
+            )
+        trans = Path(trans_fnames[0])
+    return _get_trans(trans, fro="head", to="mri")
 
 
 def apply_trans(trans, pts, move=True):

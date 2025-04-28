@@ -43,7 +43,7 @@ from ..preprocessing.ica import read_ica
 from ..proj import read_proj
 from ..source_estimate import SourceEstimate, read_source_estimate
 from ..surface import dig_mri_distances
-from ..transforms import Transform, _find_trans, _get_trans, read_trans
+from ..transforms import Transform, _find_trans, read_trans
 from ..utils import (
     _check_ch_locs,
     _check_fname,
@@ -4227,10 +4227,7 @@ class Report:
         replace,
     ):
         """Render trans (only PNG)."""
-        if isinstance(trans, str) and trans == "auto":
-            subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-            trans = _find_trans(subject, subjects_dir)
-        trans, _ = _get_trans(trans, fro="head", to="mri")
+        trans, _ = _find_trans(trans=trans, subject=subject, subjects_dir=subjects_dir)
 
         if not isinstance(info, Info):
             info = read_info(info)
