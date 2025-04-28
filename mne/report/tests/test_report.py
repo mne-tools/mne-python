@@ -1168,6 +1168,7 @@ def test_manual_report_3d(tmp_path, renderer):
     # use of sparse rather than dense head, and also possibly an arg to specify
     # which views to actually show. Both of these could probably be useful to
     # end-users, too.
+    add_kwargs["trans"] = "auto"
     r.add_trans(title="my coreg", **add_kwargs)
     r.add_bem(subject="sample", subjects_dir=subjects_dir, title="my bem", decim=100)
     r.add_inverse_operator(
