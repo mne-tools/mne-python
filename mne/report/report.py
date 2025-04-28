@@ -4241,12 +4241,14 @@ class Report:
 
         plot_kwargs = _handle_default("report_coreg", plot_kwargs)
 
-        plot_kwargs.update(dict(
-            info=info,
-            trans=trans,
-            subject=subject,
-            subjects_dir=subjects_dir,
-        ))
+        plot_kwargs.update(
+            dict(
+                info=info,
+                trans=trans,
+                subject=subject,
+                subjects_dir=subjects_dir,
+            )
+        )
 
         if "coord_frame" not in plot_kwargs:
             plot_kwargs["coord_frame"] = coord_frame
@@ -4256,7 +4258,9 @@ class Report:
         if alpha is not None:
             surfaces = plot_kwargs.get("surfaces", "auto")
             if isinstance(surfaces, dict):
-                raise ValueError("do not specify surfaces and alpha at the same time")  # XXX
+                raise ValueError(
+                    "do not specify surfaces and alpha at the same time"
+                )  # XXX
             elif isinstance(surfaces, list):
                 surfaces = {surf: alpha for surf in surfaces}
             elif isinstance(surfaces, str) and surfaces != "auto":
