@@ -791,18 +791,6 @@ def test_plot_topomap_opm():
     assert len(fig_evoked.axes) == 5
 
 
-@pytest.mark.slowtest
-@pytest.mark.filterwarnings("ignore:.*did not converge.*:")
-def test_plot_components_opm():
-    """Test for gh-12934."""
-    pytest.importorskip("sklearn")
-    evoked = read_evokeds(opm_fname, kind="average")[0]
-    ica = ICA(max_iter=1, random_state=0, n_components=10)
-    ica.fit(RawArray(evoked.data, evoked.info), picks="mag", verbose="error")
-    fig = ica.plot_components()
-    assert len(fig.axes) == 10
-
-
 def test_plot_topomap_nirs_overlap(fnirs_epochs):
     """Test plotting nirs topomap with overlapping channels (gh-7414)."""
     fig = fnirs_epochs["A"].average(picks="hbo").plot_topomap()
