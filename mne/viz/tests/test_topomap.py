@@ -789,11 +789,18 @@ def test_plot_topomap_opm():
         times=[-0.1, 0, 0.1, 0.2], ch_type="mag", show=False
     )
     assert len(fig_evoked.axes) == 5
-    # smoke test for gh-12934
-    ica = ICA(max_iter=1, random_state=0)
-    with pytest.warns(Warning, match="did not converge"):
-        ica.fit(RawArray(evoked.data, evoked.info), picks="mag", verbose="error")
-    ica.plot_components()
+
+
+@pytest.mark.slowtest
+@pytest.mark.filterwarnings("ignore:.*did not converge.*:")
+def test_plot_components_opm():
+    """Test for gh-12934."""
+    pytest.importorskip("sklearn")
+    evoked = read_evokeds(opm_fname, kind="average")[0]
+    ica = ICA(max_iter=1, random_state=0, n_components=10)
+    ica.fit(RawArray(evoked.data, evoked.info), picks="mag", verbose="error")
+    fig = ica.plot_components()
+    assert len(fig.axes) == 10
 
 
 def test_plot_topomap_nirs_overlap(fnirs_epochs):
