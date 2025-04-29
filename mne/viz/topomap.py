@@ -292,12 +292,12 @@ def _find_radial_channel(info, overlapping_set):
     radial_score = np.zeros(len(overlapping_set))
     for s, sens in enumerate(overlapping_set):
         ch_idx = pick_channels(info["ch_names"], [sens])[0]
-        radial_direction = copy.copy(info["chs"][ch_idx]["loc"][0:3])
+        radial_direction = info["chs"][ch_idx]["loc"][0:3].copy()
         radial_direction /= np.linalg.norm(radial_direction)
 
         orientation_vector = info["chs"][ch_idx]["loc"][9:12]
         if info["dev_head_t"] is not None:
-            orientation_vector = apply_trans(info["dev_head_t"], orientation_vector)
+            orientation_vector = apply_trans(info["dev_head_t"], orientation_vector, move=False)
         radial_score[s] = np.abs(np.dot(radial_direction, orientation_vector))
 
     radial_sensor = overlapping_set[np.argmax(radial_score)]
