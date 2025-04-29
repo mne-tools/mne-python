@@ -854,6 +854,8 @@ class HEDAnnotations(Annotations):
         orig_time=None,
         ch_names=None,
     ):
+        self._hed_version = hed_version
+        self.hed_string = _HEDStrings(hed_string, hed_version=self._hed_version)
         super().__init__(
             onset=onset,
             duration=duration,
@@ -861,8 +863,6 @@ class HEDAnnotations(Annotations):
             orig_time=orig_time,
             ch_names=ch_names,
         )
-        self._hed_version = hed_version
-        self.hed_string = _HEDStrings(hed_string, hed_version=self._hed_version)
 
     def __eq__(self, other):
         """Compare to another HEDAnnotations instance."""
@@ -977,10 +977,6 @@ class HEDAnnotations(Annotations):
         super().append(
             onset=onset, duration=duration, description=description, ch_names=ch_names
         )
-
-    def count(self):
-        """TODO. Unlike Annotations.count, keys should be HED tags not descriptions."""
-        pass
 
     def crop(
         self, tmin=None, tmax=None, emit_warning=False, use_orig_time=True, verbose=None
@@ -1971,5 +1967,6 @@ def count_annotations(annotations):
         >>> count_annotations(annotations)
         {'T0': 2, 'T1': 1}
     """
-    types, counts = np.unique(annotations.description, return_counts=True)
+    field = "hed_string" if isinstance(annotations, HEDAnnotations) else "description"
+    types, counts = np.unique(getattr(annotations, field), return_counts=True)
     return {str(t): int(count) for t, count in zip(types, counts)}
