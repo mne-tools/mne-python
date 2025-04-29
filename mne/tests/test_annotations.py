@@ -1874,13 +1874,16 @@ def test_hed_annotations():
     # test modifying with bad value
     with pytest.raises(ValueError, match=validation_fail_msg):
         ann.hed_string[0] = "foo"
-    # test modifying and __eq__
+    # test modifying, __eq__, and delete()
     foo = ann.copy()
     assert ann == foo
     foo.hed_string[0] = good_values["word"]
     assert ann != foo
     ann.hed_string[0] = good_values["word"]
     assert ann == foo
+    foo.delete(0)
+    assert ann != foo
+    assert foo.hed_string[0] == ann.hed_string[1]
     # test .count()
     want_counts = {
         good_values["word"]: 1,

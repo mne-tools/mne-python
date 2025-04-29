@@ -985,8 +985,17 @@ class HEDAnnotations(Annotations):
         pass
 
     def delete(self, idx):
-        """TODO."""
-        pass
+        """Remove an annotation. Operates inplace.
+
+        Parameters
+        ----------
+        idx : int | array-like of int
+            Index of the annotation to remove. Can be array-like to remove multiple
+            indices.
+        """
+        _ = self.hed_string._objs.pop(idx)
+        _ = self.hed_string.pop(idx)
+        super().delete(idx)
 
     def to_data_frame(self, time_format="datetime"):
         """TODO."""
