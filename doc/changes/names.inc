@@ -157,6 +157,7 @@
 .. _Jussi Nurminen: https://github.com/jjnurminen
 .. _Kaisu Lankinen: http://bishoplab.berkeley.edu/Kaisu.html
 .. _Katarina Slama: https://github.com/katarinaslama
+.. _Katia Al-Amir: https://github.com/katia-sentry
 .. _Keith Doelling: https://github.com/kdoelling1919
 .. _Kostiantyn Maksymenko: https://github.com/makkostya
 .. _Kristijan Armeni: https://github.com/kristijanarmeni
