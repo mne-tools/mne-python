@@ -297,7 +297,9 @@ def _find_radial_channel(info, overlapping_set):
 
         orientation_vector = info["chs"][ch_idx]["loc"][9:12]
         if info["dev_head_t"] is not None:
-            orientation_vector = apply_trans(info["dev_head_t"], orientation_vector, move=False)
+            orientation_vector = apply_trans(
+                info["dev_head_t"], orientation_vector, move=False
+            )
         radial_score[s] = np.abs(np.dot(radial_direction, orientation_vector))
 
     radial_sensor = overlapping_set[np.argmax(radial_score)]
