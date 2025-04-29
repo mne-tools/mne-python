@@ -789,6 +789,11 @@ def test_plot_topomap_opm():
         times=[-0.1, 0, 0.1, 0.2], ch_type="mag", show=False
     )
     assert len(fig_evoked.axes) == 5
+    # smoke test for gh-12934
+    ica = ICA(max_iter=1, random_state=0)
+    with pytest.warns(Warning, match="did not converge"):
+        ica.fit(RawArray(evoked.data, evoked.info), picks="mag", verbose="error")
+    ica.plot_components()
 
 
 def test_plot_topomap_nirs_overlap(fnirs_epochs):
