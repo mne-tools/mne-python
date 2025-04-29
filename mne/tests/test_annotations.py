@@ -1832,45 +1832,60 @@ def test_hed_annotations():
     """Test hed_strings validation."""
     pytest.importorskip("hed")
     # test initting with bad value
-    with pytest.raises(ValueError, match="A HED string failed to validate"):
+    validation_fail_msg = "A HED string failed to validate"
+    with pytest.raises(ValueError, match=validation_fail_msg):
         _ = HEDAnnotations(
             onset=[1],
             duration=[0.1],
             description=["a"],
             hed_string=["foo"],
         )
-    # test initting
-    ann = HEDAnnotations(
-        onset=[1, 2, 3],
-        duration=[0.1, 0.0, 0.3],
-        description=["a", "b", "c"],
-        hed_string=[
-            "Sensory-event, Experimental-stimulus, Visual-presentation, (Square, "
-            "DarkBlue, (Center-of, Computer-screen))",
-            "Sensory-event, Experimental-stimulus, Auditory-presentation, (Tone, "
-            "Frequency/550 Hz)",
-            "Agent-action, (Experiment-participant, (Press, Mouse-button))",
-        ],
+    # test initting with good values
+    good_values = dict(
+        square="Sensory-event, Experimental-stimulus, Visual-presentation, (Square, "
+        "DarkBlue,   (Center-of, Computer-screen))",  # extra spaces intentional
+        tone="Sensory-event, Experimental-stimulus, Auditory-presentation, (Tone, "
+        "Frequency/550 Hz)",
+        press="Agent-action, (Experiment-participant, (Press, Mouse-button))",
+        word="Sensory-event, (Word, Label/Word-look), Auditory-presentation, "
+        "Visual-presentation",
     )
+    ann = HEDAnnotations(
+        onset=[3, 2, 1],
+        duration=[0.1, 0.0, 0.3],
+        description=["d", "c", "a"],
+        hed_string=[good_values["square"], good_values["tone"], good_values["press"]],
+    )
+    # test appending
+    foo = ann.copy()
+    ons_dur_desc = dict(onset=1.5, duration=0.2, description="b")
+    with pytest.raises(ValueError, match=validation_fail_msg):
+        foo.append(**ons_dur_desc, hed_string="foo")
+    foo.append(**ons_dur_desc, hed_string=good_values["word"])
+    # make sure that internal sorting by onset didn't mess up the relative orders of
+    # self.hed_string and self.hed_string._objs
+    assert list(foo.hed_string) == [
+        x.get_original_hed_string() for x in foo.hed_string._objs
+    ]
+    # make sure we didn't mess up the type of the HEDStrings
+    assert isinstance(foo.hed_string, mne.annotations._HEDStrings)
     # test modifying with bad value
-    with pytest.raises(ValueError, match="A HED string failed to validate"):
+    with pytest.raises(ValueError, match=validation_fail_msg):
         ann.hed_string[0] = "foo"
     # test modifying and __eq__
     foo = ann.copy()
     assert ann == foo
-    new_value = (
-        "Sensory-event, (Word, Label/Word-look), Auditory-presentation, "
-        "Visual-presentation"
-    )
-    foo.hed_string[0] = new_value
+    foo.hed_string[0] = good_values["word"]
     assert ann != foo
-    ann.hed_string[0] = new_value
+    ann.hed_string[0] = good_values["word"]
     assert ann == foo
     # test __getitem__
     first = ann[0]
-    assert first["hed_string"] == new_value
-    first["hed_string"] = "foo"  # should not try to validate (is a copy)
-    assert ann.hed_string[0] == new_value
+    assert first["hed_string"] == good_values["word"]
+    # setting bad value on extracted OrderedDict won't try to validate:
+    first["hed_string"] = "foo"
+    # ...and won't affect the original object
+    assert ann.hed_string[0] == good_values["word"]
     # test __repr__
     _repr = repr(ann)
     assert "Auditory-presentation,Experimental-stimulus,Sensory-event ..." in _repr

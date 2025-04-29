@@ -571,7 +571,11 @@ class Annotations:
         self.description = self.description[order]
         self.ch_names = self.ch_names[order]
         if hasattr(self, "hed_string"):
-            self.hed_string = self.hed_string[order]
+            self.hed_string._objs = [self.hed_string._objs[i] for i in order]
+            for i in order:
+                self.hed_string.__setitem__(
+                    i, self.hed_string._objs[i].get_original_hed_string()
+                )
 
     @verbose
     def crop(
@@ -790,6 +794,12 @@ class _HEDStrings(list):
         hs.sort()
         return hs
 
+    def append(self, item):
+        """Append an item to the end of the HEDString list."""
+        hs = self._validate_hed_string(item, self._schema)
+        super().append(hs.get_original_hed_string())
+        self._objs.append(hs)
+
 
 @fill_doc
 class HEDAnnotations(Annotations):
@@ -896,7 +906,7 @@ class HEDAnnotations(Annotations):
         return f"<{s}>"
 
     def __getitem__(self, key, *, with_ch_names=None):
-        """Propagate indexing and slicing to the underlying NumPy structure."""
+        """Propagate indexing and slicing to the underlying structure."""
         result = super().__getitem__(key, with_ch_names=with_ch_names)
         if isinstance(result, OrderedDict):
             result["hed_string"] = self.hed_string[key]
@@ -938,9 +948,35 @@ class HEDAnnotations(Annotations):
             state["hed_string"], hed_version=self._hed_version
         )
 
-    def append(self, onset, duration, description, ch_names=None):
-        """TODO."""
-        pass
+    @fill_doc
+    def append(self, *, onset, duration, description, hed_string, ch_names=None):
+        """Add an annotated segment. Operates inplace.
+
+        Parameters
+        ----------
+        onset : float | array-like
+            Annotation time onset from the beginning of the recording in
+            seconds.
+        duration : float | array-like
+            Duration of the annotation in seconds.
+        description : str | array-like
+            Description for the annotation. To reject epochs, use description
+            starting with keyword 'bad'.
+        hed_string : array of str, shape (n_annotations,) | str
+            Sequence of strings containing a HED tag (or comma-separated list of HED
+            tags) for each annotation. If a single string is provided, all annotations
+            are assigned the same HED string.
+        %(ch_names_annot)s
+
+        Returns
+        -------
+        self : mne.HEDAnnotations
+            The modified HEDAnnotations object.
+        """
+        self.hed_string.append(hed_string)
+        super().append(
+            onset=onset, duration=duration, description=description, ch_names=ch_names
+        )
 
     def count(self):
         """TODO. Unlike Annotations.count, keys should be HED tags not descriptions."""
