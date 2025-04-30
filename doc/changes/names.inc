@@ -107,6 +107,7 @@
 .. _Hamid Maymandi: https://github.com/HamidMandi
 .. _Hamza Abdelhedi: https://github.com/BabaSanfour
 .. _Hari Bharadwaj: https://github.com/haribharadwaj
+.. _Harrison Ritz: https://github.com/harrisonritz
 .. _Hasrat Ali Arzoo: https://github.com/hasrat17
 .. _Henrich Kolkhorst: https://github.com/hekolk
 .. _Hongjiang Ye: https://github.com/hongjiang-ye
