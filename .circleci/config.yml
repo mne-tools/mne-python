@@ -296,7 +296,7 @@ jobs:
             CODECOV_TOKEN: fb4c4a94-72d7-4743-bb08-af25b623a29a
           command: |
             if [[ -f doc/_build/test-results/test-doc/coverage.xml ]]; then
-              bash <(curl -s https://codecov.io/bash) -f doc/_build/test-results/test-doc/coverage.xml
+              bash <(curl -s https://codecov.io/bash) -f doc/_build/test-results/test-doc/coverage.xml || true
             fi
       # Save the SG RST
       - store_artifacts:
