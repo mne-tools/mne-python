@@ -672,15 +672,8 @@ def test_annotation_concat(with_extras):
     assert_equal(len(b), 3)
 
     if with_extras:
-        all_extras = [None] * 3 + extras
-        assert all(
-            (
-                c.extras[i] == all_extras[i]
-                if all_extras[i] is not None
-                else len(c.extras[i]) == 0
-            )
-            for i in range(len(all_extras))
-        )
+        all_extras = [extra or {} for extra in [None] * 3 + extras]
+        assert all(c.extras[i] == all_extras[i] for i in range(len(all_extras)))
 
     # test += operator (modifies a in place)
     b._orig_time = _handle_meas_date(1038942070.7201)
