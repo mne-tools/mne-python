@@ -1415,12 +1415,12 @@ def _read_annotations_csv(fname):
             _safe_name_list(val, "read", "annotation channel name")
             for val in df["ch_names"].values
         ]
-    other_columns = list(
+    extra_columns = list(
         df.columns.difference(["onset", "duration", "description", "ch_names"])
     )
     extras = None
-    if len(other_columns) > 0:
-        extras = df[other_columns].astype(object).to_dict(orient="records")
+    if len(extra_columns) > 0:
+        extras = df[extra_columns].astype(object).to_dict(orient="records")
         # if we try to cast the types within the pandas dataframe,
         # it will fail if the column contains mixed types
         extras = [
@@ -1506,25 +1506,41 @@ def _read_annotations_txt(fname):
         onset, duration, desc = [], [], []
     else:
         if columns is None:
+            # No column names were present in the header
+            # We assume the first three columns are onset, duration, description
+            # And eventually a fourth column with ch_names
             _check_option("text header", len(out), (3, 4))
             columns = ["onset", "duration", "description"] + (
                 ["ch_names"] if len(out) == 4 else []
             )
-        else:
-            _check_option(
-                "text header", columns[:3], (["onset", "duration", "description"],)
+        col_map = {col: i for i, col in enumerate(columns)}
+        if len(col_map) != len(columns):
+            raise ValueError(
+                "Duplicate column names found in header. Please check the file format."
             )
-            _check_option("text header len", len(out), (len(columns),))
-        onset, duration, desc = out[:3]
-        i_col = 3
-        if len(columns) > i_col and columns[i_col] == "ch_names":
-            ch_names = out[i_col]
-            i_col += 1
-        if len(columns) > i_col:
+        if missing := {"onset", "duration", "description"} - set(col_map.keys()):
+            raise ValueError(
+                f"Column(s) {missing} not found in header. Please check the file format."
+            )
+        _check_option("text header len", len(out), (len(columns),))
+        onset = out[col_map["onset"]]
+        duration = out[col_map["duration"]]
+        desc = out[col_map["description"]]
+        if "ch_names" in col_map:
+            ch_names = out[col_map["ch_names"]]
+        extra_columns = set(col_map.keys()) - {
+            "onset",
+            "duration",
+            "description",
+            "ch_names",
+        }
+        if extra_columns:
             extras = [
                 {
-                    columns[j_col]: _cast_extras_types(out[j_col][i].decode("UTF-8"))
-                    for j_col in range(i_col, len(columns))
+                    col_name: _cast_extras_types(
+                        out[col_map[col_name]][i].decode("UTF-8")
+                    )
+                    for col_name in extra_columns
                 }
                 for i in range(len(onset))
             ]
