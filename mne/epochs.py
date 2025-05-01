@@ -3579,11 +3579,11 @@ class Epochs(BaseEpochs):
 
             # add the annotations.extras to the metadata
             if not all(len(d) == 0 for d in annotations.extras):
+                pd = _check_pandas_installed(strict=True)
+                extras_df = pd.DataFrame(annotations.extras)
                 if metadata is None:
-                    metadata = annotations.extras_data_frame
+                    metadata = extras_df
                 else:
-                    pd = _check_pandas_installed(strict=True)
-                    extras_df = annotations.extras_data_frame
                     extras_df.set_index(metadata.index, inplace=True)
                     metadata = pd.concat(
                         [metadata, extras_df], axis=1, ignore_index=False

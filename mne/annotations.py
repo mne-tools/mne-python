@@ -331,7 +331,12 @@ class Annotations:
 
     @property
     def extras(self):
-        """The extras of the Annotations."""
+        """The extras of the Annotations.
+
+        The ``extras`` attribute is a list of dictionaries.
+        It can easily be converted to a pandas DataFrame using:
+        ``pd.DataFrame(extras)``.
+        """
         return self._extras
 
     @extras.setter
@@ -342,12 +347,6 @@ class Annotations:
     def _extras_columns(self) -> set[str]:
         """The set containing all the keys in all extras dicts."""
         return {k for d in self.extras for k in d.keys()}
-
-    @property
-    def extras_data_frame(self):
-        """The extras of the Annotations as a DataFrame."""
-        pd = _check_pandas_installed(strict=True)
-        return pd.DataFrame(self.extras)
 
     def __eq__(self, other):
         """Compare to another Annotations instance."""
@@ -549,7 +548,8 @@ class Annotations:
         if self._any_ch_names():
             df.update(ch_names=self.ch_names)
         df = pd.DataFrame(df)
-        df = pd.concat([df, self.extras_data_frame], axis=1)
+        extras_df = pd.DataFrame(self.extras)
+        df = pd.concat([df, extras_df], axis=1)
         return df
 
     def count(self):
