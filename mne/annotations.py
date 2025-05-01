@@ -1218,11 +1218,6 @@ def _write_annotations(fid, annotations):
 
 
 def _write_annotations_csv(fname, annot):
-    if len(annot._extras_columns) > 0:
-        warn(
-            "Reading extra annotation fields from CSV is not supported. "
-            "The extra fields will be written but not loaded when reading."
-        )
     annot = annot.to_data_frame()
     if "ch_names" in annot:
         annot["ch_names"] = [
@@ -1238,8 +1233,10 @@ def _write_annotations_txt(fname, annot):
         # for backward compat, we do not write tzinfo (assumed UTC)
         content += f"# orig_time : {annot.orig_time.replace(tzinfo=None)}\n"
     content += "# onset, duration, description"
+    n_cols = 3
     data = [annot.onset, annot.duration, annot.description]
     if annot._any_ch_names():
+        n_cols += 1
         content += ", ch_names"
         data.append(
             [
@@ -1248,18 +1245,20 @@ def _write_annotations_txt(fname, annot):
             ]
         )
     if len(extras_columns := annot._extras_columns) > 0:
-        warn(
-            "Reading extra annotation fields from TXT is not supported. "
-            "The extra fields will be written but not loaded when reading."
-        )
+        n_cols += len(extras_columns)
         for column in extras_columns:
             content += f", {column}"
-            data.append([extra.get(column, None) for extra in annot.extras])
+            data.append(
+                [
+                    val if (val := extra.get(column, None)) is not None else ""
+                    for extra in annot.extras
+                ]
+            )
     content += "\n"
     data = np.array(data, dtype=str).T
     assert data.ndim == 2
     assert data.shape[0] == len(annot.onset)
-    assert data.shape[1] in (3, 4)
+    assert data.shape[1] == n_cols
     with open(fname, "wb") as fid:
         fid.write(content.encode())
         np.savetxt(fid, data, delimiter=",", fmt="%s")
@@ -1366,6 +1365,20 @@ def read_annotations(
     return annotations
 
 
+def _cast_extras_types(val):
+    """Cast types to int or float."""
+    if val == "":
+        return None
+    try:
+        out = int(val)
+    except (ValueError, TypeError):
+        try:
+            out = float(val)
+        except (ValueError, TypeError):
+            out = val
+    return out
+
+
 def _read_annotations_csv(fname):
     """Read annotations from csv.
 
@@ -1402,7 +1415,19 @@ def _read_annotations_csv(fname):
             _safe_name_list(val, "read", "annotation channel name")
             for val in df["ch_names"].values
         ]
-    return Annotations(onset, duration, description, orig_time, ch_names)
+    other_columns = list(
+        df.columns.difference(["onset", "duration", "description", "ch_names"])
+    )
+    extras = None
+    if len(other_columns) > 0:
+        extras = df[other_columns].astype(object).to_dict(orient="records")
+        # if we try to cast the types within the pandas dataframe,
+        # it will fail if the column contains mixed types
+        extras = [
+            {k: _cast_extras_types(v) for k, v in extra.items()} for extra in extras
+        ]
+        print(extras)
+    return Annotations(onset, duration, description, orig_time, ch_names, extras)
 
 
 def _read_brainstorm_annotations(fname, orig_time=None):
@@ -1497,7 +1522,10 @@ def _read_annotations_txt(fname):
             i_col += 1
         if len(columns) > i_col:
             extras = [
-                {columns[j_col]: out[j_col][i] for j_col in range(i_col, len(columns))}
+                {
+                    columns[j_col]: _cast_extras_types(out[j_col][i].decode("UTF-8"))
+                    for j_col in range(i_col, len(columns))
+                }
                 for i in range(len(onset))
             ]
 
