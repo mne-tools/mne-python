@@ -1877,20 +1877,25 @@ def test_append_splits_boundary(tmp_path, split_size):
 
 
 @pytest.mark.parametrize(
-    "key, value, expected_error",
+    "key, value, expected_error, match",
     (
-        ("onset", 1, ValueError),  # Reserved key
-        ("duration", 1, ValueError),  # Reserved key
-        ("description", 1, ValueError),  # Reserved key
-        ("ch_names", 1, ValueError),  # Reserved key
-        ("valid_key", [], TypeError),  # Invalid value type
-        (1, 1, TypeError),  # Invalid key type
+        ("onset", 1, ValueError, "reserved"),
+        ("duration", 1, ValueError, "reserved"),
+        ("description", 1, ValueError, "reserved"),
+        ("ch_names", 1, ValueError, "reserved"),
+        ("valid_key", [], TypeError, "value must be an instance of"),
+        (1, 1, TypeError, "key must be an instance of"),
     ),
 )
-def test_extras_dict_raises(key, value, expected_error):
+def test_extras_dict_raises(key, value, expected_error, match):
     """Test that _AnnotationsExtrasDict raises errors for invalid keys/values."""
     extras_dict = _AnnotationsExtrasDict()
-    with pytest.raises(expected_error):
+    with pytest.raises(expected_error, match=match):
         extras_dict[key] = value
-    with pytest.raises(expected_error):
+    with pytest.raises(expected_error, match=match):
         extras_dict.update({key: value})
+    with pytest.raises(expected_error, match=match):
+        _AnnotationsExtrasDict({key: value})
+    if isinstance(key, str):
+        with pytest.raises(expected_error, match=match):
+            _AnnotationsExtrasDict(**{key: value})
