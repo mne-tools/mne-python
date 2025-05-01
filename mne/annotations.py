@@ -1520,7 +1520,8 @@ def _read_annotations_txt(fname):
             )
         if missing := {"onset", "duration", "description"} - set(col_map.keys()):
             raise ValueError(
-                f"Column(s) {missing} not found in header. Please check the file format."
+                f"Column(s) {missing} not found in header. "
+                "Please check the file format."
             )
         _check_option("text header len", len(out), (len(columns),))
         onset = out[col_map["onset"]]
