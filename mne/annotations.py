@@ -339,7 +339,7 @@ class Annotations:
         self._extras = _validate_extras(extras, len(self.onset))
 
     @property
-    def extras_columns(self) -> set[str]:
+    def _extras_columns(self) -> set[str]:
         """The set containing all the keys in all extras dicts."""
         return {k for d in self.extras for k in d.keys()}
 
@@ -1059,7 +1059,7 @@ class EpochAnnotationsMixin:
         # onsets, durations, and descriptions
         epoch_annot_list = self.get_annotations_per_epoch(with_extras=with_extras)
         onset, duration, description = [], [], []
-        extras = {k: [] for k in self.annotations.extras_columns}
+        extras = {k: [] for k in self.annotations._extras_columns}
         for epoch_annot in epoch_annot_list:
             for ix, annot_prop in enumerate((onset, duration, description)):
                 entry = [annot[ix] for annot in epoch_annot]
@@ -1218,7 +1218,7 @@ def _write_annotations(fid, annotations):
 
 
 def _write_annotations_csv(fname, annot):
-    if len(annot.extras_columns) > 0:
+    if len(annot._extras_columns) > 0:
         warn(
             "Reading extra annotation fields from CSV is not supported. "
             "The extra fields will be written but not loaded when reading."
@@ -1247,7 +1247,7 @@ def _write_annotations_txt(fname, annot):
                 for ci, ch in enumerate(annot.ch_names)
             ]
         )
-    if len(extras_columns := annot.extras_columns) > 0:
+    if len(extras_columns := annot._extras_columns) > 0:
         warn(
             "Reading extra annotation fields from TXT is not supported. "
             "The extra fields will be written but not loaded when reading."
