@@ -72,7 +72,7 @@ class _AnnotationsExtrasDict(UserDict):
         _validate_type(
             value, (str, int, float, None), "value", "string, int, float or None"
         )
-        return super().__setitem__(key, value)
+        super().__setitem__(key, value)
 
 
 def _validate_extras(extras, length: int):
@@ -183,7 +183,7 @@ class Annotations:
 
         .. versionadded:: 0.23
     extras : list[dict[str, int | float | str | None] | None] | None
-        Optional list fo dicts containing extra fields for each annotation.
+        Optional list of dicts containing extra fields for each annotation.
         The number of items must match the number of annotations.
 
         .. versionadded:: 1.10
@@ -516,6 +516,7 @@ class Annotations:
         if isinstance(idx, int_like):
             del self.extras[idx]
         elif len(idx) > 0:
+            # convert slice-like idx to ints, and delete list items in reverse order
             for i in np.sort(np.arange(len(self.extras))[idx])[::-1]:
                 del self.extras[i]
 
