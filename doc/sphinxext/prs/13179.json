@@ -1,0 +1,75 @@
+{
+  "merge_commit_sha": "9b93f0329127f31bd2e6c117767f10d45edd0527",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "autofix-ci[bot]",
+      "e": "114827586+autofix-ci[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/13179.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/devel/13179.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "examples/visualization/eeg_on_scalp.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/visualization/mne_helmet.py": {
+      "a": 9,
+      "d": 3
+    },
+    "mne/forward/_field_interpolation.py": {
+      "a": 5,
+      "d": 1
+    },
+    "mne/surface.py": {
+      "a": 23,
+      "d": 2
+    },
+    "mne/utils/docs.py": {
+      "a": 7,
+      "d": 0
+    },
+    "mne/viz/_3d.py": {
+      "a": 40,
+      "d": 28
+    },
+    "mne/viz/backends/_abstract.py": {
+      "a": 8,
+      "d": 0
+    },
+    "mne/viz/backends/_pyvista.py": {
+      "a": 8,
+      "d": 1
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 18,
+      "d": 6
+    },
+    "tutorials/forward/20_source_alignment.py": {
+      "a": 1,
+      "d": 2
+    },
+    "tutorials/forward/35_eeg_no_mri.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

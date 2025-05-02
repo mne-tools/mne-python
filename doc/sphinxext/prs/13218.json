@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "d089b459c3a7a276d015e553920b2201ba1bdde9",
+  "authors": [
+    {
+      "n": "Wei",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/13218.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/gui/_coreg.py": {
+      "a": 3,
+      "d": 0
+    }
+  }
+}
