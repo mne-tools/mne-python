@@ -108,6 +108,7 @@
 .. _Hamid Maymandi: https://github.com/HamidMandi
 .. _Hamza Abdelhedi: https://github.com/BabaSanfour
 .. _Hari Bharadwaj: https://github.com/haribharadwaj
+.. _Harrison Ritz: https://github.com/harrisonritz
 .. _Hasrat Ali Arzoo: https://github.com/hasrat17
 .. _Henrich Kolkhorst: https://github.com/hekolk
 .. _Hongjiang Ye: https://github.com/hongjiang-ye
@@ -157,6 +158,7 @@
 .. _Jussi Nurminen: https://github.com/jjnurminen
 .. _Kaisu Lankinen: http://bishoplab.berkeley.edu/Kaisu.html
 .. _Katarina Slama: https://github.com/katarinaslama
+.. _Katia Al-Amir: https://github.com/katia-sentry
 .. _Keith Doelling: https://github.com/kdoelling1919
 .. _Kostiantyn Maksymenko: https://github.com/makkostya
 .. _Kristijan Armeni: https://github.com/kristijanarmeni
@@ -273,6 +275,7 @@
 .. _Scott Huberty:  https://orcid.org/0000-0003-2637-031X
 .. _Sebastiaan Mathot: https://www.cogsci.nl/smathot
 .. _Sebastian Castano: https://github.com/jscastanoc
+.. _Sebastian Jentschke: https://github.com/sjentsch
 .. _Sebastian Major: https://github.com/major-s
 .. _Sena Er: https://github.com/sena-neuro
 .. _Senwen Deng: https://snwn.de
@@ -318,11 +321,13 @@
 .. _Velu Prabhakar Kumaravel: https://github.com/vpKumaravel
 .. _Victor Ferat: https://github.com/vferat
 .. _Victoria Peterson: https://github.com/vpeterson
+.. _Wei Xu: https://github.com/psyxw
 .. _Will Turner: https://bootstrapbill.github.io
 .. _Xabier de Zuazo: https://github.com/zuazo
 .. _Xiaokai Xia: https://github.com/dddd1007
 .. _Yaroslav Halchenko: http://haxbylab.dartmouth.edu/ppl/yarik.html
 .. _Yiping Zuo: https://github.com/frostime
+.. _Yixiao Shen: https://github.com/SYXiao2002
 .. _Yousra Bekhti: https://www.linkedin.com/pub/yousra-bekhti/56/886/421
 .. _Yu-Han Luo: https://github.com/yh-luo
 .. _Zhi Zhang: https://github.com/tczhangzhi/

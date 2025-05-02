@@ -1027,7 +1027,6 @@ def test_ica_additional(method, tmp_path, short_raw_epochs):
 
 def test_get_explained_variance_ratio(tmp_path, short_raw_epochs):
     """Test ICA.get_explained_variance_ratio()."""
-    pytest.importorskip("sklearn")
     raw, epochs, _ = short_raw_epochs
     ica = ICA(max_iter=1)
 
