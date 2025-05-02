@@ -5,7 +5,7 @@
 import json
 import re
 import warnings
-from collections import Counter, OrderedDict, UserDict
+from collections import Counter, OrderedDict, UserDict, UserList
 from collections.abc import Iterable
 from copy import deepcopy
 from datetime import datetime, timedelta, timezone
@@ -75,21 +75,85 @@ class _AnnotationsExtrasDict(UserDict):
         super().__setitem__(key, value)
 
 
+class _AnnotationsExtrasList(UserList):
+    """A list of dictionaries for storing extra fields of annotations.
+
+    Each dictionary in the list corresponds to an annotation and contains
+    extra fields.
+    The keys of the dictionaries are strings, and the values can be
+    strings, integers, floats, or None.
+    """
+
+    @staticmethod
+    def _validate_value(
+        value: dict | _AnnotationsExtrasDict | None,
+    ) -> _AnnotationsExtrasDict:
+        _validate_type(
+            value,
+            (dict, _AnnotationsExtrasDict, None),
+            "extras dict value",
+            "dict or None",
+        )
+        return (
+            value
+            if isinstance(value, _AnnotationsExtrasDict)
+            else _AnnotationsExtrasDict(value or {})
+        )
+
+    def __init__(self, initlist=None):
+        if not (isinstance(initlist, _AnnotationsExtrasList) or initlist is None):
+            initlist = [self._validate_value(v) for v in initlist]
+        super().__init__(initlist)
+
+    def __setitem__(  # type: ignore[override]
+        self,
+        key: int | slice,
+        value: (
+            dict
+            | _AnnotationsExtrasDict
+            | None
+            | Iterable[dict | _AnnotationsExtrasDict | None]
+        ),
+    ) -> None:
+        _validate_type(key, (int, slice), "key", "int or slice")
+        if isinstance(key, int):
+            iterable = False
+            value = [value]
+        else:
+            _validate_type(value, Iterable, "value", "Iterable when key is a slice")
+            iterable = True
+
+        new_values = [self._validate_value(v) for v in value]
+        if not iterable:
+            new_values = new_values[0]
+        super().__setitem__(key, new_values)
+
+    def __iadd__(self, other):
+        if not isinstance(other, _AnnotationsExtrasList):
+            other = _AnnotationsExtrasList(other)
+        super().__iadd__(other)
+
+    def append(self, item):
+        super().append(self._validate_value(item))
+
+    def insert(self, i, item):
+        super().insert(i, self._validate_value(item))
+
+    def extend(self, other):
+        if not isinstance(other, _AnnotationsExtrasList):
+            other = _AnnotationsExtrasList(other)
+        super().extend(other)
+
+
 def _validate_extras(extras, length: int):
-    _validate_type(extras, (None, list), "extras")
-    out = [_AnnotationsExtrasDict() for _ in range(length)]
-    if extras is not None:
-        if len(extras) != length:
-            raise ValueError(
-                f"extras must be None or a list of length {length}, got {len(extras)}."
-            )
-        for i, (d, new_d) in enumerate(zip(extras, out)):
-            _validate_type(
-                d, (dict, _AnnotationsExtrasDict, None), f"extras[{i}]", "dict or None"
-            )
-            if d is not None:
-                new_d.update(d)
-    return out
+    _validate_type(extras, (None, list, _AnnotationsExtrasList), "extras")
+    if extras is not None and len(extras) != length:
+        raise ValueError(
+            f"extras must be None or a list of length {length}, got {len(extras)}."
+        )
+    if isinstance(extras, _AnnotationsExtrasList):
+        return extras
+    return _AnnotationsExtrasList(extras or [None] * length)
 
 
 def _check_o_d_s_c_e(onset, duration, description, ch_names, extras):

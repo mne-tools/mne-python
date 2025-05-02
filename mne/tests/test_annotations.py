@@ -30,6 +30,7 @@ from mne import (
 )
 from mne.annotations import (
     _AnnotationsExtrasDict,
+    _AnnotationsExtrasList,
     _handle_meas_date,
     _read_annotations_txt_parse_header,
     _sync_onset,
@@ -980,9 +981,9 @@ def _assert_annotations_equal(a, b, tol=0):
     extras_columns = a._extras_columns.union(b._extras_columns)
     for col in extras_columns:
         for i, extra in enumerate(a.extras):
-            assert extra.get(col, None) == b.extras[i].get(col, None), (
-                f"extras[{i}][{col}]"
-            )
+            assert extra.get(col, None) == b.extras[i].get(
+                col, None
+            ), f"extras[{i}][{col}]"
 
 
 _ORIG_TIME = datetime.fromtimestamp(1038942071.7201, timezone.utc)
@@ -1898,3 +1899,34 @@ def test_extras_dict_raises(key, value, expected_error, match):
     if isinstance(key, str):
         with pytest.raises(expected_error, match=match):
             _AnnotationsExtrasDict(**{key: value})
+
+
+@pytest.mark.parametrize(
+    "key, value, expected_error, match",
+    (
+        ("onset", 1, ValueError, "reserved"),
+        ("duration", 1, ValueError, "reserved"),
+        ("description", 1, ValueError, "reserved"),
+        ("ch_names", 1, ValueError, "reserved"),
+        ("valid_key", [], TypeError, "value must be an instance of"),
+        (1, 1, TypeError, "key must be an instance of"),
+    ),
+)
+def test_extras_list_raises(key, value, expected_error, match):
+    """Test that _AnnotationsExtrasList raises errors for invalid keys/values."""
+    extras = _AnnotationsExtrasList([None])
+    assert all(isinstance(extra, _AnnotationsExtrasDict) for extra in extras)
+    with pytest.raises(expected_error, match=match):
+        extras[0] = {key: value}
+    with pytest.raises(expected_error, match=match):
+        extras[:1] = [{key: value}]
+    with pytest.raises(expected_error, match=match):
+        extras[0].update({key: value})
+    with pytest.raises(expected_error, match=match):
+        _AnnotationsExtrasList([{key: value}])
+    with pytest.raises(expected_error, match=match):
+        extras.append({key: value})
+    with pytest.raises(expected_error, match=match):
+        extras.extend([{key: value}])
+    with pytest.raises(expected_error, match=match):
+        extras += [{key: value}]
