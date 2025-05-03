@@ -1446,6 +1446,13 @@ def _cast_extras_types(val):
 def _read_annotations_csv(fname):
     """Read annotations from csv.
 
+    The dtypes of the extra fields will automatically be infered
+    by pandas. If some fields have heterogeneous types on the
+    different rows, this automatic inference may return unexpecterd
+    types.
+    If you need to save heterogeneous extra dtypes, we recomend
+    saving to FIF.
+
     Parameters
     ----------
     fname : path-like
@@ -1484,13 +1491,7 @@ def _read_annotations_csv(fname):
     )
     extras = None
     if len(extra_columns) > 0:
-        extras = df[extra_columns].astype(object).to_dict(orient="records")
-        # if we try to cast the types within the pandas dataframe,
-        # it will fail if the column contains mixed types
-        extras = [
-            {k: _cast_extras_types(v) for k, v in extra.items()} for extra in extras
-        ]
-        print(extras)
+        extras = df[extra_columns].to_dict(orient="records")
     return Annotations(onset, duration, description, orig_time, ch_names, extras)
 
 
