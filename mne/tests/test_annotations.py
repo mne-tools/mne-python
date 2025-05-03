@@ -1045,6 +1045,7 @@ def dummy_annotation_file(tmp_path_factory, ch_names, fmt, with_extras):
     return fname
 
 
+@pytest.mark.filterwarnings("ignore:.*heterogeneous dtypes.*")
 @pytest.mark.parametrize("ch_names", (False, True))
 @pytest.mark.parametrize("fmt", [pytest.param("csv", marks=needs_pandas), "txt", "fif"])
 @pytest.mark.parametrize("with_extras", [True, False])
@@ -1078,6 +1079,50 @@ def test_io_annotation(dummy_annotation_file, tmp_path, fmt, ch_names, with_extr
     annot.save(fname, overwrite=True)
     annot2 = read_annotations(fname)
     _assert_annotations_equal(annot, annot2)
+
+
+@pytest.mark.parametrize("fmt", [pytest.param("csv", marks=needs_pandas), "txt"])
+def test_write_annotation_warn_heterogeneous(tmp_path, fmt):
+    """Test that CSV, and TXT annotation writers warn on heterogeneous dtypes."""
+    annot = Annotations(
+        onset=[0.0, 9.0],
+        duration=[1.0, 2.425],
+        description=["AA", "BB"],
+        orig_time=_ORIG_TIME,
+        extras=[
+            {"foo1": "a", "foo2": "a"},
+            {"foo1": 1, "foo2": None},
+        ],
+    )
+    fname = tmp_path / f"annotations-annot.{fmt}"
+    with (
+        pytest.warns(RuntimeWarning, match="'foo2' contains heterogeneous dtypes"),
+        pytest.warns(RuntimeWarning, match="'foo1' contains heterogeneous dtypes"),
+    ):
+        annot.save(fname)
+
+
+def test_write_annotation_warn_heterogeneous_b(tmp_path):
+    """Additional cases of test_write_annotation_warn_heterogeneous
+    which can only be tested with TXT."""
+    fmt = "txt"
+    annot = Annotations(
+        onset=[0.0, 9.0],
+        duration=[1.0, 2.425],
+        description=["AA", "BB"],
+        orig_time=_ORIG_TIME,
+        extras=[
+            {"foo3": 1, "foo4": 1, "foo5": 1.0},
+            {"foo3": 1.0, "foo4": None, "foo5": None},
+        ],
+    )
+    fname = tmp_path / f"annotations-annot.{fmt}"
+    with (
+        pytest.warns(RuntimeWarning, match="'foo5' contains heterogeneous dtypes"),
+        pytest.warns(RuntimeWarning, match="'foo4' contains heterogeneous dtypes"),
+        pytest.warns(RuntimeWarning, match="'foo3' contains heterogeneous dtypes"),
+    ):
+        annot.save(fname)
 
 
 def test_broken_csv(tmp_path):
