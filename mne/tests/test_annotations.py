@@ -1103,8 +1103,9 @@ def test_write_annotation_warn_heterogeneous(tmp_path, fmt):
 
 
 def test_write_annotation_warn_heterogeneous_b(tmp_path):
-    """Additional cases of test_write_annotation_warn_heterogeneous
-    which can only be tested with TXT.
+    """Additional cases for test_write_annotation_warn_heterogeneous
+
+    These cases are only compatible with the TXT writer.
     """
     fmt = "txt"
     annot = Annotations(
