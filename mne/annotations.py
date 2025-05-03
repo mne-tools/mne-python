@@ -84,6 +84,9 @@ class _AnnotationsExtrasList(UserList):
     strings, integers, floats, or None.
     """
 
+    def __repr__(self):
+        return repr(self.data)
+
     @staticmethod
     def _validate_value(
         value: dict | _AnnotationsExtrasDict | None,
