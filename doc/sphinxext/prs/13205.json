@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "21b2f344be1c5c7a9b81aad8c955dfcabd3107d6",
+  "authors": [
+    {
+      "n": "Mathieu Scheltienne",
+      "e": "mathieu.scheltienne@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/_includes/institutional-partners.rst": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

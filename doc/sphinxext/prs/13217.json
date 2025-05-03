@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "7e9d96334afc13d3eb026e42c8e96b2d6101c9b9",
+  "authors": [
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    }
+  ],
+  "changes": {
+    "mne/time_frequency/spectrum.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}
