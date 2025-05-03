@@ -1572,8 +1572,10 @@ def _read_annotations_txt_parse_header(fname):
 
     columns = [[c.strip() for c in h[2:].split(",")] for h in header if is_columns(h)]
 
-    return None if not orig_values else orig_values[0], (
-        None if not columns else columns[0]
+    return (
+        None if not orig_values else orig_values[0],
+        (None if not columns else columns[0]),
+        len(header),
     )
 
 
@@ -1581,7 +1583,7 @@ def _read_annotations_txt(fname):
     with warnings.catch_warnings(record=True):
         warnings.simplefilter("ignore")
         out = np.loadtxt(fname, delimiter=",", dtype=np.bytes_, unpack=True)
-    orig_time, columns = _read_annotations_txt_parse_header(fname)
+    orig_time, columns, n_rows_header = _read_annotations_txt_parse_header(fname)
     ch_names = extras = None
     if len(out) == 0:
         onset, duration, desc = [], [], []
@@ -1617,15 +1619,31 @@ def _read_annotations_txt(fname):
             "ch_names",
         }
         if extra_columns:
-            extras = [
-                {
-                    col_name: _cast_extras_types(
-                        out[col_map[col_name]][i].decode("UTF-8")
-                    )
-                    for col_name in extra_columns
-                }
-                for i in range(len(onset))
-            ]
+            pd = _check_pandas_installed(strict=False)
+            if pd:
+                df = pd.read_csv(
+                    fname,
+                    delimiter=",",
+                    names=columns,
+                    usecols=extra_columns,
+                    skiprows=n_rows_header,
+                    header=None,
+                    keep_default_na=False,
+                )
+                extras = df.to_dict(orient="records")
+            else:
+                warn(
+                    "Extra fields found in the header but pandas is not installed. "
+                    "Therefor the dtypes of the extra fields can not automatically "
+                    "be infered so they will be loaded as strings."
+                )
+                extras = [
+                    {
+                        col_name: out[col_map[col_name]][i].decode("UTF-8")
+                        for col_name in extra_columns
+                    }
+                    for i in range(len(onset))
+                ]
 
     onset = [float(o.decode()) for o in np.atleast_1d(onset)]
     duration = [float(d.decode()) for d in np.atleast_1d(duration)]

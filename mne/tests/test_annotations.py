@@ -1218,9 +1218,10 @@ def test_read_annotation_txt_header(tmp_path):
     fname = tmp_path / "header.txt"
     with open(fname, "w") as f:
         f.write(content)
-    orig_time, _ = _read_annotations_txt_parse_header(fname)
+    orig_time, _, n_rows_header = _read_annotations_txt_parse_header(fname)
     want = datetime.fromtimestamp(1038942071.7201, timezone.utc)
     assert orig_time == want
+    assert n_rows_header == 5
 
 
 def test_read_annotation_txt_one_segment(tmp_path):
