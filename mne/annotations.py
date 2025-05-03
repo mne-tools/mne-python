@@ -1445,20 +1445,6 @@ def read_annotations(
     return annotations
 
 
-def _cast_extras_types(val):
-    """Cast types to int or float."""
-    if val == "":
-        return None
-    try:
-        out = int(val)
-    except (ValueError, TypeError):
-        try:
-            out = float(val)
-        except (ValueError, TypeError):
-            out = val
-    return out
-
-
 def _read_annotations_csv(fname):
     """Read annotations from csv.
 
