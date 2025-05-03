@@ -1288,6 +1288,18 @@ def _write_annotations_csv(fname, annot):
             _safe_name_list(ch, "write", name=f'annot["ch_names"][{ci}')
             for ci, ch in enumerate(annot["ch_names"])
         ]
+    extras_columns = set(annot.columns) - {
+        "onset",
+        "duration",
+        "description",
+        "ch_names",
+    }
+    for col in extras_columns:
+        if len(dtypes := annot[col].apply(type).unique()) > 1:
+            warn(
+                f"Extra field '{col}' contains heterogeneous dtypes ({dtypes}). "
+                "Loading these CSV annotations may not return the original dtypes." 
+            )
     annot.to_csv(fname, index=False)
 
 
