@@ -1298,7 +1298,7 @@ def _write_annotations_csv(fname, annot):
         if len(dtypes := annot[col].apply(type).unique()) > 1:
             warn(
                 f"Extra field '{col}' contains heterogeneous dtypes ({dtypes}). "
-                "Loading these CSV annotations may not return the original dtypes." 
+                "Loading these CSV annotations may not return the original dtypes."
             )
     annot.to_csv(fname, index=False)
 
@@ -1324,12 +1324,13 @@ def _write_annotations_txt(fname, annot):
         n_cols += len(extras_columns)
         for column in extras_columns:
             content += f", {column}"
-            data.append(
-                [
-                    val if (val := extra.get(column, None)) is not None else ""
-                    for extra in annot.extras
-                ]
-            )
+            values = [extra.get(column, None) for extra in annot.extras]
+            if len(dtypes := set(type(v) for v in values)) > 1:
+                warn(
+                    f"Extra field '{column}' contains heterogeneous dtypes ({dtypes}). "
+                    "Loading these TXT annotations may not return the original dtypes."
+                )
+            data.append([val if val is not None else "" for val in values])
     content += "\n"
     data = np.array(data, dtype=str).T
     assert data.ndim == 2
