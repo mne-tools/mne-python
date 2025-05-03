@@ -1462,11 +1462,11 @@ def _cast_extras_types(val):
 def _read_annotations_csv(fname):
     """Read annotations from csv.
 
-    The dtypes of the extra fields will automatically be infered
+    The dtypes of the extra fields will automatically be inferred
     by pandas. If some fields have heterogeneous types on the
     different rows, this automatic inference may return unexpecterd
     types.
-    If you need to save heterogeneous extra dtypes, we recomend
+    If you need to save heterogeneous extra dtypes, we recommend
     saving to FIF.
 
     Parameters
@@ -1634,8 +1634,8 @@ def _read_annotations_txt(fname):
             else:
                 warn(
                     "Extra fields found in the header but pandas is not installed. "
-                    "Therefor the dtypes of the extra fields can not automatically "
-                    "be infered so they will be loaded as strings."
+                    "Therefore the dtypes of the extra fields can not automatically "
+                    "be inferred so they will be loaded as strings."
                 )
                 extras = [
                     {
