@@ -969,7 +969,7 @@ def test_event_id_function_using_custom_function():
 # Test for IO with .csv files
 
 
-def _assert_annotations_equal(a, b, tol=0):
+def _assert_annotations_equal(a, b, tol=0, comp_extras_as_str=False):
     __tracebackhide__ = True
     assert_allclose(a.onset, b.onset, rtol=0, atol=tol, err_msg="onset")
     assert_allclose(a.duration, b.duration, rtol=0, atol=tol, err_msg="duration")
@@ -981,9 +981,12 @@ def _assert_annotations_equal(a, b, tol=0):
     extras_columns = a._extras_columns.union(b._extras_columns)
     for col in extras_columns:
         for i, extra in enumerate(a.extras):
-            assert extra.get(col, None) == b.extras[i].get(
-                col, None
-            ), f"extras[{i}][{col}]"
+            exa = extra.get(col, None)
+            exb = b.extras[i].get(col, None)
+            if comp_extras_as_str:
+                exa = str(exa) if exa is not None else ""
+                exb = str(exb) if exb is not None else ""
+            assert exa == exb, f"extras[{i}][{col}]"
 
 
 _ORIG_TIME = datetime.fromtimestamp(1038942071.7201, timezone.utc)
@@ -1058,7 +1061,10 @@ def test_io_annotation(dummy_annotation_file, tmp_path, fmt, ch_names, with_extr
             None,
         ]
     _assert_annotations_equal(
-        annot, Annotations([0.0, 9.0], [1.0, 2.425], ["AA", "BB"], **kwargs), tol=1e-6
+        annot,
+        Annotations([0.0, 9.0], [1.0, 2.425], ["AA", "BB"], **kwargs),
+        tol=1e-6,
+        comp_extras_as_str=fmt in ["csv", "txt"],
     )
 
     # Now test writing
