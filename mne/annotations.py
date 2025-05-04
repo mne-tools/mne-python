@@ -111,12 +111,7 @@ class _AnnotationsExtrasList(UserList):
     def __setitem__(  # type: ignore[override]
         self,
         key: int | slice,
-        value: (
-            dict
-            | _AnnotationsExtrasDict
-            | None
-            | Iterable[dict | _AnnotationsExtrasDict | None]
-        ),
+        value,
     ) -> None:
         _validate_type(key, (int, slice), "key", "int or slice")
         if isinstance(key, int):
