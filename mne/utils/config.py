@@ -5,9 +5,9 @@
 # Copyright the MNE-Python contributors.
 
 import atexit
+import contextlib
 import json
 import multiprocessing
-import contextlib
 import os
 import os.path as op
 import platform
@@ -24,7 +24,13 @@ from urllib.request import urlopen
 from packaging.version import parse
 
 from ._logging import logger, warn
-from .check import _check_fname, _check_option, _check_qt_version, _validate_type
+from .check import (
+    _check_fname,
+    _check_option,
+    _check_qt_version,
+    _soft_import,
+    _validate_type,
+)
 from .docs import fill_doc
 from .misc import _pl
 
@@ -218,20 +224,31 @@ _known_config_wildcards = (
     "MNE_LSL",  # mne-lsl
 )
 
+
 @contextlib.contextmanager
-def _open_lock(path, *args, **kwargs):
+def _path_lock(path):
     """
     Context manager that opens a file with an optional file lock.
+
     If the `filelock` package is available, a lock is acquired on a lock file
-    based on the given path (by appending '.lock'). 
-    Otherwise, a null context is used. The file is then opened in the 
+    based on the given path (by appending '.lock').
+
+    Otherwise, a null context is used. The path is then opened in the
     specified mode.
+
+    Parameters
+    ----------
+    path : str
+        The path to the file to be opened.
+
     """
     filelock = _soft_import("filelock", purpose="parallel integration", strict=False)
 
     if filelock is not None:
         lock_path = f"{path}.lock"
         try:
+            from filelock import FileLock
+
             lock_context = FileLock(lock_path, timeout=2)
         except TimeoutError:
             lock_context = contextlib.nullcontext()
@@ -239,24 +256,19 @@ def _open_lock(path, *args, **kwargs):
         lock_context = contextlib.nullcontext()
 
     with lock_context:
-        if "hdf5" in str(path):
-            with h5py.File(path, *args, **kwargs) as fid:
-                yield fid
-        else:
-            with open(path, *args, **kwargs) as fid:
-                yield fid
+        yield path
 
 
 def _load_config(config_path, raise_error=False):
     """Safely load a config file."""
-    with _open_lock(config_path) as fid:
+    with open(_path_lock(config_path)) as fid:
         try:
             config = json.load(fid)
         except ValueError:
             # No JSON object could be decoded --> corrupt file?
             msg = (
                 f"The MNE-Python config file ({config_path}) is not a valid JSON "
-                "file and might be corrupted. Consider deleting it and generating again."
+                "file and might be corrupted"
             )
             if raise_error:
                 raise RuntimeError(msg)
@@ -427,7 +439,7 @@ def set_config(key, value, home_dir=None, set_env=True):
     directory = op.dirname(config_path)
     if not op.isdir(directory):
         os.mkdir(directory)
-    with _load_config(config_path, "w") as fid:
+    with open(_path_lock(config_path), "w") as fid:
         json.dump(config, fid, sort_keys=True, indent=0)
 
 

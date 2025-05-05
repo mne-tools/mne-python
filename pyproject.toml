@@ -93,6 +93,7 @@ full-no-qt = [
   "dipy",
   "edfio >= 0.2.1",
   "eeglabio",
+  "filelock>=3.18.0",
   "h5py",
   "imageio >= 2.6.1",
   "imageio-ffmpeg >= 0.4.1",
@@ -131,7 +132,6 @@ full-no-qt = [
   "trame-vuetify",
   "vtk >= 9.2",
   "xlrd",
-  filelock = ">=3.18.0",
 ]
 full-pyqt6 = ["mne[full]"]
 full-pyside6 = ["mne[full-no-qt]", "PySide6 != 6.7.0, != 6.8.0, != 6.8.0.1"]
@@ -173,7 +173,6 @@ test_extra = [
   "snirf",
   "sphinx-gallery",
   "statsmodels",
-  "
 ]
 
 [project.urls]
