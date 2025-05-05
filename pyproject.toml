@@ -131,6 +131,7 @@ full-no-qt = [
   "trame-vuetify",
   "vtk >= 9.2",
   "xlrd",
+  filelock = ">=3.18.0",
 ]
 full-pyqt6 = ["mne[full]"]
 full-pyside6 = ["mne[full-no-qt]", "PySide6 != 6.7.0, != 6.8.0, != 6.8.0.1"]
@@ -172,6 +173,7 @@ test_extra = [
   "snirf",
   "sphinx-gallery",
   "statsmodels",
+  "
 ]
 
 [project.urls]
