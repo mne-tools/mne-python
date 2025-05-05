@@ -2,9 +2,12 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+import json
 import os
 import platform
+import random
 import re
+import time
 from functools import partial
 from pathlib import Path
 from urllib.error import URLError
@@ -232,3 +235,82 @@ def test_sys_info_check_other(monkeypatch):
     out = out.getvalue()
     assert "devel, " in out
     assert "updating.html" not in out
+
+
+def _worker_update_config_loop(home_dir, worker_id, iterations=10):
+    """Util function to update config in parallel.
+
+    Worker function that repeatedly reads the config (via get_config)
+    and then updates it (via set_config) with a unique key/value pair.
+    A short random sleep is added to encourage interleaving.
+
+    Dummy function to simulate a worker that reads and updates the config.
+
+    Parameters
+    ----------
+    home_dir : str
+        The home directory where the config file is located.
+    worker_id : int
+        The ID of the worker (for creating unique keys).
+    iterations : int
+        The number of iterations to run the loop.
+
+    """
+    for i in range(iterations):
+        # Read current configuration (to simulate a read-modify cycle)
+        _ = get_config(home_dir=home_dir)
+        # Create a unique key/value pair.
+        new_key = f"worker_{worker_id}_{i}"
+        new_value = f"value_{worker_id}_{i}"
+        # Update the configuration (our set_config holds the lock over the full cycle)
+        set_config(new_key, new_value, home_dir=home_dir)
+        time.sleep(random.uniform(0, 0.05))
+    return worker_id
+
+
+def test_parallel_get_set_config(tmp_path):
+    """Test that uses parallel workers to get and set config.
+
+    All the workers update the same configuration file concurrently. In a
+    correct implementation with proper path file locking, the final
+    config file remains valid JSON and includes all expected updates.
+
+    """
+    pytest.importorskip("joblib")
+    pytest.importorskip("FileLock")
+    from joblib import Parallel, delayed
+
+    # Use the temporary directory as our home directory.
+    home_dir = str(tmp_path)
+    # get_config_path will return home_dir/.mne/mne-python.json
+    config_file = get_config_path(home_dir=home_dir)
+
+    # Ensure that the .mne directory exists.
+    config_dir = tmp_path / ".mne"
+    config_dir.mkdir(exist_ok=True)
+
+    # Write an initial (valid) config file.
+    initial_config = {"initial": "True"}
+    with open(config_file, "w") as f:
+        json.dump(initial_config, f)
+
+    n_workers = 50
+    iterations = 20
+
+    # Launch multiple workers concurrently using joblib.
+    Parallel(n_jobs=25)(
+        delayed(_worker_update_config_loop)(home_dir, worker_id, iterations)
+        for worker_id in range(n_workers)
+    )
+
+    # Now, read back the config file.
+    final_config = get_config(home_dir=home_dir)
+
+    # For each worker and iteration, check that the expected key/value pair is present.
+    for worker_id in range(n_workers):
+        for i in range(iterations):
+            expected_key = f"worker_{worker_id}_{i}"
+            expected_value = f"value_{worker_id}_{i}"
+            assert final_config.get(expected_key) == expected_value, (
+                f"Missing or incorrect value for key {expected_key}"
+            )
