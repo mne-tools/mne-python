@@ -720,11 +720,12 @@ def plot_alignment(
                 f'subject ("{subject}") did not match the '
                 f'subject name in src ("{src_subject}")'
             )
-    # configure transforms
-    if isinstance(trans, str) and trans == "auto":
-        subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-        trans = _find_trans(subject, subjects_dir)
-    trans, trans_type = _get_trans(trans, fro="head", to="mri")
+
+    trans, trans_type = _find_trans(
+        trans=trans,
+        subject=subject,
+        subjects_dir=subjects_dir,
+    )
 
     picks = pick_types(
         info,

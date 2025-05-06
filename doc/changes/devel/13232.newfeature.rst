@@ -1,0 +1,1 @@
+:meth:`mne.Report.add_trans` now accepts ``"auto"`` and ``"fsaverage"`` as arguments for the ``trans`` parameter, by `Stefan Appelhoff`_.
