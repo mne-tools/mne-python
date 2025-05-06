@@ -268,7 +268,7 @@ def _worker_update_config_loop(home_dir, worker_id, iterations=10):
     return worker_id
 
 
-def test_parallel_get_set_config(tmp_path):
+def test_parallel_get_set_config(tmp_path: Path):
     """Test that uses parallel workers to get and set config.
 
     All the workers update the same configuration file concurrently. In a
@@ -284,6 +284,10 @@ def test_parallel_get_set_config(tmp_path):
     home_dir = str(tmp_path)
     # get_config_path will return home_dir/.mne/mne-python.json
     config_file = get_config_path(home_dir=home_dir)
+
+    # if the config file already exists, remove it
+    if os.path.exists(config_file):
+        os.remove(config_file)
 
     # Ensure that the .mne directory exists.
     config_dir = tmp_path / ".mne"
