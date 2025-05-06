@@ -1,0 +1,1 @@
+Remove channels with potential electrode location from :func:`~mne.preprocessing.maxwell_filter_prepare_emptyroom`, by `Mathieu Scheltienne`_.

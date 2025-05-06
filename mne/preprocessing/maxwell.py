@@ -16,7 +16,7 @@ from .. import __version__
 from .._fiff.compensator import make_compensator
 from .._fiff.constants import FIFF, FWD
 from .._fiff.meas_info import Info, _simplify_info
-from .._fiff.pick import pick_info, pick_types
+from .._fiff.pick import _picks_to_idx, pick_info, pick_types
 from .._fiff.proc_history import _read_ctc
 from .._fiff.proj import Projection
 from .._fiff.tag import _coil_trans_to_loc, _loc_to_coil_trans
@@ -131,11 +131,16 @@ def maxwell_filter_prepare_emptyroom(
     * Set the following properties of the empty-room recording to match the
       experimental recording:
 
-      * Montage
+      * Montage (required for the fiducials defining the head coordinate frame)
       * ``raw.first_time`` and ``raw.first_samp``
 
     * Adjust annotations according to the ``annotations`` parameter.
     * Adjust the measurement date according to the ``meas_date`` parameter.
+
+    .. note::
+
+        Note that in case of dual MEG/EEG acquisition, EEG channels should not be
+        included in the empty room recording. If provided, they will be ignored.
 
     .. versionadded:: 1.1
     """  # noqa: E501
@@ -157,6 +162,29 @@ def maxwell_filter_prepare_emptyroom(
     )
 
     raw_er_prepared = raw_er.copy()
+    # just in case of combine MEG/other modality, let's explicitly drop other channels
+    # that might have a digitization and emit a warning.
+    picks = [elt for elt in ("eeg", "ecog", "seeg", "dbs") if elt in raw_er_prepared]
+    if len(picks) != 0:
+        picks = _picks_to_idx(raw_er_prepared.info, picks=picks, exclude=())
+        idx = np.setdiff1d(np.arange(raw_er_prepared.info["nchan"]), picks)
+        raw_er_prepared.pick(idx, exclude=())
+    if len(raw_er.ch_names) != len(raw_er_prepared.ch_names):
+        warn(
+            "The empty-room recording contained EEG-like channels. These channels "
+            "were dropped from the empty-room recording, as they are not "
+            "compatible with Maxwell filtering. If you need to, add those channels "
+            "back after the execution of 'maxwell_filter_prepare_emptyroom' from your "
+            "original empty-room recording using 'raw.add_channels'."
+        )
+    # apply the same channel selection to raw
+    picks = [elt for elt in ("eeg", "ecog", "seeg", "dbs") if elt in raw]
+    if len(picks) != 0:
+        picks = _picks_to_idx(
+            raw.info, picks=("eeg", "ecog", "seeg", "dbs"), exclude=()
+        )
+        idx = np.setdiff1d(np.arange(raw_er_prepared.info["nchan"]), picks)
+        raw = raw.copy().pick(idx, exclude=())
     del raw_er  # just to be sure
 
     # handle bads; only keep MEG channels
