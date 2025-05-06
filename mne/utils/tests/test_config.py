@@ -325,11 +325,9 @@ def test_parallel_get_set_config(tmp_path: Path):
 
     # include the initial key/value pair
     # that was written before the workers started
-    expected_keys.add("initial")
-    expected_values.add("True")
 
-    assert len(set(final_config.keys()) - expected_keys) == 0
-    assert len(set(final_config.values()) - expected_values) == 0
+    assert len(expected_keys - set(final_config.keys())) == 0
+    assert len(expected_values - set(final_config.values())) == 0
 
     # Check that the final config is valid JSON.
     with open(config_file) as f:
