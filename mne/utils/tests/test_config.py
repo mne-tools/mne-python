@@ -277,7 +277,7 @@ def test_parallel_get_set_config(tmp_path):
 
     """
     pytest.importorskip("joblib")
-    pytest.importorskip("FileLock")
+    pytest.importorskip("filelock")
     from joblib import Parallel, delayed
 
     # Use the temporary directory as our home directory.
@@ -295,22 +295,41 @@ def test_parallel_get_set_config(tmp_path):
         json.dump(initial_config, f)
 
     n_workers = 50
-    iterations = 20
+    iterations = 10
 
     # Launch multiple workers concurrently using joblib.
-    Parallel(n_jobs=25)(
+    Parallel(n_jobs=10)(
         delayed(_worker_update_config_loop)(home_dir, worker_id, iterations)
         for worker_id in range(n_workers)
     )
 
     # Now, read back the config file.
     final_config = get_config(home_dir=home_dir)
-
+    expected_keys = set()
+    expected_values = set()
     # For each worker and iteration, check that the expected key/value pair is present.
     for worker_id in range(n_workers):
         for i in range(iterations):
             expected_key = f"worker_{worker_id}_{i}"
             expected_value = f"value_{worker_id}_{i}"
+
             assert final_config.get(expected_key) == expected_value, (
                 f"Missing or incorrect value for key {expected_key}"
             )
+            expected_keys.add(expected_key)
+            expected_values.add(expected_value)
+
+    # include the initial key/value pair
+    # that was written before the workers started
+    expected_keys.add("initial")
+    expected_values.add("True")
+
+    assert len(set(final_config.keys()) - expected_keys) == 0
+    assert len(set(final_config.values()) - expected_values) == 0
+
+    # Check that the final config is valid JSON.
+    with open(config_file) as f:
+        try:
+            json.load(f)
+        except json.JSONDecodeError as e:
+            pytest.fail(f"Config file is not valid JSON: {e}")

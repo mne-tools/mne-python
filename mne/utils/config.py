@@ -226,7 +226,7 @@ _known_config_wildcards = (
 
 
 @contextlib.contextmanager
-def _path_lock(path):
+def _open_lock(path, *args, **kwargs):
     """
     Context manager that opens a file with an optional file lock.
 
@@ -240,28 +240,39 @@ def _path_lock(path):
     ----------
     path : str
         The path to the file to be opened.
+    *args, **kwargs : optional
+        Additional arguments and keyword arguments to be passed to the
+        `open` function.
 
     """
-    filelock = _soft_import("filelock", purpose="parallel integration", strict=False)
+    filelock = _soft_import(
+        "filelock", purpose="parallel config set and get", strict=False
+    )
+
+    lock_context = contextlib.nullcontext()  # default to no lock
 
     if filelock is not None:
         lock_path = f"{path}.lock"
         try:
             from filelock import FileLock
 
-            lock_context = FileLock(lock_path, timeout=2)
+            lock_context = FileLock(lock_path, timeout=5)
+            lock_context.acquire()
         except TimeoutError:
             lock_context = contextlib.nullcontext()
-    else:
-        lock_context = contextlib.nullcontext()
 
-    with lock_context:
-        yield path
+    try:
+        with lock_context:
+            with open(path, *args, **kwargs) as fid:
+                yield fid
+    finally:
+        # needed to release the lock
+        pass
 
 
 def _load_config(config_path, raise_error=False):
     """Safely load a config file."""
-    with open(_path_lock(config_path)) as fid:
+    with _open_lock(config_path, "r+") as fid:
         try:
             config = json.load(fid)
         except ValueError:
@@ -439,8 +450,26 @@ def set_config(key, value, home_dir=None, set_env=True):
     directory = op.dirname(config_path)
     if not op.isdir(directory):
         os.mkdir(directory)
-    with open(_path_lock(config_path), "w") as fid:
-        json.dump(config, fid, sort_keys=True, indent=0)
+
+    # Adapting the mode depend if you are create the file
+    # or no.
+    mode = "r+" if op.isfile(config_path) else "w+"
+
+    with _open_lock(config_path, mode) as fid:
+        try:
+            fid.seek(0)
+            data = json.load(fid)
+        except (ValueError, json.JSONDecodeError):
+            data = {}
+
+        if value is None:
+            data.pop(key, None)
+        else:
+            data[key] = value
+
+        fid.seek(0)
+        fid.truncate()
+        json.dump(data, fid, sort_keys=True, indent=0)
 
 
 def _get_extra_data_path(home_dir=None):
