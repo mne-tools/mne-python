@@ -3376,12 +3376,19 @@ def _get_ico_tris(grade, verbose=None, return_surf=False):
 
 
 def _pca_flip(flip, data):
-    U, s, V = _safe_svd(data, full_matrices=False)
-    # determine sign-flip
-    sign = np.sign(np.dot(U[:, 0], flip))
-    # use average power in label for scaling
-    scale = np.linalg.norm(s) / np.sqrt(len(data))
-    return sign * scale * V[0]
+    result = None
+    if flip is None:
+        result = 0
+    elif data.shape[0] < 2:
+        result = data.mean(axis=0)  # Trivial accumulator
+    else:
+        U, s, V = _safe_svd(data, full_matrices=False)
+        # determine sign-flip
+        sign = np.sign(np.dot(U[:, 0], flip))
+        # use average power in label for scaling
+        scale = np.linalg.norm(s) / np.sqrt(len(data))
+        result = sign * scale * V[0]
+    return result
 
 
 _label_funcs = {
@@ -3432,6 +3439,8 @@ def _prepare_label_extraction(stc, labels, src, mode, allow_empty, use_sparse):
     # If stc=None (i.e. no activation time courses provided) and mode='mean',
     # only computes vertex indices and label_flip will be list of None.
     from .label import BiHemiLabel, Label, label_sign_flip
+
+    logger.debug(f"Selected mode: {mode}")
 
     # if source estimate provided in stc, get vertices from source space and
     # check that they are the same as in the stcs
@@ -3644,8 +3653,10 @@ def _get_default_label_modes():
 
 
 def _get_allowed_label_modes(stc):
-    if isinstance(stc, _BaseVolSourceEstimate | _BaseVectorSourceEstimate):
+    if isinstance(stc, _BaseVectorSourceEstimate):
         return ("mean", "max", "auto")
+    elif isinstance(stc, _BaseVolSourceEstimate):
+        return ("mean", "pca_flip", "max", "auto")
     else:
         return _get_default_label_modes()
 
@@ -3733,7 +3744,6 @@ def _gen_extract_label_time_course(
                 else:
                     this_data = stc.data[vertidx]
                 label_tc[i] = func(flip, this_data)
-
         if mode is not None:
             offset = nvert[:-n_mean].sum()  # effectively :2 or :0
             for i, nv in enumerate(nvert[2:]):
