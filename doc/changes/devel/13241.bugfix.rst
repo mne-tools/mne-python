@@ -1,1 +1,1 @@
-Improved the :meth:`mne.utils.get_config` and :meth:`mne.utils.set_config` with parallel access with file lock configuration by :newcontrib:`Bruno Aristimunha`.
+Improved the configuration json to handle with parallel access with file lock configuration by :newcontrib:`Bruno Aristimunha`.
