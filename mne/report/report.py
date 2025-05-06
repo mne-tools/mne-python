@@ -23,6 +23,7 @@ from pathlib import Path
 from shutil import copyfile
 
 import numpy as np
+from bs4 import BeautifulSoup, Comment, Tag
 
 from .. import __version__ as MNE_VERSION
 from .._fiff.meas_info import Info, read_info
@@ -673,6 +674,93 @@ def open_report(fname, **params):
     # manager.
     report.fname = fname
     return report
+
+
+def concatenate_reports(html_files, output_file):
+    """Concatenate multiple HTML files into one.
+
+    This function reads multiple HTML files, extracts their <head> and <body> sections,
+    and combines them into a single HTML file. It also handles duplicate IDs in the body
+    by removing them.
+
+    Parameters
+    ----------
+    html_files : list of str or Path
+        List of paths to the HTML files to be concatenated.
+    output_file : str or Path
+        Path to the output HTML file.
+
+    Returns
+    -------
+    final_html : BeautifulSoup
+        A BeautifulSoup object representing the combined HTML content.
+    """
+    combined_head = BeautifulSoup("<head></head>", "lxml").head
+    combined_body = BeautifulSoup("<body></body>", "lxml").body
+    used_ids = set()
+
+    for file in html_files:
+        file = Path(file)
+        with open(file, encoding="utf-8") as f:
+            soup = BeautifulSoup(f, "lxml")
+
+        toc = soup.find(id="toc") or soup.find(class_="toc")
+        if toc:
+            toc.decompose()
+
+        # handle head
+        if soup.head:
+            seen_styles = set()
+            seen_links = set()
+            seen_scripts = set()
+
+            for tag in soup.head.find_all(["script", "link", "style"], recursive=True):
+                tag_str = str(tag)
+                if tag.name == "style":
+                    if tag_str in seen_styles:
+                        continue
+                    seen_styles.add(tag_str)
+                elif tag.name == "link":
+                    if tag_str in seen_links:
+                        continue
+                    seen_links.add(tag_str)
+                elif tag.name == "script":
+                    if tag_str in seen_scripts:
+                        continue
+                    seen_scripts.add(tag_str)
+
+                combined_head.append(tag)
+
+        # handle body
+        if soup.body:
+            section = soup.new_tag("section")
+            section.append(soup.new_tag("hr"))
+            section.append(Comment(f"START {file.name}"))
+
+            for tag in soup.body.contents:
+                if isinstance(tag, Tag):
+                    for t in tag.find_all(True):
+                        id_ = t.get("id")
+                        if id_:
+                            if id_ in used_ids:
+                                del t["id"]
+                            else:
+                                used_ids.add(id_)
+
+                section.append(tag)
+
+            combined_body.append(section)
+
+    # create final HTML
+    final_html = BeautifulSoup("<html></html>", "lxml")
+    final_html.html.append(combined_head)
+    final_html.html.append(combined_body)
+
+    output_file = Path(output_file)
+    with output_file.open("w", encoding="utf-8") as f:
+        f.write(final_html.prettify())
+
+    return final_html
 
 
 ###############################################################################
