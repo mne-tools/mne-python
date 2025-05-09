@@ -1445,7 +1445,7 @@ def _read_annotations_csv(fname):
 
     The dtypes of the extra fields will automatically be inferred
     by pandas. If some fields have heterogeneous types on the
-    different rows, this automatic inference may return unexpecterd
+    different rows, this automatic inference may return unexpected
     types.
     If you need to save heterogeneous extra dtypes, we recommend
     saving to FIF.
