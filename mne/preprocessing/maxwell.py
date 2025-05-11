@@ -167,7 +167,8 @@ def maxwell_filter_prepare_emptyroom(
     elif bads == "keep":
         bads = raw_er_prepared.info["bads"]
 
-    bads = [ch_name for ch_name in bads if ch_name.startswith("MEG")]
+    # bads = [ch_name for ch_name in bads if ch_name.startswith("MEG")]
+    print('----- MNE: include bads: ', bads)
     raw_er_prepared.info["bads"] = bads
 
     # handle dev_head_t
