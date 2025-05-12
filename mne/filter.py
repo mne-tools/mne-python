@@ -389,7 +389,7 @@ def _filter_attenuation(h, freq, gain):
     """Compute minimum attenuation at stop frequency."""
     freq = np.atleast_1d(freq)
     _, filt_resp = signal.freqz(h.ravel(), worN=np.pi * freq)
-    filt_resp = np.abs(np.filt_resp)  # use amplitude response
+    filt_resp = np.abs(filt_resp)  # use amplitude response
     filt_resp[np.where(gain == 1)] = 0
     idx = np.argmax(filt_resp)
     att_db = -20 * np.log10(np.maximum(filt_resp[idx], 1e-20))
