@@ -389,6 +389,8 @@ def _filter_attenuation(h, freq, gain):
     """Compute minimum attenuation at stop frequency."""
     freq = np.atleast_1d(freq)
     _, filt_resp = signal.freqz(h.ravel(), worN=np.pi * freq)
+    # bug in scipy.signal.freqz as of 2025/05/12
+    filt_resp = np.atleast_1d(filt_resp)
     filt_resp = np.abs(filt_resp)  # use amplitude response
     filt_resp[np.where(gain == 1)] = 0
     idx = np.argmax(filt_resp)
