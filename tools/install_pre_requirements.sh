@@ -24,16 +24,13 @@ python -m pip install $STD_ARGS --only-binary ":all:" --default-timeout=60 \
 	"numpy>=2.1.0.dev0" "scikit-learn>=1.6.dev0" "scipy>=1.15.0.dev0" \
 	"pandas>=3.0.0.dev0" \
 	"dipy>=1.10.0.dev0" \
-    "pyarrow>=20.0.0.dev0"
-# TODO: should have above: "tables>=3.10.2.dev0" "h5py>=3.12.1"
-# https://github.com/PyTables/PyTables/issues/1115
-# https://github.com/h5py/h5py/issues/2563
-
-# statsmodels requires formulaic@main so we need to use --extra-index-url
-echo "statsmodels"
-python -m pip install $STD_ARGS --only-binary ":all:" \
-	--extra-index-url "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" \
+	"pyarrow>=20.0.0.dev0" \
+	"tables>=3.10.3.dev0" \
 	"statsmodels>=0.15.0.dev0"
+# TODO: should have above:  "h5py>=3.12.1"
+# https://github.com/h5py/h5py/issues/2563
+# SciPy is broken https://github.com/scipy/scipy/issues/22981
+python -m pip install "scipy==1.15.0"
 
 # No Numba because it forces an old NumPy version
 
