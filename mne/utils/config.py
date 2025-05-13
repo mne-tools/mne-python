@@ -456,9 +456,10 @@ def set_config(key, value, home_dir=None, set_env=True):
 
     with _open_lock(config_path, mode) as fid:
         try:
-            fid.seek(0)
             data = json.load(fid)
         except (ValueError, json.JSONDecodeError):
+            msg = f"Could not read the {config_path} json file, creating a new one."
+            warn(msg)
             data = {}
 
         if value is None:
