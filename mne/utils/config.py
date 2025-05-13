@@ -259,15 +259,14 @@ def _open_lock(path, *args, **kwargs):
             lock_context = FileLock(lock_path, timeout=5)
             lock_context.acquire()
         except TimeoutError:
+            warn(
+                "Could not acquire lock file after 5 seconds, consider deleting it "
+                f"if you know the corresponding file is usable:\n{lock_path}"
+            )
             lock_context = contextlib.nullcontext()
 
-    try:
-        with lock_context:
-            with open(path, *args, **kwargs) as fid:
-                yield fid
-    finally:
-        # needed to release the lock
-        pass
+    with lock_context, open(path, *args, **kwargs) as fid:
+        yield fid
 
 
 def _load_config(config_path, raise_error=False):
