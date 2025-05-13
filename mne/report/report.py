@@ -1249,19 +1249,26 @@ class Report:
         .. versionadded:: 0.24
         """
         tags = _check_tags(tags)
-        add_projs = self.projs if projs is None else projs
-        self._add_epochs(
-            epochs=epochs,
-            psd=psd,
-            add_projs=add_projs,
-            image_kwargs=image_kwargs,
-            topomap_kwargs=topomap_kwargs,
-            drop_log_ignore=drop_log_ignore,
-            section=title,
-            tags=tags,
-            image_format=self.image_format,
-            replace=replace,
-        )
+
+    add_projs = self.projs if projs is None else projs
+
+    if epochs._bad_dropped:
+        reject_info = f"<p><strong>Rejection Thresholds:</strong> {epochs.reject}</p>"
+        flat_info = f"<p><strong>Flat Thresholds:</strong> {epochs.flat}</p>"
+        self.add_html(reject_info + flat_info)
+
+    self._add_epochs(
+        epochs=epochs,
+        psd=psd,
+        add_projs=add_projs,
+        image_kwargs=image_kwargs,
+        topomap_kwargs=topomap_kwargs,
+        drop_log_ignore=drop_log_ignore,
+        section=title,
+        tags=tags,
+        image_format=self.image_format,
+        replace=replace,
+    )
 
     @fill_doc
     def add_evokeds(
@@ -2225,7 +2232,6 @@ class Report:
             The tags associated with the added element.
         html_partial : callable
             Callable that renders a HTML string, called as::
-
                 html_partial(id_=...)
         replace : bool
             Whether to replace existing content if the title and section match.
