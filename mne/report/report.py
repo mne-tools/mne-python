@@ -3184,7 +3184,7 @@ class Report:
                 with warnings.catch_warnings(record=True):
                     warnings.simplefilter("ignore")
                     footer_html = _html_footer_element(
-                        mne_version=MNE_VERSION, date=time.strftime("%B %d, %Y")
+                        mne_version=MNE_VERSION, date=time.strftime("%Y-%m-%d %H:%M:%S")
                     )
 
                 html = [header_html, toc_html, *self.html, footer_html]
