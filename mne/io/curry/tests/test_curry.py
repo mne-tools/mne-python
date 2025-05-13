@@ -16,16 +16,10 @@ from mne.io.tests.test_raw import _test_raw_reader
 data_dir = testing.data_path(download=False)
 curry_dir = data_dir / "curry"
 bdf_file = data_dir / "BDF" / "test_bdf_stim_channel.bdf"
-bti_rfDC_file = data_dir / "BTi" / "erm_HFH" / "c,rfDC"
-curry7_rfDC_file = curry_dir / "c,rfDC Curry 7.dat"
-curry8_rfDC_file = curry_dir / "c,rfDC Curry 8.cdt"
 curry7_bdf_file = curry_dir / "test_bdf_stim_channel Curry 7.dat"
 curry7_bdf_ascii_file = curry_dir / "test_bdf_stim_channel Curry 7 ASCII.dat"
 curry8_bdf_file = curry_dir / "test_bdf_stim_channel Curry 8.cdt"
 curry8_bdf_ascii_file = curry_dir / "test_bdf_stim_channel Curry 8 ASCII.cdt"
-missing_event_file = curry_dir / "test_sfreq_0.dat"
-Ref_chan_omitted_file = curry_dir / "Ref_channel_omitted Curry7.dat"
-Ref_chan_omitted_reordered_file = curry_dir / "Ref_channel_omitted reordered Curry7.dat"
 
 
 @pytest.fixture(scope="session")
@@ -41,8 +35,6 @@ def bdf_curry_ref():
     [
         pytest.param(curry7_bdf_file, 1e-7, id="curry 7"),
         pytest.param(curry8_bdf_file, 1e-7, id="curry 8"),
-        pytest.param(curry7_bdf_ascii_file, 1e-4, id="curry 7 ascii"),
-        pytest.param(curry8_bdf_ascii_file, 1e-4, id="curry 8 ascii"),
         pytest.param(curry7_bdf_ascii_file, 1e-7, id="curry 7 ascii"),
         pytest.param(curry8_bdf_ascii_file, 1e-7, id="curry 8 ascii"),
     ],
