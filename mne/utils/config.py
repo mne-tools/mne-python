@@ -458,8 +458,10 @@ def set_config(key, value, home_dir=None, set_env=True):
         try:
             data = json.load(fid)
         except (ValueError, json.JSONDecodeError):
-            msg = f"Could not read the {config_path} json file, creating a new one."
-            warn(msg)
+            logger.info(
+                f"Could not read the {config_path} json file during the writing."
+                " Assuming it is empty."
+            )
             data = {}
 
         if value is None:
