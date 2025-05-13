@@ -43,7 +43,7 @@ from ..preprocessing.ica import read_ica
 from ..proj import read_proj
 from ..source_estimate import SourceEstimate, read_source_estimate
 from ..surface import dig_mri_distances
-from ..transforms import Transform, read_trans
+from ..transforms import Transform, _find_trans, read_trans
 from ..utils import (
     _check_ch_locs,
     _check_fname,
@@ -1606,8 +1606,11 @@ class Report:
 
         Parameters
         ----------
-        trans : path-like | instance of Transform
-            The ``head -> MRI`` transformation to render.
+        %(trans)s "auto" will load trans from the FreeSurfer directory
+            specified by ``subject`` and ``subjects_dir`` parameters.
+
+            .. versionchanged:: 1.10
+                Support for 'fsaverage' argument.
         info : path-like | instance of Info
             The `~mne.Info` corresponding to ``trans``.
         title : str
@@ -4224,8 +4227,8 @@ class Report:
         replace,
     ):
         """Render trans (only PNG)."""
-        if not isinstance(trans, Transform):
-            trans = read_trans(trans)
+        trans, _ = _find_trans(trans=trans, subject=subject, subjects_dir=subjects_dir)
+
         if not isinstance(info, Info):
             info = read_info(info)
 
