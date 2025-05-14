@@ -1918,6 +1918,14 @@ def test_prepare_empty_room_with_eeg() -> None:
     montage_expected = raw.get_montage()
     assert raw_er_prepared.get_montage() == montage_expected
 
+    raw_er = raw_er.pick("meg")
+    assert "eeg" in raw
+    assert "eeg" not in raw_er
+    raw_er_prepared = maxwell_filter_prepare_emptyroom(raw_er=raw_er, raw=raw)
+    assert raw_er_prepared.info["dev_head_t"] == raw.info["dev_head_t"]
+    montage_expected = raw.pick("meg").get_montage()
+    assert raw_er_prepared.get_montage() == montage_expected
+
 
 @testing.requires_testing_data
 @pytest.mark.slowtest  # lots of params
