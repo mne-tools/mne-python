@@ -1168,6 +1168,11 @@ def test_manual_report_3d(tmp_path, renderer):
     # use of sparse rather than dense head, and also possibly an arg to specify
     # which views to actually show. Both of these could probably be useful to
     # end-users, too.
+    bad_add_kwargs = add_kwargs.copy()
+    bad_add_kwargs.update(dict(trans="auto", subjects_dir=subjects_dir))
+    with pytest.raises(RuntimeError, match="Could not find"):
+        r.add_trans(title="my coreg", **bad_add_kwargs)
+    add_kwargs.update(trans="fsaverage")  # this is wrong but tests fsaverage code path
     r.add_trans(title="my coreg", **add_kwargs)
     r.add_bem(subject="sample", subjects_dir=subjects_dir, title="my bem", decim=100)
     r.add_inverse_operator(
