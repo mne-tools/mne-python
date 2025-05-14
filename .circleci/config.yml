@@ -244,6 +244,7 @@ jobs:
               make test-doc;
               mkdir -p doc/_build/test-results/test-doc;
               cp junit-results.xml doc/_build/test-results/test-doc/junit.xml;
+              cp coverage.xml doc/_build/test-results/test-doc/coverage.xml;
             fi;
       # Build docs
       - run:
@@ -288,6 +289,15 @@ jobs:
       - store_artifacts:
           path: doc/_build/test-results
           destination: test-results
+      # Upload test results to Codecov
+      - run:
+          name: Upload test results to Codecov
+          environment:
+            CODECOV_TOKEN: fb4c4a94-72d7-4743-bb08-af25b623a29a
+          command: |
+            if [[ -f doc/_build/test-results/test-doc/coverage.xml ]]; then
+              bash <(curl -s https://codecov.io/bash) -f doc/_build/test-results/test-doc/coverage.xml || true
+            fi
       # Save the SG RST
       - store_artifacts:
           path: doc/auto_examples.zip

@@ -167,7 +167,8 @@ class BrowserBase(ABC):
         """Set up colors for annotations; init some annotation vars."""
         segment_colors = getattr(self.mne, "annotation_segment_colors", dict())
         labels = self._get_annotation_labels()
-        colors, red = _get_color_list(annotations=True)
+        red = "#ff0000"
+        colors = _get_color_list(remove=("#fa8174", "#d62728", "#ff0000"))
         color_cycle = cycle(colors)
         for key, color in segment_colors.items():
             if color != red and key in labels:
