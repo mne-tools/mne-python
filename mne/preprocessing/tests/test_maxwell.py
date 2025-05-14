@@ -1911,6 +1911,8 @@ def test_prepare_empty_room_with_eeg() -> None:
     """Test preparation of MEG empty-room which was acquired with EEG enabled."""
     raw = read_raw_fif(raw_fname, allow_maxshield="yes", verbose=False)
     raw_er = read_raw_fif(erm_fname, allow_maxshield="yes", verbose=False)
+    assert "eeg" in raw
+    assert "eeg" in raw_er
     raw_er_prepared = maxwell_filter_prepare_emptyroom(raw_er=raw_er, raw=raw)
     assert raw_er_prepared.info["dev_head_t"] == raw.info["dev_head_t"]
     montage_expected = raw.get_montage()
