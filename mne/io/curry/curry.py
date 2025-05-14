@@ -98,7 +98,7 @@ def _get_curry_epoch_info(fname):
     )
 
 
-def _extract_curry_info(fname, preload):
+def _extract_curry_info(fname):
     # use curry-python-reader
     currydata = curryreader.read(str(fname), plotdata=0, verbosity=1)
 
@@ -123,10 +123,6 @@ def _extract_curry_info(fname, preload):
 
     # data
     orig_format = "single"  # curryreader.py always reads float32. is this correct?
-    if isinstance(preload, bool | np.bool_) and preload:
-        preload = currydata["data"].T.astype(
-            "float64"
-        )  # curryreader returns float32, but mne seems to need float64
 
     # events
     events = currydata["events"]
@@ -205,14 +201,6 @@ def _extract_curry_info(fname, preload):
     cals = [
         1.0 / 1e15 if (u == "fT") else 1.0 / 1e6 if (u == "uV") else 1.0 for u in units
     ]
-    # if isinstance(preload, np.ndarray):
-    #    for i_ch, unit in enumerate(units):
-    #        if unit == "fT":  # femtoTesla
-    #            preload[i_ch, :] /= 1e15
-    #        elif unit == "uV":  # microVolt
-    #            preload[i_ch, :] /= 1e6
-    #        else:  # leave as is
-    #            pass
 
     return (
         sfreq,
@@ -228,7 +216,6 @@ def _extract_curry_info(fname, preload):
         orig_units,
         is_ascii,
         cals,
-        preload,
         meas_date,
     )
 
@@ -252,7 +239,7 @@ def _read_annotations_curry(fname, sfreq="auto"):
     fname = _check_curry_filename(fname)
 
     (sfreq_fromfile, _, _, _, _, _, _, _, events, _, _, _, _, _, _) = (
-        _extract_curry_info(fname, preload=False)
+        _extract_curry_info(fname)
     )
     if sfreq == "auto":
         sfreq = sfreq_fromfile
@@ -419,9 +406,8 @@ class RawCurry(BaseRaw):
             orig_units,
             is_ascii,
             cals,
-            preload,
             meas_date,
-        ) = _extract_curry_info(fname, preload)
+        ) = _extract_curry_info(fname)
 
         # construct info
         info = create_info(ch_names=ch_names, sfreq=sfreq, ch_types=ch_types)
@@ -431,7 +417,7 @@ class RawCurry(BaseRaw):
         raw_extras = dict(is_ascii=is_ascii)
         super().__init__(
             info,
-            preload,
+            preload=False,
             filenames=[fname],
             last_samps=last_samps,
             orig_format=orig_format,
@@ -445,8 +431,8 @@ class RawCurry(BaseRaw):
 
         # scale data to SI units
         self._cals = np.array(cals)
-        if isinstance(preload, np.ndarray):
-            self._rescale_curry_data()
+        if isinstance(preload, bool | np.bool_) and preload:
+            self.load_data()
 
         # set events / annotations
         # format from curryreader: sample, etype, startsample, endsample
@@ -470,16 +456,6 @@ class RawCurry(BaseRaw):
         # TODO
         if not isinstance(hpimatrix, list):
             warn("HPI data found, but reader not implemented.")
-
-    def _rescale_curry_data(self):
-        orig_units = self._orig_units
-        for i_ch, unit in enumerate(orig_units.values()):
-            if unit == "fT":  # femtoTesla
-                self._data[i_ch, :] /= 1e15
-            elif unit == "µV":  # microVolt
-                self._data[i_ch, :] /= 1e6
-            else:  # leave as is
-                pass
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data."""

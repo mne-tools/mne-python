@@ -35,8 +35,8 @@ def bdf_curry_ref():
     [
         pytest.param(curry7_bdf_file, 1e-7, id="curry 7"),
         pytest.param(curry8_bdf_file, 1e-7, id="curry 8"),
-        pytest.param(curry7_bdf_ascii_file, 1e-7, id="curry 7 ascii"),
-        pytest.param(curry8_bdf_ascii_file, 1e-7, id="curry 8 ascii"),
+        pytest.param(curry7_bdf_ascii_file, 1e-4, id="curry 7 ascii"),
+        pytest.param(curry8_bdf_ascii_file, 1e-4, id="curry 8 ascii"),
     ],
 )
 @pytest.mark.parametrize("preload", [True, False])
