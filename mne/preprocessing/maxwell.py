@@ -180,7 +180,7 @@ def maxwell_filter_prepare_emptyroom(
 
     # handle montage
     montage = raw.get_montage()
-    raw_er_prepared.set_montage(montage, on_missing="ignore")
+    raw_er_prepared.set_montage(montage)
 
     # handle first_samp
     raw_er_prepared.annotations.onset += raw.first_time - raw_er_prepared.first_time
