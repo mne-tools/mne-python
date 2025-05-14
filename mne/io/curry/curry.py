@@ -233,6 +233,47 @@ def _extract_curry_info(fname, preload):
     )
 
 
+def _read_annotations_curry(fname, sfreq="auto"):
+    r"""Read events from Curry event files.
+
+    Parameters
+    ----------
+    fname : str
+        The filename.
+    sfreq : float | 'auto'
+        The sampling frequency in the file. If set to 'auto' then the
+        ``sfreq`` is taken from the fileheader.
+
+    Returns
+    -------
+    annot : instance of Annotations | None
+        The annotations.
+    """
+    fname = _check_curry_filename(fname)
+
+    (sfreq_fromfile, _, _, _, _, _, _, _, events, _, _, _, _, _, _) = (
+        _extract_curry_info(fname, preload=False)
+    )
+    if sfreq == "auto":
+        sfreq = sfreq_fromfile
+    elif np.isreal(sfreq):
+        if float(sfreq) != float(sfreq_fromfile):
+            warn(
+                f"provided sfreq ({sfreq} Hz) does not match freq from fileheader "
+                "({sfreq_fromfile} Hz)!"
+            )
+    else:
+        raise ValueError("'sfreq' must be numeric or 'auto'")
+
+    if isinstance(events, np.ndarray):  # if there are events
+        events = events.astype("int")
+        events = np.insert(events, 1, np.diff(events[:, 2:]).flatten(), axis=1)[:, :3]
+        return annotations_from_events(events, sfreq)
+    else:
+        warn("no event annotations found")
+        return None
+
+
 def _make_curry_montage(ch_names, ch_types, ch_pos, landmarks, landmarkslabels):
     # scale ch_pos to m?!
     ch_pos /= 1000.0
@@ -307,7 +348,7 @@ def read_raw_curry(
         ``.cdt``, ``.cdt.dpa``, ``.cdt.cef`` or ``.cef``.
     import_epochs_as_events : bool
         Set to ``True`` if you want to import epoched recordings as continuous ``raw``
-        object with event annotations. Only do this if you know your data allows this!
+        object with event annotations. Only do this if you know your data allows it.
     %(preload)s
     %(verbose)s
 
