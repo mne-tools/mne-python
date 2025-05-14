@@ -158,6 +158,7 @@ test = [
 # Dependencies for being able to run additional tests (rare/CIs/advanced devs)
 # Changes here should be reflected in the mne/utils/config.py dev dependencies section
 test_extra = [
+  "curryreader >= 0.1.1",
   "edfio >= 0.2.1",
   "eeglabio",
   "imageio >= 2.6.1",
