@@ -5,6 +5,7 @@
 # Copyright the MNE-Python contributors.
 
 import atexit
+import contextlib
 import json
 import multiprocessing
 import os
@@ -23,7 +24,13 @@ from urllib.request import urlopen
 from packaging.version import parse
 
 from ._logging import logger, warn
-from .check import _check_fname, _check_option, _check_qt_version, _validate_type
+from .check import (
+    _check_fname,
+    _check_option,
+    _check_qt_version,
+    _soft_import,
+    _validate_type,
+)
 from .docs import fill_doc
 from .misc import _pl
 
@@ -218,9 +225,53 @@ _known_config_wildcards = (
 )
 
 
+@contextlib.contextmanager
+def _open_lock(path, *args, **kwargs):
+    """
+    Context manager that opens a file with an optional file lock.
+
+    If the `filelock` package is available, a lock is acquired on a lock file
+    based on the given path (by appending '.lock').
+
+    Otherwise, a null context is used. The path is then opened in the
+    specified mode.
+
+    Parameters
+    ----------
+    path : str
+        The path to the file to be opened.
+    *args, **kwargs : optional
+        Additional arguments and keyword arguments to be passed to the
+        `open` function.
+
+    """
+    filelock = _soft_import(
+        "filelock", purpose="parallel config set and get", strict=False
+    )
+
+    lock_context = contextlib.nullcontext()  # default to no lock
+
+    if filelock is not None:
+        lock_path = f"{path}.lock"
+        try:
+            from filelock import FileLock
+
+            lock_context = FileLock(lock_path, timeout=5)
+            lock_context.acquire()
+        except TimeoutError:
+            warn(
+                "Could not acquire lock file after 5 seconds, consider deleting it "
+                f"if you know the corresponding file is usable:\n{lock_path}"
+            )
+            lock_context = contextlib.nullcontext()
+
+    with lock_context, open(path, *args, **kwargs) as fid:
+        yield fid
+
+
 def _load_config(config_path, raise_error=False):
     """Safely load a config file."""
-    with open(config_path) as fid:
+    with _open_lock(config_path, "r+") as fid:
         try:
             config = json.load(fid)
         except ValueError:
@@ -398,8 +449,29 @@ def set_config(key, value, home_dir=None, set_env=True):
     directory = op.dirname(config_path)
     if not op.isdir(directory):
         os.mkdir(directory)
-    with open(config_path, "w") as fid:
-        json.dump(config, fid, sort_keys=True, indent=0)
+
+    # Adapting the mode depend if you are create the file
+    # or no.
+    mode = "r+" if op.isfile(config_path) else "w+"
+
+    with _open_lock(config_path, mode) as fid:
+        try:
+            data = json.load(fid)
+        except (ValueError, json.JSONDecodeError) as exc:
+            logger.info(
+                f"Could not read the {config_path} json file during the writing."
+                f" Assuming it is empty. Got: {exc}"
+            )
+            data = {}
+
+        if value is None:
+            data.pop(key, None)
+        else:
+            data[key] = value
+
+        fid.seek(0)
+        fid.truncate()
+        json.dump(data, fid, sort_keys=True, indent=0)
 
 
 def _get_extra_data_path(home_dir=None):
