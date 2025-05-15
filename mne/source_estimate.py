@@ -3377,8 +3377,8 @@ def _get_ico_tris(grade, verbose=None, return_surf=False):
 
 def _pca_flip(flip, data):
     result = None
-    if flip is None:
-        result = 0
+    if flip is None:  # Case of volumetric data: flip is meaningless
+        flip = 1
     elif data.shape[0] < 2:
         result = data.mean(axis=0)  # Trivial accumulator
     else:
