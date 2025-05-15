@@ -3382,12 +3382,16 @@ def _pca_flip(flip, data):
     if data.shape[0] < 2:
         result = data.mean(axis=0)  # Trivial accumulator
     else:
-        U, s, V = _safe_svd(data, full_matrices=False)
         # determine sign-flip.
         # if flip is a mere int, multiply U and sum
         if isinstance(flip, int):
+            # We assume here that flip is thus denoting a volumetric.
+            # It means LAPACK is likely to overflow on big matrices => We use numpy
+            U, s, V = np.linalg.svd(data, full_matrices=False)
+
             sign = np.sign((flip * U[:, 0]).sum())
         else:
+            U, s, V = _safe_svd(data, full_matrices=False)
             sign = np.sign(np.dot(U[:, 0], flip))
         # use average power in label for scaling
         scale = np.linalg.norm(s) / np.sqrt(len(data))
