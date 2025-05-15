@@ -1861,7 +1861,7 @@ fun : callable
         additional argument(s) to your function definition.
 """
 docdict["fun_applyfun"] = applyfun_fun_base.format(
-    " if ``channel_wise=True`` and ``(len(picks), n_times)`` otherwise"
+    " if ``channel_wise=True`` then a 3D array of shape ``(n_epochs, len(picks), n_times)`` is passed, otherwise a 3D array of shape ``(n_epochs, n_channels, n_times)`` is passed"
 )
 docdict["fun_applyfun_evoked"] = applyfun_fun_base.format(
     " because it will apply channel-wise"
