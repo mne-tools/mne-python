@@ -1640,7 +1640,6 @@ class Report:
             ``dict(dig=True, meg=("helmet", "sensors"), show_axes=True)``.
 
             .. versionadded:: 1.10
-
         %(tags_report)s
         %(section_report)s
 
