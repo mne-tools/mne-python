@@ -457,10 +457,10 @@ def set_config(key, value, home_dir=None, set_env=True):
     with _open_lock(config_path, mode) as fid:
         try:
             data = json.load(fid)
-        except (ValueError, json.JSONDecodeError):
+        except (ValueError, json.JSONDecodeError) as exc:
             logger.info(
                 f"Could not read the {config_path} json file during the writing."
-                " Assuming it is empty."
+                f" Assuming it is empty. Got: {exc}"
             )
             data = {}
 
