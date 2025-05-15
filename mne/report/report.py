@@ -520,7 +520,6 @@ def _iterate_trans_views(function, alpha, **kwargs):
         try:
             return _itv(function, fig, **kwargs)
         except OSError:
-            # XXX: warn here? ... why do we need this fallback?
             kwargs["surfaces"] = {"head": alpha}
             return _itv(function, fig, **kwargs)
     finally:
@@ -1599,10 +1598,10 @@ class Report:
         subject=None,
         subjects_dir=None,
         alpha=None,
+        coord_frame="mri",
         plot_kwargs=None,
         tags=("coregistration",),
         section=None,
-        coord_frame="mri",
         replace=False,
     ):
         """Add a coregistration visualization to the report.
@@ -1628,15 +1627,24 @@ class Report:
         alpha : float | None
             The level of opacity to apply to the head surface. If a float, must
             be between 0 and 1 (inclusive), where 1 means fully opaque. If
-            ``None``, will use the MNE-Python default value.
+            ``None``, will use the MNE-Python default value. See also ``plot_kwargs``.
+        coord_frame : 'auto' | 'head' | 'meg' | 'mri'
+            Coordinate frame used for plotting. See :func:`mne.viz.plot_alignment`
+            and ``plot_kwargs``.
         plot_kwargs : dict | None
+            Plotting arguments to be passed to :func:`mne.viz.plot_alignment`.
+            If ``alpha`` is not ``None``, it will override a potential
+            ``plot_kwargs["alpha"]``. The ``coord_frame`` key word argument always
+            overrides a potential ``plot_kwargs["coord_frame"]``. If ``None``,
+            this defaults to
+            ``dict(dig=True, meg=("helmet", "sensors"), show_axes=True)``.
+
+            .. versionadded:: 1.10
 
         %(tags_report)s
         %(section_report)s
 
             .. versionadded:: 1.9
-        coord_frame : 'auto' | 'head' | 'meg' | 'mri'
-            Coordinate frame used for plotting. See :func:`mne.viz.plot_alignment`.
         %(replace_report)s
 
         Notes
@@ -4250,25 +4258,22 @@ class Report:
             )
         )
 
-        if "coord_frame" not in plot_kwargs:
-            plot_kwargs["coord_frame"] = coord_frame
-        elif plot_kwargs["coord_frame"] != coord_frame:
-            raise ValueError("specification mismatch.")  # XXX
+        # This potentially overwrites information
+        plot_kwargs["coord_frame"] = coord_frame
 
         if alpha is not None:
+            # if not available, fall back to plot_alignment default: 'auto'
             surfaces = plot_kwargs.get("surfaces", "auto")
             if isinstance(surfaces, dict):
-                raise ValueError(
-                    "do not specify surfaces and alpha at the same time"
-                )  # XXX
+                surfaces = list(surfaces.keys())
             elif isinstance(surfaces, list):
-                surfaces = {surf: alpha for surf in surfaces}
+                pass
             elif isinstance(surfaces, str) and surfaces != "auto":
-                surfaces = {surfaces: alpha}
+                surfaces = [surfaces]
             else:
-                assert surfaces == "auto"  # only remaining option?
-        else:
-            pass  # if alpha is None, then we do not need any adjustments
+                surfaces = ["head-dense"]  # "auto"
+
+            surfaces = {surf: alpha for surf in surfaces}
 
         img, caption = _iterate_trans_views(
             function=plot_alignment,
