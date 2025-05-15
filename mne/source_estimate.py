@@ -3379,7 +3379,7 @@ def _pca_flip(flip, data):
     result = None
     if flip is None:  # Case of volumetric data: flip is meaningless
         flip = 1
-    elif data.shape[0] < 2:
+    if data.shape[0] < 2:
         result = data.mean(axis=0)  # Trivial accumulator
     else:
         U, s, V = _safe_svd(data, full_matrices=False)
