@@ -1155,8 +1155,11 @@ def test_manual_report_3d(tmp_path, renderer):
     with info._unlock():
         dig, info["dig"] = info["dig"], []
     add_kwargs = dict(
-        trans=trans_fname, info=info, subject="sample", subjects_dir=subjects_dir,
-        alpha=0.75
+        trans=trans_fname,
+        info=info,
+        subject="sample",
+        subjects_dir=subjects_dir,
+        alpha=0.75,
     )
     with (
         _record_warnings(),
