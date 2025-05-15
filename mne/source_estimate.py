@@ -3383,8 +3383,12 @@ def _pca_flip(flip, data):
         result = data.mean(axis=0)  # Trivial accumulator
     else:
         U, s, V = _safe_svd(data, full_matrices=False)
-        # determine sign-flip
-        sign = np.sign(np.dot(U[:, 0], flip))
+        # determine sign-flip.
+        # if flip is a mere int, multiply U and sum
+        if isinstance(flip, int):
+            sign = np.sign((flip * U[:, 0]).sum())
+        else:
+            sign = np.sign(np.dot(U[:, 0], flip))
         # use average power in label for scaling
         scale = np.linalg.norm(s) / np.sqrt(len(data))
         result = sign * scale * V[0]
