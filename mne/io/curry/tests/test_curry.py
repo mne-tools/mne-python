@@ -13,6 +13,8 @@ from mne.io.curry import read_impedances_curry, read_raw_curry
 from mne.io.edf import read_raw_bdf
 from mne.io.tests.test_raw import _test_raw_reader
 
+pytest.importorskip("curryreader")
+
 data_dir = testing.data_path(download=False)
 curry_dir = data_dir / "curry"
 bdf_file = data_dir / "BDF" / "test_bdf_stim_channel.bdf"
