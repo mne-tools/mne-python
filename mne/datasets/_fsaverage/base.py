@@ -12,7 +12,7 @@ FSAVERAGE_MANIFEST_PATH = Path(__file__).parent
 
 @verbose
 def fetch_fsaverage(subjects_dir=None, *, verbose=None):
-    """Fetch and update fsaverage.
+    """Fetch and update :ref:`fsaverage <fsaverage_background>`.
 
     Parameters
     ----------
