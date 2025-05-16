@@ -3743,20 +3743,47 @@ def _gen_extract_label_time_course(
         else:
             # For other modes, initialize the label_tc array
             label_tc = np.zeros((n_labels,) + stc.data.shape[1:], dtype=stc.data.dtype)
+
+        pca_volume = mode == "pca_flip" and kind == "volume"
+        if pca_volume:
+            from sklearn.utils.extmath import randomized_svd
+
+            logger.debug("First SVD for PCA volume on stc data")
+            u_b, s_b, vh_b = randomized_svd(stc.data, max_channels)
         for i, (vertidx, flip) in enumerate(zip(label_vertidx, src_flip)):
             if vertidx is not None:
-                if isinstance(vertidx, sparse.csr_array):
-                    assert mri_resolution
-                    assert vertidx.shape[1] == stc.data.shape[0]
-                    this_data = np.reshape(stc.data, (stc.data.shape[0], -1))
-                    this_data = vertidx @ this_data
-                    this_data.shape = (this_data.shape[0],) + stc.data.shape[1:]
+                if pca_volume:
+                    # Use a trick for efficiency:
+                    # stc = Ub Sb VhB
+                    # full_data = vertidx @ stc
+                    #           = vertidx @ Ub @ Sb @ Vhb
+                    # Consider U_f, s_f, Vh_f = SVD(vertidx @ Ub @ Sb)
+                    # Then U,S,V = svd(full_data) is such that
+                    # U_f = U, S = s_f and V = Vh_f @ Vhb
+                    # This trick is more efficient, because:
+                    #  - We compute a first SVD once on stc, restricted to
+                    #    only first max_channels singular vals/vecs (quite fast)
+                    #  - We project vertidx to be from Nvertex x Nsources
+                    #    to Nvertex x rank.
+                    #  - We compute SVD on Nvertex x rank
+                    # As rank << Nsources, we end up saving a lot of computations.
+                    tmp_array = vertidx @ u_b @ np.diag(s_b)
+                    U, S, v_tmp = np.linalg.svd(tmp_array, full_matrices=False)
+                    V = v_tmp @ vh_b
+                    label_tc[i] = _compute_pca_quantities(U, S, V, flip)
                 else:
-                    this_data = stc.data[vertidx]
-                if mode == "pca_flip":
-                    label_tc[i] = func(flip, this_data, max_channels)
-                else:
-                    label_tc[i] = func(flip, this_data)
+                    if isinstance(vertidx, sparse.csr_array):
+                        assert mri_resolution
+                        assert vertidx.shape[1] == stc.data.shape[0]
+                        this_data = np.reshape(stc.data, (stc.data.shape[0], -1))
+                        this_data = vertidx @ this_data
+                        this_data.shape = (this_data.shape[0],) + stc.data.shape[1:]
+                    else:
+                        this_data = stc.data[vertidx]
+                    if mode == "pca_flip":
+                        label_tc[i] = func(flip, this_data, max_channels)
+                    else:
+                        label_tc[i] = func(flip, this_data)
                 logger.debug(f"Done with label {i}")
         if mode is not None:
             offset = nvert[:-n_mean].sum()  # effectively :2 or :0
