@@ -3757,6 +3757,7 @@ def _gen_extract_label_time_course(
                     label_tc[i] = func(flip, this_data, max_channels)
                 else:
                     label_tc[i] = func(flip, this_data)
+                logger.debug(f"Done with label {i}")
         if mode is not None:
             offset = nvert[:-n_mean].sum()  # effectively :2 or :0
             for i, nv in enumerate(nvert[2:]):
