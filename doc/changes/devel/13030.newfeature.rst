@@ -1,0 +1,1 @@
+Adds the ability to read WaveForm Database annotations in :func:`mne.read_annotations()` by `Jacob Woessner`_.
