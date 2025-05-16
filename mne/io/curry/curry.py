@@ -7,7 +7,6 @@ import re
 from datetime import datetime, timezone
 from pathlib import Path
 
-import curryreader
 import numpy as np
 import pandas as pd
 
@@ -17,7 +16,7 @@ from ..._fiff.utils import _mult_cal_one, _read_segments_file
 from ...annotations import annotations_from_events
 from ...channels import make_dig_montage
 from ...epochs import Epochs
-from ...utils import verbose, warn
+from ...utils import _soft_import, verbose, warn
 from ..base import BaseRaw
 
 CURRY_SUFFIX_DATA = [".cdt", ".dat"]
@@ -57,6 +56,10 @@ def _check_curry_header_filename(fname):
 
 
 def _get_curry_recording_type(fname):
+    _soft_import("curryreader", "read recording modality")
+
+    import curryreader
+
     epochinfo = curryreader.read(str(fname), plotdata=0, verbosity=1)["epochinfo"]
     if epochinfo.size == 0:
         return "raw"
@@ -69,6 +72,10 @@ def _get_curry_recording_type(fname):
 
 
 def _get_curry_epoch_info(fname):
+    _soft_import("curryreader", "read epoch info")
+
+    import curryreader
+
     # use curry-python-reader
     currydata = curryreader.read(str(fname), plotdata=0, verbosity=1)
 
@@ -99,6 +106,10 @@ def _get_curry_epoch_info(fname):
 
 
 def _extract_curry_info(fname):
+    _soft_import("curryreader", "read file header")
+
+    import curryreader
+
     # use curry-python-reader
     currydata = curryreader.read(str(fname), plotdata=0, verbosity=1)
 
@@ -492,6 +503,10 @@ def read_impedances_curry(fname, verbose=None):
         An array containing up to 10 impedance measurements for all recorded channels.
 
     """
+    _soft_import("curryreader", "read impedances")
+
+    import curryreader
+
     # use curry-python-reader to load data
     fname = _check_curry_filename(fname)
     currydata = curryreader.read(str(fname), plotdata=0, verbosity=1)
