@@ -3376,6 +3376,8 @@ def _get_ico_tris(grade, verbose=None, return_surf=False):
 
 
 def _compute_pca_quantities(U, s, V, flip):
+    if flip is None:  # Case of volumetric data: flip is meaningless
+        flip = 1
     if isinstance(flip, int):
         sign = np.sign((flip * U[:, 0]).sum())
     else:
@@ -3387,8 +3389,6 @@ def _compute_pca_quantities(U, s, V, flip):
 
 def _pca_flip(flip, data, max_rank):
     result = None
-    if flip is None:  # Case of volumetric data: flip is meaningless
-        flip = 1
     if data.shape[0] < 2:
         result = data.mean(axis=0)  # Trivial accumulator
     else:
