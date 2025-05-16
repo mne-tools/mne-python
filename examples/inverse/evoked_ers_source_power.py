@@ -190,4 +190,4 @@ brain_dspm = stc_dspm.plot(
 
 # %%
 # For more advanced usage, see
-# :ref:`mne-gui-addons:sphx_glr_auto_examples_evoked_ers_source_power.py`.
+# :external+mne-gui-addons:ref:`sphx_glr_auto_examples_evoked_ers_source_power.py`.
