@@ -3385,16 +3385,17 @@ def _compute_pca_quantities(U, s, V, flip):
     return result
 
 
-def _pca_flip(flip, data):
+def _pca_flip(flip, data, max_rank):
     result = None
     if flip is None:  # Case of volumetric data: flip is meaningless
         flip = 1
     if data.shape[0] < 2:
         result = data.mean(axis=0)  # Trivial accumulator
     else:
-        U, s, V = np.linalg.svd(data, full_matrices=False)
+        from sklearn.utils.extmath import randomized_svd
+
+        U, s, V = randomized_svd(data, n_components=max_rank)
         # determine sign-flip.
-        # if flip is a mere int, multiply U and sum
         result = _compute_pca_quantities(U, s, V, flip)
     return result
 
@@ -3742,38 +3743,19 @@ def _gen_extract_label_time_course(
         else:
             # For other modes, initialize the label_tc array
             label_tc = np.zeros((n_labels,) + stc.data.shape[1:], dtype=stc.data.dtype)
-        pca_volumetric = kind == "volume" and mode == "pca_flip"
-        if pca_volumetric:
-            # Precompute randomized SVD on data
-            # Components are restricted to max_channels, which is the highest possible
-            # rank and is much smaller than the number of sources
-            from sklearn.utils.extmath import randomized_svd
-
-            u_data, s_data, vh_data = randomized_svd(
-                stc.data, n_components=max_channels
-            )
         for i, (vertidx, flip) in enumerate(zip(label_vertidx, src_flip)):
             if vertidx is not None:
-                if pca_volumetric:
-                    # Compute SVD of vertices
-                    # We will use it to compute vertidx @ data implicitly,
-                    u_vert, s_vert, vh_Vert = np.linalg.svd(vertidx.todense())
-                    center_prod = np.diag(s_vert) @ vh_Vert @ u_data @ np.diag(s_data)
-                    u_s, s_s, vh_s = np.linalg.svd(center_prod)
-                    U = u_vert @ u_s
-                    s = s_s
-                    V = vh_s @ vh_data
-                    label_tc[i] = _compute_pca_quantities(U, s, V, flip)
+                if isinstance(vertidx, sparse.csr_array):
+                    assert mri_resolution
+                    assert vertidx.shape[1] == stc.data.shape[0]
+                    this_data = np.reshape(stc.data, (stc.data.shape[0], -1))
+                    this_data = vertidx @ this_data
+                    this_data.shape = (this_data.shape[0],) + stc.data.shape[1:]
                 else:
-                    if isinstance(vertidx, sparse.csr_array):
-                        assert mri_resolution
-                        assert vertidx.shape[1] == stc.data.shape[0]
-                        this_data = np.reshape(stc.data, (stc.data.shape[0], -1))
-
-                        this_data = vertidx @ this_data
-                        this_data.shape = (this_data.shape[0],) + stc.data.shape[1:]
-                    else:
-                        this_data = stc.data[vertidx]
+                    this_data = stc.data[vertidx]
+                if mode == "pca_flip":
+                    label_tc[i] = func(flip, this_data, max_channels)
+                else:
                     label_tc[i] = func(flip, this_data)
         if mode is not None:
             offset = nvert[:-n_mean].sum()  # effectively :2 or :0
