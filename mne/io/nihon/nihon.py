@@ -276,22 +276,26 @@ def _read_nihon_header(fname):
     return header
 
 
-def _read_event_log_block(fid, t_block, device_type):
+def _read_event_log_block(fid, t_block, version):
     fid.seek(0x92 + t_block * 20)
-    t_blk_address = np.fromfile(fid, np.uint32, 1)[0]
-    if t_blk_address == 0:
+    data = np.fromfile(fid, np.uint32, 1)
+    if data.size == 0 or data[0] == 0:
         return
+    t_blk_address = data[0]
 
     fid.seek(t_blk_address + 0x1)
-    data_name = np.fromfile(fid, "|S16", 1).astype("U16")[0]
-    if data_name != device_type:
+    data = np.fromfile(fid, "|S16", 1).astype("U16")
+    if data.size == 0 or data[0] != version:
         return
 
     fid.seek(t_blk_address + 0x12)
-    n_logs = np.fromfile(fid, np.uint8, 1)[0]
+    data = np.fromfile(fid, np.uint8, 1)
+    if data.size == 0:
+        return
+    n_logs = data[0]
+
     fid.seek(t_blk_address + 0x14)
-    t_logs = np.fromfile(fid, "|S45", n_logs)
-    return t_logs
+    return np.fromfile(fid, "|S45", n_logs)
 
 
 def _parse_event_log(event_log):
@@ -333,11 +337,10 @@ def _read_nihon_annotations(fname):
             t_sub_logs = None
             if may_have_sub_blocks:
                 t_sub_logs = _read_event_log_block(fid, t_block + 22, version)
-            assert t_sub_logs is None or len(t_logs) == len(t_sub_logs)
 
             for i, t_log in enumerate(t_logs):
                 t_desc, t_onset = _parse_event_log(t_log)
-                if t_sub_logs is not None:
+                if t_sub_logs is not None and t_sub_logs.size == t_logs.size:
                     t_sub_desc, t_sub_onset = _parse_sub_event_log(t_sub_logs[i])
                     t_desc += t_sub_desc
                     t_onset += t_sub_onset
@@ -351,7 +354,7 @@ def _read_nihon_annotations(fname):
                     else:
                         break
                 else:
-                    warn(f"Could not decode log {t_desc} as one of {_encodings}")
+                    warn(f"Could not decode log as one of {_encodings}")
                     continue
 
                 all_onsets.append(t_onset)
