@@ -66,11 +66,11 @@ class _AnnotationsExtrasDict(UserDict):
     """
 
     def __setitem__(self, key: str, value: str | int | float | None) -> None:
-        _validate_type(key, str, "key", "string")
+        _validate_type(key, str, "key")
         if key in ("onset", "duration", "description", "ch_names"):
             raise ValueError(f"Key '{key}' is reserved and cannot be used in extras.")
         _validate_type(
-            value, (str, int, float, None), "value", "string, int, float or None"
+            value, (str, int, float, None), "value",
         )
         super().__setitem__(key, value)
 
@@ -378,7 +378,7 @@ class Annotations:
     """  # noqa: E501
 
     def __init__(
-        self, onset, duration, description, orig_time=None, ch_names=None, extras=None
+        self, onset, duration, description, orig_time=None, ch_names=None, *, extras=None
     ):
         self._orig_time = _handle_meas_date(orig_time)
         self.onset, self.duration, self.description, self.ch_names, self._extras = (
@@ -408,7 +408,7 @@ class Annotations:
     @property
     def _extras_columns(self) -> set[str]:
         """The set containing all the keys in all extras dicts."""
-        return {k for d in self.extras for k in d.keys()}
+        return {k for d in self.extras for k in d}
 
     def __eq__(self, other):
         """Compare to another Annotations instance."""
@@ -507,7 +507,7 @@ class Annotations:
             )
 
     @fill_doc
-    def append(self, onset, duration, description, ch_names=None, extras=None):
+    def append(self, onset, duration, description, ch_names=None, *, extras=None):
         """Add an annotated segment. Operates inplace.
 
         Parameters
@@ -971,7 +971,7 @@ class EpochAnnotationsMixin:
             self._annotations = new_annotations
         return self
 
-    def get_annotations_per_epoch(self, with_extras=False):
+    def get_annotations_per_epoch(self, *, with_extras=False):
         """Get a list of annotations that occur during each epoch.
 
         Parameters
@@ -1056,7 +1056,7 @@ class EpochAnnotationsMixin:
             epoch_annot_list[epo_ix].append(annot)
         return epoch_annot_list
 
-    def add_annotations_to_metadata(self, overwrite=False, with_extras=True):
+    def add_annotations_to_metadata(self, overwrite=False, *, with_extras=True):
         """Add raw annotations into the Epochs metadata data frame.
 
         Adds three columns to the ``metadata`` consisting of a list
