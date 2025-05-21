@@ -1896,7 +1896,7 @@ def test_prepare_emptyroom_bads(bads):
     assert raw_er_prepared.info["bads"] == ["MEG0113", "MEG2313"]
     assert raw_er_prepared.info["dev_head_t"] == raw.info["dev_head_t"]
 
-    montage_expected = raw.copy().pick(picks="meg").get_montage()
+    montage_expected = raw.pick(picks="meg").get_montage()
     assert raw_er_prepared.get_montage() == montage_expected
 
     # Ensure the originals were not modified
@@ -1904,6 +1904,27 @@ def test_prepare_emptyroom_bads(bads):
     assert raw_er.info["bads"] == raw_er_bads_orig
     assert raw_er.info["dev_head_t"] is None
     assert raw_er.get_montage() is None
+
+
+@testing.requires_testing_data
+def test_prepare_empty_room_with_eeg() -> None:
+    """Test preparation of MEG empty-room which was acquired with EEG enabled."""
+    raw = read_raw_fif(raw_fname, allow_maxshield="yes", verbose=False)
+    raw_er = read_raw_fif(erm_fname, allow_maxshield="yes", verbose=False)
+    assert "eeg" in raw
+    assert "eeg" in raw_er
+    raw_er_prepared = maxwell_filter_prepare_emptyroom(raw_er=raw_er, raw=raw)
+    assert raw_er_prepared.info["dev_head_t"] == raw.info["dev_head_t"]
+    montage_expected = raw.get_montage()
+    assert raw_er_prepared.get_montage() == montage_expected
+
+    raw_er = raw_er.pick("meg")
+    assert "eeg" in raw
+    assert "eeg" not in raw_er
+    raw_er_prepared = maxwell_filter_prepare_emptyroom(raw_er=raw_er, raw=raw)
+    assert raw_er_prepared.info["dev_head_t"] == raw.info["dev_head_t"]
+    montage_expected = raw.pick("meg").get_montage()
+    assert raw_er_prepared.get_montage() == montage_expected
 
 
 @testing.requires_testing_data

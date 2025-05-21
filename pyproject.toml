@@ -139,6 +139,7 @@ hdf5 = ["h5io >= 0.2.4", "pymatreader"]
 # Dependencies for running the test infrastructure
 test = [
   "codespell",
+  "flaky",
   "ipython != 8.7.0",  # for testing notebook backend; also in "full-no-qt" and "doc"
   "mypy",
   "numpydoc",
