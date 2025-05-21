@@ -41,14 +41,15 @@ def _check_curry_filename(fname):
 
 
 def _check_curry_header_filename(fname):
+    fname_in = Path(fname)
     fname_hdr = None
     # try suffixes
     for hdr_suff in CURRY_SUFFIX_HDR:
-        if fname.with_suffix(hdr_suff).exists():
-            fname_hdr = fname.with_suffix(hdr_suff)
+        if fname_in.with_suffix(hdr_suff).exists():
+            fname_hdr = fname_in.with_suffix(hdr_suff)
             break
     # final check
-    if not fname_hdr or not fname.exists():
+    if not fname_hdr or not fname_in.exists():
         raise FileNotFoundError(
             f"no corresponding header file found {CURRY_SUFFIX_HDR}"
         )
