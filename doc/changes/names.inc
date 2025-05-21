@@ -35,6 +35,7 @@
 .. _Austin Hurst: https://github.com/a-hurst
 .. _Ben Beasley: https://github.com/musicinmybrain
 .. _Britta Westner: https://britta-wstnr.github.io
+.. _Bruno Aristimunha: https://bruaristimunha.github.io
 .. _Bruno Nicenboim: https://bnicenboim.github.io
 .. _btkcodedev: https://github.com/btkcodedev
 .. _buildqa: https://github.com/buildqa
