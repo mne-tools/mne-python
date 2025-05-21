@@ -371,7 +371,6 @@ def test_adjacency_matches_ft(tmp_path, adj):
     builtin_neighbors_dir = Path(__file__).parents[1] / "data" / "neighbors"
     ft_neighbors_dir = tmp_path
     del tmp_path
-
     fname = adj.fname
     pooch.retrieve(
         url=adj.source_url,
@@ -383,10 +382,9 @@ def test_adjacency_matches_ft(tmp_path, adj):
     hash_ft = hashlib.sha256()
     hash_mne.update((builtin_neighbors_dir / fname).read_bytes())
     hash_ft.update((ft_neighbors_dir / fname).read_bytes())
-    if hash_mne.hexdigest() != hash_ft.hexdigest():
-        raise ValueError(
-            f"Hash mismatch between built-in and FieldTrip neighbors for {fname}"
-        )
+    assert hash_mne.hexdigest() == hash_ft.hexdigest(), (
+        f"Hash mismatch between built-in and FieldTrip neighbors for {fname}"
+    )
 
 
 def test_get_set_sensor_positions():
