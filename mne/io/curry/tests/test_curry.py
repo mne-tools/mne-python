@@ -26,8 +26,6 @@ curry7_bdf_file = curry_dir / "test_bdf_stim_channel Curry 7.dat"
 curry7_bdf_ascii_file = curry_dir / "test_bdf_stim_channel Curry 7 ASCII.dat"
 curry8_bdf_file = curry_dir / "test_bdf_stim_channel Curry 8.cdt"
 curry8_bdf_ascii_file = curry_dir / "test_bdf_stim_channel Curry 8 ASCII.cdt"
-Ref_chan_omitted_file = curry_dir / "Ref_channel_omitted Curry7.dat"
-Ref_chan_omitted_reordered_file = curry_dir / "Ref_channel_omitted reordered Curry7.dat"
 
 
 @pytest.fixture(scope="session")
