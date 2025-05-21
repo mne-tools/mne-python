@@ -9,7 +9,7 @@ python -m pip install --upgrade --progress-bar off \
     "git+https://github.com/mne-tools/mne-bids.git" \
     "git+https://github.com/mne-tools/mne-qt-browser.git" \
     \
-    alphaCSC autoreject bycycle conpy emd fooof meggie \
+    alphaCSC autoreject bycycle conpy curryreader emd fooof meggie \
     mne-ari mne-bids-pipeline mne-faster mne-features \
     mne-icalabel mne-lsl mne-microstates mne-nirs mne-rsa \
     neurodsp neurokit2 niseq nitime pactools mnelab \
