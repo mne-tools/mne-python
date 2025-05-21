@@ -70,7 +70,9 @@ class _AnnotationsExtrasDict(UserDict):
         if key in ("onset", "duration", "description", "ch_names"):
             raise ValueError(f"Key '{key}' is reserved and cannot be used in extras.")
         _validate_type(
-            value, (str, int, float, None), "value",
+            value,
+            (str, int, float, None),
+            "value",
         )
         super().__setitem__(key, value)
 
@@ -378,7 +380,14 @@ class Annotations:
     """  # noqa: E501
 
     def __init__(
-        self, onset, duration, description, orig_time=None, ch_names=None, *, extras=None
+        self,
+        onset,
+        duration,
+        description,
+        orig_time=None,
+        ch_names=None,
+        *,
+        extras=None,
     ):
         self._orig_time = _handle_meas_date(orig_time)
         self.onset, self.duration, self.description, self.ch_names, self._extras = (
