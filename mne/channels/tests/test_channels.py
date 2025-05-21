@@ -3,12 +3,15 @@
 # Copyright the MNE-Python contributors.
 
 import hashlib
+import time
 from copy import deepcopy
 from functools import partial
 from pathlib import Path
 
 import numpy as np
+import pooch
 import pytest
+from flaky import flaky
 from numpy.testing import assert_allclose, assert_array_equal, assert_equal
 from scipy.io import savemat
 
@@ -35,7 +38,6 @@ from mne.channels import (
 )
 from mne.channels.channels import (
     _BUILTIN_CHANNEL_ADJACENCIES,
-    _BuiltinChannelAdjacency,
     _ch_neighbor_adjacency,
     _compute_ch_adjacency,
 )
@@ -49,7 +51,6 @@ from mne.io import (
     read_raw_fif,
     read_raw_kit,
 )
-from mne.parallel import parallel_func
 from mne.utils import requires_good_network
 
 io_dir = Path(__file__).parents[2] / "io"
@@ -348,64 +349,44 @@ def test_read_ch_adjacency(tmp_path):
     pytest.raises(ValueError, read_ch_adjacency, mat_fname)
 
 
-def _download_ft_neighbors(target_dir):
-    """Download the known neighbors from FieldTrip."""
-
-    # The entire FT repository is larger than a GB, so we'll just download
-    # the few files we need.
-    def _download_one_ft_neighbor(neighbor: _BuiltinChannelAdjacency):
-        # Log level setting must happen inside the job to work properly
-        import pooch
-
-        pooch.get_logger().setLevel("ERROR")  # reduce verbosity
-        fname = neighbor.fname
-        url = neighbor.source_url
-
-        pooch.retrieve(
-            url=url,
-            known_hash=None,
-            fname=fname,
-            path=target_dir,
-        )
-
-    parallel, p_fun, _ = parallel_func(func=_download_one_ft_neighbor, n_jobs=-1)
-    parallel(
-        p_fun(neighbor)
-        for neighbor in _BUILTIN_CHANNEL_ADJACENCIES
-        if neighbor.source_url is not None
+_CHECK_ADJ = [adj for adj in _BUILTIN_CHANNEL_ADJACENCIES if adj.source_url is not None]
+# Only test a subset of the built-in adjacency matrices to speed up tests
+# (we can trust CIs to hit these very frequently so no need to test every time!)
+_CHECK_ADJ = [
+    pytest.param(_CHECK_ADJ[ii], id=_CHECK_ADJ[ii].fname)
+    for ii in range(
+        np.random.default_rng(int(time.time())).integers(0, 10),
+        len(_CHECK_ADJ),
+        10,
     )
+]
 
 
+@flaky
 @pytest.mark.slowtest
 @requires_good_network
-def test_adjacency_matches_ft(tmp_path):
+@pytest.mark.parametrize("adj", _CHECK_ADJ)
+def test_adjacency_matches_ft(tmp_path, adj):
     """Test correspondence of built-in adjacency matrices with FT repo."""
     builtin_neighbors_dir = Path(__file__).parents[1] / "data" / "neighbors"
     ft_neighbors_dir = tmp_path
     del tmp_path
 
-    _download_ft_neighbors(target_dir=ft_neighbors_dir)
-
-    for adj in _BUILTIN_CHANNEL_ADJACENCIES:
-        fname = adj.fname
-        if not (ft_neighbors_dir / fname).exists():
-            continue  # only exists in MNE, not FT
-
-        hash_mne = hashlib.sha256()
-        hash_ft = hashlib.sha256()
-
-        with open(builtin_neighbors_dir / fname, "rb") as f:
-            data = f.read()
-            hash_mne.update(data)
-
-        with open(ft_neighbors_dir / fname, "rb") as f:
-            data = f.read()
-            hash_ft.update(data)
-
-        if hash_mne.hexdigest() != hash_ft.hexdigest():
-            raise ValueError(
-                f"Hash mismatch between built-in and FieldTrip neighbors for {fname}"
-            )
+    fname = adj.fname
+    pooch.retrieve(
+        url=adj.source_url,
+        known_hash=None,
+        fname=fname,
+        path=ft_neighbors_dir,
+    )
+    hash_mne = hashlib.sha256()
+    hash_ft = hashlib.sha256()
+    hash_mne.update((builtin_neighbors_dir / fname).read_bytes())
+    hash_ft.update((ft_neighbors_dir / fname).read_bytes())
+    if hash_mne.hexdigest() != hash_ft.hexdigest():
+        raise ValueError(
+            f"Hash mismatch between built-in and FieldTrip neighbors for {fname}"
+        )
 
 
 def test_get_set_sensor_positions():
