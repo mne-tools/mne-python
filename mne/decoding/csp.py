@@ -18,6 +18,7 @@ from ..utils import (
     _validate_type,
     _verbose_safe_false,
     fill_doc,
+    logger,
     pinv,
 )
 from .transformer import MNETransformerMixin
@@ -602,6 +603,12 @@ class CSP(MNETransformerMixin, BaseEstimator):
 
     def _epoch_cov(self, x_class, *, cov_kind, log_rank):
         """Mean of per-epoch covariances."""
+        name = self.reg if isinstance(self.reg, str) else "empirical"
+        name += " with shrinkage" if isinstance(self.reg, float) else ""
+        logger.info(
+            f"Estimating {cov_kind + (' ' if cov_kind else '')}"
+            f"covariance (average over epochs; {name.upper()})"
+        )
         cov = sum(
             _regularized_covariance(
                 this_X,
@@ -612,6 +619,7 @@ class CSP(MNETransformerMixin, BaseEstimator):
                 cov_kind=cov_kind,
                 log_rank=log_rank and ii == 0,
                 log_ch_type="data",
+                verbose=_verbose_safe_false(),
             )
             for ii, this_X in enumerate(x_class)
         )
