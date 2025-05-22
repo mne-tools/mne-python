@@ -7,7 +7,9 @@ from scipy import linalg
 
 from .._fiff.pick import _pick_data_channels, pick_info
 from ..cov import Covariance, _regularized_covariance
-from ..decoding import BaseEstimator, TransformerMixin
+from ..decoding.base import GEDTransformer
+from ..decoding.covs_ged import _xdawn_estimate
+from ..decoding.mod_ged import _xdawn_mod
 from ..epochs import BaseEpochs
 from ..evoked import Evoked, EvokedArray
 from ..io import BaseRaw
@@ -212,7 +214,7 @@ def _fit_xdawn(
     return filters, patterns, evokeds
 
 
-class _XdawnTransformer(BaseEstimator, TransformerMixin):
+class _XdawnTransformer(GEDTransformer):
     """Implementation of the Xdawn Algorithm compatible with scikit-learn.
 
     Xdawn is a spatial filtering method designed to improve the signal
@@ -259,6 +261,20 @@ class _XdawnTransformer(BaseEstimator, TransformerMixin):
         self.reg = reg
         self.method_params = method_params
 
+        cov_params = dict(reg=reg, cov_method_params=method_params, R=signal_cov)
+
+        mod_params = dict()
+        super().__init__(
+            n_components,
+            _xdawn_estimate,
+            cov_params,
+            _xdawn_mod,
+            mod_params,
+            dec_type="multi",
+            restr_map=None,
+            R_func=None,
+        )
+
     def fit(self, X, y=None):
         """Fit Xdawn spatial filters.
 
@@ -286,6 +302,26 @@ class _XdawnTransformer(BaseEstimator, TransformerMixin):
             signal_cov=self.signal_cov,
             method_params=self.method_params,
         )
+        old_filters = self.filters_
+        old_patterns = self.patterns_
+        super().fit(X, y)
+        self.filters_ = np.concatenate(
+            [
+                self.filters_[i, : self.n_components]
+                for i in range(self.filters_.shape[0])
+            ],
+            axis=0,
+        )
+        self.patterns_ = np.concatenate(
+            [
+                self.patterns_[i, : self.n_components]
+                for i in range(self.patterns_.shape[0])
+            ],
+            axis=0,
+        )
+        np.testing.assert_allclose(old_filters, self.filters_)
+        np.testing.assert_allclose(old_patterns, self.patterns_)
+
         return self
 
     def transform(self, X):
