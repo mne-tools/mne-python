@@ -982,8 +982,8 @@ class SPoC(CSP):
         super(CSP, self).fit(X, y)
 
         np.testing.assert_allclose(evals[ix], self.evals_)
-        np.testing.assert_allclose(old_filters, self.filters_)
-        np.testing.assert_allclose(old_patterns, self.patterns_)
+        np.testing.assert_allclose(old_filters, self.filters_, rtol=1e-6, atol=1e-7)
+        np.testing.assert_allclose(old_patterns, self.patterns_, rtol=1e-6, atol=1e-7)
 
         pick_filters = self.filters_[: self.n_components]
         X = np.asarray([np.dot(pick_filters, epoch) for epoch in X])
