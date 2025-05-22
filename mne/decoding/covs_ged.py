@@ -11,7 +11,7 @@ from .._fiff.meas_info import Info, create_info
 from .._fiff.pick import _picks_to_idx
 from ..cov import Covariance, _compute_rank_raw_array, _regularized_covariance
 from ..filter import filter_data
-from ..utils import pinv
+from ..utils import _verbose_safe_false, logger, pinv
 
 
 def _concat_cov(x_class, *, cov_kind, log_rank, reg, cov_method_params, rank, info):
@@ -36,6 +36,12 @@ def _concat_cov(x_class, *, cov_kind, log_rank, reg, cov_method_params, rank, in
 
 def _epoch_cov(x_class, *, cov_kind, log_rank, reg, cov_method_params, rank, info):
     """Mean of per-epoch covariances."""
+    name = reg if isinstance(reg, str) else "empirical"
+    name += " with shrinkage" if isinstance(reg, float) else ""
+    logger.info(
+        f"Estimating {cov_kind + (' ' if cov_kind else '')}"
+        f"covariance (average over epochs; {name.upper()})"
+    )
     cov = sum(
         _regularized_covariance(
             this_X,
@@ -46,6 +52,7 @@ def _epoch_cov(x_class, *, cov_kind, log_rank, reg, cov_method_params, rank, inf
             cov_kind=cov_kind,
             log_rank=log_rank and ii == 0,
             log_ch_type="data",
+            verbose=_verbose_safe_false(),
         )
         for ii, this_X in enumerate(x_class)
     )
