@@ -251,12 +251,10 @@ def _open_lock(path, *args, **kwargs):
 
     lock_context = contextlib.nullcontext()  # default to no lock
 
-    if filelock is not None:
+    if filelock:
         lock_path = f"{path}.lock"
         try:
-            from filelock import FileLock
-
-            lock_context = FileLock(lock_path, timeout=5)
+            lock_context = filelock.FileLock(lock_path, timeout=5)
             lock_context.acquire()
         except TimeoutError:
             warn(
