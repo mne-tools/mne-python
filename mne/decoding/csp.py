@@ -6,7 +6,6 @@ import copy as cp
 
 import numpy as np
 from scipy.linalg import eigh
-from sklearn.base import BaseEstimator
 from sklearn.utils.validation import check_is_fitted
 
 from .._fiff.meas_info import create_info
@@ -20,11 +19,13 @@ from ..utils import (
     fill_doc,
     pinv,
 )
-from .transformer import MNETransformerMixin
+from .base import GEDTransformer
+from .covs_ged import _csp_estimate, _spoc_estimate
+from .mod_ged import _csp_mod, _spoc_mod
 
 
 @fill_doc
-class CSP(MNETransformerMixin, BaseEstimator):
+class CSP(GEDTransformer):
     """M/EEG signal decomposition using the Common Spatial Patterns (CSP).
 
     This class can be used as a supervised decomposition to estimate spatial
@@ -124,6 +125,26 @@ class CSP(MNETransformerMixin, BaseEstimator):
         self.cov_method_params = cov_method_params
         self.component_order = component_order
 
+        cov_params = dict(
+            reg=reg,
+            cov_method_params=cov_method_params,
+            cov_est=cov_est,
+            rank=rank,
+            norm_trace=norm_trace,
+        )
+
+        mod_params = dict(evecs_order=component_order)
+        super().__init__(
+            n_components,
+            _csp_estimate,
+            cov_params,
+            _csp_mod,
+            mod_params,
+            dec_type="single",
+            restr_map="restricting",
+            R_func=sum,
+        )
+
     def _validate_params(self, *, y):
         _validate_type(self.n_components, int, "n_components")
         if hasattr(self, "cov_est"):
@@ -190,6 +211,16 @@ class CSP(MNETransformerMixin, BaseEstimator):
 
         self.filters_ = eigen_vectors.T
         self.patterns_ = pinv(eigen_vectors)
+
+        old_filters = self.filters_
+        old_patterns = self.patterns_
+        super().fit(X, y)
+        if self.evals_ is None:
+            assert eigen_values is None
+        else:
+            np.testing.assert_allclose(eigen_values[ix], self.evals_)
+        np.testing.assert_allclose(old_filters, self.filters_)
+        np.testing.assert_allclose(old_patterns, self.patterns_)
 
         pick_filters = self.filters_[: self.n_components]
         X = np.asarray([np.dot(pick_filters, epoch) for epoch in X])
@@ -857,6 +888,25 @@ class SPoC(CSP):
             rank=rank,
             cov_method_params=cov_method_params,
         )
+
+        cov_params = dict(
+            reg=reg,
+            cov_method_params=cov_method_params,
+            rank=rank,
+        )
+
+        mod_params = dict()
+        super(CSP, self).__init__(
+            n_components,
+            _spoc_estimate,
+            cov_params,
+            _spoc_mod,
+            mod_params,
+            dec_type="single",
+            restr_map=None,
+            R_func=None,
+        )
+
         # Covariance estimation have to be done on the single epoch level,
         # unlike CSP where covariance estimation can also be achieved through
         # concatenation of all epochs from the same class.
@@ -918,6 +968,14 @@ class SPoC(CSP):
         # spatial patterns
         self.patterns_ = pinv(evecs).T  # n_channels x n_channels
         self.filters_ = evecs  # n_channels x n_channels
+
+        old_filters = self.filters_
+        old_patterns = self.patterns_
+        super(CSP, self).fit(X, y)
+
+        np.testing.assert_allclose(evals[ix], self.evals_)
+        np.testing.assert_allclose(old_filters, self.filters_)
+        np.testing.assert_allclose(old_patterns, self.patterns_)
 
         pick_filters = self.filters_[: self.n_components]
         X = np.asarray([np.dot(pick_filters, epoch) for epoch in X])

@@ -22,7 +22,91 @@ from sklearn.model_selection import KFold, StratifiedKFold, check_cv
 from sklearn.utils import check_array, check_X_y, indexable
 
 from ..parallel import parallel_func
-from ..utils import _pl, logger, verbose, warn
+from ..utils import _pl, logger, pinv, verbose, warn
+from .ged import _get_ssd_rank, _handle_restr_map, _smart_ajd, _smart_ged
+from .transformer import MNETransformerMixin
+
+
+class GEDTransformer(MNETransformerMixin, BaseEstimator):
+    """..."""
+
+    def __init__(
+        self,
+        n_filters,
+        cov_callable,
+        cov_params,
+        mod_ged_callable,
+        mod_params,
+        dec_type="single",
+        restr_map=None,
+        R_func=None,
+    ):
+        self.n_filters = n_filters
+        self.cov_callable = cov_callable
+        self.cov_params = cov_params
+        self.mod_ged_callable = mod_ged_callable
+        self.mod_params = mod_params
+        self.dec_type = dec_type
+        self.restr_map = restr_map
+        self.R_func = R_func
+
+    def fit(self, X, y=None):
+        """..."""
+        covs, C_ref, info, rank, kwargs = self.cov_callable(X, y, **self.cov_params)
+        if self.dec_type == "single":
+            if len(covs) > 2:
+                sample_weights = kwargs["sample_weights"]
+                restr_map = _handle_restr_map(C_ref, self.restr_map, info, rank)
+                evecs = _smart_ajd(covs, restr_map, weights=sample_weights)
+                evals = None
+            else:
+                S = covs[0]
+                R = covs[1]
+                if self.restr_map == "ssd":
+                    rank = _get_ssd_rank(S, R, info, rank)
+                    mult_order = "ssd"
+                else:
+                    mult_order = None
+                restr_map = _handle_restr_map(C_ref, self.restr_map, info, rank)
+                evals, evecs = _smart_ged(
+                    S, R, restr_map, R_func=self.R_func, mult_order=mult_order
+                )
+
+            evals, evecs = self.mod_ged_callable(
+                evals, evecs, covs, **self.mod_params, **kwargs
+            )
+            self.evals_ = evals
+            self.filters_ = evecs.T
+            if self.restr_map == "ssd":
+                self.patterns_ = np.linalg.pinv(evecs)
+            else:
+                self.patterns_ = pinv(evecs)
+
+        elif self.dec_type == "multi":
+            self.classes_ = np.unique(y)
+            R = covs[-1]
+            restr_map = _handle_restr_map(C_ref, self.restr_map, info, rank)
+            all_evals, all_evecs, all_patterns = list(), list(), list()
+            for i in range(len(self.classes_)):
+                S = covs[i]
+                evals, evecs = _smart_ged(S, R, restr_map, R_func=self.R_func)
+
+                evals, evecs = self.mod_ged_callable(
+                    evals, evecs, covs, **self.mod_params, **kwargs
+                )
+                all_evals.append(evals)
+                all_evecs.append(evecs.T)
+                all_patterns.append(np.linalg.pinv(evecs))
+            self.evals_ = np.array(all_evals)
+            self.filters_ = np.array(all_evecs)
+            self.patterns_ = np.array(all_patterns)
+
+        return self
+
+    def transform(self, X):
+        """..."""
+        X = np.dot(self.filters_, X)
+        return X
 
 
 class LinearModel(MetaEstimatorMixin, BaseEstimator):
