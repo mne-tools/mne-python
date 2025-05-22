@@ -28,7 +28,63 @@ from .transformer import MNETransformerMixin
 
 
 class GEDTransformer(MNETransformerMixin, BaseEstimator):
-    """..."""
+    """M/EEG signal decomposition using the generalized eigenvalue decomposition (GED).
+
+    Given two channel covariance matrices S and R, the goal is to find spatial filters
+    that maximise contrast between S and R.
+
+    Parameters
+    ----------
+    n_filters : int
+        The number of spatial filters to decompose M/EEG signals.
+    cov_callable : callable
+        Function used to estimate covariances and reference matrix (C_ref) from the
+        data.
+    cov_params : dict
+        Parameters passed to cov_callable.
+    mod_ged_callable : callable
+        Function used to modify (e.g. sort or normalize) generalized
+        eigenvalues and eigenvectors.
+    mod_params : dict
+        Parameters passed to mod_ged_callable.
+    dec_type : "single" | "multi"
+        When "single" and cov_callable returns > 2 covariances,
+        approximate joint diagonalization based on Pham's algorithm
+        will be used instead of GED.
+        When 'multi', GED is performed separately for each class, i.e. each covariance
+        (except the last) returned by cov_callable is decomposed with the last
+        covariance. In this case, number of covariances should be number of classes + 1.
+        Defaults to "single".
+    restr_map : "restricting" | "whitening" | "ssd" | None
+        Restricting transformation for covariance matrices before performing GED.
+        If "restricting" only restriction to the principal subspace of the C_ref
+        will be performed.
+        If "whitening", covariance matrices will be additionally rescaled according
+        to the whitening for the C_ref.
+        If "ssd", perform simplified version of "whitening",
+        preserved for compatibility.
+        If None, no restriction will be applied. Defaults to None.
+    R_func : callable | None
+        If provided GED will be performed on (S, R_func(S,R)).
+
+    Attributes
+    ----------
+    evals_ : ndarray, shape (n_channels)
+        If fit, generalized eigenvalues used to decompose S and R, else None.
+    filters_ :  ndarray, shape (n_channels or less, n_channels)
+        If fit, spatial filters (unmixing matrix) used to decompose the data,
+        else None.
+    patterns_ : ndarray, shape (n_channels or less, n_channels)
+        If fit, spatial patterns (mixing matrix) used to restore M/EEG signals,
+        else None.
+
+    See Also
+    --------
+    CSP
+    SPoC
+    SSD
+    mne.preprocessing.Xdawn
+    """
 
     def __init__(
         self,

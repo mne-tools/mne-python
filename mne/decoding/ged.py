@@ -12,6 +12,11 @@ from ..utils import _verbose_safe_false, logger
 
 
 def _handle_restr_map(C_ref, restr_map, info, rank):
+    """Get restricting map to C_ref rank-dimensional principal subspace.
+
+    Returns matrix of shape (rank, n_chs) used to restrict or
+    restrict+rescale (whiten) covariances matrices.
+    """
     if C_ref is None or restr_map is None:
         return None
     if restr_map == "whitening":
@@ -31,8 +36,15 @@ def _handle_restr_map(C_ref, restr_map, info, rank):
     return restr_map
 
 
-def _smart_ged(S, R, restr_map, R_func=None, mult_order=None):
-    """..."""
+def _smart_ged(S, R, restr_map=None, R_func=None, mult_order=None):
+    """Perform smart generalized eigenvalue decomposition (GED) of S and R.
+
+    If restr_map is provided S and R will be restricted to the principal subspace
+    of a reference matrix with rank r (see _handle_restr_map), then GED is performed
+    on the restricted S and R and then generalized eigenvectors are transformed back
+    to the original space. The g-eigenvectors matrix is of shape (n_chs, r).
+    If callable R_func is provided the GED will be performed on (S, R_func(S,R))
+    """
     if restr_map is None:
         evals, evecs = scipy.linalg.eigh(S, R)
         return evals, evecs
@@ -135,7 +147,19 @@ def _ajd_pham(X, eps=1e-6, max_iter=15):
     return V, D
 
 
-def _smart_ajd(covs, restr_map, weights):
+def _smart_ajd(covs, restr_map=None, weights=None):
+    """Perform smart approximate joint diagonalization.
+
+    If restr_map is provided all the cov matrices will be restricted to the
+    principal subspace of a reference matrix with rank r (see _handle_restr_map),
+    then GED is performed on the restricted S and R and then generalized eigenvectors
+    are transformed back to the original space.
+    The matrix of generalized eigenvectors is of shape (n_chs, r).
+    """
+    if restr_map is None:
+        evecs, D = _ajd_pham(covs)
+        return evecs
+
     covs = np.array([restr_map @ cov @ restr_map.T for cov in covs], float)
     evecs_restr, D = _ajd_pham(covs)
     evecs = _normalize_eigenvectors(evecs_restr.T, covs, weights)
@@ -144,6 +168,7 @@ def _smart_ajd(covs, restr_map, weights):
 
 
 def _get_restricting_map(C, info, rank):
+    """Get map restricting covariance to rank-dimensional principal subspace of C."""
     _, ref_evecs, mask = _smart_eigh(
         C,
         info,
