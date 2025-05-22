@@ -476,7 +476,7 @@ class Annotations:
             other.duration,
             other.description,
             other.ch_names,
-            other.extras,
+            extras=other.extras,
         )
 
     def __iter__(self):
@@ -1498,7 +1498,7 @@ def _read_annotations_csv(fname):
     extras = None
     if len(extra_columns) > 0:
         extras = df[extra_columns].to_dict(orient="records")
-    return Annotations(onset, duration, description, orig_time, ch_names, extras)
+    return Annotations(onset, duration, description, orig_time, ch_names, extras=extras)
 
 
 def _read_brainstorm_annotations(fname, orig_time=None):
@@ -1691,7 +1691,7 @@ def _read_annotations_fif(fid, tree):
         if extras is not None:
             assert len(extras) == len(onset)
         annotations = Annotations(
-            onset, duration, description, orig_time, ch_names, extras
+            onset, duration, description, orig_time, ch_names, extras=extras
         )
     return annotations
 
