@@ -3,7 +3,6 @@
 # Copyright the MNE-Python contributors.
 
 import hashlib
-import time
 from copy import deepcopy
 from functools import partial
 from pathlib import Path
@@ -350,20 +349,12 @@ def test_read_ch_adjacency(tmp_path):
 
 
 _CHECK_ADJ = [adj for adj in _BUILTIN_CHANNEL_ADJACENCIES if adj.source_url is not None]
-# Only test a subset of the built-in adjacency matrices to speed up tests
-# (we can trust CIs to hit these very frequently so no need to test every time!)
-_CHECK_ADJ = [
-    pytest.param(_CHECK_ADJ[ii], id=_CHECK_ADJ[ii].fname)
-    for ii in range(
-        np.random.default_rng(int(time.time())).integers(0, 10),
-        len(_CHECK_ADJ),
-        10,
-    )
-]
 
 
+# This test is ~15s long across all montages, and we shouldn't need to check super
+# often for mismatches. So let's mark it ultraslowtest so only one CI runs it.
 @flaky
-@pytest.mark.slowtest
+@pytest.mark.ultraslowtest
 @requires_good_network
 @pytest.mark.parametrize("adj", _CHECK_ADJ)
 def test_adjacency_matches_ft(tmp_path, adj):
