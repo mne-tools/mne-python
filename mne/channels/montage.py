@@ -1418,10 +1418,10 @@ def _read_isotrak_pos_points(fname):
     labels = pattern_labels.findall(file_str)
 
     return {
-        "nasion": [x[1:] for x in labels if x[0] == "nasion"][0],
-        "lpa": [x[1:] for x in labels if x[0] == "left"][0],
-        "rpa": [x[1:] for x in labels if x[0] == "right"][0],
-        "points": [x[1:] for x in points],
+        "nasion": [tuple(map(float, x[1:])) for x in labels if x[0] == "nasion"][0],
+        "lpa": [tuple(map(float, x[1:])) for x in labels if x[0] == "left"][0],
+        "rpa": [tuple(map(float, x[1:])) for x in labels if x[0] == "right"][0],
+        "points": [tuple(map(float, x[1:])) for x in points],
     }
 
 
