@@ -1634,8 +1634,8 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
         "Please use methods inst.add_channels(), "
         "inst.drop_channels(), and inst.pick() instead.",
         "proc_history": "proc_history cannot be set directly.",
-        "proj_id": "proj_id cannot be set directly.",
-        "proj_name": "proj_name cannot be set directly.",
+        "proj_id": partial(_check_types, name="proj_id", types=(int, None)), 
+        "proj_name": partial(_check_types, name="proj_name", types=(str, None)),
         "projs": "projs cannot be set directly. "
         "Please use methods inst.add_proj() and inst.del_proj() "
         "instead.",
