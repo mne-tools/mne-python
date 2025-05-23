@@ -14,4 +14,5 @@ python -m pip install --upgrade --progress-bar off \
     mne-icalabel mne-lsl mne-microstates mne-nirs mne-rsa \
     neurodsp neurokit2 niseq nitime pactools mnelab \
     plotly pycrostates pyprep pyriemann python-picard sesameeg \
-    sleepecg tensorpac yasa meegkit eeg_positions wfdb invertmeeg
+    sleepecg tensorpac yasa meegkit eeg_positions wfdb invertmeeg \
+    curryreader
