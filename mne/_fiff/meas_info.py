@@ -1173,10 +1173,10 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
 
     .. warning::
         The only entries that should be manually changed by the user are:
-        ``info['bads']``, ``info['description']``, ``info['device_info']``
-        ``info['dev_head_t']``, ``info['experimenter']``,
-        ``info['helium_info']``, ``info['line_freq']``, ``info['temp']``,
-        and ``info['subject_info']``.
+        ``info['bads']``, ``info['description']``, ``info['device_info']``, 
+        ``info['proj_id']``, ``info['proj_name']``, ``info['dev_head_t']``, 
+        ``info['experimenter']``, ``info['helium_info']``, 
+        ``info['line_freq']``, ``info['temp']``, and ``info['subject_info']``.
 
         All other entries should be considered read-only, though they can be
         modified by various MNE-Python functions or methods (which have
