@@ -1635,7 +1635,7 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
         "inst.drop_channels(), and inst.pick() instead.",
         "proc_history": "proc_history cannot be set directly.",
         "proj_id": partial(
-            _check_types, name="proj_id", types=(int, np.ndarray, None), cast=int
+            _check_types, name="proj_id", types=(int, None), cast=int
         ),
         "proj_name": partial(_check_types, name="proj_name", types=(str, None)),
         "projs": "projs cannot be set directly. "
@@ -2539,7 +2539,9 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
         info["meas_id"] = meas_info["parent_id"]
     info["experimenter"] = experimenter
     info["description"] = description
-    info["proj_id"] = proj_id.item()
+    if type(proj_id) == np.ndarray:
+        proj_id = proj_id.item()
+    info["proj_id"] = proj_id
     info["proj_name"] = proj_name
     if meas_date is None:
         meas_date = (info["meas_id"]["secs"], info["meas_id"]["usecs"])
