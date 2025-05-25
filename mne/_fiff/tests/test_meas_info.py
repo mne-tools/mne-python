@@ -1283,7 +1283,7 @@ def test_tag_consistency():
 def test_proj_id_entries():
     """Test that proj_id entries are the right type."""
     info = create_info(5, 1000.0, "eeg")
-    info['proj_id'] = 123
+    info["proj_id"] = 123
     with pytest.raises(TypeError, match="must be an instance"):
         info["proj_id"] = "bad"
     with pytest.raises(TypeError, match="must be an instance"):
