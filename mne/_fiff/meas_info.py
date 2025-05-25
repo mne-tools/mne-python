@@ -2537,7 +2537,7 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
         info["meas_id"] = meas_info["parent_id"]
     info["experimenter"] = experimenter
     info["description"] = description
-    info["proj_id"] = proj_id
+    info["proj_id"] = proj_id.item()
     info["proj_name"] = proj_name
     if meas_date is None:
         meas_date = (info["meas_id"]["secs"], info["meas_id"]["usecs"])

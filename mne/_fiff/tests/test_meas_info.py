@@ -1217,6 +1217,7 @@ def test_info_bad():
     info["line_freq"] = 50.0
     info["bads"] = info["ch_names"][:1]
     info["temp"] = ("whatever", 1.0)
+
     with pytest.raises(RuntimeError, match=r"info\['temp'\]"):
         info["bad_key"] = 1.0
     for key, match in [("sfreq", r"inst\.resample"), ("chs", r"inst\.add_channels")]:
@@ -1277,3 +1278,15 @@ def test_tag_consistency():
     assert call_set == call_names, "Mismatch between _call_dict and _call_dict_names"
     # TODO: This was inspired by FIFF_DIG_STRING gh-13083, we should ideally add a test
     # that those dig points can actually be read in correctly at some point.
+
+
+def test_proj_id_entries():
+    """Test that proj_id entries are the right type."""
+    info = create_info(5, 1000.0, "eeg")
+    info['proj_id'] = 123
+    with pytest.raises(TypeError, match="must be an instance"):
+        info["proj_id"] = "bad"
+    with pytest.raises(TypeError, match="must be an instance"):
+        info["proj_id"] = np.array([123])
+    with pytest.raises(TypeError, match="must be an instance"):
+        info["proj_id"] = True
