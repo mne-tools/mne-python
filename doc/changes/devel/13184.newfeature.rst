@@ -1,0 +1,1 @@
+New argument ``sfreq`` to :func:`mne.io.read_raw_snirf`, to allow overriding the sampling frequency estimated from (possibly jittered) sampling periods in the file, by `Daniel McCloy`_.

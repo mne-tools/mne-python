@@ -220,7 +220,11 @@ def raw_data():
 
     src = read_source_spaces(src_fname)
     trans = read_trans(trans_fname)
-    sphere = make_sphere_model("auto", "auto", raw.info)
+    # Use fixed values from old sphere fit to reduce lines changed with fixed algorithm
+    sphere = make_sphere_model(
+        [-0.00413508, 0.01598787, 0.05175598],
+        0.09100286249131773,
+    )
     stc = _make_stc(raw, src)
     return raw, src, stc, trans, sphere
 
@@ -385,9 +389,9 @@ def test_simulate_raw_bem(raw_data):
     locs = np.concatenate([s["rr"][s["vertno"]] for s in src])
     tmax = (len(locs) - 1) / raw.info["sfreq"]
     cov = make_ad_hoc_cov(raw.info)
-    # The tolerance for the BEM is surprisingly high (28) but I get the same
+    # The tolerance for the BEM is surprisingly high but I get the same
     # result when using MNE-C and Xfit, even when using a proper 5120 BEM :(
-    for use_raw, bem, tol in ((raw_sim_sph, sphere, 2), (raw_sim_bem, bem_fname, 31)):
+    for use_raw, bem, tol in ((raw_sim_sph, sphere, 4), (raw_sim_bem, bem_fname, 31)):
         events = find_events(use_raw, "STI 014")
         assert len(locs) == 6
         evoked = Epochs(use_raw, events, 1, 0, tmax, baseline=None).average()

@@ -1453,7 +1453,7 @@ def test_set_montage_mgh(rename):
     assert (orig_pos != new_pos).all()
 
     r0 = _fit_sphere(new_pos)[1]
-    assert_allclose(r0, [-0.001021, 0.014554, 0.041404], atol=1e-4)
+    assert_allclose(r0, [-0.001043, 0.01469, 0.041448], atol=1e-4)
     # spot check: Fp1 and Fpz
     assert_allclose(
         new_pos[:2],
