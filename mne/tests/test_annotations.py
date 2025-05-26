@@ -1988,6 +1988,7 @@ def test_extras_list_raises(key, value, expected_error, match):
 
 
 def test_annotations_positional_args():
+    """Test that Annotations positional arguments work as expected."""
     annot = Annotations([0], [1], ["a"])
     _ = Annotations([0], [1], ["a"], None)
     _ = Annotations([0], [1], ["a"], None, None)
