@@ -2,12 +2,12 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+import re
 import sys
 from collections import OrderedDict
 from datetime import datetime, timedelta, timezone
 from itertools import repeat
 from pathlib import Path
-import re
 
 import numpy as np
 import pytest
