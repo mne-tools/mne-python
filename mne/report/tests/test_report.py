@@ -518,6 +518,7 @@ def test_add_bem_n_jobs(n_jobs, monkeypatch):
 @pytest.mark.slowtest
 @testing.requires_testing_data
 def test_add_forward():
+    """Test add_forward."""
     report = Report(subjects_dir=subjects_dir, image_format="png")
     report.add_forward(
         forward=fwd_fname,
