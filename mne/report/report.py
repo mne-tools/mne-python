@@ -1559,7 +1559,7 @@ class Report:
             subjects_dir=subjects_dir,
             title=title,
             image_format=self.image_format,
-            section=title,
+            section=section,
             tags=tags,
             replace=replace,
         )
@@ -3600,7 +3600,7 @@ class Report:
             replace=replace,
         )
 
-        if self.subject:
+        if subject:
             src = forward["src"]
             trans = forward["mri_head_t"]
             # Alignment
@@ -3615,7 +3615,7 @@ class Report:
                 eeg=dict(original=0.2, projected=0.8),
                 coord_frame="mri",
             )
-            img, caption = _iterate_trans_views(
+            img, _ = _iterate_trans_views(
                 function=plot_alignment,
                 alpha=0.5,
                 max_width=self.img_max_width,
@@ -3666,7 +3666,7 @@ class Report:
                 coord_frame="mri",
                 surfaces=surfaces,
             )
-            img, caption = _iterate_alignment_views(
+            img, _ = _iterate_alignment_views(
                 function=plot_alignment,
                 alpha=0.5,
                 max_width=self.img_max_width,

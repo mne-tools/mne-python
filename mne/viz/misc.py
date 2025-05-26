@@ -631,6 +631,7 @@ def plot_bem(
 
         .. versionchanged:: 0.20
            All sources are shown on the nearest slice rather than some
+           being omitted.
     %(trans)s
         .. versionadded:: 1.9
     show : bool
