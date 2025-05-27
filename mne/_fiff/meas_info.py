@@ -1173,10 +1173,10 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
 
     .. warning::
         The only entries that should be manually changed by the user are:
-        ``info['bads']``, ``info['description']``, ``info['device_info']``
-        ``info['dev_head_t']``, ``info['experimenter']``,
-        ``info['helium_info']``, ``info['line_freq']``, ``info['temp']``,
-        and ``info['subject_info']``.
+        ``info['bads']``, ``info['description']``, ``info['device_info']``,
+        ``info['proj_id']``, ``info['proj_name']``, ``info['dev_head_t']``,
+        ``info['experimenter']``, ``info['helium_info']``,
+        ``info['line_freq']``, ``info['temp']``, and ``info['subject_info']``.
 
         All other entries should be considered read-only, though they can be
         modified by various MNE-Python functions or methods (which have
@@ -1634,8 +1634,8 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
         "Please use methods inst.add_channels(), "
         "inst.drop_channels(), and inst.pick() instead.",
         "proc_history": "proc_history cannot be set directly.",
-        "proj_id": "proj_id cannot be set directly.",
-        "proj_name": "proj_name cannot be set directly.",
+        "proj_id": partial(_check_types, name="proj_id", types=(int, None), cast=int),
+        "proj_name": partial(_check_types, name="proj_name", types=(str, None)),
         "projs": "projs cannot be set directly. "
         "Please use methods inst.add_proj() and inst.del_proj() "
         "instead.",
@@ -2537,6 +2537,8 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
         info["meas_id"] = meas_info["parent_id"]
     info["experimenter"] = experimenter
     info["description"] = description
+    if isinstance(proj_id, np.ndarray):
+        proj_id = proj_id.item()
     info["proj_id"] = proj_id
     info["proj_name"] = proj_name
     if meas_date is None:
