@@ -2,6 +2,12 @@
 build-backend = "hatchling.build"
 requires = ["hatch-vcs", "hatchling"]
 
+[dependency-groups]
+dev = [
+  "mne[dev]",
+  "PySide6 != 6.7.0, != 6.8.0, != 6.8.0.1",
+]
+
 [project]
 authors = [
   {email = "alexandre.gramfort@inria.fr", name = "Alexandre Gramfort"},
@@ -174,12 +180,6 @@ test_extra = [
   "snirf",
   "sphinx-gallery",
   "statsmodels",
-]
-
-[dependency-groups]
-dev = [
-  "mne[dev]",
-  "PySide6 != 6.7.0, != 6.8.0, != 6.8.0.1",
 ]
 
 [project.urls]
