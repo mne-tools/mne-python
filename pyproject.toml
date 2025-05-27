@@ -176,6 +176,12 @@ test_extra = [
   "statsmodels",
 ]
 
+[dependency-groups]
+dev = [
+  "mne[dev]",
+  "PySide6 != 6.7.0, != 6.8.0, != 6.8.0.1",
+]
+
 [project.urls]
 "Bug Tracker" = "https://github.com/mne-tools/mne-python/issues/"
 Documentation = "https://mne.tools/"
