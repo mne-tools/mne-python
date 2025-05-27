@@ -3105,7 +3105,8 @@ def _check_raw_compatibility(raw):
     """Ensure all instances of Raw have compatible parameters."""
     for ri in range(1, len(raw)):
         if not isinstance(raw[ri], BaseRaw):
-            raise ValueError(f"raw[{ri}] type must match")
+            if type(raw[ri]) is not type(raw[0]):
+                raise ValueError(f"raw[{ri}] type must match")
         for key in ("nchan", "sfreq"):
             a, b = raw[ri].info[key], raw[0].info[key]
             if a != b:
