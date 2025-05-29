@@ -6,28 +6,26 @@ import numpy as np
 import scipy.linalg
 
 from ..cov import Covariance, _smart_eigh, compute_whitener
-from ..defaults import _handle_default
-from ..rank import compute_rank
-from ..utils import _verbose_safe_false, logger
+from ..utils import logger
 
 
-def _handle_restr_map(C_ref, restr_map, info, rank):
+def _handle_restr_map(C_ref, restr_type, info, rank):
     """Get restricting map to C_ref rank-dimensional principal subspace.
 
     Returns matrix of shape (rank, n_chs) used to restrict or
     restrict+rescale (whiten) covariances matrices.
     """
-    if C_ref is None or restr_map is None:
+    if C_ref is None or restr_type is None:
         return None
-    if restr_map == "whitening":
+    if restr_type == "whitening":
         projs = info["projs"]
         C_ref_cov = Covariance(C_ref, info.ch_names, info["bads"], projs, 0)
-        restr_map = compute_whitener(C_ref_cov, info, rank=rank, pca=True)
-    elif restr_map == "ssd":
+        restr_map = compute_whitener(C_ref_cov, info, rank=rank, pca=True)[0]
+    elif restr_type == "ssd":
         restr_map = _get_ssd_whitener(C_ref, rank)
-    elif restr_map == "restricting":
+    elif restr_type == "restricting":
         restr_map = _get_restricting_map(C_ref, info, rank)
-    elif isinstance(restr_map, callable):
+    elif isinstance(restr_type, callable):
         pass
     else:
         raise ValueError(
@@ -147,6 +145,15 @@ def _ajd_pham(X, eps=1e-6, max_iter=15):
     return V, D
 
 
+def _is_all_pos_def(covs):
+    for cov in covs:
+        try:
+            _ = scipy.linalg.cholesky(cov)
+        except np.linalg.LinAlgError:
+            return False
+    return True
+
+
 def _smart_ajd(covs, restr_map=None, weights=None):
     """Perform smart approximate joint diagonalization.
 
@@ -157,6 +164,12 @@ def _smart_ajd(covs, restr_map=None, weights=None):
     The matrix of generalized eigenvectors is of shape (n_chs, r).
     """
     if restr_map is None:
+        is_all_pos_def = _is_all_pos_def(covs)
+        if not is_all_pos_def:
+            raise ValueError(
+                "If C_ref is not provided by covariance estimator, "
+                "all the covs should be positive definite"
+            )
         evecs, D = _ajd_pham(covs)
         return evecs
 
@@ -189,42 +202,6 @@ def _normalize_eigenvectors(evecs, covs, sample_weights):
         tmp = np.dot(np.dot(evecs[:, ii].T, mean_cov), evecs[:, ii])
         evecs[:, ii] /= np.sqrt(tmp)
     return evecs
-
-
-def _get_ssd_rank(S, R, info, rank):
-    # find ranks of covariance matrices
-    rank_signal = list(
-        compute_rank(
-            Covariance(
-                S,
-                info.ch_names,
-                list(),
-                list(),
-                0,
-                verbose=_verbose_safe_false(),
-            ),
-            rank,
-            _handle_default("scalings_cov_rank", None),
-            info,
-        ).values()
-    )[0]
-    rank_noise = list(
-        compute_rank(
-            Covariance(
-                R,
-                info.ch_names,
-                list(),
-                list(),
-                0,
-                verbose=_verbose_safe_false(),
-            ),
-            rank,
-            _handle_default("scalings_cov_rank", None),
-            info,
-        ).values()
-    )[0]
-    rank = np.min([rank_signal, rank_noise])  # should be identical
-    return rank
 
 
 def _get_ssd_whitener(S, rank):

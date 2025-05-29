@@ -137,7 +137,7 @@ class SSD(GEDTransformer):
             _ssd_mod,
             mod_params,
             dec_type="single",
-            restr_map="ssd",
+            restr_type="ssd",
             R_func=None,
         )
 

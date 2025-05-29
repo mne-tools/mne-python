@@ -271,7 +271,7 @@ class _XdawnTransformer(GEDTransformer):
             _xdawn_mod,
             mod_params,
             dec_type="multi",
-            restr_map=None,
+            restr_type=None,
             R_func=None,
         )
 

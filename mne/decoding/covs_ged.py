@@ -10,7 +10,9 @@ import scipy.linalg
 from .._fiff.meas_info import Info, create_info
 from .._fiff.pick import _picks_to_idx
 from ..cov import Covariance, _compute_rank_raw_array, _regularized_covariance
+from ..defaults import _handle_default
 from ..filter import filter_data
+from ..rank import compute_rank
 from ..utils import _verbose_safe_false, logger, pinv
 
 
@@ -293,6 +295,26 @@ def _ssd_estimate(
     )
     covs = [S, R]
     C_ref = S
+
+    all_ranks = list()
+    for cov in covs:
+        r = list(
+            compute_rank(
+                Covariance(
+                    cov,
+                    info.ch_names,
+                    list(),
+                    list(),
+                    0,
+                    verbose=_verbose_safe_false(),
+                ),
+                rank,
+                _handle_default("scalings_cov_rank", None),
+                info,
+            ).values()
+        )[0]
+    all_ranks.append(r)
+    rank = np.min(all_ranks)
     return covs, C_ref, info, rank, dict()
 
 

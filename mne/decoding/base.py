@@ -8,11 +8,11 @@ import datetime as dt
 import numbers
 
 import numpy as np
+import scipy.linalg
 from sklearn import model_selection as models
 from sklearn.base import (  # noqa: F401
     BaseEstimator,
     MetaEstimatorMixin,
-    TransformerMixin,
     clone,
     is_classifier,
 )
@@ -20,10 +20,11 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import check_scoring
 from sklearn.model_selection import KFold, StratifiedKFold, check_cv
 from sklearn.utils import check_array, check_X_y, indexable
+from sklearn.utils.validation import check_is_fitted
 
 from ..parallel import parallel_func
 from ..utils import _pl, logger, pinv, verbose, warn
-from .ged import _get_ssd_rank, _handle_restr_map, _smart_ajd, _smart_ged
+from .ged import _handle_restr_map, _smart_ajd, _smart_ged
 from .transformer import MNETransformerMixin
 
 
@@ -55,7 +56,7 @@ class GEDTransformer(MNETransformerMixin, BaseEstimator):
         (except the last) returned by cov_callable is decomposed with the last
         covariance. In this case, number of covariances should be number of classes + 1.
         Defaults to "single".
-    restr_map : "restricting" | "whitening" | "ssd" | None
+    restr_type : "restricting" | "whitening" | "ssd" | None
         Restricting transformation for covariance matrices before performing GED.
         If "restricting" only restriction to the principal subspace of the C_ref
         will be performed.
@@ -94,7 +95,7 @@ class GEDTransformer(MNETransformerMixin, BaseEstimator):
         mod_ged_callable,
         mod_params,
         dec_type="single",
-        restr_map=None,
+        restr_type=None,
         R_func=None,
     ):
         self.n_filters = n_filters
@@ -103,27 +104,35 @@ class GEDTransformer(MNETransformerMixin, BaseEstimator):
         self.mod_ged_callable = mod_ged_callable
         self.mod_params = mod_params
         self.dec_type = dec_type
-        self.restr_map = restr_map
+        self.restr_type = restr_type
         self.R_func = R_func
 
     def fit(self, X, y=None):
         """..."""
+        X, y = self._check_data(
+            X,
+            y=y,
+            fit=True,
+            return_y=True,
+            atleast_3d=False if self.restr_type == "ssd" else True,
+        )
         covs, C_ref, info, rank, kwargs = self.cov_callable(X, y, **self.cov_params)
+        self._validate_covariances(covs + [C_ref])
         if self.dec_type == "single":
             if len(covs) > 2:
+                covs = np.array(covs)
                 sample_weights = kwargs["sample_weights"]
-                restr_map = _handle_restr_map(C_ref, self.restr_map, info, rank)
+                restr_map = _handle_restr_map(C_ref, self.restr_type, info, rank)
                 evecs = _smart_ajd(covs, restr_map, weights=sample_weights)
                 evals = None
             else:
                 S = covs[0]
                 R = covs[1]
-                if self.restr_map == "ssd":
-                    rank = _get_ssd_rank(S, R, info, rank)
+                if self.restr_type == "ssd":
                     mult_order = "ssd"
                 else:
                     mult_order = None
-                restr_map = _handle_restr_map(C_ref, self.restr_map, info, rank)
+                restr_map = _handle_restr_map(C_ref, self.restr_type, info, rank)
                 evals, evecs = _smart_ged(
                     S, R, restr_map, R_func=self.R_func, mult_order=mult_order
                 )
@@ -133,7 +142,7 @@ class GEDTransformer(MNETransformerMixin, BaseEstimator):
             )
             self.evals_ = evals
             self.filters_ = evecs.T
-            if self.restr_map == "ssd":
+            if self.restr_type == "ssd":
                 self.patterns_ = np.linalg.pinv(evecs)
             else:
                 self.patterns_ = pinv(evecs)
@@ -141,11 +150,18 @@ class GEDTransformer(MNETransformerMixin, BaseEstimator):
         elif self.dec_type == "multi":
             self.classes_ = np.unique(y)
             R = covs[-1]
-            restr_map = _handle_restr_map(C_ref, self.restr_map, info, rank)
+            if self.restr_type == "ssd":
+                mult_order = "ssd"
+            else:
+                mult_order = None
+            restr_map = _handle_restr_map(C_ref, self.restr_type, info, rank)
             all_evals, all_evecs, all_patterns = list(), list(), list()
             for i in range(len(self.classes_)):
                 S = covs[i]
-                evals, evecs = _smart_ged(S, R, restr_map, R_func=self.R_func)
+
+                evals, evecs = _smart_ged(
+                    S, R, restr_map, R_func=self.R_func, mult_order=mult_order
+                )
 
                 evals, evecs = self.mod_ged_callable(
                     evals, evecs, covs, **self.mod_params, **kwargs
@@ -161,8 +177,47 @@ class GEDTransformer(MNETransformerMixin, BaseEstimator):
 
     def transform(self, X):
         """..."""
-        X = np.dot(self.filters_, X)
+        check_is_fitted(self, "filters_")
+        X = self._check_data(X)
+        if self.dec_type == "single":
+            pick_filters = self.filters_[: self.n_filters]
+        elif self.dec_type == "multi":
+            pick_filters = np.concatenate(
+                [
+                    self.filters_[i, : self.n_filters]
+                    for i in range(self.filters_.shape[0])
+                ],
+                axis=0,
+            )
+        X = np.asarray([pick_filters @ epoch for epoch in X])
         return X
+
+    def _validate_covariances(self, covs):
+        for cov in covs:
+            if cov is None:
+                continue
+            is_sym = scipy.linalg.issymmetric(cov, rtol=1e-10, atol=1e-11)
+            if not is_sym:
+                raise ValueError(
+                    "One of covariances or C_ref is not symmetric, "
+                    "check your cov_callable"
+                )
+            if not np.all(np.linalg.eigvals(cov) >= 0):
+                ValueError(
+                    "One of covariances or C_ref has negative eigenvalues, "
+                    "check your cov_callable"
+                )
+
+    def __sklearn_tags__(self):
+        """Tag the transformer."""
+        tags = super().__sklearn_tags__()
+        tags.estimator_type = "transformer"
+        # Can be a transformer where S and R covs are not based on y classes.
+        tags.target_tags.required = False
+        tags.target_tags.one_d_labels = True
+        tags.input_tags.two_d_array = True
+        tags.input_tags.three_d_array = True
+        return tags
 
 
 class LinearModel(MetaEstimatorMixin, BaseEstimator):

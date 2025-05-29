@@ -142,7 +142,7 @@ class CSP(GEDTransformer):
             _csp_mod,
             mod_params,
             dec_type="single",
-            restr_map="restricting",
+            restr_type="restricting",
             R_func=sum,
         )
 
@@ -911,7 +911,7 @@ class SPoC(CSP):
             _spoc_mod,
             mod_params,
             dec_type="single",
-            restr_map=None,
+            restr_type=None,
             R_func=None,
         )
 
