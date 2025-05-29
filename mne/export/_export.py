@@ -58,6 +58,7 @@ def export_raw(
     supported_export_formats = {  # format : (extensions,)
         "eeglab": ("set",),
         "edf": ("edf",),
+        "bdf": ("bdf",),
         "brainvision": (
             "eeg",
             "vmrk",
@@ -77,10 +78,10 @@ def export_raw(
         from ._eeglab import _export_raw
 
         _export_raw(fname, raw)
-    elif fmt == "edf":
+    elif fmt in ("edf", "bdf"):
         from ._edf import _export_raw
 
-        _export_raw(fname, raw, physical_range, add_ch_type)
+        _export_raw(fname, raw, physical_range, add_ch_type, fmt=fmt)
     elif fmt == "brainvision":
         from ._brainvision import _export_raw
 
