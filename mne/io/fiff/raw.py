@@ -281,6 +281,8 @@ class Raw(BaseRaw):
                 FIFF.FIFFT_COMPLEX_DOUBLE: "double",
             }
 
+            nskip = 0
+            nskip_in_samples = 0
             for k in range(first, nent):
                 ent = directory[k]
                 # There can be skips in the data (e.g., if the user unclicked)
@@ -305,16 +307,20 @@ class Raw(BaseRaw):
 
                     #  Do we have a skip pending?
                     if nskip > 0:
+                        nskip_in_samples += nskip * nsamp
+                        nskip = 0
+
+                    if nskip_in_samples > 0:
                         raw_extras.append(
                             dict(
                                 ent=None,
                                 first=first_samp,
-                                nsamp=nskip * nsamp,
-                                last=first_samp + nskip * nsamp - 1,
+                                nsamp=nskip_in_samples,
+                                last=first_samp + nskip_in_samples - 1,
                             )
                         )
-                        first_samp += nskip * nsamp
-                        nskip = 0
+                        first_samp += nskip_in_samples
+                        nskip_in_samples = 0
 
                     #  Add a data buffer
                     raw_extras.append(
@@ -328,7 +334,10 @@ class Raw(BaseRaw):
                     first_samp += nsamp
                 elif ent.kind == FIFF.FIFF_DATA_SKIP:
                     tag = read_tag(fid, ent.pos)
-                    nskip = int(tag.data.item())
+                    nskip += int(tag.data.item())
+                elif ent.kind == FIFF.FIFF_DATA_SKIP_SAMP:
+                    tag = read_tag(fid, ent.pos)
+                    nskip_in_samples += int(tag.data.item())
 
             next_fname = _get_next_fname(fid, _path_from_fname(fname), tree)
 
