@@ -361,9 +361,9 @@ def _read_old_pack(fid, tag, shape, rlims):
 
 def _read_dir_entry_struct(fid, tag, shape, rlims):
     """Read dir entry struct tag."""
-    pos = tag.pos + 16
+    pos = tag.pos
     entries = list()
-    for offset in range(1, tag.size // 16):
+    for offset in range(tag.size // 16):
         ent = _read_tag_header(fid, pos + offset * 16)
         # The position of the real tag on disk is stored in the "next" entry within the
         # directory, so we need to overwrite ent.pos. For safety let's also overwrite
