@@ -266,20 +266,11 @@ class Raw(BaseRaw):
             nchan = int(info["nchan"])
             first = 0
             first_samp = 0
-            first_skip = 0
 
             #   Get first sample tag if it is there
             if directory[first].kind == FIFF.FIFF_FIRST_SAMPLE:
                 tag = read_tag(fid, directory[first].pos)
                 first_samp = int(tag.data.item())
-                first += 1
-                _check_entry(first, nent)
-
-            #   Omit initial skip
-            if directory[first].kind == FIFF.FIFF_DATA_SKIP:
-                # This first skip can be applied only after we know the bufsize
-                tag = read_tag(fid, directory[first].pos)
-                first_skip = int(tag.data.item())
                 first += 1
                 _check_entry(first, nent)
 
@@ -318,6 +309,7 @@ class Raw(BaseRaw):
 
             nskip = 0
             nskip_in_samples = 0
+            first_data_buffer = True
             for k in range(first, nent):
                 ent = directory[k]
                 # There can be skips in the data (e.g., if the user unclicked)
@@ -333,12 +325,6 @@ class Raw(BaseRaw):
                     nsamp = ent.size // (div * nchan)
                     if orig_format is None:
                         orig_format = _orig_format_dict[ent.type]
-
-                    #  Do we have an initial skip pending?
-                    if first_skip > 0:
-                        first_samp += nsamp * first_skip
-                        raw.first_samp = first_samp
-                        first_skip = 0
 
                     #  Do we have a skip pending?
                     if nskip > 0:
@@ -356,6 +342,12 @@ class Raw(BaseRaw):
                         )
                         first_samp += nskip_in_samples
                         nskip_in_samples = 0
+
+                    #  Handle an initial skip.
+
+                    if first_data_buffer:
+                        raw.first_samp = first_samp
+                        first_data_buffer = False
 
                     #  Add a data buffer
                     raw_extras.append(
