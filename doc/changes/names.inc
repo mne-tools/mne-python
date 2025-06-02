@@ -22,7 +22,7 @@
 .. _Andrew Quinn: https://github.com/ajquinn
 .. _Aniket Pradhan: https://github.com/Aniket-Pradhan
 .. _Anna Padee: https://github.com/apadee/
-.. _Annalisa Pascarella: https://www.iac.cnr.it/personale/annalisa-pascarella
+.. _Annalisa Pascarella: https://github.com/annapasca
 .. _Anne-Sophie Dubarry: https://github.com/annesodub
 .. _Antoine Collas: https://www.antoinecollas.fr
 .. _Antoine Gauthier: https://github.com/Okamille
@@ -54,7 +54,7 @@
 .. _Cora Kim: https://github.com/kimcoco
 .. _Cristóbal Moënne-Loccoz: https://github.com/cmmoenne
 .. _Dan Wakeman: https://github.com/dgwakeman
-.. _Daniel Carlström Schad: https://github.com/Dod12
+.. _Daniel Carlström Schad: https://github.com/DanielCSchad
 .. _Daniel Hasegan: https://daniel.hasegan.com
 .. _Daniel McCloy: https://dan.mccloy.info
 .. _Daniel Strohmeier: https://github.com/joewalter

@@ -32,6 +32,7 @@ Then type::
 If you get a new prompt with no error messages, you should be good to go.
 
 We encourage all Martinos center Python users to subscribe to the
-`Martinos Python mailing list`_.
+Martinos Python mailing list.
 
-.. _Martinos Python mailing list: https://mail.nmr.mgh.harvard.edu/mailman/listinfo/martinos-python
+.. 2025-06-02 link has been defunct for over a month
+.. Martinos Python mailing list: https://mail.nmr.mgh.harvard.edu/mailman/listinfo/martinos-python
