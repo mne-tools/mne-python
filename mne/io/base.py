@@ -918,6 +918,8 @@ class BaseRaw(
             Whether to reject by annotation. If None (default), no rejection is
             done. If 'omit', segments annotated with description starting with
             'bad' are omitted. If 'NaN', the bad samples are filled with NaNs.
+            Note that the last sample of each annotation will also be omitted
+            or replaced with NaN.
         return_times : bool
             Whether to return times as well. Defaults to False.
         %(units)s
@@ -988,8 +990,8 @@ class BaseRaw(
         _check_option(
             "reject_by_annotation", reject_by_annotation.lower(), ["omit", "nan"]
         )
-        onsets, ends = _annotations_starts_stops(self, ["BAD"])
-        keep = (onsets < stop) & (ends > start)
+        onsets, ends = _annotations_starts_stops(self, ["BAD"], include_last=True)
+        keep = (onsets < stop) & (ends >= start)
         onsets = np.maximum(onsets[keep], start)
         ends = np.minimum(ends[keep], stop)
         if len(onsets) == 0:
@@ -1002,7 +1004,7 @@ class BaseRaw(
         n_samples = stop - start  # total number of samples
         used = np.ones(n_samples, bool)
         for onset, end in zip(onsets, ends):
-            if onset >= end:
+            if onset > end:
                 continue
             used[onset - start : end - start] = False
         used = np.concatenate([[False], used, [False]])
