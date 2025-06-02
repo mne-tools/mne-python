@@ -297,14 +297,15 @@ class Raw(BaseRaw):
                         nskip = 0
 
                     if nskip_in_samples > 0:
-                        raw_extras.append(
-                            dict(
-                                ent=None,
-                                first=first_samp,
-                                nsamp=nskip_in_samples,
-                                last=first_samp + nskip_in_samples - 1,
+                        if not first_data_buffer:
+                            raw_extras.append(
+                                dict(
+                                    ent=None,
+                                    first=first_samp,
+                                    nsamp=nskip_in_samples,
+                                    last=first_samp + nskip_in_samples - 1,
+                                )
                             )
-                        )
                         first_samp += nskip_in_samples
                         nskip_in_samples = 0
 
