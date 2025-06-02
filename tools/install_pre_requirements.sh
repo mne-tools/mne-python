@@ -26,9 +26,8 @@ python -m pip install $STD_ARGS --only-binary ":all:" --default-timeout=60 \
 	"pandas>=3.0.0.dev0" \
 	"dipy>=1.10.0.dev0" \
 	"pyarrow>=20.0.0.dev0" \
-	"tables>=3.10.3.dev0"
-# TODO: should have above:  "h5py>=3.12.1"
-# https://github.com/h5py/h5py/issues/2563
+	"tables>=3.10.3.dev0" \
+	"h5py>=3.13.0"
 # TODO: should have above: "statsmodels>=0.15.0.dev0"
 # https://github.com/statsmodels/statsmodels/issues/9572
 
