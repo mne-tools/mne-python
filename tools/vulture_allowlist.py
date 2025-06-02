@@ -43,6 +43,7 @@ metadata_routing
 _._more_tags
 _.multi_class
 _.preserves_dtype
+_.__sklearn_tags__
 deep
 
 # Backward compat or rarely used
