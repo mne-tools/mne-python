@@ -13,6 +13,7 @@ from sklearn import model_selection as models
 from sklearn.base import (  # noqa: F401
     BaseEstimator,
     MetaEstimatorMixin,
+    TransformerMixin,
     clone,
     is_classifier,
 )
