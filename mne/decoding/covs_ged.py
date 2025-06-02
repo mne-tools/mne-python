@@ -246,7 +246,6 @@ def _xdawn_estimate(
         covs.append(evo_cov)
 
     covs.append(R)
-    covs = np.stack(covs)
     C_ref = None
     rank = None
     info = None

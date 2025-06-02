@@ -118,10 +118,11 @@ class GEDTransformer(MNETransformerMixin, BaseEstimator):
             atleast_3d=False if self.restr_type == "ssd" else True,
         )
         covs, C_ref, info, rank, kwargs = self.cov_callable(X, y, **self.cov_params)
-        self._validate_covariances(covs + [C_ref])
+        covs = np.stack(covs)
+        self._validate_covariances(covs)
+        self._validate_covariances([C_ref])
         if self.dec_type == "single":
             if len(covs) > 2:
-                covs = np.array(covs)
                 sample_weights = kwargs["sample_weights"]
                 restr_map = _handle_restr_map(C_ref, self.restr_type, info, rank)
                 evecs = _smart_ajd(covs, restr_map, weights=sample_weights)
