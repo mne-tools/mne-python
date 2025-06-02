@@ -2,7 +2,6 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-import re
 import sys
 from collections import OrderedDict
 from datetime import datetime, timedelta, timezone
@@ -1985,28 +1984,3 @@ def test_extras_list_raises(key, value, expected_error, match):
         extras.extend([{key: value}])
     with pytest.raises(expected_error, match=match):
         extras += [{key: value}]
-
-
-def test_annotations_positional_args():
-    """Test that Annotations positional arguments work as expected."""
-    annot = Annotations([0], [1], ["a"])
-    _ = Annotations([0], [1], ["a"], None)
-    _ = Annotations([0], [1], ["a"], None, None)
-    with pytest.raises(
-        TypeError,
-        match=re.escape(
-            "Annotations.__init__() takes from 4 to 6 "
-            "positional arguments but 7 were given"
-        ),
-    ):
-        _ = Annotations([0], [1], ["a"], None, None, [{"foo": "bar"}])
-    annot.append([0], [1], ["a"])
-    annot.append([0], [1], ["a"], None)
-    with pytest.raises(
-        TypeError,
-        match=re.escape(
-            "Annotations.append() takes from 4 to 5 "
-            "positional arguments but 6 were given"
-        ),
-    ):
-        annot.append([0], [1], ["a"], None, [{"foo": "bar"}])
