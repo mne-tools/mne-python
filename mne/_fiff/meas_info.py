@@ -2207,9 +2207,9 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
         elif kind == FIFF.FIFF_PROJ_ID:
             tag = read_tag(fid, pos)
             if isinstance(tag.data, np.ndarray):
-                proj_id = int(proj_id.item())
-            else:
                 proj_id = int(tag.data.item())
+            else:
+                proj_id = int(tag.data)
         elif kind == FIFF.FIFF_PROJ_NAME:
             tag = read_tag(fid, pos)
             proj_name = tag.data
