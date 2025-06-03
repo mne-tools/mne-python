@@ -798,7 +798,7 @@ def _complete_info(info):
     info["experimenter"] = "f"
     info["description"] = "g"
     with info._unlock():
-        info["proj_id"] = np.ones(1, int)
+        info["proj_id"] = 1
         info["proj_name"] = "h"
         info["utc_offset"] = "i"
         d = (1717707794, 2)
