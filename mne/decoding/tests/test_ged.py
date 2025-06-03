@@ -2,8 +2,8 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-
 import functools
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -12,12 +12,22 @@ pytest.importorskip("sklearn")
 
 
 from sklearn.model_selection import ParameterGrid
+from sklearn.utils._testing import assert_allclose
 from sklearn.utils.estimator_checks import parametrize_with_checks
 
-from mne import compute_rank, create_info
+from mne import Epochs, compute_rank, create_info, pick_types, read_events
 from mne._fiff.proj import make_eeg_average_ref_proj
 from mne.cov import Covariance, _regularized_covariance
 from mne.decoding.base import GEDTransformer
+from mne.decoding.ged import _get_restricting_map, _smart_ajd, _smart_ged
+from mne.io import read_raw
+
+data_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
+raw_fname = data_dir / "test_raw.fif"
+event_name = data_dir / "test-eve.fif"
+tmin, tmax = -0.1, 0.2
+# if stop is too small pca may fail in some cases, but we're okay on this file
+start, stop = 0, 8
 
 
 def _mock_info(n_channels):
@@ -122,3 +132,142 @@ ged_estimators = [GEDTransformer(**p) for p in ParameterGrid(param_grid)]
 def test_sklearn_compliance(estimator, check):
     """Test GEDTransformer compliance with sklearn."""
     check(estimator)
+
+
+def _get_X_y(event_id):
+    raw = read_raw(raw_fname, preload=False)
+    events = read_events(event_name)
+    picks = pick_types(
+        raw.info, meg=True, stim=False, ecg=False, eog=False, exclude="bads"
+    )
+    picks = picks[2:12:3]  # subselect channels -> disable proj!
+    raw.add_proj([], remove_existing=True)
+    epochs = Epochs(
+        raw,
+        events,
+        event_id,
+        tmin,
+        tmax,
+        picks=picks,
+        baseline=(None, 0),
+        preload=True,
+        proj=False,
+    )
+    X = epochs.get_data(copy=False)
+    y = epochs.events[:, -1]
+    return X, y
+
+
+def test_ged_binary_cov():
+    """Test GEDTransformer on audvis dataset with two covariances."""
+    event_id = dict(aud_l=1, vis_l=3)
+    X, y = _get_X_y(event_id)
+    # Test "single" decomposition
+    covs, C_ref, info, rank, kwargs = _mock_cov_callable(X, y)
+    S, R = covs[0], covs[1]
+    restr_map = _get_restricting_map(C_ref, info, rank)
+    evals, evecs = _smart_ged(S, R, restr_map=restr_map, R_func=None)
+    actual_evals, actual_evecs = _mock_mod_ged_callable(evals, evecs, [S, R], **kwargs)
+    actual_filters = actual_evecs.T
+
+    ged = GEDTransformer(
+        n_filters=4,
+        cov_callable=_mock_cov_callable,
+        cov_params=dict(),
+        mod_ged_callable=_mock_mod_ged_callable,
+        mod_params=dict(),
+        dec_type="single",
+        restr_type="restricting",
+        R_func=None,
+    )
+    ged.fit(X, y)
+    desired_evals = ged.evals_
+    desired_filters = ged.filters_
+
+    assert_allclose(actual_evals, desired_evals)
+    assert_allclose(actual_filters, desired_filters)
+
+    # Test "multi" decomposition (loop), restr_map can be reused
+    all_evals, all_evecs = list(), list()
+    for i in range(len(covs)):
+        S = covs[i]
+        evals, evecs = _smart_ged(S, R, restr_map)
+        evals, evecs = _mock_mod_ged_callable(evals, evecs, covs)
+        all_evals.append(evals)
+        all_evecs.append(evecs.T)
+    actual_evals = np.array(all_evals)
+    actual_filters = np.array(all_evecs)
+
+    ged = GEDTransformer(
+        n_filters=4,
+        cov_callable=_mock_cov_callable,
+        cov_params=dict(),
+        mod_ged_callable=_mock_mod_ged_callable,
+        mod_params=dict(),
+        dec_type="multi",
+        restr_type="restricting",
+        R_func=None,
+    )
+    ged.fit(X, y)
+    desired_evals = ged.evals_
+    desired_filters = ged.filters_
+
+    assert_allclose(actual_evals, desired_evals)
+    assert_allclose(actual_filters, desired_filters)
+
+
+def test_ged_multicov():
+    """Test GEDTransformer on audvis dataset with multiple covariances."""
+    event_id = dict(aud_l=1, aud_r=2, vis_l=3, vis_r=4)
+    X, y = _get_X_y(event_id)
+    # Test "single" decomposition for multicov (AJD)
+    covs, C_ref, info, rank, kwargs = _mock_cov_callable(X, y)
+    restr_map = _get_restricting_map(C_ref, info, rank)
+    evecs = _smart_ajd(covs, restr_map=restr_map)
+    evals = None
+    _, actual_evecs = _mock_mod_ged_callable(evals, evecs, covs, **kwargs)
+    actual_filters = actual_evecs.T
+
+    ged = GEDTransformer(
+        n_filters=4,
+        cov_callable=_mock_cov_callable,
+        cov_params=dict(),
+        mod_ged_callable=_mock_mod_ged_callable,
+        mod_params=dict(),
+        dec_type="single",
+        restr_type="restricting",
+        R_func=None,
+    )
+    ged.fit(X, y)
+    desired_filters = ged.filters_
+
+    assert_allclose(actual_filters, desired_filters)
+
+    # Test "multi" decomposition for multicov (loop)
+    R = covs[-1]
+    all_evals, all_evecs = list(), list()
+    for i in range(len(covs)):
+        S = covs[i]
+        evals, evecs = _smart_ged(S, R, restr_map)
+        evals, evecs = _mock_mod_ged_callable(evals, evecs, covs)
+        all_evals.append(evals)
+        all_evecs.append(evecs.T)
+    actual_evals = np.array(all_evals)
+    actual_filters = np.array(all_evecs)
+
+    ged = GEDTransformer(
+        n_filters=4,
+        cov_callable=_mock_cov_callable,
+        cov_params=dict(),
+        mod_ged_callable=_mock_mod_ged_callable,
+        mod_params=dict(),
+        dec_type="multi",
+        restr_type="restricting",
+        R_func=None,
+    )
+    ged.fit(X, y)
+    desired_evals = ged.evals_
+    desired_filters = ged.filters_
+
+    assert_allclose(actual_evals, desired_evals)
+    assert_allclose(actual_filters, desired_filters)
