@@ -2206,7 +2206,10 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
             description = tag.data
         elif kind == FIFF.FIFF_PROJ_ID:
             tag = read_tag(fid, pos)
-            proj_id = tag.data
+            if isinstance(tag.data, np.ndarray):
+                proj_id = int(proj_id.item())
+            else:
+                proj_id = int(tag.data.item())
         elif kind == FIFF.FIFF_PROJ_NAME:
             tag = read_tag(fid, pos)
             proj_name = tag.data
@@ -2537,8 +2540,6 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
         info["meas_id"] = meas_info["parent_id"]
     info["experimenter"] = experimenter
     info["description"] = description
-    if isinstance(proj_id, np.ndarray):
-        proj_id = proj_id.item()
     info["proj_id"] = proj_id
     info["proj_name"] = proj_name
     if meas_date is None:
@@ -3500,7 +3501,7 @@ def anonymize_info(info, daysback=None, keep_his=False, verbose=None):
     info["description"] = default_desc
     with info._unlock():
         if info["proj_id"] is not None:
-            info["proj_id"] = np.zeros_like(info["proj_id"])
+            info["proj_id"] = 0
         if info["proj_name"] is not None:
             info["proj_name"] = default_str
         if info["utc_offset"] is not None:
