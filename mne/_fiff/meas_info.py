@@ -3012,7 +3012,7 @@ def _merge_info_values(infos, key, verbose=None):
             return values[int(idx)]
         elif len(idx) > 1:
             raise RuntimeError(msg)
-    #proj_id
+    # proj_id
     elif _check_isinstance(values, (int, None), all):
         if key == "proj_id":
             unique_values = set(values)
