@@ -637,7 +637,7 @@ def _test_anonymize_info(base_info, tmp_path):
         for lev in tp[:-1]:
             this = this[lev]
         this[tp[-1]] = default_str
-    exp_info["proj_id"] = np.array([0])
+    exp_info["proj_id"] = 0 
     for key in ("sex", "id", "height", "weight"):
         exp_info["subject_info"][key] = 0
     exp_info["subject_info"]["his_id"] = str(default_subject_id)
