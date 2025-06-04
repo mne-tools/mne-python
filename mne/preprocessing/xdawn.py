@@ -305,19 +305,20 @@ class _XdawnTransformer(_GEDTransformer):
         old_filters = self.filters_
         old_patterns = self.patterns_
         super().fit(X, y)
-        self.filters_ = np.concatenate(
-            [
-                self.filters_[i, : self.n_components]
-                for i in range(self.filters_.shape[0])
-            ],
-            axis=0,
+        # Xdawn performs separate GED for each class.
+        # filters_ returned by _fit_xdawn are subset per
+        # n_components and then appended and are of shape
+        # (n_classes*n_components, n_chs).
+        # GEDTransformer creates new dimension per class without subsetting
+        # for easier analysis and visualisations.
+        # So it needs to be performed post-hoc to conform with Xdawn.
+        # The shape returned by GED here is (n_classes, n_evecs, n_chs)
+        # Need to transform and subset into (n_classes*n_components, n_chs)
+        self.filters_ = self.filters_[:, : self.n_components, :].reshape(
+            -1, self.filters_.shape[2]
         )
-        self.patterns_ = np.concatenate(
-            [
-                self.patterns_[i, : self.n_components]
-                for i in range(self.patterns_.shape[0])
-            ],
-            axis=0,
+        self.patterns_ = self.patterns_[:, : self.n_components, :].reshape(
+            -1, self.patterns_.shape[2]
         )
         np.testing.assert_allclose(old_filters, self.filters_)
         np.testing.assert_allclose(old_patterns, self.patterns_)

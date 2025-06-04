@@ -266,6 +266,8 @@ class SSD(_GEDTransformer):
         old_filters = self.filters_
         old_patterns = self.patterns_
         super().fit(X, y)
+        # SSD, as opposed to CSP and Xdawn stores filters as (n_chs, n_components)
+        # So need to transpose into (n_components, n_chs)
         self.filters_ = self.filters_.T
 
         np.testing.assert_allclose(self.eigvals_, self.evals_)

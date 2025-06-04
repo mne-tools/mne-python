@@ -184,12 +184,8 @@ class _GEDTransformer(MNETransformerMixin, BaseEstimator):
         if self.dec_type == "single":
             pick_filters = self.filters_[: self.n_filters]
         elif self.dec_type == "multi":
-            pick_filters = np.concatenate(
-                [
-                    self.filters_[i, : self.n_filters]
-                    for i in range(self.filters_.shape[0])
-                ],
-                axis=0,
+            pick_filters = self.filters_[:, : self.n_filters, :].reshape(
+                -1, self.filters_.shape[2]
             )
         X = np.asarray([pick_filters @ epoch for epoch in X])
         return X
@@ -213,7 +209,6 @@ class _GEDTransformer(MNETransformerMixin, BaseEstimator):
     def __sklearn_tags__(self):
         """Tag the transformer."""
         tags = super().__sklearn_tags__()
-        tags.estimator_type = "transformer"
         # Can be a transformer where S and R covs are not based on y classes.
         tags.target_tags.required = False
         tags.target_tags.one_d_labels = True

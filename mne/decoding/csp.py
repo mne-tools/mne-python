@@ -216,6 +216,7 @@ class CSP(_GEDTransformer):
         old_filters = self.filters_
         old_patterns = self.patterns_
         super().fit(X, y)
+        # AJD returns evals_ as None.
         if self.evals_ is None:
             assert eigen_values is None
         else:
