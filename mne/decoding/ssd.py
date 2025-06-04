@@ -20,13 +20,13 @@ from ..utils import (
     fill_doc,
     logger,
 )
-from .base import GEDTransformer
-from .covs_ged import _ssd_estimate
-from .mod_ged import _ssd_mod
+from ._covs_ged import _ssd_estimate
+from ._mod_ged import _ssd_mod
+from .base import _GEDTransformer
 
 
 @fill_doc
-class SSD(GEDTransformer):
+class SSD(_GEDTransformer):
     """
     Signal decomposition using the Spatio-Spectral Decomposition (SSD).
 

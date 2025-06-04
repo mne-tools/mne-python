@@ -5,7 +5,6 @@
 # Copyright the MNE-Python contributors.
 
 import numpy as np
-import scipy.linalg
 
 from .._fiff.meas_info import Info, create_info
 from .._fiff.pick import _picks_to_idx
@@ -13,7 +12,7 @@ from ..cov import Covariance, _compute_rank_raw_array, _regularized_covariance
 from ..defaults import _handle_default
 from ..filter import filter_data
 from ..rank import compute_rank
-from ..utils import _verbose_safe_false, logger, pinv
+from ..utils import _verbose_safe_false, logger
 
 
 def _concat_cov(x_class, *, cov_kind, log_rank, reg, cov_method_params, rank, info):
@@ -110,87 +109,6 @@ def _csp_estimate(X, y, reg, cov_method_params, cov_est, rank, norm_trace):
     return covs, C_ref, _info, _rank, dict(sample_weights=np.array(sample_weights))
 
 
-def _construct_signal_from_epochs(epochs, events, sfreq, tmin):
-    """Reconstruct pseudo continuous signal from epochs."""
-    n_epochs, n_channels, n_times = epochs.shape
-    tmax = tmin + n_times / float(sfreq)
-    start = np.min(events[:, 0]) + int(tmin * sfreq)
-    stop = np.max(events[:, 0]) + int(tmax * sfreq) + 1
-
-    n_samples = stop - start
-    n_epochs, n_channels, n_times = epochs.shape
-    events_pos = events[:, 0] - events[0, 0]
-
-    raw = np.zeros((n_channels, n_samples))
-    for idx in range(n_epochs):
-        onset = events_pos[idx]
-        offset = onset + n_times
-        raw[:, onset:offset] = epochs[idx]
-
-    return raw
-
-
-def _least_square_evoked(epochs_data, events, tmin, sfreq):
-    """Least square estimation of evoked response from epochs data.
-
-    Parameters
-    ----------
-    epochs_data : array, shape (n_channels, n_times)
-        The epochs data to estimate evoked.
-    events : array, shape (n_events, 3)
-        The events typically returned by the read_events function.
-        If some events don't match the events of interest as specified
-        by event_id, they will be ignored.
-    tmin : float
-        Start time before event.
-    sfreq : float
-        Sampling frequency.
-
-    Returns
-    -------
-    evokeds : array, shape (n_class, n_components, n_times)
-        An concatenated array of evoked data for each event type.
-    toeplitz : array, shape (n_class * n_components, n_channels)
-        An concatenated array of toeplitz matrix for each event type.
-    """
-    n_epochs, n_channels, n_times = epochs_data.shape
-    tmax = tmin + n_times / float(sfreq)
-
-    # Deal with shuffled epochs
-    events = events.copy()
-    events[:, 0] -= events[0, 0] + int(tmin * sfreq)
-
-    # Construct raw signal
-    raw = _construct_signal_from_epochs(epochs_data, events, sfreq, tmin)
-
-    # Compute the independent evoked responses per condition, while correcting
-    # for event overlaps.
-    n_min, n_max = int(tmin * sfreq), int(tmax * sfreq)
-    window = n_max - n_min
-    n_samples = raw.shape[1]
-    toeplitz = list()
-    classes = np.unique(events[:, 2])
-    for ii, this_class in enumerate(classes):
-        # select events by type
-        sel = events[:, 2] == this_class
-
-        # build toeplitz matrix
-        trig = np.zeros((n_samples,))
-        ix_trig = (events[sel, 0]) + n_min
-        trig[ix_trig] = 1
-        toeplitz.append(scipy.linalg.toeplitz(trig[0:window], trig))
-
-    # Concatenate toeplitz
-    toeplitz = np.array(toeplitz)
-    X = np.concatenate(toeplitz)
-
-    # least square estimation
-    predictor = np.dot(pinv(np.dot(X, X.T)), X)
-    evokeds = np.dot(predictor, raw.T)
-    evokeds = np.transpose(np.vsplit(evokeds, len(classes)), (0, 2, 1))
-    return evokeds, toeplitz
-
-
 def _xdawn_estimate(
     X,
     y,
@@ -203,6 +121,8 @@ def _xdawn_estimate(
     info=None,
     rank="full",
 ):
+    from ..preprocessing.xdawn import _least_square_evoked
+
     if not isinstance(X, np.ndarray) or X.ndim != 3:
         raise ValueError("X must be 3D ndarray")
 

@@ -18,7 +18,7 @@ from sklearn.utils.estimator_checks import parametrize_with_checks
 from mne import Epochs, compute_rank, create_info, pick_types, read_events
 from mne._fiff.proj import make_eeg_average_ref_proj
 from mne.cov import Covariance, _regularized_covariance
-from mne.decoding.base import GEDTransformer
+from mne.decoding.base import _GEDTransformer
 from mne.decoding.ged import _get_restricting_map, _smart_ajd, _smart_ged
 from mne.io import read_raw
 
@@ -124,7 +124,7 @@ param_grid = dict(
     R_func=[functools.partial(np.sum, axis=0)],
 )
 
-ged_estimators = [GEDTransformer(**p) for p in ParameterGrid(param_grid)]
+ged_estimators = [_GEDTransformer(**p) for p in ParameterGrid(param_grid)]
 
 
 @pytest.mark.slowtest
@@ -170,7 +170,7 @@ def test_ged_binary_cov():
     actual_evals, actual_evecs = _mock_mod_ged_callable(evals, evecs, [S, R], **kwargs)
     actual_filters = actual_evecs.T
 
-    ged = GEDTransformer(
+    ged = _GEDTransformer(
         n_filters=4,
         cov_callable=_mock_cov_callable,
         cov_params=dict(),
@@ -198,7 +198,7 @@ def test_ged_binary_cov():
     actual_evals = np.array(all_evals)
     actual_filters = np.array(all_evecs)
 
-    ged = GEDTransformer(
+    ged = _GEDTransformer(
         n_filters=4,
         cov_callable=_mock_cov_callable,
         cov_params=dict(),
@@ -228,7 +228,7 @@ def test_ged_multicov():
     _, actual_evecs = _mock_mod_ged_callable(evals, evecs, covs, **kwargs)
     actual_filters = actual_evecs.T
 
-    ged = GEDTransformer(
+    ged = _GEDTransformer(
         n_filters=4,
         cov_callable=_mock_cov_callable,
         cov_params=dict(),
@@ -255,7 +255,7 @@ def test_ged_multicov():
     actual_evals = np.array(all_evals)
     actual_filters = np.array(all_evecs)
 
-    ged = GEDTransformer(
+    ged = _GEDTransformer(
         n_filters=4,
         cov_callable=_mock_cov_callable,
         cov_params=dict(),

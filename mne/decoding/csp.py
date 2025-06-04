@@ -20,13 +20,13 @@ from ..utils import (
     logger,
     pinv,
 )
-from .base import GEDTransformer
-from .covs_ged import _csp_estimate, _spoc_estimate
-from .mod_ged import _csp_mod, _spoc_mod
+from ._covs_ged import _csp_estimate, _spoc_estimate
+from ._mod_ged import _csp_mod, _spoc_mod
+from .base import _GEDTransformer
 
 
 @fill_doc
-class CSP(GEDTransformer):
+class CSP(_GEDTransformer):
     """M/EEG signal decomposition using the Common Spatial Patterns (CSP).
 
     This class can be used as a supervised decomposition to estimate spatial

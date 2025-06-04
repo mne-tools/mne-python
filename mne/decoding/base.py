@@ -29,7 +29,7 @@ from .ged import _handle_restr_map, _smart_ajd, _smart_ged
 from .transformer import MNETransformerMixin
 
 
-class GEDTransformer(MNETransformerMixin, BaseEstimator):
+class _GEDTransformer(MNETransformerMixin, BaseEstimator):
     """M/EEG signal decomposition using the generalized eigenvalue decomposition (GED).
 
     Given two channel covariance matrices S and R, the goal is to find spatial filters

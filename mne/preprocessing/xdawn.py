@@ -7,9 +7,9 @@ from scipy import linalg
 
 from .._fiff.pick import _pick_data_channels, pick_info
 from ..cov import Covariance, _regularized_covariance
-from ..decoding.base import GEDTransformer
-from ..decoding.covs_ged import _xdawn_estimate
-from ..decoding.mod_ged import _xdawn_mod
+from ..decoding._covs_ged import _xdawn_estimate
+from ..decoding._mod_ged import _xdawn_mod
+from ..decoding.base import _GEDTransformer
 from ..epochs import BaseEpochs
 from ..evoked import Evoked, EvokedArray
 from ..io import BaseRaw
@@ -214,7 +214,7 @@ def _fit_xdawn(
     return filters, patterns, evokeds
 
 
-class _XdawnTransformer(GEDTransformer):
+class _XdawnTransformer(_GEDTransformer):
     """Implementation of the Xdawn Algorithm compatible with scikit-learn.
 
     Xdawn is a spatial filtering method designed to improve the signal
