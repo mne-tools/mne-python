@@ -677,6 +677,8 @@ linkcheck_ignore = [  # will be compiled to regex
     "https://sourceforge.net/projects/ezwinports/files/",
     "https://www.mathworks.com/products/compiler/matlab-runtime.html",
     "https://medicine.umich.edu/dept/khri/ross-maddox-phd",
+    # TODO https://github.com/mne-tools/curry-python-reader/issues/5
+    "https://github.com/mne-tools/curry-python-reader/README.md",
     # 500 server error
     "https://openwetware.org/wiki/Beauchamp:FreeSurfer",
     # 503 Server error
