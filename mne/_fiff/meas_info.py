@@ -3012,6 +3012,8 @@ def _merge_info_values(infos, key, verbose=None):
     # proj_id
     elif _check_isinstance(values, (int, type(None)), all) and key == "proj_id":
         unique_values = set(values)
+        if len(unique_values) != 1:
+            logger.info("Found multiple proj_ids, using the first one.")
         return list(unique_values)[0]
     # other
     else:
