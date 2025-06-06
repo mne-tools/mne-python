@@ -25,8 +25,8 @@ def _handle_restr_mat(C_ref, restr_type, info, rank):
         restr_mat = _get_ssd_whitener(C_ref, rank)
     elif restr_type == "restricting":
         restr_mat = _get_restr_mat(C_ref, info, rank)
-    elif isinstance(restr_type, callable):
-        pass
+    elif callable(restr_type):
+        restr_mat = restr_type
     else:
         raise ValueError(
             "restr_type should either be callable or one of whitening, ssd, restricting"
@@ -61,13 +61,28 @@ def _smart_ged(S, R, restr_mat=None, R_func=None, mult_order=None):
     return evals, evecs
 
 
-def _is_all_pos_def(covs):
-    for cov in covs:
-        try:
-            _ = scipy.linalg.cholesky(cov)
-        except np.linalg.LinAlgError:
-            return False
+def _is_cov_symm_pos_semidef(
+    cov, rtol=1e-10, atol=1e-11, eval_tol=1e-15, check_pos_semidef=True
+):
+    is_symm = scipy.linalg.issymmetric(cov, rtol=rtol, atol=atol)
+    if not is_symm:
+        return False
+
+    if check_pos_semidef:
+        # numerically slightly negative evals are considered 0
+        is_pos_semidef = np.all(scipy.linalg.eigvalsh(cov) >= -eval_tol)
+        return is_pos_semidef
+
     return True
+
+
+def _is_cov_pos_def(cov, eval_tol=1e-15):
+    is_symm = _is_cov_symm_pos_semidef(cov, check_pos_semidef=False)
+    if not is_symm:
+        return False
+    # numerically slightly positive evals are considered 0
+    is_pos_def = np.all(scipy.linalg.eigvalsh(cov) > eval_tol)
+    return is_pos_def
 
 
 def _smart_ajd(covs, restr_mat=None, weights=None):
@@ -82,7 +97,7 @@ def _smart_ajd(covs, restr_mat=None, weights=None):
     from .csp import _ajd_pham
 
     if restr_mat is None:
-        is_all_pos_def = _is_all_pos_def(covs)
+        is_all_pos_def = all([_is_cov_pos_def(cov) for cov in covs])
         if not is_all_pos_def:
             raise ValueError(
                 "If C_ref is not provided by covariance estimator, "

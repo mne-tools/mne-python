@@ -8,7 +8,6 @@ import datetime as dt
 import numbers
 
 import numpy as np
-import scipy.linalg
 from sklearn import model_selection as models
 from sklearn.base import (  # noqa: F401
     BaseEstimator,
@@ -25,7 +24,7 @@ from sklearn.utils.validation import check_is_fitted
 
 from ..parallel import parallel_func
 from ..utils import _pl, logger, pinv, verbose, warn
-from .ged import _handle_restr_mat, _smart_ajd, _smart_ged
+from .ged import _handle_restr_mat, _is_cov_symm_pos_semidef, _smart_ajd, _smart_ged
 from .transformer import MNETransformerMixin
 
 
@@ -194,15 +193,14 @@ class _GEDTransformer(MNETransformerMixin, BaseEstimator):
         for cov in covs:
             if cov is None:
                 continue
-            is_sym = scipy.linalg.issymmetric(cov, rtol=1e-10, atol=1e-11)
-            if not is_sym:
+            # XXX: A lot of mne.decoding classes use mne.cov._regularized_covariance.
+            # Depending on the data it sometimes returns negative semidefinite matrices.
+            # So adding the validation of positive semidefinitiveness
+            # will require overhauling covariance estimation first.
+            is_cov = _is_cov_symm_pos_semidef(cov, check_pos_semidef=False)
+            if not is_cov:
                 raise ValueError(
-                    "One of covariances or C_ref is not symmetric, "
-                    "check your cov_callable"
-                )
-            if not np.all(np.linalg.eigvals(cov) >= 0):
-                raise ValueError(
-                    "One of covariances or C_ref has negative eigenvalues, "
+                    "One of covariances is not symmetric (or positive semidefinite), "
                     "check your cov_callable"
                 )
 

@@ -19,7 +19,13 @@ from mne import Epochs, compute_rank, create_info, pick_types, read_events
 from mne._fiff.proj import make_eeg_average_ref_proj
 from mne.cov import Covariance, _regularized_covariance
 from mne.decoding.base import _GEDTransformer
-from mne.decoding.ged import _get_restr_mat, _smart_ajd, _smart_ged
+from mne.decoding.ged import (
+    _get_restr_mat,
+    _handle_restr_mat,
+    _is_cov_pos_def,
+    _smart_ajd,
+    _smart_ged,
+)
 from mne.io import read_raw
 
 data_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
@@ -286,9 +292,30 @@ def test_ged_invalid_cov():
         R_func=None,
     )
     asymm_cov = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="not symmetric"):
         ged._validate_covariances([asymm_cov, None])
 
-    negsemidef_cov = np.array([[-2, 0, 0], [0, -1, 0], [0, 0, -3]])
-    with pytest.raises(ValueError):
-        ged._validate_covariances([negsemidef_cov, None])
+
+def test__handle_restr_mat_invalid_restr_type():
+    """Test _handle_restr_mat raises correct error when wrong restr_type."""
+    C_ref = np.eye(3)
+    with pytest.raises(ValueError, match="restr_type"):
+        _handle_restr_mat(C_ref, restr_type="blah", info=None, rank=None)
+
+
+def test__is_cov_pos_def():
+    """Test _is_cov_pos_def works."""
+    sing_pos_semidef = np.array([[1.0, 2.0, 3.0], [2.0, 4.0, 6.0], [3.0, 6.0, 9.0]])
+    pos_def = np.array([[5.0, 1.0, 1.0], [1.0, 6.0, 2.0], [1.0, 2.0, 7.0]])
+    assert not _is_cov_pos_def(sing_pos_semidef)
+    assert _is_cov_pos_def(pos_def)
+
+
+def test__smart_ajd_when_restr_mat_is_none():
+    """Test _smart_ajd raises ValueError when restr_mat is None."""
+    sing_pos_semidef = np.array([[1.0, 2.0, 3.0], [2.0, 4.0, 6.0], [3.0, 6.0, 9.0]])
+    pos_def1 = np.array([[5.0, 1.0, 1.0], [1.0, 6.0, 2.0], [1.0, 2.0, 7.0]])
+    pos_def2 = np.array([[10, 1, 2], [1, 12, 3], [2, 3, 15]])
+    bad_covs = [sing_pos_semidef, pos_def1, pos_def2]
+    with pytest.raises(ValueError, match="positive definite"):
+        _smart_ajd(bad_covs, restr_mat=None, weights=None)
