@@ -271,3 +271,24 @@ def test_ged_multicov():
 
     assert_allclose(actual_evals, desired_evals)
     assert_allclose(actual_filters, desired_filters)
+
+
+def test_ged_invalid_cov():
+    """Test _validate_covariances raises proper errors."""
+    ged = _GEDTransformer(
+        n_filters=1,
+        cov_callable=_mock_cov_callable,
+        cov_params=dict(),
+        mod_ged_callable=_mock_mod_ged_callable,
+        mod_params=dict(),
+        dec_type="single",
+        restr_type=None,
+        R_func=None,
+    )
+    asymm_cov = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
+    with pytest.raises(ValueError):
+        ged._validate_covariances([asymm_cov, None])
+
+    negsemidef_cov = np.array([[-2, 0, 0], [0, -1, 0], [0, 0, -3]])
+    with pytest.raises(ValueError):
+        ged._validate_covariances([negsemidef_cov, None])

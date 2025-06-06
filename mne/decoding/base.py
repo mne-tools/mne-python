@@ -201,7 +201,7 @@ class _GEDTransformer(MNETransformerMixin, BaseEstimator):
                     "check your cov_callable"
                 )
             if not np.all(np.linalg.eigvals(cov) >= 0):
-                ValueError(
+                raise ValueError(
                     "One of covariances or C_ref has negative eigenvalues, "
                     "check your cov_callable"
                 )
