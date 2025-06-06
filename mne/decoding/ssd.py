@@ -4,7 +4,6 @@
 
 import numpy as np
 from scipy.linalg import eigh
-from sklearn.base import BaseEstimator
 from sklearn.utils.validation import check_is_fitted
 
 from .._fiff.meas_info import Info, create_info
@@ -21,11 +20,13 @@ from ..utils import (
     fill_doc,
     logger,
 )
-from .transformer import MNETransformerMixin
+from ._covs_ged import _ssd_estimate
+from ._mod_ged import _ssd_mod
+from .base import _GEDTransformer
 
 
 @fill_doc
-class SSD(MNETransformerMixin, BaseEstimator):
+class SSD(_GEDTransformer):
     """
     Signal decomposition using the Spatio-Spectral Decomposition (SSD).
 
@@ -117,6 +118,28 @@ class SSD(MNETransformerMixin, BaseEstimator):
         self.n_fft = n_fft
         self.cov_method_params = cov_method_params
         self.rank = rank
+
+        cov_params = dict(
+            reg=reg,
+            cov_method_params=cov_method_params,
+            info=info,
+            picks=picks,
+            filt_params_signal=filt_params_signal,
+            filt_params_noise=filt_params_noise,
+            rank=rank,
+        )
+
+        mod_params = dict()
+        super().__init__(
+            n_components,
+            _ssd_estimate,
+            cov_params,
+            _ssd_mod,
+            mod_params,
+            dec_type="single",
+            restr_type="ssd",
+            R_func=None,
+        )
 
     def _validate_params(self, X):
         if isinstance(self.info, float):  # special case, mostly for testing
@@ -239,6 +262,17 @@ class SSD(MNETransformerMixin, BaseEstimator):
         # project back to sensor space
         self.filters_ = np.matmul(rank_proj, eigvects_[:, ix])
         self.patterns_ = np.linalg.pinv(self.filters_)
+
+        old_filters = self.filters_
+        old_patterns = self.patterns_
+        super().fit(X, y)
+        # SSD, as opposed to CSP and Xdawn stores filters as (n_chs, n_components)
+        # So need to transpose into (n_components, n_chs)
+        self.filters_ = self.filters_.T
+
+        np.testing.assert_allclose(self.eigvals_, self.evals_)
+        np.testing.assert_allclose(old_filters, self.filters_)
+        np.testing.assert_allclose(old_patterns, self.patterns_)
 
         # We assume that ordering by spectral ratio is more important
         # than the initial ordering. This ordering should be also learned when
@@ -426,6 +460,6 @@ def _dimensionality_reduction(cov_signal, cov_noise, info, rank):
         logger.info("Preserving covariance rank (%i)", rank)
 
     # project covariance matrices to rank subspace
-    cov_signal = np.matmul(rank_proj.T, np.matmul(cov_signal, rank_proj))
-    cov_noise = np.matmul(rank_proj.T, np.matmul(cov_noise, rank_proj))
+    cov_signal = rank_proj.T @ cov_signal @ rank_proj
+    cov_noise = rank_proj.T @ cov_noise @ rank_proj
     return cov_signal, cov_noise, rank_proj

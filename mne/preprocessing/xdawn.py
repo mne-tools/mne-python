@@ -7,7 +7,9 @@ from scipy import linalg
 
 from .._fiff.pick import _pick_data_channels, pick_info
 from ..cov import Covariance, _regularized_covariance
-from ..decoding import BaseEstimator, TransformerMixin
+from ..decoding._covs_ged import _xdawn_estimate
+from ..decoding._mod_ged import _xdawn_mod
+from ..decoding.base import _GEDTransformer
 from ..epochs import BaseEpochs
 from ..evoked import Evoked, EvokedArray
 from ..io import BaseRaw
@@ -212,7 +214,7 @@ def _fit_xdawn(
     return filters, patterns, evokeds
 
 
-class _XdawnTransformer(BaseEstimator, TransformerMixin):
+class _XdawnTransformer(_GEDTransformer):
     """Implementation of the Xdawn Algorithm compatible with scikit-learn.
 
     Xdawn is a spatial filtering method designed to improve the signal
@@ -259,6 +261,20 @@ class _XdawnTransformer(BaseEstimator, TransformerMixin):
         self.reg = reg
         self.method_params = method_params
 
+        cov_params = dict(reg=reg, cov_method_params=method_params, R=signal_cov)
+
+        mod_params = dict()
+        super().__init__(
+            n_components,
+            _xdawn_estimate,
+            cov_params,
+            _xdawn_mod,
+            mod_params,
+            dec_type="multi",
+            restr_type=None,
+            R_func=None,
+        )
+
     def fit(self, X, y=None):
         """Fit Xdawn spatial filters.
 
@@ -286,6 +302,30 @@ class _XdawnTransformer(BaseEstimator, TransformerMixin):
             signal_cov=self.signal_cov,
             method_params=self.method_params,
         )
+        old_filters = self.filters_
+        old_patterns = self.patterns_
+        super().fit(X, y)
+
+        # Hack for assert_allclose in transform
+        self.new_filters_ = self.filters_.copy()
+        # Xdawn performs separate GED for each class.
+        # filters_ returned by _fit_xdawn are subset per
+        # n_components and then appended and are of shape
+        # (n_classes*n_components, n_chs).
+        # GEDTransformer creates new dimension per class without subsetting
+        # for easier analysis and visualisations.
+        # So it needs to be performed post-hoc to conform with Xdawn.
+        # The shape returned by GED here is (n_classes, n_evecs, n_chs)
+        # Need to transform and subset into (n_classes*n_components, n_chs)
+        self.filters_ = self.filters_[:, : self.n_components, :].reshape(
+            -1, self.filters_.shape[2]
+        )
+        self.patterns_ = self.patterns_[:, : self.n_components, :].reshape(
+            -1, self.patterns_.shape[2]
+        )
+        np.testing.assert_allclose(old_filters, self.filters_)
+        np.testing.assert_allclose(old_patterns, self.patterns_)
+
         return self
 
     def transform(self, X):
@@ -302,6 +342,7 @@ class _XdawnTransformer(BaseEstimator, TransformerMixin):
             The transformed data.
         """
         X, _ = self._check_Xy(X)
+        orig_X = X.copy()
 
         # Check size
         if self.filters_.shape[1] != X.shape[1]:
@@ -313,6 +354,8 @@ class _XdawnTransformer(BaseEstimator, TransformerMixin):
         # Transform
         X = np.dot(self.filters_, X)
         X = X.transpose((1, 0, 2))
+        ged_X = super().transform(orig_X)
+        np.testing.assert_allclose(X, ged_X)
         return X
 
     def inverse_transform(self, X):
