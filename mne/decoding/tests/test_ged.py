@@ -23,6 +23,7 @@ from mne.decoding.ged import (
     _get_restr_mat,
     _handle_restr_mat,
     _is_cov_pos_def,
+    _is_cov_symm_pos_semidef,
     _smart_ajd,
     _smart_ged,
 )
@@ -67,7 +68,7 @@ def _get_min_rank(covs, info):
     return min_rank
 
 
-def _mock_cov_callable(X, y, cov_method_params=None):
+def _mock_cov_callable(X, y, cov_method_params=None, compute_C_ref=True):
     if cov_method_params is None:
         cov_method_params = dict()
     n_epochs, n_channels, n_times = X.shape
@@ -92,7 +93,10 @@ def _mock_cov_callable(X, y, cov_method_params=None):
         sample_weights.append(class_data.shape[0])
 
     ref_data = X.transpose(1, 0, 2).reshape(n_channels, -1)
-    C_ref = _regularized_covariance(ref_data, **cov_method_params)
+    if compute_C_ref:
+        C_ref = _regularized_covariance(ref_data, **cov_method_params)
+    else:
+        C_ref = None
     info = _mock_info(n_channels)
     rank = _get_min_rank(covs, info)
     kwargs = dict()
@@ -123,10 +127,12 @@ param_grid = dict(
     mod_ged_callable=[_mock_mod_ged_callable],
     mod_params=[dict()],
     dec_type=["single", "multi"],
+    # XXX: Not covering "ssd" here because test_ssd.py works with 2D data.
+    # Need to fix its tests first.
     restr_type=[
         "restricting",
         "whitening",
-    ],  # Not covering "ssd" here because its tests work with 2D data.
+    ],
     R_func=[functools.partial(np.sum, axis=0)],
 )
 
@@ -159,7 +165,7 @@ def _get_X_y(event_id):
         preload=True,
         proj=False,
     )
-    X = epochs.get_data(copy=False)
+    X = epochs.get_data(copy=False, units=dict(eeg="uV", grad="fT/cm", mag="fT"))
     y = epochs.events[:, -1]
     return X, y
 
@@ -226,7 +232,7 @@ def test_ged_multicov():
     """Test GEDTransformer on audvis dataset with multiple covariances."""
     event_id = dict(aud_l=1, aud_r=2, vis_l=3, vis_r=4)
     X, y = _get_X_y(event_id)
-    # Test "single" decomposition for multicov (AJD)
+    # Test "single" decomposition for multicov (AJD) with C_ref
     covs, C_ref, info, rank, kwargs = _mock_cov_callable(X, y)
     restr_mat = _get_restr_mat(C_ref, info, rank)
     evecs = _smart_ajd(covs, restr_mat=restr_mat)
@@ -278,6 +284,31 @@ def test_ged_multicov():
     assert_allclose(actual_evals, desired_evals)
     assert_allclose(actual_filters, desired_filters)
 
+    # Test "single" decomposition for multicov (AJD) without C_ref
+    covs, C_ref, info, rank, kwargs = _mock_cov_callable(
+        X, y, cov_method_params=dict(reg="oas"), compute_C_ref=False
+    )
+    covs = np.stack(covs)
+    evecs = _smart_ajd(covs, restr_mat=None)
+    evals = None
+    _, actual_evecs = _mock_mod_ged_callable(evals, evecs, covs, **kwargs)
+    actual_filters = actual_evecs.T
+
+    ged = _GEDTransformer(
+        n_components=4,
+        cov_callable=_mock_cov_callable,
+        cov_params=dict(cov_method_params=dict(reg="oas"), compute_C_ref=False),
+        mod_ged_callable=_mock_mod_ged_callable,
+        mod_params=dict(),
+        dec_type="single",
+        restr_type="restricting",
+        R_func=None,
+    )
+    ged.fit(X, y)
+    desired_filters = ged.filters_
+
+    assert_allclose(actual_filters, desired_filters)
+
 
 def test_ged_invalid_cov():
     """Test _validate_covariances raises proper errors."""
@@ -303,19 +334,36 @@ def test__handle_restr_mat_invalid_restr_type():
         _handle_restr_mat(C_ref, restr_type="blah", info=None, rank=None)
 
 
+def test_cov_validators():
+    """Test that covariance validators indeed validate."""
+    asymm = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
+    sing_pos_semidef = np.array([[1, 2, 3], [2, 4, 6], [3, 6, 9]])
+    pos_def = np.array([[5, 1, 1], [1, 6, 2], [1, 2, 7]])
+
+    assert not _is_cov_symm_pos_semidef(asymm)
+    assert _is_cov_symm_pos_semidef(sing_pos_semidef)
+    assert _is_cov_symm_pos_semidef(pos_def)
+
+    assert not _is_cov_pos_def(asymm)
+    assert not _is_cov_pos_def(sing_pos_semidef)
+    assert _is_cov_pos_def(pos_def)
+
+
 def test__is_cov_pos_def():
     """Test _is_cov_pos_def works."""
-    sing_pos_semidef = np.array([[1.0, 2.0, 3.0], [2.0, 4.0, 6.0], [3.0, 6.0, 9.0]])
-    pos_def = np.array([[5.0, 1.0, 1.0], [1.0, 6.0, 2.0], [1.0, 2.0, 7.0]])
+    asymm = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
+    sing_pos_semidef = np.array([[1, 2, 3], [2, 4, 6], [3, 6, 9]])
+    pos_def = np.array([[5, 1, 1], [1, 6, 2], [1, 2, 7]])
+    assert not _is_cov_pos_def(asymm)
     assert not _is_cov_pos_def(sing_pos_semidef)
     assert _is_cov_pos_def(pos_def)
 
 
 def test__smart_ajd_when_restr_mat_is_none():
     """Test _smart_ajd raises ValueError when restr_mat is None."""
-    sing_pos_semidef = np.array([[1.0, 2.0, 3.0], [2.0, 4.0, 6.0], [3.0, 6.0, 9.0]])
-    pos_def1 = np.array([[5.0, 1.0, 1.0], [1.0, 6.0, 2.0], [1.0, 2.0, 7.0]])
+    sing_pos_semidef = np.array([[1, 2, 3], [2, 4, 6], [3, 6, 9]])
+    pos_def1 = np.array([[5, 1, 1], [1, 6, 2], [1, 2, 7]])
     pos_def2 = np.array([[10, 1, 2], [1, 12, 3], [2, 3, 15]])
-    bad_covs = [sing_pos_semidef, pos_def1, pos_def2]
+    bad_covs = np.stack([sing_pos_semidef, pos_def1, pos_def2])
     with pytest.raises(ValueError, match="positive definite"):
         _smart_ajd(bad_covs, restr_mat=None, weights=None)

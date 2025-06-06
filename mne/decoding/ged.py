@@ -25,8 +25,6 @@ def _handle_restr_mat(C_ref, restr_type, info, rank):
         restr_mat = _get_ssd_whitener(C_ref, rank)
     elif restr_type == "restricting":
         restr_mat = _get_restr_mat(C_ref, info, rank)
-    elif callable(restr_type):
-        restr_mat = restr_type
     else:
         raise ValueError(
             "restr_type should either be callable or one of whitening, ssd, restricting"
@@ -102,11 +100,12 @@ def _smart_ajd(covs, restr_mat=None, weights=None):
         evecs, D = _ajd_pham(covs)
         return evecs
 
-    covs = np.array([restr_mat @ cov @ restr_mat.T for cov in covs], float)
-    evecs_restr, D = _ajd_pham(covs)
-    evecs = _normalize_eigenvectors(evecs_restr.T, covs, weights)
-    evecs = restr_mat.T @ evecs
-    return evecs
+    else:
+        covs = np.array([restr_mat @ cov @ restr_mat.T for cov in covs], float)
+        evecs_restr, D = _ajd_pham(covs)
+        evecs = _normalize_eigenvectors(evecs_restr.T, covs, weights)
+        evecs = restr_mat.T @ evecs
+        return evecs
 
 
 def _get_restr_mat(C, info, rank):
