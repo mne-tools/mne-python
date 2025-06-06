@@ -3015,6 +3015,15 @@ def _merge_info_values(infos, key, verbose=None):
         if len(unique_values) != 1:
             logger.info("Found multiple proj_ids, using the first one.")
         return list(unique_values)[0]
+    
+    elif key == "experimenter" or key =="proj_name":
+        if _check_isinstance(values, (str, type(None)), all) :
+            unique_values = set(values)
+            unique_values.discard(None)
+            if len(unique_values) == 1:
+                return list(unique_values)[0]
+            else:
+                return None
     # other
     else:
         unique_values = set(values)
@@ -3024,7 +3033,7 @@ def _merge_info_values(infos, key, verbose=None):
             logger.info("Found multiple StringIO instances. Setting value to `None`")
             return None
         elif isinstance(list(unique_values)[0], str):
-            logger.info("Found multiple filenames. Setting value to `None`")
+            logger.info(f"Found multiple {key}. Setting value to `None`")
             return None
         else:
             raise RuntimeError(msg)
