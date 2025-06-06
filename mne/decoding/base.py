@@ -129,14 +129,8 @@ class _GEDTransformer(MNETransformerMixin, BaseEstimator):
             else:
                 S = covs[0]
                 R = covs[1]
-                if self.restr_type == "ssd":
-                    mult_order = "ssd"
-                else:
-                    mult_order = None
                 restr_mat = _handle_restr_mat(C_ref, self.restr_type, info, rank)
-                evals, evecs = _smart_ged(
-                    S, R, restr_mat, R_func=self.R_func, mult_order=mult_order
-                )
+                evals, evecs = _smart_ged(S, R, restr_mat, R_func=self.R_func)
 
             evals, evecs = self.mod_ged_callable(
                 evals, evecs, covs, **self.mod_params, **kwargs
@@ -151,18 +145,12 @@ class _GEDTransformer(MNETransformerMixin, BaseEstimator):
         elif self.dec_type == "multi":
             self.classes_ = np.unique(y)
             R = covs[-1]
-            if self.restr_type == "ssd":
-                mult_order = "ssd"
-            else:
-                mult_order = None
             restr_mat = _handle_restr_mat(C_ref, self.restr_type, info, rank)
             all_evals, all_evecs, all_patterns = list(), list(), list()
             for i in range(len(self.classes_)):
                 S = covs[i]
 
-                evals, evecs = _smart_ged(
-                    S, R, restr_mat, R_func=self.R_func, mult_order=mult_order
-                )
+                evals, evecs = _smart_ged(S, R, restr_mat, R_func=self.R_func)
 
                 evals, evecs = self.mod_ged_callable(
                     evals, evecs, covs, **self.mod_params, **kwargs

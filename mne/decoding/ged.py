@@ -34,7 +34,7 @@ def _handle_restr_mat(C_ref, restr_type, info, rank):
     return restr_mat
 
 
-def _smart_ged(S, R, restr_mat=None, R_func=None, mult_order=None):
+def _smart_ged(S, R, restr_mat=None, R_func=None):
     """Perform smart generalized eigenvalue decomposition (GED) of S and R.
 
     If restr_mat is provided S and R will be restricted to the principal subspace
@@ -47,12 +47,8 @@ def _smart_ged(S, R, restr_mat=None, R_func=None, mult_order=None):
         evals, evecs = scipy.linalg.eigh(S, R)
         return evals, evecs
 
-    if mult_order == "ssd":
-        S_restr = restr_mat @ (S @ restr_mat.T)
-        R_restr = restr_mat @ (R @ restr_mat.T)
-    else:
-        S_restr = restr_mat @ S @ restr_mat.T
-        R_restr = restr_mat @ R @ restr_mat.T
+    S_restr = restr_mat @ S @ restr_mat.T
+    R_restr = restr_mat @ R @ restr_mat.T
     if R_func is not None:
         R_restr = R_func([S_restr, R_restr])
     evals, evecs_restr = scipy.linalg.eigh(S_restr, R_restr)

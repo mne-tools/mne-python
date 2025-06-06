@@ -460,6 +460,6 @@ def _dimensionality_reduction(cov_signal, cov_noise, info, rank):
         logger.info("Preserving covariance rank (%i)", rank)
 
     # project covariance matrices to rank subspace
-    cov_signal = np.matmul(rank_proj.T, np.matmul(cov_signal, rank_proj))
-    cov_noise = np.matmul(rank_proj.T, np.matmul(cov_noise, rank_proj))
+    cov_signal = rank_proj.T @ cov_signal @ rank_proj
+    cov_noise = rank_proj.T @ cov_noise @ rank_proj
     return cov_signal, cov_noise, rank_proj
