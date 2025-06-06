@@ -136,11 +136,11 @@ class CSP(_GEDTransformer):
 
         mod_params = dict(evecs_order=component_order)
         super().__init__(
-            n_components,
-            _csp_estimate,
-            cov_params,
-            _csp_mod,
-            mod_params,
+            n_components=n_components,
+            cov_callable=_csp_estimate,
+            cov_params=cov_params,
+            mod_ged_callable=_csp_mod,
+            mod_params=mod_params,
             dec_type="single",
             restr_type="restricting",
             R_func=sum,
@@ -254,9 +254,11 @@ class CSP(_GEDTransformer):
         """
         check_is_fitted(self, "filters_")
         X = self._check_data(X)
+        orig_X = X.copy()
         pick_filters = self.filters_[: self.n_components]
         X = np.asarray([np.dot(pick_filters, epoch) for epoch in X])
-
+        ged_X = super().transform(orig_X)
+        np.testing.assert_allclose(X, ged_X)
         # compute features (mean band power)
         if self.transform_into == "average_power":
             X = (X**2).mean(axis=2)

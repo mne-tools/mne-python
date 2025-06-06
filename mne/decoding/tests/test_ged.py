@@ -115,7 +115,7 @@ def _mock_mod_ged_callable(evals, evecs, covs, **kwargs):
 
 
 param_grid = dict(
-    n_filters=[4],
+    n_components=[4],
     cov_callable=[_mock_cov_callable],
     cov_params=[
         dict(cov_method_params=dict(reg="empirical")),
@@ -177,7 +177,7 @@ def test_ged_binary_cov():
     actual_filters = actual_evecs.T
 
     ged = _GEDTransformer(
-        n_filters=4,
+        n_components=4,
         cov_callable=_mock_cov_callable,
         cov_params=dict(),
         mod_ged_callable=_mock_mod_ged_callable,
@@ -205,7 +205,7 @@ def test_ged_binary_cov():
     actual_filters = np.array(all_evecs)
 
     ged = _GEDTransformer(
-        n_filters=4,
+        n_components=4,
         cov_callable=_mock_cov_callable,
         cov_params=dict(),
         mod_ged_callable=_mock_mod_ged_callable,
@@ -235,7 +235,7 @@ def test_ged_multicov():
     actual_filters = actual_evecs.T
 
     ged = _GEDTransformer(
-        n_filters=4,
+        n_components=4,
         cov_callable=_mock_cov_callable,
         cov_params=dict(),
         mod_ged_callable=_mock_mod_ged_callable,
@@ -262,7 +262,7 @@ def test_ged_multicov():
     actual_filters = np.array(all_evecs)
 
     ged = _GEDTransformer(
-        n_filters=4,
+        n_components=4,
         cov_callable=_mock_cov_callable,
         cov_params=dict(),
         mod_ged_callable=_mock_mod_ged_callable,
@@ -282,7 +282,7 @@ def test_ged_multicov():
 def test_ged_invalid_cov():
     """Test _validate_covariances raises proper errors."""
     ged = _GEDTransformer(
-        n_filters=1,
+        n_components=1,
         cov_callable=_mock_cov_callable,
         cov_params=dict(),
         mod_ged_callable=_mock_mod_ged_callable,

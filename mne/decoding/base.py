@@ -36,7 +36,7 @@ class _GEDTransformer(MNETransformerMixin, BaseEstimator):
 
     Parameters
     ----------
-    n_filters : int
+    n_components : int
         The number of spatial filters to decompose M/EEG signals.
     cov_callable : callable
         Function used to estimate covariances and reference matrix (C_ref) from the
@@ -89,7 +89,7 @@ class _GEDTransformer(MNETransformerMixin, BaseEstimator):
 
     def __init__(
         self,
-        n_filters,
+        n_components,
         cov_callable,
         cov_params,
         mod_ged_callable,
@@ -98,7 +98,7 @@ class _GEDTransformer(MNETransformerMixin, BaseEstimator):
         restr_type=None,
         R_func=None,
     ):
-        self.n_filters = n_filters
+        self.n_components = n_components
         self.cov_callable = cov_callable
         self.cov_params = cov_params
         self.mod_ged_callable = mod_ged_callable
@@ -169,12 +169,18 @@ class _GEDTransformer(MNETransformerMixin, BaseEstimator):
         check_is_fitted(self, "filters_")
         X = self._check_data(X)
         if self.dec_type == "single":
-            pick_filters = self.filters_[: self.n_filters]
+            pick_filters = self.filters_[: self.n_components]
         elif self.dec_type == "multi":
-            pick_filters = self.filters_[:, : self.n_filters, :].reshape(
-                -1, self.filters_.shape[2]
+            # XXX: Hack to assert_allclose in Xdawn's transform.
+            # Will be removed when overhauling xdawn.
+            if hasattr(self, "new_filters_"):
+                filters = self.new_filters_
+            else:
+                filters = self.filters_
+            pick_filters = filters[:, : self.n_components, :].reshape(
+                -1, filters.shape[2]
             )
-        X = np.asarray([pick_filters @ epoch for epoch in X])
+        X = pick_filters @ X
         return X
 
     def _validate_covariances(self, covs):

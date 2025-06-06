@@ -305,6 +305,9 @@ class _XdawnTransformer(_GEDTransformer):
         old_filters = self.filters_
         old_patterns = self.patterns_
         super().fit(X, y)
+
+        # Hack for assert_allclose in transform
+        self.new_filters_ = self.filters_.copy()
         # Xdawn performs separate GED for each class.
         # filters_ returned by _fit_xdawn are subset per
         # n_components and then appended and are of shape
@@ -339,6 +342,7 @@ class _XdawnTransformer(_GEDTransformer):
             The transformed data.
         """
         X, _ = self._check_Xy(X)
+        orig_X = X.copy()
 
         # Check size
         if self.filters_.shape[1] != X.shape[1]:
@@ -350,6 +354,8 @@ class _XdawnTransformer(_GEDTransformer):
         # Transform
         X = np.dot(self.filters_, X)
         X = X.transpose((1, 0, 2))
+        ged_X = super().transform(orig_X)
+        np.testing.assert_allclose(X, ged_X)
         return X
 
     def inverse_transform(self, X):
