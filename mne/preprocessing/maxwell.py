@@ -168,7 +168,10 @@ def maxwell_filter_prepare_emptyroom(
         bads = raw_er_prepared.info["bads"]
 
     # Filter to only include MEG channels
-    meg_ch_names = [raw_er_prepared.ch_names[pick] for pick in pick_types(raw_er_prepared.info, meg=True, exclude=[])]
+    meg_ch_names = [
+        raw_er_prepared.ch_names[pick]
+        for pick in pick_types(raw_er_prepared.info, meg=True, exclude=[])
+    ]
     bads = [ch_name for ch_name in bads if ch_name in meg_ch_names]
     raw_er_prepared.info["bads"] = bads
 
