@@ -19,7 +19,7 @@ from mne import Epochs, compute_rank, create_info, pick_types, read_events
 from mne._fiff.proj import make_eeg_average_ref_proj
 from mne.cov import Covariance, _regularized_covariance
 from mne.decoding.base import _GEDTransformer
-from mne.decoding.ged import _get_restricting_map, _smart_ajd, _smart_ged
+from mne.decoding.ged import _get_restr_mat, _smart_ajd, _smart_ged
 from mne.io import read_raw
 
 data_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
@@ -165,8 +165,8 @@ def test_ged_binary_cov():
     # Test "single" decomposition
     covs, C_ref, info, rank, kwargs = _mock_cov_callable(X, y)
     S, R = covs[0], covs[1]
-    restr_map = _get_restricting_map(C_ref, info, rank)
-    evals, evecs = _smart_ged(S, R, restr_map=restr_map, R_func=None)
+    restr_mat = _get_restr_mat(C_ref, info, rank)
+    evals, evecs = _smart_ged(S, R, restr_mat=restr_mat, R_func=None)
     actual_evals, actual_evecs = _mock_mod_ged_callable(evals, evecs, [S, R], **kwargs)
     actual_filters = actual_evecs.T
 
@@ -187,11 +187,11 @@ def test_ged_binary_cov():
     assert_allclose(actual_evals, desired_evals)
     assert_allclose(actual_filters, desired_filters)
 
-    # Test "multi" decomposition (loop), restr_map can be reused
+    # Test "multi" decomposition (loop), restr_mat can be reused
     all_evals, all_evecs = list(), list()
     for i in range(len(covs)):
         S = covs[i]
-        evals, evecs = _smart_ged(S, R, restr_map)
+        evals, evecs = _smart_ged(S, R, restr_mat)
         evals, evecs = _mock_mod_ged_callable(evals, evecs, covs)
         all_evals.append(evals)
         all_evecs.append(evecs.T)
@@ -222,8 +222,8 @@ def test_ged_multicov():
     X, y = _get_X_y(event_id)
     # Test "single" decomposition for multicov (AJD)
     covs, C_ref, info, rank, kwargs = _mock_cov_callable(X, y)
-    restr_map = _get_restricting_map(C_ref, info, rank)
-    evecs = _smart_ajd(covs, restr_map=restr_map)
+    restr_mat = _get_restr_mat(C_ref, info, rank)
+    evecs = _smart_ajd(covs, restr_mat=restr_mat)
     evals = None
     _, actual_evecs = _mock_mod_ged_callable(evals, evecs, covs, **kwargs)
     actual_filters = actual_evecs.T
@@ -248,7 +248,7 @@ def test_ged_multicov():
     all_evals, all_evecs = list(), list()
     for i in range(len(covs)):
         S = covs[i]
-        evals, evecs = _smart_ged(S, R, restr_map)
+        evals, evecs = _smart_ged(S, R, restr_mat)
         evals, evecs = _mock_mod_ged_callable(evals, evecs, covs)
         all_evals.append(evals)
         all_evecs.append(evecs.T)

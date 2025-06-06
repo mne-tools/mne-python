@@ -25,7 +25,7 @@ from sklearn.utils.validation import check_is_fitted
 
 from ..parallel import parallel_func
 from ..utils import _pl, logger, pinv, verbose, warn
-from .ged import _handle_restr_map, _smart_ajd, _smart_ged
+from .ged import _handle_restr_mat, _smart_ajd, _smart_ged
 from .transformer import MNETransformerMixin
 
 
@@ -124,8 +124,8 @@ class _GEDTransformer(MNETransformerMixin, BaseEstimator):
         if self.dec_type == "single":
             if len(covs) > 2:
                 sample_weights = kwargs["sample_weights"]
-                restr_map = _handle_restr_map(C_ref, self.restr_type, info, rank)
-                evecs = _smart_ajd(covs, restr_map, weights=sample_weights)
+                restr_mat = _handle_restr_mat(C_ref, self.restr_type, info, rank)
+                evecs = _smart_ajd(covs, restr_mat, weights=sample_weights)
                 evals = None
             else:
                 S = covs[0]
@@ -134,9 +134,9 @@ class _GEDTransformer(MNETransformerMixin, BaseEstimator):
                     mult_order = "ssd"
                 else:
                     mult_order = None
-                restr_map = _handle_restr_map(C_ref, self.restr_type, info, rank)
+                restr_mat = _handle_restr_mat(C_ref, self.restr_type, info, rank)
                 evals, evecs = _smart_ged(
-                    S, R, restr_map, R_func=self.R_func, mult_order=mult_order
+                    S, R, restr_mat, R_func=self.R_func, mult_order=mult_order
                 )
 
             evals, evecs = self.mod_ged_callable(
@@ -156,13 +156,13 @@ class _GEDTransformer(MNETransformerMixin, BaseEstimator):
                 mult_order = "ssd"
             else:
                 mult_order = None
-            restr_map = _handle_restr_map(C_ref, self.restr_type, info, rank)
+            restr_mat = _handle_restr_mat(C_ref, self.restr_type, info, rank)
             all_evals, all_evecs, all_patterns = list(), list(), list()
             for i in range(len(self.classes_)):
                 S = covs[i]
 
                 evals, evecs = _smart_ged(
-                    S, R, restr_map, R_func=self.R_func, mult_order=mult_order
+                    S, R, restr_mat, R_func=self.R_func, mult_order=mult_order
                 )
 
                 evals, evecs = self.mod_ged_callable(
