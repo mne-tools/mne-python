@@ -1,1 +1,1 @@
-Fix bug where `mne.preprocessing.maxwell.maxwell_filter_prepare_emptyroom` would not properly identify bad OPM channels by their `meg` type, by `Harrison Ritz`_.
+Fixed bug where :func:`mne.preprocessing.maxwell_filter_prepare_emptyroom` would not reliably identify bad channels by their `meg` type, by `Harrison Ritz`_.
