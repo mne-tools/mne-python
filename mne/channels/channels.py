@@ -962,7 +962,7 @@ class InterpolationMixin:
 
         return self
 
-    def interpolate_to(self, sensors, origin="auto", method="spline", reg=0.0):
+    def interpolate_to(self, sensors, origin="auto", method=None, reg=0.0):
         """Interpolate EEG data onto a new montage.
 
         .. warning::
@@ -1005,10 +1005,31 @@ class InterpolationMixin:
         from .montage import DigMontage
 
         # Check that the method option is valid.
-        _check_option("method", method, ["spline", "MNE"])
         _validate_type(sensors, DigMontage, "sensors")
+        # TODO: Handle the error: sensors must be an instance of DigMontage, got <class 'mne.channels._standard_montage_utils._meg.<locals>.CustomMontage'> instead.
+
+        method = _handle_default("interpolation_method", method)
+
+        # Filter method to only include 'eeg' and 'meg'
+        supported_ch_types = ["eeg", "meg"]
+        keys_to_delete = [key for key in method if key not in supported_ch_types]
+        for key in keys_to_delete:
+            del method[key]
+
+        # Force MEG to always use MNE method,
+        # otherwise when method = "spline", the _handle_default function
+        # forces all channel types to use that method
+        # TODO: Check if there is a better way to handle this
+        if "meg" in method:
+            method["meg"] = "MNE"
+        valids = {"eeg": ("spline", "MNE"), "meg": ("MNE")}
+        for key in method:
+            _check_option("method[key]", key, tuple(valids))
+            _check_option(f"method['{key}']", method[key], valids[key])
+        logger.info("Setting channel interpolation method to %s.", method)
 
         # Get target positions from the montage
+        # TODO: handle the error: AttributeError: 'CustomMontage' object has no attribute 'get_positions'
         ch_pos = sensors.get_positions().get("ch_pos", {})
         target_ch_names = list(ch_pos.keys())
         if not target_ch_names:
