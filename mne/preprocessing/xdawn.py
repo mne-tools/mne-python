@@ -2,6 +2,8 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+from collections.abc import Mapping
+
 import numpy as np
 from scipy import linalg
 
@@ -13,7 +15,7 @@ from ..decoding.base import _GEDTransformer
 from ..epochs import BaseEpochs
 from ..evoked import Evoked, EvokedArray
 from ..io import BaseRaw
-from ..utils import _check_option, logger, pinv
+from ..utils import _check_option, _validate_type, logger, pinv
 
 
 def _construct_signal_from_epochs(epochs, events, sfreq, tmin):
@@ -275,6 +277,22 @@ class _XdawnTransformer(_GEDTransformer):
             R_func=None,
         )
 
+    def _validate_params(self, X):
+        _validate_type(self.n_components, int, "n_components")
+
+        # reg is validated in _regularized_covariance
+
+        if self.signal_cov is not None:
+            if isinstance(self.signal_cov, Covariance):
+                self.signal_cov = self.signal_cov.data
+            elif not isinstance(self.signal_cov, np.ndarray):
+                raise ValueError("signal_cov should be mne.Covariance or np.ndarray")
+            if not np.array_equal(self.signal_cov.shape, np.tile(X.shape[1], 2)):
+                raise ValueError(
+                    "signal_cov data should be of shape (n_channels, n_channels)"
+                )
+        _validate_type(self.method_params, (Mapping, None))
+
     def fit(self, X, y=None):
         """Fit Xdawn spatial filters.
 
@@ -291,7 +309,7 @@ class _XdawnTransformer(_GEDTransformer):
             The Xdawn instance.
         """
         X, y = self._check_Xy(X, y)
-
+        self._validate_params(X)
         # Main function
         self.classes_ = np.unique(y)
         self.filters_, self.patterns_, _ = _fit_xdawn(
