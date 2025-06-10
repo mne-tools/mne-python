@@ -169,7 +169,7 @@ def test_plot_bem():
         src=src_fname,
     )
     assert len(fig.axes[0].collections) == 4  # 3 BEM surfaces + 1 src contour
-    with pytest.raises(ValueError, match="MRI coordinates, got head"):
+    with pytest.raises(ValueError, match="Source space must be in MRI coordinates"):
         plot_bem(subject="sample", subjects_dir=subjects_dir, src=inv_fname)
 
 
