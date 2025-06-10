@@ -115,17 +115,9 @@ def _xdawn_estimate(
     reg,
     cov_method_params,
     R=None,
-    events=None,
-    tmin=0,
-    sfreq=1,
     info=None,
     rank="full",
 ):
-    from ..preprocessing.xdawn import _least_square_evoked
-
-    if not isinstance(X, np.ndarray) or X.ndim != 3:
-        raise ValueError("X must be 3D ndarray")
-
     classes = np.unique(y)
 
     # XXX Eventually this could be made to deal with rank deficiency properly
@@ -140,23 +132,13 @@ def _xdawn_estimate(
         )
     elif isinstance(R, Covariance):
         R = R.data
-    if not isinstance(R, np.ndarray) or (
-        not np.array_equal(R.shape, np.tile(X.shape[1], 2))
-    ):
-        raise ValueError(
-            "R must be None, a covariance instance, "
-            "or an array of shape (n_chans, n_chans)"
-        )
 
     # Get prototype events
-    if events is not None:
-        evokeds, toeplitzs = _least_square_evoked(X, events, tmin, sfreq)
-    else:
-        evokeds, toeplitzs = list(), list()
-        for c in classes:
-            # Prototyped response for each class
-            evokeds.append(np.mean(X[y == c, :, :], axis=0))
-            toeplitzs.append(1.0)
+    evokeds, toeplitzs = list(), list()
+    for c in classes:
+        # Prototyped response for each class
+        evokeds.append(np.mean(X[y == c, :, :], axis=0))
+        toeplitzs.append(1.0)
 
     covs = []
     for evo, toeplitz in zip(evokeds, toeplitzs):
