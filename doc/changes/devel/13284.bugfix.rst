@@ -1,1 +1,1 @@
-Fixed bug where `info['subject_info']['birthday']` would accept a `pandas.Timestamp` user input without converting it to a `datetime.date`, by :newcontrib:`Laurent Le Mentec`.
+Fixed bug where ``info["subject_info"]["birthday"]`` would accept a ``pandas.Timestamp`` user input without converting it to a ``datetime.date``, by :newcontrib:`Laurent Le Mentec`.
