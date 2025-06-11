@@ -1010,12 +1010,19 @@ def _check_types(x, *, info, name, types, cast=None):
         x = cast(x)
     return x
 
+
 def _check_bday(birthday_input, *, info):
-    date = _check_types(birthday_input, info=info, name='subject_info["birthday"]', types=(datetime.date, None))
+    date = _check_types(
+        birthday_input,
+        info=info,
+        name='subject_info["birthday"]',
+        types=(datetime.date, None),
+    )
     # test if we have a pd.Timestamp
     if hasattr(date, "date"):
         date = date.date()
     return date
+
 
 class SubjectInfo(ValidatedDict):
     _attributes = {
