@@ -779,19 +779,16 @@ def test_birthday_input():
     # Test valid date
     info = create_info(ch_names=["EEG 001"], sfreq=1000.0, ch_types="eeg")
     info["subject_info"] = {}
-    with info._unlock():
-        info["subject_info"]["birthday"] = date(2000, 1, 1)
+    info["subject_info"]["birthday"] = date(2000, 1, 1)
     assert info["subject_info"]["birthday"] == date(2000, 1, 1)
 
-    with info._unlock():
-        info["subject_info"]["birthday"] = Timestamp("2000-01-01")
+    # input a pandas Timestamp converts to datetime date
+    info["subject_info"]["birthday"] = Timestamp("2000-01-01")
     assert info["subject_info"]["birthday"] == date(2000, 1, 1)
-
 
     # Test invalid date raises error
     with pytest.raises(TypeError, match="must be a date"):
-        with info._unlock():
-            info["subject_info"]["birthday"] = "not a date"
+        info["subject_info"]["birthday"] = "not a date"
 
 
 def _complete_info(info):
