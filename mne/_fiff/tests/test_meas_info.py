@@ -10,7 +10,6 @@ from pathlib import Path
 import numpy as np
 import pytest
 from numpy.testing import assert_allclose, assert_array_equal
-from pandas import Timestamp
 from scipy import sparse
 
 from mne import (
@@ -783,11 +782,12 @@ def test_birthday_input():
     assert info["subject_info"]["birthday"] == date(2000, 1, 1)
 
     # input a pandas Timestamp converts to datetime date
-    info["subject_info"]["birthday"] = Timestamp("2000-01-01")
+    pd = pytest.importorskip("pandas")
+    info["subject_info"]["birthday"] = pd.Timestamp("2000-01-01")
     assert info["subject_info"]["birthday"] == date(2000, 1, 1)
 
     # Test invalid date raises error
-    with pytest.raises(TypeError, match="must be a date"):
+    with pytest.raises(TypeError, match="must be an instance of date"):
         info["subject_info"]["birthday"] = "not a date"
 
 
