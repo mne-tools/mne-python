@@ -166,6 +166,7 @@
 .. _Larry Eisenman:  https://github.com/lneisenman
 .. _Lau Møller Andersen: https://github.com/ualsbombe
 .. _Laura Gwilliams: https://lauragwilliams.github.io
+.. _Laurent Le Mentec: https://github.com/LaurentLM
 .. _Leonardo Barbosa: https://github.com/noreun
 .. _Leonardo Rochael Almeida: https://github.com/leorochael
 .. _Liberty Hamilton: https://github.com/libertyh
