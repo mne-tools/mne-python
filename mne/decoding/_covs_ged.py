@@ -227,7 +227,8 @@ def _ssd_estimate(
     return covs, C_ref, info, rank, dict()
 
 
-def _spoc_estimate(X, y, reg, cov_method_params, rank):
+def _spoc_estimate(X, y, reg, cov_method_params, info, rank):
+    info, rank = _handle_info_rank(X, info, rank)
     # Normalize target variable
     target = y.astype(np.float64)
     target -= target.mean()
@@ -251,6 +252,13 @@ def _spoc_estimate(X, y, reg, cov_method_params, rank):
     R = covs.mean(0)
 
     covs = [S, R]
-    C_ref = None
-    info = None
+    C_ref = R
+    if not isinstance(rank, dict):
+        rank = _compute_rank_raw_array(
+            np.hstack(X),
+            info,
+            rank=rank,
+            scalings=None,
+            log_ch_type="data",
+        )
     return covs, C_ref, info, rank, dict()

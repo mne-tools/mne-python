@@ -884,6 +884,25 @@ class SPoC(CSP):
         Parameters to pass to :func:`mne.compute_covariance`.
 
         .. versionadded:: 0.16
+    restr_type : "restricting" | "whitening" | None
+        Restricting transformation for covariance matrices before performing
+        generalized eigendecomposition.
+        If "restricting" only restriction to the principal subspace of signal_cov
+        will be performed.
+        If "whitening", covariance matrices will be additionally rescaled according
+        to the whitening for the signal_cov.
+        If None, no restriction will be applied. Defaults to None.
+
+        .. versionadded:: 1.10
+    info : mne.Info | None
+        The mne.Info object with information about the sensors and methods of
+        measurement used for covariance estimation and generalized
+        eigendecomposition.
+        If None, one channel type and no projections will be assumed and if
+        rank is dict, it will be sum of ranks per channel type.
+        Defaults to None.
+
+        .. versionadded:: 1.10
     %(rank_none)s
 
         .. versionadded:: 0.17
@@ -915,6 +934,8 @@ class SPoC(CSP):
         log=None,
         transform_into="average_power",
         cov_method_params=None,
+        restr_type=None,
+        info=None,
         rank=None,
     ):
         """Init of SPoC."""
@@ -925,6 +946,8 @@ class SPoC(CSP):
             cov_est="epoch",
             norm_trace=False,
             transform_into=transform_into,
+            restr_type=restr_type,
+            info=info,
             rank=rank,
             cov_method_params=cov_method_params,
         )
@@ -933,12 +956,14 @@ class SPoC(CSP):
             _spoc_estimate,
             reg=reg,
             cov_method_params=cov_method_params,
+            info=info,
             rank=rank,
         )
         super(CSP, self).__init__(
             n_components=n_components,
             cov_callable=cov_callable,
             mod_ged_callable=_spoc_mod,
+            restr_type=restr_type,
         )
 
         # Covariance estimation have to be done on the single epoch level,

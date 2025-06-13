@@ -74,6 +74,17 @@ class SSD(_GEDTransformer):
     cov_method_params : dict | None (default None)
         As in :class:`mne.decoding.SPoC`
         The default is None.
+    restr_type : "restricting" | "whitening" | "ssd" | None
+        Restricting transformation for covariance matrices before performing
+        generalized eigendecomposition.
+        If "restricting" only restriction to the principal subspace of signal_cov
+        will be performed.
+        If "whitening", covariance matrices will be additionally rescaled according
+        to the whitening for the signal_cov.
+        If "ssd", simplified version of "whitening" is performed.
+        If None, no restriction will be applied. Defaults to "ssd".
+
+        .. versionadded:: 1.10
     rank : None | dict | ‘info’ | ‘full’
         As in :class:`mne.decoding.SPoC`
         This controls the rank computation that can be read from the
@@ -106,6 +117,7 @@ class SSD(_GEDTransformer):
         return_filtered=False,
         n_fft=None,
         cov_method_params=None,
+        restr_type="ssd",
         rank=None,
     ):
         """Initialize instance."""
@@ -119,6 +131,7 @@ class SSD(_GEDTransformer):
         self.return_filtered = return_filtered
         self.n_fft = n_fft
         self.cov_method_params = cov_method_params
+        self.restr_type = restr_type
         self.rank = rank
 
         cov_callable = partial(
@@ -135,7 +148,7 @@ class SSD(_GEDTransformer):
             n_components=n_components,
             cov_callable=cov_callable,
             mod_ged_callable=_ssd_mod,
-            restr_type="ssd",
+            restr_type=restr_type,
         )
 
     def _validate_params(self, X):
