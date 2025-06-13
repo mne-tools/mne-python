@@ -46,8 +46,10 @@ class _GEDTransformer(MNETransformerMixin, BaseEstimator):
         C_ref, info, rank can be None, while kwargs can be empty dict.
     mod_ged_callable : callable | None
         Function used to modify (e.g. sort or normalize) generalized
-        eigenvalues and eigenvectors. If None, evals and evecs will be ordered according
-        to :func:`~scipy.linalg.eigh` default. Defaults to None
+        eigenvalues and eigenvectors. It should accept as arguments evals, evecs
+        and also covs and optional kwargs returned by cov_callable. It should return
+        only sorted and/or modified evals and evecs. If None, evals and evecs will be
+        ordered according to :func:`~scipy.linalg.eigh` default. Defaults to None
     dec_type : "single" | "multi"
         When "single" and cov_callable returns > 2 covariances,
         approximate joint diagonalization based on Pham's algorithm
@@ -93,7 +95,6 @@ class _GEDTransformer(MNETransformerMixin, BaseEstimator):
         cov_callable,
         *,
         mod_ged_callable=None,
-        mod_params=None,
         dec_type="single",
         restr_type=None,
         R_func=None,
@@ -101,7 +102,6 @@ class _GEDTransformer(MNETransformerMixin, BaseEstimator):
         self.n_components = n_components
         self.cov_callable = cov_callable
         self.mod_ged_callable = mod_ged_callable
-        self.mod_params = mod_params
         self.dec_type = dec_type
         self.restr_type = restr_type
         self.R_func = R_func
@@ -119,15 +119,16 @@ class _GEDTransformer(MNETransformerMixin, BaseEstimator):
         covs = np.stack(covs)
         self._validate_covariances(covs)
         self._validate_covariances([C_ref])
-        mod_params = self.mod_params if self.mod_params is not None else dict()
         mod_ged_callable = (
             self.mod_ged_callable if self.mod_ged_callable is not None else _no_op_mod
         )
         if self.dec_type == "single":
             if len(covs) > 2:
-                sample_weights = kwargs["sample_weights"]
+                weights = (
+                    kwargs["sample_weights"] if "sample_weights" in kwargs else None
+                )
                 restr_mat = _handle_restr_mat(C_ref, self.restr_type, info, rank)
-                evecs = _smart_ajd(covs, restr_mat, weights=sample_weights)
+                evecs = _smart_ajd(covs, restr_mat, weights=weights)
                 evals = None
             else:
                 S = covs[0]
@@ -135,7 +136,7 @@ class _GEDTransformer(MNETransformerMixin, BaseEstimator):
                 restr_mat = _handle_restr_mat(C_ref, self.restr_type, info, rank)
                 evals, evecs = _smart_ged(S, R, restr_mat, R_func=self.R_func)
 
-            evals, evecs = mod_ged_callable(evals, evecs, covs, **mod_params, **kwargs)
+            evals, evecs = mod_ged_callable(evals, evecs, covs, **kwargs)
             self.evals_ = evals
             self.filters_ = evecs.T
             if self.restr_type == "ssd":
@@ -153,9 +154,7 @@ class _GEDTransformer(MNETransformerMixin, BaseEstimator):
 
                 evals, evecs = _smart_ged(S, R, restr_mat, R_func=self.R_func)
 
-                evals, evecs = mod_ged_callable(
-                    evals, evecs, covs, **mod_params, **kwargs
-                )
+                evals, evecs = mod_ged_callable(evals, evecs, covs, **kwargs)
                 all_evals.append(evals)
                 all_evecs.append(evecs.T)
                 all_patterns.append(np.linalg.pinv(evecs))

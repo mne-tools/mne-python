@@ -135,11 +135,11 @@ class CSP(_GEDTransformer):
             rank=rank,
             norm_trace=norm_trace,
         )
+        mod_ged_callable = partial(_csp_mod, evecs_order=component_order)
         super().__init__(
             n_components=n_components,
             cov_callable=cov_callable,
-            mod_ged_callable=_csp_mod,
-            mod_params=dict(evecs_order=component_order),
+            mod_ged_callable=mod_ged_callable,
             restr_type="restricting",
             R_func=sum,
         )
