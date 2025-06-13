@@ -227,7 +227,7 @@ def _rgb(x, y, z):
     rgb -= np.nanmin(rgb, 0)
     rgb /= np.maximum(np.nanmax(rgb, 0), 1e-16)  # avoid div by zero
     # Reduce RGB intensity for overly light colors
-    rgb[rgb.sum(axis=1) > 2.5] = rgb[rgb.sum(axis=1) > 2.5] - 0.3    
+    rgb[rgb.sum(axis=1) > 2.5] = rgb[rgb.sum(axis=1) > 2.5] - 0.3
     return rgb
 
 
