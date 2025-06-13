@@ -46,7 +46,7 @@ class _GEDTransformer(MNETransformerMixin, BaseEstimator):
     mod_ged_callable : callable
         Function used to modify (e.g. sort or normalize) generalized
         eigenvalues and eigenvectors.
-    mod_params : dict
+    mod_params : dict | None
         Parameters passed to mod_ged_callable.
     dec_type : "single" | "multi"
         When "single" and cov_callable returns > 2 covariances,
@@ -93,7 +93,8 @@ class _GEDTransformer(MNETransformerMixin, BaseEstimator):
         cov_callable,
         cov_params,
         mod_ged_callable,
-        mod_params,
+        *,
+        mod_params=None,
         dec_type="single",
         restr_type=None,
         R_func=None,
@@ -120,6 +121,7 @@ class _GEDTransformer(MNETransformerMixin, BaseEstimator):
         covs = np.stack(covs)
         self._validate_covariances(covs)
         self._validate_covariances([C_ref])
+        mod_params = self.mod_params if self.mod_params is not None else dict()
         if self.dec_type == "single":
             if len(covs) > 2:
                 sample_weights = kwargs["sample_weights"]
@@ -133,7 +135,7 @@ class _GEDTransformer(MNETransformerMixin, BaseEstimator):
                 evals, evecs = _smart_ged(S, R, restr_mat, R_func=self.R_func)
 
             evals, evecs = self.mod_ged_callable(
-                evals, evecs, covs, **self.mod_params, **kwargs
+                evals, evecs, covs, **mod_params, **kwargs
             )
             self.evals_ = evals
             self.filters_ = evecs.T
@@ -153,7 +155,7 @@ class _GEDTransformer(MNETransformerMixin, BaseEstimator):
                 evals, evecs = _smart_ged(S, R, restr_mat, R_func=self.R_func)
 
                 evals, evecs = self.mod_ged_callable(
-                    evals, evecs, covs, **self.mod_params, **kwargs
+                    evals, evecs, covs, **mod_params, **kwargs
                 )
                 all_evals.append(evals)
                 all_evecs.append(evecs.T)

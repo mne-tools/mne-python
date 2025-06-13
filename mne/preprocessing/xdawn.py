@@ -265,13 +265,11 @@ class _XdawnTransformer(_GEDTransformer):
 
         cov_params = dict(reg=reg, cov_method_params=method_params, R=signal_cov)
 
-        mod_params = dict()
         super().__init__(
             n_components,
             _xdawn_estimate,
             cov_params,
             _xdawn_mod,
-            mod_params,
             dec_type="multi",
             restr_type=None,
             R_func=None,

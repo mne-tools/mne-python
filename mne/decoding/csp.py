@@ -134,13 +134,12 @@ class CSP(_GEDTransformer):
             norm_trace=norm_trace,
         )
 
-        mod_params = dict(evecs_order=component_order)
         super().__init__(
             n_components=n_components,
             cov_callable=_csp_estimate,
             cov_params=cov_params,
             mod_ged_callable=_csp_mod,
-            mod_params=mod_params,
+            mod_params=dict(evecs_order=component_order),
             dec_type="single",
             restr_type="restricting",
             R_func=sum,
@@ -906,13 +905,11 @@ class SPoC(CSP):
             rank=rank,
         )
 
-        mod_params = dict()
         super(CSP, self).__init__(
             n_components,
             _spoc_estimate,
             cov_params,
             _spoc_mod,
-            mod_params,
             dec_type="single",
             restr_type=None,
             R_func=None,

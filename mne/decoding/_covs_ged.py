@@ -30,9 +30,8 @@ def _concat_cov(x_class, *, cov_kind, log_rank, reg, cov_method_params, rank, in
         log_rank=log_rank,
         log_ch_type="data",
     )
-    weight = x_class.shape[0]
 
-    return cov, weight
+    return cov, n_channels  # the weight here is just the number of channels
 
 
 def _epoch_cov(x_class, *, cov_kind, log_rank, reg, cov_method_params, rank, info):
