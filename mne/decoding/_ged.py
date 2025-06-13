@@ -18,8 +18,7 @@ def _handle_restr_mat(C_ref, restr_type, info, rank):
     if C_ref is None or restr_type is None:
         return None
     if restr_type == "whitening":
-        projs = info["projs"]
-        C_ref_cov = Covariance(C_ref, info.ch_names, info["bads"], projs, 0)
+        C_ref_cov = Covariance(C_ref, info.ch_names, info["bads"], info["projs"], 0)
         restr_mat = compute_whitener(C_ref_cov, info, rank=rank, pca=True)[0]
     elif restr_type == "ssd":
         restr_mat = _get_ssd_whitener(C_ref, rank)

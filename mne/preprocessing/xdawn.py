@@ -8,6 +8,7 @@ from functools import partial
 import numpy as np
 from scipy import linalg
 
+from .._fiff.meas_info import Info
 from .._fiff.pick import _pick_data_channels, pick_info
 from ..cov import Covariance, _regularized_covariance
 from ..decoding._covs_ged import _xdawn_estimate
@@ -246,6 +247,30 @@ class _XdawnTransformer(_GEDTransformer):
         Parameters to pass to :func:`mne.compute_covariance`.
 
         .. versionadded:: 0.16
+    restr_type : "restricting" | "whitening" | None
+        Restricting transformation for covariance matrices before performing
+        generalized eigendecomposition.
+        If "restricting" only restriction to the principal subspace of signal_cov
+        will be performed.
+        If "whitening", covariance matrices will be additionally rescaled according
+        to the whitening for the signal_cov.
+        If None, no restriction will be applied. Defaults to None.
+
+        .. versionadded:: 1.10
+    info : mne.Info | None
+        The mne.Info object with information about the sensors and methods of
+        measurement used for covariance estimation and generalized
+        eigendecomposition.
+        If None, one channel type and no projections will be assumed and if
+        rank is dict, it will be sum of ranks per channel type.
+        Defaults to None.
+
+        .. versionadded:: 1.10
+    %(rank)s
+        Defaults to "full".
+
+        .. versionadded:: 1.10
+
 
     Attributes
     ----------
@@ -257,21 +282,39 @@ class _XdawnTransformer(_GEDTransformer):
         The Xdawn patterns used to restore the signals for each event type.
     """
 
-    def __init__(self, n_components=2, reg=None, signal_cov=None, method_params=None):
+    def __init__(
+        self,
+        n_components=2,
+        reg=None,
+        signal_cov=None,
+        method_params=None,
+        restr_type=None,
+        info=None,
+        rank="full",
+    ):
         """Init."""
         self.n_components = n_components
         self.signal_cov = signal_cov
         self.reg = reg
         self.method_params = method_params
+        self.restr_type = restr_type
+        self.info = info
+        self.rank = rank
 
         cov_callable = partial(
-            _xdawn_estimate, reg=reg, cov_method_params=method_params, R=signal_cov
+            _xdawn_estimate,
+            reg=reg,
+            cov_method_params=method_params,
+            R=signal_cov,
+            info=info,
+            rank=rank,
         )
         super().__init__(
             n_components=n_components,
             cov_callable=cov_callable,
             mod_ged_callable=_xdawn_mod,
             dec_type="multi",
+            restr_type=restr_type,
         )
 
     def _validate_params(self, X):
@@ -288,7 +331,13 @@ class _XdawnTransformer(_GEDTransformer):
                 raise ValueError(
                     "signal_cov data should be of shape (n_channels, n_channels)"
                 )
-        _validate_type(self.method_params, (Mapping, None))
+        _validate_type(self.method_params, (Mapping, None), "method_params")
+        _check_option(
+            "restr_type",
+            self.restr_type,
+            ("restricting", "whitening", None),
+        )
+        _validate_type(self.info, (Info, None), "info")
 
     def fit(self, X, y=None):
         """Fit Xdawn spatial filters.

@@ -119,11 +119,6 @@ def _xdawn_estimate(
 ):
     classes = np.unique(y)
 
-    # XXX Eventually this could be made to deal with rank deficiency properly
-    # by exposing this "rank" parameter, but this will require refactoring
-    # the linalg.eigh call to operate in the lower-dimension
-    # subspace, then project back out.
-
     # Retrieve or compute whitening covariance
     if R is None:
         R = _regularized_covariance(
@@ -147,9 +142,8 @@ def _xdawn_estimate(
         covs.append(evo_cov)
 
     covs.append(R)
-    C_ref = None
-    rank = None
-    info = None
+    C_ref = R
+    rank = rank if isinstance(rank, dict) else None
     return covs, C_ref, info, rank, dict()
 
 
