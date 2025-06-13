@@ -69,30 +69,39 @@ covariance :math:`C_{ref}` (in Common Spatial Pattern (CSP) algorithm, for examp
 More formally: 
 Let :math:`r \leq n` be a rank of :math:`C \in S^n_+`. 
 Let :math:`Q=\operatorname{Im}(C_{ref})` be a principal subspace of :math:`C_{ref}`. 
-Let :math:`P \in M_{n \times r}(\mathbb{R})` be formed by orthonormal basis of :math:`Q`.
-Let :math:`f:M_n(\mathbb{R}) \to M_r(\mathbb{R})` be a "restricting" linear map, that restricts matrix :math:`A` to :math:`Q`: :math:`A|_Q = P^t A P`.
+Let :math:`P \in M_{n \times r}(\mathbb{R})` be an isometry formed by orthonormal basis of :math:`Q`.
+Let :math:`f:S^n_+ \to S^r_+`, :math:`A \mapsto P^t A P` be a "restricting" map, that restricts quadratic form 
+:math:`q_A:\mathbb{R}^n \to \mathbb{R}` to :math:`q_{A|_Q}:\mathbb{R}^n \to \mathbb{R}` (in practical terms, :math:`q_A` maps 
+spatial filters to variance of the spatially filtered data :math:`X_A`).
 
 Then, the GED of :math:`S` and :math:`R` in the principal subspace :math:`Q` of :math:`C_{ref}` is performed as follows:
 
-1. :math:`S` and :math:`R` are restricted to :math:`Q`:
-   :math:`S|_Q = f(S) = P^t S P` and :math:`R|_Q = f(R) = P^t R P`
-2. GED is performed on :math:`S|_Q` and :math:`R|_Q`:
-   :math:`S|_Q W|_Q = R|_Q W|_Q D`
-3. Eigenvectors :math:`W_Q` of :math:`(S|_Q, R|_Q)` are transformed back to :math:`\mathbb{R}^n` by:
-   :math:`W = P W|_Q \in \mathbb{R}^{n \times r}` to obtain :math:`r` spatial filters.
+1. :math:`S` and :math:`R` are transformed to :math:`S_Q = f(S) = P^t S P` and :math:`R_Q = f(R) = P^t R P`, 
+   such that :math:`S_Q` and :math:`R_Q` are matrix representations of restricted :math:`q_{S|_Q}` and :math:`q_{R|_Q}`.
+2. GED is performed on :math:`S_Q` and :math:`R_Q`: :math:`S_Q W_Q = R_Q W_Q D`.
+3. Eigenvectors :math:`W_Q` of :math:`(S_Q, R_Q)` are transformed back to :math:`\mathbb{R}^n` 
+   by :math:`W = P W_Q \in \mathbb{R}^{n \times r}` to obtain :math:`r` spatial filters.
 
-In addition to restriction, :math:`S` and :math:`R` can be rescaled based on the whitened :math:`C_{ref}`. 
-In this case the whitening map :math:`f_{wh}:M_n(\mathbb{R}) \to M_r(\mathbb{R})`, 
-:math:`A \mapsto P_{wh}^t A P_{wh}` both restricts matrix :math:`A` to :math:`Q` and rescales it according to :math:`\Lambda^{-1/2}`, 
-where :math:`\Lambda` is a diagonal matrix of eigenvalues of :math:`C_{ref}` and :math:`P_{wh} = P \Lambda^{-1/2}`.
+Note that the solution to the original optimization problem is preserved:
+
+.. math::
+
+   \frac{\mathbf{w_Q}^t S_Q \mathbf{w_Q}}{\mathbf{w_Q}^t R_Q \mathbf{w_Q}}= \frac{\mathbf{w_Q}^t (P^t S P) \mathbf{w_Q}}{\mathbf{w_Q}^t (P^t R P) 
+   \mathbf{w_Q}} = \frac{\mathbf{w}^t S \mathbf{w}}{\mathbf{w}^t R \mathbf{w}} = \lambda
+
+
+In addition to restriction, :math:`q_S` and :math:`q_R` can be rescaled based on the whitened :math:`C_{ref}`. 
+In this case the whitening map :math:`f_{wh}:S^n_+ \to S^r_+`, 
+:math:`A \mapsto P_{wh}^t A P_{wh}` transforms :math:`A` into matrix representation of :math:`q_{A|Q}` rescaled according to :math:`\Lambda^{-1/2}`, 
+where :math:`\Lambda` is a diagonal matrix of eigenvalues of :math:`C_{ref}` and so :math:`P_{wh} = P \Lambda^{-1/2}`.
 
 In MNE-Python, the matrix :math:`P` of the restricting map can be obtained using
 ::
 
-    _, evecs, mask = mne.cov._smart_eigh(..., proj_subspace=True, ...)
+    _, ref_evecs, mask = mne.cov._smart_eigh(C_ref, ..., proj_subspace=True, ...)
     restr_mat = ref_evecs[mask]
 
 while :math:`P_{wh}` using:
 ::
 
-    restr_mat = compute_whitener(..., pca=True, ...)
+    restr_mat = compute_whitener(C_ref, ..., pca=True, ...)
