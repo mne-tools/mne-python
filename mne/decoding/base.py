@@ -24,7 +24,7 @@ from sklearn.utils.validation import check_is_fitted
 
 from ..parallel import parallel_func
 from ..utils import _pl, logger, pinv, verbose, warn
-from .ged import _handle_restr_mat, _is_cov_symm_pos_semidef, _smart_ajd, _smart_ged
+from ._ged import _handle_restr_mat, _is_cov_symm_pos_semidef, _smart_ajd, _smart_ged
 from .transformer import MNETransformerMixin
 
 
@@ -40,9 +40,9 @@ class _GEDTransformer(MNETransformerMixin, BaseEstimator):
         The number of spatial filters to decompose M/EEG signals.
     cov_callable : callable
         Function used to estimate covariances and reference matrix (C_ref) from the
-        data.
-    cov_params : dict
-        Parameters passed to cov_callable.
+        data. It should accept only X and y as arguments and return covs, C_ref, info,
+        rank and additional kwargs passed further to mod_ged_callable.
+        C_ref, info, rank can be None, while kwargs can be empty dict.
     mod_ged_callable : callable
         Function used to modify (e.g. sort or normalize) generalized
         eigenvalues and eigenvectors.
@@ -91,7 +91,6 @@ class _GEDTransformer(MNETransformerMixin, BaseEstimator):
         self,
         n_components,
         cov_callable,
-        cov_params,
         mod_ged_callable,
         *,
         mod_params=None,
@@ -101,7 +100,6 @@ class _GEDTransformer(MNETransformerMixin, BaseEstimator):
     ):
         self.n_components = n_components
         self.cov_callable = cov_callable
-        self.cov_params = cov_params
         self.mod_ged_callable = mod_ged_callable
         self.mod_params = mod_params
         self.dec_type = dec_type
@@ -117,7 +115,7 @@ class _GEDTransformer(MNETransformerMixin, BaseEstimator):
             return_y=True,
             atleast_3d=False if self.restr_type == "ssd" else True,
         )
-        covs, C_ref, info, rank, kwargs = self.cov_callable(X, y, **self.cov_params)
+        covs, C_ref, info, rank, kwargs = self.cov_callable(X, y)
         covs = np.stack(covs)
         self._validate_covariances(covs)
         self._validate_covariances([C_ref])

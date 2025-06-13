@@ -2,7 +2,7 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-import functools
+from functools import partial
 from pathlib import Path
 
 import numpy as np
@@ -18,8 +18,7 @@ from sklearn.utils.estimator_checks import parametrize_with_checks
 from mne import Epochs, compute_rank, create_info, pick_types, read_events
 from mne._fiff.proj import make_eeg_average_ref_proj
 from mne.cov import Covariance, _regularized_covariance
-from mne.decoding.base import _GEDTransformer
-from mne.decoding.ged import (
+from mne.decoding._ged import (
     _get_restr_mat,
     _handle_restr_mat,
     _is_cov_pos_def,
@@ -27,6 +26,7 @@ from mne.decoding.ged import (
     _smart_ajd,
     _smart_ged,
 )
+from mne.decoding.base import _GEDTransformer
 from mne.io import read_raw
 
 data_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
@@ -120,12 +120,8 @@ def _mock_mod_ged_callable(evals, evecs, covs, **kwargs):
 
 param_grid = dict(
     n_components=[4],
-    cov_callable=[_mock_cov_callable],
-    cov_params=[
-        dict(cov_method_params=dict(reg="empirical")),
-    ],
+    cov_callable=[partial(_mock_cov_callable, cov_method_params=dict(reg="empirical"))],
     mod_ged_callable=[_mock_mod_ged_callable],
-    mod_params=[dict()],
     dec_type=["single", "multi"],
     # XXX: Not covering "ssd" here because test_ssd.py works with 2D data.
     # Need to fix its tests first.
@@ -133,7 +129,7 @@ param_grid = dict(
         "restricting",
         "whitening",
     ],
-    R_func=[functools.partial(np.sum, axis=0)],
+    R_func=[partial(np.sum, axis=0)],
 )
 
 ged_estimators = [_GEDTransformer(**p) for p in ParameterGrid(param_grid)]
@@ -185,11 +181,8 @@ def test_ged_binary_cov():
     ged = _GEDTransformer(
         n_components=4,
         cov_callable=_mock_cov_callable,
-        cov_params=dict(),
         mod_ged_callable=_mock_mod_ged_callable,
-        dec_type="single",
         restr_type="restricting",
-        R_func=None,
     )
     ged.fit(X, y)
     desired_evals = ged.evals_
@@ -212,11 +205,9 @@ def test_ged_binary_cov():
     ged = _GEDTransformer(
         n_components=4,
         cov_callable=_mock_cov_callable,
-        cov_params=dict(),
         mod_ged_callable=_mock_mod_ged_callable,
         dec_type="multi",
         restr_type="restricting",
-        R_func=None,
     )
     ged.fit(X, y)
     desired_evals = ged.evals_
@@ -241,11 +232,8 @@ def test_ged_multicov():
     ged = _GEDTransformer(
         n_components=4,
         cov_callable=_mock_cov_callable,
-        cov_params=dict(),
         mod_ged_callable=_mock_mod_ged_callable,
-        dec_type="single",
         restr_type="restricting",
-        R_func=None,
     )
     ged.fit(X, y)
     desired_filters = ged.filters_
@@ -267,11 +255,9 @@ def test_ged_multicov():
     ged = _GEDTransformer(
         n_components=4,
         cov_callable=_mock_cov_callable,
-        cov_params=dict(),
         mod_ged_callable=_mock_mod_ged_callable,
         dec_type="multi",
         restr_type="restricting",
-        R_func=None,
     )
     ged.fit(X, y)
     desired_evals = ged.evals_
@@ -292,12 +278,11 @@ def test_ged_multicov():
 
     ged = _GEDTransformer(
         n_components=4,
-        cov_callable=_mock_cov_callable,
-        cov_params=dict(cov_method_params=dict(reg="oas"), compute_C_ref=False),
+        cov_callable=partial(
+            _mock_cov_callable, cov_method_params=dict(reg="oas"), compute_C_ref=False
+        ),
         mod_ged_callable=_mock_mod_ged_callable,
-        dec_type="single",
         restr_type="restricting",
-        R_func=None,
     )
     ged.fit(X, y)
     desired_filters = ged.filters_
@@ -310,11 +295,7 @@ def test_ged_invalid_cov():
     ged = _GEDTransformer(
         n_components=1,
         cov_callable=_mock_cov_callable,
-        cov_params=dict(),
         mod_ged_callable=_mock_mod_ged_callable,
-        dec_type="single",
-        restr_type=None,
-        R_func=None,
     )
     asymm_cov = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
     with pytest.raises(ValueError, match="not symmetric"):

@@ -3,6 +3,7 @@
 # Copyright the MNE-Python contributors.
 
 import copy as cp
+from functools import partial
 
 import numpy as np
 from scipy.linalg import eigh
@@ -126,21 +127,19 @@ class CSP(_GEDTransformer):
         self.cov_method_params = cov_method_params
         self.component_order = component_order
 
-        cov_params = dict(
+        cov_callable = partial(
+            _csp_estimate,
             reg=reg,
             cov_method_params=cov_method_params,
             cov_est=cov_est,
             rank=rank,
             norm_trace=norm_trace,
         )
-
         super().__init__(
             n_components=n_components,
-            cov_callable=_csp_estimate,
-            cov_params=cov_params,
+            cov_callable=cov_callable,
             mod_ged_callable=_csp_mod,
             mod_params=dict(evecs_order=component_order),
-            dec_type="single",
             restr_type="restricting",
             R_func=sum,
         )
@@ -899,20 +898,16 @@ class SPoC(CSP):
             cov_method_params=cov_method_params,
         )
 
-        cov_params = dict(
+        cov_callable = partial(
+            _spoc_estimate,
             reg=reg,
             cov_method_params=cov_method_params,
             rank=rank,
         )
-
         super(CSP, self).__init__(
-            n_components,
-            _spoc_estimate,
-            cov_params,
-            _spoc_mod,
-            dec_type="single",
-            restr_type=None,
-            R_func=None,
+            n_components=n_components,
+            cov_callable=cov_callable,
+            mod_ged_callable=_spoc_mod,
         )
 
         # Covariance estimation have to be done on the single epoch level,

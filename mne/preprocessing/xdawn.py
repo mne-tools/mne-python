@@ -3,6 +3,7 @@
 # Copyright the MNE-Python contributors.
 
 from collections.abc import Mapping
+from functools import partial
 
 import numpy as np
 from scipy import linalg
@@ -263,16 +264,14 @@ class _XdawnTransformer(_GEDTransformer):
         self.reg = reg
         self.method_params = method_params
 
-        cov_params = dict(reg=reg, cov_method_params=method_params, R=signal_cov)
-
+        cov_callable = partial(
+            _xdawn_estimate, reg=reg, cov_method_params=method_params, R=signal_cov
+        )
         super().__init__(
-            n_components,
-            _xdawn_estimate,
-            cov_params,
-            _xdawn_mod,
+            n_components=n_components,
+            cov_callable=cov_callable,
+            mod_ged_callable=_xdawn_mod,
             dec_type="multi",
-            restr_type=None,
-            R_func=None,
         )
 
     def _validate_params(self, X):

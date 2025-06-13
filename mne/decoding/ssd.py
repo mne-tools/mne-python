@@ -2,6 +2,8 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+from functools import partial
+
 import numpy as np
 from scipy.linalg import eigh
 from sklearn.utils.validation import check_is_fitted
@@ -119,7 +121,8 @@ class SSD(_GEDTransformer):
         self.cov_method_params = cov_method_params
         self.rank = rank
 
-        cov_params = dict(
+        cov_callable = partial(
+            _ssd_estimate,
             reg=reg,
             cov_method_params=cov_method_params,
             info=info,
@@ -128,17 +131,11 @@ class SSD(_GEDTransformer):
             filt_params_noise=filt_params_noise,
             rank=rank,
         )
-
-        mod_params = dict()
         super().__init__(
-            n_components,
-            _ssd_estimate,
-            cov_params,
-            _ssd_mod,
-            mod_params,
-            dec_type="single",
+            n_components=n_components,
+            cov_callable=cov_callable,
+            mod_ged_callable=_ssd_mod,
             restr_type="ssd",
-            R_func=None,
         )
 
     def _validate_params(self, X):
