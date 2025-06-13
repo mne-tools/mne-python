@@ -9,7 +9,7 @@ import numpy as np
 from scipy.linalg import eigh
 from sklearn.utils.validation import check_is_fitted
 
-from .._fiff.meas_info import create_info
+from .._fiff.meas_info import Info, create_info
 from ..cov import _compute_rank_raw_array, _regularized_covariance, _smart_eigh
 from ..defaults import _BORDER_DEFAULT, _EXTRAPOLATE_DEFAULT, _INTERPOLATION_DEFAULT
 from ..evoked import EvokedArray
@@ -70,6 +70,26 @@ class CSP(_GEDTransformer):
         Parameters to pass to :func:`mne.compute_covariance`.
 
         .. versionadded:: 0.16
+
+    restr_type : "restricting" | "whitening" | None
+        Restricting transformation for covariance matrices before performing
+        generalized eigendecomposition.
+        If "restricting" only restriction to the principal subspace of signal_cov
+        will be performed.
+        If "whitening", covariance matrices will be additionally rescaled according
+        to the whitening for the signal_cov.
+        If None, no restriction will be applied. Defaults to "restricting".
+
+        .. versionadded:: 1.10
+    info : mne.Info | None
+        The mne.Info object with information about the sensors and methods of
+        measurement used for covariance estimation and generalized
+        eigendecomposition.
+        If None, one channel type and no projections will be assumed and if
+        rank is dict, it will be sum of ranks per channel type.
+        Defaults to None.
+
+        .. versionadded:: 1.10
     %(rank_none)s
 
         .. versionadded:: 0.17
@@ -113,11 +133,14 @@ class CSP(_GEDTransformer):
         transform_into="average_power",
         norm_trace=False,
         cov_method_params=None,
+        restr_type="restricting",
+        info=None,
         rank=None,
         component_order="mutual_info",
     ):
         # Init default CSP
         self.n_components = n_components
+        self.info = info
         self.rank = rank
         self.reg = reg
         self.cov_est = cov_est
@@ -126,12 +149,14 @@ class CSP(_GEDTransformer):
         self.norm_trace = norm_trace
         self.cov_method_params = cov_method_params
         self.component_order = component_order
+        self.restr_type = restr_type
 
         cov_callable = partial(
             _csp_estimate,
             reg=reg,
             cov_method_params=cov_method_params,
             cov_est=cov_est,
+            info=info,
             rank=rank,
             norm_trace=norm_trace,
         )
@@ -140,7 +165,7 @@ class CSP(_GEDTransformer):
             n_components=n_components,
             cov_callable=cov_callable,
             mod_ged_callable=mod_ged_callable,
-            restr_type="restricting",
+            restr_type=restr_type,
             R_func=sum,
         )
 
@@ -172,6 +197,12 @@ class CSP(_GEDTransformer):
         n_classes = len(self.classes_)
         if n_classes < 2:
             raise ValueError(f"n_classes must be >= 2, but got {n_classes} class")
+        _check_option(
+            "restr_type",
+            self.restr_type,
+            ("restricting", "whitening", None),
+        )
+        _validate_type(self.info, (Info, None), "info")
 
     def fit(self, X, y):
         """Estimate the CSP decomposition on epochs.

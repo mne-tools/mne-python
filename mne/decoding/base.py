@@ -22,8 +22,6 @@ from sklearn.model_selection import KFold, StratifiedKFold, check_cv
 from sklearn.utils import check_array, check_X_y, indexable
 from sklearn.utils.validation import check_is_fitted
 
-from .._fiff.meas_info import create_info
-from ..cov import _compute_rank_raw_array
 from ..parallel import parallel_func
 from ..utils import _pl, logger, pinv, verbose, warn
 from ._ged import _handle_restr_mat, _is_cov_symm_pos_semidef, _smart_ajd, _smart_ged
@@ -70,7 +68,7 @@ class _GEDTransformer(MNETransformerMixin, BaseEstimator):
         preserved for compatibility.
         If None, no restriction will be applied. Defaults to None.
     R_func : callable | None
-        If provided GED will be performed on (S, R_func(S,R)).
+        If provided, GED will be performed on (S, R_func(S,R)).
 
     Attributes
     ----------
@@ -88,7 +86,10 @@ class _GEDTransformer(MNETransformerMixin, BaseEstimator):
     CSP
     SPoC
     SSD
-    mne.preprocessing.Xdawn
+
+    Notes
+    -----
+    .. versionadded:: 1.10
     """
 
     def __init__(
@@ -124,23 +125,6 @@ class _GEDTransformer(MNETransformerMixin, BaseEstimator):
         mod_ged_callable = (
             self.mod_ged_callable if self.mod_ged_callable is not None else _no_op_mod
         )
-
-        # If restriction to be done, info and rank should exist.
-        if self.restr_type is not None and C_ref is not None:
-            if info is None:
-                # use mag instead of eeg to avoid the cov EEG projection warning
-                info = create_info(C_ref.shape[0], 1000.0, "mag")
-                if isinstance(rank, dict):
-                    rank = dict(mag=sum(rank.values()))
-
-            if rank is None:
-                rank = _compute_rank_raw_array(
-                    np.hstack(X),
-                    info,
-                    rank=None,
-                    scalings=None,
-                    log_ch_type="data",
-                )
 
         if self.dec_type == "single":
             if len(covs) > 2:

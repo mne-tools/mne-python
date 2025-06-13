@@ -15,7 +15,7 @@ from ..rank import compute_rank
 from ..utils import _verbose_safe_false, logger
 
 
-def _concat_cov(x_class, *, cov_kind, log_rank, reg, cov_method_params, rank, info):
+def _concat_cov(x_class, *, cov_kind, log_rank, reg, cov_method_params, info, rank):
     """Concatenate epochs before computing the covariance."""
     _, n_channels, _ = x_class.shape
 
@@ -34,7 +34,7 @@ def _concat_cov(x_class, *, cov_kind, log_rank, reg, cov_method_params, rank, in
     return cov, n_channels  # the weight here is just the number of channels
 
 
-def _epoch_cov(x_class, *, cov_kind, log_rank, reg, cov_method_params, rank, info):
+def _epoch_cov(x_class, *, cov_kind, log_rank, reg, cov_method_params, info, rank):
     """Mean of per-epoch covariances."""
     name = reg if isinstance(reg, str) else "empirical"
     name += " with shrinkage" if isinstance(reg, float) else ""
@@ -62,22 +62,29 @@ def _epoch_cov(x_class, *, cov_kind, log_rank, reg, cov_method_params, rank, inf
     return cov, weight
 
 
-def _csp_estimate(X, y, reg, cov_method_params, cov_est, rank, norm_trace):
+def _handle_info_rank(X, info, rank):
+    if info is None:
+        # use mag instead of eeg to avoid the cov EEG projection warning
+        info = create_info(X.shape[1], 1000.0, "mag")
+        if isinstance(rank, dict):
+            rank = dict(mag=sum(rank.values()))
+
+    return info, rank
+
+
+def _csp_estimate(X, y, reg, cov_method_params, cov_est, info, rank, norm_trace):
     _, n_channels, _ = X.shape
     classes_ = np.unique(y)
     if cov_est == "concat":
         cov_estimator = _concat_cov
     elif cov_est == "epoch":
         cov_estimator = _epoch_cov
-    # Someday we could allow the user to pass this, then we wouldn't need to convert
-    # but in the meantime they can use a pipeline with a scaler
-    _info = create_info(n_channels, 1000.0, "mag")
-    if isinstance(rank, dict):
-        _rank = {"mag": sum(rank.values())}
-    else:
-        _rank = _compute_rank_raw_array(
-            X.transpose(1, 0, 2).reshape(X.shape[1], -1),
-            _info,
+
+    info, rank = _handle_info_rank(X, info, rank)
+    if not isinstance(rank, dict):
+        rank = _compute_rank_raw_array(
+            np.hstack(X),
+            info,
             rank=rank,
             scalings=None,
             log_ch_type="data",
@@ -92,8 +99,8 @@ def _csp_estimate(X, y, reg, cov_method_params, cov_est, rank, norm_trace):
             log_rank=ci == 0,
             reg=reg,
             cov_method_params=cov_method_params,
-            rank=_rank,
-            info=_info,
+            info=info,
+            rank=rank,
         )
 
         if norm_trace:
@@ -105,7 +112,7 @@ def _csp_estimate(X, y, reg, cov_method_params, cov_est, rank, norm_trace):
     covs = np.stack(covs)
     C_ref = covs.mean(0)
 
-    return covs, C_ref, _info, _rank, dict(sample_weights=np.array(sample_weights))
+    return covs, C_ref, info, rank, dict(sample_weights=np.array(sample_weights))
 
 
 def _xdawn_estimate(
@@ -118,6 +125,7 @@ def _xdawn_estimate(
     rank="full",
 ):
     classes = np.unique(y)
+    info, rank = _handle_info_rank(X, info, rank)
 
     # Retrieve or compute whitening covariance
     if R is None:
@@ -143,7 +151,14 @@ def _xdawn_estimate(
 
     covs.append(R)
     C_ref = R
-    rank = rank if isinstance(rank, dict) else None
+    if not isinstance(rank, dict):
+        rank = _compute_rank_raw_array(
+            np.hstack(X),
+            info,
+            rank=rank,
+            scalings=None,
+            log_ch_type="data",
+        )
     return covs, C_ref, info, rank, dict()
 
 
