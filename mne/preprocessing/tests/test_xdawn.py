@@ -22,7 +22,8 @@ from mne.io import read_raw_fif
 
 pytest.importorskip("sklearn")
 
-from mne.preprocessing.xdawn import Xdawn, _XdawnTransformer  # noqa: E402
+from mne.decoding.xdawn import XdawnTransformer
+from mne.preprocessing.xdawn import Xdawn  # noqa: E402
 
 base_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
 raw_fname = base_dir / "test_raw.fif"
@@ -236,7 +237,7 @@ def test_xdawn_regularization():
 
 
 def test_XdawnTransformer():
-    """Test _XdawnTransformer."""
+    """Test XdawnTransformer."""
     pytest.importorskip("sklearn")
     # Get data
     raw, events, picks = _get_data()
@@ -255,37 +256,37 @@ def test_XdawnTransformer():
     X = epochs._data
     y = epochs.events[:, -1]
     # Fit
-    xdt = _XdawnTransformer()
+    xdt = XdawnTransformer()
     xdt.fit(X, y)
     pytest.raises(ValueError, xdt.fit, X, y[1:])
     pytest.raises(ValueError, xdt.fit, "foo")
 
     # Provide covariance object
     signal_cov = compute_raw_covariance(raw, picks=picks)
-    xdt = _XdawnTransformer(signal_cov=signal_cov)
+    xdt = XdawnTransformer(signal_cov=signal_cov)
     xdt.fit(X, y)
     # Provide ndarray
     signal_cov = np.eye(len(picks))
-    xdt = _XdawnTransformer(signal_cov=signal_cov)
+    xdt = XdawnTransformer(signal_cov=signal_cov)
     xdt.fit(X, y)
     # Provide ndarray of bad shape
     signal_cov = np.eye(len(picks) - 1)
-    xdt = _XdawnTransformer(signal_cov=signal_cov)
+    xdt = XdawnTransformer(signal_cov=signal_cov)
     pytest.raises(ValueError, xdt.fit, X, y)
     # Provide another type
     signal_cov = 42
-    xdt = _XdawnTransformer(signal_cov=signal_cov)
+    xdt = XdawnTransformer(signal_cov=signal_cov)
     pytest.raises(ValueError, xdt.fit, X, y)
 
     # Fit with y as None
-    xdt = _XdawnTransformer()
+    xdt = XdawnTransformer()
     xdt.fit(X)
 
-    # Compare xdawn and _XdawnTransformer
+    # Compare xdawn and XdawnTransformer
     xd = Xdawn(correct_overlap=False)
     xd.fit(epochs)
 
-    xdt = _XdawnTransformer()
+    xdt = XdawnTransformer()
     xdt.fit(X, y)
     assert_array_almost_equal(
         xd.filters_["cond2"][:2, :], xdt.filters_.reshape(2, 2, 8)[0]
@@ -363,7 +364,7 @@ def test_xdawn_decoding_performance():
     epochs, mixing_mat = _simulate_erplike_mixed_data(n_epochs=100)
     y = epochs.events[:, 2]
 
-    # results of Xdawn and _XdawnTransformer should match
+    # results of Xdawn and XdawnTransformer should match
     xdawn_pipe = make_pipeline(
         Xdawn(n_components=n_xdawn_comps),
         Vectorizer(),
@@ -371,7 +372,7 @@ def test_xdawn_decoding_performance():
         LogisticRegression(solver="liblinear"),
     )
     xdawn_trans_pipe = make_pipeline(
-        _XdawnTransformer(n_components=n_xdawn_comps),
+        XdawnTransformer(n_components=n_xdawn_comps),
         Vectorizer(),
         MinMaxScaler(),
         LogisticRegression(solver="liblinear"),
