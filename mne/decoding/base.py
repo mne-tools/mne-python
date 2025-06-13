@@ -25,6 +25,7 @@ from sklearn.utils.validation import check_is_fitted
 from ..parallel import parallel_func
 from ..utils import _pl, logger, pinv, verbose, warn
 from ._ged import _handle_restr_mat, _is_cov_symm_pos_semidef, _smart_ajd, _smart_ged
+from ._mod_ged import _no_op_mod
 from .transformer import MNETransformerMixin
 
 
@@ -43,11 +44,10 @@ class _GEDTransformer(MNETransformerMixin, BaseEstimator):
         data. It should accept only X and y as arguments and return covs, C_ref, info,
         rank and additional kwargs passed further to mod_ged_callable.
         C_ref, info, rank can be None, while kwargs can be empty dict.
-    mod_ged_callable : callable
+    mod_ged_callable : callable | None
         Function used to modify (e.g. sort or normalize) generalized
-        eigenvalues and eigenvectors.
-    mod_params : dict | None
-        Parameters passed to mod_ged_callable.
+        eigenvalues and eigenvectors. If None, evals and evecs will be ordered according
+        to :func:`~scipy.linalg.eigh` default. Defaults to None
     dec_type : "single" | "multi"
         When "single" and cov_callable returns > 2 covariances,
         approximate joint diagonalization based on Pham's algorithm
@@ -91,8 +91,8 @@ class _GEDTransformer(MNETransformerMixin, BaseEstimator):
         self,
         n_components,
         cov_callable,
-        mod_ged_callable,
         *,
+        mod_ged_callable=None,
         mod_params=None,
         dec_type="single",
         restr_type=None,
@@ -120,6 +120,9 @@ class _GEDTransformer(MNETransformerMixin, BaseEstimator):
         self._validate_covariances(covs)
         self._validate_covariances([C_ref])
         mod_params = self.mod_params if self.mod_params is not None else dict()
+        mod_ged_callable = (
+            self.mod_ged_callable if self.mod_ged_callable is not None else _no_op_mod
+        )
         if self.dec_type == "single":
             if len(covs) > 2:
                 sample_weights = kwargs["sample_weights"]
@@ -132,9 +135,7 @@ class _GEDTransformer(MNETransformerMixin, BaseEstimator):
                 restr_mat = _handle_restr_mat(C_ref, self.restr_type, info, rank)
                 evals, evecs = _smart_ged(S, R, restr_mat, R_func=self.R_func)
 
-            evals, evecs = self.mod_ged_callable(
-                evals, evecs, covs, **mod_params, **kwargs
-            )
+            evals, evecs = mod_ged_callable(evals, evecs, covs, **mod_params, **kwargs)
             self.evals_ = evals
             self.filters_ = evecs.T
             if self.restr_type == "ssd":
@@ -152,7 +153,7 @@ class _GEDTransformer(MNETransformerMixin, BaseEstimator):
 
                 evals, evecs = _smart_ged(S, R, restr_mat, R_func=self.R_func)
 
-                evals, evecs = self.mod_ged_callable(
+                evals, evecs = mod_ged_callable(
                     evals, evecs, covs, **mod_params, **kwargs
                 )
                 all_evals.append(evals)

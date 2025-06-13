@@ -67,3 +67,7 @@ def _sort_descending(evals, evecs, by_abs=False):
     evals = evals[ix]
     evecs = evecs[:, ix]
     return evals, evecs
+
+
+def _no_op_mod(evals, evecs, *args, **kwargs):
+    return evals, evecs
