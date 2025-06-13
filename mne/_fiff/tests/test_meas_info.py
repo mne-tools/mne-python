@@ -775,14 +775,15 @@ def test_meas_date_convert(stamp, dt):
 
 def test_birthday_input():
     """Test that birthday input is handled correctly."""
+    pd = pytest.importorskip("pandas")
+
     # Test valid date
     info = create_info(ch_names=["EEG 001"], sfreq=1000.0, ch_types="eeg")
     info["subject_info"] = {}
     info["subject_info"]["birthday"] = date(2000, 1, 1)
     assert info["subject_info"]["birthday"] == date(2000, 1, 1)
 
-    # input a pandas Timestamp converts to datetime date
-    pd = pytest.importorskip("pandas")
+    # pandas Timestamp should convert to datetime date
     info["subject_info"]["birthday"] = pd.Timestamp("2000-01-01")
     assert info["subject_info"]["birthday"] == date(2000, 1, 1)
 
