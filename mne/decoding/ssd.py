@@ -21,6 +21,7 @@ from ..utils import (
     _verbose_safe_false,
     fill_doc,
     logger,
+    pinv,
 )
 from ._covs_ged import _ssd_estimate
 from ._mod_ged import _ssd_mod
@@ -271,7 +272,7 @@ class SSD(_GEDTransformer):
         self.eigvals_ = eigvals_[ix]
         # project back to sensor space
         self.filters_ = np.matmul(rank_proj, eigvects_[:, ix])
-        self.patterns_ = np.linalg.pinv(self.filters_)
+        self.patterns_ = pinv(self.filters_)
         # Need to unify with Xdawn and CSP as they store it as (n_components, n_chs)
         self.filters_ = self.filters_.T
 

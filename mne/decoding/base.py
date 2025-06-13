@@ -143,10 +143,7 @@ class _GEDTransformer(MNETransformerMixin, BaseEstimator):
             evals, evecs = mod_ged_callable(evals, evecs, covs, **kwargs)
             self.evals_ = evals
             self.filters_ = evecs.T
-            if self.restr_type == "ssd":
-                self.patterns_ = np.linalg.pinv(evecs)
-            else:
-                self.patterns_ = pinv(evecs)
+            self.patterns_ = pinv(evecs)
 
         elif self.dec_type == "multi":
             self.classes_ = np.unique(y)
@@ -161,7 +158,7 @@ class _GEDTransformer(MNETransformerMixin, BaseEstimator):
                 evals, evecs = mod_ged_callable(evals, evecs, covs, **kwargs)
                 all_evals.append(evals)
                 all_evecs.append(evecs.T)
-                all_patterns.append(np.linalg.pinv(evecs))
+                all_patterns.append(pinv(evecs))
             self.evals_ = np.array(all_evals)
             self.filters_ = np.array(all_evecs)
             self.patterns_ = np.array(all_patterns)

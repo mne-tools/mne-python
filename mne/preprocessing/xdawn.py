@@ -208,7 +208,7 @@ def _fit_xdawn(
             )
         evecs = evecs[:, np.argsort(evals)[::-1]]  # sort eigenvectors
         evecs /= np.apply_along_axis(np.linalg.norm, 0, evecs)
-        _patterns = np.linalg.pinv(evecs.T)
+        _patterns = pinv(evecs.T)
         filters.append(evecs[:, :n_components].T)
         patterns.append(_patterns[:, :n_components].T)
 
