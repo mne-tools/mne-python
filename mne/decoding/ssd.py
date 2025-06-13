@@ -96,9 +96,9 @@ class SSD(_GEDTransformer):
 
     Attributes
     ----------
-    filters_ : array, shape (n_channels or less, n_channels)
+    filters_ : array, shape (``n_channels or less``, n_channels)
         The spatial filters to be multiplied with the signal.
-    patterns_ : array, shape (n_channels or less, n_channels)
+    patterns_ : array, shape (``n_channels or less``, n_channels)
         The patterns for reconstructing the signal from the filtered data.
 
     References
