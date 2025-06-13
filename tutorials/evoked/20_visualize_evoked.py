@@ -21,7 +21,6 @@ import numpy as np
 
 import mne
 
-
 # %%
 # Instead of creating the :class:`~mne.Evoked` object from an
 # :class:`~mne.Epochs` object, we'll load an existing :class:`~mne.Evoked`
