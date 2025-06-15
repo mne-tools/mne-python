@@ -6,6 +6,8 @@
 
 import datetime as dt
 import numbers
+from functools import partial
+from inspect import Parameter, signature
 
 import numpy as np
 from sklearn import model_selection as models
@@ -23,7 +25,7 @@ from sklearn.utils import check_array, check_X_y, indexable
 from sklearn.utils.validation import check_is_fitted
 
 from ..parallel import parallel_func
-from ..utils import _pl, logger, pinv, verbose, warn
+from ..utils import _check_option, _pl, _validate_type, logger, pinv, verbose, warn
 from ._ged import _handle_restr_mat, _is_cov_symm_pos_semidef, _smart_ajd, _smart_ged
 from ._mod_ged import _no_op_mod
 from .transformer import MNETransformerMixin
@@ -37,19 +39,21 @@ class _GEDTransformer(MNETransformerMixin, BaseEstimator):
 
     Parameters
     ----------
-    n_components : int
+    n_components : int | None
         The number of spatial filters to decompose M/EEG signals.
+        If None, all of the components will be used for transformation.
+        Defaults to None.
     cov_callable : callable
         Function used to estimate covariances and reference matrix (C_ref) from the
-        data. It should accept only X and y as arguments and return covs, C_ref, info,
-        rank and additional kwargs passed further to mod_ged_callable.
-        C_ref, info, rank can be None, while kwargs can be empty dict.
+        data. The only required arguments should be 'X' and optionally 'y'. The function
+        should return covs, C_ref, info, rank and additional kwargs passed further
+        to mod_ged_callable. C_ref, info, rank can be None and kwargs can be empty dict.
     mod_ged_callable : callable | None
         Function used to modify (e.g. sort or normalize) generalized
         eigenvalues and eigenvectors. It should accept as arguments evals, evecs
         and also covs and optional kwargs returned by cov_callable. It should return
         only sorted and/or modified evals and evecs. If None, evals and evecs will be
-        ordered according to :func:`~scipy.linalg.eigh` default. Defaults to None
+        ordered according to :func:`~scipy.linalg.eigh` default. Defaults to None.
     dec_type : "single" | "multi"
         When "single" and cov_callable returns > 2 covariances,
         approximate joint diagonalization based on Pham's algorithm
@@ -68,7 +72,9 @@ class _GEDTransformer(MNETransformerMixin, BaseEstimator):
         preserved for compatibility.
         If None, no restriction will be applied. Defaults to None.
     R_func : callable | None
-        If provided, GED will be performed on (S, R_func(S,R)).
+        If provided, GED will be performed on (S, R_func([S,R])). When dec_type is
+        "single", R_func applicable only if two covariances returned by cov_callable.
+        If None, GED is performed on (S, R). Defaults to None.
 
     Attributes
     ----------
@@ -94,9 +100,9 @@ class _GEDTransformer(MNETransformerMixin, BaseEstimator):
 
     def __init__(
         self,
-        n_components,
         cov_callable,
         *,
+        n_components=None,
         mod_ged_callable=None,
         dec_type="single",
         restr_type=None,
@@ -118,6 +124,7 @@ class _GEDTransformer(MNETransformerMixin, BaseEstimator):
             return_y=True,
             atleast_3d=False if self.restr_type == "ssd" else True,
         )
+        self._validate_ged_params()
         covs, C_ref, info, rank, kwargs = self.cov_callable(X, y)
         covs = np.stack(covs)
         self._validate_covariances(covs)
@@ -183,6 +190,49 @@ class _GEDTransformer(MNETransformerMixin, BaseEstimator):
             )
         X = pick_filters @ X
         return X
+
+    def _validate_required_args(self, func, desired_required_args):
+        sig = signature(func)
+        actual_required_args = [
+            param.name
+            for param in sig.parameters.values()
+            if param.default is Parameter.empty
+        ]
+        func_name = func.func.__name__ if isinstance(func, partial) else func.__name__
+        if not all(arg in desired_required_args for arg in actual_required_args):
+            raise ValueError(
+                f"Invalid required arguments for '{func_name}'. "
+                f"The only allowed required arguments are {desired_required_args}, "
+                f"but got {actual_required_args} instead."
+            )
+
+    def _validate_ged_params(self):
+        # Naming is GED-specific so that the validation is still executed
+        # when child classes run super().fit()
+
+        _validate_type(self.n_components, (int, None), "n_components")
+        if self.n_components is not None and self.n_components <= 0:
+            raise ValueError(
+                "Invalid value for the 'n_components' parameter. "
+                "Allowed are positive integers or None, "
+                "but got a non-positive integer instead."
+            )
+
+        self._validate_required_args(
+            self.cov_callable, desired_required_args=["X", "y"]
+        )
+
+        _check_option(
+            "dec_type",
+            self.dec_type,
+            ("single", "multi"),
+        )
+
+        _check_option(
+            "restr_type",
+            self.restr_type,
+            ("restricting", "whitening", "ssd", None),
+        )
 
     def _validate_covariances(self, covs):
         for cov in covs:
