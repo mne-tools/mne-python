@@ -2,6 +2,7 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+import collections.abc as abc
 from functools import partial
 
 import numpy as np
@@ -200,6 +201,7 @@ class SSD(_GEDTransformer):
                     "At this point SSD only supports fitting "
                     f"single channel types. Your info has {len(ch_types)} types."
                 )
+        _validate_type(self.cov_method_params, (abc.Mapping, None), "cov_method_params")
 
     def _check_X(self, X, *, y=None, fit=False):
         """Check input data."""

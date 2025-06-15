@@ -2,6 +2,7 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+import collections.abc as abc
 import copy as cp
 from functools import partial
 
@@ -197,12 +198,14 @@ class CSP(_GEDTransformer):
         n_classes = len(self.classes_)
         if n_classes < 2:
             raise ValueError(f"n_classes must be >= 2, but got {n_classes} class")
-        _check_option(
-            "restr_type",
-            self.restr_type,
-            ("restricting", "whitening", None),
-        )
+        elif n_classes > 2 and self.component_order == "alternate":
+            raise ValueError(
+                "component_order='alternate' requires two classes, but data contains "
+                f"{n_classes} classes; use component_order='mutual_info' instead."
+            )
+        _validate_type(self.rank, (dict, None, str), "rank")
         _validate_type(self.info, (Info, None), "info")
+        _validate_type(self.cov_method_params, (abc.Mapping, None), "cov_method_params")
 
     def fit(self, X, y):
         """Estimate the CSP decomposition on epochs.
@@ -221,15 +224,6 @@ class CSP(_GEDTransformer):
         """
         X, y = self._check_data(X, y=y, fit=True, return_y=True)
         self._validate_params(y=y)
-        n_classes = len(self.classes_)
-        if n_classes > 2 and self.component_order == "alternate":
-            raise ValueError(
-                "component_order='alternate' requires two classes, but data contains "
-                f"{n_classes} classes; use component_order='mutual_info' instead."
-            )
-
-        # Convert rank to one that will run
-        _validate_type(self.rank, (dict, None, str), "rank")
 
         covs, sample_weights = self._compute_covariance_matrices(X, y)
         eigen_vectors, eigen_values = self._decompose_covs(covs, sample_weights)
