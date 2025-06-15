@@ -335,7 +335,7 @@ class Xdawn(XdawnTransformer):
             events=events,
             tmin=tmin,
             sfreq=sfreq,
-            method_params=self.method_params,
+            method_params=self.cov_method_params,
             info=use_info,
         )
 

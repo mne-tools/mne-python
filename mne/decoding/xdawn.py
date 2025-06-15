@@ -2,7 +2,7 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-from collections.abc import Mapping
+import collections.abc as abc
 from functools import partial
 
 import numpy as np
@@ -12,7 +12,7 @@ from ..cov import Covariance
 from ..decoding._covs_ged import _xdawn_estimate
 from ..decoding._mod_ged import _xdawn_mod
 from ..decoding.base import _GEDTransformer
-from ..utils import _check_option, _validate_type
+from ..utils import _validate_type
 
 
 class XdawnTransformer(_GEDTransformer):
@@ -40,7 +40,7 @@ class XdawnTransformer(_GEDTransformer):
     signal_cov : None | Covariance | array, shape (n_channels, n_channels)
         The signal covariance used for whitening of the data.
         if None, the covariance is estimated from the epochs signal.
-    method_params : dict | None
+    cov_method_params : dict | None
         Parameters to pass to :func:`mne.compute_covariance`.
 
         .. versionadded:: 0.16
@@ -84,7 +84,7 @@ class XdawnTransformer(_GEDTransformer):
         n_components=2,
         reg=None,
         signal_cov=None,
-        method_params=None,
+        cov_method_params=None,
         restr_type=None,
         info=None,
         rank="full",
@@ -93,7 +93,7 @@ class XdawnTransformer(_GEDTransformer):
         self.n_components = n_components
         self.signal_cov = signal_cov
         self.reg = reg
-        self.method_params = method_params
+        self.cov_method_params = cov_method_params
         self.restr_type = restr_type
         self.info = info
         self.rank = rank
@@ -101,7 +101,7 @@ class XdawnTransformer(_GEDTransformer):
         cov_callable = partial(
             _xdawn_estimate,
             reg=reg,
-            cov_method_params=method_params,
+            cov_method_params=cov_method_params,
             R=signal_cov,
             info=info,
             rank=rank,
@@ -128,12 +128,7 @@ class XdawnTransformer(_GEDTransformer):
                 raise ValueError(
                     "signal_cov data should be of shape (n_channels, n_channels)"
                 )
-        _validate_type(self.method_params, (Mapping, None), "method_params")
-        _check_option(
-            "restr_type",
-            self.restr_type,
-            ("restricting", "whitening", None),
-        )
+        _validate_type(self.cov_method_params, (abc.Mapping, None), "cov_method_params")
         _validate_type(self.info, (Info, None), "info")
 
     def fit(self, X, y=None):
@@ -163,7 +158,7 @@ class XdawnTransformer(_GEDTransformer):
             n_components=self.n_components,
             reg=self.reg,
             signal_cov=self.signal_cov,
-            method_params=self.method_params,
+            method_params=self.cov_method_params,
         )
         old_filters = self.filters_
         old_patterns = self.patterns_
