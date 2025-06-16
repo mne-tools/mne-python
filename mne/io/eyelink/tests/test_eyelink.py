@@ -201,7 +201,7 @@ def _simulate_eye_tracking_data(in_file, out_file):
         "SAMPLES\tPUPIL\tLEFT\tVEL\tRES\tHTARGET\tRATE\t1000.00"
         "\tTRACKING\tCR\tFILTER\t2\tINPUT"
     )
-    
+
     # Define your known BUTTON events
     button_events = [
         (5488529, 1, 0),
@@ -213,7 +213,7 @@ def _simulate_eye_tracking_data(in_file, out_file):
         (5488571, 1, 0),
     ]
     button_idx = 0
-    
+
     with out_file.open("w") as fp:
         in_recording_block = False
         events = []
@@ -244,7 +244,7 @@ def _simulate_eye_tracking_data(in_file, out_file):
                     tokens[3] = "1"  # simulate button pressed
                     tokens[4:4] = ["100", "20", "45", "45", "127.0"]
                     tokens.extend(["1497.0", "5189.0", "512.5", "............."])
-                    
+
                     continue
                 elif event_type == "END":
                     pass
@@ -267,7 +267,7 @@ def _simulate_eye_tracking_data(in_file, out_file):
                 f"{timestamp}\t-2434.0\t-1760.0\t840.0\t100\t20\t45\t45\t127.0\t"
                 "...\t1497\t5189\t512.5\t.............\n"
             )
-        
+
         for timestamp in np.arange(5488500, 5488600):  # 100 samples
             # Write sample line
             fp.write(
@@ -275,7 +275,10 @@ def _simulate_eye_tracking_data(in_file, out_file):
                 "...\t1497\t5189\t512.5\t.............\n"
             )
             # Check and insert button events at this timestamp
-            while button_idx < len(button_events) and button_events[button_idx][0] == timestamp:
+            while (
+                button_idx < len(button_events)
+                and button_events[button_idx][0] == timestamp
+            ):
                 t, btn_id, state = button_events[button_idx]
                 fp.write(f"BUTTON\t{t}\t{btn_id}\t{state}\n")
                 button_idx += 1
