@@ -12,7 +12,7 @@ import numpy as np
 from numpy.polynomial import legendre
 
 from ..parallel import parallel_func
-from ..utils import _get_extra_data_path, fill_doc, logger, verbose
+from ..utils import _get_extra_data_path, _open_lock, fill_doc, logger, verbose
 
 ##############################################################################
 # FAST LEGENDRE (DERIVATIVE) POLYNOMIALS USING LOOKUP TABLE
@@ -80,11 +80,11 @@ def _get_legen_table(
         x_interp = np.linspace(-1, 1, n_interp + 1)
         lut = leg_fun(x_interp, n_coeff).astype(np.float32)
         if not force_calc:
-            with open(fname, "wb") as fid:
+            with _open_lock(fname, "wb") as fid:
                 fid.write(lut.tobytes())
     else:
         logger.info(f"Reading Legendre{extra_str} table...")
-        with open(fname, "rb", buffering=0) as fid:
+        with _open_lock(fname, "rb", buffering=0) as fid:
             lut = np.fromfile(fid, np.float32)
     lut.shape = lut_shape
 

@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "dda454d7e4bd2766a2bdff37c06583fde99ba747",
+  "authors": [
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    },
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/13234.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/defaults.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/report/report.py": {
+      "a": 48,
+      "d": 16
+    },
+    "mne/report/tests/test_report.py": {
+      "a": 6,
+      "d": 1
+    }
+  }
+}
