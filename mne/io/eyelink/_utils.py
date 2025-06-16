@@ -744,7 +744,10 @@ def _make_eyelink_annots(df_dict, create_annots, apply_offsets):
             onsets = df["time"]
             durations = np.zeros_like(onsets)
             descriptions = df.apply(
-                lambda row: f"button_{int(row['button_id'])}_{'press' if row['button_pressed'] == 1 else 'release'}",
+                lambda row: (
+                    f"button_{int(row['button_id'])}_"
+                    f"{'press' if row['button_pressed'] == 1 else 'release'}"
+                ),
                 axis=1,
             )
             this_annot = Annotations(
