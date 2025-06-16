@@ -1,0 +1,1 @@
+Fix bug when loading certain EEGLAB files that do not contain a ``nodatchans`` field, by `Clemens Brunner`_.

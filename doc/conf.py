@@ -166,7 +166,7 @@ intersphinx_mapping = {
     "mne-gui-addons": ("https://mne.tools/mne-gui-addons", None),
     "picard": ("https://pierreablin.github.io/picard/", None),
     "eeglabio": ("https://eeglabio.readthedocs.io/en/latest", None),
-    "pybv": ("https://pybv.readthedocs.io/en/latest/", None),
+    "pybv": ("https://pybv.readthedocs.io/en/latest", None),
 }
 intersphinx_mapping.update(
     get_intersphinx_mapping(
@@ -209,6 +209,8 @@ numpydoc_xref_aliases = {
     "ColorbarBase": "matplotlib.colorbar.ColorbarBase",
     # sklearn
     "LeaveOneOut": "sklearn.model_selection.LeaveOneOut",
+    "MetadataRequest": "sklearn.utils.metadata_routing.MetadataRequest",
+    "estimator": "sklearn.base.BaseEstimator",
     # joblib
     "joblib.Parallel": "joblib.Parallel",
     # nibabel
@@ -353,6 +355,7 @@ numpydoc_xref_ignore = {
     "n_frequencies",
     "n_tests",
     "n_samples",
+    "n_peaks",
     "n_permutations",
     "nchan",
     "n_points",
@@ -397,6 +400,9 @@ numpydoc_xref_ignore = {
     "mapping",
     "to",
     "any",
+    "pandas",
+    "polars",
+    "default",
     # unlinkable
     "CoregistrationUI",
     "mne_qt_browser.figure.MNEQtBrowser",
@@ -600,6 +606,28 @@ def append_attr_meth_examples(app, what, name, obj, options, lines):
 """.format(name.split(".")[-1], name).split("\n")
 
 
+def fix_sklearn_inherited_docstrings(app, what, name, obj, options, lines):
+    """Fix sklearn docstrings because they use autolink and we do not."""
+    if (
+        name.startswith("mne.decoding.") or name.startswith("mne.preprocessing.Xdawn")
+    ) and name.endswith(
+        (
+            ".get_metadata_routing",
+            ".fit",
+            ".fit_transform",
+            ".set_output",
+            ".transform",
+        )
+    ):
+        if ":Parameters:" in lines:
+            loc = lines.index(":Parameters:")
+        else:
+            loc = lines.index(":Returns:")
+        lines.insert(loc, "")
+        lines.insert(loc, ".. default-role:: autolink")
+        lines.insert(loc, "")
+
+
 # -- Other extension configuration -------------------------------------------
 
 # Consider using http://magjac.com/graphviz-visual-editor for this
@@ -616,28 +644,41 @@ user_agent = "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit
 linkcheck_ignore = [  # will be compiled to regex
     # 403 Client Error: Forbidden
     "https://doi.org/10.1002/",  # onlinelibrary.wiley.com/doi/10.1002/hbm
+    "https://doi.org/10.1016/",  # neuroimage
     "https://doi.org/10.1021/",  # pubs.acs.org/doi/abs
+    "https://doi.org/10.1063/",  # pubs.aip.org/aip/jap
     "https://doi.org/10.1073/",  # pnas.org
+    "https://doi.org/10.1080/",  # www.tandfonline.com
+    "https://doi.org/10.1088/",  # www.tandfonline.com
     "https://doi.org/10.1093/",  # academic.oup.com/sleep/
     "https://doi.org/10.1098/",  # royalsocietypublishing.org
     "https://doi.org/10.1101/",  # www.biorxiv.org
+    "https://doi.org/10.1103",  # journals.aps.org/rmp
     "https://doi.org/10.1111/",  # onlinelibrary.wiley.com/doi/10.1111/psyp
     "https://doi.org/10.1126/",  # www.science.org
     "https://doi.org/10.1137/",  # epubs.siam.org
+    "https://doi.org/10.1145/",  # dl.acm.org
     "https://doi.org/10.1155/",  # www.hindawi.com/journals/cin
     "https://doi.org/10.1161/",  # www.ahajournals.org
     "https://doi.org/10.1162/",  # direct.mit.edu/neco/article/
     "https://doi.org/10.1167/",  # jov.arvojournals.org
     "https://doi.org/10.1177/",  # journals.sagepub.com
-    "https://doi.org/10.1063/",  # pubs.aip.org/aip/jap
-    "https://doi.org/10.1080/",  # www.tandfonline.com
-    "https://doi.org/10.1088/",  # www.tandfonline.com
     "https://doi.org/10.3109/",  # www.tandfonline.com
+    "https://hms.harvard.edu/",  # doc/funding.rst
+    "https://stackoverflow.com/questions/21752259/python-why-pickle",  # doc/help/faq
+    "https://www.biorxiv.org/content/10.1101/",  # biorxiv.org
     "https://www.researchgate.net/profile/",
     "https://www.intel.com/content/www/us/en/developer/tools/oneapi/onemkl.html",
     r"https://scholar.google.com/scholar\?cites=12188330066413208874&as_ylo=2014",
     r"https://scholar.google.com/scholar\?cites=1521584321377182930&as_ylo=2013",
     "https://www.research.chop.edu/imaging",
+    "http://prdownloads.sourceforge.net/optipng",
+    "https://sourceforge.net/projects/aespa/files/",
+    "https://sourceforge.net/projects/ezwinports/files/",
+    "https://www.mathworks.com/products/compiler/matlab-runtime.html",
+    "https://medicine.umich.edu/dept/khri/ross-maddox-phd",
+    # TODO https://github.com/mne-tools/curry-python-reader/issues/5
+    "https://github.com/mne-tools/curry-python-reader/README.md",
     # 500 server error
     "https://openwetware.org/wiki/Beauchamp:FreeSurfer",
     # 503 Server error
@@ -646,6 +687,8 @@ linkcheck_ignore = [  # will be compiled to regex
     "http://www.cs.ucl.ac.uk/staff/d.barber/brml",
     "https://www.cea.fr",
     "http://www.humanconnectome.org/data",
+    "https://www.mail-archive.com/freesurfer@nmr.mgh.harvard.edu",
+    "https://launchpad.net",
     # Max retries exceeded
     "https://doi.org/10.7488/ds/1556",
     "https://datashare.is.ed.ac.uk/handle/10283",
@@ -654,9 +697,15 @@ linkcheck_ignore = [  # will be compiled to regex
     # Too slow
     "https://speakerdeck.com/dengemann/",
     "https://www.dtu.dk/english/service/phonebook/person",
+    "https://www.gnu.org/software/make/",
+    "https://www.macports.org/",
+    "https://hastie.su.domains/CASI",
     # SSL problems sometimes
     "http://ilabs.washington.edu",
     "https://psychophysiology.cpmc.columbia.edu",
+    "https://erc.easme-web.eu",
+    # Not rendered by linkcheck builder
+    r"ides\.html",
 ]
 linkcheck_anchors = False  # saves a bit of time
 linkcheck_timeout = 15  # some can be quite slow
@@ -701,10 +750,12 @@ nitpick_ignore_regex = [
     ("py:.*", r"mne\.io\..*\.Raw.*"),  # RawEDF etc.
     ("py:.*", r"mne\.epochs\.EpochsFIF.*"),
     ("py:.*", r"mne\.io\..*\.Epochs.*"),  # EpochsKIT etc.
-    (
+    (  # BaseRaw attributes are documented in Raw
         "py:obj",
-        "(filename|metadata|proj|times|tmax|tmin|annotations|ch_names|compensation_grade|filenames|first_samp|first_time|last_samp|n_times|proj|times|tmax|tmin)",
-    ),  # noqa: E501
+        "(filename|metadata|proj|times|tmax|tmin|annotations|ch_names"
+        "|compensation_grade|duration|filenames|first_samp|first_time"
+        "|last_samp|n_times|proj|times|tmax|tmin)",
+    ),
 ]
 suppress_warnings = [
     "image.nonlocal_uri",  # we intentionally link outside
@@ -1251,7 +1302,7 @@ for icon, classes in icon_class.items():
     rst_prolog += f"""
 .. |{icon}| raw:: html
 
-    <i class="{' '.join(classes + (f'fa-{icon}',))}"></i>
+    <i class="{" ".join(classes + (f"fa-{icon}",))}"></i>
 """
 
 rst_prolog += """
@@ -1659,6 +1710,7 @@ def make_version(app, exception):
 def setup(app):
     """Set up the Sphinx app."""
     app.connect("autodoc-process-docstring", append_attr_meth_examples)
+    app.connect("autodoc-process-docstring", fix_sklearn_inherited_docstrings)
     # High prio, will happen before SG
     app.connect("builder-inited", generate_credit_rst, priority=10)
     app.connect("builder-inited", report_scraper.set_dirs, priority=20)

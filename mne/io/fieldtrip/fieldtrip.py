@@ -7,7 +7,7 @@ import numpy as np
 from ...epochs import EpochsArray
 from ...evoked import EvokedArray
 from ...utils import _check_fname, _import_pymatreader_funcs
-from ..array.array import RawArray
+from ..array._array import RawArray
 from .utils import (
     _create_event_metadata,
     _create_events,

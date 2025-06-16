@@ -29,10 +29,10 @@ from sphinx.util.display import status_iterator
 
 # If it's available on PyPI, add it to this set:
 PYPI_PACKAGES = {
-    "alphaCSC",
     "meggie",
     "niseq",
     "sesameeg",
+    "invertmeeg",
 }
 
 # If it's not available on PyPI, add it to this dict:
@@ -73,14 +73,15 @@ MANUAL_PACKAGES = {
         "Home-page": "https://github.com/rordenlab/dcm2niix",
         "Summary": "DICOM to NIfTI converter",
     },
-    # TODO: mnelab forces PySide6, it can be added to `tools/circleci_dependencies.sh`
-    # when we use PySide6 for doc building. Also its package does not set the Home-page
-    # property.
-    "mnelab": {
-        "Home-page": "https://github.com/cbrnr/mnelab",
-        "Summary": "A graphical user interface for MNE",
-    },
     # TODO: these do not set a valid homepage or documentation page on PyPI
+    "eeg_positions": {
+        "Home-page": "https://eeg-positions.readthedocs.io",
+        "Summary": "Compute and plot standard EEG electrode positions.",
+    },
+    "mne-faster": {
+        "Home-page": "https://github.com/wmvanvliet/mne-faster",
+        "Summary": "MNE-FASTER: automatic bad channel/epoch/component detection.",  # noqa: E501
+    },
     "mne-features": {
         "Home-page": "https://mne.tools/mne-features",
         "Summary": "MNE-Features software for extracting features from multivariate time series",  # noqa: E501
@@ -97,10 +98,10 @@ MANUAL_PACKAGES = {
         "Home-page": "https://emd.readthedocs.io/en/stable",
         "Summary": "Empirical Mode Decomposition in Python.",
     },
-    # Needs https://github.com/vferat/pycrostates/pull/188 and a release
-    "pycrostates": {
-        "Home-page": "https://pycrostates.readthedocs.io",
-        "Summary": "A simple open source Python package for EEG microstate segmentation.",  # noqa: E501
+    # Needs a release with homepage set properly
+    "meegkit": {
+        "Home-page": "https://nbara.github.io/python-meegkit",
+        "Summary": "Denoising tools for M/EEG processing.",
     },
     # not on PyPI
     "conpy": {
@@ -159,9 +160,9 @@ def _get_packages() -> dict[str, str]:
     assert not dups, f"Duplicates in MANUAL_PACKAGES and PYPI_PACKAGES: {sorted(dups)}"
     # And the installer and PyPI-only should be disjoint:
     dups = set(PYPI_PACKAGES) & set(packages)
-    assert (
-        not dups
-    ), f"Duplicates in PYPI_PACKAGES and installer packages: {sorted(dups)}"
+    assert not dups, (
+        f"Duplicates in PYPI_PACKAGES and installer packages: {sorted(dups)}"
+    )
     for name in PYPI_PACKAGES | set(MANUAL_PACKAGES):
         if name not in packages:
             packages.append(name)
@@ -169,6 +170,7 @@ def _get_packages() -> dict[str, str]:
     packages = sorted(packages, key=lambda x: x.lower())
     packages = [RENAMES.get(package, package) for package in packages]
     out = dict()
+    reasons = []
     for package in status_iterator(
         packages, f"Adding {len(packages)} related software packages: "
     ):
@@ -179,12 +181,17 @@ def _get_packages() -> dict[str, str]:
             else:
                 md = importlib.metadata.metadata(package)
         except importlib.metadata.PackageNotFoundError:
-            pass  # raise a complete error later
+            reasons.append(f"{package}: not found, needs to be installed")
+            continue  # raise a complete error later
         else:
             # Every project should really have this
+            do_continue = False
             for key in ("Summary",):
                 if key not in md:
-                    raise ExtensionError(f"Missing {repr(key)} for {package}")
+                    reasons.extend(f"{package}: missing {repr(key)}")
+                    do_continue = True
+            if do_continue:
+                continue
             # It is annoying to find the home page
             url = None
             if "Home-page" in md:
@@ -200,15 +207,17 @@ def _get_packages() -> dict[str, str]:
                     if url is not None:
                         break
                 else:
-                    raise RuntimeError(
-                        f"Could not find Home-page for {package} in:\n"
-                        f"{sorted(set(md))}\nwith Summary:\n{md['Summary']}"
+                    reasons.append(
+                        f"{package}: could not find Home-page in {sorted(md)}"
                     )
+                    continue
             out[package]["url"] = url
             out[package]["description"] = md["Summary"].replace("\n", "")
-    bad = [package for package in packages if not out[package]]
-    if bad and REQUIRE_METADATA:
-        raise ExtensionError(f"Could not find metadata for:\n{' '.join(bad)}")
+    reason_str = "\n".join(reasons)
+    if reason_str and REQUIRE_METADATA:
+        raise ExtensionError(
+            f"Could not find suitable metadata for related software:\n{reason_str}"
+        )
 
     return out
 

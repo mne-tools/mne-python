@@ -57,9 +57,6 @@ egi_eprime_pause_skips = [(1344000.0, 1804000.0)]
 egi_pause_w1337_events = None
 egi_pause_w1337_skips = [(21956000.0, 40444000.0), (60936000.0, 89332000.0)]
 
-# TODO: Remove once complete deprecation / FutureWarning about events_as_annonations
-pytestmark = pytest.mark.filterwarnings("ignore:.*events_as_annotation.*:FutureWarning")
-
 
 @requires_testing_data
 @pytest.mark.parametrize(
@@ -215,7 +212,7 @@ def test_io_egi_mff(events_as_annotations):
     if events_as_annotations:
         # Grab the first annotation. Should be the first "DIN1" event.
         assert len(raw.annotations)
-        onset, dur, desc, _ = raw.annotations[0].values()
+        onset, dur, desc, _, _ = raw.annotations[0].values()
         assert_allclose(onset, 2.438)
         assert np.isclose(dur, 0)
         assert desc == "DIN1"
@@ -589,3 +586,19 @@ def test_set_standard_montage_mff(fname, standard_montage):
     # Check that the reference remained
     for pick in picks:
         assert_allclose(raw.info["chs"][pick]["loc"][3:6], ref_loc)
+
+
+@requires_testing_data
+def test_egi_mff_bad_xml(tmp_path):
+    """Test that corrupt XML files are gracefully handled."""
+    pytest.importorskip("defusedxml")
+    mff_fname = shutil.copytree(egi_mff_fname, tmp_path / "test_egi_bad_xml.mff")
+    bad_xml = mff_fname / "bad.xml"
+    bad_xml.write_text("<foo>", encoding="utf-8")
+    # Missing coordinate file
+    (mff_fname / "coordinates.xml").unlink()
+    with pytest.warns(RuntimeWarning, match="Could not parse the XML"):
+        with pytest.warns(RuntimeWarning, match="File coordinates.xml not found"):
+            raw = read_raw_egi(mff_fname)
+    # little check that the bad XML doesn't affect the parsing of other xml files
+    assert "DIN1" in raw.annotations.description

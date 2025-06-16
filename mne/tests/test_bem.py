@@ -481,17 +481,16 @@ def test_fit_sphere_to_headshape():
     assert_allclose(r, r2, atol=1e-7)
     assert_allclose(oh, oh2, atol=1e-7)
     assert_allclose(od, od2, atol=1e-7)
-    # this one should pass, 1 EXTRA point and 3 EEG (but the fit is terrible)
+    # this one should pass, 1 EXTRA point and 3 EEG
     info = Info(dig=dig[:7], dev_head_t=dev_head_t)
-    with (
-        _record_warnings(),
-        pytest.warns(RuntimeWarning, match="Estimated head radius"),
-    ):
+    with pytest.warns(RuntimeWarning, match="fitting may be inaccurate"):
         r, oh, od = fit_sphere_to_headshape(info, units="m")
-    # this one should fail, 1 EXTRA point and 3 EEG (but the fit is terrible)
+    # this one should fail
     info = Info(dig=dig[:6], dev_head_t=dev_head_t)
-    pytest.raises(ValueError, fit_sphere_to_headshape, info, units="m")
-    pytest.raises(TypeError, fit_sphere_to_headshape, 1, units="m")
+    with pytest.raises(ValueError, match="at least 4"):
+        fit_sphere_to_headshape(info, units="m")
+    with pytest.raises(TypeError, match="Info"):
+        fit_sphere_to_headshape(1, units="m")
 
 
 @pytest.mark.slowtest  # ~2 min on Azure Windows

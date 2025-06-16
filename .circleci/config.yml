@@ -218,6 +218,9 @@ jobs:
       - restore_cache:
           keys:
             - data-cache-phantom-kit
+      - restore_cache:
+          keys:
+            - data-cache-ds004388
       - run:
           name: Get data
           # This limit could be increased, but this is helpful for finding slow ones
@@ -241,6 +244,7 @@ jobs:
               make test-doc;
               mkdir -p doc/_build/test-results/test-doc;
               cp junit-results.xml doc/_build/test-results/test-doc/junit.xml;
+              cp coverage.xml doc/_build/test-results/test-doc/coverage.xml;
             fi;
       # Build docs
       - run:
@@ -252,7 +256,7 @@ jobs:
           name: Check sphinx log for warnings (which are treated as errors)
           when: always
           command: |
-            ! grep "^.* WARNING: .*$" sphinx_log.txt
+            ! grep "^.*\(WARNING\|ERROR\): " sphinx_log.txt
       - run:
           name: Show profiling output
           when: always
@@ -285,6 +289,15 @@ jobs:
       - store_artifacts:
           path: doc/_build/test-results
           destination: test-results
+      # Upload test results to Codecov
+      - run:
+          name: Upload test results to Codecov
+          environment:
+            CODECOV_TOKEN: fb4c4a94-72d7-4743-bb08-af25b623a29a
+          command: |
+            if [[ -f doc/_build/test-results/test-doc/coverage.xml ]]; then
+              bash <(curl -s https://codecov.io/bash) -f doc/_build/test-results/test-doc/coverage.xml || true
+            fi
       # Save the SG RST
       - store_artifacts:
           path: doc/auto_examples.zip
@@ -393,6 +406,10 @@ jobs:
           key: data-cache-phantom-kit
           paths:
             - ~/mne_data/MNE-phantom-KIT-data  # (1 G)
+      - save_cache:
+          key: data-cache-ds004388
+          paths:
+            - ~/mne_data/ds004388  # (1.8 G)
 
 
   linkcheck:

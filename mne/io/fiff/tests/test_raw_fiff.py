@@ -6,8 +6,9 @@ import datetime
 import os
 import pathlib
 import pickle
+import platform
 import shutil
-import sys
+from contextlib import nullcontext
 from copy import deepcopy
 from functools import partial
 from io import BytesIO
@@ -22,6 +23,7 @@ from mne import (
     concatenate_events,
     create_info,
     equalize_channels,
+    events_from_annotations,
     find_events,
     make_fixed_length_epochs,
     pick_channels,
@@ -50,6 +52,7 @@ data_dir = testing_path / "MEG" / "sample"
 fif_fname = data_dir / "sample_audvis_trunc_raw.fif"
 ms_fname = testing_path / "SSS" / "test_move_anon_raw.fif"
 skip_fname = testing_path / "misc" / "intervalrecording_raw.fif"
+tri_fname = testing_path / "SSS" / "TRIUX" / "triux_bmlhus_erm_raw.fif"
 
 base_dir = Path(__file__).parents[2] / "tests" / "data"
 test_fif_fname = base_dir / "test_raw.fif"
@@ -266,7 +269,7 @@ def test_multiple_files(tmp_path):
     # going in reverse order so the last fname is the first file (need later)
     raws = [None] * len(tmins)
     for ri in range(len(tmins) - 1, -1, -1):
-        fname = tmp_path / ("test_raw_split-%d_raw.fif" % ri)
+        fname = tmp_path / (f"test_raw_split-{ri}_raw.fif")
         raw.save(fname, tmin=tmins[ri], tmax=tmaxs[ri])
         raws[ri] = read_raw_fif(fname)
         assert (
@@ -476,14 +479,6 @@ def test_concatenate_raws_order():
         # still fails, because raws is copied and not changed in place
         match_channel_orders(insts=raws, copy=True)
         raw_concat = concatenate_raws(raws)
-
-    # XXX: remove in version 1.9
-    with pytest.warns(DeprecationWarning, match="``raws`` parameter is deprecated"):
-        match_channel_orders(raws=raws)
-
-    # XXX: remove in version 1.9
-    with pytest.raises(ValueError, match="need to pass a list"):
-        match_channel_orders()
 
     # Now passes because all raws have the same order
     match_channel_orders(insts=raws, copy=False)
@@ -1325,6 +1320,15 @@ def test_crop():
 
 
 @testing.requires_testing_data
+def test_resample_with_events():
+    """Test resampling raws with events."""
+    raw = read_raw_fif(fif_fname)
+    raw.resample(250)  # pretend raw is recorded at 250 Hz
+    events, _ = events_from_annotations(raw)
+    raw, events = raw.resample(250, events=events)
+
+
+@testing.requires_testing_data
 def test_resample_equiv():
     """Test resample (with I/O and multiple files)."""
     raw = read_raw_fif(fif_fname).crop(0, 1)
@@ -1984,7 +1988,7 @@ def test_memmap(tmp_path):
     new_data = np.linspace(0, 1, len(raw_0.times))[np.newaxis]
     ch = RawArray(new_data, new_ch_info)
     raw_0.add_channels([ch])
-    if sys.platform == "darwin":
+    if platform.system() == "Darwin":
         assert not hasattr(raw_0._data, "filename")
     else:
         assert raw_0._data.filename == memmaps[2]
@@ -2011,56 +2015,78 @@ def test_memmap(tmp_path):
 # These are slow on Azure Windows so let's do a subset
 @pytest.mark.parametrize(
     "kind",
-    [
-        "file",
-        pytest.param("bytes", marks=pytest.mark.slowtest),
-    ],
+    ["path", pytest.param("file", id="kindFile"), "bytes"],
 )
 @pytest.mark.parametrize(
     "preload",
-    [
-        True,
-        pytest.param(str, marks=pytest.mark.slowtest),
-    ],
+    [pytest.param(True, id="preloadTrue"), str],
 )
 @pytest.mark.parametrize(
     "split",
-    [
-        False,
-        pytest.param(True, marks=pytest.mark.slowtest),
-    ],
+    [False, pytest.param(True, marks=pytest.mark.slowtest, id="splitTrue")],
 )
 def test_file_like(kind, preload, split, tmp_path):
     """Test handling with file-like objects."""
+    fname = tmp_path / "test_file_like_raw.fif"
+    fnames = (fname,)
+    this_raw = read_raw_fif(test_fif_fname).crop(0, 4).pick("mag")
     if split:
-        fname = tmp_path / "test_raw.fif"
-        read_raw_fif(test_fif_fname).save(fname, split_size="5MB")
-        assert fname.is_file()
-        assert Path(str(fname)[:-4] + "-1.fif").is_file()
+        this_raw.save(fname, split_size="5MB")
+        fnames += (Path(str(fname)[:-4] + "-1.fif"),)
+        bad_fname = Path(str(fname)[:-4] + "-2.fif")
+        assert not bad_fname.is_file()
     else:
-        fname = test_fif_fname
+        this_raw.save(fname)
+    for f in fnames:
+        assert f.is_file()
     if preload is str:
+        if platform.system() == "Windows":
+            pytest.skip("Cannot test preload=str on Windows")
         preload = str(tmp_path / "memmap")
-    with open(str(fname), "rb") as file_fid:
-        fid = BytesIO(file_fid.read()) if kind == "bytes" else file_fid
-        assert not fid.closed
+    with open(fname, "rb") as file_fid:
+        if kind == "bytes":
+            fid = BytesIO(file_fid.read())
+        elif kind == "path":
+            fid = fname
+        else:
+            assert kind == "file"
+            fid = file_fid
+        if kind != "path":
+            assert not fid.closed
+            with pytest.raises(ValueError, match="preload must be used with file"):
+                read_raw_fif(fid)
         assert not file_fid.closed
-        with pytest.raises(ValueError, match="preload must be used with file"):
-            read_raw_fif(fid)
-        assert not fid.closed
+        if kind != "path":
+            assert not fid.closed
         assert not file_fid.closed
         # Use test_preloading=False but explicitly pass the preload type
         # so that we don't bother testing preload=False
         kwargs = dict(
             fname=fid,
             preload=preload,
-            on_split_missing="ignore",
+            on_split_missing="warn",
             test_preloading=False,
             test_kwargs=False,
         )
-        _test_raw_reader(read_raw_fif, **kwargs)
-        assert not fid.closed
+        want_filenames = list(fnames)
+        if kind == "bytes":
+            # the split file will not be correctly resolved for BytesIO
+            want_filenames = [None]
+        if split and kind == "bytes":
+            ctx = pytest.warns(RuntimeWarning, match="Split raw file detected")
+        else:
+            ctx = nullcontext()
+        with ctx:
+            raw = _test_raw_reader(read_raw_fif, **kwargs)
+        if kind != "path":
+            assert not fid.closed
         assert not file_fid.closed
+        want_filenames = tuple(want_filenames)
+        assert raw.filenames == want_filenames
+        if kind == "bytes":
+            assert fname.name not in raw._repr_html_()
+        else:
+            assert fname.name in raw._repr_html_()
     assert file_fid.closed
 
 
@@ -2094,7 +2120,7 @@ def test_bad_acq(fname):
 
 @testing.requires_testing_data
 @pytest.mark.skipif(
-    sys.platform not in ("darwin", "linux"), reason="Needs proper symlinking"
+    platform.system() not in ("Linux", "Darwin"), reason="Needs proper symlinking"
 )
 def test_split_symlink(tmp_path):
     """Test split files with symlinks."""
@@ -2157,3 +2183,27 @@ def test_expand_user(tmp_path, monkeypatch):
 
     raw = read_raw_fif(fname=path_home, preload=True)
     raw.save(fname=path_home, overwrite=True)
+
+
+@pytest.mark.parametrize("cast", [pathlib.Path, str])
+def test_init_kwargs(cast):
+    """Test for pull/12843#issuecomment-2380491528."""
+    raw = read_raw_fif(cast(test_fif_fname))
+    raw2 = read_raw_fif(**raw._init_kwargs)
+    for r in (raw, raw2):
+        assert isinstance(r._init_kwargs["fname"], pathlib.Path)
+
+
+@pytest.mark.slowtest
+@testing.requires_testing_data
+@pytest.mark.parametrize("fname", [ms_fname, tri_fname])
+def test_fif_files(fname):
+    """Test reading of various FIF files."""
+    _test_raw_reader(
+        read_raw_fif,
+        fname=fname,
+        allow_maxshield="yes",
+        verbose="error",
+        test_kwargs=False,
+        test_preloading=False,
+    )

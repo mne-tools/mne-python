@@ -29,7 +29,7 @@ from mne import (
     write_cov,
     write_forward_solution,
 )
-from mne._fiff import meas_info
+from mne._fiff import meas_info, tag
 from mne._fiff._digitization import DigPoint, _make_dig_points
 from mne._fiff.constants import FIFF
 from mne._fiff.meas_info import (
@@ -69,7 +69,13 @@ from mne.minimum_norm import (
     write_inverse_operator,
 )
 from mne.transforms import Transform
-from mne.utils import _empty_hash, _record_warnings, assert_object_equal, catch_logging
+from mne.utils import (
+    _empty_hash,
+    _record_warnings,
+    assert_object_equal,
+    catch_logging,
+    object_diff,
+)
 
 root_dir = Path(__file__).parents[2]
 fiducials_fname = root_dir / "data" / "fsaverage" / "fsaverage-fiducials.fif"
@@ -300,14 +306,16 @@ def test_read_write_info(tmp_path):
     gantry_angle = info["gantry_angle"]
 
     meas_id = info["meas_id"]
-    write_info(temp_file, info)
+    with pytest.raises(FileExistsError, match="Destination file exists"):
+        write_info(temp_file, info)
+    write_info(temp_file, info, overwrite=True)
     info = read_info(temp_file)
     assert info["proc_history"][0]["creator"] == creator
     assert info["hpi_meas"][0]["creator"] == creator
     assert info["subject_info"]["his_id"] == creator
     assert info["gantry_angle"] == gantry_angle
-    assert info["subject_info"]["height"] == 2.3
-    assert info["subject_info"]["weight"] == 11.1
+    assert_allclose(info["subject_info"]["height"], 2.3)
+    assert_allclose(info["subject_info"]["weight"], 11.1)
     for key in ["secs", "usecs", "version"]:
         assert info["meas_id"][key] == meas_id[key]
     assert_array_equal(info["meas_id"]["machid"], meas_id["machid"])
@@ -342,7 +350,7 @@ def test_read_write_info(tmp_path):
         info["meas_date"] = datetime(1800, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
     fname = tmp_path / "test.fif"
     with pytest.raises(RuntimeError, match="must be between "):
-        write_info(fname, info)
+        write_info(fname, info, overwrite=True)
 
 
 @testing.requires_testing_data
@@ -371,7 +379,7 @@ def test_io_coord_frame(tmp_path):
     for ch_type in ("eeg", "seeg", "ecog", "dbs", "hbo", "hbr"):
         info = create_info(ch_names=["Test Ch"], sfreq=1000.0, ch_types=[ch_type])
         info["chs"][0]["loc"][:3] = [0.05, 0.01, -0.03]
-        write_info(fname, info)
+        write_info(fname, info, overwrite=True)
         info2 = read_info(fname)
         assert info2["chs"][0]["coord_frame"] == FIFF.FIFFV_COORD_HEAD
 
@@ -566,10 +574,24 @@ def test_check_consistency():
     with pytest.raises(KeyError, match="key missing"):
         info2._check_consistency()
 
+    # bad subject_info entries
+    info2 = info.copy()
+    with pytest.raises(TypeError, match="must be an instance"):
+        info2["subject_info"] = "bad"
+    info2["subject_info"] = dict()
+    with pytest.raises(TypeError, match="must be an instance"):
+        info2["subject_info"]["height"] = "bad"
+    with pytest.raises(TypeError, match="must be an instance"):
+        info2["subject_info"]["weight"] = [0]
+    with pytest.raises(TypeError, match=r'subject_info\["height"\] must be an .*'):
+        info2["subject_info"] = {"height": "bad"}
 
-def _test_anonymize_info(base_info):
+
+def _test_anonymize_info(base_info, tmp_path):
     """Test that sensitive information can be anonymized."""
     pytest.raises(TypeError, anonymize_info, "foo")
+    assert isinstance(base_info, Info)
+    base_info = base_info.copy()
 
     default_anon_dos = datetime(2000, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
     default_str = "mne_anonymize"
@@ -577,22 +599,20 @@ def _test_anonymize_info(base_info):
     default_desc = "Anonymized using a time shift" + " to preserve age at acquisition"
 
     # Test no error for incomplete info
-    info = base_info.copy()
-    info.pop("file_id")
-    anonymize_info(info)
+    bad_info = base_info.copy()
+    bad_info.pop("file_id")
+    anonymize_info(bad_info)
+    del bad_info
 
-    # Fake some subject data
+    # Fake some additional data
+    _complete_info(base_info)
     meas_date = datetime(2010, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
     with base_info._unlock():
         base_info["meas_date"] = meas_date
-        base_info["subject_info"] = dict(
-            id=1,
-            his_id="foobar",
-            last_name="bar",
-            first_name="bar",
+        base_info["subject_info"].update(
             birthday=date(1987, 4, 8),
+            his_id="foobar",
             sex=0,
-            hand=1,
         )
 
     # generate expected info...
@@ -601,15 +621,29 @@ def _test_anonymize_info(base_info):
     exp_info = base_info.copy()
     exp_info._unlocked = True
     exp_info["description"] = default_desc
-    exp_info["experimenter"] = default_str
-    exp_info["proj_name"] = default_str
+    erase_strs = (
+        ("experimenter",),
+        ("proj_name",),
+        ("subject_info", "first_name"),
+        ("subject_info", "middle_name"),
+        ("subject_info", "last_name"),
+        ("device_info", "site"),
+        ("device_info", "serial"),
+        ("helium_info", "orig_file_guid"),
+        ("proc_history", 0, "experimenter"),
+    )
+    for tp in erase_strs:
+        this = exp_info
+        for lev in tp[:-1]:
+            this = this[lev]
+        this[tp[-1]] = default_str
     exp_info["proj_id"] = np.array([0])
-    exp_info["subject_info"]["first_name"] = default_str
-    exp_info["subject_info"]["last_name"] = default_str
-    exp_info["subject_info"]["id"] = default_subject_id
+    for key in ("sex", "id", "height", "weight"):
+        exp_info["subject_info"][key] = 0
     exp_info["subject_info"]["his_id"] = str(default_subject_id)
-    exp_info["subject_info"]["sex"] = 0
     del exp_info["subject_info"]["hand"]  # there's no "unknown" setting
+    exp_info["utc_offset"] = None
+    exp_info["proc_history"][0]["block_id"]["machid"][:] = 0
 
     # this bday is 3653 days different. the change in day is due to a
     # different number of leap days between 1987 and 1977 than between
@@ -623,14 +657,25 @@ def _test_anonymize_info(base_info):
 
     # adjust each expected outcome
     delta_t = timedelta(days=3653)
-    for key in ("file_id", "meas_id"):
-        value = exp_info.get(key)
-        if value is not None:
-            assert "msecs" not in value
-            tmp = _add_timedelta_to_stamp((value["secs"], value["usecs"]), -delta_t)
-            value["secs"] = tmp[0]
-            value["usecs"] = tmp[1]
-            value["machid"][:] = 0
+
+    def _adjust_back(e_i, dt):
+        for key in ("file_id", "meas_id"):
+            value = e_i.get(key)
+            if value is not None:
+                assert "msecs" not in value
+                tmp = _add_timedelta_to_stamp((value["secs"], value["usecs"]), -dt)
+                value["secs"] = tmp[0]
+                value["usecs"] = tmp[1]
+                value["machid"][:] = 0
+        e_i["helium_info"]["meas_date"] -= dt
+        ds = int(round(dt.total_seconds()))
+        e_i["proc_history"][0]["date"] = (
+            e_i["proc_history"][0]["date"][0] - ds,
+            e_i["proc_history"][0]["date"][1],
+        )
+        e_i["proc_history"][0]["block_id"]["secs"] -= ds
+
+    _adjust_back(exp_info, delta_t)
 
     # exp 2 tests the keep_his option
     exp_info_2 = exp_info.copy()
@@ -644,26 +689,30 @@ def _test_anonymize_info(base_info):
     with exp_info_3._unlock():
         exp_info_3["subject_info"]["birthday"] = date(1987, 2, 24)
         exp_info_3["meas_date"] = meas_date - delta_t_2
-    for key in ("file_id", "meas_id"):
-        value = exp_info_3.get(key)
-        if value is not None:
-            assert "msecs" not in value
-            tmp = _add_timedelta_to_stamp((value["secs"], value["usecs"]), -delta_t_2)
-            value["secs"] = tmp[0]
-            value["usecs"] = tmp[1]
-            value["machid"][:] = 0
+    _adjust_back(exp_info_3, delta_t_2)
 
     # exp 4 tests is a supplied daysback
     delta_t_3 = timedelta(days=223 + 364 * 500)
 
+    def _check_equiv(got, want, err_msg):
+        __tracebackhide__ = True
+        fname_temp = tmp_path / "test.fif"
+        assert_object_equal(got, want, err_msg=err_msg)
+        write_info(fname_temp, got, reset_range=False, overwrite=True)
+        got = read_info(fname_temp)
+        # this gets changed on write but that's expected
+        with got._unlock():
+            got["file_id"] = want["file_id"]
+        assert_object_equal(got, want, err_msg=f"{err_msg} (on I/O round trip)")
+
     new_info = anonymize_info(base_info.copy())
-    assert_object_equal(new_info, exp_info)
+    _check_equiv(new_info, exp_info, err_msg="anon mismatch")
 
     new_info = anonymize_info(base_info.copy(), keep_his=True)
-    assert_object_equal(new_info, exp_info_2)
+    _check_equiv(new_info, exp_info_2, err_msg="anon keep_his mismatch")
 
     new_info = anonymize_info(base_info.copy(), daysback=delta_t_2.days)
-    assert_object_equal(new_info, exp_info_3)
+    _check_equiv(new_info, exp_info_3, err_msg="anon daysback mismatch")
 
     with pytest.raises(RuntimeError, match="anonymize_info generated"):
         anonymize_info(base_info.copy(), daysback=delta_t_3.days)
@@ -672,25 +721,33 @@ def _test_anonymize_info(base_info):
     # test with meas_date = None
     with base_info._unlock():
         base_info["meas_date"] = None
-    exp_info_3._unlocked = True
-    exp_info_3["meas_date"] = None
-    exp_info_3["file_id"]["secs"] = DATE_NONE[0]
-    exp_info_3["file_id"]["usecs"] = DATE_NONE[1]
-    exp_info_3["meas_id"]["secs"] = DATE_NONE[0]
-    exp_info_3["meas_id"]["usecs"] = DATE_NONE[1]
-    exp_info_3["subject_info"].pop("birthday", None)
-    exp_info_3._unlocked = False
+    with exp_info_3._unlock():
+        exp_info_3["meas_date"] = None
+        exp_info_3["helium_info"]["meas_date"] = None
+        for var in (
+            exp_info_3["file_id"],
+            exp_info_3["meas_id"],
+            exp_info_3["proc_history"][0]["block_id"],
+        ):
+            var["secs"] = DATE_NONE[0]
+            var["usecs"] = DATE_NONE[1]
+        exp_info_3["subject_info"].pop("birthday", None)
+        exp_info_3["proc_history"][0]["date"] = DATE_NONE
 
     if base_info["meas_date"] is None:
         with pytest.warns(RuntimeWarning, match="all information"):
             new_info = anonymize_info(base_info.copy(), daysback=delta_t_2.days)
     else:
         new_info = anonymize_info(base_info.copy(), daysback=delta_t_2.days)
-    assert_object_equal(new_info, exp_info_3)
+    _check_equiv(
+        new_info,
+        exp_info_3,
+        err_msg="meas_date=None daysback mismatch",
+    )
 
     with _record_warnings():  # meas_date is None
         new_info = anonymize_info(base_info.copy())
-    assert_object_equal(new_info, exp_info_3)
+    _check_equiv(new_info, exp_info_3, err_msg="meas_date=None mismatch")
 
 
 @pytest.mark.parametrize(
@@ -716,12 +773,64 @@ def test_meas_date_convert(stamp, dt):
     assert str(dt[0]) in repr(info)
 
 
+def _complete_info(info):
+    """Complete the meas info fields."""
+    for key in ("file_id", "meas_id"):
+        assert info[key] is not None
+    info["subject_info"] = dict(
+        id=1,
+        sex=1,
+        hand=1,
+        first_name="a",
+        middle_name="b",
+        last_name="c",
+        his_id="d",
+        birthday=date(2000, 1, 1),
+        weight=1.0,
+        height=2.0,
+    )
+    info["helium_info"] = dict(
+        he_level_raw=np.float32(12.34),
+        helium_level=np.float32(45.67),
+        meas_date=datetime(2024, 11, 14, 14, 8, 2, tzinfo=timezone.utc),
+        orig_file_guid="e",
+    )
+    info["experimenter"] = "f"
+    info["description"] = "g"
+    with info._unlock():
+        info["proj_id"] = np.ones(1, int)
+        info["proj_name"] = "h"
+        info["utc_offset"] = "i"
+        d = (1717707794, 2)
+        info["proc_history"] = [
+            dict(
+                block_id=dict(
+                    version=4,
+                    machid=np.ones(2, int),
+                    secs=d[0],
+                    usecs=d[1],
+                ),
+                experimenter="j",
+                max_info=dict(
+                    max_st=dict(),
+                    sss_ctc=dict(),
+                    sss_cal=dict(),
+                    sss_info=dict(in_order=8),
+                ),
+                date=d,
+            ),
+        ]
+        info["device_info"] = dict(serial="k", site="l")
+    info._check_consistency()
+
+
 def test_anonymize(tmp_path):
     """Test that sensitive information can be anonymized."""
     pytest.raises(TypeError, anonymize_info, "foo")
 
     # Fake some subject data
     raw = read_raw_fif(raw_fname)
+    _complete_info(raw.info)
     raw.set_annotations(
         Annotations(onset=[0, 1], duration=[1, 1], description="dummy", orig_time=None)
     )
@@ -733,8 +842,8 @@ def test_anonymize(tmp_path):
     # test mne.anonymize_info()
     events = read_events(event_name)
     epochs = Epochs(raw, events[:1], 2, 0.0, 0.1, baseline=None)
-    _test_anonymize_info(raw.info.copy())
-    _test_anonymize_info(epochs.info.copy())
+    _test_anonymize_info(raw.info, tmp_path)
+    _test_anonymize_info(epochs.info, tmp_path)
 
     # test instance methods & I/O roundtrip
     for inst, keep_his in zip((raw, epochs), (True, False)):
@@ -780,17 +889,19 @@ def test_anonymize(tmp_path):
     assert_allclose(raw.annotations.onset, expected_onset)
 
 
-def test_anonymize_with_io(tmp_path):
-    """Test that IO does not break anonymization."""
-    raw = read_raw_fif(raw_fname)
-
+@pytest.mark.parametrize("daysback", [None, 28826])
+def test_anonymize_with_io(tmp_path, daysback):
+    """Test that IO does not break anonymization and all fields."""
+    raw = read_raw_fif(raw_fname).crop(0, 1)
+    _complete_info(raw.info)
     temp_path = tmp_path / "tmp_raw.fif"
     raw.save(temp_path)
-
-    raw2 = read_raw_fif(temp_path)
-
-    daysback = (raw2.info["meas_date"].date() - date(1924, 1, 1)).days
+    raw2 = read_raw_fif(temp_path).load_data()
     raw2.anonymize(daysback=daysback)
+    raw2.save(temp_path, overwrite=True)
+    raw3 = read_raw_fif(temp_path)
+    d = object_diff(raw2.info, raw3.info)
+    assert d == "['file_id']['machid'] array mismatch\n"
 
 
 @testing.requires_testing_data
@@ -864,13 +975,11 @@ def test_field_round_trip(tmp_path):
             meas_date=_stamp_to_dt((1, 2)),
         )
     fname = tmp_path / "temp-info.fif"
-    write_info(fname, info)
+    info.save(fname)
     info_read = read_info(fname)
     assert_object_equal(info, info_read)
-    info["helium_info"]["meas_date"] = (1, 2)
     with pytest.raises(TypeError, match="datetime"):
-        # trigger the check
-        info["helium_info"] = info["helium_info"]
+        info["helium_info"]["meas_date"] = (1, 2)
 
 
 def test_equalize_channels():
@@ -1009,7 +1118,7 @@ def test_channel_name_limit(tmp_path, monkeypatch, fname):
         meas_info, "_read_extended_ch_info", _read_extended_ch_info
     )
     short_proj_names = [
-        f"{name[:13 - bool(len(ref_names))]}-{ni}"
+        f"{name[: 13 - bool(len(ref_names))]}-{ni}"
         for ni, name in enumerate(long_proj_names)
     ]
     assert raw_read.info["projs"][0]["data"]["col_names"] == short_proj_names
@@ -1159,3 +1268,12 @@ def test_get_montage():
     assert len(raw.info.get_montage().ch_names) == len(ch_names)
     raw.info["bads"] = [ch_names[0]]
     assert len(raw.info.get_montage().ch_names) == len(ch_names)
+
+
+def test_tag_consistency():
+    """Test that structures for tag reading are consistent."""
+    call_set = set(tag._call_dict)
+    call_names = set(tag._call_dict_names)
+    assert call_set == call_names, "Mismatch between _call_dict and _call_dict_names"
+    # TODO: This was inspired by FIFF_DIG_STRING gh-13083, we should ideally add a test
+    # that those dig points can actually be read in correctly at some point.

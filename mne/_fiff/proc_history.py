@@ -24,24 +24,38 @@ from .write import (
     write_string,
 )
 
-_proc_keys = [
-    "parent_file_id",
-    "block_id",
-    "parent_block_id",
-    "date",
-    "experimenter",
-    "creator",
-]
-_proc_ids = [
-    FIFF.FIFF_PARENT_FILE_ID,
-    FIFF.FIFF_BLOCK_ID,
-    FIFF.FIFF_PARENT_BLOCK_ID,
-    FIFF.FIFF_MEAS_DATE,
-    FIFF.FIFF_EXPERIMENTER,
-    FIFF.FIFF_CREATOR,
-]
-_proc_writers = [write_id, write_id, write_id, write_int, write_string, write_string]
-_proc_casters = [dict, dict, dict, np.array, str, str]
+_proc_map = dict(  # ID, caster, writer
+    parent_file_id=(
+        FIFF.FIFF_PARENT_FILE_ID,
+        dict,
+        write_id,
+    ),
+    block_id=(
+        FIFF.FIFF_BLOCK_ID,
+        dict,
+        write_id,
+    ),
+    parent_block_id=(
+        FIFF.FIFF_PARENT_BLOCK_ID,
+        dict,
+        write_id,
+    ),
+    date=(
+        FIFF.FIFF_MEAS_DATE,
+        lambda d: tuple(int(dd) for dd in d),
+        write_int,
+    ),
+    experimenter=(
+        FIFF.FIFF_EXPERIMENTER,
+        str,
+        write_string,
+    ),
+    creator=(
+        FIFF.FIFF_CREATOR,
+        str,
+        write_string,
+    ),
+)
 
 
 def _read_proc_history(fid, tree):
@@ -98,7 +112,7 @@ def _read_proc_history(fid, tree):
             for i_ent in range(proc_record["nent"]):
                 kind = proc_record["directory"][i_ent].kind
                 pos = proc_record["directory"][i_ent].pos
-                for key, id_, cast in zip(_proc_keys, _proc_ids, _proc_casters):
+                for key, (id_, cast, _) in _proc_map.items():
                     if kind == id_:
                         tag = read_tag(fid, pos)
                         record[key] = cast(tag.data)
@@ -122,7 +136,7 @@ def _write_proc_history(fid, info):
         start_block(fid, FIFF.FIFFB_PROCESSING_HISTORY)
         for record in info["proc_history"]:
             start_block(fid, FIFF.FIFFB_PROCESSING_RECORD)
-            for key, id_, writer in zip(_proc_keys, _proc_ids, _proc_writers):
+            for key, (id_, _, writer) in _proc_map.items():
                 if key in record:
                     writer(fid, id_, record[key])
             _write_maxfilter_record(fid, record["max_info"])

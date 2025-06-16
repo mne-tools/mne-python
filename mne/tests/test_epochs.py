@@ -441,7 +441,7 @@ def test_average_movements():
     assert_meg_snr(evoked_sss, evoked_move_non, 0.02, 2.6)
     assert_meg_snr(evoked_sss, evoked_stat_all, 0.05, 3.2)
     # these should be close to numerical precision
-    assert_allclose(evoked_sss_stat.data, evoked_stat_all.data, atol=1e-20)
+    assert_allclose(evoked_sss_stat.data, evoked_stat_all.data, atol=1e-14)
 
     # pos[0] > epochs.events[0] uses dev_head_t, so make it equivalent
     destination = deepcopy(epochs.info["dev_head_t"])
@@ -479,12 +479,12 @@ def test_average_movements():
 def _assert_drop_log_types(drop_log):
     __tracebackhide__ = True
     assert isinstance(drop_log, tuple), "drop_log should be tuple"
-    assert all(
-        isinstance(log, tuple) for log in drop_log
-    ), "drop_log[ii] should be tuple"
-    assert all(
-        isinstance(s, str) for log in drop_log for s in log
-    ), "drop_log[ii][jj] should be str"
+    assert all(isinstance(log, tuple) for log in drop_log), (
+        "drop_log[ii] should be tuple"
+    )
+    assert all(isinstance(s, str) for log in drop_log for s in log), (
+        "drop_log[ii][jj] should be str"
+    )
 
 
 def test_reject():
@@ -4917,9 +4917,15 @@ def test_add_channels_picks():
 
 @pytest.mark.parametrize("first_samp", [0, 10])
 @pytest.mark.parametrize(
-    "meas_date, orig_date", [[None, None], [np.pi, None], [np.pi, timedelta(seconds=1)]]
+    "meas_date, orig_date, with_extras",
+    [
+        [None, None, False],
+        [np.pi, None, False],
+        [np.pi, timedelta(seconds=1), False],
+        [None, None, True],
+    ],
 )
-def test_epoch_annotations(first_samp, meas_date, orig_date, tmp_path):
+def test_epoch_annotations(first_samp, meas_date, orig_date, with_extras, tmp_path):
     """Test Epoch Annotations from RawArray with dates.
 
     Tests the following cases crossed with each other:
@@ -4942,21 +4948,26 @@ def test_epoch_annotations(first_samp, meas_date, orig_date, tmp_path):
     if orig_date is not None:
         orig_date = meas_date + orig_date
     ant_dur = 0.1
+    extras_row0 = {"foo1": 1, "foo2": 1.1, "foo3": "a", "foo4": None}
+    extras = [extras_row0, None, None] if with_extras else None
     ants = Annotations(
         onset=[1.1, 1.2, 2.1],
         duration=[ant_dur, ant_dur, ant_dur],
         description=["x", "y", "z"],
         orig_time=orig_date,
+        extras=extras,
     )
     raw.set_annotations(ants)
     epochs = make_fixed_length_epochs(raw, duration=1, overlap=0.5)
 
     # add Annotations to Epochs metadata
-    epochs.add_annotations_to_metadata()
+    epochs.add_annotations_to_metadata(with_extras=with_extras)
     metadata = epochs.metadata
     assert "annot_onset" in metadata.columns
     assert "annot_duration" in metadata.columns
     assert "annot_description" in metadata.columns
+    if with_extras:
+        assert all(f"annot_{k}" in metadata.columns for k in extras_row0.keys())
 
     # Test that writing and reading back these new metadata works
     temp_fname = tmp_path / "test-epo.fif"

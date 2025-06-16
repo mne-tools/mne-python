@@ -6,6 +6,8 @@ import copy as cp
 
 import numpy as np
 from scipy.linalg import eigh
+from sklearn.base import BaseEstimator
+from sklearn.utils.validation import check_is_fitted
 
 from .._fiff.meas_info import create_info
 from ..cov import _compute_rank_raw_array, _regularized_covariance, _smart_eigh
@@ -15,16 +17,15 @@ from ..utils import (
     _check_option,
     _validate_type,
     _verbose_safe_false,
-    copy_doc,
     fill_doc,
+    logger,
     pinv,
 )
-from .base import BaseEstimator
-from .mixin import TransformerMixin
+from .transformer import MNETransformerMixin
 
 
 @fill_doc
-class CSP(TransformerMixin, BaseEstimator):
+class CSP(MNETransformerMixin, BaseEstimator):
     """M/EEG signal decomposition using the Common Spatial Patterns (CSP).
 
     This class can be used as a supervised decomposition to estimate spatial
@@ -114,49 +115,44 @@ class CSP(TransformerMixin, BaseEstimator):
         component_order="mutual_info",
     ):
         # Init default CSP
-        if not isinstance(n_components, int):
-            raise ValueError("n_components must be an integer.")
         self.n_components = n_components
         self.rank = rank
         self.reg = reg
-
-        # Init default cov_est
-        if not (cov_est == "concat" or cov_est == "epoch"):
-            raise ValueError("unknown covariance estimation method")
         self.cov_est = cov_est
-
-        # Init default transform_into
-        self.transform_into = _check_option(
-            "transform_into", transform_into, ["average_power", "csp_space"]
-        )
-
-        # Init default log
-        if transform_into == "average_power":
-            if log is not None and not isinstance(log, bool):
-                raise ValueError(
-                    'log must be a boolean if transform_into == "average_power".'
-                )
-        else:
-            if log is not None:
-                raise ValueError('log must be a None if transform_into == "csp_space".')
+        self.transform_into = transform_into
         self.log = log
-
-        _validate_type(norm_trace, bool, "norm_trace")
         self.norm_trace = norm_trace
         self.cov_method_params = cov_method_params
-        self.component_order = _check_option(
-            "component_order", component_order, ("mutual_info", "alternate")
-        )
+        self.component_order = component_order
 
-    def _check_Xy(self, X, y=None):
-        """Check input data."""
-        if not isinstance(X, np.ndarray):
-            raise ValueError(f"X should be of type ndarray (got {type(X)}).")
-        if y is not None:
-            if len(X) != len(y) or len(y) < 1:
-                raise ValueError("X and y must have the same length.")
-        if X.ndim < 3:
-            raise ValueError("X must have at least 3 dimensions.")
+    def _validate_params(self, *, y):
+        _validate_type(self.n_components, int, "n_components")
+        if hasattr(self, "cov_est"):
+            _validate_type(self.cov_est, str, "cov_est")
+            _check_option("cov_est", self.cov_est, ("concat", "epoch"))
+        if hasattr(self, "norm_trace"):
+            _validate_type(self.norm_trace, bool, "norm_trace")
+        _check_option(
+            "transform_into", self.transform_into, ["average_power", "csp_space"]
+        )
+        if self.transform_into == "average_power":
+            _validate_type(
+                self.log,
+                (bool, None),
+                "log",
+                extra="when transform_into is 'average_power'",
+            )
+        else:
+            _validate_type(
+                self.log, None, "log", extra="when transform_into is 'csp_space'"
+            )
+        _check_option(
+            "component_order", self.component_order, ("mutual_info", "alternate")
+        )
+        self.classes_ = np.unique(y)
+        n_classes = len(self.classes_)
+        if n_classes < 2:
+            raise ValueError(f"n_classes must be >= 2, but got {n_classes} class")
 
     def fit(self, X, y):
         """Estimate the CSP decomposition on epochs.
@@ -173,12 +169,9 @@ class CSP(TransformerMixin, BaseEstimator):
         self : instance of CSP
             Returns the modified instance.
         """
-        self._check_Xy(X, y)
-
-        self._classes = np.unique(y)
-        n_classes = len(self._classes)
-        if n_classes < 2:
-            raise ValueError("n_classes must be >= 2.")
+        X, y = self._check_data(X, y=y, fit=True, return_y=True)
+        self._validate_params(y=y)
+        n_classes = len(self.classes_)
         if n_classes > 2 and self.component_order == "alternate":
             raise ValueError(
                 "component_order='alternate' requires two classes, but data contains "
@@ -227,13 +220,8 @@ class CSP(TransformerMixin, BaseEstimator):
             If self.transform_into == 'csp_space' then returns the data in CSP
             space and shape is (n_epochs, n_components, n_times).
         """
-        if not isinstance(X, np.ndarray):
-            raise ValueError(f"X should be of type ndarray (got {type(X)}).")
-        if self.filters_ is None:
-            raise RuntimeError(
-                "No filters available. Please first fit CSP decomposition."
-            )
-
+        check_is_fitted(self, "filters_")
+        X = self._check_data(X)
         pick_filters = self.filters_[: self.n_components]
         X = np.asarray([np.dot(pick_filters, epoch) for epoch in X])
 
@@ -272,8 +260,31 @@ class CSP(TransformerMixin, BaseEstimator):
             )
         return X[:, np.newaxis, :] * self.patterns_[: self.n_components].T
 
-    @copy_doc(TransformerMixin.fit_transform)
-    def fit_transform(self, X, y, **fit_params):  # noqa: D102
+    def fit_transform(self, X, y=None, **fit_params):
+        """Fit CSP to data, then transform it.
+
+        Fits transformer to ``X`` and ``y`` with optional parameters ``fit_params``, and
+        returns a transformed version of ``X``.
+
+        Parameters
+        ----------
+        X : array, shape (n_epochs, n_channels, n_times)
+            The data on which to estimate the CSP.
+        y : array, shape (n_epochs,)
+            The class for each epoch.
+        **fit_params : dict
+            Additional fitting parameters passed to the :meth:`mne.decoding.CSP.fit`
+            method. Not used for this class.
+
+        Returns
+        -------
+        X_csp : array, shape (n_epochs, n_components[, n_times])
+            If ``self.transform_into == 'average_power'`` then returns the power of CSP
+            features averaged over time and shape is ``(n_epochs, n_components)``. If
+            ``self.transform_into == 'csp_space'`` then returns the data in CSP space
+            and shape is ``(n_epochs, n_components, n_times)``.
+        """
+        # use parent TransformerMixin method but with custom docstring
         return super().fit_transform(X, y=y, **fit_params)
 
     @fill_doc
@@ -282,7 +293,6 @@ class CSP(TransformerMixin, BaseEstimator):
         info,
         components=None,
         *,
-        average=None,
         ch_type=None,
         scalings=None,
         sensors=True,
@@ -320,7 +330,6 @@ class CSP(TransformerMixin, BaseEstimator):
             :func:`mne.create_info`.
         components : float | array of float | None
            The patterns to plot. If ``None``, all components will be shown.
-        %(average_plot_evoked_topomap)s
         %(ch_type_topomap)s
         scalings : dict | float | None
             The scalings of the channel types to be applied for plotting.
@@ -378,7 +387,6 @@ class CSP(TransformerMixin, BaseEstimator):
         # the call plot_topomap
         fig = patterns.plot_topomap(
             times=components,
-            average=average,
             ch_type=ch_type,
             scalings=scalings,
             sensors=sensors,
@@ -413,7 +421,6 @@ class CSP(TransformerMixin, BaseEstimator):
         info,
         components=None,
         *,
-        average=None,
         ch_type=None,
         scalings=None,
         sensors=True,
@@ -451,7 +458,6 @@ class CSP(TransformerMixin, BaseEstimator):
             :func:`mne.create_info`.
         components : float | array of float | None
            The patterns to plot. If ``None``, all components will be shown.
-        %(average_plot_evoked_topomap)s
         %(ch_type_topomap)s
         scalings : dict | float | None
             The scalings of the channel types to be applied for plotting.
@@ -509,7 +515,6 @@ class CSP(TransformerMixin, BaseEstimator):
         # the call plot_topomap
         fig = filters.plot_topomap(
             times=components,
-            average=average,
             ch_type=ch_type,
             scalings=scalings,
             sensors=sensors,
@@ -562,7 +567,7 @@ class CSP(TransformerMixin, BaseEstimator):
 
         covs = []
         sample_weights = []
-        for ci, this_class in enumerate(self._classes):
+        for ci, this_class in enumerate(self.classes_):
             cov, weight = cov_estimator(
                 X[y == this_class],
                 cov_kind=f"class={this_class}",
@@ -598,6 +603,12 @@ class CSP(TransformerMixin, BaseEstimator):
 
     def _epoch_cov(self, x_class, *, cov_kind, log_rank):
         """Mean of per-epoch covariances."""
+        name = self.reg if isinstance(self.reg, str) else "empirical"
+        name += " with shrinkage" if isinstance(self.reg, float) else ""
+        logger.info(
+            f"Estimating {cov_kind + (' ' if cov_kind else '')}"
+            f"covariance (average over epochs; {name.upper()})"
+        )
         cov = sum(
             _regularized_covariance(
                 this_X,
@@ -608,6 +619,7 @@ class CSP(TransformerMixin, BaseEstimator):
                 cov_kind=cov_kind,
                 log_rank=log_rank and ii == 0,
                 log_ch_type="data",
+                verbose=_verbose_safe_false(),
             )
             for ii, this_X in enumerate(x_class)
         )
@@ -674,7 +686,7 @@ class CSP(TransformerMixin, BaseEstimator):
     def _order_components(
         self, covs, sample_weights, eigen_vectors, eigen_values, component_order
     ):
-        n_classes = len(self._classes)
+        n_classes = len(self.classes_)
         if component_order == "mutual_info" and n_classes > 2:
             mutual_info = self._compute_mutual_info(covs, sample_weights, eigen_vectors)
             ix = np.argsort(mutual_info)[::-1]
@@ -874,10 +886,8 @@ class SPoC(CSP):
         self : instance of SPoC
             Returns the modified instance.
         """
-        self._check_Xy(X, y)
-
-        if len(np.unique(y)) < 2:
-            raise ValueError("y must have at least two distinct values.")
+        X, y = self._check_data(X, y=y, fit=True, return_y=True)
+        self._validate_params(y=y)
 
         # The following code is directly copied from pyRiemann
 
@@ -946,3 +956,30 @@ class SPoC(CSP):
             space and shape is (n_epochs, n_components, n_times).
         """
         return super().transform(X)
+
+    def fit_transform(self, X, y=None, **fit_params):
+        """Fit SPoC to data, then transform it.
+
+        Fits transformer to ``X`` and ``y`` with optional parameters ``fit_params``, and
+        returns a transformed version of ``X``.
+
+        Parameters
+        ----------
+        X : array, shape (n_epochs, n_channels, n_times)
+            The data on which to estimate the SPoC.
+        y : array, shape (n_epochs,)
+            The class for each epoch.
+        **fit_params : dict
+            Additional fitting parameters passed to the :meth:`mne.decoding.CSP.fit`
+            method. Not used for this class.
+
+        Returns
+        -------
+        X : array, shape (n_epochs, n_components[, n_times])
+            If ``self.transform_into == 'average_power'`` then returns the power of CSP
+            features averaged over time and shape is ``(n_epochs, n_components)``. If
+            ``self.transform_into == 'csp_space'`` then returns the data in CSP space
+            and shape is ``(n_epochs, n_components, n_times)``.
+        """
+        # use parent TransformerMixin method but with custom docstring
+        return super().fit_transform(X, y=y, **fit_params)

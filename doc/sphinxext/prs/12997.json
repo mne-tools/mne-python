@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "0e09163e80013a426d419bda0c560ff3d48209bb",
+  "authors": [
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    }
+  ],
+  "changes": {
+    "tutorials/forward/35_eeg_no_mri.py": {
+      "a": 9,
+      "d": 13
+    }
+  }
+}

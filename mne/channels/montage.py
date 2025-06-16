@@ -46,6 +46,7 @@ from ..utils import (
     _on_missing,
     _pl,
     _validate_type,
+    check_fname,
     copy_function_doc_to_method_doc,
     fill_doc,
     verbose,
@@ -341,8 +342,8 @@ class DigMontage:
         n_eeg = sum([1 for d in dig if d["kind"] == FIFF.FIFFV_POINT_EEG])
         if n_eeg != len(ch_names):
             raise ValueError(
-                "The number of EEG channels (%d) does not match the number"
-                " of channel names provided (%d)" % (n_eeg, len(ch_names))
+                f"The number of EEG channels ({n_eeg}) does not match the number"
+                f" of channel names provided ({len(ch_names)})"
             )
 
         self.dig = dig
@@ -360,8 +361,7 @@ class DigMontage:
     def plot(
         self,
         *,
-        scale=None,
-        scale_factor=None,
+        scale=1.0,
         show_names=True,
         kind="topomap",
         show=True,
@@ -372,7 +372,6 @@ class DigMontage:
         return plot_montage(
             self,
             scale=scale,
-            scale_factor=scale_factor,
             show_names=show_names,
             kind=kind,
             show=show,
@@ -406,12 +405,25 @@ class DigMontage:
         Parameters
         ----------
         fname : path-like
-            The filename to use. Should end in .fif or .fif.gz.
+            The filename to use. Should end in ``-dig.fif`` or ``-dig.fif.gz``.
         %(overwrite)s
         %(verbose)s
+
+        See Also
+        --------
+        mne.channels.read_dig_fif
+
+        Notes
+        -----
+        .. versionchanged:: 1.9
+           Added support for saving the associated channel names.
         """
+        fname = _check_fname(fname, overwrite=overwrite)
+        check_fname(fname, "montage", ("-dig.fif", "-dig.fif.gz"))
         coord_frame = _check_get_coord_frame(self.dig)
-        write_dig(fname, self.dig, coord_frame, overwrite=overwrite)
+        write_dig(
+            fname, self.dig, coord_frame, overwrite=overwrite, ch_names=self.ch_names
+        )
 
     def __iadd__(self, other):
         """Add two DigMontages in place.
@@ -808,17 +820,15 @@ def read_dig_dat(fname):
     return make_dig_montage(electrodes, nasion, lpa, rpa)
 
 
-def read_dig_fif(fname):
+@verbose
+def read_dig_fif(fname, *, verbose=None):
     r"""Read digitized points from a .fif file.
-
-    Note that electrode names are not present in the .fif file so
-    they are here defined with the convention from VectorView
-    systems (EEG001, EEG002, etc.)
 
     Parameters
     ----------
     fname : path-like
         FIF file from which to read digitization locations.
+    %(verbose)s
 
     Returns
     -------
@@ -835,17 +845,28 @@ def read_dig_fif(fname):
     read_dig_hpts
     read_dig_localite
     make_dig_montage
+
+    Notes
+    -----
+    .. versionchanged:: 1.9
+       Added support for reading the associated channel names, if present.
+
+    In some files, electrode names are not present (e.g., in older files).
+    For those files, the channel names are defined with the convention from
+    VectorView systems (EEG001, EEG002, etc.).
     """
-    _check_fname(fname, overwrite="read", must_exist=True)
+    check_fname(fname, "montage", ("-dig.fif", "-dig.fif.gz"))
+    fname = _check_fname(fname=fname, must_exist=True, overwrite="read")
     # Load the dig data
     f, tree = fiff_open(fname)[:2]
     with f as fid:
-        dig = _read_dig_fif(fid, tree)
+        dig, ch_names = _read_dig_fif(fid, tree, return_ch_names=True)
 
-    ch_names = []
-    for d in dig:
-        if d["kind"] == FIFF.FIFFV_POINT_EEG:
-            ch_names.append("EEG%03d" % d["ident"])
+    if ch_names is None:  # backward compat from when we didn't save the names
+        ch_names = []
+        for d in dig:
+            if d["kind"] == FIFF.FIFFV_POINT_EEG:
+                ch_names.append(f"EEG{d['ident']:03d}")
 
     montage = DigMontage(dig=dig, ch_names=ch_names)
     return montage
@@ -927,7 +948,7 @@ def read_dig_hpts(fname, unit="mm"):
     out = np.genfromtxt(fname, comments="#", dtype=(_str, _str, "f8", "f8", "f8"))
     kind, label = _str_names(out["f0"]), _str_names(out["f1"])
     kind = [k.lower() for k in kind]
-    xyz = np.array([out["f%d" % ii] for ii in range(2, 5)]).T
+    xyz = np.array([out[f"f{ii}"] for ii in range(2, 5)]).T
     xyz *= _scale
     del _scale
     fid_idx_to_label = {"1": "lpa", "2": "nasion", "3": "rpa"}
@@ -1266,7 +1287,7 @@ def _set_montage(info, montage, match_case=True, match_alias=False, on_missing="
             f"Not setting position{_pl(extra)} of {len(extra)} {types} "
             f"channel{_pl(extra)} found in montage:\n{names}\n"
             "Consider setting the channel types to be of "
-            f'{docdict["montage_types"]} '
+            f"{docdict['montage_types']} "
             "using inst.set_channel_types before calling inst.set_montage, "
             "or omit these channels when creating your montage."
         )
@@ -1537,7 +1558,10 @@ def _read_eeglab_locations(fname):
     return ch_names, pos
 
 
-def read_custom_montage(fname, head_size=HEAD_SIZE_DEFAULT, coord_frame=None):
+@verbose
+def read_custom_montage(
+    fname, head_size=HEAD_SIZE_DEFAULT, coord_frame=None, *, verbose=None
+):
     """Read a montage from a file.
 
     Parameters
@@ -1558,6 +1582,7 @@ def read_custom_montage(fname, head_size=HEAD_SIZE_DEFAULT, coord_frame=None):
         for most readers but ``"head"`` for EEGLAB.
 
         .. versionadded:: 0.20
+    %(verbose)s
 
     Returns
     -------
@@ -1568,6 +1593,7 @@ def read_custom_montage(fname, head_size=HEAD_SIZE_DEFAULT, coord_frame=None):
     --------
     make_dig_montage
     make_standard_montage
+    read_dig_fif
 
     Notes
     -----

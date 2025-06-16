@@ -32,6 +32,7 @@ __all__ = [
     "read_polhemus_fastscan",
     "read_vectorview_selection",
     "rename_channels",
+    "transform_to_head",
     "unify_bad_channels",
 ]
 from .channels import (
@@ -73,4 +74,5 @@ from .montage import (
     read_dig_localite,
     read_dig_polhemus_isotrak,
     read_polhemus_fastscan,
+    transform_to_head,
 )

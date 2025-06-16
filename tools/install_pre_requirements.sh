@@ -14,42 +14,40 @@ QT_BINDING="PyQt6"
 echo "PyQt6 and scientific-python-nightly-wheels dependencies"
 python -m pip install $STD_ARGS pip setuptools packaging \
 	threadpoolctl cycler fonttools kiwisolver pyparsing pillow python-dateutil \
-	patsy pytz tzdata nibabel tqdm trx-python joblib numexpr "$QT_BINDING"
+	patsy pytz tzdata nibabel tqdm trx-python joblib numexpr "$QT_BINDING" \
+	py-cpuinfo blosc2 hatchling "formulaic>=1.1.0" \
+	"h5py>=3.12.1"  # TODO move h5py back to nightlies when possible
 echo "NumPy/SciPy/pandas etc."
 python -m pip uninstall -yq numpy
-# No pyarrow yet https://github.com/apache/arrow/issues/40216
-# No h5py (and thus dipy) yet until they improve/refactor thier wheel building infrastructure for Windows
-OTHERS=""
-if [[ "${PLATFORM}" == "Linux" ]]; then
-	OTHERS="h5py dipy"
-fi
 python -m pip install $STD_ARGS --only-binary ":all:" --default-timeout=60 \
 	--index-url "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" \
 	"numpy>=2.1.0.dev0" "scikit-learn>=1.6.dev0" "scipy>=1.15.0.dev0" \
-	"statsmodels>=0.15.0.dev0" "pandas>=3.0.0.dev0" "matplotlib>=3.10.0.dev0" \
-	$OTHERS
+	"matplotlib>=3.11.0.dev0" \
+	"pandas>=3.0.0.dev0" \
+	"dipy>=1.10.0.dev0" \
+	"pyarrow>=20.0.0.dev0" \
+	"tables>=3.10.3.dev0" \
+	"h5py>=3.13.0"
+# TODO: should have above: "statsmodels>=0.15.0.dev0"
+# https://github.com/statsmodels/statsmodels/issues/9572
 
 # No Numba because it forces an old NumPy version
 
-if [[ "${PLATFORM}" == "Linux" ]]; then
-	echo "pymatreader"
-	pip install https://gitlab.com/obob/pymatreader/-/archive/master/pymatreader-master.zip
-fi
+echo "pymatreader"
+pip install https://gitlab.com/obob/pymatreader/-/archive/master/pymatreader-master.zip
 
 echo "OpenMEEG"
 python -m pip install $STD_ARGS --only-binary ":all:" --extra-index-url "https://test.pypi.org/simple" "openmeeg>=2.6.0.dev4"
 
 echo "nilearn"
-python -m pip install $STD_ARGS git+https://github.com/nilearn/nilearn
+python -m pip install $STD_ARGS "git+https://github.com/nilearn/nilearn"
 
 echo "VTK"
-# No pre until PyVista fixes a bug
-# python -m pip install $STD_ARGS --only-binary ":all:" --extra-index-url "https://wheels.vtk.org" vtk
-python -m pip install $STD_ARGS vtk
+python -m pip install $STD_ARGS --only-binary ":all:" --extra-index-url "https://wheels.vtk.org" vtk
 python -c "import vtk"
 
 echo "PyVista"
-python -m pip install $STD_ARGS "git+https://github.com/pyvista/pyvista"
+python -m pip install $STD_ARGS "git+https://github.com/pyvista/pyvista" trame trame-vtk trame-vuetify jupyter ipyevents ipympl
 
 echo "picard"
 python -m pip install $STD_ARGS git+https://github.com/pierreablin/picard
@@ -58,7 +56,7 @@ echo "pyvistaqt"
 pip install $STD_ARGS git+https://github.com/pyvista/pyvistaqt
 
 echo "imageio-ffmpeg, xlrd, mffpy"
-pip install $STD_ARGS imageio-ffmpeg xlrd mffpy traitlets pybv eeglabio
+pip install $STD_ARGS imageio-ffmpeg xlrd mffpy traitlets pybv eeglabio defusedxml antio
 
 echo "mne-qt-browser"
 pip install $STD_ARGS git+https://github.com/mne-tools/mne-qt-browser
@@ -77,13 +75,11 @@ echo "edfio"
 # https://github.com/mne-tools/mne-python/pull/12609#issuecomment-2115639369
 GIT_CLONE_PROTECTION_ACTIVE=false pip install $STD_ARGS git+https://github.com/the-siesta-group/edfio
 
-if [[ "${PLATFORM}" == "Linux" ]]; then
-	echo "h5io"
-	pip install $STD_ARGS git+https://github.com/h5io/h5io
+echo "h5io"
+pip install $STD_ARGS git+https://github.com/h5io/h5io
 
-	echo "pysnirf2"
-	pip install $STD_ARGS git+https://github.com/BUNPC/pysnirf2
-fi
+echo "pysnirf2"
+pip install $STD_ARGS git+https://github.com/BUNPC/pysnirf2
 
 # Make sure we're on a NumPy 2.0 variant
 echo "Checking NumPy version"

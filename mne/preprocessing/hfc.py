@@ -68,8 +68,7 @@ def compute_proj_hfc(
     n_chs = len(coils[5])
     if n_chs != info["nchan"]:
         raise ValueError(
-            f'Only {n_chs}/{info["nchan"]} picks could be interpreted '
-            "as MEG channels."
+            f"Only {n_chs}/{info['nchan']} picks could be interpreted as MEG channels."
         )
     S = _sss_basis(exp, coils)
     del coils

@@ -38,10 +38,10 @@ def _read_dig_montage_egi(
 
         # EEG Channels
         if kind == 0:
-            dig_ch_pos["EEG %03d" % number] = coordinates
+            dig_ch_pos[f"EEG {number:03d}"] = coordinates
         # Reference
         elif kind == 1:
-            dig_ch_pos["EEG %03d" % (len(dig_ch_pos.keys()) + 1)] = coordinates
+            dig_ch_pos[f"EEG {len(dig_ch_pos) + 1:03d}"] = coordinates
         # Fiducials
         elif kind == 2:
             fid_name = fid_name_map[name]

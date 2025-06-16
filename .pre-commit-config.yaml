@@ -1,7 +1,7 @@
 repos:
   # Ruff mne
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.6.3
+    rev: v0.11.13
     hooks:
       - id: ruff
         name: ruff lint mne
@@ -23,7 +23,7 @@ repos:
 
   # Codespell
   - repo: https://github.com/codespell-project/codespell
-    rev: v2.3.0
+    rev: v2.4.1
     hooks:
       - id: codespell
         additional_dependencies:
@@ -33,14 +33,14 @@ repos:
 
   # yamllint
   - repo: https://github.com/adrienverge/yamllint.git
-    rev: v1.35.1
+    rev: v1.37.1
     hooks:
       - id: yamllint
         args: [--strict, -c, .yamllint.yml]
 
   # rstcheck
   - repo: https://github.com/rstcheck/rstcheck.git
-    rev: v6.2.4
+    rev: v6.2.5
     hooks:
       - id: rstcheck
         additional_dependencies:
@@ -51,11 +51,44 @@ repos:
 
   # sorting
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.6.0
+    rev: v5.0.0
     hooks:
       - id: file-contents-sorter
         files: ^doc/changes/names.inc|^.mailmap
         args: ["--ignore-case"]
+
+  - repo: https://github.com/pappasam/toml-sort
+    rev: v0.24.2
+    hooks:
+      - id: toml-sort-fix
+        files: pyproject.toml
+
+  # dependencies
+  - repo: local
+    hooks:
+      - id: update-env-file
+        name: Copy dependency changes from pyproject.toml to environment.yml
+        language: python
+        entry: ./tools/hooks/update_environment_file.py
+        files: '^(pyproject.toml|tools/hooks/update_environment_file.py)$'
+  - repo: local
+    hooks:
+      - id: dependency-sync
+        name: Copy core dependencies from pyproject.toml to README.rst
+        language: python
+        entry: ./tools/hooks/sync_dependencies.py
+        files: '^(pyproject.toml|tools/hooks/sync_dependencies.py)$'
+        additional_dependencies: ["mne==1.9.0"]
+
+  # zizmor
+  - repo: https://github.com/woodruffw/zizmor-pre-commit
+    rev: v1.9.0
+    hooks:
+      - id: zizmor
+
+# these should *not* be run on CIs:
+ci:
+  skip: [dependency-sync]  # needs MNE to work, which exceeds the free tier space alloc.
 
 # The following are too slow to run on local commits, so let's only run on CIs:
 #

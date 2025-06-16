@@ -49,8 +49,7 @@ def run():
         "--force",
         dest="force",
         action="store_true",
-        help="Force creation of the surface even if it has "
-        "some topological defects.",
+        help="Force creation of the surface even if it has some topological defects.",
     )
     parser.add_option(
         "-t",

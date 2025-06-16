@@ -20,6 +20,7 @@ from scipy.sparse import csr_array
 from scipy.spatial import Delaunay, Voronoi
 from scipy.spatial.distance import pdist, squareform
 
+from .._fiff.constants import FIFF
 from .._fiff.meas_info import Info, _simplify_info
 from .._fiff.pick import (
     _MEG_CH_TYPES_SPLIT,
@@ -76,6 +77,7 @@ from .utils import (
 )
 
 _fnirs_types = ("hbo", "hbr", "fnirs_cw_amplitude", "fnirs_od")
+_opm_coils = (FIFF.FIFFV_COIL_QUSPIN_ZFOPM_MAG, FIFF.FIFFV_COIL_QUSPIN_ZFOPM_MAG2)
 
 
 # 3.8+ uses a single Collection artist rather than .collections
@@ -123,6 +125,13 @@ def _prepare_topomap_plot(inst, ch_type, sphere=None):
     info["bads"] = _clean_names(info["bads"])
     info._check_consistency()
 
+    if any(ch["coil_type"] in _opm_coils for ch in info["chs"]):
+        modality = "opm"
+    elif ch_type in _fnirs_types:
+        modality = "fnirs"
+    else:
+        modality = "other"
+
     # special case for merging grad channels
     layout = find_layout(info)
     if (
@@ -136,10 +145,9 @@ def _prepare_topomap_plot(inst, ch_type, sphere=None):
         picks, _ = _pair_grad_sensors(info, layout)
         pos = _find_topomap_coords(info, picks[::2], sphere=sphere)
         merge_channels = True
-    elif ch_type in _fnirs_types:
-        # fNIRS data commonly has overlapping channels, so deal with separately
-        picks, pos, merge_channels, overlapping_channels = _average_fnirs_overlaps(
-            info, ch_type, sphere
+    elif modality != "other":
+        picks, pos, merge_channels, overlapping_channels = _find_overlaps(
+            info, ch_type, sphere, modality=modality
         )
     else:
         merge_channels = False
@@ -162,7 +170,7 @@ def _prepare_topomap_plot(inst, ch_type, sphere=None):
         pos = _find_topomap_coords(info, picks, sphere=sphere)
 
     ch_names = [info["ch_names"][k] for k in picks]
-    if ch_type in _fnirs_types:
+    if modality == "fnirs":
         # Remove the chroma label type for cleaner labeling.
         ch_names = [k[:-4] for k in ch_names]
 
@@ -171,24 +179,38 @@ def _prepare_topomap_plot(inst, ch_type, sphere=None):
             # change names so that vectorview combined grads appear as MEG014x
             # instead of MEG0142 or MEG0143 which are the 2 planar grads.
             ch_names = [ch_names[k][:-1] + "x" for k in range(0, len(ch_names), 2)]
-        else:
-            assert ch_type in _fnirs_types
-            # Modify the nirs channel names to indicate they are to be merged
+        elif modality == "fnirs":
+            # Modify the channel names to indicate they are to be merged
             # New names will have the form  S1_D1xS2_D2
             # More than two channels can overlap and be merged
             for set_ in overlapping_channels:
                 idx = ch_names.index(set_[0][:-4])
                 new_name = "x".join(s[:-4] for s in set_)
                 ch_names[idx] = new_name
+        elif modality == "opm":
+            # indicate that non-radial changes are to be removed
+            for set_ in overlapping_channels:
+                for set_ch in set_[1:]:
+                    idx = ch_names.index(set_ch)
+                    new_name = set_ch + "_MERGE-REMOVE"
+                    ch_names[idx] = new_name
 
     pos = np.array(pos)[:, :2]  # 2D plot, otherwise interpolation bugs
     return picks, pos, merge_channels, ch_names, ch_type, sphere, clip_origin
 
 
-def _average_fnirs_overlaps(info, ch_type, sphere):
+def _find_overlaps(info, ch_type, sphere, modality="fnirs"):
+    """Find overlapping channels."""
     from ..channels.layout import _find_topomap_coords
 
-    picks = pick_types(info, meg=False, ref_meg=False, fnirs=ch_type, exclude="bads")
+    if modality == "fnirs":
+        picks = pick_types(
+            info, meg=False, ref_meg=False, fnirs=ch_type, exclude="bads"
+        )
+    elif modality == "opm":
+        picks = pick_types(info, meg=True, ref_meg=False, exclude="bads")
+    else:
+        raise ValueError(f"Invalid modality for colocated sensors: {modality}")
     chs = [info["chs"][i] for i in picks]
     locs3d = np.array([ch["loc"][:3] for ch in chs])
     dist = pdist(locs3d)
@@ -212,31 +234,77 @@ def _average_fnirs_overlaps(info, ch_type, sphere):
                 overlapping_set = [
                     chs[i]["ch_name"] for i in np.where(overlapping_mask[chan_idx])[0]
                 ]
-                overlapping_set = np.insert(
-                    overlapping_set, 0, (chs[chan_idx]["ch_name"])
-                )
+                if modality == "fnirs":
+                    overlapping_set = np.insert(
+                        overlapping_set, 0, (chs[chan_idx]["ch_name"])
+                    )
+                elif modality == "opm":
+                    overlapping_set = np.insert(
+                        overlapping_set, 0, (chs[chan_idx]["ch_name"])
+                    )
+                    rad_channel = _find_radial_channel(info, overlapping_set)
+                    # Make sure the radial channel is first in the overlapping set
+                    overlapping_set = np.array(
+                        [ch for ch in overlapping_set if ch != rad_channel]
+                    )
+                    overlapping_set = np.insert(overlapping_set, 0, rad_channel)
                 overlapping_channels.append(overlapping_set)
                 channels_to_exclude.append(overlapping_set[1:])
 
         exclude = list(itertools.chain.from_iterable(channels_to_exclude))
         [exclude.append(bad) for bad in info["bads"]]
-        picks = pick_types(
-            info, meg=False, ref_meg=False, fnirs=ch_type, exclude=exclude
-        )
-        pos = _find_topomap_coords(info, picks, sphere=sphere)
-        picks = pick_types(info, meg=False, ref_meg=False, fnirs=ch_type)
+        if modality == "fnirs":
+            picks = pick_types(
+                info, meg=False, ref_meg=False, fnirs=ch_type, exclude=exclude
+            )
+            pos = _find_topomap_coords(info, picks, sphere=sphere)
+            picks = pick_types(info, meg=False, ref_meg=False, fnirs=ch_type)
+        elif modality == "opm":
+            picks = pick_types(info, meg=True, ref_meg=False, exclude=exclude)
+            pos = _find_topomap_coords(info, picks, sphere=sphere)
+            picks = pick_types(info, meg=True, ref_meg=False)
+
         # Overload the merge_channels variable as this is returned to calling
         # function and indicates that merging of data is required
         merge_channels = overlapping_channels
 
     else:
-        picks = pick_types(
-            info, meg=False, ref_meg=False, fnirs=ch_type, exclude="bads"
-        )
+        if modality == "fnirs":
+            picks = pick_types(
+                info, meg=False, ref_meg=False, fnirs=ch_type, exclude="bads"
+            )
+        elif modality == "opm":
+            picks = pick_types(info, meg=True, ref_meg=False, exclude="bads")
+
         merge_channels = False
         pos = _find_topomap_coords(info, picks, sphere=sphere)
 
     return picks, pos, merge_channels, overlapping_channels
+
+
+def _find_radial_channel(info, overlapping_set):
+    """Find the most radial channel in the overlapping set."""
+    if len(overlapping_set) == 1:
+        return overlapping_set[0]
+    elif len(overlapping_set) < 1:
+        raise ValueError("No overlapping channels found.")
+
+    radial_score = np.zeros(len(overlapping_set))
+    for s, sens in enumerate(overlapping_set):
+        ch_idx = pick_channels(info["ch_names"], [sens])[0]
+        radial_direction = info["chs"][ch_idx]["loc"][0:3].copy()
+        radial_direction /= np.linalg.norm(radial_direction)
+
+        orientation_vector = info["chs"][ch_idx]["loc"][9:12]
+        if info["dev_head_t"] is not None:
+            orientation_vector = apply_trans(
+                info["dev_head_t"], orientation_vector, move=False
+            )
+        radial_score[s] = np.abs(np.dot(radial_direction, orientation_vector))
+
+    radial_sensor = overlapping_set[np.argmax(radial_score)]
+
+    return radial_sensor
 
 
 def _plot_update_evoked_topomap(params, bools):
@@ -910,8 +978,7 @@ def _get_pos_outlines(info, picks, sphere, to_sphere=True):
     orig_sphere = sphere
     sphere, clip_origin = _adjust_meg_sphere(sphere, info, ch_type)
     logger.debug(
-        "Generating pos outlines with sphere "
-        f"{sphere} from {orig_sphere} for {ch_type}"
+        f"Generating pos outlines with sphere {sphere} from {orig_sphere} for {ch_type}"
     )
     pos = _find_topomap_coords(
         info, picks, ignore_overlap=True, to_sphere=to_sphere, sphere=sphere
@@ -1262,7 +1329,7 @@ def _plot_topomap(
     if len(data) != len(pos):
         raise ValueError(
             "Data and pos need to be of same length. Got data of "
-            f"length {len(data)}, pos of length { len(pos)}"
+            f"length {len(data)}, pos of length {len(pos)}"
         )
 
     norm = min(data) >= 0
@@ -1409,8 +1476,7 @@ def _plot_ica_topomap(
     sphere = _check_sphere(sphere, ica.info)
     if not isinstance(axes, Axes):
         raise ValueError(
-            "axis has to be an instance of matplotlib Axes, "
-            f"got {type(axes)} instead."
+            f"axis has to be an instance of matplotlib Axes, got {type(axes)} instead."
         )
     ch_type = _get_plot_ch_type(ica, ch_type, allow_ref_meg=ica.allow_ref_meg)
     if ch_type == "ref_meg":
@@ -1638,9 +1704,8 @@ def plot_ica_components(
             sphere,
             clip_origin,
         ) = _prepare_topomap_plot(ica, ch_type, sphere=sphere)
-
         cmap = _setup_cmap(cmap, n_axes=len(picks))
-        names = _prepare_sensor_names(names, show_names)
+        disp_names = _prepare_sensor_names(names, show_names)
         outlines = _make_head_outlines(sphere, pos, outlines, clip_origin)
 
         data = np.dot(
@@ -1677,7 +1742,7 @@ def plot_ica_components(
                 pos,
                 ch_type=ch_type,
                 sensors=sensors,
-                names=names,
+                names=disp_names,
                 contours=contours,
                 outlines=outlines,
                 sphere=sphere,
@@ -1882,7 +1947,7 @@ def plot_tfr_topomap(
         tfr, ch_type, sphere=sphere
     )
     outlines = _make_head_outlines(sphere, pos, outlines, clip_origin)
-    data = tfr.data[picks, :, :]
+    data = tfr.data[picks]
 
     # merging grads before rescaling makes ERDs visible
     if merge_channels:
@@ -1890,6 +1955,18 @@ def plot_tfr_topomap(
 
     data = rescale(data, tfr.times, baseline, mode, copy=True)
 
+    # handle unaggregated multitaper (complex or phase multitaper data)
+    if tfr.weights is not None:  # assumes a taper dimension
+        logger.info("Aggregating multitaper estimates before plotting...")
+        weights = tfr.weights[np.newaxis, :, :, np.newaxis]  # add channel & time dims
+        data = weights * data
+        if np.iscomplexobj(data):  # complex coefficients → power
+            data *= data.conj()
+            data = data.real.sum(axis=1)
+            data *= 2 / (weights * weights.conj()).real.sum(axis=1)
+        else:  # tapered phase data → weighted phase data
+            data = data.mean(axis=1)
+    # handle remaining complex amplitude → real power
     if np.iscomplexobj(data):
         data = np.sqrt((data * data.conj()).real)
 
@@ -2104,6 +2181,22 @@ def plot_evoked_topomap(
     :ref:`gridspec <matplotlib:arranging_axes>` interface to adjust the colorbar
     size yourself.
 
+    The defaults for ``contours`` and ``vlim`` are handled as follows:
+
+    * When neither ``vlim`` nor a list of ``contours`` is passed, MNE sets
+      ``vlim`` at ± the maximum absolute value of the data and then chooses
+      contours within those bounds.
+
+    * When ``vlim`` but not a list of ``contours`` is passed, MNE chooses
+      contours to be within the ``vlim``.
+
+    * When a list of ``contours`` but not ``vlim`` is passed, MNE chooses
+      ``vlim`` to encompass the ``contours`` and the maximum absolute value of the
+      data.
+
+    * When both a list of ``contours`` and ``vlim`` are passed, MNE uses them
+      as-is.
+
     When ``time=="interactive"``, the figure will publish and subscribe to the
     following UI events:
 
@@ -2179,8 +2272,7 @@ def plot_evoked_topomap(
     space = 1 / (2.0 * evoked.info["sfreq"])
     if max(times) > max(evoked.times) + space or min(times) < min(evoked.times) - space:
         raise ValueError(
-            f"Times should be between {evoked.times[0]:0.3} and "
-            f"{evoked.times[-1]:0.3}."
+            f"Times should be between {evoked.times[0]:0.3} and {evoked.times[-1]:0.3}."
         )
     # create axes
     want_axes = n_times + int(colorbar)
@@ -2271,8 +2363,17 @@ def plot_evoked_topomap(
     # apply scalings and merge channels
     data *= scaling
     if merge_channels:
-        data, ch_names = _merge_ch_data(data, ch_type, ch_names)
-        if ch_type in _fnirs_types:
+        # check modality
+        if any(ch["coil_type"] in _opm_coils for ch in evoked.info["chs"]):
+            modality = "opm"
+        elif ch_type in _fnirs_types:
+            modality = "fnirs"
+        else:
+            modality = "other"
+        # merge data
+        data, ch_names = _merge_ch_data(data, ch_type, ch_names, modality=modality)
+        # if ch_type in _fnirs_types:
+        if modality != "other":
             merge_channels = False
     # apply mask if requested
     if mask is not None:
@@ -2287,11 +2388,17 @@ def plot_evoked_topomap(
     _vlim = [
         _setup_vmin_vmax(data[:, i], *vlim, norm=merge_channels) for i in range(n_times)
     ]
-    _vlim = (np.min(_vlim), np.max(_vlim))
+    _vlim = [np.min(_vlim), np.max(_vlim)]
     cmap = _setup_cmap(cmap, n_axes=n_times, norm=_vlim[0] >= 0)
     # set up contours
     if not isinstance(contours, list | np.ndarray):
         _, contours = _set_contour_locator(*_vlim, contours)
+    else:
+        if vlim[0] is None and np.any(contours < _vlim[0]):
+            _vlim[0] = contours[0]
+        if vlim[1] is None and np.any(contours > _vlim[1]):
+            _vlim[1] = contours[-1]
+
     # prepare for main loop over times
     kwargs = dict(
         sensors=sensors,
@@ -2779,8 +2886,7 @@ def plot_psds_topomap(
         # convert legacy list-of-tuple input to a dict
         bands = {band[-1]: band[:-1] for band in bands}
         logger.info(
-            "converting legacy list-of-tuples input to a dict for the "
-            "`bands` parameter"
+            "converting legacy list-of-tuples input to a dict for the `bands` parameter"
         )
     # upconvert single freqs to band upper/lower edges as needed
     bin_spacing = np.diff(freqs)[0]
@@ -2835,7 +2941,7 @@ def plot_psds_topomap(
     for ax, _mask, _data, (title, (fmin, fmax)) in zip(
         axes, freq_masks, band_data, bands.items()
     ):
-        colorbar = (not joint_vlim) or ax == axes[-1]
+        plot_colorbar = False if not colorbar else (not joint_vlim) or ax == axes[-1]
         _plot_topomap_multi_cbar(
             _data,
             pos,
@@ -2844,7 +2950,7 @@ def plot_psds_topomap(
             vlim=vlim,
             cmap=cmap,
             outlines=outlines,
-            colorbar=colorbar,
+            colorbar=plot_colorbar,
             unit=unit,
             cbar_fmt=cbar_fmt,
             sphere=sphere,
@@ -3340,6 +3446,7 @@ def _set_contour_locator(vmin, vmax, contours):
         # correct number of bins is equal to contours + 1.
         locator = ticker.MaxNLocator(nbins=contours + 1)
         contours = locator.tick_values(vmin, vmax)
+        contours = contours[1:-1]
     return locator, contours
 
 
@@ -3456,11 +3563,9 @@ def _trigradient(x, y, z):
     """Take gradients of z on a mesh."""
     from matplotlib.tri import CubicTriInterpolator, Triangulation
 
-    with warnings.catch_warnings():  # catch matplotlib warnings
-        warnings.filterwarnings("ignore", category=DeprecationWarning)
-        tri = Triangulation(x, y)
-        tci = CubicTriInterpolator(tri, z)
-        dx, dy = tci.gradient(tri.x, tri.y)
+    tri = Triangulation(x, y)
+    tci = CubicTriInterpolator(tri, z)
+    dx, dy = tci.gradient(tri.x, tri.y)
     return dx, dy
 
 

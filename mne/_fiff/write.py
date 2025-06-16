@@ -13,7 +13,7 @@ from gzip import GzipFile
 import numpy as np
 from scipy.sparse import csc_array, csr_array
 
-from ..utils import _file_like, _validate_type, logger
+from ..utils import _check_fname, _file_like, _validate_type, logger
 from ..utils.numerics import _date_to_julian
 from .constants import FIFF
 
@@ -72,7 +72,9 @@ def write_int(fid, kind, data):
     data_size = 4
     data = np.asarray(data)
     if data.dtype.kind not in "uib" and data.size > 0:
-        raise TypeError(f"Cannot safely write data with dtype {data.dtype} as int")
+        raise TypeError(
+            f"Cannot safely write data kind {kind} with dtype {data.dtype} as int",
+        )
     max_val = data.max() if data.size > 0 else 0
     if max_val > INT32_MAX:
         raise TypeError(
@@ -275,7 +277,7 @@ def end_block(fid, kind):
     write_int(fid, FIFF.FIFF_BLOCK_END, kind)
 
 
-def start_file(fname, id_=None):
+def start_file(fname, id_=None, *, overwrite=True):
     """Open a fif file for writing and writes the compulsory header tags.
 
     Parameters
@@ -292,6 +294,7 @@ def start_file(fname, id_=None):
         fid = fname
         fid.seek(0)
     else:
+        fname = _check_fname(fname, overwrite=overwrite)
         fname = str(fname)
         if op.splitext(fname)[1].lower() == ".gz":
             logger.debug("Writing using gzip")
@@ -309,9 +312,9 @@ def start_file(fname, id_=None):
 
 
 @contextmanager
-def start_and_end_file(fname, id_=None):
+def start_and_end_file(fname, id_=None, *, overwrite=True):
     """Start and (if successfully written) close the file."""
-    with start_file(fname, id_=id_) as fid:
+    with start_file(fname, id_=id_, overwrite=overwrite) as fid:
         yield fid
         end_file(fid)  # we only hit this line if the yield does not err
 
@@ -387,7 +390,7 @@ def write_ch_info(fid, ch):
     fid.write(b"\0" * (16 - len(ch_name)))
 
 
-def write_dig_points(fid, dig, block=False, coord_frame=None):
+def write_dig_points(fid, dig, block=False, coord_frame=None, *, ch_names=None):
     """Write a set of digitizer data points into a fif file."""
     if dig is not None:
         data_size = 5 * 4
@@ -404,6 +407,10 @@ def write_dig_points(fid, dig, block=False, coord_frame=None):
             fid.write(np.array(d["kind"], ">i4").tobytes())
             fid.write(np.array(d["ident"], ">i4").tobytes())
             fid.write(np.array(d["r"][:3], ">f4").tobytes())
+        if ch_names is not None:
+            write_name_list_sanitized(
+                fid, FIFF.FIFF_MNE_CH_NAME_LIST, ch_names, "ch_names"
+            )
         if block:
             end_block(fid, FIFF.FIFFB_ISOTRAK)
 

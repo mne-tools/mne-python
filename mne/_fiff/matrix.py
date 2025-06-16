@@ -113,10 +113,9 @@ def write_named_matrix(fid, kind, mat):
         if n_tot < mat["data"].size and ratio > 0:
             ratio = 1 / ratio
         raise ValueError(
-            "Cannot write matrix: row (%i) and column (%i) "
-            "total element (%i) mismatch with data size (%i), "
-            "appears to be off by a factor of %gx"
-            % (mat["nrow"], mat["ncol"], n_tot, mat["data"].size, ratio)
+            f"Cannot write matrix: row ({mat['nrow']}) and column ({mat['ncol']}) "
+            f"total element ({n_tot}) mismatch with data size ({mat['data'].size}), "
+            f"appears to be off by a factor of {ratio:g}x"
         )
     start_block(fid, FIFF.FIFFB_MNE_NAMED_MATRIX)
     write_int(fid, FIFF.FIFF_MNE_NROW, mat["nrow"])

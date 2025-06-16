@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "e999e853b263c8b48a6fcfeb60c82b445e20d88b",
+  "authors": [
+    {
+      "n": "Thomas S. Binns",
+      "e": "t.s.binns@outlook.com"
+    }
+  ],
+  "changes": {
+    ".github/workflows/tests.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/changes/devel/12842.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/decoding/receptive_field.py": {
+      "a": 5,
+      "d": 4
+    },
+    "mne/decoding/tests/test_search_light.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/decoding/time_delaying_ridge.py": {
+      "a": 13,
+      "d": 9
+    },
+    "mne/time_frequency/tests/test_tfr.py": {
+      "a": 7,
+      "d": 0
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

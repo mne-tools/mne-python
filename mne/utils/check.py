@@ -8,7 +8,7 @@ import numbers
 import operator
 import os
 import re
-from builtins import input  # noqa: UP029
+from builtins import input  # noqa: A004, UP029
 from difflib import get_close_matches
 from importlib import import_module
 from inspect import signature
@@ -52,10 +52,10 @@ def check_fname(fname, filetype, endings, endings_err=()):
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         Name of the file.
     filetype : str
-        Type of file. e.g., ICA, Epochs etc.
+        Type of file. e.g., ICA, Epochs, etc.
     endings : tuple
         Acceptable endings for the filename.
     endings_err : tuple
@@ -255,7 +255,7 @@ def _check_fname(
     *,
     check_bids_split=False,
     verbose=None,
-):
+) -> Path:
     """Check for file existence, and return its absolute path."""
     _validate_type(fname, "path-like", name)
     # special case for MNE-BIDS, check split
@@ -317,8 +317,7 @@ def _check_subject(
         _validate_type(second, "str", "subject input")
         if first is not None and first != second:
             raise ValueError(
-                f"{first_kind} ({repr(first)}) did not match "
-                f"{second_kind} ({second})"
+                f"{first_kind} ({repr(first)}) did not match {second_kind} ({second})"
             )
         return second
     elif first is not None:
@@ -385,7 +384,7 @@ def _check_compensation_grade(info1, info2, name1, name2="data", ch_names=None):
         )
 
 
-def _soft_import(name, purpose, strict=True):
+def _soft_import(name, purpose, strict=True, *, min_version=None):
     """Import soft dependencies, providing informative errors on failure.
 
     Parameters
@@ -398,11 +397,6 @@ def _soft_import(name, purpose, strict=True):
     strict : bool
         Whether to raise an error if module import fails.
     """
-
-    # so that error msg lines are aligned
-    def indent(x):
-        return x.rjust(len(x) + 14)
-
     # Mapping import namespaces to their pypi package name
     pip_name = dict(
         sklearn="scikit-learn",
@@ -415,27 +409,31 @@ def _soft_import(name, purpose, strict=True):
         pyvista="pyvistaqt",
     ).get(name, name)
 
+    got_version = None
     try:
         mod = import_module(name)
-        return mod
     except (ImportError, ModuleNotFoundError):
-        if strict:
-            raise RuntimeError(
-                f"For {purpose} to work, the {name} module is needed, "
-                + "but it could not be imported.\n"
-                + "\n".join(
-                    (
-                        indent(
-                            "use the following installation method "
-                            "appropriate for your environment:"
-                        ),
-                        indent(f"'pip install {pip_name}'"),
-                        indent(f"'conda install -c conda-forge {pip_name}'"),
-                    )
-                )
-            )
-        else:
-            return False
+        mod = False
+    else:
+        have, got_version = check_version(
+            name,
+            min_version=min_version,
+            return_version=True,
+        )
+        if not have:
+            mod = False
+    if mod is False and strict:
+        extra = "" if min_version is None else f">={min_version}"
+        if got_version is not None:
+            extra += f" (found version {got_version})"
+        raise RuntimeError(
+            f"For {purpose} to work, the module {name}{extra} is needed, "
+            "but it could not be imported. Use the following installation method "
+            "appropriate for your environment:\n\n"
+            f"    pip install {pip_name}\n"
+            f"    conda install -c conda-forge {pip_name}"
+        )
+    return mod
 
 
 def _check_pandas_installed(strict=True):
@@ -611,11 +609,13 @@ def _validate_type(item, types=None, item_name=None, type_name=None, *, extra=""
 
     check_types = sum(
         (
-            (type(None),)
-            if type_ is None
-            else (type_,)
-            if not isinstance(type_, str)
-            else _multi[type_]
+            (
+                (type(None),)
+                if type_ is None
+                else (type_,)
+                if not isinstance(type_, str)
+                else _multi[type_]
+            )
             for type_ in types
         ),
         (),
@@ -624,11 +624,13 @@ def _validate_type(item, types=None, item_name=None, type_name=None, *, extra=""
     if not isinstance(item, check_types):
         if type_name is None:
             type_name = [
-                "None"
-                if cls_ is None
-                else cls_.__name__
-                if not isinstance(cls_, str)
-                else cls_
+                (
+                    "None"
+                    if cls_ is None
+                    else cls_.__name__
+                    if not isinstance(cls_, str)
+                    else cls_
+                )
                 for cls_ in types
             ]
             if len(type_name) == 1:
@@ -1072,8 +1074,7 @@ def _check_sphere(sphere, info=None, sphere_units="m"):
                 del ch_pos["FPz"]
             elif "Fpz" not in ch_pos and "Oz" in ch_pos:
                 logger.info(
-                    "Approximating Fpz location by mirroring Oz along "
-                    "the X and Y axes."
+                    "Approximating Fpz location by mirroring Oz along the X and Y axes."
                 )
                 # This assumes Fpz and Oz have the same Z coordinate
                 ch_pos["Fpz"] = ch_pos["Oz"] * [-1, -1, 1]
@@ -1083,7 +1084,7 @@ def _check_sphere(sphere, info=None, sphere_units="m"):
                     msg = (
                         f'sphere="eeglab" requires digitization points of '
                         f"the following electrode locations in the data: "
-                        f'{", ".join(horizon_ch_names)}, but could not find: '
+                        f"{', '.join(horizon_ch_names)}, but could not find: "
                         f"{ch_name}"
                     )
                     if ch_name == "Fpz":
@@ -1264,8 +1265,7 @@ def _to_rgb(*args, name="color", alpha=False):
     except ValueError:
         args = args[0] if len(args) == 1 else args
         raise ValueError(
-            f'Invalid RGB{"A" if alpha else ""} argument(s) for {name}: '
-            f"{repr(args)}"
+            f"Invalid RGB{'A' if alpha else ''} argument(s) for {name}: {repr(args)}"
         ) from None
 
 
@@ -1289,5 +1289,5 @@ def _check_method_kwargs(func, kwargs, msg=None):
         if msg is None:
             msg = f'function "{func}"'
         raise TypeError(
-            f'Got unexpected keyword argument{s} {", ".join(invalid_kw)} for {msg}.'
+            f"Got unexpected keyword argument{s} {', '.join(invalid_kw)} for {msg}."
         )
