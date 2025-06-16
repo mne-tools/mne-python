@@ -42,6 +42,221 @@ _disabled_event_channels = weakref.WeakSet()
 _camel_to_snake = re.compile(r"(?<!^)(?=[A-Z])")
 
 
+# List of events
+@fill_doc
+class UIEvent:
+    """Abstract base class for all events.
+
+    Attributes
+    ----------
+    %(ui_event_name_source)s
+    """
+
+    source = None
+
+    @property
+    def name(self):
+        """The name of the event, which is the class name in snake case."""
+        return _camel_to_snake.sub("_", self.__class__.__name__).lower()
+
+
+@fill_doc
+class FigureClosing(UIEvent):
+    """Indicates that the user has requested to close a figure.
+
+    Attributes
+    ----------
+    %(ui_event_name_source)s
+    """
+
+    pass
+
+
+@dataclass
+@fill_doc
+class TimeChange(UIEvent):
+    """Indicates that the user has selected a time.
+
+    Parameters
+    ----------
+    time : float
+        The new time in seconds.
+
+    Attributes
+    ----------
+    %(ui_event_name_source)s
+    time : float
+        The new time in seconds.
+    """
+
+    time: float
+
+
+@dataclass
+@fill_doc
+class TimeBrowse(UIEvent):
+    """Indicates that the user has browsed to a new time range.
+
+    Parameters
+    ----------
+    time_start : float
+        The new start time in seconds.
+    time_end : float
+        The new end time in seconds.
+
+    Attributes
+    ----------
+    %(ui_event_name_source)s
+    time_start : float
+        The new start time in seconds.
+    time_end : float
+        The new end time in seconds.
+    """
+
+    time_start: float
+    time_end: float
+
+
+@dataclass
+@fill_doc
+class PlaybackSpeed(UIEvent):
+    """Indicates that the user has selected a different playback speed for videos.
+
+    Parameters
+    ----------
+    speed : float
+        The new speed in seconds per frame.
+
+    Attributes
+    ----------
+    %(ui_event_name_source)s
+    speed : float
+        The new speed in seconds per frame.
+    """
+
+    speed: float
+
+
+@dataclass
+@fill_doc
+class ColormapRange(UIEvent):
+    """Indicates that the user has updated the bounds of the colormap.
+
+    Parameters
+    ----------
+    kind : str
+        Kind of colormap being updated. The Notes section of the drawing
+        routine publishing this event should mention the possible kinds.
+    ch_type : str
+       Type of sensor the data originates from.
+    %(fmin_fmid_fmax)s
+    %(alpha)s
+    cmap : str
+        The colormap to use. Either string or matplotlib.colors.Colormap
+        instance.
+
+    Attributes
+    ----------
+    kind : str
+        Kind of colormap being updated. The Notes section of the drawing
+        routine publishing this event should mention the possible kinds.
+    ch_type : str
+        Type of sensor the data originates from.
+    unit : str
+        The unit of the values.
+    %(ui_event_name_source)s
+    %(fmin_fmid_fmax)s
+    %(alpha)s
+    cmap : str
+        The colormap to use. Either string or matplotlib.colors.Colormap
+        instance.
+    """
+
+    kind: str
+    ch_type: str | None = None
+    fmin: float | None = None
+    fmid: float | None = None
+    fmax: float | None = None
+    alpha: bool | None = None
+    cmap: Colormap | str | None = None
+
+
+@dataclass
+@fill_doc
+class VertexSelect(UIEvent):
+    """Indicates that the user has selected a vertex.
+
+    Parameters
+    ----------
+    hemi : str
+        The hemisphere the vertex was selected on.
+        Can be ``"lh"``, ``"rh"``, or ``"vol"``.
+    vertex_id : int
+        The vertex number (in the high resolution mesh) that was selected.
+
+    Attributes
+    ----------
+    %(ui_event_name_source)s
+    hemi : str
+        The hemisphere the vertex was selected on.
+        Can be ``"lh"``, ``"rh"``, or ``"vol"``.
+    vertex_id : int
+        The vertex number (in the high resolution mesh) that was selected.
+    """
+
+    hemi: str
+    vertex_id: int
+
+
+@dataclass
+@fill_doc
+class Contours(UIEvent):
+    """Indicates that the user has changed the contour lines.
+
+    Parameters
+    ----------
+    kind : str
+        The kind of contours lines being changed. The Notes section of the
+        drawing routine publishing this event should mention the possible
+        kinds.
+    contours : list of float
+        The new values at which contour lines need to be drawn.
+
+    Attributes
+    ----------
+    %(ui_event_name_source)s
+    kind : str
+        The kind of contours lines being changed. The Notes section of the
+        drawing routine publishing this event should mention the possible
+        kinds.
+    contours : list of float
+        The new values at which contour lines need to be drawn.
+    """
+
+    kind: str
+    contours: list[str]
+
+
+@dataclass
+@fill_doc
+class ChannelsSelect(UIEvent):
+    """Indicates that the user has selected one or more channels.
+
+    Parameters
+    ----------
+    ch_names : list of str
+        The names of the channels that were selected.
+
+    Attributes
+    ----------
+    %(ui_event_name_source)s
+    ch_names : list of str
+        The names of the channels that were selected.
+    """
+
+    ch_names: list[str]
+
+
 def _get_event_channel(fig):
     """Get the event channel associated with a figure.
 
@@ -100,11 +315,6 @@ def _get_event_channel(fig):
         if isinstance(fig, matplotlib.figure.Figure):
             fig.canvas.mpl_connect("close_event", delete_event_channel)
         elif isinstance(fig, BrowserBase):
-            # The matplotlib-based browser is a matplotlib.figure.Figure, so is already
-            # handled. Therefore we can assume here we are dealing with the QT browser.
-            from mne_qt_browser._pg_figure import MNEQtBrowser
-
-            assert isinstance(fig, MNEQtBrowser)
             fig.mne.viewbox.destroyed.connect(delete_event_channel)
         else:
             assert hasattr(fig, "_renderer")  # figures like Brain, EvokedField, etc.
@@ -318,218 +528,3 @@ def _cleanup_agg():
                     cb = cb()  # get the true ref
                     if cb is not None:
                         cb()
-
-
-# List of events
-@fill_doc
-class UIEvent:
-    """Abstract base class for all events.
-
-    Attributes
-    ----------
-    %(ui_event_name_source)s
-    """
-
-    source = None
-
-    @property
-    def name(self):
-        """The name of the event, which is the class name in snake case."""
-        return _camel_to_snake.sub("_", self.__class__.__name__).lower()
-
-
-@fill_doc
-class FigureClosing(UIEvent):
-    """Indicates that the user has requested to close a figure.
-
-    Attributes
-    ----------
-    %(ui_event_name_source)s
-    """
-
-    pass
-
-
-@dataclass
-@fill_doc
-class TimeChange(UIEvent):
-    """Indicates that the user has selected a time.
-
-    Parameters
-    ----------
-    time : float
-        The new time in seconds.
-
-    Attributes
-    ----------
-    %(ui_event_name_source)s
-    time : float
-        The new time in seconds.
-    """
-
-    time: float
-
-
-@dataclass
-@fill_doc
-class TimeBrowse(UIEvent):
-    """Indicates that the user has browsed to a new time range.
-
-    Parameters
-    ----------
-    time_start : float
-        The new start time in seconds.
-    time_end : float
-        The new end time in seconds.
-
-    Attributes
-    ----------
-    %(ui_event_name_source)s
-    time_start : float
-        The new start time in seconds.
-    time_end : float
-        The new end time in seconds.
-    """
-
-    time_start: float
-    time_end: float
-
-
-@dataclass
-@fill_doc
-class ChannelBrowse(UIEvent):
-    """Indicates that the user has browsed to a new range of channels.
-
-    Parameters
-    ----------
-    channels : list of str
-        The new channel names.
-
-    Attributes
-    ----------
-    %(ui_event_name_source)s
-    channels : list of str
-        The new channel names.
-    """
-
-    channels: list[str]
-
-
-@dataclass
-@fill_doc
-class PlaybackSpeed(UIEvent):
-    """Indicates that the user has selected a different playback speed for videos.
-
-    Parameters
-    ----------
-    speed : float
-        The new speed in seconds per frame.
-
-    Attributes
-    ----------
-    %(ui_event_name_source)s
-    speed : float
-        The new speed in seconds per frame.
-    """
-
-    speed: float
-
-
-@dataclass
-@fill_doc
-class ColormapRange(UIEvent):
-    """Indicates that the user has updated the bounds of the colormap.
-
-    Parameters
-    ----------
-    kind : str
-        Kind of colormap being updated. The Notes section of the drawing
-        routine publishing this event should mention the possible kinds.
-    ch_type : str
-       Type of sensor the data originates from.
-    %(fmin_fmid_fmax)s
-    %(alpha)s
-    cmap : str
-        The colormap to use. Either string or matplotlib.colors.Colormap
-        instance.
-
-    Attributes
-    ----------
-    kind : str
-        Kind of colormap being updated. The Notes section of the drawing
-        routine publishing this event should mention the possible kinds.
-    ch_type : str
-        Type of sensor the data originates from.
-    unit : str
-        The unit of the values.
-    %(ui_event_name_source)s
-    %(fmin_fmid_fmax)s
-    %(alpha)s
-    cmap : str
-        The colormap to use. Either string or matplotlib.colors.Colormap
-        instance.
-    """
-
-    kind: str
-    ch_type: str | None = None
-    fmin: float | None = None
-    fmid: float | None = None
-    fmax: float | None = None
-    alpha: bool | None = None
-    cmap: Colormap | str | None = None
-
-
-@dataclass
-@fill_doc
-class VertexSelect(UIEvent):
-    """Indicates that the user has selected a vertex.
-
-    Parameters
-    ----------
-    hemi : str
-        The hemisphere the vertex was selected on.
-        Can be ``"lh"``, ``"rh"``, or ``"vol"``.
-    vertex_id : int
-        The vertex number (in the high resolution mesh) that was selected.
-
-    Attributes
-    ----------
-    %(ui_event_name_source)s
-    hemi : str
-        The hemisphere the vertex was selected on.
-        Can be ``"lh"``, ``"rh"``, or ``"vol"``.
-    vertex_id : int
-        The vertex number (in the high resolution mesh) that was selected.
-    """
-
-    hemi: str
-    vertex_id: int
-
-
-@dataclass
-@fill_doc
-class Contours(UIEvent):
-    """Indicates that the user has changed the contour lines.
-
-    Parameters
-    ----------
-    kind : str
-        The kind of contours lines being changed. The Notes section of the
-        drawing routine publishing this event should mention the possible
-        kinds.
-    contours : list of float
-        The new values at which contour lines need to be drawn.
-
-    Attributes
-    ----------
-    %(ui_event_name_source)s
-    kind : str
-        The kind of contours lines being changed. The Notes section of the
-        drawing routine publishing this event should mention the possible
-        kinds.
-    contours : list of float
-        The new values at which contour lines need to be drawn.
-    """
-
-    kind: str
-    contours: list[str]
