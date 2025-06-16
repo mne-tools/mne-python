@@ -22,7 +22,7 @@
 .. _Andrew Quinn: https://github.com/ajquinn
 .. _Aniket Pradhan: https://github.com/Aniket-Pradhan
 .. _Anna Padee: https://github.com/apadee/
-.. _Annalisa Pascarella: https://www.iac.cnr.it/personale/annalisa-pascarella
+.. _Annalisa Pascarella: https://github.com/annapasca
 .. _Anne-Sophie Dubarry: https://github.com/annesodub
 .. _Antoine Collas: https://www.antoinecollas.fr
 .. _Antoine Gauthier: https://github.com/Okamille
@@ -35,6 +35,7 @@
 .. _Austin Hurst: https://github.com/a-hurst
 .. _Ben Beasley: https://github.com/musicinmybrain
 .. _Britta Westner: https://britta-wstnr.github.io
+.. _Bruno Aristimunha: https://bruaristimunha.github.io
 .. _Bruno Nicenboim: https://bnicenboim.github.io
 .. _btkcodedev: https://github.com/btkcodedev
 .. _buildqa: https://github.com/buildqa
@@ -53,7 +54,7 @@
 .. _Cora Kim: https://github.com/kimcoco
 .. _Cristóbal Moënne-Loccoz: https://github.com/cmmoenne
 .. _Dan Wakeman: https://github.com/dgwakeman
-.. _Daniel Carlström Schad: https://github.com/Dod12
+.. _Daniel Carlström Schad: https://github.com/DanielCSchad
 .. _Daniel Hasegan: https://daniel.hasegan.com
 .. _Daniel McCloy: https://dan.mccloy.info
 .. _Daniel Strohmeier: https://github.com/joewalter
@@ -233,6 +234,7 @@
 .. _Peter Molfese: https://github.com/pmolfese
 .. _Phillip Alday: https://palday.bitbucket.io
 .. _Pierre Ablin: https://pierreablin.com
+.. _Pierre Guetschel: https://github.com/PierreGtch
 .. _Pierre-Antoine Bannier: https://github.com/PABannier
 .. _Ping-Keng Jao: https://github.com/nafraw
 .. _Proloy Das: https://github.com/proloyd
@@ -316,6 +318,7 @@
 .. _Toomas Erik Anijärv: https://www.toomaserikanijarv.com/
 .. _Tristan Stenner: https://github.com/tstenner/
 .. _Tziona NessAiver: https://github.com/TzionaN
+.. _user27182: https://github.com/user27182
 .. _Valerii Chirkov: https://github.com/vagechirkov
 .. _Velu Prabhakar Kumaravel: https://github.com/vpKumaravel
 .. _Victor Ferat: https://github.com/vferat

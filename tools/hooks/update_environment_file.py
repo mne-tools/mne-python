@@ -56,6 +56,8 @@ for dep in deps:
     # `environment.yaml` breaks the solver
     if package_name == "PySide6":
         version_spec = version_spec.replace("!=6.7.0,", "")
+        # not on CF yet either
+        version_spec = version_spec.replace(",!=6.9.1", "")
     elif package_name == "vtk":
         # TODO VERSION remove once we support VTK 9.4
         version_spec = "=9.3.1=qt_*"

@@ -2108,6 +2108,7 @@ def regularize(
     return cov
 
 
+@verbose
 def _regularized_covariance(
     data,
     reg=None,
@@ -2118,6 +2119,7 @@ def _regularized_covariance(
     log_ch_type=None,
     log_rank=None,
     cov_kind="",
+    verbose=None,
 ):
     """Compute a regularized covariance from data using sklearn.
 
