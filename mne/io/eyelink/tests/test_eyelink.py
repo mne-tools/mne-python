@@ -201,6 +201,19 @@ def _simulate_eye_tracking_data(in_file, out_file):
         "SAMPLES\tPUPIL\tLEFT\tVEL\tRES\tHTARGET\tRATE\t1000.00"
         "\tTRACKING\tCR\tFILTER\t2\tINPUT"
     )
+
+    # Define your known BUTTON events
+    button_events = [
+        (5488529, 1, 0),
+        (5488532, 1, 1),
+        (5488540, 1, 0),
+        (5488543, 1, 1),
+        (5488550, 1, 0),
+        (5488553, 1, 1),
+        (5488571, 1, 0),
+    ]
+    button_idx = 0
+
     with out_file.open("w") as fp:
         in_recording_block = False
         events = []
@@ -214,7 +227,7 @@ def _simulate_eye_tracking_data(in_file, out_file):
                 if event_type.isnumeric():  # samples
                     tokens[4:4] = ["100", "20", "45", "45", "127.0"]  # vel, res, DIN
                     tokens.extend(["1497.0", "5189.0", "512.5", "............."])
-                elif event_type in ("EFIX", "ESACC"):
+                elif event_type in ("EFIX", "ESACC", "BUTTON"):
                     if event_type == "ESACC":
                         tokens[5:7] = [".", "."]  # pretend start pos is unknown
                     tokens.extend(["45", "45"])  # resolution
@@ -224,6 +237,15 @@ def _simulate_eye_tracking_data(in_file, out_file):
                     tokens.append("INPUT")
                 elif event_type == "EBLINK":
                     continue  # simulate no blink events
+                elif event_type == "BUTTON":
+                    # simulate a button event
+                    tokens[1] = "BUTTON"  # simulate button press
+                    tokens[2] = "1"  # simulate button 1
+                    tokens[3] = "1"  # simulate button pressed
+                    tokens[4:4] = ["100", "20", "45", "45", "127.0"]
+                    tokens.extend(["1497.0", "5189.0", "512.5", "............."])
+
+                    continue
                 elif event_type == "END":
                     pass
                 else:
@@ -246,6 +268,22 @@ def _simulate_eye_tracking_data(in_file, out_file):
                 "...\t1497\t5189\t512.5\t.............\n"
             )
 
+        for timestamp in np.arange(5488500, 5488600):  # 100 samples
+            fp.write(
+                f"{timestamp}\t-2434.0\t-1760.0\t840.0\t100\t20\t45\t45\t127.0\t"
+                "...\t1497\t5189\t512.5\t.............\n"
+            )
+            # Check and insert button events at this timestamp
+            while (
+                button_idx < len(button_events)
+                and button_events[button_idx][0] == timestamp
+            ):
+                t, btn_id, state = button_events[button_idx]
+                fp.write(
+                    f"BUTTON\t{t}\t{btn_id}\t{state}\t100\t20\t45\t45\t127.0\t"
+                    "1497.0\t5189.0\t512.5\t.............\n"
+                )
+                button_idx += 1
         fp.write("END\t7453390\tRIGHT\tSAMPLES\tEVENTS\n")
 
 
