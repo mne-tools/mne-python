@@ -752,7 +752,7 @@ def _make_eyelink_annots(df_dict, create_annots, apply_offsets):
                     return f"button_{button_id}_{action}"
                 except Exception as e:
                     raise ValueError(f"Invalid row for button: {row}") from e
-                
+
             df = df.sort_values("time")
             onsets = df["time"]
             durations = np.zeros_like(onsets)
