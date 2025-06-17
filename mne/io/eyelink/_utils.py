@@ -337,8 +337,8 @@ def _create_dataframes(raw_extras, apply_offsets):
                 }
             )
         df_dict["buttons"] = pd.DataFrame(parsed)
-    else:
-        logger.info("No button events found in this file.")
+    n_button = len(df_dict.get('buttons', []))
+    logger.info(f"Found {n_button} button event{_pl(n_button)} in this file.")
 
     return df_dict
 
