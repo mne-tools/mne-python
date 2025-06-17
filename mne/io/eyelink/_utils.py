@@ -746,12 +746,9 @@ def _make_eyelink_annots(df_dict, create_annots, apply_offsets):
                 raise ValueError(f"Missing column: {required_cols - set(df.columns)}")
 
             def get_button_description(row):
-                try:
-                    button_id = int(row["button_id"])
-                    action = "press" if row["button_pressed"] == 1 else "release"
-                    return f"button_{button_id}_{action}"
-                except Exception as e:
-                    raise ValueError(f"Invalid row for button: {row}") from e
+                button_id = int(row["button_id"])
+                action = "press" if row["button_pressed"] == 1 else "release"
+                return f"button_{button_id}_{action}"
 
             df = df.sort_values("time")
             onsets = df["time"]
