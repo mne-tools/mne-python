@@ -1011,6 +1011,19 @@ def _check_types(x, *, info, name, types, cast=None):
     return x
 
 
+def _check_bday(birthday_input, *, info):
+    date = _check_types(
+        birthday_input,
+        info=info,
+        name='subject_info["birthday"]',
+        types=(datetime.date, None),
+    )
+    # test if we have a pd.Timestamp
+    if hasattr(date, "date"):
+        date = date.date()
+    return date
+
+
 class SubjectInfo(ValidatedDict):
     _attributes = {
         "id": partial(_check_types, name='subject_info["id"]', types=int),
@@ -1022,9 +1035,7 @@ class SubjectInfo(ValidatedDict):
         "middle_name": partial(
             _check_types, name='subject_info["middle_name"]', types=str
         ),
-        "birthday": partial(
-            _check_types, name='subject_info["birthday"]', types=(datetime.date, None)
-        ),
+        "birthday": partial(_check_bday),
         "sex": partial(_check_types, name='subject_info["sex"]', types=int),
         "hand": partial(_check_types, name='subject_info["hand"]', types=int),
         "weight": partial(
