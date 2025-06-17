@@ -269,7 +269,6 @@ def _simulate_eye_tracking_data(in_file, out_file):
             )
 
         for timestamp in np.arange(5488500, 5488600):  # 100 samples
-            # Write sample line
             fp.write(
                 f"{timestamp}\t-2434.0\t-1760.0\t840.0\t100\t20\t45\t45\t127.0\t"
                 "...\t1497\t5189\t512.5\t.............\n"
@@ -283,7 +282,6 @@ def _simulate_eye_tracking_data(in_file, out_file):
                 fp.write(f"BUTTON\t{t}\t{btn_id}\t{state}\t100\t20\t45\t45\t127.0\t"
                           "1497.0\t5189.0\t512.5\t.............\n")
                 button_idx += 1
-
         fp.write("END\t7453390\tRIGHT\tSAMPLES\tEVENTS\n")
 
 
