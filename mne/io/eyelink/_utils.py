@@ -337,7 +337,7 @@ def _create_dataframes(raw_extras, apply_offsets):
                 }
             )
         df_dict["buttons"] = pd.DataFrame(parsed)
-    n_button = len(df_dict.get('buttons', []))
+    n_button = len(df_dict.get("buttons", []))
     logger.info(f"Found {n_button} button event{_pl(n_button)} in this file.")
 
     return df_dict
