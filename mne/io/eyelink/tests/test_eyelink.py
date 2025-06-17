@@ -280,7 +280,8 @@ def _simulate_eye_tracking_data(in_file, out_file):
                 and button_events[button_idx][0] == timestamp
             ):
                 t, btn_id, state = button_events[button_idx]
-                fp.write(f"BUTTON\t{t}\t{btn_id}\t{state}\n")
+                fp.write(f"BUTTON\t{t}\t{btn_id}\t{state}\t100\t20\t45\t45\t127.0\t"
+                          "1497.0\t5189.0\t512.5\t.............\n")
                 button_idx += 1
 
         fp.write("END\t7453390\tRIGHT\tSAMPLES\tEVENTS\n")
