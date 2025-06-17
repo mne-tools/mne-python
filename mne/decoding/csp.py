@@ -2,14 +2,15 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+import collections.abc as abc
 import copy as cp
+from functools import partial
 
 import numpy as np
 from scipy.linalg import eigh
-from sklearn.base import BaseEstimator
 from sklearn.utils.validation import check_is_fitted
 
-from .._fiff.meas_info import create_info
+from .._fiff.meas_info import Info, create_info
 from ..cov import _compute_rank_raw_array, _regularized_covariance, _smart_eigh
 from ..defaults import _BORDER_DEFAULT, _EXTRAPOLATE_DEFAULT, _INTERPOLATION_DEFAULT
 from ..evoked import EvokedArray
@@ -21,11 +22,13 @@ from ..utils import (
     logger,
     pinv,
 )
-from .transformer import MNETransformerMixin
+from ._covs_ged import _csp_estimate, _spoc_estimate
+from ._mod_ged import _csp_mod, _spoc_mod
+from .base import _GEDTransformer
 
 
 @fill_doc
-class CSP(MNETransformerMixin, BaseEstimator):
+class CSP(_GEDTransformer):
     """M/EEG signal decomposition using the Common Spatial Patterns (CSP).
 
     This class can be used as a supervised decomposition to estimate spatial
@@ -68,6 +71,26 @@ class CSP(MNETransformerMixin, BaseEstimator):
         Parameters to pass to :func:`mne.compute_covariance`.
 
         .. versionadded:: 0.16
+
+    restr_type : "restricting" | "whitening" | None
+        Restricting transformation for covariance matrices before performing
+        generalized eigendecomposition.
+        If "restricting" only restriction to the principal subspace of signal_cov
+        will be performed.
+        If "whitening", covariance matrices will be additionally rescaled according
+        to the whitening for the signal_cov.
+        If None, no restriction will be applied. Defaults to "restricting".
+
+        .. versionadded:: 1.10
+    info : mne.Info | None
+        The mne.Info object with information about the sensors and methods of
+        measurement used for covariance estimation and generalized
+        eigendecomposition.
+        If None, one channel type and no projections will be assumed and if
+        rank is dict, it will be sum of ranks per channel type.
+        Defaults to None.
+
+        .. versionadded:: 1.10
     %(rank_none)s
 
         .. versionadded:: 0.17
@@ -111,11 +134,14 @@ class CSP(MNETransformerMixin, BaseEstimator):
         transform_into="average_power",
         norm_trace=False,
         cov_method_params=None,
+        restr_type="restricting",
+        info=None,
         rank=None,
         component_order="mutual_info",
     ):
         # Init default CSP
         self.n_components = n_components
+        self.info = info
         self.rank = rank
         self.reg = reg
         self.cov_est = cov_est
@@ -124,6 +150,25 @@ class CSP(MNETransformerMixin, BaseEstimator):
         self.norm_trace = norm_trace
         self.cov_method_params = cov_method_params
         self.component_order = component_order
+        self.restr_type = restr_type
+
+        cov_callable = partial(
+            _csp_estimate,
+            reg=reg,
+            cov_method_params=cov_method_params,
+            cov_est=cov_est,
+            info=info,
+            rank=rank,
+            norm_trace=norm_trace,
+        )
+        mod_ged_callable = partial(_csp_mod, evecs_order=component_order)
+        super().__init__(
+            n_components=n_components,
+            cov_callable=cov_callable,
+            mod_ged_callable=mod_ged_callable,
+            restr_type=restr_type,
+            R_func=sum,
+        )
 
     def _validate_params(self, *, y):
         _validate_type(self.n_components, int, "n_components")
@@ -153,6 +198,14 @@ class CSP(MNETransformerMixin, BaseEstimator):
         n_classes = len(self.classes_)
         if n_classes < 2:
             raise ValueError(f"n_classes must be >= 2, but got {n_classes} class")
+        elif n_classes > 2 and self.component_order == "alternate":
+            raise ValueError(
+                "component_order='alternate' requires two classes, but data contains "
+                f"{n_classes} classes; use component_order='mutual_info' instead."
+            )
+        _validate_type(self.rank, (dict, None, str), "rank")
+        _validate_type(self.info, (Info, None), "info")
+        _validate_type(self.cov_method_params, (abc.Mapping, None), "cov_method_params")
 
     def fit(self, X, y):
         """Estimate the CSP decomposition on epochs.
@@ -171,15 +224,6 @@ class CSP(MNETransformerMixin, BaseEstimator):
         """
         X, y = self._check_data(X, y=y, fit=True, return_y=True)
         self._validate_params(y=y)
-        n_classes = len(self.classes_)
-        if n_classes > 2 and self.component_order == "alternate":
-            raise ValueError(
-                "component_order='alternate' requires two classes, but data contains "
-                f"{n_classes} classes; use component_order='mutual_info' instead."
-            )
-
-        # Convert rank to one that will run
-        _validate_type(self.rank, (dict, None, str), "rank")
 
         covs, sample_weights = self._compute_covariance_matrices(X, y)
         eigen_vectors, eigen_values = self._decompose_covs(covs, sample_weights)
@@ -191,6 +235,17 @@ class CSP(MNETransformerMixin, BaseEstimator):
 
         self.filters_ = eigen_vectors.T
         self.patterns_ = pinv(eigen_vectors)
+
+        old_filters = self.filters_
+        old_patterns = self.patterns_
+        super().fit(X, y)
+        # AJD returns evals_ as None.
+        if self.evals_ is None:
+            assert eigen_values is None
+        else:
+            np.testing.assert_allclose(eigen_values[ix], self.evals_)
+        np.testing.assert_allclose(old_filters, self.filters_)
+        np.testing.assert_allclose(old_patterns, self.patterns_)
 
         pick_filters = self.filters_[: self.n_components]
         X = np.asarray([np.dot(pick_filters, epoch) for epoch in X])
@@ -222,9 +277,11 @@ class CSP(MNETransformerMixin, BaseEstimator):
         """
         check_is_fitted(self, "filters_")
         X = self._check_data(X)
+        orig_X = X.copy()
         pick_filters = self.filters_[: self.n_components]
         X = np.asarray([np.dot(pick_filters, epoch) for epoch in X])
-
+        ged_X = super().transform(orig_X)
+        np.testing.assert_allclose(X, ged_X)
         # compute features (mean band power)
         if self.transform_into == "average_power":
             X = (X**2).mean(axis=2)
@@ -821,6 +878,25 @@ class SPoC(CSP):
         Parameters to pass to :func:`mne.compute_covariance`.
 
         .. versionadded:: 0.16
+    restr_type : "restricting" | "whitening" | None
+        Restricting transformation for covariance matrices before performing
+        generalized eigendecomposition.
+        If "restricting" only restriction to the principal subspace of signal_cov
+        will be performed.
+        If "whitening", covariance matrices will be additionally rescaled according
+        to the whitening for the signal_cov.
+        If None, no restriction will be applied. Defaults to None.
+
+        .. versionadded:: 1.10
+    info : mne.Info | None
+        The mne.Info object with information about the sensors and methods of
+        measurement used for covariance estimation and generalized
+        eigendecomposition.
+        If None, one channel type and no projections will be assumed and if
+        rank is dict, it will be sum of ranks per channel type.
+        Defaults to None.
+
+        .. versionadded:: 1.10
     %(rank_none)s
 
         .. versionadded:: 0.17
@@ -852,6 +928,8 @@ class SPoC(CSP):
         log=None,
         transform_into="average_power",
         cov_method_params=None,
+        restr_type=None,
+        info=None,
         rank=None,
     ):
         """Init of SPoC."""
@@ -862,9 +940,26 @@ class SPoC(CSP):
             cov_est="epoch",
             norm_trace=False,
             transform_into=transform_into,
+            restr_type=restr_type,
+            info=info,
             rank=rank,
             cov_method_params=cov_method_params,
         )
+
+        cov_callable = partial(
+            _spoc_estimate,
+            reg=reg,
+            cov_method_params=cov_method_params,
+            info=info,
+            rank=rank,
+        )
+        super(CSP, self).__init__(
+            n_components=n_components,
+            cov_callable=cov_callable,
+            mod_ged_callable=_spoc_mod,
+            restr_type=restr_type,
+        )
+
         # Covariance estimation have to be done on the single epoch level,
         # unlike CSP where covariance estimation can also be achieved through
         # concatenation of all epochs from the same class.
@@ -926,6 +1021,14 @@ class SPoC(CSP):
         # spatial patterns
         self.patterns_ = pinv(evecs).T  # n_channels x n_channels
         self.filters_ = evecs  # n_channels x n_channels
+
+        old_filters = self.filters_
+        old_patterns = self.patterns_
+        super(CSP, self).fit(X, y)
+
+        np.testing.assert_allclose(evals[ix], self.evals_)
+        np.testing.assert_allclose(old_filters, self.filters_, rtol=1e-6, atol=1e-7)
+        np.testing.assert_allclose(old_patterns, self.patterns_, rtol=1e-6, atol=1e-7)
 
         pick_filters = self.filters_[: self.n_components]
         X = np.asarray([np.dot(pick_filters, epoch) for epoch in X])

@@ -7,7 +7,7 @@ from scipy import linalg
 
 from .._fiff.pick import _pick_data_channels, pick_info
 from ..cov import Covariance, _regularized_covariance
-from ..decoding import BaseEstimator, TransformerMixin
+from ..decoding.xdawn import XdawnTransformer
 from ..epochs import BaseEpochs
 from ..evoked import Evoked, EvokedArray
 from ..io import BaseRaw
@@ -202,7 +202,7 @@ def _fit_xdawn(
             )
         evecs = evecs[:, np.argsort(evals)[::-1]]  # sort eigenvectors
         evecs /= np.apply_along_axis(np.linalg.norm, 0, evecs)
-        _patterns = np.linalg.pinv(evecs.T)
+        _patterns = pinv(evecs.T)
         filters.append(evecs[:, :n_components].T)
         patterns.append(_patterns[:, :n_components].T)
 
@@ -212,155 +212,7 @@ def _fit_xdawn(
     return filters, patterns, evokeds
 
 
-class _XdawnTransformer(BaseEstimator, TransformerMixin):
-    """Implementation of the Xdawn Algorithm compatible with scikit-learn.
-
-    Xdawn is a spatial filtering method designed to improve the signal
-    to signal + noise ratio (SSNR) of the event related responses. Xdawn was
-    originally designed for P300 evoked potential by enhancing the target
-    response with respect to the non-target response. This implementation is a
-    generalization to any type of event related response.
-
-    .. note:: _XdawnTransformer does not correct for epochs overlap. To correct
-              overlaps see ``Xdawn``.
-
-    Parameters
-    ----------
-    n_components : int (default 2)
-        The number of components to decompose the signals.
-    reg : float | str | None (default None)
-        If not None (same as ``'empirical'``, default), allow
-        regularization for covariance estimation.
-        If float, shrinkage is used (0 <= shrinkage <= 1).
-        For str options, ``reg`` will be passed to ``method`` to
-        :func:`mne.compute_covariance`.
-    signal_cov : None | Covariance | array, shape (n_channels, n_channels)
-        The signal covariance used for whitening of the data.
-        if None, the covariance is estimated from the epochs signal.
-    method_params : dict | None
-        Parameters to pass to :func:`mne.compute_covariance`.
-
-        .. versionadded:: 0.16
-
-    Attributes
-    ----------
-    classes_ : array, shape (n_classes)
-        The event indices of the classes.
-    filters_ : array, shape (n_channels, n_channels)
-        The Xdawn components used to decompose the data for each event type.
-    patterns_ : array, shape (n_channels, n_channels)
-        The Xdawn patterns used to restore the signals for each event type.
-    """
-
-    def __init__(self, n_components=2, reg=None, signal_cov=None, method_params=None):
-        """Init."""
-        self.n_components = n_components
-        self.signal_cov = signal_cov
-        self.reg = reg
-        self.method_params = method_params
-
-    def fit(self, X, y=None):
-        """Fit Xdawn spatial filters.
-
-        Parameters
-        ----------
-        X : array, shape (n_epochs, n_channels, n_samples)
-            The target data.
-        y : array, shape (n_epochs,) | None
-            The target labels. If None, Xdawn fit on the average evoked.
-
-        Returns
-        -------
-        self : Xdawn instance
-            The Xdawn instance.
-        """
-        X, y = self._check_Xy(X, y)
-
-        # Main function
-        self.classes_ = np.unique(y)
-        self.filters_, self.patterns_, _ = _fit_xdawn(
-            X,
-            y,
-            n_components=self.n_components,
-            reg=self.reg,
-            signal_cov=self.signal_cov,
-            method_params=self.method_params,
-        )
-        return self
-
-    def transform(self, X):
-        """Transform data with spatial filters.
-
-        Parameters
-        ----------
-        X : array, shape (n_epochs, n_channels, n_samples)
-            The target data.
-
-        Returns
-        -------
-        X : array, shape (n_epochs, n_components * n_classes, n_samples)
-            The transformed data.
-        """
-        X, _ = self._check_Xy(X)
-
-        # Check size
-        if self.filters_.shape[1] != X.shape[1]:
-            raise ValueError(
-                f"X must have {self.filters_.shape[1]} channels, got {X.shape[1]} "
-                "instead."
-            )
-
-        # Transform
-        X = np.dot(self.filters_, X)
-        X = X.transpose((1, 0, 2))
-        return X
-
-    def inverse_transform(self, X):
-        """Remove selected components from the signal.
-
-        Given the unmixing matrix, transform data, zero out components,
-        and inverse transform the data. This procedure will reconstruct
-        the signals from which the dynamics described by the excluded
-        components is subtracted.
-
-        Parameters
-        ----------
-        X : array, shape (n_epochs, n_components * n_classes, n_times)
-            The transformed data.
-
-        Returns
-        -------
-        X : array, shape (n_epochs, n_channels * n_classes, n_times)
-            The inverse transform data.
-        """
-        # Check size
-        X, _ = self._check_Xy(X)
-        n_epochs, n_comp, n_times = X.shape
-        if n_comp != (self.n_components * len(self.classes_)):
-            raise ValueError(
-                f"X must have {self.n_components * len(self.classes_)} components, "
-                f"got {n_comp} instead."
-            )
-
-        # Transform
-        return np.dot(self.patterns_.T, X).transpose(1, 0, 2)
-
-    def _check_Xy(self, X, y=None):
-        """Check X and y types and dimensions."""
-        # Check data
-        if not isinstance(X, np.ndarray) or X.ndim != 3:
-            raise ValueError(
-                "X must be an array of shape (n_epochs, n_channels, n_samples)."
-            )
-        if y is None:
-            y = np.ones(len(X))
-        y = np.asarray(y)
-        if len(X) != len(y):
-            raise ValueError("X and y must have the same length")
-        return X, y
-
-
-class Xdawn(_XdawnTransformer):
+class Xdawn(XdawnTransformer):
     """Implementation of the Xdawn Algorithm.
 
     Xdawn :footcite:`RivetEtAl2009,RivetEtAl2011` is a spatial
@@ -483,7 +335,7 @@ class Xdawn(_XdawnTransformer):
             events=events,
             tmin=tmin,
             sfreq=sfreq,
-            method_params=self.method_params,
+            method_params=self.cov_method_params,
             info=use_info,
         )
 
