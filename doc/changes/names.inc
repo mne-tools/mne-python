@@ -206,6 +206,7 @@
 .. _Milan Rybář: https://milanrybar.cz
 .. _Mingjian He: https://github.com/mh105
 .. _Mohammad Daneshzand: https://github.com/mdaneshzand
+.. _Mojackhak: https://github.com/Mojackhak
 .. _Moritz Gerster: https://github.com/moritz-gerster
 .. _Motofumi Fushimi: https://github.com/motofumi-fushimi/motofumi-fushimi.github.io
 .. _Nabil Alibou: https://github.com/nabilalibou
@@ -335,4 +336,3 @@
 .. _Zhi Zhang: https://github.com/tczhangzhi/
 .. _Ziyi ZENG: https://github.com/ZiyiTsang
 .. _Zvi Baratz: https://github.com/ZviBaratz
-.. _Mojackhak: https://github.com/Mojackhak
