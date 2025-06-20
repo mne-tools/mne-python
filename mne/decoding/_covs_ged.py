@@ -7,7 +7,7 @@
 import numpy as np
 
 from .._fiff.meas_info import Info, create_info
-from .._fiff.pick import _picks_to_idx
+from .._fiff.pick import _picks_to_idx, pick_info
 from ..cov import Covariance, _compute_rank_raw_array, _regularized_covariance
 from ..defaults import _handle_default
 from ..filter import filter_data
@@ -178,8 +178,8 @@ def _ssd_estimate(
     elif isinstance(info, float):  # special case, mostly for testing
         sfreq = info
         info = create_info(X.shape[-2], sfreq, ch_types="eeg")
-    picks = _picks_to_idx(info, picks, none="data", exclude="bads")
-    X_aux = X[..., picks, :]
+    picks_ = _picks_to_idx(info, picks, none="data", exclude="bads")
+    X_aux = X[..., picks_, :]
     X_signal = filter_data(X_aux, sfreq, **filt_params_signal)
     X_noise = filter_data(X_aux, sfreq, **filt_params_noise)
     X_noise -= X_signal
@@ -188,19 +188,20 @@ def _ssd_estimate(
         X_noise = np.hstack(X_noise)
 
     # prevent rank change when computing cov with rank='full'
+    picked_info = pick_info(info, picks_)
     S = _regularized_covariance(
         X_signal,
         reg=reg,
         method_params=cov_method_params,
         rank="full",
-        info=info,
+        info=picked_info,
     )
     R = _regularized_covariance(
         X_noise,
         reg=reg,
         method_params=cov_method_params,
         rank="full",
-        info=info,
+        info=picked_info,
     )
     covs = [S, R]
     C_ref = S
@@ -211,7 +212,7 @@ def _ssd_estimate(
             compute_rank(
                 Covariance(
                     cov,
-                    info.ch_names,
+                    picked_info.ch_names,
                     list(),
                     list(),
                     0,

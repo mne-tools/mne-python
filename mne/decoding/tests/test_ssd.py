@@ -3,6 +3,7 @@
 # Copyright the MNE-Python contributors.
 
 import sys
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -13,7 +14,8 @@ pytest.importorskip("sklearn")
 from sklearn.pipeline import Pipeline
 from sklearn.utils.estimator_checks import parametrize_with_checks
 
-from mne import create_info, io
+from mne import Epochs, create_info, io, pick_types, read_events
+from mne._fiff.pick import _picks_to_idx
 from mne.decoding import CSP
 from mne.decoding.ssd import SSD
 from mne.filter import filter_data
@@ -21,6 +23,13 @@ from mne.time_frequency import psd_array_welch
 
 freqs_sig = 9, 12
 freqs_noise = 8, 13
+
+data_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
+raw_fname = data_dir / "test_raw.fif"
+event_name = data_dir / "test-eve.fif"
+tmin, tmax = -0.1, 0.2
+event_id = dict(aud_l=1, vis_l=3)
+start, stop = 0, 8
 
 
 def simulate_data(
@@ -484,6 +493,64 @@ def test_non_full_rank_data():
     if sys.platform == "darwin":
         pytest.xfail("Unknown linalg bug (Accelerate?)")
     ssd.fit(X)
+
+
+def test_picks_arg():
+    """Test that picks argument works as expected."""
+    raw = io.read_raw_fif(raw_fname, preload=False)
+    events = read_events(event_name)
+    picks = pick_types(
+        raw.info, meg=True, eeg=True, stim=False, ecg=False, eog=False, exclude="bads"
+    )
+    raw.add_proj([], remove_existing=True)
+    epochs = Epochs(
+        raw,
+        events,
+        event_id,
+        -0.1,
+        1,
+        picks=picks,
+        baseline=(None, 0),
+        preload=True,
+        proj=False,
+    )
+    X = epochs.get_data(copy=False)
+    filt_params_signal = dict(
+        l_freq=freqs_sig[0],
+        h_freq=freqs_sig[1],
+        l_trans_bandwidth=3,
+        h_trans_bandwidth=3,
+    )
+    filt_params_noise = dict(
+        l_freq=freqs_noise[0],
+        h_freq=freqs_noise[1],
+        l_trans_bandwidth=3,
+        h_trans_bandwidth=3,
+    )
+    picks = ["eeg"]
+    info = epochs.info
+    picks_idx = _picks_to_idx(info, picks)
+
+    # Test when return_filtered is False
+    ssd = SSD(
+        info,
+        filt_params_signal,
+        filt_params_noise,
+        picks=picks_idx,
+        return_filtered=False,
+    )
+    ssd.fit(X).transform(X)
+
+    # Test when return_filtered is true
+    ssd = SSD(
+        info,
+        filt_params_signal,
+        filt_params_noise,
+        picks=picks_idx,
+        return_filtered=True,
+        n_fft=64,
+    )
+    ssd.fit(X).transform(X)
 
 
 @pytest.mark.filterwarnings("ignore:.*invalid value encountered in divide.*")

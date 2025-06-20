@@ -10,7 +10,7 @@ from scipy.linalg import eigh
 from sklearn.utils.validation import check_is_fitted
 
 from .._fiff.meas_info import Info, create_info
-from .._fiff.pick import _picks_to_idx
+from .._fiff.pick import _picks_to_idx, pick_info
 from ..cov import Covariance, _regularized_covariance
 from ..defaults import _handle_default
 from ..filter import filter_data
@@ -248,24 +248,25 @@ class SSD(_GEDTransformer):
             X_noise = np.hstack(X_noise)
 
         # prevent rank change when computing cov with rank='full'
+        picked_info = pick_info(info, self.picks_)
         cov_signal = _regularized_covariance(
             X_signal,
             reg=self.reg,
             method_params=self.cov_method_params,
             rank="full",
-            info=info,
+            info=picked_info,
         )
         cov_noise = _regularized_covariance(
             X_noise,
             reg=self.reg,
             method_params=self.cov_method_params,
             rank="full",
-            info=info,
+            info=picked_info,
         )
 
         # project cov to rank subspace
         cov_signal, cov_noise, rank_proj = _dimensionality_reduction(
-            cov_signal, cov_noise, info, self.rank
+            cov_signal, cov_noise, picked_info, self.rank
         )
 
         eigvals_, eigvects_ = eigh(cov_signal, cov_noise)
@@ -314,10 +315,10 @@ class SSD(_GEDTransformer):
         """
         check_is_fitted(self, "filters_")
         X = self._check_X(X)
+        X_aux = X[..., self.picks_, :]
         if self.return_filtered:
-            X_aux = X[..., self.picks_, :]
-            X = filter_data(X_aux, self.sfreq_, **self.filt_params_signal)
-        X_ssd = self.filters_ @ X[..., self.picks_, :]
+            X_aux = filter_data(X_aux, self.sfreq_, **self.filt_params_signal)
+        X_ssd = self.filters_ @ X_aux
         X_ssd = X_ssd[..., self.sorter_spec_, :][..., : self.n_components, :]
         return X_ssd
 
