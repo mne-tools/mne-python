@@ -58,7 +58,15 @@ from .._fiff.pick import (
 from ..fixes import _close_event
 from ..utils import Bunch, _click_ch_name, check_version, logger
 from ._figure import BrowserBase
-from .ui_events import ChannelBrowse, TimeBrowse, TimeChange, publish, subscribe
+from .ui_events import (
+    ChannelsSelect,
+    TimeBrowse,
+    TimeChange,
+    disable_ui_events,
+    publish,
+    subscribe,
+    unsubscribe,
+)
 from .utils import (
     DraggableLine,
     _events_off,
@@ -189,6 +197,7 @@ class MNEAnnotationFigure(MNEFigure):
 
     def _close(self, event=None):
         """Handle close events (via keypress or window [x])."""
+        unsubscribe(self, ["time_change", "time_browse", "channels_select"])
         parent = self.mne.parent_fig
         # disable span selector
         parent.mne.ax_main.selector.active = False
@@ -568,13 +577,13 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         )
 
         # Start listening to incoming TimeChange UI events
-        subscribe(self, "time_change", self._on_time_change_event)
+        # subscribe(self, "time_change", self._on_time_change_event)
 
         # Start listening to incoming TimeBrowse UI events
         subscribe(self, "time_browse", self._on_time_browse_event)
 
-        # Start listening to incoming ChannelBrowse UI events
-        subscribe(self, "channel_browse", self._on_channel_browse_event)
+        # Start listening to incoming ChannelsSelect UI events
+        subscribe(self, "channels_select", self._on_channels_select_event)
 
     def _get_size(self):
         return self.get_size_inches()
@@ -688,7 +697,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
                 channels = self.mne.ch_names[
                     self.mne.ch_order[ch_start : ch_start + n_channels]
                 ]
-                publish(self, ChannelBrowse(channels=channels))
+                publish(self, ChannelsSelect(ch_names=channels))
         # scroll left/right
         elif key in ("right", "left", "shift+right", "shift+left"):
             direction = 1 if key.endswith("right") else -1
@@ -720,7 +729,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
             channels = self.mne.ch_names[
                 self.mne.ch_order[ch_start : ch_start + n_channels]
             ]
-            publish(self, ChannelBrowse(channels=channels))
+            publish(self, ChannelsSelect(ch_names=channels))
 
         # change duration
         elif key in ("home", "end"):
@@ -1770,7 +1779,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
             channels = self.mne.ch_names[
                 self.mne.ch_order[new_ch_start : new_ch_start + self.mne.n_channels]
             ]
-            publish(self, ChannelBrowse(channels=channels))
+            publish(self, ChannelsSelect(ch_names=channels))
             return True
         return False
 
@@ -2403,24 +2412,51 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
             time_end = np.clip(time_end, time_start + min_dur, self.mne.inst.times[-1])
 
         # Update browser window.
-        self.mne.t_start = time_start
-        self.mne.duration = time_end - time_start
-        self._update_hscroll()
-        self._redraw(annotations=True)
+        with disable_ui_events(self):
+            self.mne.t_start = time_start
+            self.mne.duration = time_end - time_start
+            self._update_hscroll()
+            self._redraw(annotations=True)
 
-    def _on_channel_browse_event(self, event):
-        """Respond to the ChannelBrowse UI event."""
+    # def _on_channels_select_event(self, event):
+    #     """Respond to the ChannelsSelect UI event."""
+    #     old_n_channels = self.mne.n_channels
+    #     picks = np.flatnonzero(
+    #         np.isin(self.mne.ch_names[self.mne.ch_order], event.ch_names)
+    #     )
+    #     if len(picks) == 0:
+    #         return  # can't handle the event
+    #     if picks.min() == self.mne.ch_start and len(picks) == self.mne.n_channels:
+    #         return  # no change
+
+    #     with disable_ui_events(self):
+    #         self.mne.ch_start = picks.min()
+    #         self.mne.n_channels = len(picks)
+    #         self._update_vscroll()
+    #         self._update_picks()
+    #         if self.mne.n_channels != old_n_channels:
+    #             self._update_trace_offsets()
+    #         self._redraw(annotations=True)
+
+    def _on_channels_select_event(self, event):
+        """Respond to the ChannelsSelect UI event."""
         old_n_channels = self.mne.n_channels
-        picks = np.flatnonzero(
-            np.isin(self.mne.ch_names[self.mne.ch_order], event.channels)
-        )
-        if len(picks) == 0:
+        all_channels = self.mne.ch_names[self.mne.ch_order]
+        ch_indices = np.where(np.isin(all_channels, event.ch_names))[0]
+        # picks = np.flatnonzero(
+        #     np.isin(self.mne.ch_names[self.mne.ch_order], event.ch_names)
+        # )
+        if len(ch_indices) == 0:
             return  # can't handle the event
-        if picks.min() == self.mne.ch_start and len(picks) == self.mne.n_channels:
+        if (
+            ch_indices.min() == self.mne.ch_start
+            and len(ch_indices) == self.mne.n_channels
+        ):
             return  # no change
 
-        self.mne.ch_start = picks.min()
-        self.mne.n_channels = len(picks)
+        # with disable_ui_events(self):
+        self.mne.ch_start = ch_indices.min()
+        self.mne.n_channels = len(ch_indices)
         self._update_vscroll()
         self._update_picks()
         if self.mne.n_channels != old_n_channels:
@@ -2435,7 +2471,8 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         else:
             time = event.time - self.mne.inst.first_time
             time = np.clip(time, self.mne.inst.times[0], self.mne.inst.times[-1])
-        self._show_vline(time)
+        with disable_ui_events(self):
+            self._show_vline(time)
 
 
 class MNELineFigure(MNEFigure):
