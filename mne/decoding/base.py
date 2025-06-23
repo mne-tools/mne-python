@@ -175,9 +175,15 @@ class _GEDTransformer(MNETransformerMixin, BaseEstimator):
     def transform(self, X):
         """..."""
         check_is_fitted(self, "filters_")
-        X = self._check_data(X)
+        X = self._check_data(X, check_n_features=False)
         if self.dec_type == "single":
-            pick_filters = self.filters_[: self.n_components]
+            # XXX: Hack to assert_allclose in SSD's transform.
+            # Will be removed when overhauling ssd.
+            if hasattr(self, "new_filters_"):
+                filters = self.new_filters_
+            else:
+                filters = self.filters_
+            pick_filters = filters[: self.n_components]
         elif self.dec_type == "multi":
             # XXX: Hack to assert_allclose in Xdawn's transform.
             # Will be removed when overhauling xdawn.

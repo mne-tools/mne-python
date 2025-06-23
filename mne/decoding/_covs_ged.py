@@ -169,9 +169,11 @@ def _ssd_estimate(
     cov_method_params,
     info,
     picks,
+    n_fft,
     filt_params_signal,
     filt_params_noise,
     rank,
+    sort_by_spectral_ratio,
 ):
     if isinstance(info, Info):
         sfreq = info["sfreq"]
@@ -225,7 +227,23 @@ def _ssd_estimate(
         )[0]
     all_ranks.append(r)
     rank = np.min(all_ranks)
-    return covs, C_ref, info, rank, dict()
+    freqs_signal = (filt_params_signal["l_freq"], filt_params_signal["h_freq"])
+    freqs_noise = (filt_params_noise["l_freq"], filt_params_noise["h_freq"])
+    n_fft = min(
+        int(n_fft if n_fft is not None else sfreq),
+        X.shape[-1],
+    )
+    kwargs = dict(
+        X=X,
+        picks=picks_,
+        sfreq=sfreq,
+        n_fft=n_fft,
+        freqs_signal=freqs_signal,
+        freqs_noise=freqs_noise,
+        sort_by_spectral_ratio=sort_by_spectral_ratio,
+    )
+
+    return covs, C_ref, info, rank, kwargs
 
 
 def _spoc_estimate(X, y, reg, cov_method_params, info, rank):

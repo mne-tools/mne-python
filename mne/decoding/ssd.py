@@ -142,9 +142,11 @@ class SSD(_GEDTransformer):
             cov_method_params=cov_method_params,
             info=info,
             picks=picks,
+            n_fft=n_fft,
             filt_params_signal=filt_params_signal,
             filt_params_noise=filt_params_noise,
             rank=rank,
+            sort_by_spectral_ratio=sort_by_spectral_ratio,
         )
         super().__init__(
             n_components=n_components,
@@ -275,17 +277,9 @@ class SSD(_GEDTransformer):
         self.eigvals_ = eigvals_[ix]
         # project back to sensor space
         self.filters_ = np.matmul(rank_proj, eigvects_[:, ix])
-        self.patterns_ = pinv(self.filters_)
+
         # Need to unify with Xdawn and CSP as they store it as (n_components, n_chs)
         self.filters_ = self.filters_.T
-
-        old_filters = self.filters_
-        old_patterns = self.patterns_
-        super().fit(X, y)
-
-        np.testing.assert_allclose(self.eigvals_, self.evals_)
-        np.testing.assert_allclose(old_filters, self.filters_)
-        np.testing.assert_allclose(old_patterns, self.patterns_)
 
         # We assume that ordering by spectral ratio is more important
         # than the initial ordering. This ordering should be also learned when
@@ -295,6 +289,21 @@ class SSD(_GEDTransformer):
         if self.sort_by_spectral_ratio:
             _, sorter_spec = self.get_spectral_ratio(ssd_sources=X_ssd)
         self.sorter_spec_ = sorter_spec
+
+        # When sort_by_spectral_ratio is True,
+        # filters should be stored according the sorting
+        self.filters_ = self.filters_[sorter_spec]
+        self.eigvals_ = self.eigvals_[sorter_spec]
+        self.patterns_ = pinv(self.filters_.T)
+        old_filters = self.filters_
+        old_patterns = self.patterns_
+        super().fit(X, y)
+        self.new_filters_ = self.filters_
+        self.filters_ = old_filters
+        np.testing.assert_allclose(self.eigvals_, self.evals_)
+        np.testing.assert_allclose(old_filters, self.filters_)
+        np.testing.assert_allclose(old_patterns, self.patterns_)
+
         logger.info("Done.")
         return self
 
@@ -315,11 +324,18 @@ class SSD(_GEDTransformer):
         """
         check_is_fitted(self, "filters_")
         X = self._check_X(X)
+        # For the case where n_epochs dimension is absent.
+        if X.ndim == 2:
+            X = np.expand_dims(X, axis=0)
         X_aux = X[..., self.picks_, :]
         if self.return_filtered:
             X_aux = filter_data(X_aux, self.sfreq_, **self.filt_params_signal)
         X_ssd = self.filters_ @ X_aux
-        X_ssd = X_ssd[..., self.sorter_spec_, :][..., : self.n_components, :]
+        X_ssd = X_ssd[..., : self.n_components, :]
+        X_ssd = X_ssd.squeeze()
+        X_ssd_new = super().transform(X_aux).squeeze()
+        np.testing.assert_allclose(X_ssd, X_ssd_new)
+
         return X_ssd
 
     def fit_transform(self, X, y=None, **fit_params):

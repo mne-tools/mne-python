@@ -6,6 +6,9 @@
 
 import numpy as np
 
+from ..time_frequency import psd_array_welch
+from ..utils import _time_mask
+
 
 def _compute_mutual_info(covs, sample_weights, evecs):
     class_probas = sample_weights / sample_weights.sum()
@@ -47,8 +50,43 @@ def _xdawn_mod(evals, evecs, covs=None):
     return evals, evecs
 
 
-def _ssd_mod(evals, evecs, covs=None):
+def _get_spectral_ratio(ssd_sources, sfreq, n_fft, freqs_signal, freqs_noise):
+    psd, freqs = psd_array_welch(ssd_sources, sfreq=sfreq, n_fft=n_fft)
+    sig_idx = _time_mask(freqs, *freqs_signal)
+    noise_idx = _time_mask(freqs, *freqs_noise)
+    if psd.ndim == 3:
+        mean_sig = psd[:, :, sig_idx].mean(axis=2).mean(axis=0)
+        mean_noise = psd[:, :, noise_idx].mean(axis=2).mean(axis=0)
+        spec_ratio = mean_sig / mean_noise
+    else:
+        mean_sig = psd[:, sig_idx].mean(axis=1)
+        mean_noise = psd[:, noise_idx].mean(axis=1)
+        spec_ratio = mean_sig / mean_noise
+    sorter_spec = spec_ratio.argsort()[::-1]
+    return spec_ratio, sorter_spec
+
+
+def _ssd_mod(
+    evals,
+    evecs,
+    covs,
+    X,
+    picks,
+    sfreq,
+    n_fft,
+    freqs_signal,
+    freqs_noise,
+    sort_by_spectral_ratio,
+):
     evals, evecs = _sort_descending(evals, evecs)
+    if sort_by_spectral_ratio:
+        filters = evecs.T
+        ssd_sources = filters @ X[..., picks, :]
+        _, sorter_spec = _get_spectral_ratio(
+            ssd_sources, sfreq, n_fft, freqs_signal, freqs_noise
+        )
+        evecs = evecs[:, sorter_spec]
+        evals = evals[sorter_spec]
     return evals, evecs
 
 
