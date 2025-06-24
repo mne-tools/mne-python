@@ -845,6 +845,8 @@ def channel_indices_by_type(info, picks=None, *, exclude=()):
         Set of channels to exclude, only used when picking based on
         types (e.g., exclude="bads" when picks="meg").
 
+        .. versionadded:: 1.10.0
+
     Returns
     -------
     idx_by_type : dict
