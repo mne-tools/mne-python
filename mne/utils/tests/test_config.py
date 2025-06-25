@@ -13,6 +13,7 @@ from pathlib import Path
 from urllib.error import URLError
 
 import pytest
+from flaky import flaky
 
 import mne
 import mne.utils.config
@@ -173,6 +174,7 @@ def test_get_subjects_dir(tmp_path, monkeypatch):
         get_subjects_dir(raise_error=True)
 
 
+@flaky(max_runs=3)
 @pytest.mark.slowtest
 @requires_good_network
 def test_sys_info_check_outdated(monkeypatch):
