@@ -786,6 +786,8 @@ def test_birthday_input():
     # pandas Timestamp should convert to datetime date
     info["subject_info"]["birthday"] = pd.Timestamp("2000-01-01")
     assert info["subject_info"]["birthday"] == date(2000, 1, 1)
+    # Ensure we've converted it during setting
+    assert not isinstance(info["subject_info"]["birthday"], pd.Timestamp)
 
     # Test invalid date raises error
     with pytest.raises(TypeError, match="must be an instance of date"):
