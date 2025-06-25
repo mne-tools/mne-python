@@ -1013,7 +1013,7 @@ cross_talk : str | None
 
 _dB = """
 dB : bool
-    Whether to plot on a decibel-like scale. If ``True``, plots
+    Whether to plot on a decibel scale. If ``True``, plots
     10 × log₁₀({quantity}){caveat}.{extra}
 """
 _ignored_if_normalize = " Ignored if ``normalize=True``."
@@ -1021,13 +1021,12 @@ _psd = "spectral power"
 
 docdict["dB_plot_psd"] = """\
 dB : bool
-    Plot Power Spectral Density (PSD), in units (amplitude**2/Hz (dB)) if
-    ``dB=True``, and ``estimate='power'`` or ``estimate='auto'``. Plot PSD
-    in units (amplitude**2/Hz) if ``dB=False`` and,
-    ``estimate='power'``. Plot Amplitude Spectral Density (ASD), in units
-    (amplitude/sqrt(Hz)), if ``dB=False`` and ``estimate='amplitude'`` or
-    ``estimate='auto'``. Plot ASD, in units (amplitude/sqrt(Hz) (dB)), if
-    ``dB=True`` and ``estimate='amplitude'``.
+    Plot power spectral density (PSD) in units (dB/Hz) if ``dB=True`` and
+    ``estimate='power'`` or ``estimate='auto'``. Plot PSD in units (amplitude**2/Hz) if
+    ``dB=False`` and ``estimate='power'``. Plot amplitude spectral density (ASD) in
+    units (amplitude/sqrt(Hz)) if ``dB=False`` and ``estimate='amplitude'`` or
+    ``estimate='auto'``. Plot ASD in units (dB/sqrt(Hz)) if ``dB=True`` and
+    ``estimate='amplitude'``.
 """
 docdict["dB_plot_topomap"] = _dB.format(
     quantity=_psd,
