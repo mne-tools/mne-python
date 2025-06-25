@@ -20,6 +20,7 @@ import mne.utils.config
 from mne.utils import (
     ClosingStringIO,
     _get_stim_channel,
+    _record_warnings,
     get_config,
     get_config_path,
     get_subjects_dir,
@@ -265,7 +266,8 @@ def _worker_update_config_loop(home_dir, worker_id, iterations=10):
         new_key = f"worker_{worker_id}_{i}"
         new_value = f"value_{worker_id}_{i}"
         # Update the configuration (our set_config holds the lock over the full cycle)
-        set_config(new_key, new_value, home_dir=home_dir)
+        with _record_warnings():  # ignore non-standard key warning
+            set_config(new_key, new_value, home_dir=home_dir)
         time.sleep(random.uniform(0, 0.05))
     return worker_id
 
