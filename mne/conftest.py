@@ -195,6 +195,7 @@ def pytest_configure(config: pytest.Config):
     ignore:process .* is multi-threaded, use of fork/exec.*:DeprecationWarning
     # sklearn
     ignore:Python binding for RankQuantileOptions.*:RuntimeWarning
+    ignore:.*The `disp` and `iprint` options of the L-BFGS-B solver.*:DeprecationWarning
     """  # noqa: E501
     for warning_line in warning_lines.split("\n"):
         warning_line = warning_line.strip()
