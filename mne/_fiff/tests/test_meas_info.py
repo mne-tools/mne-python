@@ -773,6 +773,27 @@ def test_meas_date_convert(stamp, dt):
     assert str(dt[0]) in repr(info)
 
 
+def test_birthday_input():
+    """Test that birthday input is handled correctly."""
+    pd = pytest.importorskip("pandas")
+
+    # Test valid date
+    info = create_info(ch_names=["EEG 001"], sfreq=1000.0, ch_types="eeg")
+    info["subject_info"] = {}
+    info["subject_info"]["birthday"] = date(2000, 1, 1)
+    assert info["subject_info"]["birthday"] == date(2000, 1, 1)
+
+    # pandas Timestamp should convert to datetime date
+    info["subject_info"]["birthday"] = pd.Timestamp("2000-01-01")
+    assert info["subject_info"]["birthday"] == date(2000, 1, 1)
+    # Ensure we've converted it during setting
+    assert not isinstance(info["subject_info"]["birthday"], pd.Timestamp)
+
+    # Test invalid date raises error
+    with pytest.raises(TypeError, match="must be an instance of date"):
+        info["subject_info"]["birthday"] = "not a date"
+
+
 def _complete_info(info):
     """Complete the meas info fields."""
     for key in ("file_id", "meas_id"):
