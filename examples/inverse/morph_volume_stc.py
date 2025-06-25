@@ -138,7 +138,7 @@ display = plot_glass_brain(
 )
 
 # Add functional data as overlay
-display.add_overlay(img_fsaverage, alpha=0.75)
+display.add_overlay(img_fsaverage, transparency=0.75)
 
 
 # %%
