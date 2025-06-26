@@ -931,6 +931,7 @@ FIFF.FIFF_UNIT_CEL = 114  # celsius
 FIFF.FIFF_UNIT_LM = 115  # lumen
 FIFF.FIFF_UNIT_LX = 116  # lux
 FIFF.FIFF_UNIT_V_M2 = 117  # V/m^2
+FIFF.FIFF_UNIT_SEC2 = 118  # second^2
 #
 # Others we need
 #
@@ -972,6 +973,7 @@ _ch_unit_named = {
         FIFF.FIFF_UNIT_LM,
         FIFF.FIFF_UNIT_LX,
         FIFF.FIFF_UNIT_V_M2,
+        FIFF.FIFF_UNIT_SEC2,
         FIFF.FIFF_UNIT_T_M,
         FIFF.FIFF_UNIT_AM,
         FIFF.FIFF_UNIT_AM_M2,

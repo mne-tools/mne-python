@@ -28,7 +28,7 @@ from mne.utils import requires_good_network
 
 # https://github.com/mne-tools/fiff-constants/commits/master
 REPO = "larsoner"  # TODO: Replace with upstream once merged
-COMMIT = "ba2288355b61b00d65d4f1d8a47ef82b83414201"
+COMMIT = "63cdf5d64a7006d2b8d21931bd7c4d898e310df8"
 
 # These are oddities that we won't address:
 iod_dups = (355, 359)  # these are in both MEGIN and MNE files

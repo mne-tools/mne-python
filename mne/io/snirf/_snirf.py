@@ -288,9 +288,16 @@ class RawSNIRF(BaseRaw):
                     "location information"
                 )
 
+            # Uniform scale factor assumed here!
+            snirf_data_unit = np.array(
+                dat.get("nirs/data1/measurementList1/dataUnit", b"M")
+            )
+            snirf_data_unit = snirf_data_unit.item().decode("utf-8")
+            scale = _get_dataunit_scaling(snirf_data_unit)
+
             chnames = []
             ch_types = []
-            need_data_scale = False
+            ch_cals = []
             for chan in channels:
                 ch_root = f"nirs/data1/{chan}"
                 src_idx = int(
@@ -300,6 +307,7 @@ class RawSNIRF(BaseRaw):
                     _correct_shape(np.array(dat.get(f"{ch_root}/detectorIndex")))[0]
                 )
                 ch_name = f"{sources[src_idx]}_{detectors[det_idx]}"
+                ch_cal = scale
 
                 if snirf_data_type in (
                     SNIRF_CW_AMPLITUDE,
@@ -324,7 +332,6 @@ class RawSNIRF(BaseRaw):
                         # append time delay
                         ch_name = f"{ch_name} bin{fnirs_time_delays[bin_idx - 1]}"
                         ch_type = "fnirs_td_gated_amplitude"
-                        need_data_scale = True
                     else:
                         assert snirf_data_type == SNIRF_TD_MOMENTS_AMPLITUDE
                         moment_idx = int(
@@ -340,8 +347,13 @@ class RawSNIRF(BaseRaw):
                             _TD_MOMENT_ORDER_MAP,
                         )
                         ch_name = f"{ch_name} moment{order}"
-                        ch_type = f"fnirs_td_moments_{_TD_MOMENT_ORDER_MAP[order]}"
-
+                        kind = _TD_MOMENT_ORDER_MAP[order]
+                        ch_type = f"fnirs_td_moments_{kind}"
+                        if kind == "mean":
+                            # Stored in picoseconds
+                            ch_cal = 1e-12
+                        elif kind == "variance":
+                            ch_cal = 1e-24
                 elif snirf_data_type == SNIRF_PROCESSED:
                     dt_id = _correct_shape(
                         np.array(dat.get(f"{ch_root}/dataTypeLabel"))
@@ -365,25 +377,18 @@ class RawSNIRF(BaseRaw):
                                 f"HbO/HbR, but got type f{dt_id}"
                             )
                         suffix = dt_id.lower()
-                        need_data_scale = True
                     ch_name = f"{ch_name} {suffix}"
                     ch_type = dt_id
                 chnames.append(ch_name)
                 ch_types.append(ch_type)
-                del ch_root, ch_name, ch_type
+                ch_cals.append(ch_cal)
+                del ch_root, ch_name, ch_type, ch_cal
+            del scale
 
             # Create mne structure
             info = create_info(chnames, sampling_rate, ch_types=ch_types)
-
-            if need_data_scale:
-                snirf_data_unit = np.array(
-                    dat.get("nirs/data1/measurementList1/dataUnit", b"M")
-                )
-                snirf_data_unit = snirf_data_unit.item().decode("utf-8")
-                scale = _get_dataunit_scaling(snirf_data_unit)  # " " or "M")
-                if scale is not None:
-                    for ch in info["chs"]:
-                        ch["cal"] = scale
+            for ch, ch_cal in zip(info["chs"], ch_cals):
+                ch["cal"] = ch_cal
 
             subject_info = {}
             names = np.array(dat.get("nirs/metaDataTags/SubjectID"))
@@ -417,8 +422,8 @@ class RawSNIRF(BaseRaw):
             length_unit = _get_metadata_str(dat, "LengthUnit")
             length_scaling = _get_lengthunit_scaling(length_unit)
 
-            srcPos3D /= length_scaling
-            detPos3D /= length_scaling
+            srcPos3D *= length_scaling
+            detPos3D *= length_scaling
 
             if optode_frame in ["mri", "meg"]:
                 # These are all in MNI or MEG coordinates, so let's transform
@@ -651,7 +656,7 @@ def _get_timeunit_scaling(time_unit):
 
 def _get_lengthunit_scaling(length_unit):
     """MNE expects distance in m, return required scaling."""
-    scalings = {"m": 1, "cm": 100, "mm": 1000}
+    scalings = {"m": 1.0, "cm": 1e-2, "mm": 1e-3}
     if length_unit in scalings:
         return scalings[length_unit]
     else:
@@ -664,7 +669,7 @@ def _get_lengthunit_scaling(length_unit):
 
 def _get_dataunit_scaling(hbx_unit):
     """MNE expects hbo/hbr in M, return required scaling."""
-    scalings = {"M": None, "uM": 1e-6}
+    scalings = {"M": 1.0, "uM": 1e-6, "": 1.0}
     try:
         return scalings[hbx_unit]
     except KeyError:

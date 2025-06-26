@@ -474,7 +474,7 @@ def test_snirf_kernel_basic(kind, ver, shape, n_nan, fname):
         assert hbo_data.shape == hbr_data.shape == (shape[0] // 2, shape[1])
         hbo_norm = np.nanmedian(np.linalg.norm(hbo_data, axis=-1))
         hbr_norm = np.nanmedian(np.linalg.norm(hbr_data, axis=-1))
-        # TODO: Old file vs new file scaling, one is wrong!
+        # TODO: Old file vs new file scaling, old one is wrong most likely!
         if ver == "new":
             assert 1e-5 < hbr_norm < hbo_norm < 1e-4
         else:
@@ -482,8 +482,7 @@ def test_snirf_kernel_basic(kind, ver, shape, n_nan, fname):
     elif kind == "td moments":
         assert raw._data.shape == shape
         n_ch = 0
-        # TODO: Reasonable values here???
-        lims = dict(intensity=(1e4, 1e7), mean=(1e3, 1e4), variance=(1e5, 1e7))
+        lims = dict(intensity=(1e4, 1e7), mean=(1e-9, 1e-8), variance=(1e-19, 1e-16))
         for key, val in lims.items():
             data = raw.get_data(f"fnirs_td_moments_{key}")
             assert data.shape[1] == len(raw.times)
@@ -492,13 +491,17 @@ def test_snirf_kernel_basic(kind, ver, shape, n_nan, fname):
             assert min_ < norm < max_, key
             n_ch += data.shape[0]
         assert raw._data.shape[0] == len(raw.ch_names) == n_ch
+        mean_ch = raw.copy().pick("fnirs_td_moments_mean").info["chs"][0]
+        assert mean_ch["unit"] == FIFF.FIFF_UNIT_SEC
+        var_ch = raw.copy().pick("fnirs_td_moments_variance").info["chs"][0]
+        assert var_ch["unit"] == FIFF.FIFF_UNIT_SEC2
     else:
         pass  # TODO: add some gated tests
     if ver == "old":
-        sfreq = 8.257638
+        sfreq = 8.256495
         n_annot = 2
     else:
-        sfreq = 3.759398
+        sfreq = 3.759351
         n_annot = 8
 
     assert_allclose(raw.info["sfreq"], sfreq, atol=1e-5)
@@ -533,7 +536,7 @@ def test_user_set_sfreq(sfreq, context):
     with context:
         # both sfreqs are far enough from true rate to yield >1% jitter
         with pytest.warns(RuntimeWarning, match=r"jitter of \d+\.\d*% in sample times"):
-            raw = read_raw_snirf(kernel_hb, preload=False, sfreq=sfreq)
+            raw = read_raw_snirf(kernel_hb_old, preload=False, sfreq=sfreq)
     assert raw.info["sfreq"] == sfreq
 
 

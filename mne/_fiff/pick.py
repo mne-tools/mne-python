@@ -116,12 +116,12 @@ def get_channel_type_constants(include_defaults=False):
         ),
         fnirs_td_moments_mean=dict(
             kind=FIFF.FIFFV_FNIRS_CH,
-            unit=FIFF.FIFF_UNIT_S,
+            unit=FIFF.FIFF_UNIT_SEC,
             coil_type=FIFF.FIFFV_COIL_FNIRS_TD_MOMENTS_MEAN,
         ),
         fnirs_td_moments_variance=dict(
             kind=FIFF.FIFFV_FNIRS_CH,
-            unit=FIFF.FIFF_UNIT_NONE,  # TODO: Maybe someday add s^2
+            unit=FIFF.FIFF_UNIT_SEC2,
             coil_type=FIFF.FIFFV_COIL_FNIRS_TD_MOMENTS_VARIANCE,
         ),
         fnirs_od=dict(kind=FIFF.FIFFV_FNIRS_CH, coil_type=FIFF.FIFFV_COIL_FNIRS_OD),
