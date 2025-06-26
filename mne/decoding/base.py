@@ -115,15 +115,22 @@ class _GEDTransformer(MNETransformerMixin, BaseEstimator):
         self.restr_type = restr_type
         self.R_func = R_func
 
+    _is_base_ged = True
+
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        cls._is_base_ged = False
+
     def fit(self, X, y=None):
         """..."""
-        X, y = self._check_data(
-            X,
-            y=y,
-            fit=True,
-            return_y=True,
-            atleast_3d=False if self.restr_type == "ssd" else True,
-        )
+        # Let the inheriting transformers check data by themselves
+        if self._is_base_ged:
+            X, y = self._check_data(
+                X,
+                y=y,
+                fit=True,
+                return_y=True,
+            )
         self._validate_ged_params()
         covs, C_ref, info, rank, kwargs = self.cov_callable(X, y)
         covs = np.stack(covs)
@@ -175,7 +182,9 @@ class _GEDTransformer(MNETransformerMixin, BaseEstimator):
     def transform(self, X):
         """..."""
         check_is_fitted(self, "filters_")
-        X = self._check_data(X, check_n_features=False)
+        # Let the inheriting transformers check data by themselves
+        if self._is_base_ged:
+            X = self._check_data(X)
         if self.dec_type == "single":
             # XXX: Hack to assert_allclose in SSD's transform.
             # Will be removed when overhauling ssd.

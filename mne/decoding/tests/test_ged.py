@@ -135,16 +135,8 @@ param_grid = dict(
 ged_estimators = [_GEDTransformer(**p) for p in ParameterGrid(param_grid)]
 
 
-def _expected_failures(estimator):
-    return dict(
-        check_n_features_in_after_fitting=(
-            "in case child class modifies X before calling GED's .transform()"
-        )
-    )
-
-
 @pytest.mark.slowtest
-@parametrize_with_checks(ged_estimators, expected_failed_checks=_expected_failures)
+@parametrize_with_checks(ged_estimators)
 def test_sklearn_compliance(estimator, check):
     """Test GEDTransformer compliance with sklearn."""
     check(estimator)
