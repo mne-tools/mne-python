@@ -637,7 +637,7 @@ def _test_anonymize_info(base_info, tmp_path):
         for lev in tp[:-1]:
             this = this[lev]
         this[tp[-1]] = default_str
-    exp_info["proj_id"] = np.array([0])
+    exp_info["proj_id"] = 0
     for key in ("sex", "id", "height", "weight"):
         exp_info["subject_info"][key] = 0
     exp_info["subject_info"]["his_id"] = str(default_subject_id)
@@ -773,6 +773,27 @@ def test_meas_date_convert(stamp, dt):
     assert str(dt[0]) in repr(info)
 
 
+def test_birthday_input():
+    """Test that birthday input is handled correctly."""
+    pd = pytest.importorskip("pandas")
+
+    # Test valid date
+    info = create_info(ch_names=["EEG 001"], sfreq=1000.0, ch_types="eeg")
+    info["subject_info"] = {}
+    info["subject_info"]["birthday"] = date(2000, 1, 1)
+    assert info["subject_info"]["birthday"] == date(2000, 1, 1)
+
+    # pandas Timestamp should convert to datetime date
+    info["subject_info"]["birthday"] = pd.Timestamp("2000-01-01")
+    assert info["subject_info"]["birthday"] == date(2000, 1, 1)
+    # Ensure we've converted it during setting
+    assert not isinstance(info["subject_info"]["birthday"], pd.Timestamp)
+
+    # Test invalid date raises error
+    with pytest.raises(TypeError, match="must be an instance of date"):
+        info["subject_info"]["birthday"] = "not a date"
+
+
 def _complete_info(info):
     """Complete the meas info fields."""
     for key in ("file_id", "meas_id"):
@@ -798,7 +819,7 @@ def _complete_info(info):
     info["experimenter"] = "f"
     info["description"] = "g"
     with info._unlock():
-        info["proj_id"] = np.ones(1, int)
+        info["proj_id"] = 1
         info["proj_name"] = "h"
         info["utc_offset"] = "i"
         d = (1717707794, 2)
@@ -1217,6 +1238,7 @@ def test_info_bad():
     info["line_freq"] = 50.0
     info["bads"] = info["ch_names"][:1]
     info["temp"] = ("whatever", 1.0)
+
     with pytest.raises(RuntimeError, match=r"info\['temp'\]"):
         info["bad_key"] = 1.0
     for key, match in [("sfreq", r"inst\.resample"), ("chs", r"inst\.add_channels")]:
@@ -1277,3 +1299,15 @@ def test_tag_consistency():
     assert call_set == call_names, "Mismatch between _call_dict and _call_dict_names"
     # TODO: This was inspired by FIFF_DIG_STRING gh-13083, we should ideally add a test
     # that those dig points can actually be read in correctly at some point.
+
+
+def test_proj_id_entries():
+    """Test that proj_id entries are the right type."""
+    info = create_info(5, 1000.0, "eeg")
+    info["proj_id"] = 123
+    # Boolean should be cast into an int
+    info["proj_id"] = True
+    with pytest.raises(TypeError, match="must be an instance"):
+        info["proj_id"] = "bad"
+    with pytest.raises(TypeError, match="must be an instance"):
+        info["proj_id"] = np.array([123])

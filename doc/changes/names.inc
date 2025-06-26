@@ -166,6 +166,7 @@
 .. _Larry Eisenman:  https://github.com/lneisenman
 .. _Lau Møller Andersen: https://github.com/ualsbombe
 .. _Laura Gwilliams: https://lauragwilliams.github.io
+.. _Laurent Le Mentec: https://github.com/LaurentLM
 .. _Leonardo Barbosa: https://github.com/noreun
 .. _Leonardo Rochael Almeida: https://github.com/leorochael
 .. _Liberty Hamilton: https://github.com/libertyh
@@ -206,6 +207,7 @@
 .. _Milan Rybář: https://milanrybar.cz
 .. _Mingjian He: https://github.com/mh105
 .. _Mohammad Daneshzand: https://github.com/mdaneshzand
+.. _Mojackhak: https://github.com/Mojackhak
 .. _Moritz Gerster: https://github.com/moritz-gerster
 .. _Motofumi Fushimi: https://github.com/motofumi-fushimi/motofumi-fushimi.github.io
 .. _Nabil Alibou: https://github.com/nabilalibou
