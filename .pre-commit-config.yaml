@@ -1,7 +1,7 @@
 repos:
   # Ruff mne
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.11.0
+    rev: v0.12.0
     hooks:
       - id: ruff
         name: ruff lint mne
@@ -33,14 +33,14 @@ repos:
 
   # yamllint
   - repo: https://github.com/adrienverge/yamllint.git
-    rev: v1.36.2
+    rev: v1.37.1
     hooks:
       - id: yamllint
         args: [--strict, -c, .yamllint.yml]
 
   # rstcheck
   - repo: https://github.com/rstcheck/rstcheck.git
-    rev: v6.2.4
+    rev: v6.2.5
     hooks:
       - id: rstcheck
         additional_dependencies:
@@ -82,7 +82,7 @@ repos:
 
   # zizmor
   - repo: https://github.com/woodruffw/zizmor-pre-commit
-    rev: v1.5.1
+    rev: v1.9.0
     hooks:
       - id: zizmor
 

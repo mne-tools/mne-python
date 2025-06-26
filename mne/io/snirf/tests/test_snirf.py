@@ -4,6 +4,7 @@
 
 import datetime
 import shutil
+from contextlib import nullcontext
 
 import numpy as np
 import pytest
@@ -521,6 +522,23 @@ def test_snirf_kernel_basic(kind, ver, shape, n_nan, fname):
 
 @requires_testing_data
 @pytest.mark.parametrize(
+    "sfreq,context",
+    (
+        [8.2, nullcontext()],  # sfreq estimated from file is 8.256495
+        [22, pytest.warns(RuntimeWarning, match="User-supplied sampling frequency")],
+    ),
+)
+def test_user_set_sfreq(sfreq, context):
+    """Test manually setting sfreq."""
+    with context:
+        # both sfreqs are far enough from true rate to yield >1% jitter
+        with pytest.warns(RuntimeWarning, match=r"jitter of \d+\.\d*% in sample times"):
+            raw = read_raw_snirf(kernel_hb, preload=False, sfreq=sfreq)
+    assert raw.info["sfreq"] == sfreq
+
+
+@requires_testing_data
+@pytest.mark.parametrize(
     "fname, boundary_decimal, test_scaling, test_rank",
     (
         [sfnirs_homer_103_wShort, 0, True, True],
@@ -620,8 +638,8 @@ def test_sample_rate_jitter(tmp_path):
     with h5py.File(new_file, "r+") as f:
         orig_time = np.array(f.get("nirs/data1/time"))
         acceptable_time_jitter = orig_time.copy()
-        average_time_diff = np.mean(np.diff(orig_time))
-        acceptable_time_jitter[-1] += 0.0099 * average_time_diff
+        mean_period = np.mean(np.diff(orig_time))
+        acceptable_time_jitter[-1] += 0.0099 * mean_period
         del f["nirs/data1/time"]
         f.flush()
         f.create_dataset("nirs/data1/time", data=acceptable_time_jitter)
@@ -630,11 +648,11 @@ def test_sample_rate_jitter(tmp_path):
     lines = "\n".join(line for line in log.getvalue().splitlines() if "jitter" in line)
     assert "Found jitter of 0.9" in lines
 
-    # Add jitter of 1.01%, which is greater than allowed tolerance
+    # Add jitter of 1.02%, which is greater than allowed tolerance
     with h5py.File(new_file, "r+") as f:
         unacceptable_time_jitter = orig_time
         unacceptable_time_jitter[-1] = unacceptable_time_jitter[-1] + (
-            0.0101 * average_time_diff
+            0.0102 * mean_period
         )
         del f["nirs/data1/time"]
         f.flush()

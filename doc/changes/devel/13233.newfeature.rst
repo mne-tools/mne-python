@@ -1,0 +1,1 @@
+Improved error message in :meth:`mne.io.Raw.save` when attempting to overwrite a file, by :newcontrib:`Sebastian Jentschke`

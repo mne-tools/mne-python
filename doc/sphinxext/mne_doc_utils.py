@@ -67,6 +67,8 @@ def reset_warnings(gallery_conf, fname):
         "\nImplementing implicit namespace packages",
         # latexcodec
         r"open_text is deprecated\. Use files",
+        # dipy etc.
+        "The `disp` and `iprint` options of the L-BFGS-B solver",
     ):
         warnings.filterwarnings(  # deal with other modules having bad imports
             "ignore", message=f".*{key}.*", category=DeprecationWarning
@@ -75,6 +77,8 @@ def reset_warnings(gallery_conf, fname):
     for message in (
         # Matplotlib
         ".*is non-interactive, and thus cannot.*",
+        # pybtex
+        ".*pkg_resources is deprecated as an API.*",
     ):
         warnings.filterwarnings(
             "ignore",

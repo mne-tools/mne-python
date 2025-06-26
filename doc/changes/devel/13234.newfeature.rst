@@ -1,0 +1,1 @@
+Add a new parameter ``plot_kwargs`` to :meth:`mne.Report.add_trans`, to control low level properties of the visualization, by `Stefan Appelhoff`_.

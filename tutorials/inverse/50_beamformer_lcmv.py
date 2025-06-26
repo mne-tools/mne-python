@@ -38,8 +38,7 @@ from mne.datasets import fetch_fsaverage, sample
 # Frequency-resolved data can be reconstructed with the dynamic imaging of
 # coherent sources (DICS) beamforming method :footcite:`GrossEtAl2001`.
 # As we will see in the following, the spatial filter is computed from two
-# ingredients: the forward model solution and the covariance matrix of the
-# data.
+# ingredients: the forward model solution and the covariance matrix of the data.
 
 # %%
 # Data processing

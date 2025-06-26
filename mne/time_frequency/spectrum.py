@@ -1093,7 +1093,7 @@ class Spectrum(BaseSpectrum):
         Frequencies at which the amplitude, power, or fourier coefficients
         have been computed.
     %(info_not_none)s
-    method : ``'welch'``| ``'multitaper'``
+    method : ``'welch'`` | ``'multitaper'``
         The method used to compute the spectrum.
     nave : int | None
         The number of trials averaged together when generating the spectrum. ``None``
@@ -1380,7 +1380,7 @@ class EpochsSpectrum(BaseSpectrum, GetEpochsMixin):
         Frequencies at which the amplitude, power, or fourier coefficients
         have been computed.
     %(info_not_none)s
-    method : ``'welch'``| ``'multitaper'``
+    method : ``'welch'`` | ``'multitaper'``
         The method used to compute the spectrum.
     weights : array | None
         The weights for each taper. Only present if spectra computed with
