@@ -987,6 +987,19 @@ def test_plot_raw_filtered(filtorder, raw, browser_backend):
     RawArray(np.zeros((1, 100)), create_info(1, 20.0, "stim")).plot(lowpass=5)
 
 
+def _check_ylabel_psd(ylabel, amplitude, dB, unit):
+    """Check that the ylabel is correct."""
+    if amplitude:
+        assert r"\sqrt{Hz}" in ylabel
+    else:
+        assert "Hz" in ylabel and r"\sqrt{Hz}" not in ylabel
+    if dB:
+        assert "dB" in ylabel
+    else:
+        assert unit in ylabel, ylabel
+        assert "dB" not in ylabel
+
+
 def test_plot_raw_psd(raw, raw_orig):
     """Test plotting of raw psds."""
     raw_unchanged = raw.copy()
@@ -1045,17 +1058,13 @@ def test_plot_raw_psd(raw, raw_orig):
         ylabel = fig.axes[0].get_ylabel()
         unit = r"fT/cm/\sqrt{Hz}" if amplitude else "(fT/cm)²/Hz"
         assert title == "Gradiometers", title
-        assert unit in ylabel, ylabel
-        if dB:
-            assert "dB" in ylabel
-        else:
-            assert "dB" not in ylabel
+        _check_ylabel_psd(ylabel, amplitude, dB, unit)
         # check mag axes
         title = fig.axes[1].get_title()
         ylabel = fig.axes[1].get_ylabel()
         unit = r"fT/\sqrt{Hz}" if amplitude else "fT²/Hz"
         assert title == "Magnetometers", title
-        assert unit in ylabel, ylabel
+        _check_ylabel_psd(ylabel, amplitude, dB, unit)
 
     # test xscale value checking
     raw = raw_unchanged
