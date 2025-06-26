@@ -135,11 +135,8 @@ class RawOTB(BaseRaw):
                 ch_id = ch.get("ID")
                 # TODO better to call these "emg_1" etc? should we left-zeropad ix?
                 ch_names.append(f"{ch_id}_{ix}" if ch_id in dupl_ids else ch_id)
-                # handle signal conversion (TODO verify original units)
-                unit_conversion = 1 if ch_id in NON_DATA_CHS else 1e6
-                gains[ix + ch_offset] = (
-                    float(ch.get("Gain")) * adapter_gain * unit_conversion
-                )
+                # store gains
+                gains[ix + ch_offset] = float(ch.get("Gain")) * adapter_gain
 
                 # TODO verify ch_type for quats, buffer channel, and ramp channel
                 ch_types.append("misc" if ch_id in NON_DATA_CHS else "emg")
@@ -221,6 +218,9 @@ class RawOTB(BaseRaw):
                 fid.extractfile(sig_fname).read(),
                 dtype=_extras["dtype"],
             )
+        # TODO is the factor of 1000 (copied from the MATLAB code) to convert Volts
+        # milliVolts? If so we should remove it (in MNE we always store in SI units, so
+        # we should keep it in V)
         self._data = _data * (1000 * power_supply / 2**bit_depth / gains)[:, np.newaxis]
 
 
