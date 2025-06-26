@@ -41,10 +41,12 @@ als_ras_trans = np.array([[0, -1, 0, 0], [1, 0, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1
 
 
 _str_to_frame = dict(
+    isotrak=FIFF.FIFFV_COORD_ISOTRAK,
     meg=FIFF.FIFFV_COORD_DEVICE,
     mri=FIFF.FIFFV_COORD_MRI,
     mri_voxel=FIFF.FIFFV_MNE_COORD_MRI_VOXEL,
     head=FIFF.FIFFV_COORD_HEAD,
+    hpi=FIFF.FIFFV_COORD_HPI,
     mni_tal=FIFF.FIFFV_MNE_COORD_MNI_TAL,
     ras=FIFF.FIFFV_MNE_COORD_RAS,
     fs_tal=FIFF.FIFFV_MNE_COORD_FS_TAL,
@@ -62,15 +64,16 @@ _verbose_frames = {
     FIFF.FIFFV_COORD_HEAD: "head",
     FIFF.FIFFV_COORD_MRI: "MRI (surface RAS)",
     FIFF.FIFFV_MNE_COORD_MRI_VOXEL: "MRI voxel",
-    FIFF.FIFFV_COORD_MRI_SLICE: "MRI slice",
-    FIFF.FIFFV_COORD_MRI_DISPLAY: "MRI display",
     FIFF.FIFFV_MNE_COORD_CTF_DEVICE: "CTF MEG device",
     FIFF.FIFFV_MNE_COORD_CTF_HEAD: "CTF/4D/KIT head",
     FIFF.FIFFV_MNE_COORD_RAS: "RAS (non-zero origin)",
     FIFF.FIFFV_MNE_COORD_MNI_TAL: "MNI Talairach",
-    FIFF.FIFFV_MNE_COORD_FS_TAL_GTZ: "Talairach (MNI z > 0)",
-    FIFF.FIFFV_MNE_COORD_FS_TAL_LTZ: "Talairach (MNI z < 0)",
-    -1: "unknown",
+    FIFF.FIFFV_MNE_COORD_FS_TAL: "FS Talairach",
+    # We don't use these, but keep them in case we ever want to add them.
+    # FIFF.FIFFV_COORD_MRI_SLICE: "MRI slice",
+    # FIFF.FIFFV_COORD_MRI_DISPLAY: "MRI display",
+    # FIFF.FIFFV_MNE_COORD_FS_TAL_GTZ: "Talairach (MNI z > 0)",
+    # FIFF.FIFFV_MNE_COORD_FS_TAL_LTZ: "Talairach (MNI z < 0)",
 }
 
 
@@ -224,19 +227,30 @@ def _print_coord_trans(
         )
 
 
-def _find_trans(subject, subjects_dir=None):
-    if subject is None:
-        if "SUBJECT" in os.environ:
-            subject = os.environ["SUBJECT"]
-        else:
-            raise ValueError("SUBJECT environment variable not set")
-
-    trans_fnames = glob.glob(str(subjects_dir / subject / "*-trans.fif"))
-    if len(trans_fnames) < 1:
-        raise RuntimeError(f"Could not find the transformation for {subject}")
-    elif len(trans_fnames) > 1:
-        raise RuntimeError(f"Found multiple transformations for {subject}")
-    return Path(trans_fnames[0])
+def _find_trans(*, trans, subject, subjects_dir=None):
+    if isinstance(trans, str) and trans == "auto":
+        subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+        # let's try to do this in MRI coordinates so they're easy to plot
+        if subject is None:
+            if "SUBJECT" in os.environ:
+                subject = os.environ["SUBJECT"]
+            else:
+                raise ValueError(
+                    "subject is None and SUBJECT environment variable not set, cannot "
+                    "use trans='auto'"
+                )
+        glob_str = str(subjects_dir / subject / "*-trans.fif")
+        trans_fnames = glob.glob(glob_str)
+        if len(trans_fnames) < 1:
+            raise RuntimeError(
+                f"Could not find the transformation for {subject} in: {glob_str}"
+            )
+        elif len(trans_fnames) > 1:
+            raise RuntimeError(
+                f"Found multiple transformations for {subject} in: {glob_str}"
+            )
+        trans = Path(trans_fnames[0])
+    return _get_trans(trans, fro="head", to="mri")
 
 
 def apply_trans(trans, pts, move=True):
@@ -1131,10 +1145,10 @@ class _SphericalSurfaceWarp:
         if center:
             logger.info("    Centering data")
             hsp = np.array([p for p in source if not (p[2] < -1e-6 and p[1] > 1e-6)])
-            src_center = _fit_sphere(hsp, disp=False)[1]
+            src_center = _fit_sphere(hsp)[1]
             source = source - src_center
             hsp = np.array([p for p in destination if not (p[2] < 0 and p[1] > 0)])
-            dest_center = _fit_sphere(hsp, disp=False)[1]
+            dest_center = _fit_sphere(hsp)[1]
             destination = destination - dest_center
             logger.info(
                 "    Using centers {np.array_str(src_center, None, 3)} -> "

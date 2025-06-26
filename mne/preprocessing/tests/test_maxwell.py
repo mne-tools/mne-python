@@ -5,6 +5,7 @@
 import pathlib
 import re
 from contextlib import contextmanager
+from functools import partial
 from pathlib import Path
 
 import numpy as np
@@ -33,8 +34,10 @@ from mne.preprocessing import (
     annotate_movement,
     compute_maxwell_basis,
     find_bad_channels_maxwell,
-    maxwell_filter,
     maxwell_filter_prepare_emptyroom,
+)
+from mne.preprocessing import (
+    maxwell_filter as _maxwell_filter_ola,
 )
 from mne.preprocessing.maxwell import (
     _bases_complex_to_real,
@@ -170,6 +173,7 @@ bads = [
 
 def _assert_n_free(raw_sss, lower, upper=None):
     """Check the DOF."""
+    __tracebackhide__ = True
     upper = lower if upper is None else upper
     n_free = raw_sss.info["proc_history"][0]["max_info"]["sss_info"]["nfree"]
     assert lower <= n_free <= upper, f"nfree fail: {lower} <= {n_free} <= {upper}"
@@ -187,9 +191,15 @@ def read_crop(fname, lims=(0, None)):
     return read_raw_fif(fname, allow_maxshield="yes").crop(*lims)
 
 
+# For backward compat and to be most like MaxFilter, we make "maxwell_filter"
+# the one that behaves like MaxFilter. _maxwell_filter is left to
+# be the advanced/better one.
+maxwell_filter = partial(_maxwell_filter_ola, st_overlap=False, mc_interp="zero")
+
+
 @pytest.mark.slowtest
 @testing.requires_testing_data
-def test_movement_compensation(tmp_path):
+def test_movement_compensation_basic(tmp_path):
     """Test movement compensation."""
     lims = (0, 4)
     raw = read_crop(raw_fname, lims).load_data()
@@ -294,6 +304,57 @@ def test_movement_compensation(tmp_path):
     assert_meg_snr(
         raw_sss_tweak, raw_sss.copy().crop(0, 0.05), 1.4, 8.0, chpi_med_tol=5
     )
+    # smoke test a zero-like t[0]
+    head_pos_bad[0, 0] = raw._first_time + 0.1 / raw.info["sfreq"]
+    maxwell_filter(
+        raw.copy().crop(0, 0.05), head_pos=head_pos_bad, origin=mf_head_origin
+    )
+
+
+@pytest.mark.slowtest
+@testing.requires_testing_data
+def test_movement_compensation_smooth():
+    """Test movement compensation with smooth interpolation."""
+    lims = (0, 10)
+    raw = read_crop(raw_fname, lims).load_data()
+    mag_picks = pick_types(raw.info, meg="mag", exclude=())
+    power = np.sqrt(np.sum(raw[mag_picks][0] ** 2))
+    head_pos = read_head_pos(pos_fname)
+    kwargs = dict(
+        head_pos=head_pos,
+        origin=mf_head_origin,
+        regularize=None,
+        bad_condition="ignore",
+    )
+    # Naive MC increases noise relative to raw
+    raw_sss = maxwell_filter(raw, **kwargs)
+    _assert_shielding(raw_sss, power, 0.258, max_factor=0.259)
+    # OLA MC decreases noise relative to raw
+    raw_sss_smooth = _maxwell_filter_ola(raw, mc_interp="hann", **kwargs)
+    _assert_shielding(raw_sss_smooth, raw_sss, 1.01, max_factor=1.02)
+
+    # now with time-varying regularization
+    kwargs["regularize"] = "in"
+    raw_sss = maxwell_filter(raw, **kwargs)
+    _assert_shielding(raw_sss, power, 0.84, max_factor=0.85)
+    raw_sss_smooth = _maxwell_filter_ola(raw, mc_interp="hann", **kwargs)
+    _assert_shielding(raw_sss_smooth, raw_sss, 1.008, max_factor=1.012)
+
+    # now with tSSS
+    kwargs["st_duration"] = 10
+    with catch_logging() as log:
+        raw_tsss = maxwell_filter(raw, verbose=True, **kwargs)
+    log = log.getvalue()
+    want_re = re.compile(".*Projecting 25 intersecting.*across 24 pos.*", re.DOTALL)
+    assert want_re.match(log) is not None, log
+    _assert_shielding(raw_tsss, power, 31.2, max_factor=31.3)
+    with catch_logging() as log:
+        raw_tsss_smooth = _maxwell_filter_ola(
+            raw, mc_interp="hann", st_overlap=True, verbose=True, **kwargs
+        )
+    log = log.getvalue()
+    assert want_re.match(log) is not None, log
+    _assert_shielding(raw_tsss_smooth, power, 31.5, max_factor=31.7)
 
 
 @pytest.mark.slowtest
@@ -306,8 +367,10 @@ def test_other_systems():
     elp_path = kit_dir / "test_elp.txt"
     hsp_path = kit_dir / "test_hsp.txt"
     raw_kit = read_raw_kit(sqd_path, str(mrk_path), str(elp_path), str(hsp_path))
-    with pytest.warns(RuntimeWarning, match="fit"):
-        pytest.raises(RuntimeError, maxwell_filter, raw_kit)
+    with (
+        pytest.raises(NotImplementedError, match="Cannot create forward solution with"),
+    ):
+        maxwell_filter(raw_kit, verbose=True)
     with catch_logging() as log:
         raw_sss = maxwell_filter(
             raw_kit, origin=(0.0, 0.0, 0.04), ignore_ref=True, verbose=True
@@ -318,24 +381,21 @@ def test_other_systems():
         raw_kit, origin=(0.0, 0.0, 0.04), ignore_ref=True, mag_scale="auto"
     )
     assert_allclose(raw_sss._data, raw_sss_auto._data)
-    # The KIT origin fit is terrible
-    with pytest.warns(RuntimeWarning, match="more than 20 mm"):
-        with catch_logging() as log:
-            pytest.raises(
-                RuntimeError, maxwell_filter, raw_kit, ignore_ref=True, regularize=None
-            )  # bad condition
-            raw_sss = maxwell_filter(
-                raw_kit,
-                origin="auto",
-                ignore_ref=True,
-                bad_condition="info",
-                verbose=True,
-            )
+    with catch_logging() as log:
+        pytest.raises(
+            RuntimeError, maxwell_filter, raw_kit, ignore_ref=True, regularize=None
+        )  # bad condition
+        raw_sss = maxwell_filter(
+            raw_kit,
+            origin="auto",
+            ignore_ref=True,
+            bad_condition="info",
+            verbose=True,
+        )
     log = log.getvalue()
-    assert "badly conditioned" in log
-    assert "more than 20 mm from" in log
-    # fits can differ slightly based on scipy version, so be lenient here
-    _assert_n_free(raw_sss, 28, 34)  # bad origin == brutal reg
+    assert "badly conditioned" not in log
+    assert "more than 20 mm from" not in log
+    _assert_n_free(raw_sss, 67, 67)
     # Let's set the origin
     with catch_logging() as log:
         raw_sss = maxwell_filter(
@@ -655,6 +715,8 @@ def test_spatiotemporal():
     """Test Maxwell filter (tSSS) spatiotemporal processing."""
     # Load raw testing data
     raw = read_crop(raw_fname)
+    mag_picks = pick_types(raw.info, meg="mag", exclude=())
+    power = np.sqrt(np.sum(raw[mag_picks][0] ** 2))
 
     # Test that window is less than length of data
     with pytest.raises(ValueError, match="must be"):
@@ -686,10 +748,29 @@ def test_spatiotemporal():
         assert len(py_st) > 0
         assert py_st["buflen"] == st_duration
         assert py_st["subspcorr"] == 0.98
+        _assert_shielding(raw_tsss, power, 20.8)
 
     # Degenerate cases
     with pytest.raises(ValueError, match="Need 0 < st_correlation"):
         maxwell_filter(raw, st_duration=10.0, st_correlation=0.0)
+
+
+@buggy_mkl_svd
+@testing.requires_testing_data
+def test_st_overlap():
+    """Test st_overlap."""
+    raw = read_crop(raw_fname).crop(0, 1.0)
+    mag_picks = pick_types(raw.info, meg="mag", exclude=())
+    power = np.sqrt(np.sum(raw[mag_picks][0] ** 2))
+    kwargs = dict(
+        origin=mf_head_origin, regularize=None, bad_condition="ignore", st_duration=0.5
+    )
+    raw_tsss = maxwell_filter(raw, **kwargs)
+    assert _compute_rank_int(raw_tsss, proj=False) == 140
+    _assert_shielding(raw_tsss, power, 35.8, max_factor=35.9)
+    raw_tsss = _maxwell_filter_ola(raw, st_overlap=True, **kwargs)
+    assert _compute_rank_int(raw_tsss, proj=False) == 140
+    _assert_shielding(raw_tsss, power, 35.6, max_factor=35.7)
 
 
 @pytest.mark.slowtest
@@ -707,20 +788,31 @@ def test_spatiotemporal_only():
     raw_tsss = maxwell_filter(raw, st_duration=tmax / 2.0, st_only=True)
     assert len(raw.info["projs"]) == len(raw_tsss.info["projs"])
     assert _compute_rank_int(raw_tsss, proj=False) == len(picks)
-    _assert_shielding(raw_tsss, power, 9)
+    _assert_shielding(raw_tsss, power, 9.2)
     # with movement
     head_pos = read_head_pos(pos_fname)
     raw_tsss = maxwell_filter(
         raw, st_duration=tmax / 2.0, st_only=True, head_pos=head_pos
     )
     assert _compute_rank_int(raw_tsss, proj=False) == len(picks)
-    _assert_shielding(raw_tsss, power, 9)
+    _assert_shielding(raw_tsss, power, 9.2)
     with pytest.warns(RuntimeWarning, match="st_fixed"):
         raw_tsss = maxwell_filter(
             raw, st_duration=tmax / 2.0, st_only=True, head_pos=head_pos, st_fixed=False
         )
     assert _compute_rank_int(raw_tsss, proj=False) == len(picks)
-    _assert_shielding(raw_tsss, power, 9)
+    _assert_shielding(raw_tsss, power, 9.2, max_factor=9.4)
+    # COLA
+    raw_tsss = maxwell_filter(
+        raw,
+        st_duration=tmax / 2.0,
+        st_only=True,
+        head_pos=head_pos,
+        st_overlap=True,
+        mc_interp="hann",
+    )
+    assert _compute_rank_int(raw_tsss, proj=False) == len(picks)
+    _assert_shielding(raw_tsss, power, 9.5, max_factor=9.6)
     # should do nothing
     raw_tsss = maxwell_filter(raw, st_duration=tmax, st_correlation=1.0, st_only=True)
     assert_allclose(raw[:][0], raw_tsss[:][0])
@@ -1768,7 +1860,7 @@ def test_compute_maxwell_basis(regularize, n, int_order):
     assert n_use_in == len(reg_moments) - 15  # no externals removed
     xform = S[:, :n_use_in] @ pS[:n_use_in]
     got = xform @ raw.pick(picks="meg", exclude="bads").get_data()
-    assert_allclose(got, want)
+    assert_allclose(got, want, atol=1e-16)
 
 
 @testing.requires_testing_data
@@ -1804,7 +1896,7 @@ def test_prepare_emptyroom_bads(bads):
     assert raw_er_prepared.info["bads"] == ["MEG0113", "MEG2313"]
     assert raw_er_prepared.info["dev_head_t"] == raw.info["dev_head_t"]
 
-    montage_expected = raw.copy().pick(picks="meg").get_montage()
+    montage_expected = raw.pick(picks="meg").get_montage()
     assert raw_er_prepared.get_montage() == montage_expected
 
     # Ensure the originals were not modified
@@ -1812,6 +1904,27 @@ def test_prepare_emptyroom_bads(bads):
     assert raw_er.info["bads"] == raw_er_bads_orig
     assert raw_er.info["dev_head_t"] is None
     assert raw_er.get_montage() is None
+
+
+@testing.requires_testing_data
+def test_prepare_empty_room_with_eeg() -> None:
+    """Test preparation of MEG empty-room which was acquired with EEG enabled."""
+    raw = read_raw_fif(raw_fname, allow_maxshield="yes", verbose=False)
+    raw_er = read_raw_fif(erm_fname, allow_maxshield="yes", verbose=False)
+    assert "eeg" in raw
+    assert "eeg" in raw_er
+    raw_er_prepared = maxwell_filter_prepare_emptyroom(raw_er=raw_er, raw=raw)
+    assert raw_er_prepared.info["dev_head_t"] == raw.info["dev_head_t"]
+    montage_expected = raw.get_montage()
+    assert raw_er_prepared.get_montage() == montage_expected
+
+    raw_er = raw_er.pick("meg")
+    assert "eeg" in raw
+    assert "eeg" not in raw_er
+    raw_er_prepared = maxwell_filter_prepare_emptyroom(raw_er=raw_er, raw=raw)
+    assert raw_er_prepared.info["dev_head_t"] == raw.info["dev_head_t"]
+    montage_expected = raw.pick("meg").get_montage()
+    assert raw_er_prepared.get_montage() == montage_expected
 
 
 @testing.requires_testing_data
@@ -1886,3 +1999,96 @@ def test_prepare_emptyroom_annot_first_samp(
             raw_er_prepared.get_data([0], reject_by_annotation="nan")
         ).mean()
         assert_allclose(prop_bad, prop_bad_er)
+
+
+@pytest.mark.slowtest
+@testing.requires_testing_data
+@pytest.mark.parametrize("mc_interp", ("zero", "hann", False))
+@pytest.mark.parametrize("st_fixed", (False, True, False))
+@pytest.mark.parametrize("st_only", (True, False))
+@pytest.mark.filterwarnings("ignore:st_fixed=False is untested.*:RuntimeWarning")
+def test_feed_avg(st_fixed, st_only, mc_interp):
+    """Test that feed_avg gives the correct data for tSSS."""
+    if mc_interp is False:
+        movecomp = False
+        mc_interp = "zero"
+    else:
+        movecomp = True
+    raw = read_crop(raw_fname, (0, 3.0)).load_data()  # 0-1, 0.5-1.5, ...
+    # Use every third mag just for speed
+    raw.pick("mag")
+    raw.pick(raw.ch_names[::3])
+    if movecomp:
+        head_pos = read_head_pos(pos_fname)
+        # Trim just to make debugging easier
+        head_pos = head_pos[head_pos[:, 0] < head_pos[0, 0] + 5]
+    else:
+        head_pos = None
+    kwargs = dict(
+        int_order=3, st_duration=1, st_fixed=st_fixed, st_only=st_only, verbose="debug"
+    )
+    # These were empirically determined -- the importart thing is that they
+    # only change under specific (expected) circumstances, e.g., not dependent
+    # on st_only at all
+    n = 8 if (movecomp and mc_interp == "hann" and not st_fixed) else 4
+    st_0_1 = f"Projecting  {n} intersecting tSSS components for    0.000 -    0.999 s"
+    if st_fixed:
+        n = 4
+    else:
+        if movecomp:
+            n = 12 if mc_interp == "hann" else 8
+        else:
+            n = 4
+    st_0p5_1p5 = (
+        f"Projecting {n:2d} intersecting tSSS components for    0.000 -    0.999 s"
+    )
+    if movecomp and st_fixed:
+        st_0p5_1p5 += " (across  2 positions)\n"
+    n = 8 if (movecomp and mc_interp == "hann" and not st_fixed) else 4
+    log_1_2 = (
+        f"Projecting  {n} intersecting tSSS components for    1.000 -    1.999 s\n"
+    )
+    with catch_logging() as log:
+        _maxwell_filter_ola(
+            raw, head_pos=head_pos, st_overlap=False, mc_interp=mc_interp, **kwargs
+        )
+    log = log.getvalue()
+    # Leave these print statements in because they'll be captured by pytest but
+    # are valuable during failures
+    print(log)
+    assert st_0_1 in log
+    assert log_1_2 in log
+    assert "Eval @ 0 (0)" in log
+    if movecomp:
+        assert raw.first_time == 9.0
+        this_head_pos = head_pos[np.where(head_pos[:, 0] >= 9.5)[0][0] - 1 :].copy()
+        this_head_pos[0, 0] = 9.5
+        assert this_head_pos[1, 0] > this_head_pos[0, 0]
+    else:
+        this_head_pos = None
+    with catch_logging() as log_crop:
+        _maxwell_filter_ola(
+            raw.copy().crop(0.5, None),
+            head_pos=this_head_pos,
+            st_overlap=False,
+            mc_interp=mc_interp,
+            **kwargs,
+        )
+    log_crop = log_crop.getvalue()
+    print(log_crop)
+    assert st_0p5_1p5 in log_crop
+    # The full / OLA version of this will reflect the actual offset
+    st_0p5_1p5 = st_0p5_1p5.replace("0.000", "0.500").replace("0.999", "1.499")
+    with catch_logging() as log_ola:
+        _maxwell_filter_ola(
+            raw,
+            st_overlap=True,
+            mc_interp=mc_interp,
+            head_pos=head_pos,
+            **kwargs,
+        )
+    log_ola = log_ola.getvalue()
+    print(log_ola)
+    assert st_0_1 in log_ola
+    assert log_1_2 in log_ola
+    assert st_0p5_1p5 in log_ola

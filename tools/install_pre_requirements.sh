@@ -15,21 +15,21 @@ echo "PyQt6 and scientific-python-nightly-wheels dependencies"
 python -m pip install $STD_ARGS pip setuptools packaging \
 	threadpoolctl cycler fonttools kiwisolver pyparsing pillow python-dateutil \
 	patsy pytz tzdata nibabel tqdm trx-python joblib numexpr "$QT_BINDING" \
-	py-cpuinfo blosc2 hatchling
+	py-cpuinfo blosc2 hatchling "formulaic>=1.1.0" \
+	"h5py>=3.12.1"  # TODO move h5py back to nightlies when possible
 echo "NumPy/SciPy/pandas etc."
 python -m pip uninstall -yq numpy
-python -m pip install --upgrade matplotlib  # TODO: Until https://github.com/matplotlib/matplotlib/pull/29427 lands
 python -m pip install $STD_ARGS --only-binary ":all:" --default-timeout=60 \
 	--index-url "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" \
 	"numpy>=2.1.0.dev0" "scikit-learn>=1.6.dev0" "scipy>=1.15.0.dev0" \
+	"matplotlib>=3.11.0.dev0" \
 	"pandas>=3.0.0.dev0" \
-	"h5py>=3.12.1" "dipy>=1.10.0.dev0" "pyarrow>=19.0.0.dev0" "tables>=3.10.2.dev0"
-
-# statsmodels requires formulaic@main so we need to use --extra-index-url
-echo "statsmodels"
-python -m pip install $STD_ARGS --only-binary ":all:" \
-	--extra-index-url "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" \
-	"statsmodels>=0.15.0.dev0"
+	"dipy>=1.10.0.dev0" \
+	"pyarrow>=20.0.0.dev0" \
+	"tables>=3.10.3.dev0" \
+	"h5py>=3.13.0"
+# TODO: should have above: "statsmodels>=0.15.0.dev0"
+# https://github.com/statsmodels/statsmodels/issues/9572
 
 # No Numba because it forces an old NumPy version
 
@@ -40,9 +40,7 @@ echo "OpenMEEG"
 python -m pip install $STD_ARGS --only-binary ":all:" --extra-index-url "https://test.pypi.org/simple" "openmeeg>=2.6.0.dev4"
 
 echo "nilearn"
-# TODO: Revert once settled:
-# https://github.com/scikit-learn/scikit-learn/pull/30268#issuecomment-2479701651
-python -m pip install $STD_ARGS "git+https://github.com/larsoner/nilearn@sklearn"
+python -m pip install $STD_ARGS "git+https://github.com/nilearn/nilearn"
 
 echo "VTK"
 python -m pip install $STD_ARGS --only-binary ":all:" --extra-index-url "https://wheels.vtk.org" vtk

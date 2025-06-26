@@ -1,0 +1,1 @@
+Allow for ``topomap`` plotting of optically pumped MEG (OPM) sensors with overlapping channel locations. When channel locations overlap, plot the most radially oriented channel. By :newcontrib:`Harrison Ritz`.

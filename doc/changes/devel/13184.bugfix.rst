@@ -1,0 +1,1 @@
+Fix bug with sampling frequency estimation in snirf files, by `Daniel McCloy`_ and :newcontrib:`Yixiao Shen`.

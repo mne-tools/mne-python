@@ -77,10 +77,8 @@ doc = [
   "sphinx-gallery >= 0.16",
   "sphinx_copybutton",
   "sphinxcontrib-bibtex >= 2.5",
-  "sphinxcontrib-towncrier",
+  "sphinxcontrib-towncrier >=0.5.0a0",
   "sphinxcontrib-youtube",
-  # https://github.com/sphinx-contrib/sphinxcontrib-towncrier/issues/92
-  "towncrier < 24.7",
 ]
 full = ["mne[full-no-qt]", "PyQt6 != 6.6.0", "PyQt6-Qt6 != 6.6.0, != 6.7.0"]
 # Dependencies for full MNE-Python functionality (other than raw/epochs export)
@@ -95,6 +93,7 @@ full-no-qt = [
   "dipy",
   "edfio >= 0.2.1",
   "eeglabio",
+  "filelock>=3.18.0",
   "h5py",
   "imageio >= 2.6.1",
   "imageio-ffmpeg >= 0.4.1",
@@ -135,12 +134,13 @@ full-no-qt = [
   "xlrd",
 ]
 full-pyqt6 = ["mne[full]"]
-full-pyside6 = ["mne[full-no-qt]", "PySide6 != 6.7.0, != 6.8.0, != 6.8.0.1"]
+full-pyside6 = ["mne[full-no-qt]", "PySide6 != 6.7.0, != 6.8.0, != 6.8.0.1, != 6.9.1"]
 # Dependencies for MNE-Python functions that use HDF5 I/O
 hdf5 = ["h5io >= 0.2.4", "pymatreader"]
 # Dependencies for running the test infrastructure
 test = [
   "codespell",
+  "flaky",
   "ipython != 8.7.0",  # for testing notebook backend; also in "full-no-qt" and "doc"
   "mypy",
   "numpydoc",

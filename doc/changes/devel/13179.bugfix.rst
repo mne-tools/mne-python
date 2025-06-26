@@ -1,0 +1,1 @@
+Fix bug with :func:`mne.viz.plot_alignment` where ``eeg="projected"`` was not plotted, by `Eric Larson`_.

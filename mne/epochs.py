@@ -2465,11 +2465,13 @@ class BaseEpochs(
             # 2b. for non-tag ids, just pass them directly
             # 3. do this for every input
             event_ids = [
-                [
-                    k for k in ids if all(tag in k.split("/") for tag in id_)
-                ]  # ids matching all tags
-                if all(id__ not in ids for id__ in id_)
-                else id_  # straight pass for non-tag inputs
+                (
+                    [
+                        k for k in ids if all(tag in k.split("/") for tag in id_)
+                    ]  # ids matching all tags
+                    if all(id__ not in ids for id__ in id_)
+                    else id_
+                )  # straight pass for non-tag inputs
                 for id_ in event_ids
             ]
             for ii, id_ in enumerate(event_ids):
@@ -3574,6 +3576,18 @@ class Epochs(BaseEpochs):
             events, event_id, annotations = _events_from_annotations(
                 raw, events, event_id, annotations, on_missing
             )
+
+            # add the annotations.extras to the metadata
+            if not all(len(d) == 0 for d in annotations.extras):
+                pd = _check_pandas_installed(strict=True)
+                extras_df = pd.DataFrame(annotations.extras)
+                if metadata is None:
+                    metadata = extras_df
+                else:
+                    extras_df.set_index(metadata.index, inplace=True)
+                    metadata = pd.concat(
+                        [metadata, extras_df], axis=1, ignore_index=False
+                    )
 
         # call BaseEpochs constructor
         super().__init__(
@@ -4824,7 +4838,7 @@ def average_movements(
     del head_pos
     _check_usable(epochs, ignore_ref)
     origin = _check_origin(origin, epochs.info, "head")
-    recon_trans = _check_destination(destination, epochs.info, True)
+    recon_trans = _check_destination(destination, epochs.info, "head")
 
     logger.info(f"Aligning and averaging up to {len(epochs.events)} epochs")
     if not np.array_equal(epochs.events[:, 0], np.unique(epochs.events[:, 0])):

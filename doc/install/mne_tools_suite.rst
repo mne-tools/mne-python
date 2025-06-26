@@ -67,24 +67,4 @@ Getting help
 Help with installation is available through the `MNE Forum`_. See the
 :ref:`help` page for more information.
 
-
-.. LINKS:
-
-.. _MNELAB: https://github.com/cbrnr/mnelab
-.. _autoreject: https://autoreject.github.io/
-.. _alphaCSC: https://alphacsc.github.io/
-.. _pactools: https://pactools.github.io/
-.. _rsa: https://github.com/wmvanvliet/mne-rsa
-.. _microstate: https://github.com/wmvanvliet/mne_microstates
-.. _conpy: https://aaltoimaginglanguage.github.io/conpy/
-.. _eelbrain: https://eelbrain.readthedocs.io/en/stable/index.html
-.. _posthoc: https://users.aalto.fi/~vanvlm1/posthoc/python/
-.. _pyprep: https://github.com/sappelhoff/pyprep
-.. _sesameeg: https://pybees.github.io/sesameeg
-.. _invertmeeg: https://github.com/LukeTheHecker/invert
-.. _MNE-ARI: https://github.com/john-veillette/mne_ari
-.. _niseq: https://github.com/john-veillette/niseq
-.. _Meggie: https://github.com/cibr-jyu/meggie
-.. _MEM: https://github.com/multifunkim/best-python
-
 .. include:: ../links.inc
