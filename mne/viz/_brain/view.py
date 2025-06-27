@@ -35,9 +35,6 @@ _rh_views_dict = {
         azimuth=180.0, elevation=0.0, focalpoint=ORIGIN, roll=0, distance=DIST
     ),
 }
-_both_views_dict = _lh_views_dict.copy()
-
-
 # add short-size version entries into the dict
 lh_views_dict = _lh_views_dict.copy()
 for k, v in _lh_views_dict.items():
