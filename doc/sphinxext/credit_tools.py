@@ -70,6 +70,7 @@ manual_renames = {
     "GreasyCat": "Rongfei Jin",  # 13113
     "Hamid": "Hamid Maymandi",  # 10849
     "jwelzel": "Julius Welzel",  # 11118
+    "Katia": "Katia Al-Amir",  # 13225
     "Martin": "Martin Billinger",  # 8099, TODO: Check
     "Mats": "Mats van Es",  # 11068
     "Michael": "Michael Krause",  # 3304
@@ -80,6 +81,7 @@ manual_renames = {
     "Sena": "Sena Er",  # 11029
     "TzionaN": "Tziona NessAiver",  # 10953
     "Valerii": "Valerii Chirkov",  # 9043
+    "Wei": "Wei Xu",  # 13218
     "Zhenya": "Evgenii Kalenkovich",  # 6310, TODO: Check
 }
 
