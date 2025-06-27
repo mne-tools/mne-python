@@ -8,18 +8,15 @@ from functools import partial
 
 import numpy as np
 from scipy.linalg import eigh
-from sklearn.utils.validation import check_is_fitted
 
-from .._fiff.meas_info import Info, create_info
-from ..cov import _compute_rank_raw_array, _regularized_covariance, _smart_eigh
+from .._fiff.meas_info import Info
+from ..cov import _regularized_covariance
 from ..defaults import _BORDER_DEFAULT, _EXTRAPOLATE_DEFAULT, _INTERPOLATION_DEFAULT
 from ..evoked import EvokedArray
 from ..utils import (
     _check_option,
     _validate_type,
-    _verbose_safe_false,
     fill_doc,
-    logger,
     pinv,
 )
 from ._covs_ged import _csp_estimate, _spoc_estimate
@@ -225,27 +222,9 @@ class CSP(_GEDTransformer):
         X, y = self._check_data(X, y=y, fit=True, return_y=True)
         self._validate_params(y=y)
 
-        covs, sample_weights = self._compute_covariance_matrices(X, y)
-        eigen_vectors, eigen_values = self._decompose_covs(covs, sample_weights)
-        ix = self._order_components(
-            covs, sample_weights, eigen_vectors, eigen_values, self.component_order
-        )
-
-        eigen_vectors = eigen_vectors[:, ix]
-
-        self.filters_ = eigen_vectors.T
-        self.patterns_ = pinv(eigen_vectors)
-
-        old_filters = self.filters_
-        old_patterns = self.patterns_
+        # Covariance estimation, GED/AJD
+        # and evecs/evals sorting happen here
         super().fit(X, y)
-        # AJD returns evals_ as None.
-        if self.evals_ is None:
-            assert eigen_values is None
-        else:
-            np.testing.assert_allclose(eigen_values[ix], self.evals_)
-        np.testing.assert_allclose(old_filters, self.filters_)
-        np.testing.assert_allclose(old_patterns, self.patterns_)
 
         pick_filters = self.filters_[: self.n_components]
         X = np.asarray([np.dot(pick_filters, epoch) for epoch in X])
@@ -275,13 +254,8 @@ class CSP(_GEDTransformer):
             If self.transform_into == 'csp_space' then returns the data in CSP
             space and shape is (n_epochs, n_components, n_times).
         """
-        check_is_fitted(self, "filters_")
         X = self._check_data(X)
-        orig_X = X.copy()
-        pick_filters = self.filters_[: self.n_components]
-        X = np.asarray([np.dot(pick_filters, epoch) for epoch in X])
-        ged_X = super().transform(orig_X)
-        np.testing.assert_allclose(X, ged_X)
+        X = super().transform(X)
         # compute features (mean band power)
         if self.transform_into == "average_power":
             X = (X**2).mean(axis=2)
@@ -599,162 +573,6 @@ class CSP(_GEDTransformer):
             show=show,
         )
         return fig
-
-    def _compute_covariance_matrices(self, X, y):
-        _, n_channels, _ = X.shape
-
-        if self.cov_est == "concat":
-            cov_estimator = self._concat_cov
-        elif self.cov_est == "epoch":
-            cov_estimator = self._epoch_cov
-
-        # Someday we could allow the user to pass this, then we wouldn't need to convert
-        # but in the meantime they can use a pipeline with a scaler
-        self._info = create_info(n_channels, 1000.0, "mag")
-        if isinstance(self.rank, dict):
-            self._rank = {"mag": sum(self.rank.values())}
-        else:
-            self._rank = _compute_rank_raw_array(
-                X.transpose(1, 0, 2).reshape(X.shape[1], -1),
-                self._info,
-                rank=self.rank,
-                scalings=None,
-                log_ch_type="data",
-            )
-
-        covs = []
-        sample_weights = []
-        for ci, this_class in enumerate(self.classes_):
-            cov, weight = cov_estimator(
-                X[y == this_class],
-                cov_kind=f"class={this_class}",
-                log_rank=ci == 0,
-            )
-
-            if self.norm_trace:
-                cov /= np.trace(cov)
-
-            covs.append(cov)
-            sample_weights.append(weight)
-
-        return np.stack(covs), np.array(sample_weights)
-
-    def _concat_cov(self, x_class, *, cov_kind, log_rank):
-        """Concatenate epochs before computing the covariance."""
-        _, n_channels, _ = x_class.shape
-
-        x_class = x_class.transpose(1, 0, 2).reshape(n_channels, -1)
-        cov = _regularized_covariance(
-            x_class,
-            reg=self.reg,
-            method_params=self.cov_method_params,
-            rank=self._rank,
-            info=self._info,
-            cov_kind=cov_kind,
-            log_rank=log_rank,
-            log_ch_type="data",
-        )
-        weight = x_class.shape[0]
-
-        return cov, weight
-
-    def _epoch_cov(self, x_class, *, cov_kind, log_rank):
-        """Mean of per-epoch covariances."""
-        name = self.reg if isinstance(self.reg, str) else "empirical"
-        name += " with shrinkage" if isinstance(self.reg, float) else ""
-        logger.info(
-            f"Estimating {cov_kind + (' ' if cov_kind else '')}"
-            f"covariance (average over epochs; {name.upper()})"
-        )
-        cov = sum(
-            _regularized_covariance(
-                this_X,
-                reg=self.reg,
-                method_params=self.cov_method_params,
-                rank=self._rank,
-                info=self._info,
-                cov_kind=cov_kind,
-                log_rank=log_rank and ii == 0,
-                log_ch_type="data",
-                verbose=_verbose_safe_false(),
-            )
-            for ii, this_X in enumerate(x_class)
-        )
-        cov /= len(x_class)
-        weight = len(x_class)
-
-        return cov, weight
-
-    def _decompose_covs(self, covs, sample_weights):
-        n_classes = len(covs)
-        n_channels = covs[0].shape[0]
-        assert self._rank is not None  # should happen in _compute_covariance_matrices
-        _, sub_vec, mask = _smart_eigh(
-            covs.mean(0),
-            self._info,
-            self._rank,
-            proj_subspace=True,
-            do_compute_rank=False,
-            log_ch_type="data",
-            verbose=_verbose_safe_false(),
-        )
-        sub_vec = sub_vec[mask]
-        covs = np.array([sub_vec @ cov @ sub_vec.T for cov in covs], float)
-        assert covs[0].shape == (mask.sum(),) * 2
-        if n_classes == 2:
-            eigen_values, eigen_vectors = eigh(covs[0], covs.sum(0))
-        else:
-            # The multiclass case is adapted from
-            # http://github.com/alexandrebarachant/pyRiemann
-            eigen_vectors, D = _ajd_pham(covs)
-            eigen_vectors = self._normalize_eigenvectors(
-                eigen_vectors.T, covs, sample_weights
-            )
-            eigen_values = None
-        # project back
-        eigen_vectors = sub_vec.T @ eigen_vectors
-        assert eigen_vectors.shape == (n_channels, mask.sum())
-        return eigen_vectors, eigen_values
-
-    def _compute_mutual_info(self, covs, sample_weights, eigen_vectors):
-        class_probas = sample_weights / sample_weights.sum()
-
-        mutual_info = []
-        for jj in range(eigen_vectors.shape[1]):
-            aa, bb = 0, 0
-            for cov, prob in zip(covs, class_probas):
-                tmp = np.dot(np.dot(eigen_vectors[:, jj].T, cov), eigen_vectors[:, jj])
-                aa += prob * np.log(np.sqrt(tmp))
-                bb += prob * (tmp**2 - 1)
-            mi = -(aa + (3.0 / 16) * (bb**2))
-            mutual_info.append(mi)
-
-        return mutual_info
-
-    def _normalize_eigenvectors(self, eigen_vectors, covs, sample_weights):
-        # Here we apply an euclidean mean. See pyRiemann for other metrics
-        mean_cov = np.average(covs, axis=0, weights=sample_weights)
-
-        for ii in range(eigen_vectors.shape[1]):
-            tmp = np.dot(np.dot(eigen_vectors[:, ii].T, mean_cov), eigen_vectors[:, ii])
-            eigen_vectors[:, ii] /= np.sqrt(tmp)
-        return eigen_vectors
-
-    def _order_components(
-        self, covs, sample_weights, eigen_vectors, eigen_values, component_order
-    ):
-        n_classes = len(self.classes_)
-        if component_order == "mutual_info" and n_classes > 2:
-            mutual_info = self._compute_mutual_info(covs, sample_weights, eigen_vectors)
-            ix = np.argsort(mutual_info)[::-1]
-        elif component_order == "mutual_info" and n_classes == 2:
-            ix = np.argsort(np.abs(eigen_values - 0.5))[::-1]
-        elif component_order == "alternate" and n_classes == 2:
-            i = np.argsort(eigen_values)
-            ix = np.empty_like(i)
-            ix[1::2] = i[: len(i) // 2]
-            ix[0::2] = i[len(i) // 2 :][::-1]
-        return ix
 
 
 def _ajd_pham(X, eps=1e-6, max_iter=15):
