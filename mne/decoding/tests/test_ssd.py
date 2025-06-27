@@ -576,4 +576,21 @@ def test_sklearn_compliance(estimator, check):
     )
     if any(ignore in str(check) for ignore in ignores):
         return
+
+    import os
+    import platform
+
+    failing_checks = (
+        "check_readonly_memmap_input",
+        "check_estimators_fit_returns_self",
+        "check_estimators_overwrite_params",
+    )
+
+    if (
+        platform.system() == "Windows"
+        and os.getenv("MNE_CI_KIND", "") == "pip"
+        and check in failing_checks
+    ):
+        pytest.xfail("Broken on Windows pip CIs")
+
     check(estimator)
