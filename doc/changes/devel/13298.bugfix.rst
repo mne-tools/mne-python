@@ -1,0 +1,1 @@
+Fix y-axis label in PSD plot when ``dB=True`` to show a more conventional label (i.e., dB/Hz or dB/√Hz), by `Clemens Brunner`_.

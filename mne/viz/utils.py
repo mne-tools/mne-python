@@ -2445,7 +2445,10 @@ def _convert_psds(
     if dB:
         np.log10(np.maximum(psds, np.finfo(float).tiny), out=psds)
         psds *= coef
-        ylabel = r"$\mathrm{dB}\ $" + ylabel
+        if estimate == "amplitude":
+            ylabel = r"$\mathrm{dB/\sqrt{Hz}}$"
+        else:
+            ylabel = r"$\mathrm{dB/Hz}$"
     ylabel = "Power (" + ylabel if estimate == "power" else "Amplitude (" + ylabel
     ylabel += ")"
 
