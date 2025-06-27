@@ -6,23 +6,14 @@ import collections.abc as abc
 from functools import partial
 
 import numpy as np
-from scipy.linalg import eigh
-from sklearn.utils.validation import check_is_fitted
 
 from .._fiff.meas_info import Info, create_info
-from .._fiff.pick import _picks_to_idx, pick_info
-from ..cov import Covariance, _regularized_covariance
-from ..defaults import _handle_default
+from .._fiff.pick import _picks_to_idx
 from ..filter import filter_data
-from ..rank import compute_rank
-from ..time_frequency import psd_array_welch
 from ..utils import (
-    _time_mask,
     _validate_type,
-    _verbose_safe_false,
     fill_doc,
     logger,
-    pinv,
 )
 from ._covs_ged import _ssd_estimate
 from ._mod_ged import _ssd_mod
@@ -240,69 +231,8 @@ class SSD(_GEDTransformer):
         else:
             info = create_info(X.shape[-2], self.sfreq_, ch_types="eeg")
         self.picks_ = _picks_to_idx(info, self.picks, none="data", exclude="bads")
-        X_aux = X[..., self.picks_, :]
 
-        X_signal = filter_data(X_aux, self.sfreq_, **self.filt_params_signal)
-        X_noise = filter_data(X_aux, self.sfreq_, **self.filt_params_noise)
-        X_noise -= X_signal
-        if X.ndim == 3:
-            X_signal = np.hstack(X_signal)
-            X_noise = np.hstack(X_noise)
-
-        # prevent rank change when computing cov with rank='full'
-        picked_info = pick_info(info, self.picks_)
-        cov_signal = _regularized_covariance(
-            X_signal,
-            reg=self.reg,
-            method_params=self.cov_method_params,
-            rank="full",
-            info=picked_info,
-        )
-        cov_noise = _regularized_covariance(
-            X_noise,
-            reg=self.reg,
-            method_params=self.cov_method_params,
-            rank="full",
-            info=picked_info,
-        )
-
-        # project cov to rank subspace
-        cov_signal, cov_noise, rank_proj = _dimensionality_reduction(
-            cov_signal, cov_noise, picked_info, self.rank
-        )
-
-        eigvals_, eigvects_ = eigh(cov_signal, cov_noise)
-        # sort in descending order
-        ix = np.argsort(eigvals_)[::-1]
-        self.eigvals_ = eigvals_[ix]
-        # project back to sensor space
-        self.filters_ = np.matmul(rank_proj, eigvects_[:, ix])
-
-        # Need to unify with Xdawn and CSP as they store it as (n_components, n_chs)
-        self.filters_ = self.filters_.T
-
-        # We assume that ordering by spectral ratio is more important
-        # than the initial ordering. This ordering should be also learned when
-        # fitting.
-        X_ssd = self.filters_ @ X[..., self.picks_, :]
-        sorter_spec = slice(None)
-        if self.sort_by_spectral_ratio:
-            _, sorter_spec = self.get_spectral_ratio(ssd_sources=X_ssd)
-        self.sorter_spec_ = sorter_spec
-
-        # When sort_by_spectral_ratio is True,
-        # filters should be stored according the sorting
-        self.filters_ = self.filters_[sorter_spec]
-        self.eigvals_ = self.eigvals_[sorter_spec]
-        self.patterns_ = pinv(self.filters_.T)
-        old_filters = self.filters_
-        old_patterns = self.patterns_
         super().fit(X, y)
-        self.new_filters_ = self.filters_
-        self.filters_ = old_filters
-        np.testing.assert_allclose(self.eigvals_, self.evals_)
-        np.testing.assert_allclose(old_filters, self.filters_)
-        np.testing.assert_allclose(old_patterns, self.patterns_)
 
         logger.info("Done.")
         return self
@@ -322,7 +252,6 @@ class SSD(_GEDTransformer):
         X_ssd : array, shape ([n_epochs, ]n_components, n_times)
             The processed data.
         """
-        check_is_fitted(self, "filters_")
         X = self._check_X(X)
         # For the case where n_epochs dimension is absent.
         if X.ndim == 2:
@@ -330,11 +259,7 @@ class SSD(_GEDTransformer):
         X_aux = X[..., self.picks_, :]
         if self.return_filtered:
             X_aux = filter_data(X_aux, self.sfreq_, **self.filt_params_signal)
-        X_ssd = self.filters_ @ X_aux
-        X_ssd = X_ssd[..., : self.n_components, :]
-        X_ssd = X_ssd.squeeze()
-        X_ssd_new = super().transform(X_aux).squeeze()
-        np.testing.assert_allclose(X_ssd, X_ssd_new)
+        X_ssd = super().transform(X_aux).squeeze()
 
         return X_ssd
 
@@ -362,42 +287,6 @@ class SSD(_GEDTransformer):
         """
         # use parent TransformerMixin method but with custom docstring
         return super().fit_transform(X, y=y, **fit_params)
-
-    def get_spectral_ratio(self, ssd_sources):
-        """Get the spectal signal-to-noise ratio for each spatial filter.
-
-        Spectral ratio measure for best n_components selection
-        See :footcite:`NikulinEtAl2011`, Eq. (24).
-
-        Parameters
-        ----------
-        ssd_sources : array
-            Data projected to SSD space.
-
-        Returns
-        -------
-        spec_ratio : array, shape (n_channels)
-            Array with the sprectal ratio value for each component.
-        sorter_spec : array, shape (n_channels)
-            Array of indices for sorting spec_ratio.
-
-        References
-        ----------
-        .. footbibliography::
-        """
-        psd, freqs = psd_array_welch(ssd_sources, sfreq=self.sfreq_, n_fft=self.n_fft_)
-        sig_idx = _time_mask(freqs, *self.freqs_signal_)
-        noise_idx = _time_mask(freqs, *self.freqs_noise_)
-        if psd.ndim == 3:
-            mean_sig = psd[:, :, sig_idx].mean(axis=2).mean(axis=0)
-            mean_noise = psd[:, :, noise_idx].mean(axis=2).mean(axis=0)
-            spec_ratio = mean_sig / mean_noise
-        else:
-            mean_sig = psd[:, sig_idx].mean(axis=1)
-            mean_noise = psd[:, noise_idx].mean(axis=1)
-            spec_ratio = mean_sig / mean_noise
-        sorter_spec = spec_ratio.argsort()[::-1]
-        return spec_ratio, sorter_spec
 
     def inverse_transform(self):
         """Not implemented yet."""
@@ -427,68 +316,6 @@ class SSD(_GEDTransformer):
             The processed data.
         """
         X_ssd = self.transform(X)
-        pick_patterns = self.patterns_[self.sorter_spec_][: self.n_components].T
+        pick_patterns = self.patterns_[: self.n_components].T
         X = pick_patterns @ X_ssd
         return X
-
-
-def _dimensionality_reduction(cov_signal, cov_noise, info, rank):
-    """Perform dimensionality reduction on the covariance matrices."""
-    n_channels = cov_signal.shape[0]
-
-    # find ranks of covariance matrices
-    rank_signal = list(
-        compute_rank(
-            Covariance(
-                cov_signal,
-                info.ch_names,
-                list(),
-                list(),
-                0,
-                verbose=_verbose_safe_false(),
-            ),
-            rank,
-            _handle_default("scalings_cov_rank", None),
-            info,
-        ).values()
-    )[0]
-    rank_noise = list(
-        compute_rank(
-            Covariance(
-                cov_noise,
-                info.ch_names,
-                list(),
-                list(),
-                0,
-                verbose=_verbose_safe_false(),
-            ),
-            rank,
-            _handle_default("scalings_cov_rank", None),
-            info,
-        ).values()
-    )[0]
-    rank = np.min([rank_signal, rank_noise])  # should be identical
-
-    if rank < n_channels:
-        eigvals, eigvects = eigh(cov_signal)
-        # sort in descending order
-        ix = np.argsort(eigvals)[::-1]
-        eigvals = eigvals[ix]
-        eigvects = eigvects[:, ix]
-        # compute rank subspace projection matrix
-        rank_proj = np.matmul(
-            eigvects[:, :rank], np.eye(rank) * (eigvals[:rank] ** -0.5)
-        )
-        logger.info(
-            "Projecting covariance of %i channels to %i rank subspace",
-            n_channels,
-            rank,
-        )
-    else:
-        rank_proj = np.eye(n_channels)
-        logger.info("Preserving covariance rank (%i)", rank)
-
-    # project covariance matrices to rank subspace
-    cov_signal = rank_proj.T @ cov_signal @ rank_proj
-    cov_noise = rank_proj.T @ cov_noise @ rank_proj
-    return cov_signal, cov_noise, rank_proj

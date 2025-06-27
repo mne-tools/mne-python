@@ -190,13 +190,7 @@ class _GEDTransformer(MNETransformerMixin, BaseEstimator):
         if self._is_base_ged:
             X = self._check_data(X)
         if self.dec_type == "single":
-            # XXX: Hack to assert_allclose in SSD's transform.
-            # Will be removed when overhauling ssd.
-            if hasattr(self, "new_filters_"):
-                filters = self.new_filters_
-            else:
-                filters = self.filters_
-            pick_filters = filters[: self.n_components]
+            pick_filters = self.filters_[: self.n_components]
         elif self.dec_type == "multi":
             pick_filters = self._subset_multi_components()
         X = pick_filters @ X

@@ -52,6 +52,22 @@ def _xdawn_mod(evals, evecs, covs=None):
 
 
 def _get_spectral_ratio(ssd_sources, sfreq, n_fft, freqs_signal, freqs_noise):
+    """Get the spectal signal-to-noise ratio for each spatial filter.
+
+    Spectral ratio measure for best n_components selection
+    See :footcite:`NikulinEtAl2011`, Eq. (24).
+
+    Returns
+    -------
+    spec_ratio : array, shape (n_channels)
+        Array with the sprectal ratio value for each component.
+    sorter_spec : array, shape (n_channels)
+        Array of indices for sorting spec_ratio.
+
+    References
+    ----------
+    .. footbibliography::
+    """
     psd, freqs = psd_array_welch(ssd_sources, sfreq=sfreq, n_fft=n_fft)
     sig_idx = _time_mask(freqs, *freqs_signal)
     noise_idx = _time_mask(freqs, *freqs_noise)

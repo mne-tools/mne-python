@@ -17,6 +17,7 @@ from sklearn.utils.estimator_checks import parametrize_with_checks
 from mne import Epochs, create_info, io, pick_types, read_events
 from mne._fiff.pick import _picks_to_idx
 from mne.decoding import CSP
+from mne.decoding._mod_ged import _get_spectral_ratio
 from mne.decoding.ssd import SSD
 from mne.filter import filter_data
 from mne.time_frequency import psd_array_welch
@@ -228,7 +229,9 @@ def test_ssd():
         sort_by_spectral_ratio=False,
     )
     ssd.fit(X)
-    spec_ratio, sorter_spec = ssd.get_spectral_ratio(ssd.transform(X))
+    spec_ratio, sorter_spec = _get_spectral_ratio(
+        ssd.transform(X), ssd.sfreq_, ssd.n_fft_, ssd.freqs_signal_, ssd.freqs_noise_
+    )
     # since we now that the number of true components is 5, the relative
     # difference should be low for the first 5 components and then increases
     index_diff = np.argmax(-np.diff(spec_ratio))
@@ -311,8 +314,16 @@ def test_ssd_epoched_data():
     ssd.fit(X)
 
     # Check if the 5 first 5 components are the same for both
-    _, sorter_spec_e = ssd_e.get_spectral_ratio(ssd_e.transform(X_e))
-    _, sorter_spec = ssd.get_spectral_ratio(ssd.transform(X))
+    _, sorter_spec_e = _get_spectral_ratio(
+        ssd_e.transform(X_e),
+        ssd_e.sfreq_,
+        ssd_e.n_fft_,
+        ssd_e.freqs_signal_,
+        ssd_e.freqs_noise_,
+    )
+    _, sorter_spec = _get_spectral_ratio(
+        ssd.transform(X), ssd.sfreq_, ssd.n_fft_, ssd.freqs_signal_, ssd.freqs_noise_
+    )
     assert_array_equal(
         sorter_spec_e[:n_components_true], sorter_spec[:n_components_true]
     )
@@ -383,8 +394,12 @@ def test_sorting():
         sort_by_spectral_ratio=False,
     )
     ssd.fit(Xtr)
-    _, sorter_tr = ssd.get_spectral_ratio(ssd.transform(Xtr))
-    _, sorter_te = ssd.get_spectral_ratio(ssd.transform(Xte))
+    _, sorter_tr = _get_spectral_ratio(
+        ssd.transform(Xtr), ssd.sfreq_, ssd.n_fft_, ssd.freqs_signal_, ssd.freqs_noise_
+    )
+    _, sorter_te = _get_spectral_ratio(
+        ssd.transform(Xte), ssd.sfreq_, ssd.n_fft_, ssd.freqs_signal_, ssd.freqs_noise_
+    )
     assert any(sorter_tr != sorter_te)
 
     # check sort_by_spectral_ratio set to True
@@ -398,7 +413,7 @@ def test_sorting():
     ssd.fit(Xtr)
 
     # check sorters
-    sorter_in = ssd.sorter_spec_
+    sorter_in = ssd.sorter_
     ssd = SSD(
         info,
         filt_params_signal,
@@ -407,7 +422,9 @@ def test_sorting():
         sort_by_spectral_ratio=False,
     )
     ssd.fit(Xtr)
-    _, sorter_out = ssd.get_spectral_ratio(ssd.transform(Xtr))
+    _, sorter_out = _get_spectral_ratio(
+        ssd.transform(Xtr), ssd.sfreq_, ssd.n_fft_, ssd.freqs_signal_, ssd.freqs_noise_
+    )
 
     assert all(sorter_in == sorter_out)
 
@@ -576,18 +593,5 @@ def test_sklearn_compliance(estimator, check):
     )
     if any(ignore in str(check) for ignore in ignores):
         return
-
-    failing_checks = (
-        "check_readonly_memmap_input",
-        "check_estimators_fit_returns_self",
-        "check_estimators_overwrite_params",
-    )
-
-    if (
-        # platform.system() == "Windows"
-        # and os.getenv("MNE_CI_KIND", "") == "pip"
-        any(ignore in str(check) for ignore in failing_checks)
-    ):
-        pytest.xfail("Broken on Windows pip CIs")
 
     check(estimator)
