@@ -7,17 +7,14 @@ import copy as cp
 from functools import partial
 
 import numpy as np
-from scipy.linalg import eigh
 
 from .._fiff.meas_info import Info
-from ..cov import _regularized_covariance
 from ..defaults import _BORDER_DEFAULT, _EXTRAPOLATE_DEFAULT, _INTERPOLATION_DEFAULT
 from ..evoked import EvokedArray
 from ..utils import (
     _check_option,
     _validate_type,
     fill_doc,
-    pinv,
 )
 from ._covs_ged import _csp_estimate, _spoc_estimate
 from ._mod_ged import _csp_mod, _spoc_mod
@@ -802,51 +799,7 @@ class SPoC(CSP):
         X, y = self._check_data(X, y=y, fit=True, return_y=True)
         self._validate_params(y=y)
 
-        # The following code is directly copied from pyRiemann
-
-        # Normalize target variable
-        target = y.astype(np.float64)
-        target -= target.mean()
-        target /= target.std()
-
-        n_epochs, n_channels = X.shape[:2]
-
-        # Estimate single trial covariance
-        covs = np.empty((n_epochs, n_channels, n_channels))
-        for ii, epoch in enumerate(X):
-            covs[ii] = _regularized_covariance(
-                epoch,
-                reg=self.reg,
-                method_params=self.cov_method_params,
-                rank=self.rank,
-                log_ch_type="data",
-                log_rank=ii == 0,
-            )
-
-        C = covs.mean(0)
-        Cz = np.mean(covs * target[:, np.newaxis, np.newaxis], axis=0)
-
-        # solve eigenvalue decomposition
-        evals, evecs = eigh(Cz, C)
-        evals = evals.real
-        evecs = evecs.real
-        # sort vectors
-        ix = np.argsort(np.abs(evals))[::-1]
-
-        # sort eigenvectors
-        evecs = evecs[:, ix].T
-
-        # spatial patterns
-        self.patterns_ = pinv(evecs).T  # n_channels x n_channels
-        self.filters_ = evecs  # n_channels x n_channels
-
-        old_filters = self.filters_
-        old_patterns = self.patterns_
         super(CSP, self).fit(X, y)
-
-        np.testing.assert_allclose(evals[ix], self.evals_)
-        np.testing.assert_allclose(old_filters, self.filters_, rtol=1e-6, atol=1e-7)
-        np.testing.assert_allclose(old_patterns, self.patterns_, rtol=1e-6, atol=1e-7)
 
         pick_filters = self.filters_[: self.n_components]
         X = np.asarray([np.dot(pick_filters, epoch) for epoch in X])
