@@ -558,16 +558,16 @@ def _itv(function, fig, *, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES, **kwarg
     function(fig=fig, **kwargs)
 
     views = (
-        "lateral_r",
-        "frontlat_r",
-        "frontal",
-        "frontlat_l",
-        "lateral_l",
-        "top",
-        "backlat_r",
-        "back",
-        "backlat_l",
-        "bot",
+        "right_lateral",
+        "right_anterolateral",
+        "anterior",
+        "left_anterolateral",
+        "left_lateral",
+        "superior",
+        "right_posterolateral",
+        "posterior",
+        "left_posterolateral",
+        "inferior",
     )
 
     images = []
