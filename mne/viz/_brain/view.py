@@ -50,12 +50,7 @@ for k, v in _rh_views_dict.items():
         azimuth=0, elevation=0, focalpoint=ORIGIN, roll=0, distance=DIST
     )
 
-both_views_dict = _lh_views_dict.copy()
-for k, v in _both_views_dict.items():
-    both_views_dict[k[:3]] = v
-    both_views_dict["flat"] = dict(
-        azimuth=0, elevation=0, focalpoint=ORIGIN, roll=0, distance=DIST
-    )
+both_views_dict = lh_views_dict.copy()
 both_views_dict["right_lateral"] = dict(azimuth=180.0, elevation=90.0, focalpoint=ORIGIN, distance=DIST)
 both_views_dict["right_anterolateral"] = dict(azimuth=120.0, elevation=90.0, focalpoint=ORIGIN, distance=DIST)
 both_views_dict["anterior"] = dict(azimuth=90.0, elevation=90.0, focalpoint=ORIGIN, distance=DIST)
