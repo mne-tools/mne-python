@@ -52,7 +52,8 @@ class _GEDTransformer(MNETransformerMixin, BaseEstimator):
         Function used to modify (e.g. sort or normalize) generalized
         eigenvalues and eigenvectors. It should accept as arguments evals, evecs
         and also covs and optional kwargs returned by cov_callable. It should return
-        only sorted and/or modified evals and evecs. If None, evals and evecs will be
+        sorted and/or modified evals and evecs and the list of indices according
+        to which the first two were sorted. If None, evals and evecs will be
         ordered according to :func:`~scipy.linalg.eigh` default. Defaults to None.
     dec_type : "single" | "multi"
         When "single" and cov_callable returns > 2 covariances,
@@ -154,7 +155,7 @@ class _GEDTransformer(MNETransformerMixin, BaseEstimator):
                 restr_mat = _handle_restr_mat(C_ref, self.restr_type, info, rank)
                 evals, evecs = _smart_ged(S, R, restr_mat, R_func=self.R_func)
 
-            evals, evecs = mod_ged_callable(evals, evecs, covs, **kwargs)
+            evals, evecs, self.sorter_ = mod_ged_callable(evals, evecs, covs, **kwargs)
             self.evals_ = evals
             self.filters_ = evecs.T
             self.patterns_ = pinv(evecs)
@@ -163,16 +164,19 @@ class _GEDTransformer(MNETransformerMixin, BaseEstimator):
             self.classes_ = np.unique(y)
             R = covs[-1]
             restr_mat = _handle_restr_mat(C_ref, self.restr_type, info, rank)
-            all_evals, all_evecs, all_patterns = list(), list(), list()
+            all_evals, all_evecs = list(), list()
+            all_patterns, all_sorters = list(), list()
             for i in range(len(self.classes_)):
                 S = covs[i]
 
                 evals, evecs = _smart_ged(S, R, restr_mat, R_func=self.R_func)
 
-                evals, evecs = mod_ged_callable(evals, evecs, covs, **kwargs)
+                evals, evecs, sorter = mod_ged_callable(evals, evecs, covs, **kwargs)
                 all_evals.append(evals)
                 all_evecs.append(evecs.T)
                 all_patterns.append(pinv(evecs))
+                all_sorters.append(sorter)
+            self.sorter_ = np.array(all_sorters)
             self.evals_ = np.array(all_evals)
             self.filters_ = np.array(all_evecs)
             self.patterns_ = np.array(all_patterns)

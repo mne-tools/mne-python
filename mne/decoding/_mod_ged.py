@@ -41,13 +41,14 @@ def _csp_mod(evals, evecs, covs, evecs_order, sample_weights):
     if evals is not None:
         evals = evals[ix]
     evecs = evecs[:, ix]
-    return evals, evecs
+    sorter = ix
+    return evals, evecs, sorter
 
 
 def _xdawn_mod(evals, evecs, covs=None):
-    evals, evecs = _sort_descending(evals, evecs)
+    evals, evecs, sorter = _sort_descending(evals, evecs)
     evecs /= np.linalg.norm(evecs, axis=0)
-    return evals, evecs
+    return evals, evecs, sorter
 
 
 def _get_spectral_ratio(ssd_sources, sfreq, n_fft, freqs_signal, freqs_noise):
@@ -78,8 +79,10 @@ def _ssd_mod(
     freqs_noise,
     sort_by_spectral_ratio,
 ):
-    evals, evecs = _sort_descending(evals, evecs)
+    evals, evecs, sorter = _sort_descending(evals, evecs)
     if sort_by_spectral_ratio:
+        # We assume that ordering by spectral ratio is more important
+        # than the initial ordering.
         filters = evecs.T
         ssd_sources = filters @ X[..., picks, :]
         _, sorter_spec = _get_spectral_ratio(
@@ -87,14 +90,15 @@ def _ssd_mod(
         )
         evecs = evecs[:, sorter_spec]
         evals = evals[sorter_spec]
-    return evals, evecs
+        sorter = sorter_spec
+    return evals, evecs, sorter
 
 
 def _spoc_mod(evals, evecs, covs=None):
     evals = evals.real
     evecs = evecs.real
-    evals, evecs = _sort_descending(evals, evecs, by_abs=True)
-    return evals, evecs
+    evals, evecs, sorter = _sort_descending(evals, evecs, by_abs=True)
+    return evals, evecs, sorter
 
 
 def _sort_descending(evals, evecs, by_abs=False):
@@ -104,8 +108,9 @@ def _sort_descending(evals, evecs, by_abs=False):
         ix = np.argsort(evals)[::-1]
     evals = evals[ix]
     evecs = evecs[:, ix]
-    return evals, evecs
+    sorter = ix
+    return evals, evecs, sorter
 
 
 def _no_op_mod(evals, evecs, *args, **kwargs):
-    return evals, evecs
+    return evals, evecs, None

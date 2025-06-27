@@ -111,11 +111,13 @@ def _mock_cov_callable(X, y, cov_method_params=None, compute_C_ref=True):
 
 
 def _mock_mod_ged_callable(evals, evecs, covs, **kwargs):
+    sorter = None
     if evals is not None:
         ix = np.argsort(evals)[::-1]
         evals = evals[ix]
         evecs = evecs[:, ix]
-    return evals, evecs
+        sorter = ix
+    return evals, evecs, sorter
 
 
 param_grid = dict(
@@ -175,7 +177,9 @@ def test_ged_binary_cov():
     S, R = covs[0], covs[1]
     restr_mat = _get_restr_mat(C_ref, info, rank)
     evals, evecs = _smart_ged(S, R, restr_mat=restr_mat, R_func=None)
-    actual_evals, actual_evecs = _mock_mod_ged_callable(evals, evecs, [S, R], **kwargs)
+    actual_evals, actual_evecs, sorter = _mock_mod_ged_callable(
+        evals, evecs, [S, R], **kwargs
+    )
     actual_filters = actual_evecs.T
 
     ged = _GEDTransformer(
@@ -196,7 +200,7 @@ def test_ged_binary_cov():
     for i in range(len(covs)):
         S = covs[i]
         evals, evecs = _smart_ged(S, R, restr_mat)
-        evals, evecs = _mock_mod_ged_callable(evals, evecs, covs)
+        evals, evecs, sorter = _mock_mod_ged_callable(evals, evecs, covs)
         all_evals.append(evals)
         all_evecs.append(evecs.T)
     actual_evals = np.array(all_evals)
@@ -226,7 +230,7 @@ def test_ged_multicov():
     restr_mat = _get_restr_mat(C_ref, info, rank)
     evecs = _smart_ajd(covs, restr_mat=restr_mat)
     evals = None
-    _, actual_evecs = _mock_mod_ged_callable(evals, evecs, covs, **kwargs)
+    _, actual_evecs, _ = _mock_mod_ged_callable(evals, evecs, covs, **kwargs)
     actual_filters = actual_evecs.T
 
     ged = _GEDTransformer(
@@ -246,7 +250,7 @@ def test_ged_multicov():
     for i in range(len(covs)):
         S = covs[i]
         evals, evecs = _smart_ged(S, R, restr_mat)
-        evals, evecs = _mock_mod_ged_callable(evals, evecs, covs)
+        evals, evecs, sorter = _mock_mod_ged_callable(evals, evecs, covs)
         all_evals.append(evals)
         all_evecs.append(evecs.T)
     actual_evals = np.array(all_evals)
@@ -273,7 +277,7 @@ def test_ged_multicov():
     covs = np.stack(covs)
     evecs = _smart_ajd(covs, restr_mat=None)
     evals = None
-    _, actual_evecs = _mock_mod_ged_callable(evals, evecs, covs, **kwargs)
+    _, actual_evecs, _ = _mock_mod_ged_callable(evals, evecs, covs, **kwargs)
     actual_filters = actual_evecs.T
 
     ged = _GEDTransformer(
