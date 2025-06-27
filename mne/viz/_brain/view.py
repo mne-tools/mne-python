@@ -51,16 +51,36 @@ for k, v in _rh_views_dict.items():
     )
 
 both_views_dict = lh_views_dict.copy()
-both_views_dict["right_lateral"] = dict(azimuth=180.0, elevation=90.0, focalpoint=ORIGIN, distance=DIST)
-both_views_dict["right_anterolateral"] = dict(azimuth=120.0, elevation=90.0, focalpoint=ORIGIN, distance=DIST)
-both_views_dict["anterior"] = dict(azimuth=90.0, elevation=90.0, focalpoint=ORIGIN, distance=DIST)
-both_views_dict["left_anterolateral"] = dict(azimuth=60.0, elevation=90.0, focalpoint=ORIGIN, distance=DIST)
-both_views_dict["left_lateral"] = dict(azimuth=180.0, elevation=-90.0, focalpoint=ORIGIN, distance=DIST)
-both_views_dict["right_posterolateral"] = dict(azimuth=-120.0, elevation=90.0, focalpoint=ORIGIN, distance=DIST)
-both_views_dict["posterior"] = dict(azimuth=90.0, elevation=-90.0, focalpoint=ORIGIN, distance=DIST)
-both_views_dict["left_posterolateral"] = dict(azimuth=-60.0, elevation=90.0, focalpoint=ORIGIN, distance=DIST)
-both_views_dict["superior"] = dict(azimuth=180.0, elevation=0.0, focalpoint=ORIGIN, distance=DIST)
-both_views_dict["inferior"] = dict(azimuth=180.0, elevation=180.0, focalpoint=ORIGIN, distance=DIST)
+both_views_dict["right_lateral"] = dict(
+    azimuth=180.0, elevation=90.0, focalpoint=ORIGIN, distance=DIST
+)
+both_views_dict["right_anterolateral"] = dict(
+    azimuth=120.0, elevation=90.0, focalpoint=ORIGIN, distance=DIST
+)
+both_views_dict["anterior"] = dict(
+    azimuth=90.0, elevation=90.0, focalpoint=ORIGIN, distance=DIST
+)
+both_views_dict["left_anterolateral"] = dict(
+    azimuth=60.0, elevation=90.0, focalpoint=ORIGIN, distance=DIST
+)
+both_views_dict["left_lateral"] = dict(
+    azimuth=180.0, elevation=-90.0, focalpoint=ORIGIN, distance=DIST
+)
+both_views_dict["right_posterolateral"] = dict(
+    azimuth=-120.0, elevation=90.0, focalpoint=ORIGIN, distance=DIST
+)
+both_views_dict["posterior"] = dict(
+    azimuth=90.0, elevation=-90.0, focalpoint=ORIGIN, distance=DIST
+)
+both_views_dict["left_posterolateral"] = dict(
+    azimuth=-60.0, elevation=90.0, focalpoint=ORIGIN, distance=DIST
+)
+both_views_dict["superior"] = dict(
+    azimuth=180.0, elevation=0.0, focalpoint=ORIGIN, distance=DIST
+)
+both_views_dict["inferior"] = dict(
+    azimuth=180.0, elevation=180.0, focalpoint=ORIGIN, distance=DIST
+)
 
 
 views_dicts = dict(
