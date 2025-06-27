@@ -586,7 +586,7 @@ def test_sklearn_compliance(estimator, check):
     if (
         # platform.system() == "Windows"
         # and os.getenv("MNE_CI_KIND", "") == "pip"
-        check in failing_checks
+        any(ignore in str(check) for ignore in failing_checks)
     ):
         pytest.xfail("Broken on Windows pip CIs")
 
