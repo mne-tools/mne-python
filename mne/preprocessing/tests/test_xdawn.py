@@ -288,8 +288,10 @@ def test_XdawnTransformer():
 
     xdt = XdawnTransformer()
     xdt.fit(X, y)
+    # Subset filters
+    xdt_filters = xdt._subset_multi_components()
     assert_array_almost_equal(
-        xd.filters_["cond2"][:2, :], xdt.filters_.reshape(2, 2, 8)[0]
+        xd.filters_["cond2"][:2, :], xdt_filters.reshape(2, 2, 8)[0]
     )
 
     # Transform testing
@@ -398,7 +400,8 @@ def test_xdawn_decoding_performance():
                 [comps[[0]] for comps in fitted_xdawn.patterns_.values()]
             )
         else:
-            relev_patterns = fitted_xdawn.patterns_[::n_xdawn_comps]
+            pick_patterns = fitted_xdawn._subset_multi_components(name="patterns")
+            relev_patterns = pick_patterns[::n_xdawn_comps]
 
         for i in range(len(relev_patterns)):
             r, _ = stats.pearsonr(relev_patterns[i, :], mixing_mat[0, :])

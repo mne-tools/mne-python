@@ -146,43 +146,13 @@ class XdawnTransformer(_GEDTransformer):
         self : Xdawn instance
             The Xdawn instance.
         """
-        from ..preprocessing.xdawn import _fit_xdawn
-
-        X, y = self._check_Xy(X, y)
+        X, y = self._check_data(X, y=y, fit=True, return_y=True)
+        # For test purposes
+        if y is None:
+            y = np.ones(len(X))
         self._validate_params(X)
-        # Main function
-        self.classes_ = np.unique(y)
-        self.filters_, self.patterns_, _ = _fit_xdawn(
-            X,
-            y,
-            n_components=self.n_components,
-            reg=self.reg,
-            signal_cov=self.signal_cov,
-            method_params=self.cov_method_params,
-        )
-        old_filters = self.filters_
-        old_patterns = self.patterns_
-        super().fit(X, y)
 
-        # Hack for assert_allclose in transform
-        self.new_filters_ = self.filters_.copy()
-        # Xdawn performs separate GED for each class.
-        # filters_ returned by _fit_xdawn are subset per
-        # n_components and then appended and are of shape
-        # (n_classes*n_components, n_chs).
-        # GEDTransformer creates new dimension per class without subsetting
-        # for easier analysis and visualisations.
-        # So it needs to be performed post-hoc to conform with Xdawn.
-        # The shape returned by GED here is (n_classes, n_evecs, n_chs)
-        # Need to transform and subset into (n_classes*n_components, n_chs)
-        self.filters_ = self.filters_[:, : self.n_components, :].reshape(
-            -1, self.filters_.shape[2]
-        )
-        self.patterns_ = self.patterns_[:, : self.n_components, :].reshape(
-            -1, self.patterns_.shape[2]
-        )
-        np.testing.assert_allclose(old_filters, self.filters_)
-        np.testing.assert_allclose(old_patterns, self.patterns_)
+        super().fit(X, y)
 
         return self
 
@@ -199,21 +169,8 @@ class XdawnTransformer(_GEDTransformer):
         X : array, shape (n_epochs, n_components * n_classes, n_samples)
             The transformed data.
         """
-        X, _ = self._check_Xy(X)
-        orig_X = X.copy()
-
-        # Check size
-        if self.filters_.shape[1] != X.shape[1]:
-            raise ValueError(
-                f"X must have {self.filters_.shape[1]} channels, got {X.shape[1]} "
-                "instead."
-            )
-
-        # Transform
-        X = np.dot(self.filters_, X)
-        X = X.transpose((1, 0, 2))
-        ged_X = super().transform(orig_X)
-        np.testing.assert_allclose(X, ged_X)
+        X = self._check_data(X)
+        X = super().transform(X)
         return X
 
     def inverse_transform(self, X):
@@ -235,27 +192,13 @@ class XdawnTransformer(_GEDTransformer):
             The inverse transform data.
         """
         # Check size
-        X, _ = self._check_Xy(X)
+        X = self._check_data(X, check_n_features=False)
         n_epochs, n_comp, n_times = X.shape
         if n_comp != (self.n_components * len(self.classes_)):
             raise ValueError(
                 f"X must have {self.n_components * len(self.classes_)} components, "
                 f"got {n_comp} instead."
             )
-
+        pick_patterns = self._subset_multi_components(name="patterns")
         # Transform
-        return np.dot(self.patterns_.T, X).transpose(1, 0, 2)
-
-    def _check_Xy(self, X, y=None):
-        """Check X and y types and dimensions."""
-        # Check data
-        if not isinstance(X, np.ndarray) or X.ndim != 3:
-            raise ValueError(
-                "X must be an array of shape (n_epochs, n_channels, n_samples)."
-            )
-        if y is None:
-            y = np.ones(len(X))
-        y = np.asarray(y)
-        if len(X) != len(y):
-            raise ValueError("X and y must have the same length")
-        return X, y
+        return np.dot(pick_patterns.T, X).transpose(1, 0, 2)

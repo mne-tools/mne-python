@@ -198,17 +198,23 @@ class _GEDTransformer(MNETransformerMixin, BaseEstimator):
                 filters = self.filters_
             pick_filters = filters[: self.n_components]
         elif self.dec_type == "multi":
-            # XXX: Hack to assert_allclose in Xdawn's transform.
-            # Will be removed when overhauling xdawn.
-            if hasattr(self, "new_filters_"):
-                filters = self.new_filters_
-            else:
-                filters = self.filters_
-            pick_filters = filters[:, : self.n_components, :].reshape(
-                -1, filters.shape[2]
-            )
+            pick_filters = self._subset_multi_components()
         X = pick_filters @ X
         return X
+
+    def _subset_multi_components(self, name="filters"):
+        # The shape of stored filters and patterns is
+        # is (n_classes, n_evecs, n_chs)
+        # Transform and subset into (n_classes*n_components, n_chs)
+        if name == "filters":
+            return self.filters_[:, : self.n_components, :].reshape(
+                -1, self.filters_.shape[2]
+            )
+        elif name == "patterns":
+            return self.patterns_[:, : self.n_components, :].reshape(
+                -1, self.patterns_.shape[2]
+            )
+        return None
 
     def _validate_required_args(self, func, desired_required_args):
         sig = signature(func)
