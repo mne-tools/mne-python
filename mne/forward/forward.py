@@ -180,11 +180,11 @@ class Forward(dict):
         src_types = np.array([src["type"] for src in self["src"]])
 
         if (src_types == "surf").all():
-            src_type = "Surface with {self['nsource']} vertices"
+            src_type = f"Surface with {self['nsource']} vertices"
         elif (src_types == "vol").all():
-            src_type = "Volume with {self['nsource']} grid points"
+            src_type = f"Volume with {self['nsource']} grid points"
         elif (src_types == "discrete").all():
-            src_type = "Discrete with {self['nsource']} dipoles"
+            src_type = f"Discrete with {self['nsource']} dipoles"
         else:
             count_string = ""
             if (src_types == "surf").any():

@@ -45,8 +45,8 @@ bem = fs_dir / "bem" / "fsaverage-5120-5120-5120-bem-sol.fif"
 #
 # We use here EEG data from the BCI dataset.
 #
-# .. note:: See :ref:`plot_montage` to view all the standard EEG montages
-#           available in MNE-Python.
+# .. note:: See :ref:`plot_montage` to view all the standard EEG montages available in
+#           MNE-Python.
 
 (raw_fname,) = eegbci.load_data(subjects=1, runs=[6])
 raw = mne.io.read_raw_edf(raw_fname, preload=True)

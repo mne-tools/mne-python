@@ -67,6 +67,7 @@ manual_renames = {
     "Frostime": "Yiping Zuo",  # 11773
     "Gennadiy": "Gennadiy Belonosov",  # 11720
     "Genuster": "Gennadiy Belonosov",  # 12936
+    "GreasyCat": "Rongfei Jin",  # 13113
     "Hamid": "Hamid Maymandi",  # 10849
     "jwelzel": "Julius Welzel",  # 11118
     "Martin": "Martin Billinger",  # 8099, TODO: Check
@@ -394,7 +395,7 @@ def generate_credit_rst(app=None, *, verbose=False):
         raise RuntimeError(
             f"{len(other_files)} misc file(s) found:\n" + "\n".join(other_files)
         )
-    logger.info(f"\nTotal line change count: {list(total_lines)}")
+    logger.info(f"\nTotal line change count: {list(map(int, total_lines))}")
 
     # sphinx-design badges that we use for contributors
     BADGE_KINDS = ["bdg-info-line", "bdg"]
