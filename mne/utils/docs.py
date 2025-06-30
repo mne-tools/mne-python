@@ -4629,7 +4629,7 @@ time_format : str | None
     remain as float values in seconds. If ``'ms'``, time values will be rounded
     to the nearest millisecond and converted to integers. If ``'timedelta'``,
     time values will be converted to :class:`pandas.Timedelta` values. {}
-    Default is ``None``.
+    Default is ``None`` unless specified otherwise. 
 """
 
 docdict["time_format_df"] = _time_format_df_base.format("")
