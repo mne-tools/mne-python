@@ -26,6 +26,8 @@ curry7_bdf_file = curry_dir / "test_bdf_stim_channel Curry 7.dat"
 curry7_bdf_ascii_file = curry_dir / "test_bdf_stim_channel Curry 7 ASCII.dat"
 curry8_bdf_file = curry_dir / "test_bdf_stim_channel Curry 8.cdt"
 curry8_bdf_ascii_file = curry_dir / "test_bdf_stim_channel Curry 8 ASCII.cdt"
+Ref_chan_omitted_file = curry_dir / "Ref_channel_omitted Curry7.dat"
+Ref_chan_omitted_reordered_file = curry_dir / "Ref_channel_omitted reordered Curry7.dat"
 
 
 @pytest.fixture(scope="session")
@@ -48,7 +50,9 @@ def bdf_curry_ref():
 @pytest.mark.parametrize("preload", [True, False])
 def test_read_raw_curry(fname, tol, preload, bdf_curry_ref):
     """Test reading CURRY files."""
-    with pytest.raises(RuntimeWarning):  # TODO change way to add montage in curry.py!
+    with pytest.warns(
+        RuntimeWarning, match="Fiducial point nasion not found"
+    ):  # TODO change way to add montage in curry.py!
         raw = read_raw_curry(fname, preload=preload)
 
         assert hasattr(raw, "_data") == preload
@@ -84,6 +88,7 @@ def test_read_raw_curry(fname, tol, preload, bdf_curry_ref):
         pytest.param(curry8_bdf_ascii_file, id="curry 8 ascii"),
     ],
 )
+# TODO!
 def test_read_raw_curry_test_raw(fname):
     """Test read_raw_curry with _test_raw_reader."""
     with pytest.raises(RuntimeWarning):  # TODO change way to add montage in curry.py!
@@ -100,7 +105,9 @@ def test_read_raw_curry_test_raw(fname):
 )
 def test_read_raw_curry_preload_equal(fname):
     """Test raw identity with preload=True/False."""
-    with pytest.raises(RuntimeWarning):  # TODO change way to add montage in curry.py!
+    with pytest.warns(
+        RuntimeWarning, match="Fiducial point nasion not found"
+    ):  # TODO change way to add montage in curry.py!
         raw1 = read_raw_curry(fname, preload=False)
         raw1.load_data()
         assert raw1 == read_raw_curry(fname, preload=True)
@@ -118,7 +125,7 @@ def test_read_events_curry_are_same_as_bdf(fname):
     """Test events from curry annotations recovers the right events."""
     EVENT_ID = {str(ii): ii for ii in range(5)}
     REF_EVENTS = find_events(read_raw_bdf(bdf_file, preload=True))
-
+    # TODO!
     with pytest.raises(RuntimeWarning):  # TODO change way to add montage in curry.py!
         raw = read_raw_curry(fname)
         events, _ = events_from_annotations(raw, event_id=EVENT_ID)
@@ -209,6 +216,39 @@ def test_read_curry_annotations(fname):
         _ = read_annotations(fname, sfreq="nonsense")
     with pytest.warns(RuntimeWarning, match="does not match freq from fileheader"):
         _ = read_annotations(fname, sfreq=12.0)
+
+
+@testing.requires_testing_data
+@pytest.mark.parametrize(
+    "fname,expected_channel_list",
+    [
+        pytest.param(
+            Ref_chan_omitted_file,
+            ["FP1", "FPZ", "FP2", "VEO", "EKG", "Trigger"],
+            id="Ref omitted, normal order",
+        ),
+        pytest.param(
+            Ref_chan_omitted_reordered_file,
+            ["FP2", "FPZ", "FP1", "VEO", "EKG", "Trigger"],
+            id="Ref omitted, reordered",
+        ),
+    ],
+)
+def test_read_files_missing_channel(fname, expected_channel_list):
+    """Test reading data files that has an omitted channel."""
+    # This for Git issue #8391.  In some cases, the 'labels' (.rs3 file will
+    # list channels that are not actually saved in the datafile (such as the
+    # 'Ref' channel).  These channels are denoted in the 'info' (.dap) file
+    # in the CHAN_IN_FILE section with a '0' as their index.
+    # If the CHAN_IN_FILE section is present, the code also assures that the
+    # channels are sorted in the prescribed order.
+    # This test makes sure the data load correctly, and that we end up with
+    # the proper channel list.
+    with pytest.warns(
+        RuntimeWarning, match="Fiducial point nasion not found"
+    ):  # TODO change way to add montage in curry.py!
+        raw = read_raw_curry(fname, preload=True)
+        assert raw.ch_names == expected_channel_list
 
 
 @testing.requires_testing_data

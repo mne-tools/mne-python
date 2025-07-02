@@ -21,6 +21,7 @@ from ..base import BaseRaw
 
 CURRY_SUFFIX_DATA = [".cdt", ".dat"]
 CURRY_SUFFIX_HDR = [".cdt.dpa", ".cdt.dpo", ".dap"]
+CURRY_SUFFIX_LABELS = [".cdt.dpa", ".cdt.dpo", ".rs3"]
 
 
 def _check_curry_filename(fname):
@@ -54,6 +55,22 @@ def _check_curry_header_filename(fname):
             f"no corresponding header file found {CURRY_SUFFIX_HDR}"
         )
     return fname_hdr
+
+
+def _check_curry_labels_filename(fname):
+    fname_in = Path(fname)
+    fname_labels = None
+    # try suffixes
+    for hdr_suff in CURRY_SUFFIX_LABELS:
+        if fname_in.with_suffix(hdr_suff).exists():
+            fname_labels = fname_in.with_suffix(hdr_suff)
+            break
+    # final check
+    if not fname_labels or not fname_in.exists():
+        raise FileNotFoundError(
+            f"no corresponding labels file found {CURRY_SUFFIX_HDR}"
+        )
+    return fname_labels
 
 
 def _get_curry_recording_type(fname):
@@ -203,6 +220,43 @@ def _extract_curry_info(fname):
         # combine info
         ch_types += [ch_type] * n_ch_group
         units += [unit] * n_ch_group
+
+    # This for Git issue #8391.  In some cases, the 'labels' (.rs3 file will
+    # list channels that are not actually saved in the datafile (such as the
+    # 'Ref' channel).  These channels are denoted in the 'info' (.dap) file
+    # in the CHAN_IN_FILE section with a '0' as their index.
+    #
+    # current curryreader cannot cope with this - loads the list of channels solely
+    # based on their order, so can be false. fix it here!
+    if not len(ch_types) == len(units) == len(ch_names) == n_ch:
+        # read relevant info
+        fname_lbl = _check_curry_labels_filename(fname)
+        lbl = fname_lbl.read_text().split("START_LIST")
+        ch_names_full = []
+        for i in range(1, len(lbl)):
+            if "LABELS" in lbl[i - 1].split()[-1]:
+                for ll in lbl[i].split("\n")[1:]:
+                    if "LABELS" not in ll:
+                        ch_names_full.append(ll.strip())
+                    else:
+                        break
+        hdr = fname_hdr.read_text().split("START_LIST")
+        chaninfile_full = []
+        for i in range(1, len(hdr)):
+            if "CHAN_IN_FILE" in hdr[i - 1].split()[-1]:
+                for ll in hdr[i].split("\n")[1:]:
+                    if "CHAN_IN_FILE" not in ll:
+                        chaninfile_full.append(int(ll.strip()))
+                    else:
+                        break
+        # drop channels with chan_in_file==0, account for order
+        i_drop = [i for i, ich in enumerate(chaninfile_full) if ich == 0]
+        ch_names = [
+            ch_names_full[i] for i in np.argsort(chaninfile_full) if i not in i_drop
+        ]
+        ch_types = [ch_types[i] for i in np.argsort(chaninfile_full) if i not in i_drop]
+        units = [units[i] for i in np.argsort(chaninfile_full) if i not in i_drop]
+
     assert len(ch_types) == len(units) == len(ch_names) == n_ch
 
     # finetune channel types (e.g. stim, eog etc might be identified by name)
