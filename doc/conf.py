@@ -664,6 +664,8 @@ linkcheck_ignore = [  # will be compiled to regex
     "https://doi.org/10.1167/",  # jov.arvojournals.org
     "https://doi.org/10.1177/",  # journals.sagepub.com
     "https://doi.org/10.3109/",  # www.tandfonline.com
+    "https://hms.harvard.edu/",  # doc/funding.rst
+    "https://stackoverflow.com/questions/21752259/python-why-pickle",  # doc/help/faq
     "https://www.biorxiv.org/content/10.1101/",  # biorxiv.org
     "https://www.researchgate.net/profile/",
     "https://www.intel.com/content/www/us/en/developer/tools/oneapi/onemkl.html",
@@ -675,6 +677,8 @@ linkcheck_ignore = [  # will be compiled to regex
     "https://sourceforge.net/projects/ezwinports/files/",
     "https://www.mathworks.com/products/compiler/matlab-runtime.html",
     "https://medicine.umich.edu/dept/khri/ross-maddox-phd",
+    # TODO https://github.com/mne-tools/curry-python-reader/issues/5
+    "https://github.com/mne-tools/curry-python-reader/README.md",
     # 500 server error
     "https://openwetware.org/wiki/Beauchamp:FreeSurfer",
     # 503 Server error

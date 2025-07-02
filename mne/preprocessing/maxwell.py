@@ -131,11 +131,16 @@ def maxwell_filter_prepare_emptyroom(
     * Set the following properties of the empty-room recording to match the
       experimental recording:
 
-      * Montage
+      * Montage (required for the fiducials defining the head coordinate frame)
       * ``raw.first_time`` and ``raw.first_samp``
 
     * Adjust annotations according to the ``annotations`` parameter.
     * Adjust the measurement date according to the ``meas_date`` parameter.
+
+    .. note::
+
+        Note that in case of dual MEG/EEG acquisition, EEG channels should not be
+        included in the empty room recording. If provided, they will be ignored.
 
     .. versionadded:: 1.1
     """  # noqa: E501
@@ -167,7 +172,12 @@ def maxwell_filter_prepare_emptyroom(
     elif bads == "keep":
         bads = raw_er_prepared.info["bads"]
 
-    bads = [ch_name for ch_name in bads if ch_name.startswith("MEG")]
+    # Filter to only include MEG channels
+    meg_ch_names = [
+        raw_er_prepared.ch_names[pick]
+        for pick in pick_types(raw_er_prepared.info, meg=True, exclude=[])
+    ]
+    bads = [ch_name for ch_name in bads if ch_name in meg_ch_names]
     raw_er_prepared.info["bads"] = bads
 
     # handle dev_head_t

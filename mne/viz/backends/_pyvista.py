@@ -594,7 +594,7 @@ class _PyVistaRenderer(_AbstractRenderer):
                 color = None
             else:
                 scalars = None
-            tube = line.tube(radius, n_sides=self.tube_n_sides)
+            tube = line.tube(radius=radius, n_sides=self.tube_n_sides)
             actor = _add_mesh(
                 plotter=self.plotter,
                 mesh=tube,

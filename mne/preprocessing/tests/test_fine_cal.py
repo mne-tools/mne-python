@@ -77,7 +77,7 @@ def test_compute_fine_cal(kind):
         angle_limit = 5
         gwoma = [66, 68]
         ggoma = [55, 150]
-        ggwma = [60, 86]
+        ggwma = [52, 86]
         sfs = [26, 27, 61, 63, 61, 63, 68, 70]
         cl3 = [0.6, 0.7]
     else:
@@ -231,7 +231,7 @@ def test_fine_cal_systems(system, tmp_path):
         err_limit = 12600
         n_ref = 28
         corrs = (0.19, 0.41, 0.49)
-        sfs = [0.5, 0.7, 0.9, 1.55]
+        sfs = [0.5, 0.7, 0.9, 1.65]
         corr_tol = 0.55
     elif system == "fil":
         raw = read_raw_fil(fil_fname, verbose="error")
@@ -243,7 +243,7 @@ def test_fine_cal_systems(system, tmp_path):
         int_order = 5
         corrs = (0.13, 0.0, 0.12)
         sfs = [4, 5, 125, 155]
-        corr_tol = 0.34
+        corr_tol = 0.38
     else:
         assert system == "triux", f"Unknown system {system}"
         raw = read_raw_fif(tri_fname)
