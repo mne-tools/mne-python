@@ -250,8 +250,8 @@ def _read_annotations_curry(fname, sfreq="auto"):
     """
     fname = _check_curry_filename(fname)
 
-    (sfreq_fromfile, _, _, _, _, _, _, _, events, _, _, _, _, _, _) = (
-        _extract_curry_info(fname)
+    (sfreq_fromfile, _, _, _, _, _, _, _, events, _, _, _, _, _) = _extract_curry_info(
+        fname
     )
     if sfreq == "auto":
         sfreq = sfreq_fromfile
@@ -457,17 +457,39 @@ class RawCurry(BaseRaw):
             self.set_annotations(annot)
 
         # make montage
-        mont = _make_curry_montage(
-            ch_names, ch_types, ch_pos, landmarks, landmarkslabels
-        )
-        self.set_montage(mont, on_missing="ignore")
+        self._set_curry_montage(ch_types, ch_pos, landmarks, landmarkslabels)
+
         # with self.info._unlock():
         #    self.info['dig'] = mont.dig
 
         # add HPI data (if present)
+        # from curryreader docstring:
+        # "HPI-coil measurements matrix (Orion-MEG only) where every row is:
+        # [measurementsample, dipolefitflag, x, y, z, deviation]"
+        # that's incorrect, though. it seems to be:
+        # [sample, dipole_1, x_1,y_1, z_1, dev_1, ..., dipole_n, x_n, ...]
+        # for all n coils.
         # TODO
         if not isinstance(hpimatrix, list):
-            warn("HPI data found, but reader not implemented.")
+            warn("cHPI data found, but reader not implemented.")
+            hpisamples = hpimatrix[:, 0]
+            n_coil = int((hpimatrix.shape[1] - 1) / 5)
+            hpimatrix = hpimatrix[:, 1:].reshape(hpimatrix.shape[0], n_coil, 5)
+            print(f"found {len(hpisamples)} cHPI samples for {n_coil} coils")
+
+    def _set_curry_montage(self, ch_types, ch_pos, landmarks, landmarkslabels):
+        assert len(self.info["ch_names"]) == len(ch_types) >= len(ch_pos)
+
+        mont = _make_curry_montage(
+            self.info["ch_names"], ch_types, ch_pos, landmarks, landmarkslabels
+        )
+
+        # hack the montage in (for MEG chans)
+        # TODO change this!
+        ch_types_tmp = [ct if ct != "mag" else "eeg" for ct in ch_types]
+        self.set_channel_types(dict(zip(self.info["ch_names"], ch_types_tmp)))
+        self.set_montage(mont, on_missing="ignore")
+        self.set_channel_types(dict(zip(self.info["ch_names"], ch_types)))
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data."""
