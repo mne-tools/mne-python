@@ -8,7 +8,6 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import numpy as np
-import pandas as pd
 
 # from ..._fiff._digitization import _make_dig_points
 from ..._fiff.meas_info import create_info
@@ -91,8 +90,10 @@ def _get_curry_recording_type(fname):
 
 def _get_curry_epoch_info(fname):
     _soft_import("curryreader", "read epoch info")
+    _soft_import("pandas", "dataframe integration")
 
     import curryreader
+    import pandas as pd
 
     # use curry-python-reader
     currydata = curryreader.read(str(fname), plotdata=0, verbosity=1)
