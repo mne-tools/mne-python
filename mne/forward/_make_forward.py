@@ -37,7 +37,15 @@ from ..transforms import (
     invert_transform,
     transform_surface_to,
 )
-from ..utils import _check_fname, _pl, _validate_type, logger, verbose, warn
+from ..utils import (
+    _check_fname,
+    _on_missing,
+    _pl,
+    _validate_type,
+    logger,
+    verbose,
+    warn,
+)
 from ._compute_forward import _compute_forwards
 from .forward import _FWD_ORDER, Forward, _merge_fwds, convert_forward_solution
 
@@ -433,6 +441,7 @@ def _prepare_for_forward(
     bem,
     mindist,
     n_jobs,
+    *,
     bem_extra="",
     trans="",
     info_extra="",
@@ -440,6 +449,7 @@ def _prepare_for_forward(
     eeg=True,
     ignore_ref=False,
     allow_bem_none=False,
+    on_inside="raise",
     verbose=None,
 ):
     """Prepare for forward computation.
@@ -563,11 +573,12 @@ def _prepare_for_forward(
             )
             n_inside = check_inside(meg_loc).sum()
             if n_inside:
-                raise RuntimeError(
+                msg = (
                     f"Found {n_inside} MEG sensor{_pl(n_inside)} inside the "
                     f"{check_surface}, perhaps coordinate frames and/or "
-                    "coregistration must be incorrect"
+                    "coregistration are incorrect"
                 )
+                _on_missing(on_inside, msg, name="on_inside", error_klass=RuntimeError)
 
     rr = np.concatenate([s["rr"][s["vertno"]] for s in src])
     if len(rr) < 1:
@@ -603,6 +614,7 @@ def make_forward_solution(
     mindist=0.0,
     ignore_ref=False,
     n_jobs=None,
+    on_inside="raise",
     verbose=None,
 ):
     """Calculate a forward solution for a subject.
@@ -633,6 +645,13 @@ def make_forward_solution(
         option should be True for KIT files, since forward computation
         with reference channels is not currently supported.
     %(n_jobs)s
+    on_inside : 'raise' | 'warn' | 'ignore'
+        What to do if MEG sensors are inside the outer skin surface. If 'raise'
+        (default), an error is raised. If 'warn' or 'ignore', the forward
+        solution is computed anyway and a warning is or isn't emitted,
+        respectively.
+
+        .. versionadded:: 1.10
     %(verbose)s
 
     Returns
@@ -703,12 +722,13 @@ def make_forward_solution(
         bem,
         mindist,
         n_jobs,
-        bem_extra,
-        trans,
-        info_extra,
-        meg,
-        eeg,
-        ignore_ref,
+        bem_extra=bem_extra,
+        trans=trans,
+        info_extra=info_extra,
+        meg=meg,
+        eeg=eeg,
+        ignore_ref=ignore_ref,
+        on_inside=on_inside,
     )
     del (src, mri_head_t, trans, info_extra, bem_extra, mindist, meg, eeg, ignore_ref)
 
@@ -734,7 +754,9 @@ def make_forward_solution(
 
 
 @verbose
-def make_forward_dipole(dipole, bem, info, trans=None, n_jobs=None, *, verbose=None):
+def make_forward_dipole(
+    dipole, bem, info, trans=None, n_jobs=None, *, on_inside="raise", verbose=None
+):
     """Convert dipole object to source estimate and calculate forward operator.
 
     The instance of Dipole is converted to a discrete source space,
@@ -760,6 +782,13 @@ def make_forward_dipole(dipole, bem, info, trans=None, n_jobs=None, *, verbose=N
         The head<->MRI transform filename. Must be provided unless BEM
         is a sphere model.
     %(n_jobs)s
+    on_inside : 'raise' | 'warn' | 'ignore'
+        What to do if MEG sensors are inside the outer skin surface. If 'raise'
+        (default), an error is raised. If 'warn' or 'ignore', the forward
+        solution is computed anyway and a warning is or isn't emitted,
+        respectively.
+
+        .. versionadded:: 1.10
     %(verbose)s
 
     Returns
@@ -798,7 +827,9 @@ def make_forward_dipole(dipole, bem, info, trans=None, n_jobs=None, *, verbose=N
 
     # Forward operator created for channels in info (use pick_info to restrict)
     # Use defaults for most params, including min_dist
-    fwd = make_forward_solution(info, trans, src, bem, n_jobs=n_jobs, verbose=verbose)
+    fwd = make_forward_solution(
+        info, trans, src, bem, n_jobs=n_jobs, on_inside=on_inside, verbose=verbose
+    )
     # Convert from free orientations to fixed (in-place)
     convert_forward_solution(
         fwd, surf_ori=False, force_fixed=True, copy=False, use_cps=False, verbose=None
