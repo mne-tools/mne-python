@@ -2449,10 +2449,7 @@ def _convert_psds(
             ylabel = r"$\mathrm{dB/\sqrt{Hz}}$"
         else:
             ylabel = r"$\mathrm{dB/Hz}$"
-    ylabel = "Power (" + ylabel if estimate == "power" else "Amplitude (" + ylabel
-    ylabel += ")"
-
-    return ylabel
+    return f"{'Power' if estimate == 'power' else 'Amplitude'} ({ylabel})"
 
 
 def _plot_psd(
