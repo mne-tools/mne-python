@@ -1016,7 +1016,7 @@ dB : bool
     Whether to plot on a decibel scale. If ``True``, plots
     10 × log₁₀({quantity}){ampl}{caveat}.{extra}
 """
-_psd = "spectral power"
+_psd = "spectral_power/Hz"
 
 # for the legacy func/methods:
 docdict["dB_plot_psd"] = """\
@@ -1035,7 +1035,7 @@ docdict["dB_plot_topomap"] = _dB.format(
 )
 docdict["dB_spectrum_plot"] = _dB.format(
     quantity=_psd,
-    ampl=", or 20 × log₁₀(spectral amplitude) if ``amplitude=True``",
+    ampl=", or 20 × log₁₀(spectral amplitude/√Hz) if ``amplitude=True``",
     caveat="",
     extra="",
 )
