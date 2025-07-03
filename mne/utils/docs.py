@@ -1014,11 +1014,11 @@ cross_talk : str | None
 _dB = """
 dB : bool
     Whether to plot on a decibel scale. If ``True``, plots
-    10 × log₁₀({quantity}){caveat}.{extra}
+    10 × log₁₀({quantity}){ampl}{caveat}.{extra}
 """
-_ignored_if_normalize = " Ignored if ``normalize=True``."
 _psd = "spectral power"
 
+# for the legacy func/methods:
 docdict["dB_plot_psd"] = """\
 dB : bool
     Plot power spectral density (PSD) in units (dB/Hz) if ``dB=True`` and
@@ -1029,14 +1029,20 @@ dB : bool
 """
 docdict["dB_plot_topomap"] = _dB.format(
     quantity=_psd,
-    caveat=" following the application of ``agg_fun``",
-    extra=_ignored_if_normalize,
+    ampl="",
+    caveat=", following the application of ``agg_fun``",
+    extra=" Ignored if ``normalize=True``.",
 )
-docdict["dB_spectrum_plot"] = _dB.format(quantity=_psd, caveat="", extra="")
+docdict["dB_spectrum_plot"] = _dB.format(
+    quantity=_psd,
+    ampl=", or 20 × log₁₀(spectral amplitude) if ``amplitude=True``",
+    caveat="",
+    extra="",
+)
 docdict["dB_spectrum_plot_topo"] = _dB.format(
-    quantity=_psd, caveat="", extra=_ignored_if_normalize
+    quantity=_psd, ampl="", caveat="", extra=""
 )
-docdict["dB_tfr_plot_topo"] = _dB.format(quantity="data", caveat="", extra="")
+docdict["dB_tfr_plot"] = _dB.format(quantity="data", ampl="", caveat="", extra="")
 
 _data_template = """
 data : ndarray, shape ({})
