@@ -329,6 +329,7 @@ class SourceSpaces(list):
         skull=None,
         subjects_dir=None,
         trans=None,
+        *,
         fig=None,
         verbose=None,
     ):
@@ -363,7 +364,7 @@ class SourceSpaces(list):
             PyVista scene in which to plot the alignment.
             If ``None``, creates a new 600x600 pixel figure with black background.
 
-            .. versionadded:: 1.9
+            .. versionadded:: 1.10
         %(verbose)s
 
         Returns

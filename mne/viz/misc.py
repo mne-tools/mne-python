@@ -602,6 +602,7 @@ def plot_bem(
     slices=None,
     brain_surfaces=None,
     src=None,
+    *,
     trans=None,
     show=True,
     show_indices=True,
@@ -633,7 +634,8 @@ def plot_bem(
            All sources are shown on the nearest slice rather than some
            being omitted.
     %(trans)s
-        .. versionadded:: 1.9
+
+        .. versionadded:: 1.10
     show : bool
         Show figure if True.
     show_indices : bool
