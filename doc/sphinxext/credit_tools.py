@@ -38,7 +38,7 @@ data_dir = doc_root / "sphinxext"
 # preferring GitHub profile info (when complete!) is probably preferable.
 
 # Allowed singletons
-single_names = "btkcodedev buildqa sviter Akshay".split()
+single_names = "btkcodedev buildqa sviter Akshay user27182".split()
 # Surnames where we have more than one distinct contributor:
 name_counts = dict(
     Bailey=2,
