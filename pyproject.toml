@@ -121,7 +121,7 @@ full-no-qt = [
   "pyvistaqt >= 0.4",
   "qdarkstyle != 3.2.2",
   "qtpy",
-  "scikit-learn",
+  "scikit-learn >=1.3.0",
   "sip",
   "snirf",
   "statsmodels",
