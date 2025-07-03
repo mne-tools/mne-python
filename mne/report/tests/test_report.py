@@ -517,7 +517,7 @@ def test_add_bem_n_jobs(n_jobs, monkeypatch):
 @pytest.mark.filterwarnings("ignore:Distances could not be calculated.*:RuntimeWarning")
 @pytest.mark.slowtest
 @testing.requires_testing_data
-def test_add_forward():
+def test_add_forward(renderer_interactive_pyvistaqt):
     """Test add_forward."""
     report = Report(subjects_dir=subjects_dir, image_format="png")
     report.add_forward(
