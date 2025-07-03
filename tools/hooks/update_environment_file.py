@@ -58,9 +58,6 @@ for dep in deps:
         version_spec = version_spec.replace("!=6.7.0,", "")
         # not on CF yet either
         version_spec = version_spec.replace(",!=6.9.1", "")
-    elif package_name == "vtk":
-        # TODO VERSION remove once we support VTK 9.4
-        version_spec = "=9.3.1=qt_*"
     # rstrip output line in case `version_spec` == ""
     line = f"  - {package_name} {version_spec}".rstrip()
     # use pip for packages needing e.g. `platform_system` or `python_version` triaging
