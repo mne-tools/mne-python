@@ -207,10 +207,8 @@ power, itc = epochs.compute_tfr(
 #     on an image to visualize the data for one sensor.
 #     You can also select a portion in the time-frequency plane to
 #     obtain a topomap for a certain time-frequency region.
-power.plot_topo(baseline=(-0.5, 0), mode="logratio", title="Average power", dB=True)
-power.plot(
-    picks=[82], baseline=(-0.5, 0), mode="logratio", title=power.ch_names[82], dB=True
-)
+power.plot_topo(baseline=(-0.5, 0), mode="logratio", title="Average power")
+power.plot(picks=[82], baseline=(-0.5, 0), mode="logratio", title=power.ch_names[82])
 
 fig, axes = plt.subplots(1, 2, figsize=(7, 4), layout="constrained")
 topomap_kw = dict(
@@ -218,7 +216,7 @@ topomap_kw = dict(
 )
 plot_dict = dict(Alpha=dict(fmin=8, fmax=12), Beta=dict(fmin=13, fmax=25))
 for ax, (title, fmin_fmax) in zip(axes, plot_dict.items()):
-    power.plot_topomap(**fmin_fmax, axes=ax, **topomap_kw, dB=True)
+    power.plot_topomap(**fmin_fmax, axes=ax, **topomap_kw)
     ax.set_title(title)
 
 # %%
