@@ -2432,20 +2432,20 @@ def _convert_psds(
 
     _check_option("estimate", estimate, ("power", "amplitude"))
     psds *= scaling * scaling
-    denom = r"\sqrt{Hz}" if estimate == "amplitude" else "Hz"
+    denom = r"\sqrt{\mathrm{Hz}}" if estimate == "amplitude" else r"\mathrm{Hz}"
     if estimate == "amplitude":
         np.sqrt(psds, out=psds)
         coef = 20
     else:
         if "/" in unit:
             unit = f"({unit})"
-        unit = f"{unit}²"
+        unit = f"{unit}^2"
         coef = 10
-    ylabel = rf"$\mathrm{{{unit}/{denom}}}$"
+    ylabel = rf"$\mathrm{{{unit}}}/{denom}$"
     if dB:
         np.log10(np.maximum(psds, np.finfo(float).tiny), out=psds)
         psds *= coef
-        ylabel = rf"$\mathrm{{dB}}/{denom}\ \mathrm{{re:}}\ {unit}$"
+        ylabel = rf"$\mathrm{{dB}}/{denom}\ \mathrm{{re}}\ 1\ \mathrm{{{unit}}}$"
     return f"{'Power' if estimate == 'power' else 'Amplitude'} ({ylabel})"
 
 
