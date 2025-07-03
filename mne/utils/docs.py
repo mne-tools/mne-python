@@ -1022,11 +1022,10 @@ _psd = "spectral power"
 docdict["dB_plot_psd"] = """\
 dB : bool
     Plot power spectral density (PSD) in units (dB/Hz) if ``dB=True`` and
-    ``estimate='power'`` or ``estimate='auto'``. Plot PSD in units (amplitude**2/Hz) if
+    ``estimate='power'``. Plot PSD in units (amplitude**2/Hz) if
     ``dB=False`` and ``estimate='power'``. Plot amplitude spectral density (ASD) in
-    units (amplitude/sqrt(Hz)) if ``dB=False`` and ``estimate='amplitude'`` or
-    ``estimate='auto'``. Plot ASD in units (dB/sqrt(Hz)) if ``dB=True`` and
-    ``estimate='amplitude'``.
+    units (amplitude/sqrt(Hz)) if ``dB=False`` and ``estimate='amplitude'``.
+    Plot ASD in units (dB/sqrt(Hz)) if ``dB=True`` and ``estimate='amplitude'``.
 """
 docdict["dB_plot_topomap"] = _dB.format(
     quantity=_psd,
