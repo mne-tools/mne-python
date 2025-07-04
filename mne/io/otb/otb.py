@@ -264,10 +264,21 @@ class RawOTB(BaseRaw):
         sig_fname = _extras["sig_fname"]
 
         with tarfile.open(self.filenames[0], "r") as fid:
-            self._data = np.frombuffer(
-                fid.extractfile(sig_fname).read(),
-                dtype=_extras["dtype"],
+            _data = (
+                np.frombuffer(
+                    fid.extractfile(sig_fname).read(),
+                    dtype=_extras["dtype"],
+                )
+                .reshape(-1, self.info["nchan"])
+                .T
             )
+        cals = np.array(
+            [
+                _ch["cal"] * _ch["range"] * _ch.get("scale", 1.0)
+                for _ch in self.info["chs"]
+            ]
+        )
+        self._data = _data * cals[:, np.newaxis]
 
 
 @fill_doc
