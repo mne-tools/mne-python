@@ -26,6 +26,7 @@ from mne.decoding._ged import (
     _smart_ajd,
     _smart_ged,
 )
+from mne.decoding._mod_ged import _no_op_mod
 from mne.decoding.base import _GEDTransformer
 from mne.io import read_raw
 
@@ -220,6 +221,8 @@ def test_ged_binary_cov():
     assert_allclose(actual_evals, desired_evals)
     assert_allclose(actual_filters, desired_filters)
 
+    assert ged._subset_multi_components(name="foo") is None
+
 
 def test_ged_multicov():
     """Test GEDTransformer on audvis dataset with multiple covariances."""
@@ -294,6 +297,33 @@ def test_ged_multicov():
     assert_allclose(actual_filters, desired_filters)
 
 
+def test_ged_validation_raises():
+    """Test GEDTransofmer validation raises correct errors."""
+    event_id = dict(aud_l=1, vis_l=3)
+    X, y = _get_X_y(event_id)
+
+    ged = _GEDTransformer(
+        n_components=-1,
+        cov_callable=_mock_cov_callable,
+        mod_ged_callable=_mock_mod_ged_callable,
+        restr_type="restricting",
+    )
+    with pytest.raises(ValueError):
+        ged.fit(X, y)
+
+    def _bad_cov_callable(X, y, foo):
+        return X, y, foo
+
+    ged = _GEDTransformer(
+        n_components=1,
+        cov_callable=_bad_cov_callable,
+        mod_ged_callable=_mock_mod_ged_callable,
+        restr_type="restricting",
+    )
+    with pytest.raises(ValueError):
+        ged.fit(X, y)
+
+
 def test_ged_invalid_cov():
     """Test _validate_covariances raises proper errors."""
     ged = _GEDTransformer(
@@ -346,3 +376,13 @@ def test__smart_ajd_when_restr_mat_is_none():
     bad_covs = np.stack([sing_pos_semidef, pos_def1, pos_def2])
     with pytest.raises(ValueError, match="positive definite"):
         _smart_ajd(bad_covs, restr_mat=None, weights=None)
+
+
+def test__no_op_mod():
+    """Test _no_op_mod returns the same evals/evecs objects."""
+    evals = np.array([[1, 2], [3, 4]])
+    evecs = np.array([0, 1])
+    evals_no_op, evecs_no_op, sorter_no_op = _no_op_mod(evals, evecs)
+    assert evals is evals_no_op
+    assert evecs is evecs_no_op
+    assert sorter_no_op is None
