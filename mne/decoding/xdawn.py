@@ -12,9 +12,10 @@ from ..cov import Covariance
 from ..decoding._covs_ged import _xdawn_estimate
 from ..decoding._mod_ged import _xdawn_mod
 from ..decoding.base import _GEDTransformer
-from ..utils import _validate_type
+from ..utils import _validate_type, fill_doc
 
 
+@fill_doc
 class XdawnTransformer(_GEDTransformer):
     """Implementation of the Xdawn Algorithm compatible with scikit-learn.
 
@@ -24,7 +25,7 @@ class XdawnTransformer(_GEDTransformer):
     response with respect to the non-target response. This implementation is a
     generalization to any type of event related response.
 
-    .. note:: _XdawnTransformer does not correct for epochs overlap. To correct
+    .. note:: XdawnTransformer does not correct for epochs overlap. To correct
               overlaps see ``Xdawn``.
 
     Parameters
@@ -67,7 +68,6 @@ class XdawnTransformer(_GEDTransformer):
         Defaults to "full".
 
         .. versionadded:: 1.10
-
 
     Attributes
     ----------
