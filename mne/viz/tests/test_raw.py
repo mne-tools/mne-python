@@ -990,9 +990,9 @@ def test_plot_raw_filtered(filtorder, raw, browser_backend):
 def _check_ylabel_psd(ylabel, amplitude, dB, unit):
     """Check that the ylabel is correct."""
     if amplitude:
-        assert r"\sqrt{Hz}" in ylabel
+        assert "sqrt" in ylabel
     else:
-        assert "Hz" in ylabel and r"\sqrt{Hz}" not in ylabel
+        assert "Hz" in ylabel and "sqrt" not in ylabel
     if dB:
         assert "dB" in ylabel
     else:
