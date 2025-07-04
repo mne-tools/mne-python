@@ -242,7 +242,8 @@ def _ssd_estimate(
         freqs_noise=freqs_noise,
         sort_by_spectral_ratio=sort_by_spectral_ratio,
     )
-
+    rank = dict(eeg=rank)
+    info = picked_info
     return covs, C_ref, info, rank, kwargs
 
 

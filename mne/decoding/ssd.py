@@ -110,7 +110,7 @@ class SSD(_GEDTransformer):
         return_filtered=False,
         n_fft=None,
         cov_method_params=None,
-        restr_type="ssd",
+        restr_type="whitening",
         rank=None,
     ):
         """Initialize instance."""

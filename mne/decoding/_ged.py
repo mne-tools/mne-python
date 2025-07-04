@@ -6,7 +6,6 @@ import numpy as np
 import scipy.linalg
 
 from ..cov import Covariance, _smart_eigh, compute_whitener
-from ..utils import logger
 
 
 def _handle_restr_mat(C_ref, restr_type, info, rank):
@@ -19,14 +18,15 @@ def _handle_restr_mat(C_ref, restr_type, info, rank):
         return None
     if restr_type == "whitening":
         C_ref_cov = Covariance(C_ref, info.ch_names, info["bads"], info["projs"], 0)
-        restr_mat = compute_whitener(C_ref_cov, info, rank=rank, pca=True)[0]
-    elif restr_type == "ssd":
-        restr_mat = _get_ssd_whitener(C_ref, rank)
+        restr_mat = compute_whitener(
+            C_ref_cov, info, rank=rank, pca=True, verbose="error"
+        )[0]
     elif restr_type == "restricting":
         restr_mat = _get_restr_mat(C_ref, info, rank)
     else:
         raise ValueError(
-            "restr_type should either be callable or one of whitening, ssd, restricting"
+            "restr_type should either be callable or one of "
+            "('whitening', 'restricting')"
         )
     return restr_mat
 
@@ -129,28 +129,3 @@ def _normalize_eigenvectors(evecs, covs, sample_weights):
         tmp = np.dot(np.dot(evecs[:, ii].T, mean_cov), evecs[:, ii])
         evecs[:, ii] /= np.sqrt(tmp)
     return evecs
-
-
-def _get_ssd_whitener(S, rank):
-    """Perform dimensionality reduction on the covariance matrices."""
-    n_channels = S.shape[0]
-    if rank < n_channels:
-        eigvals, eigvects = scipy.linalg.eigh(S)
-        # sort in descending order
-        ix = np.argsort(eigvals)[::-1]
-        eigvals = eigvals[ix]
-        eigvects = eigvects[:, ix]
-        # compute rank subspace projection matrix
-        rank_proj = np.matmul(
-            eigvects[:, :rank], np.eye(rank) * (eigvals[:rank] ** -0.5)
-        )
-        logger.info(
-            "Projecting covariance of %i channels to %i rank subspace",
-            n_channels,
-            rank,
-        )
-    else:
-        rank_proj = np.eye(n_channels)
-        logger.info("Preserving covariance rank (%i)", rank)
-
-    return rank_proj.T

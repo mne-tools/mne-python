@@ -63,14 +63,12 @@ class _GEDTransformer(MNETransformerMixin, BaseEstimator):
         (except the last) returned by cov_callable is decomposed with the last
         covariance. In this case, number of covariances should be number of classes + 1.
         Defaults to "single".
-    restr_type : "restricting" | "whitening" | "ssd" | None
+    restr_type : "restricting" | "whitening" | None
         Restricting transformation for covariance matrices before performing GED.
         If "restricting" only restriction to the principal subspace of the C_ref
         will be performed.
         If "whitening", covariance matrices will be additionally rescaled according
         to the whitening for the C_ref.
-        If "ssd", perform simplified version of "whitening",
-        preserved for compatibility.
         If None, no restriction will be applied. Defaults to None.
     R_func : callable | None
         If provided, GED will be performed on (S, R_func([S,R])). When dec_type is
@@ -250,7 +248,7 @@ class _GEDTransformer(MNETransformerMixin, BaseEstimator):
         _check_option(
             "restr_type",
             self.restr_type,
-            ("restricting", "whitening", "ssd", None),
+            ("restricting", "whitening", None),
         )
 
     def _validate_covariances(self, covs):
