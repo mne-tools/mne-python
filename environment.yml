@@ -42,7 +42,7 @@ dependencies:
   - pyarrow
   - pybv
   - pymatreader
-  - PySide6 !=6.8.0,!=6.8.0.1
+  - PySide6 !=6.8.0,!=6.8.0.1,!=6.9.1
   - python-neo
   - python-picard
   - pyvista >=0.32,!=0.35.2,!=0.38.0,!=0.38.1,!=0.38.2,!=0.38.3,!=0.38.4,!=0.38.5,!=0.38.6,!=0.42.0
