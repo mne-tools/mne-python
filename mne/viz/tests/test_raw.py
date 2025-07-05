@@ -987,6 +987,15 @@ def test_plot_raw_filtered(filtorder, raw, browser_backend):
     RawArray(np.zeros((1, 100)), create_info(1, 20.0, "stim")).plot(lowpass=5)
 
 
+def _check_ylabel_psd(ylabel, amplitude, dB, unit):
+    """Check that the ylabel is correct."""
+    numerator = "dB" if dB else unit
+    denominator = r"\sqrt{\mathrm{Hz}}" if amplitude else r"\mathrm{Hz}"
+    reference_val = rf"\ \mathrm{{re}}\ 1\ \mathrm{{{unit}}}" if dB else ""
+    pattern = rf"\mathrm{{{numerator}}}/{denominator}{reference_val}"
+    assert pattern in ylabel, ylabel
+
+
 def test_plot_raw_psd(raw, raw_orig):
     """Test plotting of raw psds."""
     raw_unchanged = raw.copy()
@@ -1038,24 +1047,20 @@ def test_plot_raw_psd(raw, raw_orig):
     with pytest.warns(UserWarning, match="[Infinite|Zero]"):
         spectrum = raw.compute_psd()
     for dB, amplitude in itertools.product((True, False), (True, False)):
-        with pytest.warns(UserWarning, match="[Infinite|Zero]"):
+        with pytest.warns(UserWarning, match="(Infinite|Zero)"):
             fig = spectrum.plot(average=True, dB=dB, amplitude=amplitude)
         # check grad axes
         title = fig.axes[0].get_title()
         ylabel = fig.axes[0].get_ylabel()
-        unit = r"fT/cm/\sqrt{Hz}" if amplitude else "(fT/cm)²/Hz"
+        unit = "fT/cm" if amplitude else "(fT/cm)^2"
         assert title == "Gradiometers", title
-        assert unit in ylabel, ylabel
-        if dB:
-            assert "dB" in ylabel
-        else:
-            assert "dB" not in ylabel
+        _check_ylabel_psd(ylabel, amplitude, dB, unit)
         # check mag axes
         title = fig.axes[1].get_title()
         ylabel = fig.axes[1].get_ylabel()
-        unit = r"fT/\sqrt{Hz}" if amplitude else "fT²/Hz"
+        unit = "fT" if amplitude else "fT^2"
         assert title == "Magnetometers", title
-        assert unit in ylabel, ylabel
+        _check_ylabel_psd(ylabel, amplitude, dB, unit)
 
     # test xscale value checking
     raw = raw_unchanged

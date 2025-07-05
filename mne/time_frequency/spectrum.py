@@ -606,8 +606,8 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
             Whether to plot an amplitude spectrum (``True``) or power spectrum
             (``False``).
 
-                .. versionchanged:: 1.8
-                    In version 1.8, the default changed to ``amplitude=False``.
+            .. versionchanged:: 1.8
+                In version 1.8, the default changed to ``amplitude=False``.
         %(xscale_plot_psd)s
         ci : float | 'sd' | 'range' | None
             Type of confidence band drawn around the mean when ``average=True``. If
