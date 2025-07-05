@@ -1,0 +1,1 @@
+Fixed ICA getting sources for concatenated raw instances, by :newcontrib:`Beige Jin`.
