@@ -1,0 +1,3 @@
+Implement GEDTransformer superclass that generalizes 
+:class:`mne.decoding.CSP`, :class:`mne.decoding.SPoC`, :class:`mne.decoding.XdawnTransformer`, 
+:class:`mne.decoding.SSD` and fix related bugs and inconsistencies, by `Gennadiy Belonosov`_.
