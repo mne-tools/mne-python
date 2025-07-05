@@ -906,7 +906,7 @@ def test_survive_pickle(tmp_path):
 @pytest.mark.slowtest  # ~30 s on Azure Windows
 @testing.requires_testing_data
 @pytest.mark.filterwarnings("ignore:Distances could not be calculated.*:RuntimeWarning")
-def test_manual_report_2d(tmp_path, invisible_fig):
+def test_manual_report_2d(tmp_path, invisible_fig, renderer_pyvistaqt):
     """Simulate user manually creating report by adding one file at a time."""
     pytest.importorskip("sklearn")
     pytest.importorskip("pandas")
