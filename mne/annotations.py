@@ -36,6 +36,7 @@ from .utils import (
     _check_option,
     _check_pandas_installed,
     _check_time_format,
+    _check_wfdb_installed,
     _convert_times,
     _DefaultEventParser,
     _dt_to_stamp,
@@ -1351,13 +1352,21 @@ def _write_annotations_txt(fname, annot):
 
 @fill_doc
 def read_annotations(
-    fname, sfreq="auto", uint16_codec=None, encoding="utf8", ignore_marker_types=False
+    fname,
+    sfreq="auto",
+    *,
+    uint16_codec=None,
+    encoding="utf8",
+    ignore_marker_types=False,
+    fmt="auto",
+    suffix=None,
 ) -> Annotations:
     r"""Read annotations from a file.
 
     This function reads a ``.fif``, ``.fif.gz``, ``.vmrk``, ``.amrk``,
-    ``.edf``, ``.bdf``, ``.gdf``, ``.txt``, ``.csv``, ``.cnt``, ``.cef``, or
-    ``.set`` file and makes an :class:`mne.Annotations` object.
+    ``.edf``, ``.bdf``, ``.gdf``, ``.txt``, ``.csv``, ``.cnt``, ``.cef``,
+    ``.set``, or ``.seizures`` file and makes an :class:`mne.Annotations`
+    object.
 
     Parameters
     ----------
@@ -1385,6 +1394,14 @@ def read_annotations(
     ignore_marker_types : bool
         If ``True``, ignore marker types in BrainVision files (and only use their
         descriptions). Defaults to ``False``.
+    fmt : str | None
+        Used to manually specify the format of the annotations file. If
+        ``None`` (default), the format is inferred from the file extension.
+        Currently only supports ``'wfdb'``.
+    suffix : str | None
+        Used to manually specify the suffix of the annotations file for WFDB
+        files.
+        If ``None`` (default), the suffix is inferred from the file extension.
 
     Returns
     -------
@@ -1423,6 +1440,7 @@ def read_annotations(
         ".vmrk": _read_annotations_brainvision,
         ".amrk": _read_annotations_brainvision,
         ".txt": _read_annotations_txt,
+        ".seizures": _read_wfdb_annotations,
     }
     kwargs = {
         ".vmrk": {"sfreq": sfreq, "ignore_marker_types": ignore_marker_types},
@@ -1442,6 +1460,8 @@ def read_annotations(
             annotations = _read_annotations_fif(fid, tree)
     elif fname.name.startswith("events_") and fname.suffix == ".mat":
         annotations = _read_brainstorm_annotations(fname)
+    elif fmt == "wfdb":
+        annotations = _read_wfdb_annotations(fname, suffix=suffix)
     else:
         raise OSError(f'Unknown annotation file format "{fname}"')
 
@@ -1801,6 +1821,20 @@ def _check_event_description(event_desc, events):
         )
 
     return event_desc
+
+
+def _read_wfdb_annotations(fname, suffix=None, sfreq="auto"):
+    """Read annotations from wfdb format."""
+    if suffix is None:
+        suffix = fname.suffix[1:]
+    wfdb = _check_wfdb_installed(strict=True)
+    anno = wfdb.io.rdann(fname.stem, extension=suffix)
+    anno_dict = anno.__dict__
+    sfreq = anno_dict["fs"] if sfreq == "auto" else sfreq
+    onset = anno_dict["sample"] / sfreq
+    duration = np.zeros_like(onset)
+    description = anno_dict["symbol"]
+    return Annotations(onset, duration, description)
 
 
 @verbose

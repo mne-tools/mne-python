@@ -53,6 +53,7 @@ fif_fname = Path(__file__).parents[1] / "io" / "tests" / "data" / "test_raw.fif"
 first_samps = pytest.mark.parametrize("first_samp", (0, 10000))
 edf_reduced = data_path / "EDF" / "test_reduced.edf"
 edf_annot_only = data_path / "EDF" / "SC4001EC-Hypnogram.edf"
+wfdb_dir = data_path / "wfbd"
 
 
 needs_pandas = pytest.mark.skipif(not check_version("pandas"), reason="Needs pandas")
@@ -416,6 +417,16 @@ def test_read_edf_annotations(fname, n_annot):
     """Test reading EDF annotations."""
     annot = read_annotations(fname)
     assert len(annot) == n_annot
+
+
+@testing.requires_testing_data
+def test_read_wfdb_annotations():
+    """Test reading WFDB annotations."""
+    fname = wfdb_dir / "chb06_04.edf.seizures"
+    annot = read_annotations(fname)
+    # Verify that [ and ] are in description
+    assert "[" in annot.description
+    assert "]" in annot.description
 
 
 @first_samps
