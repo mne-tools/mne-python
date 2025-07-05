@@ -64,8 +64,7 @@ class XdawnTransformer(_GEDTransformer):
         Defaults to None.
 
         .. versionadded:: 1.10
-    %(rank)s
-        Defaults to "full".
+    %(rank_full)s
 
         .. versionadded:: 1.10
 
@@ -77,6 +76,10 @@ class XdawnTransformer(_GEDTransformer):
         The Xdawn components used to decompose the data for each event type.
     patterns_ : array, shape (n_channels, n_channels)
         The Xdawn patterns used to restore the signals for each event type.
+
+    See Also
+    --------
+    CSP, SPoC, SSD
     """
 
     def __init__(
@@ -89,7 +92,6 @@ class XdawnTransformer(_GEDTransformer):
         info=None,
         rank="full",
     ):
-        """Init."""
         self.n_components = n_components
         self.signal_cov = signal_cov
         self.reg = reg

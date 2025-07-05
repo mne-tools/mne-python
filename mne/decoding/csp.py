@@ -112,7 +112,7 @@ class CSP(_GEDTransformer):
 
     See Also
     --------
-    mne.preprocessing.Xdawn, SPoC
+    XdawnTransformer, SPoC, SSD
 
     References
     ----------
