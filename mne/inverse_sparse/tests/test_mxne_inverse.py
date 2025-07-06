@@ -589,8 +589,12 @@ def test_mxne_inverse_sure():
         forward, stc, info, noise_cov, nave=nave, use_cps=False, iir_filter=None
     )
     evoked = evoked.crop(tmin=0, tmax=10e-3)
-    stc_ = mixed_norm(evoked, forward, noise_cov, loose=0.9, n_mxne_iter=5, depth=0.9)
-    assert_array_equal(stc_.vertices, stc.vertices)
+    stc_ = mixed_norm(
+        evoked, forward, noise_cov, loose=0.9, n_mxne_iter=5, depth=0.9, random_state=0
+    )
+    assert len(stc_.vertices) == len(stc.vertices) == 2
+    for si in range(len(stc_.vertices)):
+        assert_array_equal(stc_.vertices[si], stc.vertices[si], err_msg=f"{si=}")
 
 
 @pytest.mark.slowtest  # slow on Azure
@@ -609,7 +613,13 @@ def test_mxne_inverse_empty():
     cov = read_cov(fname_cov)
     with pytest.warns(RuntimeWarning, match="too big"):
         stc, residual = mixed_norm(
-            evoked, forward, cov, n_mxne_iter=3, alpha=99, return_residual=True
+            evoked,
+            forward,
+            cov,
+            n_mxne_iter=3,
+            alpha=99,
+            return_residual=True,
+            random_state=0,
         )
         assert stc.data.size == 0
         assert stc.vertices[0].size == 0

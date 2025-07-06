@@ -583,6 +583,7 @@ def test_picks_arg():
 )
 def test_sklearn_compliance(estimator, check):
     """Test LinearModel compliance with sklearn."""
+    pytest.importorskip("sklearn", minversion="1.4")  # TODO VERSION remove on 1.4+
     ignores = (
         "check_methods_sample_order_invariance",
         # Shape stuff
