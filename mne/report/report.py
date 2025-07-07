@@ -475,7 +475,17 @@ def _fig_to_img(
 
 
 def _get_bem_contour_figs_as_arrays(
-    *, sl, n_jobs, mri_fname, surfaces, orientation, src, show, show_orientation, width
+    *,
+    sl,
+    n_jobs,
+    mri_fname,
+    surfaces,
+    orientation,
+    src,
+    trans,
+    show,
+    show_orientation,
+    width,
 ):
     """Render BEM surface contours on MRI slices.
 
@@ -494,6 +504,7 @@ def _get_bem_contour_figs_as_arrays(
             surfaces=surfaces,
             orientation=orientation,
             src=src,
+            trans=trans,
             show=show,
             show_orientation=show_orientation,
             width=width,
@@ -505,6 +516,21 @@ def _get_bem_contour_figs_as_arrays(
     for o in outs:
         out.extend(o)
     return out
+
+
+def _iterate_alignment_views(function, alpha, **kwargs):
+    """Auxiliary function to iterate over views in trans fig."""
+    from ..viz.backends.renderer import MNE_3D_BACKEND_TESTING
+
+    # TODO: Eventually maybe we should expose the size option?
+    size = (80, 80) if MNE_3D_BACKEND_TESTING else (800, 800)
+    fig = create_3d_figure(size, bgcolor=(0.5, 0.5, 0.5))
+    from ..viz.backends.renderer import backend
+
+    try:
+        return _itv(function, fig, **kwargs)
+    finally:
+        backend._close_3d_figure(fig)
 
 
 def _iterate_trans_views(function, alpha, **kwargs):
@@ -531,7 +557,18 @@ def _itv(function, fig, *, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES, **kwarg
 
     function(fig=fig, **kwargs)
 
-    views = ("frontal", "lateral", "medial", "axial", "rostral", "coronal")
+    views = (
+        "right_lateral",
+        "right_anterolateral",
+        "anterior",
+        "left_anterolateral",
+        "left_lateral",
+        "superior",
+        "right_posterolateral",
+        "posterior",
+        "left_posterolateral",
+        "inferior",
+    )
 
     images = []
     for view in views:
@@ -544,7 +581,7 @@ def _itv(function, fig, *, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES, **kwarg
         images.append(im)
 
     images = np.concatenate(
-        [np.concatenate(images[:3], axis=1), np.concatenate(images[3:], axis=1)], axis=0
+        [np.concatenate(images[:5], axis=1), np.concatenate(images[5:], axis=1)], axis=0
     )
 
     try:
@@ -2655,6 +2692,8 @@ class Report:
         self._add_bem(
             subject=subject,
             subjects_dir=subjects_dir,
+            src=None,
+            trans=None,
             decim=decim,
             n_jobs=n_jobs,
             width=width,
@@ -3245,6 +3284,8 @@ class Report:
         surfaces,
         image_format,
         orientation,
+        src=None,
+        trans=None,
         decim=2,
         n_jobs=None,
         width=512,
@@ -3265,7 +3306,8 @@ class Report:
             mri_fname=mri_fname,
             surfaces=surfaces,
             orientation=orientation,
-            src=None,
+            src=src,
+            trans=trans,
             show=False,
             show_orientation="always",
             width=width,
@@ -3573,6 +3615,89 @@ class Report:
             html_partial=html_partial,
             replace=replace,
         )
+
+        if subject:
+            src = forward["src"]
+            trans = forward["mri_head_t"]
+            # Alignment
+            kwargs = dict(
+                info=forward["info"],
+                trans=trans,
+                src=src,
+                subject=subject,
+                subjects_dir=subjects_dir,
+                meg=["helmet", "sensors"],
+                show_axes=True,
+                eeg=dict(original=0.2, projected=0.8),
+                coord_frame="mri",
+            )
+            img, _ = _iterate_trans_views(
+                function=plot_alignment,
+                alpha=0.5,
+                max_width=self.img_max_width,
+                max_res=self.img_max_res,
+                **kwargs,
+            )
+            self._add_image(
+                img=img,
+                title="Alignment",
+                section=section,
+                caption=None,
+                image_format="png",
+                tags=tags,
+                replace=replace,
+            )
+            # Source space
+            kwargs = dict(
+                trans=trans,
+                subjects_dir=subjects_dir,
+            )
+
+            self._add_bem(
+                subject=subject,
+                subjects_dir=subjects_dir,
+                src=src,
+                trans=trans,
+                decim=1,
+                n_jobs=1,
+                width=512,
+                image_format=image_format,
+                title="Source space(s) (BEM view)",
+                section=section,
+                tags=tags,
+                replace=replace,
+            )
+
+            if src.kind == "surface" or src.kind == "mixed":
+                surfaces = dict(head=0.1, white=0.5)
+            else:
+                surfaces = dict(head=0.1)
+
+            kwargs = dict(
+                trans=trans,
+                src=src,
+                subject=subject,
+                subjects_dir=subjects_dir,
+                show_axes=False,
+                coord_frame="mri",
+                surfaces=surfaces,
+            )
+            img, _ = _iterate_alignment_views(
+                function=plot_alignment,
+                alpha=0.5,
+                max_width=self.img_max_width,
+                max_res=self.img_max_res,
+                **kwargs,
+            )
+            self._add_image(
+                img=img,
+                title="Source space(s) (3D view)",
+                section=section,
+                caption=None,
+                image_format="png",
+                tags=tags,
+                replace=replace,
+            )
 
     def _add_inverse_operator(
         self,
@@ -4440,13 +4565,15 @@ class Report:
         *,
         subject,
         subjects_dir,
+        src,
+        trans,
         decim,
         n_jobs,
         width=512,
         image_format,
         title,
-        tags,
         section,
+        tags,
         replace,
     ):
         """Render mri+bem (only PNG)."""
@@ -4472,6 +4599,8 @@ class Report:
                 mri_fname=mri_fname,
                 surfaces=surfaces,
                 orientation=orientation,
+                src=src,
+                trans=trans,
                 decim=decim,
                 n_jobs=n_jobs,
                 width=width,

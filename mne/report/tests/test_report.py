@@ -514,6 +514,29 @@ def test_add_bem_n_jobs(n_jobs, monkeypatch):
     assert 0.778 < corr < 0.80
 
 
+@pytest.mark.filterwarnings("ignore:Distances could not be calculated.*:RuntimeWarning")
+@pytest.mark.slowtest
+@testing.requires_testing_data
+def test_add_forward(renderer_interactive_pyvistaqt):
+    """Test add_forward."""
+    report = Report(subjects_dir=subjects_dir, image_format="png")
+    report.add_forward(
+        forward=fwd_fname,
+        subject="sample",
+        subjects_dir=subjects_dir,
+        title="Forward solution",
+    )
+    assert len(report.html) == 4
+
+    report = Report(subjects_dir=subjects_dir, image_format="png")
+    report.add_forward(
+        forward=fwd_fname,
+        subjects_dir=subjects_dir,
+        title="Forward solution",
+    )
+    assert len(report.html) == 1
+
+
 @testing.requires_testing_data
 def test_render_mri_without_bem(tmp_path):
     """Test rendering MRI without BEM for mne report."""
@@ -882,7 +905,8 @@ def test_survive_pickle(tmp_path):
 
 @pytest.mark.slowtest  # ~30 s on Azure Windows
 @testing.requires_testing_data
-def test_manual_report_2d(tmp_path, invisible_fig):
+@pytest.mark.filterwarnings("ignore:Distances could not be calculated.*:RuntimeWarning")
+def test_manual_report_2d(tmp_path, invisible_fig, renderer_pyvistaqt):
     """Simulate user manually creating report by adding one file at a time."""
     pytest.importorskip("sklearn")
     pytest.importorskip("pandas")

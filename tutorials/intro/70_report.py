@@ -126,10 +126,9 @@ report.save("report_epochs.html", overwrite=True)
 # specify custom titles via the ``titles`` parameter. Again, this method
 # also accepts the path to an evoked file stored on disk; in the following
 # example, however, we load the evokeds manually first, since we only want to
-# add a subset of them to the report. The evokeds are not baseline-corrected,
-# so we apply baseline correction, too. Lastly, by providing an (optional)
-# noise covariance, we can add plots evokeds that were "whitened" using this
-# covariance matrix.
+# add a subset of them to the report. The evokeds are not baseline-corrected, so we
+# apply baseline correction, too. Lastly, by providing an (optional) noise covariance,
+# we can add plots evokeds that were "whitened" using this covariance matrix.
 #
 # By default, this method will produce topographic plots at 21 equally-spaced time
 # points (or fewer, if the data contains fewer time points). We can adjust this
