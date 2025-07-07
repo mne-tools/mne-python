@@ -443,7 +443,7 @@ def _plot_mri_contours(
         for src_ in src:
             points = src_["rr"][src_["vertno"]]
             if src_["coord_frame"] != FIFF.FIFFV_COORD_MRI:
-                trans = _get_trans(
+                trans, _ = _get_trans(
                     trans,
                     fro="head",
                     to="mri",
