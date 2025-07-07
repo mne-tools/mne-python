@@ -597,6 +597,7 @@ class Annotations:
         Parameters
         ----------
         %(time_format_df_raw)s
+            Default is ``datetime``.
 
             .. versionadded:: 1.7
 

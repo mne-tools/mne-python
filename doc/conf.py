@@ -164,7 +164,7 @@ intersphinx_mapping = {
     "mne_bids": ("https://mne.tools/mne-bids/stable", None),
     "mne-connectivity": ("https://mne.tools/mne-connectivity/stable", None),
     "mne-gui-addons": ("https://mne.tools/mne-gui-addons", None),
-    "picard": ("https://pierreablin.github.io/picard/", None),
+    "picard": ("https://mind-inria.github.io/picard/", None),
     "eeglabio": ("https://eeglabio.readthedocs.io/en/latest", None),
     "pybv": ("https://pybv.readthedocs.io/en/latest", None),
 }
