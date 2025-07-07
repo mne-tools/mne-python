@@ -641,9 +641,10 @@ def _validate_type(item, types=None, item_name=None, type_name=None, *, extra=""
                 type_name[-1] = "or " + type_name[-1]
                 type_name = ", ".join(type_name)
         _item_name = "Item" if item_name is None else item_name
+        _item_type = type(item) if item is not None else item
         raise TypeError(
             f"{_item_name} must be an instance of {type_name}{extra}, "
-            f"got {type(item)} instead."
+            f"got {_item_type} instead."
         )
 
 

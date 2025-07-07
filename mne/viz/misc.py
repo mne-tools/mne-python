@@ -32,7 +32,7 @@ from ..filter import estimate_ringing_samples
 from ..fixes import _safe_svd
 from ..rank import compute_rank
 from ..surface import read_surface
-from ..transforms import apply_trans
+from ..transforms import _get_trans, apply_trans
 from ..utils import (
     _check_option,
     _mask_to_onsets_offsets,
@@ -441,14 +441,16 @@ def _plot_mri_contours(
     if src is not None:
         _ensure_src(src, extra=" or None")
         for src_ in src:
-            points = src_["rr"][src_["inuse"].astype(bool)]
+            points = src_["rr"][src_["vertno"]]
             if src_["coord_frame"] != FIFF.FIFFV_COORD_MRI:
-                if trans is None:
-                    raise ValueError(
-                        "Source space must be in MRI coordinates, or provide a trans."
-                    )
-                else:
-                    points = apply_trans(np.linalg.inv(trans["trans"]), points)
+                trans = _get_trans(
+                    trans,
+                    fro="head",
+                    to="mri",
+                    allow_none=False,
+                    extra="when src is in head coordinates",
+                )
+                points = apply_trans(np.linalg.inv(trans["trans"]), points)
             sources.append(apply_trans(mri_rasvox_t, points * 1e3))
         sources = np.concatenate(sources, axis=0)
 
