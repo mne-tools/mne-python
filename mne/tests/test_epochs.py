@@ -591,7 +591,7 @@ def test_reject():
         for kwarg in ("reject", "flat"):
             with pytest.raises(
                 TypeError,
-                match=r".* must be an instance of .* got <class '.*'> instead.",
+                match=r".* must be an instance of .* got None instead.",
             ):
                 epochs = Epochs(
                     raw,
