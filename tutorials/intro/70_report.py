@@ -324,7 +324,9 @@ report.save("report_coregistration.html", overwrite=True)
 fwd_path = sample_dir / "sample_audvis-meg-oct-6-fwd.fif"
 
 report = mne.Report(title="Forward solution example")
-report.add_forward(forward=fwd_path, title="Forward solution", plot=True)
+report.add_forward(
+    forward=fwd_path, title="Forward solution", plot=True, subjects_dir=subjects_dir
+)
 report.save("report_forward_sol.html", overwrite=True)
 
 # %%
@@ -339,7 +341,10 @@ inverse_op_path = sample_dir / "sample_audvis-meg-oct-6-meg-inv.fif"
 
 report = mne.Report(title="Inverse operator example")
 report.add_inverse_operator(
-    inverse_operator=inverse_op_path, title="Inverse operator", plot=True
+    inverse_operator=inverse_op_path,
+    title="Inverse operator",
+    plot=True,
+    subjects_dir=subjects_dir,
 )
 report.save("report_inverse_op.html", overwrite=True)
 
