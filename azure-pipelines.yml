@@ -156,7 +156,7 @@ stages:
         variables:
           DISPLAY: ':99'
           OPENBLAS_NUM_THREADS: '1'
-          TEST_OPTIONS: "--tb=short --cov=mne --cov-report=xml --cov-append -vv mne/viz/_brain mne/viz/backends mne/viz/tests/test_evoked.py mne/gui mne/report"
+          TEST_OPTIONS: "--tb=short --cov=mne --cov-report=xml --cov-append -m \"not ultraslowtest\" -vv mne/viz/_brain mne/viz/backends mne/viz/tests/test_evoked.py mne/gui mne/report"
           MNE_TEST_ALLOW_SKIP: '^.*(PySide6 causes segfaults).*$'
         steps:
           - bash: ./tools/setup_xvfb.sh
