@@ -522,19 +522,22 @@ def test_add_forward(renderer_interactive_pyvistaqt):
     report = Report(subjects_dir=subjects_dir, image_format="png")
     report.add_forward(
         forward=fwd_fname,
-        subject="sample",
         subjects_dir=subjects_dir,
         title="Forward solution",
+        plot=True,
     )
-    assert len(report.html) == 4
+    assert len(report.html) == 1
+    assert report.html[0].count("<img") == 1
 
     report = Report(subjects_dir=subjects_dir, image_format="png")
     report.add_forward(
         forward=fwd_fname,
         subjects_dir=subjects_dir,
         title="Forward solution",
+        plot=False,
     )
     assert len(report.html) == 1
+    assert report.html[0].count("<img") == 0
 
 
 @testing.requires_testing_data
@@ -906,7 +909,7 @@ def test_survive_pickle(tmp_path):
 @pytest.mark.slowtest  # ~30 s on Azure Windows
 @testing.requires_testing_data
 @pytest.mark.filterwarnings("ignore:Distances could not be calculated.*:RuntimeWarning")
-def test_manual_report_2d(tmp_path, invisible_fig, renderer_pyvistaqt):
+def test_manual_report_2d(tmp_path, invisible_fig):
     """Simulate user manually creating report by adding one file at a time."""
     pytest.importorskip("sklearn")
     pytest.importorskip("pandas")
@@ -1209,7 +1212,7 @@ def test_manual_report_3d(tmp_path, renderer):
         title="my inverse",
         subject="sample",
         subjects_dir=subjects_dir,
-        trans=trans_fname,
+        plot=True,
     )
     r.add_stc(
         stc=stc_fname,
