@@ -329,6 +329,8 @@ class SourceSpaces(list):
         skull=None,
         subjects_dir=None,
         trans=None,
+        *,
+        fig=None,
         verbose=None,
     ):
         """Plot the source space.
@@ -358,6 +360,11 @@ class SourceSpaces(list):
             produced during coregistration. If trans is None, an identity
             matrix is assumed. This is only needed when the source space is in
             head coordinates.
+        fig : Figure3D | None
+            PyVista scene in which to plot the alignment.
+            If ``None``, creates a new 600x600 pixel figure with black background.
+
+            .. versionadded:: 1.10
         %(verbose)s
 
         Returns
@@ -427,6 +434,7 @@ class SourceSpaces(list):
             ecog=False,
             bem=bem,
             src=self,
+            fig=fig,
         )
 
     def __getitem__(self, *args, **kwargs):
