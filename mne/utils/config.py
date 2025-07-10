@@ -687,7 +687,7 @@ def _get_total_memory():
                 "(Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory",
             ]
         ).decode()
-        # Can get for eaxmple a "running scripts is disabled on this system"
+        # Can get for example a "running scripts is disabled on this system"
         # error where "o" will be a long string rather than an int
         try:
             total_memory = int(o)
