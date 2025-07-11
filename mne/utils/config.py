@@ -687,7 +687,12 @@ def _get_total_memory():
                 "(Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory",
             ]
         ).decode()
-        total_memory = int(o)
+        # Can get for example a "running scripts is disabled on this system"
+        # error where "o" will be a long string rather than an int
+        try:
+            total_memory = int(o)
+        except Exception:  # pragma: no cover
+            total_memory = 0
     elif platform.system() == "Linux":
         o = subprocess.check_output(["free", "-b"]).decode()
         total_memory = int(o.splitlines()[1].split()[1])
