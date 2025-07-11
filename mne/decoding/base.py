@@ -99,8 +99,7 @@ class _GEDTransformer(MNETransformerMixin, BaseEstimator):
 
     def __init__(
         self,
-        cov_callable,
-        *,
+        cov_callable=None,
         n_components=None,
         mod_ged_callable=None,
         dec_type="single",
