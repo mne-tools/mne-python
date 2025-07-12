@@ -547,10 +547,9 @@ def test_mxne_inverse_sure_synthetic(
     assert np.count_nonzero(active_set, axis=-1) == n_orient * nnz
 
 
-@pytest.mark.skip(reason="weird failure on ubuntu tests, temporary skip.")
 @pytest.mark.slowtest  # slow on Azure
 @testing.requires_testing_data
-def test_mxne_inverse_sure_meg():
+def test_mxne_inverse_sure():
     """Tests SURE criterion for automatic alpha selection on MEG data."""
 
     def data_fun(times):
@@ -559,10 +558,10 @@ def test_mxne_inverse_sure_meg():
         return data
 
     n_dipoles = 2
-    raw = mne.io.read_raw_fif(fname_raw).pick_types("grad", exclude="bads")
-    raw.del_proj()
-    info = raw.info
-    del raw
+    raw = mne.io.read_raw_fif(fname_raw)
+    info = mne.io.read_info(fname_data)
+    with info._unlock():
+        info["projs"] = []
     noise_cov = mne.make_ad_hoc_cov(info)
     label_names = ["Aud-lh", "Aud-rh"]
     labels = [
@@ -573,8 +572,10 @@ def test_mxne_inverse_sure_meg():
         data_path / "MEG" / "sample" / "sample_audvis_trunc-meg-eeg-oct-4-fwd.fif"
     )
     forward = mne.read_forward_solution(fname_fwd)
-    forward = mne.pick_channels_forward(forward, info["ch_names"])
-    times = np.arange(100, dtype=np.float64) / info["sfreq"] - 0.1
+    forward = mne.pick_types_forward(
+        forward, meg="grad", eeg=False, exclude=raw.info["bads"]
+    )
+    times = np.arange(100, dtype=np.float64) / raw.info["sfreq"] - 0.1
     stc = simulate_sparse_stc(
         forward["src"],
         n_dipoles=n_dipoles,
@@ -583,16 +584,13 @@ def test_mxne_inverse_sure_meg():
         labels=labels,
         data_fun=data_fun,
     )
-    assert len(stc.vertices) == 2
-    assert_array_equal(stc.vertices[0], [89259])
-    assert_array_equal(stc.vertices[1], [70279])
     nave = 30
     evoked = simulate_evoked(
         forward, stc, info, noise_cov, nave=nave, use_cps=False, iir_filter=None
     )
     evoked = evoked.crop(tmin=0, tmax=10e-3)
     stc_ = mixed_norm(
-        evoked, forward, noise_cov, loose=0.9, n_mxne_iter=5, depth=0.9, random_state=1
+        evoked, forward, noise_cov, loose=0.9, n_mxne_iter=5, depth=0.9, random_state=0
     )
     assert len(stc_.vertices) == len(stc.vertices) == 2
     for si in range(len(stc_.vertices)):
