@@ -17,6 +17,7 @@ __all__ = [
     "TransformerMixin",
     "UnsupervisedSpatialFilter",
     "Vectorizer",
+    "XdawnTransformer",
     "compute_ems",
     "cross_val_multiscore",
     "get_coef",
@@ -43,3 +44,4 @@ from .transformer import (
     UnsupervisedSpatialFilter,
     Vectorizer,
 )
+from .xdawn import XdawnTransformer
