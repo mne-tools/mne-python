@@ -21,7 +21,10 @@ if [ ! -z "$CONDA_ENV" ]; then
 		STD_ARGS="--progress-bar off"
 	fi
 elif [[ "${MNE_CI_KIND}" == "pip" ]]; then
-	INSTALL_KIND="full-pyside6,$INSTALL_KIND"
+	# Only used for 3.13 at the moment, just get test deps plus a few extras
+	# that we know are available
+	INSTALL_ARGS="nibabel scikit-learn numpydoc PySide6!=6.9.1 mne-qt-browser pandas h5io mffpy defusedxml numba pyvistaqt"
+	INSTALL_KIND="test"
 else
 	test "${MNE_CI_KIND}" == "pip-pre"
 	STD_ARGS="$STD_ARGS --pre"
