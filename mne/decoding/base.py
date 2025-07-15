@@ -26,6 +26,7 @@ from sklearn.utils.validation import check_is_fitted
 
 from ..parallel import parallel_func
 from ..utils import _check_option, _pl, _validate_type, logger, pinv, verbose, warn
+from ..viz import SpatialFilter
 from ._ged import _handle_restr_mat, _is_cov_symm_pos_semidef, _smart_ajd, _smart_ged
 from ._mod_ged import _no_op_mod
 from .transformer import MNETransformerMixin
@@ -192,6 +193,33 @@ class _GEDTransformer(MNETransformerMixin, BaseEstimator):
             pick_filters = self._subset_multi_components()
         X = pick_filters @ X
         return X
+
+    def get_spatial_filter(self, info):
+        """Create a SpatialFilter object.
+
+        Creates a :class:`mne.viz.SpatialFilter` object from the fitted
+        generalized eigendecomposition or other linear models.
+        This object can be used to visualize the spatial filters,
+        patterns, and eigenvalues.
+
+        Parameters
+        ----------
+        info : instance of mne.Info
+            The measurement info object for plotting topomaps.
+
+        Returns
+        -------
+        sp_filter : instance of SpatialFilter
+            The spatial filter object
+        """
+        sp_filter = SpatialFilter(
+            info,
+            evecs=self.filters_.T,
+            evals=self.evals_,
+            patterns=self.patterns_,
+            patterns_method="pinv",
+        )
+        return sp_filter
 
     def _subset_multi_components(self, name="filters"):
         # The shape of stored filters and patterns is

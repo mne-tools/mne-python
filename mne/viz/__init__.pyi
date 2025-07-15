@@ -3,6 +3,7 @@ __all__ = [
     "ClickableImage",
     "EvokedField",
     "Figure3D",
+    "SpatialFilter",
     "_RAW_CLIP_DEF",
     "_get_plot_ch_type",
     "_get_presser",
@@ -118,6 +119,7 @@ from .backends.renderer import (
     use_3d_backend,
 )
 from .circle import circular_layout, plot_channel_labels_circle
+from .decoding.ged import SpatialFilter
 from .epochs import plot_drop_log, plot_epochs, plot_epochs_image, plot_epochs_psd
 from .evoked import (
     plot_compare_evokeds,

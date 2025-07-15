@@ -103,6 +103,21 @@ Eyetracking
 
    plot_gaze
 
+Decoding
+--------
+
+.. currentmodule:: mne.viz.decoding
+
+:py:mod:`mne.viz.decoding`:
+
+.. automodule:: mne.viz.decoding
+   :no-members:
+   :no-inherited-members:
+.. autosummary::
+   :toctree: ../generated/
+
+   SpatialFilter
+
 UI Events
 ---------
 

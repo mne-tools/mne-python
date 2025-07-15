@@ -3,3 +3,4 @@
 # Copyright the MNE-Python contributors.
 
 """Decoding visualization routines."""
+from .ged import SpatialFilter
