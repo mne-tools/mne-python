@@ -167,9 +167,9 @@ def test_xdawn_apply_transform():
     pytest.raises(ValueError, xd.transform, 42)
 
     # Check numerical results with shuffled epochs
-    np.random.seed(0)  # random makes unstable linalg
+    rng = np.random.RandomState(0)
     idx = np.arange(len(epochs))
-    np.random.shuffle(idx)
+    rng.shuffle(idx)
     xd.fit(epochs[idx])
     denoise_shfl = xd.apply(epochs)
     assert_array_almost_equal(denoise["cond2"]._data, denoise_shfl["cond2"]._data)

@@ -335,7 +335,7 @@ def test_ssd_pipeline():
     X, A, S = simulate_data(n_trials=100, n_channels=20, n_samples=500)
     X_e = np.reshape(X, (100, 20, 500))
     # define bynary random output
-    y = np.random.randint(2, size=100)
+    y = np.random.RandomState(0).randint(2, size=100)
 
     info = create_info(ch_names=20, sfreq=sf, ch_types="eeg")
 
