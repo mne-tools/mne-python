@@ -1,1 +1,0 @@
-User can set values for fields ``proj_id`` and ``proj_name`` in ``Info`` dict, by :newcontrib:`Laurent Le Mentec`.

@@ -88,8 +88,8 @@ def test_compute_fine_cal(kind):
         angle_limit = 10
         cl["grad"] = (0.0, 0.1)
         gwoma = [48, 52]
-        ggoma = [13, 67]
-        ggwma = [13, 120]
+        ggoma = [13, 82]
+        ggwma = [13, 135]
         sfs = [34, 35, 27, 28, 50, 53, 75, 79]  # ours is better!
         cl3 = [-0.3, -0.1]
     raw = read_raw_fif(erm)

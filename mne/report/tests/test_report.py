@@ -514,6 +514,32 @@ def test_add_bem_n_jobs(n_jobs, monkeypatch):
     assert 0.778 < corr < 0.80
 
 
+@pytest.mark.filterwarnings("ignore:Distances could not be calculated.*:RuntimeWarning")
+@pytest.mark.slowtest
+@testing.requires_testing_data
+def test_add_forward(renderer_interactive_pyvistaqt):
+    """Test add_forward."""
+    report = Report(subjects_dir=subjects_dir, image_format="png")
+    report.add_forward(
+        forward=fwd_fname,
+        subjects_dir=subjects_dir,
+        title="Forward solution",
+        plot=True,
+    )
+    assert len(report.html) == 1
+    assert report.html[0].count("<img") == 1
+
+    report = Report(subjects_dir=subjects_dir, image_format="png")
+    report.add_forward(
+        forward=fwd_fname,
+        subjects_dir=subjects_dir,
+        title="Forward solution",
+        plot=False,
+    )
+    assert len(report.html) == 1
+    assert report.html[0].count("<img") == 0
+
+
 @testing.requires_testing_data
 def test_render_mri_without_bem(tmp_path):
     """Test rendering MRI without BEM for mne report."""
@@ -882,6 +908,7 @@ def test_survive_pickle(tmp_path):
 
 @pytest.mark.slowtest  # ~30 s on Azure Windows
 @testing.requires_testing_data
+@pytest.mark.filterwarnings("ignore:Distances could not be calculated.*:RuntimeWarning")
 def test_manual_report_2d(tmp_path, invisible_fig):
     """Simulate user manually creating report by adding one file at a time."""
     pytest.importorskip("sklearn")
@@ -1185,7 +1212,7 @@ def test_manual_report_3d(tmp_path, renderer):
         title="my inverse",
         subject="sample",
         subjects_dir=subjects_dir,
-        trans=trans_fname,
+        plot=True,
     )
     r.add_stc(
         stc=stc_fname,

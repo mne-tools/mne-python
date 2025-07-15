@@ -1001,6 +1001,19 @@ def test_field_round_trip(tmp_path):
     assert_object_equal(info, info_read)
     with pytest.raises(TypeError, match="datetime"):
         info["helium_info"]["meas_date"] = (1, 2)
+    # should allow it to be None, though (checking gh-13154)
+    info["helium_info"]["meas_date"] = None
+    info.save(fname, overwrite=True)
+    info_read = read_info(fname)
+    assert_object_equal(info, info_read)
+    assert info_read["helium_info"]["meas_date"] is None
+    # not 100% sure how someone could end up with it deleted, but should still be
+    # writeable
+    del info["helium_info"]["meas_date"]
+    info.save(fname, overwrite=True)
+    info_read = read_info(fname)
+    info["helium_info"]["meas_date"] = None  # we always set it (which is reasonable)
+    assert_object_equal(info, info_read)
 
 
 def test_equalize_channels():

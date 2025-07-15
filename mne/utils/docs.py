@@ -1013,32 +1013,36 @@ cross_talk : str | None
 
 _dB = """
 dB : bool
-    Whether to plot on a decibel-like scale. If ``True``, plots
-    10 × log₁₀({quantity}){caveat}.{extra}
+    Whether to plot on a decibel scale. If ``True``, plots
+    10 × log₁₀({quantity}){ampl}{caveat}.{extra}
 """
-_ignored_if_normalize = " Ignored if ``normalize=True``."
-_psd = "spectral power"
+_psd = "spectral_power/Hz"
 
+# for the legacy func/methods:
 docdict["dB_plot_psd"] = """\
 dB : bool
-    Plot Power Spectral Density (PSD), in units (amplitude**2/Hz (dB)) if
-    ``dB=True``, and ``estimate='power'`` or ``estimate='auto'``. Plot PSD
-    in units (amplitude**2/Hz) if ``dB=False`` and,
-    ``estimate='power'``. Plot Amplitude Spectral Density (ASD), in units
-    (amplitude/sqrt(Hz)), if ``dB=False`` and ``estimate='amplitude'`` or
-    ``estimate='auto'``. Plot ASD, in units (amplitude/sqrt(Hz) (dB)), if
-    ``dB=True`` and ``estimate='amplitude'``.
+    Plot power spectral density (PSD) in units (dB/Hz) if ``dB=True`` and
+    ``estimate='power'``. Plot PSD in units (amplitude**2/Hz) if
+    ``dB=False`` and ``estimate='power'``. Plot amplitude spectral density (ASD) in
+    units (amplitude/sqrt(Hz)) if ``dB=False`` and ``estimate='amplitude'``.
+    Plot ASD in units (dB/sqrt(Hz)) if ``dB=True`` and ``estimate='amplitude'``.
 """
 docdict["dB_plot_topomap"] = _dB.format(
     quantity=_psd,
-    caveat=" following the application of ``agg_fun``",
-    extra=_ignored_if_normalize,
+    ampl="",
+    caveat=", following the application of ``agg_fun``",
+    extra=" Ignored if ``normalize=True``.",
 )
-docdict["dB_spectrum_plot"] = _dB.format(quantity=_psd, caveat="", extra="")
+docdict["dB_spectrum_plot"] = _dB.format(
+    quantity=_psd,
+    ampl=", or 20 × log₁₀(spectral amplitude/√Hz) if ``amplitude=True``",
+    caveat="",
+    extra="",
+)
 docdict["dB_spectrum_plot_topo"] = _dB.format(
-    quantity=_psd, caveat="", extra=_ignored_if_normalize
+    quantity=_psd, ampl="", caveat="", extra=""
 )
-docdict["dB_tfr_plot_topo"] = _dB.format(quantity="data", caveat="", extra="")
+docdict["dB_tfr_plot"] = _dB.format(quantity="data", ampl="", caveat="", extra="")
 
 _data_template = """
 data : ndarray, shape ({})
@@ -2033,7 +2037,7 @@ or :func:`mne.channels.make_dig_montage` like (for a 3x5/ETG-7000 example):
 >>> mon = mne.channels.make_standard_montage('standard_1020')
 >>> need = 'S1 D1 S2 D2 S3 D3 S4 D4 S5 D5 S6 D6 S7 D7 S8'.split()
 >>> have = 'F3 FC3 C3 CP3 P3 F5 FC5 C5 CP5 P5 F7 FT7 T7 TP7 P7'.split()
->>> mon.rename_channels(dict(zip(have, need)))
+>>> mon.rename_channels(dict(zip(have, need)))  # doctest: +SKIP
 >>> raw.set_montage(mon)  # doctest: +SKIP
 
 The 3x3 (ETG-100) is laid out as two separate layouts::
@@ -4629,7 +4633,7 @@ time_format : str | None
     remain as float values in seconds. If ``'ms'``, time values will be rounded
     to the nearest millisecond and converted to integers. If ``'timedelta'``,
     time values will be converted to :class:`pandas.Timedelta` values. {}
-    Default is ``None``.
+    Default is ``None`` unless specified otherwise.
 """
 
 docdict["time_format_df"] = _time_format_df_base.format("")
