@@ -721,7 +721,7 @@ def transform_to_head(montage):
     Returns
     -------
     montage : instance of DigMontage
-        The montage after transforming the points to head
+        A copy of the montage after transforming the points to head
         coordinate system.
 
     Notes
