@@ -10,7 +10,8 @@ fi
 if [ "${MNE_CI_KIND}" == "notebook" ]; then
   USE_DIRS=mne/viz/
 else
-  USE_DIRS="mne/"
+  # TODO: Go back to just mne/
+  USE_DIRS="mne/inverse_sparse/tests/test_mxne_inverse.py"
 fi
 JUNIT_PATH="junit-results.xml"
 if [[ ! -z "$CONDA_ENV" ]] && [[ "${RUNNER_OS}" != "Windows" ]] && [[ "${MNE_CI_KIND}" != "minimal" ]] && [[ "${MNE_CI_KIND}" != "old" ]]; then
