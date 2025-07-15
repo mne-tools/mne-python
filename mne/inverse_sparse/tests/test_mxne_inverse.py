@@ -364,7 +364,13 @@ def test_mxne_vol_sphere():
         tstep=stc.tstep,
     )
     evoked_dip = mne.simulation.simulate_evoked(
-        fwd, stc, info, cov, nave=1e9, use_cps=True
+        fwd,
+        stc,
+        info,
+        cov,
+        nave=1e9,
+        use_cps=True,
+        random_state=0,
     )
 
     dip_mxne = mixed_norm(
@@ -587,7 +593,14 @@ def test_mxne_inverse_sure_meg():
     assert_array_equal(stc.vertices[1], [70279])
     nave = 30
     evoked = simulate_evoked(
-        forward, stc, info, noise_cov, nave=nave, use_cps=False, iir_filter=None
+        forward,
+        stc,
+        info,
+        noise_cov,
+        nave=nave,
+        use_cps=False,
+        iir_filter=None,
+        random_state=0,
     )
     evoked = evoked.crop(tmin=0, tmax=10e-3)
     stc_ = mixed_norm(
