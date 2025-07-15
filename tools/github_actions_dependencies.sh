@@ -21,7 +21,8 @@ if [ ! -z "$CONDA_ENV" ]; then
 		STD_ARGS="--progress-bar off"
 	fi
 elif [[ "${MNE_CI_KIND}" == "pip" ]]; then
-	INSTALL_KIND="full-pyside6,$INSTALL_KIND"
+	# This one is free-threaded so can't have numba as of 2025/07/15
+	INSTALL_DEPS="nibabel scikit-learn numpydoc PySide6!=6.9.1 mne-qt-browser pandas h5io mffpy defusedxml numba pyvistaqt edfio mffpy"
 else
 	test "${MNE_CI_KIND}" == "pip-pre"
 	STD_ARGS="$STD_ARGS --pre"
