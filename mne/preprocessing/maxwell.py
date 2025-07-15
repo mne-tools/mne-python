@@ -493,6 +493,8 @@ def _prep_maxwell_filter(
         )
     if st_only and st_duration is None:
         raise ValueError("st_duration must not be None if st_only is True")
+    if head_pos is None and mc_interp:
+        mc_interp = "zero"
     add_channels = (head_pos is not None) and (not st_only)
     head_pos = _check_pos(head_pos, coord_frame, raw, st_fixed)
     mc = _MoveComp(head_pos, coord_frame, raw, mc_interp, reconstruct)

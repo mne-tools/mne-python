@@ -278,6 +278,8 @@ def test_fine_cal_systems(system, tmp_path):
         regularize=None,
         bad_condition="ignore",
         int_order=int_order,
+        st_overlap=False,
+        mc_interp="zero",
     )
     raw_sss = maxwell_filter(raw, **kwargs)
     _assert_shielding(raw_sss, raw, *sfs[0:2])
