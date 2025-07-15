@@ -6,6 +6,8 @@
 
 import datetime as dt
 import numbers
+from functools import partial
+from inspect import Parameter, signature
 
 import numpy as np
 from sklearn import model_selection as models
@@ -20,9 +22,258 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import check_scoring
 from sklearn.model_selection import KFold, StratifiedKFold, check_cv
 from sklearn.utils import check_array, check_X_y, indexable
+from sklearn.utils.validation import check_is_fitted
 
 from ..parallel import parallel_func
-from ..utils import _pl, logger, verbose, warn
+from ..utils import _check_option, _pl, _validate_type, logger, pinv, verbose, warn
+from ._ged import _handle_restr_mat, _is_cov_symm_pos_semidef, _smart_ajd, _smart_ged
+from ._mod_ged import _no_op_mod
+from .transformer import MNETransformerMixin
+
+
+class _GEDTransformer(MNETransformerMixin, BaseEstimator):
+    """M/EEG signal decomposition using the generalized eigenvalue decomposition (GED).
+
+    Given two channel covariance matrices S and R, the goal is to find spatial filters
+    that maximise contrast between S and R.
+
+    Parameters
+    ----------
+    n_components : int | None
+        The number of spatial filters to decompose M/EEG signals.
+        If None, all of the components will be used for transformation.
+        Defaults to None.
+    cov_callable : callable
+        Function used to estimate covariances and reference matrix (C_ref) from the
+        data. The only required arguments should be 'X' and optionally 'y'. The function
+        should return covs, C_ref, info, rank and additional kwargs passed further
+        to mod_ged_callable. C_ref, info, rank can be None and kwargs can be empty dict.
+    mod_ged_callable : callable | None
+        Function used to modify (e.g. sort or normalize) generalized
+        eigenvalues and eigenvectors. It should accept as arguments evals, evecs
+        and also covs and optional kwargs returned by cov_callable. It should return
+        sorted and/or modified evals and evecs and the list of indices according
+        to which the first two were sorted. If None, evals and evecs will be
+        ordered according to :func:`~scipy.linalg.eigh` default. Defaults to None.
+    dec_type : "single" | "multi"
+        When "single" and cov_callable returns > 2 covariances,
+        approximate joint diagonalization based on Pham's algorithm
+        will be used instead of GED.
+        When 'multi', GED is performed separately for each class, i.e. each covariance
+        (except the last) returned by cov_callable is decomposed with the last
+        covariance. In this case, number of covariances should be number of classes + 1.
+        Defaults to "single".
+    restr_type : "restricting" | "whitening" | None
+        Restricting transformation for covariance matrices before performing GED.
+        If "restricting" only restriction to the principal subspace of the C_ref
+        will be performed.
+        If "whitening", covariance matrices will be additionally rescaled according
+        to the whitening for the C_ref.
+        If None, no restriction will be applied. Defaults to None.
+    R_func : callable | None
+        If provided, GED will be performed on (S, R_func([S,R])). When dec_type is
+        "single", R_func applicable only if two covariances returned by cov_callable.
+        If None, GED is performed on (S, R). Defaults to None.
+
+    Attributes
+    ----------
+    evals_ : ndarray, shape (n_channels)
+        If fit, generalized eigenvalues used to decompose S and R, else None.
+    filters_ :  ndarray, shape (n_channels or less, n_channels)
+        If fit, spatial filters (unmixing matrix) used to decompose the data,
+        else None.
+    patterns_ : ndarray, shape (n_channels or less, n_channels)
+        If fit, spatial patterns (mixing matrix) used to restore M/EEG signals,
+        else None.
+
+    See Also
+    --------
+    CSP
+    SPoC
+    SSD
+
+    Notes
+    -----
+    .. versionadded:: 1.11
+    """
+
+    def __init__(
+        self,
+        cov_callable=None,
+        n_components=None,
+        mod_ged_callable=None,
+        dec_type="single",
+        restr_type=None,
+        R_func=None,
+    ):
+        self.n_components = n_components
+        self.cov_callable = cov_callable
+        self.mod_ged_callable = mod_ged_callable
+        self.dec_type = dec_type
+        self.restr_type = restr_type
+        self.R_func = R_func
+
+    _is_base_ged = True
+
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        cls._is_base_ged = False
+
+    def fit(self, X, y=None):
+        """..."""
+        # Let the inheriting transformers check data by themselves
+        if self._is_base_ged:
+            X, y = self._check_data(
+                X,
+                y=y,
+                fit=True,
+                return_y=True,
+            )
+        self._validate_ged_params()
+        covs, C_ref, info, rank, kwargs = self.cov_callable(X, y)
+        covs = np.stack(covs)
+        self._validate_covariances(covs)
+        self._validate_covariances([C_ref])
+        mod_ged_callable = (
+            self.mod_ged_callable if self.mod_ged_callable is not None else _no_op_mod
+        )
+
+        if self.dec_type == "single":
+            if len(covs) > 2:
+                weights = (
+                    kwargs["sample_weights"] if "sample_weights" in kwargs else None
+                )
+                restr_mat = _handle_restr_mat(C_ref, self.restr_type, info, rank)
+                evecs = _smart_ajd(covs, restr_mat, weights=weights)
+                evals = None
+            else:
+                S = covs[0]
+                R = covs[1]
+                restr_mat = _handle_restr_mat(C_ref, self.restr_type, info, rank)
+                evals, evecs = _smart_ged(S, R, restr_mat, R_func=self.R_func)
+
+            evals, evecs, self.sorter_ = mod_ged_callable(evals, evecs, covs, **kwargs)
+            self.evals_ = evals
+            self.filters_ = evecs.T
+            self.patterns_ = pinv(evecs)
+
+        elif self.dec_type == "multi":
+            self.classes_ = np.unique(y)
+            R = covs[-1]
+            restr_mat = _handle_restr_mat(C_ref, self.restr_type, info, rank)
+            all_evals, all_evecs = list(), list()
+            all_patterns, all_sorters = list(), list()
+            for i in range(len(self.classes_)):
+                S = covs[i]
+
+                evals, evecs = _smart_ged(S, R, restr_mat, R_func=self.R_func)
+
+                evals, evecs, sorter = mod_ged_callable(evals, evecs, covs, **kwargs)
+                all_evals.append(evals)
+                all_evecs.append(evecs.T)
+                all_patterns.append(pinv(evecs))
+                all_sorters.append(sorter)
+            self.sorter_ = np.array(all_sorters)
+            self.evals_ = np.array(all_evals)
+            self.filters_ = np.array(all_evecs)
+            self.patterns_ = np.array(all_patterns)
+
+        return self
+
+    def transform(self, X):
+        """..."""
+        check_is_fitted(self, "filters_")
+        # Let the inheriting transformers check data by themselves
+        if self._is_base_ged:
+            X = self._check_data(X)
+        if self.dec_type == "single":
+            pick_filters = self.filters_[: self.n_components]
+        elif self.dec_type == "multi":
+            pick_filters = self._subset_multi_components()
+        X = pick_filters @ X
+        return X
+
+    def _subset_multi_components(self, name="filters"):
+        # The shape of stored filters and patterns is
+        # is (n_classes, n_evecs, n_chs)
+        # Transform and subset into (n_classes*n_components, n_chs)
+        if name == "filters":
+            return self.filters_[:, : self.n_components, :].reshape(
+                -1, self.filters_.shape[2]
+            )
+        elif name == "patterns":
+            return self.patterns_[:, : self.n_components, :].reshape(
+                -1, self.patterns_.shape[2]
+            )
+        return None
+
+    def _validate_required_args(self, func, desired_required_args):
+        sig = signature(func)
+        actual_required_args = [
+            param.name
+            for param in sig.parameters.values()
+            if param.default is Parameter.empty
+        ]
+        func_name = func.func.__name__ if isinstance(func, partial) else func.__name__
+        if not all(arg in desired_required_args for arg in actual_required_args):
+            raise ValueError(
+                f"Invalid required arguments for '{func_name}'. "
+                f"The only allowed required arguments are {desired_required_args}, "
+                f"but got {actual_required_args} instead."
+            )
+
+    def _validate_ged_params(self):
+        # Naming is GED-specific so that the validation is still executed
+        # when child classes run super().fit()
+
+        _validate_type(self.n_components, (int, None), "n_components")
+        if self.n_components is not None and self.n_components <= 0:
+            raise ValueError(
+                "Invalid value for the 'n_components' parameter. "
+                "Allowed are positive integers or None, "
+                "but got a non-positive integer instead."
+            )
+
+        self._validate_required_args(
+            self.cov_callable, desired_required_args=["X", "y"]
+        )
+
+        _check_option(
+            "dec_type",
+            self.dec_type,
+            ("single", "multi"),
+        )
+
+        _check_option(
+            "restr_type",
+            self.restr_type,
+            ("restricting", "whitening", None),
+        )
+
+    def _validate_covariances(self, covs):
+        for cov in covs:
+            if cov is None:
+                continue
+            # XXX: A lot of mne.decoding classes use mne.cov._regularized_covariance.
+            # Depending on the data it sometimes returns negative semidefinite matrices.
+            # So adding the validation of positive semidefinitiveness
+            # will require overhauling covariance estimation first.
+            is_cov = _is_cov_symm_pos_semidef(cov, check_pos_semidef=False)
+            if not is_cov:
+                raise ValueError(
+                    "One of covariances is not symmetric (or positive semidefinite), "
+                    "check your cov_callable"
+                )
+
+    def __sklearn_tags__(self):
+        """Tag the transformer."""
+        tags = super().__sklearn_tags__()
+        # Can be a transformer where S and R covs are not based on y classes.
+        tags.target_tags.required = False
+        tags.target_tags.one_d_labels = True
+        tags.input_tags.two_d_array = True
+        tags.input_tags.three_d_array = True
+        return tags
 
 
 class LinearModel(MetaEstimatorMixin, BaseEstimator):
