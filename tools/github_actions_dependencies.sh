@@ -21,7 +21,11 @@ if [ ! -z "$CONDA_ENV" ]; then
 		STD_ARGS="--progress-bar off"
 	fi
 elif [[ "${MNE_CI_KIND}" == "pip" ]]; then
-	INSTALL_KIND="full-pyside6,$INSTALL_KIND"
+	# This one is free-threaded so can't have numba or PySide6/PyQt6 as of 2025/07/15
+	INSTALL_ARGS="nibabel scikit-learn numpydoc pandas defusedxml edfio"
+	# ... mffpy requires lxml, which tries to build from source and uses Cython (ugh)
+	# ... and also unavialble are h5py (or h5io), cryptography (thus twine)
+	INSTALL_KIND="test"
 else
 	test "${MNE_CI_KIND}" == "pip-pre"
 	STD_ARGS="$STD_ARGS --pre"
@@ -32,3 +36,6 @@ echo ""
 
 echo "Installing test dependencies using pip"
 python -m pip install $STD_ARGS $INSTALL_ARGS .[$INSTALL_KIND]
+if [[ "${MNE_CI_KIND}" == "pip" ]]; then
+	python -m pip uninstall -yq pytest-qt
+fi

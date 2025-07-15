@@ -152,7 +152,6 @@ test = [
   "ruff",
   "toml-sort",
   "tomli; python_version<'3.11'",
-  "twine",
   "vulture",
   "wheel",
 ]
@@ -174,6 +173,7 @@ test_extra = [
   "snirf",
   "sphinx-gallery",
   "statsmodels",
+  "twine",
 ]
 
 [project.urls]
