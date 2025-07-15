@@ -1,1 +1,0 @@
-Fix :meth:`mne.channels.DigMontage.rename_channels` so that the changed montage is returned instead of ``None``, by `Stefan Appelhoff`_.

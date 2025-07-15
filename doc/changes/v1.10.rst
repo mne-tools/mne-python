@@ -50,6 +50,7 @@ Bugfixes
 - Fix y-axis label in PSD plot when ``dB=True`` to show a more conventional label (i.e., dB/Hz or dB/√Hz), by `Clemens Brunner`_. (`#13298 <https://github.com/mne-tools/mne-python/pull/13298>`__)
 - Fix bug in :func:`mne.sys_info` where calling it in Windows could lead to a an error while trying to get the amount of available memory, by `Eric Larson`_. (`#13310 <https://github.com/mne-tools/mne-python/pull/13310>`__)
 - Change default pupil unit scalings from micrometrs to millimeters by `Scott Huberty`_ (`#13314 <https://github.com/mne-tools/mne-python/pull/13314>`__)
+- Fix :meth:`mne.channels.DigMontage.rename_channels` so that the changed montage is returned instead of ``None``, by `Stefan Appelhoff`_. (`#13320 <https://github.com/mne-tools/mne-python/pull/13320>`__)
 
 
 API changes by deprecation
