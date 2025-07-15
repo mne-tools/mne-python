@@ -9,7 +9,7 @@ import numpy as np
 
 from ...defaults import _BORDER_DEFAULT, _EXTRAPOLATE_DEFAULT, _INTERPOLATION_DEFAULT
 from ...evoked import EvokedArray
-from ...utils import _check_option, pinv
+from ...utils import _check_option, fill_doc, pinv
 
 
 def _plot_model(
@@ -140,9 +140,9 @@ class SpatialFilter:
     r"""Visualization container for spatial filter weights and patterns.
 
     This object is obtained either by generalized eigendecomposition (GED) algorithms
-    such as :class:`mne.decoding.CSP`, :class:`mne.decoding.SPoC`,
-    :class:`mne.decoding.SSD`, :class:`mne.decoding.XdawnTransformer` or by
-    :class:`mne.decoding.LinearModel` wrapping linear models like SVM or Logit.
+    such as `mne.decoding.CSP`, `mne.decoding.SPoC`, `mne.decoding.SSD`,
+    `mne.decoding.XdawnTransformer` or by `mne.decoding.LinearModel`
+    wrapping linear models like SVM or Logit.
     The objects stores the filters that projects sensor data to a reduced component
     space, and the corresponding patterns (obtained by pseudoinverse in GED case or
     Haufe's trickin case of `mne.decoding.LinearModel`). It can also be directly
@@ -195,8 +195,6 @@ class SpatialFilter:
     see :footcite:`Cohen2022` and :footcite:`HaufeEtAl2014` for linear models in
     general.
 
-    Notes
-    -----
     .. versionadded:: 1.11
 
     References
@@ -228,6 +226,7 @@ class SpatialFilter:
             self.patterns = patterns
             self.patterns_method = patterns_method
 
+    @fill_doc
     def plot_filters(
         self,
         components=None,
@@ -264,7 +263,7 @@ class SpatialFilter:
         ----------
         components : float | array of float
             Indices of filters to plot. If None, all filters will be plotted.
-            Defaults to None
+            Defaults to None.
         %(ch_type_topomap)s
         %(scalings_topomap)s
         %(sensors_topomap)s
@@ -294,9 +293,9 @@ class SpatialFilter:
         Returns
         -------
         fig : instance of matplotlib.figure.Figure
-        The figure.
+            The figure.
         """
-        _plot_model(
+        fig = _plot_model(
             self.filters,
             self.info,
             components=components,
@@ -326,7 +325,9 @@ class SpatialFilter:
             ncols=ncols,
             show=show,
         )
+        return fig
 
+    @fill_doc
     def plot_patterns(
         self,
         components=None,
@@ -363,7 +364,7 @@ class SpatialFilter:
         ----------
         components : float | array of float
             Indices of patterns to plot. If None, all patterns will be plotted.
-            Defaults to None
+            Defaults to None.
         %(ch_type_topomap)s
         %(scalings_topomap)s
         %(sensors_topomap)s
@@ -393,9 +394,9 @@ class SpatialFilter:
         Returns
         -------
         fig : instance of matplotlib.figure.Figure
-        The figure.
+            The figure.
         """
-        _plot_model(
+        fig = _plot_model(
             self.patterns,
             self.info,
             components=components,
@@ -425,6 +426,7 @@ class SpatialFilter:
             ncols=ncols,
             show=show,
         )
+        return fig
 
     def plot_scree(
         self,
@@ -452,7 +454,7 @@ class SpatialFilter:
         Returns
         -------
         fig : instance of matplotlib.figure.Figure
-        The figure.
+            The figure.
         """
         if self.evals is None:
             raise ValueError("Can't plot scree if eigenvalues are not provided.")

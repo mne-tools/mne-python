@@ -197,7 +197,7 @@ class _GEDTransformer(MNETransformerMixin, BaseEstimator):
     def get_spatial_filter(self, info):
         """Create a SpatialFilter object.
 
-        Creates a :class:`mne.viz.SpatialFilter` object from the fitted
+        Creates a `mne.viz.SpatialFilter` object from the fitted
         generalized eigendecomposition or other linear models.
         This object can be used to visualize the spatial filters,
         patterns, and eigenvalues.
@@ -210,7 +210,7 @@ class _GEDTransformer(MNETransformerMixin, BaseEstimator):
         Returns
         -------
         sp_filter : instance of SpatialFilter
-            The spatial filter object
+            The spatial filter object.
         """
         sp_filter = SpatialFilter(
             info,

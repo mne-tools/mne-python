@@ -17,6 +17,7 @@ Visualization
    ClickableImage
    EvokedField
    Figure3D
+   SpatialFilter
    add_background_image
    centers_to_edges
    compare_fiff
@@ -102,21 +103,6 @@ Eyetracking
    :toctree: ../generated/
 
    plot_gaze
-
-Decoding
---------
-
-.. currentmodule:: mne.viz.decoding
-
-:py:mod:`mne.viz.decoding`:
-
-.. automodule:: mne.viz.decoding
-   :no-members:
-   :no-inherited-members:
-.. autosummary::
-   :toctree: ../generated/
-
-   SpatialFilter
 
 UI Events
 ---------
