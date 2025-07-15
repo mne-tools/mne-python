@@ -2037,7 +2037,7 @@ or :func:`mne.channels.make_dig_montage` like (for a 3x5/ETG-7000 example):
 >>> mon = mne.channels.make_standard_montage('standard_1020')
 >>> need = 'S1 D1 S2 D2 S3 D3 S4 D4 S5 D5 S6 D6 S7 D7 S8'.split()
 >>> have = 'F3 FC3 C3 CP3 P3 F5 FC5 C5 CP5 P5 F7 FT7 T7 TP7 P7'.split()
->>> mon.rename_channels(dict(zip(have, need)))
+>>> mon.rename_channels(dict(zip(have, need)))  # doctest: +SKIP
 >>> raw.set_montage(mon)  # doctest: +SKIP
 
 The 3x3 (ETG-100) is laid out as two separate layouts::
