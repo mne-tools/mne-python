@@ -51,6 +51,7 @@ def _convert_times(times, time_format, meas_date=None, first_time=0):
 
 
 def _inplace(df, method, **kwargs):
+    # TODO VERSION can be removed once pandas>=1.5 is required
     # Handle transition: inplace=True (pandas <1.5) → copy=False (>=1.5)
     # and 3.0 warning:
     # E   DeprecationWarning: The copy keyword is deprecated and will be removed in a

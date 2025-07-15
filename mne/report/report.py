@@ -1599,7 +1599,6 @@ class Report:
         *,
         subject=None,
         subjects_dir=None,
-        trans=None,
         plot=False,
         tags=("inverse-operator",),
         section=None,
@@ -1619,9 +1618,6 @@ class Report:
             passed on report creation.
         subjects_dir : path-like | None
             The FreeSurfer ``SUBJECTS_DIR``.
-        trans : path-like | instance of Transform | None
-            Deprecated and will be removed in 1.11.
-            The trans stored in the inverse operator will be used instead.
         plot : bool
             If True, plot the source space of the inverse operator.
 
@@ -1637,12 +1633,6 @@ class Report:
         .. versionadded:: 0.24.0
         """
         tags = _check_tags(tags)
-        if trans is not None:
-            warn(
-                "trans is deprecated and will be removed in 1.11, do not pass it "
-                "to add_inverse_operator",
-                category=FutureWarning,
-            )
         self._add_inverse_operator(
             inverse_operator=inverse_operator,
             subject=subject,
