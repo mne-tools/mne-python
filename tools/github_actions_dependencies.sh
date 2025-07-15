@@ -21,7 +21,7 @@ if [ ! -z "$CONDA_ENV" ]; then
 		STD_ARGS="--progress-bar off"
 	fi
 elif [[ "${MNE_CI_KIND}" == "pip" ]]; then
-	INSTALL_KIND="full-pyside6"
+	INSTALL_KIND="full-pyside6,test_extra,hdf5"
 else
 	test "${MNE_CI_KIND}" == "pip-pre"
 	STD_ARGS="$STD_ARGS --pre"

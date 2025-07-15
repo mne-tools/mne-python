@@ -108,7 +108,7 @@ jobs:
       - name: Setup Remote SSH Connection
         if: env.ENABLE_SSH == 'true'
         uses: mxschmitt/action-tmate@v3
-        timeout-minutes: 60
+        timeout-minutes: 80
         with:
           detached: true
       - run: ./tools/github_actions_env_vars.sh
