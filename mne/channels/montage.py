@@ -397,6 +397,7 @@ class DigMontage:
         temp_info = create_info(list(self._get_ch_pos()), 1000.0, "eeg")
         rename_channels(temp_info, mapping, allow_duplicates)
         self.ch_names = temp_info["ch_names"]
+        return self
 
     @verbose
     def save(self, fname, *, overwrite=False, verbose=None):
@@ -720,7 +721,7 @@ def transform_to_head(montage):
     Returns
     -------
     montage : instance of DigMontage
-        The montage after transforming the points to head
+        A copy of the montage after transforming the points to head
         coordinate system.
 
     Notes

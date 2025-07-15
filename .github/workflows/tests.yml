@@ -7,6 +7,14 @@ on:  # yamllint disable-line rule:truthy
     branches: ["main", "maint/*"]
   pull_request:
     branches: ["main", "maint/*"]
+  # adapted from spyder-ide/spyder
+  workflow_dispatch:
+    inputs:
+      ssh:
+        description: 'Enable ssh debugging'
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -87,6 +95,21 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
+      - name: Get commit message
+        run: echo "COMMIT_MESSAGE=$(git show -s --format=%s ${{ github.event.pull_request.head.sha || github.sha }})" | tee -a ${GITHUB_ENV}
+      - name: Triage SSH
+        run: |
+          if [[ "${{ inputs.ssh }}" == "true" ]] || [[ "$COMMIT_MESSAGE" == *"[actions ssh]"* ]]; then
+            echo "ENABLE_SSH=true" | tee -a $GITHUB_ENV
+          else
+            echo "ENABLE_SSH=false" | tee -a $GITHUB_ENV
+          fi
+      - name: Setup Remote SSH Connection
+        if: env.ENABLE_SSH == 'true'
+        uses: mxschmitt/action-tmate@v3
+        timeout-minutes: 80
+        with:
+          detached: true
       - run: ./tools/github_actions_env_vars.sh
       # Xvfb/OpenGL
       - uses: pyvista/setup-headless-display-action@v4
