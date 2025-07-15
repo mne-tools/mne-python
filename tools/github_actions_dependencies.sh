@@ -21,8 +21,8 @@ if [ ! -z "$CONDA_ENV" ]; then
 		STD_ARGS="--progress-bar off"
 	fi
 elif [[ "${MNE_CI_KIND}" == "pip" ]]; then
-	# This one is free-threaded so can't have numba as of 2025/07/15
-	INSTALL_ARGS="nibabel scikit-learn numpydoc PySide6!=6.9.1 mne-qt-browser pandas mffpy defusedxml numba pyvistaqt edfio mffpy"
+	# This one is free-threaded so can't have numba or PySide6/PyQt6 as of 2025/07/15
+	INSTALL_ARGS="nibabel scikit-learn numpydoc pandas mffpy defusedxml edfio mffpy"
 	# ... or h5py (or h5io), cryptography (thus twine)
 	INSTALL_KIND="test"
 else
@@ -35,3 +35,6 @@ echo ""
 
 echo "Installing test dependencies using pip"
 python -m pip install $STD_ARGS $INSTALL_ARGS .[$INSTALL_KIND]
+if [[ "${MNE_CI_KIND}" == "pip" ]]; then
+	python -m pip uninstall pytest-qt
+fi
