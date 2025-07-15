@@ -9,13 +9,21 @@ from pathlib import Path
 
 import numpy as np
 
-# from ..._fiff._digitization import _make_dig_points
+from ..._fiff._digitization import _make_dig_points
+from ..._fiff.constants import FIFF
 from ..._fiff.meas_info import create_info
+from ..._fiff.tag import _coil_trans_to_loc
 from ..._fiff.utils import _mult_cal_one, _read_segments_file
 from ...annotations import annotations_from_events
 from ...channels import make_dig_montage
 from ...epochs import Epochs
-from ...utils import _soft_import, verbose, warn
+from ...surface import _normal_orth
+from ...transforms import Transform, apply_trans
+from ...utils import (
+    _soft_import,
+    verbose,
+    warn,
+)
 from ..base import BaseRaw
 
 CURRY_SUFFIX_DATA = [".cdt", ".dat"]
@@ -124,6 +132,19 @@ def _get_curry_epoch_info(fname):
     )
 
 
+def _get_curry_meg_normals(fname):
+    fname_hdr = _check_curry_header_filename(fname)
+    normals_str = fname_hdr.read_text().split("\n")
+    i_start, i_stop = [
+        i
+        for i, ll in enumerate(normals_str)
+        if ("NORMALS" in ll and "START_LIST" in ll)
+        or ("NORMALS" in ll and "END_LIST" in ll)
+    ]
+    normals_str = [nn.split("\t") for nn in normals_str[i_start + 1 : i_stop]]
+    return np.array([[float(nnn.strip()) for nnn in nn] for nn in normals_str])
+
+
 def _extract_curry_info(fname):
     _soft_import("curryreader", "read file header")
 
@@ -148,6 +169,8 @@ def _extract_curry_info(fname):
     ch_names = currydata["labels"]
     ch_pos = currydata["sensorpos"]
     landmarks = currydata["landmarks"]
+    if not isinstance(landmarks, np.ndarray):
+        landmarks = np.array(landmarks)
     landmarkslabels = currydata["landmarkslabels"]
     hpimatrix = currydata["hpimatrix"]
 
@@ -158,7 +181,7 @@ def _extract_curry_info(fname):
     events = currydata["events"]
     # annotations = currydata[
     #    "annotations"
-    # ]  # TODO these dont really seem to correspond to events! what is it?
+    # ]  # TODO - these dont really seem to correspond to events! what is it?
 
     # impedance measurements
     # moved to standalone def; see read_impedances_curry
@@ -292,7 +315,7 @@ def _read_annotations_curry(fname, sfreq="auto"):
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         The filename.
     sfreq : float | 'auto'
         The sampling frequency in the file. If set to 'auto' then the
@@ -331,13 +354,10 @@ def _read_annotations_curry(fname, sfreq="auto"):
 def _make_curry_montage(ch_names, ch_types, ch_pos, landmarks, landmarkslabels):
     # scale ch_pos to m?!
     ch_pos /= 1000.0
+    landmarks /= 1000.0
     # channel locations
-    # only take inner coil for MEG (ch_pos[i,:3])
-    # TODO what about misc without pos? can they mess things up if unordered?
+    # TODO - what about misc without pos? can they mess things up if unordered?
     assert len(ch_pos) >= (ch_types.count("mag") + ch_types.count("eeg"))
-    ch_pos_meg = {
-        ch_names[i]: ch_pos[i, :3] for i, t in enumerate(ch_types) if t == "mag"
-    }
     ch_pos_eeg = {
         ch_names[i]: ch_pos[i, :3] for i, t in enumerate(ch_types) if t == "eeg"
     }
@@ -370,23 +390,111 @@ def _make_curry_montage(ch_names, ch_types, ch_pos, landmarks, landmarkslabels):
             hpi=hpi_pos,
             coord_frame="unknown",
         )
-        # dig = _make_dig_points(
-        #    nasion=landmark_dict["Nas"],
-        #    lpa=landmark_dict["LPA"],
-        #    rpa=landmark_dict["RPA"],
-        #    hpi=hpi_pos,
-        #    extra_points=hsp_pos,
-        #    dig_ch_pos=ch_pos_eeg,
-        #    coord_frame="unknown",
-        # )
     else:  # not recorded?
         pass
 
-    # collect pos for meg
-    if ch_pos_meg != dict():
-        warn("reading MEG sensor locations not yet implemented!")
-
     return mont
+
+
+def _set_chanloc_curry(inst, ch_types, ch_pos, landmarks, landmarkslabels):
+    ch_names = inst.info["ch_names"]
+
+    # scale ch_pos to m?!
+    ch_pos /= 1000.0
+    landmarks /= 1000.0
+    # channel locations
+    # TODO - what about misc without pos? can they mess things up if unordered?
+    assert len(ch_pos) >= (ch_types.count("mag") + ch_types.count("eeg"))
+    ch_pos_meg = {
+        ch_names[i]: ch_pos[i, :3] for i, t in enumerate(ch_types) if t == "mag"
+    }
+    ch_pos_eeg = {
+        ch_names[i]: ch_pos[i, :3] for i, t in enumerate(ch_types) if t == "eeg"
+    }
+
+    # landmarks and headshape
+    landmark_dict = dict(zip(landmarkslabels, landmarks))
+    for k in ["Nas", "RPA", "LPA"]:
+        if k not in landmark_dict.keys():
+            landmark_dict[k] = None
+    if len(landmarkslabels) > 0:
+        hpi_pos = landmarks[
+            [i for i, n in enumerate(landmarkslabels) if re.match("HPI[1-99]", n)],
+            :,
+        ]
+    else:
+        hpi_pos = None
+    if len(landmarkslabels) > 0:
+        hsp_pos = landmarks[
+            [i for i, n in enumerate(landmarkslabels) if re.match("H[1-99]", n)], :
+        ]
+    else:
+        hsp_pos = None
+
+    add_missing_fiducials = (
+        True
+        if (
+            not landmark_dict["Nas"]
+            and not landmark_dict["LPA"]
+            and not landmark_dict["LPA"]
+        )
+        else False  # raises otherwise
+    )
+    dig = _make_dig_points(
+        nasion=landmark_dict["Nas"],
+        lpa=landmark_dict["LPA"],
+        rpa=landmark_dict["RPA"],
+        hpi=hpi_pos,
+        extra_points=hsp_pos,
+        dig_ch_pos=ch_pos_eeg,
+        coord_frame="head",
+        add_missing_fiducials=add_missing_fiducials,
+    )
+    with inst.info._unlock():
+        inst.info["dig"] = dig
+
+    # loc transformation for meg sensors (taken from previous version)
+    if len(ch_pos_meg) > 0:
+        R = np.eye(4)
+        R[[0, 1], [0, 1]] = -1  # rotate 180 deg
+        # shift down and back
+        # (chosen by eyeballing to make the CTF helmet look roughly correct)
+        R[:3, 3] = [0.0, -0.015, -0.12]
+        curry_dev_dev_t = Transform("ctf_meg", "meg", R)
+
+        ch_normals_meg = _get_curry_meg_normals(inst.filenames[0])
+        assert len(ch_normals_meg) == len(ch_pos_meg)
+    else:
+        curry_dev_dev_t, ch_normals_meg = None, None
+    # fill up chanlocs
+    assert len(ch_names) == len(ch_types) >= len(ch_pos)
+    for i, (ch_name, ch_type, ch_loc) in enumerate(zip(ch_names, ch_types, ch_pos)):
+        assert inst.info["ch_names"][i] == ch_name
+        ch = inst.info["chs"][i]
+        if ch_type == "eeg":
+            with inst.info._unlock():
+                ch["loc"][:3] = ch_loc[:3]
+                ch["coord_frame"] = FIFF.FIFFV_COORD_HEAD
+        elif ch_type == "mag":
+            # transform mode
+            pos = ch_loc[:3]  # just the inner coil for MEG
+            pos = apply_trans(curry_dev_dev_t, pos)
+            nn = ch_normals_meg[i]
+            assert np.isclose(np.linalg.norm(nn), 1.0, atol=1e-4)
+            nn /= np.linalg.norm(nn)
+            nn = apply_trans(curry_dev_dev_t, nn, move=False)
+            trans = np.eye(4)
+            trans[:3, 3] = pos
+            trans[:3, :3] = _normal_orth(nn).T
+            with inst.info._unlock():
+                ch["loc"] = _coil_trans_to_loc(trans)
+                ch["coord_frame"] = FIFF.FIFFV_COORD_DEVICE
+        elif ch_type == "misc":
+            pass
+        else:
+            raise NotImplementedError
+
+    # _make_trans_dig(curry_paths, inst.info, curry_dev_dev_t) # TODO?!
 
 
 @verbose
@@ -432,7 +540,7 @@ def read_raw_curry(
         else:
             inst = Epochs(
                 inst, **curry_epoch_info
-            )  # TODO seems to rejects flat channel
+            )  # TODO - seems to reject flat channel
             if rectype == "evoked":
                 raise NotImplementedError
     return inst
@@ -511,11 +619,16 @@ class RawCurry(BaseRaw):
             annot = annotations_from_events(events, sfreq)
             self.set_annotations(annot)
 
-        # make montage
-        self._set_curry_montage(ch_types, ch_pos, landmarks, landmarkslabels)
-
-        # with self.info._unlock():
-        #    self.info['dig'] = mont.dig
+        # add sensor locations
+        # TODO - is this working correctly?
+        assert len(self.info["ch_names"]) == len(ch_types) >= len(ch_pos)
+        _set_chanloc_curry(
+            inst=self,
+            ch_types=ch_types,
+            ch_pos=ch_pos,
+            landmarks=landmarks,
+            landmarkslabels=landmarkslabels,
+        )
 
         # add HPI data (if present)
         # from curryreader docstring:
@@ -524,27 +637,13 @@ class RawCurry(BaseRaw):
         # that's incorrect, though. it seems to be:
         # [sample, dipole_1, x_1,y_1, z_1, dev_1, ..., dipole_n, x_n, ...]
         # for all n coils.
-        # TODO
+        # TODO - do they actually store cHPI?
         if not isinstance(hpimatrix, list):
             warn("cHPI data found, but reader not implemented.")
             hpisamples = hpimatrix[:, 0]
             n_coil = int((hpimatrix.shape[1] - 1) / 5)
             hpimatrix = hpimatrix[:, 1:].reshape(hpimatrix.shape[0], n_coil, 5)
             print(f"found {len(hpisamples)} cHPI samples for {n_coil} coils")
-
-    def _set_curry_montage(self, ch_types, ch_pos, landmarks, landmarkslabels):
-        assert len(self.info["ch_names"]) == len(ch_types) >= len(ch_pos)
-
-        mont = _make_curry_montage(
-            self.info["ch_names"], ch_types, ch_pos, landmarks, landmarkslabels
-        )
-
-        # hack the montage in (for MEG chans)
-        # TODO change this!
-        ch_types_tmp = [ct if ct != "mag" else "eeg" for ct in ch_types]
-        self.set_channel_types(dict(zip(self.info["ch_names"], ch_types_tmp)))
-        self.set_montage(mont, on_missing="ignore")
-        self.set_channel_types(dict(zip(self.info["ch_names"], ch_types)))
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data."""
@@ -593,7 +692,7 @@ def read_impedances_curry(fname, verbose=None):
     ch_names = currydata["labels"]
 
     # try get measurement times
-    # TODO possible?
+    # TODO - is this even possible?
     annotations = currydata[
         "annotations"
     ]  # dont really seem to correspond to events!?!
@@ -608,3 +707,38 @@ def read_impedances_curry(fname, verbose=None):
         print({ch: float(imp) for ch, imp in zip(ch_names, impedances[iimp])})
 
     return ch_names, impedances
+
+
+@verbose
+def read_montage_curry(fname, verbose=None):
+    """Read eeg montage from Curry files.
+
+    Parameters
+    ----------
+    fname : path-like
+        The filename.
+    %(verbose)s
+
+    Returns
+    -------
+    montage : instance of DigMontage | None
+        The montage.
+    """
+    fname = _check_curry_filename(fname)
+    (
+        _,
+        _,
+        ch_names,
+        ch_types,
+        ch_pos,
+        landmarks,
+        landmarkslabels,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+    ) = _extract_curry_info(fname)
+    return _make_curry_montage(ch_names, ch_types, ch_pos, landmarks, landmarkslabels)

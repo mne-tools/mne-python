@@ -10,12 +10,14 @@ from numpy import empty
 from numpy.testing import assert_allclose, assert_array_equal
 
 from mne.annotations import events_from_annotations, read_annotations
+from mne.channels import DigMontage
 from mne.datasets import testing
 from mne.event import find_events
-from mne.io.curry import read_impedances_curry, read_raw_curry
+from mne.io.curry import read_impedances_curry, read_montage_curry, read_raw_curry
 from mne.io.curry.curry import _check_curry_filename, _check_curry_header_filename
 from mne.io.edf import read_raw_bdf
 from mne.io.tests.test_raw import _test_raw_reader
+from mne.transforms import Transform
 
 pytest.importorskip("curryreader")
 
@@ -50,32 +52,27 @@ def bdf_curry_ref():
 @pytest.mark.parametrize("preload", [True, False])
 def test_read_raw_curry(fname, tol, preload, bdf_curry_ref):
     """Test reading CURRY files."""
-    with pytest.warns(
-        RuntimeWarning, match="Fiducial point nasion not found"
-    ):  # TODO change way to add montage in curry.py!
-        raw = read_raw_curry(fname, preload=preload)
+    raw = read_raw_curry(fname, preload=preload)
 
-        assert hasattr(raw, "_data") == preload
-        assert raw.n_times == bdf_curry_ref.n_times
-        assert raw.info["sfreq"] == bdf_curry_ref.info["sfreq"]
+    assert hasattr(raw, "_data") == preload
+    assert raw.n_times == bdf_curry_ref.n_times
+    assert raw.info["sfreq"] == bdf_curry_ref.info["sfreq"]
 
-        for field in ["kind", "ch_name"]:
-            assert_array_equal(
-                [ch[field] for ch in raw.info["chs"]],
-                [ch[field] for ch in bdf_curry_ref.info["chs"]],
-            )
-
-        assert_allclose(
-            raw.get_data(verbose="error"), bdf_curry_ref.get_data(), atol=tol
+    for field in ["kind", "ch_name"]:
+        assert_array_equal(
+            [ch[field] for ch in raw.info["chs"]],
+            [ch[field] for ch in bdf_curry_ref.info["chs"]],
         )
 
-        picks, start, stop = ["C3", "C4"], 200, 800
-        assert_allclose(
-            raw.get_data(picks=picks, start=start, stop=stop, verbose="error"),
-            bdf_curry_ref.get_data(picks=picks, start=start, stop=stop),
-            rtol=tol,
-        )
-        # assert raw.info["dev_head_t"] is None  # TODO do we need this value?
+    assert_allclose(raw.get_data(verbose="error"), bdf_curry_ref.get_data(), atol=tol)
+
+    picks, start, stop = ["C3", "C4"], 200, 800
+    assert_allclose(
+        raw.get_data(picks=picks, start=start, stop=stop, verbose="error"),
+        bdf_curry_ref.get_data(picks=picks, start=start, stop=stop),
+        rtol=tol,
+    )
+    # assert raw.info["dev_head_t"] is None  # TODO do we need this value?
 
 
 @testing.requires_testing_data
@@ -88,11 +85,9 @@ def test_read_raw_curry(fname, tol, preload, bdf_curry_ref):
         pytest.param(curry8_bdf_ascii_file, id="curry 8 ascii"),
     ],
 )
-# TODO!
 def test_read_raw_curry_test_raw(fname):
     """Test read_raw_curry with _test_raw_reader."""
-    with pytest.raises(RuntimeWarning):  # TODO change way to add montage in curry.py!
-        _test_raw_reader(read_raw_curry, fname=fname)
+    _test_raw_reader(read_raw_curry, fname=fname)
 
 
 @testing.requires_testing_data
@@ -105,12 +100,9 @@ def test_read_raw_curry_test_raw(fname):
 )
 def test_read_raw_curry_preload_equal(fname):
     """Test raw identity with preload=True/False."""
-    with pytest.warns(
-        RuntimeWarning, match="Fiducial point nasion not found"
-    ):  # TODO change way to add montage in curry.py!
-        raw1 = read_raw_curry(fname, preload=False)
-        raw1.load_data()
-        assert raw1 == read_raw_curry(fname, preload=True)
+    raw1 = read_raw_curry(fname, preload=False)
+    raw1.load_data()
+    assert raw1 == read_raw_curry(fname, preload=True)
 
 
 @testing.requires_testing_data
@@ -126,11 +118,10 @@ def test_read_events_curry_are_same_as_bdf(fname):
     EVENT_ID = {str(ii): ii for ii in range(5)}
     REF_EVENTS = find_events(read_raw_bdf(bdf_file, preload=True))
     # TODO!
-    with pytest.raises(RuntimeWarning):  # TODO change way to add montage in curry.py!
-        raw = read_raw_curry(fname)
-        events, _ = events_from_annotations(raw, event_id=EVENT_ID)
-        assert_allclose(events, REF_EVENTS)
-        assert raw.info["dev_head_t"] is None
+    raw = read_raw_curry(fname)
+    events, _ = events_from_annotations(raw, event_id=EVENT_ID)
+    assert_allclose(events, REF_EVENTS)
+    assert raw.info["dev_head_t"] == Transform("meg", "head")
 
 
 @testing.requires_testing_data
@@ -244,11 +235,8 @@ def test_read_files_missing_channel(fname, expected_channel_list):
     # channels are sorted in the prescribed order.
     # This test makes sure the data load correctly, and that we end up with
     # the proper channel list.
-    with pytest.warns(
-        RuntimeWarning, match="Fiducial point nasion not found"
-    ):  # TODO change way to add montage in curry.py!
-        raw = read_raw_curry(fname, preload=True)
-        assert raw.ch_names == expected_channel_list
+    raw = read_raw_curry(fname, preload=True)
+    assert raw.ch_names == expected_channel_list
 
 
 @testing.requires_testing_data
@@ -269,3 +257,20 @@ def test_read_impedances_curry(fname):
         imp,
         actual_imp,
     )
+
+
+@testing.requires_testing_data
+@pytest.mark.parametrize(
+    "fname",
+    [
+        pytest.param(curry7_bdf_file, id="curry 7"),
+        pytest.param(curry8_bdf_file, id="curry 8"),
+        pytest.param(curry7_bdf_ascii_file, id="curry 7 ascii"),
+        pytest.param(curry8_bdf_ascii_file, id="curry 8 ascii"),
+    ],
+)
+def test_read_montage_curry(fname):
+    """Test reading montage from CURRY files."""
+    mont = read_montage_curry(fname)
+    assert isinstance(mont, DigMontage)
+    # TODO - not very specific, yet
