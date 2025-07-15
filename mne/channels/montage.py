@@ -397,6 +397,7 @@ class DigMontage:
         temp_info = create_info(list(self._get_ch_pos()), 1000.0, "eeg")
         rename_channels(temp_info, mapping, allow_duplicates)
         self.ch_names = temp_info["ch_names"]
+        return self
 
     @verbose
     def save(self, fname, *, overwrite=False, verbose=None):
