@@ -1,1 +1,0 @@
-Fixed bug where the file_id is not set when the file contains a directory at the end of the file, by `Théodore Papadopoulo`_.

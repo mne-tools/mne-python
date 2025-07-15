@@ -1,1 +1,0 @@
-Add source space(s) visualization(s) in :func:`mne.Report.add_forward`, by `Victor Ferat`_.

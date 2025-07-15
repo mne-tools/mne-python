@@ -1,1 +1,0 @@
-:func:`~mne.channel_indices_by_type` now has an ``exclude`` parameter, by `Stefan Appelhoff`_.
