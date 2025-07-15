@@ -10,8 +10,7 @@ fi
 if [ "${MNE_CI_KIND}" == "notebook" ]; then
   USE_DIRS=mne/viz/
 else
-  # TODO: Go back to just mne/
-  USE_DIRS="mne/inverse_sparse/tests/test_mxne_inverse.py"
+  USE_DIRS="mne/"
 fi
 JUNIT_PATH="junit-results.xml"
 if [[ ! -z "$CONDA_ENV" ]] && [[ "${RUNNER_OS}" != "Windows" ]] && [[ "${MNE_CI_KIND}" != "minimal" ]] && [[ "${MNE_CI_KIND}" != "old" ]]; then
@@ -34,5 +33,6 @@ if [[ ! -z "$CONDA_ENV" ]] && [[ "${RUNNER_OS}" != "Windows" ]] && [[ "${MNE_CI_
 fi
 
 set -x
-pytest -m "${CONDITION}" --cov=mne --cov-report xml --color=yes --continue-on-collection-errors --junit-xml=$JUNIT_PATH -vv ${USE_DIRS}
+# TODO: Remove -x
+pytest -m "${CONDITION}" --cov=mne --cov-report xml --color=yes --continue-on-collection-errors --junit-xml=$JUNIT_PATH -vv ${USE_DIRS} -x
 echo "Exited with code $?"
