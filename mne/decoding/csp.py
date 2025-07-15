@@ -75,7 +75,7 @@ class CSP(_GEDTransformer):
         to the whitening for the signal_cov.
         If None, no restriction will be applied. Defaults to "restricting".
 
-        .. versionadded:: 1.10
+        .. versionadded:: 1.11
     info : mne.Info | None
         The mne.Info object with information about the sensors and methods of
         measurement used for covariance estimation and generalized
@@ -84,7 +84,7 @@ class CSP(_GEDTransformer):
         rank is dict, it will be sum of ranks per channel type.
         Defaults to None.
 
-        .. versionadded:: 1.10
+        .. versionadded:: 1.11
     %(rank_none)s
 
         .. versionadded:: 0.17
@@ -128,6 +128,7 @@ class CSP(_GEDTransformer):
         transform_into="average_power",
         norm_trace=False,
         cov_method_params=None,
+        *,
         restr_type="restricting",
         info=None,
         rank=None,
@@ -702,7 +703,7 @@ class SPoC(CSP):
         to the whitening for the signal_cov.
         If None, no restriction will be applied. Defaults to None.
 
-        .. versionadded:: 1.10
+        .. versionadded:: 1.11
     info : mne.Info | None
         The mne.Info object with information about the sensors and methods of
         measurement used for covariance estimation and generalized
@@ -711,7 +712,7 @@ class SPoC(CSP):
         rank is dict, it will be sum of ranks per channel type.
         Defaults to None.
 
-        .. versionadded:: 1.10
+        .. versionadded:: 1.11
     %(rank_none)s
 
         .. versionadded:: 0.17
@@ -743,6 +744,7 @@ class SPoC(CSP):
         log=None,
         transform_into="average_power",
         cov_method_params=None,
+        *,
         restr_type=None,
         info=None,
         rank=None,

@@ -94,7 +94,7 @@ class _GEDTransformer(MNETransformerMixin, BaseEstimator):
 
     Notes
     -----
-    .. versionadded:: 1.10
+    .. versionadded:: 1.11
     """
 
     def __init__(

@@ -77,7 +77,7 @@ class SSD(_GEDTransformer):
         If "ssd", simplified version of "whitening" is performed.
         If None, no restriction will be applied. Defaults to "ssd".
 
-        .. versionadded:: 1.10
+        .. versionadded:: 1.11
     rank : None | dict | ‘info’ | ‘full’
         As in :class:`mne.decoding.SPoC`
         This controls the rank computation that can be read from the
@@ -110,6 +110,7 @@ class SSD(_GEDTransformer):
         return_filtered=False,
         n_fft=None,
         cov_method_params=None,
+        *,
         restr_type="whitening",
         rank=None,
     ):

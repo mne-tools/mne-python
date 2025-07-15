@@ -54,7 +54,7 @@ class XdawnTransformer(_GEDTransformer):
         to the whitening for the signal_cov.
         If None, no restriction will be applied. Defaults to None.
 
-        .. versionadded:: 1.10
+        .. versionadded:: 1.11
     info : mne.Info | None
         The mne.Info object with information about the sensors and methods of
         measurement used for covariance estimation and generalized
@@ -63,10 +63,10 @@ class XdawnTransformer(_GEDTransformer):
         rank is dict, it will be sum of ranks per channel type.
         Defaults to None.
 
-        .. versionadded:: 1.10
+        .. versionadded:: 1.11
     %(rank_full)s
 
-        .. versionadded:: 1.10
+        .. versionadded:: 1.11
 
     Attributes
     ----------
@@ -88,6 +88,7 @@ class XdawnTransformer(_GEDTransformer):
         reg=None,
         signal_cov=None,
         cov_method_params=None,
+        *,
         restr_type=None,
         info=None,
         rank="full",
