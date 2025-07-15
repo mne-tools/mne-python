@@ -22,8 +22,9 @@ if [ ! -z "$CONDA_ENV" ]; then
 	fi
 elif [[ "${MNE_CI_KIND}" == "pip" ]]; then
 	# This one is free-threaded so can't have numba or PySide6/PyQt6 as of 2025/07/15
-	INSTALL_ARGS="nibabel scikit-learn numpydoc pandas mffpy defusedxml edfio mffpy"
-	# ... or h5py (or h5io), cryptography (thus twine)
+	INSTALL_ARGS="nibabel scikit-learn numpydoc pandas defusedxml edfio"
+	# ... mffpy requires lxml, which tries to build from source and uses Cython (ugh)
+	# ... and also unavialble are h5py (or h5io), cryptography (thus twine)
 	INSTALL_KIND="test"
 else
 	test "${MNE_CI_KIND}" == "pip-pre"
