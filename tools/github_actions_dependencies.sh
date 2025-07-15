@@ -37,5 +37,5 @@ echo ""
 echo "Installing test dependencies using pip"
 python -m pip install $STD_ARGS $INSTALL_ARGS .[$INSTALL_KIND]
 if [[ "${MNE_CI_KIND}" == "pip" ]]; then
-	python -m pip uninstall pytest-qt
+	python -m pip uninstall -yq pytest-qt
 fi
