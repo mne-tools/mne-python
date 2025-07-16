@@ -80,6 +80,62 @@ def _check_curry_labels_filename(fname):
     return fname_labels
 
 
+def _get_curry_meas_info(fname):
+    # get other essential info not provided by curryreader
+    fname_hdr = _check_curry_header_filename(fname)
+    content_hdr = fname_hdr.read_text()
+
+    # read meas_date
+    meas_date = [
+        int(re.compile(rf"{v}\s*=\s*-?\d+").search(content_hdr).group(0).split()[-1])
+        for v in [
+            "StartYear",
+            "StartMonth",
+            "StartDay",
+            "StartHour",
+            "StartMin",
+            "StartSec",
+            "StartMillisec",
+        ]
+    ]
+    try:
+        meas_date = datetime(
+            *meas_date[:-1],
+            meas_date[-1] * 1000,  # -> microseconds
+            timezone.utc,
+        )
+    except Exception:
+        meas_date = None
+
+    # read datatype
+    byteorder = (
+        re.compile(r"DataByteOrder\s*=\s*[A-Z]+")
+        .search(content_hdr)
+        .group()
+        .split()[-1]
+    )
+    is_ascii = byteorder == "ASCII"
+
+    # amp info
+    # TODO - seems like there can be identifiable information (serial numbers, dates).
+    # MNE anonymization functions only overwrite "serial" and "site", though
+    # TODO - there can be filter details, too
+    amp_info = (
+        re.compile(r"AmplifierInfo\s*=.*\n")
+        .search(content_hdr)
+        .group()
+        .strip("\n")
+        .split("= ")[-1]
+        .strip()
+    )
+
+    device_info = (
+        dict(type=amp_info) if amp_info != "" else None  # model="", serial="", site=""
+    )
+
+    return meas_date, is_ascii, device_info
+
+
 def _get_curry_recording_type(fname):
     _soft_import("curryreader", "read recording modality")
 
@@ -175,7 +231,9 @@ def _extract_curry_info(fname):
     hpimatrix = currydata["hpimatrix"]
 
     # data
-    orig_format = "single"  # curryreader.py always reads float32. is this correct?
+    orig_format = "int"
+    # curryreader.py always reads float32, but this is probably just numpy.
+    # legacy MNE code states int.
 
     # events
     events = currydata["events"]
@@ -189,46 +247,6 @@ def _extract_curry_info(fname):
 
     # get other essential info not provided by curryreader
     fname_hdr = _check_curry_header_filename(fname)
-    content_hdr = fname_hdr.read_text()
-
-    # read meas_date
-    meas_date = [
-        int(re.compile(rf"{v}\s*=\s*-?\d+").search(content_hdr).group(0).split()[-1])
-        for v in [
-            "StartYear",
-            "StartMonth",
-            "StartDay",
-            "StartHour",
-            "StartMin",
-            "StartSec",
-            "StartMillisec",
-        ]
-    ]
-    try:
-        meas_date = datetime(
-            *meas_date[:-1],
-            meas_date[-1] * 1000,  # -> microseconds
-            timezone.utc,
-        )
-    except Exception:
-        meas_date = None
-
-    print(f"meas_date: {meas_date}")
-
-    # read datatype
-    byteorder = (
-        re.compile(r"DataByteOrder\s*=\s*[A-Z]+")
-        .search(content_hdr)
-        .group()
-        .split()[-1]
-    )
-    is_ascii = byteorder == "ASCII"
-
-    # amp info
-    # TODO
-    # amp_info = (
-    #    re.compile(r"AmplifierInfo\s*=.*\n").search(content_hdr).group().split("= ")
-    # )
 
     # channel types and units
     ch_types, units = [], []
@@ -304,9 +322,7 @@ def _extract_curry_info(fname):
         events,
         orig_format,
         orig_units,
-        is_ascii,
         cals,
-        meas_date,
     )
 
 
@@ -328,9 +344,7 @@ def _read_annotations_curry(fname, sfreq="auto"):
     """
     fname = _check_curry_filename(fname)
 
-    (sfreq_fromfile, _, _, _, _, _, _, _, events, _, _, _, _, _) = _extract_curry_info(
-        fname
-    )
+    (sfreq_fromfile, _, _, _, _, _, _, _, events, _, _, _) = _extract_curry_info(fname)
     if sfreq == "auto":
         sfreq = sfreq_fromfile
     elif np.isreal(sfreq):
@@ -494,7 +508,7 @@ def _set_chanloc_curry(inst, ch_types, ch_pos, landmarks, landmarkslabels):
         else:
             raise NotImplementedError
 
-    # _make_trans_dig(curry_paths, inst.info, curry_dev_dev_t) # TODO?!
+    # _make_trans_dig(curry_paths, inst.info, curry_dev_dev_t) # TODO - necessary?!
 
 
 @verbose
@@ -579,13 +593,14 @@ class RawCurry(BaseRaw):
             events,
             orig_format,
             orig_units,
-            is_ascii,
             cals,
-            meas_date,
         ) = _extract_curry_info(fname)
+
+        meas_date, is_ascii, device_info = _get_curry_meas_info(fname)
 
         # construct info
         info = create_info(ch_names=ch_names, sfreq=sfreq, ch_types=ch_types)
+        info["device_info"] = device_info
 
         # create raw object
         last_samps = [n_samples - 1]
@@ -620,7 +635,7 @@ class RawCurry(BaseRaw):
             self.set_annotations(annot)
 
         # add sensor locations
-        # TODO - is this working correctly?
+        # TODO - review wanted!
         assert len(self.info["ch_names"]) == len(ch_types) >= len(ch_pos)
         _set_chanloc_curry(
             inst=self,
@@ -725,20 +740,7 @@ def read_montage_curry(fname, verbose=None):
         The montage.
     """
     fname = _check_curry_filename(fname)
-    (
-        _,
-        _,
-        ch_names,
-        ch_types,
-        ch_pos,
-        landmarks,
-        landmarkslabels,
-        _,
-        _,
-        _,
-        _,
-        _,
-        _,
-        _,
-    ) = _extract_curry_info(fname)
+    (_, _, ch_names, ch_types, ch_pos, landmarks, landmarkslabels, _, _, _, _, _) = (
+        _extract_curry_info(fname)
+    )
     return _make_curry_montage(ch_names, ch_types, ch_pos, landmarks, landmarkslabels)

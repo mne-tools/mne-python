@@ -240,6 +240,15 @@ def test_read_files_missing_channel(fname, expected_channel_list):
 
 
 @testing.requires_testing_data
+def test_read_device_info():
+    """Test extraction of device_info."""
+    raw = read_raw_curry(curry7_bdf_file)
+    assert not raw.info["device_info"]
+    raw2 = read_raw_curry(Ref_chan_omitted_file)
+    assert isinstance(raw2.info["device_info"], dict)
+
+
+@testing.requires_testing_data
 @pytest.mark.parametrize(
     "fname",
     [
