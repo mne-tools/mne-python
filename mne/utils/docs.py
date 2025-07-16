@@ -2565,7 +2565,7 @@ max_step : int
 docdict["maxwell_mc_interp"] = """
 mc_interp : str
     Interpolation to use between adjacent time points in movement
-    compensation. Can be "zero" (default in 1.10; used by MaxFilter),
+    compensation. Can be "zero" (used by MaxFilter),
     "linear", or "hann" (default in 1.11).
 
     .. versionadded:: 1.10

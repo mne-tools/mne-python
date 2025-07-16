@@ -176,7 +176,7 @@ def test_get_subjects_dir(tmp_path, monkeypatch):
 
 
 @flaky(max_runs=3)
-@pytest.mark.slowtest
+@pytest.mark.ultraslowtest  # not ultraslow, just flaky and not changed often
 @requires_good_network
 def test_sys_info_check_outdated(monkeypatch):
     """Test sys info checking."""
