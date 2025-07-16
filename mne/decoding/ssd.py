@@ -16,7 +16,7 @@ from ..utils import (
     logger,
 )
 from ._covs_ged import _ssd_estimate
-from ._mod_ged import _ssd_mod
+from ._mod_ged import _get_spectral_ratio, _ssd_mod
 from .base import _GEDTransformer
 
 
@@ -311,8 +311,6 @@ class SSD(_GEDTransformer):
         ----------
         .. footbibliography::
         """
-        from ._mod_ged import _get_spectral_ratio
-
         spec_ratio, sorter_spec = _get_spectral_ratio(
             ssd_sources=ssd_sources,
             sfreq=self.sfreq_,
