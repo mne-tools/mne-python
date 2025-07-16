@@ -9,8 +9,10 @@ INSTALL_KIND="test_extra,hdf5"
 if [ ! -z "$CONDA_ENV" ]; then
 	echo "Uninstalling MNE for CONDA_ENV=${CONDA_ENV}"
 	# This will fail if mne-base is not in the env (like in our minimial/old envs, so ||true them):
+	echo "::group::Uninstalling MNE"
 	conda remove -c conda-forge --force -yq mne-base || true
 	python -m pip uninstall -y mne || true
+	echo "::endgroup::"
 	# If using bare environment.yml and not on windows, do a non-editable install
 	if [[ "${RUNNER_OS}" != "Windows" ]] && [[ "${CONDA_ENV}" != "environment_"* ]]; then
 		INSTALL_ARGS=""
@@ -30,5 +32,6 @@ else
 fi
 echo ""
 
-echo "Installing test dependencies using pip"
+echo "::group::Installing test dependencies using pip"
 python -m pip install $STD_ARGS $INSTALL_ARGS .[$INSTALL_KIND]
+echo "::endgroup::"
