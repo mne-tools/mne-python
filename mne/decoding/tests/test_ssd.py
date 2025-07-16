@@ -570,6 +570,44 @@ def test_picks_arg():
     ssd.fit(X).transform(X)
 
 
+def test_get_spectral_ratio():
+    """Test that method is the same as function in _mod_ged.py."""
+    X, _, _ = simulate_data()
+    sf = 250
+    n_channels = X.shape[0]
+    info = create_info(ch_names=n_channels, sfreq=sf, ch_types="eeg")
+
+    # Init
+    filt_params_signal = dict(
+        l_freq=freqs_sig[0],
+        h_freq=freqs_sig[1],
+        l_trans_bandwidth=1,
+        h_trans_bandwidth=1,
+    )
+    filt_params_noise = dict(
+        l_freq=freqs_noise[0],
+        h_freq=freqs_noise[1],
+        l_trans_bandwidth=1,
+        h_trans_bandwidth=1,
+    )
+
+    ssd = SSD(
+        info,
+        filt_params_signal,
+        filt_params_noise,
+        n_components=None,
+        sort_by_spectral_ratio=False,
+    )
+    ssd.fit(X)
+    ssd_sources = ssd.transform(X)
+    spec_ratio_ssd, sorter_spec_ssd = ssd.get_spectral_ratio(ssd_sources)
+    spec_ratio_ged, sorter_spec_ged = _get_spectral_ratio(
+        ssd_sources, ssd.sfreq_, ssd.n_fft_, ssd.freqs_signal_, ssd.freqs_noise_
+    )
+    assert_array_equal(spec_ratio_ssd, spec_ratio_ged)
+    assert_array_equal(sorter_spec_ssd, sorter_spec_ged)
+
+
 @pytest.mark.filterwarnings("ignore:.*invalid value encountered in divide.*")
 @pytest.mark.filterwarnings("ignore:.*is longer than.*")
 @parametrize_with_checks(
