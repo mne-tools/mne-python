@@ -119,6 +119,7 @@ def _update_sleep_temazepam_records(fname=TEMAZEPAM_SLEEP_RECORDS):
             [("Subject - age - sex", "Age"), ("Subject - age - sex", "M1/F2")],
             append=True,
         )
+        # TODO VERSION future_stack goes away w/ Pandas 3.0
         .stack(level=0, future_stack=True)
         .reset_index()
     )
