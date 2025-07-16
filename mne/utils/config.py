@@ -839,6 +839,8 @@ def sys_info(
         "edfio",
         "mffpy",
         "pybv",
+        "antio",
+        "defusedxml",
         "",
     )
     if dependencies == "developer":
