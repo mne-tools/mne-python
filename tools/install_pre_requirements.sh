@@ -7,14 +7,15 @@ PLATFORM=$(python -c 'import platform; print(platform.system())')
 
 echo "Installing pip-pre dependencies on ${PLATFORM}"
 STD_ARGS="--progress-bar off --upgrade --pre"
-QT_BINDING="PyQt6"
+QT_BINDING="PySide6"
 
 # Dependencies of scientific-python-nightly-wheels are installed here so that
 # we can use strict --index-url (instead of --extra-index-url) below
 set -x
 python -m pip install $STD_ARGS pip setuptools packaging \
 	threadpoolctl cycler fonttools kiwisolver pyparsing pillow python-dateutil \
-	patsy pytz tzdata nibabel tqdm trx-python joblib numexpr "$QT_BINDING" \
+	patsy pytz tzdata nibabel tqdm trx-python joblib numexpr \
+	"$QT_BINDING!=6.9.1" \
 	py-cpuinfo blosc2 hatchling "formulaic>=1.1.0"
 python -m pip uninstall -yq numpy
 python -m pip install $STD_ARGS --only-binary ":all:" --default-timeout=60 \
