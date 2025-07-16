@@ -1,6 +1,6 @@
 #!/bin/bash -ef
 
-set -o pipefail
+set -eo pipefail
 
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 STD_ARGS="--progress-bar off --upgrade"
@@ -25,7 +25,7 @@ elif [[ "${MNE_CI_KIND}" == "pip" ]]; then
 else
 	test "${MNE_CI_KIND}" == "pip-pre"
 	STD_ARGS="$STD_ARGS --pre"
-	${SCRIPT_DIR}/install_pre_requirements.sh
+	${SCRIPT_DIR}/install_pre_requirements.sh || exit 1
 	INSTALL_KIND="test_extra"
 fi
 echo ""
