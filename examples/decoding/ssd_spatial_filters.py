@@ -45,7 +45,6 @@ freqs_noise = 8, 13
 ssd = SSD(
     info=raw.info,
     reg="oas",
-    sort_by_spectral_ratio=False,  # False for purpose of example.
     filt_params_signal=dict(
         l_freq=freqs_sig[0],
         h_freq=freqs_sig[1],
@@ -81,23 +80,6 @@ ssd_sources = ssd.transform(X=raw.get_data())
 psd, freqs = mne.time_frequency.psd_array_welch(
     ssd_sources, sfreq=raw.info["sfreq"], n_fft=4096
 )
-
-# Get spec_ratio information (already sorted).
-# Note that this is not necessary if sort_by_spectral_ratio=True (default).
-spec_ratio, sorter = ssd.get_spectral_ratio(ssd_sources)
-
-# Plot spectral ratio (see Eq. 24 in Nikulin et al., 2011).
-fig, ax = plt.subplots(1)
-ax.plot(spec_ratio, color="black")
-ax.plot(spec_ratio[sorter], color="orange", label="sorted eigenvalues")
-ax.set_xlabel("Eigenvalue Index")
-ax.set_ylabel(r"Spectral Ratio $\frac{P_f}{P_{sf}}$")
-ax.legend()
-ax.axhline(1, linestyle="--")
-
-# We can see that the initial sorting based on the eigenvalues
-# was already quite good. However, when using few components only
-# the sorting might make a difference.
 
 # %%
 # Let's also look at the power spectrum of that source and compare it
