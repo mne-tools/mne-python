@@ -757,7 +757,7 @@ def _run_maxwell_filter(
         n = end - onset
         assert n > 0
         tsss_valid = n >= st_duration
-        if st_overlap and tsss_valid:
+        if st_overlap and tsss_valid and st_correlation is not None:
             n_overlap = st_duration // 2
             window = "hann"
         else:
@@ -2735,6 +2735,7 @@ def find_bad_channels_maxwell(
         extended_proj=extended_proj,
         reconstruct="orig",
     )
+    assert params["st_correlation"] is None
     del origin, int_order, ext_order, calibration, cross_talk, coord_frame
     del regularize, ignore_ref, bad_condition, head_pos, mag_scale
     good_meg_picks = params["meg_picks"][params["good_mask"]]
