@@ -3,7 +3,6 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-
 import numpy as np
 import pytest
 from numpy import empty
@@ -12,9 +11,14 @@ from numpy.testing import assert_allclose, assert_array_equal
 from mne.annotations import events_from_annotations, read_annotations
 from mne.channels import DigMontage
 from mne.datasets import testing
+from mne.epochs import Epochs
 from mne.event import find_events
 from mne.io.curry import read_impedances_curry, read_montage_curry, read_raw_curry
-from mne.io.curry.curry import _check_curry_filename, _check_curry_header_filename
+from mne.io.curry.curry import (
+    RawCurry,
+    _check_curry_filename,
+    _check_curry_header_filename,
+)
 from mne.io.edf import read_raw_bdf
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.transforms import Transform
@@ -30,6 +34,7 @@ curry8_bdf_file = curry_dir / "test_bdf_stim_channel Curry 8.cdt"
 curry8_bdf_ascii_file = curry_dir / "test_bdf_stim_channel Curry 8 ASCII.cdt"
 Ref_chan_omitted_file = curry_dir / "Ref_channel_omitted Curry7.dat"
 Ref_chan_omitted_reordered_file = curry_dir / "Ref_channel_omitted reordered Curry7.dat"
+epoched_file = curry_dir / "Epoched.cdt"
 
 
 @pytest.fixture(scope="session")
@@ -72,7 +77,19 @@ def test_read_raw_curry(fname, tol, preload, bdf_curry_ref):
         bdf_curry_ref.get_data(picks=picks, start=start, stop=stop),
         rtol=tol,
     )
-    # assert raw.info["dev_head_t"] is None  # TODO do we need this value?
+    assert raw.info["dev_head_t"] == Transform("meg", "head")
+
+
+@testing.requires_testing_data
+def test_read_raw_curry_epoched():
+    """Test reading epoched file."""
+    ep = read_raw_curry(epoched_file)
+    assert isinstance(ep, Epochs)
+    assert len(ep.events) == 26
+    assert len(ep.annotations) == 0
+    raw = read_raw_curry(epoched_file, import_epochs_as_events=True)
+    assert isinstance(raw, RawCurry)
+    assert len(raw.annotations) == 26
 
 
 @testing.requires_testing_data
@@ -117,7 +134,6 @@ def test_read_events_curry_are_same_as_bdf(fname):
     """Test events from curry annotations recovers the right events."""
     EVENT_ID = {str(ii): ii for ii in range(5)}
     REF_EVENTS = find_events(read_raw_bdf(bdf_file, preload=True))
-    # TODO!
     raw = read_raw_curry(fname)
     events, _ = events_from_annotations(raw, event_id=EVENT_ID)
     assert_allclose(events, REF_EVENTS)

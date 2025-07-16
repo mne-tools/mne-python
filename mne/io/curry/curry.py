@@ -191,13 +191,27 @@ def _get_curry_epoch_info(fname):
 def _get_curry_meg_normals(fname):
     fname_hdr = _check_curry_header_filename(fname)
     normals_str = fname_hdr.read_text().split("\n")
-    i_start, i_stop = [
+    # i_start, i_stop = [
+    #    i
+    #    for i, ll in enumerate(normals_str)
+    #    if ("NORMALS" in ll and "START_LIST" in ll)
+    #    or ("NORMALS" in ll and "END_LIST" in ll)
+    # ]
+    # normals_str = [nn.split("\t") for nn in normals_str[i_start + 1 : i_stop]]
+    i_list = [
         i
         for i, ll in enumerate(normals_str)
         if ("NORMALS" in ll and "START_LIST" in ll)
         or ("NORMALS" in ll and "END_LIST" in ll)
     ]
-    normals_str = [nn.split("\t") for nn in normals_str[i_start + 1 : i_stop]]
+    assert len(i_list) % 2 == 0
+    i_start_list = i_list[::2]
+    i_stop_list = i_list[1::2]
+    normals_str = [
+        nn.split("\t")
+        for i_start, i_stop in zip(i_start_list, i_stop_list)
+        for nn in normals_str[i_start + 1 : i_stop]
+    ]
     return np.array([[float(nnn.strip()) for nnn in nn] for nn in normals_str])
 
 
@@ -296,10 +310,18 @@ def _extract_curry_info(fname):
         ch_names = [
             ch_names_full[i] for i in np.argsort(chaninfile_full) if i not in i_drop
         ]
+        ch_pos = np.array(
+            [
+                ch_pos[i]
+                for i in np.argsort(chaninfile_full)
+                if (i not in i_drop) and (i < len(ch_pos))
+            ]
+        )
         ch_types = [ch_types[i] for i in np.argsort(chaninfile_full) if i not in i_drop]
         units = [units[i] for i in np.argsort(chaninfile_full) if i not in i_drop]
 
     assert len(ch_types) == len(units) == len(ch_names) == n_ch
+    assert len(ch_pos) == ch_types.count("eeg") + ch_types.count("mag")
 
     # finetune channel types (e.g. stim, eog etc might be identified by name)
     # TODO?
@@ -370,8 +392,9 @@ def _make_curry_montage(ch_names, ch_types, ch_pos, landmarks, landmarkslabels):
     ch_pos /= 1000.0
     landmarks /= 1000.0
     # channel locations
-    # TODO - what about misc without pos? can they mess things up if unordered?
+    # what about misc without pos? can they mess things up if unordered?
     assert len(ch_pos) >= (ch_types.count("mag") + ch_types.count("eeg"))
+    assert len(ch_pos) == (ch_types.count("mag") + ch_types.count("eeg"))
     ch_pos_eeg = {
         ch_names[i]: ch_pos[i, :3] for i, t in enumerate(ch_types) if t == "eeg"
     }
@@ -417,8 +440,9 @@ def _set_chanloc_curry(inst, ch_types, ch_pos, landmarks, landmarkslabels):
     ch_pos /= 1000.0
     landmarks /= 1000.0
     # channel locations
-    # TODO - what about misc without pos? can they mess things up if unordered?
+    # what about misc without pos? can they mess things up if unordered?
     assert len(ch_pos) >= (ch_types.count("mag") + ch_types.count("eeg"))
+    assert len(ch_pos) == (ch_types.count("mag") + ch_types.count("eeg"))
     ch_pos_meg = {
         ch_names[i]: ch_pos[i, :3] for i, t in enumerate(ch_types) if t == "mag"
     }
@@ -433,14 +457,14 @@ def _set_chanloc_curry(inst, ch_types, ch_pos, landmarks, landmarkslabels):
             landmark_dict[k] = None
     if len(landmarkslabels) > 0:
         hpi_pos = landmarks[
-            [i for i, n in enumerate(landmarkslabels) if re.match("HPI[1-99]", n)],
+            [i for i, n in enumerate(landmarkslabels) if re.match("HPI.?[1-99]", n)],
             :,
         ]
     else:
         hpi_pos = None
     if len(landmarkslabels) > 0:
         hsp_pos = landmarks[
-            [i for i, n in enumerate(landmarkslabels) if re.match("H[1-99]", n)], :
+            [i for i, n in enumerate(landmarkslabels) if re.match("H.?[1-99]", n)], :
         ]
     else:
         hsp_pos = None
@@ -448,9 +472,9 @@ def _set_chanloc_curry(inst, ch_types, ch_pos, landmarks, landmarkslabels):
     add_missing_fiducials = (
         True
         if (
-            not landmark_dict["Nas"]
-            and not landmark_dict["LPA"]
-            and not landmark_dict["LPA"]
+            isinstance(landmark_dict["Nas"], type(None))
+            and isinstance(landmark_dict["LPA"], type(None))
+            and isinstance(landmark_dict["RPA"], type(None))
         )
         else False  # raises otherwise
     )
