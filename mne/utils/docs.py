@@ -3697,6 +3697,7 @@ rank : None | 'info' | 'full' | dict
 """
 
 docdict["rank"] = _rank_base
+docdict["rank_full"] = _rank_base + "\n    The default is ``'full'``."
 docdict["rank_info"] = _rank_base + "\n    The default is ``'info'``."
 docdict["rank_none"] = _rank_base + "\n    The default is ``None``."
 
