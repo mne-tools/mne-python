@@ -289,6 +289,39 @@ class SSD(_GEDTransformer):
         # use parent TransformerMixin method but with custom docstring
         return super().fit_transform(X, y=y, **fit_params)
 
+    def get_spectral_ratio(self, ssd_sources):
+        """Get the spectal signal-to-noise ratio for each spatial filter.
+
+        Spectral ratio measure for best n_components selection
+        See :footcite:`NikulinEtAl2011`, Eq. (24).
+
+        Parameters
+        ----------
+        ssd_sources : array
+            Data projected to SSD space.
+
+        Returns
+        -------
+        spec_ratio : array, shape (n_channels)
+            Array with the sprectal ratio value for each component.
+        sorter_spec : array, shape (n_channels)
+            Array of indices for sorting spec_ratio.
+
+        References
+        ----------
+        .. footbibliography::
+        """
+        from ._mod_ged import _get_spectral_ratio
+
+        spec_ratio, sorter_spec = _get_spectral_ratio(
+            ssd_sources=ssd_sources,
+            sfreq=self.sfreq_,
+            n_fft=self.n_fft_,
+            freqs_signal=self.freqs_signal_,
+            freqs_noise=self.freqs_noise_,
+        )
+        return spec_ratio, sorter_spec
+
     def inverse_transform(self):
         """Not implemented yet."""
         raise NotImplementedError("inverse_transform is not yet available.")
