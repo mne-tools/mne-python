@@ -46,6 +46,7 @@ _.preserves_dtype
 _.one_d_labels
 _.two_d_array
 _.three_d_array
+_.get_spectral_ratio
 deep
 
 # Backward compat or rarely used
