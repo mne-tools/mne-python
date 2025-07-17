@@ -780,7 +780,7 @@ switcher_version_match = "dev" if ".dev" in version else version
 html_theme_options = {
     "icon_links": [
         dict(
-            name="Discord",
+            name="Discord (office hours)",
             url="https://discord.gg/rKfvxTuATa",
             icon="fa-brands fa-discord fa-fw",
         ),
@@ -791,17 +791,17 @@ html_theme_options = {
             attributes=dict(rel="me"),
         ),
         dict(
-            name="Forum",
+            name="Q&A Forum",
             url="https://mne.discourse.group/",
             icon="fa-brands fa-discourse fa-fw",
         ),
         dict(
-            name="GitHub",
+            name="Code Repository",
             url="https://github.com/mne-tools/mne-python",
             icon="fa-brands fa-github fa-fw",
         ),
         dict(
-            name="Sponsor on GitHub",
+            name="Sponsor us on GitHub",
             url="https://github.com/sponsors/mne-tools",
             icon="fa-regular fa-heart fa-fw",
         ),
