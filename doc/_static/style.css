@@ -32,6 +32,7 @@ html[data-theme="light"] {
     --mne-color-discourse: #d0232b;
     --mne-color-mastodon: #2F0C7A;
     --mne-color-sponsor: #BF3989;  /* from GH sponsor heart, via browser devtools */
+    --mne-color-opencollective: #1F87FF;  /* scraped from logo SVG */
     /* code block copy button */
     --copybtn-opacity: 0.75;
     /* card header bg color */
@@ -65,6 +66,7 @@ html[data-theme="dark"] {
     --mne-color-discourse: #FFF9AE;  /* from their logo SVG */
     --mne-color-mastodon: #858AFA;  /* www.joinmastodon.org/en/branding */
     --mne-color-sponsor: #DB61A2;  /* from GH sponsor heart, via browser devtools */
+    --mne-color-opencollective: #99CFFF;  /* scraped from logo SVG */
     /* code block copy button */
     --copybtn-opacity: 0.25;
     /* card header bg color */
@@ -269,6 +271,9 @@ aside.footnote:last-child {
 }
 .navbar-icon-links svg.fa-heart {
     color: var(--mne-color-sponsor);
+}
+.navbar-icon-links svg.fa-opencollective {
+    color: var(--mne-color-opencollective);
 }
 
 /* ************************************************************ nav elements */

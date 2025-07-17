@@ -805,6 +805,11 @@ html_theme_options = {
             url="https://github.com/sponsors/mne-tools",
             icon="fa-regular fa-heart fa-fw",
         ),
+        dict(
+            name="Donate via OpenCollective",
+            url="https://opencollective.com/mne-python",
+            icon="fa-custom fa-opencollective fa-fw",
+        ),
     ],
     "icon_links_label": "External Links",  # for screen reader
     "use_edit_page_button": False,
@@ -844,6 +849,9 @@ html_favicon = "_static/favicon.ico"
 html_static_path = ["_static"]
 html_css_files = [
     "style.css",
+]
+html_js_files = [
+    ("js/custom-icons.js", {"defer": "defer"}),
 ]
 
 # Add any extra paths that contain custom files (such as robots.txt or
