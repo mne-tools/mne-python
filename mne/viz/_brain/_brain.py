@@ -442,7 +442,8 @@ class Brain:
                     )
                     self._layered_meshes[h] = mesh
                     # add metadata to the mesh for picking
-                    mesh._polydata._hemi = h
+                    # using __setattr__ is needed to set dynamic properties for PolyData
+                    object.__setattr__(mesh._polydata, '_hemi', h)
                 else:
                     actor = self._layered_meshes[h]._actor
                     self._renderer.plotter.add_actor(actor, render=False)
