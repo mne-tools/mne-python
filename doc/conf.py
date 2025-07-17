@@ -798,7 +798,7 @@ html_theme_options = {
         dict(
             name="GitHub",
             url="https://github.com/mne-tools/mne-python",
-            icon="fa-brands fa-square-github fa-fw",
+            icon="fa-brands fa-github fa-fw",
         ),
         dict(
             name="Sponsor on GitHub",

@@ -257,7 +257,7 @@ aside.footnote:last-child {
 }
 
 /* ******************************************************* navbar icon links */
-.navbar-icon-links svg.fa-square-github {
+.navbar-icon-links svg.fa-github {
     color: var(--mne-color-github);
 }
 .navbar-icon-links svg.fa-discourse {
