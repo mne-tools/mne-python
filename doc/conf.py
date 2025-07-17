@@ -800,6 +800,11 @@ html_theme_options = {
             url="https://github.com/mne-tools/mne-python",
             icon="fa-brands fa-square-github fa-fw",
         ),
+        dict(
+            name="Sponsor on GitHub",
+            url="https://github.com/sponsors/mne-tools",
+            icon="fa-regular fa-heart fa-fw",
+        ),
     ],
     "icon_links_label": "External Links",  # for screen reader
     "use_edit_page_button": False,
