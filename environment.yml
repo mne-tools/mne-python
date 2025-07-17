@@ -26,17 +26,17 @@ dependencies:
   - jupyter
   - lazy_loader >=0.3
   - mamba
-  - matplotlib >=3.7
+  - matplotlib >=3.8
   - mffpy >=0.5.7
   - mne-qt-browser
   - nibabel
   - nilearn
   - nomkl
   - numba
-  - numpy >=1.25,<3
-  - openmeeg >=2.5.5
+  - numpy >=1.26,<3
+  - openmeeg >=2.5.7
   - packaging
-  - pandas >=2.0
+  - pandas >=2.1
   - pillow
   - pip
   - pooch >=1.5

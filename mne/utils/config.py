@@ -840,6 +840,8 @@ def sys_info(
         "curryreader",
         "mffpy",
         "pybv",
+        "antio",
+        "defusedxml",
         "",
     )
     if dependencies == "developer":
@@ -848,11 +850,9 @@ def sys_info(
             "pytest",
             "statsmodels",
             "numpydoc",
-            "flake8",
             "jupyter_client",
             "nbclient",
             "nbformat",
-            "pydocstyle",
             "nitime",
             "imageio",
             "imageio-ffmpeg",
