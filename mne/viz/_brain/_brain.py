@@ -441,8 +441,6 @@ class Brain:
                         name="curv",
                     )
                     self._layered_meshes[h] = mesh
-                    # add metadata to the mesh for picking
-                    mesh._polydata._hemi = h
                 else:
                     actor = self._layered_meshes[h]._actor
                     self._renderer.plotter.add_actor(actor, render=False)
@@ -1248,12 +1246,12 @@ class Brain:
             return
 
         # 3) Otherwise, pick the objects in the scene
-        try:
-            hemi = mesh._hemi
-        except AttributeError:  # volume
-            hemi = "vol"
+        for hemi, this_mesh in self._layered_meshes.items():
+            assert hemi in ("lh", "rh"), f"Unexpected {hemi=}"
+            if this_mesh._polydata is mesh:
+                break
         else:
-            assert hemi in ("lh", "rh")
+            hemi = "vol"
         if self.act_data_smooth[hemi][0] is None:  # no data to add for hemi
             return
         pos = np.array(vtk_picker.GetPickPosition())
