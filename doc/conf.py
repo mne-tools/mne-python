@@ -780,7 +780,7 @@ switcher_version_match = "dev" if ".dev" in version else version
 html_theme_options = {
     "icon_links": [
         dict(
-            name="Discord",
+            name="Discord (office hours)",
             url="https://discord.gg/rKfvxTuATa",
             icon="fa-brands fa-discord fa-fw",
         ),
@@ -791,14 +791,24 @@ html_theme_options = {
             attributes=dict(rel="me"),
         ),
         dict(
-            name="Forum",
+            name="Q&A Forum",
             url="https://mne.discourse.group/",
             icon="fa-brands fa-discourse fa-fw",
         ),
         dict(
-            name="GitHub",
+            name="Code Repository",
             url="https://github.com/mne-tools/mne-python",
-            icon="fa-brands fa-square-github fa-fw",
+            icon="fa-brands fa-github fa-fw",
+        ),
+        dict(
+            name="Sponsor us on GitHub",
+            url="https://github.com/sponsors/mne-tools",
+            icon="fa-regular fa-heart fa-fw",
+        ),
+        dict(
+            name="Donate via OpenCollective",
+            url="https://opencollective.com/mne-python",
+            icon="fa-custom fa-opencollective fa-fw",
         ),
     ],
     "icon_links_label": "External Links",  # for screen reader
@@ -839,6 +849,9 @@ html_favicon = "_static/favicon.ico"
 html_static_path = ["_static"]
 html_css_files = [
     "style.css",
+]
+html_js_files = [
+    ("js/custom-icons.js", {"defer": "defer"}),
 ]
 
 # Add any extra paths that contain custom files (such as robots.txt or
