@@ -13,7 +13,7 @@ from mne.channels import DigMontage
 from mne.datasets import testing
 from mne.epochs import Epochs
 from mne.event import find_events
-from mne.io.curry import read_impedances_curry, read_montage_curry, read_raw_curry
+from mne.io.curry import read_dig_curry, read_impedances_curry, read_raw_curry
 from mne.io.curry.curry import (
     RawCurry,
     _check_curry_filename,
@@ -87,9 +87,14 @@ def test_read_raw_curry_epoched():
     assert isinstance(ep, Epochs)
     assert len(ep.events) == 26
     assert len(ep.annotations) == 0
-    raw = read_raw_curry(epoched_file, import_epochs_as_events=True)
+    raw = read_raw_curry(epoched_file, import_epochs_as_annotations=True)
     assert isinstance(raw, RawCurry)
     assert len(raw.annotations) == 26
+
+    # check signal identity
+    aa = raw.get_data()
+    bb = ep.get_data()
+    assert np.equal(aa, bb.transpose(1, 0, 2).reshape(aa.shape)).all()
 
 
 @testing.requires_testing_data
@@ -277,7 +282,7 @@ def test_read_device_info():
 def test_read_impedances_curry(fname):
     """Test reading impedances from CURRY files."""
     _, imp = read_impedances_curry(fname)
-    actual_imp = empty(shape=(0, 3))
+    actual_imp = empty(shape=(0, 3))  # TODO - need better testing data
     assert_allclose(
         imp,
         actual_imp,
@@ -286,16 +291,19 @@ def test_read_impedances_curry(fname):
 
 @testing.requires_testing_data
 @pytest.mark.parametrize(
-    "fname",
+    "fname,mont_present",
     [
-        pytest.param(curry7_bdf_file, id="curry 7"),
-        pytest.param(curry8_bdf_file, id="curry 8"),
-        pytest.param(curry7_bdf_ascii_file, id="curry 7 ascii"),
-        pytest.param(curry8_bdf_ascii_file, id="curry 8 ascii"),
+        pytest.param(curry7_bdf_file, True, id="curry 7"),
+        pytest.param(curry8_bdf_file, True, id="curry 8"),
+        pytest.param(curry7_bdf_ascii_file, True, id="curry 7 ascii"),
+        pytest.param(curry8_bdf_ascii_file, True, id="curry 8 ascii"),
     ],
 )
-def test_read_montage_curry(fname):
+def test_read_montage_curry(fname, mont_present):
     """Test reading montage from CURRY files."""
-    mont = read_montage_curry(fname)
-    assert isinstance(mont, DigMontage)
-    # TODO - not very specific, yet
+    if mont_present:
+        assert isinstance(read_dig_curry(fname), DigMontage)
+    else:
+        # TODO - not reached, yet. no test file without eeg chanlocs
+        with pytest.warns(RuntimeWarning, match="No sensor locations found"):
+            _ = read_dig_curry(fname)

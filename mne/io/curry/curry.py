@@ -37,6 +37,11 @@ def _check_curry_filename(fname):
     # try suffixes
     if fname_in.suffix in CURRY_SUFFIX_DATA:
         fname_out = fname_in
+    elif (
+        fname_in.with_suffix("").exists()
+        and fname_in.with_suffix("").suffix in CURRY_SUFFIX_DATA
+    ):
+        fname_out = fname_in.with_suffix("")
     else:
         for data_suff in CURRY_SUFFIX_DATA:
             if fname_in.with_suffix(data_suff).exists():
@@ -116,10 +121,12 @@ def _get_curry_meas_info(fname):
     )
     is_ascii = byteorder == "ASCII"
 
-    # amp info
-    # TODO - seems like there can be identifiable information (serial numbers, dates).
+    # amplifier info
+    # TODO - PRIVACY
+    # seems like there can be identifiable information (serial numbers, dates).
     # MNE anonymization functions only overwrite "serial" and "site", though
-    # TODO - there can be filter details, too
+    # TODO - FUTURE ENHANCEMENT
+    # # there can be filter details in AmplifierInfo, too
     amp_info = (
         re.compile(r"AmplifierInfo\s*=.*\n")
         .search(content_hdr)
@@ -182,9 +189,12 @@ def _get_curry_epoch_info(fname):
         event_id=event_id,
         tmin=0.0,
         tmax=(n_samples - 1) / sfreq,
-        baseline=(0, 0),
+        baseline=None,
+        detrend=None,
+        verbose=False,
         metadata=epochmetainfo,
         reject_by_annotation=False,
+        reject=None,
     )
 
 
@@ -251,9 +261,18 @@ def _extract_curry_info(fname):
 
     # events
     events = currydata["events"]
-    # annotations = currydata[
-    #    "annotations"
-    # ]  # TODO - these dont really seem to correspond to events! what is it?
+    # BUG in curryreader (v.0.1.1)! annotations read incorrectly (shifted by 1 line)
+    annotations = currydata["annotations"]
+    assert len(annotations) == len(events)
+    if len(events) > 0:
+        # quick fix: shift annotation down, last one is missing
+        annotations = annotations[1:] + [""]
+        event_desc = dict()
+        for k, v in zip(events[:, 1], annotations):
+            if int(k) not in event_desc.keys():
+                event_desc[int(k)] = v.strip() if (v.strip() != "") else str(int(k))
+    else:
+        event_desc = None
 
     # impedance measurements
     # moved to standalone def; see read_impedances_curry
@@ -324,8 +343,7 @@ def _extract_curry_info(fname):
     assert len(ch_pos) == ch_types.count("eeg") + ch_types.count("mag")
 
     # finetune channel types (e.g. stim, eog etc might be identified by name)
-    # TODO?
-
+    # TODO - FUTURE ENHANCEMENT
     # scale data to SI units
     orig_units = dict(zip(ch_names, units))
     cals = [
@@ -342,6 +360,7 @@ def _extract_curry_info(fname):
         landmarkslabels,
         hpimatrix,
         events,
+        event_desc,
         orig_format,
         orig_units,
         cals,
@@ -366,7 +385,9 @@ def _read_annotations_curry(fname, sfreq="auto"):
     """
     fname = _check_curry_filename(fname)
 
-    (sfreq_fromfile, _, _, _, _, _, _, _, events, _, _, _) = _extract_curry_info(fname)
+    (sfreq_fromfile, _, _, _, _, _, _, _, events, event_desc, _, _, _) = (
+        _extract_curry_info(fname)
+    )
     if sfreq == "auto":
         sfreq = sfreq_fromfile
     elif np.isreal(sfreq):
@@ -381,7 +402,7 @@ def _read_annotations_curry(fname, sfreq="auto"):
     if isinstance(events, np.ndarray):  # if there are events
         events = events.astype("int")
         events = np.insert(events, 1, np.diff(events[:, 2:]).flatten(), axis=1)[:, :3]
-        return annotations_from_events(events, sfreq)
+        return annotations_from_events(events, sfreq, event_desc=event_desc)
     else:
         warn("no event annotations found")
         return None
@@ -417,7 +438,7 @@ def _make_curry_montage(ch_names, ch_types, ch_pos, landmarks, landmarkslabels):
         hsp_pos = None
     # make dig montage for eeg
     mont = None
-    if ch_pos.shape[1] in [3, 6]:  # eeg xyz space
+    if len(ch_pos_eeg) > 0:
         mont = make_dig_montage(
             ch_pos=ch_pos_eeg,
             nasion=landmark_dict["Nas"],
@@ -425,10 +446,10 @@ def _make_curry_montage(ch_names, ch_types, ch_pos, landmarks, landmarkslabels):
             rpa=landmark_dict["RPA"],
             hsp=hsp_pos,
             hpi=hpi_pos,
-            coord_frame="unknown",
+            coord_frame="head",
         )
     else:  # not recorded?
-        pass
+        warn("No eeg sensor locations found in file.")
 
     return mont
 
@@ -532,21 +553,23 @@ def _set_chanloc_curry(inst, ch_types, ch_pos, landmarks, landmarkslabels):
         else:
             raise NotImplementedError
 
-    # _make_trans_dig(curry_paths, inst.info, curry_dev_dev_t) # TODO - necessary?!
+    # TODO - REVIEW NEEDED
+    # do we need further transpositions for MEG channel positions?
+    # the testfiles i got look good to me..
+    # _make_trans_dig(curry_paths, inst.info, curry_dev_dev_t)
 
 
 @verbose
 def read_raw_curry(
-    fname, import_epochs_as_events=False, preload=False, verbose=None
+    fname, import_epochs_as_annotations=False, preload=False, verbose=None
 ) -> "RawCurry":
     """Read raw data from Curry files.
 
     Parameters
     ----------
     fname : path-like
-        Path to a curry file with extensions ``.dat``, ``.dap``, ``.rs3``,
-        ``.cdt``, ``.cdt.dpa``, ``.cdt.cef`` or ``.cef``.
-    import_epochs_as_events : bool
+        Path to a valid curry file.
+    import_epochs_as_annotations : bool
         Set to ``True`` if you want to import epoched recordings as continuous ``raw``
         object with event annotations. Only do this if you know your data allows it.
     %(preload)s
@@ -568,7 +591,9 @@ def read_raw_curry(
     inst = RawCurry(fname, preload, verbose)
     if rectype in ["epochs", "evoked"]:
         curry_epoch_info = _get_curry_epoch_info(fname)
-        if import_epochs_as_events:
+        if import_epochs_as_annotations:
+            # TODO - REVIEW NEEDED
+            # give those annotations a specific name/type?
             epoch_annotations = annotations_from_events(
                 events=curry_epoch_info["events"],
                 event_desc={v: k for k, v in curry_epoch_info["event_id"].items()},
@@ -576,11 +601,9 @@ def read_raw_curry(
             )
             inst.set_annotations(inst.annotations + epoch_annotations)
         else:
-            inst = Epochs(
-                inst, **curry_epoch_info
-            )  # TODO - seems to reject flat channel
+            inst = Epochs(inst, **curry_epoch_info)
             if rectype == "evoked":
-                raise NotImplementedError
+                raise NotImplementedError  # not sure this is even supported format
     return inst
 
 
@@ -590,8 +613,7 @@ class RawCurry(BaseRaw):
     Parameters
     ----------
     fname : path-like
-        Path to a curry file with extensions ``.dat``, ``.dap``, ``.rs3``,
-        ``.cdt``, ``.cdt.dpa``, ``.cdt.cef`` or ``.cef``.
+        Path to a valid curry file.
     %(preload)s
     %(verbose)s
 
@@ -615,6 +637,7 @@ class RawCurry(BaseRaw):
             landmarkslabels,
             hpimatrix,
             events,
+            event_desc,
             orig_format,
             orig_units,
             cals,
@@ -655,11 +678,11 @@ class RawCurry(BaseRaw):
             events = np.insert(events, 1, np.diff(events[:, 2:]).flatten(), axis=1)[
                 :, :3
             ]
-            annot = annotations_from_events(events, sfreq)
+            annot = annotations_from_events(events, sfreq, event_desc=event_desc)
             self.set_annotations(annot)
 
         # add sensor locations
-        # TODO - review wanted!
+        # TODO - REVIEW NEEDED
         assert len(self.info["ch_names"]) == len(ch_types) >= len(ch_pos)
         _set_chanloc_curry(
             inst=self,
@@ -670,13 +693,15 @@ class RawCurry(BaseRaw):
         )
 
         # add HPI data (if present)
+        # TODO - FUTURE ENHANCEMENT
         # from curryreader docstring:
         # "HPI-coil measurements matrix (Orion-MEG only) where every row is:
         # [measurementsample, dipolefitflag, x, y, z, deviation]"
-        # that's incorrect, though. it seems to be:
+        #
+        # that's incorrect, though. it ratehr seems to be:
         # [sample, dipole_1, x_1,y_1, z_1, dev_1, ..., dipole_n, x_n, ...]
         # for all n coils.
-        # TODO - do they actually store cHPI?
+        # We are missing good example data or format specs! do not implement for now.
         if not isinstance(hpimatrix, list):
             warn("cHPI data found, but reader not implemented.")
             hpisamples = hpimatrix[:, 0]
@@ -707,8 +732,7 @@ def read_impedances_curry(fname, verbose=None):
     Parameters
     ----------
     fname : path-like
-        Path to a curry file with extensions ``.dat``, ``.dap``, ``.rs3``,
-        ``.cdt``, ``.cdt.dpa``, ``.cdt.cef`` or ``.cef``.
+        Path to a valid curry file.
     %(verbose)s
 
     Returns
@@ -730,15 +754,10 @@ def read_impedances_curry(fname, verbose=None):
     impedances = currydata["impedances"]
     ch_names = currydata["labels"]
 
-    # try get measurement times
-    # TODO - is this even possible?
-    annotations = currydata[
-        "annotations"
-    ]  # dont really seem to correspond to events!?!
-    for anno in set(annotations):
-        if "impedance" in anno.lower():
-            print("FOUND IMPEDANCE ANNOTATION!")
-            print(f"'{anno}' - N={len([a for a in annotations if a == anno])}")
+    # get impedance measurement times
+    # TODO - FUTURE ENHANCEMENT
+    # info can be in the files (as events or IMPEDANCE_TIMES)
+    # inconsistently, though, and low priority
 
     # print impedances
     print("impedance measurements:")
@@ -749,13 +768,13 @@ def read_impedances_curry(fname, verbose=None):
 
 
 @verbose
-def read_montage_curry(fname, verbose=None):
-    """Read eeg montage from Curry files.
+def read_dig_curry(fname, verbose=None):
+    """Read electrode locations from Curry files.
 
     Parameters
     ----------
     fname : path-like
-        The filename.
+        A valid Curry file.
     %(verbose)s
 
     Returns
@@ -763,8 +782,10 @@ def read_montage_curry(fname, verbose=None):
     montage : instance of DigMontage | None
         The montage.
     """
+    # TODO - REVIEW NEEDED
+    # API? do i need to add this in the docs somewhere?
     fname = _check_curry_filename(fname)
-    (_, _, ch_names, ch_types, ch_pos, landmarks, landmarkslabels, _, _, _, _, _) = (
+    (_, _, ch_names, ch_types, ch_pos, landmarks, landmarkslabels, _, _, _, _, _, _) = (
         _extract_curry_info(fname)
     )
     return _make_curry_montage(ch_names, ch_types, ch_pos, landmarks, landmarkslabels)
