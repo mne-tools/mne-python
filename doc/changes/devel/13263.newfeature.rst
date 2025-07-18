@@ -1,0 +1,1 @@
+It is now possible to concatenate raw objects with :func:`mne.concatenate_raws` as long as they inherit from :class:`~mne.io.BaseRaw`, even if their specific types differ (e.g., :class:`~mne.io.Raw` and :class:`~mne.io.RawArray`), by `Clemens Brunner`_.
