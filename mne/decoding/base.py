@@ -197,8 +197,8 @@ class _GEDTransformer(MNETransformerMixin, BaseEstimator):
     def get_spatial_filter(self, info):
         """Create a SpatialFilter object.
 
-        Creates a `mne.viz.SpatialFilter` object from the fitted
-        generalized eigendecomposition or other linear models.
+        Creates an `mne.viz.SpatialFilter` object from the fitted
+        generalized eigendecomposition.
         This object can be used to visualize the spatial filters,
         patterns, and eigenvalues.
 
@@ -209,12 +209,13 @@ class _GEDTransformer(MNETransformerMixin, BaseEstimator):
 
         Returns
         -------
-        sp_filter : instance of SpatialFilter
+        sp_filter : instance of mne.viz.SpatialFilter
             The spatial filter object.
         """
+        check_is_fitted(self, ["filters_", "patterns_", "evals_"])
         sp_filter = SpatialFilter(
             info,
-            evecs=self.filters_.T,
+            evecs=self.filters_,
             evals=self.evals_,
             patterns=self.patterns_,
             patterns_method="pinv",
@@ -442,6 +443,31 @@ class LinearModel(MetaEstimatorMixin, BaseEstimator):
         if filters.ndim == 2 and filters.shape[0] == 1:
             filters = filters[0]
         return filters
+
+    def get_spatial_filter(self, info):
+        """Create a SpatialFilter object.
+
+        Creates an `mne.viz.SpatialFilter` object from the linear model.
+        This object can be used to visualize model weights and patterns.
+
+        Parameters
+        ----------
+        info : instance of mne.Info
+            The measurement info object for plotting topomaps.
+
+        Returns
+        -------
+        sp_filter : instance of mne.viz.SpatialFilter
+            The spatial filter object.
+        """
+        check_is_fitted(self, ["filters_", "patterns_"])
+        sp_filter = SpatialFilter(
+            info,
+            evecs=self.filters_.T,
+            patterns=self.patterns_,
+            patterns_method="haufe",
+        )
+        return sp_filter
 
 
 def _set_cv(cv, estimator=None, X=None, y=None):

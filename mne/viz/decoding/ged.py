@@ -9,7 +9,7 @@ import numpy as np
 
 from ...defaults import _BORDER_DEFAULT, _EXTRAPOLATE_DEFAULT, _INTERPOLATION_DEFAULT
 from ...evoked import EvokedArray
-from ...utils import _check_option, fill_doc, pinv
+from ...utils import _check_option, fill_doc
 
 
 def _plot_model(
@@ -45,48 +45,120 @@ def _plot_model(
 ):
     if units is None:
         units = "AU"
+    n_comps = model_array.shape[-2]
     if components is None:
-        # n_components are rows
-        components = np.arange(model_array.shape[0])
+        components = np.arange(n_comps)
 
     # set sampling frequency to have 1 component per time point
     info = cp.deepcopy(info)
     with info._unlock():
         info["sfreq"] = 1.0
     # create an evoked
-    model_evk = EvokedArray(model_array.T, info, tmin=0)
-    # the call plot_topomap
-    fig = model_evk.plot_topomap(
-        times=components,
-        average=None,
-        ch_type=ch_type,
-        scalings=scalings,
-        proj=False,
-        sensors=sensors,
-        show_names=show_names,
-        mask=mask,
-        mask_params=mask_params,
-        contours=contours,
-        outlines=outlines,
-        sphere=sphere,
-        image_interp=image_interp,
-        extrapolate=extrapolate,
-        border=border,
-        res=res,
-        size=size,
-        cmap=cmap,
-        vlim=vlim,
-        cnorm=cnorm,
-        colorbar=colorbar,
-        cbar_fmt=cbar_fmt,
-        units=units,
-        axes=axes,
-        time_format=name_format,
-        nrows=nrows,
-        ncols=ncols,
-        show=show,
+
+    if model_array.ndim == 3:
+        n_classes = model_array.shape[0]
+        figs = list()
+        for class_idx in range(n_classes):
+            model_evk = EvokedArray(model_array[class_idx].T, info, tmin=0)
+            fig = model_evk.plot_topomap(
+                times=components,
+                average=None,
+                ch_type=ch_type,
+                scalings=scalings,
+                proj=False,
+                sensors=sensors,
+                show_names=show_names,
+                mask=mask,
+                mask_params=mask_params,
+                contours=contours,
+                outlines=outlines,
+                sphere=sphere,
+                image_interp=image_interp,
+                extrapolate=extrapolate,
+                border=border,
+                res=res,
+                size=size,
+                cmap=cmap,
+                vlim=vlim,
+                cnorm=cnorm,
+                colorbar=colorbar,
+                cbar_fmt=cbar_fmt,
+                units=units,
+                axes=axes[class_idx],
+                time_format=name_format,
+                nrows=nrows,
+                ncols=ncols,
+                show=show,
+            )
+            figs.append(fig)
+        return figs
+    else:
+        model_evk = EvokedArray(model_array.T, info, tmin=0)
+        fig = model_evk.plot_topomap(
+            times=components,
+            average=None,
+            ch_type=ch_type,
+            scalings=scalings,
+            proj=False,
+            sensors=sensors,
+            show_names=show_names,
+            mask=mask,
+            mask_params=mask_params,
+            contours=contours,
+            outlines=outlines,
+            sphere=sphere,
+            image_interp=image_interp,
+            extrapolate=extrapolate,
+            border=border,
+            res=res,
+            size=size,
+            cmap=cmap,
+            vlim=vlim,
+            cnorm=cnorm,
+            colorbar=colorbar,
+            cbar_fmt=cbar_fmt,
+            units=units,
+            axes=axes,
+            time_format=name_format,
+            nrows=nrows,
+            ncols=ncols,
+            show=show,
+        )
+        return fig
+
+
+def _plot_scree_per_class(evals, add_cumul_evals, axes):
+    component_numbers = np.arange(len(evals))
+    cumul_evals = np.cumsum(evals) if add_cumul_evals else None
+    # plot individual eigenvalues
+    color_line = "cornflowerblue"
+    axes.set_xlabel("Component Index", fontsize=18)
+    axes.set_ylabel("Eigenvalue", color=color_line, fontsize=18)
+    axes.set_ylabel("Cumulative Eigenvalues", color=color_line, fontsize=18)
+    axes.plot(
+        component_numbers,
+        evals,
+        color=color_line,
+        marker="o",
+        markersize=10,
     )
-    return fig
+    axes.tick_params(axis="y", labelcolor=color_line, labelsize=16)
+
+    if add_cumul_evals:
+        # plot cumulative eigenvalues
+        ax2 = axes.twinx()
+        ax2.grid(False)
+        color_line = "firebrick"
+        ax2.set_ylabel("Cumulative Eigenvalues", color=color_line, fontsize=18)
+        ax2.plot(
+            component_numbers,
+            cumul_evals,
+            color=color_line,
+            marker="o",
+            markersize=6,
+        )
+        ax2.tick_params(axis="y", labelcolor=color_line, labelsize=16)
+        ax2.set_ylim(0)
 
 
 def _plot_scree(
@@ -96,67 +168,57 @@ def _plot_scree(
     plt_style="seaborn-v0_8-whitegrid",
     axes=None,
 ):
-    cumul_evals = np.cumsum(evals)
-    n_components = len(evals)
-    component_numbers = np.arange(n_components)
-
     with plt.style.context(plt_style):
-        if axes is None:
-            fig, axes = plt.subplots(figsize=(12, 7), layout="constrained")
+        if evals.ndim == 2:
+            n_classes = evals.shape[0]
+            if axes is None:
+                fig, axes = plt.subplots(
+                    nrows=n_classes,
+                    ncols=1,
+                    figsize=(12, 7 * n_classes),
+                    layout="constrained",
+                )
+            else:
+                assert len(axes) == n_classes
+                fig = None
+            for class_idx in range(n_classes):
+                _plot_scree_per_class(
+                    evals[class_idx], add_cumul_evals, axes[class_idx]
+                )
         else:
-            fig = None
-
-        # plot individual eigenvalues
-        color_line = "cornflowerblue"
-        axes.set_xlabel("Component Index", fontsize=18)
-        axes.set_ylabel("Eigenvalue", color=color_line, fontsize=18)
-        axes.set_ylabel("Cumulative Eigenvalues", color=color_line, fontsize=18)
-        axes.plot(component_numbers, evals, color=color_line, marker="o", markersize=10)
-        axes.tick_params(axis="y", labelcolor=color_line, labelsize=16)
-
-        if add_cumul_evals:
-            # plot cumulative eigenvalues
-            ax2 = axes.twinx()
-            ax2.grid(False)
-            color_line = "firebrick"
-            ax2.set_ylabel("Cumulative Eigenvalues", color=color_line, fontsize=18)
-            ax2.plot(
-                component_numbers,
-                cumul_evals,
-                color=color_line,
-                marker="o",
-                markersize=6,
-            )
-            ax2.tick_params(axis="y", labelcolor=color_line, labelsize=16)
-            ax2.set_ylim(0)
+            if axes is None:
+                fig, axes = plt.subplots(figsize=(12, 7), layout="constrained")
+            else:
+                fig = None
+            _plot_scree_per_class(evals, add_cumul_evals, axes)
 
         if fig:
             fig.suptitle(title, fontsize=22, fontweight="bold")
-
     return fig
 
 
 class SpatialFilter:
-    r"""Visualization container for spatial filter weights and patterns.
+    r"""Visualization container for spatial filter weights (evecs) and patterns.
 
     This object is obtained either by generalized eigendecomposition (GED) algorithms
     such as `mne.decoding.CSP`, `mne.decoding.SPoC`, `mne.decoding.SSD`,
-    `mne.decoding.XdawnTransformer` or by `mne.decoding.LinearModel`
+    `mne.decoding.XdawnTransformer` or by `mne.decoding.LinearModel`,
     wrapping linear models like SVM or Logit.
-    The objects stores the filters that projects sensor data to a reduced component
+    The object stores the filters that projects sensor data to a reduced component
     space, and the corresponding patterns (obtained by pseudoinverse in GED case or
-    Haufe's trickin case of `mne.decoding.LinearModel`). It can also be directly
-    initialized using filters from other transformers (e.g. PyRiemann).
+    Haufe's trick in case of `mne.decoding.LinearModel`). It can also be directly
+    initialized using filters from other transformers (e.g. PyRiemann),
+    but make sure that the dimensions match.
 
     Parameters
     ----------
     info : instance of Info
         The measurement info containing channel topography.
-    evecs : ndarray, shape (n_channels, n_components)
-        The eigenvectors of the decomposition (transposed filters).
-    evals : ndarray, shape (n_components,) | None
+    filters : ndarray, shape ((n_classes), n_components, n_channels)
+        The spatial filters (transposed eigenvectors of the decomposition).
+    evals : ndarray, shape ((n_classes), n_components) | None
         The eigenvalues of the decomposition. Defaults to ``None``.
-    patterns : ndarray, shape (n_components, n_channels) | None
+    patterns : ndarray, shape ((n_classes), n_components, n_channels) | None
         The patterns of the decomposition. If None, they will be computed
         from the eigenvectors using pseudoinverse. Defaults to ``None``.
     patterns_method : str
@@ -171,8 +233,8 @@ class SpatialFilter:
         The spatial filters (unmixing matrix). Applying these filters to the data
         gives the component time series.
     patterns : ndarray, shape (n_components, n_channels)
-        The spatial patterns (forward model). These represent the scalp
-        topography of each component.
+        The spatial patterns (mixing matrix/forward model).
+        These represent the scalp topography of each component.
     evals : ndarray, shape (n_components,)
         The eigenvalues associated with each component.
     patterns_method : str
@@ -186,14 +248,14 @@ class SpatialFilter:
     Filters and patterns are related by the following equation:
 
     .. math::
-        \\mathbf{A} = \\mathbf{W}^{-1}
+        \mathbf{A} = \mathbf{W}^{-1}
 
-    where :math:`\\mathbf{A}` is the matrix of patterns (the mixing matrix) and
-    :math:`\\mathbf{W}` is the matrix of filters (the unmixing matrix).
+    where :math:`\mathbf{A}` is the matrix of patterns (the mixing matrix) and
+    :math:`\mathbf{W}` is the matrix of filters (the unmixing matrix).
 
     For a detailed discussion on the difference between filters and patterns for GED
-    see :footcite:`Cohen2022` and :footcite:`HaufeEtAl2014` for linear models in
-    general.
+    see :footcite:`Cohen2022` and for linear models in
+    general see :footcite:`HaufeEtAl2014`.
 
     .. versionadded:: 1.11
 
@@ -205,7 +267,8 @@ class SpatialFilter:
     def __init__(
         self,
         info,
-        evecs,
+        filters,
+        *,
         evals=None,
         patterns=None,
         patterns_method="pinv",
@@ -217,14 +280,31 @@ class SpatialFilter:
         )
         self.info = info
         self.evals = evals
-        self.filters = evecs.T
-
+        self.filters = filters
+        n_comps, n_chs = self.filters.shape[-2:]
         if patterns is None:
-            self.patterns = pinv(evecs)
+            # XXX Using numpy's pinv here to handle 3D case seamlessly
+            # Perhaps mne.linalg.pinv can be improved to handle 3D also
+            # Then it could be changed here to be consistent with
+            # GEDTransformer
+            self.patterns = np.linalg.pinv(filters)
             self.patterns_method = "pinv"
         else:
             self.patterns = patterns
             self.patterns_method = patterns_method
+
+        if n_comps > n_chs:
+            raise ValueError(
+                "Number of components can't be greater "
+                "than number of channels in filters,"
+                "perhaps the provided matrix is transposed?"
+            )
+        if self.filters.shape != self.patterns.shape:
+            raise ValueError(
+                f"Shape mismatch between filters and patterns."
+                f"Filters are {self.filters.shape},"
+                f"while patterns are {self.patterns.shape}"
+            )
 
     @fill_doc
     def plot_filters(
@@ -457,7 +537,7 @@ class SpatialFilter:
             The figure.
         """
         if self.evals is None:
-            raise ValueError("Can't plot scree if eigenvalues are not provided.")
+            raise AttributeError("Can't plot scree if eigenvalues are not provided.")
         fig = _plot_scree(
             self.evals,
             title=title,
