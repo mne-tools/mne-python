@@ -99,11 +99,11 @@ stages:
             # - bash: |
             #     source tools/get_minimal_commands.sh
             #   displayName: 'Install minimal commands'
-          - bash: |
-              echo $PATH
-              mne_surf2bem --version
-              fsl_rigid_register --version
-            displayName: 'Test minimal commands'
+            # - bash: |
+            #     echo $PATH
+            #     mne_surf2bem --version
+            #     fsl_rigid_register --version
+            #   displayName: 'Test minimal commands'
           - task: UsePythonVersion@0
             inputs:
               versionSpec: '3.12'
