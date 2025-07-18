@@ -889,9 +889,9 @@ class _PyVistaRenderer(_AbstractRenderer):
         add_obs(vtkCommand.RenderEvent, on_mouse_move)
         add_obs(vtkCommand.LeftButtonPressEvent, on_button_press)
         add_obs(vtkCommand.EndInteractionEvent, on_button_release)
-        self.plotter.picker = vtkCellPicker()
-        self.plotter.picker.AddObserver(vtkCommand.EndPickEvent, on_pick)
-        self.plotter.picker.SetVolumeOpacityIsovalue(0.0)
+        self._picker = vtkCellPicker()
+        self._picker.AddObserver(vtkCommand.EndPickEvent, on_pick)
+        self._picker.SetVolumeOpacityIsovalue(0.0)
 
     def _set_colormap_range(
         self, actor, ctable, scalar_bar, rng=None, background_color=None

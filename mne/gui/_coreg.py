@@ -292,6 +292,7 @@ class CoregistrationUI(HasTraits):
         self._renderer.set_interaction(interaction)
 
         # coregistration model setup
+        self._picking_targets = list()
         self._immediate_redraw = self._renderer._kind != "qt"
         self._info = info
         self._fiducials = fiducials
@@ -899,10 +900,10 @@ class CoregistrationUI(HasTraits):
         if self._mouse_no_mvt > 0:
             x, y = vtk_picker.GetEventPosition()
             # XXX: internal plotter/renderer should not be exposed
-            plotter = self._renderer.figure.plotter
+            picker = self._renderer._picker
             picked_renderer = self._renderer.figure.plotter.renderer
             # trigger the pick
-            plotter.picker.Pick(x, y, 0, picked_renderer)
+            picker.Pick(x, y, 0, picked_renderer)
         self._mouse_no_mvt = 0
 
     def _on_pick(self, vtk_picker, event):
@@ -913,7 +914,7 @@ class CoregistrationUI(HasTraits):
         mesh = vtk_picker.GetDataSet()
         if mesh is None or cell_id == -1 or not self._mouse_no_mvt:
             return
-        if not getattr(mesh, "_picking_target", False):
+        if not any(mesh is target for target in self._picking_targets):
             return
         pos = np.array(vtk_picker.GetPickPosition())
         vtk_cell = mesh.GetCell(cell_id)
@@ -1341,7 +1342,7 @@ class CoregistrationUI(HasTraits):
             key = "low"
         self._update_actor("head", head_actor)
         # mark head surface mesh to restrict picking
-        head_surf._picking_target = True
+        self._picking_targets.append(head_surf)
         # We need to use _get_processed_mri_points to incorporate grow_hair
         rr = self.coreg._get_processed_mri_points(key) * self.coreg._scale.T
         head_surf.points = rr

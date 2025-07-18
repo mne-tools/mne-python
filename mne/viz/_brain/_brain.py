@@ -620,6 +620,8 @@ class Brain:
         self.plotter._Iren = _FakeIren()
         if getattr(self.plotter, "picker", None) is not None:
             self.plotter.picker = None
+        if getattr(self._renderer, "_picker", None) is not None:
+            self._renderer._picker = None
         # XXX end PyVista
         for key in (
             "plotter",
@@ -1201,7 +1203,7 @@ class Brain:
             # programmatically detect the picked renderer
             self._picked_renderer = self.plotter.iren.interactor.FindPokedRenderer(x, y)
             # trigger the pick
-            self.plotter.picker.Pick(x, y, 0, self.picked_renderer)
+            self._renderer._picker.Pick(x, y, 0, self.picked_renderer)
         self._mouse_no_mvt = 0
 
     def _on_pick(self, vtk_picker, event):
