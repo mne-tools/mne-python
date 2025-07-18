@@ -418,6 +418,14 @@ def test_linearmodel():
         wrong_y = rng.rand(n, n_features, 99)
         clf.fit(X, wrong_y)
 
+    # check get_spatial_filter
+    info = create_info(n_features, 1000.0, "eeg")
+    sp_filter = clf.get_spatial_filter(info)
+    assert sp_filter.patterns_method == "haufe"
+    np.testing.assert_array_equal(sp_filter.filters, clf.filters_)
+    np.testing.assert_array_equal(sp_filter.patterns, clf.patterns_)
+    assert sp_filter.evals is None
+
 
 def test_cross_val_multiscore():
     """Test cross_val_multiscore for computing scores on decoding over time."""

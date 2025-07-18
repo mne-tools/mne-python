@@ -215,7 +215,7 @@ class _GEDTransformer(MNETransformerMixin, BaseEstimator):
         check_is_fitted(self, ["filters_", "patterns_", "evals_"])
         sp_filter = SpatialFilter(
             info,
-            evecs=self.filters_,
+            filters=self.filters_,
             evals=self.evals_,
             patterns=self.patterns_,
             patterns_method="pinv",
@@ -463,7 +463,7 @@ class LinearModel(MetaEstimatorMixin, BaseEstimator):
         check_is_fitted(self, ["filters_", "patterns_"])
         sp_filter = SpatialFilter(
             info,
-            evecs=self.filters_.T,
+            filters=self.filters_,
             patterns=self.patterns_,
             patterns_method="haufe",
         )

@@ -294,10 +294,12 @@ class SpatialFilter:
             self.patterns = patterns
             self.patterns_method = patterns_method
 
-        if n_comps > n_chs:
+        # In case of multi-target classification in LinearModel
+        # number of targets can be greater than number of channels.
+        if patterns_method != "haufe" and n_comps > n_chs:
             raise ValueError(
                 "Number of components can't be greater "
-                "than number of channels in filters,"
+                "than number of channels in filters, "
                 "perhaps the provided matrix is transposed?"
             )
         if self.filters.shape != self.patterns.shape:
