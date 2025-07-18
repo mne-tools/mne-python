@@ -8,7 +8,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from ...defaults import _BORDER_DEFAULT, _EXTRAPOLATE_DEFAULT, _INTERPOLATION_DEFAULT
-from ...evoked import EvokedArray
 from ...utils import _check_option, fill_doc
 
 
@@ -43,6 +42,8 @@ def _plot_model(
     ncols="auto",
     show=True,
 ):
+    from ...evoked import EvokedArray
+
     if units is None:
         units = "AU"
     n_comps = model_array.shape[-2]
