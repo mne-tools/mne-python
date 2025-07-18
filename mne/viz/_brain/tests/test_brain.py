@@ -774,6 +774,7 @@ def test_single_hemi(hemi, renderer_interactive_pyvistaqt, brain_gc):
 @pytest.mark.parametrize("interactive_state", (False, True))
 def test_brain_save_movie(tmp_path, renderer, brain_gc, interactive_state):
     """Test saving a movie of a Brain instance."""
+    pytest.importorskip("imageio")
     imageio_ffmpeg = pytest.importorskip("imageio_ffmpeg")
 
     brain = _create_testing_brain(
