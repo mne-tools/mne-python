@@ -96,9 +96,9 @@ stages:
               ./tools/setup_xvfb.sh
               sudo apt install -yq tcsh
             displayName: 'Install Ubuntu dependencies'
-          - bash: |
-              source tools/get_minimal_commands.sh
-            displayName: 'Install minimal commands'
+            # - bash: |
+            #     source tools/get_minimal_commands.sh
+            #   displayName: 'Install minimal commands'
           - bash: |
               echo $PATH
               mne_surf2bem --version
