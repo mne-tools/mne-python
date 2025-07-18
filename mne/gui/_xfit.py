@@ -25,67 +25,9 @@ from ..transforms import _get_trans, _get_transforms_to_coord_frame, apply_trans
 from ..utils import _check_option, fill_doc, logger, verbose
 from ..viz import EvokedField, create_3d_figure
 from ..viz._3d import _plot_head_surface, _plot_sensors_3d
+from ..viz.backends._utils import _qt_app_exec
 from ..viz.ui_events import link, subscribe
 from ..viz.utils import _get_color_list
-
-
-@fill_doc
-@verbose
-def dipolefit(
-    evoked,
-    cov=None,
-    bem=None,
-    initial_time=None,
-    trans=None,
-    rank=None,
-    show_density=True,
-    subject=None,
-    subjects_dir=None,
-    n_jobs=None,
-    verbose=None,
-):
-    """GUI for interactive dipole fitting, inspired by MEGIN's XFit program.
-
-    Parameters
-    ----------
-    evoked : instance of Evoked
-        Evoked data to show fieldmap of and fit dipoles to.
-    cov : instance of Covariance | None
-        Noise covariance matrix. If ``None``, an ad-hoc covariance matrix is used.
-    bem : instance of ConductorModel | None
-        Boundary element model to use in forward calculations. If ``None``, a spherical
-        model is used.
-    initial_time : float | None
-        Initial time point to show. If ``None``, the time point of the maximum field
-        strength is used.
-    trans : instance of Transform | None
-        The transformation from head coordinates to MRI coordinates. If ``None``, the
-        identity matrix is used.
-    stc : instance of SourceEstimate | None
-        An optional distributed source estimate to show alongside the fieldmap.
-    %(rank)s
-    show_density : bool
-        Whether to show the density of the fieldmap.
-    subject : str | None
-        The subject name. If ``None``, no MRI data is shown.
-    %(subjects_dir)s
-    %(n_jobs)s
-    %(verbose)s
-    """
-    return DipoleFitUI(
-        evoked=evoked,
-        cov=cov,
-        bem=bem,
-        initial_time=initial_time,
-        trans=trans,
-        stc=None,
-        rank=rank,
-        show_density=show_density,
-        subject=subject,
-        subjects_dir=subjects_dir,
-        n_jobs=n_jobs,
-        verbose=verbose,
-    )
 
 
 @fill_doc
@@ -144,6 +86,8 @@ class DipoleFitUI:
         show_density=True,
         ch_type=None,
         n_jobs=None,
+        show=True,
+        block=False,
         verbose=None,
     ):
         if cov is None:
@@ -213,17 +157,23 @@ class DipoleFitUI:
         self._verbose = verbose
 
         # Configure the GUI.
-        self._renderer = self._configure_main_display()
+        self._renderer = self._configure_main_display(show)
         self._configure_dock()
+
+        # must be done last
+        if show:
+            self._renderer.show()
+        if block and self._renderer._kind != "notebook":
+            _qt_app_exec(self._renderer.figure.store["app"])
 
     @property
     def dipoles(self):
         """A list of all the fitted dipoles that are enabled in the GUI."""
         return [d["dip"] for d in self._dipoles.values() if d["active"]]
 
-    def _configure_main_display(self):
+    def _configure_main_display(self, show=True):
         """Configure main 3D display of the GUI."""
-        fig = create_3d_figure((1500, 1020), bgcolor="white", show=True)
+        fig = create_3d_figure((1500, 1020), bgcolor="white", show=show)
 
         self._fig_stc = None
         if self._stc is not None:

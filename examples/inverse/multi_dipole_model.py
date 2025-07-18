@@ -1,61 +1,38 @@
 """
 .. _ex-multi-dipole:
 
-=================================================================
-Computing source timecourses with an XFit-like multi-dipole model
-=================================================================
+======================
+Guided dipole modeling
+======================
 
-MEGIN's XFit program offers a "guided ECD modeling" interface, where multiple
-dipoles can be fitted interactively. By manually selecting subsets of sensors
-and time ranges, dipoles can be fitted to specific signal components. Then,
-source timecourses can be computed using a multi-dipole model. The advantage of
-using a multi-dipole model over fitting each dipole in isolation, is that when
-multiple dipoles contribute to the same signal component, the model can make
-sure that activity assigned to one dipole is not also assigned to another. This
-example shows how to build a multi-dipole model for estimating source
-timecourses for evokeds or single epochs.
-
-The XFit program is the recommended approach for guided ECD modeling, because
-it offers a convenient graphical user interface for it. These dipoles can then
-be imported into MNE-Python by using the :func:`mne.read_dipole` function for
-building and applying the multi-dipole model. In addition, this example will
-also demonstrate how to perform guided ECD modeling using only MNE-Python
-functionality, which is less convenient than using XFit, but has the benefit of
-being reproducible.
+Inspired by MEGIN's XFit program, MNE-Python offers a guided dipole modeling interface.
+Through this interface, you can fit dipoles at specific timings using selected subsets
+of sensors to gradually build up a multi dipole source estimate. This is the manual
+alternative to using automated algorithms such as TRAP-MUSIC and MxNE.
 """
 # Author: Marijn van Vliet <w.m.vanvliet@gmail.com>
 #
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-###############################################################################
-# Importing everything and setting up the data paths for the MNE-Sample
-# dataset.
+########################################################################################
+# Read the MEG data from the audvis experiment. Make epochs for the left auditory
+# condition.
 import matplotlib.pyplot as plt
 import numpy as np
 
 import mne
-from mne.channels import read_vectorview_selection
 from mne.datasets import sample
-from mne.minimum_norm import apply_inverse, apply_inverse_epochs, make_inverse_operator
 
 data_path = sample.data_path()
 meg_path = data_path / "MEG" / "sample"
 raw_fname = meg_path / "sample_audvis_raw.fif"
-cov_fname = meg_path / "sample_audvis-shrunk-cov.fif"
-bem_dir = data_path / "subjects" / "sample" / "bem"
-bem_fname = bem_dir / "sample-5120-5120-5120-bem-sol.fif"
-
-###############################################################################
-# Read the MEG data from the audvis experiment. Make epochs and evokeds for the
-# left and right auditory conditions.
 raw = mne.io.read_raw_fif(raw_fname)
-raw = raw.pick(picks=["meg", "eog", "stim"])
 info = raw.info
 
 # Create epochs for auditory events
 events = mne.find_events(raw)
-event_id = dict(right=1, left=2)
+event_id = dict(left=2)
 epochs = mne.Epochs(
     raw,
     events,
@@ -67,18 +44,36 @@ epochs = mne.Epochs(
 )
 
 # Create evokeds for left and right auditory stimulation
-evoked_left = epochs["left"].average()
-evoked_right = epochs["right"].average()
+evoked = epochs["left"].average()
+
+########################################################################################
+# Guided dipole modeling, meaning fitting dipoles to a manually selected subset of
+# sensors as a manually chosen time, can now be performed using the
+# :class:`mne.gui.DipoleFitting` GUI. By specifying only ``evokeds``, a default noise
+# covariance matrix and 1-layer spherical head model will be used.
+mne.gui.dipolefit(evoked)
 
 ###############################################################################
-# Guided dipole modeling, meaning fitting dipoles to a manually selected subset
-# of sensors as a manually chosen time, can now be performed in MEGINs XFit on
-# the evokeds we computed above. However, it is possible to do it completely
-# in MNE-Python.
+# The source modeling can be made more precise by using a noise covariance matrix and
+# MRI-based 3-layer BEM head model:
+cov_fname = meg_path / "sample_audvis-shrunk-cov.fif"
+subjects_dir = data_path / "subjects"
+bem_dir = subjects_dir / "sample" / "bem"
+bem_fname = bem_dir / "sample-5120-5120-5120-bem-sol.fif"
+trans_fname = meg_path / "sample_audvis_raw-trans.fif"
 
-# Setup conductor model
 cov = mne.read_cov(cov_fname)  # bad channels were already excluded here
 bem = mne.read_bem_solution(bem_fname)
+trans = mne.read_trans(trans_fname)
+
+mne.gui.dipolefit(
+    evoked,
+    cov=cov.as_diag(),
+    bem=bem,
+    trans=trans,
+    subject="sample",
+    subjects_dir=subjects_dir,
+)
 
 # Fit two dipoles at t=80ms. The first dipole is fitted using only the sensors
 # on the left side of the helmet. The second dipole is fitted using only the
