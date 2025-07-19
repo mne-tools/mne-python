@@ -559,8 +559,43 @@ def _get_inverse_funcs(estimator, terminal=True):
     return inverse_func
 
 
+def _get_inverse_funcs_before_step(estimator, step_name):
+    """Get the inverse_transform methods for all steps before a target step."""
+    # in case step_name is nested with __
+    parts = step_name.split("__")
+    inverse_funcs = list()
+    current_pipeline = estimator
+    for i, part_name in enumerate(parts):
+        is_last_part = i == len(parts) - 1
+        all_names = [name for name, _ in current_pipeline.steps]
+        if part_name not in all_names:
+            raise ValueError(f"Step '{part_name}' not found.")
+        part_idx = all_names.index(part_name)
+
+        # get all preceding steps for the current step
+        for prec_name, prec_step in current_pipeline.steps[:part_idx]:
+            if hasattr(prec_step, "inverse_transform"):
+                inverse_funcs.append(prec_step.inverse_transform)
+            else:
+                warn(
+                    f"Preceding step '{prec_name}' is not invertible "
+                    f"and will be skipped."
+                )
+
+        next_estimator = current_pipeline.named_steps[part_name]
+        # check if pipeline
+        if hasattr(next_estimator, "steps"):
+            current_pipeline = next_estimator
+        # if not pipeline and not last part - wrong
+        elif not is_last_part:
+            raise ValueError(f"Step '{part_name}' is not a pipeline.")
+    return inverse_funcs
+
+
 @verbose
-def get_coef(estimator, attr="filters_", inverse_transform=False, *, verbose=None):
+def get_coef(
+    estimator, attr="filters_", inverse_transform=False, *, step_name=None, verbose=None
+):
     """Retrieve the coefficients of an estimator ending with a Linear Model.
 
     This is typically useful to retrieve "spatial filters" or "spatial
@@ -576,6 +611,13 @@ def get_coef(estimator, attr="filters_", inverse_transform=False, *, verbose=Non
     inverse_transform : bool
         If True, returns the coefficients after inverse transforming them with
         the transformer steps of the estimator.
+    step_name : str
+        Name of the sklearn's pipeline step to get the coef from.
+        If inverse_transform is True, the inverse transformations
+        will be applied using transformers before this step.
+        If None, the last step will be used. Defaults to None.
+
+        .. versionadded:: 1.11
     %(verbose)s
 
     Returns
@@ -590,8 +632,14 @@ def get_coef(estimator, attr="filters_", inverse_transform=False, *, verbose=Non
     # Get the coefficients of the last estimator in case of nested pipeline
     est = estimator
     logger.debug(f"Getting coefficients from estimator: {est.__class__.__name__}")
-    while hasattr(est, "steps"):
-        est = est.steps[-1][1]
+
+    if step_name is not None:
+        if not hasattr(estimator, "named_steps"):
+            raise ValueError("'step_name' can only be used with a Pipeline estimator.")
+        est = est.named_steps[step_name]
+    else:
+        while hasattr(est, "steps"):
+            est = est.steps[-1][1]
 
     squeeze_first_dim = False
 
@@ -620,9 +668,14 @@ def get_coef(estimator, attr="filters_", inverse_transform=False, *, verbose=Non
             raise ValueError(
                 "inverse_transform can only be applied onto pipeline estimators."
             )
+        if step_name is None:
+            inverse_funcs = _get_inverse_funcs(estimator)
+        else:
+            inverse_funcs = _get_inverse_funcs_before_step(estimator, step_name)
+
         # The inverse_transform parameter will call this method on any
         # estimator contained in the pipeline, in reverse order.
-        for inverse_func in _get_inverse_funcs(estimator)[::-1]:
+        for inverse_func in inverse_funcs[::-1]:
             logger.debug(f"  Applying inverse transformation: {inverse_func}.")
             coef = inverse_func(coef)
 
