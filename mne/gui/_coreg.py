@@ -10,6 +10,7 @@ import queue
 import re
 import threading
 import time
+import weakref
 from contextlib import contextmanager
 from functools import partial
 from pathlib import Path
@@ -914,7 +915,7 @@ class CoregistrationUI(HasTraits):
         mesh = vtk_picker.GetDataSet()
         if mesh is None or cell_id == -1 or not self._mouse_no_mvt:
             return
-        if not any(mesh is target for target in self._picking_targets):
+        if not any(mesh is target() for target in self._picking_targets):
             return
         pos = np.array(vtk_picker.GetPickPosition())
         vtk_cell = mesh.GetCell(cell_id)
@@ -1342,7 +1343,7 @@ class CoregistrationUI(HasTraits):
             key = "low"
         self._update_actor("head", head_actor)
         # mark head surface mesh to restrict picking
-        self._picking_targets.append(head_surf)
+        self._picking_targets.append(weakref.ref(head_surf))
         # We need to use _get_processed_mri_points to incorporate grow_hair
         rr = self.coreg._get_processed_mri_points(key) * self.coreg._scale.T
         head_surf.points = rr
