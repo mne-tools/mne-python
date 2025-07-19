@@ -7,6 +7,8 @@ import copy as cp
 import matplotlib.pyplot as plt
 import numpy as np
 
+from ...decoding import get_coef
+from ...decoding.base import LinearModel, _GEDTransformer
 from ...defaults import _BORDER_DEFAULT, _EXTRAPOLATE_DEFAULT, _INTERPOLATION_DEFAULT
 from ...utils import _check_option, fill_doc
 
@@ -198,6 +200,93 @@ def _plot_scree(
     return fig
 
 
+@fill_doc
+def get_spatial_filter_from_estimator(
+    estimator,
+    info,
+    *,
+    inverse_transform=False,
+    step_name=None,
+    get_coefs=("filters_", "patterns_", "evals_"),
+    patterns_method=None,
+    verbose=None,
+):
+    """Instantiate a :class:`mne.viz.SpatialFilter` object.
+
+    Creates object from the fitted generalized eigendecomposition
+    transformers or :class":`mne.decoding.LinearModel`.
+    This object can be used to visualize spatial filters,
+    patterns, and eigenvalues.
+
+    Parameters
+    ----------
+    estimator : instance of sklearn.BaseEstimator
+        Sklearn-based estimator or meta-estimator from which to initialize
+        spatial filter. Use ``step_name`` to select relevant transformer
+        from the pipeline object (works with nested names using ``__`` syntax).
+    info : instance of mne.Info
+        The measurement info object for plotting topomaps.
+    inverse_transform : bool
+        If True, returns filters and patterns after inverse transforming them with
+        the transformer steps of the estimator. Defaults to False.
+    step_name : str | None
+        Name of the sklearn's pipeline step to get the coefs from.
+        If inverse_transform is True, the inverse transformations
+        will be applied using transformers before this step.
+        If None, the last step will be used. Defaults to None.
+    get_coefs : tuple
+        The names of the coefficient attributes to retrieve, can include
+        ``'filters_'``, ``'patterns_'`` and ``'evals_'``.
+        If step is GEDTransformer, will use all.
+        if step is LinearModel will only use ``'filters_'`` and ``'patterns_'``.
+        Defaults to (``'filters_'``, ``'patterns_'``, ``'evals_'``).
+    patterns_method : str
+        The method used to compute the patterns. Can be None, ``'pinv'`` or ``'haufe'``.
+        It will be set automatically to ``'pinv'`` if step is GEDTransformer,
+        or to ``'haufe'`` if step is LinearModel. Defaults to None.
+    %(verbose)s
+
+    Returns
+    -------
+    sp_filter : instance of mne.viz.SpatialFilter
+        The spatial filter object.
+
+    See Also
+    --------
+    SpatialFilter
+    """
+    for coef in get_coefs:
+        if coef not in ("filters_", "patterns_", "evals_"):
+            raise ValueError(
+                f"'get_coefs' can only include 'filters_', "
+                f"'patterns_' and 'evals_', but got {coef}."
+            )
+    if step_name is not None:
+        model = estimator.get_params()[step_name]
+    else:
+        model = estimator
+    if isinstance(model, LinearModel):
+        patterns_method = "haufe"
+        get_coefs = ["filters_", "patterns_"]
+    elif isinstance(model, _GEDTransformer):
+        patterns_method = "pinv"
+        get_coefs = ["filters_", "patterns_", "evals_"]
+
+    coefs = {
+        coef[:-1]: get_coef(
+            estimator,
+            coef,
+            inverse_transform=False if coef == "evals_" else inverse_transform,
+            step_name=step_name,
+            verbose=verbose,
+        )
+        for coef in get_coefs
+    }
+
+    sp_filter = SpatialFilter(info, patterns_method=patterns_method, **coefs)
+    return sp_filter
+
+
 class SpatialFilter:
     r"""Visualization container for spatial filter weights (evecs) and patterns.
 
@@ -221,7 +310,7 @@ class SpatialFilter:
         The eigenvalues of the decomposition. Defaults to ``None``.
     patterns : ndarray, shape ((n_classes), n_components, n_channels) | None
         The patterns of the decomposition. If None, they will be computed
-        from the eigenvectors using pseudoinverse. Defaults to ``None``.
+        from the filters using pseudoinverse. Defaults to ``None``.
     patterns_method : str
         The method used to compute the patterns. Can be ``'pinv'`` or ``'haufe'``.
         If `patterns` is None, it will be set to ``'pinv'``. Defaults to ``'pinv'``.
@@ -288,7 +377,7 @@ class SpatialFilter:
             # Perhaps mne.linalg.pinv can be improved to handle 3D also
             # Then it could be changed here to be consistent with
             # GEDTransformer
-            self.patterns = np.linalg.pinv(filters)
+            self.patterns = np.linalg.pinv(filters.T)
             self.patterns_method = "pinv"
         else:
             self.patterns = patterns

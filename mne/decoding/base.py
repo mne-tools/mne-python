@@ -26,7 +26,6 @@ from sklearn.utils.validation import check_is_fitted
 
 from ..parallel import parallel_func
 from ..utils import _check_option, _pl, _validate_type, logger, pinv, verbose, warn
-from ..viz import SpatialFilter
 from ._ged import _handle_restr_mat, _is_cov_symm_pos_semidef, _smart_ajd, _smart_ged
 from ._mod_ged import _no_op_mod
 from .transformer import MNETransformerMixin
@@ -193,34 +192,6 @@ class _GEDTransformer(MNETransformerMixin, BaseEstimator):
             pick_filters = self._subset_multi_components()
         X = pick_filters @ X
         return X
-
-    def get_spatial_filter(self, info):
-        """Create a SpatialFilter object.
-
-        Creates an `mne.viz.SpatialFilter` object from the fitted
-        generalized eigendecomposition.
-        This object can be used to visualize the spatial filters,
-        patterns, and eigenvalues.
-
-        Parameters
-        ----------
-        info : instance of mne.Info
-            The measurement info object for plotting topomaps.
-
-        Returns
-        -------
-        sp_filter : instance of mne.viz.SpatialFilter
-            The spatial filter object.
-        """
-        check_is_fitted(self, ["filters_", "patterns_", "evals_"])
-        sp_filter = SpatialFilter(
-            info,
-            filters=self.filters_,
-            evals=self.evals_,
-            patterns=self.patterns_,
-            patterns_method="pinv",
-        )
-        return sp_filter
 
     def _subset_multi_components(self, name="filters"):
         # The shape of stored filters and patterns is
@@ -444,31 +415,6 @@ class LinearModel(MetaEstimatorMixin, BaseEstimator):
             filters = filters[0]
         return filters
 
-    def get_spatial_filter(self, info):
-        """Create a SpatialFilter object.
-
-        Creates an `mne.viz.SpatialFilter` object from the linear model.
-        This object can be used to visualize model weights and patterns.
-
-        Parameters
-        ----------
-        info : instance of mne.Info
-            The measurement info object for plotting topomaps.
-
-        Returns
-        -------
-        sp_filter : instance of mne.viz.SpatialFilter
-            The spatial filter object.
-        """
-        check_is_fitted(self, ["filters_", "patterns_"])
-        sp_filter = SpatialFilter(
-            info,
-            filters=self.filters_,
-            patterns=self.patterns_,
-            patterns_method="haufe",
-        )
-        return sp_filter
-
 
 def _set_cv(cv, estimator=None, X=None, y=None):
     """Set the default CV depending on whether clf is classifier/regressor."""
@@ -611,7 +557,7 @@ def get_coef(
     inverse_transform : bool
         If True, returns the coefficients after inverse transforming them with
         the transformer steps of the estimator.
-    step_name : str
+    step_name : str | None
         Name of the sklearn's pipeline step to get the coef from.
         If inverse_transform is True, the inverse transformations
         will be applied using transformers before this step.
