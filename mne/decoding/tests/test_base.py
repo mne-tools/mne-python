@@ -50,6 +50,7 @@ from mne.decoding.base import (
 )
 from mne.decoding.search_light import SlidingEstimator
 from mne.utils import check_version
+from mne.viz.decoding.ged import get_spatial_filter_from_estimator
 
 
 def _make_data(n_samples=1000, n_features=5, n_targets=3):
@@ -228,14 +229,14 @@ def test_get_coef():
     assert patterns[0] != patterns_inv[0]
 
 
-class _Noop(BaseEstimator, TransformerMixin):
-    def fit(self, X, y=None):
-        return self
+# class _Noop(BaseEstimator, TransformerMixin):
+#     def fit(self, X, y=None):
+#         return self
 
-    def transform(self, X):
-        return X.copy()
+#     def transform(self, X):
+#         return X.copy()
 
-    inverse_transform = transform
+#     inverse_transform = transform
 
 
 @pytest.mark.parametrize("inverse", (True, False))
@@ -417,9 +418,9 @@ def test_linearmodel():
         wrong_y = rng.rand(n, n_features, 99)
         clf.fit(X, wrong_y)
 
-    # check get_spatial_filter
+    # check get_spatial_filter_from_estimator
     info = create_info(n_features, 1000.0, "eeg")
-    sp_filter = clf.get_spatial_filter(info)
+    sp_filter = get_spatial_filter_from_estimator(clf, info)
     assert sp_filter.patterns_method == "haufe"
     np.testing.assert_array_equal(sp_filter.filters, clf.filters_)
     np.testing.assert_array_equal(sp_filter.patterns, clf.patterns_)

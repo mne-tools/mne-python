@@ -29,6 +29,7 @@ from mne.decoding._ged import (
 from mne.decoding._mod_ged import _no_op_mod
 from mne.decoding.base import _GEDTransformer
 from mne.io import read_raw
+from mne.viz.decoding.ged import get_spatial_filter_from_estimator
 
 data_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
 raw_fname = data_dir / "test_raw.fif"
@@ -402,7 +403,7 @@ def test_get_spatial_filter():
         restr_type="restricting",
     )
     ged.fit(X, y)
-    sp_filter = ged.get_spatial_filter(info)
+    sp_filter = get_spatial_filter_from_estimator(ged, info)
     assert sp_filter.patterns_method == "pinv"
     np.testing.assert_array_equal(sp_filter.filters, ged.filters_)
     np.testing.assert_array_equal(sp_filter.patterns, ged.patterns_)

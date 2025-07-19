@@ -7,8 +7,6 @@ import copy as cp
 import matplotlib.pyplot as plt
 import numpy as np
 
-from ...decoding import get_coef
-from ...decoding.base import LinearModel, _GEDTransformer
 from ...defaults import _BORDER_DEFAULT, _EXTRAPOLATE_DEFAULT, _INTERPOLATION_DEFAULT
 from ...utils import _check_option, fill_doc
 
@@ -255,6 +253,9 @@ def get_spatial_filter_from_estimator(
     --------
     SpatialFilter
     """
+    from ...decoding import get_coef
+    from ...decoding.base import LinearModel, _GEDTransformer
+
     for coef in get_coefs:
         if coef not in ("filters_", "patterns_", "evals_"):
             raise ValueError(
