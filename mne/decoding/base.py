@@ -635,8 +635,8 @@ def get_coef(
 
     if step_name is not None:
         if not hasattr(estimator, "named_steps"):
-            raise ValueError("'step_name' can only be used with a Pipeline estimator.")
-        est = est.named_steps[step_name]
+            raise ValueError("'step_name' can only be used with a pipeline estimator.")
+        est = est.get_params(deep=True)[step_name]
     else:
         while hasattr(est, "steps"):
             est = est.steps[-1][1]

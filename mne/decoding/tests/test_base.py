@@ -239,24 +239,13 @@ class _Noop(BaseEstimator, TransformerMixin):
 
 
 @pytest.mark.parametrize("inverse", (True, False))
-@pytest.mark.parametrize(
-    "Scale, kwargs",
-    [
-        (Scaler, dict(info=None, scalings="mean")),
-        (_Noop, dict()),
-    ],
-)
-def test_get_coef_inverse_transform(inverse, Scale, kwargs):
+def test_get_coef_inverse_transform(inverse):
     """Test get_coef with and without inverse_transform."""
     lm_regression = LinearModel(Ridge())
     X, y, A = _make_data(n_samples=1000, n_features=3, n_targets=1)
     # Check with search_light and combination of preprocessing ending with sl:
-    # slider = SlidingEstimator(make_pipeline(StandardScaler(), lm_regression))
-    # XXX : line above should work but does not as only last step is
-    # used in get_coef ...
-    slider = SlidingEstimator(make_pipeline(lm_regression))
+    clf = SlidingEstimator(make_pipeline(StandardScaler(), lm_regression))
     X = np.transpose([X, -X], [1, 2, 0])  # invert X across 2 time samples
-    clf = make_pipeline(Scale(**kwargs), slider)
     clf.fit(X, y)
     patterns = get_coef(clf, "patterns_", inverse)
     filters = get_coef(clf, "filters_", inverse)
@@ -265,10 +254,20 @@ def test_get_coef_inverse_transform(inverse, Scale, kwargs):
     assert_equal(patterns[0, 0], -patterns[0, 1])
     for t in [0, 1]:
         filters_t = get_coef(
-            clf.named_steps["slidingestimator"].estimators_[t], "filters_", False
+            clf.estimators_[t],
+            "filters_",
+            inverse,
+            verbose=False,
         )
-        if Scale is _Noop:
-            assert_array_equal(filters_t, filters[:, t])
+        assert_array_equal(filters_t, filters[:, t])
+
+    with pytest.raises(ValueError, match=r"pipeline estimator"):
+        _ = get_coef(
+            clf,
+            "filters_",
+            inverse,
+            step_name="slidingestimator__pipeline__linearmodel",
+        )
 
 
 @pytest.mark.parametrize("n_features", [1, 5])
