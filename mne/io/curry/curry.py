@@ -554,7 +554,7 @@ def _set_chanloc_curry(inst, ch_types, ch_pos, landmarks, landmarkslabels):
             raise NotImplementedError
 
     # TODO - REVIEW NEEDED
-    # do we need further transpositions for MEG channel positions?
+    # do we need further transformations for MEG channel positions?
     # the testfiles i got look good to me..
     # _make_trans_dig(curry_paths, inst.info, curry_dev_dev_t)
 
