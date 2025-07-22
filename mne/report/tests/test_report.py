@@ -1172,6 +1172,21 @@ def test_report_tweaks(tmp_path, monkeypatch):
     assert img.shape == (2000, 2000, 3)  # figure.figsize * figure.dpi
 
 
+def test_report_backward_compat(tmp_path):
+    """Ensure our options are still backward compatible."""
+    h5io = pytest.importorskip("h5io")
+    fname = tmp_path / "report.h5"
+    r = Report()
+    r.img_max_width = 600
+    r.save(fname)
+    h = h5io.read_hdf5(fname, title="mnepython")
+    assert h["img_max_width"] == 600
+    del h["img_max_width"]
+    h5io.write_hdf5(fname, h, title="mnepython", overwrite=True)
+    with open_report(fname) as r2:
+        assert r2.img_max_width == 850
+
+
 @pytest.mark.slowtest  # 30 s on Azure
 @testing.requires_testing_data
 def test_manual_report_3d(tmp_path, renderer):
