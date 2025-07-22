@@ -19,10 +19,10 @@ from mne import Epochs, compute_rank, create_info, pick_types, read_events
 from mne._fiff.proj import make_eeg_average_ref_proj
 from mne.cov import Covariance, _regularized_covariance
 from mne.decoding._ged import (
+    _get_cov_def,
     _get_restr_mat,
     _handle_restr_mat,
-    _is_cov_pos_def,
-    _is_cov_symm_pos_semidef,
+    _is_cov_symm,
     _smart_ajd,
     _smart_ged,
 )
@@ -345,34 +345,27 @@ def test__handle_restr_mat_invalid_restr_type():
 
 def test_cov_validators():
     """Test that covariance validators indeed validate."""
-    asymm = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
+    asymm_indef = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
     sing_pos_semidef = np.array([[1, 2, 3], [2, 4, 6], [3, 6, 9]])
     pos_def = np.array([[5, 1, 1], [1, 6, 2], [1, 2, 7]])
 
-    assert not _is_cov_symm_pos_semidef(asymm)
-    assert _is_cov_symm_pos_semidef(sing_pos_semidef)
-    assert _is_cov_symm_pos_semidef(pos_def)
-
-    assert not _is_cov_pos_def(asymm)
-    assert not _is_cov_pos_def(sing_pos_semidef)
-    assert _is_cov_pos_def(pos_def)
+    assert not _is_cov_symm(asymm_indef)
+    assert _get_cov_def(asymm_indef) == "indef"
+    assert _get_cov_def(sing_pos_semidef) == "pos_semidef"
+    assert _get_cov_def(pos_def) == "pos_def"
 
 
-def test__is_cov_pos_def():
-    """Test _is_cov_pos_def works."""
-    asymm = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
-    sing_pos_semidef = np.array([[1, 2, 3], [2, 4, 6], [3, 6, 9]])
-    pos_def = np.array([[5, 1, 1], [1, 6, 2], [1, 2, 7]])
-    assert not _is_cov_pos_def(asymm)
-    assert not _is_cov_pos_def(sing_pos_semidef)
-    assert _is_cov_pos_def(pos_def)
-
-
-def test__smart_ajd_when_restr_mat_is_none():
-    """Test _smart_ajd raises ValueError when restr_mat is None."""
+def test__smart_ajd_raises():
+    """Test _smart_ajd raises proper ValueErrors."""
+    asymm_indef = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
     sing_pos_semidef = np.array([[1, 2, 3], [2, 4, 6], [3, 6, 9]])
     pos_def1 = np.array([[5, 1, 1], [1, 6, 2], [1, 2, 7]])
     pos_def2 = np.array([[10, 1, 2], [1, 12, 3], [2, 3, 15]])
+
+    bad_covs = np.stack([sing_pos_semidef, asymm_indef, pos_def1])
+    with pytest.raises(ValueError, match="positive semi-definite"):
+        _smart_ajd(bad_covs, restr_mat=pos_def2, weights=None)
+
     bad_covs = np.stack([sing_pos_semidef, pos_def1, pos_def2])
     with pytest.raises(ValueError, match="positive definite"):
         _smart_ajd(bad_covs, restr_mat=None, weights=None)

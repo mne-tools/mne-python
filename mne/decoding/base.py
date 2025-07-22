@@ -26,7 +26,13 @@ from sklearn.utils.validation import check_is_fitted
 
 from ..parallel import parallel_func
 from ..utils import _check_option, _pl, _validate_type, logger, pinv, verbose, warn
-from ._ged import _handle_restr_mat, _is_cov_symm_pos_semidef, _smart_ajd, _smart_ged
+from ._ged import (
+    _handle_restr_mat,
+    _is_cov_pos_semidef,
+    _is_cov_symm,
+    _smart_ajd,
+    _smart_ged,
+)
 from ._mod_ged import _no_op_mod
 from .transformer import MNETransformerMixin
 
@@ -133,23 +139,21 @@ class _GEDTransformer(MNETransformerMixin, BaseEstimator):
         covs, C_ref, info, rank, kwargs = self.cov_callable(X, y)
         covs = np.stack(covs)
         self._validate_covariances(covs)
-        self._validate_covariances([C_ref])
+        if C_ref is not None:
+            self._validate_covariances([C_ref])
         mod_ged_callable = (
             self.mod_ged_callable if self.mod_ged_callable is not None else _no_op_mod
         )
+        restr_mat = _handle_restr_mat(C_ref, self.restr_type, info, rank)
 
         if self.dec_type == "single":
             if len(covs) > 2:
-                weights = (
-                    kwargs["sample_weights"] if "sample_weights" in kwargs else None
-                )
-                restr_mat = _handle_restr_mat(C_ref, self.restr_type, info, rank)
+                weights = kwargs.get("sample_weights", None)
                 evecs = _smart_ajd(covs, restr_mat, weights=weights)
                 evals = None
             else:
                 S = covs[0]
                 R = covs[1]
-                restr_mat = _handle_restr_mat(C_ref, self.restr_type, info, rank)
                 evals, evecs = _smart_ged(S, R, restr_mat, R_func=self.R_func)
 
             evals, evecs, self.sorter_ = mod_ged_callable(evals, evecs, covs, **kwargs)
@@ -160,7 +164,6 @@ class _GEDTransformer(MNETransformerMixin, BaseEstimator):
         elif self.dec_type == "multi":
             self.classes_ = np.unique(y)
             R = covs[-1]
-            restr_mat = _handle_restr_mat(C_ref, self.restr_type, info, rank)
             all_evals, all_evecs = list(), list()
             all_patterns, all_sorters = list(), list()
             for i in range(len(self.classes_)):
@@ -251,18 +254,66 @@ class _GEDTransformer(MNETransformerMixin, BaseEstimator):
         )
 
     def _validate_covariances(self, covs):
-        for cov in covs:
-            if cov is None:
-                continue
-            # XXX: A lot of mne.decoding classes use mne.cov._regularized_covariance.
-            # Depending on the data it sometimes returns negative semidefinite matrices.
-            # So adding the validation of positive semidefinitiveness
-            # will require overhauling covariance estimation first.
-            is_cov = _is_cov_symm_pos_semidef(cov, check_pos_semidef=False)
-            if not is_cov:
+        error_template = (
+            "{matrix} is not {prop}, but required to be for {decomp}. "
+            "Check your cov_callable"
+        )
+        if len(covs) == 1:
+            C_ref = covs[0]
+            is_C_ref_symm = _is_cov_symm(C_ref)
+            if not is_C_ref_symm:
                 raise ValueError(
-                    "One of covariances is not symmetric (or positive semidefinite), "
-                    "check your cov_callable"
+                    error_template.format(
+                        matrix="C_ref covariance",
+                        prop="symmetric",
+                        decomp="decomposition",
+                    )
+                )
+        elif self.dec_type == "single" and len(covs) > 2:
+            # make only lenient symmetric check here.
+            # positive semidefiniteness/definiteness will be
+            # checked inside _smart_ajd
+            are_all_covs = all([_is_cov_symm(cov) for cov in covs])
+            if not are_all_covs:
+                raise ValueError(
+                    error_template.format(
+                        matrix="One of the covariances",
+                        prop="symmetric",
+                        decomp="approximate joint diagonalization",
+                    )
+                )
+        else:
+            if len(covs) == 2:
+                S_covs = [covs[0]]
+                R = covs[1]
+            elif self.dec_type == "multi":
+                S_covs = covs[:-1]
+                R = covs[-1]
+
+            are_all_S_symm = all([_is_cov_symm(S) for S in S_covs])
+            if not are_all_S_symm:
+                raise ValueError(
+                    error_template.format(
+                        matrix="S covariance",
+                        prop="symmetric",
+                        decomp="generalized eigendecomposition",
+                    )
+                )
+            if not _is_cov_symm(R):
+                raise ValueError(
+                    error_template.format(
+                        matrix="R covariance",
+                        prop="symmetric",
+                        decomp="generalized eigendecomposition",
+                    )
+                )
+            if not _is_cov_pos_semidef(R):
+                raise ValueError(
+                    error_template.format(
+                        matrix="R covariance",
+                        prop="positive semi-definite",
+                        decomp="generalized eigendecomposition",
+                    )
                 )
 
     def __sklearn_tags__(self):
