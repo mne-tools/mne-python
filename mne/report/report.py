@@ -715,8 +715,7 @@ def open_report(fname, **params):
         read_hdf5, _ = _import_h5io_funcs()
         state = read_hdf5(fname, title="mnepython")
         for param, default in _backward_compat_map.items():
-            if param not in state:
-                state[param] = default
+            state.setdefault(param, default)
         for param in params:
             if param not in state:
                 raise ValueError(f"The loaded report has no attribute {param}")
