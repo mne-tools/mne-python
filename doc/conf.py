@@ -776,7 +776,7 @@ html_theme = "pydata_sphinx_theme"
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
-switcher_version_match = "dev" if ".dev" in version else version
+switcher_version_match = "dev" if ".dev" in release else version
 html_theme_options = {
     "icon_links": [
         dict(
