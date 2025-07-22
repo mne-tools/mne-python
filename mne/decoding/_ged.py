@@ -55,26 +55,34 @@ def _smart_ged(S, R, restr_mat=None, R_func=None):
 
 
 def _is_cov_symm_pos_semidef(
-    cov, rtol=1e-10, atol=1e-11, eval_tol=1e-15, check_pos_semidef=True
+    cov, rtol=1e-7, atol=None, eval_tol=None, check_pos_semidef=True
 ):
+    if atol is None:
+        atol = 1e-7 * np.max(np.abs(cov))
     is_symm = scipy.linalg.issymmetric(cov, rtol=rtol, atol=atol)
     if not is_symm:
         return False
 
     if check_pos_semidef:
         # numerically slightly negative evals are considered 0
-        is_pos_semidef = np.all(scipy.linalg.eigvalsh(cov) >= -eval_tol)
+        evals = scipy.linalg.eigvalsh(cov)
+        if eval_tol is None:
+            eval_tol = 1e-7 * np.max(np.abs(evals))
+        is_pos_semidef = np.all(evals >= -eval_tol)
         return is_pos_semidef
 
     return True
 
 
-def _is_cov_pos_def(cov, eval_tol=1e-15):
+def _is_cov_pos_def(cov, eval_tol=None):
     is_symm = _is_cov_symm_pos_semidef(cov, check_pos_semidef=False)
     if not is_symm:
         return False
     # numerically slightly positive evals are considered 0
-    is_pos_def = np.all(scipy.linalg.eigvalsh(cov) > eval_tol)
+    evals = scipy.linalg.eigvalsh(cov)
+    if eval_tol is None:
+        eval_tol = 1e-7 * np.max(np.abs(evals))
+    is_pos_def = np.all(evals > eval_tol)
     return is_pos_def
 
 
