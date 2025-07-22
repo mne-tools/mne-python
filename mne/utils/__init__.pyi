@@ -6,6 +6,7 @@ __all__ = [
     "ClosingStringIO",
     "ExtendedTimeMixin",
     "GetEpochsMixin",
+    "NamedInt",
     "ProgressBar",
     "SizeMixin",
     "TimeMixin",
@@ -183,7 +184,7 @@ __all__ = [
     "warn",
     "wrapped_stdout",
 ]
-from ._bunch import Bunch, BunchConst, BunchConstNamed
+from ._bunch import Bunch, BunchConst, BunchConstNamed, NamedInt
 from ._logging import (
     ClosingStringIO,
     _get_call_line,
