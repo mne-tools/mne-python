@@ -5,7 +5,6 @@ python -m pip install --upgrade --progress-bar off \
     --only-binary "numpy,dipy,scipy,matplotlib,pandas,statsmodels" \
     -ve .[full,test,doc] "numpy>=2" \
     "git+https://github.com/pyvista/pyvista.git" \
-    "git+https://github.com/pydata/pydata-sphinx-theme.git" \
     "git+https://github.com/sphinx-gallery/sphinx-gallery.git" \
     "git+https://github.com/mne-tools/mne-bids.git" \
     "git+https://github.com/mne-tools/mne-qt-browser.git" \

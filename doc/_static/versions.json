@@ -7,8 +7,7 @@
     {
         "name": "1.10 (stable)",
         "version": "stable",
-        "url": "https://mne.tools/stable/",
-        "preferred": true
+        "url": "https://mne.tools/stable/"
     },
     {
         "name": "1.9",
