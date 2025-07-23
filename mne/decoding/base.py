@@ -273,15 +273,15 @@ class _GEDTransformer(MNETransformerMixin, BaseEstimator):
             # make only lenient symmetric check here.
             # positive semidefiniteness/definiteness will be
             # checked inside _smart_ajd
-            are_all_covs = all([_is_cov_symm(cov) for cov in covs])
-            if not are_all_covs:
-                raise ValueError(
-                    error_template.format(
-                        matrix="One of the covariances",
-                        prop="symmetric",
-                        decomp="approximate joint diagonalization",
+            for ci, cov in enumerate(covs):
+                if not _is_cov_symm(cov):
+                    raise ValueError(
+                        error_template.format(
+                            matrix=f"cov[{ci}]",
+                            prop="symmetric",
+                            decomp="approximate joint diagonalization",
+                        )
                     )
-                )
         else:
             if len(covs) == 2:
                 S_covs = [covs[0]]
