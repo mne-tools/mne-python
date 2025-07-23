@@ -831,7 +831,7 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None, verbose=
         highpass=sqd["highpass"],
         kit_system_id=sysid,
         description=description,
-        dev_head_t=Transform("meg", "head", np.eye(4)),
+        dev_head_t=Transform("meg", "head"),
     )
 
     # Creates a list of dicts of meg channels for raw.info
