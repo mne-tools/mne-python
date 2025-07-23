@@ -75,7 +75,7 @@ fig.suptitle("Moving: naive average")
 
 # %%
 # Third, use raw movement compensation (restores pattern).
-raw_sss = maxwell_filter(raw, head_pos=head_pos)
+raw_sss = maxwell_filter(raw, head_pos=head_pos, mc_interp="hann")
 evoked_raw_mc = mne.Epochs(raw_sss, events, 1, -0.2, 0.8).average()
 fig = evoked_raw_mc.plot_topomap(**topo_kwargs)
 fig.suptitle("Moving: movement compensated (raw)")

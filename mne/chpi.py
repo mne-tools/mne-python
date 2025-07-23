@@ -99,8 +99,9 @@ def read_head_pos(fname):
 
     Returns
     -------
-    pos : array, shape (N, 10)
+    quats : array, shape (n_pos, 10)
         The position and quaternion parameters from cHPI fitting.
+        See :func:`mne.chpi.compute_head_pos` for details on the columns.
 
     See Also
     --------
@@ -126,8 +127,9 @@ def write_head_pos(fname, pos):
     ----------
     fname : path-like
         The filename to write.
-    pos : array, shape (N, 10)
+    pos : array, shape (n_pos, 10)
         The position and quaternion parameters from cHPI fitting.
+        See :func:`mne.chpi.compute_head_pos` for details on the columns.
 
     See Also
     --------
@@ -141,7 +143,9 @@ def write_head_pos(fname, pos):
     _check_fname(fname, overwrite=True)
     pos = np.array(pos, np.float64)
     if pos.ndim != 2 or pos.shape[1] != 10:
-        raise ValueError("pos must be a 2D array of shape (N, 10)")
+        raise ValueError(
+            f"pos must be a 2D array of shape (N, 10), got shape {pos.shape}"
+        )
     with open(fname, "wb") as fid:
         fid.write(
             " Time       q1       q2       q3       q4       q5       "
@@ -157,16 +161,17 @@ def head_pos_to_trans_rot_t(quats):
 
     Parameters
     ----------
-    quats : ndarray, shape (N, 10)
+    quats : ndarray, shape (n_pos, 10)
         MaxFilter-formatted position and quaternion parameters.
+        See :func:`mne.chpi.read_head_pos` for details on the columns.
 
     Returns
     -------
-    translation : ndarray, shape (N, 3)
+    translation : ndarray, shape (n_pos, 3)
         Translations at each time point.
-    rotation : ndarray, shape (N, 3, 3)
+    rotation : ndarray, shape (n_pos, 3, 3)
         Rotations at each time point.
-    t : ndarray, shape (N,)
+    t : ndarray, shape (n_pos,)
         The time points.
 
     See Also
@@ -234,7 +239,7 @@ def extract_chpi_locs_ctf(raw, verbose=None):
 
     # find indices where chpi locations change
     indices = [0]
-    indices.extend(np.where(np.all(np.diff(chpi_data, axis=1), axis=0))[0] + 1)
+    indices.extend(np.where(np.any(np.diff(chpi_data, axis=1), axis=0))[0] + 1)
     # data in channels are in ctf device coordinates (cm)
     rrs = chpi_data[:, indices].T.reshape(len(indices), 3, 3)  # m
     # map to mne device coords
@@ -929,7 +934,8 @@ def compute_head_pos(
     Returns
     -------
     quats : ndarray, shape (n_pos, 10)
-        The ``[t, q1, q2, q3, x, y, z, gof, err, v]`` for each fit.
+        MaxFilter-formatted head position parameters. The columns correspond to
+        ``[t, q1, q2, q3, x, y, z, gof, err, v]`` for each time point.
 
     See Also
     --------

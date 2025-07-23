@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "3077476caa1e91df86ab3f52df7ce6a983b7fd86",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "tutorials/preprocessing/50_artifact_correction_ssp.py": {
+      "a": 0,
+      "d": 2
+    }
+  }
+}

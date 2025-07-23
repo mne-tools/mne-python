@@ -8,6 +8,7 @@ import numpy as np
 import pytest
 from numpy.testing import assert_allclose
 
+from mne import find_events
 from mne._fiff.constants import FIFF
 from mne._fiff.pick import _DATA_CH_TYPES_SPLIT
 from mne.datasets.testing import data_path, requires_testing_data
@@ -284,6 +285,9 @@ def test_multi_block_misc_channels(fname, tmp_path):
     data, times = raw.get_data(return_times=True)
     assert not np.isnan(data[0, np.where(times < 1)[0]]).any()
     assert np.isnan(data[0, np.logical_and(times > 1, times <= 1.1)]).all()
+
+    # smoke test for reading events with missing samples (should not emit a warning)
+    find_events(raw, verbose=True)
 
 
 @requires_testing_data

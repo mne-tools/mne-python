@@ -180,8 +180,8 @@ def test_plot_evoked_field(renderer):
     """Test plotting evoked field."""
     evoked = read_evokeds(evoked_fname, condition="Left Auditory", baseline=(-0.2, 0.0))
     evoked.pick(evoked.ch_names[::10])  # speed
-    for t, n_contours in zip(["meg", None], [21, 0]):
-        with pytest.warns(RuntimeWarning, match="projection"):
+    for t, n_contours, up in zip(["meg", None], [21, 0], [2, 1]):
+        with pytest.warns(RuntimeWarning, match="projection"), catch_logging() as log:
             maps = make_field_map(
                 evoked,
                 trans_fname,
@@ -189,7 +189,14 @@ def test_plot_evoked_field(renderer):
                 subjects_dir=subjects_dir,
                 n_jobs=None,
                 ch_type=t,
+                upsampling=up,
+                verbose=True,
             )
+        log = log.getvalue()
+        if up == 1:
+            assert "Upsampling" not in log
+        else:
+            assert "Upsampling" in log
         evoked.plot_field(maps, time=0.1, n_contours=n_contours)
     renderer.backend._close_all()
 
@@ -592,7 +599,7 @@ def test_plot_alignment_basic(tmp_path, renderer, mixed_fwd_cov_evoked):
     # all coord frames
     plot_alignment(info)  # works: surfaces='auto' default
     for coord_frame in ("meg", "head", "mri"):
-        plot_alignment(
+        fig = plot_alignment(
             info,
             meg=["helmet", "sensors"],
             dig=True,
@@ -603,20 +610,20 @@ def test_plot_alignment_basic(tmp_path, renderer, mixed_fwd_cov_evoked):
             mri_fiducials=fiducials_path,
             subjects_dir=subjects_dir,
         )
+
     renderer.backend._close_all()
     # EEG only with strange options
-    evoked_eeg_ecog_seeg = evoked.copy().pick_types(meg=False, eeg=True)
+    evoked_eeg_ecog_seeg = evoked.copy().pick([f"EEG {x:03d}" for x in range(1, 13)])
     with evoked_eeg_ecog_seeg.info._unlock():
         evoked_eeg_ecog_seeg.info["projs"] = []  # "remove" avg proj
     evoked_eeg_ecog_seeg.set_channel_types({"EEG 001": "ecog", "EEG 002": "seeg"})
     with catch_logging() as log:
-        plot_alignment(
+        fig = plot_alignment(
             evoked_eeg_ecog_seeg.info,
             subject="sample",
             trans=trans_fname,
             subjects_dir=subjects_dir,
             surfaces=["white", "outer_skin", "outer_skull"],
-            meg=["helmet", "sensors"],
             eeg=["original", "projected"],
             ecog=True,
             seeg=True,
@@ -625,6 +632,11 @@ def test_plot_alignment_basic(tmp_path, renderer, mixed_fwd_cov_evoked):
     log = log.getvalue()
     assert "ecog: 1" in log
     assert "seeg: 1" in log
+    assert "eeg: 10" in log
+    # got the right number of actors?
+    actor_names = list(fig.plotter.actors)
+    # 4 surfs (both hemis, skin, skull), 1 ECoG, 1 sEEG, 5 orig EEG + 1 projected EEG
+    assert len(actor_names) == 4 + 1 + 1 + 1 + 1
     renderer.backend._close_all()
 
     sphere = make_sphere_model(info=info, r0="auto", head_radius="auto")

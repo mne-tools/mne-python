@@ -49,6 +49,7 @@ from mne.decoding.base import (
     get_coef,
 )
 from mne.decoding.search_light import SlidingEstimator
+from mne.utils import check_version
 
 
 def _make_data(n_samples=1000, n_features=5, n_targets=3):
@@ -97,7 +98,8 @@ def test_get_coef():
     """Test getting linear coefficients (filters/patterns) from estimators."""
     lm_classification = LinearModel()
     assert hasattr(lm_classification, "__sklearn_tags__")
-    print(lm_classification.__sklearn_tags__())
+    if check_version("sklearn", "1.4"):
+        print(lm_classification.__sklearn_tags__())
     assert is_classifier(lm_classification.model)
     assert is_classifier(lm_classification)
     assert not is_regressor(lm_classification.model)

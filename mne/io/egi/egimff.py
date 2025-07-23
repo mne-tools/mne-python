@@ -122,6 +122,7 @@ def _read_mff_header(filepath):
     # Add the sensor info.
     sensor_layout_file = op.join(filepath, "sensorLayout.xml")
     sensor_layout_obj = parse(sensor_layout_file)
+
     summaryinfo["device"] = sensor_layout_obj.getElementsByTagName("name")[
         0
     ].firstChild.data
@@ -279,7 +280,7 @@ def _read_locs(filepath, egi_info, channel_naming):
 
     fname = op.join(filepath, "coordinates.xml")
     if not op.exists(fname):
-        logger.warn("File coordinates.xml not found, not setting channel locations")
+        warn("File coordinates.xml not found, not setting channel locations")
         ch_names = [channel_naming % (i + 1) for i in range(egi_info["n_channels"])]
         return ch_names, None
     dig_ident_map = {
@@ -487,14 +488,13 @@ class RawMff(BaseRaw):
 
         if mon is not None:
             info.set_montage(mon, on_missing="ignore")
-
-        ref_idx = np.flatnonzero(np.isin(mon.ch_names, REFERENCE_NAMES))
-        if len(ref_idx):
-            ref_idx = ref_idx.item()
-            ref_coords = info["chs"][int(ref_idx)]["loc"][:3]
-            for chan in info["chs"]:
-                if chan["kind"] == FIFF.FIFFV_EEG_CH:
-                    chan["loc"][3:6] = ref_coords
+            ref_idx = np.flatnonzero(np.isin(mon.ch_names, REFERENCE_NAMES))
+            if len(ref_idx):
+                ref_idx = ref_idx.item()
+                ref_coords = info["chs"][int(ref_idx)]["loc"][:3]
+                for chan in info["chs"]:
+                    if chan["kind"] == FIFF.FIFFV_EEG_CH:
+                        chan["loc"][3:6] = ref_coords
 
         file_bin = op.join(input_fname, egi_info["eeg_fname"])
         egi_info["egi_events"] = egi_events
