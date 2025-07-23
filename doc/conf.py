@@ -65,24 +65,28 @@ td = datetime.now(tz=timezone.utc)
 copyright = (  # noqa: A001
     f'2012–{td.year}, MNE Developers. Last updated <time datetime="{td.isoformat()}" class="localized">{td.strftime("%Y-%m-%d %H:%M %Z")}</time>\n'  # noqa: E501
     """<script type="text/javascript">
-$(function () {
-    $("time.localized").each(function () {
-        var el = $(this);
-        var d = new Date(el.attr("datetime"));
-        var date = d.toLocaleDateString("sv-SE", {
+function formatTimestamp() {
+    document.querySelectorAll("time.localized").forEach(el => {
+        const d = new Date(el.getAttribute("datetime"));
+        const date = d.toLocaleDateString("sv-SE", {
             year: "numeric",
             month: "2-digit",
             day: "2-digit"
         });
-        var time = d.toLocaleTimeString([], {
+        const time = d.toLocaleTimeString([], {
             hour: "2-digit",
             minute: "2-digit",
             hourCycle: "h23",
             timeZoneName: "shortOffset"
         });
-        el.text(`${date} ${time}`);
+        el.textContent = `${date} ${time}`;
     });
-});
+}
+if (document.readyState !== "loading") {
+    formatTimestamp();
+} else {
+    document.addEventListener("DOMContentLoaded", formatTimestamp);
+}
 </script>"""
 )
 if os.getenv("MNE_FULL_DATE", "false").lower() != "true":
