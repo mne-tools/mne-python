@@ -77,7 +77,8 @@ $(function () {
         var time = d.toLocaleTimeString([], {
             hour: "2-digit",
             minute: "2-digit",
-            hourCycle: "h23"
+            hourCycle: "h23",
+            timeZoneName: "shortOffset"
         });
         el.text(`${date} ${time}`);
     });
