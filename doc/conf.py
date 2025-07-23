@@ -64,7 +64,18 @@ td = datetime.now(tz=timezone.utc)
 # (Sphinx looks at variable changes and rewrites all files if some change)
 copyright = (  # noqa: A001
     f'2012–{td.year}, MNE Developers. Last updated <time datetime="{td.isoformat()}" class="localized">{td.strftime("%Y-%m-%d %H:%M %Z")}</time>\n'  # noqa: E501
-    '<script type="text/javascript">$(function () { $("time.localized").each(function () { var el = $(this); el.text(new Date(el.attr("datetime")).toLocaleString([], {dateStyle: "medium", timeStyle: "long", hourCycle: "h23"})); }); } )</script>'  # noqa: E501
+    """<script type="text/javascript">
+$(function () {
+    $("time.localized").each(function () {
+        var el = $(this);
+        el.text(new Date(el.attr("datetime")).toLocaleString([], {
+            dateStyle: "medium",
+            timeStyle: "long",
+            hourCycle: "h23"
+        }));
+    });
+});
+</script>"""
 )
 if os.getenv("MNE_FULL_DATE", "false").lower() != "true":
     copyright = f"2012–{td.year}, MNE Developers. Last updated locally."  # noqa: A001
