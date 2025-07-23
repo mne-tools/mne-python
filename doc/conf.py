@@ -945,7 +945,8 @@ html_context = {
             klass="only-dark",
         ),
         dict(img="google.svg", size="2.25", title="Google"),
-        dict(img="amazon.svg", size="2.5", title="Chan Zuckerberg Initiative"),
+        dict(img="amazon.svg", size="2.5", title="Amazon"),
+        dict(img="czi.svg", size="2.5", title="Chan Zuckerberg Initiative"),
     ],
     "institutions": [
         dict(
