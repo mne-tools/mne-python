@@ -68,11 +68,18 @@ copyright = (  # noqa: A001
 $(function () {
     $("time.localized").each(function () {
         var el = $(this);
-        el.text(new Date(el.attr("datetime")).toLocaleString([], {
-            dateStyle: "medium",
-            timeStyle: "long",
+        var d = new Date(el.attr("datetime"));
+        var date = d.toLocaleDateString("sv-SE", {
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit"
+        });
+        var time = d.toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
             hourCycle: "h23"
-        }));
+        });
+        el.text(`${date} ${time}`);
     });
 });
 </script>"""
@@ -937,8 +944,7 @@ html_context = {
             klass="only-dark",
         ),
         dict(img="google.svg", size="2.25", title="Google"),
-        dict(img="amazon.svg", size="2.5", title="Amazon"),
-        dict(img="czi.svg", size="2.5", title="Chan Zuckerberg Initiative"),
+        dict(img="amazon.svg", size="2.5", title="Chan Zuckerberg Initiative"),
     ],
     "institutions": [
         dict(
