@@ -485,7 +485,8 @@ def _prepare_for_forward(
     info = Info(
         chs=info["chs"],
         comps=info["comps"],
-        dev_head_t=info["dev_head_t"],
+        # The forward-writing code always wants a dev_head_t, so give an identity one
+        dev_head_t=info["dev_head_t"] or Transform("meg", "head"),
         mri_file=info_trans,
         mri_id=mri_id,
         meas_file=info_extra,
