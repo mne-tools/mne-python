@@ -7,7 +7,6 @@ import os
 import os.path as op
 import time
 import traceback
-import warnings
 from functools import partial
 from io import BytesIO
 
@@ -2224,17 +2223,24 @@ class Brain:
 
         scalars = np.zeros(self.geo[hemi].coords.shape[0])
         scalars[ids] = 1
+
+        # Apply borders logic (same for both flat and non-flat surfaces)
         if borders:
             keep_idx = _mesh_borders(self.geo[hemi].faces, scalars)
             show = np.zeros(scalars.size, dtype=np.int64)
+
             if isinstance(borders, int):
                 for _ in range(borders):
+                    # Refine border calculation by checking neighboring borders
                     keep_idx = np.isin(self.geo[hemi].faces.ravel(), keep_idx)
                     keep_idx.shape = self.geo[hemi].faces.shape
                     keep_idx = self.geo[hemi].faces[np.any(keep_idx, axis=1)]
                     keep_idx = np.unique(keep_idx)
+
             show[keep_idx] = 1
-            scalars *= show
+            scalars *= show  # Apply the border filter to the scalars
+
+        # Add the overlay to the mesh
         for _, _, v in self._iter_views(hemi):
             mesh = self._layered_meshes[hemi]
             mesh.add_overlay(
@@ -2244,6 +2250,7 @@ class Brain:
                 opacity=alpha,
                 name=label_name,
             )
+
             if self.time_viewer and self.show_traces and self.traces_mode == "label":
                 label._color = orig_color
                 label._line = line
