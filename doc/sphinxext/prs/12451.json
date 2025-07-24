@@ -15,11 +15,11 @@
     }
   ],
   "changes": {
-    "doc/changes/dev/12451.bugfix.rst": {
+    "doc/changes/devel/12451.bugfix.rst": {
       "a": 1,
       "d": 0
     },
-    "doc/changes/dev/12451.dependency.rst": {
+    "doc/changes/devel/12451.dependency.rst": {
       "a": 1,
       "d": 0
     },

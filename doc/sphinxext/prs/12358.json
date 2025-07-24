@@ -15,7 +15,7 @@
     }
   ],
   "changes": {
-    "doc/changes/dev/12358.other.rst": {
+    "doc/changes/devel/12358.other.rst": {
       "a": 1,
       "d": 0
     },

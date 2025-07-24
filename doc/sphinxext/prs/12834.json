@@ -11,7 +11,7 @@
     }
   ],
   "changes": {
-    "doc/changes/dev/12834.dependency.rst": {
+    "doc/changes/devel/12834.dependency.rst": {
       "a": 2,
       "d": 0
     },

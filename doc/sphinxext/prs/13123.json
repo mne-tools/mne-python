@@ -11,7 +11,7 @@
     }
   ],
   "changes": {
-    "doc/changes/dev/13123.bugfix.rst": {
+    "doc/changes/devel/13123.bugfix.rst": {
       "a": 1,
       "d": 0
     },
