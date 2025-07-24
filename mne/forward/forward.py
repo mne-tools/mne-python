@@ -318,7 +318,6 @@ def _get_tag_int(fid, node, name, id_):
     """Check we have an appropriate tag."""
     tag = find_tag(fid, node, id_)
     if tag is None:
-        fid.close()
         raise ValueError(name + " tag not found")
     return int(tag.data.item())
 
@@ -649,7 +648,6 @@ def read_forward_solution(fname, include=(), exclude=(), *, ordered=True, verbos
                 mri_head_t["from"] != FIFF.FIFFV_COORD_MRI
                 or mri_head_t["to"] != FIFF.FIFFV_COORD_HEAD
             ):
-                fid.close()
                 raise ValueError("MRI/head coordinate transformation not found")
         fwd["mri_head_t"] = mri_head_t
 
@@ -1124,7 +1122,6 @@ def write_forward_meas_info(fid, info):
     # get transformation from CTF and DEVICE to HEAD coordinate frame
     meg_head_t = info.get("dev_head_t", info.get("ctf_head_t"))
     if meg_head_t is None:
-        fid.close()
         raise ValueError("Head<-->sensor transform not found")
     write_coord_trans(fid, meg_head_t)
 

@@ -59,6 +59,7 @@ def test_dev_head_t():
     """Test dev_head_t computation for Artemis123."""
     # test a random selected point
     raw = read_raw_artemis123(short_hpi_1kz_fname, preload=True, add_head_trans=False)
+    assert raw.info["dev_head_t"] is None
     meg_picks = pick_types(raw.info, meg=True, eeg=False)
 
     # checked against matlab reader.

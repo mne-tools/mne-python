@@ -333,6 +333,10 @@ def _test_raw_reader(
     meas_date = raw.info["meas_date"]
     assert meas_date is None or meas_date >= _stamp_to_dt((0, 0))
 
+    # gh-13112
+    if "meg" not in raw:
+        assert raw.info["dev_head_t"] is None, "dev_head_t should be None if no MEG"
+
     # test repr_html
     assert "Channels" in raw._repr_html_()
 
