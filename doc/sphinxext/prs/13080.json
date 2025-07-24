@@ -11,11 +11,11 @@
     }
   ],
   "changes": {
-    "doc/changes/devel/13080.apichange.rst": {
+    "doc/changes/dev/13080.apichange.rst": {
       "a": 1,
       "d": 0
     },
-    "doc/changes/devel/13080.newfeature.rst": {
+    "doc/changes/dev/13080.newfeature.rst": {
       "a": 1,
       "d": 0
     },

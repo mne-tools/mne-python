@@ -11,11 +11,11 @@
     }
   ],
   "changes": {
-    "doc/changes/devel/12727.bugfix.rst": {
+    "doc/changes/dev/12727.bugfix.rst": {
       "a": 3,
       "d": 0
     },
-    "doc/changes/devel/12727.newfeature.rst": {
+    "doc/changes/dev/12727.newfeature.rst": {
       "a": 3,
       "d": 0
     },

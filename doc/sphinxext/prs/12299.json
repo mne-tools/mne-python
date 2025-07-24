@@ -11,75 +11,75 @@
       "a": 15,
       "d": 0
     },
-    "doc/changes/devel.rst": {
+    "doc/changes/dev.rst": {
       "a": 2,
       "d": 53
     },
-    "doc/changes/devel.rst.template": {
+    "doc/changes/dev.rst.template": {
       "a": 0,
       "d": 34
     },
-    "doc/changes/devel/.gitignore": {
+    "doc/changes/dev/.gitignore": {
       "a": 1,
       "d": 0
     },
-    "doc/changes/devel/12190.bugfix.rst": {
+    "doc/changes/dev/12190.bugfix.rst": {
       "a": 1,
       "d": 0
     },
-    "doc/changes/devel/12218.newfeature.rst": {
+    "doc/changes/dev/12218.newfeature.rst": {
       "a": 1,
       "d": 0
     },
-    "doc/changes/devel/12236.bugfix.rst": {
+    "doc/changes/dev/12236.bugfix.rst": {
       "a": 1,
       "d": 0
     },
-    "doc/changes/devel/12238.newfeature.rst": {
+    "doc/changes/dev/12238.newfeature.rst": {
       "a": 1,
       "d": 0
     },
-    "doc/changes/devel/12248.bugfix.rst": {
+    "doc/changes/dev/12248.bugfix.rst": {
       "a": 1,
       "d": 0
     },
-    "doc/changes/devel/12250.newfeature.rst": {
+    "doc/changes/dev/12250.newfeature.rst": {
       "a": 1,
       "d": 0
     },
-    "doc/changes/devel/12250.notable.rst": {
+    "doc/changes/dev/12250.notable.rst": {
       "a": 11,
       "d": 0
     },
-    "doc/changes/devel/12264.dependency.rst": {
+    "doc/changes/dev/12264.dependency.rst": {
       "a": 1,
       "d": 0
     },
-    "doc/changes/devel/12268.newfeature.rst": {
+    "doc/changes/dev/12268.newfeature.rst": {
       "a": 1,
       "d": 0
     },
-    "doc/changes/devel/12269.newfeature.rst": {
+    "doc/changes/dev/12269.newfeature.rst": {
       "a": 1,
       "d": 0
     },
-    "doc/changes/devel/12279.bugfix.rst": {
+    "doc/changes/dev/12279.bugfix.rst": {
       "a": 1,
       "d": 0
     },
-    "doc/changes/devel/12282.bugfix.rst": {
+    "doc/changes/dev/12282.bugfix.rst": {
       "a": 1,
       "d": 0
     },
-    "doc/changes/devel/12289.newfeature.rst": {
+    "doc/changes/dev/12289.newfeature.rst": {
       "a": 1,
       "d": 0
     },
-    "doc/changes/devel/12299.other.rst": {
+    "doc/changes/dev/12299.other.rst": {
       "a": 1,
       "d": 0
     },
-    "doc/changes/devel/12308.apichange.rst": {
+    "doc/changes/dev/12308.apichange.rst": {
       "a": 1,
       "d": 0
     },

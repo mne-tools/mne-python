@@ -15,11 +15,11 @@
     }
   ],
   "changes": {
-    "doc/changes/devel/12901.bugfix.rst": {
+    "doc/changes/dev/12901.bugfix.rst": {
       "a": 1,
       "d": 0
     },
-    "doc/changes/devel/12901.newfeature.rst": {
+    "doc/changes/dev/12901.newfeature.rst": {
       "a": 8,
       "d": 0
     },

@@ -19,11 +19,11 @@
     }
   ],
   "changes": {
-    "doc/changes/devel/12583.apichange.rst": {
+    "doc/changes/dev/12583.apichange.rst": {
       "a": 2,
       "d": 0
     },
-    "doc/changes/devel/12583.newfeature.rst": {
+    "doc/changes/dev/12583.newfeature.rst": {
       "a": 4,
       "d": 0
     },

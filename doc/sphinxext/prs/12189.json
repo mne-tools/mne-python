@@ -15,7 +15,7 @@
     }
   ],
   "changes": {
-    "doc/changes/devel.rst": {
+    "doc/changes/dev.rst": {
       "a": 2,
       "d": 0
     },

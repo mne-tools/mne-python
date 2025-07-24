@@ -7,7 +7,7 @@
     }
   ],
   "changes": {
-    "doc/changes/devel/12846.bugfix.rst": {
+    "doc/changes/dev/12846.bugfix.rst": {
       "a": 2,
       "d": 1
     },

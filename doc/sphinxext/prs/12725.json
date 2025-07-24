@@ -11,7 +11,7 @@
     }
   ],
   "changes": {
-    "doc/changes/devel/12725.newfeature.rst": {
+    "doc/changes/dev/12725.newfeature.rst": {
       "a": 2,
       "d": 0
     },

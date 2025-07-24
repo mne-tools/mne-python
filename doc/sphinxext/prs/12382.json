@@ -11,11 +11,11 @@
     }
   ],
   "changes": {
-    "doc/changes/devel/12382.apichange.rst": {
+    "doc/changes/dev/12382.apichange.rst": {
       "a": 1,
       "d": 0
     },
-    "doc/changes/devel/12382.bugfix.rst": {
+    "doc/changes/dev/12382.bugfix.rst": {
       "a": 1,
       "d": 0
     },

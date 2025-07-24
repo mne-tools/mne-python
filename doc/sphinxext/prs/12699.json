@@ -11,7 +11,7 @@
     }
   ],
   "changes": {
-    "doc/changes/devel/12699.apichange.rst": {
+    "doc/changes/dev/12699.apichange.rst": {
       "a": 1,
       "d": 0
     },
