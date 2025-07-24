@@ -68,18 +68,16 @@ copyright = (  # noqa: A001
 function formatTimestamp() {
     document.querySelectorAll("time.localized").forEach(el => {
         const d = new Date(el.getAttribute("datetime"));
-        const date = d.toLocaleDateString("sv-SE", {
+        const options = {
             year: "numeric",
             month: "2-digit",
-            day: "2-digit"
-        });
-        const time = d.toLocaleTimeString([], {
+            day: "2-digit",
             hour: "2-digit",
             minute: "2-digit",
             hourCycle: "h23",
             timeZoneName: "shortOffset"
-        });
-        el.textContent = `${date} ${time}`;
+        };
+        el.textContent = d.toLocaleString("sv-SE", options);
     });
 }
 if (document.readyState !== "loading") {
