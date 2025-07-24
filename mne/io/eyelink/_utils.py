@@ -324,7 +324,22 @@ def _create_dataframes(raw_extras, apply_offsets):
     cols = ["time", "end_time", "block"]
     df_dict["recording_blocks"] = pd.DataFrame(blocks, columns=cols)
 
-    # TODO: Make dataframes for other eyelink events (Buttons)
+    # make dataframes for other button events
+    if raw_extras["event_lines"]["BUTTON"]:
+        button_events = raw_extras["event_lines"]["BUTTON"]
+        parsed = []
+        for entry in button_events:
+            parsed.append(
+                {
+                    "onset": float(entry[0]),
+                    "button_id": int(entry[1]),
+                    "button_pressed": int(entry[2]),  # 1 = press, 0 = release
+                }
+            )
+        df_dict["buttons"] = pd.DataFrame(parsed)
+    else:
+        logger.info("No button events found in this file.")
+
     return df_dict
 
 
@@ -415,6 +430,10 @@ def _assign_col_names(col_names, df_dict):
             df.columns = col_names[key]
         elif key == "messages":
             cols = ["time", "offset", "event_msg"]
+            df.columns = cols
+        # added for buttons
+        elif key == "buttons":
+            cols = ["time", "button_id", "button_pressed"]
             df.columns = cols
     return df_dict
 
@@ -677,7 +696,7 @@ def _make_eyelink_annots(df_dict, create_annots, apply_offsets):
             "pupil_right",
         ),
     }
-    valid_descs = ["blinks", "saccades", "fixations", "messages"]
+    valid_descs = ["blinks", "saccades", "fixations", "buttons", "messages"]
     msg = (
         "create_annotations must be True or a list containing one or"
         f" more of {valid_descs}."
@@ -721,8 +740,18 @@ def _make_eyelink_annots(df_dict, create_annots, apply_offsets):
             this_annot = Annotations(
                 onset=onsets, duration=durations, description=descriptions
             )
+        elif (key in ["buttons"]) and (key in descs):
+            onsets = df["time"]
+            durations = np.zeros_like(onsets)
+            descriptions = df.apply(
+                lambda row: f"button_{int(row['button_id'])}_{'press' if row['button_pressed'] == 1 else 'release'}",
+                axis=1,
+            )
+            this_annot = Annotations(
+                onset=onsets, duration=durations, description=descriptions
+            )
         else:
-            continue  # TODO make df and annotations for Buttons
+            continue
         if not annots:
             annots = this_annot
         elif annots:
