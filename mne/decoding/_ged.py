@@ -54,28 +54,39 @@ def _smart_ged(S, R, restr_mat=None, R_func=None):
     return evals, evecs
 
 
-def _is_cov_symm_pos_semidef(
-    cov, rtol=1e-10, atol=1e-11, eval_tol=1e-15, check_pos_semidef=True
-):
+def _is_cov_symm(cov, rtol=1e-7, atol=None):
+    if atol is None:
+        atol = 1e-7 * np.max(np.abs(cov))
     is_symm = scipy.linalg.issymmetric(cov, rtol=rtol, atol=atol)
-    if not is_symm:
-        return False
-
-    if check_pos_semidef:
-        # numerically slightly negative evals are considered 0
-        is_pos_semidef = np.all(scipy.linalg.eigvalsh(cov) >= -eval_tol)
-        return is_pos_semidef
-
-    return True
+    return is_symm
 
 
-def _is_cov_pos_def(cov, eval_tol=1e-15):
-    is_symm = _is_cov_symm_pos_semidef(cov, check_pos_semidef=False)
-    if not is_symm:
-        return False
-    # numerically slightly positive evals are considered 0
-    is_pos_def = np.all(scipy.linalg.eigvalsh(cov) > eval_tol)
-    return is_pos_def
+def _get_cov_def(cov, eval_tol=None):
+    """Get definiteness of symmetric cov matrix.
+
+    All evals in (-eval_tol, eval_tol) will be considered zero,
+    while all evals smaller than -eval_tol will be considered
+    negative.
+    """
+    evals = scipy.linalg.eigvalsh(cov)
+    if eval_tol is None:
+        eval_tol = 1e-7 * np.max(np.abs(evals))
+    if np.all(evals > eval_tol):
+        return "pos_def"
+    elif np.all(evals >= -eval_tol):
+        return "pos_semidef"
+    else:
+        return "indef"
+
+
+def _is_cov_pos_semidef(cov, eval_tol=None):
+    cov_def = _get_cov_def(cov, eval_tol=eval_tol)
+    return cov_def in ("pos_def", "pos_semidef")
+
+
+def _is_cov_pos_def(cov, eval_tol=None):
+    cov_def = _get_cov_def(cov, eval_tol=eval_tol)
+    return cov_def == "pos_def"
 
 
 def _smart_ajd(covs, restr_mat=None, weights=None):
@@ -90,8 +101,8 @@ def _smart_ajd(covs, restr_mat=None, weights=None):
     from .csp import _ajd_pham
 
     if restr_mat is None:
-        is_all_pos_def = all([_is_cov_pos_def(cov) for cov in covs])
-        if not is_all_pos_def:
+        are_all_pos_def = all([_is_cov_pos_def(cov) for cov in covs])
+        if not are_all_pos_def:
             raise ValueError(
                 "If C_ref is not provided by covariance estimator, "
                 "all the covs should be positive definite"
@@ -100,6 +111,12 @@ def _smart_ajd(covs, restr_mat=None, weights=None):
         return evecs
 
     else:
+        are_all_pos_semidef = all([_is_cov_pos_semidef(cov) for cov in covs])
+        if not are_all_pos_semidef:
+            raise ValueError(
+                "All the covs should be positive semi-definite for "
+                "approximate joint diagonalization"
+            )
         covs = np.array([restr_mat @ cov @ restr_mat.T for cov in covs], float)
         evecs_restr, D = _ajd_pham(covs)
         evecs = _normalize_eigenvectors(evecs_restr.T, covs, weights)
