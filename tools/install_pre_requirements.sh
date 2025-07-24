@@ -44,7 +44,7 @@ echo "::endgroup::"
 
 echo "::group::Everything else"
 python -m pip install $STD_ARGS \
-    "git+https://github.com/pyvista/pyvista@feat/no_new_attributes_mixin" \
+    "git+https://github.com/pyvista/pyvista" \
 	"git+https://github.com/pyvista/pyvistaqt" \
 	"git+https://github.com/nilearn/nilearn" \
 	"git+https://github.com/pierreablin/picard" \
