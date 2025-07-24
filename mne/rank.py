@@ -184,7 +184,7 @@ def _estimate_rank_meeg_signals(
     """
     picks_list = _picks_by_type(info)
     if data.shape[1] < data.shape[0]:
-        ValueError(
+       raise ValueError(
             "You've got fewer samples than channels, your "
             "rank estimate might be inaccurate."
         )
@@ -249,7 +249,7 @@ def _estimate_rank_meeg_cov(
     scalings = _handle_default("scalings_cov_rank", scalings)
     _apply_scaling_cov(data, picks_list, scalings)
     if data.shape[1] < data.shape[0]:
-        ValueError(
+       raise ValueError(
             "You've got fewer samples than channels, your "
             "rank estimate might be inaccurate."
         )
