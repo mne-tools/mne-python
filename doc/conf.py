@@ -126,7 +126,7 @@ templates_path = ["_templates"]
 # This pattern also affects html_static_path and html_extra_path.
 
 # NB: changes here should also be made to the linkcheck target in the Makefile
-exclude_patterns = ["_includes", "changes/devel"]
+exclude_patterns = ["_includes", "changes/dev"]
 
 # The suffix of source filenames.
 source_suffix = ".rst"
