@@ -412,6 +412,7 @@ def _assert_cov(cov, cov_desired, tol=0.005, nfree=True):
 
 @pytest.mark.slowtest
 @pytest.mark.parametrize("rank", ("full", None))
+@pytest.mark.filterwarnings("ignore:.*You've got fewer samples than channels.*")
 def test_cov_estimation_with_triggers(rank, tmp_path):
     """Test estimation from raw with triggers."""
     raw = read_raw_fif(raw_fname)
@@ -781,6 +782,7 @@ def raw_epochs_events():
 
 
 @pytest.mark.parametrize("rank", (None, "full", "info"))
+@pytest.mark.filterwarnings("ignore:.*You've got fewer samples than channels.*")
 def test_low_rank_methods(rank, raw_epochs_events):
     """Test low-rank covariance matrix estimation."""
     pytest.importorskip("sklearn")
@@ -814,6 +816,7 @@ def test_low_rank_methods(rank, raw_epochs_events):
         assert these_bounds[0] < cov["loglik"] < these_bounds[1], (rank, method)
 
 
+@pytest.mark.filterwarnings("ignore:.*You've got fewer samples than channels.*")
 def test_low_rank_cov(raw_epochs_events):
     """Test additional properties of low rank computations."""
     pytest.importorskip("sklearn")
@@ -890,6 +893,7 @@ def test_low_rank_cov(raw_epochs_events):
 
 
 @testing.requires_testing_data
+@pytest.mark.filterwarnings("ignore:.*You've got fewer samples than channels.*")
 def test_cov_ctf():
     """Test basic cov computation on ctf data with/without compensation."""
     pytest.importorskip("sklearn")
