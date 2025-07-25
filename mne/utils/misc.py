@@ -378,7 +378,6 @@ def _fullname(obj, *, referent=None):
                 if value is referent:
                     name += f"[{key!r}]"
                     break
-
     return name
 
 
@@ -409,8 +408,10 @@ def _assert_no_instances(cls, when=""):
                     if isinstance(r, list | dict | tuple):
                         rep = f"len={len(r)}"
                         r_ = gc.get_referrers(r)
-                        types = (_fullname(x, referent=r) for x in r_)
-                        types = " / ".join(sorted(x for x in types if x is not None))
+                        types = list()
+                        for x in r_:
+                            types.append(_fullname(x, referent=r))
+                        types = " / ".join(sorted(types))
                         rep += f" | {len(r_)} referrers: {types}"
                         del r_
                     else:
