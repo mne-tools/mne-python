@@ -29,6 +29,7 @@ from mne.decoding._ged import (
 from mne.decoding._mod_ged import _no_op_mod
 from mne.decoding.base import _GEDTransformer
 from mne.io import read_raw
+from mne.viz.decoding.ged import get_spatial_filter_from_estimator
 
 data_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
 raw_fname = data_dir / "test_raw.fif"
@@ -145,7 +146,7 @@ def test_sklearn_compliance(estimator, check):
     check(estimator)
 
 
-def _get_X_y(event_id):
+def _get_X_y(event_id, return_info=False):
     raw = read_raw(raw_fname, preload=False)
     events = read_events(event_name)
     picks = pick_types(
@@ -166,6 +167,8 @@ def _get_X_y(event_id):
     )
     X = epochs.get_data(copy=False, units=dict(eeg="uV", grad="fT/cm", mag="fT"))
     y = epochs.events[:, -1]
+    if return_info:
+        return X, y, epochs.info
     return X, y
 
 
@@ -379,3 +382,22 @@ def test__no_op_mod():
     assert evals is evals_no_op
     assert evecs is evecs_no_op
     assert sorter_no_op is None
+
+
+def test_get_spatial_filter():
+    """Test instantiation of spatial filter."""
+    event_id = dict(aud_l=1, vis_l=3)
+    X, y, info = _get_X_y(event_id, return_info=True)
+
+    ged = _GEDTransformer(
+        n_components=4,
+        cov_callable=_mock_cov_callable,
+        mod_ged_callable=_mock_mod_ged_callable,
+        restr_type="restricting",
+    )
+    ged.fit(X, y)
+    sp_filter = get_spatial_filter_from_estimator(ged, info)
+    assert sp_filter.patterns_method == "pinv"
+    np.testing.assert_array_equal(sp_filter.filters, ged.filters_)
+    np.testing.assert_array_equal(sp_filter.patterns, ged.patterns_)
+    np.testing.assert_array_equal(sp_filter.evals, ged.evals_)

@@ -17,6 +17,7 @@ Visualization
    ClickableImage
    EvokedField
    Figure3D
+   SpatialFilter
    add_background_image
    centers_to_edges
    compare_fiff
