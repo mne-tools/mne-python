@@ -113,7 +113,7 @@ stages:
           - bash: |
               set -e
               python -m pip install --progress-bar off --upgrade pip
-              python -m pip install --progress-bar off "mne-qt-browser[opengl] @ git+https://github.com/mne-tools/mne-qt-browser.git" pyvista scikit-learn python-picard qtpy nibabel sphinx-gallery "PySide6!=6.8.0,!=6.8.0.1,!=6.8.1.1" pandas neo pymatreader antio defusedxml
+              python -m pip install --progress-bar off "mne-qt-browser[opengl] @ git+https://github.com/mne-tools/mne-qt-browser.git" pyvista scikit-learn python-picard qtpy nibabel sphinx-gallery "PySide6!=6.8.0,!=6.8.0.1,!=6.8.1.1,!=6.9.1" pandas neo pymatreader antio defusedxml
               python -m pip uninstall -yq mne
               python -m pip install --progress-bar off --upgrade -e .[test]
             displayName: 'Install dependencies with pip'
@@ -198,15 +198,15 @@ stages:
               set -eo pipefail
               mne sys_info -pd
               mne sys_info -pd | grep "qtpy .* (PyQt6=.*)$"
-              PYTEST_QT_API=PyQt6 pytest ${TEST_OPTIONS}
+              PYTEST_QT_API=PyQt6 pytest -m "not ultraslowtest" ${TEST_OPTIONS}
               python -m pip uninstall -yq PyQt6 PyQt6-sip PyQt6-Qt6
             displayName: 'PyQt6'
           - bash: |
               set -eo pipefail
-              python -m pip install "PySide6!=6.8.0,!=6.8.0.1"
+              python -m pip install "PySide6!=6.8.0,!=6.8.0.1,!=6.9.1"
               mne sys_info -pd
               mne sys_info -pd | grep "qtpy .* (PySide6=.*)$"
-              PYTEST_QT_API=PySide6 pytest ${TEST_OPTIONS}
+              PYTEST_QT_API=PySide6 pytest -m "not ultraslowtest" ${TEST_OPTIONS}
               python -m pip uninstall -yq PySide6
             displayName: 'PySide6'
           # PyQt5 leaves cruft behind, so run it last
@@ -215,7 +215,7 @@ stages:
               python -m pip install PyQt5
               mne sys_info -pd
               mne sys_info -pd | grep "qtpy .* (PyQt5=.*)$"
-              PYTEST_QT_API=PyQt5 pytest ${TEST_OPTIONS}
+              PYTEST_QT_API=PyQt5 pytest -m "not ultraslowtest" ${TEST_OPTIONS}
               python -m pip uninstall -yq PyQt5 PyQt5-sip PyQt5-Qt5
             displayName: 'PyQt5'
           # Coverage

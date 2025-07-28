@@ -126,10 +126,9 @@ report.save("report_epochs.html", overwrite=True)
 # specify custom titles via the ``titles`` parameter. Again, this method
 # also accepts the path to an evoked file stored on disk; in the following
 # example, however, we load the evokeds manually first, since we only want to
-# add a subset of them to the report. The evokeds are not baseline-corrected,
-# so we apply baseline correction, too. Lastly, by providing an (optional)
-# noise covariance, we can add plots evokeds that were "whitened" using this
-# covariance matrix.
+# add a subset of them to the report. The evokeds are not baseline-corrected, so we
+# apply baseline correction, too. Lastly, by providing an (optional) noise covariance,
+# we can add plots evokeds that were "whitened" using this covariance matrix.
 #
 # By default, this method will produce topographic plots at 21 equally-spaced time
 # points (or fewer, if the data contains fewer time points). We can adjust this
@@ -325,7 +324,9 @@ report.save("report_coregistration.html", overwrite=True)
 fwd_path = sample_dir / "sample_audvis-meg-oct-6-fwd.fif"
 
 report = mne.Report(title="Forward solution example")
-report.add_forward(forward=fwd_path, title="Forward solution")
+report.add_forward(
+    forward=fwd_path, title="Forward solution", plot=True, subjects_dir=subjects_dir
+)
 report.save("report_forward_sol.html", overwrite=True)
 
 # %%
@@ -339,7 +340,12 @@ report.save("report_forward_sol.html", overwrite=True)
 inverse_op_path = sample_dir / "sample_audvis-meg-oct-6-meg-inv.fif"
 
 report = mne.Report(title="Inverse operator example")
-report.add_inverse_operator(inverse_operator=inverse_op_path, title="Inverse operator")
+report.add_inverse_operator(
+    inverse_operator=inverse_op_path,
+    title="Inverse operator",
+    plot=True,
+    subjects_dir=subjects_dir,
+)
 report.save("report_inverse_op.html", overwrite=True)
 
 # %%

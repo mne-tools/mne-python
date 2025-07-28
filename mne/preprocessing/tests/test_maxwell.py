@@ -1622,10 +1622,21 @@ def test_mf_skips():
     ),
     [
         # Neuromag data tested against MF
-        (sample_fname, [], False, False, False, ["MEG 2443"], False, None, "raw"),
+        pytest.param(
+            sample_fname,
+            [],
+            False,
+            False,
+            False,
+            ["MEG 2443"],
+            False,
+            None,
+            "raw",
+            id="Neuromag no bads",
+        ),
         # add 0111 to test picking, add annot to test it, and prepend chs for
         # idx
-        (
+        pytest.param(
             sample_fname,
             ["MEG 0111"],
             True,
@@ -1635,11 +1646,12 @@ def test_mf_skips():
             False,
             None,
             "raw",
+            id="Neuromag with bads and annot",
         ),
         # CTF data seems to be sensitive to linalg lib (?) because some
         # channels are very close to the limit, so we just check that one shows
         # up
-        (
+        pytest.param(
             ctf_fname_continuous,
             [],
             False,
@@ -1649,9 +1661,10 @@ def test_mf_skips():
             False,
             None,
             "raw",
+            id="CTF no bads",
         ),
         # faked
-        (
+        pytest.param(
             ctf_fname_continuous,
             [],
             False,
@@ -1661,10 +1674,33 @@ def test_mf_skips():
             False,
             None,
             "raw",
+            id="CTF ignore ref",
         ),
         # For `return_scores=True`
-        (sample_fname, ["MEG 0111"], True, True, False, ["MEG 2443"], True, 50, "raw"),
-        (sample_fname, ["MEG 0111"], True, True, False, ["MEG 2443"], True, 50, None),
+        pytest.param(
+            sample_fname,
+            ["MEG 0111"],
+            True,
+            True,
+            False,
+            ["MEG 2443"],
+            True,
+            50,
+            "raw",
+            id="Neuromag return scores",
+        ),
+        pytest.param(
+            sample_fname,
+            ["MEG 0111"],
+            True,
+            True,
+            False,
+            ["MEG 2443"],
+            True,
+            50,
+            None,
+            id="Neuromag return scores no meas date",
+        ),
     ],
 )
 def test_find_bad_channels_maxwell(

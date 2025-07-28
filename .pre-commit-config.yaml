@@ -1,18 +1,18 @@
 repos:
   # Ruff mne
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.11.11
+    rev: v0.12.4
     hooks:
-      - id: ruff
+      - id: ruff-check
         name: ruff lint mne
         args: ["--fix"]
         files: ^mne/|^tools/
         exclude: vulture_allowlist.py
-      - id: ruff
+      - id: ruff-check
         name: ruff lint mne preview
         args: ["--fix", "--preview", "--select=NPY201"]
         files: ^mne/|^tools/
-      - id: ruff
+      - id: ruff-check
         name: ruff lint doc, tutorials, and examples
         # D103: missing docstring in public function
         # D400: docstring first line must end with period
@@ -40,7 +40,7 @@ repos:
 
   # rstcheck
   - repo: https://github.com/rstcheck/rstcheck.git
-    rev: v6.2.4
+    rev: v6.2.5
     hooks:
       - id: rstcheck
         additional_dependencies:
@@ -78,11 +78,11 @@ repos:
         language: python
         entry: ./tools/hooks/sync_dependencies.py
         files: '^(pyproject.toml|tools/hooks/sync_dependencies.py)$'
-        additional_dependencies: ["mne==1.9.0"]
+        additional_dependencies: ["mne==1.10.0"]
 
   # zizmor
   - repo: https://github.com/woodruffw/zizmor-pre-commit
-    rev: v1.8.0
+    rev: v1.11.0
     hooks:
       - id: zizmor
 

@@ -84,12 +84,13 @@ collect_ignore = ["export/_brainvision.py", "export/_eeglab.py", "export/_edf.py
 def pytest_configure(config: pytest.Config):
     """Configure pytest options."""
     # Markers
+    # can be queried with `pytest --markers` for example
     for marker in (
-        "slowtest",
-        "ultraslowtest",
-        "pgtest",
-        "pvtest",
-        "allow_unclosed",
+        "slowtest: mark a test as slow",
+        "ultraslowtest: mark a test as ultraslow or to be run rarely",
+        "pgtest: mark a test as relevant for mne-qt-browser",
+        "pvtest: mark a test as relevant for pyvistaqt",
+        "allow_unclosed: allow unclosed pyvistaqt instances",
     ):
         config.addinivalue_line("markers", marker)
 
@@ -195,11 +196,19 @@ def pytest_configure(config: pytest.Config):
     ignore:process .* is multi-threaded, use of fork/exec.*:DeprecationWarning
     # sklearn
     ignore:Python binding for RankQuantileOptions.*:RuntimeWarning
+    ignore:.*The `disp` and `iprint` options of the L-BFGS-B solver.*:DeprecationWarning
     """  # noqa: E501
     for warning_line in warning_lines.split("\n"):
         warning_line = warning_line.strip()
         if warning_line and not warning_line.startswith("#"):
             config.addinivalue_line("filterwarnings", warning_line)
+
+
+def pytest_collection_modifyitems(items: list[pytest.Item]):
+    """Add slowtest marker automatically to anything marked ultraslow."""
+    for item in items:
+        if len(list(item.iter_markers("ultraslowtest"))):
+            item.add_marker(pytest.mark.slowtest)
 
 
 # Have to be careful with autouse=True, but this is just an int comparison
@@ -1196,7 +1205,8 @@ def pytest_runtest_makereport(item, call):
     outcome = yield
     rep: pytest.TestReport = outcome.get_result()
     item.stash.setdefault(_phase_report_key, {})[rep.when] = rep
-    _modify_report_skips(rep)
+    if rep.outcome == "passed":  # only check for skips etc. if otherwise green
+        _modify_report_skips(rep)
     return rep
 
 

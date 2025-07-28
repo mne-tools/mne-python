@@ -439,7 +439,7 @@ def translation(x=0, y=0, z=0):
     return m
 
 
-def _ensure_trans(trans, fro="mri", to="head"):
+def _ensure_trans(trans, fro="mri", to="head", *, extra=""):
     """Ensure we have the proper transform."""
     if isinstance(fro, str):
         from_str = fro
@@ -455,7 +455,8 @@ def _ensure_trans(trans, fro="mri", to="head"):
         to_str = _frame_to_str[to]
         to_const = to
     del to
-    err_str = f"trans must be a Transform between {from_str}<->{to_str}, got"
+    extra = f" {extra}" if extra else ""
+    err_str = f"trans must be a Transform between {from_str}<->{to_str}{extra}, got"
     if not isinstance(trans, list | tuple):
         trans = [trans]
     # Ensure that we have exactly one match
@@ -481,12 +482,12 @@ def _ensure_trans(trans, fro="mri", to="head"):
     return trans
 
 
-def _get_trans(trans, fro="mri", to="head", allow_none=True):
+def _get_trans(trans, fro="mri", to="head", allow_none=True, *, extra=""):
     """Get mri_head_t (from=mri, to=head) from mri filename."""
     types = (Transform, "path-like")
     if allow_none:
         types += (None,)
-    _validate_type(trans, types, "trans")
+    _validate_type(trans, types, "trans", extra=extra)
     if _path_like(trans):
         if trans == "fsaverage":
             trans = Path(__file__).parent / "data" / "fsaverage" / "fsaverage-trans.fif"
@@ -510,7 +511,7 @@ def _get_trans(trans, fro="mri", to="head", allow_none=True):
         fro_to_t = Transform(fro, to)
         trans = "identity"
     # it's usually a head->MRI transform, so we probably need to invert it
-    fro_to_t = _ensure_trans(fro_to_t, fro, to)
+    fro_to_t = _ensure_trans(fro_to_t, fro, to, extra=extra)
     return fro_to_t, trans
 
 
