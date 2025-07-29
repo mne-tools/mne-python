@@ -984,7 +984,7 @@ def _check_mne_version(timeout):
     rel_ver = parse(rel_ver)
     this_ver = parse(import_module("mne").__version__)
     if this_ver > rel_ver:
-        return True, f"devel, latest release is {rel_ver}"
+        return True, f"development, latest release is {rel_ver}"
     if this_ver == rel_ver:
         return True, "latest release"
     else:

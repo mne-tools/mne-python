@@ -55,6 +55,7 @@ from .preprocessing.maxwell import (
     _sss_basis,
 )
 from .transforms import (
+    Transform,
     _angle_between_quats,
     _fit_matched_points,
     _quat_to_affine,
@@ -1274,6 +1275,7 @@ def compute_chpi_locs(
     t_step_max=1.0,
     too_close="raise",
     adjust_dig=False,
+    *,
     verbose=None,
 ):
     """Compute locations of each cHPI coils over time.
@@ -1323,6 +1325,7 @@ def compute_chpi_locs(
     _check_option("too_close", too_close, ["raise", "warning", "info"])
     _check_chpi_param(chpi_amplitudes, "chpi_amplitudes")
     _validate_type(info, Info, "info")
+    _validate_type(info["dev_head_t"], Transform, "info['dev_head_t']")
     sin_fits = chpi_amplitudes  # use the old name below
     del chpi_amplitudes
     proj = sin_fits["proj"]

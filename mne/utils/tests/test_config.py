@@ -231,12 +231,12 @@ def test_sys_info_check_other(monkeypatch):
     out = out.getvalue()
     assert " 1.5.1 (latest release)" in out
 
-    # Devel
+    # Development version
     monkeypatch.setattr(mne, "__version__", "1.6.dev0")
     out = ClosingStringIO()
     sys_info(fid=out)
     out = out.getvalue()
-    assert "devel, " in out
+    assert "development, " in out
     assert "updating.html" not in out
 
 
