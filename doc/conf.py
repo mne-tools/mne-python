@@ -64,7 +64,7 @@ td = datetime.now(tz=timezone.utc)
 # (Sphinx looks at variable changes and rewrites all files if some change)
 copyright = (  # noqa: A001
     f'2012–{td.year}, MNE Developers. Last updated <time datetime="{td.isoformat()}" class="localized">{td.strftime("%Y-%m-%d %H:%M %Z")}</time>\n'  # noqa: E501
-    '<script type="text/javascript">$(function () { $("time.localized").each(function () { var el = $(this); el.text(new Date(el.attr("datetime")).toLocaleString([], {dateStyle: "medium", timeStyle: "long"})); }); } )</script>'  # noqa: E501
+    '<script type="text/javascript">function formatTimestamp() {document.querySelectorAll("time.localized").forEach(el => el.textContent = new Date(el.getAttribute("datetime")).toLocaleString([], {dateStyle: "medium", timeStyle: "long"}));};if (document.readyState != "loading") formatTimestamp();else document.addEventListener("DOMContentLoaded", formatTimestamp);</script>'  # noqa: E501
 )
 if os.getenv("MNE_FULL_DATE", "false").lower() != "true":
     copyright = f"2012–{td.year}, MNE Developers. Last updated locally."  # noqa: A001
@@ -126,7 +126,7 @@ templates_path = ["_templates"]
 # This pattern also affects html_static_path and html_extra_path.
 
 # NB: changes here should also be made to the linkcheck target in the Makefile
-exclude_patterns = ["_includes", "changes/devel"]
+exclude_patterns = ["_includes", "changes/dev"]
 
 # The suffix of source filenames.
 source_suffix = ".rst"
@@ -776,11 +776,11 @@ html_theme = "pydata_sphinx_theme"
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
-switcher_version_match = "dev" if ".dev" in version else version
+switcher_version_match = "dev" if ".dev" in release else version
 html_theme_options = {
     "icon_links": [
         dict(
-            name="Discord",
+            name="Discord (office hours)",
             url="https://discord.gg/rKfvxTuATa",
             icon="fa-brands fa-discord fa-fw",
         ),
@@ -791,14 +791,24 @@ html_theme_options = {
             attributes=dict(rel="me"),
         ),
         dict(
-            name="Forum",
+            name="Q&A Forum",
             url="https://mne.discourse.group/",
             icon="fa-brands fa-discourse fa-fw",
         ),
         dict(
-            name="GitHub",
+            name="Code Repository",
             url="https://github.com/mne-tools/mne-python",
-            icon="fa-brands fa-square-github fa-fw",
+            icon="fa-brands fa-github fa-fw",
+        ),
+        dict(
+            name="Sponsor us on GitHub",
+            url="https://github.com/sponsors/mne-tools",
+            icon="fa-regular fa-heart fa-fw",
+        ),
+        dict(
+            name="Donate via OpenCollective",
+            url="https://opencollective.com/mne-python",
+            icon="fa-custom fa-opencollective fa-fw",
         ),
     ],
     "icon_links_label": "External Links",  # for screen reader
@@ -839,6 +849,9 @@ html_favicon = "_static/favicon.ico"
 html_static_path = ["_static"]
 html_css_files = [
     "style.css",
+]
+html_js_files = [
+    ("js/custom-icons.js", {"defer": "defer"}),
 ]
 
 # Add any extra paths that contain custom files (such as robots.txt or
