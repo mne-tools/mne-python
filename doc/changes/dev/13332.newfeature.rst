@@ -1,0 +1,4 @@
+Implement :class:`mne.viz.SpatialFilter` viz class for filters, 
+patterns for :class:`LinearModel`and additionally 
+eigenvalues for GED-based transformers such as 
+:class:`mne.decoding.XdawnTransformer`, by `Gennadiy Belonosov`_.
