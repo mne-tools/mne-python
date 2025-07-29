@@ -86,7 +86,7 @@ def _plot_model(
                 colorbar=colorbar,
                 cbar_fmt=cbar_fmt,
                 units=units,
-                axes=axes[class_idx],
+                axes=axes[class_idx] if axes else None,
                 time_format=name_format,
                 nrows=nrows,
                 ncols=ncols,
@@ -170,34 +170,26 @@ def _plot_scree(
     plt_style="seaborn-v0_8-whitegrid",
     axes=None,
 ):
-    with plt.style.context(plt_style):
-        if evals.ndim == 2:
-            n_classes = evals.shape[0]
-            if axes is None:
-                fig, axes = plt.subplots(
-                    nrows=n_classes,
-                    ncols=1,
-                    figsize=(12, 7 * n_classes),
-                    layout="constrained",
-                )
-            else:
-                if len(axes) != n_classes:
-                    raise ValueError(
-                        "Number of provided axes should be "
-                        "equal to the number of classes"
-                    )
-                fig = None
-            for class_idx in range(n_classes):
-                _plot_scree_per_class(
-                    evals[class_idx], add_cumul_evals, axes[class_idx]
-                )
-        else:
-            if axes is None:
-                fig, axes = plt.subplots(figsize=(12, 7), layout="constrained")
-            else:
-                fig = None
-            _plot_scree_per_class(evals, add_cumul_evals, axes)
+    evals_data = evals if evals.ndim == 2 else [evals]
+    n_classes = len(evals_data)
+    axes = [axes] if isinstance(axes, plt.Axes) else axes
+    if axes is not None and n_classes != len(axes):
+        raise ValueError(f"Received {len(axes)} axes, but expected {n_classes}")
 
+    with plt.style.context(plt_style):
+        fig = None
+        if axes is None:
+            fig, axes = plt.subplots(
+                nrows=n_classes,
+                ncols=1,
+                figsize=(12, 7 * n_classes),
+                layout="constrained",
+            )
+            axes = [axes] if n_classes == 1 else axes
+        for class_idx in range(n_classes):
+            _plot_scree_per_class(
+                evals_data[class_idx], add_cumul_evals, axes[class_idx]
+            )
         if fig:
             fig.suptitle(title, fontsize=22, fontweight="bold")
     return fig

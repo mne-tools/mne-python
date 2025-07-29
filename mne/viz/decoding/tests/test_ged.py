@@ -169,7 +169,7 @@ def test_spatial_filter_plotting():
     assert gs.nrows == n_classes
     plt.close("all")
 
-    with pytest.raises(ValueError, match="should be equal"):
+    with pytest.raises(ValueError, match="but expected"):
         _, axes = plt.subplots(figsize=(12, 7), layout="constrained")
         _ = sp_filter.plot_scree(axes=axes, show=False)
 
