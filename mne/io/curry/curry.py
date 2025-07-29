@@ -560,18 +560,13 @@ def _set_chanloc_curry(inst, ch_types, ch_pos, landmarks, landmarkslabels):
 
 
 @verbose
-def read_raw_curry(
-    fname, import_epochs_as_annotations=False, preload=False, verbose=None
-) -> "RawCurry":
+def read_raw_curry(fname, preload=False, verbose=None) -> "RawCurry":
     """Read raw data from Curry files.
 
     Parameters
     ----------
     fname : path-like
         Path to a valid curry file.
-    import_epochs_as_annotations : bool
-        Set to ``True`` if you want to import epoched recordings as continuous ``raw``
-        object with event annotations. Only do this if you know your data allows it.
     %(preload)s
     %(verbose)s
 
@@ -591,19 +586,9 @@ def read_raw_curry(
     inst = RawCurry(fname, preload, verbose)
     if rectype in ["epochs", "evoked"]:
         curry_epoch_info = _get_curry_epoch_info(fname)
-        if import_epochs_as_annotations:
-            # TODO - REVIEW NEEDED
-            # give those annotations a specific name/type?
-            epoch_annotations = annotations_from_events(
-                events=curry_epoch_info["events"],
-                event_desc={v: k for k, v in curry_epoch_info["event_id"].items()},
-                sfreq=inst.info["sfreq"],
-            )
-            inst.set_annotations(inst.annotations + epoch_annotations)
-        else:
-            inst = Epochs(inst, **curry_epoch_info)
-            if rectype == "evoked":
-                raise NotImplementedError  # not sure this is even supported format
+        inst = Epochs(inst, **curry_epoch_info)
+        if rectype == "evoked":
+            raise NotImplementedError  # not sure this is even supported format
     return inst
 
 

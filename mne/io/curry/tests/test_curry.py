@@ -15,7 +15,6 @@ from mne.epochs import Epochs
 from mne.event import find_events
 from mne.io.curry import read_dig_curry, read_impedances_curry, read_raw_curry
 from mne.io.curry.curry import (
-    RawCurry,
     _check_curry_filename,
     _check_curry_header_filename,
 )
@@ -87,14 +86,6 @@ def test_read_raw_curry_epoched():
     assert isinstance(ep, Epochs)
     assert len(ep.events) == 26
     assert len(ep.annotations) == 0
-    raw = read_raw_curry(epoched_file, import_epochs_as_annotations=True)
-    assert isinstance(raw, RawCurry)
-    assert len(raw.annotations) == 26
-
-    # check signal identity
-    aa = raw.get_data()
-    bb = ep.get_data()
-    assert np.equal(aa, bb.transpose(1, 0, 2).reshape(aa.shape)).all()
 
 
 @testing.requires_testing_data
