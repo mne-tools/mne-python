@@ -9,6 +9,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 from numpy.testing import assert_array_equal
+
+pytest.importorskip("sklearn")
+
 from sklearn.linear_model import LinearRegression
 
 from mne import Epochs, create_info, io, pick_types, read_events

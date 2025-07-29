@@ -219,7 +219,7 @@ def get_spatial_filter_from_estimator(
 
     Parameters
     ----------
-    estimator : instance of sklearn.BaseEstimator
+    estimator : instance of sklearn.base.BaseEstimator
         Sklearn-based estimator or meta-estimator from which to initialize
         spatial filter. Use ``step_name`` to select relevant transformer
         from the pipeline object (works with nested names using ``__`` syntax).
