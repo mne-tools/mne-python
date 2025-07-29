@@ -217,7 +217,7 @@ def get_spatial_filter_from_estimator(
     """Instantiate a :class:`mne.viz.SpatialFilter` object.
 
     Creates object from the fitted generalized eigendecomposition
-    transformers or :class":`mne.decoding.LinearModel`.
+    transformers or :class:`mne.decoding.LinearModel`.
     This object can be used to visualize spatial filters,
     patterns, and eigenvalues.
 
