@@ -514,8 +514,6 @@ def _get_inverse_funcs_before_step(estimator, step_name):
     for i, part_name in enumerate(parts):
         is_last_part = i == len(parts) - 1
         all_names = [name for name, _ in current_pipeline.steps]
-        if part_name not in all_names:
-            raise ValueError(f"Step '{part_name}' not found.")
         part_idx = all_names.index(part_name)
 
         # get all preceding steps for the current step
@@ -582,7 +580,10 @@ def get_coef(
     if step_name is not None:
         if not hasattr(estimator, "named_steps"):
             raise ValueError("'step_name' can only be used with a pipeline estimator.")
-        est = est.get_params(deep=True)[step_name]
+        try:
+            est = est.get_params(deep=True)[step_name]
+        except KeyError:
+            raise ValueError(f"Step '{step_name}' is not part of the pipeline.")
     else:
         while hasattr(est, "steps"):
             est = est.steps[-1][1]
