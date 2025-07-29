@@ -293,12 +293,12 @@ class SpatialFilter:
     r"""Visualization container for spatial filter weights (evecs) and patterns.
 
     This object is obtained either by generalized eigendecomposition (GED) algorithms
-    such as `mne.decoding.CSP`, `mne.decoding.SPoC`, `mne.decoding.SSD`,
-    `mne.decoding.XdawnTransformer` or by `mne.decoding.LinearModel`,
-    wrapping linear models like SVM or Logit.
+    such as :class:`mne.decoding.CSP`, :class:`mne.decoding.SPoC`,
+    :class:`mne.decoding.SSD`, :class:`mne.decoding.XdawnTransformer` or by
+    :class:`mne.decoding.LinearModel`, wrapping linear models like SVM or Logit.
     The object stores the filters that projects sensor data to a reduced component
     space, and the corresponding patterns (obtained by pseudoinverse in GED case or
-    Haufe's trick in case of `mne.decoding.LinearModel`). It can also be directly
+    Haufe's trick in case of :class:`mne.decoding.LinearModel`). It can also be directly
     initialized using filters from other transformers (e.g. PyRiemann),
     but make sure that the dimensions match.
 
@@ -315,7 +315,7 @@ class SpatialFilter:
         from the filters using pseudoinverse. Defaults to ``None``.
     patterns_method : str
         The method used to compute the patterns. Can be ``'pinv'`` or ``'haufe'``.
-        If `patterns` is None, it will be set to ``'pinv'``. Defaults to ``'pinv'``.
+        If ``patterns`` is None, it will be set to ``'pinv'``. Defaults to ``'pinv'``.
 
     Attributes
     ----------
@@ -602,6 +602,7 @@ class SpatialFilter:
         )
         return fig
 
+    @fill_doc
     def plot_scree(
         self,
         title="Scree plot",
@@ -625,6 +626,7 @@ class SpatialFilter:
             Defaults to ``'seaborn-v0_8-whitegrid'``.
         axes : instance of Axes | None
             The matplotlib axes to plot to. Defaults to ``None``.
+        %(show)s
 
         Returns
         -------
