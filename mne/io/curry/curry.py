@@ -137,7 +137,9 @@ def _get_curry_meas_info(fname):
     )
 
     device_info = (
-        dict(type=amp_info) if amp_info != "" else None  # model="", serial="", site=""
+        dict(serial=amp_info)
+        if amp_info != ""
+        else None  # model="", serial="", site=""
     )
 
     return meas_date, is_ascii, device_info
