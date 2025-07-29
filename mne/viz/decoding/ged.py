@@ -9,6 +9,7 @@ import numpy as np
 
 from ...defaults import _BORDER_DEFAULT, _EXTRAPOLATE_DEFAULT, _INTERPOLATION_DEFAULT
 from ...utils import _check_option, fill_doc
+from ..utils import plt_show
 
 
 def _plot_model(
@@ -607,6 +608,7 @@ class SpatialFilter:
         add_cumul_evals=True,
         plt_style="seaborn-v0_8-whitegrid",
         axes=None,
+        show=True,
     ):
         """Plot scree for GED eigenvalues.
 
@@ -631,6 +633,7 @@ class SpatialFilter:
         """
         if self.evals is None:
             raise AttributeError("Can't plot scree if eigenvalues are not provided.")
+
         fig = _plot_scree(
             self.evals,
             title=title,
@@ -638,4 +641,5 @@ class SpatialFilter:
             plt_style=plt_style,
             axes=axes,
         )
+        plt_show(show, block=False)
         return fig

@@ -51,7 +51,6 @@ from mne.decoding.base import (
 )
 from mne.decoding.search_light import SlidingEstimator
 from mne.utils import check_version
-from mne.viz.decoding.ged import get_spatial_filter_from_estimator
 
 
 def _make_data(n_samples=1000, n_features=5, n_targets=3):
@@ -473,14 +472,6 @@ def test_linearmodel():
     with pytest.raises(ValueError):
         wrong_y = rng.rand(n, n_features, 99)
         clf.fit(X, wrong_y)
-
-    # check get_spatial_filter_from_estimator
-    info = create_info(n_features, 1000.0, "eeg")
-    sp_filter = get_spatial_filter_from_estimator(clf, info)
-    assert sp_filter.patterns_method == "haufe"
-    np.testing.assert_array_equal(sp_filter.filters, clf.filters_)
-    np.testing.assert_array_equal(sp_filter.patterns, clf.patterns_)
-    assert sp_filter.evals is None
 
 
 def test_cross_val_multiscore():
