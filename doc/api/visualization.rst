@@ -18,6 +18,7 @@ Visualization
    EvokedField
    Figure3D
    SpatialFilter
+   get_spatial_filter_from_estimator
    add_background_image
    centers_to_edges
    compare_fiff
