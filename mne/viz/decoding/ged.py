@@ -181,7 +181,11 @@ def _plot_scree(
                     layout="constrained",
                 )
             else:
-                assert len(axes) == n_classes
+                if len(axes) != n_classes:
+                    raise ValueError(
+                        "Number of provided axes should be "
+                        "equal to the number of classes"
+                    )
                 fig = None
             for class_idx in range(n_classes):
                 _plot_scree_per_class(

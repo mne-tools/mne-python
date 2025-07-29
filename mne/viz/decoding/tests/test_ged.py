@@ -2,7 +2,6 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-from collections.abc import Iterable
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -13,9 +12,11 @@ from numpy.testing import assert_array_equal
 pytest.importorskip("sklearn")
 
 from sklearn.linear_model import LinearRegression
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
 
 from mne import Epochs, create_info, io, pick_types, read_events
-from mne.decoding import CSP, LinearModel
+from mne.decoding import CSP, LinearModel, Vectorizer, XdawnTransformer
 from mne.viz import SpatialFilter, get_spatial_filter_from_estimator
 
 data_dir = Path(__file__).parents[3] / "io" / "tests" / "data"
@@ -71,13 +72,18 @@ def test_spatial_filter_init():
     assert_array_equal(sp_filter.patterns, clf.patterns_)
     assert sp_filter.evals is None
 
+    with pytest.raises(ValueError, match="can only include"):
+        _ = get_spatial_filter_from_estimator(
+            clf, info, get_coefs=("foo", "foo", "foo")
+        )
+
     event_id = dict(aud_l=1, vis_l=3)
     X, y, info = _get_X_y(event_id, return_info=True)
-    csp = CSP(n_components=4)
-    csp.fit(X, y)
-
+    estimator = make_pipeline(Vectorizer(), StandardScaler(), CSP(n_components=4))
+    estimator.fit(X, y)
+    csp = estimator[-1]
     # test get_spatial_filter_from_estimator for GED
-    sp_filter = get_spatial_filter_from_estimator(csp, info)
+    sp_filter = get_spatial_filter_from_estimator(estimator, info, step_name="csp")
     assert sp_filter.patterns_method == "pinv"
     np.testing.assert_array_equal(sp_filter.filters, csp.filters_)
     np.testing.assert_array_equal(sp_filter.patterns, csp.patterns_)
@@ -124,20 +130,50 @@ def test_spatial_filter_plotting():
 
     # test plot_filters
     fig_filters = sp_filter.plot_filters(components=[0, 1], show=False)
-    assert isinstance(fig_filters, plt.Figure | Iterable)
+    assert isinstance(fig_filters, plt.Figure)
     plt.close("all")
 
     # test plot_patterns
     fig_patterns = sp_filter.plot_patterns(show=False)
-    assert isinstance(fig_patterns, plt.Figure | Iterable)
+    assert isinstance(fig_patterns, plt.Figure)
     plt.close("all")
 
     # test plot_scree
     fig_scree = sp_filter.plot_scree(show=False)
     assert isinstance(fig_scree, plt.Figure)
     plt.close("all")
+    _, axes = plt.subplots(figsize=(12, 7), layout="constrained")
+    fig_scree = sp_filter.plot_scree(axes=axes, show=False)
+    assert fig_scree is None
+    plt.close("all")
 
     # test plot_scree raises error if evals is None
     sp_filter_no_evals = SpatialFilter(info, filters=csp.filters_, evals=None)
     with pytest.raises(AttributeError, match="eigenvalues are not provided"):
         sp_filter_no_evals.plot_scree()
+
+    # 3D case ('multi' GED decomposition)
+    n_classes = 2
+    event_id = dict(aud_l=1, vis_l=3)
+    X, y, info = _get_X_y(event_id, return_info=True)
+    xdawn = XdawnTransformer(n_components=4)
+    xdawn.fit(X, y)
+    sp_filter = get_spatial_filter_from_estimator(xdawn, info)
+
+    fig_patterns = sp_filter.plot_patterns(show=False)
+    assert len(fig_patterns) == n_classes
+    plt.close("all")
+
+    fig_scree = sp_filter.plot_scree(show=False)
+    gs = fig_scree.axes[0].get_gridspec()
+    assert gs.nrows == n_classes
+    plt.close("all")
+
+    with pytest.raises(ValueError, match="should be equal"):
+        _, axes = plt.subplots(figsize=(12, 7), layout="constrained")
+        _ = sp_filter.plot_scree(axes=axes, show=False)
+
+    _, axes = plt.subplots(n_classes, figsize=(12, 7), layout="constrained")
+    fig_scree = sp_filter.plot_scree(axes=axes, show=False)
+    assert fig_scree is None
+    plt.close("all")
