@@ -20,7 +20,6 @@ from mne.io.curry.curry import (
 )
 from mne.io.edf import read_raw_bdf
 from mne.io.tests.test_raw import _test_raw_reader
-from mne.transforms import Transform
 
 pytest.importorskip("curryreader")
 
@@ -76,7 +75,7 @@ def test_read_raw_curry(fname, tol, preload, bdf_curry_ref):
         bdf_curry_ref.get_data(picks=picks, start=start, stop=stop),
         rtol=tol,
     )
-    assert raw.info["dev_head_t"] == Transform("meg", "head")
+    assert not raw.info["dev_head_t"]
 
 
 @testing.requires_testing_data
@@ -133,7 +132,7 @@ def test_read_events_curry_are_same_as_bdf(fname):
     raw = read_raw_curry(fname)
     events, _ = events_from_annotations(raw, event_id=EVENT_ID)
     assert_allclose(events, REF_EVENTS)
-    assert raw.info["dev_head_t"] == Transform("meg", "head")
+    assert not raw.info["dev_head_t"]
 
 
 @testing.requires_testing_data
