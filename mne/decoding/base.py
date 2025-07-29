@@ -562,11 +562,9 @@ def _get_inverse_funcs_before_step(estimator, step_name):
     parts = step_name.split("__")
     inverse_funcs = list()
     current_pipeline = estimator
-    for i, part_name in enumerate(parts):
-        is_last_part = i == len(parts) - 1
+    for part_name in parts:
         all_names = [name for name, _ in current_pipeline.steps]
         part_idx = all_names.index(part_name)
-
         # get all preceding steps for the current step
         for prec_name, prec_step in current_pipeline.steps[:part_idx]:
             if hasattr(prec_step, "inverse_transform"):
@@ -576,14 +574,7 @@ def _get_inverse_funcs_before_step(estimator, step_name):
                     f"Preceding step '{prec_name}' is not invertible "
                     f"and will be skipped."
                 )
-
-        next_estimator = current_pipeline.named_steps[part_name]
-        # check if pipeline
-        if hasattr(next_estimator, "steps"):
-            current_pipeline = next_estimator
-        # if not pipeline and not last part - wrong
-        elif not is_last_part:
-            raise ValueError(f"Step '{part_name}' is not a pipeline.")
+        current_pipeline = current_pipeline.named_steps[part_name]
     return inverse_funcs
 
 
@@ -630,7 +621,7 @@ def get_coef(
 
     if step_name is not None:
         if not hasattr(estimator, "named_steps"):
-            raise ValueError("'step_name' can only be used with a pipeline estimator.")
+            raise ValueError("step_name can only be used with a pipeline estimator.")
         try:
             est = est.get_params(deep=True)[step_name]
         except KeyError:

@@ -262,23 +262,13 @@ def test_get_coef_inverse_transform(inverse):
         )
         assert_array_equal(filters_t, filters[:, t])
 
-    with pytest.raises(ValueError, match=r"pipeline estimator"):
-        _ = get_coef(
-            clf,
-            "filters_",
-            inverse,
-            step_name="slidingestimator__pipeline__linearmodel",
-        )
-
 
 def test_get_coef_inverse_step_name():
     """Test get_coef with inverse_transform=True and a specific step_name."""
     X, y, _ = _make_data(n_samples=100, n_features=5, n_targets=1)
 
     # Test with a simple pipeline
-    pipe = make_pipeline(
-        StandardScaler(), PCA(n_components=3), LinearModel(Ridge(alpha=1))
-    )
+    pipe = make_pipeline(StandardScaler(), PCA(n_components=3), LinearModel(Ridge()))
     pipe.fit(X, y)
 
     coef_inv_actual = get_coef(
@@ -295,16 +285,29 @@ def test_get_coef_inverse_step_name():
     # Reshape your data using array.reshape(1, -1) if it contains a single sample.
     assert_array_almost_equal(coef_inv_actual.reshape(1, -1), coef_inv_desired)
 
+    with pytest.raises(ValueError, match="inverse_transform"):
+        _ = get_coef(
+            pipe[-1],  # LinearModel
+            "filters_",
+            inverse_transform=True,
+        )
+    with pytest.raises(ValueError, match="step_name"):
+        _ = get_coef(
+            SlidingEstimator(pipe),
+            "filters_",
+            inverse_transform=True,
+            step_name="slidingestimator__pipeline__linearmodel",
+        )
+
     # Test with a nested pipeline to check __ parsing
     inner_pipe = make_pipeline(PCA(n_components=3), LinearModel(Ridge()))
     nested_pipe = make_pipeline(StandardScaler(), inner_pipe)
     nested_pipe.fit(X, y)
-    target_step_name = "pipeline__linearmodel"
     coef_nested_inv_actual = get_coef(
         nested_pipe,
         attr="patterns_",
         inverse_transform=True,
-        step_name=target_step_name,
+        step_name="pipeline__linearmodel",
     )
     linearmodel = nested_pipe.named_steps["pipeline"].named_steps["linearmodel"]
     pca = nested_pipe.named_steps["pipeline"].named_steps["pca"]
@@ -319,10 +322,27 @@ def test_get_coef_inverse_step_name():
         coef_nested_inv_actual.reshape(1, -1), coef_nested_inv_desired
     )
 
-    # Test error case
     with pytest.raises(ValueError, match="i_do_not_exist"):
         get_coef(
             pipe, attr="patterns_", inverse_transform=True, step_name="i_do_not_exist"
+        )
+
+    class NonInvertibleTransformer(BaseEstimator, TransformerMixin):
+        def fit(self, X, y=None):
+            return self
+
+        def transform(self, X):
+            # In a real scenario, this would modify X
+            return X
+
+    pipe = make_pipeline(NonInvertibleTransformer(), LinearModel(Ridge()))
+    pipe.fit(X, y)
+    with pytest.warns(RuntimeWarning, match="not invertible"):
+        _ = get_coef(
+            pipe,
+            "filters_",
+            inverse_transform=True,
+            step_name="linearmodel",
         )
 
 
