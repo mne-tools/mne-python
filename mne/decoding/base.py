@@ -17,12 +17,13 @@ from sklearn.base import (  # noqa: F401
     TransformerMixin,
     clone,
     is_classifier,
+    is_regressor,
 )
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import check_scoring
 from sklearn.model_selection import KFold, StratifiedKFold, check_cv
-from sklearn.utils import check_array, check_X_y, indexable
-from sklearn.utils.validation import check_is_fitted
+from sklearn.utils import get_tags, indexable
+from sklearn.utils.validation import check_is_fitted, validate_data
 
 from ..parallel import parallel_func
 from ..utils import _check_option, _pl, _validate_type, logger, pinv, verbose, warn
@@ -340,7 +341,8 @@ class LinearModel(MetaEstimatorMixin, BaseEstimator):
     model : object | None
         A linear model from scikit-learn with a fit method
         that updates a ``coef_`` attribute.
-        If None the model will be LogisticRegression.
+        If None the model will be
+        :class:`sklearn.linear_model.LogisticRegression`.
 
     Attributes
     ----------
@@ -364,45 +366,47 @@ class LinearModel(MetaEstimatorMixin, BaseEstimator):
     .. footbibliography::
     """
 
-    # TODO: Properly refactor this using
-    # https://github.com/scikit-learn/scikit-learn/issues/30237#issuecomment-2465572885
-    _model_attr_wrap = (
-        "transform",
-        "predict",
-        "predict_proba",
-        "_estimator_type",
-        "__tags__",
-        "decision_function",
-        "score",
-        "classes_",
-    )
-
     def __init__(self, model=None):
-        # TODO: We need to set this to get our tag checking to work properly
         if model is None:
             model = LogisticRegression(solver="liblinear")
         self.model = model
 
     def __sklearn_tags__(self):
         """Get sklearn tags."""
-        from sklearn.utils import get_tags  # added in 1.6
-
-        # fit method below does not allow sparse data via check_data, we could
-        # eventually make it smarter if we had to
-        tags = get_tags(self.model)
-        tags.input_tags.sparse = False
+        tags = super().__sklearn_tags__()
+        model_tags = get_tags(self.model)
+        tags.estimator_type = model_tags.estimator_type
+        model_type_tags = getattr(model_tags, f"{tags.estimator_type}_tags")
+        setattr(tags, f"{tags.estimator_type}_tags", model_type_tags)
         return tags
-
-    def __getattr__(self, attr):
-        """Wrap to model for some attributes."""
-        if attr in LinearModel._model_attr_wrap:
-            return getattr(self.model, attr)
-        elif attr == "fit_transform" and hasattr(self.model, "fit_transform"):
-            return super().__getattr__(self, "_fit_transform")
-        return super().__getattr__(self, attr)
 
     def _fit_transform(self, X, y):
         return self.fit(X, y).transform(X)
+
+    def _validate_params(self):
+        model_type = self.__sklearn_tags__().estimator_type
+        if model_type not in ("classifier", "regressor"):
+            raise ValueError(
+                "Linear model should be a supervised predictor "
+                "(classifier or regressor)"
+            )
+        if hasattr(self.model, "score"):
+            self.score = self.model.score
+        if hasattr(self.model, "transform"):
+            self.transform = self.model.transform
+            if hasattr(self.model, "fit_transform"):
+                self.fit_transform = self._fit_transform
+
+        if model_type == "classifier":
+            classifer_methods = {
+                "predict_proba",
+                "predict_log_proba",
+                "decision_function",
+            }
+            for method_name in classifer_methods:
+                if hasattr(self.model, method_name):
+                    method = getattr(self.model, method_name)
+                    setattr(self, method_name, method)
 
     def fit(self, X, y, **fit_params):
         """Estimate the coefficients of the linear model.
@@ -424,23 +428,12 @@ class LinearModel(MetaEstimatorMixin, BaseEstimator):
         self : instance of LinearModel
             Returns the modified instance.
         """
-        if y is not None:
-            X = check_array(X)
-        else:
-            X, y = check_X_y(X, y)
-        self.n_features_in_ = X.shape[1]
-        if y is not None:
-            y = check_array(y, dtype=None, ensure_2d=False, input_name="y")
-            if y.ndim > 2:
-                raise ValueError(
-                    f"LinearModel only accepts up to 2-dimensional y, got {y.shape} "
-                    "instead."
-                )
+        self._validate_params()
+        X, y = validate_data(self, X, y, multi_output=True)
 
         # fit the Model
         self.model.fit(X, y, **fit_params)
         self.model_ = self.model  # for better sklearn compat
-
         # Computes patterns using Haufe's trick: A = Cov_X . W . Precision_Y
 
         inv_Y = 1.0
@@ -452,19 +445,33 @@ class LinearModel(MetaEstimatorMixin, BaseEstimator):
 
         return self
 
+    def predict(self, X):
+        """..."""
+        return self.model.predict(X)
+
     @property
     def filters_(self):
-        if hasattr(self.model, "coef_"):
+        check_is_fitted(self)
+        if hasattr(self.model_, "coef_"):
             # Standard Linear Model
-            filters = self.model.coef_
-        elif hasattr(self.model.best_estimator_, "coef_"):
+            filters = self.model_.coef_
+        elif hasattr(self.model_.best_estimator_, "coef_"):
             # Linear Model with GridSearchCV
-            filters = self.model.best_estimator_.coef_
+            filters = self.model_.best_estimator_.coef_
         else:
             raise ValueError("model does not have a `coef_` attribute.")
         if filters.ndim == 2 and filters.shape[0] == 1:
             filters = filters[0]
         return filters
+
+    @property
+    def classes_(self):
+        check_is_fitted(self.model_)
+        if is_regressor(self.model_):
+            raise AttributeError("Regressors don't have the 'classes_' attribute")
+        elif hasattr(self.model_, "classes_"):
+            return self.model_.classes_
+        return None
 
 
 def _set_cv(cv, estimator=None, X=None, y=None):
