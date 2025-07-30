@@ -26,7 +26,15 @@ from sklearn.utils import get_tags, indexable
 from sklearn.utils.validation import check_is_fitted, validate_data
 
 from ..parallel import parallel_func
-from ..utils import _check_option, _pl, _validate_type, logger, pinv, verbose, warn
+from ..utils import (
+    _check_option,
+    _pl,
+    _validate_type,
+    logger,
+    pinv,
+    verbose,
+    warn,
+)
 from ._ged import (
     _handle_restr_mat,
     _is_cov_pos_semidef,
@@ -366,19 +374,48 @@ class LinearModel(MetaEstimatorMixin, BaseEstimator):
     .. footbibliography::
     """
 
+    _model_attr_wrap = (
+        "transform",
+        "predict_proba",
+        "predict_log_proba",
+        "decision_function",
+        "score",
+        "model",
+    )
+
     def __init__(self, model=None):
-        if model is None:
-            model = LogisticRegression(solver="liblinear")
         self.model = model
+
+        # XXX Remove the clause after warning cycle
+        if model is None:
+            self.model = LogisticRegression(solver="liblinear")
+            depr_message = (
+                "Starting with mne-python v1.12 'model' default "
+                "will change from LogisticRegression to None. "
+                "From now on please set model=LogisticRegression"
+                "(solver='liblinear') explicitly."
+            )
+            warn(depr_message, FutureWarning)
 
     def __sklearn_tags__(self):
         """Get sklearn tags."""
         tags = super().__sklearn_tags__()
-        model_tags = get_tags(self.model)
+        # XXX Change self._orig_model to self.model after 'model' warning cycle
+        model_tags = get_tags(self._orig_model)
         tags.estimator_type = model_tags.estimator_type
-        model_type_tags = getattr(model_tags, f"{tags.estimator_type}_tags")
-        setattr(tags, f"{tags.estimator_type}_tags", model_type_tags)
+        if tags.estimator_type is not None:
+            model_type_tags = getattr(model_tags, f"{tags.estimator_type}_tags")
+            setattr(tags, f"{tags.estimator_type}_tags", model_type_tags)
         return tags
+
+    def __getattr__(self, attr):
+        """Wrap to model for some attributes."""
+        model = self.model_ if "model_" in self.__dict__ else self.model
+        if attr in LinearModel._model_attr_wrap:
+            return getattr(model, attr)
+        elif attr == "fit_transform" and hasattr(model, "fit_transform"):
+            return super().__getattr__(self, "_fit_transform")
+        return super().__getattr__(self, attr)
 
     def _fit_transform(self, X, y):
         return self.fit(X, y).transform(X)
@@ -390,23 +427,6 @@ class LinearModel(MetaEstimatorMixin, BaseEstimator):
                 "Linear model should be a supervised predictor "
                 "(classifier or regressor)"
             )
-        if hasattr(self.model, "score"):
-            self.score = self.model.score
-        if hasattr(self.model, "transform"):
-            self.transform = self.model.transform
-            if hasattr(self.model, "fit_transform"):
-                self.fit_transform = self._fit_transform
-
-        if model_type == "classifier":
-            classifer_methods = {
-                "predict_proba",
-                "predict_log_proba",
-                "decision_function",
-            }
-            for method_name in classifer_methods:
-                if hasattr(self.model, method_name):
-                    method = getattr(self.model, method_name)
-                    setattr(self, method_name, method)
 
     def fit(self, X, y, **fit_params):
         """Estimate the coefficients of the linear model.
@@ -432,10 +452,11 @@ class LinearModel(MetaEstimatorMixin, BaseEstimator):
         X, y = validate_data(self, X, y, multi_output=True)
 
         # fit the Model
-        self.model.fit(X, y, **fit_params)
-        self.model_ = self.model  # for better sklearn compat
-        # Computes patterns using Haufe's trick: A = Cov_X . W . Precision_Y
+        # XXX Change self._orig_model to self.model after 'model' warning cycle
+        self.model_ = clone(self._orig_model)
+        self.model_.fit(X, y, **fit_params)
 
+        # Computes patterns using Haufe's trick: A = Cov_X . W . Precision_Y
         inv_Y = 1.0
         X = X - X.mean(0, keepdims=True)
         if y.ndim == 2 and y.shape[1] != 1:
@@ -447,7 +468,8 @@ class LinearModel(MetaEstimatorMixin, BaseEstimator):
 
     def predict(self, X):
         """..."""
-        return self.model.predict(X)
+        check_is_fitted(self)
+        return self.model_.predict(X)
 
     @property
     def filters_(self):
@@ -466,12 +488,31 @@ class LinearModel(MetaEstimatorMixin, BaseEstimator):
 
     @property
     def classes_(self):
-        check_is_fitted(self.model_)
+        check_is_fitted(self)
         if is_regressor(self.model_):
             raise AttributeError("Regressors don't have the 'classes_' attribute")
         elif hasattr(self.model_, "classes_"):
             return self.model_.classes_
         return None
+
+    # XXX Remove this property after 'model' warning cycle
+    @property
+    def model(self):
+        if "model_" in self.__dict__:
+            depr_message = (
+                "Starting with mne-python v1.12 'model' attribute "
+                "of LinearModel will not be fitted, "
+                "please use 'model_' instead"
+            )
+            warn(depr_message, FutureWarning)
+            return self.model_
+        else:
+            return self._orig_model
+
+    # XXX Remove this after 'model' warning cycle
+    @model.setter
+    def model(self, value):
+        self._orig_model = value
 
 
 def _set_cv(cv, estimator=None, X=None, y=None):

@@ -96,7 +96,7 @@ def _make_data(n_samples=1000, n_features=5, n_targets=3):
 @pytest.mark.filterwarnings("ignore:invalid value encountered in cast.*:RuntimeWarning")
 def test_get_coef():
     """Test getting linear coefficients (filters/patterns) from estimators."""
-    lm_classification = LinearModel()
+    lm_classification = LinearModel(LogisticRegression(solver="liblinear"))
     assert hasattr(lm_classification, "__sklearn_tags__")
     if check_version("sklearn", "1.4"):
         print(lm_classification.__sklearn_tags__())
@@ -200,19 +200,19 @@ def test_get_coef():
         # Retrieve final linear model
         filters = get_coef(clf, "filters_", False)
         if hasattr(clf, "steps"):
-            if hasattr(clf.steps[-1][-1].model, "best_estimator_"):
+            if hasattr(clf.steps[-1][-1].model_, "best_estimator_"):
                 # Linear Model with GridSearchCV
-                coefs = clf.steps[-1][-1].model.best_estimator_.coef_
+                coefs = clf.steps[-1][-1].model_.best_estimator_.coef_
             else:
                 # Standard Linear Model
-                coefs = clf.steps[-1][-1].model.coef_
+                coefs = clf.steps[-1][-1].model_.coef_
         else:
-            if hasattr(clf.model, "best_estimator_"):
+            if hasattr(clf.model_, "best_estimator_"):
                 # Linear Model with GridSearchCV
-                coefs = clf.model.best_estimator_.coef_
+                coefs = clf.model_.best_estimator_.coef_
             else:
                 # Standard Linear Model
-                coefs = clf.model.coef_
+                coefs = clf.model_.coef_
         if coefs.ndim == 2 and coefs.shape[0] == 1:
             coefs = coefs[0]
         assert_array_equal(filters, coefs)
@@ -280,9 +280,8 @@ def test_get_coef_multiclass(n_features, n_targets):
     lm = LinearModel(LinearRegression())
     assert not hasattr(lm, "model_")
     lm.fit(X, Y)
-    # TODO: modifying non-underscored `model` is a sklearn no-no, maybe should be a
-    # metaestimator?
-    assert lm.model is lm.model_
+    with pytest.warns(FutureWarning, match="'model' attribute of LinearModel"):
+        assert lm.model is lm.model_
     assert_array_equal(lm.filters_.shape, lm.patterns_.shape)
     if n_targets == 1:
         want_shape = (n_features,)
@@ -371,7 +370,7 @@ def test_linearmodel():
     """Test LinearModel class for computing filters and patterns."""
     # check categorical target fit in standard linear model
     rng = np.random.RandomState(0)
-    clf = LinearModel()
+    clf = LinearModel(LogisticRegression(solver="liblinear"))
     n, n_features = 20, 3
     X = rng.rand(n, n_features)
     y = np.arange(n) % 2
@@ -478,12 +477,14 @@ def test_cross_val_multiscore():
         assert_array_equal(manual, auto)
 
 
+# XXX Remove filterwarning after 'model' warning cycle
+@pytest.mark.filterwarnings("ignore::FutureWarning")
 @parametrize_with_checks([LinearModel(LogisticRegression())])
 def test_sklearn_compliance(estimator, check):
     """Test LinearModel compliance with sklearn."""
+    # XXX Remove the ignores after 'model' and default warning cycles
     ignores = (
-        "check_estimators_overwrite_params",  # self.model changes!
-        "check_dont_overwrite_parameters",
+        "check_estimators_overwrite_params",
         "check_parameters_default_constructible",
     )
     if any(ignore in str(check) for ignore in ignores):

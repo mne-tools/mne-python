@@ -17,6 +17,7 @@ pytest.importorskip("sklearn")
 
 from sklearn.decomposition import PCA
 from sklearn.kernel_ridge import KernelRidge
+from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.utils.estimator_checks import parametrize_with_checks
@@ -229,7 +230,11 @@ def test_vectorizer():
     # And that pipelines work properly
     X_arr = EpochsArray(X, create_info(12, 1000.0, "eeg"))
     vect.fit(X_arr)
-    clf = make_pipeline(Vectorizer(), StandardScaler(), LinearModel())
+    clf = make_pipeline(
+        Vectorizer(),
+        StandardScaler(),
+        LinearModel(LogisticRegression(solver="liblinear")),
+    )
     clf.fit(X_arr, y)
 
 
