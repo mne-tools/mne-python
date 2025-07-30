@@ -6,4 +6,3 @@
 
 from .curry import read_raw_curry
 from .curry import read_impedances_curry
-from .curry import read_dig_curry

@@ -15,7 +15,6 @@ from ..._fiff.meas_info import create_info
 from ..._fiff.tag import _coil_trans_to_loc
 from ..._fiff.utils import _mult_cal_one, _read_segments_file
 from ...annotations import annotations_from_events
-from ...channels import make_dig_montage
 from ...epochs import Epochs
 from ...surface import _normal_orth
 from ...transforms import Transform, apply_trans
@@ -410,52 +409,6 @@ def _read_annotations_curry(fname, sfreq="auto"):
         return None
 
 
-def _make_curry_montage(ch_names, ch_types, ch_pos, landmarks, landmarkslabels):
-    # scale ch_pos to m?!
-    ch_pos /= 1000.0
-    landmarks /= 1000.0
-    # channel locations
-    # what about misc without pos? can they mess things up if unordered?
-    assert len(ch_pos) >= (ch_types.count("mag") + ch_types.count("eeg"))
-    assert len(ch_pos) == (ch_types.count("mag") + ch_types.count("eeg"))
-    ch_pos_eeg = {
-        ch_names[i]: ch_pos[i, :3] for i, t in enumerate(ch_types) if t == "eeg"
-    }
-    # landmarks and headshape
-    landmark_dict = dict(zip(landmarkslabels, landmarks))
-    for k in ["Nas", "RPA", "LPA"]:
-        if k not in landmark_dict.keys():
-            landmark_dict[k] = None
-    if len(landmarkslabels) > 0:
-        hpi_pos = landmarks[
-            [i for i, n in enumerate(landmarkslabels) if re.match("HPI[1-99]", n)], :
-        ]
-    else:
-        hpi_pos = None
-    if len(landmarkslabels) > 0:
-        hsp_pos = landmarks[
-            [i for i, n in enumerate(landmarkslabels) if re.match("H[1-99]", n)], :
-        ]
-    else:
-        hsp_pos = None
-    # make dig montage for eeg
-    mont = None
-    if len(ch_pos_eeg) > 0:
-        mont = make_dig_montage(
-            ch_pos=ch_pos_eeg,
-            nasion=landmark_dict["Nas"],
-            lpa=landmark_dict["LPA"],
-            rpa=landmark_dict["RPA"],
-            hsp=hsp_pos,
-            hpi=hpi_pos,
-            coord_frame="head",
-        )
-    else:  # not recorded?
-        warn("No eeg sensor locations found in file.")
-
-    return mont
-
-
 def _set_chanloc_curry(inst, ch_types, ch_pos, landmarks, landmarkslabels):
     ch_names = inst.info["ch_names"]
 
@@ -752,27 +705,3 @@ def read_impedances_curry(fname, verbose=None):
         print({ch: float(imp) for ch, imp in zip(ch_names, impedances[iimp])})
 
     return ch_names, impedances
-
-
-@verbose
-def read_dig_curry(fname, verbose=None):
-    """Read electrode locations from Curry files.
-
-    Parameters
-    ----------
-    fname : path-like
-        A valid Curry file.
-    %(verbose)s
-
-    Returns
-    -------
-    montage : instance of DigMontage | None
-        The montage.
-    """
-    # TODO - REVIEW NEEDED
-    # API? do i need to add this in the docs somewhere?
-    fname = _check_curry_filename(fname)
-    (_, _, ch_names, ch_types, ch_pos, landmarks, landmarkslabels, _, _, _, _, _, _) = (
-        _extract_curry_info(fname)
-    )
-    return _make_curry_montage(ch_names, ch_types, ch_pos, landmarks, landmarkslabels)

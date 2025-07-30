@@ -9,11 +9,11 @@ from numpy import empty
 from numpy.testing import assert_allclose, assert_array_equal
 
 from mne.annotations import events_from_annotations, read_annotations
-from mne.channels import DigMontage
+from mne.channels import DigMontage, read_dig_curry
 from mne.datasets import testing
 from mne.epochs import Epochs
 from mne.event import find_events
-from mne.io.curry import read_dig_curry, read_impedances_curry, read_raw_curry
+from mne.io.curry import read_impedances_curry, read_raw_curry
 from mne.io.curry.curry import (
     _check_curry_filename,
     _check_curry_header_filename,
