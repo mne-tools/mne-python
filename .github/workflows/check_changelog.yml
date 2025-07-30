@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   changelog_checker:
-    name: Check towncrier entry in doc/changes/devel/
+    name: Check towncrier entry in doc/changes/dev/
     runs-on: ubuntu-latest
     steps:
       - uses: scientific-python/action-towncrier-changelog@v1

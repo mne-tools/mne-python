@@ -23,7 +23,7 @@ from .utils import (
     _shorten_path_from_middle,
 )
 
-_RAW_CLIP_DEF = 1.5
+_RAW_CLIP_DEF = 3
 
 
 @verbose
