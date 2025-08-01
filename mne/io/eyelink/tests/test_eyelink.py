@@ -339,3 +339,27 @@ def test_no_datetime(tmp_path):
     # Sanity check that a None meas_date doesn't change annotation times
     # First annotation in this file is a fixation at 0.004 seconds
     np.testing.assert_allclose(raw.annotations.onset[0], 0.004)
+
+
+@requires_testing_data
+def test_href_event_data(tmp_path):
+    """Test Parsing file where Eye Event Data option was set to HREF."""
+    out_file = tmp_path / "tmp_eyelink.asc"
+    with open(fname) as file:
+        lines = file.readlines()
+    for li, line in enumerate(lines):
+        if not line.startswith(("ESACC", "EFIX")):
+            continue
+        tokens = line.split()
+        if line.startswith("ESACC"):
+            href_sacc_vals = ["9999", "9999", "9999", "9999", "99.99", "999"]
+            tokens[5:5] = href_sacc_vals  # add href saccade values
+        elif line.startswith("EFIX"):
+            tokens = line.split()
+            href_fix_vals = ["9999.9", "9999.9", "999"]
+            tokens[5:3] = href_fix_vals
+        new_line = "\t".join(tokens) + "\n"
+        lines[li] = new_line
+    with open(out_file, "w") as file:
+        file.writelines(lines)
+    _ = read_raw_eyelink(out_file)
