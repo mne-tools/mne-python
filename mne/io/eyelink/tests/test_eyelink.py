@@ -342,8 +342,8 @@ def test_no_datetime(tmp_path):
 
 
 @requires_testing_data
-def test_href_event_data(tmp_path):
-    """Test Parsing file where Eye Event Data option was set to HREF."""
+def test_href_eye_events(tmp_path):
+    """Test Parsing file where Eye Event Data option was set to 'HREF'."""
     out_file = tmp_path / "tmp_eyelink.asc"
     with open(fname) as file:
         lines = file.readlines()
@@ -362,4 +362,7 @@ def test_href_event_data(tmp_path):
         lines[li] = new_line
     with open(out_file, "w") as file:
         file.writelines(lines)
-    _ = read_raw_eyelink(out_file)
+    raw = read_raw_eyelink(out_file)
+    # Just check that we actually parsed the Saccade and Fixation events
+    assert "saccade" in raw.annotations.description
+    assert "fixation" in raw.annotations.description
