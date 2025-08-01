@@ -345,8 +345,7 @@ def test_no_datetime(tmp_path):
 def test_href_eye_events(tmp_path):
     """Test Parsing file where Eye Event Data option was set to 'HREF'."""
     out_file = tmp_path / "tmp_eyelink.asc"
-    with open(fname) as file:
-        lines = file.readlines()
+    lines = fname_href.read_text().splitlines()
     for li, line in enumerate(lines):
         if not line.startswith(("ESACC", "EFIX")):
             continue
