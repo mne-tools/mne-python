@@ -412,18 +412,19 @@ def _assign_col_names(col_names, df_dict):
     col_names : dict
         Dictionary of column names for each dataframe.
     """
+    skipped_types = []
     for key, df in df_dict.items():
         if key in ("samples", "blinks", "fixations", "saccades", "messages"):
             cols = col_names[key]
         else:
-            logger.debug(f"Skipping unsupported EyeLink Event type: {key}")
+            skipped_types.append(key)
             continue
         max_cols = len(cols)
         if len(df.columns) != len(cols):
             if key in ("saccades", "fixations") and len(df.columns) >= 4:
                 # see https://github.com/mne-tools/mne-python/pull/13357
                 logger.debug(
-                    f"Saccade events have more columns ({len(df.columns)}) than  "
+                    f"{key} events have more columns ({len(df.columns)}) than  "
                     f"expected ({len(cols)}). Using first 4 (eye, time, end_time, "
                     "duration)."
                 )
@@ -437,6 +438,7 @@ def _assign_col_names(col_names, df_dict):
             old: new for old, new in zip(df.columns[:max_cols], cols[:max_cols])
         }
         df.rename(columns=new_col_names, inplace=True)
+    logger.debug(f"Skipped assigning column names to {skipped_types} dataframes.")
     return df_dict
 
 
