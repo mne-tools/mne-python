@@ -360,8 +360,7 @@ def test_href_eye_events(tmp_path):
             tokens[5:3] = href_fix_vals
         new_line = "\t".join(tokens) + "\n"
         lines[li] = new_line
-    with open(out_file, "w") as file:
-        file.writelines(lines)
+    out_file.write_text("\n".join(lines), encoding="utf-8")
     raw = read_raw_eyelink(out_file)
     # Just check that we actually parsed the Saccade and Fixation events
     assert "saccade" in raw.annotations.description
