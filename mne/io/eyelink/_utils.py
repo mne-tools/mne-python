@@ -38,6 +38,7 @@ EYELINK_COLS = {
         "sacc_visual_angle",
         "peak_velocity",
     ),
+    "messages": ("time", "offset", "event_msg"),
 }
 
 
@@ -356,6 +357,7 @@ def _infer_col_names(raw_extras):
     col_names = {}
     # initiate the column names for the sample lines
     col_names["samples"] = list(EYELINK_COLS["timestamp"])
+    col_names["messages"] = list(EYELINK_COLS["messages"])
 
     # and for the eye message lines
     col_names["blinks"] = list(EYELINK_COLS["eye_event"])
@@ -411,11 +413,30 @@ def _assign_col_names(col_names, df_dict):
         Dictionary of column names for each dataframe.
     """
     for key, df in df_dict.items():
-        if key in ("samples", "blinks", "fixations", "saccades"):
-            df.columns = col_names[key]
-        elif key == "messages":
-            cols = ["time", "offset", "event_msg"]
-            df.columns = cols
+        if key in ("samples", "blinks", "fixations", "saccades", "messages"):
+            cols = col_names[key]
+        else:
+            logger.debug(f"Skipping unsupported EyeLink Event type: {key}")
+            continue
+        max_cols = len(cols)
+        if len(df.columns) != len(cols):
+            if key in ("saccades", "fixations") and len(df.columns) >= 4:
+                # see https://github.com/mne-tools/mne-python/pull/13357
+                logger.debug(
+                    f"Saccade events have more columns ({len(df.columns)}) than  "
+                    f"expected ({len(cols)}). Using first 4 (eye, time, end_time, "
+                    "duration)."
+                )
+                max_cols = 4
+            else:
+                raise ValueError(
+                    f"Expected the {key} data in this file to have {len(cols)} columns "
+                    f"of data, but got {len(df.columns)}. Expected columns: {cols}."
+                )
+        new_col_names = {
+            old: new for old, new in zip(df.columns[:max_cols], cols[:max_cols])
+        }
+        df.rename(columns=new_col_names, inplace=True)
     return df_dict
 
 
@@ -474,10 +495,10 @@ def _convert_times(df, first_samp, col="time"):
     """
     _sort_by_time(df, col)
     for col in df.columns:
-        if col.endswith("time"):  # 'time' and 'end_time' cols
+        if str(col).endswith("time"):  # 'time' and 'end_time' cols
             df[col] -= first_samp
             df[col] /= 1000
-        if col in ["duration", "offset"]:
+        if str(col) in ["duration", "offset"]:
             df[col] /= 1000
     return df
 
