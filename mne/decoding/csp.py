@@ -3,19 +3,18 @@
 # Copyright the MNE-Python contributors.
 
 import collections.abc as abc
-import copy as cp
 from functools import partial
 
 import numpy as np
 
 from .._fiff.meas_info import Info
 from ..defaults import _BORDER_DEFAULT, _EXTRAPOLATE_DEFAULT, _INTERPOLATION_DEFAULT
-from ..evoked import EvokedArray
 from ..utils import (
     _check_option,
     _validate_type,
     fill_doc,
 )
+from ..viz.decoding.ged import _plot_model
 from ._covs_ged import _csp_estimate, _spoc_estimate
 from ._mod_ged import _csp_mod, _spoc_mod
 from .base import _GEDTransformer
@@ -402,20 +401,10 @@ class CSP(_GEDTransformer):
         fig : instance of matplotlib.figure.Figure
            The figure.
         """
-        if units is None:
-            units = "AU"
-        if components is None:
-            components = np.arange(self.n_components)
-
-        # set sampling frequency to have 1 component per time point
-        info = cp.deepcopy(info)
-        with info._unlock():
-            info["sfreq"] = 1.0
-        # create an evoked
-        patterns = EvokedArray(self.patterns_.T, info, tmin=0)
-        # the call plot_topomap
-        fig = patterns.plot_topomap(
-            times=components,
+        fig = _plot_model(
+            self.patterns_,
+            info,
+            components,
             ch_type=ch_type,
             scalings=scalings,
             sensors=sensors,
@@ -437,7 +426,7 @@ class CSP(_GEDTransformer):
             cbar_fmt=cbar_fmt,
             units=units,
             axes=axes,
-            time_format=name_format,
+            name_format=name_format,
             nrows=nrows,
             ncols=ncols,
             show=show,
@@ -530,20 +519,10 @@ class CSP(_GEDTransformer):
         fig : instance of matplotlib.figure.Figure
            The figure.
         """
-        if units is None:
-            units = "AU"
-        if components is None:
-            components = np.arange(self.n_components)
-
-        # set sampling frequency to have 1 component per time point
-        info = cp.deepcopy(info)
-        with info._unlock():
-            info["sfreq"] = 1.0
-        # create an evoked
-        filters = EvokedArray(self.filters_.T, info, tmin=0)
-        # the call plot_topomap
-        fig = filters.plot_topomap(
-            times=components,
+        fig = _plot_model(
+            self.filters_,
+            info,
+            components,
             ch_type=ch_type,
             scalings=scalings,
             sensors=sensors,
@@ -565,7 +544,7 @@ class CSP(_GEDTransformer):
             cbar_fmt=cbar_fmt,
             units=units,
             axes=axes,
-            time_format=name_format,
+            name_format=name_format,
             nrows=nrows,
             ncols=ncols,
             show=show,
