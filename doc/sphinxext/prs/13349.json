@@ -1,0 +1,75 @@
+{
+  "merge_commit_sha": "167872bf6b25a0e09d5662688acde8d068e68f9a",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    }
+  ],
+  "changes": {
+    ".github/workflows/check_changelog.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/Makefile": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/_static/versions.json": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/changes/dev.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/changes/dev.rst.template": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/changes/dev/.gitignore": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/changes/dev/13112.bugfix.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/changes/dev/13259.newfeature.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/changes/dev/13341.bugfix.rst": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/conf.py": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/development/contributing.rst": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/development/whats_new.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/sphinxext/credit_tools.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/config.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/tests/test_config.py": {
+      "a": 2,
+      "d": 2
+    },
+    "pyproject.toml": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}
