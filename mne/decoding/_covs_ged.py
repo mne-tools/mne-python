@@ -29,6 +29,7 @@ def _concat_cov(x_class, *, cov_kind, log_rank, reg, cov_method_params, info, ra
         cov_kind=cov_kind,
         log_rank=log_rank,
         log_ch_type="data",
+        on_few_samples="ignore",
     )
 
     return cov, n_channels  # the weight here is just the number of channels
@@ -88,6 +89,7 @@ def _csp_estimate(X, y, reg, cov_method_params, cov_est, info, rank, norm_trace)
             rank=rank,
             scalings=None,
             log_ch_type="data",
+            on_few_samples="ignore",
         )
 
     covs = []
@@ -130,7 +132,7 @@ def _xdawn_estimate(
     # Retrieve or compute whitening covariance
     if R is None:
         R = _regularized_covariance(
-            np.hstack(X), reg, cov_method_params, info, rank=rank
+            np.hstack(X), reg, cov_method_params, info, rank=rank, on_few_samples="ignore"
         )
     elif isinstance(R, Covariance):
         R = R.data
@@ -146,7 +148,7 @@ def _xdawn_estimate(
     for evo, toeplitz in zip(evokeds, toeplitzs):
         # Estimate covariance matrix of the prototype response
         evo = np.dot(evo, toeplitz)
-        evo_cov = _regularized_covariance(evo, reg, cov_method_params, info, rank=rank)
+        evo_cov = _regularized_covariance(evo, reg, cov_method_params, info, rank=rank, on_few_samples="ignore")
         covs.append(evo_cov)
 
     covs.append(R)
@@ -158,6 +160,7 @@ def _xdawn_estimate(
             rank=rank,
             scalings=None,
             log_ch_type="data",
+            on_few_samples="ignore",
         )
     return covs, C_ref, info, rank, dict()
 
@@ -197,6 +200,7 @@ def _ssd_estimate(
         method_params=cov_method_params,
         rank="full",
         info=picked_info,
+        on_few_samples="ignore",
     )
     R = _regularized_covariance(
         X_noise,
@@ -204,6 +208,7 @@ def _ssd_estimate(
         method_params=cov_method_params,
         rank="full",
         info=picked_info,
+        on_few_samples="ignore",
     )
     covs = [S, R]
     C_ref = S
@@ -223,6 +228,7 @@ def _ssd_estimate(
                 rank,
                 _handle_default("scalings_cov_rank", None),
                 info,
+                on_few_samples="ignore",
             ).values()
         )[0]
     all_ranks.append(r)
@@ -266,6 +272,7 @@ def _spoc_estimate(X, y, reg, cov_method_params, info, rank):
             rank=rank,
             log_ch_type="data",
             log_rank=ii == 0,
+            on_few_samples="ignore",
         )
 
     S = np.mean(covs * target[:, np.newaxis, np.newaxis], axis=0)
@@ -280,5 +287,6 @@ def _spoc_estimate(X, y, reg, cov_method_params, info, rank):
             rank=rank,
             scalings=None,
             log_ch_type="data",
+            on_few_samples="ignore",
         )
     return covs, C_ref, info, rank, dict()

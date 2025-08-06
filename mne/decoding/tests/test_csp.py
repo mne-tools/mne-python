@@ -492,7 +492,6 @@ def test_csp_component_ordering():
 
 
 @pytest.mark.filterwarnings("ignore:.*Only one sample available.*")
-@pytest.mark.filterwarnings("ignore:.*You've got fewer samples than channels.*")
 @parametrize_with_checks([CSP(), SPoC()])
 def test_sklearn_compliance(estimator, check):
     """Test compliance with sklearn."""
