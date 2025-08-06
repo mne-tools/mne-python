@@ -391,7 +391,7 @@ class LinearModel(MetaEstimatorMixin, BaseEstimator):
         if model is None:
             self.model = LogisticRegression(solver="liblinear")
             depr_message = (
-                "Starting with mne-python v1.12 'model' default "
+                "Starting with mne-python v1.13 'model' default "
                 "will change from LogisticRegression to None. "
                 "From now on please set model=LogisticRegression"
                 "(solver='liblinear') explicitly."
@@ -412,7 +412,8 @@ class LinearModel(MetaEstimatorMixin, BaseEstimator):
     def __getattr__(self, attr):
         """Wrap to model for some attributes."""
         if attr in LinearModel._model_attr_wrap:
-            model = self.model_ if "model_" in self.__dict__ else self.model
+            # XXX Change self._orig_model to self.model after 'model' warning cycle
+            model = self.model_ if "model_" in self.__dict__ else self._orig_model
             if attr == "fit_transform" and hasattr(model, "fit_transform"):
                 return self._fit_transform
             else:
@@ -508,7 +509,7 @@ class LinearModel(MetaEstimatorMixin, BaseEstimator):
     def model(self):
         if "model_" in self.__dict__:
             depr_message = (
-                "Starting with mne-python v1.12 'model' attribute "
+                "Starting with mne-python v1.13 'model' attribute "
                 "of LinearModel will not be fitted, "
                 "please use 'model_' instead"
             )

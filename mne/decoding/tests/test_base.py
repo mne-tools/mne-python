@@ -94,7 +94,6 @@ def _make_data(n_samples=1000, n_features=5, n_targets=3):
     return X, Y, A
 
 
-@pytest.mark.filterwarnings("ignore:invalid value encountered in cast.*:RuntimeWarning")
 def test_get_coef():
     """Test getting linear coefficients (filters/patterns) from estimators."""
     lm_classification = LinearModel(LogisticRegression(solver="liblinear"))
@@ -475,12 +474,12 @@ def test_cross_val_multiscore():
         assert_array_equal(manual, auto)
 
 
-# XXX Remove filterwarning after 'model' warning cycle
+# XXX Remove the filterwarning after 'model' warning cycle
 @pytest.mark.filterwarnings("ignore::FutureWarning")
 @parametrize_with_checks([LinearModel(LogisticRegression())])
 def test_sklearn_compliance(estimator, check):
     """Test LinearModel compliance with sklearn."""
-    # XXX Remove the ignores after 'model' and default warning cycles
+    # XXX Remove the ignores after 'model' warning cycle
     ignores = (
         "check_estimators_overwrite_params",
         "check_parameters_default_constructible",
