@@ -28,6 +28,7 @@ from sklearn.base import (
     is_classifier,
     is_regressor,
 )
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.linear_model import LinearRegression, LogisticRegression, Ridge
 from sklearn.model_selection import (
     GridSearchCV,
@@ -380,6 +381,10 @@ def test_linearmodel():
         wrong_X = rng.rand(n, n_features, 99)
         clf.fit(wrong_X, y)
 
+    # check fit_transform call
+    clf = LinearModel(LinearDiscriminantAnalysis())
+    _ = clf.fit_transform(X, y)
+
     # check categorical target fit in standard linear model with GridSearchCV
     parameters = {"kernel": ["linear"], "C": [1, 10]}
     clf = LinearModel(
@@ -416,6 +421,7 @@ def test_linearmodel():
         wrong_y = rng.rand(n, n_features, 99)
         clf.fit(X, wrong_y)
 
+    # check that model has to be a predictor
     clf = LinearModel(StandardScaler())
     with pytest.raises(ValueError, match="classifier or regressor"):
         clf.fit(X, Y)
