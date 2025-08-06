@@ -2121,7 +2121,9 @@ def regularize(
             this_info = pick_info(info, this_picks)
             # Here we could use proj_subspace=True, but this should not matter
             # since this is already in a loop over channel types
-            _, eigvec, mask = _smart_eigh(this_C, this_info, rank, on_few_samples=on_few_samples)
+            _, eigvec, mask = _smart_eigh(
+                this_C, this_info, rank, on_few_samples=on_few_samples
+            )
             U = eigvec[mask].T
         this_C = np.dot(U.T, np.dot(this_C, U))
 

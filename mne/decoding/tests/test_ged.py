@@ -89,13 +89,17 @@ def _mock_cov_callable(X, y, cov_method_params=None, compute_C_ref=True):
     for ci, this_class in enumerate(classes):
         class_data = X[y == this_class]
         class_data = class_data.transpose(1, 0, 2).reshape(n_channels, -1)
-        cov = _regularized_covariance(class_data, on_few_samples="ignore", **cov_method_params)
+        cov = _regularized_covariance(
+            class_data, on_few_samples="ignore", **cov_method_params
+        )
         covs.append(cov)
         sample_weights.append(class_data.shape[0])
 
     ref_data = X.transpose(1, 0, 2).reshape(n_channels, -1)
     if compute_C_ref:
-        C_ref = _regularized_covariance(ref_data, on_few_samples="ignore", **cov_method_params)
+        C_ref = _regularized_covariance(
+            ref_data, on_few_samples="ignore", **cov_method_params
+        )
     else:
         C_ref = None
     info = _mock_info(n_channels)

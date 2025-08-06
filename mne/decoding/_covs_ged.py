@@ -132,7 +132,12 @@ def _xdawn_estimate(
     # Retrieve or compute whitening covariance
     if R is None:
         R = _regularized_covariance(
-            np.hstack(X), reg, cov_method_params, info, rank=rank, on_few_samples="ignore"
+            np.hstack(X),
+            reg,
+            cov_method_params,
+            info,
+            rank=rank,
+            on_few_samples="ignore",
         )
     elif isinstance(R, Covariance):
         R = R.data
@@ -148,7 +153,9 @@ def _xdawn_estimate(
     for evo, toeplitz in zip(evokeds, toeplitzs):
         # Estimate covariance matrix of the prototype response
         evo = np.dot(evo, toeplitz)
-        evo_cov = _regularized_covariance(evo, reg, cov_method_params, info, rank=rank, on_few_samples="ignore")
+        evo_cov = _regularized_covariance(
+            evo, reg, cov_method_params, info, rank=rank, on_few_samples="ignore"
+        )
         covs.append(evo_cov)
 
     covs.append(R)

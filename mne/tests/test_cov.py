@@ -439,7 +439,9 @@ def test_cov_estimation_with_triggers(rank, tmp_path):
     _assert_cov(cov, cov_km)
 
     # Test with tmin and tmax (different but not too much)
-    cov_tmin_tmax = compute_covariance(epochs, tmin=-0.19, tmax=-0.01, on_few_samples="ignore")
+    cov_tmin_tmax = compute_covariance(
+        epochs, tmin=-0.19, tmax=-0.01, on_few_samples="ignore"
+    )
     assert np.all(cov.data != cov_tmin_tmax.data)
     err = np.linalg.norm(cov.data - cov_tmin_tmax.data) / np.linalg.norm(
         cov_tmin_tmax.data
@@ -504,7 +506,9 @@ def test_cov_estimation_with_triggers(rank, tmp_path):
     pytest.raises(ValueError, compute_covariance, epochs)
     pytest.raises(ValueError, compute_covariance, epochs, projs=None)
     # these should work, but won't be equal to above
-    cov = compute_covariance(epochs, projs=epochs[0].info["projs"], on_few_samples="ignore")
+    cov = compute_covariance(
+        epochs, projs=epochs[0].info["projs"], on_few_samples="ignore"
+    )
     cov = compute_covariance(epochs, projs=[], on_few_samples="ignore")
 
     # test new dict support
@@ -794,7 +798,12 @@ def test_low_rank_methods(rank, raw_epochs_events):
         ),
     }
     covs = compute_covariance(
-        epochs, method=methods, return_estimators=True, rank=rank, verbose=True, on_few_samples="ignore"
+        epochs,
+        method=methods,
+        return_estimators=True,
+        rank=rank,
+        verbose=True,
+        on_few_samples="ignore",
     )
     for cov in covs:
         method = cov["method"]
@@ -819,17 +828,28 @@ def test_low_rank_cov(raw_epochs_events):
     with pytest.raises(ValueError, match="are dependent.*must equal"):
         regularize(emp_cov, epochs.info, rank=None, mag=0.1, grad=0.2)
     assert _cov_rank(emp_cov, epochs.info) == sss_proj_rank
-    reg_cov = regularize(emp_cov, epochs.info, proj=True, rank="full", on_few_samples="ignore")
+    reg_cov = regularize(
+        emp_cov, epochs.info, proj=True, rank="full", on_few_samples="ignore"
+    )
     assert _cov_rank(reg_cov, epochs.info) == proj_rank
     with pytest.warns(RuntimeWarning, match="exceeds the theoretical"):
         _compute_rank_int(reg_cov, info=epochs.info)
     del reg_cov
     with catch_logging() as log:
-        reg_r_cov = regularize(emp_cov, epochs.info, proj=True, rank=None, verbose=True, on_few_samples="ignore")
+        reg_r_cov = regularize(
+            emp_cov,
+            epochs.info,
+            proj=True,
+            rank=None,
+            verbose=True,
+            on_few_samples="ignore",
+        )
     log = log.getvalue()
     assert "jointly" in log
     assert _cov_rank(reg_r_cov, epochs.info) == sss_proj_rank
-    reg_r_only_cov = regularize(emp_cov, epochs.info, proj=False, rank=None, on_few_samples="ignore")
+    reg_r_only_cov = regularize(
+        emp_cov, epochs.info, proj=False, rank=None, on_few_samples="ignore"
+    )
     assert _cov_rank(reg_r_only_cov, epochs.info) == sss_proj_rank
     assert_allclose(reg_r_only_cov["data"], reg_r_cov["data"])
     del reg_r_only_cov, reg_r_cov
@@ -843,11 +863,17 @@ def test_low_rank_cov(raw_epochs_events):
         epochs_meg, method="oas", rank="full", verbose="error", on_few_samples="ignore"
     )
     assert _cov_rank(cov_full, epochs_meg.info) == 306
-    cov_dict = compute_covariance(epochs_meg, method="oas", rank=dict(meg=306), on_few_samples="ignore")
+    cov_dict = compute_covariance(
+        epochs_meg, method="oas", rank=dict(meg=306), on_few_samples="ignore"
+    )
     assert _cov_rank(cov_dict, epochs_meg.info) == 306
     assert_allclose(cov_full["data"], cov_dict["data"])
     cov_dict = compute_covariance(
-        epochs_meg, method="oas", rank=dict(meg=306), verbose="error", on_few_samples="ignore"
+        epochs_meg,
+        method="oas",
+        rank=dict(meg=306),
+        verbose="error",
+        on_few_samples="ignore",
     )
     assert _cov_rank(cov_dict, epochs_meg.info) == 306
     assert_allclose(cov_full["data"], cov_dict["data"])
@@ -861,14 +887,24 @@ def test_low_rank_cov(raw_epochs_events):
     assert len(raw.info["projs"]) == 3
     epochs = Epochs(raw, events, tmin=-0.2, tmax=0, preload=True)
     assert len(raw.ch_names) == n_ch
-    emp_cov = compute_covariance(epochs, rank="full", verbose="error", on_few_samples="ignore")
+    emp_cov = compute_covariance(
+        epochs, rank="full", verbose="error", on_few_samples="ignore"
+    )
     assert _cov_rank(emp_cov, epochs.info) == rank
-    reg_cov = regularize(emp_cov, epochs.info, proj=True, rank="full", on_few_samples="ignore")
+    reg_cov = regularize(
+        emp_cov, epochs.info, proj=True, rank="full", on_few_samples="ignore"
+    )
     assert _cov_rank(reg_cov, epochs.info) == rank
-    reg_r_cov = regularize(emp_cov, epochs.info, proj=False, rank=None, on_few_samples="ignore")
+    reg_r_cov = regularize(
+        emp_cov, epochs.info, proj=False, rank=None, on_few_samples="ignore"
+    )
     assert _cov_rank(reg_r_cov, epochs.info) == rank
     dia_cov = compute_covariance(
-        epochs, rank=None, method="diagonal_fixed", verbose="error", on_few_samples="ignore"
+        epochs,
+        rank=None,
+        method="diagonal_fixed",
+        verbose="error",
+        on_few_samples="ignore",
     )
     assert _cov_rank(dia_cov, epochs.info) == rank
     assert_allclose(dia_cov["data"], reg_cov["data"])
@@ -896,14 +932,18 @@ def test_cov_ctf():
         raw.apply_gradient_compensation(comp)
         epochs = Epochs(raw, events, None, -0.2, 0.2, preload=True)
         with _record_warnings():
-            noise_cov = compute_covariance(epochs, tmax=0.0, method=["empirical"], on_few_samples="ignore")
+            noise_cov = compute_covariance(
+                epochs, tmax=0.0, method=["empirical"], on_few_samples="ignore"
+            )
         with pytest.warns(RuntimeWarning, match="orders of magnitude"):
             prepare_noise_cov(noise_cov, raw.info, ch_names, on_few_samples="ignore")
 
     raw.apply_gradient_compensation(0)
     epochs = Epochs(raw, events, None, -0.2, 0.2, preload=True)
     with _record_warnings():
-        noise_cov = compute_covariance(epochs, tmax=0.0, method=["empirical"], on_few_samples="ignore")
+        noise_cov = compute_covariance(
+            epochs, tmax=0.0, method=["empirical"], on_few_samples="ignore"
+        )
     raw.apply_gradient_compensation(1)
 
     # TODO This next call in principle should fail.

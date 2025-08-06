@@ -130,14 +130,27 @@ def _estimate_rank_from_s(s, tol="auto", tol_kind="absolute"):
 
 
 def _estimate_rank_raw(
-    raw, picks=None, tol=1e-4, scalings="norm", with_ref_meg=False, tol_kind="absolute", on_few_samples="warn"
+    raw,
+    picks=None,
+    tol=1e-4,
+    scalings="norm",
+    with_ref_meg=False,
+    tol_kind="absolute",
+    on_few_samples="warn",
 ):
     """Aid the transition away from raw.estimate_rank."""
     if picks is None:
         picks = _picks_to_idx(raw.info, picks, with_ref_meg=with_ref_meg)
     # conveniency wrapper to expose the expert "tol" option + scalings options
     return _estimate_rank_meeg_signals(
-        raw[picks][0], pick_info(raw.info, picks), scalings, tol, False, tol_kind, log_ch_type=None, on_few_samples=on_few_samples
+        raw[picks][0],
+        pick_info(raw.info, picks),
+        scalings,
+        tol,
+        False,
+        tol_kind,
+        log_ch_type=None,
+        on_few_samples=on_few_samples,
     )
 
 
