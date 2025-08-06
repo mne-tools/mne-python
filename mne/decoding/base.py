@@ -381,15 +381,12 @@ class LinearModel(MetaEstimatorMixin, BaseEstimator):
         "predict_log_proba",
         "decision_function",
         "score",
-        "model",
     )
 
     def __init__(self, model=None):
-        self.model = model
-
         # XXX Remove the clause after warning cycle
         if model is None:
-            self.model = LogisticRegression(solver="liblinear")
+            model = LogisticRegression(solver="liblinear")
             depr_message = (
                 "Starting with mne-python v1.13 'model' default "
                 "will change from LogisticRegression to None. "
@@ -397,6 +394,8 @@ class LinearModel(MetaEstimatorMixin, BaseEstimator):
                 "(solver='liblinear') explicitly."
             )
             warn(depr_message, FutureWarning)
+
+        self.model = model
 
     def __sklearn_tags__(self):
         """Get sklearn tags."""

@@ -277,6 +277,8 @@ def test_get_coef_multiclass(n_features, n_targets):
     """Test get_coef on multiclass problems."""
     # Check patterns with more than 1 regressor
     X, Y, A = _make_data(n_samples=30000, n_features=n_features, n_targets=n_targets)
+    with pytest.warns(FutureWarning, match="'model' default"):
+        _ = LinearModel()
     lm = LinearModel(LinearRegression())
     assert not hasattr(lm, "model_")
     lm.fit(X, Y)
