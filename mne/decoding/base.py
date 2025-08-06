@@ -376,6 +376,7 @@ class LinearModel(MetaEstimatorMixin, BaseEstimator):
 
     _model_attr_wrap = (
         "transform",
+        "fit_transform",
         "predict_proba",
         "predict_log_proba",
         "decision_function",
@@ -410,12 +411,16 @@ class LinearModel(MetaEstimatorMixin, BaseEstimator):
 
     def __getattr__(self, attr):
         """Wrap to model for some attributes."""
-        model = self.model_ if "model_" in self.__dict__ else self.model
         if attr in LinearModel._model_attr_wrap:
-            return getattr(model, attr)
-        elif attr == "fit_transform" and hasattr(model, "fit_transform"):
-            return super().__getattr__(self, "_fit_transform")
-        return super().__getattr__(self, attr)
+            model = self.model_ if "model_" in self.__dict__ else self.model
+            if attr == "fit_transform" and hasattr(model, "fit_transform"):
+                return self._fit_transform
+            else:
+                return getattr(model, attr)
+        else:
+            raise AttributeError(
+                f"'{type(self).__name__}' object has no attribute '{attr}'"
+            )
 
     def _fit_transform(self, X, y):
         return self.fit(X, y).transform(X)
@@ -477,6 +482,9 @@ class LinearModel(MetaEstimatorMixin, BaseEstimator):
         if hasattr(self.model_, "coef_"):
             # Standard Linear Model
             filters = self.model_.coef_
+        elif hasattr(self.model_, "estimators_"):
+            # Linear model with OneVsRestClassifier
+            filters = np.vstack([est.coef_ for est in self.model_.estimators_])
         elif hasattr(self.model_.best_estimator_, "coef_"):
             # Linear Model with GridSearchCV
             filters = self.model_.best_estimator_.coef_

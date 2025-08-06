@@ -35,6 +35,7 @@ from sklearn.model_selection import (
     StratifiedKFold,
     cross_val_score,
 )
+from sklearn.multiclass import OneVsRestClassifier
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.utils.estimator_checks import parametrize_with_checks
@@ -327,9 +328,6 @@ def test_get_coef_multiclass(n_features, n_targets):
         (3, 1, 2),
     ],
 )
-# TODO: Need to fix this properly in LinearModel
-@pytest.mark.filterwarnings("ignore:'multi_class' was depr.*:FutureWarning")
-@pytest.mark.filterwarnings("ignore:lbfgs failed to converge.*:")
 def test_get_coef_multiclass_full(n_classes, n_channels, n_times):
     """Test a full example with pattern extraction."""
     data = np.zeros((10 * n_classes, n_channels, n_times))
@@ -344,7 +342,7 @@ def test_get_coef_multiclass_full(n_classes, n_channels, n_times):
     clf = make_pipeline(
         Scaler(epochs.info),
         Vectorizer(),
-        LinearModel(LogisticRegression(random_state=0, multi_class="ovr")),
+        LinearModel(OneVsRestClassifier(LogisticRegression(random_state=0))),
     )
     scorer = "roc_auc_ovr_weighted"
     time_gen = GeneralizingEstimator(clf, scorer, verbose=True)
