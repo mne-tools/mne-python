@@ -378,10 +378,12 @@ class LinearModel(MetaEstimatorMixin, BaseEstimator):
     _model_attr_wrap = (
         "transform",
         "fit_transform",
+        "predict",
         "predict_proba",
         "predict_log_proba",
         "decision_function",
         "score",
+        "classes_",
     )
 
     def __init__(self, model=None):
@@ -472,22 +474,6 @@ class LinearModel(MetaEstimatorMixin, BaseEstimator):
 
         return self
 
-    def predict(self, X):
-        """Predict class labels for X using fitted linear model.
-
-        Parameters
-        ----------
-        X : array, shape (n_samples, n_features)
-            The data matrix for which we want to get the predictions.
-
-        Returns
-        -------
-        y_pred : array, shape (n_samples,)
-            Vector containing the class labels for each sample.
-        """
-        check_is_fitted(self)
-        return self.model_.predict(X)
-
     @property
     def filters_(self):
         check_is_fitted(self)
@@ -505,15 +491,6 @@ class LinearModel(MetaEstimatorMixin, BaseEstimator):
         if filters.ndim == 2 and filters.shape[0] == 1:
             filters = filters[0]
         return filters
-
-    @property
-    def classes_(self):
-        check_is_fitted(self)
-        if is_regressor(self.model_):
-            raise AttributeError("Regressors don't have the 'classes_' attribute")
-        elif hasattr(self.model_, "classes_"):
-            return self.model_.classes_
-        return None
 
     # XXX Remove this property after 'model' warning cycle
     @property

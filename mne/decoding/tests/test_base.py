@@ -416,6 +416,10 @@ def test_linearmodel():
         wrong_y = rng.rand(n, n_features, 99)
         clf.fit(X, wrong_y)
 
+    clf = LinearModel(StandardScaler())
+    with pytest.raises(ValueError, match="classifier or regressor"):
+        clf.fit(X, Y)
+
 
 def test_cross_val_multiscore():
     """Test cross_val_multiscore for computing scores on decoding over time."""
