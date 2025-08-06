@@ -472,7 +472,13 @@ class LinearModel(MetaEstimatorMixin, BaseEstimator):
         return self
 
     def predict(self, X):
-        """..."""
+        """Predict labels of new data using fitted linear model.
+
+        Parameters
+        ----------
+        X : array, shape (n_samples, n_features)
+            Data to label.
+        """
         check_is_fitted(self)
         return self.model_.predict(X)
 
