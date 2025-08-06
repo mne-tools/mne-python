@@ -476,14 +476,16 @@ class LinearModel(MetaEstimatorMixin, BaseEstimator):
 
     @property
     def filters_(self):
-        check_is_fitted(self)
+        check_is_fitted(self.model_)
         if hasattr(self.model_, "coef_"):
             # Standard Linear Model
             filters = self.model_.coef_
         elif hasattr(self.model_, "estimators_"):
             # Linear model with OneVsRestClassifier
             filters = np.vstack([est.coef_ for est in self.model_.estimators_])
-        elif hasattr(self.model_.best_estimator_, "coef_"):
+        elif hasattr(self.model_, "best_estimator_") and hasattr(
+            self.model_.best_estimator_, "coef_"
+        ):
             # Linear Model with GridSearchCV
             filters = self.model_.best_estimator_.coef_
         else:
@@ -510,6 +512,11 @@ class LinearModel(MetaEstimatorMixin, BaseEstimator):
     @model.setter
     def model(self, value):
         self._orig_model = value
+
+    # XXX Remove this after 'model' warning cycle
+    def __repr__(self):
+        """Avoid FutureWarning from filter_ when printing the instance."""
+        return f"LinearModel(model={self._orig_model})"
 
 
 def _set_cv(cv, estimator=None, X=None, y=None):

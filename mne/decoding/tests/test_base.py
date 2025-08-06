@@ -385,6 +385,16 @@ def test_linearmodel():
     clf = LinearModel(LinearDiscriminantAnalysis())
     _ = clf.fit_transform(X, y)
 
+    # check that model has to have coef_, RBF-SVM doesn't
+    clf = LinearModel(svm.SVC(kernel="rbf"))
+    with pytest.raises(ValueError, match="does not have a `coef_`"):
+        clf.fit(X, y)
+
+    # check that model has to be a predictor
+    clf = LinearModel(StandardScaler())
+    with pytest.raises(ValueError, match="classifier or regressor"):
+        clf.fit(X, y)
+
     # check categorical target fit in standard linear model with GridSearchCV
     parameters = {"kernel": ["linear"], "C": [1, 10]}
     clf = LinearModel(
@@ -420,11 +430,6 @@ def test_linearmodel():
     with pytest.raises(ValueError):
         wrong_y = rng.rand(n, n_features, 99)
         clf.fit(X, wrong_y)
-
-    # check that model has to be a predictor
-    clf = LinearModel(StandardScaler())
-    with pytest.raises(ValueError, match="classifier or regressor"):
-        clf.fit(X, Y)
 
 
 def test_cross_val_multiscore():
