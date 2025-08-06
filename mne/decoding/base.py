@@ -22,7 +22,7 @@ from sklearn.base import (  # noqa: F401
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import check_scoring
 from sklearn.model_selection import KFold, StratifiedKFold, check_cv
-from sklearn.utils import get_tags, indexable
+from sklearn.utils import indexable
 from sklearn.utils.validation import check_is_fitted, validate_data
 
 from ..parallel import parallel_func
@@ -401,7 +401,7 @@ class LinearModel(MetaEstimatorMixin, BaseEstimator):
         """Get sklearn tags."""
         tags = super().__sklearn_tags__()
         # XXX Change self._orig_model to self.model after 'model' warning cycle
-        model_tags = get_tags(self._orig_model)
+        model_tags = self._orig_model.__sklearn_tags__()
         tags.estimator_type = model_tags.estimator_type
         if tags.estimator_type is not None:
             model_type_tags = getattr(model_tags, f"{tags.estimator_type}_tags")
