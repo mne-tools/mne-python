@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "73f77b49606469863d510e307fa4a05311bc8251",
+  "authors": [
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".pre-commit-config.yaml": {
+      "a": 1,
+      "d": 1
+    },
+    "azure-pipelines.yml": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

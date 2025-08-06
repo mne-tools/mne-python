@@ -41,7 +41,8 @@ keywords = [
   "neuroimaging",
   "neuroscience",
 ]
-license = {text = "BSD-3-Clause"}
+license = "BSD-3-Clause"
+license-files = ["LICENSE"]
 maintainers = [{email = "dan@mccloy.info", name = "Dan McCloy"}]
 name = "mne"
 readme = {content-type = "text/x-rst", file = "README.rst"}
