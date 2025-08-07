@@ -429,8 +429,8 @@ class LinearModel(MetaEstimatorMixin, BaseEstimator):
         return self.fit(X, y).transform(X)
 
     def _validate_params(self):
-        model_type = self.__sklearn_tags__().estimator_type
-        if model_type not in ("classifier", "regressor"):
+        is_predictor = is_regressor(self._orig_model) or is_classifier(self._orig_model)
+        if not is_predictor:
             raise ValueError(
                 "Linear model should be a supervised predictor "
                 "(classifier or regressor)"
