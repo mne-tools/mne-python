@@ -6,6 +6,7 @@
 
 import re
 from datetime import datetime, timedelta, timezone
+from typing import TYPE_CHECKING
 
 import numpy as np
 
@@ -47,20 +48,26 @@ def _parse_eyelink_ascii(
 ):
     # ======================== Parse ASCII File =========================
     raw_extras = dict()
-    raw_extras.update(_parse_recording_blocks(fname))
-    raw_extras.update(_get_metadata(raw_extras))
     raw_extras["dt"] = _get_recording_datetime(fname)
-    _validate_data(raw_extras)
+    data_blocks: list[dict] = _parse_recording_blocks(fname)
+    _validate_data(data_blocks)
 
     # ======================== Create DataFrames ========================
-    raw_extras["dfs"] = _create_dataframes(raw_extras, apply_offsets)
-    del raw_extras["sample_lines"]  # free up memory
-    # add column names to dataframes and set the dtype of each column
-    col_names, ch_names = _infer_col_names(raw_extras)
-    raw_extras["dfs"] = _assign_col_names(col_names, raw_extras["dfs"])
-    raw_extras["dfs"] = _set_df_dtypes(raw_extras["dfs"])  # set dtypes for dataframes
+    # Process each block individually, then combine
+    processed_blocks = _create_dataframes(data_blocks, apply_offsets)
+    raw_extras["dfs"], ch_names = _combine_block_dataframes(processed_blocks)
+    for block in data_blocks:
+        del block["samples"]  # remove samples from block to save memory
+
+    # TODO: We still assume that sfreq and units are static across all blocks.
+    # But we should probably check this with SR Research...
+    first_block = data_blocks[0]
+    raw_extras["pos_unit"] = first_block["info"]["unit"]
+    raw_extras["sfreq"] = first_block["info"]["sfreq"]
+    raw_extras["first_timestamp"] = first_block["info"]["first_timestamp"]
+    raw_extras["n_blocks"] = len(data_blocks)
     # if HREF data, convert to radians
-    if "HREF" in raw_extras["rec_info"]:
+    if raw_extras["pos_unit"] == "HREF":
         raw_extras["dfs"]["samples"] = _convert_href_samples(
             raw_extras["dfs"]["samples"]
         )
@@ -75,7 +82,7 @@ def _parse_eyelink_ascii(
         )
     # Convert timestamps to seconds
     for df in raw_extras["dfs"].values():
-        df = _convert_times(df, raw_extras["first_samp"])
+        df = _convert_times(df, raw_extras["first_timestamp"])
     # Find overlaps between left and right eye events
     if find_overlaps:
         for key in raw_extras["dfs"]:
@@ -117,59 +124,90 @@ def _parse_recording_blocks(fname):
             "BUTTON": [],
             "PUPIL": [],
         }
+        data_blocks = []
 
         is_recording_block = False
         for line in file:
             if line.startswith("START"):  # start of recording block
                 is_recording_block = True
+                # Initialize container for new block data
+                current_block = {
+                    "samples": [],
+                    "events": {
+                        "START": [],
+                        "END": [],
+                        "SAMPLES": [],
+                        "EVENTS": [],
+                        "ESACC": [],
+                        "EBLINK": [],
+                        "EFIX": [],
+                        "MSG": [],
+                        "INPUT": [],
+                        "BUTTON": [],
+                        "PUPIL": [],
+                    },
+                    "info": None,
+                }
             if is_recording_block:
                 tokens = line.split()
                 if not tokens:
                     continue  # skip empty lines
                 if tokens[0][0].isnumeric():  # Samples
-                    data_dict["sample_lines"].append(tokens)
-                elif tokens[0] in data_dict["event_lines"].keys():
+                    current_block["samples"].append(tokens)
+                elif tokens[0] in current_block["events"].keys():
                     if _is_sys_msg(line):
                         continue  # system messages don't need to be parsed.
                     event_key, event_info = tokens[0], tokens[1:]
-                    data_dict["event_lines"][event_key].append(event_info)
+                    current_block["events"][event_key].append(event_info)
                     if tokens[0] == "END":  # end of recording block
+                        current_block["info"] = _get_metadata(current_block)
+                        data_blocks.append(current_block)
                         is_recording_block = False
-        if not data_dict["sample_lines"]:  # no samples parsed
+        if not data_blocks:  # no samples parsed
             raise ValueError(f"Couldn't find any samples in {fname}")
-        return data_dict
+        return data_blocks
 
 
-def _validate_data(raw_extras):
+def _validate_data(data_blocks: list):
     """Check the incoming data for some known problems that can occur."""
     # Detect the datatypes that are in file.
-    if "GAZE" in raw_extras["rec_info"]:
+    units = []
+    pupil_units = []
+    modes = []
+    eyes = []
+    for block in data_blocks:
+        units.append(block["info"]["unit"])
+        modes.append(block["info"]["tracking_mode"])
+        eyes.append(block["info"]["eye"])
+        pupil_units.append(block["info"]["pupil_unit"])
+    if "GAZE" in units:
         logger.info(
             "Pixel coordinate data detected."
             "Pass `scalings=dict(eyegaze=1e3)` when using plot"
             " method to make traces more legible."
         )
-
-    elif "HREF" in raw_extras["rec_info"]:
+    if "HREF" in units:
         logger.info("Head-referenced eye-angle (HREF) data detected.")
-    elif "PUPIL" in raw_extras["rec_info"]:
+    elif "PUPIL" in units:
         warn("Raw eyegaze coordinates detected. Analyze with caution.")
-    if "AREA" in raw_extras["pupil_info"]:
+    if "AREA" in pupil_units:
         logger.info("Pupil-size area detected.")
-    elif "DIAMETER" in raw_extras["pupil_info"]:
+    elif "DIAMETER" in pupil_units:
         logger.info("Pupil-size diameter detected.")
-    # If more than 1 recording period, check whether eye being tracked changed.
-    if raw_extras["n_blocks"] > 1:
-        if raw_extras["tracking_mode"] == "monocular":
-            blocks_list = raw_extras["event_lines"]["SAMPLES"]
-            eye_per_block = [block_info[1].lower() for block_info in blocks_list]
-            if not all([this_eye == raw_extras["eye"] for this_eye in eye_per_block]):
-                warn(
-                    "The eye being tracked changed during the"
-                    " recording. The channel names will reflect"
-                    " the eye that was tracked at the start of"
-                    " the recording."
-                )
+
+    if len(set(modes)) > 1:
+        warn(
+            "Acquisition changed between monocular and binocular "
+            "tracking during the recording."
+        )
+    # Monocular tracking but switched between left/right eye
+    elif len(set(eyes)) > 1:
+        warn(
+            "The eye being tracked changed during the"
+            " recording. The channel names will reflect"
+            " the eye that was tracked at the start of"
+            " the recording."
+        )
 
 
 def _get_recording_datetime(fname):
@@ -203,23 +241,22 @@ def _get_recording_datetime(fname):
         return
 
 
-def _get_metadata(raw_extras):
-    """Get tracking mode, sfreq, eye tracked, pupil metric, etc.
-
-    Don't call this until after _parse_recording_blocks.
-    """
+def _get_metadata(data_block: dict):
+    """Get tracking mode, sfreq, eye tracked, pupil metric, etc. for one data block."""
     meta_data = dict()
-    meta_data["rec_info"] = raw_extras["event_lines"]["SAMPLES"][0]
-    if ("LEFT" in meta_data["rec_info"]) and ("RIGHT" in meta_data["rec_info"]):
+    rec_info = data_block["events"]["SAMPLES"][0]
+    meta_data["unit"] = rec_info[0]
+    meta_data["pupil_unit"] = data_block["events"]["PUPIL"][0][0]
+    if ("LEFT" in rec_info) and ("RIGHT" in rec_info):
         meta_data["tracking_mode"] = "binocular"
         meta_data["eye"] = "both"
     else:
         meta_data["tracking_mode"] = "monocular"
-        meta_data["eye"] = meta_data["rec_info"][1].lower()
-    meta_data["first_samp"] = float(raw_extras["event_lines"]["START"][0][0])
-    meta_data["sfreq"] = _get_sfreq_from_ascii(meta_data["rec_info"])
-    meta_data["pupil_info"] = raw_extras["event_lines"]["PUPIL"][0]
-    meta_data["n_blocks"] = len(raw_extras["event_lines"]["START"])
+        meta_data["eye"] = rec_info[1].lower()
+    meta_data["first_timestamp"] = float(data_block["events"]["START"][0][0])
+    meta_data["last_timestamp"] = float(data_block["events"]["END"][0][0])
+    meta_data["sfreq"] = _get_sfreq_from_ascii(rec_info)
+    meta_data["rec_info"] = data_block["events"]["SAMPLES"][0]
     return meta_data
 
 
@@ -268,35 +305,71 @@ def _get_sfreq_from_ascii(rec_info):
     return float(rec_info[rec_info.index("RATE") + 1])
 
 
-def _create_dataframes(raw_extras, apply_offsets):
-    """Create pandas.DataFrame for Eyelink samples and events.
+def _create_dataframes(data_blocks, apply_offsets):
+    """Create and process pandas DataFrames for each recording block.
+
+    Processes each block individually with its own column structure,
+    then returns a list of processed block dataframes.
+    """
+    if TYPE_CHECKING:
+        import pandas as pd
+    else:
+        pd = _check_pandas_installed()
+    processed_blocks = []
+
+    for block_idx, block in enumerate(data_blocks):
+        # Create dataframes for this block
+        block_dfs = _create_dataframes_for_block(block, apply_offsets)
+
+        # Infer column names for this specific block
+        col_names, ch_names = _infer_col_names_for_block(block)
+
+        # Assign column names and set dtypes for this block
+        block_dfs: dict[str, pd.DataFrame] = _assign_col_names(col_names, block_dfs)
+        block_dfs: dict[str, pd.DataFrame] = _set_df_dtypes(block_dfs)
+
+        processed_blocks.append(
+            {
+                "block_idx": block_idx,
+                "dfs": block_dfs,
+                "ch_names": ch_names,
+                "info": block["info"],
+            }
+        )
+    return processed_blocks
+
+
+def _create_dataframes_for_block(block, apply_offsets):
+    """Create pandas.DataFrame for one recording block's samples and events.
 
     Creates a pandas DataFrame for sample_lines and for each
-    non-empty key in event_lines.
+    non-empty key in event_lines for a single recording block.
+    No column names are assigned at this point.
+    This also returns the MNE channel names needed to represent this block of data.
     """
     pd = _check_pandas_installed()
     df_dict = dict()
 
-    # dataframe for samples
-    df_dict["samples"] = pd.DataFrame(raw_extras["sample_lines"])
-    df_dict["samples"] = _drop_status_col(df_dict["samples"])  # drop STATUS col
+    # dataframe for samples in this block
+    if block["samples"]:
+        df_dict["samples"] = pd.DataFrame(block["samples"])
+        df_dict["samples"] = _drop_status_col(df_dict["samples"])  # drop STATUS col
 
-    # dataframe for each type of occular event
+    # dataframe for each type of occular event in this block
     for event, label in zip(
         ["EFIX", "ESACC", "EBLINK"], ["fixations", "saccades", "blinks"]
     ):
-        if raw_extras["event_lines"][event]:  # an empty list returns False
-            df_dict[label] = pd.DataFrame(raw_extras["event_lines"][event])
+        if block["events"][event]:  # an empty list returns False
+            df_dict[label] = pd.DataFrame(block["events"][event])
         else:
-            logger.info(
-                f"No {label} were found in this file. "
-                f"Not returning any info on {label}."
-            )
+            # Changed this from info to debug level to avoid spamming the log
+            block_idx = block["info"]["block_idx"]
+            logger.debug(f"No {label} events found in block {block_idx}")
 
-    # make dataframe for experiment messages
-    if raw_extras["event_lines"]["MSG"]:
+    # make dataframe for experiment messages in this block
+    if block["events"]["MSG"]:
         msgs = []
-        for token in raw_extras["event_lines"]["MSG"]:
+        for token in block["events"]["MSG"]:
             if apply_offsets and len(token) == 2:
                 ts, msg = token
                 offset = np.nan
@@ -314,19 +387,135 @@ def _create_dataframes(raw_extras, apply_offsets):
             msgs.append([ts, offset, msg])
         df_dict["messages"] = pd.DataFrame(msgs)
 
-    # make dataframe for recording block start, end times
-    i = 1
-    blocks = list()
-    for bgn, end in zip(
-        raw_extras["event_lines"]["START"], raw_extras["event_lines"]["END"]
-    ):
-        blocks.append((float(bgn[0]), float(end[0]), i))
-        i += 1
-    cols = ["time", "end_time", "block"]
-    df_dict["recording_blocks"] = pd.DataFrame(blocks, columns=cols)
-
-    # TODO: Make dataframes for other eyelink events (Buttons)
+        # TODO: Make dataframes for other eyelink events (Buttons)
     return df_dict
+
+
+def _infer_col_names_for_block(block: dict) -> tuple[dict[str, list], list]:
+    """Build column and channel names for data from one Eyelink recording block.
+
+    Returns the expected column names for the sample lines and event
+    lines for a single recording block. The columns present can vary
+    between blocks if tracking mode changes.
+    """
+    col_names = {}
+    block_info = block["info"]
+
+    # initiate the column names for the sample lines
+    col_names["samples"] = list(EYELINK_COLS["timestamp"])
+    col_names["messages"] = list(EYELINK_COLS["messages"])
+
+    # and for the eye message lines
+    col_names["blinks"] = list(EYELINK_COLS["eye_event"])
+    col_names["fixations"] = list(EYELINK_COLS["eye_event"] + EYELINK_COLS["fixation"])
+    col_names["saccades"] = list(EYELINK_COLS["eye_event"] + EYELINK_COLS["saccade"])
+
+    # Get block-specific tracking info
+    tracking_mode = block_info["tracking_mode"]
+    eye = block_info["eye"]
+    rec_info = block["events"]["SAMPLES"][0]  # SAMPLES line for this block
+
+    # Recording was either binocular or monocular for this block
+    if tracking_mode == "monocular":
+        ch_names = list(EYELINK_COLS["pos"][eye])
+    elif tracking_mode == "binocular":
+        ch_names = list(EYELINK_COLS["pos"]["left"] + EYELINK_COLS["pos"]["right"])
+    col_names["samples"].extend(ch_names)
+
+    # The order of these if statements should not be changed.
+    if "VEL" in rec_info:  # If velocity data are reported
+        if tracking_mode == "monocular":
+            ch_names.extend(EYELINK_COLS["velocity"][eye])
+            col_names["samples"].extend(EYELINK_COLS["velocity"][eye])
+        elif tracking_mode == "binocular":
+            ch_names.extend(
+                EYELINK_COLS["velocity"]["left"] + EYELINK_COLS["velocity"]["right"]
+            )
+            col_names["samples"].extend(
+                EYELINK_COLS["velocity"]["left"] + EYELINK_COLS["velocity"]["right"]
+            )
+    # if resolution data are reported
+    if "RES" in rec_info:
+        ch_names.extend(EYELINK_COLS["resolution"])
+        col_names["samples"].extend(EYELINK_COLS["resolution"])
+        col_names["fixations"].extend(EYELINK_COLS["resolution"])
+        col_names["saccades"].extend(EYELINK_COLS["resolution"])
+    # if digital input port values are reported
+    if "INPUT" in rec_info:
+        ch_names.extend(EYELINK_COLS["input"])
+        col_names["samples"].extend(EYELINK_COLS["input"])
+
+    # if head target info was reported, add its cols
+    if "HTARGET" in rec_info:
+        ch_names.extend(EYELINK_COLS["remote"])
+        col_names["samples"].extend(EYELINK_COLS["remote"])
+
+    return col_names, ch_names
+
+
+def _combine_block_dataframes(processed_blocks: list[dict]):
+    """Combine dataframes across acquisition blocks.
+
+    Creates a unified column structure and fills missing columns with NaN
+    when blocks have different columns/data in them (e.g. binocular vs monocular
+    tracking, or switching between the left and right eye).
+    """
+    pd = _check_pandas_installed()
+
+    # Determine unified column structure by collecting all unique column names
+    # across all acquisition blocks
+    all_ch_names = set()
+    all_samples_cols = set()
+    all_df_types = set()
+
+    for block in processed_blocks:
+        all_ch_names.update(block["ch_names"])
+        if "samples" in block["dfs"]:
+            all_samples_cols.update(block["dfs"]["samples"].columns)
+        all_df_types.update(block["dfs"].keys())
+
+    # Convert to sorted lists for consistent ordering
+    unified_ch_names = sorted(all_ch_names)
+    unified_samples_cols = sorted(all_samples_cols)
+
+    # Combine dataframes by type
+    combined_dfs = {}
+
+    for df_type in all_df_types:
+        block_dfs = []
+
+        for block in processed_blocks:
+            if df_type in block["dfs"]:
+                # We will update the dfs in-place to conserve memory
+                block_df = block["dfs"][df_type]
+
+                # For samples dataframes, ensure all have the same columns
+                if df_type == "samples":
+                    # Add missing columns with NaN
+                    for col in unified_samples_cols:
+                        if col not in block_df.columns:
+                            block_df[col] = np.nan
+
+                    # Reorder columns to match unified structure
+                    block_df = block_df[unified_samples_cols]
+
+                block_dfs.append(block_df)
+
+        if block_dfs:
+            # Concatenate all blocks for this dataframe type
+            combined_dfs[df_type] = pd.concat(block_dfs, ignore_index=True)
+
+    # Create recording blocks dataframe from block info
+    blocks_data = []
+    for i, block in enumerate(processed_blocks):
+        start_time = block["info"]["first_timestamp"]
+        end_time = block["info"]["last_timestamp"]
+        blocks_data.append((start_time, end_time, i + 1))
+    combined_dfs["recording_blocks"] = pd.DataFrame(
+        blocks_data, columns=["time", "end_time", "block"]
+    )
+
+    return combined_dfs, unified_ch_names
 
 
 def _drop_status_col(samples_df):
@@ -347,70 +536,15 @@ def _drop_status_col(samples_df):
     return samples_df.drop(columns=status_cols)
 
 
-def _infer_col_names(raw_extras):
-    """Build column and channel names for data from Eyelink ASCII file.
-
-    Returns the expected column names for the sample lines and event
-    lines, to be passed into pd.DataFrame. The columns present in an eyelink ASCII
-    file can vary. The order that col_names are built below should NOT change.
-    """
-    col_names = {}
-    # initiate the column names for the sample lines
-    col_names["samples"] = list(EYELINK_COLS["timestamp"])
-    col_names["messages"] = list(EYELINK_COLS["messages"])
-
-    # and for the eye message lines
-    col_names["blinks"] = list(EYELINK_COLS["eye_event"])
-    col_names["fixations"] = list(EYELINK_COLS["eye_event"] + EYELINK_COLS["fixation"])
-    col_names["saccades"] = list(EYELINK_COLS["eye_event"] + EYELINK_COLS["saccade"])
-
-    # Recording was either binocular or monocular
-    # If monocular, find out which eye was tracked and append to ch_name
-    if raw_extras["tracking_mode"] == "monocular":
-        eye = raw_extras["eye"]
-        ch_names = list(EYELINK_COLS["pos"][eye])
-    elif raw_extras["tracking_mode"] == "binocular":
-        ch_names = list(EYELINK_COLS["pos"]["left"] + EYELINK_COLS["pos"]["right"])
-    col_names["samples"].extend(ch_names)
-
-    # The order of these if statements should not be changed.
-    if "VEL" in raw_extras["rec_info"]:  # If velocity data are reported
-        if raw_extras["tracking_mode"] == "monocular":
-            ch_names.extend(EYELINK_COLS["velocity"][eye])
-            col_names["samples"].extend(EYELINK_COLS["velocity"][eye])
-        elif raw_extras["tracking_mode"] == "binocular":
-            ch_names.extend(
-                EYELINK_COLS["velocity"]["left"] + EYELINK_COLS["velocity"]["right"]
-            )
-            col_names["samples"].extend(
-                EYELINK_COLS["velocity"]["left"] + EYELINK_COLS["velocity"]["right"]
-            )
-    # if resolution data are reported
-    if "RES" in raw_extras["rec_info"]:
-        ch_names.extend(EYELINK_COLS["resolution"])
-        col_names["samples"].extend(EYELINK_COLS["resolution"])
-        col_names["fixations"].extend(EYELINK_COLS["resolution"])
-        col_names["saccades"].extend(EYELINK_COLS["resolution"])
-    # if digital input port values are reported
-    if "INPUT" in raw_extras["rec_info"]:
-        ch_names.extend(EYELINK_COLS["input"])
-        col_names["samples"].extend(EYELINK_COLS["input"])
-
-    # if head target info was reported, add its cols
-    if "HTARGET" in raw_extras["rec_info"]:
-        ch_names.extend(EYELINK_COLS["remote"])
-        col_names["samples"].extend(EYELINK_COLS["remote"])
-
-    return col_names, ch_names
-
-
 def _assign_col_names(col_names, df_dict):
     """Assign column names to dataframes.
 
     Parameters
     ----------
-    col_names : dict
+    col_names : dict of str to list
         Dictionary of column names for each dataframe.
+    df_dict : dict of str to pandas.DataFrame
+        Dictionary of dataframes to assign column names to.
     """
     skipped_types = []
     for key, df in df_dict.items():
@@ -680,7 +814,7 @@ def _create_info(ch_names, raw_extras):
                 f"leaving index 4 of loc array as"
                 f" {ch_dict['loc'][4]} for {ch_dict['ch_name']}"
             )
-        if "HREF" in raw_extras["rec_info"]:
+        if raw_extras["pos_unit"] == "HREF":
             if ch_dict["ch_name"].startswith(("xpos", "ypos")):
                 ch_dict["unit"] = FIFF.FIFF_UNIT_RAD
     return info
