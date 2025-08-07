@@ -33,13 +33,20 @@ invisible_fig
 captions_new
 comments_new
 items_new
-has_imageio_ffmpeg
-has_pyvista
 f4
 set_channel_types_eyetrack
 _use_test_3d_backend
 verbose_debug
 metadata_routing
+
+# Decoding
+_._more_tags
+_.multi_class
+_.preserves_dtype
+_.one_d_labels
+_.two_d_array
+_.three_d_array
+deep
 
 # Backward compat or rarely used
 RawFIF
@@ -75,6 +82,7 @@ _.drop_inds_
 
 # mne/io/ant/tests/test_ant.py
 andy_101
+na_271
 
 # mne/io/snirf/tests/test_snirf.py
 _.dataTimeSeries

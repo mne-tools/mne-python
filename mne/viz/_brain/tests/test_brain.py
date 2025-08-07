@@ -483,7 +483,9 @@ def test_brain_init(renderer_pyvistaqt, tmp_path, pixel_ratio, brain_gc):
         ori=[[0, 1, 0]],
         gof=50,
     )
-    brain.add_dipole(dip, fname_trans, colors="blue", scales=5, alpha=0.5)
+    brain.add_dipole(
+        dip, fname_trans, colors="blue", scales=5, alpha=0.5, mode="sphere"
+    )
     brain.remove_dipole()
 
     with pytest.raises(ValueError, match="The number of colors"):
@@ -772,10 +774,8 @@ def test_single_hemi(hemi, renderer_interactive_pyvistaqt, brain_gc):
 @pytest.mark.parametrize("interactive_state", (False, True))
 def test_brain_save_movie(tmp_path, renderer, brain_gc, interactive_state):
     """Test saving a movie of a Brain instance."""
+    pytest.importorskip("imageio")
     imageio_ffmpeg = pytest.importorskip("imageio_ffmpeg")
-    # TODO: Figure out why this fails -- some imageio_ffmpeg error
-    if os.getenv("MNE_CI_KIND", "") == "conda" and platform.system() == "Linux":
-        pytest.skip("Test broken for unknown reason on conda linux")
 
     brain = _create_testing_brain(
         hemi="lh", time_viewer=False, cortex=["r", "b"]
@@ -850,14 +850,6 @@ def tiny(tmp_path):
 def test_brain_screenshot(renderer_interactive_pyvistaqt, tmp_path, brain_gc):
     """Test time viewer screenshot."""
     # This is broken on Conda + GHA for some reason
-    from qtpy import API_NAME
-
-    if (
-        os.getenv("CONDA_PREFIX", "") != ""
-        and os.getenv("GITHUB_ACTIONS", "") == "true"
-        or API_NAME.lower() == "pyside6"
-    ):
-        pytest.skip("Test is unreliable on GitHub Actions conda runs and pyside6")
     tiny_brain, ratio = tiny(tmp_path)
     img_nv = tiny_brain.screenshot(time_viewer=False)
     want = (_TINY_SIZE[1] * ratio, _TINY_SIZE[0] * ratio, 3)
@@ -875,9 +867,9 @@ def _assert_brain_range(brain, rng):
         for key, mesh in layerer._overlays.items():
             if key == "curv":
                 continue
-            assert (
-                mesh._rng == rng
-            ), f"_layered_meshes[{repr(hemi)}][{repr(key)}]._rng != {rng}"
+            assert mesh._rng == rng, (
+                f"_layered_meshes[{repr(hemi)}][{repr(key)}]._rng != {rng}"
+            )
 
 
 @testing.requires_testing_data
@@ -1021,19 +1013,19 @@ def test_brain_traces(renderer_interactive_pyvistaqt, hemi, src, tmp_path, brain
             current_mesh = brain._layered_meshes[current_hemi]._polydata
             cell_id = rng.randint(0, current_mesh.n_cells)
             test_picker = TstVTKPicker(current_mesh, cell_id, current_hemi, brain)
-            assert len(brain.picked_patches[current_hemi]) == 0
+            assert len(brain._picked_patches[current_hemi]) == 0
             brain._on_pick(test_picker, None)
-            assert len(brain.picked_patches[current_hemi]) == 1
-            for label_id in list(brain.picked_patches[current_hemi]):
+            assert len(brain._picked_patches[current_hemi]) == 1
+            for label_id in list(brain._picked_patches[current_hemi]):
                 label = brain._annotation_labels[current_hemi][label_id]
                 assert isinstance(label._line, Line2D)
             brain.widgets["extract_mode"].set_value("mean")
             brain.clear_glyphs()
-            assert len(brain.picked_patches[current_hemi]) == 0
+            assert len(brain._picked_patches[current_hemi]) == 0
             brain._on_pick(test_picker, None)  # picked and added
-            assert len(brain.picked_patches[current_hemi]) == 1
+            assert len(brain._picked_patches[current_hemi]) == 1
             brain._on_pick(test_picker, None)  # picked again so removed
-            assert len(brain.picked_patches[current_hemi]) == 0
+            assert len(brain._picked_patches[current_hemi]) == 0
         # test switching from 'label' to 'vertex'
         brain.widgets["annotation"].set_value("None")
         brain.widgets["extract_mode"].set_value("max")
@@ -1075,8 +1067,7 @@ def test_brain_traces(renderer_interactive_pyvistaqt, hemi, src, tmp_path, brain
     )
     assert brain.show_traces
     assert brain.traces_mode == "vertex"
-    assert hasattr(brain, "picked_points")
-    assert hasattr(brain, "_spheres")
+    assert hasattr(brain, "_picked_points")
     assert brain._scalar_bar.GetNumberOfLabels() == 3
 
     # add foci should work for 'lh', 'rh' and 'vol'
@@ -1086,7 +1077,7 @@ def test_brain_traces(renderer_interactive_pyvistaqt, hemi, src, tmp_path, brain
 
     # test points picked by default
     picked_points = brain.get_picked_points()
-    spheres = brain._spheres
+    spheres = sum(brain._picked_points.values(), list())
     for current_hemi in hemi_str:
         assert len(picked_points[current_hemi]) == 1
     n_spheres = len(hemi_str)
@@ -1104,7 +1095,9 @@ def test_brain_traces(renderer_interactive_pyvistaqt, hemi, src, tmp_path, brain
         brain.widgets["annotation"].set_value("None")
     # test removing points
     brain.clear_glyphs()
+    spheres = sum(brain._picked_points.values(), list())
     assert len(spheres) == 0
+    picked_points = brain.get_picked_points()
     for key in ("lh", "rh", "vol"):
         assert len(picked_points[key]) == 0
 
@@ -1128,13 +1121,16 @@ def test_brain_traces(renderer_interactive_pyvistaqt, hemi, src, tmp_path, brain
         brain._on_pick(test_picker, None)
         brain._on_pick(test_picker, None)
         assert test_picker.point_id is not None
+        picked_points = brain.get_picked_points()
         assert len(picked_points[current_hemi]) == 1
         assert picked_points[current_hemi][0] == test_picker.point_id
+        spheres = sum(brain._picked_points.values(), list())
         assert len(spheres) > 0
         sphere = spheres[-1]
-        vertex_id = sphere._vertex_id
+        vertex_id = sphere["vertex_id"]
         assert vertex_id == test_picker.point_id
-        line = sphere._line
+        line = sphere["line"]
+        del sphere
 
         hemi_prefix = current_hemi[0].upper()
         if current_hemi == "vol":
@@ -1156,8 +1152,9 @@ def test_brain_traces(renderer_interactive_pyvistaqt, hemi, src, tmp_path, brain
 
         # remove the sphere by clicking in its vicinity
         old_len = len(spheres)
-        test_picker._actors = sum((s._actors for s in spheres), [])
+        test_picker._actors = [s["actor"] for s in spheres]
         brain._on_pick(test_picker, None)
+        spheres = sum(brain._picked_points.values(), list())
         assert len(spheres) < old_len
 
     screenshot = brain.screenshot()
@@ -1245,9 +1242,9 @@ def test_brain_scraper(renderer_interactive_pyvistaqt, brain_gc, tmp_path):
     w = img.shape[1]
     w0 = size[0]
     # On Linux+conda we get a width of 624, similar tweak in test_brain_init above
-    assert np.isclose(w, w0, atol=30) or np.isclose(
-        w, w0 * 2, atol=30
-    ), f"w ∉ {{{w0}, {2 * w0}}}"  # HiDPI
+    assert np.isclose(w, w0, atol=30) or np.isclose(w, w0 * 2, atol=30), (
+        f"w ∉ {{{w0}, {2 * w0}}}"
+    )  # HiDPI
 
 
 @testing.requires_testing_data
@@ -1395,7 +1392,7 @@ def test_brain_ui_events(renderer_interactive_pyvistaqt, brain_gc):
     assert brain._current_time == 1
 
     ui_events.publish(brain, ui_events.VertexSelect(hemi="lh", vertex_id=1))
-    assert 1 in brain.picked_points["lh"]
+    assert 1 in brain.get_picked_points()["lh"]
 
     ui_events.publish(
         brain,

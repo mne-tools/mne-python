@@ -74,6 +74,7 @@ Installing MNE-Python
     :hidden:
 
     installers
+    ides
     manual_install
     advanced
     check_installation

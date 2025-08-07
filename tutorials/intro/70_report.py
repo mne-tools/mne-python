@@ -6,18 +6,17 @@ Getting started with mne.Report
 ===============================
 
 :class:`mne.Report` is a way to create interactive HTML summaries of your data.
-These reports can show many different visualizations for one or multiple
-participants. A common use case is creating diagnostic summaries to check data
-quality at different stages in the processing pipeline. The report can show
-things like plots of data before and after each preprocessing step, epoch
-rejection statistics, MRI slices with overlaid BEM shells, all the way up to
-plots of estimated cortical activity.
+These reports can show many different visualizations for one or multiple participants.
+A common use case is creating diagnostic summaries to check data quality at different
+stages in the processing pipeline. The report can show things like plots of data before
+and after each preprocessing step, epoch rejection statistics, MRI slices with overlaid
+BEM shells, all the way up to plots of estimated cortical activity.
 
-Compared to a Jupyter notebook, :class:`mne.Report` is easier to deploy, as the
-HTML pages it generates are self-contained and do not require a running Python
-environment. However, it is less flexible as you can't change code and re-run
-something directly within the browser. This tutorial covers the basics of
-building a report. As usual, we will start by importing the modules and data we need:
+Compared to a Jupyter notebook, :class:`mne.Report` is easier to deploy, as the HTML
+pages it generates are self-contained and do not require a running Python environment.
+However, it is less flexible as you can't change code and re-run something directly
+within the browser. This tutorial covers the basics of building a report. As usual,
+we will start by importing the modules and data we need:
 """
 
 # Authors: The MNE-Python contributors.
@@ -127,10 +126,9 @@ report.save("report_epochs.html", overwrite=True)
 # specify custom titles via the ``titles`` parameter. Again, this method
 # also accepts the path to an evoked file stored on disk; in the following
 # example, however, we load the evokeds manually first, since we only want to
-# add a subset of them to the report. The evokeds are not baseline-corrected,
-# so we apply baseline correction, too. Lastly, by providing an (optional)
-# noise covariance, we can add plots evokeds that were "whitened" using this
-# covariance matrix.
+# add a subset of them to the report. The evokeds are not baseline-corrected, so we
+# apply baseline correction, too. Lastly, by providing an (optional) noise covariance,
+# we can add plots evokeds that were "whitened" using this covariance matrix.
 #
 # By default, this method will produce topographic plots at 21 equally-spaced time
 # points (or fewer, if the data contains fewer time points). We can adjust this
@@ -184,8 +182,26 @@ report.save("report_cov.html", overwrite=True)
 ecg_proj_path = sample_dir / "sample_audvis_ecg-proj.fif"
 report = mne.Report(title="Projectors example")
 report.add_projs(info=raw_path, title="Projs from info")
-report.add_projs(info=raw_path, projs=ecg_proj_path, title="ECG projs from path")
+
+# Now a joint plot
+events = mne.read_events(sample_dir / "sample_audvis_ecg-eve.fif")
+raw_full = mne.io.read_raw(sample_dir / "sample_audvis_raw.fif").crop(0, 60).load_data()
+ecg_evoked = mne.Epochs(
+    raw=raw_full,
+    events=events,
+    tmin=-0.5,
+    tmax=0.5,
+    baseline=(None, None),
+).average()
+report.img_max_width = None  # do not constrain image width
+report.add_projs(
+    info=ecg_evoked,
+    projs=ecg_proj_path,
+    title="ECG projs from path",
+    joint=True,  # use joint version of the plot
+)
 report.save("report_projs.html", overwrite=True)
+del raw_full, events, ecg_evoked
 
 # %%
 # Adding `~mne.preprocessing.ICA`
@@ -308,7 +324,9 @@ report.save("report_coregistration.html", overwrite=True)
 fwd_path = sample_dir / "sample_audvis-meg-oct-6-fwd.fif"
 
 report = mne.Report(title="Forward solution example")
-report.add_forward(forward=fwd_path, title="Forward solution")
+report.add_forward(
+    forward=fwd_path, title="Forward solution", plot=True, subjects_dir=subjects_dir
+)
 report.save("report_forward_sol.html", overwrite=True)
 
 # %%
@@ -322,7 +340,12 @@ report.save("report_forward_sol.html", overwrite=True)
 inverse_op_path = sample_dir / "sample_audvis-meg-oct-6-meg-inv.fif"
 
 report = mne.Report(title="Inverse operator example")
-report.add_inverse_operator(inverse_operator=inverse_op_path, title="Inverse operator")
+report.add_inverse_operator(
+    inverse_operator=inverse_op_path,
+    title="Inverse operator",
+    plot=True,
+    subjects_dir=subjects_dir,
+)
 report.save("report_inverse_op.html", overwrite=True)
 
 # %%

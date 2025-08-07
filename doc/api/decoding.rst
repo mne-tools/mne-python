@@ -29,6 +29,7 @@ Decoding
    GeneralizingEstimator
    SPoC
    SSD
+   XdawnTransformer
 
 Functions that assist with decoding and model fitting:
 

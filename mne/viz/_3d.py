@@ -50,6 +50,8 @@ from ..surface import (
 )
 from ..transforms import (
     Transform,
+    _angle_between_quats,
+    _angle_dist_between_rigid,
     _ensure_trans,
     _find_trans,
     _frame_to_str,
@@ -131,6 +133,7 @@ def plot_head_positions(
     info=None,
     color="k",
     axes=None,
+    totals=False,
 ):
     """Plot head positions.
 
@@ -149,10 +152,9 @@ def plot_head_positions(
         directional axes in "field" mode.
     show : bool
         Show figure if True. Defaults to True.
-    destination : str | array-like, shape (3,) | None
-        The destination location for the head, assumed to be in head
-        coordinates. See :func:`mne.preprocessing.maxwell_filter` for
-        details.
+    destination : path-like | array-like, shape (3,) | instance of Transform | None
+        The destination location for the head. See
+        :func:`mne.preprocessing.maxwell_filter` for details.
 
         .. versionadded:: 0.16
     %(info)s If provided, will be used to show the destination position when
@@ -164,12 +166,16 @@ def plot_head_positions(
         arrows in ``mode == 'field'``.
 
         .. versionadded:: 0.16
-    axes : array-like, shape (3, 2)
+    axes : array-like, shape (3, 2) or (4, 2)
         The matplotlib axes to use.
 
         .. versionadded:: 0.16
         .. versionchanged:: 1.8
            Added support for making use of this argument when ``mode="field"``.
+    totals : bool
+        If True and in traces mode, show the total distance and angle in a fourth row.
+
+        .. versionadded:: 1.9
 
     Returns
     -------
@@ -182,12 +188,12 @@ def plot_head_positions(
     from ..preprocessing.maxwell import _check_destination
 
     _check_option("mode", mode, ["traces", "field"])
+    _validate_type(totals, bool, "totals")
     dest_info = dict(dev_head_t=None) if info is None else info
-    destination = _check_destination(destination, dest_info, head_frame=True)
+    destination = _check_destination(destination, dest_info, "head")
     if destination is not None:
         destination = _ensure_trans(destination, "head", "meg")  # probably inv
-        destination = destination["trans"][:3].copy()
-        destination[:, 3] *= 1000
+        destination = destination["trans"]
 
     if not isinstance(pos, list | tuple):
         pos = [pos]
@@ -228,15 +234,17 @@ def plot_head_positions(
                 surf["rr"] *= 1000.0
     helmet_color = DEFAULTS["coreg"]["helmet_color"]
     if mode == "traces":
+        want_shape = (3 + int(totals), 2)
         if axes is None:
-            axes = plt.subplots(3, 2, sharex=True)[1]
+            _, axes = plt.subplots(*want_shape, sharex=True, layout="constrained")
         else:
             axes = np.array(axes)
-        if axes.shape != (3, 2):
-            raise ValueError(f"axes must have shape (3, 2), got {axes.shape}")
+        _check_option("axes.shape", axes.shape, (want_shape,))
         fig = axes[0, 0].figure
-
-        labels = ["xyz", ("$q_1$", "$q_2$", "$q_3$")]
+        labels = [["x (mm)", "y (mm)", "z (mm)"], ["$q_1$", "$q_2$", "$q_3$"]]
+        if totals:
+            labels[0].append("dist (mm)")
+            labels[1].append("angle (°)")
         for ii, (quat, coord) in enumerate(zip(use_quats.T, use_trans.T)):
             axes[ii, 0].plot(t, coord, color, lw=1.0, zorder=3)
             axes[ii, 0].set(ylabel=labels[0][ii], xlim=t[[0, -1]])
@@ -245,9 +253,19 @@ def plot_head_positions(
             for b in borders[:-1]:
                 for jj in range(2):
                     axes[ii, jj].axvline(t[b], color="r")
-        for ii, title in enumerate(("Position (mm)", "Rotation (quat)")):
-            axes[0, ii].set(title=title)
-            axes[-1, ii].set(xlabel="Time (s)")
+        if totals:
+            vals = [
+                np.linalg.norm(use_trans, axis=-1),
+                np.rad2deg(_angle_between_quats(use_quats)),
+            ]
+            ii = -1
+            for ci, val in enumerate(vals):
+                axes[ii, ci].plot(t, val, color, lw=1.0, zorder=3)
+                axes[ii, ci].set(ylabel=labels[ci][ii], xlim=t[[0, -1]])
+        titles = ["Position", "Rotation"]
+        for ci, title in enumerate(titles):
+            axes[0, ci].set(title=title)
+            axes[-1, ci].set(xlabel="Time (s)")
         if rrs is not None:
             pos_bads = np.any(
                 [
@@ -305,10 +323,18 @@ def plot_head_positions(
 
         if destination is not None:
             vals = np.array(
-                [destination[:, 3], rot_to_quat(destination[:, :3])]
+                [1000 * destination[:3, 3], rot_to_quat(destination[:3, :3])]
             ).T.ravel()
-            for ax, val in zip(fig.axes, vals):
+            for ax, val in zip(axes[:3].ravel(), vals):
                 ax.axhline(val, color="r", ls=":", zorder=2, lw=1.0)
+            if totals:
+                dest_ang, dest_dist = _angle_dist_between_rigid(
+                    destination,
+                    angle_units="deg",
+                    distance_units="mm",
+                )
+                axes[-1, 0].axhline(dest_dist, color="r", ls=":", zorder=2, lw=1.0)
+                axes[-1, 1].axhline(dest_ang, color="r", ls=":", zorder=2, lw=1.0)
 
     else:  # mode == 'field':
         from matplotlib.colors import Normalize
@@ -694,11 +720,12 @@ def plot_alignment(
                 f'subject ("{subject}") did not match the '
                 f'subject name in src ("{src_subject}")'
             )
-    # configure transforms
-    if isinstance(trans, str) and trans == "auto":
-        subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-        trans = _find_trans(subject, subjects_dir)
-    trans, trans_type = _get_trans(trans, fro="head", to="mri")
+
+    trans, trans_type = _find_trans(
+        trans=trans,
+        subject=subject,
+        subjects_dir=subjects_dir,
+    )
 
     picks = pick_types(
         info,
@@ -889,6 +916,7 @@ def plot_alignment(
             surf, coord_frame, [to_cf_t["mri"], to_cf_t["head"]], copy=True
         )
         renderer.surface(
+            name=key,
             surface=surf,
             color=colors[key],
             opacity=alphas[key],
@@ -995,7 +1023,7 @@ def _handle_sensor_types(meg, eeg, fnirs):
 
     alpha_map = dict(
         meg=dict(sensors="meg", helmet="meg_helmet", ref="ref_meg"),
-        eeg=dict(original="eeg", projected="eeg_projected"),
+        eeg=dict(original="eeg", projected="eegp"),
         fnirs=dict(channels="fnirs", pairs="fnirs_pairs"),
     )
     sensor_alpha = {
@@ -1143,7 +1171,11 @@ def _plot_helmet(
             src_surf, coord_frame, [to_cf_t["mri"], to_cf_t["head"]], copy=True
         )
     actor, dst_surf = renderer.surface(
-        surface=src_surf, color=color, opacity=alpha, backface_culling=False
+        surface=src_surf,
+        color=color,
+        opacity=alpha,
+        backface_culling=False,
+        name="helmet",
     )
     return actor, dst_surf, src_surf
 
@@ -1507,14 +1539,27 @@ def _plot_sensors_3d(
         elif ch_type in _MEG_CH_TYPES_SPLIT:
             ch_type = "meg"
         # only plot sensor locations if channels/original in selection
-        plot_sensors = (ch_type != "fnirs" or "channels" in fnirs) and (
-            ch_type != "eeg" or "original" in eeg
-        )
+        plot_sensors = True
+        if ch_type == "fnirs":
+            if not fnirs or "channels" not in fnirs:
+                plot_sensors = False
+        elif ch_type == "eeg":
+            if not eeg:
+                plot_sensors = False
+        elif ch_type == "meg":
+            if not meg or "sensors" not in meg:
+                plot_sensors = False
         # plot sensors
         if isinstance(ch_coord, tuple):  # is meg, plot coil
             ch_coord = dict(rr=ch_coord[0] * unit_scalar, tris=ch_coord[1])
         if plot_sensors:
-            locs[ch_type].append(ch_coord)
+            if ch_type == "eeg":
+                if "original" in eeg:
+                    locs[ch_type].append(ch_coord)
+                if "projected" in eeg:
+                    locs["eegp"].append(ch_coord)
+            else:
+                locs[ch_type].append(ch_coord)
         if ch_name in sources and "sources" in fnirs:
             locs["source"].append(sources[ch_name])
         if ch_name in detectors and "detectors" in fnirs:
@@ -1558,7 +1603,7 @@ def _plot_sensors_3d(
     assert isinstance(sensor_colors, dict)
     assert isinstance(sensor_scales, dict)
     for ch_type, sens_loc in locs.items():
-        logger.debug(f"Drawing {ch_type} sensors")
+        logger.debug(f"Drawing {ch_type} sensors ({len(sens_loc)})")
         assert len(sens_loc)  # should be guaranteed above
         colors = to_rgba_array(sensor_colors.get(ch_type, defaults[ch_type + "_color"]))
         scales = np.atleast_1d(
@@ -1595,7 +1640,30 @@ def _plot_sensors_3d(
         else:
             sens_loc = np.array(sens_loc, float)
             mask = ~np.isnan(sens_loc).any(axis=1)
-            if len(colors) == 1 and len(scales) == 1:
+            if ch_type == "eegp":  # special case, need to project
+                logger.info("Projecting sensors to the head surface")
+                eegp_loc, eegp_nn = _project_onto_surface(
+                    sens_loc[mask], head_surf, project_rrs=True, return_nn=True
+                )[2:4]
+                eegp_loc *= unit_scalar
+                actor, _ = renderer.quiver3d(
+                    x=eegp_loc[:, 0],
+                    y=eegp_loc[:, 1],
+                    z=eegp_loc[:, 2],
+                    u=eegp_nn[:, 0],
+                    v=eegp_nn[:, 1],
+                    w=eegp_nn[:, 2],
+                    color=colors[0],  # TODO: Maybe eventually support multiple
+                    mode="cylinder",
+                    scale=scales[0] * unit_scalar,  # TODO: Also someday maybe multiple
+                    opacity=sensor_alpha[ch_type],
+                    glyph_height=defaults["eegp_height"],
+                    glyph_center=(0.0, -defaults["eegp_height"] / 2.0, 0),
+                    glyph_resolution=20,
+                    backface_culling=True,
+                )
+                actors["eeg"].append(actor)
+            elif len(colors) == 1 and len(scales) == 1:
                 # Single color mode (one actor)
                 actor, _ = _plot_glyphs(
                     renderer=renderer,
@@ -1668,29 +1736,7 @@ def _plot_sensors_3d(
                         nearest=nearest,
                     )
                     actors[ch_type].append(actor)
-        if ch_type == "eeg" and "projected" in eeg:
-            logger.info("Projecting sensors to the head surface")
-            eegp_loc, eegp_nn = _project_onto_surface(
-                sens_loc[mask], head_surf, project_rrs=True, return_nn=True
-            )[2:4]
-            eegp_loc *= unit_scalar
-            actor, _ = renderer.quiver3d(
-                x=eegp_loc[:, 0],
-                y=eegp_loc[:, 1],
-                z=eegp_loc[:, 2],
-                u=eegp_nn[:, 0],
-                v=eegp_nn[:, 1],
-                w=eegp_nn[:, 2],
-                color=defaults["eegp_color"],
-                mode="cylinder",
-                scale=defaults["eegp_scale"] * unit_scalar,
-                opacity=sensor_alpha["eeg_projected"],
-                glyph_height=defaults["eegp_height"],
-                glyph_center=(0.0, -defaults["eegp_height"] / 2.0, 0),
-                glyph_resolution=20,
-                backface_culling=True,
-            )
-            actors["eeg"].append(actor)
+
     actors = dict(actors)  # get rid of defaultdict
 
     return actors
@@ -2321,6 +2367,7 @@ def plot_source_estimates(
     transparent=True,
     alpha=1.0,
     time_viewer="auto",
+    *,
     subjects_dir=None,
     figure=None,
     views="auto",
@@ -2430,8 +2477,7 @@ def plot_source_estimates(
         Defaults  to 'oct6'.
 
         .. versionadded:: 0.15.0
-    title : str | None
-        Title for the figure. If None, the subject name will be used.
+    %(title_stc)s
 
         .. versionadded:: 0.17.0
     %(show_traces)s
@@ -2510,6 +2556,7 @@ def plot_source_estimates(
                 view_layout=view_layout,
                 add_data_kwargs=add_data_kwargs,
                 brain_kwargs=brain_kwargs,
+                title=title,
                 **kwargs,
             )
 
@@ -2545,6 +2592,7 @@ def _plot_stc(
     view_layout,
     add_data_kwargs,
     brain_kwargs,
+    title,
 ):
     from ..source_estimate import _BaseVolSourceEstimate
     from .backends.renderer import _get_3d_backend, get_brain_class
@@ -2587,7 +2635,9 @@ def _plot_stc(
     if overlay_alpha == 0:
         smoothing_steps = 1  # Disable smoothing to save time.
 
-    title = subject if len(hemis) > 1 else f"{subject} - {hemis[0]}"
+    sub_info = subject if len(hemis) > 1 else f"{subject} - {hemis[0]}"
+    title = title if title is not None else sub_info
+
     kwargs = {
         "subject": subject,
         "hemi": hemi,
@@ -2884,11 +2934,9 @@ def _plot_and_correct(*, params, cut_coords):
     params["axes"].clear()
     if params.get("fig_anat") is not None and plot_kwargs["colorbar"]:
         params["fig_anat"]._cbar.ax.clear()
-    with warnings.catch_warnings(record=True):  # nilearn bug; ax recreated
-        warnings.simplefilter("ignore", DeprecationWarning)
-        params["fig_anat"] = nil_func(
-            params["img_idx"], cut_coords=cut_coords, **plot_kwargs
-        )
+    params["fig_anat"] = nil_func(
+        params["img_idx"], cut_coords=cut_coords, **plot_kwargs
+    )
     params["fig_anat"]._cbar.outline.set_visible(False)
     for key in "xyz":
         params.update({"ax_" + key: params["fig_anat"].axes[key].ax})
@@ -3220,6 +3268,7 @@ def plot_vector_source_estimates(
     vector_alpha=1.0,
     scale_factor=None,
     time_viewer="auto",
+    *,
     subjects_dir=None,
     figure=None,
     views="lateral",
@@ -3231,6 +3280,7 @@ def plot_vector_source_estimates(
     foreground=None,
     initial_time=None,
     time_unit="s",
+    title=None,
     show_traces="auto",
     src=None,
     volume_options=1.0,
@@ -3308,6 +3358,9 @@ def plot_vector_source_estimates(
     time_unit : 's' | 'ms'
         Whether time is represented in seconds ("s", default) or
         milliseconds ("ms").
+    %(title_stc)s
+
+        .. versionadded:: 1.9
     %(show_traces)s
     %(src_volume_options)s
     %(view_layout)s
@@ -3354,6 +3407,7 @@ def plot_vector_source_estimates(
         cortex=cortex,
         foreground=foreground,
         size=size,
+        title=title,
         scale_factor=scale_factor,
         show_traces=show_traces,
         src=src,

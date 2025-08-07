@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "71669461372359ec238f9dfa8aff5499938b690e",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/preprocessing/movement_compensation.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/preprocessing/otp.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/preprocessing/maxwell.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/preprocessing/tests/test_maxwell.py": {
+      "a": 6,
+      "d": 1
+    },
+    "tutorials/inverse/85_brainstorm_phantom_ctf.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

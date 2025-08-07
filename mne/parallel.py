@@ -128,6 +128,21 @@ def parallel_func(
 
         my_func = delayed(run_verbose)
 
+        # if we got that n_jobs=1, we shouldn't bother with any parallelization
+        if n_jobs == 1:
+            # TODO: Hack until https://github.com/joblib/joblib/issues/1687 lands
+            try:
+                backend_repr = str(parallel._backend)
+            except Exception:
+                backend_repr = ""
+            is_local = any(
+                f"{x}Backend" in backend_repr
+                for x in ("Loky", "Threading", "Multiprocessing")
+            )
+            if is_local:
+                my_func = func
+                parallel = list
+
     if total is not None:
 
         def parallel_progress(op_iter):

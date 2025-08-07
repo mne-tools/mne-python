@@ -17,14 +17,20 @@ __all__ = [
     "TransformerMixin",
     "UnsupervisedSpatialFilter",
     "Vectorizer",
+    "XdawnTransformer",
     "compute_ems",
     "cross_val_multiscore",
     "get_coef",
 ]
-from .base import BaseEstimator, LinearModel, cross_val_multiscore, get_coef
+from .base import (
+    BaseEstimator,
+    LinearModel,
+    TransformerMixin,
+    cross_val_multiscore,
+    get_coef,
+)
 from .csp import CSP, SPoC
 from .ems import EMS, compute_ems
-from .mixin import TransformerMixin
 from .receptive_field import ReceptiveField
 from .search_light import GeneralizingEstimator, SlidingEstimator
 from .ssd import SSD
@@ -38,3 +44,4 @@ from .transformer import (
     UnsupervisedSpatialFilter,
     Vectorizer,
 )
+from .xdawn import XdawnTransformer

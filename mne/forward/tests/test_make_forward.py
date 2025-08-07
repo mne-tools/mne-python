@@ -482,7 +482,7 @@ def test_make_forward_solution_openmeeg(n_layers):
         eeg_atol=100,
         meg_corr_tol=0.98,
         eeg_corr_tol=0.98,
-        meg_rdm_tol=0.1,
+        meg_rdm_tol=0.11,
         eeg_rdm_tol=0.2,
     )
 
@@ -719,10 +719,10 @@ def test_make_forward_dipole(tmp_path):
     # Make sure each coordinate is close to reference
     # NB tolerance should be set relative to snr of simulated evoked!
     assert_allclose(
-        dip_fit.pos, dip_test.pos, rtol=0, atol=1e-2, err_msg="position mismatch"
+        dip_fit.pos, dip_test.pos, rtol=0, atol=1.5e-2, err_msg="position mismatch"
     )
     assert dist < 1e-2  # within 1 cm
-    assert corr > 0.985
+    assert corr > 0.98
     assert gc_dist < 20  # less than 20 degrees
     assert amp_err < 10e-9  # within 10 nAm
 
@@ -791,6 +791,7 @@ def test_use_coil_def(tmp_path):
     info = create_info(1, 1000.0, "mag")
     info["chs"][0]["coil_type"] = 9999
     info["chs"][0]["loc"][:] = [0, 0, 0.02, 1, 0, 0, 0, 1, 0, 0, 0, 1]
+    info["dev_head_t"] = Transform("meg", "head")
     sphere = make_sphere_model((0.0, 0.0, 0.0), 0.01)
     src = setup_volume_source_space(pos=5, sphere=sphere)
     trans = Transform("head", "mri", None)

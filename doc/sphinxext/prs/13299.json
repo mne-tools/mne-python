@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "b78d661203f4e805d5a9412583c1a10af3a73106",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/sphinxext/mne_doc_utils.py": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/inverse/morph_volume_stc.py": {
+      "a": 4,
+      "d": 5
+    },
+    "mne/utils/tests/test_config.py": {
+      "a": 3,
+      "d": 1
+    },
+    "tutorials/inverse/50_beamformer_lcmv.py": {
+      "a": 1,
+      "d": 2
+    }
+  }
+}

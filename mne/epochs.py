@@ -411,7 +411,7 @@ class BaseEpochs(
 
         .. versionadded:: 0.16
     %(drop_log)s
-    filename : str | None
+    filename : Path | None
         The filename (if the epochs are read from disk).
     %(metadata_epochs)s
 
@@ -683,7 +683,7 @@ class BaseEpochs(
             # more memory safe in most instances
             for ii, epoch in enumerate(self._data):
                 self._data[ii] = np.dot(self._projector, epoch)
-        self._filename = str(filename) if filename is not None else filename
+        self.filename = filename if filename is not None else filename
         if raw_sfreq is None:
             raw_sfreq = self.info["sfreq"]
         self._raw_sfreq = raw_sfreq
@@ -1353,6 +1353,7 @@ class BaseEpochs(
         fig_facecolor="k",
         fig_background=None,
         font_color="w",
+        select=False,
         show=True,
     ):
         return plot_topo_image_epochs(
@@ -1371,6 +1372,7 @@ class BaseEpochs(
             fig_facecolor=fig_facecolor,
             fig_background=fig_background,
             font_color=font_color,
+            select=select,
             show=show,
         )
 
@@ -1561,8 +1563,10 @@ class BaseEpochs(
         self._getitem(keep, reason, copy=False, drop_event_id=False)
         count = len(try_idx)
         logger.info(
-            "Dropped %d epoch%s: %s"
-            % (count, _pl(count), ", ".join(map(str, np.sort(try_idx))))
+            "Dropped %d epoch%s: %s",
+            count,
+            _pl(count),
+            ", ".join(map(str, np.sort(try_idx))),
         )
 
         return self
@@ -1669,8 +1673,7 @@ class BaseEpochs(
             # we start out with an empty array, allocate only if necessary
             data = np.empty((0, len(self.info["ch_names"]), len(self.times)))
             msg = (
-                f"for {n_events} events and {len(self._raw_times)} "
-                "original time points"
+                f"for {n_events} events and {len(self._raw_times)} original time points"
             )
             if self._decim > 1:
                 msg += " (prior to decimation)"
@@ -2013,9 +2016,18 @@ class BaseEpochs(
         return self
 
     @property
-    def filename(self):
-        """The filename."""
+    def filename(self) -> Path | None:
+        """The filename if the epochs are loaded from disk.
+
+        :type: :class:`pathlib.Path` | ``None``
+        """
         return self._filename
+
+    @filename.setter
+    def filename(self, value):
+        if value is not None:
+            value = _check_fname(value, overwrite="read", must_exist=True)
+        self._filename = value
 
     def __repr__(self):
         """Build string representation."""
@@ -2290,8 +2302,7 @@ class BaseEpochs(
             logger.info(f"Splitting into {n_parts} parts")
             if n_parts > 100:  # This must be an error
                 raise ValueError(
-                    f"Split size {split_size} would result in writing "
-                    f"{n_parts} files"
+                    f"Split size {split_size} would result in writing {n_parts} files"
                 )
 
         if len(self.drop_log) > 100000:
@@ -2454,11 +2465,13 @@ class BaseEpochs(
             # 2b. for non-tag ids, just pass them directly
             # 3. do this for every input
             event_ids = [
-                [
-                    k for k in ids if all(tag in k.split("/") for tag in id_)
-                ]  # ids matching all tags
-                if all(id__ not in ids for id__ in id_)
-                else id_  # straight pass for non-tag inputs
+                (
+                    [
+                        k for k in ids if all(tag in k.split("/") for tag in id_)
+                    ]  # ids matching all tags
+                    if all(id__ not in ids for id__ in id_)
+                    else id_
+                )  # straight pass for non-tag inputs
                 for id_ in event_ids
             ]
             for ii, id_ in enumerate(event_ids):
@@ -3132,7 +3145,7 @@ def make_metadata(
         raise ValueError(
             f"The event names in keep_first and keep_last must "
             f"be mutually exclusive. Specified in both: "
-            f'{", ".join(sorted(keep_first_and_last))}'
+            f"{', '.join(sorted(keep_first_and_last))}"
         )
     del keep_first_and_last
 
@@ -3152,7 +3165,7 @@ def make_metadata(
         if event_name_diff:
             raise ValueError(
                 f"Present in {input_name}, but missing from event_id: "
-                f'{", ".join(event_name_diff)}'
+                f"{', '.join(event_name_diff)}"
             )
 
     _diff_input_strings_vs_event_id(
@@ -3223,7 +3236,7 @@ def make_metadata(
 
     # keep_first and keep_last names
     start_idx = stop_idx
-    metadata[columns[start_idx:]] = ""
+    metadata[columns[start_idx:]] = None
 
     # We're all set, let's iterate over all events and fill in in the
     # respective cells in the metadata. We will subset this to include only
@@ -3545,8 +3558,7 @@ class Epochs(BaseEpochs):
 
         if not isinstance(raw, BaseRaw):
             raise ValueError(
-                "The first argument to `Epochs` must be an "
-                "instance of mne.io.BaseRaw"
+                "The first argument to `Epochs` must be an instance of mne.io.BaseRaw"
             )
         info = deepcopy(raw.info)
         annotations = raw.annotations.copy()
@@ -3564,6 +3576,18 @@ class Epochs(BaseEpochs):
             events, event_id, annotations = _events_from_annotations(
                 raw, events, event_id, annotations, on_missing
             )
+
+            # add the annotations.extras to the metadata
+            if not all(len(d) == 0 for d in annotations.extras):
+                pd = _check_pandas_installed(strict=True)
+                extras_df = pd.DataFrame(annotations.extras)
+                if metadata is None:
+                    metadata = extras_df
+                else:
+                    extras_df.set_index(metadata.index, inplace=True)
+                    metadata = pd.concat(
+                        [metadata, extras_df], axis=1, ignore_index=False
+                    )
 
         # call BaseEpochs constructor
         super().__init__(
@@ -4145,8 +4169,8 @@ def _read_one_epoch_file(f, tree, preload):
 
         if not size_actual == size_expected:
             raise ValueError(
-                "Incorrect number of samples (%d instead of %d)"
-                % (size_actual, size_expected)
+                f"Incorrect number of samples ({size_actual} instead of "
+                f"{size_expected})."
             )
 
         # Calibration factors
@@ -4266,15 +4290,15 @@ class EpochsFIF(BaseEpochs):
                 filetype="epochs",
                 endings=("-epo.fif", "-epo.fif.gz", "_epo.fif", "_epo.fif.gz"),
             )
-            fname = str(_check_fname(fname=fname, must_exist=True, overwrite="read"))
+            fname = _check_fname(fname=fname, must_exist=True, overwrite="read")
         elif not preload:
             raise ValueError("preload must be used with file-like objects")
 
         fnames = [fname]
+        fname_rep = _get_fname_rep(fname)
         ep_list = list()
         raw = list()
         for fname in fnames:
-            fname_rep = _get_fname_rep(fname)
             logger.info(f"Reading {fname_rep} ...")
             fid, tree, _ = fiff_open(fname, preload=preload)
             next_fname = _get_next_fname(fid, fname, tree)
@@ -4430,8 +4454,7 @@ class EpochsFIF(BaseEpochs):
         else:
             # read the correct subset of the data
             raise RuntimeError(
-                "Correct epoch could not be found, please "
-                "contact mne-python developers"
+                "Correct epoch could not be found, please contact mne-python developers"
             )
         # the following is equivalent to this, but faster:
         #
@@ -4815,7 +4838,7 @@ def average_movements(
     del head_pos
     _check_usable(epochs, ignore_ref)
     origin = _check_origin(origin, epochs.info, "head")
-    recon_trans = _check_destination(destination, epochs.info, True)
+    recon_trans = _check_destination(destination, epochs.info, "head")
 
     logger.info(f"Aligning and averaging up to {len(epochs.events)} epochs")
     if not np.array_equal(epochs.events[:, 0], np.unique(epochs.events[:, 0])):

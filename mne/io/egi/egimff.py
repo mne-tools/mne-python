@@ -106,7 +106,7 @@ def _read_mff_header(filepath):
     if bad:
         raise RuntimeError(
             "EGI epoch first/last samps could not be parsed:\n"
-            f'{list(epochs["first_samps"])}\n{list(epochs["last_samps"])}'
+            f"{list(epochs['first_samps'])}\n{list(epochs['last_samps'])}"
         )
     summaryinfo.update(epochs)
     # index which samples in raw are actually readable from disk (i.e., not
@@ -122,6 +122,7 @@ def _read_mff_header(filepath):
     # Add the sensor info.
     sensor_layout_file = op.join(filepath, "sensorLayout.xml")
     sensor_layout_obj = parse(sensor_layout_file)
+
     summaryinfo["device"] = sensor_layout_obj.getElementsByTagName("name")[
         0
     ].firstChild.data
@@ -141,8 +142,8 @@ def _read_mff_header(filepath):
             n_chans = n_chans + 1
     if n_chans != summaryinfo["n_channels"]:
         raise RuntimeError(
-            "Number of defined channels (%d) did not match the "
-            "expected channels (%d)" % (n_chans, summaryinfo["n_channels"])
+            f"Number of defined channels ({n_chans}) did not match the "
+            f"expected channels ({summaryinfo['n_channels']})."
         )
 
     # Check presence of PNS data
@@ -279,7 +280,7 @@ def _read_locs(filepath, egi_info, channel_naming):
 
     fname = op.join(filepath, "coordinates.xml")
     if not op.exists(fname):
-        logger.warn("File coordinates.xml not found, not setting channel locations")
+        warn("File coordinates.xml not found, not setting channel locations")
         ch_names = [channel_naming % (i + 1) for i in range(egi_info["n_channels"])]
         return ch_names, None
     dig_ident_map = {
@@ -487,14 +488,13 @@ class RawMff(BaseRaw):
 
         if mon is not None:
             info.set_montage(mon, on_missing="ignore")
-
-        ref_idx = np.flatnonzero(np.isin(mon.ch_names, REFERENCE_NAMES))
-        if len(ref_idx):
-            ref_idx = ref_idx.item()
-            ref_coords = info["chs"][int(ref_idx)]["loc"][:3]
-            for chan in info["chs"]:
-                if chan["kind"] == FIFF.FIFFV_EEG_CH:
-                    chan["loc"][3:6] = ref_coords
+            ref_idx = np.flatnonzero(np.isin(mon.ch_names, REFERENCE_NAMES))
+            if len(ref_idx):
+                ref_idx = ref_idx.item()
+                ref_coords = info["chs"][int(ref_idx)]["loc"][:3]
+                for chan in info["chs"]:
+                    if chan["kind"] == FIFF.FIFFV_EEG_CH:
+                        chan["loc"][3:6] = ref_coords
 
         file_bin = op.join(input_fname, egi_info["eeg_fname"])
         egi_info["egi_events"] = egi_events
@@ -541,12 +541,9 @@ class RawMff(BaseRaw):
                 annot["description"].append("BAD_EGI_PSG")
             elif pns_samples != eeg_samples:
                 raise RuntimeError(
-                    "PNS samples (%d) did not match EEG samples (%d)"
-                    % (pns_samples, eeg_samples)
+                    f"PNS samples ({pns_samples}) did not match EEG samples "
+                    f"({eeg_samples})."
                 )
-
-        self._filenames = [file_bin]
-        self._raw_extras = [egi_info]
 
         super().__init__(
             info,
@@ -636,7 +633,7 @@ class RawMff(BaseRaw):
         # TODO: Refactor this reading with the PNS reading in a single function
         # (DRY)
         samples_to_read = stop - start
-        with open(self._filenames[fi], "rb", buffering=0) as fid:
+        with open(self.filenames[fi], "rb", buffering=0) as fid:
             # Go to starting block
             current_block = 0
             current_block_info = None

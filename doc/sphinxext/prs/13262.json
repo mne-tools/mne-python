@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "9e5a929a309c66b0ce618795e6cc8123367f9896",
+  "authors": [
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".pre-commit-config.yaml": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/sphinxext/mne_doc_utils.py": {
+      "a": 2,
+      "d": 0
+    },
+    "tools/install_pre_requirements.sh": {
+      "a": 3,
+      "d": 4
+    }
+  }
+}

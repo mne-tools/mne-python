@@ -1013,32 +1013,36 @@ cross_talk : str | None
 
 _dB = """
 dB : bool
-    Whether to plot on a decibel-like scale. If ``True``, plots
-    10 × log₁₀({quantity}){caveat}.{extra}
+    Whether to plot on a decibel scale. If ``True``, plots
+    10 × log₁₀({quantity}){ampl}{caveat}.{extra}
 """
-_ignored_if_normalize = " Ignored if ``normalize=True``."
-_psd = "spectral power"
+_psd = "spectral_power/Hz"
 
+# for the legacy func/methods:
 docdict["dB_plot_psd"] = """\
 dB : bool
-    Plot Power Spectral Density (PSD), in units (amplitude**2/Hz (dB)) if
-    ``dB=True``, and ``estimate='power'`` or ``estimate='auto'``. Plot PSD
-    in units (amplitude**2/Hz) if ``dB=False`` and,
-    ``estimate='power'``. Plot Amplitude Spectral Density (ASD), in units
-    (amplitude/sqrt(Hz)), if ``dB=False`` and ``estimate='amplitude'`` or
-    ``estimate='auto'``. Plot ASD, in units (amplitude/sqrt(Hz) (dB)), if
-    ``dB=True`` and ``estimate='amplitude'``.
+    Plot power spectral density (PSD) in units (dB/Hz) if ``dB=True`` and
+    ``estimate='power'``. Plot PSD in units (amplitude**2/Hz) if
+    ``dB=False`` and ``estimate='power'``. Plot amplitude spectral density (ASD) in
+    units (amplitude/sqrt(Hz)) if ``dB=False`` and ``estimate='amplitude'``.
+    Plot ASD in units (dB/sqrt(Hz)) if ``dB=True`` and ``estimate='amplitude'``.
 """
 docdict["dB_plot_topomap"] = _dB.format(
     quantity=_psd,
-    caveat=" following the application of ``agg_fun``",
-    extra=_ignored_if_normalize,
+    ampl="",
+    caveat=", following the application of ``agg_fun``",
+    extra=" Ignored if ``normalize=True``.",
 )
-docdict["dB_spectrum_plot"] = _dB.format(quantity=_psd, caveat="", extra="")
+docdict["dB_spectrum_plot"] = _dB.format(
+    quantity=_psd,
+    ampl=", or 20 × log₁₀(spectral amplitude/√Hz) if ``amplitude=True``",
+    caveat="",
+    extra="",
+)
 docdict["dB_spectrum_plot_topo"] = _dB.format(
-    quantity=_psd, caveat="", extra=_ignored_if_normalize
+    quantity=_psd, ampl="", caveat="", extra=""
 )
-docdict["dB_tfr_plot_topo"] = _dB.format(quantity="data", caveat="", extra="")
+docdict["dB_tfr_plot"] = _dB.format(quantity="data", ampl="", caveat="", extra="")
 
 _data_template = """
 data : ndarray, shape ({})
@@ -1118,14 +1122,20 @@ depth : None | float | dict
 """
 
 docdict["destination_maxwell_dest"] = """
-destination : path-like | array-like, shape (3,) | None
-    The destination location for the head. Can be ``None``, which
-    will not change the head position, or a path to a FIF file
-    containing a MEG device<->head transformation, or a 3-element array
-    giving the coordinates to translate to (with no rotations).
-    For example, ``destination=(0, 0, 0.04)`` would translate the bases
-    as ``--trans default`` would in MaxFilter™ (i.e., to the default
-    head location).
+destination : path-like | array-like, shape (3,) | instance of Transform | None
+    The destination location for the head. Can be:
+
+    ``None``
+      Will not change the head position.
+    :class:`~mne.transforms.Transform`
+      A MEG device<->head transformation, e.g. ``info["dev_head_t"]``.
+    :class:`numpy.ndarray`
+      A 3-element array giving the coordinates to translate to (with no rotations).
+      For example, ``destination=(0, 0, 0.04)`` would translate the bases
+      as ``--trans default`` would in MaxFilter™ (i.e., to the default
+      head location).
+    ``path-like``
+      A path to a FIF file containing the destination MEG device<->head transformation.
 """
 
 docdict["detrend_epochs"] = """
@@ -1488,19 +1498,22 @@ fmt : 'auto' | 'brainvision' | 'edf' | 'eeglab'
 
 docdict["export_fmt_support_epochs"] = """\
 Supported formats:
-    - EEGLAB (``.set``, uses :mod:`eeglabio`)
+
+- EEGLAB (``.set``, uses :mod:`eeglabio`)
 """
 
 docdict["export_fmt_support_evoked"] = """\
 Supported formats:
-    - MFF (``.mff``, uses :func:`mne.export.export_evokeds_mff`)
+
+- MFF (``.mff``, uses :func:`mne.export.export_evokeds_mff`)
 """
 
 docdict["export_fmt_support_raw"] = """\
 Supported formats:
-    - BrainVision (``.vhdr``, ``.vmrk``, ``.eeg``, uses `pybv <https://github.com/bids-standard/pybv>`_)
-    - EEGLAB (``.set``, uses :mod:`eeglabio`)
-    - EDF (``.edf``, uses `edfio <https://github.com/the-siesta-group/edfio>`_)
+
+- BrainVision (``.vhdr``, ``.vmrk``, ``.eeg``, uses `pybv <https://github.com/bids-standard/pybv>`_)
+- EEGLAB (``.set``, uses :mod:`eeglabio`)
+- EDF (``.edf``, uses `edfio <https://github.com/the-siesta-group/edfio>`_)
 """  # noqa: E501
 
 docdict["export_warning"] = """\
@@ -2000,6 +2013,13 @@ head_source : str | list of str
     :func:`mne.get_head_surf` for more information.
 """
 
+docdict["helmet_upsampling"] = """
+upsampling : int
+    The upsampling factor to use for the helmet mesh. The default (1) does no
+    upsampling. Larger integers lead to more densely sampled helmet surfaces, and
+    the number of vertices increases as a factor of ``4**(upsampling-1)``.
+"""
+
 docdict["hitachi_fname"] = """
 fname : list | str
     Path(s) to the Hitachi CSV file(s). This should only be a list for
@@ -2017,7 +2037,7 @@ or :func:`mne.channels.make_dig_montage` like (for a 3x5/ETG-7000 example):
 >>> mon = mne.channels.make_standard_montage('standard_1020')
 >>> need = 'S1 D1 S2 D2 S3 D3 S4 D4 S5 D5 S6 D6 S7 D7 S8'.split()
 >>> have = 'F3 FC3 C3 CP3 P3 F5 FC5 C5 CP5 P5 F7 FT7 T7 TP7 P7'.split()
->>> mon.rename_channels(dict(zip(have, need)))
+>>> mon.rename_channels(dict(zip(have, need)))  # doctest: +SKIP
 >>> raw.set_montage(mon)  # doctest: +SKIP
 
 The 3x3 (ETG-100) is laid out as two separate layouts::
@@ -2540,6 +2560,15 @@ max_step : int
     :func:`mne.channels.find_ch_adjacency`), and not via sensors **and**
     further dimensions such as time points (e.g., via an additional call of
     :func:`mne.stats.combine_adjacency`).
+"""
+
+docdict["maxwell_mc_interp"] = """
+mc_interp : str
+    Interpolation to use between adjacent time points in movement
+    compensation. Can be "zero" (used by MaxFilter),
+    "linear", or "hann" (default in 1.11).
+
+    .. versionadded:: 1.10
 """
 
 docdict["measure"] = """
@@ -3668,6 +3697,7 @@ rank : None | 'info' | 'full' | dict
 """
 
 docdict["rank"] = _rank_base
+docdict["rank_full"] = _rank_base + "\n    The default is ``'full'``."
 docdict["rank_info"] = _rank_base + "\n    The default is ``'info'``."
 docdict["rank_none"] = _rank_base + "\n    The default is ``None``."
 
@@ -3702,13 +3732,20 @@ ref_channels : str | list of str
 """
 
 docdict["ref_channels_set_eeg_reference"] = """
-ref_channels : list of str | str
+ref_channels : list of str | str | dict
     Can be:
 
-    - The name(s) of the channel(s) used to construct the reference.
+    - The name(s) of the channel(s) used to construct the reference for
+      every channel of ``ch_type``.
     - ``'average'`` to apply an average reference (default)
     - ``'REST'`` to use the Reference Electrode Standardization Technique
       infinity reference :footcite:`Yao2001`.
+    - A dictionary mapping names of data channels to (lists of) names of
+      reference channels. For example, {'A1': 'A3'} would replace the
+      data in channel 'A1' with the difference between 'A1' and 'A3'. To take
+      the average of multiple channels as reference, supply a list of channel
+      names as the dictionary value, e.g. {'A1': ['A2', 'A3']} would replace
+      channel A1 with ``A1 - mean(A2, A3)``.
     - An empty list, in which case MNE will not attempt any re-referencing of
       the data
 """
@@ -4049,6 +4086,15 @@ Some common referencing schemes and the corresponding value for the
     The given EEG electrodes are referenced to a point at infinity using the
     lead fields in ``forward``, which helps standardize the signals.
 
+- Different references for different channels
+    Set ``ref_channels`` to a dictionary mapping source channel names (str)
+    to the reference channel names (str or list of str). Unlike the other
+    approaches where the same reference is applied globally, you can set
+    different references for different channels with this method. For example,
+    to re-reference channel 'A1' to 'A2' and 'B1' to the average of 'B2' and
+    'B3', set ``ref_channels={'A1': 'A2', 'B1': ['B2', 'B3']}``. Warnings are
+    issued when a mapping involves bad channels or channels of different types.
+
 1. If a reference is requested that is not the average reference, this
    function removes any pre-existing average reference projections.
 
@@ -4196,9 +4242,12 @@ splash : bool
 docdict["split_naming"] = """
 split_naming : 'neuromag' | 'bids'
     When splitting files, append a filename partition with the appropriate
-    naming schema: for ``'neuromag'``, a split file ``fname.fif`` will be named
-    ``fname.fif``, ``fname-1.fif``, ``fname-2.fif`` etc.; while for ``'bids'``,
-    it will be named ``fname_split-01.fif``, ``fname_split-02.fif``, etc.
+    naming schema. For ``'neuromag'``, a split file ``fname.fif`` will be named
+    ``fname.fif``, ``fname-1.fif``, ``fname-2.fif``, and so on. For ``'bids'``,
+    a filename is expected to consist of parts separated by underscores, like
+    ``<part-1>_<part-N>_<suffix>.fif``, and the according split naming will
+    return filenames like ``<part-1>_<part-N>_split-01_<suffix>.fif``,
+    ``<part-1>_<part-N>_split-02_<suffix>.fif``, and so on.
 """
 
 docdict["src_eltc"] = """
@@ -4585,7 +4634,7 @@ time_format : str | None
     remain as float values in seconds. If ``'ms'``, time values will be rounded
     to the nearest millisecond and converted to integers. If ``'timedelta'``,
     time values will be converted to :class:`pandas.Timedelta` values. {}
-    Default is ``None``.
+    Default is ``None`` unless specified otherwise.
 """
 
 docdict["time_format_df"] = _time_format_df_base.format("")
@@ -4631,6 +4680,12 @@ title : str | None
     The title of the generated figure. If ``None`` (default), no title is
     displayed.
 """
+
+docdict["title_stc"] = """
+title : str | None
+    Title for the figure window. If ``None``, the subject name will be used.
+"""
+
 docdict["title_tfr_plot"] = """
 title : str | 'auto' | None
     Title for the plot. If ``"auto"``, will use the channel name (if ``combine`` is
@@ -4638,8 +4693,9 @@ title : str | 'auto' | None
     plot. If ``None``, no title is shown. Default is ``None``.
 """
 docdict["tmax_raw"] = """
-tmax : float
+tmax : float | None
     End time of the raw data to use in seconds (cannot exceed data duration).
+    If ``None`` (default), the current end of the data is used.
 """
 
 docdict["tmin"] = """
@@ -4982,6 +5038,18 @@ weight_norm : str | None
            solution.
 """
 
+docdict["weights_tfr_array"] = """
+weights : array, shape (n_tapers, n_freqs) | None
+    The weights for each taper. Must be provided if ``data`` has a taper dimension, such
+    as for complex or phase multitaper data.
+
+    .. versionadded:: 1.10.0
+"""
+docdict["weights_tfr_attr"] = """
+weights : array, shape (n_tapers, n_freqs) | None
+    The weights used for each taper in the time-frequency estimates.
+"""
+
 docdict["window_psd"] = """\
 window : str | float | tuple
     Windowing function to use. See :func:`scipy.signal.get_window`.
@@ -5083,6 +5151,8 @@ def copy_doc(source):
     This is useful when inheriting from a class and overloading a method. This
     decorator can be used to copy the docstring of the original method.
 
+    Docstrings are processed by :func:`python:inspect.cleandoc` before being used.
+
     Parameters
     ----------
     source : function
@@ -5105,7 +5175,8 @@ def copy_doc(source):
     ...         ''' this gets appended'''
     ...         pass
     >>> print(B.m1.__doc__)
-    Docstring for m1 this gets appended
+    Docstring for m1
+    this gets appended
     """
 
     def wrapper(func):
@@ -5113,7 +5184,7 @@ def copy_doc(source):
             raise ValueError("Cannot copy docstring: docstring was empty.")
         doc = source.__doc__
         if func.__doc__ is not None:
-            doc += func.__doc__
+            doc += f"\n{inspect.cleandoc(func.__doc__)}"
         func.__doc__ = doc
         return func
 
@@ -5131,6 +5202,10 @@ def copy_function_doc_to_method_doc(source):
     This decorator is useful when implementing a method that just calls a
     function.  This pattern is prevalent in for example the plotting functions
     of MNE.
+
+    Docstrings are parsed by :func:`python:inspect.cleandoc` before being used.
+    If indentation and newlines are important, make the first line ``.``, and the dot
+    will be removed and all following lines dedented jointly.
 
     Parameters
     ----------
@@ -5167,7 +5242,8 @@ def copy_function_doc_to_method_doc(source):
     >>> class A:
     ...     @copy_function_doc_to_method_doc(plot_function)
     ...     def plot(self, a, b):
-    ...         '''
+    ...         '''.
+    ...
     ...         Notes
     ...         -----
     ...         .. versionadded:: 0.13.0
@@ -5176,26 +5252,31 @@ def copy_function_doc_to_method_doc(source):
     >>> print(A.plot.__doc__)
     Docstring for plotting function.
     <BLANKLINE>
-        Parameters
-        ----------
-        a : int
-            Some parameter
-        b : int
-            Some parameter
+    Parameters
+    ----------
+    a : int
+        Some parameter
+    b : int
+        Some parameter
     <BLANKLINE>
-            Notes
-            -----
-            .. versionadded:: 0.13.0
-    <BLANKLINE>
+    Notes
+    -----
+    .. versionadded:: 0.13.0
     """  # noqa: D410, D411, D214, D215
 
     def wrapper(func):
-        doc = source.__doc__.split("\n")
+        # Work with cleandoc'ed sources (py3.13-compat)
+        doc = inspect.cleandoc(source.__doc__).split("\n")
+        if func.__doc__ is not None:
+            func_doc = inspect.cleandoc(func.__doc__)
+            if func_doc[:2] == ".\n":
+                func_doc = func_doc[2:]
+            func_doc = f"\n{func_doc}"
+        else:
+            func_doc = ""
+
         if len(doc) == 1:
-            doc = doc[0]
-            if func.__doc__ is not None:
-                doc += func.__doc__
-            func.__doc__ = doc
+            func.__doc__ = f"{doc[0]}{func_doc}"
             return func
 
         # Find parameter block
@@ -5243,7 +5324,7 @@ def copy_function_doc_to_method_doc(source):
                 break
         else:
             # End of docstring reached
-            first_parameter_end = line
+            first_parameter_end = line + 1
             first_parameter = parameter_block
 
         # Copy the docstring, but remove the first parameter
@@ -5252,9 +5333,7 @@ def copy_function_doc_to_method_doc(source):
             + "\n"
             + "\n".join(doc[first_parameter_end:])
         )
-        if func.__doc__ is not None:
-            doc += func.__doc__
-        func.__doc__ = doc
+        func.__doc__ = f"{doc}{func_doc}"
         return func
 
     return wrapper

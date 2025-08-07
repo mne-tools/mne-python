@@ -5,6 +5,7 @@
 # Copyright the MNE-Python contributors.
 
 import atexit
+import contextlib
 import json
 import multiprocessing
 import os
@@ -23,7 +24,13 @@ from urllib.request import urlopen
 from packaging.version import parse
 
 from ._logging import logger, warn
-from .check import _check_fname, _check_option, _check_qt_version, _validate_type
+from .check import (
+    _check_fname,
+    _check_option,
+    _check_qt_version,
+    _soft_import,
+    _validate_type,
+)
 from .docs import fill_doc
 from .misc import _pl
 
@@ -185,8 +192,7 @@ _known_config_types = {
         "triggers automated memory mapping, e.g., 1M or 0.5G"
     ),
     "MNE_REPR_HTML": (
-        "bool, represent some of our objects with rich HTML in a notebook "
-        "environment"
+        "bool, represent some of our objects with rich HTML in a notebook environment"
     ),
     "MNE_SKIP_NETWORK_TESTS": (
         "bool, used in a test decorator (@requires_good_network) to skip "
@@ -203,8 +209,7 @@ _known_config_types = {
     ),
     "MNE_USE_CUDA": "bool, use GPU for filtering/resampling",
     "MNE_USE_NUMBA": (
-        "bool, use Numba just-in-time compiler for some of our intensive "
-        "computations"
+        "bool, use Numba just-in-time compiler for some of our intensive computations"
     ),
     "SUBJECTS_DIR": "path-like, directory of freesurfer MRI files for each subject",
 }
@@ -216,12 +221,55 @@ _known_config_wildcards = (
     "MNE_NIRS",  # mne-nirs
     "MNE_KIT2FIFF",  # mne-kit-gui
     "MNE_ICALABEL",  # mne-icalabel
+    "MNE_LSL",  # mne-lsl
 )
+
+
+@contextlib.contextmanager
+def _open_lock(path, *args, **kwargs):
+    """
+    Context manager that opens a file with an optional file lock.
+
+    If the `filelock` package is available, a lock is acquired on a lock file
+    based on the given path (by appending '.lock').
+
+    Otherwise, a null context is used. The path is then opened in the
+    specified mode.
+
+    Parameters
+    ----------
+    path : str
+        The path to the file to be opened.
+    *args, **kwargs : optional
+        Additional arguments and keyword arguments to be passed to the
+        `open` function.
+
+    """
+    filelock = _soft_import(
+        "filelock", purpose="parallel config set and get", strict=False
+    )
+
+    lock_context = contextlib.nullcontext()  # default to no lock
+
+    if filelock:
+        lock_path = f"{path}.lock"
+        try:
+            lock_context = filelock.FileLock(lock_path, timeout=5)
+            lock_context.acquire()
+        except TimeoutError:
+            warn(
+                "Could not acquire lock file after 5 seconds, consider deleting it "
+                f"if you know the corresponding file is usable:\n{lock_path}"
+            )
+            lock_context = contextlib.nullcontext()
+
+    with lock_context, open(path, *args, **kwargs) as fid:
+        yield fid
 
 
 def _load_config(config_path, raise_error=False):
     """Safely load a config file."""
-    with open(config_path) as fid:
+    with _open_lock(config_path, "r+") as fid:
         try:
             config = json.load(fid)
         except ValueError:
@@ -399,8 +447,29 @@ def set_config(key, value, home_dir=None, set_env=True):
     directory = op.dirname(config_path)
     if not op.isdir(directory):
         os.mkdir(directory)
-    with open(config_path, "w") as fid:
-        json.dump(config, fid, sort_keys=True, indent=0)
+
+    # Adapting the mode depend if you are create the file
+    # or no.
+    mode = "r+" if op.isfile(config_path) else "w+"
+
+    with _open_lock(config_path, mode) as fid:
+        try:
+            data = json.load(fid)
+        except (ValueError, json.JSONDecodeError) as exc:
+            logger.info(
+                f"Could not read the {config_path} json file during the writing."
+                f" Assuming it is empty. Got: {exc}"
+            )
+            data = {}
+
+        if value is None:
+            data.pop(key, None)
+        else:
+            data[key] = value
+
+        fid.seek(0)
+        fid.truncate()
+        json.dump(data, fid, sort_keys=True, indent=0)
 
 
 def _get_extra_data_path(home_dir=None):
@@ -582,9 +651,9 @@ def _get_numpy_libs():
     for pool in pools:
         if pool["internal_api"] in ("openblas", "mkl"):
             return (
-                f'{rename[pool["internal_api"]]} '
-                f'{pool["version"]} with '
-                f'{pool["num_threads"]} thread{_pl(pool["num_threads"])}'
+                f"{rename[pool['internal_api']]} "
+                f"{pool['version']} with "
+                f"{pool['num_threads']} thread{_pl(pool['num_threads'])}"
             )
     return bad_lib
 
@@ -618,7 +687,12 @@ def _get_total_memory():
                 "(Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory",
             ]
         ).decode()
-        total_memory = int(o)
+        # Can get for example a "running scripts is disabled on this system"
+        # error where "o" will be a long string rather than an int
+        try:
+            total_memory = int(o)
+        except Exception:  # pragma: no cover
+            total_memory = 0
     elif platform.system() == "Linux":
         o = subprocess.check_output(["free", "-b"]).decode()
         total_memory = int(o.splitlines()[1].split()[1])
@@ -765,17 +839,19 @@ def sys_info(
         "edfio",
         "mffpy",
         "pybv",
+        "antio",
+        "defusedxml",
         "",
     )
     if dependencies == "developer":
         use_mod_names += (
             "# Testing",
             "pytest",
-            "nbclient",
             "statsmodels",
             "numpydoc",
-            "flake8",
-            "pydocstyle",
+            "jupyter_client",
+            "nbclient",
+            "nbformat",
             "nitime",
             "imageio",
             "imageio-ffmpeg",
@@ -871,7 +947,7 @@ def sys_info(
                     pre = "│  "
                 else:
                     pre = " | "
-                out(f'\n{pre}{" " * ljust}{op.dirname(mod.__file__)}')
+                out(f"\n{pre}{' ' * ljust}{op.dirname(mod.__file__)}")
             out("\n")
 
     if not mne_version_good:
@@ -907,7 +983,7 @@ def _check_mne_version(timeout):
     rel_ver = parse(rel_ver)
     this_ver = parse(import_module("mne").__version__)
     if this_ver > rel_ver:
-        return True, f"devel, latest release is {rel_ver}"
+        return True, f"development, latest release is {rel_ver}"
     if this_ver == rel_ver:
         return True, "latest release"
     else:
