@@ -381,6 +381,7 @@ class LinearModel(MetaEstimatorMixin, BaseEstimator):
         "predict",
         "predict_proba",
         "predict_log_proba",
+        "_estimator_type",  # remove after sklearn 1.6
         "decision_function",
         "score",
         "classes_",
@@ -428,13 +429,22 @@ class LinearModel(MetaEstimatorMixin, BaseEstimator):
     def _fit_transform(self, X, y):
         return self.fit(X, y).transform(X)
 
-    def _validate_params(self):
-        is_predictor = is_regressor(self._orig_model) or is_classifier(self._orig_model)
+    def _validate_params(self, X):
+        model = self._orig_model
+        if isinstance(model, MetaEstimatorMixin):
+            model = model.estimator
+        is_predictor = is_regressor(model) or is_classifier(model)
         if not is_predictor:
             raise ValueError(
                 "Linear model should be a supervised predictor "
                 "(classifier or regressor)"
             )
+
+        # For sklearn < 1.6
+        try:
+            self._check_n_features(X, reset=True)
+        except AttributeError:
+            pass
 
     def fit(self, X, y, **fit_params):
         """Estimate the coefficients of the linear model.
@@ -456,7 +466,7 @@ class LinearModel(MetaEstimatorMixin, BaseEstimator):
         self : instance of LinearModel
             Returns the modified instance.
         """
-        self._validate_params()
+        self._validate_params(X)
         X, y = validate_data(self, X, y, multi_output=True)
 
         # fit the Model

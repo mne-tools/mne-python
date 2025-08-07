@@ -99,7 +99,7 @@ def test_get_coef():
     """Test getting linear coefficients (filters/patterns) from estimators."""
     lm_classification = LinearModel(LogisticRegression(solver="liblinear"))
     assert hasattr(lm_classification, "__sklearn_tags__")
-    if check_version("sklearn", "1.4"):
+    if check_version("sklearn", "1.6"):
         print(lm_classification.__sklearn_tags__())
     assert is_classifier(lm_classification.model)
     assert is_classifier(lm_classification)
