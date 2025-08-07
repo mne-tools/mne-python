@@ -15,6 +15,10 @@ from ...utils import _check_fname, fill_doc, logger, verbose, warn
 from ..base import BaseRaw
 
 
+def _parse_date(dt):
+    return datetime.fromisoformat(dt).date()
+
+
 def _parse_patient_xml(tree):
     """Convert an ElementTree to a dict."""
 
@@ -22,9 +26,6 @@ def _parse_patient_xml(tree):
         # TODO For devices that generate `.otb+` files, the recording GUI only has M or
         # F options and choosing one is mandatory. For `.otb4` the field is optional.
         return dict(m=1, f=2)[sex.lower()[0]] if sex else 0  # 0 means "unknown"
-
-    def _parse_date(dt):
-        return datetime.fromisoformat(dt).date()
 
     subj_info_mapping = (
         ("family_name", "last_name", str),
@@ -40,6 +41,26 @@ def _parse_patient_xml(tree):
         if value is not None:
             subject_info[target] = func(value.text)
     return subject_info
+
+
+def _parse_otb_plus_metadata(metadata, extras_metadata):
+    assert metadata.tag == "Device"
+    sfreq = float(metadata.attrib["SampleFrequency"])
+    n_chan = int(metadata.attrib["DeviceTotalChannels"])
+    bit_depth = int(metadata.attrib["ad_bits"])
+    model = metadata.attrib["Name"]
+    adc_range = 3.3
+    return dict(
+        sfreq=sfreq,
+        n_chan=n_chan,
+        bit_depth=bit_depth,
+        model=model,
+        adc_range=adc_range,
+    )
+
+
+def _parse_otb_four_metadata(metadata, extras_metadata):
+    pass
 
 
 @fill_doc
@@ -64,8 +85,7 @@ class RawOTB(BaseRaw):
         # with permission to relicense as BSD-3 granted here:
         # https://github.com/OTBioelettronica/OTB-Python/issues/2#issuecomment-2979135882
         fname = str(_check_fname(fname, "read", True, "fname"))
-        if fname.endswith(".otb4"):
-            raise NotImplementedError(".otb4 format is not yet supported")
+        v4_format = fname.endswith(".otb4")
         logger.info(f"Loading {fname}")
 
         self.preload = True  # lazy loading not supported
@@ -75,52 +95,46 @@ class RawOTB(BaseRaw):
         ch_names = list()
         ch_types = list()
 
-        # TODO verify these are the only non-data channel IDs (other than "AUX*" which
-        # are handled separately via glob)
+        # these are the only non-data channel IDs (besides "AUX*", handled via glob)
         NON_DATA_CHS = ("Quaternion", "BufferChannel", "RampChannel", "LoadCellChannel")
-        POWER_SUPPLY = 3.3  # volts
 
         with tarfile.open(fname, "r") as fid:
             fnames = fid.getnames()
-            # the .sig file is the binary channel data
-            sig_fname = [_fname for _fname in fnames if _fname.endswith(".sig")]
-            if len(sig_fname) != 1:
-                raise NotImplementedError(
-                    "multiple .sig files found in the OTB+ archive. Probably this "
-                    "means that an acquisition was imported into another session. "
-                    "This is not yet supported; please open an issue at "
-                    "https://github.com/mne-tools/mne-emg/issues if you want us to add "
-                    "such support."
-                )
-            sig_fname = sig_fname[0]
-            data_size_bytes = fid.getmember(sig_fname).size
-            # the .xml file with the matching basename contains signal metadata
-            metadata_fname = str(Path(sig_fname).with_suffix(".xml"))
-            metadata = ET.fromstring(fid.extractfile(metadata_fname).read())
-            # patient info
-            patient_info_xml = ET.fromstring(fid.extractfile("patient.xml").read())
-        # structure of `metadata` is:
-        # Device
-        # └ Channels
-        #   ├ Adapter
-        #   │ ├ Channel
-        #   │ ├ ...
-        #   │ └ Channel
-        #   ├ ...
-        #   └ Adapter
-        #     ├ Channel
-        #     ├ ...
-        #     └ Channel
-        assert metadata.tag == "Device"
-        sfreq = float(metadata.attrib["SampleFrequency"])
-        n_chan = int(metadata.attrib["DeviceTotalChannels"])
-        bit_depth = int(metadata.attrib["ad_bits"])
-        model = metadata.attrib["Name"]
+            # the .sig file(s) are the binary channel data.
+            sig_fnames = [_fname for _fname in fnames if _fname.endswith(".sig")]
+            # TODO ↓↓↓↓↓↓↓↓ make compatible with multiple sig_fnames
+            data_size_bytes = fid.getmember(sig_fnames[0]).size
+            # triage the file format versions
+            if v4_format:
+                metadata_fname = "DeviceParameters.xml"
+                extras_fname = "Tracks_000.xml"
+                parse_func = _parse_otb_four_metadata
+            else:
+                # .otb4 format may legitimately have multiple .sig files, but
+                # .otb+ should not (if it's truly raw data)
+                if len(sig_fnames) > 1:
+                    raise NotImplementedError(
+                        "multiple .sig files found in the OTB+ archive. Probably this "
+                        "means that an acquisition was imported into another session. "
+                        "This is not yet supported; please open an issue at "
+                        "https://github.com/mne-tools/mne-emg/issues if you want us to "
+                        "add such support."
+                    )
+                # the .xml file with the matching basename contains signal metadata
+                metadata_fname = str(Path(sig_fnames[0]).with_suffix(".xml"))
+                extras_fname = "patient.xml"
+                parse_func = _parse_otb_plus_metadata
+            # parse the XML into a tree
+            metadata_tree = ET.fromstring(fid.extractfile(metadata_fname).read())
+            extras_tree = ET.fromstring(fid.extractfile(extras_fname).read())
+        # extract what we need from the tree
+        metadata = parse_func(metadata_tree, extras_tree)
+        sfreq = metadata["sfreq"]
+        n_chan = metadata["n_chan"]
+        bit_depth = metadata["bit_depth"]
+        model = metadata["model"]
+        adc_range = metadata["adc_range"]
 
-        # TODO we may not need this? only relevant for Quattrocento device, and `n_chan`
-        # defined above should already be correct/sufficient
-        # if model := metadata.attrib.get("Model"):
-        #     max_n_chan = int(model[-3:])
         if bit_depth == 16:
             _dtype = np.int16
         elif bit_depth == 24:  # EEG data recorded on OTB devices do this
@@ -140,10 +154,10 @@ class RawOTB(BaseRaw):
             )
         gains = np.full(n_chan, np.nan)
         # check in advance where we'll need to append indices to uniquify ch_names
-        n_ch_by_type = Counter([ch.get("ID") for ch in metadata.iter("Channel")])
+        n_ch_by_type = Counter([ch.get("ID") for ch in metadata_tree.iter("Channel")])
         dupl_ids = [k for k, v in n_ch_by_type.items() if v > 1]
         # iterate over adapters & channels to extract gain, filters, names, etc
-        for adapter_ix, adapter in enumerate(metadata.iter("Adapter")):
+        for adapter_ix, adapter in enumerate(metadata_tree.iter("Adapter")):
             adapter_ch_offset = int(adapter.get("ChannelStartIndex"))
             adapter_gain = float(adapter.get("Gain"))
             # we only care about lowpass/highpass on the data channels
@@ -188,28 +202,28 @@ class RawOTB(BaseRaw):
             )
         n_samples = int(n_samples)
 
-        # check filter freqs.
-        # TODO filter freqs can vary by adapter, so in theory we might get different
+        # check filter freqs. Can vary by adapter, so in theory we might get different
         # filters for different *data* channels (not just different between data and
         # misc/aux/whatever).
         if len(highpass) > 1:
             warn(
                 "More than one highpass frequency found in file; choosing lowest "
-                f"({min(highpass)})"
+                f"({min(highpass)} Hz)"
             )
         if len(lowpass) > 1:
             warn(
                 "More than one lowpass frequency found in file; choosing highest "
-                f"({max(lowpass)})"
+                f"({max(lowpass)} Hz)"
             )
         highpass = min(highpass)
         lowpass = max(lowpass)
 
         # create info
         info = create_info(ch_names=ch_names, ch_types=ch_types, sfreq=sfreq)
-        subject_info = _parse_patient_xml(patient_info_xml)
-        device_info = dict(type="OTB", model=model)  # TODO type, model, serial, site
-        site = patient_info_xml.find("place")
+        subject_info = _parse_patient_xml(extras_tree)
+        device_info = dict(type="OTB", model=model)  # other allowed keys: serial
+        meas_date = extras_tree.find("time")
+        site = extras_tree.find("place")
         if site is not None:
             device_info.update(site=site.text)
         info.update(subject_info=subject_info, device_info=device_info)
@@ -218,27 +232,26 @@ class RawOTB(BaseRaw):
             info["lowpass"] = lowpass
             for _ch in info["chs"]:
                 cal = 1 / 2**bit_depth / gains[ix + adapter_ch_offset]
-                _ch.update(cal=cal, range=POWER_SUPPLY)
-            meas_date = patient_info_xml.find("time")
+                _ch.update(cal=cal, range=adc_range)
             if meas_date is not None:
                 info["meas_date"] = datetime.fromisoformat(meas_date.text).astimezone(
                     timezone.utc
                 )
 
         # sanity check
-        dur = patient_info_xml.find("duration")
+        dur = extras_tree.find("duration")
         if dur is not None:
             np.testing.assert_almost_equal(
                 float(dur.text), n_samples / sfreq, decimal=3
             )
 
-        # TODO other fields in patient_info_xml:
+        # TODO other fields in extras_tree:
         # protocol_code, pathology, commentsPatient, comments
 
         # TODO parse files markers_0.xml, markers_1.xml as annotations?
 
         # populate raw_extras
-        raw_extras = dict(dtype=_dtype, sig_fname=sig_fname)
+        raw_extras = dict(dtype=_dtype, sig_fnames=sig_fnames)
         FORMAT_MAPPING = dict(
             d="double",
             f="single",
@@ -261,17 +274,24 @@ class RawOTB(BaseRaw):
     def _preload_data(self, preload):
         """Load raw data from an OTB+ file."""
         _extras = self._raw_extras[0]
-        sig_fname = _extras["sig_fname"]
+        sig_fnames = _extras["sig_fnames"]
 
         with tarfile.open(self.filenames[0], "r") as fid:
-            _data = (
-                np.frombuffer(
-                    fid.extractfile(sig_fname).read(),
-                    dtype=_extras["dtype"],
+            _data = list()
+            for sig_fname in sig_fnames:
+                _data.append(
+                    np.frombuffer(
+                        fid.extractfile(sig_fname).read(),
+                        dtype=_extras["dtype"],
+                    )
+                    .reshape(-1, self.info["nchan"])
+                    .T
                 )
-                .reshape(-1, self.info["nchan"])
-                .T
-            )
+            if len(_data) == 1:
+                _data = _data[0]
+            else:
+                _data = np.concatenate(_data, axis=0)
+
         cals = np.array(
             [
                 _ch["cal"] * _ch["range"] * _ch.get("scale", 1.0)
@@ -283,7 +303,7 @@ class RawOTB(BaseRaw):
 
 @fill_doc
 def read_raw_otb(fname, verbose=None) -> RawOTB:
-    """Reader for an OTB (.otb4/.otb+) recording.
+    """Reader for an OTB (.otb/.otb+/.otb4) recording.
 
     Parameters
     ----------
