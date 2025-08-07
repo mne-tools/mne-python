@@ -202,12 +202,7 @@ def _validate_data(data_blocks: list):
         )
     # Monocular tracking but switched between left/right eye
     elif len(set(eyes)) > 1:
-        warn(
-            "The eye being tracked changed during the"
-            " recording. The channel names will reflect"
-            " the eye that was tracked at the start of"
-            " the recording."
-        )
+        warn("The eye being tracked changed during the recording.")
 
 
 def _get_recording_datetime(fname):
@@ -246,7 +241,13 @@ def _get_metadata(data_block: dict):
     meta_data = dict()
     rec_info = data_block["events"]["SAMPLES"][0]
     meta_data["unit"] = rec_info[0]
-    meta_data["pupil_unit"] = data_block["events"]["PUPIL"][0][0]
+
+    # If the file doesn't have pupil data, i'm not sure if there will be any PUPIL info?
+    if not data_block["events"]["PUPIL"]:
+        ps_unit = None
+    else:
+        ps_unit = data_block["events"]["PUPIL"][0][0]
+    meta_data["pupil_unit"] = ps_unit
     if ("LEFT" in rec_info) and ("RIGHT" in rec_info):
         meta_data["tracking_mode"] = "binocular"
         meta_data["eye"] = "both"
@@ -363,8 +364,7 @@ def _create_dataframes_for_block(block, apply_offsets):
             df_dict[label] = pd.DataFrame(block["events"][event])
         else:
             # Changed this from info to debug level to avoid spamming the log
-            block_idx = block["info"]["block_idx"]
-            logger.debug(f"No {label} events found in block {block_idx}")
+            logger.debug(f"No {label} events found in block")
 
     # make dataframe for experiment messages in this block
     if block["events"]["MSG"]:
@@ -464,19 +464,24 @@ def _combine_block_dataframes(processed_blocks: list[dict]):
 
     # Determine unified column structure by collecting all unique column names
     # across all acquisition blocks
-    all_ch_names = set()
+    all_ch_names = []
     all_samples_cols = set()
     all_df_types = set()
 
     for block in processed_blocks:
-        all_ch_names.update(block["ch_names"])
+        # The tests assume a certain order of channel names.
+        # so we can't use a set like we do for the columns.
+        # bc it randomly orders the channel names.
+        for ch_name in block["ch_names"]:
+            if ch_name not in all_ch_names:
+                all_ch_names.append(ch_name)
+        # all_ch_names.update(block["ch_names"])
         if "samples" in block["dfs"]:
             all_samples_cols.update(block["dfs"]["samples"].columns)
         all_df_types.update(block["dfs"].keys())
 
-    # Convert to sorted lists for consistent ordering
-    unified_ch_names = sorted(all_ch_names)
-    unified_samples_cols = sorted(all_samples_cols)
+    # The sets randomly ordered the column names.
+    all_samples_cols = sorted(all_samples_cols)
 
     # Combine dataframes by type
     combined_dfs = {}
@@ -492,12 +497,12 @@ def _combine_block_dataframes(processed_blocks: list[dict]):
                 # For samples dataframes, ensure all have the same columns
                 if df_type == "samples":
                     # Add missing columns with NaN
-                    for col in unified_samples_cols:
+                    for col in all_samples_cols:
                         if col not in block_df.columns:
                             block_df[col] = np.nan
 
                     # Reorder columns to match unified structure
-                    block_df = block_df[unified_samples_cols]
+                    block_df = block_df[all_samples_cols]
 
                 block_dfs.append(block_df)
 
@@ -515,7 +520,7 @@ def _combine_block_dataframes(processed_blocks: list[dict]):
         blocks_data, columns=["time", "end_time", "block"]
     )
 
-    return combined_dfs, unified_ch_names
+    return combined_dfs, all_ch_names
 
 
 def _drop_status_col(samples_df):

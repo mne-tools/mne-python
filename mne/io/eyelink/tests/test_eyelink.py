@@ -262,7 +262,19 @@ def test_bino_to_mono(tmp_path, fname):
         lines += second_block
         with out_file.open("w") as file:
             file.writelines(lines)
-    assert read_raw_eyelink(out_file)
+    with pytest.warns(
+        RuntimeWarning, match="Acquisition changed between monocular and"
+    ):
+        raw = read_raw_eyelink(out_file)
+    want_channels = [
+        "xpos_left",
+        "ypos_left",
+        "pupil_left",
+        "xpos_right",
+        "ypos_right",
+        "pupil_right",
+    ]
+    assert len(set(raw.info["ch_names"]).difference(set(want_channels))) == 0
 
 
 def _simulate_eye_tracking_data(in_file, out_file):
@@ -323,13 +335,19 @@ def _simulate_eye_tracking_data(in_file, out_file):
 @requires_testing_data
 @pytest.mark.parametrize("fname", [fname_href])
 def test_multi_block_misc_channels(fname, tmp_path):
-    """Test an eyelink file with multiple blocks and additional misc channels."""
+    """Test a file with many edge casses.
+
+    This file has multiple acquisition blocks, each tracking a different eye.
+    The coordinates are in raw units (not pixels or radians).
+    It has some misc channels (head position, saccade velocity, etc.)
+    """
     out_file = tmp_path / "tmp_eyelink.asc"
     _simulate_eye_tracking_data(fname, out_file)
 
     with (
         _record_warnings(),
         pytest.warns(RuntimeWarning, match="Raw eyegaze coordinates"),
+        pytest.warns(RuntimeWarning, match="The eye being tracked changed"),
     ):
         raw = read_raw_eyelink(out_file, apply_offsets=True)
 
@@ -345,6 +363,11 @@ def test_multi_block_misc_channels(fname, tmp_path):
         "x_head",
         "y_head",
         "distance",
+        "xpos_left",
+        "ypos_left",
+        "pupil_left",
+        "xvel_left",
+        "yvel_left",
     ]
 
     assert raw.ch_names == chs_in_file
