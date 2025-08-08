@@ -1,0 +1,1 @@
+Added ``on_inside="raise"`` parameter to :func:`mne.make_forward_solution` and :func:`mne.make_forward_dipole` to control behavior when MEG sensors are inside the outer skin surface. This is useful for forward solutions that are computed with sensors just inside the outer skin surface (e.g., with some OPM coregistrations), by `Eric Larson`_.
