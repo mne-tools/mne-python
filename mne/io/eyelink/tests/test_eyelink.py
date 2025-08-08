@@ -201,89 +201,88 @@ def test_bino_to_mono(tmp_path, fname):
     out_file = tmp_path / "tmp_eyelink.asc"
     in_file = Path(fname)
 
-    with in_file.open() as file:
-        # We'll also add some binocular velocity data to increase our testing coverage.
-        lines = file.readlines()
-        start_idx = [li for li, line in enumerate(lines) if line.startswith("START")][0]
-        for li, line in enumerate(lines[start_idx:-2], start=start_idx):
-            tokens = line.split("\t")
-            event_type = tokens[0]
-            if event_type == "SAMPLES":
-                tokens.insert(3, "VEL")
-                lines[li] = "\t".join(tokens)
-            elif event_type.isnumeric():
-                # fake velocity values for x/y left/right
-                tokens[4:4] = ["999.1", "999.2", "999.3", "999.4"]
-                lines[li] = "\t".join(tokens)
-        end_line = lines[-2]
-        end_ts = int(end_line.split("\t")[1])
-        # Now only left eye data
-        second_block = []
-        new_ts = end_ts + 1
-        info = [
-            "GAZE",
-            "LEFT",
-            "VEL",
-            "RATE",
-            "500.00",
-            "TRACKING",
-            "CR",
-            "FILTER",
-            "2",
-        ]
-        start = ["START", f"{new_ts}", "LEFT", "SAMPLES", "EVENTS"]
-        pupil = ["PUPIL", "DIAMETER"]
-        samples = ["SAMPLES"] + info
-        events = ["EVENTS"] + info
-        second_block.append("\t".join(start) + "\n")
-        second_block.append("\t".join(pupil) + "\n")
-        second_block.append("\t".join(samples) + "\n")
-        second_block.append("\t".join(events) + "\n")
-        # Some fake data.. # x, y, pupil, velicty x/y status
-        left = ["960", "540", "0.0", "999.1", "999.2", "..."]
-        NUM_FAKE_SAMPLES = 4000
-        for ii in range(NUM_FAKE_SAMPLES):
-            ts = new_ts + ii
-            tokens = [f"{ts}"] + left
-            second_block.append("\t".join(tokens) + "\n")
-        # interleave some events into the second block
-        duration = 500
-        blink_ts = new_ts + 500
-        end_blink = ["EBLINK", "L", f"{blink_ts}", f"{blink_ts + 50}", "106"]
-        fix_ts = new_ts + 1500
-        end_fix = [
-            "EFIX",
-            "L",
-            f"{fix_ts}",
-            f"{fix_ts + duration}",
-            "1616",
-            "1025.1",
-            "580.9",
-            "1289",
-        ]
-        sacc_ts = new_ts + 2500
-        end_sacc = [
-            "ESACC",
-            "L",
-            f"{sacc_ts}",
-            f"{sacc_ts + duration}",
-            "52",
-            "1029.6",
-            "582.3",
-            "581.7",
-            "292.5",
-            "10.30",
-            "387",
-        ]
-        second_block.append("\t".join(end_blink) + "\n")
-        second_block.append("\t".join(end_fix) + "\n")
-        second_block.append("\t".join(end_sacc) + "\n")
-        end_ts = ts + 1
-        end_block = ["END", f"{end_ts}", "SAMPLES", "EVENTS", "RES", "45", "45"]
-        second_block.append("\t".join(end_block))
-        lines += second_block
-        with out_file.open("w") as file:
-            file.writelines(lines)
+    lines = in_file.read_text("utf-8").splitlines()
+    # We'll also add some binocular velocity data to increase our testing coverage.
+    start_idx = [li for li, line in enumerate(lines) if line.startswith("START")][0]
+    for li, line in enumerate(lines[start_idx:-2], start=start_idx):
+        tokens = line.split("\t")
+        event_type = tokens[0]
+        if event_type == "SAMPLES":
+            tokens.insert(3, "VEL")
+            lines[li] = "\t".join(tokens)
+        elif event_type.isnumeric():
+            # fake velocity values for x/y left/right
+            tokens[4:4] = ["999.1", "999.2", "999.3", "999.4"]
+            lines[li] = "\t".join(tokens)
+    end_line = lines[-2]
+    end_ts = int(end_line.split("\t")[1])
+    # Now only left eye data
+    second_block = []
+    new_ts = end_ts + 1
+    info = [
+        "GAZE",
+        "LEFT",
+        "VEL",
+        "RATE",
+        "500.00",
+        "TRACKING",
+        "CR",
+        "FILTER",
+        "2",
+    ]
+    start = ["START", f"{new_ts}", "LEFT", "SAMPLES", "EVENTS"]
+    pupil = ["PUPIL", "DIAMETER"]
+    samples = ["SAMPLES"] + info
+    events = ["EVENTS"] + info
+    second_block.append("\t".join(start) + "\n")
+    second_block.append("\t".join(pupil) + "\n")
+    second_block.append("\t".join(samples) + "\n")
+    second_block.append("\t".join(events) + "\n")
+    # Some fake data.. # x, y, pupil, velicty x/y status
+    left = ["960", "540", "0.0", "999.1", "999.2", "..."]
+    NUM_FAKE_SAMPLES = 4000
+    for ii in range(NUM_FAKE_SAMPLES):
+        ts = new_ts + ii
+        tokens = [f"{ts}"] + left
+        second_block.append("\t".join(tokens) + "\n")
+    # interleave some events into the second block
+    duration = 500
+    blink_ts = new_ts + 500
+    end_blink = ["EBLINK", "L", f"{blink_ts}", f"{blink_ts + 50}", "106"]
+    fix_ts = new_ts + 1500
+    end_fix = [
+        "EFIX",
+        "L",
+        f"{fix_ts}",
+        f"{fix_ts + duration}",
+        "1616",
+        "1025.1",
+        "580.9",
+        "1289",
+    ]
+    sacc_ts = new_ts + 2500
+    end_sacc = [
+        "ESACC",
+        "L",
+        f"{sacc_ts}",
+        f"{sacc_ts + duration}",
+        "52",
+        "1029.6",
+        "582.3",
+        "581.7",
+        "292.5",
+        "10.30",
+        "387",
+    ]
+    second_block.append("\t".join(end_blink) + "\n")
+    second_block.append("\t".join(end_fix) + "\n")
+    second_block.append("\t".join(end_sacc) + "\n")
+    end_ts = ts + 1
+    end_block = ["END", f"{end_ts}", "SAMPLES", "EVENTS", "RES", "45", "45"]
+    second_block.append("\t".join(end_block))
+    lines += second_block
+    out_file.write_text("\n".join(lines), encoding="utf-8")
+
     with pytest.warns(
         RuntimeWarning, match="Acquisition changed between monocular and"
     ):
