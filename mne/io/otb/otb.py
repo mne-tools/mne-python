@@ -10,6 +10,7 @@ from pathlib import Path
 import numpy as np
 from defusedxml import ElementTree as ET
 
+from ..._fiff.constants import FIFF
 from ..._fiff.meas_info import create_info
 from ...utils import _check_fname, fill_doc, logger, verbose, warn
 from ..base import BaseRaw
@@ -53,7 +54,7 @@ def _parse_otb_plus_metadata(metadata, extras_metadata):
     n_chan = int(metadata.attrib["DeviceTotalChannels"])
     bit_depth = int(metadata.attrib["ad_bits"])
     device_name = metadata.attrib["Name"]
-    adc_range = 3.3  # TODO is this V or mV ??
+    adc_range = 0.0033  # 3.3 mV (TODO VERIFY)
     # containers
     gains = np.full(n_chan, np.nan)
     ch_names = list()
@@ -93,11 +94,19 @@ def _parse_otb_plus_metadata(metadata, extras_metadata):
             gain_ix = ix + ch_offset
             gains[gain_ix] = float(ch.get("Gain")) * adapter_gain
             # TODO verify ch_type for quats, buffer channel, and ramp channel
-            ch_types.append(
-                "misc"
-                if ch_id in _NON_DATA_CHS or ch_id.lower().startswith("aux")
-                else "emg"
-            )
+            # ramp and controls channels definitely "MISC"
+            # quats should maybe be FIFF.FIFFV_QUAT_{N} (N from 0-6), but need to verify
+            # what quats should be, as there are only 4 quat channels. The FIFF quats:
+            # 0: obsolete
+            # 1-3: rotations
+            # 4-6: translations
+            if ch_id == "Quaternions":
+                ch_type = FIFF.FIFFV_QUAT_0  # TODO verify
+            elif ch_id in _NON_DATA_CHS or ch_id.lower().startswith("aux"):
+                ch_type = "misc"
+            else:
+                ch_type = "emg"
+            ch_types.append(ch_type)
     # parse subject info
     subject_info = _parse_patient_xml(extras_metadata)
 
@@ -248,7 +257,13 @@ class RawOTB(BaseRaw):
             info["lowpass"] = lowpass
             for ix, _ch in enumerate(info["chs"]):
                 cal = 1 / 2**bit_depth / gains[ix]
-                _ch.update(cal=cal, range=adc_range)
+                # TODO need different range for Quaternions?
+                _range = (
+                    adc_range
+                    if _ch["kind"] in (FIFF.FIFFV_EMG_CH, FIFF.FIFFV_EEG_CH)
+                    else 1.0
+                )
+                _ch.update(cal=cal, range=_range)
             if meas_date is not None:
                 info["meas_date"] = datetime.fromisoformat(meas_date.text).astimezone(
                     timezone.utc
@@ -308,13 +323,7 @@ class RawOTB(BaseRaw):
             else:
                 _data = np.concatenate(_data, axis=0)
 
-        # TODO without this fudge factor, the scale of the signals seems way too high
-        # (sample data channels show a dynamic range of 0.2 - 3.3 V)
-        # the puzzling thing is that in the MATLAB code the fudge is 1e3 (not 1e-3) ?!?
-        fudge_factor = 1e-3
-        cals = np.array(
-            [_ch["cal"] * _ch["range"] * fudge_factor for _ch in self.info["chs"]]
-        )
+        cals = np.array([_ch["cal"] * _ch["range"] for _ch in self.info["chs"]])
         self._data = _data * cals[:, np.newaxis]
 
 
