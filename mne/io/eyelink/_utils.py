@@ -59,8 +59,6 @@ def _parse_eyelink_ascii(
     for block in data_blocks:
         del block["samples"]  # remove samples from block to save memory
 
-    # TODO: We still assume that sfreq and units are static across all blocks.
-    # But we should probably check this with SR Research...
     first_block = data_blocks[0]
     raw_extras["pos_unit"] = first_block["info"]["unit"]
     raw_extras["sfreq"] = first_block["info"]["sfreq"]
@@ -175,10 +173,12 @@ def _validate_data(data_blocks: list):
     pupil_units = []
     modes = []
     eyes = []
+    sfreqs = []
     for block in data_blocks:
         units.append(block["info"]["unit"])
         modes.append(block["info"]["tracking_mode"])
         eyes.append(block["info"]["eye"])
+        sfreqs.append(block["info"]["sfreq"])
         pupil_units.append(block["info"]["pupil_unit"])
     if "GAZE" in units:
         logger.info(
@@ -197,12 +197,29 @@ def _validate_data(data_blocks: list):
 
     if len(set(modes)) > 1:
         warn(
-            "Acquisition changed between monocular and binocular "
-            "tracking during the recording."
+            "This recording switched between monocular and binocular tracking. "
+            f"In order of acquisition blocks, tracking modes were {modes}. Data "
+            "for the missing eye during monocular tracking will be filled with NaN."
         )
     # Monocular tracking but switched between left/right eye
     elif len(set(eyes)) > 1:
-        warn("The eye being tracked changed during the recording.")
+        warn(
+            "The eye being tracked changed during the recording. "
+            f"In order of acquisition blocks, they were {eyes}. "
+            "Missing data for each eye will be filled with NaN."
+        )
+    if len(set(sfreqs)) > 1:
+        raise RuntimeError(
+            "The sampling frequency changed during the recording. "
+            f"In order of acquisition blocks, they were {sfreqs}. "
+            "please notify MNE-Python developers"
+        )  # pragma: no cover
+    if len(set(units)) > 1:
+        raise RuntimeError(
+            "The unit of measurement for x/y coordinates changed during the recording. "
+            f"In order of acquisition blocks, they were {units}. "
+            "please notify MNE-Python developers"
+        )  # pragma: no cover
 
 
 def _get_recording_datetime(fname):
