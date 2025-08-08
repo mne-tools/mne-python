@@ -6,7 +6,6 @@
 
 import re
 from datetime import datetime, timedelta, timezone
-from typing import TYPE_CHECKING
 
 import numpy as np
 
@@ -56,6 +55,7 @@ def _parse_eyelink_ascii(
     # Process each block individually, then combine
     processed_blocks = _create_dataframes(data_blocks, apply_offsets)
     raw_extras["dfs"], ch_names = _combine_block_dataframes(processed_blocks)
+    del processed_blocks  # free memory
     for block in data_blocks:
         del block["samples"]  # remove samples from block to save memory
 
@@ -312,10 +312,6 @@ def _create_dataframes(data_blocks, apply_offsets):
     Processes each block individually with its own column structure,
     then returns a list of processed block dataframes.
     """
-    if TYPE_CHECKING:
-        import pandas as pd
-    else:
-        pd = _check_pandas_installed()
     processed_blocks = []
 
     for block_idx, block in enumerate(data_blocks):
@@ -326,8 +322,8 @@ def _create_dataframes(data_blocks, apply_offsets):
         col_names, ch_names = _infer_col_names_for_block(block)
 
         # Assign column names and set dtypes for this block
-        block_dfs: dict[str, pd.DataFrame] = _assign_col_names(col_names, block_dfs)
-        block_dfs: dict[str, pd.DataFrame] = _set_df_dtypes(block_dfs)
+        block_dfs = _assign_col_names(col_names, block_dfs)
+        block_dfs = _set_df_dtypes(block_dfs)
 
         processed_blocks.append(
             {
@@ -456,9 +452,8 @@ def _infer_col_names_for_block(block: dict) -> tuple[dict[str, list], list]:
 def _combine_block_dataframes(processed_blocks: list[dict]):
     """Combine dataframes across acquisition blocks.
 
-    Creates a unified column structure and fills missing columns with NaN
-    when blocks have different columns/data in them (e.g. binocular vs monocular
-    tracking, or switching between the left and right eye).
+    Handles cases where blocks have different columns/data in them
+    (e.g. binocular vs monocular tracking, or switching between the left and right eye).
     """
     pd = _check_pandas_installed()
 
@@ -475,7 +470,6 @@ def _combine_block_dataframes(processed_blocks: list[dict]):
         for ch_name in block["ch_names"]:
             if ch_name not in all_ch_names:
                 all_ch_names.append(ch_name)
-        # all_ch_names.update(block["ch_names"])
         if "samples" in block["dfs"]:
             all_samples_cols.update(block["dfs"]["samples"].columns)
         all_df_types.update(block["dfs"].keys())
@@ -496,12 +490,11 @@ def _combine_block_dataframes(processed_blocks: list[dict]):
 
                 # For samples dataframes, ensure all have the same columns
                 if df_type == "samples":
-                    # Add missing columns with NaN
                     for col in all_samples_cols:
                         if col not in block_df.columns:
                             block_df[col] = np.nan
 
-                    # Reorder columns to match unified structure
+                    # Reorder columns
                     block_df = block_df[all_samples_cols]
 
                 block_dfs.append(block_df)
