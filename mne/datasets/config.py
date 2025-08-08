@@ -145,6 +145,14 @@ MNE_DATASETS["fnirs_motor"] = dict(
     config_key="MNE_DATASETS_FNIRS_MOTOR_PATH",
 )
 
+MNE_DATASETS["camh_kf_fnirs_fingertapping"] = dict(
+    archive_name="camh_kf_fnirs_fingertapping.zip",
+    hash="md5:3f5e7566d262f9d636f6d7fc769ea1bf",
+    url="https://osf.io/download/4nsrv",
+    folder_name="camh_kf_fnirs_fingertapping",
+    config_key="MNE_DATASETS_CAMH_KF_FNIRS_FINGERTAPPING_PATH",
+)
+
 MNE_DATASETS["ucl_opm_auditory"] = dict(
     archive_name="auditory_OPM_stationary.zip",
     hash="md5:b2d69aa2d656b960bd0c18968dc1a14d",

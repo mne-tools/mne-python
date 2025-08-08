@@ -15,6 +15,7 @@ __all__ = [
     "fetch_phantom",
     "fieldtrip_cmc",
     "fnirs_motor",
+    "camh_kf_fnirs_fingertapping",
     "has_dataset",
     "hf_sef",
     "kiloword",
@@ -39,6 +40,7 @@ __all__ = [
 from . import (
     _fake,
     brainstorm,
+    camh_kf_fnirs_fingertapping,
     eegbci,
     epilepsy_ecog,
     erp_core,

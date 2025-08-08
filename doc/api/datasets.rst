@@ -27,6 +27,7 @@ Datasets
    fetch_infant_template
    fetch_phantom
    fnirs_motor.data_path
+   camh_kf_fnirs_fingertapping.data_path
    hf_sef.data_path
    kiloword.data_path
    limo.load_data

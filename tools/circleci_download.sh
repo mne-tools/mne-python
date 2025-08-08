@@ -90,6 +90,9 @@ else
             if [[ $(cat $FNAME | grep -x ".*datasets.*fnirs_motor.*" | wc -l) -gt 0 ]]; then
                 python -c "import mne; print(mne.datasets.fnirs_motor.data_path(update_path=True))";
             fi;
+            if [[ $(cat $FNAME | grep -x ".*datasets.*camh_kf_fnirs_fingertapping.*" | wc -l) -gt 0 ]]; then
+                python -c "import mne; print(mne.datasets.camh_kf_fnirs_fingertapping.data_path(update_path=True))";
+            fi;
             if [[ $(cat $FNAME | grep -x ".*datasets[^_]*opm.*" | wc -l) -gt 0 ]]; then
                 python -c "import mne; print(mne.datasets.opm.data_path(update_path=True))";
             fi;
