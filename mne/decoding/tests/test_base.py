@@ -28,6 +28,7 @@ from sklearn.base import (
     is_classifier,
     is_regressor,
 )
+from sklearn.decomposition import PCA
 from sklearn.linear_model import LinearRegression, LogisticRegression, Ridge
 from sklearn.model_selection import (
     GridSearchCV,
@@ -228,35 +229,24 @@ def test_get_coef():
     assert patterns[0] != patterns_inv[0]
 
 
-class _Noop(BaseEstimator, TransformerMixin):
-    def fit(self, X, y=None):
-        return self
+# class _Noop(BaseEstimator, TransformerMixin):
+#     def fit(self, X, y=None):
+#         return self
 
-    def transform(self, X):
-        return X.copy()
+#     def transform(self, X):
+#         return X.copy()
 
-    inverse_transform = transform
+#     inverse_transform = transform
 
 
 @pytest.mark.parametrize("inverse", (True, False))
-@pytest.mark.parametrize(
-    "Scale, kwargs",
-    [
-        (Scaler, dict(info=None, scalings="mean")),
-        (_Noop, dict()),
-    ],
-)
-def test_get_coef_inverse_transform(inverse, Scale, kwargs):
+def test_get_coef_inverse_transform(inverse):
     """Test get_coef with and without inverse_transform."""
     lm_regression = LinearModel(Ridge())
     X, y, A = _make_data(n_samples=1000, n_features=3, n_targets=1)
     # Check with search_light and combination of preprocessing ending with sl:
-    # slider = SlidingEstimator(make_pipeline(StandardScaler(), lm_regression))
-    # XXX : line above should work but does not as only last step is
-    # used in get_coef ...
-    slider = SlidingEstimator(make_pipeline(lm_regression))
+    clf = SlidingEstimator(make_pipeline(StandardScaler(), lm_regression))
     X = np.transpose([X, -X], [1, 2, 0])  # invert X across 2 time samples
-    clf = make_pipeline(Scale(**kwargs), slider)
     clf.fit(X, y)
     patterns = get_coef(clf, "patterns_", inverse)
     filters = get_coef(clf, "filters_", inverse)
@@ -265,10 +255,95 @@ def test_get_coef_inverse_transform(inverse, Scale, kwargs):
     assert_equal(patterns[0, 0], -patterns[0, 1])
     for t in [0, 1]:
         filters_t = get_coef(
-            clf.named_steps["slidingestimator"].estimators_[t], "filters_", False
+            clf.estimators_[t],
+            "filters_",
+            inverse,
+            verbose=False,
         )
-        if Scale is _Noop:
-            assert_array_equal(filters_t, filters[:, t])
+        assert_array_equal(filters_t, filters[:, t])
+
+
+def test_get_coef_inverse_step_name():
+    """Test get_coef with inverse_transform=True and a specific step_name."""
+    X, y, _ = _make_data(n_samples=100, n_features=5, n_targets=1)
+
+    # Test with a simple pipeline
+    pipe = make_pipeline(StandardScaler(), PCA(n_components=3), LinearModel(Ridge()))
+    pipe.fit(X, y)
+
+    coef_inv_actual = get_coef(
+        pipe, attr="patterns_", inverse_transform=True, step_name="linearmodel"
+    )
+    # Reshape your data using array.reshape(1, -1) if it contains a single sample.
+    coef_raw = pipe.named_steps["linearmodel"].patterns_.reshape(1, -1)
+    coef_inv_desired = pipe.named_steps["pca"].inverse_transform(coef_raw)
+    coef_inv_desired = pipe.named_steps["standardscaler"].inverse_transform(
+        coef_inv_desired
+    )
+
+    assert coef_inv_actual.shape == (X.shape[1],)
+    # Reshape your data using array.reshape(1, -1) if it contains a single sample.
+    assert_array_almost_equal(coef_inv_actual.reshape(1, -1), coef_inv_desired)
+
+    with pytest.raises(ValueError, match="inverse_transform"):
+        _ = get_coef(
+            pipe[-1],  # LinearModel
+            "filters_",
+            inverse_transform=True,
+        )
+    with pytest.raises(ValueError, match="step_name"):
+        _ = get_coef(
+            SlidingEstimator(pipe),
+            "filters_",
+            inverse_transform=True,
+            step_name="slidingestimator__pipeline__linearmodel",
+        )
+
+    # Test with a nested pipeline to check __ parsing
+    inner_pipe = make_pipeline(PCA(n_components=3), LinearModel(Ridge()))
+    nested_pipe = make_pipeline(StandardScaler(), inner_pipe)
+    nested_pipe.fit(X, y)
+    coef_nested_inv_actual = get_coef(
+        nested_pipe,
+        attr="patterns_",
+        inverse_transform=True,
+        step_name="pipeline__linearmodel",
+    )
+    linearmodel = nested_pipe.named_steps["pipeline"].named_steps["linearmodel"]
+    pca = nested_pipe.named_steps["pipeline"].named_steps["pca"]
+    scaler = nested_pipe.named_steps["standardscaler"]
+
+    coef_nested_raw = linearmodel.patterns_.reshape(1, -1)
+    coef_nested_inv_desired = pca.inverse_transform(coef_nested_raw)
+    coef_nested_inv_desired = scaler.inverse_transform(coef_nested_inv_desired)
+
+    assert coef_nested_inv_actual.shape == (X.shape[1],)
+    assert_array_almost_equal(
+        coef_nested_inv_actual.reshape(1, -1), coef_nested_inv_desired
+    )
+
+    with pytest.raises(ValueError, match="i_do_not_exist"):
+        get_coef(
+            pipe, attr="patterns_", inverse_transform=True, step_name="i_do_not_exist"
+        )
+
+    class NonInvertibleTransformer(BaseEstimator, TransformerMixin):
+        def fit(self, X, y=None):
+            return self
+
+        def transform(self, X):
+            # In a real scenario, this would modify X
+            return X
+
+    pipe = make_pipeline(NonInvertibleTransformer(), LinearModel(Ridge()))
+    pipe.fit(X, y)
+    with pytest.warns(RuntimeWarning, match="not invertible"):
+        _ = get_coef(
+            pipe,
+            "filters_",
+            inverse_transform=True,
+            step_name="linearmodel",
+        )
 
 
 @pytest.mark.parametrize("n_features", [1, 5])
