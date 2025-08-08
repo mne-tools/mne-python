@@ -166,7 +166,7 @@ _known_config_types = {
     "MNE_DATASETS_SAMPLE_PATH": "str, path for sample data",
     "MNE_DATASETS_SOMATO_PATH": "str, path for somato data",
     "MNE_DATASETS_MULTIMODAL_PATH": "str, path for multimodal data",
-    "MNE_DATASETS_FNIRS_MOTOR_PATH": "str, path for fnirs_motor data",  
+    "MNE_DATASETS_FNIRS_MOTOR_PATH": "str, path for fnirs_motor data",
     "MNE_DATASETS_CAMH_KF_FNIRS_FINGERTAPPING_PATH": "str, path for camh_kf_fnirs_fingertapping",
     "MNE_DATASETS_OPM_PATH": "str, path for OPM data",
     "MNE_DATASETS_SPM_FACE_DATASETS_TESTS": "str, path for spm_face data",
