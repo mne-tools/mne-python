@@ -284,7 +284,7 @@ def test_bino_to_mono(tmp_path, fname):
     out_file.write_text("\n".join(lines), encoding="utf-8")
 
     with pytest.warns(
-        RuntimeWarning, match="Acquisition changed between monocular and"
+        RuntimeWarning, match="This recording switched between monocular and binocular"
     ):
         raw = read_raw_eyelink(out_file)
     want_channels = [
