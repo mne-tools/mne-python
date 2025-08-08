@@ -486,7 +486,6 @@ class LinearModel(MetaEstimatorMixin, BaseEstimator):
 
     @property
     def filters_(self):
-        check_is_fitted(self.model_)
         if hasattr(self.model_, "coef_"):
             # Standard Linear Model
             filters = self.model_.coef_
