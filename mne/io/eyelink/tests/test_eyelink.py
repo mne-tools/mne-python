@@ -202,13 +202,35 @@ def test_bino_to_mono(tmp_path, fname):
     in_file = Path(fname)
 
     with in_file.open() as file:
+        # We'll also add some binocular velocity data to increase our testing coverage.
         lines = file.readlines()
+        start_idx = [li for li, line in enumerate(lines) if line.startswith("START")][0]
+        for li, line in enumerate(lines[start_idx:-2], start=start_idx):
+            tokens = line.split("\t")
+            event_type = tokens[0]
+            if event_type == "SAMPLES":
+                tokens.insert(3, "VEL")
+                lines[li] = "\t".join(tokens)
+            elif event_type.isnumeric():
+                # fake velocity values for x/y left/right
+                tokens[4:4] = ["999.1", "999.2", "999.3", "999.4"]
+                lines[li] = "\t".join(tokens)
         end_line = lines[-2]
         end_ts = int(end_line.split("\t")[1])
         # Now only left eye data
         second_block = []
         new_ts = end_ts + 1
-        info = ["GAZE", "LEFT", "RATE", "500.00", "TRACKING", "CR", "FILTER", "2"]
+        info = [
+            "GAZE",
+            "LEFT",
+            "VEL",
+            "RATE",
+            "500.00",
+            "TRACKING",
+            "CR",
+            "FILTER",
+            "2",
+        ]
         start = ["START", f"{new_ts}", "LEFT", "SAMPLES", "EVENTS"]
         pupil = ["PUPIL", "DIAMETER"]
         samples = ["SAMPLES"] + info
@@ -217,8 +239,8 @@ def test_bino_to_mono(tmp_path, fname):
         second_block.append("\t".join(pupil) + "\n")
         second_block.append("\t".join(samples) + "\n")
         second_block.append("\t".join(events) + "\n")
-        # Some fake data
-        left = ["960", "540", "0.0", "..."]  # x, y, pupil, status
+        # Some fake data.. # x, y, pupil, velicty x/y status
+        left = ["960", "540", "0.0", "999.1", "999.2", "..."]
         NUM_FAKE_SAMPLES = 4000
         for ii in range(NUM_FAKE_SAMPLES):
             ts = new_ts + ii
@@ -273,6 +295,10 @@ def test_bino_to_mono(tmp_path, fname):
         "xpos_right",
         "ypos_right",
         "pupil_right",
+        "xvel_left",
+        "yvel_left",
+        "xvel_right",
+        "yvel_right",
     ]
     assert len(set(raw.info["ch_names"]).difference(set(want_channels))) == 0
 
