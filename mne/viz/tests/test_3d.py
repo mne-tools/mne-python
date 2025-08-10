@@ -1452,11 +1452,11 @@ def test_plot_stat_cluster(renderer_interactive):
         plot_stat_cluster(cluster, sample_src, brain, "foo")
 
     # test for incorrect shape of cluster
-    with pytest.raises(ValueError):
+    with pytest.raises(TypeError):
         plot_stat_cluster(([1]), sample_src, brain)
 
     # test for incorrect data type of cluster
-    with pytest.raises(ValueError):
+    with pytest.raises(TypeError):
         plot_stat_cluster([[1, 2, 3], [1, 2, 3]], sample_src, brain)
 
     # All correct
