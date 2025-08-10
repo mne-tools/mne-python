@@ -68,6 +68,7 @@ Visualization
    plot_volume_source_estimates
    plot_vector_source_estimates
    plot_sparse_source_estimates
+   plot_stat_cluster
    plot_tfr_topomap
    plot_topo_image_epochs
    plot_topomap
