@@ -431,6 +431,7 @@ def test_make_forward_solution_basic():
         make_forward_solution(fname_raw, fname_trans, fname_src, fname_bem_meg)
 
 
+@pytest.mark.slowtest
 @requires_openmeeg_mark()
 @pytest.mark.parametrize(
     "n_layers",

@@ -272,6 +272,7 @@ def _worker_update_config_loop(home_dir, worker_id, iterations=10):
     return worker_id
 
 
+@pytest.mark.slowtest
 def test_parallel_get_set_config(tmp_path: Path):
     """Test that uses parallel workers to get and set config.
 

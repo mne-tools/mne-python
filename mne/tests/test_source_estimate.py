@@ -1615,6 +1615,7 @@ def test_vol_adjacency():
     assert np.all(adjacency2.data == 1)
 
 
+@pytest.mark.slowtest
 @testing.requires_testing_data
 def test_spatial_src_adjacency():
     """Test spatial adjacency functionality."""
