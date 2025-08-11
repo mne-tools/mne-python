@@ -4309,8 +4309,10 @@ def plot_stat_cluster(cluster, src, brain, time="max-extent", color="magenta", w
 
     Parameters
     ----------
-    cluster : tuple (time_idx, vertex_idx)
-        The cluster to plot.
+    cluster : tuple
+        The cluster to plot. A cluster is a tuple of two list of arrays, a list time
+                indices and list of vertex indices, same as returned from cluster
+                permutation test.
     src : SourceSpaces
         The source space that was used for the inverse computation.
     brain : Brain
@@ -4335,16 +4337,15 @@ def plot_stat_cluster(cluster, src, brain, time="max-extent", color="magenta", w
     from ..label import Label
 
     # args check
-    if isinstance(cluster, tuple):
-        if len(cluster) != 2:
-            raise ValueError(
-                "A cluster is a tuple of two elements,  a list time "
-                "indices and list of vertex indices"
-            )
-    else:
+    if not isinstance(cluster, tuple):
         raise TypeError(f"Tuple expected, got {type(cluster)} instead.")
-
-    cluster_time_idx, cluster_vertex_index = cluster
+    elif len(cluster) != 2:
+        raise ValueError(
+            "A cluster is a tuple of two elements,  a list time indices "
+            "and list of vertex indices."
+        )
+    else:
+        cluster_time_idx, cluster_vertex_index = cluster
 
     # A cluster is defined both in space and time. If we want to plot the boundaries of
     # the cluster in space, we must choose a specific time for which to show the
@@ -4371,13 +4372,9 @@ def plot_stat_cluster(cluster, src, brain, time="max-extent", color="magenta", w
     # Problem 1): a label must be defined for either the left or right hemisphere. It
     # cannot span both hemispheres. So we must filter the vertices based on their
     # hemisphere.
-    # Problem 2): we have vertex *indices* that need to be transformed into proper
-    # vertex numbers. Not every vertex in the original high-resolution brain mesh is a
-    # source point in the source estimate. Do draw nice smooth curves, we need to
-    # interpolate the vertex indices.
 
-    # Both problems can be solved by accessing the vertices defined in the source space
-    # object. The source space object is actually a list of two source spaces.
+    # The source space object is actually a list of two source spaces, left and right
+    # hemisphere.
     src_lh, src_rh = src
 
     # Split the vertices based on the hemisphere in which they are located.
@@ -4403,7 +4400,12 @@ def plot_stat_cluster(cluster, src, brain, time="max-extent", color="magenta", w
     lh_label = Label(draw_lh_verts, hemi="lh", name=f"cluster-{cluster_index}")
     rh_label = Label(draw_rh_verts, hemi="rh", name=f"cluster-{cluster_index}")
 
-    # Interpolate the vertices in each label to the full resolution mesh
+    # Problem 2): We have vertex *indices* that need to be transformed into proper
+    # vertex numbers. Not every vertex in the original high-resolution brain mesh is a
+    # source point in the source estimate. Do draw nice smooth curves, we need to
+    # interpolate the vertex indices.
+
+    # Here, we interpolate the vertices in each label to the full resolution mesh
     if len(lh_label) > 0:
         lh_label = lh_label.smooth(
             smooth=3, subject=brain._subject, subjects_dir=brain._subjects_dir

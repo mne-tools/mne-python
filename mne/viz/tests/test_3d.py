@@ -1459,8 +1459,32 @@ def test_plot_stat_cluster(renderer_interactive):
     with pytest.raises(TypeError):
         plot_stat_cluster([[1, 2, 3], [1, 2, 3]], sample_src, brain)
 
-    # All correct
+    # All arguments are correct
     plot_stat_cluster(cluster, sample_src, brain)
+
+    # check for missing brain objects
+    missing = []
+    for key in ("lh", "rh"):
+        for attr, desc in [
+            ("labels", "brain.labels"),
+            ("_hemis", "brain._hemis"),
+            ("_layered_meshes", "brain._layered_meshes"),
+        ]:
+            if key not in getattr(brain, attr):
+                missing.append(f"{key} is missing from '{desc}'")
+    if not brain._subject:
+        missing.append("Subject name is missing from brain._subject")
+    if not brain._subjects_dir:
+        missing.append("Subject directory name is missing from brain._subjects_dir")
+    if brain._times is None or brain._times.size == 0:
+        missing.append("Time is missing from brain._times")
+
+    for label in brain.labels["lh"] + brain.labels["rh"]:
+        if not label.name.startswith("cluster-"):
+            missing.append(
+                f"Unexpected cluster label `{label.name}` found in label.name :"
+            )
+    assert not missing, "Brain object check failed:\n" + "\n".join(missing)
 
     brain.close()
     del brain
