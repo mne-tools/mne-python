@@ -1442,6 +1442,7 @@ def test_plot_stat_cluster(renderer_interactive):
     brain = plot_source_estimates(
         stc,
         "sample",
+        hemi="both",
         background=(1, 1, 0),
         subjects_dir=subjects_dir,
         colorbar=True,
