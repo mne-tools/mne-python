@@ -46,7 +46,7 @@ name = "mne"
 readme = {content-type = "text/x-rst", file = "README.rst"}
 requires-python = ">= 3.10"
 scripts = {mne = "mne.commands.utils:main"}
-version = "1.10.0"
+version = "1.10.1"
 
 [project.optional-dependencies]
 # Leave this one here for backward-compat
