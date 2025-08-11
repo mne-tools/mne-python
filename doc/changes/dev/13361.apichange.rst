@@ -1,7 +1,0 @@
-Starting with MNE-Python v1.13, ``model`` parameter of :class:`mne.decoding.LinearModel` 
-will not be modified, use ``model_`` attribute to access the fitted model.
-In addition, the default ``None`` for ``model`` will not automatically set 
-:class:`sklearn.linear_model.LogisticRegression`, it will need to be provided explicitly.
-The ``model`` is expected to be a supervised predictor, i.e. classifier or regressor 
-(or :class:`sklearn.multiclass.OneVsRestClassifier`), otherwise an error will be raised, 
-by `Gennadiy Belonosov`_.

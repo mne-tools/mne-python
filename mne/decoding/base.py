@@ -388,24 +388,13 @@ class LinearModel(MetaEstimatorMixin, BaseEstimator):
     )
 
     def __init__(self, model=None):
-        # XXX Remove the clause after warning cycle
-        if model is None:
-            model = LogisticRegression(solver="liblinear")
-            depr_message = (
-                "Starting with mne-python v1.13 'model' default "
-                "will change from LogisticRegression to None. "
-                "From now on please set model=LogisticRegression"
-                "(solver='liblinear') explicitly."
-            )
-            warn(depr_message, FutureWarning)
-
         self.model = model
 
     def __sklearn_tags__(self):
         """Get sklearn tags."""
         tags = super().__sklearn_tags__()
-        # XXX Change self._orig_model to self.model after 'model' warning cycle
-        model_tags = self._orig_model.__sklearn_tags__()
+        model = self.model if self.model is not None else LogisticRegression()
+        model_tags = model.__sklearn_tags__()
         tags.estimator_type = model_tags.estimator_type
         if tags.estimator_type is not None:
             model_type_tags = getattr(model_tags, f"{tags.estimator_type}_tags")
@@ -415,8 +404,7 @@ class LinearModel(MetaEstimatorMixin, BaseEstimator):
     def __getattr__(self, attr):
         """Wrap to model for some attributes."""
         if attr in LinearModel._model_attr_wrap:
-            # XXX Change self._orig_model to self.model after 'model' warning cycle
-            model = self.model_ if "model_" in self.__dict__ else self._orig_model
+            model = self.model_ if "model_" in self.__dict__ else self.model
             if attr == "fit_transform" and hasattr(model, "fit_transform"):
                 return self._fit_transform
             else:
@@ -430,15 +418,16 @@ class LinearModel(MetaEstimatorMixin, BaseEstimator):
         return self.fit(X, y).transform(X)
 
     def _validate_params(self, X):
-        model = self._orig_model
-        if isinstance(model, MetaEstimatorMixin):
-            model = model.estimator
-        is_predictor = is_regressor(model) or is_classifier(model)
-        if not is_predictor:
-            raise ValueError(
-                "Linear model should be a supervised predictor "
-                "(classifier or regressor)"
-            )
+        if self.model is not None:
+            model = self.model
+            if isinstance(model, MetaEstimatorMixin):
+                model = model.estimator
+            is_predictor = is_regressor(model) or is_classifier(model)
+            if not is_predictor:
+                raise ValueError(
+                    "Linear model should be a supervised predictor "
+                    "(classifier or regressor)"
+                )
 
         # For sklearn < 1.6
         try:
@@ -470,8 +459,11 @@ class LinearModel(MetaEstimatorMixin, BaseEstimator):
         X, y = validate_data(self, X, y, multi_output=True)
 
         # fit the Model
-        # XXX Change self._orig_model to self.model after 'model' warning cycle
-        self.model_ = clone(self._orig_model)
+        self.model_ = (
+            clone(self.model)
+            if self.model is not None
+            else LogisticRegression(solver="liblinear")
+        )
         self.model_.fit(X, y, **fit_params)
 
         # Computes patterns using Haufe's trick: A = Cov_X . W . Precision_Y
@@ -502,30 +494,6 @@ class LinearModel(MetaEstimatorMixin, BaseEstimator):
         if filters.ndim == 2 and filters.shape[0] == 1:
             filters = filters[0]
         return filters
-
-    # XXX Remove this property after 'model' warning cycle
-    @property
-    def model(self):
-        if "model_" in self.__dict__:
-            depr_message = (
-                "Starting with mne-python v1.13 'model' attribute "
-                "of LinearModel will not be fitted, "
-                "please use 'model_' instead"
-            )
-            warn(depr_message, FutureWarning)
-            return self.model_
-        else:
-            return self._orig_model
-
-    # XXX Remove this after 'model' warning cycle
-    @model.setter
-    def model(self, value):
-        self._orig_model = value
-
-    # XXX Remove this after 'model' warning cycle
-    def __repr__(self):
-        """Avoid FutureWarning from filter_ when printing the instance."""
-        return f"LinearModel(model={self._orig_model})"
 
 
 def _set_cv(cv, estimator=None, X=None, y=None):

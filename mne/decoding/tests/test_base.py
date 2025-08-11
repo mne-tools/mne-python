@@ -278,13 +278,10 @@ def test_get_coef_multiclass(n_features, n_targets):
     """Test get_coef on multiclass problems."""
     # Check patterns with more than 1 regressor
     X, Y, A = _make_data(n_samples=30000, n_features=n_features, n_targets=n_targets)
-    with pytest.warns(FutureWarning, match="'model' default"):
-        _ = LinearModel()
     lm = LinearModel(LinearRegression())
     assert not hasattr(lm, "model_")
     lm.fit(X, Y)
-    with pytest.warns(FutureWarning, match="'model' attribute of LinearModel"):
-        assert lm.model is lm.model_
+    assert lm.model is not lm.model_
     assert_array_equal(lm.filters_.shape, lm.patterns_.shape)
     if n_targets == 1:
         want_shape = (n_features,)
@@ -370,7 +367,7 @@ def test_linearmodel():
     """Test LinearModel class for computing filters and patterns."""
     # check categorical target fit in standard linear model
     rng = np.random.RandomState(0)
-    clf = LinearModel(LogisticRegression(solver="liblinear"))
+    clf = LinearModel()
     n, n_features = 20, 3
     X = rng.rand(n, n_features)
     y = np.arange(n) % 2
@@ -491,16 +488,7 @@ def test_cross_val_multiscore():
         assert_array_equal(manual, auto)
 
 
-# XXX Remove the filterwarning after 'model' warning cycle
-@pytest.mark.filterwarnings("ignore::FutureWarning")
 @parametrize_with_checks([LinearModel(LogisticRegression())])
 def test_sklearn_compliance(estimator, check):
     """Test LinearModel compliance with sklearn."""
-    # XXX Remove the ignores after 'model' warning cycle
-    ignores = (
-        "check_estimators_overwrite_params",
-        "check_parameters_default_constructible",
-    )
-    if any(ignore in str(check) for ignore in ignores):
-        return
     check(estimator)

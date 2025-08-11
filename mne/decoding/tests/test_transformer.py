@@ -17,7 +17,6 @@ pytest.importorskip("sklearn")
 
 from sklearn.decomposition import PCA
 from sklearn.kernel_ridge import KernelRidge
-from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.utils.estimator_checks import parametrize_with_checks
@@ -233,7 +232,7 @@ def test_vectorizer():
     clf = make_pipeline(
         Vectorizer(),
         StandardScaler(),
-        LinearModel(LogisticRegression(solver="liblinear")),
+        LinearModel(),
     )
     clf.fit(X_arr, y)
 
