@@ -229,11 +229,7 @@ def test_vectorizer():
     # And that pipelines work properly
     X_arr = EpochsArray(X, create_info(12, 1000.0, "eeg"))
     vect.fit(X_arr)
-    clf = make_pipeline(
-        Vectorizer(),
-        StandardScaler(),
-        LinearModel(),
-    )
+    clf = make_pipeline(Vectorizer(), StandardScaler(), LinearModel())
     clf.fit(X_arr, y)
 
 
