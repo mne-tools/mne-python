@@ -1476,7 +1476,7 @@ def test_plot_stat_cluster(renderer_interactive):
     if not brain._subject:
         missing.append("Subject name is missing from brain._subject")
     if not brain._subjects_dir:
-        missing.append("Subject directory name is missing from brain._subjects_dir")
+        missing.append("Subject directory path is missing from brain._subjects_dir")
     if brain._times is None or brain._times.size == 0:
         missing.append("Time is missing from brain._times")
 

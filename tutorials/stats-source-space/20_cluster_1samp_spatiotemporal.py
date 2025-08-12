@@ -270,7 +270,6 @@ brain = stc_all_cluster_vis.plot(
 # significant under the permutation distribution with resect all the source estimates.
 # This can easily be done by plotting the cluster boundary on top of the source
 # estimates using the code snippet below.
-# ----------------------------------------------------------
 
 difference = morph.apply(condition1 - condition2)
 difference_plot = difference.plot(
@@ -281,12 +280,12 @@ difference_plot = difference.plot(
     initial_time=0.1,
 )
 
-# We are plotting only 1st clusters here for illustration purpose.
+# We are plotting only one clusters here for illustration purpose.
 plot_stat_cluster(
-    good_clusters[0], src, difference_plot, time="max-extent", color="magenta", width=1
+    good_clusters[2], src, difference_plot, time="max-extent", color="magenta", width=1
 )
 
-# Plotting second cluster on the interactive mode for illustration purpose.
+# Plotting the same cluster on the interactive mode for illustration purpose.
 plot_stat_cluster(
-    good_clusters[1], src, difference_plot, time="interactive", color="magenta", width=1
+    good_clusters[2], src, difference_plot, time="interactive", color="magenta", width=1
 )
