@@ -11,6 +11,7 @@ from matplotlib.colors import same_color
 from numpy.testing import assert_allclose, assert_array_equal
 
 from mne import Annotations, BaseEpochs, create_info, make_fixed_length_epochs
+from mne.channels import equalize_channels
 from mne.io import RawArray
 from mne.time_frequency import read_spectrum
 from mne.time_frequency.multitaper import _psd_from_mt
@@ -241,6 +242,16 @@ def test_combine_spectrum_error_catch(raw_spectrum):
     raw_spectrum2._freqs = raw_spectrum2._freqs + 1
     with pytest.raises(AssertionError, match=".* do not contain the same frequencies"):
         combine_spectrum([raw_spectrum, raw_spectrum2], weights="equal")
+
+
+def test_equalize_channels(raw_spectrum):
+    """Test equalization of channels for instances of `BaseSpectrum`."""
+    spect1 = raw_spectrum.copy()
+    spect2 = spect1.copy().pick(["MEG 0122", "MEG 0111"])
+    spect1, spect2 = equalize_channels([spect1, spect2])
+
+    assert spect1.ch_names == ["MEG 0111", "MEG 0122"]
+    assert spect2.ch_names == ["MEG 0111", "MEG 0122"]
 
 
 def test_spectrum_reject_by_annot(raw):
