@@ -129,7 +129,7 @@ def test_auto_scale():
     raw = read_raw_fif(raw_fname)
     epochs = Epochs(raw, read_events(ev_fname))
     rand_data = np.random.randn(10, 100)
-    # make a stim channel all zeros (gh XXXXX)
+    # make a stim channel all zeros (gh 13376)
     ix = raw.get_channel_types().index("stim")
     raw.load_data()
     raw._data[ix] = 0.0
@@ -146,7 +146,7 @@ def test_auto_scale():
         scalings_new = _compute_scalings(scalings_def, inst)
         assert scale_grad == scalings_new["grad"]
         assert scalings_new["eeg"] != "auto"
-        # make sure an all-zero channel doesn't cause scaling=0 (gh XXXXX)
+        # make sure an all-zero channel doesn't cause scaling=0 (gh 13376)
         assert scalings_new["stim"] > 0
 
     with pytest.raises(ValueError, match="Must supply either Raw or Epochs"):
