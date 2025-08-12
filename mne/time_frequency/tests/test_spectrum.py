@@ -201,8 +201,8 @@ def test_combine_spectrum(raw_spectrum, weights):
     spectrum1 = raw_spectrum.copy()
     spectrum2 = raw_spectrum.copy()
     if weights == "nave":
-        spectrum1._nave = 1
-        spectrum2._nave = 2
+        spectrum1.nave = 1
+        spectrum2.nave = 2
         spectrum2._data *= 2
         new_spectrum = combine_spectrum([spectrum1, spectrum2], weights=weights)
         assert_allclose(new_spectrum.data, spectrum1.data * (5 / 3))
