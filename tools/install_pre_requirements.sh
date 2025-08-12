@@ -17,7 +17,8 @@ python -m pip install $STD_ARGS pip setuptools packaging \
 	threadpoolctl cycler fonttools kiwisolver pyparsing pillow python-dateutil \
 	patsy pytz tzdata nibabel tqdm trx-python joblib numexpr \
 	"$QT_BINDING!=6.9.1" \
-	py-cpuinfo blosc2 hatchling "formulaic>=1.1.0"
+	py-cpuinfo blosc2 hatchling "formulaic>=1.1.0" \
+	pyarrow
 python -m pip uninstall -yq numpy
 echo "::endgroup::"
 echo "::group::Scientific Python Nightly Wheels"
@@ -29,12 +30,11 @@ python -m pip install $STD_ARGS --only-binary ":all:" --default-timeout=60 \
 	"matplotlib>=3.11.0.dev0" \
 	"pandas>=3.0.0.dev0" \
 	"dipy>=1.10.0.dev0" \
-	"pyarrow>=20.0.0.dev0" \
 	"tables>=3.10.3.dev0" \
 	"statsmodels>=0.15.0.dev697" \
 	"h5py>=3.13.0"
 echo "::endgroup::"
-
+# No "pyarrow>=22.0.0.dev0" because of https://github.com/apache/arrow/issues/47308
 # No Numba because it forces an old NumPy version
 
 echo "::group::VTK"
