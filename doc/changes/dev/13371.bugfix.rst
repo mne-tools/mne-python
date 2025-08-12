@@ -1,0 +1,1 @@
+Fix the check in :func:`mne.make_forward_model` that all MEG sensors are outside a spherical BEM model, by `Marijn van Vliet`_
