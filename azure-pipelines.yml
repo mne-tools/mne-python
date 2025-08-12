@@ -251,9 +251,9 @@ stages:
             3.10 pip:
               TEST_MODE: 'pip'
               PYTHON_VERSION: '3.10'
-            3.12 pip pre:
+            3.13 pip pre:
               TEST_MODE: 'pip-pre'
-              PYTHON_VERSION: '3.12'
+              PYTHON_VERSION: '3.13'
         steps:
           - task: UsePythonVersion@0
             inputs:

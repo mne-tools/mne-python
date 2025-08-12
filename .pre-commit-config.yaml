@@ -1,7 +1,7 @@
 repos:
   # Ruff mne
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.12.7
+    rev: v0.12.8
     hooks:
       - id: ruff-check
         name: ruff lint mne
@@ -51,7 +51,7 @@ repos:
 
   # sorting
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v5.0.0
+    rev: v6.0.0
     hooks:
       - id: file-contents-sorter
         files: ^doc/changes/names.inc|^.mailmap
