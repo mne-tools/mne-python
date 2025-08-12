@@ -15,8 +15,8 @@ from ..._fiff.meas_info import create_info
 from ...utils import _check_fname, fill_doc, logger, verbose, warn
 from ..base import BaseRaw
 
-# these are the only non-data channel IDs (besides "AUX*", handled via glob)
-_NON_DATA_CHS = ("Quaternion", "BufferChannel", "RampChannel", "LoadCellChannel")
+# these will all get mapped to `misc`. Quaternion channels are handled separately.
+_NON_DATA_CHS = ("buffer", "ramp", "loadcell", "aux")
 
 
 def _parse_date(dt):
@@ -50,13 +50,14 @@ def _parse_patient_xml(tree):
 def _parse_otb_plus_metadata(metadata, extras_metadata):
     assert metadata.tag == "Device"
     # device-level metadata
-    sfreq = float(metadata.attrib["SampleFrequency"])
-    n_chan = int(metadata.attrib["DeviceTotalChannels"])
+    adc_range = 0.0033  # 3.3 mV (TODO VERIFY)
     bit_depth = int(metadata.attrib["ad_bits"])
     device_name = metadata.attrib["Name"]
-    adc_range = 0.0033  # 3.3 mV (TODO VERIFY)
+    n_chan = int(metadata.attrib["DeviceTotalChannels"])
+    sfreq = float(metadata.attrib["SampleFrequency"])
     # containers
     gains = np.full(n_chan, np.nan)
+    scalings = np.full(n_chan, np.nan)
     ch_names = list()
     ch_types = list()
     highpass = list()
@@ -93,19 +94,22 @@ def _parse_otb_plus_metadata(metadata, extras_metadata):
             # store gains
             gain_ix = ix + ch_offset
             gains[gain_ix] = float(ch.get("Gain")) * adapter_gain
-            # TODO verify ch_type for quats, buffer channel, and ramp channel
-            # ramp and controls channels definitely "MISC"
+            # TODO verify ch_type for quats & buffer channel
+            # ramp and control channels definitely "MISC"
             # quats should maybe be FIFF.FIFFV_QUAT_{N} (N from 0-6), but need to verify
             # what quats should be, as there are only 4 quat channels. The FIFF quats:
             # 0: obsolete
             # 1-3: rotations
             # 4-6: translations
-            if ch_id == "Quaternions":
-                ch_type = FIFF.FIFFV_QUAT_0  # TODO verify
-            elif ch_id in _NON_DATA_CHS or ch_id.lower().startswith("aux"):
+            if ch_id.startswith("Quaternion"):
+                ch_type = "chpi"  # TODO verify
+                scalings[gain_ix] = 1e-4
+            elif any(ch_id.lower().startswith(_ch.lower()) for _ch in _NON_DATA_CHS):
                 ch_type = "misc"
+                scalings[gain_ix] = 1.0
             else:
                 ch_type = "emg"
+                scalings[gain_ix] = 1.0
             ch_types.append(ch_type)
     # parse subject info
     subject_info = _parse_patient_xml(extras_metadata)
@@ -122,11 +126,151 @@ def _parse_otb_plus_metadata(metadata, extras_metadata):
         ch_types=ch_types,
         highpass=highpass,
         lowpass=lowpass,
+        units=None,
+        scalings=scalings,
+        signal_paths=None,
     )
 
 
 def _parse_otb_four_metadata(metadata, extras_metadata):
-    pass
+    def get_str(node, tag):
+        return node.find(tag).text
+
+    def get_int(node, tag):
+        return int(get_str(node, tag))
+
+    def get_float(node, tag, **replacements):
+        # filter freqs may be "Unknown", can't blindly parse as floats
+        val = get_str(node, tag)
+        return replacements.get(val, float(val))
+
+    assert metadata.tag == "DeviceParameters"
+    # device-level metadata
+    adc_range = float(metadata.find("ADC_Range").text)
+    bit_depth = int(metadata.find("AdBits").text)
+    n_chan = int(metadata.find("TotalChannelsInFile").text)
+    sfreq = float(metadata.find("SamplingFrequency").text)
+    # containers
+    gains = np.full(n_chan, np.nan)
+    ch_names = list()
+    ch_types = list()
+    highpass = list()
+    lowpass = list()
+    n_chans = list()
+    paths = list()
+    scalings = list()
+    units = list()
+    # stored per-adapter, but should be uniform
+    adc_ranges = set()
+    bit_depths = set()
+    device_names = set()
+    meas_dates = set()
+    sfreqs = set()
+    # adapter-level metadata
+    for adapter in extras_metadata.iter("TrackInfo"):
+        # expected to be same for all adapters
+        adc_ranges.add(get_float(adapter, "ADC_Range"))
+        bit_depths.add(get_int(adapter, "ADC_Nbits"))
+        device_names.add(get_str(adapter, "Device"))
+        sfreqs.add(get_int(adapter, "SamplingFrequency"))
+        # may be different for each adapter
+        adapter_id = get_str(adapter, "SubTitle")
+        adapter_gain = get_float(adapter, "Gain")
+        ch_offset = get_int(adapter, "AcquisitionChannel")
+        n_chans.append(get_int(adapter, "NumberOfChannels"))
+        paths.append(get_str(adapter, "SignalStreamPath"))
+        scalings.append(get_str(adapter, "UnitOfMeasurementFactor"))
+        units.append(get_str(adapter, "UnitOfMeasurement"))
+        # we only really care about lowpass/highpass on the data channels
+        if adapter_id not in ("Quaternion", "Buffer", "Ramp"):
+            highpass = get_float(adapter, "HighPassFilter", Unknown=None)
+            lowpass = get_float(adapter, "LowPassFilter", Unknown=None)
+        # meas_date
+        meas_date = adapter.find("StringsDescriptions").find("StartDate")
+        if meas_date is not None:
+            meas_dates.add(_parse_date(meas_date.text).astimezone(timezone.utc))
+        # # range (TODO maybe not needed; might be just for mfg's GUI?)
+        # # FWIW in the example file: range for Buffer is 1-100,
+        # # Ramp and Control are -32767-32768, and
+        # # EMG chs are ±2.1237507098703645E-05
+        # rmin = get_float(adapter, "RangeMin")
+        # rmax = get_float(adapter, "RangeMax")
+        # if rmin.is_integer() and rmax.is_integer():
+        #     rmin = int(rmin)
+        #     rmax = int(rmax)
+
+        # extract channel-specific info                 ↓ not a typo
+        for ch in adapter.get("Channels").iter("ChannelRapresentation"):
+            # channel names
+            ix = int(ch.find("Index").text)
+            ch_name = ch.find("Label").text
+            try:
+                _ = int(ch_name)
+            except ValueError:
+                pass
+            else:
+                ch_name = f"{adapter_id}_{ix}"
+            ch_names.append(ch_name)
+            # gains
+            gains[ix + ch_offset] = adapter_gain
+            # channel types
+            # TODO verify for quats & buffer channel
+            # ramp and control channels definitely "MISC"
+            # quats should maybe be FIFF.FIFFV_QUAT_{N} (N from 0-6), but need to verify
+            # what quats should be, as there are only 4 quat channels. The FIFF quats:
+            # 0: obsolete
+            # 1-3: rotations
+            # 4-6: translations
+            if adapter_id.startswith("Quaternion"):
+                ch_type = "chpi"  # TODO verify
+            elif any(adapter_id.lower().startswith(_ch) for _ch in _NON_DATA_CHS):
+                ch_type = "misc"
+            else:
+                ch_type = "emg"
+            ch_types.append(ch_type)
+
+    # validate the fields stored at adapter level, but that ought to be uniform:
+    def check_uniform(name, adapter_values, device_value=None):
+        if len(adapter_values) > 1:
+            raise RuntimeError(
+                f"multiple {name}s found ({', '.join(sorted(adapter_values))}), "
+                "this is not yet supported"
+            )
+        adapter_value = adapter_values.pop()
+        if device_value is not None and device_value != adapter_value:
+            raise RuntimeError(
+                f"mismatch between device-level {name} ({device_value}) and "
+                f"adapter-level {name} ({adapter_value})"
+            )
+        return adapter_value
+
+    device_name = check_uniform("device name", device_names)
+    adc_range = check_uniform("analog-to-digital range", adc_ranges, adc_range)
+    bit_depth = check_uniform("bit depth", bit_depths, bit_depth)
+    sfreq = check_uniform("sampling frequency", sfreqs, sfreq)
+
+    # verify number of channels in device metadata matches sum of adapters
+    assert sum(n_chans) == n_chan, (
+        f"total channels ({n_chan}) doesn't match sum of channels for each adapter "
+        f"({sum(n_chans)})"
+    )
+
+    return dict(
+        adc_range=adc_range,
+        bit_depth=bit_depth,
+        ch_names=ch_names,
+        ch_types=ch_types,
+        device_name=device_name,
+        gains=gains,
+        highpass=highpass,
+        lowpass=lowpass,
+        n_chan=n_chan,
+        scalings=scalings,
+        sfreq=sfreq,
+        signal_paths=paths,
+        subject_info=dict(),
+        units=units,
+    )
 
 
 @fill_doc
@@ -160,8 +304,9 @@ class RawOTB(BaseRaw):
             fnames = fid.getnames()
             # the .sig file(s) are the binary channel data.
             sig_fnames = [_fname for _fname in fnames if _fname.endswith(".sig")]
-            # TODO ↓↓↓↓↓↓↓↓ make compatible with multiple sig_fnames
-            data_size_bytes = fid.getmember(sig_fnames[0]).size
+            # TODO ↓↓↓↓↓↓↓↓ this may be wrong for Novecento+ devices
+            #               (MATLAB code appears to skip the first sig_fname)
+            data_size_bytes = sum(fid.getmember(_fname).size for _fname in sig_fnames)
             # triage the file format versions
             if v4_format:
                 metadata_fname = "DeviceParameters.xml"
@@ -187,17 +332,20 @@ class RawOTB(BaseRaw):
             extras_tree = ET.fromstring(fid.extractfile(extras_fname).read())
         # extract what we need from the tree
         metadata = parse_func(metadata_tree, extras_tree)
-        sfreq = metadata["sfreq"]
-        n_chan = metadata["n_chan"]
-        bit_depth = metadata["bit_depth"]
-        device_name = metadata["device_name"]
         adc_range = metadata["adc_range"]
-        subject_info = metadata["subject_info"]
+        bit_depth = metadata["bit_depth"]
         ch_names = metadata["ch_names"]
         ch_types = metadata["ch_types"]
+        device_name = metadata["device_name"]
         gains = metadata["gains"]
         highpass = metadata["highpass"]
         lowpass = metadata["lowpass"]
+        n_chan = metadata["n_chan"]
+        scalings = metadata["scalings"]
+        sfreq = metadata["sfreq"]
+        signal_paths = metadata["signal_paths"]
+        subject_info = metadata["subject_info"]
+        # units = metadata["units"]  # TODO needed for orig_units maybe
 
         if bit_depth == 16:
             _dtype = np.int16
@@ -206,7 +354,7 @@ class RawOTB(BaseRaw):
             # https://stackoverflow.com/a/34128171
             # https://stackoverflow.com/a/11967503
             raise NotImplementedError(
-                "OTB+ files with 24-bit data are not yet supported."
+                "OTB files with 24-bit data are not yet supported."
             )
         else:
             raise NotImplementedError(
@@ -256,8 +404,8 @@ class RawOTB(BaseRaw):
             info["highpass"] = highpass
             info["lowpass"] = lowpass
             for ix, _ch in enumerate(info["chs"]):
-                cal = 1 / 2**bit_depth / gains[ix]
-                # TODO need different range for Quaternions?
+                # divisor = 1.0 if _ch["kind"] == FIFF.FIFFV_MISC_CH else 2**bit_depth
+                cal = 1 / 2**bit_depth / gains[ix] * scalings[ix]
                 _range = (
                     adc_range
                     if _ch["kind"] in (FIFF.FIFFV_EMG_CH, FIFF.FIFFV_EEG_CH)
@@ -269,7 +417,7 @@ class RawOTB(BaseRaw):
                     timezone.utc
                 )
 
-        # sanity check
+        # verify duration from metadata matches n_samples/sfreq
         dur = extras_tree.find("duration")
         if dur is not None:
             np.testing.assert_almost_equal(
@@ -282,7 +430,12 @@ class RawOTB(BaseRaw):
         # TODO parse files markers_0.xml, markers_1.xml as annotations?
 
         # populate raw_extras
-        raw_extras = dict(dtype=_dtype, sig_fnames=sig_fnames)
+        raw_extras = dict(
+            device_name=device_name,
+            dtype=_dtype,
+            sig_fnames=sig_fnames,
+            signal_paths=signal_paths,
+        )
         FORMAT_MAPPING = dict(
             d="double",
             f="single",
@@ -306,6 +459,9 @@ class RawOTB(BaseRaw):
         """Load raw data from an OTB+ file."""
         _extras = self._raw_extras[0]
         sig_fnames = _extras["sig_fnames"]
+        # if device_name=="Novecento+" then we may need these:
+        # sig_paths = _extras["signal_paths"]
+        # device_name = _extras["device_name"]
 
         with tarfile.open(self.filenames[0], "r") as fid:
             _data = list()
@@ -318,10 +474,7 @@ class RawOTB(BaseRaw):
                     .reshape(-1, self.info["nchan"])
                     .T
                 )
-            if len(_data) == 1:
-                _data = _data[0]
-            else:
-                _data = np.concatenate(_data, axis=0)
+            _data = np.concatenate(_data, axis=0)  # no-op if len(_data) == 1
 
         cals = np.array([_ch["cal"] * _ch["range"] for _ch in self.info["chs"]])
         self._data = _data * cals[:, np.newaxis]
