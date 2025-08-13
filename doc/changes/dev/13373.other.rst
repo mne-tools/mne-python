@@ -1,2 +1,1 @@
-Changed  "Enhancement" to "newfeature" in line 617 of file 'contribution.rst' as Enhancement is not a recognized change type.
-by `Shristi Baral`_
+Changed "Enhancement" to "newfeature" in the Contributing guide as Enhancement is not a recognized change type, by `Shristi Baral`_
