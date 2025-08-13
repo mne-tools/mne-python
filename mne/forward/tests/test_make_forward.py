@@ -597,6 +597,7 @@ def test_make_forward_solution_sphere(tmp_path, fname_src_small):
     # not matter for the check that MEG sensors are outside the sphere.
     custom_trans = Transform("head", "mri")
     custom_trans["trans"][0, 3] = 0.05  # move MEG sensors close to mesh
+    sphere = make_sphere_model()
     fwd = make_forward_solution(fname_raw, custom_trans, src, sphere)
     assert fwd["mri_head_t"]["trans"][0, 3] == -0.05
 
