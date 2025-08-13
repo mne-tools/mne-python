@@ -266,10 +266,9 @@ brain = stc_all_cluster_vis.plot(
 # brain.save_image('clusters.png')
 
 # %%
-# Alternatively, you may wish to observe clusters are considered statistically
-# significant under the permutation distribution with resect all the source estimates.
-# This can easily be done by plotting the cluster boundary on top of the source
-# estimates using the code snippet below.
+# Alternatively, you may wish to observe the spatial and temporal extent of
+# single clusters. The code below demonstrates how to plot the cluster
+# boundary on top of an existing source estimate.
 
 difference = morph.apply(condition1 - condition2)
 difference_plot = difference.plot(
@@ -280,12 +279,12 @@ difference_plot = difference.plot(
     initial_time=0.1,
 )
 
-# We are plotting only one clusters here for illustration purpose.
+# Plot one cluster at the time of maximal spatial extent of that cluster
 plot_stat_cluster(
     good_clusters[2], src, difference_plot, time="max-extent", color="magenta", width=1
 )
-
-# Plotting the same cluster on the interactive mode for illustration purpose.
+# %%
+# Plotting the cluster in interactive mode allows scrolling through time
 plot_stat_cluster(
     good_clusters[2], src, difference_plot, time="interactive", color="magenta", width=1
 )

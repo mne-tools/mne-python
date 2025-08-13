@@ -4310,9 +4310,9 @@ def plot_stat_cluster(cluster, src, brain, time="max-extent", color="magenta", w
     Parameters
     ----------
     cluster : tuple
-        The cluster to plot. A cluster is a tuple of two list of arrays, a list time
-                indices and list of vertex indices, same as returned from cluster
-                permutation test.
+        The cluster to plot. A cluster is a tuple of two elements:
+            an array of time indices
+            and an array of vertex indices.
     src : SourceSpaces
         The source space that was used for the inverse computation.
     brain : Brain
@@ -4368,10 +4368,9 @@ def plot_stat_cluster(cluster, src, brain, time="max-extent", color="magenta", w
         v for v, t in zip(cluster_vertex_index, cluster_time_idx) if t == time_idx
     ]
 
-    # Let's create an anatomical label containing these vertex indices.
-    # Problem 1): a label must be defined for either the left or right hemisphere. It
-    # cannot span both hemispheres. So we must filter the vertices based on their
-    # hemisphere.
+    # Create the anatomical label containing the vertex indices belonging to the
+    # cluster. A label cannot span both hemispheres.
+    # So we must filter the vertices based on their hemisphere.
 
     # The source space object is actually a list of two source spaces, left and right
     # hemisphere.
@@ -4400,8 +4399,8 @@ def plot_stat_cluster(cluster, src, brain, time="max-extent", color="magenta", w
     lh_label = Label(draw_lh_verts, hemi="lh", name=f"cluster-{cluster_index}")
     rh_label = Label(draw_rh_verts, hemi="rh", name=f"cluster-{cluster_index}")
 
-    # Problem 2): We have vertex *indices* that need to be transformed into proper
-    # vertex numbers. Not every vertex in the original high-resolution brain mesh is a
+    # Transform vertex indices into proper vertex numbers.
+    # Not every vertex in the original high-resolution brain mesh is a
     # source point in the source estimate. Do draw nice smooth curves, we need to
     # interpolate the vertex indices.
 
