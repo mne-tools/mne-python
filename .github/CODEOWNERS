@@ -84,7 +84,7 @@
 /mne/preprocessing/e*g.py @mscheltienne
 
 # Report
-/mne/report @hoechenberger @dengemann @jasmainak
+/mne/report @dengemann @jasmainak
 
 # Simulation
 /mne/simulation/ @agramfort
@@ -119,9 +119,6 @@
 # Non-tutorial documentation text and infrastructure
 /doc @larsoner @drammock @agramfort @dengemann
 /logo @drammock
-
-# Installation documentation
-/doc/install @hoechenberger
 
 # Project infrastructure and CIs
 /*.* @larsoner @drammock  # files in the root directory
