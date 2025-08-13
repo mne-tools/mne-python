@@ -283,7 +283,7 @@ difference_plot = difference.plot(
 plot_stat_cluster(
     good_clusters[2], src, difference_plot, time="max-extent", color="magenta", width=1
 )
-# %%
+
 # Plotting the cluster in interactive mode allows scrolling through time
 plot_stat_cluster(
     good_clusters[2], src, difference_plot, time="interactive", color="magenta", width=1
