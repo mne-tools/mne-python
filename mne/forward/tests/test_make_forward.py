@@ -574,6 +574,7 @@ def test_make_forward_solution_sphere(tmp_path, fname_src_small):
             1.0,
             rtol=1e-3,
         )
+
     # Number of layers in the sphere model doesn't matter for MEG
     # (as long as no sources are omitted due to distance)
     assert len(sphere["layers"]) == 4
@@ -591,6 +592,13 @@ def test_make_forward_solution_sphere(tmp_path, fname_src_small):
     sphere = make_sphere_model(head_radius=None)
     with pytest.raises(RuntimeError, match="zero shells.*EEG"):
         make_forward_solution(fname_raw, fname_trans, src, sphere)
+
+    # Since the spherical model is defined in head space, the head->MRI transform should
+    # not matter for the check that MEG sensors are outside the sphere.
+    extreme_trans = Transform("head", "mri")
+    extreme_trans["trans"][0, 3] = 100  # translation of 100 meters
+    fwd = make_forward_solution(fname_raw, extreme_trans, src, sphere)
+    assert fwd["mri_head_t"]["trans"][0, 3] == -100
 
 
 @pytest.mark.slowtest
