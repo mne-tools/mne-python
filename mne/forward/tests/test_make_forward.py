@@ -595,10 +595,10 @@ def test_make_forward_solution_sphere(tmp_path, fname_src_small):
 
     # Since the spherical model is defined in head space, the head->MRI transform should
     # not matter for the check that MEG sensors are outside the sphere.
-    extreme_trans = Transform("head", "mri")
-    extreme_trans["trans"][0, 3] = 100  # translation of 100 meters
-    fwd = make_forward_solution(fname_raw, extreme_trans, src, sphere)
-    assert fwd["mri_head_t"]["trans"][0, 3] == -100
+    custom_trans = Transform("head", "mri")
+    custom_trans["trans"][0, 3] = 0.05  # move MEG sensors close to mesh
+    fwd = make_forward_solution(fname_raw, custom_trans, src, sphere)
+    assert fwd["mri_head_t"]["trans"][0, 3] == -0.05
 
 
 @pytest.mark.slowtest
