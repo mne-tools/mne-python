@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "3180e0b2061b008886873de518686debce2fe47d",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "examples/decoding/decoding_rsa_sgskip.py": {
+      "a": 2,
+      "d": 3
+    }
+  }
+}

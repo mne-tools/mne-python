@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "9d114d6c745e2651d2e6c946c466cdd7f85e4f12",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".circleci/config.yml": {
+      "a": 0,
+      "d": 5
+    },
+    "mne/gui/_coreg.py": {
+      "a": 5,
+      "d": 4
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 46,
+      "d": 77
+    },
+    "mne/viz/_brain/_linkviewer.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/_brain/tests/test_brain.py": {
+      "a": 18,
+      "d": 13
+    },
+    "mne/viz/backends/_pyvista.py": {
+      "a": 3,
+      "d": 3
+    },
+    "tools/circleci_bash_env.sh": {
+      "a": 0,
+      "d": 1
+    },
+    "tools/install_pre_requirements.sh": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

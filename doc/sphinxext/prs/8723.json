@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "700d7c0a06655933adb9d7806153a7d00bbdde25",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 3,
+      "d": 1
+    },
+    "examples/visualization/plot_make_report.py": {
+      "a": 0,
+      "d": 53
+    },
+    "mne/report.py": {
+      "a": 64,
+      "d": 29
+    },
+    "tutorials/misc/plot_report.py": {
+      "a": 20,
+      "d": 6
+    }
+  }
+}

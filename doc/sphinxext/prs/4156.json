@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "7b812a2c654290c509beae6fb3ef035127ea3a68",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/io/plot_objects_from_arrays.py": {
+      "a": 4,
+      "d": 4
+    }
+  }
+}

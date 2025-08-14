@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "2970a72758df09d4c4d901ea39bcd3e650012c37",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/python_reference.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/whats_new.rst": {
+      "a": 4,
+      "d": 0
+    },
+    "examples/simulation/plot_source_simulator.py": {
+      "a": 84,
+      "d": 0
+    },
+    "mne/simulation/__init__.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/simulation/source.py": {
+      "a": 207,
+      "d": 0
+    },
+    "mne/simulation/tests/test_source.py": {
+      "a": 176,
+      "d": 81
+    }
+  }
+}

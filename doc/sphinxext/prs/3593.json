@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "f0fa05578b96d2cea83ecd811e1c71b03ec5267d",
+  "authors": [
+    {
+      "n": "Phillip Alday",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/io/brainvision/brainvision.py": {
+      "a": 37,
+      "d": 22
+    },
+    "mne/io/brainvision/tests/test_brainvision.py": {
+      "a": 6,
+      "d": 6
+    }
+  }
+}

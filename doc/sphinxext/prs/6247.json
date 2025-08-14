@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "af340be8359c3dd2514e103b83306eca0f78c5f0",
+  "authors": [
+    {
+      "n": "Jeyhte Key",
+      "e": "jeythekey@tutanota.com"
+    }
+  ],
+  "changes": {
+    "mne/io/base.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/fiff/tests/test_raw_fiff.py": {
+      "a": 6,
+      "d": 2
+    }
+  }
+}

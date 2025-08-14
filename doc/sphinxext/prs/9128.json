@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "82f8476316385233dd35a4dc4e448730f4c39726",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".github/workflows/cancel.yml": {
+      "a": 15,
+      "d": 0
+    }
+  }
+}

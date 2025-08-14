@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "d94a10d27aad9a146070b33121c5e2e4b205808c",
+  "authors": [
+    {
+      "n": "Teon L Brooks",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/layouts/biosemi.lay": {
+      "a": 64,
+      "d": 0
+    }
+  }
+}

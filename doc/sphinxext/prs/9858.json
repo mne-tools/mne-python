@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "b5b3f78c1b8b7ffacf27f04149428d6ea541ff84",
+  "authors": [
+    {
+      "n": "Mathieu Scheltienne",
+      "e": "mathieu.scheltienne@fcbg.ch"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 120,
+      "d": 81
+    },
+    "mne/preprocessing/tests/test_ica.py": {
+      "a": 5,
+      "d": 6
+    },
+    "mne/utils/docs.py": {
+      "a": 12,
+      "d": 0
+    }
+  }
+}

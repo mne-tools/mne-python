@@ -1,0 +1,435 @@
+{
+  "merge_commit_sha": "37b00c4cc16982eb0d0f210acd20e0cef3fc539d",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/conf.py": {
+      "a": 14,
+      "d": 1
+    },
+    "doc/documentation.rst": {
+      "a": 54,
+      "d": 55
+    },
+    "doc/glossary.rst": {
+      "a": 7,
+      "d": 11
+    },
+    "doc/manual/cookbook.rst": {
+      "a": 2,
+      "d": 3
+    },
+    "doc/manual/datasets_index.rst": {
+      "a": 15,
+      "d": 15
+    },
+    "doc/manual/preprocessing/ssp.rst": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/manual/source_localization/c_inverse.rst": {
+      "a": 1,
+      "d": 2
+    },
+    "doc/manual/source_localization/inverse.rst": {
+      "a": 4,
+      "d": 5
+    },
+    "doc/manual/source_localization/morph_stc.rst": {
+      "a": 8,
+      "d": 12
+    },
+    "doc/tutorials/philosophy.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/whats_new.rst": {
+      "a": 3,
+      "d": 3
+    },
+    "examples/connectivity/plot_mne_inverse_envelope_correlation.py": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/datasets/plot_brainstorm_data.py": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/datasets/plot_megsim_data.py": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/datasets/plot_opm_data.py": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/datasets/plot_opm_rest_data.py": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/datasets/spm_faces_dataset.py": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/decoding/decoding_rsa.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/decoding/plot_decoding_csp_eeg.py": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/decoding/plot_receptive_field_mtrf.py": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/forward/plot_forward_sensitivity_maps.py": {
+      "a": 3,
+      "d": 1
+    },
+    "examples/inverse/plot_compute_mne_inverse_volume.py": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/inverse/plot_morph_surface_stc.py": {
+      "a": 4,
+      "d": 3
+    },
+    "examples/inverse/plot_morph_volume_stc.py": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/io/plot_elekta_epochs.py": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/io/plot_objects_from_arrays.py": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/io/plot_read_events.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/io/plot_read_proj.py": {
+      "a": 1,
+      "d": 2
+    },
+    "examples/preprocessing/plot_otp.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/visualization/plot_3d_to_2d.py": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/visualization/plot_evoked_topomap.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/event.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/filter.py": {
+      "a": 2,
+      "d": 6
+    },
+    "mne/io/base.py": {
+      "a": 1,
+      "d": 3
+    },
+    "mne/stats/cluster_level.py": {
+      "a": 1,
+      "d": 2
+    },
+    "tutorials/discussions/README.txt": {
+      "a": 5,
+      "d": 0
+    },
+    "tutorials/discussions/plot_background_filtering.py": {
+      "a": 4,
+      "d": 4
+    },
+    "tutorials/discussions/plot_background_statistics.py": {
+      "a": 3,
+      "d": 1
+    },
+    "tutorials/epochs/README.txt": {
+      "a": 5,
+      "d": 0
+    },
+    "tutorials/epochs/plot_epochs_to_data_frame.py": {
+      "a": 2,
+      "d": 0
+    },
+    "tutorials/epochs/plot_metadata_epochs.py": {
+      "a": 2,
+      "d": 1
+    },
+    "tutorials/epochs/plot_object_epochs.py": {
+      "a": 3,
+      "d": 3
+    },
+    "tutorials/epochs/plot_visualize_epochs.py": {
+      "a": 0,
+      "d": 0
+    },
+    "tutorials/evoked/README.txt": {
+      "a": 5,
+      "d": 0
+    },
+    "tutorials/evoked/plot_eeg_erp.py": {
+      "a": 0,
+      "d": 0
+    },
+    "tutorials/evoked/plot_object_evoked.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/evoked/plot_visualize_evoked.py": {
+      "a": 3,
+      "d": 3
+    },
+    "tutorials/evoked/plot_whitened.py": {
+      "a": 0,
+      "d": 0
+    },
+    "tutorials/intro/README.txt": {
+      "a": 7,
+      "d": 0
+    },
+    "tutorials/intro/plot_epoching_and_averaging.py": {
+      "a": 3,
+      "d": 4
+    },
+    "tutorials/intro/plot_info.py": {
+      "a": 2,
+      "d": 0
+    },
+    "tutorials/intro/plot_introduction.py": {
+      "a": 0,
+      "d": 0
+    },
+    "tutorials/intro/plot_object_annotations.py": {
+      "a": 5,
+      "d": 3
+    },
+    "tutorials/machine-learning/README.txt": {
+      "a": 5,
+      "d": 0
+    },
+    "tutorials/machine-learning/plot_receptive_field.py": {
+      "a": 0,
+      "d": 0
+    },
+    "tutorials/machine-learning/plot_sensors_decoding.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/misc/README.txt": {
+      "a": 5,
+      "d": 0
+    },
+    "tutorials/misc/plot_configuration.py": {
+      "a": 0,
+      "d": 0
+    },
+    "tutorials/misc/plot_ecog.py": {
+      "a": 0,
+      "d": 0
+    },
+    "tutorials/misc/plot_modifying_data_inplace.py": {
+      "a": 0,
+      "d": 0
+    },
+    "tutorials/plot_python_intro.py": {
+      "a": 0,
+      "d": 46
+    },
+    "tutorials/preprocessing/README.txt": {
+      "a": 5,
+      "d": 0
+    },
+    "tutorials/preprocessing/plot_artifacts_correction_filtering.py": {
+      "a": 3,
+      "d": 1
+    },
+    "tutorials/preprocessing/plot_artifacts_correction_ica.py": {
+      "a": 4,
+      "d": 3
+    },
+    "tutorials/preprocessing/plot_artifacts_correction_maxwell_filtering.py": {
+      "a": 0,
+      "d": 0
+    },
+    "tutorials/preprocessing/plot_artifacts_correction_rejection.py": {
+      "a": 4,
+      "d": 3
+    },
+    "tutorials/preprocessing/plot_artifacts_correction_ssp.py": {
+      "a": 2,
+      "d": 0
+    },
+    "tutorials/preprocessing/plot_artifacts_detection.py": {
+      "a": 9,
+      "d": 10
+    },
+    "tutorials/preprocessing/plot_ica_from_raw.py": {
+      "a": 0,
+      "d": 0
+    },
+    "tutorials/raw/README.txt": {
+      "a": 6,
+      "d": 0
+    },
+    "tutorials/raw/plot_object_raw.py": {
+      "a": 4,
+      "d": 2
+    },
+    "tutorials/raw/plot_visualize_raw.py": {
+      "a": 2,
+      "d": 0
+    },
+    "tutorials/sample-datasets/README.txt": {
+      "a": 5,
+      "d": 0
+    },
+    "tutorials/sample-datasets/plot_brainstorm_auditory.py": {
+      "a": 2,
+      "d": 0
+    },
+    "tutorials/sample-datasets/plot_brainstorm_phantom_ctf.py": {
+      "a": 0,
+      "d": 0
+    },
+    "tutorials/sample-datasets/plot_brainstorm_phantom_elekta.py": {
+      "a": 2,
+      "d": 0
+    },
+    "tutorials/sample-datasets/plot_phantom_4DBTi.py": {
+      "a": 0,
+      "d": 0
+    },
+    "tutorials/sample-datasets/plot_sleep.py": {
+      "a": 2,
+      "d": 0
+    },
+    "tutorials/simulation/README.txt": {
+      "a": 6,
+      "d": 0
+    },
+    "tutorials/simulation/plot_creating_data_structures.py": {
+      "a": 1,
+      "d": 2
+    },
+    "tutorials/simulation/plot_dics.py": {
+      "a": 0,
+      "d": 0
+    },
+    "tutorials/simulation/plot_point_spread.py": {
+      "a": 0,
+      "d": 0
+    },
+    "tutorials/source-modeling/README.txt": {
+      "a": 4,
+      "d": 0
+    },
+    "tutorials/source-modeling/plot_background_freesurfer.py": {
+      "a": 4,
+      "d": 3
+    },
+    "tutorials/source-modeling/plot_compute_covariance.py": {
+      "a": 0,
+      "d": 0
+    },
+    "tutorials/source-modeling/plot_dipole_fit.py": {
+      "a": 0,
+      "d": 0
+    },
+    "tutorials/source-modeling/plot_dipole_orientations.py": {
+      "a": 2,
+      "d": 0
+    },
+    "tutorials/source-modeling/plot_eeg_no_mri.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/source-modeling/plot_forward.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/source-modeling/plot_mne_dspm_source_localization.py": {
+      "a": 3,
+      "d": 1
+    },
+    "tutorials/source-modeling/plot_mne_solutions.py": {
+      "a": 2,
+      "d": 0
+    },
+    "tutorials/source-modeling/plot_object_source_estimate.py": {
+      "a": 6,
+      "d": 6
+    },
+    "tutorials/source-modeling/plot_source_alignment.py": {
+      "a": 0,
+      "d": 0
+    },
+    "tutorials/source-modeling/plot_visualize_stc.py": {
+      "a": 0,
+      "d": 0
+    },
+    "tutorials/stats-sensor-space/README.txt": {
+      "a": 5,
+      "d": 0
+    },
+    "tutorials/stats-sensor-space/plot_stats_cluster_1samp_test_time_frequency.py": {
+      "a": 0,
+      "d": 0
+    },
+    "tutorials/stats-sensor-space/plot_stats_cluster_erp.py": {
+      "a": 0,
+      "d": 0
+    },
+    "tutorials/stats-sensor-space/plot_stats_cluster_time_frequency.py": {
+      "a": 0,
+      "d": 0
+    },
+    "tutorials/stats-sensor-space/plot_stats_spatio_temporal_cluster_sensors.py": {
+      "a": 0,
+      "d": 0
+    },
+    "tutorials/stats-source-space/README.txt": {
+      "a": 5,
+      "d": 0
+    },
+    "tutorials/stats-source-space/plot_stats_cluster_spatio_temporal.py": {
+      "a": 0,
+      "d": 0
+    },
+    "tutorials/stats-source-space/plot_stats_cluster_spatio_temporal_2samp.py": {
+      "a": 0,
+      "d": 0
+    },
+    "tutorials/stats-source-space/plot_stats_cluster_spatio_temporal_repeated_measures_anova.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/stats-source-space/plot_stats_cluster_time_frequency_repeated_measures_anova.py": {
+      "a": 2,
+      "d": 0
+    },
+    "tutorials/time-freq/README.txt": {
+      "a": 5,
+      "d": 0
+    },
+    "tutorials/time-freq/plot_sensors_time_frequency.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

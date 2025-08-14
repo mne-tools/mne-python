@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "963453660fc3805a67b924646f4b88f57badcdaa",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/time_frequency/spectrum.py": {
+      "a": 4,
+      "d": 1
+    },
+    "mne/utils/docs.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/epochs.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/viz/raw.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/viz/topomap.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/viz/utils.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

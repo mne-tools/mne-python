@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "670bc2862bdea5a92fd8a5f874f457cfcbaaf7df",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/beamformer/_rap_music.py": {
+      "a": 12,
+      "d": 3
+    },
+    "mne/beamformer/tests/test_rap_music.py": {
+      "a": 23,
+      "d": 0
+    }
+  }
+}

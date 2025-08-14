@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "ca7fe266c0a6d4426a62798f37d6a3428d08de6b",
+  "authors": [
+    {
+      "n": "Martin Oberg",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/12319.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/report/report.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

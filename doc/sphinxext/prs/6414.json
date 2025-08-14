@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "3acb8dc8c621629bb15c9d1c686e99af3d72c106",
+  "authors": [
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    }
+  ],
+  "changes": {
+    "doc/manual/datasets_index.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "examples/inverse/plot_dics_source_power.py": {
+      "a": 14,
+      "d": 7
+    },
+    "examples/time_frequency/plot_time_frequency_global_field_power.py": {
+      "a": 9,
+      "d": 2
+    },
+    "mne/datasets/utils.py": {
+      "a": 9,
+      "d": 8
+    },
+    "tutorials/time-freq/plot_sensors_time_frequency.py": {
+      "a": 12,
+      "d": 5
+    }
+  }
+}

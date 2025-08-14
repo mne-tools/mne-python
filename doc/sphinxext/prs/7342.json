@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "e3c4474f3b7d932ca90ae264254e3432ee5c5d18",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/preprocessing/tests/test_ica.py": {
+      "a": 20,
+      "d": 7
+    }
+  }
+}

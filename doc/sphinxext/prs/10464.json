@@ -1,0 +1,51 @@
+{
+  "merge_commit_sha": "8233041319f97195db35db2461bf155cefe50f36",
+  "authors": [
+    {
+      "n": "Marijn van Vliet",
+      "e": "w.m.vanvliet@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/inverse/multi_dipole_model.py": {
+      "a": 166,
+      "d": 0
+    },
+    "mne/forward/_make_forward.py": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/forward/forward.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/forward/tests/test_make_forward.py": {
+      "a": 6,
+      "d": 0
+    },
+    "mne/inverse_sparse/tests/test_gamma_map.py": {
+      "a": 4,
+      "d": 6
+    },
+    "mne/inverse_sparse/tests/test_mxne_inverse.py": {
+      "a": 6,
+      "d": 6
+    },
+    "mne/minimum_norm/inverse.py": {
+      "a": 26,
+      "d": 6
+    },
+    "mne/minimum_norm/tests/test_inverse.py": {
+      "a": 19,
+      "d": 0
+    },
+    "mne/utils/docs.py": {
+      "a": 6,
+      "d": 2
+    }
+  }
+}

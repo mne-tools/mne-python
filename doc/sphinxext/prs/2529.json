@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "1acce09eba5f275f67508acd2ad308db6e2fdf8f",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/commands/__init__.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/commands/mne_compare_fiff.py": {
+      "a": 27,
+      "d": 0
+    },
+    "mne/commands/tests/test_commands.py": {
+      "a": 7,
+      "d": 1
+    },
+    "mne/commands/utils.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/base.py": {
+      "a": 8,
+      "d": 1
+    },
+    "mne/io/fiff/raw.py": {
+      "a": 6,
+      "d": 0
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{% if not embedded %}
+{% extends "section.html.jinja" %}
+{% endif %}
+{% block html_content %}
+      <figure class="figure mx-auto d-block">
+        {% if image_format == 'svg' %}
+        <div class="d-flex justify-content-center">
+          {{ img|safe }}
+        </div>
+        {% else %}
+        <img class="figure-img img-fluid rounded mx-auto my-0 d-block" alt="{{ title }}"
+          src="data:image/{{ image_format }};base64,{{ img }}">
+        {% endif %}
+
+        {% if caption is not none %}
+        <figcaption class="figure-caption text-center">{{ caption }}</figcaption>
+        {% endif %}
+      </figure>
+{% endblock html_content %}

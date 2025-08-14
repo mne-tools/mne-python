@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "c081fbd58b8647eeeadc7c9ae11741daf8a4c2e9",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/conftest.py": {
+      "a": 10,
+      "d": 0
+    },
+    "mne/externals/h5io/_h5io.py": {
+      "a": 150,
+      "d": 7
+    },
+    "mne/gui/tests/test_coreg_gui.py": {
+      "a": 3,
+      "d": 12
+    },
+    "mne/gui/tests/test_file_traits.py": {
+      "a": 7,
+      "d": 12
+    },
+    "mne/gui/tests/test_kit2fiff_gui.py": {
+      "a": 8,
+      "d": 23
+    },
+    "mne/gui/tests/test_marker_gui.py": {
+      "a": 12,
+      "d": 18
+    },
+    "mne/time_frequency/tests/test_tfr.py": {
+      "a": 5,
+      "d": 2
+    }
+  }
+}

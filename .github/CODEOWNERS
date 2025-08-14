@@ -1,0 +1,130 @@
+# The purpose of this file is to trigger review requests when PRs touch
+# particular files. Those reviews are not mandatory, however it's often useful
+# to have an expert pinged who is interested in only one part of MNE and
+# doesn't follow general development. Having your name in this file does not
+# imply ownership of the code -- the CODEOWNERS filename is a misnomer -- but
+# rather just serves to indicate that you want to be pinged for potential
+# review.
+#
+# Note that only GitHub handles (whether individuals or teams) with commit
+# rights should be added to this file.
+# See https://docs.github.com/en/github/creating-cloning-and-archiving-repositories/about-code-owners
+# for more details about how CODEOWNERS works.
+# This file was adapted from SciPy.
+
+# Each line is a file pattern followed by one or more owners.
+# Syntax follows .gitignore, see https://git-scm.com/docs/gitignore#_pattern_format
+
+# Headings ideally should correspond to domains of knowledge/expertise, starting with
+# algorithms implementations (generally main codebase mne/ and related docs) followed by
+# project-level and miscellaneous items (CI, general documentation, etc.).
+
+#################################################
+# Algorithms, implementations, and related docs #
+#################################################
+
+# Artifact regression
+/mne/preprocessing/_regress.py @wmvanvliet
+/mne/preprocessing/tests/test_regress.py @wmvanvliet
+
+# Beamforming
+/mne/beamformer @britta-wstnr
+*dics*.py @britta-wstnr @wmvanvliet # related tutorials and examples
+*lcmv*.py @britta-wstnr
+
+# Channels
+/mne/channels @agramfort @mscheltienne @dengemann @jasmainak
+
+# Core sensor-space classes
+/mne/epochs.py @drammock @agramfort @mscheltienne @dengemann
+/mne/evoked.py @drammock @agramfort @mscheltienne @dengemann
+/mne/io/*.* @drammock @cbrnr @agramfort @mscheltienne @dengemann
+
+# Current-source density
+/mne/preprocessing/_csd.py  @alexrockhill @dengemann
+
+# Decoding
+/mne/decoding/csp.py @cbrnr @agramfort @dengemann
+/mne/decoding/*.py @jasmainak
+
+# fNIRS
+/mne/preprocessing/nirs @rob-luke
+*fnirs*.py @rob-luke
+
+# forward
+/mne/forward/ @agramfort @jasmainak
+*forward*.py @agramfort
+
+# Intracranial
+/mne/preprocessing/ieeg @alexrockhill @adam2392
+*seeg*.py @alexrockhill @adam2392
+*ecog*.py @alexrockhill @adam2392
+
+# Inverse Sparse
+/mne/inverse_sparse @agramfort
+*mxne*.py @agramfort # related tutorials and examples
+*gamma*.py @agramfort # related tutorials and examples
+
+# IO
+/mne/io/brainvision @sappelhoff @cbrnr @adam2392
+/mne/io/nirx @rob-luke
+/mne/io/snirf @rob-luke
+/mne/export @sappelhoff @cbrnr
+/mne/io/eeglab.py @jasmainak
+/mne/io/eeglab/tests/test_eeglab.py @jasmainak
+
+# Minimum Norm
+/mne/minimum_norm @agramfort
+
+# Preprocessing
+/mne/preprocessing/ica.py @cbrnr @adam2392 @agramfort @mscheltienne @dengemann
+/mne/preprocessing/infomax_.py @cbrnr @adam2392 @mscheltienne @dengemann
+/mne/preprocessing/*annotate*.py @mscheltienne
+/mne/preprocessing/bads.py @mscheltienne
+/mne/preprocessing/e*g.py @mscheltienne
+
+# Report
+/mne/report @hoechenberger @dengemann @jasmainak
+
+# Simulation
+/mne/simulation/ @agramfort
+*simulate*.py @agramfort
+
+# Surface + transforms
+/mne/surface.py @alexrockhill @larsoner
+/mne/transforms.py @alexrockhill @larsoner
+/mne/_freesurfer.py @alexrockhill @larsoner
+
+# TFR
+/mne/time_frequency @drammock @adam2392 @mscheltienne
+
+# Viz
+/mne/viz @drammock @dengemann
+/mne/viz/_brain @larsoner @wmvanvliet
+/mne/viz/ui_events.py @wmvanvliet
+/tutorials/visualization @larsoner @wmvanvliet @dengemann
+/examples/visualization @larsoner @dengemann
+
+# Datasets
+/mne/datasets/brainstorm @jasmainak
+
+#########################
+# Project-level / other #
+#########################
+
+# Examples and tutorials
+/examples @drammock @agramfort @dengemann
+/tutorials @drammock @agramfort @dengemann
+
+# Non-tutorial documentation text and infrastructure
+/doc @larsoner @drammock @agramfort @dengemann
+/logo @drammock
+
+# Installation documentation
+/doc/install @hoechenberger
+
+# Project infrastructure and CIs
+/*.* @larsoner @drammock  # files in the root directory
+/.circleci @larsoner
+/.github @larsoner
+/tools @larsoner @drammock

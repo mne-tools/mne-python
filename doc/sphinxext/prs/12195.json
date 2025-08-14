@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "3a42bb913fcbfdfed7ae9e23b5649c51b372eb9c",
+  "authors": [
+    {
+      "n": "Jacob Woessner",
+      "e": "Woessner.jacob@gmail.com"
+    },
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/12195.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/epochs.py": {
+      "a": 78,
+      "d": 24
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 161,
+      "d": 4
+    },
+    "mne/utils/docs.py": {
+      "a": 43,
+      "d": 5
+    },
+    "mne/utils/mixin.py": {
+      "a": 10,
+      "d": 3
+    },
+    "tutorials/preprocessing/20_rejecting_bad_data.py": {
+      "a": 106,
+      "d": 2
+    }
+  }
+}

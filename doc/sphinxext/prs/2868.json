@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "9edc61acebec2b76b391f78c6c23665caf004925",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/cov.py": {
+      "a": 153,
+      "d": 109
+    },
+    "mne/event.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/tests/common.py": {
+      "a": 10,
+      "d": 0
+    },
+    "mne/tests/test_cov.py": {
+      "a": 43,
+      "d": 24
+    },
+    "mne/tests/test_event.py": {
+      "a": 6,
+      "d": 1
+    }
+  }
+}

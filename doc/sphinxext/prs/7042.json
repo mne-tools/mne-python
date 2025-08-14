@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "e84f78a7f01bd889746d3ec3c09a8d0db61c56f0",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/inverse/plot_resolution_metrics.py": {
+      "a": 28,
+      "d": 18
+    },
+    "examples/inverse/plot_resolution_metrics_eegmeg.py": {
+      "a": 27,
+      "d": 17
+    },
+    "mne/minimum_norm/resolution_matrix.py": {
+      "a": 0,
+      "d": 4
+    }
+  }
+}

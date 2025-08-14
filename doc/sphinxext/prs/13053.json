@@ -1,0 +1,87 @@
+{
+  "merge_commit_sha": "dedb3921b0ebadcc5a630234530604706c6faddd",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    ".github/workflows/tests.yml": {
+      "a": 7,
+      "d": 6
+    },
+    ".pre-commit-config.yaml": {
+      "a": 2,
+      "d": 2
+    },
+    "azure-pipelines.yml": {
+      "a": 10,
+      "d": 13
+    },
+    "environment.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/conftest.py": {
+      "a": 54,
+      "d": 3
+    },
+    "mne/decoding/tests/test_ssd.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/tests/test_parallel.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/_brain/tests/test_brain.py": {
+      "a": 0,
+      "d": 8
+    },
+    "mne/viz/tests/test_evoked.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/viz/tests/test_raw.py": {
+      "a": 2,
+      "d": 4
+    },
+    "pyproject.toml": {
+      "a": 0,
+      "d": 1
+    },
+    "tools/azure_dependencies.sh": {
+      "a": 1,
+      "d": 0
+    },
+    "tools/get_minimal_commands.sh": {
+      "a": 5,
+      "d": 5
+    },
+    "tools/get_testing_version.sh": {
+      "a": 1,
+      "d": 1
+    },
+    "tools/github_actions_env_vars.sh": {
+      "a": 16,
+      "d": 12
+    },
+    "tools/github_actions_test.sh": {
+      "a": 15,
+      "d": 9
+    },
+    "tools/hooks/update_environment_file.py": {
+      "a": 3,
+      "d": 0
+    },
+    "tools/install_pre_requirements.sh": {
+      "a": 6,
+      "d": 8
+    }
+  }
+}

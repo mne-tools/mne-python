@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "05f0358927404671a600e2fc8e35b30b0cd93f19",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".circleci/config.yml": {
+      "a": 57,
+      "d": 64
+    },
+    "doc/conf.py": {
+      "a": 19,
+      "d": 1
+    },
+    "tools/circleci_dependencies.sh": {
+      "a": 1,
+      "d": 12
+    },
+    "tutorials/clinical/20_seeg.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

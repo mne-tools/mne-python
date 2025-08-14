@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "a352a8db3e6e57dddec4c0fb25c5dc31bd37c749",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    ".mailmap": {
+      "a": 27,
+      "d": 2
+    }
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "b8f5e5ce0da8acfeb7298c8eb1d26a75d5526eac",
+  "authors": [
+    {
+      "n": "Rob Luke",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/preprocessing/nirs/tests/__init__.py": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/preprocessing/nirs/tests/test_beer_lambert_law.py": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/preprocessing/nirs/tests/test_nirs.py": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/preprocessing/nirs/tests/test_optical_density.py": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/preprocessing/nirs/tests/test_scalp_coupling_index.py": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/preprocessing/nirs/tests/test_temporal_derivative_distribution_repair.py": {
+      "a": 0,
+      "d": 0
+    }
+  }
+}

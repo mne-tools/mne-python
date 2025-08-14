@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "9b57c51686ca5536edc2a5e74444428a9a138ef6",
+  "authors": [
+    {
+      "n": "Jacob Woessner",
+      "e": "Woessner.jacob@gmail.com"
+    },
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/cnt/cnt.py": {
+      "a": 33,
+      "d": 6
+    },
+    "mne/io/cnt/tests/test_cnt.py": {
+      "a": 34,
+      "d": 1
+    }
+  }
+}

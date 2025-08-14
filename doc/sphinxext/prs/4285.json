@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "b9f46fa05c8693f6cdc36f1009d2a5083c3a0bb7",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/viz/topomap.py": {
+      "a": 4,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "b73ea28300a2d0a1dcfb518a5de904b411d743ff",
+  "authors": [
+    {
+      "n": "Joan Massich",
+      "e": "mailsik@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/io/tests/test_raw.py": {
+      "a": 5,
+      "d": 6
+    }
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "9b2fc9cac7e96244d52f961ab734fe3dbf3348ab",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/conf.py": {
+      "a": 12,
+      "d": 12
+    },
+    "mne/report.py": {
+      "a": 5,
+      "d": 2
+    },
+    "tools/circleci_download.sh": {
+      "a": 3,
+      "d": 3
+    },
+    "tutorials/intro/70_report.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "3e32781376427a053ea04a4b92052e53241b96ab",
+  "authors": [
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    ".pre-commit-config.yaml": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/minimum_norm/resolution_matrix.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,37 @@
+3	2
+//Probe file
+//Minor revision number
+1
+//ProbeName
+%N	Name    
+//Probe type, number of sensors
+0	5
+//Position of fiducials X+, Y+, Y- on the subject
+%F	0.11056	-5.421e-19	0	
+%F	-0.00021075	0.080793	-7.5894e-19	
+%F	0.00021075	-0.080793	-2.8731e-18	
+//Sensor type
+%S	4000
+//Sensor name and data for sensor # 1
+%N	0-RED   
+0.0050132	0.077834	0.00010455	
+//Sensor type
+%S	4000
+//Sensor name and data for sensor # 2
+%N	1-YELLOW   
+0.010353	-0.076396	-0.0045289	
+//Sensor type
+%S	4000
+//Sensor name and data for sensor # 3
+%N	2-BLUE   
+0.11786	0.0049369	0.025876	
+//Sensor type
+%S	4000
+//Sensor name and data for sensor # 4
+%N	3-WHITE   
+0.1004	0.04654	0.024553	
+//Sensor type
+%S	4000
+//Sensor name and data for sensor # 5
+%N	4-BLACK   
+0.10746	-0.034116	0.031846	

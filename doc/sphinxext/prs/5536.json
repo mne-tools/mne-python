@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "de8f3bf0d40aa4532300eee227e326f6787a3895",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/gui/_backend.py": {
+      "a": 3,
+      "d": 1
+    }
+  }
+}

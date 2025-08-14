@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "c93586e339393474d2fbc6f68ae43e88d1826551",
+  "authors": [
+    {
+      "n": "Chris Holdgraf",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/channels/channels.py": {
+      "a": 8,
+      "d": 2
+    },
+    "mne/io/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/fiff/tests/test_raw_fiff.py": {
+      "a": 11,
+      "d": 0
+    },
+    "mne/io/meas_info.py": {
+      "a": 37,
+      "d": 1
+    },
+    "mne/io/tests/test_meas_info.py": {
+      "a": 14,
+      "d": 1
+    }
+  }
+}

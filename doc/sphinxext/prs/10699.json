@@ -1,0 +1,95 @@
+{
+  "merge_commit_sha": "6b905281bf86ff336f2208297dc0f6794d25c746",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/datasets/opm_data.py": {
+      "a": 0,
+      "d": 2
+    },
+    "mne/_freesurfer.py": {
+      "a": 14,
+      "d": 1
+    },
+    "mne/coreg.py": {
+      "a": 1,
+      "d": 15
+    },
+    "mne/dipole.py": {
+      "a": 10,
+      "d": 80
+    },
+    "mne/forward/_field_interpolation.py": {
+      "a": 1,
+      "d": 3
+    },
+    "mne/tests/test_freesurfer.py": {
+      "a": 17,
+      "d": 2
+    },
+    "mne/transforms.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/utils/check.py": {
+      "a": 13,
+      "d": 7
+    },
+    "mne/utils/docs.py": {
+      "a": 6,
+      "d": 7
+    },
+    "mne/viz/_3d.py": {
+      "a": 77,
+      "d": 48
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 9,
+      "d": 14
+    },
+    "mne/viz/_dipole.py": {
+      "a": 166,
+      "d": 0
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 25,
+      "d": 0
+    },
+    "mne/viz/tests/test_raw.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/tests/test_topo.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/tests/test_utils.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/viz/utils.py": {
+      "a": 18,
+      "d": 21
+    },
+    "tutorials/forward/50_background_freesurfer_mne.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/inverse/20_dipole_fit.py": {
+      "a": 10,
+      "d": 0
+    },
+    "tutorials/inverse/60_visualize_stc.py": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

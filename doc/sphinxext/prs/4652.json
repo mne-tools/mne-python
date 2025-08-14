@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "b5a2a96cdde880d894d0d10560b2a007b6ea81aa",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/preprocessing/ssp.py": {
+      "a": 38,
+      "d": 33
+    },
+    "mne/preprocessing/tests/test_ssp.py": {
+      "a": 3,
+      "d": 2
+    }
+  }
+}

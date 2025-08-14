@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "5af2dd7f9f25511727716072bc27fcaed251a159",
+  "authors": [
+    {
+      "n": "Ivo Pascal de Jong",
+      "e": null
+    },
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/12467.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/base.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/viz/raw.py": {
+      "a": 6,
+      "d": 2
+    },
+    "mne/viz/tests/test_raw.py": {
+      "a": 19,
+      "d": 1
+    }
+  }
+}

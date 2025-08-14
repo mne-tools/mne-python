@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "d6a2a01f1c0db51ca8d397cb238add43afd035a8",
+  "authors": [
+    {
+      "n": "Hari Bharadwaj",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/utils.py": {
+      "a": 236,
+      "d": 44
+    }
+  }
+}

@@ -1,0 +1,81 @@
+[
+    {
+        "name": "1.11 (dev)",
+        "version": "dev",
+        "url": "https://mne.tools/dev/"
+    },
+    {
+        "name": "1.10 (stable)",
+        "version": "stable",
+        "url": "https://mne.tools/stable/"
+    },
+    {
+        "name": "1.9",
+        "version": "1.9",
+        "url": "https://mne.tools/1.9/"
+    },
+    {
+        "name": "1.8",
+        "version": "1.8",
+        "url": "https://mne.tools/1.8/"
+    },
+    {
+        "name": "1.7",
+        "version": "1.7",
+        "url": "https://mne.tools/1.7/"
+    },
+    {
+        "name": "1.6",
+        "version": "1.6",
+        "url": "https://mne.tools/1.6/"
+    },
+    {
+        "name": "1.5",
+        "version": "1.5",
+        "url": "https://mne.tools/1.5/"
+    },
+    {
+        "name": "1.4",
+        "version": "1.4",
+        "url": "https://mne.tools/1.4/"
+    },
+    {
+        "name": "1.3",
+        "version": "1.3",
+        "url": "https://mne.tools/1.3/"
+    },
+    {
+        "name": "1.2",
+        "version": "1.2",
+        "url": "https://mne.tools/1.2/"
+    },
+    {
+        "version": "1.1",
+        "url": "https://mne.tools/1.1/"
+    },
+    {
+        "version": "1.0",
+        "url": "https://mne.tools/1.0/"
+    },
+    {
+        "version": "0.24",
+        "url": "https://mne.tools/0.24/"
+    },
+    {
+        "version": "0.23",
+        "url": "https://mne.tools/0.23/"
+    },
+    {
+        "version": "0.22",
+        "url": "https://mne.tools/0.22/"
+    },
+    {
+        "version": "0.21",
+        "url": "https://mne.tools/0.21/"
+    },
+    {
+        "name": "≤ 0.20 ...",
+        "version": "0.20",
+        "url": "https://mne.tools/dev/old_versions/"
+    }
+]

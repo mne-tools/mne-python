@@ -1,0 +1,83 @@
+{
+  "merge_commit_sha": "14e8f6064d7c9f8bdd62ecd4d773f8b5878df0c4",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/_static/style.css": {
+      "a": 8,
+      "d": 1
+    },
+    "doc/conf.py": {
+      "a": 4,
+      "d": 3
+    },
+    "doc/documentation.rst": {
+      "a": 6,
+      "d": 3
+    },
+    "doc/manual/index.rst": {
+      "a": 0,
+      "d": 136
+    },
+    "doc/manual/statistics.rst": {
+      "a": 0,
+      "d": 100
+    },
+    "doc/python_reference.rst": {
+      "a": 28,
+      "d": 7
+    },
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/datasets/plot_spm_faces_dataset.py": {
+      "a": 0,
+      "d": 1
+    },
+    "examples/inverse/plot_covariance_whitening_dspm.py": {
+      "a": 0,
+      "d": 1
+    },
+    "examples/preprocessing/plot_run_ica.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/stats/__init__.py": {
+      "a": 5,
+      "d": 8
+    },
+    "mne/stats/cluster_level.py": {
+      "a": 269,
+      "d": 268
+    },
+    "mne/stats/parametric.py": {
+      "a": 73,
+      "d": 31
+    },
+    "mne/stats/permutations.py": {
+      "a": 27,
+      "d": 73
+    },
+    "mne/stats/tests/test_cluster_level.py": {
+      "a": 9,
+      "d": 0
+    },
+    "mne/stats/tests/test_permutations.py": {
+      "a": 7,
+      "d": 6
+    },
+    "tutorials/plot_background_statistics.py": {
+      "a": 646,
+      "d": 0
+    },
+    "tutorials/plot_stats_cluster_methods.py": {
+      "a": 0,
+      "d": 214
+    }
+  }
+}

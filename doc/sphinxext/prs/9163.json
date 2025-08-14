@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "e9dc11fd496c1085bab519e3881cf5764c8645ee",
+  "authors": [
+    {
+      "n": "Alex Rockhill",
+      "e": "aprockhill@mailbox.org"
+    }
+  ],
+  "changes": {
+    "mne/channels/layout.py": {
+      "a": 6,
+      "d": 3
+    },
+    "mne/viz/topomap.py": {
+      "a": 10,
+      "d": 5
+    }
+  }
+}

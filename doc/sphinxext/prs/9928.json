@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "9cbff29afd2cd7bb4063108dd243998149134257",
+  "authors": [
+    {
+      "n": "Luke Bloy",
+      "e": "luke.bloy@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/coreg.py": {
+      "a": 11,
+      "d": 5
+    },
+    "mne/gui/_coreg.py": {
+      "a": 46,
+      "d": 12
+    },
+    "mne/gui/tests/test_coreg_gui.py": {
+      "a": 45,
+      "d": 0
+    },
+    "mne/io/snirf/_snirf.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/tests/test_coreg.py": {
+      "a": 25,
+      "d": 0
+    },
+    "mne/viz/_3d.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

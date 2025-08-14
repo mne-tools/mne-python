@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "3dd8899aaa8345d434f31cf0f0248d9c4eabfc5d",
+  "authors": [
+    {
+      "n": "Dmitrii Altukhov",
+      "e": "dm.altukhov@ya.ru"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/io/base.py": {
+      "a": 140,
+      "d": 197
+    },
+    "mne/io/fiff/tests/test_raw_fiff.py": {
+      "a": 31,
+      "d": 6
+    },
+    "mne/io/nsx/tests/test_nsx.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "7b1918b0c46a8e5a8d902276552672c20ec8f2d6",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/curry/curry.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/eeglab/eeglab.py": {
+      "a": 25,
+      "d": 71
+    },
+    "mne/io/eeglab/tests/test_eeglab.py": {
+      "a": 3,
+      "d": 7
+    },
+    "mne/io/utils.py": {
+      "a": 0,
+      "d": 15
+    }
+  }
+}

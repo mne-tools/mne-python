@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "823e6d6d509d16be7a84efbeb6fe0a51227be5bf",
+  "authors": [
+    {
+      "n": "Denis A. Engemann",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/source/python_tutorial.rst": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/epochs.py": {
+      "a": 13,
+      "d": 7
+    }
+  }
+}

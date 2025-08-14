@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "eb9d1153cf9a0a14450577c8bf45ac741bb58b32",
+  "authors": [
+    {
+      "n": "Teon L Brooks",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/fiff/kit/constants.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/fiff/kit/kit.py": {
+      "a": 244,
+      "d": 132
+    },
+    "mne/fiff/kit/test/data/test.sqd": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/fiff/kit/test/data/test_Ykgw.mat": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/fiff/kit/test/data/test_bin.fif": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/fiff/kit/test/data/test_py.fif": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/fiff/kit/test/test_kit.py": {
+      "a": 71,
+      "d": 22
+    }
+  }
+}

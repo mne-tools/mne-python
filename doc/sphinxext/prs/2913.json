@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "f82bf0b75655b88f438abaf06594c1c9aeac87c2",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/io/fiff/raw.py": {
+      "a": 6,
+      "d": 2
+    },
+    "mne/preprocessing/tests/test_maxwell.py": {
+      "a": 16,
+      "d": 29
+    },
+    "mne/simulation/tests/test_raw.py": {
+      "a": 2,
+      "d": 4
+    },
+    "mne/tests/test_chpi.py": {
+      "a": 4,
+      "d": 10
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 1,
+      "d": 2
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "327de96a146d89aaaa612137bc7afdb3bf4cc8f7",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".travis.yml": {
+      "a": 4,
+      "d": 0
+    }
+  }
+}

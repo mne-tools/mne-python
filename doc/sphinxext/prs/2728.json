@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "821dd3d3cf866762114c905423b7b8f12ab64ead",
+  "authors": [
+    {
+      "n": "Mainak Jas",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/contributing.rst": {
+      "a": 19,
+      "d": 3
+    },
+    "doc/manual/decoding.rst": {
+      "a": 168,
+      "d": 0
+    },
+    "doc/manual/index.rst": {
+      "a": 17,
+      "d": 1
+    },
+    "doc/manual/memory.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/manual/pitfalls.rst": {
+      "a": 27,
+      "d": 0
+    },
+    "doc/manual/preprocessing/ssp.rst": {
+      "a": 106,
+      "d": 38
+    },
+    "doc/python_reference.rst": {
+      "a": 8,
+      "d": 0
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "634e30df5fdc644684a15c43330a2abfdb5e800c",
+  "authors": [
+    {
+      "n": "Christian Brodbeck",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/channels/data/neighbors/KIT-UMD-4_neighb.mat": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/io/kit/constants.py": {
+      "a": 4,
+      "d": 0
+    }
+  }
+}

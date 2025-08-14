@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "050a1f35fa91e013973ee3df2c3ca8a4ad362264",
+  "authors": [
+    {
+      "n": "Falach",
+      "e": "rotemfa0@gmail.com"
+    },
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 4,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/meas_info.py": {
+      "a": 7,
+      "d": 2
+    },
+    "mne/io/tests/test_meas_info.py": {
+      "a": 5,
+      "d": 0
+    }
+  }
+}

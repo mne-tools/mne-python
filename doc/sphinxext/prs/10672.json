@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "56436a4f49239c96f74b0cbc6a8369195232cdb5",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/viz/backends/_pyvista.py": {
+      "a": 4,
+      "d": 1
+    }
+  }
+}

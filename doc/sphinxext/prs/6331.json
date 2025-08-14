@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "4ff3bad13ac4a37fe0c15128d41adc789a9ca510",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/datasets/plot_hf_sef_data.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/datasets/hf_sef/hf_sef.py": {
+      "a": 9,
+      "d": 7
+    }
+  }
+}

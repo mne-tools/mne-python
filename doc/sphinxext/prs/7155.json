@@ -1,0 +1,151 @@
+{
+  "merge_commit_sha": "361fa5fde83c192f705b9a0dd792858237c4b0b1",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "MANIFEST.in": {
+      "a": 1,
+      "d": 0
+    },
+    "environment.yml": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/chpi.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/decoding/search_light.py": {
+      "a": 4,
+      "d": 7
+    },
+    "mne/decoding/time_delaying_ridge.py": {
+      "a": 4,
+      "d": 5
+    },
+    "mne/externals/tqdm/__init__.py": {
+      "a": 12,
+      "d": 0
+    },
+    "mne/externals/tqdm/_tqdm/__init__.py": {
+      "a": 40,
+      "d": 0
+    },
+    "mne/externals/tqdm/_tqdm/__main__.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/externals/tqdm/_tqdm/_main.py": {
+      "a": 7,
+      "d": 0
+    },
+    "mne/externals/tqdm/_tqdm/_monitor.py": {
+      "a": 99,
+      "d": 0
+    },
+    "mne/externals/tqdm/_tqdm/_tqdm.py": {
+      "a": 7,
+      "d": 0
+    },
+    "mne/externals/tqdm/_tqdm/_tqdm_gui.py": {
+      "a": 7,
+      "d": 0
+    },
+    "mne/externals/tqdm/_tqdm/_tqdm_notebook.py": {
+      "a": 7,
+      "d": 0
+    },
+    "mne/externals/tqdm/_tqdm/_tqdm_pandas.py": {
+      "a": 46,
+      "d": 0
+    },
+    "mne/externals/tqdm/_tqdm/_utils.py": {
+      "a": 6,
+      "d": 0
+    },
+    "mne/externals/tqdm/_tqdm/_version.py": {
+      "a": 59,
+      "d": 0
+    },
+    "mne/externals/tqdm/_tqdm/auto.py": {
+      "a": 6,
+      "d": 0
+    },
+    "mne/externals/tqdm/_tqdm/autonotebook.py": {
+      "a": 18,
+      "d": 0
+    },
+    "mne/externals/tqdm/_tqdm/cli.py": {
+      "a": 228,
+      "d": 0
+    },
+    "mne/externals/tqdm/_tqdm/contrib/__init__.py": {
+      "a": 10,
+      "d": 0
+    },
+    "mne/externals/tqdm/_tqdm/gui.py": {
+      "a": 321,
+      "d": 0
+    },
+    "mne/externals/tqdm/_tqdm/notebook.py": {
+      "a": 261,
+      "d": 0
+    },
+    "mne/externals/tqdm/_tqdm/std.py": {
+      "a": 1464,
+      "d": 0
+    },
+    "mne/externals/tqdm/_tqdm/tqdm.1": {
+      "a": 255,
+      "d": 0
+    },
+    "mne/externals/tqdm/_tqdm/utils.py": {
+      "a": 345,
+      "d": 0
+    },
+    "mne/minimum_norm/time_frequency.py": {
+      "a": 1,
+      "d": 3
+    },
+    "mne/parallel.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/preprocessing/flat.py": {
+      "a": 26,
+      "d": 26
+    },
+    "mne/stats/cluster_level.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/fetching.py": {
+      "a": 5,
+      "d": 16
+    },
+    "mne/utils/progressbar.py": {
+      "a": 73,
+      "d": 167
+    },
+    "mne/utils/tests/test_progressbar.py": {
+      "a": 33,
+      "d": 23
+    },
+    "requirements.txt": {
+      "a": 1,
+      "d": 0
+    },
+    "setup.cfg": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

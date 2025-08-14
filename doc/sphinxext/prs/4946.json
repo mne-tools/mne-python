@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "c702c75158626fbe4dd6cdff0485037d7cf98f61",
+  "authors": [
+    {
+      "n": "Katrin Leinweber",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/faq.rst": {
+      "a": 2,
+      "d": 2
+    },
+    "examples/inverse/plot_mixed_norm_inverse.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/inverse/plot_rap_music.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/visualization/plot_sensor_noise_level.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/beamformer/_rap_music.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/inverse_sparse/mxne_inverse.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/inverse_sparse/mxne_optim.py": {
+      "a": 3,
+      "d": 3
+    },
+    "tutorials/plot_dipole_orientations.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

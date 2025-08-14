@@ -1,0 +1,51 @@
+{
+  "merge_commit_sha": "461efa998a2b67407761136807d4054852fb620e",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "examples/inverse/plot_mixed_norm_inverse.py": {
+      "a": 20,
+      "d": 7
+    },
+    "examples/inverse/plot_time_frequency_mixed_norm_inverse.py": {
+      "a": 9,
+      "d": 7
+    },
+    "mne/inverse_sparse/_gamma_map.py": {
+      "a": 17,
+      "d": 20
+    },
+    "mne/inverse_sparse/mxne_debiasing.py": {
+      "a": 9,
+      "d": 3
+    },
+    "mne/inverse_sparse/mxne_inverse.py": {
+      "a": 162,
+      "d": 88
+    },
+    "mne/inverse_sparse/mxne_optim.py": {
+      "a": 255,
+      "d": 57
+    },
+    "mne/inverse_sparse/tests/test_gamma_map.py": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/inverse_sparse/tests/test_mxne_inverse.py": {
+      "a": 38,
+      "d": 23
+    },
+    "mne/inverse_sparse/tests/test_mxne_optim.py": {
+      "a": 105,
+      "d": 17
+    },
+    "mne/io/proj.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "c46dabe0265c3681ccfac403cc5d85af907a7486",
+  "authors": [
+    {
+      "n": "Jaakko Leppakangas",
+      "e": "jaeilepp@student.jyu.fi"
+    }
+  ],
+  "changes": {
+    "mne/viz/epochs.py": {
+      "a": 5,
+      "d": 3
+    },
+    "mne/viz/ica.py": {
+      "a": 46,
+      "d": 6
+    }
+  }
+}

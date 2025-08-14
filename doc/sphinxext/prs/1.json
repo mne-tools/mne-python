@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "cc832c4711fd29382be9ca0fe892b0d9f1301c97",
+  "authors": [
+    {
+      "n": "ellenlau",
+      "e": "ellenlau@umd.edu"
+    }
+  ],
+  "changes": {
+    "examples/inverse/plot_label_source_activations.py": {
+      "a": 2,
+      "d": 0
+    }
+  }
+}

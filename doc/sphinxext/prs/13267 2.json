@@ -1,0 +1,79 @@
+{
+  "merge_commit_sha": "b0e9a8596136c937eb90c86dc78c1870bf24853f",
+  "authors": [
+    {
+      "n": "github-actions[bot]",
+      "e": "41898282+github-actions[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".mailmap": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13208.json": {
+      "a": 27,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13232.json": {
+      "a": 39,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13234.json": {
+      "a": 31,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13237.json": {
+      "a": 111,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13239.json": {
+      "a": 15,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13240.json": {
+      "a": 15,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13241.json": {
+      "a": 47,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13245.json": {
+      "a": 15,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13246.json": {
+      "a": 19,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13247.json": {
+      "a": 15,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13249.json": {
+      "a": 27,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13255.json": {
+      "a": 27,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13256.json": {
+      "a": 39,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13262.json": {
+      "a": 27,
+      "d": 0
+    },
+    "tools/install_pre_requirements.sh": {
+      "a": 2,
+      "d": 3
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "4800989b63212a700b175820d0583c32ea3cfc2e",
+  "authors": [
+    {
+      "n": "Matthew A. Tucker",
+      "e": "matt.tucker@nyu.edu"
+    }
+  ],
+  "changes": {
+    "mne/time_frequency/tfr.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

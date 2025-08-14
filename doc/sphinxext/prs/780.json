@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "c90e8a2330e0db99c1b8d4c2791d08c06753d13c",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/source/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/__init__.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/fiff/pick.py": {
+      "a": 2,
+      "d": 7
+    },
+    "mne/fiff/proj.py": {
+      "a": 1,
+      "d": 33
+    },
+    "mne/fiff/raw.py": {
+      "a": 4,
+      "d": 24
+    },
+    "mne/source_estimate.py": {
+      "a": 1,
+      "d": 101
+    }
+  }
+}

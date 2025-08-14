@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "908ebe9d8b3e43d8b90d945ee45d6292a25e4f23",
+  "authors": [
+    {
+      "n": "Denis A. Engemann",
+      "e": null
+    }
+  ],
+  "changes": {
+    "examples/plot_topo_channel_epochs_image.py": {
+      "a": 78,
+      "d": 0
+    },
+    "mne/viz.py": {
+      "a": 104,
+      "d": 13
+    }
+  }
+}

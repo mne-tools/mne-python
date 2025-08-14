@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "ad19aef0f96376132b1fd4d8217a8dda17cdd1d6",
+  "authors": [
+    {
+      "n": "Christopher Mullins",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/channels/montage.py": {
+      "a": 9,
+      "d": 1
+    },
+    "mne/channels/tests/test_montage.py": {
+      "a": 17,
+      "d": 3
+    }
+  }
+}

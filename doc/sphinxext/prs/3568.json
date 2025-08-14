@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "7cd5d0e9cbf2b0472c8f0ba7b14ca97e6f3c874b",
+  "authors": [
+    {
+      "n": "jaeilepp",
+      "e": "jaeilepp@student.jyu.fi"
+    }
+  ],
+  "changes": {
+    "mne/annotations.py": {
+      "a": 3,
+      "d": 3
+    },
+    "tutorials/plot_artifacts_correction_rejection.py": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

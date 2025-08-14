@@ -1,0 +1,51 @@
+{
+  "merge_commit_sha": "0bd6816104cc7e38ca6c97a7a22d34f005fadcf7",
+  "authors": [
+    {
+      "n": "Martin Luessi",
+      "e": null
+    }
+  ],
+  "changes": {
+    "bin/mne_compute_proj_ecg.py": {
+      "a": 45,
+      "d": 90
+    },
+    "bin/mne_compute_proj_eog.py": {
+      "a": 157,
+      "d": 0
+    },
+    "mne/__init__.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/fiff/__init__.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/preprocessing.py": {
+      "a": 0,
+      "d": 59
+    },
+    "mne/preprocessing/__init__.py": {
+      "a": 10,
+      "d": 0
+    },
+    "mne/preprocessing/maxfilter.py": {
+      "a": 268,
+      "d": 0
+    },
+    "mne/preprocessing/ssp.py": {
+      "a": 313,
+      "d": 0
+    },
+    "mne/preprocessing/tests/__init__.py": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/preprocessing/tests/test_ssp.py": {
+      "a": 35,
+      "d": 0
+    }
+  }
+}

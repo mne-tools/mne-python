@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "4aa86acaeabd91dd6175b74c25fd3fdcbac531f0",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/inverse/plot_lcmv_beamformer_volume.py": {
+      "a": 2,
+      "d": 3
+    },
+    "mne/source_estimate.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/_3d.py": {
+      "a": 73,
+      "d": 47
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 14,
+      "d": 17
+    }
+  }
+}

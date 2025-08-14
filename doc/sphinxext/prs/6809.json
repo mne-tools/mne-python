@@ -1,0 +1,147 @@
+{
+  "merge_commit_sha": "b0ea04b4217d4945c13525e81607a9061d7768dc",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "README.rst": {
+      "a": 6,
+      "d": 4
+    },
+    "doc/_images/CoordinateSystems.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_images/HeadCS.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_includes/bem_model.rst": {
+      "a": 166,
+      "d": 0
+    },
+    "doc/_includes/channel_interpolation.rst": {
+      "a": 18,
+      "d": 10
+    },
+    "doc/_includes/data_formats.rst": {
+      "a": 29,
+      "d": 36
+    },
+    "doc/_includes/forward.rst": {
+      "a": 164,
+      "d": 235
+    },
+    "doc/_includes/inverse.rst": {
+      "a": 29,
+      "d": 27
+    },
+    "doc/_includes/memory.rst": {
+      "a": 68,
+      "d": 0
+    },
+    "doc/_includes/morph.rst": {
+      "a": 18,
+      "d": 10
+    },
+    "doc/_includes/ssp.rst": {
+      "a": 17,
+      "d": 8
+    },
+    "doc/conf.py": {
+      "a": 6,
+      "d": 0
+    },
+    "doc/overview/algorithms/bem_model.rst": {
+      "a": 0,
+      "d": 205
+    },
+    "doc/overview/algorithms/maxwell.rst": {
+      "a": 0,
+      "d": 76
+    },
+    "doc/overview/algorithms/memory.rst": {
+      "a": 0,
+      "d": 53
+    },
+    "doc/overview/algorithms/time_frequency.rst": {
+      "a": 0,
+      "d": 30
+    },
+    "doc/overview/command_line.rst": {
+      "a": 0,
+      "d": 114
+    },
+    "doc/overview/cookbook.rst": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/overview/implementation.rst": {
+      "a": 85,
+      "d": 16
+    },
+    "doc/overview/matlab.rst": {
+      "a": 2,
+      "d": 3
+    },
+    "mne/bem.py": {
+      "a": 16,
+      "d": 16
+    },
+    "mne/channels/channels.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/gui/_coreg_gui.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/source_estimate.py": {
+      "a": 8,
+      "d": 6
+    },
+    "tutorials/intro/README.txt": {
+      "a": 2,
+      "d": 2
+    },
+    "tutorials/intro/plot_40_sensor_locations.py": {
+      "a": 2,
+      "d": 0
+    },
+    "tutorials/io/README.txt": {
+      "a": 7,
+      "d": 0
+    },
+    "tutorials/io/plot_10_reading_meg_data.py": {
+      "a": 294,
+      "d": 0
+    },
+    "tutorials/io/plot_20_reading_eeg_data.py": {
+      "a": 189,
+      "d": 0
+    },
+    "tutorials/preprocessing/plot_15_handling_bad_channels.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/preprocessing/plot_45_projectors_background.py": {
+      "a": 0,
+      "d": 0
+    },
+    "tutorials/preprocessing/plot_60_maxwell_filtering_sss.py": {
+      "a": 28,
+      "d": 1
+    },
+    "tutorials/raw/plot_40_visualize_raw.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/sample-datasets/plot_brainstorm_auditory.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

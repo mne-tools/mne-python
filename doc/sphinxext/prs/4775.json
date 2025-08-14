@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "857b1fed003004aed704db7ffaad10b2e94ac402",
+  "authors": [
+    {
+      "n": "Jona Sassenhagen",
+      "e": "jona.sassenhagen@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/stats/plot_sensor_regression.py": {
+      "a": 25,
+      "d": 9
+    },
+    "mne/viz/evoked.py": {
+      "a": 44,
+      "d": 12
+    },
+    "mne/viz/tests/test_evoked.py": {
+      "a": 8,
+      "d": 1
+    }
+  }
+}

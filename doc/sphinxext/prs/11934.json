@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "a969c28702e2c4041335632b784493fc5cf8d8a3",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/chpi.py": {
+      "a": 6,
+      "d": 0
+    },
+    "mne/stats/tests/test_cluster_level.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/tests/test_chpi.py": {
+      "a": 22,
+      "d": 3
+    }
+  }
+}

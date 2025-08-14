@@ -1,0 +1,99 @@
+{
+  "merge_commit_sha": "60b29bef68144144445ddd1d3ca3126e369a2a7d",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "examples/datasets/brainstorm_data.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/preprocessing/eeg_csd.py": {
+      "a": 2,
+      "d": 2
+    },
+    "examples/preprocessing/find_ref_artifacts.py": {
+      "a": 3,
+      "d": 3
+    },
+    "examples/time_frequency/source_power_spectrum_opm.py": {
+      "a": 5,
+      "d": 1
+    },
+    "examples/visualization/sensor_noise_level.py": {
+      "a": 6,
+      "d": 1
+    },
+    "mne/report/report.py": {
+      "a": 7,
+      "d": 1
+    },
+    "mne/report/tests/test_report.py": {
+      "a": 13,
+      "d": 19
+    },
+    "tutorials/clinical/60_sleep.py": {
+      "a": 2,
+      "d": 0
+    },
+    "tutorials/epochs/20_visualize_epochs.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/epochs/30_epochs_metadata.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/intro/10_overview.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/inverse/80_brainstorm_phantom_elekta.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/io/60_ctf_bst_auditory.py": {
+      "a": 2,
+      "d": 2
+    },
+    "tutorials/preprocessing/10_preprocessing_overview.py": {
+      "a": 3,
+      "d": 1
+    },
+    "tutorials/preprocessing/30_filtering_resampling.py": {
+      "a": 4,
+      "d": 4
+    },
+    "tutorials/preprocessing/50_artifact_correction_ssp.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/preprocessing/59_head_positions.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/preprocessing/70_fnirs_processing.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/raw/40_visualize_raw.py": {
+      "a": 2,
+      "d": 2
+    },
+    "tutorials/simulation/10_array_objs.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/time-freq/10_spectrum_class.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/time-freq/20_sensors_time_frequency.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

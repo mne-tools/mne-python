@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "7e0938066a381720f54656ad6eadb5b754954c49",
+  "authors": [
+    {
+      "n": "Keith Doelling",
+      "e": "keith.doelling@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/decoding/base.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

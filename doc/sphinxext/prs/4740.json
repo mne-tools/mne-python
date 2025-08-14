@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "5c5429ae0ebeba7dfc58edbda4388bc26304dc7a",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/stats/cluster_level.py": {
+      "a": 4,
+      "d": 3
+    },
+    "mne/stats/tests/test_cluster_level.py": {
+      "a": 16,
+      "d": 0
+    }
+  }
+}

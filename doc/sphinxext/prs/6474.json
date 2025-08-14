@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "4b0c4e7fe9b2a2b8ca19c0f3efd7a84b944dc9e0",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "tutorials/intro/README.txt": {
+      "a": 4,
+      "d": 4
+    },
+    "tutorials/intro/plot_introduction.py": {
+      "a": 2,
+      "d": 5
+    },
+    "tutorials/intro/plot_projectors_intro.py": {
+      "a": 428,
+      "d": 0
+    },
+    "tutorials/raw/plot_annotating_raw.py": {
+      "a": 4,
+      "d": 8
+    },
+    "tutorials/raw/plot_object_raw.py": {
+      "a": 3,
+      "d": 5
+    },
+    "tutorials/raw/plot_visualize_raw.py": {
+      "a": 2,
+      "d": 4
+    }
+  }
+}

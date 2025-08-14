@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "e0cc99b5babebe90f13e92b270fd860ac40b43a3",
+  "authors": [
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    }
+  ],
+  "changes": {
+    "doc/documentation/datasets.rst": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/datasets/_fsaverage/base.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/forward/10_background_freesurfer.py": {
+      "a": 2,
+      "d": 0
+    },
+    "tutorials/forward/35_eeg_no_mri.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

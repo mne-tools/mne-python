@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "b4c44312da300c79578f9bfb953ee5a0b597d6c4",
+  "authors": [
+    {
+      "n": "Scott Huberty",
+      "e": null
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/constants.py": {
+      "a": 5,
+      "d": 1
+    },
+    "mne/io/egi/tests/test_egi.py": {
+      "a": 17,
+      "d": 0
+    }
+  }
+}

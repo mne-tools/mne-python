@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "58cc2d3d094d88a4a88f08831ae00b459d334999",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/documentation.rst": {
+      "a": 6,
+      "d": 6
+    },
+    "tutorials/preprocessing/plot_10_preprocessing_overview.py": {
+      "a": 248,
+      "d": 0
+    },
+    "tutorials/preprocessing/plot_20_rejecting_bad_data.py": {
+      "a": 0,
+      "d": 0
+    },
+    "tutorials/preprocessing/plot_30_filtering_resampling.py": {
+      "a": 0,
+      "d": 0
+    },
+    "tutorials/preprocessing/plot_40_artifact_correction_ica.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/preprocessing/plot_45_ica_from_raw.py": {
+      "a": 0,
+      "d": 0
+    },
+    "tutorials/preprocessing/plot_50_artifact_correction_ssp.py": {
+      "a": 0,
+      "d": 0
+    },
+    "tutorials/preprocessing/plot_60_maxwell_filtering_sss.py": {
+      "a": 2,
+      "d": 0
+    },
+    "tutorials/preprocessing/plot_artifacts_detection.py": {
+      "a": 0,
+      "d": 137
+    }
+  }
+}

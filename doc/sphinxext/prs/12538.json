@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "bf74c045d5220682e6e229b95a6e406014c0c73a",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/time_frequency/psd.py": {
+      "a": 27,
+      "d": 2
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "602a94f62127736834fa65e0c33fe037763efdb2",
+  "authors": [
+    {
+      "n": "Ram PARI",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/conf.py": {
+      "a": 1,
+      "d": 0
+    },
+    "requirements_doc.txt": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

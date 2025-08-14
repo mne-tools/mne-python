@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "cee9e96e99abc98ce4fd0ae5e0a9ffcb0c3919f3",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/time_frequency/time_frequency_erds.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

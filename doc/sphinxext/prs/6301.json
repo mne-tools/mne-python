@@ -1,0 +1,63 @@
+{
+  "merge_commit_sha": "56c408d363a01043594b6965b5ede3e1123bdcff",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "README.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "azure-pipelines.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "conftest.py": {
+      "a": 5,
+      "d": 5
+    },
+    "doc/whats_new.rst": {
+      "a": 4,
+      "d": 0
+    },
+    "environment.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/_3d.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/backends/_pyvista.py": {
+      "a": 14,
+      "d": 14
+    },
+    "mne/viz/backends/_utils.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/backends/renderer.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/viz/backends/tests/_utils.py": {
+      "a": 7,
+      "d": 7
+    },
+    "mne/viz/backends/tests/test_renderer.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 2,
+      "d": 2
+    },
+    "requirements.txt": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "d9dcf118f0773f693722f2d9a651a09e5ada1df1",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "autofix-ci[bot]",
+      "e": "114827586+autofix-ci[bot]@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/13276.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/chpi.py": {
+      "a": 14,
+      "d": 8
+    },
+    "mne/forward/_compute_forward.py": {
+      "a": 5,
+      "d": 0
+    },
+    "mne/simulation/tests/test_raw.py": {
+      "a": 26,
+      "d": 7
+    }
+  }
+}

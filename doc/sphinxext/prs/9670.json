@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "9d75a529c6a30e9de47409c8e6e9730dd7026bcc",
+  "authors": [
+    {
+      "n": "Adam Li",
+      "e": null
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/conf.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/inverse/psf_ctf_label_leakage.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/viz/circle.py": {
+      "a": 0,
+      "d": 1
+    }
+  }
+}

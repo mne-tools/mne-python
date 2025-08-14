@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "24261065e59e82a84c83e4e8e006631c7d4795c3",
+  "authors": [
+    {
+      "n": "Jeyhte Key",
+      "e": "jeythekey@tutanota.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/channels/interpolation.py": {
+      "a": 5,
+      "d": 3
+    },
+    "mne/channels/tests/test_interpolation.py": {
+      "a": 36,
+      "d": 0
+    }
+  }
+}

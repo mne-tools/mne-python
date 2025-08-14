@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "bb16a3e6ea99024e468fa84c2ec55c344b47df7e",
+  "authors": [
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    },
+    {
+      "n": "Clemens Brunner",
+      "e": "clemens.brunner@gmail.com"
+    },
+    {
+      "n": "Clemens Brunner",
+      "e": "clemens.brunner@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/brainvision/__init__.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/io/brainvision/brainvision.py": {
+      "a": 6,
+      "d": 1
+    },
+    "mne/io/brainvision/tests/data/test.vmrk": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/brainvision/tests/test_brainvision.py": {
+      "a": 60,
+      "d": 8
+    }
+  }
+}

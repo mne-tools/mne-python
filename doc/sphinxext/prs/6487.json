@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "16df3204d4c75e13b4319dbcddd22b09ad918b47",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/python_reference.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/__init__.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/io/pick.py": {
+      "a": 8,
+      "d": 8
+    },
+    "tutorials/intro/plot_info.py": {
+      "a": 147,
+      "d": 78
+    }
+  }
+}

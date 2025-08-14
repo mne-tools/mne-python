@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "cea6f69f1aba4f495ff0808f542f6980f5ef4c10",
+  "authors": [
+    {
+      "n": "Dirk Gütlin",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/minimum_norm/time_frequency.py": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

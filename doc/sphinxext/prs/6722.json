@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "79cc67d783cd95d400f1ba9c3f176cf41aca6550",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/viz/topomap.py": {
+      "a": 2,
+      "d": 0
+    }
+  }
+}

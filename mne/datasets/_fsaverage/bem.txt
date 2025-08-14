@@ -1,0 +1,12 @@
+bem/fsaverage-fiducials.fif
+bem/fsaverage-5120-5120-5120-bem.fif
+bem/fsaverage-head.fif
+bem/outer_skin.surf
+bem/brain.surf
+bem/fsaverage-trans.fif
+bem/fsaverage-ico-5-src.fif
+bem/fsaverage-vol-5-src.fif
+bem/outer_skull.surf
+bem/inner_skull.surf
+bem/fsaverage-5120-5120-5120-bem-sol.fif
+bem/fsaverage-inner_skull-bem.fif

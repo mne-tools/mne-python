@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "a4cd082024dab16d277ff116959b16b7a5e73dc8",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "tutorials/simulation/70_point_spread.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

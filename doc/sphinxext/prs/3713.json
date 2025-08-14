@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "b0fa44ec2fd88e2bc17ad0827fc7c42a90b8e092",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 4,
+      "d": 0
+    },
+    "examples/datasets/plot_brainstorm_data.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/array/tests/test_array.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/base.py": {
+      "a": 10,
+      "d": 3
+    },
+    "mne/viz/raw.py": {
+      "a": 29,
+      "d": 14
+    },
+    "mne/viz/tests/test_raw.py": {
+      "a": 6,
+      "d": 4
+    },
+    "tutorials/plot_artifacts_detection.py": {
+      "a": 2,
+      "d": 1
+    },
+    "tutorials/plot_brainstorm_auditory.py": {
+      "a": 2,
+      "d": 2
+    },
+    "tutorials/plot_visualize_raw.py": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

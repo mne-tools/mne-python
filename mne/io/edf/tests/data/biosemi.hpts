@@ -1,0 +1,82 @@
+# This file contains the default locations for the 64
+# channel biosemi cap, available on the biosemi website
+# http://www.biosemi.com/download/Cap_coords_all.xls
+#
+# This includes default locations for 3 cardinal landmarks,
+# the nasion, and the left and right auriculars
+#
+# 64 eeg channels
+# ---------------
+eeg Fp1 -95.0 -31.0 -3.0
+eeg AF7 -81 -59 -3
+eeg AF3 -87 -41 28
+eeg F1 -71 -29 64
+eeg F3 -67 -55 50
+eeg F5 -63 -73 26
+eeg F7 -59 -81 -3
+eeg FT7 -31 -95 -3
+eeg FC5 -34 -89 31
+eeg FC3 -36 -68 64
+eeg FC1 -37 -37 85
+eeg C1 0 -39 92
+eeg C3 0 -72 69
+eeg C5 0 -93 36
+eeg T7 0 -100 -3
+eeg TP7 31 -95 -3
+eeg CP5 34 -89 31
+eeg CP3 36 -68 64
+eeg CP1 37 -37 85
+eeg P1 71 -29 64
+eeg P3 67 -55 50
+eeg P5 63 -73 26
+eeg P7 59 -81 -3
+eeg P9 53 -73 -42
+eeg PO7 81 -59 -3
+eeg PO3 87 -41 28
+eeg O1 95 -31 -3
+eeg Iz 91 0 -42
+eeg Oz 100 0 -3
+eeg POz 93 0 36
+eeg Pz 72 0 69
+eeg CPz 39 0 92
+eeg Fpz -100 0 -3
+eeg Fp2 -95 31 -3
+eeg AF8 -81 59 -3
+eeg AF4 -87 41 28
+eeg AFz -93 0 36
+eeg Fz -72 0 69
+eeg F2 -71 29 64
+eeg F4 -67 55 50
+eeg F6 -63 73 26
+eeg F8 -59 81 -3
+eeg FT8 -31 95 -3
+eeg FC6 -34 89 31
+eeg FC4 -36 68 64
+eeg FC2 -37 37 85
+eeg FCz -39 0 92
+eeg Cz 0 0 100
+eeg C2 0 39 92
+eeg C4 0 72 69
+eeg C6 0 93 36
+eeg T8 0 100 -3
+eeg TP8 31 95 -3
+eeg CP6 34 89 31
+eeg CP4 36 68 64
+eeg CP2 37 37 85
+eeg P2 71 29 64
+eeg P4 67 55 50
+eeg P6 63 73 26
+eeg P8 59 81 -3
+eeg P10 -53 73 -42
+eeg PO8 81 59 -3
+eeg PO4 87 41 28
+eeg O2 95 31 -3
+#
+# 3 cardinal landmarks
+# --------------------
+# Nasion
+cardinal nasion -91 0 -42
+# Left auricular
+cardinal lpa 0 -91 -42
+# Right auricular
+cardinal rpa 0 91 -42

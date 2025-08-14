@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "dc8fab44153c7e01cfc339dc65e17de538d391ec",
+  "authors": [
+    {
+      "n": "Jona Sassenhagen",
+      "e": "jona.sassenhagen@gmail.com"
+    }
+  ],
+  "changes": {
+    "tutorials/plot_stats_cluster_erp.py": {
+      "a": 7,
+      "d": 6
+    }
+  }
+}

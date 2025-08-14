@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "69345bf04f2dbdf9d4198c11251db9652016f7b0",
+  "authors": [
+    {
+      "n": "Mainak Jas",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/channels/interpolation.py": {
+      "a": 4,
+      "d": 3
+    },
+    "mne/channels/tests/test_interpolation.py": {
+      "a": 9,
+      "d": 0
+    }
+  }
+}

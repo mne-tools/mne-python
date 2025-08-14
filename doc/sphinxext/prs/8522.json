@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "9775db1407c7c91f1b020d0c63f868430130b77c",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/preprocessing/_fine_cal.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/preprocessing/tests/test_fine_cal.py": {
+      "a": 6,
+      "d": 2
+    }
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "d6b390d6764778800988b2a44a62c25299a96ab8",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/channels/channels.py": {
+      "a": 6,
+      "d": 2
+    },
+    "mne/io/proj.py": {
+      "a": 78,
+      "d": 0
+    },
+    "mne/tests/test_docstring_parameters.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/tests/test_proj.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/viz/tests/test_topomap.py": {
+      "a": 26,
+      "d": 15
+    },
+    "mne/viz/topomap.py": {
+      "a": 83,
+      "d": 53
+    },
+    "tutorials/plot_artifacts_correction_ssp.py": {
+      "a": 10,
+      "d": 8
+    }
+  }
+}

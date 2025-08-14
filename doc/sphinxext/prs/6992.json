@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "0a45ec5f8a0fef47dea39739bd97618c310e6f34",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/viz/misc.py": {
+      "a": 72,
+      "d": 31
+    },
+    "mne/viz/tests/test_misc.py": {
+      "a": 8,
+      "d": 6
+    },
+    "tutorials/source-modeling/plot_forward.py": {
+      "a": 21,
+      "d": 19
+    }
+  }
+}

@@ -1,0 +1,163 @@
+{
+  "merge_commit_sha": "ec3c0387437e76843614ada85b90a4b007470e43",
+  "authors": [
+    {
+      "n": "Andrew R. Dykstra",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/source/python_tutorial.rst": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/source/whats_new.rst": {
+      "a": 12,
+      "d": 6
+    },
+    "examples/export/plot_evoked_to_nitime.py": {
+      "a": 3,
+      "d": 3
+    },
+    "examples/inverse/plot_compute_mne_inverse.py": {
+      "a": 4,
+      "d": 4
+    },
+    "examples/inverse/plot_compute_mne_inverse_volume.py": {
+      "a": 2,
+      "d": 2
+    },
+    "examples/inverse/plot_gamma_map_inverse.py": {
+      "a": 3,
+      "d": 2
+    },
+    "examples/inverse/plot_label_from_stc.py": {
+      "a": 2,
+      "d": 2
+    },
+    "examples/inverse/plot_label_source_activations.py": {
+      "a": 2,
+      "d": 2
+    },
+    "examples/inverse/plot_make_inverse_operator.py": {
+      "a": 2,
+      "d": 2
+    },
+    "examples/inverse/plot_mixed_norm_L21_inverse.py": {
+      "a": 3,
+      "d": 3
+    },
+    "examples/inverse/plot_time_frequency_mixed_norm_inverse.py": {
+      "a": 4,
+      "d": 4
+    },
+    "examples/plot_evoked_topomap.py": {
+      "a": 5,
+      "d": 3
+    },
+    "examples/plot_evoked_whitening.py": {
+      "a": 8,
+      "d": 8
+    },
+    "examples/plot_from_raw_to_multiple_epochs_to_evoked.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/plot_meg_eeg_fields_3d.py": {
+      "a": 8,
+      "d": 6
+    },
+    "examples/plot_megsim_data.py": {
+      "a": 8,
+      "d": 8
+    },
+    "examples/plot_megsim_data_single_trial.py": {
+      "a": 2,
+      "d": 2
+    },
+    "examples/plot_read_evoked.py": {
+      "a": 3,
+      "d": 3
+    },
+    "examples/plot_shift_evoked.py": {
+      "a": 9,
+      "d": 9
+    },
+    "examples/plot_simulate_evoked_data.py": {
+      "a": 10,
+      "d": 8
+    },
+    "examples/plot_ssp_projs_sensitivity_map.py": {
+      "a": 4,
+      "d": 5
+    },
+    "examples/plot_ssp_projs_topomaps.py": {
+      "a": 8,
+      "d": 6
+    },
+    "examples/plot_topography.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/fiff/__init__.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/fiff/evoked.py": {
+      "a": 163,
+      "d": 47
+    },
+    "mne/fiff/tests/test_compensator.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/fiff/tests/test_evoked.py": {
+      "a": 74,
+      "d": 61
+    },
+    "mne/forward/forward.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/forward/tests/test_field_interpolation.py": {
+      "a": 3,
+      "d": 5
+    },
+    "mne/forward/tests/test_forward.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/inverse_sparse/tests/test_gamma_map.py": {
+      "a": 5,
+      "d": 4
+    },
+    "mne/inverse_sparse/tests/test_mxne_inverse.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/minimum_norm/tests/test_inverse.py": {
+      "a": 8,
+      "d": 8
+    },
+    "mne/simulation/tests/test_evoked.py": {
+      "a": 5,
+      "d": 4
+    },
+    "mne/tests/test_cov.py": {
+      "a": 4,
+      "d": 3
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 11,
+      "d": 11
+    },
+    "mne/tests/test_utils.py": {
+      "a": 9,
+      "d": 9
+    },
+    "mne/tests/test_viz.py": {
+      "a": 3,
+      "d": 4
+    }
+  }
+}

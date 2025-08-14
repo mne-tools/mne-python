@@ -1,0 +1,59 @@
+{
+  "merge_commit_sha": "14d0f416d82e6a876a5a33de8349a77d92e272bd",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".travis.yml": {
+      "a": 3,
+      "d": 7
+    },
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/python_reference.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/bem.py": {
+      "a": 3,
+      "d": 5
+    },
+    "mne/source_space.py": {
+      "a": 2,
+      "d": 4
+    },
+    "mne/surface.py": {
+      "a": 95,
+      "d": 16
+    },
+    "mne/tests/test_bem.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/tests/test_source_space.py": {
+      "a": 1,
+      "d": 5
+    },
+    "mne/tests/test_surface.py": {
+      "a": 21,
+      "d": 3
+    },
+    "mne/utils/__init__.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/utils/_testing.py": {
+      "a": 19,
+      "d": 2
+    },
+    "mne/utils/check.py": {
+      "a": 16,
+      "d": 3
+    }
+  }
+}

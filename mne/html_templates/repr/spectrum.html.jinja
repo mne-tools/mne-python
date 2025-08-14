@@ -1,0 +1,11 @@
+{%include '_js_and_css.html.jinja' %}
+
+{% set info = inst.info %}
+
+<table class="table mne-repr-table">
+    {%include '_general.html.jinja' %}
+    {%include '_acquisition.html.jinja' %}
+    {%include '_channels.html.jinja' %}
+    {%include '_frequencies.html.jinja' %}
+    {%include '_filters.html.jinja' %}
+</table>

@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "fd8c1eed5209393e6a2527342b61354efcb813ee",
+  "authors": [
+    {
+      "n": "github-actions[bot]",
+      "e": "41898282+github-actions[bot]@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    "doc/sphinxext/prs/13028.json": {
+      "a": 23,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13038.json": {
+      "a": 63,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13040.json": {
+      "a": 171,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13041.json": {
+      "a": 43,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13042.json": {
+      "a": 27,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13043.json": {
+      "a": 15,
+      "d": 0
+    }
+  }
+}

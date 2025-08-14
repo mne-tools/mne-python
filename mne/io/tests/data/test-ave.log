@@ -1,0 +1,15 @@
+Reading mne/fiff/tests/data/test-ave.fif ...
+    Read a total of 4 projection items:
+        PCA-v1 (1 x 102)  idle
+        PCA-v2 (1 x 102)  idle
+        PCA-v3 (1 x 102)  idle
+        Average EEG reference (1 x 60)  idle
+    Found the data of interest:
+        t =    -199.80 ...     499.49 ms (Right Auditory)
+        0 CTF compensation matrices available
+        nave = 6 - aspect type = 100
+Created an SSP operator (subspace dimension = 4)
+4 projection items activated
+SSP projectors applied...
+No baseline correction applied
+No baseline correction applied

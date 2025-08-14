@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "6cad308dd83be5054a63ad0748ead08b641d6ac0",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    ".git-blame-ignore-revs": {
+      "a": 3,
+      "d": 0
+    },
+    "examples/decoding/decoding_rsa_sgskip.py": {
+      "a": 3,
+      "d": 1
+    },
+    "examples/decoding/decoding_xdawn_eeg.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/decoding/tests/test_base.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/decoding/tests/test_search_light.py": {
+      "a": 18,
+      "d": 6
+    },
+    "mne/stats/_adjacency.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/backends/_pyvista.py": {
+      "a": 7,
+      "d": 10
+    },
+    "tools/install_pre_requirements.sh": {
+      "a": 3,
+      "d": 1
+    }
+  }
+}

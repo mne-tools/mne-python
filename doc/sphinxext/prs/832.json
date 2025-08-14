@@ -1,0 +1,55 @@
+{
+  "merge_commit_sha": "1e2d0be9595a9d6f1f823d4d8bbec61ef9052b23",
+  "authors": [
+    {
+      "n": "Teon L Brooks",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/fiff/edf/__init__.py": {
+      "a": 7,
+      "d": 0
+    },
+    "mne/fiff/edf/edf.py": {
+      "a": 509,
+      "d": 0
+    },
+    "mne/fiff/edf/tests/data/biosemi.hpts": {
+      "a": 82,
+      "d": 0
+    },
+    "mne/fiff/edf/tests/data/test.bdf": {
+      "a": 3222,
+      "d": 0
+    },
+    "mne/fiff/edf/tests/data/test.edf": {
+      "a": 9591,
+      "d": 0
+    },
+    "mne/fiff/edf/tests/data/test_bdf_eeglab.mat": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/fiff/edf/tests/data/test_edf_eeglab.mat": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/fiff/edf/tests/data/test_eeglab.mat": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/fiff/edf/tests/test_edf.py": {
+      "a": 88,
+      "d": 0
+    },
+    "mne/fiff/meas_info.py": {
+      "a": 1,
+      "d": 1
+    },
+    "setup.py": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

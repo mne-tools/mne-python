@@ -1,0 +1,45 @@
+name: Contributor credit
+
+on:  # yamllint disable-line rule:truthy
+  # Scheduled actions only run on the main repo branch, which is exactly what we want
+  schedule:
+    - cron: '0 0 1 * *'  # At 00:00 on day-of-month 1
+  workflow_dispatch:
+
+jobs:
+  update_credit:
+    permissions:
+      contents: write
+      pull-requests: write
+    name: Update
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GITHUB_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install pygithub -e .
+      - run: python tools/dev/update_credit_json.py
+      - run: git add -f doc/sphinxext/prs/*.json
+      - run: |
+          git diff && git status --porcelain
+          if [[ $(git status --porcelain) ]]; then
+            echo "dirty=true" >> $GITHUB_OUTPUT
+          fi
+        id: status
+      - name: Create PR
+        run: |
+          set -xeo pipefail
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+          git checkout -b credit
+          git commit -am "MAINT: Update code credit"
+          git push origin credit
+          PR_NUM=$(gh pr create --base main --head credit --title "MAINT: Update code credit" --body "Created by credit [GitHub action](https://github.com/mne-tools/mne-python/actions/runs/${{ github.run_id }})." --label "no-changelog-entry-needed")
+          echo "Opened https://github.com/mne-tools/mne-python/pull/${PR_NUM}" >> $GITHUB_STEP_SUMMARY
+        if: steps.status.outputs.dirty == 'true'

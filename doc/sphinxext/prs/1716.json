@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "75606c4efcda651c04208e2da3a8235730d537f8",
+  "authors": [
+    {
+      "n": "Christian Brodbeck",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/channels/tests/test_montage.py": {
+      "a": 1,
+      "d": 3
+    },
+    "mne/time_frequency/tests/test_stockwell.py": {
+      "a": 0,
+      "d": 3
+    },
+    "mne/utils.py": {
+      "a": 6,
+      "d": 4
+    }
+  }
+}

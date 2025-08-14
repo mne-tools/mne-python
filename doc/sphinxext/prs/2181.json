@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "735bdac076a8959db942824964462889a9458a47",
+  "authors": [
+    {
+      "n": "Fede Raimondo",
+      "e": "f.raimondo@fz-juelich.de"
+    }
+  ],
+  "changes": {
+    "mne/viz/utils.py": {
+      "a": 7,
+      "d": 2
+    }
+  }
+}

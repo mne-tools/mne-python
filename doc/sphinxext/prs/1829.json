@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "06fbaf15b22048ce5a4bf77fb9956876a48a1c99",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "doc/source/python_reference.rst": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/dipole.py": {
+      "a": 112,
+      "d": 10
+    },
+    "mne/source_space.py": {
+      "a": 21,
+      "d": 6
+    },
+    "mne/tests/test_dipole.py": {
+      "a": 37,
+      "d": 8
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "ecc77d892f309b812daaafc1e2c6ec1a88ddc11d",
+  "authors": [
+    {
+      "n": "Daniel Strohmeier",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/preprocessing/stim.py": {
+      "a": 9,
+      "d": 6
+    },
+    "mne/preprocessing/tests/test_stim.py": {
+      "a": 46,
+      "d": 6
+    }
+  }
+}

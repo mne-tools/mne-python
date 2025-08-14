@@ -1,0 +1,51 @@
+{
+  "merge_commit_sha": "cedefa0751adbf6d2be4531239019ef50302a8af",
+  "authors": [
+    {
+      "n": "Santeri Ruuskanen",
+      "e": null
+    },
+    {
+      "n": "Santeri Ruuskanen",
+      "e": "santeri.ruuskanen@aalto.fi"
+    },
+    {
+      "n": "Marijn van Vliet",
+      "e": "w.m.vanvliet@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel.rst": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/viz/epochs.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/viz/evoked.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/tests/test_utils.py": {
+      "a": 73,
+      "d": 0
+    },
+    "mne/viz/topo.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/topomap.py": {
+      "a": 62,
+      "d": 8
+    },
+    "mne/viz/ui_events.py": {
+      "a": 15,
+      "d": 1
+    },
+    "mne/viz/utils.py": {
+      "a": 32,
+      "d": 3
+    }
+  }
+}

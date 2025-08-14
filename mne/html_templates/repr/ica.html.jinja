@@ -1,0 +1,32 @@
+<table class="table mne-repr-table">
+    <tr>
+        <th>Method</th>
+        <td>{{ method }}</td>
+    </tr>
+    <tr>
+        <th>Fit parameters</th>
+        <td>{% if fit_params %}{% for key, value in fit_params.items() %}{{ key }}={{ value }}<br />{% endfor %}{% else %}&mdash;{% endif %}</td>
+    </tr>
+    <tr>
+        <th>Fit</th>
+        <td>{% if fit_on %}{{ n_iter }} iterations on {{ fit_on }} ({{ n_samples }} samples){% else %}no{% endif %}</td>
+    </tr>
+    {% if fit_on %}
+    <tr>
+        <th>ICA components</th>
+        <td>{{ n_components }}</td>
+    </tr>
+    <tr>
+        <th>Available PCA components</th>
+        <td>{{ n_pca_components }}</td>
+    </tr>
+    <tr>
+        <th>Channel types</th>
+        <td>{{ ch_types|join(', ') }}</td>
+    </tr>
+    <tr>
+        <th>ICA components marked for exclusion</th>
+        <td>{% if excludes %}{{ excludes|join('<br />' | safe) }}{% else %}&mdash;{% endif %}</td>
+    </tr>
+    {% endif %}
+</table>

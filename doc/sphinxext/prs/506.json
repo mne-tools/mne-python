@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "e4c7db52455d484c854e72d9e82a1677a1e10d5b",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "examples/stats/plot_cluster_stats_spatio_temporal_2samp.py": {
+      "a": 121,
+      "d": 0
+    },
+    "mne/stats/__init__.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/stats/cluster_level.py": {
+      "a": 400,
+      "d": 282
+    },
+    "mne/stats/tests/test_cluster_level.py": {
+      "a": 97,
+      "d": 81
+    }
+  }
+}
