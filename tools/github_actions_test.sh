@@ -21,6 +21,7 @@ if [[ ! -z "$CONDA_ENV" ]] && [[ "${RUNNER_OS}" != "Windows" ]] && [[ "${MNE_CI_
   INSTALL_PATH=$(python -c "import mne, pathlib; print(str(pathlib.Path(mne.__file__).parents[1]))")
   echo "Copying tests from ${PROJ_PATH}/mne-python/mne/ to ${INSTALL_PATH}/mne/"
   echo "::group::rsync mne"
+  set -x
   rsync -a --partial --progress --prune-empty-dirs --exclude="*.pyc" --include="**/" --include="**/tests/*" --include="**/tests/data/**" --exclude="**" ${PROJ_PATH}/mne/ ${INSTALL_PATH}/mne/
   echo "::endgroup::"
   echo "::group::rsync doc"
@@ -29,6 +30,7 @@ if [[ ! -z "$CONDA_ENV" ]] && [[ "${RUNNER_OS}" != "Windows" ]] && [[ "${MNE_CI_
   test -f ${INSTALL_PATH}/doc/api/reading_raw_data.rst
   cd $INSTALL_PATH
   cp -av $PROJ_PATH/pyproject.toml .
+  set +x
   echo "::endgroup::"
 fi
 
