@@ -10,41 +10,12 @@ from pathlib import Path
 import numpy as np
 from defusedxml import ElementTree as ET
 
-from ..._fiff.constants import FIFF
 from ..._fiff.meas_info import create_info
 from ...utils import _check_fname, fill_doc, logger, verbose, warn
 from ..base import BaseRaw
 
 # these will all get mapped to `misc`. Quaternion channels are handled separately.
 _NON_DATA_CHS = ("buffer", "ramp", "loadcell", "aux")
-
-
-def _parse_date(dt):
-    return datetime.fromisoformat(dt).date()
-
-
-def _parse_patient_xml(tree):
-    """Convert an ElementTree to a dict."""
-
-    def _parse_sex(sex):
-        # For devices that generate `.otb+` files, the recording GUI only has M or F
-        # options and choosing one is mandatory. For `.otb4` the field is optional.
-        return dict(m=1, f=2)[sex.lower()[0]] if sex else 0  # 0 means "unknown"
-
-    subj_info_mapping = (
-        ("family_name", "last_name", str),
-        ("first_name", "first_name", str),
-        ("weight", "weight", float),
-        ("height", "height", float),
-        ("sex", "sex", _parse_sex),
-        ("birth_date", "birthday", _parse_date),
-    )
-    subject_info = dict()
-    for source, target, func in subj_info_mapping:
-        value = tree.find(source)
-        if value is not None:
-            subject_info[target] = func(value.text)
-    return subject_info
 
 
 def _parse_otb_plus_metadata(metadata, extras_metadata):
@@ -56,6 +27,7 @@ def _parse_otb_plus_metadata(metadata, extras_metadata):
     n_chan = int(metadata.attrib["DeviceTotalChannels"])
     sfreq = float(metadata.attrib["SampleFrequency"])
     # containers
+    adc_ranges = np.full(n_chan, np.nan)
     gains = np.full(n_chan, np.nan)
     scalings = np.full(n_chan, np.nan)
     ch_names = list()
@@ -103,32 +75,68 @@ def _parse_otb_plus_metadata(metadata, extras_metadata):
             # 4-6: translations
             if ch_id.startswith("Quaternion"):
                 ch_type = "chpi"  # TODO verify
-                scalings[gain_ix] = 1e-4
+                scalings[gain_ix] = 1e-3  # TODO CHPI is usually 1e-4
+                adc_ranges[gain_ix] = 1.0
             elif any(ch_id.lower().startswith(_ch.lower()) for _ch in _NON_DATA_CHS):
                 ch_type = "misc"
                 scalings[gain_ix] = 1.0
+                adc_ranges[gain_ix] = 1.0
             else:
                 ch_type = "emg"
                 scalings[gain_ix] = 1.0
+                adc_ranges[:] = adc_range
             ch_types.append(ch_type)
+
     # parse subject info
-    subject_info = _parse_patient_xml(extras_metadata)
+    def get_str(node, tag):
+        val = node.find(tag)
+        if val is not None:
+            return val.text
+
+    def parse_date(dt):
+        return datetime.fromisoformat(dt).date()
+
+    def parse_sex(sex):
+        # For devices that generate `.otb+` files, the recording GUI only has M or F
+        # options and choosing one is mandatory.
+        return dict(m=1, f=2)[sex.lower()[0]] if sex else 0  # 0 means "unknown"
+
+    subj_info_mapping = (
+        ("family_name", "last_name", str),
+        ("first_name", "first_name", str),
+        ("weight", "weight", float),
+        ("height", "height", float),
+        ("sex", "sex", parse_sex),
+        ("birth_date", "birthday", parse_date),
+    )
+    subject_info = dict()
+    for source, target, func in subj_info_mapping:
+        value = get_str(extras_metadata, source)
+        if value is not None:
+            subject_info[target] = func(value)
+
+    meas_date = get_str(extras_metadata, "time")
+    duration = get_str(extras_metadata, "duration")
+    site = get_str(extras_metadata, "place")
 
     return dict(
-        sfreq=sfreq,
-        n_chan=n_chan,
+        adc_range=adc_ranges,
         bit_depth=bit_depth,
-        device_name=device_name,
-        adc_range=adc_range,
-        subject_info=subject_info,
-        gains=gains,
         ch_names=ch_names,
         ch_types=ch_types,
+        device_name=device_name,
+        duration=duration,
+        gains=gains,
         highpass=highpass,
         lowpass=lowpass,
-        units=None,
+        meas_date=meas_date,
+        n_chan=n_chan,
         scalings=scalings,
+        sfreq=sfreq,
         signal_paths=None,
+        site=site,
+        subject_info=subject_info,
+        units=None,
     )
 
 
@@ -142,16 +150,15 @@ def _parse_otb_four_metadata(metadata, extras_metadata):
     def get_float(node, tag, **replacements):
         # filter freqs may be "Unknown", can't blindly parse as floats
         val = get_str(node, tag)
-        return replacements.get(val, float(val))
+        return replacements[val] if val in replacements else float(val)
 
     assert metadata.tag == "DeviceParameters"
     # device-level metadata
-    adc_range = float(metadata.find("ADC_Range").text)
-    bit_depth = int(metadata.find("AdBits").text)
-    n_chan = int(metadata.find("TotalChannelsInFile").text)
-    sfreq = float(metadata.find("SamplingFrequency").text)
+    bit_depth = get_int(metadata, "AdBits")  # TODO use `SampleSize * 8` instead?
+    sfreq = get_float(metadata, "SamplingFrequency")
+    device_gain = get_float(metadata, "Gain")
     # containers
-    gains = np.full(n_chan, np.nan)
+    gains = list()
     ch_names = list()
     ch_types = list()
     highpass = list()
@@ -160,35 +167,42 @@ def _parse_otb_four_metadata(metadata, extras_metadata):
     paths = list()
     scalings = list()
     units = list()
+    adc_ranges = list()
     # stored per-adapter, but should be uniform
-    adc_ranges = set()
     bit_depths = set()
     device_names = set()
+    durations = set()
     meas_dates = set()
     sfreqs = set()
     # adapter-level metadata
     for adapter in extras_metadata.iter("TrackInfo"):
+        strings = adapter.find("StringsDescriptions")
         # expected to be same for all adapters
-        adc_ranges.add(get_float(adapter, "ADC_Range"))
         bit_depths.add(get_int(adapter, "ADC_Nbits"))
         device_names.add(get_str(adapter, "Device"))
         sfreqs.add(get_int(adapter, "SamplingFrequency"))
+        durations.add(get_float(adapter, "TimeDuration"))
         # may be different for each adapter
+        adapter_adc_range = get_float(adapter, "ADC_Range")
         adapter_id = get_str(adapter, "SubTitle")
         adapter_gain = get_float(adapter, "Gain")
-        ch_offset = get_int(adapter, "AcquisitionChannel")
+        adapter_scaling = 1.0 / get_float(adapter, "UnitOfMeasurementFactor")
+        # ch_offset = get_int(adapter, "AcquisitionChannel")
         n_chans.append(get_int(adapter, "NumberOfChannels"))
         paths.append(get_str(adapter, "SignalStreamPath"))
-        scalings.append(get_str(adapter, "UnitOfMeasurementFactor"))
         units.append(get_str(adapter, "UnitOfMeasurement"))
         # we only really care about lowpass/highpass on the data channels
         if adapter_id not in ("Quaternion", "Buffer", "Ramp"):
-            highpass = get_float(adapter, "HighPassFilter", Unknown=None)
-            lowpass = get_float(adapter, "LowPassFilter", Unknown=None)
+            hp = get_float(strings, "HighPassFilter", Unknown=None)
+            lp = get_float(strings, "LowPassFilter", Unknown=None)
+            if hp is not None:
+                highpass.append(hp)
+            if lp is not None:
+                lowpass.append(lp)
         # meas_date
-        meas_date = adapter.find("StringsDescriptions").find("StartDate")
+        meas_date = strings.find("StartDate")
         if meas_date is not None:
-            meas_dates.add(_parse_date(meas_date.text).astimezone(timezone.utc))
+            meas_dates.add(meas_date.text)
         # # range (TODO maybe not needed; might be just for mfg's GUI?)
         # # FWIW in the example file: range for Buffer is 1-100,
         # # Ramp and Control are -32767-32768, and
@@ -199,8 +213,8 @@ def _parse_otb_four_metadata(metadata, extras_metadata):
         #     rmin = int(rmin)
         #     rmax = int(rmax)
 
-        # extract channel-specific info                 ↓ not a typo
-        for ch in adapter.get("Channels").iter("ChannelRapresentation"):
+        # extract channel-specific info                  ↓ not a typo
+        for ch in adapter.find("Channels").iter("ChannelRapresentation"):
             # channel names
             ix = int(ch.find("Index").text)
             ch_name = ch.find("Label").text
@@ -211,8 +225,10 @@ def _parse_otb_four_metadata(metadata, extras_metadata):
             else:
                 ch_name = f"{adapter_id}_{ix}"
             ch_names.append(ch_name)
-            # gains
-            gains[ix + ch_offset] = adapter_gain
+            # signal properties
+            adc_ranges.append(adapter_adc_range)
+            gains.append(adapter_gain * device_gain)
+            scalings.append(adapter_scaling)
             # channel types
             # TODO verify for quats & buffer channel
             # ramp and control channels definitely "MISC"
@@ -232,9 +248,9 @@ def _parse_otb_four_metadata(metadata, extras_metadata):
     # validate the fields stored at adapter level, but that ought to be uniform:
     def check_uniform(name, adapter_values, device_value=None):
         if len(adapter_values) > 1:
+            vals = sorted(map(str, adapter_values))
             raise RuntimeError(
-                f"multiple {name}s found ({', '.join(sorted(adapter_values))}), "
-                "this is not yet supported"
+                f"multiple {name}s found ({', '.join(vals)}), this is not yet supported"
             )
         adapter_value = adapter_values.pop()
         if device_value is not None and device_value != adapter_value:
@@ -244,30 +260,30 @@ def _parse_otb_four_metadata(metadata, extras_metadata):
             )
         return adapter_value
 
-    device_name = check_uniform("device name", device_names)
-    adc_range = check_uniform("analog-to-digital range", adc_ranges, adc_range)
+    # ADC_Nbits is listed as zero for non-data channels; ignore
+    bit_depths.discard(0)
     bit_depth = check_uniform("bit depth", bit_depths, bit_depth)
+    device_name = check_uniform("device name", device_names)
+    duration = check_uniform("duration", durations)
     sfreq = check_uniform("sampling frequency", sfreqs, sfreq)
-
-    # verify number of channels in device metadata matches sum of adapters
-    assert sum(n_chans) == n_chan, (
-        f"total channels ({n_chan}) doesn't match sum of channels for each adapter "
-        f"({sum(n_chans)})"
-    )
+    meas_date = check_uniform("meas date", meas_dates)
 
     return dict(
-        adc_range=adc_range,
+        adc_range=adc_ranges,
         bit_depth=bit_depth,
         ch_names=ch_names,
         ch_types=ch_types,
         device_name=device_name,
+        duration=duration,
         gains=gains,
         highpass=highpass,
         lowpass=lowpass,
-        n_chan=n_chan,
-        scalings=scalings,
+        meas_date=meas_date,
+        n_chan=sum(n_chans),
+        scalings=np.array(scalings),
         sfreq=sfreq,
         signal_paths=paths,
+        site=None,
         subject_info=dict(),
         units=units,
     )
@@ -337,25 +353,35 @@ class RawOTB(BaseRaw):
         ch_names = metadata["ch_names"]
         ch_types = metadata["ch_types"]
         device_name = metadata["device_name"]
+        duration = metadata["duration"]
         gains = metadata["gains"]
         highpass = metadata["highpass"]
         lowpass = metadata["lowpass"]
+        meas_date = metadata["meas_date"]
         n_chan = metadata["n_chan"]
         scalings = metadata["scalings"]
         sfreq = metadata["sfreq"]
         signal_paths = metadata["signal_paths"]
+        site = metadata["site"]
         subject_info = metadata["subject_info"]
         # units = metadata["units"]  # TODO needed for orig_units maybe
 
+        # bit_depth seems to be unreliable for some OTB4 files, so let's check:
+        if duration is not None:  # None for OTB+ files
+            expected_n_samp = int(duration * sfreq * n_chan)
+            expected_bit_depth = int(8 * data_size_bytes / expected_n_samp)
+            if bit_depth != expected_bit_depth:
+                warn(
+                    f"mismatch between file metadata `AdBits` ({bit_depth} bit) and "
+                    "computed sample size based on reported duration, sampling "
+                    f"frequency, and number of channels ({expected_bit_depth} bit). "
+                    "Using the computed bit depth."
+                )
+                bit_depth = expected_bit_depth
         if bit_depth == 16:
             _dtype = np.int16
-        elif bit_depth == 24:  # EEG data recorded on OTB devices do this
-            # this is possible but will be a bit tricky, see:
-            # https://stackoverflow.com/a/34128171
-            # https://stackoverflow.com/a/11967503
-            raise NotImplementedError(
-                "OTB files with 24-bit data are not yet supported."
-            )
+        elif bit_depth == 24:  # EEG data recorded on OTB devices may be like this
+            _dtype = np.uint8  # hack, see `_preload_data` method
         else:
             raise NotImplementedError(
                 f"expected 16- or 24-bit data, but file metadata says {bit_depth}-bit. "
@@ -371,58 +397,52 @@ class RawOTB(BaseRaw):
                 f"Number of bytes in file ({data_size_bytes}) not evenly divided by "
                 f"number of channels ({n_chan}). File may be corrupted or truncated."
             )
-        n_samples = int(n_samples)
 
-        # validate gains
+        # validate
         assert np.isfinite(gains).all()
+        assert np.isfinite(adc_range).all()
+        assert np.isfinite(scalings).all()
 
         # check filter freqs. Can vary by adapter, so in theory we might get different
         # filters for different *data* channels (not just different between data and
         # misc/aux/whatever).
-        if len(highpass) > 1:
-            warn(
-                "More than one highpass frequency found in file; choosing lowest "
-                f"({min(highpass)} Hz)"
-            )
-        if len(lowpass) > 1:
-            warn(
-                "More than one lowpass frequency found in file; choosing highest "
-                f"({max(lowpass)} Hz)"
-            )
-        highpass = min(highpass)
-        lowpass = max(lowpass)
+        def check_filter_freqs(name, freqs):
+            if not len(freqs):
+                return None
+            else:
+                extreme = dict(highpass="lowest", lowpass="highest")[name]
+                func = dict(highpass=min, lowpass=max)[name]
+                extremum = func(freqs)
+                if len(freqs) > 1:
+                    warn(
+                        f"More than one {name} frequency found in file; choosing "
+                        f"{extreme} ({extremum} Hz)"
+                    )
+                return extremum
+
+        highpass = check_filter_freqs("highpass", highpass)
+        lowpass = check_filter_freqs("lowpass", lowpass)
 
         # create info
         info = create_info(ch_names=ch_names, ch_types=ch_types, sfreq=sfreq)
         device_info = dict(type="OTB", model=device_name)  # other allowed keys: serial
-        meas_date = extras_tree.find("time")
-        site = extras_tree.find("place")
         if site is not None:
-            device_info.update(site=site.text)
+            device_info.update(site=site)
         info.update(subject_info=subject_info, device_info=device_info)
         with info._unlock():
             info["highpass"] = highpass
             info["lowpass"] = lowpass
             for ix, _ch in enumerate(info["chs"]):
-                # divisor = 1.0 if _ch["kind"] == FIFF.FIFFV_MISC_CH else 2**bit_depth
                 cal = 1 / 2**bit_depth / gains[ix] * scalings[ix]
-                _range = (
-                    adc_range
-                    if _ch["kind"] in (FIFF.FIFFV_EMG_CH, FIFF.FIFFV_EEG_CH)
-                    else 1.0
-                )
-                _ch.update(cal=cal, range=_range)
+                _ch.update(cal=cal, range=adc_range[ix])
             if meas_date is not None:
-                info["meas_date"] = datetime.fromisoformat(meas_date.text).astimezone(
+                info["meas_date"] = datetime.fromisoformat(meas_date).astimezone(
                     timezone.utc
                 )
 
         # verify duration from metadata matches n_samples/sfreq
-        dur = extras_tree.find("duration")
-        if dur is not None:
-            np.testing.assert_almost_equal(
-                float(dur.text), n_samples / sfreq, decimal=3
-            )
+        if duration is not None:
+            np.testing.assert_almost_equal(duration, n_samples / sfreq, decimal=3)
 
         # TODO other fields in extras_tree for otb+ format:
         # protocol_code, pathology, commentsPatient, comments
@@ -441,6 +461,7 @@ class RawOTB(BaseRaw):
             f="single",
             i="int",
             h="short",
+            B="int",  # hack, we read 24-bit as uint8 and upcast to 32-bit signed int
         )
         orig_format = FORMAT_MAPPING[_dtype().dtype.char]
 
@@ -466,14 +487,22 @@ class RawOTB(BaseRaw):
         with tarfile.open(self.filenames[0], "r") as fid:
             _data = list()
             for sig_fname in sig_fnames:
-                _data.append(
-                    np.frombuffer(
-                        fid.extractfile(sig_fname).read(),
-                        dtype=_extras["dtype"],
-                    )
-                    .reshape(-1, self.info["nchan"])
-                    .T
+                this_data = np.frombuffer(
+                    fid.extractfile(sig_fname).read(), _extras["dtype"]
                 )
+                if _extras["dtype"] is np.uint8:  # hack to handle 24-bit data
+                    # adapted from wavio._wav2array © 2015-2022 Warren Weckesser (BSD-2)
+                    a = np.empty((this_data.size // 3, 4), dtype=np.uint8)
+                    a[..., :3] = this_data.reshape(-1, 3)
+                    # we read in 24-bit data as unsigned ints, but assume that it was
+                    # actually *signed* data. So we check the most significant bit:
+                    msb = a[..., 2:3] >> 7
+                    # Where it was 1, the 24-bit number was negative, so the added byte
+                    # should be 11111111; otherwise it should be 00000000.
+                    a[..., 3:] = msb * np.iinfo(np.uint8).max
+                    # now we upcast to signed 32-bit and remove the extra dimension
+                    this_data = np.squeeze(a.view(np.int32), axis=-1)
+                _data.append(this_data.reshape(-1, self.info["nchan"]).T)
             _data = np.concatenate(_data, axis=0)  # no-op if len(_data) == 1
 
         cals = np.array([_ch["cal"] * _ch["range"] for _ch in self.info["chs"]])
