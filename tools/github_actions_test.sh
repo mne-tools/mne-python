@@ -22,7 +22,7 @@ if [[ ! -z "$CONDA_ENV" ]] && [[ "${RUNNER_OS}" != "Windows" ]] && [[ "${MNE_CI_
   echo "Copying tests from ${PROJ_PATH}/mne-python/mne/ to ${INSTALL_PATH}/mne/"
   echo "::group::rsync mne"
   set -x
-  rsync -a --partial --progress --prune-empty-dirs --exclude="*.pyc" --include="**/" --include="**/tests/*" --include="**/tests/data/**" --exclude="**" ${PROJ_PATH}/mne/ ${INSTALL_PATH}/mne/
+  rsync -a --partial --progress --prune-empty-dirs --exclude="*.pyc" --include="*/" --include="tests/**" --include="**/tests/*" --include="**/tests/data/**" --exclude="**" ${PROJ_PATH}/mne/ ${INSTALL_PATH}/mne/
   echo "::endgroup::"
   echo "::group::rsync doc"
   mkdir -p ${INSTALL_PATH}/doc/
