@@ -25,8 +25,11 @@ if [[ ! -z "$CONDA_ENV" ]] && [[ "${RUNNER_OS}" != "Windows" ]] && [[ "${MNE_CI_
   rsync -a --partial --progress --prune-empty-dirs --exclude="*.pyc" --include="**/" --include="**/tests/*" --include="**/tests/data/**" --exclude="**" ${PROJ_PATH}/mne/ ${INSTALL_PATH}/mne/
   echo "::endgroup::"
   echo "::group::rsync doc"
+  echo "mkdir"
   mkdir -p ${INSTALL_PATH}/doc/
+  echo "rsync"
   rsync -a --partial --progress --prune-empty-dirs --include="**/" --include="**/api/*" --exclude="**" ${PROJ_PATH}/doc/ ${INSTALL_PATH}/doc/
+  echo "test"
   test -f ${INSTALL_PATH}/doc/api/reading_raw_data.rst
   cd $INSTALL_PATH
   cp -av $PROJ_PATH/pyproject.toml .
