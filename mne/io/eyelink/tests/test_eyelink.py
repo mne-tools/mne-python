@@ -372,7 +372,10 @@ def _simulate_eye_tracking_data(in_file, out_file):
                 "...\t1497\t5189\t512.5\t.............\n"
             )
             # Check and insert button events at this timestamp
-            if button_idx < len(button_events) and button_events[button_idx][0] == timestamp:
+            if (
+                button_idx < len(button_events)
+                and button_events[button_idx][0] == timestamp
+            ):
                 t, btn_id, state = button_events[button_idx]
                 fp.write(
                     f"BUTTON\t{t}\t{btn_id}\t{state}\t100\t20\t45\t45\t127.0\t"
@@ -380,6 +383,7 @@ def _simulate_eye_tracking_data(in_file, out_file):
                 )
                 button_idx += 1
         fp.write("END\t7453390\tRIGHT\tSAMPLES\tEVENTS\n")
+
 
 @requires_testing_data
 @pytest.mark.parametrize("fname", [fname_href])
@@ -421,18 +425,18 @@ def test_multi_block_misc_channels(fname, tmp_path):
 
     assert raw.ch_names == chs_in_file
     assert raw.annotations.description[1] == "SYNCTIME"
-    
+
     print("\n=== Annotations ===")
-    for onset, duration, desc in zip(raw.annotations.onset,
-                                    raw.annotations.duration,
-                                    raw.annotations.description):
+    for onset, duration, desc in zip(
+        raw.annotations.onset, raw.annotations.duration, raw.annotations.description
+    ):
         print(f"{onset:.3f}s  dur={duration:.3f}s  {desc}")
 
     print("\n=== Recording block markers ===")
     for onset, desc in zip(raw.annotations.onset, raw.annotations.description):
         if desc == "BAD_ACQ_SKIP":
             print(f"BAD_ACQ_SKIP at {onset:.3f}s")
-    
+
     assert raw.annotations.description[-7] == "BAD_ACQ_SKIP"
     assert np.isclose(raw.annotations.onset[-7], 1.001)
     assert np.isclose(raw.annotations.duration[-7], 0.1)
@@ -442,10 +446,14 @@ def test_multi_block_misc_channels(fname, tmp_path):
     assert np.isnan(data[0, np.logical_and(times > 1, times <= 1.1)]).all()
 
     assert raw.annotations.description[-6] == "button_1_press"
-    button_idx = [ii for ii, desc in enumerate(raw.annotations.description) if "button" in desc.lower()] 
+    button_idx = [
+        ii
+        for ii, desc in enumerate(raw.annotations.description)
+        if "button" in desc.lower()
+    ]
     assert len(button_idx) == 6
     assert_allclose(raw.annotations.onset[button_idx[0]], 2.102, atol=1e-3)
-    
+
     # smoke test for reading events with missing samples (should not emit a warning)
     find_events(raw, verbose=True)
 
@@ -506,7 +514,7 @@ def test_href_eye_events(tmp_path):
     """Test Parsing file where Eye Event Data option was set to 'HREF'."""
     out_file = tmp_path / "tmp_eyelink.asc"
     lines = fname_href.read_text("utf-8").splitlines()
-    
+
     for li, line in enumerate(lines):
         if not line.startswith(("ESACC", "EFIX")):
             continue
@@ -523,7 +531,7 @@ def test_href_eye_events(tmp_path):
         new_line = "\t".join(tokens) + "\n"
         lines[li] = new_line
     out_file.write_text("\n".join(lines), encoding="utf-8")
-    
+
     raw = read_raw_eyelink(out_file)
     # Just check that we actually parsed the Saccade and Fixation events
     assert "saccade" in raw.annotations.description

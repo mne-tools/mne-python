@@ -407,7 +407,7 @@ def _create_dataframes_for_block(block, apply_offsets):
         for entry in button_events:
             parsed.append(
                 {
-                    "time": float(entry[0]), #onset
+                    "time": float(entry[0]),  # onset
                     "button_id": int(entry[1]),
                     "button_pressed": int(entry[2]),  # 1 = press, 0 = release
                 }
@@ -891,9 +891,9 @@ def _make_eyelink_annots(df_dict, create_annots, apply_offsets):
             descriptions = key[:-1]  # i.e "blink", "fixation", "saccade"
             if key == "blinks":
                 descriptions = "BAD_" + descriptions
-           
+
             ch_names = df["eye"].map(eye_ch_map).tolist()
-            #breakpoint()  # debug
+            # breakpoint()  # debug
             this_annot = Annotations(
                 onset=onsets,
                 duration=durations,
@@ -938,7 +938,7 @@ def _make_eyelink_annots(df_dict, create_annots, apply_offsets):
     if not annots:
         warn(f"Annotations for {descs} were requested but none could be made.")
         return
-    
+
     return annots
 
 
