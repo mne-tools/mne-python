@@ -384,6 +384,7 @@ def sensitivity_map(
     Compute sensitivity map.
     Such maps are used to know how much sources are visible by a type
     of sensor, and how much projections shadow some sources.
+
     Parameters
     ----------
     fwd: Forward
