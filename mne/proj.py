@@ -380,38 +380,42 @@ def compute_proj_raw(
 def sensitivity_map(
     fwd, projs=None, ch_type="grad", mode="fixed", exclude=(), *, verbose=None
 ):
-    """Compute sensitivity map.
-
+    """
+    Compute sensitivity map.
     Such maps are used to know how much sources are visible by a type
     of sensor, and how much projections shadow some sources.
-
     Parameters
     ----------
-    fwd : Forward
+    fwd: Forward
         The forward operator.
-    projs : list
+    projs: list
         List of projection vectors.
-    ch_type : ``'grad'`` | ``'mag'`` | ``'eeg'``
+    ch_type: {'grad', 'mag', 'eeg'}
         The type of sensors to use.
-    mode : str
-        The type of sensitivity map computed. See manual. Should be ``'free'``,
-        ``'fixed'``, ``'ratio'``, ``'radiality'``, ``'angle'``,
-        ``'remaining'``, or ``'dampening'`` corresponding to the argument
-        ``--map 1, 2, 3, 4, 5, 6, 7`` of the command ``mne_sensitivity_map``.
-    exclude : list of str | str
+    mode: {'free', 'fixed', 'ratio', 'radiality', 'angle', 'remaining', 'dampening'}, default='free'
+        Which sensitivity quantity to compute:
+
+        - 'free': Maximum obtainable signal over all source orientations.
+        - 'fixed': Signal from sources constrained to be normal to the cortical surface.
+        - 'ratio': Ratio of 'fixed' sensitivity to the 'free' (maximum-over-orientations) sensitivity.
+        - 'radiality': Ratio of signal from sources normal to the cortex to the maximum signal among all orientations.
+        - 'angle': Subspace angle with the noise subspace.
+        - 'remaining': Fraction of signal remaining after the projection (e.g., after SSS/SSP).
+        - 'dampening': Fraction of signal dampening due to the projection.
+    exclude: list of str | str
         List of channels to exclude. If empty do not exclude any (default).
-        If ``'bads'``, exclude channels in ``fwd['info']['bads']``.
+        If 'bads', exclude channels in 'fwd['info']['bads']'.
     %(verbose)s
 
     Returns
     -------
-    stc : SourceEstimate | VolSourceEstimate
+    stc: SourceEstimate | VolSourceEstimate
         The sensitivity map as a SourceEstimate or VolSourceEstimate instance
         for visualization.
 
     Notes
     -----
-    When mode is ``'fixed'`` or ``'free'``, the sensitivity map is normalized
+    When mode is 'fixed' or 'free', the sensitivity map is normalized
     by its maximum value.
     """
     # check strings
