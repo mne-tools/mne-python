@@ -17,15 +17,25 @@ from sklearn.base import (  # noqa: F401
     TransformerMixin,
     clone,
     is_classifier,
+    is_regressor,
 )
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import check_scoring
 from sklearn.model_selection import KFold, StratifiedKFold, check_cv
-from sklearn.utils import check_array, check_X_y, indexable
+from sklearn.utils import indexable
 from sklearn.utils.validation import check_is_fitted
 
 from ..parallel import parallel_func
-from ..utils import _check_option, _pl, _validate_type, logger, pinv, verbose, warn
+from ..utils import (
+    _check_option,
+    _pl,
+    _validate_type,
+    logger,
+    pinv,
+    verbose,
+    warn,
+)
+from ._fixes import validate_data
 from ._ged import (
     _handle_restr_mat,
     _is_cov_pos_semidef,
@@ -340,7 +350,8 @@ class LinearModel(MetaEstimatorMixin, BaseEstimator):
     model : object | None
         A linear model from scikit-learn with a fit method
         that updates a ``coef_`` attribute.
-        If None the model will be LogisticRegression.
+        If None the model will be
+        :class:`sklearn.linear_model.LogisticRegression`.
 
     Attributes
     ----------
@@ -364,45 +375,65 @@ class LinearModel(MetaEstimatorMixin, BaseEstimator):
     .. footbibliography::
     """
 
-    # TODO: Properly refactor this using
-    # https://github.com/scikit-learn/scikit-learn/issues/30237#issuecomment-2465572885
     _model_attr_wrap = (
         "transform",
+        "fit_transform",
         "predict",
         "predict_proba",
-        "_estimator_type",
-        "__tags__",
+        "predict_log_proba",
+        "_estimator_type",  # remove after sklearn 1.6
         "decision_function",
         "score",
         "classes_",
     )
 
     def __init__(self, model=None):
-        # TODO: We need to set this to get our tag checking to work properly
-        if model is None:
-            model = LogisticRegression(solver="liblinear")
         self.model = model
 
     def __sklearn_tags__(self):
         """Get sklearn tags."""
-        from sklearn.utils import get_tags  # added in 1.6
-
-        # fit method below does not allow sparse data via check_data, we could
-        # eventually make it smarter if we had to
-        tags = get_tags(self.model)
-        tags.input_tags.sparse = False
+        tags = super().__sklearn_tags__()
+        model = self.model if self.model is not None else LogisticRegression()
+        model_tags = model.__sklearn_tags__()
+        tags.estimator_type = model_tags.estimator_type
+        if tags.estimator_type is not None:
+            model_type_tags = getattr(model_tags, f"{tags.estimator_type}_tags")
+            setattr(tags, f"{tags.estimator_type}_tags", model_type_tags)
         return tags
 
     def __getattr__(self, attr):
         """Wrap to model for some attributes."""
         if attr in LinearModel._model_attr_wrap:
-            return getattr(self.model, attr)
-        elif attr == "fit_transform" and hasattr(self.model, "fit_transform"):
-            return super().__getattr__(self, "_fit_transform")
-        return super().__getattr__(self, attr)
+            model = self.model_ if "model_" in self.__dict__ else self.model
+            if attr == "fit_transform" and hasattr(model, "fit_transform"):
+                return self._fit_transform
+            else:
+                return getattr(model, attr)
+        else:
+            raise AttributeError(
+                f"'{type(self).__name__}' object has no attribute '{attr}'"
+            )
 
     def _fit_transform(self, X, y):
         return self.fit(X, y).transform(X)
+
+    def _validate_params(self, X):
+        if self.model is not None:
+            model = self.model
+            if isinstance(model, MetaEstimatorMixin):
+                model = model.estimator
+            is_predictor = is_regressor(model) or is_classifier(model)
+            if not is_predictor:
+                raise ValueError(
+                    "Linear model should be a supervised predictor "
+                    "(classifier or regressor)"
+                )
+
+        # For sklearn < 1.6
+        try:
+            self._check_n_features(X, reset=True)
+        except AttributeError:
+            pass
 
     def fit(self, X, y, **fit_params):
         """Estimate the coefficients of the linear model.
@@ -424,25 +455,18 @@ class LinearModel(MetaEstimatorMixin, BaseEstimator):
         self : instance of LinearModel
             Returns the modified instance.
         """
-        if y is not None:
-            X = check_array(X)
-        else:
-            X, y = check_X_y(X, y)
-        self.n_features_in_ = X.shape[1]
-        if y is not None:
-            y = check_array(y, dtype=None, ensure_2d=False, input_name="y")
-            if y.ndim > 2:
-                raise ValueError(
-                    f"LinearModel only accepts up to 2-dimensional y, got {y.shape} "
-                    "instead."
-                )
+        self._validate_params(X)
+        X, y = validate_data(self, X, y, multi_output=True)
 
         # fit the Model
-        self.model.fit(X, y, **fit_params)
-        self.model_ = self.model  # for better sklearn compat
+        self.model_ = (
+            clone(self.model)
+            if self.model is not None
+            else LogisticRegression(solver="liblinear")
+        )
+        self.model_.fit(X, y, **fit_params)
 
         # Computes patterns using Haufe's trick: A = Cov_X . W . Precision_Y
-
         inv_Y = 1.0
         X = X - X.mean(0, keepdims=True)
         if y.ndim == 2 and y.shape[1] != 1:
@@ -454,12 +478,17 @@ class LinearModel(MetaEstimatorMixin, BaseEstimator):
 
     @property
     def filters_(self):
-        if hasattr(self.model, "coef_"):
+        if hasattr(self.model_, "coef_"):
             # Standard Linear Model
-            filters = self.model.coef_
-        elif hasattr(self.model.best_estimator_, "coef_"):
+            filters = self.model_.coef_
+        elif hasattr(self.model_, "estimators_"):
+            # Linear model with OneVsRestClassifier
+            filters = np.vstack([est.coef_ for est in self.model_.estimators_])
+        elif hasattr(self.model_, "best_estimator_") and hasattr(
+            self.model_.best_estimator_, "coef_"
+        ):
             # Linear Model with GridSearchCV
-            filters = self.model.best_estimator_.coef_
+            filters = self.model_.best_estimator_.coef_
         else:
             raise ValueError("model does not have a `coef_` attribute.")
         if filters.ndim == 2 and filters.shape[0] == 1:
