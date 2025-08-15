@@ -397,6 +397,7 @@ def sensitivity_map(
     mode : {'free', 'fixed', 'ratio', 'radiality', 'angle',
             'remaining', 'dampening'}, default='free'
         Which sensitivity quantity to compute:
+
         - 'free' : Maximum obtainable signal over all source orientations.
         - 'fixed' : Signal from sources constrained to be normal to the
           cortical surface.
