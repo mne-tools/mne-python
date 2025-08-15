@@ -15,7 +15,24 @@ from ...utils import _check_fname, fill_doc, logger, verbose, warn
 from ..base import BaseRaw
 
 # these will all get mapped to `misc`. Quaternion channels are handled separately.
-_NON_DATA_CHS = ("buffer", "ramp", "loadcell", "aux")
+_CONTROL_CHS = ("buffer", "ramp")
+_AUX_CHS = ("loadcell", "aux")
+
+
+def _get_str(node, tag):
+    val = node.find(tag)
+    if val is not None:
+        return val.text
+
+
+def _get_int(node, tag):
+    return int(_get_str(node, tag))
+
+
+def _get_float(node, tag, **replacements):
+    # filter freqs may be "Unknown", can't blindly parse as floats
+    val = _get_str(node, tag)
+    return replacements[val] if val in replacements else float(val)
 
 
 def _parse_otb_plus_metadata(metadata, extras_metadata):
@@ -75,9 +92,13 @@ def _parse_otb_plus_metadata(metadata, extras_metadata):
             # 4-6: translations
             if ch_id.startswith("Quaternion"):
                 ch_type = "chpi"  # TODO verify
-                scalings[gain_ix] = 1e-3  # TODO CHPI is usually 1e-4
+                scalings[gain_ix] = 1e-3  # CHPI is usually 1e-4; limbs move more
                 adc_ranges[gain_ix] = 1.0
-            elif any(ch_id.lower().startswith(_ch.lower()) for _ch in _NON_DATA_CHS):
+            elif any(ch_id.lower().startswith(_ch.lower()) for _ch in _CONTROL_CHS):
+                ch_type = "stim"
+                scalings[gain_ix] = 1.0
+                adc_ranges[gain_ix] = 1.0
+            elif any(ch_id.lower().startswith(_ch.lower()) for _ch in _AUX_CHS):
                 ch_type = "misc"
                 scalings[gain_ix] = 1.0
                 adc_ranges[gain_ix] = 1.0
@@ -88,11 +109,6 @@ def _parse_otb_plus_metadata(metadata, extras_metadata):
             ch_types.append(ch_type)
 
     # parse subject info
-    def get_str(node, tag):
-        val = node.find(tag)
-        if val is not None:
-            return val.text
-
     def parse_date(dt):
         return datetime.fromisoformat(dt).date()
 
@@ -111,13 +127,13 @@ def _parse_otb_plus_metadata(metadata, extras_metadata):
     )
     subject_info = dict()
     for source, target, func in subj_info_mapping:
-        value = get_str(extras_metadata, source)
+        value = _get_str(extras_metadata, source)
         if value is not None:
             subject_info[target] = func(value)
 
-    meas_date = get_str(extras_metadata, "time")
-    duration = get_str(extras_metadata, "duration")
-    site = get_str(extras_metadata, "place")
+    meas_date = _get_str(extras_metadata, "time")
+    duration = _get_float(extras_metadata, "duration")
+    site = _get_str(extras_metadata, "place")
 
     return dict(
         adc_range=adc_ranges,
@@ -141,22 +157,11 @@ def _parse_otb_plus_metadata(metadata, extras_metadata):
 
 
 def _parse_otb_four_metadata(metadata, extras_metadata):
-    def get_str(node, tag):
-        return node.find(tag).text
-
-    def get_int(node, tag):
-        return int(get_str(node, tag))
-
-    def get_float(node, tag, **replacements):
-        # filter freqs may be "Unknown", can't blindly parse as floats
-        val = get_str(node, tag)
-        return replacements[val] if val in replacements else float(val)
-
     assert metadata.tag == "DeviceParameters"
     # device-level metadata
-    bit_depth = get_int(metadata, "AdBits")  # TODO use `SampleSize * 8` instead?
-    sfreq = get_float(metadata, "SamplingFrequency")
-    device_gain = get_float(metadata, "Gain")
+    bit_depth = _get_int(metadata, "AdBits")  # TODO use `SampleSize * 8` instead?
+    sfreq = _get_float(metadata, "SamplingFrequency")
+    device_gain = _get_float(metadata, "Gain")
     # containers
     gains = list()
     ch_names = list()
@@ -178,23 +183,26 @@ def _parse_otb_four_metadata(metadata, extras_metadata):
     for adapter in extras_metadata.iter("TrackInfo"):
         strings = adapter.find("StringsDescriptions")
         # expected to be same for all adapters
-        bit_depths.add(get_int(adapter, "ADC_Nbits"))
-        device_names.add(get_str(adapter, "Device"))
-        sfreqs.add(get_int(adapter, "SamplingFrequency"))
-        durations.add(get_float(adapter, "TimeDuration"))
+        bit_depths.add(_get_int(adapter, "ADC_Nbits"))
+        device_names.add(_get_str(adapter, "Device"))
+        sfreqs.add(_get_int(adapter, "SamplingFrequency"))
+        durations.add(_get_float(adapter, "TimeDuration"))
         # may be different for each adapter
-        adapter_adc_range = get_float(adapter, "ADC_Range")
-        adapter_id = get_str(adapter, "SubTitle")
-        adapter_gain = get_float(adapter, "Gain")
-        adapter_scaling = 1.0 / get_float(adapter, "UnitOfMeasurementFactor")
-        # ch_offset = get_int(adapter, "AcquisitionChannel")
-        n_chans.append(get_int(adapter, "NumberOfChannels"))
-        paths.append(get_str(adapter, "SignalStreamPath"))
-        units.append(get_str(adapter, "UnitOfMeasurement"))
+        adapter_adc_range = _get_float(adapter, "ADC_Range")
+        adapter_id = _get_str(adapter, "SubTitle")
+        adapter_gain = _get_float(adapter, "Gain")
+        if adapter_id.startswith("Quaternion"):
+            adapter_scaling = 1e-3
+        else:
+            adapter_scaling = 1.0 / _get_float(adapter, "UnitOfMeasurementFactor")
+        # ch_offset = _get_int(adapter, "AcquisitionChannel")
+        n_chans.append(_get_int(adapter, "NumberOfChannels"))
+        paths.append(_get_str(adapter, "SignalStreamPath"))
+        units.append(_get_str(adapter, "UnitOfMeasurement"))
         # we only really care about lowpass/highpass on the data channels
         if adapter_id not in ("Quaternion", "Buffer", "Ramp"):
-            hp = get_float(strings, "HighPassFilter", Unknown=None)
-            lp = get_float(strings, "LowPassFilter", Unknown=None)
+            hp = _get_float(strings, "HighPassFilter", Unknown=None)
+            lp = _get_float(strings, "LowPassFilter", Unknown=None)
             if hp is not None:
                 highpass.append(hp)
             if lp is not None:
@@ -207,8 +215,8 @@ def _parse_otb_four_metadata(metadata, extras_metadata):
         # # FWIW in the example file: range for Buffer is 1-100,
         # # Ramp and Control are -32767-32768, and
         # # EMG chs are ±2.1237507098703645E-05
-        # rmin = get_float(adapter, "RangeMin")
-        # rmax = get_float(adapter, "RangeMax")
+        # rmin = _get_float(adapter, "RangeMin")
+        # rmax = _get_float(adapter, "RangeMax")
         # if rmin.is_integer() and rmax.is_integer():
         #     rmin = int(rmin)
         #     rmax = int(rmax)
@@ -231,15 +239,18 @@ def _parse_otb_four_metadata(metadata, extras_metadata):
             scalings.append(adapter_scaling)
             # channel types
             # TODO verify for quats & buffer channel
-            # ramp and control channels definitely "MISC"
+            # ramp and control channels maybe "MISC", arguably "STIM"?
             # quats should maybe be FIFF.FIFFV_QUAT_{N} (N from 0-6), but need to verify
             # what quats should be, as there are only 4 quat channels. The FIFF quats:
-            # 0: obsolete
+            # 0: obsolete (?)
             # 1-3: rotations
             # 4-6: translations
             if adapter_id.startswith("Quaternion"):
                 ch_type = "chpi"  # TODO verify
-            elif any(adapter_id.lower().startswith(_ch) for _ch in _NON_DATA_CHS):
+                # adc_ranges[gain_ix] = 1.0
+            elif any(adapter_id.lower().startswith(_ch) for _ch in _CONTROL_CHS):
+                ch_type = "stim"
+            elif any(adapter_id.lower().startswith(_ch) for _ch in _AUX_CHS):
                 ch_type = "misc"
             else:
                 ch_type = "emg"
@@ -369,7 +380,7 @@ class RawOTB(BaseRaw):
         # bit_depth seems to be unreliable for some OTB4 files, so let's check:
         if duration is not None:  # None for OTB+ files
             expected_n_samp = int(duration * sfreq * n_chan)
-            expected_bit_depth = int(8 * data_size_bytes / expected_n_samp)
+            expected_bit_depth = int(np.rint(8 * data_size_bytes / expected_n_samp))
             if bit_depth != expected_bit_depth:
                 warn(
                     f"mismatch between file metadata `AdBits` ({bit_depth} bit) and "
