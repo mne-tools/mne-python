@@ -380,8 +380,7 @@ def compute_proj_raw(
 def sensitivity_map(
     fwd, projs=None, ch_type="grad", mode="fixed", exclude=(), *, verbose=None
 ):
-    """
-    Compute sensitivity map.
+    """Compute sensitivity map.
 
     Such maps are used to know how much sources are visible by a type
     of sensor, and how much projections shadow some sources.
@@ -413,7 +412,7 @@ def sensitivity_map(
 
     exclude : list of str | str
         List of channels to exclude. If empty do not exclude any (default).
-        If 'bads', exclude channels in ``fwd['info']['bads']``.
+        If ``'bads'``, exclude channels in ``fwd['info']['bads']``.
     %(verbose)s
 
     Returns
@@ -424,7 +423,7 @@ def sensitivity_map(
 
     Notes
     -----
-    When mode is 'fixed' or 'free', the sensitivity map is normalized
+    When mode is ``'fixed'`` or ``'free'``, the sensitivity map is normalized
     by its maximum value.
     """
     # check strings
