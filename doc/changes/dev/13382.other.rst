@@ -1,0 +1,1 @@
+Fix docstring formatting in :func:`mne.sensitivity_map` for line length compliance, by :newcontrib:`Natali Negussie`.

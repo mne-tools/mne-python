@@ -392,10 +392,11 @@ def sensitivity_map(
         The forward operator.
     projs : list
         List of projection vectors.
-    ch_type : {'grad', 'mag', 'eeg'}
+    ch_type : ``'grad'`` | ``'mag'`` | ``'eeg'``
         The type of sensors to use.
-    mode : {'free', 'fixed', 'ratio', 'radiality', 'angle',
-            'remaining', 'dampening'}, default='free'
+    mode : ``'free'`` | ``'fixed'`` | ``'ratio'`` | ``'radiality'`` | ``'angle'`` |
+        ``'remaining'`` | ``'dampening'``
+
         Which sensitivity quantity to compute:
 
         - 'free' : Maximum obtainable signal over all source orientations.
@@ -409,6 +410,7 @@ def sensitivity_map(
         - 'remaining' : Fraction of signal remaining after the projection
           (e.g., after SSS/SSP).
         - 'dampening' : Fraction of signal dampening due to the projection.
+
     exclude : list of str | str
         List of channels to exclude. If empty do not exclude any (default).
         If 'bads', exclude channels in ``fwd['info']['bads']``.
