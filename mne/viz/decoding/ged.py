@@ -45,17 +45,43 @@ def _plot_model(
 ):
     from ...evoked import EvokedArray
 
-    if units is None:
-        units = "AU"
-    n_comps = model_array.shape[-2]
     if components is None:
+        n_comps = model_array.shape[-2]
         components = np.arange(n_comps)
+    kwargs = dict(
+        times=components,
+        average=None,
+        proj=False,
+        units="AU" if units is None else units,
+        ch_type=ch_type,
+        scalings=scalings,
+        sensors=sensors,
+        show_names=show_names,
+        mask=mask,
+        mask_params=mask_params,
+        contours=contours,
+        outlines=outlines,
+        sphere=sphere,
+        image_interp=image_interp,
+        extrapolate=extrapolate,
+        border=border,
+        res=res,
+        size=size,
+        cmap=cmap,
+        vlim=vlim,
+        cnorm=cnorm,
+        colorbar=colorbar,
+        cbar_fmt=cbar_fmt,
+        time_format=name_format,
+        nrows=nrows,
+        ncols=ncols,
+        show=show,
+    )
 
     # set sampling frequency to have 1 component per time point
     info = cp.deepcopy(info)
     with info._unlock():
         info["sfreq"] = 1.0
-    # create an evoked
 
     if model_array.ndim == 3:
         n_classes = model_array.shape[0]
@@ -63,69 +89,13 @@ def _plot_model(
         for class_idx in range(n_classes):
             model_evk = EvokedArray(model_array[class_idx].T, info, tmin=0)
             fig = model_evk.plot_topomap(
-                times=components,
-                average=None,
-                ch_type=ch_type,
-                scalings=scalings,
-                proj=False,
-                sensors=sensors,
-                show_names=show_names,
-                mask=mask,
-                mask_params=mask_params,
-                contours=contours,
-                outlines=outlines,
-                sphere=sphere,
-                image_interp=image_interp,
-                extrapolate=extrapolate,
-                border=border,
-                res=res,
-                size=size,
-                cmap=cmap,
-                vlim=vlim,
-                cnorm=cnorm,
-                colorbar=colorbar,
-                cbar_fmt=cbar_fmt,
-                units=units,
-                axes=axes[class_idx] if axes else None,
-                time_format=name_format,
-                nrows=nrows,
-                ncols=ncols,
-                show=show,
+                axes=axes[class_idx] if axes else None, **kwargs
             )
             figs.append(fig)
         return figs
     else:
         model_evk = EvokedArray(model_array.T, info, tmin=0)
-        fig = model_evk.plot_topomap(
-            times=components,
-            average=None,
-            ch_type=ch_type,
-            scalings=scalings,
-            proj=False,
-            sensors=sensors,
-            show_names=show_names,
-            mask=mask,
-            mask_params=mask_params,
-            contours=contours,
-            outlines=outlines,
-            sphere=sphere,
-            image_interp=image_interp,
-            extrapolate=extrapolate,
-            border=border,
-            res=res,
-            size=size,
-            cmap=cmap,
-            vlim=vlim,
-            cnorm=cnorm,
-            colorbar=colorbar,
-            cbar_fmt=cbar_fmt,
-            units=units,
-            axes=axes,
-            time_format=name_format,
-            nrows=nrows,
-            ncols=ncols,
-            show=show,
-        )
+        fig = model_evk.plot_topomap(axes=axes, **kwargs)
         return fig
 
 
