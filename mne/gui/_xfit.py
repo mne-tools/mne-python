@@ -576,7 +576,11 @@ class DipoleFitUI:
                 rank=self._rank,
             )
             stc = apply_inverse(
-                self._evoked, inv, method="MNE", lambda2=1e-6, pick_ori="vector"
+                self._evoked,
+                inv,
+                method="MNE",
+                lambda2=10 / len(active_dips),
+                pick_ori="vector",
             )
 
             timecourses = stc.magnitude().data
