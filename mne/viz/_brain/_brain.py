@@ -1203,7 +1203,7 @@ class Brain:
             # programmatically detect the picked renderer
             self._picked_renderer = self.plotter.iren.interactor.FindPokedRenderer(x, y)
             # trigger the pick
-            self._renderer._picker.Pick(x, y, 0, self.picked_renderer)
+            self._renderer._picker.Pick(x, y, 0, self._picked_renderer)
         self._mouse_no_mvt = 0
 
     def _on_pick(self, vtk_picker, event):

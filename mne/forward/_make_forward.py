@@ -553,9 +553,8 @@ def _prepare_for_forward(
             else:
 
                 def check_inside(x):
-                    return (
-                        np.linalg.norm(x - bem["r0"], axis=1) < bem["layers"][-1]["rad"]
-                    )
+                    r0 = apply_trans(invert_transform(mri_head_t), bem["r0"])
+                    return np.linalg.norm(x - r0, axis=1) < bem["layers"][-1]["rad"]
 
         if "meg" in sensors:
             meg_loc = apply_trans(
