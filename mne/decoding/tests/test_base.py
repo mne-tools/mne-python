@@ -29,6 +29,7 @@ from sklearn.base import (
     is_regressor,
 )
 from sklearn.decomposition import PCA
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.linear_model import LinearRegression, LogisticRegression, Ridge
 from sklearn.model_selection import (
     GridSearchCV,
@@ -36,6 +37,7 @@ from sklearn.model_selection import (
     StratifiedKFold,
     cross_val_score,
 )
+from sklearn.multiclass import OneVsRestClassifier
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.utils.estimator_checks import parametrize_with_checks
@@ -94,12 +96,11 @@ def _make_data(n_samples=1000, n_features=5, n_targets=3):
     return X, Y, A
 
 
-@pytest.mark.filterwarnings("ignore:invalid value encountered in cast.*:RuntimeWarning")
 def test_get_coef():
     """Test getting linear coefficients (filters/patterns) from estimators."""
-    lm_classification = LinearModel()
+    lm_classification = LinearModel(LogisticRegression(solver="liblinear"))
     assert hasattr(lm_classification, "__sklearn_tags__")
-    if check_version("sklearn", "1.4"):
+    if check_version("sklearn", "1.6"):
         print(lm_classification.__sklearn_tags__())
     assert is_classifier(lm_classification.model)
     assert is_classifier(lm_classification)
@@ -201,19 +202,19 @@ def test_get_coef():
         # Retrieve final linear model
         filters = get_coef(clf, "filters_", False)
         if hasattr(clf, "steps"):
-            if hasattr(clf.steps[-1][-1].model, "best_estimator_"):
+            if hasattr(clf.steps[-1][-1].model_, "best_estimator_"):
                 # Linear Model with GridSearchCV
-                coefs = clf.steps[-1][-1].model.best_estimator_.coef_
+                coefs = clf.steps[-1][-1].model_.best_estimator_.coef_
             else:
                 # Standard Linear Model
-                coefs = clf.steps[-1][-1].model.coef_
+                coefs = clf.steps[-1][-1].model_.coef_
         else:
-            if hasattr(clf.model, "best_estimator_"):
+            if hasattr(clf.model_, "best_estimator_"):
                 # Linear Model with GridSearchCV
-                coefs = clf.model.best_estimator_.coef_
+                coefs = clf.model_.best_estimator_.coef_
             else:
                 # Standard Linear Model
-                coefs = clf.model.coef_
+                coefs = clf.model_.coef_
         if coefs.ndim == 2 and coefs.shape[0] == 1:
             coefs = coefs[0]
         assert_array_equal(filters, coefs)
@@ -355,9 +356,7 @@ def test_get_coef_multiclass(n_features, n_targets):
     lm = LinearModel(LinearRegression())
     assert not hasattr(lm, "model_")
     lm.fit(X, Y)
-    # TODO: modifying non-underscored `model` is a sklearn no-no, maybe should be a
-    # metaestimator?
-    assert lm.model is lm.model_
+    assert lm.model is not lm.model_
     assert_array_equal(lm.filters_.shape, lm.patterns_.shape)
     if n_targets == 1:
         want_shape = (n_features,)
@@ -403,9 +402,6 @@ def test_get_coef_multiclass(n_features, n_targets):
         (3, 1, 2),
     ],
 )
-# TODO: Need to fix this properly in LinearModel
-@pytest.mark.filterwarnings("ignore:'multi_class' was depr.*:FutureWarning")
-@pytest.mark.filterwarnings("ignore:lbfgs failed to converge.*:")
 def test_get_coef_multiclass_full(n_classes, n_channels, n_times):
     """Test a full example with pattern extraction."""
     data = np.zeros((10 * n_classes, n_channels, n_times))
@@ -420,7 +416,7 @@ def test_get_coef_multiclass_full(n_classes, n_channels, n_times):
     clf = make_pipeline(
         Scaler(epochs.info),
         Vectorizer(),
-        LinearModel(LogisticRegression(random_state=0, multi_class="ovr")),
+        LinearModel(OneVsRestClassifier(LogisticRegression(random_state=0))),
     )
     scorer = "roc_auc_ovr_weighted"
     time_gen = GeneralizingEstimator(clf, scorer, verbose=True)
@@ -456,6 +452,20 @@ def test_linearmodel():
     with pytest.raises(ValueError):
         wrong_X = rng.rand(n, n_features, 99)
         clf.fit(wrong_X, y)
+
+    # check fit_transform call
+    clf = LinearModel(LinearDiscriminantAnalysis())
+    _ = clf.fit_transform(X, y)
+
+    # check that model has to have coef_, RBF-SVM doesn't
+    clf = LinearModel(svm.SVC(kernel="rbf"))
+    with pytest.raises(ValueError, match="does not have a `coef_`"):
+        clf.fit(X, y)
+
+    # check that model has to be a predictor
+    clf = LinearModel(StandardScaler())
+    with pytest.raises(ValueError, match="classifier or regressor"):
+        clf.fit(X, y)
 
     # check categorical target fit in standard linear model with GridSearchCV
     parameters = {"kernel": ["linear"], "C": [1, 10]}
@@ -556,11 +566,4 @@ def test_cross_val_multiscore():
 @parametrize_with_checks([LinearModel(LogisticRegression())])
 def test_sklearn_compliance(estimator, check):
     """Test LinearModel compliance with sklearn."""
-    ignores = (
-        "check_estimators_overwrite_params",  # self.model changes!
-        "check_dont_overwrite_parameters",
-        "check_parameters_default_constructible",
-    )
-    if any(ignore in str(check) for ignore in ignores):
-        return
     check(estimator)
