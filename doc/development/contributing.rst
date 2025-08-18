@@ -614,8 +614,8 @@ other
     For changes that don't fit into any of the above categories, e.g.,
     internal refactorings.
 
-For example, for an enhancement PR with number 12345, the changelog entry should be
-added as a new file :file:`doc/changes/dev/12345.enhancement.rst`. The file should
+For example, for a new feature PR with number 12345, the changelog entry should be
+added as a new file :file:`doc/changes/dev/12345.newfeature.rst`. The file should
 contain:
 
 1. A brief description of the change, typically in a single line of one or two
