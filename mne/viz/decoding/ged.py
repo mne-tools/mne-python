@@ -218,7 +218,8 @@ def get_spatial_filter_from_estimator(
 
     See Also
     --------
-    SpatialFilter
+    SpatialFilter, mne.decoding.LinearModel, mne.decoding.CSP,
+    mne.decoding.SSD, mne.decoding.XdawnTransformer, mne.decoding.SPoC
 
     Notes
     -----
@@ -302,6 +303,11 @@ class SpatialFilter:
     patterns_method : str
         The method used to compute the patterns from the filters.
 
+    See Also
+    --------
+    get_spatial_filter_from_estimator, mne.decoding.LinearModel, mne.decoding.CSP,
+    mne.decoding.SSD, mne.decoding.XdawnTransformer, mne.decoding.SPoC
+
     Notes
     -----
     The spatial filters and patterns are stored with shape
@@ -320,10 +326,6 @@ class SpatialFilter:
     general see :footcite:`HaufeEtAl2014`.
 
     .. versionadded:: 1.11
-
-    See Also
-    --------
-    get_spatial_filter_from_estimator, LinearModel, CSP, SSD, XdawnTransformer, SPoC
 
     References
     ----------
