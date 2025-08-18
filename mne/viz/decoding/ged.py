@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from ...defaults import _BORDER_DEFAULT, _EXTRAPOLATE_DEFAULT, _INTERPOLATION_DEFAULT
-from ...utils import _check_option, fill_doc
+from ...utils import _check_option, fill_doc, verbose
 from ..utils import plt_show
 
 
@@ -219,6 +219,10 @@ def get_spatial_filter_from_estimator(
     See Also
     --------
     SpatialFilter
+
+    Notes
+    -----
+    .. versionadded:: 1.11
     """
     from ...decoding import get_coef
     from ...decoding.base import LinearModel, _GEDTransformer
@@ -316,6 +320,10 @@ class SpatialFilter:
     general see :footcite:`HaufeEtAl2014`.
 
     .. versionadded:: 1.11
+
+    See Also
+    --------
+    get_spatial_filter_from_estimator, LinearModel, CSP, SSD, XdawnTransformer, SPoC
 
     References
     ----------
