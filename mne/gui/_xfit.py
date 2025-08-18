@@ -155,6 +155,7 @@ class DipoleFitUI:
         self._to_cf_t = to_cf_t
         self._rank = rank
         self._verbose = verbose
+        self._n_jobs = n_jobs
 
         # Configure the GUI.
         self._renderer = self._configure_main_display(show)
@@ -407,6 +408,7 @@ class DipoleFitUI:
             self._bem,
             trans=self._head_mri_t,
             rank=self._rank,
+            n_jobs=self._n_jobs,
             verbose=False,
         )[0]
 
@@ -563,6 +565,7 @@ class DipoleFitUI:
                 self._bem,
                 self._evoked.info,
                 trans=self._head_mri_t,
+                n_jobs=self._n_jobs,
             )
             fwd = convert_forward_solution(fwd, surf_ori=False)
 
@@ -606,6 +609,7 @@ class DipoleFitUI:
                     ori=dip["dip"].ori[0] if dip["fix_ori"] else None,
                     trans=self._head_mri_t,
                     rank=self._rank,
+                    n_jobs=self._n_jobs,
                     verbose=False,
                 )
                 if dip["fix_ori"]:
