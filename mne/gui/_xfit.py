@@ -507,7 +507,7 @@ class DipoleFitUI:
             dip = dipole_dict["dip"]
             dipole_dict["brain_arrow_actor"] = self._renderer.plotter.add_arrows(
                 apply_trans(self._head_mri_t, dip.pos[0]),
-                dip.ori[0],
+                apply_trans(self._head_mri_t, dip.ori[0]),
                 color=dipole_dict["color"],
                 mag=0.05,
             )
@@ -676,9 +676,11 @@ class DipoleFitUI:
             helmet_coords = dip["helmet_coords"]
             if helmet_coords is None:
                 continue
-            dip_ori = [
-                np.interp(self._current_time, self._evoked.times, o) for o in ori.T
-            ]
+
+            dip_ori = apply_trans(
+                self._head_mri_t,
+                [np.interp(self._current_time, self._evoked.times, o) for o in ori.T],
+            )
             dip_moment = np.interp(self._current_time, self._evoked.times, timecourse)
             arrow_size = dip_moment * arrow_scaling
             arrow_mesh = dip["arrow_mesh"]
