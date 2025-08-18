@@ -1423,6 +1423,8 @@ def _compute_scalings(scalings, inst, remove_dc=False, duration=10):
         this_data = this_data[np.isfinite(this_data)]
         if this_data.size:
             iqr = np.diff(np.percentile(this_data, [25, 75]))[0]
+            if iqr == 0:  # e.g. sparse stim channels, flat channels
+                iqr = 1.0
         else:
             iqr = 1.0
         scalings[key] = iqr
