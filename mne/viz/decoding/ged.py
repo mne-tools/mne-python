@@ -165,7 +165,7 @@ def _plot_scree(
     return fig
 
 
-@fill_doc
+@verbose
 def get_spatial_filter_from_estimator(
     estimator,
     info,
