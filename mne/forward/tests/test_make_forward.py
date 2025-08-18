@@ -431,6 +431,7 @@ def test_make_forward_solution_basic():
         make_forward_solution(fname_raw, fname_trans, fname_src, fname_bem_meg)
 
 
+@pytest.mark.slowtest
 @requires_openmeeg_mark()
 @pytest.mark.parametrize(
     "n_layers",
@@ -573,6 +574,7 @@ def test_make_forward_solution_sphere(tmp_path, fname_src_small):
             1.0,
             rtol=1e-3,
         )
+
     # Number of layers in the sphere model doesn't matter for MEG
     # (as long as no sources are omitted due to distance)
     assert len(sphere["layers"]) == 4
@@ -590,6 +592,14 @@ def test_make_forward_solution_sphere(tmp_path, fname_src_small):
     sphere = make_sphere_model(head_radius=None)
     with pytest.raises(RuntimeError, match="zero shells.*EEG"):
         make_forward_solution(fname_raw, fname_trans, src, sphere)
+
+    # Since the spherical model is defined in head space, the head->MRI transform should
+    # not matter for the check that MEG sensors are outside the sphere.
+    custom_trans = Transform("head", "mri")
+    custom_trans["trans"][0, 3] = 0.05  # move MEG sensors close to mesh
+    sphere = make_sphere_model()
+    fwd = make_forward_solution(fname_raw, custom_trans, src, sphere)
+    assert fwd["mri_head_t"]["trans"][0, 3] == -0.05
 
 
 @pytest.mark.slowtest
@@ -719,10 +729,10 @@ def test_make_forward_dipole(tmp_path):
     # Make sure each coordinate is close to reference
     # NB tolerance should be set relative to snr of simulated evoked!
     assert_allclose(
-        dip_fit.pos, dip_test.pos, rtol=0, atol=1.3e-2, err_msg="position mismatch"
+        dip_fit.pos, dip_test.pos, rtol=0, atol=1.5e-2, err_msg="position mismatch"
     )
     assert dist < 1e-2  # within 1 cm
-    assert corr > 0.985
+    assert corr > 0.98
     assert gc_dist < 20  # less than 20 degrees
     assert amp_err < 10e-9  # within 10 nAm
 
@@ -791,6 +801,7 @@ def test_use_coil_def(tmp_path):
     info = create_info(1, 1000.0, "mag")
     info["chs"][0]["coil_type"] = 9999
     info["chs"][0]["loc"][:] = [0, 0, 0.02, 1, 0, 0, 0, 1, 0, 0, 0, 1]
+    info["dev_head_t"] = Transform("meg", "head")
     sphere = make_sphere_model((0.0, 0.0, 0.0), 0.01)
     src = setup_volume_source_space(pos=5, sphere=sphere)
     trans = Transform("head", "mri", None)

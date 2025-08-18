@@ -227,19 +227,30 @@ def _print_coord_trans(
         )
 
 
-def _find_trans(subject, subjects_dir=None):
-    if subject is None:
-        if "SUBJECT" in os.environ:
-            subject = os.environ["SUBJECT"]
-        else:
-            raise ValueError("SUBJECT environment variable not set")
-
-    trans_fnames = glob.glob(str(subjects_dir / subject / "*-trans.fif"))
-    if len(trans_fnames) < 1:
-        raise RuntimeError(f"Could not find the transformation for {subject}")
-    elif len(trans_fnames) > 1:
-        raise RuntimeError(f"Found multiple transformations for {subject}")
-    return Path(trans_fnames[0])
+def _find_trans(*, trans, subject, subjects_dir=None):
+    if isinstance(trans, str) and trans == "auto":
+        subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+        # let's try to do this in MRI coordinates so they're easy to plot
+        if subject is None:
+            if "SUBJECT" in os.environ:
+                subject = os.environ["SUBJECT"]
+            else:
+                raise ValueError(
+                    "subject is None and SUBJECT environment variable not set, cannot "
+                    "use trans='auto'"
+                )
+        glob_str = str(subjects_dir / subject / "*-trans.fif")
+        trans_fnames = glob.glob(glob_str)
+        if len(trans_fnames) < 1:
+            raise RuntimeError(
+                f"Could not find the transformation for {subject} in: {glob_str}"
+            )
+        elif len(trans_fnames) > 1:
+            raise RuntimeError(
+                f"Found multiple transformations for {subject} in: {glob_str}"
+            )
+        trans = Path(trans_fnames[0])
+    return _get_trans(trans, fro="head", to="mri")
 
 
 def apply_trans(trans, pts, move=True):
@@ -428,7 +439,7 @@ def translation(x=0, y=0, z=0):
     return m
 
 
-def _ensure_trans(trans, fro="mri", to="head"):
+def _ensure_trans(trans, fro="mri", to="head", *, extra=""):
     """Ensure we have the proper transform."""
     if isinstance(fro, str):
         from_str = fro
@@ -444,7 +455,8 @@ def _ensure_trans(trans, fro="mri", to="head"):
         to_str = _frame_to_str[to]
         to_const = to
     del to
-    err_str = f"trans must be a Transform between {from_str}<->{to_str}, got"
+    extra = f" {extra}" if extra else ""
+    err_str = f"trans must be a Transform between {from_str}<->{to_str}{extra}, got"
     if not isinstance(trans, list | tuple):
         trans = [trans]
     # Ensure that we have exactly one match
@@ -470,12 +482,12 @@ def _ensure_trans(trans, fro="mri", to="head"):
     return trans
 
 
-def _get_trans(trans, fro="mri", to="head", allow_none=True):
+def _get_trans(trans, fro="mri", to="head", allow_none=True, *, extra=""):
     """Get mri_head_t (from=mri, to=head) from mri filename."""
     types = (Transform, "path-like")
     if allow_none:
         types += (None,)
-    _validate_type(trans, types, "trans")
+    _validate_type(trans, types, "trans", extra=extra)
     if _path_like(trans):
         if trans == "fsaverage":
             trans = Path(__file__).parent / "data" / "fsaverage" / "fsaverage-trans.fif"
@@ -499,7 +511,7 @@ def _get_trans(trans, fro="mri", to="head", allow_none=True):
         fro_to_t = Transform(fro, to)
         trans = "identity"
     # it's usually a head->MRI transform, so we probably need to invert it
-    fro_to_t = _ensure_trans(fro_to_t, fro, to)
+    fro_to_t = _ensure_trans(fro_to_t, fro, to, extra=extra)
     return fro_to_t, trans
 
 

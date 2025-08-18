@@ -398,6 +398,8 @@ class RawArtemis123(BaseRaw):
                     self, tmin=0, tmax=0.25, t_window=0.25, t_step_min=0.25
                 )
                 assert len(coil_amplitudes["times"]) == 1
+                # Need an ititial dev_head_t to compute coil locations
+                self.info["dev_head_t"] = Transform("meg", "head")
                 coil_locs = compute_chpi_locs(self.info, coil_amplitudes)
                 with info._unlock():
                     info["hpi_results"] = None
