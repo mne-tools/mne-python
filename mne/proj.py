@@ -393,8 +393,7 @@ def sensitivity_map(
         List of projection vectors.
     ch_type : ``'grad'`` | ``'mag'`` | ``'eeg'``
         The type of sensors to use.
-    mode : ``'free'`` | ``'fixed'`` | ``'ratio'`` | ``'radiality'`` | ``'angle'`` |
-        ``'remaining'`` | ``'dampening'``
+    mode : ``'free'`` | ``'fixed'`` | ``'ratio'`` | ``'radiality'`` | ``'angle'`` | ``'remaining'`` | ``'dampening'``
 
         Which sensitivity quantity to compute:
 
@@ -425,7 +424,7 @@ def sensitivity_map(
     -----
     When mode is ``'fixed'`` or ``'free'``, the sensitivity map is normalized
     by its maximum value.
-    """
+    """  # noqa E501
     # check strings
     _check_option("ch_type", ch_type, ["eeg", "grad", "mag"])
     _check_option(
