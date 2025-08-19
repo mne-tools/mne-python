@@ -2,6 +2,7 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+from .. import datasets
 from ..utils import get_config, verbose
 
 
@@ -167,7 +168,10 @@ def coregistration(
 
 @verbose
 def dipolefit(
-    evoked,
+    evoked=None,
+    *,
+    condition=0,
+    baseline=(None, 0),
     cov=None,
     bem=None,
     initial_time=None,
@@ -187,22 +191,28 @@ def dipolefit(
 
     Parameters
     ----------
-    evoked : instance of Evoked
+    evoked : instance of Evoked | path-like | None
         Evoked data to show fieldmap of and fit dipoles to.
-    cov : instance of Covariance | "baseline" | None
+    condition : int | str
+        When ``evoked`` is given as a filename, use this to select which evoked to use
+        in the file by either specifying the index or the string comment field of the
+        evoked. By default, the first evoked is used.
+    %(baseline_evoked)s
+        Defaults to ``(None, 0)``, i.e. beginning of the the data until time point zero.
+    cov : instance of Covariance | path-like | "baseline" | None
         Noise covariance matrix. If ``None``, an ad-hoc covariance matrix is used with
         default values for the diagonal elements (see Notes). If ``"baseline"``, the
         diagonal elements is estimated from the baseline period of the evoked data.
-    bem : instance of ConductorModel | None
+    bem : instance of ConductorModel | path-like | None
         Boundary element model to use in forward calculations. If ``None``, a spherical
         model is used.
     initial_time : float | None
         Initial time point to show. If ``None``, the time point of the maximum field
         strength is used.
-    trans : instance of Transform | None
+    trans : instance of Transform | path-like | None
         The transformation from head coordinates to MRI coordinates. If ``None``,
         the identity matrix is used and everything will be done in head coordinates.
-    stc : instance of SourceEstimate | None
+    stc : instance of SourceEstimate | path-like | None
         An optional distributed source estimate to show alongside the fieldmap. The time
         samples need to match those of the evoked data.
     subject : str | None
@@ -231,8 +241,15 @@ def dipolefit(
 
     if MNE_3D_BACKEND_TESTING:
         show = block = False
+
+    if evoked is None:
+        evoked = (
+            datasets.sample.data_path() / "MEG" / "sample" / "sample_audvis-ave.fif"
+        )
     return DipoleFitUI(
         evoked=evoked,
+        condition=condition,
+        baseline=baseline,
         cov=cov,
         bem=bem,
         initial_time=initial_time,

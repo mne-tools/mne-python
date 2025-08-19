@@ -16,13 +16,15 @@ from ..bem import (
     fit_sphere_to_headshape,
     make_sphere_model,
 )
-from ..cov import make_ad_hoc_cov
+from ..cov import _ensure_cov, make_ad_hoc_cov
 from ..dipole import Dipole, fit_dipole
+from ..evoked import Evoked, read_evokeds
 from ..forward import convert_forward_solution, make_field_map, make_forward_dipole
 from ..minimum_norm import apply_inverse, make_inverse_operator
+from ..source_estimate import _BaseSurfaceSourceEstimate, read_source_estimate
 from ..surface import _normal_orth
 from ..transforms import _get_trans, _get_transforms_to_coord_frame, apply_trans
-from ..utils import _check_option, fill_doc, logger, verbose
+from ..utils import _check_option, _validate_type, fill_doc, logger, verbose
 from ..viz import EvokedField, create_3d_figure
 from ..viz._3d import _plot_head_surface, _plot_sensors_3d
 from ..viz.backends._utils import _qt_app_exec
@@ -36,8 +38,14 @@ class DipoleFitUI:
 
     Parameters
     ----------
-    evoked : instance of Evoked
+    evoked : instance of Evoked | path-like
         Evoked data to show fieldmap of and fit dipoles to.
+    condition : int | str
+        When ``evoked`` is given as a filename, use this to select which evoked to use
+        in the file by either specifying the index or the string comment field of the
+        evoked. By default, the first evoked is used.
+    %(baseline_evoked)s
+        Defaults to ``(None, 0)``, i.e. beginning of the the data until time point zero.
     cov : instance of Covariance | "baseline" | None
         Noise covariance matrix. If ``None``, an ad-hoc covariance matrix is used with
         default values for the diagonal elements (see Notes). If ``"baseline"``, the
@@ -64,6 +72,10 @@ class DipoleFitUI:
         Type of channels to use for the dipole fitting. By default (``None``) both MEG
         and EEG channels will be used.
     %(n_jobs)s
+    show : bool
+        Show the GUI if True.
+    block : bool
+        Whether to halt program execution until the figure is closed.
     %(verbose)s
 
     Notes
@@ -74,7 +86,10 @@ class DipoleFitUI:
 
     def __init__(
         self,
-        evoked,
+        evoked=None,
+        *,
+        condition=0,
+        baseline=(None, 0),
         cov=None,
         bem=None,
         initial_time=None,
@@ -90,17 +105,31 @@ class DipoleFitUI:
         block=False,
         verbose=None,
     ):
+        _validate_type(evoked, ("path-like", Evoked), "evoked")
+        if not isinstance(evoked, Evoked):
+            evoked = read_evokeds(evoked, condition=condition)
+        evoked.apply_baseline(baseline)
+
         if cov is None:
+            logger.info("Using ad-hoc noise covariance.")
             cov = make_ad_hoc_cov(evoked.info)
         elif cov == "baseline":
+            logger.info(
+                f"Estimating noise covariance from baseline ({evoked.baseline[0]:.3f} "
+                f"to {evoked.baseline[1]:.3f} seconds)."
+            )
             std = dict()
             for typ in set(evoked.get_channel_types(only_data_chs=True)):
                 baseline = evoked.copy().pick(typ).crop(*evoked.baseline)
                 std[typ] = baseline.data.std(axis=1).mean()
             cov = make_ad_hoc_cov(evoked.info, std)
+        else:
+            cov = _ensure_cov(cov)
+
         if bem is None:
             bem = make_sphere_model("auto", "auto", evoked.info)
         bem = _ensure_bem_surfaces(bem, extra_allow=(ConductorModel, None))
+
         field_map = make_field_map(
             evoked,
             ch_type=ch_type,
@@ -118,7 +147,13 @@ class DipoleFitUI:
             initial_time = evoked.times[np.argmax(np.mean(data**2, axis=0))]
 
         if stc is not None:
-            if not np.allclose(stc.times, evoked.times):
+            _validate_type(stc, ("path-like", _BaseSurfaceSourceEstimate), "stc")
+            if not isinstance(stc, _BaseSurfaceSourceEstimate):
+                stc = read_source_estimate(stc)
+
+            if len(stc.times) != len(evoked.times) or not np.allclose(
+                stc.times, evoked.times
+            ):
                 raise ValueError(
                     "The time samples of the source estimate do not match those of the "
                     "evoked data."
@@ -392,7 +427,7 @@ class DipoleFitUI:
     def _on_fit_dipole(self):
         """Fit a single dipole."""
         evoked_picked = self._evoked.copy()
-        cov_picked = self._cov.copy().as_diag()  # FIXME: as_diag necessary?
+        cov_picked = self._cov.copy()
         if self._fig_sensors is not None:
             picks = self._fig_sensors.lasso.selection
             if len(picks) > 0:
@@ -582,7 +617,7 @@ class DipoleFitUI:
                 self._evoked,
                 inv,
                 method="MNE",
-                lambda2=10 / len(active_dips),
+                lambda2=1e-6,
                 pick_ori="vector",
             )
 
