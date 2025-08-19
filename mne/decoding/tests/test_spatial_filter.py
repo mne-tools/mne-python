@@ -16,8 +16,14 @@ from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 
 from mne import Epochs, create_info, io, pick_types, read_events
-from mne.decoding import CSP, LinearModel, Vectorizer, XdawnTransformer
-from mne.viz import SpatialFilter, get_spatial_filter_from_estimator
+from mne.decoding import (
+    CSP,
+    LinearModel,
+    SpatialFilter,
+    Vectorizer,
+    XdawnTransformer,
+    get_spatial_filter_from_estimator,
+)
 
 data_dir = Path(__file__).parents[3] / "io" / "tests" / "data"
 raw_fname = data_dir / "test_raw.fif"

@@ -1,4 +1,4 @@
-Implement :class:`mne.viz.SpatialFilter` viz class for filters, 
-patterns for :class:`mne.decoding.LinearModel` and additionally 
-eigenvalues for GED-based transformers such as 
-:class:`mne.decoding.XdawnTransformer`, by `Gennadiy Belonosov`_.
+Implement :class:`mne.decoding.SpatialFilter` container class for
+visualisation of filters and patterns for :class:`mne.decoding.LinearModel` 
+and additionally eigenvalues for GED-based transformers such as 
+:class:`mne.decoding.XdawnTransformer`, :class:`mne.decoding.CSP`, by `Gennadiy Belonosov`_.

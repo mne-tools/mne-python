@@ -2,14 +2,20 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
+
 import copy as cp
 
 import matplotlib.pyplot as plt
 import numpy as np
 
-from ...defaults import _BORDER_DEFAULT, _EXTRAPOLATE_DEFAULT, _INTERPOLATION_DEFAULT
-from ...utils import _check_option, fill_doc, verbose
-from ..utils import plt_show
+from ..defaults import _BORDER_DEFAULT, _EXTRAPOLATE_DEFAULT, _INTERPOLATION_DEFAULT
+from ..evoked import EvokedArray
+from ..utils import _check_option, fill_doc, verbose
+from ..viz.utils import plt_show
+from .base import LinearModel, _GEDTransformer, get_coef
 
 
 def _plot_model(
@@ -43,8 +49,6 @@ def _plot_model(
     ncols="auto",
     show=True,
 ):
-    from ...evoked import EvokedArray
-
     if components is None:
         n_comps = model_array.shape[-2]
         components = np.arange(n_comps)
@@ -225,9 +229,6 @@ def get_spatial_filter_from_estimator(
     -----
     .. versionadded:: 1.11
     """
-    from ...decoding import get_coef
-    from ...decoding.base import LinearModel, _GEDTransformer
-
     for coef in get_coefs:
         if coef not in ("filters_", "patterns_", "evals_"):
             raise ValueError(
