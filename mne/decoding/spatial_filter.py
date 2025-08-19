@@ -2,10 +2,6 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-# Authors: The MNE-Python contributors.
-# License: BSD-3-Clause
-# Copyright the MNE-Python contributors.
-
 import copy as cp
 
 import matplotlib.pyplot as plt
