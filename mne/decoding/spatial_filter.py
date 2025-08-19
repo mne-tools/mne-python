@@ -49,10 +49,13 @@ def _plot_model(
         n_comps = model_array.shape[-2]
         components = np.arange(n_comps)
     kwargs = dict(
+        # args set here
         times=components,
         average=None,
         proj=False,
         units="AU" if units is None else units,
+        time_format=name_format,
+        # args passed from the upstream
         ch_type=ch_type,
         scalings=scalings,
         sensors=sensors,
@@ -72,7 +75,6 @@ def _plot_model(
         cnorm=cnorm,
         colorbar=colorbar,
         cbar_fmt=cbar_fmt,
-        time_format=name_format,
         nrows=nrows,
         ncols=ncols,
         show=show,
@@ -176,7 +178,7 @@ def get_spatial_filter_from_estimator(
     patterns_method=None,
     verbose=None,
 ):
-    """Instantiate a :class:`mne.viz.SpatialFilter` object.
+    """Instantiate a :class:`mne.decoding.SpatialFilter` object.
 
     Creates object from the fitted generalized eigendecomposition
     transformers or :class:`mne.decoding.LinearModel`.
@@ -213,7 +215,7 @@ def get_spatial_filter_from_estimator(
 
     Returns
     -------
-    sp_filter : instance of mne.viz.SpatialFilter
+    sp_filter : instance of mne.decoding.SpatialFilter
         The spatial filter object.
 
     See Also
