@@ -91,10 +91,16 @@ def test_spatial_filter_init():
     # test get_spatial_filter_from_estimator for GED
     sp_filter = get_spatial_filter_from_estimator(estimator, info, step_name="csp")
     assert sp_filter.patterns_method == "pinv"
-    np.testing.assert_array_equal(sp_filter.filters, csp.filters_)
-    np.testing.assert_array_equal(sp_filter.patterns, csp.patterns_)
-    np.testing.assert_array_equal(sp_filter.evals, csp.evals_)
+    assert_array_equal(sp_filter.filters, csp.filters_)
+    assert_array_equal(sp_filter.patterns, csp.patterns_)
+    assert_array_equal(sp_filter.evals, csp.evals_)
     assert sp_filter.info is info
+
+    # test without step_name
+    sp_filter = get_spatial_filter_from_estimator(estimator, info)
+    assert_array_equal(sp_filter.filters, csp.filters_)
+    assert_array_equal(sp_filter.patterns, csp.patterns_)
+    assert_array_equal(sp_filter.evals, csp.evals_)
 
     # test basic initialization
     sp_filter = SpatialFilter(
@@ -145,7 +151,7 @@ def test_spatial_filter_plotting():
     plt.close("all")
 
     # test plot_scree
-    fig_scree = sp_filter.plot_scree(show=False)
+    fig_scree = sp_filter.plot_scree(show=False, add_cumul_evals=True)
     assert isinstance(fig_scree, plt.Figure)
     plt.close("all")
     _, axes = plt.subplots(figsize=(12, 7), layout="constrained")
