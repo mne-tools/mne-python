@@ -85,6 +85,12 @@ def run():
         help="Subjects directory",
     )
     parser.add_option(
+        "--hide-density",
+        action="store_true",
+        default=False,
+        help="Prevent showing the magnetic field density as blobs of color.",
+    )
+    parser.add_option(
         "--channel-type",
         default=None,
         help=(
@@ -137,6 +143,7 @@ def run():
         initial_time=options.initial_time,
         trans=trans,
         n_jobs=options.cpus,
+        show_density=not options.hide_density,
         show=True,
         block=True,
         verbose=options.verbose,
