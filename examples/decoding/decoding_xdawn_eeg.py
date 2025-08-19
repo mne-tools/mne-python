@@ -115,13 +115,13 @@ ax.set(ylabel="True label", xlabel="Predicted label")
 # cross-validation fold) can be visualized using SpatialFilter container.
 
 # Instantiate SpatialFilter
-sp = get_spatial_filter_from_estimator(
+spf = get_spatial_filter_from_estimator(
     clf, info=epochs.info, step_name="xdawntransformer"
 )
 
 # Plot the patterns: each class will return its own figure
-figs = sp.plot_patterns(
-    # Indices of components to plot,
+figs = spf.plot_patterns(
+    # Indices of patterns to plot,
     # we will plot the first three for each class
     components=np.arange(n_filter),
     show=False,  # to set the titles below

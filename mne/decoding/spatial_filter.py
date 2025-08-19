@@ -19,6 +19,7 @@ def _plot_model(
     info,
     components=None,
     *,
+    evk_tmin=None,
     ch_type=None,
     scalings=None,
     sensors=True,
@@ -81,22 +82,25 @@ def _plot_model(
     )
 
     # set sampling frequency to have 1 component per time point
-    info = cp.deepcopy(info)
-    with info._unlock():
-        info["sfreq"] = 1.0
+
+    if evk_tmin is None:
+        info = cp.deepcopy(info)
+        with info._unlock():
+            info["sfreq"] = 1.0
+        evk_tmin = 0
 
     if model_array.ndim == 3:
         n_classes = model_array.shape[0]
         figs = list()
         for class_idx in range(n_classes):
-            model_evk = EvokedArray(model_array[class_idx].T, info, tmin=0)
+            model_evk = EvokedArray(model_array[class_idx].T, info, tmin=evk_tmin)
             fig = model_evk.plot_topomap(
                 axes=axes[class_idx] if axes else None, **kwargs
             )
             figs.append(fig)
         return figs
     else:
-        model_evk = EvokedArray(model_array.T, info, tmin=0)
+        model_evk = EvokedArray(model_array.T, info, tmin=evk_tmin)
         fig = model_evk.plot_topomap(axes=axes, **kwargs)
         return fig
 
@@ -235,6 +239,8 @@ def get_spatial_filter_from_estimator(
             )
     if step_name is not None:
         model = estimator.get_params()[step_name]
+    elif hasattr(estimator, "named_steps"):
+        model = estimator[-1]
     else:
         model = estimator
     if isinstance(model, LinearModel):
@@ -384,6 +390,7 @@ class SpatialFilter:
     def plot_filters(
         self,
         components=None,
+        tmin=None,
         *,
         ch_type=None,
         scalings=None,
@@ -415,8 +422,14 @@ class SpatialFilter:
 
         Parameters
         ----------
-        components : float | array of float
-            Indices of filters to plot. If None, all filters will be plotted.
+        components : float | array of float | 'auto' | None
+            Indices of filters to plot. If "auto", the number of
+            ``axes`` determines the amount of filters.
+            If None, all filters will be plotted. Defaults to None.
+        tmin : float | None
+            In case filters are distributed temporally,
+            this can be used to align them with times
+            and frequency. Use ``epochs.tmin``, for example.
             Defaults to None.
         %(ch_type_topomap)s
         %(scalings_topomap)s
@@ -453,6 +466,7 @@ class SpatialFilter:
             self.filters,
             self.info,
             components=components,
+            evk_tmin=tmin,
             ch_type=ch_type,
             scalings=scalings,
             sensors=sensors,
@@ -485,6 +499,7 @@ class SpatialFilter:
     def plot_patterns(
         self,
         components=None,
+        tmin=None,
         *,
         ch_type=None,
         scalings=None,
@@ -516,8 +531,14 @@ class SpatialFilter:
 
         Parameters
         ----------
-        components : float | array of float
-            Indices of patterns to plot. If None, all patterns will be plotted.
+        components : float | array of float | 'auto' | None
+            Indices of patterns to plot. If "auto", the number of
+            ``axes`` determines the amount of patterns.
+            If None, all patterns will be plotted. Defaults to None.
+        tmin : float | None
+            In case patterns are distributed temporally,
+            this can be used to align them with times
+            and frequency. Use ``epochs.tmin``, for example.
             Defaults to None.
         %(ch_type_topomap)s
         %(scalings_topomap)s
@@ -554,6 +575,7 @@ class SpatialFilter:
             self.patterns,
             self.info,
             components=components,
+            evk_tmin=tmin,
             ch_type=ch_type,
             scalings=scalings,
             sensors=sensors,

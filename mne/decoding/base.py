@@ -44,7 +44,7 @@ from ._ged import (
     _smart_ged,
 )
 from ._mod_ged import _no_op_mod
-from .transformer import MNETransformerMixin
+from .transformer import MNETransformerMixin, Vectorizer
 
 
 class _GEDTransformer(MNETransformerMixin, BaseEstimator):
@@ -700,6 +700,17 @@ def get_coef(
     if squeeze_first_dim:
         logger.debug("  Squeezing first dimension of coefficients.")
         coef = coef[0]
+
+    # inverse_transform with Vectorizer returns shape (n_channels, n_components).
+    # we should transpose to be consistent with how spatial filters
+    # store filters and patterns: (n_components, n_channels)
+    if inverse_transform and hasattr(estimator, "steps"):
+        is_vectorizer = any(
+            isinstance(param_value, Vectorizer)
+            for param_value in estimator.get_params(deep=True).values()
+        )
+        if is_vectorizer and coef.ndim == 2:
+            coef = coef.T
 
     return coef
 

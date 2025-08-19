@@ -25,7 +25,7 @@ from mne.decoding import (
     get_spatial_filter_from_estimator,
 )
 
-data_dir = Path(__file__).parents[3] / "io" / "tests" / "data"
+data_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
 raw_fname = data_dir / "test_raw.fif"
 event_name = data_dir / "test-eve.fif"
 tmin, tmax = -0.1, 0.2
