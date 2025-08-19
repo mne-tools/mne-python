@@ -262,7 +262,12 @@ def get_spatial_filter_from_estimator(
 
 
 class SpatialFilter:
-    r"""Visualization container for spatial filter weights (evecs) and patterns.
+    r"""Container for spatial filter weights (evecs) and patterns.
+
+    .. warning:: For MNE-Python decoding classes, this container should be
+        instantiated with `mne.decoding.get_spatial_filter_from_estimator`.
+        Direct instantiation with external spatial filters is possible
+        at your own risk.
 
     This object is obtained either by generalized eigendecomposition (GED) algorithms
     such as :class:`mne.decoding.CSP`, :class:`mne.decoding.SPoC`,

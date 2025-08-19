@@ -14,10 +14,10 @@ from ..utils import (
     _validate_type,
     fill_doc,
 )
-from ..viz.decoding.ged import _plot_model
 from ._covs_ged import _csp_estimate, _spoc_estimate
 from ._mod_ged import _csp_mod, _spoc_mod
 from .base import _GEDTransformer
+from .spatial_filter import _plot_model
 
 
 @fill_doc
