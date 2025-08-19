@@ -403,7 +403,15 @@ def test_get_coef_multiclass(n_features, n_targets):
     if n_features > 1 and n_targets > 1:
         assert_allclose(A, lm.patterns_.T, atol=2e-2)
     coef = get_coef(clf, "patterns_", inverse_transform=True)
-    lm_patterns_ = lm.patterns_[..., np.newaxis]
+
+    lm_patterns_ = lm.patterns_
+    # Expected shape is (n_targets, n_features)
+    # which is equivalent to (n_components, n_channels)
+    # in spatial filters
+    if lm_patterns_.ndim == 1:
+        lm_patterns_ = lm_patterns_[np.newaxis, :]
+    else:
+        lm_patterns_ = lm_patterns_[..., np.newaxis]
     assert_allclose(lm_patterns_, coef, atol=1e-5)
 
     # Check can pass fitting parameters
