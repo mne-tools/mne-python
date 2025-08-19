@@ -617,10 +617,6 @@ class SpatialFilter:
         add_cumul_evals : bool
             Whether to add second line and y-axis for cumulative eigenvalues.
             Defaults to ``True``.
-        plt_style : str
-            Matplotlib plot style.
-            Check available styles with plt.style.available.
-            Defaults to ``'seaborn-v0_8-whitegrid'``.
         axes : instance of Axes | None
             The matplotlib axes to plot to. Defaults to ``None``.
         %(show)s
