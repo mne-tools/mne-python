@@ -19,30 +19,28 @@ _CONTROL_CHS = ("buffer", "ramp")
 _AUX_CHS = ("loadcell", "aux")
 
 
-def _get_str(node, tag):
+def _get(node, attr, _type=str, **replacements):
+    val = node.get(attr)
+    # filter freqs may be "Unknown", can't blindly parse as floats
+    return replacements[val] if val in replacements else _type(val)
+
+
+def _find(node, tag, _type=str, **replacements):
     val = node.find(tag)
     if val is not None:
-        return val.text
-
-
-def _get_int(node, tag):
-    return int(_get_str(node, tag))
-
-
-def _get_float(node, tag, **replacements):
+        val = val.text
     # filter freqs may be "Unknown", can't blindly parse as floats
-    val = _get_str(node, tag)
-    return replacements[val] if val in replacements else float(val)
+    return replacements[val] if val in replacements else _type(val)
 
 
 def _parse_otb_plus_metadata(metadata, extras_metadata):
     assert metadata.tag == "Device"
     # device-level metadata
     adc_range = 0.0033  # 3.3 mV (TODO VERIFY)
-    bit_depth = int(metadata.attrib["ad_bits"])
-    device_name = metadata.attrib["Name"]
-    n_chan = int(metadata.attrib["DeviceTotalChannels"])
-    sfreq = float(metadata.attrib["SampleFrequency"])
+    bit_depth = _get(metadata, "ad_bits", int)
+    device_name = _get(metadata, "Name")
+    n_chan = _get(metadata, "DeviceTotalChannels", int)
+    sfreq = _get(metadata, "SampleFrequency", float)
     # containers
     adc_ranges = np.full(n_chan, np.nan)
     gains = np.full(n_chan, np.nan)
@@ -54,35 +52,26 @@ def _parse_otb_plus_metadata(metadata, extras_metadata):
     # check in advance where we'll need to append indices to uniquify ch_names
     n_ch_by_type = Counter([ch.get("ID") for ch in metadata.iter("Channel")])
     dupl_ids = [k for k, v in n_ch_by_type.items() if v > 1]
+    ch_ix = {key: iter(range(val)) for key, val in n_ch_by_type.items()}
     # iterate over adapters & channels to extract gain, filters, names, etc
     for adapter in metadata.iter("Adapter"):
-        adapter_id = adapter.get("ID")
-        adapter_gain = float(adapter.get("Gain"))
-        ch_offset = int(adapter.get("ChannelStartIndex"))
+        adapter_id = _get(adapter, "ID")
+        adapter_gain = _get(adapter, "Gain", float)
+        ch_offset = _get(adapter, "ChannelStartIndex", int)
         # we only really care about lowpass/highpass on the data channels
-        if adapter_id not in ("AdapterQuaternions", "AdapterControl"):
-            highpass.append(float(adapter.get("HighPassFilter")))
-            lowpass.append(float(adapter.get("LowPassFilter")))
+        if not any(adapter_id.startswith(t) for t in ("Adapter", "Direct connection")):
+            highpass.append(_get(adapter, "HighPassFilter", float, Unknown=None))
+            lowpass.append(_get(adapter, "LowPassFilter", float, Unknown=None))
         for ch in adapter.iter("Channel"):
-            ix = int(ch.get("Index"))
-            ch_id = ch.get("ID")
-            # # see if we can parse the adapter name to get row,col info
-            # pattern = re.compile(
-            #     # connector type   inter-elec dist    grid rows    grid cols
-            #     r"(?:[a-zA-Z]+)(?:(?P<ied>\d+)MM)(?P<row>\d{2})(?P<col>\d{2})"
-            # )
-            # if match := pattern.match(ch_id):
-            #     col = ix % int(match["col"])
-            #     row = ix // int(match["row"])
-            #     ch_name = f"EMG_{adapter_ix}({row:02},{col:02})"
-            # elif ch_id
-            # else:
-            #     ch_name = f"EMG_{ix + adapter_ch_offset:03}"
-            # ch_names.append(ch_name)
-            ch_names.append(f"{ch_id}_{ix}" if ch_id in dupl_ids else ch_id)
+            ch_id = _get(ch, "ID")
+            if ch_id in dupl_ids:
+                ch_names.append(f"{ch_id}_{next(ch_ix[ch_id])}")
+            else:
+                ch_names.append(ch_id)
             # store gains
+            ix = _get(ch, "Index", int)
             gain_ix = ix + ch_offset
-            gains[gain_ix] = float(ch.get("Gain")) * adapter_gain
+            gains[gain_ix] = _get(ch, "Gain", float) * adapter_gain
             # TODO verify ch_type for quats & buffer channel
             # ramp and control channels definitely "MISC"
             # quats should maybe be FIFF.FIFFV_QUAT_{N} (N from 0-6), but need to verify
@@ -127,13 +116,13 @@ def _parse_otb_plus_metadata(metadata, extras_metadata):
     )
     subject_info = dict()
     for source, target, func in subj_info_mapping:
-        value = _get_str(extras_metadata, source)
+        value = _find(extras_metadata, source)
         if value is not None:
             subject_info[target] = func(value)
 
-    meas_date = _get_str(extras_metadata, "time")
-    duration = _get_float(extras_metadata, "duration")
-    site = _get_str(extras_metadata, "place")
+    meas_date = _find(extras_metadata, "time")
+    duration = _find(extras_metadata, "duration", float)
+    site = _find(extras_metadata, "place")
 
     return dict(
         adc_range=adc_ranges,
@@ -159,9 +148,9 @@ def _parse_otb_plus_metadata(metadata, extras_metadata):
 def _parse_otb_four_metadata(metadata, extras_metadata):
     assert metadata.tag == "DeviceParameters"
     # device-level metadata
-    bit_depth = _get_int(metadata, "AdBits")  # TODO use `SampleSize * 8` instead?
-    sfreq = _get_float(metadata, "SamplingFrequency")
-    device_gain = _get_float(metadata, "Gain")
+    bit_depth = _find(metadata, "AdBits", int)  # TODO use `SampleSize * 8` instead?
+    sfreq = _find(metadata, "SamplingFrequency", float)
+    device_gain = _find(metadata, "Gain", float)
     # containers
     gains = list()
     ch_names = list()
@@ -183,26 +172,27 @@ def _parse_otb_four_metadata(metadata, extras_metadata):
     for adapter in extras_metadata.iter("TrackInfo"):
         strings = adapter.find("StringsDescriptions")
         # expected to be same for all adapters
-        bit_depths.add(_get_int(adapter, "ADC_Nbits"))
-        device_names.add(_get_str(adapter, "Device"))
-        sfreqs.add(_get_int(adapter, "SamplingFrequency"))
-        durations.add(_get_float(adapter, "TimeDuration"))
+        bit_depths.add(_find(adapter, "ADC_Nbits", int))
+        device_names.add(_find(adapter, "Device"))
+        sfreqs.add(_find(adapter, "SamplingFrequency", int))
+        durations.add(_find(adapter, "TimeDuration", float))
         # may be different for each adapter
-        adapter_adc_range = _get_float(adapter, "ADC_Range")
-        adapter_id = _get_str(adapter, "SubTitle")
-        adapter_gain = _get_float(adapter, "Gain")
+        adapter_adc_range = _find(adapter, "ADC_Range", float)
+        adapter_id = _find(adapter, "SubTitle")
+        adapter_gain = _find(adapter, "Gain", float)
         if adapter_id.startswith("Quaternion"):
             adapter_scaling = 1e-3
         else:
-            adapter_scaling = 1.0 / _get_float(adapter, "UnitOfMeasurementFactor")
-        # ch_offset = _get_int(adapter, "AcquisitionChannel")
-        n_chans.append(_get_int(adapter, "NumberOfChannels"))
-        paths.append(_get_str(adapter, "SignalStreamPath"))
-        units.append(_get_str(adapter, "UnitOfMeasurement"))
+            adapter_scaling = 1.0 / _find(adapter, "UnitOfMeasurementFactor", float)
+        # ch_offset = _find(adapter, "AcquisitionChannel", int)
+        adapter_n_chans = _find(adapter, "NumberOfChannels", int)
+        n_chans.append(adapter_n_chans)
+        paths.append(_find(adapter, "SignalStreamPath"))
+        units.append(_find(adapter, "UnitOfMeasurement"))
         # we only really care about lowpass/highpass on the data channels
         if adapter_id not in ("Quaternion", "Buffer", "Ramp"):
-            hp = _get_float(strings, "HighPassFilter", Unknown=None)
-            lp = _get_float(strings, "LowPassFilter", Unknown=None)
+            hp = _find(strings, "HighPassFilter", float, Unknown=None)
+            lp = _find(strings, "LowPassFilter", float, Unknown=None)
             if hp is not None:
                 highpass.append(hp)
             if lp is not None:
@@ -215,8 +205,8 @@ def _parse_otb_four_metadata(metadata, extras_metadata):
         # # FWIW in the example file: range for Buffer is 1-100,
         # # Ramp and Control are -32767-32768, and
         # # EMG chs are ±2.1237507098703645E-05
-        # rmin = _get_float(adapter, "RangeMin")
-        # rmax = _get_float(adapter, "RangeMax")
+        # rmin = _find(adapter, "RangeMin", float)
+        # rmax = _find(adapter, "RangeMax", float)
         # if rmin.is_integer() and rmax.is_integer():
         #     rmin = int(rmin)
         #     rmax = int(rmax)
@@ -224,14 +214,17 @@ def _parse_otb_four_metadata(metadata, extras_metadata):
         # extract channel-specific info                  ↓ not a typo
         for ch in adapter.find("Channels").iter("ChannelRapresentation"):
             # channel names
-            ix = int(ch.find("Index").text)
-            ch_name = ch.find("Label").text
-            try:
-                _ = int(ch_name)
-            except ValueError:
-                pass
+            if adapter_n_chans == 1:
+                ch_name = adapter_id
             else:
-                ch_name = f"{adapter_id}_{ix}"
+                ix = int(ch.find("Index").text)
+                ch_name = ch.find("Label").text
+                try:
+                    _ = int(ch_name)
+                except ValueError:
+                    pass
+                else:
+                    ch_name = f"{adapter_id}_{ix}"
             ch_names.append(ch_name)
             # signal properties
             adc_ranges.append(adapter_adc_range)
