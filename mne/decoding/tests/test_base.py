@@ -230,23 +230,36 @@ def test_get_coef():
     assert patterns[0] != patterns_inv[0]
 
 
-# class _Noop(BaseEstimator, TransformerMixin):
-#     def fit(self, X, y=None):
-#         return self
+class _Noop(BaseEstimator, TransformerMixin):
+    def fit(self, X, y=None):
+        return self
 
-#     def transform(self, X):
-#         return X.copy()
+    def transform(self, X):
+        return X.copy()
 
-#     inverse_transform = transform
+    inverse_transform = transform
 
 
 @pytest.mark.parametrize("inverse", (True, False))
-def test_get_coef_inverse_transform(inverse):
+@pytest.mark.parametrize(
+    "clf",
+    [
+        make_pipeline(
+            Scaler(info=None, scalings="mean"),
+            SlidingEstimator(make_pipeline(LinearModel(Ridge()))),
+        ),  # mne scaler + slider of pipeline
+        make_pipeline(
+            _Noop(),
+            SlidingEstimator(make_pipeline(LinearModel(Ridge()))),
+        ),  # no_op + slider of pipeline
+        SlidingEstimator(
+            make_pipeline(StandardScaler(), LinearModel(Ridge()))
+        ),  # slider of pipeline with sklearn scaler
+    ],
+)
+def test_get_coef_inverse_transform(inverse, clf):
     """Test get_coef with and without inverse_transform."""
-    lm_regression = LinearModel(Ridge())
     X, y, A = _make_data(n_samples=1000, n_features=3, n_targets=1)
-    # Check with search_light and combination of preprocessing ending with sl:
-    clf = SlidingEstimator(make_pipeline(StandardScaler(), lm_regression))
     X = np.transpose([X, -X], [1, 2, 0])  # invert X across 2 time samples
     clf.fit(X, y)
     patterns = get_coef(clf, "patterns_", inverse)
@@ -254,14 +267,18 @@ def test_get_coef_inverse_transform(inverse):
     assert_array_equal(filters.shape, patterns.shape, X.shape[1:])
     # the two time samples get inverted patterns
     assert_equal(patterns[0, 0], -patterns[0, 1])
+
     for t in [0, 1]:
-        filters_t = get_coef(
-            clf.estimators_[t],
-            "filters_",
-            inverse,
-            verbose=False,
-        )
-        assert_array_equal(filters_t, filters[:, t])
+        if hasattr(clf, "named_steps"):
+            est_t = clf.named_steps["slidingestimator"].estimators_[t]
+            filters_t = get_coef(est_t, "filters_", inverse)
+            if inverse:
+                filters_t = clf[0].inverse_transform(filters_t.reshape(1, -1))[0]
+        else:
+            est_t = clf.estimators_[t]
+            filters_t = get_coef(est_t, "filters_", inverse)
+
+        assert_equal(filters_t, filters[:, t])
 
 
 def test_get_coef_inverse_step_name():
