@@ -111,23 +111,23 @@ def _plot_scree_per_class(evals, add_cumul_evals, axes):
     # plot individual eigenvalues
     color_line = "cornflowerblue"
     axes.set_xlabel("Component Index", fontsize=18)
-    axes.set_ylabel("Eigenvalue", color=color_line, fontsize=18)
-    axes.set_ylabel("Cumulative Eigenvalues", color=color_line, fontsize=18)
+    axes.set_ylabel("Eigenvalue", fontsize=18)
     axes.plot(
         component_numbers,
         evals,
         color=color_line,
         marker="o",
-        markersize=10,
+        markersize=8,
     )
-    axes.tick_params(axis="y", labelcolor=color_line, labelsize=16)
+    axes.tick_params(axis="y", labelsize=16)
+    axes.tick_params(axis="x", labelsize=16)
 
     if add_cumul_evals:
         # plot cumulative eigenvalues
         ax2 = axes.twinx()
         ax2.grid(False)
         color_line = "firebrick"
-        ax2.set_ylabel("Cumulative Eigenvalues", color=color_line, fontsize=18)
+        ax2.set_ylabel("Cumulative Eigenvalues", fontsize=18)
         ax2.plot(
             component_numbers,
             cumul_evals,
@@ -143,7 +143,6 @@ def _plot_scree(
     evals,
     title="Scree plot",
     add_cumul_evals=True,
-    plt_style="seaborn-v0_8-whitegrid",
     axes=None,
 ):
     evals_data = evals if evals.ndim == 2 else [evals]
@@ -152,22 +151,19 @@ def _plot_scree(
     if axes is not None and n_classes != len(axes):
         raise ValueError(f"Received {len(axes)} axes, but expected {n_classes}")
 
-    with plt.style.context(plt_style):
-        fig = None
-        if axes is None:
-            fig, axes = plt.subplots(
-                nrows=n_classes,
-                ncols=1,
-                figsize=(12, 7 * n_classes),
-                layout="constrained",
-            )
-            axes = [axes] if n_classes == 1 else axes
-        for class_idx in range(n_classes):
-            _plot_scree_per_class(
-                evals_data[class_idx], add_cumul_evals, axes[class_idx]
-            )
-        if fig:
-            fig.suptitle(title, fontsize=22, fontweight="bold")
+    fig = None
+    if axes is None:
+        fig, axes = plt.subplots(
+            nrows=n_classes,
+            ncols=1,
+            figsize=(7, 4 * n_classes),
+            layout="constrained",
+        )
+        axes = [axes] if n_classes == 1 else axes
+    for class_idx in range(n_classes):
+        _plot_scree_per_class(evals_data[class_idx], add_cumul_evals, axes[class_idx])
+    if fig:
+        fig.suptitle(title, fontsize=22)
     return fig
 
 
@@ -608,8 +604,7 @@ class SpatialFilter:
     def plot_scree(
         self,
         title="Scree plot",
-        add_cumul_evals=True,
-        plt_style="seaborn-v0_8-whitegrid",
+        add_cumul_evals=False,
         axes=None,
         show=True,
     ):
@@ -642,7 +637,6 @@ class SpatialFilter:
             self.evals,
             title=title,
             add_cumul_evals=add_cumul_evals,
-            plt_style=plt_style,
             axes=axes,
         )
         plt_show(show, block=False)

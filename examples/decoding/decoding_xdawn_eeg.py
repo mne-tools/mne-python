@@ -119,11 +119,17 @@ spf = get_spatial_filter_from_estimator(
     clf, info=epochs.info, step_name="xdawntransformer"
 )
 
-# Plot the patterns: each class will return its own figure
+# Let's first examine the scree plot of generalized eigenvalues.
+spf.plot_scree()
+
+# We can see that for all four classes ~five largest components
+# capture most of the variance, let's plot their patterns.
+# Each class will now return its own figure
+components_to_plot = np.arange(5)
 figs = spf.plot_patterns(
     # Indices of patterns to plot,
     # we will plot the first three for each class
-    components=np.arange(n_filter),
+    components=components_to_plot,
     show=False,  # to set the titles below
 )
 

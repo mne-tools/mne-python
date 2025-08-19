@@ -72,8 +72,6 @@ ssd.fit(X=raw.get_data())
 
 spf = get_spatial_filter_from_estimator(ssd, info=ssd.info)
 spf.plot_patterns(components=list(range(4)))
-# pattern = mne.EvokedArray(data=ssd.patterns_[:4].T, info=ssd.info)
-# pattern.plot_topomap(units=dict(mag="A.U."), time_format="")
 
 # The topographies suggest that we picked up a parietal alpha generator.
 
