@@ -230,8 +230,9 @@ class DipoleFitUI:
             )
             if isinstance(self._stc, SourceEstimate):
                 kwargs["surface"] = "white"
-            self._fig_stc = self._stc.plot(**kwargs)
-            self._actors["brain"] = self._fig_stc._actors["data"]
+            fig = self._stc.plot(**kwargs)  # overwrite "fig" to be the STC plot
+            self._fig_stc = fig
+            self._actors["brain"] = fig._actors["data"]
 
         fig = EvokedField(
             self._evoked,
@@ -490,6 +491,10 @@ class DipoleFitUI:
                 f"({len(dipole)})."
             )
 
+        # Ensure orientations are unit vectors. Due to rounding issues this is sometimes
+        # not the case.
+        dipole._ori /= np.linalg.norm(dipole._ori, axis=1, keepdims=True)
+
         new_dipoles = list()
         for dip_i, (dip, name) in enumerate(zip(dipole, names)):
             # Coordinates needed to draw the big arrow on the helmet.
@@ -580,9 +585,9 @@ class DipoleFitUI:
                 color=dipole_dict["color"],
                 mag=0.05,
             )
-            if arrow_mesh is not None:
+            if dipole_dict["arrow_mesh"] is not None:
                 dipole_dict["helmet_arrow_actor"] = self._renderer.plotter.add_mesh(
-                    arrow_mesh,
+                    dipole_dict["arrow_mesh"],
                     color=dipole_dict["color"],
                     culling="front",
                 )
