@@ -10,6 +10,7 @@ from pathlib import Path
 import numpy as np
 from defusedxml import ElementTree as ET
 
+from ... import Annotations
 from ..._fiff.meas_info import create_info
 from ...utils import _check_fname, fill_doc, logger, verbose, warn
 from ..base import BaseRaw
@@ -293,6 +294,30 @@ def _parse_otb_four_metadata(metadata, extras_metadata):
     )
 
 
+def _parse_annots(tree_list):
+    anns = set()  # avoids duplicate annots
+    for tree in tree_list:
+        for marker in tree.iter("Marker"):
+            # TODO is it always "Milliseconds"?
+            ons = _find(marker, "Milliseconds", float) / 1e3
+            # TODO will markers ever have duration? is duration
+            # encoded as onset/offset with 2 markers?
+            dur = 0.0
+            # simplify descriptions
+            desc = _find(marker, "Description").strip()
+            if desc.startswith(sync := "Sync Pulse with code: "):
+                desc = int(desc.replace(sync, ""))
+            # add to containers
+            anns.add((ons, dur, desc))
+    if anns:
+        onset, duration, description = zip(*sorted(anns))
+        return Annotations(
+            onset=onset,
+            duration=duration,
+            description=description,
+        )
+
+
 @fill_doc
 class RawOTB(BaseRaw):
     """Raw object from an OTB file.
@@ -324,6 +349,8 @@ class RawOTB(BaseRaw):
             fnames = fid.getnames()
             # the .sig file(s) are the binary channel data.
             sig_fnames = [_fname for _fname in fnames if _fname.endswith(".sig")]
+            # the markers_NN.xml are the annotations
+            ann_fnames = [_fname for _fname in fnames if _fname.startswith("marker")]
             # TODO ↓↓↓↓↓↓↓↓ this may be wrong for Novecento+ devices
             #               (MATLAB code appears to skip the first sig_fname)
             data_size_bytes = sum(fid.getmember(_fname).size for _fname in sig_fnames)
@@ -350,8 +377,13 @@ class RawOTB(BaseRaw):
             # parse the XML into a tree
             metadata_tree = ET.fromstring(fid.extractfile(metadata_fname).read())
             extras_tree = ET.fromstring(fid.extractfile(extras_fname).read())
+            ann_trees = [
+                ET.fromstring(fid.extractfile(ann_fname).read())
+                for ann_fname in ann_fnames
+            ]
         # extract what we need from the tree
         metadata = parse_func(metadata_tree, extras_tree)
+        annots = _parse_annots(ann_trees)
         adc_range = metadata["adc_range"]
         bit_depth = metadata["bit_depth"]
         ch_names = metadata["ch_names"]
@@ -479,6 +511,8 @@ class RawOTB(BaseRaw):
             raw_extras=[raw_extras],
             verbose=verbose,
         )
+        if annots:
+            self.set_annotations(annots)
 
     def _preload_data(self, preload):
         """Load raw data from an OTB+ file."""
