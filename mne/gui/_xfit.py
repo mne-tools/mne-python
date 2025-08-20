@@ -130,9 +130,11 @@ class DipoleFitUI:
             bem = make_sphere_model("auto", "auto", evoked.info)
         bem = _ensure_bem_surfaces(bem, extra_allow=(ConductorModel, None))
 
+        if ch_type is not None:
+            evoked = evoked.copy().pick(ch_type)
+
         field_map = make_field_map(
             evoked,
-            ch_type=ch_type,
             trans=trans,
             origin=bem["r0"] if bem["is_sphere"] else "auto",
             subject=subject,
@@ -815,7 +817,8 @@ class DipoleFitUI:
         dipole = self._dipoles[dip_num]
         dipole["line_artist"].remove()
         dipole["brain_arrow_actor"].visibility = False
-        dipole["helmet_arrow_actor"].visibility = False
+        if dipole["helmet_arrow_actor"] is not None:  # no helmet arrow for EEG
+            dipole["helmet_arrow_actor"].visibility = False
         for widget in dipole["widgets"]:
             widget.hide()
         del self._dipoles[dip_num]
