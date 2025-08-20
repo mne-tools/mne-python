@@ -186,6 +186,37 @@ class ReceptiveField(MetaEstimatorMixin, BaseEstimator):
                 y = y.reshape(-1, y.shape[-1], order="F")
         return X, y
 
+    def _check_data(self, X, y=None, reset=False):
+        kwargs = dict(reset=reset, allow_nd=True, ensure_2d=False)
+        X = validate_data(self, X=X, **kwargs)
+        # Because y can be more than 2D, which is surprising for sklearn
+        if y is not None:
+            y = check_array(y, ensure_2d=False, allow_nd=True)
+        elif reset:
+            raise ValueError("requires y to be passed, but the target y is None")
+
+        if reset:
+            self.n_features_in_ = X.shape[-1]
+        else:
+            if X.ndim >= 2 and hasattr(self, "n_features_in_"):
+                n_features = X.shape[-1]
+                if n_features != self.n_features_in_:
+                    name = type(self).__name__
+                    raise ValueError(
+                        f"X has {n_features} features, but {name} is expecting "
+                        f"{self.n_features_in_} features as input"
+                    )
+        return X, y
+
+    def _validate_params(self, X):
+        if self.scoring not in _SCORERS.keys():
+            raise ValueError(
+                f"scoring must be one of {sorted(_SCORERS.keys())}, got {self.scoring} "
+            )
+        self.sfreq_ = float(self.sfreq)
+        if self.tmin > self.tmax:
+            raise ValueError(f"tmin ({self.tmin}) must be at most tmax ({self.tmax})")
+
     def fit(self, X, y):
         """Fit a receptive field model.
 
@@ -201,16 +232,10 @@ class ReceptiveField(MetaEstimatorMixin, BaseEstimator):
         self : instance
             The instance so you can chain operations.
         """
-        if self.scoring not in _SCORERS.keys():
-            raise ValueError(
-                f"scoring must be one of {sorted(_SCORERS.keys())}, got {self.scoring} "
-            )
-        self.sfreq_ = float(self.sfreq)
         X, y = self._check_data(X, y, reset=True)
+        self._validate_params(X)
         X, y, _, self._y_dim = self._check_dimensions(X, y)
 
-        if self.tmin > self.tmax:
-            raise ValueError(f"tmin ({self.tmin}) must be at most tmax ({self.tmax})")
         # Initialize delays
         self.delays_ = _times_to_delays(self.tmin, self.tmax, self.sfreq_)
 
@@ -277,6 +302,12 @@ class ReceptiveField(MetaEstimatorMixin, BaseEstimator):
 
         # Inverse-transform model weights
         if self.patterns:
+            n_total_samples = n_times * n_epochs
+            if n_total_samples < 2:
+                raise ValueError(
+                    "Cannot compute patterns with only one sample; "
+                    f"got n_samples = {n_total_samples}."
+                )
             if isinstance(self.estimator_, TimeDelayingRidge):
                 cov_ = self.estimator_.cov_ / float(n_times * n_epochs - 1)
                 y = y.reshape(-1, y.shape[-1], order="F")
@@ -300,30 +331,6 @@ class ReceptiveField(MetaEstimatorMixin, BaseEstimator):
             self.patterns_ = patterns.reshape(shape)
 
         return self
-
-    def _check_data(self, X, y=None, reset=False):
-        kwargs = dict(reset=reset, allow_nd=True, ensure_2d=False)
-        X = validate_data(self, X=X, **kwargs)
-        # Because y can be more than 2D, which is surprising for sklearn
-        if y is not None:
-            y = check_array(y, ensure_2d=False, allow_nd=True)
-        elif reset:
-            raise ValueError("requires y to be passed, but the target y is None")
-
-        if reset:
-            self.n_features_in_ = X.shape[-1]
-        else:
-            if X.ndim >= 2 and hasattr(self, "n_features_in_"):
-                n_features = X.shape[-1]
-                if n_features != self.n_features_in_:
-                    name = type(self).__name__
-                    raise ValueError(
-                        f"X has {n_features} features, but {name} is expecting "
-                        f"{self.n_features_in_} features as input"
-                    )
-        if np.iscomplexobj(X) or (y is not None and np.iscomplexobj(y)):
-            raise ValueError("Complex data not supported. Use real-valued inputs.")
-        return X, y
 
     def predict(self, X):
         """Generate predictions with a receptive field.

@@ -591,20 +591,8 @@ def test_tdr_sklearn_compliance(estimator, check):
     """Test sklearn estimator compliance."""
     # We don't actually comply with a bunch of the regressor specs :(
     ignores = (
-        "check_supervised_y_no_nan",
         "check_regressor",
-        "check_parameters_default_constructible",
-        "check_estimators_unfitted",
         "_invariance",
-        "check_complex_data",
-        "check_estimators_empty_data_messages",
-        "check_estimators_nan_inf",
-        "check_supervised_y_2d",
-        "check_n_features_in",
-        "check_fit2d_1sample",
-        "check_fit1d",
-        "check_fit2d_predict1d",
-        "check_requires_y_none",
     )
     if any(ignore in str(check) for ignore in ignores):
         return
@@ -618,7 +606,6 @@ def test_rf_sklearn_compliance(estimator, check):
     ignores = (
         "check_parameters_default_constructible",
         "_invariance",
-        "check_fit2d_1sample",
     )
     if any(ignore in str(check) for ignore in ignores):
         return

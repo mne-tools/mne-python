@@ -9,11 +9,14 @@ from scipy import linalg
 from scipy.signal import fftconvolve
 from scipy.sparse.csgraph import laplacian
 from sklearn.base import BaseEstimator, RegressorMixin
+from sklearn.utils import check_array
+from sklearn.utils.validation import check_is_fitted
 
 from ..cuda import _setup_cuda_fft_multiply_repeated
 from ..filter import next_fast_len
 from ..fixes import jit
-from ..utils import ProgressBar, _check_option, _validate_type, logger, warn
+from ..utils import ProgressBar, _check_option, logger, warn
+from ._fixes import validate_data
 
 
 def _compute_corrs(
@@ -274,8 +277,6 @@ class TimeDelayingRidge(RegressorMixin, BaseEstimator):
     auto- and cross-correlations.
     """
 
-    _estimator_type = "regressor"
-
     def __init__(
         self,
         tmin,
@@ -296,6 +297,19 @@ class TimeDelayingRidge(RegressorMixin, BaseEstimator):
         self.edge_correction = edge_correction
         self.n_jobs = n_jobs
 
+    def __sklearn_tags__(self):
+        """..."""
+        tags = super().__sklearn_tags__()
+        tags.input_tags.two_d_array = True
+        tags.input_tags.three_d_array = True
+        tags.input_tags.sparse = False
+        tags.target_tags.one_d_labels = True
+        tags.target_tags.two_d_labels = True
+        tags.target_tags.single_output = True
+        tags.target_tags.multi_output = True
+        tags.target_tags.required = True
+        return tags
+
     @property
     def _smin(self):
         return int(round(self.tmin_ * self.sfreq_))
@@ -303,6 +317,61 @@ class TimeDelayingRidge(RegressorMixin, BaseEstimator):
     @property
     def _smax(self):
         return int(round(self.tmax_ * self.sfreq_)) + 1
+
+    def _check_data(self, X, y=None, reset=False):
+        kwargs = dict(reset=reset, allow_nd=True, ensure_2d=False)
+        X = validate_data(self, X=X, **kwargs)
+        # Because y can be more than 2D, which is surprising for sklearn
+        if y is not None:
+            y = check_array(y, ensure_2d=False, allow_nd=True)
+        elif reset:
+            raise ValueError("requires y to be passed, but the target y is None")
+
+        if X.ndim == 1:
+            raise ValueError(
+                "Reshape your data either using array.reshape(-1, 1) if "
+                "your data has a single feature or array.reshape(1, -1) "
+                "if it contains a single sample."
+            )
+
+        if reset:
+            self.n_features_in_ = 1 if X.ndim == 1 else X.shape[-1]
+        else:
+            if X.ndim >= 2 and hasattr(self, "n_features_in_"):
+                n_features = X.shape[0] if X.ndim == 1 else X.shape[-1]
+                if n_features != self.n_features_in_:
+                    name = type(self).__name__
+                    raise ValueError(
+                        f"X has {n_features} features, but {name} is expecting "
+                        f"{self.n_features_in_} features as input"
+                    )
+
+        if reset:
+            if X.ndim == 3:
+                assert y.ndim == 3
+                assert X.shape[:2] == y.shape[:2]
+            else:
+                if y.ndim == 1:
+                    y = y[:, np.newaxis]
+                assert y.ndim == 2
+            _check_option("y.shape[0]", y.shape[0], (X.shape[0],))
+
+        return X, y
+
+    def _validate_params(self, X):
+        self.tmin_ = float(self.tmin)
+        self.tmax_ = float(self.tmax)
+        self.sfreq_ = float(self.sfreq)
+        self.alpha_ = float(self.alpha)
+        if self.tmin_ > self.tmax_:
+            raise ValueError(f"tmin must be <= tmax, got {self.tmin_} and {self.tmax_}")
+        n_delays = self._smax - self._smin
+        min_samples = (n_delays + 1) // 2
+        if X.shape[0] < min_samples:
+            raise ValueError(
+                f"Got n_samples = {X.shape[0]}, but at least {min_samples} "
+                f"are required to estimate {n_delays} delays."
+            )
 
     def fit(self, X, y):
         """Estimate the coefficients of the linear model.
@@ -319,27 +388,8 @@ class TimeDelayingRidge(RegressorMixin, BaseEstimator):
         self : instance of TimeDelayingRidge
             Returns the modified instance.
         """
-        _validate_type(X, "array-like", "X")
-        _validate_type(y, "array-like", "y")
-        self.tmin_ = float(self.tmin)
-        self.tmax_ = float(self.tmax)
-        self.sfreq_ = float(self.sfreq)
-        self.alpha_ = float(self.alpha)
-        if self.tmin_ > self.tmax_:
-            raise ValueError(f"tmin must be <= tmax, got {self.tmin_} and {self.tmax_}")
-        X = np.asarray(X, dtype=float)
-        y = np.asarray(y, dtype=float)
-        if X.ndim == 3:
-            assert y.ndim == 3
-            assert X.shape[:2] == y.shape[:2]
-        else:
-            if X.ndim == 1:
-                X = X[:, np.newaxis]
-            if y.ndim == 1:
-                y = y[:, np.newaxis]
-            assert X.ndim == 2
-            assert y.ndim == 2
-        _check_option("y.shape[0]", y.shape[0], (X.shape[0],))
+        X, y = self._check_data(X, y, reset=True)
+        self._validate_params(X)
         # These are split into two functions because it's possible that we
         # might want to allow people to do them separately (e.g., to test
         # different regularization parameters).
@@ -375,6 +425,8 @@ class TimeDelayingRidge(RegressorMixin, BaseEstimator):
         X : ndarray
             The predicted response.
         """
+        check_is_fitted(self)
+        X, _ = self._check_data(X)
         if X.ndim == 2:
             X = X[:, np.newaxis, :]
             singleton = True
