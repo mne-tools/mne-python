@@ -119,8 +119,9 @@ spf = get_spatial_filter_from_estimator(
     clf, info=epochs.info, step_name="xdawntransformer"
 )
 
-# Let's first examine the scree plot of generalized eigenvalues.
-spf.plot_scree()
+# Let's first examine the scree plot of generalized eigenvalues
+# for each class.
+spf.plot_scree(title="")
 
 # We can see that for all four classes ~five largest components
 # capture most of the variance, let's plot their patterns.

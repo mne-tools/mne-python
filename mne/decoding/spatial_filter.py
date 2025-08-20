@@ -151,20 +151,20 @@ def _plot_scree(
     if axes is not None and n_classes != len(axes):
         raise ValueError(f"Received {len(axes)} axes, but expected {n_classes}")
 
-    fig = None
-    if axes is None:
-        fig, axes = plt.subplots(
-            nrows=n_classes,
-            ncols=1,
-            figsize=(7, 4 * n_classes),
-            layout="constrained",
-        )
-        axes = [axes] if n_classes == 1 else axes
+    orig_axes = axes
+    figs = list()
     for class_idx in range(n_classes):
-        _plot_scree_per_class(evals_data[class_idx], add_cumul_evals, axes[class_idx])
-    if fig:
-        fig.suptitle(title, fontsize=22)
-    return fig
+        fig = None
+        if orig_axes is None:
+            fig, ax = plt.subplots(figsize=(7, 4), layout="constrained")
+        else:
+            ax = axes[class_idx]
+        _plot_scree_per_class(evals_data[class_idx], add_cumul_evals, ax)
+        if fig is not None:
+            fig.suptitle(title, fontsize=22)
+            figs.append(fig)
+
+    return figs[0] if len(figs) == 1 else figs
 
 
 @verbose

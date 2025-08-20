@@ -156,7 +156,7 @@ def test_spatial_filter_plotting():
     plt.close("all")
     _, axes = plt.subplots(figsize=(12, 7), layout="constrained")
     fig_scree = sp_filter.plot_scree(axes=axes, show=False)
-    assert fig_scree is None
+    assert fig_scree == list()
     plt.close("all")
 
     # test plot_scree raises error if evals is None
@@ -177,8 +177,7 @@ def test_spatial_filter_plotting():
     plt.close("all")
 
     fig_scree = sp_filter.plot_scree(show=False)
-    gs = fig_scree.axes[0].get_gridspec()
-    assert gs.nrows == n_classes
+    assert len(fig_scree) == n_classes
     plt.close("all")
 
     with pytest.raises(ValueError, match="but expected"):
@@ -187,5 +186,5 @@ def test_spatial_filter_plotting():
 
     _, axes = plt.subplots(n_classes, figsize=(12, 7), layout="constrained")
     fig_scree = sp_filter.plot_scree(axes=axes, show=False)
-    assert fig_scree is None
+    assert fig_scree == list()
     plt.close("all")
