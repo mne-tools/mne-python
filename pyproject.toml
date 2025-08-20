@@ -273,14 +273,9 @@ addopts = [
   "--doctest-ignore-import-errors",
   "--doctest-modules",
   "--durations=20",
-  "--ignore=doc",
-  "--ignore=examples",
-  "--ignore=logo",
   "--ignore=mne/gui/_*.py",
   "--ignore=mne/icons",
   "--ignore=mne/report/js_and_css",
-  "--ignore=tools",
-  "--ignore=tutorials",
   "--junit-xml=junit-results.xml",
   "--tb=short",
   "-rfEXs",
@@ -288,6 +283,9 @@ addopts = [
 markers = [
   "pgtest: test needs PyQtGraph (AKA mne-qt-browser).",
   "pvtest: test needs PyVistaQt.",
+]
+testpaths = [
+  "mne",
 ]
 
 [tool.rstcheck]
