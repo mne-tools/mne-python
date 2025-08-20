@@ -355,15 +355,16 @@ class DipoleFitUI:
             callback=self._on_select_method,
         )
         self._dipole_box = r._dock_add_group_box(name="Dipoles")
-        r._dock_add_file_button(
+        self._save_button = r._dock_add_file_button(
             name="save_dipoles",
             desc="Save dipoles",
             save=True,
             func=self.save,
             tooltip="Save the dipoles to disk",
-            filter_="Dipole files (*.bdip)",
+            filter_="Dipole files (*.dip  *.bdip)",
             initial_directory=".",
         )
+        self._save_button.set_enabled(False)
         r._dock_add_stretch()
 
     def toggle_mesh(self, name, show=None):
@@ -449,7 +450,7 @@ class DipoleFitUI:
 
         self.add_dipole(dip)
 
-    def add_dipole(self, dipole):
+    def add_dipole(self, dipole, name=None):
         """Add a dipole (or multiple dipoles) to the GUI.
 
         Parameters
@@ -457,11 +458,33 @@ class DipoleFitUI:
         dipole : Dipole
             The dipole to add. If the ``Dipole`` object defines multiple dipoles, they
             will all be added.
+        name : str | list of str | None
+            The name of the dipole. When the ``Dipole`` object defines multiple dipoles,
+            this should be a list containing the name for each dipole. When ``None``,
+            the ``.name`` attribute of the ``Dipole`` object itself will be used.
         """
-        new_dipoles = list()
-        for dip_i in range(len(dipole)):
-            dip = dipole[dip_i]
+        _validate_type(name, (str, list, None), "name")
+        if isinstance(name, str):
+            names = [name]
+        elif name is None:
+            # Try to obtain names from `dipole.name`. When multiple dipoles are saved,
+            # the names are concatenated with `;` marks.
+            if dipole.name is None:
+                names = [None] * len(dipole)
+            elif len(dipole.name.split(";")) == len(dipole):
+                names = dipole.name.split(";")
+            else:
+                names = [dipole.name] * len(dipole)
+        else:
+            names = name
+        if len(names) != len(dipole):
+            raise ValueError(
+                f"Number of names ({len(names)}) does not match the number of dipoles "
+                f"({len(dipole)})."
+            )
 
+        new_dipoles = list()
+        for dip_i, (dip, name) in enumerate(zip(dipole, names)):
             # Coordinates needed to draw the big arrow on the helmet.
             helmet_coords, helmet_pos = self._get_helmet_coords(dip)
 
@@ -471,8 +494,10 @@ class DipoleFitUI:
                 dip_num = 0
             else:
                 dip_num = max(self._dipoles.keys()) + 1
-            if dip.name is None:
+            if name is None:
                 dip.name = f"dip{dip_num}"
+            else:
+                dip.name = name
             dip_color = colors[dip_num % len(colors)]
             if helmet_coords is not None:
                 arrow_mesh = pyvista.PolyData(*_arrow_mesh())
@@ -490,7 +515,7 @@ class DipoleFitUI:
                 helmet_coords=helmet_coords,
                 helmet_pos=helmet_pos,
                 num=dip_num,
-                fit_time=self._current_time,
+                # fit_time=self._current_time,
             )
             self._dipoles[dip_num] = dipole_dict
 
@@ -583,16 +608,13 @@ class DipoleFitUI:
     def _fit_timecourses(self):
         """Compute (or re-compute) dipole timecourses.
 
-        Called whenever a dipole is (de)-activated or the "Fix pos" box is toggled.
+        Called whenever something changes to the multi-dipole situation, i.e. a dipole
+        is added, removed, (de-)activated or the "Fix pos" box is toggled.
         """
+        self._save_button.set_enabled(len(self.dipoles) > 0)
         active_dips = [d for d in self._dipoles.values() if d["active"]]
         if len(active_dips) == 0:
             return
-
-        # Restrict the dipoles to only the time at which they were fitted.
-        for d in active_dips:
-            if len(d["dip"].times) > 1:
-                d["dip"] = d["dip"].crop(d["fit_time"], d["fit_time"])
 
         if self._multi_dipole_method == "Multi dipole (MNE)":
             fwd, _ = make_forward_dipole(
@@ -645,7 +667,7 @@ class DipoleFitUI:
                     trans=self._head_mri_t,
                     rank=self._rank,
                     n_jobs=self._n_jobs,
-                    verbose=False,
+                    verbose=True,
                 )
                 if dip["fix_ori"]:
                     dip["timecourse"] = dip_with_timecourse.data[0]
@@ -687,23 +709,37 @@ class DipoleFitUI:
             or in ``'.bdip'`` to save in binary format.
         %(verbose)s
         """
-        logger.info("Saving dipoles as:")
+        if len(self.dipoles) == 0:
+            logger.info("No dipoles to save.")
+            return
+
+        logger.info(f"Saving dipoles as: {fname}")
         fname = Path(fname)
 
         # Pack the dipoles into a single mne.Dipole object.
+        if all(d.khi2 is not None for d in self.dipoles):
+            khi2 = np.array([d.khi2[0] for d in self.dipoles])
+        else:
+            khi2 = None
+
+        if all(d.nfree is not None for d in self.dipoles):
+            nfree = np.array([d.nfree[0] for d in self.dipoles])
+        else:
+            nfree = None
+
         dip = Dipole(
             times=np.array([d.times[0] for d in self.dipoles]),
             pos=np.array([d.pos[0] for d in self.dipoles]),
             amplitude=np.array([d.amplitude[0] for d in self.dipoles]),
             ori=np.array([d.ori[0] for d in self.dipoles]),
             gof=np.array([d.gof[0] for d in self.dipoles]),
-            khi2=np.array([d.khi2[0] for d in self.dipoles]),
-            nfree=np.array([d.nfree[0] for d in self.dipoles]),
+            khi2=khi2,
+            nfree=nfree,
             conf={
                 key: np.array([d.conf[key][0] for d in self.dipoles])
                 for key in self.dipoles[0].conf.keys()
             },
-            name=",".join(d.name for d in self.dipoles),
+            name=";".join(d.name if hasattr(d, "name") else "" for d in self.dipoles),
         )
         dip.save(fname, overwrite=True, verbose=verbose)
 
