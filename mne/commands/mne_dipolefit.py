@@ -27,6 +27,7 @@ def run():
         "-e",
         "--evoked",
         default=None,
+        metavar="EVOKED_FILE",
         help='The evoked file ("-ave.fif") containing the data to fit dipoles to.',
     )
     parser.add_option(
@@ -38,24 +39,28 @@ def run():
         "--baseline-from",
         default=None,
         type=float,
+        metavar="TIME",
         help="The earliest timepoint to use as baseline.",
     )
     parser.add_option(
         "--baseline-to",
         default=None,
         type=float,
+        metavar="TIME",
         help="The latest timepoint to use as baseline.",
     )
     parser.add_option(
         "-c",
         "--cov",
         default=None,
+        metavar="COV_FILE",
         help='The noise covariance ("-cov.fif") to use.',
     )
     parser.add_option(
         "-b",
         "--bem",
         default=None,
+        metavar="BEM_FILE",
         help='The BEM model ("-bem-sol.fif") to use.',
     )
     parser.add_option(
@@ -63,16 +68,19 @@ def run():
         "--initial-time",
         default=None,
         type=float,
+        metavar="TIME",
         help="The initial time to show",
     )
     parser.add_option(
         "--trans",
         default=None,
+        metavar="TRANS_FILE",
         help='Head<->MRI transform FIF file ("-trans.fif")',
     )
     parser.add_option(
         "--stc",
         default=None,
+        metavar="STC_FILE",
         help="An optional distributed source estimate to show during dipole fitting.",
     )
     parser.add_option(
