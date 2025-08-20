@@ -14,8 +14,10 @@ from sklearn.base import (
 )
 from sklearn.exceptions import NotFittedError
 from sklearn.metrics import r2_score
+from sklearn.utils import check_array
 
 from ..utils import _validate_type, fill_doc, pinv
+from ._fixes import validate_data
 from .base import _check_estimator, get_coef
 from .time_delaying_ridge import TimeDelayingRidge
 
@@ -152,6 +154,21 @@ class ReceptiveField(MetaEstimatorMixin, BaseEstimator):
             s += f"scored ({self.scoring})"
         return f"<ReceptiveField | {s}>"
 
+    def __sklearn_tags__(self):
+        """..."""
+        from sklearn.utils import RegressorTags
+
+        tags = super().__sklearn_tags__()
+        tags.estimator_type = "regressor"
+        tags.regressor_tags = RegressorTags()
+        tags.input_tags.two_d_array = True
+        tags.input_tags.three_d_array = True
+        tags.target_tags.one_d_labels = True
+        tags.target_tags.single_output = True
+        tags.target_tags.multi_output = True
+        tags.target_tags.required = True
+        return tags
+
     def _delay_and_reshape(self, X, y=None):
         """Delay and reshape the variables."""
         if not isinstance(self.estimator_, TimeDelayingRidge):
@@ -189,6 +206,7 @@ class ReceptiveField(MetaEstimatorMixin, BaseEstimator):
                 f"scoring must be one of {sorted(_SCORERS.keys())}, got {self.scoring} "
             )
         self.sfreq_ = float(self.sfreq)
+        X, y = self._check_data(X, y, reset=True)
         X, y, _, self._y_dim = self._check_dimensions(X, y)
 
         if self.tmin > self.tmax:
@@ -283,6 +301,30 @@ class ReceptiveField(MetaEstimatorMixin, BaseEstimator):
 
         return self
 
+    def _check_data(self, X, y=None, reset=False):
+        kwargs = dict(reset=reset, allow_nd=True, ensure_2d=False)
+        X = validate_data(self, X=X, **kwargs)
+        # Because y can be more than 2D, which is surprising for sklearn
+        if y is not None:
+            y = check_array(y, ensure_2d=False, allow_nd=True)
+        elif reset:
+            raise ValueError("requires y to be passed, but the target y is None")
+
+        if reset:
+            self.n_features_in_ = X.shape[-1]
+        else:
+            if X.ndim >= 2 and hasattr(self, "n_features_in_"):
+                n_features = X.shape[-1]
+                if n_features != self.n_features_in_:
+                    name = type(self).__name__
+                    raise ValueError(
+                        f"X has {n_features} features, but {name} is expecting "
+                        f"{self.n_features_in_} features as input"
+                    )
+        if np.iscomplexobj(X) or (y is not None and np.iscomplexobj(y)):
+            raise ValueError("Complex data not supported. Use real-valued inputs.")
+        return X, y
+
     def predict(self, X):
         """Generate predictions with a receptive field.
 
@@ -300,7 +342,10 @@ class ReceptiveField(MetaEstimatorMixin, BaseEstimator):
         """
         if not hasattr(self, "delays_"):
             raise NotFittedError("Estimator has not been fit yet.")
+
+        X, _ = self._check_data(X)
         X, _, X_dim = self._check_dimensions(X, None, predict=True)[:3]
+
         del _
         # convert to sklearn and back
         pred_shape = X.shape[:-1]
@@ -384,7 +429,10 @@ class ReceptiveField(MetaEstimatorMixin, BaseEstimator):
                     )
         else:
             raise ValueError(
-                f"X must be shape (n_times[, n_epochs], n_features), got {X.shape}"
+                "X must be shape (n_times[, n_epochs], n_features), "
+                f"got {X.shape}. Reshape your data to 2D or 3D "
+                "(e.g., array.reshape(-1, 1) for a single feature, "
+                "or array.reshape(1, -1) for a single sample)."
             )
         if y is not None:
             if X.shape[0] != y.shape[0]:

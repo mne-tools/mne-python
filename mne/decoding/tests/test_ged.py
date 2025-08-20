@@ -126,12 +126,7 @@ param_grid = dict(
     cov_callable=[partial(_mock_cov_callable, cov_method_params=dict(reg="empirical"))],
     mod_ged_callable=[_mock_mod_ged_callable],
     dec_type=["single", "multi"],
-    # XXX: Not covering "ssd" here because test_ssd.py works with 2D data.
-    # Need to fix its tests first.
-    restr_type=[
-        "restricting",
-        "whitening",
-    ],
+    restr_type=["restricting", "whitening"],
     R_func=[partial(np.sum, axis=0)],
 )
 

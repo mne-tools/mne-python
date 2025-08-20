@@ -619,13 +619,6 @@ def test_rf_sklearn_compliance(estimator, check):
         "check_parameters_default_constructible",
         "_invariance",
         "check_fit2d_1sample",
-        # Should probably fix these?
-        "check_complex_data",
-        "check_dtype_object",
-        "check_estimators_empty_data_messages",
-        "check_n_features_in",
-        "check_fit2d_predict1d",
-        "check_estimators_unfitted",
     )
     if any(ignore in str(check) for ignore in ignores):
         return
