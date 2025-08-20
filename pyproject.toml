@@ -280,10 +280,6 @@ addopts = [
   "--tb=short",
   "-rfEXs",
 ]
-markers = [
-  "pgtest: test needs PyQtGraph (AKA mne-qt-browser).",
-  "pvtest: test needs PyVistaQt.",
-]
 testpaths = [
   "mne",
 ]
