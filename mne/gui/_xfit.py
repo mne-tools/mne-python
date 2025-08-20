@@ -21,7 +21,11 @@ from ..dipole import Dipole, fit_dipole
 from ..evoked import Evoked, read_evokeds
 from ..forward import convert_forward_solution, make_field_map, make_forward_dipole
 from ..minimum_norm import apply_inverse, make_inverse_operator
-from ..source_estimate import _BaseSurfaceSourceEstimate, read_source_estimate
+from ..source_estimate import (
+    SourceEstimate,
+    _BaseSurfaceSourceEstimate,
+    read_source_estimate,
+)
 from ..surface import _normal_orth
 from ..transforms import _get_trans, _get_transforms_to_coord_frame, apply_trans
 from ..utils import _check_option, _validate_type, fill_doc, logger, verbose
@@ -215,18 +219,19 @@ class DipoleFitUI:
 
         self._fig_stc = None
         if self._stc is not None:
-            self._fig_stc = self._stc.plot(
+            kwargs = dict(
                 subject=self._subject,
                 subjects_dir=self._subjects_dir,
-                surface="white",
                 hemi="both",
                 time_viewer=False,
                 initial_time=self._current_time,
                 brain_kwargs=dict(units="m"),
                 figure=fig,
             )
-            fig = self._fig_stc
-            self._actors["brain"] = fig._actors["data"]
+            if isinstance(self._stc, SourceEstimate):
+                kwargs["surface"] = "white"
+            self._fig_stc = self._stc.plot(**kwargs)
+            self._actors["brain"] = self._fig_stc._actors["data"]
 
         fig = EvokedField(
             self._evoked,
