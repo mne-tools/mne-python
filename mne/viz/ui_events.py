@@ -191,8 +191,7 @@ class Contours(UIEvent):
     Parameters
     ----------
     kind : str
-        drawing routine publishing this event should mention the possible
-        kinds.
+        The drawing routine publishing this event should mention the possible kinds.
     contours : list of float
         The new values at which contour lines need to be drawn.
     line_width : float | None
