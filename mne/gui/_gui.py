@@ -2,7 +2,7 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-from .. import datasets
+from ..datasets import sample
 from ..utils import get_config, verbose
 
 
@@ -243,9 +243,7 @@ def dipolefit(
         show = block = False
 
     if evoked is None:
-        evoked = (
-            datasets.sample.data_path() / "MEG" / "sample" / "sample_audvis-ave.fif"
-        )
+        evoked = sample.data_path() / "MEG" / "sample" / "sample_audvis-ave.fif"
     return DipoleFitUI(
         evoked=evoked,
         condition=condition,

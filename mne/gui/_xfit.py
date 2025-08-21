@@ -9,7 +9,7 @@ from pathlib import Path
 import numpy as np
 import pyvista
 
-from .. import pick_types
+from .._fiff.pick import pick_types
 from ..bem import (
     ConductorModel,
     _ensure_bem_surfaces,
