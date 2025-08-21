@@ -131,6 +131,8 @@ _._has_rpa_data
 _._nearest_transformed_high_res_mri_idx_rpa
 _._nearest_transformed_high_res_mri_idx_nasion
 _._nearest_transformed_high_res_mri_idx_lpa
+_.prop.culling
+_.prop.lighting
 
 # Figures (prevent GC for example)
 _.decim_data

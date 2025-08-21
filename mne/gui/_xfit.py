@@ -496,7 +496,7 @@ class DipoleFitUI:
         dipole._ori /= np.linalg.norm(dipole._ori, axis=1, keepdims=True)
 
         new_dipoles = list()
-        for dip_i, (dip, name) in enumerate(zip(dipole, names)):
+        for dip, name in zip(dipole, names):
             # Coordinates needed to draw the big arrow on the helmet.
             helmet_coords, helmet_pos = self._get_helmet_coords(dip)
 
