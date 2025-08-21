@@ -243,7 +243,14 @@ def dipolefit(
         show = block = False
 
     if evoked is None:
-        evoked = sample.data_path() / "MEG" / "sample" / "sample_audvis-ave.fif"
+        evoked = (
+            sample.data_path(
+                download=False,
+            )
+            / "MEG"
+            / "sample"
+            / "sample_audvis-ave.fif"
+        )
     return DipoleFitUI(
         evoked=evoked,
         condition=condition,

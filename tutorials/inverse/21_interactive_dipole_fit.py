@@ -1,5 +1,5 @@
 """
-.. _tut-ecd-dipole:
+.. _tut-xfit:
 
 =====================================================================
 Source localization by guided equivalent current dipole (ECD) fitting

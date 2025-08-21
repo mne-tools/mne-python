@@ -323,7 +323,7 @@ class DipoleFitUI:
             check_inside=None,
             nearest=None,
             sensor_colors=dict(
-                meg=["white" for _ in meg_picks],
+                meg=["gray" for _ in meg_picks],
                 eeg=["white" for _ in eeg_picks],
             ),
         )
