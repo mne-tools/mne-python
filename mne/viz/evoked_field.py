@@ -50,6 +50,7 @@ class EvokedField:
         the average peak latency (across sensor types) is used.
     time_label : str | None
         How to print info about the time instant visualized.
+    fig : instance of Figure3D | None
         If None (default), a new figure will be created, otherwise it will
         plot into the given figure.
 
