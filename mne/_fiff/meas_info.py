@@ -642,6 +642,17 @@ class SetChannelsMixin(MontageMixin):
             .. versionchanged:: 0.20
                Return the instance.
 
+        See Also
+        --------
+        mne.io.Raw.add_proj : Add projectors.
+        mne.io.Raw.del_proj : Delete projectors.
+        mne.io.Raw.set_channel_types : Set channel types.
+        mne.io.Raw.set_meas_date : Set measurement date.
+        mne.Evoked.add_proj : Add projectors.
+        mne.Evoked.del_proj : Delete projectors.
+        mne.Evoked.set_channel_types : Set channel types.
+        mne.Evoked.set_meas_date : Set measurement date.
+
         Notes
         -----
         .. versionadded:: 0.9.0
