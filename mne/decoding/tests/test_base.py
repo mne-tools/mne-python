@@ -244,17 +244,24 @@ class _Noop(BaseEstimator, TransformerMixin):
 @pytest.mark.parametrize(
     "clf",
     [
-        make_pipeline(
-            Scaler(info=None, scalings="mean"),
-            SlidingEstimator(make_pipeline(LinearModel(Ridge()))),
-        ),  # mne scaler + slider of pipeline
-        make_pipeline(
-            _Noop(),
-            SlidingEstimator(make_pipeline(LinearModel(Ridge()))),
-        ),  # no_op + slider of pipeline
-        SlidingEstimator(
-            make_pipeline(StandardScaler(), LinearModel(Ridge()))
-        ),  # slider of pipeline with sklearn scaler
+        pytest.param(
+            make_pipeline(
+                Scaler(info=None, scalings="mean"),
+                SlidingEstimator(make_pipeline(LinearModel(Ridge()))),
+            ),
+            id="Scaler+SlidingEstimator",
+        ),
+        pytest.param(
+            make_pipeline(
+                _Noop(),
+                SlidingEstimator(make_pipeline(LinearModel(Ridge()))),
+            ),
+            id="Noop+SlidingEstimator",
+        ),
+        pytest.param(
+            SlidingEstimator(make_pipeline(StandardScaler(), LinearModel(Ridge()))),
+            id="SlidingEstimator+nested StandardScaler",
+        ),
     ],
 )
 def test_get_coef_inverse_transform(inverse, clf):

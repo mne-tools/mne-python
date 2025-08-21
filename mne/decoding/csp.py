@@ -9,15 +9,11 @@ import numpy as np
 
 from .._fiff.meas_info import Info
 from ..defaults import _BORDER_DEFAULT, _EXTRAPOLATE_DEFAULT, _INTERPOLATION_DEFAULT
-from ..utils import (
-    _check_option,
-    _validate_type,
-    fill_doc,
-)
+from ..utils import _check_option, _validate_type, fill_doc, legacy
 from ._covs_ged import _csp_estimate, _spoc_estimate
 from ._mod_ged import _csp_mod, _spoc_mod
 from .base import _GEDTransformer
-from .spatial_filter import _plot_model
+from .spatial_filter import get_spatial_filter_from_estimator
 
 
 @fill_doc
@@ -315,6 +311,7 @@ class CSP(_GEDTransformer):
         # use parent TransformerMixin method but with custom docstring
         return super().fit_transform(X, y=y, **fit_params)
 
+    @legacy(alt="get_spatial_filter_from_estimator(clf, info=info).plot_patterns()")
     @fill_doc
     def plot_patterns(
         self,
@@ -401,9 +398,8 @@ class CSP(_GEDTransformer):
         fig : instance of matplotlib.figure.Figure
            The figure.
         """
-        fig = _plot_model(
-            self.patterns_,
-            info,
+        spf = get_spatial_filter_from_estimator(self, info=info)
+        return spf.plot_patterns(
             components,
             ch_type=ch_type,
             scalings=scalings,
@@ -431,8 +427,8 @@ class CSP(_GEDTransformer):
             ncols=ncols,
             show=show,
         )
-        return fig
 
+    @legacy(alt="get_spatial_filter_from_estimator(clf, info=info).plot_filters()")
     @fill_doc
     def plot_filters(
         self,
@@ -519,9 +515,8 @@ class CSP(_GEDTransformer):
         fig : instance of matplotlib.figure.Figure
            The figure.
         """
-        fig = _plot_model(
-            self.filters_,
-            info,
+        spf = get_spatial_filter_from_estimator(self, info=info)
+        return spf.plot_filters(
             components,
             ch_type=ch_type,
             scalings=scalings,
@@ -549,7 +544,6 @@ class CSP(_GEDTransformer):
             ncols=ncols,
             show=show,
         )
-        return fig
 
 
 def _ajd_pham(X, eps=1e-6, max_iter=15):
