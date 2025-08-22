@@ -29,6 +29,8 @@ from mne import (
     read_annotations,
 )
 from mne.annotations import (
+    _AnnotationsExtrasDict,
+    _AnnotationsExtrasList,
     _handle_meas_date,
     _read_annotations_txt_parse_header,
     _sync_onset,
@@ -644,10 +646,24 @@ def test_annotation_epoching():
     assert_equal([0, 2, 4], epochs.selection)
 
 
-def test_annotation_concat():
+@pytest.mark.parametrize("with_extras", [True, False])
+def test_annotation_concat(with_extras):
     """Test if two Annotations objects can be concatenated."""
+    extras = None
+    if with_extras:
+        extras = [
+            {"foo1": 1, "foo2": 1.1, "foo3": "a", "foo4": None},
+            None,
+            None,
+        ]
     a = Annotations([1, 2, 3], [5, 5, 8], ["a", "b", "c"], ch_names=[["1"], ["2"], []])
-    b = Annotations([11, 12, 13], [1, 2, 2], ["x", "y", "z"], ch_names=[[], ["3"], []])
+    b = Annotations(
+        [11, 12, 13],
+        [1, 2, 2],
+        ["x", "y", "z"],
+        ch_names=[[], ["3"], []],
+        extras=extras,
+    )
 
     # test + operator (does not modify a or b)
     c = a + b
@@ -669,6 +685,10 @@ def test_annotation_concat():
     assert_array_equal(a.description, ["a", "b", "c", "x", "y", "z"])
     assert_equal(len(a), 6)
     assert_equal(len(b), 3)
+
+    if with_extras:
+        all_extras = [extra or {} for extra in [None] * 3 + extras]
+        assert all(c.extras[i] == all_extras[i] for i in range(len(all_extras)))
 
     # test += operator (modifies a in place)
     b._orig_time = _handle_meas_date(1038942070.7201)
@@ -963,7 +983,7 @@ def test_event_id_function_using_custom_function():
 # Test for IO with .csv files
 
 
-def _assert_annotations_equal(a, b, tol=0):
+def _assert_annotations_equal(a, b, tol=0, comp_extras_as_str=False):
     __tracebackhide__ = True
     assert_allclose(a.onset, b.onset, rtol=0, atol=tol, err_msg="onset")
     assert_allclose(a.duration, b.duration, rtol=0, atol=tol, err_msg="duration")
@@ -972,14 +992,24 @@ def _assert_annotations_equal(a, b, tol=0):
     a_orig_time = a.orig_time
     b_orig_time = b.orig_time
     assert a_orig_time == b_orig_time, "orig_time"
+    extras_columns = a._extras_columns.union(b._extras_columns)
+    for col in extras_columns:
+        for i, extra in enumerate(a.extras):
+            exa = extra.get(col, None)
+            exb = b.extras[i].get(col, None)
+            if comp_extras_as_str:
+                exa = str(exa) if exa is not None else ""
+                exb = str(exb) if exb is not None else ""
+            assert exa == exb, f"extras[{i}][{col}]"
 
 
 _ORIG_TIME = datetime.fromtimestamp(1038942071.7201, timezone.utc)
 
 
-@pytest.fixture(scope="function", params=("ch_names", "fmt"))
-def dummy_annotation_file(tmp_path_factory, ch_names, fmt):
+@pytest.fixture(scope="function", params=("ch_names", "fmt", "with_extras"))
+def dummy_annotation_file(tmp_path_factory, ch_names, fmt, with_extras):
     """Create csv file for testing."""
+    extras_row0 = {"foo1": 1, "foo2": 1.1, "foo3": "a", "foo4": None}
     if fmt == "csv":
         content = (
             "onset,duration,description\n"
@@ -996,7 +1026,10 @@ def dummy_annotation_file(tmp_path_factory, ch_names, fmt):
         )
     else:
         assert fmt == "fif"
-        content = Annotations([0, 9], [1, 2.425], ["AA", "BB"], orig_time=_ORIG_TIME)
+        extras = [extras_row0, None] if with_extras else None
+        content = Annotations(
+            [0, 9], [1, 2.425], ["AA", "BB"], orig_time=_ORIG_TIME, extras=extras
+        )
 
     if ch_names:
         if isinstance(content, Annotations):
@@ -1008,6 +1041,14 @@ def dummy_annotation_file(tmp_path_factory, ch_names, fmt):
             content[-2] += ","
             content[-1] += ",MEG0111:MEG2563"
             content = "\n".join(content)
+    if with_extras and fmt != "fif":
+        content = content.splitlines()
+        content[-3] += "," + ",".join(extras_row0.keys())
+        content[-2] += "," + ",".join(
+            ["" if v is None else str(v) for v in extras_row0.values()]
+        )
+        content[-1] += ",,,,"
+        content = "\n".join(content)
 
     fname = tmp_path_factory.mktemp("data") / f"annotations-annot.{fmt}"
     if isinstance(content, str):
@@ -1018,17 +1059,27 @@ def dummy_annotation_file(tmp_path_factory, ch_names, fmt):
     return fname
 
 
+@pytest.mark.filterwarnings("ignore:.*heterogeneous dtypes.*")
 @pytest.mark.parametrize("ch_names", (False, True))
 @pytest.mark.parametrize("fmt", [pytest.param("csv", marks=needs_pandas), "txt", "fif"])
-def test_io_annotation(dummy_annotation_file, tmp_path, fmt, ch_names):
+@pytest.mark.parametrize("with_extras", [True, False])
+def test_io_annotation(dummy_annotation_file, tmp_path, fmt, ch_names, with_extras):
     """Test CSV, TXT, and FIF input/output (which support ch_names)."""
     annot = read_annotations(dummy_annotation_file)
     assert annot.orig_time == _ORIG_TIME
     kwargs = dict(orig_time=_ORIG_TIME)
     if ch_names:
         kwargs["ch_names"] = ((), ("MEG0111", "MEG2563"))
+    if with_extras:
+        kwargs["extras"] = [
+            {"foo1": 1, "foo2": 1.1, "foo3": "a", "foo4": None},
+            None,
+        ]
     _assert_annotations_equal(
-        annot, Annotations([0.0, 9.0], [1.0, 2.425], ["AA", "BB"], **kwargs), tol=1e-6
+        annot,
+        Annotations([0.0, 9.0], [1.0, 2.425], ["AA", "BB"], **kwargs),
+        tol=1e-6,
+        comp_extras_as_str=fmt in ["csv", "txt"],
     )
 
     # Now test writing
@@ -1042,6 +1093,52 @@ def test_io_annotation(dummy_annotation_file, tmp_path, fmt, ch_names):
     annot.save(fname, overwrite=True)
     annot2 = read_annotations(fname)
     _assert_annotations_equal(annot, annot2)
+
+
+@pytest.mark.parametrize("fmt", [pytest.param("csv", marks=needs_pandas), "txt"])
+def test_write_annotation_warn_heterogeneous(tmp_path, fmt):
+    """Test that CSV, and TXT annotation writers warn on heterogeneous dtypes."""
+    annot = Annotations(
+        onset=[0.0, 9.0],
+        duration=[1.0, 2.425],
+        description=["AA", "BB"],
+        orig_time=_ORIG_TIME,
+        extras=[
+            {"foo1": "a", "foo2": "a"},
+            {"foo1": 1, "foo2": None},
+        ],
+    )
+    fname = tmp_path / f"annotations-annot.{fmt}"
+    with (
+        pytest.warns(RuntimeWarning, match="'foo2' contains heterogeneous dtypes"),
+        pytest.warns(RuntimeWarning, match="'foo1' contains heterogeneous dtypes"),
+    ):
+        annot.save(fname)
+
+
+def test_write_annotation_warn_heterogeneous_b(tmp_path):
+    """Additional cases for test_write_annotation_warn_heterogeneous.
+
+    These cases are only compatible with the TXT writer.
+    """
+    fmt = "txt"
+    annot = Annotations(
+        onset=[0.0, 9.0],
+        duration=[1.0, 2.425],
+        description=["AA", "BB"],
+        orig_time=_ORIG_TIME,
+        extras=[
+            {"foo3": 1, "foo4": 1, "foo5": 1.0},
+            {"foo3": 1.0, "foo4": None, "foo5": None},
+        ],
+    )
+    fname = tmp_path / f"annotations-annot.{fmt}"
+    with (
+        pytest.warns(RuntimeWarning, match="'foo5' contains heterogeneous dtypes"),
+        pytest.warns(RuntimeWarning, match="'foo4' contains heterogeneous dtypes"),
+        pytest.warns(RuntimeWarning, match="'foo3' contains heterogeneous dtypes"),
+    ):
+        annot.save(fname)
 
 
 def test_broken_csv(tmp_path):
@@ -1155,9 +1252,10 @@ def test_read_annotation_txt_header(tmp_path):
     fname = tmp_path / "header.txt"
     with open(fname, "w") as f:
         f.write(content)
-    orig_time = _read_annotations_txt_parse_header(fname)
+    orig_time, _, n_rows_header = _read_annotations_txt_parse_header(fname)
     want = datetime.fromtimestamp(1038942071.7201, timezone.utc)
     assert orig_time == want
+    assert n_rows_header == 5
 
 
 def test_read_annotation_txt_one_segment(tmp_path):
@@ -1210,29 +1308,34 @@ def test_annotations_slices():
     NUM_ANNOT = 5
     EXPECTED_ONSETS = EXPECTED_DURATIONS = [x for x in range(NUM_ANNOT)]
     EXPECTED_DESCS = [x.__repr__() for x in range(NUM_ANNOT)]
+    EXTRAS_ROW = {"foo1": 1, "foo2": 1.1, "foo3": "a", "foo4": None}
+    EXPECTED_EXTRAS = [EXTRAS_ROW] * NUM_ANNOT
 
     annot = Annotations(
         onset=EXPECTED_ONSETS,
         duration=EXPECTED_DURATIONS,
         description=EXPECTED_DESCS,
         orig_time=None,
+        extras=EXPECTED_EXTRAS,
     )
 
     # Indexing returns a copy. So this has no effect in annot
     annot[0]["onset"] = 42
     annot[0]["duration"] = 3.14
     annot[0]["description"] = "foobar"
+    annot[0]["extras"] = EXTRAS_ROW
 
     annot[:1].onset[0] = 42
     annot[:1].duration[0] = 3.14
     annot[:1].description[0] = "foobar"
+    annot[:1].extras[0] = EXTRAS_ROW
 
     # Slicing with single element returns a dictionary
     for ii in EXPECTED_ONSETS:
         assert annot[ii] == dict(
             zip(
-                ["onset", "duration", "description", "orig_time"],
-                [ii, ii, str(ii), None],
+                ["onset", "duration", "description", "orig_time", "extras"],
+                [ii, ii, str(ii), None, EXTRAS_ROW],
             )
         )
 
@@ -1865,3 +1968,59 @@ def test_append_splits_boundary(tmp_path, split_size):
     assert len(raw.annotations) == 2
     assert raw.annotations.description[0] == "BAD boundary"
     assert_allclose(raw.annotations.onset, [onset] * 2)
+
+
+@pytest.mark.parametrize(
+    "key, value, expected_error, match",
+    (
+        ("onset", 1, ValueError, "reserved"),
+        ("duration", 1, ValueError, "reserved"),
+        ("description", 1, ValueError, "reserved"),
+        ("ch_names", 1, ValueError, "reserved"),
+        ("valid_key", [], TypeError, "value must be an instance of"),
+        (1, 1, TypeError, "key must be an instance of"),
+    ),
+)
+def test_extras_dict_raises(key, value, expected_error, match):
+    """Test that _AnnotationsExtrasDict raises errors for invalid keys/values."""
+    extras_dict = _AnnotationsExtrasDict()
+    with pytest.raises(expected_error, match=match):
+        extras_dict[key] = value
+    with pytest.raises(expected_error, match=match):
+        extras_dict.update({key: value})
+    with pytest.raises(expected_error, match=match):
+        _AnnotationsExtrasDict({key: value})
+    if isinstance(key, str):
+        with pytest.raises(expected_error, match=match):
+            _AnnotationsExtrasDict(**{key: value})
+
+
+@pytest.mark.parametrize(
+    "key, value, expected_error, match",
+    (
+        ("onset", 1, ValueError, "reserved"),
+        ("duration", 1, ValueError, "reserved"),
+        ("description", 1, ValueError, "reserved"),
+        ("ch_names", 1, ValueError, "reserved"),
+        ("valid_key", [], TypeError, "value must be an instance of"),
+        (1, 1, TypeError, "key must be an instance of"),
+    ),
+)
+def test_extras_list_raises(key, value, expected_error, match):
+    """Test that _AnnotationsExtrasList raises errors for invalid keys/values."""
+    extras = _AnnotationsExtrasList([None])
+    assert all(isinstance(extra, _AnnotationsExtrasDict) for extra in extras)
+    with pytest.raises(expected_error, match=match):
+        extras[0] = {key: value}
+    with pytest.raises(expected_error, match=match):
+        extras[:1] = [{key: value}]
+    with pytest.raises(expected_error, match=match):
+        extras[0].update({key: value})
+    with pytest.raises(expected_error, match=match):
+        _AnnotationsExtrasList([{key: value}])
+    with pytest.raises(expected_error, match=match):
+        extras.append({key: value})
+    with pytest.raises(expected_error, match=match):
+        extras.extend([{key: value}])
+    with pytest.raises(expected_error, match=match):
+        extras += [{key: value}]

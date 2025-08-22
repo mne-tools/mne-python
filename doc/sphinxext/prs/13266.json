@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "fc9078a93170ea1d2ccc88bffb85b48509757c4d",
+  "authors": [
+    {
+      "n": "Jona Sassenhagen",
+      "e": "jona.sassenhagen@gmail.com"
+    },
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    "tutorials/visualization/10_publication_figure.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

@@ -43,6 +43,9 @@ metadata_routing
 _._more_tags
 _.multi_class
 _.preserves_dtype
+_.one_d_labels
+_.two_d_array
+_.three_d_array
 deep
 
 # Backward compat or rarely used

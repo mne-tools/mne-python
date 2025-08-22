@@ -5,7 +5,7 @@ permissions:
 jobs:
   circleci_artifacts_redirector_job:
     if: "${{ startsWith(github.event.context, 'ci/circleci: build_docs') }}"
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     name: Run CircleCI artifacts redirector
     steps:
       - name: GitHub Action step

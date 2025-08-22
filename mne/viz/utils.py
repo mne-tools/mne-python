@@ -1423,6 +1423,8 @@ def _compute_scalings(scalings, inst, remove_dc=False, duration=10):
         this_data = this_data[np.isfinite(this_data)]
         if this_data.size:
             iqr = np.diff(np.percentile(this_data, [25, 75]))[0]
+            if iqr == 0:  # e.g. sparse stim channels, flat channels
+                iqr = 1.0
         else:
             iqr = 1.0
         scalings[key] = iqr
@@ -1773,33 +1775,33 @@ class SelectFromCollection:
         self.canvas.draw_idle()
 
 
-def _get_color_list(annotations=False):
+def _get_color_list(*, remove=None):
     """Get the current color list from matplotlib rcParams.
 
     Parameters
     ----------
-    annotations : boolean
-        Has no influence on the function if false. If true, check if color
-        "red" (#ff0000) is in the cycle and remove it.
+    remove : tuple of str | None
+        Has no influence on the function if None. Can be a list of colors to
+        remove from the list if within 1/255 of the color.
 
     Returns
     -------
     colors : list
     """
     from matplotlib import rcParams
+    from matplotlib.colors import to_rgba_array
 
     color_cycle = rcParams.get("axes.prop_cycle")
     colors = color_cycle.by_key()["color"]
 
-    # If we want annotations, red is reserved ... remove if present. This
-    # checks for the reddish color in MPL dark background style, normal style,
-    # and MPL "red", and defaults to the last of those if none are present
-    for red in ("#fa8174", "#d62728", "#ff0000"):
-        if annotations and red in colors:
-            colors.remove(red)
-            break
-
-    return (colors, red) if annotations else colors
+    colors_cast = to_rgba_array(colors)[:, :3]
+    atol = 1.5 / 255.0
+    for rem in to_rgba_array(remove or [])[:, :3]:
+        matches = np.where(np.isclose(colors_cast, rem, atol=atol).all(-1))[0][::-1]
+        for idx in matches:
+            logger.debug(f"Removing from color cycle: {colors[idx]}")
+            colors.pop(idx)
+    return colors
 
 
 def _merge_annotations(start, stop, description, annotations, current=()):
@@ -2431,25 +2433,22 @@ def _convert_psds(
         warn(msg, UserWarning)
 
     _check_option("estimate", estimate, ("power", "amplitude"))
+    psds *= scaling * scaling
+    denom = r"\sqrt{\mathrm{Hz}}" if estimate == "amplitude" else r"\mathrm{Hz}"
     if estimate == "amplitude":
         np.sqrt(psds, out=psds)
-        psds *= scaling
-        ylabel = rf"$\mathrm{{{unit}/\sqrt{{Hz}}}}$"
         coef = 20
     else:
-        psds *= scaling * scaling
         if "/" in unit:
             unit = f"({unit})"
-        ylabel = rf"$\mathrm{{{unit}²/Hz}}$"
+        unit = f"{unit}^2"
         coef = 10
+    ylabel = rf"$\mathrm{{{unit}}}/{denom}$"
     if dB:
         np.log10(np.maximum(psds, np.finfo(float).tiny), out=psds)
         psds *= coef
-        ylabel = r"$\mathrm{dB}\ $" + ylabel
-    ylabel = "Power (" + ylabel if estimate == "power" else "Amplitude (" + ylabel
-    ylabel += ")"
-
-    return ylabel
+        ylabel = rf"$\mathrm{{dB}}/{denom}\ \mathrm{{re}}\ 1\ \mathrm{{{unit}}}$"
+    return f"{'Power' if estimate == 'power' else 'Amplitude'} ({ylabel})"
 
 
 def _plot_psd(

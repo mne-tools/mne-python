@@ -1,0 +1,107 @@
+{
+  "merge_commit_sha": "4cce83f50a1086dd3ff5642f45f9e971ec858fa2",
+  "authors": [
+    {
+      "n": "github-actions[bot]",
+      "e": "41898282+github-actions[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/conf.py": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/sphinxext/credit_tools.py": {
+      "a": 2,
+      "d": 1
+    },
+    "doc/sphinxext/prs/13044.json": {
+      "a": 47,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13080.json": {
+      "a": 63,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13083.json": {
+      "a": 39,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13093.json": {
+      "a": 187,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13097.json": {
+      "a": 23,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13099.json": {
+      "a": 15,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13100.json": {
+      "a": 23,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13101.json": {
+      "a": 35,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13104.json": {
+      "a": 19,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13106.json": {
+      "a": 19,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13107.json": {
+      "a": 27,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13110.json": {
+      "a": 15,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13113.json": {
+      "a": 31,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13114.json": {
+      "a": 39,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13116.json": {
+      "a": 15,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13123.json": {
+      "a": 27,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13125.json": {
+      "a": 19,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13126.json": {
+      "a": 15,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13129.json": {
+      "a": 31,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13132.json": {
+      "a": 31,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13134.json": {
+      "a": 15,
+      "d": 0
+    }
+  }
+}

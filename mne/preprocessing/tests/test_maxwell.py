@@ -173,6 +173,7 @@ bads = [
 
 def _assert_n_free(raw_sss, lower, upper=None):
     """Check the DOF."""
+    __tracebackhide__ = True
     upper = lower if upper is None else upper
     n_free = raw_sss.info["proc_history"][0]["max_info"]["sss_info"]["nfree"]
     assert lower <= n_free <= upper, f"nfree fail: {lower} <= {n_free} <= {upper}"
@@ -366,8 +367,10 @@ def test_other_systems():
     elp_path = kit_dir / "test_elp.txt"
     hsp_path = kit_dir / "test_hsp.txt"
     raw_kit = read_raw_kit(sqd_path, str(mrk_path), str(elp_path), str(hsp_path))
-    with pytest.warns(RuntimeWarning, match="fit"):
-        pytest.raises(RuntimeError, maxwell_filter, raw_kit)
+    with (
+        pytest.raises(NotImplementedError, match="Cannot create forward solution with"),
+    ):
+        maxwell_filter(raw_kit, verbose=True)
     with catch_logging() as log:
         raw_sss = maxwell_filter(
             raw_kit, origin=(0.0, 0.0, 0.04), ignore_ref=True, verbose=True
@@ -378,24 +381,21 @@ def test_other_systems():
         raw_kit, origin=(0.0, 0.0, 0.04), ignore_ref=True, mag_scale="auto"
     )
     assert_allclose(raw_sss._data, raw_sss_auto._data)
-    # The KIT origin fit is terrible
-    with pytest.warns(RuntimeWarning, match="more than 20 mm"):
-        with catch_logging() as log:
-            pytest.raises(
-                RuntimeError, maxwell_filter, raw_kit, ignore_ref=True, regularize=None
-            )  # bad condition
-            raw_sss = maxwell_filter(
-                raw_kit,
-                origin="auto",
-                ignore_ref=True,
-                bad_condition="info",
-                verbose=True,
-            )
+    with catch_logging() as log:
+        pytest.raises(
+            RuntimeError, maxwell_filter, raw_kit, ignore_ref=True, regularize=None
+        )  # bad condition
+        raw_sss = maxwell_filter(
+            raw_kit,
+            origin="auto",
+            ignore_ref=True,
+            bad_condition="info",
+            verbose=True,
+        )
     log = log.getvalue()
-    assert "badly conditioned" in log
-    assert "more than 20 mm from" in log
-    # fits can differ slightly based on scipy version, so be lenient here
-    _assert_n_free(raw_sss, 28, 34)  # bad origin == brutal reg
+    assert "badly conditioned" not in log
+    assert "more than 20 mm from" not in log
+    _assert_n_free(raw_sss, 67, 67)
     # Let's set the origin
     with catch_logging() as log:
         raw_sss = maxwell_filter(
@@ -1622,10 +1622,21 @@ def test_mf_skips():
     ),
     [
         # Neuromag data tested against MF
-        (sample_fname, [], False, False, False, ["MEG 2443"], False, None, "raw"),
+        pytest.param(
+            sample_fname,
+            [],
+            False,
+            False,
+            False,
+            ["MEG 2443"],
+            False,
+            None,
+            "raw",
+            id="Neuromag no bads",
+        ),
         # add 0111 to test picking, add annot to test it, and prepend chs for
         # idx
-        (
+        pytest.param(
             sample_fname,
             ["MEG 0111"],
             True,
@@ -1635,11 +1646,12 @@ def test_mf_skips():
             False,
             None,
             "raw",
+            id="Neuromag with bads and annot",
         ),
         # CTF data seems to be sensitive to linalg lib (?) because some
         # channels are very close to the limit, so we just check that one shows
         # up
-        (
+        pytest.param(
             ctf_fname_continuous,
             [],
             False,
@@ -1649,9 +1661,10 @@ def test_mf_skips():
             False,
             None,
             "raw",
+            id="CTF no bads",
         ),
         # faked
-        (
+        pytest.param(
             ctf_fname_continuous,
             [],
             False,
@@ -1661,10 +1674,33 @@ def test_mf_skips():
             False,
             None,
             "raw",
+            id="CTF ignore ref",
         ),
         # For `return_scores=True`
-        (sample_fname, ["MEG 0111"], True, True, False, ["MEG 2443"], True, 50, "raw"),
-        (sample_fname, ["MEG 0111"], True, True, False, ["MEG 2443"], True, 50, None),
+        pytest.param(
+            sample_fname,
+            ["MEG 0111"],
+            True,
+            True,
+            False,
+            ["MEG 2443"],
+            True,
+            50,
+            "raw",
+            id="Neuromag return scores",
+        ),
+        pytest.param(
+            sample_fname,
+            ["MEG 0111"],
+            True,
+            True,
+            False,
+            ["MEG 2443"],
+            True,
+            50,
+            None,
+            id="Neuromag return scores no meas date",
+        ),
     ],
 )
 def test_find_bad_channels_maxwell(
@@ -1896,7 +1932,7 @@ def test_prepare_emptyroom_bads(bads):
     assert raw_er_prepared.info["bads"] == ["MEG0113", "MEG2313"]
     assert raw_er_prepared.info["dev_head_t"] == raw.info["dev_head_t"]
 
-    montage_expected = raw.copy().pick(picks="meg").get_montage()
+    montage_expected = raw.pick(picks="meg").get_montage()
     assert raw_er_prepared.get_montage() == montage_expected
 
     # Ensure the originals were not modified
@@ -1904,6 +1940,27 @@ def test_prepare_emptyroom_bads(bads):
     assert raw_er.info["bads"] == raw_er_bads_orig
     assert raw_er.info["dev_head_t"] is None
     assert raw_er.get_montage() is None
+
+
+@testing.requires_testing_data
+def test_prepare_empty_room_with_eeg() -> None:
+    """Test preparation of MEG empty-room which was acquired with EEG enabled."""
+    raw = read_raw_fif(raw_fname, allow_maxshield="yes", verbose=False)
+    raw_er = read_raw_fif(erm_fname, allow_maxshield="yes", verbose=False)
+    assert "eeg" in raw
+    assert "eeg" in raw_er
+    raw_er_prepared = maxwell_filter_prepare_emptyroom(raw_er=raw_er, raw=raw)
+    assert raw_er_prepared.info["dev_head_t"] == raw.info["dev_head_t"]
+    montage_expected = raw.get_montage()
+    assert raw_er_prepared.get_montage() == montage_expected
+
+    raw_er = raw_er.pick("meg")
+    assert "eeg" in raw
+    assert "eeg" not in raw_er
+    raw_er_prepared = maxwell_filter_prepare_emptyroom(raw_er=raw_er, raw=raw)
+    assert raw_er_prepared.info["dev_head_t"] == raw.info["dev_head_t"]
+    montage_expected = raw.pick("meg").get_montage()
+    assert raw_er_prepared.get_montage() == montage_expected
 
 
 @testing.requires_testing_data

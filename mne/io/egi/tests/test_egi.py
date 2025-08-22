@@ -83,6 +83,7 @@ def test_egi_mff_pause(fname, skip_times, event_times):
                 events_as_annotations=False,
             )
     assert raw.info["sfreq"] == 250.0  # true for all of these files
+    assert raw.info["dev_head_t"] is None  # no MEG data
     assert len(raw.annotations) == len(skip_times)
 
     # assert event onsets match expected times
@@ -212,7 +213,7 @@ def test_io_egi_mff(events_as_annotations):
     if events_as_annotations:
         # Grab the first annotation. Should be the first "DIN1" event.
         assert len(raw.annotations)
-        onset, dur, desc, _ = raw.annotations[0].values()
+        onset, dur, desc, _, _ = raw.annotations[0].values()
         assert_allclose(onset, 2.438)
         assert np.isclose(dur, 0)
         assert desc == "DIN1"

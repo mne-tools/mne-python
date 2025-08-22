@@ -23,11 +23,11 @@ dependencies = [
   "decorator",
   "jinja2",
   "lazy_loader >= 0.3",
-  "matplotlib >= 3.7",  # 2023/02/13
-  "numpy >= 1.25,<3",  # 2023/06/17
+  "matplotlib >= 3.8",  # released: 2023/09/15
+  "numpy >= 1.26,<3",  # released: 2023/09/16
   "packaging",
   "pooch >= 1.5",
-  "scipy >= 1.11",  # 2023/06/25
+  "scipy >= 1.11",  # released: 2023/06/25
   "tqdm",
 ]
 description = "MNE-Python project for MEG and EEG data analysis."
@@ -41,7 +41,8 @@ keywords = [
   "neuroimaging",
   "neuroscience",
 ]
-license = {text = "BSD-3-Clause"}
+license = "BSD-3-Clause"
+license-files = ["LICENSE"]
 maintainers = [{email = "dan@mccloy.info", name = "Dan McCloy"}]
 name = "mne"
 readme = {content-type = "text/x-rst", file = "README.rst"}
@@ -93,6 +94,7 @@ full-no-qt = [
   "dipy",
   "edfio >= 0.2.1",
   "eeglabio",
+  "filelock >= 3.18.0",
   "h5py",
   "imageio >= 2.6.1",
   "imageio-ffmpeg >= 0.4.1",
@@ -109,8 +111,8 @@ full-no-qt = [
   "nibabel",
   "nilearn",
   "numba",
-  "openmeeg >= 2.5.5",
-  "pandas >= 2.0",  # 2023/04/03
+  "openmeeg >= 2.5.7",  # released: 2023/11/16
+  "pandas >= 2.1",  # released: 2023/08/30
   "pillow",  # for `Brain.save_image` and `mne.Report`
   "pyarrow",  # only needed to avoid a deprecation warning in pandas
   "pybv",
@@ -120,7 +122,7 @@ full-no-qt = [
   "pyvistaqt >= 0.4",
   "qdarkstyle != 3.2.2",
   "qtpy",
-  "scikit-learn",
+  "scikit-learn >=1.3.0",  # released: 2023/06/30
   "sip",
   "snirf",
   "statsmodels",
@@ -133,12 +135,13 @@ full-no-qt = [
   "xlrd",
 ]
 full-pyqt6 = ["mne[full]"]
-full-pyside6 = ["mne[full-no-qt]", "PySide6 != 6.7.0, != 6.8.0, != 6.8.0.1"]
+full-pyside6 = ["mne[full-no-qt]", "PySide6 != 6.7.0, != 6.8.0, != 6.8.0.1, != 6.9.1"]
 # Dependencies for MNE-Python functions that use HDF5 I/O
 hdf5 = ["h5io >= 0.2.4", "pymatreader"]
 # Dependencies for running the test infrastructure
 test = [
   "codespell",
+  "flaky",
   "ipython != 8.7.0",  # for testing notebook backend; also in "full-no-qt" and "doc"
   "mypy",
   "numpydoc",
@@ -262,12 +265,24 @@ module = ['mne.annotations', 'mne.epochs', 'mne.evoked', 'mne.io']
 # -r f (failed), E (error), s (skipped), x (xfail), X (xpassed), w (warnings)
 # don't put in xfail for pytest 8.0+ because then it prints the tracebacks,
 # which look like real errors
-addopts = """--durations=20 --doctest-modules -rfEXs --cov-report= --tb=short \
-    --cov-branch --doctest-ignore-import-errors --junit-xml=junit-results.xml \
-    --ignore=doc --ignore=logo --ignore=examples --ignore=tutorials \
-    --ignore=mne/gui/_*.py --ignore=mne/icons --ignore=tools \
-    --ignore=mne/report/js_and_css \
-    --color=yes --capture=sys"""
+addopts = [
+  "--capture=sys",
+  "--color=yes",
+  "--cov-branch",
+  "--cov-report=",
+  "--doctest-ignore-import-errors",
+  "--doctest-modules",
+  "--durations=20",
+  "--ignore=mne/gui/_*.py",
+  "--ignore=mne/icons",
+  "--ignore=mne/report/js_and_css",
+  "--junit-xml=junit-results.xml",
+  "--tb=short",
+  "-rfEXs",
+]
+testpaths = [
+  "mne",
+]
 
 [tool.rstcheck]
 ignore_directives = [
@@ -376,8 +391,8 @@ spaces_before_inline_comment = 2
 trailing_comma_inline_array = true
 
 [tool.towncrier]
-directory = "doc/changes/devel/"
-filename = "doc/changes/devel.rst"
+directory = "doc/changes/dev/"
+filename = "doc/changes/dev.rst"
 issue_format = "`#{issue} <https://github.com/mne-tools/mne-python/pull/{issue}>`__"
 package = "mne"
 title_format = "{version} ({project_date})"

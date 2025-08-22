@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "99275fa2f1be6b260bfa38f0eef4dd605bd8686c",
+  "authors": [
+    {
+      "n": "LaurentLM",
+      "e": "laurent.lementec@gmail.com"
+    },
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/13261.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/_fiff/meas_info.py": {
+      "a": 24,
+      "d": 9
+    },
+    "mne/_fiff/tests/test_meas_info.py": {
+      "a": 15,
+      "d": 2
+    },
+    "mne/conftest.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/forward/tests/test_make_forward.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/preprocessing/tests/test_fine_cal.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/utils/tests/test_config.py": {
+      "a": 2,
+      "d": 0
+    }
+  }
+}

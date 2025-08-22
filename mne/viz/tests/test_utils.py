@@ -7,6 +7,8 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 import pytest
+from cycler import cycler
+from matplotlib import rc_context
 from numpy.testing import assert_allclose
 
 from mne import read_evokeds
@@ -46,10 +48,14 @@ def test_setup_vmin_vmax_warns():
 
 def test_get_color_list():
     """Test getting a colormap from rcParams."""
-    colors = _get_color_list()
-    assert isinstance(colors, list)
-    colors_no_red = _get_color_list(annotations=True)
-    assert "#ff0000" not in colors_no_red
+    with rc_context({"axes.prop_cycle": cycler(color=["#ff0000", "#00ff00"])}):
+        colors = _get_color_list()
+        assert isinstance(colors, list)
+        assert len(colors) == 2
+        assert "#ff0000" in colors
+        colors_no_red = _get_color_list(remove=("#ff0000",))
+        assert "#ff0000" not in colors_no_red
+        assert len(colors_no_red) == 1
 
 
 def test_mne_analyze_colormap():
@@ -123,6 +129,10 @@ def test_auto_scale():
     raw = read_raw_fif(raw_fname)
     epochs = Epochs(raw, read_events(ev_fname))
     rand_data = np.random.randn(10, 100)
+    # make a stim channel all zeros (gh 13376)
+    ix = raw.get_channel_types().index("stim")
+    raw.load_data()
+    raw._data[ix] = 0.0
 
     for inst in [raw, epochs]:
         scale_grad = 1e10
@@ -136,6 +146,8 @@ def test_auto_scale():
         scalings_new = _compute_scalings(scalings_def, inst)
         assert scale_grad == scalings_new["grad"]
         assert scalings_new["eeg"] != "auto"
+        # make sure an all-zero channel doesn't cause scaling=0 (gh 13376)
+        assert scalings_new["stim"] > 0
 
     with pytest.raises(ValueError, match="Must supply either Raw or Epochs"):
         _compute_scalings(scalings_def, rand_data)

@@ -291,7 +291,7 @@ Now we'll remove the *stable* version of MNE-Python and replace it with the
 the correct environment first (``conda activate mnedev``), and then do::
 
     $ cd $INSTALL_LOCATION/mne-python    # make sure we're in the right folder
-    $ conda remove --force mne  # the --force avoids dependency checking
+    $ conda remove --force mne-base  # the --force avoids dependency checking
     $ pip install -e .
 
 The command ``pip install -e .`` installs a python module into the current
@@ -597,7 +597,7 @@ skipped for very minor changes like correcting typos in the documentation.
 
 There are six separate sections for changes, based on change type.
 To add a changelog entry to a given section, name it as
-:file:`doc/changes/devel/<PR-number>.<type>.rst`. The types are:
+:file:`doc/changes/dev/<PR-number>.<type>.rst`. The types are:
 
 notable
     For overarching changes, e.g., adding type hints package-wide. These are rare.
@@ -614,8 +614,8 @@ other
     For changes that don't fit into any of the above categories, e.g.,
     internal refactorings.
 
-For example, for an enhancement PR with number 12345, the changelog entry should be
-added as a new file :file:`doc/changes/devel/12345.enhancement.rst`. The file should
+For example, for a new feature PR with number 12345, the changelog entry should be
+added as a new file :file:`doc/changes/dev/12345.newfeature.rst`. The file should
 contain:
 
 1. A brief description of the change, typically in a single line of one or two
@@ -1113,7 +1113,7 @@ it can serve as a useful example of what to expect from the PR review process.
 
 .. optipng
 
-.. _optipng: http://optipng.sourceforge.net/
+.. _optipng: https://optipng.sourceforge.net/
 .. _optipng for Windows: http://prdownloads.sourceforge.net/optipng/optipng-0.7.8-win64.zip?download
 
 .. include:: ../links.inc
