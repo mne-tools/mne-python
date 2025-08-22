@@ -1799,7 +1799,7 @@ def plot_evoked_joint(
     times="peaks",
     title="",
     picks=None,
-    exclude=None,
+    exclude="bads",
     show=True,
     ts_args=None,
     topomap_args=None,
@@ -1828,7 +1828,7 @@ def plot_evoked_joint(
     %(picks_all)s
     exclude : None | list of str | 'bads'
         Channels names to exclude from being shown. If ``'bads'``, the
-        bad channels are excluded. Defaults to ``None``.
+        bad channels are excluded. Defaults to ``'bads'``.
     show : bool
         Show figure if ``True``. Defaults to ``True``.
     ts_args : None | dict
