@@ -1,4 +1,7 @@
 #!/bin/bash
+echo "OSF service temporarily unavailable (503 error)"
+echo "Skipping minimal commands download"
+exit 0
 
 set -eo pipefail
 

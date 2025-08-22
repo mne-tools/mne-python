@@ -211,6 +211,7 @@
 .. _Moritz Gerster: https://github.com/moritz-gerster
 .. _Motofumi Fushimi: https://github.com/motofumi-fushimi/motofumi-fushimi.github.io
 .. _Nabil Alibou: https://github.com/nabilalibou
+.. _Natali Negussie: https://github.com/NatalieNegussie97
 .. _Natalie Klein: https://github.com/natalieklein
 .. _Nathalie Gayraud: https://github.com/ngayraud
 .. _Naveen Srinivasan: https://github.com/naveensrinivasan
