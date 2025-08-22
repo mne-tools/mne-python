@@ -1826,7 +1826,7 @@ def plot_evoked_joint(
         axes are passed make sure to set ``title=None``, otherwise some of your
         axes may be removed during placement of the title axis.
     %(picks_all)s
-    exclude : None | list of str | 'bads'
+    exclude : list of str | 'bads'
         Channels names to exclude from being shown. If ``'bads'``, the
         bad channels are excluded. Defaults to ``'bads'``.
     show : bool
