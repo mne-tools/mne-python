@@ -307,6 +307,7 @@
 .. _T. Wang: https://github.com/twang5
 .. _Tal Linzen: https://tallinzen.net/
 .. _Teon Brooks: https://github.com/teonbrooks
+.. _Tharupahan Jayawardana: https://github.com/tharu-jwd
 .. _Thomas Binns: https://github.com/tsbinns
 .. _Thomas Hartmann: https://github.com/thht
 .. _Thomas Radman: https://github.com/tradman
