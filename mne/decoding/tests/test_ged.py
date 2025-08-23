@@ -127,7 +127,7 @@ param_grid = dict(
     mod_ged_callable=[_mock_mod_ged_callable],
     dec_type=["single", "multi"],
     restr_type=["restricting", "whitening"],
-    R_func=[partial(np.sum, axis=0)],
+    R_func=[None, partial(np.sum, axis=0)],
 )
 
 ged_estimators = [_GEDTransformer(**p) for p in ParameterGrid(param_grid)]

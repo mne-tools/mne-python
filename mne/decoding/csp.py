@@ -165,6 +165,13 @@ class CSP(_GEDTransformer):
             R_func=sum,
         )
 
+    def __sklearn_tags__(self):
+        """Tag the transformer."""
+        tags = super().__sklearn_tags__()
+        tags.target_tags.required = True
+        tags.target_tags.multi_output = True
+        return tags
+
     def _validate_params(self, *, y):
         _validate_type(self.n_components, int, "n_components")
         if hasattr(self, "cov_est"):
@@ -192,7 +199,10 @@ class CSP(_GEDTransformer):
         self.classes_ = np.unique(y)
         n_classes = len(self.classes_)
         if n_classes < 2:
-            raise ValueError(f"n_classes must be >= 2, but got {n_classes} class")
+            raise ValueError(
+                "y should be a 1d array with more than two classes, "
+                f"but got {n_classes} class from {y}"
+            )
         elif n_classes > 2 and self.component_order == "alternate":
             raise ValueError(
                 "component_order='alternate' requires two classes, but data contains "
@@ -782,6 +792,12 @@ class SPoC(CSP):
         # concatenation of all epochs from the same class.
         delattr(self, "cov_est")
         delattr(self, "norm_trace")
+
+    def __sklearn_tags__(self):
+        """Tag the transformer."""
+        tags = super().__sklearn_tags__()
+        tags.target_tags.multi_output = False
+        return tags
 
     def fit(self, X, y):
         """Estimate the SPoC decomposition on epochs.

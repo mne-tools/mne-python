@@ -300,14 +300,10 @@ class TimeDelayingRidge(RegressorMixin, BaseEstimator):
     def __sklearn_tags__(self):
         """..."""
         tags = super().__sklearn_tags__()
-        tags.input_tags.two_d_array = True
         tags.input_tags.three_d_array = True
-        tags.input_tags.sparse = False
         tags.target_tags.one_d_labels = True
         tags.target_tags.two_d_labels = True
-        tags.target_tags.single_output = True
         tags.target_tags.multi_output = True
-        tags.target_tags.required = True
         return tags
 
     @property

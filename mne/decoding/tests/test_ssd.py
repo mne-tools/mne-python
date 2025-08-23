@@ -623,8 +623,10 @@ def test_sklearn_compliance(estimator, check):
     """Test LinearModel compliance with sklearn."""
     pytest.importorskip("sklearn", minversion="1.4")  # TODO VERSION remove on 1.4+
     ignores = (
+        # Checks below fail because what sklearn passes as (n_samples, n_features)
+        # is considered (n_channels, n_times) by SSD and creates problems
+        # when n_channels change between fit and transform.
         "check_methods_sample_order_invariance",
-        # Shape stuff
         "check_fit_idempotent",
         "check_methods_subset_invariance",
         "check_transformer_general",
