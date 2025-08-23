@@ -32,7 +32,7 @@ from sklearn.pipeline import make_pipeline
 import mne
 from mne import Epochs
 from mne.datasets.fieldtrip_cmc import data_path
-from mne.decoding import SPoC
+from mne.decoding import SPoC, get_spatial_filter_from_estimator
 
 # Define parameters
 fname = data_path() / "SubjectCMC.ds"
@@ -82,9 +82,18 @@ plt.show()
 # Plot the contributions to the detected components (i.e., the forward model)
 
 spoc.fit(X, y)
-spoc.plot_patterns(meg_epochs.info)
+spf = get_spatial_filter_from_estimator(spoc, info=meg_epochs.info)
+spf.plot_scree()
+
+# Plot patterns for the first three components
+# with largest absolute generalized eigenvalues,
+# as we can see on the scree plot
+spf.plot_patterns(components=[0, 1, 2])
+
 
 ##############################################################################
 # References
 # ----------
 # .. footbibliography::
+
+# %%
