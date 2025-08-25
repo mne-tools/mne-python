@@ -589,6 +589,7 @@ def test_linalg_warning():
 @parametrize_with_checks([TimeDelayingRidge(0, 10, 1.0, 0.1, "laplacian", n_jobs=1)])
 def test_tdr_sklearn_compliance(estimator, check):
     """Test sklearn estimator compliance."""
+    pytest.importorskip("sklearn", minversion="1.4")  # TODO VERSION remove on 1.4+
     ignores = (
         # TDR convolves and thus it's cannot be invariant when
         # shuffled or subsampled.
@@ -604,6 +605,7 @@ def test_tdr_sklearn_compliance(estimator, check):
 @parametrize_with_checks([ReceptiveField(-1, 2, 1.0, estimator=Ridge(), patterns=True)])
 def test_rf_sklearn_compliance(estimator, check):
     """Test sklearn RF compliance."""
+    pytest.importorskip("sklearn", minversion="1.4")  # TODO VERSION remove on 1.4+
     ignores = (
         # RF does time-lagging, so cannot be invariant when
         # shuffled or subsampled.
