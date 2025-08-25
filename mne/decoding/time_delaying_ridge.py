@@ -9,7 +9,6 @@ from scipy import linalg
 from scipy.signal import fftconvolve
 from scipy.sparse.csgraph import laplacian
 from sklearn.base import BaseEstimator, RegressorMixin
-from sklearn.utils import check_array
 from sklearn.utils.validation import check_is_fitted
 
 from ..cuda import _setup_cuda_fft_multiply_repeated
@@ -315,23 +314,25 @@ class TimeDelayingRidge(RegressorMixin, BaseEstimator):
         return int(round(self.tmax_ * self.sfreq_)) + 1
 
     def _check_data(self, X, y=None, reset=False):
-        kwargs = dict(reset=reset, allow_nd=True, ensure_2d=False)
-        X = validate_data(self, X=X, **kwargs)
-        # Because y can be more than 2D, which is surprising for sklearn
-        if y is not None:
-            y = check_array(y, ensure_2d=False, allow_nd=True)
-        elif reset:
-            raise ValueError("requires y to be passed, but the target y is None")
-
-        if X.ndim == 1:
-            raise ValueError(
-                "Reshape your data either using array.reshape(-1, 1) if "
-                "your data has a single feature or array.reshape(1, -1) "
-                "if it contains a single sample."
-            )
+        kwargs = dict(reset=reset, allow_nd=True)
+        if reset:
+            # Can be removed after sklearn 1.6 as validate_data checks the tags.
+            if y is None:
+                raise ValueError("requires y to be passed, but the target y is None")
+            X, y = validate_data(self, X=X, y=y, multi_output=True, **kwargs)
+        else:
+            X = validate_data(self, X=X, **kwargs)
 
         if reset:
             self.n_features_in_ = 1 if X.ndim == 1 else X.shape[-1]
+            if X.ndim == 3:
+                assert y.ndim == 3
+                assert X.shape[:2] == y.shape[:2]
+            else:
+                if y.ndim == 1:
+                    y = y[:, np.newaxis]
+                assert y.ndim == 2
+            _check_option("y.shape[0]", y.shape[0], (X.shape[0],))
         else:
             if X.ndim >= 2 and hasattr(self, "n_features_in_"):
                 n_features = X.shape[0] if X.ndim == 1 else X.shape[-1]
@@ -341,16 +342,6 @@ class TimeDelayingRidge(RegressorMixin, BaseEstimator):
                         f"X has {n_features} features, but {name} is expecting "
                         f"{self.n_features_in_} features as input"
                     )
-
-        if reset:
-            if X.ndim == 3:
-                assert y.ndim == 3
-                assert X.shape[:2] == y.shape[:2]
-            else:
-                if y.ndim == 1:
-                    y = y[:, np.newaxis]
-                assert y.ndim == 2
-            _check_option("y.shape[0]", y.shape[0], (X.shape[0],))
 
         return X, y
 

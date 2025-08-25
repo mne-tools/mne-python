@@ -147,11 +147,6 @@ class SSD(_GEDTransformer):
             restr_type=restr_type,
         )
 
-    def __sklearn_tags__(self):
-        """Tag the transformer."""
-        tags = super().__sklearn_tags__()
-        return tags
-
     def _validate_params(self, X):
         if isinstance(self.info, float):  # special case, mostly for testing
             self.sfreq_ = self.info

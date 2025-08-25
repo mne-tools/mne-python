@@ -14,7 +14,6 @@ from sklearn.base import (
 )
 from sklearn.exceptions import NotFittedError
 from sklearn.metrics import r2_score
-from sklearn.utils import check_array
 
 from ..utils import _validate_type, fill_doc, pinv
 from ._fixes import validate_data
@@ -164,6 +163,7 @@ class ReceptiveField(MetaEstimatorMixin, BaseEstimator):
         tags.input_tags.three_d_array = True
         tags.target_tags.one_d_labels = True
         tags.target_tags.multi_output = True
+        tags.target_tags.required = True
         return tags
 
     def _delay_and_reshape(self, X, y=None):
@@ -185,12 +185,13 @@ class ReceptiveField(MetaEstimatorMixin, BaseEstimator):
 
     def _check_data(self, X, y=None, reset=False):
         kwargs = dict(reset=reset, allow_nd=True, ensure_2d=False)
-        X = validate_data(self, X=X, **kwargs)
-        # Because y can be more than 2D, which is surprising for sklearn
-        if y is not None:
-            y = check_array(y, ensure_2d=False, allow_nd=True)
-        elif reset:
-            raise ValueError("requires y to be passed, but the target y is None")
+        if reset:
+            # Can be removed after sklearn 1.6 as validate_data checks the tags.
+            if y is None:
+                raise ValueError("requires y to be passed, but the target y is None")
+            X, y = validate_data(self, X=X, y=y, multi_output=True, **kwargs)
+        else:
+            X = validate_data(self, X=X, **kwargs)
 
         if reset:
             self.n_features_in_ = X.shape[-1]

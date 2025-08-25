@@ -591,7 +591,7 @@ def test_tdr_sklearn_compliance(estimator, check):
     """Test sklearn estimator compliance."""
     pytest.importorskip("sklearn", minversion="1.4")  # TODO VERSION remove on 1.4+
     ignores = (
-        # TDR convolves and thus it's output cannot be invariant when
+        # TDR convolves and thus its output cannot be invariant when
         # shuffled or subsampled.
         "check_methods_sample_order_invariance",
         "check_methods_subset_invariance",
@@ -607,7 +607,7 @@ def test_rf_sklearn_compliance(estimator, check):
     """Test sklearn RF compliance."""
     pytest.importorskip("sklearn", minversion="1.4")  # TODO VERSION remove on 1.4+
     ignores = (
-        # RF does time-lagging, so cannot be invariant when
+        # RF does time-lagging, so its output cannot be invariant when
         # shuffled or subsampled.
         "check_methods_sample_order_invariance",
         "check_methods_subset_invariance",
