@@ -127,7 +127,7 @@ class ReceptiveField(MetaEstimatorMixin, BaseEstimator):
         self.tmax = tmax
         self.sfreq = sfreq
         self.feature_names = feature_names
-        self.estimator = 0.0 if estimator is None else estimator
+        self.estimator = estimator
         self.fit_intercept = fit_intercept
         self.scoring = scoring
         self.patterns = patterns
@@ -239,7 +239,8 @@ class ReceptiveField(MetaEstimatorMixin, BaseEstimator):
         # Define the slice that we should use in the middle
         self.valid_samples_ = _delays_to_slice(self.delays_)
 
-        if isinstance(self.estimator, numbers.Real):
+        if self.estimator is None or isinstance(self.estimator, numbers.Real):
+            alpha = self.estimator if self.estimator is not None else 0.0
             if self.fit_intercept is None:
                 self.fit_intercept_ = True
             else:
@@ -248,7 +249,7 @@ class ReceptiveField(MetaEstimatorMixin, BaseEstimator):
                 self.tmin,
                 self.tmax,
                 self.sfreq_,
-                alpha=self.estimator,
+                alpha=alpha,
                 fit_intercept=self.fit_intercept_,
                 n_jobs=self.n_jobs,
                 edge_correction=self.edge_correction,

@@ -589,10 +589,11 @@ def test_linalg_warning():
 @parametrize_with_checks([TimeDelayingRidge(0, 10, 1.0, 0.1, "laplacian", n_jobs=1)])
 def test_tdr_sklearn_compliance(estimator, check):
     """Test sklearn estimator compliance."""
-    # We don't actually comply with a bunch of the regressor specs :(
     ignores = (
-        "check_regressor",
-        "_invariance",
+        # TDR convolves and thus it's cannot be invariant when
+        # shuffled or subsampled.
+        "check_methods_sample_order_invariance",
+        "check_methods_subset_invariance",
     )
     if any(ignore in str(check) for ignore in ignores):
         return
@@ -604,8 +605,10 @@ def test_tdr_sklearn_compliance(estimator, check):
 def test_rf_sklearn_compliance(estimator, check):
     """Test sklearn RF compliance."""
     ignores = (
-        "check_parameters_default_constructible",
-        "_invariance",
+        # RF does time-lagging, so cannot be invariant when
+        # shuffled or subsampled.
+        "check_methods_sample_order_invariance",
+        "check_methods_subset_invariance",
     )
     if any(ignore in str(check) for ignore in ignores):
         return

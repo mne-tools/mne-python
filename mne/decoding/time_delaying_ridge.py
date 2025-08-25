@@ -440,4 +440,5 @@ class TimeDelayingRidge(RegressorMixin, BaseEstimator):
         out += self.intercept_
         if singleton:
             out = out[:, 0, :]
+        out = out.squeeze()
         return out
