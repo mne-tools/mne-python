@@ -209,7 +209,7 @@ class ReceptiveField(MetaEstimatorMixin, BaseEstimator):
     def _validate_params(self, X):
         if self.scoring not in _SCORERS.keys():
             raise ValueError(
-                f"scoring must be one of {sorted(_SCORERS.keys())}, got {self.scoring} "
+                f"scoring must be one of {sorted(_SCORERS.keys())}, got {self.scoring}"
             )
         self.sfreq_ = float(self.sfreq)
         if self.tmin > self.tmax:
