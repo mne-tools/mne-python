@@ -334,6 +334,7 @@ class _GEDTransformer(MNETransformerMixin, BaseEstimator):
         tags.target_tags.one_d_labels = True
         tags.input_tags.two_d_array = True
         tags.input_tags.three_d_array = True
+        tags.requires_fit = True
         return tags
 
 

@@ -344,12 +344,7 @@ def test_sklearn_compliance(estimator, check):
     if estimator.__class__.__name__ == "FilterEstimator":
         ignores += [
             "check_estimators_overwrite_params",  # we modify self.info
-            "check_methods_sample_order_invariance",
-        ]
-    if estimator.__class__.__name__.startswith(("PSD", "Temporal")):
-        ignores += [
-            "check_transformers_unfitted",  # allow unfitted transform
-            "check_methods_sample_order_invariance",
+            "check_methods_sample_order_invariance",  # Filtering is not time invariant
         ]
     if any(ignore in str(check) for ignore in ignores):
         return
