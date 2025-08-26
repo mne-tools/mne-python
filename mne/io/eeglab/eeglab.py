@@ -163,20 +163,12 @@ def _get_montage_information(eeg, get_pos, *, montage_units):
 
     lpa, rpa, nasion = None, None, None
     if hasattr(eeg, "chaninfo") and isinstance(eeg.chaninfo.get("nodatchans"), dict):
-
-        def ensure_iterable(obj):
-            try:
-                iter(obj)
-            except TypeError:
-                return [obj]
-            return obj
-
         nodatchans = eeg.chaninfo["nodatchans"]
         types = nodatchans.get("type", [])
         descriptions = nodatchans.get("description", [])
-        xs = ensure_iterable(nodatchans.get("X", []))
-        ys = ensure_iterable(nodatchans.get("Y", []))
-        zs = ensure_iterable(nodatchans.get("Z", []))
+        xs = np.atleast_1d(nodatchans.get("X", []))
+        ys = np.atleast_1d(nodatchans.get("Y", []))
+        zs = np.atleast_1d(nodatchans.get("Z", []))
 
         for type_, description, x, y, z in zip(types, descriptions, xs, ys, zs):
             if type_ != "FID":
