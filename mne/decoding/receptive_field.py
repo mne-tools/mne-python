@@ -16,7 +16,7 @@ from sklearn.exceptions import NotFittedError
 from sklearn.metrics import r2_score
 
 from ..utils import _validate_type, fill_doc, pinv
-from ._fixes import validate_data
+from ._fixes import _check_n_features_3d, validate_data
 from .base import _check_estimator, get_coef
 from .time_delaying_ridge import TimeDelayingRidge
 
@@ -184,26 +184,20 @@ class ReceptiveField(MetaEstimatorMixin, BaseEstimator):
         return X, y
 
     def _check_data(self, X, y=None, reset=False):
-        kwargs = dict(reset=reset, allow_nd=True, ensure_2d=False)
         if reset:
-            # Can be removed after sklearn 1.6 as validate_data checks the tags.
-            if y is None:
-                raise ValueError("requires y to be passed, but the target y is None")
-            X, y = validate_data(self, X=X, y=y, multi_output=True, **kwargs)
+            X, y = validate_data(
+                self,
+                X=X,
+                y=y,
+                reset=reset,
+                validate_separately=(  # to take care of 3D y
+                    dict(allow_nd=True, ensure_2d=False),
+                    dict(allow_nd=True, ensure_2d=False),
+                ),
+            )
         else:
-            X = validate_data(self, X=X, **kwargs)
-
-        if reset:
-            self.n_features_in_ = X.shape[-1]
-        else:
-            if X.ndim >= 2 and hasattr(self, "n_features_in_"):
-                n_features = X.shape[-1]
-                if n_features != self.n_features_in_:
-                    name = type(self).__name__
-                    raise ValueError(
-                        f"X has {n_features} features, but {name} is expecting "
-                        f"{self.n_features_in_} features as input"
-                    )
+            X = validate_data(self, X=X, allow_nd=True, ensure_2d=False, reset=reset)
+        _check_n_features_3d(self, X, reset)
         return X, y
 
     def _validate_params(self, X):

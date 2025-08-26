@@ -15,7 +15,7 @@ from ..cuda import _setup_cuda_fft_multiply_repeated
 from ..filter import next_fast_len
 from ..fixes import jit
 from ..utils import ProgressBar, _check_option, logger, warn
-from ._fixes import validate_data
+from ._fixes import _check_n_features_3d, validate_data
 
 
 def _compute_corrs(
@@ -314,17 +314,17 @@ class TimeDelayingRidge(RegressorMixin, BaseEstimator):
         return int(round(self.tmax_ * self.sfreq_)) + 1
 
     def _check_data(self, X, y=None, reset=False):
-        kwargs = dict(reset=reset, allow_nd=True)
         if reset:
-            # Can be removed after sklearn 1.6 as validate_data checks the tags.
-            if y is None:
-                raise ValueError("requires y to be passed, but the target y is None")
-            X, y = validate_data(self, X=X, y=y, multi_output=True, **kwargs)
-        else:
-            X = validate_data(self, X=X, **kwargs)
-
-        if reset:
-            self.n_features_in_ = 1 if X.ndim == 1 else X.shape[-1]
+            X, y = validate_data(
+                self,
+                X=X,
+                y=y,
+                reset=reset,
+                validate_separately=(  # to take care of 3D y
+                    dict(allow_nd=True),
+                    dict(allow_nd=True, ensure_2d=False),
+                ),
+            )
             if X.ndim == 3:
                 assert y.ndim == 3
                 assert X.shape[:2] == y.shape[:2]
@@ -334,14 +334,16 @@ class TimeDelayingRidge(RegressorMixin, BaseEstimator):
                 assert y.ndim == 2
             _check_option("y.shape[0]", y.shape[0], (X.shape[0],))
         else:
-            if X.ndim >= 2 and hasattr(self, "n_features_in_"):
-                n_features = X.shape[0] if X.ndim == 1 else X.shape[-1]
-                if n_features != self.n_features_in_:
-                    name = type(self).__name__
-                    raise ValueError(
-                        f"X has {n_features} features, but {name} is expecting "
-                        f"{self.n_features_in_} features as input"
-                    )
+            X = validate_data(self, X=X, allow_nd=True, ensure_2d=False, reset=reset)
+            # Because when ensure_2d=True, sklearn takes n_features from X.shape[1],
+            # when we need X.shape[-1]. So we ensure 2D and check features ourselves.
+            if X.ndim == 1:
+                raise ValueError(
+                    "Reshape your data either using array.reshape(-1, 1) if "
+                    "your data has a single feature or array.reshape(1, -1) "
+                    "if it contains a single sample."
+                )
+        _check_n_features_3d(self, X, reset)
 
         return X, y
 
