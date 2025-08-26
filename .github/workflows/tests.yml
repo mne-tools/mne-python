@@ -75,10 +75,10 @@ jobs:
           - os: ubuntu-latest
             python: '3.13'
             kind: conda
-          - os: macos-latest  # arm64 (Apple Silicon)
+          - os: macos-latest  # arm64 (Apple Silicon): Sequoia
             python: '3.13'
             kind: mamba
-          - os: macos-13  # latest Intel release
+          - os: macos-14  # arm64 (Apple Silicon): Sonoma
             python: '3.13'
             kind: mamba
           - os: windows-latest
