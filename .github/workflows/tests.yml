@@ -82,7 +82,7 @@ jobs:
             python: '3.13'
             kind: mamba
           - os: windows-latest
-            python: '3.12'
+            python: '3.13'
             kind: mamba
           - os: ubuntu-latest
             python: '3.11'
