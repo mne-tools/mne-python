@@ -22,7 +22,7 @@ from ..evoked import Evoked, EvokedArray
 from ..fixes import _safe_svd
 from ..surface import get_head_surf, get_meg_helmet_surf
 from ..transforms import _find_trans, transform_surface_to
-from ..utils import _check_fname, _check_option, _pl, _reg_pinv, logger, verbose
+from ..utils import _check_fname, _check_option, _pl, _reg_pinv, logger, verbose, warn
 from ._lead_dots import (
     _do_cross_dots,
     _do_self_dots,
@@ -116,7 +116,7 @@ def _pinv_tikhonov(x, reg):
     return inv, n
 
 
-def _map_meg_or_eeg_channels(info_from, info_to, mode, origin, miss=None):
+def _map_meg_or_eeg_channels(info_from, info_to, mode, origin=None, miss=None):
     """Find mapping from one set of channels to another.
 
     Parameters
@@ -139,6 +139,13 @@ def _map_meg_or_eeg_channels(info_from, info_to, mode, origin, miss=None):
     mapping : array, shape (n_to, n_from)
         A mapping matrix.
     """
+
+    if origin is None:
+        warn_message = ('Default value for origin is "(0.0, 0.0, 0.04)" in version 1.11 but will be changed to "auto" '
+                        'in 1.12. Set the origin parameter explicitly to avoid this warning.')
+        warn(warn_message, FutureWarning)
+        origin = (0.0, 0.0, 0.04)
+
     # no need to apply trans because both from and to coils are in device
     # coordinates
     info_kinds = set(ch["kind"] for ch in info_to["chs"])
@@ -314,7 +321,7 @@ def _make_surface_mapping(
     trans=None,
     mode="fast",
     n_jobs=None,
-    origin=(0.0, 0.0, 0.04),
+    origin=None,
     verbose=None,
 ):
     """Re-map M/EEG data to a surface.
@@ -337,8 +344,7 @@ def _make_surface_mapping(
     %(n_jobs)s
     origin : array-like, shape (3,) | str
         Origin of the sphere in the head coordinate frame and in meters.
-        The default is ``'auto'``, which means a head-digitization-based
-        origin fit.
+        The default is ``(0.0, 0.0, 0.04)``.
     %(verbose)s
 
     Returns
@@ -347,6 +353,13 @@ def _make_surface_mapping(
         A n_vertices x n_sensors array that remaps the MEG or EEG data,
         as `new_data = np.dot(mapping, data)`.
     """
+
+    if origin is None:
+        warn_message = ('Default value for origin is "(0.0, 0.0, 0.04)" in version 1.11 but will be changed to "auto" '
+                        'in 1.12. Set the origin parameter explicitly to avoid this warning.')
+        warn(warn_message, FutureWarning)
+        origin = (0.0, 0.0, 0.04)
+
     if not all(key in surf for key in ["rr", "nn"]):
         raise KeyError('surf must have both "rr" and "nn"')
     if "coord_frame" not in surf:
@@ -443,7 +456,7 @@ def make_field_map(
     ch_type=None,
     mode="fast",
     meg_surf="helmet",
-    origin=(0.0, 0.0, 0.04),
+    origin=None,
     n_jobs=None,
     *,
     upsampling=1,
@@ -498,6 +511,13 @@ def make_field_map(
         The surface maps to be used for field plots. The list contains
         separate ones for MEG and EEG (if both MEG and EEG are present).
     """
+
+    if origin is None:
+        warn_message = ('Default value for origin is "(0.0, 0.0, 0.04)" in version 1.11 but will be changed to "auto" '
+                        'in 1.12. Set the origin parameter explicitly to avoid this warning.')
+        warn(warn_message, FutureWarning)
+        origin = (0.0, 0.0, 0.04)
+
     info = evoked.info
 
     if ch_type is None:
