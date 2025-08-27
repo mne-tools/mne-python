@@ -82,10 +82,10 @@ jobs:
             python: '3.13'
             kind: mamba
           - os: windows-latest
-            python: '3.13'
+            python: '3.11'
             kind: mamba
           - os: ubuntu-latest
-            python: '3.11'
+            python: '3.12'
             kind: minimal
           - os: ubuntu-22.04
             python: '3.10'
@@ -128,7 +128,8 @@ jobs:
           # For some reason on Linux we get crashes
           if [[ "$RUNNER_OS" == "Linux" ]]; then
             sed -i "/numba/d" environment.yml
-          elif [[ "$RUNNER_OS" == "macOS" ]]; then
+          # And on Windows and macOS PySide6.9.0 segfaults
+          elif [[ "$RUNNER_OS" == "macOS" ]] || [[ "$RUNNER_OS" == "Windows" ]]; then
             sed -i "" "s/  - PySide6 .*/  - PySide6 <6.8/g" environment.yml
           fi
         if: matrix.kind == 'conda' || matrix.kind == 'mamba'
