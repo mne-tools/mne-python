@@ -139,10 +139,11 @@ def _map_meg_or_eeg_channels(info_from, info_to, mode, origin=None, miss=None):
     mapping : array, shape (n_to, n_from)
         A mapping matrix.
     """
-
     if origin is None:
-        warn_message = ('Default value for origin is "(0.0, 0.0, 0.04)" in version 1.11 but will be changed to "auto" '
-                        'in 1.12. Set the origin parameter explicitly to avoid this warning.')
+        warn_message = (
+            'Default value for origin is "(0.0, 0.0, 0.04)" in version 1.11 but will be changed to "auto" '
+            "in 1.12. Set the origin parameter explicitly to avoid this warning."
+        )
         warn(warn_message, FutureWarning)
         origin = (0.0, 0.0, 0.04)
 
@@ -353,10 +354,11 @@ def _make_surface_mapping(
         A n_vertices x n_sensors array that remaps the MEG or EEG data,
         as `new_data = np.dot(mapping, data)`.
     """
-
     if origin is None:
-        warn_message = ('Default value for origin is "(0.0, 0.0, 0.04)" in version 1.11 but will be changed to "auto" '
-                        'in 1.12. Set the origin parameter explicitly to avoid this warning.')
+        warn_message = (
+            'Default value for origin is "(0.0, 0.0, 0.04)" in version 1.11 but will be changed to "auto" '
+            "in 1.12. Set the origin parameter explicitly to avoid this warning."
+        )
         warn(warn_message, FutureWarning)
         origin = (0.0, 0.0, 0.04)
 
@@ -511,10 +513,11 @@ def make_field_map(
         The surface maps to be used for field plots. The list contains
         separate ones for MEG and EEG (if both MEG and EEG are present).
     """
-
     if origin is None:
-        warn_message = ('Default value for origin is "(0.0, 0.0, 0.04)" in version 1.11 but will be changed to "auto" '
-                        'in 1.12. Set the origin parameter explicitly to avoid this warning.')
+        warn_message = (
+            'Default value for origin is "(0.0, 0.0, 0.04)" in version 1.11 but will be changed to "auto" '
+            "in 1.12. Set the origin parameter explicitly to avoid this warning."
+        )
         warn(warn_message, FutureWarning)
         origin = (0.0, 0.0, 0.04)
 
