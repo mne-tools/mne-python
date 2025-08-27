@@ -82,10 +82,10 @@ jobs:
             python: '3.13'
             kind: mamba
           - os: windows-latest
-            python: '3.10'
+            python: '3.12'
             kind: mamba
           - os: ubuntu-latest
-            python: '3.10'
+            python: '3.11'
             kind: minimal
           - os: ubuntu-22.04
             python: '3.10'
