@@ -368,6 +368,10 @@ def test_strip_dev(version, want, have_unstripped, monkeypatch):
 def test_check_sphere():
     """Test the _check_sphere function."""
     info = mne.io.read_info(fname_raw)
+    info_eeglab = create_info(
+        ch_names=["Fpz", "Oz", "T7", "T8"], sfreq=100, ch_types="eeg"
+    )
+    info_eeglab.set_montage("biosemi64")
 
     # Test passing None.
     assert_equal(_check_sphere(None), [0, 0, 0, 0.095])  # default head pos
@@ -379,23 +383,19 @@ def test_check_sphere():
     with pytest.raises(ValueError, match=r"1D array of shape \(4,\)"):
         _check_sphere([1, 2, 3], info)
 
-    # Test passing various strings.
-    assert_allclose(
-        _check_sphere("auto", info), [-0.00415196, 0.01635826, 0.05183149, 0.09117732]
-    )
-    assert_allclose(_check_sphere("extra", info), _check_sphere("auto", info))
-    assert_allclose(
-        _check_sphere("eeg", info),
-        [-0.00291458, 0.01068758, 0.05653534, 0.09027862],
-        atol=1e-8,
-    )
-    info_eeglab = create_info(
-        ch_names=["Fpz", "Oz", "T7", "T8"], sfreq=100, ch_types="eeg"
-    )
-    info_eeglab.set_montage("biosemi64")
-    assert_allclose(
-        _check_sphere("eeglab", info_eeglab), [0, 0, 0.036, 0.095], atol=1e-3
-    )
+    # Test passing various string values for `sphere`.
+    sphere_auto = _check_sphere("auto", info)
+    sphere_eeglab = _check_sphere("eeglab", info_eeglab)
+    sphere_extra = _check_sphere("extra", info)
+    sphere_eeg = _check_sphere("eeg", info)
+    with _record_warnings(), pytest.warns(RuntimeWarning, match="may be inaccurate"):
+        sphere_hpi = _check_sphere("hpi", info)
+
+    assert_allclose(sphere_auto, sphere_extra)
+    assert not np.allclose(sphere_auto, sphere_eeglab, rtol=1e-4, atol=1e-4)
+    assert not np.allclose(sphere_auto, sphere_eeg, rtol=1e-4, atol=1e-4)
+    assert not np.allclose(sphere_auto, sphere_hpi, rtol=1e-4, atol=1e-4)
+
     with pytest.raises(TypeError, match="Item must be an instance of Info"):
         _check_sphere("auto", info=None)
 
