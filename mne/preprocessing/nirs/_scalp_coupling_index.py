@@ -93,9 +93,10 @@ def scalp_coupling_index(
             for n, (ii, jj) in enumerate(zip(*pair_indices)):
                 with np.errstate(invalid="ignore"):
                     c = np.corrcoef(group_data[ii], group_data[jj])[0][1]
-                correlations[n] = c if np.isfinite(c) else 0
+                if np.isfinite(c):
+                    correlations[n] = c
 
-            # Use minimum correlation as the quality metric (most conservative)
+            # Use minimum correlation as the quality metric
             group_sci = correlations.min()
 
             # Assign the same SCI value to all channels in the group
