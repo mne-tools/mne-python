@@ -390,11 +390,13 @@ def test_check_sphere():
     sphere_eeg = _check_sphere("eeg", info)
     with _record_warnings(), pytest.warns(RuntimeWarning, match="may be inaccurate"):
         sphere_hpi = _check_sphere("hpi", info)
+    sphere_all = _check_sphere(["extra", "eeg", "cardinal", "hpi"], info)
 
     assert_allclose(sphere_auto, sphere_extra)
     assert not np.allclose(sphere_auto, sphere_eeglab, rtol=1e-4, atol=1e-4)
     assert not np.allclose(sphere_auto, sphere_eeg, rtol=1e-4, atol=1e-4)
     assert not np.allclose(sphere_auto, sphere_hpi, rtol=1e-4, atol=1e-4)
+    assert not np.allclose(sphere_auto, sphere_all, rtol=1e-4, atol=1e-4)
 
     with pytest.raises(TypeError, match="Item must be an instance of Info"):
         _check_sphere("auto", info=None)
