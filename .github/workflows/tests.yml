@@ -75,17 +75,17 @@ jobs:
           - os: ubuntu-latest
             python: '3.13'
             kind: conda
-          - os: macos-latest  # arm64 (Apple Silicon)
+          - os: macos-latest  # arm64 (Apple Silicon): Sequoia
             python: '3.13'
             kind: mamba
-          - os: macos-13  # latest Intel release
+          - os: macos-14  # arm64 (Apple Silicon): Sonoma
             python: '3.13'
             kind: mamba
           - os: windows-latest
-            python: '3.10'
+            python: '3.11'
             kind: mamba
           - os: ubuntu-latest
-            python: '3.10'
+            python: '3.12'
             kind: minimal
           - os: ubuntu-22.04
             python: '3.10'
@@ -128,8 +128,11 @@ jobs:
           # For some reason on Linux we get crashes
           if [[ "$RUNNER_OS" == "Linux" ]]; then
             sed -i "/numba/d" environment.yml
+          # And on Windows and macOS PySide6.9.0 segfaults
           elif [[ "$RUNNER_OS" == "macOS" ]]; then
             sed -i "" "s/  - PySide6 .*/  - PySide6 <6.8/g" environment.yml
+          elif [[ "$RUNNER_OS" == "Windows" ]]; then
+            sed -i "s/  - PySide6 .*/  - PySide6 <6.8/g" environment.yml
           fi
         if: matrix.kind == 'conda' || matrix.kind == 'mamba'
       - uses: mamba-org/setup-micromamba@v2
@@ -139,6 +142,7 @@ jobs:
           create-args: >-
             python=${{ env.PYTHON_VERSION }}
         if: ${{ !startswith(matrix.kind, 'pip') }}
+        timeout-minutes: 20
       - run: bash ./tools/github_actions_dependencies.sh
       # Minimal commands on Linux (macOS stalls)
       - run: bash ./tools/get_minimal_commands.sh
