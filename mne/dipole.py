@@ -30,7 +30,12 @@ from .forward._make_forward import (
 )
 from .parallel import parallel_func
 from .source_space._source_space import SourceSpaces, _make_volume_source_space
-from .surface import _compute_nearest, _points_outside_surface, transform_surface_to
+from .surface import (
+    _CheckInside,
+    _compute_nearest,
+    _DistanceQuery,
+    transform_surface_to,
+)
 from .transforms import _coord_frame_name, _print_coord_trans, apply_trans
 from .utils import (
     ExtendedTimeMixin,
@@ -1268,22 +1273,37 @@ def _fit_confidence(*, rd, Q, ori, whitener, fwd_data, sensors):
     return conf
 
 
-def _surface_constraint(rd, surf, min_dist_to_inner_skull):
-    """Surface fitting constraint."""
-    dist = _compute_nearest(surf["rr"], rd[np.newaxis, :], return_dists=True)[1][0]
-    if _points_outside_surface(rd[np.newaxis, :], surf, 1)[0]:
-        dist *= -1.0
-    # Once we know the dipole is below the inner skull,
-    # let's check if its distance to the inner skull is at least
-    # min_dist_to_inner_skull. This can be enforced by adding a
-    # constrain proportional to its distance.
-    dist -= min_dist_to_inner_skull
-    return dist
+def _surface_constraint(surf, min_dist_to_inner_skull):
+    """Create a surface fitting constraint function."""
+    distance_checker = _DistanceQuery(surf["rr"], method="BallTree")
+    inside_checker = _CheckInside(surf, mode="pyvista")
+
+    def constraint(rd):
+        dist = distance_checker.query(rd[np.newaxis, :])[0]
+        if not inside_checker(rd[np.newaxis, :])[0]:
+            dist *= -1.0
+        # Once we know the dipole is below the inner skull,
+        # let's check if its distance to the inner skull is at least
+        # min_dist_to_inner_skull. This can be enforced by adding a
+        # constrain proportional to its distance.
+        dist -= min_dist_to_inner_skull
+        return dist
+
+    return constraint
 
 
-def _sphere_constraint(rd, r0, R_adj):
-    """Sphere fitting constraint."""
-    return R_adj - np.sqrt(np.sum((rd - r0) ** 2))
+def _sphere_constraint(r0, R_adj):
+    """Create a sphere fitting constraint function."""
+
+    def constraint(rd):
+        return R_adj - np.sqrt(np.sum((rd - r0) ** 2))
+
+    return constraint
+
+
+def _no_constraint(rd):
+    """No constraint on dipole location."""
+    return 1
 
 
 def _fit_dipole(
@@ -1307,15 +1327,13 @@ def _fit_dipole(
     # make constraint function to keep the solver within the inner skull
     if "rr" in fwd_data["inner_skull"]:  # bem
         surf = fwd_data["inner_skull"]
-        constraint = partial(
-            _surface_constraint,
+        constraint = _surface_constraint(
             surf=surf,
             min_dist_to_inner_skull=min_dist_to_inner_skull,
         )
     else:  # sphere
         surf = None
-        constraint = partial(
-            _sphere_constraint,
+        constraint = _sphere_constraint(
             r0=fwd_data["inner_skull"]["r0"],
             R_adj=fwd_data["inner_skull"]["R"] - min_dist_to_inner_skull,
         )
