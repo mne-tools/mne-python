@@ -116,7 +116,7 @@ def _pinv_tikhonov(x, reg):
     return inv, n
 
 
-def _map_meg_or_eeg_channels(info_from, info_to, mode, origin=None, miss=None):
+def _map_meg_or_eeg_channels(info_from, info_to, mode, *, origin=None, miss=None):
     """Find mapping from one set of channels to another.
 
     Parameters
