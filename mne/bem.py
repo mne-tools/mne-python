@@ -1096,9 +1096,9 @@ def _fit_sphere_to_headshape(info, dig_kinds, *, verbose=None):
         )
         if dig_kinds == "auto":
             logger.info(msg)
-            logger.info('Trying again with both "extra" and "eeg" digitization points.')
+            logger.info("Trying again with all digitization points.")
             return _fit_sphere_to_headshape(
-                info, dig_kinds=("extra", "eeg"), verbose=verbose
+                info, dig_kinds=("extra", "eeg", "hpi", "cardinal"), verbose=verbose
             )
         warn(msg)
     logger.info(
