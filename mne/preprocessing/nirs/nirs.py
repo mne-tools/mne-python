@@ -2,7 +2,6 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-from calendar import c
 import re
 
 import numpy as np
@@ -148,7 +147,7 @@ def _check_channels_ordered(info, pair_vals, *, throw_errors=True, check_bads=Tr
 
     # Check that the total number of channels is divisible by the number of pair values
     # (e.g., for 2 wavelengths, we need even number of channels)
-    if len(picks) % len(pair_vals) !=0:
+    if len(picks) % len(pair_vals) != 0:
         picks = _throw_or_return_empty(
             f"NIRS channels not ordered correctly. The number of channels "
             f"must be a multiple of {len(pair_vals)} values, but "
@@ -200,10 +199,13 @@ def _check_channels_ordered(info, pair_vals, *, throw_errors=True, check_bads=Tr
     # Validate channel grouping (same source-detector pairs, all pair_vals match)
     for i in range(0, len(picks), len(pair_vals)):
         # Extract a group of channels (e.g., all wavelengths for one S-D pair)
-        group_picks = picks[i:i + len(pair_vals)]
+        group_picks = picks[i : i + len(pair_vals)]
 
         # Parse channel names using regex to extract source, detector, and value info
-        group_info = [(use_RE.match(info["ch_names"][pick]).groups() or (pick, 0, 0)) for pick in group_picks]
+        group_info = [
+            (use_RE.match(info["ch_names"][pick]).groups() or (pick, 0, 0))
+            for pick in group_picks
+        ]
 
         # Separate the parsed components: source IDs, detector IDs, and values (freq/chromophore)
         s_group, d_group, val_group = zip(*group_info)
@@ -214,7 +216,9 @@ def _check_channels_ordered(info, pair_vals, *, throw_errors=True, check_bads=Tr
 
         # Verify that all channels in this group have the same source-detector pair
         # and that the values match the expected pair_vals sequence
-        if not (len(set(s_group))==1 and len(set(d_group))==1 and val_group == pair_vals):
+        if not (
+            len(set(s_group)) == 1 and len(set(d_group)) == 1 and val_group == pair_vals
+        ):
             picks = _throw_or_return_empty(
                 "NIRS channels not ordered correctly. Channels must be "
                 "grouped by source-detector pairs with alternating {error_word} "
@@ -224,8 +228,8 @@ def _check_channels_ordered(info, pair_vals, *, throw_errors=True, check_bads=Tr
             break
 
     if check_bads:
-        for i in range (0, len(picks), len(pair_vals)):
-            group_picks = picks[i:i + len(pair_vals)]
+        for i in range(0, len(picks), len(pair_vals)):
+            group_picks = picks[i : i + len(pair_vals)]
 
             want = [info.ch_names[pick] for pick in group_picks]
             got = list(set(info["bads"]).intersection(want))
@@ -291,7 +295,7 @@ def _fnirs_spread_bads(info):
     # E.g. all channels belonging to S1D1, S1D2, etc.
     # Assumes valid channels (naming convention and number)
     ch_names = [info.ch_names[i] for i in picks]
-    match = re.compile(r'^(S\d+_D\d+) ')
+    match = re.compile(r"^(S\d+_D\d+) ")
 
     # Create dict with keys corresponding to SD pairs
     # Defaultdict would require another import
