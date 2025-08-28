@@ -46,12 +46,10 @@ def beer_lambert_law(raw, ppf=6.0):
 
     # PPF validation for multiple wavelengths
     if ppf.ndim == 0:  # single float
-        ppf = np.full(
-            (n_wavelengths, 1), ppf
-        )  # same PPF for all wavelengths, shape (n_wavelengths, 1)
-    elif (
-        ppf.ndim == 1 and len(ppf) == n_wavelengths
-    ):  # separate ppf for each wavelength
+        # same PPF for all wavelengths, shape (n_wavelengths, 1)
+        ppf = np.full((n_wavelengths, 1), ppf)
+    elif ppf.ndim == 1 and len(ppf) == n_wavelengths:
+        # separate ppf for each wavelength
         ppf = ppf[:, np.newaxis]  # shape (n_wavelengths, 1)
     else:
         raise ValueError(
