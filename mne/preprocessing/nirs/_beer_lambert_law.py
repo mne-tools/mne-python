@@ -46,8 +46,12 @@ def beer_lambert_law(raw, ppf=6.0):
 
     # PPF validation for multiple wavelengths
     if ppf.ndim == 0:  # single float
-        ppf = np.full((n_wavelengths, 1), ppf)  # same PPF for all wavelengths, shape (n_wavelengths, 1)
-    elif ppf.ndim == 1 and len(ppf) == n_wavelengths:  # separate ppf for each wavelength
+        ppf = np.full(
+            (n_wavelengths, 1), ppf
+        )  # same PPF for all wavelengths, shape (n_wavelengths, 1)
+    elif (
+        ppf.ndim == 1 and len(ppf) == n_wavelengths
+    ):  # separate ppf for each wavelength
         ppf = ppf[:, np.newaxis]  # shape (n_wavelengths, 1)
     else:
         raise ValueError(
@@ -118,31 +122,18 @@ def beer_lambert_law(raw, ppf=6.0):
 
 
 def _load_absorption(freqs):
-    """Load molar extinction coefficients
-
-    Parameters
-    ----------
-    freqs : array-like
-        Array of wavelengths (frequencies) in nm.
-
-    Returns
-    -------
-    abs_coef : array, shape (n_wavelengths, 2)
-        Absorption coefficients for HbO2 and Hb at each wavelength.
-        abs_coef[:, 0] contains HbO2 coefficients
-        abs_coef[:, 1] contains Hb coefficients
-
-        E.g. [[HbO2(freq1)], [Hb(freq1)],
-              [HbO2(freq2)], [Hb(freq2)],
-              ...,
-              [HbO2(freqN)], [Hb(freqN)]]
-    """
+    """Load molar extinction coefficients"""
     # Data from https://omlc.org/spectra/hemoglobin/summary.html
     # The text was copied to a text file. The text before and
     # after the table was deleted. The the following was run in
     # matlab
     # extinct_coef=importdata('extinction_coef.txt')
     # save('extinction_coef.mat', 'extinct_coef')
+    #
+    # Returns data as [[HbO2(freq1), Hb(freq1)],
+    #                  [HbO2(freq2), Hb(freq2)],
+    #                  ...,
+    #                  [HbO2(freqN), Hb(freqN)]]
     extinction_fname = op.join(
         op.dirname(__file__), "..", "..", "data", "extinction_coef.mat"
     )
@@ -156,7 +147,7 @@ def _load_absorption(freqs):
     ext_coef = np.zeros((len(freqs), 2))
     for i, freq in enumerate(freqs):
         ext_coef[i, 0] = interp_hbo(freq)  # HbO2
-        ext_coef[i, 1] = interp_hb(freq)   # Hb
+        ext_coef[i, 1] = interp_hb(freq)  # Hb
 
     abs_coef = ext_coef * 0.2303
     return abs_coef
