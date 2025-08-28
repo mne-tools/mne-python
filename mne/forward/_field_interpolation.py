@@ -141,8 +141,9 @@ def _map_meg_or_eeg_channels(info_from, info_to, mode, origin=None, miss=None):
     """
     if origin is None:
         warn_message = (
-            'Default value for origin is "(0.0, 0.0, 0.04)" in version 1.11 but will be changed to "auto" '
-            "in 1.12. Set the origin parameter explicitly to avoid this warning."
+            'Default value for origin is "(0.0, 0.0, 0.04)" in version 1.11 '
+            'but will be changed to "auto" in 1.12. Set the origin parameter '
+            "explicitly to avoid this warning."
         )
         warn(warn_message, FutureWarning)
         origin = (0.0, 0.0, 0.04)
@@ -356,8 +357,9 @@ def _make_surface_mapping(
     """
     if origin is None:
         warn_message = (
-            'Default value for origin is "(0.0, 0.0, 0.04)" in version 1.11 but will be changed to "auto" '
-            "in 1.12. Set the origin parameter explicitly to avoid this warning."
+            'Default value for origin is "(0.0, 0.0, 0.04)" in version 1.11 '
+            'but will be changed to "auto" in 1.12. Set the origin parameter '
+            "explicitly to avoid this warning."
         )
         warn(warn_message, FutureWarning)
         origin = (0.0, 0.0, 0.04)
@@ -515,8 +517,9 @@ def make_field_map(
     """
     if origin is None:
         warn_message = (
-            'Default value for origin is "(0.0, 0.0, 0.04)" in version 1.11 but will be changed to "auto" '
-            "in 1.12. Set the origin parameter explicitly to avoid this warning."
+            'Default value for origin is "(0.0, 0.0, 0.04)" in version 1.11 '
+            'but will be changed to "auto" in 1.12. Set the origin parameter '
+            "explicitly to avoid this warning."
         )
         warn(warn_message, FutureWarning)
         origin = (0.0, 0.0, 0.04)
