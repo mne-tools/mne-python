@@ -231,6 +231,11 @@ def dipolefit(
         Whether to halt program execution until the figure is closed.
     %(verbose)s
 
+    Returns
+    -------
+    fitter : instance of DipoleFitUI
+        The dipole fitting GUI. The ``.dipoles`` attribute contains the fitted dipoles.
+
     Notes
     -----
     When using ``cov=None`` the default noise values are 5 fT/cm, 20 fT, and 0.2 µV for
