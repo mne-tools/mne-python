@@ -1056,7 +1056,7 @@ def _fit_Q(*, sensors, fwd_data, whitener, B, B2, B_orig, rd, ori=None):
 
 def _fit_dipoles(
     fun,
-    min_dist_to_inner_skull,
+    constraint,
     data,
     times,
     guess_rrs,
@@ -1075,7 +1075,7 @@ def _fit_dipoles(
     # parallel over time points
     res = parallel(
         p_fun(
-            min_dist_to_inner_skull,
+            constraint,
             B,
             t,
             guess_rrs,
@@ -1301,13 +1301,8 @@ def _sphere_constraint(r0, R_adj):
     return constraint
 
 
-def _no_constraint(rd):
-    """No constraint on dipole location."""
-    return 1
-
-
 def _fit_dipole(
-    min_dist_to_inner_skull,
+    constraint,
     B_orig,
     t,
     guess_rrs,
@@ -1323,20 +1318,6 @@ def _fit_dipole(
 ):
     """Fit a single bit of data."""
     B = np.dot(whitener, B_orig)
-
-    # make constraint function to keep the solver within the inner skull
-    if "rr" in fwd_data["inner_skull"]:  # bem
-        surf = fwd_data["inner_skull"]
-        constraint = _surface_constraint(
-            surf=surf,
-            min_dist_to_inner_skull=min_dist_to_inner_skull,
-        )
-    else:  # sphere
-        surf = None
-        constraint = _sphere_constraint(
-            r0=fwd_data["inner_skull"]["r0"],
-            R_adj=fwd_data["inner_skull"]["R"] - min_dist_to_inner_skull,
-        )
 
     # Find a good starting point (find_best_guess in C)
     B2 = np.dot(B, B)
@@ -1407,9 +1388,9 @@ def _fit_dipole(
     )
 
     msg = "---- Fitted : %7.1f ms" % (1000.0 * t)
-    if surf is not None:
+    if "rr" in fwd_data["inner_skull"]:  # bem
         dist_to_inner_skull = _compute_nearest(
-            surf["rr"], rd_final[np.newaxis, :], return_dists=True
+            fwd_data["inner_skull"]["rr"], rd_final[np.newaxis, :], return_dists=True
         )[1][0]
         msg += ", distance to inner skull : %2.4f mm" % (dist_to_inner_skull * 1000.0)
 
@@ -1418,7 +1399,7 @@ def _fit_dipole(
 
 
 def _fit_dipole_fixed(
-    min_dist_to_inner_skull,
+    constraint,
     B_orig,
     t,
     guess_rrs,
@@ -1721,15 +1702,23 @@ def fit_dipole(
         logger.info("Go through all guess source locations...")
 
     # inner_skull goes from mri to head frame
-    if "rr" in inner_skull:
+    if not bem["is_sphere"]:
         transform_surface_to(inner_skull, "head", mri_head_t)
+
+    # make constraint function to keep the solver within the inner skull
+    if bem["is_sphere"]:
+        constraint = _sphere_constraint(
+            r0=inner_skull["r0"],
+            R_adj=inner_skull["R"] - min_dist_to_inner_skull,
+        )
+    else:
+        constraint = _surface_constraint(
+            surf=inner_skull,
+            min_dist_to_inner_skull=min_dist_to_inner_skull,
+        )
+
     if fixed_position:
-        if "rr" in inner_skull:
-            check = _surface_constraint(pos, inner_skull, min_dist_to_inner_skull)
-        else:
-            check = _sphere_constraint(
-                pos, inner_skull["r0"], R_adj=inner_skull["R"] - min_dist_to_inner_skull
-            )
+        check = constraint(pos)
         if check <= 0:
             raise ValueError(
                 f"fixed position is {-1000 * check:0.1f}mm outside the inner skull "
@@ -1769,7 +1758,7 @@ def fit_dipole(
     fun = _fit_dipole_fixed if fixed_position else _fit_dipole
     out = _fit_dipoles(
         fun,
-        min_dist_to_inner_skull,
+        constraint,
         data,
         times,
         guess_src["rr"],
