@@ -566,6 +566,14 @@ def _plot_evoked(
     plt.setp(fig.axes[: len(ch_types_used) - 1], xlabel="")
     if draw:
         fig.canvas.draw()  # for axes plots update axes.
+
+
+    print("DEBUG: About to export or display figure")
+    print("Figure object:", fig)
+    print("Axes count:", len(fig.axes))
+    breakpoint()  # Pauses execution here so you can inspect variables
+
+
     plt_show(show)
     return fig
 
