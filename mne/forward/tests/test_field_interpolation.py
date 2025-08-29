@@ -51,7 +51,11 @@ def test_field_map_ctf():
     evoked.pick(evoked.ch_names[:50])  # crappy mapping but faster
     # smoke test - passing trans_fname as pathlib.Path as additional check
     make_field_map(
-        evoked, trans=Path(trans_fname), subject="sample", subjects_dir=subjects_dir
+        evoked,
+        trans=Path(trans_fname),
+        subject="sample",
+        subjects_dir=subjects_dir,
+        origin="auto",
     )
 
 
@@ -128,11 +132,13 @@ def test_make_field_map_eeg():
     evoked.info["bads"] = ["MEG 2443", "EEG 053"]  # add some bads
     surf = get_head_surf("sample", subjects_dir=subjects_dir)
     # we must have trans if surface is in MRI coords
-    pytest.raises(ValueError, _make_surface_mapping, evoked.info, surf, "eeg")
+    pytest.raises(
+        ValueError, _make_surface_mapping, evoked.info, surf, "eeg", origin="auto"
+    )
 
     evoked.pick(picks="eeg")
     fmd = make_field_map(
-        evoked, trans_fname, subject="sample", subjects_dir=subjects_dir
+        evoked, trans_fname, subject="sample", subjects_dir=subjects_dir, origin="auto"
     )
 
     # trans is necessary for EEG only
@@ -143,10 +149,11 @@ def test_make_field_map_eeg():
         None,
         subject="sample",
         subjects_dir=subjects_dir,
+        origin="auto",
     )
 
     fmd = make_field_map(
-        evoked, trans_fname, subject="sample", subjects_dir=subjects_dir
+        evoked, trans_fname, subject="sample", subjects_dir=subjects_dir, origin="auto"
     )
     assert len(fmd) == 1
     assert_array_equal(fmd[0]["data"].shape, (642, 59))  # maps data onto surf
@@ -163,31 +170,37 @@ def test_make_field_map_meg():
     # let's reduce the number of channels by a bunch to speed it up
     info["bads"] = info["ch_names"][:200]
     # bad ch_type
-    pytest.raises(ValueError, _make_surface_mapping, info, surf, "foo")
+    pytest.raises(ValueError, _make_surface_mapping, info, surf, "foo", origin="auto")
     # bad mode
-    pytest.raises(ValueError, _make_surface_mapping, info, surf, "meg", mode="foo")
+    pytest.raises(
+        ValueError, _make_surface_mapping, info, surf, "meg", mode="foo", origin="auto"
+    )
     # no picks
     evoked_eeg = evoked.copy().pick(picks="eeg")
-    pytest.raises(RuntimeError, _make_surface_mapping, evoked_eeg.info, surf, "meg")
+    pytest.raises(
+        RuntimeError, _make_surface_mapping, evoked_eeg.info, surf, "meg", origin="auto"
+    )
     # bad surface def
     nn = surf["nn"]
     del surf["nn"]
-    pytest.raises(KeyError, _make_surface_mapping, info, surf, "meg")
+    pytest.raises(KeyError, _make_surface_mapping, info, surf, "meg", origin="auto")
     surf["nn"] = nn
     cf = surf["coord_frame"]
     del surf["coord_frame"]
-    pytest.raises(KeyError, _make_surface_mapping, info, surf, "meg")
+    pytest.raises(KeyError, _make_surface_mapping, info, surf, "meg", origin="auto")
     surf["coord_frame"] = cf
 
     # now do it with make_field_map
     evoked.pick(picks="meg")
     evoked.info.normalize_proj()  # avoid projection warnings
-    fmd = make_field_map(evoked, None, subject="sample", subjects_dir=subjects_dir)
+    fmd = make_field_map(
+        evoked, None, subject="sample", subjects_dir=subjects_dir, origin="auto"
+    )
     assert len(fmd) == 1
     assert_array_equal(fmd[0]["data"].shape, (304, 106))  # maps data onto surf
     assert len(fmd[0]["ch_names"]) == 106
 
-    pytest.raises(ValueError, make_field_map, evoked, ch_type="foobar")
+    pytest.raises(ValueError, make_field_map, evoked, ch_type="foobar", origin="auto")
 
     # now test the make_field_map on head surf for MEG
     evoked.pick(picks="meg")
@@ -198,6 +211,7 @@ def test_make_field_map_meg():
         meg_surf="head",
         subject="sample",
         subjects_dir=subjects_dir,
+        origin="auto",
     )
     assert len(fmd) == 1
     assert_array_equal(fmd[0]["data"].shape, (642, 106))  # maps data onto surf
@@ -210,6 +224,7 @@ def test_make_field_map_meg():
         meg_surf="foobar",
         subjects_dir=subjects_dir,
         trans=trans_fname,
+        origin="auto",
     )
 
 
@@ -227,6 +242,7 @@ def test_make_field_map_meeg():
         subject="sample",
         subjects_dir=subjects_dir,
         verbose="debug",
+        origin="auto",
     )
     assert_equal(maps[0]["data"].shape, (642, 6))  # EEG->Head
     assert_equal(maps[1]["data"].shape, (304, 31))  # MEG->Helmet
