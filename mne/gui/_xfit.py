@@ -190,8 +190,6 @@ class DipoleFitUI:
             info=evoked.info,
             trans=trans,
             bem=bem,
-            meg=ch_type != "eeg",
-            eeg=ch_type != "meg",
             mindist=0.0,
             n_jobs=n_jobs,
             bem_extra=0,

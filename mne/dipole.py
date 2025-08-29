@@ -1279,7 +1279,7 @@ def _surface_constraint(surf, min_dist_to_inner_skull):
     inside_checker = _CheckInside(surf, mode="pyvista")
 
     def constraint(rd):
-        dist = distance_checker.query(rd[np.newaxis, :])[0]
+        dist = distance_checker.query(rd[np.newaxis, :])[0][0]
         if not inside_checker(rd[np.newaxis, :])[0]:
             dist *= -1.0
         # Once we know the dipole is below the inner skull,
