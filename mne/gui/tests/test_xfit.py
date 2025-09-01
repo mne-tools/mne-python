@@ -2,35 +2,40 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+
 import numpy as np
 import pytest
 from numpy.testing import assert_allclose, assert_equal
 
 import mne
 from mne.channels import read_vectorview_selection
+from mne.datasets import sample
 from mne.viz import ui_events
 from mne.viz.utils import _get_color_list
+
+data_path = sample.data_path(download=False)
+subjects_dir = data_path / "subjects"
+fname_dip = data_path / "MEG" / "sample" / "sample_audvis_set1.dip"
+fname_evoked = data_path / "MEG" / "sample" / "sample_audvis-ave.fif"
 
 
 def _gui_with_two_dipoles():
     """Create a dipolefit GUI and add two dipoles to it."""
     from mne.gui import dipolefit
 
-    data_path = mne.datasets.testing.data_path(download=False)
-    data_dir = data_path / "MEG" / "sample"
-
-    g = dipolefit()
-    dip = mne.read_dipole(data_dir / "sample_audvis_trunc_set1.dip")[[27, 33]]
+    g = dipolefit(fname_evoked)
+    dip = mne.read_dipole(fname_dip)[[27, 33]]
     g.add_dipole(dip, name=["rh", "lh"])
     return g
 
 
+@pytest.mark.slowtest
 def test_dipolefit_gui_basic(renderer_interactive_pyvistaqt):
     """Test basic functionality of the dipole fitting GUI."""
     from mne.gui import dipolefit
 
     # Test basic interface elements.
-    g = dipolefit()
+    g = dipolefit(fname_evoked)
     assert g._evoked.comment == "Left Auditory"  # MNE-Sample data should be loaded
     assert g._current_time == g._evoked.times[174]  # time of max GFP
 
@@ -87,25 +92,26 @@ def test_dipolefit_gui_basic(renderer_interactive_pyvistaqt):
     g._on_select_method("Single dipole")
     new_timecourses = np.vstack((dip1_dict["timecourse"], dip2_dict["timecourse"]))
     assert not np.allclose(old_timecourses, new_timecourses)
+    g._fig._renderer.close()
 
 
+@pytest.mark.slowtest
 def test_dipolefit_gui_toggle_meshes(renderer_interactive_pyvistaqt):
     """Test toggling the visibility of the meshes the dipole fitting GUI."""
     from mne.gui import dipolefit
 
-    g = dipolefit()
+    g = dipolefit(fname_evoked)
     assert list(g._actors.keys()) == ["helmet", "occlusion_surf", "head", "sensors"]
-    g.toggle_mesh("helmet")
-    assert not g._actors["helmet"].visibility
-    g.toggle_mesh("helmet")
-    assert g._actors["helmet"].visibility
     g.toggle_mesh("helmet", show=True)
     assert g._actors["helmet"].visibility
-
+    g.toggle_mesh("helmet")
+    assert not g._actors["helmet"].visibility
     with pytest.raises(ValueError, match="Invalid value for the 'name' parameter"):
         g.toggle_mesh("non existent")
+    g._fig._renderer.close()
 
 
+@pytest.mark.slowtest
 def test_dipolefit_gui_dipole_controls(renderer_interactive_pyvistaqt):
     """Test the controls for the dipoles in the dipole fitting GUI."""
     g = _gui_with_two_dipoles()
@@ -146,21 +152,25 @@ def test_dipolefit_gui_dipole_controls(renderer_interactive_pyvistaqt):
     # Remove a dipole.
     g._on_dipole_delete(dip1["num"])
     assert len(g.dipoles) == 1
-    assert g._dipoles[0]["num"] == 1  # dipole number should not change
+    assert 1 in g._dipoles  # dipole number should not change
     assert list(g._dipoles.keys())[0] == 1
+    assert list(g._dipoles.values())[0]["num"] == 1
     g._on_fit_dipole()
-    assert list(g._dipoles.values())[1]["num"] == 2  # new dipole number
+    assert 2 in g._dipoles
     assert list(g._dipoles.keys())[1] == 2
+    assert list(g._dipoles.values())[1]["num"] == 2  # new dipole number
+    g._fig._renderer.close()
 
 
-def test_dipolefit_gui_save_load(temp_dir, renderer_interactive_pyvistaqt):
+@pytest.mark.slowtest
+def test_dipolefit_gui_save_load(tmpdir, renderer_interactive_pyvistaqt):
     """Test saving and loading dipoles in the dipole fitting GUI."""
     g = _gui_with_two_dipoles()
-    g.save(temp_dir / "test.dip")
-    g.save(temp_dir / "test.bdip")
-    dip_from_file = mne.read_dipole(temp_dir / "test.dip")
+    g.save(tmpdir / "test.dip")
+    g.save(tmpdir / "test.bdip")
+    dip_from_file = mne.read_dipole(tmpdir / "test.dip")
     g.add_dipole(dip_from_file)
-    g.add_dipole(mne.read_dipole(temp_dir / "test.bdip"))
+    g.add_dipole(mne.read_dipole(tmpdir / "test.bdip"))
     assert len(g.dipoles) == 6
     assert [d.name for d in g.dipoles] == ["rh", "lh", "rh", "lh", "dip4", "dip5"]
     assert_allclose(
@@ -172,3 +182,4 @@ def test_dipolefit_gui_save_load(temp_dir, renderer_interactive_pyvistaqt):
     assert_allclose(
         np.vstack([d.pos for d in g.dipoles[4:]]), dip_from_file.pos, atol=0
     )
+    g._fig._renderer.close()
