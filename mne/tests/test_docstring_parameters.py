@@ -76,6 +76,7 @@ tab_ignores = [
 error_ignores = {
     # These we do not live by:
     "GL01",  # Docstring should start in the line immediately after the quotes
+    "GL02",  # Closing quotes on own line (doesn't work on Python 3.13 anyway)
     "EX01",
     "EX02",  # examples failed (we test them separately)
     "ES01",  # no extended summary
@@ -221,8 +222,7 @@ def test_tabs():
                 continue
             source = inspect.getsource(mod)
             assert "\t" not in source, (
-                f'"{modname}" has tabs, please remove them '
-                "or add it to the ignore list"
+                f'"{modname}" has tabs, please remove them or add it to the ignore list'
             )
 
 

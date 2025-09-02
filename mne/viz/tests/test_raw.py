@@ -10,7 +10,7 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 import pytest
-from matplotlib import backend_bases
+from matplotlib import backend_bases, rc_context
 from numpy.testing import assert_allclose, assert_array_equal
 
 import mne
@@ -23,6 +23,7 @@ from mne.utils import (
     _assert_no_instances,
     _dt_to_stamp,
     _record_warnings,
+    catch_logging,
     check_version,
     get_config,
     set_config,
@@ -49,6 +50,8 @@ def _get_button_xy(buttons, idx):
 
 def _annotation_helper(raw, browse_backend, events=False):
     """Test interactive annotations."""
+    from cycler import cycler  # dep of matplotlib, should be okay but nest just in case
+
     ismpl = browse_backend.name == "matplotlib"
     # Some of our checks here require modern mpl to work properly
     n_anns = len(raw.annotations)
@@ -60,7 +63,27 @@ def _annotation_helper(raw, browse_backend, events=False):
     else:
         events = None
         n_events = 0
-    fig = raw.plot(events=events)
+    # matplotlib 2.0 default cycler
+    default_cycler = cycler(
+        "color",
+        [
+            "#1f77b4",
+            "#ff7f0e",
+            "#2ca02c",
+            "#d62728",
+            "#9467bd",
+            "#8c564b",
+            "#e377c2",
+            "#7f7f7f",
+            "#bcbd22",
+            "#17becf",
+        ],
+    )  # noqa: E501
+    with catch_logging("debug") as log, rc_context({"axes.prop_cycle": default_cycler}):
+        fig = raw.plot(events=events)
+    log = log.getvalue()
+    assert "Removing from color cycle: #d62728" in log
+    assert log.count("Removing from color cycle") == 1
     if ismpl:
         assert browse_backend._get_n_figs() == 1
 
@@ -862,16 +885,14 @@ def test_remove_annotations(raw, hide_which, browser_backend):
     assert len(raw.annotations) == len(hide_which)
 
 
-def test_merge_annotations(raw, browser_backend):
+def test_merge_annotations(raw, pg_backend):
     """Test merging of annotations in the Qt backend.
 
     Let's not bother in figuring out on which sample the _fake_click actually
     dropped the annotation, especially with the 600.614 Hz weird sampling rate.
     -> atol = 10 / raw.info["sfreq"]
     """
-    if browser_backend.name == "matplotlib":
-        pytest.skip("The MPL backend does not support draggable annotations.")
-    elif not check_version("mne_qt_browser", "0.5.3"):
+    if not check_version("mne_qt_browser", "0.5.3"):
         pytest.xfail("mne_qt_browser < 0.5.3 does not merge annotations properly")
     annot = Annotations(
         onset=[1, 3, 4, 5, 7, 8],
@@ -966,11 +987,20 @@ def test_plot_raw_filtered(filtorder, raw, browser_backend):
     RawArray(np.zeros((1, 100)), create_info(1, 20.0, "stim")).plot(lowpass=5)
 
 
+def _check_ylabel_psd(ylabel, amplitude, dB, unit):
+    """Check that the ylabel is correct."""
+    numerator = "dB" if dB else unit
+    denominator = r"\sqrt{\mathrm{Hz}}" if amplitude else r"\mathrm{Hz}"
+    reference_val = rf"\ \mathrm{{re}}\ 1\ \mathrm{{{unit}}}" if dB else ""
+    pattern = rf"\mathrm{{{numerator}}}/{denominator}{reference_val}"
+    assert pattern in ylabel, ylabel
+
+
 def test_plot_raw_psd(raw, raw_orig):
     """Test plotting of raw psds."""
     raw_unchanged = raw.copy()
     spectrum = raw.compute_psd()
-    # deprecation change handler
+    # change handler
     old_defaults = dict(picks="data", exclude="bads")
     fig = spectrum.plot(average=False, amplitude=False)
     # normal mode
@@ -1017,24 +1047,20 @@ def test_plot_raw_psd(raw, raw_orig):
     with pytest.warns(UserWarning, match="[Infinite|Zero]"):
         spectrum = raw.compute_psd()
     for dB, amplitude in itertools.product((True, False), (True, False)):
-        with pytest.warns(UserWarning, match="[Infinite|Zero]"):
+        with pytest.warns(UserWarning, match="(Infinite|Zero)"):
             fig = spectrum.plot(average=True, dB=dB, amplitude=amplitude)
         # check grad axes
         title = fig.axes[0].get_title()
         ylabel = fig.axes[0].get_ylabel()
-        unit = r"fT/cm/\sqrt{Hz}" if amplitude else "(fT/cm)²/Hz"
+        unit = "fT/cm" if amplitude else "(fT/cm)^2"
         assert title == "Gradiometers", title
-        assert unit in ylabel, ylabel
-        if dB:
-            assert "dB" in ylabel
-        else:
-            assert "dB" not in ylabel
+        _check_ylabel_psd(ylabel, amplitude, dB, unit)
         # check mag axes
         title = fig.axes[1].get_title()
         ylabel = fig.axes[1].get_ylabel()
-        unit = r"fT/\sqrt{Hz}" if amplitude else "fT²/Hz"
+        unit = "fT" if amplitude else "fT^2"
         assert title == "Magnetometers", title
-        assert unit in ylabel, ylabel
+        _check_ylabel_psd(ylabel, amplitude, dB, unit)
 
     # test xscale value checking
     raw = raw_unchanged
@@ -1090,36 +1116,25 @@ def test_plot_sensors(raw):
     pytest.raises(TypeError, plot_sensors, raw)  # needs to be info
     pytest.raises(ValueError, plot_sensors, raw.info, kind="sasaasd")
     plt.close("all")
+
+    # Test lasso selection.
     fig, sels = raw.plot_sensors("select", show_names=True)
     ax = fig.axes[0]
+    # Lasso a single sensor.
+    _fake_click(fig, ax, (-0.13, 0.13), xform="data")
+    _fake_click(fig, ax, (-0.11, 0.13), xform="data", kind="motion")
+    _fake_click(fig, ax, (-0.11, 0.06), xform="data", kind="motion")
+    _fake_click(fig, ax, (-0.13, 0.06), xform="data", kind="motion")
+    _fake_click(fig, ax, (-0.13, 0.13), xform="data", kind="motion")
+    _fake_click(fig, ax, (-0.13, 0.13), xform="data", kind="release")
+    assert fig.lasso.selection == ["MEG 0121"]
 
-    # Click with no sensors
-    _fake_click(fig, ax, (0.0, 0.0), xform="data")
-    _fake_click(fig, ax, (0, 0.0), xform="data", kind="release")
-    assert fig.lasso.selection == []
-
-    # Lasso with 1 sensor (upper left)
-    _fake_click(fig, ax, (0, 1), xform="ax")
-    fig.canvas.draw()
-    assert fig.lasso.selection == []
-    _fake_click(fig, ax, (0.65, 1), xform="ax", kind="motion")
-    _fake_click(fig, ax, (0.65, 0.7), xform="ax", kind="motion")
+    # Add another sensor with a single click.
     _fake_keypress(fig, "control")
-    _fake_click(fig, ax, (0, 0.7), xform="ax", kind="release", key="control")
-    assert fig.lasso.selection == ["MEG 0121"]
-
-    # check that point appearance changes
-    fc = fig.lasso.collection.get_facecolors()
-    ec = fig.lasso.collection.get_edgecolors()
-    assert (fc[:, -1] == [0.5, 1.0, 0.5]).all()
-    assert (ec[:, -1] == [0.25, 1.0, 0.25]).all()
-
-    _fake_click(fig, ax, (0.7, 1), xform="ax", kind="motion", key="control")
-    xy = ax.collections[0].get_offsets()
-    _fake_click(fig, ax, xy[2], xform="data", key="control")  # single sel
+    _fake_click(fig, ax, (-0.1278, 0.0318), xform="data")
+    _fake_click(fig, ax, (-0.1278, 0.0318), xform="data", kind="release")
+    _fake_keypress(fig, "control", kind="release")
     assert fig.lasso.selection == ["MEG 0121", "MEG 0131"]
-    _fake_click(fig, ax, xy[2], xform="data", key="control")  # deselect
-    assert fig.lasso.selection == ["MEG 0121"]
     plt.close("all")
 
     raw.info["dev_head_t"] = None  # like empty room

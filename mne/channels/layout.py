@@ -82,7 +82,7 @@ class Layout:
         Parameters
         ----------
         fname : path-like
-            The file name (e.g. ``'my_layout.lout'``).
+            The file name (must end with either ``.lout`` or ``.lay``).
         overwrite : bool
             If True, overwrites the destination file if it exists.
 
@@ -103,13 +103,9 @@ class Layout:
             raise ValueError("Unknown layout type. Should be of type .lout or .lay.")
 
         for ii in range(x.shape[0]):
-            out_str += "%03d %8.2f %8.2f %8.2f %8.2f %s\n" % (
-                self.ids[ii],
-                x[ii],
-                y[ii],
-                width[ii],
-                height[ii],
-                self.names[ii],
+            out_str += (
+                f"{self.ids[ii]:03d} {x[ii]:8.2f} {y[ii]:8.2f} "
+                f"{width[ii]:8.2f} {height[ii]:8.2f} {self.names[ii]}\n"
             )
 
         f = open(fname, "w")
@@ -310,7 +306,7 @@ def read_layout(fname=None, *, scale=True):
     ----------
     fname : path-like | str
         Either the path to a ``.lout`` or ``.lay`` file or the name of a
-        built-in layout. c.f. Notes for a list of the available built-in
+        built-in layout. See Notes for a list of the available built-in
         layouts.
     scale : bool
         Apply useful scaling for out the box plotting using ``layout.pos``.
@@ -409,7 +405,7 @@ def read_layout(fname=None, *, scale=True):
 def make_eeg_layout(
     info, radius=0.5, width=None, height=None, exclude="bads", csd=False
 ):
-    """Create .lout file from EEG electrode digitization.
+    """Make a Layout object based on EEG electrode digitization.
 
     Parameters
     ----------
@@ -490,7 +486,9 @@ def make_eeg_layout(
 
 @fill_doc
 def make_grid_layout(info, picks=None, n_col=None):
-    """Generate .lout file for custom data, i.e., ICA sources.
+    """Make a grid Layout object.
+
+    This can be helpful to plot custom data such as ICA sources.
 
     Parameters
     ----------
@@ -906,7 +904,7 @@ def _auto_topomap_coords(info, picks, ignore_overlap, to_sphere, sphere):
     # Use channel locations if available
     locs3d = np.array([ch["loc"][:3] for ch in chs])
 
-    # If electrode locations are not available, use digization points
+    # If electrode locations are not available, use digitization points
     if not _check_ch_locs(info=info, picks=picks):
         logging.warning(
             "Did not find any electrode locations (in the info "
@@ -945,14 +943,13 @@ def _auto_topomap_coords(info, picks, ignore_overlap, to_sphere, sphere):
         if len(locs3d) == 0:
             raise RuntimeError(
                 "Did not find any digitization points of "
-                "kind FIFFV_POINT_EEG (%d) in the info." % FIFF.FIFFV_POINT_EEG
+                f"kind {FIFF.FIFFV_POINT_EEG} in the info."
             )
 
         if len(locs3d) != len(eeg_ch_names):
             raise ValueError(
-                "Number of EEG digitization points (%d) "
-                "doesn't match the number of EEG channels "
-                "(%d)" % (len(locs3d), len(eeg_ch_names))
+                f"Number of EEG digitization points ({len(locs3d)}) doesn't match the "
+                f"number of EEG channels ({len(eeg_ch_names)})"
             )
 
         # We no longer center digitization points on head origin, as we work
@@ -1094,7 +1091,7 @@ def _pair_grad_sensors(
         return picks
 
 
-def _merge_ch_data(data, ch_type, names, method="rms"):
+def _merge_ch_data(data, ch_type, names, method="rms", *, modality="opm"):
     """Merge data from channel pairs.
 
     Parameters
@@ -1107,6 +1104,8 @@ def _merge_ch_data(data, ch_type, names, method="rms"):
         List of channel names.
     method : str
         Can be 'rms' or 'mean'.
+    modality : str
+        The modality of the data, either 'grad', 'fnirs', or 'opm'
 
     Returns
     -------
@@ -1117,9 +1116,13 @@ def _merge_ch_data(data, ch_type, names, method="rms"):
     """
     if ch_type == "grad":
         data = _merge_grad_data(data, method)
-    else:
-        assert ch_type in _FNIRS_CH_TYPES_SPLIT
+    elif modality == "fnirs" or ch_type in _FNIRS_CH_TYPES_SPLIT:
         data, names = _merge_nirs_data(data, names)
+    elif modality == "opm" and ch_type == "mag":
+        data, names = _merge_opm_data(data, names)
+    else:
+        raise ValueError(f"Unknown modality {modality} for channel type {ch_type}")
+
     return data, names
 
 
@@ -1182,6 +1185,37 @@ def _merge_nirs_data(data, merged_names):
     for rem in sorted(to_remove, reverse=True):
         del merged_names[rem]
         data = np.delete(data, rem, 0)
+    return data, merged_names
+
+
+def _merge_opm_data(data, merged_names):
+    """Merge data from multiple opm channel by just using the radial component.
+
+    Channel names that end in "MERGE_REMOVE" (ie non-radial channels) will be
+    removed. Only the the radial channel is kept.
+
+    Parameters
+    ----------
+    data : array, shape = (n_channels, ..., n_times)
+        Data for channels.
+    merged_names : list
+        List of strings containing the channel names. Channels that are to be
+        removed end in "MERGE_REMOVE".
+
+    Returns
+    -------
+    data : array
+        Data for channels with requested channels merged. Channels used in the
+        merge are removed from the array.
+    """
+    to_remove = np.empty(0, dtype=np.int32)
+    for idx, ch in enumerate(merged_names):
+        if ch.endswith("MERGE-REMOVE"):
+            to_remove = np.append(to_remove, idx)
+    to_remove = np.unique(to_remove)
+    for rem in sorted(to_remove, reverse=True):
+        del merged_names[rem]
+    data = np.delete(data, to_remove, axis=0)
     return data, merged_names
 
 

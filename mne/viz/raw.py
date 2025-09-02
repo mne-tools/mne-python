@@ -23,7 +23,7 @@ from .utils import (
     _shorten_path_from_middle,
 )
 
-_RAW_CLIP_DEF = 1.5
+_RAW_CLIP_DEF = 3
 
 
 @verbose
@@ -336,7 +336,7 @@ def plot_raw(
     # generate window title; allow instances without a filename (e.g., ICA)
     if title is None:
         title = "<unknown>"
-        fnames = raw._filenames.copy()
+        fnames = list(tuple(raw.filenames))  # get a list of a copy of the filenames
         if len(fnames):
             title = fnames.pop(0)
             extra = f" ... (+ {len(fnames)} more)" if len(fnames) else ""

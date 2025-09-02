@@ -27,6 +27,7 @@ from ..utils import (
     _clean_names,
     _is_numeric,
     _pl,
+    _time_mask,
     _to_rgb,
     _validate_type,
     fill_doc,
@@ -225,6 +226,8 @@ def _rgb(x, y, z):
     rgb = np.array([x, y, z]).T
     rgb -= np.nanmin(rgb, 0)
     rgb /= np.maximum(np.nanmax(rgb, 0), 1e-16)  # avoid div by zero
+    # Reduce RGB intensity for overly light colors
+    rgb[rgb.sum(axis=1) > 2.5] = rgb[rgb.sum(axis=1) > 2.5] - 0.3
     return rgb
 
 
@@ -844,8 +847,9 @@ def _plot_lines(
 def _add_nave(ax, nave):
     """Add nave to axes."""
     if nave is not None:
+        text_nave = f"={nave}" if round(nave) == nave else rf"$\approx${round(nave, 2)}"
         ax.annotate(
-            r"N$_{\mathrm{ave}}$=" + f"{nave}",
+            r"N$_{\mathrm{ave}}$" + text_nave,
             ha="right",
             va="bottom",
             xy=(1, 1),
@@ -1151,6 +1155,7 @@ def plot_evoked_topo(
     background_color="w",
     noise_cov=None,
     exclude="bads",
+    select=False,
     show=True,
 ):
     """Plot 2D topography of evoked responses.
@@ -1216,6 +1221,15 @@ def plot_evoked_topo(
     exclude : list of str | ``'bads'``
         Channels names to exclude from the plot. If ``'bads'``, the
         bad channels are excluded. By default, exclude is set to ``'bads'``.
+    select : bool
+        Whether to enable the lasso-selection tool to enable the user to select
+        channels. The selected channels will be available in
+        ``fig.lasso.selection``.
+
+        .. versionadded:: 1.10.0
+    exclude : list of str | ``'bads'``
+        Channels names to exclude from the plot. If ``'bads'``, the
+        bad channels are excluded. By default, exclude is set to ``'bads'``.
     show : bool
         Show figure if True.
 
@@ -1272,10 +1286,11 @@ def plot_evoked_topo(
         font_color=font_color,
         merge_channels=merge_grads,
         legend=legend,
+        noise_cov=noise_cov,
         axes=axes,
         exclude=exclude,
+        select=select,
         show=show,
-        noise_cov=noise_cov,
     )
 
 
@@ -1784,7 +1799,7 @@ def plot_evoked_joint(
     times="peaks",
     title="",
     picks=None,
-    exclude=None,
+    exclude="bads",
     show=True,
     ts_args=None,
     topomap_args=None,
@@ -1811,9 +1826,9 @@ def plot_evoked_joint(
         axes are passed make sure to set ``title=None``, otherwise some of your
         axes may be removed during placement of the title axis.
     %(picks_all)s
-    exclude : None | list of str | 'bads'
+    exclude : list of str | 'bads'
         Channels names to exclude from being shown. If ``'bads'``, the
-        bad channels are excluded. Defaults to ``None``.
+        bad channels are excluded. Defaults to ``'bads'``.
     show : bool
         Show figure if ``True``. Defaults to ``True``.
     ts_args : None | dict
@@ -1987,10 +2002,18 @@ def plot_evoked_joint(
     contours = topomap_args.get("contours", 6)
     ch_type = ch_types.pop()  # set should only contain one element
     # Since the data has all the ch_types, we get the limits from the plot.
-    vmin, vmax = ts_ax.get_ylim()
+    vmin, vmax = (None, None)
     norm = ch_type == "grad"
     vmin = 0 if norm else vmin
-    vmin, vmax = _setup_vmin_vmax(evoked.data, vmin, vmax, norm)
+    time_idx = [
+        np.where(
+            _time_mask(evoked.times, tmin=t, tmax=None, sfreq=evoked.info["sfreq"])
+        )[0][0]
+        for t in times_sec
+    ]
+    scalings = topomap_args["scalings"] if "scalings" in topomap_args else None
+    scaling = _handle_default("scalings", scalings)[ch_type]
+    vmin, vmax = _setup_vmin_vmax(evoked.data[:, time_idx] * scaling, vmin, vmax, norm)
     if not isinstance(contours, list | np.ndarray):
         locator, contours = _set_contour_locator(vmin, vmax, contours)
     else:
@@ -2008,7 +2031,7 @@ def plot_evoked_joint(
         from matplotlib import ticker
 
         cbar = fig.colorbar(map_ax[0].images[0], ax=map_ax, cax=cbar_ax, shrink=0.8)
-        cbar.ax.grid(False)  # auto-removal deprecated as of 2021/10/05
+        cbar.ax.grid(False)
         if isinstance(contours, list | np.ndarray):
             cbar.set_ticks(contours)
         else:

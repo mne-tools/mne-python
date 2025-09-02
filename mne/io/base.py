@@ -3,7 +3,6 @@
 # Copyright the MNE-Python contributors.
 
 import os
-import os.path as op
 import shutil
 from collections import defaultdict
 from contextlib import nullcontext
@@ -56,11 +55,7 @@ from ..annotations import (
     _sync_onset,
     _write_annotations,
 )
-from ..channels.channels import (
-    InterpolationMixin,
-    ReferenceMixin,
-    UpdateChannelsMixin,
-)
+from ..channels.channels import InterpolationMixin, ReferenceMixin, UpdateChannelsMixin
 from ..defaults import _handle_default
 from ..event import concatenate_events, find_events
 from ..filter import (
@@ -142,7 +137,7 @@ class BaseRaw(
         Iterable of the last sample number from each raw file. For unsplit raw
         files this should be a length-one list or tuple. If None, then preload
         must be an ndarray.
-    filenames : tuple
+    filenames : tuple | None
         Tuple of length one (for unsplit raw files) or length > 1 (for split
         raw files).
     raw_extras : list of dict
@@ -181,6 +176,12 @@ class BaseRaw(
           (only needed for types that support on-demand disk reads)
     """
 
+    # NOTE: If you add a new attribute to this class and get a Sphinx warning like:
+    #     docstring of mne.io.base.BaseRaw:71:
+    #     WARNING: py:obj reference target not found: duration [ref.obj]
+    # You need to add the attribute to doc/conf.py nitpick_ignore_regex. You should also
+    # consider adding it to the Attributes list for Raw in mne/io/fiff/raw.py.
+
     _extra_attributes = ()
 
     @verbose
@@ -190,7 +191,7 @@ class BaseRaw(
         preload=False,
         first_samps=(0,),
         last_samps=None,
-        filenames=(None,),
+        filenames=None,
         raw_extras=(None,),
         orig_format="double",
         dtype=np.float64,
@@ -238,9 +239,11 @@ class BaseRaw(
         bad = np.where(cals == 0)[0]
         if len(bad) > 0:
             raise ValueError(
-                "Bad cals for channels %s" % {ii: self.ch_names[ii] for ii in bad}
+                f"Bad cals for channels {dict((ii, self.ch_names[ii]) for ii in bad)}"
             )
         self._cals = cals
+        if raw_extras is None:
+            raw_extras = [None] * len(first_samps)
         self._raw_extras = list(dict() if r is None else r for r in raw_extras)
         for r in self._raw_extras:
             r["orig_nchan"] = info["nchan"]
@@ -249,9 +252,11 @@ class BaseRaw(
         # reader or MNE-C converted CTF->FIF files)
         self._read_comp_grade = self.compensation_grade  # read property
         if self._read_comp_grade is not None and len(info["comps"]):
-            logger.info("Current compensation grade : %d" % self._read_comp_grade)
+            logger.info("Current compensation grade : %d", self._read_comp_grade)
         self._comp = None
-        self._filenames = list(filenames)
+        if filenames is None:
+            filenames = [None] * len(first_samps)
+        self.filenames = list(filenames)
         _validate_type(orig_format, str, "orig_format")
         _check_option("orig_format", orig_format, ("double", "single", "int", "short"))
         self.orig_format = orig_format
@@ -276,7 +281,7 @@ class BaseRaw(
             # STI 014 channel is native only to fif ... for all other formats
             # this was artificially added by the IO procedure, so remove it
             ch_names = list(info["ch_names"])
-            if ("STI 014" in ch_names) and not (self.filenames[0].endswith(".fif")):
+            if "STI 014" in ch_names and self.filenames[0].suffix != ".fif":
                 ch_names.remove("STI 014")
 
             # Each channel in the data must have a corresponding channel in
@@ -329,14 +334,14 @@ class BaseRaw(
         if current_comp != grade:
             if self.proj:
                 raise RuntimeError(
-                    "Cannot change compensation on data where "
-                    "projectors have been applied"
+                    "Cannot change compensation on data where projectors have been "
+                    "applied."
                 )
             # Figure out what operator to use (varies depending on preload)
             from_comp = current_comp if self.preload else self._read_comp_grade
             comp = make_compensator(self.info, from_comp, grade)
             logger.info(
-                "Compensator constructed to change %d -> %d" % (current_comp, grade)
+                "Compensator constructed to change %d -> %d", current_comp, grade
             )
             set_current_comp(self.info, grade)
             # We might need to apply it to our data now
@@ -488,7 +493,7 @@ class BaseRaw(
         ``preload=False``. Any implementation should only make use of:
 
         - self._raw_extras[fi]
-        - self._filenames[fi]
+        - self.filenames[fi]
 
         So be sure to store any information necessary for reading raw data
         in self._raw_extras[fi]. Things like ``info`` can be decoupled
@@ -589,9 +594,9 @@ class BaseRaw(
         data_buffer = preload
         if isinstance(preload, bool | np.bool_) and not preload:
             data_buffer = None
+        t = self.times
         logger.info(
-            "Reading %d ... %d  =  %9.3f ... %9.3f secs..."
-            % (0, len(self.times) - 1, 0.0, self.times[-1])
+            f"Reading 0 ... {len(t) - 1}  =  {0.0:9.3f} ... {t[-1]:9.3f} secs..."
         )
         self._data = self._read_segment(data_buffer=data_buffer)
         assert len(self._data) == self.info["nchan"]
@@ -675,9 +680,28 @@ class BaseRaw(
         return self._annotations
 
     @property
-    def filenames(self):
-        """The filenames used."""
+    def filenames(self) -> tuple[Path | None, ...]:
+        """The filenames used.
+
+        :type: :class:`tuple` of :class:`pathlib.Path` | ``None``
+        """
         return tuple(self._filenames)
+
+    @filenames.setter
+    def filenames(self, value):
+        """The filenames used, cast to list of paths."""  # noqa: D401
+        _validate_type(value, (list, tuple), "filenames")
+        if isinstance(value, tuple):
+            value = list(value)
+        for k, elt in enumerate(value):
+            if elt is not None:
+                value[k] = _check_fname(elt, overwrite="read", must_exist=False)
+                if not value[k].exists():
+                    # check existence separately from _check_fname since some
+                    # fileformats use directories instead of files and '_check_fname'
+                    # does not handle it correctly.
+                    raise FileNotFoundError(f"File {value[k]} not found.")
+        self._filenames = list(value)
 
     @verbose
     def set_annotations(
@@ -710,15 +734,12 @@ class BaseRaw(
 
             if meas_date is None and annotations.orig_time is not None:
                 raise RuntimeError(
-                    "Ambiguous operation. Setting an Annotation"
-                    " object with known ``orig_time`` to a raw"
-                    " object which has ``meas_date`` set to"
-                    " None is ambiguous. Please, either set a"
-                    " meaningful ``meas_date`` to the raw"
-                    " object; or set ``orig_time`` to None in"
-                    " which case the annotation onsets would be"
-                    " taken in reference to the first sample of"
-                    " the raw object."
+                    "Ambiguous operation. Setting an Annotation object with known "
+                    "``orig_time`` to a raw object which has ``meas_date`` set to None "
+                    "is ambiguous. Please, either set a meaningful ``meas_date`` to "
+                    "the raw object; or set ``orig_time`` to None in which case the "
+                    "annotation onsets would be taken in reference to the first sample "
+                    "of the raw object."
                 )
 
             delta = 1.0 / self.info["sfreq"]
@@ -797,7 +818,7 @@ class BaseRaw(
         if start is None:
             start = 0
         if step is not None and step != 1:
-            raise ValueError("step needs to be 1 : %d given" % step)
+            raise ValueError(f"step needs to be 1 : {step} given")
 
         if isinstance(sel, int | np.integer):
             sel = np.array([sel])
@@ -992,8 +1013,7 @@ class BaseRaw(
         if n_rejected > 0:
             if reject_by_annotation == "omit":
                 msg = (
-                    "Omitting {} of {} ({:.2%}) samples, retaining {}"
-                    " ({:.2%}) samples."
+                    "Omitting {} of {} ({:.2%}) samples, retaining {} ({:.2%}) samples."
                 )
                 logger.info(
                     msg.format(
@@ -1256,7 +1276,7 @@ class BaseRaw(
         _check_preload(self, "raw.notch_filter")
         onsets, ends = _annotations_starts_stops(self, skip_by_annotation, invert=True)
         logger.info(
-            "Filtering raw data in %d contiguous segment%s" % (len(onsets), _pl(onsets))
+            "Filtering raw data in %d contiguous segment%s", len(onsets), _pl(onsets)
         )
         for si, (start, stop) in enumerate(zip(onsets, ends)):
             notch_filter(
@@ -1366,7 +1386,10 @@ class BaseRaw(
         sfreq = float(sfreq)
         o_sfreq = float(self.info["sfreq"])
         if _check_resamp_noop(sfreq, o_sfreq):
-            return self
+            if events is not None:
+                return self, events.copy()
+            else:
+                return self
 
         # When no event object is supplied, some basic detection of dropped
         # events is performed to generate a warning. Finding events can fail
@@ -1480,6 +1503,71 @@ class BaseRaw(
             return self, events
 
     @verbose
+    def rescale(self, scalings, *, verbose=None):
+        """Rescale channels.
+
+        .. warning::
+            MNE-Python assumes data are stored in SI base units. This function should
+            typically only be used to fix an incorrect scaling factor in the data to get
+            it to be in SI base units, otherwise unintended problems (e.g., incorrect
+            source imaging results) and analysis errors can occur.
+
+        Parameters
+        ----------
+        scalings : int | float | dict
+            The scaling factor(s) by which to multiply the data. If a float, the same
+            scaling factor is applied to all channels (this works only if all channels
+            are of the same type). If a dict, the keys must be valid channel types and
+            the values the scaling factors to apply to the corresponding channels.
+        %(verbose)s
+
+        Returns
+        -------
+        raw : Raw
+            The raw object with rescaled data (modified in-place).
+
+        Examples
+        --------
+        A common use case for EEG data is to convert from µV to V, since many EEG
+        systems store data in µV, but MNE-Python expects the data to be in V. Therefore,
+        the data needs to be rescaled by a factor of 1e-6. To rescale all channels from
+        µV to V, you can do::
+
+            >>> raw.rescale(1e-6)  # doctest: +SKIP
+
+        Note that the previous example only works if all channels are of the same type.
+        If there are multiple channel types, you can pass a dict with the individual
+        scaling factors. For example, to rescale only EEG channels, you can do::
+
+            >>> raw.rescale({"eeg": 1e-6})  # doctest: +SKIP
+        """
+        _validate_type(scalings, (int, float, dict), "scalings")
+        _check_preload(self, "raw.rescale")
+
+        channel_types = self.get_channel_types(unique=True)
+
+        if isinstance(scalings, int | float):
+            if len(channel_types) == 1:
+                self.apply_function(lambda x: x * scalings, channel_wise=False)
+            else:
+                raise ValueError(
+                    "If scalings is a scalar, all channels must be of the same type. "
+                    "Consider passing a dict instead."
+                )
+        else:
+            for ch_type in scalings.keys():
+                if ch_type not in channel_types:
+                    raise ValueError(
+                        f'Channel type "{ch_type}" is not present in the Raw file.'
+                    )
+            for ch_type, ch_scale in scalings.items():
+                self.apply_function(
+                    lambda x: x * ch_scale, picks=ch_type, channel_wise=False
+                )
+
+        return self
+
+    @verbose
     def crop(self, tmin=0.0, tmax=None, include_tmax=True, *, verbose=None):
         """Crop raw data file.
 
@@ -1544,7 +1632,7 @@ class BaseRaw(
         self._read_picks = [self._read_picks[ri] for ri in keepers]
         assert all(len(r) == len(self._read_picks[0]) for r in self._read_picks)
         self._raw_extras = [self._raw_extras[ri] for ri in keepers]
-        self._filenames = [self._filenames[ri] for ri in keepers]
+        self.filenames = [self.filenames[ri] for ri in keepers]
         if self.preload:
             # slice and copy to avoid the reference to large array
             self._data = self._data[:, smin : smax + 1].copy()
@@ -1703,17 +1791,18 @@ class BaseRaw(
         check_fname(fname, "raw", endings, endings_err=endings_err)
 
         split_size = _get_split_size(split_size)
-        if not self.preload and str(fname) in self._filenames:
+        if not self.preload and fname in self.filenames:
+            extra = " and overwrite must be True" if not overwrite else ""
             raise ValueError(
-                "You cannot save data to the same file."
-                " Please use a different filename."
+                "In order to save data to the same file, data need to be preloaded"
+                + extra
             )
 
         if self.preload:
             if np.iscomplexobj(self._data):
                 warn(
-                    "Saving raw file with complex data. Loading with "
-                    "command-line MNE tools will not work."
+                    "Saving raw file with complex data. Loading with command-line MNE "
+                    "tools will not work."
                 )
 
         data_test = self[0, 0][0]
@@ -1909,6 +1998,14 @@ class BaseRaw(
         """Number of time points."""
         return self.last_samp - self.first_samp + 1
 
+    @property
+    def duration(self):
+        """Duration of the data in seconds.
+
+        .. versionadded:: 1.9
+        """
+        return self.n_times / self.info["sfreq"]
+
     def __len__(self):
         """Return the number of time points.
 
@@ -2038,21 +2135,20 @@ class BaseRaw(
         assert annotations.orig_time == self.info["meas_date"]
         edge_samps = list()
         for ri, r in enumerate(raws):
-            n_samples = self.last_samp - self.first_samp + 1
+            edge_samps.append(self.last_samp - self.first_samp + 1)
             annotations = _combine_annotations(
                 annotations,
                 r.annotations,
-                n_samples,
+                edge_samps[-1],
                 self.first_samp,
                 r.first_samp,
                 self.info["sfreq"],
             )
-            edge_samps.append(sum(self._last_samps) - sum(self._first_samps) + (ri + 1))
             self._first_samps = np.r_[self._first_samps, r._first_samps]
             self._last_samps = np.r_[self._last_samps, r._last_samps]
             self._read_picks += r._read_picks
             self._raw_extras += r._raw_extras
-            self._filenames += r._filenames
+            self._filenames += r._filenames  # use the private attribute to use the list
         assert annotations.orig_time == self.info["meas_date"]
         # The above _combine_annotations gets everything synchronized to
         # first_samp. set_annotations (with no absolute time reference) assumes
@@ -2062,14 +2158,17 @@ class BaseRaw(
             annotations.onset -= self.first_samp / self.info["sfreq"]
         self.set_annotations(annotations)
         for edge_samp in edge_samps:
-            onset = _sync_onset(self, (edge_samp) / self.info["sfreq"], True)
+            onset = _sync_onset(self, edge_samp / self.info["sfreq"], True)
+            logger.debug(
+                f"Marking edge at {edge_samp} samples (maps to {onset:0.3f} sec)"
+            )
             self.annotations.append(onset, 0.0, "BAD boundary")
             self.annotations.append(onset, 0.0, "EDGE boundary")
         if not (
             len(self._first_samps)
             == len(self._last_samps)
             == len(self._raw_extras)
-            == len(self._filenames)
+            == len(self.filenames)
             == len(self._read_picks)
         ):
             raise RuntimeError("Append error")  # should never happen
@@ -2099,22 +2198,15 @@ class BaseRaw(
         size_str += f", data{'' if self.preload else ' not'} loaded"
         s = (
             f"{name}{len(self.ch_names)} x {self.n_times} "
-            f"({self.times[-1]:0.1f} s), ~{size_str}"
+            f"({self.duration:0.1f} s), ~{size_str}"
         )
         return f"<{self.__class__.__name__} | {s}>"
 
     @repr_html
     def _repr_html_(self):
-        basenames = [Path(f).name for f in self._filenames if f is not None]
+        basenames = [f.name for f in self.filenames if f is not None]
 
-        # https://stackoverflow.com/a/10981895
-        duration = timedelta(seconds=self.times[-1])
-        hours, remainder = divmod(duration.seconds, 3600)
-        minutes, seconds = divmod(remainder, 60)
-        seconds += duration.microseconds / 1e6
-        seconds = np.ceil(seconds)  # always take full seconds
-
-        duration = f"{int(hours):02d}:{int(minutes):02d}:{int(seconds):02d}"
+        duration = self._get_duration_string()
 
         raw_template = _get_html_template("repr", "raw.html.jinja")
         return raw_template.render(
@@ -2122,6 +2214,13 @@ class BaseRaw(
             filenames=basenames,
             duration=duration,
         )
+
+    def _get_duration_string(self):
+        # https://stackoverflow.com/a/10981895
+        duration = np.ceil(self.duration)  # always take full seconds
+        hours, remainder = divmod(duration, 3600)
+        minutes, seconds = divmod(remainder, 60)
+        return f"{hours:02.0f}:{minutes:02.0f}:{seconds:02.0f}"
 
     def add_events(self, events, stim_channel=None, replace=False):
         """Add events to stim channel.
@@ -2606,6 +2705,10 @@ class _ReadSegmentFileProtector:
             self, data, idx, fi, start, stop, cals, mult
         )
 
+    @property
+    def filenames(self) -> tuple[Path, ...]:
+        return tuple(self._filenames)
+
 
 class _RawShell:
     """Create a temporary raw object."""
@@ -2692,9 +2795,9 @@ def _write_raw(raw_fid_writer, fpath, split_naming, overwrite):
 
 
 class _ReservedFilename:
-    def __init__(self, fname):
+    def __init__(self, fname: Path):
         self.fname = fname
-        assert op.isdir(op.dirname(fname)), fname
+        assert fname.parent.exists(), fname
         with open(fname, "w"):
             pass
         self.remove = True
@@ -2704,7 +2807,7 @@ class _ReservedFilename:
 
     def __exit__(self, exc_type, exc_value, traceback):
         if self.remove:
-            os.remove(self.fname)
+            self.fname.unlink()
 
 
 @dataclass(frozen=True)
@@ -2902,7 +3005,7 @@ def _write_raw_data(
         ):
             start_block(fid, FIFF.FIFFB_REF)
             write_int(fid, FIFF.FIFF_REF_ROLE, FIFF.FIFFV_ROLE_NEXT_FILE)
-            write_string(fid, FIFF.FIFF_REF_FILE_NAME, op.basename(next_fname))
+            write_string(fid, FIFF.FIFF_REF_FILE_NAME, next_fname.name)
             if info["meas_id"] is not None:
                 write_id(fid, FIFF.FIFF_REF_FILE_ID, info["meas_id"])
             write_int(fid, FIFF.FIFF_REF_FILE_NUM, part_idx + 1)
@@ -3018,7 +3121,7 @@ def _check_raw_compatibility(raw):
                     f"raw[{ri}]['info'][{kind}] do not match: {sorted(mismatch)}"
                 )
         if any(raw[ri]._cals != raw[0]._cals):
-            raise ValueError("raw[%d]._cals must match" % ri)
+            raise ValueError(f"raw[{ri}]._cals must match")
         if len(raw[0].info["projs"]) != len(raw[ri].info["projs"]):
             raise ValueError("SSP projectors in raw files must be the same")
         if not all(
@@ -3087,7 +3190,7 @@ def concatenate_raws(
 
 
 @fill_doc
-def match_channel_orders(insts=None, copy=True, *, raws=None):
+def match_channel_orders(insts, copy=True):
     """Ensure consistent channel order across instances (Raw, Epochs, or Evoked).
 
     Parameters
@@ -3096,9 +3199,6 @@ def match_channel_orders(insts=None, copy=True, *, raws=None):
         List of :class:`~mne.io.Raw`, :class:`~mne.Epochs`,
         or :class:`~mne.Evoked` instances to order.
     %(copy_df)s
-    raws : list
-        This parameter is deprecated and will be removed in mne version 1.9.
-        Please use ``insts`` instead.
 
     Returns
     -------
@@ -3106,20 +3206,6 @@ def match_channel_orders(insts=None, copy=True, *, raws=None):
         List of instances (Raw, Epochs, or Evoked) with channel orders matched
         according to the order they had in the first item in the ``insts`` list.
     """
-    # XXX: remove "raws" parameter and logic below with MNE version 1.9
-    #      and remove default parameter value of insts
-    if raws is not None:
-        warn(
-            "The ``raws`` parameter is deprecated and will be removed in version "
-            "1.9. Use the ``insts`` parameter to suppress this warning.",
-            DeprecationWarning,
-        )
-        insts = raws
-    elif insts is None:
-        # both insts and raws is None
-        raise ValueError(
-            "You need to pass a list of Raw, Epochs, or Evoked to ``insts``."
-        )
     insts = deepcopy(insts) if copy else insts
     ch_order = insts[0].ch_names
     for inst in insts[1:]:
@@ -3149,6 +3235,11 @@ def _check_maxshield(allow_maxshield):
 
 def _get_fname_rep(fname):
     if not _file_like(fname):
-        return fname
+        out = str(fname)
     else:
-        return "File-like"
+        out = "file-like"
+        try:
+            out += f' "{fname.name}"'
+        except Exception:
+            pass
+    return out

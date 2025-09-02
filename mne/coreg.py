@@ -876,8 +876,7 @@ def _scale_params(subject_to, subject_from, scale, subjects_dir):
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     if (subject_from is None) != (scale is None):
         raise TypeError(
-            "Need to provide either both subject_from and scale "
-            "parameters, or neither."
+            "Need to provide either both subject_from and scale parameters, or neither."
         )
 
     if subject_from is None:
@@ -1402,8 +1401,7 @@ def _read_surface(filename, *, on_defects):
                 complete_surface_info(bem, copy=False)
             except Exception:
                 raise ValueError(
-                    f"Error loading surface from {filename} (see "
-                    "Terminal for details)."
+                    f"Error loading surface from {filename} (see Terminal for details)."
                 )
     return bem
 
@@ -2076,7 +2074,7 @@ class Coregistration:
         self._rpa_weight = rpa_weight
         self._hsp_weight = hsp_weight
         self._eeg_weight = eeg_weight
-        self._hsp_weight = hpi_weight
+        self._hpi_weight = hpi_weight
 
         # Initial guess (current state)
         est = self._parameters
@@ -2145,8 +2143,7 @@ class Coregistration:
         mask = self._orig_hsp_point_distance <= distance
         n_excluded = np.sum(~mask)
         logger.info(
-            "Coregistration: Excluding %i head shape points with "
-            "distance >= %.3f m.",
+            "Coregistration: Excluding %i head shape points with distance >= %.3f m.",
             n_excluded,
             distance,
         )

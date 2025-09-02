@@ -372,7 +372,7 @@ def write_events(filename, events, *, overwrite=False, verbose=None):
     else:
         with open(filename, "w") as f:
             for e in events:
-                f.write("%6d %6d %3d\n" % tuple(e))
+                f.write(f"{e[0]:6d} {e[1]:6d} {e[2]:3d}\n")
 
 
 def _find_stim_steps(data, first_samp, pad_start=None, pad_stop=None, merge=0):
@@ -519,7 +519,7 @@ def _find_events(
         else:
             logger.info(
                 f"Trigger channel {ch_name} has a non-zero initial value of "
-                "{initial_value} (consider using initial_event=True to detect this "
+                f"{initial_value} (consider using initial_event=True to detect this "
                 "event)"
             )
 
@@ -582,8 +582,8 @@ def _find_unique_events(events):
     n_dupes = len(events) - len(idx)
     if n_dupes > 0:
         warn(
-            "Some events are duplicated in your different stim channels."
-            " %d events were ignored during deduplication." % n_dupes
+            "Some events are duplicated in your different stim channels. "
+            f"{n_dupes} events were ignored during deduplication."
         )
     return events[idx]
 
@@ -767,6 +767,7 @@ def find_events(
     picks = pick_channels(raw.info["ch_names"], include=stim_channel)
     if len(picks) == 0:
         raise ValueError("No stim channel found to extract event triggers.")
+    logger.info(f"Finding events on: {', '.join(raw.ch_names[pick] for pick in picks)}")
     data, _ = raw[picks, :]
 
     events_list = []
@@ -789,12 +790,10 @@ def find_events(
         n_short_events = np.sum(np.diff(events[:, 0]) < shortest_event)
         if n_short_events > 0:
             raise ValueError(
-                "You have %i events shorter than the "
-                "shortest_event. These are very unusual and you "
-                "may want to set min_duration to a larger value "
-                "e.g. x / raw.info['sfreq']. Where x = 1 sample "
-                "shorter than the shortest event "
-                "length." % (n_short_events)
+                f"You have {n_short_events} events shorter than the shortest_event. "
+                "These are very unusual and you may want to set min_duration to a "
+                "larger value e.g. x / raw.info['sfreq']. Where x = 1 sample shorter "
+                "than the shortest event length."
             )
 
         events_list.append(events)
@@ -1191,12 +1190,12 @@ class AcqParserFIF:
 
     def __repr__(self):  # noqa: D105
         s = "<AcqParserFIF | "
-        s += "categories: %d " % self.ncateg
+        s += f"categories: {self.ncateg} "
         cats_in_use = len(self._categories_in_use)
-        s += "(%d in use), " % cats_in_use
-        s += "events: %d " % self.nevent
+        s += f"({cats_in_use} in use), "
+        s += f"events: {self.nevent} "
         evs_in_use = len(self._events_in_use)
-        s += "(%d in use)" % evs_in_use
+        s += f"({evs_in_use} in use)"
         if self.categories:
             s += "\nAveraging categories:"
             for cat in self.categories:
@@ -1651,7 +1650,7 @@ def match_event_names(event_names, keys, *, on_missing="raise"):
         _on_missing(
             on_missing=on_missing,
             msg=f'Event name "{key}" could not be found. The following events '
-            f'are present in the data: {", ".join(event_names)}',
+            f"are present in the data: {', '.join(event_names)}",
             error_klass=KeyError,
         )
 

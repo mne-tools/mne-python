@@ -48,7 +48,7 @@ def make_dir_tree(fid, directory, start=0, indent=0, verbose=None):
     else:
         block = 0
 
-    logger.debug("    " * indent + f"start {{ {block}")
+    start_separate = False
 
     this = start
 
@@ -64,6 +64,9 @@ def make_dir_tree(fid, directory, start=0, indent=0, verbose=None):
     while this < len(directory):
         if directory[this].kind == FIFF.FIFF_BLOCK_START:
             if this != start:
+                if not start_separate:
+                    start_separate = True
+                    logger.debug("    " * indent + f"start {{ {block}")
                 child, this = make_dir_tree(fid, directory, this, indent + 1)
                 tree["nchild"] += 1
                 tree["children"].append(child)
@@ -96,10 +99,10 @@ def make_dir_tree(fid, directory, start=0, indent=0, verbose=None):
     if tree["nent"] == 0:
         tree["directory"] = None
 
-    logger.debug(
-        "    " * (indent + 1)
-        + f"block = {tree['block']} nent = {tree['nent']} nchild = {tree['nchild']}"
-    )
-    logger.debug("    " * indent + f"end }} {block:d}")
+    content = f"block = {tree['block']} nent = {tree['nent']} nchild = {tree['nchild']}"
+    if start_separate:
+        logger.debug("    " * indent + f"end }} {content}")
+    else:
+        logger.debug("    " * indent + content)
     last = this
     return tree, last

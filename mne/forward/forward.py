@@ -180,21 +180,21 @@ class Forward(dict):
         src_types = np.array([src["type"] for src in self["src"]])
 
         if (src_types == "surf").all():
-            src_type = "Surface with %d vertices" % self["nsource"]
+            src_type = f"Surface with {self['nsource']} vertices"
         elif (src_types == "vol").all():
-            src_type = "Volume with %d grid points" % self["nsource"]
+            src_type = f"Volume with {self['nsource']} grid points"
         elif (src_types == "discrete").all():
-            src_type = "Discrete with %d dipoles" % self["nsource"]
+            src_type = f"Discrete with {self['nsource']} dipoles"
         else:
             count_string = ""
             if (src_types == "surf").any():
-                count_string += "%d surface, " % (src_types == "surf").sum()
+                count_string += f"{(src_types == 'surf').sum()} surface, "
             if (src_types == "vol").any():
-                count_string += "%d volume, " % (src_types == "vol").sum()
+                count_string += f"{(src_types == 'vol').sum()} volume, "
             if (src_types == "discrete").any():
-                count_string += "%d discrete, " % (src_types == "discrete").sum()
+                count_string += f"{(src_types == 'discrete').sum()} discrete, "
             count_string = count_string.rstrip(", ")
-            src_type = "Mixed (%s) with %d vertices" % (count_string, self["nsource"])
+            src_type = f"Mixed ({count_string}) with {self['nsource']} vertices"
 
         if self["source_ori"] == FIFF.FIFFV_MNE_UNKNOWN_ORI:
             src_ori = "Unknown"
@@ -210,9 +210,9 @@ class Forward(dict):
         entr = "<Forward"
 
         nchan = len(pick_types(self["info"], meg=True, eeg=False, exclude=[]))
-        entr += " | " + "MEG channels: %d" % nchan
+        entr += " | " + f"MEG channels: {nchan}"
         nchan = len(pick_types(self["info"], meg=False, eeg=True, exclude=[]))
-        entr += " | " + "EEG channels: %d" % nchan
+        entr += " | " + f"EEG channels: {nchan}"
 
         src_type, src_ori = self._get_src_type_and_ori_for_repr()
         entr += f" | Source space: {src_type}"
@@ -318,7 +318,6 @@ def _get_tag_int(fid, node, name, id_):
     """Check we have an appropriate tag."""
     tag = find_tag(fid, node, id_)
     if tag is None:
-        fid.close()
         raise ValueError(name + " tag not found")
     return int(tag.data.item())
 
@@ -512,7 +511,7 @@ def _merge_fwds(fwds, *, verbose=None):
             a[k]["row_names"] = a[k]["row_names"] + b[k]["row_names"]
         a["nchan"] = a["nchan"] + b["nchan"]
     if len(fwds) > 1:
-        logger.info(f'    Forward solutions combined: {", ".join(combined)}')
+        logger.info(f"    Forward solutions combined: {', '.join(combined)}")
     return fwd
 
 
@@ -609,8 +608,10 @@ def read_forward_solution(fname, include=(), exclude=(), *, ordered=True, verbos
                 ori = "free"
             logger.info(
                 "    Read MEG forward solution (%d sources, "
-                "%d channels, %s orientations)"
-                % (megfwd["nsource"], megfwd["nchan"], ori)
+                "%d channels, %s orientations)",
+                megfwd["nsource"],
+                megfwd["nchan"],
+                ori,
             )
         del megfwd
 
@@ -623,8 +624,10 @@ def read_forward_solution(fname, include=(), exclude=(), *, ordered=True, verbos
                 ori = "free"
             logger.info(
                 "    Read EEG forward solution (%d sources, "
-                "%d channels, %s orientations)"
-                % (eegfwd["nsource"], eegfwd["nchan"], ori)
+                "%d channels, %s orientations)",
+                eegfwd["nsource"],
+                eegfwd["nchan"],
+                ori,
             )
         del eegfwd
 
@@ -645,7 +648,6 @@ def read_forward_solution(fname, include=(), exclude=(), *, ordered=True, verbos
                 mri_head_t["from"] != FIFF.FIFFV_COORD_MRI
                 or mri_head_t["to"] != FIFF.FIFFV_COORD_HEAD
             ):
-                fid.close()
                 raise ValueError("MRI/head coordinate transformation not found")
         fwd["mri_head_t"] = mri_head_t
 
@@ -673,8 +675,7 @@ def read_forward_solution(fname, include=(), exclude=(), *, ordered=True, verbos
     # Make sure forward solution is in either the MRI or HEAD coordinate frame
     if fwd["coord_frame"] not in (FIFF.FIFFV_COORD_MRI, FIFF.FIFFV_COORD_HEAD):
         raise ValueError(
-            "Only forward solutions computed in MRI or head "
-            "coordinates are acceptable"
+            "Only forward solutions computed in MRI or head coordinates are acceptable"
         )
 
     # Transform each source space to the HEAD or MRI coordinate frame,
@@ -1121,7 +1122,6 @@ def write_forward_meas_info(fid, info):
     # get transformation from CTF and DEVICE to HEAD coordinate frame
     meg_head_t = info.get("dev_head_t", info.get("ctf_head_t"))
     if meg_head_t is None:
-        fid.close()
         raise ValueError("Head<-->sensor transform not found")
     write_coord_trans(fid, meg_head_t)
 
@@ -1167,7 +1167,7 @@ def _select_orient_forward(forward, info, noise_cov=None, copy=True):
     _check_compensation_grade(forward["info"], info, "forward")
 
     n_chan = len(ch_names)
-    logger.info("Computing inverse operator with %d channels." % n_chan)
+    logger.info("Computing inverse operator with %d channels.", n_chan)
     forward = pick_channels_forward(forward, ch_names, ordered=True, copy=copy)
     info_idx = [info["ch_names"].index(name) for name in ch_names]
     info_picked = pick_info(info, info_idx)
@@ -1201,8 +1201,7 @@ def _triage_loose(src, loose, fixed="auto"):
     if fixed is True:
         if not all(v == 0.0 for v in loose.values()):
             raise ValueError(
-                'When using fixed=True, loose must be 0. or "auto", '
-                f"got {orig_loose}"
+                f'When using fixed=True, loose must be 0. or "auto", got {orig_loose}'
             )
     elif fixed is False:
         if any(v == 0.0 for v in loose.values()):
@@ -1291,8 +1290,8 @@ def _restrict_gain_matrix(G, info):
     # Figure out which ones have been used
     if len(info["chs"]) != G.shape[0]:
         raise ValueError(
-            'G.shape[0] (%d) and length of info["chs"] (%d) '
-            "do not match" % (G.shape[0], len(info["chs"]))
+            f'G.shape[0] ({G.shape[0]}) and length of info["chs"] ({len(info["chs"])}) '
+            "do not match."
         )
     for meg, eeg, kind in (
         ("grad", False, "planar"),
@@ -1301,7 +1300,7 @@ def _restrict_gain_matrix(G, info):
     ):
         sel = pick_types(info, meg=meg, eeg=eeg, ref_meg=False, exclude=[])
         if len(sel) > 0:
-            logger.info("    %d %s channels" % (len(sel), kind))
+            logger.info("    %d %s channels", len(sel), kind)
             break
     else:
         warn("Could not find MEG or EEG channels to limit depth channels")
@@ -1480,7 +1479,7 @@ def compute_depth_prior(
                 n_limit = ind
 
         logger.info(
-            "    limit = %d/%d = %f" % (n_limit + 1, len(d), np.sqrt(limit / ws[0]))
+            "    limit = %d/%d = %f", n_limit + 1, len(d), np.sqrt(limit / ws[0])
         )
         scale = 1.0 / limit
         logger.info(f"    scale = {scale:g} exp = {exp:g}")
@@ -1525,11 +1524,9 @@ def _stc_src_sel(
     n_stc = sum(len(v) for v in vertices)
     n_joint = len(src_sel)
     if n_joint != n_stc:
-        msg = "Only %i of %i SourceEstimate %s found in source space%s" % (
-            n_joint,
-            n_stc,
-            "vertex" if n_stc == 1 else "vertices",
-            extra,
+        msg = (
+            f"Only {n_joint} of {n_stc} SourceEstimate "
+            f"{'vertex' if n_stc == 1 else 'vertices'} found in source space{extra}"
         )
         _on_missing(on_missing, msg)
     return src_sel, stc_sel, out_vertices
@@ -1664,8 +1661,7 @@ def apply_forward(
     for ch_name in fwd["sol"]["row_names"]:
         if ch_name not in info["ch_names"]:
             raise ValueError(
-                f"Channel {ch_name} of forward operator not present in "
-                "evoked_template."
+                f"Channel {ch_name} of forward operator not present in evoked_template."
             )
 
     # project the source estimate to the sensor space

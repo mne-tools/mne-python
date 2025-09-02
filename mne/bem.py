@@ -91,7 +91,7 @@ class ConductorModel(dict):
 
     def __repr__(self):  # noqa: D105
         if self["is_sphere"]:
-            center = ", ".join(f"{x * 1000.:.1f}" for x in self["r0"])
+            center = ", ".join(f"{x * 1000.0:.1f}" for x in self["r0"])
             rad = self.radius
             if rad is None:  # no radius / MEG only
                 extra = f"Sphere (no layers): r0=[{center}] mm"
@@ -538,7 +538,7 @@ def _assert_complete_surface(surf, incomplete="raise"):
     prop = tot_angle / (2 * np.pi)
     if np.abs(prop - 1.0) > 1e-5:
         msg = (
-            f'Surface {_bem_surf_name[surf["id"]]} is not complete (sum of '
+            f"Surface {_bem_surf_name[surf['id']]} is not complete (sum of "
             f"solid angles yielded {prop}, should be 1.)"
         )
         _on_missing(incomplete, msg, name="incomplete", error_klass=RuntimeError)
@@ -571,7 +571,7 @@ def _check_surface_size(surf):
     sizes = surf["rr"].max(axis=0) - surf["rr"].min(axis=0)
     if (sizes < 0.05).any():
         raise RuntimeError(
-            f'Dimensions of the surface {_bem_surf_name[surf["id"]]} seem too '
+            f"Dimensions of the surface {_bem_surf_name[surf['id']]} seem too "
             f"small ({1000 * sizes.min():9.5f}). Maybe the unit of measure"
             " is meters instead of mm"
         )
@@ -599,8 +599,7 @@ def _surfaces_to_bem(
     # surfs can be strings (filenames) or surface dicts
     if len(surfs) not in (1, 3) or not (len(surfs) == len(ids) == len(sigmas)):
         raise ValueError(
-            "surfs, ids, and sigmas must all have the same "
-            "number of elements (1 or 3)"
+            "surfs, ids, and sigmas must all have the same number of elements (1 or 3)"
         )
     for si, surf in enumerate(surfs):
         if isinstance(surf, str | Path | os.PathLike):
@@ -1020,7 +1019,7 @@ def get_fitting_dig(info, dig_kinds="auto", exclude_frontal=True, verbose=None):
     .. versionadded:: 0.14
     """
     _validate_type(info, "info")
-    if info["dig"] is None:
+    if info.get("dig", None) is None:  # "dig" can be missing for fwd/inv
         raise RuntimeError(
             'Cannot fit headshape without digitization, info["dig"] is None'
         )
@@ -1074,10 +1073,10 @@ def get_fitting_dig(info, dig_kinds="auto", exclude_frontal=True, verbose=None):
 
 
 @verbose
-def _fit_sphere_to_headshape(info, dig_kinds, verbose=None):
+def _fit_sphere_to_headshape(info, dig_kinds, *, verbose=None):
     """Fit a sphere to the given head shape."""
     hsp = get_fitting_dig(info, dig_kinds)
-    radius, origin_head = _fit_sphere(np.array(hsp), disp=False)
+    radius, origin_head = _fit_sphere(np.array(hsp))
     # compute origin in device coordinates
     dev_head_t = info["dev_head_t"]
     if dev_head_t is None:
@@ -1091,10 +1090,17 @@ def _fit_sphere_to_headshape(info, dig_kinds, verbose=None):
     o_mm = origin_head * 1e3
     o_d = origin_device * 1e3
     if np.linalg.norm(origin_head[:2]) > 0.02:
-        warn(
+        msg = (
             f"(X, Y) fit ({o_mm[0]:0.1f}, {o_mm[1]:0.1f}) "
             "more than 20 mm from head frame origin"
         )
+        if dig_kinds == "auto":
+            logger.info(msg)
+            logger.info("Trying again with all digitization points.")
+            return _fit_sphere_to_headshape(
+                info, dig_kinds=("extra", "eeg", "hpi", "cardinal"), verbose=verbose
+            )
+        warn(msg)
     logger.info(
         "Origin head coordinates:".ljust(30)
         + f"{o_mm[0]:0.1f} {o_mm[1]:0.1f} {o_mm[2]:0.1f} mm"
@@ -1106,36 +1112,16 @@ def _fit_sphere_to_headshape(info, dig_kinds, verbose=None):
     return radius, origin_head, origin_device
 
 
-def _fit_sphere(points, disp="auto"):
+def _fit_sphere(points):
     """Fit a sphere to an arbitrary set of points."""
-    if isinstance(disp, str) and disp == "auto":
-        disp = True if logger.level <= 20 else False
-    # initial guess for center and radius
-    radii = (np.max(points, axis=1) - np.min(points, axis=1)) / 2.0
-    radius_init = radii.mean()
-    center_init = np.median(points, axis=0)
-
-    # optimization
-    x0 = np.concatenate([center_init, [radius_init]])
-
-    def cost_fun(center_rad):
-        d = np.linalg.norm(points - center_rad[:3], axis=1) - center_rad[3]
-        d *= d
-        return d.sum()
-
-    def constraint(center_rad):
-        return center_rad[3]  # radius must be >= 0
-
-    x_opt = fmin_cobyla(
-        cost_fun,
-        x0,
-        constraint,
-        rhobeg=radius_init,
-        rhoend=radius_init * 1e-6,
-        disp=disp,
-    )
-
-    origin, radius = x_opt[:3], x_opt[3]
+    # linear least-squares sphere fit, see for example
+    # https://stackoverflow.com/a/78909044
+    # TODO: At some point we should maybe reject outliers first...
+    A = np.c_[2 * points, np.ones((len(points), 1))]
+    b = (points**2).sum(axis=1)
+    x, _, _, _ = np.linalg.lstsq(A, b, rcond=1e-6)
+    origin = x[:3]
+    radius = np.sqrt(x[0] ** 2 + x[1] ** 2 + x[2] ** 2 + x[3])
     return radius, origin
 
 
@@ -1260,8 +1246,7 @@ def make_watershed_bem(
     if op.isdir(ws_dir):
         if not overwrite:
             raise RuntimeError(
-                f"{ws_dir} already exists. Use the --overwrite option"
-                " to recreate it."
+                f"{ws_dir} already exists. Use the --overwrite option to recreate it."
             )
         else:
             shutil.rmtree(ws_dir)
@@ -1278,6 +1263,25 @@ def make_watershed_bem(
     if gcaatlas:
         fname = op.join(env["FREESURFER_HOME"], "average", "RB_all_withskull_*.gca")
         fname = sorted(glob.glob(fname))[::-1][0]
+
+        # check if FS>8 didn't generate talairach_with_skull.lta
+        talairach_with_skull_path = os.path.join(
+            subject_dir, "mri/transforms/talairach_with_skull.lta"
+        )
+        if not os.path.exists(talairach_with_skull_path):
+            logger.info(
+                f"{talairach_with_skull_path} does not exist. Running mri_em_register."
+            )
+            em_reg_cmd = [
+                "mri_em_register",
+                "-skull",
+                subject_dir + "/mri/nu.mgz",
+                fname,
+                talairach_with_skull_path,
+            ]
+
+            run_subprocess_env(em_reg_cmd)
+
         logger.info(f"Using GCA atlas: {fname}")
         cmd += [
             "-atlas",
@@ -2460,7 +2464,7 @@ def make_scalp_surfaces(
         logger.info(f"{ii}. Creating {level} tessellation...")
         logger.info(
             f"{ii}.1 Decimating the dense tessellation "
-            f'({len(surf["tris"])} -> {n_tri} triangles)...'
+            f"({len(surf['tris'])} -> {n_tri} triangles)..."
         )
         points, tris = decimate_surface(
             points=surf["rr"], triangles=surf["tris"], n_triangles=n_tri

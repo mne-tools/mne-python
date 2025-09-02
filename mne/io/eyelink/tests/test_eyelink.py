@@ -8,6 +8,7 @@ import numpy as np
 import pytest
 from numpy.testing import assert_allclose
 
+from mne import find_events
 from mne._fiff.constants import FIFF
 from mne._fiff.pick import _DATA_CH_TYPES_SPLIT
 from mne.datasets.testing import data_path, requires_testing_data
@@ -193,6 +194,114 @@ def test_find_overlaps():
     assert overlap_df["eye"].iloc[0] == "both"
 
 
+@requires_testing_data
+@pytest.mark.parametrize("fname", [fname])
+def test_bino_to_mono(tmp_path, fname):
+    """Test a file that switched from binocular to monocular mid-recording."""
+    out_file = tmp_path / "tmp_eyelink.asc"
+    in_file = Path(fname)
+
+    lines = in_file.read_text("utf-8").splitlines()
+    # We'll also add some binocular velocity data to increase our testing coverage.
+    start_idx = [li for li, line in enumerate(lines) if line.startswith("START")][0]
+    for li, line in enumerate(lines[start_idx:-2], start=start_idx):
+        tokens = line.split("\t")
+        event_type = tokens[0]
+        if event_type == "SAMPLES":
+            tokens.insert(3, "VEL")
+            lines[li] = "\t".join(tokens)
+        elif event_type.isnumeric():
+            # fake velocity values for x/y left/right
+            tokens[4:4] = ["999.1", "999.2", "999.3", "999.4"]
+            lines[li] = "\t".join(tokens)
+    end_line = lines[-2]
+    end_ts = int(end_line.split("\t")[1])
+    # Now only left eye data
+    second_block = []
+    new_ts = end_ts + 1
+    info = [
+        "GAZE",
+        "LEFT",
+        "VEL",
+        "RATE",
+        "500.00",
+        "TRACKING",
+        "CR",
+        "FILTER",
+        "2",
+    ]
+    start = ["START", f"{new_ts}", "LEFT", "SAMPLES", "EVENTS"]
+    pupil = ["PUPIL", "DIAMETER"]
+    samples = ["SAMPLES"] + info
+    events = ["EVENTS"] + info
+    second_block.append("\t".join(start) + "\n")
+    second_block.append("\t".join(pupil) + "\n")
+    second_block.append("\t".join(samples) + "\n")
+    second_block.append("\t".join(events) + "\n")
+    # Some fake data.. # x, y, pupil, velicty x/y status
+    left = ["960", "540", "0.0", "999.1", "999.2", "..."]
+    NUM_FAKE_SAMPLES = 4000
+    for ii in range(NUM_FAKE_SAMPLES):
+        ts = new_ts + ii
+        tokens = [f"{ts}"] + left
+        second_block.append("\t".join(tokens) + "\n")
+    # interleave some events into the second block
+    duration = 500
+    blink_ts = new_ts + 500
+    end_blink = ["EBLINK", "L", f"{blink_ts}", f"{blink_ts + 50}", "106"]
+    fix_ts = new_ts + 1500
+    end_fix = [
+        "EFIX",
+        "L",
+        f"{fix_ts}",
+        f"{fix_ts + duration}",
+        "1616",
+        "1025.1",
+        "580.9",
+        "1289",
+    ]
+    sacc_ts = new_ts + 2500
+    end_sacc = [
+        "ESACC",
+        "L",
+        f"{sacc_ts}",
+        f"{sacc_ts + duration}",
+        "52",
+        "1029.6",
+        "582.3",
+        "581.7",
+        "292.5",
+        "10.30",
+        "387",
+    ]
+    second_block.append("\t".join(end_blink) + "\n")
+    second_block.append("\t".join(end_fix) + "\n")
+    second_block.append("\t".join(end_sacc) + "\n")
+    end_ts = ts + 1
+    end_block = ["END", f"{end_ts}", "SAMPLES", "EVENTS", "RES", "45", "45"]
+    second_block.append("\t".join(end_block))
+    lines += second_block
+    out_file.write_text("\n".join(lines), encoding="utf-8")
+
+    with pytest.warns(
+        RuntimeWarning, match="This recording switched between monocular and binocular"
+    ):
+        raw = read_raw_eyelink(out_file)
+    want_channels = [
+        "xpos_left",
+        "ypos_left",
+        "pupil_left",
+        "xpos_right",
+        "ypos_right",
+        "pupil_right",
+        "xvel_left",
+        "yvel_left",
+        "xvel_right",
+        "yvel_right",
+    ]
+    assert len(set(raw.info["ch_names"]).difference(set(want_channels))) == 0
+
+
 def _simulate_eye_tracking_data(in_file, out_file):
     out_file = Path(out_file)
 
@@ -251,13 +360,19 @@ def _simulate_eye_tracking_data(in_file, out_file):
 @requires_testing_data
 @pytest.mark.parametrize("fname", [fname_href])
 def test_multi_block_misc_channels(fname, tmp_path):
-    """Test an eyelink file with multiple blocks and additional misc channels."""
+    """Test a file with many edge casses.
+
+    This file has multiple acquisition blocks, each tracking a different eye.
+    The coordinates are in raw units (not pixels or radians).
+    It has some misc channels (head position, saccade velocity, etc.)
+    """
     out_file = tmp_path / "tmp_eyelink.asc"
     _simulate_eye_tracking_data(fname, out_file)
 
     with (
         _record_warnings(),
         pytest.warns(RuntimeWarning, match="Raw eyegaze coordinates"),
+        pytest.warns(RuntimeWarning, match="The eye being tracked changed"),
     ):
         raw = read_raw_eyelink(out_file, apply_offsets=True)
 
@@ -273,6 +388,11 @@ def test_multi_block_misc_channels(fname, tmp_path):
         "x_head",
         "y_head",
         "distance",
+        "xpos_left",
+        "ypos_left",
+        "pupil_left",
+        "xvel_left",
+        "yvel_left",
     ]
 
     assert raw.ch_names == chs_in_file
@@ -284,6 +404,9 @@ def test_multi_block_misc_channels(fname, tmp_path):
     data, times = raw.get_data(return_times=True)
     assert not np.isnan(data[0, np.where(times < 1)[0]]).any()
     assert np.isnan(data[0, np.logical_and(times > 1, times <= 1.1)]).all()
+
+    # smoke test for reading events with missing samples (should not emit a warning)
+    find_events(raw, verbose=True)
 
 
 @requires_testing_data
@@ -335,3 +458,28 @@ def test_no_datetime(tmp_path):
     # Sanity check that a None meas_date doesn't change annotation times
     # First annotation in this file is a fixation at 0.004 seconds
     np.testing.assert_allclose(raw.annotations.onset[0], 0.004)
+
+
+@requires_testing_data
+def test_href_eye_events(tmp_path):
+    """Test Parsing file where Eye Event Data option was set to 'HREF'."""
+    out_file = tmp_path / "tmp_eyelink.asc"
+    lines = fname_href.read_text("utf-8").splitlines()
+    for li, line in enumerate(lines):
+        if not line.startswith(("ESACC", "EFIX")):
+            continue
+        tokens = line.split()
+        if line.startswith("ESACC"):
+            href_sacc_vals = ["9999", "9999", "9999", "9999", "99.99", "999"]
+            tokens[5:5] = href_sacc_vals  # add href saccade values
+        elif line.startswith("EFIX"):
+            tokens = line.split()
+            href_fix_vals = ["9999.9", "9999.9", "999"]
+            tokens[5:3] = href_fix_vals
+        new_line = "\t".join(tokens) + "\n"
+        lines[li] = new_line
+    out_file.write_text("\n".join(lines), encoding="utf-8")
+    raw = read_raw_eyelink(out_file)
+    # Just check that we actually parsed the Saccade and Fixation events
+    assert "saccade" in raw.annotations.description
+    assert "fixation" in raw.annotations.description

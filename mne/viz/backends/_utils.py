@@ -317,8 +317,7 @@ def _qt_get_stylesheet(theme):
             file = open(theme)
         except OSError:
             warn(
-                "Requested theme file not found, will use light instead: "
-                f"{repr(theme)}"
+                f"Requested theme file not found, will use light instead: {repr(theme)}"
             )
         else:
             with file as fid:

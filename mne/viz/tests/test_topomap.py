@@ -44,7 +44,7 @@ from mne.preprocessing import (
     compute_bridged_electrodes,
     compute_current_source_density,
 )
-from mne.time_frequency.tfr import AverageTFRArray
+from mne.time_frequency.tfr import AverageTFR, AverageTFRArray
 from mne.viz import plot_evoked_topomap, plot_projs_topomap, topomap
 from mne.viz.tests.test_raw import _proj_status
 from mne.viz.topomap import (
@@ -62,6 +62,8 @@ data_dir = testing.data_path(download=False)
 subjects_dir = data_dir / "subjects"
 ecg_fname = data_dir / "MEG" / "sample" / "sample_audvis_ecg-proj.fif"
 triux_fname = data_dir / "SSS" / "TRIUX" / "triux_bmlhus_erm_raw.fif"
+opm_fname = data_dir / "OPM" / "opm-evoked-ave.fif"
+
 
 base_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
 evoked_fname = base_dir / "test-ave.fif"
@@ -568,6 +570,24 @@ def test_plot_topomap_basic():
     assert_array_equal(evoked_grad.info["bads"], orig_bads)
 
 
+def test_plot_psds_topomap_colorbar():
+    """Test plot_psds_topomap colorbar option."""
+    raw = read_raw_fif(raw_fname)
+    picks = pick_types(raw.info, meg="grad")
+    info = pick_info(raw.info, picks)
+    freqs = np.arange(3.0, 9.5)
+    rng = np.random.default_rng(42)
+    psd = np.abs(rng.standard_normal((len(picks), len(freqs))))
+    bands = {"theta": [4, 8]}
+
+    plt.close("all")
+    fig_cbar = plot_psds_topomap(psd, freqs, info, colorbar=True, bands=bands)
+    assert len(fig_cbar.axes) == 2
+
+    fig_nocbar = plot_psds_topomap(psd, freqs, info, colorbar=False, bands=bands)
+    assert len(fig_nocbar.axes) == 1
+
+
 def test_plot_tfr_topomap():
     """Test plotting of TFR data."""
     raw = read_raw_fif(raw_fname)
@@ -591,6 +611,29 @@ def test_plot_tfr_topomap():
     tfr.plot_topomap(
         ch_type="mag", tmin=0.05, tmax=0.150, fmin=0, fmax=10, res=res, contours=0
     )
+
+    # test data with taper dimension (real)
+    data = np.expand_dims(data, axis=1)
+    weights = np.random.rand(1, n_freqs)
+    tfr = AverageTFRArray(
+        info=info,
+        data=data,
+        times=times,
+        freqs=np.arange(n_freqs),
+        nave=nave,
+        weights=weights,
+    )
+    tfr.plot_topomap(
+        ch_type="mag", tmin=0.05, tmax=0.150, fmin=0, fmax=10, res=res, contours=0
+    )
+    # test data with taper dimension (complex)
+    state = tfr.__getstate__()
+    tfr = AverageTFR(inst=state | dict(data=data * (1 + 1j)))
+    tfr.plot_topomap(
+        ch_type="mag", tmin=0.05, tmax=0.150, fmin=0, fmax=10, res=res, contours=0
+    )
+    # remove taper dim before proceeding
+    data = data[:, 0]
 
     # test real numbers
     tfr = AverageTFRArray(
@@ -733,6 +776,19 @@ def test_plot_topomap_bads_grad():
     info = pick_info(info, picks)
     assert len(info["chs"]) == 203
     plot_topomap(data, info, res=8)
+
+
+@testing.requires_testing_data
+def test_plot_topomap_opm():
+    """Test plotting topomap with OPM data."""
+    # load data
+    evoked = read_evokeds(opm_fname, kind="average")[0]
+
+    # plot evoked topomap
+    fig_evoked = evoked.plot_topomap(
+        times=[-0.1, 0, 0.1, 0.2], ch_type="mag", show=False
+    )
+    assert len(fig_evoked.axes) == 5
 
 
 def test_plot_topomap_nirs_overlap(fnirs_epochs):

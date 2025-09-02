@@ -514,6 +514,32 @@ def test_add_bem_n_jobs(n_jobs, monkeypatch):
     assert 0.778 < corr < 0.80
 
 
+@pytest.mark.filterwarnings("ignore:Distances could not be calculated.*:RuntimeWarning")
+@pytest.mark.slowtest
+@testing.requires_testing_data
+def test_add_forward(renderer_interactive_pyvistaqt):
+    """Test add_forward."""
+    report = Report(subjects_dir=subjects_dir, image_format="png")
+    report.add_forward(
+        forward=fwd_fname,
+        subjects_dir=subjects_dir,
+        title="Forward solution",
+        plot=True,
+    )
+    assert len(report.html) == 1
+    assert report.html[0].count("<img") == 1
+
+    report = Report(subjects_dir=subjects_dir, image_format="png")
+    report.add_forward(
+        forward=fwd_fname,
+        subjects_dir=subjects_dir,
+        title="Forward solution",
+        plot=False,
+    )
+    assert len(report.html) == 1
+    assert report.html[0].count("<img") == 0
+
+
 @testing.requires_testing_data
 def test_render_mri_without_bem(tmp_path):
     """Test rendering MRI without BEM for mne report."""
@@ -593,7 +619,8 @@ def test_validate_input():
 
 def test_open_report(tmp_path):
     """Test the open_report function."""
-    pytest.importorskip("h5io")
+    h5py = pytest.importorskip("h5py")
+    h5io = pytest.importorskip("h5io")
     hdf5 = str(tmp_path / "report.h5")
 
     # Test creating a new report through the open_report function
@@ -604,6 +631,11 @@ def test_open_report(tmp_path):
         report.add_figure(fig=fig1, title="evoked response")
     # Exiting the context block should have triggered saving to HDF5
     assert Path(hdf5).exists()
+
+    # Let's add some companion data to the HDF5 file
+    with h5py.File(hdf5, "r+") as f:
+        h5io.write_hdf5(f, "test", title="companion")
+    assert h5io.read_hdf5(hdf5, title="companion") == "test"
 
     # Load the HDF5 version of the report and check equivalence
     report2 = open_report(hdf5)
@@ -621,7 +653,11 @@ def test_open_report(tmp_path):
     # Check that the context manager doesn't swallow exceptions
     with pytest.raises(ZeroDivisionError):
         with open_report(hdf5, subjects_dir=str(tmp_path)) as report:
+            assert h5io.read_hdf5(hdf5, title="companion") == "test"
             1 / 0
+
+    # Check that our companion data survived
+    assert h5io.read_hdf5(hdf5, title="companion") == "test"
 
 
 def test_remove():
@@ -872,6 +908,7 @@ def test_survive_pickle(tmp_path):
 
 @pytest.mark.slowtest  # ~30 s on Azure Windows
 @testing.requires_testing_data
+@pytest.mark.filterwarnings("ignore:Distances could not be calculated.*:RuntimeWarning")
 def test_manual_report_2d(tmp_path, invisible_fig):
     """Simulate user manually creating report by adding one file at a time."""
     pytest.importorskip("sklearn")
@@ -1068,6 +1105,88 @@ def test_manual_report_2d(tmp_path, invisible_fig):
     r.save(fname=fname, open_browser=False)
 
 
+def test_report_tweaks(tmp_path, monkeypatch):
+    """Test tweaking of report params."""
+    r = Report(image_format="png")
+    assert r.collapse == ()
+    assert r.img_max_width == 850
+    assert r.img_max_res == 100
+
+    events = np.array([[0, 0, 1], [1, 0, 2], [2, 0, 3]])
+    kwargs = dict(events=events, sfreq=1000.0, title="my events", section="my section")
+    with plt.rc_context(rc={"figure.dpi": 200, "figure.figsize": (10, 10)}):
+        r.add_events(**kwargs)
+
+    fname = tmp_path / "report.html"
+    r.save(fname, open_browser=False)
+
+    html = fname.read_text(encoding="utf-8")
+    assert html.count("collapse show") == 2, fname  # section and element
+
+    r.collapse = ["section"]
+    r.save(fname, open_browser=False, overwrite=True)
+    html = fname.read_text(encoding="utf-8")
+    assert html.count("collapse show") == 1, fname  # section collapsed
+
+    # Bad input handling
+    with pytest.raises(ValueError):
+        r.collapse = "foo"
+    with pytest.raises(TypeError):
+        r.collapse = 1
+    with pytest.raises(TypeError):
+        r.img_max_width = "foo"
+    with pytest.raises(ValueError):
+        r.img_max_width = -1
+    with pytest.raises(TypeError):
+        r.img_max_res = "foo"
+    with pytest.raises(ValueError):
+        r.img_max_res = -1
+
+    # Figure out the size of our rendered image (max width 850)
+    img_re = re.compile(r'src="data:image/png;base64([^"]+)"')
+    imgs = img_re.findall(html)
+    assert len(imgs) == 2  # the first is our logo
+    img = plt.imread(BytesIO(base64.b64decode(imgs[1].encode("ascii"))))
+    assert img.shape == (850, 850, 3)
+
+    # Now let's limit it by max resolution (100 dpi)
+    r = Report(image_format="png")
+    r.img_max_width = None
+    with plt.rc_context(rc={"figure.dpi": 200, "figure.figsize": (10, 10)}):
+        r.add_events(**kwargs)
+    r.save(fname, open_browser=False, overwrite=True)
+    imgs = img_re.findall(fname.read_text(encoding="utf-8"))
+    assert len(imgs) == 2
+    img = plt.imread(BytesIO(base64.b64decode(imgs[1].encode("ascii"))))
+    assert img.shape == (1000, 1000, 3)  # figure.figsize * Report.img_max_res
+
+    # Now let's do unconstrained
+    r = Report(image_format="png")
+    r.img_max_width = r.img_max_res = None
+    with plt.rc_context(rc={"figure.dpi": 200, "figure.figsize": (10, 10)}):
+        r.add_events(**kwargs)
+    r.save(fname, open_browser=False, overwrite=True)
+    imgs = img_re.findall(fname.read_text(encoding="utf-8"))
+    assert len(imgs) == 2
+    img = plt.imread(BytesIO(base64.b64decode(imgs[1].encode("ascii"))))
+    assert img.shape == (2000, 2000, 3)  # figure.figsize * figure.dpi
+
+
+def test_report_backward_compat(tmp_path):
+    """Ensure our options are still backward compatible."""
+    h5io = pytest.importorskip("h5io")
+    fname = tmp_path / "report.h5"
+    r = Report()
+    r.img_max_width = 600
+    r.save(fname)
+    h = h5io.read_hdf5(fname, title="mnepython")
+    assert h["img_max_width"] == 600
+    del h["img_max_width"]
+    h5io.write_hdf5(fname, h, title="mnepython", overwrite=True)
+    with open_report(fname) as r2:
+        assert r2.img_max_width == 850
+
+
 @pytest.mark.slowtest  # 30 s on Azure
 @testing.requires_testing_data
 def test_manual_report_3d(tmp_path, renderer):
@@ -1078,7 +1197,11 @@ def test_manual_report_3d(tmp_path, renderer):
     with info._unlock():
         dig, info["dig"] = info["dig"], []
     add_kwargs = dict(
-        trans=trans_fname, info=info, subject="sample", subjects_dir=subjects_dir
+        trans=trans_fname,
+        info=info,
+        subject="sample",
+        subjects_dir=subjects_dir,
+        alpha=0.75,
     )
     with (
         _record_warnings(),
@@ -1091,6 +1214,12 @@ def test_manual_report_3d(tmp_path, renderer):
     # use of sparse rather than dense head, and also possibly an arg to specify
     # which views to actually show. Both of these could probably be useful to
     # end-users, too.
+    bad_add_kwargs = add_kwargs.copy()
+    bad_add_kwargs.update(dict(trans="auto", subjects_dir=subjects_dir))
+    with pytest.raises(RuntimeError, match="Could not find"):
+        r.add_trans(title="my coreg", **bad_add_kwargs)
+    add_kwargs.update(trans="fsaverage")  # this is wrong but tests fsaverage code path
+    add_kwargs.update(plot_kwargs=dict(dig="fiducials"))  # test additional plot kwargs
     r.add_trans(title="my coreg", **add_kwargs)
     r.add_bem(subject="sample", subjects_dir=subjects_dir, title="my bem", decim=100)
     r.add_inverse_operator(
@@ -1098,7 +1227,7 @@ def test_manual_report_3d(tmp_path, renderer):
         title="my inverse",
         subject="sample",
         subjects_dir=subjects_dir,
-        trans=trans_fname,
+        plot=True,
     )
     r.add_stc(
         stc=stc_fname,

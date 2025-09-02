@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "610ec2a50d7a0e17d1ae8a229793a51370dec81d",
+  "authors": [
+    {
+      "n": "Fahimeh Mamashli",
+      "e": "fahimeh.mamashli@pfizer.com"
+    },
+    {
+      "n": "Mainak Jas",
+      "e": "jasmainak@users.noreply.github.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".github/workflows/tests.yml": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/changes/devel/6915.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "examples/datasets/brainstorm_data.py": {
+      "a": 2,
+      "d": 3
+    },
+    "mne/preprocessing/stim.py": {
+      "a": 56,
+      "d": 9
+    },
+    "mne/preprocessing/tests/test_stim.py": {
+      "a": 35,
+      "d": 0
+    },
+    "tools/install_pre_requirements.sh": {
+      "a": 8,
+      "d": 2
+    }
+  }
+}

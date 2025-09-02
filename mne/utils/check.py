@@ -8,7 +8,7 @@ import numbers
 import operator
 import os
 import re
-from builtins import input  # noqa: UP029
+from builtins import input  # noqa: A004, UP029
 from difflib import get_close_matches
 from importlib import import_module
 from inspect import signature
@@ -52,10 +52,10 @@ def check_fname(fname, filetype, endings, endings_err=()):
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         Name of the file.
     filetype : str
-        Type of file. e.g., ICA, Epochs etc.
+        Type of file. e.g., ICA, Epochs, etc.
     endings : tuple
         Acceptable endings for the filename.
     endings_err : tuple
@@ -255,7 +255,7 @@ def _check_fname(
     *,
     check_bids_split=False,
     verbose=None,
-):
+) -> Path:
     """Check for file existence, and return its absolute path."""
     _validate_type(fname, "path-like", name)
     # special case for MNE-BIDS, check split
@@ -317,8 +317,7 @@ def _check_subject(
         _validate_type(second, "str", "subject input")
         if first is not None and first != second:
             raise ValueError(
-                f"{first_kind} ({repr(first)}) did not match "
-                f"{second_kind} ({second})"
+                f"{first_kind} ({repr(first)}) did not match {second_kind} ({second})"
             )
         return second
     elif first is not None:
@@ -385,7 +384,7 @@ def _check_compensation_grade(info1, info2, name1, name2="data", ch_names=None):
         )
 
 
-def _soft_import(name, purpose, strict=True):
+def _soft_import(name, purpose, strict=True, *, min_version=None):
     """Import soft dependencies, providing informative errors on failure.
 
     Parameters
@@ -398,11 +397,6 @@ def _soft_import(name, purpose, strict=True):
     strict : bool
         Whether to raise an error if module import fails.
     """
-
-    # so that error msg lines are aligned
-    def indent(x):
-        return x.rjust(len(x) + 14)
-
     # Mapping import namespaces to their pypi package name
     pip_name = dict(
         sklearn="scikit-learn",
@@ -415,27 +409,31 @@ def _soft_import(name, purpose, strict=True):
         pyvista="pyvistaqt",
     ).get(name, name)
 
+    got_version = None
     try:
         mod = import_module(name)
-        return mod
     except (ImportError, ModuleNotFoundError):
-        if strict:
-            raise RuntimeError(
-                f"For {purpose} to work, the {name} module is needed, "
-                + "but it could not be imported.\n"
-                + "\n".join(
-                    (
-                        indent(
-                            "use the following installation method "
-                            "appropriate for your environment:"
-                        ),
-                        indent(f"'pip install {pip_name}'"),
-                        indent(f"'conda install -c conda-forge {pip_name}'"),
-                    )
-                )
-            )
-        else:
-            return False
+        mod = False
+    else:
+        have, got_version = check_version(
+            name,
+            min_version=min_version,
+            return_version=True,
+        )
+        if not have:
+            mod = False
+    if mod is False and strict:
+        extra = "" if min_version is None else f">={min_version}"
+        if got_version is not None:
+            extra += f" (found version {got_version})"
+        raise RuntimeError(
+            f"For {purpose} to work, the module {name}{extra} is needed, "
+            "but it could not be imported. Use the following installation method "
+            "appropriate for your environment:\n\n"
+            f"    pip install {pip_name}\n"
+            f"    conda install -c conda-forge {pip_name}"
+        )
+    return mod
 
 
 def _check_pandas_installed(strict=True):
@@ -611,11 +609,13 @@ def _validate_type(item, types=None, item_name=None, type_name=None, *, extra=""
 
     check_types = sum(
         (
-            (type(None),)
-            if type_ is None
-            else (type_,)
-            if not isinstance(type_, str)
-            else _multi[type_]
+            (
+                (type(None),)
+                if type_ is None
+                else (type_,)
+                if not isinstance(type_, str)
+                else _multi[type_]
+            )
             for type_ in types
         ),
         (),
@@ -624,11 +624,13 @@ def _validate_type(item, types=None, item_name=None, type_name=None, *, extra=""
     if not isinstance(item, check_types):
         if type_name is None:
             type_name = [
-                "None"
-                if cls_ is None
-                else cls_.__name__
-                if not isinstance(cls_, str)
-                else cls_
+                (
+                    "None"
+                    if cls_ is None
+                    else cls_.__name__
+                    if not isinstance(cls_, str)
+                    else cls_
+                )
                 for cls_ in types
             ]
             if len(type_name) == 1:
@@ -639,9 +641,10 @@ def _validate_type(item, types=None, item_name=None, type_name=None, *, extra=""
                 type_name[-1] = "or " + type_name[-1]
                 type_name = ", ".join(type_name)
         _item_name = "Item" if item_name is None else item_name
+        _item_type = type(item) if item is not None else item
         raise TypeError(
             f"{_item_name} must be an instance of {type_name}{extra}, "
-            f"got {type(item)} instead."
+            f"got {_item_type} instead."
         )
 
 
@@ -1037,91 +1040,90 @@ def _check_sphere(sphere, info=None, sphere_units="m"):
                 sphere = "auto"
 
     if isinstance(sphere, str):
-        if sphere not in ("auto", "eeglab"):
-            raise ValueError(
-                f'sphere, if str, must be "auto" or "eeglab", got {sphere}'
-            )
+        _check_option(
+            "sphere", sphere, ("auto", "eeglab", "extra", "eeg", "cardinal", "hpi")
+        )
+
+    if isinstance(sphere, str) and sphere == "eeglab":
         assert info is not None
 
-        if sphere == "auto":
-            R, r0, _ = fit_sphere_to_headshape(
-                info, verbose=_verbose_safe_false(), units="m"
+        # We need coordinates for the 2D plane formed by
+        # Fpz<->Oz and T7<->T8, as this plane will be the horizon (i.e. it
+        # will determine the location of the head circle).
+        #
+        # We implement some special-handling in case Fpz is missing, as this seems to be
+        # a quite common situation in numerous EEG labs.
+        montage = info.get_montage()
+        if montage is None:
+            raise ValueError(
+                'No montage was set on your data, but sphere="eeglab" can only work if '
+                "digitization points for the EEG channels are available. Consider "
+                "calling set_montage() to apply a montage."
             )
-            sphere = tuple(r0) + (R,)
-            sphere_units = "m"
-        elif sphere == "eeglab":
-            # We need coordinates for the 2D plane formed by
-            # Fpz<->Oz and T7<->T8, as this plane will be the horizon (i.e. it
-            # will determine the location of the head circle).
-            #
-            # We implement some special-handling in case Fpz is missing, as
-            # this seems to be a quite common situation in numerous EEG labs.
-            montage = info.get_montage()
-            if montage is None:
-                raise ValueError(
-                    'No montage was set on your data, but sphere="eeglab" '
-                    "can only work if digitization points for the EEG "
-                    "channels are available. Consider calling set_montage() "
-                    "to apply a montage."
+        ch_pos = montage.get_positions()["ch_pos"]
+        horizon_ch_names = ("Fpz", "Oz", "T7", "T8")
+
+        if "FPz" in ch_pos:  # "fix" naming
+            ch_pos["Fpz"] = ch_pos["FPz"]
+            del ch_pos["FPz"]
+        elif "Fpz" not in ch_pos and "Oz" in ch_pos:
+            logger.info(
+                "Approximating Fpz location by mirroring Oz along the X and Y axes."
+            )
+            # This assumes Fpz and Oz have the same Z coordinate
+            ch_pos["Fpz"] = ch_pos["Oz"] * [-1, -1, 1]
+
+        for ch_name in horizon_ch_names:
+            if ch_name not in ch_pos:
+                msg = (
+                    f'sphere="eeglab" requires digitization points of the following '
+                    f"electrode locations in the data: {', '.join(horizon_ch_names)}, "
+                    f"but could not find: {ch_name}"
                 )
-            ch_pos = montage.get_positions()["ch_pos"]
-            horizon_ch_names = ("Fpz", "Oz", "T7", "T8")
+                if ch_name == "Fpz":
+                    msg += ", and was unable to approximate its location from Oz"
+                raise ValueError(msg)
 
-            if "FPz" in ch_pos:  # "fix" naming
-                ch_pos["Fpz"] = ch_pos["FPz"]
-                del ch_pos["FPz"]
-            elif "Fpz" not in ch_pos and "Oz" in ch_pos:
-                logger.info(
-                    "Approximating Fpz location by mirroring Oz along "
-                    "the X and Y axes."
-                )
-                # This assumes Fpz and Oz have the same Z coordinate
-                ch_pos["Fpz"] = ch_pos["Oz"] * [-1, -1, 1]
+        # Calculate the radius from: T7<->T8, Fpz<->Oz
+        radius = np.abs(
+            [
+                ch_pos["T7"][0],  # X axis
+                ch_pos["T8"][0],  # X axis
+                ch_pos["Fpz"][1],  # Y axis
+                ch_pos["Oz"][1],  # Y axis
+            ]
+        ).mean()
 
-            for ch_name in horizon_ch_names:
-                if ch_name not in ch_pos:
-                    msg = (
-                        f'sphere="eeglab" requires digitization points of '
-                        f"the following electrode locations in the data: "
-                        f'{", ".join(horizon_ch_names)}, but could not find: '
-                        f"{ch_name}"
-                    )
-                    if ch_name == "Fpz":
-                        msg += ", and was unable to approximate its location from Oz"
-                    raise ValueError(msg)
-
-            # Calculate the radius from: T7<->T8, Fpz<->Oz
-            radius = np.abs(
+        # Calculate the center of the head sphere.
+        # Use 4 digpoints for each of the 3 axes to hopefully get a better approximation
+        # than when using just 2 digpoints.
+        sphere_locs = dict()
+        for idx, axis in enumerate(("X", "Y", "Z")):
+            sphere_locs[axis] = np.mean(
                 [
-                    ch_pos["T7"][0],  # X axis
-                    ch_pos["T8"][0],  # X axis
-                    ch_pos["Fpz"][1],  # Y axis
-                    ch_pos["Oz"][1],  # Y axis
+                    ch_pos["T7"][idx],
+                    ch_pos["T8"][idx],
+                    ch_pos["Fpz"][idx],
+                    ch_pos["Oz"][idx],
                 ]
-            ).mean()
-
-            # Calculate the center of the head sphere
-            # Use 4 digpoints for each of the 3 axes to hopefully get a better
-            # approximation than when using just 2 digpoints.
-            sphere_locs = dict()
-            for idx, axis in enumerate(("X", "Y", "Z")):
-                sphere_locs[axis] = np.mean(
-                    [
-                        ch_pos["T7"][idx],
-                        ch_pos["T8"][idx],
-                        ch_pos["Fpz"][idx],
-                        ch_pos["Oz"][idx],
-                    ]
-                )
-            sphere = (sphere_locs["X"], sphere_locs["Y"], sphere_locs["Z"], radius)
-            sphere_units = "m"
-            del sphere_locs, radius, montage, ch_pos
+            )
+        sphere = (sphere_locs["X"], sphere_locs["Y"], sphere_locs["Z"], radius)
+        sphere_units = "m"
+        del sphere_locs, radius, montage, ch_pos
+    elif isinstance(sphere, str) or (
+        isinstance(sphere, list) and all(isinstance(s, str) for s in sphere)
+    ):
+        # Fit a sphere to the head points.
+        R, r0, _ = fit_sphere_to_headshape(
+            info, dig_kinds=sphere, verbose=_verbose_safe_false(), units="m"
+        )
+        sphere = tuple(r0) + (R,)
+        sphere_units = "m"
     elif isinstance(sphere, ConductorModel):
         if not sphere["is_sphere"] or len(sphere["layers"]) == 0:
             raise ValueError(
-                "sphere, if a ConductorModel, must be spherical "
-                "with multiple layers, not a BEM or single-layer "
-                f"sphere (got {sphere})"
+                "sphere, if a ConductorModel, must be spherical with multiple layers, "
+                f"not a BEM or single-layer sphere (got {sphere})"
             )
         sphere = tuple(sphere["r0"]) + (sphere["layers"][0]["rad"],)
         sphere_units = "m"
@@ -1130,8 +1132,8 @@ def _check_sphere(sphere, info=None, sphere_units="m"):
         sphere = np.concatenate([[0.0] * 3, [sphere]])
     if sphere.shape != (4,):
         raise ValueError(
-            "sphere must be float or 1D array of shape (4,), got "
-            f"array-like of shape {sphere.shape}"
+            "sphere must be float or 1D array of shape (4,), "
+            f"got array-like of shape {sphere.shape}"
         )
     _check_option("sphere_units", sphere_units, ("m", "mm"))
     if sphere_units == "mm":
@@ -1264,8 +1266,7 @@ def _to_rgb(*args, name="color", alpha=False):
     except ValueError:
         args = args[0] if len(args) == 1 else args
         raise ValueError(
-            f'Invalid RGB{"A" if alpha else ""} argument(s) for {name}: '
-            f"{repr(args)}"
+            f"Invalid RGB{'A' if alpha else ''} argument(s) for {name}: {repr(args)}"
         ) from None
 
 
@@ -1289,5 +1290,5 @@ def _check_method_kwargs(func, kwargs, msg=None):
         if msg is None:
             msg = f'function "{func}"'
         raise TypeError(
-            f'Got unexpected keyword argument{s} {", ".join(invalid_kw)} for {msg}.'
+            f"Got unexpected keyword argument{s} {', '.join(invalid_kw)} for {msg}."
         )

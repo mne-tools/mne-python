@@ -263,7 +263,7 @@ class RawPersyst(BaseRaw):
         """
         dtype = self._raw_extras[fi]["dtype"]
         n_chs = self._raw_extras[fi]["n_chs"]
-        dat_fname = self._filenames[fi]
+        dat_fname = self.filenames[fi]
 
         # compute samples count based on start and stop
         time_length_samps = stop - start
@@ -314,6 +314,7 @@ def _get_subjectinfo(patient_dict):
         "his_id": patient_dict.get("id"),
         "birthday": birthdate,
     }
+    subject_info = {key: val for key, val in subject_info.items() if val is not None}
 
     # Recode sex values
     sex_dict = dict(
