@@ -1090,17 +1090,10 @@ def _fit_sphere_to_headshape(info, dig_kinds, *, verbose=None):
     o_mm = origin_head * 1e3
     o_d = origin_device * 1e3
     if np.linalg.norm(origin_head[:2]) > 0.02:
-        msg = (
+        warn(
             f"(X, Y) fit ({o_mm[0]:0.1f}, {o_mm[1]:0.1f}) "
             "more than 20 mm from head frame origin"
         )
-        if dig_kinds == "auto":
-            logger.info(msg)
-            logger.info("Trying again with all digitization points.")
-            return _fit_sphere_to_headshape(
-                info, dig_kinds=("extra", "eeg", "hpi", "cardinal"), verbose=verbose
-            )
-        warn(msg)
     logger.info(
         "Origin head coordinates:".ljust(30)
         + f"{o_mm[0]:0.1f} {o_mm[1]:0.1f} {o_mm[2]:0.1f} mm"
