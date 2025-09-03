@@ -120,8 +120,11 @@ def equalize_channels(instances, copy=True, verbose=None):
     ----------
     instances : list
         A list of MNE-Python objects to equalize the channels for. Objects can
-        be of type Raw, Epochs, Evoked, AverageTFR, Forward, Covariance,
+        be of type Raw, Epochs, Evoked, Spectrum, AverageTFR, Forward, Covariance,
         CrossSpectralDensity or Info.
+
+        .. versionchanged:: 1.11
+            Added support for :class:`mne.time_frequency.Spectrum` objects.
     copy : bool
         When dropping and/or re-ordering channels, an object will be copied
         when this parameter is set to ``True``. When set to ``False`` (the
@@ -148,6 +151,7 @@ def equalize_channels(instances, copy=True, verbose=None):
     from ..forward import Forward
     from ..io import BaseRaw
     from ..time_frequency import BaseTFR, CrossSpectralDensity
+    from ..time_frequency.spectrum import BaseSpectrum
 
     # Instances need to have a `ch_names` attribute and a `pick_channels`
     # method that supports `ordered=True`.
@@ -155,6 +159,7 @@ def equalize_channels(instances, copy=True, verbose=None):
         BaseRaw,
         BaseEpochs,
         Evoked,
+        BaseSpectrum,
         BaseTFR,
         Forward,
         Covariance,
@@ -162,7 +167,8 @@ def equalize_channels(instances, copy=True, verbose=None):
         Info,
     )
     allowed_types_str = (
-        "Raw, Epochs, Evoked, TFR, Forward, Covariance, CrossSpectralDensity or Info"
+        "Raw, Epochs, Evoked, Spectrum, TFR, Forward, Covariance, CrossSpectralDensity "
+        "or Info"
     )
     for inst in instances:
         _validate_type(
