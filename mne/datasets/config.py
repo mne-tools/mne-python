@@ -129,7 +129,7 @@ MNE_DATASETS["testing"] = dict(
 )
 MNE_DATASETS["misc"] = dict(
     archive_name=f"{MISC_VERSIONED}.tar.gz",  # 'mne-misc-data',
-    hash="md5:e343d3a00cb49f8a2f719d14f4758afe",
+    hash="md5:201d35531d3c03701cf50e38bb73481f",
     url=(
         f"https://codeload.github.com/mne-tools/mne-misc-data/tar.gz/{RELEASES['misc']}"
     ),
