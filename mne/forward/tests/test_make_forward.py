@@ -602,6 +602,29 @@ def test_make_forward_solution_sphere(tmp_path, fname_src_small):
     assert fwd["mri_head_t"]["trans"][0, 3] == -0.05
 
 
+@testing.requires_testing_data
+def test_make_forward_sphere_exclude():
+    """Test that points are excluded that are outside BEM sphere inner layer."""
+    bem = make_sphere_model(r0=(0.0, 0.0, 0.04), head_radius=0.1)
+    src = setup_volume_source_space(
+        "sample",
+        pos=10.0,
+        sphere=(0.0, 0.0, 0.04, 0.1),
+        subjects_dir=subjects_dir,
+        exclude=10,
+        verbose=True,
+    )
+    assert src[0]["nuse"] == 3694
+    trans = Transform("mri", "head")  # identity for simplicity
+    raw = read_raw_fif(fname_raw)
+    raw.pick(raw.ch_names[:1])
+    fwd = make_forward_solution(raw.info, trans, src, bem, verbose=True)
+    assert fwd["nsource"] == 3694
+    bem_small = make_sphere_model(r0=(0.0, 0.0, 0.04), head_radius=0.09)
+    fwd_small = make_forward_solution(raw.info, trans, src, bem_small, verbose=True)
+    assert fwd_small["nsource"] < 3694
+
+
 @pytest.mark.slowtest
 @testing.requires_testing_data
 def test_forward_mixed_source_space(tmp_path):

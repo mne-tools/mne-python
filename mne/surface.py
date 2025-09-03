@@ -779,7 +779,7 @@ class _CheckInside:
             self.pdata = _surface_to_polydata(self.surf).clean()
 
     @verbose
-    def __call__(self, rr, n_jobs=None, verbose=None):
+    def __call__(self, rr, *, n_jobs=None, verbose=None):
         n_orig = len(rr)
         logger.info(
             f"Checking surface interior status for {n_orig} point{_pl(n_orig, ' ')}..."
@@ -793,6 +793,14 @@ class _CheckInside:
         logger.info(f"    Total {n}/{n_orig} point{_pl(n, ' ')} inside the surface")
         logger.info(f"Interior check completed in {(time.time() - t0) * 1000:0.1f} ms")
         return inside
+
+    def query(self, rr):
+        """Get the distance to the nearest point."""
+        if not hasattr(self, "_tree"):  # compute on the fly only when needed
+            from scipy.spatial import KDTree
+
+            self._tree = KDTree(self.surf["rr"])
+        return self._tree.query(rr)
 
     def _call_pyvista(self, rr):
         pdata = _surface_to_polydata(dict(rr=rr))
@@ -853,6 +861,35 @@ class _CheckInside:
         )
         inside[idx[solid_outside]] = False
         return inside
+
+
+class _CheckInsideSphere:
+    def __init__(self, sphere):
+        from .bem import ConductorModel
+
+        assert isinstance(sphere, ConductorModel) and sphere["is_sphere"]
+        self.cm = sphere["r0"]
+        self.inner_r = sphere.radius  # float or None
+
+    # No need for verbose dec here because no MNE code is called that would log
+    def __call__(self, rr, *, n_jobs=None, verbose=None):
+        assert isinstance(rr, np.ndarray), type(rr)
+        assert rr.ndim == 2 and rr.shape[1] == 3
+        if self.inner_r is None:
+            return np.ones(rr.shape[0], bool)
+        else:
+            return np.linalg.norm(rr - self.cm, axis=-1) <= self.inner_r
+
+    def query(self, rr):
+        """Return the distance to the sphere surface for each point."""
+        assert isinstance(rr, np.ndarray), type(rr)
+        assert rr.ndim == 2 and rr.shape[1] == 3, rr.shape
+        idx = np.zeros(rr.shape[0], int)
+        if self.inner_r is None:
+            dists = np.full(rr.shape[0], np.inf)
+        else:
+            dists = np.abs(np.linalg.norm(rr - self.cm, axis=-1) - self.inner_r)
+        return dists, idx
 
 
 ###############################################################################

@@ -45,6 +45,7 @@ from ..fixes import _get_img_fdata
 from ..parallel import parallel_func
 from ..surface import (
     _CheckInside,
+    _CheckInsideSphere,
     _compute_nearest,
     _create_surf_spacing,
     _get_ico_surface,
@@ -1907,7 +1908,9 @@ def setup_volume_source_space(
             surf["rr"] *= 1e-3  # must be converted to meters
         else:  # Load an icosahedron and use that as the surface
             logger.info("Setting up the sphere...")
-            surf = dict(R=sphere[3], r0=sphere[:3])
+            surf = ConductorModel(
+                layers=[dict(rad=sphere[3])], r0=sphere[:3], is_sphere=True
+            )
         # Make the grid of sources in MRI space
         sp = _make_volume_source_space(
             surf,
@@ -2063,10 +2066,10 @@ def _make_volume_source_space(
         cm = np.mean(surf["rr"], axis=0)  # center of mass
         maxdist = np.linalg.norm(surf["rr"] - cm, axis=1).max()
     else:
-        mins = surf["r0"] - surf["R"]
-        maxs = surf["r0"] + surf["R"]
+        mins = surf["r0"] - surf.radius
+        maxs = surf["r0"] + surf.radius
         cm = surf["r0"].copy()
-        maxdist = surf["R"]
+        maxdist = surf.radius
 
     # Define the sphere which fits the surface
     logger.info(
@@ -2136,18 +2139,13 @@ def _make_volume_source_space(
         1000 * exclude,
         1000 * maxdist,
     )
+    kwargs = dict(limit=mindist, mri_head_t=None, src=[sp])
+    assert sp["coord_frame"] == FIFF.FIFFV_COORD_MRI
     if "rr" in surf:
-        _filter_source_spaces(surf, mindist, None, [sp], n_jobs)
-    else:  # sphere
-        vertno = np.where(sp["inuse"])[0]
-        bads = (
-            np.linalg.norm(sp["rr"][vertno] - surf["r0"], axis=-1)
-            >= surf["R"] - mindist / 1000.0
-        )
-        sp["nuse"] -= bads.sum()
-        sp["inuse"][vertno[bads]] = False
-        sp["vertno"] = np.where(sp["inuse"])[0]
-        del vertno
+        assert surf["coord_frame"] == FIFF.FIFFV_COORD_MRI
+    else:
+        assert surf["is_sphere"]
+    _filter_source_spaces(surf, n_jobs=n_jobs, **kwargs)
     del surf
     logger.info(
         "%d sources remaining after excluding the sources outside "
@@ -2534,7 +2532,9 @@ def _grid_interp_jit(from_shape, to_shape, trans, order, inuse):
 
 
 @verbose
-def _filter_source_spaces(surf, limit, mri_head_t, src, n_jobs=None, verbose=None):
+def _filter_source_spaces(
+    surf_or_check_inside, *, limit, mri_head_t, src, n_jobs=None, verbose=None
+):
     """Remove all source space points closer than a given limit (in mm)."""
     if src[0]["coord_frame"] == FIFF.FIFFV_COORD_HEAD and mri_head_t is None:
         raise RuntimeError(
@@ -2558,7 +2558,14 @@ def _filter_source_spaces(surf, limit, mri_head_t, src, n_jobs=None, verbose=Non
     logger.info(out_str + " (will take a few...)")
 
     # fit a sphere to a surf quickly
-    check_inside = _CheckInside(surf)
+    if isinstance(surf_or_check_inside, _CheckInside | _CheckInsideSphere):
+        check_inside = surf_or_check_inside
+    else:
+        if "rr" in surf_or_check_inside:
+            check_inside = _CheckInside(surf_or_check_inside)
+        else:
+            check_inside = _CheckInsideSphere(surf_or_check_inside)
+    del surf_or_check_inside
 
     # Check that the source is inside surface (often the inner skull)
     for s in src:
@@ -2568,7 +2575,7 @@ def _filter_source_spaces(surf, limit, mri_head_t, src, n_jobs=None, verbose=Non
         if s["coord_frame"] == FIFF.FIFFV_COORD_HEAD:
             r1s = apply_trans(inv_trans["trans"], r1s)
 
-        inside = check_inside(r1s, n_jobs)
+        inside = check_inside(r1s, n_jobs=n_jobs)
         omit_outside = (~inside).sum()
 
         # vectorized nearest using BallTree (or cdist)
@@ -2578,16 +2585,14 @@ def _filter_source_spaces(surf, limit, mri_head_t, src, n_jobs=None, verbose=Non
             idx = np.where(inside)[0]
             check_r1s = r1s[idx]
             if check_inside.inner_r is not None:
-                # ... and those that are at least inner_sphere + limit away
+                # ... and those that are at least inner_sphere - limit away
                 mask = (
                     np.linalg.norm(check_r1s - check_inside.cm, axis=-1)
                     >= check_inside.inner_r - limit / 1000.0
                 )
                 idx = idx[mask]
                 check_r1s = check_r1s[mask]
-            dists = _compute_nearest(
-                surf["rr"], check_r1s, return_dists=True, method="KDTree"
-            )[1]
+            dists = check_inside.query(check_r1s)[0]
             close = dists < limit / 1000.0
             omit_limit = np.sum(close)
             inside[idx[close]] = False
