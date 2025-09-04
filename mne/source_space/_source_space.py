@@ -2142,7 +2142,9 @@ def _make_volume_source_space(
     kwargs = dict(limit=mindist, mri_head_t=None, src=[sp])
     assert sp["coord_frame"] == FIFF.FIFFV_COORD_MRI
     if "rr" in surf:
-        assert surf["coord_frame"] == FIFF.FIFFV_COORD_MRI
+        # If it's a surface passed as a dict, it might not have a coord_frame,
+        # assume it's been read by read_surface and is in mri coords
+        assert surf.get("coord_frame", FIFF.FIFFV_COORD_MRI) == FIFF.FIFFV_COORD_MRI
     else:
         assert surf["is_sphere"]
     _filter_source_spaces(surf, n_jobs=n_jobs, **kwargs)
