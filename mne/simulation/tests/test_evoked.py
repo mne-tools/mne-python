@@ -100,6 +100,7 @@ def test_simulate_evoked():
 @pytest.mark.filterwarnings("ignore:No average EEG reference present")
 @pytest.mark.filterwarnings("ignore:Too few samples")
 @pytest.mark.filterwarnings("ignore:Epochs are not baseline corrected")
+@pytest.mark.filterwarnings("ignore:.*You've got fewer samples than channels.*")
 def test_add_noise():
     """Test noise addition."""
     rng = np.random.default_rng(0)
