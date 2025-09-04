@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "aabdda6f443ca1699b9bc047bffdf820835730f8",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/gui/_file_traits.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

@@ -1,8 +1,4 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Eric Larson <larson.eric.d@gmail.com>
-#          Oleh Kozynets <ok7mailbox@gmail.com>
-#          Guillaume Favelier <guillaume.favelier@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -117,9 +113,7 @@ def calculate_lut(lut_table, alpha, fmin, fmid, fmax, center=None, transparent=T
         Color map with transparency channel.
     """
     if not fmin <= fmid <= fmax:
-        raise ValueError(
-            "Must have fmin (%s) <= fmid (%s) <= fmax (%s)" % (fmin, fmid, fmax)
-        )
+        raise ValueError(f"Must have fmin ({fmin}) <= fmid ({fmid}) <= fmax ({fmax})")
     lut_table = create_lut(lut_table)
     assert lut_table.dtype.kind == "i"
     divergent = center is not None

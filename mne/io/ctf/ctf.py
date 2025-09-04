@@ -1,8 +1,6 @@
 """Conversion tool from CTF to FIF."""
 
-# Authors: Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
-#          Eric Larson <larson.eric.d@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -113,10 +111,10 @@ class RawCTF(BaseRaw):
         )
         if not directory.endswith(".ds"):
             raise TypeError(
-                'directory must be a directory ending with ".ds", ' f"got {directory}"
+                f'directory must be a directory ending with ".ds", got {directory}'
             )
         _check_option("system_clock", system_clock, ["ignore", "truncate"])
-        logger.info("ds directory : %s" % directory)
+        logger.info(f"ds directory : {directory}")
         res4 = _read_res4(directory)  # Read the magical res4 file
         coils = _read_hc(directory)  # Read the coil locations
         eeg = _read_eeg(directory)  # Read the EEG electrode loc info
@@ -140,7 +138,7 @@ class RawCTF(BaseRaw):
         missing_names = list()
         no_samps = list()
         while True:
-            suffix = "meg4" if len(fnames) == 0 else ("%d_meg4" % len(fnames))
+            suffix = "meg4" if len(fnames) == 0 else f"{len(fnames)}_meg4"
             meg4_name, found = _make_ctf_name(directory, suffix, raise_error=False)
             if not found:
                 missing_names.append(os.path.relpath(meg4_name, directory))
@@ -197,7 +195,7 @@ class RawCTF(BaseRaw):
         trial_start_idx, r_lims, d_lims = _blk_read_lims(
             start, stop, int(si["block_size"])
         )
-        with open(self._filenames[fi], "rb") as fid:
+        with open(self.filenames[fi], "rb") as fid:
             for bi in range(len(r_lims)):
                 samp_offset = (bi + trial_start_idx) * si["res4_nsamp"]
                 n_read = min(si["n_samp_tot"] - samp_offset, si["block_size"])
@@ -227,7 +225,7 @@ def _clean_names_inst(inst):
 
 def _get_sample_info(fname, res4, system_clock):
     """Determine the number of valid samples."""
-    logger.info("Finding samples for %s: " % (fname,))
+    logger.info(f"Finding samples for {fname}: ")
     if CTF.SYSTEM_CLOCK_CH in res4["ch_names"]:
         clock_ch = res4["ch_names"].index(CTF.SYSTEM_CLOCK_CH)
     else:
@@ -242,7 +240,7 @@ def _get_sample_info(fname, res4, system_clock):
         fid.seek(0, 0)
         if (st_size - CTF.HEADER_SIZE) % (4 * res4["nsamp"] * res4["nchan"]) != 0:
             raise RuntimeError(
-                "The number of samples is not an even multiple " "of the trial size"
+                "The number of samples is not an even multiple of the trial size"
             )
         n_samp_tot = (st_size - CTF.HEADER_SIZE) // (4 * res4["nchan"])
         n_trial = n_samp_tot // res4["nsamp"]
@@ -269,7 +267,7 @@ def _get_sample_info(fname, res4, system_clock):
                 fid.seek(offset, 0)
                 this_data = np.fromfile(fid, ">i4", res4["nsamp"])
                 if len(this_data) != res4["nsamp"]:
-                    raise RuntimeError("Cannot read data for trial %d" % (t + 1))
+                    raise RuntimeError(f"Cannot read data for trial {t + 1}.")
                 end = np.where(this_data == 0)[0]
                 if len(end) > 0:
                     n_samp = samp_offset + end[0]
@@ -277,18 +275,24 @@ def _get_sample_info(fname, res4, system_clock):
     if n_samp < res4["nsamp"]:
         n_trial = 1
         logger.info(
-            "    %d x %d = %d samples from %d chs"
-            % (n_trial, n_samp, n_samp, res4["nchan"])
+            "    %d x %d = %d samples from %d chs",
+            n_trial,
+            n_samp,
+            n_samp,
+            res4["nchan"],
         )
     else:
         n_trial = n_samp // res4["nsamp"]
         n_omit = n_samp_tot - n_samp
         logger.info(
-            "    %d x %d = %d samples from %d chs"
-            % (n_trial, res4["nsamp"], n_samp, res4["nchan"])
+            "    %d x %d = %d samples from %d chs",
+            n_trial,
+            res4["nsamp"],
+            n_samp,
+            res4["nchan"],
         )
         if n_omit != 0:
-            logger.info("    %d samples omitted at the end" % n_omit)
+            logger.info("    %d samples omitted at the end", n_omit)
 
     return dict(
         n_samp=n_samp,

@@ -1,0 +1,75 @@
+{
+  "merge_commit_sha": "79a431910d88d8174f754e4868b29a1aa42a7351",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    ".github/workflows/codespell_and_flake.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "Makefile": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/changes/latest.inc": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/report/js_and_css/bootstrap-icons/bootstrap-icons.mne.min.css": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/report/js_and_css/bootstrap-icons/gen_css_for_mne.py": {
+      "a": 60,
+      "d": 0
+    },
+    "mne/report/js_and_css/bootstrap-table/bootstrap-table-copy-rows.min.js": {
+      "a": 10,
+      "d": 0
+    },
+    "mne/report/js_and_css/bootstrap-table/bootstrap-table-export.min.js": {
+      "a": 10,
+      "d": 0
+    },
+    "mne/report/js_and_css/bootstrap-table/bootstrap-table.min.css": {
+      "a": 10,
+      "d": 0
+    },
+    "mne/report/js_and_css/bootstrap-table/bootstrap-table.min.js": {
+      "a": 10,
+      "d": 0
+    },
+    "mne/report/js_and_css/bootstrap-table/tableExport.min.js": {
+      "a": 13,
+      "d": 0
+    },
+    "mne/report/js_and_css/report.js": {
+      "a": 31,
+      "d": 13
+    },
+    "mne/report/report.py": {
+      "a": 101,
+      "d": 8
+    },
+    "mne/report/templates/epochs.html": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/report/tests/test_report.py": {
+      "a": 40,
+      "d": 10
+    },
+    "setup.cfg": {
+      "a": 2,
+      "d": 2
+    },
+    "tutorials/intro/70_report.py": {
+      "a": 18,
+      "d": 3
+    }
+  }
+}

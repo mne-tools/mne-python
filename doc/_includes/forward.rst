@@ -130,26 +130,26 @@ transformation symbols (:math:`T_x`) indicate the transformations actually
 present in the FreeSurfer files. Generally,
 
 .. math::    \begin{bmatrix}
-		x_2 \\
-		y_2 \\
-		z_2 \\
-		1
-	        \end{bmatrix} = T_{12} \begin{bmatrix}
-		x_1 \\
-		y_1 \\
-		z_1 \\
-		1
-	        \end{bmatrix} = \begin{bmatrix}
-		R_{11} & R_{12} & R_{13} & x_0 \\
-		R_{21} & R_{22} & R_{23} & y_0 \\
-		R_{31} & R_{32} & R_{33} & z_0 \\
-		0 & 0 & 0 & 1
-	        \end{bmatrix} \begin{bmatrix}
-		x_1 \\
-		y_1 \\
-		z_1 \\
-		1
-	        \end{bmatrix}\ ,
+        x_2 \\
+        y_2 \\
+        z_2 \\
+        1
+            \end{bmatrix} = T_{12} \begin{bmatrix}
+        x_1 \\
+        y_1 \\
+        z_1 \\
+        1
+            \end{bmatrix} = \begin{bmatrix}
+        R_{11} & R_{12} & R_{13} & x_0 \\
+        R_{21} & R_{22} & R_{23} & y_0 \\
+        R_{31} & R_{32} & R_{33} & z_0 \\
+        0 & 0 & 0 & 1
+            \end{bmatrix} \begin{bmatrix}
+        x_1 \\
+        y_1 \\
+        z_1 \\
+        1
+            \end{bmatrix}\ ,
 
 where :math:`x_k`, :math:`y_k`,and :math:`z_k` are the location coordinates in
 two coordinate systems, :math:`T_{12}` is the coordinate transformation from
@@ -161,20 +161,20 @@ files produced by FreeSurfer and MNE.
 The fixed transformations :math:`T_-` and :math:`T_+` are:
 
 .. math::    T_{-} = \begin{bmatrix}
-		0.99 & 0 & 0 & 0 \\
-		0 & 0.9688 & 0.042 & 0 \\
-		0 & -0.0485 & 0.839 & 0 \\
-		0 & 0 & 0 & 1
-	        \end{bmatrix}
+        0.99 & 0 & 0 & 0 \\
+        0 & 0.9688 & 0.042 & 0 \\
+        0 & -0.0485 & 0.839 & 0 \\
+        0 & 0 & 0 & 1
+            \end{bmatrix}
 
 and
 
 .. math::    T_{+} = \begin{bmatrix}
-		0.99 & 0 & 0 & 0 \\
-		0 & 0.9688 & 0.046 & 0 \\
-		0 & -0.0485 & 0.9189 & 0 \\
-		0 & 0 & 0 & 1
-	        \end{bmatrix}
+        0.99 & 0 & 0 & 0 \\
+        0 & 0.9688 & 0.046 & 0 \\
+        0 & -0.0485 & 0.9189 & 0 \\
+        0 & 0 & 0 & 1
+            \end{bmatrix}
 
 .. note::
    This section does not discuss the transformation between the MRI voxel
@@ -186,7 +186,7 @@ and
    The symbols :math:`T_x` are defined in :ref:`coordinate_system_figure`.
 
 .. tabularcolumns:: |p{0.2\linewidth}|p{0.3\linewidth}|p{0.5\linewidth}|
-.. table:: Coordinate transformations in FreeSurfer and MNE software packages.
+.. table:: Coordinate transformations in FreeSurfer and MNE software packages
 
     +------------------------------+-------------------------------+-------------------------------------------------+
     | Transformation               | FreeSurfer                    | MNE                                             |
@@ -352,11 +352,11 @@ coordinates (:math:`r_D`) by
 where
 
 .. math::    T = \begin{bmatrix}
-		e_x & 0 \\
-		e_y & 0 \\
-		e_z & 0 \\
-		r_{0D} & 1
-	        \end{bmatrix}\ .
+        e_x & 0 \\
+        e_y & 0 \\
+        e_z & 0 \\
+        r_{0D} & 1
+            \end{bmatrix}\ .
 
 Calculation of the magnetic field
 ---------------------------------
@@ -444,8 +444,8 @@ data:
           automatically created by the MNE-C utility ``mne_list_coil_def``.
 
 .. tabularcolumns:: |p{0.1\linewidth}|p{0.3\linewidth}|p{0.1\linewidth}|p{0.25\linewidth}|p{0.2\linewidth}|
-.. _normal_coil_descriptions:
-.. table:: Normal coil descriptions.
+.. table:: Normal coil descriptions
+    :name: normal_coil_descriptions
 
     +------+-------------------------+----+----------------------------------+----------------------+
     | Id   | Description             | n  | r/mm                             | w                    |
@@ -506,8 +506,8 @@ data:
           combinations have to be included.
 
 .. tabularcolumns:: |p{0.1\linewidth}|p{0.3\linewidth}|p{0.05\linewidth}|p{0.25\linewidth}|p{0.15\linewidth}|
-.. _accurate_coil_descriptions:
 .. table:: Accurate coil descriptions
+    :name: accurate_coil_descriptions
 
     +------+-------------------------+----+----------------------------------+----------------------+
     | Id   | Description             | n  | r/mm                             | w                    |
@@ -602,8 +602,8 @@ description line containing the following fields:
 
 
 .. tabularcolumns:: |p{0.1\linewidth}|p{0.5\linewidth}|
-.. _coil_accuracies:
-.. table:: Coil representation accuracies.
+.. table:: Coil representation accuracies
+    :name: coil_accuracies
 
     =======  ====================================================================================
     Value    Meaning

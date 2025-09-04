@@ -1,0 +1,55 @@
+{
+  "merge_commit_sha": "ee187764ca1ecaddcb4c5f4bd94b192ccb5886e2",
+  "authors": [
+    {
+      "n": "Adam Li",
+      "e": null
+    },
+    {
+      "n": "Robert Luke",
+      "e": "748691+rob-luke@users.noreply.github.com"
+    },
+    {
+      "n": "Robert Luke",
+      "e": "748691+rob-luke@users.noreply.github.com"
+    },
+    {
+      "n": "Robert Luke",
+      "e": "748691+rob-luke@users.noreply.github.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Robert Luke",
+      "e": "748691+rob-luke@users.noreply.github.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/channels/montage.py": {
+      "a": 55,
+      "d": 1
+    },
+    "mne/channels/tests/test_montage.py": {
+      "a": 32,
+      "d": 0
+    }
+  }
+}

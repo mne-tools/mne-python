@@ -1,0 +1,139 @@
+{
+  "merge_commit_sha": "d122dca68ccd7c8681481b4e624ad1553cc60c6b",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/0.15.inc": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/changes/0.19.inc": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/changes/latest.inc": {
+      "a": 9,
+      "d": 0
+    },
+    "doc/python_reference.rst": {
+      "a": 13,
+      "d": 12
+    },
+    "mne/__init__.py": {
+      "a": 25,
+      "d": 8
+    },
+    "mne/_version.py": {
+      "a": 6,
+      "d": 0
+    },
+    "mne/channels/__init__.py": {
+      "a": 8,
+      "d": 4
+    },
+    "mne/channels/channels.py": {
+      "a": 52,
+      "d": 52
+    },
+    "mne/channels/tests/test_channels.py": {
+      "a": 30,
+      "d": 30
+    },
+    "mne/label.py": {
+      "a": 5,
+      "d": 5
+    },
+    "mne/source_estimate.py": {
+      "a": 68,
+      "d": 68
+    },
+    "mne/source_space.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/stats/__init__.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/stats/_adjacency.py": {
+      "a": 93,
+      "d": 0
+    },
+    "mne/stats/cluster_level.py": {
+      "a": 122,
+      "d": 107
+    },
+    "mne/stats/tests/test_adjacency.py": {
+      "a": 44,
+      "d": 0
+    },
+    "mne/stats/tests/test_cluster_level.py": {
+      "a": 70,
+      "d": 68
+    },
+    "mne/stats/tests/test_permutations.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/surface.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/tests/test_label.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/tests/test_source_estimate.py": {
+      "a": 42,
+      "d": 42
+    },
+    "mne/utils/__init__.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/utils/docs.py": {
+      "a": 30,
+      "d": 11
+    },
+    "mne/utils/tests/test_docs.py": {
+      "a": 13,
+      "d": 1
+    },
+    "setup.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/discussions/plot_background_statistics.py": {
+      "a": 21,
+      "d": 21
+    },
+    "tutorials/stats-sensor-space/plot_stats_cluster_1samp_test_time_frequency.py": {
+      "a": 43,
+      "d": 14
+    },
+    "tutorials/stats-sensor-space/plot_stats_cluster_erp.py": {
+      "a": 2,
+      "d": 2
+    },
+    "tutorials/stats-sensor-space/plot_stats_spatio_temporal_cluster_sensors.py": {
+      "a": 8,
+      "d": 8
+    },
+    "tutorials/stats-source-space/plot_stats_cluster_spatio_temporal.py": {
+      "a": 4,
+      "d": 4
+    },
+    "tutorials/stats-source-space/plot_stats_cluster_spatio_temporal_2samp.py": {
+      "a": 5,
+      "d": 5
+    },
+    "tutorials/stats-source-space/plot_stats_cluster_spatio_temporal_repeated_measures_anova.py": {
+      "a": 5,
+      "d": 5
+    }
+  }
+}

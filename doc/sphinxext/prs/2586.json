@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "20cfc04ef77c4d2184cc17b7ea8d66c910b51db0",
+  "authors": [
+    {
+      "n": "Denis A. Engemann",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/connectivity/spectral.py": {
+      "a": 263,
+      "d": 226
+    }
+  }
+}

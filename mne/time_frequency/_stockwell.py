@@ -1,7 +1,4 @@
-# Authors : Denis A. Engemann <denis.engemann@gmail.com>
-#           Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#
-# License : BSD-3-Clause
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -12,8 +9,8 @@ from scipy.fft import fft, fftfreq, ifft
 
 from .._fiff.pick import _pick_data_channels, pick_info
 from ..parallel import parallel_func
-from ..utils import _validate_type, fill_doc, logger, verbose
-from .tfr import AverageTFR, _get_data
+from ..utils import _validate_type, legacy, logger, verbose
+from .tfr import AverageTFRArray, _ensure_slice, _get_data
 
 
 def _check_input_st(x_in, n_fft):
@@ -29,8 +26,7 @@ def _check_input_st(x_in, n_fft):
         n_fft = 2 ** int(np.ceil(np.log2(n_times)))
     elif n_fft < n_times:
         raise ValueError(
-            "n_fft cannot be smaller than signal size. "
-            "Got %s < %s." % (n_fft, n_times)
+            f"n_fft cannot be smaller than signal size. Got {n_fft} < {n_times}."
         )
     if n_times < n_fft:
         logger.info(
@@ -82,9 +78,10 @@ def _st(x, start_f, windows):
 
 def _st_power_itc(x, start_f, compute_itc, zero_pad, decim, W):
     """Aux function."""
+    decim = _ensure_slice(decim)
     n_samp = x.shape[-1]
-    n_out = n_samp - zero_pad
-    n_out = n_out // decim + bool(n_out % decim)
+    decim_indices = decim.indices(n_samp - zero_pad)
+    n_out = len(range(*decim_indices))
     psd = np.empty((len(W), n_out))
     itc = np.empty_like(psd) if compute_itc else None
     X = fft(x)
@@ -92,10 +89,7 @@ def _st_power_itc(x, start_f, compute_itc, zero_pad, decim, W):
     for i_f, window in enumerate(W):
         f = start_f + i_f
         ST = ifft(XX[:, f : f + n_samp] * window)
-        if zero_pad > 0:
-            TFR = ST[:, :-zero_pad:decim]
-        else:
-            TFR = ST[:, ::decim]
+        TFR = ST[:, slice(*decim_indices)]
         TFR_abs = np.abs(TFR)
         TFR_abs[TFR_abs == 0] = 1.0
         if compute_itc:
@@ -106,7 +100,22 @@ def _st_power_itc(x, start_f, compute_itc, zero_pad, decim, W):
     return psd, itc
 
 
-@fill_doc
+def _compute_freqs_st(fmin, fmax, n_fft, sfreq):
+    from scipy.fft import fftfreq
+
+    freqs = fftfreq(n_fft, 1.0 / sfreq)
+    if fmin is None:
+        fmin = freqs[freqs > 0][0]
+    if fmax is None:
+        fmax = freqs.max()
+
+    start_f = np.abs(freqs - fmin).argmin()
+    stop_f = np.abs(freqs - fmax).argmin()
+    freqs = freqs[start_f:stop_f]
+    return start_f, stop_f, freqs
+
+
+@verbose
 def tfr_array_stockwell(
     data,
     sfreq,
@@ -117,6 +126,8 @@ def tfr_array_stockwell(
     decim=1,
     return_itc=False,
     n_jobs=None,
+    *,
+    verbose=None,
 ):
     """Compute power and intertrial coherence using Stockwell (S) transform.
 
@@ -144,11 +155,11 @@ def tfr_array_stockwell(
         The width of the Gaussian window. If < 1, increased temporal
         resolution, if > 1, increased frequency resolution. Defaults to 1.
         (classical S-Transform).
-    decim : int
-        The decimation factor on the time axis. To reduce memory usage.
+    %(decim_tfr)s
     return_itc : bool
         Return intertrial coherence (ITC) as well as averaged power.
     %(n_jobs)s
+    %(verbose)s
 
     Returns
     -------
@@ -178,26 +189,17 @@ def tfr_array_stockwell(
             "data must be 3D with shape (n_epochs, n_channels, n_times), "
             f"got {data.shape}"
         )
-    n_epochs, n_channels = data.shape[:2]
-    n_out = data.shape[2] // decim + bool(data.shape[-1] % decim)
+    decim = _ensure_slice(decim)
+    _, n_channels, n_out = data[..., decim].shape
     data, n_fft_, zero_pad = _check_input_st(data, n_fft)
-
-    freqs = fftfreq(n_fft_, 1.0 / sfreq)
-    if fmin is None:
-        fmin = freqs[freqs > 0][0]
-    if fmax is None:
-        fmax = freqs.max()
-
-    start_f = np.abs(freqs - fmin).argmin()
-    stop_f = np.abs(freqs - fmax).argmin()
-    freqs = freqs[start_f:stop_f]
+    start_f, stop_f, freqs = _compute_freqs_st(fmin, fmax, n_fft_, sfreq)
 
     W = _precompute_st_windows(data.shape[-1], start_f, stop_f, sfreq, width)
     n_freq = stop_f - start_f
     psd = np.empty((n_channels, n_freq, n_out))
     itc = np.empty((n_channels, n_freq, n_out)) if return_itc else None
 
-    parallel, my_st, n_jobs = parallel_func(_st_power_itc, n_jobs)
+    parallel, my_st, n_jobs = parallel_func(_st_power_itc, n_jobs, verbose=verbose)
     tfrs = parallel(
         my_st(data[:, c, :], start_f, return_itc, zero_pad, decim, W)
         for c in range(n_channels)
@@ -210,6 +212,7 @@ def tfr_array_stockwell(
     return psd, itc, freqs
 
 
+@legacy(alt='.compute_tfr(method="stockwell", freqs="auto")')
 @verbose
 def tfr_stockwell(
     inst,
@@ -282,6 +285,7 @@ def tfr_stockwell(
     picks = _pick_data_channels(inst.info)
     info = pick_info(inst.info, picks)
     data = data[:, picks, :]
+    decim = _ensure_slice(decim)
     power, itc, freqs = tfr_array_stockwell(
         data,
         sfreq=info["sfreq"],
@@ -293,18 +297,25 @@ def tfr_stockwell(
         return_itc=return_itc,
         n_jobs=n_jobs,
     )
-    times = inst.times[::decim].copy()
+    times = inst.times[decim].copy()
     nave = len(data)
-    out = AverageTFR(info, power, times, freqs, nave, method="stockwell-power")
+    out = AverageTFRArray(
+        info=info,
+        data=power,
+        times=times,
+        freqs=freqs,
+        nave=nave,
+        method="stockwell-power",
+    )
     if return_itc:
         out = (
             out,
-            AverageTFR(
-                deepcopy(info),
-                itc,
-                times.copy(),
-                freqs.copy(),
-                nave,
+            AverageTFRArray(
+                info=deepcopy(info),
+                data=itc,
+                times=times.copy(),
+                freqs=freqs.copy(),
+                nave=nave,
                 method="stockwell-itc",
             ),
         )

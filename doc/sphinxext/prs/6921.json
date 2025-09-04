@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "8fa427b8a5496115d9587fa6eaa82349c42bff69",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 4,
+      "d": 6
+    }
+  }
+}

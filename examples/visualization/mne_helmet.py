@@ -8,8 +8,10 @@ Plot the MNE brain and helmet
 This tutorial shows how to make the MNE helmet + brain image.
 """
 
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 # %%
 
 import mne
@@ -33,9 +35,10 @@ maps = mne.make_field_map(
     ch_type="meg",
     subject="sample",
     subjects_dir=subjects_dir,
+    upsampling=2,
 )
 time = 0.083
-fig = mne.viz.create_3d_figure((256, 256))
+fig = mne.viz.create_3d_figure((512, 512), bgcolor="w", title="MNE helmet")
 mne.viz.plot_alignment(
     evoked.info,
     subject="sample",
@@ -48,13 +51,18 @@ mne.viz.plot_alignment(
     coord_frame="mri",
 )
 evoked.plot_field(
-    maps, time=time, fig=fig, time_label=None, vmax=5e-13, time_viewer=False
+    maps,
+    time=time,
+    fig=fig,
+    time_label=None,
+    vmax=5e-13,
+    time_viewer=False,
 )
 mne.viz.set_3d_view(
     fig,
     azimuth=40,
     elevation=87,
     focalpoint=(0.0, -0.01, 0.04),
-    roll=-25,
+    roll=-105,
     distance=0.55,
 )

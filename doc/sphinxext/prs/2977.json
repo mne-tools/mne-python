@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "f4d6e141cfba1dde8eb90b1a3a5c520a574f51fc",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/datasets/plot_spm_faces_dataset.py": {
+      "a": 14,
+      "d": 10
+    },
+    "examples/decoding/plot_decoding_spatio_temporal_source.py": {
+      "a": 2,
+      "d": 1
+    },
+    "examples/inverse/plot_covariance_whitening_dspm.py": {
+      "a": 72,
+      "d": 42
+    },
+    "examples/inverse/plot_tf_lcmv.py": {
+      "a": 11,
+      "d": 9
+    },
+    "mne/forward/_compute_forward.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/forward/_lead_dots.py": {
+      "a": 20,
+      "d": 11
+    }
+  }
+}

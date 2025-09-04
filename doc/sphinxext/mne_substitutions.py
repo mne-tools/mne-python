@@ -1,5 +1,7 @@
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 from docutils import nodes
 from docutils.parsers.rst import Directive
 from docutils.statemachine import StringList
@@ -7,6 +9,7 @@ from docutils.statemachine import StringList
 from mne._fiff.pick import (
     _DATA_CH_TYPES_ORDER_DEFAULT,
     _DATA_CH_TYPES_SPLIT,
+    _EYETRACK_CH_TYPES_SPLIT,
     _PICK_TYPES_DATA_DICT,
 )
 from mne.defaults import DEFAULTS
@@ -29,18 +32,35 @@ class MNESubstitution(Directive):  # noqa: D101
                 ):
                     keys.append(key)
             rst = "- " + "\n- ".join(
-                "``%r``: **%s** (scaled by %g to plot in *%s*)"
-                % (
-                    key,
-                    DEFAULTS["titles"][key],
-                    DEFAULTS["scalings"][key],
-                    DEFAULTS["units"][key],
-                )
+                f"``{repr(key)}``: **{DEFAULTS['titles'][key]}** "
+                f"(scaled by {DEFAULTS['scalings'][key]:g} to "
+                f"plot in *{DEFAULTS['units'][key]}*)"
                 for key in keys
             )
+        elif self.arguments[0] == "non-data channels list":
+            keys = list()
+            rst = ""
+            for key in _DATA_CH_TYPES_ORDER_DEFAULT:
+                if (
+                    not _PICK_TYPES_DATA_DICT.get(key, True)
+                    or key in _EYETRACK_CH_TYPES_SPLIT
+                    or key in ("ref_meg", "whitened")
+                ):
+                    keys.append(key)
+            for key in keys:
+                if DEFAULTS["scalings"].get(key, False) and DEFAULTS["units"].get(
+                    key, False
+                ):
+                    rst += (
+                        f"- ``{repr(key)}``: **{DEFAULTS['titles'][key]}** "
+                        f"(scaled by {DEFAULTS['scalings'][key]:g} to "
+                        f"plot in *{DEFAULTS['units'][key]}*)\n"
+                    )
+                else:
+                    rst += f"- ``{repr(key)}``: **{DEFAULTS['titles'][key]}**\n"
         else:
             raise self.error(
-                "MNE directive unknown in %s: %r"
+                "MNE directive unknown in %s: %r"  # noqa: UP031
                 % (
                     env.doc2path(env.docname, base=None),
                     self.arguments[0],

@@ -1,6 +1,7 @@
-#!/usr/bin/env python
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 """Set up bilateral hemisphere surface-based source space with subsampling.
 
 Examples
@@ -61,15 +62,14 @@ def run():
     parser.add_option(
         "--ico",
         dest="ico",
-        help="use the recursively subdivided icosahedron "
-        "to create the source space.",
+        help="use the recursively subdivided icosahedron to create the source space.",
         default=None,
         type="int",
     )
     parser.add_option(
         "--oct",
         dest="oct",
-        help="use the recursively subdivided octahedron " "to create the source space.",
+        help="use the recursively subdivided octahedron to create the source space.",
         default=None,
         type="int",
     )

@@ -1,5 +1,7 @@
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 import os
 from os import path as op
 
@@ -12,18 +14,14 @@ edge_size = 9
 sensor_color = "#7bbeca"
 source_color = "#ff6347"
 
-legend = """
-<<FONT POINT-SIZE="%s">
+legend = f"""
+<<FONT POINT-SIZE="{edge_size}">
 <TABLE BORDER="0" CELLBORDER="0" CELLSPACING="4" CELLPADDING="4">
-<TR><TD BGCOLOR="%s">    </TD><TD ALIGN="left">
+<TR><TD BGCOLOR="{sensor_color}">    </TD><TD ALIGN="left">
 Sensor (M/EEG) space</TD></TR>
-<TR><TD BGCOLOR="%s">    </TD><TD ALIGN="left">
+<TR><TD BGCOLOR="{source_color}">    </TD><TD ALIGN="left">
 Source (brain) space</TD></TR>
-</TABLE></FONT>>""" % (
-    edge_size,
-    sensor_color,
-    source_color,
-)
+</TABLE></FONT>>"""
 legend = "".join(legend.split("\n"))
 
 nodes = dict(
@@ -77,8 +75,8 @@ subgraphs = (
     [
         ("T1", "flashes", "recon", "bem", "src"),
         (
-            '<Structural information<BR/><FONT POINT-SIZE="%s"><I>'
-            "Freesurfer / MNE-C</I></FONT>>" % node_small_size
+            f'<Structural information<BR/><FONT POINT-SIZE="{node_small_size}"><I>'
+            "Freesurfer / MNE-C</I></FONT>>"
         ),
     ],
 )
@@ -111,10 +109,10 @@ def generate_flow_diagram(app):
     for key, label in nodes.items():
         label = label.split("\n")
         if len(label) > 1:
-            label[0] = '<<FONT POINT-SIZE="%s">' % node_size + label[0] + "</FONT>"
+            label[0] = f'<<FONT POINT-SIZE="{node_size}">' + label[0] + "</FONT>"
             for li in range(1, len(label)):
                 label[li] = (
-                    '<FONT POINT-SIZE="%s"><I>' % node_small_size
+                    f'<FONT POINT-SIZE="{node_small_size}"><I>'
                     + label[li]
                     + "</I></FONT>"
                 )
@@ -146,7 +144,7 @@ def generate_flow_diagram(app):
 
     # Create subgraphs
     for si, subgraph in enumerate(subgraphs):
-        g.add_subgraph(subgraph[0], "cluster%s" % si, label=subgraph[1], color="black")
+        g.add_subgraph(subgraph[0], f"cluster{si}", label=subgraph[1], color="black")
 
     # Format (sub)graphs
     for gr in g.subgraphs() + [g]:

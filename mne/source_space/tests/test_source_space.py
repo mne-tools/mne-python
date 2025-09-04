@@ -1,6 +1,4 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Eric Larson <larson.eric.d@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -308,7 +306,7 @@ def test_discrete_source_space(tmp_path):
     with pytest.raises(ValueError, match="Cannot create interpolation"):
         setup_volume_source_space("sample", pos=pos_dict, mri=fname_mri)
     assert repr(src_new).split("~")[0] == repr(src_c).split("~")[0]
-    assert " kB" in repr(src_new)
+    assert " KiB" in repr(src_new)
     assert src_new.kind == "discrete"
     assert _get_src_type(src_new, None) == "discrete"
 
@@ -361,7 +359,7 @@ def test_volume_source_space(tmp_path):
         )
     del bem
     assert repr(src) == repr(src_new)
-    assert " MB" in repr(src)
+    assert " MiB" in repr(src)
     assert src.kind == "volume"
     # Spheres
     sphere = make_sphere_model(
@@ -373,7 +371,7 @@ def test_volume_source_space(tmp_path):
     src = setup_volume_source_space(pos=10, sphere=(0.0, 0.0, 0.0, 0.09))
     src_new = setup_volume_source_space(pos=10, sphere=sphere)
     _compare_source_spaces(src, src_new, mode="exact")
-    with pytest.raises(ValueError, match="sphere, if str"):
+    with pytest.raises(ValueError, match="Invalid value for the 'sphere' parameter"):
         setup_volume_source_space(sphere="foo")
     # Need a radius
     sphere = make_sphere_model(head_radius=None)
@@ -570,9 +568,7 @@ def test_setup_source_space_spacing(tmp_path, spacing, monkeypatch):
     monkeypatch.setenv("SUBJECTS_DIR", str(tmp_path))
     monkeypatch.setenv("SUBJECT", "sample")
     run_subprocess(["mne_setup_source_space"] + args)
-    src = read_source_spaces(
-        tmp_path / "sample" / "bem" / ("sample-%d-src.fif" % spacing)
-    )
+    src = read_source_spaces(tmp_path / "sample" / "bem" / f"sample-{spacing}-src.fif")
     # No need to pass subjects_dir here because we've setenv'ed it
     src_new = setup_source_space("sample", spacing=spacing, add_dist=False)
     _compare_source_spaces(src, src_new, mode="approx", nearest=True)
@@ -700,8 +696,9 @@ def test_source_space_exclusive_complete(src_volume_labels):
     for si, s in enumerate(src):
         assert_allclose(src_full[0]["rr"], s["rr"], atol=1e-6)
     # also check single_volume=True -- should be the same result
-    with _record_warnings(), pytest.warns(
-        RuntimeWarning, match="Found no usable.*Left-vessel.*"
+    with (
+        _record_warnings(),
+        pytest.warns(RuntimeWarning, match="Found no usable.*Left-vessel.*"),
     ):
         src_single = setup_volume_source_space(
             src[0]["subject_his_id"],
@@ -873,6 +870,27 @@ def test_combine_source_spaces(tmp_path):
     with pytest.warns(RuntimeWarning, match="2 surf vertices lay outside"):
         src.export_volume(image_fname, mri_resolution="sparse", overwrite=True)
 
+    # gh-12495
+    image_fname = tmp_path / "temp-image.nii"
+    lh_cereb = mne.setup_volume_source_space(
+        "sample",
+        mri=aseg_fname,
+        volume_label="Left-Cerebellum-Cortex",
+        add_interpolator=False,
+        subjects_dir=subjects_dir,
+    )
+    lh_cereb.export_volume(image_fname, mri_resolution=True)
+    aseg = nib.load(str(aseg_fname))
+    out = nib.load(str(image_fname))
+    assert_allclose(out.affine, aseg.affine)
+    src_data = _get_img_fdata(out).astype(bool)
+    aseg_data = _get_img_fdata(aseg) == 8
+    n_src = src_data.sum()
+    n_aseg = aseg_data.sum()
+    assert n_aseg == n_src
+    n_overlap = (src_data & aseg_data).sum()
+    assert n_src == n_overlap
+
 
 @testing.requires_testing_data
 def test_morph_source_spaces():
@@ -1040,7 +1058,7 @@ data_path = mne.datasets.sample.data_path()
 src = mne.setup_source_space('sample', fname=None, spacing='oct5')
 hemis = ['lh', 'rh']
 fnames = [
-    str(data_path) + '/subjects/sample/surf/%s.decimated' % h for h in hemis]
+    str(data_path) + f'/subjects/sample/surf/{h}.decimated' for h in hemis]
 
 vs = list()
 for s, fname in zip(src, fnames):
@@ -1054,7 +1072,7 @@ for s, fname in zip(src, fnames):
 
 # we need to move sphere surfaces
 spheres = [
-    str(data_path) + '/subjects/sample/surf/%s.sphere' % h for h in hemis]
+    str(data_path) + f'/subjects/sample/surf/{h}.sphere' for h in hemis]
 for s in spheres:
     os.rename(s, s + '.bak')
 try:

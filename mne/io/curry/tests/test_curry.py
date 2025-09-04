@@ -1,7 +1,5 @@
 #
-# Authors: Dirk Gütlin <dirk.guetlin@stud.sbg.ac.at>
-#
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -282,7 +280,7 @@ def test_read_raw_curry_rfDC(fname, tol, mock_dev_head_t, tmp_path):
     assert n_other == 15
     pos = np.array(pos)
     nn = np.array(nn)
-    rad, origin = _fit_sphere(pos, disp=False)
+    rad, origin = _fit_sphere(pos)
     assert 0.11 < rad < 0.13
     pos -= origin
     pos /= np.linalg.norm(pos, axis=1, keepdims=True)

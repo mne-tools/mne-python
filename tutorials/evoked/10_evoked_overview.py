@@ -5,18 +5,19 @@
 The Evoked data structure: evoked/averaged data
 ===============================================
 
-This tutorial covers the basics of creating and working with :term:`evoked`
-data. It introduces the :class:`~mne.Evoked` data structure in detail,
-including how to load, query, subset, export, and plot data from an
-:class:`~mne.Evoked` object. For details on creating an :class:`~mne.Evoked`
-object from (possibly simulated) data in a :class:`NumPy array
-<numpy.ndarray>`, see :ref:`tut-creating-data-structures`.
+This tutorial covers the basics of creating and working with :term:`evoked` data. It
+introduces the :class:`~mne.Evoked` data structure in detail, including how to load,
+query, subset, export, and plot data from an :class:`~mne.Evoked` object. For details
+on creating an :class:`~mne.Evoked` object from (possibly simulated) data in a
+:class:`NumPy array <numpy.ndarray>`, see :ref:`tut-creating-data-structures`.
 
 As usual, we start by importing the modules we need:
 """
 
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 # %%
 
 import mne

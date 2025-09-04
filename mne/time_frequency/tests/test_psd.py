@@ -1,5 +1,7 @@
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 import numpy as np
 import pytest
 from numpy.testing import assert_allclose, assert_array_almost_equal, assert_array_equal
@@ -34,6 +36,26 @@ def test_psd_nan():
     log = log.getvalue()
     assert "using 256-point FFT on 256 samples with 0 overlap" in log
     assert "hamming window" in log
+
+
+def test_bad_annot_handling():
+    """Make sure results equivalent with/without Annotations."""
+    n_per_seg = 256
+    n_chan = 3
+    n_times = 5 * n_per_seg
+    x = np.random.default_rng(seed=42).standard_normal(size=(n_chan, n_times))
+    want = psd_array_welch(x, sfreq=100)
+    # now simulate an annotation that breaks up the array into unequal spans. Using
+    # `n_per_seg` as the cut point is unrealistic/idealized, but it allows us to test
+    # whether we get results ~identical to `want` (which we should in this edge case)
+    x2 = np.concatenate(
+        (x[..., :n_per_seg], np.full((n_chan, 1), np.nan), x[..., n_per_seg:]), axis=-1
+    )
+    got = psd_array_welch(x2, sfreq=100)
+    # freqs should be identical
+    np.testing.assert_array_equal(got[1], want[1])
+    # powers should be very very close
+    np.testing.assert_allclose(got[0], want[0], rtol=1e-15, atol=0)
 
 
 def _make_psd_data():

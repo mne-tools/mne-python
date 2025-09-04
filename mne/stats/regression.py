@@ -1,9 +1,4 @@
-# Authors: Tal Linzen <linzen@nyu.edu>
-#          Teon Brooks <teon.brooks@gmail.com>
-#          Denis A. Engemann <denis.engemann@gmail.com>
-#          Jona Sassenhagen <jona.sassenhagen@gmail.com>
-#          Marijn van Vliet <w.m.vanvliet@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -60,7 +55,7 @@ def linear_regression(inst, design_matrix, names=None):
         ``(n_channels, n_timepoints)``.
     """
     if names is None:
-        names = ["x%i" % i for i in range(design_matrix.shape[1])]
+        names = [f"x{i}" for i in range(design_matrix.shape[1])]
 
     if isinstance(inst, BaseEpochs):
         picks = pick_types(
@@ -75,7 +70,7 @@ def linear_regression(inst, design_matrix, names=None):
             exclude=["bads"],
         )
         if [inst.ch_names[p] for p in picks] != inst.ch_names:
-            warn("Fitting linear model to non-data or bad channels. " "Check picking")
+            warn("Fitting linear model to non-data or bad channels. Check picking")
         msg = "Fitting linear model to epochs"
         data = inst.get_data(copy=False)
         out = EvokedArray(np.zeros(data.shape[1:]), inst.info, inst.tmin)
@@ -88,10 +83,8 @@ def linear_regression(inst, design_matrix, names=None):
         out = inst[0]
         data = np.array([i.data for i in inst])
     else:
-        raise ValueError("Input must be epochs or iterable of source " "estimates")
-    logger.info(
-        msg + ", (%s targets, %s regressors)" % (np.prod(data.shape[1:]), len(names))
-    )
+        raise ValueError("Input must be epochs or iterable of source estimates")
+    logger.info(msg + f", ({np.prod(data.shape[1:])} targets, {len(names)} regressors)")
     lm_params = _fit_lm(data, design_matrix, names)
     lm = namedtuple("lm", "beta stderr t_val p_val mlog10_p_val")
     lm_fits = {}
@@ -99,7 +92,7 @@ def linear_regression(inst, design_matrix, names=None):
         parameters = [p[name] for p in lm_params]
         for ii, value in enumerate(parameters):
             out_ = out.copy()
-            if not isinstance(out_, (SourceEstimate, Evoked)):
+            if not isinstance(out_, SourceEstimate | Evoked):
                 raise RuntimeError("Invalid container.")
             out_._data[:] = value
             parameters[ii] = out_
@@ -118,7 +111,7 @@ def _fit_lm(data, design_matrix, names):
 
     if n_samples != n_rows:
         raise ValueError(
-            "Number of rows in design matrix must be equal " "to number of observations"
+            "Number of rows in design matrix must be equal to number of observations"
         )
     if n_predictors != len(names):
         raise ValueError(
@@ -304,9 +297,10 @@ def linear_regression_raw(
     coefs = solver(X, data.T)
     if coefs.shape[0] != data.shape[0]:
         raise ValueError(
-            "solver output has unexcepted shape. Supply a "
+            f"solver output has unexcepted shape {coefs.shape}. Supply a "
             "function that returns coefficients in the form "
-            "(n_targets, n_features), where targets == channels."
+            "(n_targets, n_features), where "
+            f"n_targets == n_channels == {data.shape[0]}."
         )
 
     # construct Evoked objects to be returned from output
@@ -356,11 +350,11 @@ def _prepare_rerp_preds(
 
     # time windows (per event type) are converted to sample points from times
     # int(round()) to be safe and match Epochs constructor behavior
-    if isinstance(tmin, (float, int)):
+    if isinstance(tmin, float | int):
         tmin_s = {cond: int(round(tmin * sfreq)) for cond in conds}
     else:
         tmin_s = {cond: int(round(tmin.get(cond, -0.1) * sfreq)) for cond in conds}
-    if isinstance(tmax, (float, int)):
+    if isinstance(tmax, float | int):
         tmax_s = {cond: int(round(tmax * sfreq) + 1) for cond in conds}
     else:
         tmax_s = {cond: int(round(tmax.get(cond, 1.0) * sfreq)) + 1 for cond in conds}

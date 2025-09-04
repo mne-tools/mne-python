@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "e1f8f96c25b8dc2f278ce7a0d82ef9345ca6173c",
+  "authors": [
+    {
+      "n": "Martin Luessi",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/source_space.py": {
+      "a": 4,
+      "d": 4
+    }
+  }
+}

@@ -21,25 +21,27 @@ We will cover some of these considerations here by processing the
 :footcite:`SeymourEtAl2022`
 """
 
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 # %%
 
 import matplotlib.pyplot as plt
+import nibabel as nib
 import numpy as np
 
 import mne
 
-opm_data_folder = mne.datasets.ucl_opm_auditory.data_path()
+subject = "sub-002"
+data_path = mne.datasets.ucl_opm_auditory.data_path()
 opm_file = (
-    opm_data_folder
-    / "sub-002"
-    / "ses-001"
-    / "meg"
-    / "sub-002_ses-001_task-aef_run-001_meg.bin"
+    data_path / subject / "ses-001" / "meg" / "sub-002_ses-001_task-aef_run-001_meg.bin"
 )
+subjects_dir = data_path / "derivatives" / "freesurfer" / "subjects"
+
 # For now we are going to assume the device and head coordinate frames are
-# identical (even though this is incorrect), so we pass verbose='error' for now
+# identical (even though this is incorrect), so we pass verbose='error'
 raw = mne.io.read_raw_fil(opm_file, verbose="error")
 raw.crop(120, 210).load_data()  # crop for speed
 
@@ -240,7 +242,58 @@ epochs = mne.Epochs(
     raw, events, tmin=-0.1, tmax=0.4, baseline=(-0.1, 0.0), verbose="error"
 )
 evoked = epochs.average()
-evoked.plot()
+t_peak = evoked.times[np.argmax(np.std(evoked.copy().pick("meg").data, axis=0))]
+fig = evoked.plot_joint(picks="mag")
+
+# %%
+# Visualizing coregistration
+# --------------------------
+# By design, the sensors in this dataset are already in the scanner RAS coordinate
+# frame. We can thus visualize them in the FreeSurfer MRI coordinate frame by computing
+# the transformation between the FreeSurfer MRI coordinate frame and scanner RAS:
+
+mri = nib.load(subjects_dir / "sub-002" / "mri" / "T1.mgz")
+trans = mri.header.get_vox2ras_tkr() @ np.linalg.inv(mri.affine)
+trans[:3, 3] /= 1000.0  # nibabel uses mm, MNE uses m
+trans = mne.transforms.Transform("head", "mri", trans)
+
+bem = subjects_dir / subject / "bem" / f"{subject}-5120-bem-sol.fif"
+src = subjects_dir / subject / "bem" / f"{subject}-oct-6-src.fif"
+mne.viz.plot_alignment(
+    evoked.info,
+    subjects_dir=subjects_dir,
+    subject=subject,
+    trans=trans,
+    surfaces={"head": 0.1, "inner_skull": 0.2, "white": 1.0},
+    meg=["helmet", "sensors"],
+    verbose="error",
+    bem=bem,
+    src=src,
+)
+
+# %%
+# Plotting the inverse
+# --------------------
+# Now we can compute a forward and inverse:
+
+fwd = mne.make_forward_solution(
+    evoked.info,
+    trans=trans,
+    bem=bem,
+    src=src,
+    verbose=True,
+)
+noise_cov = mne.compute_covariance(epochs, tmax=0)
+inv = mne.minimum_norm.make_inverse_operator(evoked.info, fwd, noise_cov, verbose=True)
+stc = mne.minimum_norm.apply_inverse(
+    evoked, inv, 1.0 / 9.0, method="dSPM", verbose=True
+)
+brain = stc.plot(
+    hemi="split",
+    size=(800, 400),
+    initial_time=t_peak,
+    subjects_dir=subjects_dir,
+)
 
 # %%
 # References

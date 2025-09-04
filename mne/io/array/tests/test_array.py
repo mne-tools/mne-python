@@ -1,5 +1,4 @@
-# Author: Eric Larson <larson.eric.d@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -36,7 +35,7 @@ def test_long_names():
     info = create_info(["a" * 16] * 11, 1000.0, verbose="error")
     data = np.zeros((11, 1000))
     raw = RawArray(data, info)
-    assert raw.ch_names == ["a" * 16 + "-%s" % ii for ii in range(11)]
+    assert raw.ch_names == ["a" * 16 + f"-{ii}" for ii in range(11)]
 
 
 def test_array_copy():

@@ -1,5 +1,4 @@
-# Authors: Chris Holdgraf <choldgraf@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -10,6 +9,11 @@ import pytest
 from numpy import einsum
 from numpy.fft import irfft, rfft
 from numpy.testing import assert_allclose, assert_array_equal, assert_equal
+
+pytest.importorskip("sklearn")
+
+from sklearn.linear_model import Ridge
+from sklearn.utils.estimator_checks import parametrize_with_checks
 
 from mne.decoding import ReceptiveField, TimeDelayingRidge
 from mne.decoding.receptive_field import (
@@ -80,9 +84,6 @@ def test_compute_reg_neighbors():
 def test_rank_deficiency():
     """Test signals that are rank deficient."""
     # See GH#4253
-    pytest.importorskip("sklearn")
-    from sklearn.linear_model import Ridge
-
     N = 256
     fs = 1.0
     tmin, tmax = -50, 100
@@ -173,11 +174,10 @@ def test_time_delay():
 
 @pytest.mark.slowtest  # slow on Azure
 @pytest.mark.parametrize("n_jobs", n_jobs_test)
+@pytest.mark.filterwarnings("ignore:Estimator .* has no __sklearn_tags__.*")
+@pytest.mark.filterwarnings("ignore:The following error was .*__sklearn_tags__.*")
 def test_receptive_field_basic(n_jobs):
     """Test model prep and fitting."""
-    pytest.importorskip("sklearn")
-    from sklearn.linear_model import Ridge
-
     # Make sure estimator pulling works
     mod = Ridge()
     rng = np.random.RandomState(1337)
@@ -197,9 +197,10 @@ def test_receptive_field_basic(n_jobs):
     y = np.dot(X_del, w)
 
     # Fit the model and test values
-    feature_names = ["feature_%i" % ii for ii in [0, 1, 2]]
+    feature_names = [f"feature_{ii}" for ii in [0, 1, 2]]
     rf = ReceptiveField(tmin, tmax, 1, feature_names, estimator=mod, patterns=True)
     rf.fit(X, y)
+    assert rf.coef_.shape == (3, 11)
     assert_array_equal(rf.delays_, np.arange(tmin, tmax + 1))
 
     y_pred = rf.predict(X)
@@ -221,7 +222,7 @@ def test_receptive_field_basic(n_jobs):
     with pytest.raises(ValueError, match="n_features in X does not match"):
         rf.fit(X[:, :1], y)
     # auto-naming features
-    feature_names = ["feature_%s" % ii for ii in [0, 1, 2]]
+    feature_names = [f"feature_{ii}" for ii in [0, 1, 2]]
     rf = ReceptiveField(tmin, tmax, 1, estimator=mod, feature_names=feature_names)
     assert_equal(rf.feature_names, feature_names)
     rf = ReceptiveField(tmin, tmax, 1, estimator=mod)
@@ -373,9 +374,6 @@ def test_time_delaying_fast_calc(n_jobs):
 @pytest.mark.parametrize("n_jobs", n_jobs_test)
 def test_receptive_field_1d(n_jobs):
     """Test that the fast solving works like Ridge."""
-    pytest.importorskip("sklearn")
-    from sklearn.linear_model import Ridge
-
     rng = np.random.RandomState(0)
     x = rng.randn(500, 1)
     for delay in range(-2, 3):
@@ -434,9 +432,6 @@ def test_receptive_field_1d(n_jobs):
 @pytest.mark.parametrize("n_jobs", n_jobs_test)
 def test_receptive_field_nd(n_jobs):
     """Test multidimensional support."""
-    pytest.importorskip("sklearn")
-    from sklearn.linear_model import Ridge
-
     # multidimensional
     rng = np.random.RandomState(3)
     x = rng.randn(1000, 3)
@@ -553,9 +548,6 @@ def _make_data(n_feats, n_targets, n_samples, tmin, tmax):
 
 def test_inverse_coef():
     """Test inverse coefficients computation."""
-    pytest.importorskip("sklearn")
-    from sklearn.linear_model import Ridge
-
     tmin, tmax = 0.0, 10.0
     n_feats, n_targets, n_samples = 3, 2, 1000
     n_delays = int((tmax - tmin) + 1)
@@ -584,9 +576,6 @@ def test_inverse_coef():
 
 def test_linalg_warning():
     """Test that warnings are issued when no regularization is applied."""
-    pytest.importorskip("sklearn")
-    from sklearn.linear_model import Ridge
-
     n_feats, n_targets, n_samples = 5, 60, 50
     X, y = _make_data(n_feats, n_targets, n_samples, tmin, tmax)
     for estimator in (0.0, Ridge(alpha=0.0)):
@@ -597,40 +586,32 @@ def test_linalg_warning():
             rf.fit(y, X)
 
 
-def test_tdr_sklearn_compliance():
+@parametrize_with_checks([TimeDelayingRidge(0, 10, 1.0, 0.1, "laplacian", n_jobs=1)])
+def test_tdr_sklearn_compliance(estimator, check):
     """Test sklearn estimator compliance."""
-    pytest.importorskip("sklearn")
-    from sklearn.utils.estimator_checks import check_estimator
-
-    tdr = TimeDelayingRidge(0, 10, 1.0, 0.1, "laplacian", n_jobs=1)
-    # We don't actually comply with a bunch of the regressor specs :(
+    pytest.importorskip("sklearn", minversion="1.4")  # TODO VERSION remove on 1.4+
     ignores = (
-        "check_supervised_y_no_nan",
-        "check_regressor",
-        "check_parameters_default_constructible",
-        "check_estimators_unfitted",
-        "_invariance",
-        "check_fit2d_1sample",
+        # TDR convolves and thus its output cannot be invariant when
+        # shuffled or subsampled.
+        "check_methods_sample_order_invariance",
+        "check_methods_subset_invariance",
     )
-    for est, check in check_estimator(tdr, generate_only=True):
-        if any(ignore in str(check) for ignore in ignores):
-            continue
-        check(est)
+    if any(ignore in str(check) for ignore in ignores):
+        return
+    check(estimator)
 
 
-def test_rf_sklearn_compliance():
+@pytest.mark.filterwarnings("ignore:.*invalid value encountered in subtract.*:")
+@parametrize_with_checks([ReceptiveField(-1, 2, 1.0, estimator=Ridge(), patterns=True)])
+def test_rf_sklearn_compliance(estimator, check):
     """Test sklearn RF compliance."""
-    pytest.importorskip("sklearn")
-    from sklearn.linear_model import Ridge
-    from sklearn.utils.estimator_checks import check_estimator
-
-    rf = ReceptiveField(-1, 2, 1.0, estimator=Ridge(), patterns=True)
+    pytest.importorskip("sklearn", minversion="1.4")  # TODO VERSION remove on 1.4+
     ignores = (
-        "check_parameters_default_constructible",
-        "_invariance",
-        "check_fit2d_1sample",
+        # RF does time-lagging, so its output cannot be invariant when
+        # shuffled or subsampled.
+        "check_methods_sample_order_invariance",
+        "check_methods_subset_invariance",
     )
-    for est, check in check_estimator(rf, generate_only=True):
-        if any(ignore in str(check) for ignore in ignores):
-            continue
-        check(est)
+    if any(ignore in str(check) for ignore in ignores):
+        return
+    check(estimator)

@@ -1,5 +1,4 @@
-# Authors: MNE Developers
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -25,6 +24,14 @@ def export_raw(
     %(export_fmt_support_raw)s
 
     %(export_warning)s
+
+    .. warning::
+        When exporting ``Raw`` with annotations, ``raw.info["meas_date"]`` must be the
+        same as ``raw.annotations.orig_time``. This guarantees that the annotations are
+        in the same reference frame as the samples. When
+        :attr:`Raw.first_time <mne.io.Raw.first_time>` is not zero (e.g., after
+        cropping), the onsets are automatically corrected so that onsets are always
+        relative to the first sample.
 
     Parameters
     ----------
@@ -206,7 +213,7 @@ def _infer_check_export_fmt(fmt, fname, supported_formats):
             )  # default to original fmt for raising error later
         else:
             raise ValueError(
-                f"Couldn't infer format from filename {fname}" " (no extension found)"
+                f"Couldn't infer format from filename {fname} (no extension found)"
             )
 
     if fmt not in supported_formats:
@@ -217,7 +224,6 @@ def _infer_check_export_fmt(fmt, fname, supported_formats):
 
         supported_str = ", ".join(supported)
         raise ValueError(
-            f"Format '{fmt}' is not supported. "
-            f"Supported formats are {supported_str}."
+            f"Format '{fmt}' is not supported. Supported formats are {supported_str}."
         )
     return fmt

@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "678ae7b0583ce5cb78a4316d24d6c8618f1263dc",
+  "authors": [
+    {
+      "n": "moutard",
+      "e": "clement.moutard@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/channels/layout.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/epochs.py": {
+      "a": 9,
+      "d": 4
+    }
+  }
+}

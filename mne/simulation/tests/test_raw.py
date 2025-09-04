@@ -1,7 +1,4 @@
-# Authors: Mark Wronkiewicz <wronk@uw.edu>
-#          Yousra Bekhti <yousra.bekhti@gmail.com>
-#          Eric Larson <larson.eric.d@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -41,6 +38,7 @@ from mne.chpi import (
     compute_head_pos,
     get_chpi_info,
     read_head_pos,
+    write_head_pos,
 )
 from mne.datasets import testing
 from mne.io import RawArray, read_raw_fif
@@ -57,6 +55,7 @@ from mne.simulation.source import SourceSimulator
 from mne.source_space._source_space import _compare_source_spaces
 from mne.surface import _get_ico_surface
 from mne.tests.test_chpi import _assert_quats
+from mne.transforms import _affine_to_quat
 from mne.utils import catch_logging
 
 raw_fname_short = Path(__file__).parents[2] / "io" / "tests" / "data" / "test_raw.fif"
@@ -223,7 +222,11 @@ def raw_data():
 
     src = read_source_spaces(src_fname)
     trans = read_trans(trans_fname)
-    sphere = make_sphere_model("auto", "auto", raw.info)
+    # Use fixed values from old sphere fit to reduce lines changed with fixed algorithm
+    sphere = make_sphere_model(
+        [-0.00413508, 0.01598787, 0.05175598],
+        0.09100286249131773,
+    )
     stc = _make_stc(raw, src)
     return raw, src, stc, trans, sphere
 
@@ -250,6 +253,11 @@ def test_simulate_raw_sphere(raw_data, tmp_path):
 
     # head pos
     head_pos_sim = _get_head_pos_sim(raw)
+    head_pos_sim_2 = np.zeros((len(head_pos_sim), 10))
+    for ii, (t, mat) in enumerate(head_pos_sim.items()):
+        head_pos_sim_2[ii, :7] = [t] + list(_affine_to_quat(mat))
+    head_pos_sim_3 = tmp_path / "head_pos.txt"
+    write_head_pos(head_pos_sim_3, head_pos_sim_2)
 
     #
     # Test raw simulation with basic parameters
@@ -258,11 +266,9 @@ def test_simulate_raw_sphere(raw_data, tmp_path):
     cov = read_cov(cov_fname)
     cov["projs"] = raw.info["projs"]
     raw.info["bads"] = raw.ch_names[:1]
-    sphere_norad = make_sphere_model("auto", None, raw.info)
     raw_meg = raw.copy().pick("meg")
-    raw_sim = simulate_raw(
-        raw_meg.info, stc, trans, src, sphere_norad, head_pos=head_pos_sim
-    )
+    raw_sim = simulate_raw(raw_meg.info, stc, trans, src, sphere, head_pos=head_pos_sim)
+    raw_data = raw_sim[:][0]
     # Test IO on processed data
     test_outname = tmp_path / "sim_test_raw.fif"
     raw_sim.save(test_outname)
@@ -306,12 +312,14 @@ def test_simulate_raw_sphere(raw_data, tmp_path):
     )
     del raw_sim, raw_sim_2
 
-    # check that different interpolations are similar given small movements
+    # check that different interpolations are similar given small movements,
+    # using different input forms of head_pos
     raw_sim = simulate_raw(
         raw.info, stc, trans, src, sphere, head_pos=head_pos_sim, interp="linear"
     )
+    assert_allclose(raw_sim.get_data("meg"), raw_data, rtol=0.02)
     raw_sim_hann = simulate_raw(
-        raw.info, stc, trans, src, sphere, head_pos=head_pos_sim, interp="hann"
+        raw.info, stc, trans, src, sphere, head_pos=head_pos_sim_3, interp="hann"
     )
     assert_allclose(raw_sim[:][0], raw_sim_hann[:][0], rtol=1e-1, atol=1e-14)
     del raw_sim_hann
@@ -388,9 +396,9 @@ def test_simulate_raw_bem(raw_data):
     locs = np.concatenate([s["rr"][s["vertno"]] for s in src])
     tmax = (len(locs) - 1) / raw.info["sfreq"]
     cov = make_ad_hoc_cov(raw.info)
-    # The tolerance for the BEM is surprisingly high (28) but I get the same
+    # The tolerance for the BEM is surprisingly high but I get the same
     # result when using MNE-C and Xfit, even when using a proper 5120 BEM :(
-    for use_raw, bem, tol in ((raw_sim_sph, sphere, 2), (raw_sim_bem, bem_fname, 31)):
+    for use_raw, bem, tol in ((raw_sim_sph, sphere, 6), (raw_sim_bem, bem_fname, 31)):
         events = find_events(use_raw, "STI 014")
         assert len(locs) == 6
         evoked = Epochs(use_raw, events, 1, 0, tmax, baseline=None).average()
@@ -398,7 +406,7 @@ def test_simulate_raw_bem(raw_data):
         fits = fit_dipole(evoked, cov, bem, trans, min_dist=1.0)[0].pos
         diffs = np.sqrt(np.sum((locs - fits) ** 2, axis=-1)) * 1000
         med_diff = np.median(diffs)
-        assert med_diff < tol, "%s: %s" % (bem, med_diff)
+        assert med_diff < tol, f"{bem}: {med_diff}"
     # also test event timings with SourceSimulator
     first_samp = raw.first_samp
     events = find_events(raw, initial_event=True, verbose=False)
@@ -424,6 +432,18 @@ def test_simulate_raw_bem(raw_data):
     assert_allclose(amp0 / amp1, wf_sim[0] / wf_sim[1], rtol=1e-5)
     assert amp2 == 0
     assert raw_sim.n_times == ss.n_times
+    # smoke test that different head positions can be used as well
+    head_pos_sim = {1.0: raw.info["dev_head_t"]["trans"]}
+    raw_sim_2 = simulate_raw(
+        raw.info,
+        ss,
+        src=src_ss,
+        bem=bem_fname,
+        first_samp=first_samp,
+        head_pos=head_pos_sim,
+    )
+    data_2 = raw_sim_2.get_data()
+    assert_allclose(data, data_2, rtol=1e-7)
 
 
 @pytest.mark.slowtest  # slow on Windows Azure

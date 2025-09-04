@@ -1,6 +1,10 @@
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
+import datetime
 import glob
+import inspect
 import os
 
 import numpy as np
@@ -38,6 +42,32 @@ def read_raw_neuralynx(
     See Also
     --------
     mne.io.Raw : Documentation of attributes and methods of RawNeuralynx.
+
+    Notes
+    -----
+    Neuralynx files are read from disk using the `Neo package
+    <http://neuralensemble.org/neo/>`__.
+    Currently, only reading of the ``.ncs files`` is supported.
+
+    ``raw.info["meas_date"]`` is read from the ``recording_opened`` property
+    of the first ``.ncs`` file (i.e. channel) in the dataset (a warning is issued
+    if files have different dates of acquisition).
+
+    Channel-specific high and lowpass frequencies of online filters are determined
+    based on the ``DspLowCutFrequency`` and ``DspHighCutFrequency`` header fields,
+    respectively. If no filters were used for a channel, the default lowpass is set
+    to the Nyquist frequency and the default highpass is set to 0.
+    If channels have different high/low cutoffs, ``raw.info["highpass"]`` and
+    ``raw.info["lowpass"]`` are then set to the maximum highpass and minimumlowpass
+    values across channels, respectively.
+
+    Other header variables can be inspected using Neo directly. For example::
+
+        from neo.io import NeuralynxIO  # doctest: +SKIP
+        fname = 'path/to/your/data'  # doctest: +SKIP
+        nlx_reader = NeuralynxIO(dirname=fname)  # doctest: +SKIP
+        print(nlx_reader.header)  # doctest: +SKIP
+        print(nlx_reader.file_headers.items())  # doctest: +SKIP
     """
     return RawNeuralynx(
         fname,
@@ -45,6 +75,16 @@ def read_raw_neuralynx(
         exclude_fname_patterns=exclude_fname_patterns,
         verbose=verbose,
     )
+
+
+# Helper for neo change of exclude_filename -> exclude_filenames in 0.13.2
+def _exclude_kwarg(exclude_fnames):
+    from neo.io import NeuralynxIO
+
+    key = "exclude_filename"
+    if "exclude_filenames" in inspect.getfullargspec(NeuralynxIO).args:
+        key += "s"
+    return {key: exclude_fnames}
 
 
 @fill_doc
@@ -80,7 +120,7 @@ class RawNeuralynx(BaseRaw):
 
         # get basic file info from header, throw Error if NeuralynxIO can't parse
         try:
-            nlx_reader = NeuralynxIO(dirname=fname, exclude_filename=exclude_fnames)
+            nlx_reader = NeuralynxIO(dirname=fname, **_exclude_kwarg(exclude_fnames))
         except ValueError as e:
             # give a more informative error message and what the user can do about it
             if "Incompatible section structures across streams" in str(e):
@@ -100,6 +140,61 @@ class RawNeuralynx(BaseRaw):
             ch_names=nlx_reader.header["signal_channels"]["name"].tolist(),
             sfreq=nlx_reader.get_signal_sampling_rate(),
         )
+
+        ncs_fnames = nlx_reader.ncs_filenames.values()
+        ncs_hdrs = [
+            hdr
+            for hdr_key, hdr in nlx_reader.file_headers.items()
+            if hdr_key in ncs_fnames
+        ]
+
+        # if all files have the same recording_opened date, write it to info
+        meas_dates = np.array([hdr["recording_opened"] for hdr in ncs_hdrs])
+        # to be sure, only write if all dates are the same
+        meas_diff = []
+        for md in meas_dates:
+            meas_diff.append((md - meas_dates[0]).total_seconds())
+
+        # tolerate a +/-1 second meas_date difference (arbitrary threshold)
+        # else issue a warning
+        warn_meas = (np.abs(meas_diff) > 1.0).any()
+        if warn_meas:
+            logger.warning(
+                "Not all .ncs files have the same recording_opened date. "
+                + "Writing meas_date based on the first .ncs file."
+            )
+
+        # Neuarlynx allows channel specific low/highpass filters
+        # if not enabled, assume default lowpass = nyquist, highpass = 0
+        default_lowpass = info["sfreq"] / 2  # nyquist
+        default_highpass = 0
+
+        has_hp = [hdr["DSPLowCutFilterEnabled"] for hdr in ncs_hdrs]
+        has_lp = [hdr["DSPHighCutFilterEnabled"] for hdr in ncs_hdrs]
+        if not all(has_hp) or not all(has_lp):
+            logger.warning(
+                "Not all .ncs files have the same high/lowpass filter settings. "
+                + "Assuming default highpass = 0, lowpass = nyquist."
+            )
+
+        highpass_freqs = [
+            float(hdr["DspLowCutFrequency"])
+            if hdr["DSPLowCutFilterEnabled"]
+            else default_highpass
+            for hdr in ncs_hdrs
+        ]
+
+        lowpass_freqs = [
+            float(hdr["DspHighCutFrequency"])
+            if hdr["DSPHighCutFilterEnabled"]
+            else default_lowpass
+            for hdr in ncs_hdrs
+        ]
+
+        with info._unlock():
+            info["meas_date"] = meas_dates[0].astimezone(datetime.timezone.utc)
+            info["highpass"] = np.max(highpass_freqs)
+            info["lowpass"] = np.min(lowpass_freqs)
 
         # Neo reads only valid contiguous .ncs samples grouped as segments
         n_segments = nlx_reader.header["nb_segment"][0]
@@ -219,8 +314,8 @@ class RawNeuralynx(BaseRaw):
         from quantities import Hz
 
         nlx_reader = NeuralynxIO(
-            dirname=self._filenames[fi],
-            exclude_filename=self._raw_extras[0]["exclude_fnames"],
+            dirname=self.filenames[fi],
+            **_exclude_kwarg(self._raw_extras[0]["exclude_fnames"]),
         )
         neo_block = nlx_reader.read(lazy=True)
 
@@ -265,9 +360,9 @@ class RawNeuralynx(BaseRaw):
         sel_samples_local[0:-1, 1] = (
             sel_samples_global[0:-1, 1] - sel_samples_global[0:-1, 0]
         )
-        sel_samples_local[
-            1::, 0
-        ] = 0  # now set the start sample for all segments after the first to 0
+        sel_samples_local[1::, 0] = (
+            0  # now set the start sample for all segments after the first to 0
+        )
 
         sel_samples_local[0, 0] = (
             start - sel_samples_global[0, 0]

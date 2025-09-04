@@ -71,7 +71,7 @@ raw.plot()
 # Maxwell filtering:
 
 raw.apply_gradient_compensation(0)  # must un-do software compensation first
-mf_kwargs = dict(origin=(0.0, 0.0, 0.0), st_duration=10.0)
+mf_kwargs = dict(origin=(0.0, 0.0, 0.0), st_duration=10.0, st_overlap=True)
 raw = mne.preprocessing.maxwell_filter(raw, **mf_kwargs)
 raw.plot()
 
@@ -121,8 +121,8 @@ with warnings.catch_warnings(record=True):
 
 expected_pos = np.array([18.0, 0.0, 49.0])
 diff = np.sqrt(np.sum((dip.pos[0] * 1000 - expected_pos) ** 2))
-print("Actual pos:     %s mm" % np.array_str(expected_pos, precision=1))
-print("Estimated pos:  %s mm" % np.array_str(dip.pos[0] * 1000, precision=1))
-print("Difference:     %0.1f mm" % diff)
-print("Amplitude:      %0.1f nAm" % (1e9 * dip.amplitude[0]))
-print("GOF:            %0.1f %%" % dip.gof[0])
+print(f"Actual pos:     {np.array_str(expected_pos, precision=1)} mm")
+print(f"Estimated pos:  {np.array_str(dip.pos[0] * 1000, precision=1)} mm")
+print(f"Difference:     {diff:0.1f} mm")
+print(f"Amplitude:      {1e9 * dip.amplitude[0]:0.1f} nAm")
+print(f"GOF:            {dip.gof[0]:0.1f} %")

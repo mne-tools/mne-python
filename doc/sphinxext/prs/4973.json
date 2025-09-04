@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "d2850c8a11288348cb322bf18c0e188883c98cbe",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/source_estimate.py": {
+      "a": 5,
+      "d": 5
+    },
+    "mne/tests/test_source_estimate.py": {
+      "a": 29,
+      "d": 1
+    },
+    "tutorials/plot_stats_cluster_spatio_temporal.py": {
+      "a": 9,
+      "d": 7
+    },
+    "tutorials/plot_stats_cluster_spatio_temporal_2samp.py": {
+      "a": 8,
+      "d": 4
+    },
+    "tutorials/plot_stats_cluster_spatio_temporal_repeated_measures_anova.py": {
+      "a": 13,
+      "d": 13
+    }
+  }
+}

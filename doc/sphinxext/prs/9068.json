@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "c22263c70c85d755ccb424b98d226a43c73534c3",
+  "authors": [
+    {
+      "n": "Felix Klotzsche",
+      "e": "klotzsche@cbs.mpg.de"
+    }
+  ],
+  "changes": {
+    "tutorials/stats-sensor-space/plot_stats_cluster_erp.py": {
+      "a": 4,
+      "d": 9
+    }
+  }
+}

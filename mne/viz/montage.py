@@ -1,6 +1,9 @@
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 """Functions to plot EEG sensor montages or digitizer montages."""
+
 from copy import deepcopy
 
 import numpy as np
@@ -15,12 +18,12 @@ from .utils import plot_sensors
 @verbose
 def plot_montage(
     montage,
-    scale_factor=20,
+    *,
+    scale=1.0,
     show_names=True,
     kind="topomap",
     show=True,
     sphere=None,
-    *,
     axes=None,
     verbose=None,
 ):
@@ -30,8 +33,9 @@ def plot_montage(
     ----------
     montage : instance of DigMontage
         The montage to visualize.
-    scale_factor : float
-        Determines the size of the points.
+    scale : float
+        Determines the scale of the channel points and labels; values < 1 will scale
+        down, whereas values > 1 will scale up.
     show_names : bool | list
         Whether to display all channel names. If a list, only the channel
         names in the list are shown. Defaults to True.
@@ -50,8 +54,11 @@ def plot_montage(
     fig : instance of matplotlib.figure.Figure
         The figure object.
     """
+    import matplotlib.pyplot as plt
+
     from ..channels import DigMontage, make_dig_montage
 
+    _validate_type(scale, "numeric", "scale")
     _check_option("kind", kind, ["topomap", "3d"])
     _validate_type(montage, DigMontage, item_name="montage")
     ch_names = montage.ch_names
@@ -92,6 +99,21 @@ def plot_montage(
         sphere=sphere,
         axes=axes,
     )
-    collection = fig.axes[0].collections[0]
-    collection.set_sizes([scale_factor])
+
+    if scale != 1.0:
+        # scale points
+        collection = fig.axes[0].collections[0]
+        collection.set_sizes([scale * 10])
+
+        # scale labels
+        labels = fig.findobj(match=plt.Text)
+        x_label, y_label = fig.axes[0].xaxis.label, fig.axes[0].yaxis.label
+        z_label = fig.axes[0].zaxis.label if kind == "3d" else None
+        tick_labels = fig.axes[0].get_xticklabels() + fig.axes[0].get_yticklabels()
+        if kind == "3d":
+            tick_labels += fig.axes[0].get_zticklabels()
+        for label in labels:
+            if label not in [x_label, y_label, z_label] + tick_labels:
+                label.set_fontsize(label.get_fontsize() * scale)
+
     return fig

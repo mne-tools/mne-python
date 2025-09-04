@@ -1,8 +1,6 @@
 """Single-dipole functions and classes."""
 
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Eric Larson <larson.eric.d@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -22,7 +20,7 @@ from ._freesurfer import _get_aseg, head_to_mni, head_to_mri, read_freesurfer_lu
 from .bem import _bem_find_surface, _bem_surf_name, _fit_sphere
 from .cov import _ensure_cov, compute_whitener
 from .evoked import _aspect_rev, _read_evoked, _write_evokeds
-from .fixes import _safe_svd, pinvh
+from .fixes import _safe_svd
 from .forward._compute_forward import _compute_forwards_meeg, _prep_field_computation
 from .forward._make_forward import (
     _get_trans,
@@ -50,6 +48,7 @@ from .utils import (
     copy_function_doc_to_method_doc,
     fill_doc,
     logger,
+    pinvh,
     verbose,
     warn,
 )
@@ -132,27 +131,76 @@ class Dipole(TimeMixin):
         verbose=None,
     ):
         self._set_times(np.array(times))
-        self.pos = np.array(pos)
-        self.amplitude = np.array(amplitude)
-        self.ori = np.array(ori)
-        self.gof = np.array(gof)
-        self.name = name
-        self.conf = dict()
+        self._pos = np.array(pos)
+        self._amplitude = np.array(amplitude)
+        self._ori = np.array(ori)
+        self._gof = np.array(gof)
+        self._name = name
+        self._conf = dict()
         if conf is not None:
             for key, value in conf.items():
-                self.conf[key] = np.array(value)
-        self.khi2 = np.array(khi2) if khi2 is not None else None
-        self.nfree = np.array(nfree) if nfree is not None else None
+                self._conf[key] = np.array(value)
+        self._khi2 = np.array(khi2) if khi2 is not None else None
+        self._nfree = np.array(nfree) if nfree is not None else None
 
     def __repr__(self):  # noqa: D105
-        s = "n_times : %s" % len(self.times)
-        s += ", tmin : %0.3f" % np.min(self.times)
-        s += ", tmax : %0.3f" % np.max(self.times)
-        return "<Dipole | %s>" % s
+        s = f"n_times : {len(self.times)}"
+        s += f", tmin : {np.min(self.times):0.3f}"
+        s += f", tmax : {np.max(self.times):0.3f}"
+        return f"<Dipole | {s}>"
+
+    @property
+    def pos(self):
+        """The dipoles positions (m) in head coordinates."""
+        return self._pos
+
+    @property
+    def amplitude(self):
+        """The amplitude of the dipoles (Am)."""
+        return self._amplitude
+
+    @property
+    def ori(self):
+        """The dipole orientations (normalized to unit length)."""
+        return self._ori
+
+    @property
+    def gof(self):
+        """The goodness of fit."""
+        return self._gof
+
+    @property
+    def name(self):
+        """Name of the dipole."""
+        return self._name
+
+    @name.setter
+    def name(self, name):
+        _validate_type(name, str, "name")
+        self._name = name
+
+    @property
+    def conf(self):
+        """Confidence limits in dipole orientation."""
+        return self._conf
+
+    @property
+    def khi2(self):
+        """The χ^2 values for the fits."""
+        return self._khi2
+
+    @property
+    def nfree(self):
+        """The number of free parameters for each fit."""
+        return self._nfree
 
     @verbose
     def save(self, fname, overwrite=False, *, verbose=None):
         """Save dipole in a ``.dip`` or ``.bdip`` file.
+
+        The ``.[b]dip`` format is for :class:`mne.Dipole` objects, that is,
+        fixed-position dipole fits. For these fits, the amplitude, orientation,
+        and position vary as a function of time.
 
         Parameters
         ----------
@@ -162,6 +210,10 @@ class Dipole(TimeMixin):
 
             .. versionadded:: 0.20
         %(verbose)s
+
+        See Also
+        --------
+        read_dipole
 
         Notes
         -----
@@ -200,7 +252,7 @@ class Dipole(TimeMixin):
             self.times, tmin, tmax, sfreq=sfreq, include_tmax=include_tmax
         )
         self._set_times(self.times[mask])
-        for attr in ("pos", "gof", "amplitude", "ori", "khi2", "nfree"):
+        for attr in ("_pos", "_gof", "_amplitude", "_ori", "_khi2", "_nfree"):
             if getattr(self, attr) is not None:
                 setattr(self, attr, getattr(self, attr)[mask])
         for key in self.conf.keys():
@@ -434,7 +486,7 @@ class Dipole(TimeMixin):
 
 def _read_dipole_fixed(fname):
     """Read a fixed dipole FIF file."""
-    logger.info("Reading %s ..." % fname)
+    logger.info(f"Reading {fname} ...")
     info, nave, aspect_kind, comment, times, data, _ = _read_evoked(fname)
     return DipoleFixed(info, data, times, nave, aspect_kind, comment=comment)
 
@@ -493,10 +545,10 @@ class DipoleFixed(ExtendedTimeMixin):
         self._update_first_last()
 
     def __repr__(self):  # noqa: D105
-        s = "n_times : %s" % len(self.times)
-        s += ", tmin : %s" % np.min(self.times)
-        s += ", tmax : %s" % np.max(self.times)
-        return "<DipoleFixed | %s>" % s
+        s = f"n_times : {len(self.times)}"
+        s += f", tmin : {np.min(self.times)}"
+        s += f", tmax : {np.max(self.times)}"
+        return f"<DipoleFixed | {s}>"
 
     def copy(self):
         """Copy the DipoleFixed object.
@@ -518,16 +570,28 @@ class DipoleFixed(ExtendedTimeMixin):
         return self.info["ch_names"]
 
     @verbose
-    def save(self, fname, verbose=None):
-        """Save dipole in a .fif file.
+    def save(self, fname, *, overwrite=False, verbose=None):
+        """Save fixed dipole in FIF format.
+
+        The ``.fif[.gz]`` format is for :class:`mne.DipoleFixed` objects, that is,
+        fixed-position and optionally fixed-orientation dipole fits. For these fits,
+        the amplitude (and optionally orientation) vary as a function of time,
+        but not the position.
 
         Parameters
         ----------
         fname : path-like
-            The name of the .fif file. Must end with ``'.fif'`` or
-            ``'.fif.gz'`` to make it explicit that the file contains
+            The name of the FIF file. Must end with ``'-dip.fif'`` or
+            ``'-dip.fif.gz'`` to make it explicit that the file contains
             dipole information in FIF format.
+        %(overwrite)s
+
+            .. versionadded:: 1.10.0
         %(verbose)s
+
+        See Also
+        --------
+        read_dipole
         """
         check_fname(
             fname,
@@ -540,7 +604,7 @@ class DipoleFixed(ExtendedTimeMixin):
             ),
             (".fif", ".fif.gz"),
         )
-        _write_evokeds(fname, self, check=False)
+        _write_evokeds(fname, self, check=False, overwrite=overwrite)
 
     def plot(self, show=True, time_unit="s"):
         """Plot dipole data.
@@ -586,12 +650,16 @@ class DipoleFixed(ExtendedTimeMixin):
 # IO
 @verbose
 def read_dipole(fname, verbose=None):
-    """Read ``.dip`` file from Neuromag/xfit or MNE.
+    """Read a dipole object from a file.
+
+    Non-fixed-position :class:`mne.Dipole` objects are usually saved in ``.[b]dip``
+    format. Fixed-position :class:`mne.DipoleFixed` objects are usually saved in
+    FIF format.
 
     Parameters
     ----------
     fname : path-like
-        The name of the ``.dip`` or ``.fif`` file.
+        The name of the ``.[b]dip`` or ``.fif[.gz]`` file.
     %(verbose)s
 
     Returns
@@ -780,9 +848,7 @@ def _write_dipole_text(fname, dip):
         fid.write((header + "\n").encode("utf-8"))
         np.savetxt(fid, out, fmt=fmt)
         if dip.name is not None:
-            fid.write(
-                ('## Name "%s dipoles" Style "Dipoles"' % dip.name).encode("utf-8")
-            )
+            fid.write((f'## Name "{dip.name} dipoles" Style "Dipoles"').encode())
 
 
 _BDIP_ERROR_KEYS = ("depth", "long", "trans", "qlong", "qtrans")
@@ -1257,7 +1323,7 @@ def _fit_dipole(
     # Find a good starting point (find_best_guess in C)
     B2 = np.dot(B, B)
     if B2 == 0:
-        warn("Zero field found for time %s" % t)
+        warn(f"Zero field found for time {t}")
         return np.zeros(3), 0, np.zeros(3), 0, B
 
     idx = np.argmin(
@@ -1352,7 +1418,7 @@ def _fit_dipole_fixed(
     B = np.dot(whitener, B_orig)
     B2 = np.dot(B, B)
     if B2 == 0:
-        warn("Zero field found for time %s" % t)
+        warn(f"Zero field found for time {t}")
         return np.zeros(3), 0, np.zeros(3), 0, np.zeros(6)
     # Compute the dipole moment
     Q, gof, residual_noproj = _fit_Q(
@@ -1475,9 +1541,9 @@ def fit_dipole(
 
     # Determine if a list of projectors has an average EEG ref
     if _needs_eeg_average_ref_proj(evoked.info):
-        raise ValueError("EEG average reference is mandatory for dipole " "fitting.")
+        raise ValueError("EEG average reference is mandatory for dipole fitting.")
     if min_dist < 0:
-        raise ValueError("min_dist should be positive. Got %s" % min_dist)
+        raise ValueError(f"min_dist should be positive. Got {min_dist}")
     if ori is not None and pos is None:
         raise ValueError("pos must be provided if ori is not None")
 
@@ -1498,16 +1564,16 @@ def fit_dipole(
         bem_extra = bem
     else:
         bem_extra = repr(bem)
-        logger.info("BEM               : %s" % bem_extra)
+        logger.info(f"BEM               : {bem_extra}")
     mri_head_t, trans = _get_trans(trans)
-    logger.info("MRI transform     : %s" % trans)
+    logger.info(f"MRI transform     : {trans}")
     safe_false = _verbose_safe_false()
     bem = _setup_bem(bem, bem_extra, neeg, mri_head_t, verbose=safe_false)
     if not bem["is_sphere"]:
         # Find the best-fitting sphere
         inner_skull = _bem_find_surface(bem, "inner_skull")
         inner_skull = inner_skull.copy()
-        R, r0 = _fit_sphere(inner_skull["rr"], disp=False)
+        R, r0 = _fit_sphere(inner_skull["rr"])
         # r0 back to head frame for logging
         r0 = apply_trans(mri_head_t["trans"], r0[np.newaxis, :])[0]
         inner_skull["r0"] = r0
@@ -1532,13 +1598,13 @@ def fit_dipole(
             ]
             if len(R) == 0:
                 raise RuntimeError(
-                    "No MEG channels found, but MEG-only " "sphere model used"
+                    "No MEG channels found, but MEG-only sphere model used"
                 )
             R = np.min(np.sqrt(np.sum(R * R, axis=1)))  # use dist to sensors
             kind = "max_rad"
         logger.info(
-            "Sphere model      : origin at ({: 7.2f} {: 7.2f} {: 7.2f}) mm, "
-            "{} = {:6.1f} mm".format(1000 * r0[0], 1000 * r0[1], 1000 * r0[2], kind, R)
+            f"Sphere model      : origin at ({1000 * r0[0]: 7.2f} {1000 * r0[1]: 7.2f} "
+            f"{1000 * r0[2]: 7.2f}) mm, {kind} = {R:6.1f} mm"
         )
         inner_skull = dict(R=R, r0=r0)  # NB sphere model defined in head frame
         del R, r0
@@ -1548,9 +1614,7 @@ def fit_dipole(
         fixed_position = True
         pos = np.array(pos, float)
         if pos.shape != (3,):
-            raise ValueError(
-                "pos must be None or a 3-element array-like," f" got {pos}"
-            )
+            raise ValueError(f"pos must be None or a 3-element array-like, got {pos}")
         logger.info(
             "Fixed position    : {:6.1f} {:6.1f} {:6.1f} mm".format(*tuple(1000 * pos))
         )
@@ -1558,7 +1622,7 @@ def fit_dipole(
             ori = np.array(ori, float)
             if ori.shape != (3,):
                 raise ValueError(
-                    "oris must be None or a 3-element array-like," f" got {ori}"
+                    f"oris must be None or a 3-element array-like, got {ori}"
                 )
             norm = np.sqrt(np.sum(ori * ori))
             if not np.isclose(norm, 1):
@@ -1678,7 +1742,7 @@ def fit_dipole(
         scales=guess_fwd_scales,
     )
     del guess_fwd, guess_fwd_svd, guess_fwd_orig, guess_fwd_scales  # destroyed
-    logger.info("[done %d source%s]" % (guess_src["nuse"], _pl(guess_src["nuse"])))
+    logger.info("[done %d source%s]", guess_src["nuse"], _pl(guess_src["nuse"]))
 
     # Do actual fits
     data = data[picks]
@@ -1762,7 +1826,7 @@ def fit_dipole(
         )
     residual = evoked.copy().apply_proj()  # set the projs active
     residual.data[picks] = np.dot(proj_op, out[-1])
-    logger.info("%d time points fitted" % len(dipoles.times))
+    logger.info("%d time points fitted", len(dipoles.times))
     return dipoles, residual
 
 

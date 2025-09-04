@@ -29,6 +29,8 @@ Decoding
    GeneralizingEstimator
    SPoC
    SSD
+   XdawnTransformer
+   SpatialFilter
 
 Functions that assist with decoding and model fitting:
 
@@ -38,3 +40,4 @@ Functions that assist with decoding and model fitting:
    compute_ems
    cross_val_multiscore
    get_coef
+   get_spatial_filter_from_estimator

@@ -1,6 +1,6 @@
 """Testing functions."""
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#
+
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -10,7 +10,6 @@ import sys
 import tempfile
 import traceback
 from functools import wraps
-from io import StringIO
 from shutil import rmtree
 from unittest import SkipTest
 
@@ -141,23 +140,6 @@ class ArgvSetter:
         sys.stderr = self.orig_stderr
 
 
-class SilenceStdout:
-    """Silence stdout."""
-
-    def __init__(self, close=True):
-        self.close = close
-
-    def __enter__(self):  # noqa: D105
-        self.stdout = sys.stdout
-        sys.stdout = StringIO()
-        return sys.stdout
-
-    def __exit__(self, *args):  # noqa: D105
-        if self.close:
-            sys.stdout.close()
-        sys.stdout = self.stdout
-
-
 def has_mne_c():
     """Check for MNE-C."""
     return "MNE_ROOT" in os.environ
@@ -192,15 +174,15 @@ def assert_and_remove_boundary_annot(annotations, n=1):
     if isinstance(annotations, BaseRaw):  # allow either input
         annotations = annotations.annotations
     for key in ("EDGE", "BAD"):
-        idx = np.where(annotations.description == "%s boundary" % key)[0]
+        idx = np.where(annotations.description == f"{key} boundary")[0]
         assert len(idx) == n
         annotations.delete(idx)
 
 
-def assert_object_equal(a, b):
+def assert_object_equal(a, b, *, err_msg="Object mismatch", allclose=False):
     """Assert two objects are equal."""
-    d = object_diff(a, b)
-    assert d == "", d
+    d = object_diff(a, b, allclose=allclose)
+    assert d == "", f"{err_msg}\n{d}"
 
 
 def _raw_annot(meas_date, orig_time):
@@ -242,17 +224,14 @@ def _check_snr(actual, desired, picks, min_tol, med_tol, msg, kind="MEG"):
     # min tol
     snr = snrs.min()
     bad_count = (snrs < min_tol).sum()
-    msg = " (%s)" % msg if msg != "" else msg
-    assert bad_count == 0, "SNR (worst %0.2f) < %0.2f for %s/%s " "channels%s" % (
-        snr,
-        min_tol,
-        bad_count,
-        len(picks),
-        msg,
+    msg = f" ({msg})" if msg != "" else msg
+    assert bad_count == 0, (
+        f"SNR (worst {snr:0.2f}) < {min_tol:0.2f} "
+        f"for {bad_count}/{len(picks)} channels{msg}"
     )
     # median tol
     snr = np.median(snrs)
-    assert snr >= med_tol, "%s SNR median %0.2f < %0.2f%s" % (kind, snr, med_tol, msg)
+    assert snr >= med_tol, f"{kind} SNR median {snr:0.2f} < {med_tol:0.2f}{msg}"
 
 
 def assert_meg_snr(
@@ -296,7 +275,7 @@ def assert_snr(actual, desired, tol):
     """Assert actual and desired arrays are within some SNR tolerance."""
     with np.errstate(divide="ignore"):  # allow infinite
         snr = linalg.norm(desired, ord="fro") / linalg.norm(desired - actual, ord="fro")
-    assert snr >= tol, "%f < %f" % (snr, tol)
+    assert snr >= tol, f"{snr} < {tol}"
 
 
 def assert_stcs_equal(stc1, stc2):
@@ -344,7 +323,7 @@ def assert_dig_allclose(info_py, info_bin, limit=None):
             d_bin["r"],
             rtol=1e-5,
             atol=1e-5,
-            err_msg="Failure on %s:\n%s\n%s" % (ii, d_py["r"], d_bin["r"]),
+            err_msg=f"Failure on {ii}:\n{d_py['r']}\n{d_bin['r']}",
         )
     if any(d["kind"] == FIFF.FIFFV_POINT_EXTRA for d in dig_py) and info_py is not None:
         r_bin, o_head_bin, o_dev_bin = fit_sphere_to_headshape(
@@ -368,3 +347,13 @@ def _click_ch_name(fig, ch_index=0, button=1):
     x = bbox.intervalx.mean()
     y = bbox.intervaly.mean()
     _fake_click(fig, fig.mne.ax_main, (x, y), xform="pix", button=button)
+
+
+def _get_suptitle(fig):
+    """Get fig suptitle (shim for matplotlib < 3.8.0)."""
+    # TODO: obsolete when minimum MPL version is 3.8
+    if check_version("matplotlib", "3.8"):
+        return fig.get_suptitle()
+    else:
+        # unreliable hack; should work in most tests as we rarely use `sup_{x,y}label`
+        return fig.texts[0].get_text()

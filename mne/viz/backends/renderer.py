@@ -1,10 +1,6 @@
 """Core visualization operations."""
 
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Eric Larson <larson.eric.d@gmail.com>
-#          Joan Massich <mailsik@gmail.com>
-#          Guillaume Favelier <guillaume.favelier@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -44,7 +40,7 @@ def _reload_backend(backend_name):
     backend = importlib.import_module(
         name=_backend_name_map[backend_name], package="mne.viz.backends"
     )
-    logger.info("Using %s 3d backend.\n" % backend_name)
+    logger.info(f"Using {backend_name} 3d backend.")
 
 
 def _get_backend():
@@ -287,7 +283,8 @@ def set_3d_view(
     )
 
 
-def set_3d_title(figure, title, size=40):
+@fill_doc
+def set_3d_title(figure, title, size=40, *, color="white", position="upper_left"):
     """Configure the title of the given scene.
 
     Parameters
@@ -298,12 +295,37 @@ def set_3d_title(figure, title, size=40):
         The title of the scene.
     size : int
         The size of the title.
+    color : matplotlib color
+        The color of the title.
+
+        .. versionadded:: 1.9
+    position : str
+        The position to use, e.g., "upper_left". See
+        :meth:`pyvista.Plotter.add_text` for details.
+
+        .. versionadded:: 1.9
+
+    Returns
+    -------
+    text : object
+        The text object returned by the given backend.
+
+        .. versionadded:: 1.0
     """
-    backend._set_3d_title(figure=figure, title=title, size=size)
+    return backend._set_3d_title(
+        figure=figure, title=title, size=size, color=color, position=position
+    )
 
 
 def create_3d_figure(
-    size, bgcolor=(0, 0, 0), smooth_shading=None, handle=None, *, scene=True, show=False
+    size,
+    bgcolor=(0, 0, 0),
+    smooth_shading=None,
+    handle=None,
+    *,
+    scene=True,
+    show=False,
+    title="MNE 3D Figure",
 ):
     """Return an empty figure based on the current 3d backend.
 
@@ -331,6 +353,10 @@ def create_3d_figure(
         If True, show the renderer immediately.
 
         .. versionadded:: 1.0
+    title : str
+        The window title to use (if applicable).
+
+        .. versionadded:: 1.9
 
     Returns
     -------
@@ -346,6 +372,7 @@ def create_3d_figure(
         bgcolor=bgcolor,
         smooth_shading=smooth_shading,
         show=show,
+        name=title,
     )
     if scene:
         return renderer.scene()
@@ -405,7 +432,6 @@ class _TimeInteraction:
         self._times = times
         self._init_time = current_time_func()
         self._init_playback_speed = init_playback_speed
-        self._playback_speed_range = playback_speed_range
 
         if not hasattr(self, "_dock"):
             self._dock_initialize()

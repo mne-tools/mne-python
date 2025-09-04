@@ -1,5 +1,7 @@
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 import numpy as np
 import pytest
 from numpy.fft import fft, fftfreq
@@ -88,93 +90,87 @@ def test_estimate_ringing():
             (0.0001, (30000, 60000)),
         ):  # 37993
             n_ring = estimate_ringing_samples(butter(3, thresh, output=kind))
-            assert lims[0] <= n_ring <= lims[1], "%s %s: %s <= %s <= %s" % (
-                kind,
-                thresh,
-                lims[0],
-                n_ring,
-                lims[1],
+            assert lims[0] <= n_ring <= lims[1], (
+                f"{kind} {thresh}: {lims[0]} <= {n_ring} <= {lims[1]}"
             )
     with pytest.warns(RuntimeWarning, match="properly estimate"):
         assert estimate_ringing_samples(butter(4, 0.00001)) == 100000
 
 
-def test_1d_filter():
+@pytest.mark.parametrize("n_signal", (1, 2, 3, 5, 10, 20, 40))
+@pytest.mark.parametrize("n_filter", (1, 2, 3, 5, 10, 11, 20, 21, 40, 41, 100, 101))
+@pytest.mark.parametrize("filter_type", ("identity", "random"))
+def test_1d_filter(n_signal, n_filter, filter_type):
     """Test our private overlap-add filtering function."""
     # make some random signals and filters
     rng = np.random.RandomState(0)
-    for n_signal in (1, 2, 3, 5, 10, 20, 40):
-        x = rng.randn(n_signal)
-        for n_filter in (1, 2, 3, 5, 10, 11, 20, 21, 40, 41, 100, 101):
-            for filter_type in ("identity", "random"):
-                if filter_type == "random":
-                    h = rng.randn(n_filter)
-                else:  # filter_type == 'identity'
-                    h = np.concatenate([[1.0], np.zeros(n_filter - 1)])
-                # ensure we pad the signal the same way for both filters
-                n_pad = n_filter - 1
-                x_pad = _smart_pad(x, (n_pad, n_pad))
-                for phase in ("zero", "linear", "zero-double"):
-                    # compute our expected result the slow way
-                    if phase == "zero":
-                        # only allow zero-phase for odd-length filters
-                        if n_filter % 2 == 0:
-                            pytest.raises(
-                                RuntimeError,
-                                _overlap_add_filter,
-                                x[np.newaxis],
-                                h,
-                                phase=phase,
-                            )
-                            continue
-                        shift = (len(h) - 1) // 2
-                        x_expected = np.convolve(x_pad, h)
-                        x_expected = x_expected[shift : len(x_expected) - shift]
-                    elif phase == "zero-double":
-                        shift = len(h) - 1
-                        x_expected = np.convolve(x_pad, h)
-                        x_expected = np.convolve(x_expected[::-1], h)[::-1]
-                        x_expected = x_expected[shift : len(x_expected) - shift]
-                        shift = 0
-                    else:
-                        shift = 0
-                        x_expected = np.convolve(x_pad, h)
-                        x_expected = x_expected[: len(x_expected) - len(h) + 1]
-                    # remove padding
-                    if n_pad > 0:
-                        x_expected = x_expected[n_pad : len(x_expected) - n_pad]
-                    assert len(x_expected) == len(x)
-                    # make sure we actually set things up reasonably
-                    if filter_type == "identity":
-                        out = x_pad.copy()
-                        out = out[shift + n_pad :]
-                        out = out[: len(x)]
-                        out = np.concatenate((out, np.zeros(max(len(x) - len(out), 0))))
-                        assert len(out) == len(x)
-                        assert_allclose(out, x_expected)
-                    assert len(x_expected) == len(x)
+    x = rng.randn(n_signal)
+    if filter_type == "random":
+        h = rng.randn(n_filter)
+    else:  # filter_type == 'identity'
+        h = np.concatenate([[1.0], np.zeros(n_filter - 1)])
+    # ensure we pad the signal the same way for both filters
+    n_pad = n_filter
+    x_pad = _smart_pad(x, (n_pad, n_pad))
+    for phase in ("zero", "linear", "zero-double"):
+        # compute our expected result the slow way
+        if phase == "zero":
+            # only allow zero-phase for odd-length filters
+            if n_filter % 2 == 0:
+                pytest.raises(
+                    RuntimeError,
+                    _overlap_add_filter,
+                    x[np.newaxis],
+                    h,
+                    phase=phase,
+                )
+                continue
+            shift = (len(h) - 1) // 2
+            x_expected = np.convolve(x_pad, h)
+            x_expected = x_expected[shift : len(x_expected) - shift]
+        elif phase == "zero-double":
+            shift = len(h) - 1
+            x_expected = np.convolve(x_pad, h)
+            x_expected = np.convolve(x_expected[::-1], h)[::-1]
+            x_expected = x_expected[shift : len(x_expected) - shift]
+            shift = 0
+        else:
+            shift = 0
+            x_expected = np.convolve(x_pad, h)
+            x_expected = x_expected[: len(x_expected) - len(h) + 1]
+        # remove padding
+        if n_pad > 0:
+            x_expected = x_expected[n_pad : len(x_expected) - n_pad]
+        assert len(x_expected) == len(x)
+        # make sure we actually set things up reasonably
+        if filter_type == "identity":
+            out = x_pad.copy()
+            out = out[shift + n_pad :]
+            out = out[: len(x)]
+            out = np.concatenate((out, np.zeros(max(len(x) - len(out), 0))))
+            assert len(out) == len(x)
+            assert_allclose(out, x_expected)
+        assert len(x_expected) == len(x)
 
-                    # compute our version
-                    for n_fft in (None, 32, 128, 129, 1023, 1024, 1025, 2048):
-                        # need to use .copy() b/c signal gets modified inplace
-                        x_copy = x[np.newaxis, :].copy()
-                        min_fft = 2 * n_filter - 1
-                        if phase == "zero-double":
-                            min_fft = 2 * min_fft - 1
-                        if n_fft is not None and n_fft < min_fft:
-                            pytest.raises(
-                                ValueError,
-                                _overlap_add_filter,
-                                x_copy,
-                                h,
-                                n_fft,
-                                phase=phase,
-                            )
-                        else:
-                            x_filtered = _overlap_add_filter(
-                                x_copy, h, n_fft, phase=phase
-                            )[0]
-                            assert_allclose(x_filtered, x_expected, atol=1e-13)
+        # compute our version
+        for n_fft in (None, 32, 128, 129, 1023, 1024, 1025, 2048):
+            # need to use .copy() b/c signal gets modified inplace
+            x_copy = x[np.newaxis, :].copy()
+            min_fft = 2 * n_filter - 1
+            if phase == "zero-double":
+                min_fft = 2 * min_fft - 1
+            if n_fft is not None and n_fft < min_fft:
+                pytest.raises(
+                    ValueError,
+                    _overlap_add_filter,
+                    x_copy,
+                    h,
+                    n_fft,
+                    phase=phase,
+                )
+            else:
+                x_filtered = _overlap_add_filter(x_copy, h, n_fft, phase=phase)[0]
+                assert_allclose(x_filtered, x_expected, atol=1e-13)
 
 
 def test_iir_stability():
@@ -407,7 +403,7 @@ def test_resample_scipy():
     for window in ("boxcar", "hann"):
         for N in (100, 101, 102, 103):
             x = np.arange(N).astype(float)
-            err_msg = "%s: %s" % (N, window)
+            err_msg = f"{N}: {window}"
             x_2_sp = sp_resample(x, 2 * N, window=window)
             for n_jobs in n_jobs_test:
                 x_2 = resample(x, 2, 1, npad=0, window=window, n_jobs=n_jobs)
@@ -420,14 +416,21 @@ def test_resample_scipy():
 
 
 @pytest.mark.parametrize("n_jobs", (2, "cuda"))
-def test_n_jobs(n_jobs):
+def test_n_jobs(n_jobs, capsys):
     """Test resampling against SciPy."""
+    joblib = pytest.importorskip("joblib")
     x = np.random.RandomState(0).randn(4, 100)
     y1 = resample(x, 2, 1, n_jobs=None)
     y2 = resample(x, 2, 1, n_jobs=n_jobs)
     assert_allclose(y1, y2)
-    y1 = filter_data(x, 100.0, 0, 40, n_jobs=None)
-    y2 = filter_data(x, 100.0, 0, 40, n_jobs=n_jobs)
+    capsys.readouterr()
+    with joblib.parallel_config(backend="loky", n_jobs=1):
+        y1 = filter_data(x, 100.0, 0, 40, n_jobs=None, verbose=True)
+    out, err = capsys.readouterr()
+    # if it's in there, we didn't triage properly
+    assert "Parallel(" not in out
+    assert "Parallel(" not in err
+    y2 = filter_data(x, 100.0, 0, 40, n_jobs=n_jobs, verbose=True)
     assert_allclose(y1, y2)
 
 
@@ -610,12 +613,12 @@ def test_filters():
     # try new default and old default
     freqs = fftfreq(a.shape[-1], 1.0 / sfreq)
     A = np.abs(fft(a))
-    kwargs = dict(fir_design="firwin")
+    kw = dict(fir_design="firwin")
     for fl in ["auto", "10s", "5000ms", 1024, 1023]:
-        bp = filter_data(a, sfreq, 4, 8, None, fl, 1.0, 1.0, **kwargs)
-        bs = filter_data(a, sfreq, 8 + 1.0, 4 - 1.0, None, fl, 1.0, 1.0, **kwargs)
-        lp = filter_data(a, sfreq, None, 8, None, fl, 10, 1.0, n_jobs=2, **kwargs)
-        hp = filter_data(lp, sfreq, 4, None, None, fl, 1.0, 10, **kwargs)
+        bp = filter_data(a, sfreq, 4, 8, None, fl, 1.0, 1.0, **kw)
+        bs = filter_data(a, sfreq, 8 + 1.0, 4 - 1.0, None, fl, 1.0, 1.0, **kw)
+        lp = filter_data(a, sfreq, None, 8, None, fl, 10, 1.0, n_jobs=2, **kw)
+        hp = filter_data(lp, sfreq, 4, None, None, fl, 1.0, 10, **kw)
         assert_allclose(hp, bp, rtol=1e-3, atol=2e-3)
         assert_allclose(bp + bs, a, rtol=1e-3, atol=1e-3)
         # Sanity check ttenuation
@@ -623,12 +626,18 @@ def test_filters():
         assert_allclose(np.mean(np.abs(fft(bp)[:, mask]) / A[:, mask]), 1.0, atol=0.02)
         assert_allclose(np.mean(np.abs(fft(bs)[:, mask]) / A[:, mask]), 0.0, atol=0.2)
         # now the minimum-phase versions
-        bp = filter_data(a, sfreq, 4, 8, None, fl, 1.0, 1.0, phase="minimum", **kwargs)
+        bp = filter_data(a, sfreq, 4, 8, None, fl, 1.0, 1.0, phase="minimum-half", **kw)
         bs = filter_data(
-            a, sfreq, 8 + 1.0, 4 - 1.0, None, fl, 1.0, 1.0, phase="minimum", **kwargs
+            a, sfreq, 8 + 1.0, 4 - 1.0, None, fl, 1.0, 1.0, phase="minimum-half", **kw
         )
         assert_allclose(np.mean(np.abs(fft(bp)[:, mask]) / A[:, mask]), 1.0, atol=0.11)
         assert_allclose(np.mean(np.abs(fft(bs)[:, mask]) / A[:, mask]), 0.0, atol=0.3)
+        bp = filter_data(a, sfreq, 4, 8, None, fl, 1.0, 1.0, phase="minimum", **kw)
+        bs = filter_data(
+            a, sfreq, 8 + 1.0, 4 - 1.0, None, fl, 1.0, 1.0, phase="minimum", **kw
+        )
+        assert_allclose(np.mean(np.abs(fft(bp)[:, mask]) / A[:, mask]), 1.0, atol=0.12)
+        assert_allclose(np.mean(np.abs(fft(bs)[:, mask]) / A[:, mask]), 0.0, atol=0.27)
 
     # and since these are low-passed, downsampling/upsampling should be close
     n_resamp_ignore = 10
@@ -893,7 +902,7 @@ def test_reporting_iir(phase, ftype, btype, order, output):
         "IIR",
         btype,
         ftype,
-        "Filter order %d" % (order_eff * order_mult,),
+        f"Filter order {int(order_eff * order_mult)}",
         "Cutoff " if btype == "lowpass" else "Cutoffs ",
     ]
     if phase == "forward":
@@ -911,7 +920,7 @@ def test_reporting_iir(phase, ftype, btype, order, output):
         dB_cutoff = -7.58
     dB_cutoff *= order_mult
     if btype == "lowpass":
-        keys += ["%0.2f dB" % (dB_cutoff,)]
+        keys += [f"{dB_cutoff:0.2f} dB"]
     for key in keys:
         assert key.lower() in log.lower()
     # Verify some of the filter properties
@@ -971,7 +980,7 @@ def test_reporting_fir(phase, fir_window, btype):
         "FIR",
         btype,
         fir_window.capitalize(),
-        "Filter length: %d samples" % (n_taps,),
+        f"Filter length: {n_taps} samples",
         "passband ripple",
         "stopband attenuation",
     ]
@@ -1054,3 +1063,74 @@ def test_filter_picks():
                 raw.filter(picks=picks, **kwargs)
                 want = want[1:]
                 assert_allclose(raw.get_data(), want)
+
+
+def test_filter_minimum_phase_bug():
+    """Test gh-12267 is fixed."""
+    sfreq = 1000.0
+    n_taps = 1001
+    l_freq = 10.0  # Hz
+    kwargs = dict(
+        data=None,
+        sfreq=sfreq,
+        l_freq=l_freq,
+        h_freq=None,
+        filter_length=n_taps,
+        l_trans_bandwidth=l_freq / 2.0,
+    )
+    h = create_filter(phase="zero", **kwargs)
+    h_min = create_filter(phase="minimum", **kwargs)
+    h_min_half = create_filter(phase="minimum-half", **kwargs)
+    assert h_min.size == h.size
+    kwargs = dict(worN=10000, fs=sfreq)
+    w, H = freqz(h, **kwargs)
+    assert w[0] == 0
+    dc_dB = 20 * np.log10(np.abs(H[0]))
+    assert dc_dB < -100
+    # good
+    w_min, H_min = freqz(h_min, **kwargs)
+    assert_allclose(w, w_min)
+    dc_dB_min = 20 * np.log10(np.abs(H_min[0]))
+    assert dc_dB_min < -100
+    mask = w < 5
+    assert 10 < mask.sum() < 101
+    assert_allclose(np.abs(H[mask]), np.abs(H_min[mask]), atol=1e-3, rtol=1e-3)
+    assert_array_less(20 * np.log10(np.abs(H[mask])), -40)
+    assert_array_less(20 * np.log10(np.abs(H_min[mask])), -40)
+    # bad
+    w_min_half, H_min_half = freqz(h_min_half, **kwargs)
+    assert_allclose(w, w_min_half)
+    dc_dB_min_half = 20 * np.log10(np.abs(H_min_half[0]))
+    assert -80 < dc_dB_min_half < 40
+    dB_min_half = 20 * np.log10(np.abs(H_min_half[mask]))
+    assert_array_less(dB_min_half, -20)
+    assert not (dB_min_half < -30).all()
+
+
+@pytest.mark.parametrize("dc", (0, 100))
+@pytest.mark.parametrize("sfreq", (1000.0, 999.0))
+def test_smart_pad(dc, sfreq):
+    """Test that smart pad does what it should."""
+    f = 1.0
+    t = (np.arange(0, int(round(sfreq)) + 1)) / sfreq
+    x = np.sin(2 * np.pi * f * t) + dc
+    x_want = np.r_[x, x, x]
+    padlen = (len(x),) * 2
+    x_pad = np.pad(x, padlen, mode="reflect", reflect_type="odd")
+    assert_allclose(x_pad, x_want, err_msg="np.pad", atol=0.1)  # slight DC shift
+    this_x_pad = _smart_pad(x, padlen, "reflect")
+    # slight DC shift from out "x_want" (doubled sample at each end)
+    assert_allclose(this_x_pad, x_want, atol=0.1, err_msg="_smart_pad reflect x_want")
+    assert_allclose(
+        this_x_pad, x_pad, atol=1e-6, err_msg="_smart_pad reflect vs np.pad"
+    )
+    this_x_pad = _smart_pad(x, padlen, "reflect_limited")
+    x_want = np.r_[0, x[:-1], x, x[1:], 0]
+    assert_allclose(
+        this_x_pad, x_want, atol=1e-7, err_msg="_smart_pad reflect_limited x_want"
+    )
+    # reflect_limited uses one fewer sample so ends up a little bit different
+    # with even more padding
+    x_want = np.r_[np.zeros_like(x), x_want, np.zeros_like(x)]
+    x_pad = _smart_pad(x, (len(x) * 2,) * 2, "reflect_limited")
+    assert_allclose(x_pad, x_want, atol=0.1, err_msg="reflect_limited with zeros")

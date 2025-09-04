@@ -1,7 +1,4 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
-#          Denis A. Engemann <denis.engemann@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -33,12 +30,8 @@ from ._fiff.proj import (
     _read_proj,
     _write_proj,
 )
-from ._fiff.proj import (
-    activate_proj as _activate_proj,
-)
-from ._fiff.proj import (
-    make_projector as _make_projector,
-)
+from ._fiff.proj import activate_proj as _activate_proj
+from ._fiff.proj import make_projector as _make_projector
 from ._fiff.tag import find_tag
 from ._fiff.tree import dir_tree_find
 from .defaults import (
@@ -52,14 +45,14 @@ from .epochs import Epochs
 from .event import make_fixed_length_events
 from .evoked import EvokedArray
 from .fixes import (
-    BaseEstimator,
     EmpiricalCovariance,
+    _EstimatorMixin,
     _logdet,
     _safe_svd,
     empirical_covariance,
     log_likelihood,
 )
-from .rank import compute_rank
+from .rank import _compute_rank
 from .utils import (
     _array_repr,
     _check_fname,
@@ -85,12 +78,12 @@ from .utils import (
 
 def _check_covs_algebra(cov1, cov2):
     if cov1.ch_names != cov2.ch_names:
-        raise ValueError("Both Covariance do not have the same list of " "channels.")
+        raise ValueError("Both Covariance do not have the same list of channels.")
     projs1 = [str(c) for c in cov1["projs"]]
     projs2 = [str(c) for c in cov1["projs"]]
     if projs1 != projs2:
         raise ValueError(
-            "Both Covariance do not have the same list of " "SSP projections."
+            "Both Covariance do not have the same list of SSP projections."
         )
 
 
@@ -270,7 +263,7 @@ class Covariance(dict):
         if self["diag"] != (self.data.ndim == 1):
             raise RuntimeError(
                 "Covariance attributes inconsistent, got data with "
-                "dimensionality %d but diag=%s" % (self.data.ndim, self["diag"])
+                f"dimensionality {self.data.ndim} but diag={self['diag']}"
             )
         return np.diag(self.data) if self["diag"] else self.data.copy()
 
@@ -453,7 +446,7 @@ class Covariance(dict):
         )
 
     @verbose
-    def pick_channels(self, ch_names, ordered=None, *, verbose=None):
+    def pick_channels(self, ch_names, ordered=True, *, verbose=None):
         """Pick channels from this covariance matrix.
 
         Parameters
@@ -567,8 +560,8 @@ def _check_n_samples(n_samples, n_chan):
         raise ValueError("No samples found to compute the covariance matrix")
     if n_samples < n_samples_min:
         warn(
-            "Too few samples (required : %d got : %d), covariance "
-            "estimate may be unreliable" % (n_samples_min, n_samples)
+            f"Too few samples (required : {n_samples_min} got : {n_samples}), "
+            "covariance estimate may be unreliable"
         )
 
 
@@ -708,7 +701,7 @@ def compute_raw_covariance(
 
     # don't exclude any bad channels, inverses expect all channels present
     if picks is None:
-        # Need to include all channels e.g. if eog rejection is to be used
+        # Need to include all good channels e.g. if eog rejection is to be used
         picks = np.arange(raw.info["nchan"])
         pick_mask = np.isin(picks, _pick_data_channels(raw.info, with_ref_meg=False))
     else:
@@ -746,7 +739,7 @@ def compute_raw_covariance(
         _check_n_samples(n_samples, len(picks))
         data -= mu[:, None] * (mu[None, :] / n_samples)
         data /= n_samples - 1.0
-        logger.info("Number of samples used : %d" % n_samples)
+        logger.info("Number of samples used : %d", n_samples)
         logger.info("[done]")
         ch_names = [raw.info["ch_names"][k] for k in picks]
         bads = [b for b in raw.info["bads"] if b in ch_names]
@@ -834,7 +827,7 @@ def _check_method_params(
         was_auto = True
         method = ["shrunk", "diagonal_fixed", "empirical", "factor_analysis"]
 
-    if not isinstance(method, (list, tuple)):
+    if not isinstance(method, list | tuple):
         method = [method]
 
     if not all(k in accepted_methods for k in method):
@@ -859,7 +852,7 @@ def _check_method_params(
         for p, v in _method_params.items():
             if v.get("assume_centered", None) is False:
                 raise ValueError(
-                    "`assume_centered` must be True" " if `keep_sample_mean` is False"
+                    "`assume_centered` must be True if `keep_sample_mean` is False"
                 )
     return method, _method_params
 
@@ -942,7 +935,7 @@ def compute_covariance(
         except ``'factor_analysis'`` and ``'pca'``)::
 
             {'diagonal_fixed': {'grad': 0.1, 'mag': 0.1, 'eeg': 0.1, ...},
-             'shrinkage': {'shrikage': 0.1},
+             'shrinkage': {'shrinkage': 0.1},
              'shrunk': {'shrinkage': np.logspace(-4, 0, 30)},
              'pca': {'iter_n_components': None},
              'factor_analysis': {'iter_n_components': None}}
@@ -1074,9 +1067,7 @@ def compute_covariance(
         and keep_sample_mean
         for epochs_t in epochs
     ):
-        warn(
-            "Epochs are not baseline corrected, covariance " "matrix may be inaccurate"
-        )
+        warn("Epochs are not baseline corrected, covariance matrix may be inaccurate")
 
     orig = epochs[0].info["dev_head_t"]
     _check_on_missing(on_mismatch, "on_mismatch")
@@ -1187,7 +1178,7 @@ def compute_covariance(
         # add extra info
         cov.update(method=this_method, **data)
         covs.append(cov)
-    logger.info("Number of samples used : %d" % n_samples_tot)
+    logger.info("Number of samples used : %d", n_samples_tot)
     covs.sort(key=lambda c: c["loglik"], reverse=True)
 
     if len(covs) > 1:
@@ -1228,6 +1219,21 @@ def _eigvec_subspace(eig, eigvec, mask):
     return eig, eigvec
 
 
+@verbose
+def _compute_rank_raw_array(
+    data, info, rank, scalings, *, log_ch_type=None, verbose=None
+):
+    from .io import RawArray
+
+    return _compute_rank(
+        RawArray(data, info, copy="auto", verbose=_verbose_safe_false()),
+        rank,
+        scalings,
+        info,
+        log_ch_type=log_ch_type,
+    )
+
+
 def _compute_covariance_auto(
     data,
     method,
@@ -1239,22 +1245,31 @@ def _compute_covariance_auto(
     stop_early,
     picks_list,
     rank,
+    *,
+    cov_kind="",
+    log_ch_type=None,
+    log_rank=True,
 ):
     """Compute covariance auto mode."""
-    from .io import RawArray
-
     # rescale to improve numerical stability
     orig_rank = rank
-    rank = compute_rank(
-        RawArray(data.T, info, copy=None, verbose=_verbose_safe_false()),
-        rank,
-        scalings,
+    rank = _compute_rank_raw_array(
+        data.T,
         info,
+        rank=rank,
+        scalings=scalings,
+        verbose=_verbose_safe_false(),
     )
     with _scaled_array(data.T, picks_list, scalings):
         C = np.dot(data.T, data)
         _, eigvec, mask = _smart_eigh(
-            C, info, rank, proj_subspace=True, do_compute_rank=False
+            C,
+            info,
+            rank,
+            proj_subspace=True,
+            do_compute_rank=False,
+            log_ch_type=log_ch_type,
+            verbose=None if log_rank else _verbose_safe_false(),
         )
         eigvec = eigvec[mask]
         data = np.dot(data, eigvec.T)
@@ -1263,21 +1278,24 @@ def _compute_covariance_auto(
             (key, np.searchsorted(used, picks)) for key, picks in picks_list
         ]
         sub_info = pick_info(info, used) if len(used) != len(mask) else info
-        logger.info(f"Reducing data rank from {len(mask)} -> {eigvec.shape[0]}")
+        if log_rank:
+            logger.info(f"Reducing data rank from {len(mask)} -> {eigvec.shape[0]}")
         estimator_cov_info = list()
-        msg = "Estimating covariance using {}"
 
         ok_sklearn = check_version("sklearn")
         if not ok_sklearn and (len(method) != 1 or method[0] != "empirical"):
             raise ValueError(
-                "scikit-learn is not installed, `method` must be `empirical`, got "
-                f"{method}"
+                'scikit-learn is not installed, `method` must be "empirical", got '
+                f"{repr(method)}"
             )
 
         for method_ in method:
             data_ = data.copy()
             name = method_.__name__ if callable(method_) else method_
-            logger.info(msg.format(name.upper()))
+            logger.info(
+                f"Estimating {cov_kind + (' ' if cov_kind else '')}"
+                f"covariance using {name.upper()}"
+            )
             mp = method_params[method_]
             _info = {}
 
@@ -1372,7 +1390,7 @@ def _compute_covariance_auto(
                 estimator_cov_info.append((fa, fa.get_covariance(), _info))
                 del fa
             else:
-                raise ValueError("Oh no! Your estimator does not have" " a .fit method")
+                raise ValueError("Oh no! Your estimator does not have a .fit method")
             logger.info("Done.")
 
         if len(method) > 1:
@@ -1387,7 +1405,7 @@ def _compute_covariance_auto(
             # project back
             cov = np.dot(eigvec.T, np.dot(cov, eigvec))
             # undo bias
-            cov *= data.shape[0] / (data.shape[0] - 1)
+            cov *= data.shape[0] / max(data.shape[0] - 1, 1)
             # undo scaling
             _undo_scaling_cov(cov, picks_list, scalings)
             method_ = method[ei]
@@ -1444,8 +1462,8 @@ def _auto_low_rank_model(
     max_n = max(list(deepcopy(iter_n_components)))
     if max_n > data.shape[1]:
         warn(
-            "You are trying to estimate %i components on matrix "
-            "with %i features." % (max_n, data.shape[1])
+            f"You are trying to estimate {max_n} components on matrix "
+            f"with {data.shape[1]} features."
         )
 
     for ii, n in enumerate(iter_n_components):
@@ -1457,7 +1475,7 @@ def _auto_low_rank_model(
         if np.isinf(score) or score > 0:
             logger.info("... infinite values encountered. stopping estimation")
             break
-        logger.info("... rank: %i - loglik: %0.3f" % (n, score))
+        logger.info("... rank: %i - loglik: %0.3f", n, score)
         if score != -np.inf:
             scores[ii] = score
 
@@ -1476,7 +1494,7 @@ def _auto_low_rank_model(
 
     i_score = np.nanargmax(scores)
     best = est.n_components = iter_n_components[i_score]
-    logger.info("... best model at rank = %i" % best)
+    logger.info("... best model at rank = %i", best)
     runtime_info = {
         "ranks": np.array(iter_n_components),
         "scores": scores,
@@ -1490,7 +1508,7 @@ def _auto_low_rank_model(
 # Sklearn Estimators
 
 
-class _RegCovariance(BaseEstimator):
+class _RegCovariance(_EstimatorMixin):
     """Aux class."""
 
     def __init__(
@@ -1573,7 +1591,7 @@ class _RegCovariance(BaseEstimator):
         return self.estimator_.get_precision()
 
 
-class _ShrunkCovariance(BaseEstimator):
+class _ShrunkCovariance(_EstimatorMixin):
     """Aux class."""
 
     def __init__(self, store_precision, assume_centered, shrinkage=0.1):
@@ -1591,7 +1609,7 @@ class _ShrunkCovariance(BaseEstimator):
 
         cov = self.estimator_.fit(X).covariance_
 
-        if not isinstance(self.shrinkage, (list, tuple)):
+        if not isinstance(self.shrinkage, list | tuple):
             shrinkage = [("all", self.shrinkage, np.arange(len(cov)))]
         else:
             shrinkage = self.shrinkage
@@ -1693,9 +1711,8 @@ def _get_ch_whitener(A, pca, ch_type, rank):
     mask[:-rank] = False
 
     logger.info(
-        "    Setting small {} eigenvalues to zero ({})".format(
-            ch_type, "using PCA" if pca else "without PCA"
-        )
+        f"    Setting small {ch_type} eigenvalues to zero "
+        f"({'using' if pca else 'without'} PCA)"
     )
     if pca:  # No PCA case.
         # This line will reduce the actual number of variables in data
@@ -1753,9 +1770,7 @@ def prepare_noise_cov(
         else:
             missing.append(c)
     if len(missing):
-        raise RuntimeError(
-            "Not all channels present in noise covariance:\n%s" % missing
-        )
+        raise RuntimeError(f"Not all channels present in noise covariance:\n{missing}")
     C = noise_cov._get_square()[np.ix_(noise_cov_idx, noise_cov_idx)]
     info = pick_info(info, pick_channels(info["ch_names"], ch_names, ordered=False))
     projs = info["projs"] + noise_cov["projs"]
@@ -1793,6 +1808,8 @@ def _smart_eigh(
     proj_subspace=False,
     do_compute_rank=True,
     on_rank_mismatch="ignore",
+    *,
+    log_ch_type=None,
     verbose=None,
 ):
     """Compute eigh of C taking into account rank and ch_type scalings."""
@@ -1810,13 +1827,18 @@ def _smart_eigh(
     if isinstance(C, Covariance):
         C = C["data"]
     if ncomp > 0:
-        logger.info("    Created an SSP operator (subspace dimension = %d)" % ncomp)
+        logger.info("    Created an SSP operator (subspace dimension = %d)", ncomp)
         C = np.dot(proj, np.dot(C, proj.T))
 
     noise_cov = Covariance(C, ch_names, [], projs, 0)
     if do_compute_rank:  # if necessary
-        rank = compute_rank(
-            noise_cov, rank, scalings, info, on_rank_mismatch=on_rank_mismatch
+        rank = _compute_rank(
+            noise_cov,
+            rank,
+            scalings,
+            info,
+            on_rank_mismatch=on_rank_mismatch,
+            log_ch_type=log_ch_type,
         )
     assert C.ndim == 2 and C.shape[0] == C.shape[1]
 
@@ -1840,11 +1862,24 @@ def _smart_eigh(
         else:
             this_rank = rank[ch_type]
 
-        e, ev, m = _get_ch_whitener(this_C, False, ch_type.upper(), this_rank)
+        if log_ch_type is not None:
+            ch_type_ = log_ch_type
+        else:
+            ch_type_ = ch_type.upper()
+        e, ev, m = _get_ch_whitener(this_C, False, ch_type_, this_rank)
         if proj_subspace:
             # Choose the subspace the same way we do for projections
             e, ev = _eigvec_subspace(e, ev, m)
         eig[picks], eigvec[np.ix_(picks, picks)], mask[picks] = e, ev, m
+        largest, smallest = e[-1], e[m][0]
+        if largest > 1e10 * smallest:
+            warn(
+                f"The largest eigenvalue of the {len(picks)}-channel {ch_type} "
+                f"covariance (rank={this_rank}) is over 10 orders of magnitude "
+                f"larger than the smallest ({largest:0.3g} > 1e10 * {smallest:0.3g}), "
+                "the resulting whitener will likely be unstable"
+            )
+
         # XXX : also handle ref for sEEG and ECoG
         if (
             ch_type == "eeg"
@@ -1997,7 +2032,7 @@ def regularize(
     else:
         regs.update(mag=mag, grad=grad)
     if rank != "full":
-        rank = compute_rank(cov, rank, scalings, info)
+        rank = _compute_rank(cov, rank, scalings, info)
 
     info_ch_names = info["ch_names"]
     ch_names_by_type = dict()
@@ -2019,7 +2054,7 @@ def regularize(
                 idx_cov[ch_type].append(i)
                 break
         else:
-            raise Exception("channel %s is unknown type" % ch)
+            raise Exception(f"channel {ch} is unknown type")
 
     C = cov_good["data"]
 
@@ -2073,7 +2108,19 @@ def regularize(
     return cov
 
 
-def _regularized_covariance(data, reg=None, method_params=None, info=None, rank=None):
+@verbose
+def _regularized_covariance(
+    data,
+    reg=None,
+    method_params=None,
+    info=None,
+    rank=None,
+    *,
+    log_ch_type=None,
+    log_rank=None,
+    cov_kind="",
+    verbose=None,
+):
     """Compute a regularized covariance from data using sklearn.
 
     This is a convenience wrapper for mne.decoding functions, which
@@ -2116,6 +2163,9 @@ def _regularized_covariance(data, reg=None, method_params=None, info=None, rank=
         picks_list=picks_list,
         scalings=scalings,
         rank=rank,
+        cov_kind=cov_kind,
+        log_ch_type=log_ch_type,
+        log_rank=log_rank,
     )[reg]["data"]
     return cov
 
@@ -2222,8 +2272,9 @@ def compute_whitener(
     n_nzero = nzero.sum()
     logger.info(
         "    Created the whitener using a noise covariance matrix "
-        "with rank %d (%d small eigenvalues omitted)"
-        % (n_nzero, noise_cov["dim"] - n_nzero)
+        "with rank %d (%d small eigenvalues omitted)",
+        n_nzero,
+        noise_cov["dim"] - n_nzero,
     )
 
     # Do the requested projection
@@ -2338,7 +2389,7 @@ def _read_cov(fid, node, cov_kind, limited=False, verbose=None):
                 names = _safe_name_list(tag.data, "read", "names")
                 if len(names) != dim:
                     raise ValueError(
-                        "Number of names does not match " "covariance matrix dimension"
+                        "Number of names does not match covariance matrix dimension"
                     )
 
             tag = find_tag(fid, this, FIFF.FIFF_MNE_COV)
@@ -2351,8 +2402,10 @@ def _read_cov(fid, node, cov_kind, limited=False, verbose=None):
                     data = tag.data
                     diag = True
                     logger.info(
-                        "    %d x %d diagonal covariance (kind = "
-                        "%d) found." % (dim, dim, cov_kind)
+                        "    %d x %d diagonal covariance (kind = %d) found.",
+                        dim,
+                        dim,
+                        cov_kind,
                     )
 
             else:
@@ -2365,15 +2418,19 @@ def _read_cov(fid, node, cov_kind, limited=False, verbose=None):
                     data.flat[:: dim + 1] /= 2.0
                     diag = False
                     logger.info(
-                        "    %d x %d full covariance (kind = %d) "
-                        "found." % (dim, dim, cov_kind)
+                        "    %d x %d full covariance (kind = %d) found.",
+                        dim,
+                        dim,
+                        cov_kind,
                     )
                 else:
                     diag = False
                     data = tag.data
                     logger.info(
-                        "    %d x %d sparse covariance (kind = %d)"
-                        " found." % (dim, dim, cov_kind)
+                        "    %d x %d sparse covariance (kind = %d) found.",
+                        dim,
+                        dim,
+                        cov_kind,
                     )
 
             #   Read the possibly precomputed decomposition
@@ -2416,7 +2473,7 @@ def _read_cov(fid, node, cov_kind, limited=False, verbose=None):
 
             return cov
 
-    logger.info("    Did not find the desired covariance matrix (kind = %d)" % cov_kind)
+    logger.info("    Did not find the desired covariance matrix (kind = %d)", cov_kind)
 
     return None
 

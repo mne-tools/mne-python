@@ -1,7 +1,10 @@
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 import os
 from ast import literal_eval
+from datetime import datetime, timezone
 
 import numpy as np
 import pytest
@@ -10,6 +13,7 @@ from scipy.io import loadmat
 
 from mne.datasets.testing import data_path, requires_testing_data
 from mne.io import read_raw_neuralynx
+from mne.io.neuralynx.neuralynx import _exclude_kwarg
 from mne.io.tests.test_raw import _test_raw_reader
 
 testing_path = data_path(download=False) / "neuralynx"
@@ -103,7 +107,12 @@ def _read_nlx_mat_chan_keep_gaps(matfile: str) -> np.ndarray:
     return x
 
 
+# set known values for the Neuralynx data for testing
 expected_chan_names = ["LAHC1", "LAHC2", "LAHC3", "xAIR1", "xEKG1"]
+expected_hp_freq = 0.1
+expected_lp_freq = 500.0
+expected_sfreq = 2000.0
+expected_meas_date = datetime.strptime("2023/11/02 13:39:27", "%Y/%m/%d  %H:%M:%S")
 
 
 @requires_testing_data
@@ -125,15 +134,23 @@ def test_neuralynx():
         exclude_fname_patterns=fname_patterns,
     )
 
-    # test that channel selection worked
-    assert (
-        raw.ch_names == expected_chan_names
-    ), "labels in raw.ch_names don't match expected channel names"
+    # test that we picked the right info from headers
+    assert raw.info["highpass"] == expected_hp_freq, "highpass freq not set correctly"
+    assert raw.info["lowpass"] == expected_lp_freq, "lowpass freq not set correctly"
+    assert raw.info["sfreq"] == expected_sfreq, "sampling freq not set correctly"
 
-    mne_y, mne_t = raw.get_data(return_times=True)  # in V
+    meas_date_utc = expected_meas_date.astimezone(timezone.utc)
+    assert raw.info["meas_date"] == meas_date_utc, "meas_date not set correctly"
+
+    # test that channel selection worked
+    assert raw.ch_names == expected_chan_names, (
+        "labels in raw.ch_names don't match expected channel names"
+    )
+
+    mne_y = raw.get_data()  # in V
 
     # ==== NeuralynxIO ==== #
-    nlx_reader = NeuralynxIO(dirname=testing_path, exclude_filename=excluded_ncs_files)
+    nlx_reader = NeuralynxIO(dirname=testing_path, **_exclude_kwarg(excluded_ncs_files))
     bl = nlx_reader.read(
         lazy=False
     )  # read a single block which contains the data split in segments
@@ -199,9 +216,9 @@ def test_neuralynx_gaps():
     n_expected_gaps = 3
     n_expected_missing_samples = 130
     assert len(raw.annotations) == n_expected_gaps, "Wrong number of gaps detected"
-    assert (
-        (mne_y[0, :] == 0).sum() == n_expected_missing_samples
-    ), "Number of true and inferred missing samples differ"
+    assert (mne_y[0, :] == 0).sum() == n_expected_missing_samples, (
+        "Number of true and inferred missing samples differ"
+    )
 
     # read in .mat files containing original gaps
     matchans = ["LAHC1_3_gaps.mat", "LAHC2_3_gaps.mat"]

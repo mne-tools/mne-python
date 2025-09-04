@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "09b8fd3bdfec0650b390bf7c3ae9271af5c8903b",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/io/kit/constants.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/kit/kit.py": {
+      "a": 14,
+      "d": 2
+    }
+  }
+}

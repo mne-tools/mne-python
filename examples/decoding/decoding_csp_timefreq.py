@@ -12,7 +12,7 @@ filtered signals. A linear discriminant classifier is then applied to these
 signals.
 """
 # Authors: Laura Gwilliams <laura.gwilliams@nyu.edu>
-#          Jean-Remi King <jeanremi.king@gmail.com>
+#          Jean-Rémi King <jeanremi.king@gmail.com>
 #          Alex Barachant <alexandre.barachant@gmail.com>
 #          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
@@ -20,7 +20,6 @@ signals.
 # Copyright the MNE-Python contributors.
 
 # %%
-
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -33,7 +32,7 @@ from mne import Epochs, create_info
 from mne.datasets import eegbci
 from mne.decoding import CSP
 from mne.io import concatenate_raws, read_raw_edf
-from mne.time_frequency import AverageTFR
+from mne.time_frequency import AverageTFRArray
 
 # %%
 # Set parameters and read data
@@ -174,13 +173,15 @@ for freq, (fmin, fmax) in enumerate(freq_ranges):
 # Plot time-frequency results
 
 # Set up time frequency object
-av_tfr = AverageTFR(
-    create_info(["freq"], sfreq),
-    tf_scores[np.newaxis, :],
-    centered_w_times,
-    freqs[1:],
-    1,
+av_tfr = AverageTFRArray(
+    info=create_info(["freq"], sfreq),
+    data=tf_scores[np.newaxis, :],
+    times=centered_w_times,
+    freqs=freqs[1:],
+    nave=1,
 )
 
 chance = np.mean(y)  # set chance level to white in the plot
-av_tfr.plot([0], vmin=chance, title="Time-Frequency Decoding Scores", cmap=plt.cm.Reds)
+av_tfr.plot(
+    [0], vlim=(chance, None), title="Time-Frequency Decoding Scores", cmap=plt.cm.Reds
+)

@@ -15,7 +15,6 @@ Extract and average epochs accordingly. Modify some averaging parameters and get
 
 # %%
 
-
 import os
 
 import mne
@@ -52,9 +51,6 @@ for cat in raw.acqparser.categories:
     evoked = epochs.average()
     evoked.comment = cat["comment"]
     evokeds.append(evoked)
-# save all averages to an evoked fiff file
-# fname_out = 'multimodal-ave.fif'
-# mne.write_evokeds(fname_out, evokeds)
 
 # %%
 # Make a new averaging category

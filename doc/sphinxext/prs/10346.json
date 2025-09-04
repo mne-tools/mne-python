@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "0c500107be1a85e42c9b63411829c5dbaedf62d4",
+  "authors": [
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/gui/tests/test_gui_api.py": {
+      "a": 34,
+      "d": 0
+    },
+    "mne/viz/backends/_abstract.py": {
+      "a": 7,
+      "d": 0
+    },
+    "mne/viz/backends/_notebook.py": {
+      "a": 8,
+      "d": 2
+    },
+    "mne/viz/backends/_qt.py": {
+      "a": 53,
+      "d": 3
+    }
+  }
+}

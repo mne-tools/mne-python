@@ -1,6 +1,6 @@
 """Tools for data interpolation."""
 
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -45,9 +45,7 @@ def equalize_bads(insts, interp_thresh=1.0, copy=True):
         them, possibly with some formerly bad channels interpolated.
     """
     if not 0 <= interp_thresh <= 1:
-        raise ValueError(
-            "interp_thresh must be between 0 and 1, got %s" % (interp_thresh,)
-        )
+        raise ValueError(f"interp_thresh must be between 0 and 1, got {interp_thresh}")
 
     all_bads = list(set(chain.from_iterable([inst.info["bads"] for inst in insts])))
     if isinstance(insts[0], BaseEpochs):

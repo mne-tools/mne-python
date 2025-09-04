@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "ddfe0714786e770af16e986c8e65f2580511a2a6",
+  "authors": [
+    {
+      "n": "jaeilepp",
+      "e": "jaeilepp@student.jyu.fi"
+    }
+  ],
+  "changes": {
+    "mne/io/base.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/raw.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/tests/test_raw.py": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

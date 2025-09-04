@@ -1,9 +1,4 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Denis Engemann <denis.engemann@gmail.com>
-#          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
-#          Eric Larson <larson.eric.d@gmail.com>
-#          Robert Luke <mail@robertluke.net>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -18,7 +13,7 @@ import pytest
 from mne import Epochs, compute_proj_evoked, read_cov, read_events
 from mne.channels import read_layout
 from mne.io import read_raw_fif
-from mne.time_frequency.tfr import AverageTFR
+from mne.time_frequency.tfr import AverageTFRArray
 from mne.utils import _record_warnings
 from mne.viz import (
     _get_presser,
@@ -28,7 +23,7 @@ from mne.viz import (
 )
 from mne.viz.evoked import _line_plot_onselect
 from mne.viz.topo import _imshow_tfr, _plot_update_evoked_topo_proj, iter_topography
-from mne.viz.utils import _fake_click
+from mne.viz.utils import _fake_click, _fake_keypress
 
 base_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
 evoked_fname = base_dir / "test-ave.fif"
@@ -236,6 +231,16 @@ def test_plot_topo():
         break
     plt.close("all")
 
+    # Test plot_topo with selection of channels enabled.
+    fig = evoked.plot_topo(select=True)
+    ax = fig.axes[0]
+    _fake_click(fig, ax, (0.05, 0.62), xform="data")
+    _fake_click(fig, ax, (0.2, 0.62), xform="data", kind="motion")
+    _fake_click(fig, ax, (0.2, 0.7), xform="data", kind="motion")
+    _fake_click(fig, ax, (0.05, 0.7), xform="data", kind="motion")
+    _fake_click(fig, ax, (0.05, 0.7), xform="data", kind="release")
+    assert fig.lasso.selection == ["MEG 0113", "MEG 0112", "MEG 0111"]
+
 
 def test_plot_topo_nirs(fnirs_evoked):
     """Test plotting of ERP topography for nirs data."""
@@ -301,6 +306,30 @@ def test_plot_topo_image_epochs():
     assert qm_cmap[0] is cmap
 
 
+def test_plot_topo_select():
+    """Test selecting sensors in an ERP topography plot."""
+    # Show topography
+    evoked = _get_epochs().average()
+    fig = plot_evoked_topo(evoked, select=True)
+    ax = fig.axes[0]
+
+    # Lasso select 3 out of the 6 sensors.
+    _fake_click(fig, ax, (0.05, 0.5), xform="data")
+    _fake_click(fig, ax, (0.2, 0.5), xform="data", kind="motion")
+    _fake_click(fig, ax, (0.2, 0.6), xform="data", kind="motion")
+    _fake_click(fig, ax, (0.05, 0.6), xform="data", kind="motion")
+    _fake_click(fig, ax, (0.05, 0.5), xform="data", kind="motion")
+    _fake_click(fig, ax, (0.05, 0.5), xform="data", kind="release")
+    assert fig.lasso.selection == ["MEG 0132", "MEG 0133", "MEG 0131"]
+
+    # Add another sensor with a single click.
+    _fake_keypress(fig, "control")
+    _fake_click(fig, ax, (0.11, 0.65), xform="data")
+    _fake_click(fig, ax, (0.21, 0.65), xform="data", kind="release")
+    _fake_keypress(fig, "control", kind="release")
+    assert fig.lasso.selection == ["MEG 0111", "MEG 0132", "MEG 0133", "MEG 0131"]
+
+
 def test_plot_tfr_topo():
     """Test plotting of TFR data."""
     epochs = _get_epochs()
@@ -309,18 +338,20 @@ def test_plot_tfr_topo():
     data = np.random.RandomState(0).randn(
         len(epochs.ch_names), n_freqs, len(epochs.times)
     )
-    tfr = AverageTFR(epochs.info, data, epochs.times, np.arange(n_freqs), nave)
-    plt.close("all")
-    fig = tfr.plot_topo(
-        baseline=(None, 0), mode="ratio", title="Average power", vmin=0.0, vmax=14.0
+    tfr = AverageTFRArray(
+        info=epochs.info,
+        data=data,
+        times=epochs.times,
+        freqs=np.arange(n_freqs),
+        nave=nave,
     )
+    plt.close("all")
+    fig = tfr.plot_topo(baseline=(None, 0), mode="ratio", vmin=0.0, vmax=14.0)
 
     # test complex
     tfr.data = tfr.data * (1 + 1j)
     plt.close("all")
-    fig = tfr.plot_topo(
-        baseline=(None, 0), mode="ratio", title="Average power", vmin=0.0, vmax=14.0
-    )
+    fig = tfr.plot_topo(baseline=(None, 0), mode="ratio", vmin=0.0, vmax=14.0)
 
     # test opening tfr by clicking
     num_figures_before = len(plt.get_fignums())
@@ -335,14 +366,23 @@ def test_plot_tfr_topo():
 
     # nonuniform freqs
     freqs = np.logspace(*np.log10([3, 10]), num=3)
-    tfr = AverageTFR(epochs.info, data, epochs.times, freqs, nave)
-    fig = tfr.plot([4], baseline=(None, 0), mode="mean", vmax=14.0, show=False)
+    tfr = AverageTFRArray(
+        info=epochs.info, data=data, times=epochs.times, freqs=freqs, nave=nave
+    )
+    fig = tfr.plot([4], baseline=(None, 0), mode="mean", vlim=(None, 14.0), show=False)
     assert fig[0].axes[0].get_yaxis().get_scale() == "log"
 
     # one timesample
-    tfr = AverageTFR(epochs.info, data[:, :, [0]], epochs.times[[1]], freqs, nave)
+    tfr = AverageTFRArray(
+        info=epochs.info,
+        data=data[:, :, [0]],
+        times=epochs.times[[1]],
+        freqs=freqs,
+        nave=nave,
+    )
+
     with _record_warnings():  # matplotlib equal left/right
-        tfr.plot([4], baseline=None, vmax=14.0, show=False, yscale="linear")
+        tfr.plot([4], baseline=None, vlim=(None, 14.0), show=False, yscale="linear")
 
     # one frequency bin, log scale required: as it doesn't make sense
     # to plot log scale for one value, we test whether yscale is set to linear

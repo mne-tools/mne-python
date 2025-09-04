@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """Compare FIFF files.
 
 Examples
@@ -9,7 +8,7 @@ Examples
 
 """
 
-# Authors : Eric Larson, PhD
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 

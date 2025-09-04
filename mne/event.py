@@ -1,10 +1,6 @@
 """IO with fif files containing events."""
 
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
-#          Teon Brooks <teon.brooks@gmail.com>
-#          Clement Moutard <clement.moutard@polytechnique.org>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -376,7 +372,7 @@ def write_events(filename, events, *, overwrite=False, verbose=None):
     else:
         with open(filename, "w") as f:
             for e in events:
-                f.write("%6d %6d %3d\n" % tuple(e))
+                f.write(f"{e[0]:6d} {e[1]:6d} {e[2]:3d}\n")
 
 
 def _find_stim_steps(data, first_samp, pad_start=None, pad_stop=None, merge=0):
@@ -523,7 +519,7 @@ def _find_events(
         else:
             logger.info(
                 f"Trigger channel {ch_name} has a non-zero initial value of "
-                "{initial_value} (consider using initial_event=True to detect this "
+                f"{initial_value} (consider using initial_event=True to detect this "
                 "event)"
             )
 
@@ -586,8 +582,8 @@ def _find_unique_events(events):
     n_dupes = len(events) - len(idx)
     if n_dupes > 0:
         warn(
-            "Some events are duplicated in your different stim channels."
-            " %d events were ignored during deduplication." % n_dupes
+            "Some events are duplicated in your different stim channels. "
+            f"{n_dupes} events were ignored during deduplication."
         )
     return events[idx]
 
@@ -771,6 +767,7 @@ def find_events(
     picks = pick_channels(raw.info["ch_names"], include=stim_channel)
     if len(picks) == 0:
         raise ValueError("No stim channel found to extract event triggers.")
+    logger.info(f"Finding events on: {', '.join(raw.ch_names[pick] for pick in picks)}")
     data, _ = raw[picks, :]
 
     events_list = []
@@ -793,12 +790,10 @@ def find_events(
         n_short_events = np.sum(np.diff(events[:, 0]) < shortest_event)
         if n_short_events > 0:
             raise ValueError(
-                "You have %i events shorter than the "
-                "shortest_event. These are very unusual and you "
-                "may want to set min_duration to a larger value "
-                "e.g. x / raw.info['sfreq']. Where x = 1 sample "
-                "shorter than the shortest event "
-                "length." % (n_short_events)
+                f"You have {n_short_events} events shorter than the shortest_event. "
+                "These are very unusual and you may want to set min_duration to a "
+                "larger value e.g. x / raw.info['sfreq']. Where x = 1 sample shorter "
+                "than the shortest event length."
             )
 
         events_list.append(events)
@@ -824,7 +819,7 @@ def _mask_trigs(events, mask, mask_type):
         elif mask_type != "and":
             raise ValueError(
                 "'mask_type' should be either 'and'"
-                " or 'not_and', instead of '%s'" % mask_type
+                f" or 'not_and', instead of '{mask_type}'"
             )
         events[:, 1:] = np.bitwise_and(events[:, 1:], mask)
     events = events[events[:, 1] != events[:, 2]]
@@ -995,7 +990,7 @@ def make_fixed_length_events(
     n_events = len(ts)
     if n_events == 0:
         raise ValueError(
-            "No events produced, check the values of start, " "stop, and duration"
+            "No events produced, check the values of start, stop, and duration"
         )
     events = np.c_[ts, np.zeros(n_events, dtype=int), id * np.ones(n_events, dtype=int)]
     return events
@@ -1030,7 +1025,7 @@ def concatenate_events(events, first_samps, last_samps):
     _validate_type(events, list, "events")
     if not (len(events) == len(last_samps) and len(events) == len(first_samps)):
         raise ValueError(
-            "events, first_samps, and last_samps must all have " "the same lengths"
+            "events, first_samps, and last_samps must all have the same lengths"
         )
     first_samps = np.array(first_samps)
     last_samps = np.array(last_samps)
@@ -1195,16 +1190,16 @@ class AcqParserFIF:
 
     def __repr__(self):  # noqa: D105
         s = "<AcqParserFIF | "
-        s += "categories: %d " % self.ncateg
+        s += f"categories: {self.ncateg} "
         cats_in_use = len(self._categories_in_use)
-        s += "(%d in use), " % cats_in_use
-        s += "events: %d " % self.nevent
+        s += f"({cats_in_use} in use), "
+        s += f"events: {self.nevent} "
         evs_in_use = len(self._events_in_use)
-        s += "(%d in use)" % evs_in_use
+        s += f"({evs_in_use} in use)"
         if self.categories:
             s += "\nAveraging categories:"
             for cat in self.categories:
-                s += '\n%d: "%s"' % (cat["index"], cat["comment"])
+                s += f'\n{cat["index"]}: "{cat["comment"]}"'
         s += ">"
         return s
 
@@ -1633,7 +1628,7 @@ def match_event_names(event_names, keys, *, on_missing="raise"):
         event_names = list(event_names)
 
     # ensure we have a list of `keys`
-    if isinstance(keys, (Sequence, np.ndarray)) and not isinstance(keys, str):
+    if isinstance(keys, Sequence | np.ndarray) and not isinstance(keys, str):
         keys = list(keys)
     else:
         keys = [keys]
@@ -1655,7 +1650,7 @@ def match_event_names(event_names, keys, *, on_missing="raise"):
         _on_missing(
             on_missing=on_missing,
             msg=f'Event name "{key}" could not be found. The following events '
-            f'are present in the data: {", ".join(event_names)}',
+            f"are present in the data: {', '.join(event_names)}",
             error_klass=KeyError,
         )
 

@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "4bbc11e09844dca7211994a217b30dcbf889146f",
+  "authors": [
+    {
+      "n": "Alex Rockhill",
+      "e": "aprockhill@mailbox.org"
+    }
+  ],
+  "changes": {
+    "mne/dipole.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "0706ad95fa091003f29bd1d568a17324453bb297",
+  "authors": [
+    {
+      "n": "Mainak Jas",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/python_reference.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/inverse/plot_lcmv_beamformer_volume.py": {
+      "a": 15,
+      "d": 33
+    },
+    "mne/fixes.py": {
+      "a": 27,
+      "d": 0
+    },
+    "mne/source_estimate.py": {
+      "a": 11,
+      "d": 1
+    },
+    "mne/viz/_3d.py": {
+      "a": 309,
+      "d": 11
+    },
+    "mne/viz/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 43,
+      "d": 4
+    },
+    "mne/viz/utils.py": {
+      "a": 8,
+      "d": 1
+    }
+  }
+}

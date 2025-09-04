@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "c4c100cdd030d5de41b5b558e50f497a3f6900e4",
+  "authors": [
+    {
+      "n": "Alessandro Tonin",
+      "e": null
+    },
+    {
+      "n": "Alessandro Tonin",
+      "e": "alessandro.tonin@wysscenter.ch"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/annotations.py": {
+      "a": 11,
+      "d": 10
+    },
+    "mne/datasets/config.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/_read_raw.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/brainvision/brainvision.py": {
+      "a": 74,
+      "d": 47
+    },
+    "mne/io/brainvision/tests/test_brainvision.py": {
+      "a": 17,
+      "d": 0
+    }
+  }
+}

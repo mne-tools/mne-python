@@ -1,5 +1,7 @@
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 import gc
 from pathlib import Path
 
@@ -230,8 +232,9 @@ def test_apply_forward():
     # Evoked
     evoked = read_evokeds(fname_evoked, condition=0)
     evoked.pick(picks="meg")
-    with _record_warnings(), pytest.warns(
-        RuntimeWarning, match="only .* positive values"
+    with (
+        _record_warnings(),
+        pytest.warns(RuntimeWarning, match="only .* positive values"),
     ):
         evoked = apply_forward(fwd, stc, evoked.info, start=start, stop=stop)
     data = evoked.data

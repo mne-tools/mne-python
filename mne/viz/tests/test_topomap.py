@@ -1,9 +1,4 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Denis Engemann <denis.engemann@gmail.com>
-#          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
-#          Eric Larson <larson.eric.d@gmail.com>
-#          Robert Luke <mail@robertluke.net>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -14,6 +9,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import pytest
+from matplotlib.colors import PowerNorm, TwoSlopeNorm
 from matplotlib.patches import Circle
 from numpy.testing import assert_almost_equal, assert_array_equal, assert_equal
 
@@ -43,8 +39,12 @@ from mne.channels import (
 )
 from mne.datasets import testing
 from mne.io import RawArray, read_info, read_raw_fif
-from mne.preprocessing import compute_bridged_electrodes
-from mne.time_frequency.tfr import AverageTFR
+from mne.preprocessing import (
+    ICA,
+    compute_bridged_electrodes,
+    compute_current_source_density,
+)
+from mne.time_frequency.tfr import AverageTFR, AverageTFRArray
 from mne.viz import plot_evoked_topomap, plot_projs_topomap, topomap
 from mne.viz.tests.test_raw import _proj_status
 from mne.viz.topomap import (
@@ -62,6 +62,8 @@ data_dir = testing.data_path(download=False)
 subjects_dir = data_dir / "subjects"
 ecg_fname = data_dir / "MEG" / "sample" / "sample_audvis_ecg-proj.fif"
 triux_fname = data_dir / "SSS" / "TRIUX" / "triux_bmlhus_erm_raw.fif"
+opm_fname = data_dir / "OPM" / "opm-evoked-ave.fif"
+
 
 base_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
 evoked_fname = base_dir / "test-ave.fif"
@@ -179,7 +181,21 @@ def test_plot_topomap_animation(capsys):
     anim._func(1)  # _animate has to be tested separately on 'Agg' backend.
     out, _ = capsys.readouterr()
     assert "extrapolation mode local to 0" in out
-    plt.close("all")
+
+
+def test_plot_topomap_animation_csd(capsys):
+    """Test topomap plotting of CSD data."""
+    # evoked
+    evoked = read_evokeds(evoked_fname, "Left Auditory", baseline=(None, 0))
+    evoked_csd = compute_current_source_density(evoked)
+
+    # Test animation
+    _, anim = evoked_csd.animate_topomap(
+        ch_type="csd", times=[0, 0.1], butterfly=False, time_unit="s", verbose="debug"
+    )
+    anim._func(1)  # _animate has to be tested separately on 'Agg' backend.
+    out, _ = capsys.readouterr()
+    assert "extrapolation mode head to 0" in out
 
 
 @pytest.mark.filterwarnings("ignore:.*No contour levels.*:UserWarning")
@@ -190,7 +206,6 @@ def test_plot_topomap_animation_nirs(fnirs_evoked, capsys):
     out, _ = capsys.readouterr()
     assert "extrapolation mode head to 0" in out
     assert len(fig.axes) == 2
-    plt.close("all")
 
 
 def test_plot_evoked_topomap_errors(evoked, monkeypatch):
@@ -257,19 +272,10 @@ def test_plot_evoked_topomap_units(evoked, units, scalings, expected_unit):
     fig = evoked.plot_topomap(
         times=0.1, res=8, contours=0, sensors=False, units=units, scalings=scalings
     )
-    # ideally we'd do this:
-    #     cbar = [ax for ax in fig.axes if hasattr(ax, '_colorbar')]
-    #     assert len(cbar) == 1
-    #     cbar = cbar[0]
-    #     assert cbar.get_title() == expected_unit
-    # ...but not all matplotlib versions support it, and we can't use
-    # check_version because it's hard figure out exactly which MPL version
-    # is the cutoff since it relies on a private attribute. Based on some
-    # basic testing it's at least matplotlib version >= 3.5.
-    # So for now we just do this:
-    for ax in fig.axes:
-        if hasattr(ax, "_colorbar"):
-            assert ax.get_title() == expected_unit
+    cbar = [ax for ax in fig.axes if hasattr(ax, "_colorbar")]
+    assert len(cbar) == 1
+    cbar = cbar[0]
+    assert cbar.get_title() == expected_unit
 
 
 @pytest.mark.parametrize("extrapolate", ("box", "local", "head"))
@@ -562,7 +568,24 @@ def test_plot_topomap_basic():
     orig_bads = evoked_grad.info["bads"]
     evoked_grad.plot_topomap(ch_type="grad", times=[0], time_unit="ms")
     assert_array_equal(evoked_grad.info["bads"], orig_bads)
+
+
+def test_plot_psds_topomap_colorbar():
+    """Test plot_psds_topomap colorbar option."""
+    raw = read_raw_fif(raw_fname)
+    picks = pick_types(raw.info, meg="grad")
+    info = pick_info(raw.info, picks)
+    freqs = np.arange(3.0, 9.5)
+    rng = np.random.default_rng(42)
+    psd = np.abs(rng.standard_normal((len(picks), len(freqs))))
+    bands = {"theta": [4, 8]}
+
     plt.close("all")
+    fig_cbar = plot_psds_topomap(psd, freqs, info, colorbar=True, bands=bands)
+    assert len(fig_cbar.axes) == 2
+
+    fig_nocbar = plot_psds_topomap(psd, freqs, info, colorbar=False, bands=bands)
+    assert len(fig_nocbar.axes) == 1
 
 
 def test_plot_tfr_topomap():
@@ -578,13 +601,44 @@ def test_plot_tfr_topomap():
     data = rng.randn(len(picks), n_freqs, len(times))
 
     # test complex numbers
-    tfr = AverageTFR(info, data * (1 + 1j), times, np.arange(n_freqs), nave)
+    tfr = AverageTFRArray(
+        info=info,
+        data=data * (1 + 1j),
+        times=times,
+        freqs=np.arange(n_freqs),
+        nave=nave,
+    )
     tfr.plot_topomap(
         ch_type="mag", tmin=0.05, tmax=0.150, fmin=0, fmax=10, res=res, contours=0
     )
 
+    # test data with taper dimension (real)
+    data = np.expand_dims(data, axis=1)
+    weights = np.random.rand(1, n_freqs)
+    tfr = AverageTFRArray(
+        info=info,
+        data=data,
+        times=times,
+        freqs=np.arange(n_freqs),
+        nave=nave,
+        weights=weights,
+    )
+    tfr.plot_topomap(
+        ch_type="mag", tmin=0.05, tmax=0.150, fmin=0, fmax=10, res=res, contours=0
+    )
+    # test data with taper dimension (complex)
+    state = tfr.__getstate__()
+    tfr = AverageTFR(inst=state | dict(data=data * (1 + 1j)))
+    tfr.plot_topomap(
+        ch_type="mag", tmin=0.05, tmax=0.150, fmin=0, fmax=10, res=res, contours=0
+    )
+    # remove taper dim before proceeding
+    data = data[:, 0]
+
     # test real numbers
-    tfr = AverageTFR(info, data, times, np.arange(n_freqs), nave)
+    tfr = AverageTFRArray(
+        info=info, data=data, times=times, freqs=np.arange(n_freqs), nave=nave
+    )
     tfr.plot_topomap(
         ch_type="mag", tmin=0.05, tmax=0.150, fmin=0, fmax=10, res=res, contours=0
     )
@@ -657,7 +711,7 @@ def test_plot_topomap_neuromag122():
     evoked = read_evokeds(evoked_fname, "Left Auditory", baseline=(None, 0))
     evoked.pick(picks="grad")
     evoked.pick(evoked.ch_names[:122])
-    ch_names = ["MEG %03d" % k for k in range(1, 123)]
+    ch_names = [f"MEG {k:03}" for k in range(1, 123)]
     for c in evoked.info["chs"]:
         c["coil_type"] = FIFF.FIFFV_COIL_NM_122
     evoked.rename_channels(
@@ -686,8 +740,6 @@ def test_plot_topomap_neuromag122():
 
 def test_plot_topomap_bads():
     """Test plotting topomap with bad channels (gh-7213)."""
-    import matplotlib.pyplot as plt
-
     data = np.random.RandomState(0).randn(3, 1000)
     raw = RawArray(data, create_info(3, 1000.0, "eeg"))
     ch_pos_dict = {name: pos for name, pos in zip(raw.ch_names, np.eye(3))}
@@ -696,7 +748,6 @@ def test_plot_topomap_bads():
         raw.info["bads"] = raw.ch_names[:count]
         raw.info._check_consistency()
         plot_topomap(data[:, 0], raw.info)
-    plt.close("all")
 
 
 def test_plot_topomap_channel_distance():
@@ -714,13 +765,10 @@ def test_plot_topomap_channel_distance():
     evoked.set_montage(ten_five)
 
     evoked.plot_topomap(sphere=0.05, res=8)
-    plt.close("all")
 
 
 def test_plot_topomap_bads_grad():
     """Test plotting topomap with bad gradiometer channels (gh-8802)."""
-    import matplotlib.pyplot as plt
-
     data = np.random.RandomState(0).randn(203)
     info = read_info(evoked_fname)
     info["bads"] = ["MEG 2242"]
@@ -728,21 +776,30 @@ def test_plot_topomap_bads_grad():
     info = pick_info(info, picks)
     assert len(info["chs"]) == 203
     plot_topomap(data, info, res=8)
-    plt.close("all")
+
+
+@testing.requires_testing_data
+def test_plot_topomap_opm():
+    """Test plotting topomap with OPM data."""
+    # load data
+    evoked = read_evokeds(opm_fname, kind="average")[0]
+
+    # plot evoked topomap
+    fig_evoked = evoked.plot_topomap(
+        times=[-0.1, 0, 0.1, 0.2], ch_type="mag", show=False
+    )
+    assert len(fig_evoked.axes) == 5
 
 
 def test_plot_topomap_nirs_overlap(fnirs_epochs):
     """Test plotting nirs topomap with overlapping channels (gh-7414)."""
     fig = fnirs_epochs["A"].average(picks="hbo").plot_topomap()
     assert len(fig.axes) == 5
-    plt.close("all")
 
 
 def test_plot_topomap_nirs_ica(fnirs_epochs):
     """Test plotting nirs ica topomap."""
     pytest.importorskip("sklearn")
-    from mne.preprocessing import ICA
-
     fnirs_epochs = fnirs_epochs.load_data().pick(picks="hbo")
     fnirs_epochs = fnirs_epochs.pick(picks=range(30))
 
@@ -755,7 +812,6 @@ def test_plot_topomap_nirs_ica(fnirs_epochs):
     ica = ICA().fit(fnirs_epochs)
     fig = ica.plot_components()
     assert len(fig[0].axes) == 20
-    plt.close("all")
 
 
 def test_plot_cov_topomap():
@@ -764,13 +820,10 @@ def test_plot_cov_topomap():
     info = read_info(evoked_fname)
     cov.plot_topomap(info)
     cov.plot_topomap(info, noise_cov=cov)
-    plt.close("all")
 
 
 def test_plot_topomap_cnorm():
     """Test colormap normalization."""
-    from matplotlib.colors import PowerNorm, TwoSlopeNorm
-
     rng = np.random.default_rng(42)
     v = rng.uniform(low=-1, high=2.5, size=64)
     v[:3] = [-1, 0, 2.5]

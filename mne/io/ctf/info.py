@@ -1,7 +1,6 @@
 """Populate measurement info."""
 
-# Author: Eric Larson <larson.eric.d<gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -51,8 +50,7 @@ def _pick_isotrak_and_hpi_coils(res4, coils, t):
             if p["coord_frame"] == FIFF.FIFFV_MNE_COORD_CTF_DEVICE:
                 if t is None or t["t_ctf_dev_dev"] is None:
                     raise RuntimeError(
-                        "No coordinate transformation "
-                        "available for HPI coil locations"
+                        "No coordinate transformation available for HPI coil locations"
                     )
                 d = dict(
                     kind=kind,
@@ -77,10 +75,10 @@ def _pick_isotrak_and_hpi_coils(res4, coils, t):
                 dig.append(d)
                 n_coil_head += 1
     if n_coil_head > 0:
-        logger.info("    Polhemus data for %d HPI coils added" % n_coil_head)
+        logger.info("    Polhemus data for %d HPI coils added", n_coil_head)
     if n_coil_dev > 0:
         logger.info(
-            "    Device coordinate locations for %d HPI coils added" % n_coil_dev
+            "    Device coordinate locations for %d HPI coils added", n_coil_dev
         )
     return dig, [hpi_result]
 
@@ -104,10 +102,10 @@ def _convert_time(date_str, time_str):
             break
     else:
         raise RuntimeError(
-            "Illegal date: %s.\nIf the language of the date does not "
+            f"Illegal date: {date_str}.\nIf the language of the date does not "
             "correspond to your local machine's language try to set the "
             "locale to the language of the date string:\n"
-            'locale.setlocale(locale.LC_ALL, "en_US")' % date_str
+            'locale.setlocale(locale.LC_ALL, "en_US")'
         )
 
     for fmt in ("%H:%M:%S", "%H:%M"):
@@ -118,7 +116,7 @@ def _convert_time(date_str, time_str):
         else:
             break
     else:
-        raise RuntimeError("Illegal time: %s" % time_str)
+        raise RuntimeError(f"Illegal time: {time_str}")
     # MNE-C uses mktime which uses local time, but here we instead decouple
     # conversion location from the process, and instead assume that the
     # acquisition was in GMT. This will be wrong for most sites, but at least
@@ -171,8 +169,8 @@ def _check_comp_ch(cch, kind, desired=None):
         desired = cch["grad_order_no"]
     if cch["grad_order_no"] != desired:
         raise RuntimeError(
-            "%s channel with inconsistent compensation "
-            "grade %s, should be %s" % (kind, cch["grad_order_no"], desired)
+            f"{kind} channel with inconsistent compensation "
+            f"grade {cch['grad_order_no']}, should be {desired}"
         )
     return desired
 
@@ -217,8 +215,8 @@ def _convert_channel_info(res4, t, use_eeg_pos):
                 if cch["sensor_type_index"] != CTF.CTFV_MEG_CH:
                     text += " ref"
                 warn(
-                    "%s channel %s did not have position assigned, so "
-                    "it was changed to a MISC channel" % (text, ch["ch_name"])
+                    f"{text} channel {ch['ch_name']} did not have position "
+                    "assigned, so it was changed to a MISC channel"
                 )
                 continue
             ch["unit"] = FIFF.FIFF_UNIT_T
@@ -294,8 +292,8 @@ def _convert_channel_info(res4, t, use_eeg_pos):
                 if not _at_origin(ch["loc"][:3]):
                     if t["t_ctf_head_head"] is None:
                         warn(
-                            "EEG electrode (%s) location omitted because of "
-                            "missing HPI information" % ch["ch_name"]
+                            f"EEG electrode ({ch['ch_name']}) location omitted because "
+                            "of missing HPI information"
                         )
                         ch["loc"].fill(np.nan)
                         coord_frame = FIFF.FIFFV_MNE_COORD_CTF_HEAD
@@ -418,7 +416,7 @@ def _pick_eeg_pos(c):
             eeg["np"] += 1
     if eeg["np"] == 0:
         return None
-    logger.info("Picked positions of %d EEG channels from channel info" % eeg["np"])
+    logger.info("Picked positions of %d EEG channels from channel info", eeg["np"])
     return eeg
 
 
@@ -428,7 +426,7 @@ def _add_eeg_pos(eeg, t, c):
         return
     if t is None or t["t_ctf_head_head"] is None:
         raise RuntimeError(
-            "No coordinate transformation available for EEG " "position data"
+            "No coordinate transformation available for EEG position data"
         )
     eeg_assigned = 0
     if eeg["assign_to_chs"]:
@@ -443,7 +441,7 @@ def _add_eeg_pos(eeg, t, c):
                     elif eeg["coord_frame"] != FIFF.FIFFV_COORD_HEAD:
                         raise RuntimeError(
                             "Illegal coordinate frame for EEG electrode "
-                            "positions : %s" % _coord_frame_name(eeg["coord_frame"])
+                            f"positions : {_coord_frame_name(eeg['coord_frame'])}"
                         )
                     # Use the logical channel number as an identifier
                     eeg["ids"][k] = ch["logno"]
@@ -465,8 +463,8 @@ def _add_eeg_pos(eeg, t, c):
             d["r"] = apply_trans(t["t_ctf_head_head"], d["r"])
         elif eeg["coord_frame"] != FIFF.FIFFV_COORD_HEAD:
             raise RuntimeError(
-                "Illegal coordinate frame for EEG electrode "
-                "positions: %s" % _coord_frame_name(eeg["coord_frame"])
+                "Illegal coordinate frame for EEG electrode positions: "
+                + _coord_frame_name(eeg["coord_frame"])
             )
         if eeg["kinds"][k] == FIFF.FIFFV_POINT_CARDINAL:
             fid_count += 1
@@ -476,14 +474,14 @@ def _add_eeg_pos(eeg, t, c):
             extra_count += 1
     if eeg_assigned > 0:
         logger.info(
-            "    %d EEG electrode locations assigned to channel info." % eeg_assigned
+            "    %d EEG electrode locations assigned to channel info.", eeg_assigned
         )
     for count, kind in zip(
         (fid_count, eeg_count, extra_count),
         ("fiducials", "EEG locations", "extra points"),
     ):
         if count > 0:
-            logger.info("    %d %s added to Polhemus data." % (count, kind))
+            logger.info("    %d %s added to Polhemus data.", count, kind)
 
 
 _filt_map = {CTF.CTFV_FILTER_LOWPASS: "lowpass", CTF.CTFV_FILTER_HIGHPASS: "highpass"}
@@ -552,7 +550,7 @@ def _annotate_bad_segments(directory, start_time, meas_date):
     with open(fname) as fid:
         for f in fid.readlines():
             tmp = f.strip().split()
-            desc.append("bad_%s" % tmp[0])
+            desc.append(f"bad_{tmp[0]}")
             onsets.append(np.float64(tmp[1]) - start_time)
             durations.append(np.float64(tmp[2]) - np.float64(tmp[1]))
     # return None if there are no bad segments

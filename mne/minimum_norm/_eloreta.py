@@ -1,5 +1,4 @@
-# Authors: Eric Larson <larson.eric.d@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -36,7 +35,7 @@ def _compute_eloreta(inv, lambda2, options):
     # Reassemble the gain matrix (should be fast enough)
     if inv["eigen_leads_weighted"]:
         # We can probably relax this if we ever need to
-        raise RuntimeError("eLORETA cannot be computed with weighted eigen " "leads")
+        raise RuntimeError("eLORETA cannot be computed with weighted eigen leads")
     G = np.dot(
         inv["eigen_fields"]["data"].T * inv["sing"], inv["eigen_leads"]["data"].T
     )
@@ -60,8 +59,8 @@ def _compute_eloreta(inv, lambda2, options):
     logger.info("    Computing optimized source covariance (eLORETA)...")
     if n_orient == 3:
         logger.info(
-            "        Using %s orientation weights"
-            % ("uniform" if force_equal else "independent",)
+            f"        Using {'uniform' if force_equal else 'independent'} "
+            "orientation weights"
         )
     # src, sens, 3
     G_3 = _get_G_3(G, n_orient)
@@ -89,7 +88,7 @@ def _compute_eloreta(inv, lambda2, options):
     )
     G_R_Gt = _this_normalize_R(G, R, G_3)
     extra = " (this make take a while)" if n_orient == 3 else ""
-    logger.info("        Fitting up to %d iterations%s..." % (max_iter, extra))
+    logger.info(f"        Fitting up to {max_iter} iterations{extra}...")
     for kk in range(max_iter):
         # 1. Compute inverse of the weights (stabilized) and C
         s, u = eigh(G_R_Gt)
@@ -120,16 +119,15 @@ def _compute_eloreta(inv, lambda2, options):
             R_last.ravel()
         )
         logger.debug(
-            "            Iteration %s / %s ...%s (%0.1e)"
-            % (kk + 1, max_iter, extra, delta)
+            f"            Iteration {kk + 1} / {max_iter} ...{extra} ({delta:0.1e})"
         )
         if delta < eps:
             logger.info(
-                "        Converged on iteration %d (%0.2g < %0.2g)" % (kk, delta, eps)
+                f"        Converged on iteration {kk} ({delta:.2g} < {eps:.2g})"
             )
             break
     else:
-        warn("eLORETA weight fitting did not converge (>= %s)" % eps)
+        warn(f"eLORETA weight fitting did not converge (>= {eps})")
     del G_R_Gt
     logger.info("        Updating inverse with weighted eigen leads")
     G /= source_std  # undo our biasing

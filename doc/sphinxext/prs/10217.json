@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "ceb381a4cdb05e0c0b237ec4180106e970dc08a4",
+  "authors": [
+    {
+      "n": "twang5",
+      "e": "twang5@swarthmore.edu"
+    },
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    },
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    }
+  ],
+  "changes": {
+    ".gitignore": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/viz/evoked.py": {
+      "a": 14,
+      "d": 1
+    },
+    "mne/viz/tests/test_topo.py": {
+      "a": 7,
+      "d": 0
+    },
+    "mne/viz/topo.py": {
+      "a": 2,
+      "d": 18
+    }
+  }
+}

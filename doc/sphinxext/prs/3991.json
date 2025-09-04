@@ -1,0 +1,75 @@
+{
+  "merge_commit_sha": "d136b9ac808dc65f1ffbbc3e6ef7b050f5ef0c84",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/visualization/plot_meg_sensors.py": {
+      "a": 8,
+      "d": 1
+    },
+    "mne/commands/mne_coreg.py": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/coreg.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/defaults.py": {
+      "a": 18,
+      "d": 0
+    },
+    "mne/gui/__init__.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/gui/_coreg_gui.py": {
+      "a": 115,
+      "d": 34
+    },
+    "mne/gui/_fiducials_gui.py": {
+      "a": 6,
+      "d": 3
+    },
+    "mne/gui/_file_traits.py": {
+      "a": 50,
+      "d": 25
+    },
+    "mne/gui/_kit2fiff_gui.py": {
+      "a": 6,
+      "d": 5
+    },
+    "mne/gui/_marker_gui.py": {
+      "a": 6,
+      "d": 3
+    },
+    "mne/gui/_viewer.py": {
+      "a": 73,
+      "d": 79
+    },
+    "mne/gui/tests/test_file_traits.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/surface.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/utils.py": {
+      "a": 12,
+      "d": 0
+    },
+    "mne/viz/_3d.py": {
+      "a": 79,
+      "d": 41
+    },
+    "tutorials/plot_visualize_evoked.py": {
+      "a": 0,
+      "d": 1
+    }
+  }
+}

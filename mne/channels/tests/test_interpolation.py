@@ -1,5 +1,7 @@
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 from itertools import compress
 from pathlib import Path
 
@@ -10,7 +12,7 @@ from numpy.testing import assert_allclose, assert_array_equal
 from mne import Epochs, pick_channels, pick_types, read_events
 from mne._fiff.constants import FIFF
 from mne._fiff.proj import _has_eeg_average_ref_proj
-from mne.channels import make_dig_montage
+from mne.channels import make_dig_montage, make_standard_montage
 from mne.channels.interpolation import _make_interpolation_matrix
 from mne.datasets import testing
 from mne.io import RawArray, read_raw_ctf, read_raw_fif, read_raw_nirx
@@ -364,8 +366,6 @@ def test_interpolation_seeg():
     # check that interpolation changes the data in raw
     raw_seeg = RawArray(data=epochs_seeg._data[0], info=epochs_seeg.info)
     raw_before = raw_seeg.copy()
-    with pytest.raises(RuntimeError, match="1 good contact"):
-        raw_seeg.interpolate_bads(method=dict(seeg="spline"))
     montage = raw_seeg.get_montage()
     pos = montage.get_positions()
     ch_pos = pos.pop("ch_pos")
@@ -377,6 +377,29 @@ def test_interpolation_seeg():
     raw_after = raw_seeg.interpolate_bads(method=dict(seeg="spline"))
     assert not np.all(raw_before._data[bads_mask] == raw_after._data[bads_mask])
     assert_array_equal(raw_before._data[~bads_mask], raw_after._data[~bads_mask])
+
+    # check interpolation on epochs
+    epochs_seeg.set_montage(make_dig_montage(ch_pos, **pos))
+    epochs_before = epochs_seeg.copy()
+    epochs_after = epochs_seeg.interpolate_bads(method=dict(seeg="spline"))
+    assert not np.all(
+        epochs_before._data[:, bads_mask] == epochs_after._data[:, bads_mask]
+    )
+    assert_array_equal(
+        epochs_before._data[:, ~bads_mask], epochs_after._data[:, ~bads_mask]
+    )
+
+    # test shaft all bad
+    epochs_seeg.info["bads"] = epochs_seeg.ch_names
+    with pytest.raises(RuntimeError, match="Not enough good channels"):
+        epochs_seeg.interpolate_bads(method=dict(seeg="spline"))
+
+    # test bad not on shaft
+    ch_pos[bads[0]] = np.array([10, 10, 10])
+    epochs_seeg.info["bads"] = bads
+    epochs_seeg.set_montage(make_dig_montage(ch_pos, **pos))
+    with pytest.raises(RuntimeError, match="No shaft found"):
+        epochs_seeg.interpolate_bads(method=dict(seeg="spline"))
 
 
 def test_nan_interpolation(raw):
@@ -416,3 +439,85 @@ def test_method_str():
         raw.interpolate_bads(method="spline")
     raw.pick("eeg", exclude=())
     raw.interpolate_bads(method="spline")
+
+
+@pytest.mark.parametrize("montage_name", ["biosemi16", "standard_1020"])
+@pytest.mark.parametrize("method", ["spline", "MNE"])
+@pytest.mark.parametrize("data_type", ["raw", "epochs", "evoked"])
+def test_interpolate_to_eeg(montage_name, method, data_type):
+    """Test the interpolate_to method for EEG for raw, epochs, and evoked."""
+    # Load EEG data
+    raw, epochs_eeg = _load_data("eeg")
+    epochs_eeg = epochs_eeg.copy()
+
+    # Load data for raw
+    raw.load_data()
+
+    # Create a target montage
+    montage = make_standard_montage(montage_name)
+
+    # Prepare data to interpolate to
+    if data_type == "raw":
+        inst = raw.copy()
+    elif data_type == "epochs":
+        inst = epochs_eeg.copy()
+    elif data_type == "evoked":
+        inst = epochs_eeg.average()
+    shape = list(inst._data.shape)
+    orig_total = len(inst.info["ch_names"])
+    n_eeg_orig = len(pick_types(inst.info, eeg=True))
+
+    # Assert first and last channels are not EEG
+    if data_type == "raw":
+        ch_types = inst.get_channel_types()
+        assert ch_types[0] != "eeg"
+        assert ch_types[-1] != "eeg"
+
+    # Record the names and data of the first and last channels.
+    if data_type == "raw":
+        first_name = inst.info["ch_names"][0]
+        last_name = inst.info["ch_names"][-1]
+        data_first = inst._data[..., 0, :].copy()
+        data_last = inst._data[..., -1, :].copy()
+
+    # Interpolate the EEG channels.
+    inst_interp = inst.copy().interpolate_to(montage, method=method)
+
+    # Check that the new channel names include the montage channels.
+    assert set(montage.ch_names).issubset(set(inst_interp.info["ch_names"]))
+    # Check that the overall channel order is changed.
+    assert inst.info["ch_names"] != inst_interp.info["ch_names"]
+
+    # Check that the data shape is as expected.
+    new_nchan_expected = orig_total - n_eeg_orig + len(montage.ch_names)
+    expected_shape = (new_nchan_expected, shape[-1])
+    if len(shape) == 3:
+        expected_shape = (shape[0],) + expected_shape
+    assert inst_interp._data.shape == expected_shape
+
+    # Verify that the first and last channels retain their positions.
+    if data_type == "raw":
+        assert inst_interp.info["ch_names"][0] == first_name
+        assert inst_interp.info["ch_names"][-1] == last_name
+
+    # Verify that the data for the first and last channels is unchanged.
+    if data_type == "raw":
+        np.testing.assert_allclose(
+            inst_interp._data[..., 0, :],
+            data_first,
+            err_msg="Data for the first non-EEG channel has changed.",
+        )
+        np.testing.assert_allclose(
+            inst_interp._data[..., -1, :],
+            data_last,
+            err_msg="Data for the last non-EEG channel has changed.",
+        )
+
+    # Validate that bad channels are carried over.
+    # Mark the first non eeg channel as bad
+    all_ch = inst_interp.info["ch_names"]
+    eeg_ch = [all_ch[i] for i in pick_types(inst_interp.info, eeg=True)]
+    bads = [ch for ch in all_ch if ch not in eeg_ch][:1]
+    inst.info["bads"] = bads
+    inst_interp = inst.copy().interpolate_to(montage, method=method)
+    assert inst_interp.info["bads"] == bads

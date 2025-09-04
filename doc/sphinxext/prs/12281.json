@@ -1,0 +1,63 @@
+{
+  "merge_commit_sha": "8af33df490f94c3dd628cfc23beafed1a6cc6361",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".github/workflows/tests.yml": {
+      "a": 0,
+      "d": 1
+    },
+    ".gitignore": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/devel.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/visualization/3d_to_2d.py": {
+      "a": 3,
+      "d": 6
+    },
+    "mne/conftest.py": {
+      "a": 5,
+      "d": 0
+    },
+    "mne/data/image/custom_layout.lout": {
+      "a": 0,
+      "d": 257
+    },
+    "mne/data/image/mni_brain.gif": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/datasets/config.py": {
+      "a": 2,
+      "d": 2
+    },
+    "pyproject.toml": {
+      "a": 8,
+      "d": 2
+    },
+    "tools/github_actions_dependencies.sh": {
+      "a": 5,
+      "d": 1
+    },
+    "tools/github_actions_install.sh": {
+      "a": 0,
+      "d": 5
+    },
+    "tools/github_actions_test.sh": {
+      "a": 12,
+      "d": 1
+    }
+  }
+}

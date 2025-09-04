@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "2b2510e53be77bddbe23a835dfdb06aa812f86ec",
+  "authors": [
+    {
+      "n": "jaeilepp",
+      "e": "jaeilepp@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/inverse/plot_covariance_whitening_dspm.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/forward/tests/test_make_forward.py": {
+      "a": 7,
+      "d": 5
+    },
+    "mne/io/base.py": {
+      "a": 6,
+      "d": 0
+    },
+    "mne/io/fiff/raw.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/fiff/tests/test_raw_fiff.py": {
+      "a": 5,
+      "d": 0
+    },
+    "mne/simulation/tests/test_raw.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/tests/test_coreg.py": {
+      "a": 7,
+      "d": 2
+    },
+    "mne/tests/test_source_space.py": {
+      "a": 4,
+      "d": 4
+    }
+  }
+}

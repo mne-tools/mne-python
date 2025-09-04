@@ -1,6 +1,4 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Joan Massich <mailsik@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -124,10 +122,7 @@ def fetch_data(
         )
         _on_missing(on_missing, msg)
     if 13 in subjects and 2 in recording:
-        msg = (
-            "Requested recording 2 for subject 13, but it is not available "
-            "in corpus."
-        )
+        msg = "Requested recording 2 for subject 13, but it is not available in corpus."
         _on_missing(on_missing, msg)
 
     fnames = []

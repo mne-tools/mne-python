@@ -1,5 +1,4 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -312,8 +311,6 @@ def test_get_montage_volume_labels():
     np.testing.assert_almost_equal(colors["Unknown"], (0.0, 0.0, 0.0, 1.0))
 
     # test inputs
-    with pytest.raises(RuntimeError, match='`aseg` file path must end with "aseg"'):
-        get_montage_volume_labels(montage, "sample", subjects_dir, aseg="foo")
     fail_montage = make_dig_montage(ch_pos, coord_frame="head")
     with pytest.raises(RuntimeError, match="Coordinate frame not supported"):
         get_montage_volume_labels(fail_montage, "sample", subjects_dir, aseg="aseg")

@@ -1,19 +1,18 @@
-# Authors: Eric Larson <larson.eric.d@gmail.com>
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-import os
-import os.path as op
+from pathlib import Path
 
 from ...utils import get_subjects_dir, set_config, verbose
 from ..utils import _get_path, _manifest_check_download
 
-FSAVERAGE_MANIFEST_PATH = op.dirname(__file__)
+FSAVERAGE_MANIFEST_PATH = Path(__file__).parent
 
 
 @verbose
 def fetch_fsaverage(subjects_dir=None, *, verbose=None):
-    """Fetch and update fsaverage.
+    """Fetch and update :ref:`fsaverage <fsaverage_background>`.
 
     Parameters
     ----------
@@ -26,9 +25,12 @@ def fetch_fsaverage(subjects_dir=None, *, verbose=None):
 
     Returns
     -------
-    fs_dir : str
+    fs_dir : Path
         The fsaverage directory.
-        (essentially ``subjects_dir + '/fsaverage'``).
+        (essentially ``subjects_dir / 'fsaverage'``).
+
+        .. versionchanged:: 1.8
+           A :class:`pathlib.Path` object is returned instead of a string.
 
     Notes
     -----
@@ -65,18 +67,18 @@ def fetch_fsaverage(subjects_dir=None, *, verbose=None):
     #     fid.write('\n'.join(names))
     #
     subjects_dir = _set_montage_coreg_path(subjects_dir)
-    subjects_dir = op.abspath(op.expanduser(subjects_dir))
-    fs_dir = op.join(subjects_dir, "fsaverage")
-    os.makedirs(fs_dir, exist_ok=True)
+    subjects_dir = subjects_dir.expanduser().absolute()
+    fs_dir = subjects_dir / "fsaverage"
+    fs_dir.mkdir(parents=True, exist_ok=True)
     _manifest_check_download(
-        manifest_path=op.join(FSAVERAGE_MANIFEST_PATH, "root.txt"),
-        destination=op.join(subjects_dir),
+        manifest_path=FSAVERAGE_MANIFEST_PATH / "root.txt",
+        destination=subjects_dir,
         url="https://osf.io/3bxqt/download?version=2",
         hash_="5133fe92b7b8f03ae19219d5f46e4177",
     )
     _manifest_check_download(
-        manifest_path=op.join(FSAVERAGE_MANIFEST_PATH, "bem.txt"),
-        destination=op.join(subjects_dir, "fsaverage"),
+        manifest_path=FSAVERAGE_MANIFEST_PATH / "bem.txt",
+        destination=subjects_dir / "fsaverage",
         url="https://osf.io/7ve8g/download?version=4",
         hash_="b31509cdcf7908af6a83dc5ee8f49fb1",
     )
@@ -87,45 +89,13 @@ def _get_create_subjects_dir(subjects_dir):
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=False)
     if subjects_dir is None:
         subjects_dir = _get_path(None, "MNE_DATA", "montage coregistration")
-        subjects_dir = op.join(subjects_dir, "MNE-fsaverage-data")
-        os.makedirs(subjects_dir, exist_ok=True)
-    else:
-        subjects_dir = str(subjects_dir)
+        subjects_dir = subjects_dir / "MNE-fsaverage-data"
+        subjects_dir.mkdir(parents=True, exist_ok=True)
     return subjects_dir
 
 
 def _set_montage_coreg_path(subjects_dir=None):
-    """Set a subject directory suitable for montage(-only) coregistration.
-
-    Parameters
-    ----------
-    subjects_dir : path-like | None
-        The path to use as the subjects directory in the MNE-Python
-        config file. None will use the existing config variable (i.e.,
-        will not change anything), and if it does not exist, will use
-        ``~/mne_data/MNE-fsaverage-data``.
-
-    Returns
-    -------
-    subjects_dir : str
-        The subjects directory that was used.
-
-    See Also
-    --------
-    mne.datasets.fetch_fsaverage
-    mne.get_config
-    mne.set_config
-
-    Notes
-    -----
-    If you plan to only do EEG-montage based coregistrations with fsaverage
-    without any MRI warping, this function can facilitate the process.
-    Essentially it sets the default value for ``subjects_dir`` in MNE
-    functions to be ``~/mne_data/MNE-fsaverage-data`` (assuming it has
-    not already been set to some other value).
-
-    .. versionadded:: 0.18
-    """
+    """Set a subject directory suitable for montage(-only) coregistration."""
     subjects_dir = _get_create_subjects_dir(subjects_dir)
     old_subjects_dir = get_subjects_dir(None, raise_error=False)
     if old_subjects_dir is None:

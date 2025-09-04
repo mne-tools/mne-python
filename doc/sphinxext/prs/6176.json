@@ -1,0 +1,79 @@
+{
+  "merge_commit_sha": "b94eff339a5be230fce74ead7e562f7813b8c40d",
+  "authors": [
+    {
+      "n": "Teon L Brooks",
+      "e": null
+    }
+  ],
+  "changes": {
+    ".circleci/config.yml": {
+      "a": 18,
+      "d": 6
+    },
+    "doc/conf.py": {
+      "a": 5,
+      "d": 1
+    },
+    "doc/documentation.rst": {
+      "a": 4,
+      "d": 3
+    },
+    "examples/realtime/ftclient_rt_average.py": {
+      "a": 0,
+      "d": 94
+    },
+    "examples/realtime/ftclient_rt_compute_psd.py": {
+      "a": 0,
+      "d": 79
+    },
+    "examples/realtime/plot_compute_rt_average.py": {
+      "a": 2,
+      "d": 2
+    },
+    "examples/realtime/plot_ftclient_rt_average.py": {
+      "a": 104,
+      "d": 0
+    },
+    "examples/realtime/plot_ftclient_rt_compute_psd.py": {
+      "a": 90,
+      "d": 0
+    },
+    "examples/realtime/plot_lslclient_rt.py": {
+      "a": 16,
+      "d": 20
+    },
+    "examples/realtime/plot_rt_feedback_server.py": {
+      "a": 124,
+      "d": 0
+    },
+    "examples/realtime/rt_feedback_client.py": {
+      "a": 0,
+      "d": 1
+    },
+    "examples/realtime/rt_feedback_server.py": {
+      "a": 0,
+      "d": 147
+    },
+    "mne/realtime/fieldtrip_client.py": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/realtime/mock_lsl_stream.py": {
+      "a": 10,
+      "d": 3
+    },
+    "mne/realtime/tests/test_fieldtrip_client.py": {
+      "a": 13,
+      "d": 42
+    },
+    "mne/utils/__init__.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/utils/misc.py": {
+      "a": 50,
+      "d": 14
+    }
+  }
+}

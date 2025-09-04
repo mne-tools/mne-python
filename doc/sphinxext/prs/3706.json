@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "6440eae0f542f33e539cd992375a809c1a02e3e4",
+  "authors": [
+    {
+      "n": "jaeilepp",
+      "e": "jaeilepp@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 2,
+      "d": 5
+    },
+    "mne/viz/epochs.py": {
+      "a": 2,
+      "d": 5
+    },
+    "mne/viz/evoked.py": {
+      "a": 3,
+      "d": 5
+    },
+    "mne/viz/topomap.py": {
+      "a": 18,
+      "d": 27
+    },
+    "mne/viz/utils.py": {
+      "a": 11,
+      "d": 0
+    }
+  }
+}

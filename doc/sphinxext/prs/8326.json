@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "47ce37e3cacd63fed04ca4e078dba60f0330f161",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 4,
+      "d": 0
+    },
+    "doc/glossary.rst": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 98,
+      "d": 84
+    },
+    "mne/preprocessing/tests/test_ica.py": {
+      "a": 125,
+      "d": 63
+    },
+    "mne/utils/tests/test_numerics.py": {
+      "a": 3,
+      "d": 2
+    }
+  }
+}

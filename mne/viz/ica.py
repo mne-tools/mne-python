@@ -1,10 +1,6 @@
 """Functions to plot ICA specific data (besides topographies)."""
 
-# Authors: Denis Engemann <denis.engemann@gmail.com>
-#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Teon Brooks <teon.brooks@gmail.com>
-#          Daniel McCloy <dan.mccloy@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -54,6 +50,7 @@ def plot_ica_sources(
     precompute=None,
     use_opengl=None,
     *,
+    psd_args=None,
     theme=None,
     overview_mode=None,
     splash=True,
@@ -95,6 +92,12 @@ def plot_ica_sources(
     %(time_format)s
     %(precompute)s
     %(use_opengl)s
+    psd_args : dict | None
+        Dictionary of arguments to pass to :meth:`~mne.Epochs.compute_psd` in
+        interactive  mode. Ignored if ``inst`` is not supplied. If ``None``,
+        nothing is passed. Defaults to ``None``.
+
+        .. versionadded:: 1.9
     %(theme_pg)s
 
         .. versionadded:: 1.0
@@ -126,7 +129,7 @@ def plot_ica_sources(
     exclude = ica.exclude
     picks = _picks_to_idx(ica.n_components_, picks, picks_on="components")
 
-    if isinstance(inst, (BaseRaw, BaseEpochs)):
+    if isinstance(inst, BaseRaw | BaseEpochs):
         fig = _plot_sources(
             ica,
             inst,
@@ -137,6 +140,7 @@ def plot_ica_sources(
             show=show,
             title=title,
             block=block,
+            psd_args=psd_args,
             show_first_samp=show_first_samp,
             show_scrollbars=show_scrollbars,
             time_format=time_format,
@@ -339,7 +343,7 @@ def _plot_ica_properties(
         _set_scale(spec_ax, "log")
 
     # epoch variance
-    var_ax_title = "Dropped segments: %.2f %%" % var_percent
+    var_ax_title = f"Dropped segments: {var_percent:.2f} %"
     set_title_and_labels(var_ax, var_ax_title, kind, "Variance (AU)")
 
     hist_ax.set_ylabel("")
@@ -379,10 +383,10 @@ def _plot_ica_properties(
     return fig
 
 
-def _get_psd_label_and_std(this_psd, dB, ica, num_std):
+def _get_psd_label_and_std(this_psd, dB, ica, num_std, *, estimate):
     """Handle setting up PSD for one component, for plot_ica_properties."""
     psd_ylabel = _convert_psds(
-        this_psd, dB, estimate="auto", scaling=1.0, unit="AU", first_dim="epoch"
+        this_psd, dB, estimate=estimate, scaling=1.0, unit="AU", first_dim="epoch"
     )
     psds_mean = this_psd.mean(axis=0)
     diffs = this_psd - psds_mean
@@ -417,6 +421,7 @@ def plot_ica_properties(
     reject="auto",
     reject_by_annotation=True,
     *,
+    estimate="power",
     verbose=None,
 ):
     """Display component properties.
@@ -487,6 +492,9 @@ def plot_ica_properties(
     %(reject_by_annotation_raw)s
 
         .. versionadded:: 0.21.0
+    %(estimate_plot_psd)s
+
+        .. versionadded:: 1.8.0
     %(verbose)s
 
     Returns
@@ -514,6 +522,7 @@ def plot_ica_properties(
         reject=reject,
         reject_by_annotation=reject_by_annotation,
         verbose=verbose,
+        estimate=estimate,
         precomputed_data=None,
     )
 
@@ -535,6 +544,7 @@ def _fast_plot_ica_properties(
     precomputed_data=None,
     reject_by_annotation=True,
     *,
+    estimate="power",
     verbose=None,
 ):
     """Display component properties."""
@@ -557,7 +567,7 @@ def _fast_plot_ica_properties(
         fig, axes = _create_properties_layout(figsize=figsize)
     else:
         if len(picks) > 1:
-            raise ValueError("Only a single pick can be drawn " "to a set of axes.")
+            raise ValueError("Only a single pick can be drawn to a set of axes.")
         from .utils import _validate_if_list_of_axes
 
         _validate_if_list_of_axes(axes, obligatory_len=5)
@@ -626,7 +636,11 @@ def _fast_plot_ica_properties(
     for idx, pick in enumerate(picks):
         # calculate component-specific spectrum stuff
         psd_ylabel, psds_mean, spectrum_std = _get_psd_label_and_std(
-            psds[:, idx, :].copy(), dB, ica, num_std
+            psds[:, idx, :].copy(),
+            dB,
+            ica,
+            num_std,
+            estimate=estimate,
         )
 
         # if more than one component, spawn additional figures and axes
@@ -855,8 +869,18 @@ def _plot_ica_sources_evoked(evoked, picks, exclude, title, show, ica, labels=No
         lines[-1].set_pickradius(3.0)
 
     ax.set(title=title, xlim=times[[0, -1]], xlabel="Time (ms)", ylabel="(NA)")
-    if len(lines):
-        ax.legend(lines, exclude_labels, loc="best")
+    leg_lines_labels = list(
+        zip(
+            *[
+                (line, label)
+                for line, label in zip(lines, exclude_labels)
+                if label is not None
+            ]
+        )
+    )
+    if len(leg_lines_labels):
+        leg_lines, leg_labels = leg_lines_labels
+        ax.legend(leg_lines, leg_labels, loc="best")
 
     texts.append(
         ax.text(
@@ -949,7 +973,7 @@ def plot_ica_scores(
     if exclude is None:
         exclude = ica.exclude
     exclude = np.unique(exclude)
-    if not isinstance(scores[0], (list, np.ndarray)):
+    if not isinstance(scores[0], list | np.ndarray):
         scores = [scores]
     n_scores = len(scores)
 
@@ -990,14 +1014,12 @@ def plot_ica_scores(
         labels = (None,) * n_scores
 
     if len(labels) != n_scores:
-        raise ValueError(
-            "Need as many labels (%i) as scores (%i)" % (len(labels), n_scores)
-        )
+        raise ValueError(f"Need as many labels ({len(labels)}) as scores ({n_scores})")
 
     for label, this_scores, ax in zip(labels, scores, axes):
         if len(my_range) != len(this_scores):
             raise ValueError(
-                "The length of `scores` must equal the " "number of ICA components."
+                "The length of `scores` must equal the number of ICA components."
             )
         ax.bar(my_range, this_scores, color="gray", edgecolor="k")
         for excl in exclude:
@@ -1015,7 +1037,7 @@ def plot_ica_scores(
                 label = ", ".join([split[0], split[2]])
             elif "/" in label:
                 label = ", ".join(label.split("/"))
-            ax.set_title("(%s)" % label)
+            ax.set_title(f"({label})")
         ax.set_xlabel("ICA components")
         ax.set_xlim(-0.6, len(this_scores) - 0.4)
     fig.canvas.draw()
@@ -1089,8 +1111,8 @@ def plot_ica_overlay(
     picks = _picks_to_idx(inst.info, picks, exclude=())
     if exclude is None:
         exclude = ica.exclude
-    if not isinstance(exclude, (np.ndarray, list)):
-        raise TypeError("exclude must be of type list. Got %s" % type(exclude))
+    if not isinstance(exclude, np.ndarray | list):
+        raise TypeError(f"exclude must be of type list. Got {type(exclude)}")
     if isinstance(inst, BaseRaw):
         start = 0.0 if start is None else start
         stop = 3.0 if stop is None else stop
@@ -1270,6 +1292,7 @@ def _plot_sources(
     precompute,
     use_opengl,
     *,
+    psd_args,
     theme=None,
     overview_mode=None,
     splash=True,
@@ -1417,6 +1440,7 @@ def _plot_sources(
         use_opengl=use_opengl,
         theme=theme,
         overview_mode=overview_mode,
+        psd_args=psd_args,
         splash=splash,
     )
     if is_epo:

@@ -1,0 +1,175 @@
+{
+  "merge_commit_sha": "bdbc4f9207822901f1af229394ba4bc05b347aa4",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 6,
+      "d": 0
+    },
+    "examples/forward/plot_forward_sensitivity_maps.py": {
+      "a": 2,
+      "d": 1
+    },
+    "examples/inverse/plot_custom_inverse_solver.py": {
+      "a": 7,
+      "d": 1
+    },
+    "examples/inverse/plot_dics_beamformer.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/inverse/plot_dics_source_power.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/inverse/plot_gamma_map_inverse.py": {
+      "a": 2,
+      "d": 2
+    },
+    "examples/inverse/plot_lcmv_beamformer.py": {
+      "a": 2,
+      "d": 1
+    },
+    "examples/inverse/plot_mixed_norm_inverse.py": {
+      "a": 2,
+      "d": 1
+    },
+    "examples/inverse/plot_mne_point_spread_function.py": {
+      "a": 1,
+      "d": 2
+    },
+    "examples/inverse/plot_rap_music.py": {
+      "a": 1,
+      "d": 2
+    },
+    "examples/inverse/plot_tf_dics.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/inverse/plot_tf_lcmv.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/inverse/plot_time_frequency_mixed_norm_inverse.py": {
+      "a": 2,
+      "d": 2
+    },
+    "examples/simulation/plot_simulate_evoked_data.py": {
+      "a": 4,
+      "d": 1
+    },
+    "examples/visualization/plot_ssp_projs_sensitivity_map.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/beamformer/tests/test_dics.py": {
+      "a": 8,
+      "d": 5
+    },
+    "mne/beamformer/tests/test_lcmv.py": {
+      "a": 7,
+      "d": 5
+    },
+    "mne/beamformer/tests/test_rap_music.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/forward/__init__.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/forward/_make_forward.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/forward/forward.py": {
+      "a": 236,
+      "d": 83
+    },
+    "mne/forward/tests/test_forward.py": {
+      "a": 82,
+      "d": 15
+    },
+    "mne/forward/tests/test_make_forward.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/inverse_sparse/_gamma_map.py": {
+      "a": 7,
+      "d": 1
+    },
+    "mne/inverse_sparse/mxne_inverse.py": {
+      "a": 15,
+      "d": 4
+    },
+    "mne/inverse_sparse/tests/test_gamma_map.py": {
+      "a": 5,
+      "d": 3
+    },
+    "mne/inverse_sparse/tests/test_mxne_inverse.py": {
+      "a": 5,
+      "d": 4
+    },
+    "mne/minimum_norm/inverse.py": {
+      "a": 10,
+      "d": 6
+    },
+    "mne/minimum_norm/psf_ctf.py": {
+      "a": 13,
+      "d": 5
+    },
+    "mne/minimum_norm/tests/test_inverse.py": {
+      "a": 13,
+      "d": 8
+    },
+    "mne/minimum_norm/tests/test_psf_ctf.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/simulation/raw.py": {
+      "a": 6,
+      "d": 3
+    },
+    "mne/simulation/tests/test_evoked.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/simulation/tests/test_raw.py": {
+      "a": 40,
+      "d": 25
+    },
+    "mne/simulation/tests/test_source.py": {
+      "a": 8,
+      "d": 6
+    },
+    "mne/tests/test_chpi.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/tests/test_dipole.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/tests/test_proj.py": {
+      "a": 2,
+      "d": 1
+    },
+    "tutorials/plot_forward.py": {
+      "a": 2,
+      "d": 2
+    },
+    "tutorials/plot_mne_dspm_source_localization.py": {
+      "a": 2,
+      "d": 1
+    },
+    "tutorials/plot_point_spread.py": {
+      "a": 3,
+      "d": 2
+    }
+  }
+}

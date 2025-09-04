@@ -1,7 +1,4 @@
-# Authors: Denis Engemann <denis.engemann@gmail.com>
-#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Teon Brooks <teon.brooks@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -19,7 +16,6 @@ p_dir = Path(__file__).parents[2] / "io" / "kit" / "tests" / "data"
 elp = p_dir / "test_elp.txt"
 hsp = p_dir / "test_hsp.txt"
 hpi = p_dir / "test_mrk.sqd"
-point_names = ["nasion", "lpa", "rpa", "1", "2", "3", "4", "5"]
 io_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
 fif_fname = io_dir / "test_raw.fif"
 
@@ -52,7 +48,7 @@ def test_plot_montage():
     assert "0 channels" in repr(montage)
     with pytest.raises(RuntimeError, match="No valid channel positions"):
         montage.plot()
-    d = read_dig_fif(fname=fif_fname)
+    d = read_dig_fif(fname=fif_fname, verbose="error")
     assert "61 channels" in repr(d)
     # XXX this is broken; dm.point_names is used. Sometimes we say this should
     # Just contain the HPI coils, other times that it's all channels (e.g.,

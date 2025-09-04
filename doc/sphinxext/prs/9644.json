@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "759d1f9630c82109210da1eb41b45a7cd30a0f12",
+  "authors": [
+    {
+      "n": "Alex Rockhill",
+      "e": "aprockhill@mailbox.org"
+    }
+  ],
+  "changes": {
+    "examples/visualization/eeglab_head_sphere.py": {
+      "a": 6,
+      "d": 1
+    }
+  }
+}

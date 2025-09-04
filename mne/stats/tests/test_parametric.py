@@ -1,5 +1,7 @@
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 from functools import partial
 from itertools import product
 
@@ -148,14 +150,14 @@ def test_ttest_equiv(kind, kwargs, sigma, seed):
     rng = np.random.RandomState(seed)
 
     def theirs(*a, **kw):
-        f = getattr(scipy.stats, "ttest_%s" % (kind,))
+        f = getattr(scipy.stats, f"ttest_{kind}")
         if kind == "1samp":
             func = partial(f, popmean=0, **kwargs)
         else:
             func = partial(f, **kwargs)
         return func(*a, **kw)[0]
 
-    ours = partial(getattr(mne.stats, "ttest_%s_no_p" % (kind,)), sigma=sigma, **kwargs)
+    ours = partial(getattr(mne.stats, f"ttest_{kind}_no_p"), sigma=sigma, **kwargs)
 
     X = rng.randn(3, 4, 5)
     if kind == "ind":

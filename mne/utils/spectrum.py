@@ -1,8 +1,36 @@
+"""Utility functions for spectral and spectrotemporal analysis."""
+
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 from inspect import currentframe, getargvalues, signature
 
 from ..utils import warn
+
+
+def _get_instance_type_string(inst):
+    """Get string representation of the originating instance type."""
+    from numpy import ndarray
+
+    from ..epochs import BaseEpochs
+    from ..evoked import Evoked, EvokedArray
+    from ..io import BaseRaw
+
+    parent_classes = inst._inst_type.__bases__
+    if BaseRaw in parent_classes:
+        inst_type_str = "Raw"
+    elif BaseEpochs in parent_classes:
+        inst_type_str = "Epochs"
+    elif inst._inst_type in (Evoked, EvokedArray):
+        inst_type_str = "Evoked"
+    elif inst._inst_type == ndarray:
+        inst_type_str = "Array"
+    else:
+        raise RuntimeError(
+            f"Unknown instance type {inst._inst_type} in {type(inst).__name__}"
+        )
+    return inst_type_str
 
 
 def _pop_with_fallback(mapping, key, fallback_fun):
@@ -33,7 +61,7 @@ def _update_old_psd_kwargs(kwargs):
         "ci_alpha", _pop_with_fallback(kwargs, "area_alpha", fallback_fun)
     )
     est = _pop_with_fallback(kwargs, "estimate", fallback_fun)
-    kwargs.setdefault("amplitude", "auto" if est == "auto" else (est == "amplitude"))
+    kwargs.setdefault("amplitude", est == "amplitude")
     area_mode = _pop_with_fallback(kwargs, "area_mode", fallback_fun)
     kwargs.setdefault("ci", "sd" if area_mode == "std" else area_mode)
 

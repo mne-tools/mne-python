@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "b4a7c64e5b36747cfd3621e7a043ddd839db4e96",
+  "authors": [
+    {
+      "n": "GreasyCat",
+      "e": null
+    },
+    {
+      "n": "Scott Huberty",
+      "e": "52462026+scott-huberty@users.noreply.github.com"
+    },
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/13113.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/edf/edf.py": {
+      "a": 1,
+      "d": 3
+    }
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "merge_commit_sha": "e43136c22014cde2a0567f9e332faacb75f876dd",
+  "authors": [
+    {
+      "n": "Valerii",
+      "e": null
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/data/html_templates.py": {
+      "a": 2,
+      "d": 5
+    },
+    "mne/defaults.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/io/meas_info.py": {
+      "a": 44,
+      "d": 19
+    },
+    "mne/io/tests/test_meas_info.py": {
+      "a": 10,
+      "d": 0
+    },
+    "mne/io/tests/test_raw.py": {
+      "a": 3,
+      "d": 0
+    }
+  }
+}

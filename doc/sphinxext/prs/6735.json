@@ -1,0 +1,79 @@
+{
+  "merge_commit_sha": "bf7dd06bc6e693dbe53dd607e122a5424a579cbe",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".travis.yml": {
+      "a": 2,
+      "d": 1
+    },
+    "README.rst": {
+      "a": 5,
+      "d": 6
+    },
+    "doc/changes/latest.inc": {
+      "a": 8,
+      "d": 0
+    },
+    "mne/filter.py": {
+      "a": 2,
+      "d": 4
+    },
+    "mne/fixes.py": {
+      "a": 26,
+      "d": 156
+    },
+    "mne/tests/test_fixes.py": {
+      "a": 0,
+      "d": 25
+    },
+    "mne/utils/linalg.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/_3d.py": {
+      "a": 3,
+      "d": 21
+    },
+    "mne/viz/circle.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/epochs.py": {
+      "a": 7,
+      "d": 2
+    },
+    "mne/viz/misc.py": {
+      "a": 2,
+      "d": 3
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/viz/tests/test_misc.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/viz/tests/test_raw.py": {
+      "a": 9,
+      "d": 13
+    },
+    "mne/viz/tests/test_topo.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/topo.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/viz/utils.py": {
+      "a": 10,
+      "d": 31
+    }
+  }
+}

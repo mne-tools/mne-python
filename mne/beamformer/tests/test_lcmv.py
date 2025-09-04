@@ -1,5 +1,7 @@
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 from contextlib import nullcontext
 from copy import deepcopy
 from inspect import signature
@@ -208,7 +210,7 @@ def test_lcmv_vector():
     mne_ori = stc_vector_mne.data[mapping, :, np.arange(n_vertices)]
     mne_ori /= np.linalg.norm(mne_ori, axis=-1)[:, np.newaxis]
     mne_angles = np.rad2deg(np.arccos(np.sum(mne_ori * source_nn, axis=-1)))
-    assert np.mean(mne_angles) < 35
+    assert np.mean(mne_angles) < 36
 
     # Now let's do LCMV
     data_cov = mne.make_ad_hoc_cov(info)  # just a stub for later
@@ -378,9 +380,9 @@ def test_make_lcmv_bem(tmp_path, reg, proj, kind):
     rank = 17 if proj else 20
     assert "LCMV" in repr(filters)
     assert "unknown subject" not in repr(filters)
-    assert f'{fwd["nsource"]} vert' in repr(filters)
+    assert f"{fwd['nsource']} vert" in repr(filters)
     assert "20 ch" in repr(filters)
-    assert "rank %s" % rank in repr(filters)
+    assert f"rank {rank}" in repr(filters)
 
     # I/O
     fname = tmp_path / "filters.h5"
@@ -500,9 +502,7 @@ def test_make_lcmv_bem(tmp_path, reg, proj, kind):
 
     # check whether a filters object without src_type throws expected warning
     del filters["src_type"]  # emulate 0.16 behaviour to cause warning
-    with pytest.warns(
-        RuntimeWarning, match="spatial filter does not contain " "src_type"
-    ):
+    with pytest.warns(RuntimeWarning, match="spatial filter does not contain src_type"):
         apply_lcmv(evoked, filters)
 
     # Now test single trial using fixed orientation forward solution
@@ -589,9 +589,11 @@ def test_make_lcmv_sphere(pick_ori, weight_norm):
     fwd_sphere = mne.make_forward_solution(evoked.info, None, src, sphere)
 
     # Test that we get an error if not reducing rank
-    with pytest.raises(
-        ValueError, match="Singular matrix detected"
-    ), _record_warnings(), pytest.warns(RuntimeWarning, match="positive semidefinite"):
+    with (
+        pytest.raises(ValueError, match="Singular matrix detected"),
+        _record_warnings(),
+        pytest.warns(RuntimeWarning, match="positive semidefinite"),
+    ):
         make_lcmv(
             evoked.info,
             fwd_sphere,
@@ -850,7 +852,7 @@ def test_localization_bias_fixed(
 
 # Changes here should be synced with test_dics.py
 @pytest.mark.parametrize(
-    "reg, pick_ori, weight_norm, use_cov, depth, lower, upper, " "lower_ori, upper_ori",
+    "reg, pick_ori, weight_norm, use_cov, depth, lower, upper, lower_ori, upper_ori",
     [
         (
             0.05,

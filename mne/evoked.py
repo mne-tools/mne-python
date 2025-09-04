@@ -1,16 +1,12 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
-#          Denis Engemann <denis.engemann@gmail.com>
-#          Andrew Dykstra <andrew.r.dykstra@gmail.com>
-#          Mads Jensen <mje.mads@gmail.com>
-#          Jona Sassenhagen <jona.sassenhagen@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+from __future__ import annotations  # only needed for Python ≤ 3.9
+
 from copy import deepcopy
 from inspect import getfullargspec
-from typing import Union
+from pathlib import Path
 
 import numpy as np
 
@@ -48,6 +44,7 @@ from .filter import FilterMixin, _check_fun, detrend
 from .html_templates import _get_html_template
 from .parallel import parallel_func
 from .time_frequency.spectrum import Spectrum, SpectrumMixin, _validate_method
+from .time_frequency.tfr import AverageTFR
 from .utils import (
     ExtendedTimeMixin,
     SizeMixin,
@@ -179,7 +176,7 @@ class Evoked(
     ):
         _validate_type(proj, bool, "'proj'")
         # Read the requested data
-        fname = str(_check_fname(fname=fname, must_exist=True, overwrite="read"))
+        fname = _check_fname(fname=fname, must_exist=True, overwrite="read")
         (
             self.info,
             self.nave,
@@ -199,6 +196,18 @@ class Evoked(
         if proj:
             self.apply_proj()
         self.filename = fname
+
+    @property
+    def filename(self) -> Path | None:
+        """The filename of the evoked object, if it exists.
+
+        :type: :class:`~pathlib.Path` | None
+        """
+        return self._filename
+
+    @filename.setter
+    def filename(self, value):
+        self._filename = Path(value) if value is not None else value
 
     @property
     def kind(self):
@@ -460,20 +469,21 @@ class Evoked(
                 on_baseline_outside_data="adjust",
             ):
                 s += " (baseline period was cropped after baseline correction)"
-        s += ", %s ch" % self.data.shape[0]
+        s += f", {self.data.shape[0]} ch"
         s += f", ~{sizeof_fmt(self._size)}"
         return f"<Evoked | {s}>"
 
     @repr_html
     def _repr_html_(self):
-        if self.baseline is None:
-            baseline = "off"
-        else:
-            baseline = tuple([f"{b:.3f}" for b in self.baseline])
-            baseline = f"{baseline[0]} – {baseline[1]} s"
-
         t = _get_html_template("repr", "evoked.html.jinja")
-        t = t.render(evoked=self, baseline=baseline)
+        t = t.render(
+            inst=self,
+            filenames=(
+                [Path(self.filename).name]
+                if getattr(self, "filename", None) is not None
+                else None
+            ),
+        )
         return t
 
     @property
@@ -603,9 +613,11 @@ class Evoked(
         background_color="w",
         noise_cov=None,
         exclude="bads",
+        select=False,
         show=True,
     ):
-        """
+        """.
+
         Notes
         -----
         .. versionadded:: 0.10.0
@@ -628,6 +640,7 @@ class Evoked(
             background_color=background_color,
             noise_cov=noise_cov,
             exclude=exclude,
+            select=select,
             show=show,
         )
 
@@ -742,6 +755,8 @@ class Evoked(
         time_unit="s",
         sphere=None,
         axes=None,
+        *,
+        spatial_colors="auto",
         verbose=None,
     ):
         return plot_evoked_white(
@@ -752,6 +767,7 @@ class Evoked(
             time_unit=time_unit,
             sphere=sphere,
             axes=axes,
+            spatial_colors=spatial_colors,
             verbose=verbose,
         )
 
@@ -948,7 +964,7 @@ class Evoked(
 
         if out.comment is not None and " + " in out.comment:
             out.comment = f"({out.comment})"  # multiple conditions in evoked
-        out.comment = f'- {out.comment or "unknown"}'
+        out.comment = f"- {out.comment or 'unknown'}"
         return out
 
     def get_peak(
@@ -1039,8 +1055,7 @@ class Evoked(
                 raise ValueError('Channel type must be "grad" for merge_grads')
             elif mode == "neg":
                 raise ValueError(
-                    "Negative mode (mode=neg) does not make "
-                    "sense with merge_grads=True"
+                    "Negative mode (mode=neg) does not make sense with merge_grads=True"
                 )
 
         meg = eeg = misc = seeg = dbs = ecog = fnirs = False
@@ -1169,6 +1184,66 @@ class Evoked(
         )
 
     @verbose
+    def compute_tfr(
+        self,
+        method,
+        freqs,
+        *,
+        tmin=None,
+        tmax=None,
+        picks=None,
+        proj=False,
+        output="power",
+        decim=1,
+        n_jobs=None,
+        verbose=None,
+        **method_kw,
+    ):
+        """Compute a time-frequency representation of evoked data.
+
+        Parameters
+        ----------
+        %(method_tfr)s
+        %(freqs_tfr)s
+        %(tmin_tmax_psd)s
+        %(picks_good_data_noref)s
+        %(proj_psd)s
+        %(output_compute_tfr)s
+        %(decim_tfr)s
+        %(n_jobs)s
+        %(verbose)s
+        %(method_kw_tfr)s
+
+        Returns
+        -------
+        tfr : instance of AverageTFR
+            The time-frequency-resolved power estimates of the data.
+
+        Notes
+        -----
+        .. versionadded:: 1.7
+
+        References
+        ----------
+        .. footbibliography::
+        """
+        _check_option("output", output, ("power", "phase", "complex"))
+        method_kw["output"] = output
+        return AverageTFR(
+            inst=self,
+            method=method,
+            freqs=freqs,
+            tmin=tmin,
+            tmax=tmax,
+            picks=picks,
+            proj=proj,
+            decim=decim,
+            n_jobs=n_jobs,
+            verbose=verbose,
+            **method_kw,
+        )
+
+    @verbose
     def plot_psd(
         self,
         fmin=0,
@@ -1181,7 +1256,7 @@ class Evoked(
         method="auto",
         average=False,
         dB=True,
-        estimate="auto",
+        estimate="power",
         xscale="linear",
         area_mode="std",
         area_alpha=0.33,
@@ -1420,6 +1495,7 @@ class EvokedArray(Evoked):
         self.baseline = baseline
         if self.baseline is not None:  # omit log msg if not baselining
             self.apply_baseline(self.baseline)
+        self._filename = None
 
 
 def _get_entries(fid, evoked_node, allow_maxshield=False):
@@ -1444,7 +1520,7 @@ def _get_entries(fid, evoked_node, allow_maxshield=False):
     aspect_kinds = np.atleast_1d(aspect_kinds)
     if len(comments) != len(aspect_kinds) or len(comments) == 0:
         fid.close()
-        raise ValueError("Dataset names in FIF file " "could not be found.")
+        raise ValueError("Dataset names in FIF file could not be found.")
     t = [_aspect_rev[a] for a in aspect_kinds]
     t = ['"' + c + '" (' + tt + ")" for tt, c in zip(t, comments)]
     t = "\n".join(t)
@@ -1501,7 +1577,7 @@ def combine_evoked(all_evoked, weights):
 
     .. Warning::
         Other than cases like simple subtraction mentioned above (where all
-        weights are -1 or 1), if you provide numeric weights instead of using
+        weights are ``-1`` or ``1``), if you provide numeric weights instead of using
         ``'equal'`` or ``'nave'``, the resulting `~mne.Evoked` object's
         ``.nave`` attribute (which is used to scale noise covariance when
         applying the inverse operator) may not be suitable for inverse imaging.
@@ -1510,7 +1586,7 @@ def combine_evoked(all_evoked, weights):
     ----------
     all_evoked : list of Evoked
         The evoked datasets.
-    weights : list of float | 'equal' | 'nave'
+    weights : list of float | ``'equal'`` | ``'nave'``
         The weights to apply to the data of each evoked instance, or a string
         describing the weighting strategy to apply: ``'nave'`` computes
         sum-to-one weights proportional to each object's ``nave`` attribute;
@@ -1575,12 +1651,12 @@ def combine_evoked(all_evoked, weights):
         if e.comment is not None and " + " in e.comment:  # multiple conditions
             this_comment = f"({e.comment})"
         else:
-            this_comment = f'{e.comment or "unknown"}'
+            this_comment = f"{e.comment or 'unknown'}"
         # assemble everything
         if idx == 0:
             comment += f"{sign}{weight}{multiplier}{this_comment}"
         else:
-            comment += f' {sign or "+"} {weight}{multiplier}{this_comment}'
+            comment += f" {sign or '+'} {weight}{multiplier}{this_comment}"
     # special-case: combine_evoked([e1, -e2], [1, -1])
     evoked.comment = comment.replace(" - - ", " + ")
     return evoked
@@ -1595,7 +1671,7 @@ def read_evokeds(
     proj=True,
     allow_maxshield=False,
     verbose=None,
-) -> Union[list[Evoked], Evoked]:
+) -> list[Evoked] | Evoked:
     """Read evoked dataset(s).
 
     Parameters
@@ -1620,7 +1696,7 @@ def read_evokeds(
                   baseline correction, but merely omit the optional, additional
                   baseline correction.
     kind : str
-        Either 'average' or 'standard_error', the type of data to read.
+        Either ``'average'`` or ``'standard_error'``, the type of data to read.
     proj : bool
         If False, available projectors won't be applied to the data.
     allow_maxshield : bool | str (default False)
@@ -1628,7 +1704,7 @@ def read_evokeds(
         active compensation (MaxShield). Data recorded with MaxShield should
         generally not be loaded directly, but should first be processed using
         SSS/tSSS to remove the compensation signals that may also affect brain
-        activity. Can also be "yes" to load without eliciting a warning.
+        activity. Can also be ``"yes"`` to load without eliciting a warning.
     %(verbose)s
 
     Returns
@@ -1649,9 +1725,9 @@ def read_evokeds(
         saving, this will be reflected in their ``baseline`` attribute after
         reading.
     """
-    fname = str(_check_fname(fname, overwrite="read", must_exist=True))
+    fname = _check_fname(fname, overwrite="read", must_exist=True)
     check_fname(fname, "evoked", ("-ave.fif", "-ave.fif.gz", "_ave.fif", "_ave.fif.gz"))
-    logger.info("Reading %s ..." % fname)
+    logger.info(f"Reading {fname} ...")
     return_list = True
     if condition is None:
         evoked_node = _get_evoked_node(fname)
@@ -1708,7 +1784,7 @@ def _read_evoked(fname, condition=None, kind="average", allow_maxshield=False):
         # find string-based entry
         if isinstance(condition, str):
             if kind not in _aspect_dict.keys():
-                raise ValueError('kind must be "average" or ' '"standard_error"')
+                raise ValueError('kind must be "average" or "standard_error"')
 
             comments, aspect_kinds, t = _get_entries(fid, evoked_node, allow_maxshield)
             goods = np.isin(comments, [condition]) & np.isin(
@@ -1792,20 +1868,19 @@ def _read_evoked(fname, condition=None, kind="average", allow_maxshield=False):
         if nchan > 0:
             if chs is None:
                 raise ValueError(
-                    "Local channel information was not found " "when it was expected."
+                    "Local channel information was not found when it was expected."
                 )
 
             if len(chs) != nchan:
                 raise ValueError(
-                    "Number of channels and number of "
-                    "channel definitions are different"
+                    "Number of channels and number of channel definitions are different"
                 )
 
             ch_names_mapping = _read_extended_ch_info(chs, my_evoked, fid)
             info["chs"] = chs
             info["bads"][:] = _rename_list(info["bads"], ch_names_mapping)
             logger.info(
-                "    Found channel information in evoked data. " "nchan = %d" % nchan
+                f"    Found channel information in evoked data. nchan = {nchan}"
             )
             if sfreq > 0:
                 info["sfreq"] = sfreq
@@ -1833,7 +1908,7 @@ def _read_evoked(fname, condition=None, kind="average", allow_maxshield=False):
         if nepoch != 1 and nepoch != info["nchan"]:
             raise ValueError(
                 "Number of epoch tags is unreasonable "
-                "(nepoch = %d nchan = %d)" % (nepoch, info["nchan"])
+                f"(nepoch = {nepoch} nchan = {info['nchan']})"
             )
 
         if nepoch == 1:
@@ -1929,7 +2004,7 @@ def _write_evokeds(fname, evoked, check=True, *, on_mismatch="raise", overwrite=
             fname, "evoked", ("-ave.fif", "-ave.fif.gz", "_ave.fif", "_ave.fif.gz")
         )
 
-    if not isinstance(evoked, (list, tuple)):
+    if not isinstance(evoked, list | tuple):
         evoked = [evoked]
 
     warned = False
@@ -2075,12 +2150,12 @@ def _get_peak(data, times, tmin=None, tmax=None, mode="abs", *, strict=True):
     if mode == "pos":
         if strict and not np.any(data[~mask] > 0):
             raise ValueError(
-                "No positive values encountered. Cannot " "operate in pos mode."
+                "No positive values encountered. Cannot operate in pos mode."
             )
     elif mode == "neg":
         if strict and not np.any(data[~mask] < 0):
             raise ValueError(
-                "No negative values encountered. Cannot " "operate in neg mode."
+                "No negative values encountered. Cannot operate in neg mode."
             )
         maxfun = np.argmin
 

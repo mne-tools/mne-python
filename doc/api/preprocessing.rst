@@ -48,6 +48,7 @@ Projections:
    read_dig_localite
    make_standard_montage
    read_custom_montage
+   transform_to_head
    compute_dev_head_t
    read_layout
    find_layout
@@ -93,6 +94,7 @@ Projections:
    cortical_signal_suppression
    create_ecg_epochs
    create_eog_epochs
+   find_bad_channels_lof
    find_bad_channels_maxwell
    find_ecg_events
    find_eog_events
@@ -114,6 +116,7 @@ Projections:
    read_ica_eeglab
    read_fine_calibration
    write_fine_calibration
+   apply_pca_obs
 
 :py:mod:`mne.preprocessing.nirs`:
 

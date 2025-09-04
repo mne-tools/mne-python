@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "08583e8b49edee05298ff3656fe11ff9cc486e80",
+  "authors": [
+    {
+      "n": "Jona Sassenhagen",
+      "e": "jona.sassenhagen@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/stats/regression.py": {
+      "a": 3,
+      "d": 2
+    }
+  }
+}

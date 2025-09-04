@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "b8708b46499882062872cf7dea114dc08ad2b8cb",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "tools/github_actions_dependencies.sh": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

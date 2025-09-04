@@ -1,8 +1,6 @@
 """Classes to handle overlapping surfaces."""
 
-# Authors: Guillaume Favelier <guillaume.favelier@gmail.com>
-#          Eric Larson <larson.eric.d@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -150,11 +148,7 @@ class _LayeredMesh:
     def _apply(self):
         if self._current_colors is None or self._renderer is None:
             return
-        self._renderer._set_mesh_scalars(
-            mesh=self._polydata,
-            scalars=self._current_colors,
-            name=self._default_scalars_name,
-        )
+        self._polydata[self._default_scalars_name] = self._current_colors
 
     def update(self, colors=None):
         if colors is not None and self._cached_colors is not None:

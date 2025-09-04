@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "4adf459f7cf7f0a9d428d310ef4b958d9c9e63cc",
+  "authors": [
+    {
+      "n": "Denis A. Engemann",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/source/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/viz/misc.py": {
+      "a": 9,
+      "d": 4
+    }
+  }
+}

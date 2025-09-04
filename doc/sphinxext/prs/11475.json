@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "0dea13c2b3e6e9e90dbb5677be442eaf1203a180",
+  "authors": [
+    {
+      "n": "Thomas S. Binns",
+      "e": "t.s.binns@outlook.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/decoding/ssd.py": {
+      "a": 40,
+      "d": 33
+    }
+  }
+}

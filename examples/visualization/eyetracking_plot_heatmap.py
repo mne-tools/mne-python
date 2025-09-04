@@ -14,8 +14,10 @@ This tutorial covers plotting eye-tracking position data as a heatmap.
 
 """
 
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 # %%
 # Data loading
 # ------------
@@ -23,7 +25,6 @@ This tutorial covers plotting eye-tracking position data as a heatmap.
 # As usual we start by importing the modules we need and loading some
 # :ref:`example data <eyelink-dataset>`: eye-tracking data recorded from SR research's
 # ``'.asc'`` file format.
-
 
 import matplotlib.pyplot as plt
 
@@ -66,6 +67,10 @@ epochs = mne.Epochs(raw, event_id=["natural"], tmin=0, tmax=20, baseline=None)
 
 cmap = plt.get_cmap("viridis")
 plot_gaze(epochs["natural"], calibration=calibration, cmap=cmap, sigma=50)
+
+# %%
+# .. note:: The (0, 0) pixel coordinates are at the top-left of the
+#               trackable area of the screen for many eye trackers.
 
 # %%
 # Overlaying plots with images

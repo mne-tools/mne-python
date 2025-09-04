@@ -1,7 +1,6 @@
 """Create coordinate transforms."""
 
-# Author: Eric Larson <larson.eric.d<gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -45,7 +44,7 @@ def _quaternion_align(from_frame, to_frame, from_pts, to_pts, diff_tol=1e-4):
         )
         if diff > diff_tol:
             raise RuntimeError(
-                "Something is wrong: quaternion matching did " "not work (see above)"
+                "Something is wrong: quaternion matching did not work (see above)"
             )
     return Transform(from_frame, to_frame, trans)
 
@@ -65,7 +64,7 @@ def _make_ctf_coord_trans_set(res4, coils):
                     nas = p
         if lpa is None or rpa is None or nas is None:
             raise RuntimeError(
-                "Some of the mandatory HPI device-coordinate " "info was not there."
+                "Some of the mandatory HPI device-coordinate info was not there."
             )
         t = _make_transform_card("head", "ctf_head", lpa["r"], nas["r"], rpa["r"])
         T3 = invert_transform(t)
@@ -107,11 +106,11 @@ def _make_ctf_coord_trans_set(res4, coils):
                             d_pts[kind] = p["r"]
         if any(kind not in h_pts for kind in kinds[:-1]):
             raise RuntimeError(
-                "Some of the mandatory HPI device-coordinate " "info was not there."
+                "Some of the mandatory HPI device-coordinate info was not there."
             )
         if any(kind not in d_pts for kind in kinds[:-1]):
             raise RuntimeError(
-                "Some of the mandatory HPI head-coordinate " "info was not there."
+                "Some of the mandatory HPI head-coordinate info was not there."
             )
         use_kinds = [kind for kind in kinds if (kind in h_pts and kind in d_pts)]
         r_head = np.array([h_pts[kind] for kind in use_kinds])

@@ -1,14 +1,9 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Eric Larson <larson.eric.d@gmail.com>
-#          Joan Massich <mailsik@gmail.com>
-#          Guillaume Favelier <guillaume.favelier@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
 import platform
 from colorsys import rgb_to_hls
-from contextlib import nullcontext
 
 import numpy as np
 import pytest
@@ -66,19 +61,7 @@ def test_theme_colors(pg_backend, theme, monkeypatch, tmp_path):
     monkeypatch.setattr(darkdetect, "theme", lambda: "light")
     raw = RawArray(np.zeros((1, 1000)), create_info(1, 1000.0, "eeg"))
     _, api = _check_qt_version(return_api=True)
-    if api in ("PyQt6", "PySide6"):
-        if theme == "dark":  # we force darkdetect to say the sys is light
-            ctx = pytest.warns(RuntimeWarning, match="not yet supported")
-        else:
-            ctx = nullcontext()
-        return_early = True
-    else:
-        ctx = nullcontext()
-        return_early = False
-    with ctx:
-        fig = raw.plot(theme=theme)
-    if return_early:
-        return  # we could add a ton of conditionals below, but KISS
+    fig = raw.plot(theme=theme)
     is_dark = _qt_is_dark(fig)
     # on Darwin these checks get complicated, so don't bother for now
     if platform.system() == "Darwin":

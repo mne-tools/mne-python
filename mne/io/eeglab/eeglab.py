@@ -1,7 +1,4 @@
-# Authors: Mainak Jas <mainak.jas@telecom-paristech.fr>
-#          Jona Sassenhagen <jona.sassenhagen@gmail.com>
-#          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -52,8 +49,6 @@ def _check_eeglab_fname(fname, dataname):
             "Old data format .dat detected. Please update your EEGLAB "
             "version and resave the data in .fdt format"
         )
-    elif fmt != ".fdt":
-        raise OSError("Expected .fdt file format. Found %s format" % fmt)
 
     basedir = op.dirname(fname)
     data_fname = op.join(basedir, dataname)
@@ -75,6 +70,7 @@ def _check_eeglab_fname(fname, dataname):
 
 def _check_load_mat(fname, uint16_codec):
     """Check if the mat struct contains 'EEG'."""
+    fname = _check_fname(fname, "read", True)
     eeg = _readmat(fname, uint16_codec=uint16_codec)
     if "ALLEEG" in eeg:
         raise NotImplementedError(
@@ -93,7 +89,7 @@ def _check_load_mat(fname, uint16_codec):
 
 def _to_loc(ll):
     """Check if location exists."""
-    if isinstance(ll, (int, float)) or len(ll) > 0:
+    if isinstance(ll, int | float) or len(ll) > 0:
         return ll
     else:
         return np.nan
@@ -166,13 +162,13 @@ def _get_montage_information(eeg, get_pos, *, montage_units):
         )
 
     lpa, rpa, nasion = None, None, None
-    if hasattr(eeg, "chaninfo") and isinstance(eeg.chaninfo["nodatchans"], dict):
+    if hasattr(eeg, "chaninfo") and isinstance(eeg.chaninfo.get("nodatchans"), dict):
         nodatchans = eeg.chaninfo["nodatchans"]
         types = nodatchans.get("type", [])
         descriptions = nodatchans.get("description", [])
-        xs = nodatchans.get("X", [])
-        ys = nodatchans.get("Y", [])
-        zs = nodatchans.get("Z", [])
+        xs = np.atleast_1d(nodatchans.get("X", []))
+        ys = np.atleast_1d(nodatchans.get("Y", []))
+        zs = np.atleast_1d(nodatchans.get("Z", []))
 
         for type_, description, x, y, z in zip(types, descriptions, xs, ys, zs):
             if type_ != "FID":
@@ -236,7 +232,7 @@ def _get_info(eeg, *, eog, montage_units):
         )
         update_ch_names = False
     else:  # if eeg.chanlocs is empty, we still need default chan names
-        ch_names = ["EEG %03d" % ii for ii in range(eeg.nbchan)]
+        ch_names = [f"EEG {ii:03d}" for ii in range(eeg.nbchan)]
         ch_types = "eeg"
         eeg_montage = None
         update_ch_names = True
@@ -387,7 +383,7 @@ def read_epochs_eeglab(
 
     Returns
     -------
-    epochs : instance of Epochs
+    EpochsEEGLAB : instance of BaseEpochs
         The epochs.
 
     See Also
@@ -454,9 +450,9 @@ class RawEEGLAB(BaseRaw):
         eeg = _check_load_mat(input_fname, uint16_codec)
         if eeg.trials != 1:
             raise TypeError(
-                "The number of trials is %d. It must be 1 for raw"
+                f"The number of trials is {eeg.trials:d}. It must be 1 for raw"
                 " files. Please use `mne.io.read_epochs_eeglab` if"
-                " the .set file contains epochs." % eeg.trials
+                " the .set file contains epochs."
             )
 
         last_samps = [eeg.pnts - 1]
@@ -465,7 +461,7 @@ class RawEEGLAB(BaseRaw):
         # read the data
         if isinstance(eeg.data, str):
             data_fname = _check_eeglab_fname(input_fname, eeg.data)
-            logger.info("Reading %s" % data_fname)
+            logger.info(f"Reading {data_fname}")
 
             super().__init__(
                 info,
@@ -612,7 +608,7 @@ class EpochsEEGLAB(BaseEpochs):
             (events is None and event_id is None)
             or (events is not None and event_id is not None)
         ):
-            raise ValueError("Both `events` and `event_id` must be " "None or not None")
+            raise ValueError("Both `events` and `event_id` must be None or not None")
 
         if eeg.trials <= 1:
             raise ValueError(
@@ -629,7 +625,7 @@ class EpochsEEGLAB(BaseEpochs):
             epochs = _bunchify(eeg.epoch)
             events = _bunchify(eeg.event)
             for ep in epochs:
-                if isinstance(ep.eventtype, (int, float)):
+                if isinstance(ep.eventtype, int | float):
                     ep.eventtype = str(ep.eventtype)
                 if not isinstance(ep.eventtype, str):
                     event_type = "/".join([str(et) for et in ep.eventtype])
@@ -667,17 +663,15 @@ class EpochsEEGLAB(BaseEpochs):
                 events[idx, 0] = event_latencies[idx]
                 events[idx, 1] = prev_stim
                 events[idx, 2] = event_id[event_name[idx]]
-        elif isinstance(events, (str, Path, PathLike)):
+        elif isinstance(events, str | Path | PathLike):
             events = read_events(events)
 
-        logger.info("Extracting parameters from %s..." % input_fname)
+        logger.info(f"Extracting parameters from {input_fname}...")
         info, eeg_montage, _ = _get_info(eeg, eog=eog, montage_units=montage_units)
 
         for key, val in event_id.items():
             if val not in events[:, 2]:
-                raise ValueError(
-                    "No matching events found for %s " "(event id %i)" % (key, val)
-                )
+                raise ValueError(f"No matching events found for {key} (event id {val})")
 
         if isinstance(eeg.data, str):
             data_fname = _check_eeglab_fname(input_fname, eeg.data)
@@ -762,7 +756,7 @@ def _read_annotations_eeglab(eeg, uint16_codec=None):
 
     Parameters
     ----------
-    eeg : object | str
+    eeg : object | str | Path
         'EEG' struct or the path to the (EEGLAB) .set file.
     uint16_codec : str | None
         If your \*.set file contains non-ascii characters, sometimes reading
@@ -776,14 +770,14 @@ def _read_annotations_eeglab(eeg, uint16_codec=None):
     annotations : instance of Annotations
         The annotations present in the file.
     """
-    if isinstance(eeg, str):
+    if isinstance(eeg, (str | Path | PathLike)):
         eeg = _check_load_mat(eeg, uint16_codec=uint16_codec)
 
     if not hasattr(eeg, "event"):
         events = []
     elif isinstance(eeg.event, dict) and np.array(eeg.event["latency"]).ndim > 0:
         events = _dol_to_lod(eeg.event)
-    elif not isinstance(eeg.event, (np.ndarray, list)):
+    elif not isinstance(eeg.event, np.ndarray | list):
         events = [eeg.event]
     else:
         events = eeg.event
@@ -798,6 +792,22 @@ def _read_annotations_eeglab(eeg, uint16_codec=None):
                 isinstance(event.duration, np.ndarray) and len(event.duration) == 0
             )
             duration[idx] = np.nan if is_empty_array else event.duration
+
+    # Drop events with NaN onset see PR #12484
+    valid_indices = [
+        idx for idx, onset_idx in enumerate(onset) if not np.isnan(onset_idx)
+    ]
+    n_dropped = len(onset) - len(valid_indices)
+    if len(valid_indices) != len(onset):
+        warn(
+            f"{n_dropped} events have an onset that is NaN. These values are "
+            "usually ignored by EEGLAB and will be dropped from the "
+            "annotations."
+        )
+
+    onset = np.array([onset[idx] for idx in valid_indices])
+    duration = np.array([duration[idx] for idx in valid_indices])
+    description = [description[idx] for idx in valid_indices]
 
     return Annotations(
         onset=np.array(onset) / eeg.srate,

@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "bbb57464b299824c5417beb3e9fcd5e9805f293f",
+  "authors": [
+    {
+      "n": "Rob Luke",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/evoked.py": {
+      "a": 4,
+      "d": 3
+    },
+    "mne/viz/tests/test_topomap.py": {
+      "a": 17,
+      "d": 2
+    },
+    "mne/viz/topomap.py": {
+      "a": 4,
+      "d": 2
+    }
+  }
+}

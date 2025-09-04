@@ -1,9 +1,7 @@
-# -*- coding: UTF-8 -*-
-# Authors: Thomas Hartmann <thomas.hartmann@th-ht.de>
-#          Dirk Gütlin <dirk.guetlin@stud.sbg.ac.at>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 import numpy as np
 
 from ..._fiff._digitization import DigPoint, _ensure_fiducials_head
@@ -54,9 +52,8 @@ def _create_info(ft_struct, raw_info):
         if missing_channels:
             warn(
                 "The following channels are present in the FieldTrip data "
-                "but cannot be found in the provided info: %s.\n"
+                f"but cannot be found in the provided info: {missing_channels}.\n"
                 "These channels will be removed from the resulting data!"
-                % (str(missing_channels),)
             )
 
             missing_chan_idx = [ch_names.index(ch) for ch in missing_channels]
@@ -99,7 +96,7 @@ def _remove_missing_channels_from_trial(trial, missing_chan_idx):
             trial = np.delete(trial, missing_chan_idx, axis=0)
     else:
         raise ValueError(
-            '"trial" field of the FieldTrip structure ' "has an unknown format."
+            '"trial" field of the FieldTrip structure has an unknown format.'
         )
 
     return trial
@@ -174,8 +171,8 @@ def _create_info_chs_dig(ft_struct):
                 cur_ch["coil_type"] = FIFF.FIFFV_COIL_NONE
             else:
                 warn(
-                    "Cannot guess the correct type of channel %s. Making "
-                    "it a MISC channel." % (cur_channel_label,)
+                    f"Cannot guess the correct type of channel {cur_channel_label}. "
+                    "Making it a MISC channel."
                 )
                 cur_ch["kind"] = FIFF.FIFFV_MISC_CH
                 cur_ch["coil_type"] = FIFF.FIFFV_COIL_NONE
@@ -217,7 +214,7 @@ def _set_tmin(ft_struct):
         tmin = times[0][0]
     else:
         raise RuntimeError(
-            "Loading data with non-uniform " "times per epoch is not supported"
+            "Loading data with non-uniform times per epoch is not supported"
         )
     return tmin
 
@@ -239,7 +236,7 @@ def _create_events(ft_struct, trialinfo_column):
 
     if trialinfo_column > (available_ti_cols - 1):
         raise ValueError(
-            "trialinfo_column is higher than the amount of" "columns in trialinfo."
+            "trialinfo_column is higher than the amount of columns in trialinfo."
         )
 
     event_trans_val = np.zeros(len(event_type))
@@ -363,7 +360,7 @@ def _process_channel_meg(cur_ch, grad):
         cur_ch["coil_type"] = FIFF.FIFFV_COIL_AXIAL_GRAD_5CM
         cur_ch["unit"] = FIFF.FIFF_UNIT_T
     else:
-        raise RuntimeError("Unexpected coil type: %s." % (chantype,))
+        raise RuntimeError(f"Unexpected coil type: {chantype}.")
 
     cur_ch["coord_frame"] = FIFF.FIFFV_COORD_HEAD
 

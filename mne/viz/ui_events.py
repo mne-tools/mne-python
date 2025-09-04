@@ -9,13 +9,17 @@ stay in-sync.
 
 Authors: Marijn van Vliet <w.m.vanvliet@gmail.com>
 """
+
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
+from __future__ import annotations  # only needed for Python ≤ 3.9
+
 import contextlib
 import re
 import weakref
 from dataclasses import dataclass
-from typing import Optional, Union
 
 from matplotlib.colors import Colormap
 
@@ -144,12 +148,12 @@ class ColormapRange(UIEvent):
     """
 
     kind: str
-    ch_type: Optional[str] = None
-    fmin: Optional[float] = None
-    fmid: Optional[float] = None
-    fmax: Optional[float] = None
-    alpha: Optional[bool] = None
-    cmap: Optional[Union[Colormap, str]] = None
+    ch_type: str | None = None
+    fmin: float | None = None
+    fmid: float | None = None
+    fmax: float | None = None
+    alpha: bool | None = None
+    cmap: Colormap | str | None = None
 
 
 @dataclass
@@ -206,6 +210,26 @@ class Contours(UIEvent):
 
     kind: str
     contours: list[str]
+
+
+@dataclass
+@fill_doc
+class ChannelsSelect(UIEvent):
+    """Indicates that the user has selected one or more channels.
+
+    Parameters
+    ----------
+    ch_names : list of str
+        The names of the channels that were selected.
+
+    Attributes
+    ----------
+    %(ui_event_name_source)s
+    ch_names : list of str
+        The names of the channels that were selected.
+    """
+
+    ch_names: list[str]
 
 
 def _get_event_channel(fig):

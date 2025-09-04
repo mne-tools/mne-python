@@ -1,5 +1,4 @@
-# Authors: George O'Neill <g.o'neill@ucl.ac.uk>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -17,7 +16,7 @@ def compute_proj_hfc(
 ):
     """Generate projectors to perform homogeneous/harmonic correction to data.
 
-    Remove evironmental fields from magentometer data by assuming it is
+    Remove environmental fields from magnetometer data by assuming it is
     explained as a homogeneous :footcite:`TierneyEtAl2021` or harmonic field
     :footcite:`TierneyEtAl2022`. Useful for arrays of OPMs.
 
@@ -27,7 +26,7 @@ def compute_proj_hfc(
     order : int
         The order of the spherical harmonic basis set to use. Set to 1 to use
         only the homogeneous field component (default), 2 to add gradients, 3
-        to add quadrature terms etc.
+        to add quadrature terms, etc.
     picks : str | array_like | slice | None
         Channels to include. Default of ``'meg'`` (same as None) will select
         all non-reference MEG channels. Use ``('meg', 'ref_meg')`` to include
@@ -69,8 +68,7 @@ def compute_proj_hfc(
     n_chs = len(coils[5])
     if n_chs != info["nchan"]:
         raise ValueError(
-            f'Only {n_chs}/{info["nchan"]} picks could be interpreted '
-            "as MEG channels."
+            f"Only {n_chs}/{info['nchan']} picks could be interpreted as MEG channels."
         )
     S = _sss_basis(exp, coils)
     del coils

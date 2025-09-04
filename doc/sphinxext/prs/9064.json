@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "1fb6e41e7de3c896114453880267e301659c7105",
+  "authors": [
+    {
+      "n": "Martin G. Schulz",
+      "e": "dev@mgschulz.de"
+    }
+  ],
+  "changes": {
+    "tutorials/discussions/plot_background_filtering.py": {
+      "a": 46,
+      "d": 68
+    }
+  }
+}

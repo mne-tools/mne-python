@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "ce9a165fd57ceeb7dfa8d5b75f732d95260c61bf",
+  "authors": [
+    {
+      "n": "mathurinm",
+      "e": "mathurin.massias@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/inverse/plot_mixed_norm_inverse.py": {
+      "a": 4,
+      "d": 3
+    }
+  }
+}

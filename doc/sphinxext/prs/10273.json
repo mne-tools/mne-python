@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "4e8ae75d51d8fb4b9a20744c65f4f0eaa4eb7a82",
+  "authors": [
+    {
+      "n": "Eduard Ort",
+      "e": "eduardxort@gmail.com"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    },
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/viz/ica.py": {
+      "a": 4,
+      "d": 3
+    }
+  }
+}

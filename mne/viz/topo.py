@@ -1,10 +1,6 @@
 """Functions to plot M/EEG data on topo (one axes per channel)."""
 
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Denis Engemann <denis.engemann@gmail.com>
-#          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
-#          Eric Larson <larson.eric.d@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -14,11 +10,13 @@ from functools import partial
 import numpy as np
 from scipy import ndimage
 
-from .._fiff.pick import channel_type, pick_types
+from .._fiff.pick import _picks_to_idx, channel_type, pick_types
 from ..defaults import _handle_default
 from ..utils import Bunch, _check_option, _clean_names, _is_numeric, _to_rgb, fill_doc
+from .ui_events import ChannelsSelect, publish, subscribe
 from .utils import (
     DraggableColorbar,
+    SelectFromCollection,
     _check_cov,
     _check_delayed_ssp,
     _draw_proj_checkbox,
@@ -41,6 +39,7 @@ def iter_topography(
     axis_spinecolor="k",
     layout_scale=None,
     legend=False,
+    select=False,
 ):
     """Create iterator over channel positions.
 
@@ -76,6 +75,12 @@ def iter_topography(
         If True, an additional axis is created in the bottom right corner
         that can be used to, e.g., construct a legend. The index of this
         axis will be -1.
+    select : bool
+        Whether to enable the lasso-selection tool to enable the user to select
+        channels. The selected channels will be available in
+        ``fig.lasso.selection``.
+
+        .. versionadded:: 1.10.0
 
     Returns
     -------
@@ -97,6 +102,7 @@ def iter_topography(
         axis_spinecolor,
         layout_scale,
         legend=legend,
+        select=select,
     )
 
 
@@ -132,6 +138,7 @@ def _iter_topography(
     img=False,
     axes=None,
     legend=False,
+    select=False,
 ):
     """Iterate over topography.
 
@@ -164,14 +171,12 @@ def _iter_topography(
         else:
             in_box = False
         return (
-            ("%s (click to magnify)" % ch_names[closest])
-            if in_box
-            else "No channel here"
+            f"{ch_names[closest]} (click to magnify)" if in_box else "No channel here"
         )
 
     def format_coord_multiaxis(x, y, ch_name=None):
         """Update status bar with channel name under cursor."""
-        return "%s (click to magnify)" % ch_name
+        return f"{ch_name} (click to magnify)"
 
     fig.set_facecolor(fig_facecolor)
     if layout is None:
@@ -199,8 +204,11 @@ def _iter_topography(
         under_ax.set(xlim=[0, 1], ylim=[0, 1])
 
         axs = list()
+
+    shown_ch_names = []
     for idx, name in iter_ch:
         ch_idx = ch_names.index(name)
+        shown_ch_names.append(name)
         if not unified:  # old, slow way
             ax = plt.axes(pos[idx])
             ax.patch.set_facecolor(axis_facecolor)
@@ -232,24 +240,48 @@ def _iter_topography(
     if unified:
         under_ax._mne_axs = axs
         # Create a PolyCollection for the axis backgrounds
+        sel_pos = pos[[i[0] for i in iter_ch]]
         verts = np.transpose(
             [
-                pos[:, :2],
-                pos[:, :2] + pos[:, 2:] * [1, 0],
-                pos[:, :2] + pos[:, 2:],
-                pos[:, :2] + pos[:, 2:] * [0, 1],
+                sel_pos[:, :2],
+                sel_pos[:, :2] + sel_pos[:, 2:] * [1, 0],
+                sel_pos[:, :2] + sel_pos[:, 2:],
+                sel_pos[:, :2] + sel_pos[:, 2:] * [0, 1],
             ],
             [1, 0, 2],
         )
-        if not img:
-            under_ax.add_collection(
-                collections.PolyCollection(
-                    verts,
-                    facecolor=axis_facecolor,
-                    edgecolor=axis_spinecolor,
-                    linewidth=1.0,
+        if not img:  # Not needed for image plots.
+            collection = collections.PolyCollection(
+                verts,
+                facecolor=axis_facecolor,
+                edgecolor=axis_spinecolor,
+                linewidth=1.0,
+            )
+            under_ax.add_collection(collection)
+
+            if select:
+                # Configure the lasso-selection tool
+                fig.lasso = SelectFromCollection(
+                    ax=under_ax,
+                    collection=collection,
+                    names=shown_ch_names,
+                    alpha_nonselected=0,
+                    alpha_selected=1,
+                    linewidth_nonselected=0,
+                    linewidth_selected=0.7,
                 )
-            )  # Not needed for image plots.
+
+                def on_select():
+                    publish(fig, ChannelsSelect(ch_names=fig.lasso.selection))
+
+                def on_channels_select(event):
+                    selection_inds = np.flatnonzero(
+                        np.isin(shown_ch_names, event.ch_names)
+                    )
+                    fig.lasso.select_many(selection_inds)
+
+                fig.lasso.callbacks.append(on_select)
+                subscribe(fig, "channels_select", on_channels_select)
         for ax in axs:
             yield ax, ax._mne_ch_idx
 
@@ -276,6 +308,7 @@ def _plot_topo(
     unified=False,
     img=False,
     axes=None,
+    select=False,
 ):
     """Plot on sensor layout."""
     import matplotlib.pyplot as plt
@@ -328,12 +361,12 @@ def _plot_topo(
         unified=unified,
         img=img,
         axes=axes,
+        select=select,
     )
 
     for ax, ch_idx in my_topo_plot:
         if layout.kind == "Vectorview-all" and ylim is not None:
-            this_type = {"mag": 0, "grad": 1}[channel_type(info, ch_idx)]
-            ylim_ = [v[this_type] if _check_vlim(v) else v for v in ylim]
+            ylim_ = ylim.get(channel_type(info, ch_idx))
         else:
             ylim_ = ylim
 
@@ -347,8 +380,17 @@ def _plot_topo(
 
 def _plot_topo_onpick(event, show_func):
     """Onpick callback that shows a single channel in a new figure."""
-    # make sure that the swipe gesture in OS-X doesn't open many figures
     orig_ax = event.inaxes
+    fig = orig_ax.figure
+
+    # If we are doing lasso select, allow it to handle the click instead.
+    if hasattr(fig, "lasso") and event.key in ["control", "ctrl+shift"]:
+        return
+
+    # make sure that the swipe gesture in OS-X doesn't open many figures
+    if fig.canvas._key in ["shift", "alt"]:
+        return
+
     import matplotlib.pyplot as plt
 
     try:
@@ -390,18 +432,14 @@ def _plot_topo_onpick(event, show_func):
 
 def _compute_ax_scalings(bn, xlim, ylim):
     """Compute scale factors for a unified plot."""
-    if isinstance(ylim[0], (tuple, list, np.ndarray)):
-        ylim = (ylim[0][0], ylim[1][0])
+    if isinstance(ylim, dict):
+        # Take the first (ymin, ymax) entry.
+        ylim = next(iter(ylim.values()))
     pos = bn.pos
     bn.x_s = pos[2] / (xlim[1] - xlim[0])
     bn.x_t = pos[0] - bn.x_s * xlim[0]
     bn.y_s = pos[3] / (ylim[1] - ylim[0])
     bn.y_t = pos[1] - bn.y_s * ylim[0]
-
-
-def _check_vlim(vlim):
-    """Check the vlim."""
-    return not np.isscalar(vlim) and vlim is not None
 
 
 def _imshow_tfr(
@@ -412,6 +450,7 @@ def _imshow_tfr(
     vmin,
     vmax,
     onselect,
+    *,
     ylim=None,
     tfr=None,
     freq=None,
@@ -424,11 +463,9 @@ def _imshow_tfr(
     mask_style="both",
     mask_cmap="Greys",
     mask_alpha=0.1,
-    is_jointplot=False,
     cnorm=None,
 ):
     """Show time-frequency map as two-dimensional image."""
-    from matplotlib import pyplot as plt
     from matplotlib.widgets import RectangleSelector
 
     _check_option("yscale", yscale, ["auto", "linear", "log"])
@@ -460,7 +497,7 @@ def _imshow_tfr(
         if isinstance(colorbar, DraggableColorbar):
             cbar = colorbar.cbar  # this happens with multiaxes case
         else:
-            cbar = plt.colorbar(mappable=img, ax=ax)
+            cbar = ax.get_figure().colorbar(mappable=img, ax=ax)
         if interactive_cmap:
             ax.CB = DraggableColorbar(cbar, img, kind="tfr_image", ch_type=None)
     ax.RS = RectangleSelector(ax, onselect=onselect)  # reference must be kept
@@ -476,6 +513,7 @@ def _imshow_tfr_unified(
     vmin,
     vmax,
     onselect,
+    *,
     ylim=None,
     tfr=None,
     freq=None,
@@ -555,9 +593,9 @@ def _plot_timeseries(
             if "(" in xlabel and ")" in xlabel
             else "s"
         )
-        timestr = "%6.3f %s: " % (x, xunit)
+        timestr = f"{x:6.3f} {xunit}: "
         if not nearby:
-            return "%s Nothing here" % timestr
+            return f"{timestr} Nothing here"
         labels = [""] * len(nearby) if labels is None else labels
         nearby_data = [(data[n], labels[n], times[n]) for n in nearby]
         ylabel = ax.get_ylabel()
@@ -574,12 +612,10 @@ def _plot_timeseries(
         s = timestr
         for data_, label, tvec in nearby_data:
             idx = np.abs(tvec - x).argmin()
-            s += "%7.2f %s" % (data_[ch_idx, idx], yunit)
+            s += f"{data_[ch_idx, idx]:7.2f} {yunit}"
             if trunc_labels:
-                label = (
-                    label if len(label) <= 10 else "%s..%s" % (label[:6], label[-2:])
-                )
-            s += " [%s] " % label if label else " "
+                label = label if len(label) <= 10 else f"{label[:6]}..{label[-2:]}"
+            s += f" [{label}] " if label else " "
         return s
 
     ax.format_coord = lambda x, y: _format_coord(x, y, labels=labels, ax=ax)
@@ -851,9 +887,10 @@ def _plot_evoked_topo(
     merge_channels=False,
     legend=True,
     axes=None,
-    exclude="bads",
-    show=True,
     noise_cov=None,
+    exclude="bads",
+    select=False,
+    show=True,
 ):
     """Plot 2D topography of evoked responses.
 
@@ -925,6 +962,10 @@ def _plot_evoked_topo(
     exclude : list of str | 'bads'
         Channels names to exclude from being shown. If 'bads', the
         bad channels are excluded. By default, exclude is set to 'bads'.
+    select : bool
+        Whether to enable the lasso-selection tool to enable the user to select
+        channels. The selected channels will be available in
+        ``fig.lasso.selection``.
     show : bool
         Show figure if True.
 
@@ -974,10 +1015,20 @@ def _plot_evoked_topo(
         picks = new_picks
         types_used = ["grad"]
         unit = _handle_default("units")["grad"] if noise_cov is None else "NA"
-        y_label = "RMS amplitude (%s)" % unit
+        y_label = f"RMS amplitude ({unit})"
 
     if layout is None:
         layout = find_layout(info, exclude=exclude)
+    else:
+        layout = layout.pick(
+            "all",
+            exclude=_picks_to_idx(
+                info,
+                exclude if exclude != "bads" else info["bads"],
+                exclude=(),
+                allow_empty=True,
+            ),
+        )
 
     if not merge_channels:
         # XXX. at the moment we are committed to 1- / 2-sensor-types layouts
@@ -1002,13 +1053,11 @@ def _plot_evoked_topo(
             > 0
         )
         if is_meg:
-            types_used = list(types_used)[::-1]  # -> restore kwarg order
             picks = [
                 pick_types(info, meg=kk, ref_meg=False, exclude=exclude)
                 for kk in types_used
             ]
         elif is_nirs:
-            types_used = list(types_used)[::-1]  # -> restore kwarg order
             picks = [
                 pick_types(info, fnirs=kk, ref_meg=False, exclude=exclude)
                 for kk in types_used
@@ -1035,27 +1084,21 @@ def _plot_evoked_topo(
                 unit = _handle_default("units")[channel_type(info, ch_idx)]
             else:
                 unit = "NA"
-            y_label.append("Amplitude (%s)" % unit)
+            y_label.append(f"Amplitude ({unit})")
 
     if ylim is None:
         # find minima and maxima over all evoked data for each channel pick
-        ymaxes = np.array([max((e.data[t]).max() for e in evoked) for t in picks])
-        ymins = np.array([min((e.data[t]).min() for e in evoked) for t in picks])
-
-        ylim_ = (ymins, ymaxes)
+        ylim_ = dict()
+        for ch_type, p in zip(types_used, picks):
+            ylim_[ch_type] = [
+                min([e.data[p].min() for e in evoked]),
+                max([e.data[p].max() for e in evoked]),
+            ]
     elif isinstance(ylim, dict):
         ylim_ = _handle_default("ylim", ylim)
-        ylim_ = [ylim_[kk] for kk in types_used]
-        # extra unpack to avoid bug #1700
-        if len(ylim_) == 1:
-            ylim_ = ylim_[0]
-        else:
-            ylim_ = [np.array(yl) for yl in ylim_]
-            # Transposing to avoid Zipping confusion
-            if is_meg or is_nirs:
-                ylim_ = list(map(list, zip(*ylim_)))
+        ylim_ = {kk: ylim_[kk] for kk in types_used}
     else:
-        raise TypeError("ylim must be None or a dict. Got %s." % type(ylim))
+        raise TypeError(f"ylim must be None or a dict. Got {type(ylim)}.")
 
     data = [e.data for e in evoked]
     comments = [e.comment for e in evoked]
@@ -1102,6 +1145,7 @@ def _plot_evoked_topo(
         y_label=y_label,
         unified=True,
         axes=axes,
+        select=select,
     )
 
     add_background_image(fig, fig_background)
@@ -1109,7 +1153,10 @@ def _plot_evoked_topo(
     if legend is not False:
         legend_loc = 0 if legend is True else legend
         labels = [e.comment if e.comment else "Unknown" for e in evoked]
-        handles = fig.axes[0].lines[: len(evoked)]
+        if select:
+            handles = fig.axes[0].lines[1 : len(evoked) + 1]
+        else:
+            handles = fig.axes[0].lines[: len(evoked)]
         legend = plt.legend(
             labels=labels, handles=handles, loc=legend_loc, prop={"size": 10}
         )
@@ -1168,6 +1215,7 @@ def plot_topo_image_epochs(
     fig_facecolor="k",
     fig_background=None,
     font_color="w",
+    select=False,
     show=True,
 ):
     """Plot Event Related Potential / Fields image on topographies.
@@ -1215,6 +1263,12 @@ def plot_topo_image_epochs(
         :func:`matplotlib.pyplot.imshow`. Defaults to ``None``.
     font_color : color
         The color of tick labels in the colorbar. Defaults to white.
+    select : bool
+        Whether to enable the lasso-selection tool to enable the user to select
+        channels. The selected channels will be available in
+        ``fig.lasso.selection``.
+
+        .. versionadded:: 1.10.0
     show : bool
         Whether to show the figure. Defaults to ``True``.
 
@@ -1304,6 +1358,7 @@ def plot_topo_image_epochs(
         y_label="Epoch",
         unified=True,
         img=True,
+        select=select,
     )
     add_background_image(fig, fig_background)
     plt_show(show)

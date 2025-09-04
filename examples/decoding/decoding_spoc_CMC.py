@@ -18,7 +18,7 @@ electromyogram from MEG beta activity using data from
 """
 
 # Author: Alexandre Barachant <alexandre.barachant@gmail.com>
-#         Jean-Remi King <jeanremi.king@gmail.com>
+#         Jean-Rémi King <jeanremi.king@gmail.com>
 #
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
@@ -32,7 +32,7 @@ from sklearn.pipeline import make_pipeline
 import mne
 from mne import Epochs
 from mne.datasets.fieldtrip_cmc import data_path
-from mne.decoding import SPoC
+from mne.decoding import SPoC, get_spatial_filter_from_estimator
 
 # Define parameters
 fname = data_path() / "SubjectCMC.ds"
@@ -64,7 +64,7 @@ clf = make_pipeline(spoc, Ridge())
 # Define a two fold cross-validation
 cv = KFold(n_splits=2, shuffle=False)
 
-# Run cross validaton
+# Run cross validation
 y_preds = cross_val_predict(clf, X, y, cv=cv)
 
 # Plot the True EMG power and the EMG power predicted from MEG data
@@ -82,9 +82,18 @@ plt.show()
 # Plot the contributions to the detected components (i.e., the forward model)
 
 spoc.fit(X, y)
-spoc.plot_patterns(meg_epochs.info)
+spf = get_spatial_filter_from_estimator(spoc, info=meg_epochs.info)
+spf.plot_scree()
+
+# Plot patterns for the first three components
+# with largest absolute generalized eigenvalues,
+# as we can see on the scree plot
+spf.plot_patterns(components=[0, 1, 2])
+
 
 ##############################################################################
 # References
 # ----------
 # .. footbibliography::
+
+# %%

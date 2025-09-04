@@ -14,7 +14,6 @@ This example looks at high-frequency SEF responses.
 
 # %%
 
-
 import os
 
 import mne

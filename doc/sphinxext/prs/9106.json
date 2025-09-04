@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "b239ad314fb7d74fb43fdf1e34eada94ed32659d",
+  "authors": [
+    {
+      "n": "Ana Radanovic",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/inverse_sparse/mxne_inverse.py": {
+      "a": 3,
+      "d": 11
+    }
+  }
+}

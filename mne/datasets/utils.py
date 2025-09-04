@@ -1,14 +1,8 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
-#          Eric Larson <larson.eric.d@gmail.com>
-#          Denis Egnemann <denis.engemann@gmail.com>
-#          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
-#          Adam Li <adam2392@gmail.com>
-#          Daniel McCloy <dan@mccloy.info>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+import glob
 import importlib
 import inspect
 import logging
@@ -20,6 +14,7 @@ import time
 import zipfile
 from collections import OrderedDict
 from pathlib import Path
+from typing import cast
 
 import numpy as np
 
@@ -98,6 +93,22 @@ def _dataset_version(path, name):
     return version
 
 
+@verbose
+def default_path(*, verbose=None):
+    """Get the default MNE_DATA path.
+
+    Parameters
+    ----------
+    %(verbose)s
+
+    Returns
+    -------
+    data_path : instance of Path
+        Path to the default MNE_DATA directory.
+    """
+    return _get_path(None, None, None)
+
+
 def _get_path(path, key, name):
     """Get a dataset path."""
     # 1. Input
@@ -119,21 +130,22 @@ def _get_path(path, key, name):
         return path
     # 4. ~/mne_data (but use a fake home during testing so we don't
     #    unnecessarily create ~/mne_data)
-    logger.info("Using default location ~/mne_data for %s..." % name)
-    path = op.join(os.getenv("_MNE_FAKE_HOME_DIR", op.expanduser("~")), "mne_data")
-    if not op.exists(path):
-        logger.info("Creating ~/mne_data")
+    extra = f" for {name}" if name else ""
+    logger.info(f"Using default location ~/mne_data{extra}...")
+    path = Path(os.getenv("_MNE_FAKE_HOME_DIR", "~")).expanduser() / "mne_data"
+    if not path.is_dir():
+        logger.info(f"Creating {path}")
         try:
-            os.mkdir(path)
+            path.mkdir()
         except OSError:
             raise OSError(
                 "User does not have write permissions "
-                "at '%s', try giving the path as an "
+                f"at '{path}', try giving the path as an "
                 "argument to data_path() where user has "
                 "write permissions, for ex:data_path"
-                "('/home/xyz/me2/')" % (path)
+                "('/home/xyz/me2/')"
             )
-    return Path(path).expanduser()
+    return path
 
 
 def _do_path_update(path, update_path, key, name):
@@ -210,7 +222,7 @@ def _check_in_testing_and_raise(name, download):
 
 def _download_mne_dataset(
     name, processor, path, force_update, update_path, download, accept=False
-):
+) -> Path:
     """Aux function for downloading internal MNE datasets."""
     import pooch
 
@@ -243,14 +255,17 @@ def _download_mne_dataset(
             this_dataset["dataset_name"] = name
             dataset_params.append(this_dataset)
 
-    return fetch_dataset(
-        dataset_params=dataset_params,
-        processor=processor_,
-        path=path,
-        force_update=force_update,
-        update_path=update_path,
-        download=download,
-        accept=accept,
+    return cast(
+        Path,
+        fetch_dataset(
+            dataset_params=dataset_params,
+            processor=processor_,
+            path=path,
+            force_update=force_update,
+            update_path=update_path,
+            download=download,
+            accept=accept,
+        ),
     )
 
 
@@ -322,6 +337,8 @@ def _download_all_example_data(verbose=True):
     #
     # verbose=True by default so we get nice status messages.
     # Consider adding datasets from here to CircleCI for PR-auto-build
+    import openneuro
+
     paths = dict()
     for kind in (
         "sample testing misc spm_face somato hf_sef multimodal "
@@ -350,9 +367,8 @@ def _download_all_example_data(verbose=True):
         sleep_physionet,
     )
 
-    eegbci.load_data(1, [6, 10, 14], update_path=True)
-    for subj in range(4):
-        eegbci.load_data(subj + 1, runs=[3], update_path=True)
+    eegbci.load_data(subjects=1, runs=[6, 10, 14], update_path=True)
+    eegbci.load_data(subjects=range(1, 5), runs=[3], update_path=True)
     logger.info("[done eegbci]")
 
     sleep_physionet.age.fetch_data(subjects=[0, 1], recording=[1])
@@ -360,8 +376,12 @@ def _download_all_example_data(verbose=True):
 
     # If the user has SUBJECTS_DIR, respect it, if not, set it to the EEG one
     # (probably on CircleCI, or otherwise advanced user)
-    fetch_fsaverage(None)
+    fetch_fsaverage(subjects_dir=None)
     logger.info("[done fsaverage]")
+
+    # Now also update the sample dataset path, if not already SUBJECTS_DIR
+    # (some tutorials make use of these files)
+    fetch_fsaverage(subjects_dir=paths["sample"] / "subjects")
 
     fetch_infant_template("6mo")
     logger.info("[done infant_template]")
@@ -374,6 +394,14 @@ def _download_all_example_data(verbose=True):
 
     limo.load_data(subject=1, update_path=True)
     logger.info("[done limo]")
+
+    # for ESG
+    ds = "ds004388"
+    target_dir = default_path() / ds
+    run_name = "sub-001/eeg/*median_run-03_eeg*.set"
+    if not glob.glob(str(target_dir / run_name)):
+        target_dir.mkdir(exist_ok=True)
+        openneuro.download(dataset=ds, target_dir=target_dir, include=run_name[:-4])
 
 
 @verbose
@@ -464,9 +492,9 @@ def fetch_hcp_mmp_parcellation(
         if accept or "--accept-hcpmmp-license" in sys.argv:
             answer = "y"
         else:
-            answer = _safe_input("%s\nAgree (y/[n])? " % _hcp_mmp_license_text)
+            answer = _safe_input(f"{_hcp_mmp_license_text}\nAgree (y/[n])? ")
         if answer.lower() != "y":
-            raise RuntimeError("You must agree to the license to use this " "dataset")
+            raise RuntimeError("You must agree to the license to use this dataset")
     downloader = pooch.HTTPDownloader(**_downloader_params())
     for hemi, fpath in zip(("lh", "rh"), fnames):
         if not op.isfile(fpath):
@@ -481,7 +509,7 @@ def fetch_hcp_mmp_parcellation(
 
     if combine:
         fnames = [
-            op.join(destination, "%s.HCPMMP1_combined.annot" % hemi)
+            op.join(destination, f"{hemi}.HCPMMP1_combined.annot")
             for hemi in ("lh", "rh")
         ]
         if all(op.isfile(fname) for fname in fnames):
@@ -764,27 +792,30 @@ def _manifest_check_download(manifest_path, destination, url, hash_):
 
     with open(manifest_path) as fid:
         names = [name.strip() for name in fid.readlines()]
-    manifest_path = op.basename(manifest_path)
     need = list()
     for name in names:
-        if not op.isfile(op.join(destination, name)):
+        if not (destination / name).is_file():
             need.append(name)
     logger.info(
-        "%d file%s missing from %s in %s"
-        % (len(need), _pl(need), manifest_path, destination)
+        "%d file%s missing from %s in %s",
+        len(need),
+        _pl(need),
+        manifest_path.name,
+        destination,
     )
     if len(need) > 0:
         downloader = pooch.HTTPDownloader(**_downloader_params())
         with tempfile.TemporaryDirectory() as path:
             logger.info("Downloading missing files remotely")
 
-            fname_path = op.join(path, "temp.zip")
+            path = Path(path)
+            fname_path = path / "temp.zip"
             pooch.retrieve(
                 url=url,
                 known_hash=f"md5:{hash_}",
                 path=path,
                 downloader=downloader,
-                fname=op.basename(fname_path),
+                fname=fname_path.name,
             )
 
             logger.info(f"Extracting missing file{_pl(need)}")
@@ -813,7 +844,7 @@ def _log_time_size(t0, sz):
 
 
 def _downloader_params(*, auth=None, token=None):
-    params = dict()
+    params = dict(timeout=15)
     params["progressbar"] = (
         logger.level <= logging.INFO and get_config("MNE_TQDM", "tqdm.auto") != "off"
     )

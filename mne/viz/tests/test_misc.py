@@ -1,10 +1,4 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Denis Engemann <denis.engemann@gmail.com>
-#          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
-#          Eric Larson <larson.eric.d@gmail.com>
-#          Cathy Nangini <cnangini@gmail.com>
-#          Mainak Jas <mainak@neuro.hut.fi>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -175,7 +169,7 @@ def test_plot_bem():
         src=src_fname,
     )
     assert len(fig.axes[0].collections) == 4  # 3 BEM surfaces + 1 src contour
-    with pytest.raises(ValueError, match="MRI coordinates, got head"):
+    with pytest.raises(TypeError, match="when src is in head coordinates"):
         plot_bem(subject="sample", subjects_dir=subjects_dir, src=inv_fname)
 
 
@@ -215,8 +209,9 @@ def test_plot_events():
     assert fig.axes[0].get_legend() is not None
     with pytest.warns(RuntimeWarning, match="Color was not assigned"):
         plot_events(events, raw.info["sfreq"], raw.first_samp, color=color)
-    with _record_warnings(), pytest.warns(
-        RuntimeWarning, match=r"vent \d+ missing from event_id"
+    with (
+        _record_warnings(),
+        pytest.warns(RuntimeWarning, match=r"vent \d+ missing from event_id"),
     ):
         plot_events(
             events,
@@ -246,8 +241,9 @@ def test_plot_events():
             on_missing="ignore",
         )
     extra_id = {"aud_l": 1, "missing": 111}
-    with _record_warnings(), pytest.warns(
-        RuntimeWarning, match="from event_id is not present in"
+    with (
+        _record_warnings(),
+        pytest.warns(RuntimeWarning, match="from event_id is not present in"),
     ):
         plot_events(
             events,

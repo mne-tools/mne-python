@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "21a3a08476c33ac90bf16437fd6bbbf35964fc8c",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 19,
+      "d": 0
+    },
+    "mne/viz/_brain/tests/test_brain.py": {
+      "a": 5,
+      "d": 0
+    }
+  }
+}

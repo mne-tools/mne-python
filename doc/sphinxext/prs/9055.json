@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "4dacaa33542d028820b96caba99e44d0f04a0d7b",
+  "authors": [
+    {
+      "n": "DataFox",
+      "e": "sfox@riseup.net"
+    },
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    }
+  ],
+  "changes": {
+    "doc/references.bib": {
+      "a": 14,
+      "d": 0
+    },
+    "mne/stats/multi_comp.py": {
+      "a": 2,
+      "d": 4
+    }
+  }
+}

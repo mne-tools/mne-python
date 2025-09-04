@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "cf235d539eb932013ea1fa5b78bc2dbf259e1c96",
+  "authors": [
+    {
+      "n": "Mathieu Scheltienne",
+      "e": "mathieu.scheltienne@fcbg.ch"
+    }
+  ],
+  "changes": {
+    "mne/channels/montage.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/io/kit/coreg.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/meas_info.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/preprocessing/artifact_detection.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/transforms.py": {
+      "a": 4,
+      "d": 3
+    }
+  }
+}

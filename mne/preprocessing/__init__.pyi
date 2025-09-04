@@ -21,6 +21,7 @@ __all__ = [
     "create_eog_epochs",
     "equalize_bads",
     "eyetracking",
+    "find_bad_channels_lof",
     "find_bad_channels_maxwell",
     "find_ecg_events",
     "find_eog_events",
@@ -43,6 +44,7 @@ __all__ = [
     "realign_raw",
     "regress_artifact",
     "write_fine_calibration",
+    "apply_pca_obs",
 ]
 from . import eyetracking, ieeg, nirs
 from ._annotate_amplitude import annotate_amplitude
@@ -54,6 +56,8 @@ from ._fine_cal import (
     read_fine_calibration,
     write_fine_calibration,
 )
+from ._lof import find_bad_channels_lof
+from ._pca_obs import apply_pca_obs
 from ._peak_finder import peak_finder
 from ._regress import EOGRegression, read_eog_regression, regress_artifact
 from .artifact_detection import (

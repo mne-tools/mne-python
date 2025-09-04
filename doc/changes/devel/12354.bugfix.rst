@@ -1,1 +1,0 @@
-Fix bug in :meth:`mne.viz.EvokedField.set_vmax` that prevented setting the color limits of the MEG magnetic field density, by `Marijn van Vliet`_

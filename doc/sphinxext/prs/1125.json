@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "406a8cf31f73e266494b924b845aaeb102892089",
+  "authors": [
+    {
+      "n": "Christian Brodbeck",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/source/python_reference.rst": {
+      "a": 6,
+      "d": 0
+    }
+  }
+}

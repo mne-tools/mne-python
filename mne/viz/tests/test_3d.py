@@ -1,13 +1,8 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Denis Engemann <denis.engemann@gmail.com>
-#          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
-#          Eric Larson <larson.eric.d@gmail.com>
-#          Mainak Jas <mainak@neuro.hut.fi>
-#          Mark Wronkiewicz <wronk.mark@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+from contextlib import nullcontext
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -104,13 +99,22 @@ def test_plot_head_positions():
     pos = np.random.RandomState(0).randn(4, 10)
     pos[:, 0] = np.arange(len(pos))
     destination = (0.0, 0.0, 0.04)
-    with _record_warnings():  # old MPL will cause a warning
-        plot_head_positions(pos)
-        plot_head_positions(pos, mode="field", info=info, destination=destination)
-        plot_head_positions([pos, pos])  # list support
-        pytest.raises(ValueError, plot_head_positions, ["pos"])
-        pytest.raises(ValueError, plot_head_positions, pos[:, :9])
-    pytest.raises(ValueError, plot_head_positions, pos, "foo")
+    fig = plot_head_positions(pos)
+    assert len(fig.axes) == 6
+    plot_head_positions(pos, mode="field", info=info, destination=destination)
+    fig = plot_head_positions([pos, pos], totals=True)  # list and totals support
+    assert len(fig.axes) == 8
+    fig, ax = plt.subplots()
+    with pytest.raises(TypeError, match="instance of Axes3D"):
+        plot_head_positions(pos, mode="field", info=info, axes=ax)
+    fig, ax = plt.subplots(subplot_kw=dict(projection="3d"))
+    plot_head_positions(pos, mode="field", info=info, axes=ax)
+    with pytest.raises(TypeError, match="must be an instance of ndarray"):
+        plot_head_positions(["foo"])
+    with pytest.raises(ValueError, match="must be dim"):
+        plot_head_positions(pos[:, :9])
+    with pytest.raises(ValueError, match="Allowed values"):
+        plot_head_positions(pos, "foo")
     with pytest.raises(ValueError, match="shape"):
         plot_head_positions(pos, axes=1.0)
 
@@ -128,9 +132,9 @@ def test_plot_sparse_source_estimates(renderer_interactive, brain_gc):
     n_verts = sum(len(v) for v in vertices)
     stc_data = np.zeros(n_verts * n_time)
     stc_size = stc_data.size
-    stc_data[
-        (np.random.rand(stc_size // 20) * stc_size).astype(int)
-    ] = np.random.RandomState(0).rand(stc_data.size // 20)
+    stc_data[(np.random.rand(stc_size // 20) * stc_size).astype(int)] = (
+        np.random.RandomState(0).rand(stc_data.size // 20)
+    )
     stc_data.shape = (n_verts, n_time)
     stc = SourceEstimate(stc_data, vertices, 1, 1)
 
@@ -176,8 +180,8 @@ def test_plot_evoked_field(renderer):
     """Test plotting evoked field."""
     evoked = read_evokeds(evoked_fname, condition="Left Auditory", baseline=(-0.2, 0.0))
     evoked.pick(evoked.ch_names[::10])  # speed
-    for t, n_contours in zip(["meg", None], [21, 0]):
-        with pytest.warns(RuntimeWarning, match="projection"):
+    for t, n_contours, up in zip(["meg", None], [21, 0], [2, 1]):
+        with pytest.warns(RuntimeWarning, match="projection"), catch_logging() as log:
             maps = make_field_map(
                 evoked,
                 trans_fname,
@@ -185,12 +189,30 @@ def test_plot_evoked_field(renderer):
                 subjects_dir=subjects_dir,
                 n_jobs=None,
                 ch_type=t,
+                upsampling=up,
+                verbose=True,
             )
+        log = log.getvalue()
+        if up == 1:
+            assert "Upsampling" not in log
+        else:
+            assert "Upsampling" in log
         evoked.plot_field(maps, time=0.1, n_contours=n_contours)
+    renderer.backend._close_all()
 
-    # Test plotting inside an existing Brain figure.
-    brain = Brain("fsaverage", "lh", "inflated", subjects_dir=subjects_dir)
-    fig = evoked.plot_field(maps, time=0.1, fig=brain)
+    # Test plotting inside an existing Brain figure. Check that units are taken into
+    # account.
+    for units in ["mm", "m"]:
+        brain = Brain(
+            "fsaverage", "lh", "inflated", units=units, subjects_dir=subjects_dir
+        )
+        fig = evoked.plot_field(maps, time=0.1, fig=brain)
+        assert brain._units == fig._units
+        scale = 1000 if units == "mm" else 1
+        assert (
+            fig._surf_maps[0]["surf"]["rr"][0, 0] == scale * maps[0]["surf"]["rr"][0, 0]
+        )
+        renderer.backend._close_all()
 
     # Test some methods
     fig = evoked.plot_field(maps, time_viewer=True)
@@ -210,6 +232,7 @@ def test_plot_evoked_field(renderer):
 
     fig = evoked.plot_field(maps, time_viewer=False)
     assert isinstance(fig, Figure3D)
+    renderer.backend._close_all()
 
 
 @testing.requires_testing_data
@@ -259,6 +282,161 @@ def _assert_n_actors(fig, renderer, n_actors):
     __tracebackhide__ = True
     assert isinstance(fig, Figure3D)
     assert len(fig.plotter.renderer.actors) == n_actors
+
+
+@pytest.mark.slowtest  # can be slow on OSX
+@testing.requires_testing_data
+@pytest.mark.parametrize(
+    "test_ecog, test_seeg, sensor_colors, sensor_scales, expectation",
+    [
+        (
+            True,
+            True,
+            "k",
+            2,
+            pytest.raises(
+                TypeError,
+                match="sensor_colors must be an instance of dict or "
+                "None when more than one channel type",
+            ),
+        ),
+        (
+            True,
+            True,
+            {"ecog": "k", "seeg": "k"},
+            2,
+            pytest.raises(
+                TypeError,
+                match="sensor_scales must be an instance of dict or "
+                "None when more than one channel type",
+            ),
+        ),
+        (
+            True,
+            True,
+            {"ecog": ["k"] * 2, "seeg": "k"},
+            {"ecog": 2, "seeg": 2},
+            pytest.raises(
+                ValueError,
+                match=r"Invalid value for the 'len\(sensor_colors\['ecog'\]\)' "
+                r"parameter. Allowed values are \d+ and \d+, but got \d+ instead",
+            ),
+        ),
+        (
+            True,
+            True,
+            {"ecog": "k", "seeg": ["k"] * 2},
+            {"ecog": 2, "seeg": 2},
+            pytest.raises(
+                ValueError,
+                match=r"Invalid value for the 'len\(sensor_colors\['seeg'\]\)' "
+                r"parameter. Allowed values are \d+ and \d+, but got \d+ instead",
+            ),
+        ),
+        (
+            True,
+            True,
+            {"ecog": "k", "seeg": "k"},
+            {"ecog": [2] * 2, "seeg": 2},
+            pytest.raises(
+                ValueError,
+                match=r"Invalid value for the 'len\(sensor_scales\['ecog'\]\)' "
+                r"parameter. Allowed values are \d+ and \d+, but got \d+ instead",
+            ),
+        ),
+        (
+            True,
+            True,
+            {"ecog": "k", "seeg": "k"},
+            {"ecog": 2, "seeg": [2] * 2},
+            pytest.raises(
+                ValueError,
+                match=r"Invalid value for the 'len\(sensor_scales\['seeg'\]\)' "
+                r"parameter. Allowed values are \d+ and \d+, but got \d+ instead",
+            ),
+        ),
+        (
+            True,
+            True,
+            {"ecog": "NotAColor", "seeg": "NotAColor"},
+            {"ecog": 2, "seeg": 2},
+            pytest.raises(
+                ValueError,
+                match=r".* is not a valid color value",
+            ),
+        ),
+        (
+            True,
+            True,
+            {"ecog": "k", "seeg": "k"},
+            {"ecog": "k", "seeg": 2},
+            pytest.raises(
+                AssertionError,
+                match=r"scales for .* must contain only numerical values, got .* "
+                r"instead.",
+            ),
+        ),
+        (
+            True,
+            True,
+            {"ecog": "k", "seeg": "k"},
+            {"ecog": 2, "seeg": 2},
+            nullcontext(),
+        ),
+        (
+            True,
+            True,
+            {"ecog": [0, 0, 0], "seeg": [0, 0, 0]},
+            {"ecog": 2, "seeg": 2},
+            nullcontext(),
+        ),
+        (
+            True,
+            True,
+            {"ecog": ["k"] * 10, "seeg": ["k"] * 10},
+            {"ecog": [2] * 10, "seeg": [2] * 10},
+            nullcontext(),
+        ),
+        (
+            True,
+            False,
+            "k",
+            2,
+            nullcontext(),
+        ),
+    ],
+)
+def test_plot_alignment_ieeg(
+    renderer, test_ecog, test_seeg, sensor_colors, sensor_scales, expectation
+):
+    """Test plotting of iEEG sensors."""
+    # Load evoked:
+    evoked = read_evokeds(evoked_fname)[0]
+    # EEG only
+    evoked_eeg = evoked.copy().pick_types(eeg=True)
+    with evoked_eeg.info._unlock():
+        evoked_eeg.info["projs"] = []  # "remove" avg proj
+    eeg_channels = pick_types(evoked_eeg.info, eeg=True)
+    # Set 10 EEG channels to ecog, 10 to seeg
+    evoked_eeg.set_channel_types(
+        {evoked_eeg.ch_names[ch]: "ecog" for ch in eeg_channels[:10]}
+    )
+    evoked_eeg.set_channel_types(
+        {evoked_eeg.ch_names[ch]: "seeg" for ch in eeg_channels[10:20]}
+    )
+    evoked_ecog_seeg = evoked_eeg.pick_types(seeg=True, ecog=True)
+    this_info = evoked_ecog_seeg.info
+    # Test plot:
+    with expectation:
+        fig = plot_alignment(
+            this_info,
+            ecog=test_ecog,
+            seeg=test_seeg,
+            sensor_colors=sensor_colors,
+            sensor_scales=sensor_scales,
+        )
+        assert isinstance(fig, Figure3D)
+        renderer.backend._close_all()
 
 
 @pytest.mark.slowtest  # Slow on Azure
@@ -421,7 +599,7 @@ def test_plot_alignment_basic(tmp_path, renderer, mixed_fwd_cov_evoked):
     # all coord frames
     plot_alignment(info)  # works: surfaces='auto' default
     for coord_frame in ("meg", "head", "mri"):
-        plot_alignment(
+        fig = plot_alignment(
             info,
             meg=["helmet", "sensors"],
             dig=True,
@@ -432,20 +610,20 @@ def test_plot_alignment_basic(tmp_path, renderer, mixed_fwd_cov_evoked):
             mri_fiducials=fiducials_path,
             subjects_dir=subjects_dir,
         )
+
     renderer.backend._close_all()
     # EEG only with strange options
-    evoked_eeg_ecog_seeg = evoked.copy().pick_types(meg=False, eeg=True)
+    evoked_eeg_ecog_seeg = evoked.copy().pick([f"EEG {x:03d}" for x in range(1, 13)])
     with evoked_eeg_ecog_seeg.info._unlock():
         evoked_eeg_ecog_seeg.info["projs"] = []  # "remove" avg proj
     evoked_eeg_ecog_seeg.set_channel_types({"EEG 001": "ecog", "EEG 002": "seeg"})
     with catch_logging() as log:
-        plot_alignment(
+        fig = plot_alignment(
             evoked_eeg_ecog_seeg.info,
             subject="sample",
             trans=trans_fname,
             subjects_dir=subjects_dir,
             surfaces=["white", "outer_skin", "outer_skull"],
-            meg=["helmet", "sensors"],
             eeg=["original", "projected"],
             ecog=True,
             seeg=True,
@@ -454,6 +632,11 @@ def test_plot_alignment_basic(tmp_path, renderer, mixed_fwd_cov_evoked):
     log = log.getvalue()
     assert "ecog: 1" in log
     assert "seeg: 1" in log
+    assert "eeg: 10" in log
+    # got the right number of actors?
+    actor_names = list(fig.plotter.actors)
+    # 4 surfs (both hemis, skin, skull), 1 ECoG, 1 sEEG, 5 orig EEG + 1 projected EEG
+    assert len(actor_names) == 4 + 1 + 1 + 1 + 1
     renderer.backend._close_all()
 
     sphere = make_sphere_model(info=info, r0="auto", head_radius="auto")
@@ -734,7 +917,7 @@ def test_plot_alignment_fnirs(renderer, tmp_path):
     with catch_logging() as log:
         fig = plot_alignment(info, **kwargs)
     log = log.getvalue()
-    assert f'fnirs_cw_amplitude: {info["nchan"]}' in log
+    assert f"fnirs_cw_amplitude: {info['nchan']}" in log
     _assert_n_actors(fig, renderer, info["nchan"])
 
     fig = plot_alignment(info, fnirs=["channels", "sources", "detectors"], **kwargs)
@@ -1209,9 +1392,9 @@ def test_link_brains(renderer_interactive):
     n_verts = sum(len(v) for v in vertices)
     stc_data = np.zeros(n_verts * n_time)
     stc_size = stc_data.size
-    stc_data[
-        (np.random.rand(stc_size // 20) * stc_size).astype(int)
-    ] = np.random.RandomState(0).rand(stc_data.size // 20)
+    stc_data[(np.random.rand(stc_size // 20) * stc_size).astype(int)] = (
+        np.random.RandomState(0).rand(stc_data.size // 20)
+    )
     stc_data.shape = (n_verts, n_time)
     stc = SourceEstimate(stc_data, vertices, 1, 1)
 

@@ -1,7 +1,4 @@
-# -*- coding: UTF-8 -*-
-# Authors: Thomas Hartmann <thomas.hartmann@th-ht.de>
-#          Dirk Gütlin <dirk.guetlin@stud.sbg.ac.at>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -10,7 +7,7 @@ import numpy as np
 from ...epochs import EpochsArray
 from ...evoked import EvokedArray
 from ...utils import _check_fname, _import_pymatreader_funcs
-from ..array.array import RawArray
+from ..array._array import RawArray
 from .utils import (
     _create_event_metadata,
     _create_events,
@@ -76,7 +73,7 @@ def read_raw_fieldtrip(fname, info, data_name="data") -> RawArray:
 
     if data.ndim != 2:
         raise RuntimeError(
-            "The data you are trying to load does not seem to " "be raw data"
+            "The data you are trying to load does not seem to be raw data"
         )
 
     raw = RawArray(data, info)  # create an MNE RawArray

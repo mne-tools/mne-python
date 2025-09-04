@@ -101,8 +101,51 @@ development version of MNE-Python. If you plan to contribute to MNE-Python, or
 just prefer to use git rather than pip to make frequent updates, there are
 instructions for installing from a ``git clone`` in the :ref:`contributing`.
 
+Choosing the Qt framework
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The ``conda-forge`` version of MNE-Python ships with PyQt5. If you would like to
+use a different binding, you can instead install MNE-Python via ``pip``:
+
+.. code-block:: console
+
+    $ pip install "mne[full]"          # uses PyQt6
+    $ pip install "mne[full-pyqt6]"    # same as above
+    $ pip install "mne[full-pyside6]"  # use PySide6
+    $ pip install "mne[full-no-qt]"    # don't install any Qt binding
 
 .. _CUDA:
+
+Fixing dock icons on Linux
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+On newer versions of Ubuntu (e.g., 24.04), applications must supply a ``.desktop``
+file associated with them, otherwise a generic icon will be used like:
+
+.. image:: ../_static/default_linux_dock_icon.png
+   :alt: Default Linux dock icon
+
+To fix this, you can create a ``.desktop`` file for MNE-Python. Here is an example
+file that you can save as ``~/.local/share/applications/mne-python.desktop`` after
+fixing the path to the MNE-Python icon, which you can download
+`here <https://github.com/mne-tools/mne-python/blob/922a7801a0ca6af225c7b861fe6bd97b1518af3a/mne/icons/mne_default_icon.png>`__
+if needed:
+
+.. code-block:: ini
+
+    [Desktop Entry]
+    Type=Application
+    Version=1.5
+    Name=MNE-Python
+    StartupWMClass=MNE-Python
+    Icon=/path/to/mne-python/mne/icons/mne_default_icon.png
+    SingleMainWindow=true
+    NoDisplay=true
+
+It should make the icon appear correctly in the dock:
+
+.. image:: ../_static/mne_python_dock_icon.png
+   :alt: MNE-Python dock icon
 
 GPU acceleration with CUDA
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -238,10 +281,23 @@ of VTK and/or QT are incompatible. This series of commands should fix it:
 If you installed VTK using ``pip`` rather than ``conda``, substitute the first
 line for ``pip uninstall -y vtk``.
 
+3D plotting trouble on Linux
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+If you are having trouble with 3D plotting on Linux, one possibility is that you
+are using Wayland for graphics. To check, you can do:
+
+.. code-block:: console
+
+    $ echo $XDG_SESSION_TYPE
+    wayland
+
+If so, you will need to tell Qt to use X11 instead of Wayland. You can do this
+by setting ``export QT_QPA_PLATFORM=xcb`` in your terminal session. To make it
+permanent for your logins, you can set it for example in ``~/.profile``.
 
 .. LINKS
 
-.. _environment file: https://raw.githubusercontent.com/mne-tools/mne-python/main/environment.yml
 .. _`pyvista`: https://docs.pyvista.org/
 .. _`X server`: https://en.wikipedia.org/wiki/X_Window_System
 .. _`xvfb`: https://en.wikipedia.org/wiki/Xvfb

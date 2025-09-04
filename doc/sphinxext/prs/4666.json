@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "ec9e82714a93529c8e1fdc98acd1614c89463b98",
+  "authors": [
+    {
+      "n": "Denis A. Engemann",
+      "e": null
+    }
+  ],
+  "changes": {
+    "examples/time_frequency/plot_time_frequency_global_field_power.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/stats/permutations.py": {
+      "a": 9,
+      "d": 9
+    },
+    "mne/stats/tests/test_permutations.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

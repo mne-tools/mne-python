@@ -1,7 +1,4 @@
-# Authors: Robert Luke <mail@robertluke.net>
-#          Eric Larson <larson.eric.d@gmail.com>
-#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -127,7 +124,7 @@ def _check_channels_ordered(info, pair_vals, *, throw_errors=True, check_bads=Tr
     pair_vals = np.array(pair_vals)
     if pair_vals.shape != (2,):
         raise ValueError(
-            f"Exactly two {error_word} must exist in info, got " f"{list(pair_vals)}"
+            f"Exactly two {error_word} must exist in info, got {list(pair_vals)}"
         )
     # In principle we do not need to require that these be sorted --
     # all we need to do is change our sorted() below to make use of a

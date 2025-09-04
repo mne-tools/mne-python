@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "a420019e1360d3b1bfad28c5040070309c341cbc",
+  "authors": [
+    {
+      "n": "Joan Massich",
+      "e": "mailsik@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/annotations.py": {
+      "a": 13,
+      "d": 1
+    },
+    "mne/io/brainvision/brainvision.py": {
+      "a": 7,
+      "d": 5
+    },
+    "mne/io/brainvision/tests/test_brainvision.py": {
+      "a": 14,
+      "d": 0
+    }
+  }
+}

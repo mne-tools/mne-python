@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "73661d10942187a263a61ced85d31ff5eb8e1ce8",
+  "authors": [
+    {
+      "n": "rcmdnk",
+      "e": "rcmdnk@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/12441.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/edf/edf.py": {
+      "a": 48,
+      "d": 61
+    },
+    "mne/io/edf/tests/test_edf.py": {
+      "a": 133,
+      "d": 52
+    },
+    "mne/io/edf/tests/test_gdf.py": {
+      "a": 1,
+      "d": 3
+    },
+    "mne/io/tests/test_read_raw.py": {
+      "a": 7,
+      "d": 1
+    }
+  }
+}

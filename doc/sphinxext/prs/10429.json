@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "8507b1c3f7ff7457f9cd429be914dcca0f6dc9c5",
+  "authors": [
+    {
+      "n": "Matthias Eberlein",
+      "e": "matthias.eberlein@tu-dresden.de"
+    },
+    {
+      "n": "Clemens Brunner",
+      "e": "clemens.brunner@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/nihon/nihon.py": {
+      "a": 29,
+      "d": 18
+    }
+  }
+}

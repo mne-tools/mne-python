@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "69f7d88f2e44f43fe7be92885e0e533e84320a32",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/12652.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/annotations.py": {
+      "a": 7,
+      "d": 2
+    },
+    "mne/io/brainvision/brainvision.py": {
+      "a": 52,
+      "d": 14
+    },
+    "mne/io/brainvision/tests/test_brainvision.py": {
+      "a": 43,
+      "d": 0
+    }
+  }
+}

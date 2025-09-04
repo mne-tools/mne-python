@@ -1,6 +1,4 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -123,7 +121,7 @@ def _prepare_source_params(
     #   Pick the correct channels from the data
     #
     sel = _pick_channels_inverse_operator(inst.ch_names, inv)
-    logger.info("Picked %d channels from the data" % len(sel))
+    logger.info("Picked %d channels from the data", len(sel))
     logger.info("Computing inverse...")
     #
     #   Simple matrix multiplication followed by combination of the
@@ -137,7 +135,7 @@ def _prepare_source_params(
     # vertno: [lh_verts, rh_verts]
 
     k_idxs = None
-    if not isinstance(label, (Label, BiHemiLabel)):
+    if not isinstance(label, Label | BiHemiLabel):
         whole_K, whole_noise_norm, whole_vertno, _ = _assemble_kernel(
             inv, None, method, pick_ori, use_cps=use_cps
         )
@@ -148,7 +146,7 @@ def _prepare_source_params(
         else:
             assert not label
             K, noise_norm, vertno = whole_K, whole_noise_norm, whole_vertno
-    elif isinstance(label, (Label, BiHemiLabel)):
+    elif isinstance(label, Label | BiHemiLabel):
         K, noise_norm, vertno, _ = _assemble_kernel(
             inv, label, method, pick_ori, use_cps=use_cps
         )
@@ -158,7 +156,7 @@ def _prepare_source_params(
         rank = np.sum(s > 1e-8 * s[0])
         K = s[:rank] * U[:, :rank]
         Vh = Vh[:rank]
-        logger.info("Reducing data rank %d -> %d" % (len(s), rank))
+        logger.info("Reducing data rank %d -> %d", len(s), rank)
     else:
         Vh = None
     is_free_ori = inverse_operator["source_ori"] == FIFF.FIFFV_MNE_FREE_ORI
@@ -502,7 +500,7 @@ def _source_induced_power(
             types=(Label, BiHemiLabel, list, tuple, None),
             type_name=("Label or BiHemiLabel", "list of labels", "None"),
         )
-        if isinstance(label, (list, tuple)):
+        if isinstance(label, list | tuple):
             for item in label:
                 _validate_type(
                     item,
@@ -562,7 +560,7 @@ def _source_induced_power(
     power = sum(o[0] for o in out)  # power shape: (n_verts, n_freqs, n_samps)
     power /= len(epochs_data)  # average power over epochs
 
-    if isinstance(label, (Label, BiHemiLabel)):
+    if isinstance(label, Label | BiHemiLabel):
         logger.info(
             f"Outputting power for {len(power)} vertices in label {label.name}."
         )
@@ -861,9 +859,7 @@ def compute_source_psd(
     tmin = 0.0 if tmin is None else float(tmin)
     overlap = float(overlap)
     if not 0 <= overlap < 1:
-        raise ValueError(
-            "Overlap must be at least 0 and less than 1, got %s" % (overlap,)
-        )
+        raise ValueError(f"Overlap must be at least 0 and less than 1, got {overlap}")
     n_fft = int(n_fft)
     duration = ((1.0 - overlap) * n_fft) / raw.info["sfreq"]
     events = make_fixed_length_events(raw, 1, tmin, tmax, duration)
@@ -935,7 +931,7 @@ def _compute_source_psd_epochs(
     use_cps=True,
 ):
     """Generate compute_source_psd_epochs."""
-    logger.info("Considering frequencies %g ... %g Hz" % (fmin, fmax))
+    logger.info(f"Considering frequencies {fmin} ... {fmax} Hz")
 
     if label:
         # TODO: add multi-label support
@@ -983,14 +979,14 @@ def _compute_source_psd_epochs(
         n_epochs = len(epochs)
     except RuntimeError:
         n_epochs = len(epochs.events)
-        extra = "on at most %d epochs" % (n_epochs,)
+        extra = f"on at most {n_epochs} epochs"
     else:
-        extra = "on %d epochs" % (n_epochs,)
+        extra = f"on {n_epochs} epochs"
     if isinstance(bandwidth, str):
-        bandwidth = "%s windowing" % (bandwidth,)
+        bandwidth = f"{bandwidth} windowing"
     else:
-        bandwidth = "%d tapers with bandwidth %0.1f Hz" % (n_tapers, bandwidth)
-    logger.info("Using %s %s" % (bandwidth, extra))
+        bandwidth = f"{n_tapers} tapers with bandwidth {bandwidth:0.1f} Hz"
+    logger.info(f"Using {bandwidth} {extra}")
 
     if adaptive:
         parallel, my_psd_from_mt_adaptive, n_jobs = parallel_func(
@@ -1079,7 +1075,7 @@ def _compute_source_psd_epochs(
         )
 
         if return_sensor:
-            comment = "Epoch %d PSD" % (k,)
+            comment = f"Epoch {k} PSD"
             out = (
                 out,
                 EvokedArray(sensor_psd, evoked_info.copy(), freqs[0], comment, nave),

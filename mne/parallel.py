@@ -1,7 +1,6 @@
 """Parallel util function."""
 
-# Author: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -129,6 +128,21 @@ def parallel_func(
 
         my_func = delayed(run_verbose)
 
+        # if we got that n_jobs=1, we shouldn't bother with any parallelization
+        if n_jobs == 1:
+            # TODO: Hack until https://github.com/joblib/joblib/issues/1687 lands
+            try:
+                backend_repr = str(parallel._backend)
+            except Exception:
+                backend_repr = ""
+            is_local = any(
+                f"{x}Backend" in backend_repr
+                for x in ("Loky", "Threading", "Multiprocessing")
+            )
+            if is_local:
+                my_func = func
+                parallel = list
+
     if total is not None:
 
         def parallel_progress(op_iter):
@@ -144,7 +158,7 @@ def _check_n_jobs(n_jobs):
     n_jobs = _ensure_int(n_jobs, "n_jobs", must_be="an int or None")
     if os.getenv("MNE_FORCE_SERIAL", "").lower() in ("true", "1") and n_jobs != 1:
         n_jobs = 1
-        logger.info("... MNE_FORCE_SERIAL set. Processing in forced " "serial mode.")
+        logger.info("... MNE_FORCE_SERIAL set. Processing in forced serial mode.")
     elif n_jobs <= 0:
         n_cores = multiprocessing.cpu_count()
         n_jobs_orig = n_jobs

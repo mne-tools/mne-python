@@ -5,20 +5,21 @@
 Modifying data in-place
 =======================
 
-Many of MNE-Python's data objects (`~mne.io.Raw`, `~mne.Epochs`, `~mne.Evoked`,
-etc) have methods that modify the data in-place (either optionally or
-obligatorily). This can be advantageous when working with large datasets
-because it reduces the amount of computer memory needed to perform the
-computations. However, it can lead to unexpected results if you're not aware
-that it's happening. This tutorial provides a few examples of in-place
-processing, and how and when to avoid it.
+Many of MNE-Python's data objects (`~mne.io.Raw`, `~mne.Epochs`, `~mne.Evoked`, etc)
+have methods that modify the data in-place (either optionally or obligatorily). This can
+be advantageous when working with large datasets because it reduces the amount of
+computer memory needed to perform the computations. However, it can lead to unexpected
+results if you're not aware that it's happening. This tutorial provides a few examples
+of in-place processing, and how and when to avoid it.
 
-As usual we'll start by importing the modules we need and loading some
-:ref:`example data <sample-dataset>`:
+As usual we'll start by importing the modules we need and loading some :ref:`example
+data <sample-dataset>`:
 """
 
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 # %%
 
 import mne
@@ -58,9 +59,9 @@ print(
 # Another group of methods where data is modified in-place are the
 # channel-picking methods. For example:
 
-print(f'original data had {original_raw.info["nchan"]} channels.')
+print(f"original data had {original_raw.info['nchan']} channels.")
 original_raw.pick("eeg")  # selects only the EEG channels
-print(f'after picking, it has {original_raw.info["nchan"]} channels.')
+print(f"after picking, it has {original_raw.info['nchan']} channels.")
 
 
 # %%

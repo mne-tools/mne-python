@@ -1,7 +1,4 @@
-# Authors: Denis A. Engemann  <denis.engemann@gmail.com>
-#          Teon Brooks <teon.brooks@gmail.com>
-#
-#          simplified BSD-3 license
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -13,10 +10,11 @@ import numpy as np
 from ..._fiff.constants import FIFF
 from ..._fiff.meas_info import _empty_info
 from ..._fiff.utils import _create_chs, _read_segments_file
-from ...utils import _check_fname, _validate_type, logger, verbose, warn
+from ...annotations import Annotations
+from ...utils import _check_fname, _validate_type, logger, verbose
 from ..base import BaseRaw
 from .egimff import _read_raw_egi_mff
-from .events import _combine_triggers
+from .events import _combine_triggers, _triage_include_exclude
 
 
 def _read_header(fid):
@@ -26,9 +24,7 @@ def _read_header(fid):
     if version > 6 & ~np.bitwise_and(version, 6):
         version = version.byteswap().astype(np.uint32)
     else:
-        raise ValueError(
-            "Watchout. This does not seem to be a simple " "binary EGI file."
-        )
+        raise ValueError("Watchout. This does not seem to be a simple binary EGI file.")
 
     def my_fread(*x, **y):
         return int(np.fromfile(*x, **y)[0])
@@ -103,12 +99,11 @@ def read_raw_egi(
     exclude=None,
     preload=False,
     channel_naming="E%d",
+    *,
+    events_as_annotations=True,
     verbose=None,
 ) -> "RawEGI":
     """Read EGI simple binary as raw object.
-
-    .. note:: This function attempts to create a synthetic trigger channel.
-              See the Notes section below.
 
     Parameters
     ----------
@@ -122,14 +117,13 @@ def read_raw_egi(
         Names of channels or list of indices that should be designated
         MISC channels. Default is None.
     include : None | list
-       The event channels to be ignored when creating the synthetic
-       trigger. Defaults to None.
+       The event channels to be included when creating the synthetic
+       trigger or annotations. Defaults to None.
        Note. Overrides ``exclude`` parameter.
     exclude : None | list
        The event channels to be ignored when creating the synthetic
-       trigger. Defaults to None. If None, channels that have more than
-       one event and the ``sync`` and ``TREV`` channels will be
-       ignored.
+       trigger or annotations. Defaults to None. If None, the ``sync`` and ``TREV``
+       channels will be ignored. This is ignored when ``include`` is not None.
     %(preload)s
 
         .. versionadded:: 0.11
@@ -137,8 +131,15 @@ def read_raw_egi(
         Channel naming convention for the data channels. Defaults to ``'E%%d'``
         (resulting in channel names ``'E1'``, ``'E2'``, ``'E3'``...). The
         effective default prior to 0.14.0 was ``'EEG %%03d'``.
+        .. versionadded:: 0.14.0
 
-         .. versionadded:: 0.14.0
+    events_as_annotations : bool
+        If True, annotations are created from experiment events. If False (default),
+        a synthetic trigger channel ``STI 014`` is created from experiment events.
+        See the Notes section for details.
+        The default will change from False to True in version 1.9.
+
+        .. versionadded:: 1.8.0
     %(verbose)s
 
     Returns
@@ -153,27 +154,45 @@ def read_raw_egi(
 
     Notes
     -----
-    The trigger channel names are based on the arbitrary user dependent event
-    codes used. However this function will attempt to generate a **synthetic
-    trigger channel** named ``STI 014`` in accordance with the general
-    Neuromag / MNE naming pattern.
+    When ``events_from_annotations=True``, event codes on stimulus channels like
+    ``DIN1`` are stored as annotations with the ``description`` set to the stimulus
+    channel name.
 
-    The event_id assignment equals ``np.arange(n_events) + 1``. The resulting
-    ``event_id`` mapping is stored as attribute to the resulting raw object but
-    will be ignored when saving to a fiff. Note. The trigger channel is
-    artificially constructed based on timestamps received by the Netstation.
-    As a consequence, triggers have only short durations.
+    When ``events_from_annotations=False`` and events are present on the included
+    stimulus channels, a new stim channel ``STI014`` will be synthesized from the
+    events. It will contain 1-sample pulses where the Netstation file had event
+    timestamps. A ``raw.event_id`` dictionary is added to the raw object that will have
+    arbitrary sequential integer IDs for the events. This will fail if any timestamps
+    are duplicated. The ``event_id`` will also not survive a save/load roundtrip.
 
-    This step will fail if events are not mutually exclusive.
+    For these reasons, it is recommended to use ``events_as_annotations=True``.
     """
     _validate_type(input_fname, "path-like", "input_fname")
     input_fname = str(input_fname)
+    _validate_type(events_as_annotations, bool, "events_as_annotations")
+
     if input_fname.rstrip("/\\").endswith(".mff"):  # allows .mff or .mff/
         return _read_raw_egi_mff(
-            input_fname, eog, misc, include, exclude, preload, channel_naming, verbose
+            input_fname,
+            eog,
+            misc,
+            include,
+            exclude,
+            preload,
+            channel_naming,
+            events_as_annotations=events_as_annotations,
+            verbose=verbose,
         )
     return RawEGI(
-        input_fname, eog, misc, include, exclude, preload, channel_naming, verbose
+        input_fname,
+        eog,
+        misc,
+        include,
+        exclude,
+        preload,
+        channel_naming,
+        events_as_annotations=events_as_annotations,
+        verbose=verbose,
     )
 
 
@@ -192,6 +211,8 @@ class RawEGI(BaseRaw):
         exclude=None,
         preload=False,
         channel_naming="E%d",
+        *,
+        events_as_annotations=True,
         verbose=None,
     ):
         input_fname = str(_check_fname(input_fname, "read", True, "input_fname"))
@@ -200,7 +221,7 @@ class RawEGI(BaseRaw):
         if misc is None:
             misc = []
         with open(input_fname, "rb") as fid:  # 'rb' important for py3k
-            logger.info("Reading EGI header from %s..." % input_fname)
+            logger.info(f"Reading EGI header from {input_fname}...")
             egi_info = _read_header(fid)
             logger.info("    Reading events ...")
             egi_events = _read_events(fid, egi_info)  # update info + jump
@@ -211,58 +232,18 @@ class RawEGI(BaseRaw):
 
         logger.info("    Assembling measurement info ...")
 
-        event_codes = []
-        if egi_info["n_events"] > 0:
-            event_codes = list(egi_info["event_codes"])
-            if include is None:
-                exclude_list = ["sync", "TREV"] if exclude is None else exclude
-                exclude_inds = [
-                    i for i, k in enumerate(event_codes) if k in exclude_list
-                ]
-                more_excludes = []
-                if exclude is None:
-                    for ii, event in enumerate(egi_events):
-                        if event.sum() <= 1 and event_codes[ii]:
-                            more_excludes.append(ii)
-                if len(exclude_inds) + len(more_excludes) == len(event_codes):
-                    warn(
-                        "Did not find any event code with more than one " "event.",
-                        RuntimeWarning,
-                    )
-                else:
-                    exclude_inds.extend(more_excludes)
-
-                exclude_inds.sort()
-                include_ = [
-                    i for i in np.arange(egi_info["n_events"]) if i not in exclude_inds
-                ]
-                include_names = [k for i, k in enumerate(event_codes) if i in include_]
-            else:
-                include_ = [i for i, k in enumerate(event_codes) if k in include]
-                include_names = include
-
-            for kk, v in [("include", include_names), ("exclude", exclude)]:
-                if isinstance(v, list):
-                    for k in v:
-                        if k not in event_codes:
-                            raise ValueError('Could find event named "%s"' % k)
-                elif v is not None:
-                    raise ValueError("`%s` must be None or of type list" % kk)
-
-            event_ids = np.arange(len(include_)) + 1
+        event_codes = egi_info["event_codes"]
+        include = _triage_include_exclude(include, exclude, egi_events, egi_info)
+        if egi_info["n_events"] > 0 and not events_as_annotations:
+            event_ids = np.arange(len(include)) + 1
             logger.info('    Synthesizing trigger channel "STI 014" ...')
-            logger.info(
-                "    Excluding events {%s} ..."
-                % ", ".join([k for i, k in enumerate(event_codes) if i not in include_])
-            )
             egi_info["new_trigger"] = _combine_triggers(
-                egi_events[include_], remapping=event_ids
+                egi_events[[e in include for e in event_codes]], remapping=event_ids
             )
             self.event_id = dict(
-                zip([e for e in event_codes if e in include_names], event_ids)
+                zip([e for e in event_codes if e in include], event_ids)
             )
         else:
-            # No events
             self.event_id = None
             egi_info["new_trigger"] = None
         info = _empty_info(egi_info["samp_rate"])
@@ -277,11 +258,12 @@ class RawEGI(BaseRaw):
         my_timestamp = time.mktime(my_time.timetuple())
         info["meas_date"] = (my_timestamp, 0)
         ch_names = [channel_naming % (i + 1) for i in range(egi_info["n_channels"])]
-        ch_names.extend(list(egi_info["event_codes"]))
+        cals = np.repeat(cal, len(ch_names))
+        ch_names.extend(list(event_codes))
+        cals = np.concatenate([cals, np.ones(egi_info["n_events"])])
         if egi_info["new_trigger"] is not None:
             ch_names.append("STI 014")  # our new_trigger
-        nchan = len(ch_names)
-        cals = np.repeat(cal, nchan)
+            cals = np.concatenate([cals, [1.0]])
         ch_coil = FIFF.FIFFV_COIL_EEG
         ch_kind = FIFF.FIFFV_EEG_CH
         chs = _create_chs(ch_names, cals, ch_coil, ch_kind, eog, (), (), misc)
@@ -294,7 +276,6 @@ class RawEGI(BaseRaw):
             chs[idx].update(
                 {
                     "unit_mul": FIFF.FIFF_UNITM_NONE,
-                    "cal": 1.0,
                     "kind": FIFF.FIFFV_STIM_CH,
                     "coil_type": FIFF.FIFFV_COIL_NONE,
                     "unit": FIFF.FIFF_UNIT_NONE,
@@ -316,6 +297,17 @@ class RawEGI(BaseRaw):
             raw_extras=[egi_info],
             verbose=verbose,
         )
+        if events_as_annotations:
+            annot = dict(onset=list(), duration=list(), description=list())
+            for code, row in zip(egi_info["event_codes"], egi_events):
+                if code not in include:
+                    continue
+                onset = np.where(row)[0] / self.info["sfreq"]
+                annot["onset"].extend(onset)
+                annot["duration"].extend([0.0] * len(onset))
+                annot["description"].extend([code] * len(onset))
+            if annot:
+                self.set_annotations(Annotations(**annot))
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a segment of data from a file."""

@@ -1,5 +1,7 @@
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 import numpy as np
 
 from ..utils import fill_doc
@@ -16,9 +18,7 @@ def get_current_comp(info):
             if first_comp < 0:
                 first_comp = comp
             elif comp != first_comp:
-                raise ValueError(
-                    "Compensation is not set equally on " "all MEG channels"
-                )
+                raise ValueError("Compensation is not set equally on all MEG channels")
     return comp
 
 
@@ -42,11 +42,9 @@ def _make_compensator(info, grade):
             for col, col_name in enumerate(this_data["col_names"]):
                 ind = [k for k, ch in enumerate(info["ch_names"]) if ch == col_name]
                 if len(ind) == 0:
-                    raise ValueError(
-                        "Channel %s is not available in " "data" % col_name
-                    )
+                    raise ValueError(f"Channel {col_name} is not available in data")
                 elif len(ind) > 1:
-                    raise ValueError("Ambiguous channel %s" % col_name)
+                    raise ValueError(f"Ambiguous channel {col_name}")
                 presel[col, ind[0]] = 1.0
 
             #   Create the postselector (zero entries for channels not found)
@@ -56,14 +54,14 @@ def _make_compensator(info, grade):
                     k for k, ch in enumerate(this_data["row_names"]) if ch == ch_name
                 ]
                 if len(ind) > 1:
-                    raise ValueError("Ambiguous channel %s" % ch_name)
+                    raise ValueError(f"Ambiguous channel {ch_name}")
                 elif len(ind) == 1:
                     postsel[c, ind[0]] = 1.0
                 # else, don't use it at all (postsel[c, ?] = 0.0) by allocation
             this_comp = np.dot(postsel, np.dot(this_data["data"], presel))
             return this_comp
 
-    raise ValueError("Desired compensation matrix (grade = %d) not" " found" % grade)
+    raise ValueError(f"Desired compensation matrix (grade = {grade:d}) not found")
 
 
 @fill_doc
@@ -120,7 +118,7 @@ def make_compensator(info, from_, to, exclude_comp_chs=False):
 
         if len(pick) == 0:
             raise ValueError(
-                "Nothing remains after excluding the " "compensation channels"
+                "Nothing remains after excluding the compensation channels"
             )
 
         comp = comp[pick, :]

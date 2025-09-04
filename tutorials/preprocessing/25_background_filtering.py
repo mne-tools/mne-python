@@ -1,5 +1,7 @@
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 r"""
 .. _disc-filtering:
 
@@ -148,6 +150,7 @@ from numpy.fft import fft, fftfreq
 from scipy import signal
 
 import mne
+from mne.fixes import minimum_phase
 from mne.time_frequency.tfr import morlet
 from mne.viz import plot_filter, plot_ideal_filter
 
@@ -168,8 +171,8 @@ freq = [0, f_p, f_p, nyq]
 gain = [1, 1, 0, 0]
 
 third_height = np.array(plt.rcParams["figure.figsize"]) * [1, 1.0 / 3.0]
-ax = plt.subplots(1, figsize=third_height)[1]
-plot_ideal_filter(freq, gain, ax, title="Ideal %s Hz lowpass" % f_p, flim=flim)
+ax = plt.subplots(1, figsize=third_height, layout="constrained")[1]
+plot_ideal_filter(freq, gain, ax, title=f"Ideal {f_p} Hz lowpass", flim=flim)
 
 # %%
 # This filter hypothetically achieves zero ripple in the frequency domain,
@@ -249,7 +252,7 @@ f_s = f_p + trans_bandwidth  # = 50 Hz
 
 freq = [0.0, f_p, f_s, nyq]
 gain = [1.0, 1.0, 0.0, 0.0]
-ax = plt.subplots(1, figsize=third_height)[1]
+ax = plt.subplots(1, figsize=third_height, layout="constrained")[1]
 title = f"{f_p} Hz lowpass with a {trans_bandwidth} Hz transition"
 plot_ideal_filter(freq, gain, ax, title=title, flim=flim)
 
@@ -316,15 +319,15 @@ plot_filter(
 # is constant) but small in the pass-band. Unlike zero-phase filters, which
 # require time-shifting backward the output of a linear-phase filtering stage
 # (and thus becoming non-causal), minimum-phase filters do not require any
-# compensation to achieve small delays in the pass-band. Note that as an
-# artifact of the minimum phase filter construction step, the filter does
-# not end up being as steep as the linear/zero-phase version.
+# compensation to achieve small delays in the pass-band.
 #
 # We can construct a minimum-phase filter from our existing linear-phase
-# filter with the :func:`scipy.signal.minimum_phase` function, and note
-# that the falloff is not as steep:
+# filter, and note that the falloff is not as steep. Here we do this with function
+# ``mne.fixes.minimum_phase()`` to avoid a SciPy bug; once SciPy 1.14.0 is released you
+# could directly use
+# :func:`scipy.signal.minimum_phase(..., half=False) <scipy.signal.minimum_phase>`.
 
-h_min = signal.minimum_phase(h)
+h_min = minimum_phase(h, half=False)
 plot_filter(h_min, sfreq, freq, gain, "Minimum-phase", **kwargs)
 
 # %%
@@ -424,7 +427,7 @@ h = mne.filter.create_filter(
     l_freq=None,
     h_freq=f_p,
     h_trans_bandwidth=transition_band,
-    filter_length="%ss" % filter_dur,
+    filter_length=f"{filter_dur}s",
     fir_design="firwin2",
     verbose=True,
 )
@@ -516,7 +519,7 @@ plot_signal(x_mne_c, offset=yticks[5])
 plot_signal(x_min, offset=yticks[6])
 axes[0].set(
     xlim=tlim,
-    title="FIR, Lowpass=%d Hz" % f_p,
+    title=f"FIR, Lowpass={f_p} Hz",
     xticks=tticks,
     ylim=[-len(yticks) / yscale, 1.0 / yscale],
     yticks=yticks,
@@ -674,7 +677,7 @@ plot_signal(x_shallow, offset=yticks[2])
 plot_signal(x_steep, offset=yticks[3])
 axes[0].set(
     xlim=tlim,
-    title="IIR, Lowpass=%d Hz" % f_p,
+    title=f"IIR, Lowpass={f_p} Hz",
     xticks=tticks,
     ylim=[-0.125, 0.025],
     yticks=yticks,
@@ -683,7 +686,6 @@ axes[0].set(
 for text in axes[0].get_yticklabels():
     text.set(rotation=45, size=8)
 axes[1].set(xlim=flim, ylim=(-60, 10), xlabel="Frequency (Hz)", ylabel="Magnitude (dB)")
-mne.viz.adjust_axes(axes)
 plt.show()
 
 # %%
@@ -779,7 +781,7 @@ ylim = [-2, 6]
 xlabel = "Time (s)"
 ylabel = r"Amplitude ($\mu$V)"
 tticks = [0, 0.5, 1.3, t[-1]]
-axes = plt.subplots(2, 2)[1].ravel()
+axes = plt.subplots(2, 2, layout="constrained")[1].ravel()
 for ax, x_f, title in zip(
     axes,
     [x_lp_2, x_lp_30, x_hp_2, x_hp_p1],
@@ -791,7 +793,6 @@ for ax, x_f, title in zip(
         ylim=ylim, xlim=xlim, xticks=tticks, title=title, xlabel=xlabel, ylabel=ylabel
     )
 
-mne.viz.adjust_axes(axes)
 plt.show()
 
 # %%
@@ -830,7 +831,7 @@ plt.show()
 
 
 def baseline_plot(x):
-    all_axes = plt.subplots(3, 2, layout="constrained")[1]
+    fig, all_axes = plt.subplots(3, 2, layout="constrained")
     for ri, (axes, freq) in enumerate(zip(all_axes, [0.1, 0.3, 0.5])):
         for ci, ax in enumerate(axes):
             if ci == 0:
@@ -845,9 +846,8 @@ def baseline_plot(x):
             if ri == 0:
                 ax.set(title=("No " if ci == 0 else "") + "Baseline Correction")
             ax.set(xticks=tticks, ylim=ylim, xlim=xlim, xlabel=xlabel)
-            ax.set_ylabel("%0.1f Hz" % freq, rotation=0, horizontalalignment="right")
-        mne.viz.adjust_axes(axes)
-    plt.suptitle(title)
+            ax.set_ylabel(f"{freq:0.1f} Hz", rotation=0, horizontalalignment="right")
+    fig.suptitle(title)
     plt.show()
 
 

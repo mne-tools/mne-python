@@ -19,7 +19,6 @@ layout plot of the related evoked responses.
 
 # %%
 
-
 import matplotlib.pyplot as plt
 
 import mne
@@ -31,21 +30,21 @@ print(__doc__)
 data_path = sample.data_path()
 
 # %%
-# Set parameters
+# Set parameters.
 meg_path = data_path / "MEG" / "sample"
 raw_fname = meg_path / "sample_audvis_filt-0-40_raw.fif"
 event_fname = meg_path / "sample_audvis_filt-0-40_raw-eve.fif"
 tmin = -0.2
 tmax = 0.5
 
-#   Setup for reading the raw data
+# Setup for reading the raw data.
 raw = mne.io.read_raw_fif(raw_fname)
 events = mne.read_events(event_fname)
 
-#   Set up amplitude-peak rejection values for MEG channels
+# Set up amplitude-peak rejection values for MEG channels.
 reject = dict(grad=4000e-13, mag=4e-12)
 
-# Create epochs including different events
+# Create epochs including different events.
 event_id = {"audio/left": 1, "audio/right": 2, "visual/left": 3, "visual/right": 4}
 epochs = mne.Epochs(
     raw, events, event_id, tmin, tmax, picks="meg", baseline=(None, 0), reject=reject
@@ -55,7 +54,7 @@ epochs = mne.Epochs(
 evokeds = [epochs[name].average() for name in ("left", "right")]
 
 # %%
-# Show topography for two different conditions
+# Show topography for two different conditions.
 
 colors = "blue", "red"
 title = "MNE sample data\nleft vs right (A/V combined)"

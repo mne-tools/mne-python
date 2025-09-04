@@ -1,8 +1,6 @@
 """Read .res4 files."""
 
-# Authors: Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
-#          Eric Larson <larson.eric.d@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -20,7 +18,7 @@ def _make_ctf_name(directory, extra, raise_error=True):
     found = True
     if not op.isfile(fname):
         if raise_error:
-            raise OSError("Standard file %s not found" % fname)
+            raise OSError(f"Standard file {fname} not found")
         found = False
     return fname, found
 
@@ -83,7 +81,7 @@ def _read_comp_coeff(fid, d):
             ("coeff_type", ">i4"),
             ("d0", ">i4"),
             ("ncoeff", ">i2"),
-            ("sensors", "S%s" % CTF.CTFV_SENSOR_LABEL, CTF.CTFV_MAX_BALANCING),
+            ("sensors", f"S{CTF.CTFV_SENSOR_LABEL}", CTF.CTFV_MAX_BALANCING),
             ("coeffs", ">f8", CTF.CTFV_MAX_BALANCING),
         ]
     )

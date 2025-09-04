@@ -1,5 +1,7 @@
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 import webbrowser
 
 import pytest
@@ -120,7 +122,7 @@ def test_copy_doc():
 
 
 def test_copy_function_doc_to_method_doc():
-    """Test decorator for re-using function docstring as method docstrings."""
+    """Test decorator for reusing function docstring as method docstrings."""
 
     def f1(obj, a, b, c):
         """Docstring for f1.
@@ -193,28 +195,29 @@ def test_copy_function_doc_to_method_doc():
 
     assert (
         A.method_f1.__doc__
-        == """Docstring for f1.
+        == """\
+Docstring for f1.
 
-        Parameters
-        ----------
-        a : int
-            Parameter a
-        b : int
-            Parameter b
-        """
+Parameters
+----------
+a : int
+    Parameter a
+b : int
+    Parameter b"""
     )
 
     assert (
         A.method_f2.__doc__
-        == """Docstring for f2.
+        == """\
+Docstring for f2.
 
-        Returns
-        -------
-        nothing.
-        method_f3 own docstring"""
+Returns
+-------
+nothing.
+method_f3 own docstring"""
     )
 
-    assert A.method_f3.__doc__ == "Docstring for f3.\n\n        "
+    assert A.method_f3.__doc__ == "Docstring for f3.\n\n"
     pytest.raises(ValueError, copy_function_doc_to_method_doc(f5), A.method_f1)
 
 

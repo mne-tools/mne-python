@@ -1,0 +1,87 @@
+{
+  "merge_commit_sha": "a3ed1052e21b39c104915418890a6dbb7a5d823d",
+  "authors": [
+    {
+      "n": "jaeilepp",
+      "e": "jaeilepp@student.jyu.fi"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/channels/layout.py": {
+      "a": 11,
+      "d": 3
+    },
+    "mne/decoding/base.py": {
+      "a": 28,
+      "d": 6
+    },
+    "mne/decoding/csp.py": {
+      "a": 28,
+      "d": 6
+    },
+    "mne/epochs.py": {
+      "a": 19,
+      "d": 5
+    },
+    "mne/evoked.py": {
+      "a": 23,
+      "d": 5
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 14,
+      "d": 2
+    },
+    "mne/time_frequency/tests/test_tfr.py": {
+      "a": 21,
+      "d": 0
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 41,
+      "d": 15
+    },
+    "mne/viz/epochs.py": {
+      "a": 23,
+      "d": 10
+    },
+    "mne/viz/evoked.py": {
+      "a": 27,
+      "d": 8
+    },
+    "mne/viz/tests/test_epochs.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/tests/test_evoked.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/tests/test_ica.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/viz/tests/test_topomap.py": {
+      "a": 27,
+      "d": 4
+    },
+    "mne/viz/topo.py": {
+      "a": 11,
+      "d": 3
+    },
+    "mne/viz/topomap.py": {
+      "a": 146,
+      "d": 50
+    },
+    "mne/viz/utils.py": {
+      "a": 102,
+      "d": 3
+    },
+    "tutorials/plot_visualize_epochs.py": {
+      "a": 6,
+      "d": 2
+    }
+  }
+}

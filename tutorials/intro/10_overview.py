@@ -14,8 +14,10 @@ detail.
 
 We begin by importing the necessary Python modules:
 """
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 # %%
 
 import numpy as np
@@ -206,7 +208,7 @@ event_dict = {
 # example of this is shown in the next section. There is also a convenient
 # `~mne.viz.plot_events` function for visualizing the distribution of events
 # across the duration of the recording (to make sure event detection worked as
-# expected). Here we'll also make use of the `~mne.Info` attribute to get the
+# expected). Here we will also make use of the `~mne.Info` attribute to get the
 # sampling frequency of the recording (so our x-axis will be in seconds instead
 # of in samples).
 
@@ -309,8 +311,8 @@ aud_epochs.plot_image(picks=["MEG 1332", "EEG 021"])
 # frequency content.
 
 frequencies = np.arange(7, 30, 3)
-power = mne.time_frequency.tfr_morlet(
-    aud_epochs, n_cycles=2, return_itc=False, freqs=frequencies, decim=3
+power = aud_epochs.compute_tfr(
+    "morlet", n_cycles=2, return_itc=False, freqs=frequencies, decim=3, average=True
 )
 power.plot(["MEG 1332"])
 

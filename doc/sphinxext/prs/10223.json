@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "89e163f60be122be2150ee93a9d3fcea5641b8b7",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/conftest.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/fixes.py": {
+      "a": 1,
+      "d": 5
+    }
+  }
+}

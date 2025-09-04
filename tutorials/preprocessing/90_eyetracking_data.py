@@ -9,10 +9,10 @@ In this tutorial we will explore simultaneously recorded eye-tracking and EEG da
 a pupillary light reflex task. We will combine the eye-tracking and EEG data, and plot
 the ERP and pupil response to the light flashes (i.e. the pupillary light reflex).
 
-"""  # noqa: E501
+"""
+
 # Authors: Scott Huberty <seh33@uw.edu>
 #          Dominik Welke <dominik.welke@web.de>
-#
 #
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
@@ -37,7 +37,7 @@ et_fpath = data_path() / "eeg-et" / "sub-01_task-plr_eyetrack.asc"
 eeg_fpath = data_path() / "eeg-et" / "sub-01_task-plr_eeg.mff"
 
 raw_et = mne.io.read_raw_eyelink(et_fpath, create_annotations=["blinks"])
-raw_eeg = mne.io.read_raw_egi(eeg_fpath, preload=True, verbose="warning")
+raw_eeg = mne.io.read_raw_egi(eeg_fpath, events_as_annotations=True).load_data()
 raw_eeg.filter(1, 30)
 
 # %%
@@ -100,15 +100,31 @@ print(f"x-coordinate for each calibration point: {first_cal['positions'].T[0]}")
 first_cal.plot()
 
 # %%
+# Standardizing eyetracking data to SI units
+# ------------------------------------------
+#
+# EyeLink stores eyegaze positions in pixels, and pupil size in arbitrary units.
+# MNE-Python expects eyegaze positions to be in radians of visual angle, and pupil
+# size to be in meters. We can convert the eyegaze positions to radians using
+# :func:`~mne.preprocessing.eyetracking.convert_units`. We'll pass the calibration
+# object we created above, after specifying the screen resolution, screen size, and
+# screen distance.
+
+first_cal["screen_resolution"] = (1920, 1080)
+first_cal["screen_size"] = (0.53, 0.3)
+first_cal["screen_distance"] = 0.9
+mne.preprocessing.eyetracking.convert_units(raw_et, calibration=first_cal, to="radians")
+
+# %%
 # Plot the raw eye-tracking data
 # ------------------------------
 #
-# Let's plot the raw eye-tracking data. We'll pass a custom `dict` into
-# the scalings argument to make the eyegaze channel traces legible when plotting,
-# since this file contains pixel position data (as opposed to eye angles,
-# which are reported in radians).
+# Let's plot the raw eye-tracking data. Since we did not convert the pupil size to
+# meters, we'll pass a custom `dict` into the scalings argument to make the pupil size
+# traces legible when plotting.
 
-raw_et.plot(scalings=dict(eyegaze=1e3))
+ps_scalings = dict(pupil=1e3)
+raw_et.plot(scalings=ps_scalings)
 
 # %%
 # Handling blink artifacts
@@ -189,7 +205,13 @@ pupil = ["pupil_right"]
 picks_idx = mne.pick_channels(
     raw_et.ch_names, frontal + occipital + pupil, ordered=True
 )
-raw_et.plot(events=et_events, event_id=event_dict, event_color="g", order=picks_idx)
+raw_et.plot(
+    events=et_events,
+    event_id=event_dict,
+    event_color="g",
+    order=picks_idx,
+    scalings=ps_scalings,
+)
 
 
 # %%
@@ -203,14 +225,16 @@ epochs = mne.Epochs(
     raw_et, events=et_events, event_id=event_dict, tmin=-0.3, tmax=3, baseline=None
 )
 del raw_et  # free up some memory
-epochs[:8].plot(events=et_events, event_id=event_dict, order=picks_idx)
+epochs[:8].plot(
+    events=et_events, event_id=event_dict, order=picks_idx, scalings=ps_scalings
+)
 
 # %%
 # For this experiment, the participant was instructed to fixate on a crosshair in the
 # center of the screen. Let's plot the gaze position data to confirm that the
 # participant primarily kept their gaze fixated at the center of the screen.
 
-plot_gaze(epochs, width=1920, height=1080)
+plot_gaze(epochs, calibration=first_cal)
 
 # %%
 # .. seealso:: :ref:`tut-eyetrack-heatmap`

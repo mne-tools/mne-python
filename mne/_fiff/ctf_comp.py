@@ -1,7 +1,4 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
-#          Denis Engemann <denis.engemann@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -43,8 +40,8 @@ def _calibrate_comp(
             p = ch_names.count(names[ii])
             if p != 1:
                 raise RuntimeError(
-                    "Channel %s does not appear exactly once "
-                    "in data, found %d instance%s" % (names[ii], p, _pl(p))
+                    f"Channel {names[ii]} does not appear exactly once "
+                    f"in data, found {p:d} instance{_pl(p)}"
                 )
             idx = ch_names.index(names[ii])
             val = chs[idx][mult_keys[0]] * chs[idx][mult_keys[1]]
@@ -145,7 +142,7 @@ def _read_ctf_comp(fid, node, chs, ch_names_mapping):
         compdata.append(one)
 
     if len(compdata) > 0:
-        logger.info("    Read %d compensation matrices" % len(compdata))
+        logger.info(f"    Read {len(compdata)} compensation matrices")
 
     return compdata
 

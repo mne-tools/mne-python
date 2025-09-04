@@ -1,8 +1,4 @@
-# Authors: Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
-#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
-#          Denis A. Engemann <denis.engemann@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -12,7 +8,7 @@
 import os
 
 import numpy as np
-from scipy.sparse import csr_matrix, eye
+from scipy.sparse import csr_array
 
 from ._fiff.constants import FIFF
 from ._fiff.open import fiff_open
@@ -26,6 +22,7 @@ from ._fiff.write import (
     write_int,
     write_string,
 )
+from .fixes import _eye_array
 from .surface import (
     _compute_nearest,
     _find_nearest_tri_pts,
@@ -63,7 +60,7 @@ def read_morph_map(
 
     Returns
     -------
-    left_map, right_map : ~scipy.sparse.csr_matrix
+    left_map, right_map : ~scipy.sparse.csr_array
         The morph maps for the 2 hemispheres.
     """
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
@@ -74,7 +71,7 @@ def read_morph_map(
         try:
             os.mkdir(mmap_dir)
         except Exception:
-            warn('Could not find or make morph map directory "%s"' % mmap_dir)
+            warn(f'Could not find or make morph map directory "{mmap_dir}"')
 
     # filename components
     if xhemi:
@@ -102,7 +99,7 @@ def read_morph_map(
             return _read_morph_map(fname, subject_from, subject_to)
     # if file does not exist, make it
     logger.info(
-        'Morph map "%s" does not exist, creating it and saving it to ' "disk" % fname
+        f'Morph map "{fname}" does not exist, creating it and saving it to disk'
     )
     logger.info(log_msg % (subject_from, subject_to))
     mmap_1 = _make_morph_map(subject_from, subject_to, subjects_dir, xhemi)
@@ -144,7 +141,7 @@ def _read_morph_map(fname, subject_from, subject_to):
                         logger.info("    Right-hemisphere map read.")
 
     if left_map is None or right_map is None:
-        raise ValueError("Could not find both hemispheres in %s" % fname)
+        raise ValueError(f"Could not find both hemispheres in {fname}")
 
     return left_map, right_map
 
@@ -155,7 +152,7 @@ def _write_morph_map(fname, subject_from, subject_to, mmap_1, mmap_2):
         with start_and_end_file(fname) as fid:
             _write_morph_map_(fid, subject_from, subject_to, mmap_1, mmap_2)
     except Exception as exp:
-        warn('Could not write morph-map file "%s" (error: %s)' % (fname, exp))
+        warn(f'Could not write morph-map file "{fname}" (error: {exp})')
 
 
 def _write_morph_map_(fid, subject_from, subject_to, mmap_1, mmap_2):
@@ -213,7 +210,7 @@ def _make_morph_map_hemi(subject_from, subject_to, subjects_dir, reg_from, reg_t
     if subject_from == subject_to and reg_from == reg_to:
         fname = subjects_dir / subject_from / "surf" / reg_from
         n_pts = len(read_surface(fname, verbose=False)[0])
-        return eye(n_pts, n_pts, format="csr")
+        return _eye_array(n_pts, format="csr")
 
     # load surfaces and normalize points to be on unit sphere
     fname = subjects_dir / subject_from / "surf" / reg_from
@@ -244,7 +241,7 @@ def _make_morph_map_hemi(subject_from, subject_to, subjects_dir, reg_from, reg_t
     weights = np.array(weights)
 
     row_ind = np.repeat(np.arange(len(to_rr)), 3)
-    this_map = csr_matrix(
+    this_map = csr_array(
         (weights.ravel(), (row_ind, nn_idx.ravel())), shape=(len(to_rr), len(from_rr))
     )
     return this_map

@@ -6,28 +6,26 @@ Morph volumetric source estimate
 ================================
 
 This example demonstrates how to morph an individual subject's
-:class:`mne.VolSourceEstimate` to a common reference space. We achieve this
-using :class:`mne.SourceMorph`. Data will be morphed based on
-an affine transformation and a nonlinear registration method
-known as Symmetric Diffeomorphic Registration (SDR) by
+:class:`mne.VolSourceEstimate` to a common reference space. We achieve this using
+:class:`mne.SourceMorph`. Data will be morphed based on an affine transformation and
+a nonlinear registration method known as Symmetric Diffeomorphic Registration (SDR) by
 :footcite:`AvantsEtAl2008`.
 
 Transformation is estimated from the subject's anatomical T1 weighted MRI
 (brain) to `FreeSurfer's 'fsaverage' T1 weighted MRI (brain)
 <https://surfer.nmr.mgh.harvard.edu/fswiki/FsAverage>`__.
 
-Afterwards the transformation will be applied to the volumetric source
-estimate. The result will be plotted, showing the fsaverage T1 weighted
-anatomical MRI, overlaid with the morphed volumetric source estimate.
+Afterwards the transformation will be applied to the volumetric source estimate. The
+result will be plotted, showing the fsaverage T1 weighted anatomical MRI, overlaid with
+the morphed volumetric source estimate.
 """
+
 # Author: Tommy Clausner <tommy.clausner@gmail.com>
 #
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
 # %%
-import os
-
 import nibabel as nib
 from nilearn.plotting import plot_glass_brain
 
@@ -40,15 +38,15 @@ print(__doc__)
 # %%
 # Setup paths
 sample_dir_raw = sample.data_path()
-sample_dir = os.path.join(sample_dir_raw, "MEG", "sample")
-subjects_dir = os.path.join(sample_dir_raw, "subjects")
+sample_dir = sample_dir_raw / "MEG" / "sample"
+subjects_dir = sample_dir_raw / "subjects"
 
-fname_evoked = os.path.join(sample_dir, "sample_audvis-ave.fif")
-fname_inv = os.path.join(sample_dir, "sample_audvis-meg-vol-7-meg-inv.fif")
+fname_evoked = sample_dir / "sample_audvis-ave.fif"
+fname_inv = sample_dir / "sample_audvis-meg-vol-7-meg-inv.fif"
 
-fname_t1_fsaverage = os.path.join(subjects_dir, "fsaverage", "mri", "brain.mgz")
+fname_t1_fsaverage = subjects_dir / "fsaverage" / "mri" / "brain.mgz"
 fetch_fsaverage(subjects_dir)  # ensure fsaverage src exists
-fname_src_fsaverage = subjects_dir + "/fsaverage/bem/fsaverage-vol-5-src.fif"
+fname_src_fsaverage = subjects_dir / "fsaverage" / "bem" / "fsaverage-vol-5-src.fif"
 
 # %%
 # Compute example data. For reference see :ref:`ex-inverse-volume`.
@@ -140,7 +138,7 @@ display = plot_glass_brain(
 )
 
 # Add functional data as overlay
-display.add_overlay(img_fsaverage, alpha=0.75)
+display.add_overlay(img_fsaverage, transparency=0.75)
 
 
 # %%

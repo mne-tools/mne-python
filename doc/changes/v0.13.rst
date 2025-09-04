@@ -46,15 +46,15 @@ Changelog
 
 - Add the ``--no-decimate`` option to :ref:`mne make_scalp_surfaces` to skip the high-resolution surface decimation step, by `Eric Larson`_
 
-- Add new class :class:`mne.decoding.EMS` to transform epochs with the event-matched spatial filters and add 'cv' parameter to :func:`mne.decoding.compute_ems`, by `Jean-Remi King`_
+- Add new class :class:`mne.decoding.EMS` to transform epochs with the event-matched spatial filters and add 'cv' parameter to :func:`mne.decoding.compute_ems`, by `Jean-Rémi King`_
 
-- Added :class:`mne.time_frequency.EpochsTFR` and average parameter in :func:`mne.time_frequency.tfr_morlet` and :func:`mne.time_frequency.tfr_multitaper` to compute time-frequency transforms on single trial epochs without averaging, by `Jean-Remi King`_ and `Alex Gramfort`_
+- Added :class:`mne.time_frequency.EpochsTFR` and average parameter in :func:`mne.time_frequency.tfr_morlet` and :func:`mne.time_frequency.tfr_multitaper` to compute time-frequency transforms on single trial epochs without averaging, by `Jean-Rémi King`_ and `Alex Gramfort`_
 
-- Added :class:`mne.decoding.TimeFrequency` to transform signals in scikit-learn pipelines, by `Jean-Remi King`_
+- Added :class:`mne.decoding.TimeFrequency` to transform signals in scikit-learn pipelines, by `Jean-Rémi King`_
 
-- Added :class:`mne.decoding.UnsupervisedSpatialFilter` providing interface for scikit-learn decomposition algorithms to be used with MNE data, by `Jean-Remi King`_ and `Asish Panda`_
+- Added :class:`mne.decoding.UnsupervisedSpatialFilter` providing interface for scikit-learn decomposition algorithms to be used with MNE data, by `Jean-Rémi King`_ and `Asish Panda`_
 
-- Added support for multiclass decoding in :class:`mne.decoding.CSP`, by `Jean-Remi King`_ and `Alexandre Barachant`_
+- Added support for multiclass decoding in :class:`mne.decoding.CSP`, by `Jean-Rémi King`_ and `Alexandre Barachant`_
 
 - Components obtained from :class:`mne.preprocessing.ICA` are now sorted by explained variance, by `Mikołaj Magnuski`_
 
@@ -64,7 +64,7 @@ Changelog
 
 - Adds new function :func:`mne.viz.plot_compare_evokeds` to show multiple evoked time courses at a single location, or the mean over a ROI, or the GFP, automatically averaging and calculating a CI if multiple subjects are given, by `Jona Sassenhagen`_
 
-- Added ``transform_into`` parameter into :class:`mne.decoding.CSP` to retrieve the average power of each source or the time course of each source, by `Jean-Remi King`_
+- Added ``transform_into`` parameter into :class:`mne.decoding.CSP` to retrieve the average power of each source or the time course of each source, by `Jean-Rémi King`_
 
 - Added support for reading MaxShield (IAS) evoked data (e.g., from the acquisition machine) in :func:`mne.read_evokeds` by `Eric Larson`_
 
@@ -72,7 +72,7 @@ Changelog
 
 - Added :attr:`mne.io.Raw.acqparser` convenience attribute for :class:`mne.AcqParserFIF` by `Eric Larson`_
 
-- Added example of Representational Similarity Analysis, by `Jean-Remi King`_
+- Added example of Representational Similarity Analysis, by `Jean-Rémi King`_
 
 BUG
 ~~~
@@ -101,7 +101,7 @@ BUG
 
 - Fixed image scaling in :func:`mne.viz.plot_epochs_image` when plotting more than one channel by `Jaakko Leppakangas`_
 
-- Fixed :class:`mne.preprocessing.Xdawn` to fit shuffled epochs by `Jean-Remi King`_
+- Fixed :class:`mne.preprocessing.Xdawn` to fit shuffled epochs by `Jean-Rémi King`_
 
 - Fixed a bug with channel order determination that could lead to an ``AssertionError`` when using :class:`mne.Covariance` matrices by `Eric Larson`_
 
@@ -109,7 +109,7 @@ BUG
 
 - Fixed the import of EDF files with encoding characters in :func:`mne.io.read_raw_edf` by `Guillaume Dumas`_
 
-- Fixed :class:`mne.Epochs` to ensure that detrend parameter is not a boolean by `Jean-Remi King`_
+- Fixed :class:`mne.Epochs` to ensure that detrend parameter is not a boolean by `Jean-Rémi King`_
 
 - Fixed bug with ``mne.realtime.FieldTripClient.get_data_as_epoch`` when ``picks=None`` which crashed the function by `Mainak Jas`_
 
@@ -164,7 +164,7 @@ API
 
 - Now channels with units of 'C', 'µS', 'uS', 'ARU' and 'S' will be turned to misc by default in :func:`mne.io.read_raw_brainvision` by `Jaakko Leppakangas`_
 
-- Add :func:`mne.io.anonymize_info` function to anonymize measurements and add methods to :class:`mne.io.Raw`, :class:`mne.Epochs` and :class:`mne.Evoked`, by `Jean-Remi King`_
+- Add :func:`mne.io.anonymize_info` function to anonymize measurements and add methods to :class:`mne.io.Raw`, :class:`mne.Epochs` and :class:`mne.Evoked`, by `Jean-Rémi King`_
 
 - Now it is possible to plot only a subselection of channels in :func:`mne.viz.plot_raw` by using an array for order parameter by `Jaakko Leppakangas`_
 
@@ -194,11 +194,11 @@ API
 
 - ``mne.decoding.EpochsVectorizer`` has been deprecated in favor of :class:`mne.decoding.Vectorizer` by `Asish Panda`_
 
-- The ``epochs_data`` parameter has been deprecated in :class:`mne.decoding.CSP`, in favour of the ``X`` parameter to comply to scikit-learn API, by `Jean-Remi King`_
+- The ``epochs_data`` parameter has been deprecated in :class:`mne.decoding.CSP`, in favour of the ``X`` parameter to comply to scikit-learn API, by `Jean-Rémi King`_
 
-- Deprecated ``mne.time_frequency.cwt_morlet`` and ``mne.time_frequency.single_trial_power`` in favour of :func:`mne.time_frequency.tfr_morlet` with parameter average=False, by `Jean-Remi King`_ and `Alex Gramfort`_
+- Deprecated ``mne.time_frequency.cwt_morlet`` and ``mne.time_frequency.single_trial_power`` in favour of :func:`mne.time_frequency.tfr_morlet` with parameter average=False, by `Jean-Rémi King`_ and `Alex Gramfort`_
 
-- Add argument ``mask_type`` to func:`mne.read_events` and func:`mne.find_events` to support MNE-C style of trigger masking by `Teon Brooks`_ and `Eric Larson`_
+- Add argument ``mask_type`` to :func:`mne.read_events` and :func:`mne.find_events` to support MNE-C style of trigger masking by `Teon Brooks`_ and `Eric Larson`_
 
 - Extended Infomax is now the new default in :func:`mne.preprocessing.infomax` (``extended=True``), by `Clemens Brunner`_
 
@@ -232,7 +232,7 @@ The committer list for this release is the following (sorted by alphabetical ord
 * Guillaume Dumas
 * Jaakko Leppakangas
 * Jair Montoya
-* Jean-Remi King
+* Jean-Rémi King
 * Johannes Niediek
 * Jona Sassenhagen
 * Jussi Nurminen

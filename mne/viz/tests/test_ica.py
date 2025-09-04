@@ -1,6 +1,4 @@
-# Authors: Denis Engemann <denis.engemann@gmail.com>
-#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -19,8 +17,10 @@ from mne import (
     pick_types,
     read_cov,
     read_events,
+    read_evokeds,
 )
-from mne.io import read_raw_fif
+from mne.datasets import testing
+from mne.io import RawArray, read_raw_fif
 from mne.preprocessing import ICA, create_ecg_epochs, create_eog_epochs
 from mne.utils import _record_warnings, catch_logging
 from mne.viz.ica import _create_properties_layout, plot_ica_properties
@@ -33,6 +33,9 @@ cov_fname = base_dir / "test-cov.fif"
 event_name = base_dir / "test-eve.fif"
 event_id, tmin, tmax = 1, -0.1, 0.2
 raw_ctf_fname = base_dir / "test_ctf_raw.fif"
+
+testing_path = testing.data_path(download=False)
+opm_fname = testing_path / "OPM" / "opm-evoked-ave.fif"
 
 pytest.importorskip("sklearn")
 
@@ -362,12 +365,18 @@ def test_plot_ica_sources(raw_orig, browser_backend, monkeypatch):
     ica.plot_sources(epochs)
     ica.plot_sources(epochs.average())
     evoked = epochs.average()
+    ica.exclude = [0]
     fig = ica.plot_sources(evoked)
     # Test a click
     ax = fig.get_axes()[0]
     line = ax.lines[0]
     _fake_click(fig, ax, [line.get_xdata()[0], line.get_ydata()[0]], "data")
     _fake_click(fig, ax, [ax.get_xlim()[0], ax.get_ylim()[1]], "data")
+    leg = ax.get_legend()
+    assert len(leg.get_texts()) == len(ica.exclude) == 1
+
+    # test passing psd_args argument
+    ica.plot_sources(epochs, psd_args=dict(fmax=50))
 
     # plot with bad channels excluded
     ica.exclude = [0]
@@ -522,3 +531,15 @@ def test_plot_instance_components(browser_backend):
     fig._fake_click((x, y), xform="data")
     fig._click_ch_name(ch_index=0, button=1)
     fig._fake_keypress("escape")
+
+
+@pytest.mark.slowtest
+@pytest.mark.filterwarnings("ignore:.*did not converge.*:")
+@testing.requires_testing_data
+def test_plot_components_opm():
+    """Test for gh-12934."""
+    evoked = read_evokeds(opm_fname, kind="average")[0]
+    ica = ICA(max_iter=1, random_state=0, n_components=10)
+    ica.fit(RawArray(evoked.data, evoked.info), picks="mag", verbose="error")
+    fig = ica.plot_components()
+    assert len(fig.axes) == 10

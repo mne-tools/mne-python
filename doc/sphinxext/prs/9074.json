@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "f1ff6ba253c1a09dfbbb7369ad34e1a34a7865d6",
+  "authors": [
+    {
+      "n": "nordme",
+      "e": "nordme@uw.edu"
+    }
+  ],
+  "changes": {
+    "mne/datasets/limo/limo.py": {
+      "a": 8,
+      "d": 8
+    }
+  }
+}

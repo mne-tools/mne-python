@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "58a02c25998f46b9de587cc76a51d6351d96e415",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".github/workflows/tests.yml": {
+      "a": 4,
+      "d": 5
+    },
+    "azure-pipelines.yml": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/export/_edf.py": {
+      "a": 17,
+      "d": 2
+    },
+    "mne/export/tests/test_export.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/morph.py": {
+      "a": 11,
+      "d": 8
+    },
+    "mne/utils/dataframe.py": {
+      "a": 11,
+      "d": 2
+    },
+    "tools/azure_dependencies.sh": {
+      "a": 7,
+      "d": 31
+    },
+    "tools/github_actions_dependencies.sh": {
+      "a": 2,
+      "d": 42
+    },
+    "tools/install_pre_requirements.sh": {
+      "a": 82,
+      "d": 0
+    }
+  }
+}

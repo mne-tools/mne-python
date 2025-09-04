@@ -11,8 +11,10 @@ For more extensive details and presentation of the general concepts for forward
 modeling, see :ref:`ch_forward`.
 """
 
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 # %%
 
 import mne
@@ -253,14 +255,14 @@ print(fwd)
 #    or ``inv['src']`` so that this removal is adequately accounted for.
 
 print(f"Before: {src}")
-print(f'After:  {fwd["src"]}')
+print(f"After:  {fwd['src']}")
 
 # %%
 # We can explore the content of ``fwd`` to access the numpy array that contains
 # the gain matrix.
 
 leadfield = fwd["sol"]["data"]
-print("Leadfield size : %d sensors x %d dipoles" % leadfield.shape)
+print(f"Leadfield size : {leadfield.shape[0]} sensors x {leadfield.shape[1]} dipoles")
 
 # %%
 # To extract the numpy array containing the forward operator corresponding to
@@ -271,7 +273,7 @@ fwd_fixed = mne.convert_forward_solution(
     fwd, surf_ori=True, force_fixed=True, use_cps=True
 )
 leadfield = fwd_fixed["sol"]["data"]
-print("Leadfield size : %d sensors x %d dipoles" % leadfield.shape)
+print(f"Leadfield size : {leadfield.shape[0]} sensors x {leadfield.shape[1]} dipoles")
 
 # %%
 # This is equivalent to the following code that explicitly applies the

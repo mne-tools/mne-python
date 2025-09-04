@@ -1,0 +1,128 @@
+.. _changes_1_9_0:
+
+Version 1.9.0 (2024-12-18)
+==========================
+
+Dependencies
+------------
+
+- Minimum supported dependencies were updated in accordance with SPEC0_, most notably Python 3.10+ is now required. (`#12798 <https://github.com/mne-tools/mne-python/pull/12798>`__)
+- Importing from ``mne.decoding`` now explicitly requires ``scikit-learn`` to be installed,
+  by `Eric Larson`_. (`#12834 <https://github.com/mne-tools/mne-python/pull/12834>`__)
+- Compatibility improved for Python 3.13, by `Eric Larson`_. (`#13021 <https://github.com/mne-tools/mne-python/pull/13021>`__)
+
+
+Bugfixes
+--------
+
+- Fix typos in the Spatio-Spectral Decomposition example, by :newcontrib:`Simon M. Hofmann`. (`#12924 <https://github.com/mne-tools/mne-python/pull/12924>`__)
+- Fix duration calculation for the textual (``__repr__``) and html (``_repr_html_``, used by e.g. Jupyter) display of :class:`mne.io.Raw` instances. For example a duration of 1h is now displayed as ``00:01:00`` rather than ``00:59:60``.  By :newcontrib:`Leonardo Rochael Almeida`. (`#12955 <https://github.com/mne-tools/mne-python/pull/12955>`__)
+- Fix IndexError when loading CNT file does not have annotations, by :newcontrib:`Ziyi ZENG`. (`#12986 <https://github.com/mne-tools/mne-python/pull/12986>`__)
+- Fix handling of MRI file-path in :class:`mne.SourceSpaces` and safeguard saving of :class:`pathlib.Path` with ``h5io`` by casting to :class:`str`, by `Mathieu Scheltienne`_. (`#12803 <https://github.com/mne-tools/mne-python/pull/12803>`__)
+- Cast ``fwd["info"]`` to :class:`~mne.Info` and ``fwd["src"]`` to :class:`~mne.SourceSpaces` when loading a forward solution from an HDF5 file, by `Mathieu Scheltienne`_. (`#12804 <https://github.com/mne-tools/mne-python/pull/12804>`__)
+- Fix bug where :meth:`mne.Epochs.compute_tfr` could not be used with the multitaper method and complex or phase outputs, by `Thomas Binns`_. (`#12842 <https://github.com/mne-tools/mne-python/pull/12842>`__)
+- Fixed a bug where split FIF files that were read and then appended to other
+  :class:`mne.io.Raw` instances had their ``BAD boundary`` annotations incorrectly offset
+  in samples by the number of split files, by `Eric Larson`_. (`#12843 <https://github.com/mne-tools/mne-python/pull/12843>`__)
+- Enforce SI units for Eyetracking data (eyegaze data should be radians of visual angle, not pixels. Pupil size data should be meters).
+  Updated tutorials so demonstrate how to convert data to SI units before analyses, by `Scott Huberty`_. (`#12846 <https://github.com/mne-tools/mne-python/pull/12846>`__)
+- Prevent the ``colorbar`` parameter being ignored in topomap plots such as :meth:`mne.time_frequency.Spectrum.plot_topomap`, by `Thomas Binns`_. (`#12853 <https://github.com/mne-tools/mne-python/pull/12853>`__)
+- Fix bug where invalid data types (e.g., ``np.ndarray``s) could be used in some
+  :class:`mne.io.Info` fields like ``info["subject_info"]["weight"]``, by `Eric Larson`_. (`#12875 <https://github.com/mne-tools/mne-python/pull/12875>`__)
+- When creating a :class:`~mne.time_frequency.SpectrumArray`, the array shape check now
+  compares against the total of both 'good' and 'bad' channels in the provided
+  :class:`~mne.Info` (previously only good channels were checked), by
+  `Mathieu Scheltienne`_. (`#12877 <https://github.com/mne-tools/mne-python/pull/12877>`__)
+- Fix bug where :ref:`mne coreg` would always show MEG channels even if the "MEG Sensors" checkbox was disabled, by `Eric Larson`_. (`#12884 <https://github.com/mne-tools/mne-python/pull/12884>`__)
+- :class:`mne.Report` HDF5 files are now written in ``mode='a'`` (append) to allow users to store other data in the HDF5 files, by `Eric Larson`_. (`#12901 <https://github.com/mne-tools/mne-python/pull/12901>`__)
+- Fix bug in :func:`mne.io.read_raw_gdf` when NumPy >= 2 is used, by `Clemens Brunner`_. (`#12909 <https://github.com/mne-tools/mne-python/pull/12909>`__)
+- Allow exporting edf where a channel contains only constant values, by `Florian Hofer`_. (`#12911 <https://github.com/mne-tools/mne-python/pull/12911>`__)
+- Fix a bug in :func:`mne.epochs.make_metadata`, where missing values in the columns
+  generated for ``keep_first`` and ``keep_last`` events were represented by empty strings,
+  while it should have been ``NA`` values, by `Richard Höchenberger`_. (`#12931 <https://github.com/mne-tools/mne-python/pull/12931>`__)
+- Fix decimal places of :class:`float` ``mne.Evoked.nave`` in :meth:`mne.Evoked.plot` and :meth:`mne.Evoked.plot_image`, by `Gennadiy Belonosov`_. (`#12936 <https://github.com/mne-tools/mne-python/pull/12936>`__)
+- Fix displayed units in representations of classes such as :class:`mne.io.Raw` to correctly use KiB, MiB, GiB, and so on, by `Clemens Brunner`_. (`#12962 <https://github.com/mne-tools/mne-python/pull/12962>`__)
+- Gracefully handle invalid patient info when reading EDF files by `Scott Huberty`_. (`#12968 <https://github.com/mne-tools/mne-python/pull/12968>`__)
+- Correct :func:`mne.io.read_raw_cnt` to read responses and fix exceptions by `Jacob Woessner`_. (`#13007 <https://github.com/mne-tools/mne-python/pull/13007>`__)
+- Fix errant detection of software-rendered vs hardware-rendered MESA GL contexts in 3D rendering on Linux, by `Eric Larson`_. (`#13012 <https://github.com/mne-tools/mne-python/pull/13012>`__)
+- Fix plot scaling for :meth:`Spectrum.plot(dB=True, amplitude=True) <mne.time_frequency.Spectrum.plot>`, by `Daniel McCloy`_. (`#13036 <https://github.com/mne-tools/mne-python/pull/13036>`__)
+
+
+API changes by deprecation
+--------------------------
+
+- Deprecate ``average`` parameter in ``plot_filters`` and ``plot_patterns`` methods of the :class:`mne.decoding.CSP` and :class:`mne.decoding.SPoC` classes, by `Thomas Binns`_. (`#12829 <https://github.com/mne-tools/mne-python/pull/12829>`__)
+- Deprecate ``subject`` parameter in favor of ``subjects`` in :func:`mne.datasets.eegbci.load_data`, by `Stefan Appelhoff`_. (`#12918 <https://github.com/mne-tools/mne-python/pull/12918>`__)
+
+
+New features
+------------
+
+- Added support for ``sensor_scales`` to :meth:`mne.viz.Brain.add_sensors` and :func:`mne.viz.plot_alignment`, by :newcontrib:`Alex Lepauvre`. (`#12805 <https://github.com/mne-tools/mne-python/pull/12805>`__)
+- Add convenience :attr:`mne.io.Raw.duration` property to centralize duration calculation for the textual (``__repr__``) and html (``_repr_html_``, used by e.g. Jupyter) display of :class:`mne.io.Raw` instances, by :newcontrib:`Leonardo Rochael Almeida`. (`#12955 <https://github.com/mne-tools/mne-python/pull/12955>`__)
+- Add option to :func:`mne.preprocessing.fix_stim_artifact` to use baseline average to flatten TMS pulse artifact by `Fahimeh Mamashli`_ and `Padma Sundaram`_ and `Mohammad Daneshzand`_. (`#6915 <https://github.com/mne-tools/mne-python/pull/6915>`__)
+- Add support for `dict` type argument ``ref_channels`` to :func:`mne.set_eeg_reference`, to allow flexible re-referencing (e.g. ``raw.set_eeg_reference(ref_channels={'A1': ['A2', 'A3']})`` will set the new A1 data to be ``A1 - mean(A2, A3)``), by `Alex Lepauvre`_ and `Qian Chu`_ and `Daniel McCloy`_. (`#12366 <https://github.com/mne-tools/mne-python/pull/12366>`__)
+- Add reader for ANT Neuro files in the ``*.cnt`` format with :func:`~mne.io.read_raw_ant`, by `Mathieu Scheltienne`_, `Eric Larson`_ and `Proloy Das`_. (`#12792 <https://github.com/mne-tools/mne-python/pull/12792>`__)
+- Add support for a :class:`mne.transforms.Transform` in the argument ``trans`` of the coregistration GUI called with :func:`mne.gui.coregistration`, by `Mathieu Scheltienne`_. (`#12801 <https://github.com/mne-tools/mne-python/pull/12801>`__)
+- :meth:`~mne.io.Raw` and :meth:`~mne.Epochs.save` now return the path to the saved file(s), by `Victor Ferat`_. (`#12811 <https://github.com/mne-tools/mne-python/pull/12811>`__)
+- :func:`mne.channels.read_custom_montage` may now read a newer version of the ``.elc`` ASA Electrode file format, by `Stefan Appelhoff`_. (`#12830 <https://github.com/mne-tools/mne-python/pull/12830>`__)
+- Added the ``title`` argument to :func:`mne.viz.create_3d_figure`, and
+  ``color`` and ``position`` arguments to :func:`mne.viz.set_3d_title`, by `Eric Larson`_. (`#12871 <https://github.com/mne-tools/mne-python/pull/12871>`__)
+- Improved reporting and plotting options:
+
+  - :meth:`mne.Report.add_projs` can now plot with :func:`mne.viz.plot_projs_joint` rather than :func:`mne.viz.plot_projs_topomap`
+  - :class:`mne.Report` now has attributes ``img_max_width`` and ``img_max_res`` that can be used to control image scaling.
+  - :class:`mne.Report` now has an attribute ``collapse`` that allows collapsing sections and/or subsections by default.
+  - :func:`mne.viz.plot_head_positions` now has a ``totals=True`` option to show the total distance and angle of the head.
+
+  Changes by `Eric Larson`_. (`#12901 <https://github.com/mne-tools/mne-python/pull/12901>`__)
+- Added the ``psd_args`` argument to :func:`mne.viz.plot_ica_sources` and :meth:`mne.preprocessing.ICA.plot_sources`, by `Richard Scholz`_. (`#12912 <https://github.com/mne-tools/mne-python/pull/12912>`__)
+- Add ability to use :func:`mne.preprocessing.compute_fine_calibration` with non-Neuromag-style systems, as well as options to control the bad-angle and error tolerances, by `Eric Larson`_. (`#12966 <https://github.com/mne-tools/mne-python/pull/12966>`__)
+- Add support for ``uint16_codec`` argument in :func:`mne.io.read_raw_eeglab` when ``pymatreader`` (which already supported this argument previously) is not installed, by `Clemens Brunner`_. (`#12971 <https://github.com/mne-tools/mne-python/pull/12971>`__)
+- Added support for saving and loading channel names from FIF in :meth:`mne.channels.DigMontage.save` and :meth:`mne.channels.read_dig_fif` and added the convention that they should be saved as ``-dig.fif``, by `Eric Larson`_. (`#13003 <https://github.com/mne-tools/mne-python/pull/13003>`__)
+- Add new :meth:`Raw.rescale <mne.io.Raw.rescale>` method to rescale the data in place, by `Clemens Brunner`_. (`#13018 <https://github.com/mne-tools/mne-python/pull/13018>`__)
+
+
+Other changes
+-------------
+
+- Fix a mistake in :ref:`tut-artifact-regression` where the wrong regression coefficients were applied, by :newcontrib:`Jacob Phelan`. (`#12978 <https://github.com/mne-tools/mne-python/pull/12978>`__)
+- Use custom code in :func:`mne.sys_info` to get the amount of physical memory and a more informative CPU name instead of using the ``psutil`` package, by `Clemens Brunner`_. (`#12787 <https://github.com/mne-tools/mne-python/pull/12787>`__)
+- Improve documentation clarity of ``fit_transform`` methods for :class:`mne.decoding.SSD`, :class:`mne.decoding.CSP`, and :class:`mne.decoding.SPoC` classes, by `Thomas Binns`_. (`#12827 <https://github.com/mne-tools/mne-python/pull/12827>`__)
+- Improve handling of filenames in ``raw.filenames`` by using :class:`~pathlib.Path` instead of :class:`str`, by `Mathieu Scheltienne`_. (`#12843 <https://github.com/mne-tools/mne-python/pull/12843>`__)
+- Improve automatic figure scaling of :func:`mne.viz.plot_events`, and event_id and count overview legend when a high amount of unique events is supplied, by `Stefan Appelhoff`_. (`#12844 <https://github.com/mne-tools/mne-python/pull/12844>`__)
+- :meth:`mne.preprocessing.ICA.find_bads_muscle` can now be run when passing an ``inst`` without sensor positions. However, it will just use the first of three criteria (slope) to find muscle-related ICA components, by `Stefan Appelhoff`_. (`#12862 <https://github.com/mne-tools/mne-python/pull/12862>`__)
+- Update governance model, by `Daniel McCloy`_. (`#12896 <https://github.com/mne-tools/mne-python/pull/12896>`__)
+- Improve the :ref:`tut-autogenerate-metadata`, by `Clemens Brunner`_ and `Richard Höchenberger`_. (`#12931 <https://github.com/mne-tools/mne-python/pull/12931>`__)
+- Mention some gotchas that arise from the fact that by default, we pool across dipole orientations when performing source estimation, by `Marijn van Vliet`_ (`#12960 <https://github.com/mne-tools/mne-python/pull/12960>`__)
+- Repository CI security is now audited using `zizmor <https://woodruffw.github.io/zizmor>`__, by `Eric Larson`_. (`#13011 <https://github.com/mne-tools/mne-python/pull/13011>`__)
+
+Authors
+-------
+
+* Alex Lepauvre+
+* Britta Westner
+* Clemens Brunner
+* Daniel McCloy
+* Eric Larson
+* Fahimeh Mamashli
+* Florian Hofer
+* Gennadiy Belonosov
+* Jacob Phelan
+* Jacob Woessner
+* Leonardo Rochael Almeida+
+* Mainak Jas
+* Marijn van Vliet
+* Mathieu Scheltienne
+* Proloy Das
+* Qian Chu
+* Richard Höchenberger
+* Richard Scholz
+* Santeri Ruuskanen
+* Scott Huberty
+* Simon M. Hofmann+
+* Stefan Appelhoff
+* Thomas Grainger
+* Thomas S. Binns
+* Victor Férat
+* Ziyi ZENG+

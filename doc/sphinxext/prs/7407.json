@@ -1,0 +1,51 @@
+{
+  "merge_commit_sha": "e3cc4b1cb5e6ac4e452494933377858d18c1268e",
+  "authors": [
+    {
+      "n": "Adonay Nunes",
+      "e": "adonay.s.nunes@gmail.com"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/python_reference.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/references.bib": {
+      "a": 10,
+      "d": 0
+    },
+    "examples/preprocessing/plot_muscle_detection.py": {
+      "a": 80,
+      "d": 0
+    },
+    "mne/preprocessing/__init__.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/preprocessing/artifact_detection.py": {
+      "a": 107,
+      "d": 2
+    },
+    "mne/preprocessing/tests/test_artifact_detection.py": {
+      "a": 28,
+      "d": 1
+    },
+    "tutorials/preprocessing/plot_30_filtering_resampling.py": {
+      "a": 2,
+      "d": 0
+    }
+  }
+}

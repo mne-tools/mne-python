@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "0ac9eba4c359ea8aaaa8b05d2c83114286d4da2d",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/gui/_ieeg_locate_gui.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 6,
+      "d": 4
+    }
+  }
+}

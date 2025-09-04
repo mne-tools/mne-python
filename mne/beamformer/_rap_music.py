@@ -1,8 +1,6 @@
 """Compute a Recursively Applied and Projected MUltiple Signal Classification (RAP-MUSIC)."""  # noqa
 
-# Authors: Yousra Bekhti <yousra.bekhti@gmail.com>
-#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -148,8 +146,8 @@ def _apply_rap_music(
     )
     for dipole, ori in zip(dipoles, oris):
         signs = np.sign((dipole.ori * ori).sum(-1, keepdims=True))
-        dipole.ori *= signs
-        dipole.amplitude *= signs[:, 0]
+        dipole._ori *= signs
+        dipole._amplitude *= signs[:, 0]
     logger.info("[done]")
     return dipoles, explained_data
 

@@ -1,5 +1,7 @@
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 import os
 from functools import reduce
 from glob import glob
@@ -218,7 +220,7 @@ def test_scale_mri_xfm(tmp_path, few_surfaces, subjects_dir_tmp_few):
             subjects_dir_tmp_few
             / subject_from
             / "bem"
-            / ("%s-%s-src.fif" % (subject_from, spacing))
+            / (f"{subject_from}-{spacing}-src.fif")
         )
         src_from = mne.setup_source_space(
             subject_from,
@@ -273,7 +275,7 @@ def test_scale_mri_xfm(tmp_path, few_surfaces, subjects_dir_tmp_few):
             subjects_dir_tmp_few
             / subject_to
             / "bem"
-            / ("%s-%s-src.fif" % (subject_to, spacing))
+            / (f"{subject_to}-{spacing}-src.fif")
         )
         assert src_to_fname.exists(), "Source space was not scaled"
         # Check MRI scaling
@@ -346,9 +348,7 @@ def test_fit_matched_points():
     src_pts = apply_trans(trans, tgt_pts)
     trans_est = fit_matched_points(src_pts, tgt_pts, translate=False, out="trans")
     est_pts = apply_trans(trans_est, src_pts)
-    assert_array_almost_equal(
-        tgt_pts, est_pts, 2, "fit_matched_points with " "rotation"
-    )
+    assert_array_almost_equal(tgt_pts, est_pts, 2, "fit_matched_points with rotation")
 
     # rotation & translation
     trans = np.dot(translation(2, -6, 3), rotation(2, 6, 3))
@@ -356,7 +356,7 @@ def test_fit_matched_points():
     trans_est = fit_matched_points(src_pts, tgt_pts, out="trans")
     est_pts = apply_trans(trans_est, src_pts)
     assert_array_almost_equal(
-        tgt_pts, est_pts, 2, "fit_matched_points with " "rotation and translation."
+        tgt_pts, est_pts, 2, "fit_matched_points with rotation and translation."
     )
 
     # rotation & translation & scaling
@@ -370,7 +370,7 @@ def test_fit_matched_points():
         tgt_pts,
         est_pts,
         2,
-        "fit_matched_points with " "rotation, translation and scaling.",
+        "fit_matched_points with rotation, translation and scaling.",
     )
 
     # test exceeding tolerance

@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "1a341b1ba937228370cb4ce915f17affcec53251",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/stats/erp.py": {
+      "a": 5,
+      "d": 0
+    }
+  }
+}

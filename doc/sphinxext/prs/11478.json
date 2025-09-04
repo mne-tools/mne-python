@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "62c5e42a4f5980576fe6a6ceca49c3e0aadd35a0",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/conf.py": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/conftest.py": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/viz/_brain/tests/test_brain.py": {
+      "a": 4,
+      "d": 1
+    }
+  }
+}

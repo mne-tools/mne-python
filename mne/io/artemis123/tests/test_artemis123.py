@@ -1,5 +1,4 @@
-# Author: Luke Bloy <bloyl@chop.edu>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -36,11 +35,10 @@ def _assert_trans(actual, desired, dist_tol=0.017, angle_tol=5.0):
 
     angle = np.rad2deg(_angle_between_quats(quat_est, quat))
     dist = np.linalg.norm(trans - trans_est)
-    assert dist <= dist_tol, "%0.3f > %0.3f mm translation" % (
-        1000 * dist,
-        1000 * dist_tol,
+    assert dist <= dist_tol, (
+        f"{1000 * dist:0.3f} > {1000 * dist_tol:0.3f} mm translation"
     )
-    assert angle <= angle_tol, "%0.3f > %0.3f° rotation" % (angle, angle_tol)
+    assert angle <= angle_tol, f"{angle:0.3f} > {angle_tol:0.3f}° rotation"
 
 
 @pytest.mark.timeout(60)  # ~25 s on Travis Linux OpenBLAS
@@ -61,6 +59,7 @@ def test_dev_head_t():
     """Test dev_head_t computation for Artemis123."""
     # test a random selected point
     raw = read_raw_artemis123(short_hpi_1kz_fname, preload=True, add_head_trans=False)
+    assert raw.info["dev_head_t"] is None
     meg_picks = pick_types(raw.info, meg=True, eeg=False)
 
     # checked against matlab reader.
@@ -97,8 +96,9 @@ def test_dev_head_t():
     assert_equal(raw.info["sfreq"], 5000.0)
 
     # test with head loc and digitization
-    with pytest.warns(RuntimeWarning, match="consistency"), pytest.warns(
-        RuntimeWarning, match="Large difference"
+    with (
+        pytest.warns(RuntimeWarning, match="consistency"),
+        pytest.warns(RuntimeWarning, match="Large difference"),
     ):
         raw = read_raw_artemis123(
             short_HPI_dip_fname, add_head_trans=True, pos_fname=dig_fname

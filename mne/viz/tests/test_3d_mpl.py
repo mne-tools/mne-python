@@ -1,10 +1,4 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Denis Engemann <denis.engemann@gmail.com>
-#          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
-#          Eric Larson <larson.eric.d@gmail.com>
-#          Mainak Jas <mainak@neuro.hut.fi>
-#          Mark Wronkiewicz <wronk.mark@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -49,7 +43,7 @@ fwd_fname = data_dir / "MEG" / "sample" / "sample_audvis_trunc-meg-vol-7-fwd.fif
         ("stat_map", "s", 1, 1, (-10, 5, 10), (-12.3, 2.0, 7.7), "brain.mgz"),
     ],
 )
-def test_plot_volume_source_estimates(
+def test_plot_volume_source_estimates_basic(
     mode, stype, init_t, want_t, init_p, want_p, bg_img
 ):
     """Test interactive plotting of volume source estimates."""
@@ -75,7 +69,7 @@ def test_plot_volume_source_estimates(
         stc = VolSourceEstimate(data, vertices, 1, 1)
     # sometimes get scalars/index warning
     with _record_warnings():
-        with catch_logging() as log:
+        with catch_logging(verbose="debug") as log:
             fig = stc.plot(
                 sample_src,
                 subject="sample",
@@ -87,9 +81,9 @@ def test_plot_volume_source_estimates(
                 verbose=True,
             )
     log = log.getvalue()
-    want_str = "t = %0.3f s" % want_t
+    want_str = f"t = {want_t:0.3f} s"
     assert want_str in log, (want_str, init_t)
-    want_str = "(%0.1f, %0.1f, %0.1f) mm" % want_p
+    want_str = f"({want_p[0]:0.1f}, {want_p[1]:0.1f}, {want_p[2]:0.1f}) mm"
     assert want_str in log, (want_str, init_p)
     for ax_idx in [0, 2, 3, 4]:
         _fake_click(fig, fig.axes[ax_idx], (0.3, 0.5))

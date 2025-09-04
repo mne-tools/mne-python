@@ -1,0 +1,71 @@
+{
+  "merge_commit_sha": "a5fa4ab637b0b59d2943d706dedce60822d01ad0",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/conf.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/conftest.py": {
+      "a": 0,
+      "d": 5
+    },
+    "mne/viz/_mpl_figure.py": {
+      "a": 175,
+      "d": 87
+    },
+    "mne/viz/tests/test_epochs.py": {
+      "a": 0,
+      "d": 6
+    },
+    "mne/viz/tests/test_raw.py": {
+      "a": 31,
+      "d": 30
+    },
+    "mne/viz/tests/test_topomap.py": {
+      "a": 7,
+      "d": 14
+    },
+    "mne/viz/topomap.py": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/viz/utils.py": {
+      "a": 21,
+      "d": 13
+    },
+    "requirements.txt": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/clinical/30_ecog.py": {
+      "a": 2,
+      "d": 2
+    },
+    "tutorials/evoked/20_visualize_evoked.py": {
+      "a": 1,
+      "d": 0
+    },
+    "tutorials/inverse/20_dipole_fit.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/preprocessing/50_artifact_correction_ssp.py": {
+      "a": 0,
+      "d": 1
+    }
+  }
+}

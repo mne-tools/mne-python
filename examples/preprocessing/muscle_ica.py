@@ -11,7 +11,6 @@ that is usually not recoverable and so the epoch must be rejected as shown in
 artifact is produced during postural maintenance. This is more appropriately
 removed by ICA otherwise there wouldn't be any epochs left! Note that muscle
 artifacts of this kind are much more pronounced in EEG than they are in MEG.
-
 """
 # Authors: Alex Rockhill <aprockhill@mailbox.org>
 #
@@ -98,7 +97,7 @@ print(
 
 for sub in (1, 2):
     raw = mne.io.read_raw_edf(
-        mne.datasets.eegbci.load_data(subject=sub, runs=(1,))[0], preload=True
+        mne.datasets.eegbci.load_data(subjects=sub, runs=(1,))[0], preload=True
     )
     mne.datasets.eegbci.standardize(raw)  # set channel names
     montage = mne.channels.make_standard_montage("standard_1005")

@@ -1,9 +1,6 @@
 """Qt implementation of _Renderer and GUI."""
 
-# Authors: Guillaume Favelier <guillaume.favelier@gmail.com>
-#          Eric Larson <larson.eric.d@gmail.com>
-#          Alex Rockhill <aprockhill@mailbox.org>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -28,7 +25,7 @@ from qtpy.QtCore import (
     QObject,
     Qt,
     QTimer,
-    # non-object-based-abstraction-only, deprecate
+    # non-object-based-abstraction-only, remove
     Signal,
 )
 from qtpy.QtGui import QCursor, QIcon, QKeyEvent
@@ -36,7 +33,7 @@ from qtpy.QtWidgets import (
     QButtonGroup,
     QCheckBox,
     QComboBox,
-    # non-object-based-abstraction-only, deprecate
+    # non-object-based-abstraction-only, remove
     QDockWidget,
     QDoubleSpinBox,
     QFileDialog,
@@ -105,13 +102,13 @@ from ._pyvista import (
     _check_3d_figure,  # noqa: F401
     _close_3d_figure,  # noqa: F401
     _close_all,  # noqa: F401
-    _is_mesa,  # noqa: F401
     _PyVistaRenderer,
     _set_3d_title,  # noqa: F401
     _set_3d_view,  # noqa: F401
     _take_3d_screenshot,  # noqa: F401
 )
 from ._utils import (
+    _ICONS_PATH,
     _init_mne_qtapp,
     _qt_app_exec,
     _qt_detect_theme,
@@ -276,13 +273,13 @@ class _Button(QPushButton, _AbstractButton, _Widget, metaclass=_BaseWidget):
         self.setText(value)
         self.released.connect(callback)
         if icon:
-            self.setIcon(QIcon.fromTheme(icon))
+            self.setIcon(_qicon(icon))
 
     def _click(self):
         self.click()
 
     def _set_icon(self, icon):
-        self.setIcon(QIcon.fromTheme(icon))
+        self.setIcon(_qicon(icon))
 
 
 class _Slider(QSlider, _AbstractSlider, _Widget, metaclass=_BaseWidget):
@@ -474,16 +471,16 @@ class _PlayMenu(QVBoxLayout, _AbstractPlayMenu, _Widget, metaclass=_BaseWidget):
         self._slider.valueChanged.connect(callback)
         self._nav_hbox = QHBoxLayout()
         self._play_button = QPushButton()
-        self._play_button.setIcon(QIcon.fromTheme("play"))
+        self._play_button.setIcon(_qicon("play"))
         self._nav_hbox.addWidget(self._play_button)
         self._pause_button = QPushButton()
-        self._pause_button.setIcon(QIcon.fromTheme("pause"))
+        self._pause_button.setIcon(_qicon("pause"))
         self._nav_hbox.addWidget(self._pause_button)
         self._reset_button = QPushButton()
-        self._reset_button.setIcon(QIcon.fromTheme("reset"))
+        self._reset_button.setIcon(_qicon("reset"))
         self._nav_hbox.addWidget(self._reset_button)
         self._loop_button = QPushButton()
-        self._loop_button.setIcon(QIcon.fromTheme("restore"))
+        self._loop_button.setIcon(_qicon("restore"))
         self._loop_button.setStyleSheet("background-color : lightgray;")
         self._loop_button._checked = True
 
@@ -845,7 +842,7 @@ class _3DRenderer(_PyVistaRenderer):
 # ------------------------------------
 # Non-object-based Widget Abstractions
 # ------------------------------------
-# These are planned to be deprecated in favor of the simpler, object-
+# These are planned to be removed in favor of the simpler, object-
 # oriented abstractions above when time allows.
 
 
@@ -967,7 +964,7 @@ class _QtDialog(_AbstractDialog):
                         callback(button_name)
                     finally:
                         widget.unsetCursor()
-                        break
+                    break
 
         widget.buttonClicked.connect(func)
         return _QtDialogWidget(widget, modal)
@@ -1192,7 +1189,7 @@ class _QtDock(_AbstractDock, _QtLayout):
 
     def _dock_add_text(self, name, value, placeholder, *, callback=None, layout=None):
         layout = self._dock_layout if layout is None else layout
-        widget = QLineEdit(value)
+        widget = QLineEdit(str(value))
         widget.setPlaceholderText(placeholder)
         self._layout_add_widget(layout, widget)
         if callback is not None:
@@ -1215,6 +1212,8 @@ class _QtDock(_AbstractDock, _QtLayout):
     ):
         layout = self._dock_layout if layout is None else layout
         weakself = weakref.ref(self)
+        if initial_directory is not None:
+            initial_directory = str(initial_directory)
 
         def callback():
             self = weakself()
@@ -1494,18 +1493,18 @@ class _QtWindow(_AbstractWindow):
         self._window.closeEvent = closeEvent
 
     def _window_load_icons(self):
-        self._icons["help"] = QIcon.fromTheme("help")
-        self._icons["play"] = QIcon.fromTheme("play")
-        self._icons["pause"] = QIcon.fromTheme("pause")
-        self._icons["reset"] = QIcon.fromTheme("reset")
-        self._icons["scale"] = QIcon.fromTheme("scale")
-        self._icons["clear"] = QIcon.fromTheme("clear")
-        self._icons["movie"] = QIcon.fromTheme("movie")
-        self._icons["restore"] = QIcon.fromTheme("restore")
-        self._icons["screenshot"] = QIcon.fromTheme("screenshot")
-        self._icons["visibility_on"] = QIcon.fromTheme("visibility_on")
-        self._icons["visibility_off"] = QIcon.fromTheme("visibility_off")
-        self._icons["folder"] = QIcon.fromTheme("folder")
+        self._icons["help"] = _qicon("help")
+        self._icons["play"] = _qicon("play")
+        self._icons["pause"] = _qicon("pause")
+        self._icons["reset"] = _qicon("reset")
+        self._icons["scale"] = _qicon("scale")
+        self._icons["clear"] = _qicon("clear")
+        self._icons["movie"] = _qicon("movie")
+        self._icons["restore"] = _qicon("restore")
+        self._icons["screenshot"] = _qicon("screenshot")
+        self._icons["visibility_on"] = _qicon("visibility_on")
+        self._icons["visibility_off"] = _qicon("visibility_off")
+        self._icons["folder"] = _qicon("folder")
 
     def _window_clean(self):
         self.figure._plotter = None
@@ -1656,7 +1655,7 @@ class _QtWidgetList(_AbstractWidgetList):
 
 class _QtWidget(_AbstractWdgt):
     def set_value(self, value):
-        if isinstance(self._widget, (QRadioButton, QToolButton, QPushButton)):
+        if isinstance(self._widget, QRadioButton | QToolButton | QPushButton):
             self._widget.click()
         else:
             if hasattr(self._widget, "setValue"):
@@ -1844,3 +1843,10 @@ def _testing_context(interactive):
     finally:
         pyvista.OFF_SCREEN = orig_offscreen
         renderer.MNE_3D_BACKEND_TESTING = orig_testing
+
+
+def _qicon(name):
+    # Get icon from theme with a file fallback
+    return QIcon.fromTheme(
+        name, QIcon(str(_ICONS_PATH / "light" / "actions" / f"{name}.svg"))
+    )

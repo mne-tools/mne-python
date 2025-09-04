@@ -1,8 +1,6 @@
 """Helpers for various transformations."""
 
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Christian Brodbeck <christianbrodbeck@nyu.edu>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -14,20 +12,20 @@ from pathlib import Path
 import numpy as np
 from scipy import linalg
 from scipy.spatial.distance import cdist
-from scipy.special import sph_harm
 
 from ._fiff.constants import FIFF
 from ._fiff.open import fiff_open
 from ._fiff.tag import read_tag
 from ._fiff.write import start_and_end_file, write_coord_trans
 from .defaults import _handle_default
-from .fixes import _get_img_fdata, jit
+from .fixes import _get_img_fdata, jit, sph_harm_y
 from .utils import (
     _check_fname,
     _check_option,
     _ensure_int,
     _import_nibabel,
     _path_like,
+    _record_warnings,
     _require_version,
     _validate_type,
     check_fname,
@@ -44,10 +42,12 @@ als_ras_trans = np.array([[0, -1, 0, 0], [1, 0, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1
 
 
 _str_to_frame = dict(
+    isotrak=FIFF.FIFFV_COORD_ISOTRAK,
     meg=FIFF.FIFFV_COORD_DEVICE,
     mri=FIFF.FIFFV_COORD_MRI,
     mri_voxel=FIFF.FIFFV_MNE_COORD_MRI_VOXEL,
     head=FIFF.FIFFV_COORD_HEAD,
+    hpi=FIFF.FIFFV_COORD_HPI,
     mni_tal=FIFF.FIFFV_MNE_COORD_MNI_TAL,
     ras=FIFF.FIFFV_MNE_COORD_RAS,
     fs_tal=FIFF.FIFFV_MNE_COORD_FS_TAL,
@@ -65,15 +65,16 @@ _verbose_frames = {
     FIFF.FIFFV_COORD_HEAD: "head",
     FIFF.FIFFV_COORD_MRI: "MRI (surface RAS)",
     FIFF.FIFFV_MNE_COORD_MRI_VOXEL: "MRI voxel",
-    FIFF.FIFFV_COORD_MRI_SLICE: "MRI slice",
-    FIFF.FIFFV_COORD_MRI_DISPLAY: "MRI display",
     FIFF.FIFFV_MNE_COORD_CTF_DEVICE: "CTF MEG device",
     FIFF.FIFFV_MNE_COORD_CTF_HEAD: "CTF/4D/KIT head",
     FIFF.FIFFV_MNE_COORD_RAS: "RAS (non-zero origin)",
     FIFF.FIFFV_MNE_COORD_MNI_TAL: "MNI Talairach",
-    FIFF.FIFFV_MNE_COORD_FS_TAL_GTZ: "Talairach (MNI z > 0)",
-    FIFF.FIFFV_MNE_COORD_FS_TAL_LTZ: "Talairach (MNI z < 0)",
-    -1: "unknown",
+    FIFF.FIFFV_MNE_COORD_FS_TAL: "FS Talairach",
+    # We don't use these, but keep them in case we ever want to add them.
+    # FIFF.FIFFV_COORD_MRI_SLICE: "MRI slice",
+    # FIFF.FIFFV_COORD_MRI_DISPLAY: "MRI display",
+    # FIFF.FIFFV_MNE_COORD_FS_TAL_GTZ: "Talairach (MNI z > 0)",
+    # FIFF.FIFFV_MNE_COORD_FS_TAL_LTZ: "Talairach (MNI z < 0)",
 }
 
 
@@ -223,24 +224,34 @@ def _print_coord_trans(
         scale = 1000.0 if (ti != 3 and units != "mm") else 1.0
         text = " mm" if ti != 3 else ""
         log_func(
-            "    % 8.6f % 8.6f % 8.6f    %7.2f%s"
-            % (tt[0], tt[1], tt[2], scale * tt[3], text)
+            f"    {tt[0]:8.6f} {tt[1]:8.6f} {tt[2]:8.6f}    {scale * tt[3]:7.2f}{text}"
         )
 
 
-def _find_trans(subject, subjects_dir=None):
-    if subject is None:
-        if "SUBJECT" in os.environ:
-            subject = os.environ["SUBJECT"]
-        else:
-            raise ValueError("SUBJECT environment variable not set")
-
-    trans_fnames = glob.glob(str(subjects_dir / subject / "*-trans.fif"))
-    if len(trans_fnames) < 1:
-        raise RuntimeError(f"Could not find the transformation for {subject}")
-    elif len(trans_fnames) > 1:
-        raise RuntimeError(f"Found multiple transformations for {subject}")
-    return Path(trans_fnames[0])
+def _find_trans(*, trans, subject, subjects_dir=None):
+    if isinstance(trans, str) and trans == "auto":
+        subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+        # let's try to do this in MRI coordinates so they're easy to plot
+        if subject is None:
+            if "SUBJECT" in os.environ:
+                subject = os.environ["SUBJECT"]
+            else:
+                raise ValueError(
+                    "subject is None and SUBJECT environment variable not set, cannot "
+                    "use trans='auto'"
+                )
+        glob_str = str(subjects_dir / subject / "*-trans.fif")
+        trans_fnames = glob.glob(glob_str)
+        if len(trans_fnames) < 1:
+            raise RuntimeError(
+                f"Could not find the transformation for {subject} in: {glob_str}"
+            )
+        elif len(trans_fnames) > 1:
+            raise RuntimeError(
+                f"Found multiple transformations for {subject} in: {glob_str}"
+            )
+        trans = Path(trans_fnames[0])
+    return _get_trans(trans, fro="head", to="mri")
 
 
 def apply_trans(trans, pts, move=True):
@@ -429,7 +440,7 @@ def translation(x=0, y=0, z=0):
     return m
 
 
-def _ensure_trans(trans, fro="mri", to="head"):
+def _ensure_trans(trans, fro="mri", to="head", *, extra=""):
     """Ensure we have the proper transform."""
     if isinstance(fro, str):
         from_str = fro
@@ -445,8 +456,9 @@ def _ensure_trans(trans, fro="mri", to="head"):
         to_str = _frame_to_str[to]
         to_const = to
     del to
-    err_str = "trans must be a Transform between " f"{from_str}<->{to_str}, got"
-    if not isinstance(trans, (list, tuple)):
+    extra = f" {extra}" if extra else ""
+    err_str = f"trans must be a Transform between {from_str}<->{to_str}{extra}, got"
+    if not isinstance(trans, list | tuple):
         trans = [trans]
     # Ensure that we have exactly one match
     idx = list()
@@ -471,12 +483,12 @@ def _ensure_trans(trans, fro="mri", to="head"):
     return trans
 
 
-def _get_trans(trans, fro="mri", to="head", allow_none=True):
+def _get_trans(trans, fro="mri", to="head", allow_none=True, *, extra=""):
     """Get mri_head_t (from=mri, to=head) from mri filename."""
     types = (Transform, "path-like")
     if allow_none:
         types += (None,)
-    _validate_type(trans, types, "trans")
+    _validate_type(trans, types, "trans", extra=extra)
     if _path_like(trans):
         if trans == "fsaverage":
             trans = Path(__file__).parent / "data" / "fsaverage" / "fsaverage-trans.fif"
@@ -500,7 +512,7 @@ def _get_trans(trans, fro="mri", to="head", allow_none=True):
         fro_to_t = Transform(fro, to)
         trans = "identity"
     # it's usually a head->MRI transform, so we probably need to invert it
-    fro_to_t = _ensure_trans(fro_to_t, fro, to)
+    fro_to_t = _ensure_trans(fro_to_t, fro, to, extra=extra)
     return fro_to_t, trans
 
 
@@ -662,7 +674,7 @@ def transform_surface_to(surf, dest, trans, copy=False):
     if isinstance(dest, str):
         if dest not in _str_to_frame:
             raise KeyError(
-                'dest must be one of %s, not "%s"' % (list(_str_to_frame.keys()), dest)
+                f'dest must be one of {list(_str_to_frame.keys())}, not "{dest}"'
             )
         dest = _str_to_frame[dest]  # convert to integer
     if surf["coord_frame"] == dest:
@@ -705,7 +717,7 @@ def get_ras_to_neuromag_trans(nasion, lpa, rpa):
     for pt in (nasion, lpa, rpa):
         if pt.ndim != 1 or len(pt) != 3:
             raise ValueError(
-                "Points have to be provided as one dimensional " "arrays of length 3."
+                "Points have to be provided as one dimensional arrays of length 3."
             )
 
     right = rpa - lpa
@@ -929,7 +941,7 @@ def _compute_sph_harm(order, az, pol):
     # _deg_ord_idx(0, 0) = -1 so we're actually okay to use it here
     for degree in range(order + 1):
         for order_ in range(degree + 1):
-            sph = sph_harm(order_, degree, az, pol)
+            sph = sph_harm_y(degree, order_, pol, az)
             out[:, _deg_ord_idx(degree, order_)] = _sh_complex_to_real(sph, order_)
             if order_ > 0:
                 out[:, _deg_ord_idx(degree, -order_)] = _sh_complex_to_real(
@@ -1018,7 +1030,7 @@ class _TPSWarp:
         dest : shape (n_transform, 3)
             The transformed points.
         """
-        logger.info("Transforming %s points" % (len(pts),))
+        logger.info(f"Transforming {len(pts)} points")
         assert pts.shape[1] == 3
         # for memory reasons, we should do this in ~100 MB chunks
         out = np.zeros_like(pts)
@@ -1081,9 +1093,11 @@ class _SphericalSurfaceWarp:
         if not hasattr(self, "_warp"):
             rep += "no fitting done >"
         else:
-            rep += "fit %d->%d pts using match=%s (%d pts), order=%s, reg=%s>" % tuple(
-                self._fit_params[key]
-                for key in ["n_src", "n_dest", "match", "n_match", "order", "reg"]
+            rep += (
+                f"fit {self._fit_params['n_src']}->{self._fit_params['n_dest']} pts "
+                f"using match={self._fit_params['match']} "
+                f"({self._fit_params['n_match']} pts), "
+                f"order={self._fit_params['order']}, reg={self._fit_params['reg']}>"
             )
         return rep
 
@@ -1133,17 +1147,14 @@ class _SphericalSurfaceWarp:
         if center:
             logger.info("    Centering data")
             hsp = np.array([p for p in source if not (p[2] < -1e-6 and p[1] > 1e-6)])
-            src_center = _fit_sphere(hsp, disp=False)[1]
+            src_center = _fit_sphere(hsp)[1]
             source = source - src_center
             hsp = np.array([p for p in destination if not (p[2] < 0 and p[1] > 0)])
-            dest_center = _fit_sphere(hsp, disp=False)[1]
+            dest_center = _fit_sphere(hsp)[1]
             destination = destination - dest_center
             logger.info(
-                "    Using centers %s -> %s"
-                % (
-                    np.array_str(src_center, None, 3),
-                    np.array_str(dest_center, None, 3),
-                )
+                "    Using centers {np.array_str(src_center, None, 3)} -> "
+                "{np.array_str(dest_center, None, 3)}"
             )
         self._fit_params = dict(
             n_src=len(source),
@@ -1163,7 +1174,7 @@ class _SphericalSurfaceWarp:
         del match_rr
         # 2. Compute spherical harmonic coefficients for all points
         logger.info(
-            "    Computing spherical harmonic approximation with " "order %s" % order
+            f"    Computing spherical harmonic approximation with order {order}"
         )
         src_sph = _compute_sph_harm(order, *src_rad_az_pol[1:])
         dest_sph = _compute_sph_harm(order, *dest_rad_az_pol[1:])
@@ -1174,7 +1185,7 @@ class _SphericalSurfaceWarp:
         # 4. Smooth both surfaces using these coefficients, and evaluate at
         #     the "shape" points
         logger.info(
-            "    Matching %d points (%s) on smoothed surfaces" % (len(match_sph), match)
+            f"    Matching {len(match_sph)} points ({match}) on smoothed surfaces"
         )
         src_rad_az_pol = match_rad_az_pol.copy()
         src_rad_az_pol[0] = np.abs(np.dot(match_sph, src_coeffs))
@@ -1187,7 +1198,6 @@ class _SphericalSurfaceWarp:
         destination += dest_center
         # 6. Compute TPS warp of matched points from smoothed surfaces
         self._warp = _TPSWarp().fit(source, destination, reg)
-        self._matched = np.array([source, destination])
         logger.info("[done]")
         return self
 
@@ -1573,7 +1583,7 @@ def _read_fs_xfm(fname):
     """Read a Freesurfer transform from a .xfm file."""
     assert fname.endswith(".xfm")
     with open(fname) as fid:
-        logger.debug("Reading FreeSurfer talairach.xfm file:\n%s" % fname)
+        logger.debug(f"Reading FreeSurfer talairach.xfm file:\n{fname}")
 
         # read lines until we get the string 'Linear_Transform', which precedes
         # the data transformation matrix
@@ -1581,13 +1591,13 @@ def _read_fs_xfm(fname):
         for li, line in enumerate(fid):
             if li == 0:
                 kind = line.strip()
-                logger.debug("Found: %r" % (kind,))
+                logger.debug(f"Found: {repr(kind)}")
             if line[: len(comp)] == comp:
                 # we have the right line, so don't read any more
                 break
         else:
             raise ValueError(
-                'Failed to find "Linear_Transform" string in ' "xfm file:\n%s" % fname
+                f'Failed to find "Linear_Transform" string in xfm file:\n{fname}'
             )
 
         xfm = list()
@@ -1610,7 +1620,7 @@ def _write_fs_xfm(fname, xfm, kind):
         fid.write((kind + "\n\nTtransform_Type = Linear;\n").encode("ascii"))
         fid.write("Linear_Transform =\n".encode("ascii"))
         for li, line in enumerate(xfm[:-1]):
-            line = " ".join(["%0.6f" % part for part in line])
+            line = " ".join([f"{part:0.6f}" for part in line])
             line += "\n" if li < 2 else ";\n"
             fid.write(line.encode("ascii"))
 
@@ -1777,7 +1787,7 @@ def _compute_volume_registration(
 ):
     nib = _import_nibabel("SDR morph")
     _require_version("dipy", "SDR morph", "0.10.1")
-    with np.testing.suppress_warnings():
+    with _record_warnings():
         from dipy.align import (
             affine,
             affine_registration,
@@ -1825,10 +1835,10 @@ def _compute_volume_registration(
             sigma_diff_vox = sigma_diff_mm / current_zoom
             affine_map = AffineMap(
                 reg_affine,  # apply registration here
-                static_zoomed.shape,
-                static_affine,
-                moving_zoomed.shape,
-                moving_affine,
+                domain_grid_shape=static_zoomed.shape,
+                domain_grid2world=static_affine,
+                codomain_grid_shape=moving_zoomed.shape,
+                codomain_grid2world=moving_affine,
             )
             moving_zoomed = affine_map.transform(moving_zoomed)
             metric = metrics.CCMetric(
@@ -1836,10 +1846,16 @@ def _compute_volume_registration(
                 sigma_diff=sigma_diff_vox,
                 radius=max(int(np.ceil(2 * sigma_diff_vox)), 1),
             )
-            sdr = imwarp.SymmetricDiffeomorphicRegistration(metric, niter[step])
+            sdr = imwarp.SymmetricDiffeomorphicRegistration(
+                metric,
+                level_iters=niter[step],
+            )
             with wrapped_stdout(indent="    ", cull_newlines=True):
                 sdr_morph = sdr.optimize(
-                    static_zoomed, moving_zoomed, static_affine, static_affine
+                    static_zoomed,
+                    moving_zoomed,
+                    static_grid2world=static_affine,
+                    moving_grid2world=static_affine,
                 )
             moved_zoomed = sdr_morph.transform(moving_zoomed)
         else:
@@ -1848,8 +1864,8 @@ def _compute_volume_registration(
                 moved_zoomed, reg_affine = affine_registration(
                     moving_zoomed,
                     static_zoomed,
-                    moving_affine,
-                    static_affine,
+                    moving_affine=moving_affine,
+                    static_affine=static_affine,
                     nbins=32,
                     metric="MI",
                     pipeline=pipeline_options[step],
@@ -1943,7 +1959,11 @@ def apply_volume_registration(
     moving -= cval
     static, static_affine = np.asarray(static.dataobj), static.affine
     affine_map = AffineMap(
-        reg_affine, static.shape, static_affine, moving.shape, moving_affine
+        reg_affine,
+        domain_grid_shape=static.shape,
+        domain_grid2world=static_affine,
+        codomain_grid_shape=moving.shape,
+        codomain_grid2world=moving_affine,
     )
     reg_data = affine_map.transform(moving, interpolation=interpolation)
     if sdr_morph is not None:
@@ -2036,7 +2056,9 @@ def apply_volume_registration_points(
     if sdr_morph is not None:
         _require_version("dipy", "SDR morph", "1.6.0")
         locs = sdr_morph.transform_points(
-            locs, sdr_morph.domain_grid2world, sdr_morph.domain_world2grid
+            locs,
+            coord2world=sdr_morph.domain_grid2world,
+            world2coord=sdr_morph.domain_world2grid,
         )
     locs = apply_trans(
         Transform(  # to static voxels

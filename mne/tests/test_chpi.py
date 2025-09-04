@@ -1,5 +1,4 @@
-# Author: Eric Larson <larson.eric.d@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -55,7 +54,6 @@ from mne.viz import plot_head_positions
 base_dir = Path(__file__).parents[1] / "io" / "tests" / "data"
 ctf_fname = base_dir / "test_ctf_raw.fif"
 hp_fif_fname = base_dir / "test_chpi_raw_sss.fif"
-hp_fname = base_dir / "test_chpi_raw_hp.txt"
 raw_fname = base_dir / "test_raw.fif"
 
 data_path = testing.data_path(download=False)
@@ -98,7 +96,7 @@ def test_chpi_adjust():
     msg = [
         "HPIFIT: 5 coils digitized in order 5 1 4 3 2",
         "HPIFIT: 3 coils accepted: 1 2 4",
-        "Hpi coil moments (3 5):",
+        "Hpi coil moments (3, 5):",
         "2.08542e-15 -1.52486e-15 -1.53484e-15",
         "2.14516e-15 2.09608e-15 7.30303e-16",
         "-3.2318e-16 -4.25666e-16 2.69997e-15",
@@ -210,7 +208,7 @@ def _assert_quats(
     # maxfilter produces some times that are implausibly large (weird)
     if not np.isclose(t[0], t_est[0], atol=1e-1):  # within 100 ms
         raise AssertionError(
-            "Start times not within 100 ms: %0.3f != %0.3f" % (t[0], t_est[0])
+            f"Start times not within 100 ms: {t[0]:0.3f} != {t_est[0]:0.3f}"
         )
     use_mask = (t >= t_est[0]) & (t <= t_est[-1])
     t = t[use_mask]
@@ -229,10 +227,9 @@ def _assert_quats(
     distances = np.sqrt(np.sum((trans - trans_est_interp) ** 2, axis=1))
     assert np.isfinite(distances).all()
     arg_worst = np.argmax(distances)
-    assert distances[arg_worst] <= dist_tol, "@ %0.3f seconds: %0.3f > %0.3f mm" % (
-        t[arg_worst],
-        1000 * distances[arg_worst],
-        1000 * dist_tol,
+    assert distances[arg_worst] <= dist_tol, (
+        f"@ {t[arg_worst]:0.3f} seconds: "
+        f"{1000 * distances[arg_worst]:0.3f} > {1000 * dist_tol:0.3f} mm"
     )
 
     # limit rotation difference between MF and our estimation
@@ -240,10 +237,9 @@ def _assert_quats(
     quats_est_interp = interp1d(t_est, quats_est, axis=0)(t)
     angles = 180 * _angle_between_quats(quats_est_interp, quats) / np.pi
     arg_worst = np.argmax(angles)
-    assert angles[arg_worst] <= angle_tol, "@ %0.3f seconds: %0.3f > %0.3f deg" % (
-        t[arg_worst],
-        angles[arg_worst],
-        angle_tol,
+    assert angles[arg_worst] <= angle_tol, (
+        f"@ {t[arg_worst]:0.3f} seconds: "
+        f"{angles[arg_worst]:0.3f} > {angle_tol:0.3f} deg"
     )
 
     # error calculation difference
@@ -818,6 +814,8 @@ def test_calculate_head_pos_kit():
     # plotting works
     plot_head_positions(quats, info=raw.info)
     raw_berlin = read_raw_kit(berlin_fname)
+    assert "meg" in raw_berlin
+    assert raw_berlin.info["dev_head_t"] is not None
     assert_allclose(raw_berlin.info["dev_head_t"]["trans"], np.eye(4))
     assert len(raw_berlin.info["hpi_results"]) == 0
     with pytest.raises(ValueError, match="Invalid value"):

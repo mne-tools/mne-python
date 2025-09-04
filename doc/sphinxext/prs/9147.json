@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "82b3459a35c1c61c3c2d1ab724aaf9ee831d791d",
+  "authors": [
+    {
+      "n": "Ana Radanovic",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/connectivity/spectral.py": {
+      "a": 1,
+      "d": 2
+    }
+  }
+}

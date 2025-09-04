@@ -1,0 +1,75 @@
+{
+  "merge_commit_sha": "a9b139d00d6ce966dfebc078597ad335ebb425f9",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/html_templates/report/bem.html.jinja": {
+      "a": 8,
+      "d": 0
+    },
+    "mne/html_templates/report/code.html.jinja": {
+      "a": 6,
+      "d": 24
+    },
+    "mne/html_templates/report/epochs.html.jinja": {
+      "a": 0,
+      "d": 27
+    },
+    "mne/html_templates/report/evoked.html.jinja": {
+      "a": 0,
+      "d": 26
+    },
+    "mne/html_templates/report/forward.html.jinja": {
+      "a": 5,
+      "d": 23
+    },
+    "mne/html_templates/report/ica.html.jinja": {
+      "a": 0,
+      "d": 29
+    },
+    "mne/html_templates/report/image.html.jinja": {
+      "a": 15,
+      "d": 34
+    },
+    "mne/html_templates/report/inverse.html.jinja": {
+      "a": 5,
+      "d": 23
+    },
+    "mne/html_templates/report/raw.html.jinja": {
+      "a": 0,
+      "d": 25
+    },
+    "mne/html_templates/report/section.html.jinja": {
+      "a": 9,
+      "d": 5
+    },
+    "mne/html_templates/report/toc.html.jinja": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/report/report.py": {
+      "a": 793,
+      "d": 724
+    },
+    "mne/report/tests/test_report.py": {
+      "a": 18,
+      "d": 14
+    },
+    "mne/utils/docs.py": {
+      "a": 12,
+      "d": 0
+    },
+    "tutorials/intro/70_report.py": {
+      "a": 29,
+      "d": 0
+    }
+  }
+}

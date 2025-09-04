@@ -1,8 +1,4 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Eric Larson <larson.eric.d@gmail.com>
-#          Joan Massich <mailsik@gmail.com>
-#          Guillaume Favelier <guillaume.favelier@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -17,18 +13,19 @@ from mne.utils import run_subprocess
 from mne.viz import Figure3D, get_3d_backend, set_3d_backend
 from mne.viz.backends._utils import ALLOWED_QUIVER_MODES
 from mne.viz.backends.renderer import _get_renderer
-from mne.viz.backends.tests._utils import skips_if_not_pyvistaqt
 
 
 @pytest.mark.parametrize(
     "backend",
     [
-        pytest.param("pyvistaqt", marks=skips_if_not_pyvistaqt),
+        pytest.param("pyvistaqt"),
         pytest.param("foo", marks=pytest.mark.xfail(raises=ValueError)),
     ],
 )
 def test_backend_environment_setup(backend, monkeypatch):
     """Test set up 3d backend based on env."""
+    if backend == "pyvistaqt":
+        pytest.importorskip("pyvistaqt")
     monkeypatch.setenv("MNE_3D_BACKEND", backend)
     monkeypatch.setattr("mne.viz.backends.renderer.MNE_3D_BACKEND", None)
     assert os.environ["MNE_3D_BACKEND"] == backend  # just double-check
@@ -194,7 +191,7 @@ def test_renderer(renderer, monkeypatch):
         "-uc",
         "import mne; mne.viz.create_3d_figure((800, 600), show=True); "
         "backend = mne.viz.get_3d_backend(); "
-        "assert backend == %r, backend" % (backend,),
+        f"assert backend == {repr(backend)}, backend",
     ]
     monkeypatch.setenv("MNE_3D_BACKEND", backend)
     run_subprocess(cmd)
@@ -221,16 +218,21 @@ def test_set_3d_backend_bad(monkeypatch, tmp_path):
 def test_3d_warning(renderer_pyvistaqt, monkeypatch):
     """Test that warnings are emitted for old Mesa."""
     fig = renderer_pyvistaqt.create_3d_figure((800, 600))
-    _is_mesa = renderer_pyvistaqt.backend._is_mesa
+    from mne.viz.backends._pyvista import _is_osmesa
+
     plotter = fig.plotter
-    good = "OpenGL renderer string: OpenGL 3.3 (Core Profile) Mesa 20.0.8 via llvmpipe (LLVM 10.0.0, 256 bits)\n"  # noqa
-    bad = "OpenGL renderer string: OpenGL 3.3 (Core Profile) Mesa 18.3.4 via llvmpipe (LLVM 7.0, 256 bits)\n"  # noqa
+    pre = "OpenGL renderer string: "
+    good = f"{pre}OpenGL 3.3 (Core Profile) Mesa 20.0.8 via llvmpipe (LLVM 10.0.0, 256 bits)\n"  # noqa
+    bad = f"{pre}OpenGL 3.3 (Core Profile) Mesa 18.3.4 via llvmpipe (LLVM 7.0, 256 bits)\n"  # noqa
     monkeypatch.setattr(platform, "system", lambda: "Linux")  # avoid short-circuit
     monkeypatch.setattr(plotter.ren_win, "ReportCapabilities", lambda: good)
-    assert _is_mesa(plotter)
+    assert _is_osmesa(plotter)
     monkeypatch.setattr(plotter.ren_win, "ReportCapabilities", lambda: bad)
     with pytest.warns(RuntimeWarning, match=r"18\.3\.4 is too old"):
-        assert _is_mesa(plotter)
-    non = "OpenGL 4.1 Metal - 76.3 via Apple M1 Pro\n"
+        assert _is_osmesa(plotter)
+    non = f"{pre}OpenGL 4.1 Metal - 76.3 via Apple M1 Pro\n"
     monkeypatch.setattr(plotter.ren_win, "ReportCapabilities", lambda: non)
-    assert not _is_mesa(plotter)
+    assert not _is_osmesa(plotter)
+    non = f"{pre}OpenGL 4.5 (Core Profile) Mesa 24.2.3-1ubuntu1 via NVE6\n"
+    monkeypatch.setattr(plotter.ren_win, "ReportCapabilities", lambda: non)
+    assert not _is_osmesa(plotter)

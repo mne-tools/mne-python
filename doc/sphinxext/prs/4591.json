@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "791528101de7553dc3cdbefd82efd2d528842a3f",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "tutorials/plot_brainstorm_phantom_ctf.py": {
+      "a": 11,
+      "d": 2
+    },
+    "tutorials/plot_brainstorm_phantom_elekta.py": {
+      "a": 45,
+      "d": 11
+    }
+  }
+}

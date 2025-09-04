@@ -1,5 +1,7 @@
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 import numpy as np
 
 from ..utils import _pl, logger, verbose
@@ -56,7 +58,7 @@ def peak_finder(x0, thresh=None, extrema=1, verbose=None):
 
     if thresh is None:
         thresh = (np.max(x0) - np.min(x0)) / 4
-        logger.debug("Peak finder automatic threshold: %0.2g" % (thresh,))
+        logger.debug(f"Peak finder automatic threshold: {thresh:0.2g}")
 
     assert extrema in [-1, 1]
 
@@ -85,7 +87,7 @@ def peak_finder(x0, thresh=None, extrema=1, verbose=None):
         left_min = min_mag
 
         # Deal with first point a little differently since tacked it on
-        # Calculate the sign of the derivative since we taked the first point
+        # Calculate the sign of the derivative since we took the first point
         # on it does not necessarily alternate like the rest.
         signDx = np.sign(np.diff(x[:3]))
         if signDx[0] <= 0:  # The first point is larger or equal to the second
@@ -177,6 +179,6 @@ def peak_finder(x0, thresh=None, extrema=1, verbose=None):
     if len(peak_inds) == 0:
         logger.info("No significant peaks found")
     else:
-        logger.info("Found %d significant peak%s" % (len(peak_inds), _pl(peak_inds)))
+        logger.info(f"Found {len(peak_inds)} significant peak{_pl(peak_inds)}")
 
     return peak_inds, peak_mags

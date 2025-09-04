@@ -29,7 +29,6 @@ This tutorial is loosely divided into two parts:
    negativity (ERN), i.e. the ERP component associated with incorrect
    behavioral responses.
 
-
 .. _tut-autogenerate-metadata-preparation:
 
 Preparation
@@ -42,17 +41,17 @@ We will also convert the `~mne.Annotations` contained in this dataset to events
 by calling `mne.events_from_annotations`.
 """
 
+# Authors: Richard Höchenberger <richard.hoechenberger@gmail.com>
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
-# %%
 
-from pathlib import Path
+# %%
 
 import matplotlib.pyplot as plt
 
 import mne
 
-data_dir = Path(mne.datasets.erp_core.data_path())
+data_dir = mne.datasets.erp_core.data_path()
 infile = data_dir / "ERP-CORE_Subject-001_Task-Flankers_eeg.fif"
 
 raw = mne.io.read_raw(infile, preload=True)
@@ -88,7 +87,7 @@ all_events, all_event_id = mne.events_from_annotations(raw)
 # i.e. starting with stimulus onset and expanding beyond the end of the epoch
 metadata_tmin, metadata_tmax = 0.0, 1.5
 
-# auto-create metadata
+# auto-create metadata:
 # this also returns a new events array and an event_id dictionary. we'll see
 # later why this is important
 metadata, events, event_id = mne.epochs.make_metadata(
@@ -189,15 +188,17 @@ metadata, events, event_id = mne.epochs.make_metadata(
 )
 
 # visualize response times regardless of side
-metadata["response"].plot.hist(bins=50, title="Response Times")
+metadata["response"].plot.hist(bins=50, title="Response Times (first response)")
 
-# the "first_response" column contains only "left" and "right" entries, derived
-# from the initial event named "response/left" and "response/right"
+# %%
+# The ``first_response`` column contains only ``"left"`` and ``"right"`` entries,
+# derived from the respective initial events ``"response/left"`` and
+# ``"response/right"``:
 print(metadata["first_response"])
 
 # %%
-# We're facing a similar issue with the stimulus events, and now there are not
-# only two, but **four** different types: ``stimulus/compatible/target_left``,
+# For stimulus events, there are not only two, but **four** different types:
+# ``stimulus/compatible/target_left``,
 # ``stimulus/compatible/target_right``, ``stimulus/incompatible/target_left``,
 # and ``stimulus/incompatible/target_right``. What's more, because in the
 # present paradigm stimuli were presented in rapid succession, sometimes
@@ -211,6 +212,11 @@ metadata.loc[
 ]
 
 # %%
+# Looking at the ``stimulus/compatible/target_left`` and
+# ``stimulus/compatible/target_right`` columns, you will see that both always contain a
+# numerical value (one is always zero, the other is not). This is because both events
+# occurred within the time window of 1.5 seconds.
+#
 # This can easily lead to confusion during later stages of processing, so let's
 # create a column for the first stimulus – which will always be the time-locked
 # stimulus, as our time interval starts at 0 seconds. We can pass a **list** of
@@ -268,6 +274,10 @@ metadata.loc[
     metadata["stimulus_side"] == metadata["first_response"], "response_correct"
 ] = True
 
+metadata
+
+# %%
+# Count the number of correct and incorrect responses:
 
 correct_response_count = metadata["response_correct"].sum()
 print(
@@ -279,13 +289,14 @@ print(
 # Creating ``Epochs`` with metadata, and visualizing ERPs
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
-# It's finally time to create our epochs! We set the metadata directly on
-# instantiation via the ``metadata`` parameter. Also, it is important to
-# remember to pass ``events`` and ``event_id`` as returned from
+# The metadata is ready. Now it's finally time to create our epochs!
+# We will assign the metadata directly on epochs creation
+# via the ``metadata`` parameter. Also, it is important to
+# remember to pass the ``events`` and ``event_id`` that were returned from
 # `~mne.epochs.make_metadata`, as we only created metadata for a subset of
-# our original events by passing ``row_events``. Otherwise, the length
-# of the metadata and the number of epochs would not match, which would raise
-# an error.
+# our original events by passing ``row_events``. If we were to pass to "original"
+# values instead, the length of the metadata and the number of epochs would mismatch,
+# which would raise an error.
 
 epochs_tmin, epochs_tmax = -0.1, 0.4  # epochs range: [-0.1, 0.4] s
 reject = {"eeg": 250e-6}  # exclude epochs with strong artifacts
@@ -301,18 +312,34 @@ epochs = mne.Epochs(
 )
 
 # %%
-# Lastly, let's visualize the ERPs associated with the visual stimulation, once
-# for all trials with correct responses, and once for all trials with correct
-# responses and a response time greater than 0.5 seconds
-# (i.e., slow responses).
-vis_erp = epochs["response_correct"].average()
-vis_erp_slow = epochs["(not response_correct) & " "(response > 0.3)"].average()
+# You probably also noticed that 9 epochs were dropped because they exceeded our
+# rejection limits. This is another reason why it is important to assign the metadata on
+# epochs creation: the metadata will be updated automatically to reflect the actual
+# epochs that were kept.
+#
+# Lastly, let's visualize the ERPs associated with the visual stimulation. We will only
+# consider trials with correct responses and produce three plots:
+# one for all correct responses, one for correct slow responses (response time slower
+# than 0.5 s), and one for correct fast responses (response time up to 0.5 s).
 
-fig, ax = plt.subplots(2, figsize=(6, 6), layout="constrained")
-vis_erp.plot(gfp=True, spatial_colors=True, axes=ax[0])
-vis_erp_slow.plot(gfp=True, spatial_colors=True, axes=ax[1])
-ax[0].set_title("Visual ERPs – All Correct Responses")
-ax[1].set_title("Visual ERPs – Slow Correct Responses")
+vis_erp = epochs["response_correct"].average()
+vis_erp_slow = epochs["(response_correct) & (response > 0.5)"].average()
+vis_erp_fast = epochs["(response_correct) & (response <= 0.5)"].average()
+
+fig, ax = plt.subplots(3, figsize=(6, 8), layout="constrained")
+vis_erp.plot(gfp=True, spatial_colors=True, axes=ax[0], show=False)
+vis_erp_slow.plot(gfp=True, spatial_colors=True, axes=ax[1], show=False)
+vis_erp_fast.plot(gfp=True, spatial_colors=True, axes=ax[2], show=False)
+
+# Set titles
+ax[0].set_title("All Correct Responses")
+ax[1].set_title("Slow Correct Responses")
+ax[2].set_title("Fast Correct Responses")
+fig.suptitle("Visual ERPs", fontweight="bold")
+
+# Turn of x axes for the first two plots
+ax[0].xaxis.set_visible(False)
+ax[1].xaxis.set_visible(False)
 
 # %%
 # Aside from the fact that the data for the (much fewer) slow responses looks
@@ -332,11 +359,11 @@ ax[1].set_title("Visual ERPs – Slow Correct Responses")
 #
 # Since we want to time-lock our analysis to responses, for the automated
 # metadata generation we'll consider events occurring up to 1500 ms before
-# the response trigger.
+# the response trigger so we can be sure to capture the stimulation event as well.
 #
 # We only wish to consider the **last** stimulus and response in each time
 # window: Remember that we're dealing with rapid stimulus presentations in
-# this paradigm; taking the last response (at time point zero) and the last
+# this paradigm; taking the last response (time point zero) and the last
 # stimulus (the one closest to the response) ensures that we actually create
 # the right stimulus-response pairings. We can achieve this by passing the
 # ``keep_last`` parameter, which works exactly like ``keep_first`` we used
@@ -356,6 +383,8 @@ metadata, events, event_id = mne.epochs.make_metadata(
     row_events=row_events,
     keep_last=keep_last,
 )
+
+metadata
 
 # %%
 # Exactly like in the previous example, we create new columns ``stimulus_side``
@@ -397,7 +426,7 @@ metadata
 # period close to the response event should not be used for baseline
 # correction. But at the same time, we don't want to use a baseline
 # period that extends too far away from the button event. The following values
-# seem to work quite well.
+# seem to work quite well. Remember: time point zero is the response event.
 
 epochs_tmin, epochs_tmax = -0.6, 0.4
 baseline = (-0.4, -0.2)
@@ -419,7 +448,8 @@ epochs = mne.Epochs(
 # actually have a stimulus. We use ``epochs.metadata`` (and not ``metadata``)
 # because when creating the epochs, we passed the ``reject`` parameter, and
 # MNE-Python always ensures that ``epochs.metadata`` stays in sync with the
-# available epochs.
+# available epochs. During epochs creation, several epochs were dropped as they
+# exceeded the rejection limits.
 
 epochs.metadata.loc[epochs.metadata["last_stimulus"].isna(), :]
 
@@ -432,12 +462,10 @@ epochs.metadata.loc[epochs.metadata["last_stimulus"].isna(), :]
 epochs = epochs["last_stimulus.notna()"]
 
 # %%
-# Time to calculate the ERPs for correct  and incorrect responses.
+# Now it's time  to calculate the ERPs for correct  and incorrect responses.
+#
 # For visualization, we'll only look at sensor ``FCz``, which is known to show
-# the ERN nicely in the given paradigm. We'll also create a topoplot to get an
-# impression of the average scalp potentials measured in the first 100 ms after
-# an incorrect response.
-
+# the ERN nicely in the given paradigm.
 resp_erp_correct = epochs["response_correct"].average()
 resp_erp_incorrect = epochs["not response_correct"].average()
 
@@ -448,16 +476,21 @@ mne.viz.plot_compare_evokeds(
     title="ERPs at FCz, time-locked to response",
 )
 
+# %%
+# We'll also create a topoplot to get an
+# impression of the average scalp potentials measured in the first 100 ms after
+# an incorrect response.
+
 # topoplot of average field from time 0.0-0.1 s
-fig = resp_erp_incorrect.plot_topomap(times=0.05, average=0.05, size=3)
-fig.suptitle("Avg. topography 0–100 ms after incorrect responses", fontsize=16)
+fig = resp_erp_incorrect.plot_topomap(times=0.05, average=0.1, size=3)
+fig.suptitle("Mean topography after incorrect responses", fontsize=14)
 
 # %%
 # We can see a strong negative deflection immediately after incorrect
 # responses, compared to correct responses. The topoplot, too, leaves no doubt:
 # what we're looking at is, in fact, the ERN.
 #
-# Some researchers suggest to construct the difference wave between ERPs for
+# Some researchers suggest to construct the **difference wave** between ERPs for
 # correct and incorrect responses, as it more clearly reveals signal
 # differences, while ideally also improving the signal-to-noise ratio (under
 # the assumption that the noise level in "correct" and "incorrect" trials is
@@ -490,8 +523,6 @@ ax.set_xlabel("Time (s)", fontweight="bold")
 ax.set_ylabel("Amplitude (µV)", fontweight="bold")
 ax.set_title("Channel: FCz")
 fig.suptitle("ERN (Difference Wave)", fontweight="bold")
-
-fig
 
 # %%
 # References

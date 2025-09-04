@@ -11,7 +11,7 @@ export MNE_ROOT="${PWD}/minimal_cmds"
 export PATH=${MNE_ROOT}/bin:$PATH
 if [ "${GITHUB_ACTIONS}" == "true" ]; then
 	echo "Setting MNE_ROOT for GHA"
-	echo "MNE_ROOT=${MNE_ROOT}" >> $GITHUB_ENV;
+	echo "MNE_ROOT=${MNE_ROOT}" | tee -a $GITHUB_ENV;
 	echo "${MNE_ROOT}/bin" >> $GITHUB_PATH;
 elif [ "${AZURE_CI}" == "true" ]; then
 	echo "Setting MNE_ROOT for Azure"
@@ -20,7 +20,7 @@ elif [ "${AZURE_CI}" == "true" ]; then
 elif [ "${CIRCLECI}" == "true" ]; then
 	echo "Setting MNE_ROOT for CircleCI"
 	echo "export MNE_ROOT=${MNE_ROOT}" >> "$BASH_ENV";
-	echo "export PATH=${MNE_ROOT}/bin:$PATH" >> "$BASH_ENV";
+	echo "export PATH=${MNE_ROOT}/bin:\$PATH" >> "$BASH_ENV";
 fi;
 if [[ "${CI_OS_NAME}" != "macos"* ]]; then
 	echo "Getting files for Linux..."
@@ -33,9 +33,9 @@ if [[ "${CI_OS_NAME}" != "macos"* ]]; then
 	export NEUROMAG2FT_ROOT="${PWD}/minimal_cmds/bin"
 	export FREESURFER_HOME="${MNE_ROOT}"
 	if [ "${GITHUB_ACTIONS}" == "true" ]; then
-		echo "LD_LIBRARY_PATH=${LD_LIBRARY_PATH}" >> "$GITHUB_ENV";
-		echo "NEUROMAG2FT_ROOT=${NEUROMAG2FT_ROOT}" >> "$GITHUB_ENV";
-		echo "FREESURFER_HOME=${FREESURFER_HOME}" >> "$GITHUB_ENV";
+		echo "LD_LIBRARY_PATH=${LD_LIBRARY_PATH}" | tee -a "$GITHUB_ENV";
+		echo "NEUROMAG2FT_ROOT=${NEUROMAG2FT_ROOT}" | tee -a "$GITHUB_ENV";
+		echo "FREESURFER_HOME=${FREESURFER_HOME}" | tee -a "$GITHUB_ENV";
 	fi;
 	if [ "${AZURE_CI}" == "true" ]; then
 		echo "##vso[task.setvariable variable=LD_LIBRARY_PATH]${LD_LIBRARY_PATH}"
@@ -57,7 +57,7 @@ else
 	export DYLD_LIBRARY_PATH=${MNE_ROOT}/lib:$DYLD_LIBRARY_PATH
 	if [ "${GITHUB_ACTIONS}" == "true" ]; then
 		echo "Setting variables for GHA"
-		echo "DYLD_LIBRARY_PATH=${DYLD_LIBRARY_PATH}" >> "$GITHUB_ENV";
+		echo "DYLD_LIBRARY_PATH=${DYLD_LIBRARY_PATH}" | tee -a "$GITHUB_ENV";
 		set -x
 		wget https://github.com/XQuartz/XQuartz/releases/download/XQuartz-2.7.11/XQuartz-2.7.11.dmg
 		sudo hdiutil attach XQuartz-2.7.11.dmg

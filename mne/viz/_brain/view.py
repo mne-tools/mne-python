@@ -1,9 +1,4 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Eric Larson <larson.eric.d@gmail.com>
-#          Oleh Kozynets <ok7mailbox@gmail.com>
-#          Guillaume Favelier <guillaume.favelier@gmail.com>
-#          jona-sassenhagen <jona.sassenhagen@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -54,6 +49,40 @@ for k, v in _rh_views_dict.items():
     rh_views_dict["flat"] = dict(
         azimuth=0, elevation=0, focalpoint=ORIGIN, roll=0, distance=DIST
     )
+
+both_views_dict = lh_views_dict.copy()
+both_views_dict["right_lateral"] = dict(
+    azimuth=180.0, elevation=90.0, focalpoint=ORIGIN, distance=DIST
+)
+both_views_dict["right_anterolateral"] = dict(
+    azimuth=120.0, elevation=90.0, focalpoint=ORIGIN, distance=DIST
+)
+both_views_dict["anterior"] = dict(
+    azimuth=90.0, elevation=90.0, focalpoint=ORIGIN, distance=DIST
+)
+both_views_dict["left_anterolateral"] = dict(
+    azimuth=60.0, elevation=90.0, focalpoint=ORIGIN, distance=DIST
+)
+both_views_dict["left_lateral"] = dict(
+    azimuth=180.0, elevation=-90.0, focalpoint=ORIGIN, distance=DIST
+)
+both_views_dict["right_posterolateral"] = dict(
+    azimuth=-120.0, elevation=90.0, focalpoint=ORIGIN, distance=DIST
+)
+both_views_dict["posterior"] = dict(
+    azimuth=90.0, elevation=-90.0, focalpoint=ORIGIN, distance=DIST
+)
+both_views_dict["left_posterolateral"] = dict(
+    azimuth=-60.0, elevation=90.0, focalpoint=ORIGIN, distance=DIST
+)
+both_views_dict["superior"] = dict(
+    azimuth=180.0, elevation=0.0, focalpoint=ORIGIN, distance=DIST
+)
+both_views_dict["inferior"] = dict(
+    azimuth=180.0, elevation=180.0, focalpoint=ORIGIN, distance=DIST
+)
+
+
 views_dicts = dict(
-    lh=lh_views_dict, vol=lh_views_dict, both=lh_views_dict, rh=rh_views_dict
+    lh=lh_views_dict, vol=lh_views_dict, both=both_views_dict, rh=rh_views_dict
 )

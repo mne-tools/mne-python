@@ -1,0 +1,123 @@
+{
+  "merge_commit_sha": "82a341076416bfbf3e62ae97e330ecfe9bedc1eb",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/conf.py": {
+      "a": 1,
+      "d": 6
+    },
+    "examples/decoding/decoding_rsa_sgskip.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/time_frequency/time_frequency_global_field_power.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/visualization/brain.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/conftest.py": {
+      "a": 1,
+      "d": 4
+    },
+    "mne/fixes.py": {
+      "a": 11,
+      "d": 1
+    },
+    "mne/label.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/time_frequency/tests/test_tfr.py": {
+      "a": 14,
+      "d": 14
+    },
+    "mne/utils/check.py": {
+      "a": 3,
+      "d": 11
+    },
+    "mne/viz/_3d.py": {
+      "a": 4,
+      "d": 14
+    },
+    "mne/viz/_brain/tests/test_brain.py": {
+      "a": 7,
+      "d": 4
+    },
+    "mne/viz/_mpl_figure.py": {
+      "a": 5,
+      "d": 5
+    },
+    "mne/viz/backends/_utils.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/viz/backends/tests/test_abstract_notebook.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/viz/circle.py": {
+      "a": 2,
+      "d": 3
+    },
+    "mne/viz/epochs.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/viz/evoked.py": {
+      "a": 8,
+      "d": 16
+    },
+    "mne/viz/ica.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 9,
+      "d": 9
+    },
+    "mne/viz/tests/test_3d_mpl.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/viz/tests/test_evoked.py": {
+      "a": 2,
+      "d": 3
+    },
+    "mne/viz/tests/test_ica.py": {
+      "a": 5,
+      "d": 5
+    },
+    "mne/viz/tests/test_raw.py": {
+      "a": 13,
+      "d": 7
+    },
+    "mne/viz/tests/test_topomap.py": {
+      "a": 7,
+      "d": 6
+    },
+    "mne/viz/topomap.py": {
+      "a": 3,
+      "d": 4
+    },
+    "mne/viz/utils.py": {
+      "a": 74,
+      "d": 11
+    },
+    "tutorials/clinical/30_ecog.py": {
+      "a": 1,
+      "d": 2
+    },
+    "tutorials/time-freq/50_ssvep.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

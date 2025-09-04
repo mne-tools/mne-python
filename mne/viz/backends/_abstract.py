@@ -1,9 +1,6 @@
 """ABCs."""
 
-# Authors: Guillaume Favelier <guillaume.favelier@gmail.com
-#          Eric Larson <larson.eric.d@gmail.com>
-#          Alex Rockhill <aprockhill@mailbox.org>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -37,7 +34,8 @@ class Figure3D(ABC):
         fig=None,
         size=(600, 600),
         bgcolor=(0.0, 0.0, 0.0),
-        name=None,
+        *,
+        title="MNE 3D Figure",
         show=False,
         shape=(1, 1),
         splash=False,
@@ -63,7 +61,8 @@ class _AbstractRenderer(ABC):
         fig=None,
         size=(600, 600),
         bgcolor=(0.0, 0.0, 0.0),
-        name=None,
+        *,
+        name="MNE-Python 3D Figure",
         show=False,
         shape=(1, 1),
         splash=False,
@@ -128,6 +127,7 @@ class _AbstractRenderer(ABC):
         triangles,
         color,
         opacity=1.0,
+        *,
         backface_culling=False,
         scalars=None,
         colormap=None,
@@ -138,6 +138,7 @@ class _AbstractRenderer(ABC):
         line_width=1.0,
         normals=None,
         polygon_offset=None,
+        name=None,
         **kwargs,
     ):
         """Add a mesh in the scene.
@@ -184,6 +185,8 @@ class _AbstractRenderer(ABC):
             The array containing the normal of each vertex.
         polygon_offset : float
             If not None, the factor used to resolve coincident topology.
+        name : str | None
+            The name of the mesh.
         kwargs : args
             The arguments to pass to triangular_mesh
 
@@ -255,6 +258,8 @@ class _AbstractRenderer(ABC):
         scalars=None,
         backface_culling=False,
         polygon_offset=None,
+        *,
+        name=None,
     ):
         """Add a surface in the scene.
 
@@ -282,6 +287,8 @@ class _AbstractRenderer(ABC):
             If True, enable backface culling on the surface.
         polygon_offset : float
             If not None, the factor used to resolve coincident topology.
+        name : str | None
+            Name of the surface.
         """
         pass
 
@@ -992,7 +999,7 @@ class _AbstractCanvas(ABC):
 # ------------------------------------
 # Non-object-based Widget Abstractions
 # ------------------------------------
-# These are planned to be deprecated in favor of the simpler, object-
+# These are planned to be removed in favor of the simpler, object-
 # oriented abstractions above when time allows.
 
 

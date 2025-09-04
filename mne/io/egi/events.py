@@ -1,4 +1,5 @@
 #
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -8,7 +9,7 @@ from os.path import basename, join, splitext
 
 import numpy as np
 
-from ...utils import _soft_import, logger
+from ...utils import _soft_import, _validate_type, logger, warn
 
 
 def _read_events(input_fname, info):
@@ -31,7 +32,7 @@ def _read_events(input_fname, info):
             if (i < 0) or (i >= events.shape[1]):
                 continue
             events[n][i] = n + 1
-    return events, info
+    return events, info, mff_events
 
 
 def _read_mff_events(filename, sfreq):
@@ -47,7 +48,9 @@ def _read_mff_events(filename, sfreq):
     orig = {}
     for xml_file in glob(join(filename, "*.xml")):
         xml_type = splitext(basename(xml_file))[0]
-        orig[xml_type] = _parse_xml(xml_file)
+        et = _parse_xml(xml_file)
+        if et is not None:
+            orig[xml_type] = et
     xml_files = orig.keys()
     xml_events = [x for x in xml_files if x[:7] == "Events_"]
     for item in orig["info"]:
@@ -79,10 +82,14 @@ def _read_mff_events(filename, sfreq):
     return events_tims, code
 
 
-def _parse_xml(xml_file):
+def _parse_xml(xml_file: str) -> list[dict[str, str]] | None:
     """Parse XML file."""
     defusedxml = _soft_import("defusedxml", "reading EGI MFF data")
-    xml = defusedxml.ElementTree.parse(xml_file)
+    try:
+        xml = defusedxml.ElementTree.parse(xml_file)
+    except defusedxml.ElementTree.ParseError as e:
+        warn(f"Could not parse the XML file {xml_file}: {e}")
+        return
     root = xml.getroot()
     return _xml2list(root)
 
@@ -168,3 +175,39 @@ def _combine_triggers(data, remapping=None):
         if np.any(idx):
             new_trigger[idx] += event_id
     return new_trigger
+
+
+def _triage_include_exclude(include, exclude, egi_events, egi_info):
+    """Triage include and exclude."""
+    _validate_type(exclude, (list, None), "exclude")
+    _validate_type(include, (list, None), "include")
+    event_codes = list(egi_info["event_codes"])
+    for name, lst in dict(exclude=exclude, include=include).items():
+        for ii, item in enumerate(lst or []):
+            what = f"{name}[{ii}]"
+            _validate_type(item, str, what)
+            if item not in event_codes:
+                raise ValueError(
+                    f"Could not find event channel named {what}={repr(item)}"
+                )
+    if include is None:
+        if exclude is None:
+            default_exclude = ["sync", "TREV"]
+            exclude = [code for code in default_exclude if code in event_codes]
+            for code, event in zip(event_codes, egi_events):
+                if event.sum() < 1 and code:
+                    exclude.append(code)
+            if (
+                len(exclude) == len(event_codes)
+                and egi_info["n_events"]
+                and set(exclude) - set(default_exclude)
+            ):
+                warn(
+                    "Did not find any event code with at least one event.",
+                    RuntimeWarning,
+                )
+        include = [k for k in event_codes if k not in exclude]
+    del exclude
+    excl_events = ", ".join(k for k in event_codes if k not in include)
+    logger.info(f"    Excluding events {{{excl_events}}} ...")
+    return include

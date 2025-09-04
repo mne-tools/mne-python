@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "441181daff6065c3ef6ee8daa9df3d19196fd129",
+  "authors": [
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    }
+  ],
+  "changes": {
+    ".circleci/config.yml": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/_templates/navbar.html": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/__init__.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

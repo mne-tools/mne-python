@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "0a033205ef720f10d8f71bf0057f8b6bc5ad76eb",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/externals/decorator.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/forward/_make_forward.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/inverse_sparse/mxne_optim.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/viz/backends/renderer.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/plot_background_filtering.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/plot_dipole_orientations.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

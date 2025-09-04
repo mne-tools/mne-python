@@ -1,6 +1,4 @@
-# Authors: Eric Larson <larson.eric.d@gmail.com>
-#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -18,6 +16,7 @@ from numpy.testing import (
 from scipy import linalg, sparse, stats
 
 from mne import MixedSourceEstimate, SourceEstimate, SourceSpaces, VolSourceEstimate
+from mne.fixes import _eye_array
 from mne.stats import combine_adjacency, ttest_ind_no_p
 from mne.stats.cluster_level import (
     f_oneway,
@@ -96,8 +95,9 @@ def test_thresholds(numba_conditional):
     # nan handling in TFCE
     X = np.repeat(X[0], 2, axis=1)
     X[:, 1] = 0
-    with _record_warnings(), pytest.warns(
-        RuntimeWarning, match="invalid value"
+    with (
+        _record_warnings(),
+        pytest.warns(RuntimeWarning, match="invalid value"),
     ):  # NumPy
         out = permutation_cluster_1samp_test(
             X, seed=0, threshold=dict(start=0, step=0.1), out_type="mask"
@@ -254,7 +254,7 @@ def test_cluster_permutation_test(numba_conditional):
 )
 def test_cluster_permutation_t_test(numba_conditional, stat_fun):
     """Test cluster level permutations T-test."""
-    condition1_1d, condition2_1d, condition1_2d, condition2_2d = _get_conditions()
+    condition1_1d, _, condition1_2d, _ = _get_conditions()
 
     # use a very large sigma to make sure Ts are not independent
     for condition1, p in ((condition1_1d, 0.01), (condition1_2d, 0.01)):
@@ -271,7 +271,7 @@ def test_cluster_permutation_t_test(numba_conditional, stat_fun):
         p_min = np.min(cluster_p_values)
         assert_allclose(p_min, p, atol=1e-6)
 
-        T_obs_pos, c_1, cluster_p_values_pos, _ = permutation_cluster_1samp_test(
+        T_obs_pos, _, cluster_p_values_pos, _ = permutation_cluster_1samp_test(
             condition1,
             n_permutations=100,
             tail=1,
@@ -337,7 +337,7 @@ def test_cluster_permutation_with_adjacency(numba_conditional, monkeypatch):
     pytest.importorskip("sklearn")
     from sklearn.feature_extraction.image import grid_to_graph
 
-    condition1_1d, condition2_1d, condition1_2d, condition2_2d = _get_conditions()
+    condition1_1d, condition2_1d, _, _ = _get_conditions()
 
     n_pts = condition1_1d.shape[1]
     # we don't care about p-values in any of these, so do fewer permutations
@@ -354,16 +354,14 @@ def test_cluster_permutation_with_adjacency(numba_conditional, monkeypatch):
     )
 
     did_warn = False
-    for X1d, X2d, func, spatio_temporal_func in [
+    for X1d, func, spatio_temporal_func in [
         (
             condition1_1d,
-            condition1_2d,
             permutation_cluster_1samp_test,
             spatio_temporal_cluster_1samp_test,
         ),
         (
             [condition1_1d, condition2_1d],
-            [condition1_2d, condition2_2d],
             permutation_cluster_test,
             spatio_temporal_cluster_test,
         ),
@@ -377,13 +375,13 @@ def test_cluster_permutation_with_adjacency(numba_conditional, monkeypatch):
             assert np.all(a[b])
 
         # test spatio-temporal w/o time adjacency (repeat spatial pattern)
-        adjacency_2 = sparse.coo_matrix(
+        adjacency_2 = sparse.coo_array(
             linalg.block_diag(
                 adjacency.asfptype().todense(), adjacency.asfptype().todense()
             )
         )
         # nesting here is time then space:
-        adjacency_2a = combine_adjacency(np.eye(2), adjacency)
+        adjacency_2a = combine_adjacency(_eye_array(2), adjacency)
         assert_array_equal(
             adjacency_2.toarray().astype(bool), adjacency_2a.toarray().astype(bool)
         )
@@ -689,7 +687,7 @@ def test_spatio_temporal_cluster_adjacency(numba_conditional):
     assert_equal(np.sum(p_values_adj < 0.05), np.sum(p_values_no_adj < 0.05))
 
     # make sure results are the same without buffer_size
-    T_obs, clusters, p_values2, hist2 = spatio_temporal_cluster_test(
+    T_obs, clusters, p_values2, _ = spatio_temporal_cluster_test(
         [data1_2d, data2_2d],
         n_permutations=50,
         tail=1,
@@ -823,7 +821,8 @@ def test_tfce_thresholds(numba_conditional):
 @pytest.mark.parametrize("shape", ((11,), (11, 3), (11, 1, 2)))
 @pytest.mark.parametrize("out_type", ("mask", "indices"))
 @pytest.mark.parametrize("adjacency", (None, "sparse"))
-def test_output_equiv(shape, out_type, adjacency):
+@pytest.mark.parametrize("threshold", (None, dict(start=0, step=0.1)))
+def test_output_equiv(shape, out_type, adjacency, threshold):
     """Test equivalence of output types."""
     rng = np.random.RandomState(0)
     n_subjects = 10
@@ -831,14 +830,22 @@ def test_output_equiv(shape, out_type, adjacency):
     data -= data.mean(axis=0, keepdims=True)
     data[:, 2:4] += 2
     data[:, 6:9] += 2
+    tfce = isinstance(threshold, dict)
     want_mask = np.zeros(shape, int)
-    want_mask[2:4] = 1
-    want_mask[6:9] = 2
+    if not tfce:
+        want_mask[2:4] = 1
+        want_mask[6:9] = 2
+    else:
+        want_mask = np.arange(want_mask.size).reshape(shape) + 1
     if adjacency is not None:
         assert adjacency == "sparse"
         adjacency = combine_adjacency(*shape)
     clusters = permutation_cluster_1samp_test(
-        X=data, n_permutations=1, adjacency=adjacency, out_type=out_type
+        X=data,
+        n_permutations=1,
+        adjacency=adjacency,
+        out_type=out_type,
+        threshold=threshold,
     )[1]
     got_mask = np.zeros_like(want_mask)
     for n, clu in enumerate(clusters, 1):

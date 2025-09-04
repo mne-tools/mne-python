@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "73ca06b4056bcb63d55bbcbc68c816c5c8b8f6f2",
+  "authors": [
+    {
+      "n": "Carina",
+      "e": "carinaforster0611@gmail.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/12207.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/epochs.py": {
+      "a": 19,
+      "d": 19
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 38,
+      "d": 5
+    },
+    "mne/time_frequency/tests/test_tfr.py": {
+      "a": 31,
+      "d": 0
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 37,
+      "d": 0
+    }
+  }
+}

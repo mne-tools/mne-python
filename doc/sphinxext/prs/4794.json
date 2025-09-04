@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "04ecb9a6cbe73ba786783196fa39fbc2ca02e47c",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/decoding/plot_decoding_spoc_CMC.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/datasets/utils.py": {
+      "a": 3,
+      "d": 3
+    }
+  }
+}

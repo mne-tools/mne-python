@@ -1,7 +1,8 @@
-# Authors: Adam Li <adam2392@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
+from __future__ import annotations  # only needed for Python ≤ 3.9
 
 import os
 import os.path as op
@@ -42,7 +43,7 @@ def fetch_dataset(
     accept=False,
     auth=None,
     token=None,
-):
+) -> Path | tuple[Path, str]:
     """Fetch an MNE-compatible dataset using pooch.
 
     Parameters
@@ -142,8 +143,7 @@ def fetch_dataset(
     if auth is not None:
         if len(auth) != 2:
             raise RuntimeError(
-                "auth should be a 2-tuple consisting "
-                "of a username and password/token."
+                "auth should be a 2-tuple consisting of a username and password/token."
             )
 
     # processor to uncompress files
@@ -219,11 +219,9 @@ def fetch_dataset(
             else:
                 # If they don't have stdin, just accept the license
                 # https://github.com/mne-tools/mne-python/issues/8513#issuecomment-726823724  # noqa: E501
-                answer = _safe_input("%sAgree (y/[n])? " % _bst_license_text, use="y")
+                answer = _safe_input(f"{_bst_license_text}Agree (y/[n])? ", use="y")
             if answer.lower() != "y":
-                raise RuntimeError(
-                    "You must agree to the license to use this " "dataset"
-                )
+                raise RuntimeError("You must agree to the license to use this dataset")
     # downloader & processors
     download_params = _downloader_params(auth=auth, token=token)
     if name == "fake":

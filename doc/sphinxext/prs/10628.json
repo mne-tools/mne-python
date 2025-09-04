@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "549de120926465a514ac5d7b0b8950f49ec2ade5",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".github/workflows/linux_conda.yml": {
+      "a": 7,
+      "d": 3
+    },
+    "environment.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "tools/setup_xvfb.sh": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

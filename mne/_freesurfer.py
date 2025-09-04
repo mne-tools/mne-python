@@ -1,7 +1,6 @@
 """Freesurfer handling functions."""
-# Authors: Alex Rockhill <aprockhill@mailbox.org>
-#          Eric Larson <larson.eric.d@gmail.com>
-#
+
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -50,13 +49,17 @@ def _get_aseg(aseg, subject, subjects_dir):
     """Check that the anatomical segmentation file exists and load it."""
     nib = _import_nibabel("load aseg")
     subjects_dir = Path(get_subjects_dir(subjects_dir, raise_error=True))
-    if not aseg.endswith("aseg"):
-        raise RuntimeError(f'`aseg` file path must end with "aseg", got {aseg}')
-    aseg = _check_fname(
-        subjects_dir / subject / "mri" / (aseg + ".mgz"),
-        overwrite="read",
-        must_exist=True,
-    )
+    if aseg == "auto":  # use aparc+aseg if auto
+        aseg = _check_fname(
+            subjects_dir / subject / "mri" / "aparc+aseg.mgz",
+            overwrite="read",
+            must_exist=False,
+        )
+        if not aseg:  # if doesn't exist use wmparc
+            aseg = subjects_dir / subject / "mri" / "wmparc.mgz"
+    else:
+        aseg = subjects_dir / subject / "mri" / f"{aseg}.mgz"
+    _check_fname(aseg, overwrite="read", must_exist=True)
     aseg = nib.load(aseg)
     aseg_data = np.array(aseg.dataobj)
     return aseg, aseg_data
@@ -249,7 +252,7 @@ def get_volume_labels_from_aseg(mgz_fname, return_colors=False, atlas_ids=None):
     if atlas_ids is None:
         atlas_ids, colors = read_freesurfer_lut()
     elif return_colors:
-        raise ValueError("return_colors must be False if atlas_ids are " "provided")
+        raise ValueError("return_colors must be False if atlas_ids are provided")
     # restrict to the ones in the MRI, sorted by label name
     keep = np.isin(list(atlas_ids.values()), want)
     keys = sorted(
@@ -502,23 +505,6 @@ def estimate_head_mri_t(subject, subjects_dir=None, verbose=None):
     return invert_transform(compute_native_head_t(montage))
 
 
-def _ensure_image_in_surface_RAS(image, subject, subjects_dir):
-    """Check if the image is in Freesurfer surface RAS space."""
-    nib = _import_nibabel("load a volume image")
-    if not isinstance(image, nib.spatialimages.SpatialImage):
-        image = nib.load(image)
-    image = nib.MGHImage(image.dataobj.astype(np.float32), image.affine)
-    fs_img = nib.load(op.join(subjects_dir, subject, "mri", "brain.mgz"))
-    if not np.allclose(image.affine, fs_img.affine, atol=1e-6):
-        raise RuntimeError(
-            "The `image` is not aligned to Freesurfer "
-            "surface RAS space. This space is required as "
-            "it is the space where the anatomical "
-            "segmentation and reconstructed surfaces are"
-        )
-    return image  # returns MGH image for header
-
-
 def _get_affine_from_lta_info(lines):
     """Get the vox2ras affine from lta file info."""
     volume_data = np.loadtxt([line.split("=")[1] for line in lines])
@@ -607,33 +593,36 @@ def read_talxfm(subject, subjects_dir=None, verbose=None):
     if not path.is_file():
         path = subjects_dir / subject / "mri" / "T1.mgz"
     if not path.is_file():
-        raise OSError("mri not found: %s" % path)
+        raise OSError(f"mri not found: {path}")
     _, _, mri_ras_t, _, _ = _read_mri_info(path)
     mri_mni_t = combine_transforms(mri_ras_t, ras_mni_t, "mri", "mni_tal")
     return mri_mni_t
 
 
-def _check_mri(mri, subject, subjects_dir):
+def _check_mri(mri, subject, subjects_dir) -> str:
     """Check whether an mri exists in the Freesurfer subject directory."""
-    _validate_type(mri, "path-like", "mri")
-    if op.isfile(mri) and op.basename(mri) != mri:
-        return mri
-    if not op.isfile(mri):
+    _validate_type(mri, "path-like", mri)
+    mri = Path(mri)
+    if mri.is_file() and mri.name != mri:
+        return str(mri)
+    elif not mri.is_file():
         if subject is None:
             raise FileNotFoundError(
-                f"MRI file {mri!r} not found and no subject provided"
+                f"MRI file {mri!r} not found and no subject provided."
             )
-        subjects_dir = str(get_subjects_dir(subjects_dir, raise_error=True))
-        mri = op.join(subjects_dir, subject, "mri", mri)
-        if not op.isfile(mri):
-            raise FileNotFoundError(f"MRI file {mri!r} not found")
-    if op.basename(mri) == mri:
-        err = (
-            f"Ambiguous filename - found {mri!r} in current folder.\n"
-            "If this is correct prefix name with relative or absolute path"
+        subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+        mri = subjects_dir / subject / "mri" / mri
+        if not mri.is_file():
+            raise FileNotFoundError(
+                f"MRI file {mri!r} not found in the subjects directory "
+                f"{subjects_dir!r} for subject {subject}."
+            )
+    if mri.name == mri:
+        raise OSError(
+            f"Ambiguous filename - found {mri!r} in current folder. "
+            "If this is correct prefix name with relative or absolute path."
         )
-        raise OSError(err)
-    return mri
+    return str(mri)
 
 
 def _read_mri_info(path, units="m", return_img=False, use_nibabel=False):

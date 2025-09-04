@@ -1,7 +1,4 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Denis Engemann <denis.engemann@gmail.com>
-#          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -13,14 +10,17 @@ from mne.viz import plot_channel_labels_circle
 
 
 @pytest.mark.filterwarnings(
-    "ignore:invalid value encountered in greater_equal" ":RuntimeWarning"
+    "ignore:invalid value encountered in greater_equal:RuntimeWarning"
 )
 def test_plot_channel_labels_circle():
     """Test plotting channel labels in a circle."""
     fig, axes = plot_channel_labels_circle(
         dict(brain=["big", "great", "smart"]),
         colors=dict(big="r", great="y", smart="b"),
+        colorbar=True,
     )
+    # check that colorbar handle is returned
+    assert isinstance(fig.mne.colorbar, matplotlib.colorbar.Colorbar)
     texts = [
         child.get_text()
         for child in axes.get_children()

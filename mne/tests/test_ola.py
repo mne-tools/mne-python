@@ -1,5 +1,7 @@
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 import numpy as np
 import pytest
 from numpy.testing import assert_allclose
@@ -88,7 +90,7 @@ def test_cola(ndim):
     sfreq = 1000.0
     rng = np.random.RandomState(0)
 
-    def processor(x):
+    def processor(x, *, start, stop):
         return (x / 2.0,)  # halve the signal
 
     for n_total in (999, 1000, 1001):

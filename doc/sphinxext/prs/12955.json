@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "060b60061f5d8226734fdb80340a2f1f53d37fd1",
+  "authors": [
+    {
+      "n": "Leonardo Rochael Almeida",
+      "e": "leorochael@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/12955.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/devel/12955.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/conf.py": {
+      "a": 5,
+      "d": 3
+    },
+    "mne/io/base.py": {
+      "a": 23,
+      "d": 9
+    },
+    "mne/io/fiff/raw.py": {
+      "a": 4,
+      "d": 1
+    },
+    "mne/io/tests/test_raw.py": {
+      "a": 36,
+      "d": 6
+    }
+  }
+}

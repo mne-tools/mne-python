@@ -1,5 +1,4 @@
-# Authors: George O'Neill <g.o'neill@ucl.ac.uk>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -23,6 +22,21 @@ fil_path = testing.data_path(download=False) / "FIL"
 pytestmark = pytest.mark.filterwarnings(
     "ignore:.*problems later!:RuntimeWarning",
 )
+
+
+def _set_bads_tsv(chanfile, badchan):
+    """Update channels.tsv by setting target channel to bad."""
+    data = []
+    with open(chanfile, encoding="utf-8") as f:
+        for line in f:
+            columns = line.strip().split("\t")
+            data.append(columns)
+
+    with open(chanfile, "w", encoding="utf-8") as f:
+        for row in data:
+            if badchan in row:
+                row[-1] = "bad"
+            f.write("\t".join(row) + "\n")
 
 
 def unpack_mat(matin):
@@ -73,9 +87,9 @@ def _fil_megmag(raw_test, raw_mat):
     mat_list = raw_mat["label"]
     mat_inds = _match_str(test_list, mat_list)
 
-    assert len(mat_inds) == len(
-        test_inds
-    ), "Number of magnetometer channels in RAW does not match .mat file!"
+    assert len(mat_inds) == len(test_inds), (
+        "Number of magnetometer channels in RAW does not match .mat file!"
+    )
 
     a = raw_test._data[test_inds, :]
     b = raw_mat["trial"][mat_inds, :] * 1e-15  # fT to T
@@ -92,9 +106,9 @@ def _fil_stim(raw_test, raw_mat):
     mat_list = raw_mat["label"]
     mat_inds = _match_str(test_list, mat_list)
 
-    assert len(mat_inds) == len(
-        test_inds
-    ), "Number of stim channels in RAW does not match .mat file!"
+    assert len(mat_inds) == len(test_inds), (
+        "Number of stim channels in RAW does not match .mat file!"
+    )
 
     a = raw_test._data[test_inds, :]
     b = raw_mat["trial"][mat_inds, :]  # fT to T
@@ -108,9 +122,9 @@ def _fil_sensorpos(raw_test, raw_mat):
     grad_list = raw_mat["coil_label"]
     grad_inds = _match_str(test_list, grad_list)
 
-    assert len(grad_inds) == len(
-        test_inds
-    ), "Number of channels with position data in RAW does not match .mat file!"
+    assert len(grad_inds) == len(test_inds), (
+        "Number of channels with position data in RAW does not match .mat file!"
+    )
 
     mat_pos = raw_mat["coil_pos"][grad_inds, :]
     mat_ori = raw_mat["coil_ori"][grad_inds, :]
@@ -159,3 +173,20 @@ def test_fil_no_positions(tmp_path):
     chs = raw.info["chs"]
     locs = array([ch["loc"][:] for ch in chs])
     assert isnan(locs).all()
+
+
+@testing.requires_testing_data
+def test_fil_bad_channel_spec(tmp_path):
+    """Test FIL reader when a bad channel is specified in channels.tsv."""
+    test_path = tmp_path / "FIL"
+    shutil.copytree(fil_path, test_path)
+
+    channame = test_path / "sub-noise_ses-001_task-noise220622_run-001_channels.tsv"
+    binname = test_path / "sub-noise_ses-001_task-noise220622_run-001_meg.bin"
+    bad_chan = "G2-OG-Y"
+
+    _set_bads_tsv(channame, bad_chan)
+
+    raw = read_raw_fil(binname)
+    bads = raw.info["bads"]
+    assert bad_chan in bads

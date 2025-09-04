@@ -106,11 +106,11 @@ early, late = (epochs[k].average() for k in event_id)
 # View evoked response
 
 times = 1e3 * epochs.times  # time in milliseconds
-title = "Evoked response followed by %s button press"
+title = "Evoked response followed by {} button press"
 
 fig, axes = plt.subplots(2, 1)
 early.plot(axes=axes[0], time_unit="s")
-axes[0].set(title=title % "late", ylabel="Evoked field (fT)")
+axes[0].set(title=title.format("late"), ylabel="Evoked field (fT)")
 late.plot(axes=axes[1], time_unit="s")
-axes[1].set(title=title % "early", ylabel="Evoked field (fT)")
+axes[1].set(title=title.format("early"), ylabel="Evoked field (fT)")
 plt.show()

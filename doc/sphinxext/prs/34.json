@@ -1,0 +1,79 @@
+{
+  "merge_commit_sha": "ad83d323d4afd6e50853bb165a9574d66e1dc3b9",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "doc/source/_images/plot_read_and_write_raw_data.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/_images/plot_read_epochs.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/_images/plot_time_frequency.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/source/_templates/class.rst": {
+      "a": 12,
+      "d": 0
+    },
+    "doc/source/_templates/function.rst": {
+      "a": 8,
+      "d": 0
+    },
+    "doc/source/conf.py": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/source/mne-python.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/source/python_reference.rst": {
+      "a": 117,
+      "d": 0
+    },
+    "doc/source/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/__init__.py": {
+      "a": 7,
+      "d": 4
+    },
+    "mne/artifacts/__init__.py": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/fiff/__init__.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/fiff/pick.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/minimum_norm/__init__.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/source_estimate.py": {
+      "a": 9,
+      "d": 0
+    },
+    "mne/stats/__init__.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/viz.py": {
+      "a": 5,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "d67973b73db6665770b272cfebf95136aa7d468b",
+  "authors": [
+    {
+      "n": "Denis A. Engemann",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/source/python_reference.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/source/whats_new.rst": {
+      "a": 4,
+      "d": 2
+    },
+    "examples/time_frequency/plot_stockwell.py": {
+      "a": 48,
+      "d": 0
+    },
+    "examples/time_frequency/plot_time_frequency_simulated.py": {
+      "a": 20,
+      "d": 2
+    },
+    "mne/time_frequency/__init__.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/time_frequency/_stockwell.py": {
+      "a": 249,
+      "d": 0
+    },
+    "mne/time_frequency/tests/test_stockwell.py": {
+      "a": 93,
+      "d": 0
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

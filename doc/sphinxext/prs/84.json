@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "67a72ea7856f05010201a1d9fa7d60793d4011a8",
+  "authors": [
+    {
+      "n": "Christian Brodbeck",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/epochs.py": {
+      "a": 8,
+      "d": 3
+    }
+  }
+}

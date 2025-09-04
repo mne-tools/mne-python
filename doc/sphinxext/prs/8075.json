@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "0e5ec90ebc3a5d428ef3a80aa9c3f14ee5329c0d",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    },
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/io/fieldtrip/fieldtrip.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/io/fieldtrip/tests/test_fieldtrip.py": {
+      "a": 14,
+      "d": 1
+    },
+    "mne/io/fieldtrip/utils.py": {
+      "a": 10,
+      "d": 4
+    }
+  }
+}

@@ -1,7 +1,4 @@
-# Author: Mainak Jas <mainak.jas@telecom-paristech.fr>
-#         Mikolaj Magnuski <mmagnuski@swps.edu.pl>
-#         Stefan Appelhoff <stefan.appelhoff@mailbox.org>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -36,16 +33,13 @@ raw_fname_onefile_mat = base_dir / "test_raw_onefile.set"
 raw_fname_event_duration = base_dir / "test_raw_event_duration.set"
 epochs_fname_mat = base_dir / "test_epochs.set"
 epochs_fname_onefile_mat = base_dir / "test_epochs_onefile.set"
-raw_mat_fnames = [raw_fname_mat, raw_fname_onefile_mat]
 epochs_mat_fnames = [epochs_fname_mat, epochs_fname_onefile_mat]
 raw_fname_chanloc = base_dir / "test_raw_chanloc.set"
 raw_fname_chanloc_fids = base_dir / "test_raw_chanloc_fids.set"
 raw_fname_2021 = base_dir / "test_raw_2021.set"
 raw_fname_h5 = base_dir / "test_raw_h5.set"
-raw_fname_onefile_h5 = base_dir / "test_raw_onefile_h5.set"
 epochs_fname_h5 = base_dir / "test_epochs_h5.set"
 epochs_fname_onefile_h5 = base_dir / "test_epochs_onefile_h5.set"
-raw_h5_fnames = [raw_fname_h5, raw_fname_onefile_h5]
 epochs_h5_fnames = [epochs_fname_h5, epochs_fname_onefile_h5]
 montage_path = base_dir / "test_chans.locs"
 
@@ -140,8 +134,9 @@ def test_io_set_raw_more(tmp_path):
     shutil.copyfile(
         base_dir / "test_raw.fdt", negative_latency_fname.with_suffix(".fdt")
     )
-    with _record_warnings(), pytest.warns(
-        RuntimeWarning, match="has a sample index of -1."
+    with (
+        _record_warnings(),
+        pytest.warns(RuntimeWarning, match="has a sample index of -1."),
     ):
         read_raw_eeglab(input_fname=negative_latency_fname, preload=True)
 
@@ -718,3 +713,36 @@ def test_fidsposition_information(monkeypatch, has_type):
     assert len(pos["lpa"]) == 3
     assert len(pos["rpa"]) == 3
     assert len(raw.info["dig"]) == n_eeg + 3
+
+
+@testing.requires_testing_data
+def test_eeglab_drop_nan_annotations(tmp_path):
+    """Test reading file with NaN annotations."""
+    pytest.importorskip("eeglabio")
+    from eeglabio.raw import export_set
+
+    file_path = tmp_path / "test_nan_anno.set"
+    raw = read_raw_eeglab(raw_fname_mat, preload=True)
+    data = raw.get_data()
+    sfreq = raw.info["sfreq"]
+    ch_names = raw.ch_names
+    anno = [
+        raw.annotations.description,
+        raw.annotations.onset,
+        raw.annotations.duration,
+    ]
+    anno[1][0] = np.nan
+
+    export_set(
+        str(file_path),
+        data,
+        sfreq,
+        ch_names,
+        ch_locs=None,
+        annotations=anno,
+        ref_channels="common",
+        ch_types=np.repeat("EEG", len(ch_names)),
+    )
+
+    with pytest.warns(RuntimeWarning, match="1 .* have an onset that is NaN.*"):
+        raw = read_raw_eeglab(file_path, preload=True)

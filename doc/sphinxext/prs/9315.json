@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "71e6476a471a548e72a9506ce70beaf7337b88fd",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/viz/_brain/surface.py": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/viz/_brain/view.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 7,
+      "d": 3
+    },
+    "tools/circleci_download.sh": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/source-modeling/plot_visualize_stc.py": {
+      "a": 8,
+      "d": 2
+    }
+  }
+}

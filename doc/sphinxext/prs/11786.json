@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "413e4a38601ce36e47018e9e4144d62a9d1c7a8e",
+  "authors": [
+    {
+      "n": "Samuel Louviot",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/channels/channels.py": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

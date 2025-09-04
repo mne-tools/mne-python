@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "a18146827bfe216375f4e48066d36004903183e4",
+  "authors": [
+    {
+      "n": "Denis A. Engemann",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/fiff/constants.py": {
+      "a": 29,
+      "d": 30
+    }
+  }
+}

@@ -32,7 +32,7 @@ Changelog
 
 - Add support for Brainvision v2 in :func:`mne.io.read_raw_brainvision` by `Teon Brooks`_
 
-- Improve speed of generalization across time ``mne.decoding.GeneralizationAcrossTime`` decoding up to a factor of seven by `Jean-Remi King`_ and `Federico Raimondo`_ and `Denis Engemann`_.
+- Improve speed of generalization across time ``mne.decoding.GeneralizationAcrossTime`` decoding up to a factor of seven by `Jean-Rémi King`_ and `Federico Raimondo`_ and `Denis Engemann`_.
 
 - Add the explained variance for each principal component, ``explained_var``, key to the :class:`mne.Projection` by `Teon Brooks`_
 
@@ -47,7 +47,7 @@ BUG
 
 - Added safeguards against ``None`` and negative values in reject and flat parameters in :class:`mne.Epochs` by `Eric Larson`_
 
-- Fix train and test time window-length in ``mne.decoding.GeneralizationAcrossTime`` by `Jean-Remi King`_
+- Fix train and test time window-length in ``mne.decoding.GeneralizationAcrossTime`` by `Jean-Rémi King`_
 
 - Added lower bound in :func:`mne.stats.linear_regression` on p-values ``p_val`` (and resulting ``mlog10_p_val``) using double floating point arithmetic limits by `Eric Larson`_
 
@@ -83,7 +83,7 @@ The committer list for this release is the following (preceded by number of comm
 *  24  Clemens Brunner
 *  23  Christian Brodbeck
 *  15  Mark Wronkiewicz
-*  10  Jean-Remi King
+*  10  Jean-Rémi King
 *   5  Marijn van Vliet
 *   3  Fede Raimondo
 *   2  Alexander Rudiuk

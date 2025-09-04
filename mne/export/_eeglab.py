@@ -1,10 +1,10 @@
-# Authors: MNE Developers
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
 import numpy as np
 
+from ..annotations import _sync_onset
 from ..utils import _check_eeglabio_installed
 
 _check_eeglabio_installed()
@@ -19,17 +19,22 @@ def _export_raw(fname, raw):
     # remove extra epoc and STI channels
     drop_chs = ["epoc"]
     # filenames attribute of RawArray is filled with None
-    if raw.filenames[0] and not (raw.filenames[0].endswith(".fif")):
+    if raw.filenames[0] and raw.filenames[0].suffix != ".fif":
         drop_chs.append("STI 014")
 
     ch_names = [ch for ch in raw.ch_names if ch not in drop_chs]
     cart_coords = _get_als_coords_from_chs(raw.info["chs"], drop_chs)
 
-    annotations = [
-        raw.annotations.description,
-        raw.annotations.onset,
-        raw.annotations.duration,
-    ]
+    if raw.annotations:
+        annotations = [
+            raw.annotations.description,
+            # subtract raw.first_time because EEGLAB marks events starting from
+            # the first available data point and ignores raw.first_time
+            _sync_onset(raw, raw.annotations.onset, inverse=False),
+            raw.annotations.duration,
+        ]
+    else:
+        annotations = None
     eeglabio.raw.export_set(
         fname,
         data=raw.get_data(picks=ch_names),

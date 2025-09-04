@@ -1,11 +1,9 @@
 """Coordinate Point Extractor for KIT system."""
 
-# Author: Teon Brooks <teon.brooks@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-import pickle
 import re
 from collections import OrderedDict
 from os import SEEK_CUR, PathLike
@@ -50,8 +48,7 @@ def read_mrk(fname):
     from .kit import _read_dirs
 
     fname = Path(_check_fname(fname, "read", must_exist=True, name="mrk file"))
-    if fname.suffix != ".pickled":
-        _check_option("file extension", fname.suffix, (".sqd", ".mrk", ".txt"))
+    _check_option("file extension", fname.suffix, (".sqd", ".mrk", ".txt"))
     if fname.suffix in (".sqd", ".mrk"):
         with open(fname, "rb", buffering=0) as fid:
             dirs = _read_dirs(fid)
@@ -67,26 +64,14 @@ def read_mrk(fname):
                 if meg_done:
                     pts.append(meg_pts)
             mrk_points = np.array(pts)
-    elif fname.suffix == ".txt":
+    else:
+        assert fname.suffix == ".txt"
         mrk_points = _read_dig_kit(fname, unit="m")
-    elif fname.suffix == ".pickled":
-        warn(
-            "Reading pickled files is unsafe and not future compatible, save "
-            "to a standard format (text or FIF) instea, e.g. with:\n"
-            r"np.savetxt(fid, pts, delimiter=\"\\t\", newline=\"\\n\")",
-            FutureWarning,
-        )
-        with open(fname, "rb") as fid:
-            food = pickle.load(fid)  # nosec B301
-        try:
-            mrk_points = food["mrk"]
-        except Exception:
-            raise ValueError(f"{fname} does not contain marker points.") from None
 
     # check output
     mrk_points = np.asarray(mrk_points)
     if mrk_points.shape != (5, 3):
-        err = "%r is no marker file, shape is " "%s" % (fname, mrk_points.shape)
+        err = f"{repr(fname)} is no marker file, shape is {mrk_points.shape}"
         raise ValueError(err)
     return mrk_points
 
@@ -114,7 +99,7 @@ def read_sns(fname):
     return locs
 
 
-def _set_dig_kit(mrk, elp, hsp, eeg):
+def _set_dig_kit(mrk, elp, hsp, eeg, *, bad_coils=()):
     """Add landmark points and head shape data to the KIT instance.
 
     Digitizer data (elp and hsp) are represented in [mm] in the Polhemus
@@ -133,6 +118,9 @@ def _set_dig_kit(mrk, elp, hsp, eeg):
         Digitizer head shape points, or path to head shape file. If more
         than 10`000 points are in the head shape, they are automatically
         decimated.
+    bad_coils : list
+        Indices of bad marker coils (up to two). Bad coils will be excluded
+        when computing the device-head transformation.
     eeg : dict
         Ordered dict of EEG dig points.
 
@@ -147,7 +135,7 @@ def _set_dig_kit(mrk, elp, hsp, eeg):
     """
     from ...coreg import _decimate_points, fit_matched_points
 
-    if isinstance(hsp, (str, Path, PathLike)):
+    if isinstance(hsp, str | Path | PathLike):
         hsp = _read_dig_kit(hsp)
     n_pts = len(hsp)
     if n_pts > KIT.DIG_POINTS:
@@ -159,20 +147,26 @@ def _set_dig_kit(mrk, elp, hsp, eeg):
             f"{n_new} points. The preferred way to downsample is using FastScan."
         )
 
-    if isinstance(elp, (str, Path, PathLike)):
+    if isinstance(elp, str | Path | PathLike):
         elp_points = _read_dig_kit(elp)
         if len(elp_points) != 8:
             raise ValueError(
-                "File %r should contain 8 points; got shape "
-                "%s." % (elp, elp_points.shape)
+                f"File {repr(elp)} should contain 8 points; got shape "
+                f"{elp_points.shape}."
             )
         elp = elp_points
-    elif len(elp) not in (6, 7, 8):
-        raise ValueError(
-            "ELP should contain 6 ~ 8 points; got shape " "%s." % (elp.shape,)
-        )
-    if isinstance(mrk, (str, Path, PathLike)):
+        if len(bad_coils) > 0:
+            elp = np.delete(elp, np.array(bad_coils) + 3, 0)
+    # check we have at least 3 marker coils (whether read from file or
+    # passed in directly)
+    if len(elp) not in (6, 7, 8):
+        raise ValueError(f"ELP should contain 6 ~ 8 points; got shape {elp.shape}.")
+    if isinstance(mrk, str | Path | PathLike):
         mrk = read_mrk(mrk)
+        if len(bad_coils) > 0:
+            mrk = np.delete(mrk, bad_coils, 0)
+    if len(mrk) not in (3, 4, 5):
+        raise ValueError(f"MRK should contain 3 ~ 5 points; got shape {mrk.shape}.")
 
     mrk = apply_trans(als_ras_trans, mrk)
 

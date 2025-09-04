@@ -1,0 +1,119 @@
+{
+  "merge_commit_sha": "93c144e562c81489766eeb4cb98766534a8576af",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/conf.py": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/decoding/decoding_spoc_CMC.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/beamformer/_lcmv.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/channels/montage.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/commands/tests/test_commands.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/decoding/base.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/forward/_make_forward.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/inverse_sparse/mxne_inverse.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/array/tests/test_array.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/io/artemis123/artemis123.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/ctf/ctf.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/ctf/hc.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/ctf/markers.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/edf/tests/test_edf.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/fiff/tests/test_raw_fiff.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/tests/test_meas_info.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/tests/test_raw.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/source_space.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/tests/test_evoked.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/tests/test_source_estimate.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/time_frequency/tests/test_tfr.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/transforms.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/utils/config.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/docs.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/viz/_mpl_figure.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/tests/test_epochs.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

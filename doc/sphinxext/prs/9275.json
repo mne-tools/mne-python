@@ -1,0 +1,59 @@
+{
+  "merge_commit_sha": "dece6792280a7e3fe566b58e0e3c917b75edbcb5",
+  "authors": [
+    {
+      "n": "Felix Klotzsche",
+      "e": "klotzsche@cbs.mpg.de"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Clemens Brunner",
+      "e": "clemens.brunner@gmail.com"
+    },
+    {
+      "n": "Clemens Brunner",
+      "e": "clemens.brunner@gmail.com"
+    },
+    {
+      "n": "Clemens Brunner",
+      "e": "clemens.brunner@gmail.com"
+    },
+    {
+      "n": "Clemens Brunner",
+      "e": "clemens.brunner@gmail.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Clemens Brunner",
+      "e": "clemens.brunner@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 6,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/time_frequency/time_frequency_erds.py": {
+      "a": 79,
+      "d": 5
+    }
+  }
+}

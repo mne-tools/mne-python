@@ -1,5 +1,4 @@
-# Authors: Guillaume Favelier <guillaume.favelier@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -11,10 +10,9 @@ from mne.utils import _check_qt_version
 pytest.importorskip("nibabel")
 
 
-def test_gui_api(renderer_notebook, nbexec, *, n_warn=0, backend="qt"):
+def test_gui_api(renderer_notebook, nbexec, *, backend="qt"):
     """Test GUI API."""
     import contextlib
-    import sys
     import warnings
 
     import mne
@@ -25,7 +23,6 @@ def test_gui_api(renderer_notebook, nbexec, *, n_warn=0, backend="qt"):
     except Exception:
         # Notebook standalone mode
         backend = "notebook"
-        n_warn = 0
     # nbexec does not expose renderer_notebook so I use a
     # temporary variable to synchronize the tests
     if backend == "notebook":
@@ -44,8 +41,7 @@ def test_gui_api(renderer_notebook, nbexec, *, n_warn=0, backend="qt"):
     with mne.utils._record_warnings() as w:
         renderer._window_set_theme("dark")
     w = [ww for ww in w if "is not yet supported" in str(ww.message)]
-    if sys.platform != "darwin":  # sometimes this is fine
-        assert len(w) == n_warn, [ww.message for ww in w]
+    assert len(w) == 0, [ww.message for ww in w]
 
     # window without 3d plotter
     if backend == "qt":
@@ -387,10 +383,9 @@ def test_gui_api(renderer_notebook, nbexec, *, n_warn=0, backend="qt"):
 def test_gui_api_qt(renderer_interactive_pyvistaqt):
     """Test GUI API with the Qt backend."""
     _, api = _check_qt_version(return_api=True)
-    n_warn = int(api in ("PySide6", "PyQt6"))
     # TODO: After merging https://github.com/mne-tools/mne-python/pull/11567
     # The Qt CI run started failing about 50% of the time, so let's skip this
     # for now.
     if api == "PySide6":
         pytest.skip("PySide6 causes segfaults on CIs sometimes")
-    test_gui_api(None, None, n_warn=n_warn, backend="qt")
+    test_gui_api(None, None, backend="qt")

@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "31ec9f401fb74f66f67d492e5ea04b636a04b5d8",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/fieldtrip/tests/helpers.py": {
+      "a": 10,
+      "d": 3
+    },
+    "mne/io/reference.py": {
+      "a": 17,
+      "d": 9
+    },
+    "mne/io/tests/test_reference.py": {
+      "a": 11,
+      "d": 3
+    }
+  }
+}

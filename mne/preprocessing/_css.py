@@ -1,4 +1,4 @@
-# Author: John Samuelsson <johnsam@mit.edu>
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -43,12 +43,12 @@ def cortical_signal_suppression(
         gradiometer, and EEG channels.
     %(picks_good_data)s
     mag_picks : array-like of int
-        Array of the magnetometer channel indices that will be used to find
-        the reference data. If None (default), all magnetometers will
+        Array of the first set of channel indices that will be used to find
+        the common temporal subspace. If None (default), all magnetometers will
         be used.
     grad_picks : array-like of int
-        Array of the gradiometer channel indices that will be used to find
-        the reference data. If None (default), all gradiometers will
+        Array of the second set of channel indices that will be used to find
+        the common temporal subspace. If None (default), all gradiometers will
         be used.
     n_proj : int
         The number of projection vectors.
@@ -57,15 +57,19 @@ def cortical_signal_suppression(
     Returns
     -------
     evoked_subcortical : instance of Evoked
-        The evoked object with cortical contributions to the EEG data
-        suppressed.
+        The evoked object with contributions from the ``mag_picks`` and ``grad_picks``
+        channels removed from the ``picks`` channels.
 
     Notes
     -----
-    This method removes the common signal subspace between the magnetometer
-    data and the gradiometer data from the EEG data. This is done by a temporal
-    projection using ``n_proj`` number of projection vectors. For reference,
-    see :footcite:`Samuelsson2019`.
+    This method removes the common signal subspace between two sets of
+    channels (``mag_picks`` and ``grad_picks``) from a set of channels
+    (``picks``) via a temporal projection using ``n_proj`` number of
+    projection vectors. In the reference publication :footcite:`Samuelsson2019`,
+    the joint subspace between magnetometers and gradiometers is used to
+    suppress the cortical signal in the EEG data. In principle, other
+    combinations of sensor types (or channels) could be used to suppress
+    signals from other sources.
 
     References
     ----------

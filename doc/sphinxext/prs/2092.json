@@ -1,0 +1,139 @@
+{
+  "merge_commit_sha": "e3b6f6e2ed8d814a02f9ccd9c6f040b4f274ce4d",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/Makefile": {
+      "a": 15,
+      "d": 27
+    },
+    "doc/sphinxext/gen_rst.py": {
+      "a": 14,
+      "d": 2
+    },
+    "examples/datasets/plot_megsim_data.py": {
+      "a": 2,
+      "d": 2
+    },
+    "examples/datasets/plot_megsim_data_single_trial.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/datasets/plot_spm_faces_dataset.py": {
+      "a": 4,
+      "d": 2
+    },
+    "examples/decoding/plot_decoding_csp_eeg.py": {
+      "a": 2,
+      "d": 2
+    },
+    "examples/inverse/plot_covariance_whitening_dspm.py": {
+      "a": 4,
+      "d": 0
+    },
+    "examples/inverse/plot_label_activation_from_stc.py": {
+      "a": 3,
+      "d": 3
+    },
+    "examples/inverse/plot_label_from_stc.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/inverse/plot_morph_data.py": {
+      "a": 4,
+      "d": 2
+    },
+    "examples/plot_clickable_image.py": {
+      "a": 2,
+      "d": 3
+    },
+    "examples/plot_epochs_to_data_frame.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/plot_make_forward.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/plot_simulate_evoked_data.py": {
+      "a": 2,
+      "d": 2
+    },
+    "examples/preprocessing/plot_ica_from_epochs.py": {
+      "a": 4,
+      "d": 0
+    },
+    "examples/stats/plot_cluster_1samp_test_time_frequency.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/stats/plot_cluster_methods_tutorial.py": {
+      "a": 4,
+      "d": 0
+    },
+    "examples/stats/plot_cluster_stats_time_frequency.py": {
+      "a": 3,
+      "d": 4
+    },
+    "examples/stats/plot_cluster_stats_time_frequency_repeated_measures_anova.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/stats/plot_sensor_permutation_test.py": {
+      "a": 2,
+      "d": 2
+    },
+    "examples/stats/plot_sensor_regression.py": {
+      "a": 4,
+      "d": 7
+    },
+    "examples/time_frequency/plot_stockwell.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/time_frequency/plot_time_frequency_sensors.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/datasets/eegbci/eegbci.py": {
+      "a": 11,
+      "d": 4
+    },
+    "mne/datasets/megsim/megsim.py": {
+      "a": 11,
+      "d": 4
+    },
+    "mne/defaults.py": {
+      "a": 5,
+      "d": 1
+    },
+    "mne/evoked.py": {
+      "a": 4,
+      "d": 3
+    },
+    "mne/minimum_norm/inverse.py": {
+      "a": 7,
+      "d": 6
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/utils.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/viz/tests/test_topomap.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/topomap.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

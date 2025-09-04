@@ -1,5 +1,4 @@
-# Author: Jaakko Leppakangas <jaeilepp@student.jyu.fi>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -129,7 +128,7 @@ def _get_nicolet_info(fname, ch_type, eog, ecg, emg, misc):
         ch_kind = FIFF.FIFFV_SEEG_CH
     else:
         raise TypeError(
-            "Channel type not recognized. Available types are " "'eeg' and 'seeg'."
+            "Channel type not recognized. Available types are 'eeg' and 'seeg'."
         )
     cals = np.repeat(header_info["conversion_factor"] * 1e-6, len(ch_names))
     info["chs"] = _create_chs(ch_names, cals, ch_coil, ch_kind, eog, ecg, emg, misc)

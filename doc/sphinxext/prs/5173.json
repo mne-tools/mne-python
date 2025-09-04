@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "9b132399497f5a982691e2f41bb30de02e925475",
+  "authors": [
+    {
+      "n": "Denis A. Engemann",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/io/egi/egi.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

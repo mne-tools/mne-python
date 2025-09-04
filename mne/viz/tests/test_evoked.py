@@ -1,12 +1,4 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Denis Engemann <denis.engemann@gmail.com>
-#          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
-#          Eric Larson <larson.eric.d@gmail.com>
-#          Cathy Nangini <cnangini@gmail.com>
-#          Mainak Jas <mainak@neuro.hut.fi>
-#          Jona Sassenhagen <jona.sassenhagen@gmail.com>
-#          Daniel McCloy <dan.mccloy@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -347,8 +339,10 @@ def test_plot_evoked_image():
 
     ch_names = evoked.ch_names[3:5]
     picks = [evoked.ch_names.index(ch) for ch in ch_names]
-    evoked.plot_image(show_names="all", time_unit="s", picks=picks)
-    yticklabels = plt.gca().get_yticklabels()
+    fig = evoked.plot_image(show_names="all", time_unit="s", picks=picks)
+    fig.canvas.draw_idle()
+    yticklabels = fig.axes[0].get_yticklabels()
+    assert len(yticklabels) == len(ch_names)
     for tick_target, tick_observed in zip(ch_names, yticklabels):
         assert tick_target in str(tick_observed)
     evoked.plot_image(show_names=True, time_unit="s")
@@ -376,7 +370,7 @@ def test_plot_white():
         evoked.plot_white(cov, rank={"mag": 10})
     evoked.plot_white(cov, rank={"mag": 1, "grad": 8, "eeg": 2}, time_unit="s")
     fig = evoked.plot_white(cov, rank={"mag": 1}, time_unit="s")  # test rank
-    evoked.plot_white(cov, rank={"grad": 8}, time_unit="s", axes=fig.axes)
+    evoked.plot_white(cov, rank={"grad": 8}, time_unit="s", axes=fig.axes[:4])
     with pytest.raises(ValueError, match=r"must have shape \(4,\), got \(2,"):
         evoked.plot_white(cov, axes=fig.axes[:2])
     with pytest.raises(ValueError, match="When not using SSS"):
@@ -385,21 +379,22 @@ def test_plot_white():
     plt.close("all")
 
     fig = plot_evoked_white(evoked, [cov, cov])
-    assert len(fig.axes) == 3 * 2
-    axes = np.array(fig.axes).reshape(3, 2)
+    assert len(fig.axes) == 3 * 3
+    axes = np.array(fig.axes[:6]).reshape(3, 2)
     plot_evoked_white(evoked, [cov, cov], axes=axes)
     with pytest.raises(ValueError, match=r"have shape \(3, 2\), got"):
         plot_evoked_white(evoked, [cov, cov], axes=axes[:, :1])
 
     # Hack to test plotting of maxfiltered data
-    evoked_sss = _get_epochs(picks="meg").average()
+    evoked_sss = _get_epochs(picks=("meg", "eeg")).average()
+    evoked_sss.set_eeg_reference(projection=True).apply_proj()
     sss = dict(sss_info=dict(in_order=80, components=np.arange(80)))
     with evoked_sss.info._unlock():
         evoked_sss.info["proc_history"] = [dict(max_info=sss)]
-    evoked_sss.plot_white(cov, rank={"meg": 64})
+    evoked_sss.plot_white([cov, cov], rank={"meg": 64})
     with pytest.raises(ValueError, match="When using SSS"):
-        evoked_sss.plot_white(cov, rank={"grad": 201})
-    evoked_sss.plot_white(cov, time_unit="s")
+        evoked_sss.plot_white(cov, rank={"grad": 201}, verbose="error")
+    evoked_sss.plot_white(cov, rank={"meg": 302}, time_unit="s")
 
 
 @pytest.mark.parametrize(
@@ -603,7 +598,7 @@ def test_plot_compare_evokeds_neuromag122():
     evoked = mne.read_evokeds(evoked_fname, "Left Auditory", baseline=(None, 0))
     evoked.pick(picks="grad")
     evoked.pick(evoked.ch_names[:122])
-    ch_names = ["MEG %03d" % k for k in range(1, 123)]
+    ch_names = [f"MEG {k:03}" for k in range(1, 123)]
     for c in evoked.info["chs"]:
         c["coil_type"] = FIFF.FIFFV_COIL_NM_122
     evoked.rename_channels(
@@ -636,6 +631,9 @@ def test_plot_ctf():
     )
     evoked = epochs.average()
     evoked.plot_joint(times=[0.1])
+    # test plotting with invalid ylim argument
+    with pytest.raises(TypeError, match="ylim must be an instance of dict or None"):
+        evoked.plot_joint(times=[0.1], ts_args=dict(ylim=(-10, 10)))
     mne.viz.plot_compare_evokeds([evoked, evoked])
 
     # make sure axes position is "almost" unchanged

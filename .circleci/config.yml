@@ -27,8 +27,8 @@ jobs:
       scheduled:
         type: string
         default: "false"
-    docker:
-      - image: cimg/base:current-22.04
+    machine:
+      image: ubuntu-2404:current
     # large 4 vCPUs 15GB mem
     # https://discuss.circleci.com/t/changes-to-remote-docker-reporting-pricing/47759
     resource_class: large
@@ -94,11 +94,6 @@ jobs:
           command: ./tools/circleci_bash_env.sh
 
       - run:
-          name: check neuromag2ft
-          command: |
-            neuromag2ft --version
-
-      - run:
           name: Install fonts needed for diagrams
           command: |
             mkdir -p $HOME/.fonts
@@ -111,7 +106,7 @@ jobs:
       # Load pip cache
       - restore_cache:
           keys:
-            - pip-cache
+            - pip-cache-0
       - restore_cache:
           keys:
             - user-install-bin-cache-310
@@ -123,7 +118,7 @@ jobs:
             ./tools/circleci_dependencies.sh
 
       - save_cache:
-          key: pip-cache
+          key: pip-cache-0
           paths:
             - ~/.cache/pip
       - save_cache:
@@ -148,6 +143,7 @@ jobs:
               which python
               QT_DEBUG_PLUGINS=1 mne sys_info -pd
               python -c "import numpy; numpy.show_config()"
+              python -c "import dipy.align.metrics"
               LIBGL_DEBUG=verbose python -c "import pyvistaqt; pyvistaqt.BackgroundPlotter(show=True)"
               python -c "import mne; mne.set_config('MNE_USE_CUDA', 'false')"  # this is needed for the config tutorial
               python -c "import mne; mne.set_config('MNE_LOGGING_LEVEL', 'info')"
@@ -217,6 +213,9 @@ jobs:
       - restore_cache:
           keys:
             - data-cache-phantom-kit
+      - restore_cache:
+          keys:
+            - data-cache-ds004388
       - run:
           name: Get data
           # This limit could be increased, but this is helpful for finding slow ones
@@ -240,6 +239,7 @@ jobs:
               make test-doc;
               mkdir -p doc/_build/test-results/test-doc;
               cp junit-results.xml doc/_build/test-results/test-doc/junit.xml;
+              cp coverage.xml doc/_build/test-results/test-doc/coverage.xml;
             fi;
       # Build docs
       - run:
@@ -251,7 +251,7 @@ jobs:
           name: Check sphinx log for warnings (which are treated as errors)
           when: always
           command: |
-            ! grep "^.* WARNING: .*$" sphinx_log.txt
+            ! grep "^.*\(WARNING\|ERROR\): " sphinx_log.txt
       - run:
           name: Show profiling output
           when: always
@@ -284,6 +284,15 @@ jobs:
       - store_artifacts:
           path: doc/_build/test-results
           destination: test-results
+      # Upload test results to Codecov
+      - run:
+          name: Upload test results to Codecov
+          environment:
+            CODECOV_TOKEN: fb4c4a94-72d7-4743-bb08-af25b623a29a
+          command: |
+            if [[ -f doc/_build/test-results/test-doc/coverage.xml ]]; then
+              bash <(curl -s https://codecov.io/bash) -f doc/_build/test-results/test-doc/coverage.xml || true
+            fi
       # Save the SG RST
       - store_artifacts:
           path: doc/auto_examples.zip
@@ -392,6 +401,10 @@ jobs:
           key: data-cache-phantom-kit
           paths:
             - ~/mne_data/MNE-phantom-KIT-data  # (1 G)
+      - save_cache:
+          key: data-cache-ds004388
+          paths:
+            - ~/mne_data/ds004388  # (1.8 G)
 
 
   linkcheck:
@@ -400,8 +413,9 @@ jobs:
       scheduled:
         type: string
         default: "false"
-    docker:
-      - image: cimg/base:current-22.04
+    machine:
+      image: ubuntu-2404:current
+    resource_class: large
     steps:
       - restore_cache:
           keys:
@@ -420,7 +434,7 @@ jobs:
           command: ./tools/circleci_bash_env.sh
       - restore_cache:
           keys:
-            - pip-cache
+            - pip-cache-0
       - run:
           name: Get Python running
           command: |
@@ -431,13 +445,9 @@ jobs:
             mne sys_info -pd
       - run:
           name: make linkcheck
+          no_output_timeout: 40m
           command: |
             make -C doc linkcheck
-      - run:
-          name: make linkcheck-grep
-          when: always
-          command: |
-            make -C doc linkcheck-grep
       - store_artifacts:
           path: doc/_build/linkcheck
           destination: linkcheck
@@ -445,7 +455,7 @@ jobs:
 
   deploy:
     machine:
-      image: ubuntu-2004:202111-01
+      image: ubuntu-2404:current
     steps:
       - attach_workspace:
           at: /tmp/build

@@ -1,7 +1,7 @@
-# Authors: Eric Larson <larson.eric.d@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 from ...utils import verbose
 from ..utils import (
     _data_path_doc_accept,
@@ -40,7 +40,7 @@ _data_path_doc = _data_path_doc_accept.format(
     name="brainstorm", conf="MNE_DATASETS_BRAINSTORM_DATA_PATH"
 )
 _data_path_doc = _data_path_doc.replace(
-    "brainstorm dataset", "brainstorm (bst_phantom_elekta) " "dataset"
+    "brainstorm dataset", "brainstorm (bst_phantom_elekta) dataset"
 )
 data_path.__doc__ = _data_path_doc
 

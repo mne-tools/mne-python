@@ -1,5 +1,4 @@
-# Authors: Marijn van Vliet <w.m.vanvliet@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -70,7 +69,7 @@ def _compare_bem_surfaces(surfs_1, surfs_2):
                 s1[name],
                 rtol=1e-3,
                 atol=1e-6,
-                err_msg='Mismatch: "%s"' % name,
+                err_msg=f'Mismatch: "{name}"',
             )
 
 
@@ -94,7 +93,7 @@ def _compare_bem_solutions(sol_a, sol_b):
     assert sol_a["solver"] == sol_b["solver"]
     for key in names[:-1]:
         assert_allclose(
-            sol_a[key], sol_b[key], rtol=1e-3, atol=1e-5, err_msg="Mismatch: %s" % key
+            sol_a[key], sol_b[key], rtol=1e-3, atol=1e-5, err_msg=f"Mismatch: {key}"
         )
 
 
@@ -202,7 +201,7 @@ def test_make_bem_model(tmp_path, kwargs, fname):
     if len(kwargs.get("conductivity", (0, 0, 0))) == 1:
         assert "distance" not in log
     else:
-        assert re.search(r"urfaces is approximately *3\.4 mm", log) is not None
+        assert re.search(r"surfaces is approximately *3\.4 mm", log) is not None
     assert re.search(r"inner skull CM is *0\.65 *-9\.62 *43\.85 mm", log) is not None
     model_c = read_bem_surfaces(fname)
     _compare_bem_surfaces(model, model_c)
@@ -308,7 +307,7 @@ def test_bem_solution(tmp_path, cond, fname):
     pytest.importorskip(
         "openmeeg",
         "2.5",
-        reason="OpenMEEG required to fully test BEM " "solution computation",
+        reason="OpenMEEG required to fully test BEM solution computation",
     )
     with catch_logging() as log:
         solution = make_bem_solution(model, solver="openmeeg", verbose=True)
@@ -461,8 +460,9 @@ def test_fit_sphere_to_headshape():
     for d in info_shift["dig"]:
         d["r"] -= center
         d["r"] += shift_center
-    with _record_warnings(), pytest.warns(
-        RuntimeWarning, match="from head frame origin"
+    with (
+        _record_warnings(),
+        pytest.warns(RuntimeWarning, match="from head frame origin"),
     ):
         r, oh, od = fit_sphere_to_headshape(info_shift, dig_kinds=dig_kinds, units="m")
     assert_allclose(oh, shift_center, atol=1e-6)
@@ -481,16 +481,16 @@ def test_fit_sphere_to_headshape():
     assert_allclose(r, r2, atol=1e-7)
     assert_allclose(oh, oh2, atol=1e-7)
     assert_allclose(od, od2, atol=1e-7)
-    # this one should pass, 1 EXTRA point and 3 EEG (but the fit is terrible)
+    # this one should pass, 1 EXTRA point and 3 EEG
     info = Info(dig=dig[:7], dev_head_t=dev_head_t)
-    with _record_warnings(), pytest.warns(
-        RuntimeWarning, match="Estimated head radius"
-    ):
+    with pytest.warns(RuntimeWarning, match="fitting may be inaccurate"):
         r, oh, od = fit_sphere_to_headshape(info, units="m")
-    # this one should fail, 1 EXTRA point and 3 EEG (but the fit is terrible)
+    # this one should fail
     info = Info(dig=dig[:6], dev_head_t=dev_head_t)
-    pytest.raises(ValueError, fit_sphere_to_headshape, info, units="m")
-    pytest.raises(TypeError, fit_sphere_to_headshape, 1, units="m")
+    with pytest.raises(ValueError, match="at least 4"):
+        fit_sphere_to_headshape(info, units="m")
+    with pytest.raises(TypeError, match="Info"):
+        fit_sphere_to_headshape(1, units="m")
 
 
 @pytest.mark.slowtest  # ~2 min on Azure Windows
@@ -556,8 +556,9 @@ def test_make_scalp_surfaces_topology(tmp_path, monkeypatch):
 
     # These are ignorable
     monkeypatch.setattr(mne.bem, "_tri_levels", dict(sparse=315))
-    with _record_warnings(), pytest.warns(
-        RuntimeWarning, match=".*have fewer than three.*"
+    with (
+        _record_warnings(),
+        pytest.warns(RuntimeWarning, match=".*have fewer than three.*"),
     ):
         make_scalp_surfaces(subject, subjects_dir, force=True, overwrite=True)
     (surf,) = read_bem_surfaces(sparse_path, on_defects="ignore")

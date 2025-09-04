@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "ad4c99cdca4b71026568e474118f6b18054addc6",
+  "authors": [
+    {
+      "n": null,
+      "e": "timon.merk@charite.de"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "mne/viz/_3d.py": {
+      "a": 55,
+      "d": 15
+    },
+    "tutorials/clinical/30_ecog.py": {
+      "a": 27,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "a35bcc361778de096ba2803ed255d8acf587b3dc",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/git_links.inc": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/circle.py": {
+      "a": 1,
+      "d": 2
+    }
+  }
+}

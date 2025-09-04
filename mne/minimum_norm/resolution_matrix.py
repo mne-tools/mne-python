@@ -1,8 +1,9 @@
 """Compute resolution matrix for linear estimators."""
-# Authors: olaf.hauk@mrc-cbu.cam.ac.uk
-#
+
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 from copy import deepcopy
 
 import numpy as np
@@ -63,7 +64,9 @@ def make_inverse_resolution_matrix(
     leadfield = fwd["sol"]["data"]
     invmat = _get_matrix_from_inverse_operator(inv, fwd, method=method, lambda2=lambda2)
     resmat = invmat.dot(leadfield)
-    logger.info("Dimensions of resolution matrix: %d by %d." % resmat.shape)
+    logger.info(
+        f"Dimensions of resolution matrix: {resmat.shape[0]} by {resmat.shape[1]}."
+    )
     return resmat
 
 
@@ -115,8 +118,8 @@ def _get_psf_ctf(
         (n_verts != n_c) and (n_c / 3 != n_verts)
     ):
         msg = (
-            "Number of vertices (%d) and corresponding dimension of"
-            "resolution matrix (%d, %d) do not match" % (n_verts, n_r, n_c)
+            f"Number of vertices ({n_verts}) and corresponding dimension of"
+            f"resolution matrix ({n_r}, {n_c}) do not match"
         )
         raise ValueError(msg)
 
@@ -191,10 +194,10 @@ def _get_psf_ctf(
 def _check_get_psf_ctf_params(mode, n_comp, return_pca_vars):
     """Check input parameters of _get_psf_ctf() for consistency."""
     if mode in [None, "sum", "mean"] and n_comp > 1:
-        msg = "n_comp must be 1 for mode=%s." % mode
+        msg = f"n_comp must be 1 for mode={mode}."
         raise ValueError(msg)
     if mode != "pca" and return_pca_vars:
-        msg = "SVD variances can only be returned if mode=" "pca" "."
+        msg = "SVD variances can only be returned if mode=pca."
         raise ValueError(msg)
 
 
@@ -512,7 +515,7 @@ def _get_matrix_from_inverse_operator(
         assert np.array_equal(v0o1, invmat[1])
         assert np.array_equal(v3o2, invmat[11])
 
-    logger.info("Dimension of Inverse Matrix: %s" % str(invmat.shape))
+    logger.info(f"Dimension of Inverse Matrix: {invmat.shape}")
 
     return invmat
 

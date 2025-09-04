@@ -1,9 +1,10 @@
-# Authors: Robert Luke  <mail@robertluke.net>
-#          simplified BSD-3 license
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+import datetime
 import shutil
+from contextlib import nullcontext
 
 import numpy as np
 import pytest
@@ -55,7 +56,6 @@ nirx_nirsport2_103_2 = (
 snirf_nirsport2_20219 = (
     testing_path / "SNIRF" / "NIRx" / "NIRSport2" / "2021.9" / "2021-10-01_002.snirf"
 )
-nirx_nirsport2_20219 = testing_path / "NIRx" / "nirsport_v2" / "aurora_2021_9"
 
 # Kernel
 kernel_hb = testing_path / "SNIRF" / "Kernel" / "Flow50" / "Portal_2021_11" / "hb.snirf"
@@ -133,6 +133,7 @@ def test_snirf_gowerlabs():
 def test_snirf_basic():
     """Test reading SNIRF files."""
     raw = read_raw_snirf(sfnirs_homer_103_wShort, preload=True)
+    assert raw.info["subject_info"]["his_id"] == "default"
 
     # Test data import
     assert raw._data.shape == (26, 145)
@@ -247,9 +248,15 @@ def test_snirf_nonstandard(tmp_path):
         f.create_dataset("nirs/metaDataTags/lastName", data=[b"Y"])
         f.create_dataset("nirs/metaDataTags/sex", data=[b"1"])
     raw = read_raw_snirf(fname, preload=True)
+    assert raw.info["subject_info"]["first_name"] == "default"  # pull from his_id
+    with h5py.File(fname, "r+") as f:
+        f.create_dataset("nirs/metaDataTags/firstName", data=[b"W"])
+    raw = read_raw_snirf(fname, preload=True)
+    assert raw.info["subject_info"]["first_name"] == "W"
     assert raw.info["subject_info"]["middle_name"] == "X"
     assert raw.info["subject_info"]["last_name"] == "Y"
     assert raw.info["subject_info"]["sex"] == 1
+    assert raw.info["subject_info"]["his_id"] == "default"
     with h5py.File(fname, "r+") as f:
         del f["nirs/metaDataTags/sex"]
         f.create_dataset("nirs/metaDataTags/sex", data=[b"2"])
@@ -416,7 +423,7 @@ def test_snirf_kernel_hb():
     assert raw.copy().pick("hbo")._data.shape == (180, 14)
     assert raw.copy().pick("hbr")._data.shape == (180, 14)
 
-    assert_allclose(raw.info["sfreq"], 8.257638)
+    assert_allclose(raw.info["sfreq"], 8.256495)
 
     bad_nans = np.isnan(raw.get_data()).any(axis=1)
     assert np.sum(bad_nans) == 20
@@ -426,6 +433,23 @@ def test_snirf_kernel_hb():
     assert raw.annotations.onset[1] == 0.874633
     assert raw.annotations.description[0] == "StartTrial"
     assert raw.annotations.description[1] == "StartIti"
+
+
+@requires_testing_data
+@pytest.mark.parametrize(
+    "sfreq,context",
+    (
+        [8.2, nullcontext()],  # sfreq estimated from file is 8.256495
+        [22, pytest.warns(RuntimeWarning, match="User-supplied sampling frequency")],
+    ),
+)
+def test_user_set_sfreq(sfreq, context):
+    """Test manually setting sfreq."""
+    with context:
+        # both sfreqs are far enough from true rate to yield >1% jitter
+        with pytest.warns(RuntimeWarning, match=r"jitter of \d+\.\d*% in sample times"):
+            raw = read_raw_snirf(kernel_hb, preload=False, sfreq=sfreq)
+    assert raw.info["sfreq"] == sfreq
 
 
 @requires_testing_data
@@ -509,7 +533,10 @@ def test_birthday(tmp_path, monkeypatch):
         a.save()
 
     raw = read_raw_snirf(fname)
-    assert raw.info["subject_info"]["birthday"] == (1950, 1, 1)
+    assert raw.info["subject_info"]["birthday"] == datetime.date(1950, 1, 1)
+    # TODO: trigger some setting checkers that should maybe be in the reader (like
+    # those for subject_info)
+    raw.info.copy()
 
 
 @requires_testing_data
@@ -526,8 +553,8 @@ def test_sample_rate_jitter(tmp_path):
     with h5py.File(new_file, "r+") as f:
         orig_time = np.array(f.get("nirs/data1/time"))
         acceptable_time_jitter = orig_time.copy()
-        average_time_diff = np.mean(np.diff(orig_time))
-        acceptable_time_jitter[-1] += 0.0099 * average_time_diff
+        mean_period = np.mean(np.diff(orig_time))
+        acceptable_time_jitter[-1] += 0.0099 * mean_period
         del f["nirs/data1/time"]
         f.flush()
         f.create_dataset("nirs/data1/time", data=acceptable_time_jitter)
@@ -536,11 +563,11 @@ def test_sample_rate_jitter(tmp_path):
     lines = "\n".join(line for line in log.getvalue().splitlines() if "jitter" in line)
     assert "Found jitter of 0.9" in lines
 
-    # Add jitter of 1.01%, which is greater than allowed tolerance
+    # Add jitter of 1.02%, which is greater than allowed tolerance
     with h5py.File(new_file, "r+") as f:
         unacceptable_time_jitter = orig_time
         unacceptable_time_jitter[-1] = unacceptable_time_jitter[-1] + (
-            0.0101 * average_time_diff
+            0.0102 * mean_period
         )
         del f["nirs/data1/time"]
         f.flush()

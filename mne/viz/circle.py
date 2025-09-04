@@ -1,15 +1,12 @@
 """Functions to plot on circle as for connectivity."""
 
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Denis Engemann <denis.engemann@gmail.com>
-#          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-
 from functools import partial
 from itertools import cycle
+from types import SimpleNamespace
 
 import numpy as np
 
@@ -60,11 +57,9 @@ def circular_layout(
     if group_boundaries is not None:
         boundaries = np.array(group_boundaries, dtype=np.int64)
         if np.any(boundaries >= n_nodes) or np.any(boundaries < 0):
-            raise ValueError(
-                '"group_boundaries" has to be between 0 and ' "n_nodes - 1."
-            )
+            raise ValueError('"group_boundaries" has to be between 0 and n_nodes - 1.')
         if len(boundaries) > 1 and np.any(np.diff(boundaries) <= 0):
-            raise ValueError('"group_boundaries" must have non-decreasing ' "values.")
+            raise ValueError('"group_boundaries" must have non-decreasing values.')
         n_group_sep = len(group_boundaries)
     else:
         n_group_sep = 0
@@ -172,7 +167,7 @@ def _plot_connectivity_circle(
 
     if node_angles is not None:
         if len(node_angles) != n_nodes:
-            raise ValueError("node_angles has to be the same length " "as node_names")
+            raise ValueError("node_angles has to be the same length as node_names")
         # convert it to radians
         node_angles = node_angles * np.pi / 180
     else:
@@ -377,6 +372,7 @@ def _plot_connectivity_circle(
         cb_yticks = plt.getp(cb.ax.axes, "yticklabels")
         cb.ax.tick_params(labelsize=fontsize_colorbar)
         plt.setp(cb_yticks, color=textcolor)
+        fig.mne = SimpleNamespace(colorbar=cb)
 
     # Add callback for interaction
     if interactive:

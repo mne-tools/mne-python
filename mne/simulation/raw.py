@@ -1,7 +1,4 @@
-# Authors: Mark Wronkiewicz <wronk@uw.edu>
-#          Yousra Bekhti <yousra.bekhti@gmail.com>
-#          Eric Larson <larson.eric.d@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -101,7 +98,7 @@ def _log_ch(start, info, ch):
 def _check_head_pos(head_pos, info, first_samp, times=None):
     if head_pos is None:  # use pos from info['dev_head_t']
         head_pos = dict()
-    if isinstance(head_pos, (str, Path, os.PathLike)):
+    if isinstance(head_pos, str | Path | os.PathLike):
         head_pos = read_head_pos(head_pos)
     if isinstance(head_pos, np.ndarray):  # can be head_pos quats
         head_pos = head_pos_to_trans_rot_t(head_pos)
@@ -119,19 +116,19 @@ def _check_head_pos(head_pos, info, first_samp, times=None):
         ts.sort()
         dev_head_ts = [head_pos[float(tt)] for tt in ts]
     else:
-        raise TypeError("unknown head_pos type %s" % type(head_pos))
+        raise TypeError(f"unknown head_pos type {type(head_pos)}")
     bad = ts < 0
     if bad.any():
         raise RuntimeError(
-            "All position times must be >= 0, found %s/%s" "< 0" % (bad.sum(), len(bad))
+            f"All position times must be >= 0, found {bad.sum()}/{len(bad)}< 0"
         )
     if times is not None:
         bad = ts > times[-1]
         if bad.any():
             raise RuntimeError(
-                "All position times must be <= t_end (%0.1f "
-                "s), found %s/%s bad values (is this a split "
-                "file?)" % (times[-1], bad.sum(), len(bad))
+                f"All position times must be <= t_end ({times[-1]:0.1f} "
+                f"s), found {bad.sum()}/{len(bad)} bad values (is this a split "
+                "file?)"
             )
     # If it starts close to zero, make it zero (else unique(offset) fails)
     if len(ts) > 0 and ts[0] < (0.5 / info["sfreq"]):
@@ -313,8 +310,8 @@ def simulate_raw(
     # Extract necessary info
     meeg_picks = pick_types(info, meg=True, eeg=True, exclude=[])
     logger.info(
-        'Setting up raw simulation: %s position%s, "%s" interpolation'
-        % (len(dev_head_ts), _pl(dev_head_ts), interp)
+        f"Setting up raw simulation: {len(dev_head_ts)} "
+        f'position{_pl(dev_head_ts)}, "{interp}" interpolation'
     )
 
     if isinstance(stc, SourceSimulator) and stc.first_samp != first_samp:
@@ -350,14 +347,14 @@ def simulate_raw(
 
     this_start = 0
     for n in range(max_iter):
-        if isinstance(stc_counted[1], (list, tuple)):
+        if isinstance(stc_counted[1], list | tuple):
             this_n = stc_counted[1][0].data.shape[1]
         else:
             this_n = stc_counted[1].data.shape[1]
         this_stop = this_start + this_n
         logger.info(
-            "    Interval %0.3f–%0.3f s"
-            % (this_start / info["sfreq"], this_stop / info["sfreq"])
+            f"    Interval {this_start / info['sfreq']:0.3f}–"
+            f"{this_stop / info['sfreq']:0.3f} s"
         )
         n_doing = this_stop - this_start
         assert n_doing > 0
@@ -375,11 +372,11 @@ def simulate_raw(
         try:
             stc_counted = next(stc_enum)
         except StopIteration:
-            logger.info("    %d STC iteration%s provided" % (n + 1, _pl(n + 1)))
+            logger.info(f"    {n + 1} STC iteration{_pl(n + 1)} provided")
             break
         del fwd
     else:
-        raise RuntimeError("Maximum number of STC iterations (%d) " "exceeded" % (n,))
+        raise RuntimeError(f"Maximum number of STC iterations ({n}) exceeded")
     raw_data = np.concatenate(raw_datas, axis=-1)
     raw = RawArray(raw_data, info, first_samp=first_samp, verbose=False)
     raw.set_annotations(raw.annotations)
@@ -498,7 +495,7 @@ def add_ecg(
 def _add_exg(raw, kind, head_pos, interp, n_jobs, random_state):
     assert isinstance(kind, str) and kind in ("ecg", "blink")
     _validate_type(raw, BaseRaw, "raw")
-    _check_preload(raw, "Adding %s noise " % (kind,))
+    _check_preload(raw, f"Adding {kind} noise ")
     rng = check_random_state(random_state)
     info, times, first_samp = raw.info, raw.times, raw.first_samp
     data = raw._data
@@ -544,7 +541,7 @@ def _add_exg(raw, kind, head_pos, interp, n_jobs, random_state):
     else:
         if len(meg_picks) == 0:
             raise RuntimeError(
-                "Can only add ECG artifacts if MEG data " "channels are present"
+                "Can only add ECG artifacts if MEG data channels are present"
             )
         exg_rr = np.array([[-R, 0, -3 * R]])
         max_beats = int(np.ceil(times[-1] * 80.0 / 60.0))
@@ -582,7 +579,7 @@ def _add_exg(raw, kind, head_pos, interp, n_jobs, random_state):
     else:
         ch = None
     src = setup_volume_source_space(pos=dict(rr=exg_rr, nn=nn), sphere_units="mm")
-    _log_ch("%s simulated and trace" % kind, info, ch)
+    _log_ch(f"{kind} simulated and trace", info, ch)
     del ch, nn, noise
 
     used = np.zeros(len(raw.times), bool)
@@ -684,9 +681,9 @@ class _HPIForwards:
 
 def _stc_data_event(stc_counted, head_idx, sfreq, src=None, verts=None):
     stc_idx, stc = stc_counted
-    if isinstance(stc, (list, tuple)):
+    if isinstance(stc, list | tuple):
         if len(stc) != 2:
-            raise ValueError("stc, if tuple, must be length 2, got %s" % (len(stc),))
+            raise ValueError(f"stc, if tuple, must be length 2, got {len(stc)}")
         stc, stim_data = stc
     else:
         stim_data = None
@@ -705,22 +702,22 @@ def _stc_data_event(stc_counted, head_idx, sfreq, src=None, verts=None):
     if stim_data.dtype.kind != "i":
         raise ValueError(
             "stim_data in a stc tuple must be an integer ndarray,"
-            " got dtype %s" % (stim_data.dtype,)
+            f" got dtype {stim_data.dtype}"
         )
     if stim_data.shape != (len(stc.times),):
         raise ValueError(
-            "event data had shape %s but needed to be (%s,) to"
-            "match stc" % (stim_data.shape, len(stc.times))
+            f"event data had shape {stim_data.shape} but needed to "
+            f"be ({len(stc.times)},) tomatch stc"
         )
     # Validate STC
     if not np.allclose(sfreq, 1.0 / stc.tstep):
         raise ValueError(
-            "stc and info must have same sample rate, "
-            "got %s and %s" % (1.0 / stc.tstep, sfreq)
+            f"stc and info must have same sample rate, "
+            f"got {1.0 / stc.tstep} and {sfreq}"
         )
     if len(stc.times) <= 2:  # to ensure event encoding works
         raise ValueError(
-            "stc must have at least three time points, got %s" % (len(stc.times),)
+            f"stc must have at least three time points, got {len(stc.times)}"
         )
     verts_ = stc.vertices
     if verts is None:
@@ -730,8 +727,7 @@ def _stc_data_event(stc_counted, head_idx, sfreq, src=None, verts=None):
             np.array_equal(a, b) for a, b in zip(verts, verts_)
         ):
             raise RuntimeError(
-                "Vertex mismatch for stc[%d], "
-                "all stc.vertices must match" % (stc_idx,)
+                f"Vertex mismatch for stc[{stc_idx}], all stc.vertices must match"
             )
     stc_data = stc.data
     if src is None:
@@ -844,9 +840,7 @@ def _iter_forward_solutions(
     for ti, dev_head_t in enumerate(dev_head_ts):
         # Could be *slightly* more efficient not to do this N times,
         # but the cost here is tiny compared to actual fwd calculation
-        logger.info(
-            "Computing gain matrix for transform #%s/%s" % (ti + 1, len(dev_head_ts))
-        )
+        logger.info(f"Computing gain matrix for transform #{ti + 1}/{len(dev_head_ts)}")
         _transform_orig_meg_coils(megcoils, dev_head_t)
 
         # Make sure our sensors are all outside our BEM
@@ -863,8 +857,8 @@ def _iter_forward_solutions(
                 outside = np.ones(len(coil_rr), bool)
             if not outside.all():
                 raise RuntimeError(
-                    "%s MEG sensors collided with inner skull "
-                    "surface for transform %s" % (np.sum(~outside), ti)
+                    f"{np.sum(~outside)} MEG sensors collided with inner skull "
+                    f"surface for transform {ti}"
                 )
             megfwd = _compute_forwards(
                 rr, sensors=sensors, bem=bem, n_jobs=n_jobs, verbose=False

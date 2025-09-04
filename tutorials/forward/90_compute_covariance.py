@@ -5,23 +5,24 @@
 Computing a covariance matrix
 =============================
 
-Many methods in MNE, including source estimation and some classification
-algorithms, require covariance estimations from the recordings.
-In this tutorial we cover the basics of sensor covariance computations and
-construct a noise covariance matrix that can be used when computing the
-minimum-norm inverse solution. For more information, see
+Many methods in MNE, including source estimation and some classification algorithms,
+require covariance estimations from the recordings. In this tutorial we cover the basics
+of sensor covariance computations and construct a noise covariance matrix that can be
+used when computing the minimum-norm inverse solution. For more information, see
 :ref:`minimum_norm_estimates`.
 """
 
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 # %%
 
 import mne
 from mne.datasets import sample
 
 # %%
-# Source estimation method such as MNE require a noise estimations from the
+# Source estimation methods such as MNE require noise estimates from the
 # recordings. In this tutorial we cover the basics of noise covariance and
 # construct a noise covariance matrix that can be used when computing the
 # inverse solution. For more information, see :ref:`minimum_norm_estimates`.

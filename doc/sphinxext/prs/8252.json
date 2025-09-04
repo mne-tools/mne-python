@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "e5a963411e48c717da98c51565a816395bdfb70d",
+  "authors": [
+    {
+      "n": "Rob Luke",
+      "e": null
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/snirf/_snirf.py": {
+      "a": 35,
+      "d": 0
+    }
+  }
+}

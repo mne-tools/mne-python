@@ -1,5 +1,4 @@
-# Author : Martin Luessi mluessi@nmr.mgh.harvard.edu (2012)
-# License : BSD-3-Clause
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -64,7 +63,14 @@ def dpss_windows(N, half_nbw, Kmax, *, sym=True, norm=None, low_bias=True):
     ----------
     .. footbibliography::
     """
-    dpss, eigvals = sp_dpss(N, half_nbw, Kmax, sym=sym, norm=norm, return_ratios=True)
+    # TODO VERSION can be removed with SciPy 1.16 is min,
+    # workaround for https://github.com/scipy/scipy/pull/22344
+    if N <= 1:
+        dpss, eigvals = np.ones((1, 1)), np.ones(1)
+    else:
+        dpss, eigvals = sp_dpss(
+            N, half_nbw, Kmax, sym=sym, norm=norm, return_ratios=True
+        )
     if low_bias:
         idx = eigvals > 0.9
         if not idx.any():
@@ -285,9 +291,7 @@ def _compute_mt_params(n_times, sfreq, bandwidth, low_bias, adaptive, verbose=No
     """Triage windowing and multitaper parameters."""
     # Compute standardized half-bandwidth
     if isinstance(bandwidth, str):
-        logger.info(
-            '    Using standard spectrum estimation with "%s" window' % (bandwidth,)
-        )
+        logger.info(f'    Using standard spectrum estimation with "{bandwidth}" window')
         window_fun = get_window(bandwidth, n_times)[np.newaxis]
         return window_fun, np.ones(1), False
 
@@ -297,9 +301,8 @@ def _compute_mt_params(n_times, sfreq, bandwidth, low_bias, adaptive, verbose=No
         half_nbw = 4.0
     if half_nbw < 0.5:
         raise ValueError(
-            "bandwidth value %s yields a normalized half-bandwidth of "
-            "%s < 0.5, use a value of at least %s"
-            % (bandwidth, half_nbw, sfreq / n_times)
+            f"bandwidth value {bandwidth} yields a normalized half-bandwidth of "
+            f"{half_nbw} < 0.5, use a value of at least {sfreq / n_times}"
         )
 
     # Compute DPSS windows
@@ -308,14 +311,13 @@ def _compute_mt_params(n_times, sfreq, bandwidth, low_bias, adaptive, verbose=No
         n_times, half_nbw, n_tapers_max, sym=False, low_bias=low_bias
     )
     logger.info(
-        "    Using multitaper spectrum estimation with %d DPSS "
-        "windows" % len(eigvals)
+        f"    Using multitaper spectrum estimation with {len(eigvals)} DPSS windows"
     )
 
     if adaptive and len(eigvals) < 3:
         warn(
             "Not adaptively combining the spectral estimators due to a "
-            "low number of tapers (%s < 3)." % (len(eigvals),)
+            f"low number of tapers ({len(eigvals)} < 3)."
         )
         adaptive = False
 
@@ -476,8 +478,8 @@ def tfr_array_multitaper(
     output="complex",
     n_jobs=None,
     *,
+    return_weights=False,
     verbose=None,
-    epoch_data=None,
 ):
     """Compute Time-Frequency Representation (TFR) using DPSS tapers.
 
@@ -491,7 +493,7 @@ def tfr_array_multitaper(
         The epochs.
     sfreq : float
         Sampling frequency of the data in Hz.
-    %(freqs_tfr)s
+    %(freqs_tfr_array)s
     %(n_cycles_tfr)s
     zero_mean : bool
         If True, make sure the wavelets have a mean of zero. Defaults to True.
@@ -509,11 +511,13 @@ def tfr_array_multitaper(
         * ``'avg_power_itc'`` : average of single trial power and inter-trial
           coherence across trials.
     %(n_jobs)s
+        The parallelization is implemented across channels.
+    return_weights : bool, default False
+        If True, return the taper weights. Only applies if ``output='complex'`` or
+        ``'phase'``.
+
+        .. versionadded:: 1.10.0
     %(verbose)s
-    epoch_data : None
-        Deprecated parameter for providing epoched data as of 1.7, will be replaced with
-        the ``data`` parameter in 1.8. New code should use the ``data`` parameter. If
-        ``epoch_data`` is not ``None``, a warning will be raised.
 
     Returns
     -------
@@ -529,6 +533,9 @@ def tfr_array_multitaper(
         If ``output`` is ``'avg_power_itc'``, the real values in ``out``
         contain the average power and the imaginary values contain the
         inter-trial coherence: :math:`out = power_{avg} + i * ITC`.
+    weights : array of shape (n_tapers, n_freqs)
+        The taper weights. Only returned if ``output='complex'`` or ``'phase'`` and
+        ``return_weights=True``.
 
     See Also
     --------
@@ -548,13 +555,6 @@ def tfr_array_multitaper(
     """
     from .tfr import _compute_tfr
 
-    if epoch_data is not None:
-        warn(
-            "The parameter for providing data will be switched from `epoch_data` to "
-            "`data` in 1.8. Use the `data` parameter to avoid this warning.",
-            FutureWarning,
-        )
-
     return _compute_tfr(
         data,
         freqs,
@@ -566,6 +566,7 @@ def tfr_array_multitaper(
         use_fft=use_fft,
         decim=decim,
         output=output,
+        return_weights=return_weights,
         n_jobs=n_jobs,
         verbose=verbose,
     )

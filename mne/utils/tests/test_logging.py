@@ -1,5 +1,7 @@
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 import logging
 import os
 import re
@@ -52,7 +54,7 @@ def test_frame_info(capsys, monkeypatch):
     out = out.replace("\n", " ")
     assert (
         re.match(
-            ".*pytest" ".*test_logging:[2-9][0-9] " ".*test_logging:[1-9][0-9] :.*Test",
+            ".*pytest.*test_logging:[2-9][0-9] .*test_logging:[1-9][0-9] :.*Test",
             out,
         )
         is not None

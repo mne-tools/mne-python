@@ -161,17 +161,23 @@ EEGBCI motor imagery
 ====================
 :func:`mne.datasets.eegbci.load_data`
 
-The EEGBCI dataset is documented in :footcite:`SchalkEtAl2004`. The data set is
-available at PhysioNet :footcite:`GoldbergerEtAl2000`. The dataset contains
-64-channel EEG recordings from 109 subjects and 14 runs on each subject in EDF+
-format. The recordings were made using the BCI2000 system. To load a subject,
-do::
+The EEGBCI dataset is documented in :footcite:`SchalkEtAl2004` and on the
+`PhysioNet documentation page <https://physionet.org/content/eegmmidb/1.0.0/>`_.
+The data set is available at PhysioNet :footcite:`GoldbergerEtAl2000`.
+It contains 64-channel EEG recordings from 109 subjects and 14 runs on each
+subject in EDF+ format. The recordings were made using the BCI2000 system.
+To load a subject, do::
 
     from mne.io import concatenate_raws, read_raw_edf
     from mne.datasets import eegbci
-    raw_fnames = eegbci.load_data(subject, runs)
+    subjects = [1]  # may vary
+    runs = [4, 8, 12]  # may vary
+    raw_fnames = eegbci.load_data(subjects, runs)
     raws = [read_raw_edf(f, preload=True) for f in raw_fnames]
+    # concatenate runs from subject
     raw = concatenate_raws(raws)
+    # make channel names follow standard conventions
+    eegbci.standardize(raw)
 
 .. topic:: Examples
 
@@ -392,7 +398,8 @@ fsaverage
 :func:`mne.datasets.fetch_fsaverage`
 
 For convenience, we provide a function to separately download and extract the
-(or update an existing) fsaverage subject.
+(or update an existing) fsaverage subject. See also the
+:ref:`background information on fsaverage <fsaverage_background>`.
 
 .. topic:: Examples
 
@@ -516,7 +523,7 @@ Contains both EEG (EGI) and eye-tracking (ASCII format) data recorded from a
 pupillary light reflex experiment, stored in separate files. 1 participant fixated
 on the screen while short light flashes appeared. Event onsets were recorded by a
 photodiode attached to the screen and were sent to both the EEG and eye-tracking
-systems. 
+systems.
 
 .. topic:: Examples
 

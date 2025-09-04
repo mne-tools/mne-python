@@ -1,5 +1,7 @@
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 import datetime
 import re
 from itertools import product
@@ -8,26 +10,36 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 import pytest
-from numpy.testing import assert_allclose, assert_array_equal, assert_equal
-from scipy.signal import morlet2
+from matplotlib.collections import PathCollection
+from numpy.testing import (
+    assert_allclose,
+    assert_array_almost_equal,
+    assert_array_equal,
+    assert_equal,
+)
 
 import mne
 from mne import (
     Epochs,
     EpochsArray,
-    Info,
-    Transform,
     create_info,
     pick_types,
     read_events,
 )
 from mne.epochs import equalize_epoch_counts
 from mne.io import read_raw_fif
-from mne.tests.test_epochs import assert_metadata_equal
-from mne.time_frequency import tfr_array_morlet, tfr_array_multitaper
-from mne.time_frequency.tfr import (
+from mne.time_frequency import (
     AverageTFR,
+    AverageTFRArray,
+    EpochsSpectrum,
     EpochsTFR,
+    EpochsTFRArray,
+    RawTFR,
+    RawTFRArray,
+    tfr_array_morlet,
+    tfr_array_multitaper,
+)
+from mne.time_frequency.tfr import (
     _compute_tfr,
     _make_dpss,
     combine_tfr,
@@ -40,34 +52,41 @@ from mne.time_frequency.tfr import (
     write_tfrs,
 )
 from mne.utils import catch_logging, grand_average
-from mne.viz.utils import _fake_click, _fake_keypress, _fake_scroll
+from mne.utils._testing import _get_suptitle
+from mne.viz.utils import (
+    _channel_type_prettyprint,
+    _fake_click,
+    _fake_keypress,
+    _fake_scroll,
+)
+
+from .test_spectrum import _get_inst
 
 data_path = Path(__file__).parents[2] / "io" / "tests" / "data"
 raw_fname = data_path / "test_raw.fif"
 event_fname = data_path / "test-eve.fif"
 raw_ctf_fname = data_path / "test_ctf_raw.fif"
 
+freqs_linspace = np.linspace(20, 40, num=5)
+freqs_unsorted_list = [26, 33, 41, 20]
+mag_names = [f"MEG 01{n}1" for n in (1, 2, 3)]
 
-def _create_test_epochstfr():
-    n_epos = 3
-    ch_names = ["EEG 001", "EEG 002", "EEG 003", "EEG 004"]
-    n_picks = len(ch_names)
-    ch_types = ["eeg"] * n_picks
-    n_freqs = 5
-    n_times = 6
-    data = np.random.rand(n_epos, n_picks, n_freqs, n_times)
-    times = np.arange(6)
-    srate = 1000.0
-    freqs = np.arange(5)
-    events = np.zeros((n_epos, 3), dtype=int)
-    events[:, 0] = np.arange(n_epos)
-    events[:, 2] = np.arange(5, 5 + n_epos)
-    event_id = {k: v for v, k in zip(events[:, 2], ["ha", "he", "hu"])}
-    info = mne.create_info(ch_names, srate, ch_types)
-    tfr = mne.time_frequency.EpochsTFR(
-        info, data, times, freqs, events=events, event_id=event_id
-    )
-    return tfr
+parametrize_morlet_multitaper = pytest.mark.parametrize(
+    "method", ("morlet", "multitaper")
+)
+parametrize_power_phase_complex = pytest.mark.parametrize(
+    "output", ("power", "phase", "complex")
+)
+parametrize_inst_and_ch_type = pytest.mark.parametrize(
+    "inst,ch_type",
+    (
+        pytest.param("raw_tfr", "mag"),
+        pytest.param("raw_tfr", "grad"),
+        pytest.param("epochs_tfr", "mag"),  # no grad pairs in epochs fixture
+        pytest.param("average_tfr", "mag"),
+        pytest.param("average_tfr", "grad"),
+    ),
+)
 
 
 def test_tfr_ctf():
@@ -78,6 +97,15 @@ def test_tfr_ctf():
     epochs = mne.Epochs(raw, events)
     for method in (tfr_multitaper, tfr_morlet):
         method(epochs, [10], 1)  # smoke test
+
+
+# Copied from SciPy before it was removed
+def _morlet2(M, s, w=5):
+    x = np.arange(0, M) - (M - 1.0) / 2
+    x = x / s
+    wavelet = np.exp(1j * w * x) * np.exp(-0.5 * x**2) * np.pi ** (-0.25)
+    output = np.sqrt(1 / s) * wavelet
+    return output
 
 
 @pytest.mark.parametrize("sfreq", [1000.0, 100 + np.pi])
@@ -100,7 +128,7 @@ def test_morlet(sfreq, freq, n_cycles):
     M = len(W)
     w = n_cycles
     s = w * sfreq / (2 * freq * np.pi)  # from SciPy docs
-    Ws = morlet2(M, s, w) * np.sqrt(2)
+    Ws = _morlet2(M, s, w) * np.sqrt(2)
     assert_allclose(W, Ws)
 
     # Check FWHM
@@ -111,7 +139,7 @@ def test_morlet(sfreq, freq, n_cycles):
     assert_allclose(fwhm_formula, fwhm_empirical, atol=3 / sfreq)
 
 
-def test_time_frequency():
+def test_tfr_morlet():
     """Test time-frequency transform (PSD and ITC)."""
     # Set parameters
     event_id = 1
@@ -148,7 +176,8 @@ def test_time_frequency():
 
     # Now compute evoked
     evoked = epochs.average()
-    pytest.raises(ValueError, tfr_morlet, evoked, freqs, 1.0, return_itc=True)
+    with pytest.raises(ValueError, match="Inter-trial coherence is not supported with"):
+        tfr_morlet(evoked, freqs, n_cycles=1.0, return_itc=True)
     power, itc = tfr_morlet(
         epochs, freqs=freqs, n_cycles=n_cycles, use_fft=True, return_itc=True
     )
@@ -226,20 +255,25 @@ def test_time_frequency():
     # computed within the method.
     assert_allclose(epochs_amplitude_2.data**2, epochs_power_picks.data)
 
-    # test that averaging power across tapers when multitaper with
+    # test that aggregating power across tapers when multitaper with
     # output='complex' gives the same as output='power'
     epoch_data = epochs.get_data()
     multitaper_power = tfr_array_multitaper(
         epoch_data, epochs.info["sfreq"], freqs, n_cycles, output="power"
     )
-    multitaper_complex = tfr_array_multitaper(
-        epoch_data, epochs.info["sfreq"], freqs, n_cycles, output="complex"
+    multitaper_complex, weights = tfr_array_multitaper(
+        epoch_data,
+        epochs.info["sfreq"],
+        freqs,
+        n_cycles,
+        output="complex",
+        return_weights=True,
     )
 
-    taper_dim = 2
-    power_from_complex = (multitaper_complex * multitaper_complex.conj()).real.mean(
-        axis=taper_dim
-    )
+    weights = np.expand_dims(weights, axis=(0, 1, -1))  # match shape of complex data
+    tfr = weights * multitaper_complex
+    tfr = (tfr * tfr.conj()).real.sum(axis=2)
+    power_from_complex = tfr * (2 / (weights * weights.conj()).real.sum(axis=2))
     assert_allclose(power_from_complex, multitaper_power)
 
     print(itc)  # test repr
@@ -403,16 +437,20 @@ def test_time_frequency():
 def test_dpsswavelet():
     """Test DPSS tapers."""
     freqs = np.arange(5, 25, 3)
-    Ws = _make_dpss(
-        1000, freqs=freqs, n_cycles=freqs / 2.0, time_bandwidth=4.0, zero_mean=True
+    Ws, weights = _make_dpss(
+        1000,
+        freqs=freqs,
+        n_cycles=freqs / 2.0,
+        time_bandwidth=4.0,
+        zero_mean=True,
+        return_weights=True,
     )
 
-    assert len(Ws) == 3  # 3 tapers expected
+    assert np.shape(Ws)[:2] == (3, len(freqs))  # 3 tapers expected
+    assert np.shape(Ws)[:2] == np.shape(weights)  # weights of shape (tapers, freqs)
 
     # Check that zero mean is true
     assert np.abs(np.mean(np.real(Ws[0][0]))) < 1e-5
-
-    assert len(Ws[0]) == len(freqs)  # As many wavelets as asked for
 
 
 @pytest.mark.slowtest
@@ -542,216 +580,217 @@ def test_tfr_multitaper():
         tfr_multitaper(epochs, freqs=np.arange(-4, -1), n_cycles=7)
 
 
-def test_crop():
-    """Test TFR cropping."""
-    data = np.zeros((3, 4, 5))
-    times = np.array([0.1, 0.2, 0.3, 0.4, 0.5])
-    freqs = np.array([0.10, 0.20, 0.30, 0.40])
-    info = mne.create_info(
-        ["MEG 001", "MEG 002", "MEG 003"], 1000.0, ["mag", "mag", "mag"]
-    )
-    tfr = AverageTFR(
-        info,
-        data=data,
-        times=times,
-        freqs=freqs,
-        nave=20,
-        comment="test",
-        method="crazy-tfr",
-    )
-
-    tfr.crop(tmin=0.2)
-    assert_array_equal(tfr.times, [0.2, 0.3, 0.4, 0.5])
-    assert tfr.data.ndim == 3
-    assert tfr.data.shape[-1] == 4
-
-    tfr.crop(fmax=0.3)
-    assert_array_equal(tfr.freqs, [0.1, 0.2, 0.3])
-    assert tfr.data.ndim == 3
-    assert tfr.data.shape[-2] == 3
-
-    tfr.crop(tmin=0.3, tmax=0.4, fmin=0.1, fmax=0.2)
-    assert_array_equal(tfr.times, [0.3, 0.4])
-    assert tfr.data.ndim == 3
-    assert tfr.data.shape[-1] == 2
-    assert_array_equal(tfr.freqs, [0.1, 0.2])
-    assert tfr.data.shape[-2] == 2
+@pytest.mark.parametrize(
+    "method,freqs",
+    (
+        pytest.param("morlet", freqs_linspace, id="morlet"),
+        pytest.param("multitaper", freqs_linspace, id="multitaper"),
+        pytest.param("stockwell", freqs_linspace[[0, -1]], id="stockwell"),
+    ),
+)
+@pytest.mark.parametrize("decim", (4, slice(0, 200), slice(1, 200, 3)))
+def test_tfr_decim_and_shift_time(epochs, method, freqs, decim):
+    """Test TFR decimation; slices must be long-ish to be longer than the wavelets."""
+    tfr = epochs.compute_tfr(method, freqs=freqs, decim=decim)
+    if not isinstance(decim, slice):
+        decim = slice(None, None, decim)
+    # check n_times
+    want = len(range(*decim.indices(len(epochs.times))))
+    assert tfr.shape[-1] == want
+    # Check that decim changes sfreq
+    assert tfr.sfreq == epochs.info["sfreq"] / (decim.step or 1)
+    # check after-the-fact decimation. The mixin .decimate method doesn't allow slices
+    if isinstance(decim, int):
+        tfr2 = epochs.compute_tfr(method, freqs=freqs, decim=1)
+        tfr2.decimate(decim)
+        assert tfr == tfr2
+    # test .shift_time() too
+    shift = -0.137
+    data, times, freqs = tfr.get_data(return_times=True, return_freqs=True)
+    tfr.shift_time(shift, relative=True)
+    assert_allclose(times + shift, tfr.times, rtol=0, atol=0.5 / tfr.sfreq)
+    # shift time should only affect times:
+    assert_array_equal(data, tfr.get_data())
+    assert_array_equal(freqs, tfr.freqs)
 
 
-def test_decim_shift_time():
-    """Test TFR decimation and shift_time."""
-    data = np.zeros((3, 3, 3, 1000))
-    times = np.linspace(0, 1, 1000)
-    freqs = np.array([0.10, 0.20, 0.30])
-    info = mne.create_info(
-        ["MEG 001", "MEG 002", "MEG 003"], 1000.0, ["mag", "mag", "mag"]
-    )
-    with info._unlock():
-        info["lowpass"] = 100
-    tfr = EpochsTFR(info, data=data, times=times, freqs=freqs)
-    tfr_ave = tfr.average()
-    assert_allclose(tfr.times, tfr_ave.times)
-    assert not hasattr(tfr_ave, "first")
-    tfr_ave.decimate(3)
-    assert not hasattr(tfr_ave, "first")
-    tfr.decimate(3)
-    assert tfr.times.size == 1000 // 3 + 1
-    assert tfr.data.shape == ((3, 3, 3, 1000 // 3 + 1))
-    tfr_ave_2 = tfr.average()
-    assert not hasattr(tfr_ave_2, "first")
-    assert_allclose(tfr.times, tfr_ave.times)
-    assert_allclose(tfr.times, tfr_ave_2.times)
-    assert_allclose(tfr_ave_2.data, tfr_ave.data)
-    tfr.shift_time(-0.1, relative=True)
-    tfr_ave.shift_time(-0.1, relative=True)
-    tfr_ave_3 = tfr.average()
-    assert_allclose(tfr_ave_3.times, tfr_ave.times)
-    assert_allclose(tfr_ave_3.data, tfr_ave.data)
-    assert_allclose(tfr_ave_2.data, tfr_ave_3.data)  # data unchanged
-
-
-def test_io(tmp_path):
-    """Test TFR IO capacities."""
+@pytest.mark.parametrize("inst", ("raw_tfr", "epochs_tfr", "average_tfr"))
+def test_tfr_io(inst, average_tfr, request, tmp_path):
+    """Test TFR I/O."""
+    pytest.importorskip("h5io")
     pd = pytest.importorskip("pandas")
+
+    tfr = _get_inst(inst, request, average_tfr=average_tfr)
+    fname = tmp_path / "temp_tfr.hdf5"
+    # test .save() method
+    tfr.save(fname, overwrite=True)
+    assert read_tfrs(fname) == tfr
+    # test save single TFR with write_tfrs()
+    write_tfrs(fname, tfr, overwrite=True)
+    assert read_tfrs(fname) == tfr
+    # test save multiple TFRs with write_tfrs()
+    tfr2 = tfr.copy()
+    tfr2._data = np.zeros_like(tfr._data)
+    write_tfrs(fname, [tfr, tfr2], overwrite=True)
+    tfr_list = read_tfrs(fname)
+    assert tfr_list[0] == tfr
+    assert tfr_list[1] == tfr2
+    # test condition-related errors
+    if isinstance(tfr, AverageTFR):
+        # auto-generated keys: first TFR has comment, so `0` not assigned
+        tfr2.comment = None
+        write_tfrs(fname, [tfr, tfr2], overwrite=True)
+        with pytest.raises(ValueError, match='Cannot find condition "0" in this'):
+            read_tfrs(fname, condition=0)
+        # second TFR had no comment, so should get auto-comment `1` assigned
+        read_tfrs(fname, condition=1)
+        return
+    else:
+        with pytest.raises(NotImplementedError, match="condition is only supported"):
+            read_tfrs(fname, condition="foo")
+    # the rest we only do for EpochsTFR (no need to parametrize)
+    if isinstance(tfr, RawTFR):
+        return
+    # make sure everything still works if there's metadata
+    tfr.metadata = pd.DataFrame(dict(foo=range(tfr.shape[0])), index=tfr.selection)
+    # test old-style meas date
+    sec_microsec_tuple = (1, 2)
+    with tfr.info._unlock():
+        tfr.info["meas_date"] = sec_microsec_tuple
+    tfr.save(fname, overwrite=True)
+    tfr_loaded = read_tfrs(fname)
+    want = datetime.datetime(
+        year=1970,
+        month=1,
+        day=1,
+        hour=0,
+        minute=0,
+        second=sec_microsec_tuple[0],
+        microsecond=sec_microsec_tuple[1],
+        tzinfo=datetime.timezone.utc,
+    )
+    assert tfr_loaded.info["meas_date"] == want
+    with tfr.info._unlock():
+        tfr.info["meas_date"] = want
+    assert tfr_loaded == tfr
+    # test with taper dimension and weights
+    n_tapers = 3  # anything >= 1 should do
+    weights = np.ones((n_tapers, tfr.shape[2]))  # tapers x freqs
+    state = tfr.__getstate__()
+    state["data"] = np.repeat(np.expand_dims(tfr.data, 2), n_tapers, axis=2)  # add dim
+    state["weights"] = weights  # add weights
+    state["dims"] = ("epoch", "channel", "taper", "freq", "time")  # update dims
+    tfr = EpochsTFR(inst=state)
+    tfr.save(fname, overwrite=True)
+    tfr_loaded = read_tfrs(fname)
+    assert tfr_loaded == tfr
+    # test overwrite
+    with pytest.raises(OSError, match="Destination file exists."):
+        tfr.save(fname, overwrite=False)
+
+
+def test_roundtrip_from_legacy_func(epochs, tmp_path):
+    """Test save/load with TFRs generated by legacy method (gh-12512)."""
     pytest.importorskip("h5io")
 
-    fname = tmp_path / "test-tfr.h5"
-    data = np.zeros((3, 2, 3))
-    times = np.array([0.1, 0.2, 0.3])
-    freqs = np.array([0.10, 0.20])
-
-    info = mne.create_info(
-        ["MEG 001", "MEG 002", "MEG 003"], 1000.0, ["mag", "mag", "mag"]
+    fname = tmp_path / "temp_tfr.hdf5"
+    tfr = tfr_morlet(
+        epochs, freqs=freqs_linspace, n_cycles=7, average=True, return_itc=False
     )
-    with info._unlock(check_after=True):
-        info["meas_date"] = datetime.datetime(
-            year=2020, month=2, day=5, tzinfo=datetime.timezone.utc
-        )
-    tfr = AverageTFR(
-        info,
-        data=data,
-        times=times,
-        freqs=freqs,
-        nave=20,
-        comment="test",
-        method="crazy-tfr",
-    )
-    tfr.save(fname)
-    tfr2 = read_tfrs(fname, condition="test")
-    assert isinstance(tfr2.info, Info)
-    assert isinstance(tfr2.info["dev_head_t"], Transform)
-
-    assert_array_equal(tfr.data, tfr2.data)
-    assert_array_equal(tfr.times, tfr2.times)
-    assert_array_equal(tfr.freqs, tfr2.freqs)
-    assert_equal(tfr.comment, tfr2.comment)
-    assert_equal(tfr.nave, tfr2.nave)
-
-    pytest.raises(OSError, tfr.save, fname)
-
-    tfr.comment = None
-    # test old meas_date
-    with info._unlock():
-        info["meas_date"] = (1, 2)
     tfr.save(fname, overwrite=True)
-    assert_equal(read_tfrs(fname, condition=0).comment, tfr.comment)
-    tfr.comment = "test-A"
-    tfr2.comment = "test-B"
+    assert read_tfrs(fname) == tfr
 
-    fname = tmp_path / "test2-tfr.h5"
-    write_tfrs(fname, [tfr, tfr2])
-    tfr3 = read_tfrs(fname, condition="test-A")
-    assert_equal(tfr.comment, tfr3.comment)
 
-    assert isinstance(tfr.info, mne.Info)
+def test_raw_tfr_init(raw):
+    """Test the RawTFR and RawTFRArray constructors."""
+    one = RawTFR(inst=raw, method="morlet", freqs=freqs_linspace)
+    two = RawTFRArray(one.info, one.data, one.times, one.freqs, method="morlet")
+    # some attributes we know won't match:
+    for attr in ("_data_type", "_inst_type"):
+        assert getattr(one, attr) != getattr(two, attr)
+        delattr(one, attr)
+        delattr(two, attr)
+    assert one == two
+    # test RawTFR.__getitem__
+    data = one[:5]
+    assert data.shape == (5,) + one.shape[1:]
+    # test missing method/freqs
+    with pytest.raises(ValueError, match="RawTFR got unsupported parameter value"):
+        RawTFR(inst=raw)
 
-    tfrs = read_tfrs(fname, condition=None)
-    assert_equal(len(tfrs), 2)
-    tfr4 = tfrs[1]
-    assert_equal(tfr2.comment, tfr4.comment)
 
-    pytest.raises(ValueError, read_tfrs, fname, condition="nonono")
-    # Test save of EpochsTFR.
-    n_events = 5
-    data = np.zeros((n_events, 3, 2, 3))
-
-    # create fake metadata
-    rng = np.random.RandomState(42)
-    rt = np.round(rng.uniform(size=(n_events,)), 3)
-    trialtypes = np.array(["face", "place"])
-    trial = trialtypes[(rng.uniform(size=(n_events,)) > 0.5).astype(int)]
-    meta = pd.DataFrame(dict(RT=rt, Trial=trial))
-    # fake events and event_id
-    events = np.zeros([n_events, 3])
-    events[:, 0] = np.arange(n_events)
-    events[:, 2] = np.ones(n_events)
-    event_id = {"a/b": 1}
-    # fake selection
-    n_dropped_epochs = 3
-    selection = np.arange(n_events + n_dropped_epochs)[n_dropped_epochs:]
-    drop_log = tuple(
-        [("IGNORED",) for i in range(n_dropped_epochs)] + [() for i in range(n_events)]
+def test_average_tfr_init(full_evoked):
+    """Test the AverageTFR and AverageTFRArray constructors."""
+    one = AverageTFR(inst=full_evoked, method="morlet", freqs=freqs_linspace)
+    two = AverageTFRArray(
+        one.info,
+        one.data,
+        one.times,
+        one.freqs,
+        method="morlet",
+        comment=one.comment,
+        nave=one.nave,
     )
+    # some attributes we know won't match, otherwise should be identical
+    assert one._data_type != two._data_type
+    one._data_type = two._data_type
+    assert one == two
+    # test missing method, bad freqs
+    with pytest.raises(ValueError, match="AverageTFR got unsupported parameter value"):
+        AverageTFR(inst=full_evoked)
+    with pytest.raises(ValueError, match='must be a length-2 iterable or "auto"'):
+        AverageTFR(inst=full_evoked, method="stockwell", freqs=freqs_linspace)
 
-    tfr = EpochsTFR(
-        info,
-        data=data,
-        times=times,
-        freqs=freqs,
-        comment="test",
-        method="crazy-tfr",
-        events=events,
-        event_id=event_id,
-        selection=selection,
-        drop_log=drop_log,
-        metadata=meta,
+
+@pytest.mark.parametrize("inst", ("raw_tfr", "epochs_tfr", "average_tfr"))
+def test_tfr_init_errors(inst, request, average_tfr):
+    """Test __init__ for {Raw,Epochs,Average}TFR."""
+    # Load data
+    inst = _get_inst(inst, request, average_tfr=average_tfr)
+    state = inst.__getstate__()
+    # Prepare for TFRArray object instantiation
+    inst_name = inst.__class__.__name__
+    class_mapping = dict(RawTFR=RawTFR, EpochsTFR=EpochsTFR, AverageTFR=AverageTFR)
+    ndims_mapping = dict(
+        RawTFR=("3D or 4D"), EpochsTFR=("4D or 5D"), AverageTFR=("3D or 4D")
     )
-    fname_save = fname
-    tfr.save(fname_save, True)
-    fname_write = tmp_path / "test3-tfr.h5"
-    write_tfrs(fname_write, tfr, overwrite=True)
-    for fname in [fname_save, fname_write]:
-        read_tfr = read_tfrs(fname)[0]
-        assert_array_equal(tfr.data, read_tfr.data)
-        assert_metadata_equal(tfr.metadata, read_tfr.metadata)
-        assert_array_equal(tfr.events, read_tfr.events)
-        assert tfr.event_id == read_tfr.event_id
-        assert_array_equal(tfr.selection, read_tfr.selection)
-        assert tfr.drop_log == read_tfr.drop_log
-    with pytest.raises(NotImplementedError, match="condition not supported"):
-        tfr = read_tfrs(fname, condition="a")
+    TFR = class_mapping[inst_name]
+    allowed_ndims = ndims_mapping[inst_name]
+    # Check errors caught
+    with pytest.raises(ValueError, match=f".*TFR data should be {allowed_ndims}"):
+        TFR(inst=state | dict(data=inst.data[..., 0]))
+    with pytest.raises(ValueError, match=f".*TFR data should be {allowed_ndims}"):
+        TFR(inst=state | dict(data=np.expand_dims(inst.data, axis=(0, 1))))
+    with pytest.raises(ValueError, match="Channel axis of data .* doesn't match info"):
+        TFR(inst=state | dict(data=inst.data[..., :-1, :, :]))
+    with pytest.raises(ValueError, match="Time axis of data.*doesn't match times attr"):
+        TFR(inst=state | dict(times=inst.times[:-1]))
+    with pytest.raises(ValueError, match="Frequency axis of.*doesn't match freqs attr"):
+        TFR(inst=state | dict(freqs=inst.freqs[:-1]))
 
 
-def test_init_EpochsTFR():
-    """Test __init__ for EpochsTFR."""
-    # Create fake data:
-    data = np.zeros((3, 3, 3, 3))
-    times = np.array([0.1, 0.2, 0.3])
-    freqs = np.array([0.10, 0.20, 0.30])
-    info = mne.create_info(
-        ["MEG 001", "MEG 002", "MEG 003"], 1000.0, ["mag", "mag", "mag"]
-    )
-    data_x = data[:, :, :, 0]
-    with pytest.raises(ValueError, match="data should be 4d. Got 3"):
-        tfr = EpochsTFR(info, data=data_x, times=times, freqs=freqs)
-    data_x = data[:, :-1, :, :]
-    with pytest.raises(ValueError, match="channels and data size don't"):
-        tfr = EpochsTFR(info, data=data_x, times=times, freqs=freqs)
-    times_x = times[:-1]
-    with pytest.raises(ValueError, match="times and data size don't match"):
-        tfr = EpochsTFR(info, data=data, times=times_x, freqs=freqs)
-    freqs_x = freqs[:-1]
-    with pytest.raises(ValueError, match="frequencies and data size don't"):
-        tfr = EpochsTFR(info, data=data, times=times_x, freqs=freqs_x)
-        del tfr
+@pytest.mark.parametrize(
+    "method,freqs,match",
+    (
+        ("morlet", None, "EpochsTFR got unsupported parameter value freqs=None."),
+        (None, freqs_linspace, "got unsupported parameter value method=None."),
+        (None, None, "got unsupported parameter values method=None and freqs=None."),
+    ),
+)
+def test_compute_tfr_init_errors(epochs, method, freqs, match):
+    """Test that method and freqs are always passed (if not using __setstate__)."""
+    with pytest.raises(ValueError, match=match):
+        epochs.compute_tfr(method=method, freqs=freqs)
 
 
-def test_equalize_epochs_tfr_counts():
+def test_equalize_epochs_tfr_counts(epochs_tfr):
     """Test equalize_epoch_counts for EpochsTFR."""
-    tfr = _create_test_epochstfr()
-    tfr2 = tfr.copy()
+    # make the fixture have 3 epochs instead of 1
+    epochs_tfr._data = np.vstack((epochs_tfr._data, epochs_tfr._data, epochs_tfr._data))
+    tfr2 = epochs_tfr.copy()
     tfr2 = tfr2[:-1]
-    equalize_epoch_counts([tfr, tfr2])
+    equalize_epoch_counts([epochs_tfr, tfr2])
+    assert epochs_tfr.shape == tfr2.shape
 
 
 def test_dB_computation():
@@ -765,9 +804,9 @@ def test_dB_computation():
         ["MEG 001", "MEG 002", "MEG 003"], 1000.0, ["mag", "mag", "mag"]
     )
     kwargs = dict(times=times, freqs=freqs, nave=20, comment="test", method="crazy-tfr")
-    tfr = AverageTFR(info, data=data, **kwargs)
-    complex_tfr = AverageTFR(info, data=complex_data, **kwargs)
-    plot_kwargs = dict(dB=True, combine="mean", vmin=0, vmax=7)
+    tfr = AverageTFRArray(info=info, data=data, **kwargs)
+    complex_tfr = AverageTFRArray(info=info, data=complex_data, **kwargs)
+    plot_kwargs = dict(dB=True, combine="mean", vlim=(0, 7))
     fig1 = tfr.plot(**plot_kwargs)[0]
     fig2 = complex_tfr.plot(**plot_kwargs)[0]
     # since we're fixing vmin/vmax, equal colors should mean ~equal input data
@@ -785,8 +824,8 @@ def test_plot():
     info = mne.create_info(
         ["MEG 001", "MEG 002", "MEG 003"], 1000.0, ["mag", "mag", "mag"]
     )
-    tfr = AverageTFR(
-        info,
+    tfr = AverageTFRArray(
+        info=info,
         data=data,
         times=times,
         freqs=freqs,
@@ -794,88 +833,6 @@ def test_plot():
         comment="test",
         method="crazy-tfr",
     )
-
-    # test title=auto, combine=None, and correct length of figure list
-    picks = [1, 2]
-    figs = tfr.plot(
-        picks, title="auto", colorbar=False, mask=np.ones(tfr.data.shape[1:], bool)
-    )
-    assert len(figs) == len(picks)
-    assert "MEG" in figs[0].texts[0].get_text()
-    plt.close("all")
-
-    # test combine and title keyword
-    figs = tfr.plot(
-        picks,
-        title="title",
-        colorbar=False,
-        combine="rms",
-        mask=np.ones(tfr.data.shape[1:], bool),
-    )
-    assert len(figs) == 1
-    assert figs[0].texts[0].get_text() == "title"
-    figs = tfr.plot(
-        picks,
-        title="auto",
-        colorbar=False,
-        combine="mean",
-        mask=np.ones(tfr.data.shape[1:], bool),
-    )
-    assert len(figs) == 1
-    assert figs[0].texts[0].get_text() == "Mean of 2 sensors"
-    figs = tfr.plot(
-        picks,
-        title="auto",
-        colorbar=False,
-        combine=lambda x: x.mean(axis=0),
-        mask=np.ones(tfr.data.shape[1:], bool),
-    )
-    assert len(figs) == 1
-
-    with pytest.raises(ValueError, match="Invalid value for the 'combine'"):
-        tfr.plot(
-            picks,
-            colorbar=False,
-            combine="something",
-            mask=np.ones(tfr.data.shape[1:], bool),
-        )
-    with pytest.raises(RuntimeError, match="must operate on a single"):
-        tfr.plot(picks, combine=lambda x, y: x.mean(axis=0))
-    with pytest.raises(RuntimeError, match=re.escape("of shape (n_freqs, n_times).")):
-        tfr.plot(picks, combine=lambda x: x.mean(axis=0, keepdims=True))
-    with pytest.raises(
-        RuntimeError,
-        match=re.escape("return a numpy array of shape (n_freqs, n_times)."),
-    ):
-        tfr.plot(picks, combine=lambda x: 101)
-
-    plt.close("all")
-
-    # test axes argument - first with list of axes
-    ax = plt.subplot2grid((2, 2), (0, 0))
-    ax2 = plt.subplot2grid((2, 2), (0, 1))
-    ax3 = plt.subplot2grid((2, 2), (1, 0))
-    figs = tfr.plot(picks=[0, 1, 2], axes=[ax, ax2, ax3])
-    assert len(figs) == len([ax, ax2, ax3])
-    # and as a single axes
-    figs = tfr.plot(picks=[0], axes=ax)
-    assert len(figs) == 1
-    plt.close("all")
-    # and invalid inputs
-    with pytest.raises(ValueError, match="axes must be None"):
-        tfr.plot(picks, colorbar=False, axes={}, mask=np.ones(tfr.data.shape[1:], bool))
-
-    # different number of axes and picks should throw a RuntimeError
-    with pytest.raises(RuntimeError, match="There must be an axes"):
-        tfr.plot(
-            picks=[0],
-            colorbar=False,
-            axes=[ax, ax2],
-            mask=np.ones(tfr.data.shape[1:], bool),
-        )
-
-    tfr.plot_topo(picks=[1, 2])
-    plt.close("all")
 
     # interactive mode on by default
     fig = tfr.plot(picks=[1], cmap="RdBu_r")[0]
@@ -907,65 +864,95 @@ def test_plot():
     plt.close("all")
 
 
-def test_plot_joint():
-    """Test TFR joint plotting."""
-    raw = read_raw_fif(raw_fname)
-    times = np.linspace(-0.1, 0.1, 200)
-    n_freqs = 3
-    nave = 1
-    rng = np.random.RandomState(42)
-    data = rng.randn(len(raw.ch_names), n_freqs, len(times))
-    tfr = AverageTFR(raw.info, data, times, np.arange(n_freqs), nave)
-
-    topomap_args = {"res": 8, "contours": 0, "sensors": False}
-
-    for combine in ("mean", "rms", lambda x: x.mean(axis=0)):
-        with catch_logging() as log:
-            tfr.plot_joint(
-                title="auto",
-                colorbar=True,
-                combine=combine,
-                topomap_args=topomap_args,
-                verbose="debug",
-            )
-        plt.close("all")
-        log = log.getvalue()
-        assert "Plotting topomap for grad data" in log
-
-    # check various timefreqs
-    for timefreqs in (
-        {
-            (tfr.times[0], tfr.freqs[1]): (0.1, 0.5),
-            (tfr.times[-1], tfr.freqs[-1]): (0.2, 0.6),
-        },
-        [(tfr.times[1], tfr.freqs[1])],
-    ):
-        tfr.plot_joint(timefreqs=timefreqs, topomap_args=topomap_args)
-        plt.close("all")
-
-    # test bad timefreqs
-    timefreqs = (
-        [(-100, 1)],
-        tfr.times[1],
-        [1],
-        [(tfr.times[1], tfr.freqs[1], tfr.freqs[1])],
+@pytest.mark.parametrize("output", ("complex", "phase"))
+def test_plot_multitaper_complex_phase(output):
+    """Test TFR plotting of data with a taper dimension."""
+    # Create example data with a taper dimension
+    n_chans, n_tapers, n_freqs, n_times = (3, 4, 2, 3)
+    data = np.random.rand(n_chans, n_tapers, n_freqs, n_times)
+    if output == "complex":
+        data = data + np.random.rand(*data.shape) * 1j  # add imaginary data
+    times = np.arange(n_times)
+    freqs = np.arange(n_freqs)
+    weights = np.random.rand(n_tapers, n_freqs)
+    info = mne.create_info(n_chans, 1000.0, "eeg")
+    tfr = AverageTFRArray(
+        info=info, data=data, times=times, freqs=freqs, weights=weights
     )
-    for these_timefreqs in timefreqs:
-        pytest.raises(ValueError, tfr.plot_joint, these_timefreqs)
+    # Check that plotting works
+    tfr.plot()
 
-    # test that the object is not internally modified
-    tfr_orig = tfr.copy()
-    tfr.plot_joint(
-        baseline=(0, None), exclude=[tfr.ch_names[0]], topomap_args=topomap_args
+
+@pytest.mark.parametrize(
+    "timefreqs,title,combine",
+    (
+        pytest.param(
+            {(0.33, 23): (0, 0), (0.25, 30): (0.1, 2)},
+            "0.25 ± 0.05 s,\n30.0 ± 1.0 Hz",
+            "mean",
+            id="dict,mean",
+        ),
+        pytest.param([(0.25, 30)], "0.25 s,\n30.0 Hz", "rms", id="list,rms"),
+        pytest.param(None, None, lambda x: x.mean(axis=0), id="none,lambda"),
+    ),
+)
+@parametrize_inst_and_ch_type
+def test_tfr_plot_joint(
+    inst, ch_type, combine, timefreqs, title, full_average_tfr, request
+):
+    """Test {Raw,Epochs,Average}TFR.plot_joint()."""
+    tfr = _get_inst(inst, request, average_tfr=full_average_tfr)
+    with catch_logging() as log:
+        fig = tfr.plot_joint(
+            picks=ch_type,
+            timefreqs=timefreqs,
+            combine=combine,
+            topomap_args=dict(res=8, contours=0, sensors=False),  # for speed
+            verbose="debug",
+        )
+        assert f"Plotting topomap for {ch_type} data" in log.getvalue()
+    # check for correct number of axes
+    n_topomaps = 1 if timefreqs is None else len(timefreqs)
+    assert len(fig.axes) == n_topomaps + 2  # n_topomaps + 1 image + 1 colorbar
+    # title varies by `ch_type` when `timefreqs=None`, so we don't test that here
+    if title is not None:
+        assert fig.axes[0].get_title() == title
+    # test interactivity
+    ax = [ax for ax in fig.axes if ax.get_xlabel() == "Time (s)"][0]
+    kw = dict(fig=fig, ax=ax, xform="ax")
+    _fake_click(**kw, kind="press", point=(0.4, 0.4))
+    _fake_click(**kw, kind="motion", point=(0.5, 0.5))
+    _fake_click(**kw, kind="release", point=(0.6, 0.6))
+    # make sure we actually got a pop-up figure, and it has a plausible title
+    fignums = plt.get_fignums()
+    assert len(fignums) == 2
+    popup_fig = plt.figure(fignums[-1])
+    assert re.match(
+        r"-?\d{1,2}\.\d{3} - -?\d{1,2}\.\d{3} s,\n\d{1,2}\.\d{2} - \d{1,2}\.\d{2} Hz",
+        _get_suptitle(popup_fig),
     )
-    plt.close("all")
-    assert_array_equal(tfr.data, tfr_orig.data)
-    assert set(tfr.ch_names) == set(tfr_orig.ch_names)
-    assert set(tfr.times) == set(tfr_orig.times)
 
-    # test tfr with picked channels
-    tfr.pick(tfr.ch_names[:-1])
-    tfr.plot_joint(title="auto", colorbar=True, topomap_args=topomap_args)
+
+@pytest.mark.parametrize(
+    "match,timefreqs,topomap_args",
+    (
+        (r"Requested time point \(-88.000 s\) exceeds the range of", [(-88, 1)], None),
+        (r"Requested frequency \(99.0 Hz\) exceeds the range of", [(0.0, 99)], None),
+        ("list of tuple pairs, or a dict of such tuple pairs, not 0", [0.0], None),
+        ("does not match the channel type present in", None, dict(ch_type="eeg")),
+    ),
+)
+def test_tfr_plot_joint_errors(full_average_tfr, match, timefreqs, topomap_args):
+    """Test AverageTFR.plot_joint() error messages."""
+    with pytest.raises(ValueError, match=match):
+        full_average_tfr.plot_joint(timefreqs=timefreqs, topomap_args=topomap_args)
+
+
+def test_tfr_plot_joint_doesnt_modify(full_average_tfr):
+    """Test that the object is unchanged after plot_joint()."""
+    tfr = full_average_tfr.copy()
+    full_average_tfr.plot_joint()
+    assert tfr == full_average_tfr
 
 
 def test_add_channels():
@@ -978,8 +965,8 @@ def test_add_channels():
         1000.0,
         ["mag", "mag", "mag", "eeg", "eeg", "stim"],
     )
-    tfr = AverageTFR(
-        info,
+    tfr = AverageTFRArray(
+        info=info,
         data=data,
         times=times,
         freqs=freqs,
@@ -1010,6 +997,23 @@ def test_add_channels():
     pytest.raises(ValueError, tfr_meg.add_channels, [tfr_eeg])
     pytest.raises(ValueError, tfr_meg.add_channels, [tfr_meg])
     pytest.raises(TypeError, tfr_meg.add_channels, tfr_badsf)
+
+    # Test for EpochsTFR(Array)
+    tfr1 = EpochsTFRArray(
+        info=mne.create_info(["EEG 001"], 1000, "eeg"),
+        data=np.zeros((5, 1, 2, 3)),  # epochs, channels, freqs, times
+        times=[0.1, 0.2, 0.3],
+        freqs=[0.1, 0.2],
+    )
+    tfr2 = EpochsTFRArray(
+        info=mne.create_info(["EEG 002", "EEG 003"], 1000, "eeg"),
+        data=np.zeros((5, 2, 2, 3)),  # epochs, channels, freqs, times
+        times=[0.1, 0.2, 0.3],
+        freqs=[0.1, 0.2],
+    )
+    tfr1.add_channels([tfr2])
+    assert tfr1.ch_names == ["EEG 001", "EEG 002", "EEG 003"]
+    assert tfr1.data.shape == (5, 3, 2, 3)
 
 
 def test_compute_tfr():
@@ -1199,13 +1203,21 @@ def test_averaging_epochsTFR():
         avgpower = power.average(method=method)
         assert_array_equal(func(power.data, axis=0), avgpower.data)
     with pytest.raises(
-        RuntimeError, match="You passed a function that " "resulted in data"
+        RuntimeError, match=r"EpochsTFR.average\(\) got .* shape \(\), but it should be"
     ):
         power.average(method=np.mean)
 
+    # Check it doesn't run for taper spectra
+    tapered = epochs.compute_tfr(
+        method="multitaper", freqs=freqs, n_cycles=n_cycles, output="complex"
+    )
+    with pytest.raises(
+        NotImplementedError, match=r"Averaging multitaper tapers .* is not supported."
+    ):
+        tapered.average()
 
-@pytest.mark.parametrize("copy", [True, False])
-def test_averaging_freqsandtimes_epochsTFR(copy):
+
+def test_averaging_freqsandtimes_epochsTFR():
     """Test that EpochsTFR averaging freqs methods work."""
     # Setup for reading the raw data
     event_id = 1
@@ -1240,138 +1252,64 @@ def test_averaging_freqsandtimes_epochsTFR(copy):
         return_itc=False,
     )
 
-    # Test average methods for freqs and times
-    for idx, (func, method) in enumerate(
-        zip(
-            [np.mean, np.median, np.mean, np.mean],
-            [
-                "mean",
-                "median",
-                lambda x: np.mean(x, axis=2),
-                lambda x: np.mean(x, axis=3),
-            ],
-        )
+    # Test averaging over freqs
+    kwargs = dict(dim="freqs", copy=True)
+    for method, func in zip(
+        ("mean", "median", lambda x: np.mean(x, axis=2)), (np.mean, np.median, np.mean)
     ):
-        if idx == 3:
-            with pytest.raises(RuntimeError, match="You passed a function"):
-                avgpower = power.copy().average(method=method, dim="freqs", copy=copy)
-            continue
-        avgpower = power.copy().average(method=method, dim="freqs", copy=copy)
-        assert_array_equal(func(power.data, axis=2, keepdims=True), avgpower.data)
-        assert avgpower.freqs == np.mean(power.freqs)
+        avgpower = power.average(method=method, **kwargs)
+        assert_array_equal(avgpower.data, func(power.data, axis=2, keepdims=True))
+        assert_array_equal(avgpower.freqs, func(power.freqs, keepdims=True))
         assert isinstance(avgpower, EpochsTFR)
-
-        # average over epochs
-        avgpower = avgpower.average()
+        avgpower = avgpower.average()  # average over epochs
         assert isinstance(avgpower, AverageTFR)
+    with pytest.raises(RuntimeError, match=r"shape \(1, 2, 3\), but it should"):
+        # collapsing wrong axis (time instead of freq)
+        avgpower = power.average(method=lambda x: np.mean(x, axis=3), **kwargs)
 
-    # Test average methods for freqs and times
-    for idx, (func, method) in enumerate(
-        zip(
-            [np.mean, np.median, np.mean, np.mean],
-            [
-                "mean",
-                "median",
-                lambda x: np.mean(x, axis=3),
-                lambda x: np.mean(x, axis=2),
-            ],
-        )
+    # Test averaging over times
+    kwargs = dict(dim="times", copy=False)
+    for method, func in zip(
+        ("mean", "median", lambda x: np.mean(x, axis=3)), (np.mean, np.median, np.mean)
     ):
-        if idx == 3:
-            with pytest.raises(RuntimeError, match="You passed a function"):
-                avgpower = power.copy().average(method=method, dim="times", copy=copy)
-            continue
-        avgpower = power.copy().average(method=method, dim="times", copy=copy)
-        assert_array_equal(func(power.data, axis=-1, keepdims=True), avgpower.data)
-        assert avgpower.times == np.mean(power.times)
-        assert isinstance(avgpower, EpochsTFR)
-
-        # average over epochs
-        avgpower = avgpower.average()
-        assert isinstance(avgpower, AverageTFR)
+        avgpower = power.average(method=method, **kwargs)
+        assert_array_equal(avgpower.data, func(power.data, axis=-1, keepdims=False))
+        assert isinstance(avgpower, EpochsSpectrum)
+    with pytest.raises(RuntimeError, match=r"shape \(1, 2, 420\), but it should"):
+        # collapsing wrong axis (freq instead of time)
+        avgpower = power.average(method=lambda x: np.mean(x, axis=2), **kwargs)
 
 
-def test_getitem_epochsTFR():
-    """Test GetEpochsMixin in the context of EpochsTFR."""
+@pytest.mark.parametrize("n_drop, as_tfr_array", ((0, False), (0, True), (2, False)))
+def test_epochstfr_getitem(epochs_full, n_drop, as_tfr_array):
+    """Test EpochsTFR.__getitem__()."""
     pd = pytest.importorskip("pandas")
+    from pandas.testing import assert_frame_equal
 
-    # Setup for reading the raw data and select a few trials
-    raw = read_raw_fif(raw_fname)
-    events = read_events(event_fname)
-    # create fake data, test with and without dropping epochs
-    for n_drop_epochs in [0, 2]:
-        n_events = 12
-        # create fake metadata
-        rng = np.random.RandomState(42)
-        rt = rng.uniform(size=(n_events,))
-        trialtypes = np.array(["face", "place"])
-        trial = trialtypes[(rng.uniform(size=(n_events,)) > 0.5).astype(int)]
-        meta = pd.DataFrame(dict(RT=rt, Trial=trial))
-        event_id = dict(a=1, b=2, c=3, d=4)
-        epochs = Epochs(
-            raw, events[:n_events], event_id=event_id, metadata=meta, decim=1
+    epochs_full.metadata = pd.DataFrame(dict(foo=list("aaaabbb"), bar=np.arange(7)))
+    epochs_full.drop(np.arange(n_drop))
+    tfr = epochs_full.compute_tfr(method="morlet", freqs=freqs_linspace)
+    if not as_tfr_array:  # check that various attributes are preserved
+        assert_frame_equal(tfr.metadata, epochs_full.metadata)
+        assert epochs_full.drop_log == tfr.drop_log
+        for attr in ("events", "selection", "times"):
+            assert_array_equal(getattr(epochs_full, attr), getattr(tfr, attr))
+        # test pandas query
+        foo_a = tfr["foo == 'a'"]
+        bar_3 = tfr["bar <= 3"]
+        assert foo_a == bar_3
+        assert foo_a.shape[0] == 4 - n_drop
+    else:  # repackage to check __getitem__ also works with unspecified events, etc...
+        tfr = EpochsTFRArray(
+            info=tfr.info, data=tfr.data, times=tfr.times, freqs=tfr.freqs
         )
-        epochs.drop(np.arange(n_drop_epochs))
-        n_events -= n_drop_epochs
-
-        freqs = np.arange(12.0, 17.0, 2.0)  # define frequencies of interest
-        n_cycles = freqs / 2.0  # 0.5 second time windows for all frequencies
-
-        # Choose time x (full) bandwidth product
-        time_bandwidth = 4.0
-        # With 0.5 s time windows, this gives 8 Hz smoothing
-        kwargs = dict(
-            freqs=freqs,
-            n_cycles=n_cycles,
-            use_fft=True,
-            time_bandwidth=time_bandwidth,
-            return_itc=False,
-            average=False,
-            n_jobs=None,
-        )
-        power = tfr_multitaper(epochs, **kwargs)
-
-        # Check that power and epochs metadata is the same
-        assert_metadata_equal(epochs.metadata, power.metadata)
-        assert_metadata_equal(epochs[::2].metadata, power[::2].metadata)
-        assert_metadata_equal(epochs["RT < .5"].metadata, power["RT < .5"].metadata)
-        assert_array_equal(epochs.selection, power.selection)
-        assert epochs.drop_log == power.drop_log
-
-        # Check that get power is functioning
-        assert_array_equal(power[3:6].data, power.data[3:6])
-        assert_array_equal(power[3:6].events, power.events[3:6])
-        assert_array_equal(epochs.selection[3:6], power.selection[3:6])
-
-        indx_check = power.metadata["Trial"] == "face"
-        try:
-            indx_check = indx_check.to_numpy()
-        except Exception:
-            pass  # older Pandas
-        indx_check = indx_check.nonzero()
-        assert_array_equal(power['Trial == "face"'].events, power.events[indx_check])
-        assert_array_equal(power['Trial == "face"'].data, power.data[indx_check])
-
-        # Check that the wrong Key generates a Key Error for Metadata search
-        with pytest.raises(KeyError):
-            power['Trialz == "place"']
-
-        # Test length function
-        assert len(power) == n_events
-        assert len(power[3:6]) == 3
-
-        # Test iteration function
-        for ind, power_ep in enumerate(power):
-            assert_array_equal(power_ep, power.data[ind])
-            if ind == 5:
-                break
-
-        # Test that current state is maintained
-        assert_array_equal(power.next(), power.data[ind + 1])
-
-    # Check decim affects sfreq
-    power_decim = tfr_multitaper(epochs, decim=2, **kwargs)
-    assert power.info["sfreq"] / 2.0 == power_decim.info["sfreq"]
+    # test integer and slice
+    subset_ints = tfr[[0, 1, 2]]
+    subset_slice = tfr[:3]
+    assert subset_ints == subset_slice
+    # test iteration
+    for ix, epo in enumerate(tfr):
+        assert_array_equal(tfr[ix].data, epo.data.obj[np.newaxis])
 
 
 def test_to_data_frame():
@@ -1382,19 +1320,28 @@ def test_to_data_frame():
     ch_names = ["EEG 001", "EEG 002", "EEG 003", "EEG 004"]
     n_picks = len(ch_names)
     ch_types = ["eeg"] * n_picks
+    n_tapers = 2
     n_freqs = 5
     n_times = 6
-    data = np.random.rand(n_epos, n_picks, n_freqs, n_times)
-    times = np.arange(6)
+    data = np.random.rand(n_epos, n_picks, n_tapers, n_freqs, n_times)
+    times = np.arange(n_times)
     srate = 1000.0
-    freqs = np.arange(5)
+    freqs = np.arange(n_freqs)
+    tapers = np.arange(n_tapers)
+    weights = np.ones((n_tapers, n_freqs))
     events = np.zeros((n_epos, 3), dtype=int)
     events[:, 0] = np.arange(n_epos)
     events[:, 2] = np.arange(5, 5 + n_epos)
     event_id = {k: v for v, k in zip(events[:, 2], ["ha", "he", "hu"])}
     info = mne.create_info(ch_names, srate, ch_types)
-    tfr = mne.time_frequency.EpochsTFR(
-        info, data, times, freqs, events=events, event_id=event_id
+    tfr = EpochsTFRArray(
+        info=info,
+        data=data,
+        times=times,
+        freqs=freqs,
+        events=events,
+        event_id=event_id,
+        weights=weights,
     )
     # test index checking
     with pytest.raises(ValueError, match="options. Valid index options are"):
@@ -1406,10 +1353,21 @@ def test_to_data_frame():
     # test wide format
     df_wide = tfr.to_data_frame()
     assert all(np.isin(tfr.ch_names, df_wide.columns))
-    assert all(np.isin(["time", "condition", "freq", "epoch"], df_wide.columns))
+    assert all(
+        np.isin(["time", "condition", "freq", "epoch", "taper"], df_wide.columns)
+    )
     # test long format
     df_long = tfr.to_data_frame(long_format=True)
-    expected = ("condition", "epoch", "freq", "time", "channel", "ch_type", "value")
+    expected = (
+        "condition",
+        "epoch",
+        "freq",
+        "time",
+        "channel",
+        "ch_type",
+        "value",
+        "taper",
+    )
     assert set(expected) == set(df_long.columns)
     assert set(tfr.ch_names) == set(df_long["channel"])
     assert len(df_long) == tfr.data.size
@@ -1417,21 +1375,29 @@ def test_to_data_frame():
     df_long = tfr.to_data_frame(long_format=True, index=["freq"])
     del df_wide, df_long
     # test whether data is in correct shape
-    df = tfr.to_data_frame(index=["condition", "epoch", "freq", "time"])
+    df = tfr.to_data_frame(index=["condition", "epoch", "taper", "freq", "time"])
     data = tfr.data
     assert_array_equal(df.values[:, 0], data[:, 0, :, :].reshape(1, -1).squeeze())
     # compare arbitrary observation:
     assert (
-        df.loc[("he", slice(None), freqs[1], times[2]), ch_names[3]].iat[0]
-        == data[1, 3, 1, 2]
+        df.loc[("he", slice(None), tapers[1], freqs[1], times[2]), ch_names[3]].iat[0]
+        == data[1, 3, 1, 1, 2]
     )
 
     # Check also for AverageTFR:
+    # (remove taper dimension before averaging)
+    state = tfr.__getstate__()
+    state["data"] = state["data"][:, :, 0]
+    state["dims"] = ("epoch", "channel", "freq", "time")
+    state["weights"] = None
+    tfr = EpochsTFR(inst=state)
     tfr = tfr.average()
     with pytest.raises(ValueError, match="options. Valid index options are"):
         tfr.to_data_frame(index=["epoch", "condition"])
     with pytest.raises(ValueError, match='"epoch" is not a valid option'):
         tfr.to_data_frame(index="epoch")
+    with pytest.raises(ValueError, match='"taper" is not a valid option'):
+        tfr.to_data_frame(index="taper")
     with pytest.raises(TypeError, match="index must be `None` or a string "):
         tfr.to_data_frame(index=np.arange(400))
     # test wide format
@@ -1467,18 +1433,26 @@ def test_to_data_frame_index(index):
     ch_names = ["EEG 001", "EEG 002", "EEG 003", "EEG 004"]
     n_picks = len(ch_names)
     ch_types = ["eeg"] * n_picks
+    n_tapers = 2
     n_freqs = 5
     n_times = 6
-    data = np.random.rand(n_epos, n_picks, n_freqs, n_times)
-    times = np.arange(6)
-    freqs = np.arange(5)
+    data = np.random.rand(n_epos, n_picks, n_tapers, n_freqs, n_times)
+    times = np.arange(n_times)
+    freqs = np.arange(n_freqs)
+    weights = np.ones((n_tapers, n_freqs))
     events = np.zeros((n_epos, 3), dtype=int)
     events[:, 0] = np.arange(n_epos)
     events[:, 2] = np.arange(5, 8)
     event_id = {k: v for v, k in zip(events[:, 2], ["ha", "he", "hu"])}
     info = mne.create_info(ch_names, 1000.0, ch_types)
-    tfr = mne.time_frequency.EpochsTFR(
-        info, data, times, freqs, events=events, event_id=event_id
+    tfr = EpochsTFRArray(
+        info=info,
+        data=data,
+        times=times,
+        freqs=freqs,
+        events=events,
+        event_id=event_id,
+        weights=weights,
     )
     df = tfr.to_data_frame(picks=[0, 2, 3], index=index)
     # test index order/hierarchy preservation
@@ -1486,7 +1460,7 @@ def test_to_data_frame_index(index):
         index = [index]
     assert list(df.index.names) == index
     # test that non-indexed data were present as columns
-    non_index = list(set(["condition", "time", "freq", "epoch"]) - set(index))
+    non_index = list(set(["condition", "time", "freq", "taper", "epoch"]) - set(index))
     if len(non_index):
         assert all(np.isin(non_index, df.columns))
 
@@ -1502,17 +1476,432 @@ def test_to_data_frame_time_format(time_format):
     n_freqs = 5
     n_times = 6
     data = np.random.rand(n_epos, n_picks, n_freqs, n_times)
-    times = np.arange(6)
+    times = np.arange(6, dtype=float)
     freqs = np.arange(5)
     events = np.zeros((n_epos, 3), dtype=int)
     events[:, 0] = np.arange(n_epos)
     events[:, 2] = np.arange(5, 8)
     event_id = {k: v for v, k in zip(events[:, 2], ["ha", "he", "hu"])}
     info = mne.create_info(ch_names, 1000.0, ch_types)
-    tfr = mne.time_frequency.EpochsTFR(
-        info, data, times, freqs, events=events, event_id=event_id
+    tfr = EpochsTFRArray(
+        info=info,
+        data=data,
+        times=times,
+        freqs=freqs,
+        events=events,
+        event_id=event_id,
     )
     # test time_format
     df = tfr.to_data_frame(time_format=time_format)
     dtypes = {None: np.float64, "ms": np.int64, "timedelta": pd.Timedelta}
     assert isinstance(df["time"].iloc[0], dtypes[time_format])
+
+
+@parametrize_morlet_multitaper
+@parametrize_power_phase_complex
+@pytest.mark.parametrize("picks", ("mag", mag_names, [2, 5, 8]))  # all 3 equivalent
+def test_raw_compute_tfr(raw, method, output, picks, tmp_path):
+    """Test Raw.compute_tfr() and picks handling."""
+    full_tfr = raw.compute_tfr(method, output=output, freqs=freqs_linspace)
+    pick_tfr = raw.compute_tfr(method, output=output, freqs=freqs_linspace, picks=picks)
+    assert isinstance(pick_tfr, RawTFR), type(pick_tfr)
+    # ↓↓↓ can't use [2,5,8] because ch0 is IAS, so indices change between raw and TFR
+    want = full_tfr.get_data(picks=mag_names)
+    got = pick_tfr.get_data()
+    assert_array_equal(want, got)
+    # make sure save/load works for phase/complex data
+    if output in ("phase", "complex"):
+        pytest.importorskip("h5io")
+        fname = tmp_path / "temp_tfr.hdf5"
+        full_tfr.save(fname, overwrite=True)
+        assert read_tfrs(fname) == full_tfr
+
+
+@parametrize_morlet_multitaper
+@parametrize_power_phase_complex
+@pytest.mark.parametrize("freqs", (freqs_linspace, freqs_unsorted_list))
+def test_evoked_compute_tfr(full_evoked, method, output, freqs):
+    """Test Evoked.compute_tfr(), with a few different ways of specifying freqs."""
+    tfr = full_evoked.compute_tfr(method, freqs, output=output)
+    assert isinstance(tfr, AverageTFR), type(tfr)
+    assert tfr.nave == full_evoked.nave
+    assert tfr.comment == full_evoked.comment
+
+
+@parametrize_morlet_multitaper
+@pytest.mark.parametrize(
+    "average,return_itc,dim,want_class",
+    (
+        pytest.param(True, False, None, None, id="average,no_itc"),
+        pytest.param(True, True, None, None, id="average,itc"),
+        pytest.param(False, False, "freqs", EpochsTFR, id="no_average,agg_freqs"),
+        pytest.param(False, False, "epochs", AverageTFR, id="no_average,agg_epochs"),
+        pytest.param(False, False, "times", EpochsSpectrum, id="no_average,agg_times"),
+    ),
+)
+def test_epochs_compute_tfr_average_itc(
+    epochs, method, average, return_itc, dim, want_class
+):
+    """Test Epochs.compute_tfr(), averaging (at call time and afterward), and ITC."""
+    tfr = epochs.compute_tfr(
+        method, freqs=freqs_linspace, average=average, return_itc=return_itc
+    )
+    if return_itc:
+        tfr, itc = tfr
+        assert isinstance(itc, AverageTFR), type(itc)
+        # for single-epoch input, ITC should be (nearly) unity
+        assert_array_almost_equal(itc.get_data(), 1.0, decimal=15)
+    # if not averaging initially, make sure the post-facto .average() works too
+    if average:
+        assert isinstance(tfr, AverageTFR), type(tfr)
+        assert tfr.nave == 1
+        assert tfr.comment == "1"
+    else:
+        assert isinstance(tfr, EpochsTFR), type(tfr)
+        avg = tfr.average(dim=dim)
+        assert isinstance(avg, want_class), type(avg)
+        if dim == "epochs":
+            assert avg.nave == len(epochs)
+            assert avg.comment.startswith(f"mean of {len(epochs)} EpochsTFR")
+
+
+def test_epochs_vs_evoked_compute_tfr(epochs):
+    """Compare result of averaging before or after the TFR computation.
+
+    This is mostly a test of object structure / attribute preservation. In normal cases,
+    the data should not match:
+        - epochs.compute_tfr().average() is average of squared magnitudes
+        - epochs.average().compute_tfr() is squared magnitude of average
+    But the `epochs` fixture has only one epoch, so here data should be identical too.
+
+    The three things that will always end up different are `._comment`, `._inst_type`,
+    and `._data_type`, so we ignore those here.
+    """
+    avg_first = epochs.average().compute_tfr(method="morlet", freqs=freqs_linspace)
+    avg_second = epochs.compute_tfr(method="morlet", freqs=freqs_linspace).average()
+    for attr in ("_comment", "_inst_type", "_data_type"):
+        assert getattr(avg_first, attr) != getattr(avg_second, attr)
+        delattr(avg_first, attr)
+        delattr(avg_second, attr)
+    assert avg_first == avg_second
+
+
+morlet_kw = dict(n_cycles=freqs_linspace / 4, use_fft=False, zero_mean=True)
+mt_kw = morlet_kw | dict(zero_mean=False, time_bandwidth=6)
+stockwell_kw = dict(n_fft=1024, width=2)
+
+
+@pytest.mark.parametrize(
+    "method,freqs,method_kw",
+    (
+        pytest.param("morlet", freqs_linspace, morlet_kw, id="morlet-nondefaults"),
+        pytest.param("multitaper", freqs_linspace, mt_kw, id="multitaper-nondefaults"),
+        pytest.param("stockwell", "auto", stockwell_kw, id="stockwell-nondefaults"),
+    ),
+)
+def test_epochs_compute_tfr_method_kw(epochs, method, freqs, method_kw):
+    """Test Epochs.compute_tfr(**method_kw)."""
+    tfr = epochs.compute_tfr(method, freqs=freqs, average=True, **method_kw)
+    assert isinstance(tfr, AverageTFR), type(tfr)
+
+
+@pytest.mark.parametrize(
+    "freqs",
+    (pytest.param("auto", id="freqauto"), pytest.param([20, 41], id="fminfmax")),
+)
+@pytest.mark.parametrize("return_itc", (False, True))
+def test_epochs_compute_tfr_stockwell(epochs, freqs, return_itc):
+    """Test Epochs.compute_tfr(method="stockwell")."""
+    tfr = epochs.compute_tfr("stockwell", freqs, return_itc=return_itc)
+    if return_itc:
+        tfr, itc = tfr
+        assert isinstance(itc, AverageTFR)
+        # for single-epoch input, ITC should be (nearly) unity
+        assert_array_almost_equal(itc.get_data(), 1.0, decimal=15)
+    assert isinstance(tfr, AverageTFR)
+    assert tfr.comment == "1"
+
+
+@pytest.mark.parametrize("output", ("complex", "phase"))
+def test_epochs_compute_tfr_multitaper_complex_phase(epochs, output):
+    """Test Epochs.compute_tfr(output="complex"/"phase")."""
+    tfr = epochs.compute_tfr("multitaper", freqs_linspace, output=output)
+    assert len(tfr.shape) == 5  # epoch x channel x taper x freq x time
+    assert tfr.weights.shape == tfr.shape[2:4]  # check weights and coeffs shapes match
+
+
+@pytest.mark.parametrize("copy", (False, True))
+def test_epochstfr_iter_evoked(epochs_tfr, copy):
+    """Test EpochsTFR.iter_evoked()."""
+    avgs = list(epochs_tfr.iter_evoked(copy=copy))
+    assert len(avgs) == len(epochs_tfr)
+    assert all(avg.nave == 1 for avg in avgs)
+    assert avgs[0].comment == str(epochs_tfr.events[0, -1])
+
+
+@pytest.mark.parametrize("obj_type", ("raw", "epochs", "evoked"))
+def test_tfrarray_tapered_spectra(obj_type):
+    """Test {Raw,Epochs,Average}TFRArray instantiation with tapered spectra."""
+    # Create example data with a taper dimension
+    n_epochs, n_chans, n_tapers, n_freqs, n_times = (5, 3, 4, 2, 6)
+    data_shape = (n_chans, n_tapers, n_freqs, n_times)
+    if obj_type == "epochs":
+        data_shape = (n_epochs,) + data_shape
+    data = np.random.rand(*data_shape)
+    times = np.arange(n_times)
+    freqs = np.arange(n_freqs)
+    weights = np.random.rand(n_tapers, n_freqs)
+    info = mne.create_info(n_chans, 1000.0, "eeg")
+    # Prepare for TFRArray object instantiation
+    defaults = dict(info=info, data=data, times=times, freqs=freqs)
+    class_mapping = dict(raw=RawTFRArray, epochs=EpochsTFRArray, evoked=AverageTFRArray)
+    TFRArray = class_mapping[obj_type]
+    # Check TFRArray instantiation runs with good data
+    TFRArray(**defaults, weights=weights)
+    # Check taper dimension but no weights caught
+    with pytest.raises(
+        ValueError, match="Taper dimension in data, but no weights found."
+    ):
+        TFRArray(**defaults)
+    # Check mismatching n_taper in weights caught
+    with pytest.raises(
+        ValueError, match=r"Taper axis .* doesn't match weights attribute"
+    ):
+        TFRArray(**defaults, weights=weights[:-1])
+    # Check mismatching n_freq in weights caught
+    with pytest.raises(
+        ValueError, match=r"Frequency axis .* doesn't match weights attribute"
+    ):
+        TFRArray(**defaults, weights=weights[:, :-1])
+
+
+def test_tfr_proj(epochs):
+    """Test `compute_tfr(proj=True)`."""
+    epochs.compute_tfr(method="morlet", freqs=freqs_linspace, proj=True)
+
+
+def test_tfr_copy(average_tfr):
+    """Test BaseTFR.copy() method."""
+    tfr_copy = average_tfr.copy()
+    # check that info is independent
+    tfr_copy.info["bads"] = tfr_copy.ch_names
+    assert average_tfr.info["bads"] == []
+    # check that data is independent
+    tfr_copy.data = np.inf
+    assert np.isfinite(average_tfr.get_data()).all()
+
+
+@pytest.mark.parametrize(
+    "mode", ("mean", "ratio", "logratio", "percent", "zscore", "zlogratio")
+)
+def test_tfr_apply_baseline(average_tfr, mode):
+    """Test TFR baselining."""
+    average_tfr.apply_baseline((-0.1, -0.05), mode=mode)
+
+
+def test_tfr_arithmetic(epochs):
+    """Test TFR arithmetic operations."""
+    tfr, itc = epochs.compute_tfr(
+        "morlet", freqs=freqs_linspace, average=True, return_itc=True
+    )
+    itc_copy = itc.copy()
+    # addition / subtraction of objects
+    double = tfr + tfr
+    double -= tfr
+    assert tfr == double
+    itc_copy += tfr
+    assert itc == itc_copy - tfr
+    # multiplication / division with scalars
+    bigger_itc = itc * 23
+    assert_array_almost_equal(itc.data, (bigger_itc / 23).data, decimal=15)
+    # multiplication / division with arrays
+    arr = np.full_like(itc.data, 23)
+    assert_array_equal(bigger_itc.data, (itc * arr).data)
+    # in-place multiplication/division
+    bigger_itc *= 2
+    bigger_itc /= 46
+    assert_array_almost_equal(itc.data, bigger_itc.data, decimal=15)
+    # check errors
+    with pytest.raises(RuntimeError, match="types do not match"):
+        tfr + epochs
+    with pytest.raises(RuntimeError, match="times do not match"):
+        tfr + tfr.copy().crop(tmax=0.2)
+    with pytest.raises(RuntimeError, match="freqs do not match"):
+        tfr + tfr.copy().crop(fmax=33)
+
+
+def test_tfr_repr_html(epochs_tfr):
+    """Test TFR._repr_html_()."""
+    result = epochs_tfr._repr_html_(caption="Foo")
+    for heading in ("Data type", "Data source", "Estimation method"):
+        assert f"<th>{heading}</th>" in result
+    for data in ("Power Estimates", "Epochs", "morlet"):
+        assert f"<td>{data}</td>" in result
+
+
+@pytest.mark.parametrize(
+    "picks,combine",
+    (
+        pytest.param("mag", "mean", id="mean_of_mags"),
+        pytest.param("grad", "rms", id="rms_of_grads"),
+        pytest.param([1], "mean", id="single_channel"),
+        pytest.param([1, 2], None, id="two_separate_channels"),
+    ),
+)
+def test_tfr_plot_combine(epochs_tfr, picks, combine):
+    """Test TFR.plot() picks, combine, and title="auto".
+
+    No need to parametrize over {Raw,Epochs,Evoked}TFR, the code path is shared.
+    """
+    fig = epochs_tfr.plot(picks=picks, combine=combine, title="auto")
+    assert len(fig) == 1 if isinstance(picks, str) else len(picks)
+    # test `title="auto"`
+    for ix, _fig in enumerate(fig):
+        if isinstance(picks, str):
+            ch_type = _channel_type_prettyprint[picks]
+            want = rf"{'RMS' if combine == 'rms' else 'Mean'} of \d{{1,3}} {ch_type}s"
+        else:
+            want = epochs_tfr.ch_names[picks[ix]]
+        assert re.search(want, _get_suptitle(_fig))
+
+
+def test_tfr_plot_extras(epochs_tfr):
+    """Test other options of TFR.plot()."""
+    # test mask and custom title
+    picks = [1]
+    mask = np.ones(epochs_tfr.data.shape[2:], bool)
+    fig = epochs_tfr.plot(picks=picks, mask=mask, title="Foo")
+    assert _get_suptitle(fig[0]) == "Foo"
+    mask = np.ones(epochs_tfr.data.shape[1:], bool)
+    with pytest.raises(ValueError, match="mask must have the same shape as the data"):
+        epochs_tfr.plot(picks=picks, mask=mask)
+    # test combine-related errors
+    with pytest.raises(ValueError, match='"combine" must be None, a callable, or one'):
+        epochs_tfr.plot(picks=picks, combine="foo")
+    with pytest.raises(RuntimeError, match="Wrong type yielded by callable"):
+        epochs_tfr.plot(picks=picks, combine=lambda x: 777)
+    with pytest.raises(RuntimeError, match="Wrong shape yielded by callable"):
+        epochs_tfr.plot(picks=picks, combine=lambda x: np.array([777]))
+    with pytest.raises(ValueError, match="wrong with the callable passed to 'combine'"):
+        epochs_tfr.plot(picks=picks, combine=lambda x, y: x.mean(axis=0))
+    # test custom Axes
+    fig, axs = plt.subplots(1, 5)
+    fig2 = epochs_tfr.plot(picks=[1, 2], combine=lambda x: x.mean(axis=0), axes=axs[0])
+    fig3 = epochs_tfr.plot(picks=[1, 2, 3], axes=axs[1:-1])
+    fig4 = epochs_tfr.plot(picks=[1], axes=axs[-1:].tolist())
+    for _fig in fig2 + fig3 + fig4:
+        assert fig == _fig
+    with pytest.raises(ValueError, match="axes must be None"):
+        epochs_tfr.plot(picks=picks, axes={})
+    with pytest.raises(RuntimeError, match="must be one axes for each picked channel"):
+        epochs_tfr.plot(picks=[1, 2], axes=axs[-1:])
+    # test singleton check by faking having 2 epochs
+    epochs_tfr._data = np.vstack((epochs_tfr._data, epochs_tfr._data))
+    with pytest.raises(NotImplementedError, match=r"Cannot call plot\(\) from"):
+        epochs_tfr.plot()
+
+
+def test_tfr_plot_interactivity(epochs_tfr):
+    """Test interactivity of TFR.plot()."""
+    fig = epochs_tfr.plot(picks="mag", combine="mean")[0]
+    assert len(plt.get_fignums()) == 1
+    # press and release in same spot (should do nothing)
+    kw = dict(fig=fig, ax=fig.axes[0], xform="ax")
+    _fake_click(**kw, point=(0.5, 0.5), kind="press")
+    _fake_click(**kw, point=(0.5, 0.5), kind="motion")
+    _fake_click(**kw, point=(0.5, 0.5), kind="release")
+    assert len(plt.get_fignums()) == 1
+    # click and drag (should create popup topomap)
+    _fake_click(**kw, point=(0.4, 0.4), kind="press")
+    _fake_click(**kw, point=(0.5, 0.5), kind="motion")
+    _fake_click(**kw, point=(0.6, 0.6), kind="release")
+    assert len(plt.get_fignums()) == 2
+
+
+@parametrize_inst_and_ch_type
+def test_tfr_plot_topo(inst, ch_type, average_tfr, request):
+    """Test {Raw,Epochs,Average}TFR.plot_topo()."""
+    tfr = _get_inst(inst, request, average_tfr=average_tfr)
+    fig = tfr.plot_topo(picks=ch_type)
+    assert fig is not None
+
+
+@parametrize_inst_and_ch_type
+def test_tfr_plot_topomap(inst, ch_type, full_average_tfr, request):
+    """Test {Raw,Epochs,Average}TFR.plot_topomap()."""
+    tfr = _get_inst(inst, request, average_tfr=full_average_tfr)
+    fig = tfr.plot_topomap(ch_type=ch_type)
+    # fake a click-drag-release to select all sensors & generate a pop-up TFR image
+    ax = fig.axes[0]
+    pts = [
+        coll.get_offsets()
+        for coll in ax.collections
+        if isinstance(coll, PathCollection)
+    ][0]
+    # sometimes sensors are outside axes; make sure our click starts inside axes
+    lims = np.vstack((ax.get_xlim(), ax.get_ylim()))
+    pad = np.diff(lims, axis=1).ravel() / 100
+    start = np.clip(pts.min(axis=0) - pad, *(lims.min(axis=1) + pad))
+    stop = np.clip(pts.max(axis=0) + pad, *(lims.max(axis=1) - pad))
+    kw = dict(fig=fig, ax=ax, xform="data")
+    _fake_click(**kw, kind="press", point=tuple(start))
+    # ↓↓↓ possible bug? using (start+stop)/2 for the motion event causes the motion
+    # ↓↓↓ event (not release event) coords to propagate → fails to select sensors
+    _fake_click(**kw, kind="motion", point=tuple(stop))
+    _fake_click(**kw, kind="release", point=tuple(stop))
+    # make sure we actually got a pop-up figure, and it has a plausible title
+    fignums = plt.get_fignums()
+    assert len(fignums) == 2
+    popup_fig = plt.figure(fignums[-1])
+    assert re.match(
+        rf"Average over \d{{1,3}} {ch_type} channels\.", popup_fig.axes[0].get_title()
+    )
+
+
+@pytest.mark.parametrize("output", ("complex", "phase"))
+def test_tfr_topo_plotting_multitaper_complex_phase(output, evoked):
+    """Test plot_joint/topo/topomap() for data with a taper dimension."""
+    # Compute TFR with taper dimension
+    tfr = evoked.compute_tfr(
+        method="multitaper", freqs=freqs_linspace, n_cycles=4, output=output
+    )
+    # Check that plotting works
+    tfr.plot_joint(topomap_args=dict(res=8, contours=0, sensors=False))  # for speed
+    tfr.plot_topo()
+    tfr.plot_topomap()
+
+
+def test_combine_tfr_error_catch(average_tfr):
+    """Test combine_tfr() catches errors."""
+    # check unrecognised weights string caught
+    with pytest.raises(ValueError, match='Weights must be .* "nave" or "equal"'):
+        combine_tfr([average_tfr, average_tfr], weights="foo")
+    # check bad weights size caught
+    with pytest.raises(ValueError, match="Weights must be the same size as all_tfr"):
+        combine_tfr([average_tfr, average_tfr], weights=[1, 1, 1])
+    # check different channel names caught
+    state = average_tfr.__getstate__()
+    new_info = average_tfr.info.copy()
+    average_tfr_bad = AverageTFR(
+        inst=state | dict(info=new_info.rename_channels({new_info.ch_names[0]: "foo"}))
+    )
+    with pytest.raises(AssertionError, match=".* do not contain the same channels"):
+        combine_tfr([average_tfr, average_tfr_bad])
+    # check different times caught
+    average_tfr_bad = AverageTFR(inst=state | dict(times=average_tfr.times + 1))
+    with pytest.raises(
+        AssertionError, match=".* do not contain the same time instants"
+    ):
+        combine_tfr([average_tfr, average_tfr_bad])
+    # check taper dim caught
+    n_tapers = 3  # anything >= 1 should do
+    weights = np.ones((n_tapers, average_tfr.shape[1]))  # tapers x freqs
+    state["data"] = np.repeat(np.expand_dims(average_tfr.data, 1), n_tapers, axis=1)
+    state["weights"] = weights
+    state["dims"] = ("channel", "taper", "freq", "time")
+    average_tfr_taper = AverageTFR(inst=state)
+    with pytest.raises(
+        NotImplementedError,
+        match="Aggregating multitaper tapers across TFR datasets is not supported.",
+    ):
+        combine_tfr([average_tfr_taper, average_tfr_taper])

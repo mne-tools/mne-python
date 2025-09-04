@@ -17,8 +17,10 @@ different stimulus (word). As usual we'll start by importing the modules we
 need and loading the data:
 """
 
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 # %%
 
 import numpy as np
@@ -47,9 +49,13 @@ epochs = mne.read_epochs(kiloword_data_file)
 #    reloading the `~mne.Epochs` object to/from disk.
 #
 # The metadata attached to `~mne.Epochs` objects is stored as a
-# :class:`pandas.DataFrame` containing one row for each epoch. The columns of
-# this :class:`~pandas.DataFrame` can contain just about any information you
-# want to store about each epoch; in this case, the metadata encodes
+# :class:`pandas.DataFrame`:
+
+assert isinstance(epochs.metadata, pd.DataFrame)
+
+# %%
+# Each row corresponds to one epoch. The columns can contain just about any information
+# you want to store about each epoch; in this case, the metadata encodes
 # information about the stimulus seen on each trial, including properties of
 # the visual word form itself (e.g., ``NumberOfLetters``, ``VisualComplexity``)
 # as well as properties of what the word means (e.g., its ``Concreteness``) and
@@ -88,7 +94,6 @@ print(epochs.metadata.iloc[2:4])
 # groups.
 
 epochs.metadata["NumberOfLetters"] = epochs.metadata["NumberOfLetters"].map(int)
-
 epochs.metadata["HighComplexity"] = epochs.metadata["VisualComplexity"] > 65
 epochs.metadata.head()
 

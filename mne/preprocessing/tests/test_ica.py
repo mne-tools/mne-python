@@ -1,6 +1,4 @@
-# Author: Denis Engemann <denis.engemann@gmail.com>
-#         Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -173,8 +171,9 @@ def test_ica_simple(method):
     info = create_info(data.shape[-2], 1000.0, "eeg")
     cov = make_ad_hoc_cov(info)
     ica = ICA(n_components=n_components, method=method, random_state=0, noise_cov=cov)
-    with pytest.warns(RuntimeWarning, match="high-pass filtered"), pytest.warns(
-        RuntimeWarning, match="No average EEG.*"
+    with (
+        pytest.warns(RuntimeWarning, match="high-pass filtered"),
+        pytest.warns(RuntimeWarning, match="No average EEG.*"),
     ):
         ica.fit(RawArray(data, info))
     transform = ica.unmixing_matrix_ @ ica.pca_components_ @ A
@@ -211,7 +210,7 @@ def test_warnings():
     ica.fit(epochs)
 
     epochs.baseline = (epochs.tmin, 0)
-    with pytest.warns(RuntimeWarning, match="consider baseline-correcting.*" "again"):
+    with pytest.warns(RuntimeWarning, match="consider baseline-correcting.*again"):
         ica.apply(epochs)
 
 
@@ -526,7 +525,7 @@ def test_ica_core(method, n_components, noise_cov, n_pca_components, browser_bac
 
     raw_sources = ica.get_sources(raw)
     # test for #3804
-    assert_equal(raw_sources._filenames, [None])
+    assert_equal(raw_sources.filenames, (None,))
     print(raw_sources)
 
     # test for gh-6271 (scaling of ICA traces)
@@ -974,7 +973,7 @@ def test_ica_additional(method, tmp_path, short_raw_epochs):
     assert ica_raw.n_times == 100
     assert ica_raw.last_samp - ica_raw.first_samp + 1 == 100
     assert ica_raw._data.shape[1] == 100
-    assert_equal(len(ica_raw._filenames), 1)  # API consistency
+    assert_equal(len(ica_raw.filenames), 1)  # API consistency
     ica_chans = [ch for ch in ica_raw.ch_names if "ICA" in ch]
     assert ica.n_components_ == len(ica_chans)
     test_ica_fname = Path.cwd() / "test-ica_raw.fif"
@@ -1028,7 +1027,6 @@ def test_ica_additional(method, tmp_path, short_raw_epochs):
 
 def test_get_explained_variance_ratio(tmp_path, short_raw_epochs):
     """Test ICA.get_explained_variance_ratio()."""
-    pytest.importorskip("sklearn")
     raw, epochs, _ = short_raw_epochs
     ica = ICA(max_iter=1)
 
@@ -1259,8 +1257,9 @@ def test_fit_params_epochs_vs_raw(param_name, param_val, tmp_path):
     ica = ICA(n_components=n_components, max_iter=max_iter, method=method)
 
     fit_params = {param_name: param_val}
-    with _record_warnings(), pytest.warns(
-        RuntimeWarning, match="parameters.*will be ignored"
+    with (
+        _record_warnings(),
+        pytest.warns(RuntimeWarning, match="parameters.*will be ignored"),
     ):
         ica.fit(inst=epochs, **fit_params)
     assert ica.reject_ == reject
@@ -1479,7 +1478,7 @@ def test_ica_labels():
 
     # derive reference ICA components and append them to raw
     ica_rf = ICA(n_components=2, max_iter=2, allow_ref_meg=True)
-    with _record_warnings(), pytest.warns(UserWarning, match="did not converge"):
+    with _record_warnings():  # high pass and/or no convergence
         ica_rf.fit(raw.copy().pick("ref_meg"))
     icacomps = ica_rf.get_sources(raw)
     # rename components so they are auto-detected by find_bads_ref
@@ -1519,6 +1518,13 @@ def test_ica_labels():
         ica.fit(raw, picks="eeg")
     ica.find_bads_muscle(raw)
     assert "muscle" in ica.labels_
+
+    # Try without sensor locations
+    raw.set_montage(None)
+    with pytest.warns(RuntimeWarning, match="based on the 'slope' criterion"):
+        labels, scores = ica.find_bads_muscle(raw, threshold=0.35)
+    assert "muscle" in ica.labels_
+    assert labels == [3]
 
 
 @testing.requires_testing_data

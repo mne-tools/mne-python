@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "ace9e127a76e46883daa302ac3dacf80a9cbd675",
+  "authors": [
+    {
+      "n": "PAB",
+      "e": null
+    },
+    {
+      "n": "Pierre-Antoine Bannier",
+      "e": "pierre-antoine@macbook-pro-de-pierre-antoine.home"
+    },
+    {
+      "n": "Pierre-Antoine Bannier",
+      "e": "pierre-antoine@mbpdepieantoine.home"
+    }
+  ],
+  "changes": {
+    "mne/inverse_sparse/mxne_optim.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/inverse_sparse/tests/test_mxne_optim.py": {
+      "a": 23,
+      "d": 0
+    }
+  }
+}

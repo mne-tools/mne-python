@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "a7be363558c2126a88812e373408fa3e3cb69b26",
+  "authors": [
+    {
+      "n": "Alex Rockhill",
+      "e": "aprockhill@mailbox.org"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/_freesurfer.py": {
+      "a": 69,
+      "d": 4
+    },
+    "mne/viz/_3d.py": {
+      "a": 11,
+      "d": 62
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 42,
+      "d": 3
+    },
+    "mne/viz/_brain/surface.py": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/viz/_brain/tests/test_brain.py": {
+      "a": 5,
+      "d": 0
+    }
+  }
+}

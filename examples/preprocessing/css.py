@@ -75,9 +75,9 @@ stc = simulate_sparse_stc(
     labels=[postcenlab, hiplab],
     data_fun=cortical_waveform,
 )
-stc.data[
-    np.where(np.isin(stc.vertices[0], hiplab.vertices))[0], :
-] = subcortical_waveform(times)
+stc.data[np.where(np.isin(stc.vertices[0], hiplab.vertices))[0], :] = (
+    subcortical_waveform(times)
+)
 evoked = simulate_evoked(fwd, stc, raw.info, cov, nave=15)
 
 ###############################################################################

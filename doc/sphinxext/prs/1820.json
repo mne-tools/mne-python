@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "2de9daf649d762193b62aa1ed973c62e7c97798d",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "doc/source/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/beamformer/_dics.py": {
+      "a": 12,
+      "d": 10
+    },
+    "mne/beamformer/_lcmv.py": {
+      "a": 121,
+      "d": 37
+    }
+  }
+}

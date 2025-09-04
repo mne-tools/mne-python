@@ -1,14 +1,10 @@
 """Functions to make 3D plots with M/EEG data."""
 
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Denis Engemann <denis.engemann@gmail.com>
-#          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
-#          Eric Larson <larson.eric.d@gmail.com>
-#          Mainak Jas <mainak@neuro.hut.fi>
-#          Mark Wronkiewicz <wronk.mark@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
+from __future__ import annotations  # only needed for Python ≤ 3.9
 
 import os
 import os.path as op
@@ -19,7 +15,6 @@ from dataclasses import dataclass
 from functools import partial
 from itertools import cycle
 from pathlib import Path
-from typing import Optional
 
 import numpy as np
 from scipy.spatial import ConvexHull, Delaunay
@@ -55,6 +50,8 @@ from ..surface import (
 )
 from ..transforms import (
     Transform,
+    _angle_between_quats,
+    _angle_dist_between_rigid,
     _ensure_trans,
     _find_trans,
     _frame_to_str,
@@ -130,11 +127,13 @@ def plot_head_positions(
     mode="traces",
     cmap="viridis",
     direction="z",
+    *,
     show=True,
     destination=None,
     info=None,
     color="k",
     axes=None,
+    totals=False,
 ):
     """Plot head positions.
 
@@ -153,10 +152,9 @@ def plot_head_positions(
         directional axes in "field" mode.
     show : bool
         Show figure if True. Defaults to True.
-    destination : str | array-like, shape (3,) | None
-        The destination location for the head, assumed to be in head
-        coordinates. See :func:`mne.preprocessing.maxwell_filter` for
-        details.
+    destination : path-like | array-like, shape (3,) | instance of Transform | None
+        The destination location for the head. See
+        :func:`mne.preprocessing.maxwell_filter` for details.
 
         .. versionadded:: 0.16
     %(info)s If provided, will be used to show the destination position when
@@ -168,10 +166,16 @@ def plot_head_positions(
         arrows in ``mode == 'field'``.
 
         .. versionadded:: 0.16
-    axes : array-like, shape (3, 2)
-        The matplotlib axes to use. Only used for ``mode == 'traces'``.
+    axes : array-like, shape (3, 2) or (4, 2)
+        The matplotlib axes to use.
 
         .. versionadded:: 0.16
+        .. versionchanged:: 1.8
+           Added support for making use of this argument when ``mode="field"``.
+    totals : bool
+        If True and in traces mode, show the total distance and angle in a fourth row.
+
+        .. versionadded:: 1.9
 
     Returns
     -------
@@ -184,21 +188,23 @@ def plot_head_positions(
     from ..preprocessing.maxwell import _check_destination
 
     _check_option("mode", mode, ["traces", "field"])
+    _validate_type(totals, bool, "totals")
     dest_info = dict(dev_head_t=None) if info is None else info
-    destination = _check_destination(destination, dest_info, head_frame=True)
+    destination = _check_destination(destination, dest_info, "head")
     if destination is not None:
         destination = _ensure_trans(destination, "head", "meg")  # probably inv
-        destination = destination["trans"][:3].copy()
-        destination[:, 3] *= 1000
+        destination = destination["trans"]
 
-    if not isinstance(pos, (list, tuple)):
+    if not isinstance(pos, list | tuple):
         pos = [pos]
+    pos = list(pos)  # make our own mutable copy
     for ii, p in enumerate(pos):
+        _validate_type(p, np.ndarray, f"pos[{ii}]")
         p = np.array(p, float)
         if p.ndim != 2 or p.shape[1] != 10:
             raise ValueError(
                 "pos (or each entry in pos if a list) must be "
-                "dimension (N, 10), got %s" % (p.shape,)
+                f"dimension (N, 10), got {p.shape}"
             )
         if ii > 0:  # concatenation
             p[:, 0] += pos[ii - 1][-1, 0] - p[0, 0]
@@ -228,15 +234,17 @@ def plot_head_positions(
                 surf["rr"] *= 1000.0
     helmet_color = DEFAULTS["coreg"]["helmet_color"]
     if mode == "traces":
+        want_shape = (3 + int(totals), 2)
         if axes is None:
-            axes = plt.subplots(3, 2, sharex=True)[1]
+            _, axes = plt.subplots(*want_shape, sharex=True, layout="constrained")
         else:
             axes = np.array(axes)
-        if axes.shape != (3, 2):
-            raise ValueError("axes must have shape (3, 2), got %s" % (axes.shape,))
+        _check_option("axes.shape", axes.shape, (want_shape,))
         fig = axes[0, 0].figure
-
-        labels = ["xyz", ("$q_1$", "$q_2$", "$q_3$")]
+        labels = [["x (mm)", "y (mm)", "z (mm)"], ["$q_1$", "$q_2$", "$q_3$"]]
+        if totals:
+            labels[0].append("dist (mm)")
+            labels[1].append("angle (°)")
         for ii, (quat, coord) in enumerate(zip(use_quats.T, use_trans.T)):
             axes[ii, 0].plot(t, coord, color, lw=1.0, zorder=3)
             axes[ii, 0].set(ylabel=labels[0][ii], xlim=t[[0, -1]])
@@ -245,9 +253,19 @@ def plot_head_positions(
             for b in borders[:-1]:
                 for jj in range(2):
                     axes[ii, jj].axvline(t[b], color="r")
-        for ii, title in enumerate(("Position (mm)", "Rotation (quat)")):
-            axes[0, ii].set(title=title)
-            axes[-1, ii].set(xlabel="Time (s)")
+        if totals:
+            vals = [
+                np.linalg.norm(use_trans, axis=-1),
+                np.rad2deg(_angle_between_quats(use_quats)),
+            ]
+            ii = -1
+            for ci, val in enumerate(vals):
+                axes[ii, ci].plot(t, val, color, lw=1.0, zorder=3)
+                axes[ii, ci].set(ylabel=labels[ci][ii], xlim=t[[0, -1]])
+        titles = ["Position", "Rotation"]
+        for ci, title in enumerate(titles):
+            axes[0, ci].set(title=title)
+            axes[-1, ci].set(xlabel="Time (s)")
         if rrs is not None:
             pos_bads = np.any(
                 [
@@ -305,19 +323,33 @@ def plot_head_positions(
 
         if destination is not None:
             vals = np.array(
-                [destination[:, 3], rot_to_quat(destination[:, :3])]
+                [1000 * destination[:3, 3], rot_to_quat(destination[:3, :3])]
             ).T.ravel()
-            for ax, val in zip(fig.axes, vals):
+            for ax, val in zip(axes[:3].ravel(), vals):
                 ax.axhline(val, color="r", ls=":", zorder=2, lw=1.0)
+            if totals:
+                dest_ang, dest_dist = _angle_dist_between_rigid(
+                    destination,
+                    angle_units="deg",
+                    distance_units="mm",
+                )
+                axes[-1, 0].axhline(dest_dist, color="r", ls=":", zorder=2, lw=1.0)
+                axes[-1, 1].axhline(dest_ang, color="r", ls=":", zorder=2, lw=1.0)
 
     else:  # mode == 'field':
         from matplotlib.colors import Normalize
         from mpl_toolkits.mplot3d import Axes3D  # noqa: F401, analysis:ignore
         from mpl_toolkits.mplot3d.art3d import Line3DCollection
 
-        fig, ax = plt.subplots(
-            1, subplot_kw=dict(projection="3d"), layout="constrained"
-        )
+        _validate_type(axes, (Axes3D, None), "ax", extra="when mode='field'")
+        if axes is None:
+            _, ax = plt.subplots(
+                1, subplot_kw=dict(projection="3d"), layout="constrained"
+            )
+        else:
+            ax = axes
+        fig = ax.get_figure()
+        del axes
 
         # First plot the trajectory as a colormap:
         # http://matplotlib.org/examples/pylab_examples/multicolored_line.html
@@ -520,6 +552,8 @@ def plot_alignment(
     fig=None,
     interaction="terrain",
     sensor_colors=None,
+    *,
+    sensor_scales=None,
     verbose=None,
 ):
     """Plot head, sensor, and source space alignment in 3D.
@@ -611,6 +645,9 @@ def plot_alignment(
 
         .. versionchanged:: 1.6
             Support for passing a ``dict`` was added.
+    %(sensor_scales)s
+
+        .. versionadded:: 1.9
     %(verbose)s
 
     Returns
@@ -659,7 +696,7 @@ def plot_alignment(
                 user_alpha[key] = float(val)
                 if not 0 <= user_alpha[key] <= 1:
                     raise ValueError(
-                        f"surfaces[{repr(key)}] ({val}) must be" " between 0 and 1"
+                        f"surfaces[{repr(key)}] ({val}) must be between 0 and 1"
                     )
     else:
         user_alpha = {}
@@ -683,11 +720,12 @@ def plot_alignment(
                 f'subject ("{subject}") did not match the '
                 f'subject name in src ("{src_subject}")'
             )
-    # configure transforms
-    if isinstance(trans, str) and trans == "auto":
-        subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-        trans = _find_trans(subject, subjects_dir)
-    trans, trans_type = _get_trans(trans, fro="head", to="mri")
+
+    trans, trans_type = _find_trans(
+        trans=trans,
+        subject=subject,
+        subjects_dir=subjects_dir,
+    )
 
     picks = pick_types(
         info,
@@ -703,31 +741,33 @@ def plot_alignment(
         # Some stuff is natively in head coords, others in MRI coords
         msg = (
             "A head<->mri transformation matrix (trans) is required "
-            f"to plot %s in {coord_frame} coordinates, "
+            f"to plot {{}} in {coord_frame} coordinates, "
             "`trans=None` is not allowed"
         )
         if fwd is not None:
             fwd_frame = _frame_to_str[fwd["coord_frame"]]
             if fwd_frame != coord_frame:
-                raise ValueError(msg % f"a {fwd_frame}-coordinate forward solution")
+                raise ValueError(
+                    msg.format(f"a {fwd_frame}-coordinate forward solution")
+                )
         if src is not None:
             src_frame = _frame_to_str[src[0]["coord_frame"]]
             if src_frame != coord_frame:
-                raise ValueError(msg % f"a {src_frame}-coordinate source space")
+                raise ValueError(msg.format(f"a {src_frame}-coordinate source space"))
         if mri_fiducials is not False and coord_frame != "mri":
-            raise ValueError(msg % "mri fiducials")
+            raise ValueError(msg.format("mri fiducials"))
         # only enforce needing `trans` if there are channels in "head"/"device"
         if picks.size and coord_frame == "mri":
-            raise ValueError(msg % "sensors")
+            raise ValueError(msg.format("sensors"))
         # if only plotting sphere model no trans needed
         if bem is not None:
             if not bem["is_sphere"]:
                 if coord_frame != "mri":
-                    raise ValueError(msg % "a BEM")
+                    raise ValueError(msg.format("a BEM"))
             elif surfaces not in (["brain"], []):  # can only plot these
-                raise ValueError(msg % (", ".join(surfaces) + " surfaces"))
+                raise ValueError(msg.format(", ".join(surfaces) + " surfaces"))
         elif len(surfaces) > 0 and coord_frame != "mri":
-            raise ValueError(msg % (", ".join(surfaces) + " surfaces"))
+            raise ValueError(msg.format(", ".join(surfaces) + " surfaces"))
         trans = Transform("head", "mri")  # not used so just use identity
     # get transforms
     head_mri_t = _get_trans(trans, "head", "mri")[0]
@@ -763,7 +803,7 @@ def plot_alignment(
     head_keys = ("auto", "head", "outer_skin", "head-dense", "seghead")
     head = [s for s in surfaces if s in head_keys]
     if len(head) > 1:
-        raise ValueError("Can only supply one head-like surface name, " f"got {head}")
+        raise ValueError(f"Can only supply one head-like surface name, got {head}")
     head = head[0] if head else False
     if head is not False:
         surfaces.pop(surfaces.index(head))
@@ -876,6 +916,7 @@ def plot_alignment(
             surf, coord_frame, [to_cf_t["mri"], to_cf_t["head"]], copy=True
         )
         renderer.surface(
+            name=key,
             surface=surf,
             color=colors[key],
             opacity=alphas[key],
@@ -898,6 +939,7 @@ def plot_alignment(
             "m",
             sensor_alpha=sensor_alpha,
             sensor_colors=sensor_colors,
+            sensor_scales=sensor_scales,
         )
 
     if src is not None:
@@ -981,7 +1023,7 @@ def _handle_sensor_types(meg, eeg, fnirs):
 
     alpha_map = dict(
         meg=dict(sensors="meg", helmet="meg_helmet", ref="ref_meg"),
-        eeg=dict(original="eeg", projected="eeg_projected"),
+        eeg=dict(original="eeg", projected="eegp"),
         fnirs=dict(channels="fnirs", pairs="fnirs_pairs"),
     )
     sensor_alpha = {
@@ -1129,7 +1171,11 @@ def _plot_helmet(
             src_surf, coord_frame, [to_cf_t["mri"], to_cf_t["head"]], copy=True
         )
     actor, dst_surf = renderer.surface(
-        surface=src_surf, color=color, opacity=alpha, backface_culling=False
+        surface=src_surf,
+        color=color,
+        opacity=alpha,
+        backface_culling=False,
+        name="helmet",
     )
     return actor, dst_surf, src_surf
 
@@ -1202,7 +1248,7 @@ def _plot_mri_fiducials(
         mri_fiducials = subjects_dir / subject / "bem" / (subject + "-fiducials.fif")
     if isinstance(mri_fiducials, str) and mri_fiducials == "estimated":
         mri_fiducials = get_mni_fiducials(subject, subjects_dir)
-    elif isinstance(mri_fiducials, (str, Path, os.PathLike)):
+    elif isinstance(mri_fiducials, str | Path | os.PathLike):
         mri_fiducials, cf = read_fiducials(mri_fiducials)
         if cf != FIFF.FIFFV_COORD_MRI:
             raise ValueError("Fiducials are not in MRI space")
@@ -1472,6 +1518,7 @@ def _plot_sensors_3d(
     check_inside=None,
     nearest=None,
     sensor_colors=None,
+    sensor_scales=None,
 ):
     """Render sensors in a 3D scene."""
     from matplotlib.colors import to_rgba_array
@@ -1492,14 +1539,27 @@ def _plot_sensors_3d(
         elif ch_type in _MEG_CH_TYPES_SPLIT:
             ch_type = "meg"
         # only plot sensor locations if channels/original in selection
-        plot_sensors = (ch_type != "fnirs" or "channels" in fnirs) and (
-            ch_type != "eeg" or "original" in eeg
-        )
+        plot_sensors = True
+        if ch_type == "fnirs":
+            if not fnirs or "channels" not in fnirs:
+                plot_sensors = False
+        elif ch_type == "eeg":
+            if not eeg:
+                plot_sensors = False
+        elif ch_type == "meg":
+            if not meg or "sensors" not in meg:
+                plot_sensors = False
         # plot sensors
         if isinstance(ch_coord, tuple):  # is meg, plot coil
             ch_coord = dict(rr=ch_coord[0] * unit_scalar, tris=ch_coord[1])
         if plot_sensors:
-            locs[ch_type].append(ch_coord)
+            if ch_type == "eeg":
+                if "original" in eeg:
+                    locs[ch_type].append(ch_coord)
+                if "projected" in eeg:
+                    locs["eegp"].append(ch_coord)
+            else:
+                locs[ch_type].append(ch_coord)
         if ch_name in sources and "sources" in fnirs:
             locs["source"].append(sources[ch_name])
         if ch_name in detectors and "detectors" in fnirs:
@@ -1527,23 +1587,44 @@ def _plot_sensors_3d(
             sensor_colors = {
                 list(locs)[0]: to_rgba_array(sensor_colors),
             }
+        if sensor_scales is not None and not isinstance(sensor_scales, dict):
+            sensor_scales = {
+                list(locs)[0]: sensor_scales,
+            }
     else:
         extra = f"when more than one channel type ({list(locs)}) is plotted"
     _validate_type(sensor_colors, types, "sensor_colors", extra=extra)
+    _validate_type(sensor_scales, types, "sensor_scales", extra=extra)
     del extra, types
     if sensor_colors is None:
         sensor_colors = dict()
+    if sensor_scales is None:
+        sensor_scales = dict()
     assert isinstance(sensor_colors, dict)
+    assert isinstance(sensor_scales, dict)
     for ch_type, sens_loc in locs.items():
-        logger.debug(f"Drawing {ch_type} sensors")
+        logger.debug(f"Drawing {ch_type} sensors ({len(sens_loc)})")
         assert len(sens_loc)  # should be guaranteed above
         colors = to_rgba_array(sensor_colors.get(ch_type, defaults[ch_type + "_color"]))
+        scales = np.atleast_1d(
+            sensor_scales.get(ch_type, defaults[ch_type + "_scale"] * unit_scalar)
+        )
         _check_option(
             f"len(sensor_colors[{repr(ch_type)}])",
             colors.shape[0],
             (len(sens_loc), 1),
         )
-        scale = defaults[ch_type + "_scale"] * unit_scalar
+        _check_option(
+            f"len(sensor_scales[{repr(ch_type)}])",
+            scales.shape[0],
+            (len(sens_loc), 1),
+        )
+        # Check that the scale is numerical
+        assert np.issubdtype(scales.dtype, np.number), (
+            f"scales for {ch_type} must contain only numerical values, "
+            f"got {scales} instead."
+        )
+
         this_alpha = sensor_alpha[ch_type]
         if isinstance(sens_loc[0], dict):  # meg coil
             if len(colors) == 1:
@@ -1559,13 +1640,36 @@ def _plot_sensors_3d(
         else:
             sens_loc = np.array(sens_loc, float)
             mask = ~np.isnan(sens_loc).any(axis=1)
-            if len(colors) == 1:
+            if ch_type == "eegp":  # special case, need to project
+                logger.info("Projecting sensors to the head surface")
+                eegp_loc, eegp_nn = _project_onto_surface(
+                    sens_loc[mask], head_surf, project_rrs=True, return_nn=True
+                )[2:4]
+                eegp_loc *= unit_scalar
+                actor, _ = renderer.quiver3d(
+                    x=eegp_loc[:, 0],
+                    y=eegp_loc[:, 1],
+                    z=eegp_loc[:, 2],
+                    u=eegp_nn[:, 0],
+                    v=eegp_nn[:, 1],
+                    w=eegp_nn[:, 2],
+                    color=colors[0],  # TODO: Maybe eventually support multiple
+                    mode="cylinder",
+                    scale=scales[0] * unit_scalar,  # TODO: Also someday maybe multiple
+                    opacity=sensor_alpha[ch_type],
+                    glyph_height=defaults["eegp_height"],
+                    glyph_center=(0.0, -defaults["eegp_height"] / 2.0, 0),
+                    glyph_resolution=20,
+                    backface_culling=True,
+                )
+                actors["eeg"].append(actor)
+            elif len(colors) == 1 and len(scales) == 1:
                 # Single color mode (one actor)
                 actor, _ = _plot_glyphs(
                     renderer=renderer,
                     loc=sens_loc[mask] * unit_scalar,
                     color=colors[0, :3],
-                    scale=scale,
+                    scale=scales[0],
                     opacity=this_alpha * colors[0, 3],
                     orient_glyphs=orient_glyphs,
                     scale_by_distance=scale_by_distance,
@@ -1575,9 +1679,47 @@ def _plot_sensors_3d(
                     nearest=nearest,
                 )
                 actors[ch_type].append(actor)
-            else:
-                # Multi-color mode (multiple actors)
+            elif len(colors) == len(sens_loc) and len(scales) == 1:
+                # Multi-color single scale mode (multiple actors)
                 for loc, color, usable in zip(sens_loc, colors, mask):
+                    if not usable:
+                        continue
+                    actor, _ = _plot_glyphs(
+                        renderer=renderer,
+                        loc=loc * unit_scalar,
+                        color=color[:3],
+                        scale=scales[0],
+                        opacity=this_alpha * color[3],
+                        orient_glyphs=orient_glyphs,
+                        scale_by_distance=scale_by_distance,
+                        project_points=project_points,
+                        surf=surf,
+                        check_inside=check_inside,
+                        nearest=nearest,
+                    )
+                    actors[ch_type].append(actor)
+            elif len(colors) == 1 and len(scales) == len(sens_loc):
+                # Multi-scale single color mode (multiple actors)
+                for loc, scale, usable in zip(sens_loc, scales, mask):
+                    if not usable:
+                        continue
+                    actor, _ = _plot_glyphs(
+                        renderer=renderer,
+                        loc=loc * unit_scalar,
+                        color=colors[0, :3],
+                        scale=scale,
+                        opacity=this_alpha * colors[0, 3],
+                        orient_glyphs=orient_glyphs,
+                        scale_by_distance=scale_by_distance,
+                        project_points=project_points,
+                        surf=surf,
+                        check_inside=check_inside,
+                        nearest=nearest,
+                    )
+                    actors[ch_type].append(actor)
+            else:
+                # Multi-color multi-scale mode (multiple actors)
+                for loc, color, scale, usable in zip(sens_loc, colors, scales, mask):
                     if not usable:
                         continue
                     actor, _ = _plot_glyphs(
@@ -1594,29 +1736,7 @@ def _plot_sensors_3d(
                         nearest=nearest,
                     )
                     actors[ch_type].append(actor)
-        if ch_type == "eeg" and "projected" in eeg:
-            logger.info("Projecting sensors to the head surface")
-            eegp_loc, eegp_nn = _project_onto_surface(
-                sens_loc[mask], head_surf, project_rrs=True, return_nn=True
-            )[2:4]
-            eegp_loc *= unit_scalar
-            actor, _ = renderer.quiver3d(
-                x=eegp_loc[:, 0],
-                y=eegp_loc[:, 1],
-                z=eegp_loc[:, 2],
-                u=eegp_nn[:, 0],
-                v=eegp_nn[:, 1],
-                w=eegp_nn[:, 2],
-                color=defaults["eegp_color"],
-                mode="cylinder",
-                scale=defaults["eegp_scale"] * unit_scalar,
-                opacity=sensor_alpha["eeg_projected"],
-                glyph_height=defaults["eegp_height"],
-                glyph_center=(0.0, -defaults["eegp_height"] / 2.0, 0),
-                glyph_resolution=20,
-                backface_culling=True,
-            )
-            actors["eeg"].append(actor)
+
     actors = dict(actors)  # get rid of defaultdict
 
     return actors
@@ -1793,30 +1913,29 @@ def _process_clim(clim, colormap, transparent, data=0.0, allow_pos_lims=True):
             key = "lims"
         clim = {"kind": "percent", key: [96, 97.5, 99.95]}
     if not isinstance(clim, dict):
-        raise ValueError('"clim" must be "auto" or dict, got %s' % (clim,))
+        raise ValueError(f'"clim" must be "auto" or dict, got {clim}')
 
     if ("lims" in clim) + ("pos_lims" in clim) != 1:
         raise ValueError(
-            "Exactly one of lims and pos_lims must be specified "
-            "in clim, got %s" % (clim,)
+            f"Exactly one of lims and pos_lims must be specified in clim, got {clim}"
         )
     if "pos_lims" in clim and not allow_pos_lims:
-        raise ValueError('Cannot use "pos_lims" for clim, use "lims" ' "instead")
+        raise ValueError('Cannot use "pos_lims" for clim, use "lims" instead')
     diverging = "pos_lims" in clim
     ctrl_pts = np.array(clim["pos_lims" if diverging else "lims"], float)
     ctrl_pts = np.array(ctrl_pts, float)
     if ctrl_pts.shape != (3,):
-        raise ValueError("clim has shape %s, it must be (3,)" % (ctrl_pts.shape,))
+        raise ValueError(f"clim has shape {ctrl_pts.shape}, it must be (3,)")
     if (np.diff(ctrl_pts) < 0).any():
         raise ValueError(
-            "colormap limits must be monotonically " "increasing, got %s" % (ctrl_pts,)
+            f"colormap limits must be monotonically increasing, got {ctrl_pts}"
         )
     clim_kind = clim.get("kind", "percent")
     _check_option("clim['kind']", clim_kind, ["value", "values", "percent"])
     if clim_kind == "percent":
         perc_data = np.abs(data) if diverging else data
         ctrl_pts = np.percentile(perc_data, ctrl_pts)
-        logger.info("Using control points %s" % (ctrl_pts,))
+        logger.info(f"Using control points {ctrl_pts}")
     assert len(ctrl_pts) == 3
     clim = dict(kind="value")
     clim["pos_lims" if diverging else "lims"] = ctrl_pts
@@ -2032,10 +2151,7 @@ def _plot_mpl_stc(
     from ..morph import _get_subject_sphere_tris
     from ..source_space._source_space import _check_spacing, _create_surf_spacing
 
-    if hemi not in ["lh", "rh"]:
-        raise ValueError(
-            "hemi must be 'lh' or 'rh' when using matplotlib. " "Got %s." % hemi
-        )
+    _check_option("hemi", hemi, ("lh", "rh"), extra="when using matplotlib")
     lh_kwargs = {
         "lat": {"elev": 0, "azim": 180},
         "med": {"elev": 0, "azim": 0},
@@ -2197,7 +2313,7 @@ def link_brains(brains, time=True, camera=False, colorbar=True, picking=False):
         raise ValueError("The collection of brains is empty.")
     for brain in brains:
         if not isinstance(brain, Brain):
-            raise TypeError("Expected type is Brain but" f" {type(brain)} was given.")
+            raise TypeError(f"Expected type is Brain but {type(brain)} was given.")
         # enable time viewer if necessary
         brain.setup_time_viewer()
     subjects = [brain._subject for brain in brains]
@@ -2251,6 +2367,7 @@ def plot_source_estimates(
     transparent=True,
     alpha=1.0,
     time_viewer="auto",
+    *,
     subjects_dir=None,
     figure=None,
     views="auto",
@@ -2360,8 +2477,7 @@ def plot_source_estimates(
         Defaults  to 'oct6'.
 
         .. versionadded:: 0.15.0
-    title : str | None
-        Title for the figure. If None, the subject name will be used.
+    %(title_stc)s
 
         .. versionadded:: 0.17.0
     %(show_traces)s
@@ -2440,6 +2556,7 @@ def plot_source_estimates(
                 view_layout=view_layout,
                 add_data_kwargs=add_data_kwargs,
                 brain_kwargs=brain_kwargs,
+                title=title,
                 **kwargs,
             )
 
@@ -2475,6 +2592,7 @@ def _plot_stc(
     view_layout,
     add_data_kwargs,
     brain_kwargs,
+    title,
 ):
     from ..source_estimate import _BaseVolSourceEstimate
     from .backends.renderer import _get_3d_backend, get_brain_class
@@ -2517,7 +2635,9 @@ def _plot_stc(
     if overlay_alpha == 0:
         smoothing_steps = 1  # Disable smoothing to save time.
 
-    title = subject if len(hemis) > 1 else "%s - %s" % (subject, hemis[0])
+    sub_info = subject if len(hemis) > 1 else f"{subject} - {hemis[0]}"
+    title = title if title is not None else sub_info
+
     kwargs = {
         "subject": subject,
         "hemi": hemi,
@@ -2634,7 +2754,9 @@ def _glass_brain_crosshairs(params, x, y, z):
 
 def _cut_coords_to_ijk(cut_coords, img):
     ijk = apply_trans(np.linalg.inv(img.affine), cut_coords)
-    ijk = np.clip(np.round(ijk).astype(int), 0, np.array(img.shape[:3]) - 1)
+    ijk = np.round(ijk).astype(int)
+    logger.debug(f"{cut_coords} -> {ijk}")
+    np.clip(ijk, 0, np.array(img.shape[:3]) - 1, out=ijk)
     return ijk
 
 
@@ -2651,6 +2773,182 @@ def _load_subject_mri(mri, stc, subject, subjects_dir, name):
         subject = _check_subject(stc.subject, subject)
         mri = nib.load(_check_mri(mri, subject, subjects_dir))
     return mri
+
+
+_AX_NAME = dict(x="X (sagittal)", y="Y (coronal)", z="Z (axial)")
+
+
+def _click_to_cut_coords(event, params):
+    """Get voxel coordinates from mouse click."""
+    import nibabel as nib
+
+    if event.inaxes is params["ax_x"]:
+        ax = "x"
+        x = params["ax_z"].lines[0].get_xdata()[0]
+        y, z = event.xdata, event.ydata
+    elif event.inaxes is params["ax_y"]:
+        ax = "y"
+        y = params["ax_x"].lines[0].get_xdata()[0]
+        x, z = event.xdata, event.ydata
+    elif event.inaxes is params["ax_z"]:
+        ax = "z"
+        x, y = event.xdata, event.ydata
+        z = params["ax_x"].lines[1].get_ydata()[0]
+    else:
+        logger.debug("    Click outside axes")
+        return None
+    cut_coords = np.array((x, y, z))
+    logger.debug("")
+
+    if params["mode"] == "glass_brain":  # find idx for MIP
+        # Figure out what XYZ in world coordinates is in our voxel data
+        codes = "".join(nib.aff2axcodes(params["img_idx"].affine))
+        assert len(codes) == 3
+        # We don't care about directionality, just which is which dim
+        codes = codes.replace("L", "R").replace("P", "A").replace("I", "S")
+        idx = codes.index(dict(x="R", y="A", z="S")[ax])
+        img_data = np.abs(_get_img_fdata(params["img_idx"]))
+        ijk = _cut_coords_to_ijk(cut_coords, params["img_idx"])
+        if idx == 0:
+            ijk[0] = np.argmax(img_data[:, ijk[1], ijk[2]])
+            logger.debug(f"    MIP: i = {ijk[0]:d} idx")
+        elif idx == 1:
+            ijk[1] = np.argmax(img_data[ijk[0], :, ijk[2]])
+            logger.debug(f"    MIP: j = {ijk[1]:d} idx")
+        else:
+            ijk[2] = np.argmax(img_data[ijk[0], ijk[1], :])
+            logger.debug(f"    MIP: k = {ijk[2]} idx")
+        cut_coords = _ijk_to_cut_coords(ijk, params["img_idx"])
+
+    logger.debug(f"    Cut coords for {_AX_NAME[ax]}: {_str_ras(cut_coords)}")
+    return cut_coords
+
+
+def _str_ras(xyz):
+    x, y, z = xyz
+    return f"({x:0.1f}, {y:0.1f}, {z:0.1f}) mm"
+
+
+def _str_vox(ijk):
+    i, j, k = ijk
+    return f"[{i:d}, {j:d}, {k:d}] vox"
+
+
+def _press(event, params):
+    """Manage keypress on the plot."""
+    pos = params["lx"].get_xdata()
+    idx = params["stc"].time_as_index(pos)[0]
+    if event.key == "left":
+        idx = max(0, idx - 2)
+    elif event.key == "shift+left":
+        idx = max(0, idx - 10)
+    elif event.key == "right":
+        idx = min(params["stc"].shape[1] - 1, idx + 2)
+    elif event.key == "shift+right":
+        idx = min(params["stc"].shape[1] - 1, idx + 10)
+    _update_timeslice(idx, params)
+    params["fig"].canvas.draw()
+
+
+def _update_timeslice(idx, params):
+    from nilearn.image import index_img
+
+    params["lx"].set_xdata([idx / params["stc"].sfreq + params["stc"].tmin])
+    ax_x, ax_y, ax_z = params["ax_x"], params["ax_y"], params["ax_z"]
+    # Crosshairs are the first thing plotted in stat_map, and the last
+    # in glass_brain
+    idxs = [0, 0, 1] if params["mode"] == "stat_map" else [-2, -2, -1]
+    cut_coords = (
+        ax_y.lines[idxs[0]].get_xdata()[0],
+        ax_x.lines[idxs[1]].get_xdata()[0],
+        ax_x.lines[idxs[2]].get_ydata()[0],
+    )
+    ax_x.clear()
+    ax_y.clear()
+    ax_z.clear()
+    params.update({"img_idx": index_img(params["img"], idx)})
+    params.update({"title": f"Activation (t={params['stc'].times[idx]:.3f} s.)"})
+    _plot_and_correct(params=params, cut_coords=cut_coords)
+
+
+def _update_vertlabel(loc_idx, params):
+    params["vert_legend"].get_texts()[0].set_text(f"{params['vertices'][loc_idx]}")
+
+
+@verbose_dec
+def _onclick(event, params, verbose=None):
+    """Manage clicks on the plot."""
+    ax_x, ax_y, ax_z = params["ax_x"], params["ax_y"], params["ax_z"]
+    if event.inaxes is params["ax_time"]:
+        idx = params["stc"].time_as_index(event.xdata, use_rounding=True)[0]
+        _update_timeslice(idx, params)
+
+    cut_coords = _click_to_cut_coords(event, params)
+    if cut_coords is None:
+        return  # not in any axes
+
+    ax_x.clear()
+    ax_y.clear()
+    ax_z.clear()
+    _plot_and_correct(params=params, cut_coords=cut_coords)
+    loc_idx = _cut_coords_to_idx(cut_coords, params["dist_to_verts"])
+    ydata = params["stc"].data[loc_idx]
+    if loc_idx is not None:
+        params["ax_time"].lines[0].set_ydata(ydata)
+    else:
+        params["ax_time"].lines[0].set_ydata([0.0])
+    _update_vertlabel(loc_idx, params)
+    params["fig"].canvas.draw()
+
+
+def _cut_coords_to_idx(cut_coords, dist_to_verts):
+    """Convert voxel coordinates to index in stc.data."""
+    logger.debug(f"    Starting coords: {cut_coords}")
+    cut_coords = list(cut_coords)
+    (dist,), (loc_idx,) = dist_to_verts.query([cut_coords])
+    logger.debug(f"Mapped {cut_coords=} to vertices[{loc_idx}] {dist:0.1f} mm away")
+    return loc_idx
+
+
+def _plot_and_correct(*, params, cut_coords):
+    # black_bg = True is needed because of some matplotlib
+    # peculiarity. See: https://stackoverflow.com/a/34730204
+    # Otherwise, event.inaxes does not work for ax_x and ax_z
+    from nilearn.plotting import plot_glass_brain, plot_stat_map
+
+    mode = params["mode"]
+    nil_func = dict(stat_map=plot_stat_map, glass_brain=plot_glass_brain)[mode]
+    plot_kwargs = dict(
+        threshold=None,
+        axes=params["axes"],
+        resampling_interpolation="nearest",
+        vmax=params["vmax"],
+        figure=params["fig"],
+        colorbar=params["colorbar"],
+        bg_img=params["bg_img"],
+        cmap=params["colormap"],
+        black_bg=True,
+        symmetric_cbar=True,
+        title="",
+    )
+    params["axes"].clear()
+    if params.get("fig_anat") is not None and plot_kwargs["colorbar"]:
+        params["fig_anat"]._cbar.ax.clear()
+    params["fig_anat"] = nil_func(
+        params["img_idx"], cut_coords=cut_coords, **plot_kwargs
+    )
+    params["fig_anat"]._cbar.outline.set_visible(False)
+    for key in "xyz":
+        params.update({"ax_" + key: params["fig_anat"].axes[key].ax})
+    # Fix nilearn bug w/cbar background being white
+    if plot_kwargs["colorbar"]:
+        params["fig_anat"]._cbar.ax.set_facecolor("0.5")
+        # adjust one-sided colorbars
+        if not params["diverging"]:
+            _crop_colorbar(params["fig_anat"]._cbar, *params["scale_pts"][[0, -1]])
+        params["fig_anat"]._cbar.set_ticks(params["cbar_ticks"])
+    if params["mode"] == "glass_brain":
+        _glass_brain_crosshairs(params, *cut_coords)
 
 
 @verbose
@@ -2693,7 +2991,7 @@ def plot_volume_source_estimates(
         Can also be a string to use the ``bg_img`` file in the subject's
         MRI directory (default is ``'T1.mgz'``).
         Not used in "glass brain" plotting.
-    colorbar : bool, optional
+    colorbar : bool
         If True, display a colorbar on the right of the plots.
     %(colormap)s
     %(clim)s
@@ -2760,10 +3058,8 @@ def plot_volume_source_estimates(
         raise RuntimeError("This function requires nilearn >= 0.4")
 
     from nilearn.image import index_img
-    from nilearn.plotting import plot_glass_brain, plot_stat_map
 
     _check_option("mode", mode, ("stat_map", "glass_brain"))
-    plot_func = dict(stat_map=plot_stat_map, glass_brain=plot_glass_brain)[mode]
     _validate_type(stc, VolSourceEstimate, "stc")
     if isinstance(src, SourceMorph):
         img = src.apply(stc, "nifti1", mri_resolution=False, mri_space=False)
@@ -2781,136 +3077,6 @@ def plot_volume_source_estimates(
         level="debug",
     )
     subject = _check_subject(src_subject, subject, first_kind=kind)
-    vertices = np.hstack(stc.vertices)
-    stc_ijk = np.array(np.unravel_index(vertices, img.shape[:3], order="F")).T
-    assert stc_ijk.shape == (vertices.size, 3)
-    del kind
-
-    # XXX this assumes zooms are uniform, should probably mult by zooms...
-    dist_to_verts = _DistanceQuery(stc_ijk, allow_kdtree=True)
-
-    def _cut_coords_to_idx(cut_coords, img):
-        """Convert voxel coordinates to index in stc.data."""
-        ijk = _cut_coords_to_ijk(cut_coords, img)
-        del cut_coords
-        logger.debug("    Affine remapped cut coords to [%d, %d, %d] idx", tuple(ijk))
-        dist, loc_idx = dist_to_verts.query(ijk[np.newaxis])
-        dist, loc_idx = dist[0], loc_idx[0]
-        logger.debug(
-            "    Using vertex %d at a distance of %d voxels", (vertices[loc_idx], dist)
-        )
-        return loc_idx
-
-    ax_name = dict(x="X (sagittal)", y="Y (coronal)", z="Z (axial)")
-
-    def _click_to_cut_coords(event, params):
-        """Get voxel coordinates from mouse click."""
-        if event.inaxes is params["ax_x"]:
-            ax = "x"
-            x = params["ax_z"].lines[0].get_xdata()[0]
-            y, z = event.xdata, event.ydata
-        elif event.inaxes is params["ax_y"]:
-            ax = "y"
-            y = params["ax_x"].lines[0].get_xdata()[0]
-            x, z = event.xdata, event.ydata
-        elif event.inaxes is params["ax_z"]:
-            ax = "z"
-            x, y = event.xdata, event.ydata
-            z = params["ax_x"].lines[1].get_ydata()[0]
-        else:
-            logger.debug("    Click outside axes")
-            return None
-        cut_coords = np.array((x, y, z))
-        logger.debug("")
-
-        if params["mode"] == "glass_brain":  # find idx for MIP
-            # Figure out what XYZ in world coordinates is in our voxel data
-            codes = "".join(nib.aff2axcodes(params["img_idx"].affine))
-            assert len(codes) == 3
-            # We don't care about directionality, just which is which dim
-            codes = codes.replace("L", "R").replace("P", "A").replace("I", "S")
-            idx = codes.index(dict(x="R", y="A", z="S")[ax])
-            img_data = np.abs(_get_img_fdata(params["img_idx"]))
-            ijk = _cut_coords_to_ijk(cut_coords, params["img_idx"])
-            if idx == 0:
-                ijk[0] = np.argmax(img_data[:, ijk[1], ijk[2]])
-                logger.debug("    MIP: i = %d idx" % (ijk[0],))
-            elif idx == 1:
-                ijk[1] = np.argmax(img_data[ijk[0], :, ijk[2]])
-                logger.debug("    MIP: j = %d idx" % (ijk[1],))
-            else:
-                ijk[2] = np.argmax(img_data[ijk[0], ijk[1], :])
-                logger.debug("    MIP: k = %d idx" % (ijk[2],))
-            cut_coords = _ijk_to_cut_coords(ijk, params["img_idx"])
-
-        logger.debug(
-            "    Cut coords for %s: (%0.1f, %0.1f, %0.1f) mm"
-            % ((ax_name[ax],) + tuple(cut_coords))
-        )
-        return cut_coords
-
-    def _press(event, params):
-        """Manage keypress on the plot."""
-        pos = params["lx"].get_xdata()
-        idx = params["stc"].time_as_index(pos)[0]
-        if event.key == "left":
-            idx = max(0, idx - 2)
-        elif event.key == "shift+left":
-            idx = max(0, idx - 10)
-        elif event.key == "right":
-            idx = min(params["stc"].shape[1] - 1, idx + 2)
-        elif event.key == "shift+right":
-            idx = min(params["stc"].shape[1] - 1, idx + 10)
-        _update_timeslice(idx, params)
-        params["fig"].canvas.draw()
-
-    def _update_timeslice(idx, params):
-        params["lx"].set_xdata([idx / params["stc"].sfreq + params["stc"].tmin])
-        ax_x, ax_y, ax_z = params["ax_x"], params["ax_y"], params["ax_z"]
-        plot_map_callback = params["plot_func"]
-        # Crosshairs are the first thing plotted in stat_map, and the last
-        # in glass_brain
-        idxs = [0, 0, 1] if mode == "stat_map" else [-2, -2, -1]
-        cut_coords = (
-            ax_y.lines[idxs[0]].get_xdata()[0],
-            ax_x.lines[idxs[1]].get_xdata()[0],
-            ax_x.lines[idxs[2]].get_ydata()[0],
-        )
-        ax_x.clear()
-        ax_y.clear()
-        ax_z.clear()
-        params.update({"img_idx": index_img(img, idx)})
-        params.update({"title": "Activation (t=%.3f s.)" % params["stc"].times[idx]})
-        plot_map_callback(params["img_idx"], title="", cut_coords=cut_coords)
-
-    def _update_vertlabel(loc_idx):
-        vert_legend.get_texts()[0].set_text(f"{vertices[loc_idx]}")
-
-    @verbose_dec
-    def _onclick(event, params, verbose=None):
-        """Manage clicks on the plot."""
-        ax_x, ax_y, ax_z = params["ax_x"], params["ax_y"], params["ax_z"]
-        plot_map_callback = params["plot_func"]
-        if event.inaxes is params["ax_time"]:
-            idx = params["stc"].time_as_index(event.xdata, use_rounding=True)[0]
-            _update_timeslice(idx, params)
-
-        cut_coords = _click_to_cut_coords(event, params)
-        if cut_coords is None:
-            return  # not in any axes
-
-        ax_x.clear()
-        ax_y.clear()
-        ax_z.clear()
-        plot_map_callback(params["img_idx"], title="", cut_coords=cut_coords)
-        loc_idx = _cut_coords_to_idx(cut_coords, params["img_idx"])
-        ydata = stc.data[loc_idx]
-        if loc_idx is not None:
-            ax_time.lines[0].set_ydata(ydata)
-        else:
-            ax_time.lines[0].set_ydata([0.0])
-        _update_vertlabel(loc_idx)
-        params["fig"].canvas.draw()
 
     if mode == "glass_brain":
         subject = _check_subject(stc.subject, subject)
@@ -2929,11 +3095,25 @@ def plot_volume_source_estimates(
             bg_img = "T1.mgz"
         bg_img = _load_subject_mri(bg_img, stc, subject, subjects_dir, "bg_img")
 
+    params = dict(
+        stc=stc,
+        mode=mode,
+        img=img,
+        bg_img=bg_img,
+        colorbar=colorbar,
+    )
+    vertices = np.hstack(stc.vertices)
+    stc_ijk = np.array(np.unravel_index(vertices, img.shape[:3], order="F")).T
+    assert stc_ijk.shape == (vertices.size, 3)
+    params["dist_to_verts"] = _DistanceQuery(apply_trans(img.affine, stc_ijk))
+    params["vertices"] = vertices
+    del kind, stc_ijk
+
     if initial_time is None:
         time_sl = slice(0, None)
     else:
         initial_time = float(initial_time)
-        logger.info("Fixing initial time: %s s" % (initial_time,))
+        logger.info(f"Fixing initial time: {initial_time} s")
         initial_time = np.argmin(np.abs(stc.times - initial_time))
         time_sl = slice(initial_time, initial_time + 1)
     if initial_pos is None:  # find max pos and (maybe) time
@@ -2946,30 +3126,26 @@ def plot_volume_source_estimates(
         if initial_pos.shape != (3,):
             raise ValueError(
                 "initial_pos must be float ndarray with shape "
-                "(3,), got shape %s" % (initial_pos.shape,)
+                f"(3,), got shape {initial_pos.shape}"
             )
         initial_pos *= 1000
-        logger.info("Fixing initial position: %s mm" % (initial_pos.tolist(),))
-        loc_idx = _cut_coords_to_idx(initial_pos, img)
+        logger.info(f"Fixing initial position: {initial_pos.tolist()} mm")
+        loc_idx = _cut_coords_to_idx(initial_pos, params["dist_to_verts"])
         if initial_time is not None:  # time also specified
             time_idx = time_sl.start
         else:  # find the max
             time_idx = np.argmax(np.abs(stc.data[loc_idx]))
-    img_idx = index_img(img, time_idx)
+    img_idx = params["img_idx"] = index_img(img, time_idx)
     assert img_idx.shape == img.shape[:3]
     del initial_time, initial_pos
-    ijk = stc_ijk[loc_idx]
+    ijk = np.unravel_index(vertices[loc_idx], img.shape[:3], order="F")
     cut_coords = _ijk_to_cut_coords(ijk, img_idx)
     np.testing.assert_allclose(_cut_coords_to_ijk(cut_coords, img_idx), ijk)
     logger.info(
-        "Showing: t = %0.3f s, (%0.1f, %0.1f, %0.1f) mm, "
-        "[%d, %d, %d] vox, %d vertex"
-        % (
-            (stc.times[time_idx],)
-            + tuple(cut_coords)
-            + tuple(ijk)
-            + (vertices[loc_idx],)
-        )
+        f"Showing: t = {stc.times[time_idx]:0.3f} s, "
+        f"{_str_ras(cut_coords)}, "
+        f"{_str_vox(ijk)}, "
+        f"{vertices[loc_idx]:d} vertex"
     )
     del ijk
 
@@ -2982,15 +3158,17 @@ def plot_volume_source_estimates(
     if len(stc.times) > 1:
         ax_time.set(xlim=stc.times[[0, -1]])
     ax_time.set(xlabel="Time (s)", ylabel="Activation")
-    vert_legend = ax_time.legend([h], [""], title="Vertex")
-    _update_vertlabel(loc_idx)
+    params["vert_legend"] = ax_time.legend([h], [""], title="Vertex")
+    _update_vertlabel(loc_idx, params)
     lx = ax_time.axvline(stc.times[time_idx], color="g")
+    params.update(fig=fig, ax_time=ax_time, lx=lx, axes=axes)
 
     allow_pos_lims = mode != "glass_brain"
     mapdata = _process_clim(clim, colormap, transparent, stc.data, allow_pos_lims)
     _separate_map(mapdata)
     diverging = "pos_lims" in mapdata["clim"]
     ticks = _get_map_ticks(mapdata)
+    params.update(cbar_ticks=ticks, diverging=diverging)
     colormap, scale_pts = _linearize_map(mapdata)
     del mapdata
 
@@ -3030,56 +3208,9 @@ def plot_volume_source_estimates(
             np.interp(np.linspace(-1, 1, 256), scale_pts / scale_pts[2], [0, 0.5, 1])
         )
         colormap = colors.ListedColormap(colormap)
-    vmax = scale_pts[-1]
+    params.update(vmax=scale_pts[-1], scale_pts=scale_pts, colormap=colormap)
 
-    # black_bg = True is needed because of some matplotlib
-    # peculiarity. See: https://stackoverflow.com/a/34730204
-    # Otherwise, event.inaxes does not work for ax_x and ax_z
-    plot_kwargs = dict(
-        threshold=None,
-        axes=axes,
-        resampling_interpolation="nearest",
-        vmax=vmax,
-        figure=fig,
-        colorbar=colorbar,
-        bg_img=bg_img,
-        cmap=colormap,
-        black_bg=True,
-        symmetric_cbar=True,
-    )
-
-    def plot_and_correct(*args, **kwargs):
-        axes.clear()
-        if params.get("fig_anat") is not None and plot_kwargs["colorbar"]:
-            params["fig_anat"]._cbar.ax.clear()
-        with warnings.catch_warnings(record=True):  # nilearn bug; ax recreated
-            warnings.simplefilter("ignore", DeprecationWarning)
-            params["fig_anat"] = partial(plot_func, **plot_kwargs)(*args, **kwargs)
-        params["fig_anat"]._cbar.outline.set_visible(False)
-        for key in "xyz":
-            params.update({"ax_" + key: params["fig_anat"].axes[key].ax})
-        # Fix nilearn bug w/cbar background being white
-        if plot_kwargs["colorbar"]:
-            params["fig_anat"]._cbar.ax.set_facecolor("0.5")
-            # adjust one-sided colorbars
-            if not diverging:
-                _crop_colorbar(params["fig_anat"]._cbar, *scale_pts[[0, -1]])
-            params["fig_anat"]._cbar.set_ticks(params["cbar_ticks"])
-        if mode == "glass_brain":
-            _glass_brain_crosshairs(params, *kwargs["cut_coords"])
-
-    params = dict(
-        stc=stc,
-        ax_time=ax_time,
-        plot_func=plot_and_correct,
-        img_idx=img_idx,
-        fig=fig,
-        lx=lx,
-        mode=mode,
-        cbar_ticks=ticks,
-    )
-
-    plot_and_correct(stat_map_img=params["img_idx"], title="", cut_coords=cut_coords)
+    _plot_and_correct(params=params, cut_coords=cut_coords)
 
     plt_show(show)
     fig.canvas.mpl_connect(
@@ -3109,7 +3240,7 @@ def _check_views(surf, views, hemi, stc=None, backend=None):
         if backend is not None:
             if backend not in ("pyvistaqt", "notebook"):
                 raise RuntimeError(
-                    "The PyVista 3D backend must be used to " "plot a flatmap"
+                    "The PyVista 3D backend must be used to plot a flatmap"
                 )
     if (views == ["flat"]) ^ (surf == "flat"):  # exactly only one of the two
         raise ValueError(
@@ -3137,6 +3268,7 @@ def plot_vector_source_estimates(
     vector_alpha=1.0,
     scale_factor=None,
     time_viewer="auto",
+    *,
     subjects_dir=None,
     figure=None,
     views="lateral",
@@ -3148,6 +3280,7 @@ def plot_vector_source_estimates(
     foreground=None,
     initial_time=None,
     time_unit="s",
+    title=None,
     show_traces="auto",
     src=None,
     volume_options=1.0,
@@ -3225,6 +3358,9 @@ def plot_vector_source_estimates(
     time_unit : 's' | 'ms'
         Whether time is represented in seconds ("s", default) or
         milliseconds ("ms").
+    %(title_stc)s
+
+        .. versionadded:: 1.9
     %(show_traces)s
     %(src_volume_options)s
     %(view_layout)s
@@ -3271,6 +3407,7 @@ def plot_vector_source_estimates(
         cortex=cortex,
         foreground=foreground,
         size=size,
+        title=title,
         scale_factor=scale_factor,
         show_traces=show_traces,
         src=src,
@@ -3379,10 +3516,10 @@ def plot_sparse_source_estimates(
     ]
 
     known_modes = ["cone", "sphere"]
-    if not isinstance(modes, (list, tuple)) or not all(
+    if not isinstance(modes, list | tuple) or not all(
         mode in known_modes for mode in modes
     ):
-        raise ValueError("mode must be a list containing only " '"cone" or "sphere"')
+        raise ValueError('mode must be a list containing only "cone" or "sphere"')
     if not isinstance(stcs, list):
         stcs = [stcs]
     if labels is not None and not isinstance(labels, list):
@@ -3437,7 +3574,7 @@ def plot_sparse_source_estimates(
 
     colors = cycle(colors)
 
-    logger.info("Total number of active sources: %d" % len(unique_vertnos))
+    logger.info(f"Total number of active sources: {unique_vertnos}")
 
     if labels is not None:
         colors = [
@@ -3458,7 +3595,7 @@ def plot_sparse_source_estimates(
         mode = modes[1] if is_common else modes[0]
         scale_factor = scale_factors[1] if is_common else scale_factors[0]
 
-        if isinstance(scale_factor, (np.ndarray, list, tuple)) and len(
+        if isinstance(scale_factor, np.ndarray | list | tuple) and len(
             unique_vertnos
         ) == len(scale_factor):
             scale_factor = scale_factor[idx]
@@ -3490,8 +3627,8 @@ def plot_sparse_source_estimates(
                 linestyle=linestyle,
             )
 
-    ax.set_xlabel("Time (ms)", fontsize=18)
-    ax.set_ylabel("Source amplitude (nAm)", fontsize=18)
+    ax.set_xlabel("Time (ms)", fontsize=fontsize)
+    ax.set_ylabel("Source amplitude (nAm)", fontsize=fontsize)
 
     if fig_name is not None:
         ax.set_title(fig_name)
@@ -3744,7 +3881,7 @@ def snapshot_brain_montage(fig, montage, hide_sensors=True):
         ch_names, xyz = zip(*[(ich, ixyz) for ich, ixyz in montage.items()])
     else:
         raise TypeError(
-            "montage must be an instance of `DigMontage`, `Info`," " or `dict`"
+            "montage must be an instance of `DigMontage`, `Info`, or `dict`"
         )
 
     # initialize figure
@@ -3997,14 +4134,11 @@ def _plot_dipole(
     coord_frame_name = "Head" if coord_frame == "head" else "MRI"
 
     if title is None:
-        title = "Dipole #%s / %s @ %.3fs, GOF: %.1f%%, %.1fnAm\n%s: " % (
-            idx + 1,
-            len(dipole.times),
-            dipole.times[idx],
-            dipole.gof[idx],
-            dipole.amplitude[idx] * 1e9,
-            coord_frame_name,
-        ) + "(%0.1f, %0.1f, %0.1f) mm" % tuple(xyz[idx])
+        title = (
+            f"Dipole #{idx + 1} / {len(dipole.times)} @ {dipole.times[idx]:.3f}s, "
+            f"GOF: {dipole.gof[idx]:.1f}%, {dipole.amplitude[idx] * 1e9:.1f}nAm\n"
+            f"{coord_frame_name}: {_str_ras(xyz[idx])}"
+        )
 
     ax.get_figure().suptitle(title)
 
@@ -4091,10 +4225,10 @@ def plot_brain_colorbar(
 
 @dataclass()
 class _3d_Options:
-    antialias: Optional[bool]
-    depth_peeling: Optional[bool]
-    smooth_shading: Optional[bool]
-    multi_samples: Optional[int]
+    antialias: bool | None
+    depth_peeling: bool | None
+    smooth_shading: bool | None
+    multi_samples: int | None
 
 
 _3d_options = _3d_Options(

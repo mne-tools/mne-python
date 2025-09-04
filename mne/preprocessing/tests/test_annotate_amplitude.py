@@ -1,5 +1,4 @@
-# Author: Mathieu Scheltienne <mathieu.scheltienne@fcbg.ch>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -323,12 +322,12 @@ def test_invalid_arguments():
     # negative floats PTP
     with pytest.raises(
         ValueError,
-        match="Argument 'flat' should define a positive " "threshold. Provided: '-1'.",
+        match="Argument 'flat' should define a positive threshold. Provided: '-1'.",
     ):
         annotate_amplitude(raw, peak=None, flat=-1)
     with pytest.raises(
         ValueError,
-        match="Argument 'peak' should define a positive " "threshold. Provided: '-1'.",
+        match="Argument 'peak' should define a positive threshold. Provided: '-1'.",
     ):
         annotate_amplitude(raw, peak=-1, flat=None)
 
@@ -351,7 +350,7 @@ def test_invalid_arguments():
     # test both PTP set to None
     with pytest.raises(
         ValueError,
-        match="At least one of the arguments 'peak' or 'flat' " "must not be None.",
+        match="At least one of the arguments 'peak' or 'flat' must not be None.",
     ):
         annotate_amplitude(raw, peak=None, flat=None)
 

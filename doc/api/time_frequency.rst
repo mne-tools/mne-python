@@ -14,7 +14,12 @@ Time-Frequency
    :toctree: ../generated/
 
    AverageTFR
+   AverageTFRArray
+   BaseTFR
    EpochsTFR
+   EpochsTFRArray
+   RawTFR
+   RawTFRArray
    CrossSpectralDensity
    Spectrum
    SpectrumArray
@@ -26,6 +31,8 @@ Functions that operate on mne-python objects:
 .. autosummary::
    :toctree: ../generated/
 
+   combine_spectrum
+   combine_tfr
    csd_tfr
    csd_fourier
    csd_multitaper

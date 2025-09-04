@@ -1,10 +1,9 @@
 """Conversion tool from Neuroscan CNT to FIF."""
 
-# Author: Jaakko Leppakangas <jaeilepp@student.jyu.fi>
-#         Joan Massich <mailsik@gmail.com>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 from os import path
 
 import numpy as np
@@ -15,7 +14,7 @@ from ..._fiff.meas_info import _empty_info
 from ..._fiff.utils import _create_chs, _find_channels, _mult_cal_one, read_str
 from ...annotations import Annotations
 from ...channels.layout import _topo_to_sphere
-from ...utils import _check_option, _validate_type, fill_doc, warn
+from ...utils import _check_option, _explain_exception, _validate_type, fill_doc, warn
 from ..base import BaseRaw
 from ._utils import (
     CNTEventType3,
@@ -151,7 +150,22 @@ def _read_annotations_cnt(fname, data_format="int16"):
             np.array([e.KeyPad_Accept for e in my_events])
         )
 
-        description = np.array([str(e.StimType) for e in my_events])
+        # Check to see if there are any button presses
+        description = []
+        for event in my_events:
+            # Extract the 4-bit fields
+            # Upper nibble (4 bits) currently not used
+            # accept = (event.KeyPad_Accept[0] & 0xF0) >> 4
+            # Lower nibble (4 bits) keypad button press
+            keypad = event.KeyPad_Accept[0] & 0x0F
+            if str(keypad) != "0":
+                description.append(f"KeyPad Response {keypad}")
+            elif event.KeyBoard != 0:
+                description.append(f"Keyboard Response {event.KeyBoard}")
+            else:
+                description.append(str(event.StimType))
+
+        description = np.array(description)
 
         onset, duration, description = _update_bad_span_onset(
             accept_reject, onset / sfreq, duration, description
@@ -292,7 +306,7 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format, he
         fid.seek(205)
         session_label = read_str(fid, 20)
 
-        session_date = "%s %s" % (read_str(fid, 10), read_str(fid, 12))
+        session_date = f"{read_str(fid, 10)} {read_str(fid, 12)}"
         meas_date = _session_date_2_meas_date(session_date, date_format)
 
         fid.seek(370)
@@ -338,7 +352,8 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format, he
                 n_samples = data_size // (n_bytes * n_channels)
                 # See: PR #12393
                 annotations = _read_annotations_cnt(input_fname, data_format="int16")
-                if annotations.onset[-1] * sfreq > n_samples:
+                # See: PR #12986
+                if len(annotations) and annotations.onset[-1] * sfreq > n_samples:
                     n_bytes = 4
                     n_samples = n_samples_header
                     warn(
@@ -406,6 +421,7 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format, he
         "first_name": first_name,
         "last_name": last_name,
     }
+    subject_info = {key: val for key, val in subject_info.items() if val is not None}
 
     if eog == "auto":
         eog = _find_channels(ch_names, "EOG")
@@ -449,7 +465,8 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format, he
 class RawCNT(BaseRaw):
     """Raw object from Neuroscan CNT file.
 
-    .. Note::
+    .. note::
+
         The channel positions are read from the file header. Channels that are
         not assigned with keywords ``eog``, ``ecg``, ``emg`` and ``misc`` are
         assigned as eeg channels. All the eeg channel locations are fit to a
@@ -460,10 +477,15 @@ class RawCNT(BaseRaw):
         the header are correct, it is probably safer to use a (standard)
         montage. See :func:`mne.channels.make_standard_montage`
 
+    .. note::
+
+        A CNT file can also come from the EEG manufacturer ANT Neuro, in which case the
+        function :func:`mne.io.read_raw_ant` should be used.
+
     Parameters
     ----------
     input_fname : path-like
-        Path to the CNT file.
+        Path to the Neuroscan CNT file.
     eog : list | tuple
         Names of channels or list of indices that should be designated
         EOG channels. If ``'auto'``, the channel names beginning with
@@ -491,16 +513,6 @@ class RawCNT(BaseRaw):
         if either contain a bad channel make channel bad.
         Defaults to ``'auto'``.
     %(preload)s
-    stim_channel : bool | None
-        Add a stim channel from the events. Defaults to None to trigger a
-        future warning.
-
-        .. warning:: This defaults to True in 0.18 but will change to False in
-                     0.19 (when no stim channel synthesis will be allowed)
-                     and be removed in 0.20; migrate code to use
-                     :func:`mne.events_from_annotations` instead.
-
-        .. versionadded:: 0.18
     %(verbose)s
 
     See Also
@@ -529,9 +541,17 @@ class RawCNT(BaseRaw):
             _date_format = "%m/%d/%y %H:%M:%S"
 
         input_fname = path.abspath(input_fname)
-        info, cnt_info = _get_cnt_info(
-            input_fname, eog, ecg, emg, misc, data_format, _date_format, header
-        )
+        try:
+            info, cnt_info = _get_cnt_info(
+                input_fname, eog, ecg, emg, misc, data_format, _date_format, header
+            )
+        except Exception:
+            raise RuntimeError(
+                f"{_explain_exception()}\n"
+                "WARNING: mne.io.read_raw_cnt "
+                "supports Neuroscan CNT files only. If this file is an ANT Neuro CNT, "
+                "please use mne.io.read_raw_ant instead."
+            )
         last_samps = [cnt_info["n_samples"] - 1]
         super().__init__(
             info,
@@ -573,7 +593,7 @@ class RawCNT(BaseRaw):
         block_size = ((int(100e6) // n_bytes) // chunk_size) * chunk_size
         block_size = min(data_left, block_size)
         s_offset = start % channel_offset
-        with open(self._filenames[fi], "rb", buffering=0) as fid:
+        with open(self.filenames[fi], "rb", buffering=0) as fid:
             fid.seek(900 + f_channels * (75 + (start - s_offset) * n_bytes))
             for sample_start in np.arange(0, data_left, block_size) // f_channels:
                 # Earlier comment says n_samples is unreliable, but I think it

@@ -18,8 +18,10 @@ repeatedly typing ``mne.preprocessing`` we'll directly import a few functions
 and classes from that submodule:
 """
 
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
 # %%
 
 import os
@@ -275,9 +277,7 @@ ica
 
 explained_var_ratio = ica.get_explained_variance_ratio(filt_raw)
 for channel_type, ratio in explained_var_ratio.items():
-    print(
-        f"Fraction of {channel_type} variance explained by all components: " f"{ratio}"
-    )
+    print(f"Fraction of {channel_type} variance explained by all components: {ratio}")
 
 # %%
 # The values were calculated for all ICA components jointly, but separately for
@@ -291,8 +291,7 @@ explained_var_ratio = ica.get_explained_variance_ratio(
 # This time, print as percentage.
 ratio_percent = round(100 * explained_var_ratio["eeg"])
 print(
-    f"Fraction of variance in EEG signal explained by first component: "
-    f"{ratio_percent}%"
+    f"Fraction of variance in EEG signal explained by first component: {ratio_percent}%"
 )
 
 # %%
@@ -416,11 +415,10 @@ ica.plot_sources(raw, show_scrollbars=False)
 ica.plot_sources(eog_evoked)
 
 # %%
-# Note that above we used `~mne.preprocessing.ICA.plot_sources` on both
-# the original `~mne.io.Raw` instance and also on an
-# `~mne.Evoked` instance of the extracted EOG artifacts. This can be
-# another way to confirm that `~mne.preprocessing.ICA.find_bads_eog` has
-# identified the correct components.
+# Note that above we used :meth:`~mne.preprocessing.ICA.plot_sources` on both the
+# original :class:`~mne.io.Raw` instance and also on an `~mne.Evoked` instance of the
+# extracted EOG artifacts. This can be another way to confirm that
+# :meth:`~mne.preprocessing.ICA.find_bads_eog` has identified the correct components.
 #
 #
 # Using a simulated channel to select ICA components
@@ -533,9 +531,9 @@ del raw, ica, new_ica
 raws = list()
 icas = list()
 
-for subj in range(4):
+for subj in range(1, 5):
     # EEGBCI subjects are 1-indexed; run 3 is a left/right hand movement task
-    fname = mne.datasets.eegbci.load_data(subj + 1, runs=[3])[0]
+    fname = mne.datasets.eegbci.load_data(subj, runs=[3])[0]
     raw = mne.io.read_raw_edf(fname).load_data().resample(50)
     # remove trailing `.` from channel names so we can set montage
     mne.datasets.eegbci.standardize(raw)

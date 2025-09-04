@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """Show the contents of a FIFF file.
 
 Examples
@@ -16,7 +15,7 @@ To see only tag 102:
 
 """
 
-# Authors : Eric Larson, PhD
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 

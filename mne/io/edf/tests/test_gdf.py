@@ -1,14 +1,11 @@
-# Authors: Alexandre Barachant <alexandre.barachant@gmail.com>
-#          Nicolas Barascud <nicolas.barascud@ens.fr>
-#
+# Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
 import shutil
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 
 import numpy as np
-import pytest
 import scipy.io as sio
 from numpy.testing import assert_array_almost_equal, assert_array_equal, assert_equal
 
@@ -100,11 +97,10 @@ def test_gdf2_birthday(tmp_path):
         fid.seek(176, 0)
         assert np.fromfile(fid, np.uint64, 1)[0] == d
     raw = read_raw_gdf(new_fname, eog=None, misc=None, preload=True)
-    assert raw._raw_extras[0]["subject_info"]["age"] == 44
+    assert "subject_info" not in raw._raw_extras[0]
     assert raw.info["subject_info"] is not None
-
     birthdate = datetime(1, 1, 1, tzinfo=timezone.utc) + offset_44_yr
-    assert raw.info["subject_info"]["birthday"] == (
+    assert raw.info["subject_info"]["birthday"] == date(
         birthdate.year,
         birthdate.month,
         birthdate.day,
@@ -120,7 +116,7 @@ def test_gdf2_data():
         misc=None,
         preload=True,
     )
-    assert raw._raw_extras[0]["subject_info"]["age"] is None
+    assert raw.info["subject_info"]["birthday"] == date(1, 1, 1)
 
     picks = pick_types(raw.info, meg=False, eeg=True, exclude="bads")
     data, _ = raw[picks]
@@ -153,8 +149,7 @@ def test_gdf2_data():
 @testing.requires_testing_data
 def test_one_channel_gdf():
     """Test a one-channel GDF file."""
-    with pytest.warns(RuntimeWarning, match="contain different"):
-        ecg = read_raw_gdf(gdf_1ch_path, preload=True)
+    ecg = read_raw_gdf(gdf_1ch_path, preload=True)
     assert ecg["ECG"][0].shape == (1, 4500)
     assert 150.0 == ecg.info["sfreq"]
 
