@@ -472,7 +472,7 @@ class SourceSpaces(list):
 
     @property
     def _subject(self):
-        return self[0].get("subject_his_id", None)
+        return self[0].get("subject_his_id", None) if len(self) else None
 
     def __add__(self, other):
         """Combine source spaces."""
@@ -2587,7 +2587,7 @@ def _filter_source_spaces(
             if check_inside.inner_r is not None:
                 # ... and those that are at least inner_sphere - limit away
                 mask = (
-                    np.linalg.norm(check_r1s - check_inside.cm, axis=-1)
+                    np.linalg.norm(check_r1s - check_inside.center, axis=-1)
                     >= check_inside.inner_r - limit / 1000.0
                 )
                 idx = idx[mask]

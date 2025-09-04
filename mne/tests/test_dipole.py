@@ -389,10 +389,19 @@ def test_accuracy():
     )
     evoked.pick("meg")
     evoked.pick([c for c in evoked.ch_names[::4]])
-    for rad, perc_90 in zip((0.09, None), (0.002, 0.004)):
+    for rad, perc_90 in zip((0.095, None), (0.002, 0.004)):
         bem = make_sphere_model(
-            "auto", rad, evoked.info, relative_radii=(0.999, 0.998, 0.997, 0.995)
+            (0.0, 0.0, 0.04),
+            rad,
+            evoked.info,
+            relative_radii=(0.999, 0.998, 0.997, 0.995),
         )
+        if rad is not None:
+            # These should end up being sorted, and normed by largest relative radius
+            assert_allclose(bem["layers"][0]["rad"], 0.995 / 0.999 * rad)
+            assert_allclose(bem["layers"][-1]["rad"], rad)
+        else:
+            assert bem["layers"] == []
         src = read_source_spaces(fname_src)
 
         fwd = make_forward_solution(evoked.info, None, src, bem)

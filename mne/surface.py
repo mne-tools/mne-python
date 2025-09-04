@@ -760,14 +760,14 @@ class _CheckInside:
 
     def _init_old(self):
         self.inner_r = None
-        self.cm = self.surf["rr"].mean(0)
+        self.center = self.surf["rr"].mean(0)
         # We could use Delaunay or ConvexHull here, Delaunay is slightly slower
         # to construct but faster to evaluate
         # See https://stackoverflow.com/questions/16750618/whats-an-efficient-way-to-find-if-a-point-lies-in-the-convex-hull-of-a-point-cl  # noqa
         self.del_tri = Delaunay(self.surf["rr"])
-        if self.del_tri.find_simplex(self.cm) >= 0:
+        if self.del_tri.find_simplex(self.center) >= 0:
             # Immediately cull some points from the checks
-            dists = np.linalg.norm(self.surf["rr"] - self.cm, axis=-1)
+            dists = np.linalg.norm(self.surf["rr"] - self.center, axis=-1)
             self.inner_r = dists.min()
             self.outer_r = dists.max()
 
@@ -815,7 +815,7 @@ class _CheckInside:
         # Limit to indices that can plausibly be outside the surf
         # but are not definitely outside it
         if self.inner_r is not None:
-            dists = np.linalg.norm(rr - self.cm, axis=-1)
+            dists = np.linalg.norm(rr - self.center, axis=-1)
             in_mask = dists < self.inner_r
             n = (in_mask).sum()
             n_pad = str(n).rjust(prec)
@@ -864,12 +864,19 @@ class _CheckInside:
 
 
 class _CheckInsideSphere:
-    def __init__(self, sphere):
+    def __init__(self, sphere, *, check="inner"):
         from .bem import ConductorModel
 
         assert isinstance(sphere, ConductorModel) and sphere["is_sphere"]
-        self.cm = sphere["r0"]
-        self.inner_r = sphere.radius  # float or None
+        self.center = sphere["r0"]
+        assert isinstance(check, str) and check in ("inner", "outer"), check
+        self.check = check
+        # for a sphere, our closest point and farthest are the same
+        if len(sphere["layers"]):
+            self.inner_r = sphere["layers"][0]["rad"]
+            self.outer_r = sphere["layers"][-1]["rad"]
+        else:
+            self.inner_r = self.outer_r = None
 
     # No need for verbose dec here because no MNE code is called that would log
     def __call__(self, rr, *, n_jobs=None, verbose=None):
@@ -878,7 +885,11 @@ class _CheckInsideSphere:
         if self.inner_r is None:
             return np.ones(rr.shape[0], bool)
         else:
-            return np.linalg.norm(rr - self.cm, axis=-1) <= self.inner_r
+            return np.linalg.norm(rr - self.center, axis=-1) <= self._check_r
+
+    @property
+    def _check_r(self):
+        return self.inner_r if self.check == "inner" else self.outer_r
 
     def query(self, rr):
         """Return the distance to the sphere surface for each point."""
@@ -888,7 +899,7 @@ class _CheckInsideSphere:
         if self.inner_r is None:
             dists = np.full(rr.shape[0], np.inf)
         else:
-            dists = np.abs(np.linalg.norm(rr - self.cm, axis=-1) - self.inner_r)
+            dists = np.abs(np.linalg.norm(rr - self.center, axis=-1) - self._check_r)
         return dists, idx
 
 

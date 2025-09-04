@@ -21,6 +21,7 @@ from .._fiff.tag import _loc_to_coil_trans, _loc_to_eeg_loc
 from ..bem import ConductorModel, _bem_find_surface, read_bem_solution
 from ..source_estimate import VolSourceEstimate
 from ..source_space._source_space import (
+    SourceSpaces,
     _complete_vol_src,
     _ensure_src,
     _filter_source_spaces,
@@ -463,7 +464,7 @@ def _prepare_for_forward(
     # let's make a copy in case we modify something
     src = _ensure_src(src).copy()
     nsource = sum(s["nuse"] for s in src)
-    if nsource == 0:
+    if len(src) and nsource == 0:
         raise RuntimeError(
             "No sources are active in these source spaces. "
             '"do_all" option should be used.'
@@ -523,9 +524,12 @@ def _prepare_for_forward(
     # (will either be HEAD or MRI)
     for s in src:
         transform_surface_to(s, "head", mri_head_t)
-    logger.info(
-        f"Source spaces are now in {_coord_frame_name(s['coord_frame'])} coordinates."
-    )
+        del s
+    if len(src):
+        logger.info(
+            f"Source spaces are now in {_coord_frame_name(src[0]['coord_frame'])} "
+            "coordinates."
+        )
 
     # Prepare the BEM model
     eegnames = sensors.get("eeg", dict()).get("ch_names", [])
@@ -541,33 +545,29 @@ def _prepare_for_forward(
         if not bem["is_sphere"]:
             check_surface = "inner skull surface"
             check_inside_brain = _CheckInside(_bem_find_surface(bem, "inner_skull"))
-            _filter_source_spaces(check_inside_brain, n_jobs=n_jobs, **kwargs)
             logger.info("")
             if len(bem["surfs"]) == 3:
                 check_surface = "scalp surface"
                 check_inside_head = _CheckInside(_bem_find_surface(bem, "head"))
+            else:
+                check_inside_head = check_inside_brain
         else:
             check_surface = "outermost sphere shell"
             check_inside_brain = _CheckInsideSphere(bem)
-            _filter_source_spaces(check_inside_brain, **kwargs)
-            if len(bem["layers"]) == 0:
+            if bem.radius is not None:
+                check_inside_head = _CheckInsideSphere(bem, check="outer")
+            else:
 
                 def check_inside_head(x):
                     return np.zeros(len(x), bool)
 
-            else:
-
-                def check_inside_head(x):
-                    # MEG sensors are in MRI coords at this point, so need to
-                    # transform BEM center to MRI coords, too
-                    r0 = apply_trans(invert_transform(mri_head_t), bem["r0"])
-                    return np.linalg.norm(x - r0, axis=1) < bem.radius
+        if len(src):
+            _filter_source_spaces(check_inside_brain, **kwargs)
 
         if "meg" in sensors:
-            meg_loc = apply_trans(
-                invert_transform(mri_head_t),
-                np.array([coil["r0"] for coil in sensors["meg"]["defs"]]),
-            )
+            meg_loc = np.array([coil["r0"] for coil in sensors["meg"]["defs"]])
+            if not bem["is_sphere"]:
+                meg_loc = apply_trans(invert_transform(mri_head_t), meg_loc)
             n_inside = check_inside_head(meg_loc).sum()
             if n_inside:
                 raise RuntimeError(
@@ -576,12 +576,15 @@ def _prepare_for_forward(
                     "coregistration must be incorrect"
                 )
 
-    rr = np.concatenate([s["rr"][s["vertno"]] for s in src])
-    if len(rr) < 1:
-        raise RuntimeError(
-            "No points left in source space after excluding "
-            "points close to inner skull."
-        )
+    if len(src):
+        rr = np.concatenate([s["rr"][s["vertno"]] for s in src])
+        if len(rr) < 1:
+            raise RuntimeError(
+                "No points left in source space after excluding "
+                "points close to inner skull."
+            )
+    else:
+        rr = np.zeros((0, 3))
 
     # deal with free orientations:
     source_nn = np.tile(np.eye(3), (len(rr), 1))
@@ -943,9 +946,9 @@ def use_coil_def(fname):
         _extra_coil_def_fname = None
 
 
-# Class optimized for incremental fitting using the same sensors and BEM at different
-# locations (e.g., for Xfit-like iterative forward solutions)
 class _ForwardModeler:
+    """Optimized incremental fitting using the same sensors and BEM."""
+
     @verbose
     def __init__(
         self,
@@ -960,12 +963,7 @@ class _ForwardModeler:
         self.mri_head_t, _ = _get_trans(trans)
         self.mindist = mindist
         self.n_jobs = n_jobs
-        # TODO: Make `src` optional in _prepare_for_forward
-        import mne
-
-        src = mne.setup_volume_source_space(
-            "", pos=dict(rr=np.zeros((1, 3)), nn=np.array([[0, 0, 1]])), verbose="error"
-        )
+        src = SourceSpaces([])
         self.sensors, _, _, _, self.bem = _prepare_for_forward(
             src,
             self.mri_head_t,
