@@ -242,7 +242,8 @@ class Annotations:
         the annotations with raw data if their acquisition is started at the
         same time. If it is a string, it should conform to the ISO8601 format.
         More precisely to this '%%Y-%%m-%%d %%H:%%M:%%S.%%f' particular case of
-        the ISO8601 format where the delimiter between date and time is ' '.
+        the ISO8601 format where the delimiter between date and time is ' ' and at most
+        microsecond precision (nanoseconds are not supported).
     %(ch_names_annot)s
 
         .. versionadded:: 0.23
@@ -390,6 +391,20 @@ class Annotations:
         extras=None,
     ):
         self._orig_time = _handle_meas_date(orig_time)
+        if isinstance(orig_time, str) and self._orig_time is None:
+            try:  # only warn if `orig_time` is not the default '1970-01-01 00:00:00'
+                if _handle_meas_date(0) == datetime.strptime(
+                    orig_time, "%Y-%m-%d %H:%M:%S"
+                ).replace(tzinfo=timezone.utc):
+                    pass
+            except ValueError:  # error if incorrect datetime format AND not the default
+                warn(
+                    "The format of the `orig_time` string is not recognised. It "
+                    "must conform to the ISO8601 format with at most microsecond "
+                    "precision and where the delimiter between date and time is "
+                    "' '.",
+                    RuntimeWarning,
+                )
         self.onset, self.duration, self.description, self.ch_names, self._extras = (
             _check_o_d_s_c_e(onset, duration, description, ch_names, extras)
         )
@@ -1482,7 +1497,13 @@ def _read_annotations_csv(fname):
             "onsets in seconds."
         )
     except ValueError:
-        pass
+        # remove nanoseconds for ISO8601 (microsecond) compliance
+        timestamp = pd.Timestamp(orig_time)
+        timespec = "microseconds"
+        if timestamp == pd.Timestamp(_handle_meas_date(0)).astimezone(None):
+            timespec = "auto"  # use default timespec for `orig_time=None`
+        orig_time = timestamp.isoformat(sep=" ", timespec=timespec)
+
     onset_dt = pd.to_datetime(df["onset"])
     onset = (onset_dt - onset_dt[0]).dt.total_seconds()
     duration = df["duration"].values.astype(float)
