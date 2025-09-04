@@ -4,8 +4,10 @@
 
 import shutil
 from datetime import date, datetime, timedelta, timezone
+from io import BytesIO
 
 import numpy as np
+import pytest
 import scipy.io as sio
 from numpy.testing import assert_array_almost_equal, assert_array_equal, assert_equal
 
@@ -181,3 +183,36 @@ def test_gdf_include():
         gdf1_path.with_name(gdf1_path.name + ".gdf"), include=("FP1", "O1")
     )
     assert sorted(raw.ch_names) == ["FP1", "O1"]
+
+
+@testing.requires_testing_data
+def test_gdf_read_from_file_like():
+    """Test that RawGDF is able to read from file-like objects for GDF files."""
+    with open(gdf1_path.with_name(gdf1_path.name + ".gdf"), "rb") as blob:
+        raw = read_raw_gdf(BytesIO(blob.read()), preload=True)
+        channels = [
+            "FP1",
+            "FP2",
+            "F5",
+            "AFz",
+            "F6",
+            "T7",
+            "Cz",
+            "T8",
+            "P7",
+            "P3",
+            "Pz",
+            "P4",
+            "P8",
+            "O1",
+            "Oz",
+            "O2",
+        ]
+
+        assert raw.ch_names == channels
+
+
+def test_gdf_read_from_bad_file_like():
+    """Test that RawGDF is NOT able to read from file-like objects for non GDF files."""
+    with pytest.raises(Exception, match="Bad GDF file provided."):
+        read_raw_gdf(BytesIO(), preload=True)
