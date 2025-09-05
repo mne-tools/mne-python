@@ -552,7 +552,11 @@ def test_make_forward_solution_sphere(tmp_path, fname_src_small):
         ]
     )
     fwd = read_forward_solution(out_name)
-    sphere = make_sphere_model(verbose=True)
+    sphere = make_sphere_model(
+        head_radius=0.1,
+        relative_radii=(0.95, 0.97, 0.98, 1),
+        verbose=True,
+    )
     src = read_source_spaces(fname_src_small)
     fwd_py = make_forward_solution(
         fname_raw, fname_trans, src, sphere, meg=True, eeg=True, verbose=True
