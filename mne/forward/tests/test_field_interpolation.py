@@ -50,12 +50,14 @@ def test_field_map_ctf():
     evoked = Epochs(raw, events).average()
     evoked.pick(evoked.ch_names[:50])  # crappy mapping but faster
     # smoke test - passing trans_fname as pathlib.Path as additional check
+    # set origin to "(0.0, 0.0, 0.04)", which was the default until v1.12
+    # estimating origin from "auto" impossible due to missing digitization points
     make_field_map(
         evoked,
         trans=Path(trans_fname),
         subject="sample",
         subjects_dir=subjects_dir,
-        origin="auto",
+        origin=(0.0, 0.0, 0.04),
     )
 
 
@@ -236,13 +238,15 @@ def test_make_field_map_meeg():
     picks = picks[::10]
     evoked.pick([evoked.ch_names[p] for p in picks])
     evoked.info.normalize_proj()
+    # set origin to "(0.0, 0.0, 0.04)", which was the default until v1.12
+    # estimated origin from "auto" fails the assertions below
     maps = make_field_map(
         evoked,
         trans_fname,
         subject="sample",
         subjects_dir=subjects_dir,
         verbose="debug",
-        origin="auto",
+        origin=(0.0, 0.0, 0.04),
     )
     assert_equal(maps[0]["data"].shape, (642, 6))  # EEG->Head
     assert_equal(maps[1]["data"].shape, (304, 31))  # MEG->Helmet
