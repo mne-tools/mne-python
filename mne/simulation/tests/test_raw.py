@@ -223,10 +223,7 @@ def raw_data():
     src = read_source_spaces(src_fname)
     trans = read_trans(trans_fname)
     # Use fixed values from old sphere fit to reduce lines changed with fixed algorithm
-    sphere = make_sphere_model(
-        [-0.00413508, 0.01598787, 0.05175598],
-        0.09100286249131773,
-    )
+    sphere = make_sphere_model([0.0, 0.0, 0.03], 0.1)
     stc = _make_stc(raw, src)
     return raw, src, stc, trans, sphere
 

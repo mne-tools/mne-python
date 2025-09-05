@@ -729,14 +729,16 @@ def _evoked_cov_sphere(_evoked):
     evoked.pick(evoked.ch_names[::4])
     assert len(evoked.ch_names) == 77
     cov = mne.read_cov(fname_cov)
-    sphere = mne.make_sphere_model("auto", "auto", evoked.info)
+    sphere = mne.make_sphere_model(
+        (0.0, 0.0, 0.04), 0.1, relative_radii=(0.995, 0.997, 0.998, 1.0)
+    )
     return evoked, cov, sphere
 
 
 @pytest.fixture(scope="session")
 def _fwd_surf(_evoked_cov_sphere):
     """Compute a forward for a surface source space."""
-    evoked, cov, sphere = _evoked_cov_sphere
+    evoked, _, sphere = _evoked_cov_sphere
     src_surf = mne.read_source_spaces(fname_src)
     return mne.make_forward_solution(
         evoked.info, fname_trans, src_surf, sphere, mindist=5.0
@@ -747,7 +749,7 @@ def _fwd_surf(_evoked_cov_sphere):
 def _fwd_subvolume(_evoked_cov_sphere):
     """Compute a forward for a surface source space."""
     pytest.importorskip("nibabel")
-    evoked, cov, sphere = _evoked_cov_sphere
+    evoked, _, sphere = _evoked_cov_sphere
     volume_labels = ["Left-Cerebellum-Cortex", "right-Cerebellum-Cortex"]
     with pytest.raises(ValueError, match=r"Did you mean one of \['Right-Cere"):
         mne.setup_volume_source_space(
@@ -761,9 +763,12 @@ def _fwd_subvolume(_evoked_cov_sphere):
         subjects_dir=subjects_dir,
         add_interpolator=False,
     )
-    return mne.make_forward_solution(
-        evoked.info, fname_trans, src_vol, sphere, mindist=5.0
+    fwd = mne.make_forward_solution(
+        evoked.info, fname_trans, src_vol, sphere, mindist=1.0
     )
+    nsrc = sum(s["nuse"] for s in src_vol)
+    assert fwd["nsource"] == nsrc
+    return fwd
 
 
 @pytest.fixture

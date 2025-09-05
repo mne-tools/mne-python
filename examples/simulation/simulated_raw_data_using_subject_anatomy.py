@@ -26,8 +26,6 @@ import numpy as np
 import mne
 from mne.datasets import sample
 
-print(__doc__)
-
 # %%
 # In this example, raw data will be simulated for the sample subject, so its
 # information needs to be loaded. This step will download the data if it not

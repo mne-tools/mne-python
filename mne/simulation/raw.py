@@ -502,9 +502,10 @@ def _add_exg(raw, kind, head_pos, interp, n_jobs, random_state):
     meg_picks = pick_types(info, meg=True, eeg=False, exclude=())
     meeg_picks = pick_types(info, meg=True, eeg=True, exclude=())
     R, r0 = fit_sphere_to_headshape(info, units="m", verbose=False)[:2]
+    head_radius = R if kind == "blink" else None
     bem = make_sphere_model(
         r0,
-        head_radius=R,
+        head_radius=head_radius,
         relative_radii=(0.97, 0.98, 0.99, 1.0),
         sigmas=(0.33, 1.0, 0.004, 0.33),
         verbose=False,
@@ -849,7 +850,7 @@ def _iter_forward_solutions(
         # Compute forward
         if forward is None:
             if not bem["is_sphere"]:
-                outside = ~_CheckInside(bem_surf)(coil_rr, n_jobs, verbose=False)
+                outside = ~_CheckInside(bem_surf)(coil_rr, n_jobs=n_jobs, verbose=False)
             elif bem.radius is not None:
                 d = coil_rr - bem["r0"]
                 outside = np.sqrt(np.sum(d * d, axis=1)) > bem.radius
