@@ -112,7 +112,7 @@
 .. _Harrison Ritz: https://github.com/harrisonritz
 .. _Hasrat Ali Arzoo: https://github.com/hasrat17
 .. _Henrich Kolkhorst: https://github.com/hekolk
-.. _Hongjiang Ye: https://github.com/hongjiang-ye
+.. _Hongjiang Ye: https://github.com/ye-hongjiang
 .. _Hubert Banville: https://github.com/hubertjb
 .. _Hyonyoung Shin: https://github.com/mcvain
 .. _Hüseyin Orkun Elmas: https://github.com/HuseyinOrkun
