@@ -1,1 +1,0 @@
-Add example :ref:`ex-ica-comp` comparing ICA algorithms on clean vs noisy MEG data, by :newcontrib:`Ganasekhar Kalla`.
