@@ -30,7 +30,6 @@ from mne import (
     read_evokeds,
     read_forward_solution,
     read_source_spaces,
-    transform_surface_to,
     write_evokeds,
 )
 from mne._fiff.constants import FIFF
@@ -219,8 +218,7 @@ def test_dipole_fitting(tmp_path):
     )
 
     # Compare to original points
-    transform_surface_to(fwd["src"][0], "head", fwd["mri_head_t"])
-    transform_surface_to(fwd["src"][1], "head", fwd["mri_head_t"])
+    fwd["src"]._transform_to("head", fwd["mri_head_t"])
     assert fwd["src"][0]["coord_frame"] == FIFF.FIFFV_COORD_HEAD
     src_rr = np.concatenate([s["rr"][v] for s, v in zip(fwd["src"], vertices)], axis=0)
     src_nn = np.concatenate([s["nn"][v] for s, v in zip(fwd["src"], vertices)], axis=0)

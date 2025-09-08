@@ -36,7 +36,6 @@ from ..transforms import (
     _print_coord_trans,
     apply_trans,
     invert_transform,
-    transform_surface_to,
 )
 from ..utils import _check_fname, _pl, _validate_type, logger, verbose, warn
 from ._compute_forward import (
@@ -522,9 +521,7 @@ def _prepare_for_forward(
 
     # Transform the source spaces into the appropriate coordinates
     # (will either be HEAD or MRI)
-    for s in src:
-        transform_surface_to(s, "head", mri_head_t)
-        del s
+    src._transform_to("head", mri_head_t)
     if len(src):
         logger.info(
             f"Source spaces are now in {_coord_frame_name(src[0]['coord_frame'])} "
@@ -990,9 +987,7 @@ class _ForwardModeler:
 
     def compute(self, src):
         src = _ensure_src(src).copy()
-        for s in src:
-            transform_surface_to(s, "head", self.mri_head_t)
-
+        src._transform_to("head", self.mri_head_t)
         kwargs = dict(limit=self.mindist, mri_head_t=self.mri_head_t, src=src)
         _filter_source_spaces(self.check_inside, n_jobs=self.n_jobs, **kwargs)
         rr = np.concatenate([s["rr"][s["vertno"]] for s in src])

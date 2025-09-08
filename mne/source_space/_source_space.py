@@ -68,6 +68,7 @@ from ..transforms import (
     apply_trans,
     combine_transforms,
     invert_transform,
+    transform_surface_to,
 )
 from ..utils import (
     _check_fname,
@@ -786,6 +787,16 @@ class SourceSpaces(list):
 
         # write image to file
         nib.save(img, fname)
+
+    def _transform_to(self, cf, mri_head_t):
+        # NOTE: the function transform_surface_to will also work on discrete and
+        # volume sources
+        try:
+            for s in self:
+                transform_surface_to(s, cf, mri_head_t, copy=False)
+        except Exception as inst:
+            raise RuntimeError(f"Could not transform source space ({inst})")
+        return self
 
 
 def _add_patch_info(s):
