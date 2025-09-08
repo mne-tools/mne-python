@@ -20,6 +20,7 @@ from ...surface import _normal_orth
 from ...transforms import Transform, apply_trans
 from ...utils import (
     _soft_import,
+    logger,
     verbose,
     warn,
 )
@@ -200,8 +201,8 @@ def _get_curry_epoch_info(fname):
 
 
 def _get_curry_meg_normals(fname):
-    fname_hdr = _check_curry_header_filename(fname)
-    normals_str = fname_hdr.read_text().split("\n")
+    fname_lbl = _check_curry_labels_filename(fname)
+    normals_str = fname_lbl.read_text().split("\n")
     # i_start, i_stop = [
     #    i
     #    for i, ll in enumerate(normals_str)
@@ -262,12 +263,9 @@ def _extract_curry_info(fname):
 
     # events
     events = currydata["events"]
-    # BUG in curryreader (v.0.1.1)! annotations read incorrectly (shifted by 1 line)
     annotations = currydata["annotations"]
     assert len(annotations) == len(events)
     if len(events) > 0:
-        # quick fix: shift annotation down, last one is missing
-        annotations = annotations[1:] + [""]
         event_desc = dict()
         for k, v in zip(events[:, 1], annotations):
             if int(k) not in event_desc.keys():
@@ -700,8 +698,8 @@ def read_impedances_curry(fname, verbose=None):
     # inconsistently, though, and low priority
 
     # print impedances
-    print("impedance measurements:")
+    logger.info("impedance measurements:")
     for iimp in range(impedances.shape[0]):
-        print({ch: float(imp) for ch, imp in zip(ch_names, impedances[iimp])})
+        logger.info({ch: float(imp) for ch, imp in zip(ch_names, impedances[iimp])})
 
     return ch_names, impedances

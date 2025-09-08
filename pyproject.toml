@@ -88,7 +88,7 @@ full = ["mne[full-no-qt]", "PyQt6 != 6.6.0", "PyQt6-Qt6 != 6.6.0, != 6.7.0"]
 # and mne[full-pyside6], which will install PySide6 instead of PyQt6.
 full-no-qt = [
   "antio >= 0.5.0",
-  "curryreader >= 0.1.1",
+  "curryreader >= 0.1.2",
   "darkdetect",
   "defusedxml",
   "dipy",
@@ -160,7 +160,7 @@ test = [
 # Dependencies for being able to run additional tests (rare/CIs/advanced devs)
 # Changes here should be reflected in the mne/utils/config.py dev dependencies section
 test_extra = [
-  "curryreader >= 0.1.1",
+  "curryreader >= 0.1.2",
   "edfio >= 0.2.1",
   "eeglabio",
   "imageio >= 2.6.1",
