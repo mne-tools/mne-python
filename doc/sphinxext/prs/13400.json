@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "288165207c9eed17ba24a9e4d827f78cbd727a91",
+  "authors": [
+    {
+      "n": "Marijn van Vliet",
+      "e": "w.m.vanvliet@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/13400.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/bem.py": {
+      "a": 8,
+      "d": 1
+    },
+    "mne/source_space/tests/test_source_space.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/check.py": {
+      "a": 77,
+      "d": 77
+    },
+    "mne/utils/docs.py": {
+      "a": 31,
+      "d": 12
+    },
+    "mne/utils/tests/test_check.py": {
+      "a": 43,
+      "d": 7
+    },
+    "tutorials/intro/40_sensor_locations.py": {
+      "a": 121,
+      "d": 138
+    }
+  }
+}

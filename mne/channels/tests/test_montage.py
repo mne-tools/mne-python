@@ -1429,7 +1429,7 @@ def test_set_montage_mgh(rename):
             except ValueError:
                 return x
 
-        mon.rename_channels(renamer)
+        mon = mon.rename_channels(renamer)
         raw.set_montage(mon)
 
     if mon is not None:

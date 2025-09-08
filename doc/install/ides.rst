@@ -37,7 +37,7 @@ something like:
 
 .. code-block:: output
 
-   Using Python: /some/directory/mne-python_1.7.1_0/bin/python
+   Using Python: /some/directory/mne-python_1.10.0_0/bin/python
 
 Altertatively (or on Windows), you can find that path by opening the Python interpreter
 you want to use (e.g., the one from the MNE-Python installer, or a ``conda`` environment
@@ -47,8 +47,8 @@ that you have activated) and running::
    >>> print(sys.executable) # doctest:+SKIP
 
 This should print something like
-``C:\Program Files\MNE-Python\1.7.0_0\bin\python.exe`` (Windows) or
-``/Users/user/Applications/MNE-Python/1.7.0_0/.mne-python/bin/python`` (macOS).
+``C:\Program Files\MNE-Python\1.10.0_0\bin\python.exe`` (Windows) or
+``/Users/user/Applications/MNE-Python/1.10.0_0/.mne-python/bin/python`` (macOS).
 
 For Spyder, if the console cannot start because ``spyder-kernels`` is missing,
 install the required version in the conda environment. For example, with the

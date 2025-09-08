@@ -485,7 +485,8 @@ def _prepare_for_forward(
     info = Info(
         chs=info["chs"],
         comps=info["comps"],
-        dev_head_t=info["dev_head_t"],
+        # The forward-writing code always wants a dev_head_t, so give an identity one
+        dev_head_t=info["dev_head_t"] or Transform("meg", "head"),
         mri_file=info_trans,
         mri_id=mri_id,
         meas_file=info_extra,
@@ -552,9 +553,8 @@ def _prepare_for_forward(
             else:
 
                 def check_inside(x):
-                    return (
-                        np.linalg.norm(x - bem["r0"], axis=1) < bem["layers"][-1]["rad"]
-                    )
+                    r0 = apply_trans(invert_transform(mri_head_t), bem["r0"])
+                    return np.linalg.norm(x - r0, axis=1) < bem["layers"][-1]["rad"]
 
         if "meg" in sensors:
             meg_loc = apply_trans(

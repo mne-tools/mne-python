@@ -175,7 +175,7 @@ def test_downloads(tmp_path, monkeypatch, capsys):
 
 
 @flaky(max_runs=3)
-@pytest.mark.slowtest
+@pytest.mark.ultraslowtest  # not really ultraslow, but flakes out a lot
 @testing.requires_testing_data
 @requires_good_network
 def test_fetch_parcellations(tmp_path):
