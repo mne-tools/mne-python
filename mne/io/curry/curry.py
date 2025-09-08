@@ -56,7 +56,7 @@ def _get_curry_version(fname):
 
 
 def _check_curry_filename(fname):
-    fname_in = Path(fname)
+    fname_in = Path(fname).expanduser()
     fname_out = None
     # try suffixes
     if fname_in.suffix in CURRY_SUFFIX_DATA:
@@ -73,7 +73,9 @@ def _check_curry_filename(fname):
                 break
     # final check
     if not fname_out or not fname_out.exists():
-        raise FileNotFoundError("no curry data file found (.dat or .cdt)")
+        raise FileNotFoundError(
+            f"no curry data file found (.dat or .cdt), checked {fname_out or fname_in}"
+        )
     return fname_out
 
 
