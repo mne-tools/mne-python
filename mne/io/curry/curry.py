@@ -17,7 +17,15 @@ from ..._fiff.utils import _mult_cal_one, _read_segments_file
 from ...annotations import annotations_from_events
 from ...epochs import Epochs
 from ...surface import _normal_orth
-from ...transforms import Transform, apply_trans
+from ...transforms import (
+    Transform,
+    _angle_between_quats,
+    apply_trans,
+    combine_transforms,
+    get_ras_to_neuromag_trans,
+    invert_transform,
+    rot_to_quat,
+)
 from ...utils import (
     _soft_import,
     logger,
@@ -25,10 +33,26 @@ from ...utils import (
     warn,
 )
 from ..base import BaseRaw
+from ..ctf.trans import _quaternion_align
 
 CURRY_SUFFIX_DATA = [".cdt", ".dat"]
 CURRY_SUFFIX_HDR = [".cdt.dpa", ".cdt.dpo", ".dap"]
 CURRY_SUFFIX_LABELS = [".cdt.dpa", ".cdt.dpo", ".rs3"]
+
+
+def _get_curry_version(fname):
+    """Check out the curry file version."""
+    fname_hdr = _check_curry_header_filename(_check_curry_filename(fname)).name
+
+    return (
+        "Curry 7"
+        if ".dap" in fname_hdr
+        else "Curry 8"
+        if ".dpa" in fname_hdr
+        else "Curry 9"
+        if ".dpo" in fname_hdr
+        else None
+    )
 
 
 def _check_curry_filename(fname):
@@ -255,6 +279,8 @@ def _extract_curry_info(fname):
         landmarks = np.array(landmarks)
     landmarkslabels = currydata["landmarkslabels"]
     hpimatrix = currydata["hpimatrix"]
+    if isinstance(currydata["hpimatrix"], np.ndarray) and hpimatrix.ndim == 1:
+        hpimatrix = hpimatrix[np.newaxis, :]
 
     # data
     orig_format = "int"
@@ -407,7 +433,7 @@ def _read_annotations_curry(fname, sfreq="auto"):
         return None
 
 
-def _set_chanloc_curry(inst, ch_types, ch_pos, landmarks, landmarkslabels):
+def _set_chanloc_curry(inst, ch_types, ch_pos, landmarks, landmarkslabels, hpimatrix):
     ch_names = inst.info["ch_names"]
 
     # scale ch_pos to m?!
@@ -425,6 +451,20 @@ def _set_chanloc_curry(inst, ch_types, ch_pos, landmarks, landmarkslabels):
     }
 
     # landmarks and headshape
+    # FIX: one of the test files (c,rfDC*.cdt) names landmarks differently:
+    NAS_NAMES = ["nasion", "nas"]
+    LPA_NAMES = ["left ear", "lpa"]
+    RPA_NAMES = ["right ear", "rpa"]
+    landmarkslabels = [
+        "Nas"
+        if (ll.lower() in NAS_NAMES)
+        else "LPA"
+        if (ll.lower() in LPA_NAMES)
+        else "RPA"
+        if (ll.lower() in RPA_NAMES)
+        else ll
+        for ll in landmarkslabels
+    ]
     landmark_dict = dict(zip(landmarkslabels, landmarks))
     for k in ["Nas", "RPA", "LPA"]:
         if k not in landmark_dict.keys():
@@ -443,15 +483,18 @@ def _set_chanloc_curry(inst, ch_types, ch_pos, landmarks, landmarkslabels):
     else:
         hsp_pos = None
 
-    add_missing_fiducials = (
-        True
+    has_cards = (
+        False
         if (
             isinstance(landmark_dict["Nas"], type(None))
             and isinstance(landmark_dict["LPA"], type(None))
             and isinstance(landmark_dict["RPA"], type(None))
         )
-        else False  # raises otherwise
+        else True
     )
+    has_hpi = True if isinstance(hpi_pos, np.ndarray) else False
+
+    add_missing_fiducials = not has_cards  # raises otherwise
     dig = _make_dig_points(
         nasion=landmark_dict["Nas"],
         lpa=landmark_dict["LPA"],
@@ -500,6 +543,7 @@ def _set_chanloc_curry(inst, ch_types, ch_pos, landmarks, landmarkslabels):
             trans[:3, :3] = _normal_orth(nn).T
             with inst.info._unlock():
                 ch["loc"] = _coil_trans_to_loc(trans)
+                ch["coil_type"] = FIFF.FIFFV_COIL_CTF_GRAD
                 ch["coord_frame"] = FIFF.FIFFV_COORD_DEVICE
         elif ch_type == "misc":
             pass
@@ -509,7 +553,82 @@ def _set_chanloc_curry(inst, ch_types, ch_pos, landmarks, landmarkslabels):
     # TODO - REVIEW NEEDED
     # do we need further transformations for MEG channel positions?
     # the testfiles i got look good to me..
-    # _make_trans_dig(curry_paths, inst.info, curry_dev_dev_t)
+    _make_trans_dig(
+        inst.info,
+        curry_dev_dev_t,
+        landmark_dict,
+        has_cards,
+        has_hpi,
+        hpimatrix,
+    )
+
+
+def _make_trans_dig(info, curry_dev_dev_t, landmark_dict, has_cards, has_hpi, chpidata):
+    cards = {
+        FIFF.FIFFV_POINT_LPA: landmark_dict["LPA"],
+        FIFF.FIFFV_POINT_NASION: landmark_dict["Nas"],
+        FIFF.FIFFV_POINT_RPA: landmark_dict["RPA"],
+    }
+
+    # Coordinate frame transformations and definitions
+    no_msg = "Leaving device<->head transform as None"
+    info["dev_head_t"] = None
+    lm = [v for v in landmark_dict.values() if isinstance(v, np.ndarray)]
+    if len(lm) == 0:
+        # no dig
+        logger.info(no_msg + " (no landmarks found)")
+        return
+
+    if has_cards and has_hpi:  # have all three
+        logger.info("Composing device<->head transformation from dig points")
+        hpi_u = np.array(
+            [d["r"] for d in info["dig"] if d["kind"] == FIFF.FIFFV_POINT_HPI], float
+        )
+        hpi_c = np.ascontiguousarray(chpidata[0][: len(hpi_u), 1:4])
+        unknown_curry_t = _quaternion_align(
+            "unknown", "ctf_meg", hpi_u.astype("float64"), hpi_c.astype("float64"), 3e-2
+        )
+        angle = np.rad2deg(
+            _angle_between_quats(
+                np.zeros(3), rot_to_quat(unknown_curry_t["trans"][:3, :3])
+            )
+        )
+        dist = 1000 * np.linalg.norm(unknown_curry_t["trans"][:3, 3])
+        logger.info(f"   Fit a {angle:0.1f}° rotation, {dist:0.1f} mm translation")
+        unknown_dev_t = combine_transforms(
+            unknown_curry_t, curry_dev_dev_t, "unknown", "meg"
+        )
+        unknown_head_t = Transform(
+            "unknown",
+            "head",
+            get_ras_to_neuromag_trans(
+                *(
+                    cards[key]
+                    for key in (
+                        FIFF.FIFFV_POINT_NASION,
+                        FIFF.FIFFV_POINT_LPA,
+                        FIFF.FIFFV_POINT_RPA,
+                    )
+                )
+            ),
+        )
+        with info._unlock():
+            info["dev_head_t"] = combine_transforms(
+                invert_transform(unknown_dev_t), unknown_head_t, "meg", "head"
+            )
+            for d in info["dig"]:
+                d.update(
+                    coord_frame=FIFF.FIFFV_COORD_HEAD,
+                    r=apply_trans(unknown_head_t, d["r"]),
+                )
+    else:
+        if has_cards:
+            no_msg += " (no .hpi file found)"
+        elif has_hpi:
+            no_msg += " (not all cardinal points found)"
+        else:
+            no_msg += " (neither cardinal points nor .hpi file found)"
+        logger.info(no_msg)
 
 
 @verbose
@@ -619,17 +738,6 @@ class RawCurry(BaseRaw):
             annot = annotations_from_events(events, sfreq, event_desc=event_desc)
             self.set_annotations(annot)
 
-        # add sensor locations
-        # TODO - REVIEW NEEDED
-        assert len(self.info["ch_names"]) == len(ch_types) >= len(ch_pos)
-        _set_chanloc_curry(
-            inst=self,
-            ch_types=ch_types,
-            ch_pos=ch_pos,
-            landmarks=landmarks,
-            landmarkslabels=landmarkslabels,
-        )
-
         # add HPI data (if present)
         # TODO - FUTURE ENHANCEMENT
         # from curryreader docstring:
@@ -639,13 +747,27 @@ class RawCurry(BaseRaw):
         # that's incorrect, though. it ratehr seems to be:
         # [sample, dipole_1, x_1,y_1, z_1, dev_1, ..., dipole_n, x_n, ...]
         # for all n coils.
-        # We are missing good example data or format specs! do not implement for now.
+        #
+        # Do not implement cHPI reader for now.
+        # Can be used for dev-head transform, though!
         if not isinstance(hpimatrix, list):
-            warn("cHPI data found, but reader not implemented.")
+            # warn("cHPI data found, but reader not implemented.")
             hpisamples = hpimatrix[:, 0]
             n_coil = int((hpimatrix.shape[1] - 1) / 5)
-            hpimatrix = hpimatrix[:, 1:].reshape(hpimatrix.shape[0], n_coil, 5)
-            print(f"found {len(hpisamples)} cHPI samples for {n_coil} coils")
+            hpimatrix = hpimatrix[:, 1:].reshape(hpimatrix.shape[0], n_coil, 5) / 1000
+            logger.info(f"found {len(hpisamples)} cHPI samples for {n_coil} coils")
+
+        # add sensor locations
+        # TODO - REVIEW NEEDED
+        assert len(self.info["ch_names"]) == len(ch_types) >= len(ch_pos)
+        _set_chanloc_curry(
+            inst=self,
+            ch_types=ch_types,
+            ch_pos=ch_pos,
+            landmarks=landmarks,
+            landmarkslabels=landmarkslabels,
+            hpimatrix=hpimatrix,
+        )
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data."""
