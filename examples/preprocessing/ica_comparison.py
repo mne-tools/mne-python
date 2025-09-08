@@ -16,8 +16,8 @@ Extended Infomax) on the same raw MEG data. For each algorithm:
 Note: In typical preprocessing, only one ICA algorithm is used.
 This example is for educational purposes.
 """
-
-# authors : Ganasekhar Kalla <ganasekharkalla@gmail.com>
+# Authors: Pierre Ablin <pierreablin@gmail.com>
+#          Ganasekhar Kalla <ganasekharkalla@gmail.com>
 #
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
