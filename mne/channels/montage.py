@@ -773,6 +773,7 @@ def read_dig_dat(fname):
     See Also
     --------
     read_dig_captrak
+    read_dig_curry
     read_dig_dat
     read_dig_egi
     read_dig_fif
@@ -842,6 +843,7 @@ def read_dig_fif(fname, *, verbose=None):
     read_dig_dat
     read_dig_egi
     read_dig_captrak
+    read_dig_curry
     read_dig_polhemus_isotrak
     read_dig_hpts
     read_dig_localite
@@ -892,6 +894,7 @@ def read_dig_hpts(fname, unit="mm"):
     --------
     DigMontage
     read_dig_captrak
+    read_dig_curry
     read_dig_dat
     read_dig_egi
     read_dig_fif
@@ -985,6 +988,7 @@ def read_dig_egi(fname):
     --------
     DigMontage
     read_dig_captrak
+    read_dig_curry
     read_dig_dat
     read_dig_fif
     read_dig_hpts
@@ -1017,6 +1021,7 @@ def read_dig_captrak(fname):
     See Also
     --------
     DigMontage
+    read_dig_curry
     read_dig_dat
     read_dig_egi
     read_dig_fif
@@ -1038,12 +1043,23 @@ def read_dig_curry(fname):
     ----------
     fname : path-like
         A valid Curry file.
-    %(verbose)s
 
     Returns
     -------
     montage : instance of DigMontage | None
         The montage.
+
+    See Also
+    --------
+    DigMontage
+    read_dig_captrak
+    read_dig_dat
+    read_dig_egi
+    read_dig_fif
+    read_dig_hpts
+    read_dig_localite
+    read_dig_polhemus_isotrak
+    make_dig_montage
     """
     from ..io.curry.curry import (
         _check_curry_filename,
@@ -1087,6 +1103,7 @@ def read_dig_localite(fname, nasion=None, lpa=None, rpa=None):
     --------
     DigMontage
     read_dig_captrak
+    read_dig_curry
     read_dig_dat
     read_dig_egi
     read_dig_fif
@@ -1488,6 +1505,7 @@ def read_dig_polhemus_isotrak(fname, ch_names=None, unit="m"):
     make_dig_montage
     read_polhemus_fastscan
     read_dig_captrak
+    read_dig_curry
     read_dig_dat
     read_dig_egi
     read_dig_fif
@@ -1848,8 +1866,8 @@ def make_standard_montage(kind, head_size="auto"):
     Notes
     -----
     Individualized (digitized) electrode positions should be read in using
-    :func:`read_dig_captrak`, :func:`read_dig_dat`, :func:`read_dig_egi`,
-    :func:`read_dig_fif`, :func:`read_dig_polhemus_isotrak`,
+    :func:`read_dig_captrak`, :func:`read_dig_curry`, :func:`read_dig_dat`,
+    :func:`read_dig_egi`, :func:`read_dig_fif`, :func:`read_dig_polhemus_isotrak`,
     :func:`read_dig_hpts`, or manually made with :func:`make_dig_montage`.
 
     .. versionadded:: 0.19.0
