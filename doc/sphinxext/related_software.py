@@ -74,7 +74,7 @@ MANUAL_PACKAGES = {
         "Summary": "DICOM to NIfTI converter",
     },
     # TODO: these do not set a valid homepage or documentation page on PyPI
-    "picard": {  # https://github.com/mind-inria/picard/issues/60
+    "python-picard": {  # https://github.com/mind-inria/picard/issues/60
         "Home-page": "https://github.com/mind-inria/picard",
         "Summary": "Preconditioned ICA for Real Data",
     },

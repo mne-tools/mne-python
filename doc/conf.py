@@ -673,7 +673,11 @@ linkcheck_ignore = [  # will be compiled to regex
     r"https://scholar.google.com/scholar\?cites=12188330066413208874&as_ylo=2014",
     r"https://scholar.google.com/scholar\?cites=1521584321377182930&as_ylo=2013",
     "https://www.research.chop.edu/imaging",
+    "http://prdownloads.sourceforge.net/optipng",
+    "https://sourceforge.net/projects/aespa/files/",
+    "https://sourceforge.net/projects/ezwinports/files/",
     r"https://.*\.sourceforge\.net/",
+    "https://www.cogsci.nl/smathot",
     "https://www.mathworks.com/products/compiler/matlab-runtime.html",
     "https://medicine.umich.edu/dept/khri/ross-maddox-phd",
     # TODO https://github.com/mne-tools/curry-python-reader/issues/5
