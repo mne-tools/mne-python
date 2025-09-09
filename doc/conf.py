@@ -651,10 +651,11 @@ linkcheck_ignore = [  # will be compiled to regex
     "https://doi.org/10.1073/",  # pnas.org
     "https://doi.org/10.1080/",  # www.tandfonline.com
     "https://doi.org/10.1088/",  # www.tandfonline.com
+    "https://doi.org/10.1090/",  # ams.org
     "https://doi.org/10.1093/",  # academic.oup.com/sleep/
     "https://doi.org/10.1098/",  # royalsocietypublishing.org
     "https://doi.org/10.1101/",  # www.biorxiv.org
-    "https://doi.org/10.1103",  # journals.aps.org/rmp
+    "https://doi.org/10.1103/",  # journals.aps.org/rmp
     "https://doi.org/10.1111/",  # onlinelibrary.wiley.com/doi/10.1111/psyp
     "https://doi.org/10.1126/",  # www.science.org
     "https://doi.org/10.1137/",  # epubs.siam.org
@@ -664,7 +665,9 @@ linkcheck_ignore = [  # will be compiled to regex
     "https://doi.org/10.1162/",  # direct.mit.edu/neco/article/
     "https://doi.org/10.1167/",  # jov.arvojournals.org
     "https://doi.org/10.1177/",  # journals.sagepub.com
+    "https://doi.org/10.1523/",  # jneurosci.org
     "https://doi.org/10.3109/",  # www.tandfonline.com
+    "https://doi.org/10.3390/",  # mdpi.com
     "https://hms.harvard.edu/",  # doc/funding.rst
     "https://stackoverflow.com/questions/21752259/python-why-pickle",  # doc/help/faq
     "https://www.biorxiv.org/content/10.1101/",  # biorxiv.org
@@ -676,6 +679,8 @@ linkcheck_ignore = [  # will be compiled to regex
     "http://prdownloads.sourceforge.net/optipng",
     "https://sourceforge.net/projects/aespa/files/",
     "https://sourceforge.net/projects/ezwinports/files/",
+    r"https://.*\.sourceforge\.net/",
+    "https://www.cogsci.nl/smathot",
     "https://www.mathworks.com/products/compiler/matlab-runtime.html",
     "https://medicine.umich.edu/dept/khri/ross-maddox-phd",
     # TODO https://github.com/mne-tools/curry-python-reader/issues/5

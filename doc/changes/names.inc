@@ -76,6 +76,7 @@
 .. _Eduard Ort: https://github.com/eort
 .. _Emily Stephen: https://github.com/emilyps14
 .. _Emma Bailey: https://www.cbs.mpg.de/employees/bailey
+.. _Emrecan Çelik: https://github.com/emrecncelik
 .. _Enrico Varano: https://github.com/enricovara/
 .. _Enzo Altamiranda: https://www.linkedin.com/in/enzoalt
 .. _Eric Larson: https://larsoner.com
@@ -111,7 +112,7 @@
 .. _Harrison Ritz: https://github.com/harrisonritz
 .. _Hasrat Ali Arzoo: https://github.com/hasrat17
 .. _Henrich Kolkhorst: https://github.com/hekolk
-.. _Hongjiang Ye: https://github.com/hongjiang-ye
+.. _Hongjiang Ye: https://github.com/ye-hongjiang
 .. _Hubert Banville: https://github.com/hubertjb
 .. _Hyonyoung Shin: https://github.com/mcvain
 .. _Hüseyin Orkun Elmas: https://github.com/HuseyinOrkun
