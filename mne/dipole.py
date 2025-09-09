@@ -17,7 +17,7 @@ from ._fiff.constants import FIFF
 from ._fiff.pick import pick_types
 from ._fiff.proj import _needs_eeg_average_ref_proj, make_projector
 from ._freesurfer import _get_aseg, head_to_mni, head_to_mri, read_freesurfer_lut
-from .bem import ConductorModel, _bem_find_surface, _bem_surf_name, _fit_sphere
+from .bem import _bem_find_surface, _bem_surf_name, _fit_sphere
 from .cov import _ensure_cov, compute_whitener
 from .evoked import _aspect_rev, _read_evoked, _write_evokeds
 from .fixes import _safe_svd
@@ -30,7 +30,12 @@ from .forward._make_forward import (
 )
 from .parallel import parallel_func
 from .source_space._source_space import SourceSpaces, _make_volume_source_space
-from .surface import _compute_nearest, _points_outside_surface, transform_surface_to
+from .surface import (
+    _CheckInside,
+    _compute_nearest,
+    _DistanceQuery,
+    transform_surface_to,
+)
 from .transforms import _coord_frame_name, _print_coord_trans, apply_trans
 from .utils import (
     ExtendedTimeMixin,
@@ -911,7 +916,7 @@ def _write_dipole_bdip(fname, dip):
             fid.write(np.array(has_errors, ">i4").tobytes())  # has_errors
             fid.write(np.zeros(1, ">f4").tobytes())  # noise level
             for key in _BDIP_ERROR_KEYS:
-                val = dip.conf[key][ti] if key in dip.conf else 0.0
+                val = dip.conf[key][ti] if key in dip.conf else np.array(0.0)
                 assert val.shape == ()
                 fid.write(np.array(val, ">f4").tobytes())
             fid.write(np.zeros(25, ">f4").tobytes())
@@ -960,8 +965,9 @@ def _make_guesses(surf, grid, exclude, mindist, n_jobs=None, verbose=None):
         )
     else:
         logger.info(
-            f"Making a spherical guess space with radius {1000 * surf.radius:7.1f} "
-            "mm..."
+            "Making a spherical guess space with radius {:7.1f} mm...".format(
+                1000 * surf["R"]
+            )
         )
     logger.info("Filtering (grid = %6.f mm)..." % (1000 * grid))
     src = _make_volume_source_space(
@@ -1050,7 +1056,7 @@ def _fit_Q(*, sensors, fwd_data, whitener, B, B2, B_orig, rd, ori=None):
 
 def _fit_dipoles(
     fun,
-    min_dist_to_inner_skull,
+    constraint,
     data,
     times,
     guess_rrs,
@@ -1069,7 +1075,7 @@ def _fit_dipoles(
     # parallel over time points
     res = parallel(
         p_fun(
-            min_dist_to_inner_skull,
+            constraint,
             B,
             t,
             guess_rrs,
@@ -1267,26 +1273,36 @@ def _fit_confidence(*, rd, Q, ori, whitener, fwd_data, sensors):
     return conf
 
 
-def _surface_constraint(rd, surf, min_dist_to_inner_skull):
-    """Surface fitting constraint."""
-    dist = _compute_nearest(surf["rr"], rd[np.newaxis, :], return_dists=True)[1][0]
-    if _points_outside_surface(rd[np.newaxis, :], surf, 1)[0]:
-        dist *= -1.0
-    # Once we know the dipole is below the inner skull,
-    # let's check if its distance to the inner skull is at least
-    # min_dist_to_inner_skull. This can be enforced by adding a
-    # constrain proportional to its distance.
-    dist -= min_dist_to_inner_skull
-    return dist
+def _surface_constraint(surf, min_dist_to_inner_skull):
+    """Create a surface fitting constraint function."""
+    distance_checker = _DistanceQuery(surf["rr"], method="BallTree")
+    inside_checker = _CheckInside(surf, mode="pyvista")
+
+    def constraint(rd):
+        dist = distance_checker.query(rd[np.newaxis, :])[0][0]
+        if not inside_checker(rd[np.newaxis, :])[0]:
+            dist *= -1.0
+        # Once we know the dipole is below the inner skull,
+        # let's check if its distance to the inner skull is at least
+        # min_dist_to_inner_skull. This can be enforced by adding a
+        # constrain proportional to its distance.
+        dist -= min_dist_to_inner_skull
+        return dist
+
+    return constraint
 
 
-def _sphere_constraint(rd, r0, R_adj):
-    """Sphere fitting constraint."""
-    return R_adj - np.sqrt(np.sum((rd - r0) ** 2))
+def _sphere_constraint(r0, R_adj):
+    """Create a sphere fitting constraint function."""
+
+    def constraint(rd):
+        return R_adj - np.sqrt(np.sum((rd - r0) ** 2))
+
+    return constraint
 
 
 def _fit_dipole(
-    min_dist_to_inner_skull,
+    constraint,
     B_orig,
     t,
     guess_rrs,
@@ -1302,22 +1318,6 @@ def _fit_dipole(
 ):
     """Fit a single bit of data."""
     B = np.dot(whitener, B_orig)
-
-    # make constraint function to keep the solver within the inner skull
-    if "rr" in fwd_data["inner_skull"]:  # bem
-        surf = fwd_data["inner_skull"]
-        constraint = partial(
-            _surface_constraint,
-            surf=surf,
-            min_dist_to_inner_skull=min_dist_to_inner_skull,
-        )
-    else:  # sphere
-        surf = None
-        constraint = partial(
-            _sphere_constraint,
-            r0=fwd_data["inner_skull"]["r0"],
-            R_adj=fwd_data["inner_skull"].radius - min_dist_to_inner_skull,
-        )
 
     # Find a good starting point (find_best_guess in C)
     B2 = np.dot(B, B)
@@ -1388,9 +1388,9 @@ def _fit_dipole(
     )
 
     msg = "---- Fitted : %7.1f ms" % (1000.0 * t)
-    if surf is not None:
+    if "rr" in fwd_data["inner_skull"]:  # bem
         dist_to_inner_skull = _compute_nearest(
-            surf["rr"], rd_final[np.newaxis, :], return_dists=True
+            fwd_data["inner_skull"]["rr"], rd_final[np.newaxis, :], return_dists=True
         )[1][0]
         msg += ", distance to inner skull : %2.4f mm" % (dist_to_inner_skull * 1000.0)
 
@@ -1399,7 +1399,7 @@ def _fit_dipole(
 
 
 def _fit_dipole_fixed(
-    min_dist_to_inner_skull,
+    constraint,
     B_orig,
     t,
     guess_rrs,
@@ -1571,7 +1571,7 @@ def fit_dipole(
     if not bem["is_sphere"]:
         # Find the best-fitting sphere
         inner_skull = _bem_find_surface(bem, "inner_skull")
-        inner_skull = inner_skull.copy()
+        inner_skull = deepcopy(inner_skull)
         R, r0 = _fit_sphere(inner_skull["rr"])
         # r0 back to head frame for logging
         r0 = apply_trans(mri_head_t["trans"], r0[np.newaxis, :])[0]
@@ -1599,14 +1599,13 @@ def fit_dipole(
                 raise RuntimeError(
                     "No MEG channels found, but MEG-only sphere model used"
                 )
-            R = np.min(np.linalg.norm(R, axis=1))
-            kind = "min_rad"
+            R = np.min(np.sqrt(np.sum(R * R, axis=1)))  # use dist to sensors
+            kind = "max_rad"
         logger.info(
             f"Sphere model      : origin at ({1000 * r0[0]: 7.2f} {1000 * r0[1]: 7.2f} "
             f"{1000 * r0[2]: 7.2f}) mm, {kind} = {R:6.1f} mm"
         )
-        # NB sphere model defined in head frame
-        inner_skull = ConductorModel(layers=[dict(rad=R)], r0=r0, is_sphere=True)
+        inner_skull = dict(R=R, r0=r0)  # NB sphere model defined in head frame
         del R, r0
 
     # Deal with DipoleFixed cases here
@@ -1703,17 +1702,23 @@ def fit_dipole(
         logger.info("Go through all guess source locations...")
 
     # inner_skull goes from mri to head frame
-    if "rr" in inner_skull:
+    if not bem["is_sphere"]:
         transform_surface_to(inner_skull, "head", mri_head_t)
+
+    # make constraint function to keep the solver within the inner skull
+    if bem["is_sphere"]:
+        constraint = _sphere_constraint(
+            r0=inner_skull["r0"],
+            R_adj=inner_skull["R"] - min_dist_to_inner_skull,
+        )
+    else:
+        constraint = _surface_constraint(
+            surf=inner_skull,
+            min_dist_to_inner_skull=min_dist_to_inner_skull,
+        )
+
     if fixed_position:
-        if "rr" in inner_skull:
-            check = _surface_constraint(pos, inner_skull, min_dist_to_inner_skull)
-        else:
-            check = _sphere_constraint(
-                pos,
-                inner_skull["r0"],
-                R_adj=inner_skull.radius - min_dist_to_inner_skull,
-            )
+        check = constraint(pos)
         if check <= 0:
             raise ValueError(
                 f"fixed position is {-1000 * check:0.1f}mm outside the inner skull "
@@ -1753,7 +1758,7 @@ def fit_dipole(
     fun = _fit_dipole_fixed if fixed_position else _fit_dipole
     out = _fit_dipoles(
         fun,
-        min_dist_to_inner_skull,
+        constraint,
         data,
         times,
         guess_src["rr"],
