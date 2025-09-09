@@ -690,36 +690,48 @@ class BaseEpochs(
         self._check_consistency()
         self.set_annotations(annotations, on_missing="ignore")
 
-    def set_bad_epochs_to_NaN(self, bad_epochs_indices: list = None):
-        """
-        Define bad epochs based on indices list and set to NaN.
+    def set_bad_epochs_to_NaN(self, bad_epochs_per_channel: list = None):
+        """Drop bad epochs on a per-channel basis by setting to NaN.
 
         Parameters
         ----------
-        self : instance of Epochs
-        bad_epochs_indices : list of arrays
-            List of arrays with indices of bad epochs per channel.
+        bad_epochs_per_channel : list of array-like | None
+            List of arrays containing epoch indices to mark as bad for each
+            channel. Length must equal number of channels. If None, no epochs
+            are marked as bad.
 
-        Notes
-        -----
-        This function operates in-place.
+        Returns
+        -------
+        self : instance of Epochs
+            The epochs instance (modified in-place).
         """
         if not self.preload:
-            raise ValueError("Data must be preloaded.")
+            raise ValueError("Epochs must be preloaded.")
 
-        if len(bad_epochs_indices) != self.get_data().shape[1]:
-            raise RuntimeError(
-                "The length of the list of bad epochs indices "
-                "must match the number of channels."
-            )
         # extract the data from the epochs object: shape (n_epochs, n_channels, n_times)
         data = self.get_data()
-        # loop over channels of specific type
-        for ch in range(data.shape[1]):
-            # use those indices to set the epochs per channel to NaN for all timepoints
-            data[bad_epochs_indices[ch], ch, :] = np.nan
-        # put back into epochs structure
-        self.data = data
+        n_epochs, n_channels, n_times = data.shape
+
+        # check list format
+        if len(bad_epochs_per_channel) != n_channels:
+            raise RuntimeError(
+                f"Length of bad_epochs_per_channel ({len(bad_epochs_per_channel)}) "
+                f"must equal number of channels ({n_channels})"
+            )
+
+        # loop over bad epochs list
+        for ch_idx, bad_epochs in enumerate(bad_epochs_per_channel):
+            if len(bad_epochs) > 0:  # check only channels with bad epochs
+                # convert to numpy array
+                bad_epochs = np.asarray(bad_epochs)
+                # check for valid epoch indices
+                if np.any(bad_epochs >= n_epochs) or np.any(bad_epochs < 0):
+                    raise ValueError(f"Invalid epoch indices for channel {ch_idx}")
+                # if valid index, set to NaN
+                data[bad_epochs, ch_idx, :] = np.nan
+
+        # update data in epochs class
+        self._data = data
 
     def _check_consistency(self):
         """Check invariants of epochs object."""
