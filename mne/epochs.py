@@ -690,7 +690,7 @@ class BaseEpochs(
         self._check_consistency()
         self.set_annotations(annotations, on_missing="ignore")
 
-    def set_bad_epochs_to_NaN(self, bad_epochs_per_channel: list = None):
+    def drop_bad_epochs(self, bad_epochs_per_channel: list = None):
         """Drop bad epochs on a per-channel basis by setting to NaN.
 
         Parameters
