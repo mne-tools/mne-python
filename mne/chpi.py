@@ -38,6 +38,7 @@ from ._fiff.pick import (
     pick_types,
 )
 from ._fiff.proj import Projection, setup_proj
+from .bem import ConductorModel
 from .channels.channels import _get_meg_system
 from .cov import compute_whitener, make_ad_hoc_cov
 from .dipole import _make_guesses
@@ -1343,9 +1344,8 @@ def compute_chpi_locs(
 
     # Make some location guesses (1 cm grid)
     R = np.linalg.norm(meg_coils[0], axis=1).min()
-    guesses = _make_guesses(
-        dict(R=R, r0=np.zeros(3)), 0.01, 0.0, 0.005, verbose=safe_false
-    )[0]["rr"]
+    sphere = ConductorModel(layers=[dict(rad=R)], r0=np.zeros(3), is_sphere=True)
+    guesses = _make_guesses(sphere, 0.01, 0.0, 0.005, verbose=safe_false)[0]["rr"]
     logger.info(
         f"Computing {len(guesses)} HPI location guesses "
         f"(1 cm grid in a {R * 100:.1f} cm sphere)"
