@@ -705,6 +705,9 @@ class BaseEpochs(
         self : instance of Epochs
             The epochs instance (modified in-place).
         """
+        if bad_epochs_per_channel is None:
+            return self
+
         if not self.preload:
             raise ValueError("Epochs must be preloaded.")
 
@@ -719,8 +722,16 @@ class BaseEpochs(
                 f"must equal number of channels ({n_channels})"
             )
 
+        # store number of epochs per channel for nave updates
+        valid_epochs_per_channel = []
+
         # loop over bad epochs list
         for ch_idx, bad_epochs in enumerate(bad_epochs_per_channel):
+            # Calculate valid epochs for this channel
+            total_epochs = n_epochs
+            n_bad = len(bad_epochs) if len(bad_epochs) > 0 else 0
+            n_valid = total_epochs - n_bad
+            valid_epochs_per_channel.append(n_valid)
             if len(bad_epochs) > 0:  # check only channels with bad epochs
                 # convert to numpy array
                 bad_epochs = np.asarray(bad_epochs)
@@ -729,6 +740,13 @@ class BaseEpochs(
                     raise ValueError(f"Invalid epoch indices for channel {ch_idx}")
                 # if valid index, set to NaN
                 data[bad_epochs, ch_idx, :] = np.nan
+
+        # Store attribute to track channel-specific nave
+        self._nave_per_channel = valid_epochs_per_channel
+
+        # For backward compatibility, set nave to minimum across channels
+        # (standard in MNE plots)
+        self.nave = min(valid_epochs_per_channel)
 
         # update data in epochs class
         self._data = data
