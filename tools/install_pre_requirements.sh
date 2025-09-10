@@ -32,9 +32,9 @@ python -m pip install $STD_ARGS --only-binary ":all:" --default-timeout=60 \
 	"dipy>=1.10.0.dev0" \
 	"tables>=3.10.3.dev0" \
 	"statsmodels>=0.15.0.dev697" \
+	"pyarrow>=22.0.0.dev0" \
 	"h5py>=3.13.0"
 echo "::endgroup::"
-# No "pyarrow>=22.0.0.dev0" because of https://github.com/apache/arrow/issues/47308
 # No Numba because it forces an old NumPy version
 
 echo "::group::VTK"
