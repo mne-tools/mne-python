@@ -27,6 +27,7 @@ This example is for educational purposes.
 
 import warnings
 from time import time
+
 import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.exceptions import ConvergenceWarning
