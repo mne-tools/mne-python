@@ -12,22 +12,14 @@ import pyvista
 from .._fiff.pick import pick_types
 from ..bem import (
     ConductorModel,
-    _bem_find_surface,
     _ensure_bem_surfaces,
-    fit_sphere_to_headshape,
     make_sphere_model,
 )
 from ..cov import _ensure_cov, make_ad_hoc_cov
 from ..dipole import Dipole, fit_dipole
 from ..evoked import Evoked, read_evokeds
 from ..forward import convert_forward_solution, make_field_map
-from ..forward._compute_forward import _compute_forwards_meeg, _prep_field_computation
-from ..forward._make_forward import (
-    _FWD_ORDER,
-    _merge_fwds,
-    _prepare_for_forward,
-    _to_forward_dict,
-)
+from ..forward._make_forward import _ForwardModeler
 from ..minimum_norm import apply_inverse, make_inverse_operator
 from ..source_estimate import (
     SourceEstimate,
@@ -35,8 +27,7 @@ from ..source_estimate import (
     read_source_estimate,
 )
 from ..source_space import setup_volume_source_space
-from ..source_space._source_space import _ensure_src, _filter_source_spaces
-from ..surface import _normal_orth, transform_surface_to
+from ..surface import _normal_orth
 from ..transforms import _get_trans, _get_transforms_to_coord_frame, apply_trans
 from ..utils import _check_option, _validate_type, fill_doc, logger, verbose
 from ..viz import EvokedField, create_3d_figure
@@ -190,11 +181,7 @@ class DipoleFitUI:
             info=evoked.info,
             trans=trans,
             bem=bem,
-            mindist=0.0,
             n_jobs=n_jobs,
-            bem_extra=0,
-            info_extra=0,
-            ignore_ref=False,
             verbose=verbose,
         )
 
@@ -269,10 +256,6 @@ class DipoleFitUI:
         )
         fig.separate_canvas = False  # needed to plot the timeline later
         fig.set_contour_line_width(2)
-        fig._renderer.set_camera(
-            focalpoint=fit_sphere_to_headshape(self._evoked.info)[1]
-        )
-
         if self._stc is not None:
             link(self._fig_stc, fig)
 
@@ -352,6 +335,11 @@ class DipoleFitUI:
         self._actors["sensors"] = list()
         for s in sensors.values():
             self._actors["sensors"].extend(s)
+
+        # Adjust camera
+        fig._renderer.set_camera(
+            azimuth=180, elevation=90, roll=90, distance=0.55, focalpoint=[0, 0, 0.03]
+        )
 
         subscribe(fig, "time_change", self._on_time_change)
         self._fig = fig
@@ -906,97 +894,3 @@ def _arrow_mesh():
     )
     faces = np.array([[7, 0, 1, 2, 3, 4, 5, 6]])
     return vertices, faces
-
-
-class _ForwardModeler:
-    """Compute forward solutions for difference source spaces fast.
-
-    Initializes the forward computations once, then only does incremental updates for
-    difference source spaces.
-    """
-
-    @verbose
-    def __init__(
-        self,
-        info,
-        trans,
-        bem,
-        *,
-        meg=True,
-        eeg=True,
-        mindist=0.0,
-        n_jobs=1,
-        bem_extra=0,
-        info_extra=0,
-        ignore_ref=False,
-        verbose=None,
-    ):
-        self.mri_head_t, _ = _get_trans(trans)
-        self.mindist = mindist
-        self.n_jobs = n_jobs
-        # TODO: Make `src` optional in _prepare_for_forward
-        src = setup_volume_source_space(
-            "", pos=dict(rr=np.zeros((1, 3)), nn=np.array([[0, 0, 1]])), verbose="error"
-        )
-        self.sensors, _, _, self.update_kwargs, self.bem = _prepare_for_forward(
-            src,
-            self.mri_head_t,
-            info,
-            bem,
-            mindist,
-            n_jobs,
-            bem_extra="",
-            trans="",
-            info_extra="",
-            meg=meg,
-            eeg=eeg,
-            ignore_ref=ignore_ref,
-        )
-        # TODO: Remove rr from the args here, it's unused
-        self.fwd_data = _prep_field_computation(
-            [], sensors=self.sensors, bem=self.bem, n_jobs=n_jobs
-        )
-
-    def compute(self, src):
-        src = _ensure_src(src).copy()
-        for s in src:
-            transform_surface_to(s, "head", self.mri_head_t)
-
-        # TODO: We have a bug that we don't filter for spherical BEMs!
-        if not self.bem["is_sphere"]:
-            inner_skull = _bem_find_surface(self.bem, "inner_skull")
-            # TODO: Allow reusing _CheckInside object for speed as well
-            _filter_source_spaces(
-                inner_skull, self.mindist, self.mri_head_t, src, self.n_jobs
-            )
-        rr = np.concatenate([s["rr"][s["vertno"]] for s in src])
-        if len(rr) < 1:
-            raise RuntimeError(
-                "No points left in source space after excluding "
-                "points close to inner skull."
-            )
-
-        sensors = deepcopy(self.sensors)
-        fwd_data = deepcopy(self.fwd_data)
-        fwds = _compute_forwards_meeg(
-            rr, sensors=sensors, fwd_data=fwd_data, n_jobs=self.n_jobs
-        )
-        fwds = {
-            key: _to_forward_dict(fwds[key], sensors[key]["ch_names"])
-            for key in _FWD_ORDER
-            if key in fwds
-        }
-        fwd = _merge_fwds(fwds, verbose=False)
-
-        # TODO: reuse code from _prepare_for_forward for this
-        fwd["nchan"] = self.update_kwargs["nchan"]
-        fwd["info"] = self.update_kwargs["info"]
-        fwd["surf_ori"] = self.update_kwargs["surf_ori"]
-        fwd["mri_head_t"] = self.update_kwargs["mri_head_t"]
-        fwd["nsource"] = sum(s["nuse"] for s in src)
-        fwd["src"] = src
-        fwd["source_nn"] = np.vstack([s["nn"][s["inuse"] == 1] for s in src])
-        fwd["source_rr"] = np.vstack([s["rr"][s["inuse"] == 1] for s in src])
-
-        del fwds
-        return fwd
