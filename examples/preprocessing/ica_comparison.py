@@ -27,7 +27,7 @@ This example is for educational purposes.
 
 import warnings
 from time import time
-
+import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.exceptions import ConvergenceWarning
 
@@ -206,6 +206,7 @@ def run_ica(
         f"(took {fit_time:.1f}s)"
     )
     ica.plot_components(title=title)
+    plt.close()
 
     return ica, fit_time
 
