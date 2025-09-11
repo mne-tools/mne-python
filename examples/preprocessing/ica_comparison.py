@@ -25,15 +25,15 @@ This example is for educational purposes.
 
 # %%
 
-import warnings
 from time import time
 
+import warnings
 import numpy as np
-from sklearn.exceptions import ConvergenceWarning
 
 import mne
 from mne.datasets import sample
 from mne.preprocessing import ICA
+from sklearn.exceptions import ConvergenceWarning
 
 print(__doc__)
 
@@ -179,7 +179,8 @@ def run_ica(
     # Emit informational lines similar to MNE's verbose output
     n_channels = raw_input.info["nchan"]
     print(
-        f"Fitting ICA to data using {n_channels} channels (please be patient, this may take a while)"
+        f"Fitting ICA to data using {n_channels} channels"
+        f"(please be patient, this may take a while)"
     )
     print("Selecting by number: 20 components")
     t0 = time()
@@ -200,7 +201,10 @@ def run_ica(
     print(f"Fitting ICA took {fit_time:.1f}s.")
 
     data_label = label if label is not None else "data"
-    title = f"ICA decomposition using {name_for_print} on {data_label}\n(took {fit_time:.1f}s)"
+    title = (
+        f"ICA decomposition using {name_for_print} on {data_label}\n"
+        f"(took {fit_time:.1f}s)"
+    )
     ica.plot_components(title=title)
 
     return ica, fit_time
@@ -245,7 +249,7 @@ def run_all_ica(raw_input, label, reject):
 # %%
 
 
-# Build noisy datasets for each SNR level and noise type with associated reject thresholds
+# Build noisy datasets for each SNR level and noise type
 noisy_sets = {}
 idx = 0
 for snr_db in snr_levels:
