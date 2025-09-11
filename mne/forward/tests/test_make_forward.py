@@ -926,6 +926,8 @@ def test_make_forward_iterative():
     fwd = make_forward_solution(raw.info, trans, src, bem, mindist=0, verbose=True)
     # check against iterative version
     fm = _ForwardModeler(raw.info, trans, bem)
+    fwd_iterative = fm.compute(src)
+    _compare_forwards(fwd, fwd_iterative, fwd["nchan"], 3 * fwd["nsource"])
     midpt = fwd["nsource"] // 2
     assert fwd["coord_frame"] == FIFF.FIFFV_COORD_HEAD
     fwd_data = list()
