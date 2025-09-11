@@ -293,6 +293,7 @@ for method in ["fastica", "picard", "infomax", "infomax_extended"]:
         icas_all[key].plot_components(
             picks=[comp], title=f"{key} - EOG Component (Clean Data)", show=True
         )
+        plt.close()
 
 # %%
 
@@ -307,3 +308,4 @@ for label in noisy_sets.keys():
                 title=f"{key} - EOG Component ({label.replace('_', ' ')})",
                 show=True,
             )
+            plt.close()
