@@ -961,7 +961,7 @@ class _ForwardModeler:
         self.mindist = mindist
         self.n_jobs = n_jobs
         src = SourceSpaces([])
-        self.sensors, _, _, _, self.bem = _prepare_for_forward(
+        self.sensors, _, _, self.update_kwargs, self.bem = _prepare_for_forward(
             src,
             self.mri_head_t,
             info,
@@ -988,8 +988,13 @@ class _ForwardModeler:
     def compute(self, src):
         src = _ensure_src(src).copy()
         src._transform_to("head", self.mri_head_t)
-        kwargs = dict(limit=self.mindist, mri_head_t=self.mri_head_t, src=src)
-        _filter_source_spaces(self.check_inside, n_jobs=self.n_jobs, **kwargs)
+        _filter_source_spaces(
+            self.check_inside,
+            n_jobs=self.n_jobs,
+            limit=self.mindist,
+            mri_head_t=self.mri_head_t,
+            src=src,
+        )
         rr = np.concatenate([s["rr"][s["vertno"]] for s in src])
         if len(rr) < 1:
             raise RuntimeError(
@@ -1012,4 +1017,15 @@ class _ForwardModeler:
         }
         fwd = _merge_fwds(fwds, verbose=False)
         del fwds
+
+        fwd.update(**self.update_kwargs)
+        # Delete some keys to clean up the source space:
+        for key in ["working_dir", "command_line"]:
+            if key in src.info:
+                del src.info[key]
+        # our `update_kwargs` set these, but they need to be updated for this src
+        fwd["src"] = src
+        fwd["nsource"] = sum(s["nuse"] for s in src)
+        fwd["source_rr"] = np.vstack([s["rr"][s["inuse"] == 1] for s in src])
+        fwd["source_nn"] = np.tile(np.eye(3), (fwd["nsource"], 1))
         return fwd
