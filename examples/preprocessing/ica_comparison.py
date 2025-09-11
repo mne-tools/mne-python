@@ -25,15 +25,15 @@ This example is for educational purposes.
 
 # %%
 
+import warnings
 from time import time
 
-import warnings
 import numpy as np
+from sklearn.exceptions import ConvergenceWarning
 
 import mne
 from mne.datasets import sample
 from mne.preprocessing import ICA
-from sklearn.exceptions import ConvergenceWarning
 
 print(__doc__)
 
