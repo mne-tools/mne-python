@@ -12,6 +12,7 @@ import numpy as np
 from scipy import linalg
 from scipy.special import lpmv
 
+
 from .. import __version__
 from .._fiff.compensator import make_compensator
 from .._fiff.constants import FIFF, FWD
@@ -59,6 +60,7 @@ from ..utils import (
     verbose,
     warn,
 )
+
 
 # Note: MF uses single precision and some algorithms might use
 # truncated versions of constants (e.g., μ0), which could lead to small
@@ -1865,6 +1867,22 @@ def _sss_basis(exp, all_coils):
                 )
     return S_tot
 
+def _combine_sss_basis(S_in1,S_in2):
+    """mSSS calculations using optimized multi-centers
+    TODO: Add some "if" statement where two different S_in basis are
+    calculated if "origin = more than 1D array" based on centers calculated with "prprocessing.fit_spheres_to_mri"
+    
+    """
+    thresh = 0.005
+    U, s, Vh = linalg.svd([S_in1,S_in2])
+    S_tot = [];
+    #apply threshold to limit dimensions of resulting basis
+    for i in range(0, np.shape(s)[0]):
+        ratio = s[i]/s[1]
+        if ratio >= thresh:
+            S_tot = np.append(S_tot,U[:,i])
+    return S_tot
+
 
 def _integrate_points(
     cos_az, sin_az, cos_pol, sin_pol, b_r, b_az, b_pol, cosmags, bins, n_coils
@@ -2918,7 +2936,6 @@ def _read_cross_talk(cross_talk, ch_names):
         # I have no idea why, but MF transposes this for storage..
         sss_ctc["decoupler"] = sss_ctc["decoupler"].T.tocsc()
     return ctc, sss_ctc
-
 
 @verbose
 def compute_maxwell_basis(
