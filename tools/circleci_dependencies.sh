@@ -16,4 +16,4 @@ python -m pip install --upgrade --progress-bar off \
     plotly pycrostates pyprep pyriemann python-picard sesameeg \
     sleepecg tensorpac yasa meegkit eeg_positions wfdb invertmeeg \
     curryreader
-python -m pip install --upgrade --progres-bar off --no-deps cross-domain-saliency-maps
+python -m pip install --upgrade --progress-bar off --no-deps cross-domain-saliency-maps
