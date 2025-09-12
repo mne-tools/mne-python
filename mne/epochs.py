@@ -690,6 +690,67 @@ class BaseEpochs(
         self._check_consistency()
         self.set_annotations(annotations, on_missing="ignore")
 
+    def drop_bad_epochs(self, bad_epochs_per_channel: list = None):
+        """Drop bad epochs on a per-channel basis by setting to NaN.
+
+        Parameters
+        ----------
+        bad_epochs_per_channel : list of array-like | None
+            List of arrays containing epoch indices to mark as bad for each
+            channel. Length must equal number of channels. If None, no epochs
+            are marked as bad.
+
+        Returns
+        -------
+        self : instance of Epochs
+            The epochs instance (modified in-place).
+        """
+        if bad_epochs_per_channel is None:
+            return self
+
+        if not self.preload:
+            raise ValueError("Epochs must be preloaded.")
+
+        # extract the data from the epochs object: shape (n_epochs, n_channels, n_times)
+        data = self.get_data()
+        n_epochs, n_channels, n_times = data.shape
+
+        # check list format
+        if len(bad_epochs_per_channel) != n_channels:
+            raise RuntimeError(
+                f"Length of bad_epochs_per_channel ({len(bad_epochs_per_channel)}) "
+                f"must equal number of channels ({n_channels})"
+            )
+
+        # store number of epochs per channel for nave updates
+        valid_epochs_per_channel = []
+
+        # loop over bad epochs list
+        for ch_idx, bad_epochs in enumerate(bad_epochs_per_channel):
+            # Calculate valid epochs for this channel
+            total_epochs = n_epochs
+            n_bad = len(bad_epochs) if len(bad_epochs) > 0 else 0
+            n_valid = total_epochs - n_bad
+            valid_epochs_per_channel.append(n_valid)
+            if len(bad_epochs) > 0:  # check only channels with bad epochs
+                # convert to numpy array
+                bad_epochs = np.asarray(bad_epochs)
+                # check for valid epoch indices
+                if np.any(bad_epochs >= n_epochs) or np.any(bad_epochs < 0):
+                    raise ValueError(f"Invalid epoch indices for channel {ch_idx}")
+                # if valid index, set to NaN
+                data[bad_epochs, ch_idx, :] = np.nan
+
+        # Store attribute to track channel-specific nave
+        self._nave_per_channel = valid_epochs_per_channel
+
+        # For backward compatibility, set nave to minimum across channels
+        # (standard in MNE plots)
+        self.nave = min(valid_epochs_per_channel)
+
+        # update data in epochs class
+        self._data = data
+
     def _check_consistency(self):
         """Check invariants of epochs object."""
         if hasattr(self, "events"):
