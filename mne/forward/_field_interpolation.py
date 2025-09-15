@@ -116,7 +116,7 @@ def _pinv_tikhonov(x, reg):
     return inv, n
 
 
-def _map_meg_or_eeg_channels(info_from, info_to, mode, *, origin=None, miss=None):
+def _map_meg_or_eeg_channels(info_from, info_to, mode, *, origin, miss=None):
     """Find mapping from one set of channels to another.
 
     Parameters
@@ -132,21 +132,14 @@ def _map_meg_or_eeg_channels(info_from, info_to, mode, *, origin=None, miss=None
     origin : array-like, shape (3,) | str
         Origin of the sphere in the head coordinate frame and in meters.
         Can be ``'auto'``, which means a head-digitization-based origin
-        fit. Default is ``(0., 0., 0.04)``.
+        fit.
 
     Returns
     -------
     mapping : array, shape (n_to, n_from)
         A mapping matrix.
     """
-    if origin is None:
-        warn_message = (
-            'Default value for origin is "(0.0, 0.0, 0.04)" in version 1.11 '
-            'but will be changed to "auto" in 1.12. Set the origin parameter '
-            "explicitly to avoid this warning."
-        )
-        warn(warn_message, FutureWarning)
-        origin = (0.0, 0.0, 0.04)
+    assert origin is not None  # should be assured elsewhere
 
     # no need to apply trans because both from and to coils are in device
     # coordinates
@@ -323,7 +316,8 @@ def _make_surface_mapping(
     trans=None,
     mode="fast",
     n_jobs=None,
-    origin=None,
+    *,
+    origin,
     verbose=None,
 ):
     """Re-map M/EEG data to a surface.
@@ -346,7 +340,6 @@ def _make_surface_mapping(
     %(n_jobs)s
     origin : array-like, shape (3,) | str
         Origin of the sphere in the head coordinate frame and in meters.
-        The default is ``(0.0, 0.0, 0.04)``.
     %(verbose)s
 
     Returns
@@ -355,14 +348,7 @@ def _make_surface_mapping(
         A n_vertices x n_sensors array that remaps the MEG or EEG data,
         as `new_data = np.dot(mapping, data)`.
     """
-    if origin is None:
-        warn_message = (
-            'Default value for origin is "(0.0, 0.0, 0.04)" in version 1.11 '
-            'but will be changed to "auto" in 1.12. Set the origin parameter '
-            "explicitly to avoid this warning."
-        )
-        warn(warn_message, FutureWarning)
-        origin = (0.0, 0.0, 0.04)
+    assert origin is not None  # should be assured elsewhere
 
     if not all(key in surf for key in ["rr", "nn"]):
         raise KeyError('surf must have both "rr" and "nn"')
@@ -500,6 +486,9 @@ def make_field_map(
         fit. Default is ``(0., 0., 0.04)``.
 
         .. versionadded:: 0.11
+        .. versionchanged:: 1.12
+           In 1.12 the default value is "auto".
+           In 1.11 and prior versions, it is ``(0., 0., 0.04)``.
     %(n_jobs)s
     %(helmet_upsampling)s
 
