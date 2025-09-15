@@ -130,7 +130,8 @@ jobs:
             sed -i "/numba/d" environment.yml
           # And on Windows and macOS PySide6.9.0 segfaults
           elif [[ "$RUNNER_OS" == "macOS" ]]; then
-            sed -i "" "s/  - PySide6 .*/  - PySide6 <6.8/g" environment.yml
+            sed -i "" "s/  - PySide6 .*/  - PySide6 =6.7.3/g" environment.yml
+            sed -i "" "s/  - vtk .*/  - vtk =9.3.1/g" environment.yml
           elif [[ "$RUNNER_OS" == "Windows" ]]; then
             sed -i "s/  - PySide6 .*/  - PySide6 <6.8/g" environment.yml
           fi
@@ -139,8 +140,10 @@ jobs:
         with:
           environment-file: ${{ env.CONDA_ENV }}
           environment-name: mne
+          log-level: ${{ runner.debug == '1' && 'debug' || 'info' }}
           create-args: >-
             python=${{ env.PYTHON_VERSION }}
+            -v
         if: ${{ !startswith(matrix.kind, 'pip') }}
         timeout-minutes: 20
       - run: bash ./tools/github_actions_dependencies.sh

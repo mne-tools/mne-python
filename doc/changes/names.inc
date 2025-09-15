@@ -231,6 +231,7 @@
 .. _Pablo Mainar: https://github.com/pablomainar
 .. _Pablo-Arias: https://github.com/Pablo-Arias
 .. _Padma Sundaram: https://www.nmr.mgh.harvard.edu/user/8071
+.. _Paul Anders: https://github.com/Mettphysik
 .. _Paul Pasler: https://github.com/ppasler
 .. _Paul Roujansky: https://github.com/paulroujansky
 .. _Pavel Navratil: https://github.com/navrpa13

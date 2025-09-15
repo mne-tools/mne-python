@@ -672,6 +672,7 @@ def _check_skip_backend(name):
         assert name == "notebook", name
         pytest.importorskip("jupyter")
         pytest.importorskip("ipympl")
+        pytest.importorskip("ipyevents")
         pytest.importorskip("trame")
         pytest.importorskip("trame_vtk")
         pytest.importorskip("trame_vuetify")

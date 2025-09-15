@@ -934,7 +934,7 @@ class InterpolationMixin:
             origin = _check_origin(origin, self.info)
         for ch_type, interp in method.items():
             if interp == "nan":
-                _interpolate_bads_nan(self, ch_type, exclude=exclude)
+                _interpolate_bads_nan(self, ch_type=ch_type, exclude=exclude)
         if method.get("eeg", "") == "spline":
             _interpolate_bads_eeg(self, origin=origin, exclude=exclude)
         meg_mne = method.get("meg", "") == "MNE"
