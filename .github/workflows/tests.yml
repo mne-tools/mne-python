@@ -139,8 +139,10 @@ jobs:
         with:
           environment-file: ${{ env.CONDA_ENV }}
           environment-name: mne
+          log-level: ${{ runner.debug == '1' && 'debug' || 'info' }}
           create-args: >-
             python=${{ env.PYTHON_VERSION }}
+            -v
         if: ${{ !startswith(matrix.kind, 'pip') }}
         timeout-minutes: 20
       - run: bash ./tools/github_actions_dependencies.sh
