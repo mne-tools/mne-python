@@ -1275,7 +1275,12 @@ def _fit_confidence(*, rd, Q, ori, whitener, fwd_data, sensors):
 def _surface_constraint(surf, min_dist_to_inner_skull):
     """Create a surface fitting constraint function."""
     distance_checker = _DistanceQuery(surf["rr"], method="BallTree")
-    inside_checker = _CheckInside(surf, mode="pyvista")
+    try:
+        import pyvista  # noqa F401
+
+        inside_checker = _CheckInside(surf, mode="pyvista")
+    except ImportError:
+        inside_checker = _CheckInside(surf, mode="old")
 
     def constraint(rd):
         dist = distance_checker.query(rd[np.newaxis, :])[0][0]

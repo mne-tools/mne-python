@@ -1023,6 +1023,7 @@ class _ForwardModeler:
         for key in ["working_dir", "command_line"]:
             if key in src.info:
                 del src.info[key]
+        # our `update_kwargs` set these, but they need to be updated for this src
         fwd["src"] = src
         fwd["nsource"] = sum(s["nuse"] for s in src)
         fwd["source_rr"] = np.vstack([s["rr"][s["inuse"] == 1] for s in src])
