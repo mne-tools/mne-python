@@ -9,35 +9,36 @@ from numpy.testing import assert_allclose, assert_equal
 
 import mne
 from mne.channels import read_vectorview_selection
-from mne.datasets import sample
+from mne.datasets import testing
 from mne.viz import ui_events
 from mne.viz.utils import _get_color_list
 
-data_path = sample.data_path(download=False)
+data_path = testing.data_path(download=False)
 subjects_dir = data_path / "subjects"
-fname_dip = data_path / "MEG" / "sample" / "sample_audvis_set1.dip"
-fname_evoked = data_path / "MEG" / "sample" / "sample_audvis-ave.fif"
+fname_dip = data_path / "MEG" / "sample" / "sample_audvis_trunc_set1.dip"
+fname_evokeds = data_path / "MEG" / "sample" / "sample_audvis_trunc-ave.fif"
 
 
 def _gui_with_two_dipoles():
     """Create a dipolefit GUI and add two dipoles to it."""
     from mne.gui import dipolefit
 
-    g = dipolefit(fname_evoked)
-    dip = mne.read_dipole(fname_dip)[[27, 33]]
-    g.add_dipole(dip, name=["rh", "lh"])
+    g = dipolefit(fname_evokeds)
+    dip = mne.read_dipole(fname_dip)[[0, 1]]
+    g.add_dipole(dip, name=["rh1", "rh2"])
     return g
 
 
 @pytest.mark.slowtest
+@testing.requires_testing_data
 def test_dipolefit_gui_basic(renderer_interactive_pyvistaqt):
     """Test basic functionality of the dipole fitting GUI."""
     from mne.gui import dipolefit
 
     # Test basic interface elements.
-    g = dipolefit(fname_evoked)
+    g = dipolefit(fname_evokeds)
     assert g._evoked.comment == "Left Auditory"  # MNE-Sample data should be loaded
-    assert g._current_time == g._evoked.times[174]  # time of max GFP
+    assert g._current_time == g._evoked.times[84]  # time of max GFP
 
     # Test fitting a single dipole.
     assert len(g._dipoles) == len(g.dipoles) == 0
@@ -47,9 +48,9 @@ def test_dipolefit_gui_basic(renderer_interactive_pyvistaqt):
     assert dip.name == "Left Auditory"
     assert len(dip.times) == 1
     assert_equal(dip.times, g._current_time)
-    assert_allclose(dip.amplitude, 8.98521766e-08)
-    assert_allclose(dip.pos, [[0.04016685, 0.01235065, 0.0614772]], atol=1e-7)
-    assert_allclose(dip.ori, [[0.22801196, -0.57199749, -0.78792729]], atol=1e-7)
+    assert_allclose(dip.amplitude, 6.152221e-08)
+    assert_allclose(dip.pos, [[0.04568744, 0.00753845, 0.06737837]], atol=1e-7)
+    assert_allclose(dip.ori, [[0.45720003, -0.72124413, -0.52036049]], atol=1e-7)
     old_dip1_timecourse = g._dipoles[0]["timecourse"]
 
     # Test fitting a second dipole with a subset of channels at a different time.
@@ -63,9 +64,9 @@ def test_dipolefit_gui_basic(renderer_interactive_pyvistaqt):
     assert len(g._dipoles) == len(g.dipoles) == 2
     dip2 = g.dipoles[1]
     assert_equal(dip2.times, g._evoked.times[np.searchsorted(g._evoked.times, 0.1) - 1])
-    assert_allclose(dip2.amplitude, 5.7768577e-08)
-    assert_allclose(dip2.pos, [[-0.06062161, 0.00434582, 0.05431918]], atol=1e-7)
-    assert_allclose(dip2.ori, [[0.16600867, -0.87469598, -0.45535488]], atol=1e-7)
+    assert_allclose(dip2.amplitude, 4.422736e-08)
+    assert_allclose(dip2.pos, [[-0.05893074, -0.00202937, 0.05113064]], atol=1e-7)
+    assert_allclose(dip2.ori, [[0.3017588, -0.88550684, -0.35329769]], atol=1e-7)
     # Adding the second dipole should have affected the timecourse of the first.
     new_dip1_timecourse = g._dipoles[0]["timecourse"]
     assert not np.allclose(old_dip1_timecourse, new_dip1_timecourse)
@@ -78,10 +79,10 @@ def test_dipolefit_gui_basic(renderer_interactive_pyvistaqt):
     assert dip1_dict["num"] == 0
     assert dip2_dict["num"] == 1
     assert_allclose(
-        dip1_dict["helmet_pos"], [0.10360717, 0.01619751, 0.06986977], atol=1e-7
+        dip1_dict["helmet_pos"], [0.10320071, 0.00946581, 0.07516293], atol=1e-7
     )
     assert_allclose(
-        dip2_dict["helmet_pos"], [-0.11554549, 0.00019676, 0.04876192], atol=1e-7
+        dip2_dict["helmet_pos"], [-0.11462019, -0.00727073, 0.04561434], atol=1e-7
     )
     assert dip1_dict["color"] == _get_color_list()[0]
     assert dip2_dict["color"] == _get_color_list()[1]
@@ -96,11 +97,12 @@ def test_dipolefit_gui_basic(renderer_interactive_pyvistaqt):
 
 
 @pytest.mark.slowtest
+@testing.requires_testing_data
 def test_dipolefit_gui_toggle_meshes(renderer_interactive_pyvistaqt):
     """Test toggling the visibility of the meshes the dipole fitting GUI."""
     from mne.gui import dipolefit
 
-    g = dipolefit(fname_evoked)
+    g = dipolefit(fname_evokeds)
     assert list(g._actors.keys()) == ["helmet", "occlusion_surf", "head", "sensors"]
     g.toggle_mesh("helmet", show=True)
     assert g._actors["helmet"].visibility
@@ -112,6 +114,7 @@ def test_dipolefit_gui_toggle_meshes(renderer_interactive_pyvistaqt):
 
 
 @pytest.mark.slowtest
+@testing.requires_testing_data
 def test_dipolefit_gui_dipole_controls(renderer_interactive_pyvistaqt):
     """Test the controls for the dipoles in the dipole fitting GUI."""
     g = _gui_with_two_dipoles()
@@ -163,6 +166,7 @@ def test_dipolefit_gui_dipole_controls(renderer_interactive_pyvistaqt):
 
 
 @pytest.mark.slowtest
+@testing.requires_testing_data
 def test_dipolefit_gui_save_load(tmpdir, renderer_interactive_pyvistaqt):
     """Test saving and loading dipoles in the dipole fitting GUI."""
     g = _gui_with_two_dipoles()
@@ -172,7 +176,7 @@ def test_dipolefit_gui_save_load(tmpdir, renderer_interactive_pyvistaqt):
     g.add_dipole(dip_from_file)
     g.add_dipole(mne.read_dipole(tmpdir / "test.bdip"))
     assert len(g.dipoles) == 6
-    assert [d.name for d in g.dipoles] == ["rh", "lh", "rh", "lh", "dip4", "dip5"]
+    assert [d.name for d in g.dipoles] == ["rh1", "rh2", "rh1", "rh2", "dip4", "dip5"]
     assert_allclose(
         np.vstack([d.pos for d in g.dipoles[:2]]), dip_from_file.pos, atol=0
     )
