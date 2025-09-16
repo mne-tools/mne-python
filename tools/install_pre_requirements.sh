@@ -55,9 +55,11 @@ python -m pip install $STD_ARGS \
     git+https://github.com/joblib/joblib \
 	git+https://github.com/h5io/h5io \
 	git+https://github.com/BUNPC/pysnirf2 \
-	git+https://github.com/the-siesta-group/edfio \
 	trame trame-vtk trame-vuetify jupyter ipyevents ipympl openmeeg \
-	imageio-ffmpeg xlrd mffpy traitlets pybv eeglabio defusedxml antio
+	imageio-ffmpeg xlrd mffpy traitlets pybv eeglabio defusedxml antio \
+	edfio
+# https://github.com/the-siesta-group/edfio/issues/78
+# git+https://github.com/the-siesta-group/edfio
 echo "::endgroup::"
 
 echo "::group::Make sure we're on a NumPy 2.0 variant"
