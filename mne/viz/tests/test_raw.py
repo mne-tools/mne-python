@@ -803,6 +803,23 @@ def test_plot_annotations(raw, browser_backend):
     fig._toggle_single_channel_annotation(ch_pick, 0)
     assert fig.mne.inst.annotations.ch_names[0] == (ch_pick,)
 
+    # Check if annotation filtering works - All annotations
+    annot = Annotations([42, 50], [1, 1], ["test", "test2"], raw.info["meas_date"])
+    with pytest.warns(RuntimeWarning, match="expanding outside"):
+        raw.set_annotations(annot)
+
+    fig = raw.plot()
+
+    assert fig.mne.visible_annotations["test"] and fig.mne.visible_annotations["test2"]
+
+    # Check if annotation filtering works - filtering annotations
+    # This should only make test2 visible and hide test
+    fig = raw.plot(annotation_regex="2$")
+
+    assert (
+        not fig.mne.visible_annotations["test"] and fig.mne.visible_annotations["test2"]
+    )
+
 
 @pytest.mark.parametrize("active_annot_idx", (0, 1, 2))
 def test_overlapping_annotation_deletion(raw, browser_backend, active_annot_idx):
