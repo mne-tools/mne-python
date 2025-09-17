@@ -4,6 +4,7 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+import re
 import importlib
 import inspect
 from abc import ABC, abstractmethod
@@ -182,7 +183,8 @@ class BrowserBase(ABC):
                 segment_colors[key] = next(color_cycle)
         self.mne.annotation_segment_colors = segment_colors
         # init a couple other annotation-related variables
-        self.mne.visible_annotations = {label: True for label in labels}
+        annot_regex = re.compile(self.mne.annotation_regex)
+        self.mne.visible_annotations = {l: True if annot_regex.match(l) else False for l in labels}
         self.mne.show_hide_annotation_checkboxes = None
 
     def _update_annotation_segments(self):

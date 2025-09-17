@@ -37,6 +37,7 @@ def plot_raw(
     color=None,
     bad_color="lightgray",
     event_color="cyan",
+    annotation_regex=".*",
     scalings=None,
     remove_dc=True,
     order=None,
@@ -373,6 +374,7 @@ def plot_raw(
         event_times=event_times,
         event_nums=event_nums,
         event_id_rev=event_id_rev,
+        annotation_regex=annotation_regex,
         # preprocessing
         projs=projs,
         projs_on=projs_on,
