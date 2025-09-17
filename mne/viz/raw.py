@@ -37,6 +37,7 @@ def plot_raw(
     color=None,
     bad_color="lightgray",
     event_color="cyan",
+    *,
     annotation_regex=".*",
     scalings=None,
     remove_dc=True,
@@ -62,7 +63,6 @@ def plot_raw(
     precompute=None,
     use_opengl=None,
     picks=None,
-    *,
     theme=None,
     overview_mode=None,
     splash=True,
@@ -100,6 +100,9 @@ def plot_raw(
         Color to make bad channels.
     %(event_color)s
         Defaults to ``'cyan'``.
+    annotation_regex : str
+        A regex pattern applied to each annotation's label.
+        Matching labels remain visible, non-matching labels are hidden.
     %(scalings)s
     remove_dc : bool
         If True remove DC component when plotting data.

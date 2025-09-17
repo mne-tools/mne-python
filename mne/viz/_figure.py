@@ -185,7 +185,7 @@ class BrowserBase(ABC):
         # init a couple other annotation-related variables
         annot_regex = re.compile(self.mne.annotation_regex)
         self.mne.visible_annotations = {
-            l: True if annot_regex.match(l) else False for l in labels
+            label: True if annot_regex.findall(label) else False for label in labels
         }
         self.mne.show_hide_annotation_checkboxes = None
 
