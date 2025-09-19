@@ -104,10 +104,33 @@ def _check_channels_ordered(info, pair_vals, *, throw_errors=True, check_bads=Tr
     # All chromophore fNIRS data
     picks_chroma = _picks_to_idx(info, ["hbo", "hbr"], exclude=[], allow_empty=True)
 
-    if (len(picks_wave) > 0) & (len(picks_chroma) > 0):
+    # All TD moments
+    td_moments = [
+        "fnirs_td_moments_intensity",
+        "fnirs_td_moments_mean",
+        "fnirs_td_moments_variance",
+    ]
+    picks_moments = _picks_to_idx(info, td_moments, exclude=[], allow_empty=True)
+
+    # All TD gated
+    picks_gated = _picks_to_idx(
+        info, ["fnirs_td_gated_amplitude"], exclude=[], allow_empty=True
+    )
+
+    n_found = sum(
+        len(x) > 0
+        for x in (
+            picks_wave,
+            picks_chroma,
+            picks_moments,
+            picks_gated,
+        )
+    )
+    if n_found != 1:
         picks = _throw_or_return_empty(
-            "MNE does not support a combination of amplitude, optical "
-            "density, and haemoglobin data in the same raw structure.",
+            "MNE supports exactly one of amplitude, optical density, "
+            "TD moments, TD gated, and haemoglobin data in a given raw "
+            f"structure, found {n_found}",
             throw_errors,
         )
 
@@ -116,10 +139,13 @@ def _check_channels_ordered(info, pair_vals, *, throw_errors=True, check_bads=Tr
         error_word = "frequencies"
         use_RE = _S_D_F_RE
         picks = picks_wave
-    else:
+    elif len(picks_chroma):
         error_word = "chromophore"
         use_RE = _S_D_H_RE
         picks = picks_chroma
+    else:
+        assert len(picks_moments) or len(picks_gated)
+        return  # nothing to check
 
     pair_vals = np.array(pair_vals)
     if pair_vals.shape != (2,):
