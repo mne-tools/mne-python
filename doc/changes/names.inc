@@ -112,7 +112,7 @@
 .. _Harrison Ritz: https://github.com/harrisonritz
 .. _Hasrat Ali Arzoo: https://github.com/hasrat17
 .. _Henrich Kolkhorst: https://github.com/hekolk
-.. _Hongjiang Ye: https://github.com/hongjiang-ye
+.. _Hongjiang Ye: https://github.com/ye-hongjiang
 .. _Hubert Banville: https://github.com/hubertjb
 .. _Hyonyoung Shin: https://github.com/mcvain
 .. _Hüseyin Orkun Elmas: https://github.com/HuseyinOrkun
@@ -231,6 +231,7 @@
 .. _Pablo Mainar: https://github.com/pablomainar
 .. _Pablo-Arias: https://github.com/Pablo-Arias
 .. _Padma Sundaram: https://www.nmr.mgh.harvard.edu/user/8071
+.. _Paul Anders: https://github.com/Mettphysik
 .. _Paul Pasler: https://github.com/ppasler
 .. _Paul Roujansky: https://github.com/paulroujansky
 .. _Pavel Navratil: https://github.com/navrpa13

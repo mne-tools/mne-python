@@ -29,6 +29,7 @@ from sphinx.util.display import status_iterator
 
 # If it's available on PyPI, add it to this set:
 PYPI_PACKAGES = {
+    "cross-domain-saliency-maps",
     "meggie",
     "niseq",
     "sesameeg",
@@ -74,6 +75,10 @@ MANUAL_PACKAGES = {
         "Summary": "DICOM to NIfTI converter",
     },
     # TODO: these do not set a valid homepage or documentation page on PyPI
+    "python-picard": {  # https://github.com/mind-inria/picard/issues/60
+        "Home-page": "https://github.com/mind-inria/picard",
+        "Summary": "Preconditioned ICA for Real Data",
+    },
     "eeg_positions": {
         "Home-page": "https://eeg-positions.readthedocs.io",
         "Summary": "Compute and plot standard EEG electrode positions.",
