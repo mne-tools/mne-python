@@ -88,7 +88,9 @@ def export_raw(
 
 
 @verbose
-def export_epochs(fname, epochs, fmt="auto", *, overwrite=False, verbose=None):
+def export_epochs(
+    fname, epochs, fmt="auto", *, export_kwargs=None, overwrite=False, verbose=None
+):
     """Export Epochs to external formats.
 
     %(export_fmt_support_epochs)s
@@ -129,7 +131,7 @@ def export_epochs(fname, epochs, fmt="auto", *, overwrite=False, verbose=None):
     if fmt == "eeglab":
         from ._eeglab import _export_epochs
 
-        _export_epochs(fname, epochs)
+        _export_epochs(fname, epochs, export_kwargs=export_kwargs)
 
 
 @verbose
