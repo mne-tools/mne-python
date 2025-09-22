@@ -691,7 +691,7 @@ class BaseEpochs(
         self.set_annotations(annotations, on_missing="ignore")
 
     def drop_bad_epochs(self, bad_epochs_per_channel: list = None):
-        """Drop bad epochs on a per-channel basis by setting to NaN.
+        """Drop bad epochs on a per-channel basis.
 
         Parameters
         ----------
@@ -742,7 +742,7 @@ class BaseEpochs(
                 data[bad_epochs, ch_idx, :] = np.nan
 
         # Store attribute to track channel-specific nave
-        self._nave_per_channel = valid_epochs_per_channel
+        self.nave_per_channel = valid_epochs_per_channel
 
         # For backward compatibility, set nave to minimum across channels
         # (standard in MNE plots)
