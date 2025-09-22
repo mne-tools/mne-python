@@ -27,7 +27,9 @@ from ...transforms import (
     rot_to_quat,
 )
 from ...utils import (
+    _on_missing,
     _soft_import,
+    catch_logging,
     logger,
     verbose,
     warn,
@@ -42,15 +44,23 @@ CURRY_SUFFIX_LABELS = [".cdt.dpa", ".cdt.dpo", ".rs3"]
 
 def _get_curry_version(fname):
     """Check out the curry file version."""
-    fname_hdr = _check_curry_header_filename(_check_curry_filename(fname)).name
-
+    fname_hdr = _check_curry_header_filename(_check_curry_filename(fname))
+    content_hdr = fname_hdr.read_text()
     return (
         "Curry 7"
-        if ".dap" in fname_hdr
+        if ".dap" in str(fname_hdr)
         else "Curry 8"
-        if ".dpa" in fname_hdr
+        if re.compile(r"FileVersion\s*=\s*[0-9]+")
+        .search(content_hdr)
+        .group(0)
+        .split()[-1][0]
+        == "8"
         else "Curry 9"
-        if ".dpo" in fname_hdr
+        if re.compile(r"FileVersion\s*=\s*[0-9]+")
+        .search(content_hdr)
+        .group(0)
+        .split()[-1][0]
+        == "9"
         else None
     )
 
@@ -109,6 +119,23 @@ def _check_curry_labels_filename(fname):
             f"no corresponding labels file found {CURRY_SUFFIX_HDR}"
         )
     return fname_labels
+
+
+def _check_curry_sfreq_consistency(fname_hdr):
+    content_hdr = fname_hdr.read_text()
+    stime = float(
+        re.compile(r"SampleTimeUsec\s*=\s*.+").search(content_hdr).group(0).split()[-1]
+    )
+    sfreq = float(
+        re.compile(r"SampleFreqHz\s*=\s*.+").search(content_hdr).group(0).split()[-1]
+    )
+    if stime == 0:
+        raise ValueError("Header file indicates a sampling interval of 0µs.")
+    if not np.isclose(1e6 / stime, sfreq):
+        warn(
+            f"Sample distance ({stime}µs) and sample frequency ({sfreq}Hz) in header "
+            "file do not match! sfreq will be derived from sample distance."
+        )
 
 
 def _get_curry_meas_info(fname):
@@ -258,6 +285,10 @@ def _extract_curry_info(fname):
 
     import curryreader
 
+    # check if sfreq values make sense
+    fname_hdr = _check_curry_header_filename(fname)
+    _check_curry_sfreq_consistency(fname_hdr)
+
     # use curry-python-reader
     currydata = curryreader.read(str(fname), plotdata=0, verbosity=1)
 
@@ -306,8 +337,6 @@ def _extract_curry_info(fname):
     # impedances = currydata["impedances"]
 
     # get other essential info not provided by curryreader
-    fname_hdr = _check_curry_header_filename(fname)
-
     # channel types and units
     ch_types, units = [], []
     ch_groups = fname_hdr.read_text().split("DEVICE_PARAMETERS")[1::2]
@@ -371,6 +400,7 @@ def _extract_curry_info(fname):
 
     # finetune channel types (e.g. stim, eog etc might be identified by name)
     # TODO - FUTURE ENHANCEMENT
+
     # scale data to SI units
     orig_units = dict(zip(ch_names, units))
     cals = [
@@ -435,7 +465,9 @@ def _read_annotations_curry(fname, sfreq="auto"):
         return None
 
 
-def _set_chanloc_curry(inst, ch_types, ch_pos, landmarks, landmarkslabels, hpimatrix):
+def _set_chanloc_curry(
+    inst, ch_types, ch_pos, landmarks, landmarkslabels, hpimatrix, on_bad_hpi_match
+):
     ch_names = inst.info["ch_names"]
 
     # scale ch_pos to m?!
@@ -562,10 +594,19 @@ def _set_chanloc_curry(inst, ch_types, ch_pos, landmarks, landmarkslabels, hpima
         has_cards,
         has_hpi,
         hpimatrix,
+        on_bad_hpi_match,
     )
 
 
-def _make_trans_dig(info, curry_dev_dev_t, landmark_dict, has_cards, has_hpi, chpidata):
+def _make_trans_dig(
+    info,
+    curry_dev_dev_t,
+    landmark_dict,
+    has_cards,
+    has_hpi,
+    chpidata,
+    on_bad_hpi_match,
+):
     cards = {
         FIFF.FIFFV_POINT_LPA: landmark_dict["LPA"],
         FIFF.FIFFV_POINT_NASION: landmark_dict["Nas"],
@@ -587,9 +628,28 @@ def _make_trans_dig(info, curry_dev_dev_t, landmark_dict, has_cards, has_hpi, ch
             [d["r"] for d in info["dig"] if d["kind"] == FIFF.FIFFV_POINT_HPI], float
         )
         hpi_c = np.ascontiguousarray(chpidata[0][: len(hpi_u), 1:4])
-        unknown_curry_t = _quaternion_align(
-            "unknown", "ctf_meg", hpi_u.astype("float64"), hpi_c.astype("float64"), 3e-2
-        )
+        bad_hpi_match = False
+        try:
+            with catch_logging() as log:
+                unknown_curry_t = _quaternion_align(
+                    "unknown",
+                    "ctf_meg",
+                    hpi_u.astype("float64"),
+                    hpi_c.astype("float64"),
+                    1e-2,
+                )
+        except RuntimeError:
+            bad_hpi_match = True
+            with catch_logging() as log:
+                unknown_curry_t = _quaternion_align(
+                    "unknown",
+                    "ctf_meg",
+                    hpi_u.astype("float64"),
+                    hpi_c.astype("float64"),
+                    1e-1,
+                )
+        logger.info(log.getvalue())
+
         angle = np.rad2deg(
             _angle_between_quats(
                 np.zeros(3), rot_to_quat(unknown_curry_t["trans"][:3, :3])
@@ -597,6 +657,14 @@ def _make_trans_dig(info, curry_dev_dev_t, landmark_dict, has_cards, has_hpi, ch
         )
         dist = 1000 * np.linalg.norm(unknown_curry_t["trans"][:3, 3])
         logger.info(f"   Fit a {angle:0.1f}° rotation, {dist:0.1f} mm translation")
+
+        if bad_hpi_match:
+            _on_missing(
+                on_bad_hpi_match,
+                "Poor HPI matching (see log above)!",
+                name="on_bad_hpi_match",
+            )
+
         unknown_dev_t = combine_transforms(
             unknown_curry_t, curry_dev_dev_t, "unknown", "meg"
         )
@@ -634,7 +702,9 @@ def _make_trans_dig(info, curry_dev_dev_t, landmark_dict, has_cards, has_hpi, ch
 
 
 @verbose
-def read_raw_curry(fname, preload=False, verbose=None) -> "RawCurry":
+def read_raw_curry(
+    fname, preload=False, on_bad_hpi_match="warn", verbose=None
+) -> "RawCurry":
     """Read raw data from Curry files.
 
     Parameters
@@ -642,6 +712,7 @@ def read_raw_curry(fname, preload=False, verbose=None) -> "RawCurry":
     fname : path-like
         Path to a valid curry file.
     %(preload)s
+    %(on_bad_hpi_match)s
     %(verbose)s
 
     Returns
@@ -655,9 +726,13 @@ def read_raw_curry(fname, preload=False, verbose=None) -> "RawCurry":
     mne.io.Raw : Documentation of attributes and methods of RawCurry.
     """
     fname = _check_curry_filename(fname)
+    fname_hdr = _check_curry_header_filename(fname)
+
+    _check_curry_sfreq_consistency(fname_hdr)
+
     rectype = _get_curry_recording_type(fname)
 
-    inst = RawCurry(fname, preload, verbose)
+    inst = RawCurry(fname, preload, on_bad_hpi_match, verbose)
     if rectype in ["epochs", "evoked"]:
         curry_epoch_info = _get_curry_epoch_info(fname)
         inst = Epochs(inst, **curry_epoch_info)
@@ -674,6 +749,7 @@ class RawCurry(BaseRaw):
     fname : path-like
         Path to a valid curry file.
     %(preload)s
+    %(on_bad_hpi_match)s
     %(verbose)s
 
     See Also
@@ -683,7 +759,7 @@ class RawCurry(BaseRaw):
     """
 
     @verbose
-    def __init__(self, fname, preload=False, verbose=None):
+    def __init__(self, fname, preload=False, on_bad_hpi_match="warn", verbose=None):
         fname = _check_curry_filename(fname)
 
         (
@@ -769,6 +845,7 @@ class RawCurry(BaseRaw):
             landmarks=landmarks,
             landmarkslabels=landmarkslabels,
             hpimatrix=hpimatrix,
+            on_bad_hpi_match=on_bad_hpi_match,
         )
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
@@ -811,6 +888,10 @@ def read_impedances_curry(fname, verbose=None):
 
     # use curry-python-reader to load data
     fname = _check_curry_filename(fname)
+    fname_hdr = _check_curry_header_filename(fname)
+
+    _check_curry_sfreq_consistency(fname_hdr)
+
     currydata = curryreader.read(str(fname), plotdata=0, verbosity=1)
 
     impedances = currydata["impedances"]

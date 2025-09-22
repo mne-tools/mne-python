@@ -2,6 +2,8 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+import re
+
 import numpy as np
 
 from ..utils import Bunch, _check_fname, _soft_import, warn
@@ -97,8 +99,6 @@ def _parse_brainvision_dig_montage(fname, scale):
 
 
 def _read_dig_montage_curry(ch_names, ch_types, ch_pos, landmarks, landmarkslabels):
-    import re
-
     # scale ch_pos to m?!
     ch_pos /= 1000.0
     landmarks /= 1000.0
@@ -138,5 +138,5 @@ def _read_dig_montage_curry(ch_names, ch_types, ch_pos, landmarks, landmarkslabe
             coord_frame="head",
         )
     else:  # not recorded?
-        warn("No eeg sensor locations found in file.")
+        raise ValueError("No eeg sensor locations found in header file.")
         return None

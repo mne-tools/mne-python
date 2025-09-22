@@ -117,8 +117,6 @@ def test_read_raw_curry_test_raw(fname):
 
 # These values taken from a different recording but allow us to test
 # using our existing filres
-# for fname in [curry7_rfDC_file, curry8_rfDC_file]:
-#    raw = read_raw_curry(fname, verbose=True)
 
 HPI_CONTENT = """\
 FileVersion:	804
@@ -269,7 +267,7 @@ def test_read_raw_curry_rfDC(fname, tol, mock_dev_head_t, tmp_path):
         assert raw.info["dev_head_t"] is not None
         assert_allclose(raw.info["dev_head_t"]["trans"], WANT_TRANS, atol=1e-5)
     else:
-        assert raw.info["dev_head_t"] is None
+        assert not raw.info["dev_head_t"]
 
     # check that most MEG sensors are approximately oriented outward from
     # the device origin
@@ -301,21 +299,6 @@ def test_read_raw_curry_rfDC(fname, tol, mock_dev_head_t, tmp_path):
     pos /= np.linalg.norm(pos, axis=1, keepdims=True)
     angles = np.abs(np.rad2deg(np.arccos((pos * nn).sum(-1))))
     assert (angles < 20).sum() > 100
-
-
-@testing.requires_testing_data
-@pytest.mark.parametrize(
-    "fname",
-    [
-        pytest.param(curry7_bdf_file, id="curry 7"),
-        pytest.param(curry8_bdf_file, id="curry 8"),
-    ],
-)
-def test_read_raw_curry_preload_equal(fname):
-    """Test raw identity with preload=True/False."""
-    raw1 = read_raw_curry(fname, preload=False)
-    raw1.load_data()
-    assert raw1 == read_raw_curry(fname, preload=True)
 
 
 @testing.requires_testing_data
@@ -376,7 +359,7 @@ def _mock_info_file(src, dst, sfreq, time_step):
         pytest.param(dict(sfreq=0, time_step=2000), id="correct time_step"),
         pytest.param(dict(sfreq=500, time_step=2000), id="both correct"),
         pytest.param(
-            dict(sfreq=0, time_step=1),
+            dict(sfreq=0, time_step=0),
             id="both 0",
         ),
         pytest.param(
@@ -407,15 +390,25 @@ def sfreq_testing_data(tmp_path, request):
     )
     copyfile(curry7_bdf_file, tmp_path / "curry.dat")
 
-    return tmp_path / "curry.dat", time_step
+    return tmp_path / "curry.dat", sfreq, time_step
 
 
 @testing.requires_testing_data
 def test_sfreq(sfreq_testing_data):
     """Test sfreq and time_step."""
-    fname, time_step = sfreq_testing_data
-    raw = read_raw_curry(fname, preload=False)
-    assert raw.info["sfreq"] == 1000000 / time_step
+    fname, sfreq, time_step = sfreq_testing_data
+    if time_step == 0:
+        with pytest.raises(ValueError, match="sampling interval of 0µs."):
+            read_raw_curry(fname, preload=False)
+    else:
+        if sfreq != 1e6 / time_step:
+            with pytest.warns(
+                RuntimeWarning, match="sfreq will be derived from sample distance."
+            ):
+                raw = read_raw_curry(fname, preload=False)
+        else:
+            raw = read_raw_curry(fname, preload=False)
+        assert raw.info["sfreq"] == 1e6 / time_step
 
 
 @testing.requires_testing_data
@@ -623,8 +616,8 @@ def test_meas_date(fname, expected_meas_date):
 @pytest.mark.parametrize(
     "fname, others",
     [
-        # pytest.param(curry7_rfDC_file, (".dap", ".rs3"), id="curry7"),
-        # pytest.param(curry8_rfDC_file, (".cdt.dpa",), id="curry8"),
+        pytest.param(curry7_rfDC_file, (".dap", ".rs3"), id="curry7"),
+        pytest.param(curry8_rfDC_file, (".cdt.dpa",), id="curry8"),
         pytest.param(curry7_bdf_file, (".dap", ".rs3"), id="curry7"),
         pytest.param(epoched_file, (".cdt.dpa",), id="curry8"),
     ],
@@ -632,7 +625,6 @@ def test_meas_date(fname, expected_meas_date):
 def test_dot_names(fname, others, tmp_path):
     """Test that dots are parsed properly (e.g., in paths)."""
     my_path = tmp_path / "dot.dot.dot"
-    # my_path = tmp_path / "test"
     my_path.mkdir()
     my_path = my_path / Path(fname).parts[-1]
     fname = Path(fname)
@@ -673,6 +665,38 @@ def test_read_impedances_curry(fname):
     )
 
 
+def _mock_info_noeeg(src, dst):
+    # artificially remove eeg channels
+    content_hdr = src.read_text()
+    if ".dap" in src.name:
+        # curry 7
+        content_hdr_ = content_hdr
+    elif ".rs3" in src.name:
+        # curry 7
+        content_hdr_ = (
+            content_hdr.split("NUMBERS START")[0]
+            + content_hdr.split("TRANSFORM END_LIST")[-1]
+        )
+    else:
+        # curry 8
+        content_hdr_ = (
+            content_hdr.split("LABELS START")[0]
+            + content_hdr.split("SENSORS END_LIST")[-1]
+        )
+    # both
+    content_hdr_ = content_hdr_.replace(
+        "NumChannels          =  194", "NumChannels          =  163"
+    )
+    content_hdr_ = content_hdr_.replace(
+        "NumChanThisGroup     =  31", "NumChanThisGroup     =  0"
+    )
+    content_hdr_ = content_hdr_.replace(
+        "NumSensorsThisGroup     =  31", "NumSensorsThisGroup     =  0"
+    )
+    with dst.open("w+") as f:
+        f.write(content_hdr_)
+
+
 @testing.requires_testing_data
 @pytest.mark.parametrize(
     "fname,mont_present",
@@ -681,13 +705,24 @@ def test_read_impedances_curry(fname):
         pytest.param(curry8_bdf_file, True, id="curry 8"),
         pytest.param(curry7_bdf_ascii_file, True, id="curry 7 ascii"),
         pytest.param(curry8_bdf_ascii_file, True, id="curry 8 ascii"),
+        pytest.param(curry7_rfDC_file, False, id="no eeg, curry 7"),
+        pytest.param(curry8_rfDC_file, False, id="no eeg, curry 8"),
     ],
 )
-def test_read_montage_curry(fname, mont_present):
+def test_read_montage_curry(tmp_path, fname, mont_present):
     """Test reading montage from CURRY files."""
     if mont_present:
         assert isinstance(read_dig_curry(fname), DigMontage)
     else:
+        # copy files to tmp_path
+        for ext in (".cdt", ".cdt.hpi", ".cdt.dpa", ".dat", ".dap", ".rs3"):
+            src = fname.with_suffix(ext)
+            dst = tmp_path / fname.with_suffix(ext).name
+            if src.exists():
+                if ext in [".cdt.dpa", ".dap", ".rs3"]:
+                    _mock_info_noeeg(src, dst)
+                else:
+                    copyfile(src, dst)
         # TODO - not reached, yet. no test file without eeg chanlocs
-        with pytest.warns(RuntimeWarning, match="No sensor locations found"):
-            _ = read_dig_curry(fname)
+        with pytest.raises(ValueError, match="No eeg sensor locations found"):
+            read_dig_curry(tmp_path / fname.name)

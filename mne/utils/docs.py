@@ -3058,6 +3058,13 @@ on_header_missing : str
     .. versionadded:: 0.22
 """
 
+docdict["on_bad_hpi_match"] = """
+on_bad_hpi_match : str
+    Can be ``'raise'`` to raise an error, ``'warn'`` (default) to emit a
+    warning, or ``'ignore'`` to ignore when there is poor matching of HPI coordinates
+    (>10mm difference) for device - head transform.
+"""
+
 _on_missing_base = """\
 Can be ``'raise'`` (default) to raise an error, ``'warn'`` to emit a
     warning, or ``'ignore'`` to ignore when"""

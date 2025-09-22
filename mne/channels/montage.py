@@ -54,7 +54,11 @@ from ..utils import (
 )
 from ..utils.docs import docdict
 from ..viz import plot_montage
-from ._dig_montage_utils import _parse_brainvision_dig_montage, _read_dig_montage_egi
+from ._dig_montage_utils import (
+    _parse_brainvision_dig_montage,
+    _read_dig_montage_curry,
+    _read_dig_montage_egi,
+)
 
 
 @dataclass
@@ -1065,10 +1069,8 @@ def read_dig_curry(fname):
         _check_curry_filename,
         _extract_curry_info,
     )
-    from ._dig_montage_utils import _read_dig_montage_curry
 
     # TODO - REVIEW NEEDED
-    # API? do i need to add this in the docs somewhere?
     fname = _check_curry_filename(fname)
     (_, _, ch_names, ch_types, ch_pos, landmarks, landmarkslabels, _, _, _, _, _, _) = (
         _extract_curry_info(fname)
