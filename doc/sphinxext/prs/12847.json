@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "9652572611a0ef6941e59b40575bdfc05a945387",
+  "authors": [
+    {
+      "n": "Scott Huberty",
+      "e": null
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/12847.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/eyelink/_utils.py": {
+      "a": 259,
+      "d": 110
+    },
+    "mne/io/eyelink/tests/test_eyelink.py": {
+      "a": 120,
+      "d": 1
+    }
+  }
+}
