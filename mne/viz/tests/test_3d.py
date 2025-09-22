@@ -190,6 +190,7 @@ def test_plot_evoked_field(renderer):
                 n_jobs=None,
                 ch_type=t,
                 upsampling=up,
+                origin="auto",
                 verbose=True,
             )
         log = log.getvalue()

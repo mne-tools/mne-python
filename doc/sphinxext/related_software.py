@@ -29,6 +29,7 @@ from sphinx.util.display import status_iterator
 
 # If it's available on PyPI, add it to this set:
 PYPI_PACKAGES = {
+    "cross-domain-saliency-maps",
     "meggie",
     "niseq",
     "sesameeg",
