@@ -139,4 +139,3 @@ def _read_dig_montage_curry(ch_names, ch_types, ch_pos, landmarks, landmarkslabe
         )
     else:  # not recorded?
         raise ValueError("No eeg sensor locations found in header file.")
-        return None
