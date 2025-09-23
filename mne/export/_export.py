@@ -88,9 +88,7 @@ def export_raw(
 
 
 @verbose
-def export_epochs(
-    fname, epochs, fmt="auto", *, export_kwargs=None, overwrite=False, verbose=None
-):
+def export_epochs(fname, epochs, fmt="auto", *, overwrite=False, verbose=None):
     """Export Epochs to external formats.
 
     %(export_fmt_support_epochs)s
