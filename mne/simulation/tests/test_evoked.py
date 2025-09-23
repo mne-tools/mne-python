@@ -100,7 +100,6 @@ def test_simulate_evoked():
 @pytest.mark.filterwarnings("ignore:No average EEG reference present")
 @pytest.mark.filterwarnings("ignore:Too few samples")
 @pytest.mark.filterwarnings("ignore:Epochs are not baseline corrected")
-@pytest.mark.filterwarnings("ignore:.*You've got fewer samples than channels.*")
 def test_add_noise():
     """Test noise addition."""
     rng = np.random.default_rng(0)
@@ -138,7 +137,10 @@ def test_add_noise():
         if inst is raw:
             cov_new = compute_raw_covariance(inst, picks=picks)
         else:
-            cov_new = compute_covariance(inst)
+            with pytest.warns(
+                RuntimeWarning, match=".*You've got fewer samples than.*"
+            ):
+                cov_new = compute_covariance(inst)
         assert cov["names"] == cov_new["names"]
         r = np.corrcoef(cov["data"].ravel(), cov_new["data"].ravel())[0, 1]
         assert r > 0.99
