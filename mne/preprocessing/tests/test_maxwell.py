@@ -1883,13 +1883,13 @@ def test_compute_maxwell_basis(regularize, n, int_order):
     raw = read_raw_fif(raw_small_fname).crop(0, 2)
     assert raw.info["bads"] == []
     raw.del_proj()
-    rank = compute_rank(raw)["meg"]
+    rank = compute_rank(raw, on_few_samples="ignore")["meg"]
     assert rank == 306
     raw.info["bads"] = ["MEG 2443"]
     kwargs = dict(regularize=regularize, int_order=int_order, verbose=True)
     raw_sss = maxwell_filter(raw, **kwargs)
     want = raw_sss.get_data("meg")
-    rank = compute_rank(raw_sss)["meg"]
+    rank = compute_rank(raw_sss, on_few_samples="ignore")["meg"]
     assert rank == n
     S, pS, reg_moments, n_use_in = compute_maxwell_basis(raw.info, **kwargs)
     assert n_use_in == n

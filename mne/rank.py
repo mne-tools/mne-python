@@ -348,7 +348,7 @@ def _compute_rank_int(inst, *args, **kwargs):
     # XXX eventually we should unify how channel types are handled
     # so that we don't need to do this, or we do it everywhere.
     # Using pca=True in compute_whitener might help.
-    return sum(compute_rank(inst, *args, **kwargs).values())
+    return sum(compute_rank(inst, *args, on_few_samples="ignore", **kwargs).values())
 
 
 @verbose
@@ -392,7 +392,7 @@ def compute_rank(
         Can be 'warn', 'ignore', or 'raise' to control behavior when
         there are fewer samples than channels, which can lead to inaccurate rank
         estimates. None (default) means "ignore" if ``inst`` is a
-        :class:`mne.Covariance` and "warn" otherwise.
+        :class:`mne.Covariance` or ``rank in ("info", "full")``, and "warn" otherwise.
 
         .. versionadded:: 1.11
     %(verbose)s
@@ -460,13 +460,9 @@ def _compute_rank(
             info = pick_info(
                 info, [info["ch_names"].index(name) for name in inst["names"]]
             )
-        if on_few_samples is None:
-            on_few_samples = "ignore"
     else:
         info = inst.info
         inst_type = "data"
-        if on_few_samples is None:
-            on_few_samples = "warn"
     logger.info(f"Computing rank from {inst_type} with rank={repr(rank)}")
 
     _validate_type(rank, (str, dict, None), "rank")
@@ -478,6 +474,12 @@ def _compute_rank(
         rank_type = "estimated"
         if rank is None:
             rank = dict()
+
+    if on_few_samples is None:
+        if inst_type != "covariance" and rank_type == "estimated":
+            on_few_samples = "warn"
+        else:
+            on_few_samples = "ignore"
 
     simple_info = _simplify_info(info)
     picks_list = _picks_by_type(info, meg_combined=True, ref_meg=False, exclude="bads")
