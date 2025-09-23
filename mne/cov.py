@@ -1289,7 +1289,6 @@ def _compute_covariance_auto(
             rank,
             proj_subspace=True,
             do_compute_rank=False,
-            on_few_samples=on_few_samples,
             log_ch_type=log_ch_type,
             verbose=None if log_rank else _verbose_safe_false(),
         )
@@ -1751,6 +1750,7 @@ def prepare_noise_cov(
     rank=None,
     scalings=None,
     on_rank_mismatch="ignore",
+    *,
     verbose=None,
 ):
     """Prepare noise covariance matrix.
@@ -1814,7 +1814,6 @@ def prepare_noise_cov(
         projs,
         ch_names,
         on_rank_mismatch=on_rank_mismatch,
-        on_few_samples="ignore",
     )
     noise_cov.update(eig=eig, eigvec=eigvec)
     return noise_cov
@@ -1831,7 +1830,6 @@ def _smart_eigh(
     proj_subspace=False,
     do_compute_rank=True,
     on_rank_mismatch="ignore",
-    on_few_samples="warn",
     *,
     log_ch_type=None,
     verbose=None,
@@ -1862,7 +1860,6 @@ def _smart_eigh(
             scalings,
             info,
             on_rank_mismatch=on_rank_mismatch,
-            on_few_samples=on_few_samples,
             log_ch_type=log_ch_type,
         )
     assert C.ndim == 2 and C.shape[0] == C.shape[1]
@@ -2057,7 +2054,7 @@ def regularize(
     else:
         regs.update(mag=mag, grad=grad)
     if rank != "full":
-        rank = _compute_rank(cov, rank, scalings, info, on_few_samples="ignore")
+        rank = _compute_rank(cov, rank, scalings, info)
 
     info_ch_names = info["ch_names"]
     ch_names_by_type = dict()
@@ -2117,9 +2114,7 @@ def regularize(
             this_info = pick_info(info, this_picks)
             # Here we could use proj_subspace=True, but this should not matter
             # since this is already in a loop over channel types
-            _, eigvec, mask = _smart_eigh(
-                this_C, this_info, rank, on_few_samples="ignore"
-            )
+            _, eigvec, mask = _smart_eigh(this_C, this_info, rank)
             U = eigvec[mask].T
         this_C = np.dot(U.T, np.dot(this_C, U))
 
@@ -2146,7 +2141,9 @@ def _regularized_covariance(
     log_ch_type=None,
     log_rank=None,
     cov_kind="",
-    on_few_samples="warn",
+    # backward-compat default for decoding (maybe someday we want to expose this but
+    # it's likely too invasive and since it's usually regularized, unnecessary):
+    on_few_samples="ignore",
     verbose=None,
 ):
     """Compute a regularized covariance from data using sklearn.

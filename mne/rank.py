@@ -363,7 +363,7 @@ def compute_rank(
     proj=True,
     tol_kind="absolute",
     on_rank_mismatch="ignore",
-    on_few_samples="warn",
+    on_few_samples=None,
     verbose=None,
 ):
     """Compute the rank of data or noise covariance.
@@ -389,10 +389,13 @@ def compute_rank(
         considered when ``rank=None`` or ``rank='info'``.
     %(tol_kind_rank)s
     %(on_rank_mismatch)s
-    on_few_samples : str
+    on_few_samples : str | None
         Can be 'warn' (default), 'ignore', or 'raise' to control behavior when
         there are fewer samples than channels, which can lead to inaccurate rank
-        estimates.
+        estimates. None (default) means "ignore" if ``inst`` is a
+        :class:`mne.Covariance` and "warn" otherwise.
+
+        .. versionadded:: 1.11
     %(verbose)s
 
     Returns
@@ -429,7 +432,7 @@ def _compute_rank(
     proj=True,
     tol_kind="absolute",
     on_rank_mismatch="ignore",
-    on_few_samples="warn",
+    on_few_samples=None,
     log_ch_type=None,
     verbose=None,
 ):
@@ -458,9 +461,13 @@ def _compute_rank(
             info = pick_info(
                 info, [info["ch_names"].index(name) for name in inst["names"]]
             )
+        if on_few_samples is None:
+            on_few_samples = "ignore"
     else:
         info = inst.info
         inst_type = "data"
+        if on_few_samples is None:
+            on_few_samples = "warn"
     logger.info(f"Computing rank from {inst_type} with rank={repr(rank)}")
 
     _validate_type(rank, (str, dict, None), "rank")
