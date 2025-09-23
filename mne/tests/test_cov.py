@@ -434,16 +434,14 @@ def test_cov_estimation_with_triggers(rank, tmp_path):
         preload=True,
     )
 
-    cov = compute_covariance(epochs, keep_sample_mean=True, on_few_samples="ignore")
+    cov = compute_covariance(epochs, keep_sample_mean=True)
     cov_km = read_cov(cov_km_fname)
     # adjust for nfree bug
     cov_km["nfree"] -= 1
     _assert_cov(cov, cov_km)
 
     # Test with tmin and tmax (different but not too much)
-    cov_tmin_tmax = compute_covariance(
-        epochs, tmin=-0.19, tmax=-0.01, on_few_samples="ignore"
-    )
+    cov_tmin_tmax = compute_covariance(epochs, tmin=-0.19, tmax=-0.01)
     assert np.all(cov.data != cov_tmin_tmax.data)
     err = np.linalg.norm(cov.data - cov_tmin_tmax.data) / np.linalg.norm(
         cov_tmin_tmax.data
@@ -464,12 +462,12 @@ def test_cov_estimation_with_triggers(rank, tmp_path):
         )
         for ev_id in event_ids
     ]
-    cov2 = compute_covariance(epochs, keep_sample_mean=True, on_few_samples="ignore")
+    cov2 = compute_covariance(epochs, keep_sample_mean=True)
     assert_array_almost_equal(cov.data, cov2.data)
     assert cov.ch_names == cov2.ch_names
 
     # cov with keep_sample_mean=False using a list of epochs
-    cov = compute_covariance(epochs, keep_sample_mean=False, on_few_samples="ignore")
+    cov = compute_covariance(epochs, keep_sample_mean=False)
     assert cov_km.nfree == cov.nfree
     _assert_cov(cov, read_cov(cov_fname), nfree=False)
 
