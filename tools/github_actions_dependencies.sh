@@ -34,4 +34,9 @@ echo ""
 
 echo "::group::Installing test dependencies using pip"
 python -m pip install $STD_ARGS $INSTALL_ARGS .[$INSTALL_KIND]
+# TODO: Temporary work around to help us confirm this PR's fix. Remove before merging.
+# Installs branch used in https://github.com/jackz314/eeglabio/pull/18
+if [[ "$MNE_CI_KIND" == "conda" || "$MNE_CI_KIND" == "mamba" ]]; then
+	python -m pip install $STD_ARGS "eeglabio @ git+https://github.com/scott-huberty/eeglabio.git@export_epochs"
+fi
 echo "::endgroup::"
