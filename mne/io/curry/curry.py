@@ -577,7 +577,9 @@ def _set_chanloc_curry(
             trans[:3, :3] = _normal_orth(nn).T
             with inst.info._unlock():
                 ch["loc"] = _coil_trans_to_loc(trans)
-                ch["coil_type"] = FIFF.FIFFV_COIL_CTF_GRAD
+                # TODO: We should figure out if all files are Compumedics,
+                # and even then figure out if it's adult or child
+                ch["coil_type"] = FIFF.FIFFV_COIL_COMPUMEDICS_ADULT_GRAD
                 ch["coord_frame"] = FIFF.FIFFV_COORD_DEVICE
         elif ch_type == "misc":
             pass
