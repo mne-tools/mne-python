@@ -72,7 +72,8 @@ def test_compute_whitener(proj, pca):
         raw.apply_proj()
     else:
         raw.del_proj()
-    cov = compute_raw_covariance(raw, on_few_samples="ignore")
+    with pytest.warns(RuntimeWarning, match="Too few samples"):
+        cov = compute_raw_covariance(raw)
     assert cov["names"] == raw.ch_names
     W, _, C = compute_whitener(
         cov, raw.info, pca=pca, return_colorer=True, verbose="error"
