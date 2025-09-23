@@ -539,7 +539,7 @@ def test_export_epochs_eeglab(tmp_path, preload):
     """Test saving an Epochs instance to EEGLAB's set format."""
     eeglabio = pytest.importorskip("eeglabio")
     raw, events = _get_data()[:2]
-    raw = raw.copy().resample(600)
+    raw, events = raw.copy().resample(600, events=events)
     raw.load_data()
     epochs = Epochs(raw, events, preload=preload)
     temp_fname = tmp_path / "test.set"
