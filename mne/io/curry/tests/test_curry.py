@@ -9,7 +9,6 @@ from shutil import copyfile
 
 import numpy as np
 import pytest
-from numpy import empty
 from numpy.testing import assert_allclose, assert_array_equal
 
 from mne._fiff.constants import FIFF
@@ -670,7 +669,7 @@ def test_read_device_info():
 def test_read_impedances_curry(fname):
     """Test reading impedances from CURRY files."""
     _, imp = read_impedances_curry(fname)
-    actual_imp = empty(shape=(0, 3))  # TODO - need better testing data
+    actual_imp = np.empty(shape=(0, 3))  # TODO - need better testing data
     assert_allclose(
         imp,
         actual_imp,
