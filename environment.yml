@@ -10,6 +10,7 @@ dependencies:
   - defusedxml
   - dipy
   - edfio >=0.2.1
+  - eeglabio
   - filelock >=3.18.0
   - h5io >=0.2.4
   - h5py
@@ -61,5 +62,3 @@ dependencies:
   - trame-vuetify
   - vtk >=9.2
   - xlrd
-  - pip:
-      - eeglabio @ git+https://github.com/scott-huberty/eeglabio.git@export_epochs
