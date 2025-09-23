@@ -76,6 +76,7 @@ def _export_epochs(fname, epochs):
         event_id=epochs.event_id,
         ch_locs=cart_coords,
         annotations=annot,
+        epoch_indices=epochs.selection,
     )
 
 
