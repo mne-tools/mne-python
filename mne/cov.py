@@ -1161,6 +1161,7 @@ def compute_covariance(
 
     epochs = np.hstack(epochs)
     n_samples_tot = epochs.shape[-1]
+    _check_n_samples(n_samples_tot, len(picks_meeg), on_few_samples)
 
     epochs = epochs.T  # sklearn | C-order
     cov_data = _compute_covariance_auto(

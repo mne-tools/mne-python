@@ -4,7 +4,6 @@
 
 import itertools as itt
 import sys
-from contextlib import nullcontext
 from inspect import signature
 from pathlib import Path
 
@@ -802,11 +801,7 @@ def test_low_rank_methods(rank, raw_epochs_events):
             empirical=(-15000, -5000), diagonal_fixed=(-700, -600), oas=(-700, -600)
         ),
     }
-    if rank is None:
-        ctx = pytest.warns(RuntimeWarning, match="Too few samples")
-    else:
-        ctx = nullcontext()
-    with ctx:
+    with pytest.warns(RuntimeWarning, match="Too few samples"):
         covs = compute_covariance(
             epochs, method=methods, return_estimators=True, rank=rank, verbose=True
         )
@@ -858,7 +853,8 @@ def test_low_rank_cov(raw_epochs_events):
         epochs_meg, method="oas", rank="full", verbose="error"
     )
     assert _cov_rank(cov_full, epochs_meg.info) == 306
-    cov_dict = compute_covariance(epochs_meg, method="oas", rank=dict(meg=306))
+    with pytest.warns(RuntimeWarning, match="few samples"):
+        cov_dict = compute_covariance(epochs_meg, method="oas", rank=dict(meg=306))
     assert _cov_rank(cov_dict, epochs_meg.info) == 306
     assert_allclose(cov_full["data"], cov_dict["data"])
     cov_dict = compute_covariance(
