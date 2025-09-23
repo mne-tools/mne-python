@@ -360,6 +360,7 @@ def compute_rank(
     scalings=None,
     info=None,
     tol="auto",
+    *,
     proj=True,
     tol_kind="absolute",
     on_rank_mismatch="ignore",
@@ -390,7 +391,7 @@ def compute_rank(
     %(tol_kind_rank)s
     %(on_rank_mismatch)s
     on_few_samples : str | None
-        Can be 'warn' (default), 'ignore', or 'raise' to control behavior when
+        Can be 'warn', 'ignore', or 'raise' to control behavior when
         there are fewer samples than channels, which can lead to inaccurate rank
         estimates. None (default) means "ignore" if ``inst`` is a
         :class:`mne.Covariance` and "warn" otherwise.

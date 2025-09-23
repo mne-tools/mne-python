@@ -131,11 +131,7 @@ def _xdawn_estimate(
     # Retrieve or compute whitening covariance
     if R is None:
         R = _regularized_covariance(
-            np.hstack(X),
-            reg,
-            cov_method_params,
-            info,
-            rank=rank,
+            np.hstack(X), reg, cov_method_params, info, rank=rank
         )
     elif isinstance(R, Covariance):
         R = R.data
@@ -229,7 +225,6 @@ def _ssd_estimate(
                 rank,
                 _handle_default("scalings_cov_rank", None),
                 info,
-                on_few_samples="ignore",
             ).values()
         )[0]
     all_ranks.append(r)
