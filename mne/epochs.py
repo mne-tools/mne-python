@@ -2326,9 +2326,7 @@ class BaseEpochs(
         return split_fnames
 
     @verbose
-    def export(
-        self, fname, fmt="auto", *, export_kwargs=None, overwrite=False, verbose=None
-    ):
+    def export(self, fname, fmt="auto", *, overwrite=False, verbose=None):
         """Export Epochs to external formats.
 
         %(export_fmt_support_epochs)s
@@ -2353,14 +2351,7 @@ class BaseEpochs(
         """
         from .export import export_epochs
 
-        export_epochs(
-            fname,
-            self,
-            fmt,
-            export_kwargs=export_kwargs,
-            overwrite=overwrite,
-            verbose=verbose,
-        )
+        export_epochs(fname, self, fmt, overwrite=overwrite, verbose=verbose)
 
     @fill_doc
     def equalize_event_counts(

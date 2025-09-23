@@ -131,7 +131,7 @@ def export_epochs(
     if fmt == "eeglab":
         from ._eeglab import _export_epochs
 
-        _export_epochs(fname, epochs, export_kwargs=export_kwargs)
+        _export_epochs(fname, epochs)
 
 
 @verbose

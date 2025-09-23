@@ -539,7 +539,6 @@ def test_export_epochs_eeglab(tmp_path, preload):
     """Test saving an Epochs instance to EEGLAB's set format."""
     eeglabio = pytest.importorskip("eeglabio")
     raw, events = _get_data()[:2]
-    raw, events = raw.copy().resample(600, events=events)
     raw.load_data()
     epochs = Epochs(raw, events, preload=preload)
     temp_fname = tmp_path / "test.set"
@@ -549,13 +548,7 @@ def test_export_epochs_eeglab(tmp_path, preload):
     else:
         ctx = nullcontext
     with ctx():
-        epochs.export(
-            temp_fname,
-            export_kwargs={
-                "first_samp": raw.first_samp,
-                "n_trials": len(epochs.drop_log),
-            },
-        )
+        epochs.export(temp_fname)
     epochs.drop_channels([ch for ch in ["epoc", "STI 014"] if ch in epochs.ch_names])
     epochs_read = read_epochs_eeglab(temp_fname, verbose="error")  # head radius
     assert epochs.ch_names == epochs_read.ch_names

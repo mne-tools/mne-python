@@ -5,7 +5,7 @@
 import numpy as np
 
 from ..annotations import _sync_onset
-from ..utils import _check_eeglabio_installed, _validate_type
+from ..utils import _check_eeglabio_installed
 
 _check_eeglabio_installed()
 import eeglabio.epochs  # noqa: E402
@@ -45,12 +45,8 @@ def _export_raw(fname, raw):
     )
 
 
-def _export_epochs(fname, epochs, *, export_kwargs=None):
+def _export_epochs(fname, epochs):
     _check_eeglabio_installed()
-
-    if export_kwargs is None:
-        export_kwargs = {}
-    _validate_type(export_kwargs, dict, "export_kwargs")
 
     # load data first
     epochs.load_data()
@@ -80,7 +76,6 @@ def _export_epochs(fname, epochs, *, export_kwargs=None):
         event_id=epochs.event_id,
         ch_locs=cart_coords,
         annotations=annot,
-        **export_kwargs,
     )
 
 
