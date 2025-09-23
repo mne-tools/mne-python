@@ -135,7 +135,7 @@ def _read_dig_montage_curry(ch_names, ch_types, ch_pos, landmarks, landmarkslabe
             rpa=landmark_dict["RPA"],
             hsp=hsp_pos,
             hpi=hpi_pos,
-            coord_frame="head",
+            coord_frame="unknown",
         )
     else:  # not recorded?
         raise ValueError("No eeg sensor locations found in header file.")
