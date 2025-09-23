@@ -47,7 +47,6 @@ def _export_raw(fname, raw):
 
 def _export_epochs(fname, epochs):
     _check_eeglabio_installed()
-
     # load data first
     epochs.load_data()
 
