@@ -856,8 +856,7 @@ def test_low_rank_cov(raw_epochs_events):
         epochs_meg, method="oas", rank="full", verbose="error", on_few_samples="ignore"
     )
     assert _cov_rank(cov_full, epochs_meg.info) == 306
-    with pytest.warns(RuntimeWarning, match="few samples"):
-        cov_dict = compute_covariance(epochs_meg, method="oas", rank=dict(meg=306))
+    cov_dict = compute_covariance(epochs_meg, method="oas", rank=dict(meg=306))
     assert _cov_rank(cov_dict, epochs_meg.info) == 306
     assert_allclose(cov_full["data"], cov_dict["data"])
     cov_dict = compute_covariance(

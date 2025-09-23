@@ -560,8 +560,8 @@ def _check_n_samples(n_samples, n_chan, on_few_samples="warn"):
         raise ValueError("No samples found to compute the covariance matrix")
     if n_samples < n_samples_min:
         msg = (
-            f"Too few samples (required : {n_samples_min} got : {n_samples}), "
-            "covariance estimate may be unreliable"
+            f"Too few samples (required {n_samples_min} but got {n_samples} for "
+            f"{n_chan} channels), covariance estimate may be unreliable"
         )
         _on_missing(on_few_samples, msg, "on_few_samples")
 
@@ -1161,7 +1161,6 @@ def compute_covariance(
 
     epochs = np.hstack(epochs)
     n_samples_tot = epochs.shape[-1]
-    _check_n_samples(n_samples_tot, len(picks_meeg), on_few_samples)
 
     epochs = epochs.T  # sklearn | C-order
     cov_data = _compute_covariance_auto(

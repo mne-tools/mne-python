@@ -200,13 +200,11 @@ def _estimate_rank_meeg_signals(
         If return_singular is True, the singular values that were
         thresholded to determine the rank are also returned.
     """
+    from .cov import _check_n_samples
+
     picks_list = _picks_by_type(info)
-    if data.shape[1] < data.shape[0]:
-        msg = (
-            "You've got fewer samples than channels, your "
-            "rank estimate might be inaccurate."
-        )
-        _on_missing(on_few_samples, msg, "on_few_samples")
+    assert data.ndim == 2, data.shape
+    _check_n_samples(*data.shape[::-1], on_few_samples=on_few_samples)
     with _scaled_array(data, picks_list, scalings):
         out = estimate_rank(
             data,
