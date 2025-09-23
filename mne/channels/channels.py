@@ -872,7 +872,6 @@ class InterpolationMixin:
         exclude : list | tuple
             The channels to exclude from interpolation. If excluded a bad
             channel will stay in bads.
-
         %(verbose)s
 
         Returns
