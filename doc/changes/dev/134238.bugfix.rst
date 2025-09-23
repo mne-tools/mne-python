@@ -1,0 +1,1 @@
+Allow `first_samp` and true number of events (before dropping epochs) to be considered when exporting to EEGLAB format. by `Scott Huberty`_
