@@ -4,6 +4,7 @@
 
 import itertools as itt
 import sys
+from contextlib import nullcontext
 from inspect import signature
 from pathlib import Path
 
@@ -801,14 +802,14 @@ def test_low_rank_methods(rank, raw_epochs_events):
             empirical=(-15000, -5000), diagonal_fixed=(-700, -600), oas=(-700, -600)
         ),
     }
-    covs = compute_covariance(
-        epochs,
-        method=methods,
-        return_estimators=True,
-        rank=rank,
-        verbose=True,
-        on_few_samples="ignore",
-    )
+    if rank is None:
+        ctx = pytest.warns(RuntimeWarning, match="Too few samples")
+    else:
+        ctx = nullcontext()
+    with ctx:
+        covs = compute_covariance(
+            epochs, method=methods, return_estimators=True, rank=rank, verbose=True
+        )
     for cov in covs:
         method = cov["method"]
         these_bounds = bounds[str(rank)][method]
@@ -827,7 +828,8 @@ def test_low_rank_cov(raw_epochs_events):
     sss_proj_rank = 139  # 80 MEG + 60 EEG - 1 proj
     n_ch = 366
     proj_rank = 365  # one EEG proj
-    emp_cov = compute_covariance(epochs, on_few_samples="ignore")
+    with pytest.warns(RuntimeWarning, match="Too few samples"):
+        emp_cov = compute_covariance(epochs)
     # Test equivalence with mne.cov.regularize subspace
     with pytest.raises(ValueError, match="are dependent.*must equal"):
         regularize(emp_cov, epochs.info, rank=None, mag=0.1, grad=0.2)
@@ -853,18 +855,14 @@ def test_low_rank_cov(raw_epochs_events):
     with epochs_meg.info._unlock():
         epochs_meg.info.update(bads=[], projs=[])
     cov_full = compute_covariance(
-        epochs_meg, method="oas", rank="full", verbose="error", on_few_samples="ignore"
+        epochs_meg, method="oas", rank="full", verbose="error"
     )
     assert _cov_rank(cov_full, epochs_meg.info) == 306
     cov_dict = compute_covariance(epochs_meg, method="oas", rank=dict(meg=306))
     assert _cov_rank(cov_dict, epochs_meg.info) == 306
     assert_allclose(cov_full["data"], cov_dict["data"])
     cov_dict = compute_covariance(
-        epochs_meg,
-        method="oas",
-        rank=dict(meg=306),
-        verbose="error",
-        on_few_samples="ignore",
+        epochs_meg, method="oas", rank=dict(meg=306), verbose="error"
     )
     assert _cov_rank(cov_dict, epochs_meg.info) == 306
     assert_allclose(cov_full["data"], cov_dict["data"])
@@ -878,9 +876,7 @@ def test_low_rank_cov(raw_epochs_events):
     assert len(raw.info["projs"]) == 3
     epochs = Epochs(raw, events, tmin=-0.2, tmax=0, preload=True)
     assert len(raw.ch_names) == n_ch
-    emp_cov = compute_covariance(
-        epochs, rank="full", verbose="error", on_few_samples="ignore"
-    )
+    emp_cov = compute_covariance(epochs, rank="full", verbose="error")
     assert _cov_rank(emp_cov, epochs.info) == rank
     reg_cov = regularize(emp_cov, epochs.info, proj=True, rank="full")
     assert _cov_rank(reg_cov, epochs.info) == rank
