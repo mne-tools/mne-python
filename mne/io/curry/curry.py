@@ -709,6 +709,9 @@ def read_raw_curry(
 ) -> "RawCurry":
     """Read raw data from Curry files.
 
+    .. versionchanged:: 1.11
+       This function now  requires ``curryreader`` to be installed.
+
     Parameters
     ----------
     fname : path-like

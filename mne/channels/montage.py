@@ -1064,6 +1064,10 @@ def read_dig_curry(fname):
     read_dig_localite
     read_dig_polhemus_isotrak
     make_dig_montage
+
+    Notes
+    -----
+    .. versionadded:: 1.11
     """
     from ..io.curry.curry import (
         _check_curry_filename,
