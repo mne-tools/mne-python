@@ -575,6 +575,8 @@ def compute_raw_covariance(
     reject=None,
     flat=None,
     picks=None,
+    *,
+    on_few_samples="warn",
     method="empirical",
     method_params=None,
     cv=3,
@@ -583,7 +585,6 @@ def compute_raw_covariance(
     return_estimators=False,
     reject_by_annotation=True,
     rank=None,
-    on_few_samples="warn",
     verbose=None,
 ):
     """Estimate noise covariance matrix from a continuous segment of raw data.
@@ -625,6 +626,12 @@ def compute_raw_covariance(
         are floats that set the minimum acceptable peak-to-peak amplitude.
         If flat is None then no rejection is done.
     %(picks_good_data_noref)s
+    on_few_samples : str
+        Can be 'warn' (default), 'ignore', or 'raise' to control behavior when
+        there are fewer samples than channels, which can lead to inaccurate
+        covariance or rank estimates.
+
+        .. versionadded:: 1.11
     method : str | list | None (default 'empirical')
         The method used for covariance estimation.
         See :func:`mne.compute_covariance`.
@@ -664,10 +671,6 @@ def compute_raw_covariance(
 
         .. versionadded:: 0.18
            Support for 'info' mode.
-    on_few_samples : str
-        Can be 'warn' (default), 'ignore', or 'raise' to control behavior when
-        there are fewer samples than channels, which can lead to inaccurate
-        covariance or rank estimates.
     %(verbose)s
 
     Returns
@@ -870,6 +873,8 @@ def compute_covariance(
     tmin=None,
     tmax=None,
     projs=None,
+    *,
+    on_few_samples="warn",
     method="empirical",
     method_params=None,
     cv=3,
@@ -878,7 +883,6 @@ def compute_covariance(
     return_estimators=False,
     on_mismatch="raise",
     rank=None,
-    on_few_samples="warn",
     verbose=None,
 ):
     """Estimate noise covariance matrix from epochs.
@@ -916,6 +920,12 @@ def compute_covariance(
         List of projectors to use in covariance calculation, or None
         to indicate that the projectors from the epochs should be
         inherited. If None, then projectors from all epochs must match.
+    on_few_samples : str
+        Can be 'warn' (default), 'ignore', or 'raise' to control behavior when
+        there are fewer samples than channels, which can lead to inaccurate
+        covariance or rank estimates.
+
+        .. versionadded:: 1.11
     method : str | list | None (default 'empirical')
         The method used for covariance estimation. If 'empirical' (default),
         the sample covariance will be computed. A list can be passed to
@@ -973,10 +983,6 @@ def compute_covariance(
 
         .. versionadded:: 0.18
            Support for 'info' mode.
-    on_few_samples : str
-        Can be 'warn' (default), 'ignore', or 'raise' to control behavior when
-        there are fewer samples than channels, which can lead to inaccurate
-        covariance or rank estimates.
     %(verbose)s
 
     Returns
@@ -1745,7 +1751,6 @@ def prepare_noise_cov(
     rank=None,
     scalings=None,
     on_rank_mismatch="ignore",
-    on_few_samples="warn",
     verbose=None,
 ):
     """Prepare noise covariance matrix.
@@ -1768,10 +1773,6 @@ def prepare_noise_cov(
 
             dict(mag=1e12, grad=1e11, eeg=1e5)
     %(on_rank_mismatch)s
-    on_few_samples : str
-        Can be 'warn' (default), 'ignore', or 'raise' to control behavior when
-        there are fewer samples than channels, which can lead to inaccurate
-        covariance or rank estimates.
     %(verbose)s
 
     Returns
@@ -1813,7 +1814,7 @@ def prepare_noise_cov(
         projs,
         ch_names,
         on_rank_mismatch=on_rank_mismatch,
-        on_few_samples=on_few_samples,
+        on_few_samples="ignore",
     )
     noise_cov.update(eig=eig, eigvec=eigvec)
     return noise_cov
@@ -1940,7 +1941,6 @@ def regularize(
     dbs=0.1,
     rank=None,
     scalings=None,
-    on_few_samples="warn",
     verbose=None,
 ):
     """Regularize noise covariance matrix.
@@ -2003,10 +2003,6 @@ def regularize(
         See :func:`mne.compute_covariance`.
 
         .. versionadded:: 0.17
-    on_few_samples : str
-        Can be 'warn' (default), 'ignore', or 'raise' to control behavior when
-        there are fewer samples than channels, which can lead to inaccurate
-        covariance or rank estimates.
     %(verbose)s
 
     Returns
@@ -2061,7 +2057,7 @@ def regularize(
     else:
         regs.update(mag=mag, grad=grad)
     if rank != "full":
-        rank = _compute_rank(cov, rank, scalings, info, on_few_samples=on_few_samples)
+        rank = _compute_rank(cov, rank, scalings, info, on_few_samples="ignore")
 
     info_ch_names = info["ch_names"]
     ch_names_by_type = dict()
@@ -2122,7 +2118,7 @@ def regularize(
             # Here we could use proj_subspace=True, but this should not matter
             # since this is already in a loop over channel types
             _, eigvec, mask = _smart_eigh(
-                this_C, this_info, rank, on_few_samples=on_few_samples
+                this_C, this_info, rank, on_few_samples="ignore"
             )
             U = eigvec[mask].T
         this_C = np.dot(U.T, np.dot(this_C, U))
