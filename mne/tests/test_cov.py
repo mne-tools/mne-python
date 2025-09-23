@@ -829,9 +829,7 @@ def test_low_rank_cov(raw_epochs_events):
     with pytest.raises(ValueError, match="are dependent.*must equal"):
         regularize(emp_cov, epochs.info, rank=None, mag=0.1, grad=0.2)
     assert _cov_rank(emp_cov, epochs.info) == sss_proj_rank
-    reg_cov = regularize(
-        emp_cov, epochs.info, proj=True, rank="full", on_few_samples="ignore"
-    )
+    reg_cov = regularize(emp_cov, epochs.info, proj=True, rank="full")
     assert _cov_rank(reg_cov, epochs.info) == proj_rank
     with pytest.warns(RuntimeWarning, match="exceeds the theoretical"):
         _compute_rank_int(reg_cov, info=epochs.info)
@@ -843,14 +841,11 @@ def test_low_rank_cov(raw_epochs_events):
             proj=True,
             rank=None,
             verbose=True,
-            on_few_samples="ignore",
         )
     log = log.getvalue()
     assert "jointly" in log
     assert _cov_rank(reg_r_cov, epochs.info) == sss_proj_rank
-    reg_r_only_cov = regularize(
-        emp_cov, epochs.info, proj=False, rank=None, on_few_samples="ignore"
-    )
+    reg_r_only_cov = regularize(emp_cov, epochs.info, proj=False, rank=None)
     assert _cov_rank(reg_r_only_cov, epochs.info) == sss_proj_rank
     assert_allclose(reg_r_only_cov["data"], reg_r_cov["data"])
     del reg_r_only_cov, reg_r_cov
@@ -892,13 +887,9 @@ def test_low_rank_cov(raw_epochs_events):
         epochs, rank="full", verbose="error", on_few_samples="ignore"
     )
     assert _cov_rank(emp_cov, epochs.info) == rank
-    reg_cov = regularize(
-        emp_cov, epochs.info, proj=True, rank="full", on_few_samples="ignore"
-    )
+    reg_cov = regularize(emp_cov, epochs.info, proj=True, rank="full")
     assert _cov_rank(reg_cov, epochs.info) == rank
-    reg_r_cov = regularize(
-        emp_cov, epochs.info, proj=False, rank=None, on_few_samples="ignore"
-    )
+    reg_r_cov = regularize(emp_cov, epochs.info, proj=False, rank=None)
     assert _cov_rank(reg_r_cov, epochs.info) == rank
     dia_cov = compute_covariance(
         epochs,
@@ -937,7 +928,7 @@ def test_cov_ctf():
                 epochs, tmax=0.0, method=["empirical"], on_few_samples="ignore"
             )
         with pytest.warns(RuntimeWarning, match="orders of magnitude"):
-            prepare_noise_cov(noise_cov, raw.info, ch_names, on_few_samples="ignore")
+            prepare_noise_cov(noise_cov, raw.info, ch_names)
 
     raw.apply_gradient_compensation(0)
     epochs = Epochs(raw, events, None, -0.2, 0.2, preload=True)
@@ -949,7 +940,7 @@ def test_cov_ctf():
 
     # TODO This next call in principle should fail.
     with pytest.warns(RuntimeWarning, match="orders of magnitude"):
-        prepare_noise_cov(noise_cov, raw.info, ch_names, on_few_samples="ignore")
+        prepare_noise_cov(noise_cov, raw.info, ch_names)
 
     # make sure comps matrices was not removed from raw
     assert raw.info["comps"], "Comps matrices removed"
