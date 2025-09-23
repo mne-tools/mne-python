@@ -96,8 +96,9 @@ def test_compute_whitener(proj, pca):
 
     raw.info["bads"] = [raw.ch_names[0]]
     picks = pick_types(raw.info, meg=True, eeg=True, exclude=[])
-    cov2 = compute_raw_covariance(raw, picks=picks, on_few_samples="ignore")
-    cov3 = compute_raw_covariance(raw, picks=None, on_few_samples="ignore")
+    with pytest.warns(RuntimeWarning, match="Too few samples"):
+        cov2 = compute_raw_covariance(raw, picks=picks)
+        cov3 = compute_raw_covariance(raw, picks=None)
     assert_allclose(cov2["data"][1:, 1:], cov3["data"])
     W2, _, C2 = compute_whitener(
         cov2, raw.info, pca=pca, return_colorer=True, picks=picks, verbose="error"
@@ -507,10 +508,10 @@ def test_cov_estimation_with_triggers(rank, tmp_path):
     pytest.raises(ValueError, compute_covariance, epochs)
     pytest.raises(ValueError, compute_covariance, epochs, projs=None)
     # these should work, but won't be equal to above
-    cov = compute_covariance(
-        epochs, projs=epochs[0].info["projs"], on_few_samples="ignore"
-    )
-    cov = compute_covariance(epochs, projs=[], on_few_samples="ignore")
+    with pytest.warns(RuntimeWarning, match="Too few samples"):
+        cov = compute_covariance(epochs, projs=epochs[0].info["projs"])
+    with pytest.warns(RuntimeWarning, match="Too few samples"):
+        cov = compute_covariance(epochs, projs=[])
 
     # test new dict support
     epochs = Epochs(
@@ -523,8 +524,10 @@ def test_cov_estimation_with_triggers(rank, tmp_path):
         reject=reject,
         preload=True,
     )
-    compute_covariance(epochs, on_few_samples="ignore")
-    compute_covariance(epochs, projs=[], on_few_samples="ignore")
+    with pytest.warns(RuntimeWarning, match="Too few samples"):
+        compute_covariance(epochs)
+    with pytest.warns(RuntimeWarning, match="Too few samples"):
+        compute_covariance(epochs, projs=[])
     pytest.raises(TypeError, compute_covariance, epochs, projs="foo")
     pytest.raises(TypeError, compute_covariance, epochs, projs=["foo"])
 
@@ -835,13 +838,7 @@ def test_low_rank_cov(raw_epochs_events):
         _compute_rank_int(reg_cov, info=epochs.info)
     del reg_cov
     with catch_logging() as log:
-        reg_r_cov = regularize(
-            emp_cov,
-            epochs.info,
-            proj=True,
-            rank=None,
-            verbose=True,
-        )
+        reg_r_cov = regularize(emp_cov, epochs.info, proj=True, rank=None, verbose=True)
     log = log.getvalue()
     assert "jointly" in log
     assert _cov_rank(reg_r_cov, epochs.info) == sss_proj_rank
@@ -859,9 +856,8 @@ def test_low_rank_cov(raw_epochs_events):
         epochs_meg, method="oas", rank="full", verbose="error", on_few_samples="ignore"
     )
     assert _cov_rank(cov_full, epochs_meg.info) == 306
-    cov_dict = compute_covariance(
-        epochs_meg, method="oas", rank=dict(meg=306), on_few_samples="ignore"
-    )
+    with pytest.warns(RuntimeWarning, match="few samples"):
+        cov_dict = compute_covariance(epochs_meg, method="oas", rank=dict(meg=306))
     assert _cov_rank(cov_dict, epochs_meg.info) == 306
     assert_allclose(cov_full["data"], cov_dict["data"])
     cov_dict = compute_covariance(
@@ -892,11 +888,7 @@ def test_low_rank_cov(raw_epochs_events):
     reg_r_cov = regularize(emp_cov, epochs.info, proj=False, rank=None)
     assert _cov_rank(reg_r_cov, epochs.info) == rank
     dia_cov = compute_covariance(
-        epochs,
-        rank=None,
-        method="diagonal_fixed",
-        verbose="error",
-        on_few_samples="ignore",
+        epochs, rank=None, method="diagonal_fixed", verbose="error"
     )
     assert _cov_rank(dia_cov, epochs.info) == rank
     assert_allclose(dia_cov["data"], reg_cov["data"])
@@ -923,19 +915,15 @@ def test_cov_ctf():
     for comp in [0, 1]:
         raw.apply_gradient_compensation(comp)
         epochs = Epochs(raw, events, None, -0.2, 0.2, preload=True)
-        with _record_warnings():
-            noise_cov = compute_covariance(
-                epochs, tmax=0.0, method=["empirical"], on_few_samples="ignore"
-            )
+        with _record_warnings(), pytest.warns(RuntimeWarning, match="Too few samples"):
+            noise_cov = compute_covariance(epochs, tmax=0.0, method=["empirical"])
         with pytest.warns(RuntimeWarning, match="orders of magnitude"):
             prepare_noise_cov(noise_cov, raw.info, ch_names)
 
     raw.apply_gradient_compensation(0)
     epochs = Epochs(raw, events, None, -0.2, 0.2, preload=True)
-    with _record_warnings():
-        noise_cov = compute_covariance(
-            epochs, tmax=0.0, method=["empirical"], on_few_samples="ignore"
-        )
+    with _record_warnings(), pytest.warns(RuntimeWarning, match="Too few samples"):
+        noise_cov = compute_covariance(epochs, tmax=0.0, method=["empirical"])
     raw.apply_gradient_compensation(1)
 
     # TODO This next call in principle should fail.
