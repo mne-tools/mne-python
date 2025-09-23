@@ -25,6 +25,7 @@ data_path = sample.data_path()
 # the raw file containing the channel location + types
 sample_dir = data_path / "MEG" / "sample"
 raw_fname = sample_dir / "sample_audvis_raw.fif"
+
 # The paths to Freesurfer reconstructions
 subjects_dir = data_path / "subjects"
 subject = "sample"
@@ -35,9 +36,9 @@ subject = "sample"
 #
 # To compute a forward operator we need:
 #
-#    - a ``-trans.fif`` file that contains the coregistration info.
-#    - a source space
-#    - the :term:`BEM` surfaces
+# - a ``-trans.fif`` file that contains the coregistration info.
+# - a source space
+# - the :term:`BEM` surfaces
 
 # %%
 # Compute and visualize BEM surfaces

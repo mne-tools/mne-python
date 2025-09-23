@@ -244,16 +244,16 @@ stages:
           PYTHONIOENCODING: 'utf-8'
           AZURE_CI_WINDOWS: 'true'
           PYTHON_ARCH: 'x64'
-        timeoutInMinutes: 90
+        timeoutInMinutes: 95
         strategy:
           maxParallel: 4
           matrix:
             3.10 pip:
               TEST_MODE: 'pip'
               PYTHON_VERSION: '3.10'
-            3.12 pip pre:
+            3.13 pip pre:
               TEST_MODE: 'pip-pre'
-              PYTHON_VERSION: '3.12'
+              PYTHON_VERSION: '3.13'
         steps:
           - task: UsePythonVersion@0
             inputs:
