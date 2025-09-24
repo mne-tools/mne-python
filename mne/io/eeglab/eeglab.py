@@ -631,13 +631,14 @@ class EpochsEEGLAB(BaseEpochs):
                     event_type = "/".join([str(et) for et in ep.eventtype])
                     event_name.append(event_type)
                     # store latency of only first event
-                    event_latencies.append(events[ev_idx].latency)
+                    # -1 to account for Matlab 1-based indexing of samples
+                    event_latencies.append(events[ev_idx].latency - 1)
                     ev_idx += len(ep.eventtype)
                     warn_multiple_events = True
                 else:
                     event_type = ep.eventtype
                     event_name.append(ep.eventtype)
-                    event_latencies.append(events[ev_idx].latency)
+                    event_latencies.append(events[ev_idx].latency - 1)
                     ev_idx += 1
 
                 if event_type not in unique_ev:

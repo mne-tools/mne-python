@@ -35,6 +35,7 @@ from mne.utils import (
     _check_edfio_installed,
     _record_warnings,
     _resource_path,
+    check_version,
     object_diff,
 )
 
@@ -534,7 +535,7 @@ def test_export_raw_edf_does_not_fail_on_empty_header_fields(tmp_path):
     raw.export(tmp_path / "test.edf", add_ch_type=True)
 
 
-@pytest.mark.xfail(reason="eeglabio (usage?) bugs that should be fixed")
+@pytest.mark.skipif(not check_version("eeglabio", "0.1.2"), reason="fixed by 0.1.2")
 @pytest.mark.parametrize("preload", (True, False))
 def test_export_epochs_eeglab(tmp_path, preload):
     """Test saving an Epochs instance to EEGLAB's set format."""
