@@ -690,66 +690,45 @@ class BaseEpochs(
         self._check_consistency()
         self.set_annotations(annotations, on_missing="ignore")
 
-    def drop_bad_epochs(self, bad_epochs_per_channel: list = None):
-        """Drop bad epochs on a per-channel basis.
+    def drop_bad_epochs(self, reject_mask: np.ndarray = None):
+        """Drop bad epochs for individual channels.
 
         Parameters
         ----------
-        bad_epochs_per_channel : list of array-like | None
-            List of arrays containing epoch indices to mark as bad for each
-            channel. Length must equal number of channels. If None, no epochs
-            are marked as bad.
+        reject_mask : np.ndarray, shape (n_epochs, n_channels) | None
+            Boolean mask where True indicates a bad epoch for that channel.
+            If None, no epochs are marked as bad.
 
         Returns
         -------
         self : instance of Epochs
-            The epochs instance (modified in-place).
         """
-        if bad_epochs_per_channel is None:
+        if reject_mask is None:
             return self
 
         if not self.preload:
             raise ValueError("Epochs must be preloaded.")
 
-        # extract the data from the epochs object: shape (n_epochs, n_channels, n_times)
         data = self.get_data()
-        n_epochs, n_channels, n_times = data.shape
+        n_epochs, n_channels, _ = data.shape
 
-        # check list format
-        if len(bad_epochs_per_channel) != n_channels:
-            raise RuntimeError(
-                f"Length of bad_epochs_per_channel ({len(bad_epochs_per_channel)}) "
-                f"must equal number of channels ({n_channels})"
+        if reject_mask.shape != (n_epochs, n_channels):
+            raise ValueError(
+                f"reject_mask must have shape ({n_epochs}, {n_channels}), "
+                f"got {reject_mask.shape}"
             )
 
-        # store number of epochs per channel for nave updates
-        valid_epochs_per_channel = []
+        # Set bad epochs to NaN
+        data[reject_mask] = np.nan
 
-        # loop over bad epochs list
-        for ch_idx, bad_epochs in enumerate(bad_epochs_per_channel):
-            # Calculate valid epochs for this channel
-            total_epochs = n_epochs
-            n_bad = len(bad_epochs) if len(bad_epochs) > 0 else 0
-            n_valid = total_epochs - n_bad
-            valid_epochs_per_channel.append(n_valid)
-            if len(bad_epochs) > 0:  # check only channels with bad epochs
-                # convert to numpy array
-                bad_epochs = np.asarray(bad_epochs)
-                # check for valid epoch indices
-                if np.any(bad_epochs >= n_epochs) or np.any(bad_epochs < 0):
-                    raise ValueError(f"Invalid epoch indices for channel {ch_idx}")
-                # if valid index, set to NaN
-                data[bad_epochs, ch_idx, :] = np.nan
-
-        # Store attribute to track channel-specific nave
+        # Compute valid epochs per channel
+        valid_epochs_per_channel = np.sum(~reject_mask, axis=0)
         self.nave_per_channel = valid_epochs_per_channel
+        self.nave = int(valid_epochs_per_channel.min())
 
-        # For backward compatibility, set nave to minimum across channels
-        # (standard in MNE plots)
-        self.nave = min(valid_epochs_per_channel)
-
-        # update data in epochs class
+        # Update data
         self._data = data
+        return self
 
     def _check_consistency(self):
         """Check invariants of epochs object."""
