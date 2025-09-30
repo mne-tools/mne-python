@@ -710,7 +710,7 @@ class BaseEpochs(
             raise ValueError("Epochs must be preloaded.")
 
         data = self.get_data()
-        n_epochs, n_channels, _ = data.shape
+        n_epochs, n_channels, n_times = data.shape
 
         if reject_mask.shape != (n_epochs, n_channels):
             raise ValueError(
@@ -718,8 +718,16 @@ class BaseEpochs(
                 f"got {reject_mask.shape}"
             )
 
+        # mask needs to contain integer or boolean
+        if not np.issubdtype(reject_mask.dtype, np.bool_):
+            reject_mask = reject_mask.astype(bool)
+
         # Set bad epochs to NaN
-        data[reject_mask] = np.nan
+        # We need to add a dimension for time to the array
+        mask_3d = reject_mask[:, :, np.newaxis]  # shape: (n_epochs, n_channels, 1)
+
+        # Broadcast to (n_epochs, n_channels, n_times) and set to NaN
+        data[mask_3d.repeat(n_times, axis=2)] = np.nan
 
         # Compute valid epochs per channel
         valid_epochs_per_channel = np.sum(~reject_mask, axis=0)
