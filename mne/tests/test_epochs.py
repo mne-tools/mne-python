@@ -5280,27 +5280,34 @@ def test_drop_bad_epochs():
     # preload=False should raise an error
     raw, ev, _ = _get_data(preload=False)
     ep = Epochs(raw, ev, tmin=0, tmax=0.1, baseline=(0, 0))
-    bads = [[]] * ep.info["nchan"]
-    bads[0] = [1]  # set second epoch in first channel to NaN
-    with pytest.raises(ValueError, match="must be preloaded"):
-        ep.drop_bad_epochs(bads)
+    n_epochs, n_channels = len(ep), ep.info["nchan"]
 
-    # preload=True should work
+    # Reject mask: all epochs good
+    reject_mask = np.zeros((n_epochs, n_channels))
+    reject_mask[1, 0] = True  # second epoch, first channel → bad
+
+    with pytest.raises(ValueError, match="must be preloaded"):
+        ep.drop_bad_epochs(reject_mask)
+
+    # preload=True should now work
     ep.load_data()
-    ep.drop_bad_epochs(bads)
+    ep.drop_bad_epochs(reject_mask)
 
     # check nave attributes
-    n_epochs = len(ep)
-    # Channel 0 has 1 bad epoch, all others have 0
-    expected_per_channel = [n_epochs - 1] + [n_epochs] * (ep.info["nchan"] - 1)
-    assert ep.nave_per_channel == expected_per_channel
-    assert ep.nave == min(expected_per_channel)
+    expected_per_channel = np.sum(~reject_mask, axis=0)
+    np.testing.assert_array_equal(ep.nave_per_channel, expected_per_channel)
+    assert ep.nave == expected_per_channel.min()
 
     # Verify bad epoch is NaN
-    import numpy as np
-
     data = ep.get_data()
     assert np.all(np.isnan(data[1, 0, :]))
 
     # make sure averaging works (allowing for NaNs)
     _ = ep.average()
+
+    # test mask that contains floats
+    ep = Epochs(raw, ev, tmin=0, tmax=0.1, baseline=(0, 0), preload=True)
+    float_mask = reject_mask.astype(float)  # same mask, but float
+    ep.drop_bad_epochs(float_mask)
+    data = ep.get_data()
+    assert np.all(np.isnan(data[1, 0, :]))
