@@ -5280,14 +5280,23 @@ def test_drop_bad_epochs():
     # preload=False should raise an error
     raw, ev, _ = _get_data(preload=False)
     ep = Epochs(raw, ev, tmin=0, tmax=0.1, baseline=(0, 0))
+
+    # create a dummy reject mask with correct shape
+    n_epochs_dummy = len(ep.events)  # use events because len(ep) fails without preload
+    n_channels_dummy = ep.info["nchan"]
+    reject_mask_dummy = np.zeros((n_epochs_dummy, n_channels_dummy))
+
+    with pytest.raises(ValueError, match="must be preloaded"):
+        ep.drop_bad_epochs(reject_mask_dummy)
+
+    # preload=True should now work
+    ep.load_data()
     n_epochs, n_channels = len(ep), ep.info["nchan"]
 
     # Reject mask: all epochs good
-    reject_mask = np.zeros((n_epochs, n_channels))
+    # drop bad epochs handles boolean conversion
+    reject_mask = np.zeros((n_epochs, n_channels), dtype=bool)
     reject_mask[1, 0] = True  # second epoch, first channel → bad
-
-    with pytest.raises(ValueError, match="must be preloaded"):
-        ep.drop_bad_epochs(reject_mask)
 
     # preload=True should now work
     ep.load_data()
