@@ -200,7 +200,7 @@ def pytest_configure(config: pytest.Config):
     # matplotlib<->nilearn
     ignore:[\S\s]*You are using the 'agg' matplotlib backend[\S\s]*:UserWarning
     # matplotlib<->pyparsing
-    ignore:^'.*' argument is deprecated[ ,-]+use '.*'$:DeprecationWarning
+    ignore:'.*' argument is deprecated[ ,-]+use '.*':DeprecationWarning
     # dipy
     ignore:'where' used without 'out', expect .*:UserWarning
     """  # noqa: E501
