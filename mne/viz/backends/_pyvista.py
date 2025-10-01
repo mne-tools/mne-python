@@ -8,6 +8,7 @@ Actual implementation of _Renderer and _Projection classes.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+import os
 import platform
 import re
 import warnings
@@ -1331,6 +1332,8 @@ def _is_osmesa(plotter):
     # and a working Nouveau is: "Mesa 24.2.3-1ubuntu1 via NVE6"
     if platform.system() == "Darwin":  # segfaults on macOS sometimes
         return False
+    if os.getenv("MNE_IS_OSMESA", "").lower() == "true":
+        return True
     gpu_info_full = plotter.ren_win.ReportCapabilities()
     gpu_info = re.findall(
         "OpenGL (?:version|renderer) string:(.+)\n",

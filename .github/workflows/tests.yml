@@ -137,6 +137,9 @@ jobs:
           else
             sed -i "s/  - PySide6 .*/  - PySide6 =6.9.2/g" environment.yml
             sed -i "s/  - vtk .*/  - vtk =9.5.1/g" environment.yml
+            if [[ "$RUNNER_OS" == "Windows" ]]; then
+              echo "MNE_IS_OSMESA=true" | tee -a $GITHUB_ENV
+            fi
           fi
         if: matrix.kind == 'conda' || matrix.kind == 'mamba'
       - uses: mamba-org/setup-micromamba@v2
