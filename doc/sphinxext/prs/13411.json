@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "1d3501ece2a74057bdc788a804d0ebcc7033c954",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "tools/install_pre_requirements.sh": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}
