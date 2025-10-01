@@ -729,6 +729,13 @@ class BaseEpochs(
         # Broadcast to (n_epochs, n_channels, n_times) and set to NaN
         data[mask_3d.repeat(n_times, axis=2)] = np.nan
 
+        # store mask for updating nave
+        self.reject_mask = reject_mask
+
+        # store nave per channel for updating nave
+        valid_epochs_per_channel = np.sum(~reject_mask, axis=0)
+        self.nave_per_channel == valid_epochs_per_channel
+
         # Update data
         self._data = data
         return self
