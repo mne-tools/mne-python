@@ -18,7 +18,7 @@ if [ ! -z "$CONDA_ENV" ]; then
 		INSTALL_ARGS=""
 	fi
 	# TODO: Until a PyVista release supports VTK 9.5+
-	INSTALL_ARGS="$INSTALL_ARGS https://github.com/pyvista/pyvista/archive/main.zip"
+	INSTALL_ARGS="$INSTALL_ARGS https://github.com/pyvista/pyvista/archive/refs/heads/main.zip"
 	# If on minimal or old, just install testing deps
 	if [[ "${CONDA_ENV}" == "environment_"* ]]; then
 		INSTALL_KIND="test"
