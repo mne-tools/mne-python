@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "9ee6e52e49e669e32d12991d20b090ffc40f2b4b",
+  "authors": [
+    {
+      "n": "Christodoulos Kechris",
+      "e": "christodouloskech@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/sphinxext/related_software.py": {
+      "a": 1,
+      "d": 0
+    },
+    "tools/circleci_dependencies.sh": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}
