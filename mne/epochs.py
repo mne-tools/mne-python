@@ -1297,26 +1297,35 @@ class BaseEpochs(
     def _evoked_from_epoch_data(self, data, info, picks, n_events, kind, comment):
         """Create an evoked object from epoch data."""
         info = deepcopy(info)
-        # don't apply baseline correction; we'll set evoked.baseline manually
+
+        # Default behavior
+        nave = n_events
+        nave_per_channel = getattr(self, "nave_per_channel", None)
+
+        if nave_per_channel is not None:
+            nave = int(nave_per_channel.min())
+
         evoked = EvokedArray(
             data,
             info,
             tmin=self.times[0],
             comment=comment,
-            nave=n_events,
+            nave=nave,
             kind=kind,
             baseline=None,
         )
-        evoked.baseline = self.baseline
 
-        # the above constructor doesn't recreate the times object precisely
-        # due to numerical precision issues
+        # Restore precise times
         evoked._set_times(self.times.copy())
 
-        # pick channels
-        picks = _picks_to_idx(self.info, picks, "data_or_ica", ())
-        ch_names = [evoked.ch_names[p] for p in picks]
+        # Apply picks
+        picks_idx = _picks_to_idx(self.info, picks, "data_or_ica", ())
+        ch_names = [evoked.ch_names[p] for p in picks_idx]
         evoked.pick(ch_names)
+
+        # Attach per-channel nave for picked channels
+        if nave_per_channel is not None:
+            evoked.nave_per_channel = nave_per_channel[picks_idx]
 
         if len(evoked.info["ch_names"]) == 0:
             raise ValueError("No data channel found when averaging.")
