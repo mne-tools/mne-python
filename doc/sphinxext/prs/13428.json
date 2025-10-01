@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "3e29187ce3a2a63b4497dc83d30869ad33ecd1be",
+  "authors": [
+    {
+      "n": "Scott Huberty",
+      "e": null
+    },
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/13428.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/export/_eeglab.py": {
+      "a": 8,
+      "d": 0
+    },
+    "mne/export/tests/test_export.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/io/eeglab/eeglab.py": {
+      "a": 3,
+      "d": 2
+    }
+  }
+}
