@@ -56,9 +56,7 @@ for dep in deps:
     # `environment.yaml` breaks the solver. 6.9.1 has a bug, and 6.9.2 needs newer
     # C deps that mean we need to upgrade VTK etc.
     if package_name == "PySide6":
-        version_spec = "=6.9.0"
-    if package_name == "vtk":
-        version_spec = "=9.4.2"
+        version_spec = "!=6.9.1"
     # rstrip output line in case `version_spec` == ""
     line = f"  - {package_name} {version_spec}".rstrip()
     # use pip for packages needing e.g. `platform_system` or `python_version` triaging
