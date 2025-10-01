@@ -734,7 +734,7 @@ class BaseEpochs(
 
         # store nave per channel for updating nave
         valid_epochs_per_channel = np.sum(~reject_mask, axis=0)
-        self.nave_per_channel == valid_epochs_per_channel
+        self.nave_per_channel = valid_epochs_per_channel
 
         # Update data
         self._data = data
