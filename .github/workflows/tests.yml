@@ -128,6 +128,7 @@ jobs:
           # For some reason on Linux we get crashes
           if [[ "$RUNNER_OS" == "Linux" ]]; then
             sed -i "/numba/d" environment.yml
+          fi
           # And on Windows and macOS PySide6.9.0 segfaults
           if [[ "$RUNNER_OS" == "macOS" ]]; then
             sed -i "" "s/  - PySide6 .*/  - PySide6 =6.9.2/g" environment.yml
