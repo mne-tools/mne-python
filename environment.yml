@@ -62,3 +62,5 @@ dependencies:
   - trame-vuetify
   - vtk >=9.2
   - xlrd
+  - pip:
+      - pyobjc-framework-Cocoa >=5.2.0;platform_system=='Darwin'
