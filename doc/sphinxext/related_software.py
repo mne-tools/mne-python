@@ -33,7 +33,6 @@ PYPI_PACKAGES = {
     "meggie",
     "niseq",
     "sesameeg",
-    "invertmeeg",
 }
 
 # If it's not available on PyPI, add it to this dict:
