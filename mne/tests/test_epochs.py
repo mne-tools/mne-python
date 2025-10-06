@@ -5298,8 +5298,7 @@ def test_drop_bad_epochs():
     reject_mask = np.zeros((n_epochs, n_channels), dtype=bool)
     reject_mask[1, 0] = True  # second epoch, first channel → bad
 
-    # preload=True should now work
-    ep.load_data()
+    # drop bad epochs
     ep.drop_bad_epochs(reject_mask)
 
     # Verify bad epoch is NaN
@@ -5314,7 +5313,6 @@ def test_drop_bad_epochs():
     assert ev.nave == expected_per_channel.min()
 
     # test mask that contains floats
-    ep = Epochs(raw, ev, tmin=0, tmax=0.1, baseline=(0, 0), preload=True)
     float_mask = reject_mask.astype(float)  # same mask, but float
     ep.drop_bad_epochs(float_mask)
     data = ep.get_data()
