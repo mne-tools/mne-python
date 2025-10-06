@@ -702,6 +702,7 @@ class BaseEpochs(
         Returns
         -------
         self : instance of Epochs
+            Returns the modified epochs object.
         """
         if reject_mask is None:
             return self
