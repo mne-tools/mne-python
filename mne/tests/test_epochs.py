@@ -5302,17 +5302,16 @@ def test_drop_bad_epochs():
     ep.load_data()
     ep.drop_bad_epochs(reject_mask)
 
-    # check nave attributes
-    expected_per_channel = np.sum(~reject_mask, axis=0)
-    np.testing.assert_array_equal(ep.nave_per_channel, expected_per_channel)
-    assert ep.nave == expected_per_channel.min()
-
     # Verify bad epoch is NaN
     data = ep.get_data()
     assert np.all(np.isnan(data[1, 0, :]))
 
     # make sure averaging works (allowing for NaNs)
-    _ = ep.average()
+    ev = ep.average()
+
+    # check nave attribute of evoked data
+    expected_per_channel = np.sum(~reject_mask, axis=0)
+    assert ev.nave == expected_per_channel.min()
 
     # test mask that contains floats
     ep = Epochs(raw, ev, tmin=0, tmax=0.1, baseline=(0, 0), preload=True)
