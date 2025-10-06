@@ -6,4 +6,4 @@ nave and
 nave_per_channel attributes are updated 
 accordingly to reflect the number of valid epochs per channel.  
 
-Contributed by `Carina Fo`_.
+Contributed by `CarinaFo`_.
