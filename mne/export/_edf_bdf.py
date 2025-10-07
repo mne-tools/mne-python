@@ -7,11 +7,19 @@ from collections.abc import Callable
 
 import numpy as np
 
-from ..annotations import _sync_onset
-from ..utils import _check_edfio_installed, warn
+from mne.annotations import _sync_onset
+from mne.utils import _check_edfio_installed, warn
 
 _check_edfio_installed()
-from edfio import Bdf, BdfSignal, EdfAnnotation, Patient, Recording  # noqa: E402
+from edfio import (  # noqa: E402
+    Bdf,
+    BdfSignal,
+    Edf,
+    EdfAnnotation,
+    EdfSignal,
+    Patient,
+    Recording,
+)
 
 
 # copied from edfio (Apache license)
@@ -29,44 +37,61 @@ def _round_float_to_8_characters(
     return round_func(value * factor) / factor
 
 
-def _export_raw(fname, raw, physical_range, add_ch_type):
-    """Export Raw objects to BDF files.
+def _export_raw_edf_bdf(fname, raw, physical_range, add_ch_type, file_format):
+    """Export Raw objects to EDF/BDF files.
 
+    Parameters
+    ----------
+    fname : str
+        Output file name.
+    raw : instance of Raw
+        The raw instance to export.
+    physical_range : str or tuple
+        Physical range setting.
+    add_ch_type : bool
+        Whether to add channel type to signal label.
+    file_format : str
+        File format ("EDF" or "BDF").
+
+    Notes
+    -----
     TODO: if in future the Info object supports transducer or technician information,
     allow writing those here.
     """
-    # get voltage-based data in uV
     units = dict(
         eeg="uV", ecog="uV", seeg="uV", eog="uV", ecg="uV", emg="uV", bio="uV", dbs="uV"
     )
 
-    digital_min, digital_max = -8388607, 8388607
-    annotations = []
-
-    # load data first
-    raw.load_data()
+    if file_format == "EDF":
+        digital_min, digital_max = -32767, 32767  # 16-bit
+        signal_class = EdfSignal
+        writer_class = Edf
+    else:  # BDF
+        digital_min, digital_max = -8388607, 8388607  # 24-bit
+        signal_class = BdfSignal
+        writer_class = Bdf
 
     ch_types = np.array(raw.get_channel_types())
-    n_times = raw.n_times
 
-    # get the entire dataset in uV
+    # load and prepare data
+    raw.load_data()
     data = raw.get_data(units=units)
-
-    # Sampling frequency in BDF only supports integers, so to allow for float sampling
-    # rates from Raw, we adjust the output sampling rate for all channels and the data
-    # record duration.
     sfreq = raw.info["sfreq"]
+    pad_annotations = []
+
+    # Sampling frequency in EDF/BDF only supports integers, so to allow for float
+    # sampling rates from Raw, we adjust the output sampling rate for all channels and
+    # the data record duration.
     if float(sfreq).is_integer():
         out_sfreq = int(sfreq)
         data_record_duration = None
         # make non-integer second durations work
-        if (pad_width := int(np.ceil(n_times / sfreq) * sfreq - n_times)) > 0:
+        if (pad_width := int(np.ceil(raw.n_times / sfreq) * sfreq - raw.n_times)) > 0:
             warn(
-                "BDF format requires equal-length data blocks, so "
+                f"{file_format} format requires equal-length data blocks, so "
                 f"{pad_width / sfreq:.3g} seconds of edge values were appended to all "
                 "channels when writing the final block."
             )
-            orig_shape = data.shape
             data = np.pad(
                 data,
                 (
@@ -75,10 +100,8 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
                 ),
                 "edge",
             )
-            assert data.shape[0] == orig_shape[0]
-            assert data.shape[1] > orig_shape[1]
 
-            annotations.append(
+            pad_annotations.append(
                 EdfAnnotation(
                     raw.times[-1] + 1 / sfreq, pad_width / sfreq, "BAD_ACQ_SKIP"
                 )
@@ -89,41 +112,38 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
         )
         out_sfreq = np.floor(sfreq) / data_record_duration
         warn(
-            f"Data has a non-integer sampling rate of {sfreq}; writing to BDF format "
-            "may cause a small change to sample times."
+            f"Data has a non-integer sampling rate of {sfreq}; writing to "
+            f"{file_format} format may cause a small change to sample times."
         )
 
-    # get any filter information applied to the data
+    # extract filter information
     lowpass = raw.info["lowpass"]
     highpass = raw.info["highpass"]
     linefreq = raw.info["line_freq"]
     filter_str_info = f"HP:{highpass}Hz LP:{lowpass}Hz"
     if linefreq is not None:
-        filter_str_info += " N:{linefreq}Hz"
+        filter_str_info += f" N:{linefreq}Hz"
 
-    if physical_range == "auto":
-        # get max and min for each channel type data
-        ch_types_phys_max = dict()
-        ch_types_phys_min = dict()
-
+    # compute physical range for channels and clip data if needed
+    if physical_range == "auto":  # compute max and min for each channel type
+        range_per_channel = {}
         for _type in np.unique(ch_types):
             _picks = [n for n, t in zip(raw.ch_names, ch_types) if t == _type]
             _data = raw.get_data(units=units, picks=_picks)
-            ch_types_phys_max[_type] = _data.max()
-            ch_types_phys_min[_type] = _data.min()
+            range_per_channel[_type] = (_data.min(), _data.max())
+
     elif physical_range == "channelwise":
-        prange = None
-    else:
-        # get the physical min and max of the data in uV
-        # Physical ranges of the data in uV are usually set by the manufacturer and
+        range_per_channel = None
+
+    else:  # fixed physical range for all channels
+        # Physical ranges of the data in µV are usually set by the manufacturer and
         # electrode properties. In general, physical min and max should be the clipping
         # levels of the ADC input, and they should be the same for all channels. For
-        # example, Nihon Kohden uses ±3200 uV for all EEG channels (corresponding to the
+        # example, Nihon Kohden uses ±3200 µV for all EEG channels (corresponding to the
         # actual clipping levels of their input amplifiers & ADC). For a discussion,
         # see https://github.com/sccn/eeglab/issues/246
         pmin, pmax = physical_range[0], physical_range[1]
 
-        # check that physical min and max is not exceeded
         if data.max() > pmax:
             warn(
                 f"The maximum μV of the data {data.max()} is more than the physical max"
@@ -135,7 +155,9 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
                 f" passed in {pmin}."
             )
         data = np.clip(data, pmin, pmax)
-        prange = pmin, pmax
+        range_per_channel = (pmin, pmax)
+
+    # create signals
     signals = []
     for idx, ch in enumerate(raw.ch_names):
         ch_type = ch_types[idx]
@@ -143,31 +165,34 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
         if len(signal_label) > 16:
             raise RuntimeError(
                 f"Signal label for {ch} ({ch_type}) is longer than 16 characters, which"
-                " is not supported by the BDF standard. Please shorten the channel name"
-                "before exporting to BDF."
+                f" is not supported by the {file_format} standard. Please shorten the "
+                f"channel name before exporting to {file_format}."
             )
 
-        if physical_range == "auto":  # per channel type
-            pmin = ch_types_phys_min[ch_type]
-            pmax = ch_types_phys_max[ch_type]
+        if isinstance(range_per_channel, dict):  # per-channel-type ranges
+            pmin, pmax = range_per_channel[ch_type]
             if pmax == pmin:
                 pmax = pmin + 1
-            prange = pmin, pmax
+            ch_prange = pmin, pmax
+        elif isinstance(range_per_channel, tuple):  # same range for all channels
+            ch_prange = range_per_channel
+        else:  # None (computed per channel by edfio)
+            ch_prange = None
 
         signals.append(
-            BdfSignal(
+            signal_class(
                 data[idx],
                 out_sfreq,
                 label=signal_label,
                 transducer_type="",
                 physical_dimension="" if ch_type == "stim" else "uV",
-                physical_range=prange,
+                physical_range=ch_prange,
                 digital_range=(digital_min, digital_max),
                 prefiltering=filter_str_info,
             )
         )
 
-    # set patient info
+    # create patient info
     subj_info = raw.info.get("subject_info")
     if subj_info is not None:
         # get the full name of subject if available
@@ -197,7 +222,7 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
     else:
         patient = None
 
-    # set measurement date
+    # create recording info
     if (meas_date := raw.info["meas_date"]) is not None:
         startdate = dt.date(meas_date.year, meas_date.month, meas_date.day)
         starttime = dt.time(
@@ -214,9 +239,11 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
     else:
         recording = Recording(startdate=startdate)
 
+    # create annotations
+    annotations = []
     for desc, onset, duration, ch_names in zip(
         raw.annotations.description,
-        # subtract raw.first_time because BDF marks events starting from the first
+        # subtract raw.first_time because EDF/BDF marks events starting from the first
         # available data point and ignores raw.first_time
         _sync_onset(raw, raw.annotations.onset, inverse=False),
         raw.annotations.duration,
@@ -230,7 +257,10 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
         else:
             annotations.append(EdfAnnotation(onset, duration, desc))
 
-    Bdf(
+    annotations.extend(pad_annotations)
+
+    # write to file
+    writer_class(
         signals=signals,
         patient=patient,
         recording=recording,
@@ -238,3 +268,13 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
         data_record_duration=data_record_duration,
         annotations=annotations,
     ).write(fname)
+
+
+def _export_raw_edf(fname, raw, physical_range, add_ch_type):
+    """Export Raw object to EDF."""
+    _export_raw_edf_bdf(fname, raw, physical_range, add_ch_type, file_format="EDF")
+
+
+def _export_raw_bdf(fname, raw, physical_range, add_ch_type):
+    """Export Raw object to BDF."""
+    _export_raw_edf_bdf(fname, raw, physical_range, add_ch_type, file_format="BDF")
