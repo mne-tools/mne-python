@@ -101,6 +101,6 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
         if: startswith(matrix.kind, 'pip')
-      - run: pip install --pre --only-binary ":all:" --extra-index-url "https://wheels.vtk.org" vtk PySide6 https://github.com/larsoner/pyvista/archive/refs/heads/trim.zip
-        if: startswith(matrix.kind, 'pip')
+      - run: pip install --pre --only-binary ":all:" --extra-index-url "https://wheels.vtk.org" vtk PySide6 https://github.com/larsoner/pyvista/archive/refs/heads/main.zip
+      - run: ldd /opt/hostedtoolcache/Python/3.13.7/x64/lib/python3.13/site-packages/vtkmodules/vtkRenderingContext2D.cpython-313-x86_64-linux-gnu.so
       - run: LD_DEBUG=libs python -c "from PySide6.QtWidgets import QApplication; QApplication(); import pyvista; from vtkmodules.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor; print(QVTKRenderWindowInteractor())"
