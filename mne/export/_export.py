@@ -56,13 +56,14 @@ def export_raw(
     """
     fname = str(_check_fname(fname, overwrite=overwrite))
     supported_export_formats = {  # format : (extensions,)
-        "eeglab": ("set",),
-        "edf": ("edf",),
+        "bdf": ("bdf",),
         "brainvision": (
             "eeg",
             "vmrk",
             "vhdr",
         ),
+        "edf": ("edf",),
+        "eeglab": ("set",),
     }
     fmt = _infer_check_export_fmt(fmt, fname, supported_export_formats)
 
@@ -73,18 +74,23 @@ def export_raw(
             "them before exporting with raw.apply_proj()."
         )
 
-    if fmt == "eeglab":
-        from ._eeglab import _export_raw
+    match fmt:
+        case "eeglab":
+            from ._eeglab import _export_raw
 
-        _export_raw(fname, raw)
-    elif fmt == "edf":
-        from ._edf import _export_raw
+            _export_raw(fname, raw)
+        case "edf":
+            from ._edf import _export_raw
 
-        _export_raw(fname, raw, physical_range, add_ch_type)
-    elif fmt == "brainvision":
-        from ._brainvision import _export_raw
+            _export_raw(fname, raw, physical_range, add_ch_type)
+        case "brainvision":
+            from ._brainvision import _export_raw
 
-        _export_raw(fname, raw, overwrite)
+            _export_raw(fname, raw, overwrite)
+        case "bdf":
+            from ._bdf import _export_raw
+
+            _export_raw(fname, raw, physical_range, add_ch_type)
 
 
 @verbose
