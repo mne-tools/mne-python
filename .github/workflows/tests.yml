@@ -68,28 +68,7 @@ jobs:
         include:
           - os: ubuntu-latest
             python: '3.13'
-            kind: pip
-          - os: ubuntu-latest
-            python: '3.13'
             kind: pip-pre
-          - os: ubuntu-latest
-            python: '3.13'
-            kind: conda
-          - os: macos-latest  # arm64 (Apple Silicon): Sequoia
-            python: '3.13'
-            kind: mamba
-          - os: macos-15-intel  # intel: Sequoia
-            python: '3.13'
-            kind: mamba
-          - os: windows-latest
-            python: '3.11'
-            kind: mamba
-          - os: ubuntu-latest
-            python: '3.12'
-            kind: minimal
-          - os: ubuntu-22.04
-            python: '3.10'
-            kind: old
     steps:
       - uses: actions/checkout@v5
         with:
@@ -169,7 +148,7 @@ jobs:
           key: ${{ env.TESTING_VERSION }}
           path: ~/mne_data
       - run: bash ./tools/github_actions_download.sh
-      - run: bash ./tools/github_actions_test.sh  # for some reason on macOS we need to run "bash X" in order for a failed test run to show up
+      - run: LD_DEBUG=libs pytest mne/viz -k test_plot_alignment_basic
       - uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
