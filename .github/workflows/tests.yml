@@ -148,7 +148,7 @@ jobs:
           key: ${{ env.TESTING_VERSION }}
           path: ~/mne_data
       - run: bash ./tools/github_actions_download.sh
-      - run: LD_DEBUG=libs python -c "from PySide6.QtWidgets import QApplication; QApplication(); import pyvistaqt.rwi; print(pyvistaqt.rwi.QVTKRenderWindowInteractor())"
+      - run: LD_DEBUG=libs python -c "from PySide6.QtWidgets import QApplication; QApplication(); from vtkmodules.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor; print(QVTKRenderWindowInteractor())"
       - uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
