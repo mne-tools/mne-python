@@ -101,5 +101,6 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
         if: startswith(matrix.kind, 'pip')
-      - run: pip install --pre --only-binary ":all:" --extra-index-url "https://wheels.vtk.org" vtk PySide6 pyvista
-      - run: LD_DEBUG=libs python -c "from PySide6.QtWidgets import QApplication; QApplication(); from vtkmodules.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor; print(QVTKRenderWindowInteractor())"
+      - run: pip install --pre --only-binary ":all:" --extra-index-url "https://wheels.vtk.org" vtk PySide6 https://github.com/larsoner/pyvista/archive/refs/heads/trim.zip
+        if: startswith(matrix.kind, 'pip')
+      - run: LD_DEBUG=libs python -c "from PySide6.QtWidgets import QApplication; QApplication(); import pyvista; from vtkmodules.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor; print(QVTKRenderWindowInteractor())"
