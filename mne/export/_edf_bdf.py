@@ -124,26 +124,30 @@ def _export_raw_edf_bdf(fname, raw, physical_range, add_ch_type, file_format):
     if linefreq is not None:
         filter_str_info += f" N:{linefreq}Hz"
 
-    # compute physical range for channels and clip data if needed
-    if physical_range == "auto":  # compute max and min for each channel type
-        range_per_channel = {}
+    # compute physical range
+    if physical_range == "auto":
+        # get max and min for each channel type data
+        ch_types_phys_max = dict()
+        ch_types_phys_min = dict()
+
         for _type in np.unique(ch_types):
             _picks = [n for n, t in zip(raw.ch_names, ch_types) if t == _type]
             _data = raw.get_data(units=units, picks=_picks)
-            range_per_channel[_type] = (_data.min(), _data.max())
-
+            ch_types_phys_max[_type] = _data.max()
+            ch_types_phys_min[_type] = _data.min()
     elif physical_range == "channelwise":
-        range_per_channel = None
-
-    else:  # fixed physical range for all channels
-        # Physical ranges of the data in µV are usually set by the manufacturer and
+        prange = None
+    else:
+        # get the physical min and max of the data in uV
+        # Physical ranges of the data in uV are usually set by the manufacturer and
         # electrode properties. In general, physical min and max should be the clipping
         # levels of the ADC input, and they should be the same for all channels. For
-        # example, Nihon Kohden uses ±3200 µV for all EEG channels (corresponding to the
+        # example, Nihon Kohden uses ±3200 uV for all EEG channels (corresponding to the
         # actual clipping levels of their input amplifiers & ADC). For a discussion,
         # see https://github.com/sccn/eeglab/issues/246
         pmin, pmax = physical_range[0], physical_range[1]
 
+        # check that physical min and max is not exceeded
         if data.max() > pmax:
             warn(
                 f"The maximum μV of the data {data.max()} is more than the physical max"
@@ -155,7 +159,7 @@ def _export_raw_edf_bdf(fname, raw, physical_range, add_ch_type, file_format):
                 f" passed in {pmin}."
             )
         data = np.clip(data, pmin, pmax)
-        range_per_channel = (pmin, pmax)
+        prange = pmin, pmax
 
     # create signals
     signals = []
@@ -169,15 +173,12 @@ def _export_raw_edf_bdf(fname, raw, physical_range, add_ch_type, file_format):
                 f"channel name before exporting to {file_format}."
             )
 
-        if isinstance(range_per_channel, dict):  # per-channel-type ranges
-            pmin, pmax = range_per_channel[ch_type]
+        if physical_range == "auto":  # per channel type
+            pmin = ch_types_phys_min[ch_type]
+            pmax = ch_types_phys_max[ch_type]
             if pmax == pmin:
                 pmax = pmin + 1
-            ch_prange = pmin, pmax
-        elif isinstance(range_per_channel, tuple):  # same range for all channels
-            ch_prange = range_per_channel
-        else:  # None (computed per channel by edfio)
-            ch_prange = None
+            prange = pmin, pmax
 
         signals.append(
             signal_class(
@@ -186,7 +187,7 @@ def _export_raw_edf_bdf(fname, raw, physical_range, add_ch_type, file_format):
                 label=signal_label,
                 transducer_type="",
                 physical_dimension="" if ch_type == "stim" else "uV",
-                physical_range=ch_prange,
+                physical_range=prange,
                 digital_range=(digital_min, digital_max),
                 prefiltering=filter_str_info,
             )
