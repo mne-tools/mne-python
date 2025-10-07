@@ -38,7 +38,13 @@ echo "::endgroup::"
 # No Numba because it forces an old NumPy version
 
 echo "::group::VTK"
-python -m pip install $STD_ARGS --only-binary ":all:" --extra-index-url "https://wheels.vtk.org" vtk
+if [[ "$PLATFORM" == "Linux" ]]; then
+	# Segfault trying to load libx11.so.6
+	VTK_ARGS=""
+else
+	VTK_ARGS="--extra-index-url \"https://wheels.vtk.org\""
+fi
+python -m pip install $STD_ARGS --only-binary ":all:" vtk $VTK_ARGS
 python -c "import vtk"
 echo "::endgroup::"
 
