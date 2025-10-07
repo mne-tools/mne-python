@@ -11,7 +11,7 @@ from ..annotations import _sync_onset
 from ..utils import _check_edfio_installed, warn
 
 _check_edfio_installed()
-from edfio import Bdf, EdfAnnotation, BdfSignal, Patient, Recording  # noqa: E402
+from edfio import Bdf, BdfSignal, EdfAnnotation, Patient, Recording  # noqa: E402
 
 
 # copied from edfio (Apache license)
