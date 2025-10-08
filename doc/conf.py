@@ -852,7 +852,7 @@ html_theme_options = {
     ],
     "navbar_align": "left",
     "navbar_persistent": ["search-button"],
-    "footer_start": ["project_copyright"],
+    "footer_start": ["copyright"],
     "secondary_sidebar_items": ["page-toc", "edit-this-page"],
     "analytics": dict(google_analytics_id="G-5TBCPCRB6X"),
     "switcher": {
