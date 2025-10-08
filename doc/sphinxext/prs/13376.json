@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "befc4180c123e91d463ed7f737d703dc0090fce1",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/13376.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/viz/tests/test_utils.py": {
+      "a": 6,
+      "d": 0
+    },
+    "mne/viz/utils.py": {
+      "a": 2,
+      "d": 0
+    }
+  }
+}

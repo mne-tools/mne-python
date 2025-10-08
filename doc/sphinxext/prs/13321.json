@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "48f158893f0a64f8696f2c13e30121f7a90585e6",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".github/workflows/tests.yml": {
+      "a": 23,
+      "d": 0
+    },
+    "mne/inverse_sparse/tests/test_mxne_inverse.py": {
+      "a": 15,
+      "d": 2
+    },
+    "tools/github_actions_dependencies.sh": {
+      "a": 1,
+      "d": 4
+    }
+  }
+}

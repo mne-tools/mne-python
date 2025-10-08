@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "97fd038b2add2b5a08923d735af72e3688d6ebf0",
+  "authors": [
+    {
+      "n": "Thomas S. Binns",
+      "e": "t.s.binns@outlook.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/13375.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/channels/channels.py": {
+      "a": 8,
+      "d": 2
+    },
+    "mne/time_frequency/spectrum.py": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/time_frequency/tests/test_spectrum.py": {
+      "a": 29,
+      "d": 3
+    }
+  }
+}

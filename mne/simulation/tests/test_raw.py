@@ -28,7 +28,6 @@ from mne import (
     read_trans,
     setup_source_space,
     setup_volume_source_space,
-    transform_surface_to,
 )
 from mne._fiff.constants import FIFF
 from mne.bem import _surfaces_to_bem
@@ -223,10 +222,7 @@ def raw_data():
     src = read_source_spaces(src_fname)
     trans = read_trans(trans_fname)
     # Use fixed values from old sphere fit to reduce lines changed with fixed algorithm
-    sphere = make_sphere_model(
-        [-0.00413508, 0.01598787, 0.05175598],
-        0.09100286249131773,
-    )
+    sphere = make_sphere_model([0.0, 0.0, 0.03], 0.1)
     stc = _make_stc(raw, src)
     return raw, src, stc, trans, sphere
 
@@ -391,8 +387,7 @@ def test_simulate_raw_bem(raw_data):
     med_corr = np.median(np.diag(corr[:n_ch, -n_ch:]))
     assert med_corr > 0.65
     # do some round-trip localization
-    for s in src:
-        transform_surface_to(s, "head", trans)
+    src._transform_to("head", trans)
     locs = np.concatenate([s["rr"][s["vertno"]] for s in src])
     tmax = (len(locs) - 1) / raw.info["sfreq"]
     cov = make_ad_hoc_cov(raw.info)

@@ -226,6 +226,7 @@ def test_3d_warning(renderer_pyvistaqt, monkeypatch):
     bad = f"{pre}OpenGL 3.3 (Core Profile) Mesa 18.3.4 via llvmpipe (LLVM 7.0, 256 bits)\n"  # noqa
     monkeypatch.setattr(platform, "system", lambda: "Linux")  # avoid short-circuit
     monkeypatch.setattr(plotter.ren_win, "ReportCapabilities", lambda: good)
+    monkeypatch.setenv("MNE_IS_OSMESA", "false")
     assert _is_osmesa(plotter)
     monkeypatch.setattr(plotter.ren_win, "ReportCapabilities", lambda: bad)
     with pytest.warns(RuntimeWarning, match=r"18\.3\.4 is too old"):

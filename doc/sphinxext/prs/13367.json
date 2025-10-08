@@ -1,0 +1,51 @@
+{
+  "merge_commit_sha": "70fbbd891afabf562a7315749dcefe9139df0020",
+  "authors": [
+    {
+      "n": "dependabot[bot]",
+      "e": "49699333+dependabot[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".github/workflows/release.yml": {
+      "a": 1,
+      "d": 1
+    },
+    ".github/workflows/tests.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "azure-pipelines.yml": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/install/installers.rst": {
+      "a": 7,
+      "d": 7
+    },
+    "mne/_fiff/tests/test_meas_info.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/forward/tests/test_make_forward.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/tests/test_source_estimate.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/utils/tests/test_config.py": {
+      "a": 1,
+      "d": 0
+    },
+    "tools/install_pre_requirements.sh": {
+      "a": 3,
+      "d": 3
+    }
+  }
+}

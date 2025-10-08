@@ -78,7 +78,7 @@ fname_evoked_io = op.join(base_dir, "test-ave.fif")
 event_id, tmin, tmax = 1, -0.1, 1.0
 vv_layout = read_layout("Vectorview-all")
 
-collect_ignore = ["export/_brainvision.py", "export/_eeglab.py", "export/_edf.py"]
+collect_ignore = ["export/_brainvision.py", "export/_eeglab.py", "export/_edf_bdf.py"]
 
 
 def pytest_configure(config: pytest.Config):
@@ -180,7 +180,7 @@ def pytest_configure(config: pytest.Config):
     # pyvista <-> NumPy 2.0
     ignore:__array_wrap__ must accept context and return_scalar arguments.*:DeprecationWarning
     # pyvista <-> VTK dev
-    ignore:Call to deprecated method GetInputAsDataSet.*:DeprecationWarning
+    ignore:Call to deprecated method Get.*:DeprecationWarning
     # nibabel <-> NumPy 2.0
     ignore:__array__ implementation doesn't accept a copy.*:DeprecationWarning
     # quantities via neo
@@ -197,6 +197,13 @@ def pytest_configure(config: pytest.Config):
     # sklearn
     ignore:Python binding for RankQuantileOptions.*:RuntimeWarning
     ignore:.*The `disp` and `iprint` options of the L-BFGS-B solver.*:DeprecationWarning
+    # matplotlib<->nilearn
+    ignore:[\S\s]*You are using the 'agg' matplotlib backend[\S\s]*:UserWarning
+    # matplotlib<->pyparsing
+    ignore:^'.*' argument is deprecated, use '.*'$:DeprecationWarning
+    ignore:^'.*' deprecated - use '.*'$:DeprecationWarning
+    # dipy
+    ignore:'where' used without 'out', expect .*:UserWarning
     """  # noqa: E501
     for warning_line in warning_lines.split("\n"):
         warning_line = warning_line.strip()
@@ -670,6 +677,7 @@ def _check_skip_backend(name):
         assert name == "notebook", name
         pytest.importorskip("jupyter")
         pytest.importorskip("ipympl")
+        pytest.importorskip("ipyevents")
         pytest.importorskip("trame")
         pytest.importorskip("trame_vtk")
         pytest.importorskip("trame_vuetify")
@@ -729,14 +737,16 @@ def _evoked_cov_sphere(_evoked):
     evoked.pick(evoked.ch_names[::4])
     assert len(evoked.ch_names) == 77
     cov = mne.read_cov(fname_cov)
-    sphere = mne.make_sphere_model("auto", "auto", evoked.info)
+    sphere = mne.make_sphere_model(
+        (0.0, 0.0, 0.04), 0.1, relative_radii=(0.995, 0.997, 0.998, 1.0)
+    )
     return evoked, cov, sphere
 
 
 @pytest.fixture(scope="session")
 def _fwd_surf(_evoked_cov_sphere):
     """Compute a forward for a surface source space."""
-    evoked, cov, sphere = _evoked_cov_sphere
+    evoked, _, sphere = _evoked_cov_sphere
     src_surf = mne.read_source_spaces(fname_src)
     return mne.make_forward_solution(
         evoked.info, fname_trans, src_surf, sphere, mindist=5.0
@@ -747,7 +757,7 @@ def _fwd_surf(_evoked_cov_sphere):
 def _fwd_subvolume(_evoked_cov_sphere):
     """Compute a forward for a surface source space."""
     pytest.importorskip("nibabel")
-    evoked, cov, sphere = _evoked_cov_sphere
+    evoked, _, sphere = _evoked_cov_sphere
     volume_labels = ["Left-Cerebellum-Cortex", "right-Cerebellum-Cortex"]
     with pytest.raises(ValueError, match=r"Did you mean one of \['Right-Cere"):
         mne.setup_volume_source_space(
@@ -761,9 +771,12 @@ def _fwd_subvolume(_evoked_cov_sphere):
         subjects_dir=subjects_dir,
         add_interpolator=False,
     )
-    return mne.make_forward_solution(
-        evoked.info, fname_trans, src_vol, sphere, mindist=5.0
+    fwd = mne.make_forward_solution(
+        evoked.info, fname_trans, src_vol, sphere, mindist=1.0
     )
+    nsrc = sum(s["nuse"] for s in src_vol)
+    assert fwd["nsource"] == nsrc
+    return fwd
 
 
 @pytest.fixture

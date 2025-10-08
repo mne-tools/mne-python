@@ -371,7 +371,7 @@ def test_volume_source_space(tmp_path):
     src = setup_volume_source_space(pos=10, sphere=(0.0, 0.0, 0.0, 0.09))
     src_new = setup_volume_source_space(pos=10, sphere=sphere)
     _compare_source_spaces(src, src_new, mode="exact")
-    with pytest.raises(ValueError, match="sphere, if str"):
+    with pytest.raises(ValueError, match="Invalid value for the 'sphere' parameter"):
         setup_volume_source_space(sphere="foo")
     # Need a radius
     sphere = make_sphere_model(head_radius=None)

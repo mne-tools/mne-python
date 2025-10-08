@@ -11,6 +11,7 @@ __all__ = [
     "SSD",
     "Scaler",
     "SlidingEstimator",
+    "SpatialFilter",
     "TemporalFilter",
     "TimeDelayingRidge",
     "TimeFrequency",
@@ -21,6 +22,7 @@ __all__ = [
     "compute_ems",
     "cross_val_multiscore",
     "get_coef",
+    "get_spatial_filter_from_estimator",
 ]
 from .base import (
     BaseEstimator,
@@ -33,6 +35,7 @@ from .csp import CSP, SPoC
 from .ems import EMS, compute_ems
 from .receptive_field import ReceptiveField
 from .search_light import GeneralizingEstimator, SlidingEstimator
+from .spatial_filter import SpatialFilter, get_spatial_filter_from_estimator
 from .ssd import SSD
 from .time_delaying_ridge import TimeDelayingRidge
 from .time_frequency import TimeFrequency

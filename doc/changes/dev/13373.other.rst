@@ -1,0 +1,1 @@
+Changed "enhancement" to "new feature" in the contributing guide as enhancement is not a recognized change type, by `Shristi Baral`_

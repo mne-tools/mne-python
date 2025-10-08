@@ -62,7 +62,7 @@ from ..source_space._source_space import (
 )
 from ..surface import _normal_orth
 from ..time_frequency.tfr import _check_tfr_complex
-from ..transforms import _ensure_trans, transform_surface_to
+from ..transforms import _ensure_trans
 from ..utils import (
     _check_compensation_grade,
     _check_depth,
@@ -381,16 +381,7 @@ def read_inverse_operator(fname, *, verbose=None):
         inv["reginv"] = []
         inv["noisenorm"] = []  # These are the noise-normalization factors
         #
-        nuse = 0
-        for k in range(len(inv["src"])):
-            try:
-                inv["src"][k] = transform_surface_to(
-                    inv["src"][k], inv["coord_frame"], mri_head_t
-                )
-            except Exception as inst:
-                raise Exception(f"Could not transform source space ({inst})")
-
-            nuse += inv["src"][k]["nuse"]
+        inv["src"]._transform_to(inv["coord_frame"], mri_head_t)
 
         logger.info(
             "    Source spaces transformed to the inverse solution coordinate frame"

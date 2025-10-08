@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "f7cab3af285eb3e1e7afd3879d76b5539942a01e",
+  "authors": [
+    {
+      "n": "Genuster",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/13361.bugfix.rst": {
+      "a": 8,
+      "d": 0
+    },
+    "mne/decoding/base.py": {
+      "a": 68,
+      "d": 39
+    },
+    "mne/decoding/tests/test_base.py": {
+      "a": 26,
+      "d": 23
+    }
+  }
+}

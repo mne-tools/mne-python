@@ -2074,7 +2074,7 @@ class Coregistration:
         self._rpa_weight = rpa_weight
         self._hsp_weight = hsp_weight
         self._eeg_weight = eeg_weight
-        self._hsp_weight = hpi_weight
+        self._hpi_weight = hpi_weight
 
         # Initial guess (current state)
         est = self._parameters

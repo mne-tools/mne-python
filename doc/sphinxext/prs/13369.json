@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "f8d8295beef7527938163af42ee9fc896c08a8a4",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    ".github/FUNDING.yml": {
+      "a": 15,
+      "d": 0
+    }
+  }
+}

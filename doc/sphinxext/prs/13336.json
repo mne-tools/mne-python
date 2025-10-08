@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "00a84a3817ba1b4c679c6b6aeaf38b6983a5ea0c",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/sphinxext/mne_doc_utils.py": {
+      "a": 12,
+      "d": 1
+    },
+    "mne/gui/_coreg.py": {
+      "a": 3,
+      "d": 2
+    }
+  }
+}

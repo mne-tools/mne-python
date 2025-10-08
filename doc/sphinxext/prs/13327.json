@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "3ac330a4c5887b7c19a3f4dd961ed071ecebb54a",
+  "authors": [
+    {
+      "n": "Genuster",
+      "e": null
+    }
+  ],
+  "changes": {
+    "examples/decoding/ssd_spatial_filters.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/decoding/ssd.py": {
+      "a": 32,
+      "d": 1
+    },
+    "mne/decoding/tests/test_ssd.py": {
+      "a": 38,
+      "d": 0
+    }
+  }
+}

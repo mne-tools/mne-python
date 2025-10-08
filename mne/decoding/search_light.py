@@ -190,8 +190,11 @@ class SlidingEstimator(MetaEstimatorMixin, MNETransformerMixin, BaseEstimator):
         y_pred = np.concatenate(y_pred, axis=1)
         if orig_method == "transform":
             y_pred = y_pred.astype(X.dtype)
-        if orig_method == "predict_proba" and not is_nd:
-            y_pred = y_pred[:, 0, :]
+        elif (
+            orig_method in ("predict", "predict_proba", "decision_function")
+            and not is_nd
+        ):
+            y_pred = y_pred.squeeze()
         return y_pred
 
     def transform(self, X):
@@ -525,8 +528,11 @@ class GeneralizingEstimator(SlidingEstimator):
         y_pred = np.concatenate(y_pred, axis=2)
         if orig_method == "transform":
             y_pred = y_pred.astype(X.dtype)
-        if orig_method == "predict_proba" and not is_nd:
-            y_pred = y_pred[:, 0, 0, :]
+        if (
+            orig_method in ("predict", "predict_proba", "decision_function")
+            and not is_nd
+        ):
+            y_pred = y_pred.squeeze()
         return y_pred
 
     def transform(self, X):

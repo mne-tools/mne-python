@@ -1,0 +1,4 @@
+Implement :class:`mne.decoding.SpatialFilter` class returned by :func:`mne.decoding.get_spatial_filter_from_estimator` for
+visualisation of filters and patterns for :class:`mne.decoding.LinearModel` 
+and additionally eigenvalues for GED-based transformers such as 
+:class:`mne.decoding.XdawnTransformer`, :class:`mne.decoding.CSP`, by `Gennadiy Belonosov`_.

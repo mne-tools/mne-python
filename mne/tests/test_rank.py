@@ -104,6 +104,16 @@ def test_raw_rank_estimation(fname, ref_meg, scalings, tol_kind, tol):
     )
     assert got_rank == want_rank
 
+    raw_crop = raw.copy().crop(0, 0.1)
+    with pytest.warns(RuntimeWarning, match="Too few sample.*is less than n_chan.*"):
+        _estimate_rank_raw(
+            raw_crop,
+            scalings=scalings,
+            with_ref_meg=ref_meg,
+            tol=tol,
+            tol_kind=tol_kind,
+        )
+
 
 @pytest.mark.slowtest
 @pytest.mark.parametrize("meg", ("separate", "combined"))

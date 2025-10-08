@@ -1,0 +1,283 @@
+{
+  "merge_commit_sha": "0c106bc9c00a0f3136fdd8a55cc9852b2d8f8959",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".mailmap": {
+      "a": 7,
+      "d": 1
+    },
+    "CITATION.cff": {
+      "a": 57,
+      "d": 25
+    },
+    "SECURITY.md": {
+      "a": 3,
+      "d": 3
+    },
+    "codemeta.json": {
+      "a": 171,
+      "d": 69
+    },
+    "doc/_static/versions.json": {
+      "a": 7,
+      "d": 2
+    },
+    "doc/changes/devel.rst": {
+      "a": 0,
+      "d": 5
+    },
+    "doc/changes/devel/12071.newfeature.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/devel/12656.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/devel/12828.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/devel/12848.newfeature.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/devel/12910.newfeature.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/devel/13019.newfeature.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/devel/13028.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/devel/13037.newfeature.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/devel/13042.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/devel/13044.newfeature.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/devel/13048.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/devel/13054.newfeature.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/devel/13056.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/devel/13058.newfeature.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/devel/13062.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/devel/13063.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/devel/13065.bugfix.rst": {
+      "a": 0,
+      "d": 7
+    },
+    "doc/changes/devel/13067.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/devel/13069.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/devel/13070.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/devel/13080.apichange.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/devel/13080.newfeature.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/devel/13082.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/devel/13083.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/devel/13097.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/devel/13100.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/devel/13101.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/devel/13107.newfeature.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/devel/13113.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/devel/13123.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/devel/13144.newfeature.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/devel/13145.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/devel/13172.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/devel/13174.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/devel/13178.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/devel/13179.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/devel/13179.newfeature.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/devel/13183.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/devel/13184.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/devel/13184.newfeature.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/devel/13208.bugfix.rst.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/devel/13218.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/devel/13225.other.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/devel/13228.newfeature.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/devel/13232.newfeature.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/devel/13233.newfeature.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/devel/13234.newfeature.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/devel/13241.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/devel/13261.newfeature.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/devel/13268.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/devel/13276.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/devel/13277.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/devel/13280.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/devel/13284.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/devel/13286.bugfix.rst": {
+      "a": 0,
+      "d": 3
+    },
+    "doc/changes/devel/13293.newfeature.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/devel/13298.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/devel/13310.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/devel/13314.bugfix.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/changes/v1.10.rst": {
+      "a": 129,
+      "d": 0
+    },
+    "doc/development/whats_new.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/documentation/cited.rst": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

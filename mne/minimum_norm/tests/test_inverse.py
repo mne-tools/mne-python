@@ -543,7 +543,7 @@ def test_apply_inverse_sphere(evoked, tmp_path):
     with evoked.info._unlock():
         evoked.info["projs"] = []
     cov = make_ad_hoc_cov(evoked.info)
-    sphere = make_sphere_model("auto", "auto", evoked.info)
+    sphere = make_sphere_model((0.0, 0.0, 0.04), None)
     fwd = read_forward_solution(fname_fwd)
     vertices = [fwd["src"][0]["vertno"][::5], fwd["src"][1]["vertno"][::5]]
     stc = SourceEstimate(
@@ -1577,11 +1577,11 @@ def test_inverse_mixed_loose(mixed_fwd_cov_evoked):
     evoked_sim = EvokedArray(data, evoked.info)
     del data
     # dipole
-    sphere = mne.make_sphere_model("auto", "auto", evoked.info)
+    sphere = mne.make_sphere_model((0.0, 0.0, 0.05), 0.1)
     dip, _ = mne.fit_dipole(evoked_sim, cov, sphere)
     assert_allclose(dip.pos, want_pos, atol=1e-2)  # 1 cm
     ang = np.rad2deg(np.arccos(np.sum(dip.ori * want_ori, axis=1)))
-    assert_array_less(ang, 65)  # not great
+    assert_array_less(ang, 70)  # not great
     # MNE
     stc = apply_inverse(evoked_sim, inv_fixed, pick_ori="vector")
     stc, nn = stc.project("pca", fwd["src"])
@@ -1594,9 +1594,10 @@ def test_inverse_mixed_loose(mixed_fwd_cov_evoked):
     )
     got_ori = nn[idx]
     got_pos = fwd["source_rr"][idx]
-    assert_allclose(got_pos, want_pos, atol=1.1e-2)  # 1.1 cm
+    assert_allclose(got_pos, want_pos, atol=3e-2)  # 3 cm
     ang = np.rad2deg(np.arccos(np.sum(got_ori * want_ori, axis=1)))
-    assert_array_less(ang, 40)  # better than ECD + sphere
+    ang = np.minimum(ang, 180 - ang)  # don't care about direction
+    assert_array_less(ang, 50)  # better than ECD + sphere
     # MxNE
     stc = mne.inverse_sparse.mixed_norm(
         evoked,
@@ -1613,7 +1614,7 @@ def test_inverse_mixed_loose(mixed_fwd_cov_evoked):
     assert len(stc.data) == 2
     pos = np.concatenate([fwd["src"][ii]["rr"][v] for ii, v in enumerate(stc.vertices)])
     assert pos.shape == (2, 3)
-    assert_allclose(got_pos, want_pos, atol=1.1e-2)
+    assert_allclose(got_pos, want_pos, atol=3e-2)
 
 
 @testing.requires_testing_data

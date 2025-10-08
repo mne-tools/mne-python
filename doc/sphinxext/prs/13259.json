@@ -1,0 +1,91 @@
+{
+  "merge_commit_sha": "b4c2a3b6f725185ba6afe3b50aeab3449c343d27",
+  "authors": [
+    {
+      "n": "Genuster",
+      "e": null
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/_includes/ged.rst": {
+      "a": 107,
+      "d": 0
+    },
+    "doc/api/decoding.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/devel/13259.newfeature.rst": {
+      "a": 3,
+      "d": 0
+    },
+    "doc/documentation/implementation.rst": {
+      "a": 8,
+      "d": 0
+    },
+    "doc/references.bib": {
+      "a": 12,
+      "d": 0
+    },
+    "mne/decoding/__init__.pyi": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/decoding/_covs_ged.py": {
+      "a": 284,
+      "d": 0
+    },
+    "mne/decoding/_ged.py": {
+      "a": 131,
+      "d": 0
+    },
+    "mne/decoding/_mod_ged.py": {
+      "a": 132,
+      "d": 0
+    },
+    "mne/decoding/base.py": {
+      "a": 252,
+      "d": 1
+    },
+    "mne/decoding/csp.py": {
+      "a": 103,
+      "d": 227
+    },
+    "mne/decoding/ssd.py": {
+      "a": 52,
+      "d": 161
+    },
+    "mne/decoding/tests/test_ged.py": {
+      "a": 388,
+      "d": 0
+    },
+    "mne/decoding/tests/test_ssd.py": {
+      "a": 94,
+      "d": 9
+    },
+    "mne/decoding/xdawn.py": {
+      "a": 207,
+      "d": 0
+    },
+    "mne/preprocessing/tests/test_xdawn.py": {
+      "a": 20,
+      "d": 16
+    },
+    "mne/preprocessing/xdawn.py": {
+      "a": 4,
+      "d": 152
+    },
+    "mne/utils/docs.py": {
+      "a": 1,
+      "d": 0
+    },
+    "tools/vulture_allowlist.py": {
+      "a": 3,
+      "d": 0
+    }
+  }
+}

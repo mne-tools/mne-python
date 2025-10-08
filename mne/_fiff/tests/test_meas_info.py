@@ -953,6 +953,7 @@ def test_csr_csc(tmp_path):
     assert_array_equal(ct_read.toarray(), ct.toarray())
 
 
+@pytest.mark.slowtest
 @testing.requires_testing_data
 def test_check_compensation_consistency():
     """Test check picks compensation."""
@@ -1067,6 +1068,7 @@ def test_invalid_subject_birthday():
     assert "birthday" not in raw.info["subject_info"]
 
 
+@pytest.mark.slowtest
 @pytest.mark.parametrize(
     "fname",
     [

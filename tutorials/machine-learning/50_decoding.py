@@ -47,6 +47,7 @@ from mne.decoding import (
     Vectorizer,
     cross_val_multiscore,
     get_coef,
+    get_spatial_filter_from_estimator,
 )
 
 data_path = sample.data_path()
@@ -285,12 +286,16 @@ print(f"CSP: {100 * scores.mean():0.1f}%")
 # This is also called the mixing matrix. The example :ref:`ex-linear-patterns`
 # discusses the difference between patterns and filters.
 #
-# These can be plotted with:
+# These can be plotted for every spatial filter including CSP, XdawnTransformer,
+# SSD and SPoC:
 
-# Fit CSP on full data and plot
+# Fit CSP on full data, plot eigenvalues sorted based on mutual information,
+# and plot patterns and filters for the three components largest components.
 csp.fit(X, y)
-csp.plot_patterns(epochs.info)
-csp.plot_filters(epochs.info, scalings=1e-9)
+spf = get_spatial_filter_from_estimator(csp, info=epochs.info)
+spf.plot_scree()
+spf.plot_patterns(components=[0, 1, 2])
+spf.plot_filters(components=[0, 1, 2], scalings=1e-9)
 
 # %%
 # Decoding over time

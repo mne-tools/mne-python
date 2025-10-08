@@ -1,0 +1,67 @@
+{
+  "merge_commit_sha": "fa11865cd994405906ca270ba3e78144676beb3f",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "autofix-ci[bot]",
+      "e": "114827586+autofix-ci[bot]@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/13112.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/_fiff/meas_info.py": {
+      "a": 1,
+      "d": 3
+    },
+    "mne/chpi.py": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/forward/_make_forward.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/forward/forward.py": {
+      "a": 0,
+      "d": 3
+    },
+    "mne/forward/tests/test_make_forward.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/artemis123/artemis123.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/artemis123/tests/test_artemis123.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/egi/tests/test_egi.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/fiff/tests/test_raw_fiff.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/io/kit/kit.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/io/tests/test_raw.py": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/tests/test_chpi.py": {
+      "a": 2,
+      "d": 0
+    }
+  }
+}

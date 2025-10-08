@@ -166,9 +166,9 @@ def _get_montage_information(eeg, get_pos, *, montage_units):
         nodatchans = eeg.chaninfo["nodatchans"]
         types = nodatchans.get("type", [])
         descriptions = nodatchans.get("description", [])
-        xs = nodatchans.get("X", [])
-        ys = nodatchans.get("Y", [])
-        zs = nodatchans.get("Z", [])
+        xs = np.atleast_1d(nodatchans.get("X", []))
+        ys = np.atleast_1d(nodatchans.get("Y", []))
+        zs = np.atleast_1d(nodatchans.get("Z", []))
 
         for type_, description, x, y, z in zip(types, descriptions, xs, ys, zs):
             if type_ != "FID":
@@ -631,13 +631,14 @@ class EpochsEEGLAB(BaseEpochs):
                     event_type = "/".join([str(et) for et in ep.eventtype])
                     event_name.append(event_type)
                     # store latency of only first event
-                    event_latencies.append(events[ev_idx].latency)
+                    # -1 to account for Matlab 1-based indexing of samples
+                    event_latencies.append(events[ev_idx].latency - 1)
                     ev_idx += len(ep.eventtype)
                     warn_multiple_events = True
                 else:
                     event_type = ep.eventtype
                     event_name.append(ep.eventtype)
-                    event_latencies.append(events[ev_idx].latency)
+                    event_latencies.append(events[ev_idx].latency - 1)
                     ev_idx += 1
 
                 if event_type not in unique_ev:

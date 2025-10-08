@@ -76,6 +76,8 @@
 .. _Eduard Ort: https://github.com/eort
 .. _Emily Stephen: https://github.com/emilyps14
 .. _Emma Bailey: https://www.cbs.mpg.de/employees/bailey
+.. _Emmanuel Ferdman: https://github.com/emmanuel-ferdman
+.. _Emrecan Çelik: https://github.com/emrecncelik
 .. _Enrico Varano: https://github.com/enricovara/
 .. _Enzo Altamiranda: https://www.linkedin.com/in/enzoalt
 .. _Eric Larson: https://larsoner.com
@@ -111,7 +113,7 @@
 .. _Harrison Ritz: https://github.com/harrisonritz
 .. _Hasrat Ali Arzoo: https://github.com/hasrat17
 .. _Henrich Kolkhorst: https://github.com/hekolk
-.. _Hongjiang Ye: https://github.com/hongjiang-ye
+.. _Hongjiang Ye: https://github.com/ye-hongjiang
 .. _Hubert Banville: https://github.com/hubertjb
 .. _Hyonyoung Shin: https://github.com/mcvain
 .. _Hüseyin Orkun Elmas: https://github.com/HuseyinOrkun
@@ -230,6 +232,7 @@
 .. _Pablo Mainar: https://github.com/pablomainar
 .. _Pablo-Arias: https://github.com/Pablo-Arias
 .. _Padma Sundaram: https://www.nmr.mgh.harvard.edu/user/8071
+.. _Paul Anders: https://github.com/Mettphysik
 .. _Paul Pasler: https://github.com/ppasler
 .. _Paul Roujansky: https://github.com/paulroujansky
 .. _Pavel Navratil: https://github.com/navrpa13
@@ -307,6 +310,7 @@
 .. _T. Wang: https://github.com/twang5
 .. _Tal Linzen: https://tallinzen.net/
 .. _Teon Brooks: https://github.com/teonbrooks
+.. _Tharupahan Jayawardana: https://github.com/tharu-jwd
 .. _Thomas Binns: https://github.com/tsbinns
 .. _Thomas Hartmann: https://github.com/thht
 .. _Thomas Radman: https://github.com/tradman

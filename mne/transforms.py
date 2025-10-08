@@ -25,6 +25,7 @@ from .utils import (
     _ensure_int,
     _import_nibabel,
     _path_like,
+    _record_warnings,
     _require_version,
     _validate_type,
     check_fname,
@@ -1786,7 +1787,7 @@ def _compute_volume_registration(
 ):
     nib = _import_nibabel("SDR morph")
     _require_version("dipy", "SDR morph", "0.10.1")
-    with np.testing.suppress_warnings():
+    with _record_warnings():
         from dipy.align import (
             affine,
             affine_registration,
