@@ -62,14 +62,25 @@ td = datetime.now(tz=timezone.utc)
 
 # We need to triage which date type we use so that incremental builds work
 # (Sphinx looks at variable changes and rewrites all files if some change)
-copyright = (  # noqa: A001
-    f'2012–{td.year}, MNE Developers. Last updated <time datetime="{td.isoformat()}" class="localized">{td.strftime("%Y-%m-%d %H:%M %Z")}</time>\n'  # noqa: E501
+copyright = (
+    f'2012–{td.year}, MNE Developers. Last updated <time datetime="{td.isoformat()}" class="localized">{td.strftime("%Y-%m-%d %H:%M %Z")}</time>\n'
     """<script type="text/javascript">
 function formatTimestamp() {
     document.querySelectorAll("time.localized").forEach(el => {
         const d = new Date(el.getAttribute("datetime"));
-        const locale = Intl.DateTimeFormat().resolvedOptions().locale;
-        el.textContent = d.toLocaleString(locale);
+        const pad = n => String(Math.abs(n)).padStart(2, '0');
+        const year = d.getFullYear();
+        const month = pad(d.getMonth() + 1);
+        const day = pad(d.getDate());
+        const hour = pad(d.getHours());
+        const minute = pad(d.getMinutes());
+        const tzOffset = -d.getTimezoneOffset();
+        const sign = tzOffset >= 0 ? "+" : "-";
+        const absOffset = Math.abs(tzOffset);
+        const tzHour = pad(Math.floor(absOffset / 60));
+        const tzMin = pad(absOffset % 60);
+        const tzStr = `${sign}${tzHour}:${tzMin}`;
+        el.textContent = `${year}-${month}-${day} ${hour}:${minute} UTC${tzStr}`;
     });
 }
 if (document.readyState !== "loading") {
