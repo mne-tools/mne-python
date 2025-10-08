@@ -63,7 +63,7 @@ td = datetime.now(tz=timezone.utc)
 # We need to triage which date type we use so that incremental builds work
 # (Sphinx looks at variable changes and rewrites all files if some change)
 project_copyright = (
-    f'2012–{td.year}, MNE Developers. Last updated <time datetime="{td.isoformat()}" class="localized">{td.strftime("%Y-%m-%d %H:%M %Z")}</time>\n'  # noqa: E501
+    f'2012–{td.year}, MNE Developers. Last updated <time datetime="{td.isoformat()}" class="localized">{td.strftime("%Y-%m-%d %H:%M %Z")}</time>.\n'  # noqa: E501
     """<script type="text/javascript">
 function formatTimestamp() {
     document.querySelectorAll("time.localized").forEach(el => {
