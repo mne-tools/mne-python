@@ -62,8 +62,8 @@ td = datetime.now(tz=timezone.utc)
 
 # We need to triage which date type we use so that incremental builds work
 # (Sphinx looks at variable changes and rewrites all files if some change)
-copyright = (
-    f'2012–{td.year}, MNE Developers. Last updated <time datetime="{td.isoformat()}" class="localized">{td.strftime("%Y-%m-%d %H:%M %Z")}</time>\n'
+copyright_ = (
+    f'2012–{td.year}, MNE Developers. Last updated <time datetime="{td.isoformat()}" class="localized">{td.strftime("%Y-%m-%d %H:%M %Z")}</time>\n'  # noqa: E501
     """<script type="text/javascript">
 function formatTimestamp() {
     document.querySelectorAll("time.localized").forEach(el => {
@@ -91,7 +91,7 @@ if (document.readyState !== "loading") {
 </script>"""
 )
 if os.getenv("MNE_FULL_DATE", "false").lower() != "true":
-    copyright = f"2012–{td.year}, MNE Developers. Last updated locally."  # noqa: A001
+    copyright_ = f"2012–{td.year}, MNE Developers. Last updated locally."  # noqa: A001
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -852,7 +852,7 @@ html_theme_options = {
     ],
     "navbar_align": "left",
     "navbar_persistent": ["search-button"],
-    "footer_start": ["copyright"],
+    "footer_start": ["copyright_"],
     "secondary_sidebar_items": ["page-toc", "edit-this-page"],
     "analytics": dict(google_analytics_id="G-5TBCPCRB6X"),
     "switcher": {
