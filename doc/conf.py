@@ -68,7 +68,7 @@ project_copyright = (
 function formatTimestamp() {
     document.querySelectorAll("time.localized").forEach(el => {
         const d = new Date(el.getAttribute("datetime"));
-        el.textContent = d.toLocaleString("SE", { "timeZoneName": "short" });
+        el.textContent = d.toLocaleString("sv-SE", { "timeZoneName": "short" });
     });
 }
 if (document.readyState !== "loading") {
