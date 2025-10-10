@@ -5273,3 +5273,47 @@ def test_empty_error(method, epochs_empty):
         pytest.importorskip("pandas")
     with pytest.raises(RuntimeError, match="is empty."):
         getattr(epochs_empty.copy(), method[0])(**method[1])
+
+
+def test_drop_bad_epochs():
+    """Test channel-specific epoch rejection and nave attributes."""
+    # preload=False should raise an error
+    raw, ev, _ = _get_data(preload=False)
+    ep = Epochs(raw, ev, tmin=0, tmax=0.1, baseline=(0, 0))
+
+    # create a dummy reject mask with correct shape
+    n_epochs_dummy = len(ep.events)  # use events because len(ep) fails without preload
+    n_channels_dummy = ep.info["nchan"]
+    reject_mask_dummy = np.zeros((n_epochs_dummy, n_channels_dummy))
+
+    with pytest.raises(ValueError, match="must be preloaded"):
+        ep.drop_bad_epochs(reject_mask_dummy)
+
+    # preload=True should now work
+    ep.load_data()
+    n_epochs, n_channels = len(ep), ep.info["nchan"]
+
+    # Reject mask: all epochs good
+    # drop bad epochs handles boolean conversion
+    reject_mask = np.zeros((n_epochs, n_channels), dtype=bool)
+    reject_mask[1, 0] = True  # second epoch, first channel → bad
+
+    # drop bad epochs
+    ep.drop_bad_epochs(reject_mask)
+
+    # Verify bad epoch is NaN
+    data = ep.get_data()
+    assert np.all(np.isnan(data[1, 0, :]))
+
+    # make sure averaging works (allowing for NaNs)
+    ev = ep.average()
+
+    # check nave attribute of evoked data
+    expected_per_channel = np.sum(~reject_mask, axis=0)
+    assert ev.nave == expected_per_channel.min()
+
+    # test mask that contains floats
+    float_mask = reject_mask.astype(float)  # same mask, but float
+    ep.drop_bad_epochs(float_mask)
+    data = ep.get_data()
+    assert np.all(np.isnan(data[1, 0, :]))
