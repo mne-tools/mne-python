@@ -36,7 +36,8 @@ jobs:
       - restore_cache:
           keys:
             - source-cache
-      - checkout
+      - checkout:
+          method: full
       - run:
           name: Complete checkout
           command: |
