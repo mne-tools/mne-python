@@ -1324,9 +1324,13 @@ class BaseEpochs(
         ch_names = [evoked.ch_names[p] for p in picks_idx]
         evoked.pick(ch_names)
 
-        # Attach per-channel nave for picked channels
+        # Attach per-channel nave for picked channels only (match by ch names)
         if nave_per_channel is not None:
-            evoked.nave_per_channel = nave_per_channel[picks_idx]
+            # self is the epochs object, always has the same number of channels
+            nave_dict = dict(zip(self.info["ch_names"], nave_per_channel))
+            evoked.nave_per_channel = np.array(
+                [nave_dict[ch] for ch in evoked.ch_names if ch in nave_dict]
+            )
 
         if len(evoked.info["ch_names"]) == 0:
             raise ValueError("No data channel found when averaging.")
