@@ -256,6 +256,13 @@ class Evoked(
 
         picks = _picks_to_idx(self.info, picks, "all", exclude=())
 
+        # After channel selection, also reduce nave_per_channel if present
+        if hasattr(self, "nave_per_channel"):
+            nave_dict = dict(zip(self.ch_names, self.nave_per_channel))
+            self.nave_per_channel = np.array(
+                [nave_dict[ch] for ch in self.info["ch_names"] if ch in nave_dict]
+            )
+
         start, stop = self._handle_tmin_tmax(tmin, tmax)
 
         data = self.data[picks, start:stop]
