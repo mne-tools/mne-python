@@ -1,0 +1,1 @@
+Allowing the preload equals `False` in for the .set files  `Bruno Aristimunha`_
