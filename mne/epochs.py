@@ -702,7 +702,7 @@ class BaseEpochs(
         Returns
         -------
         self : instance of Epochs
-            Returns the modified epochs object.
+        Returns the modified epochs object with bad epochs marked as NaN.
         """
         if reject_mask is None:
             return self
@@ -1313,7 +1313,7 @@ class BaseEpochs(
             comment=comment,
             nave=nave,
             kind=kind,
-            baseline=None,
+            baseline=self.baseline,
         )
 
         # Restore precise times
