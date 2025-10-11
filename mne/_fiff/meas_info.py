@@ -1011,6 +1011,19 @@ def _check_types(x, *, info, name, types, cast=None):
     return x
 
 
+def _check_bday(birthday_input, *, info):
+    date = _check_types(
+        birthday_input,
+        info=info,
+        name='subject_info["birthday"]',
+        types=(datetime.date, None),
+    )
+    # test if we have a pd.Timestamp
+    if hasattr(date, "date"):
+        date = date.date()
+    return date
+
+
 class SubjectInfo(ValidatedDict):
     _attributes = {
         "id": partial(_check_types, name='subject_info["id"]', types=int),
@@ -1022,9 +1035,7 @@ class SubjectInfo(ValidatedDict):
         "middle_name": partial(
             _check_types, name='subject_info["middle_name"]', types=str
         ),
-        "birthday": partial(
-            _check_types, name='subject_info["birthday"]', types=(datetime.date, None)
-        ),
+        "birthday": partial(_check_bday),
         "sex": partial(_check_types, name='subject_info["sex"]', types=int),
         "hand": partial(_check_types, name='subject_info["hand"]', types=int),
         "weight": partial(
@@ -1173,10 +1184,10 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
 
     .. warning::
         The only entries that should be manually changed by the user are:
-        ``info['bads']``, ``info['description']``, ``info['device_info']``
-        ``info['dev_head_t']``, ``info['experimenter']``,
-        ``info['helium_info']``, ``info['line_freq']``, ``info['temp']``,
-        and ``info['subject_info']``.
+        ``info['bads']``, ``info['description']``, ``info['device_info']``,
+        ``info['proj_id']``, ``info['proj_name']``, ``info['dev_head_t']``,
+        ``info['experimenter']``, ``info['helium_info']``,
+        ``info['line_freq']``, ``info['temp']``, and ``info['subject_info']``.
 
         All other entries should be considered read-only, though they can be
         modified by various MNE-Python functions or methods (which have
@@ -1440,7 +1451,7 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
             Helium level (%) after position correction.
         orig_file_guid : str
             Original file GUID.
-        meas_date : datetime.datetime
+        meas_date : datetime.datetime | None
             The helium level meas date.
 
             .. versionchanged:: 1.8
@@ -1634,8 +1645,8 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
         "Please use methods inst.add_channels(), "
         "inst.drop_channels(), and inst.pick() instead.",
         "proc_history": "proc_history cannot be set directly.",
-        "proj_id": "proj_id cannot be set directly.",
-        "proj_name": "proj_name cannot be set directly.",
+        "proj_id": partial(_check_types, name="proj_id", types=(int, None), cast=int),
+        "proj_name": partial(_check_types, name="proj_name", types=(str, None)),
         "projs": "projs cannot be set directly. "
         "Please use methods inst.add_proj() and inst.del_proj() "
         "instead.",
@@ -2206,7 +2217,7 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
             description = tag.data
         elif kind == FIFF.FIFF_PROJ_ID:
             tag = read_tag(fid, pos)
-            proj_id = tag.data
+            proj_id = int(tag.data.item())
         elif kind == FIFF.FIFF_PROJ_NAME:
             tag = read_tag(fid, pos)
             proj_name = tag.data
@@ -2873,7 +2884,7 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
             write_float(fid, FIFF.FIFF_HELIUM_LEVEL, hi["helium_level"])
         if hi.get("orig_file_guid") is not None:
             write_string(fid, FIFF.FIFF_ORIG_FILE_GUID, hi["orig_file_guid"])
-        if hi["meas_date"] is not None:
+        if hi.get("meas_date", None) is not None:
             write_int(fid, FIFF.FIFF_MEAS_DATE, _dt_to_stamp(hi["meas_date"]))
         end_block(fid, FIFF.FIFFB_HELIUM)
         del hi
@@ -3009,6 +3020,21 @@ def _merge_info_values(infos, key, verbose=None):
             return values[int(idx)]
         elif len(idx) > 1:
             raise RuntimeError(msg)
+    # proj_id
+    elif _check_isinstance(values, (int, type(None)), all) and key == "proj_id":
+        unique_values = set(values)
+        if len(unique_values) != 1:
+            logger.info("Found multiple proj_ids, using the first one.")
+        return list(unique_values)[0]
+
+    elif key == "experimenter" or key == "proj_name":
+        if _check_isinstance(values, (str, type(None)), all):
+            unique_values = set(values)
+            unique_values.discard(None)
+            if len(unique_values) == 1:
+                return list(unique_values)[0]
+            else:
+                return None
     # other
     else:
         unique_values = set(values)
@@ -3018,7 +3044,7 @@ def _merge_info_values(infos, key, verbose=None):
             logger.info("Found multiple StringIO instances. Setting value to `None`")
             return None
         elif isinstance(list(unique_values)[0], str):
-            logger.info("Found multiple filenames. Setting value to `None`")
+            logger.info(f"Found multiple {key}. Setting value to `None`")
             return None
         else:
             raise RuntimeError(msg)
@@ -3498,7 +3524,7 @@ def anonymize_info(info, daysback=None, keep_his=False, verbose=None):
     info["description"] = default_desc
     with info._unlock():
         if info["proj_id"] is not None:
-            info["proj_id"] = np.zeros_like(info["proj_id"])
+            info["proj_id"] = 0
         if info["proj_name"] is not None:
             info["proj_name"] = default_str
         if info["utc_offset"] is not None:

@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "19264460d568eaa6243da44e68de9fbd662e03ff",
+  "authors": [
+    {
+      "n": "Harrison Ritz",
+      "e": "hritz@princeton.edu"
+    },
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/13280.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/preprocessing/maxwell.py": {
+      "a": 6,
+      "d": 1
+    }
+  }
+}

@@ -136,9 +136,11 @@ def equalize_channels(instances, copy=True, verbose=None):
         A list of MNE-Python objects that have the same channels defined in the
         same order.
 
-    Notes
-    -----
-    This function operates inplace.
+    See Also
+    --------
+    mne.channels.unify_bad_channels
+    mne.channels.rename_channels
+    mne.channels.combine_channels
     """
     from ..cov import Covariance
     from ..epochs import BaseEpochs
@@ -1147,6 +1149,12 @@ def rename_channels(info, mapping, allow_duplicates=False, *, verbose=None):
     %(info_not_none)s Note: modified in place.
     %(mapping_rename_channels_duplicates)s
     %(verbose)s
+
+    See Also
+    --------
+    mne.channels.equalize_channels
+    mne.channels.unify_bad_channels
+    mne.channels.combine_channels
     """
     _validate_type(info, Info, "info")
     info._check_consistency()
@@ -2053,6 +2061,12 @@ def combine_channels(
         An MNE-Python object of the same type as the input ``inst``, containing
         one virtual channel for each group in ``groups`` (and, if ``keep_stim``
         is ``True``, also containing stimulus channels).
+
+    See Also
+    --------
+    mne.channels.equalize_channels
+    mne.channels.rename_channels
+    mne.channels.unify_bad_channels
     """
     from ..epochs import BaseEpochs, EpochsArray
     from ..evoked import Evoked, EvokedArray

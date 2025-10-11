@@ -13,6 +13,7 @@ from surrounding non-oscillatory noise based on the covariance in the
 frequency band of interest and the noise covariance based on surrounding
 frequencies.
 """
+
 # Author: Denis A. Engemann <denis.engemann@gmail.com>
 #         Victoria Peterson <victoriapeterson09@gmail.com>
 # License: BSD-3-Clause
@@ -82,8 +83,8 @@ psd, freqs = mne.time_frequency.psd_array_welch(
     ssd_sources, sfreq=raw.info["sfreq"], n_fft=4096
 )
 
-# Get spec_ratio information (already sorted).
-# Note that this is not necessary if sort_by_spectral_ratio=True (default).
+# Get spec_ratio information (already sorted)
+# Note that this is not necessary if sort_by_spectral_ratio=True (default)
 spec_ratio, sorter = ssd.get_spectral_ratio(ssd_sources)
 
 # Plot spectral ratio (see Eq. 24 in Nikulin et al., 2011).
