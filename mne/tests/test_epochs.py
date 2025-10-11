@@ -5313,7 +5313,8 @@ def test_drop_bad_epochs():
     assert ev.nave == expected_per_channel.min()
     # evoked must now have nave_per_channel
     assert hasattr(ev, "nave_per_channel")
-    assert len(ev.nave_per_channel) == n_channels_dummy
+    # channel length must match (averaging drops non data channels)
+    assert len(ev.nave_per_channel) == len(ev.ch_names)
 
     # pick subset of channels
     ch_subset = ev.ch_names[:5]
