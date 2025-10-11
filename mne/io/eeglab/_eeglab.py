@@ -80,6 +80,12 @@ def _readmat(fname, uint16_codec=None, preload=False):
                 fname, squeeze_me=True, mat_dtype=False, uint16_codec=uint16_codec
             )
         else:
+            # the files in eeglab are always the same field names
+            # the the fields were taken from the eeglab sample reference 
+            # avaliable at the eeglab github: 
+            # https://github.com/sccn/eeglab/blob/develop/sample_data/eeglab_data.set
+            # The sample reference is the big reference for the field names
+            # in eeglab files, and what is used in the eeglab tests.
             info_fields = [
                 "setname",
                 "filename",
