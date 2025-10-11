@@ -4,6 +4,7 @@
 
 import os
 import shutil
+import time
 from copy import deepcopy
 
 import numpy as np
@@ -103,6 +104,55 @@ def test_io_set_raw(fname):
         assert len(raw0.annotations) == 154
         assert set(raw0.annotations.description) == {"rt", "square"}
         assert_array_equal(raw0.annotations.duration, 0.0)
+
+
+@testing.requires_testing_data
+def test_io_set_preload_false_uses_lazy_loading():
+    """Ensure reading .set files without preload keeps data out of memory."""
+    raw_lazy = read_raw_eeglab(raw_fname_onefile_mat, preload=False)
+    raw_eager = read_raw_eeglab(raw_fname_onefile_mat, preload=True)
+
+    try:
+        assert not raw_lazy.preload
+        assert raw_lazy._data is None
+        assert raw_lazy.n_times == raw_eager.n_times
+        assert raw_lazy.info["nchan"] == raw_eager.info["nchan"]
+
+        lazy_slice = raw_lazy[:2, :10][0]
+        assert lazy_slice.shape == (2, 10)
+
+        # on-demand reads must not flip the preload flag or populate _data
+        assert not raw_lazy.preload
+        assert raw_lazy._data is None
+        assert raw_eager._data.nbytes > lazy_slice.nbytes
+    finally:
+        raw_lazy.close()
+        raw_eager.close()
+
+
+@testing.requires_testing_data
+def test_io_set_preload_false_is_faster(monkeypatch):
+    """Using preload=False should skip the expensive data read branch."""
+    from mne.io.eeglab import _eeglab as eeglab_mod
+
+    real_loadmat = eeglab_mod.loadmat
+
+    def delayed_loadmat(*args, **kwargs):
+        variable_names = kwargs.get("variable_names")
+        if variable_names is None or variable_names == ["data"]:
+            time.sleep(0.05)
+        return real_loadmat(*args, **kwargs)
+
+    monkeypatch.setattr(eeglab_mod, "loadmat", delayed_loadmat)
+
+    durations = {}
+    for preload in (False, True):
+        start = time.perf_counter()
+        raw = read_raw_eeglab(raw_fname_mat, preload=preload)
+        durations[preload] = time.perf_counter() - start
+        raw.close()
+
+    assert durations[True] - durations[False] > 0.04
 
 
 @testing.requires_testing_data
