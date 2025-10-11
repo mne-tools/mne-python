@@ -8,6 +8,7 @@ Actual implementation of _Renderer and _Projection classes.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+import os
 import platform
 import re
 import warnings
@@ -594,7 +595,7 @@ class _PyVistaRenderer(_AbstractRenderer):
                 color = None
             else:
                 scalars = None
-            tube = line.tube(radius, n_sides=self.tube_n_sides)
+            tube = line.tube(radius=radius, n_sides=self.tube_n_sides)
             actor = _add_mesh(
                 plotter=self.plotter,
                 mesh=tube,
@@ -889,9 +890,9 @@ class _PyVistaRenderer(_AbstractRenderer):
         add_obs(vtkCommand.RenderEvent, on_mouse_move)
         add_obs(vtkCommand.LeftButtonPressEvent, on_button_press)
         add_obs(vtkCommand.EndInteractionEvent, on_button_release)
-        self.plotter.picker = vtkCellPicker()
-        self.plotter.picker.AddObserver(vtkCommand.EndPickEvent, on_pick)
-        self.plotter.picker.SetVolumeOpacityIsovalue(0.0)
+        self._picker = vtkCellPicker()
+        self._picker.AddObserver(vtkCommand.EndPickEvent, on_pick)
+        self._picker.SetVolumeOpacityIsovalue(0.0)
 
     def _set_colormap_range(
         self, actor, ctable, scalar_bar, rng=None, background_color=None
@@ -1331,6 +1332,8 @@ def _is_osmesa(plotter):
     # and a working Nouveau is: "Mesa 24.2.3-1ubuntu1 via NVE6"
     if platform.system() == "Darwin":  # segfaults on macOS sometimes
         return False
+    if os.getenv("MNE_IS_OSMESA", "").lower() == "true":
+        return True
     gpu_info_full = plotter.ren_win.ReportCapabilities()
     gpu_info = re.findall(
         "OpenGL (?:version|renderer) string:(.+)\n",

@@ -37,5 +37,5 @@ MNE-Python Homepage
    Install <install/index>
    Documentation <documentation/index>
    API Reference <api/python_reference>
-   Get help <help/index>
+   Get Help <help/index>
    Development <development/index>

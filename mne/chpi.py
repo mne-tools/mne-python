@@ -38,6 +38,7 @@ from ._fiff.pick import (
     pick_types,
 )
 from ._fiff.proj import Projection, setup_proj
+from .bem import ConductorModel
 from .channels.channels import _get_meg_system
 from .cov import compute_whitener, make_ad_hoc_cov
 from .dipole import _make_guesses
@@ -55,6 +56,7 @@ from .preprocessing.maxwell import (
     _sss_basis,
 )
 from .transforms import (
+    Transform,
     _angle_between_quats,
     _fit_matched_points,
     _quat_to_affine,
@@ -99,8 +101,9 @@ def read_head_pos(fname):
 
     Returns
     -------
-    pos : array, shape (N, 10)
+    quats : array, shape (n_pos, 10)
         The position and quaternion parameters from cHPI fitting.
+        See :func:`mne.chpi.compute_head_pos` for details on the columns.
 
     See Also
     --------
@@ -126,8 +129,9 @@ def write_head_pos(fname, pos):
     ----------
     fname : path-like
         The filename to write.
-    pos : array, shape (N, 10)
+    pos : array, shape (n_pos, 10)
         The position and quaternion parameters from cHPI fitting.
+        See :func:`mne.chpi.compute_head_pos` for details on the columns.
 
     See Also
     --------
@@ -141,7 +145,9 @@ def write_head_pos(fname, pos):
     _check_fname(fname, overwrite=True)
     pos = np.array(pos, np.float64)
     if pos.ndim != 2 or pos.shape[1] != 10:
-        raise ValueError("pos must be a 2D array of shape (N, 10)")
+        raise ValueError(
+            f"pos must be a 2D array of shape (N, 10), got shape {pos.shape}"
+        )
     with open(fname, "wb") as fid:
         fid.write(
             " Time       q1       q2       q3       q4       q5       "
@@ -157,16 +163,17 @@ def head_pos_to_trans_rot_t(quats):
 
     Parameters
     ----------
-    quats : ndarray, shape (N, 10)
+    quats : ndarray, shape (n_pos, 10)
         MaxFilter-formatted position and quaternion parameters.
+        See :func:`mne.chpi.read_head_pos` for details on the columns.
 
     Returns
     -------
-    translation : ndarray, shape (N, 3)
+    translation : ndarray, shape (n_pos, 3)
         Translations at each time point.
-    rotation : ndarray, shape (N, 3, 3)
+    rotation : ndarray, shape (n_pos, 3, 3)
         Rotations at each time point.
-    t : ndarray, shape (N,)
+    t : ndarray, shape (n_pos,)
         The time points.
 
     See Also
@@ -929,7 +936,8 @@ def compute_head_pos(
     Returns
     -------
     quats : ndarray, shape (n_pos, 10)
-        The ``[t, q1, q2, q3, x, y, z, gof, err, v]`` for each fit.
+        MaxFilter-formatted head position parameters. The columns correspond to
+        ``[t, q1, q2, q3, x, y, z, gof, err, v]`` for each time point.
 
     See Also
     --------
@@ -1268,6 +1276,7 @@ def compute_chpi_locs(
     t_step_max=1.0,
     too_close="raise",
     adjust_dig=False,
+    *,
     verbose=None,
 ):
     """Compute locations of each cHPI coils over time.
@@ -1317,6 +1326,7 @@ def compute_chpi_locs(
     _check_option("too_close", too_close, ["raise", "warning", "info"])
     _check_chpi_param(chpi_amplitudes, "chpi_amplitudes")
     _validate_type(info, Info, "info")
+    _validate_type(info["dev_head_t"], Transform, "info['dev_head_t']")
     sin_fits = chpi_amplitudes  # use the old name below
     del chpi_amplitudes
     proj = sin_fits["proj"]
@@ -1334,9 +1344,8 @@ def compute_chpi_locs(
 
     # Make some location guesses (1 cm grid)
     R = np.linalg.norm(meg_coils[0], axis=1).min()
-    guesses = _make_guesses(
-        dict(R=R, r0=np.zeros(3)), 0.01, 0.0, 0.005, verbose=safe_false
-    )[0]["rr"]
+    sphere = ConductorModel(layers=[dict(rad=R)], r0=np.zeros(3), is_sphere=True)
+    guesses = _make_guesses(sphere, 0.01, 0.0, 0.005, verbose=safe_false)[0]["rr"]
     logger.info(
         f"Computing {len(guesses)} HPI location guesses "
         f"(1 cm grid in a {R * 100:.1f} cm sphere)"

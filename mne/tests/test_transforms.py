@@ -103,11 +103,16 @@ def test_get_trans():
 def test_io_trans(tmp_path):
     """Test reading and writing of trans files."""
     os.mkdir(tmp_path / "sample")
-    pytest.raises(RuntimeError, _find_trans, "sample", subjects_dir=tmp_path)
+    pytest.raises(
+        RuntimeError, _find_trans, trans="auto", subject="sample", subjects_dir=tmp_path
+    )
     trans0 = read_trans(fname)
     fname1 = tmp_path / "sample" / "test-trans.fif"
     trans0.save(fname1)
-    assert fname1 == _find_trans("sample", subjects_dir=tmp_path)
+    trans1, got_fname = _find_trans(
+        trans="auto", subject="sample", subjects_dir=tmp_path
+    )
+    assert fname1 == got_fname
     trans1 = read_trans(fname1)
 
     # check all properties

@@ -120,8 +120,11 @@ def equalize_channels(instances, copy=True, verbose=None):
     ----------
     instances : list
         A list of MNE-Python objects to equalize the channels for. Objects can
-        be of type Raw, Epochs, Evoked, AverageTFR, Forward, Covariance,
+        be of type Raw, Epochs, Evoked, Spectrum, AverageTFR, Forward, Covariance,
         CrossSpectralDensity or Info.
+
+        .. versionchanged:: 1.11
+            Added support for :class:`mne.time_frequency.Spectrum` objects.
     copy : bool
         When dropping and/or re-ordering channels, an object will be copied
         when this parameter is set to ``True``. When set to ``False`` (the
@@ -136,9 +139,11 @@ def equalize_channels(instances, copy=True, verbose=None):
         A list of MNE-Python objects that have the same channels defined in the
         same order.
 
-    Notes
-    -----
-    This function operates inplace.
+    See Also
+    --------
+    mne.channels.unify_bad_channels
+    mne.channels.rename_channels
+    mne.channels.combine_channels
     """
     from ..cov import Covariance
     from ..epochs import BaseEpochs
@@ -146,6 +151,7 @@ def equalize_channels(instances, copy=True, verbose=None):
     from ..forward import Forward
     from ..io import BaseRaw
     from ..time_frequency import BaseTFR, CrossSpectralDensity
+    from ..time_frequency.spectrum import BaseSpectrum
 
     # Instances need to have a `ch_names` attribute and a `pick_channels`
     # method that supports `ordered=True`.
@@ -153,6 +159,7 @@ def equalize_channels(instances, copy=True, verbose=None):
         BaseRaw,
         BaseEpochs,
         Evoked,
+        BaseSpectrum,
         BaseTFR,
         Forward,
         Covariance,
@@ -160,7 +167,8 @@ def equalize_channels(instances, copy=True, verbose=None):
         Info,
     )
     allowed_types_str = (
-        "Raw, Epochs, Evoked, TFR, Forward, Covariance, CrossSpectralDensity or Info"
+        "Raw, Epochs, Evoked, Spectrum, TFR, Forward, Covariance, CrossSpectralDensity "
+        "or Info"
     )
     for inst in instances:
         _validate_type(
@@ -926,7 +934,7 @@ class InterpolationMixin:
             origin = _check_origin(origin, self.info)
         for ch_type, interp in method.items():
             if interp == "nan":
-                _interpolate_bads_nan(self, ch_type, exclude=exclude)
+                _interpolate_bads_nan(self, ch_type=ch_type, exclude=exclude)
         if method.get("eeg", "") == "spline":
             _interpolate_bads_eeg(self, origin=origin, exclude=exclude)
         meg_mne = method.get("meg", "") == "MNE"
@@ -1126,6 +1134,12 @@ def rename_channels(info, mapping, allow_duplicates=False, *, verbose=None):
     %(info_not_none)s Note: modified in place.
     %(mapping_rename_channels_duplicates)s
     %(verbose)s
+
+    See Also
+    --------
+    mne.channels.equalize_channels
+    mne.channels.unify_bad_channels
+    mne.channels.combine_channels
     """
     _validate_type(info, Info, "info")
     info._check_consistency()
@@ -2032,6 +2046,12 @@ def combine_channels(
         An MNE-Python object of the same type as the input ``inst``, containing
         one virtual channel for each group in ``groups`` (and, if ``keep_stim``
         is ``True``, also containing stimulus channels).
+
+    See Also
+    --------
+    mne.channels.equalize_channels
+    mne.channels.rename_channels
+    mne.channels.unify_bad_channels
     """
     from ..epochs import BaseEpochs, EpochsArray
     from ..evoked import Evoked, EvokedArray

@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "6ac3c2dc2619270b63c85403579baa98b9085c62",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/install/mne_tools_suite.rst": {
+      "a": 0,
+      "d": 20
+    },
+    "doc/sphinxext/related_software.py": {
+      "a": 1,
+      "d": 8
+    },
+    "tools/circleci_dependencies.sh": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}
