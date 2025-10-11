@@ -1,1 +1,1 @@
-Allowing the preload equals `False` in for the .set files  `Bruno Aristimunha`_
+Support for preloading=False when reading .set files.  `Bruno Aristimunha`_
