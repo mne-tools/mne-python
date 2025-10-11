@@ -41,7 +41,8 @@ def _check_eeglab_fname(fname, dataname):
 
     Check if the file extension is ``.fdt`` (older ``.dat`` being invalid)
     or ``.set`` (new EEGLAB format) or whether the ``EEG.data`` filename exists.
-    If ``EEG.data`` file is absent the set file name with .set changed to .fdt is checked.
+    If ``EEG.data`` file is absent the set file name with
+    .set changed to .fdt is checked.
     """
     fmt = str(op.splitext(dataname)[-1])
     if fmt == ".dat":
