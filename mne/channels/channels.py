@@ -1040,7 +1040,6 @@ class InterpolationMixin:
         is_eeg_interpolation = isinstance(sensors, DigMontage)
 
         if is_eeg_interpolation:
-
             # Check that the method option is valid.
             _validate_type(sensors, DigMontage, "sensors")
             # TODO: Handle the error: sensors must be an instance of DigMontage, got <class 'mne.channels._standard_montage_utils._meg.<locals>.CustomMontage'> instead.
@@ -1086,7 +1085,9 @@ class InterpolationMixin:
             eeg_names_orig = [orig_names[i] for i in picks_remove_eeg]
 
             # Identify non-EEG channels in original order
-            non_eeg_names_ordered = [ch for ch in orig_names if ch not in eeg_names_orig]
+            non_eeg_names_ordered = [
+                ch for ch in orig_names if ch not in eeg_names_orig
+            ]
 
             # Create destination info for new EEG channels
             sfreq = self.info["sfreq"]
@@ -1096,7 +1097,9 @@ class InterpolationMixin:
                 ch_types=["eeg"] * len(target_ch_names),
             )
             info_interp.set_montage(sensors)
-            info_interp["bads"] = [ch for ch in self.info["bads"] if ch in target_ch_names]
+            info_interp["bads"] = [
+                ch for ch in self.info["bads"] if ch in target_ch_names
+            ]
             # Do not assign "projs" directly.
 
             # Compute the interpolation mapping
@@ -1109,7 +1112,9 @@ class InterpolationMixin:
                     d = np.linalg.norm(pos, axis=-1)
                     d_norm = np.mean(d / np.mean(d))
                     if np.abs(1.0 - d_norm) > 0.1:
-                        warn("Your spherical fit is poor; interpolation may be inaccurate.")
+                        warn(
+                            "Your spherical fit is poor; interpolation may be inaccurate."
+                        )
 
                 _check_pos_sphere(pos_from)
                 _check_pos_sphere(pos_to)
@@ -1121,9 +1126,9 @@ class InterpolationMixin:
                 # If the original info has an average EEG reference projector but
                 # the destination info does not,
                 # update info_interp via a temporary RawArray.
-                if _has_eeg_average_ref_proj(self.info) and not _has_eeg_average_ref_proj(
-                    info_interp
-                ):
+                if _has_eeg_average_ref_proj(
+                    self.info
+                ) and not _has_eeg_average_ref_proj(info_interp):
                     # Create dummy data: shape (n_channels, 1)
                     temp_data = np.zeros((len(info_interp["ch_names"]), 1))
                     temp_raw = RawArray(temp_data, info_interp, first_samp=0)
@@ -1146,7 +1151,9 @@ class InterpolationMixin:
             #       We should consider updating the existing instance in the future
             #       by 1) drop channels, 2) add channels, 3) re-order channels.
             if isinstance(self, BaseRaw):
-                inst_interp = RawArray(data_interp, info_interp, first_samp=self.first_samp)
+                inst_interp = RawArray(
+                    data_interp, info_interp, first_samp=self.first_samp
+                )
             elif isinstance(self, BaseEpochs):
                 inst_interp = EpochsArray(data_interp, info_interp)
             else:
@@ -1178,19 +1185,15 @@ class InterpolationMixin:
 
         elif is_meg_interpolation:
             assert method["meg"] == "MNE"
-             # MEG interpolation to canonical sensor configuration
+            # MEG interpolation to canonical sensor configuration
             _check_option("sensors", sensors, ["neuromag", "ctf151", "ctf275"])
             _check_option("method", method, ["MNE"])
             _check_option("mode", mode, ["accurate", "fast"])
 
             # Get MEG channels from source
-            picks_meg = pick_types(
-                self.info, meg=True, ref_meg=False, exclude="bads"
-            )
+            picks_meg = pick_types(self.info, meg=True, ref_meg=False, exclude="bads")
             if len(picks_meg) == 0:
-                raise ValueError(
-                    "No good MEG channels available for interpolation."
-                )
+                raise ValueError("No good MEG channels available for interpolation.")
 
             # Load target sensor configuration
             info_to = read_meg_montage(sensors)
@@ -1214,9 +1217,7 @@ class InterpolationMixin:
 
             # Create new instance with interpolated MEG data
             if isinstance(self, BaseRaw):
-                inst_out = RawArray(
-                    data_interp, info_to, first_samp=self.first_samp
-                )
+                inst_out = RawArray(data_interp, info_to, first_samp=self.first_samp)
             elif isinstance(self, BaseEpochs):
                 inst_out = EpochsArray(data_interp, info_to)
             else:
@@ -1224,19 +1225,14 @@ class InterpolationMixin:
                 inst_out = EvokedArray(data_interp, info_to)
 
             # Add non-MEG channels if they exist
-            non_meg_picks = pick_types(
-                self.info, meg=False, exclude=[], ref_meg=False
-            )
+            non_meg_picks = pick_types(self.info, meg=False, exclude=[], ref_meg=False)
             if len(non_meg_picks) > 0:
-                non_meg_names = [
-                    self.info["ch_names"][i] for i in non_meg_picks
-                ]
+                non_meg_names = [self.info["ch_names"][i] for i in non_meg_picks]
                 inst_non_meg = self.copy().pick(non_meg_names).load_data()
-                inst_out = inst_out.add_channels(
-                    [inst_non_meg], force_update_info=True
-                )
+                inst_out = inst_out.add_channels([inst_non_meg], force_update_info=True)
 
             return inst_out
+
 
 @verbose
 def rename_channels(info, mapping, allow_duplicates=False, *, verbose=None):
