@@ -814,6 +814,8 @@ def test_calculate_head_pos_kit():
     # plotting works
     plot_head_positions(quats, info=raw.info)
     raw_berlin = read_raw_kit(berlin_fname)
+    assert "meg" in raw_berlin
+    assert raw_berlin.info["dev_head_t"] is not None
     assert_allclose(raw_berlin.info["dev_head_t"]["trans"], np.eye(4))
     assert len(raw_berlin.info["hpi_results"]) == 0
     with pytest.raises(ValueError, match="Invalid value"):

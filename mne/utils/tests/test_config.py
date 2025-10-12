@@ -231,12 +231,12 @@ def test_sys_info_check_other(monkeypatch):
     out = out.getvalue()
     assert " 1.5.1 (latest release)" in out
 
-    # Devel
+    # Development version
     monkeypatch.setattr(mne, "__version__", "1.6.dev0")
     out = ClosingStringIO()
     sys_info(fid=out)
     out = out.getvalue()
-    assert "devel, " in out
+    assert "development, " in out
     assert "updating.html" not in out
 
 
@@ -272,6 +272,7 @@ def _worker_update_config_loop(home_dir, worker_id, iterations=10):
     return worker_id
 
 
+@pytest.mark.slowtest
 def test_parallel_get_set_config(tmp_path: Path):
     """Test that uses parallel workers to get and set config.
 
