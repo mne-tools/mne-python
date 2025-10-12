@@ -2,18 +2,26 @@
 .. _ex-interpolate-to-any-montage:
 
 ======================================================
-Interpolate EEG data to any montage
+Interpolate MEG or EEG data to any montage
 ======================================================
 
-This example demonstrates how to interpolate EEG channels to match a given montage.
-This can be useful for standardizing
+This example demonstrates both EEG montage interpolation and MEG system
+transformation.
+
+For EEG, this can be useful for standardizing
 EEG channel layouts across different datasets (see :footcite:`MellotEtAl2024`).
 
 - Using the field interpolation for EEG data.
 - Using the target montage "biosemi16".
+- Using the MNE interpolation for MEG data to transform from Neuromag
+  (planar gradiometers and magnetometers) to CTF (axial gradiometers).
 
-In this example, the data from the original EEG channels will be
+
+In the first example, the data from the original EEG channels will be
 interpolated onto the positions defined by the "biosemi16" montage.
+
+In the second example, we will interpolate MEG data from a 306-sensor Neuromag
+to 275-sensor CTF system.
 """
 
 # Authors: Antoine Collas <contact@antoinecollas.fr>, Konstantinos Tsilimparis <konstantinos.tsilimparis@outlook.com>
@@ -96,7 +104,7 @@ axs[2].set_title("Interpolated to Standard 1020 Montage using MNE interpolation"
 # %%
 # Part 2: MEG System Transformation
 # ==================================
-# Now we demonstrate transforming MEG data from Neuromag (axial gradiometers
+# Now we demonstrate transforming MEG data from Neuromag (planar gradiometers
 # and magnetometers) to CTF (radial gradiometers) sensor configuration.
 
 # Load the full evoked data with MEG channels
@@ -136,7 +144,7 @@ fig, axes = plt.subplots(3, 1, figsize=(10, 8), layout='constrained')
 evoked_meg.copy().pick('grad').plot(
     axes=axes[0], show=False, spatial_colors=True, ylim=ylim_meg, time_unit='s'
 )
-axes[0].set_title('Original Neuromag Gradiometers', fontsize=14)
+axes[0].set_title('Original Neuromag Planar Gradiometers', fontsize=14)
 
 
 # Plot original Neuromag magnetometers

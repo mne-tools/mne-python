@@ -1184,7 +1184,6 @@ class InterpolationMixin:
             return inst_out
 
         elif is_meg_interpolation:
-            assert method["meg"] == "MNE"
             # MEG interpolation to canonical sensor configuration
             _check_option("sensors", sensors, ["neuromag", "ctf151", "ctf275"])
             _check_option("method", method, ["MNE"])
