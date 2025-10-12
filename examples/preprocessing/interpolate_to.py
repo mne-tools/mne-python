@@ -141,7 +141,7 @@ fig, axes = plt.subplots(3, 1, figsize=(10, 8), layout="constrained")
 evoked_meg.copy().pick("grad").plot(
     axes=axes[0], show=False, spatial_colors=True, ylim=ylim_meg, time_unit="s"
 )
-axes[0].set_title('Original Neuromag Planar Gradiometers', fontsize=14)
+axes[0].set_title("Original Neuromag Planar Gradiometers", fontsize=14)
 
 
 # Plot original Neuromag magnetometers
