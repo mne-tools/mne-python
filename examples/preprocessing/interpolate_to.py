@@ -105,7 +105,7 @@ evoked_meg = mne.read_evokeds(
 )
 evoked_meg.pick("meg")
 
-print(f"Original Neuromag system:")
+print("Original Neuromag system:")
 print(f"  Number of magnetometers: {len(mne.pick_types(evoked_meg.info, meg='mag'))}")
 print(f"  Number of gradiometers: {len(mne.pick_types(evoked_meg.info, meg='grad'))}")
 
@@ -117,10 +117,7 @@ print(f"  Number of gradiometers: {len(mne.pick_types(evoked_meg.info, meg='grad
 evoked_ctf = evoked_meg.copy().interpolate_to("ctf275", mode="accurate")
 
 print("\nTransformed to CTF system:")
-print(
-    f"  Number of MEG channels: "
-    f"{len(mne.pick_types(evoked_ctf.info, meg=True))}"
-)
+print(f"  Number of MEG channels: {len(mne.pick_types(evoked_ctf.info, meg=True))}")
 print(f"  Bad channels in original: {evoked_meg.info['bads']}")
 
 # %%
@@ -130,26 +127,26 @@ print(f"  Bad channels in original: {evoked_meg.info['bads']}")
 # Set consistent y-limits for comparison
 ylim_meg = dict(grad=[-300, 300], mag=[-600, 600], meg=[-300, 300])
 
-fig, axes = plt.subplots(3, 1, figsize=(10, 8), layout='constrained')
+fig, axes = plt.subplots(3, 1, figsize=(10, 8), layout="constrained")
 
 # Plot original Neuromag gradiometers
-evoked_meg.copy().pick('grad').plot(
-    axes=axes[0], show=False, spatial_colors=True, ylim=ylim_meg, time_unit='s'
+evoked_meg.copy().pick("grad").plot(
+    axes=axes[0], show=False, spatial_colors=True, ylim=ylim_meg, time_unit="s"
 )
-axes[0].set_title('Original Neuromag Gradiometers', fontsize=14)
+axes[0].set_title("Original Neuromag Gradiometers", fontsize=14)
 
 
 # Plot original Neuromag magnetometers
-evoked_meg.copy().pick('mag').plot(
-    axes=axes[1], show=False, spatial_colors=True, ylim=ylim_meg, time_unit='s'
+evoked_meg.copy().pick("mag").plot(
+    axes=axes[1], show=False, spatial_colors=True, ylim=ylim_meg, time_unit="s"
 )
-axes[1].set_title('Original Neuromag Magnetometers', fontsize=14)
+axes[1].set_title("Original Neuromag Magnetometers", fontsize=14)
 
 # Plot transformed CTF gradiometers
 evoked_ctf.plot(
-    axes=axes[2], show=False, spatial_colors=True, ylim=ylim_meg, time_unit='s'
+    axes=axes[2], show=False, spatial_colors=True, ylim=ylim_meg, time_unit="s"
 )
-axes[2].set_title('Transformed to CTF275 Axial Gradiometers', fontsize=14)
+axes[2].set_title("Transformed to CTF275 Axial Gradiometers", fontsize=14)
 
 plt.show()
 
