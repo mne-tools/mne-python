@@ -1691,6 +1691,7 @@ def read_custom_montage(
 
     return montage
 
+
 @verbose
 def read_meg_montage(system, verbose=None):
     """Load canonical MEG sensor definitions from CSV files.
@@ -1719,7 +1720,7 @@ def read_meg_montage(system, verbose=None):
     system_files = {
         "neuromag": "neuromag306.csv",
         "ctf151": "ctf151.csv",
-        "ctf275": "ctf275.csv"
+        "ctf275": "ctf275.csv",
     }
 
     # Load the CSV file
@@ -1727,9 +1728,7 @@ def read_meg_montage(system, verbose=None):
     csv_file = montage_dir / system_files[system]
 
     if not csv_file.exists():
-        raise FileNotFoundError(
-            f"Canonical sensor file not found: {csv_file}. "
-        )
+        raise FileNotFoundError(f"Canonical sensor file not found: {csv_file}. ")
 
     # Read sensor definitions
     df = pd.read_csv(csv_file)
@@ -1777,9 +1776,7 @@ def read_meg_montage(system, verbose=None):
 
     # Set device to head transform to identity (canonical positions)
     # This will be updated based on the actual data being interpolated
-    info["dev_head_t"] = Transform(
-        "meg", "head", np.eye(4)
-    )
+    info["dev_head_t"] = Transform("meg", "head", np.eye(4))
 
     return info
 
