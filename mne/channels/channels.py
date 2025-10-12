@@ -1100,7 +1100,7 @@ class InterpolationMixin:
             # Do not assign "projs" directly.
 
             # Compute the interpolation mapping
-            if method == "spline":
+            if method["eeg"] == "spline":
                 origin_val = _check_origin(origin, self.info)
                 pos_from = self.info._get_channel_positions(picks_good_eeg) - origin_val
                 pos_to = np.stack(list(ch_pos.values()), axis=0)
@@ -1116,7 +1116,7 @@ class InterpolationMixin:
                 mapping = _make_interpolation_matrix(pos_from, pos_to, alpha=reg)
 
             else:
-                assert method == "MNE"
+                assert method["eeg"] == "MNE"
                 info_eeg = pick_info(self.info, picks_good_eeg)
                 # If the original info has an average EEG reference projector but
                 # the destination info does not,
@@ -1177,6 +1177,7 @@ class InterpolationMixin:
             return inst_out
 
         elif is_meg_interpolation:
+            assert method["meg"] == "MNE"
              # MEG interpolation to canonical sensor configuration
             _check_option("sensors", sensors, ["neuromag", "ctf151", "ctf275"])
             _check_option("method", method, ["MNE"])

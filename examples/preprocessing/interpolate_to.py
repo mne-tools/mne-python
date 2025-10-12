@@ -16,7 +16,7 @@ In this example, the data from the original EEG channels will be
 interpolated onto the positions defined by the "biosemi16" montage.
 """
 
-# Authors: Antoine Collas <contact@antoinecollas.fr>
+# Authors: Antoine Collas <contact@antoinecollas.fr>, Konstantinos Tsilimparis <konstantinos.tsilimparis@outlook.com>
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -33,7 +33,7 @@ ylim = (-10, 10)
 # Load the MEG data
 data_path = sample.data_path()
 fif_file_path = data_path / "MEG" / "sample" / "sample_audvis_raw.fif"
-raw_meg = mne.io.read_raw_fif(fif_file_path)
+raw_meg = mne.io.read_raw_fif(fif_file_path, preload=True)
 
 raw_meg.pick("meg")
 
@@ -92,6 +92,66 @@ evoked_interpolated_mne.plot(
     exclude=[], picks="eeg", axes=axs[2], show=False, ylim=dict(eeg=ylim)
 )
 axs[2].set_title("Interpolated to Standard 1020 Montage using MNE interpolation")
+
+# %%
+# Part 2: MEG System Transformation
+# ==================================
+# Now we demonstrate transforming MEG data from Neuromag (axial gradiometers
+# and magnetometers) to CTF (radial gradiometers) sensor configuration.
+
+# Load the full evoked data with MEG channels
+evoked_meg = mne.read_evokeds(
+    eeg_file_path, condition="Left Auditory", baseline=(None, 0)
+)
+evoked_meg.pick("meg")
+
+print(f"Original Neuromag system:")
+print(f"  Number of magnetometers: {len(mne.pick_types(evoked_meg.info, meg='mag'))}")
+print(f"  Number of gradiometers: {len(mne.pick_types(evoked_meg.info, meg='grad'))}")
+
+# %%
+# Transform to CTF sensor configuration
+# ======================================
+
+# Interpolate Neuromag to CTF
+evoked_ctf = evoked_meg.copy().interpolate_to("ctf275", mode="accurate")
+
+print("\nTransformed to CTF system:")
+print(
+    f"  Number of MEG channels: "
+    f"{len(mne.pick_types(evoked_ctf.info, meg=True))}"
+)
+print(f"  Bad channels in original: {evoked_meg.info['bads']}")
+
+# %%
+# Compare evoked responses: Original Neuromag vs Transformed CTF
+# The data should be similar but projected onto different sensor arrays
+
+# Set consistent y-limits for comparison
+ylim_meg = dict(grad=[-300, 300], mag=[-600, 600], meg=[-300, 300])
+
+fig, axes = plt.subplots(3, 1, figsize=(10, 8), layout='constrained')
+
+# Plot original Neuromag gradiometers
+evoked_meg.copy().pick('grad').plot(
+    axes=axes[0], show=False, spatial_colors=True, ylim=ylim_meg, time_unit='s'
+)
+axes[0].set_title('Original Neuromag Gradiometers', fontsize=14)
+
+
+# Plot original Neuromag magnetometers
+evoked_meg.copy().pick('mag').plot(
+    axes=axes[1], show=False, spatial_colors=True, ylim=ylim_meg, time_unit='s'
+)
+axes[1].set_title('Original Neuromag Magnetometers', fontsize=14)
+
+# Plot transformed CTF gradiometers
+evoked_ctf.plot(
+    axes=axes[2], show=False, spatial_colors=True, ylim=ylim_meg, time_unit='s'
+)
+axes[2].set_title('Transformed to CTF275 Axial Gradiometers', fontsize=14)
+
+plt.show()
 
 # %%
 # References
