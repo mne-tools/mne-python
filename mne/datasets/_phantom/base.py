@@ -44,7 +44,7 @@ def fetch_phantom(kind, subjects_dir=None, *, verbose=None):
     """
     phantoms = dict(
         otaniemi=dict(
-            url="https://osf.io/j5czy/download?version=1",
+            url="https://osf.io/download/j5czy?version=1",
             hash="42d17db5b1db3e30327ffb4cf2649de8",
         ),
     )
