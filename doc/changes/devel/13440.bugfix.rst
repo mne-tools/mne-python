@@ -1,1 +1,0 @@
-Fix and update osf.io links to new format, by :newcontrib:`Johannes Herforth`.

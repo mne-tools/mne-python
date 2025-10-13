@@ -1,9 +1,9 @@
 cff-version: 1.2.0
 title: "MNE-Python"
 message: "If you use this software, please cite both the software itself, and the paper listed in the preferred-citation field."
-version: 1.10.0
-date-released: "2025-07-14"
-commit: 0c0e72efe1f062cce5fb2aaa9509cf77036ae6f9
+version: 1.10.2
+date-released: "2025-10-13"
+commit: b0f63b06ed7a0df5ba0e3754e09c3b54d150c93c
 doi: 10.5281/zenodo.592483
 keywords:
   - MEG
@@ -247,6 +247,8 @@ authors:
     given-names: Jack
   - family-names: Maksymenko
     given-names: Kostiantyn
+  - family-names: Jack)
+    given-names: Lumberbot (aka
   - family-names: Clarke
     given-names: Maggie
   - family-names: Anelli
@@ -603,6 +605,8 @@ authors:
     given-names: Jeroen
   - family-names: van der Meer
     given-names: Johan
+  - family-names: Herforth
+    given-names: Johannes
   - family-names: Niediek
     given-names: Johannes
   - family-names: Koen

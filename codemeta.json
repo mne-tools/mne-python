@@ -5,11 +5,11 @@
     "codeRepository": "git+https://github.com/mne-tools/mne-python.git",
     "dateCreated": "2010-12-26",
     "datePublished": "2014-08-04",
-    "dateModified": "2025-07-14",
-    "downloadUrl": "https://github.com/mne-tools/mne-python/archive/v1.10.0.zip",
+    "dateModified": "2025-10-13",
+    "downloadUrl": "https://github.com/mne-tools/mne-python/archive/v1.10.2.zip",
     "issueTracker": "https://github.com/mne-tools/mne-python/issues",
     "name": "MNE-Python",
-    "version": "1.10.0",
+    "version": "1.10.2",
     "description": "MNE-Python is an open-source Python package for exploring, visualizing, and analyzing human neurophysiological data. It provides methods for data input/output, preprocessing, visualization, source estimation, time-frequency analysis, connectivity analysis, machine learning, and statistics.",
     "applicationCategory": "Neuroscience",
     "developmentStatus": "active",
@@ -738,6 +738,12 @@
            "email":"makkostya@ukr.net",
            "givenName":"Kostiantyn",
            "familyName": "Maksymenko"
+        },
+        {
+           "@type":"Person",
+           "email":"",
+           "givenName":"Lumberbot (aka",
+           "familyName": "Jack)"
         },
         {
            "@type":"Person",
@@ -1818,6 +1824,12 @@
            "email":"johanvandermeer@gmail.com",
            "givenName":"Johan",
            "familyName": "van der Meer"
+        },
+        {
+           "@type":"Person",
+           "email":"johannes@herforth.net",
+           "givenName":"Johannes",
+           "familyName": "Herforth"
         },
         {
            "@type":"Person",
