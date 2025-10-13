@@ -141,6 +141,7 @@
 .. _jeythekey: https://github.com/jeythekey
 .. _Joan Massich: https://github.com/massich
 .. _Johann Benerradi: https://github.com/HanBnrd
+.. _Johannes Herforth: https://herforth.net
 .. _Johannes Niediek: https://github.com/jniediek
 .. _John Samuelsson: https://github.com/johnsam7
 .. _John Veillette: https://psychology.uchicago.edu/directory/john-veillette

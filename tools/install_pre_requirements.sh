@@ -46,8 +46,25 @@ echo "VTK"
 python -m pip install $STD_ARGS --only-binary ":all:" --extra-index-url "https://wheels.vtk.org" vtk
 python -c "import vtk"
 
-echo "PyVista"
-python -m pip install $STD_ARGS "git+https://github.com/pyvista/pyvista" trame trame-vtk trame-vuetify jupyter ipyevents ipympl
+echo "::group::Everything else"
+python -m pip install $STD_ARGS \
+	"git+https://github.com/pyvista/pyvista" \
+	"git+https://github.com/pyvista/pyvistaqt" \
+	"git+https://github.com/nilearn/nilearn" \
+	"git+https://github.com/pierreablin/picard" \
+	https://gitlab.com/obob/pymatreader/-/archive/master/pymatreader-master.zip \
+	git+https://github.com/mne-tools/mne-qt-browser \
+	git+https://github.com/pyqtgraph/pyqtgraph \
+	git+https://github.com/mne-tools/mne-bids \
+	git+https://github.com/nipy/nibabel \
+	git+https://github.com/joblib/joblib \
+	git+https://github.com/h5io/h5io \
+	git+https://github.com/BUNPC/pysnirf2 \
+	git+https://github.com/the-siesta-group/edfio \
+	trame trame-vtk trame-vuetify jupyter ipyevents ipympl openmeeg \
+	imageio-ffmpeg xlrd mffpy traitlets pybv eeglabio defusedxml \
+	antio
+echo "::endgroup::"
 
 echo "picard"
 python -m pip install $STD_ARGS git+https://github.com/pierreablin/picard
