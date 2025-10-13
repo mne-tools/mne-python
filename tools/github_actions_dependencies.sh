@@ -26,6 +26,7 @@ if [ ! -z "$CONDA_ENV" ]; then
 	fi
 elif [[ "${MNE_CI_KIND}" == "pip" ]]; then
 	INSTALL_KIND="full-pyside6,$INSTALL_KIND"
+	STD_ARGS="$STD_ARGS --pre \"PySide6!=6.10.0\""
 else
 	test "${MNE_CI_KIND}" == "pip-pre"
 	STD_ARGS="$STD_ARGS --pre"
