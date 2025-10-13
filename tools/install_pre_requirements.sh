@@ -50,12 +50,13 @@ echo "::endgroup::"
 
 echo "::group::Everything else"
 python -m pip install $STD_ARGS \
-    "git+https://github.com/pyvista/pyvista" \
+	"git+https://github.com/pyvista/pyvista" \
 	"git+https://github.com/pyvista/pyvistaqt" \
 	"git+https://github.com/nilearn/nilearn" \
 	"git+https://github.com/pierreablin/picard" \
 	https://gitlab.com/obob/pymatreader/-/archive/master/pymatreader-master.zip \
 	git+https://github.com/mne-tools/mne-qt-browser \
+	git+https://github.com/pyqtgraph/pyqtgraph \
 	git+https://github.com/mne-tools/mne-bids \
 	git+https://github.com/nipy/nibabel \
 	git+https://github.com/joblib/joblib \
