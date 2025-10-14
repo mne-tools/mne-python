@@ -918,19 +918,10 @@ class CoregistrationUI(HasTraits):
         if not any(mesh is target() for target in self._picking_targets):
             return
         pos = np.array(vtk_picker.GetPickPosition())
-        vtk_cell = mesh.GetCell(cell_id)
-        cell = [
-            vtk_cell.GetPointId(point_id)
-            for point_id in range(vtk_cell.GetNumberOfPoints())
-        ]
-        vertices = mesh.points[cell]
-        idx = np.argmin(abs(vertices - pos), axis=0)
-        vertex_id = cell[idx[0]]
-
         fiducials = [s.lower() for s in self._defaults["fiducials"]]
         idx = fiducials.index(self._current_fiducial.lower())
         # XXX: add coreg.set_fids
-        self.coreg._fid_points[idx] = self._surfaces["head"].points[vertex_id]
+        self.coreg._fid_points[idx] = pos
         self.coreg._reset_fiducials()
         self._update_fiducials()
         self._update_plot("mri_fids")

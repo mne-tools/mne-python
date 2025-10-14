@@ -271,6 +271,7 @@ def test_tfr_multi_label():
             assert multi_lab_pow.shape == (2, n_freqs, n_times)
 
 
+@pytest.mark.slowtest
 @testing.requires_testing_data
 @pytest.mark.parametrize("method", INVERSE_METHODS)
 @pytest.mark.parametrize("pick_ori", (None, "normal"))  # XXX vector someday?
