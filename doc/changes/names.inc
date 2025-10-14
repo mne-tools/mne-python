@@ -76,6 +76,7 @@
 .. _Eduard Ort: https://github.com/eort
 .. _Emily Stephen: https://github.com/emilyps14
 .. _Emma Bailey: https://www.cbs.mpg.de/employees/bailey
+.. _Emmanuel Ferdman: https://github.com/emmanuel-ferdman
 .. _Emrecan Çelik: https://github.com/emrecncelik
 .. _Enrico Varano: https://github.com/enricovara/
 .. _Enzo Altamiranda: https://www.linkedin.com/in/enzoalt
@@ -142,6 +143,7 @@
 .. _jeythekey: https://github.com/jeythekey
 .. _Joan Massich: https://github.com/massich
 .. _Johann Benerradi: https://github.com/HanBnrd
+.. _Johannes Herforth: https://herforth.net
 .. _Johannes Niediek: https://github.com/jniediek
 .. _John Samuelsson: https://github.com/johnsam7
 .. _John Veillette: https://psychology.uchicago.edu/directory/john-veillette

@@ -17,6 +17,8 @@ if [ ! -z "$CONDA_ENV" ]; then
 	if [[ "${RUNNER_OS}" != "Windows" ]] && [[ "${CONDA_ENV}" != "environment_"* ]]; then
 		INSTALL_ARGS=""
 	fi
+	# TODO: Until a PyVista release supports VTK 9.5+
+	STD_ARGS="$STD_ARGS https://github.com/pyvista/pyvista/archive/refs/heads/main.zip"
 	# If on minimal or old, just install testing deps
 	if [[ "${CONDA_ENV}" == "environment_"* ]]; then
 		INSTALL_KIND="test"
@@ -24,6 +26,7 @@ if [ ! -z "$CONDA_ENV" ]; then
 	fi
 elif [[ "${MNE_CI_KIND}" == "pip" ]]; then
 	INSTALL_KIND="full-pyside6,$INSTALL_KIND"
+	STD_ARGS="$STD_ARGS --pre PySide6!=6.10.0"
 else
 	test "${MNE_CI_KIND}" == "pip-pre"
 	STD_ARGS="$STD_ARGS --pre"

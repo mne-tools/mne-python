@@ -62,12 +62,24 @@ td = datetime.now(tz=timezone.utc)
 
 # We need to triage which date type we use so that incremental builds work
 # (Sphinx looks at variable changes and rewrites all files if some change)
-copyright = (  # noqa: A001
-    f'2012–{td.year}, MNE Developers. Last updated <time datetime="{td.isoformat()}" class="localized">{td.strftime("%Y-%m-%d %H:%M %Z")}</time>\n'  # noqa: E501
-    '<script type="text/javascript">function formatTimestamp() {document.querySelectorAll("time.localized").forEach(el => el.textContent = new Date(el.getAttribute("datetime")).toLocaleString([], {dateStyle: "medium", timeStyle: "long"}));};if (document.readyState != "loading") formatTimestamp();else document.addEventListener("DOMContentLoaded", formatTimestamp);</script>'  # noqa: E501
+project_copyright = (
+    f'2012–{td.year}, MNE Developers. Last updated <time datetime="{td.isoformat()}" class="localized">{td.strftime("%Y-%m-%d %H:%M %Z")}</time>.\n'  # noqa: E501
+    """<script type="text/javascript">
+function formatTimestamp() {
+    document.querySelectorAll("time.localized").forEach(el => {
+        const d = new Date(el.getAttribute("datetime"));
+        el.textContent = d.toLocaleString("sv-SE", { "timeZoneName": "short" });
+    });
+}
+if (document.readyState !== "loading") {
+    formatTimestamp();
+} else {
+    document.addEventListener("DOMContentLoaded", formatTimestamp);
+}
+</script>"""
 )
 if os.getenv("MNE_FULL_DATE", "false").lower() != "true":
-    copyright = f"2012–{td.year}, MNE Developers. Last updated locally."  # noqa: A001
+    project_copyright = f"2012–{td.year}, MNE Developers. Last updated locally."
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
