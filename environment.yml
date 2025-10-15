@@ -9,7 +9,7 @@ dependencies:
   - decorator
   - defusedxml
   - dipy
-  - edfio >=0.2.1
+  - edfio >=0.4.10
   - eeglabio
   - filelock >=3.18.0
   - h5io >=0.2.4

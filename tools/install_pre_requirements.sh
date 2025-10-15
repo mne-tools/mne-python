@@ -38,18 +38,25 @@ echo "::endgroup::"
 # No Numba because it forces an old NumPy version
 
 echo "::group::VTK"
-python -m pip install $STD_ARGS --only-binary ":all:" --extra-index-url "https://wheels.vtk.org" vtk
+if [[ "$PLATFORM" == "Linux" ]]; then
+	# Segfault trying to load libx11.so.6
+	VTK_ARGS=""
+else
+	VTK_ARGS="--extra-index-url \"https://wheels.vtk.org\""
+fi
+python -m pip install $STD_ARGS --only-binary ":all:" vtk $VTK_ARGS
 python -c "import vtk"
 echo "::endgroup::"
 
 echo "::group::Everything else"
 python -m pip install $STD_ARGS \
-    "git+https://github.com/pyvista/pyvista" \
+	"git+https://github.com/pyvista/pyvista" \
 	"git+https://github.com/pyvista/pyvistaqt" \
 	"git+https://github.com/nilearn/nilearn" \
 	"git+https://github.com/pierreablin/picard" \
 	https://gitlab.com/obob/pymatreader/-/archive/master/pymatreader-master.zip \
 	git+https://github.com/mne-tools/mne-qt-browser \
+	git+https://github.com/pyqtgraph/pyqtgraph \
 	git+https://github.com/mne-tools/mne-bids \
 	git+https://github.com/nipy/nibabel \
 	git+https://github.com/joblib/joblib \
