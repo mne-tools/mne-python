@@ -587,8 +587,6 @@ class EpochsEEGLAB(BaseEpochs):
         reject_tmin=None,
         reject_tmax=None,
         eog=(),
-        preload=False,
-        *,
         uint16_codec=None,
         montage_units="auto",
         verbose=None,
@@ -596,7 +594,7 @@ class EpochsEEGLAB(BaseEpochs):
         input_fname = str(
             _check_fname(fname=input_fname, must_exist=True, overwrite="read")
         )
-        eeg = _check_load_mat(input_fname, uint16_codec, preload=preload)
+        eeg = _check_load_mat(input_fname, uint16_codec)
 
         if not (
             (events is None and event_id is None)
