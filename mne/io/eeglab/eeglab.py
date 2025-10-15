@@ -445,7 +445,7 @@ class RawEEGLAB(BaseRaw):
         verbose=None,
     ):
         input_fname = str(_check_fname(input_fname, "read", True, "input_fname"))
-        eeg = _check_load_mat(input_fname, uint16_codec, preload)
+        eeg = _check_load_mat(input_fname, uint16_codec, preload=preload)
         if eeg.trials != 1:
             raise TypeError(
                 f"The number of trials is {eeg.trials:d}. It must be 1 for raw"
@@ -559,9 +559,11 @@ class EpochsEEGLAB(BaseEpochs):
         Names or indices of channels that should be designated EOG channels.
         If 'auto', the channel names containing ``EOG`` or ``EYE`` are used.
         Defaults to empty tuple.
+    %(preload)
     %(uint16_codec)s
     %(montage_units)s
     %(verbose)s
+
 
     See Also
     --------
@@ -585,6 +587,8 @@ class EpochsEEGLAB(BaseEpochs):
         reject_tmin=None,
         reject_tmax=None,
         eog=(),
+        preload=False,
+        *,
         uint16_codec=None,
         montage_units="auto",
         verbose=None,
@@ -592,7 +596,7 @@ class EpochsEEGLAB(BaseEpochs):
         input_fname = str(
             _check_fname(fname=input_fname, must_exist=True, overwrite="read")
         )
-        eeg = _check_load_mat(input_fname, uint16_codec)
+        eeg = _check_load_mat(input_fname, uint16_codec, preload=preload)
 
         if not (
             (events is None and event_id is None)

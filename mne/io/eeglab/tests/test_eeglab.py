@@ -23,6 +23,7 @@ from mne.annotations import events_from_annotations, read_annotations
 from mne.channels import read_custom_montage
 from mne.datasets import testing
 from mne.io import read_raw_eeglab
+from mne.io.eeglab import _eeglab as eeglab_mod
 from mne.io.eeglab._eeglab import _readmat
 from mne.io.eeglab.eeglab import _dol_to_lod, _get_montage_information
 from mne.io.tests.test_raw import _test_raw_reader
@@ -112,29 +113,25 @@ def test_io_set_preload_false_uses_lazy_loading():
     raw_lazy = read_raw_eeglab(raw_fname_onefile_mat, preload=False)
     raw_eager = read_raw_eeglab(raw_fname_onefile_mat, preload=True)
 
-    try:
-        assert not raw_lazy.preload
-        assert raw_lazy._data is None
-        assert raw_lazy.n_times == raw_eager.n_times
-        assert raw_lazy.info["nchan"] == raw_eager.info["nchan"]
+    assert not raw_lazy.preload
+    assert raw_lazy._data is None
+    assert raw_lazy.n_times == raw_eager.n_times
+    assert raw_lazy.info["nchan"] == raw_eager.info["nchan"]
 
-        lazy_slice = raw_lazy[:2, :10][0]
-        assert lazy_slice.shape == (2, 10)
+    lazy_slice = raw_lazy[:2, :10][0]
+    assert lazy_slice.shape == (2, 10)
 
-        # on-demand reads must not flip the preload flag or populate _data
-        assert not raw_lazy.preload
-        assert raw_lazy._data is None
-        assert raw_eager._data.nbytes > lazy_slice.nbytes
-    finally:
-        raw_lazy.close()
-        raw_eager.close()
+    # on-demand reads must not flip the preload flag or populate _data
+    assert not raw_lazy.preload
+    assert raw_lazy._data is None
+    assert raw_eager._data.nbytes > lazy_slice.nbytes
+
+    assert raw_eager._size > raw_lazy.nbytes * 10
 
 
 @testing.requires_testing_data
 def test_io_set_preload_false_is_faster(monkeypatch):
     """Using preload=False should skip the expensive data read branch."""
-    from mne.io.eeglab import _eeglab as eeglab_mod
-
     real_loadmat = eeglab_mod.loadmat
 
     def delayed_loadmat(*args, **kwargs):
@@ -148,9 +145,8 @@ def test_io_set_preload_false_is_faster(monkeypatch):
     durations = {}
     for preload in (False, True):
         start = time.perf_counter()
-        raw = read_raw_eeglab(raw_fname_mat, preload=preload)
+        _ = read_raw_eeglab(raw_fname_mat, preload=preload)
         durations[preload] = time.perf_counter() - start
-        raw.close()
 
     assert durations[True] - durations[False] > 0.04
 
