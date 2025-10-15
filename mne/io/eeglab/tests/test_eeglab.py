@@ -112,7 +112,6 @@ def test_io_set_preload_false_uses_lazy_loading():
     """Ensure reading .set files without preload keeps data out of memory."""
     raw_lazy = read_raw_eeglab(raw_fname_onefile_mat, preload=False)
     raw_eager = read_raw_eeglab(raw_fname_onefile_mat, preload=True)
-
     assert not raw_lazy.preload
     assert raw_lazy._data is None
     assert raw_lazy.n_times == raw_eager.n_times
