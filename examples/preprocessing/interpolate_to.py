@@ -39,24 +39,9 @@ print(__doc__)
 ylim = (-10, 10)
 
 # %%
-# Load the MEG data
-data_path = sample.data_path()
-fif_file_path = data_path / "MEG" / "sample" / "sample_audvis_raw.fif"
-raw_meg = mne.io.read_raw_fif(fif_file_path, preload=True)
+# Part 1: EEG System Transformation
+# ==================================
 
-raw_meg.pick("meg")
-
-# %%
-# Define the target montage
-standard_montage_meg = make_standard_montage("ctf275")
-
-# %%
-# Use interpolate_to to project MEG data to the standard montage
-raw_meg_interpolated_mne = raw_meg.copy().interpolate_to(
-    standard_montage_meg, method="MNE"
-)
-
-# %%
 # Load EEG data
 data_path = sample.data_path()
 eeg_file_path = data_path / "MEG" / "sample" / "sample_audvis-ave.fif"
@@ -105,8 +90,8 @@ axs[2].set_title("Interpolated to Standard 1020 Montage using MNE interpolation"
 # %%
 # Part 2: MEG System Transformation
 # ==================================
-# Now we demonstrate transforming MEG data from Neuromag (planar gradiometers
-# and magnetometers) to CTF (radial gradiometers) sensor configuration.
+# We demonstrate transforming MEG data from Neuromag (planar gradiometers
+# and magnetometers) to CTF (axial gradiometers) sensor configuration.
 
 # Load the full evoked data with MEG channels
 evoked_meg = mne.read_evokeds(
