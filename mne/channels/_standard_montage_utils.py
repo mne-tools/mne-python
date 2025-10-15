@@ -130,7 +130,7 @@ def _meg(basename, head_size):
     # Read the file
     with open(fname) as f:
         # Skip header line
-        header = f.readline().strip().split()
+        _header = f.readline().strip().split()
 
         ch_names = []
         ch_types = []
@@ -155,7 +155,7 @@ def _meg(basename, head_size):
     #         For custom montages without fiducials, this parameter must be set
     #         to ``'head'``. ->
     #         "kind": FIFF.FIFFV_POINT_EEG, ->
-    #         dig names each chennel as EEG #1 ...
+    #         dig names each channel as EEG #1 ...
 
     # These aren't standard DigMontage attributes but can be useful
     montage.ch_types = ch_types

@@ -24,7 +24,8 @@ In the second example, we will interpolate MEG data from a 306-sensor Neuromag
 to 275-sensor CTF system.
 """
 
-# Authors: Antoine Collas <contact@antoinecollas.fr>, Konstantinos Tsilimparis <konstantinos.tsilimparis@outlook.com>
+# Authors: Antoine Collas <contact@antoinecollas.fr>
+#          Konstantinos Tsilimparis <konstantinos.tsilimparis@outlook.com>
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
