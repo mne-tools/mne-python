@@ -463,6 +463,9 @@ jobs:
       - restore_cache:
           keys:
             - website-cache
+      - add_ssh_keys:
+          fingerprints:
+            - "SHA256:N4qvp6MSbXcTz/27xz96VPsNuTDRT92zoRP8EW0I/8I"
       - run:
           name: Set BASH_ENV
           command: |
