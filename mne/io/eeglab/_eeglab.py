@@ -86,47 +86,15 @@ def _readmat(fname, uint16_codec=None, preload=False):
             # https://github.com/sccn/eeglab/blob/develop/sample_data/eeglab_data.set
             # The sample reference is the big reference for the field names
             # in eeglab files, and what is used in the eeglab tests.
-            info_fields = [
-                "setname",
-                "filename",
-                "filepath",
-                "subject",
-                "group",
-                "condition",
-                "session",
-                "comments",
-                "nbchan",
-                "trials",
-                "pnts",
-                "srate",
-                "xmin",
-                "xmax",
-                "times",
-                "icaact",
-                "icawinv",
-                "icasphere",
-                "icaweights",
-                "icachansind",
-                "chanlocs",
-                "urchanlocs",
-                "chaninfo",
-                "ref",
-                "event",
-                "urevent",
-                "eventdescription",
-                "epoch",
-                "epochdescription",
-                "reject",
-                "stats",
-                "specdata",
-                "specicaact",
-                "splinefile",
-                "icasplinefile",
-                "dipfit",
-                "history",
-                "saved",
-                "etc",
-            ]
+            info_fields = """
+                setname filename filepath subject group condition session comments
+                nbchan trials pnts srate xmin xmax times icaact icawinv icasphere
+                icaweights icachansind chanlocs urchanlocs chaninfo ref event
+                urevent eventdescription epoch epochdescription reject stats
+                specdata specicaact splinefile icasplinefile dipfit history saved
+                etc
+            """.split()
+
             eeg = loadmat(
                 fname,
                 variable_names=info_fields,
@@ -137,18 +105,11 @@ def _readmat(fname, uint16_codec=None, preload=False):
             variables = whosmat(str(fname))
             for var in variables:
                 if var[0] == "data":
-                    numeric_types = [
-                        "int8",
-                        "int16",
-                        "int32",
-                        "int64",
-                        "uint8",
-                        "uint16",
-                        "uint32",
-                        "uint64",
-                        "single",
-                        "double",
-                    ]
+                    numeric_types = """
+                        int8 int16 int32
+                        int64 uint8 uint16
+                        uint32 uint64 single double
+                    """.split()
                     if var[2] in numeric_types:
                         # in preload=False mode and data is in .set file
                         eeg["data"] = str(fname)

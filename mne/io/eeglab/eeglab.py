@@ -50,8 +50,11 @@ def _check_eeglab_fname(fname, dataname):
             "Old data format .dat detected. Please update your EEGLAB "
             "version and resave the data in .fdt format"
         )
-    if fmt != ".set" and fmt != ".fdt":
-        raise ValueError(f"The file extension must be .set or .fdt, not {fmt}")
+
+    _check_option(
+        f"The file extension must be .set or .fdt, not {fmt}", fmt, (".set", ".fdt")
+    )
+
     basedir = op.dirname(fname)
     data_fname = op.join(basedir, dataname)
     if not op.exists(data_fname):
@@ -559,7 +562,6 @@ class EpochsEEGLAB(BaseEpochs):
         Names or indices of channels that should be designated EOG channels.
         If 'auto', the channel names containing ``EOG`` or ``EYE`` are used.
         Defaults to empty tuple.
-    %(preload)
     %(uint16_codec)s
     %(montage_units)s
     %(verbose)s
