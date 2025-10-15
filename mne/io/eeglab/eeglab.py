@@ -86,9 +86,9 @@ def _check_load_mat(fname, uint16_codec, *, preload=False):
         eeg = eeg["EEG"]
     eeg = eeg.get("EEG", eeg)  # handle nested EEG structure
     eeg = Bunch(**eeg)
-    eeg.trials = int(eeg.trials)
-    eeg.nbchan = int(eeg.nbchan)
-    eeg.pnts = int(eeg.pnts)
+    eeg.trials = int(eeg.get("trials", 1))
+    eeg.nbchan = int(eeg.get("nbchan", 1))
+    eeg.pnts = int(eeg.get("pnts", 1))
     return eeg
 
 

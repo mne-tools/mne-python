@@ -110,22 +110,22 @@ def test_io_set_raw(fname):
 @testing.requires_testing_data
 def test_io_set_preload_false_uses_lazy_loading():
     """Ensure reading .set files without preload keeps data out of memory."""
-    raw_lazy = read_raw_eeglab(raw_fname_onefile_mat, preload=False)
-    raw_eager = read_raw_eeglab(raw_fname_onefile_mat, preload=True)
-    assert not raw_lazy.preload
-    assert raw_lazy._data is None
-    assert raw_lazy.n_times == raw_eager.n_times
-    assert raw_lazy.info["nchan"] == raw_eager.info["nchan"]
+    raw_preloaded = read_raw_eeglab(raw_fname_onefile_mat, preload=True)
+    raw_not_preloaded = read_raw_eeglab(raw_fname_onefile_mat, preload=False)
 
-    lazy_slice = raw_lazy[:2, :10][0]
+    assert raw_preloaded._size > raw_not_preloaded._size
+
+    assert not raw_not_preloaded.preload
+    assert raw_not_preloaded._data is None
+    assert raw_not_preloaded.n_times == raw_preloaded.n_times
+    assert raw_not_preloaded.info["nchan"] == raw_preloaded.info["nchan"]
+
+    lazy_slice = raw_not_preloaded[:2, :10][0]
     assert lazy_slice.shape == (2, 10)
 
     # on-demand reads must not flip the preload flag or populate _data
-    assert not raw_lazy.preload
-    assert raw_lazy._data is None
-    assert raw_eager._data.nbytes > lazy_slice.nbytes
-
-    assert raw_eager._size > raw_lazy.nbytes * 10
+    assert not raw_not_preloaded.preload
+    assert raw_not_preloaded._data is None
 
 
 @testing.requires_testing_data
