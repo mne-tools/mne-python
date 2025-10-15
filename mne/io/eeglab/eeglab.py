@@ -70,7 +70,7 @@ def _check_eeglab_fname(fname, dataname):
     return data_fname
 
 
-def _check_load_mat(fname, uint16_codec, preload=False):
+def _check_load_mat(fname, uint16_codec, *, preload=False):
     """Check if the mat struct contains 'EEG'."""
     fname = _check_fname(fname, "read", True)
     eeg = _readmat(fname, uint16_codec=uint16_codec, preload=preload)
