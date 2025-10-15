@@ -188,15 +188,6 @@ _BUILTIN_STANDARD_MONTAGES = [
         name="brainproducts-RNP-BA-128",
         description="Brain Products with 10-10 electrode names (128 channels)",
     ),
-    _BuiltinStandardMontage(
-        name="ctf275",
-        description="CTF system with 275 sensors (275 axial gradiometers)",
-    ),
-    _BuiltinStandardMontage(
-        name="neuromag306",
-        description="Neuromag system with 306 sensors (204 gradiometers, "
-        "102 magnetometers)",
-    ),
 ]
 
 
