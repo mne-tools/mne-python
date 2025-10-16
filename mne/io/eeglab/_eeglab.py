@@ -2,6 +2,7 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+
 import numpy as np
 
 try:
@@ -9,7 +10,7 @@ try:
 except ImportError:  # scipy < 1.8
     from scipy.io.matlab.mio5 import MatlabFunction
     from scipy.io.matlab.mio5_params import MatlabOpaque
-from scipy.io import loadmat, whosmat
+from scipy.io import loadmat
 
 from ...utils import _import_pymatreader_funcs
 
@@ -71,57 +72,21 @@ def _check_for_scipy_mat_struct(data):  # taken from pymatreader.utils
     return data
 
 
+def _scipy_reader(file_name, uint16_codec=None):
+    """Load with scipy and then run the check function."""
+    eeg = loadmat(
+        file_name, squeeze_me=True, mat_dtype=False, uint16_codec=uint16_codec
+    )
+    return _check_for_scipy_mat_struct(eeg)
+
+
 def _readmat(fname, uint16_codec=None, *, preload=False):
     try:
         read_mat = _import_pymatreader_funcs("EEGLAB I/O")
     except RuntimeError:  # pymatreader not installed
-        if preload:
-            eeg = loadmat(
-                fname, squeeze_me=True, mat_dtype=False, uint16_codec=uint16_codec
-            )
-        else:
-            # the files in eeglab are always the same field names
-            # the the fields were taken from the eeglab sample reference
-            # available at the eeglab github:
-            # https://github.com/sccn/eeglab/blob/develop/sample_data/eeglab_data.set
-            # The sample reference is the big reference for the field names
-            # in eeglab files, and what is used in the eeglab tests.
-            info_fields = """
-                setname filename filepath subject group condition session comments
-                nbchan trials pnts srate xmin xmax times icaact icawinv icasphere
-                icaweights icachansind chanlocs urchanlocs chaninfo ref event
-                urevent eventdescription epoch epochdescription reject stats
-                specdata specicaact splinefile icasplinefile dipfit history saved
-                etc
-            """.split()
+        read_mat = _scipy_reader
 
-            eeg = loadmat(
-                fname,
-                variable_names=info_fields,
-                squeeze_me=True,
-                mat_dtype=False,
-                uint16_codec=uint16_codec,
-            )
-            variables = whosmat(str(fname))
-            for var in variables:
-                if var[0] == "data":
-                    numeric_types = """
-                        int8 int16 int32
-                        int64 uint8 uint16
-                        uint32 uint64 single double
-                    """.split()
-                    if var[2] in numeric_types:
-                        # in preload=False mode and data is in .set file
-                        eeg["data"] = str(fname)
-                    else:
-                        eeg["data"] = loadmat(
-                            fname,
-                            variable_names=["data"],
-                            squeeze_me=True,
-                            mat_dtype=False,
-                            uint16_codec=uint16_codec,
-                        )
-                    break
-        return _check_for_scipy_mat_struct(eeg)
-    else:
+    if preload:
         return read_mat(fname, uint16_codec=uint16_codec)
+    else:
+        pass
