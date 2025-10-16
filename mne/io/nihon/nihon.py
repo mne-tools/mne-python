@@ -57,7 +57,7 @@ _valid_headers = [
     "EEG-2100  V02.00",
     "DAE-2100D V01.30",
     "DAE-2100D V02.00",
-    # 'EEG-1200A V01.00',  # Not working for the moment.
+    "EEG-1200A V01.00",
 ]
 
 
@@ -66,8 +66,10 @@ def _read_nihon_metadata(fname):
     fname = _ensure_path(fname)
     pnt_fname = fname.with_suffix(".PNT")
     if not pnt_fname.exists():
-        warn("No PNT file exists. Metadata will be blank")
-        return metadata
+        pnt_fname = fname.with_suffix(".pnt")
+        if not pnt_fname.exists():
+            warn("No PNT file exists. Metadata will be blank")
+            return metadata
     logger.info("Found PNT file, reading metadata.")
     with open(pnt_fname) as fid:
         version = np.fromfile(fid, "|S16", 1).astype("U16")[0]
