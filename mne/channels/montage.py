@@ -10,7 +10,6 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np
-import pandas as pd
 
 from .._fiff._digitization import (
     _coord_frame_const,
@@ -47,6 +46,7 @@ from ..utils import (
     _check_option,
     _on_missing,
     _pl,
+    _soft_import,
     _validate_type,
     check_fname,
     copy_function_doc_to_method_doc,
@@ -1684,7 +1684,7 @@ def read_custom_montage(
 
 
 @verbose
-def read_meg_montage(system, verbose=None):
+def read_meg_montage(system, *, verbose=None):
     """Load canonical MEG sensor definitions from CSV files.
 
     Parameters
@@ -1703,7 +1703,10 @@ def read_meg_montage(system, verbose=None):
     This function loads pre-defined canonical sensor positions and
     orientations from CSV files stored in mne/channels/data/montages/.
 
+    .. versionadded:: 1.11
     """
+    pd = _soft_import("pandas")
+
     # Validate system input
     _check_option("system", system, ["neuromag", "ctf151", "ctf275"])
 
@@ -1722,6 +1725,7 @@ def read_meg_montage(system, verbose=None):
         raise FileNotFoundError(f"Canonical sensor file not found: {csv_file}. ")
 
     # Read sensor definitions
+    # TODO: Refactor not to use Pandas (should be able to parse without it)
     df = pd.read_csv(csv_file)
 
     # Build channel info list
