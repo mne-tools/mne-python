@@ -116,7 +116,14 @@ def _readmat(fname, uint16_codec=None, *, preload=False):
 
         # checking the variables in the .set file
         # to decide how to handle 'data' variable
-        variables = whosmat(str(fname))
+        try:
+            variables = whosmat(str(fname))
+        except NotImplementedError:
+            # TODO: find an alternative to whosmat that works with v7.3 files
+            # that have h5py structure
+            preload = True
+
+            return read_mat(fname, uint16_codec=uint16_codec)
 
         is_possible_not_loaded = False
 
