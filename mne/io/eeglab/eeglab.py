@@ -51,9 +51,7 @@ def _check_eeglab_fname(fname, dataname):
             "version and resave the data in .fdt format"
         )
 
-    _check_option(
-        f"The file extension must be .set or .fdt, not {fmt}", fmt, (".set", ".fdt")
-    )
+    _check_option("EEGLAB file extension", fmt, (".set", ".fdt"))
 
     basedir = op.dirname(fname)
     data_fname = op.join(basedir, dataname)
