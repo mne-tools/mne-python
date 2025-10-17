@@ -101,7 +101,7 @@ def test_orig_units():
 
 def _test_raw_reader(
     reader,
-    test_preloading=False,
+    test_preloading=True,
     test_kwargs=True,
     boundary_decimal=2,
     test_scaling=True,
