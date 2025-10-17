@@ -14,7 +14,7 @@ from ..._fiff._digitization import _ensure_fiducials_head
 from ..._fiff.constants import FIFF
 from ..._fiff.meas_info import create_info
 from ..._fiff.pick import _PICK_TYPES_KEYS
-from ..._fiff.utils import _find_channels, _read_segments_file
+from ..._fiff.utils import _find_channels, _mult_cal_one, _read_segments_file
 from ...annotations import Annotations, read_annotations
 from ...channels import make_dig_montage
 from ...defaults import DEFAULTS
@@ -526,8 +526,6 @@ class RawEEGLAB(BaseRaw):
                     full_data = full_data[np.newaxis, :]
                 block = full_data[:, start:stop].astype(np.float32)
                 # Apply calibration and projection via _mult_cal_one
-                from ..._fiff.utils import _mult_cal_one
-
                 data_view = data[:, :]
                 _mult_cal_one(data_view, block, idx, cals, mult)
                 return
