@@ -119,8 +119,8 @@ def _readmat(fname, uint16_codec=None, *, preload=False):
         try:
             variables = whosmat(str(fname))
         except NotImplementedError:
-            # TODO: find an alternative to whosmat that works with v7.3 files
-            # that have h5py structure
+            # TODO: find an alternative to whosmat that works with
+            # v7.3 matlab files that have h5py structure
             preload = True
             return read_mat(fname, uint16_codec=uint16_codec)
 
