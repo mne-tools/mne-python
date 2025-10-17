@@ -1,5 +1,9 @@
 """Update dependency version specifiers to comply with SPEC0."""
 
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
+
 import collections
 import warnings
 from datetime import timedelta
