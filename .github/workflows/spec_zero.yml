@@ -1,4 +1,4 @@
-name: SPEC0 update dependency versions
+name: SPEC0
 
 on:  # yamllint disable-line rule:truthy
   pull_request:
@@ -10,7 +10,7 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
-    name: Update
+    name: Update dependency versions
     runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ github.token }}
