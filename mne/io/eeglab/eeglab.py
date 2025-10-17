@@ -564,7 +564,6 @@ class EpochsEEGLAB(BaseEpochs):
     %(montage_units)s
     %(verbose)s
 
-
     See Also
     --------
     mne.Epochs : Documentation of attributes and methods.
