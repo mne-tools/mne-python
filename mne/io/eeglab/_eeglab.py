@@ -120,22 +120,25 @@ def _readmat(fname, uint16_codec=None, *, preload=False):
 
         is_possible_not_loaded = False
 
+        numeric_types = """
+            int8 int16 int32
+            int64 uint8 uint16
+            uint32 uint64 single double
+        """.split()
+
         for var in variables:
             # looking for 'data' variable
-            if var[0] == "data":
-                numeric_types = """
-                    int8 int16 int32
-                    int64 uint8 uint16
-                    uint32 uint64 single double
-                """.split()
-                # checking if 'data' variable is numeric type
-                # or something like 'single'
-                is_possible_not_loaded = var[2] in numeric_types
+            if var[0] != "data":
+                continue
 
-                if is_possible_not_loaded:
-                    # in preload=False mode and data is in .set file
-                    mat_data["data"] = str(fname)
-                    break
+            # checking if 'data' variable is numeric
+            is_numeric = var[2] in numeric_types
+
+            # if any 'data' variable is numeric, mark as possibly not loaded
+            if is_numeric:
+                mat_data["data"] = str(fname)
+
+            is_possible_not_loaded = is_possible_not_loaded or is_numeric
 
         if is_possible_not_loaded:
             return mat_data
