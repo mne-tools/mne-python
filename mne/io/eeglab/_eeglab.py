@@ -11,7 +11,7 @@ except ImportError:  # scipy < 1.8
     from scipy.io.matlab.mio5_params import MatlabOpaque
 from scipy.io import loadmat, whosmat
 
-from ...utils import _import_pymatreader_funcs
+from ...utils import _import_pymatreader_funcs, _soft_import, warn
 
 
 def _todict_from_np_struct(data):  # taken from pymatreader.utils
@@ -74,9 +74,113 @@ def _check_for_scipy_mat_struct(data):  # taken from pymatreader.utils
 def _scipy_reader(file_name, variable_names=None, uint16_codec=None):
     """Load with scipy and then run the check function."""
     mat_data = loadmat(
-        file_name, squeeze_me=True, mat_dtype=False, uint16_codec=uint16_codec
+        file_name,
+        squeeze_me=True,
+        mat_dtype=False,
+        variable_names=variable_names,
+        uint16_codec=uint16_codec,
     )
     return _check_for_scipy_mat_struct(mat_data)
+
+
+def _whosmat_hdf5(fname: str):
+    """List variables in a MATLAB v7.3 (HDF5) .mat file without loading data.
+
+    This function provides similar functionality to :func:`scipy.io.whosmat` but
+    for MATLAB v7.3 files stored in HDF5 format, which are not supported by SciPy.
+
+    Parameters
+    ----------
+    fname : str | PathLike
+        Path to the MATLAB v7.3 (.mat) file.
+
+    Returns
+    -------
+    variables : list of tuple
+        A list of (name, shape, class) tuples for each variable in the file.
+        The name is a string, shape is a tuple of ints, and class is a string
+        indicating the MATLAB data type (e.g., 'double', 'int32', 'struct').
+
+    Notes
+    -----
+    This function only works with MATLAB v7.3 (HDF5) files. For earlier versions,
+    use :func:`scipy.io.whosmat` instead.
+
+    See Also
+    --------
+    scipy.io.whosmat : List variables in classic MATLAB files.
+    """
+    h5py = _soft_import("h5py", purpose="MATLAB v7.3 I/O")
+    if h5py is None:
+        raise ModuleNotFoundError(
+            "h5py is required to inspect MATLAB v7.3 files preload=`False` "
+            "Please install h5py to use this functionality."
+        )
+
+    variables = []
+
+    with h5py.File(str(fname), "r") as f:
+        for name in f.keys():
+            node = f[name]
+
+            # Extract shape from HDF5 object
+            if isinstance(node, h5py.Dataset):
+                shape = tuple(int(x) for x in node.shape)
+            else:
+                shape = ()
+                for attr_key in (
+                    "MATLAB_shape",
+                    "MATLAB_Size",
+                    "MATLAB_size",
+                    "dims",
+                    "MATLAB_dims",
+                ):
+                    shp = node.attrs.get(attr_key)
+                    if shp is not None:
+                        try:
+                            shape = tuple(int(x) for x in shp)
+                            break
+                        except Exception:
+                            pass
+                if not shape and "size" in node:
+                    try:
+                        shape = tuple(int(x) for x in node["size"][()])
+                    except Exception:
+                        pass
+
+            # Infer MATLAB class from HDF5 object
+            mcls = node.attrs.get("MATLAB_class", "").lower()
+            if mcls:
+                matlab_class = "char" if mcls == "string" else mcls
+            elif isinstance(node, h5py.Dataset):
+                dt = node.dtype
+                # Handle complex numbers stored as {real, imag} struct
+                if getattr(dt, "names", None) and {"real", "imag"} <= set(dt.names):
+                    matlab_class = (
+                        "double" if dt["real"].base.itemsize == 8 else "single"
+                    )
+                # Map NumPy dtype to MATLAB class
+                elif (kind := dt.kind) == "f":
+                    matlab_class = "double" if dt.itemsize == 8 else "single"
+                elif kind == "i":
+                    matlab_class = f"int{8 * dt.itemsize}"
+                elif kind == "u":
+                    matlab_class = f"uint{8 * dt.itemsize}"
+                elif kind == "b":
+                    matlab_class = "logical"
+                elif kind in ("S", "U", "O"):
+                    matlab_class = "char"
+                else:
+                    matlab_class = "unknown"
+            # Check for sparse matrix structure
+            elif {"ir", "jc", "data"}.issubset(set(node.keys())):
+                matlab_class = "sparse"
+            else:
+                matlab_class = "unknown"
+
+            variables.append((name, shape, matlab_class))
+
+    return variables
 
 
 def _readmat(fname, uint16_codec=None, *, preload=False):
@@ -118,10 +222,15 @@ def _readmat(fname, uint16_codec=None, *, preload=False):
         try:
             variables = whosmat(str(fname))
         except NotImplementedError:
-            # TODO: find an alternative to whosmat that works with
-            # v7.3 matlab files that have h5py structure
-            preload = True
-            return read_mat(fname, uint16_codec=uint16_codec)
+            try:
+                variables = _whosmat_hdf5(str(fname))
+            except ModuleNotFoundError:
+                warn(
+                    "pymatreader is required to preload=`False` for "
+                    "Matlab files v7.3 files. Setting preload=True."
+                )
+                preload = True
+                return read_mat(fname, uint16_codec=uint16_codec)
 
         is_possible_not_loaded = False
 
