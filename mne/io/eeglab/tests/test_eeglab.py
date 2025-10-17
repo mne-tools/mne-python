@@ -111,8 +111,6 @@ def test_io_set_preload_false_uses_lazy_loading():
     raw_preloaded = read_raw_eeglab(raw_fname_onefile_mat, preload=True)
     raw_not_preloaded = read_raw_eeglab(raw_fname_onefile_mat, preload=False)
 
-    assert raw_preloaded._size > raw_not_preloaded._size
-
     assert not raw_not_preloaded.preload
     assert raw_not_preloaded._data is None
     assert raw_not_preloaded.n_times == raw_preloaded.n_times
@@ -124,6 +122,8 @@ def test_io_set_preload_false_uses_lazy_loading():
     # on-demand reads must not flip the preload flag or populate _data
     assert not raw_not_preloaded.preload
     assert raw_not_preloaded._data is None
+
+    assert raw_preloaded._size > raw_not_preloaded._size
 
 
 @testing.requires_testing_data
