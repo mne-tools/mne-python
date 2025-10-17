@@ -664,7 +664,6 @@ def test_io_set_raw_2021():
     _test_raw_reader(
         reader=read_raw_eeglab,
         input_fname=raw_fname_2021,
-        preload=True,
     )
 
 

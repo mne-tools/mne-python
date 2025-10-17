@@ -461,6 +461,8 @@ class RawEEGLAB(BaseRaw):
         if isinstance(eeg.data, str):
             data_fname = _check_eeglab_fname(input_fname, eeg.data)
             logger.info(f"Reading {data_fname}")
+            # Check if data is embedded in the same .set file
+            is_embedded = op.realpath(data_fname) == op.realpath(input_fname)
 
             super().__init__(
                 info,
@@ -469,6 +471,13 @@ class RawEEGLAB(BaseRaw):
                 last_samps=last_samps,
                 orig_format="double",
                 verbose=verbose,
+                raw_extras=[
+                    {
+                        "is_embedded": is_embedded,
+                        "input_fname": input_fname,
+                        "uint16_codec": uint16_codec,
+                    }
+                ],
             )
         else:
             if eeg.nbchan == 1 and len(eeg.data.shape) == 1:
@@ -499,6 +508,31 @@ class RawEEGLAB(BaseRaw):
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data."""
+        # Check if data is embedded in .set file
+        raw_extra = self._raw_extras[fi]
+        if raw_extra.get("is_embedded", False):
+            # Load from MATLAB struct on-demand
+            input_fname = raw_extra["input_fname"]
+            uint16_codec = raw_extra["uint16_codec"]
+            eeg_full = _readmat(input_fname, uint16_codec=uint16_codec, preload=True)
+            if "EEG" in eeg_full:
+                eeg_full = eeg_full["EEG"]
+            eeg_full = eeg_full.get("EEG", eeg_full)
+            full_data = eeg_full.get("data", None)
+
+            if full_data is not None:
+                # Extract the requested segment from embedded data (don't scale here)
+                if full_data.ndim == 1:
+                    full_data = full_data[np.newaxis, :]
+                block = full_data[:, start:stop].astype(np.float32)
+                # Apply calibration and projection via _mult_cal_one
+                from ..._fiff.utils import _mult_cal_one
+
+                data_view = data[:, :]
+                _mult_cal_one(data_view, block, idx, cals, mult)
+                return
+
+        # Fall back to reading from file (separate .fdt file)
         _read_segments_file(self, data, idx, fi, start, stop, cals, mult, dtype="<f4")
 
 
@@ -669,9 +703,15 @@ class EpochsEEGLAB(BaseEpochs):
 
         if isinstance(eeg.data, str):
             data_fname = _check_eeglab_fname(input_fname, eeg.data)
-            with open(data_fname, "rb") as data_fid:
-                data = np.fromfile(data_fid, dtype=np.float32)
-                data = data.reshape((eeg.nbchan, eeg.pnts, eeg.trials), order="F")
+            # Check if data is embedded in the same .set file
+            is_embedded = op.realpath(data_fname) == op.realpath(input_fname)
+
+            if is_embedded:
+                # Data is embedded - load from MATLAB struct
+                data = self._read_embedded_data(input_fname, uint16_codec, eeg)
+            else:
+                # Data is in a separate file - read as binary
+                data = self._read_separate_data(data_fname, eeg)
         else:
             data = eeg.data
 
@@ -704,6 +744,51 @@ class EpochsEEGLAB(BaseEpochs):
         _set_dig_montage_in_init(self, eeg_montage)
 
         logger.info("Ready.")
+
+    @staticmethod
+    def _read_embedded_data(input_fname, uint16_codec, eeg):
+        """Load embedded data from MATLAB struct.
+
+        Parameters
+        ----------
+        input_fname : str
+            Path to the .set file containing embedded data.
+        uint16_codec : str | None
+            Codec for reading strings from MATLAB file.
+        eeg : Bunch
+            EEG structure with metadata (nbchan, pnts, trials).
+
+        Returns
+        -------
+        data : ndarray
+            Data array of shape (nbchan, pnts, trials).
+        """
+        eeg_full = _readmat(input_fname, uint16_codec=uint16_codec, preload=True)
+        if "EEG" in eeg_full:
+            eeg_full = eeg_full["EEG"]
+        eeg_full = eeg_full.get("EEG", eeg_full)
+        return eeg_full.get("data", eeg.data)
+
+    @staticmethod
+    def _read_separate_data(data_fname, eeg):
+        """Load data from separate binary file.
+
+        Parameters
+        ----------
+        data_fname : str
+            Path to the .fdt or other binary data file.
+        eeg : Bunch
+            EEG structure with metadata (nbchan, pnts, trials).
+
+        Returns
+        -------
+        data : ndarray
+            Data array of shape (nbchan, pnts, trials).
+        """
+        with open(data_fname, "rb") as data_fid:
+            data = np.fromfile(data_fid, dtype=np.float32)
+            data = data.reshape((eeg.nbchan, eeg.pnts, eeg.trials), order="F")
+        return data
 
 
 def _check_boundary(annot, event_id):
