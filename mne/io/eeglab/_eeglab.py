@@ -110,8 +110,8 @@ def _whosmat_hdf5(fname: str):
     --------
     scipy.io.whosmat : List variables in classic MATLAB files.
     """
-    h5py = _soft_import("h5py", purpose="MATLAB v7.3 I/O")
-    if h5py is None:
+    h5py = _soft_import("h5py", purpose="MATLAB v7.3 I/O", strict=False)
+    if h5py is False:
         raise ModuleNotFoundError(
             "h5py is required to inspect MATLAB v7.3 files preload=`False` "
             "Please install h5py to use this functionality."
