@@ -85,7 +85,6 @@ def _readmat(fname, uint16_codec=None, *, preload=True):
         read_mat = _import_pymatreader_funcs("EEGLAB I/O")
     except RuntimeError:  # pymatreader not installed
         read_mat = _scipy_reader
-
     if preload:
         return read_mat(fname, uint16_codec=uint16_codec)
     else:
