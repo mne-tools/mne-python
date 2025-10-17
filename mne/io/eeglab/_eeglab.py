@@ -136,6 +136,7 @@ def _readmat(fname, uint16_codec=None, *, preload=False):
 
             # if any 'data' variable is numeric, mark as possibly not loaded
             if is_numeric:
+                # set the 'data' field to the filename
                 mat_data["data"] = str(fname)
 
             is_possible_not_loaded = is_possible_not_loaded or is_numeric
