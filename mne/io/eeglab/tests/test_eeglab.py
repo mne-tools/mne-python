@@ -128,6 +128,59 @@ def test_io_set_preload_false_uses_lazy_loading():
     assert raw_not_preloaded._data is None
 
 
+def test_io_set_numeric_data_forces_preload(tmp_path):
+    """Numeric data stored in the .set file should be loaded into memory."""
+    nbchan, pnts, sfreq = 3, 5, 256.0
+    data = np.arange(nbchan * pnts, dtype=float).reshape(nbchan, pnts)
+    chanlocs = np.array(
+        [
+            (b"Ch1", 0.0, 0.0, 0.0),
+            (b"Ch2", 0.1, 0.0, 0.0),
+            (b"Ch3", 0.0, 0.1, 0.0),
+        ],
+        dtype=[("labels", "S10"), ("X", "f8"), ("Y", "f8"), ("Z", "f8")],
+    )
+    fname = tmp_path / "numeric_infile.set"
+    io.savemat(
+        fname,
+        {
+            "setname": "numeric",
+            "filename": "",
+            "filepath": "",
+            "subject": "",
+            "group": "",
+            "condition": "",
+            "session": 1,
+            "comments": "",
+            "nbchan": nbchan,
+            "trials": 1,
+            "pnts": pnts,
+            "srate": sfreq,
+            "xmin": 0.0,
+            "xmax": (pnts - 1) / sfreq,
+            "times": np.arange(pnts) / sfreq,
+            "data": data,
+            "chanlocs": chanlocs,
+            "epoch": [],
+            "event": [],
+        },
+        appendmat=False,
+        oned_as="row",
+    )
+
+    warn_msg = "numeric.*preload=False.*Loading the data into memory"
+    with pytest.warns(RuntimeWarning, match=warn_msg):
+        raw_lazy = read_raw_eeglab(fname, preload=False)
+
+    assert raw_lazy.preload
+    assert raw_lazy._data is not None
+
+    lazy_data = raw_lazy.get_data()
+    with pytest.warns(RuntimeWarning, match=warn_msg):
+        raw_preloaded = read_raw_eeglab(fname, preload=True)
+    assert_allclose(lazy_data, raw_preloaded.get_data())
+
+
 @testing.requires_testing_data
 def test_io_set_preload_false_is_faster(monkeypatch):
     """Using preload=False should skip the expensive data read branch."""

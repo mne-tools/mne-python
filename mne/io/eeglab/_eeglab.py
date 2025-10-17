@@ -123,21 +123,30 @@ def _readmat(fname, uint16_codec=None, *, preload=True):
                     int64 uint8 uint16
                     uint32 uint64 single double
                 """.split()
+                data_dict = read_mat(
+                    fname,
+                    variable_names=["data"],
+                    uint16_codec=uint16_codec,
+                )
+                if "data" in data_dict:
+                    data_value = data_dict["data"]
+                elif "EEG" in data_dict and isinstance(data_dict["EEG"], dict):
+                    data_value = data_dict["EEG"].get("data")
+                else:
+                    data_value = None
+                if data_value is None:
+                    raise KeyError(
+                        "Unable to locate the 'data' variable in the EEGLAB file."
+                    )
+                data_value = _check_for_scipy_mat_struct(data_value)
                 if var[2] in numeric_types:
                     warn(
                         "The 'data' variable in the .set file appears to be "
-                        "numeric. This is indicated that preload=False is not possible"
-                        "for this format of data. Loading the data into "
-                        "memory.",
+                        "numeric. This indicates that preload=False is not "
+                        "supported for this file. Loading the data into "
+                        "memory instead.",
                     )
-                    # in preload=False mode and data is in .set file
-                    eeg["data"] = str(fname)
-                else:
-                    eeg["data"] = read_mat(
-                        fname,
-                        variable_names=["data"],
-                        uint16_codec=uint16_codec,
-                    )
+                eeg["data"] = data_value
                 break
 
         return eeg
