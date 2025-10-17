@@ -227,7 +227,8 @@ def _readmat(fname, uint16_codec=None, *, preload=False):
             except ModuleNotFoundError:
                 warn(
                     "pymatreader is required to preload=`False` for "
-                    "Matlab files v7.3 files. Setting preload=True."
+                    "Matlab files v7.3 files with HDF5 support. "
+                    "Setting preload=True."
                 )
                 preload = True
                 return read_mat(fname, uint16_codec=uint16_codec)
