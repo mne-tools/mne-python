@@ -80,7 +80,7 @@ def _scipy_reader(file_name, variable_names=None, uint16_codec=None):
     return _check_for_scipy_mat_struct(eeg)
 
 
-def _readmat(fname, uint16_codec=None, *, preload=True):
+def _readmat(fname, uint16_codec=None, *, preload=False):
     try:
         read_mat = _import_pymatreader_funcs("EEGLAB I/O")
     except RuntimeError:  # pymatreader not installed
@@ -105,13 +105,11 @@ def _readmat(fname, uint16_codec=None, *, preload=True):
             specdata specicaact splinefile icasplinefile dipfit history saved
             etc
         """.split()
-
         eeg = read_mat(
             fname,
             variable_names=info_fields,
             uint16_codec=uint16_codec,
         )
-
         variables = whosmat(str(fname))
 
         for var in variables:
