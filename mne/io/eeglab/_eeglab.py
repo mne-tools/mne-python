@@ -12,7 +12,7 @@ except ImportError:  # scipy < 1.8
     from scipy.io.matlab.mio5_params import MatlabOpaque
 from scipy.io import loadmat, whosmat
 
-from ...utils import _import_pymatreader_funcs, warn
+from ...utils import _import_pymatreader_funcs
 
 
 def _todict_from_np_struct(data):  # taken from pymatreader.utils
@@ -144,12 +144,11 @@ def _readmat(fname, uint16_codec=None, *, preload=False):
         if is_possible_not_loaded:
             return mat_data
         else:
-            warn(
-                "The 'data' variable in the .set file appears to be numeric. "
-                "In preload=False mode, the data is not loaded into memory. "
-                "Instead, the filename is provided in mat_data['data']. "
-                "To load the actual data, set preload=True."
-            )
+            # "The 'data' variable in the .set file appears to be numeric. "
+            # "In preload=False mode, the data is not loaded into memory. "
+            # "Instead, the filename is provided in mat_data['data']. "
+            # "To load the actual data, set preload=True."
+            # this is case of single file .set with data inside
             preload = True
 
     # here is intended to be if and not else if
