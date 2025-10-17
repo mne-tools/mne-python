@@ -128,15 +128,17 @@ def _readmat(fname, uint16_codec=None, *, preload=False):
                     int64 uint8 uint16
                     uint32 uint64 single double
                 """.split()
-
+                # checking if 'data' variable is numeric type
+                # or something like 'single'
                 is_possible_not_loaded = var[2] in numeric_types
 
                 if is_possible_not_loaded:
                     # in preload=False mode and data is in .set file
                     mat_data["data"] = str(fname)
+                    break
 
         if is_possible_not_loaded:
-            return _check_for_scipy_mat_struct(mat_data)
+            return mat_data
         else:
             # warn(
             #     "The 'data' variable in the .set file appears to be numeric. "
