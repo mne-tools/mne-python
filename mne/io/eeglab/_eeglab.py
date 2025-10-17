@@ -122,7 +122,6 @@ def _readmat(fname, uint16_codec=None, *, preload=False):
             # TODO: find an alternative to whosmat that works with v7.3 files
             # that have h5py structure
             preload = True
-
             return read_mat(fname, uint16_codec=uint16_codec)
 
         is_possible_not_loaded = False
