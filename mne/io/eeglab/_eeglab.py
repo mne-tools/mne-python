@@ -87,10 +87,9 @@ def _readmat(fname, uint16_codec=None, *, preload=True):
         read_mat = _scipy_reader
 
     if preload:
-        # nothing changes here
         return read_mat(fname, uint16_codec=uint16_codec)
     else:
-        # when preload is False, we need to be selective about what we load
+        # when preload is `False`, we need to be selective about what we load
         # and handle the 'data' field specially
 
         # the files in eeglab are always the same field names
@@ -149,4 +148,4 @@ def _readmat(fname, uint16_codec=None, *, preload=True):
                 eeg["data"] = data_value
                 break
 
-        return eeg
+        return _check_for_scipy_mat_struct(eeg)
