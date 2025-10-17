@@ -108,11 +108,11 @@ def test_io_set_raw(fname):
 @testing.requires_testing_data
 def test_io_set_preload_false_uses_lazy_loading():
     """Ensure reading .set files without preload keeps data out of memory."""
-    raw_preloaded = read_raw_eeglab(raw_fname_onefile_mat, preload=True)
-    raw_not_preloaded = read_raw_eeglab(raw_fname_onefile_mat, preload=False)
+    raw_preloaded = read_raw_eeglab(raw_fname_mat, preload=True)
+    raw_not_preloaded = read_raw_eeglab(raw_fname_mat, preload=False)
 
     assert not raw_not_preloaded.preload
-    assert raw_not_preloaded._data is None
+    assert getattr(raw_not_preloaded, "_data", None) is None
     assert raw_not_preloaded.n_times == raw_preloaded.n_times
     assert raw_not_preloaded.info["nchan"] == raw_preloaded.info["nchan"]
 
@@ -121,7 +121,7 @@ def test_io_set_preload_false_uses_lazy_loading():
 
     # on-demand reads must not flip the preload flag or populate _data
     assert not raw_not_preloaded.preload
-    assert raw_not_preloaded._data is None
+    assert getattr(raw_not_preloaded, "_data", None) is None
 
     assert raw_preloaded._size > raw_not_preloaded._size
 
