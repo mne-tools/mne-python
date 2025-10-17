@@ -80,7 +80,7 @@ def _scipy_reader(file_name, variable_names=None, uint16_codec=None):
     return _check_for_scipy_mat_struct(eeg)
 
 
-def _readmat(fname, uint16_codec=None, *, preload=False):
+def _readmat(fname, uint16_codec=None, *, preload=True):
     try:
         read_mat = _import_pymatreader_funcs("EEGLAB I/O")
     except RuntimeError:  # pymatreader not installed
