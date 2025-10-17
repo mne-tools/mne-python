@@ -511,24 +511,40 @@ class RawEEGLAB(BaseRaw):
         # Check if data is embedded in .set file
         raw_extra = self._raw_extras[fi]
         if raw_extra.get("is_embedded", False):
-            # Load from MATLAB struct on-demand
-            input_fname = raw_extra["input_fname"]
-            uint16_codec = raw_extra["uint16_codec"]
-            eeg_full = _readmat(input_fname, uint16_codec=uint16_codec, preload=True)
-            if "EEG" in eeg_full:
-                eeg_full = eeg_full["EEG"]
-            eeg_full = eeg_full.get("EEG", eeg_full)
-            full_data = eeg_full.get("data", None)
+            # Check if we have already loaded and cached the embedded data
+            if "cached_data" not in raw_extra:
+                # Load from MATLAB struct on-demand (only once)
+                input_fname = raw_extra["input_fname"]
+                uint16_codec = raw_extra["uint16_codec"]
+                eeg_full = _readmat(
+                    input_fname, uint16_codec=uint16_codec, preload=True
+                )
+                if "EEG" in eeg_full:
+                    eeg_full = eeg_full["EEG"]
+                eeg_full = eeg_full.get("EEG", eeg_full)
+                full_data = eeg_full.get("data")
 
-            if full_data is not None:
-                # Extract the requested segment from embedded data (don't scale here)
+                if full_data is None:
+                    raise ValueError(
+                        f"Could not find 'data' field in embedded EEGLAB file: "
+                        f"{input_fname}. The file may be corrupted or not a valid "
+                        "EEGLAB file."
+                    )
+
+                # Handle 1D data
                 if full_data.ndim == 1:
                     full_data = full_data[np.newaxis, :]
-                block = full_data[:, start:stop].astype(np.float32)
-                # Apply calibration and projection via _mult_cal_one
-                data_view = data[:, :]
-                _mult_cal_one(data_view, block, idx, cals, mult)
-                return
+
+                # Cache for future segment reads
+                raw_extra["cached_data"] = full_data
+
+            # Extract the requested segment from cached data (don't scale here)
+            full_data = raw_extra["cached_data"]
+            block = full_data[:, start:stop].astype(np.float32)
+            # Apply calibration and projection via _mult_cal_one
+            data_view = data[:, :]
+            _mult_cal_one(data_view, block, idx, cals, mult)
+            return
 
         # Fall back to reading from file (separate .fdt file)
         _read_segments_file(self, data, idx, fi, start, stop, cals, mult, dtype="<f4")

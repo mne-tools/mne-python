@@ -792,3 +792,119 @@ def test_io_set_preload_false_is_faster(monkeypatch):
     # preload=True should not be faster than preload=False (timings may vary
     # across systems, so avoid strict thresholds)
     assert durations[True] > durations[False]
+
+
+@testing.requires_testing_data
+def test_lazy_vs_preload_integrity():
+    """Test that lazy loading produces identical data to preload."""
+    raw_lazy = read_raw_eeglab(raw_fname_onefile_mat, preload=False)
+    raw_preload = read_raw_eeglab(raw_fname_onefile_mat, preload=True)
+
+    # Get data from both modes
+    data_lazy = raw_lazy.get_data()
+    data_preload = raw_preload.get_data()
+
+    # Data should be identical
+    assert_array_almost_equal(data_lazy, data_preload, decimal=5)
+
+    # Verify shape consistency
+    assert data_lazy.shape == data_preload.shape
+    assert raw_lazy.n_times == raw_preload.n_times
+    assert len(raw_lazy.ch_names) == len(raw_preload.ch_names)
+
+    # Verify no NaN/Inf and data is not all zeros
+    assert np.isfinite(data_lazy).all()
+    assert not np.all(data_lazy == 0)
+
+
+@testing.requires_testing_data
+def test_lazy_loading_segment_reads():
+    """Test that lazy loading correctly reads data segments."""
+    raw_lazy = read_raw_eeglab(raw_fname_onefile_mat, preload=False)
+    raw_preload = read_raw_eeglab(raw_fname_onefile_mat, preload=True)
+
+    # Test beginning, middle, and end segments
+    segments = [
+        (0, 100),
+        (100, 200),
+        (raw_lazy.n_times - 100, raw_lazy.n_times),
+    ]
+
+    for start, stop in segments:
+        data_lazy = raw_lazy[:, start:stop][0]
+        data_preload = raw_preload[:, start:stop][0]
+
+        # Segments should be identical
+        assert_array_almost_equal(data_lazy, data_preload, decimal=5)
+
+        # Data should not be all zeros
+        assert not np.all(data_lazy == 0)
+
+
+@testing.requires_testing_data
+def test_lazy_loading_with_epochs():
+    """Test that lazy loading works with embedded epoch files."""
+    with _record_warnings(), pytest.warns(RuntimeWarning, match="multiple events"):
+        epochs = read_epochs_eeglab(epochs_fname_onefile_mat)
+
+    data = epochs.get_data()
+
+    # Verify dimensions
+    assert data.ndim == 3
+    assert data.shape[0] > 0
+    assert data.shape[1] > 0
+    assert data.shape[2] > 0
+
+    # Verify data is valid (no NaN/Inf)
+    assert np.isfinite(data).all()
+
+    # Verify data is not all zeros
+    assert not np.all(data == 0)
+
+
+@testing.requires_testing_data
+def test_lazy_loading_data_consistency():
+    """Test that lazy loading maintains consistency across multiple reads."""
+    raw_lazy = read_raw_eeglab(raw_fname_onefile_mat, preload=False)
+    raw_preload = read_raw_eeglab(raw_fname_onefile_mat, preload=True)
+
+    # Get data multiple times from lazy-loaded raw
+    reads = [raw_lazy.get_data().copy() for _ in range(3)]
+
+    # All reads should be identical
+    for i in range(1, len(reads)):
+        assert_array_equal(reads[0], reads[i])
+
+    # Should match preloaded data
+    data_preload = raw_preload.get_data()
+    assert_array_almost_equal(reads[0], data_preload, decimal=5)
+
+    # Check numerical stability
+    lazy_mean = np.mean(reads[0])
+    lazy_std = np.std(reads[0])
+    preload_mean = np.mean(data_preload)
+    preload_std = np.std(data_preload)
+
+    assert_allclose(lazy_mean, preload_mean, rtol=1e-10)
+    assert_allclose(lazy_std, preload_std, rtol=1e-10)
+
+
+@testing.requires_testing_data
+@pytest.mark.parametrize("fname", [raw_fname_onefile_mat, raw_fname_mat])
+def test_lazy_vs_preload_all_formats(fname):
+    """Test lazy loading vs preload for both embedded and separate formats."""
+    raw_lazy = read_raw_eeglab(fname, preload=False)
+    raw_preload = read_raw_eeglab(fname, preload=True)
+
+    # Verify identical data
+    data_lazy = raw_lazy.get_data()
+    data_preload = raw_preload.get_data()
+    assert_array_almost_equal(data_lazy, data_preload, decimal=5)
+
+    # Verify metadata is identical
+    assert raw_lazy.n_times == raw_preload.n_times
+    assert raw_lazy.info["sfreq"] == raw_preload.info["sfreq"]
+    assert len(raw_lazy.ch_names) == len(raw_preload.ch_names)
+
+    # Verify annotations are present
+    assert len(raw_lazy.annotations) == len(raw_preload.annotations)
