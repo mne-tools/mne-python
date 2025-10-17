@@ -74,10 +74,10 @@ def _check_for_scipy_mat_struct(data):  # taken from pymatreader.utils
 
 def _scipy_reader(file_name, variable_names=None, uint16_codec=None):
     """Load with scipy and then run the check function."""
-    eeg = loadmat(
+    mat_data = loadmat(
         file_name, squeeze_me=True, mat_dtype=False, uint16_codec=uint16_codec
     )
-    return _check_for_scipy_mat_struct(eeg)
+    return _check_for_scipy_mat_struct(mat_data)
 
 
 def _readmat(fname, uint16_codec=None, *, preload=False):
@@ -85,9 +85,9 @@ def _readmat(fname, uint16_codec=None, *, preload=False):
         read_mat = _import_pymatreader_funcs("EEGLAB I/O")
     except RuntimeError:  # pymatreader not installed
         read_mat = _scipy_reader
-    if preload:
-        return read_mat(fname, uint16_codec=uint16_codec)
-    else:
+
+    # First handle the preload=False case
+    if not preload:
         # when preload is `False`, we need to be selective about what we load
         # and handle the 'data' field specially
 
@@ -105,44 +105,47 @@ def _readmat(fname, uint16_codec=None, *, preload=False):
             specdata specicaact splinefile icasplinefile dipfit history saved
             etc
         """.split()
-        eeg = read_mat(
+
+        # We first load only the info fields that are not data
+        # Then we check if 'data' is present and load it separately if needed
+        mat_data = read_mat(
             fname,
             variable_names=info_fields,
             uint16_codec=uint16_codec,
         )
+
+        # checking the variables in the .set file
+        # to decide how to handle 'data' variable
         variables = whosmat(str(fname))
 
+        is_possible_not_loaded = False
+
         for var in variables:
+            # looking for 'data' variable
             if var[0] == "data":
                 numeric_types = """
                     int8 int16 int32
                     int64 uint8 uint16
                     uint32 uint64 single double
                 """.split()
-                data_dict = read_mat(
-                    fname,
-                    variable_names=["data"],
-                    uint16_codec=uint16_codec,
-                )
-                if "data" in data_dict:
-                    data_value = data_dict["data"]
-                elif "EEG" in data_dict and isinstance(data_dict["EEG"], dict):
-                    data_value = data_dict["EEG"].get("data")
-                else:
-                    data_value = None
-                if data_value is None:
-                    raise KeyError(
-                        "Unable to locate the 'data' variable in the EEGLAB file."
-                    )
-                data_value = _check_for_scipy_mat_struct(data_value)
-                if var[2] in numeric_types:
-                    warn(
-                        "The 'data' variable in the .set file appears to be "
-                        "numeric. This indicates that preload=False is not "
-                        "supported for this file. Loading the data into "
-                        "memory instead.",
-                    )
-                eeg["data"] = data_value
-                break
 
-        return _check_for_scipy_mat_struct(eeg)
+                is_possible_not_loaded = var[2] in numeric_types
+
+                if is_possible_not_loaded:
+                    # in preload=False mode and data is in .set file
+                    mat_data["data"] = str(fname)
+
+        if is_possible_not_loaded:
+            return _check_for_scipy_mat_struct(mat_data)
+        else:
+            warn(
+                "The 'data' variable in the .set file appears to be numeric. "
+                "In preload=False mode, the data is not loaded into memory. "
+                "Instead, the filename is provided in mat_data['data']. "
+                "To load the actual data, set preload=True."
+            )
+            preload = True
+
+    # here is intended to be if and not else if
+    if preload:
+        return read_mat(fname, uint16_codec=uint16_codec)
