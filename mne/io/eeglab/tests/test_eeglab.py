@@ -85,7 +85,6 @@ def test_io_set_raw(fname):
         # filter as the snippet of raw data is very short
         raw0.crop(0, 1)
     else:
-        raw0.load_data()
         raw0.set_montage(montage)
         raw0.filter(
             1, None, l_trans_bandwidth="auto", filter_length="auto", phase="zero"
