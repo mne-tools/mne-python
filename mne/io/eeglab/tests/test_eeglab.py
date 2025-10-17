@@ -4,6 +4,7 @@
 
 import os
 import shutil
+import time
 from copy import deepcopy
 
 import numpy as np
@@ -22,6 +23,7 @@ from mne.annotations import events_from_annotations, read_annotations
 from mne.channels import read_custom_montage
 from mne.datasets import testing
 from mne.io import read_raw_eeglab
+from mne.io.eeglab import _eeglab as eeglab_mod
 from mne.io.eeglab._eeglab import _readmat
 from mne.io.eeglab.eeglab import _dol_to_lod, _get_montage_information
 from mne.io.tests.test_raw import _test_raw_reader
@@ -767,3 +769,28 @@ def test_eeglab_drop_nan_annotations(tmp_path):
 
     with pytest.warns(RuntimeWarning, match="1 .* have an onset that is NaN.*"):
         raw = read_raw_eeglab(file_path, preload=True)
+
+
+@testing.requires_testing_data
+@pytest.mark.timeout(10)
+def test_io_set_preload_false_is_faster(monkeypatch):
+    """Using preload=False should skip the expensive data read branch."""
+    real_loadmat = eeglab_mod.loadmat
+    call_counts = {"n": 0}
+
+    def counting_loadmat(*args, **kwargs):
+        call_counts["n"] += 1
+        return real_loadmat(*args, **kwargs)
+
+    monkeypatch.setattr(eeglab_mod, "loadmat", counting_loadmat)
+
+    durations = {}
+    with _record_warnings():
+        for preload in (False, True):
+            start = time.perf_counter()
+            _ = read_raw_eeglab(raw_fname_mat, preload=preload)
+            durations[preload] = time.perf_counter() - start
+
+    # preload=True should not be faster than preload=False (timings may vary
+    # across systems, so avoid strict thresholds)
+    assert durations[True] > durations[False]
