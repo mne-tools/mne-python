@@ -78,7 +78,7 @@ fname_evoked_io = op.join(base_dir, "test-ave.fif")
 event_id, tmin, tmax = 1, -0.1, 1.0
 vv_layout = read_layout("Vectorview-all")
 
-collect_ignore = ["export/_brainvision.py", "export/_eeglab.py", "export/_edf.py"]
+collect_ignore = ["export/_brainvision.py", "export/_eeglab.py", "export/_edf_bdf.py"]
 
 
 def pytest_configure(config: pytest.Config):
@@ -180,7 +180,7 @@ def pytest_configure(config: pytest.Config):
     # pyvista <-> NumPy 2.0
     ignore:__array_wrap__ must accept context and return_scalar arguments.*:DeprecationWarning
     # pyvista <-> VTK dev
-    ignore:Call to deprecated method GetInputAsDataSet.*:DeprecationWarning
+    ignore:Call to deprecated method Get.*:DeprecationWarning
     # nibabel <-> NumPy 2.0
     ignore:__array__ implementation doesn't accept a copy.*:DeprecationWarning
     # quantities via neo
