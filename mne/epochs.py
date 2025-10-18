@@ -690,7 +690,7 @@ class BaseEpochs(
         self._check_consistency()
         self.set_annotations(annotations, on_missing="ignore")
 
-    def drop_bad_epochs(self, reject_mask: np.ndarray = None):
+    def drop_bad_epochs(self, reject_mask=None):
         """Drop bad epochs for individual channels.
 
         Parameters
