@@ -701,8 +701,8 @@ class BaseEpochs(
 
         Returns
         -------
-        self : instance of Epochs
-        Returns the modified epochs object with bad epochs marked as NaN.
+        epochs : instance of Epochs
+            The epochs with bad epochs marked with NaNs. Operates in-place.
         """
         if reject_mask is None:
             return self
