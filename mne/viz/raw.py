@@ -103,6 +103,8 @@ def plot_raw(
     annotation_regex : str
         A regex pattern applied to each annotation's label.
         Matching labels remain visible, non-matching labels are hidden.
+
+        .. versionadded:: 1.11
     %(scalings)s
     remove_dc : bool
         If True remove DC component when plotting data.

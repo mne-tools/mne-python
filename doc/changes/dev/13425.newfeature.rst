@@ -1,1 +1,1 @@
-Added `annotation_regex` parameter to :func:`mne.viz.raw.plot_raw`, automatically hiding annotations not matching the regex, by :newcontrib: `Johannes Herforth`_
+Added `annotation_regex` parameter to :func:`mne.viz.raw.plot_raw` and :func:`mne.viz.ica.plot_sources`, automatically hiding annotations not matching the regex, by `Johannes Herforth`_.
