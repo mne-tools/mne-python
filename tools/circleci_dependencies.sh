@@ -3,7 +3,7 @@
 python -m pip install --upgrade "pip!=20.3.0" build
 python -m pip install --upgrade --progress-bar off \
     --only-binary "numpy,dipy,scipy,matplotlib,pandas,statsmodels" \
-    -ve .[full,test,doc] "numpy>=2" \
+    -ve .[full] "numpy>=2" \
     "git+https://github.com/pyvista/pyvista.git" \
     "git+https://github.com/sphinx-gallery/sphinx-gallery.git" \
     "git+https://github.com/mne-tools/mne-bids.git" \
@@ -15,5 +15,6 @@ python -m pip install --upgrade --progress-bar off \
     neurodsp neurokit2 niseq nitime pactools mnelab \
     plotly pycrostates pyprep pyriemann python-picard sesameeg \
     sleepecg tensorpac yasa meegkit eeg_positions wfdb \
-    curryreader
+    curryreader \
+    --group=test --group=doc
 python -m pip install --upgrade --progress-bar off --no-deps cross-domain-saliency-maps
