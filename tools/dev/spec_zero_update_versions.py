@@ -40,13 +40,11 @@ def get_release_and_drop_dates(package, support_time=PLUS_24_MONTHS):
         ver = f["filename"].split("-")[1]
         try:
             version = Version(ver)
-        except Exception:
+        except InvalidVersion:
             continue
         if version.is_prerelease:
             continue
-        release_date = datetime.datetime.strptime(
-            f["upload-time"], "%Y-%m-%dT%H:%M:%S.%fZ"
-        )
+        release_date = datetime.datetime.fromisoformat(f["upload-time"])
         if not release_date:
             continue
         file_date[version].append(release_date)
