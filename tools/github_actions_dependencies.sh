@@ -5,8 +5,6 @@ set -eo pipefail
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 STD_ARGS="--progress-bar off --upgrade"
 INSTALL_ARGS="-e"
-GROUP="test_extra"
-EXTRAS="hdf5"
 if [ ! -z "$CONDA_ENV" ]; then
 	echo "Uninstalling MNE for CONDA_ENV=${CONDA_ENV}"
 	# This will fail if mne-base is not in the env (like in our minimial/old envs, so ||true them):
@@ -25,9 +23,13 @@ if [ ! -z "$CONDA_ENV" ]; then
 		GROUP="test"
 		EXTRAS=""
 		STD_ARGS="--progress-bar off"
+	else
+		GROUP="test_extra"
+		EXTRAS="hdf5"
 	fi
 elif [[ "${MNE_CI_KIND}" == "pip" ]]; then
-	EXTRAS="full-pyside6,$EXTRAS"
+	GROUP="test_extra"
+	EXTRAS="full-pyside6"
 else
 	test "${MNE_CI_KIND}" == "pip-pre"
 	STD_ARGS="$STD_ARGS --pre"
