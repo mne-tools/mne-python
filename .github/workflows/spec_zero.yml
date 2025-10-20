@@ -15,6 +15,7 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       GITHUB_TOKEN: ${{ github.token }}
+      PR_NUMBER: ${{ github.event.number }}
     steps:
       - uses: actions/checkout@v5
         with:
@@ -39,7 +40,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git add .
           git commit -m "MAINT: Update dependency versions"
-          git push origin HEAD:$GITHUB_REF
+          git push origin HEAD:refs/pull/$PR_NUMBER/head
         if: steps.status.outputs.dirty == 'true'
 
       - name: Re-trigger pre-commit checks for changed dependencies
