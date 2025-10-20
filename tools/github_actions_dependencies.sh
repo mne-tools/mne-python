@@ -25,11 +25,11 @@ if [ ! -z "$CONDA_ENV" ]; then
 		STD_ARGS="--progress-bar off"
 	else
 		GROUP="test_extra"
-		EXTRAS="hdf5"
+		EXTRAS="[hdf5]"
 	fi
 elif [[ "${MNE_CI_KIND}" == "pip" ]]; then
 	GROUP="test_extra"
-	EXTRAS="full-pyside6"
+	EXTRAS="[full-pyside6]"
 else
 	test "${MNE_CI_KIND}" == "pip-pre"
 	STD_ARGS="$STD_ARGS --pre"
@@ -41,6 +41,6 @@ echo ""
 
 echo "::group::Installing test dependencies using pip"
 set -x
-python -m pip install $STD_ARGS $INSTALL_ARGS .[$EXTRAS] --group=$GROUP
+python -m pip install $STD_ARGS $INSTALL_ARGS .$EXTRAS --group=$GROUP
 set +x
 echo "::endgroup::"
