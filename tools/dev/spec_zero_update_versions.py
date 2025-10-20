@@ -5,10 +5,9 @@
 # Copyright the MNE-Python contributors.
 
 import collections
+import datetime
 import warnings
-from datetime import timedelta
 
-import pandas as pd
 import requests
 from packaging.requirements import Requirement
 from packaging.specifiers import SpecifierSet
@@ -16,10 +15,10 @@ from packaging.version import Version
 from tomlkit.toml_file import TOMLFile
 
 SORT_PACKAGES = ["matplotlib", "numpy", "pandas", "pyvista", "pyvistaqt", "scipy"]
-PLUS_24_MONTHS = timedelta(days=int(365 * 2))
+PLUS_24_MONTHS = datetime.timedelta(days=int(365 * 2))
 
 # Release data
-CURRENT_DATE = pd.Timestamp.now()
+CURRENT_DATE = datetime.datetime.now()
 
 
 def get_release_and_drop_dates(package, support_time=PLUS_24_MONTHS):
@@ -44,7 +43,9 @@ def get_release_and_drop_dates(package, support_time=PLUS_24_MONTHS):
             continue
         if version.is_prerelease:
             continue
-        release_date = pd.Timestamp(f["upload-time"]).tz_localize(None)
+        release_date = datetime.datetime.strptime(
+            f["upload-time"], "%Y-%m-%dT%H:%M:%S.%fZ"
+        )
         if not release_date:
             continue
         file_date[version].append(release_date)
