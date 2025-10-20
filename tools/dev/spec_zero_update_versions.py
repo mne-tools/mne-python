@@ -12,7 +12,7 @@ import warnings
 import requests
 from packaging.requirements import Requirement
 from packaging.specifiers import SpecifierSet
-from packaging.version import Version
+from packaging.version import InvalidVersion, Version
 from tomlkit.toml_file import TOMLFile
 
 SORT_PACKAGES = ["matplotlib", "numpy", "pandas", "pyvista", "pyvistaqt", "scipy"]
@@ -44,7 +44,9 @@ def get_release_and_drop_dates(package, support_time=PLUS_24_MONTHS):
             continue
         if version.is_prerelease:
             continue
-        release_date = datetime.datetime.fromisoformat(f["upload-time"])
+        release_date = datetime.datetime.fromisoformat(f["upload-time"]).replace(
+            tzinfo=None
+        )
         if not release_date:
             continue
         file_date[version].append(release_date)
