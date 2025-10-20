@@ -6,6 +6,7 @@
 
 import collections
 import datetime
+import os
 import re
 import warnings
 
@@ -119,4 +120,14 @@ pyproject_data["project"]["dependencies"] = core_dependencies
 if opt_dependencies:
     pyproject_data["project"]["optional-dependencies"] = opt_dependencies
 
-TOMLFile("pyproject.toml").write(pyproject_data)
+# Save updated pyproject.toml
+# Don't use tomlkit's write, as we want to replace ugly \" with '
+pyproject_content = pyproject_data.as_string().replace('\\"', "'")
+
+if os.linesep == "\n":
+    pyproject_content = pyproject_content.replace("\r\n", "\n")
+elif os.linesep == "\r\n":
+    pyproject_content = re.sub(r"(?<!\r)\n", "\r\n", pyproject_content)
+
+with open("pyproject.toml", "w", encoding="utf-8", newline="") as f:
+    f.write(pyproject_content)
