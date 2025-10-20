@@ -59,7 +59,6 @@ test_extra = [
   "imageio-ffmpeg >= 0.4.1",
   "jupyter_client",
   "mne-bids",
-  "mne[test]",
   "nbclient",
   "nbformat",
   "neo",
@@ -68,6 +67,7 @@ test_extra = [
   "snirf",
   "sphinx-gallery",
   "statsmodels",
+  {include-group = "test"},
 ]
 
 [project]
