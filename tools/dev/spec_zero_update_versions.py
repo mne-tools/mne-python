@@ -6,6 +6,7 @@
 
 import collections
 import datetime
+import re
 import warnings
 
 import requests
@@ -85,8 +86,19 @@ def update_specifiers(dependencies, releases):
                     continue  # ignore outdated exclusions
                 new_spec.append(spec)  # max vers and in-date exclusions
             req.specifier = SpecifierSet(",".join(new_spec))
-        dependencies[idx] = str(req)
+        dependencies[idx] = _prettify_requirement(req)
     return dependencies
+
+
+def _prettify_requirement(req):
+    """Add spacing to make a requirement specifier prettier."""
+    specifiers = ""
+    for spec in req.specifier:
+        spec = str(spec)
+        start = re.search(r"\d", spec).span()[0]  # find start of version number
+        specifiers += f" {spec[:start]} {spec[start:]},"  # pad operator with spaces
+    specifiers = specifiers.rstrip(",")  # remove trailing comma
+    return req.name + specifiers
 
 
 package_releases = {
