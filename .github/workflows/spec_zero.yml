@@ -32,6 +32,10 @@ jobs:
           fi
         id: status
 
+      - name: Re-trigger pre-commit checks for changed dependencies
+        run: pre-commit run --files pyproject.toml
+        if: steps.status.outputs.dirty == 'true'
+
       - name: Push changes to the triggering branch
         run: |
           set -xeo pipefail
@@ -42,6 +46,3 @@ jobs:
           git commit -m "MAINT: Update dependency versions"
           git push origin HEAD:refs/pull/$PR_NUMBER/head
         if: steps.status.outputs.dirty == 'true'
-
-      - name: Re-trigger pre-commit checks for changed dependencies
-        run: pre-commit run --files pyproject.toml
