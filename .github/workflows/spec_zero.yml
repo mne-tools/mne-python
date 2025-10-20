@@ -19,6 +19,7 @@ jobs:
       - uses: actions/checkout@v5
         with:
           persist-credentials: true
+          ref: ${{ github.head_ref }}
       - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
@@ -32,11 +33,7 @@ jobs:
         id: status
 
       - name: Push changes to the triggering branch
-        uses: actions/checkout@v5
-        with:
-          ref: ${{ github.head_ref }}
-          persist-credentials: true
-      - run: |
+        run: |
           set -xeo pipefail
           echo "Pushing changes to branch"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
