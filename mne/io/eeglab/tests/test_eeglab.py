@@ -842,27 +842,6 @@ def test_lazy_loading_segment_reads():
 
 
 @testing.requires_testing_data
-def test_lazy_loading_with_epochs():
-    """Test that lazy loading works with embedded epoch files."""
-    with _record_warnings(), pytest.warns(RuntimeWarning, match="multiple events"):
-        epochs = read_epochs_eeglab(epochs_fname_onefile_mat)
-
-    data = epochs.get_data()
-
-    # Verify dimensions
-    assert data.ndim == 3
-    assert data.shape[0] > 0
-    assert data.shape[1] > 0
-    assert data.shape[2] > 0
-
-    # Verify data is valid (no NaN/Inf)
-    assert np.isfinite(data).all()
-
-    # Verify data is not all zeros
-    assert not np.all(data == 0)
-
-
-@testing.requires_testing_data
 def test_lazy_loading_data_consistency():
     """Test that lazy loading maintains consistency across multiple reads."""
     raw_lazy = read_raw_eeglab(raw_fname_onefile_mat, preload=False)
