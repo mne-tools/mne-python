@@ -95,8 +95,8 @@ def _prettify_requirement(req):
     specifiers = ""
     for spec in req.specifier:
         spec = str(spec)
-        start = re.search(r"\d", spec).span()[0]  # find start of version number
-        specifiers += f" {spec[:start]} {spec[start:]},"  # pad operator with spaces
+        split = re.search(r"[<>=]\d", spec).span()[1] - 1  # find end of operator
+        specifiers += f" {spec[:split]} {spec[split:]},"  # pad operator with spaces
     specifiers = specifiers.rstrip(",")  # remove trailing comma
     return req.name + specifiers
 
