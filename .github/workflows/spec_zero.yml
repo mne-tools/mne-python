@@ -22,7 +22,7 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
-      - run: pip install packaging pandas requests tomlkit
+      - run: pip install packaging requests tomlkit
       - run: python tools/dev/spec_zero_update_versions.py
       - run: |
           git diff && git status --porcelain
@@ -39,7 +39,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git add .
           git commit -m "MAINT: Update dependency versions"
-          git push origin HEAD:refs/pull/<num>/head
+          git push origin HEAD:$GITHUB_REF
         if: steps.status.outputs.dirty == 'true'
 
       - name: Re-trigger pre-commit checks for changed dependencies
