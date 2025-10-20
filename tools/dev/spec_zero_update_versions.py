@@ -54,10 +54,7 @@ def get_release_and_drop_dates(package, support_time=PLUS_24_MONTHS):
     for ver, release_date in sorted(release_date.items()):
         drop_date = release_date + support_time
         if drop_date > CURRENT_DATE:
-            releases[ver] = {
-                "release_date": release_date,
-                "drop_date": drop_date,
-            }
+            releases[ver] = {"release_date": release_date, "drop_date": drop_date}
     return releases
 
 
@@ -76,7 +73,9 @@ def update_specifiers(dependencies, releases):
                     RuntimeWarning,
                 )
                 continue
-            min_ver = SpecifierSet(f">={str(min(spec_matches))}")
+            min_ver = min(spec_matches)  # find earliest valid version
+            min_ver = Version(f"{min_ver.major}.{min_ver.minor}")  # ignore patches
+            min_ver = SpecifierSet(f">={str(min_ver)}")
             new_spec = [str(min_ver)]
             for spec in str(req.specifier).split(","):
                 spec = spec.strip()
