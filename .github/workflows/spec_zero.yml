@@ -31,25 +31,20 @@ jobs:
           fi
         id: status
 
-      - name: Determine target branch
-        uses: actions/github-script@v6
-        with:
-          script: |
-            // For pull_request events use the PR head ref, otherwise use the branch name
-            const isPR = !!context.payload.pull_request;
-            const target = isPR
-              ? context.payload.pull_request.head.ref
-              : context.ref.replace('refs/heads/', '');
-            // Export TARGET_BRANCH as an environment variable for subsequent steps
-            core.exportVariable('TARGET_BRANCH', target);
-
       - name: Push changes to the triggering branch
-        shell: bash
-        run: |
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.head_ref }}
+          persist-credentials: true
+      - run: |
           set -xeo pipefail
-          echo "Pushing changes to branch: $TARGET_BRANCH"
-          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git config --global user.name "github-actions[bot]"
-          git commit -am "MAINT: Update dependency versions"
-          git push --force-with-lease origin HEAD:"$TARGET_BRANCH"
+          echo "Pushing changes to branch"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git add .
+          git commit -m "MAINT: Update dependency versions"
+          git push
         if: steps.status.outputs.dirty == 'true'
+
+      - name: Re-trigger pre-commit checks for changed dependencies
+        run: pre-commit run --files pyproject.toml
