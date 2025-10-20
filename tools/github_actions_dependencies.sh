@@ -39,6 +39,6 @@ python -m pip install --upgrade pip
 python -m pip --version
 echo "::endgroup::"
 
-echo "::group::Installing test dependencies using pip"
+# echo "::group::Installing test dependencies using pip"
 python -m pip install $STD_ARGS $INSTALL_ARGS .[$INSTALL_KIND]
-echo "::endgroup::"
+# echo "::endgroup::"
