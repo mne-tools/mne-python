@@ -97,7 +97,9 @@ def _prettify_requirement(req):
         split = re.search(r"[<>=]\d", spec).span()[1] - 1  # find end of operator
         specifiers += f" {spec[:split]} {spec[split:]},"  # pad operator with spaces
     specifiers = specifiers.rstrip(",")  # remove trailing comma
-    return req.name + specifiers
+    req.specifier = SpecifierSet()  # remove ugly specifiers (from str repr)
+    # Add pretty specifiers to name alongside trailing info (extras, markers, url)
+    return req.name + specifiers + str(req)[len(req.name) :]
 
 
 package_releases = {
