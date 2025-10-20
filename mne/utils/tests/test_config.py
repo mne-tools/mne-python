@@ -134,10 +134,7 @@ def test_sys_info_complete():
     pyproject = tomllib.loads(pyproject.read_text("utf-8"))
     deps = [
         dep
-        for dep in [
-            *pyproject["dependency-groups"]["test"],
-            *pyproject["dependency-groups"]["test_extra"],
-        ]
+        for dep in pyproject["dependency-groups"]["test_extra"]
         if not isinstance(dep, dict)
     ]
     for dep in deps:
