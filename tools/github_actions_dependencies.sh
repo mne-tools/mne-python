@@ -34,11 +34,8 @@ else
 fi
 echo ""
 
-echo "::group::Updating pip"
-python -m pip install --upgrade pip
-python -m pip --version
-echo "::endgroup::"
-
-# echo "::group::Installing test dependencies using pip"
+echo "::group::Installing test dependencies using pip"
+set -x
 python -m pip install $STD_ARGS $INSTALL_ARGS .[$INSTALL_KIND]
-# echo "::endgroup::"
+set +x
+echo "::endgroup::"
