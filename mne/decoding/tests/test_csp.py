@@ -431,7 +431,7 @@ def test_spoc():
     # check y
     pytest.raises(ValueError, spoc.fit, X, y * 0)
 
-    # Check that doesn't take CSP-spcific input
+    # Check that doesn't take CSP-specific input
     pytest.raises(TypeError, SPoC, cov_est="epoch")
 
     # Check mixing matrix on simulated data
