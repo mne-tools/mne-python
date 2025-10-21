@@ -44,3 +44,7 @@ set -x
 python -m pip install $STD_ARGS $INSTALL_ARGS .$EXTRAS --group=$GROUP
 set +x
 echo "::endgroup::"
+if [[ "${MNE_CI_KIND}" == "pip-pre" ]]; then
+	# https://github.com/python-quantities/python-quantities/issues/262
+	python -m pip uninstall -yq neo
+fi
