@@ -9,7 +9,7 @@ if [[ "$MNE_CI_KIND" == "pip"* ]]; then
         # We should test an eager import somewhere, might as well be here
         echo "EAGER_IMPORT=true" | tee -a $GITHUB_ENV
         # Make sure nothing unexpected is skipped
-        echo "MNE_TEST_ALLOW_SKIP=.*(Requires (spm|brainstorm) dataset|CUDA not|Numba not|PySide6 causes segfaults|neo).*" | tee -a $GITHUB_ENV
+        echo "MNE_TEST_ALLOW_SKIP=.*(Requires (spm|brainstorm) dataset|CUDA not|Numba not|PySide6 causes segfaults).*" | tee -a $GITHUB_ENV
     else
         echo "MNE_QT_BACKEND=PySide6" | tee -a $GITHUB_ENV
     fi
