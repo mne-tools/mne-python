@@ -64,6 +64,7 @@ python -m pip install $STD_ARGS \
 	git+https://github.com/h5io/h5io \
 	git+https://github.com/BUNPC/pysnirf2 \
 	git+https://github.com/the-siesta-group/edfio \
+	git+https://github.com/python-quantities/python-quantities \
 	trame trame-vtk trame-vuetify jupyter ipyevents ipympl openmeeg \
 	imageio-ffmpeg xlrd mffpy traitlets pybv eeglabio defusedxml \
 	antio
