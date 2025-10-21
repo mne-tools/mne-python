@@ -30,6 +30,7 @@ def get_release_and_drop_dates(package, support_time=PLUS_24_MONTHS):
     response = requests.get(
         f"https://pypi.org/simple/{package}",
         headers={"Accept": "application/vnd.pypi.simple.v1+json"},
+        timeout=10,
     ).json()
     print("OK")
     file_date = collections.defaultdict(list)
