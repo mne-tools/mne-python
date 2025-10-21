@@ -8,7 +8,6 @@ import collections
 import datetime
 import os
 import re
-import warnings
 
 import requests
 from packaging.requirements import Requirement
@@ -68,13 +67,11 @@ def update_specifiers(dependencies, releases):
             package_vers = releases[req.name].keys()
             spec_matches = list(req.specifier.filter(package_vers))
             if len(spec_matches) == 0:
-                warnings.warn(
+                raise RuntimeError(
                     f"Dependency has no valid versions.\n"
                     f"  name: {req.name}\n"
                     f"  specifier(s): {req.specifier if req.specifier else 'None'}",
-                    RuntimeWarning,
                 )
-                continue
             min_ver = min(spec_matches)  # find earliest valid version
             min_ver = Version(f"{min_ver.major}.{min_ver.minor}")  # ignore patches
             min_ver = SpecifierSet(f">={str(min_ver)}")
