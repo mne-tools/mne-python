@@ -1,4 +1,33 @@
-"""Update dependency version specifiers to comply with SPEC0."""
+"""Update version specifiers of certain dependencies to comply with SPEC0-like rules.
+
+SPEC0 (https://scientific-python.org/specs/spec-0000/) recommends that support for
+Python versions are dropped 3 years after initial release, and for core package
+dependencies 2 years after initial release.
+
+MNE-Python follows a SPEC0-like policy that reduces maintenance burden whilst
+accommodating users in minimum version support similarly to when before this policy was
+adopted.
+
+MNE-Python's policy differs from SPEC0 in the following ways:
+- Not all core dependencies have minimum versions pinned, and some optional dependencies
+  have minimum versions pinned. Only those dependencies whose older versions require
+  considerable work to maintain compatibility with (e.g., due to API changes) have
+  minimum versions pinned.
+- Mirco/patch versions are not pinned as minimum versions (unless there is an issue with
+  a specific patch), as these should not introduce breaking changes.
+- Minimum versions for dependencies are set to the latest minor release that was
+  available 2 years prior. The rationale behind this is discussed here:
+  https://github.com/mne-tools/mne-python/pull/13451#discussion_r2445337934
+
+For example, in October 2025:
+- The latest version of NumPy available 2 years prior was 1.26.1 (released October
+  2023), making the latest minor release 1.26, which would be pinned. Support for 1.26
+  would be dropped in June 2026 in favour of 2.0, which was released in June 2024.
+- The latest version of SciPy available 2 years prior was 1.11.3 (release September
+  2023), making the latest minor release 1.11, which would be pinned. Support for 1.11
+  would be dropped in January 2026 in favour of 1.12, which was released in January
+  2024.
+"""
 
 # Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
