@@ -31,19 +31,3 @@ jobs:
             echo "dirty=true" >> $GITHUB_OUTPUT
           fi
         id: status
-
-      - uses: pre-commit/action@v3.0.1
-        with:
-          extra_args: --files pyproject.toml
-        if: steps.status.outputs.dirty == 'true'
-
-      - name: Push changes to the triggering branch
-        run: |
-          set -xeo pipefail
-          echo "Pushing changes to branch"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git config user.name "github-actions[bot]"
-          git add .
-          git commit -m "MAINT: Update dependency versions"
-          git push origin HEAD:refs/pull/$PR_NUMBER/head
-        if: steps.status.outputs.dirty == 'true'
