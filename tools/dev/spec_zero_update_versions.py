@@ -119,15 +119,26 @@ def update_specifiers(dependencies, releases):
 
 def _prettify_requirement(req):
     """Add spacing to make a requirement specifier prettier."""
-    specifiers = ""
+    specifiers = []
+    spec_order = _find_specifier_order(req.specifier)
     for spec in req.specifier:
         spec = str(spec)
         split = re.search(r"[<>=]\d", spec).span()[1] - 1  # find end of operator
-        specifiers += f" {spec[:split]} {spec[split:]},"  # pad operator with spaces
+        specifiers.append(f" {spec[:split]} {spec[split:]},")  # pad operator w/ spaces
+    specifiers = [specifiers[i] for i in spec_order]  # order by ascending version
+    specifiers = "".join(specifiers)
     specifiers = specifiers.rstrip(",")  # remove trailing comma
     req.specifier = SpecifierSet()  # remove ugly specifiers (from str repr)
     # Add pretty specifiers to name alongside trailing info (extras, markers, url)
     return req.name + specifiers + str(req)[len(req.name) :]
+
+
+def _find_specifier_order(specifiers):
+    """Find ascending order of specifiers according to their version."""
+    versions = []
+    for spec in specifiers:
+        versions.append(Version(re.sub(r"[<>=!~]+", "", str(spec))))  # extract version
+    return sorted(range(len(versions)), key=lambda i: versions[i])  # sorted indices
 
 
 package_releases = {
