@@ -9,6 +9,9 @@ accommodating users in minimum version support similarly to when before this pol
 adopted.
 
 MNE-Python's policy differs from SPEC0 in the following ways:
+- Python versions are supported for at least 3 years after release, but possibly longer
+  at the discretion of the MNE-Python maintainers based on, e.g., maintainability,
+  features.
 - Not all core dependencies have minimum versions pinned, and some optional dependencies
   have minimum versions pinned. Only those dependencies whose older versions require
   considerable work to maintain compatibility with (e.g., due to API changes) have
