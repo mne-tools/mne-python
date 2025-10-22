@@ -380,7 +380,6 @@ class DigMontage:
         )
 
     @verbose
-    @fill_doc
     def rename_channels(
         self, mapping, allow_duplicates=False, *, on_missing="raise", verbose=None
     ):
