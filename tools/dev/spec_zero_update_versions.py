@@ -38,13 +38,13 @@ For example, in October 2025:
 
 import collections
 import datetime
-import os
 import re
 
 import requests
 from packaging.requirements import Requirement
 from packaging.specifiers import SpecifierSet
 from packaging.version import InvalidVersion, Version
+from tomlkit import parse
 from tomlkit.toml_file import TOMLFile
 
 SORT_PACKAGES = ["matplotlib", "numpy", "pandas", "pyvista", "pyvistaqt", "scipy"]
@@ -148,7 +148,8 @@ package_releases = {
     package: get_release_and_drop_dates(package) for package in SORT_PACKAGES
 }
 
-pyproject_data = TOMLFile("pyproject.toml").read()
+pyproject = TOMLFile("pyproject.toml")
+pyproject_data = pyproject.read()
 project_info = pyproject_data.get("project")
 core_dependencies = project_info["dependencies"]
 opt_dependencies = project_info.get("optional-dependencies", {})
@@ -161,14 +162,6 @@ pyproject_data["project"]["dependencies"] = core_dependencies
 if opt_dependencies:
     pyproject_data["project"]["optional-dependencies"] = opt_dependencies
 
-# Save updated pyproject.toml
-# Don't use tomlkit's write, as we want to replace ugly \" with '
-pyproject_content = pyproject_data.as_string().replace('\\"', "'")
-
-if os.linesep == "\n":
-    pyproject_content = pyproject_content.replace("\r\n", "\n")
-elif os.linesep == "\r\n":
-    pyproject_content = re.sub(r"(?<!\r)\n", "\r\n", pyproject_content)
-
-with open("pyproject.toml", "w", encoding="utf-8", newline="") as f:
-    f.write(pyproject_content)
+# Save updated pyproject.toml (replace ugly \" with ' first)
+pyproject_data = parse(pyproject_data.as_string().replace('\\"', "'"))
+pyproject.write(pyproject_data)
