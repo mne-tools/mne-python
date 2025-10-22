@@ -88,6 +88,7 @@ stages:
         variables:
           DISPLAY: ':99'
           OPENBLAS_NUM_THREADS: '1'
+          OMP_NUM_THREADS: '1'
           MNE_TEST_ALLOW_SKIP: '^.*(PySide6 causes segfaults).*$'
           MNE_BROWSER_PRECOMPUTE: 'false'
         steps:

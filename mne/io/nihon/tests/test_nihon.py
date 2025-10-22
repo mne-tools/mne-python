@@ -3,7 +3,7 @@
 # Copyright the MNE-Python contributors.
 
 import pytest
-from numpy.testing import assert_array_almost_equal
+from numpy.testing import assert_allclose
 
 from mne.datasets import testing
 from mne.io import read_raw_edf, read_raw_nihon
@@ -27,24 +27,22 @@ def test_nihon_eeg():
     _test_raw_reader(read_raw_nihon, fname=fname, test_scaling=False)
     fname_edf = data_path / "NihonKohden" / "MB0400FU.EDF"
     raw_edf = read_raw_edf(fname_edf, preload=True)
+    raw_edf.drop_channels(["Events/Markers"])
 
     assert raw._data.shape == raw_edf._data.shape
     assert raw.info["sfreq"] == raw.info["sfreq"]
-    # ch names and order are switched in the EDF
-    edf_ch_names = {x: x.split(" ")[1].replace("-Ref", "") for x in raw_edf.ch_names}
+    # a couple of ch names differ in the EDF
+    edf_ch_names = {"EEG Mark1": "$A2", "EEG Mark2": "$A1"}
     raw_edf.rename_channels(edf_ch_names)
     assert raw.ch_names == raw_edf.ch_names
 
-    for i, an1 in enumerate(raw.annotations):
-        # EDF has some weird annotations, which are not in the LOG file
-        an2 = raw_edf.annotations[i * 2 + 1]
+    assert len(raw.annotations) == len(raw_edf.annotations)
+    for an1, an2 in zip(raw.annotations, raw_edf.annotations):
         assert an1["onset"] == an2["onset"]
         assert an1["duration"] == an2["duration"]
-        # Also, it prepends 'Segment: ' to some annotations
-        t_desc = an2["description"].replace("Segment: ", "")
-        assert an1["description"] == t_desc
+        assert an1["description"] == an2["description"].rstrip()
 
-    assert_array_almost_equal(raw._data, raw_edf._data)
+    assert_allclose(raw.get_data(), raw_edf.get_data())
 
     with pytest.raises(ValueError, match="Not a valid Nihon Kohden EEG file"):
         raw = read_raw_nihon(fname_edf, preload=True)
