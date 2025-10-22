@@ -45,6 +45,7 @@ from packaging.requirements import Requirement
 from packaging.specifiers import SpecifierSet
 from packaging.version import InvalidVersion, Version
 from tomlkit import parse
+from tomlkit.items import Comment, Trivia
 from tomlkit.toml_file import TOMLFile
 
 SORT_PACKAGES = [
@@ -147,6 +148,14 @@ def update_specifiers(dependencies, releases):
                     continue  # ignore outdated exclusions
                 new_spec.append(spec)  # keep max vers and in-date exclusions
             req.specifier = SpecifierSet(",".join(new_spec))
+
+            dependencies._value[idx] = _add_date_comment(
+                dependencies._value[idx],
+                min_ver,
+                min_ver_release,
+                next_ver,
+                next_ver_release,
+            )
         dependencies[idx] = _prettify_requirement(req)
     return dependencies
 
@@ -202,6 +211,23 @@ def _prettify_requirement(req):
     req.specifier = SpecifierSet()  # remove ugly specifiers (from str repr)
     # Add pretty specifiers to name alongside trailing info (extras, markers, url)
     return req.name + specifiers + str(req)[len(req.name) :]
+
+
+def _add_date_comment(dependency, min_ver, min_ver_release, next_ver, next_ver_release):
+    """Add comment for when the min version was released and when it will be changed."""
+    comment = f"# {str(min_ver)} released {min_ver_release.strftime('%Y-%m-%d')}"
+    if next_ver is not None:
+        comment += (
+            f", will become {str(next_ver)} on "
+            f"{(next_ver_release + SUPPORT_TIME).strftime('%Y-%m-%d')}"
+        )
+    else:
+        comment += ", no newer version available"
+    dependency.comment = Comment(
+        Trivia(indent="  ", comment_ws="", comment=comment, trail="")
+    )
+
+    return dependency
 
 
 def _find_specifier_order(specifiers):
