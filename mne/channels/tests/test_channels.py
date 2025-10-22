@@ -101,6 +101,9 @@ def test_rename_channels():
     # Test channel name exists in ch_names
     mapping = {"EEG 160": "EEG060"}
     pytest.raises(ValueError, rename_channels, info, mapping)
+    rename_channels(info, mapping, on_missing="ignore")
+    with pytest.warns(UserWarning, match="Channel rename map contains keys that *"):
+        rename_channels(info, mapping, on_missing="warn")
     # Test improper mapping configuration
     mapping = {"MEG 2641": 1.0}
     pytest.raises(TypeError, rename_channels, info, mapping)
