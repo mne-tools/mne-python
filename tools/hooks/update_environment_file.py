@@ -58,14 +58,10 @@ for dep in deps:
     # handle package name differences
     package_name = translations.get(package_name, package_name)
     # PySide6==6.7.0 only exists on PyPI, not conda-forge, so excluding it in
-    # `environment.yaml` breaks the solver
+    # `environment.yaml` breaks the solver. 6.9.1 has a bug, and 6.9.2 needs newer
+    # C deps that mean we need to upgrade VTK etc.
     if package_name == "PySide6":
-        version_spec = version_spec.replace("!=6.7.0,", "")
-        # not on CF yet either
-        version_spec = version_spec.replace(",!=6.9.1", "")
-    elif package_name == "vtk":
-        # TODO VERSION remove once we support VTK 9.4
-        version_spec = "=9.3.1=qt_*"
+        version_spec = "!=6.9.1"
     # rstrip output line in case `version_spec` == ""
     line = f"  - {package_name} {version_spec}".rstrip()
     # use pip for packages needing e.g. `platform_system` or `python_version` triaging
@@ -73,10 +69,6 @@ for dep in deps:
         pip_deps.add(f"    {line}")
     else:
         conda_deps.add(line)
-
-# TODO: temporary workaround while we wait for a release containing the fix for
-# https://github.com/mamba-org/mamba/issues/3467
-pip_deps.remove("      - pyobjc-framework-Cocoa >=5.2.0;platform_system=='Darwin'")
 
 # prepare the pip dependencies section
 newline = "\n"  # python < 3.12 forbids backslash in {} part of f-string

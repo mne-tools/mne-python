@@ -1452,7 +1452,7 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
             Helium level (%) after position correction.
         orig_file_guid : str
             Original file GUID.
-        meas_date : datetime.datetime
+        meas_date : datetime.datetime | None
             The helium level meas date.
 
             .. versionchanged:: 1.8
@@ -2885,7 +2885,7 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
             write_float(fid, FIFF.FIFF_HELIUM_LEVEL, hi["helium_level"])
         if hi.get("orig_file_guid") is not None:
             write_string(fid, FIFF.FIFF_ORIG_FILE_GUID, hi["orig_file_guid"])
-        if hi["meas_date"] is not None:
+        if hi.get("meas_date", None) is not None:
             write_int(fid, FIFF.FIFF_MEAS_DATE, _dt_to_stamp(hi["meas_date"]))
         end_block(fid, FIFF.FIFFB_HELIUM)
         del hi
@@ -3327,13 +3327,12 @@ RAW_INFO_FIELDS = (
 
 def _empty_info(sfreq):
     """Create an empty info dictionary."""
-    from ..transforms import Transform
-
     _none_keys = (
         "acq_pars",
         "acq_stim",
         "ctf_head_t",
         "description",
+        "dev_head_t",
         "dev_ctf_t",
         "dig",
         "experimenter",
@@ -3374,7 +3373,6 @@ def _empty_info(sfreq):
     info["highpass"] = 0.0
     info["sfreq"] = float(sfreq)
     info["lowpass"] = info["sfreq"] / 2.0
-    info["dev_head_t"] = Transform("meg", "head")
     info._update_redundant()
     info._check_consistency()
     return info

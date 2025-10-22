@@ -38,7 +38,7 @@ data_dir = doc_root / "sphinxext"
 # preferring GitHub profile info (when complete!) is probably preferable.
 
 # Allowed singletons
-single_names = "btkcodedev buildqa sviter Akshay".split()
+single_names = "btkcodedev buildqa sviter Akshay user27182 Mojackhak".split()
 # Surnames where we have more than one distinct contributor:
 name_counts = dict(
     Bailey=2,
@@ -291,7 +291,7 @@ def generate_credit_rst(app=None, *, verbose=False):
         mne/_version.py mne/externals/* */__init__.py* */resources.py paper.bib
         mne/html/*.css mne/html/*.js mne/io/bti/tests/data/* */SHA1SUMS *__init__py
         AUTHORS.rst CITATION.cff CONTRIBUTING.rst codemeta.json mne/tests/*.* jr-tools
-        */whats_new.rst */latest.inc */devel.rst */changelog.rst */manual/* doc/*.json
+        */whats_new.rst */latest.inc */dev.rst */changelog.rst */manual/* doc/*.json
         logo/LICENSE doc/credit.rst
     """.strip().split():
         globs[key] = "null"

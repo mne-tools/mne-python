@@ -88,8 +88,8 @@ def test_compute_fine_cal(kind):
         angle_limit = 10
         cl["grad"] = (0.0, 0.1)
         gwoma = [48, 52]
-        ggoma = [13, 67]
-        ggwma = [13, 120]
+        ggoma = [13, 82]
+        ggwma = [13, 135]
         sfs = [34, 35, 27, 28, 50, 53, 75, 79]  # ours is better!
         cl3 = [-0.3, -0.1]
     raw = read_raw_fif(erm)
@@ -222,7 +222,7 @@ def test_fine_cal_systems(system, tmp_path):
         err_limit = 500
         n_ref = 3
         corrs = (0.58, 0.61, 0.57)
-        sfs = [0.9, 1.1, 2.1, 2.8]
+        sfs = [0.9, 1.1, 1.9, 2.8]
         corr_tol = 0.3
     elif system == "ctf":
         raw = read_raw_ctf(ctf_fname_continuous).crop(0, 1)
@@ -242,7 +242,7 @@ def test_fine_cal_systems(system, tmp_path):
         err_limit = 15
         int_order = 5
         corrs = (0.13, 0.0, 0.12)
-        sfs = [4, 5, 125, 155]
+        sfs = [4, 5, 125, 159]
         corr_tol = 0.38
     else:
         assert system == "triux", f"Unknown system {system}"
@@ -278,6 +278,8 @@ def test_fine_cal_systems(system, tmp_path):
         regularize=None,
         bad_condition="ignore",
         int_order=int_order,
+        st_overlap=False,
+        mc_interp="zero",
     )
     raw_sss = maxwell_filter(raw, **kwargs)
     _assert_shielding(raw_sss, raw, *sfs[0:2])

@@ -264,7 +264,7 @@ def test_interpolation_meg():
 def _this_interpol(inst, ref_meg=False):
     from mne.channels.interpolation import _interpolate_bads_meg
 
-    _interpolate_bads_meg(inst, ref_meg=ref_meg, mode="fast")
+    _interpolate_bads_meg(inst, ref_meg=ref_meg, mode="fast", origin=(0.0, 0.0, 0.04))
     return inst
 
 

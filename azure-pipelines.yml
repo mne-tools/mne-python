@@ -88,6 +88,7 @@ stages:
         variables:
           DISPLAY: ':99'
           OPENBLAS_NUM_THREADS: '1'
+          OMP_NUM_THREADS: '1'
           MNE_TEST_ALLOW_SKIP: '^.*(PySide6 causes segfaults).*$'
           MNE_BROWSER_PRECOMPUTE: 'false'
         steps:
@@ -198,7 +199,7 @@ stages:
               set -eo pipefail
               mne sys_info -pd
               mne sys_info -pd | grep "qtpy .* (PyQt6=.*)$"
-              PYTEST_QT_API=PyQt6 pytest ${TEST_OPTIONS}
+              PYTEST_QT_API=PyQt6 pytest -m "not ultraslowtest" ${TEST_OPTIONS}
               python -m pip uninstall -yq PyQt6 PyQt6-sip PyQt6-Qt6
             displayName: 'PyQt6'
           - bash: |
@@ -206,7 +207,7 @@ stages:
               python -m pip install "PySide6!=6.8.0,!=6.8.0.1,!=6.9.1"
               mne sys_info -pd
               mne sys_info -pd | grep "qtpy .* (PySide6=.*)$"
-              PYTEST_QT_API=PySide6 pytest ${TEST_OPTIONS}
+              PYTEST_QT_API=PySide6 pytest -m "not ultraslowtest" ${TEST_OPTIONS}
               python -m pip uninstall -yq PySide6
             displayName: 'PySide6'
           # PyQt5 leaves cruft behind, so run it last
@@ -215,7 +216,7 @@ stages:
               python -m pip install PyQt5
               mne sys_info -pd
               mne sys_info -pd | grep "qtpy .* (PyQt5=.*)$"
-              PYTEST_QT_API=PyQt5 pytest ${TEST_OPTIONS}
+              PYTEST_QT_API=PyQt5 pytest -m "not ultraslowtest" ${TEST_OPTIONS}
               python -m pip uninstall -yq PyQt5 PyQt5-sip PyQt5-Qt5
             displayName: 'PyQt5'
           # Coverage
@@ -244,16 +245,16 @@ stages:
           PYTHONIOENCODING: 'utf-8'
           AZURE_CI_WINDOWS: 'true'
           PYTHON_ARCH: 'x64'
-        timeoutInMinutes: 90
+        timeoutInMinutes: 95
         strategy:
           maxParallel: 4
           matrix:
             3.10 pip:
               TEST_MODE: 'pip'
               PYTHON_VERSION: '3.10'
-            3.12 pip pre:
+            3.13 pip pre:
               TEST_MODE: 'pip-pre'
-              PYTHON_VERSION: '3.12'
+              PYTHON_VERSION: '3.13'
         steps:
           - task: UsePythonVersion@0
             inputs:
