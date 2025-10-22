@@ -58,6 +58,7 @@ data_dir = testing.data_path(download=False)
 subjects_dir = data_dir / "subjects"
 trans_fname = data_dir / "MEG" / "sample" / "sample_audvis_trunc-trans.fif"
 src_fname = data_dir / "subjects" / "sample" / "bem" / "sample-oct-6-src.fif"
+vsrc_fname = data_dir / "subjects" / "sample" / "bem" / "sample-volume-7mm-src.fif"
 dip_fname = data_dir / "MEG" / "sample" / "sample_audvis_trunc_set1.dip"
 ctf_fname = data_dir / "CTF" / "testdata_ctf.ds"
 nirx_fname = data_dir / "NIRx" / "nirscout" / "nirx_15_2_recording_w_short"
@@ -492,15 +493,28 @@ def test_plot_alignment_meg(renderer, system):
     n_actors = use_info["nchan"] + 2
     _assert_n_actors(fig, renderer, n_actors)
 
+    # check error raising for wrong meg value:
+    info = read_info(evoked_fname)
+    with pytest.raises(ValueError, match="Invalid value for the .meg"):
+        plot_alignment(
+            info=info,
+            trans=trans_fname,
+            subject="sample",
+            subjects_dir=subjects_dir,
+            meg="bar",
+        )
+    renderer.backend._close_all()
+
 
 @testing.requires_testing_data
 def test_plot_alignment_surf(renderer):
     """Test plotting of a surface."""
     pytest.importorskip("nibabel")
     info = read_info(evoked_fname)
+    trans = read_trans(trans_fname)
     fig = plot_alignment(
         info,
-        read_trans(trans_fname),
+        trans,
         subject="sample",
         subjects_dir=subjects_dir,
         meg=False,
@@ -510,319 +524,24 @@ def test_plot_alignment_surf(renderer):
     )
     _assert_n_actors(fig, renderer, 3)  # left and right hemis plus head
 
-
-@pytest.mark.slowtest  # can be slow on OSX
-@testing.requires_testing_data
-def test_plot_alignment_basic(tmp_path, renderer, mixed_fwd_cov_evoked):
-    """Test plotting of -trans.fif files and MEG sensor layouts."""
-    # generate fiducials file for testing
-    fiducials_path = tmp_path / "fiducials.fif"
-    fid = [
-        {
-            "coord_frame": 5,
-            "ident": 1,
-            "kind": 1,
-            "r": [-0.08061612, -0.02908875, -0.04131077],
-        },
-        {
-            "coord_frame": 5,
-            "ident": 2,
-            "kind": 1,
-            "r": [0.00146763, 0.08506715, -0.03483611],
-        },
-        {
-            "coord_frame": 5,
-            "ident": 3,
-            "kind": 1,
-            "r": [0.08436285, -0.02850276, -0.04127743],
-        },
-    ]
-    write_dig(fiducials_path, fid, 5)
-    evoked = read_evokeds(evoked_fname)[0]
-    info = evoked.info
-
-    sample_src = read_source_spaces(src_fname)
-    pytest.raises(
-        TypeError,
-        plot_alignment,
-        "foo",
-        trans_fname,
+    # surfaces as dict
+    plot_alignment(
         subject="sample",
-        subjects_dir=subjects_dir,
-    )
-    pytest.raises(
-        OSError,
-        plot_alignment,
-        info,
-        trans_fname,
-        subject="sample",
-        subjects_dir=subjects_dir,
-        src="foo",
-    )
-    pytest.raises(
-        ValueError,
-        plot_alignment,
-        info,
-        trans_fname,
-        subject="fsaverage",
-        subjects_dir=subjects_dir,
-        src=sample_src,
-    )
-    sample_src.plot(subjects_dir=subjects_dir, head=True, skull=True, brain="white")
-    # mixed source space
-    mixed_src = mixed_fwd_cov_evoked[0]["src"]
-    assert mixed_src.kind == "mixed"
-    fig = plot_alignment(
-        info,
-        meg=["helmet", "sensors"],
-        dig=True,
         coord_frame="head",
-        trans=Path(trans_fname),
-        subject="sample",
-        mri_fiducials=fiducials_path,
+        trans=trans_fname,
         subjects_dir=subjects_dir,
-        src=mixed_src,
+        surfaces={"white": 0.4, "outer_skull": 0.6, "head": None},
     )
-    assert isinstance(fig, Figure3D)
-    renderer.backend._close_all()
-    # no-head version
-    renderer.backend._close_all()
-    # trans required
-    with pytest.raises(ValueError, match="transformation matrix.*in head"):
-        plot_alignment(info, trans=None, src=src_fname)
-    with pytest.raises(ValueError, match="transformation matrix.*in head"):
-        plot_alignment(info, trans=None, mri_fiducials=True)
-    with pytest.raises(ValueError, match="transformation matrix.*in head"):
-        plot_alignment(info, trans=None, surfaces=["brain"])
-    assert mixed_src[0]["coord_frame"] == FIFF.FIFFV_COORD_HEAD
-    with pytest.raises(ValueError, match="head-coordinate source space in mr"):
-        plot_alignment(trans=None, src=mixed_src, coord_frame="mri")
-    # all coord frames
-    plot_alignment(info)  # works: surfaces='auto' default
-    for coord_frame in ("meg", "head", "mri"):
-        fig = plot_alignment(
-            info,
-            meg=["helmet", "sensors"],
-            dig=True,
-            coord_frame=coord_frame,
-            trans=Path(trans_fname),
-            subject="sample",
-            src=src_fname,
-            mri_fiducials=fiducials_path,
-            subjects_dir=subjects_dir,
-        )
 
-    renderer.backend._close_all()
-    # EEG only with strange options
-    evoked_eeg_ecog_seeg = evoked.copy().pick([f"EEG {x:03d}" for x in range(1, 13)])
-    with evoked_eeg_ecog_seeg.info._unlock():
-        evoked_eeg_ecog_seeg.info["projs"] = []  # "remove" avg proj
-    evoked_eeg_ecog_seeg.set_channel_types({"EEG 001": "ecog", "EEG 002": "seeg"})
-    with catch_logging() as log:
-        fig = plot_alignment(
-            evoked_eeg_ecog_seeg.info,
-            subject="sample",
-            trans=trans_fname,
-            subjects_dir=subjects_dir,
-            surfaces=["white", "outer_skin", "outer_skull"],
-            eeg=["original", "projected"],
-            ecog=True,
-            seeg=True,
-            verbose=True,
-        )
-    log = log.getvalue()
-    assert "ecog: 1" in log
-    assert "seeg: 1" in log
-    assert "eeg: 10" in log
-    # got the right number of actors?
-    actor_names = list(fig.plotter.actors)
-    # 4 surfs (both hemis, skin, skull), 1 ECoG, 1 sEEG, 5 orig EEG + 1 projected EEG
-    assert len(actor_names) == 4 + 1 + 1 + 1 + 1
-    renderer.backend._close_all()
-
-    sphere = make_sphere_model(info=info, r0="auto", head_radius="auto")
-    bem_sol = read_bem_solution(
-        subjects_dir / "sample" / "bem" / "sample-1280-1280-1280-bem-sol.fif"
-    )
-    bem_surfs = read_bem_surfaces(
-        subjects_dir / "sample" / "bem" / "sample-1280-1280-1280-bem.fif"
-    )
-    sample_src[0]["coord_frame"] = 4  # hack for coverage
-    plot_alignment(
-        info,
-        trans_fname,
-        subject="sample",
-        eeg="projected",
-        meg="helmet",
-        bem=sphere,
-        dig=True,
-        surfaces=["brain", "inner_skull", "outer_skull", "outer_skin"],
-    )
-    plot_alignment(
-        info,
-        trans_fname,
-        subject="sample",
-        meg="helmet",
-        subjects_dir=subjects_dir,
-        eeg="projected",
-        bem=sphere,
-        surfaces=["head", "brain"],
-        src=sample_src,
-    )
-    # no trans okay, no mri surfaces
-    plot_alignment(info, bem=sphere, surfaces=["brain"])
-    with pytest.raises(ValueError, match="A head surface is required"):
-        plot_alignment(
-            info,
-            trans=trans_fname,
-            subject="sample",
-            subjects_dir=subjects_dir,
-            eeg="projected",
-            surfaces=[],
-        )
+    # error checking for surface plotting
+    # check for correct error if no surf
     with pytest.raises(RuntimeError, match="No brain surface found"):
         plot_alignment(
             info,
-            trans=trans_fname,
+            trans,
             subject="foo",
             subjects_dir=subjects_dir,
             surfaces=["brain"],
-        )
-    assert all(surf["coord_frame"] == FIFF.FIFFV_COORD_MRI for surf in bem_sol["surfs"])
-    plot_alignment(
-        info,
-        trans_fname,
-        subject="sample",
-        meg=[],
-        subjects_dir=subjects_dir,
-        bem=bem_sol,
-        eeg=True,
-        surfaces=["head", "inflated", "outer_skull", "inner_skull"],
-    )
-    assert all(surf["coord_frame"] == FIFF.FIFFV_COORD_MRI for surf in bem_sol["surfs"])
-    plot_alignment(
-        info,
-        trans_fname,
-        subject="sample",
-        meg=True,
-        subjects_dir=subjects_dir,
-        surfaces=["head", "inner_skull"],
-        bem=bem_surfs,
-    )
-    # single-layer BEM can still plot head surface
-    assert bem_surfs[-1]["id"] == FIFF.FIFFV_BEM_SURF_ID_BRAIN
-    bem_sol_homog = read_bem_solution(
-        subjects_dir / "sample" / "bem" / "sample-1280-bem-sol.fif"
-    )
-    for use_bem in (bem_surfs[-1:], bem_sol_homog):
-        with catch_logging() as log:
-            plot_alignment(
-                info,
-                trans_fname,
-                subject="sample",
-                meg=True,
-                subjects_dir=subjects_dir,
-                surfaces=["head", "inner_skull"],
-                bem=use_bem,
-                verbose=True,
-            )
-        log = log.getvalue()
-        assert "not find the surface for head in the provided BEM model" in log
-    # sphere model
-    sphere = make_sphere_model("auto", "auto", info)
-    src = setup_volume_source_space(sphere=sphere)
-    plot_alignment(
-        info,
-        trans=Transform("head", "mri"),
-        eeg="projected",
-        meg="helmet",
-        bem=sphere,
-        src=src,
-        dig=True,
-        surfaces=["brain", "inner_skull", "outer_skull", "outer_skin"],
-    )
-    sphere = make_sphere_model("auto", None, info)  # one layer
-    # if you ask for a brain surface with a 1-layer sphere model it's an error
-    with pytest.raises(RuntimeError, match="Sphere model does not have"):
-        plot_alignment(
-            trans=trans_fname,
-            subject="sample",
-            subjects_dir=subjects_dir,
-            surfaces=["brain"],
-            bem=sphere,
-        )
-    # but you can ask for a specific brain surface, and
-    # no info is permitted
-    plot_alignment(
-        trans=trans_fname,
-        subject="sample",
-        meg=False,
-        coord_frame="mri",
-        subjects_dir=subjects_dir,
-        surfaces=["white"],
-        bem=sphere,
-        show_axes=True,
-    )
-    renderer.backend._close_all()
-    # TODO: We need to make this class public and document it properly
-    # assert isinstance(fig, some_public_class)
-    # 3D coil with no defined draw (ConvexHull)
-    info_cube = pick_info(info, np.arange(6))
-    with info._unlock():
-        info["dig"] = None
-    info_cube["chs"][0]["coil_type"] = 9999
-    info_cube["chs"][1]["coil_type"] = 9998
-    with pytest.raises(RuntimeError, match="coil definition not found"):
-        plot_alignment(info_cube, meg="sensors", surfaces=())
-    coil_def_fname = tmp_path / "temp"
-    with open(coil_def_fname, "w") as fid:
-        fid.write(coil_3d)
-    # make sure our other OPMs can be plotted, too
-    for ii, kind in enumerate(
-        (
-            "QUSPIN_ZFOPM_MAG",
-            "QUSPIN_ZFOPM_MAG2",
-            "FIELDLINE_OPM_MAG_GEN1",
-            "KERNEL_OPM_MAG_GEN1",
-        ),
-        2,
-    ):
-        info_cube["chs"][ii]["coil_type"] = getattr(FIFF, f"FIFFV_COIL_{kind}")
-    with use_coil_def(coil_def_fname):
-        with catch_logging() as log:
-            plot_alignment(
-                info_cube, meg="sensors", surfaces=(), dig=True, verbose="debug"
-            )
-    log = log.getvalue()
-    assert "planar geometry" in log
-
-    # one layer bem with skull surfaces:
-    with pytest.raises(RuntimeError, match="Sphere model does not.*boundary"):
-        plot_alignment(
-            info=info,
-            trans=trans_fname,
-            subject="sample",
-            subjects_dir=subjects_dir,
-            surfaces=["brain", "head", "inner_skull"],
-            bem=sphere,
-        )
-    # wrong eeg value:
-    with pytest.raises(ValueError, match="Invalid value for the .eeg"):
-        plot_alignment(
-            info=info,
-            trans=trans_fname,
-            subject="sample",
-            subjects_dir=subjects_dir,
-            eeg="foo",
-        )
-    # wrong meg value:
-    with pytest.raises(ValueError, match="Invalid value for the .meg"):
-        plot_alignment(
-            info=info,
-            trans=trans_fname,
-            subject="sample",
-            subjects_dir=subjects_dir,
-            meg="bar",
         )
     # multiple brain surfaces:
     with pytest.raises(ValueError, match="Only one brain surface can be plot"):
@@ -833,6 +552,7 @@ def test_plot_alignment_basic(tmp_path, renderer, mixed_fwd_cov_evoked):
             subjects_dir=subjects_dir,
             surfaces=["white", "pial"],
         )
+    # surface type problems
     with pytest.raises(TypeError, match="surfaces.*must be"):
         plot_alignment(
             info=info,
@@ -865,6 +585,318 @@ def test_plot_alignment_basic(tmp_path, renderer, mixed_fwd_cov_evoked):
             subjects_dir=subjects_dir,
             surfaces=dict(brain=42),
         )
+    renderer.backend._close_all()
+
+
+@testing.requires_testing_data
+def test_plot_alignment_info(renderer):
+    """Test basic alignment plotting with info, but no trans or other."""
+    info = read_info(evoked_fname)
+    plot_alignment(info)  # works: surfaces='auto' default
+    # check error raised if incorrect info provided
+    pytest.raises(
+        TypeError,
+        plot_alignment,
+        "foo",
+        trans_fname,
+        subject="sample",
+        subjects_dir=subjects_dir,
+    )
+    renderer.backend._close_all()
+
+
+@testing.requires_testing_data
+def test_plot_alignment_trans_fid(tmp_path, renderer):
+    """Test using trans file and plotting fiducials."""
+    info = read_info(evoked_fname)
+    trans = read_trans(trans_fname)
+    fiducials_path = tmp_path / "fiducials.fif"
+    fid = [
+        {
+            "coord_frame": 5,
+            "ident": 1,
+            "kind": 1,
+            "r": [-0.08061612, -0.02908875, -0.04131077],
+        },
+        {
+            "coord_frame": 5,
+            "ident": 2,
+            "kind": 1,
+            "r": [0.00146763, 0.08506715, -0.03483611],
+        },
+        {
+            "coord_frame": 5,
+            "ident": 3,
+            "kind": 1,
+            "r": [0.08436285, -0.02850276, -0.04127743],
+        },
+    ]
+    write_dig(fiducials_path, fid, 5)
+
+    plot_alignment(info, trans=trans, mri_fiducials=True)
+    renderer.backend._close_all()
+
+    # check trans error raising
+    with pytest.raises(ValueError, match="transformation matrix.*in head"):
+        plot_alignment(info, trans=None, src=src_fname)
+    with pytest.raises(ValueError, match="transformation matrix.*in head"):
+        plot_alignment(info, trans=None, mri_fiducials=True)
+    with pytest.raises(ValueError, match="transformation matrix.*in head"):
+        plot_alignment(info, trans=None, surfaces=["brain"])
+    renderer.backend._close_all()
+
+
+@testing.requires_testing_data
+def test_plot_alignment_eeg(renderer):
+    """Test EEG alignment plotting."""
+    info = read_info(evoked_fname)
+    evoked = read_evokeds(evoked_fname)
+    # eeg checking for head surface
+    with pytest.raises(ValueError, match="A head surface is required"):
+        plot_alignment(
+            info,
+            trans=trans_fname,
+            subject="sample",
+            subjects_dir=subjects_dir,
+            eeg="projected",
+            surfaces=[],
+        )
+    # wrong eeg value:
+    with pytest.raises(ValueError, match="Invalid value for the .eeg"):
+        plot_alignment(
+            info=info,
+            trans=trans_fname,
+            subject="sample",
+            subjects_dir=subjects_dir,
+            eeg="foo",
+        )
+
+    # test EEG only with ecog, seeg options
+    evoked_eeg_ecog_seeg = evoked.copy().pick([f"EEG {x:03d}" for x in range(1, 13)])
+    with evoked_eeg_ecog_seeg.info._unlock():
+        evoked_eeg_ecog_seeg.info["projs"] = []  # "remove" avg proj
+    evoked_eeg_ecog_seeg.set_channel_types({"EEG 001": "ecog", "EEG 002": "seeg"})
+    with catch_logging() as log:
+        fig = plot_alignment(
+            evoked_eeg_ecog_seeg.info,
+            subject="sample",
+            trans=trans_fname,
+            subjects_dir=subjects_dir,
+            surfaces=["white", "outer_skin", "outer_skull"],
+            eeg=["original", "projected"],
+            ecog=True,
+            seeg=True,
+            verbose=True,
+        )
+    log = log.getvalue()
+    assert "ecog: 1" in log
+    assert "seeg: 1" in log
+    assert "eeg: 10" in log
+    # check number of actors
+    # 4 surfs (both hemis, skin, skull), 1 ECoG, 1 sEEG,
+    # 5 orig EEG + 1 projected EEG
+    actor_names = list(fig.plotter.actors)
+    assert len(actor_names) == 4 + 1 + 1 + 1 + 1
+    renderer.backend._close_all()
+
+
+@testing.requires_testing_data
+def test_plot_alignment_bem(renderer):
+    """Test plotting various bem options: sphere, surface, 1 and 3 layers."""
+    info = read_info(evoked_fname)
+    sphere = make_sphere_model(info=info, r0="auto", head_radius="auto")
+    bem_sol = read_bem_solution(
+        subjects_dir / "sample" / "bem" / "sample-1280-1280-1280-bem-sol.fif"
+    )
+    bem_surfs = read_bem_surfaces(
+        subjects_dir / "sample" / "bem" / "sample-1280-1280-1280-bem.fif"
+    )
+    sample_src = read_source_spaces(src_fname)
+    sample_src[0]["coord_frame"] = 4  # hack for coverage
+
+    # test spherical bem
+    plot_alignment(
+        info,
+        trans_fname,
+        subject="sample",
+        eeg="projected",
+        meg="helmet",
+        bem=sphere,
+        dig=True,
+        surfaces=["brain", "inner_skull", "outer_skull", "outer_skin"],
+    )
+    plot_alignment(
+        info,
+        trans_fname,
+        subject="sample",
+        meg="helmet",
+        subjects_dir=subjects_dir,
+        eeg="projected",
+        bem=sphere,
+        surfaces=["head", "brain"],
+        src=sample_src,
+    )
+
+    # bem sphere model w/ volume src
+    sphere = make_sphere_model("auto", "auto", info)
+    src = setup_volume_source_space(sphere=sphere)
+    plot_alignment(
+        info,
+        trans=Transform("head", "mri"),
+        eeg="projected",
+        meg="helmet",
+        bem=sphere,
+        src=src,  # src is volume based on sphere
+        dig=True,
+        surfaces=["brain", "inner_skull", "outer_skull", "outer_skin"],
+    )
+
+    # if you ask for a brain surface with a 1-layer sphere model it's an error
+    sphere = make_sphere_model("auto", None, info)  # one layer
+    with pytest.raises(RuntimeError, match="Sphere model does not have"):
+        plot_alignment(
+            trans=trans_fname,
+            subject="sample",
+            subjects_dir=subjects_dir,
+            surfaces=["brain"],
+            bem=sphere,
+        )
+    # but you can ask for a specific brain surface, and
+    # no info is permitted
+    plot_alignment(
+        trans=trans_fname,
+        subject="sample",
+        meg=False,
+        coord_frame="mri",
+        subjects_dir=subjects_dir,
+        surfaces=["white"],
+        bem=sphere,
+        show_axes=True,
+    )
+    renderer.backend._close_all()
+
+    # no trans okay if no mri surfaces
+    plot_alignment(info, bem=sphere, surfaces=["brain"])
+
+    # test 3-layer surface bem
+    assert all(surf["coord_frame"] == FIFF.FIFFV_COORD_MRI for surf in bem_sol["surfs"])
+    plot_alignment(
+        info,
+        trans_fname,
+        subject="sample",
+        meg=[],
+        subjects_dir=subjects_dir,
+        bem=bem_sol,
+        eeg=True,
+        surfaces=["head", "inflated", "outer_skull", "inner_skull"],
+    )
+
+    assert all(surf["coord_frame"] == FIFF.FIFFV_COORD_MRI for surf in bem_sol["surfs"])
+    plot_alignment(
+        info,
+        trans_fname,
+        subject="sample",
+        meg=True,
+        subjects_dir=subjects_dir,
+        surfaces=["head", "inner_skull"],
+        bem=bem_surfs,
+    )
+
+    # test 1-layer surface bem
+    # single-layer BEM can still plot head surface
+    assert bem_surfs[-1]["id"] == FIFF.FIFFV_BEM_SURF_ID_BRAIN
+    bem_sol_homog = read_bem_solution(
+        subjects_dir / "sample" / "bem" / "sample-1280-bem-sol.fif"
+    )
+    for use_bem in (bem_surfs[-1:], bem_sol_homog):
+        with catch_logging() as log:
+            plot_alignment(
+                info,
+                trans_fname,
+                subject="sample",
+                meg=True,
+                subjects_dir=subjects_dir,
+                surfaces=["head", "inner_skull"],
+                bem=use_bem,
+                verbose=True,
+            )
+        log = log.getvalue()
+        assert "not find the surface for head in the provided BEM model" in log
+
+    # one layer bem with skull surfaces:
+    with pytest.raises(RuntimeError, match="Sphere model does not.*boundary"):
+        plot_alignment(
+            info=info,
+            trans=trans_fname,
+            subject="sample",
+            subjects_dir=subjects_dir,
+            surfaces=["brain", "head", "inner_skull"],
+            bem=sphere,
+        )
+    renderer.backend._close_all()
+
+
+@testing.requires_testing_data
+def test_plot_alignment_src(renderer, mixed_fwd_cov_evoked):
+    """Test plotting surface, volumetric, and mixed src alignment."""
+    info = read_info(evoked_fname)
+    sample_src = read_source_spaces(src_fname)
+    sample_vsrc = read_source_spaces(vsrc_fname)
+
+    # error checking for src
+    pytest.raises(
+        OSError,
+        plot_alignment,
+        info,
+        trans_fname,
+        subject="sample",
+        subjects_dir=subjects_dir,
+        src="foo",
+    )
+
+    pytest.raises(
+        ValueError,
+        plot_alignment,
+        info,
+        trans_fname,
+        subject="fsaverage",
+        subjects_dir=subjects_dir,
+        src=sample_src,
+    )
+
+    # test surface src
+    sample_src.plot(subjects_dir=subjects_dir, head=True, skull=True, brain="white")
+    renderer.backend._close_all()
+
+    # test volumetric src
+    sample_vsrc.plot(subjects_dir=subjects_dir, head=True, skull=True, brain="white")
+    renderer.backend._close_all()
+
+    # test mixed src
+    mixed_src = mixed_fwd_cov_evoked[0]["src"]
+    assert mixed_src.kind == "mixed"
+    assert mixed_src[0]["coord_frame"] == FIFF.FIFFV_COORD_HEAD
+    with pytest.raises(ValueError, match="head-coordinate source space in mr"):
+        plot_alignment(trans=None, src=mixed_src, coord_frame="mri")
+
+    fig = plot_alignment(
+        info,
+        meg=["helmet", "sensors"],
+        dig=True,
+        coord_frame="head",
+        trans=Path(trans_fname),
+        subject="sample",
+        subjects_dir=subjects_dir,
+        src=mixed_src,
+    )
+    assert isinstance(fig, Figure3D)
+    renderer.backend._close_all()
+
+
+@testing.requires_testing_data
+def test_plot_alignment_fwd(renderer):
+    """Test plotting forward solution."""
+    info = read_info(evoked_fname)
     fwd_fname = (
         data_dir / "MEG" / "sample" / "sample_audvis_trunc-meg-eeg-oct-4-fwd.fif"
     )
@@ -889,14 +921,63 @@ def test_plot_alignment_basic(tmp_path, renderer, mixed_fwd_cov_evoked):
     fwd["coord_frame"] = FIFF.FIFFV_COORD_MRI  # check required to get to MRI
     with pytest.raises(ValueError, match="transformation matrix.*in head coo"):
         plot_alignment(info, trans=None, fwd=fwd)
-    # surfaces as dict
-    plot_alignment(
-        subject="sample",
-        coord_frame="head",
-        trans=trans_fname,
-        subjects_dir=subjects_dir,
-        surfaces={"white": 0.4, "outer_skull": 0.6, "head": None},
-    )
+    renderer.backend._close_all()
+
+
+@testing.requires_testing_data
+def test_plot_alignment_cframe(renderer):
+    """Test varying the coordinate frame for alignment plot."""
+    info = read_info(evoked_fname)
+    for coord_frame in ("meg", "head", "mri"):
+        plot_alignment(
+            info,
+            meg=["helmet", "sensors"],
+            dig=True,
+            coord_frame=coord_frame,
+            trans=Path(trans_fname),
+            subject="sample",
+            src=src_fname,
+            subjects_dir=subjects_dir,
+        )
+    renderer.backend._close_all()
+
+
+@testing.requires_testing_data
+def test_plot_alignment_opm(tmp_path, renderer):
+    """Test plotting alignment for OPM MEG systems."""
+    info = read_info(evoked_fname)
+    # TODO: We need to make this class public and document it properly
+    # assert isinstance(fig, some_public_class)
+    # 3D coil with no defined draw (ConvexHull)
+    info_cube = pick_info(info, np.arange(6))
+    with info._unlock():
+        info["dig"] = None
+    info_cube["chs"][0]["coil_type"] = 9999
+    info_cube["chs"][1]["coil_type"] = 9998
+    with pytest.raises(RuntimeError, match="coil definition not found"):
+        plot_alignment(info_cube, meg="sensors", surfaces=())
+    coil_def_fname = tmp_path / "temp"
+    with open(coil_def_fname, "w") as fid:
+        fid.write(coil_3d)
+    # make sure our other OPMs can be plotted, too
+    for ii, kind in enumerate(
+        (
+            "QUSPIN_ZFOPM_MAG",
+            "QUSPIN_ZFOPM_MAG2",
+            "FIELDLINE_OPM_MAG_GEN1",
+            "KERNEL_OPM_MAG_GEN1",
+        ),
+        2,
+    ):
+        info_cube["chs"][ii]["coil_type"] = getattr(FIFF, f"FIFFV_COIL_{kind}")
+    with use_coil_def(coil_def_fname):
+        with catch_logging() as log:
+            plot_alignment(
+                info_cube, meg="sensors", surfaces=(), dig=True, verbose="debug"
+            )
+    log = log.getvalue()
+    assert "planar geometry" in log
+    renderer.backend._close_all()
 
 
 @testing.requires_testing_data
