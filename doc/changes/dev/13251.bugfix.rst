@@ -1,1 +1,1 @@
-Read Nihon Kohden annotation file accurately, by `Tom Ma`_.
+Read Nihon Kohden annotation file accurately (using sublog parsing), by `Tom Ma`_.
