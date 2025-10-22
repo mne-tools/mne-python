@@ -150,11 +150,7 @@ def update_specifiers(dependencies, releases):
             req.specifier = SpecifierSet(",".join(new_spec))
 
             dependencies._value[idx] = _add_date_comment(
-                dependencies._value[idx],
-                min_ver,
-                min_ver_release,
-                next_ver,
-                next_ver_release,
+                dependencies._value[idx], min_ver_release, next_ver, next_ver_release
             )
         dependencies[idx] = _prettify_requirement(req)
     return dependencies
@@ -213,9 +209,9 @@ def _prettify_requirement(req):
     return req.name + specifiers + str(req)[len(req.name) :]
 
 
-def _add_date_comment(dependency, min_ver, min_ver_release, next_ver, next_ver_release):
+def _add_date_comment(dependency, min_ver_release, next_ver, next_ver_release):
     """Add comment for when the min version was released and when it will be changed."""
-    comment = f"# {str(min_ver)} released {min_ver_release.strftime('%Y-%m-%d')}"
+    comment = f"# released {min_ver_release.strftime('%Y-%m-%d')}"
     if next_ver is not None:
         comment += (
             f", will become {str(next_ver)} on "
