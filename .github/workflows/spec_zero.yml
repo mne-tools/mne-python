@@ -35,7 +35,7 @@ jobs:
       - name: Setup Remote SSH Connection
         if: env.ENABLE_SSH == 'true'
         uses: mxschmitt/action-tmate@v3
-        timeout-minutes: 80
+        timeout-minutes: 10
         with:
           detached: true
       - uses: actions/setup-python@v6
