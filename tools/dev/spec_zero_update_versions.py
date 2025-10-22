@@ -56,11 +56,11 @@ SORT_PACKAGES = [
     "scikit-learn",
     "scipy",
 ]
-PLUS_24_MONTHS = datetime.timedelta(days=365 * 2)
+SUPPORT_TIME = datetime.timedelta(days=365 * 2)
 CURRENT_DATE = datetime.datetime.now()
 
 
-def get_release_and_drop_dates(package, support_time):
+def get_release_and_drop_dates(package):
     """Get release and drop dates for a given package from pypi.org."""
     releases = {}
     print(f"Querying pypi.org for {package} versions...", end="", flush=True)
@@ -91,9 +91,9 @@ def get_release_and_drop_dates(package, support_time):
         file_date[version].append(release_date)
     release_date = {v: min(file_date[v]) for v in file_date}
     for ver, release_date in sorted(release_date.items()):
-        drop_date = release_date + support_time
-        if drop_date > CURRENT_DATE:
-            releases[ver] = {"release_date": release_date, "drop_date": drop_date}
+        cutoff_date = CURRENT_DATE - SUPPORT_TIME
+        pre_cutoff = bool(release_date <= cutoff_date)  # was available X time ago
+        releases[ver] = {"release_date": release_date, "pre_cutoff": pre_cutoff}
     return releases
 
 
@@ -101,29 +101,91 @@ def update_specifiers(dependencies, releases):
     """Update dependency version specifiers."""
     for idx, dep in enumerate(dependencies):
         req = Requirement(dep)
-        if req.name in releases.keys():  # check if this is a package to update
-            package_vers = releases[req.name].keys()
-            spec_matches = list(req.specifier.filter(package_vers))
-            if len(spec_matches) == 0:
+        pkg_name = req.name
+        pkg_spec = req.specifier
+        if pkg_name in releases.keys():  # check if this is a package to update
+            # Find package versions matching current specifiers
+            package_vers = releases[pkg_name].keys()
+            matches = list(pkg_spec.filter(package_vers))  # drop excluded versions
+            pre_cutoff_matches = [
+                ver for ver in matches if releases[pkg_name][ver]["pre_cutoff"]
+            ]
+            if len(pre_cutoff_matches) == 0:
                 raise RuntimeError(
-                    f"Dependency has no valid versions.\n"
-                    f"  name: {req.name}\n"
-                    f"  specifier(s): {req.specifier if req.specifier else 'None'}",
+                    f"{pkg_name} had no versions available {SUPPORT_TIME.days / 365} "
+                    "years ago compliant with the following specifier(s): "
+                    f"{pkg_spec if pkg_spec else 'None'}",
                 )
-            min_ver = min(spec_matches)  # find earliest valid version
-            min_ver = Version(f"{min_ver.major}.{min_ver.minor}")  # ignore patches
-            min_ver = SpecifierSet(f">={str(min_ver)}")
-            new_spec = [str(min_ver)]
-            for spec in str(req.specifier).split(","):
+            post_cutoff_matches = [
+                ver for ver in matches if not releases[pkg_name][ver]["pre_cutoff"]
+            ]
+
+            # Find latest pre-cutoff version to pin as the minimum version
+            min_ver = max(pre_cutoff_matches)
+            min_ver, min_ver_release = _find_version_to_pin_and_release(
+                min_ver, pkg_spec, pre_cutoff_matches, releases[pkg_name]
+            )
+
+            # Find earliest post-cutoff version to pin next
+            next_ver = None
+            next_ver_release = None
+            for ver in post_cutoff_matches:
+                if _as_minor_version(ver) > min_ver:  # if a new minor version
+                    next_ver, next_ver_release = _find_version_to_pin_and_release(
+                        ver, pkg_spec, post_cutoff_matches, releases[pkg_name]
+                    )
+                    break
+
+            # Update specifiers with new minimum version
+            min_ver_spec = SpecifierSet(f">={str(min_ver)}")
+            new_spec = [str(min_ver_spec)]
+            for spec in str(pkg_spec).split(","):
                 spec = spec.strip()
                 if spec.startswith(">"):
                     continue  # ignore old min ver
-                if spec.startswith("!=") and not min_ver.contains(spec[2:]):
+                if spec.startswith("!=") and not min_ver_spec.contains(spec[2:]):
                     continue  # ignore outdated exclusions
                 new_spec.append(spec)  # keep max vers and in-date exclusions
             req.specifier = SpecifierSet(",".join(new_spec))
         dependencies[idx] = _prettify_requirement(req)
     return dependencies
+
+
+def _as_minor_version(ver):
+    """Convert a version to its major.minor form."""
+    return Version(f"{ver.major}.{ver.minor}")
+
+
+def _find_version_to_pin_and_release(version, specifier, all_versions, release_dates):
+    """Find the version to pin based on specifiers and that version's release date.
+
+    Tries to reduce this to an unpatched major.minor form if possible (and use the
+    unpatched version's release date). If the unpatched minor form is excluded by the
+    specifier, finds the earliest patch version (and its release date) that is not
+    excluded.
+
+    E.g., if version=1.2.3 but 1.2.0 is excluded by the specifier, find the earliest
+    patched version (e.g., 1.2.1) and pin this. If 1.2.0 is not excluded, we can just
+    pin 1.2.
+
+    If the unpatched version is not excluded by the specifier but it has been yanked, we
+    don't need to pin the patched version, but we do have to rely on the release date of
+    the earliest patched version.
+    """
+    # Find earliest micro form of this minor version
+    version = min(
+        ver
+        for ver in all_versions
+        if _as_minor_version(ver) == _as_minor_version(version)
+    )
+    # Check unpatched form of this version is not excluded by existing specifiers
+    use_patch = not specifier.contains(_as_minor_version(version))
+    # Find release date of version to be pinned
+    release = release_dates[version]["release_date"]
+    # Discard patch info if not needed
+    version = _as_minor_version(version) if not use_patch else version
+
+    return version, release
 
 
 def _prettify_requirement(req):
@@ -152,8 +214,7 @@ def _find_specifier_order(specifiers):
 
 # Find release and drop dates for desired packages
 package_releases = {
-    package: get_release_and_drop_dates(package, support_time=PLUS_24_MONTHS)
-    for package in SORT_PACKAGES
+    package: get_release_and_drop_dates(package) for package in SORT_PACKAGES
 }
 
 # Get dependencies from pyproject.toml
