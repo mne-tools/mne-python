@@ -16,7 +16,7 @@ MNE-Python's policy differs from SPEC0 in the following ways:
   have minimum versions pinned. Only those dependencies whose older versions require
   considerable work to maintain compatibility with (e.g., due to API changes) have
   minimum versions pinned.
-- Mirco/patch versions are not pinned as minimum versions (unless there is an issue with
+- Micro/patch versions are not pinned as minimum versions (unless there is an issue with
   a specific patch), as these should not introduce breaking changes.
 - Minimum versions for dependencies are set to the latest minor release that was
   available 2 years prior. The rationale behind this is discussed here:
