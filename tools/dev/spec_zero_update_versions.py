@@ -49,8 +49,6 @@ from tomlkit.toml_file import TOMLFile
 
 SORT_PACKAGES = ["matplotlib", "numpy", "pandas", "pyvista", "pyvistaqt", "scipy"]
 PLUS_24_MONTHS = datetime.timedelta(days=int(365 * 2))
-
-# Release data
 CURRENT_DATE = datetime.datetime.now()
 
 
@@ -114,7 +112,7 @@ def update_specifiers(dependencies, releases):
                     continue  # ignore old min ver
                 if spec.startswith("!=") and not min_ver.contains(spec[2:]):
                     continue  # ignore outdated exclusions
-                new_spec.append(spec)  # max vers and in-date exclusions
+                new_spec.append(spec)  # keep max vers and in-date exclusions
             req.specifier = SpecifierSet(",".join(new_spec))
         dependencies[idx] = _prettify_requirement(req)
     return dependencies
@@ -144,21 +142,23 @@ def _find_specifier_order(specifiers):
     return sorted(range(len(versions)), key=lambda i: versions[i])  # sorted indices
 
 
+# Find release and drop dates for desired packages
 package_releases = {
     package: get_release_and_drop_dates(package, support_time=PLUS_24_MONTHS)
     for package in SORT_PACKAGES
 }
 
+# Get dependencies from pyproject.toml
 pyproject = TOMLFile("pyproject.toml")
 pyproject_data = pyproject.read()
 project_info = pyproject_data.get("project")
 core_dependencies = project_info["dependencies"]
 opt_dependencies = project_info.get("optional-dependencies", {})
 
+# Update version specifiers
 core_dependencies = update_specifiers(core_dependencies, package_releases)
 for key in opt_dependencies:
     opt_dependencies[key] = update_specifiers(opt_dependencies[key], package_releases)
-
 pyproject_data["project"]["dependencies"] = core_dependencies
 if opt_dependencies:
     pyproject_data["project"]["optional-dependencies"] = opt_dependencies
