@@ -338,10 +338,10 @@ def _read_nihon_annotations(fname):
             if may_have_sub_blocks:
                 t_sub_logs = _read_event_log_block(fid, t_block + 22, version)
 
-            for i, t_log in enumerate(t_logs):
+            for li, t_log in enumerate(t_logs):
                 t_desc, t_onset = _parse_event_log(t_log)
                 if t_sub_logs is not None and t_sub_logs.size == t_logs.size:
-                    t_sub_desc, t_sub_onset = _parse_sub_event_log(t_sub_logs[i])
+                    t_sub_desc, t_sub_onset = _parse_sub_event_log(t_sub_logs[li])
                     t_desc += t_sub_desc
                     t_onset += t_sub_onset
 
