@@ -54,7 +54,7 @@ PLUS_24_MONTHS = datetime.timedelta(days=int(365 * 2))
 CURRENT_DATE = datetime.datetime.now()
 
 
-def get_release_and_drop_dates(package, support_time=PLUS_24_MONTHS):
+def get_release_and_drop_dates(package, support_time):
     """Get release and drop dates for a given package from pypi.org."""
     releases = {}
     print(f"Querying pypi.org for {package} versions...", end="", flush=True)
@@ -145,7 +145,8 @@ def _find_specifier_order(specifiers):
 
 
 package_releases = {
-    package: get_release_and_drop_dates(package) for package in SORT_PACKAGES
+    package: get_release_and_drop_dates(package, support_time=PLUS_24_MONTHS)
+    for package in SORT_PACKAGES
 }
 
 pyproject = TOMLFile("pyproject.toml")
