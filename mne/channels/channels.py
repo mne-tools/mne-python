@@ -1126,13 +1126,16 @@ class InterpolationMixin:
 
 
 @verbose
-def rename_channels(info, mapping, allow_duplicates=False, *, verbose=None):
+def rename_channels(
+    info, mapping, allow_duplicates=False, *, on_missing="raise", verbose=None
+):
     """Rename channels.
 
     Parameters
     ----------
     %(info_not_none)s Note: modified in place.
     %(mapping_rename_channels_duplicates)s
+    %(on_missing_ch_names)s
     %(verbose)s
 
     See Also
@@ -1148,8 +1151,23 @@ def rename_channels(info, mapping, allow_duplicates=False, *, verbose=None):
 
     # first check and assemble clean mappings of index and name
     if isinstance(mapping, dict):
+        if on_missing in ["warn", "ignore"]:
+            new_mapping = {
+                ch_old: ch_new
+                for ch_old, ch_new in mapping.items()
+                if ch_old in ch_names
+            }
+        else:
+            new_mapping = mapping
+
+        if new_mapping != mapping and on_missing == "warn":
+            warn(
+                "Channel rename map contains keys that are not present in the object "
+                "to be renamed. These will be ignored."
+            )
+
         _check_dict_keys(
-            mapping,
+            new_mapping,
             ch_names,
             key_description="channel name(s)",
             valid_key_source="info",
