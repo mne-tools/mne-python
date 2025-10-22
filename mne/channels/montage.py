@@ -390,6 +390,8 @@ class DigMontage:
         ----------
         %(mapping_rename_channels_duplicates)s
         %(on_missing_ch_names)s
+
+            .. versionadded:: 1.11.0
         %(verbose)s
 
         Returns

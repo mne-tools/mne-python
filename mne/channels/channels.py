@@ -1136,6 +1136,8 @@ def rename_channels(
     %(info_not_none)s Note: modified in place.
     %(mapping_rename_channels_duplicates)s
     %(on_missing_ch_names)s
+
+        .. versionadded:: 1.11.0
     %(verbose)s
 
     See Also
