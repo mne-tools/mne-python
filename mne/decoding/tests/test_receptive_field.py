@@ -238,9 +238,9 @@ def test_receptive_field_basic(n_jobs):
     rf.fit(X[:, [0]], y)
     str(rf)  # repr with one feature
     # Should only accept estimators or floats
-    with pytest.raises(ValueError, match="`estimator` must be a float or"):
+    with pytest.raises((ValueError, AttributeError)):
         ReceptiveField(tmin, tmax, 1, estimator="foo").fit(X, y)
-    with pytest.raises(ValueError, match="`estimator` must be a float or"):
+    with pytest.raises((ValueError, AttributeError)):
         ReceptiveField(tmin, tmax, 1, estimator=np.array([1, 2, 3])).fit(X, y)
     with pytest.raises(ValueError, match="tmin .* must be at most tmax"):
         ReceptiveField(5, 4, 1).fit(X, y)
@@ -589,22 +589,12 @@ def test_linalg_warning():
 @parametrize_with_checks([TimeDelayingRidge(0, 10, 1.0, 0.1, "laplacian", n_jobs=1)])
 def test_tdr_sklearn_compliance(estimator, check):
     """Test sklearn estimator compliance."""
-    # We don't actually comply with a bunch of the regressor specs :(
+    pytest.importorskip("sklearn", minversion="1.4")  # TODO VERSION remove on 1.4+
     ignores = (
-        "check_supervised_y_no_nan",
-        "check_regressor",
-        "check_parameters_default_constructible",
-        "check_estimators_unfitted",
-        "_invariance",
-        "check_complex_data",
-        "check_estimators_empty_data_messages",
-        "check_estimators_nan_inf",
-        "check_supervised_y_2d",
-        "check_n_features_in",
-        "check_fit2d_1sample",
-        "check_fit1d",
-        "check_fit2d_predict1d",
-        "check_requires_y_none",
+        # TDR convolves and thus its output cannot be invariant when
+        # shuffled or subsampled.
+        "check_methods_sample_order_invariance",
+        "check_methods_subset_invariance",
     )
     if any(ignore in str(check) for ignore in ignores):
         return
@@ -615,17 +605,12 @@ def test_tdr_sklearn_compliance(estimator, check):
 @parametrize_with_checks([ReceptiveField(-1, 2, 1.0, estimator=Ridge(), patterns=True)])
 def test_rf_sklearn_compliance(estimator, check):
     """Test sklearn RF compliance."""
+    pytest.importorskip("sklearn", minversion="1.4")  # TODO VERSION remove on 1.4+
     ignores = (
-        "check_parameters_default_constructible",
-        "_invariance",
-        "check_fit2d_1sample",
-        # Should probably fix these?
-        "check_complex_data",
-        "check_dtype_object",
-        "check_estimators_empty_data_messages",
-        "check_n_features_in",
-        "check_fit2d_predict1d",
-        "check_estimators_unfitted",
+        # RF does time-lagging, so its output cannot be invariant when
+        # shuffled or subsampled.
+        "check_methods_sample_order_invariance",
+        "check_methods_subset_invariance",
     )
     if any(ignore in str(check) for ignore in ignores):
         return

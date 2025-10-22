@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "0b374c1bda31875a61bcc456bd09854e4b487394",
+  "authors": [
+    {
+      "n": "Tharupahan Jayawardana",
+      "e": "tharupahanjayawardana@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/13391.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/viz/evoked.py": {
+      "a": 3,
+      "d": 3
+    }
+  }
+}

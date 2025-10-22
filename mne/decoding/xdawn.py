@@ -26,7 +26,7 @@ class XdawnTransformer(_GEDTransformer):
     generalization to any type of event related response.
 
     .. note:: XdawnTransformer does not correct for epochs overlap. To correct
-              overlaps see ``Xdawn``.
+              overlaps see `mne.preprocessing.Xdawn`.
 
     Parameters
     ----------
@@ -116,6 +116,12 @@ class XdawnTransformer(_GEDTransformer):
             dec_type="multi",
             restr_type=restr_type,
         )
+
+    def __sklearn_tags__(self):
+        """Tag the transformer."""
+        tags = super().__sklearn_tags__()
+        tags.target_tags.required = True
+        return tags
 
     def _validate_params(self, X):
         _validate_type(self.n_components, int, "n_components")

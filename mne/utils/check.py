@@ -1040,90 +1040,90 @@ def _check_sphere(sphere, info=None, sphere_units="m"):
                 sphere = "auto"
 
     if isinstance(sphere, str):
-        if sphere not in ("auto", "eeglab"):
-            raise ValueError(
-                f'sphere, if str, must be "auto" or "eeglab", got {sphere}'
-            )
+        _check_option(
+            "sphere", sphere, ("auto", "eeglab", "extra", "eeg", "cardinal", "hpi")
+        )
+
+    if isinstance(sphere, str) and sphere == "eeglab":
         assert info is not None
 
-        if sphere == "auto":
-            R, r0, _ = fit_sphere_to_headshape(
-                info, verbose=_verbose_safe_false(), units="m"
+        # We need coordinates for the 2D plane formed by
+        # Fpz<->Oz and T7<->T8, as this plane will be the horizon (i.e. it
+        # will determine the location of the head circle).
+        #
+        # We implement some special-handling in case Fpz is missing, as this seems to be
+        # a quite common situation in numerous EEG labs.
+        montage = info.get_montage()
+        if montage is None:
+            raise ValueError(
+                'No montage was set on your data, but sphere="eeglab" can only work if '
+                "digitization points for the EEG channels are available. Consider "
+                "calling set_montage() to apply a montage."
             )
-            sphere = tuple(r0) + (R,)
-            sphere_units = "m"
-        elif sphere == "eeglab":
-            # We need coordinates for the 2D plane formed by
-            # Fpz<->Oz and T7<->T8, as this plane will be the horizon (i.e. it
-            # will determine the location of the head circle).
-            #
-            # We implement some special-handling in case Fpz is missing, as
-            # this seems to be a quite common situation in numerous EEG labs.
-            montage = info.get_montage()
-            if montage is None:
-                raise ValueError(
-                    'No montage was set on your data, but sphere="eeglab" '
-                    "can only work if digitization points for the EEG "
-                    "channels are available. Consider calling set_montage() "
-                    "to apply a montage."
+        ch_pos = montage.get_positions()["ch_pos"]
+        horizon_ch_names = ("Fpz", "Oz", "T7", "T8")
+
+        if "FPz" in ch_pos:  # "fix" naming
+            ch_pos["Fpz"] = ch_pos["FPz"]
+            del ch_pos["FPz"]
+        elif "Fpz" not in ch_pos and "Oz" in ch_pos:
+            logger.info(
+                "Approximating Fpz location by mirroring Oz along the X and Y axes."
+            )
+            # This assumes Fpz and Oz have the same Z coordinate
+            ch_pos["Fpz"] = ch_pos["Oz"] * [-1, -1, 1]
+
+        for ch_name in horizon_ch_names:
+            if ch_name not in ch_pos:
+                msg = (
+                    f'sphere="eeglab" requires digitization points of the following '
+                    f"electrode locations in the data: {', '.join(horizon_ch_names)}, "
+                    f"but could not find: {ch_name}"
                 )
-            ch_pos = montage.get_positions()["ch_pos"]
-            horizon_ch_names = ("Fpz", "Oz", "T7", "T8")
+                if ch_name == "Fpz":
+                    msg += ", and was unable to approximate its location from Oz"
+                raise ValueError(msg)
 
-            if "FPz" in ch_pos:  # "fix" naming
-                ch_pos["Fpz"] = ch_pos["FPz"]
-                del ch_pos["FPz"]
-            elif "Fpz" not in ch_pos and "Oz" in ch_pos:
-                logger.info(
-                    "Approximating Fpz location by mirroring Oz along the X and Y axes."
-                )
-                # This assumes Fpz and Oz have the same Z coordinate
-                ch_pos["Fpz"] = ch_pos["Oz"] * [-1, -1, 1]
+        # Calculate the radius from: T7<->T8, Fpz<->Oz
+        radius = np.abs(
+            [
+                ch_pos["T7"][0],  # X axis
+                ch_pos["T8"][0],  # X axis
+                ch_pos["Fpz"][1],  # Y axis
+                ch_pos["Oz"][1],  # Y axis
+            ]
+        ).mean()
 
-            for ch_name in horizon_ch_names:
-                if ch_name not in ch_pos:
-                    msg = (
-                        f'sphere="eeglab" requires digitization points of '
-                        f"the following electrode locations in the data: "
-                        f"{', '.join(horizon_ch_names)}, but could not find: "
-                        f"{ch_name}"
-                    )
-                    if ch_name == "Fpz":
-                        msg += ", and was unable to approximate its location from Oz"
-                    raise ValueError(msg)
-
-            # Calculate the radius from: T7<->T8, Fpz<->Oz
-            radius = np.abs(
+        # Calculate the center of the head sphere.
+        # Use 4 digpoints for each of the 3 axes to hopefully get a better approximation
+        # than when using just 2 digpoints.
+        sphere_locs = dict()
+        for idx, axis in enumerate(("X", "Y", "Z")):
+            sphere_locs[axis] = np.mean(
                 [
-                    ch_pos["T7"][0],  # X axis
-                    ch_pos["T8"][0],  # X axis
-                    ch_pos["Fpz"][1],  # Y axis
-                    ch_pos["Oz"][1],  # Y axis
+                    ch_pos["T7"][idx],
+                    ch_pos["T8"][idx],
+                    ch_pos["Fpz"][idx],
+                    ch_pos["Oz"][idx],
                 ]
-            ).mean()
-
-            # Calculate the center of the head sphere
-            # Use 4 digpoints for each of the 3 axes to hopefully get a better
-            # approximation than when using just 2 digpoints.
-            sphere_locs = dict()
-            for idx, axis in enumerate(("X", "Y", "Z")):
-                sphere_locs[axis] = np.mean(
-                    [
-                        ch_pos["T7"][idx],
-                        ch_pos["T8"][idx],
-                        ch_pos["Fpz"][idx],
-                        ch_pos["Oz"][idx],
-                    ]
-                )
-            sphere = (sphere_locs["X"], sphere_locs["Y"], sphere_locs["Z"], radius)
-            sphere_units = "m"
-            del sphere_locs, radius, montage, ch_pos
+            )
+        sphere = (sphere_locs["X"], sphere_locs["Y"], sphere_locs["Z"], radius)
+        sphere_units = "m"
+        del sphere_locs, radius, montage, ch_pos
+    elif isinstance(sphere, str) or (
+        isinstance(sphere, list) and all(isinstance(s, str) for s in sphere)
+    ):
+        # Fit a sphere to the head points.
+        R, r0, _ = fit_sphere_to_headshape(
+            info, dig_kinds=sphere, verbose=_verbose_safe_false(), units="m"
+        )
+        sphere = tuple(r0) + (R,)
+        sphere_units = "m"
     elif isinstance(sphere, ConductorModel):
         if not sphere["is_sphere"] or len(sphere["layers"]) == 0:
             raise ValueError(
-                "sphere, if a ConductorModel, must be spherical "
-                "with multiple layers, not a BEM or single-layer "
-                f"sphere (got {sphere})"
+                "sphere, if a ConductorModel, must be spherical with multiple layers, "
+                f"not a BEM or single-layer sphere (got {sphere})"
             )
         sphere = tuple(sphere["r0"]) + (sphere["layers"][0]["rad"],)
         sphere_units = "m"
@@ -1132,8 +1132,8 @@ def _check_sphere(sphere, info=None, sphere_units="m"):
         sphere = np.concatenate([[0.0] * 3, [sphere]])
     if sphere.shape != (4,):
         raise ValueError(
-            "sphere must be float or 1D array of shape (4,), got "
-            f"array-like of shape {sphere.shape}"
+            "sphere must be float or 1D array of shape (4,), "
+            f"got array-like of shape {sphere.shape}"
         )
     _check_option("sphere_units", sphere_units, ("m", "mm"))
     if sphere_units == "mm":
