@@ -507,10 +507,10 @@ def test_plot_alignment_meg(renderer, system):
 
 
 @testing.requires_testing_data
-def test_plot_alignment_surf(renderer):
+def test_plot_alignment_surf(renderer, evoked):
     """Test plotting of a surface."""
     pytest.importorskip("nibabel")
-    info = read_info(evoked_fname)
+    info = evoked.info
     trans = read_trans(trans_fname)
     fig = plot_alignment(
         info,
