@@ -222,7 +222,6 @@ def _add_date_comment(dependency, min_ver_release, next_ver, next_ver_release):
     dependency.comment = Comment(
         Trivia(indent="  ", comment_ws="", comment=comment, trail="")
     )
-
     return dependency
 
 
