@@ -47,7 +47,15 @@ from packaging.version import InvalidVersion, Version
 from tomlkit import parse
 from tomlkit.toml_file import TOMLFile
 
-SORT_PACKAGES = ["matplotlib", "numpy", "pandas", "pyvista", "pyvistaqt", "scipy"]
+SORT_PACKAGES = [
+    "matplotlib",
+    "numpy",
+    "pandas",
+    "pyvista",
+    "pyvistaqt",
+    "scikit-learn",
+    "scipy",
+]
 PLUS_24_MONTHS = datetime.timedelta(days=365 * 2)
 CURRENT_DATE = datetime.datetime.now()
 
