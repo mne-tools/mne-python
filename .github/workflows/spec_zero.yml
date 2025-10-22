@@ -2,7 +2,7 @@ name: SPEC0
 
 on:  # yamllint disable-line rule:truthy
   schedule:
-    - cron: '0 0 1 * *'  # At 00:00 on day-of-month 1
+    - cron: '0 0 * * 1'  # At 00:00 every Monday
   workflow_dispatch:
     inputs:
       ssh:
