@@ -413,6 +413,8 @@ class RawNihon(BaseRaw):
     preload : bool
         If True, all data are loaded at initialization.
     %(encoding_nihon)s
+
+    .. versionadded:: 1.11
     %(verbose)s
 
     See Also
