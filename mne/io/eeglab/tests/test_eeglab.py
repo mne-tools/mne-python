@@ -773,6 +773,7 @@ def test_eeglab_drop_nan_annotations(tmp_path):
 @flaky
 @testing.requires_testing_data
 @pytest.mark.timeout(10)
+@pytest.mark.slowtest  # has the advantage of not running on macOS where it errs a lot
 def test_io_set_preload_false_is_faster(monkeypatch):
     """Using preload=False should skip the expensive data read branch."""
     real_loadmat = eeglab_mod.loadmat
