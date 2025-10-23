@@ -1,0 +1,1 @@
+Add ``encoding`` parameter to :func:`mne.io.read_raw_nihon` for better handling of annotation decoding, by `Tom Ma`_.
