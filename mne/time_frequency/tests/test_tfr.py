@@ -614,6 +614,7 @@ def test_tfr_decim_and_shift_time(epochs, method, freqs, decim):
     assert_array_equal(freqs, tfr.freqs)
 
 
+@pytest.mark.slowtest
 @pytest.mark.parametrize("inst", ("raw_tfr", "epochs_tfr", "average_tfr"))
 def test_tfr_io(inst, average_tfr, request, tmp_path):
     """Test TFR I/O."""
