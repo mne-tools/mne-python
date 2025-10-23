@@ -47,7 +47,7 @@ def read_raw_nihon(fname, preload=False, *, encoding="utf-8", verbose=None) -> "
     --------
     mne.io.Raw : Documentation of attributes and methods of RawNihon.
     """
-    return RawNihon(fname, preload, encoding, verbose)
+    return RawNihon(fname, preload, encoding=encoding, verbose=verbose)
 
 
 _valid_headers = [
