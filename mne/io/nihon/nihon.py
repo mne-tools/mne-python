@@ -316,7 +316,7 @@ def _parse_sub_event_log(sub_event_log):
     return t_sub_desc, t_sub_onset
 
 
-def _read_nihon_annotations(fname, encoding):
+def _read_nihon_annotations(fname, encoding="utf-8"):
     fname = _ensure_path(fname)
     log_fname = fname.with_suffix(".LOG")
     if not log_fname.exists():
