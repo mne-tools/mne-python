@@ -23,7 +23,7 @@ def _ensure_path(fname):
 
 
 @fill_doc
-def read_raw_nihon(fname, preload=False, encoding='utf-8', verbose=None) -> "RawNihon":
+def read_raw_nihon(fname, preload=False, encoding="utf-8", verbose=None) -> "RawNihon":
     """Reader for an Nihon Kohden EEG file.
 
     Parameters
@@ -419,7 +419,7 @@ class RawNihon(BaseRaw):
     """
 
     @verbose
-    def __init__(self, fname, preload=False, encoding='utf-8', verbose=None):
+    def __init__(self, fname, preload=False, encoding="utf-8", verbose=None):
         fname = _check_fname(fname, "read", True, "fname")
         data_name = fname.name
         logger.info(f"Loading {data_name}")
