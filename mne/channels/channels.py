@@ -1175,7 +1175,8 @@ def rename_channels(
             valid_key_source="info",
         )
         new_names = [
-            (ch_names.index(ch_name), new_name) for ch_name, new_name in mapping.items()
+            (ch_names.index(ch_name), new_name)
+            for ch_name, new_name in new_mapping.items()
         ]
     elif callable(mapping):
         new_names = [(ci, mapping(ch_name)) for ci, ch_name in enumerate(ch_names)]
