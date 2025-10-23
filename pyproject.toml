@@ -111,7 +111,7 @@ full-no-qt = [
   "nibabel",
   "nilearn",
   "numba",
-  "openmeeg >= 2.5.7",  # released: 2023/11/16
+  "openmeeg >= 2.5.7",
   "pandas >= 2.1",  # released: 2023/08/30
   "pillow",  # for `Brain.save_image` and `mne.Report`
   "pyarrow",  # only needed to avoid a deprecation warning in pandas
