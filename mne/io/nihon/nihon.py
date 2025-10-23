@@ -36,7 +36,7 @@ def read_raw_nihon(
         If True, all data are loaded at initialization.
     %(encoding_nihon)s
 
-    .. versionadded:: 1.11
+        .. versionadded:: 1.11
     %(verbose)s
 
     Returns
