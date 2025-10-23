@@ -33,6 +33,8 @@ def read_raw_nihon(fname, preload=False, *, encoding="utf-8", verbose=None) -> "
     preload : bool
         If True, all data are loaded at initialization.
     %(encoding_nihon)s
+
+    .. versionadded:: 1.11
     %(verbose)s
 
     Returns
