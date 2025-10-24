@@ -626,12 +626,17 @@ class SetChannelsMixin(MontageMixin):
         return self
 
     @verbose
-    def rename_channels(self, mapping, allow_duplicates=False, *, verbose=None):
+    def rename_channels(
+        self, mapping, allow_duplicates=False, *, on_missing="raise", verbose=None
+    ):
         """Rename channels.
 
         Parameters
         ----------
         %(mapping_rename_channels_duplicates)s
+        %(on_missing_ch_names)s
+
+            .. versionadded:: 1.11.0
         %(verbose)s
 
         Returns
@@ -652,7 +657,7 @@ class SetChannelsMixin(MontageMixin):
         info = self if isinstance(self, Info) else self.info
 
         ch_names_orig = list(info["ch_names"])
-        rename_channels(info, mapping, allow_duplicates)
+        rename_channels(info, mapping, allow_duplicates, on_missing=on_missing)
 
         # Update self._orig_units for Raw
         if isinstance(self, BaseRaw):

@@ -1126,13 +1126,18 @@ class InterpolationMixin:
 
 
 @verbose
-def rename_channels(info, mapping, allow_duplicates=False, *, verbose=None):
+def rename_channels(
+    info, mapping, allow_duplicates=False, *, on_missing="raise", verbose=None
+):
     """Rename channels.
 
     Parameters
     ----------
     %(info_not_none)s Note: modified in place.
     %(mapping_rename_channels_duplicates)s
+    %(on_missing_ch_names)s
+
+        .. versionadded:: 1.11.0
     %(verbose)s
 
     See Also
@@ -1148,14 +1153,30 @@ def rename_channels(info, mapping, allow_duplicates=False, *, verbose=None):
 
     # first check and assemble clean mappings of index and name
     if isinstance(mapping, dict):
+        if on_missing in ["warn", "ignore"]:
+            new_mapping = {
+                ch_old: ch_new
+                for ch_old, ch_new in mapping.items()
+                if ch_old in ch_names
+            }
+        else:
+            new_mapping = mapping
+
+        if new_mapping != mapping and on_missing == "warn":
+            warn(
+                "Channel rename map contains keys that are not present in the object "
+                "to be renamed. These will be ignored."
+            )
+
         _check_dict_keys(
-            mapping,
+            new_mapping,
             ch_names,
             key_description="channel name(s)",
             valid_key_source="info",
         )
         new_names = [
-            (ch_names.index(ch_name), new_name) for ch_name, new_name in mapping.items()
+            (ch_names.index(ch_name), new_name)
+            for ch_name, new_name in new_mapping.items()
         ]
     elif callable(mapping):
         new_names = [(ci, mapping(ch_name)) for ci, ch_name in enumerate(ch_names)]
