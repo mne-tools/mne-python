@@ -1,0 +1,3 @@
+Removed development dependencies from user-visible "extras"; they're now dependency
+groups only visible to developers (and can be installed for example via
+``pip install --group dev`` with pip version 25.1 or later), by `Richard Höchenberger`_
