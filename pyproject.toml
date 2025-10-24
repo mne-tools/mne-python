@@ -3,7 +3,7 @@ build-backend = "hatchling.build"
 requires = ["hatch-vcs", "hatchling"]
 
 [dependency-groups]
-dev = ["rcssmin", {include-group = "doc"}, {include-group = "test"}]
+dev = ["pip >= 25.1", "rcssmin", {include-group = "doc"}, {include-group = "test"}]
 # Dependencies for building the documentation
 doc = [
   "graphviz",
