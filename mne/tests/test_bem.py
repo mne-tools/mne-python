@@ -43,7 +43,12 @@ from mne.datasets import testing
 from mne.io import read_info
 from mne.surface import _get_ico_surface, read_surface
 from mne.transforms import translation
-from mne.utils import _record_warnings, catch_logging, check_version
+from mne.utils import (
+    _record_warnings,
+    catch_logging,
+    check_version,
+    requires_freesurfer,
+)
 
 fname_raw = Path(__file__).parents[1] / "io" / "tests" / "data" / "test_raw.fif"
 subjects_dir = testing.data_path(download=False) / "subjects"
@@ -518,11 +523,27 @@ def test_io_head_bem(tmp_path):
     assert np.allclose(head["tris"], head_defect["tris"])
 
 
-@pytest.mark.slowtest  # ~4 s locally
+@pytest.mark.slowtest
+@requires_freesurfer("mkheadsurf")
+@testing.requires_testing_data
 def test_make_scalp_surfaces_topology(tmp_path, monkeypatch):
-    """Test topology checks for make_scalp_surfaces."""
+    """Test make_scalp_surfaces and topology checks."""
     pytest.importorskip("pyvista")
     pytest.importorskip("nibabel")
+
+    # tests on 'sample'
+    subject = "sample"
+    subjects_dir = testing.data_path(download=False)
+    with pytest.raises(OSError, match="use --overwrite to overwrite it"):
+        make_scalp_surfaces(
+            subject, subjects_dir, force=False, verbose=True, overwrite=False
+        )
+
+    make_scalp_surfaces(
+        subject, subjects_dir, force=False, verbose=True, overwrite=True
+    )
+
+    # tests on custom surface
     subjects_dir = tmp_path
     subject = "test"
     surf_dir = subjects_dir / subject / "surf"
@@ -550,6 +571,7 @@ def test_make_scalp_surfaces_topology(tmp_path, monkeypatch):
         make_scalp_surfaces(
             subject, subjects_dir, force=False, verbose=True, overwrite=True
         )
+
     bem_dir = subjects_dir / subject / "bem"
     sparse_path = bem_dir / f"{subject}-head-sparse.fif"
     assert not sparse_path.is_file()
