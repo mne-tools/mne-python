@@ -1,3 +1,5 @@
+# cross-domain-saliency-maps requirements are onerous (torch and tensorflow)
+# so we don't add it here, and install it separately in circleci_dependencies.sh
 alphaCSC
 autoreject
 bycycle

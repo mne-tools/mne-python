@@ -1,6 +1,6 @@
 #!/bin/bash -ef
 
-python -m pip install --upgrade "pip!=20.3.0" build
+python -m pip install --upgrade "pip>=25.1" build
 python -m pip install --upgrade --progress-bar off \
     -ve .[full] \
     --group=test \
@@ -11,5 +11,4 @@ python -m pip install --upgrade --progress-bar off \
     "git+https://github.com/mne-tools/mne-qt-browser.git" \
     "git+https://github.com/pyvista/pyvista.git" \
     "git+https://github.com/sphinx-gallery/sphinx-gallery.git"
-
 python -m pip install --upgrade --progress-bar off --no-deps cross-domain-saliency-maps
