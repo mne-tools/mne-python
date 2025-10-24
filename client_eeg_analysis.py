@@ -115,40 +115,61 @@ def create_topographic_maps(raw, output_dir):
 
     fig_paths = []
 
+    # Try to set standard montage if electrode positions aren't available
+    try:
+        if raw.info['dig'] is None or len(raw.info['dig']) == 0:
+            print("✓ No electrode positions found, attempting to set standard montage...")
+            montage = mne.channels.make_standard_montage('standard_1020')
+            raw.set_montage(montage, match_case=False, on_missing='ignore')
+            print("✓ Standard montage set successfully")
+    except Exception as e:
+        print(f"⚠ Warning: Could not set montage: {e}")
+        print("⚠ Topographic maps will be skipped")
+        return fig_paths
+
     # Create time windows for topographic maps
     duration = raw.times[-1]
     time_points = np.linspace(0, duration, min(6, int(duration)))[:5]  # Max 5 time points
 
     # Get data for each time point and create topomap
     for i, time_point in enumerate(time_points):
-        print(f"✓ Creating topomap at t={time_point:.2f}s")
+        try:
+            print(f"✓ Creating topomap at t={time_point:.2f}s")
 
-        # Get data at this time point
-        data, times = raw.get_data(return_times=True)
-        time_idx = np.argmin(np.abs(times - time_point))
+            # Get data at this time point
+            data, times = raw.get_data(return_times=True)
+            time_idx = np.argmin(np.abs(times - time_point))
 
-        # Create figure
-        fig, ax = plt.subplots(1, 1, figsize=(8, 6))
+            # Create figure
+            fig, ax = plt.subplots(1, 1, figsize=(8, 6))
 
-        # Plot topographic map
-        mne.viz.plot_topomap(
-            data[:, time_idx],
-            raw.info,
-            axes=ax,
-            show=False,
-            cmap='RdBu_r',
-            vlim=(None, None)
-        )
+            # Plot topographic map
+            mne.viz.plot_topomap(
+                data[:, time_idx],
+                raw.info,
+                axes=ax,
+                show=False,
+                cmap='RdBu_r',
+                vlim=(None, None)
+            )
 
-        ax.set_title(f'Topographic Map at t={time_point:.2f}s', fontsize=14, fontweight='bold')
+            ax.set_title(f'Topographic Map at t={time_point:.2f}s', fontsize=14, fontweight='bold')
 
-        fig_path = os.path.join(output_dir, f'topomap_t{i+1}.png')
-        fig.savefig(fig_path, dpi=150, bbox_inches='tight')
-        plt.close(fig)
+            fig_path = os.path.join(output_dir, f'topomap_t{i+1}.png')
+            fig.savefig(fig_path, dpi=150, bbox_inches='tight')
+            plt.close(fig)
 
-        fig_paths.append(fig_path)
+            fig_paths.append(fig_path)
 
-    print(f"\n✓ Created {len(fig_paths)} topographic maps")
+        except Exception as e:
+            print(f"⚠ Warning: Could not create topomap at t={time_point:.2f}s: {e}")
+            plt.close('all')
+            continue
+
+    if fig_paths:
+        print(f"\n✓ Created {len(fig_paths)} topographic maps")
+    else:
+        print("\n⚠ No topographic maps were created (electrode positions may be unavailable)")
 
     return fig_paths
 
@@ -314,7 +335,7 @@ def main():
         help='Low-pass filter frequency in Hz (default: 0.5)'
     )
     parser.add_argument(
-        '--highpass', '-h',
+        '--highpass',
         type=float,
         default=40.0,
         help='High-pass filter frequency in Hz (default: 40.0)'

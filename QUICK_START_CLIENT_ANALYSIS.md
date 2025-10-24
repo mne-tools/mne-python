@@ -6,7 +6,7 @@ This guide will help you analyze your client's EDF files and generate profession
 
 ```bash
 # Install required packages
-pip install mne matplotlib numpy scipy
+pip install mne matplotlib numpy scipy edfio
 ```
 
 ## Usage

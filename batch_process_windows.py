@@ -48,6 +48,15 @@ def create_topographic_maps(raw, output_dir, file_prefix):
     """Create topographic maps showing spatial distribution of signals."""
     fig_paths = []
 
+    # Try to set standard montage if electrode positions aren't available
+    try:
+        if raw.info['dig'] is None or len(raw.info['dig']) == 0:
+            montage = mne.channels.make_standard_montage('standard_1020')
+            raw.set_montage(montage, match_case=False, on_missing='ignore')
+    except Exception as e:
+        print(f"    ⚠ Warning: Could not set montage: {e}")
+        return fig_paths
+
     # Create time windows for topographic maps
     duration = raw.times[-1]
     time_points = np.linspace(0, duration, min(6, int(duration)))[:5]

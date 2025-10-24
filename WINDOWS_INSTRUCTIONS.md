@@ -5,7 +5,7 @@
 Open **Command Prompt** or **PowerShell** and run:
 
 ```bash
-pip install mne matplotlib numpy scipy
+pip install mne matplotlib numpy scipy edfio
 ```
 
 ## Step 2: Download the Scripts
@@ -69,8 +69,8 @@ Simply **double-click** any `.html` file to open it in your browser!
 - Install Python from: https://www.python.org/downloads/
 - Make sure to check "Add Python to PATH" during installation
 
-### Error: "No module named 'mne'"
-- Run: `pip install mne matplotlib numpy scipy`
+### Error: "No module named 'mne'" or "No module named 'edfio'"
+- Run: `pip install mne matplotlib numpy scipy edfio`
 
 ### Error: "No EDF files found"
 - Check the path is correct
