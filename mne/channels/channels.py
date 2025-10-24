@@ -829,7 +829,7 @@ class InterpolationMixin:
         exclude=(),
         verbose=None,
     ):
-        """Interpolate bad MEG and EEG channels.
+        """Interpolate bad MEG, EEG and fNIRS channels.
 
         Operates in place.
 
