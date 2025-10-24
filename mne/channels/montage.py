@@ -379,13 +379,19 @@ class DigMontage:
             axes=axes,
         )
 
-    @fill_doc
-    def rename_channels(self, mapping, allow_duplicates=False):
+    @verbose
+    def rename_channels(
+        self, mapping, allow_duplicates=False, *, on_missing="raise", verbose=None
+    ):
         """Rename the channels.
 
         Parameters
         ----------
         %(mapping_rename_channels_duplicates)s
+        %(on_missing_ch_names)s
+
+            .. versionadded:: 1.11.0
+        %(verbose)s
 
         Returns
         -------
@@ -395,7 +401,7 @@ class DigMontage:
         from .channels import rename_channels
 
         temp_info = create_info(list(self._get_ch_pos()), 1000.0, "eeg")
-        rename_channels(temp_info, mapping, allow_duplicates)
+        rename_channels(temp_info, mapping, allow_duplicates, on_missing=on_missing)
         self.ch_names = temp_info["ch_names"]
         return self
 
