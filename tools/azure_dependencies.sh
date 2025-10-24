@@ -9,9 +9,7 @@ if [ "${TEST_MODE}" == "pip" ]; then
 elif [ "${TEST_MODE}" == "pip-pre" ]; then
 	${SCRIPT_DIR}/install_pre_requirements.sh
 	python -m pip install $STD_ARGS --pre -e . --group=test_extra
-	echo "##vso[task.setvariable variable=MNE_TEST_ALLOW_SKIP].*(Requires (spm|brainstorm) dataset|Requires MNE-C|CUDA not|Numba not| on Windows|MNE_FORCE_SERIAL|PySide6 causes segfaults|neo).*"
-	# https://github.com/python-quantities/python-quantities/issues/262
-	python -m pip uninstall -yq neo
+	echo "##vso[task.setvariable variable=MNE_TEST_ALLOW_SKIP].*(Requires (spm|brainstorm) dataset|Requires MNE-C|CUDA not|Numba not| on Windows|MNE_FORCE_SERIAL|PySide6 causes segfaults).*"
 else
 	echo "Unknown run type ${TEST_MODE}"
 	exit 1
