@@ -2020,7 +2020,13 @@ def make_1020_channel_selections(info, midline="z", *, return_ch_names=False):
 
 @verbose
 def combine_channels(
-    inst, groups, method="mean", keep_stim=False, drop_bad=False, verbose=None
+    inst,
+    groups,
+    method="mean",
+    keep_stim=False,
+    drop_bad=False,
+    on_missing="raise",
+    verbose=None,
 ):
     """Combine channels based on specified channel grouping.
 
@@ -2059,6 +2065,8 @@ def combine_channels(
     drop_bad : bool
         If ``True``, drop channels marked as bad before combining. Defaults to
         ``False``.
+    %(on_missing_epochs)s
+        .. versionadded:: 1.11.0
     %(verbose)s
 
     Returns
@@ -2174,6 +2182,7 @@ def combine_channels(
             event_id=inst.event_id,
             tmin=inst.times[0],
             baseline=inst.baseline,
+            on_missing=on_missing,
         )
         if inst.metadata is not None:
             combined_inst.metadata = inst.metadata.copy()
