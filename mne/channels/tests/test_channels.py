@@ -3,6 +3,7 @@
 # Copyright the MNE-Python contributors.
 
 import hashlib
+from contextlib import nullcontext
 from copy import deepcopy
 from functools import partial
 from pathlib import Path
@@ -672,6 +673,16 @@ def test_combine_channels():
         combine_channels(raw, warn2)
         combine_channels(raw_ch_bad, warn3, drop_bad=True)
     assert len(record) == 3
+
+    # Test on_missing
+    event_id = [1, 100]  # 100 does not exist
+    epochs1 = Epochs(raw, read_events(eve_fname), event_id, on_missing="ignore")
+    with pytest.raises(ValueError, match="No matching events found"):
+        combine_channels(epochs1, groups={"foo": [0, 1]})
+    with pytest.raises(RuntimeWarning, match="No matching events found"):
+        combine_channels(epochs1, groups={"foo": [0, 1]}, on_missing="warn")
+    with nullcontext():
+        combine_channels(epochs1, groups={"foo": [0, 1]}, on_missing="ignore")
 
 
 def test_combine_channels_metadata():
