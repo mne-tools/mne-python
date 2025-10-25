@@ -375,6 +375,22 @@ def test_plot_ica_sources(raw_orig, browser_backend, monkeypatch):
     leg = ax.get_legend()
     assert len(leg.get_texts()) == len(ica.exclude) == 1
 
+    # Check if annotation filtering works - All annotations
+    annot = Annotations([0.1, 0.3], [0.1, 0.1], ["test", "test2"])
+    raw.set_annotations(annot)
+
+    fig = ica.plot_sources(raw)
+
+    assert fig.mne.visible_annotations["test"] and fig.mne.visible_annotations["test2"]
+
+    # Check if annotation filtering works - filtering annotations
+    # This should only make test2 visible and hide test
+    fig = ica.plot_sources(raw, annotation_regex="2$")
+
+    assert (
+        not fig.mne.visible_annotations["test"] and fig.mne.visible_annotations["test2"]
+    )
+
     # test passing psd_args argument
     ica.plot_sources(epochs, psd_args=dict(fmax=50))
 
