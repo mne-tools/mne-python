@@ -2025,6 +2025,7 @@ def combine_channels(
     method="mean",
     keep_stim=False,
     drop_bad=False,
+    *,
     on_missing="raise",
     verbose=None,
 ):
