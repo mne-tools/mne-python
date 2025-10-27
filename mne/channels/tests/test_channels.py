@@ -679,7 +679,7 @@ def test_combine_channels():
     epochs1 = Epochs(raw, read_events(eve_fname), event_id, on_missing="ignore")
     with pytest.raises(ValueError, match="No matching events found"):
         combine_channels(epochs1, groups={"foo": [0, 1]})
-    with pytest.raises(RuntimeWarning, match="No matching events found"):
+    with pytest.warns(RuntimeWarning, match="No matching events found"):
         combine_channels(epochs1, groups={"foo": [0, 1]}, on_missing="warn")
     with nullcontext():
         combine_channels(epochs1, groups={"foo": [0, 1]}, on_missing="ignore")
