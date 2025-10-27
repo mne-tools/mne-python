@@ -207,6 +207,7 @@
 .. _Matti Hämäläinen: https://research.aalto.fi/en/persons/matti-h%C3%A4m%C3%A4l%C3%A4inen/
 .. _Matti Toivonen: https://github.com/mattitoi
 .. _Mauricio Cespedes Tenorio: https://github.com/mcespedes99
+.. _Michael Straube: https://github.com/mistraube
 .. _Michal Žák: https://github.com/michalrzak
 .. _Michiru Kaneda: https://github.com/rcmdnk
 .. _Mikołaj Magnuski: https://github.com/mmagnuski

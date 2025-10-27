@@ -1,0 +1,1 @@
+The ``combine_channels`` method now has an ``on_missing`` parameter to control behavior on missing event ids, by :newcontrib:`Michael Straube`.
