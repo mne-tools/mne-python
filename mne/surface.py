@@ -1481,7 +1481,11 @@ def _decimate_surface_vtk(points, triangles, n_triangles):
     with warnings.catch_warnings(record=True):
         warnings.simplefilter("ignore")
         idarr = numpy_to_vtkIdTypeArray(triangles_.ravel().astype(np.int64))
-    vtkcells.SetCells(triangles.shape[0], idarr)
+    if hasattr(vtkcells, "SetData"):  # TODO VERSION VTK >= 9.6
+        meth = vtkcells.SetData
+    else:
+        meth = vtkcells.SetCells
+    meth(triangles.shape[0], idarr)
     src.SetPolys(vtkcells)
     # vtkDecimatePro was not very good, even with SplittingOff and
     # PreserveTopologyOn
