@@ -259,10 +259,13 @@ def test_plot_calibration(fname, axes):
 @pytest.mark.parametrize("fname", [(fname)])
 def test_calibration_newlines(fname, tmp_path):
     """Test reading a calibration with blank lines between each data line."""
+    # Calibration reading should be robust to what we are about to do to this file
+    want_cals = read_eyelink_calibration(fname)
+
+    # Let's interleave blank lines into this file
     lines = Path(fname).read_text().splitlines()
     cal_start = lines.index(">>>>>>> CALIBRATION (HV13,P-CR) FOR LEFT: <<<<<<<<<")
     cal_end = lines.index("INPUT\t5509657\t0")
-    # Add an alement with empty "''" string between each line bt cal start and end
     cal_block = lines[cal_start : cal_end + 1]
 
     # Inject empty strings between each line in the calibration block
@@ -273,4 +276,12 @@ def test_calibration_newlines(fname, tmp_path):
 
     out_fname = tmp_path / "weird_calibration.asc"
     out_fname.write_text("\n".join(new_lines))
-    _ = read_eyelink_calibration(out_fname)
+    cals = read_eyelink_calibration(out_fname)
+
+    # The added blank lines should not affect the values that we read in...
+    assert len(cals) == len(want_cals)
+    assert cals[1]["eye"] == want_cals[1]["eye"]
+    np.testing.assert_allclose(cals[0]["onset"], want_cals[0]["onset"])
+    np.testing.assert_allclose(cals[0]["positions"], want_cals[0]["positions"])
+    np.testing.assert_allclose(cals[1]["offsets"], want_cals[1]["offsets"])
+    np.testing.assert_allclose(cals[0]["gaze"], want_cals[0]["gaze"])
