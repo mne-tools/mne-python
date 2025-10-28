@@ -2,6 +2,8 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+from pathlib import Path
+
 import numpy as np
 import pytest
 
@@ -11,6 +13,7 @@ from ..calibration import Calibration, read_eyelink_calibration
 
 # for test_read_eylink_calibration
 testing_path = data_path(download=False)
+testing_path = Path("/Users/scotterik/mne_data/MNE-testing-data")
 fname = testing_path / "eyetrack" / "test_eyelink.asc"
 
 # for test_create_calibration
@@ -251,3 +254,24 @@ def test_plot_calibration(fname, axes):
         scatter2.get_offsets(), np.column_stack((gaze_x, gaze_y))
     )
     plt.close(fig)
+
+
+@requires_testing_data
+@pytest.mark.parametrize("fname", [(fname)])
+def test_calibration_newlines(fname, tmp_path):
+    """Test reading a calibration with blank lines between each data line."""
+    lines = Path(fname).read_text().splitlines()
+    cal_start = lines.index(">>>>>>> CALIBRATION (HV13,P-CR) FOR LEFT: <<<<<<<<<")
+    cal_end = lines.index("INPUT\t5509657\t0")
+    # Add an alement with empty "''" string between each line bt cal start and end
+    cal_block = lines[cal_start : cal_end + 1]
+
+    # Inject empty strings between each line in the calibration block
+    interleaved = [elem for line in cal_block for elem in (line, "")]
+
+    # Replace the original calibration block with the interleaved one
+    new_lines = lines[:cal_start] + interleaved + lines[cal_end + 1 :]
+
+    out_fname = tmp_path / "weird_calibration.asc"
+    out_fname.write_text("\n".join(new_lines))
+    _ = read_eyelink_calibration(out_fname)
