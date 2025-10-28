@@ -13,7 +13,6 @@ from ..calibration import Calibration, read_eyelink_calibration
 
 # for test_read_eylink_calibration
 testing_path = data_path(download=False)
-testing_path = Path("/Users/scotterik/mne_data/MNE-testing-data")
 fname = testing_path / "eyetrack" / "test_eyelink.asc"
 
 # for test_create_calibration
