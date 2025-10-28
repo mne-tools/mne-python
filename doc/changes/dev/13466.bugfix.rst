@@ -1,0 +1,1 @@
+Fix bug with :func:`mne.add_reference_channels` not working correctly when passing more than one channel name, by `Michael Straube`_.
