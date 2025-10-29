@@ -533,7 +533,12 @@ def test_plot_alignment_surf(renderer, evoked):
         surfaces={"white": 0.4, "outer_skull": 0.6, "head": None},
     )
 
-    # error checking for surface plotting
+
+@testing.requires_testing_data
+def test_plot_alignment_surf_errors(renderer, evoked):
+    """Test error raising from plotting of a surface."""
+    info = evoked.info
+    trans = read_trans(trans_fname)
     # check for correct error if no surf
     with pytest.raises(RuntimeError, match="No brain surface found"):
         plot_alignment(
@@ -589,9 +594,9 @@ def test_plot_alignment_surf(renderer, evoked):
 
 
 @testing.requires_testing_data
-def test_plot_alignment_info(renderer):
+def test_plot_alignment_info(renderer, evoked):
     """Test basic alignment plotting with info, but no trans or other."""
-    info = read_info(evoked_fname)
+    info = evoked.info
     plot_alignment(info)  # works: surfaces='auto' default
     # check error raised if incorrect info provided
     pytest.raises(
@@ -636,6 +641,11 @@ def test_plot_alignment_trans_fid(tmp_path, renderer):
     plot_alignment(info, trans=trans, mri_fiducials=True)
     renderer.backend._close_all()
 
+
+@testing.requires_testing_data
+def test_plot_alignment_trans_erros(renderer, evoked):
+    """Test trans-related errors while plotting alignment."""
+    info = evoked.info
     # check trans error raising
     with pytest.raises(ValueError, match="transformation matrix.*in head"):
         plot_alignment(info, trans=None, src=src_fname)
@@ -647,30 +657,8 @@ def test_plot_alignment_trans_fid(tmp_path, renderer):
 
 
 @testing.requires_testing_data
-def test_plot_alignment_eeg(renderer):
+def test_plot_alignment_eeg(renderer, evoked):
     """Test EEG alignment plotting."""
-    info = read_info(evoked_fname)
-    evoked = read_evokeds(evoked_fname)
-    # eeg checking for head surface
-    with pytest.raises(ValueError, match="A head surface is required"):
-        plot_alignment(
-            info,
-            trans=trans_fname,
-            subject="sample",
-            subjects_dir=subjects_dir,
-            eeg="projected",
-            surfaces=[],
-        )
-    # wrong eeg value:
-    with pytest.raises(ValueError, match="Invalid value for the .eeg"):
-        plot_alignment(
-            info=info,
-            trans=trans_fname,
-            subject="sample",
-            subjects_dir=subjects_dir,
-            eeg="foo",
-        )
-
     # test EEG only with ecog, seeg options
     evoked_eeg_ecog_seeg = evoked.copy().pick([f"EEG {x:03d}" for x in range(1, 13)])
     with evoked_eeg_ecog_seeg.info._unlock():
@@ -698,6 +686,31 @@ def test_plot_alignment_eeg(renderer):
     actor_names = list(fig.plotter.actors)
     assert len(actor_names) == 4 + 1 + 1 + 1 + 1
     renderer.backend._close_all()
+
+
+@testing.requires_testing_data
+def test_plot_alignment_eeg_errors(renderer, evoked):
+    """Test error raising during EEG alignment plotting."""
+    info = evoked.info
+    # eeg checking for head surface
+    with pytest.raises(ValueError, match="A head surface is required"):
+        plot_alignment(
+            info,
+            trans=trans_fname,
+            subject="sample",
+            subjects_dir=subjects_dir,
+            eeg="projected",
+            surfaces=[],
+        )
+    # wrong eeg value:
+    with pytest.raises(ValueError, match="Invalid value for the .eeg"):
+        plot_alignment(
+            info=info,
+            trans=trans_fname,
+            subject="sample",
+            subjects_dir=subjects_dir,
+            eeg="foo",
+        )
 
 
 @testing.requires_testing_data
@@ -837,32 +850,11 @@ def test_plot_alignment_bem(renderer):
 
 
 @testing.requires_testing_data
-def test_plot_alignment_src(renderer, mixed_fwd_cov_evoked):
+def test_plot_alignment_src(renderer, evoked, mixed_fwd_cov_evoked):
     """Test plotting surface, volumetric, and mixed src alignment."""
-    info = read_info(evoked_fname)
+    info = evoked.info
     sample_src = read_source_spaces(src_fname)
     sample_vsrc = read_source_spaces(vsrc_fname)
-
-    # error checking for src
-    pytest.raises(
-        OSError,
-        plot_alignment,
-        info,
-        trans_fname,
-        subject="sample",
-        subjects_dir=subjects_dir,
-        src="foo",
-    )
-
-    pytest.raises(
-        ValueError,
-        plot_alignment,
-        info,
-        trans_fname,
-        subject="fsaverage",
-        subjects_dir=subjects_dir,
-        src=sample_src,
-    )
 
     # test surface src
     sample_src.plot(subjects_dir=subjects_dir, head=True, skull=True, brain="white")
@@ -891,6 +883,33 @@ def test_plot_alignment_src(renderer, mixed_fwd_cov_evoked):
     )
     assert isinstance(fig, Figure3D)
     renderer.backend._close_all()
+
+
+@testing.requires_testing_data
+def test_plot_alignment_src_errors(renderer, evoked):
+    """Test error raising while plotting src alignment."""
+    info = evoked.info
+    sample_src = read_source_spaces(src_fname)
+    # error checking for src
+    pytest.raises(
+        OSError,
+        plot_alignment,
+        info,
+        trans_fname,
+        subject="sample",
+        subjects_dir=subjects_dir,
+        src="foo",
+    )
+
+    pytest.raises(
+        ValueError,
+        plot_alignment,
+        info,
+        trans_fname,
+        subject="fsaverage",
+        subjects_dir=subjects_dir,
+        src=sample_src,
+    )
 
 
 @testing.requires_testing_data
