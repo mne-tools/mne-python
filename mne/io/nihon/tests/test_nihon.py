@@ -30,7 +30,7 @@ def test_nihon_eeg():
     raw_edf.drop_channels(["Events/Markers"])
 
     assert raw._data.shape == raw_edf._data.shape
-    assert raw.info["sfreq"] == raw.info["sfreq"]
+    assert raw.info["sfreq"] == raw_edf.info["sfreq"]
     # a couple of ch names differ in the EDF
     edf_ch_names = {"EEG Mark1": "$A2", "EEG Mark2": "$A1"}
     raw_edf.rename_channels(edf_ch_names)
@@ -48,7 +48,7 @@ def test_nihon_eeg():
         raw = read_raw_nihon(fname_edf, preload=True)
 
     with pytest.raises(ValueError, match="Not a valid Nihon Kohden EEG file"):
-        raw = _read_nihon_header(fname_edf)
+        header, _ = _read_nihon_header(fname_edf)
 
     bad_fname = data_path / "eximia" / "text_eximia.nxe"
 
