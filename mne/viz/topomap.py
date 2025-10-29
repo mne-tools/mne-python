@@ -1422,8 +1422,8 @@ def _plot_topomap(
     if isinstance(outlines, dict):
         _draw_outlines(axes, outlines)
 
-    if names is not None:
-        show_idx = np.arange(len(names)) if mask is None else np.where(mask)[0]
+    if names is not None and sensors:
+        show_idx = np.arange(len(names))
         for ii, (_pos, _name) in enumerate(zip(pos, names)):
             if ii not in show_idx:
                 continue
