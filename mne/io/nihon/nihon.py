@@ -162,13 +162,13 @@ def _read_21e_file(fname):
                 break
         else:
             warn(
-                f"Could not decode 21E file as one of {_encodings}; "
+                f"Could not decode {e_fname} as one of {_encodings}; "
                 f"Default channel names are chosen."
             )
     else:
         warn(
-            "Could not find the 21E file containing channel definitions; "
-            "Default channel names are chosen."
+            f"Could not find {e_fname} containing channel definitions; "
+            f"Default channel names are chosen."
         )
 
     return _chan_labels
