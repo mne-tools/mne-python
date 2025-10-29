@@ -5,7 +5,6 @@ set -eo pipefail
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 STD_ARGS="--progress-bar off --upgrade"
 INSTALL_ARGS="-e"
-INSTALL_KIND="test_extra,hdf5"
 if [ ! -z "$CONDA_ENV" ]; then
 	echo "Uninstalling MNE for CONDA_ENV=${CONDA_ENV}"
 	# This will fail if mne-base is not in the env (like in our minimial/old envs, so ||true them):
@@ -21,19 +20,27 @@ if [ ! -z "$CONDA_ENV" ]; then
 	STD_ARGS="$STD_ARGS https://github.com/pyvista/pyvista/archive/refs/heads/main.zip"
 	# If on minimal or old, just install testing deps
 	if [[ "${CONDA_ENV}" == "environment_"* ]]; then
-		INSTALL_KIND="test"
+		GROUP="test"
+		EXTRAS=""
 		STD_ARGS="--progress-bar off"
+	else
+		GROUP="test_extra"
+		EXTRAS="[hdf5]"
 	fi
 elif [[ "${MNE_CI_KIND}" == "pip" ]]; then
-	INSTALL_KIND="full-pyside6,$INSTALL_KIND"
+	GROUP="test_extra"
+	EXTRAS="[full-pyside6]"
 else
 	test "${MNE_CI_KIND}" == "pip-pre"
 	STD_ARGS="$STD_ARGS --pre"
 	${SCRIPT_DIR}/install_pre_requirements.sh || exit 1
-	INSTALL_KIND="test_extra"
+	GROUP="test_extra"
+	EXTRAS=""
 fi
 echo ""
 
 echo "::group::Installing test dependencies using pip"
-python -m pip install $STD_ARGS $INSTALL_ARGS .[$INSTALL_KIND]
+set -x
+python -m pip install $STD_ARGS $INSTALL_ARGS .$EXTRAS --group=$GROUP
+set +x
 echo "::endgroup::"

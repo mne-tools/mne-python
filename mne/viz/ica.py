@@ -50,6 +50,7 @@ def plot_ica_sources(
     precompute=None,
     use_opengl=None,
     *,
+    annotation_regex=".*",
     psd_args=None,
     theme=None,
     overview_mode=None,
@@ -92,6 +93,11 @@ def plot_ica_sources(
     %(time_format)s
     %(precompute)s
     %(use_opengl)s
+    annotation_regex : str
+        A regex pattern applied to each annotation's label.
+        Matching labels remain visible, non-matching labels are hidden.
+
+        .. versionadded:: 1.11
     psd_args : dict | None
         Dictionary of arguments to pass to :meth:`~mne.Epochs.compute_psd` in
         interactive  mode. Ignored if ``inst`` is not supplied. If ``None``,
@@ -140,6 +146,7 @@ def plot_ica_sources(
             show=show,
             title=title,
             block=block,
+            annotation_regex=annotation_regex,
             psd_args=psd_args,
             show_first_samp=show_first_samp,
             show_scrollbars=show_scrollbars,
@@ -1292,6 +1299,7 @@ def _plot_sources(
     precompute,
     use_opengl,
     *,
+    annotation_regex=".*",
     psd_args,
     theme=None,
     overview_mode=None,
@@ -1415,6 +1423,7 @@ def _plot_sources(
         decim=1,
         # events
         event_times=None if is_raw else event_times,
+        annotation_regex=annotation_regex,
         # preprocessing
         projs=list(),
         projs_on=np.array([], dtype=bool),
