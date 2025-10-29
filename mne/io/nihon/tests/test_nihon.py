@@ -96,7 +96,7 @@ def test_nihon_duplicate_channels(monkeypatch):
 def test_nihon_calibration():
     """Test handling of calibration factor and range in Nihon Kohden EEG files."""
     fname = data_path / "NihonKohden" / "DA00100E.EEG"
-    raw = read_raw_nihon(fname.as_posix(), preload=True, encoding="cp936")
+    raw = read_raw_nihon(fname, preload=True, encoding="cp936")
 
     Fp1_idx = raw.ch_names.index("Fp1")
     M1_idx = raw.ch_names.index("M1")
