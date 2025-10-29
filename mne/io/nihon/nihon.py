@@ -167,8 +167,8 @@ def _read_21e_file(fname):
             )
     else:
         warn(
-            f"Could not find the 21E file containing channel definitions; "
-            f"Default channel names are chosen."
+            "Could not find the 21E file containing channel definitions; "
+            "Default channel names are chosen."
         )
 
     return _chan_labels
