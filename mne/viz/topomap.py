@@ -1423,10 +1423,7 @@ def _plot_topomap(
         _draw_outlines(axes, outlines)
 
     if names is not None and sensors:
-        show_idx = np.arange(len(names))
-        for ii, (_pos, _name) in enumerate(zip(pos, names)):
-            if ii not in show_idx:
-                continue
+        for _pos, _name in zip(pos, names):
             axes.text(
                 _pos[0],
                 _pos[1],
