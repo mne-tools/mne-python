@@ -162,9 +162,14 @@ def _read_21e_file(fname):
                 break
         else:
             warn(
-                f"Could not decode 21E file as one of {_encodings}; "
+                f"Could not decode {e_fname} as one of {_encodings}; "
                 f"Default channel names are chosen."
             )
+    else:
+        warn(
+            f"Could not find {e_fname} containing channel definitions; "
+            f"Default channel names are chosen."
+        )
 
     return _chan_labels
 
@@ -280,7 +285,7 @@ def _read_nihon_header(fname):
                     "Cannot read NK file with different sfreq in each datablock"
                 )
 
-    return header
+    return header, _chan_labels
 
 
 def _read_event_log_block(fid, t_block, version):
@@ -380,13 +385,13 @@ def _map_ch_to_type(ch_name):
     return "eeg"
 
 
-def _map_ch_to_specs(ch_name):
+def _map_ch_to_specs(ch_name, chan_labels_upper):
     unit_mult = 1e-3
     phys_min = -12002.9
     phys_max = 12002.56
     dig_min = -32768
-    if ch_name.upper() in _default_chan_labels:
-        idx = _default_chan_labels.index(ch_name.upper())
+    if ch_name.upper() in chan_labels_upper:
+        idx = chan_labels_upper.index(ch_name.upper())
         if (idx < 42 or idx > 73) and idx not in [76, 77]:
             unit_mult = 1e-6
             phys_min = -3200
@@ -432,7 +437,9 @@ class RawNihon(BaseRaw):
         data_name = fname.name
         logger.info(f"Loading {data_name}")
 
-        header = _read_nihon_header(fname)
+        # chan_labels are electrode codes defined in the .21E file.
+        # It is not the same as header["ch_names"].
+        header, chan_labels = _read_nihon_header(fname)
         metadata = _read_nihon_metadata(fname)
 
         # n_chan = len(header['ch_names']) + 1
@@ -447,8 +454,9 @@ class RawNihon(BaseRaw):
         if "meas_date" in metadata:
             with info._unlock():
                 info["meas_date"] = metadata["meas_date"]
-        chs = {x: _map_ch_to_specs(x) for x in info["ch_names"]}
 
+        chan_labels_upper = [x.upper() for x in chan_labels]
+        chs = {x: _map_ch_to_specs(x, chan_labels_upper) for x in info["ch_names"]}
         cal = np.array([chs[x]["cal"] for x in info["ch_names"]], float)[:, np.newaxis]
         offsets = np.array([chs[x]["offset"] for x in info["ch_names"]], float)[
             :, np.newaxis

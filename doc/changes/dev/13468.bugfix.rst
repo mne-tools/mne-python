@@ -1,0 +1,1 @@
+Correctly set the calibration factor in Nihon Kohden reader (which affects channel amplitudes), by `Tom Ma`_.
