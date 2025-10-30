@@ -386,7 +386,7 @@ def test_fnirs_channel_naming_and_order_custom_optical_density():
     info = create_info(ch_names=ch_names, ch_types=ch_types, sfreq=1.0)
     raw2 = RawArray(data, info, verbose=True)
     raw.add_channels([raw2])
-    with pytest.raises(ValueError, match="does not support a combination"):
+    with pytest.raises(ValueError, match="exactly one of"):
         _check_channels_ordered(raw.info, [760, 850])
 
 

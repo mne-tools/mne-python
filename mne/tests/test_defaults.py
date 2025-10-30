@@ -44,7 +44,7 @@ def test_si_units():
                 want_scale = _get_scaling(key, units[key])
         else:
             want_scale = _get_scaling(key, units[key])
-            assert_allclose(scale, want_scale, rtol=1e-12)
+            assert_allclose(scale, want_scale, rtol=1e-12, err_msg=key)
 
 
 @pytest.mark.parametrize("key", ("si_units", "color", "scalings", "scalings_plot_raw"))
