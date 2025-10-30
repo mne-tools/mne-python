@@ -128,6 +128,7 @@ extensions = [
     "newcontrib_substitutions",
     "unit_role",
     "related_software",
+    "directive_formatting",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
