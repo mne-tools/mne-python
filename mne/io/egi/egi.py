@@ -131,8 +131,8 @@ def read_raw_egi(
         Channel naming convention for the data channels. Defaults to ``'E%%d'``
         (resulting in channel names ``'E1'``, ``'E2'``, ``'E3'``...). The
         effective default prior to 0.14.0 was ``'EEG %%03d'``.
-
         .. versionadded:: 0.14.0
+
     events_as_annotations : bool
         If True, annotations are created from experiment events. If False (default),
         a synthetic trigger channel ``STI 014`` is created from experiment events.
