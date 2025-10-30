@@ -94,6 +94,31 @@ class TimeChange(UIEvent):
 
 @dataclass
 @fill_doc
+class TimeBrowse(UIEvent):
+    """Indicates that the user has browsed to a new time range.
+
+    Parameters
+    ----------
+    time_start : float
+        The new start time in seconds.
+    time_end : float
+        The new end time in seconds.
+
+    Attributes
+    ----------
+    %(ui_event_name_source)s
+    time_start : float
+        The new start time in seconds.
+    time_end : float
+        The new end time in seconds.
+    """
+
+    time_start: float
+    time_end: float
+
+
+@dataclass
+@fill_doc
 class PlaybackSpeed(UIEvent):
     """Indicates that the user has selected a different playback speed for videos.
 
@@ -253,6 +278,7 @@ def _get_event_channel(fig):
     import matplotlib
 
     from ._brain import Brain
+    from ._figure import BrowserBase
     from .evoked_field import EvokedField
 
     # Create the event channel if it doesn't exist yet
@@ -283,9 +309,13 @@ def _get_event_channel(fig):
         # Hook up the above callback function to the close event of the figure
         # window. How this is done exactly depends on the various figure types
         # MNE-Python has.
-        _validate_type(fig, (matplotlib.figure.Figure, Brain, EvokedField), "fig")
+        _validate_type(
+            fig, (matplotlib.figure.Figure, Brain, EvokedField, BrowserBase), "fig"
+        )
         if isinstance(fig, matplotlib.figure.Figure):
             fig.canvas.mpl_connect("close_event", delete_event_channel)
+        elif isinstance(fig, BrowserBase):
+            fig.mne.viewbox.destroyed.connect(delete_event_channel)
         else:
             assert hasattr(fig, "_renderer")  # figures like Brain, EvokedField, etc.
             fig._renderer._window_close_connect(delete_event_channel, after=False)
