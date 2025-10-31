@@ -26,6 +26,7 @@ fname_cov = data_path / "MEG" / "sample" / "sample_audvis_trunc-cov.fif"
 fname_label = data_path / "subjects" / "sample" / "label" / "lh.V1.label"
 
 
+@pytest.mark.slowtest
 @testing.requires_testing_data
 @pytest.mark.parametrize("src_type", ("surface", "volume"))
 def test_resolution_matrix_free(src_type, fwd_volume_small):
@@ -131,6 +132,7 @@ def test_resolution_matrix_free(src_type, fwd_volume_small):
     assert_array_almost_equal(stc_psf_label_free.data, stc_ctf_label_free.data)
 
 
+@pytest.mark.slowtest
 @testing.requires_testing_data
 def test_resolution_matrix_fixed():
     """Test resolution matrices with fixed orientations."""

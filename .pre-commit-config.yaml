@@ -1,7 +1,7 @@
 repos:
   # Ruff mne
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.13.1
+    rev: v0.14.2
     hooks:
       - id: ruff-check
         name: ruff lint mne
@@ -54,7 +54,7 @@ repos:
     rev: v6.0.0
     hooks:
       - id: file-contents-sorter
-        files: ^doc/changes/names.inc|^.mailmap
+        files: ^doc/changes/names.inc|^.mailmap|^doc/sphinxext/related_software.txt
         args: ["--ignore-case"]
 
   - repo: https://github.com/pappasam/toml-sort
@@ -82,7 +82,7 @@ repos:
 
   # zizmor
   - repo: https://github.com/woodruffw/zizmor-pre-commit
-    rev: v1.13.0
+    rev: v1.16.0
     hooks:
       - id: zizmor
 

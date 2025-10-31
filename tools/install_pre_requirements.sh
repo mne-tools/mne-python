@@ -44,18 +44,21 @@ echo "::endgroup::"
 
 echo "::group::Everything else"
 python -m pip install $STD_ARGS \
-    "git+https://github.com/pyvista/pyvista" \
+	"git+https://github.com/pyvista/pyvista" \
 	"git+https://github.com/pyvista/pyvistaqt" \
 	"git+https://github.com/nilearn/nilearn" \
 	"git+https://github.com/pierreablin/picard" \
+	"git+https://github.com/the-siesta-group/edfio" \
 	https://gitlab.com/obob/pymatreader/-/archive/master/pymatreader-master.zip \
 	git+https://github.com/mne-tools/mne-qt-browser \
+	git+https://github.com/pyqtgraph/pyqtgraph \
 	git+https://github.com/mne-tools/mne-bids \
 	git+https://github.com/nipy/nibabel \
 	git+https://github.com/joblib/joblib \
 	git+https://github.com/h5io/h5io \
 	git+https://github.com/BUNPC/pysnirf2 \
 	git+https://github.com/the-siesta-group/edfio \
+	git+https://github.com/python-quantities/python-quantities \
 	trame trame-vtk trame-vuetify jupyter ipyevents ipympl openmeeg \
 	imageio-ffmpeg xlrd mffpy traitlets pybv eeglabio defusedxml \
 	antio curryreader

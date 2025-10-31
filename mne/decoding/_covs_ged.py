@@ -88,6 +88,7 @@ def _csp_estimate(X, y, reg, cov_method_params, cov_est, info, rank, norm_trace)
             rank=rank,
             scalings=None,
             log_ch_type="data",
+            on_few_samples="ignore",
         )
 
     covs = []
@@ -158,6 +159,7 @@ def _xdawn_estimate(
             rank=rank,
             scalings=None,
             log_ch_type="data",
+            on_few_samples="ignore",
         )
     return covs, C_ref, info, rank, dict()
 
@@ -280,5 +282,6 @@ def _spoc_estimate(X, y, reg, cov_method_params, info, rank):
             rank=rank,
             scalings=None,
             log_ch_type="data",
+            on_few_samples="ignore",
         )
     return covs, C_ref, info, rank, dict()

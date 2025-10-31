@@ -1285,6 +1285,11 @@ encoding : str
     encoding according to the EDF+ standard).
 """
 
+docdict["encoding_nihon"] = """
+encoding : str
+    Text encoding of Nihon Kohden annotations. See :ref:`standard-encodings`.
+"""
+
 docdict["encoding_nirx"] = """
 encoding : str
     Text encoding of the NIRX header file. See :ref:`standard-encodings`.
