@@ -139,7 +139,12 @@ def _check_curry_sfreq_consistency(fname_hdr):
 
 
 def _get_curry_meas_info(fname):
-    # get other essential info not provided by curryreader
+    # Note that the time zone information is not stored in the Curry info
+    # file, and it seems the start time info is in the local timezone
+    # of the acquisition system (which is unknown); therefore, just set
+    # the timezone to be UTC.  If the user knows otherwise, they can
+    # change it later.  (Some Curry files might include StartOffsetUTCMin,
+    # but its presence is unpredictable, so we won't rely on it.)
     fname_hdr = _check_curry_header_filename(fname)
     content_hdr = fname_hdr.read_text()
 
@@ -547,7 +552,7 @@ def _set_chanloc_curry(
         R = np.eye(4)
         R[[0, 1], [0, 1]] = -1  # rotate 180 deg
         # shift down and back
-        # (chosen by eyeballing to make the CTF helmet look roughly correct)
+        # (chosen by eyeballing to make the helmet look roughly correct)
         R[:3, 3] = [0.0, -0.015, -0.12]
         curry_dev_dev_t = Transform("ctf_meg", "meg", R)
 

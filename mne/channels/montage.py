@@ -49,6 +49,7 @@ from ..utils import (
     check_fname,
     copy_function_doc_to_method_doc,
     fill_doc,
+    legacy,
     verbose,
     warn,
 )
@@ -326,7 +327,6 @@ class DigMontage:
     See Also
     --------
     read_dig_captrak
-    read_dig_dat
     read_dig_egi
     read_dig_fif
     read_dig_hpts
@@ -755,6 +755,7 @@ def transform_to_head(montage):
     return montage
 
 
+@legacy(alt="read_dig_curry()")
 def read_dig_dat(fname):
     r"""Read electrode positions from a ``*.dat`` file.
 
@@ -778,7 +779,6 @@ def read_dig_dat(fname):
     --------
     read_dig_captrak
     read_dig_curry
-    read_dig_dat
     read_dig_egi
     read_dig_fif
     read_dig_hpts
@@ -844,7 +844,6 @@ def read_dig_fif(fname, *, verbose=None):
     See Also
     --------
     DigMontage
-    read_dig_dat
     read_dig_egi
     read_dig_captrak
     read_dig_curry
@@ -899,7 +898,6 @@ def read_dig_hpts(fname, unit="mm"):
     DigMontage
     read_dig_captrak
     read_dig_curry
-    read_dig_dat
     read_dig_egi
     read_dig_fif
     read_dig_localite
@@ -993,7 +991,6 @@ def read_dig_egi(fname):
     DigMontage
     read_dig_captrak
     read_dig_curry
-    read_dig_dat
     read_dig_fif
     read_dig_hpts
     read_dig_localite
@@ -1026,7 +1023,6 @@ def read_dig_captrak(fname):
     --------
     DigMontage
     read_dig_curry
-    read_dig_dat
     read_dig_egi
     read_dig_fif
     read_dig_hpts
@@ -1057,7 +1053,6 @@ def read_dig_curry(fname):
     --------
     DigMontage
     read_dig_captrak
-    read_dig_dat
     read_dig_egi
     read_dig_fif
     read_dig_hpts
@@ -1110,7 +1105,6 @@ def read_dig_localite(fname, nasion=None, lpa=None, rpa=None):
     DigMontage
     read_dig_captrak
     read_dig_curry
-    read_dig_dat
     read_dig_egi
     read_dig_fif
     read_dig_hpts
@@ -1512,7 +1506,6 @@ def read_dig_polhemus_isotrak(fname, ch_names=None, unit="m"):
     read_polhemus_fastscan
     read_dig_captrak
     read_dig_curry
-    read_dig_dat
     read_dig_egi
     read_dig_fif
     read_dig_localite
@@ -1872,7 +1865,7 @@ def make_standard_montage(kind, head_size="auto"):
     Notes
     -----
     Individualized (digitized) electrode positions should be read in using
-    :func:`read_dig_captrak`, :func:`read_dig_curry`, :func:`read_dig_dat`,
+    :func:`read_dig_captrak`, :func:`read_dig_curry`,
     :func:`read_dig_egi`, :func:`read_dig_fif`, :func:`read_dig_polhemus_isotrak`,
     :func:`read_dig_hpts`, or manually made with :func:`make_dig_montage`.
 
