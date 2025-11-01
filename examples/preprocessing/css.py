@@ -99,6 +99,7 @@ ax.text(0.8, 0.25, "subcortical", transform=ax.transAxes)
 ax.set(ylabel="EEG Power spectral density", xlabel="Frequency (Hz)")
 ax.legend()
 
+###############################################################################
 # References
 # ^^^^^^^^^^
 #
