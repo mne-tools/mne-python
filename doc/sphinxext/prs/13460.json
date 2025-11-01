@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "65a717ced7b93d40cde68b13d037d0bba8690ba0",
+  "authors": [
+    {
+      "n": "Johannes Herforth",
+      "e": "johannes@herforth.net"
+    },
+    {
+      "n": "Thomas S. Binns",
+      "e": "t.s.binns@outlook.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/13460.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/base.py": {
+      "a": 19,
+      "d": 17
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/viz/_figure.py": {
+      "a": 5,
+      "d": 1
+    },
+    "mne/viz/ica.py": {
+      "a": 9,
+      "d": 0
+    },
+    "mne/viz/raw.py": {
+      "a": 8,
+      "d": 1
+    },
+    "mne/viz/tests/test_ica.py": {
+      "a": 16,
+      "d": 0
+    },
+    "mne/viz/tests/test_raw.py": {
+      "a": 17,
+      "d": 0
+    }
+  }
+}
