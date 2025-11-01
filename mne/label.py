@@ -949,7 +949,7 @@ class Label:
 
         Notes
         -----
-        ..versionadded:: 0.24
+        .. versionadded:: 0.24
         """
         _, _, surf = self._load_surface(
             subject, subjects_dir, surface, return_dict=True

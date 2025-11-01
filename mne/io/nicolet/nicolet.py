@@ -21,7 +21,7 @@ def read_raw_nicolet(
 ) -> "RawNicolet":
     """Read Nicolet data as raw object.
 
-    ..note:: This reader takes data files with the extension ``.data`` as an
+    .. note:: This reader takes data files with the extension ``.data`` as an
              input. The header file with the same file name stem and an
              extension ``.head`` is expected to be found in the same
              directory.
