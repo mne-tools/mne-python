@@ -749,13 +749,10 @@ nitpicky = True
 show_warning_types = True
 nitpick_ignore = [
     ("py:class", "None.  Remove all items from D."),
-    ("py:class", "a set-like object providing a view on D's items"),
-    ("py:class", "a set-like object providing a view on D's keys"),
     (
         "py:class",
         "v, remove specified key and return the corresponding value.",
     ),  # noqa: E501
-    ("py:class", "None.  Update D from dict/iterable E and F."),
     ("py:class", "an object providing a view on D's values"),
     ("py:class", "a shallow copy of D"),
     ("py:class", "(k, v), remove and return some (key, value) pair as a"),
@@ -764,6 +761,8 @@ nitpick_ignore = [
     ("py:class", "None.  Remove all items from od."),
 ]
 nitpick_ignore_regex = [
+    ("py:class", "a set-like object providing a view on D's (items|keys)"),
+    ("py:class", r"None\.  Update D from (dict|mapping)/iterable E and F\."),
     # Classes whose methods we purposefully do not document
     ("py:.*", r"mne\.io\.BaseRaw.*"),  # use mne.io.Raw
     ("py:.*", r"mne\.BaseEpochs.*"),  # use mne.Epochs
