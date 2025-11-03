@@ -580,7 +580,7 @@ def test_incomplete_file_suite(tmp_path, fname):
 
     # only data
     copyfile(src=original["data"], dst=modified["data"])
-    _msg = f'does not exist: "{str(modified["event"])}"'
+    _msg = rf'does not exist: "{str(modified["event"])}"'
     with pytest.raises(FileNotFoundError, match=_msg):
         read_annotations(modified["event"], sfreq="auto")
 
