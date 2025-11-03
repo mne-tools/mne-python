@@ -656,6 +656,7 @@ user_agent = "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit
 linkcheck_ignore = [  # will be compiled to regex
     # 403 Client Error: Forbidden
     "https://doi.org/10.1002/",  # onlinelibrary.wiley.com/doi/10.1002/hbm
+    "https://doi.org/10.1017/",  # cambridge.org
     "https://doi.org/10.1016/",  # neuroimage
     "https://doi.org/10.1021/",  # pubs.acs.org/doi/abs
     "https://doi.org/10.1063/",  # pubs.aip.org/aip/jap
