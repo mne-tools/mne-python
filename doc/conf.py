@@ -681,6 +681,9 @@ linkcheck_ignore = [  # will be compiled to regex
     "https://doi.org/10.3390/",  # mdpi.com
     "https://hms.harvard.edu/",  # doc/funding.rst
     "https://stackoverflow.com/questions/21752259/python-why-pickle",  # doc/help/faq
+    "https://blender.org",
+    "https://home.alexk101.dev",
+    "https://www.mq.edu.au/",
     "https://www.biorxiv.org/content/10.1101/",  # biorxiv.org
     "https://www.researchgate.net/profile/",
     "https://www.intel.com/content/www/us/en/developer/tools/oneapi/onemkl.html",
