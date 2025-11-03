@@ -41,9 +41,9 @@ curry8_bdf_file = curry_dir / "test_bdf_stim_channel Curry 8.cdt"
 curry8_bdf_ascii_file = curry_dir / "test_bdf_stim_channel Curry 8 ASCII.cdt"
 Ref_chan_omitted_file = curry_dir / "Ref_channel_omitted Curry7.dat"
 Ref_chan_omitted_reordered_file = curry_dir / "Ref_channel_omitted reordered Curry7.dat"
-epoched_file = curry_dir / "Epoched.cdt"
+curry_epoched_file = curry_dir / "Epoched.cdt"
+curry_hpi_file = curry_dir / "HPI.cdt"
 bti_rfDC_file = data_dir / "BTi" / "erm_HFH" / "c,rfDC"
-# TODO: Need to be updated to have channel counts match
 curry7_rfDC_file = curry_dir / "c,rfDC Curry 7.dat"
 curry8_rfDC_file = curry_dir / "c,rfDC Curry 8.cdt"
 
@@ -94,10 +94,46 @@ def test_read_raw_curry(fname, tol, preload, bdf_curry_ref):
 @testing.requires_testing_data
 def test_read_raw_curry_epoched():
     """Test reading epoched file."""
-    ep = read_raw_curry(epoched_file)
+    ep = read_raw_curry(curry_epoched_file)
     assert isinstance(ep, Epochs)
     assert len(ep.events) == 26
     assert len(ep.annotations) == 0
+
+
+GOOD_HPI_MATCH = """
+FileVersion:	804
+NumCoils:	10
+
+0	1	52.73	-74.87	111.56	0.002538		1	57.87	23.21	126.11	0.002692		1	-3.68	-18.54	130.38	0.008380		1	-19.40	49.74	90.95	0.008395		1	-56.17	-6.00	62.95	0.003832		0	0.00	0.00	0.00	0.000000		0	0.00	0.00	0.00	0.000000		0	0.00	0.00	0.00	0.000000		0	0.00	0.00	0.00	0.000000		0	0.00	0.00	0.00	0.000000
+4100	1	50.54	-62.26	151.17	0.002511		1	28.10	56.94	148.74	0.002720		1	-21.68	-43.61	175.47	0.008313		1	-57.26	23.61	147.11	0.008390		1	-80.77	-32.52	125.38	0.003828		0	0.00	0.00	0.00	0.000000		0	0.00	0.00	0.00	0.000000		0	0.00	0.00	0.00	0.000000		0	0.00	0.00	0.00	0.000000		0	0.00	0.00	0.00	0.000000
+
+"""  # noqa: E501
+
+
+@pytest.mark.parametrize("good_match", [True, False])
+@testing.requires_testing_data
+def test_read_raw_curry_hpi(good_match, tmp_path):
+    """Test reading hpi file."""
+    fname = curry_hpi_file
+    if not good_match:
+        # real data does not have a good fit
+        read_raw_curry(fname, on_bad_hpi_match="ignore")
+        with pytest.warns(match="Poor HPI matching"):
+            read_raw_curry(fname, on_bad_hpi_match="warn")
+        with pytest.raises(ValueError, match="Poor HPI matching"):
+            read_raw_curry(fname, on_bad_hpi_match="raise")
+    else:
+        # tweak HPI point to have a good fit
+        for ext in (".cdt", ".cdt.dpa"):
+            src = fname.with_suffix(ext)
+            dst = tmp_path / fname.with_suffix(ext).name
+            copyfile(src, dst)
+        fname = tmp_path / fname.name
+        with open(fname.with_suffix(fname.suffix + ".hpi"), "w") as fid:
+            fid.write(GOOD_HPI_MATCH)
+        read_raw_curry(fname, on_bad_hpi_match="ignore")
+        read_raw_curry(fname, on_bad_hpi_match="warn")
+        read_raw_curry(fname, on_bad_hpi_match="raise")
 
 
 @testing.requires_testing_data
@@ -223,8 +259,8 @@ WANT_TRANS = np.array(
 @pytest.mark.parametrize(
     "fname,tol",
     [
-        pytest.param(curry7_rfDC_file, 1e-6, id="curry 7", marks=pytest.mark.xfail),
-        pytest.param(curry8_rfDC_file, 1e-3, id="curry 8", marks=pytest.mark.xfail),
+        pytest.param(curry7_rfDC_file, 1e-6, id="curry 7"),
+        pytest.param(curry8_rfDC_file, 1e-3, id="curry 8"),
     ],
 )
 @pytest.mark.parametrize("mock_dev_head_t", [True, False])
@@ -276,7 +312,7 @@ def test_read_raw_curry_rfDC(fname, tol, mock_dev_head_t, tmp_path):
     nn = list()
     for ch in raw.info["chs"]:
         if ch["kind"] == FIFF.FIFFV_MEG_CH:
-            assert ch["coil_type"] == FIFF.FIFFV_COIL_CTF_GRAD
+            assert ch["coil_type"] == FIFF.FIFFV_COIL_COMPUMEDICS_ADULT_GRAD
             t = _loc_to_coil_trans(ch["loc"])
             pos.append(t[:3, 3])
             nn.append(t[:3, 2])
@@ -599,14 +635,11 @@ def test_read_files_missing_channel(fname, expected_channel_list):
             datetime(2018, 11, 21, 12, 53, 48, 525000, tzinfo=timezone.utc),
             id="valid start date",
         ),
-        pytest.param(
-            curry7_rfDC_file, None, id="start date year is 0", marks=pytest.mark.xfail
-        ),
+        pytest.param(curry7_rfDC_file, None, id="start date year is 0"),
         pytest.param(
             curry7_bdf_file,
             None,
             id="start date seconds invalid",
-            marks=pytest.mark.xfail,
         ),
     ],
 )
@@ -623,14 +656,8 @@ def test_meas_date(fname, expected_meas_date):
 @pytest.mark.parametrize(
     "fname, others",
     [
-        pytest.param(
-            curry7_rfDC_file, (".dap", ".rs3"), id="curry7", marks=pytest.mark.xfail
-        ),
-        pytest.param(
-            curry8_rfDC_file, (".cdt.dpa",), id="curry8", marks=pytest.mark.xfail
-        ),
         pytest.param(curry7_bdf_file, (".dap", ".rs3"), id="curry7"),
-        pytest.param(epoched_file, (".cdt.dpa",), id="curry8"),
+        pytest.param(curry8_bdf_file, (".cdt.cef", ".cdt.dpa"), id="curry8"),
     ],
 )
 def test_dot_names(fname, others, tmp_path):
@@ -716,12 +743,9 @@ def _mock_info_noeeg(src, dst):
         pytest.param(curry8_bdf_file, True, id="curry 8"),
         pytest.param(curry7_bdf_ascii_file, True, id="curry 7 ascii"),
         pytest.param(curry8_bdf_ascii_file, True, id="curry 8 ascii"),
-        pytest.param(
-            curry7_rfDC_file, False, id="no eeg, curry 7", marks=pytest.mark.xfail
-        ),
-        pytest.param(
-            curry8_rfDC_file, False, id="no eeg, curry 8", marks=pytest.mark.xfail
-        ),
+        pytest.param(curry7_rfDC_file, False, id="no eeg, curry 7"),
+        pytest.param(curry8_rfDC_file, False, id="no eeg, curry 8"),
+        pytest.param(curry_hpi_file, True, id="curry 8, w/ HPI data"),
     ],
 )
 def test_read_montage_curry(tmp_path, fname, mont_present):
@@ -738,6 +762,5 @@ def test_read_montage_curry(tmp_path, fname, mont_present):
                     _mock_info_noeeg(src, dst)
                 else:
                     copyfile(src, dst)
-        # TODO - not reached, yet. no test file without eeg chanlocs
         with pytest.raises(ValueError, match="No eeg sensor locations found"):
             read_dig_curry(tmp_path / fname.name)
