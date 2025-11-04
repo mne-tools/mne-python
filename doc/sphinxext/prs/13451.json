@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "54644a5d36027f9ee5b672a15e998768b39b745c",
+  "authors": [
+    {
+      "n": "Thomas S. Binns",
+      "e": "t.s.binns@outlook.com"
+    },
+    {
+      "n": "autofix-ci[bot]",
+      "e": "114827586+autofix-ci[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".github/workflows/spec_zero.yml": {
+      "a": 62,
+      "d": 0
+    },
+    ".yamllint.yml": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/changes/dev/13451.other.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "pyproject.toml": {
+      "a": 1,
+      "d": 1
+    },
+    "tools/dev/spec_zero_update_versions.py": {
+      "a": 258,
+      "d": 0
+    }
+  }
+}
