@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "3d7722fecf2bf1d99e1a526654087912836d839a",
+  "authors": [
+    {
+      "n": "Michael Straube",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/13466.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/_fiff/reference.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/_fiff/tests/test_reference.py": {
+      "a": 4,
+      "d": 0
+    }
+  }
+}
