@@ -34,6 +34,7 @@
 .. _Asish Panda: https://github.com/kaichogami
 .. _Austin Hurst: https://github.com/a-hurst
 .. _Ben Beasley: https://github.com/musicinmybrain
+.. _Bradley Voytek: https://github.com/voytek
 .. _Britta Westner: https://britta-wstnr.github.io
 .. _Bruno Aristimunha: https://bruaristimunha.github.io
 .. _Bruno Nicenboim: https://bnicenboim.github.io
@@ -132,6 +133,7 @@
 .. _Jan Sedivy: https://github.com/honzaseda
 .. _Jan Sosulski: https://jan-sosulski.de
 .. _Jan Zerfowski: https://github.com/jzerfowski
+.. _Jan-Mathijs Schoeffelen: https://github.com/schoffelen
 .. _Jasper van den Bosch: https://github.com/ilogue
 .. _Jean-Baptiste Schiratti: https://github.com/jbschiratti
 .. _Jean-Rémi King: https://github.com/kingjr
@@ -143,6 +145,7 @@
 .. _jeythekey: https://github.com/jeythekey
 .. _Joan Massich: https://github.com/massich
 .. _Johann Benerradi: https://github.com/HanBnrd
+.. _Johannes Herforth: https://herforth.net
 .. _Johannes Niediek: https://github.com/jniediek
 .. _John Samuelsson: https://github.com/johnsam7
 .. _John Veillette: https://psychology.uchicago.edu/directory/john-veillette
@@ -201,8 +204,10 @@
 .. _Matteo Anelli: https://github.com/matteoanelli
 .. _Matthias Dold: https://matthiasdold.de
 .. _Matthias Eberlein: https://github.com/MatthiasEb
+.. _Matti Hämäläinen: https://research.aalto.fi/en/persons/matti-h%C3%A4m%C3%A4l%C3%A4inen/
 .. _Matti Toivonen: https://github.com/mattitoi
 .. _Mauricio Cespedes Tenorio: https://github.com/mcespedes99
+.. _Michael Straube: https://github.com/mistraube
 .. _Michal Žák: https://github.com/michalrzak
 .. _Michiru Kaneda: https://github.com/rcmdnk
 .. _Mikołaj Magnuski: https://github.com/mmagnuski
@@ -228,6 +233,7 @@
 .. _Noah Markowitz: https://github.com/nmarkowitz
 .. _Okba Bekhelifi: https://github.com/okbalefthanded
 .. _Olaf Hauk: https://neuroscience.cam.ac.uk/member/olafhauk
+.. _Ole Jensen: https://www.psy.ox.ac.uk/people/ole-jensen
 .. _Oleh Kozynets: https://github.com/OlehKSS
 .. _Pablo Mainar: https://github.com/pablomainar
 .. _Pablo-Arias: https://github.com/Pablo-Arias
