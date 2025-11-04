@@ -2286,7 +2286,7 @@ class ICA(ContainsMixin):
         start, stop = _check_start_stop(raw, start, stop)
 
         picks = pick_types(
-            raw.info, meg=False, include=self.ch_names, exclude="bads", ref_meg=False
+            raw.info, meg=False, include=self.ch_names, exclude=[], ref_meg=False
         )
 
         data = raw[picks, start:stop][0]
@@ -2300,7 +2300,7 @@ class ICA(ContainsMixin):
         _check_preload(epochs, "ica.apply")
 
         picks = pick_types(
-            epochs.info, meg=False, ref_meg=False, include=self.ch_names, exclude="bads"
+            epochs.info, meg=False, ref_meg=False, include=self.ch_names, exclude=[]
         )
 
         # special case where epochs come picked but fit was 'unpicked'.
@@ -2323,7 +2323,7 @@ class ICA(ContainsMixin):
     def _apply_evoked(self, evoked, include, exclude, n_pca_components):
         """Aux method."""
         picks = pick_types(
-            evoked.info, meg=False, ref_meg=False, include=self.ch_names, exclude="bads"
+            evoked.info, meg=False, ref_meg=False, include=self.ch_names, exclude=[]
         )
 
         # special case where evoked come picked but fit was 'unpicked'.
