@@ -33,6 +33,7 @@
 .. _Ashley Drew: https://github.com/ashdrew
 .. _Asish Panda: https://github.com/kaichogami
 .. _Austin Hurst: https://github.com/a-hurst
+.. _Beige Jin: https://github.com/BeiGeJin
 .. _Ben Beasley: https://github.com/musicinmybrain
 .. _Bradley Voytek: https://github.com/voytek
 .. _Britta Westner: https://britta-wstnr.github.io

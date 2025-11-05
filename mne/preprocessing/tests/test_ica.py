@@ -25,6 +25,7 @@ from mne import (
     EpochsArray,
     EvokedArray,
     Info,
+    concatenate_raws,
     create_info,
     make_ad_hoc_cov,
     pick_channels_regexp,
@@ -1727,3 +1728,21 @@ def test_ica_ch_types(ch_type):
     for inst in [raw, epochs, evoked]:
         ica.apply(inst)
         ica.get_sources(inst)
+
+
+@testing.requires_testing_data
+def test_ica_get_sources_concatenated():
+    """Test ICA get_sources method with concatenated raws."""
+    # load data
+    raw = read_raw_fif(raw_fname).crop(0, 3).load_data()  # raw has 3 seconds of data
+    # create concatenated raw instances
+    raw_concat = concatenate_raws(
+        [raw.copy(), raw.copy()]
+    )  # raw_concat has 6 seconds of data
+    # do ICA
+    ica = ICA(n_components=2, max_iter=2)
+    with _record_warnings(), pytest.warns(UserWarning, match="did not converge"):
+        ica.fit(raw_concat)
+    # get sources
+    raw_sources = ica.get_sources(raw_concat)  # but this only has 3 seconds of data
+    assert raw_concat.n_times == raw_sources.n_times  # this will fail
