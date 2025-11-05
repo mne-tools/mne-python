@@ -70,7 +70,6 @@ class RawEDF(BaseRaw):
 
         .. versionchanged:: 1.10
             Added support for file-like objects
-
     eog : list or tuple
         Names of channels or list of indices that should be designated EOG
         channels. Values should correspond to the electrodes in the file.
@@ -283,7 +282,6 @@ class RawBDF(BaseRaw):
 
         .. versionchanged:: 1.10
             Added support for file-like objects
-
     eog : list or tuple
         Names of channels or list of indices that should be designated EOG
         channels. Values should correspond to the electrodes in the file.
@@ -485,7 +483,6 @@ class RawGDF(BaseRaw):
 
         .. versionchanged:: 1.10
             Added support for file-like objects
-
     eog : list or tuple
         Names of channels or list of indices that should be designated EOG
         channels. Values should correspond to the electrodes in the file.
@@ -1154,7 +1151,7 @@ def _read_edf_header(
             header_nbytes = int(_edf_str(fid.read(8)))
         except ValueError:
             raise ValueError(
-                f"Bad {'EDF' if file_type is FileType.EDF else 'BDF'} file provided."
+                f"Bad {'EDF' if file_type == FileType.EDF else 'BDF'} file provided."
             )
 
         # The following 44 bytes sometimes identify the file type, but this is
@@ -1914,7 +1911,6 @@ def read_raw_edf(
 
         .. versionchanged:: 1.10
             Added support for file-like objects
-
     eog : list or tuple
         Names of channels or list of indices that should be designated EOG
         channels. Values should correspond to the electrodes in the file.
@@ -2054,7 +2050,6 @@ def read_raw_bdf(
 
         .. versionchanged:: 1.10
             Added support for file-like objects
-
     eog : list or tuple
         Names of channels or list of indices that should be designated EOG
         channels. Values should correspond to the electrodes in the file.
@@ -2186,7 +2181,6 @@ def read_raw_gdf(
 
         .. versionchanged:: 1.10
             Added support for file-like objects
-
     eog : list or tuple
         Names of channels or list of indices that should be designated EOG
         channels. Values should correspond to the electrodes in the file.
