@@ -431,7 +431,7 @@ def test_spoc():
     # check y
     pytest.raises(ValueError, spoc.fit, X, y * 0)
 
-    # Check that doesn't take CSP-spcific input
+    # Check that doesn't take CSP-specific input
     pytest.raises(TypeError, SPoC, cov_est="epoch")
 
     # Check mixing matrix on simulated data
@@ -495,4 +495,5 @@ def test_csp_component_ordering():
 @parametrize_with_checks([CSP(), SPoC()])
 def test_sklearn_compliance(estimator, check):
     """Test compliance with sklearn."""
+    pytest.importorskip("sklearn", minversion="1.4")  # TODO VERSION remove on 1.4+
     check(estimator)

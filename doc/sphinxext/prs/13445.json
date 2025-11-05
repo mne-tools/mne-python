@@ -1,0 +1,55 @@
+{
+  "merge_commit_sha": "7fb19a1a7dbf4b8d710dd71a88a1b8ee73e1e100",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "autofix-ci[bot]",
+      "e": "114827586+autofix-ci[bot]@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/13445.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/install/installers.rst": {
+      "a": 7,
+      "d": 7
+    },
+    "mne/beamformer/tests/test_dics.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/beamformer/tests/test_lcmv.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/gui/_coreg.py": {
+      "a": 1,
+      "d": 10
+    },
+    "mne/gui/tests/test_coreg.py": {
+      "a": 1,
+      "d": 7
+    },
+    "mne/minimum_norm/tests/test_inverse.py": {
+      "a": 46,
+      "d": 12
+    },
+    "mne/minimum_norm/tests/test_resolution_matrix.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/minimum_norm/tests/test_time_frequency.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/tests/test_surface.py": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

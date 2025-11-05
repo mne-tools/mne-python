@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "cb385eeb682cbb4a4b7ce6e3523507e375b58a5b",
+  "authors": [
+    {
+      "n": "Lumberbot (aka Jack)",
+      "e": null
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "doc/_static/js/custom-icons.js": {
+      "a": 19,
+      "d": 0
+    },
+    "doc/_static/style.css": {
+      "a": 11,
+      "d": 1
+    },
+    "doc/conf.py": {
+      "a": 17,
+      "d": 4
+    }
+  }
+}
