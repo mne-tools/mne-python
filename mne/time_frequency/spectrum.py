@@ -503,6 +503,10 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
     def nave(self):
         return self._nave
 
+    @nave.setter
+    def nave(self, nave):
+        self._nave = nave
+
     @property
     def weights(self):
         return self._weights

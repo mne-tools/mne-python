@@ -34,7 +34,12 @@ Steering Council
 Advisory Board
 --------------
 
-The advisory board is currently unfilled.
+* `Alex Gramfort`_
+* `Bradley Voytek`_
+* `Jan-Mathijs Schoeffelen`_
+* `Liberty Hamilton`_
+* `Matti Hämäläinen`_
+* `Ole Jensen`_
 
 
 .. _governance-cpgrl:

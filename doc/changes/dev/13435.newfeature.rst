@@ -1,0 +1,1 @@
+Add support for BDF export in :func:`mne.export.export_raw`, by `Clemens Brunner`_

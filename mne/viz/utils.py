@@ -60,6 +60,8 @@ from ..utils import (
 from ..utils.misc import _identity_function
 from .ui_events import ChannelsSelect, ColormapRange, publish, subscribe
 
+_BLIT_KWARGS = dict(useblit=True)
+
 _channel_type_prettyprint = {
     "eeg": "EEG channel",
     "grad": "Gradiometer",
@@ -1423,6 +1425,8 @@ def _compute_scalings(scalings, inst, remove_dc=False, duration=10):
         this_data = this_data[np.isfinite(this_data)]
         if this_data.size:
             iqr = np.diff(np.percentile(this_data, [25, 75]))[0]
+            if iqr == 0:  # e.g. sparse stim channels, flat channels
+                iqr = 1.0
         else:
             iqr = 1.0
         scalings[key] = iqr
@@ -1689,7 +1693,10 @@ class SelectFromCollection:
 
         # Initialize the lasso selector
         self.lasso = LassoSelector(
-            ax, onselect=self.on_select, props=dict(color="red", linewidth=0.5)
+            ax,
+            onselect=self.on_select,
+            props=dict(color="red", linewidth=0.5),
+            **_BLIT_KWARGS,
         )
         self.selection = list()
         self.selection_inds = np.array([], dtype="int")
