@@ -1024,6 +1024,15 @@ def test_ica_additional(method, tmp_path, short_raw_epochs):
     ica = ICA(n_components=0.99, max_iter="auto")
     ica.fit(raw_, picks=picks, reject_by_annotation=True)
 
+    # test apply when fit was run including marked bad channels
+    epochs_ = Epochs(
+        raw=raw_, events=make_fixed_length_events(raw_), baseline=None, preload=True
+    )
+    evoked_ = epochs_.average()
+    ica.apply(raw_)
+    ica.apply(epochs_)
+    ica.apply(evoked_)
+
 
 def test_get_explained_variance_ratio(tmp_path, short_raw_epochs):
     """Test ICA.get_explained_variance_ratio()."""

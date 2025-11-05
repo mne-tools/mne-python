@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "f09b3da1a23757b76fd0adfdb9c6ed29db14af29",
+  "authors": [
+    {
+      "n": "Michael Straube",
+      "e": null
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/13470.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/viz/topomap.py": {
+      "a": 2,
+      "d": 5
+    }
+  }
+}
