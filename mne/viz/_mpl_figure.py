@@ -59,6 +59,7 @@ from ..fixes import _close_event
 from ..utils import Bunch, _click_ch_name, check_version, logger
 from ._figure import BrowserBase
 from .utils import (
+    _BLIT_KWARGS,
     DraggableLine,
     _events_off,
     _fake_click,
@@ -186,7 +187,7 @@ class MNEFigure(Figure):
 class MNEAnnotationFigure(MNEFigure):
     """Interactive dialog figure for annotations."""
 
-    def _close(self, event):
+    def _close(self, event=None):
         """Handle close events (via keypress or window [x])."""
         parent = self.mne.parent_fig
         # disable span selector
@@ -275,7 +276,7 @@ class MNEAnnotationFigure(MNEFigure):
 class MNESelectionFigure(MNEFigure):
     """Interactive dialog figure for channel selections."""
 
-    def _close(self, event):
+    def _close(self, event=None):
         """Handle close events."""
         self.mne.parent_fig.mne.child_figs.remove(self)
         self.mne.fig_selection = None
@@ -1129,9 +1130,9 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
             self._select_annotation_span,
             "horizontal",
             minspan=0.1,
-            useblit=True,
             button=1,
             props=dict(alpha=0.5, facecolor=col),
+            **_BLIT_KWARGS,
         )
         self.mne.ax_main.selector = selector
         self.mne._callback_ids["motion_notify_event"] = self.canvas.mpl_connect(
@@ -1170,7 +1171,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         ax.set_title(title, size=None, loc="left")
         if len(labels):
             if _OLD_BUTTONS:
-                ax.buttons = RadioButtons(ax, labels)
+                ax.buttons = RadioButtons(ax, labels, **_BLIT_KWARGS)
                 radius = 0.15
                 circles = ax.buttons.circles
                 for circle, label in zip(circles, ax.buttons.labels):
@@ -1195,7 +1196,9 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
                     edgecolor=edgecolors,
                     facecolor=facecolors,
                 )
-                ax.buttons = RadioButtons(ax, labels, radio_props=radio_props)
+                ax.buttons = RadioButtons(
+                    ax, labels, radio_props=radio_props, **_BLIT_KWARGS
+                )
         else:
             ax.buttons = None
         # adjust xlim to keep equal aspect & full width (keep circles round)
@@ -1471,7 +1474,9 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         labels = list(selections_dict)
         # make & style the radio buttons
         activecolor = to_rgb(self.mne.fgcolor) + (0.5,)
-        radio_ax.buttons = RadioButtons(radio_ax, labels, activecolor=activecolor)
+        radio_ax.buttons = RadioButtons(
+            radio_ax, labels, activecolor=activecolor, **_BLIT_KWARGS
+        )
         fig.mne.old_selection = 0
         if _OLD_BUTTONS:
             for circle in radio_ax.buttons.circles:
@@ -1536,7 +1541,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
     def _update_highlighted_sensors(self):
         """Update the sensor plot to show what is selected."""
         inds = np.isin(
-            self.mne.fig_selection.lasso.ch_names, self.mne.ch_names[self.mne.picks]
+            self.mne.fig_selection.lasso.names, self.mne.ch_names[self.mne.picks]
         ).nonzero()[0]
         self.mne.fig_selection.lasso.select_many(inds)
 

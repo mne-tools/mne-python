@@ -41,7 +41,6 @@ def _assert_trans(actual, desired, dist_tol=0.017, angle_tol=5.0):
     assert angle <= angle_tol, f"{angle:0.3f} > {angle_tol:0.3f}° rotation"
 
 
-@pytest.mark.timeout(60)  # ~25 s on Travis Linux OpenBLAS
 @testing.requires_testing_data
 def test_artemis_reader():
     """Test reading raw Artemis123 files."""
@@ -49,6 +48,7 @@ def test_artemis_reader():
         read_raw_artemis123,
         input_fname=short_hpi_1kz_fname,
         pos_fname=dig_fname,
+        add_head_trans=False,
         verbose="error",
     )
 
@@ -59,6 +59,7 @@ def test_dev_head_t():
     """Test dev_head_t computation for Artemis123."""
     # test a random selected point
     raw = read_raw_artemis123(short_hpi_1kz_fname, preload=True, add_head_trans=False)
+    assert raw.info["dev_head_t"] is None
     meg_picks = pick_types(raw.info, meg=True, eeg=False)
 
     # checked against matlab reader.

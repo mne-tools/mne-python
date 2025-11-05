@@ -436,21 +436,24 @@ def _read_segment_file(data, idx, fi, start, stop, raw_extras, filenames, cals, 
                 ones[orig_idx, smp_read : smp_read + len(one_i)] = one_i
                 n_smp_read[orig_idx] += len(one_i)
 
+        # resample channels with lower sample frequency
         # skip if no data was requested, ie. only annotations were read
-        if sum(n_smp_read) > 0:
+        if any(n_smp_read) > 0:
             # expected number of samples, equals maximum sfreq
             smp_exp = data.shape[-1]
-            assert max(n_smp_read) == smp_exp
 
             # resample data after loading all chunks to prevent edge artifacts
             resampled = False
+
             for i, smp_read in enumerate(n_smp_read):
                 # nothing read, nothing to resample
                 if smp_read == 0:
                     continue
                 # upsample if n_samples is lower than from highest sfreq
                 if smp_read != smp_exp:
-                    assert (ones[i, smp_read:] == 0).all()  # sanity check
+                    # sanity check that we read exactly how much we expected
+                    assert (ones[i, smp_read:] == 0).all()
+
                     ones[i, :] = resample(
                         ones[i, :smp_read].astype(np.float64),
                         smp_exp,
@@ -1450,9 +1453,7 @@ def _read_gdf_header(fname, exclude, include=None):
                     n_events = np.fromfile(fid, UINT32, 1)[0]
                 else:
                     ne = np.fromfile(fid, UINT8, 3)
-                    n_events = ne[0]
-                    for i in range(1, len(ne)):
-                        n_events = n_events + int(ne[i]) * 2 ** (i * 8)
+                    n_events = sum(int(ne[i]) << (i * 8) for i in range(len(ne)))
                     event_sr = np.fromfile(fid, FLOAT32, 1)[0]
 
                 pos = np.fromfile(fid, UINT32, n_events) - 1  # 1-based inds

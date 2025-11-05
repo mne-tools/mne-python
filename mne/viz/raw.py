@@ -23,7 +23,7 @@ from .utils import (
     _shorten_path_from_middle,
 )
 
-_RAW_CLIP_DEF = 1.5
+_RAW_CLIP_DEF = 3
 
 
 @verbose
@@ -37,6 +37,8 @@ def plot_raw(
     color=None,
     bad_color="lightgray",
     event_color="cyan",
+    *,
+    annotation_regex=".*",
     scalings=None,
     remove_dc=True,
     order=None,
@@ -61,7 +63,6 @@ def plot_raw(
     precompute=None,
     use_opengl=None,
     picks=None,
-    *,
     theme=None,
     overview_mode=None,
     splash=True,
@@ -99,6 +100,11 @@ def plot_raw(
         Color to make bad channels.
     %(event_color)s
         Defaults to ``'cyan'``.
+    annotation_regex : str
+        A regex pattern applied to each annotation's label.
+        Matching labels remain visible, non-matching labels are hidden.
+
+        .. versionadded:: 1.11
     %(scalings)s
     remove_dc : bool
         If True remove DC component when plotting data.
@@ -373,6 +379,7 @@ def plot_raw(
         event_times=event_times,
         event_nums=event_nums,
         event_id_rev=event_id_rev,
+        annotation_regex=annotation_regex,
         # preprocessing
         projs=projs,
         projs_on=projs_on,

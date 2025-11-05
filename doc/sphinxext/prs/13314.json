@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "35398fdb1a9760e3926c0c5eff4ff931289c3d4d",
+  "authors": [
+    {
+      "n": "Scott Huberty",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/13314.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/defaults.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

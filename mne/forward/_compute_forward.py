@@ -35,6 +35,7 @@ def _dup_coil_set(coils, coord_frame, t):
     if t is not None:
         coord_frame = t["to"]
         for coil in coils:
+            assert isinstance(coil, dict), f"Coil must be a dict, got {type(coil)}"
             for key in ("ex", "ey", "ez"):
                 if key in coil:
                     coil[key] = apply_trans(t["trans"], coil[key], False)
@@ -708,7 +709,7 @@ def _compute_mdfv(rrs, rmags, cosmags, ws, bins, too_close):
 
 
 @verbose
-def _prep_field_computation(rr, *, sensors, bem, n_jobs, verbose=None):
+def _prep_field_computation(*, sensors, bem, n_jobs, verbose=None):
     """Precompute and store some things that are used for both MEG and EEG.
 
     Calculation includes multiplication factors, coordinate transforms,
@@ -794,6 +795,7 @@ def _compute_forwards_meeg(rr, *, sensors, fwd_data, n_jobs, silent=False):
     mri_Q, bem_rr, fun = fwd_data["mri_Q"], fwd_data["bem_rr"], fwd_data["fun"]
     solutions = fwd_data["solutions"]
     del fwd_data
+    rr = np.ascontiguousarray(rr)  # usually true but not guaranteed, e.g. in dipole.py
     for coil_type, sens in sensors.items():
         coils = sens["defs"]
         compensator = sens.get("compensator", None)
@@ -835,7 +837,10 @@ def _compute_forwards(rr, *, bem, sensors, n_jobs, verbose=None):
     solver = bem.get("solver", "mne")
     _check_option("solver", solver, ("mne", "openmeeg"))
     if bem["is_sphere"] or solver == "mne":
-        fwd_data = _prep_field_computation(rr, sensors=sensors, bem=bem, n_jobs=n_jobs)
+        # This modifies "sensors" in place, so let's copy it in case the calling
+        # function needs to reuse it (e.g., in simulate_raw.py)
+        sensors = deepcopy(sensors)
+        fwd_data = _prep_field_computation(sensors=sensors, bem=bem, n_jobs=n_jobs)
         Bs = _compute_forwards_meeg(
             rr, sensors=sensors, fwd_data=fwd_data, n_jobs=n_jobs
         )

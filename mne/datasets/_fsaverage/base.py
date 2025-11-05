@@ -12,7 +12,7 @@ FSAVERAGE_MANIFEST_PATH = Path(__file__).parent
 
 @verbose
 def fetch_fsaverage(subjects_dir=None, *, verbose=None):
-    """Fetch and update fsaverage.
+    """Fetch and update :ref:`fsaverage <fsaverage_background>`.
 
     Parameters
     ----------
@@ -73,13 +73,13 @@ def fetch_fsaverage(subjects_dir=None, *, verbose=None):
     _manifest_check_download(
         manifest_path=FSAVERAGE_MANIFEST_PATH / "root.txt",
         destination=subjects_dir,
-        url="https://osf.io/3bxqt/download?version=2",
+        url="https://osf.io/download/3bxqt?version=2",
         hash_="5133fe92b7b8f03ae19219d5f46e4177",
     )
     _manifest_check_download(
         manifest_path=FSAVERAGE_MANIFEST_PATH / "bem.txt",
         destination=subjects_dir / "fsaverage",
-        url="https://osf.io/7ve8g/download?version=4",
+        url="https://osf.io/download/7ve8g?version=4",
         hash_="b31509cdcf7908af6a83dc5ee8f49fb1",
     )
     return fs_dir

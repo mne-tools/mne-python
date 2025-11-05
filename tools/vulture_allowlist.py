@@ -40,7 +40,15 @@ verbose_debug
 metadata_routing
 
 # Decoding
-_._more_tags
+_.multi_class
+_.preserves_dtype
+_.one_d_labels
+_.two_d_labels
+_.two_d_array
+_.three_d_array
+_.requires_fit
+_.regressor_tags
+
 deep
 
 # Backward compat or rarely used

@@ -23,6 +23,7 @@ from mne import (
     concatenate_events,
     create_info,
     equalize_channels,
+    events_from_annotations,
     find_events,
     make_fixed_length_epochs,
     pick_channels,
@@ -36,6 +37,7 @@ from mne.datasets import testing
 from mne.filter import filter_data
 from mne.io import RawArray, base, concatenate_raws, match_channel_orders, read_raw_fif
 from mne.io.tests.test_raw import _test_concat, _test_raw_reader
+from mne.transforms import Transform
 from mne.utils import (
     _dt_to_stamp,
     _record_warnings,
@@ -1319,6 +1321,15 @@ def test_crop():
 
 
 @testing.requires_testing_data
+def test_resample_with_events():
+    """Test resampling raws with events."""
+    raw = read_raw_fif(fif_fname)
+    raw.resample(250)  # pretend raw is recorded at 250 Hz
+    events, _ = events_from_annotations(raw)
+    raw, events = raw.resample(250, events=events)
+
+
+@testing.requires_testing_data
 def test_resample_equiv():
     """Test resample (with I/O and multiple files)."""
     raw = read_raw_fif(fif_fname).crop(0, 1)
@@ -1632,7 +1643,8 @@ def test_add_channels():
 
     # Testing force updates
     raw_arr_info = create_info(["1", "2"], raw_meg.info["sfreq"], "eeg")
-    orig_head_t = raw_arr_info["dev_head_t"]
+    assert raw_arr_info["dev_head_t"] is None
+    orig_head_t = Transform("meg", "head")
     raw_arr = rng.randn(2, raw_eeg.n_times)
     raw_arr = RawArray(raw_arr, raw_arr_info)
     # This should error because of conflicts in Info

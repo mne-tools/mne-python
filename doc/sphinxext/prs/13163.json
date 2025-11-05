@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "b43f4d48c4cd9aa70fb8f83c61f96986b8ab9180",
+  "authors": [
+    {
+      "n": "Britta Westner",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/development/contributing.rst": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

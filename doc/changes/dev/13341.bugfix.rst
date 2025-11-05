@@ -1,0 +1,1 @@
+Fix bug with :func:`mne.open_report` not working with old saved files, by `Eric Larson`_.

@@ -13,10 +13,13 @@ from pathlib import Path
 import numpy as np
 import pyvista
 import sphinx.util.logging
+from sphinx.errors import ExtensionError
 
 import mne
 from mne.utils import (
-    _assert_no_instances,
+    _assert_no_instances as _assert_no_instances_mne,
+)
+from mne.utils import (
     _get_extra_data_path,
     sizeof_fmt,
 )
@@ -51,123 +54,50 @@ def reset_warnings(gallery_conf, fname):
     )
     # internal warnings
     warnings.filterwarnings("default", module="sphinx")
-    # allow these warnings, but don't show them
+    # don't error on joblib warning during parallel doc build otherwise we get a
+    # cryptic deadlock instead of a nice traceback
+    warnings.filterwarnings(
+        "always",
+        "A worker stopped while some jobs were given to the executor.*",
+        category=UserWarning,
+    )
+    # ignore (DeprecationWarning)
     for key in (
-        "invalid version and will not be supported",  # pyxdf
-        "distutils Version classes are deprecated",  # seaborn and neo
-        "is_categorical_dtype is deprecated",  # seaborn
-        "`np.object` is a deprecated alias for the builtin `object`",  # pyxdf
-        # nilearn, should be fixed in > 0.9.1
-        "In future, it will be an error for 'np.bool_' scalars to",
-        # sklearn hasn't updated to SciPy's sym_pos dep
-        "The 'sym_pos' keyword is deprecated",
-        # numba
-        "`np.MachAr` is deprecated",
-        # joblib hasn't updated to avoid distutils
-        "distutils package is deprecated",
-        # jupyter
-        "Jupyter is migrating its paths to use standard",
-        r"Widget\..* is deprecated\.",
-        # PyQt6
-        "Enum value .* is marked as deprecated",
-        # matplotlib PDF output
-        "The py23 module has been deprecated",
-        # pkg_resources
-        "Implementing implicit namespace packages",
-        "Deprecated call to `pkg_resources",
-        # nilearn
-        "pkg_resources is deprecated as an API",
-        r"The .* was deprecated in Matplotlib 3\.7",
-        # Matplotlib->tz
-        r"datetime\.datetime\.utcfromtimestamp",
-        # joblib
-        r"ast\.Num is deprecated",
-        r"Attribute n is deprecated and will be removed in Python 3\.14",
-        # numpydoc
-        r"ast\.NameConstant is deprecated and will be removed in Python 3\.14",
-        # pooch
-        r"Python 3\.14 will, by default, filter extracted tar archives.*",
-        # seaborn
-        r"DataFrameGroupBy\.apply operated on the grouping columns.*",
-        # pandas
-        r"\nPyarrow will become a required dependency of pandas.*",
+        # nibabel
+        "__array__ implementation doesn't accept.*",
+        # pybtex (from sphinxcontrib-bibtex)
+        "pkg_resources is deprecated as an API.*",
+        "\nImplementing implicit namespace packages",
         # latexcodec
-        r"open_text is deprecated\. Use files.*",
-        # python-quantities, via neo
-        r"numpy\.core is deprecated and has been renamed to numpy\._core",
-        # matplotlib
-        "__array_wrap__ must accept context and return_scalar.*",
+        r"open_text is deprecated\. Use files",
+        # dipy etc.
+        "The `disp` and `iprint` options of the L-BFGS-B solver",
     ):
         warnings.filterwarnings(  # deal with other modules having bad imports
             "ignore", message=f".*{key}.*", category=DeprecationWarning
         )
-    warnings.filterwarnings(
-        "ignore",
-        message="Matplotlib is currently using agg, which is a non-GUI backend.*",
-    )
-    warnings.filterwarnings(
-        "ignore",
-        message=".*is non-interactive, and thus cannot.*",
-    )
-    # seaborn
-    warnings.filterwarnings(
-        "ignore",
-        message="The figure layout has changed to tight",
-        category=UserWarning,
-    )
-    # xarray/netcdf4
-    warnings.filterwarnings(
-        "ignore",
-        message=r"numpy\.ndarray size changed, may indicate.*",
-        category=RuntimeWarning,
-    )
-    # qdarkstyle
-    warnings.filterwarnings(
-        "ignore",
-        message=r".*Setting theme=.*6 in qdarkstyle.*",
-        category=RuntimeWarning,
-    )
-    # pandas, via seaborn (examples/time_frequency/time_frequency_erds.py)
+    # ignore (UserWarning)
     for message in (
-        "use_inf_as_na option is deprecated.*",
-        r"iteritems is deprecated.*Use \.items instead\.",
-        "is_categorical_dtype is deprecated.*",
-        "The default of observed=False.*",
-        "When grouping with a length-1 list-like.*",
+        # Matplotlib
+        ".*is non-interactive, and thus cannot.*",
+        # pybtex
+        ".*pkg_resources is deprecated as an API.*",
     ):
         warnings.filterwarnings(
             "ignore",
             message=message,
-            category=FutureWarning,
+            category=UserWarning,
         )
-    # pandas in 50_epochs_to_data_frame.py
-    warnings.filterwarnings(
-        "ignore", message=r"invalid value encountered in cast", category=RuntimeWarning
-    )
-    # xarray _SixMetaPathImporter (?)
-    warnings.filterwarnings(
-        "ignore", message=r"falling back to find_module", category=ImportWarning
-    )
-    # Sphinx deps
-    warnings.filterwarnings(
-        "ignore", message="The str interface for _CascadingStyleSheet.*"
-    )
-    # mne-qt-browser until > 0.5.2 released
-    warnings.filterwarnings(
-        "ignore",
-        r"mne\.io\.pick.channel_indices_by_type is deprecated.*",
-    )
-    # parallel building
-    warnings.filterwarnings(
-        "ignore",
-        "A worker stopped while some jobs were given to the executor.*",
-        category=UserWarning,
-    )
-    # neo
-    warnings.filterwarnings(
-        "ignore",
-        "The 'copy' argument in Quantity is deprecated.*",
-    )
+    # ignore (RuntimeWarning)
+    for message in (
+        # mne-python config file "corruption" due to doc build parallelization
+        ".*The MNE-Python config file.*valid JSON.*",
+    ):
+        warnings.filterwarnings(
+            "ignore",
+            message=message,
+            category=RuntimeWarning,
+        )
 
     # In case we use np.set_printoptions in any tutorials, we only
     # want it to affect those:
@@ -175,6 +105,14 @@ def reset_warnings(gallery_conf, fname):
 
 
 t0 = time.time()
+
+
+def _assert_no_instances(cls, when):
+    """Wrap our internal one but make the traceback nicer when it fails."""
+    try:
+        _assert_no_instances_mne(cls, when)
+    except Exception as exc:
+        raise ExtensionError(str(exc)) from None
 
 
 def reset_modules(gallery_conf, fname, when):

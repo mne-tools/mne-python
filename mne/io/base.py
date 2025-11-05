@@ -1386,7 +1386,10 @@ class BaseRaw(
         sfreq = float(sfreq)
         o_sfreq = float(self.info["sfreq"])
         if _check_resamp_noop(sfreq, o_sfreq):
-            return self
+            if events is not None:
+                return self, events.copy()
+            else:
+                return self
 
         # When no event object is supplied, some basic detection of dropped
         # events is performed to generate a warning. Finding events can fail
@@ -1752,6 +1755,7 @@ class BaseRaw(
         -------
         fnames : List of path-like
             List of path-like objects containing the path to each file split.
+
             .. versionadded:: 1.9
 
         Notes
@@ -1789,9 +1793,10 @@ class BaseRaw(
 
         split_size = _get_split_size(split_size)
         if not self.preload and fname in self.filenames:
+            extra = " and overwrite must be True" if not overwrite else ""
             raise ValueError(
-                "You cannot save data to the same file. Please use a different "
-                "filename."
+                "In order to save data to the same file, data need to be preloaded"
+                + extra
             )
 
         if self.preload:
@@ -1907,6 +1912,8 @@ class BaseRaw(
         color=None,
         bad_color="lightgray",
         event_color="cyan",
+        *,
+        annotation_regex=".*",
         scalings=None,
         remove_dc=True,
         order=None,
@@ -1930,7 +1937,6 @@ class BaseRaw(
         time_format="float",
         precompute=None,
         use_opengl=None,
-        *,
         picks=None,
         theme=None,
         overview_mode=None,
@@ -1947,22 +1953,23 @@ class BaseRaw(
             color,
             bad_color,
             event_color,
-            scalings,
-            remove_dc,
-            order,
-            show_options,
-            title,
-            show,
-            block,
-            highpass,
-            lowpass,
-            filtorder,
-            clipping,
-            show_first_samp,
-            proj,
-            group_by,
-            butterfly,
-            decim,
+            annotation_regex=annotation_regex,
+            scalings=scalings,
+            remove_dc=remove_dc,
+            order=order,
+            show_options=show_options,
+            title=title,
+            show=show,
+            block=block,
+            highpass=highpass,
+            lowpass=lowpass,
+            filtorder=filtorder,
+            clipping=clipping,
+            show_first_samp=show_first_samp,
+            proj=proj,
+            group_by=group_by,
+            butterfly=butterfly,
+            decim=decim,
             noise_cov=noise_cov,
             event_id=event_id,
             show_scrollbars=show_scrollbars,

@@ -10,7 +10,7 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 import pytest
-from matplotlib import backend_bases
+from matplotlib import backend_bases, rc_context
 from numpy.testing import assert_allclose, assert_array_equal
 
 import mne
@@ -23,6 +23,7 @@ from mne.utils import (
     _assert_no_instances,
     _dt_to_stamp,
     _record_warnings,
+    catch_logging,
     check_version,
     get_config,
     set_config,
@@ -49,6 +50,8 @@ def _get_button_xy(buttons, idx):
 
 def _annotation_helper(raw, browse_backend, events=False):
     """Test interactive annotations."""
+    from cycler import cycler  # dep of matplotlib, should be okay but nest just in case
+
     ismpl = browse_backend.name == "matplotlib"
     # Some of our checks here require modern mpl to work properly
     n_anns = len(raw.annotations)
@@ -60,7 +63,27 @@ def _annotation_helper(raw, browse_backend, events=False):
     else:
         events = None
         n_events = 0
-    fig = raw.plot(events=events)
+    # matplotlib 2.0 default cycler
+    default_cycler = cycler(
+        "color",
+        [
+            "#1f77b4",
+            "#ff7f0e",
+            "#2ca02c",
+            "#d62728",
+            "#9467bd",
+            "#8c564b",
+            "#e377c2",
+            "#7f7f7f",
+            "#bcbd22",
+            "#17becf",
+        ],
+    )  # noqa: E501
+    with catch_logging("debug") as log, rc_context({"axes.prop_cycle": default_cycler}):
+        fig = raw.plot(events=events)
+    log = log.getvalue()
+    assert "Removing from color cycle: #d62728" in log
+    assert log.count("Removing from color cycle") == 1
     if ismpl:
         assert browse_backend._get_n_figs() == 1
 
@@ -295,13 +318,16 @@ def test_scale_bar(browser_backend):
         assert_allclose(y_lims, bar_lims, atol=1e-4)
 
 
-def test_plot_raw_selection(raw, browser_backend):
+def test_plot_raw_selection(raw, browser_backend, monkeypatch):
     """Test selection mode of plot_raw()."""
     ismpl = browser_backend.name == "matplotlib"
     with raw.info._unlock():
         raw.info["lowpass"] = 10.0  # allow heavy decim during plotting
     browser_backend._close_all()  # ensure all are closed
     assert browser_backend._get_n_figs() == 0
+    # https://github.com/matplotlib/matplotlib/issues/30575
+    monkeypatch.setattr(mne.viz.utils, "_BLIT_KWARGS", dict(useblit=False))
+    monkeypatch.setattr(mne.viz._mpl_figure, "_BLIT_KWARGS", dict(useblit=False))
     fig = raw.plot(group_by="selection", proj=False)
     assert browser_backend._get_n_figs() == 2
     sel_fig = fig.mne.fig_selection
@@ -470,10 +496,13 @@ def test_plot_raw_child_figures(raw, browser_backend):
     fig._resize_by_factor(0.5)
 
 
-def test_orphaned_annot_fig(raw, browser_backend):
+def test_orphaned_annot_fig(raw, browser_backend, monkeypatch):
     """Test that annotation window is not orphaned (GH #10454)."""
     if browser_backend.name != "matplotlib":
         return
+    # https://github.com/matplotlib/matplotlib/issues/30575
+    monkeypatch.setattr(mne.viz.utils, "_BLIT_KWARGS", dict(useblit=False))
+    monkeypatch.setattr(mne.viz._mpl_figure, "_BLIT_KWARGS", dict(useblit=False))
     assert browser_backend._get_n_figs() == 0
     fig = raw.plot()
     _spawn_child_fig(fig, "fig_annotation", browser_backend, "a")
@@ -780,6 +809,23 @@ def test_plot_annotations(raw, browser_backend):
     fig._toggle_single_channel_annotation(ch_pick, 0)
     assert fig.mne.inst.annotations.ch_names[0] == (ch_pick,)
 
+    # Check if annotation filtering works - All annotations
+    annot = Annotations([42, 50], [1, 1], ["test", "test2"], raw.info["meas_date"])
+    with pytest.warns(RuntimeWarning, match="expanding outside"):
+        raw.set_annotations(annot)
+
+    fig = raw.plot()
+
+    assert fig.mne.visible_annotations["test"] and fig.mne.visible_annotations["test2"]
+
+    # Check if annotation filtering works - filtering annotations
+    # This should only make test2 visible and hide test
+    fig = raw.plot(annotation_regex="2$")
+
+    assert (
+        not fig.mne.visible_annotations["test"] and fig.mne.visible_annotations["test2"]
+    )
+
 
 @pytest.mark.parametrize("active_annot_idx", (0, 1, 2))
 def test_overlapping_annotation_deletion(raw, browser_backend, active_annot_idx):
@@ -964,6 +1010,15 @@ def test_plot_raw_filtered(filtorder, raw, browser_backend):
     RawArray(np.zeros((1, 100)), create_info(1, 20.0, "stim")).plot(lowpass=5)
 
 
+def _check_ylabel_psd(ylabel, amplitude, dB, unit):
+    """Check that the ylabel is correct."""
+    numerator = "dB" if dB else unit
+    denominator = r"\sqrt{\mathrm{Hz}}" if amplitude else r"\mathrm{Hz}"
+    reference_val = rf"\ \mathrm{{re}}\ 1\ \mathrm{{{unit}}}" if dB else ""
+    pattern = rf"\mathrm{{{numerator}}}/{denominator}{reference_val}"
+    assert pattern in ylabel, ylabel
+
+
 def test_plot_raw_psd(raw, raw_orig):
     """Test plotting of raw psds."""
     raw_unchanged = raw.copy()
@@ -1015,24 +1070,20 @@ def test_plot_raw_psd(raw, raw_orig):
     with pytest.warns(UserWarning, match="[Infinite|Zero]"):
         spectrum = raw.compute_psd()
     for dB, amplitude in itertools.product((True, False), (True, False)):
-        with pytest.warns(UserWarning, match="[Infinite|Zero]"):
+        with pytest.warns(UserWarning, match="(Infinite|Zero)"):
             fig = spectrum.plot(average=True, dB=dB, amplitude=amplitude)
         # check grad axes
         title = fig.axes[0].get_title()
         ylabel = fig.axes[0].get_ylabel()
-        unit = r"fT/cm/\sqrt{Hz}" if amplitude else "(fT/cm)²/Hz"
+        unit = "fT/cm" if amplitude else "(fT/cm)^2"
         assert title == "Gradiometers", title
-        assert unit in ylabel, ylabel
-        if dB:
-            assert "dB" in ylabel
-        else:
-            assert "dB" not in ylabel
+        _check_ylabel_psd(ylabel, amplitude, dB, unit)
         # check mag axes
         title = fig.axes[1].get_title()
         ylabel = fig.axes[1].get_ylabel()
-        unit = r"fT/\sqrt{Hz}" if amplitude else "fT²/Hz"
+        unit = "fT" if amplitude else "fT^2"
         assert title == "Magnetometers", title
-        assert unit in ylabel, ylabel
+        _check_ylabel_psd(ylabel, amplitude, dB, unit)
 
     # test xscale value checking
     raw = raw_unchanged
@@ -1088,36 +1139,25 @@ def test_plot_sensors(raw):
     pytest.raises(TypeError, plot_sensors, raw)  # needs to be info
     pytest.raises(ValueError, plot_sensors, raw.info, kind="sasaasd")
     plt.close("all")
+
+    # Test lasso selection.
     fig, sels = raw.plot_sensors("select", show_names=True)
     ax = fig.axes[0]
+    # Lasso a single sensor.
+    _fake_click(fig, ax, (-0.13, 0.13), xform="data")
+    _fake_click(fig, ax, (-0.11, 0.13), xform="data", kind="motion")
+    _fake_click(fig, ax, (-0.11, 0.06), xform="data", kind="motion")
+    _fake_click(fig, ax, (-0.13, 0.06), xform="data", kind="motion")
+    _fake_click(fig, ax, (-0.13, 0.13), xform="data", kind="motion")
+    _fake_click(fig, ax, (-0.13, 0.13), xform="data", kind="release")
+    assert fig.lasso.selection == ["MEG 0121"]
 
-    # Click with no sensors
-    _fake_click(fig, ax, (0.0, 0.0), xform="data")
-    _fake_click(fig, ax, (0, 0.0), xform="data", kind="release")
-    assert fig.lasso.selection == []
-
-    # Lasso with 1 sensor (upper left)
-    _fake_click(fig, ax, (0, 1), xform="ax")
-    fig.canvas.draw()
-    assert fig.lasso.selection == []
-    _fake_click(fig, ax, (0.65, 1), xform="ax", kind="motion")
-    _fake_click(fig, ax, (0.65, 0.7), xform="ax", kind="motion")
+    # Add another sensor with a single click.
     _fake_keypress(fig, "control")
-    _fake_click(fig, ax, (0, 0.7), xform="ax", kind="release", key="control")
-    assert fig.lasso.selection == ["MEG 0121"]
-
-    # check that point appearance changes
-    fc = fig.lasso.collection.get_facecolors()
-    ec = fig.lasso.collection.get_edgecolors()
-    assert (fc[:, -1] == [0.5, 1.0, 0.5]).all()
-    assert (ec[:, -1] == [0.25, 1.0, 0.25]).all()
-
-    _fake_click(fig, ax, (0.7, 1), xform="ax", kind="motion", key="control")
-    xy = ax.collections[0].get_offsets()
-    _fake_click(fig, ax, xy[2], xform="data", key="control")  # single sel
+    _fake_click(fig, ax, (-0.1278, 0.0318), xform="data")
+    _fake_click(fig, ax, (-0.1278, 0.0318), xform="data", kind="release")
+    _fake_keypress(fig, "control", kind="release")
     assert fig.lasso.selection == ["MEG 0121", "MEG 0131"]
-    _fake_click(fig, ax, xy[2], xform="data", key="control")  # deselect
-    assert fig.lasso.selection == ["MEG 0121"]
     plt.close("all")
 
     raw.info["dev_head_t"] = None  # like empty room

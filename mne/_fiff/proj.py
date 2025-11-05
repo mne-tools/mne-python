@@ -1100,7 +1100,7 @@ def _has_eeg_average_ref_proj(
 
 
 def _needs_eeg_average_ref_proj(info):
-    """Determine if the EEG needs an averge EEG reference.
+    """Determine if the EEG needs an average EEG reference.
 
     This returns True if no custom reference has been applied and no average
     reference projection is present in the list of projections.

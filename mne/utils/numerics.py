@@ -35,7 +35,7 @@ from .check import (
     check_random_state,
 )
 from .docs import fill_doc
-from .misc import _empty_hash
+from .misc import _empty_hash, _pl
 
 
 def split_list(v, n, idx=False):
@@ -479,7 +479,8 @@ def _time_mask(
         extra = "" if include_tmax else "when include_tmax=False "
         raise ValueError(
             f"No samples remain when using tmin={orig_tmin} and tmax={orig_tmax} "
-            f"{extra}(original time bounds are [{times[0]}, {times[-1]}])"
+            f"{extra}(original time bounds are [{times[0]}, {times[-1]}] containing "
+            f"{len(times)} sample{_pl(times)})"
         )
     return mask
 
@@ -870,6 +871,9 @@ class _PCA:
             U *= S[: self.n_components_]
 
         return U
+
+    def fit(self, X):
+        self._fit(X)
 
     def _fit(self, X):
         if self.n_components is None:

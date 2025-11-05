@@ -41,7 +41,7 @@ from .._fiff.pick import (
     pick_info,
     pick_types,
 )
-from .._fiff.proj import setup_proj
+from .._fiff.proj import _has_eeg_average_ref_proj, setup_proj
 from .._fiff.reference import add_reference_channels, set_eeg_reference
 from .._fiff.tag import _rename_list
 from ..bem import _check_origin
@@ -120,8 +120,11 @@ def equalize_channels(instances, copy=True, verbose=None):
     ----------
     instances : list
         A list of MNE-Python objects to equalize the channels for. Objects can
-        be of type Raw, Epochs, Evoked, AverageTFR, Forward, Covariance,
+        be of type Raw, Epochs, Evoked, Spectrum, AverageTFR, Forward, Covariance,
         CrossSpectralDensity or Info.
+
+        .. versionchanged:: 1.11
+            Added support for :class:`mne.time_frequency.Spectrum` objects.
     copy : bool
         When dropping and/or re-ordering channels, an object will be copied
         when this parameter is set to ``True``. When set to ``False`` (the
@@ -136,9 +139,11 @@ def equalize_channels(instances, copy=True, verbose=None):
         A list of MNE-Python objects that have the same channels defined in the
         same order.
 
-    Notes
-    -----
-    This function operates inplace.
+    See Also
+    --------
+    mne.channels.unify_bad_channels
+    mne.channels.rename_channels
+    mne.channels.combine_channels
     """
     from ..cov import Covariance
     from ..epochs import BaseEpochs
@@ -146,6 +151,7 @@ def equalize_channels(instances, copy=True, verbose=None):
     from ..forward import Forward
     from ..io import BaseRaw
     from ..time_frequency import BaseTFR, CrossSpectralDensity
+    from ..time_frequency.spectrum import BaseSpectrum
 
     # Instances need to have a `ch_names` attribute and a `pick_channels`
     # method that supports `ordered=True`.
@@ -153,6 +159,7 @@ def equalize_channels(instances, copy=True, verbose=None):
         BaseRaw,
         BaseEpochs,
         Evoked,
+        BaseSpectrum,
         BaseTFR,
         Forward,
         Covariance,
@@ -160,7 +167,8 @@ def equalize_channels(instances, copy=True, verbose=None):
         Info,
     )
     allowed_types_str = (
-        "Raw, Epochs, Evoked, TFR, Forward, Covariance, CrossSpectralDensity or Info"
+        "Raw, Epochs, Evoked, Spectrum, TFR, Forward, Covariance, CrossSpectralDensity "
+        "or Info"
     )
     for inst in instances:
         _validate_type(
@@ -926,7 +934,7 @@ class InterpolationMixin:
             origin = _check_origin(origin, self.info)
         for ch_type, interp in method.items():
             if interp == "nan":
-                _interpolate_bads_nan(self, ch_type, exclude=exclude)
+                _interpolate_bads_nan(self, ch_type=ch_type, exclude=exclude)
         if method.get("eeg", "") == "spline":
             _interpolate_bads_eeg(self, origin=origin, exclude=exclude)
         meg_mne = method.get("meg", "") == "MNE"
@@ -960,16 +968,183 @@ class InterpolationMixin:
 
         return self
 
+    def interpolate_to(self, sensors, origin="auto", method="spline", reg=0.0):
+        """Interpolate EEG data onto a new montage.
+
+        .. warning::
+            Be careful, only EEG channels are interpolated. Other channel types are
+            not interpolated.
+
+        Parameters
+        ----------
+        sensors : DigMontage
+            The target montage containing channel positions to interpolate onto.
+        origin : array-like, shape (3,) | str
+            Origin of the sphere in the head coordinate frame and in meters.
+            Can be ``'auto'`` (default), which means a head-digitization-based
+            origin fit.
+        method : str
+            Method to use for EEG channels.
+            Supported methods are 'spline' (default) and 'MNE'.
+        reg : float
+            The regularization parameter for the interpolation method
+            (only used when the method is 'spline').
+
+        Returns
+        -------
+        inst : instance of Raw, Epochs, or Evoked
+            The instance with updated channel locations and data.
+
+        Notes
+        -----
+        This method is useful for standardizing EEG layouts across datasets.
+        However, some attributes may be lost after interpolation.
+
+        .. versionadded:: 1.10.0
+        """
+        from ..epochs import BaseEpochs, EpochsArray
+        from ..evoked import Evoked, EvokedArray
+        from ..forward._field_interpolation import _map_meg_or_eeg_channels
+        from ..io import RawArray
+        from ..io.base import BaseRaw
+        from .interpolation import _make_interpolation_matrix
+        from .montage import DigMontage
+
+        # Check that the method option is valid.
+        _check_option("method", method, ["spline", "MNE"])
+        _validate_type(sensors, DigMontage, "sensors")
+
+        # Get target positions from the montage
+        ch_pos = sensors.get_positions().get("ch_pos", {})
+        target_ch_names = list(ch_pos.keys())
+        if not target_ch_names:
+            raise ValueError(
+                "The provided sensors configuration has no channel positions."
+            )
+
+        # Get original channel order
+        orig_names = self.info["ch_names"]
+
+        # Identify EEG channel
+        picks_good_eeg = pick_types(self.info, meg=False, eeg=True, exclude="bads")
+        if len(picks_good_eeg) == 0:
+            raise ValueError("No good EEG channels available for interpolation.")
+        # Also get the full list of EEG channel indices (including bad channels)
+        picks_remove_eeg = pick_types(self.info, meg=False, eeg=True, exclude=[])
+        eeg_names_orig = [orig_names[i] for i in picks_remove_eeg]
+
+        # Identify non-EEG channels in original order
+        non_eeg_names_ordered = [ch for ch in orig_names if ch not in eeg_names_orig]
+
+        # Create destination info for new EEG channels
+        sfreq = self.info["sfreq"]
+        info_interp = create_info(
+            ch_names=target_ch_names,
+            sfreq=sfreq,
+            ch_types=["eeg"] * len(target_ch_names),
+        )
+        info_interp.set_montage(sensors)
+        info_interp["bads"] = [ch for ch in self.info["bads"] if ch in target_ch_names]
+        # Do not assign "projs" directly.
+
+        # Compute the interpolation mapping
+        if method == "spline":
+            origin_val = _check_origin(origin, self.info)
+            pos_from = self.info._get_channel_positions(picks_good_eeg) - origin_val
+            pos_to = np.stack(list(ch_pos.values()), axis=0)
+
+            def _check_pos_sphere(pos):
+                d = np.linalg.norm(pos, axis=-1)
+                d_norm = np.mean(d / np.mean(d))
+                if np.abs(1.0 - d_norm) > 0.1:
+                    warn("Your spherical fit is poor; interpolation may be inaccurate.")
+
+            _check_pos_sphere(pos_from)
+            _check_pos_sphere(pos_to)
+            mapping = _make_interpolation_matrix(pos_from, pos_to, alpha=reg)
+
+        else:
+            assert method == "MNE"
+            info_eeg = pick_info(self.info, picks_good_eeg)
+            # If the original info has an average EEG reference projector but
+            # the destination info does not,
+            # update info_interp via a temporary RawArray.
+            if _has_eeg_average_ref_proj(self.info) and not _has_eeg_average_ref_proj(
+                info_interp
+            ):
+                # Create dummy data: shape (n_channels, 1)
+                temp_data = np.zeros((len(info_interp["ch_names"]), 1))
+                temp_raw = RawArray(temp_data, info_interp, first_samp=0)
+                # Using the public API, add an average reference projector.
+                temp_raw.set_eeg_reference(
+                    ref_channels="average", projection=True, verbose=False
+                )
+                # Extract the updated info.
+                info_interp = temp_raw.info
+            mapping = _map_meg_or_eeg_channels(
+                info_eeg, info_interp, mode="accurate", origin=origin
+            )
+
+        # Interpolate EEG data
+        data_good = self.get_data(picks=picks_good_eeg)
+        data_interp = mapping @ data_good
+
+        # Create a new instance for the interpolated EEG channels
+        # TODO: Creating a new instance leads to a loss of information.
+        #       We should consider updating the existing instance in the future
+        #       by 1) drop channels, 2) add channels, 3) re-order channels.
+        if isinstance(self, BaseRaw):
+            inst_interp = RawArray(data_interp, info_interp, first_samp=self.first_samp)
+        elif isinstance(self, BaseEpochs):
+            inst_interp = EpochsArray(data_interp, info_interp)
+        else:
+            assert isinstance(self, Evoked)
+            inst_interp = EvokedArray(data_interp, info_interp)
+
+        # Merge only if non-EEG channels exist
+        if not non_eeg_names_ordered:
+            return inst_interp
+
+        inst_non_eeg = self.copy().pick(non_eeg_names_ordered).load_data()
+        inst_out = inst_non_eeg.add_channels([inst_interp], force_update_info=True)
+
+        # Reorder channels
+        # Insert the entire new EEG block at the position of the first EEG channel.
+        orig_names_arr = np.array(orig_names)
+        mask_eeg = np.isin(orig_names_arr, eeg_names_orig)
+        if mask_eeg.any():
+            first_eeg_index = np.where(mask_eeg)[0][0]
+            pre = orig_names_arr[:first_eeg_index]
+            new_eeg = np.array(info_interp["ch_names"])
+            post = orig_names_arr[first_eeg_index:]
+            post = post[~np.isin(orig_names_arr[first_eeg_index:], eeg_names_orig)]
+            new_order = np.concatenate((pre, new_eeg, post)).tolist()
+        else:
+            new_order = orig_names
+        inst_out.reorder_channels(new_order)
+        return inst_out
+
 
 @verbose
-def rename_channels(info, mapping, allow_duplicates=False, *, verbose=None):
+def rename_channels(
+    info, mapping, allow_duplicates=False, *, on_missing="raise", verbose=None
+):
     """Rename channels.
 
     Parameters
     ----------
     %(info_not_none)s Note: modified in place.
     %(mapping_rename_channels_duplicates)s
+    %(on_missing_ch_names)s
+
+        .. versionadded:: 1.11.0
     %(verbose)s
+
+    See Also
+    --------
+    mne.channels.equalize_channels
+    mne.channels.unify_bad_channels
+    mne.channels.combine_channels
     """
     _validate_type(info, Info, "info")
     info._check_consistency()
@@ -978,14 +1153,30 @@ def rename_channels(info, mapping, allow_duplicates=False, *, verbose=None):
 
     # first check and assemble clean mappings of index and name
     if isinstance(mapping, dict):
+        if on_missing in ["warn", "ignore"]:
+            new_mapping = {
+                ch_old: ch_new
+                for ch_old, ch_new in mapping.items()
+                if ch_old in ch_names
+            }
+        else:
+            new_mapping = mapping
+
+        if new_mapping != mapping and on_missing == "warn":
+            warn(
+                "Channel rename map contains keys that are not present in the object "
+                "to be renamed. These will be ignored."
+            )
+
         _check_dict_keys(
-            mapping,
+            new_mapping,
             ch_names,
             key_description="channel name(s)",
             valid_key_source="info",
         )
         new_names = [
-            (ch_names.index(ch_name), new_name) for ch_name, new_name in mapping.items()
+            (ch_names.index(ch_name), new_name)
+            for ch_name, new_name in new_mapping.items()
         ]
     elif callable(mapping):
         new_names = [(ci, mapping(ch_name)) for ci, ch_name in enumerate(ch_names)]
@@ -1829,7 +2020,14 @@ def make_1020_channel_selections(info, midline="z", *, return_ch_names=False):
 
 @verbose
 def combine_channels(
-    inst, groups, method="mean", keep_stim=False, drop_bad=False, verbose=None
+    inst,
+    groups,
+    method="mean",
+    keep_stim=False,
+    drop_bad=False,
+    *,
+    on_missing="raise",
+    verbose=None,
 ):
     """Combine channels based on specified channel grouping.
 
@@ -1868,6 +2066,8 @@ def combine_channels(
     drop_bad : bool
         If ``True``, drop channels marked as bad before combining. Defaults to
         ``False``.
+    %(on_missing_epochs)s
+        .. versionadded:: 1.11.0
     %(verbose)s
 
     Returns
@@ -1876,6 +2076,12 @@ def combine_channels(
         An MNE-Python object of the same type as the input ``inst``, containing
         one virtual channel for each group in ``groups`` (and, if ``keep_stim``
         is ``True``, also containing stimulus channels).
+
+    See Also
+    --------
+    mne.channels.equalize_channels
+    mne.channels.rename_channels
+    mne.channels.unify_bad_channels
     """
     from ..epochs import BaseEpochs, EpochsArray
     from ..evoked import Evoked, EvokedArray
@@ -1977,6 +2183,7 @@ def combine_channels(
             event_id=inst.event_id,
             tmin=inst.times[0],
             baseline=inst.baseline,
+            on_missing=on_missing,
         )
         if inst.metadata is not None:
             combined_inst.metadata = inst.metadata.copy()
