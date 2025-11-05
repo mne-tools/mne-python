@@ -15,7 +15,7 @@ with open(repo_root / "pyproject.toml", "rb") as fid:
 
 # Get our "full" dependences from `pyproject.toml`, but actually ignore the
 # "full" section as it's just "full-noqt" plus PyQt6, and for conda we need PySide
-ignore = ("dev", "doc", "test", "test_extra", "full", "full-pyqt6")
+ignore = ("full", "full-pyqt6")
 deps = set(pyproj["project"]["dependencies"])
 for section, section_deps in pyproj["project"]["optional-dependencies"].items():
     if section not in ignore:
@@ -53,7 +53,8 @@ for dep in deps:
     # handle package name differences
     package_name = translations.get(package_name, package_name)
     # PySide6==6.7.0 only exists on PyPI, not conda-forge, so excluding it in
-    # `environment.yaml` breaks the solver
+    # `environment.yaml` breaks the solver. 6.9.1 has a bug, and 6.9.2 needs newer
+    # C deps that mean we need to upgrade VTK etc.
     if package_name == "PySide6":
         version_spec = "!=6.9.1"
     # rstrip output line in case `version_spec` == ""
@@ -63,10 +64,6 @@ for dep in deps:
         pip_deps.add(f"    {line}")
     else:
         conda_deps.add(line)
-
-# TODO: temporary workaround while we wait for a release containing the fix for
-# https://github.com/mamba-org/mamba/issues/3467
-pip_deps.remove("      - pyobjc-framework-Cocoa >=5.2.0;platform_system=='Darwin'")
 
 # prepare the pip dependencies section
 newline = "\n"  # python < 3.12 forbids backslash in {} part of f-string

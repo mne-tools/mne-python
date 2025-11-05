@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "181fea1e7e0bd73c2ec5cf67391cf598ad1af7bf",
+  "authors": [
+    {
+      "n": null,
+      "e": "myd7349@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".github/workflows/tests.yml": {
+      "a": 1,
+      "d": 0
+    },
+    "azure-pipelines.yml": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/dev/13251.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/datasets/config.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/nihon/nihon.py": {
+      "a": 55,
+      "d": 11
+    },
+    "mne/io/nihon/tests/test_nihon.py": {
+      "a": 8,
+      "d": 10
+    }
+  }
+}

@@ -16,10 +16,6 @@ Experiment:
     - Each run contains 200 regular beeps and 40 easy deviant beeps.
     - Random ISI: between 0.7s and 1.7s seconds, uniformly distributed.
     - Button pressed when detecting a deviant with the right index finger.
-
-The specifications of this dataset were discussed initially on the
-`FieldTrip bug tracker
-<http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=2300>`__.
 """
 # Authors: Mainak Jas <mainak.jas@telecom-paristech.fr>
 #          Eric Larson <larson.eric.d@gmail.com>

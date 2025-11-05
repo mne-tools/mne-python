@@ -17,7 +17,7 @@ from ._fiff.constants import FIFF
 from ._fiff.pick import pick_types
 from ._fiff.proj import _needs_eeg_average_ref_proj, make_projector
 from ._freesurfer import _get_aseg, head_to_mni, head_to_mri, read_freesurfer_lut
-from .bem import _bem_find_surface, _bem_surf_name, _fit_sphere
+from .bem import ConductorModel, _bem_find_surface, _bem_surf_name, _fit_sphere
 from .cov import _ensure_cov, compute_whitener
 from .evoked import _aspect_rev, _read_evoked, _write_evokeds
 from .fixes import _safe_svd
@@ -960,9 +960,8 @@ def _make_guesses(surf, grid, exclude, mindist, n_jobs=None, verbose=None):
         )
     else:
         logger.info(
-            "Making a spherical guess space with radius {:7.1f} mm...".format(
-                1000 * surf["R"]
-            )
+            f"Making a spherical guess space with radius {1000 * surf.radius:7.1f} "
+            "mm..."
         )
     logger.info("Filtering (grid = %6.f mm)..." % (1000 * grid))
     src = _make_volume_source_space(
@@ -1317,7 +1316,7 @@ def _fit_dipole(
         constraint = partial(
             _sphere_constraint,
             r0=fwd_data["inner_skull"]["r0"],
-            R_adj=fwd_data["inner_skull"]["R"] - min_dist_to_inner_skull,
+            R_adj=fwd_data["inner_skull"].radius - min_dist_to_inner_skull,
         )
 
     # Find a good starting point (find_best_guess in C)
@@ -1600,13 +1599,14 @@ def fit_dipole(
                 raise RuntimeError(
                     "No MEG channels found, but MEG-only sphere model used"
                 )
-            R = np.min(np.sqrt(np.sum(R * R, axis=1)))  # use dist to sensors
-            kind = "max_rad"
+            R = np.min(np.linalg.norm(R, axis=1))
+            kind = "min_rad"
         logger.info(
             f"Sphere model      : origin at ({1000 * r0[0]: 7.2f} {1000 * r0[1]: 7.2f} "
             f"{1000 * r0[2]: 7.2f}) mm, {kind} = {R:6.1f} mm"
         )
-        inner_skull = dict(R=R, r0=r0)  # NB sphere model defined in head frame
+        # NB sphere model defined in head frame
+        inner_skull = ConductorModel(layers=[dict(rad=R)], r0=r0, is_sphere=True)
         del R, r0
 
     # Deal with DipoleFixed cases here
@@ -1710,7 +1710,9 @@ def fit_dipole(
             check = _surface_constraint(pos, inner_skull, min_dist_to_inner_skull)
         else:
             check = _sphere_constraint(
-                pos, inner_skull["r0"], R_adj=inner_skull["R"] - min_dist_to_inner_skull
+                pos,
+                inner_skull["r0"],
+                R_adj=inner_skull.radius - min_dist_to_inner_skull,
             )
         if check <= 0:
             raise ValueError(
@@ -1720,7 +1722,7 @@ def fit_dipole(
 
     # C code computes guesses w/sphere model for speed, don't bother here
     fwd_data = _prep_field_computation(
-        guess_src["rr"], sensors=sensors, bem=bem, n_jobs=n_jobs, verbose=safe_false
+        sensors=sensors, bem=bem, n_jobs=n_jobs, verbose=safe_false
     )
     fwd_data["inner_skull"] = inner_skull
     guess_fwd, guess_fwd_orig, guess_fwd_scales = _dipole_forwards(

@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "17c4e03b50b1f504ea607db68a616e677891cf75",
+  "authors": [
+    {
+      "n": "Emrecan Çelik",
+      "e": "emrecncelik@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/13395.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/eeglab/eeglab.py": {
+      "a": 3,
+      "d": 3
+    }
+  }
+}
