@@ -22,21 +22,23 @@ function for more info on reading specific file types.
 .. cssclass:: table-bordered
 .. rst-class:: midvalign
 
-=================  ================  ==============================================
-Vendor             Extension(s)      MNE-Python function
-=================  ================  ==============================================
-Neuromag           .fif              :func:`mne.channels.read_dig_fif`
+=====================  ================  ==============================================
+Vendor                 Extension(s)      MNE-Python function
+=====================  ================  ==============================================
+Neuromag               .fif              :func:`mne.channels.read_dig_fif`
 
-Polhemus ISOTRAK   .hsp, .elp, .eeg  :func:`mne.channels.read_dig_polhemus_isotrak`
+Polhemus ISOTRAK       .hsp, .elp, .eeg  :func:`mne.channels.read_dig_polhemus_isotrak`
 
-EGI                .xml              :func:`mne.channels.read_dig_egi`
+EGI                    .xml              :func:`mne.channels.read_dig_egi`
 
-MNE-C              .hpts             :func:`mne.channels.read_dig_hpts`
+MNE-C                  .hpts             :func:`mne.channels.read_dig_hpts`
 
-Brain Products     .bvct             :func:`mne.channels.read_dig_captrak`
+Brain Products         .bvct             :func:`mne.channels.read_dig_captrak`
 
-Compumedics        .dat              :func:`mne.channels.read_dig_dat`
-=================  ================  ==============================================
+Compumedics            .dat, .cdt        :func:`mne.channels.read_dig_curry`
+
+Compumedics (legacy)   .dat              :func:`mne.channels.read_dig_dat`
+=====================  ================  ==============================================
 
 To load Polhemus FastSCAN files you can use
 :func:`montage <mne.channels.read_polhemus_fastscan>`.
