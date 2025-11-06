@@ -36,6 +36,8 @@ MNE-C                  .hpts             :func:`mne.channels.read_dig_hpts`
 Brain Products         .bvct             :func:`mne.channels.read_dig_captrak`
 
 Compumedics            .dat, .cdt        :func:`mne.channels.read_dig_curry`
+
+Compumedics (legacy)   .dat              :func:`mne.channels.read_dig_dat`
 =====================  ================  ==============================================
 
 To load Polhemus FastSCAN files you can use
