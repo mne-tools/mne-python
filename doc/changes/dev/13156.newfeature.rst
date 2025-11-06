@@ -1,0 +1,1 @@
+Added support for file like objects in :func:`read_raw_bdf <mne.io.read_raw_bdf>`, :func:`read_raw_edf <mne.io.read_raw_edf>` and :func:`read_raw_gdf <mne.io.read_raw_gdf>`, by :newcontrib:`Santi Martínez`.
