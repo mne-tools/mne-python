@@ -1,0 +1,1 @@
+Read impedances and montage from Neuroscan Curry files, by `Dominik Welke`_.
