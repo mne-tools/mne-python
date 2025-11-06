@@ -630,7 +630,7 @@ class Annotations:
             dt = _handle_meas_date(0)
         time_format = _check_time_format(time_format, valid_time_formats, dt)
         dt = dt.replace(tzinfo=None)
-        times = _convert_times(self.onset, time_format, dt, drop_nano=True)
+        times = _convert_times(self.onset, time_format, meas_date=dt, drop_nano=True)
         df = dict(onset=times, duration=self.duration, description=self.description)
         if self._any_ch_names():
             df.update(ch_names=self.ch_names)

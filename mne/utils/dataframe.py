@@ -36,7 +36,9 @@ def _scale_dataframe_data(inst, data, picks, scalings):
     return data
 
 
-def _convert_times(times, time_format, meas_date=None, first_time=0, drop_nano=False):
+def _convert_times(
+    times, time_format, *, meas_date=None, first_time=0, drop_nano=False
+):
     """Convert vector of time in seconds to ms, datetime, or timedelta."""
     # private function; pandas already checked in calling function
     from pandas import to_timedelta
