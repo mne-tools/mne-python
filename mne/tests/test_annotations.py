@@ -78,8 +78,7 @@ def windows_like_datetime(monkeypatch):
 
 def test_basics():
     """Test annotation class."""
-    pytest.importorskip("pandas")
-    import pandas as pd
+    pd = pytest.importorskip("pandas")
 
     raw = read_raw_fif(fif_fname)
     assert raw.annotations is not None
@@ -1154,8 +1153,7 @@ def test_broken_csv(tmp_path):
 
 def test_nanosecond_csv(tmp_path):
     """Test .csv with nanosecond timestamps for onsets read correctly."""
-    pytest.importorskip("pandas")
-    import pandas as pd
+    pd = pytest.importorskip("pandas")
 
     onset = (
         pd.Timestamp(_ORIG_TIME)
@@ -1596,8 +1594,7 @@ def test_repr():
 @pytest.mark.parametrize("time_format", (None, "ms", "datetime", "timedelta"))
 def test_annotation_to_data_frame(time_format):
     """Test annotation class to data frame conversion."""
-    pytest.importorskip("pandas")
-    import pandas as pd
+    pd = pytest.importorskip("pandas")
 
     onset = np.arange(1, 10)
     durations = np.full_like(onset, [4, 5, 6, 4, 5, 6, 4, 5, 6])
