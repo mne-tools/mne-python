@@ -11,8 +11,8 @@ from pathlib import Path
 import numpy as np
 import pooch
 import pytest
-from flaky import flaky
 from numpy.testing import assert_allclose, assert_array_equal, assert_equal
+from pytest_rerunfailures import flaky
 from scipy.io import savemat
 
 from mne import (

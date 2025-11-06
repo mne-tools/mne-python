@@ -13,7 +13,7 @@ from pathlib import Path
 from urllib.error import URLError
 
 import pytest
-from flaky import flaky
+from pytest_rerunfailures import flaky
 
 import mne
 import mne.utils.config

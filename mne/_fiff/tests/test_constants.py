@@ -10,7 +10,7 @@ import zipfile
 import numpy as np
 import pooch
 import pytest
-from flaky import flaky
+from pytest_rerunfailures import flaky
 
 from mne._fiff.constants import (
     FIFF,
