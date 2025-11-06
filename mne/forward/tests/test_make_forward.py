@@ -894,8 +894,11 @@ def test_sensors_inside_bem():
     trans["trans"][2, 3] = 0.03
     sphere_noshell = make_sphere_model((0.0, 0.0, 0.0), None)
     sphere = make_sphere_model((0.0, 0.0, 0.0), 1.01)
-    with pytest.raises(RuntimeError, match=".* 15 MEG.*inside the scalp.*"):
-        make_forward_solution(info, trans, fname_src, fname_bem)
+    with pytest.warns(RuntimeWarning, match=".* 15 MEG.*inside the scalp.*"):
+        fwd = make_forward_solution(info, trans, fname_src, fname_bem, on_inside="warn")
+    assert fwd["nsource"] == 516
+    assert fwd["nchan"] == 42
+    assert np.isfinite(fwd["sol"]["data"]).all()
     make_forward_solution(info, trans, fname_src, fname_bem_meg)  # okay
     make_forward_solution(info, trans, fname_src, sphere_noshell)  # okay
     with pytest.raises(RuntimeError, match=".* 42 MEG.*outermost sphere sh.*"):

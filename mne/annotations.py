@@ -1430,6 +1430,8 @@ def read_annotations(
         ".csv": _read_annotations_csv,
         ".cnt": _read_annotations_cnt,
         ".ds": _read_annotations_ctf,
+        ".dat": _read_annotations_curry,
+        ".cdt": _read_annotations_curry,
         ".cef": _read_annotations_curry,
         ".set": _read_annotations_eeglab,
         ".edf": _read_annotations_edf,
@@ -1442,6 +1444,8 @@ def read_annotations(
     kwargs = {
         ".vmrk": {"sfreq": sfreq, "ignore_marker_types": ignore_marker_types},
         ".amrk": {"sfreq": sfreq, "ignore_marker_types": ignore_marker_types},
+        ".dat": {"sfreq": sfreq},
+        ".cdt": {"sfreq": sfreq},
         ".cef": {"sfreq": sfreq},
         ".set": {"uint16_codec": uint16_codec},
         ".edf": {"encoding": encoding},
