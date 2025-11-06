@@ -15,7 +15,6 @@ from numpy.testing import (
     assert_array_equal,
     assert_equal,
 )
-from pytest_rerunfailures import flaky
 from scipy import io
 
 import mne
@@ -769,7 +768,7 @@ def test_eeglab_drop_nan_annotations(tmp_path):
         raw = read_raw_eeglab(file_path, preload=True)
 
 
-@flaky
+@pytest.mark.flaky
 @testing.requires_testing_data
 @pytest.mark.timeout(10)
 @pytest.mark.slowtest  # has the advantage of not running on macOS where it errs a lot
