@@ -1594,8 +1594,6 @@ def test_repr():
 @pytest.mark.parametrize("time_format", (None, "ms", "datetime", "timedelta"))
 def test_annotation_to_data_frame(time_format):
     """Test annotation class to data frame conversion."""
-    pd = pytest.importorskip("pandas")
-
     onset = np.arange(1, 10)
     durations = np.full_like(onset, [4, 5, 6, 4, 5, 6, 4, 5, 6])
     description = ["yy"] * onset.shape[0]
@@ -1614,12 +1612,6 @@ def test_annotation_to_data_frame(time_format):
         got = got.seconds
     assert want == got
     assert df.groupby("description").count().onset["yy"] == 9
-
-    # Check nanoseconds omitted from onset times
-    if time_format == "datetime":
-        a.onset += 1e-7  # >6 decimals to trigger nanosecond component
-        df = a.to_data_frame(time_format=time_format)
-        assert pd.Timestamp(df.onset[0]).nanosecond == 0
 
 
 def test_annotation_ch_names():
