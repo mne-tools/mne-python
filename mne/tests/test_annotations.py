@@ -1139,10 +1139,10 @@ def test_broken_csv(tmp_path):
 
 
 def test_nanosecond_in_times(tmp_path):
-    """Test onsets with nanoseconds read correctly for csv and caught ."""
+    """Test onsets with ns read correctly for csv and caught as init argument."""
     pd = pytest.importorskip("pandas")
 
-    # Test bad format onset sanitised when loading
+    # Test bad format onset sanitised when loading from csv
     onset = (
         pd.Timestamp(_ORIG_TIME)
         .astimezone(None)
@@ -1155,7 +1155,7 @@ def test_nanosecond_in_times(tmp_path):
     annot = read_annotations(fname)
     assert annot.orig_time == _ORIG_TIME
 
-    # Test bad format `orig_time` str -> `None` raises warning
+    # Test bad format `orig_time` str -> `None` raises warning in `Annotation` init
     with pytest.warns(
         RuntimeWarning, match="The format of the `orig_time` string is not recognised."
     ):
