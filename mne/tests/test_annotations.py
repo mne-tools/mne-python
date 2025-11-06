@@ -78,8 +78,6 @@ def windows_like_datetime(monkeypatch):
 
 def test_basics():
     """Test annotation class."""
-    pd = pytest.importorskip("pandas")
-
     raw = read_raw_fif(fif_fname)
     assert raw.annotations is not None
     assert len(raw.annotations.onset) == 0
@@ -98,17 +96,6 @@ def test_basics():
         else:
             assert isinstance(annot.orig_time, datetime)
             assert annot.orig_time.tzinfo is timezone.utc
-
-    # Test bad format `orig_time` str -> `None` raises warning
-    with pytest.warns(
-        RuntimeWarning, match="The format of the `orig_time` string is not recognised."
-    ):
-        bad_orig_time = (
-            pd.Timestamp(_ORIG_TIME)
-            .astimezone(None)
-            .isoformat(sep=" ", timespec="nanoseconds")
-        )
-        Annotations(onset, duration, description, bad_orig_time)
 
     pytest.raises(ValueError, Annotations, onset, duration, description[:9])
     pytest.raises(ValueError, Annotations, [onset, 1], duration, description)
@@ -1151,10 +1138,11 @@ def test_broken_csv(tmp_path):
         read_annotations(fname)
 
 
-def test_nanosecond_csv(tmp_path):
-    """Test .csv with nanosecond timestamps for onsets read correctly."""
+def test_nanosecond_in_times(tmp_path):
+    """Test onsets with nanoseconds read correctly for csv and caught ."""
     pd = pytest.importorskip("pandas")
 
+    # Test bad format onset sanitised when loading
     onset = (
         pd.Timestamp(_ORIG_TIME)
         .astimezone(None)
@@ -1166,6 +1154,17 @@ def test_nanosecond_csv(tmp_path):
         f.write(content)
     annot = read_annotations(fname)
     assert annot.orig_time == _ORIG_TIME
+
+    # Test bad format `orig_time` str -> `None` raises warning
+    with pytest.warns(
+        RuntimeWarning, match="The format of the `orig_time` string is not recognised."
+    ):
+        bad_orig_time = (
+            pd.Timestamp(_ORIG_TIME)
+            .astimezone(None)
+            .isoformat(sep=" ", timespec="nanoseconds")
+        )
+        Annotations([0], [1], ["test"], bad_orig_time)
 
 
 # Test for IO with .txt files
