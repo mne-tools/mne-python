@@ -113,6 +113,7 @@ class DipoleFitUI:
         _validate_type(evoked, ("path-like", Evoked), "evoked")
         if not isinstance(evoked, Evoked):
             evoked = read_evokeds(evoked, condition=condition)
+
         evoked.apply_baseline(baseline)
 
         if cov is None:
@@ -287,7 +288,7 @@ class DipoleFitUI:
         show_eeg = (self._ch_type is None or self._ch_type == "eeg") and any(
             [m["kind"] == "eeg" for m in self._field_map]
         )
-        meg_picks = pick_types(self._evoked.info, meg=show_meg)
+        meg_picks = pick_types(self._evoked.info, meg=show_meg, ref_meg=False)
         eeg_picks = pick_types(self._evoked.info, meg=False, eeg=show_eeg)
         picks = np.concatenate((meg_picks, eeg_picks))
         self._ch_names = [self._evoked.ch_names[i] for i in picks]

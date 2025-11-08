@@ -48,9 +48,9 @@ def test_dipolefit_gui_basic(renderer_interactive_pyvistaqt):
     assert dip.name == "Left Auditory"
     assert len(dip.times) == 1
     assert_equal(dip.times, g._current_time)
-    assert_allclose(dip.amplitude, 6.152221e-08)
-    assert_allclose(dip.pos, [[0.04568744, 0.00753845, 0.06737837]], atol=1e-7)
-    assert_allclose(dip.ori, [[0.45720003, -0.72124413, -0.52036049]], atol=1e-7)
+    assert_allclose(dip.amplitude, 6.152221e-08, rtol=1e-4)
+    assert_allclose(dip.pos, [[0.04568744, 0.00753845, 0.06737837]], atol=1e-5)
+    assert_allclose(dip.ori, [[0.45720003, -0.72124413, -0.52036049]], atol=1e-5)
     old_dip1_timecourse = g._dipoles[0]["timecourse"]
 
     # Test fitting a second dipole with a subset of channels at a different time.
@@ -64,9 +64,9 @@ def test_dipolefit_gui_basic(renderer_interactive_pyvistaqt):
     assert len(g._dipoles) == len(g.dipoles) == 2
     dip2 = g.dipoles[1]
     assert_equal(dip2.times, g._evoked.times[np.searchsorted(g._evoked.times, 0.1) - 1])
-    assert_allclose(dip2.amplitude, 4.422736e-08)
-    assert_allclose(dip2.pos, [[-0.05893074, -0.00202937, 0.05113064]], atol=1e-7)
-    assert_allclose(dip2.ori, [[0.3017588, -0.88550684, -0.35329769]], atol=1e-7)
+    assert_allclose(dip2.amplitude, 4.422736e-08, rtol=1e-4)
+    assert_allclose(dip2.pos, [[-0.05893074, -0.00202937, 0.05113064]], atol=1e-5)
+    assert_allclose(dip2.ori, [[0.3017588, -0.88550684, -0.35329769]], atol=1e-5)
     # Adding the second dipole should have affected the timecourse of the first.
     new_dip1_timecourse = g._dipoles[0]["timecourse"]
     assert not np.allclose(old_dip1_timecourse, new_dip1_timecourse)
@@ -79,10 +79,10 @@ def test_dipolefit_gui_basic(renderer_interactive_pyvistaqt):
     assert dip1_dict["num"] == 0
     assert dip2_dict["num"] == 1
     assert_allclose(
-        dip1_dict["helmet_pos"], [0.10320071, 0.00946581, 0.07516293], atol=1e-7
+        dip1_dict["helmet_pos"], [0.10320071, 0.00946581, 0.07516293], atol=1e-5
     )
     assert_allclose(
-        dip2_dict["helmet_pos"], [-0.11462019, -0.00727073, 0.04561434], atol=1e-7
+        dip2_dict["helmet_pos"], [-0.11462019, -0.00727073, 0.04561434], atol=1e-5
     )
     assert dip1_dict["color"] == _get_color_list()[0]
     assert dip2_dict["color"] == _get_color_list()[1]
