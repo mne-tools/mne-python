@@ -58,6 +58,7 @@ from .preprocessing.maxwell import (
 from .transforms import (
     Transform,
     _angle_between_quats,
+    _angle_dist_between_rigid,
     _fit_matched_points,
     _quat_to_affine,
     als_ras_trans,
@@ -475,7 +476,7 @@ def _get_hpi_initial_fit(info, adjust=False, verbose=None):
     assert hpi_result["coord_trans"]["to"] == FIFF.FIFFV_COORD_HEAD
     hpi_rrs_fit = apply_trans(hpi_result["coord_trans"]["trans"], hpi_rrs_fit)
     if "moments" in hpi_result:
-        logger.debug(f"Hpi coil moments {hpi_result['moments'].shape[::-1]}:")
+        logger.debug(f"HPI coil moments {hpi_result['moments'].shape[::-1]}:")
         for moment in hpi_result["moments"]:
             logger.debug(f"{moment[0]:g} {moment[1]:g} {moment[2]:g}")
     errors = np.linalg.norm(hpi_rrs - hpi_rrs_fit, axis=1)
@@ -590,7 +591,7 @@ def _fit_chpi_quat(coil_dev_rrs, coil_head_rrs):
     return quat, gof
 
 
-def _fit_coil_order_dev_head_trans(dev_pnts, head_pnts, bias=True):
+def _fit_coil_order_dev_head_trans(dev_pnts, head_pnts, *, bias=True):
     """Compute Device to Head transform allowing for permutiatons of points."""
     id_quat = np.zeros(6)
     best_order = None
@@ -616,6 +617,11 @@ def _fit_coil_order_dev_head_trans(dev_pnts, head_pnts, bias=True):
 
     # Convert Quaterion to transform
     dev_head_t = _quat_to_affine(best_quat)
+    ang, dist = _angle_dist_between_rigid(dev_head_t, angle_units="deg", distance_units="mm")
+    logger.info(
+        f"Fitted cHPI dev->head transform {ang:0.1f}° and {dist:0.1f} mm "
+        f"from device origin (GOF: {out_g:.2%})"
+    )
     return dev_head_t, best_order, out_g
 
 
@@ -755,6 +761,9 @@ def _setup_ext_proj(info, ext_order):
     proj_op, _ = setup_proj(
         info, add_eeg_ref=False, activate=False, verbose=_verbose_safe_false()
     )
+    # Can be None if ext_order = 0
+    if proj_op is None:
+        proj_op = np.eye(len(meg_picks))
     assert proj_op.shape == (len(meg_picks),) * 2
     return proj, proj_op, meg_picks
 
@@ -1615,3 +1624,100 @@ def get_active_chpi(raw, *, on_missing="raise", verbose=None):
     chpi_ts = raw[chpi_info[1]][0].astype(int)
     chpi_active = (chpi_ts & chpi_info[2][:, np.newaxis]).astype(bool)
     return chpi_active.sum(axis=0)
+
+
+@verbose
+def refit_chpi_order(info, *, recompute_amps=False, bias=True, ext_order=1, verbose=None):
+    # Modifies info inplace
+    # Appends to info["hpi_meas"] and info["hpi_results"]
+    #
+    # We could make it add a new result rather than overwriting existing, but
+    # overwriting the existing one is probably good enough
+    n_coils = info["hpi_subsystem"]["ncoil"]
+    logger.info(f"Refitting cHPI coil order for {n_coils} coils ...")
+    old_meas = info["hpi_meas"][-1]
+    slopes = np.array(
+        [[old_meas["hpi_coils"][ci]["slopes"] for ci in range(n_coils)]]
+    )
+    fit_info = mne.pick_info(info, mne.pick_types(info, meg=True, exclude=()))
+    # Set bads to empty list here. In theory flux jumps etc. or even flat channels
+    # shouldn't affect the fit much. At some point we could allow ignoring bads,
+    # but it would make the API more complex (KISS) and make the info accounting harder
+    # (e.g., slopes must always have shape[-1] == len(all_meg_chs)).
+    fit_info["bads"] = []  # for backward compat... maybe shouldn't do this
+    vf = _verbose_safe_false()
+    hpi = _setup_hpi_amplitude_fitting(fit_info, 1., ext_order=ext_order, verbose=vf)
+    amps = dict(
+        times=np.array([old_meas["first_samp"] / info["sfreq"]]),
+        slopes=slopes,
+        proj=hpi["proj"],
+    )
+    if recompute_amps:
+        # TODO: Assert something about shapes etc.
+        data = (
+            old_meas["hpi_coils"][0]["epoch"]
+            * raw._cals[mne.pick_types(info, meg=True, exclude=()), np.newaxis]
+        )
+        fit_raw = mne.io.RawArray(data, fit_info)
+        stop = fit_raw.times[-1]
+        amps = compute_chpi_amplitudes(
+            fit_raw, t_step_min=stop, t_window=stop + 1. / raw.info["sfreq"]
+        )
+        for ci, slope in enumerate(amps["slopes"][0]):
+            old_slope = old_meas["hpi_coils"][ci]["slopes"]
+            corr = np.abs(np.corrcoef(slope, old_slope)[0, 1])
+            logger.info(f"  Coil {ci + 1}: slope correlation with old = {corr:.3f}")
+    locs = compute_chpi_locs(fit_info, amps)
+    del fit_info
+
+    # Do some gymnastics to fix the coil order
+    hpi_dig = _sorted_hpi_dig(info["dig"])
+    assert all(d["coord_frame"] == FIFF.FIFFV_COORD_HEAD for d in hpi_dig)  # should be
+    hpi_head = np.array([d["r"] for d in hpi_dig]).astype(float)
+    del hpi_dig
+    hpi_dev = locs["rrs"][0].astype(float)
+    del locs
+    assert len(hpi_head) == len(hpi_dev) == n_coils
+    dev_head_t, order, _g = _fit_coil_order_dev_head_trans(hpi_dev, hpi_head, bias=bias)
+    del bias
+    # create adjusted metadata
+    result = deepcopy(info["hpi_results"][-1])
+    info["dev_head_t"]["trans"][:] = dev_head_t
+    result["coord_trans"]["trans"][:] = dev_head_t
+    result["accept"] = 1
+    info["hpi_results"][-1]["accept"] = 0
+    for ci, loc in enumerate(hpi_dev):
+        result["dig_points"][ci]["r"][:] = loc.astype(float)
+    result["order"][:] = order + 1  # make 1-indexed
+    # TODO: Improve _fit_coil_order... above to return these as well
+    # result["goodness"] = ndarray, shape (n_coils,)
+    # result["moments"] = ndarray, shape (n_coils, 3)
+    del hpi_dev, dev_head_t, order
+    meas = deepcopy(old_meas)
+    meas["used"] = np.arange(1, n_coils + 1)  # we use all of them
+    for ci, slope in enumerate(amps["slopes"][0]):
+        meas["hpi_coils"][ci]["slopes"][:] = slope
+    info["hpi_meas"].append(meas)
+    info["hpi_results"].append(result)
+    del result, meas, amps
+    # print out some stats about the refit
+    to_print = dict(old=info["hpi_results"][-2], new=info["hpi_results"][-1])
+    for kind, result in to_print.items():
+        this_order = result['order']
+        msg = f"  {kind.capitalize()} order {this_order} errors: "
+        # errors
+        this_dev_head_t = result["coord_trans"]
+        this_hpi_dev = np.array(
+            [d["r"] for d in result["dig_points"]]
+        ).astype(float)
+        diffs = mne.transforms.apply_trans(this_dev_head_t, this_hpi_dev[this_order - 1]) - hpi_head
+        dists = 1e3 * np.linalg.norm(diffs, axis=1)
+        for dist in dists:
+            msg += f"{dist:5.1f} "
+        msg += "mm"
+        logger.info(msg)
+    # TODO: Error in maxfilter when we append, so we overwrite instead
+    x = info["hpi_meas"].pop(-1)
+    info["hpi_meas"][-1] = x
+    y = info["hpi_results"].pop(-1)
+    info["hpi_results"][-1] = y
