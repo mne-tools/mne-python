@@ -539,63 +539,41 @@ def test_plot_alignment_surf_errors(renderer, evoked):
     """Test error raising from plotting of a surface."""
     info = evoked.info
     trans = read_trans(trans_fname)
-    # check for correct error if no surf
+    pa_kwargs = dict(
+        info=info,
+        trans=trans,
+        subject="sample",
+        subjects_dir=subjects_dir,
+    )
+
+    # check for correct error if surf doesn't exist for given subject
     with pytest.raises(RuntimeError, match="No brain surface found"):
-        plot_alignment(
-            info,
-            trans,
-            subject="foo",
-            subjects_dir=subjects_dir,
-            surfaces=["brain"],
-        )
+        kwargs1 = pa_kwargs.copy()
+        kwargs1.update(subject="foo", surfaces=["brain"])
+        plot_alignment(**kwargs1)
+
     # multiple brain surfaces:
     with pytest.raises(ValueError, match="Only one brain surface can be plot"):
-        plot_alignment(
-            info=info,
-            trans=trans_fname,
-            subject="sample",
-            subjects_dir=subjects_dir,
-            surfaces=["white", "pial"],
-        )
+        plot_alignment(surfaces=["white", "pial"], **pa_kwargs)
+
     # surface type problems
     with pytest.raises(TypeError, match="surfaces.*must be"):
-        plot_alignment(
-            info=info,
-            trans=trans_fname,
-            subject="sample",
-            subjects_dir=subjects_dir,
-            surfaces=[1],
-        )
+        plot_alignment(surfaces=[1], **pa_kwargs)
+
     with pytest.raises(ValueError, match="Unknown surface type"):
-        plot_alignment(
-            info=info,
-            trans=trans_fname,
-            subject="sample",
-            subjects_dir=subjects_dir,
-            surfaces=["foo"],
-        )
+        plot_alignment(surfaces=["foo"], **pa_kwargs)
+
     with pytest.raises(TypeError, match="must be an instance of "):
-        plot_alignment(
-            info=info,
-            trans=trans_fname,
-            subject="sample",
-            subjects_dir=subjects_dir,
-            surfaces=dict(brain="super clear"),
-        )
+        plot_alignment(surfaces=dict(brain="super clear"), **pa_kwargs)
+
     with pytest.raises(ValueError, match="must be between 0 and 1"):
-        plot_alignment(
-            info=info,
-            trans=trans_fname,
-            subject="sample",
-            subjects_dir=subjects_dir,
-            surfaces=dict(brain=42),
-        )
+        plot_alignment(surfaces=dict(brain=42), **pa_kwargs)
     renderer.backend._close_all()
 
 
 @testing.requires_testing_data
 def test_plot_alignment_info(renderer, evoked):
-    """Test basic alignment plotting with info, but no trans or other."""
+    """Test plotting with info, but no trans, fwd, bem, or src."""
     info = evoked.info
     plot_alignment(info)  # works: surfaces='auto' default
     # check error raised if incorrect info provided
@@ -611,9 +589,9 @@ def test_plot_alignment_info(renderer, evoked):
 
 
 @testing.requires_testing_data
-def test_plot_alignment_trans_fid(tmp_path, renderer):
+def test_plot_alignment_trans_fid(tmp_path, renderer, evoked):
     """Test using trans file and plotting fiducials."""
-    info = read_info(evoked_fname)
+    info = evoked.info
     trans = read_trans(trans_fname)
     fiducials_path = tmp_path / "fiducials.fif"
     fid = [
@@ -638,12 +616,18 @@ def test_plot_alignment_trans_fid(tmp_path, renderer):
     ]
     write_dig(fiducials_path, fid, 5)
 
-    plot_alignment(info, trans=trans, mri_fiducials=True)
+    plot_alignment(
+        info,
+        trans=trans,
+        mri_fiducials=True,
+        subject="sample",
+        subjects_dir=subjects_dir,
+    )
     renderer.backend._close_all()
 
 
 @testing.requires_testing_data
-def test_plot_alignment_trans_erros(renderer, evoked):
+def test_plot_alignment_trans_errors(renderer, evoked):
     """Test trans-related errors while plotting alignment."""
     info = evoked.info
     # check trans error raising
@@ -714,9 +698,9 @@ def test_plot_alignment_eeg_errors(renderer, evoked):
 
 
 @testing.requires_testing_data
-def test_plot_alignment_bem(renderer):
+def test_plot_alignment_bem(renderer, evoked):
     """Test plotting various bem options: sphere, surface, 1 and 3 layers."""
-    info = read_info(evoked_fname)
+    info = evoked.info
     sphere = make_sphere_model(info=info, r0="auto", head_radius="auto")
     bem_sol = read_bem_solution(
         subjects_dir / "sample" / "bem" / "sample-1280-1280-1280-bem-sol.fif"
@@ -726,28 +710,26 @@ def test_plot_alignment_bem(renderer):
     )
     sample_src = read_source_spaces(src_fname)
     sample_src[0]["coord_frame"] = 4  # hack for coverage
+    b_kwargs = dict(
+        info=info,
+        trans=trans_fname,
+        subject="sample",
+        meg="helmet",
+        eeg="projected",
+        bem=sphere,
+    )
 
     # test spherical bem
     plot_alignment(
-        info,
-        trans_fname,
-        subject="sample",
-        eeg="projected",
-        meg="helmet",
-        bem=sphere,
         dig=True,
         surfaces=["brain", "inner_skull", "outer_skull", "outer_skin"],
+        **b_kwargs,
     )
     plot_alignment(
-        info,
-        trans_fname,
-        subject="sample",
-        meg="helmet",
         subjects_dir=subjects_dir,
-        eeg="projected",
-        bem=sphere,
         surfaces=["head", "brain"],
         src=sample_src,
+        **b_kwargs,
     )
 
     # bem sphere model w/ volume src
@@ -764,6 +746,9 @@ def test_plot_alignment_bem(renderer):
         surfaces=["brain", "inner_skull", "outer_skull", "outer_skin"],
     )
 
+    # no trans okay if no mri surfaces
+    plot_alignment(info, bem=sphere, surfaces=["brain"])
+
     # if you ask for a brain surface with a 1-layer sphere model it's an error
     sphere = make_sphere_model("auto", None, info)  # one layer
     with pytest.raises(RuntimeError, match="Sphere model does not have"):
@@ -775,7 +760,7 @@ def test_plot_alignment_bem(renderer):
             bem=sphere,
         )
     # but you can ask for a specific brain surface, and
-    # no info is permitted
+    # then omitting info is permitted
     plot_alignment(
         trans=trans_fname,
         subject="sample",
@@ -787,9 +772,6 @@ def test_plot_alignment_bem(renderer):
         show_axes=True,
     )
     renderer.backend._close_all()
-
-    # no trans okay if no mri surfaces
-    plot_alignment(info, bem=sphere, surfaces=["brain"])
 
     # test 3-layer surface bem
     assert all(surf["coord_frame"] == FIFF.FIFFV_COORD_MRI for surf in bem_sol["surfs"])
@@ -850,9 +832,8 @@ def test_plot_alignment_bem(renderer):
 
 
 @testing.requires_testing_data
-def test_plot_alignment_src(renderer, evoked, mixed_fwd_cov_evoked):
-    """Test plotting surface, volumetric, and mixed src alignment."""
-    info = evoked.info
+def test_plot_alignment_src(renderer):
+    """Test plotting surface and volumetric src alignment."""
     sample_src = read_source_spaces(src_fname)
     sample_vsrc = read_source_spaces(vsrc_fname)
 
@@ -861,10 +842,14 @@ def test_plot_alignment_src(renderer, evoked, mixed_fwd_cov_evoked):
     renderer.backend._close_all()
 
     # test volumetric src
-    sample_vsrc.plot(subjects_dir=subjects_dir, head=True, skull=True, brain="white")
+    sample_vsrc.plot(subjects_dir=subjects_dir, head=False, skull=False, brain=False)
     renderer.backend._close_all()
 
-    # test mixed src
+
+@testing.requires_testing_data
+def test_plot_alignment_mixed_src(renderer, evoked, mixed_fwd_cov_evoked):
+    """Test plotting surface, volumetric, and mixed src alignment."""
+    info = evoked.info
     mixed_src = mixed_fwd_cov_evoked[0]["src"]
     assert mixed_src.kind == "mixed"
     assert mixed_src[0]["coord_frame"] == FIFF.FIFFV_COORD_HEAD
@@ -913,9 +898,9 @@ def test_plot_alignment_src_errors(renderer, evoked):
 
 
 @testing.requires_testing_data
-def test_plot_alignment_fwd(renderer):
+def test_plot_alignment_fwd(renderer, evoked):
     """Test plotting forward solution."""
-    info = read_info(evoked_fname)
+    info = evoked.info
     fwd_fname = (
         data_dir / "MEG" / "sample" / "sample_audvis_trunc-meg-eeg-oct-4-fwd.fif"
     )
@@ -928,6 +913,7 @@ def test_plot_alignment_fwd(renderer):
         surfaces="white",
         coord_frame="head",
     )
+    # test forward with a fixed source orientation
     fwd = convert_forward_solution(fwd, force_fixed=True)
     plot_alignment(
         subject="sample",
@@ -937,16 +923,17 @@ def test_plot_alignment_fwd(renderer):
         surfaces="white",
         coord_frame="head",
     )
-    fwd["coord_frame"] = FIFF.FIFFV_COORD_MRI  # check required to get to MRI
+    # hack fwd coordframe to test error raising for wrong frame
+    fwd["coord_frame"] = FIFF.FIFFV_COORD_MRI
     with pytest.raises(ValueError, match="transformation matrix.*in head coo"):
         plot_alignment(info, trans=None, fwd=fwd)
     renderer.backend._close_all()
 
 
 @testing.requires_testing_data
-def test_plot_alignment_cframe(renderer):
+def test_plot_alignment_cframe(renderer, evoked):
     """Test varying the coordinate frame for alignment plot."""
-    info = read_info(evoked_fname)
+    info = evoked.info
     for coord_frame in ("meg", "head", "mri"):
         plot_alignment(
             info,
@@ -962,9 +949,9 @@ def test_plot_alignment_cframe(renderer):
 
 
 @testing.requires_testing_data
-def test_plot_alignment_opm(tmp_path, renderer):
+def test_plot_alignment_opm(tmp_path, renderer, evoked):
     """Test plotting alignment for OPM MEG systems."""
-    info = read_info(evoked_fname)
+    info = evoked.info
     # TODO: We need to make this class public and document it properly
     # assert isinstance(fig, some_public_class)
     # 3D coil with no defined draw (ConvexHull)
@@ -1298,10 +1285,10 @@ def test_plot_dipole_orientations(renderer):
 
 @pytest.mark.slowtest  # slow on Azure
 @testing.requires_testing_data
-def test_snapshot_brain_montage(renderer):
+def test_snapshot_brain_montage(renderer, evoked):
     """Test snapshot brain montage."""
     pytest.importorskip("nibabel")
-    info = read_info(evoked_fname)
+    info = evoked.info
     fig = plot_alignment(
         info,
         trans=Transform("head", "mri"),
