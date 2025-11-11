@@ -730,7 +730,6 @@ def _plot_lines(
                 else:
                     y_offset = this_ylim[0]
                 this_gfp += y_offset
-                ax.autoscale(False)
                 ax.fill_between(
                     times,
                     y_offset,
