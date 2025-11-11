@@ -5,6 +5,7 @@ channels:
 dependencies:
   - python >=3.10
   - antio >=0.5.0
+  - curryreader >=0.1.2
   - darkdetect
   - decorator
   - defusedxml

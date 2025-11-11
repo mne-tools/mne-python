@@ -114,7 +114,7 @@ stages:
           - bash: |
               set -e
               python -m pip install --progress-bar off --upgrade pip
-              python -m pip install --progress-bar off "mne-qt-browser[opengl] @ git+https://github.com/mne-tools/mne-qt-browser.git" pyvista scikit-learn python-picard qtpy nibabel sphinx-gallery "PySide6!=6.8.0,!=6.8.0.1,!=6.8.1.1,!=6.9.1" pandas neo pymatreader antio defusedxml
+              python -m pip install --progress-bar off "mne-qt-browser[opengl] @ git+https://github.com/mne-tools/mne-qt-browser.git" pyvista scikit-learn python-picard qtpy nibabel sphinx-gallery "PySide6!=6.8.0,!=6.8.0.1,!=6.8.1.1,!=6.9.1" pandas neo pymatreader antio defusedxml curryreader
               python -m pip uninstall -yq mne
               python -m pip install --progress-bar off --upgrade -e . --group=test
             displayName: 'Install dependencies with pip'

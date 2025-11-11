@@ -837,6 +837,7 @@ def sys_info(
         "neo",
         "eeglabio",
         "edfio",
+        "curryreader",
         "mffpy",
         "pybv",
         "antio",

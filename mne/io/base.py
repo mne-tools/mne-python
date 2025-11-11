@@ -1755,6 +1755,7 @@ class BaseRaw(
         -------
         fnames : List of path-like
             List of path-like objects containing the path to each file split.
+
             .. versionadded:: 1.9
 
         Notes
@@ -2471,7 +2472,10 @@ class BaseRaw(
         # prepare extra columns / multiindex
         mindex = list()
         times = _convert_times(
-            times, time_format, self.info["meas_date"], self.first_time
+            times,
+            time_format,
+            meas_date=self.info["meas_date"],
+            first_time=self.first_time,
         )
         mindex.append(("time", times))
         # build DataFrame
