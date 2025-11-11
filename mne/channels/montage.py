@@ -1440,6 +1440,54 @@ def _read_isotrak_elp_points(fname):
     }
 
 
+def _read_isotrak_pos_points(fname):
+    """Read Polhemus Isotrak digitizer data from a ``.pos`` file.
+
+    Parameters
+    ----------
+    fname : path-like
+        The filepath of .pos Polhemus Isotrak file.
+
+    Returns
+    -------
+    out : dict of arrays
+        The dictionary containing locations for 'nasion', 'lpa', 'rpa'
+        and 'points'.
+    """
+    with open(fname) as fid:
+        file_str = fid.read()
+
+    # Get all lines which are points
+    int_pat = r"[+-]?\d+"
+    float_pat = r"[+-]?(?:\d+\.\d*|\d*\.\d+)(?:[eE][+-]?\d+)?"
+    pattern_points = re.compile(
+        rf"^\s*({int_pat})\s+({float_pat})\s+({float_pat})\s+({float_pat})",
+        re.MULTILINE,
+    )
+    points = pattern_points.findall(file_str)
+
+    # Get nasion, left and right
+    label_pat = r"[A-Za-z]+"
+    pattern_labels = re.compile(
+        rf"^\s*({label_pat})\s+({float_pat})\s+({float_pat})\s+({float_pat})",
+        re.MULTILINE,
+    )
+    labels = pattern_labels.findall(file_str)
+
+    return {
+        "nasion": np.array(
+            [tuple(map(float, x[1:])) for x in labels if x[0] == "nasion"][0]
+        ),
+        "lpa": np.array(
+            [tuple(map(float, x[1:])) for x in labels if x[0] == "left"][0]
+        ),
+        "rpa": np.array(
+            [tuple(map(float, x[1:])) for x in labels if x[0] == "right"][0]
+        ),
+        "points": np.array([tuple(map(float, x[1:])) for x in points]),
+    }
+
+
 def _read_isotrak_hsp_points(fname):
     """Read Polhemus Isotrak digitizer data from a ``.hsp`` file.
 
@@ -1516,7 +1564,7 @@ def read_dig_polhemus_isotrak(fname, ch_names=None, unit="m"):
     read_dig_fif
     read_dig_localite
     """
-    VALID_FILE_EXT = (".hsp", ".elp", ".eeg")
+    VALID_FILE_EXT = (".hsp", ".elp", ".eeg", ".pos")
     fname = str(_check_fname(fname, overwrite="read", must_exist=True))
     _scale = _check_unit_and_get_scaling(unit)
 
@@ -1525,6 +1573,8 @@ def read_dig_polhemus_isotrak(fname, ch_names=None, unit="m"):
 
     if ext == ".elp":
         data = _read_isotrak_elp_points(fname)
+    elif ext == ".pos":
+        data = _read_isotrak_pos_points(fname)
     else:
         # Default case we read points as hsp since is the most likely scenario
         data = _read_isotrak_hsp_points(fname)
