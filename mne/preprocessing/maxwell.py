@@ -1872,14 +1872,14 @@ def _combine_sss_basis(S_in1, S_in2):
     calculated if "origin = more than 1D array" based on centers calculated with "prprocessing.fit_spheres_to_mri"
 
     """
-    S_tot = [];
-    thresh = 5e-7 #0.005 in Matlab
-    U, s, Vh = np.linalg.svd(np.concatenate((S_in1,S_in2),axis=1))
-    #apply threshold to limit dimensions of resulting basis
+    S_tot = []
+    thresh = 5e-7  # 0.005 in Matlab
+    U, s, Vh = np.linalg.svd(np.concatenate((S_in1, S_in2), axis=1))
+    # apply threshold to limit dimensions of resulting basis
     for i in range(0, np.shape(s)[0]):
-        ratio = s[i]/s[0]
+        ratio = s[i] / s[0]
         if ratio >= thresh:
-            S_tot.append(U[:,i])
+            S_tot.append(U[:, i])
     return np.transpose(np.array(S_tot))
 
 
