@@ -25,6 +25,7 @@ dependencies:
   - joblib
   - jupyter
   - lazy_loader >=0.3
+  - libxml2 !=2.14.0
   - mamba
   - matplotlib >=3.8
   - mffpy >=0.5.7
