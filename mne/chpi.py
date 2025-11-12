@@ -422,9 +422,11 @@ def _get_hpi_initial_fit(info, adjust=False, verbose=None):
 
     hpi_result = info["hpi_results"][-1]
     hpi_dig = _sorted_hpi_dig(info["dig"])
-    if len(hpi_dig) == 0:  # CTF data, probably
+    CTF_KINDS = (FIFF.FIFFV_POINT_HPI, FIFF.FIFFV_POINT_CARDINAL)
+    if len(hpi_dig) == 0:
         msg = "HPIFIT: No HPI dig points, using hpifit result"
-        hpi_dig = _sorted_hpi_dig(hpi_result["dig_points"])
+        # For CTF data, these can get stored as cardinal points
+        hpi_dig = _sorted_hpi_dig(hpi_result["dig_points"], kinds=CTF_KINDS)
         if all(
             d["coord_frame"] in (FIFF.FIFFV_COORD_DEVICE, FIFF.FIFFV_COORD_UNKNOWN)
             for d in hpi_dig
@@ -460,10 +462,13 @@ def _get_hpi_initial_fit(info, adjust=False, verbose=None):
         f"HPIFIT: {len(used)} coils accepted: {' '.join(str(h) for h in used)}"
     )
     hpi_rrs = np.array([d["r"] for d in hpi_dig])[pos_order]
-    assert len(hpi_rrs) >= 3
+    assert len(hpi_rrs) >= 3, len(hpi_rrs)
 
     # Fitting errors
-    hpi_rrs_fit = _sorted_hpi_dig(info["hpi_results"][-1]["dig_points"])
+    hpi_rrs_fit = _sorted_hpi_dig(
+        info["hpi_results"][-1]["dig_points"],
+        kinds=CTF_KINDS,
+    )
     hpi_rrs_fit = np.array([d["r"] for d in hpi_rrs_fit])
     # hpi_result['dig_points'] are in FIFFV_COORD_UNKNOWN coords, but this
     # is probably a misnomer because it should be FIFFV_COORD_DEVICE for this
@@ -1733,9 +1738,9 @@ def refit_hpi_order(info, *, recompute_amps=False, ext_order=1, verbose=None):
     info["hpi_results"][-1] = y
 
 
-def _sorted_hpi_dig(dig):
+def _sorted_hpi_dig(dig, *, kinds=(FIFF.FIFFV_POINT_HPI,)):
     return sorted(
         # need .get here because the hpi_result["dig_points"] does not set it
-        (d for d in dig if d.get("kind", FIFF.FIFFV_POINT_HPI) == FIFF.FIFFV_POINT_HPI),
+        (d for d in dig if d.get("kind", FIFF.FIFFV_POINT_HPI) in kinds),
         key=lambda d: d["ident"],
     )
