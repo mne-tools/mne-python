@@ -357,3 +357,27 @@ def _get_suptitle(fig):
     else:
         # unreliable hack; should work in most tests as we rarely use `sup_{x,y}label`
         return fig.texts[0].get_text()
+
+
+def assert_trans(actual, desired, dist_tol=0.0, angle_tol=0.0):
+    __tracebackhide__ = True
+
+    from ..transforms import Transform, _angle_dist_between_rigid
+
+    if isinstance(actual, Transform):
+        assert isinstance(desired, Transform), "Both must be Transform or ndarray"
+        assert actual["from"] == desired["from"]
+        assert actual["to"] == desired["to"]
+        actual = actual["trans"]
+        desired = desired["trans"]
+    assert isinstance(actual, np.ndarray)
+    assert isinstance(desired, np.ndarray)
+    assert actual.shape == (4, 4)
+    assert desired.shape == (4, 4)
+    angle, dist = _angle_dist_between_rigid(
+        actual, desired, angle_units="deg", distance_units="m"
+    )
+    assert dist <= dist_tol, (
+        f"{1000 * dist:0.3f} > {1000 * dist_tol:0.3f} mm translation"
+    )
+    assert angle <= angle_tol, f"{angle:0.3f} > {angle_tol:0.3f}° rotation"

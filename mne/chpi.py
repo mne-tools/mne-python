@@ -616,7 +616,7 @@ def _fit_coil_order_dev_head_trans(dev_pnts, head_pnts, *, bias=True):
         dev_head_t, angle_units="deg", distance_units="mm"
     )
     logger.info(
-        f"Fitted cHPI dev->head transform {ang:0.1f}° and {dist:0.1f} mm "
+        f"Fitted HPI dev->head transform {ang:0.1f}° and {dist:0.1f} mm "
         f"from device origin (GOF: {out_g:.2%})"
     )
     return dev_head_t, best_order, out_g
@@ -1643,6 +1643,7 @@ def refit_hpi_order(info, *, recompute_amps=False, ext_order=1, verbose=None):
     -----
     This adds additional entries to ``info["hpi_meas"]`` and
     ``info["hpi_results"]``, leaving the existing ones intact.
+    It will always modify ``info["dev_head_t"]`` inplace.
 
     .. versionadded:: 1.11
     """
@@ -1734,6 +1735,7 @@ def refit_hpi_order(info, *, recompute_amps=False, ext_order=1, verbose=None):
 
 def _sorted_hpi_dig(dig):
     return sorted(
-        (d for d in dig if d["kind"] == FIFF.FIFFV_POINT_HPI),
+        # need .get here because the hpi_result["dig_points"] does not set it
+        (d for d in dig if d.get("kind", FIFF.FIFFV_POINT_HPI) == FIFF.FIFFV_POINT_HPI),
         key=lambda d: d["ident"],
     )

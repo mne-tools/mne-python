@@ -50,6 +50,7 @@ from mne.utils import (
     object_diff,
     verbose,
 )
+from mne.utils._testing import assert_trans
 from mne.viz import plot_head_positions
 
 base_dir = Path(__file__).parents[1] / "io" / "tests" / "data"
@@ -862,6 +863,16 @@ def test_get_active_chpi_neuromag():
     )
 
 
+def assert_slopes_correlated(actual_meas, desired_meas, *, lim=(0.99, 1.0)):
+    """Assert that slopes in two coil info dicts are all close."""
+    __tracebackhide__ = True
+    for ci, (c1, c2) in enumerate(
+        zip(actual_meas["hpi_coils"], desired_meas["hpi_coils"])
+    ):
+        corr = np.abs(np.corrcoef(c1["slopes"].ravel(), c2["slopes"].ravel())[0, 1])
+        assert lim[0] <= corr <= lim[1]
+
+
 @testing.requires_testing_data
 def test_refit_hpi_locs():
     """Test that HPI locations can be refit."""
@@ -872,20 +883,36 @@ def test_refit_hpi_locs():
     corr = np.corrcoef(locs["slopes"].ravel(), locs_2["slopes"].ravel())[0, 1]
     assert 0.999 < corr < 1.0
     # Refit on these data won't change anything
-    raw_refit = raw.copy()
-    refit_hpi_order(raw_refit.info)
-    assert_array_equal(
-        raw.info["hpi_results"][-1]["order"], raw_refit.info["hpi_results"][-1]["order"]
+    raw_new = raw.copy()
+    refit_hpi_order(raw_new.info)
+    # TODO: This does change slightly because all cHPI coils are used... should have
+    # a threshold param for GOF of fits like hpifit
+    assert_trans(
+        raw_new.info["dev_head_t"],
+        raw.info["dev_head_t"],
+        dist_tol=5e-3,
+        angle_tol=4,
     )
-    assert_allclose(
-        raw.info["hpi_meas"][-1]["slopes"], raw_refit.info["hpi_meas"][-1]["slopes"]
+    assert_array_equal(
+        raw.info["hpi_results"][-1]["order"], raw_new.info["hpi_results"][-1]["order"]
+    )
+    assert_slopes_correlated(
+        raw.info["hpi_meas"][-1],
+        raw_new.info["hpi_meas"][-1],
+        lim=(0.999999, 1.0),
     )
     # Refit including amplitudes
-    refit_hpi_order(raw_refit.info, ext_order=0, recompute_amps=True)
-    assert_array_equal(
-        raw.info["hpi_results"][-1]["order"], raw_refit.info["hpi_results"][-1]["order"]
+    refit_hpi_order(raw_new.info, ext_order=0, recompute_amps=True)
+    assert_trans(
+        raw_new.info["dev_head_t"],
+        raw.info["dev_head_t"],
+        dist_tol=2e-3,
+        angle_tol=2,
     )
-    assert not np.allclose(
-        raw.info["hpi_meas"][-1]["slopes"], raw_refit.info["hpi_meas"][-1]["slopes"]
+    assert_array_equal(
+        raw.info["hpi_results"][-1]["order"], raw_new.info["hpi_results"][-1]["order"]
+    )
+    assert_slopes_correlated(
+        raw.info["hpi_meas"][-1], raw_new.info["hpi_meas"][-1], lim=(0.99, 0.999999)
     )
     # TODO: Show that it can fix problematic info
