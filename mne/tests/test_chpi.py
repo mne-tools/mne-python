@@ -28,6 +28,7 @@ from mne.chpi import (
     get_chpi_info,
     head_pos_to_trans_rot_t,
     read_head_pos,
+    refit_hpi_order,
     write_head_pos,
 )
 from mne.datasets import testing
@@ -859,3 +860,32 @@ def test_get_active_chpi_neuromag():
         get_active_chpi(raw_no_chpi, on_missing="ignore"),
         np.zeros_like(raw_no_chpi.times),
     )
+
+
+@testing.requires_testing_data
+def test_refit_hpi_locs():
+    """Test that HPI locations can be refit."""
+    raw = read_raw_fif(chpi_fif_fname, allow_maxshield="yes").crop(0, 2).load_data()
+    # These should be similar (and both should work)
+    locs = compute_chpi_amplitudes(raw, t_step_min=2, t_window=1)
+    locs_2 = compute_chpi_amplitudes(raw, t_step_min=2, t_window=1, ext_order=0)
+    corr = np.corrcoef(locs["slopes"].ravel(), locs_2["slopes"].ravel())[0, 1]
+    assert 0.999 < corr < 1.0
+    # Refit on these data won't change anything
+    raw_refit = raw.copy()
+    refit_hpi_order(raw_refit.info)
+    assert_array_equal(
+        raw.info["hpi_results"][-1]["order"], raw_refit.info["hpi_results"][-1]["order"]
+    )
+    assert_allclose(
+        raw.info["hpi_meas"][-1]["slopes"], raw_refit.info["hpi_meas"][-1]["slopes"]
+    )
+    # Refit including amplitudes
+    refit_hpi_order(raw_refit.info, ext_order=0, recompute_amps=True)
+    assert_array_equal(
+        raw.info["hpi_results"][-1]["order"], raw_refit.info["hpi_results"][-1]["order"]
+    )
+    assert not np.allclose(
+        raw.info["hpi_meas"][-1]["slopes"], raw_refit.info["hpi_meas"][-1]["slopes"]
+    )
+    # TODO: Show that it can fix problematic info

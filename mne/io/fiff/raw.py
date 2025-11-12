@@ -356,11 +356,7 @@ class Raw(BaseRaw):
         raw.orig_format = orig_format
 
         #   Add the calibration factors
-        cals = np.zeros(info["nchan"])
-        for k in range(info["nchan"]):
-            cals[k] = info["chs"][k]["range"] * info["chs"][k]["cal"]
-
-        raw._cals = cals
+        raw._cals = info._cals
         raw._raw_extras = raw_extras
         logger.info(
             "    Range : %d ... %d =  %9.3f ... %9.3f secs",

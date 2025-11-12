@@ -45,7 +45,7 @@ from .dipole import _make_guesses
 from .event import find_events
 from .fixes import jit
 from .forward import _concatenate_coils, _create_meg_coils, _magnetic_dipole_field_vec
-from .io import BaseRaw
+from .io import BaseRaw, RawArray
 from .io.ctf.trans import _make_ctf_coord_trans_set
 from .io.kit.constants import KIT
 from .io.kit.kit import RawKIT as _RawKIT
@@ -421,13 +421,10 @@ def _get_hpi_initial_fit(info, adjust=False, verbose=None):
         raise RuntimeError("no initial cHPI head localization performed")
 
     hpi_result = info["hpi_results"][-1]
-    hpi_dig = sorted(
-        [d for d in info["dig"] if d["kind"] == FIFF.FIFFV_POINT_HPI],
-        key=lambda x: x["ident"],
-    )  # ascending (dig) order
+    hpi_dig = _sorted_hpi_dig(info["dig"])
     if len(hpi_dig) == 0:  # CTF data, probably
         msg = "HPIFIT: No HPI dig points, using hpifit result"
-        hpi_dig = sorted(hpi_result["dig_points"], key=lambda x: x["ident"])
+        hpi_dig = _sorted_hpi_dig(hpi_result["dig_points"])
         if all(
             d["coord_frame"] in (FIFF.FIFFV_COORD_DEVICE, FIFF.FIFFV_COORD_UNKNOWN)
             for d in hpi_dig
@@ -466,9 +463,7 @@ def _get_hpi_initial_fit(info, adjust=False, verbose=None):
     assert len(hpi_rrs) >= 3
 
     # Fitting errors
-    hpi_rrs_fit = sorted(
-        [d for d in info["hpi_results"][-1]["dig_points"]], key=lambda x: x["ident"]
-    )
+    hpi_rrs_fit = _sorted_hpi_dig(info["hpi_results"][-1]["dig_points"])
     hpi_rrs_fit = np.array([d["r"] for d in hpi_rrs_fit])
     # hpi_result['dig_points'] are in FIFFV_COORD_UNKNOWN coords, but this
     # is probably a misnomer because it should be FIFFV_COORD_DEVICE for this
@@ -881,8 +876,7 @@ def _check_chpi_param(chpi_, name):
     want_keys = list(want_ndims.keys()) + extra_keys
     if set(want_keys).symmetric_difference(chpi_):
         raise ValueError(
-            f"{name} must be a dict with entries {want_keys}, got "
-            f"{sorted(chpi_.keys())}"
+            f"{name} must be a dict with entries {want_keys}, got {sorted(chpi_)}"
         )
     n_times = None
     for key, want_ndim in want_ndims.items():
@@ -1629,19 +1623,35 @@ def get_active_chpi(raw, *, on_missing="raise", verbose=None):
 
 
 @verbose
-def refit_chpi_order(
-    info, *, recompute_amps=False, bias=True, ext_order=1, verbose=None
-):
-    # Modifies info inplace
-    # Appends to info["hpi_meas"] and info["hpi_results"]
-    #
-    # We could make it add a new result rather than overwriting existing, but
-    # overwriting the existing one is probably good enough
+def refit_hpi_order(info, *, recompute_amps=False, ext_order=1, verbose=None):
+    """Refit HPI coil order.
+
+    This operates inplace on ``info``, and will typically be called via
+    ``refit_hpi_order(raw.info)`` before further processing.
+
+    Parameters
+    ----------
+    info : instance of Info
+        The measurement info.
+    recompute_amps : bool
+        Whether to recompute the HPI amplitudes from the raw data obtained during the
+        original fit.
+    %(ext_order_chpi)s
+    %(verbose)s
+
+    Notes
+    -----
+    This adds additional entries to ``info["hpi_meas"]`` and
+    ``info["hpi_results"]``, leaving the existing ones intact.
+
+    .. versionadded:: 1.11
+    """
+    _validate_type(info, Info, "info")
     n_coils = info["hpi_subsystem"]["ncoil"]
     logger.info(f"Refitting cHPI coil order for {n_coils} coils ...")
     old_meas = info["hpi_meas"][-1]
     slopes = np.array([[old_meas["hpi_coils"][ci]["slopes"] for ci in range(n_coils)]])
-    fit_info = mne.pick_info(info, mne.pick_types(info, meg=True, exclude=()))
+    fit_info = pick_info(info, pick_types(info, meg=True, exclude=()))
     # Set bads to empty list here. In theory flux jumps etc. or even flat channels
     # shouldn't affect the fit much. At some point we could allow ignoring bads,
     # but it would make the API more complex (KISS) and make the info accounting harder
@@ -1658,12 +1668,12 @@ def refit_chpi_order(
         # TODO: Assert something about shapes etc.
         data = (
             old_meas["hpi_coils"][0]["epoch"]
-            * raw._cals[mne.pick_types(info, meg=True, exclude=()), np.newaxis]
+            * info._cals[pick_types(info, meg=True, exclude=()), np.newaxis]
         )
-        fit_raw = mne.io.RawArray(data, fit_info)
+        fit_raw = RawArray(data, fit_info)
         stop = fit_raw.times[-1]
         amps = compute_chpi_amplitudes(
-            fit_raw, t_step_min=stop, t_window=stop + 1.0 / raw.info["sfreq"]
+            fit_raw, t_step_min=stop, t_window=stop + 1.0 / info["sfreq"]
         )
         for ci, slope in enumerate(amps["slopes"][0]):
             old_slope = old_meas["hpi_coils"][ci]["slopes"]
@@ -1680,10 +1690,9 @@ def refit_chpi_order(
     hpi_dev = locs["rrs"][0].astype(float)
     del locs
     assert len(hpi_head) == len(hpi_dev) == n_coils
-    dev_head_t, order, _g = _fit_coil_order_dev_head_trans(hpi_dev, hpi_head, bias=bias)
-    del bias
+    dev_head_t, order, _g = _fit_coil_order_dev_head_trans(hpi_dev, hpi_head)
     # create adjusted metadata
-    result = deepcopy(info["hpi_results"][-1])
+    result = copy.deepcopy(info["hpi_results"][-1])
     info["dev_head_t"]["trans"][:] = dev_head_t
     result["coord_trans"]["trans"][:] = dev_head_t
     result["accept"] = 1
@@ -1695,7 +1704,7 @@ def refit_chpi_order(
     # result["goodness"] = ndarray, shape (n_coils,)
     # result["moments"] = ndarray, shape (n_coils, 3)
     del hpi_dev, dev_head_t, order
-    meas = deepcopy(old_meas)
+    meas = copy.deepcopy(old_meas)
     meas["used"] = np.arange(1, n_coils + 1)  # we use all of them
     for ci, slope in enumerate(amps["slopes"][0]):
         meas["hpi_coils"][ci]["slopes"][:] = slope
@@ -1710,10 +1719,7 @@ def refit_chpi_order(
         # errors
         this_dev_head_t = result["coord_trans"]
         this_hpi_dev = np.array([d["r"] for d in result["dig_points"]]).astype(float)
-        diffs = (
-            mne.transforms.apply_trans(this_dev_head_t, this_hpi_dev[this_order - 1])
-            - hpi_head
-        )
+        diffs = apply_trans(this_dev_head_t, this_hpi_dev[this_order - 1]) - hpi_head
         dists = 1e3 * np.linalg.norm(diffs, axis=1)
         for dist in dists:
             msg += f"{dist:5.1f} "
@@ -1724,3 +1730,10 @@ def refit_chpi_order(
     info["hpi_meas"][-1] = x
     y = info["hpi_results"].pop(-1)
     info["hpi_results"][-1] = y
+
+
+def _sorted_hpi_dig(dig):
+    return sorted(
+        (d for d in dig if d["kind"] == FIFF.FIFFV_POINT_HPI),
+        key=lambda d: d["ident"],
+    )
