@@ -16,6 +16,7 @@ from textwrap import shorten
 
 import numpy as np
 
+from .. import __version__
 from ..defaults import _handle_default
 from ..html_templates import _get_html_template
 from ..utils import (
@@ -946,11 +947,19 @@ class ValidatedDict(dict):
 
     def __getstate__(self):
         """Get state (for pickling)."""
-        return {"_unlocked": self._unlocked}
+        # Return both the dict data and the _unlocked attribute
+        state = dict(self)  # Get the dictionary data
+        state["_unlocked"] = self._unlocked
+        return state
 
     def __setstate__(self, state):
         """Set state (for pickling)."""
-        self._unlocked = state["_unlocked"]
+        # Extract _unlocked before updating dict
+        unlocked = state.pop("_unlocked", True)
+        self._unlocked = True  # Unlock to allow setting
+        self.clear()
+        self.update(state)
+        self._unlocked = unlocked
 
     def __setitem__(self, key, val):
         """Attribute setter."""
@@ -1971,7 +1980,156 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
         """
         write_info(fname, self, overwrite=overwrite)
 
+    def to_data_dict(self):
+        """Convert Info to a JSON-serializable dictionary.
 
+        This method converts the Info object to a standard Python dictionary
+        containing only JSON-serializable types (dict, list, str, int, float,
+        bool, None). Numpy arrays are converted to nested lists, and datetime
+        objects to ISO format strings.
+
+        Returns
+        -------
+        dict
+            A JSON-serializable dictionary representation of the Info object.
+
+        See Also
+        --------
+        from_data_dict : Reconstruct Info object from dictionary.
+
+        Notes
+        -----
+        This method is useful for serializing Info objects to JSON or other
+        formats that don't support numpy arrays or custom objects. It uses
+        the Info's ``__getstate__`` method internally to get all data.
+
+        Examples
+        --------
+        >>> info = mne.create_info(['MEG1', 'MEG2'], 1000., ['mag', 'mag'])
+        >>> info_dict = info.to_data_dict()
+        >>> import json
+        >>> json_str = json.dumps(info_dict)  # Save to JSON
+        """
+
+        # Get state using existing __getstate__ infrastructure
+        state = self.__getstate__()
+        
+        # Convert to JSON-serializable format
+        serializable = _make_serializable(state)
+        
+        # Add version marker
+        serializable["_mne_version"] = __version__
+        
+        return serializable
+
+    @classmethod
+    def from_data_dict(cls, data_dict):
+        """Reconstruct Info object from a dictionary.
+
+        Parameters
+        ----------
+        data_dict : dict
+            A dictionary representation of an Info object, typically
+            created by the :meth:`to_data_dict` method.
+
+        Returns
+        -------
+        Info
+            The reconstructed Info object.
+
+        See Also
+        --------
+        to_data_dict : Convert Info to dictionary.
+
+        Examples
+        --------
+        >>> info = mne.create_info(['MEG1', 'MEG2'], 1000., ['mag', 'mag'])
+        >>> info_dict = info.to_data_dict()
+        >>> info_restored = mne.Info.from_data_dict(info_dict)
+        """
+        # Remove version marker
+        data_dict = data_dict.copy()
+        data_dict.pop("_mne_version", None)
+        
+        # Restore numpy arrays and other objects (datetime conversion happens automatically)
+        state = _restore_objects(data_dict)
+        
+        # Create Info and use __setstate__ to populate
+        info = cls()
+        info.__setstate__(state)
+        
+        return info
+
+def _make_serializable(obj):
+    """Recursively convert objects to JSON-serializable types."""
+    from ..transforms import Transform
+    
+    if obj is None:
+        return None
+    elif isinstance(obj, (bool, str, int, float)):
+        return obj
+    elif isinstance(obj, np.integer):
+        return int(obj)
+    elif isinstance(obj, np.floating):
+        return float(obj)
+    elif isinstance(obj, np.ndarray):
+        return obj.tolist()
+    elif isinstance(obj, (datetime.datetime, datetime.date)):
+        return obj.isoformat()
+    elif isinstance(obj, Transform):
+        # Tag Transform objects for proper reconstruction
+        return {
+            "_mne_type": "Transform",
+            "from": obj["from"],
+            "to": obj["to"],
+            "trans": obj["trans"].tolist()
+        }
+    elif isinstance(obj, (list, tuple)):
+        return [_make_serializable(item) for item in obj]
+    elif isinstance(obj, dict):
+        return {key: _make_serializable(val) for key, val in obj.items()}
+    else:
+        # Try to convert to string as fallback
+        return str(obj)
+    
+
+def _restore_objects(obj):
+    """Recursively restore objects from JSON-serializable types."""
+    if obj is None:
+        return None
+    elif isinstance(obj, (bool, int, float)):
+        return obj
+    elif isinstance(obj, str):
+        # Try to parse ISO format datetime strings
+        # ISO format: YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS...
+        if len(obj) >= 10 and obj[4] == '-' and obj[7] == '-':
+            try:
+                if 'T' in obj or len(obj) > 10:
+                    return datetime.datetime.fromisoformat(obj)
+                else:
+                    return datetime.date.fromisoformat(obj)
+            except ValueError:
+                pass  # Not a datetime, just a regular string
+        return obj
+    elif isinstance(obj, list):
+        # Check if all elements are numbers (likely numpy array)
+        if len(obj) > 0 and all(isinstance(x, (int, float, list)) for x in obj):
+            return np.array(obj)
+        else:
+            return [_restore_objects(item) for item in obj]
+    elif isinstance(obj, dict):
+        # Check if this is a tagged MNE type
+        if "_mne_type" in obj:
+            if obj["_mne_type"] == "Transform":
+                from ..transforms import Transform
+                trans_array = np.array(obj["trans"])
+                return Transform(fro=obj["from"], to=obj["to"], trans=trans_array)
+            # Add more types here if needed in the future
+        else:
+            return {key: _restore_objects(val) for key, val in obj.items()}
+    else:
+        return obj
+    
 def _simplify_info(info, *, keep=()):
     """Return a simplified info structure to speed up picking."""
     chs = [
