@@ -891,7 +891,7 @@ def test_refit_hpi_locs_basic():
     # Refit on these data won't change much
     info_new = info.copy()
     assert len(info["hpi_results"][-1]["used"]) == 3
-    refit_hpi(info_new, compute_amplitudes=False, compute_locs=False, use=3)
+    refit_hpi(info_new, amplitudes=False, locs=False, use=3)
     assert len(info_new["hpi_results"]) == len(info["hpi_results"]) == 1
     assert len(info_new["hpi_meas"]) == len(info["hpi_meas"]) == 1
     assert_trans(
@@ -901,7 +901,7 @@ def test_refit_hpi_locs_basic():
         angle_tol=0.1,
     )
     # Refit with more coils than hpifit (our default is use=None)
-    refit_hpi(info_new, compute_amplitudes=False, compute_locs=False)
+    refit_hpi(info_new, amplitudes=False, locs=False)
     assert len(info_new["hpi_results"][-1]["used"]) == 5
     assert_trans(
         info_new["dev_head_t"],
@@ -910,7 +910,7 @@ def test_refit_hpi_locs_basic():
         angle_tol=2,
     )
     # Refit locations
-    refit_hpi(info_new, compute_amplitudes=False)  # default: compute_locs=True
+    refit_hpi(info_new, amplitudes=False)  # default: locs=True
     assert_trans(
         info_new["dev_head_t"],
         info["dev_head_t"],
@@ -926,7 +926,7 @@ def test_refit_hpi_locs_basic():
         lim=(0.999999, 1.0),
     )
     with pytest.raises(ValueError, match="must also be True"):
-        refit_hpi(info_new, compute_locs=False)
+        refit_hpi(info_new, locs=False)
     # Refit locations and amplitudes (with ext_order=0 just to make sure it works)
     refit_hpi(info_new, ext_order=0)
     assert_trans(

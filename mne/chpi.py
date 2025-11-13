@@ -1847,9 +1847,11 @@ def refit_hpi(
         ("digitized", hpi_head[fit_order][used]),
         ("fitted", hpi_dev[used]),
     ]:
-        s = np.linalg.svd(pts - pts.mean(axis=0), full_matrices=False)[1]
-        ratio = s[0] / s[-1]
-        if ratio > 1e2:
+        s = np.linalg.svd(
+            np.c_[pts, 1e-3 * np.ones((pts.shape[0], 1))], full_matrices=False
+        )[1]
+        ratio = s[0] / max(s[2], s[0] * 1e-10)
+        if ratio > 2:
             extra = ""
             if len(used) < n_coils:
                 extra += (
@@ -1857,9 +1859,9 @@ def refit_hpi(
                     "dist_limit, amplitudes, locs, or manually setting order"
                 )
             warn(
-                f"The {kind} coil locations {used_str} are nearly collinear "
-                f"(SVD ratio > 100). The fit may be unstable and be fit as an "
-                f"incorrect rotation about a line{extra}"
+                f"The {kind} coil locations {used_str} are nearly colinear "
+                f"(SVD ratio {ratio:.1f}). The fit may be unstable and be fit as "
+                f"an incorrect rotation about a line{extra}"
             )
     quat, _g = _fit_chpi_quat(hpi_dev[used], hpi_head[fit_order][used])
     assert np.linalg.det(quat_to_rot(quat[:3])) > 0.9999
