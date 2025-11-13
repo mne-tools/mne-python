@@ -1362,7 +1362,7 @@ def _quat_to_affine(quat):
 
 
 def _affine_to_quat(affine):
-    assert affine.shape[-2:] == (4, 4)
+    assert affine.shape[-2:] == (4, 4), affine.shape
     return np.concatenate(
         [rot_to_quat(affine[..., :3, :3]), affine[..., :3, 3]],
         axis=-1,
