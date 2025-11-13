@@ -36,6 +36,7 @@ from ..utils import (
     verbose,
     warn,
 )
+from ..utils._bunch import NamedFloat, NamedInt
 from ._digitization import (
     DigPoint,
     _dig_kind_ints,
@@ -2114,7 +2115,6 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
 def _make_serializable(obj):
     """Recursively convert objects to JSON-serializable types."""
     from ..transforms import Transform
-    from ..utils._bunch import NamedFloat, NamedInt
 
     if obj is None:
         return None
@@ -2183,12 +2183,8 @@ def _restore_objects(obj):
                     "trans": np.array(obj["trans"]),
                 }
             elif obj["_mne_type"] == "NamedInt":
-                from ..utils._bunch import NamedInt
-
                 return NamedInt(obj["name"], obj["value"])
             elif obj["_mne_type"] == "NamedFloat":
-                from ..utils._bunch import NamedFloat
-
                 return NamedFloat(obj["name"], obj["value"])
             elif obj["_mne_type"] == "datetime":
                 # Restore datetime object from ISO format string
