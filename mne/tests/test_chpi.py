@@ -873,6 +873,7 @@ def assert_slopes_correlated(actual_meas, desired_meas, *, lim=(0.99, 1.0)):
         assert lim[0] <= corr <= lim[1]
 
 
+@pytest.mark.slowtest
 @testing.requires_testing_data
 def test_refit_hpi_locs():
     """Test that HPI locations can be refit."""
@@ -882,37 +883,61 @@ def test_refit_hpi_locs():
     locs_2 = compute_chpi_amplitudes(raw, t_step_min=2, t_window=1, ext_order=0)
     corr = np.corrcoef(locs["slopes"].ravel(), locs_2["slopes"].ravel())[0, 1]
     assert 0.999 < corr < 1.0
-    # Refit on these data won't change anything
-    raw_new = raw.copy()
-    refit_hpi_order(raw_new.info)
-    # TODO: This does change slightly because all cHPI coils are used... should have
-    # a threshold param for GOF of fits like hpifit
+    info = raw.info
+    del raw
+
+    # Refit on these data won't change much
+    info_new = info.copy()
+    assert len(info["hpi_results"][-1]["used"]) == 3
+    refit_hpi_order(info_new, compute_amplitudes=False, compute_locs=False, max_use=3)
+    assert len(info_new["hpi_results"]) == len(info["hpi_results"]) + 1
+    assert len(info_new["hpi_meas"]) == len(info["hpi_meas"]) + 1
     assert_trans(
-        raw_new.info["dev_head_t"],
-        raw.info["dev_head_t"],
-        dist_tol=5e-3,
-        angle_tol=4,
+        info_new["dev_head_t"],
+        info["dev_head_t"],
+        dist_tol=0.1e-3,
+        angle_tol=0.1,
     )
-    assert_array_equal(
-        raw.info["hpi_results"][-1]["order"], raw_new.info["hpi_results"][-1]["order"]
-    )
-    assert_slopes_correlated(
-        raw.info["hpi_meas"][-1],
-        raw_new.info["hpi_meas"][-1],
-        lim=(0.999999, 1.0),
-    )
-    # Refit including amplitudes
-    refit_hpi_order(raw_new.info, ext_order=0, recompute_amps=True)
+    # Refit with more coils than hpifit (our default is max_use=None)
+    refit_hpi_order(info_new, compute_amplitudes=False, compute_locs=False)
+    assert len(info_new["hpi_results"][-1]["used"]) == 5
     assert_trans(
-        raw_new.info["dev_head_t"],
-        raw.info["dev_head_t"],
+        info_new["dev_head_t"],
+        info["dev_head_t"],
+        dist_tol=3e-3,
+        angle_tol=2,
+    )
+    # Refit locations
+    refit_hpi_order(info_new, compute_amplitudes=False)  # default: compute_locs=True
+    assert_trans(
+        info_new["dev_head_t"],
+        info["dev_head_t"],
         dist_tol=2e-3,
         angle_tol=2,
     )
     assert_array_equal(
-        raw.info["hpi_results"][-1]["order"], raw_new.info["hpi_results"][-1]["order"]
+        info_new["hpi_results"][-1]["order"], info["hpi_results"][-1]["order"]
     )
     assert_slopes_correlated(
-        raw.info["hpi_meas"][-1], raw_new.info["hpi_meas"][-1], lim=(0.99, 0.999999)
+        info_new["hpi_meas"][-1],
+        info["hpi_meas"][-1],
+        lim=(0.999999, 1.0),
     )
+    with pytest.raises(ValueError, match="must also be True"):
+        refit_hpi_order(info_new, compute_locs=False)
+    # Refit locations and amplitudes (with ext_order=0 just to make sure it works)
+    refit_hpi_order(info_new, ext_order=0)
+    assert_trans(
+        info_new["dev_head_t"],
+        info["dev_head_t"],
+        dist_tol=2e-3,
+        angle_tol=2,
+    )
+    assert_array_equal(
+        info_new["hpi_results"][-1]["order"], info["hpi_results"][-1]["order"]
+    )
+    assert_slopes_correlated(
+        info_new["hpi_meas"][-1], info["hpi_meas"][-1], lim=(0.99, 0.999999)
+    )
+
     # TODO: Show that it can fix problematic info
