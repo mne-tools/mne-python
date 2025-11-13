@@ -200,6 +200,16 @@ def psd_array_welch(
     del freq_mask
     freqs = freqs[freq_sl]
 
+    # Hard error on Inf inside analyzed samples
+    step = max(n_per_seg - n_overlap, 1)
+    n_segments = 1 + (n_times - n_per_seg) // step if n_times >= n_per_seg else 0
+    analyzed_end = step * (n_segments - 1) + n_per_seg if n_segments > 0 else 0
+    if analyzed_end > 0 and np.isinf(x[..., :analyzed_end]).any():
+        raise ValueError(
+            "Input data contains non-finite values (Inf) in the analyzed time span. "
+            "Clean or drop bad segments before computing the PSD."
+        )
+
     # Parallelize across first N-1 dimensions
     logger.debug(
         f"Spectogram using {n_fft}-point FFT on {n_per_seg} samples with "
@@ -221,7 +231,12 @@ def psd_array_welch(
         good_mask = ~np.isnan(x)
         # NaNs originate from annot, so must match for all channels. Note that we CANNOT
         # use np.testing.assert_allclose() here; it is strict about shapes/broadcasting
-        assert np.allclose(good_mask, good_mask[[0]], equal_nan=True)
+        if not np.allclose(good_mask, good_mask[[0]], equal_nan=True):
+            raise ValueError(
+                "Input data contains NaN masks that are not aligned across channels; "
+                "make NaN spans consistent across channels or clean/drop bad segments."
+            )
+        # assert np.allclose(good_mask, good_mask[[0]], equal_nan=True)
         t_onsets, t_offsets = _mask_to_onsets_offsets(good_mask[0])
         x_splits = [x[..., t_ons:t_off] for t_ons, t_off in zip(t_onsets, t_offsets)]
         # weights reflect the number of samples used from each span. For spans longer
