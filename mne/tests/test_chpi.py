@@ -866,11 +866,12 @@ def test_get_active_chpi_neuromag():
 def assert_slopes_correlated(actual_meas, desired_meas, *, lim=(0.99, 1.0)):
     """Assert that slopes in two coil info dicts are all close."""
     __tracebackhide__ = True
+    assert len(actual_meas["hpi_coils"]) == len(desired_meas["hpi_coils"])
     for ci, (c1, c2) in enumerate(
         zip(actual_meas["hpi_coils"], desired_meas["hpi_coils"])
     ):
         corr = np.abs(np.corrcoef(c1["slopes"].ravel(), c2["slopes"].ravel())[0, 1])
-        assert lim[0] <= corr <= lim[1]
+        assert lim[0] <= corr <= lim[1], f"meas['hpi_coils'][{ci}] corr: {corr}"
 
 
 @pytest.mark.slowtest

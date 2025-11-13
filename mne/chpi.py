@@ -1660,6 +1660,9 @@ def refit_hpi_order(
     %(ext_order_chpi)s
     gof_limit : float
         The goodness-of-fit limit to use when choosing which coils to use for refitting.
+    dist_limit : float
+        The distance limit (in meters) to use when choosing which coils to use for
+        refitting.
     max_use : int | None
         The maximum number of coils to use when testing different coil orderings.
         The default for ``hpifit`` in MEGIN software is 3. Default (None) means to
