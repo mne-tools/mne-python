@@ -221,7 +221,7 @@ EEG referencing:
    get_chpi_info
    head_pos_to_trans_rot_t
    read_head_pos
-   refit_hpi_order
+   refit_hpi
    write_head_pos
 
 :py:mod:`mne.transforms`

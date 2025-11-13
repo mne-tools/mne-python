@@ -71,7 +71,6 @@ from .utils import (
     ProgressBar,
     _check_fname,
     _check_option,
-    _ensure_int,
     _on_missing,
     _pl,
     _validate_type,
@@ -592,7 +591,7 @@ def _fit_chpi_quat(coil_dev_rrs, coil_head_rrs):
     return quat, gof
 
 
-def _fit_coil_order_dev_head_trans(dev_pnts, head_pnts, *, bias=True):
+def _fit_coil_order_dev_head_trans(dev_pnts, head_pnts, *, bias=True, prefix=""):
     """Compute Device to Head transform allowing for permutiatons of points."""
     id_quat = np.zeros(6)
     best_order = None
@@ -622,8 +621,8 @@ def _fit_coil_order_dev_head_trans(dev_pnts, head_pnts, *, bias=True):
         dev_head_t, angle_units="deg", distance_units="mm"
     )
     logger.info(
-        f"Fitted HPI dev->head transform {ang:0.1f}° and {dist:0.1f} mm "
-        f"from device origin (GOF: {out_g:.2%})"
+        f"{prefix}Fitted dev_head_t {ang:0.1f}° and {dist:0.1f} mm "
+        f"from device origin (GOF: {out_g:.3f})"
     )
     return dev_head_t, best_order, out_g
 
@@ -1629,45 +1628,56 @@ def get_active_chpi(raw, *, on_missing="raise", verbose=None):
 
 
 @verbose
-def refit_hpi_order(
+def refit_hpi(
     info,
     *,
-    compute_amplitudes=True,
-    compute_locs=True,
+    amplitudes=True,
+    locs=True,
+    order=True,
     ext_order=1,
     gof_limit=0.98,
     dist_limit=0.005,
-    max_use=None,
+    use=None,
     verbose=None,
 ):
     """Refit HPI coil order.
 
     This operates inplace on ``info``, and will typically be called via
-    ``refit_hpi_order(raw.info)`` before further processing.
+    ``refit_hpi(raw.info)`` before further processing.
 
     Parameters
     ----------
     info : instance of Info
         The measurement info.
-    compute_amplitudes : bool
+    amplitudes : bool
         Whether to recompute the HPI amplitudes (slopes) from the raw data obtained
         during the original fit using :func:`~mne.chpi.compute_chpi_amplitudes`,
         or used the already-computed ones stored in ``info['hpi_meas']``.
-    compute_locs : bool
+    locs : bool
         Whether to recompute the HPI coil locations using
         :func:`~mne.chpi.compute_chpi_locs`, or use the already-computed ones stored in
         ``info['hpi_results']``.
+    order : bool
+        Whether to refit the coil order by testing all permutations for the best
+        goodness of fit between digitized coil locations and (rigid-transformed)
+        fitted coil locations.
     %(ext_order_chpi)s
     gof_limit : float
         The goodness-of-fit limit to use when choosing which coils to use for refitting.
     dist_limit : float
         The distance limit (in meters) to use when choosing which coils to use for
         refitting.
-    max_use : int | None
+    use : int | None
         The maximum number of coils to use when testing different coil orderings.
         The default for ``hpifit`` in MEGIN software is 3. Default (None) means to
-        use all coils above ``gof_limit``.
+        use all coils above ``gof_limit``. Can also be an ndarray of coil indices
+        (0-indexed!) to use, e.g., ``[2, 3, 5]``.
     %(verbose)s
+
+    Returns
+    -------
+    info : instance of Info
+        The modified measurement info (same as input).
 
     Notes
     -----
@@ -1681,7 +1691,7 @@ def refit_hpi_order(
        :func:`~mne.chpi.compute_chpi_amplitudes`.
     2. Optionally use HPI amplitudes to fit HPI coil locations using
        :func:`~mne.chpi.compute_chpi_locs`.
-    3. Determine coil digitization order by testing all permutations
+    3. Optionally determine coil digitization order by testing all permutations
        for the best goodness of fit between digitized coil locations and
        (rigid-transformed) fitted coil locations.
     4. Subselect coils to use for fitting ``dev_head_t`` based on ``gof_limit``,
@@ -1692,23 +1702,6 @@ def refit_hpi_order(
     .. versionadded:: 1.11
     """
     _validate_type(info, Info, "info")
-    if max_use is not None:
-        max_use = _ensure_int(max_use, "max_use", must_be="an int or None")
-        if max_use < 3:
-            raise ValueError(f"max_use must be at least 3, got {max_use}")
-    _validate_type(compute_amplitudes, bool, "amplitudes")
-    _validate_type(compute_locs, bool, "locs")
-    _validate_type(dist_limit, "numeric", "dist_limit")
-    if compute_amplitudes and not compute_locs:
-        raise ValueError(
-            "If amplitudes is True, locs must also be True (otherwise "
-            "recomputing amplitudes has no effect)"
-        )
-    n_coils = info["hpi_subsystem"]["ncoil"]
-    logger.info(f"Refitting cHPI coil order for {n_coils} coils ...")
-    old_meas = info["hpi_meas"][-1]
-    old_results = info["hpi_results"][-1]
-    slopes = np.array([[old_meas["hpi_coils"][ci]["slopes"] for ci in range(n_coils)]])
     fit_info = pick_info(info, pick_types(info, meg=True, exclude=()))
     # Set bads to empty list here. In theory flux jumps etc. or even flat channels
     # shouldn't affect the fit much. At some point we could allow ignoring bads,
@@ -1717,127 +1710,201 @@ def refit_hpi_order(
     fit_info["bads"] = []  # for backward compat... maybe shouldn't do this
     vf = _verbose_safe_false()
     hpi = _setup_hpi_amplitude_fitting(fit_info, 1.0, ext_order=ext_order, verbose=vf)
+    n_coils = info["hpi_subsystem"]["ncoil"]
+    if use is not None:
+        use = np.array(use)
+        if use.dtype.kind != "i":
+            raise ValueError(
+                f"use must be an integer or array-like of integers, got {use.dtype}"
+            )
+        if use.shape == ():
+            use = int(use.item())
+            if use < 3:
+                raise ValueError(f"max_use must be at least 3, got {use}")
+        elif (
+            use.ndim != 1
+            or not np.array_equal(np.sort(use), np.unique(use))
+            or not np.isin(use, np.arange(info["hpi_subsystem"]["ncoil"])).all()
+        ):
+            raise ValueError(
+                "use must be a 1D array of unique integers in the range [0, "
+                f"{n_coils - 1}]"
+            )
+    assert use is None or isinstance(use, int | np.ndarray)  # we have this now
+    _validate_type(amplitudes, bool, "amplitudes")
+    _validate_type(locs, bool, "locs")
+    _validate_type(order, bool, "order")
+    _validate_type(dist_limit, "numeric", "dist_limit")
+    if amplitudes and not locs:
+        raise ValueError(
+            "If amplitudes is True, locs must also be True (otherwise "
+            "recomputing amplitudes has no effect)"
+        )
+    if locs and not order:
+        raise ValueError(
+            "If locs is True, order must also be True (otherwise "
+            "recomputing locations has no effect)"
+        )
+    logger.info(f"Refitting HPI coil order for {n_coils} coils ...")
+    old_meas = info["hpi_meas"][-1]
+    old_results = info["hpi_results"][-1]
+    slopes = np.array([[old_meas["hpi_coils"][ci]["slopes"] for ci in range(n_coils)]])
 
     # 1. Compute HPI amplitudes
-    if compute_amplitudes:
+    if amplitudes:
         epoch = old_meas["hpi_coils"][0]["epoch"]
         cals = info._cals[pick_types(info, meg=True, exclude=()), np.newaxis]
         assert cals.shape[0] == epoch.shape[0], "Calibration shape mismatch"
         data = epoch * cals
         fit_raw = RawArray(data, fit_info)
         stop = fit_raw.times[-1]
-        amps = compute_chpi_amplitudes(
+        fit_amps = compute_chpi_amplitudes(
             fit_raw, t_step_min=stop, t_window=stop + 1.0 / info["sfreq"]
         )
-        for ci, slope in enumerate(amps["slopes"][0]):
+        for ci, slope in enumerate(fit_amps["slopes"][0]):
             old_slope = old_meas["hpi_coils"][ci]["slopes"]
             corr = np.abs(np.corrcoef(slope, old_slope)[0, 1])
             logger.info(f"  Coil {ci + 1}: slope correlation with old = {corr:.3f}")
     else:
-        amps = dict(
+        fit_amps = dict(
             times=np.array([old_meas["first_samp"] / info["sfreq"]]),
             slopes=slopes,
             proj=hpi["proj"],
         )
+    del amplitudes
 
     # 2. Compute HPI locations
-    if compute_locs:
-        locs = compute_chpi_locs(fit_info, amps)
+    if locs:
+        fit_locs = compute_chpi_locs(fit_info, fit_amps)
         for ci in range(n_coils):
             dist = 1e3 * np.linalg.norm(
-                locs["rrs"][0][ci] - old_results["dig_points"][ci]["r"]
+                fit_locs["rrs"][0][ci] - old_results["dig_points"][ci]["r"]
             )
             logger.info(
                 f"  Coil {ci + 1}: location difference with old = {dist:.1f} mm"
             )
     else:
-        locs = dict(
+        fit_locs = dict(
             rrs=[np.array([d["r"] for d in old_results["dig_points"]], float)],
             gofs=[old_results["goodness"]],
             moments=[old_results["moments"]],
         )
-    del fit_info
+    del fit_info, locs
 
     # 3. Determine coil order
     hpi_dig = _sorted_hpi_dig(info["dig"])
     assert all(d["coord_frame"] == FIFF.FIFFV_COORD_HEAD for d in hpi_dig)  # should be
     hpi_head = np.array([d["r"] for d in hpi_dig]).astype(float)
     del hpi_dig
-    hpi_dev = locs["rrs"][0].astype(float)
-    hpi_gofs = locs["gofs"][0]
+    hpi_dev = fit_locs["rrs"][0].astype(float)
+    hpi_gofs = fit_locs["gofs"][0]
+    gofs_str = " ".join(f"{g:.3f}" for g in hpi_gofs)
+    logger.info(f"  Coil goodness-of-fits: {gofs_str}")
     assert len(hpi_head) == len(hpi_dev) == n_coils
-    dev_head_t, order, _g = _fit_coil_order_dev_head_trans(hpi_dev, hpi_head)
+    if order:
+        fit_dev_head_t, fit_order, _g = _fit_coil_order_dev_head_trans(
+            hpi_dev,
+            hpi_head,
+            prefix="  ",
+        )
+    else:
+        fit_order = info["hpi_results"][-1]["order"] - 1  # make 0-indexed
+        fit_dev_head_t = info["dev_head_t"]["trans"]
 
     # 4. Subselect usable coils and determine final dev_head_t
-    used = np.where(hpi_gofs >= gof_limit)[0]
-    if len(used) < 3:
-        gofs = ", ".join(f"{g:.3f}" for g in hpi_gofs)
-        raise RuntimeError(
-            f"Only {len(used)} coil{_pl(used)} have goodness of fit >= {gof_limit}, "
-            f"need at least 3 to refit HPI order (got {gofs})."
-        )
-    quat, _g = _fit_chpi_quat(hpi_dev[used], hpi_head[order][used])
-    dev_head_t = _quat_to_affine(quat)
-    hpi_head_got = apply_trans(dev_head_t, hpi_dev[used])
-    dists = np.linalg.norm(hpi_head_got - hpi_head[order][used], axis=1)
-    good_dists_idx = np.where(dists <= dist_limit)[0]
-    if not len(good_dists_idx) >= 3:
-        raise RuntimeError(
-            f"Only {len(good_dists_idx)} coil{_pl(good_dists_idx)} have distance <= "
-            f"{dist_limit * 1e3:.1f} mm, need at least 3 to refit HPI order "
-            f"(got distances: {np.round(1e3 * dists, 1)})."
-        )
-    used = used[good_dists_idx]
-    if max_use is not None:
-        used = np.sort(np.argsort(hpi_gofs[used])[-max_use:])
-    logger.info(f"Using coils {used} to compute dev_head_t (all GOFs: {hpi_gofs})")
-    quat, _g = _fit_chpi_quat(hpi_dev[used], hpi_head[order][used])
+    if isinstance(use, int) or use is None:
+        used = np.where(hpi_gofs >= gof_limit)[0]
+        if len(used) < 3:
+            gofs = ", ".join(f"{g:.3f}" for g in hpi_gofs)
+            raise RuntimeError(
+                f"Only {len(used)} coil{_pl(used)} with goodness of fit >= {gof_limit}"
+                f", need at least 3 to refit HPI order (got {gofs})."
+            )
+        quat, _g = _fit_chpi_quat(hpi_dev[used], hpi_head[fit_order][used])
+        fit_dev_head_t = _quat_to_affine(quat)
+        hpi_head_got = apply_trans(fit_dev_head_t, hpi_dev)
+        dists = np.linalg.norm(hpi_head_got - hpi_head[fit_order], axis=1)
+        dist_str = " ".join(f"{dist * 1e3:.1f}" for dist in dists)
+        logger.info(f"  Coil distances after initial fit: {dist_str} mm")
+        good_dists_idx = np.where(dists[used] <= dist_limit)[0]
+        if not len(good_dists_idx) >= 3:
+            raise RuntimeError(
+                f"Only {len(good_dists_idx)} coil{_pl(good_dists_idx)} have distance "
+                f"<= {dist_limit * 1e3:.1f} mm, need at least 3 to refit HPI order "
+                f"(got distances: {np.round(1e3 * dists, 1)})."
+            )
+        used = used[good_dists_idx]
+        if use is not None:
+            used = np.sort(used[np.argsort(hpi_gofs[used])[-use:]])
+    else:
+        used = use
+    del use
+    used_str = " ".join(str(u + 1) for u in used)
+    logger.info(f"  Using coils {used_str} to compute final dev_head_t")
+
+    # Sanity check linearity of points
+    for kind, pts in [
+        ("digitized", hpi_head[fit_order][used]),
+        ("fitted", hpi_dev[used]),
+    ]:
+        s = np.linalg.svd(pts - pts.mean(axis=0), full_matrices=False)[1]
+        ratio = s[0] / s[-1]
+        if ratio > 1e2:
+            extra = ""
+            if len(used) < n_coils:
+                extra += (
+                    ", consider including more coils by adjusting the gof_limit, "
+                    "dist_limit, amplitudes, locs, or manually setting order"
+                )
+            warn(
+                f"The {kind} coil locations {used_str} are nearly collinear "
+                f"(SVD ratio > 100). The fit may be unstable and be fit as an "
+                f"incorrect rotation about a line{extra}"
+            )
+    quat, _g = _fit_chpi_quat(hpi_dev[used], hpi_head[fit_order][used])
     assert np.linalg.det(quat_to_rot(quat[:3])) > 0.9999
-    dev_head_t = _quat_to_affine(quat)
-    del max_use
+    fit_dev_head_t = _quat_to_affine(quat)
 
     # 5. Adjust metadata
-    info["dev_head_t"]["trans"][:] = dev_head_t
-    result = copy.deepcopy(old_results)
-    result["coord_trans"]["trans"][:] = dev_head_t
-    result["accept"] = 1
-    result["used"] = used + 1  # make 1-indexed
-    result["order"][:] = order + 1  # make 1-indexed
-    result["goodness"] = hpi_gofs
-    result["good_limit"] = gof_limit
-    result["moments"][:] = locs["moments"][0]
-    result["dist_limit"] = dist_limit
-    del locs
+    info["dev_head_t"]["trans"][:] = fit_dev_head_t
+    results = copy.deepcopy(old_results)
+    results["coord_trans"]["trans"][:] = fit_dev_head_t
+    results["accept"] = 1
+    results["used"] = used + 1  # make 1-indexed (can be different length from previous)
+    results["order"][:] = fit_order + 1  # make 1-indexed
+    results["goodness"][:] = hpi_gofs
+    results["good_limit"] = gof_limit
+    results["moments"][:] = fit_locs["moments"][0]
+    results["dist_limit"] = dist_limit
+    del fit_locs
     for ci, loc in enumerate(hpi_dev):
-        result["dig_points"][ci]["r"][:] = loc.astype(float)
+        results["dig_points"][ci]["r"][:] = loc.astype(float)
     # result["moments"] = ndarray, shape (n_coils, 3)
-    del hpi_dev, dev_head_t, order
+    del hpi_dev, fit_dev_head_t, fit_order
     meas = copy.deepcopy(old_meas)
     meas["used"] = np.arange(1, n_coils + 1)  # we use all of them
-    for ci, slope in enumerate(amps["slopes"][0]):
+    for ci, slope in enumerate(fit_amps["slopes"][0]):
         meas["hpi_coils"][ci]["slopes"][:] = slope
-    info["hpi_meas"].append(meas)
-    info["hpi_results"].append(result)
-    del result, meas, amps
     # print out some stats about the refit
-    to_print = dict(old=info["hpi_results"][-2], new=info["hpi_results"][-1])
+    to_print = dict(old=old_results, new=results)
     for kind, result in to_print.items():
         this_order = result["order"]
         msg = f"  {kind.capitalize()} order {this_order} errors: "
         # errors
         this_dev_head_t = result["coord_trans"]
         this_hpi_dev = np.array([d["r"] for d in result["dig_points"]]).astype(float)
-        diffs = apply_trans(this_dev_head_t, this_hpi_dev[this_order - 1]) - hpi_head
+        diffs = apply_trans(this_dev_head_t, this_hpi_dev) - hpi_head[this_order - 1]
         dists = 1e3 * np.linalg.norm(diffs, axis=1)
         for dist in dists:
             msg += f"{dist:5.1f} "
         msg += "mm"
         logger.info(msg)
-    # TODO: Error in maxfilter when we append, so we overwrite instead:
-    # x = info["hpi_meas"].pop(-1)
-    # info["hpi_meas"][-1] = x
-    # y = info["hpi_results"].pop(-1)
-    # info["hpi_results"][-1] = y
+    # In theory these are lists, but it seems like maxfilter only likes having a single
+    # entry. At some point we should try recording data where multiple fits are stored
+    # (maybe there actually aren't any...)
+    info["hpi_meas"][-1] = meas
+    info["hpi_results"][-1] = result
+    return info
 
 
 def _sorted_hpi_dig(dig, *, kinds=(FIFF.FIFFV_POINT_HPI,)):

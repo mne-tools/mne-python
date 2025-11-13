@@ -1,1 +1,1 @@
-Add ability to refit HPI order and device-to-head transform via :func:`mne.chpi.refit_hpi_order` by `Eric Larson`_.
+Add ability to refit HPI order and device-to-head transform via :func:`mne.chpi.refit_hpi` by `Eric Larson`_.

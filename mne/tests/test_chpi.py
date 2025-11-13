@@ -28,7 +28,7 @@ from mne.chpi import (
     get_chpi_info,
     head_pos_to_trans_rot_t,
     read_head_pos,
-    refit_hpi_order,
+    refit_hpi,
     write_head_pos,
 )
 from mne.datasets import testing
@@ -42,7 +42,7 @@ from mne.io import (
     read_raw_kit,
 )
 from mne.simulation import add_chpi
-from mne.transforms import _angle_between_quats, rot_to_quat
+from mne.transforms import _angle_between_quats, _angle_dist_between_rigid, rot_to_quat
 from mne.utils import (
     _record_warnings,
     assert_meg_snr,
@@ -68,6 +68,7 @@ chpi5_fif_fname = data_path / "SSS" / "chpi5_raw.fif"
 chpi5_pos_fname = data_path / "SSS" / "chpi5_raw_mc.pos"
 ctf_chpi_fname = data_path / "CTF" / "testdata_ctf_mc.ds"
 ctf_chpi_pos_fname = data_path / "CTF" / "testdata_ctf_mc.pos"
+chpi_problem_fname = data_path / "SSS" / "chpi_problematic-info.fif"
 
 art_fname = (
     data_path
@@ -876,7 +877,7 @@ def assert_slopes_correlated(actual_meas, desired_meas, *, lim=(0.99, 1.0)):
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
-def test_refit_hpi_locs():
+def test_refit_hpi_locs_basic():
     """Test that HPI locations can be refit."""
     raw = read_raw_fif(chpi_fif_fname, allow_maxshield="yes").crop(0, 2).load_data()
     # These should be similar (and both should work)
@@ -890,17 +891,17 @@ def test_refit_hpi_locs():
     # Refit on these data won't change much
     info_new = info.copy()
     assert len(info["hpi_results"][-1]["used"]) == 3
-    refit_hpi_order(info_new, compute_amplitudes=False, compute_locs=False, max_use=3)
-    assert len(info_new["hpi_results"]) == len(info["hpi_results"]) + 1
-    assert len(info_new["hpi_meas"]) == len(info["hpi_meas"]) + 1
+    refit_hpi(info_new, compute_amplitudes=False, compute_locs=False, use=3)
+    assert len(info_new["hpi_results"]) == len(info["hpi_results"]) == 1
+    assert len(info_new["hpi_meas"]) == len(info["hpi_meas"]) == 1
     assert_trans(
         info_new["dev_head_t"],
         info["dev_head_t"],
         dist_tol=0.1e-3,
         angle_tol=0.1,
     )
-    # Refit with more coils than hpifit (our default is max_use=None)
-    refit_hpi_order(info_new, compute_amplitudes=False, compute_locs=False)
+    # Refit with more coils than hpifit (our default is use=None)
+    refit_hpi(info_new, compute_amplitudes=False, compute_locs=False)
     assert len(info_new["hpi_results"][-1]["used"]) == 5
     assert_trans(
         info_new["dev_head_t"],
@@ -909,7 +910,7 @@ def test_refit_hpi_locs():
         angle_tol=2,
     )
     # Refit locations
-    refit_hpi_order(info_new, compute_amplitudes=False)  # default: compute_locs=True
+    refit_hpi(info_new, compute_amplitudes=False)  # default: compute_locs=True
     assert_trans(
         info_new["dev_head_t"],
         info["dev_head_t"],
@@ -925,9 +926,9 @@ def test_refit_hpi_locs():
         lim=(0.999999, 1.0),
     )
     with pytest.raises(ValueError, match="must also be True"):
-        refit_hpi_order(info_new, compute_locs=False)
+        refit_hpi(info_new, compute_locs=False)
     # Refit locations and amplitudes (with ext_order=0 just to make sure it works)
-    refit_hpi_order(info_new, ext_order=0)
+    refit_hpi(info_new, ext_order=0)
     assert_trans(
         info_new["dev_head_t"],
         info["dev_head_t"],
@@ -941,4 +942,59 @@ def test_refit_hpi_locs():
         info_new["hpi_meas"][-1], info["hpi_meas"][-1], lim=(0.99, 0.999999)
     )
 
-    # TODO: Show that it can fix problematic info
+
+@testing.requires_testing_data
+def test_refit_hpi_locs_problematic():
+    """Test that we can fix problematic HPI fits."""
+    info_bad = read_info(chpi_problem_fname)
+    ang, dist = _angle_dist_between_rigid(
+        info_bad["dev_head_t"]["trans"], angle_units="deg", distance_units="mm"
+    )
+    assert_allclose(ang, 177, atol=1)  # upside-down!
+    assert_allclose(dist, 61, atol=1)
+    orig_order = [4, 2, 1, 3, 5]
+    good_order = [1, 2, 4, 3, 5]
+    assert_array_equal(info_bad["hpi_results"][-1]["order"], orig_order)
+    orig_use = info_bad["hpi_results"][-1]["used"]
+    assert_array_equal(orig_use, [2, 3, 5])
+    with pytest.warns(RuntimeWarning, match="may be unstable"):
+        info_new = refit_hpi(
+            info_bad.copy(),
+            amplitudes=False,
+            locs=False,
+            order=False,
+            use=orig_use - 1,
+            dist_limit=np.inf,
+        )
+    assert_array_equal(info_new["hpi_results"][-1]["order"], orig_order)
+    assert_array_equal(info_new["hpi_results"][-1]["used"], orig_use)
+    assert_trans(
+        info_new["dev_head_t"],
+        info_bad["dev_head_t"],
+        dist_tol=1e-3,
+        angle_tol=1,
+    )
+    # Even just allowing our permutation checker to run helps
+    with pytest.raises(RuntimeError, match="need at least 3"):
+        refit_hpi(info_bad.copy(), amplitudes=False, locs=False, order=False)
+    info_new = refit_hpi(info_bad.copy(), amplitudes=False, locs=False, dist_limit=0.02)
+    assert_array_equal(info_new["hpi_results"][-1]["order"], good_order)
+    ang, dist = _angle_dist_between_rigid(
+        info_new["dev_head_t"]["trans"],
+        angle_units="deg",
+        distance_units="mm",
+    )
+    assert 10 < ang < 15  # much more upright!
+    assert 75 < dist < 80
+    with pytest.warns(RuntimeWarning, match="Discrepancy"):
+        # We can run this with amplitudes=True, but it's much faster not to
+        # (and the result is very similar)
+        info_new = refit_hpi(info_bad.copy(), amplitudes=False, dist_limit=0.01)
+    assert_array_equal(info_new["hpi_results"][-1]["order"], good_order)
+    ang, dist = _angle_dist_between_rigid(
+        info_new["dev_head_t"]["trans"],
+        angle_units="deg",
+        distance_units="mm",
+    )
+    assert 3 < ang < 6
+    assert 82 < dist < 87
